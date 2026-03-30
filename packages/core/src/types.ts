@@ -19,8 +19,8 @@ import type {
 import type { z } from 'zod';
 import type { TUserPrompt } from './common';
 import { restoreImageReferences } from './dump/image-restoration';
+import { ScreenshotStore } from './dump/screenshot-store';
 import { ScreenshotItem } from './screenshot-item';
-import { ScreenshotStore } from './screenshot-store';
 import type {
   DetailedLocateParam,
   MidsceneYamlFlowItem,

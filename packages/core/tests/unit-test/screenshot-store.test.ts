@@ -8,8 +8,8 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ScreenshotStore } from '../../src/dump/screenshot-store';
 import { ScreenshotItem } from '../../src/screenshot-item';
-import { ScreenshotStore } from '../../src/screenshot-store';
 
 describe('ScreenshotStore', () => {
   const pngBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA';

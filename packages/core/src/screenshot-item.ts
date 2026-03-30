@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { uuid } from '@midscene/shared/utils';
 import { extractImageByIdSync } from './dump/html-utils';
-import type { ScreenshotRef } from './screenshot-store';
+import type { ScreenshotRef } from './dump/screenshot-store';
 
 /**
  * Serialization format for ScreenshotItem

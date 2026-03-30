@@ -11,7 +11,7 @@ import {
   generateImageScriptTag,
   getBaseUrlFixScript,
 } from './dump/html-utils';
-import { ScreenshotStore } from './screenshot-store';
+import { ScreenshotStore } from './dump/screenshot-store';
 import { type ExecutionDump, ReportActionDump, type ReportMeta } from './types';
 import { appendFileSync, getReportTpl } from './utils';
 

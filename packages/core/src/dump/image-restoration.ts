@@ -1,7 +1,4 @@
-import {
-  type ScreenshotRef,
-  normalizeScreenshotRef,
-} from '../screenshot-store';
+import { type ScreenshotRef, normalizeScreenshotRef } from './screenshot-store';
 
 /**
  * Recursively restore image references in parsed data.
