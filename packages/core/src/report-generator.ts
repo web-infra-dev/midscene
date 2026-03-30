@@ -58,6 +58,7 @@ export class ReportGenerator implements IReportGenerator {
   private autoPrint: boolean;
   private firstWriteDone = false;
   private executionLogIndex = 0;
+  private executionLogFileIndexByExecutionKey = new Map<string, number>();
 
   // Unique identifier for this report stream — used as data-group-id
   private readonly reportStreamId: string;
@@ -190,7 +191,7 @@ export class ReportGenerator implements IReportGenerator {
       this.writeDirectoryExecution(execution, singleDump);
     }
 
-    this.persistExecutionDump(singleDump);
+    this.persistExecutionDump(execution, singleDump);
 
     if (!this.firstWriteDone) {
       this.firstWriteDone = true;
@@ -284,14 +285,32 @@ export class ReportGenerator implements IReportGenerator {
     );
   }
 
-  private persistExecutionDump(singleDump: ReportActionDump): void {
+  private getExecutionLogKey(execution: ExecutionDump): string {
+    if (execution.id) return `id:${execution.id}`;
+    if (execution.name) return `name:${execution.name}`;
+    return `log-time:${execution.logTime}`;
+  }
+
+  private persistExecutionDump(
+    execution: ExecutionDump,
+    singleDump: ReportActionDump,
+  ): void {
     if (!existsSync(this.executionLogDir)) {
       mkdirSync(this.executionLogDir, { recursive: true });
     }
 
-    this.executionLogIndex += 1;
-    const fileName = `${this.executionLogIndex}.json`;
+    const executionLogKey = this.getExecutionLogKey(execution);
+    let fileIndex =
+      this.executionLogFileIndexByExecutionKey.get(executionLogKey);
+    if (!fileIndex) {
+      this.executionLogIndex += 1;
+      fileIndex = this.executionLogIndex;
+      this.executionLogFileIndexByExecutionKey.set(executionLogKey, fileIndex);
+    }
+
+    const fileName = `${fileIndex}.json`;
     const filePath = join(this.executionLogDir, fileName);
+    ReportActionDump.cleanupFiles(filePath);
     singleDump.serializeToFiles(filePath);
   }
 }

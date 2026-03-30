@@ -188,7 +188,7 @@ describe('ReportGenerator — append-only model', () => {
       expect(countGroupedDumpScripts(html)).toBe(3);
     });
 
-    it('should persist each execution dump as numbered json files', async () => {
+    it('should replace persisted execution dump file for same execution id', async () => {
       const reportPath = join(tmpDir, 'inline-execution-json.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -208,7 +208,7 @@ describe('ReportGenerator — append-only model', () => {
       const jsonFiles = readdirSync(executionDir)
         .filter((name) => /^\d+\.json$/.test(name))
         .sort();
-      expect(jsonFiles).toEqual(['1.json', '2.json']);
+      expect(jsonFiles).toEqual(['1.json']);
       expect(existsSync(join(executionDir, '1.json.screenshots'))).toBe(true);
       expect(existsSync(join(executionDir, '1.json.screenshots.json'))).toBe(
         true,
@@ -297,6 +297,12 @@ describe('ReportGenerator — append-only model', () => {
       // Should have 2 dump tags
       const dumpScripts = extractGroupedDumpScripts(html);
       expect(dumpScripts).toHaveLength(2);
+
+      const executionDir = join(tmpDir, 'executions');
+      const jsonFiles = readdirSync(executionDir)
+        .filter((name) => /^\d+\.json$/.test(name))
+        .sort();
+      expect(jsonFiles).toEqual(['1.json', '2.json']);
 
       // Each dump tag should contain exactly 1 execution
       for (const dumpScript of dumpScripts) {
@@ -481,13 +487,7 @@ describe('ReportGenerator — append-only model', () => {
       const jsonFiles = readdirSync(executionDir)
         .filter((name) => /^\d+\.json$/.test(name))
         .sort();
-      expect(jsonFiles).toEqual([
-        '1.json',
-        '2.json',
-        '3.json',
-        '4.json',
-        '5.json',
-      ]);
+      expect(jsonFiles).toEqual(['1.json']);
       expect(existsSync(join(executionDir, '1.json.screenshots'))).toBe(true);
       expect(existsSync(join(executionDir, '1.json.screenshots.json'))).toBe(
         true,
