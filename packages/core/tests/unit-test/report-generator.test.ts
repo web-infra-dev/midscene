@@ -216,7 +216,10 @@ describe('ReportGenerator — append-only model', () => {
       expect(firstDump.executions[0].name).toBe('execution-json-test');
       expect(
         firstDump.executions[0].tasks[0].uiContext.screenshot.base64,
-      ).toContain('data:image/png;base64,');
+      ).toMatch(/^\.\/screenshots\/[a-f0-9]{64}\.(png|jpeg)$/);
+
+      const screenshotsDir = join(tmpDir, 'screenshots');
+      expect(existsSync(screenshotsDir)).toBe(true);
     });
 
     it('should produce valid HTML with parseable image map and dump JSON', async () => {

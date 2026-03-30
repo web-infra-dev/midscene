@@ -65,6 +65,7 @@ export class ReportGenerator implements IReportGenerator {
 
   // Tracks screenshots already written to disk (by id) to avoid duplicates
   private writtenScreenshots = new Set<string>();
+  private inlineImageScriptWritten = new Set<string>();
   private screenshotHashToPath = new Map<string, string>();
   private initialized = false;
 
@@ -175,14 +176,13 @@ export class ReportGenerator implements IReportGenerator {
   ): void {
     const singleDump = this.wrapAsReportDump(execution, reportMeta);
     const inlineExecutionJson = singleDump.serializeWithInlineScreenshots();
+    const serialized = this.serializeWithExternalScreenshots(
+      singleDump,
+      inlineExecutionJson,
+    );
 
-    if (this.screenshotMode === 'inline') {
-      this.writeInlineExecution(execution, singleDump);
-    } else {
-      this.writeDirectoryExecution(singleDump, inlineExecutionJson);
-    }
-
-    this.persistExecutionDump(inlineExecutionJson);
+    this.writeHtmlDump(execution, serialized);
+    this.persistExecutionDump(serialized);
 
     if (!this.firstWriteDone) {
       this.firstWriteDone = true;
@@ -208,104 +208,81 @@ export class ReportGenerator implements IReportGenerator {
   }
 
   /**
-   * Append-only inline mode: write new screenshots and a dump tag on every call.
-   * The frontend deduplicates executions with the same id/name (keeps last).
-   * Duplicate dump JSON is acceptable; only screenshots are deduplicated.
+   * Convert inline execution JSON to path-based references and always persist
+   * screenshots to disk, regardless of report mode.
    */
-  private writeInlineExecution(
-    execution: ExecutionDump,
-    singleDump: ReportActionDump,
-  ): void {
-    const dir = dirname(this.reportPath);
-    if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true });
-    }
-
-    // Initialize: write HTML template once
-    if (!this.initialized) {
-      writeFileSync(this.reportPath, getReportTpl());
-      this.initialized = true;
-    }
-
-    // Append new screenshots (skip already-written ones)
-    const screenshots = execution.collectScreenshots();
-    for (const screenshot of screenshots) {
-      if (!this.writtenScreenshots.has(screenshot.id)) {
-        appendFileSync(
-          this.reportPath,
-          `\n${generateImageScriptTag(screenshot.id, screenshot.base64)}`,
-        );
-        this.writtenScreenshots.add(screenshot.id);
-        // Safe to release memory — the image tag is permanent (never truncated)
-        screenshot.markPersistedInline(this.reportPath);
-      }
-    }
-
-    // Append dump tag (always — frontend keeps only last per execution id)
-    const serialized = singleDump.serialize();
-    const attributes: Record<string, string> = {
-      'data-group-id': this.reportStreamId,
-    };
-    appendFileSync(
-      this.reportPath,
-      `\n${generateDumpScriptTag(serialized, attributes)}`,
-    );
-  }
-
-  private writeDirectoryExecution(
+  private serializeWithExternalScreenshots(
     singleDump: ReportActionDump,
     inlineExecutionJson: string,
-  ): void {
+  ): string {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
 
-    // create screenshots subdirectory
     const screenshotsDir = join(dir, 'screenshots');
     if (!existsSync(screenshotsDir)) {
       mkdirSync(screenshotsDir, { recursive: true });
     }
 
-    // 1. Convert inline execution JSON to directory-compatible dump:
-    //    - extract inline base64 screenshots to files
-    //    - dedupe same image content by hash
-    //    - output screenshot references as relative paths
     const serialized = convertExecutionInlineJsonToReportDump({
       serializedExecutionJson: inlineExecutionJson,
       screenshotsDir,
       hashToRelativePath: this.screenshotHashToPath,
     });
 
-    // 2. Keep ScreenshotItem lazy-load behavior for in-memory execution objects
     const screenshots = singleDump.collectAllScreenshots();
     for (const screenshot of screenshots) {
-      if (!this.writtenScreenshots.has(screenshot.id)) {
-        const hash = createHash('sha256')
-          .update(screenshot.base64)
-          .digest('hex');
-        const hashedPath = this.screenshotHashToPath.get(hash);
-        if (hashedPath) {
-          screenshot.markPersistedToPath(
-            hashedPath,
-            join(dir, hashedPath.replace('./', '')),
-          );
-        }
-        this.writtenScreenshots.add(screenshot.id);
+      if (this.writtenScreenshots.has(screenshot.id)) continue;
+      const hash = createHash('sha256').update(screenshot.base64).digest('hex');
+      const hashedPath = this.screenshotHashToPath.get(hash);
+      if (!hashedPath) {
+        throw new Error(`Missing screenshot path for hash ${hash}`);
+      }
+      screenshot.markPersistedToPath(
+        hashedPath,
+        join(dir, hashedPath.replace('./', '')),
+      );
+      this.writtenScreenshots.add(screenshot.id);
+    }
+
+    return serialized;
+  }
+
+  /**
+   * Write dump tags for all modes.
+   * Inline mode additionally appends inline image scripts for portability.
+   */
+  private writeHtmlDump(execution: ExecutionDump, serialized: string): void {
+    const dir = dirname(this.reportPath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+
+    if (!this.initialized) {
+      const baseHtml =
+        this.screenshotMode === 'directory'
+          ? `${getReportTpl()}${getBaseUrlFixScript()}`
+          : getReportTpl();
+      writeFileSync(this.reportPath, baseHtml);
+      this.initialized = true;
+    }
+
+    if (this.screenshotMode === 'inline') {
+      const screenshots = execution.collectScreenshots();
+      for (const screenshot of screenshots) {
+        if (this.inlineImageScriptWritten.has(screenshot.id)) continue;
+        appendFileSync(
+          this.reportPath,
+          `\n${generateImageScriptTag(screenshot.id, screenshot.base64)}`,
+        );
+        this.inlineImageScriptWritten.add(screenshot.id);
       }
     }
 
     const dumpAttributes: Record<string, string> = {
       'data-group-id': this.reportStreamId,
     };
-
-    if (!this.initialized) {
-      writeFileSync(
-        this.reportPath,
-        `${getReportTpl()}${getBaseUrlFixScript()}`,
-      );
-      this.initialized = true;
-    }
 
     appendFileSync(
       this.reportPath,
