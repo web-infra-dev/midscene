@@ -305,7 +305,7 @@ export class ReportGenerator implements IReportGenerator {
     }
 
     this.executionLogIndex += 1;
-    const fileName = `${String(this.executionLogIndex).padStart(6, '0')}.json`;
+    const fileName = `${this.executionLogIndex}.json`;
     const filePath = join(this.executionLogDir, fileName);
     writeFileSync(filePath, JSON.stringify(singleDump.toJSON(), null, 2));
   }
