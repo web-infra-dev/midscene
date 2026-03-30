@@ -6,8 +6,8 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { extractImageByIdSync } from './dump/html-utils';
-import type { ScreenshotItem } from './screenshot-item';
+import type { ScreenshotItem } from '../screenshot-item';
+import { extractImageByIdSync } from './html-utils';
 
 export interface ScreenshotRef {
   type: 'midscene_screenshot_ref';

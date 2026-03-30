@@ -18,7 +18,7 @@ import type {
 } from '@midscene/shared/types';
 import type { z } from 'zod';
 import type { TUserPrompt } from './common';
-import { restoreImageReferences } from './dump/image-restoration';
+import { restoreImageReferences } from './dump/screenshot-restoration';
 import { ScreenshotStore } from './dump/screenshot-store';
 import { ScreenshotItem } from './screenshot-item';
 import type {

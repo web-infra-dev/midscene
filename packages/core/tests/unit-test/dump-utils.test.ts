@@ -92,7 +92,7 @@ describe('dump/html-utils', () => {
   });
 });
 
-describe('dump/image-restoration', () => {
+describe('dump/screenshot-restoration', () => {
   const imageMap: Record<string, string> = {
     img1: 'data:image/png;base64,abc123',
     img2: 'data:image/png;base64,def456',
