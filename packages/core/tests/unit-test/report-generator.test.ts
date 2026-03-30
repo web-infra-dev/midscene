@@ -188,6 +188,34 @@ describe('ReportGenerator — append-only model', () => {
       expect(countGroupedDumpScripts(html)).toBe(3);
     });
 
+    it('should persist each execution dump as numbered json files', async () => {
+      const reportPath = join(tmpDir, 'inline-execution-json.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+
+      const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
+      const execution = createExecution([screenshot], 'execution-json-test');
+
+      generator.onExecutionUpdate(execution, defaultReportMeta);
+      await generator.flush();
+      generator.onExecutionUpdate(execution, defaultReportMeta);
+      await generator.flush();
+
+      const executionDir = join(tmpDir, 'executions');
+      const jsonFiles = readdirSync(executionDir).sort();
+      expect(jsonFiles).toEqual(['000001.json', '000002.json']);
+
+      const firstDump = JSON.parse(
+        readFileSync(join(executionDir, '000001.json'), 'utf-8'),
+      );
+      expect(firstDump.groupName).toBe('test-group');
+      expect(firstDump.executions).toHaveLength(1);
+      expect(firstDump.executions[0].name).toBe('execution-json-test');
+    });
+
     it('should produce valid HTML with parseable image map and dump JSON', async () => {
       const reportPath = join(tmpDir, 'valid-html-test.html');
       const generator = new ReportGenerator({
@@ -442,6 +470,16 @@ describe('ReportGenerator — append-only model', () => {
       const html = readFileSync(reportPath, 'utf-8');
       // Should have 5 dump tags total (1 + 4 updates)
       expect(countGroupedDumpScripts(html)).toBe(5);
+
+      const executionDir = join(reportDir, 'executions');
+      const jsonFiles = readdirSync(executionDir).sort();
+      expect(jsonFiles).toEqual([
+        '000001.json',
+        '000002.json',
+        '000003.json',
+        '000004.json',
+        '000005.json',
+      ]);
     });
 
     it('should produce valid HTML structure in directory mode', async () => {

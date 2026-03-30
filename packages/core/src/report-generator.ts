@@ -52,9 +52,11 @@ export const nullReportGenerator: IReportGenerator = {
 
 export class ReportGenerator implements IReportGenerator {
   private reportPath: string;
+  private executionLogDir: string;
   private screenshotMode: 'inline' | 'directory';
   private autoPrint: boolean;
   private firstWriteDone = false;
+  private executionLogIndex = 0;
 
   // Unique identifier for this report stream — used as data-group-id
   private readonly reportStreamId: string;
@@ -77,6 +79,7 @@ export class ReportGenerator implements IReportGenerator {
     autoPrint?: boolean;
   }) {
     this.reportPath = options.reportPath;
+    this.executionLogDir = join(dirname(this.reportPath), 'executions');
     this.screenshotMode = options.screenshotMode;
     this.autoPrint = options.autoPrint ?? true;
     this.reportStreamId = uuid();
@@ -167,11 +170,16 @@ export class ReportGenerator implements IReportGenerator {
     execution: ExecutionDump,
     reportMeta: ReportMeta,
   ): void {
+    const singleDump = this.wrapAsReportDump(execution, reportMeta);
+
     if (this.screenshotMode === 'inline') {
-      this.writeInlineExecution(execution, reportMeta);
+      this.writeInlineExecution(execution, singleDump);
     } else {
-      this.writeDirectoryExecution(execution, reportMeta);
+      this.writeDirectoryExecution(execution, singleDump);
     }
+
+    this.persistExecutionDump(singleDump);
+
     if (!this.firstWriteDone) {
       this.firstWriteDone = true;
       this.printReportPath('generated');
@@ -202,7 +210,7 @@ export class ReportGenerator implements IReportGenerator {
    */
   private writeInlineExecution(
     execution: ExecutionDump,
-    reportMeta: ReportMeta,
+    singleDump: ReportActionDump,
   ): void {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
@@ -230,7 +238,6 @@ export class ReportGenerator implements IReportGenerator {
     }
 
     // Append dump tag (always — frontend keeps only last per execution id)
-    const singleDump = this.wrapAsReportDump(execution, reportMeta);
     const serialized = singleDump.serialize();
     const attributes: Record<string, string> = {
       'data-group-id': this.reportStreamId,
@@ -243,7 +250,7 @@ export class ReportGenerator implements IReportGenerator {
 
   private writeDirectoryExecution(
     execution: ExecutionDump,
-    reportMeta: ReportMeta,
+    singleDump: ReportActionDump,
   ): void {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
@@ -273,7 +280,6 @@ export class ReportGenerator implements IReportGenerator {
     }
 
     // 2. Append dump tag (always — frontend keeps only last per execution id)
-    const singleDump = this.wrapAsReportDump(execution, reportMeta);
     const serialized = singleDump.serialize();
     const dumpAttributes: Record<string, string> = {
       'data-group-id': this.reportStreamId,
@@ -291,5 +297,16 @@ export class ReportGenerator implements IReportGenerator {
       this.reportPath,
       `\n${generateDumpScriptTag(serialized, dumpAttributes)}`,
     );
+  }
+
+  private persistExecutionDump(singleDump: ReportActionDump): void {
+    if (!existsSync(this.executionLogDir)) {
+      mkdirSync(this.executionLogDir, { recursive: true });
+    }
+
+    this.executionLogIndex += 1;
+    const fileName = `${String(this.executionLogIndex).padStart(6, '0')}.json`;
+    const filePath = join(this.executionLogDir, fileName);
+    writeFileSync(filePath, JSON.stringify(singleDump.toJSON(), null, 2));
   }
 }
