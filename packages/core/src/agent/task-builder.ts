@@ -46,6 +46,51 @@ function hasNonEmptyCache(cache: unknown): boolean {
   );
 }
 
+function isFiniteRect(rect: Rect | undefined | null): rect is Rect {
+  return !!(
+    rect &&
+    Number.isFinite(rect.left) &&
+    Number.isFinite(rect.top) &&
+    Number.isFinite(rect.width) &&
+    Number.isFinite(rect.height)
+  );
+}
+
+function rectContainsPoint(rect: Rect, point: [number, number]): boolean {
+  return (
+    point[0] >= rect.left &&
+    point[0] <= rect.left + rect.width &&
+    point[1] >= rect.top &&
+    point[1] <= rect.top + rect.height
+  );
+}
+
+function isCacheRectCompatibleWithLocatedElement(
+  locatedRect: Rect,
+  cacheRect: Rect,
+  locatedCenter: [number, number],
+): boolean {
+  if (!rectContainsPoint(cacheRect, locatedCenter)) {
+    return false;
+  }
+
+  const locatedArea = Math.max(locatedRect.width * locatedRect.height, 1);
+  const cacheArea = Math.max(cacheRect.width * cacheRect.height, 1);
+  const maxDimensionRatio = Math.max(
+    cacheRect.width / Math.max(locatedRect.width, 1),
+    cacheRect.height / Math.max(locatedRect.height, 1),
+  );
+  const areaRatio = cacheArea / locatedArea;
+
+  // Tiny point-like locations should not be rewritten into huge background
+  // containers such as <video> or page-level wrappers.
+  if (maxDimensionRatio > 40 && areaRatio > 500) {
+    return false;
+  }
+
+  return true;
+}
+
 export function locatePlanForLocate(param: string | DetailedLocateParam) {
   const locate = typeof param === 'string' ? { prompt: param } : param;
   const locatePlan: PlanningAction<PlanningLocateParam> = {
@@ -575,20 +620,62 @@ export class TaskBuilder {
                 },
               );
               if (hasNonEmptyCache(feature)) {
-                debug(
-                  'update cache, prompt: %s, cache: %o',
-                  cachePrompt,
-                  feature,
-                );
-                currentCacheEntry = feature;
-                this.taskCache.updateOrAppendCacheRecord(
-                  {
-                    type: 'locate',
-                    prompt: cachePrompt,
-                    cache: feature,
-                  },
-                  locateCacheRecord,
-                );
+                let shouldPersistCache = true;
+
+                if (this.interface.rectMatchesCacheFeature) {
+                  try {
+                    const cacheRect =
+                      await this.interface.rectMatchesCacheFeature(feature);
+
+                    if (isFiniteRect(cacheRect)) {
+                      const cacheRectInScreenshot =
+                        transformLogicalRectToScreenshotRect(
+                          cacheRect,
+                          shrunkShotToLogicalRatio,
+                        );
+
+                      if (
+                        !isCacheRectCompatibleWithLocatedElement(
+                          element.rect,
+                          cacheRectInScreenshot,
+                          element.center,
+                        )
+                      ) {
+                        shouldPersistCache = false;
+                        debug(
+                          'skip cache update because cache rect mismatches located element, prompt: %s, elementRect: %o, cacheRect: %o',
+                          cachePrompt,
+                          element.rect,
+                          cacheRectInScreenshot,
+                        );
+                      }
+                    }
+                  } catch (error) {
+                    shouldPersistCache = false;
+                    debug(
+                      'skip cache update because cache feature validation failed, prompt: %s, error: %s',
+                      cachePrompt,
+                      error,
+                    );
+                  }
+                }
+
+                if (shouldPersistCache) {
+                  debug(
+                    'update cache, prompt: %s, cache: %o',
+                    cachePrompt,
+                    feature,
+                  );
+                  currentCacheEntry = feature;
+                  this.taskCache.updateOrAppendCacheRecord(
+                    {
+                      type: 'locate',
+                      prompt: cachePrompt,
+                      cache: feature,
+                    },
+                    locateCacheRecord,
+                  );
+                }
               } else {
                 debug(
                   'no cache data returned, skip cache update, prompt: %s',

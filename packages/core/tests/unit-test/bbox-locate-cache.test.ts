@@ -210,6 +210,71 @@ describe('bbox locate cache fix', () => {
       expect(cachedLocate?.cache?.xpaths).toContain('/html/body/input[1]');
     });
 
+    it('should skip cache write when point cache resolves to a much larger container', async () => {
+      vi.mocked(mockInterface.cacheFeatureForPoint!).mockResolvedValue({
+        xpaths: ['/html/body/video[1]'],
+      });
+      vi.mocked(mockInterface.rectMatchesCacheFeature!).mockResolvedValue({
+        left: 353,
+        top: 217,
+        width: 800,
+        height: 500,
+      });
+      vi.mocked(mockService.locate).mockResolvedValue({
+        element: {
+          id: 'tiny-overlay-control',
+          center: [718, 689],
+          rect: { left: 715, top: 686, width: 8, height: 8 },
+          xpaths: ['/html/body/div[5]/div[11]/div/div[1]/div[3]'],
+          attributes: {},
+        },
+        dump: {},
+      } as Awaited<ReturnType<Service['locate']>>);
+
+      const plans = [
+        {
+          type: 'Locate',
+          param: {
+            prompt: 'video overlay pin',
+          },
+          thought: 'find the overlay pin',
+        },
+      ];
+
+      const { tasks } = await taskBuilder.build(
+        plans,
+        mockModelConfig,
+        mockModelConfig,
+        { cacheable: true },
+      );
+
+      const locateTask = tasks.find((task) => task.subType === 'Locate');
+      expect(locateTask).toBeDefined();
+
+      const result = await locateTask!.executor(locateTask!.param, {
+        task: {
+          type: 'Planning',
+          subType: 'Locate',
+          param: locateTask!.param,
+          status: 'running',
+          timing: { start: Date.now(), end: 0, cost: 0 },
+          executor: locateTask!.executor,
+        },
+        uiContext: await createMockUIContext(validBase64Image),
+      });
+
+      expect(result?.output.element.rect).toEqual({
+        left: 715,
+        top: 686,
+        width: 8,
+        height: 8,
+      });
+
+      expect(
+        findLocateCacheByPrompt(taskCache, 'video overlay pin'),
+      ).toBeUndefined();
+    });
+
     it('should not call AI locate when bbox is available', async () => {
       const plansWithBbox = [
         {
@@ -601,11 +666,18 @@ describe('bbox locate cache fix', () => {
       internal.cacheOriginalLength = 1;
 
       // 2. Mock rectMatchesCacheFeature to reject (simulates xpath validation failure)
-      vi.mocked(mockInterface.rectMatchesCacheFeature!).mockRejectedValue(
-        new Error(
-          'No matching element rect found for the provided cache feature',
-        ),
-      );
+      vi.mocked(mockInterface.rectMatchesCacheFeature!)
+        .mockRejectedValueOnce(
+          new Error(
+            'No matching element rect found for the provided cache feature',
+          ),
+        )
+        .mockResolvedValue({
+          left: 550,
+          top: 380,
+          width: 100,
+          height: 40,
+        });
 
       // 3. Mock AI locate to return new element with new xpath
       vi.mocked(mockService.locate).mockResolvedValue({
@@ -708,9 +780,14 @@ describe('bbox locate cache fix', () => {
       internal.cacheOriginalLength = 1;
 
       // Mock validation failure
-      vi.mocked(mockInterface.rectMatchesCacheFeature!).mockRejectedValue(
-        new Error('Element not found'),
-      );
+      vi.mocked(mockInterface.rectMatchesCacheFeature!)
+        .mockRejectedValueOnce(new Error('Element not found'))
+        .mockResolvedValue({
+          left: 450,
+          top: 280,
+          width: 100,
+          height: 40,
+        });
 
       // Mock AI locate success with new xpath
       vi.mocked(mockService.locate).mockResolvedValue({
