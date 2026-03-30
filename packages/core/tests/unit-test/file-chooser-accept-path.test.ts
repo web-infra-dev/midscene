@@ -88,7 +88,7 @@ describe('fileChooserAccept relative path support', () => {
       (agent as any).normalizeFileInput('./non-existent-file.txt');
     }).toThrow(
       new RegExp(
-        `File not found: \\./non-existent-file\\.txt\\. Resolved path: .*non-existent-file\\.txt\\. cwd: ${process.cwd().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
+        `File not found: \\./non-existent-file\\.txt\\. Resolved to: .*non-existent-file\\.txt\\. Current working directory: ${process.cwd().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
       ),
     );
   });
@@ -100,7 +100,7 @@ describe('fileChooserAccept relative path support', () => {
       }),
     ).rejects.toThrow(
       new RegExp(
-        `File not found: \\./tests/ai/fixtures/missing-upload-image\\.png\\. Resolved path: .*missing-upload-image\\.png\\. cwd: ${process.cwd().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
+        `File not found: \\./tests/ai/fixtures/missing-upload-image\\.png\\. Resolved to: .*missing-upload-image\\.png\\. Current working directory: ${process.cwd().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
       ),
     );
   });

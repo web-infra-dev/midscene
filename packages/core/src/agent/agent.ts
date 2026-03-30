@@ -1528,7 +1528,7 @@ export class Agent<
       const absolutePath = resolve(file);
       if (!existsSync(absolutePath)) {
         throw new Error(
-          `File not found: ${file}. Resolved path: ${absolutePath}. cwd: ${process.cwd()}`,
+          `File not found: ${file}. Resolved to: ${absolutePath}. Current working directory: ${process.cwd()}`,
         );
       }
       return absolutePath;
