@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
@@ -6,6 +7,7 @@ import {
   globalConfigManager,
 } from '@midscene/shared/env';
 import { ifInBrowser, logMsg, uuid } from '@midscene/shared/utils';
+import { convertExecutionInlineJsonToReportDump } from './dump/execution-json-converter';
 import {
   generateDumpScriptTag,
   generateImageScriptTag,
@@ -63,6 +65,7 @@ export class ReportGenerator implements IReportGenerator {
 
   // Tracks screenshots already written to disk (by id) to avoid duplicates
   private writtenScreenshots = new Set<string>();
+  private screenshotHashToPath = new Map<string, string>();
   private initialized = false;
 
   // Tracks the last execution + groupMeta for re-writing on finalize
@@ -171,14 +174,15 @@ export class ReportGenerator implements IReportGenerator {
     reportMeta: ReportMeta,
   ): void {
     const singleDump = this.wrapAsReportDump(execution, reportMeta);
+    const inlineExecutionJson = singleDump.serializeWithInlineScreenshots();
 
     if (this.screenshotMode === 'inline') {
       this.writeInlineExecution(execution, singleDump);
     } else {
-      this.writeDirectoryExecution(execution, singleDump);
+      this.writeDirectoryExecution(singleDump, inlineExecutionJson);
     }
 
-    this.persistExecutionDump(singleDump);
+    this.persistExecutionDump(inlineExecutionJson);
 
     if (!this.firstWriteDone) {
       this.firstWriteDone = true;
@@ -249,8 +253,8 @@ export class ReportGenerator implements IReportGenerator {
   }
 
   private writeDirectoryExecution(
-    execution: ExecutionDump,
     singleDump: ReportActionDump,
+    inlineExecutionJson: string,
   ): void {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
@@ -263,24 +267,34 @@ export class ReportGenerator implements IReportGenerator {
       mkdirSync(screenshotsDir, { recursive: true });
     }
 
-    // 1. Write new screenshots and release memory immediately
-    const screenshots = execution.collectScreenshots();
+    // 1. Convert inline execution JSON to directory-compatible dump:
+    //    - extract inline base64 screenshots to files
+    //    - dedupe same image content by hash
+    //    - output screenshot references as relative paths
+    const serialized = convertExecutionInlineJsonToReportDump({
+      serializedExecutionJson: inlineExecutionJson,
+      screenshotsDir,
+      hashToRelativePath: this.screenshotHashToPath,
+    });
+
+    // 2. Keep ScreenshotItem lazy-load behavior for in-memory execution objects
+    const screenshots = singleDump.collectAllScreenshots();
     for (const screenshot of screenshots) {
       if (!this.writtenScreenshots.has(screenshot.id)) {
-        const ext = screenshot.extension;
-        const absolutePath = join(screenshotsDir, `${screenshot.id}.${ext}`);
-        const buffer = Buffer.from(screenshot.rawBase64, 'base64');
-        writeFileSync(absolutePath, buffer);
+        const hash = createHash('sha256')
+          .update(screenshot.base64)
+          .digest('hex');
+        const hashedPath = this.screenshotHashToPath.get(hash);
+        if (hashedPath) {
+          screenshot.markPersistedToPath(
+            hashedPath,
+            join(dir, hashedPath.replace('./', '')),
+          );
+        }
         this.writtenScreenshots.add(screenshot.id);
-        screenshot.markPersistedToPath(
-          `./screenshots/${screenshot.id}.${ext}`,
-          absolutePath,
-        );
       }
     }
 
-    // 2. Append dump tag (always — frontend keeps only last per execution id)
-    const serialized = singleDump.serialize();
     const dumpAttributes: Record<string, string> = {
       'data-group-id': this.reportStreamId,
     };
@@ -299,7 +313,7 @@ export class ReportGenerator implements IReportGenerator {
     );
   }
 
-  private persistExecutionDump(singleDump: ReportActionDump): void {
+  private persistExecutionDump(serializedExecutionJson: string): void {
     if (!existsSync(this.executionLogDir)) {
       mkdirSync(this.executionLogDir, { recursive: true });
     }
@@ -307,6 +321,6 @@ export class ReportGenerator implements IReportGenerator {
     this.executionLogIndex += 1;
     const fileName = `${this.executionLogIndex}.json`;
     const filePath = join(this.executionLogDir, fileName);
-    writeFileSync(filePath, JSON.stringify(singleDump.toJSON(), null, 2));
+    writeFileSync(filePath, serializedExecutionJson);
   }
 }

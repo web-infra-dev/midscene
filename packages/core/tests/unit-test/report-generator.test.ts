@@ -214,6 +214,9 @@ describe('ReportGenerator — append-only model', () => {
       expect(firstDump.groupName).toBe('test-group');
       expect(firstDump.executions).toHaveLength(1);
       expect(firstDump.executions[0].name).toBe('execution-json-test');
+      expect(
+        firstDump.executions[0].tasks[0].uiContext.screenshot.base64,
+      ).toContain('data:image/png;base64,');
     });
 
     it('should produce valid HTML with parseable image map and dump JSON', async () => {
@@ -348,7 +351,7 @@ describe('ReportGenerator — append-only model', () => {
   });
 
   describe('directory mode — incremental PNG writes', () => {
-    it('should write each screenshot as a PNG file exactly once', async () => {
+    it('should dedupe identical PNG screenshots by content hash', async () => {
       const reportDir = join(tmpDir, 'dir-test');
       const reportPath = join(reportDir, 'index.html');
       const generator = new ReportGenerator({
@@ -379,11 +382,8 @@ describe('ReportGenerator — append-only model', () => {
       const pngFiles = readdirSync(screenshotsDir).filter((f) =>
         f.endsWith('.png'),
       );
-      expect(pngFiles).toHaveLength(rounds);
-
-      for (const s of allScreenshots) {
-        expect(existsSync(join(screenshotsDir, `${s.id}.png`))).toBe(true);
-      }
+      // same fake image payload for each round -> one file after hash dedupe
+      expect(pngFiles).toHaveLength(1);
     });
 
     it('should write JPEG screenshots with .jpeg extension', async () => {
@@ -409,12 +409,9 @@ describe('ReportGenerator — append-only model', () => {
       await generator.flush();
 
       const screenshotsDir = join(reportDir, 'screenshots');
-      expect(
-        existsSync(join(screenshotsDir, `${jpegScreenshot.id}.jpeg`)),
-      ).toBe(true);
-      expect(existsSync(join(screenshotsDir, `${pngScreenshot.id}.png`))).toBe(
-        true,
-      );
+      const files = readdirSync(screenshotsDir);
+      expect(files.some((file) => file.endsWith('.jpeg'))).toBe(true);
+      expect(files.some((file) => file.endsWith('.png'))).toBe(true);
     });
 
     it('should not re-write existing PNG files on subsequent updates', async () => {
@@ -432,7 +429,10 @@ describe('ReportGenerator — append-only model', () => {
       generator.onExecutionUpdate(execution, defaultReportMeta);
       await generator.flush();
       const screenshotsDir = join(reportDir, 'screenshots');
-      const pngPath = join(screenshotsDir, `${screenshot.id}.png`);
+      const [pngFileName] = readdirSync(screenshotsDir).filter((f) =>
+        f.endsWith('.png'),
+      );
+      const pngPath = join(screenshotsDir, pngFileName);
       const mtimeFirst = statSync(pngPath).mtimeMs;
 
       const startTime = Date.now();
@@ -523,7 +523,6 @@ describe('ReportGenerator — append-only model', () => {
       });
 
       const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
-      const screenshotId = screenshot.id;
       const execution = createExecution([screenshot]);
 
       generator.onExecutionUpdate(execution, defaultReportMeta);
@@ -539,7 +538,9 @@ describe('ReportGenerator — append-only model', () => {
       const screenshotRef = dumpObj.executions[0].tasks[0].uiContext.screenshot;
       expect(screenshotRef).toHaveProperty('base64');
       expect(screenshotRef.base64).toContain('screenshots');
-      expect(screenshotRef.base64).toContain(screenshotId);
+      expect(screenshotRef.base64).toMatch(
+        /^\.\/screenshots\/[a-f0-9]{64}\.(png|jpeg)$/,
+      );
     });
 
     it('should release memory after writing and recover via lazy loading (directory mode)', async () => {
@@ -630,6 +631,53 @@ describe('ReportGenerator — append-only model', () => {
 
       expect(result).toBeUndefined();
       expect(nullReportGenerator.getReportPath()).toBeUndefined();
+    });
+  });
+
+  describe('benchmark', () => {
+    it('should measure 100 updates performance and output size', async () => {
+      const reportDir = join(tmpDir, 'benchmark');
+      const reportPath = join(reportDir, 'index.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'directory',
+        autoPrint: false,
+      });
+
+      const startUpdates = Date.now();
+      for (let i = 0; i < 100; i++) {
+        const screenshot = ScreenshotItem.create(fakeBase64(2048), Date.now());
+        const execution = createExecution([screenshot], `benchmark-exec-${i}`);
+        generator.onExecutionUpdate(execution, defaultReportMeta);
+      }
+      await generator.flush();
+      const updateCostMs = Date.now() - startUpdates;
+
+      const executionsDir = join(reportDir, 'executions');
+      const screenshotsDir = join(reportDir, 'screenshots');
+      const allExecutionJson = readdirSync(executionsDir).reduce(
+        (acc, file) => {
+          return acc + statSync(join(executionsDir, file)).size;
+        },
+        0,
+      );
+      const allScreenshots = readdirSync(screenshotsDir).reduce((acc, file) => {
+        return acc + statSync(join(screenshotsDir, file)).size;
+      }, 0);
+      const totalBytes =
+        allExecutionJson + allScreenshots + statSync(reportPath).size;
+
+      const startFinalize = Date.now();
+      await generator.finalize();
+      const reportGenerateMs = Date.now() - startFinalize;
+
+      expect(updateCostMs).toBeGreaterThanOrEqual(0);
+      expect(totalBytes).toBeGreaterThan(0);
+      expect(reportGenerateMs).toBeGreaterThanOrEqual(0);
+
+      console.info(
+        `[benchmark] onExecutionUpdate x100 total=${updateCostMs}ms, totalSize=${totalBytes}B, reportGenerate=${reportGenerateMs}ms`,
+      );
     });
   });
 
