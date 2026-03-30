@@ -1527,7 +1527,9 @@ export class Agent<
     return files.map((file) => {
       const absolutePath = resolve(file);
       if (!existsSync(absolutePath)) {
-        throw new Error(`File not found: ${file}`);
+        throw new Error(
+          `File not found: ${file}. Resolved to: ${absolutePath}. Current working directory: ${process.cwd()}`,
+        );
       }
       return absolutePath;
     });
