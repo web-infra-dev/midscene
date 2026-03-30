@@ -480,11 +480,6 @@ function reviverForDumpDeserialization(key: string, value: any): any {
     return value;
   }
 
-  // Legacy compatibility read path.
-  if ('base64' in value && typeof value.base64 === 'string') {
-    return value;
-  }
-
   return value;
 }
 

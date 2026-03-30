@@ -85,35 +85,19 @@ describe('ScreenshotStore', () => {
     expect(store.loadBase64(ref)).toBe(pngBase64);
   });
 
-  it('reads legacy report formats for backward compatibility', () => {
-    const reportPath = join(tmpRoot, 'legacy.html');
-    writeFileSync(
-      reportPath,
-      '<script type="midscene-image" data-id="legacy-id">data:image/png;base64,legacy</script>',
-    );
-    const screenshotsDir = join(tmpRoot, 'screenshots');
-    mkdirSync(screenshotsDir, { recursive: true });
-    writeFileSync(
-      join(screenshotsDir, 'legacy.png'),
-      Buffer.from('abc', 'utf-8'),
-    );
+  it('throws on non-ScreenshotRef inputs', () => {
+    const reportPath = join(tmpRoot, 'invalid-ref.html');
     const store = new ScreenshotStore({
-      mode: 'directory',
+      mode: 'inline',
       reportPath,
-      screenshotsDir,
+      writeInlineImage: () => {},
     });
 
-    expect(store.loadBase64({ $screenshot: 'legacy-id', capturedAt: 1 })).toBe(
-      'data:image/png;base64,legacy',
-    );
-    expect(
+    expect(() =>
+      store.loadBase64({ $screenshot: 'legacy-id', capturedAt: 1 }),
+    ).toThrow('invalid screenshot reference');
+    expect(() =>
       store.loadBase64({ base64: './screenshots/legacy.png', capturedAt: 1 }),
-    ).toContain('data:image/png;base64,');
-    expect(
-      store.loadBase64({
-        base64: 'data:image/png;base64,already-inline',
-        capturedAt: 1,
-      }),
-    ).toBe('data:image/png;base64,already-inline');
+    ).toThrow('invalid screenshot reference');
   });
 });

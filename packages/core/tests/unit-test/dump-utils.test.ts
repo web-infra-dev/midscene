@@ -157,16 +157,6 @@ describe('dump/image-restoration', () => {
       expect(result[1].base64).toBe('data:image/png;base64,def456');
     });
 
-    it('should read legacy inline base64 format', () => {
-      const data = {
-        screenshot: { base64: 'data:image/png;base64,existing' },
-      };
-      const result = restoreImageReferences(data, resolver);
-      expect(result).toEqual({
-        screenshot: { base64: 'data:image/png;base64,existing' },
-      });
-    });
-
     it('should use resolver return value for unknown IDs', () => {
       const data = {
         screenshot: {
@@ -186,7 +176,13 @@ describe('dump/image-restoration', () => {
       const directoryResolver = (ref: { id: string }) =>
         `./screenshots/${ref.id}.png`;
       const data = {
-        screenshot: { $screenshot: 'uuid-abc-123' },
+        screenshot: {
+          type: 'midscene_screenshot_ref',
+          id: 'uuid-abc-123',
+          capturedAt: 1,
+          mimeType: 'image/png',
+          storage: 'inline',
+        },
       };
       const result = restoreImageReferences(data, directoryResolver);
       expect(result.screenshot.base64).toBe('./screenshots/uuid-abc-123.png');
@@ -216,7 +212,13 @@ describe('dump/image-restoration', () => {
             tasks: [
               {
                 uiContext: {
-                  screenshot: { $screenshot: 'abc-123-def' },
+                  screenshot: {
+                    type: 'midscene_screenshot_ref',
+                    id: 'abc-123-def',
+                    capturedAt: 1,
+                    mimeType: 'image/png',
+                    storage: 'inline',
+                  },
                 },
               },
             ],
@@ -227,17 +229,6 @@ describe('dump/image-restoration', () => {
       expect(result.executions[0].tasks[0].uiContext.screenshot.base64).toBe(
         './screenshots/abc-123-def.png',
       );
-    });
-
-    it('should preserve { base64: path } with JPEG extension as-is', () => {
-      // Directory mode with JPEG: dump contains { base64: "./screenshots/id.jpeg" }
-      const data = {
-        screenshot: { base64: './screenshots/abc-123.jpeg' },
-      };
-      const result = restoreImageReferences(data, resolver);
-      expect(result).toEqual({
-        screenshot: { base64: './screenshots/abc-123.jpeg' },
-      });
     });
 
     it('should handle primitive values', () => {
