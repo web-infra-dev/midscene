@@ -171,7 +171,9 @@ export function reportHTMLContent(
   } else {
     const { dumpString, attributes } = dumpData;
     const attributesArr = Object.entries(attributes || {})
-      .filter(([, value]) => value !== undefined && value !== null)
+      .filter((entry): entry is [string, string | number | boolean] => {
+        return entry[1] !== undefined && entry[1] !== null;
+      })
       .map(([key, value]) => {
         return `${key}="${encodeURIComponent(value)}"`;
       });
