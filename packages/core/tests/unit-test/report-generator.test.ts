@@ -714,7 +714,8 @@ describe('ReportGenerator — append-only model', () => {
       const gen = ReportGenerator.create('test-inline', {});
       expect(gen).toBeInstanceOf(ReportGenerator);
       const reportPath = gen.getReportPath();
-      expect(reportPath).toContain('test-inline.html');
+      expect(reportPath).toContain('test-inline');
+      expect(reportPath).toContain('index.html');
     });
 
     it('should create directory mode generator when outputFormat is html-and-external-assets', () => {

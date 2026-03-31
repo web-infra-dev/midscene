@@ -112,21 +112,13 @@ export class ReportGenerator implements IReportGenerator {
     // In browser environment, file system is not available
     if (ifInBrowser) return nullReportGenerator;
 
-    if (opts.outputFormat === 'html-and-external-assets') {
-      const outputDir = join(getMidsceneRunSubDir('report'), reportFileName);
-      return new ReportGenerator({
-        reportPath: join(outputDir, 'index.html'),
-        screenshotMode: 'directory',
-        autoPrint: opts.autoPrintReportMsg,
-      });
-    }
-
+    const outputDir = join(getMidsceneRunSubDir('report'), reportFileName);
     return new ReportGenerator({
-      reportPath: join(
-        getMidsceneRunSubDir('report'),
-        `${reportFileName}.html`,
-      ),
-      screenshotMode: 'inline',
+      reportPath: join(outputDir, 'index.html'),
+      screenshotMode:
+        opts.outputFormat === 'html-and-external-assets'
+          ? 'directory'
+          : 'inline',
       autoPrint: opts.autoPrintReportMsg,
     });
   }
