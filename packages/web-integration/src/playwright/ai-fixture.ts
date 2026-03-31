@@ -229,7 +229,11 @@ export const PlaywrightAiFixture = (options?: {
 
   return {
     _midsceneFinalizeReports: [
-      async (_args: unknown, use: any, testInfo: TestInfo) => {
+      async (
+        { ..._args }: Record<string, unknown>,
+        use: any,
+        testInfo: TestInfo,
+      ) => {
         await use();
 
         const records = testAgentRecords.get(testInfo.testId);
