@@ -282,6 +282,30 @@ describe('ReportGenerator — append-only model', () => {
       );
     });
 
+    it('should persist execution dump files with pretty-printed JSON', async () => {
+      const reportPath = join(tmpDir, 'pretty-execution-json.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        persistExecutionDump: true,
+        autoPrint: false,
+      });
+
+      const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
+      const execution = createExecution([screenshot], 'pretty-json-test');
+
+      generator.onExecutionUpdate(execution, defaultReportMeta);
+      await generator.flush();
+
+      const dumpContent = readFileSync(
+        join(tmpDir, '1.execution.json'),
+        'utf-8',
+      );
+      expect(dumpContent).toContain('\n  "groupName": "test-group"');
+      expect(dumpContent).toContain('\n    {');
+      expect(dumpContent.endsWith('\n')).toBe(false);
+    });
+
     it('should skip persisting execution dump files when persistExecutionDump is false', async () => {
       const reportPath = join(tmpDir, 'inline-no-execution-json.html');
       const generator = new ReportGenerator({

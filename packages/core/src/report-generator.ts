@@ -356,6 +356,6 @@ export class ReportGenerator implements IReportGenerator {
 
     const fileName = `${fileIndex}.execution.json`;
     const filePath = join(dirname(this.reportPath), fileName);
-    writeFileSync(filePath, singleDump.serialize(), 'utf-8');
+    writeFileSync(filePath, singleDump.serialize(2), 'utf-8');
   }
 }
