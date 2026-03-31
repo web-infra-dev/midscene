@@ -7,7 +7,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import type { NodeType } from '@midscene/shared/constants';
 import type { CreateOpenAIClientFn, TModelConfig } from '@midscene/shared/env';
 import type {
@@ -884,8 +884,6 @@ export class ReportActionDump implements IReportActionDump {
   static fromFilesAsInlineJson(basePath: string): string {
     const dumpString = readFileSync(basePath, 'utf-8');
     const screenshotsDir = `${basePath}.screenshots`;
-    const executionDir = dirname(basePath);
-    const reportDir = dirname(executionDir);
 
     const loadFromExecutionScreenshotDir = (id: string, mimeType: string) => {
       const ext = mimeType === 'image/jpeg' ? 'jpeg' : 'png';
@@ -915,24 +913,7 @@ export class ReportActionDump implements IReportActionDump {
       if (ref.storage === 'inline') {
         return '';
       }
-
-      try {
-        return store.loadBase64(ref);
-      } catch {
-        // Execution snapshots are stored in report/executions/*.json while
-        // screenshot refs keep report-root relative paths like ./screenshots/*.
-        // Fallback to report root when resolving from execution dumps.
-        if (ref.path?.startsWith('./screenshots/')) {
-          const reportLevelPath = join(reportDir, ref.path.replace('./', ''));
-          if (existsSync(reportLevelPath)) {
-            const data = readFileSync(reportLevelPath);
-            return `data:${ref.mimeType};base64,${data.toString('base64')}`;
-          }
-        }
-        throw new Error(
-          `ReportActionDump.fromFilesAsInlineJson: cannot resolve screenshot "${ref.id}" from ${basePath}`,
-        );
-      }
+      return store.loadBase64(ref);
     });
     return JSON.stringify(processedData);
   }
