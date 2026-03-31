@@ -287,23 +287,5 @@ describe('dump/screenshot-restoration', () => {
       const json = JSON.parse(JSON.stringify(result));
       expect(json.base64).toBe('data:image/png;base64,abc123');
     });
-
-    it('should restore legacy { $screenshot } format via backward compat', () => {
-      const data = {
-        screenshot: { $screenshot: 'img1', capturedAt: 1 },
-      };
-      const result = restoreImageReferences(data, resolver);
-      expect(result.screenshot.base64).toBe('data:image/png;base64,abc123');
-    });
-
-    it('should restore legacy { base64: path } format via backward compat', () => {
-      const directoryResolver = (ref: { id: string; path?: string }) =>
-        ref.path ? `resolved:${ref.path}` : '';
-      const data = {
-        screenshot: { base64: './screenshots/abc.png', capturedAt: 1 },
-      };
-      const result = restoreImageReferences(data, directoryResolver);
-      expect(result.screenshot.base64).toBe('resolved:./screenshots/abc.png');
-    });
   });
 });

@@ -22,7 +22,6 @@ export function normalizeScreenshotRef(value: unknown): ScreenshotRef | null {
   if (typeof value !== 'object' || value === null) return null;
   const record = value as Record<string, unknown>;
 
-  // Current format
   if (
     record.type === 'midscene_screenshot_ref' &&
     typeof record.id === 'string' &&
@@ -34,45 +33,6 @@ export function normalizeScreenshotRef(value: unknown): ScreenshotRef | null {
       return null;
     }
     return record as unknown as ScreenshotRef;
-  }
-
-  // Legacy inline format: { $screenshot: "id", capturedAt: number }
-  if (
-    typeof record.$screenshot === 'string' &&
-    typeof record.capturedAt === 'number'
-  ) {
-    const id = record.$screenshot;
-    // Already-resolved data URIs or paths — pass through directly
-    if (id.startsWith('data:image/')) {
-      return null;
-    }
-    return {
-      type: 'midscene_screenshot_ref',
-      id,
-      capturedAt: record.capturedAt,
-      mimeType: 'image/png',
-      storage: 'inline',
-    };
-  }
-
-  // Legacy directory format: { base64: "./path/to/file", capturedAt: number }
-  if (
-    typeof record.base64 === 'string' &&
-    typeof record.capturedAt === 'number' &&
-    (record.base64.startsWith('./') || record.base64.startsWith('/'))
-  ) {
-    const path = record.base64;
-    return {
-      type: 'midscene_screenshot_ref',
-      id: '',
-      capturedAt: record.capturedAt,
-      mimeType:
-        path.endsWith('.jpeg') || path.endsWith('.jpg')
-          ? 'image/jpeg'
-          : 'image/png',
-      storage: 'file',
-      path,
-    };
   }
 
   return null;
