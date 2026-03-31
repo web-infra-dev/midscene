@@ -65,7 +65,9 @@ export class ScreenshotStore {
     const shouldEnsureFileCopy =
       this.mode === 'directory' || this.ensureFileCopy;
     const fileRef = shouldEnsureFileCopy
-      ? this.persistToSharedFileIfNeeded(screenshot)
+      ? this.persistToSharedFileIfNeeded(screenshot, {
+          markAsPersisted: this.mode === 'directory',
+        })
       : null;
 
     if (this.mode === 'inline') {
@@ -91,11 +93,14 @@ export class ScreenshotStore {
 
   private persistToSharedFileIfNeeded(
     screenshot: ScreenshotItem,
+    options: {
+      markAsPersisted: boolean;
+    },
   ): ScreenshotRef {
     const screenshotsDir = this.screenshotsDir;
     if (!screenshotsDir) {
       throw new Error(
-        'ScreenshotStore: screenshotsDir is required in directory mode',
+        'ScreenshotStore: screenshotsDir is required when file persistence is enabled',
       );
     }
     if (!existsSync(screenshotsDir)) {
@@ -114,9 +119,11 @@ export class ScreenshotStore {
       this.writtenFileIds.add(screenshot.id);
     }
 
-    return {
-      ...screenshot.markPersistedToPath(relativePath, absolutePath),
-    };
+    if (options.markAsPersisted) {
+      return screenshot.markPersistedToPath(relativePath, absolutePath);
+    }
+
+    return screenshot.registerPersistedFileCopy(relativePath, absolutePath);
   }
 
   loadBase64(refInput: unknown): string {

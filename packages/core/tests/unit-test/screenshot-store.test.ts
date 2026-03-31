@@ -105,8 +105,11 @@ describe('ScreenshotStore', () => {
 
     const ref = store.persist(item);
     expect(ref.storage).toBe('inline');
+    expect(item.toSerializable().storage).toBe('inline');
     expect(appendInline).toHaveBeenCalledTimes(1);
     expect(existsSync(join(screenshotsDir, `${item.id}.png`))).toBe(true);
+    rmSync(join(screenshotsDir, `${item.id}.png`), { force: true });
+    expect(item.base64).toBe(pngBase64);
     expect(store.loadBase64(ref)).toBe(pngBase64);
   });
 
