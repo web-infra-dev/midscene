@@ -308,6 +308,43 @@ export class ReportGenerator implements IReportGenerator {
     // Execution snapshots are persisted for recovery/debugging only.
     // Screenshots are already persisted by ScreenshotStore to report-level
     // ./screenshots, so avoid writing duplicate {file}.screenshots folders.
-    writeFileSync(filePath, singleDump.serialize(), 'utf-8');
+    // Keep execution dumps recoverable by rewriting screenshot paths from
+    // "./screenshots/..." to "../screenshots/..." (relative to executions/).
+    const serialized = singleDump.serialize();
+    const recoveredDump =
+      this.rewriteScreenshotPathsForExecutionDump(serialized);
+    writeFileSync(filePath, recoveredDump, 'utf-8');
+  }
+
+  private rewriteScreenshotPathsForExecutionDump(serialized: string): string {
+    if (this.screenshotMode !== 'directory') {
+      return serialized;
+    }
+
+    const parsed = JSON.parse(serialized) as unknown;
+    const rewrite = (value: unknown): void => {
+      if (!value || typeof value !== 'object') return;
+      if (Array.isArray(value)) {
+        for (const item of value) rewrite(item);
+        return;
+      }
+
+      const record = value as Record<string, unknown>;
+      if (
+        record.type === 'midscene_screenshot_ref' &&
+        record.storage === 'file' &&
+        typeof record.path === 'string' &&
+        record.path.startsWith('./screenshots/')
+      ) {
+        record.path = record.path.replace('./screenshots/', '../screenshots/');
+      }
+
+      for (const next of Object.values(record)) {
+        rewrite(next);
+      }
+    };
+
+    rewrite(parsed);
+    return JSON.stringify(parsed);
   }
 }

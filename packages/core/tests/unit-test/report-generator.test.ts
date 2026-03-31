@@ -532,6 +532,32 @@ describe('ReportGenerator — append-only model', () => {
       expect(existsSync(join(executionDir, '1.json.screenshots.json'))).toBe(
         false,
       );
+
+      const executionDump = readFileSync(join(executionDir, '1.json'), 'utf-8');
+      expect(executionDump).toContain('../screenshots/');
+    });
+
+    it('should keep directory execution dumps recoverable without sidecar screenshot folders', async () => {
+      const reportDir = join(tmpDir, 'dir-recovery-test');
+      const reportPath = join(reportDir, 'index.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'directory',
+        autoPrint: false,
+      });
+
+      const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
+      const execution = createExecution([screenshot], 'recoverable-exec');
+
+      generator.onExecutionUpdate(execution, defaultReportMeta);
+      await generator.flush();
+
+      const executionDumpPath = join(reportDir, 'executions', '1.json');
+      expect(existsSync(`${executionDumpPath}.screenshots`)).toBe(false);
+
+      const restoredInlineJson =
+        ReportActionDump.fromFilesAsInlineJson(executionDumpPath);
+      expect(restoredInlineJson).toContain('data:image/png;base64');
     });
 
     it('should produce valid HTML structure in directory mode', async () => {
