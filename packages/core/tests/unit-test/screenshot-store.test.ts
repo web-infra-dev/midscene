@@ -85,7 +85,27 @@ describe('ScreenshotStore', () => {
     expect(store.loadBase64(ref)).toBe(pngBase64);
   });
 
-  it('throws on non-ScreenshotRef inputs', () => {
+  it('accepts legacy { $screenshot } format via backward compat', () => {
+    const reportPath = join(tmpRoot, 'legacy-inline.html');
+    // Write a fake inline HTML so loadBase64 can find the image
+    writeFileSync(
+      reportPath,
+      `<script type="midscene-image" data-id="legacy-id">${pngBase64}</script>`,
+    );
+    const store = new ScreenshotStore({
+      mode: 'inline',
+      reportPath,
+      writeInlineImage: () => {},
+    });
+
+    const result = store.loadBase64({
+      $screenshot: 'legacy-id',
+      capturedAt: 1,
+    });
+    expect(result).toBe(pngBase64);
+  });
+
+  it('throws on truly invalid inputs', () => {
     const reportPath = join(tmpRoot, 'invalid-ref.html');
     const store = new ScreenshotStore({
       mode: 'inline',
@@ -93,11 +113,11 @@ describe('ScreenshotStore', () => {
       writeInlineImage: () => {},
     });
 
-    expect(() =>
-      store.loadBase64({ $screenshot: 'legacy-id', capturedAt: 1 }),
-    ).toThrow('invalid screenshot reference');
-    expect(() =>
-      store.loadBase64({ base64: './screenshots/legacy.png', capturedAt: 1 }),
-    ).toThrow('invalid screenshot reference');
+    expect(() => store.loadBase64({ random: 'object' })).toThrow(
+      'invalid screenshot reference',
+    );
+    expect(() => store.loadBase64('not-an-object')).toThrow(
+      'invalid screenshot reference',
+    );
   });
 });

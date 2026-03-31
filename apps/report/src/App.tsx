@@ -7,6 +7,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import {
   GroupedActionDump,
   type ModelBrief,
+  type ScreenshotRef,
   restoreImageReferences,
 } from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
@@ -33,21 +34,24 @@ import type {
 // Shared image cache across all test cases — resolved images are cached by id
 const imageCache = new Map<string, string>();
 
-function resolveImageFromDom(id: string): string {
-  const cached = imageCache.get(id);
+function resolveImageFromDom(ref: ScreenshotRef): string {
+  const cacheKey = ref.id || ref.path || '';
+  const cached = imageCache.get(cacheKey);
   if (cached) return cached;
 
-  const el = document.querySelector(
-    `script[type="midscene-image"][data-id="${CSS.escape(id)}"]`,
-  );
-  if (el?.textContent) {
-    const data = antiEscapeScriptTag(el.textContent);
-    imageCache.set(id, data);
-    return data;
+  if (ref.storage === 'inline') {
+    const el = document.querySelector(
+      `script[type="midscene-image"][data-id="${CSS.escape(ref.id)}"]`,
+    );
+    if (el?.textContent) {
+      const data = antiEscapeScriptTag(el.textContent);
+      imageCache.set(cacheKey, data);
+      return data;
+    }
   }
 
-  // Fallback to directory path
-  return `./screenshots/${id}.png`;
+  // Directory mode or inline fallback — use path or derive from id
+  return ref.path || `./screenshots/${ref.id}.png`;
 }
 
 let globalRenderCount = 1;
