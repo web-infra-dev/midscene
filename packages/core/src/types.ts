@@ -846,7 +846,6 @@ export class ReportActionDump implements IReportActionDump {
    * Creates:
    * - {basePath} - dump JSON with { $screenshot: id } references
    * - {basePath}.screenshots/ - PNG files
-   * - {basePath}.screenshots.json - ID to path mapping
    *
    * @param basePath - Base path for the dump file
    */
@@ -856,32 +855,19 @@ export class ReportActionDump implements IReportActionDump {
       mkdirSync(screenshotsDir, { recursive: true });
     }
 
-    const screenshotMapPath = `${basePath}.screenshots.json`;
-    const screenshotMap: Record<string, string> = existsSync(screenshotMapPath)
-      ? JSON.parse(readFileSync(screenshotMapPath, 'utf-8'))
-      : {};
     const screenshots = this.collectAllScreenshots();
-    let screenshotMapUpdated = false;
 
     for (const screenshot of screenshots) {
       const imagePath = join(
         screenshotsDir,
         `${screenshot.id}.${screenshot.extension}`,
       );
-      const existingPath = screenshotMap[screenshot.id];
-
-      if (existingPath && existsSync(existingPath)) {
+      if (existsSync(imagePath)) {
         continue;
       }
 
       const rawBase64 = screenshot.rawBase64;
       writeFileSync(imagePath, Buffer.from(rawBase64, 'base64'));
-      screenshotMap[screenshot.id] = imagePath;
-      screenshotMapUpdated = true;
-    }
-
-    if (screenshotMapUpdated || !existsSync(screenshotMapPath)) {
-      writeFileSync(screenshotMapPath, JSON.stringify(screenshotMap), 'utf-8');
     }
 
     // Write dump JSON with references
@@ -897,28 +883,23 @@ export class ReportActionDump implements IReportActionDump {
    */
   static fromFilesAsInlineJson(basePath: string): string {
     const dumpString = readFileSync(basePath, 'utf-8');
+    const screenshotsDir = `${basePath}.screenshots`;
     const screenshotsMapPath = `${basePath}.screenshots.json`;
+    const legacyScreenshotMap: Record<string, string> = existsSync(
+      screenshotsMapPath,
+    )
+      ? JSON.parse(readFileSync(screenshotsMapPath, 'utf-8'))
+      : {};
 
-    if (!existsSync(screenshotsMapPath)) {
-      return dumpString;
-    }
-
-    // Read screenshot map and build imageMap from files
-    const screenshotMap: Record<string, string> = JSON.parse(
-      readFileSync(screenshotsMapPath, 'utf-8'),
-    );
-
-    const imageMap: Record<string, string> = {};
-    for (const [id, filePath] of Object.entries(screenshotMap)) {
-      if (existsSync(filePath)) {
-        const data = readFileSync(filePath);
-        const mime =
-          filePath.endsWith('.jpeg') || filePath.endsWith('.jpg')
-            ? 'jpeg'
-            : 'png';
-        imageMap[id] = `data:image/${mime};base64,${data.toString('base64')}`;
+    const loadFromExecutionScreenshotDir = (id: string, mimeType: string) => {
+      const ext = mimeType === 'image/jpeg' ? 'jpeg' : 'png';
+      const filePath = join(screenshotsDir, `${id}.${ext}`);
+      if (!existsSync(filePath)) {
+        return '';
       }
-    }
+      const data = readFileSync(filePath);
+      return `data:image/${ext};base64,${data.toString('base64')}`;
+    };
 
     // Restore image references
     const dumpData = JSON.parse(dumpString);
@@ -927,8 +908,26 @@ export class ReportActionDump implements IReportActionDump {
       reportPath: basePath,
     });
     const processedData = restoreImageReferences(dumpData, (ref) => {
+      const executionFileImage = loadFromExecutionScreenshotDir(
+        ref.id,
+        ref.mimeType,
+      );
+      if (executionFileImage) {
+        return executionFileImage;
+      }
+
+      const legacyFilePath = legacyScreenshotMap[ref.id];
+      if (legacyFilePath && existsSync(legacyFilePath)) {
+        const data = readFileSync(legacyFilePath);
+        const ext =
+          legacyFilePath.endsWith('.jpeg') || legacyFilePath.endsWith('.jpg')
+            ? 'jpeg'
+            : 'png';
+        return `data:image/${ext};base64,${data.toString('base64')}`;
+      }
+
       if (ref.storage === 'inline') {
-        return imageMap[ref.id] ?? '';
+        return '';
       }
       return store.loadBase64(ref);
     });

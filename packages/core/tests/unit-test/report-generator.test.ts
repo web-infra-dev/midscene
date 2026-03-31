@@ -211,7 +211,7 @@ describe('ReportGenerator — append-only model', () => {
       expect(jsonFiles).toEqual(['1.json']);
       expect(existsSync(join(executionDir, '1.json.screenshots'))).toBe(true);
       expect(existsSync(join(executionDir, '1.json.screenshots.json'))).toBe(
-        true,
+        false,
       );
 
       const firstDump = JSON.parse(
@@ -543,7 +543,7 @@ describe('ReportGenerator — append-only model', () => {
       expect(jsonFiles).toEqual(['1.json']);
       expect(existsSync(join(executionDir, '1.json.screenshots'))).toBe(true);
       expect(existsSync(join(executionDir, '1.json.screenshots.json'))).toBe(
-        true,
+        false,
       );
     });
 
