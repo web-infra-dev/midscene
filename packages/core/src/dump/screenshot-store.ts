@@ -43,7 +43,7 @@ export class ScreenshotStore {
   private readonly reportPath: string;
   private readonly screenshotsDir?: string;
   private readonly writeInlineImage?: (id: string, base64: string) => void;
-  private readonly ensureFileCopy: boolean;
+  private readonly alsoWriteFileCopy: boolean;
   private readonly writtenInlineIds = new Set<string>();
   private readonly writtenFileIds = new Set<string>();
 
@@ -52,19 +52,22 @@ export class ScreenshotStore {
     reportPath: string;
     screenshotsDir?: string;
     writeInlineImage?: (id: string, base64: string) => void;
+    alsoWriteFileCopy?: boolean;
+    /** @deprecated Use alsoWriteFileCopy instead. */
     ensureFileCopy?: boolean;
   }) {
     this.mode = options.mode;
     this.reportPath = options.reportPath;
     this.screenshotsDir = options.screenshotsDir;
     this.writeInlineImage = options.writeInlineImage;
-    this.ensureFileCopy = options.ensureFileCopy ?? false;
+    this.alsoWriteFileCopy =
+      options.alsoWriteFileCopy ?? options.ensureFileCopy ?? false;
   }
 
   persist(screenshot: ScreenshotItem): ScreenshotRef {
-    const shouldEnsureFileCopy =
-      this.mode === 'directory' || this.ensureFileCopy;
-    const fileRef = shouldEnsureFileCopy
+    const shouldWriteFileCopy =
+      this.mode === 'directory' || this.alsoWriteFileCopy;
+    const fileRef = shouldWriteFileCopy
       ? this.persistToSharedFileIfNeeded(screenshot, {
           markAsPersisted: this.mode === 'directory',
         })

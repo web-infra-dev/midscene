@@ -96,7 +96,7 @@ export class ReportGenerator implements IReportGenerator {
           `\n${generateImageScriptTag(id, base64)}`,
         );
       },
-      ensureFileCopy: this.shouldPersistExecutionDump,
+      alsoWriteFileCopy: this.shouldPersistExecutionDump,
     });
     this.printReportPath('will be generated at');
   }
