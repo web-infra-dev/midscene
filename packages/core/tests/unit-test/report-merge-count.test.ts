@@ -74,6 +74,7 @@ function createDump(groupName: string, taskCount: number): ReportActionDump {
     modelBriefs: ['test-model'],
     executions: [
       new ExecutionDump({
+        id: `${groupName}-exec-0`,
         logTime: Date.now(),
         name: 'exec',
         tasks: tasks as any,

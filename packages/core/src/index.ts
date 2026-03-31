@@ -73,3 +73,4 @@ export { ReportGenerator, nullReportGenerator } from './report-generator';
 
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';
+export { ScreenshotStore, type ScreenshotRef } from './dump/screenshot-store';

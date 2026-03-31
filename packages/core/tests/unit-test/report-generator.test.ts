@@ -188,7 +188,7 @@ describe('ReportGenerator — append-only model', () => {
       expect(countGroupedDumpScripts(html)).toBe(3);
     });
 
-    it('should persist each execution dump as numbered json files', async () => {
+    it('should replace persisted execution dump file for same execution id', async () => {
       const reportPath = join(tmpDir, 'inline-execution-json.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -205,8 +205,14 @@ describe('ReportGenerator — append-only model', () => {
       await generator.flush();
 
       const executionDir = join(tmpDir, 'executions');
-      const jsonFiles = readdirSync(executionDir).sort();
-      expect(jsonFiles).toEqual(['1.json', '2.json']);
+      const jsonFiles = readdirSync(executionDir)
+        .filter((name) => /^\d+\.json$/.test(name))
+        .sort();
+      expect(jsonFiles).toEqual(['1.json']);
+      expect(existsSync(join(executionDir, '1.json.screenshots'))).toBe(true);
+      expect(existsSync(join(executionDir, '1.json.screenshots.json'))).toBe(
+        false,
+      );
 
       const firstDump = JSON.parse(
         readFileSync(join(executionDir, '1.json'), 'utf-8'),
@@ -214,6 +220,59 @@ describe('ReportGenerator — append-only model', () => {
       expect(firstDump.groupName).toBe('test-group');
       expect(firstDump.executions).toHaveLength(1);
       expect(firstDump.executions[0].name).toBe('execution-json-test');
+    });
+
+    it('should append new execution screenshots without rewriting existing files', async () => {
+      const reportPath = join(
+        tmpDir,
+        'inline-execution-screenshots-append.html',
+      );
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+
+      const screenshot1 = ScreenshotItem.create(fakeBase64(100), Date.now());
+      const screenshot2 = ScreenshotItem.create(fakeBase64(200), Date.now());
+      const executionId = 'same-execution-id';
+
+      const firstExecution = createExecution(
+        [screenshot1],
+        'execution-json-test',
+        executionId,
+      );
+      generator.onExecutionUpdate(firstExecution, defaultReportMeta);
+      await generator.flush();
+
+      const executionDir = join(tmpDir, 'executions');
+      const screenshotPath1 = join(
+        executionDir,
+        '1.json.screenshots',
+        `${screenshot1.id}.png`,
+      );
+      const mtimeFirst = statSync(screenshotPath1).mtimeMs;
+
+      const startTime = Date.now();
+      while (Date.now() - startTime < 50) {
+        // busy wait
+      }
+
+      const secondExecution = createExecution(
+        [screenshot1, screenshot2],
+        'execution-json-test',
+        executionId,
+      );
+      generator.onExecutionUpdate(secondExecution, defaultReportMeta);
+      await generator.flush();
+
+      const mtimeSecond = statSync(screenshotPath1).mtimeMs;
+      expect(mtimeSecond).toBe(mtimeFirst);
+      expect(
+        existsSync(
+          join(executionDir, '1.json.screenshots', `${screenshot2.id}.png`),
+        ),
+      ).toBe(true);
     });
 
     it('should produce valid HTML with parseable image map and dump JSON', async () => {
@@ -291,6 +350,12 @@ describe('ReportGenerator — append-only model', () => {
       // Should have 2 dump tags
       const dumpScripts = extractGroupedDumpScripts(html);
       expect(dumpScripts).toHaveLength(2);
+
+      const executionDir = join(tmpDir, 'executions');
+      const jsonFiles = readdirSync(executionDir)
+        .filter((name) => /^\d+\.json$/.test(name))
+        .sort();
+      expect(jsonFiles).toEqual(['1.json', '2.json']);
 
       // Each dump tag should contain exactly 1 execution
       for (const dumpScript of dumpScripts) {
@@ -472,14 +537,14 @@ describe('ReportGenerator — append-only model', () => {
       expect(countGroupedDumpScripts(html)).toBe(5);
 
       const executionDir = join(reportDir, 'executions');
-      const jsonFiles = readdirSync(executionDir).sort();
-      expect(jsonFiles).toEqual([
-        '1.json',
-        '2.json',
-        '3.json',
-        '4.json',
-        '5.json',
-      ]);
+      const jsonFiles = readdirSync(executionDir)
+        .filter((name) => /^\d+\.json$/.test(name))
+        .sort();
+      expect(jsonFiles).toEqual(['1.json']);
+      expect(existsSync(join(executionDir, '1.json.screenshots'))).toBe(true);
+      expect(existsSync(join(executionDir, '1.json.screenshots.json'))).toBe(
+        false,
+      );
     });
 
     it('should produce valid HTML structure in directory mode', async () => {
@@ -537,9 +602,12 @@ describe('ReportGenerator — append-only model', () => {
       const dumpObj = JSON.parse(dumpContent!.trim());
 
       const screenshotRef = dumpObj.executions[0].tasks[0].uiContext.screenshot;
-      expect(screenshotRef).toHaveProperty('base64');
-      expect(screenshotRef.base64).toContain('screenshots');
-      expect(screenshotRef.base64).toContain(screenshotId);
+      expect(screenshotRef).toMatchObject({
+        type: 'midscene_screenshot_ref',
+        storage: 'file',
+      });
+      expect(screenshotRef.path).toContain('screenshots');
+      expect(screenshotRef.path).toContain(screenshotId);
     });
 
     it('should release memory after writing and recover via lazy loading (directory mode)', async () => {
@@ -565,10 +633,11 @@ describe('ReportGenerator — append-only model', () => {
       expect(recoveredBase64).toContain('data:image/png;base64,');
 
       const serialized = screenshot.toSerializable();
-      expect(serialized).toHaveProperty('base64');
-      expect((serialized as { base64: string }).base64).toContain(
-        'screenshots',
-      );
+      expect(serialized).toMatchObject({
+        type: 'midscene_screenshot_ref',
+        storage: 'file',
+      });
+      expect((serialized as { path: string }).path).toContain('screenshots');
     });
 
     it('should produce dump tags for multiple executions in directory mode', async () => {
@@ -645,7 +714,8 @@ describe('ReportGenerator — append-only model', () => {
       const gen = ReportGenerator.create('test-inline', {});
       expect(gen).toBeInstanceOf(ReportGenerator);
       const reportPath = gen.getReportPath();
-      expect(reportPath).toContain('test-inline.html');
+      expect(reportPath).toContain('test-inline');
+      expect(reportPath).toContain('index.html');
     });
 
     it('should create directory mode generator when outputFormat is html-and-external-assets', () => {
@@ -776,10 +846,11 @@ describe('ReportGenerator — append-only model', () => {
       for (const s of [s1, s2]) {
         expect(s.hasBase64()).toBe(false);
         const serialized = s.toSerializable();
-        expect(serialized).toHaveProperty('base64');
-        expect((serialized as { base64: string }).base64).toContain(
-          'screenshots',
-        );
+        expect(serialized).toMatchObject({
+          type: 'midscene_screenshot_ref',
+          storage: 'file',
+        });
+        expect((serialized as { path: string }).path).toContain('screenshots');
       }
 
       for (const s of [s1, s2]) {
@@ -822,8 +893,8 @@ describe('ReportGenerator — append-only model', () => {
     });
   });
 
-  describe('memory efficiency — writtenScreenshots tracking', () => {
-    it('writtenScreenshots Set should contain only IDs, not base64 data', async () => {
+  describe('memory efficiency — screenshotStore tracking', () => {
+    it('screenshotStore writtenIds should contain only IDs, not base64 data', async () => {
       const reportPath = join(tmpDir, 'tracking-test.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -839,8 +910,8 @@ describe('ReportGenerator — append-only model', () => {
       generator.onExecutionUpdate(execution, defaultReportMeta);
       await generator.flush();
 
-      const writtenScreenshots = (generator as any)
-        .writtenScreenshots as Set<string>;
+      const writtenScreenshots = (generator as any).screenshotStore
+        .writtenIds as Set<string>;
       expect(writtenScreenshots.size).toBe(1);
 
       const storedValue = [...writtenScreenshots][0];

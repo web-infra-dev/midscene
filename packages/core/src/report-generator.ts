@@ -11,6 +11,7 @@ import {
   generateImageScriptTag,
   getBaseUrlFixScript,
 } from './dump/html-utils';
+import { ScreenshotStore } from './dump/screenshot-store';
 import { type ExecutionDump, ReportActionDump, type ReportMeta } from './types';
 import { appendFileSync, getReportTpl } from './utils';
 
@@ -57,12 +58,13 @@ export class ReportGenerator implements IReportGenerator {
   private autoPrint: boolean;
   private firstWriteDone = false;
   private executionLogIndex = 0;
+  private executionLogFileIndexByExecutionKey = new Map<string, number>();
 
   // Unique identifier for this report stream — used as data-group-id
   private readonly reportStreamId: string;
 
   // Tracks screenshots already written to disk (by id) to avoid duplicates
-  private writtenScreenshots = new Set<string>();
+  private screenshotStore: ScreenshotStore;
   private initialized = false;
 
   // Tracks the last execution + groupMeta for re-writing on finalize
@@ -83,6 +85,17 @@ export class ReportGenerator implements IReportGenerator {
     this.screenshotMode = options.screenshotMode;
     this.autoPrint = options.autoPrint ?? true;
     this.reportStreamId = uuid();
+    this.screenshotStore = new ScreenshotStore({
+      mode: this.screenshotMode === 'inline' ? 'inline' : 'directory',
+      reportPath: this.reportPath,
+      screenshotsDir: join(dirname(this.reportPath), 'screenshots'),
+      writeInlineImage: (id, base64) => {
+        appendFileSync(
+          this.reportPath,
+          `\n${generateImageScriptTag(id, base64)}`,
+        );
+      },
+    });
     this.printReportPath('will be generated at');
   }
 
@@ -99,21 +112,13 @@ export class ReportGenerator implements IReportGenerator {
     // In browser environment, file system is not available
     if (ifInBrowser) return nullReportGenerator;
 
-    if (opts.outputFormat === 'html-and-external-assets') {
-      const outputDir = join(getMidsceneRunSubDir('report'), reportFileName);
-      return new ReportGenerator({
-        reportPath: join(outputDir, 'index.html'),
-        screenshotMode: 'directory',
-        autoPrint: opts.autoPrintReportMsg,
-      });
-    }
-
+    const outputDir = join(getMidsceneRunSubDir('report'), reportFileName);
     return new ReportGenerator({
-      reportPath: join(
-        getMidsceneRunSubDir('report'),
-        `${reportFileName}.html`,
-      ),
-      screenshotMode: 'inline',
+      reportPath: join(outputDir, 'index.html'),
+      screenshotMode:
+        opts.outputFormat === 'html-and-external-assets'
+          ? 'directory'
+          : 'inline',
       autoPrint: opts.autoPrintReportMsg,
     });
   }
@@ -178,7 +183,7 @@ export class ReportGenerator implements IReportGenerator {
       this.writeDirectoryExecution(execution, singleDump);
     }
 
-    this.persistExecutionDump(singleDump);
+    this.persistExecutionDump(execution, singleDump);
 
     if (!this.firstWriteDone) {
       this.firstWriteDone = true;
@@ -224,17 +229,8 @@ export class ReportGenerator implements IReportGenerator {
     }
 
     // Append new screenshots (skip already-written ones)
-    const screenshots = execution.collectScreenshots();
-    for (const screenshot of screenshots) {
-      if (!this.writtenScreenshots.has(screenshot.id)) {
-        appendFileSync(
-          this.reportPath,
-          `\n${generateImageScriptTag(screenshot.id, screenshot.base64)}`,
-        );
-        this.writtenScreenshots.add(screenshot.id);
-        // Safe to release memory — the image tag is permanent (never truncated)
-        screenshot.markPersistedInline(this.reportPath);
-      }
+    for (const screenshot of execution.collectScreenshots()) {
+      this.screenshotStore.persist(screenshot);
     }
 
     // Append dump tag (always — frontend keeps only last per execution id)
@@ -257,26 +253,8 @@ export class ReportGenerator implements IReportGenerator {
       mkdirSync(dir, { recursive: true });
     }
 
-    // create screenshots subdirectory
-    const screenshotsDir = join(dir, 'screenshots');
-    if (!existsSync(screenshotsDir)) {
-      mkdirSync(screenshotsDir, { recursive: true });
-    }
-
-    // 1. Write new screenshots and release memory immediately
-    const screenshots = execution.collectScreenshots();
-    for (const screenshot of screenshots) {
-      if (!this.writtenScreenshots.has(screenshot.id)) {
-        const ext = screenshot.extension;
-        const absolutePath = join(screenshotsDir, `${screenshot.id}.${ext}`);
-        const buffer = Buffer.from(screenshot.rawBase64, 'base64');
-        writeFileSync(absolutePath, buffer);
-        this.writtenScreenshots.add(screenshot.id);
-        screenshot.markPersistedToPath(
-          `./screenshots/${screenshot.id}.${ext}`,
-          absolutePath,
-        );
-      }
+    for (const screenshot of execution.collectScreenshots()) {
+      this.screenshotStore.persist(screenshot);
     }
 
     // 2. Append dump tag (always — frontend keeps only last per execution id)
@@ -299,14 +277,34 @@ export class ReportGenerator implements IReportGenerator {
     );
   }
 
-  private persistExecutionDump(singleDump: ReportActionDump): void {
+  private getExecutionLogKey(execution: ExecutionDump): string {
+    if (!execution.id) {
+      throw new Error(
+        'ReportGenerator: execution.id is required for persisting execution dumps',
+      );
+    }
+    return `id:${execution.id}`;
+  }
+
+  private persistExecutionDump(
+    execution: ExecutionDump,
+    singleDump: ReportActionDump,
+  ): void {
     if (!existsSync(this.executionLogDir)) {
       mkdirSync(this.executionLogDir, { recursive: true });
     }
 
-    this.executionLogIndex += 1;
-    const fileName = `${this.executionLogIndex}.json`;
+    const executionLogKey = this.getExecutionLogKey(execution);
+    let fileIndex =
+      this.executionLogFileIndexByExecutionKey.get(executionLogKey);
+    if (!fileIndex) {
+      this.executionLogIndex += 1;
+      fileIndex = this.executionLogIndex;
+      this.executionLogFileIndexByExecutionKey.set(executionLogKey, fileIndex);
+    }
+
+    const fileName = `${fileIndex}.json`;
     const filePath = join(this.executionLogDir, fileName);
-    writeFileSync(filePath, JSON.stringify(singleDump.toJSON(), null, 2));
+    singleDump.serializeToFiles(filePath);
   }
 }

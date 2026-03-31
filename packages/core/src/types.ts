@@ -18,7 +18,8 @@ import type {
 } from '@midscene/shared/types';
 import type { z } from 'zod';
 import type { TUserPrompt } from './common';
-import { restoreImageReferences } from './dump/image-restoration';
+import { restoreImageReferences } from './dump/screenshot-restoration';
+import { ScreenshotStore } from './dump/screenshot-store';
 import { ScreenshotItem } from './screenshot-item';
 import type {
   DetailedLocateParam,
@@ -462,12 +463,8 @@ function replacerForDumpSerialization(_key: string, value: any): any {
 }
 
 /**
- * Reviver function for JSON deserialization that handles ScreenshotItem formats.
- *
- * BEHAVIOR:
- * - For { $screenshot: "id" } format: Left as-is (plain object)
- *   Consumer must use imageMap to restore base64 data
- * - For { base64: "..." } format: Creates ScreenshotItem from base64 data
+ * Reviver function for JSON deserialization that keeps screenshot references
+ * as plain objects. Resolution is handled lazily by restoreImageReferences.
  *
  * @param key - JSON key being processed
  * @param value - JSON value being processed
@@ -479,14 +476,7 @@ function reviverForDumpDeserialization(key: string, value: any): any {
     return value;
   }
 
-  // Handle serialized format: { $screenshot: "id" }
-  // Leave as plain object — consumer uses imageMap to restore
   if (ScreenshotItem.isSerialized(value)) {
-    return value;
-  }
-
-  // Handle inline base64 format: { base64: "..." }
-  if ('base64' in value && typeof value.base64 === 'string') {
     return value;
   }
 
@@ -856,7 +846,6 @@ export class ReportActionDump implements IReportActionDump {
    * Creates:
    * - {basePath} - dump JSON with { $screenshot: id } references
    * - {basePath}.screenshots/ - PNG files
-   * - {basePath}.screenshots.json - ID to path mapping
    *
    * @param basePath - Base path for the dump file
    */
@@ -866,28 +855,20 @@ export class ReportActionDump implements IReportActionDump {
       mkdirSync(screenshotsDir, { recursive: true });
     }
 
-    // Write screenshots to separate files
-    const screenshotMap: Record<string, string> = {};
     const screenshots = this.collectAllScreenshots();
 
     for (const screenshot of screenshots) {
-      if (screenshot.hasBase64()) {
-        const imagePath = join(
-          screenshotsDir,
-          `${screenshot.id}.${screenshot.extension}`,
-        );
-        const rawBase64 = screenshot.rawBase64;
-        writeFileSync(imagePath, Buffer.from(rawBase64, 'base64'));
-        screenshotMap[screenshot.id] = imagePath;
+      const imagePath = join(
+        screenshotsDir,
+        `${screenshot.id}.${screenshot.extension}`,
+      );
+      if (existsSync(imagePath)) {
+        continue;
       }
-    }
 
-    // Write screenshot map file
-    writeFileSync(
-      `${basePath}.screenshots.json`,
-      JSON.stringify(screenshotMap),
-      'utf-8',
-    );
+      const rawBase64 = screenshot.rawBase64;
+      writeFileSync(imagePath, Buffer.from(rawBase64, 'base64'));
+    }
 
     // Write dump JSON with references
     writeFileSync(basePath, this.serialize(), 'utf-8');
@@ -902,35 +883,38 @@ export class ReportActionDump implements IReportActionDump {
    */
   static fromFilesAsInlineJson(basePath: string): string {
     const dumpString = readFileSync(basePath, 'utf-8');
-    const screenshotsMapPath = `${basePath}.screenshots.json`;
+    const screenshotsDir = `${basePath}.screenshots`;
 
-    if (!existsSync(screenshotsMapPath)) {
-      return dumpString;
-    }
-
-    // Read screenshot map and build imageMap from files
-    const screenshotMap: Record<string, string> = JSON.parse(
-      readFileSync(screenshotsMapPath, 'utf-8'),
-    );
-
-    const imageMap: Record<string, string> = {};
-    for (const [id, filePath] of Object.entries(screenshotMap)) {
-      if (existsSync(filePath)) {
-        const data = readFileSync(filePath);
-        const mime =
-          filePath.endsWith('.jpeg') || filePath.endsWith('.jpg')
-            ? 'jpeg'
-            : 'png';
-        imageMap[id] = `data:image/${mime};base64,${data.toString('base64')}`;
+    const loadFromExecutionScreenshotDir = (id: string, mimeType: string) => {
+      const ext = mimeType === 'image/jpeg' ? 'jpeg' : 'png';
+      const filePath = join(screenshotsDir, `${id}.${ext}`);
+      if (!existsSync(filePath)) {
+        return '';
       }
-    }
+      const data = readFileSync(filePath);
+      return `data:image/${ext};base64,${data.toString('base64')}`;
+    };
 
     // Restore image references
     const dumpData = JSON.parse(dumpString);
-    const processedData = restoreImageReferences(
-      dumpData,
-      (id) => imageMap[id] ?? '',
-    );
+    const store = new ScreenshotStore({
+      mode: 'directory',
+      reportPath: basePath,
+    });
+    const processedData = restoreImageReferences(dumpData, (ref) => {
+      const executionFileImage = loadFromExecutionScreenshotDir(
+        ref.id,
+        ref.mimeType,
+      );
+      if (executionFileImage) {
+        return executionFileImage;
+      }
+
+      if (ref.storage === 'inline') {
+        return '';
+      }
+      return store.loadBase64(ref);
+    });
     return JSON.stringify(processedData);
   }
 
@@ -940,11 +924,7 @@ export class ReportActionDump implements IReportActionDump {
    * @param basePath - Base path for the dump file
    */
   static cleanupFiles(basePath: string): void {
-    const filesToClean = [
-      basePath,
-      `${basePath}.screenshots.json`,
-      `${basePath}.screenshots`,
-    ];
+    const filesToClean = [basePath, `${basePath}.screenshots`];
 
     for (const filePath of filesToClean) {
       try {
@@ -962,11 +942,7 @@ export class ReportActionDump implements IReportActionDump {
    * @returns Array of all associated file paths
    */
   static getFilePaths(basePath: string): string[] {
-    return [
-      basePath,
-      `${basePath}.screenshots.json`,
-      `${basePath}.screenshots`,
-    ];
+    return [basePath, `${basePath}.screenshots`];
   }
 }
 

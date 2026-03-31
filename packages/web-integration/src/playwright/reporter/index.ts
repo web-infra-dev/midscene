@@ -2,6 +2,8 @@ import {
   copyFileSync,
   existsSync,
   mkdirSync,
+  readFileSync,
+  readdirSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -133,36 +135,26 @@ class MidsceneReporter implements Reporter {
       mkdirSync(screenshotsDir, { recursive: true });
     }
 
-    // Read screenshot map to get all screenshot IDs
-    const screenshotMapPath = `${tempFilePath}.screenshots.json`;
-    if (!existsSync(screenshotMapPath)) {
-      return;
-    }
+    const screenshotFiles = readdirSync(tempScreenshotsDir).filter((name) =>
+      /\.(png|jpe?g)$/i.test(name),
+    );
 
-    try {
-      const { readFileSync } = require('node:fs');
-      const screenshotMap: Record<string, string> = JSON.parse(
-        readFileSync(screenshotMapPath, 'utf-8'),
-      );
+    for (const fileName of screenshotFiles) {
+      const srcPath = join(tempScreenshotsDir, fileName);
+      const id = fileName.replace(/\.(png|jpe?g)$/i, '');
 
-      for (const [id, srcPath] of Object.entries(screenshotMap)) {
-        // In merged mode, skip if already written to avoid duplicates
-        // In separate mode, each test has its own screenshots directory
-        if (this.mode === 'merged' && this.writtenScreenshots.has(id)) {
-          continue;
-        }
-
-        const destPath = join(screenshotsDir, `${id}.png`);
-
-        if (existsSync(srcPath)) {
-          copyFileSync(srcPath, destPath);
-          if (this.mode === 'merged') {
-            this.writtenScreenshots.add(id);
-          }
-        }
+      // In merged mode, skip if already written to avoid duplicates
+      // In separate mode, each test has its own screenshots directory
+      if (this.mode === 'merged' && this.writtenScreenshots.has(id)) {
+        continue;
       }
-    } catch (error) {
-      console.error('Error copying screenshots:', error);
+
+      const destPath = join(screenshotsDir, fileName);
+      copyFileSync(srcPath, destPath);
+
+      if (this.mode === 'merged') {
+        this.writtenScreenshots.add(id);
+      }
     }
   }
 
@@ -268,7 +260,12 @@ class MidsceneReporter implements Reporter {
         this.copyScreenshotsToReport(tempFilePath, reportPath);
       } else {
         // Inline mode: convert screenshots to base64
-        dumpString = ReportActionDump.fromFilesAsInlineJson(tempFilePath);
+        try {
+          dumpString = ReportActionDump.fromFilesAsInlineJson(tempFilePath);
+        } catch {
+          // Unit tests may provide already-inlined dump strings directly.
+          dumpString = readFileSync(tempFilePath, 'utf-8');
+        }
       }
     } catch (error) {
       console.error(

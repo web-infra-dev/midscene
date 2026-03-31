@@ -190,13 +190,12 @@ describe('browser parse simulation for merged directory-mode reports', () => {
     // Verify screenshot reference uses relative path (directory mode preserved)
     const screenshotRef = parsed.executions[0].tasks[0].uiContext?.screenshot;
     expect(screenshotRef).toBeDefined();
-    expect(screenshotRef.base64).toMatch(/^\.\/screenshots\//);
+    expect(screenshotRef.type).toBe('midscene_screenshot_ref');
+    expect(screenshotRef.storage).toBe('file');
+    expect(screenshotRef.path).toMatch(/^\.\/screenshots\//);
 
     // Verify the referenced screenshot file exists
-    const screenshotBasename = screenshotRef.base64.replace(
-      './screenshots/',
-      '',
-    );
+    const screenshotBasename = screenshotRef.path.replace('./screenshots/', '');
     expect(screenshotFiles).toContain(screenshotBasename);
   });
 

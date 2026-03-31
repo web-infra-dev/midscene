@@ -1,15 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { uuid } from '@midscene/shared/utils';
 import { extractImageByIdSync } from './dump/html-utils';
+import type { ScreenshotRef } from './dump/screenshot-store';
 
 /**
  * Serialization format for ScreenshotItem
  * - { $screenshot: "id" } - inline mode, references imageMap in HTML
  * - { base64: "path" } - directory mode, references external file path
  */
-export type ScreenshotSerializeFormat =
-  | { $screenshot: string; capturedAt: number }
-  | { base64: string; capturedAt: number };
+export type ScreenshotSerializeFormat = ScreenshotRef;
 
 /**
  * Detect image format from base64 data URI prefix.
@@ -35,7 +34,7 @@ export class ScreenshotItem {
   private _base64: string | null;
   private _format: 'png' | 'jpeg';
   private _capturedAt: number;
-  private _persistedAs: ScreenshotSerializeFormat | null = null;
+  private _persistedAs: ScreenshotRef | null = null;
   private _persistedPath: string | null = null;
   private _persistedHtmlPath: string | null = null;
 
@@ -108,13 +107,17 @@ export class ScreenshotItem {
    * Releases base64 memory, but keeps HTML path for lazy loading recovery.
    * @param htmlPath - absolute path to the HTML file containing the image
    */
-  markPersistedInline(htmlPath: string): void {
+  markPersistedInline(htmlPath: string): ScreenshotRef {
     this._persistedAs = {
-      $screenshot: this._id,
+      type: 'midscene_screenshot_ref',
+      id: this._id,
       capturedAt: this._capturedAt,
+      mimeType: this._format === 'jpeg' ? 'image/jpeg' : 'image/png',
+      storage: 'inline',
     };
     this._persistedHtmlPath = htmlPath;
     this._base64 = null;
+    return this._persistedAs;
   }
 
   /**
@@ -123,21 +126,32 @@ export class ScreenshotItem {
    * @param relativePath - relative path for serialization (e.g., "./screenshots/id.jpeg")
    * @param absolutePath - absolute path for lazy loading recovery
    */
-  markPersistedToPath(relativePath: string, absolutePath: string): void {
+  markPersistedToPath(
+    relativePath: string,
+    absolutePath: string,
+  ): ScreenshotRef {
     this._persistedAs = {
-      base64: relativePath,
+      type: 'midscene_screenshot_ref',
+      id: this._id,
       capturedAt: this._capturedAt,
+      mimeType: this._format === 'jpeg' ? 'image/jpeg' : 'image/png',
+      storage: 'file',
+      path: relativePath,
     };
     this._persistedPath = absolutePath;
     this._base64 = null;
+    return this._persistedAs;
   }
 
   /** Serialize for JSON - format depends on persistence state */
   toSerializable(): ScreenshotSerializeFormat {
     return (
       this._persistedAs ?? {
-        $screenshot: this._id,
+        type: 'midscene_screenshot_ref',
+        id: this._id,
         capturedAt: this._capturedAt,
+        mimeType: this._format === 'jpeg' ? 'image/jpeg' : 'image/png',
+        storage: 'inline',
       }
     );
   }
@@ -146,21 +160,14 @@ export class ScreenshotItem {
   static isSerialized(value: unknown): value is ScreenshotSerializeFormat {
     if (typeof value !== 'object' || value === null) return false;
     const record = value as Record<string, unknown>;
-    // Check for inline mode: { $screenshot: string }
-    if ('$screenshot' in record && typeof record.$screenshot === 'string') {
-      if (!('capturedAt' in record) || typeof record.capturedAt !== 'number') {
-        return false;
-      }
-      return true;
-    }
-    // Check for directory mode: { base64: string } where base64 is a path
-    if ('base64' in record && typeof record.base64 === 'string') {
-      if (!('capturedAt' in record) || typeof record.capturedAt !== 'number') {
-        return false;
-      }
-      return true;
-    }
-    return false;
+    return (
+      record.type === 'midscene_screenshot_ref' &&
+      typeof record.id === 'string' &&
+      typeof record.capturedAt === 'number' &&
+      (record.mimeType === 'image/png' || record.mimeType === 'image/jpeg') &&
+      (record.storage === 'inline' ||
+        (record.storage === 'file' && typeof record.path === 'string'))
+    );
   }
 
   /**
