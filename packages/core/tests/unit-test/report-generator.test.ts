@@ -534,7 +534,7 @@ describe('ReportGenerator — append-only model', () => {
       );
 
       const executionDump = readFileSync(join(executionDir, '1.json'), 'utf-8');
-      expect(executionDump).toContain('../screenshots/');
+      expect(executionDump).toContain('./screenshots/');
     });
 
     it('should keep directory execution dumps recoverable without sidecar screenshot folders', async () => {
