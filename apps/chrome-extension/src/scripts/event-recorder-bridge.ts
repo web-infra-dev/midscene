@@ -74,6 +74,103 @@ let pendingEvents: ChromeRecordedEvent[] | null = null;
 let isPageUnloading = false;
 const eventSendStats = { sent: 0, failed: 0, pending: 0 };
 
+// Common selectors for active tab components across popular UI frameworks
+const ACTIVE_TAB_SELECTORS = [
+  // Ant Design
+  '.ant-tabs-tab-active',
+  // Element UI / Element Plus
+  '.el-tabs__item.is-active',
+  // Generic patterns
+  '.tab.active',
+  '.tab-item.active',
+  '.tab.is-active',
+  '.tab-item.is-active',
+  '[role="tab"][aria-selected="true"]',
+  // Bootstrap
+  '.nav-link.active',
+  // Material UI
+  '.Mui-selected[role="tab"]',
+  // Vuetify
+  '.v-tab--active',
+  // iView
+  '.ivu-tabs-tab-active',
+];
+
+/**
+ * Capture the current page title combined with the active tab's text (if any).
+ * Format: "pageTitle" or "pageTitle - activeTabName" when a tab component is present.
+ */
+function capturePageTitle(): string {
+  const pageTitle = document.title || '';
+
+  // Try each selector to find an active tab element
+  for (const selector of ACTIVE_TAB_SELECTORS) {
+    try {
+      const activeTab = document.querySelector(selector);
+      if (activeTab) {
+        const tabText = (activeTab.textContent || '').trim();
+        if (tabText) {
+          return `${pageTitle} - ${tabText}`;
+        }
+      }
+    } catch (_e) {
+      // Ignore invalid selector errors
+    }
+  }
+
+  return pageTitle;
+}
+
+// Track the last captured title so we can use it as beforeTitle for the next event
+let lastCapturedTitle = '';
+
+/**
+ * Wait for page to become visually stable after an action.
+ * Monitors DOM mutations and waits for them to settle, with a maximum timeout.
+ */
+function waitForPageStable(timeout = 1500, settleTime = 300): Promise<void> {
+  return new Promise((resolve) => {
+    let mutationTimer: NodeJS.Timeout | null = null;
+    let timeoutTimer: NodeJS.Timeout | null = null;
+    let observer: MutationObserver | null = null;
+
+    const cleanup = () => {
+      if (mutationTimer) clearTimeout(mutationTimer);
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      if (observer) observer.disconnect();
+    };
+
+    // Maximum wait time
+    timeoutTimer = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, timeout);
+
+    // Observe DOM mutations
+    observer = new MutationObserver(() => {
+      // Reset the settle timer on each mutation
+      if (mutationTimer) clearTimeout(mutationTimer);
+      mutationTimer = setTimeout(() => {
+        cleanup();
+        resolve();
+      }, settleTime);
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      characterData: true,
+    });
+
+    // If no mutations happen within settleTime, resolve immediately
+    mutationTimer = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, settleTime);
+  });
+}
+
 // Helper function to capture screenshot with timeout
 async function captureScreenshot(timeout = 1000): Promise<string | undefined> {
   // Skip screenshot if page is unloading
@@ -183,10 +280,16 @@ async function initializeRecorder(sessionId: string): Promise<void> {
     return;
   }
 
+  // Initialize lastCapturedTitle with current page title
+  lastCapturedTitle = capturePageTitle();
+
   window.recorder = new window.EventRecorder(
     async (event: ChromeRecordedEvent) => {
       // Update last activity time when new event occurs
       lastActivityTime = Date.now();
+
+      // Capture beforeTitle: use the last captured title (state before this action)
+      event.beforeTitle = lastCapturedTitle;
 
       const optimizedEvent = window.recorder!.optimizeEvent(event, events);
 
@@ -257,7 +360,15 @@ async function sendEventsToExtension(
           '[EventRecorder Bridge] Using lastScreenshot for immediate screenshotAfter',
         );
       }
+
+      // Capture afterTitle for immediate/unload path
+      const afterTitle = capturePageTitle();
+      latestEvent.afterTitle = afterTitle;
+      lastCapturedTitle = afterTitle;
     } else {
+      // Wait for page to stabilize after the action before capturing screenshotAfter
+      await waitForPageStable(1500, 300);
+
       const screenshotAfter = await captureScreenshot();
       let screenshotBefore: string | undefined;
 
@@ -295,6 +406,12 @@ async function sendEventsToExtension(
       // Ensure we have valid screenshots before assigning
       latestEvent.screenshotAfter = screenshotAfter || lastScreenshot || '';
       latestEvent.screenshotBefore = screenshotBefore || '';
+
+      // Capture afterTitle after page has stabilized
+      const afterTitle = capturePageTitle();
+      latestEvent.afterTitle = afterTitle;
+      // Update lastCapturedTitle for the next event's beforeTitle
+      lastCapturedTitle = afterTitle;
 
       // Log warning if screenshots are missing
       if (!latestEvent.screenshotAfter) {
