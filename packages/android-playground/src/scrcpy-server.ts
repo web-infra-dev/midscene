@@ -487,7 +487,8 @@ export default class ScrcpyServer {
   async launch(port?: number) {
     this.port = port || this.defaultPort;
     return new Promise<this>((resolve) => {
-      this.httpServer.listen(this.port, '0.0.0.0', () => {
+      const listenPort = this.port ?? this.defaultPort;
+      this.httpServer.listen(listenPort, '0.0.0.0', () => {
         console.log(`Scrcpy server running at: http://0.0.0.0:${this.port}`);
         // start device monitoring
         this.startDeviceMonitoring();
