@@ -85,11 +85,18 @@ function isCacheRectCompatibleWithLocatedElement(
 
   const locatedArea = Math.max(locatedRect.width * locatedRect.height, 1);
   const cacheArea = Math.max(cacheRect.width * cacheRect.height, 1);
-  const maxDimensionRatio = Math.max(
-    cacheRect.width / Math.max(locatedRect.width, 1),
-    cacheRect.height / Math.max(locatedRect.height, 1),
-  );
+  const widthRatio = cacheRect.width / Math.max(locatedRect.width, 1);
+  const heightRatio = cacheRect.height / Math.max(locatedRect.height, 1);
+  const maxDimensionRatio = Math.max(widthRatio, heightRatio);
   const areaRatio = cacheArea / locatedArea;
+
+  // Reject candidates that inflate the located element in both dimensions.
+  // This catches small overlay controls that get rewritten into the full
+  // underlying <video> container, while still allowing region prompts whose
+  // matched rect only differs along one dimension.
+  if (widthRatio > 6 && heightRatio > 6 && areaRatio > 120) {
+    return false;
+  }
 
   // Tiny point-like locations should not be rewritten into huge background
   // containers such as <video> or page-level wrappers.

@@ -228,6 +228,7 @@ describe('bbox locate cache fix', () => {
           xpaths: ['/html/body/div[5]/div[11]/div/div[1]/div[3]'],
           attributes: {},
         },
+        rect: { left: 684, top: 674, width: 70, height: 31 },
         dump: {},
       } as Awaited<ReturnType<Service['locate']>>);
 
@@ -295,9 +296,9 @@ describe('bbox locate cache fix', () => {
         },
         rect: {
           left: 349,
-          top: 215,
+          top: 642,
           width: 804,
-          height: 503,
+          height: 75,
         },
         dump: {},
       } as Awaited<ReturnType<Service['locate']>>);
