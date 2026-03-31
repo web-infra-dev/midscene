@@ -37,7 +37,7 @@ const actionSpace = [
 const screenshotBase64 = 'data:image/png;base64,Zm9v';
 
 describe('generateToolsFromActionSpace', () => {
-  it('passes structured multimodal locate args through callActionInActionSpace', async () => {
+  it('passes structured locate extras through callActionInActionSpace and keeps locate options at top level', async () => {
     const callActionInActionSpace = vi.fn().mockResolvedValue(undefined);
     const page = {
       screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
@@ -58,6 +58,7 @@ describe('generateToolsFromActionSpace', () => {
     const result = await tool.handler({
       locate: {
         prompt: 'the reference logo',
+        deepLocate: true,
         images,
         convertHttpImage2Base64: true,
       },
@@ -70,6 +71,7 @@ describe('generateToolsFromActionSpace', () => {
           images,
           convertHttpImage2Base64: true,
         },
+        deepLocate: true,
       },
     });
     expect(result).toEqual({
@@ -120,5 +122,44 @@ describe('generateToolsFromActionSpace', () => {
     });
 
     expect(aiAction).toHaveBeenCalledWith('Tap on "the login button"');
+  });
+
+  it('includes direct action return values in the tool result', async () => {
+    const callActionInActionSpace = vi
+      .fn()
+      .mockResolvedValue('pm clear output');
+    const [tool] = generateToolsFromActionSpace(
+      [
+        {
+          name: 'RunAdbShell',
+          description: 'Execute ADB shell command',
+          paramSchema: z.object({
+            command: z.string(),
+          }),
+        },
+      ],
+      async () => ({
+        callActionInActionSpace,
+        getActionSpace: vi.fn().mockResolvedValue([]),
+        page: {
+          screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+        },
+      }),
+    );
+
+    const result = await tool.handler({
+      command: 'pm clear com.example.app',
+    });
+
+    expect(callActionInActionSpace).toHaveBeenCalledWith('RunAdbShell', {
+      command: 'pm clear com.example.app',
+    });
+    expect(result).toEqual({
+      content: [
+        { type: 'text', text: 'Action "RunAdbShell" completed.' },
+        { type: 'text', text: 'Result: pm clear output' },
+        { type: 'image', data: 'Zm9v', mimeType: 'image/png' },
+      ],
+    });
   });
 });

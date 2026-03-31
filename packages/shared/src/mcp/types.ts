@@ -86,7 +86,7 @@ export interface BaseAgent {
   };
   callActionInActionSpace?: (
     actionName: string,
-    params?: Record<string, unknown>,
+    params?: unknown,
   ) => Promise<unknown>;
   aiAction?: (
     description: string,
