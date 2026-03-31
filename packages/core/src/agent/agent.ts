@@ -1135,6 +1135,18 @@ export class Agent<
     return verifyResult;
   }
 
+  /**
+   * Locate an element and return both its center point and an approximate rect.
+   *
+   * - In most locate flows, `rect` represents the matched element boundary.
+   * - Some models only support point grounding instead of boundary grounding.
+   *   In those cases (for example, AutoGLM), `rect` falls back to a small 8x8
+   *   box centered on the located point.
+   *
+   * Because `rect` may vary with the underlying model capability, avoid relying
+   * on it too heavily for strict boundary semantics. If you need a stable click
+   * target, prefer `center`.
+   */
   async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
     const locateParam = buildDetailedLocateParam(prompt, opt);
     assert(locateParam, 'cannot get locate param for aiLocate');
