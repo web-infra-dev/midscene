@@ -96,6 +96,10 @@ function unwrapOptional(value: z.ZodTypeAny): {
   return { innerValue: value, isOptional: false };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 /**
  * Check if a Zod object schema contains a 'prompt' field (locate field pattern)
  */
@@ -160,6 +164,93 @@ function extractActionSchema(
   );
 }
 
+function getPromptText(prompt: unknown): string | undefined {
+  if (typeof prompt === 'string') {
+    return prompt;
+  }
+
+  if (isRecord(prompt) && typeof prompt.prompt === 'string') {
+    return prompt.prompt;
+  }
+
+  return undefined;
+}
+
+function moveMultimodalFieldsIntoPrompt(
+  value: Record<string, unknown>,
+): Record<string, unknown> {
+  const { images, convertHttpImage2Base64, ...rest } = value;
+  const promptText = getPromptText(rest.prompt);
+  const hasMultimodalFields =
+    Array.isArray(images) || typeof convertHttpImage2Base64 === 'boolean';
+
+  if (!hasMultimodalFields || !promptText) {
+    return value;
+  }
+
+  const normalizedPrompt: Record<string, unknown> = isRecord(rest.prompt)
+    ? { ...rest.prompt }
+    : { prompt: promptText };
+
+  if (!('images' in normalizedPrompt) && Array.isArray(images)) {
+    normalizedPrompt.images = images;
+  }
+
+  if (
+    !('convertHttpImage2Base64' in normalizedPrompt) &&
+    typeof convertHttpImage2Base64 === 'boolean'
+  ) {
+    normalizedPrompt.convertHttpImage2Base64 = convertHttpImage2Base64;
+  }
+
+  return {
+    ...rest,
+    prompt: normalizedPrompt,
+  };
+}
+
+function normalizeLocateLikeArg(value: unknown): unknown {
+  if (typeof value === 'string') {
+    return { prompt: value };
+  }
+
+  if (!isRecord(value)) {
+    return value;
+  }
+
+  return moveMultimodalFieldsIntoPrompt(value);
+}
+
+function normalizeActionArgs(
+  args: Record<string, unknown>,
+  paramSchema?: z.ZodTypeAny,
+): Record<string, unknown> {
+  if (!paramSchema) {
+    return args;
+  }
+
+  const schema = paramSchema as z.ZodTypeAny;
+  if (!isZodObject(schema)) {
+    return args;
+  }
+
+  return Object.fromEntries(
+    Object.entries(args).map(([key, value]) => {
+      const fieldSchema = schema.shape[key] as z.ZodTypeAny | undefined;
+      if (!fieldSchema) {
+        return [key, value];
+      }
+
+      const { innerValue } = unwrapOptional(fieldSchema);
+      if (isZodObject(innerValue) && isLocateField(innerValue)) {
+        return [key, normalizeLocateLikeArg(value)];
+      }
+
+      return [key, value];
+    }),
+  );
+}
+
 /**
  * Serialize args to human-readable description for AI action
  */
@@ -194,10 +285,9 @@ function buildActionInstruction(
   actionName: string,
   args: Record<string, unknown>,
 ): string {
-  const locatePrompt =
-    args.locate && typeof args.locate === 'object'
-      ? (args.locate as { prompt?: string }).prompt
-      : undefined;
+  const locatePrompt = isRecord(args.locate)
+    ? getPromptText(args.locate.prompt)
+    : undefined;
 
   switch (actionName) {
     case 'Tap':
@@ -225,6 +315,23 @@ function buildActionInstruction(
       return argsDescription ? `${actionName}: ${argsDescription}` : actionName;
     }
   }
+}
+
+async function executeAction(
+  agent: BaseAgent,
+  actionName: string,
+  args: Record<string, unknown>,
+): Promise<unknown> {
+  if (agent.callActionInActionSpace) {
+    return agent.callActionInActionSpace(actionName, args);
+  }
+
+  if (agent.aiAction) {
+    const instruction = buildActionInstruction(actionName, args);
+    return agent.aiAction(instruction);
+  }
+
+  throw new Error(`Action "${actionName}" is not supported by this agent`);
 }
 
 /**
@@ -323,25 +430,19 @@ export function generateToolsFromActionSpace(
       handler: async (args: Record<string, unknown>) => {
         try {
           const agent = await getAgent();
+          const normalizedArgs = normalizeActionArgs(args, action.paramSchema);
 
-          if (agent.aiAction) {
-            const instruction = buildActionInstruction(action.name, args);
-            try {
-              await agent.aiAction(instruction);
-            } catch (error: unknown) {
-              const errorMessage = getErrorMessage(error);
-              console.error(
-                `Error executing action "${action.name}":`,
-                errorMessage,
-              );
-              // Return screenshot + warning instead of hard error,
-              // so the AI agent can see current state and decide to retry or adjust strategy
-              return await captureFailureResult(
-                agent,
-                action.name,
-                errorMessage,
-              );
-            }
+          try {
+            await executeAction(agent, action.name, normalizedArgs);
+          } catch (error: unknown) {
+            const errorMessage = getErrorMessage(error);
+            console.error(
+              `Error executing action "${action.name}":`,
+              errorMessage,
+            );
+            // Return screenshot + warning instead of hard error,
+            // so the AI agent can see current state and decide to retry or adjust strategy
+            return await captureFailureResult(agent, action.name, errorMessage);
           }
 
           return await captureScreenshotResult(agent, action.name);

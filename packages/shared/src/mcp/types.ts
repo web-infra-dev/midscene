@@ -84,6 +84,10 @@ export interface BaseAgent {
   page?: {
     screenshotBase64(): Promise<string>;
   };
+  callActionInActionSpace?: (
+    actionName: string,
+    params?: Record<string, unknown>,
+  ) => Promise<unknown>;
   aiAction?: (
     description: string,
     params?: Record<string, unknown>,
