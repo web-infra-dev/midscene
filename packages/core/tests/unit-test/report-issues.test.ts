@@ -139,6 +139,7 @@ describe('Issue 3: execution persistence requires id', () => {
     const gen = new ReportGenerator({
       reportPath: join(tmpDir, 'dedup-old.html'),
       screenshotMode: 'inline',
+      persistExecutionDump: true,
       autoPrint: false,
     });
 

@@ -43,7 +43,7 @@ export class ScreenshotStore {
   private readonly reportPath: string;
   private readonly screenshotsDir?: string;
   private readonly writeInlineImage?: (id: string, base64: string) => void;
-  private readonly ensureFileCopy: boolean;
+  private readonly alsoWriteFileCopy: boolean;
   private readonly writtenInlineIds = new Set<string>();
   private readonly writtenFileIds = new Set<string>();
 
@@ -52,20 +52,25 @@ export class ScreenshotStore {
     reportPath: string;
     screenshotsDir?: string;
     writeInlineImage?: (id: string, base64: string) => void;
+    alsoWriteFileCopy?: boolean;
+    /** @deprecated Use alsoWriteFileCopy instead. */
     ensureFileCopy?: boolean;
   }) {
     this.mode = options.mode;
     this.reportPath = options.reportPath;
     this.screenshotsDir = options.screenshotsDir;
     this.writeInlineImage = options.writeInlineImage;
-    this.ensureFileCopy = options.ensureFileCopy ?? false;
+    this.alsoWriteFileCopy =
+      options.alsoWriteFileCopy ?? options.ensureFileCopy ?? false;
   }
 
   persist(screenshot: ScreenshotItem): ScreenshotRef {
-    const shouldEnsureFileCopy =
-      this.mode === 'directory' || this.ensureFileCopy;
-    const fileRef = shouldEnsureFileCopy
-      ? this.persistToSharedFileIfNeeded(screenshot)
+    const shouldWriteFileCopy =
+      this.mode === 'directory' || this.alsoWriteFileCopy;
+    const fileRef = shouldWriteFileCopy
+      ? this.persistToSharedFileIfNeeded(screenshot, {
+          markAsPersisted: this.mode === 'directory',
+        })
       : null;
 
     if (this.mode === 'inline') {
@@ -91,11 +96,14 @@ export class ScreenshotStore {
 
   private persistToSharedFileIfNeeded(
     screenshot: ScreenshotItem,
+    options: {
+      markAsPersisted: boolean;
+    },
   ): ScreenshotRef {
     const screenshotsDir = this.screenshotsDir;
     if (!screenshotsDir) {
       throw new Error(
-        'ScreenshotStore: screenshotsDir is required in directory mode',
+        'ScreenshotStore: screenshotsDir is required when file persistence is enabled',
       );
     }
     if (!existsSync(screenshotsDir)) {
@@ -114,9 +122,11 @@ export class ScreenshotStore {
       this.writtenFileIds.add(screenshot.id);
     }
 
-    return {
-      ...screenshot.markPersistedToPath(relativePath, absolutePath),
-    };
+    if (options.markAsPersisted) {
+      return screenshot.markPersistedToPath(relativePath, absolutePath);
+    }
+
+    return screenshot.registerPersistedFileCopy(relativePath, absolutePath);
   }
 
   loadBase64(refInput: unknown): string {

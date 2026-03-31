@@ -119,6 +119,7 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
+        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -153,6 +154,7 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
+        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -176,6 +178,7 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
+        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -248,6 +251,7 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
+        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -307,6 +311,7 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
+        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -354,6 +359,7 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
+        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -404,6 +410,7 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
+        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -443,6 +450,7 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
+        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -466,6 +474,7 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
+        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -492,6 +501,7 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'directory',
+        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -530,6 +540,7 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'directory',
+        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -561,6 +572,7 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'directory',
+        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -591,6 +603,7 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'directory',
+        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -813,6 +826,17 @@ describe('ReportGenerator — append-only model', () => {
       expect(gen).toBe(nullReportGenerator);
     });
 
+    it('should throw when persistExecutionDump is true and generateReport is false', () => {
+      expect(() =>
+        ReportGenerator.create('test-invalid', {
+          generateReport: false,
+          persistExecutionDump: true,
+        }),
+      ).toThrow(
+        'persistExecutionDump cannot be true when generateReport is false',
+      );
+    });
+
     it('should create inline mode generator by default', () => {
       const gen = ReportGenerator.create('test-inline', {});
       expect(gen).toBeInstanceOf(ReportGenerator);
@@ -829,6 +853,27 @@ describe('ReportGenerator — append-only model', () => {
       const reportPath = gen.getReportPath();
       expect(reportPath).toContain('test-dir');
       expect(reportPath).toContain('index.html');
+    });
+
+    it('should disable execution dump persistence by default', async () => {
+      const gen = ReportGenerator.create('test-default-no-exec-dump', {
+        autoPrintReportMsg: false,
+      }) as ReportGenerator;
+
+      const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
+      const execution = createExecution(
+        [screenshot],
+        'factory-default-no-exec-dump',
+      );
+
+      gen.onExecutionUpdate(execution, defaultReportMeta);
+      await gen.flush();
+
+      const reportDir = dirname(gen.getReportPath()!);
+      const rootFiles = readdirSync(reportDir).filter((name) =>
+        /^\d+\.execution\.json(?:\.screenshots)?$/.test(name),
+      );
+      expect(rootFiles).toEqual([]);
     });
 
     it('should create generator with execution dump persistence disabled', async () => {
@@ -857,6 +902,7 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
+        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -881,6 +927,7 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
+        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -920,6 +967,7 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
+        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -986,6 +1034,7 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
+        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -1021,6 +1070,7 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
+        persistExecutionDump: true,
         autoPrint: false,
       });
 

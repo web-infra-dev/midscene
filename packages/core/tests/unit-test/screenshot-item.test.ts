@@ -240,6 +240,35 @@ describe('ScreenshotItem', () => {
       });
     });
 
+    it('should support file copy tracking without changing inline serialization mode', () => {
+      const capturedAt = Date.now();
+      const item = ScreenshotItem.create(testBase64, capturedAt);
+      const id = item.id;
+      const htmlPath = join(tmpDir, 'dual-path.html');
+      const filePath = join(tmpDir, 'dual-path.png');
+
+      writeFileSync(
+        htmlPath,
+        `<script type="midscene-image" data-id="${id}">${testBase64}</script>`,
+      );
+      const rawBase64 = testBase64.replace(/^data:image\/png;base64,/, '');
+      writeFileSync(filePath, Buffer.from(rawBase64, 'base64'));
+
+      item.registerPersistedFileCopy('./screenshots/dual-path.png', filePath);
+      item.markPersistedInline(htmlPath);
+
+      expect(item.hasBase64()).toBe(false);
+      expect(item.toSerializable()).toMatchObject({
+        type: 'midscene_screenshot_ref',
+        id,
+        capturedAt,
+        storage: 'inline',
+      });
+
+      rmSync(filePath, { force: true });
+      expect(item.base64).toBe(testBase64);
+    });
+
     it('toSerializable should return ScreenshotRef format before persistence', () => {
       const item = ScreenshotItem.create(testBase64, Date.now());
       const serialized = item.toSerializable();

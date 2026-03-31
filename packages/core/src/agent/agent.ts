@@ -44,7 +44,10 @@ import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import yaml from 'js-yaml';
 
 import type { IReportGenerator } from '@/report-generator';
-import { ReportGenerator } from '@/report-generator';
+import {
+  ReportGenerator,
+  assertReportGenerationOptions,
+} from '@/report-generator';
 import { getVersion, processCacheConfig, reportHTMLContent } from '@/utils';
 import {
   ScriptPlayer,
@@ -264,7 +267,7 @@ export class Agent<
     this.opts = Object.assign(
       {
         generateReport: true,
-        persistExecutionDump: true,
+        persistExecutionDump: false,
         autoPrintReportMsg: true,
         groupName: 'Midscene Report',
         groupDescription: '',
@@ -276,6 +279,7 @@ export class Agent<
         ? { replanningCycleLimit: envReplanningCycleLimit }
         : {},
     );
+    assertReportGenerationOptions(this.opts);
 
     const resolvedAiActContext =
       this.opts.aiActContext ?? this.opts.aiActionContext;
