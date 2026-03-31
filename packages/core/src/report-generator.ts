@@ -54,7 +54,7 @@ export const nullReportGenerator: IReportGenerator = {
 export class ReportGenerator implements IReportGenerator {
   private reportPath: string;
   private screenshotMode: 'inline' | 'directory';
-  private persistExecutionDump: boolean;
+  private shouldPersistExecutionDump: boolean;
   private autoPrint: boolean;
   private firstWriteDone = false;
   private executionLogIndex = 0;
@@ -83,7 +83,7 @@ export class ReportGenerator implements IReportGenerator {
   }) {
     this.reportPath = options.reportPath;
     this.screenshotMode = options.screenshotMode;
-    this.persistExecutionDump = options.persistExecutionDump ?? true;
+    this.shouldPersistExecutionDump = options.persistExecutionDump ?? true;
     this.autoPrint = options.autoPrint ?? true;
     this.reportStreamId = uuid();
     this.screenshotStore = new ScreenshotStore({
@@ -96,7 +96,7 @@ export class ReportGenerator implements IReportGenerator {
           `\n${generateImageScriptTag(id, base64)}`,
         );
       },
-      ensureFileCopy: this.persistExecutionDump,
+      ensureFileCopy: this.shouldPersistExecutionDump,
     });
     this.printReportPath('will be generated at');
   }
@@ -187,7 +187,7 @@ export class ReportGenerator implements IReportGenerator {
       this.writeDirectoryExecution(execution, singleDump);
     }
 
-    if (this.persistExecutionDump) {
+    if (this.shouldPersistExecutionDump) {
       this.persistExecutionDumpToFile(execution, singleDump);
     }
 
