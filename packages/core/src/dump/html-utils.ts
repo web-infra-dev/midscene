@@ -437,7 +437,7 @@ export function getBaseUrlFixScript(): string {
 
 export function generateDumpScriptTag(
   json: string,
-  attributes?: Record<string, string>,
+  attributes?: Record<string, string | number | boolean>,
 ): string {
   let attrString = '';
   if (attributes && Object.keys(attributes).length > 0) {
