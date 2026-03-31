@@ -298,6 +298,12 @@ export class ReportGenerator implements IReportGenerator {
     execution: ExecutionDump,
     singleDump: ReportActionDump,
   ): void {
+    // Backward compatibility: old serialized executions may not have id.
+    // We still append dump tags to report HTML, but skip execution JSON persistence.
+    if (!execution.id) {
+      return;
+    }
+
     if (!existsSync(this.executionLogDir)) {
       mkdirSync(this.executionLogDir, { recursive: true });
     }
