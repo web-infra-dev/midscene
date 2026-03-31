@@ -43,34 +43,55 @@ export class ScreenshotStore {
   private readonly reportPath: string;
   private readonly screenshotsDir?: string;
   private readonly writeInlineImage?: (id: string, base64: string) => void;
-  private readonly writtenIds = new Set<string>();
+  private readonly ensureFileCopy: boolean;
+  private readonly writtenInlineIds = new Set<string>();
+  private readonly writtenFileIds = new Set<string>();
 
   constructor(options: {
     mode: 'inline' | 'directory';
     reportPath: string;
     screenshotsDir?: string;
     writeInlineImage?: (id: string, base64: string) => void;
+    ensureFileCopy?: boolean;
   }) {
     this.mode = options.mode;
     this.reportPath = options.reportPath;
     this.screenshotsDir = options.screenshotsDir;
     this.writeInlineImage = options.writeInlineImage;
+    this.ensureFileCopy = options.ensureFileCopy ?? false;
   }
 
   persist(screenshot: ScreenshotItem): ScreenshotRef {
+    const shouldEnsureFileCopy =
+      this.mode === 'directory' || this.ensureFileCopy;
+    const fileRef = shouldEnsureFileCopy
+      ? this.persistToSharedFileIfNeeded(screenshot)
+      : null;
+
     if (this.mode === 'inline') {
       if (!this.writeInlineImage) {
         throw new Error(
           'ScreenshotStore: writeInlineImage is required in inline mode',
         );
       }
-      if (!this.writtenIds.has(screenshot.id)) {
+      if (!this.writtenInlineIds.has(screenshot.id)) {
         this.writeInlineImage(screenshot.id, screenshot.base64);
-        this.writtenIds.add(screenshot.id);
+        this.writtenInlineIds.add(screenshot.id);
       }
       return screenshot.markPersistedInline(this.reportPath);
     }
 
+    if (!fileRef) {
+      throw new Error(
+        'ScreenshotStore: file persistence is required in directory mode',
+      );
+    }
+    return fileRef;
+  }
+
+  private persistToSharedFileIfNeeded(
+    screenshot: ScreenshotItem,
+  ): ScreenshotRef {
     const screenshotsDir = this.screenshotsDir;
     if (!screenshotsDir) {
       throw new Error(
@@ -87,13 +108,15 @@ export class ScreenshotStore {
       `${screenshot.id}.${screenshot.extension}`,
     );
 
-    if (!this.writtenIds.has(screenshot.id)) {
+    if (!this.writtenFileIds.has(screenshot.id)) {
       const buffer = Buffer.from(screenshot.rawBase64, 'base64');
       writeFileSync(absolutePath, buffer);
-      this.writtenIds.add(screenshot.id);
+      this.writtenFileIds.add(screenshot.id);
     }
 
-    return screenshot.markPersistedToPath(relativePath, absolutePath);
+    return {
+      ...screenshot.markPersistedToPath(relativePath, absolutePath),
+    };
   }
 
   loadBase64(refInput: unknown): string {
@@ -131,6 +154,7 @@ export class ScreenshotStore {
     ) {
       rmSync(this.screenshotsDir, { recursive: true, force: true });
     }
-    this.writtenIds.clear();
+    this.writtenInlineIds.clear();
+    this.writtenFileIds.clear();
   }
 }

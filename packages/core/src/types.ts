@@ -1056,6 +1056,8 @@ export interface AgentOpt {
   groupDescription?: string;
   /* if auto generate report, default true */
   generateReport?: boolean;
+  /* if persist per-execution dump files next to the report, default true */
+  persistExecutionDump?: boolean;
   /* if auto print report msg, default true */
   autoPrintReportMsg?: boolean;
 

@@ -264,6 +264,7 @@ export class Agent<
     this.opts = Object.assign(
       {
         generateReport: true,
+        persistExecutionDump: true,
         autoPrintReportMsg: true,
         groupName: 'Midscene Report',
         groupDescription: '',
@@ -355,6 +356,7 @@ export class Agent<
 
     this.reportGenerator = ReportGenerator.create(this.reportFileName!, {
       generateReport: this.opts.generateReport,
+      persistExecutionDump: this.opts.persistExecutionDump,
       outputFormat: this.opts.outputFormat,
       autoPrintReportMsg: this.opts.autoPrintReportMsg,
     });

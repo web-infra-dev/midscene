@@ -53,8 +53,8 @@ export const nullReportGenerator: IReportGenerator = {
 
 export class ReportGenerator implements IReportGenerator {
   private reportPath: string;
-  private executionLogDir: string;
   private screenshotMode: 'inline' | 'directory';
+  private persistExecutionDump: boolean;
   private autoPrint: boolean;
   private firstWriteDone = false;
   private executionLogIndex = 0;
@@ -78,11 +78,12 @@ export class ReportGenerator implements IReportGenerator {
   constructor(options: {
     reportPath: string;
     screenshotMode: 'inline' | 'directory';
+    persistExecutionDump?: boolean;
     autoPrint?: boolean;
   }) {
     this.reportPath = options.reportPath;
-    this.executionLogDir = join(dirname(this.reportPath), 'executions');
     this.screenshotMode = options.screenshotMode;
+    this.persistExecutionDump = options.persistExecutionDump ?? true;
     this.autoPrint = options.autoPrint ?? true;
     this.reportStreamId = uuid();
     this.screenshotStore = new ScreenshotStore({
@@ -95,6 +96,7 @@ export class ReportGenerator implements IReportGenerator {
           `\n${generateImageScriptTag(id, base64)}`,
         );
       },
+      ensureFileCopy: this.persistExecutionDump,
     });
     this.printReportPath('will be generated at');
   }
@@ -103,6 +105,7 @@ export class ReportGenerator implements IReportGenerator {
     reportFileName: string,
     opts: {
       generateReport?: boolean;
+      persistExecutionDump?: boolean;
       outputFormat?: 'single-html' | 'html-and-external-assets';
       autoPrintReportMsg?: boolean;
     },
@@ -119,6 +122,7 @@ export class ReportGenerator implements IReportGenerator {
         opts.outputFormat === 'html-and-external-assets'
           ? 'directory'
           : 'inline',
+      persistExecutionDump: opts.persistExecutionDump,
       autoPrint: opts.autoPrintReportMsg,
     });
   }
@@ -183,7 +187,9 @@ export class ReportGenerator implements IReportGenerator {
       this.writeDirectoryExecution(execution, singleDump);
     }
 
-    this.persistExecutionDump(execution, singleDump);
+    if (this.persistExecutionDump) {
+      this.persistExecutionDumpToFile(execution, singleDump);
+    }
 
     if (!this.firstWriteDone) {
       this.firstWriteDone = true;
@@ -286,12 +292,13 @@ export class ReportGenerator implements IReportGenerator {
     return `id:${execution.id}`;
   }
 
-  private persistExecutionDump(
+  private persistExecutionDumpToFile(
     execution: ExecutionDump,
     singleDump: ReportActionDump,
   ): void {
-    if (!existsSync(this.executionLogDir)) {
-      mkdirSync(this.executionLogDir, { recursive: true });
+    const dir = dirname(this.reportPath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
     }
 
     const executionLogKey = this.getExecutionLogKey(execution);
@@ -303,8 +310,8 @@ export class ReportGenerator implements IReportGenerator {
       this.executionLogFileIndexByExecutionKey.set(executionLogKey, fileIndex);
     }
 
-    const fileName = `${fileIndex}.json`;
-    const filePath = join(this.executionLogDir, fileName);
-    singleDump.serializeToFiles(filePath);
+    const fileName = `${fileIndex}.execution.json`;
+    const filePath = join(dirname(this.reportPath), fileName);
+    writeFileSync(filePath, singleDump.serialize(), 'utf-8');
   }
 }
