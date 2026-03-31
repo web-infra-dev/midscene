@@ -1,7 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { uuid } from '@midscene/shared/utils';
 import { extractImageByIdSync } from './dump/html-utils';
-import type { ScreenshotRef } from './dump/screenshot-store';
+import {
+  type ScreenshotRef,
+  normalizeScreenshotRef,
+} from './dump/screenshot-store';
 
 /**
  * Serialization format for ScreenshotItem
@@ -158,16 +161,7 @@ export class ScreenshotItem {
 
   /** Check if a value is a serialized ScreenshotItem reference (inline or directory mode) */
   static isSerialized(value: unknown): value is ScreenshotSerializeFormat {
-    if (typeof value !== 'object' || value === null) return false;
-    const record = value as Record<string, unknown>;
-    return (
-      record.type === 'midscene_screenshot_ref' &&
-      typeof record.id === 'string' &&
-      typeof record.capturedAt === 'number' &&
-      (record.mimeType === 'image/png' || record.mimeType === 'image/jpeg') &&
-      (record.storage === 'inline' ||
-        (record.storage === 'file' && typeof record.path === 'string'))
-    );
+    return normalizeScreenshotRef(value) !== null;
   }
 
   /**
