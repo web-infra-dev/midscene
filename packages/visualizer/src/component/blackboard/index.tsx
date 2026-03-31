@@ -1,6 +1,7 @@
 'use client';
 import type { BaseElement, Rect, UIContext } from '@midscene/core';
 import React, { type ReactElement } from 'react';
+import { getCenterHighlightBox } from '../../utils/highlight-element';
 import { normalizeBlackboardHighlights } from './highlights';
 import './index.less';
 
@@ -42,24 +43,24 @@ export const Blackboard = (props: {
     return '';
   }, [screenshot]);
 
-  const highlightElementRects = highlightOverlays.map(
-    (highlight) => highlight.rect,
+  const highlightBoxes = highlightOverlays.map((highlight) =>
+    getCenterHighlightBox(highlight),
   );
 
   let bottomTipA: ReactElement | null = null;
-  if (highlightElementRects.length === 1) {
+  if (highlightBoxes.length === 1) {
     bottomTipA = (
       <div className="bottom-tip">
         <div className="bottom-tip-item">
-          Element: {JSON.stringify(highlightElementRects[0])}
+          Element: {JSON.stringify(highlightBoxes[0])}
         </div>
       </div>
     );
-  } else if (highlightElementRects.length > 1) {
+  } else if (highlightBoxes.length > 1) {
     bottomTipA = (
       <div className="bottom-tip">
         <div className="bottom-tip-item">
-          Element: {JSON.stringify(highlightElementRects)}
+          Element: {JSON.stringify(highlightBoxes)}
         </div>
       </div>
     );
@@ -110,18 +111,22 @@ export const Blackboard = (props: {
           )}
 
           {/* Highlight elements */}
-          {highlightOverlays.map((el) => (
-            <div
-              key={`${el.key}-rect`}
-              className="blackboard-rect blackboard-rect-highlight"
-              style={{
-                left: `${(el.rect.left / screenWidth) * 100}%`,
-                top: `${(el.rect.top / screenHeight) * 100}%`,
-                width: `${(el.rect.width / screenWidth) * 100}%`,
-                height: `${(el.rect.height / screenHeight) * 100}%`,
-              }}
-            />
-          ))}
+          {highlightOverlays.map((el) => {
+            const highlightBox = getCenterHighlightBox(el);
+
+            return (
+              <div
+                key={`${el.key}-rect`}
+                className="blackboard-rect blackboard-rect-highlight"
+                style={{
+                  left: `${(highlightBox.left / screenWidth) * 100}%`,
+                  top: `${(highlightBox.top / screenHeight) * 100}%`,
+                  width: `${(highlightBox.width / screenWidth) * 100}%`,
+                  height: `${(highlightBox.height / screenHeight) * 100}%`,
+                }}
+              />
+            );
+          })}
         </div>
       </div>
 

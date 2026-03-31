@@ -1,6 +1,10 @@
 'use client';
 import { mousePointer } from '@/utils';
 import { paramStr, typeStr } from '@midscene/core/agent';
+import {
+  getCenterHighlightBox,
+  normalizeHighlightElementForReport,
+} from './highlight-element';
 
 import type {
   ExecutionDump,
@@ -480,10 +484,13 @@ export const generateAnimationScripts = (
         );
 
         locateElements.forEach((element) => {
+          const highlightElement = normalizeHighlightElementForReport(element);
+          const highlightBox = getCenterHighlightBox(highlightElement);
+
           insightCameraState = {
-            ...cameraStateForRect(element.rect, width, height),
-            pointerLeft: element.center[0],
-            pointerTop: element.center[1],
+            ...cameraStateForRect(highlightBox, width, height),
+            pointerLeft: highlightElement.center[0],
+            pointerTop: highlightElement.center[1],
           };
 
           const newCameraState: TargetCameraState = insightCameraState;
@@ -494,12 +501,12 @@ export const generateAnimationScripts = (
                 type: 'insight',
                 context: context,
                 camera: newCameraState,
-                highlightElement: element,
+                highlightElement,
                 searchArea: task.log?.taskInfo?.searchArea,
                 duration: locateDuration * 0.5,
                 insightCameraDuration: locateDuration,
                 title,
-                subTitle: element.description || subTitle,
+                subTitle: highlightElement.description || subTitle,
                 imageWidth: context.shotSize?.width || imageWidth,
                 imageHeight: context.shotSize?.height || imageHeight,
                 taskId: currentTaskId,
