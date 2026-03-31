@@ -275,6 +275,124 @@ describe('bbox locate cache fix', () => {
       ).toBeUndefined();
     });
 
+    it('should write cache when AI locate returns a large matched rect for a region prompt', async () => {
+      vi.mocked(mockInterface.cacheFeatureForPoint!).mockResolvedValue({
+        xpaths: ['/html/body/video[1]'],
+      });
+      vi.mocked(mockInterface.rectMatchesCacheFeature!).mockResolvedValue({
+        left: 353,
+        top: 217,
+        width: 800,
+        height: 500,
+      });
+      vi.mocked(mockService.locate).mockResolvedValue({
+        element: {
+          id: 'video-area-point',
+          center: [750, 466],
+          rect: { left: 747, top: 463, width: 8, height: 8 },
+          xpaths: ['/html/body/div[5]/div[11]/div/div[1]/div[3]'],
+          attributes: {},
+        },
+        rect: {
+          left: 349,
+          top: 215,
+          width: 804,
+          height: 503,
+        },
+        dump: {},
+      } as Awaited<ReturnType<Service['locate']>>);
+
+      const plans = [
+        {
+          type: 'Locate',
+          param: {
+            prompt: 'video area',
+          },
+          thought: 'find the video area',
+        },
+      ];
+
+      const { tasks } = await taskBuilder.build(
+        plans,
+        mockModelConfig,
+        mockModelConfig,
+        { cacheable: true },
+      );
+
+      const locateTask = tasks.find((task) => task.subType === 'Locate');
+      expect(locateTask).toBeDefined();
+
+      await locateTask!.executor(locateTask!.param, {
+        task: {
+          type: 'Planning',
+          subType: 'Locate',
+          param: locateTask!.param,
+          status: 'running',
+          timing: { start: Date.now(), end: 0, cost: 0 },
+          executor: locateTask!.executor,
+        },
+        uiContext: await createMockUIContext(validBase64Image),
+      });
+
+      expect(findLocateCacheByPrompt(taskCache, 'video area')?.cache).toEqual({
+        xpaths: ['/html/body/video[1]'],
+      });
+    });
+
+    it('should write locate cache for large bbox plan hits after rect validation', async () => {
+      vi.mocked(mockInterface.cacheFeatureForPoint!).mockResolvedValue({
+        xpaths: ['/html/body/video[1]'],
+      });
+      vi.mocked(mockInterface.rectMatchesCacheFeature!).mockResolvedValue({
+        left: 353,
+        top: 217,
+        width: 800,
+        height: 500,
+      });
+
+      const plansWithBbox = [
+        {
+          type: 'Tap',
+          param: {
+            locate: {
+              prompt: 'video area from plan',
+              bbox: [353, 217, 1152, 716] as [number, number, number, number],
+            },
+          },
+          thought: 'tap the video area',
+        },
+      ];
+
+      const { tasks } = await taskBuilder.build(
+        plansWithBbox,
+        mockModelConfig,
+        mockModelConfig,
+        { cacheable: true },
+      );
+
+      const locateTask = tasks.find((task) => task.subType === 'Locate');
+      expect(locateTask).toBeDefined();
+
+      const result = await locateTask!.executor(locateTask!.param, {
+        task: {
+          type: 'Planning',
+          subType: 'Locate',
+          param: locateTask!.param,
+          status: 'running',
+          timing: { start: Date.now(), end: 0, cost: 0 },
+          executor: locateTask!.executor,
+        },
+        uiContext: await createMockUIContext(validBase64Image),
+      });
+
+      expect(result?.hitBy?.from).toBe('Plan');
+      expect(
+        findLocateCacheByPrompt(taskCache, 'video area from plan')?.cache,
+      ).toEqual({
+        xpaths: ['/html/body/video[1]'],
+      });
+    });
+
     it('should not call AI locate when bbox is available', async () => {
       const plansWithBbox = [
         {

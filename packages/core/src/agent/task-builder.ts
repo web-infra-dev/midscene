@@ -65,6 +65,15 @@ function rectContainsPoint(rect: Rect, point: [number, number]): boolean {
   );
 }
 
+function bboxToRect(bbox: [number, number, number, number]): Rect {
+  return {
+    left: bbox[0],
+    top: bbox[1],
+    width: bbox[2] - bbox[0] + 1,
+    height: bbox[3] - bbox[1] + 1,
+  };
+}
+
 function isCacheRectCompatibleWithLocatedElement(
   locatedRect: Rect,
   cacheRect: Rect,
@@ -89,6 +98,18 @@ function isCacheRectCompatibleWithLocatedElement(
   }
 
   return true;
+}
+
+function isCacheRectCompatibleWithLocatedRects(
+  locatedRects: (Rect | undefined)[],
+  cacheRect: Rect,
+  locatedCenter: [number, number],
+): boolean {
+  return locatedRects
+    .filter(isFiniteRect)
+    .some((rect) =>
+      isCacheRectCompatibleWithLocatedElement(rect, cacheRect, locatedCenter),
+    );
 }
 
 export function locatePlanForLocate(param: string | DetailedLocateParam) {
@@ -474,6 +495,9 @@ export class TaskBuilder {
         const planLocatedElement = ifPlanLocateParamIsBbox(param)
           ? matchElementFromPlan(param)
           : undefined;
+        const rectFromPlan = ifPlanLocateParamIsBbox(param)
+          ? bboxToRect(param.bbox!)
+          : undefined;
 
         // from bbox (plan hit)
         // when deepLocate is enabled, bbox should be used as search area hint,
@@ -499,13 +523,16 @@ export class TaskBuilder {
           }
         }
 
+        const rectFromXpathInScreenshot = rectFromXpath
+          ? transformLogicalRectToScreenshotRect(
+              rectFromXpath,
+              shrunkShotToLogicalRatio,
+            )
+          : undefined;
+
         const elementFromXpath = rectFromXpath
           ? generateElementByRect(
-              // rectFromXpath is in logical coordinates, which should be transformed to screenshot coordinates;
-              transformLogicalRectToScreenshotRect(
-                rectFromXpath,
-                shrunkShotToLogicalRatio,
-              ),
+              rectFromXpathInScreenshot!,
               typeof param.prompt === 'string'
                 ? param.prompt
                 : param.prompt?.prompt || '',
@@ -633,19 +660,25 @@ export class TaskBuilder {
                           cacheRect,
                           shrunkShotToLogicalRatio,
                         );
+                      const cacheValidationRects = [
+                        locateResult?.rect,
+                        rectFromXpathInScreenshot,
+                        rectFromPlan,
+                        element.rect,
+                      ];
 
                       if (
-                        !isCacheRectCompatibleWithLocatedElement(
-                          element.rect,
+                        !isCacheRectCompatibleWithLocatedRects(
+                          cacheValidationRects,
                           cacheRectInScreenshot,
                           element.center,
                         )
                       ) {
                         shouldPersistCache = false;
                         debug(
-                          'skip cache update because cache rect mismatches located element, prompt: %s, elementRect: %o, cacheRect: %o',
+                          'skip cache update because cache rect mismatches located element, prompt: %s, validationRects: %o, cacheRect: %o',
                           cachePrompt,
-                          element.rect,
+                          cacheValidationRects.filter(isFiniteRect),
                           cacheRectInScreenshot,
                         );
                       }
