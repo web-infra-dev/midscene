@@ -325,8 +325,7 @@ export class Page<
           throw error;
         }
 
-        const errorMsg =
-          error instanceof Error ? error.message : String(error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
         console.warn(
           `[Midscene] Playwright screenshot failed: ${errorMsg}. Falling back to CDP screenshot.`,
         );
