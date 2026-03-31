@@ -222,6 +222,10 @@ class PlaygroundServer {
       | 'sidecars'
     >,
   ): void {
+    // Allow overriding the initial session created by agentFactory in launch()
+    if (this._activeConnection.session && this._activeConnection.agentFactory) {
+      this._activeConnection.session = null;
+    }
     this.assertNoActiveSessionForBaseStateUpdate('setPreparedPlatform');
     this.sessionManager = prepared.sessionManager;
     this._basePreparedMetadata = prepared.metadata
@@ -1389,8 +1393,8 @@ class PlaygroundServer {
     this.port = port || defaultPort;
 
     return new Promise((resolve) => {
-      const serverPort = this.port;
-      this.server = this._app.listen(serverPort, () => {
+      const serverPort = this.port ?? defaultPort;
+      this.server = this._app.listen(serverPort, '0.0.0.0', () => {
         resolve(this);
       });
     });
