@@ -51,6 +51,17 @@ export const nullReportGenerator: IReportGenerator = {
   getReportPath: () => undefined,
 };
 
+export function assertReportGenerationOptions(opts: {
+  generateReport?: boolean;
+  persistExecutionDump?: boolean;
+}): void {
+  if (opts.generateReport === false && opts.persistExecutionDump === true) {
+    throw new Error(
+      'persistExecutionDump cannot be true when generateReport is false',
+    );
+  }
+}
+
 export class ReportGenerator implements IReportGenerator {
   private reportPath: string;
   private screenshotMode: 'inline' | 'directory';
@@ -83,7 +94,7 @@ export class ReportGenerator implements IReportGenerator {
   }) {
     this.reportPath = options.reportPath;
     this.screenshotMode = options.screenshotMode;
-    this.shouldPersistExecutionDump = options.persistExecutionDump ?? true;
+    this.shouldPersistExecutionDump = options.persistExecutionDump ?? false;
     this.autoPrint = options.autoPrint ?? true;
     this.reportStreamId = uuid();
     this.screenshotStore = new ScreenshotStore({
@@ -110,6 +121,7 @@ export class ReportGenerator implements IReportGenerator {
       autoPrintReportMsg?: boolean;
     },
   ): IReportGenerator {
+    assertReportGenerationOptions(opts);
     if (opts.generateReport === false) return nullReportGenerator;
 
     // In browser environment, file system is not available
