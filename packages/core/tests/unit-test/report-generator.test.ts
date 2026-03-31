@@ -209,7 +209,7 @@ describe('ReportGenerator — append-only model', () => {
         .filter((name) => /^\d+\.json$/.test(name))
         .sort();
       expect(jsonFiles).toEqual(['1.json']);
-      expect(existsSync(join(executionDir, '1.json.screenshots'))).toBe(true);
+      expect(existsSync(join(executionDir, '1.json.screenshots'))).toBe(false);
       expect(existsSync(join(executionDir, '1.json.screenshots.json'))).toBe(
         false,
       );
@@ -222,7 +222,7 @@ describe('ReportGenerator — append-only model', () => {
       expect(firstDump.executions[0].name).toBe('execution-json-test');
     });
 
-    it('should append new execution screenshots without rewriting existing files', async () => {
+    it('should avoid writing duplicated execution screenshot directories', async () => {
       const reportPath = join(
         tmpDir,
         'inline-execution-screenshots-append.html',
@@ -246,17 +246,6 @@ describe('ReportGenerator — append-only model', () => {
       await generator.flush();
 
       const executionDir = join(tmpDir, 'executions');
-      const screenshotPath1 = join(
-        executionDir,
-        '1.json.screenshots',
-        `${screenshot1.id}.png`,
-      );
-      const mtimeFirst = statSync(screenshotPath1).mtimeMs;
-
-      const startTime = Date.now();
-      while (Date.now() - startTime < 50) {
-        // busy wait
-      }
 
       const secondExecution = createExecution(
         [screenshot1, screenshot2],
@@ -266,13 +255,11 @@ describe('ReportGenerator — append-only model', () => {
       generator.onExecutionUpdate(secondExecution, defaultReportMeta);
       await generator.flush();
 
-      const mtimeSecond = statSync(screenshotPath1).mtimeMs;
-      expect(mtimeSecond).toBe(mtimeFirst);
-      expect(
-        existsSync(
-          join(executionDir, '1.json.screenshots', `${screenshot2.id}.png`),
-        ),
-      ).toBe(true);
+      expect(existsSync(join(executionDir, '1.json.screenshots'))).toBe(false);
+
+      const persisted = readFileSync(join(executionDir, '1.json'), 'utf-8');
+      expect(persisted).toContain(screenshot1.id);
+      expect(persisted).toContain(screenshot2.id);
     });
 
     it('should produce valid HTML with parseable image map and dump JSON', async () => {
@@ -541,7 +528,7 @@ describe('ReportGenerator — append-only model', () => {
         .filter((name) => /^\d+\.json$/.test(name))
         .sort();
       expect(jsonFiles).toEqual(['1.json']);
-      expect(existsSync(join(executionDir, '1.json.screenshots'))).toBe(true);
+      expect(existsSync(join(executionDir, '1.json.screenshots'))).toBe(false);
       expect(existsSync(join(executionDir, '1.json.screenshots.json'))).toBe(
         false,
       );

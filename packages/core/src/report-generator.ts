@@ -305,6 +305,9 @@ export class ReportGenerator implements IReportGenerator {
 
     const fileName = `${fileIndex}.json`;
     const filePath = join(this.executionLogDir, fileName);
-    singleDump.serializeToFiles(filePath);
+    // Execution snapshots are persisted for recovery/debugging only.
+    // Screenshots are already persisted by ScreenshotStore to report-level
+    // ./screenshots, so avoid writing duplicate {file}.screenshots folders.
+    writeFileSync(filePath, singleDump.serialize(), 'utf-8');
   }
 }
