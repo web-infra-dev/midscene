@@ -846,7 +846,6 @@ export class ReportActionDump implements IReportActionDump {
    * Creates:
    * - {basePath} - dump JSON with { $screenshot: id } references
    * - {basePath}.screenshots/ - PNG files
-   * - {basePath}.screenshots.json - ID to path mapping
    *
    * @param basePath - Base path for the dump file
    */
@@ -856,28 +855,20 @@ export class ReportActionDump implements IReportActionDump {
       mkdirSync(screenshotsDir, { recursive: true });
     }
 
-    // Write screenshots to separate files
-    const screenshotMap: Record<string, string> = {};
     const screenshots = this.collectAllScreenshots();
 
     for (const screenshot of screenshots) {
-      if (screenshot.hasBase64()) {
-        const imagePath = join(
-          screenshotsDir,
-          `${screenshot.id}.${screenshot.extension}`,
-        );
-        const rawBase64 = screenshot.rawBase64;
-        writeFileSync(imagePath, Buffer.from(rawBase64, 'base64'));
-        screenshotMap[screenshot.id] = imagePath;
+      const imagePath = join(
+        screenshotsDir,
+        `${screenshot.id}.${screenshot.extension}`,
+      );
+      if (existsSync(imagePath)) {
+        continue;
       }
-    }
 
-    // Write screenshot map file
-    writeFileSync(
-      `${basePath}.screenshots.json`,
-      JSON.stringify(screenshotMap),
-      'utf-8',
-    );
+      const rawBase64 = screenshot.rawBase64;
+      writeFileSync(imagePath, Buffer.from(rawBase64, 'base64'));
+    }
 
     // Write dump JSON with references
     writeFileSync(basePath, this.serialize(), 'utf-8');
@@ -892,28 +883,17 @@ export class ReportActionDump implements IReportActionDump {
    */
   static fromFilesAsInlineJson(basePath: string): string {
     const dumpString = readFileSync(basePath, 'utf-8');
-    const screenshotsMapPath = `${basePath}.screenshots.json`;
+    const screenshotsDir = `${basePath}.screenshots`;
 
-    if (!existsSync(screenshotsMapPath)) {
-      return dumpString;
-    }
-
-    // Read screenshot map and build imageMap from files
-    const screenshotMap: Record<string, string> = JSON.parse(
-      readFileSync(screenshotsMapPath, 'utf-8'),
-    );
-
-    const imageMap: Record<string, string> = {};
-    for (const [id, filePath] of Object.entries(screenshotMap)) {
-      if (existsSync(filePath)) {
-        const data = readFileSync(filePath);
-        const mime =
-          filePath.endsWith('.jpeg') || filePath.endsWith('.jpg')
-            ? 'jpeg'
-            : 'png';
-        imageMap[id] = `data:image/${mime};base64,${data.toString('base64')}`;
+    const loadFromExecutionScreenshotDir = (id: string, mimeType: string) => {
+      const ext = mimeType === 'image/jpeg' ? 'jpeg' : 'png';
+      const filePath = join(screenshotsDir, `${id}.${ext}`);
+      if (!existsSync(filePath)) {
+        return '';
       }
-    }
+      const data = readFileSync(filePath);
+      return `data:image/${ext};base64,${data.toString('base64')}`;
+    };
 
     // Restore image references
     const dumpData = JSON.parse(dumpString);
@@ -922,8 +902,16 @@ export class ReportActionDump implements IReportActionDump {
       reportPath: basePath,
     });
     const processedData = restoreImageReferences(dumpData, (ref) => {
+      const executionFileImage = loadFromExecutionScreenshotDir(
+        ref.id,
+        ref.mimeType,
+      );
+      if (executionFileImage) {
+        return executionFileImage;
+      }
+
       if (ref.storage === 'inline') {
-        return imageMap[ref.id] ?? '';
+        return '';
       }
       return store.loadBase64(ref);
     });
@@ -936,11 +924,7 @@ export class ReportActionDump implements IReportActionDump {
    * @param basePath - Base path for the dump file
    */
   static cleanupFiles(basePath: string): void {
-    const filesToClean = [
-      basePath,
-      `${basePath}.screenshots.json`,
-      `${basePath}.screenshots`,
-    ];
+    const filesToClean = [basePath, `${basePath}.screenshots`];
 
     for (const filePath of filesToClean) {
       try {
@@ -958,11 +942,7 @@ export class ReportActionDump implements IReportActionDump {
    * @returns Array of all associated file paths
    */
   static getFilePaths(basePath: string): string[] {
-    return [
-      basePath,
-      `${basePath}.screenshots.json`,
-      `${basePath}.screenshots`,
-    ];
+    return [basePath, `${basePath}.screenshots`];
   }
 }
 

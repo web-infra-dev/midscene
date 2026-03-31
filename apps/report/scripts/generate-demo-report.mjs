@@ -27,11 +27,7 @@ const cliPath = path.join(repoRoot, 'packages', 'cli', 'bin', 'midscene');
  * the report is still generated. We catch and check for the report file.
  */
 function runYamlAndFindReport(yamlPath) {
-  const before = new Set(
-    fs.existsSync(reportDir)
-      ? fs.readdirSync(reportDir).filter((f) => f.endsWith('.html'))
-      : [],
-  );
+  const before = new Set(listGeneratedReportFiles());
 
   try {
     execFileSync('node', [cliPath, yamlPath], {
@@ -45,8 +41,8 @@ function runYamlAndFindReport(yamlPath) {
     );
   }
 
-  const after = fs.readdirSync(reportDir).filter((f) => f.endsWith('.html'));
-  const newReports = after.filter((f) => !before.has(f));
+  const after = listGeneratedReportFiles();
+  const newReports = after.filter((filePath) => !before.has(filePath));
 
   if (newReports.length === 0) {
     console.error(`No new report generated for ${path.basename(yamlPath)}.`);
@@ -54,13 +50,39 @@ function runYamlAndFindReport(yamlPath) {
   }
 
   const latest = newReports
-    .map((f) => ({
-      name: f,
-      mtime: fs.statSync(path.join(reportDir, f)).mtimeMs,
+    .map((filePath) => ({
+      filePath,
+      mtime: fs.statSync(filePath).mtimeMs,
     }))
-    .sort((a, b) => b.mtime - a.mtime)[0].name;
+    .sort((a, b) => b.mtime - a.mtime)[0].filePath;
 
-  return path.join(reportDir, latest);
+  return latest;
+}
+
+function listGeneratedReportFiles() {
+  if (!fs.existsSync(reportDir)) {
+    return [];
+  }
+
+  const entries = fs.readdirSync(reportDir, { withFileTypes: true });
+  const reportFiles = [];
+
+  for (const entry of entries) {
+    const entryPath = path.join(reportDir, entry.name);
+    if (entry.isFile() && entry.name.endsWith('.html')) {
+      reportFiles.push(entryPath);
+      continue;
+    }
+
+    if (entry.isDirectory()) {
+      const nestedIndexPath = path.join(entryPath, 'index.html');
+      if (fs.existsSync(nestedIndexPath)) {
+        reportFiles.push(nestedIndexPath);
+      }
+    }
+  }
+
+  return reportFiles;
 }
 
 // --- Generate reports ---
