@@ -20,7 +20,7 @@ test.describe('playwright screenshot CDP fallback', () => {
       style.textContent = `
         @font-face {
           font-family: 'HangingFont';
-          src: url('https://httpbin.org/delay/30') format('woff2');
+          src: url('https://httpstat.us/200?sleep=30000') format('woff2');
           font-display: block;
         }
         .use-hanging-font { font-family: 'HangingFont', sans-serif; }
