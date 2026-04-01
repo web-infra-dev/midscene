@@ -717,11 +717,11 @@ describe('create-yaml-player', () => {
         await setupFnCallback();
       }
 
-      // Verify that when agent config is undefined, testId is still set from fileName
+      // Verify that when agent config is undefined, reportFileName is set from fileName
       // and aiActionContext is not present (undefined fields are not spread)
       const callArgs = getMockCallArg(vi.mocked(agentFromAdbDevice), 0, 1);
       expect(callArgs).toMatchObject({
-        testId: 'script',
+        reportFileName: 'script',
         deviceId: 'test-device',
       });
       expect(callArgs).not.toHaveProperty('aiActionContext');
@@ -754,11 +754,11 @@ describe('create-yaml-player', () => {
         await setupFnCallback();
       }
 
-      // Verify that when agent config is undefined, testId is still set from fileName
+      // Verify that when agent config is undefined, reportFileName is set from fileName
       // and aiActionContext is not present (undefined fields are not spread)
       const callArgs = getMockCallArg(vi.mocked(agentFromWebDriverAgent), 0, 0);
       expect(callArgs).toMatchObject({
-        testId: 'script',
+        reportFileName: 'script',
       });
       expect(callArgs).not.toHaveProperty('aiActionContext');
     });
@@ -772,7 +772,6 @@ describe('create-yaml-player', () => {
           url: 'test.html',
         },
         agent: {
-          testId: 'custom-test-id',
           groupName: 'Custom Group',
           groupDescription: 'Custom description',
           generateReport: true,
@@ -820,7 +819,6 @@ describe('create-yaml-player', () => {
           reportFileName: 'custom-report',
           replanningCycleLimit: 25,
           aiActionContext: 'Test context',
-          testId: 'custom-test-id', // YAML testId is used
         }),
         undefined, // browser
         undefined, // page
@@ -951,7 +949,7 @@ describe('create-yaml-player', () => {
       );
     });
 
-    test('should prioritize CLI preference testId over YAML testId', async () => {
+    test('should prioritize CLI legacy testId over YAML legacy testId for reportFileName', async () => {
       const mockScript: MidsceneYamlScript = {
         web: {
           serve: './test',
@@ -987,18 +985,18 @@ describe('create-yaml-player', () => {
         await setupFnCallback();
       }
 
-      // CLI testId should take priority
+      // CLI legacy testId should take priority for reportFileName
       expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
         expect.any(Object),
         expect.objectContaining({
-          testId: 'cli-test-id',
+          reportFileName: 'cli-test-id',
         }),
         undefined, // browser
         undefined, // page
       );
     });
 
-    test('should use YAML testId when no preference testId exists', async () => {
+    test('should use YAML legacy testId as reportFileName when no explicit reportFileName exists', async () => {
       const mockScript: MidsceneYamlScript = {
         web: {
           serve: './test',
@@ -1032,11 +1030,11 @@ describe('create-yaml-player', () => {
         await setupFnCallback();
       }
 
-      // When no explicit CLI testId is provided, YAML testId takes precedence over fileName
+      // When no explicit reportFileName/CLI value is provided, YAML legacy testId takes precedence over fileName
       expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
         expect.any(Object),
         expect.objectContaining({
-          testId: 'yaml-test-id',
+          reportFileName: 'yaml-test-id',
         }),
         undefined, // browser
         undefined, // page

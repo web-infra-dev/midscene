@@ -1073,6 +1073,7 @@ export type Cache =
   | CacheConfig; // Object configuration (requires explicit id)
 
 export interface AgentOpt {
+  // @deprecated Use `reportFileName` and `cache.id` instead.
   testId?: string;
   // @deprecated
   cacheId?: string; // Keep backward compatibility, but marked as deprecated

@@ -43,30 +43,32 @@ export const launchServer = async (
 };
 
 /**
- * Resolves the testId with proper priority handling.
- * Priority: CLI testId > YAML testId > fileName
+ * Resolves reportFileName with proper priority handling.
+ * Priority: YAML reportFileName > CLI testId (legacy) > YAML testId (legacy) > fileName
  */
-function resolveTestId(
+function resolveReportFileName(
+  yamlReportFileName: string | undefined,
   cliTestId: string | undefined,
   yamlTestId: string | undefined,
   fileName: string,
 ): string {
-  return cliTestId ?? yamlTestId ?? fileName;
+  return yamlReportFileName ?? cliTestId ?? yamlTestId ?? fileName;
 }
 
 /**
- * Builds agent options by merging YAML agent config with processed cache and testId.
+ * Builds agent options by merging YAML agent config with processed cache and report name.
  * Handles the spread of agent options and ensures proper cache configuration.
  */
 function buildAgentOptions(
   yamlAgent: MidsceneYamlScriptAgentOpt | undefined,
-  preferenceTestId: string,
+  reportFileName: string,
   fileName: string,
 ): Partial<AgentOpt> {
   return {
     ...(yamlAgent || {}),
     cache: processCacheConfig(yamlAgent?.cache, fileName),
-    testId: preferenceTestId,
+    reportFileName,
+    testId: undefined,
   };
 }
 
@@ -92,8 +94,8 @@ export async function createYamlPlayer(
   const preference = {
     headed: options?.headed,
     keepWindow: options?.keepWindow,
-    // Priority: CLI testId > YAML testId > fileName
-    testId: resolveTestId(
+    reportFileName: resolveReportFileName(
+      clonedYamlScript.agent?.reportFileName,
       options?.testId,
       clonedYamlScript.agent?.testId,
       fileName,
@@ -194,7 +196,7 @@ export async function createYamlPlayer(
               ...preference,
               ...buildAgentOptions(
                 clonedYamlScript.agent,
-                preference.testId,
+                preference.reportFileName,
                 fileName,
               ),
             },
@@ -226,7 +228,7 @@ export async function createYamlPlayer(
               ...preference,
               ...buildAgentOptions(
                 clonedYamlScript.agent,
-                preference.testId,
+                preference.reportFileName,
                 fileName,
               ),
             },
@@ -262,7 +264,7 @@ export async function createYamlPlayer(
           closeConflictServer: true,
           ...buildAgentOptions(
             clonedYamlScript.agent,
-            preference.testId,
+            preference.reportFileName,
             fileName,
           ),
         });
@@ -295,7 +297,7 @@ export async function createYamlPlayer(
           ...androidTarget, // Pass all Android config options
           ...buildAgentOptions(
             clonedYamlScript.agent,
-            preference.testId,
+            preference.reportFileName,
             fileName,
           ),
         });
@@ -320,7 +322,7 @@ export async function createYamlPlayer(
           ...iosTarget, // Pass all iOS config options
           ...buildAgentOptions(
             clonedYamlScript.agent,
-            preference.testId,
+            preference.reportFileName,
             fileName,
           ),
         });
@@ -345,7 +347,7 @@ export async function createYamlPlayer(
           ...computerTarget,
           ...buildAgentOptions(
             clonedYamlScript.agent,
-            preference.testId,
+            preference.reportFileName,
             fileName,
           ),
         });
@@ -405,7 +407,7 @@ export async function createYamlPlayer(
           device,
           buildAgentOptions(
             clonedYamlScript.agent,
-            preference.testId,
+            preference.reportFileName,
             fileName,
           ),
         );

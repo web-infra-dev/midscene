@@ -351,7 +351,7 @@ export class Agent<
     this.dump = this.resetDump();
     this.reportFileName =
       opts?.reportFileName ||
-      getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
+      getReportFileName(this.interface.interfaceType || 'web');
 
     this.reportGenerator = ReportGenerator.create(this.reportFileName!, {
       generateReport: this.opts.generateReport,
@@ -1488,7 +1488,7 @@ export class Agent<
     // Use the unified utils function to process cache configuration
     const cacheConfig = processCacheConfig(
       opts.cache,
-      opts.cacheId || opts.testId || 'default',
+      opts.cacheId || 'default',
     );
 
     if (!cacheConfig) {

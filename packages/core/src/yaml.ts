@@ -76,14 +76,14 @@ export interface MidsceneYamlTask {
  * fields like functions and complex objects. All fields are optional.
  *
  * @remarks
- * - testId priority: CLI parameter > YAML agent.testId > filename
+ * - testId is deprecated; prefer reportFileName and cache.id
  * - These settings apply to all platforms (Web, Android, iOS, Generic Interface)
  * - modelConfig is configured through environment variables, not in YAML
  *
  * @example
  * ```yaml
  * agent:
- *   testId: "checkout-test"
+ *   reportFileName: "checkout-report"
  *   groupName: "E2E Test Suite"
  *   generateReport: true
  *   replanningCycleLimit: 30
@@ -94,7 +94,7 @@ export interface MidsceneYamlTask {
  */
 export type MidsceneYamlScriptAgentOpt = Pick<
   AgentOpt,
-  | 'testId'
+  | 'testId' // deprecated, kept for backward compatibility
   | 'groupName'
   | 'groupDescription'
   | 'generateReport'
