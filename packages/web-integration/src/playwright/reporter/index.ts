@@ -7,7 +7,10 @@ import {
   isDirectoryModeReport,
 } from '@midscene/core/report';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import { replaceIllegalPathCharsAndSpace } from '@midscene/shared/utils';
+import {
+  logMsg,
+  replaceIllegalPathCharsAndSpace,
+} from '@midscene/shared/utils';
 import type {
   FullConfig,
   Reporter,
@@ -125,7 +128,7 @@ class MidsceneReporter implements Reporter {
         if (existsSync(reportFilePath)) {
           return true;
         }
-        console.error(
+        logMsg(
           `Failed to read Midscene report file: ${reportFilePath}`,
           new Error('Report file does not exist'),
         );

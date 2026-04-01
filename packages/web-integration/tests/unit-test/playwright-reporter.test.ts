@@ -24,6 +24,15 @@ vi.mock('@midscene/core/agent', async (importOriginal) => {
   };
 });
 
+vi.mock('@midscene/shared/utils', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@midscene/shared/utils')>();
+  return {
+    ...actual,
+    logMsg: vi.fn(),
+  };
+});
+
 describe('MidsceneReporter', () => {
   let tempDir: string;
   let outputDir: string;
@@ -212,9 +221,7 @@ describe('MidsceneReporter', () => {
 
     it('should log and skip missing report paths', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
-      const consoleSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
+      const { logMsg } = await import('@midscene/shared/utils');
 
       reporter.onTestEnd(
         {
@@ -232,11 +239,10 @@ describe('MidsceneReporter', () => {
 
       await reporter.onEnd();
 
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(logMsg).toHaveBeenCalledWith(
         expect.stringContaining('Failed to read Midscene report file'),
         expect.any(Error),
       );
-      consoleSpy.mockRestore();
     });
   });
 });
