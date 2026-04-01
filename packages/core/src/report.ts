@@ -6,6 +6,7 @@ import {
   readdirSync,
   rmSync,
   unlinkSync,
+  writeFileSync,
 } from 'node:fs';
 import * as path from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
@@ -13,11 +14,14 @@ import { antiEscapeScriptTag, logMsg } from '@midscene/shared/utils';
 import { getReportFileName } from './agent';
 import {
   extractAllDumpScriptsSync,
+  extractImageByIdSync,
   extractLastDumpScriptSync,
   getBaseUrlFixScript,
+  streamDumpScriptsSync,
   streamImageScriptsToFile,
 } from './dump/html-utils';
-import { ReportActionDump } from './types';
+import { normalizeScreenshotRef } from './dump/screenshot-store';
+import { type IExecutionDump, ReportActionDump } from './types';
 import type { ReportFileWithAttributes } from './types';
 import { getReportTpl, reportHTMLContent } from './utils';
 
@@ -225,4 +229,152 @@ export class ReportMergingTool {
       throw error;
     }
   }
+}
+
+export interface SplitReportHtmlOptions {
+  htmlPath: string;
+  outputDir: string;
+}
+
+export interface SplitReportHtmlResult {
+  executionJsonFiles: string[];
+  screenshotFiles: string[];
+}
+
+function extensionByMimeType(mimeType: string): 'png' | 'jpeg' {
+  if (mimeType === 'image/png') return 'png';
+  if (mimeType === 'image/jpeg') return 'jpeg';
+  throw new Error(`Unsupported screenshot mime type: ${mimeType}`);
+}
+
+function externalizeScreenshotsInExecution(
+  execution: IExecutionDump,
+  opts: {
+    htmlPath: string;
+    sourceDir: string;
+    screenshotsDir: string;
+    writtenFiles: Set<string>;
+  },
+): void {
+  const visit = (node: unknown): void => {
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        visit(item);
+      }
+      return;
+    }
+
+    if (typeof node !== 'object' || node === null) return;
+
+    const ref = normalizeScreenshotRef(node);
+    if (ref) {
+      const ext = extensionByMimeType(ref.mimeType);
+      const fileName = `${ref.id}.${ext}`;
+      const relativePath = `./screenshots/${fileName}`;
+      const absolutePath = path.join(opts.screenshotsDir, fileName);
+
+      if (!opts.writtenFiles.has(fileName)) {
+        if (ref.storage === 'inline') {
+          const base64 = extractImageByIdSync(opts.htmlPath, ref.id);
+          if (!base64) {
+            throw new Error(
+              `Inline screenshot "${ref.id}" not found in ${opts.htmlPath}`,
+            );
+          }
+          const rawBase64 = base64.replace(
+            /^data:image\/[a-zA-Z+]+;base64,/,
+            '',
+          );
+          writeFileSync(absolutePath, Buffer.from(rawBase64, 'base64'));
+        } else {
+          if (!ref.path) {
+            throw new Error(
+              `File screenshot ref "${ref.id}" missing path in execution dump`,
+            );
+          }
+          const sourceFile = path.join(opts.sourceDir, ref.path);
+          if (!existsSync(sourceFile)) {
+            throw new Error(
+              `Screenshot file "${sourceFile}" not found for ref "${ref.id}"`,
+            );
+          }
+          copyFileSync(sourceFile, absolutePath);
+        }
+        opts.writtenFiles.add(fileName);
+      }
+
+      ref.storage = 'file';
+      ref.path = relativePath;
+      return;
+    }
+
+    for (const value of Object.values(node)) {
+      visit(value);
+    }
+  };
+
+  visit(execution);
+}
+
+/**
+ * Reverse parse a Midscene report HTML into per-execution JSON files and
+ * externalized screenshots.
+ */
+export function splitReportHtmlByExecution(
+  options: SplitReportHtmlOptions,
+): SplitReportHtmlResult {
+  const { htmlPath, outputDir } = options;
+  const sourceDir = path.dirname(htmlPath);
+  const screenshotsDir = path.join(outputDir, 'screenshots');
+
+  mkdirSync(outputDir, { recursive: true });
+  mkdirSync(screenshotsDir, { recursive: true });
+
+  const executionJsonFiles: string[] = [];
+  const writtenScreenshotFiles = new Set<string>();
+  let hasDumpScript = false;
+
+  let fileIndex = 0;
+  streamDumpScriptsSync(htmlPath, (dumpScript) => {
+    if (!dumpScript.openTag.includes('data-group-id')) {
+      return false;
+    }
+    hasDumpScript = true;
+    const groupedDump = ReportActionDump.fromSerializedString(
+      antiEscapeScriptTag(dumpScript.content),
+    );
+    for (const execution of groupedDump.executions) {
+      fileIndex += 1;
+      externalizeScreenshotsInExecution(execution, {
+        htmlPath,
+        sourceDir,
+        screenshotsDir,
+        writtenFiles: writtenScreenshotFiles,
+      });
+      const singleExecutionDump = new ReportActionDump({
+        sdkVersion: groupedDump.sdkVersion,
+        groupName: groupedDump.groupName,
+        groupDescription: groupedDump.groupDescription,
+        modelBriefs: groupedDump.modelBriefs,
+        deviceType: groupedDump.deviceType,
+        executions: [execution],
+      });
+
+      const jsonFilePath = path.join(outputDir, `${fileIndex}.execution.json`);
+      writeFileSync(jsonFilePath, singleExecutionDump.serialize(2), 'utf-8');
+      executionJsonFiles.push(jsonFilePath);
+    }
+    return false;
+  });
+
+  if (!hasDumpScript) {
+    throw new Error(`No report dump scripts found in ${htmlPath}`);
+  }
+
+  return {
+    executionJsonFiles,
+    screenshotFiles: Array.from(writtenScreenshotFiles)
+      .sort()
+      .map((fileName) => path.join(screenshotsDir, fileName)),
+  };
 }

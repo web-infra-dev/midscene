@@ -495,4 +495,35 @@ describe('runToolsCLI', () => {
     expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
+
+  it('supports shared extra commands', async () => {
+    const tools = createMockTools([]);
+    const extraHandler = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'split done' }],
+      isError: false,
+    });
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: ['split-report', '--htmlPath', './in.html', '--outputDir', './out'],
+      extraCommands: [
+        {
+          name: 'split-report',
+          def: {
+            name: 'split-report',
+            description: 'split report',
+            schema: {},
+            handler: extraHandler,
+          },
+        },
+      ],
+    });
+
+    expect(extraHandler).toHaveBeenCalledWith({
+      htmlPath: './in.html',
+      outputDir: './out',
+    });
+    expect(consoleSpy).toHaveBeenCalledWith('split done');
+    consoleSpy.mockRestore();
+  });
 });

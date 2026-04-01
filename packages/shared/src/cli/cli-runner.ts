@@ -17,10 +17,16 @@ interface CLICommand {
   def: ToolDefinition;
 }
 
+export interface CLIExtraCommand {
+  name: string;
+  def: ToolDefinition;
+}
+
 export interface CLIRunnerOptions {
   stripPrefix?: string;
   argv?: string[];
   version?: string;
+  extraCommands?: CLIExtraCommand[];
 }
 
 export class CLIError extends Error {
@@ -169,6 +175,14 @@ export async function runToolsCLI(
     name: removePrefix(def.name, options?.stripPrefix).toLowerCase(),
     def,
   }));
+  if (options?.extraCommands?.length) {
+    commands.push(
+      ...options.extraCommands.map((cmd) => ({
+        name: cmd.name.toLowerCase(),
+        def: cmd.def,
+      })),
+    );
+  }
   const cliVersion = options?.version;
 
   const [commandName, ...restArgs] = rawArgs;
