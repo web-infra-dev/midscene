@@ -454,6 +454,7 @@ tasks:
         deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
+        fileChooserAccept: <path> | [<path1>, <path2>] # Optional, file path(s) to upload when the tap triggers a file chooser; only available on web
 
       # Hover over an element described by a prompt.
       - aiHover: <prompt>
@@ -518,6 +519,43 @@ tasks:
     flow:
       # ...
 ```
+
+#### Upload Files With `aiTap`
+
+When clicking a button opens a file chooser, you can set `fileChooserAccept` directly on the `aiTap` step. It accepts either a single path or an array of paths.
+
+```yaml
+tasks:
+  - name: upload single file
+    flow:
+      - aiTap: Choose file button
+        fileChooserAccept: ./fixtures/document.pdf
+
+  - name: upload multiple files
+    flow:
+      - aiTap: Upload images button
+        fileChooserAccept:
+          - ./fixtures/image1.jpg
+          - ./fixtures/image2.png
+```
+
+If you are already using a `locate` object for `prompt`, `images`, or other locate options, keep `fileChooserAccept` at the same level as `locate`. Do not nest it inside `locate` or inside the `aiTap` object:
+
+```yaml
+tasks:
+  - name: upload file with locate
+    flow:
+      - aiTap:
+        locate:
+          prompt: Click the upload button
+        fileChooserAccept: ./fixtures/document.pdf
+```
+
+Notes:
+
+- `fileChooserAccept` is only available for web pages (Playwright, Puppeteer).
+- Relative paths are resolved from the current command working directory, not from the YAML file directory.
+- If a file does not exist, the script throws before the tap is executed.
 
 #### Prompting with images
 
