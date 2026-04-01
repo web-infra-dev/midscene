@@ -149,8 +149,6 @@ export const PlaywrightAiFixture = (options?: {
         debugPage('page closed');
         try {
           await finalizeAgentRecord(record);
-        } catch (error) {
-          debugPage('failed to finalize agent on page close', error);
         } finally {
           delete pageAgentMap[idForPage];
         }
@@ -240,17 +238,9 @@ export const PlaywrightAiFixture = (options?: {
 
         const reportPaths = (
           await Promise.all(
-            Array.from(records.values()).map(async (record) => {
-              try {
-                return await finalizeAgentRecord(record);
-              } catch (error) {
-                debugPage(
-                  'failed to finalize agent during test teardown',
-                  error,
-                );
-                return undefined;
-              }
-            }),
+            Array.from(records.values()).map((record) =>
+              finalizeAgentRecord(record),
+            ),
           )
         ).filter((reportPath): reportPath is string => Boolean(reportPath));
 
