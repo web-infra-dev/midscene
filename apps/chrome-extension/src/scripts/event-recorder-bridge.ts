@@ -230,7 +230,7 @@ let lastActivityTime = Date.now();
 let lastScreenshot: string | undefined = undefined;
 let pageChangeDetectionInterval: NodeJS.Timeout | null = null;
 const PAGE_CHANGE_CHECK_INTERVAL = 2000; // Check every 2 seconds
-const MAX_IDLE_TIME = 100; // 5 seconds of inactivity before updating screenshot
+const MAX_IDLE_TIME = 5000; // 5 seconds of inactivity before updating screenshot
 
 // Function to update screenshot when page changes during idle time
 async function updateIdleScreenshot(): Promise<void> {
@@ -260,8 +260,10 @@ async function updateIdleScreenshot(): Promise<void> {
   }
 }
 
-// Function to start page change monitoring
+// Function to start page change monitoring (only in top frame, not iframes)
 function startPageChangeMonitoring(): void {
+  if (isInIframe) return;
+
   if (pageChangeDetectionInterval) {
     clearInterval(pageChangeDetectionInterval);
   }
@@ -739,9 +741,7 @@ window.addEventListener('pagehide', async () => {
       await sendEventsToExtension(events, true);
     }
   }
-  if (pageChangeDetectionInterval) {
-    clearInterval(pageChangeDetectionInterval);
-  }
+  stopPageChangeMonitoring();
 });
 
 // Handle visibility changes (tab switches, minimizing) with debounce
@@ -766,10 +766,11 @@ document.addEventListener('visibilitychange', () => {
       clearTimeout(visibilityTimer);
       visibilityTimer = null;
     }
-  }
-
-  if (pageChangeDetectionInterval) {
-    clearInterval(pageChangeDetectionInterval);
+    // Restart idle screenshot monitoring when page becomes visible again
+    startPageChangeMonitoring();
+  } else {
+    // Stop monitoring when hidden
+    stopPageChangeMonitoring();
   }
 });
 
@@ -790,9 +791,8 @@ const checkForNavigation = () => {
     }
   }
 
-  if (pageChangeDetectionInterval) {
-    clearInterval(pageChangeDetectionInterval);
-  }
+  // Restart idle screenshot monitoring after SPA navigation
+  startPageChangeMonitoring();
 };
 
 // Wrap native history API to catch SPA navigation immediately
