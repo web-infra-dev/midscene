@@ -344,7 +344,6 @@ export async function puppeteerAgentForTarget(
   } & Partial<
     Pick<
       AgentOpt,
-      | 'testId'
       | 'groupName'
       | 'groupDescription'
       | 'generateReport'

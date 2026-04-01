@@ -351,6 +351,8 @@ export class Agent<
     this.dump = this.resetDump();
     this.reportFileName =
       opts?.reportFileName ||
+      // Keep deprecated testId behavior for generated report names until it is
+      // fully removed from the public API.
       getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
 
     this.reportGenerator = ReportGenerator.create(this.reportFileName!, {
@@ -1488,7 +1490,7 @@ export class Agent<
     // Use the unified utils function to process cache configuration
     const cacheConfig = processCacheConfig(
       opts.cache,
-      opts.cacheId || opts.testId || 'default',
+      opts.cacheId || 'default',
     );
 
     if (!cacheConfig) {

@@ -619,6 +619,24 @@ describe('ReportGenerator — append-only model', () => {
       expect(reportPath).toContain('test-dir');
       expect(reportPath).toContain('index.html');
     });
+
+    it('should throw for reportFileName with path separators', () => {
+      expect(() => ReportGenerator.create('../bad-name', {})).toThrow(
+        'reportFileName must not contain path separators',
+      );
+      expect(() => ReportGenerator.create('bad/name', {})).toThrow(
+        'reportFileName must not contain path separators',
+      );
+    });
+
+    it('should throw for reportFileName with illegal filename characters', () => {
+      expect(() => ReportGenerator.create('bad:name', {})).toThrow(
+        'reportFileName contains illegal filename characters',
+      );
+      expect(() => ReportGenerator.create('bad*name', {})).toThrow(
+        'reportFileName contains illegal filename characters',
+      );
+    });
   });
 
   describe('lazy loading — memory release behavior', () => {
