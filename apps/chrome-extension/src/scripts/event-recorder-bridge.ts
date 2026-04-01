@@ -74,6 +74,106 @@ let pendingEvents: ChromeRecordedEvent[] | null = null;
 let isPageUnloading = false;
 const eventSendStats = { sent: 0, failed: 0, pending: 0 };
 
+// Detect if running inside an iframe
+const isInIframe = window !== window.top;
+
+// Common selectors for active tab components across popular UI frameworks
+const ACTIVE_TAB_SELECTORS = [
+  // Ant Design
+  '.ant-tabs-tab-active',
+  // Element UI / Element Plus
+  '.el-tabs__item.is-active',
+  // Generic patterns
+  '.tab.active',
+  '.tab-item.active',
+  '.tab.is-active',
+  '.tab-item.is-active',
+  '[role="tab"][aria-selected="true"]',
+  // Bootstrap
+  '.nav-link.active',
+  // Material UI
+  '.Mui-selected[role="tab"]',
+  // Vuetify
+  '.v-tab--active',
+  // iView
+  '.ivu-tabs-tab-active',
+];
+
+/**
+ * Capture the current page title combined with the active tab's text (if any).
+ * Format: "pageTitle" or "pageTitle - activeTabName" when a tab component is present.
+ */
+function capturePageTitle(): string {
+  const pageTitle = document.title || '';
+
+  // Try each selector to find an active tab element
+  for (const selector of ACTIVE_TAB_SELECTORS) {
+    try {
+      const activeTab = document.querySelector(selector);
+      if (activeTab) {
+        const tabText = (activeTab.textContent || '').trim();
+        if (tabText) {
+          return `${pageTitle} - ${tabText}`;
+        }
+      }
+    } catch (_e) {
+      // Ignore invalid selector errors
+    }
+  }
+
+  return pageTitle;
+}
+
+// Track the last captured title so we can use it as beforeTitle for the next event
+let lastCapturedTitle = '';
+
+/**
+ * Wait for page to become visually stable after an action.
+ * Monitors DOM mutations and waits for them to settle, with a maximum timeout.
+ */
+function waitForPageStable(timeout = 1500, settleTime = 300): Promise<void> {
+  return new Promise((resolve) => {
+    let mutationTimer: NodeJS.Timeout | null = null;
+    let timeoutTimer: NodeJS.Timeout | null = null;
+    let observer: MutationObserver | null = null;
+
+    const cleanup = () => {
+      if (mutationTimer) clearTimeout(mutationTimer);
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      if (observer) observer.disconnect();
+    };
+
+    // Maximum wait time
+    timeoutTimer = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, timeout);
+
+    // Observe DOM mutations
+    observer = new MutationObserver(() => {
+      // Reset the settle timer on each mutation
+      if (mutationTimer) clearTimeout(mutationTimer);
+      mutationTimer = setTimeout(() => {
+        cleanup();
+        resolve();
+      }, settleTime);
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      characterData: true,
+    });
+
+    // If no mutations happen within settleTime, resolve immediately
+    mutationTimer = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, settleTime);
+  });
+}
+
 // Helper function to capture screenshot with timeout
 async function captureScreenshot(timeout = 1000): Promise<string | undefined> {
   // Skip screenshot if page is unloading
@@ -160,10 +260,10 @@ function startPageChangeMonitoring(): void {
     clearInterval(pageChangeDetectionInterval);
   }
 
-  // pageChangeDetectionInterval = setInterval(
-  //   updateIdleScreenshot,
-  //   PAGE_CHANGE_CHECK_INTERVAL,
-  // );
+  pageChangeDetectionInterval = setInterval(
+    updateIdleScreenshot,
+    PAGE_CHANGE_CHECK_INTERVAL,
+  );
 }
 
 // Function to stop page change monitoring
@@ -172,6 +272,42 @@ function stopPageChangeMonitoring(): void {
     clearInterval(pageChangeDetectionInterval);
     pageChangeDetectionInterval = null;
   }
+}
+
+// Message type for iframe-to-top-frame event forwarding
+const IFRAME_EVENT_MESSAGE_TYPE = 'midscene-iframe-event';
+
+// Listen for events forwarded from iframes (only in top frame)
+if (!isInIframe) {
+  window.addEventListener('message', (msg) => {
+    if (
+      msg.data &&
+      msg.data.type === IFRAME_EVENT_MESSAGE_TYPE &&
+      msg.data.event
+    ) {
+      const iframeEvent = msg.data.event as ChromeRecordedEvent;
+      console.log(
+        '[EventRecorder Bridge] Received event from iframe:',
+        iframeEvent.type,
+      );
+
+      // Process the iframe event as if it were a local event
+      if (window.recorder?.isActive()) {
+        lastActivityTime = Date.now();
+        iframeEvent.beforeTitle = lastCapturedTitle;
+        if (lastScreenshot) {
+          iframeEvent.screenshotBefore = lastScreenshot;
+        }
+
+        const optimizedEvent = window.recorder.optimizeEvent(
+          iframeEvent,
+          events,
+        );
+        events = optimizedEvent;
+        sendEventsToExtension(optimizedEvent);
+      }
+    }
+  });
 }
 
 // Initialize recorder with callback to send events to extension
@@ -183,10 +319,42 @@ async function initializeRecorder(sessionId: string): Promise<void> {
     return;
   }
 
+  // Initialize lastCapturedTitle with current page title
+  lastCapturedTitle = capturePageTitle();
+
   window.recorder = new window.EventRecorder(
     async (event: ChromeRecordedEvent) => {
       // Update last activity time when new event occurs
       lastActivityTime = Date.now();
+
+      // If running in an iframe, forward the event to the top frame
+      if (isInIframe) {
+        try {
+          window.top?.postMessage(
+            { type: IFRAME_EVENT_MESSAGE_TYPE, event },
+            '*',
+          );
+          console.log(
+            '[EventRecorder Bridge] Forwarded event from iframe to top:',
+            event.type,
+          );
+        } catch (_e) {
+          console.warn(
+            '[EventRecorder Bridge] Failed to forward iframe event:',
+            _e,
+          );
+        }
+        return;
+      }
+
+      // Capture beforeTitle: use the last captured title (state before this action)
+      event.beforeTitle = lastCapturedTitle;
+
+      // Capture screenshotBefore immediately, before debounce delay
+      // Use lastScreenshot which represents the page state before this action
+      if (lastScreenshot) {
+        event.screenshotBefore = lastScreenshot;
+      }
 
       const optimizedEvent = window.recorder!.optimizeEvent(event, events);
 
@@ -257,7 +425,15 @@ async function sendEventsToExtension(
           '[EventRecorder Bridge] Using lastScreenshot for immediate screenshotAfter',
         );
       }
+
+      // Capture afterTitle for immediate/unload path
+      const afterTitle = capturePageTitle();
+      latestEvent.afterTitle = afterTitle;
+      lastCapturedTitle = afterTitle;
     } else {
+      // Wait for page to stabilize after the action before capturing screenshotAfter
+      await waitForPageStable(1500, 300);
+
       const screenshotAfter = await captureScreenshot();
       let screenshotBefore: string | undefined;
 
@@ -294,7 +470,15 @@ async function sendEventsToExtension(
 
       // Ensure we have valid screenshots before assigning
       latestEvent.screenshotAfter = screenshotAfter || lastScreenshot || '';
-      latestEvent.screenshotBefore = screenshotBefore || '';
+      // Use pre-captured screenshotBefore from event callback if available
+      latestEvent.screenshotBefore =
+        latestEvent.screenshotBefore || screenshotBefore || '';
+
+      // Capture afterTitle after page has stabilized
+      const afterTitle = capturePageTitle();
+      latestEvent.afterTitle = afterTitle;
+      // Update lastCapturedTitle for the next event's beforeTitle
+      lastCapturedTitle = afterTitle;
 
       // Log warning if screenshots are missing
       if (!latestEvent.screenshotAfter) {

@@ -50,6 +50,10 @@ export interface ChromeRecordedEvent {
   };
   screenshotBefore?: string;
   screenshotAfter?: string;
+  // Page title (including active tab name if present) before the action
+  beforeTitle?: string;
+  // Page title (including active tab name if present) after the action
+  afterTitle?: string;
   elementDescription?: string;
   // Loading state for AI description generation
   descriptionLoading?: boolean;
@@ -506,6 +510,8 @@ export function convertToChromeEvent(
     pageInfo: event.pageInfo,
     screenshotBefore: event.screenshotBefore,
     screenshotAfter: event.screenshotAfter,
+    beforeTitle: event.beforeTitle,
+    afterTitle: event.afterTitle,
     elementDescription: event.elementDescription,
     descriptionLoading: event.descriptionLoading,
     screenshotWithBox: event.screenshotWithBox,
