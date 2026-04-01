@@ -229,11 +229,8 @@ export const PlaywrightAiFixture = (options?: {
 
   return {
     _midsceneFinalizeReports: [
-      async (
-        { ..._args }: Record<string, unknown>,
-        use: any,
-        testInfo: TestInfo,
-      ) => {
+      // biome-ignore lint/correctness/noEmptyPattern: Playwright fixture callbacks must use object destructuring for the first parameter even when no fixtures are consumed.
+      async ({}: Record<string, unknown>, use: any, testInfo: TestInfo) => {
         await use();
 
         const records = testAgentRecords.get(testInfo.testId);
