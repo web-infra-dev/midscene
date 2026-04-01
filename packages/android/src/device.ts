@@ -611,22 +611,9 @@ ${Object.keys(size)
 
     const adb = await this.getAdb();
 
-    // Use execFile instead of adb.shell to avoid blocking when yadb process
-    // doesn't exit after typing. The text is typed successfully but the
-    // app_process may hang, causing adb.shell's 60s timeout to fire.
-    const adbPath = adb.executable?.path ?? 'adb';
-    const shellCmd = `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard '${keyboardContent}'`;
-    const args = ['-s', this.deviceId, 'shell', shellCmd];
-
-    await new Promise<void>((resolve) => {
-      const child = execFile(adbPath, args, { timeout: 10000 }, (err) => {
-        if (err) {
-          debugDevice('yadb keyboard command ended: %s', err.message);
-        }
-        resolve();
-      });
-      child.unref();
-    });
+    await adb.shell(
+      `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard '${keyboardContent}'`,
+    );
   }
 
   // @deprecated
@@ -1258,23 +1245,9 @@ ${Object.keys(size)
       await adb.clearTextField(100);
     } else {
       // Use the yadb tool to clear the input box
-      // Use execFile instead of adb.shell to avoid yadb process hanging
-      const adbPath = adb.executable?.path ?? 'adb';
-      const shellCmd = `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"`;
-      await new Promise<void>((resolve) => {
-        const child = execFile(
-          adbPath,
-          ['-s', this.deviceId, 'shell', shellCmd],
-          { timeout: 10000 },
-          (err) => {
-            if (err) {
-              debugDevice('yadb clear command ended: %s', err.message);
-            }
-            resolve();
-          },
-        );
-        child.unref();
-      });
+      await adb.shell(
+        `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"`,
+      );
     }
 
     if (await adb.isSoftKeyboardPresent()) {
