@@ -1,4 +1,5 @@
 import { mouseLoading, mousePointer } from '../../../utils';
+import { getCenterHighlightBox } from '../../../utils/highlight-element';
 import { deriveFrameState } from './derive-frame-state';
 import type { InsightOverlay } from './derive-frame-state';
 import type { FrameMap } from './frame-calculator';
@@ -44,28 +45,28 @@ function drawInsightOverlays(
     ctx.globalAlpha *= insight.alpha;
 
     if (insight.highlightElement) {
-      const r = insight.highlightElement.rect;
+      const highlightBox = getCenterHighlightBox(insight.highlightElement);
       const rx =
         bx +
-        (r.left * cameraTransform.zoom +
+        (highlightBox.left * cameraTransform.zoom +
           cameraTransform.tx * cameraTransform.zoom);
       const ry =
         contentY +
-        (r.top * cameraTransform.zoom +
+        (highlightBox.top * cameraTransform.zoom +
           cameraTransform.ty * cameraTransform.zoom);
-      const rw = r.width * cameraTransform.zoom;
-      const rh = r.height * cameraTransform.zoom;
+      const highlightWidth = highlightBox.width * cameraTransform.zoom;
+      const highlightHeight = highlightBox.height * cameraTransform.zoom;
 
       ctx.fillStyle = 'rgba(253, 89, 7, 0.4)';
-      ctx.fillRect(rx, ry, rw, rh);
+      ctx.fillRect(rx, ry, highlightWidth, highlightHeight);
       ctx.strokeStyle = '#fd5907';
       ctx.lineWidth = 1;
-      ctx.strokeRect(rx, ry, rw, rh);
+      ctx.strokeRect(rx, ry, highlightWidth, highlightHeight);
       ctx.shadowColor = 'rgba(51, 51, 51, 0.4)';
       ctx.shadowBlur = 2;
       ctx.shadowOffsetX = 4;
       ctx.shadowOffsetY = 4;
-      ctx.strokeRect(rx, ry, rw, rh);
+      ctx.strokeRect(rx, ry, highlightWidth, highlightHeight);
       ctx.shadowBlur = 0;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;

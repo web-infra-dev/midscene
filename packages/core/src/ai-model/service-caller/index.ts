@@ -508,7 +508,11 @@ export async function callAI(
           }
 
           if (!hasUsableText(content)) {
-            throw new Error('empty content from AI model');
+            throw new AIResponseParseError(
+              'empty content from AI model',
+              JSON.stringify(result),
+              buildUsageInfo(usage, requestId),
+            );
           }
 
           break; // Success, exit retry loop
@@ -557,6 +561,11 @@ export async function callAI(
     };
   } catch (e: any) {
     warnCall('call AI error', e);
+
+    if (e instanceof AIResponseParseError) {
+      throw e;
+    }
+
     const newError = new Error(
       `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${e.message}\nTrouble shooting: https://midscenejs.com/model-provider.html`,
       {
