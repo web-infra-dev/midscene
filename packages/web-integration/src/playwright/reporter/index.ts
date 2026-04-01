@@ -1,8 +1,11 @@
 import { copyFileSync, cpSync, existsSync, mkdirSync } from 'node:fs';
-import { basename, dirname, join } from 'node:path';
+import { dirname, join } from 'node:path';
 import type { ReportFileWithAttributes, TestStatus } from '@midscene/core';
 import { getReportFileName, printReportMsg } from '@midscene/core/agent';
-import { ReportMergingTool } from '@midscene/core/report';
+import {
+  ReportMergingTool,
+  isDirectoryModeReport,
+} from '@midscene/core/report';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { replaceIllegalPathCharsAndSpace } from '@midscene/shared/utils';
 import type {
@@ -80,19 +83,12 @@ class MidsceneReporter implements Reporter {
     return join(getMidsceneRunSubDir('report'), `${fileName}.html`);
   }
 
-  private isDirectoryModeReport(reportFilePath: string): boolean {
-    return (
-      basename(reportFilePath) === 'index.html' &&
-      existsSync(join(dirname(reportFilePath), 'screenshots'))
-    );
-  }
-
   private ensureOutputRoot(): void {
     mkdirSync(getMidsceneRunSubDir('report'), { recursive: true });
   }
 
   private copyReport(reportFilePath: string, targetPath: string): void {
-    if (this.isDirectoryModeReport(reportFilePath)) {
+    if (isDirectoryModeReport(reportFilePath)) {
       const targetDir = dirname(targetPath);
       mkdirSync(targetDir, { recursive: true });
       cpSync(dirname(reportFilePath), targetDir, {
