@@ -68,7 +68,6 @@ function buildAgentOptions(
     ...(yamlAgent || {}),
     cache: processCacheConfig(yamlAgent?.cache, fileName),
     reportFileName,
-    testId: undefined,
   };
 }
 

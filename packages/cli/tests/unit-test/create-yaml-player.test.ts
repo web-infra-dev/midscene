@@ -1180,7 +1180,7 @@ describe('create-yaml-player', () => {
       expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
         expect.any(Object),
         expect.objectContaining({
-          testId: 'cdp-test',
+          reportFileName: 'cdp-test',
           groupName: 'CDP Tests',
         }),
         expect.any(Object),
