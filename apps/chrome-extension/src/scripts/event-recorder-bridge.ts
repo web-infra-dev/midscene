@@ -74,8 +74,14 @@ let pendingEvents: ChromeRecordedEvent[] | null = null;
 let isPageUnloading = false;
 const eventSendStats = { sent: 0, failed: 0, pending: 0 };
 
-// Detect if running inside an iframe
-const isInIframe = window !== window.top;
+// Detect if running inside an iframe (try-catch for cross-origin SecurityError)
+let isInIframe = false;
+try {
+  isInIframe = window !== window.top;
+} catch (_e) {
+  // Cross-origin iframe: accessing window.top throws SecurityError
+  isInIframe = true;
+}
 
 // Common selectors for active tab components across popular UI frameworks
 const ACTIVE_TAB_SELECTORS = [
