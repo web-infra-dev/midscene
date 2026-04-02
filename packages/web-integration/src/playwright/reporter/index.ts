@@ -11,7 +11,10 @@ import {
   type ReportDumpWithAttributes,
 } from '@midscene/core';
 import { getReportFileName, printReportMsg } from '@midscene/core/agent';
-import { getReportTpl } from '@midscene/core/utils';
+import {
+  getReportTpl,
+  insertContentBeforeClosingHtml,
+} from '@midscene/core/utils';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
   escapeScriptTag,
@@ -209,7 +212,11 @@ class MidsceneReporter implements Reporter {
       if (this.mode === 'merged') {
         // For merged report, write template + dump on first write, then only append dumps
         if (!this.mergedReportInitialized) {
-          writeFileSync(reportPath, tpl + dumpScript, { flag: 'w' });
+          writeFileSync(
+            reportPath,
+            insertContentBeforeClosingHtml(tpl, dumpScript),
+            { flag: 'w' },
+          );
           this.mergedReportInitialized = true;
         } else {
           // Append only the dump scripts for subsequent tests
@@ -217,7 +224,11 @@ class MidsceneReporter implements Reporter {
         }
       } else {
         // For separate reports, write each test to its own file with template
-        writeFileSync(reportPath, tpl + dumpScript, { flag: 'w' });
+        writeFileSync(
+          reportPath,
+          insertContentBeforeClosingHtml(tpl, dumpScript),
+          { flag: 'w' },
+        );
       }
 
       printReportMsg(reportPath);

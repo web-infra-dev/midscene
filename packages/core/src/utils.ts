@@ -91,6 +91,21 @@ export function getReportTpl() {
 }
 
 /**
+ * Insert content before </html> in an HTML string.
+ * Falls back to simple concatenation if </html> is not found.
+ */
+export function insertContentBeforeClosingHtml(
+  html: string,
+  content: string,
+): string {
+  const htmlEndIdx = html.lastIndexOf('</html>');
+  if (htmlEndIdx === -1) {
+    return html + content;
+  }
+  return `${html.slice(0, htmlEndIdx)}${content}\n${html.slice(htmlEndIdx)}`;
+}
+
+/**
  * high performance, insert script before </html> in HTML file
  * only truncate and append, no temporary file
  */
@@ -186,7 +201,11 @@ export function reportHTMLContent(
 
   if (writeToFile) {
     if (!appendReport) {
-      writeFileSync(reportPath!, tpl + dumpContent, { flag: 'w' });
+      writeFileSync(
+        reportPath!,
+        insertContentBeforeClosingHtml(tpl, dumpContent),
+        { flag: 'w' },
+      );
       return reportPath!;
     }
 
@@ -199,7 +218,7 @@ export function reportHTMLContent(
     return reportPath!;
   }
 
-  return tpl + dumpContent;
+  return insertContentBeforeClosingHtml(tpl, dumpContent);
 }
 
 export function writeDumpReport(

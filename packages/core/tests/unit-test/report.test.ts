@@ -9,8 +9,12 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { generateImageScriptTag } from '../../src/dump/html-utils';
+import {
+  extractAllDumpScriptsSync,
+  generateImageScriptTag,
+} from '../../src/dump/html-utils';
 import { ReportMergingTool } from '../../src/report';
+import { ReportActionDump } from '../../src/types';
 import { getReportTpl, getTmpFile, writeDumpReport } from '../../src/utils';
 
 function generateNReports(
@@ -313,6 +317,114 @@ describe('reportMergingTool', () => {
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }
+  });
+
+  it('should merge a single report', async () => {
+    const tool = new ReportMergingTool();
+    generateNReports(1, 'single report content', tool, true, 'merge-1-test');
+    const mergedReportPath = tool.mergeReports('single-report-merge', {
+      overwrite: true,
+    });
+    expect(mergedReportPath).not.toBeNull();
+    const mergedReportContent = readFileSync(mergedReportPath!, 'utf-8');
+    expect(mergedReportContent).toContain('single report content 0');
+  });
+
+  it('should handle reports with undefined reportFilePath (e.g. skipped tests)', async () => {
+    const tool = new ReportMergingTool();
+
+    // Add one normal report
+    generateNReports(1, 'normal report', tool, true, 'merge-with-skipped');
+
+    // Add a report without a file path (simulating a skipped test)
+    tool.append({
+      reportFilePath: undefined,
+      reportAttributes: {
+        testDescription: 'skipped test desc',
+        testDuration: 0,
+        testId: 'skipped-1',
+        testStatus: 'skipped',
+        testTitle: 'Skipped Test',
+      },
+    });
+
+    const mergedReportPath = tool.mergeReports('merge-with-skipped-test', {
+      overwrite: true,
+    });
+    expect(mergedReportPath).not.toBeNull();
+    const mergedReportContent = readFileSync(mergedReportPath!, 'utf-8');
+    // Normal report content should be present
+    expect(mergedReportContent).toContain('normal report 0');
+    // Skipped test attributes should be present in script tag attributes
+    expect(mergedReportContent).toContain('playwright_test_id="skipped-1"');
+    expect(mergedReportContent).toContain('playwright_test_status="skipped"');
+
+    const dumpScripts = extractAllDumpScriptsSync(mergedReportPath!).filter(
+      (script) => script.openTag.includes('playwright_test_id='),
+    );
+    const skippedDump = dumpScripts.find((script) =>
+      script.openTag.includes('playwright_test_id="skipped-1"'),
+    );
+    expect(skippedDump).toBeDefined();
+    expect(() =>
+      ReportActionDump.fromSerializedString(skippedDump!.content),
+    ).not.toThrow();
+    expect(
+      ReportActionDump.fromSerializedString(skippedDump!.content).executions,
+    ).toHaveLength(0);
+  });
+
+  it('should return null when no reports are appended', async () => {
+    const tool = new ReportMergingTool();
+    const mergedReportPath = tool.mergeReports('empty-merge', {
+      overwrite: true,
+    });
+    expect(mergedReportPath).toBeNull();
+  });
+
+  it('should merge when all reports have undefined reportFilePath', async () => {
+    const tool = new ReportMergingTool();
+    tool.append({
+      reportFilePath: undefined,
+      reportAttributes: {
+        testDescription: 'all skipped 1',
+        testDuration: 0,
+        testId: 'all-skipped-1',
+        testStatus: 'skipped',
+        testTitle: 'All Skipped 1',
+      },
+    });
+    tool.append({
+      reportFilePath: undefined,
+      reportAttributes: {
+        testDescription: 'all skipped 2',
+        testDuration: 0,
+        testId: 'all-skipped-2',
+        testStatus: 'skipped',
+        testTitle: 'All Skipped 2',
+      },
+    });
+
+    const mergedReportPath = tool.mergeReports('merge-all-skipped', {
+      overwrite: true,
+    });
+    expect(mergedReportPath).not.toBeNull();
+    const mergedReportContent = readFileSync(mergedReportPath!, 'utf-8');
+    expect(mergedReportContent).toContain('playwright_test_id="all-skipped-1"');
+    expect(mergedReportContent).toContain('playwright_test_id="all-skipped-2"');
+
+    const dumpScripts = extractAllDumpScriptsSync(mergedReportPath!).filter(
+      (script) => script.openTag.includes('playwright_test_id='),
+    );
+    expect(dumpScripts).toHaveLength(2);
+    dumpScripts.forEach((script) => {
+      expect(() =>
+        ReportActionDump.fromSerializedString(script.content),
+      ).not.toThrow();
+      expect(
+        ReportActionDump.fromSerializedString(script.content).executions,
+      ).toHaveLength(0);
+    });
   });
 
   it(
