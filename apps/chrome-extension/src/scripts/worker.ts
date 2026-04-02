@@ -391,6 +391,9 @@ const cacheKeyOrder: string[] = [];
 // Store connected ports for message forwarding
 const connectedPorts = new Set<chrome.runtime.Port>();
 
+// Track active recording state for iframe injection
+let activeRecording: { tabId: number; sessionId: string } | null = null;
+
 // Listen for connections from extension pages
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name === 'record-events') {
@@ -443,6 +446,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse(null);
       return true;
     }
+  }
+
+  // Track recording state for iframe script injection
+  if (request.action === 'recordingStarted') {
+    activeRecording = {
+      tabId: request.tabId,
+      sessionId: request.sessionId,
+    };
+    console.log(
+      '[ServiceWorker] Recording started on tab:',
+      request.tabId,
+      'session:',
+      request.sessionId,
+    );
+    sendResponse({ success: true });
+    return true;
+  }
+  if (request.action === 'recordingStopped') {
+    console.log('[ServiceWorker] Recording stopped');
+    activeRecording = null;
+    sendResponse({ success: true });
+    return true;
   }
 
   // Forward recording events to connected extension pages
@@ -607,6 +632,48 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // Return true to indicate we will send a response asynchronously
   return true;
+});
+
+// Listen for iframe loads during recording to inject scripts into dynamically loaded iframes
+chrome.webNavigation.onCompleted.addListener(async (details) => {
+  // Only handle sub-frames (iframes), not the main frame
+  if (details.frameId === 0) return;
+
+  // Only inject if recording is active on this tab
+  if (!activeRecording || activeRecording.tabId !== details.tabId) return;
+
+  try {
+    // Inject recorder scripts into the newly loaded iframe
+    await chrome.scripting.executeScript({
+      target: { tabId: details.tabId, frameIds: [details.frameId] },
+      files: ['scripts/recorder-iife.js'],
+    });
+    await chrome.scripting.executeScript({
+      target: { tabId: details.tabId, frameIds: [details.frameId] },
+      files: ['scripts/event-recorder-bridge.js'],
+    });
+
+    // Send start message to the newly injected iframe
+    await chrome.tabs.sendMessage(
+      details.tabId,
+      { action: 'start', sessionId: activeRecording.sessionId },
+      { frameId: details.frameId },
+    );
+
+    console.log(
+      '[ServiceWorker] Injected recorder into iframe:',
+      details.frameId,
+      'url:',
+      details.url,
+    );
+  } catch (error) {
+    // Silently ignore injection failures (e.g., restricted pages)
+    console.debug(
+      '[ServiceWorker] Failed to inject into iframe:',
+      details.frameId,
+      error,
+    );
+  }
 });
 
 // Reload all tabs after extension is installed or updated (development only)

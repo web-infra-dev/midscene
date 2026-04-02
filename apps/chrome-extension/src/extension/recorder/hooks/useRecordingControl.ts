@@ -93,6 +93,13 @@ export const useRecordingControl = (
     // Set isRecording to false immediately to prevent UI from showing recording state
     await setIsRecording(false);
 
+    // Notify service worker to stop tracking iframe loads
+    try {
+      chrome.runtime.sendMessage({ action: 'recordingStopped' });
+    } catch (_e) {
+      // Non-critical
+    }
+
     try {
       // Check if content script is still available before sending message
       try {
@@ -289,6 +296,17 @@ export const useRecordingControl = (
           sessionId: sessionToUse.id,
         });
         await setIsRecording(true);
+
+        // Notify service worker so it can inject scripts into dynamically loaded iframes
+        try {
+          chrome.runtime.sendMessage({
+            action: 'recordingStarted',
+            tabId: currentTab.id,
+            sessionId: sessionToUse.id,
+          });
+        } catch (_e) {
+          // Non-critical: iframe injection will still work for existing frames
+        }
 
         // Only clear events if this is a new session or if the session has no existing events
         // This allows resuming recording on existing sessions without losing previous events
