@@ -74,7 +74,11 @@ let pendingEvents: ChromeRecordedEvent[] | null = null;
 let isPageUnloading = false;
 const eventSendStats = { sent: 0, failed: 0, pending: 0 };
 
-// Detect if running inside an iframe (try-catch for cross-origin SecurityError)
+// Detect if running inside an iframe.
+// Uses two independent checks for robustness:
+//   1. window !== window.top (standard check, may fail in some content script worlds)
+//   2. window.frameElement !== null (same-origin iframes; throws SecurityError for cross-origin)
+// If either check confirms we're in an iframe, isInIframe is true.
 let isInIframe = false;
 try {
   isInIframe = window !== window.top;
@@ -82,6 +86,24 @@ try {
   // Cross-origin iframe: accessing window.top throws SecurityError
   isInIframe = true;
 }
+// Fallback: frameElement is non-null inside same-origin iframes
+if (!isInIframe) {
+  try {
+    if (window.frameElement !== null) {
+      isInIframe = true;
+    }
+  } catch (_e) {
+    // Cross-origin iframe: accessing frameElement throws SecurityError
+    isInIframe = true;
+  }
+}
+
+// Log iframe detection result for debugging dynamic iframe injection issues
+console.log('[EventRecorder Bridge] Initialized:', {
+  isInIframe,
+  url: window.location.href,
+  hasEventRecorder: typeof window.EventRecorder !== 'undefined',
+});
 
 // Common selectors for active tab components across popular UI frameworks
 const ACTIVE_TAB_SELECTORS = [
@@ -282,43 +304,16 @@ function stopPageChangeMonitoring(): void {
   }
 }
 
-// Message type for iframe-to-top-frame event forwarding
-const IFRAME_EVENT_MESSAGE_TYPE = 'midscene-iframe-event';
-
-// Listen for events forwarded from iframes (only in top frame)
-if (!isInIframe) {
-  window.addEventListener('message', (msg) => {
-    if (
-      msg.data &&
-      msg.data.type === IFRAME_EVENT_MESSAGE_TYPE &&
-      msg.data.event
-    ) {
-      const iframeEvent = msg.data.event as ChromeRecordedEvent;
-      console.log(
-        '[EventRecorder Bridge] Received event from iframe:',
-        iframeEvent.type,
-      );
-
-      // Process the iframe event as if it were a local event
-      if (window.recorder?.isActive()) {
-        lastActivityTime = Date.now();
-        iframeEvent.beforeTitle = lastCapturedTitle;
-        if (lastScreenshot) {
-          iframeEvent.screenshotBefore = lastScreenshot;
-        }
-
-        const optimizedEvent = window.recorder.optimizeEvent(
-          iframeEvent,
-          events,
-        );
-        events = optimizedEvent;
-        sendEventsToExtension(optimizedEvent);
-      }
-    }
-  });
-}
-
 // Initialize recorder with callback to send events to extension
+// DESIGN: Each frame (top frame + iframes) independently captures events and sends
+// them to the service worker via chrome.runtime.sendMessage. This avoids the fragile
+// postMessage forwarding mechanism which can fail due to:
+//   - Content script world boundaries preventing postMessage delivery
+//   - isInIframe detection failures in some iframe contexts
+//   - Cross-origin restrictions on window.top access
+// The service worker forwards all events to the popup via connected ports.
+// Each frame maintains its own screenshots (via captureVisibleTab which captures
+// the entire tab) and titles (from its own document.title).
 async function initializeRecorder(sessionId: string): Promise<void> {
   if (!window.EventRecorder) {
     console.error(
@@ -334,32 +329,6 @@ async function initializeRecorder(sessionId: string): Promise<void> {
     async (event: ChromeRecordedEvent) => {
       // Update last activity time when new event occurs
       lastActivityTime = Date.now();
-
-      // If running in an iframe, forward the event to the top frame
-      if (isInIframe) {
-        try {
-          // Strip non-serializable properties (e.g., HTMLElement references)
-          // before postMessage, which uses the structured clone algorithm.
-          // RecordedEvent contains 'element: HTMLElement' that cannot be cloned.
-          const serializableEvent = convertToChromeEvent(
-            event as unknown as RecordedEvent,
-          );
-          window.top?.postMessage(
-            { type: IFRAME_EVENT_MESSAGE_TYPE, event: serializableEvent },
-            '*',
-          );
-          console.log(
-            '[EventRecorder Bridge] Forwarded event from iframe to top:',
-            serializableEvent.type,
-          );
-        } catch (_e) {
-          console.warn(
-            '[EventRecorder Bridge] Failed to forward iframe event:',
-            _e,
-          );
-        }
-        return;
-      }
 
       // Capture beforeTitle: use the last captured title (state before this action)
       event.beforeTitle = lastCapturedTitle;
@@ -638,11 +607,12 @@ chrome.runtime.onMessage.addListener(
             );
           });
 
-        startPageChangeMonitoring(); // Start monitoring page changes
-        console.log(
-          '[EventRecorder Bridge] Recording started successfully with session ID:',
-          message.sessionId,
-        );
+        startPageChangeMonitoring(); // Start monitoring page changes (no-op in iframes)
+        console.log('[EventRecorder Bridge] Recording started successfully:', {
+          sessionId: message.sessionId,
+          isInIframe,
+          url: window.location.href,
+        });
         sendResponse({
           success: true,
         });
