@@ -1,6 +1,3 @@
-import { rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { PlaywrightAgent, type PlaywrightWebPage } from '@/playwright/index';
 import type { WebPageAgentOpt } from '@/web-element';
 import type { Cache } from '@midscene/core';
@@ -47,8 +44,11 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
 const midsceneAgentKeyId = '_midsceneAgentId';
 export const midsceneDumpAnnotationId = 'MIDSCENE_DUMP_ANNOTATION';
 
-// Track temporary dump files per page for cleanup
-const pageTempFiles = new Map<string, string>();
+type AgentRecord = {
+  agent: PageAgent<PlaywrightWebPage>;
+  finalizePromise?: Promise<string | undefined>;
+  finalReportPath?: string;
+};
 
 type PlaywrightCacheConfig = {
   strategy?: 'read-only' | 'read-write' | 'write-only';
@@ -79,6 +79,45 @@ export const PlaywrightAiFixture = (options?: {
   };
 
   const pageAgentMap: Record<string, PageAgent<PlaywrightWebPage>> = {};
+  const testAgentRecords = new Map<string, Map<string, AgentRecord>>();
+
+  const getAgentRecordsForTest = (testInfo: TestInfo) => {
+    let records = testAgentRecords.get(testInfo.testId);
+    if (!records) {
+      records = new Map<string, AgentRecord>();
+      testAgentRecords.set(testInfo.testId, records);
+    }
+    return records;
+  };
+
+  const setReportAnnotation = (testInfo: TestInfo, reportPaths: string[]) => {
+    testInfo.annotations = testInfo.annotations.filter((item) => {
+      return item.type !== midsceneDumpAnnotationId;
+    });
+
+    for (const reportPath of reportPaths) {
+      testInfo.annotations.push({
+        type: midsceneDumpAnnotationId,
+        description: reportPath,
+      });
+    }
+  };
+
+  const finalizeAgentRecord = async (
+    record: AgentRecord,
+  ): Promise<string | undefined> => {
+    if (!record.finalizePromise) {
+      record.finalizePromise = (async () => {
+        await record.agent.destroy();
+        const reportPath = record.agent.reportFile || undefined;
+        record.finalReportPath = reportPath;
+        return reportPath;
+      })();
+    }
+
+    return await record.finalizePromise;
+  };
+
   const createOrReuseAgentForPage = (
     page: OriginPlaywrightPage,
     testInfo: TestInfo, // { testId: string; taskFile: string; taskTitle: string },
@@ -92,29 +131,27 @@ export const PlaywrightAiFixture = (options?: {
       const { file, title } = groupAndCaseForTest(testInfo);
       const cacheConfig = processTestCacheConfig(testInfo);
 
-      pageAgentMap[idForPage] = new PlaywrightAgent(page, {
+      const agent = new PlaywrightAgent(page, {
         testId: `playwright-${testId}-${idForPage}`,
         forceSameTabNavigation,
         cache: cacheConfig,
         groupName: title,
         groupDescription: file,
-        generateReport: false, // we will generate it in the reporter
+        generateReport: true,
         ...opts,
       });
+      pageAgentMap[idForPage] = agent;
+      const records = getAgentRecordsForTest(testInfo);
+      const record: AgentRecord = { agent };
+      records.set(idForPage, record);
 
-      pageAgentMap[idForPage].onDumpUpdate = (dump: string) => {
-        updateDumpAnnotation(testInfo, dump, idForPage);
-      };
-
-      page.on('close', () => {
+      page.on('close', async () => {
         debugPage('page closed');
-
-        // Clean up agent and temp file tracking
-        // Note: serializeToFiles is already called in updateDumpAnnotation,
-        // so we don't need to write files again here
-        pageTempFiles.delete(idForPage);
-        pageAgentMap[idForPage]?.destroy();
-        delete pageAgentMap[idForPage];
+        try {
+          await finalizeAgentRecord(record);
+        } finally {
+          delete pageAgentMap[idForPage];
+        }
       });
     }
 
@@ -188,70 +225,33 @@ export const PlaywrightAiFixture = (options?: {
     });
   }
 
-  const updateDumpAnnotation = (
-    test: TestInfo,
-    dump: string,
-    pageId: string,
-  ) => {
-    // 1. First, clean up the old temp files if they exist
-    const oldTempFilePath = pageTempFiles.get(pageId);
-    if (oldTempFilePath) {
-      try {
-        rmSync(oldTempFilePath, { force: true });
-        rmSync(`${oldTempFilePath}.screenshots`, {
-          force: true,
-          recursive: true,
-        });
-        rmSync(`${oldTempFilePath}.screenshots.json`, { force: true });
-      } catch (error) {
-        // Silently ignore if old files are already cleaned up
-      }
-    }
-
-    // 2. Create new temp file with predictable name using pageId
-    const tempFileName = `midscene-dump-${test.testId || uuid()}-${pageId}.json`;
-    const tempFilePath = join(tmpdir(), tempFileName);
-
-    // 3. Serialize dump with screenshots as separate files
-    // This ensures Reporter can copy screenshots when outputFormat is 'html-and-external-assets'
-    try {
-      const agent = pageAgentMap[pageId];
-      if (agent) {
-        agent.dump.serializeToFiles(tempFilePath);
-        debugPage(`Dump with screenshots serialized to: ${tempFilePath}`);
-      } else {
-        // Fallback: write dump string directly if agent not available
-        writeFileSync(tempFilePath, dump, 'utf-8');
-        debugPage(`Dump written to temp file: ${tempFilePath}`);
-      }
-
-      // 4. Track the new temp file (only if write succeeded)
-      pageTempFiles.set(pageId, tempFilePath);
-
-      // Store only the file path in annotation (only if write succeeded)
-      const currentAnnotation = test.annotations.find((item) => {
-        return item.type === midsceneDumpAnnotationId;
-      });
-      if (currentAnnotation) {
-        // Store file path instead of dump content
-        currentAnnotation.description = tempFilePath;
-      } else {
-        test.annotations.push({
-          type: midsceneDumpAnnotationId,
-          description: tempFilePath,
-        });
-      }
-    } catch (error) {
-      // If write fails (e.g., disk full), don't track the file or add annotation
-      // This prevents reporter from trying to read a non-existent file
-      debugPage(
-        `Failed to write temp file: ${tempFilePath}. Skipping annotation.`,
-        error,
-      );
-    }
-  };
-
   return {
+    _midsceneFinalizeReports: [
+      // biome-ignore lint/correctness/noEmptyPattern: Playwright fixture callbacks must use object destructuring for the first parameter even when no fixtures are consumed.
+      async ({}: Record<string, unknown>, use: any, testInfo: TestInfo) => {
+        await use();
+
+        const records = testAgentRecords.get(testInfo.testId);
+        if (!records || records.size === 0) {
+          return;
+        }
+
+        const reportPaths = (
+          await Promise.all(
+            Array.from(records.values()).map((record) =>
+              finalizeAgentRecord(record),
+            ),
+          )
+        ).filter((reportPath): reportPath is string => Boolean(reportPath));
+
+        if (reportPaths.length > 0) {
+          setReportAnnotation(testInfo, reportPaths);
+        }
+
+        testAgentRecords.delete(testInfo.testId);
+      },
+      { auto: true },
+    ],
     agentForPage: async (
       { page }: { page: OriginPlaywrightPage },
       use: any,

@@ -27,7 +27,9 @@ describe(
           },
         );
         ctx.resetFn = reset;
-        ctx.agent = new PuppeteerAgent(originPage);
+        ctx.agent = new PuppeteerAgent(originPage, {
+          persistExecutionDump: true,
+        });
 
         await sleep(10 * 1000);
 

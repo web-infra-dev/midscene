@@ -1,3 +1,5 @@
+import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
+import yaml from 'js-yaml';
 import type { TUserPrompt } from '../ai-model/index';
 import { ScreenshotItem } from '../screenshot-item';
 import Service from '../service/index';
@@ -31,17 +33,10 @@ import {
   type ServiceAction,
   type ServiceExtractOption,
   type ServiceExtractParam,
+  type TestStatus,
   type UIContext,
 } from '../types';
 import type { MidsceneYamlScript } from '../yaml';
-export type TestStatus =
-  | 'passed'
-  | 'failed'
-  | 'timedOut'
-  | 'skipped'
-  | 'interrupted';
-import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
-import yaml from 'js-yaml';
 
 import type { IReportGenerator } from '@/report-generator';
 import {

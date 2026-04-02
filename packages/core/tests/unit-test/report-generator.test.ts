@@ -92,6 +92,14 @@ function getTmpDir(prefix: string): string {
   return dir;
 }
 
+function parseScriptAttributes(openTag: string): Record<string, string> {
+  const attributes: Record<string, string> = {};
+  for (const match of openTag.matchAll(/([^\s=]+)="([^"]*)"/g)) {
+    attributes[match[1]] = decodeURIComponent(match[2]);
+  }
+  return attributes;
+}
+
 describe('ReportGenerator — append-only model', () => {
   let tmpDir: string;
 
@@ -191,6 +199,53 @@ describe('ReportGenerator — append-only model', () => {
       expect(countGroupedDumpScripts(html)).toBe(3);
     });
 
+    it('should append and override report attributes across updates', async () => {
+      const reportPath = join(tmpDir, 'attribute-merge-inline.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+
+      const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
+      const execution = createExecution([screenshot]);
+
+      generator.onExecutionUpdate(execution, defaultReportMeta, {
+        playwright_test_title: 'initial title',
+        playwright_test_status: 'running',
+        playwright_test_duration: 123,
+        ignored_null: null,
+        ignored_undefined: undefined,
+        'data-group-id': 'external-group-id',
+      });
+      await generator.flush();
+
+      generator.onExecutionUpdate(execution, defaultReportMeta, {
+        playwright_test_status: 'passed',
+        playwright_test_description: 'new description',
+      });
+      await generator.flush();
+
+      const html = readFileSync(reportPath, 'utf-8');
+      const dumpScripts = extractGroupedDumpScripts(html);
+      expect(dumpScripts).toHaveLength(2);
+
+      const firstAttrs = parseScriptAttributes(dumpScripts[0].openTag);
+      expect(firstAttrs.playwright_test_title).toBe('initial title');
+      expect(firstAttrs.playwright_test_status).toBe('running');
+      expect(firstAttrs.playwright_test_duration).toBe('123');
+      expect(firstAttrs.ignored_null).toBeUndefined();
+      expect(firstAttrs.ignored_undefined).toBeUndefined();
+      expect(firstAttrs['data-group-id']).not.toBe('external-group-id');
+
+      const secondAttrs = parseScriptAttributes(dumpScripts[1].openTag);
+      expect(secondAttrs['data-group-id']).toBe(firstAttrs['data-group-id']);
+      expect(secondAttrs.playwright_test_title).toBe('initial title');
+      expect(secondAttrs.playwright_test_status).toBe('passed');
+      expect(secondAttrs.playwright_test_duration).toBe('123');
+      expect(secondAttrs.playwright_test_description).toBe('new description');
+    });
+
     it('should replace persisted execution dump file for same execution id', async () => {
       const reportPath = join(tmpDir, 'inline-execution-json.html');
       const generator = new ReportGenerator({
@@ -225,6 +280,30 @@ describe('ReportGenerator — append-only model', () => {
       expect(firstDump.executions[0].tasks[0].uiContext.screenshot.id).toBe(
         screenshot.id,
       );
+    });
+
+    it('should persist execution dump files with pretty-printed JSON', async () => {
+      const reportPath = join(tmpDir, 'pretty-execution-json.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        persistExecutionDump: true,
+        autoPrint: false,
+      });
+
+      const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
+      const execution = createExecution([screenshot], 'pretty-json-test');
+
+      generator.onExecutionUpdate(execution, defaultReportMeta);
+      await generator.flush();
+
+      const dumpContent = readFileSync(
+        join(tmpDir, '1.execution.json'),
+        'utf-8',
+      );
+      expect(dumpContent).toContain('\n  "groupName": "test-group"');
+      expect(dumpContent).toContain('\n    {');
+      expect(dumpContent.endsWith('\n')).toBe(false);
     });
 
     it('should skip persisting execution dump files when persistExecutionDump is false', async () => {
@@ -574,6 +653,38 @@ describe('ReportGenerator — append-only model', () => {
       expect(
         existsSync(join(reportDir, 'screenshots', `${screenshot.id}.png`)),
       ).toBe(true);
+    });
+
+    it('should write merged attributes in directory mode', async () => {
+      const reportDir = join(tmpDir, 'dir-attribute-merge');
+      const reportPath = join(reportDir, 'index.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'directory',
+        autoPrint: false,
+      });
+
+      const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
+      const execution = createExecution([screenshot]);
+
+      generator.onExecutionUpdate(execution, defaultReportMeta, {
+        playwright_test_title: 'first title',
+      });
+      await generator.flush();
+
+      generator.onExecutionUpdate(execution, defaultReportMeta, {
+        playwright_test_title: 'final title',
+        playwright_test_duration: 456,
+      });
+      await generator.flush();
+
+      const html = readFileSync(reportPath, 'utf-8');
+      const dumpScripts = extractGroupedDumpScripts(html);
+      expect(dumpScripts).toHaveLength(2);
+
+      const secondAttrs = parseScriptAttributes(dumpScripts[1].openTag);
+      expect(secondAttrs.playwright_test_title).toBe('final title');
+      expect(secondAttrs.playwright_test_duration).toBe('456');
     });
 
     it('should produce valid HTML structure in directory mode', async () => {

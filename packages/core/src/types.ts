@@ -172,9 +172,14 @@ export interface DumpMeta {
   logTime: number;
 }
 
+export type ReportAttributes = Record<
+  string,
+  string | number | boolean | null | undefined
+>;
+
 export interface ReportDumpWithAttributes {
   dumpString: string;
-  attributes?: Record<string, any>;
+  attributes?: ReportAttributes;
 }
 
 export interface ServiceDump extends DumpMeta {

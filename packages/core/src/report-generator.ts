@@ -12,7 +12,12 @@ import {
   getBaseUrlFixScript,
 } from './dump/html-utils';
 import { ScreenshotStore } from './dump/screenshot-store';
-import { type ExecutionDump, ReportActionDump, type ReportMeta } from './types';
+import {
+  type ExecutionDump,
+  ReportActionDump,
+  type ReportAttributes,
+  type ReportMeta,
+} from './types';
 import { appendFileSync, getReportTpl } from './utils';
 
 export interface IReportGenerator {
@@ -24,7 +29,11 @@ export interface IReportGenerator {
    * @param execution  Current execution's full data
    * @param reportMeta  Report-level metadata (groupName, sdkVersion, etc.)
    */
-  onExecutionUpdate(execution: ExecutionDump, reportMeta: ReportMeta): void;
+  onExecutionUpdate(
+    execution: ExecutionDump,
+    reportMeta: ReportMeta,
+    attributes?: ReportAttributes,
+  ): void;
 
   /**
    * @deprecated Use onExecutionUpdate instead. Kept for backward compatibility.
@@ -81,6 +90,7 @@ export class ReportGenerator implements IReportGenerator {
   // Tracks the last execution + groupMeta for re-writing on finalize
   private lastExecution?: ExecutionDump;
   private lastReportMeta?: ReportMeta;
+  private reportAttributes: Record<string, string> = {};
 
   // write queue for serial execution
   private writeQueue: Promise<void> = Promise.resolve();
@@ -139,9 +149,14 @@ export class ReportGenerator implements IReportGenerator {
     });
   }
 
-  onExecutionUpdate(execution: ExecutionDump, reportMeta: ReportMeta): void {
+  onExecutionUpdate(
+    execution: ExecutionDump,
+    reportMeta: ReportMeta,
+    attributes?: ReportAttributes,
+  ): void {
     this.lastExecution = execution;
     this.lastReportMeta = reportMeta;
+    this.mergeReportAttributes(attributes);
     this.writeQueue = this.writeQueue.then(() => {
       if (this.destroyed) return;
       this.doWriteExecution(execution, reportMeta);
@@ -209,6 +224,29 @@ export class ReportGenerator implements IReportGenerator {
     }
   }
 
+  private mergeReportAttributes(attributes?: ReportAttributes): void {
+    if (!attributes) {
+      return;
+    }
+
+    for (const [key, value] of Object.entries(attributes)) {
+      if (value === undefined || value === null) {
+        continue;
+      }
+      if (key === 'data-group-id') {
+        continue;
+      }
+      this.reportAttributes[key] = String(value);
+    }
+  }
+
+  private getDumpScriptAttributes(): Record<string, string> {
+    return {
+      'data-group-id': this.reportStreamId,
+      ...this.reportAttributes,
+    };
+  }
+
   /**
    * Wrap an ExecutionDump + ReportMeta into a single-execution ReportActionDump.
    */
@@ -253,12 +291,9 @@ export class ReportGenerator implements IReportGenerator {
 
     // Append dump tag (always — frontend keeps only last per execution id)
     const serialized = singleDump.serialize();
-    const attributes: Record<string, string> = {
-      'data-group-id': this.reportStreamId,
-    };
     appendFileSync(
       this.reportPath,
-      `\n${generateDumpScriptTag(serialized, attributes)}`,
+      `\n${generateDumpScriptTag(serialized, this.getDumpScriptAttributes())}`,
     );
   }
 
@@ -277,9 +312,6 @@ export class ReportGenerator implements IReportGenerator {
 
     // 2. Append dump tag (always — frontend keeps only last per execution id)
     const serialized = singleDump.serialize();
-    const dumpAttributes: Record<string, string> = {
-      'data-group-id': this.reportStreamId,
-    };
 
     if (!this.initialized) {
       writeFileSync(
@@ -291,7 +323,7 @@ export class ReportGenerator implements IReportGenerator {
 
     appendFileSync(
       this.reportPath,
-      `\n${generateDumpScriptTag(serialized, dumpAttributes)}`,
+      `\n${generateDumpScriptTag(serialized, this.getDumpScriptAttributes())}`,
     );
   }
 
@@ -324,6 +356,6 @@ export class ReportGenerator implements IReportGenerator {
 
     const fileName = `${fileIndex}.execution.json`;
     const filePath = join(dirname(this.reportPath), fileName);
-    writeFileSync(filePath, singleDump.serialize(), 'utf-8');
+    writeFileSync(filePath, singleDump.serialize(2), 'utf-8');
   }
 }
