@@ -119,7 +119,7 @@ If the DATA_DEMAND is:
 
 <DATA_DEMAND>
 {
-  "result": "Boolean, is it currently the SMS page?"
+  "StatementIsTruthy": "Boolean, is it currently the SMS page?"
 }
 </DATA_DEMAND>
 
@@ -127,7 +127,7 @@ By viewing the screenshot and page contents, you can extract the following data:
 
 <thought>According to the screenshot, i can see ...</thought>
 <data-json>
-{ "result": true }
+{ "StatementIsTruthy": true }
 </data-json>
 `;
 }
