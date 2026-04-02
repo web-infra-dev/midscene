@@ -688,14 +688,20 @@ chrome.runtime.onMessage.addListener(
 // where sendMessage arrives before the onMessage listener is registered in Chrome's
 // internal routing table.
 const autoStartSession = (globalThis as any).__midscene_auto_start_session;
-if (autoStartSession && !window.recorder?.isActive()) {
+if (autoStartSession) {
   console.log(
     '[EventRecorder Bridge] Auto-starting recording for dynamic iframe:',
     { sessionId: autoStartSession, isInIframe, url: window.location.href },
   );
-  initialScreenshot = captureScreenshot();
-  initializeRecorder(autoStartSession);
+
+  // Use the same pattern as the 'start' message handler (separate if-checks)
+  // to avoid TypeScript narrowing window.recorder to 'never' after initializeRecorder()
+  if (!window.recorder) {
+    initializeRecorder(autoStartSession);
+  }
+
   if (window.recorder) {
+    initialScreenshot = captureScreenshot();
     window.recorder.start();
     events = [];
     lastActivityTime = Date.now();
