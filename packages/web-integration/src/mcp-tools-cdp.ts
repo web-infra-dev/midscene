@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import http from 'node:http';
 import { join } from 'node:path';
 import { ScreenshotItem, z } from '@midscene/core';
+import { getDebug } from '@midscene/shared/logger';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import puppeteer from 'puppeteer-core';
@@ -10,6 +11,11 @@ import type { Browser, Page } from 'puppeteer-core';
 import { PROXY_ENDPOINT_FILE, PROXY_PID_FILE } from './cdp-proxy-constants';
 import { PuppeteerAgent } from './puppeteer';
 import { StaticPage } from './static';
+
+const debug = getDebug('mcp:cdp');
+
+/** CDP target discovery may need a brief moment after WebSocket open. */
+const CDP_TARGET_DISCOVERY_DELAY_MS = 500;
 
 /**
  * Check if a CDP endpoint is a page-level URL (e.g., /devtools/page/XXX).
@@ -25,20 +31,23 @@ function isPageLevelEndpoint(endpoint: string): boolean {
 function resolveBrowserEndpoint(pageEndpoint: string): Promise<string> {
   return new Promise((resolve, reject) => {
     let host: string;
-    let port: number;
     try {
       const url = new URL(pageEndpoint);
-      host = url.hostname;
-      port = Number(url.port);
+      host = url.host; // host includes port (e.g. "127.0.0.1:9222")
     } catch {
       reject(new Error(`Invalid CDP endpoint URL: ${pageEndpoint}`));
       return;
     }
 
     const req = http.get(
-      `http://${host}:${port}/json/version`,
+      `http://${host}/json/version`,
       { timeout: 5000 },
       (res) => {
+        if (res.statusCode && res.statusCode >= 400) {
+          reject(new Error(`/json/version returned HTTP ${res.statusCode}`));
+          res.resume();
+          return;
+        }
         let data = '';
         res.on('data', (chunk: Buffer) => {
           data += chunk.toString();
@@ -169,13 +178,13 @@ async function getProxyEndpoint(chromeEndpoint: string): Promise<string> {
   // If the user passed a page-level endpoint, resolve to browser-level first
   let browserEndpoint = chromeEndpoint;
   if (isPageLevelEndpoint(chromeEndpoint)) {
-    console.warn(`[cdp] Page-level CDP endpoint detected: ${chromeEndpoint}`);
-    console.warn(
-      '[cdp] Attempting to resolve browser-level endpoint via /json/version...',
+    debug(
+      'Page-level CDP endpoint detected, resolving via /json/version: %s',
+      chromeEndpoint,
     );
     try {
       browserEndpoint = await resolveBrowserEndpoint(chromeEndpoint);
-      console.warn(`[cdp] Resolved browser endpoint: ${browserEndpoint}`);
+      debug('Resolved browser endpoint: %s', browserEndpoint);
     } catch (err) {
       throw new Error(
         `Cannot use page-level CDP endpoint directly. Puppeteer requires a browser-level endpoint (e.g., ws://host:port/devtools/browser/<id>). Auto-resolution via /json/version failed: ${(err as Error).message}. Please provide a browser-level CDP endpoint instead.`,
@@ -254,13 +263,15 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
     // If no pages discovered, wait briefly and retry — some CDP targets
     // need a moment to appear after the WebSocket connection is established.
     if (pages.length === 0) {
-      await new Promise((r) => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, CDP_TARGET_DISCOVERY_DELAY_MS));
       pages = await browser.pages();
     }
 
     const webPages = pages.filter((p) => /^https?:\/\//.test(p.url()));
-    console.debug(
-      `[cdp] Found ${pages.length} page(s), ${webPages.length} web page(s):`,
+    debug(
+      'Found %d page(s), %d web page(s): %o',
+      pages.length,
+      webPages.length,
       pages.map((p) => p.url()),
     );
     let page: Page;
