@@ -687,15 +687,22 @@ chrome.runtime.onMessage.addListener(
 // This bypasses the messaging system entirely, eliminating the timing race condition
 // where sendMessage arrives before the onMessage listener is registered in Chrome's
 // internal routing table.
-const autoStartSession = (globalThis as any).__midscene_auto_start_session;
-if (autoStartSession) {
+//
+// IMPORTANT: This logic is wrapped in a function to prevent TypeScript's top-level
+// control flow analysis from narrowing window.recorder to 'never'. At the top level,
+// TypeScript traces window.recorder = null (line 70) and cannot track that
+// initializeRecorder() mutates window.recorder, so if (window.recorder) would be
+// narrowed to 'never'. Inside a function, TypeScript does not carry top-level
+// narrowing, so the same pattern used in the 'start' message handler works correctly.
+function tryAutoStartRecording() {
+  const autoStartSession = (globalThis as any).__midscene_auto_start_session;
+  if (!autoStartSession) return;
+
   console.log(
     '[EventRecorder Bridge] Auto-starting recording for dynamic iframe:',
     { sessionId: autoStartSession, isInIframe, url: window.location.href },
   );
 
-  // Use the same pattern as the 'start' message handler (separate if-checks)
-  // to avoid TypeScript narrowing window.recorder to 'never' after initializeRecorder()
   if (!window.recorder) {
     initializeRecorder(autoStartSession);
   }
@@ -718,6 +725,9 @@ if (autoStartSession) {
   // Clean up the flag to prevent duplicate auto-starts on re-injection
   (globalThis as any).__midscene_auto_start_session = undefined;
 }
+
+// Execute auto-start check for dynamically loaded iframes
+tryAutoStartRecording();
 
 // Initialize when script loads
 document.addEventListener('DOMContentLoaded', () => {
