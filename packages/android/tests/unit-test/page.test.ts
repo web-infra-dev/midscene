@@ -614,19 +614,28 @@ describe('AndroidDevice', () => {
         describe('characters routed to yadb with escapeForShell applied', () => {
           it('\\ → execYadb unchanged (no escaping needed in single quotes)', async () => {
             await device.keyboardType('a\\b');
-            expect((device as any).execYadb).toHaveBeenCalledWith('a\\b');
+            expect((device as any).execYadb).toHaveBeenCalledWith(
+              'a\\b',
+              expect.anything(),
+            );
             expect(mockAdb.inputText).not.toHaveBeenCalled();
           });
 
           it('` → execYadb unchanged', async () => {
             await device.keyboardType('a`b');
-            expect((device as any).execYadb).toHaveBeenCalledWith('a`b');
+            expect((device as any).execYadb).toHaveBeenCalledWith(
+              'a`b',
+              expect.anything(),
+            );
             expect(mockAdb.inputText).not.toHaveBeenCalled();
           });
 
           it('$ → execYadb unchanged', async () => {
             await device.keyboardType('$HOME');
-            expect((device as any).execYadb).toHaveBeenCalledWith('$HOME');
+            expect((device as any).execYadb).toHaveBeenCalledWith(
+              '$HOME',
+              expect.anything(),
+            );
             expect(mockAdb.inputText).not.toHaveBeenCalled();
           });
 
@@ -634,6 +643,7 @@ describe('AndroidDevice', () => {
             await device.keyboardType('it\'s a "test"');
             expect((device as any).execYadb).toHaveBeenCalledWith(
               "it'\\''s a \"test\"",
+              expect.anything(),
             );
             expect(mockAdb.inputText).not.toHaveBeenCalled();
           });
@@ -642,6 +652,7 @@ describe('AndroidDevice', () => {
             await device.keyboardType('price: $100\\each');
             expect((device as any).execYadb).toHaveBeenCalledWith(
               'price: $100\\each',
+              expect.anything(),
             );
           });
         });
@@ -650,30 +661,41 @@ describe('AndroidDevice', () => {
         describe('characters NOT needing escapeForShell (pass through unchanged)', () => {
           it('non-ASCII: Chinese', async () => {
             await device.keyboardType('你好');
-            expect((device as any).execYadb).toHaveBeenCalledWith('你好');
+            expect((device as any).execYadb).toHaveBeenCalledWith(
+              '你好',
+              expect.anything(),
+            );
           });
 
           it('non-ASCII: Latin Unicode (ö)', async () => {
             await device.keyboardType('Schönberg,Liechtenstein');
             expect((device as any).execYadb).toHaveBeenCalledWith(
               'Schönberg,Liechtenstein',
+              expect.anything(),
             );
           });
 
           it('non-ASCII: emoji', async () => {
             await device.keyboardType('hello 😀');
-            expect((device as any).execYadb).toHaveBeenCalledWith('hello 😀');
+            expect((device as any).execYadb).toHaveBeenCalledWith(
+              'hello 😀',
+              expect.anything(),
+            );
           });
 
           it('non-ASCII: Japanese', async () => {
             await device.keyboardType('こんにちは');
-            expect((device as any).execYadb).toHaveBeenCalledWith('こんにちは');
+            expect((device as any).execYadb).toHaveBeenCalledWith(
+              'こんにちは',
+              expect.anything(),
+            );
           });
 
           it('format specifier: %s (yadb does not interpret %)', async () => {
             await device.keyboardType('Test%sString');
             expect((device as any).execYadb).toHaveBeenCalledWith(
               'Test%sString',
+              expect.anything(),
             );
           });
 
@@ -682,6 +704,7 @@ describe('AndroidDevice', () => {
             // Non-ASCII triggers yadb; ' is escaped, everything else passes through
             expect((device as any).execYadb).toHaveBeenCalledWith(
               "café'\\''s menu! @#&|;(){}[]<>~^*?=+,./:-_",
+              expect.anything(),
             );
           });
         });
@@ -756,6 +779,7 @@ describe('AndroidDevice', () => {
             expect((device as any).execYadb).toHaveBeenCalledTimes(1);
             expect((device as any).execYadb).toHaveBeenCalledWith(
               '你好\\nworld',
+              expect.anything(),
             );
             expect(mockAdb.inputText).not.toHaveBeenCalled();
             expect(mockAdb.keyevent).not.toHaveBeenCalled();
@@ -766,6 +790,7 @@ describe('AndroidDevice', () => {
             expect((device as any).execYadb).toHaveBeenCalledTimes(1);
             expect((device as any).execYadb).toHaveBeenCalledWith(
               'price: $10\\nplain text',
+              expect.anything(),
             );
             expect(mockAdb.inputText).not.toHaveBeenCalled();
             expect(mockAdb.keyevent).not.toHaveBeenCalled();
@@ -774,7 +799,10 @@ describe('AndroidDevice', () => {
           it('non-ASCII trailing newline: 你好\\n', async () => {
             await device.keyboardType('你好\n');
             expect((device as any).execYadb).toHaveBeenCalledTimes(1);
-            expect((device as any).execYadb).toHaveBeenCalledWith('你好\\n');
+            expect((device as any).execYadb).toHaveBeenCalledWith(
+              '你好\\n',
+              expect.anything(),
+            );
             expect(mockAdb.keyevent).not.toHaveBeenCalled();
           });
 
@@ -784,7 +812,10 @@ describe('AndroidDevice', () => {
               autoDismissKeyboard: false,
             };
             await device.keyboardType('hello\n');
-            expect((device as any).execYadb).toHaveBeenCalledWith('hello\\n');
+            expect((device as any).execYadb).toHaveBeenCalledWith(
+              'hello\\n',
+              expect.anything(),
+            );
             expect(mockAdb.keyevent).not.toHaveBeenCalled();
           });
 
@@ -794,7 +825,10 @@ describe('AndroidDevice', () => {
               autoDismissKeyboard: false,
             };
             await device.keyboardType('\nhello');
-            expect((device as any).execYadb).toHaveBeenCalledWith('\\nhello');
+            expect((device as any).execYadb).toHaveBeenCalledWith(
+              '\\nhello',
+              expect.anything(),
+            );
           });
 
           it('always-yadb consecutive newlines: a\\n\\nb', async () => {
@@ -803,7 +837,10 @@ describe('AndroidDevice', () => {
               autoDismissKeyboard: false,
             };
             await device.keyboardType('a\n\nb');
-            expect((device as any).execYadb).toHaveBeenCalledWith('a\\n\\nb');
+            expect((device as any).execYadb).toHaveBeenCalledWith(
+              'a\\n\\nb',
+              expect.anything(),
+            );
           });
 
           it('always-yadb just a newline: \\n', async () => {
@@ -812,7 +849,10 @@ describe('AndroidDevice', () => {
               autoDismissKeyboard: false,
             };
             await device.keyboardType('\n');
-            expect((device as any).execYadb).toHaveBeenCalledWith('\\n');
+            expect((device as any).execYadb).toHaveBeenCalledWith(
+              '\\n',
+              expect.anything(),
+            );
             expect(mockAdb.keyevent).not.toHaveBeenCalled();
           });
         });
@@ -828,7 +868,10 @@ describe('AndroidDevice', () => {
             autoDismissKeyboard: false,
           };
           await device.keyboardType('hello world');
-          expect((device as any).execYadb).toHaveBeenCalledWith('hello world');
+          expect((device as any).execYadb).toHaveBeenCalledWith(
+            'hello world',
+            expect.anything(),
+          );
           expect(mockAdb.inputText).not.toHaveBeenCalled();
         });
 
@@ -840,6 +883,7 @@ describe('AndroidDevice', () => {
           await device.keyboardType('Schönberg,%sLiechtenstein');
           expect((device as any).execYadb).toHaveBeenCalledWith(
             'Schönberg,%sLiechtenstein',
+            expect.anything(),
           );
         });
 
@@ -853,6 +897,7 @@ describe('AndroidDevice', () => {
           await device.keyboardType('你好,Schönberg');
           expect((device as any).execYadb).toHaveBeenCalledWith(
             '你好,Schönberg',
+            expect.anything(),
           );
           expect(mockAdb.inputText).not.toHaveBeenCalled();
         });
