@@ -39,10 +39,7 @@ import {
 import type { MidsceneYamlScript } from '../yaml';
 
 import type { IReportGenerator } from '@/report-generator';
-import {
-  ReportGenerator,
-  assertReportGenerationOptions,
-} from '@/report-generator';
+import { ReportGenerator } from '@/report-generator';
 import { getVersion, processCacheConfig, reportHTMLContent } from '@/utils';
 import {
   ScriptPlayer,
@@ -262,7 +259,6 @@ export class Agent<
     this.opts = Object.assign(
       {
         generateReport: true,
-        persistExecutionDump: false,
         autoPrintReportMsg: true,
         groupName: 'Midscene Report',
         groupDescription: '',
@@ -274,7 +270,6 @@ export class Agent<
         ? { replanningCycleLimit: envReplanningCycleLimit }
         : {},
     );
-    assertReportGenerationOptions(this.opts);
 
     const resolvedAiActContext =
       this.opts.aiActContext ?? this.opts.aiActionContext;
@@ -355,7 +350,6 @@ export class Agent<
 
     this.reportGenerator = ReportGenerator.create(this.reportFileName!, {
       generateReport: this.opts.generateReport,
-      persistExecutionDump: this.opts.persistExecutionDump,
       outputFormat: this.opts.outputFormat,
       autoPrintReportMsg: this.opts.autoPrintReportMsg,
     });

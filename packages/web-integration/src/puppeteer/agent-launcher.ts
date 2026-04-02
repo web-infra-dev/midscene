@@ -348,7 +348,6 @@ export async function puppeteerAgentForTarget(
       | 'groupName'
       | 'groupDescription'
       | 'generateReport'
-      | 'persistExecutionDump'
       | 'autoPrintReportMsg'
       | 'reportFileName'
       | 'replanningCycleLimit'

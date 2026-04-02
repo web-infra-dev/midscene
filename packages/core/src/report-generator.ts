@@ -60,25 +60,11 @@ export const nullReportGenerator: IReportGenerator = {
   getReportPath: () => undefined,
 };
 
-export function assertReportGenerationOptions(opts: {
-  generateReport?: boolean;
-  persistExecutionDump?: boolean;
-}): void {
-  if (opts.generateReport === false && opts.persistExecutionDump === true) {
-    throw new Error(
-      'persistExecutionDump cannot be true when generateReport is false',
-    );
-  }
-}
-
 export class ReportGenerator implements IReportGenerator {
   private reportPath: string;
   private screenshotMode: 'inline' | 'directory';
-  private shouldPersistExecutionDump: boolean;
   private autoPrint: boolean;
   private firstWriteDone = false;
-  private executionLogIndex = 0;
-  private executionLogFileIndexByExecutionKey = new Map<string, number>();
 
   // Unique identifier for this report stream — used as data-group-id
   private readonly reportStreamId: string;
@@ -99,12 +85,10 @@ export class ReportGenerator implements IReportGenerator {
   constructor(options: {
     reportPath: string;
     screenshotMode: 'inline' | 'directory';
-    persistExecutionDump?: boolean;
     autoPrint?: boolean;
   }) {
     this.reportPath = options.reportPath;
     this.screenshotMode = options.screenshotMode;
-    this.shouldPersistExecutionDump = options.persistExecutionDump ?? false;
     this.autoPrint = options.autoPrint ?? true;
     this.reportStreamId = uuid();
     this.screenshotStore = new ScreenshotStore({
@@ -117,7 +101,6 @@ export class ReportGenerator implements IReportGenerator {
           `\n${generateImageScriptTag(id, base64)}`,
         );
       },
-      alsoWriteFileCopy: this.shouldPersistExecutionDump,
     });
     this.printReportPath('will be generated at');
   }
@@ -126,12 +109,10 @@ export class ReportGenerator implements IReportGenerator {
     reportFileName: string,
     opts: {
       generateReport?: boolean;
-      persistExecutionDump?: boolean;
       outputFormat?: 'single-html' | 'html-and-external-assets';
       autoPrintReportMsg?: boolean;
     },
   ): IReportGenerator {
-    assertReportGenerationOptions(opts);
     if (opts.generateReport === false) return nullReportGenerator;
 
     // In browser environment, file system is not available
@@ -144,7 +125,6 @@ export class ReportGenerator implements IReportGenerator {
         opts.outputFormat === 'html-and-external-assets'
           ? 'directory'
           : 'inline',
-      persistExecutionDump: opts.persistExecutionDump,
       autoPrint: opts.autoPrintReportMsg,
     });
   }
@@ -212,10 +192,6 @@ export class ReportGenerator implements IReportGenerator {
       this.writeInlineExecution(execution, singleDump);
     } else {
       this.writeDirectoryExecution(execution, singleDump);
-    }
-
-    if (this.shouldPersistExecutionDump) {
-      this.persistExecutionDumpToFile(execution, singleDump);
     }
 
     if (!this.firstWriteDone) {
@@ -325,37 +301,5 @@ export class ReportGenerator implements IReportGenerator {
       this.reportPath,
       `\n${generateDumpScriptTag(serialized, this.getDumpScriptAttributes())}`,
     );
-  }
-
-  private getExecutionLogKey(execution: ExecutionDump): string {
-    if (!execution.id) {
-      throw new Error(
-        'ReportGenerator: execution.id is required for persisting execution dumps',
-      );
-    }
-    return `id:${execution.id}`;
-  }
-
-  private persistExecutionDumpToFile(
-    execution: ExecutionDump,
-    singleDump: ReportActionDump,
-  ): void {
-    const dir = dirname(this.reportPath);
-    if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true });
-    }
-
-    const executionLogKey = this.getExecutionLogKey(execution);
-    let fileIndex =
-      this.executionLogFileIndexByExecutionKey.get(executionLogKey);
-    if (!fileIndex) {
-      this.executionLogIndex += 1;
-      fileIndex = this.executionLogIndex;
-      this.executionLogFileIndexByExecutionKey.set(executionLogKey, fileIndex);
-    }
-
-    const fileName = `${fileIndex}.execution.json`;
-    const filePath = join(dirname(this.reportPath), fileName);
-    writeFileSync(filePath, singleDump.serialize(2), 'utf-8');
   }
 }

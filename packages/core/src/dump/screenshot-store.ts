@@ -43,7 +43,6 @@ export class ScreenshotStore {
   private readonly reportPath: string;
   private readonly screenshotsDir?: string;
   private readonly writeInlineImage?: (id: string, base64: string) => void;
-  private readonly alsoWriteFileCopy: boolean;
   private readonly writtenInlineIds = new Set<string>();
   private readonly writtenFileIds = new Set<string>();
 
@@ -52,24 +51,14 @@ export class ScreenshotStore {
     reportPath: string;
     screenshotsDir?: string;
     writeInlineImage?: (id: string, base64: string) => void;
-    alsoWriteFileCopy?: boolean;
   }) {
     this.mode = options.mode;
     this.reportPath = options.reportPath;
     this.screenshotsDir = options.screenshotsDir;
     this.writeInlineImage = options.writeInlineImage;
-    this.alsoWriteFileCopy = options.alsoWriteFileCopy ?? false;
   }
 
   persist(screenshot: ScreenshotItem): ScreenshotRef {
-    const shouldWriteFileCopy =
-      this.mode === 'directory' || this.alsoWriteFileCopy;
-    const fileRef = shouldWriteFileCopy
-      ? this.persistToSharedFileIfNeeded(screenshot, {
-          markAsPersisted: this.mode === 'directory',
-        })
-      : null;
-
     if (this.mode === 'inline') {
       if (!this.writeInlineImage) {
         throw new Error(
@@ -83,12 +72,9 @@ export class ScreenshotStore {
       return screenshot.markPersistedInline(this.reportPath);
     }
 
-    if (!fileRef) {
-      throw new Error(
-        'ScreenshotStore: file persistence is required in directory mode',
-      );
-    }
-    return fileRef;
+    return this.persistToSharedFileIfNeeded(screenshot, {
+      markAsPersisted: true,
+    });
   }
 
   private persistToSharedFileIfNeeded(

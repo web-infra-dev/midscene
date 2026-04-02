@@ -119,7 +119,6 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
-        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -154,7 +153,6 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
-        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -178,7 +176,6 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
-        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -246,144 +243,11 @@ describe('ReportGenerator — append-only model', () => {
       expect(secondAttrs.playwright_test_description).toBe('new description');
     });
 
-    it('should replace persisted execution dump file for same execution id', async () => {
-      const reportPath = join(tmpDir, 'inline-execution-json.html');
-      const generator = new ReportGenerator({
-        reportPath,
-        screenshotMode: 'inline',
-        persistExecutionDump: true,
-        autoPrint: false,
-      });
-
-      const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
-      const execution = createExecution([screenshot], 'execution-json-test');
-
-      generator.onExecutionUpdate(execution, defaultReportMeta);
-      await generator.flush();
-      generator.onExecutionUpdate(execution, defaultReportMeta);
-      await generator.flush();
-
-      const jsonFiles = readdirSync(tmpDir)
-        .filter((name) => /^\d+\.execution\.json$/.test(name))
-        .sort();
-      expect(jsonFiles).toEqual(['1.execution.json']);
-      expect(
-        existsSync(join(tmpDir, 'screenshots', `${screenshot.id}.png`)),
-      ).toBe(true);
-
-      const firstDump = JSON.parse(
-        readFileSync(join(tmpDir, '1.execution.json'), 'utf-8'),
-      );
-      expect(firstDump.groupName).toBe('test-group');
-      expect(firstDump.executions).toHaveLength(1);
-      expect(firstDump.executions[0].name).toBe('execution-json-test');
-      expect(firstDump.executions[0].tasks[0].uiContext.screenshot.id).toBe(
-        screenshot.id,
-      );
-    });
-
-    it('should persist execution dump files with pretty-printed JSON', async () => {
-      const reportPath = join(tmpDir, 'pretty-execution-json.html');
-      const generator = new ReportGenerator({
-        reportPath,
-        screenshotMode: 'inline',
-        persistExecutionDump: true,
-        autoPrint: false,
-      });
-
-      const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
-      const execution = createExecution([screenshot], 'pretty-json-test');
-
-      generator.onExecutionUpdate(execution, defaultReportMeta);
-      await generator.flush();
-
-      const dumpContent = readFileSync(
-        join(tmpDir, '1.execution.json'),
-        'utf-8',
-      );
-      expect(dumpContent).toContain('\n  "groupName": "test-group"');
-      expect(dumpContent).toContain('\n    {');
-      expect(dumpContent.endsWith('\n')).toBe(false);
-    });
-
-    it('should skip persisting execution dump files when persistExecutionDump is false', async () => {
-      const reportPath = join(tmpDir, 'inline-no-execution-json.html');
-      const generator = new ReportGenerator({
-        reportPath,
-        screenshotMode: 'inline',
-        persistExecutionDump: false,
-        autoPrint: false,
-      });
-
-      const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
-      const execution = createExecution([screenshot], 'execution-json-test');
-
-      generator.onExecutionUpdate(execution, defaultReportMeta);
-      await generator.flush();
-
-      const rootFiles = readdirSync(tmpDir).filter((name) =>
-        /^\d+\.execution\.json(?:\.screenshots)?$/.test(name),
-      );
-      expect(rootFiles).toEqual([]);
-    });
-
-    it('should append new execution screenshots without rewriting existing files', async () => {
-      const reportPath = join(
-        tmpDir,
-        'inline-execution-screenshots-append.html',
-      );
-      const generator = new ReportGenerator({
-        reportPath,
-        screenshotMode: 'inline',
-        persistExecutionDump: true,
-        autoPrint: false,
-      });
-
-      const screenshot1 = ScreenshotItem.create(fakeBase64(100), Date.now());
-      const screenshot2 = ScreenshotItem.create(fakeBase64(200), Date.now());
-      const executionId = 'same-execution-id';
-
-      const firstExecution = createExecution(
-        [screenshot1],
-        'execution-json-test',
-        executionId,
-      );
-      generator.onExecutionUpdate(firstExecution, defaultReportMeta);
-      await generator.flush();
-
-      const screenshotPath1 = join(
-        tmpDir,
-        'screenshots',
-        `${screenshot1.id}.png`,
-      );
-      const mtimeFirst = statSync(screenshotPath1).mtimeMs;
-
-      const startTime = Date.now();
-      while (Date.now() - startTime < 50) {
-        // busy wait
-      }
-
-      const secondExecution = createExecution(
-        [screenshot1, screenshot2],
-        'execution-json-test',
-        executionId,
-      );
-      generator.onExecutionUpdate(secondExecution, defaultReportMeta);
-      await generator.flush();
-
-      const mtimeSecond = statSync(screenshotPath1).mtimeMs;
-      expect(mtimeSecond).toBe(mtimeFirst);
-      expect(
-        existsSync(join(tmpDir, 'screenshots', `${screenshot2.id}.png`)),
-      ).toBe(true);
-    });
-
     it('should produce valid HTML with parseable image map and dump JSON', async () => {
       const reportPath = join(tmpDir, 'valid-html-test.html');
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
-        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -434,7 +298,6 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
-        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -456,11 +319,6 @@ describe('ReportGenerator — append-only model', () => {
       const dumpScripts = extractGroupedDumpScripts(html);
       expect(dumpScripts).toHaveLength(2);
 
-      const jsonFiles = readdirSync(tmpDir)
-        .filter((name) => /^\d+\.execution\.json$/.test(name))
-        .sort();
-      expect(jsonFiles).toEqual(['1.execution.json', '2.execution.json']);
-
       // Each dump tag should contain exactly 1 execution
       for (const dumpScript of dumpScripts) {
         const dumpJson = unescapeContent(dumpScript.content);
@@ -474,7 +332,6 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
-        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -498,7 +355,6 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
-        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -525,7 +381,6 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'directory',
-        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -564,7 +419,6 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'directory',
-        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -596,7 +450,6 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'directory',
-        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -627,7 +480,6 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'directory',
-        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -645,14 +497,6 @@ describe('ReportGenerator — append-only model', () => {
       const html = readFileSync(reportPath, 'utf-8');
       // Should have 5 dump tags total (1 + 4 updates)
       expect(countGroupedDumpScripts(html)).toBe(5);
-
-      const jsonFiles = readdirSync(reportDir)
-        .filter((name) => /^\d+\.execution\.json$/.test(name))
-        .sort();
-      expect(jsonFiles).toEqual(['1.execution.json']);
-      expect(
-        existsSync(join(reportDir, 'screenshots', `${screenshot.id}.png`)),
-      ).toBe(true);
     });
 
     it('should write merged attributes in directory mode', async () => {
@@ -850,17 +694,6 @@ describe('ReportGenerator — append-only model', () => {
       expect(gen).toBe(nullReportGenerator);
     });
 
-    it('should throw when persistExecutionDump is true and generateReport is false', () => {
-      expect(() =>
-        ReportGenerator.create('test-invalid', {
-          generateReport: false,
-          persistExecutionDump: true,
-        }),
-      ).toThrow(
-        'persistExecutionDump cannot be true when generateReport is false',
-      );
-    });
-
     it('should create inline mode generator by default', () => {
       const gen = ReportGenerator.create('test-inline', {});
       expect(gen).toBeInstanceOf(ReportGenerator);
@@ -879,7 +712,7 @@ describe('ReportGenerator — append-only model', () => {
       expect(reportPath).toContain('index.html');
     });
 
-    it('should disable execution dump persistence by default', async () => {
+    it('should not emit standalone execution dump files by default', async () => {
       const gen = ReportGenerator.create('test-default-no-exec-dump', {
         autoPrintReportMsg: false,
       }) as ReportGenerator;
@@ -899,25 +732,6 @@ describe('ReportGenerator — append-only model', () => {
       );
       expect(rootFiles).toEqual([]);
     });
-
-    it('should create generator with execution dump persistence disabled', async () => {
-      const gen = ReportGenerator.create('test-no-exec-dump', {
-        persistExecutionDump: false,
-        autoPrintReportMsg: false,
-      }) as ReportGenerator;
-
-      const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
-      const execution = createExecution([screenshot], 'factory-no-exec-dump');
-
-      gen.onExecutionUpdate(execution, defaultReportMeta);
-      await gen.flush();
-
-      const reportDir = dirname(gen.getReportPath()!);
-      const rootFiles = readdirSync(reportDir).filter((name) =>
-        /^\d+\.execution\.json(?:\.screenshots)?$/.test(name),
-      );
-      expect(rootFiles).toEqual([]);
-    });
   });
 
   describe('lazy loading — memory release behavior', () => {
@@ -926,7 +740,6 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
-        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -951,7 +764,6 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
-        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -991,7 +803,6 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
-        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -1058,7 +869,6 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
-        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -1094,7 +904,6 @@ describe('ReportGenerator — append-only model', () => {
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
-        persistExecutionDump: true,
         autoPrint: false,
       });
 
@@ -1116,8 +925,7 @@ describe('ReportGenerator — append-only model', () => {
 
       const writtenFileScreenshots = (generator as any).screenshotStore
         .writtenFileIds as Set<string>;
-      expect(writtenFileScreenshots.size).toBe(1);
-      expect([...writtenFileScreenshots][0]).toBe(largeScreenshot.id);
+      expect(writtenFileScreenshots.size).toBe(0);
     });
   });
 });

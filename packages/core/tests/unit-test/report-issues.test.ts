@@ -124,87 +124,9 @@ describe('Issue 2: default groupName causes unrelated reports to merge', () => {
   });
 });
 
-// ---------- Issue 3: dedup key merges unrelated old executions ----------
+// ---------- Issue 3: finalize() with zero executions ----------
 
-describe('Issue 3: execution persistence requires id', () => {
-  /**
-   * Old ExecutionDump entries have no `id` field. The dedup logic uses
-   * `exec.id || exec.name` as key. When multiple old executions share the
-   * same name (e.g. "Act - click login"), they get incorrectly merged
-   * (only the last one survives).
-   */
-  it('should throw when execution id is missing', async () => {
-    const tmpDir = getTmpDir('dedup-old');
-
-    const gen = new ReportGenerator({
-      reportPath: join(tmpDir, 'dedup-old.html'),
-      screenshotMode: 'inline',
-      persistExecutionDump: true,
-      autoPrint: false,
-    });
-
-    const groupMeta: ReportMeta = {
-      groupName: 'dedup-test',
-      sdkVersion: '1.0.0',
-      modelBriefs: [],
-    };
-
-    // Simulate two different executions with the SAME name but NO id
-    // (as old-format data would have)
-    const exec1 = new ExecutionDump({
-      // no id field — simulates old format
-      logTime: Date.now(),
-      name: 'Act - click login',
-      tasks: [
-        {
-          type: 'Insight' as const,
-          subType: 'Locate',
-          param: { prompt: 'first-click' },
-          taskId: 'task-first',
-          uiContext: {
-            screenshot: fakeScreenshot(),
-            shotSize: { width: 1920, height: 1080 },
-            shrunkShotToLogicalRatio: 1,
-          },
-          executor: async () => undefined,
-          recorder: [],
-          status: 'finished' as const,
-        } as any,
-      ],
-    });
-
-    const exec2 = new ExecutionDump({
-      // no id field — simulates old format
-      logTime: Date.now() + 1000,
-      name: 'Act - click login', // same name!
-      tasks: [
-        {
-          type: 'Insight' as const,
-          subType: 'Locate',
-          param: { prompt: 'second-click' },
-          taskId: 'task-second',
-          uiContext: {
-            screenshot: fakeScreenshot(),
-            shotSize: { width: 1920, height: 1080 },
-            shrunkShotToLogicalRatio: 1,
-          },
-          executor: async () => undefined,
-          recorder: [],
-          status: 'finished' as const,
-        } as any,
-      ],
-    });
-
-    gen.onExecutionUpdate(exec1, groupMeta);
-    await expect(gen.flush()).rejects.toThrow(
-      'execution.id is required for persisting execution dumps',
-    );
-  });
-});
-
-// ---------- Issue 4: finalize() with zero executions ----------
-
-describe('Issue 4: finalize() with zero execution updates', () => {
+describe('Issue 3: finalize() with zero execution updates', () => {
   it('should not return a file path when no executions were written', async () => {
     const tmpDir = getTmpDir('zero-exec');
     const reportPath = join(tmpDir, 'empty-report.html');
