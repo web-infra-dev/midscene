@@ -165,11 +165,14 @@ web:
   # JSON 格式的浏览器 Cookie 文件路径，可选
   cookie: <path-to-cookie-file>
 
-  # 等待网络空闲的策略，可选
+  # Puppeteer 模式下等待网络空闲的策略，可选
+  # `timeout` 会作用于初始打开 YAML 中的 `web.url`，以及后续 `aiTap`、`aiInput` 等操作后的等待
+  # `continueOnNetworkIdleError` 只作用于初始打开 YAML 中的 `web.url`
   waitForNetworkIdle:
-    # 等待超时时间，可选，默认 2000ms
+    # 每次网络空闲等待的超时时间，可选，默认 2000ms
     timeout: <ms>
-    # 是否在等待超时后继续，可选，默认 true
+    # 初始打开 YAML 中的 `web.url` 时，如果网络空闲等待超时，是否继续执行，可选，默认 true
+    # 后续脚本执行中的等待即使超时也总是继续执行
     continueOnNetworkIdleError: <boolean>
 
   # 输出 aiQuery/aiAssert 结果的 JSON 文件路径，可选

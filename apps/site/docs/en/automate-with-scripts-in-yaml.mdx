@@ -166,11 +166,14 @@ web:
   # Path to a JSON format browser cookie file, optional.
   cookie: <path-to-cookie-file>
 
-  # The strategy for waiting for network idle, optional.
+  # The strategy for waiting for network idle in Puppeteer mode, optional.
+  # `timeout` applies to the initial opening of `web.url` defined in YAML and to later actions such as `aiTap` and `aiInput`.
+  # `continueOnNetworkIdleError` only applies to the initial opening of `web.url` defined in YAML.
   waitForNetworkIdle:
-    # The timeout in milliseconds, optional, defaults to 2000ms.
+    # The timeout in milliseconds for each network idle wait, optional, defaults to 2000ms.
     timeout: <ms>
-    # Whether to continue on timeout, optional, defaults to true.
+    # Whether to continue if the initial opening of `web.url` defined in YAML times out while waiting for network idle, optional, defaults to true.
+    # Later action-time waits always continue even if they time out.
     continueOnNetworkIdleError: <boolean>
 
   # The path to the JSON file for outputting aiQuery/aiAssert results, optional.
