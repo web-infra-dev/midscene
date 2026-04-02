@@ -10,7 +10,8 @@
     "debugger",
     "scripting",
     "storage",
-    "alarms"
+    "alarms",
+    "webNavigation"
   ],
   "incognito": "split",
   "background": {
@@ -19,17 +20,11 @@
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
   },
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "host_permissions": ["<all_urls>"],
   "web_accessible_resources": [
     {
-      "resources": [
-        "*.wasm"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
+      "resources": ["*.wasm"],
+      "matches": ["<all_urls>"]
     }
   ],
   "action": {

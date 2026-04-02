@@ -5,7 +5,6 @@
   },
   "files": {
     "ignore": [
-      "static/**",
       "node_modules/**",
       "**/midscene_run",
       "**/extension_output",
