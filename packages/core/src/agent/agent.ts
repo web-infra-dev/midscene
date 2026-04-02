@@ -314,6 +314,7 @@ export class Agent<
         {
           readOnly: cacheConfigObj.readOnly,
           writeOnly: cacheConfigObj.writeOnly,
+          cacheDirectory: cacheConfigObj.directory,
         },
       );
     }
@@ -1464,6 +1465,7 @@ export class Agent<
     enabled: boolean;
     readOnly: boolean;
     writeOnly: boolean;
+    directory?: string;
   } | null {
     // Validate original cache config before processing
     // Agent requires explicit IDs - don't allow auto-generation
@@ -1484,6 +1486,19 @@ export class Agent<
       throw new Error(
         'cache configuration requires an explicit id.\n' +
           'Example: cache: { id: "my-cache-id" }',
+      );
+    }
+
+    if (
+      opts.cache &&
+      typeof opts.cache === 'object' &&
+      opts.cache !== null &&
+      opts.cache.dir !== undefined &&
+      (typeof opts.cache.dir !== 'string' || !opts.cache.dir.trim())
+    ) {
+      throw new Error(
+        'cache.dir must be a non-empty string when provided.\n' +
+          'Example: cache: { id: "my-cache-id", dir: "./my-cache-dir" }',
       );
     }
 
@@ -1527,6 +1542,7 @@ export class Agent<
         enabled: !isWriteOnly,
         readOnly: isReadOnly,
         writeOnly: isWriteOnly,
+        directory: cacheConfig.dir,
       };
     }
 
