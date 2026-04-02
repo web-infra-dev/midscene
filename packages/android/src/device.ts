@@ -612,7 +612,7 @@ ${Object.keys(size)
     const adb = await this.getAdb();
 
     await adb.shell(
-      `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard '${keyboardContent}'`,
+      `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard '${keyboardContent}' --overwrite`,
     );
   }
 
@@ -1234,21 +1234,14 @@ ${Object.keys(size)
     await this.ensureYadb();
     const adb = await this.getAdb();
 
-    // Some apps (e.g. X/Twitter) use pseudo-placeholder text that is managed
-    // at the app layer, not via Android's native hint. The app clears it when
-    // it detects the first keystroke via TextWatcher, but yadb's commitText()
-    // and adb keyevent-based deletion bypass that listener. To trigger the
-    // app's own placeholder clearing logic, we send a real keystroke (space)
-    // first, then delete it before proceeding with the actual clear.
-    await adb.shell(['input', 'keyevent', 'KEYCODE_SPACE']);
-    await adb.shell(['input', 'keyevent', 'KEYCODE_DEL']);
-
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
         globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
       IME_STRATEGY_YADB_FOR_NON_ASCII;
 
     if (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII) {
+      // For yadb-for-non-ascii mode, use batch deletion of up to 100 characters
+      // clearTextField() batches all key events into a single shell command for better performance
       await adb.clearTextField(100);
     } else {
       // Use the yadb tool to clear the input box
