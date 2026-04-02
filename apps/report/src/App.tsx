@@ -7,6 +7,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import {
   GroupedActionDump,
   type ModelBrief,
+  dedupeExecutionsKeepLatest,
   restoreImageReferences,
 } from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
@@ -415,13 +416,7 @@ export function App() {
             // Deduplicate executions by id — keep only the last one.
             // Only executions with a stable id are deduped; old-format entries
             // without id are always kept (they may be distinct despite same name).
-            let noIdCounter = 0;
-            const deduped = new Map<string, any>();
-            for (const exec of allExecutions) {
-              const key = exec.id || `__no_id_${noIdCounter++}`;
-              deduped.set(key, exec);
-            }
-            baseDump!.executions = Array.from(deduped.values());
+            baseDump!.executions = dedupeExecutionsKeepLatest(allExecutions);
             cachedJsonContent = baseDump!;
 
             console.timeEnd('parse_grouped_dump');

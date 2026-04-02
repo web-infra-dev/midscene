@@ -15,11 +15,14 @@ const debug = getDebug('cli-runner');
 interface CLICommand {
   name: string;
   def: ToolDefinition;
+  hidden?: boolean;
 }
 
 export interface CLIExtraCommand {
   name: string;
   def: ToolDefinition;
+  aliases?: string[];
+  hidden?: boolean;
 }
 
 export interface CLIRunnerOptions {
@@ -148,7 +151,7 @@ function printHelp(
   }
   console.log(`\nUsage: ${scriptName} <command> [options]\n`);
   console.log('Commands:');
-  for (const { name, def } of commands) {
+  for (const { name, def } of commands.filter((command) => !command.hidden)) {
     console.log(`  ${name.padEnd(30)} ${def.description}`);
   }
   console.log(`  ${'version'.padEnd(30)} Show CLI version`);
@@ -177,10 +180,18 @@ export async function runToolsCLI(
   }));
   if (options?.extraCommands?.length) {
     commands.push(
-      ...options.extraCommands.map((cmd) => ({
-        name: cmd.name.toLowerCase(),
-        def: cmd.def,
-      })),
+      ...options.extraCommands.flatMap((cmd) => [
+        {
+          name: cmd.name.toLowerCase(),
+          def: cmd.def,
+          hidden: cmd.hidden,
+        },
+        ...(cmd.aliases ?? []).map((alias) => ({
+          name: alias.toLowerCase(),
+          def: cmd.def,
+          hidden: true,
+        })),
+      ]),
     );
   }
   const cliVersion = options?.version;

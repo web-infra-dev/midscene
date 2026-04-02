@@ -70,7 +70,16 @@ export {
 // Report generator
 export type { IReportGenerator } from './report-generator';
 export { ReportGenerator, nullReportGenerator } from './report-generator';
-export { ReportMergingTool, splitReportHtmlByExecution } from './report';
+export {
+  ReportMergingTool,
+  dedupeExecutionsKeepLatest,
+  splitReportHtmlByExecution,
+} from './report';
+export {
+  createReportCliCommands,
+  type ReportCliCommandDefinition,
+  type ReportCliCommandEntry,
+} from './report-cli';
 
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';

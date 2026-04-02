@@ -21,7 +21,11 @@ import {
   streamImageScriptsToFile,
 } from './dump/html-utils';
 import { normalizeScreenshotRef } from './dump/screenshot-store';
-import { type IExecutionDump, ReportActionDump } from './types';
+import {
+  type ExecutionDump,
+  type IExecutionDump,
+  ReportActionDump,
+} from './types';
 import type { ReportFileWithAttributes } from './types';
 import { getReportTpl, reportHTMLContent } from './utils';
 
@@ -35,6 +39,22 @@ export function isDirectoryModeReport(reportFilePath: string): boolean {
     path.basename(reportFilePath) === 'index.html' &&
     existsSync(path.join(reportDir, 'screenshots'))
   );
+}
+
+/**
+ * Deduplicate executions by stable id, keeping only the last occurrence.
+ * Old-format executions without id are always preserved.
+ */
+export function dedupeExecutionsKeepLatest<T extends Pick<ExecutionDump, 'id'>>(
+  executions: T[],
+): T[] {
+  let noIdCounter = 0;
+  const deduped = new Map<string, T>();
+  for (const exec of executions) {
+    const key = exec.id || `__no_id_${noIdCounter++}`;
+    deduped.set(key, exec);
+  }
+  return Array.from(deduped.values());
 }
 
 export class ReportMergingTool {
@@ -68,13 +88,7 @@ export class ReportMergingTool {
       const other = ReportActionDump.fromSerializedString(unescaped[i]);
       allExecutions.push(...other.executions);
     }
-    let noIdCounter = 0;
-    const deduped = new Map<string, (typeof allExecutions)[0]>();
-    for (const exec of allExecutions) {
-      const key = exec.id || `__no_id_${noIdCounter++}`;
-      deduped.set(key, exec);
-    }
-    base.executions = Array.from(deduped.values());
+    base.executions = dedupeExecutionsKeepLatest(allExecutions);
     return base.serialize();
   }
 
@@ -292,7 +306,9 @@ function externalizeScreenshotsInExecution(
               `File screenshot ref "${ref.id}" missing path in execution dump`,
             );
           }
-          const sourceFile = path.join(opts.sourceDir, ref.path);
+          const sourceFile = path.isAbsolute(ref.path)
+            ? ref.path
+            : path.join(opts.sourceDir, ref.path);
           if (!existsSync(sourceFile)) {
             throw new Error(
               `Screenshot file "${sourceFile}" not found for ref "${ref.id}"`,
@@ -333,8 +349,29 @@ export function splitReportHtmlByExecution(
   const executionJsonFiles: string[] = [];
   const writtenScreenshotFiles = new Set<string>();
   let hasDumpScript = false;
+  let executionSerial = 0;
+  const latestSerialByExecutionId = new Map<string, number>();
+
+  // Match the report frontend behavior: keep only the latest execution for a
+  // stable id across the whole report, and keep all legacy executions without id.
+  streamDumpScriptsSync(htmlPath, (dumpScript) => {
+    if (!dumpScript.openTag.includes('data-group-id')) {
+      return false;
+    }
+    const groupedDump = ReportActionDump.fromSerializedString(
+      antiEscapeScriptTag(dumpScript.content),
+    );
+    for (const execution of groupedDump.executions) {
+      executionSerial += 1;
+      if (execution.id) {
+        latestSerialByExecutionId.set(execution.id, executionSerial);
+      }
+    }
+    return false;
+  });
 
   let fileIndex = 0;
+  executionSerial = 0;
   streamDumpScriptsSync(htmlPath, (dumpScript) => {
     if (!dumpScript.openTag.includes('data-group-id')) {
       return false;
@@ -344,6 +381,14 @@ export function splitReportHtmlByExecution(
       antiEscapeScriptTag(dumpScript.content),
     );
     for (const execution of groupedDump.executions) {
+      executionSerial += 1;
+      if (
+        execution.id &&
+        latestSerialByExecutionId.get(execution.id) !== executionSerial
+      ) {
+        continue;
+      }
+
       fileIndex += 1;
       externalizeScreenshotsInExecution(execution, {
         htmlPath,

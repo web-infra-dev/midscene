@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { generateDumpScriptTag, generateImageScriptTag } from '../../src/dump';
+import type { ScreenshotRef } from '../../src/dump/screenshot-store';
 import { splitReportHtmlByExecution } from '../../src/report';
 import { ScreenshotItem } from '../../src/screenshot-item';
 import { ExecutionDump, ReportActionDump } from '../../src/types';
@@ -19,7 +20,7 @@ function fakeBase64(sizeBytes: number): string {
 
 function createExecution(
   id: string,
-  screenshot: ScreenshotItem,
+  screenshot: ScreenshotItem | ScreenshotRef,
 ): ExecutionDump {
   return new ExecutionDump({
     id,
@@ -152,5 +153,99 @@ describe('splitReportHtmlByExecution', () => {
     expect(result.executionJsonFiles).toHaveLength(executionCount);
     // shared screenshot should only be written once
     expect(result.screenshotFiles).toHaveLength(1);
+  });
+
+  it('should keep only the latest execution for duplicate execution ids', () => {
+    const reportPath = join(tmpDir, 'dedup-report', 'index.html');
+    mkdirSync(join(tmpDir, 'dedup-report'), { recursive: true });
+
+    const oldScreenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
+    const newScreenshot = ScreenshotItem.create(fakeBase64(120), Date.now());
+    const oldDump = new ReportActionDump({
+      groupName: 'dedup-test',
+      groupDescription: 'dedup-test',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [createExecution('exec-1', oldScreenshot)],
+    });
+    const newDump = new ReportActionDump({
+      groupName: 'dedup-test',
+      groupDescription: 'dedup-test',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [createExecution('exec-1', newScreenshot)],
+    });
+
+    const html = [
+      generateImageScriptTag(oldScreenshot.id, oldScreenshot.base64),
+      generateImageScriptTag(newScreenshot.id, newScreenshot.base64),
+      generateDumpScriptTag(oldDump.serialize(), {
+        'data-group-id': 'group-1',
+      }),
+      generateDumpScriptTag(newDump.serialize(), {
+        'data-group-id': 'group-1',
+      }),
+    ].join('\n');
+    writeFileSync(reportPath, html, 'utf-8');
+
+    const outputDir = join(tmpDir, 'dedup-output');
+    const result = splitReportHtmlByExecution({
+      htmlPath: reportPath,
+      outputDir,
+    });
+
+    expect(result.executionJsonFiles).toHaveLength(1);
+    expect(result.screenshotFiles).toHaveLength(1);
+
+    const latestDump = JSON.parse(
+      readFileSync(result.executionJsonFiles[0], 'utf-8'),
+    );
+    const latestRef = latestDump.executions[0].tasks[0].uiContext.screenshot;
+    expect(latestRef.path).toContain(newScreenshot.id);
+  });
+
+  it('should reuse absolute file screenshot paths without creating nested absolute path directories', () => {
+    const reportDir = join(tmpDir, 'absolute-report');
+    const reportPath = join(reportDir, 'index.html');
+    mkdirSync(reportDir, { recursive: true });
+
+    const absoluteScreenshotPath = join(tmpDir, 'existing-shot.png');
+    writeFileSync(absoluteScreenshotPath, Buffer.from('png-binary'));
+
+    const screenshotRef: ScreenshotRef = {
+      type: 'midscene_screenshot_ref',
+      id: 'absolute-shot',
+      capturedAt: Date.now(),
+      mimeType: 'image/png',
+      storage: 'file',
+      path: absoluteScreenshotPath,
+    };
+
+    const dump = new ReportActionDump({
+      groupName: 'absolute-path-test',
+      groupDescription: 'absolute-path-test',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [createExecution('exec-1', screenshotRef)],
+    });
+
+    writeFileSync(
+      reportPath,
+      generateDumpScriptTag(dump.serialize(), { 'data-group-id': 'group-1' }),
+      'utf-8',
+    );
+
+    const outputDir = join(tmpDir, 'absolute-output');
+    const result = splitReportHtmlByExecution({
+      htmlPath: reportPath,
+      outputDir,
+    });
+
+    expect(result.executionJsonFiles).toHaveLength(1);
+    expect(result.screenshotFiles).toHaveLength(1);
+    expect(
+      existsSync(join(outputDir, 'screenshots', 'absolute-shot.png')),
+    ).toBe(true);
+    expect(existsSync(join(outputDir, 'Users'))).toBe(false);
   });
 });

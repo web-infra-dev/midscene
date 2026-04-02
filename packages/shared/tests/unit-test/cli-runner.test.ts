@@ -505,13 +505,21 @@ describe('runToolsCLI', () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     await runToolsCLI(tools, 'test-cli', {
-      argv: ['split-report', '--htmlPath', './in.html', '--outputDir', './out'],
+      argv: [
+        'report-tool',
+        '--action',
+        'split',
+        '--htmlPath',
+        './in.html',
+        '--outputDir',
+        './out',
+      ],
       extraCommands: [
         {
-          name: 'split-report',
+          name: 'report-tool',
           def: {
-            name: 'split-report',
-            description: 'split report',
+            name: 'report-tool',
+            description: 'report tools',
             schema: {},
             handler: extraHandler,
           },
@@ -522,6 +530,7 @@ describe('runToolsCLI', () => {
     expect(extraHandler).toHaveBeenCalledWith({
       htmlPath: './in.html',
       outputDir: './out',
+      action: 'split',
     });
     expect(consoleSpy).toHaveBeenCalledWith('split done');
     consoleSpy.mockRestore();
