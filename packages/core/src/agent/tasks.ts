@@ -643,11 +643,14 @@ export class TaskExecutor {
           } else if (data === null || data === undefined) {
             outputResult = null;
           } else {
-            assert(
-              data?.[keyOfResult] !== undefined,
-              'No result in query data',
-            );
-            outputResult = (data as any)[keyOfResult];
+            // AI model may return {result: ...} instead of {[keyOfResult]: ...}
+            if (data?.[keyOfResult] !== undefined) {
+              outputResult = (data as any)[keyOfResult];
+            } else if (data?.result !== undefined) {
+              outputResult = (data as any).result;
+            } else {
+              assert(false, 'No result in query data');
+            }
           }
         }
 
