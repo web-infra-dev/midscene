@@ -21,6 +21,18 @@ import { ReportActionDump } from './types';
 import type { ReportFileWithAttributes } from './types';
 import { getReportTpl, reportHTMLContent } from './utils';
 
+/**
+ * Check if a report is in directory mode (html-and-external-assets).
+ * Directory mode reports: {name}/index.html + {name}/screenshots/
+ */
+export function isDirectoryModeReport(reportFilePath: string): boolean {
+  const reportDir = path.dirname(reportFilePath);
+  return (
+    path.basename(reportFilePath) === 'index.html' &&
+    existsSync(path.join(reportDir, 'screenshots'))
+  );
+}
+
 export class ReportMergingTool {
   private reportInfos: ReportFileWithAttributes[] = [];
   public append(reportInfo: ReportFileWithAttributes) {
@@ -28,18 +40,6 @@ export class ReportMergingTool {
   }
   public clear() {
     this.reportInfos = [];
-  }
-
-  /**
-   * Check if a report is in directory mode (html-and-external-assets).
-   * Directory mode reports: {name}/index.html + {name}/screenshots/
-   */
-  private isDirectoryModeReport(reportFilePath: string): boolean {
-    const reportDir = path.dirname(reportFilePath);
-    return (
-      path.basename(reportFilePath) === 'index.html' &&
-      existsSync(path.join(reportDir, 'screenshots'))
-    );
   }
 
   /**
@@ -91,7 +91,7 @@ export class ReportMergingTool {
 
     // Check if any source report is directory mode
     const hasDirectoryModeReport = this.reportInfos.some((info) =>
-      this.isDirectoryModeReport(info.reportFilePath),
+      isDirectoryModeReport(info.reportFilePath),
     );
 
     const resolvedName =
@@ -140,7 +140,7 @@ export class ReportMergingTool {
         const reportInfo = this.reportInfos[i];
         logMsg(`Processing report ${i + 1}/${this.reportInfos.length}`);
 
-        if (this.isDirectoryModeReport(reportInfo.reportFilePath)) {
+        if (isDirectoryModeReport(reportInfo.reportFilePath)) {
           // Directory mode: copy external screenshot files
           const reportDir = path.dirname(reportInfo.reportFilePath);
           const screenshotsDir = path.join(reportDir, 'screenshots');
@@ -206,7 +206,7 @@ export class ReportMergingTool {
       if (rmOriginalReports) {
         for (const info of this.reportInfos) {
           try {
-            if (this.isDirectoryModeReport(info.reportFilePath)) {
+            if (isDirectoryModeReport(info.reportFilePath)) {
               // Directory mode: remove the entire report directory
               const reportDir = path.dirname(info.reportFilePath);
               rmSync(reportDir, { recursive: true, force: true });

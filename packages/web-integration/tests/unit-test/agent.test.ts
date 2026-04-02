@@ -231,6 +231,15 @@ describe('PageAgent reportFileName', () => {
       /web-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-[a-z0-9]{8}/,
     );
   });
+
+  it('should pass persistExecutionDump option to the report generator', () => {
+    const agent = new PageAgent(mockPage, {
+      persistExecutionDump: false,
+      modelConfig: mockedModelConfig,
+    });
+
+    expect((agent as any).opts.persistExecutionDump).toBe(false);
+  });
 });
 
 describe('PageAgent aiWaitFor', () => {

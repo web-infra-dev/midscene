@@ -85,6 +85,57 @@ describe('ScreenshotStore', () => {
     expect(store.loadBase64(ref)).toBe(pngBase64);
   });
 
+  it('can ensure shared file copy while preserving inline mode semantics', () => {
+    const reportPath = join(tmpRoot, 'inline-with-file-copy.html');
+    const screenshotsDir = join(tmpRoot, 'screenshots');
+    const appendInline = vi.fn((id: string, base64: string) => {
+      writeFileSync(
+        reportPath,
+        `<script type="midscene-image" data-id="${id}">${base64}</script>`,
+      );
+    });
+    const store = new ScreenshotStore({
+      mode: 'inline',
+      reportPath,
+      screenshotsDir,
+      writeInlineImage: appendInline,
+      alsoWriteFileCopy: true,
+    });
+    const item = ScreenshotItem.create(pngBase64, 100);
+
+    const ref = store.persist(item);
+    expect(ref.storage).toBe('inline');
+    expect(item.toSerializable().storage).toBe('inline');
+    expect(appendInline).toHaveBeenCalledTimes(1);
+    expect(existsSync(join(screenshotsDir, `${item.id}.png`))).toBe(true);
+    rmSync(join(screenshotsDir, `${item.id}.png`), { force: true });
+    expect(item.base64).toBe(pngBase64);
+    expect(store.loadBase64(ref)).toBe(pngBase64);
+  });
+
+  it('keeps supporting ensureFileCopy as a deprecated alias', () => {
+    const reportPath = join(tmpRoot, 'inline-with-deprecated-file-copy.html');
+    const screenshotsDir = join(tmpRoot, 'screenshots');
+    const appendInline = vi.fn((id: string, base64: string) => {
+      writeFileSync(
+        reportPath,
+        `<script type="midscene-image" data-id="${id}">${base64}</script>`,
+      );
+    });
+    const store = new ScreenshotStore({
+      mode: 'inline',
+      reportPath,
+      screenshotsDir,
+      writeInlineImage: appendInline,
+      ensureFileCopy: true,
+    });
+    const item = ScreenshotItem.create(pngBase64, 100);
+
+    const ref = store.persist(item);
+    expect(ref.storage).toBe('inline');
+    expect(existsSync(join(screenshotsDir, `${item.id}.png`))).toBe(true);
+  });
+
   it('throws on non-ScreenshotRef inputs', () => {
     const reportPath = join(tmpRoot, 'invalid-ref.html');
     const store = new ScreenshotStore({

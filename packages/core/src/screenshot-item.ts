@@ -1,7 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { uuid } from '@midscene/shared/utils';
 import { extractImageByIdSync } from './dump/html-utils';
-import type { ScreenshotRef } from './dump/screenshot-store';
+import {
+  type ScreenshotRef,
+  normalizeScreenshotRef,
+} from './dump/screenshot-store';
 
 /**
  * Serialization format for ScreenshotItem
@@ -34,7 +37,7 @@ export class ScreenshotItem {
   private _base64: string | null;
   private _format: 'png' | 'jpeg';
   private _capturedAt: number;
-  private _persistedAs: ScreenshotRef | null = null;
+  private _serializedRef: ScreenshotRef | null = null;
   private _persistedPath: string | null = null;
   private _persistedHtmlPath: string | null = null;
 
@@ -75,14 +78,18 @@ export class ScreenshotItem {
       return this._base64;
     }
 
-    // Directory mode: recover from file
-    if (this._persistedPath !== null) {
+    const loadFromFile = (): string => {
+      if (this._persistedPath === null) {
+        throw new Error(`Screenshot ${this._id}: file recovery path missing`);
+      }
       const buffer = readFileSync(this._persistedPath);
       return `data:image/${this._format};base64,${buffer.toString('base64')}`;
-    }
+    };
 
-    // Inline mode: recover from HTML file using streaming
-    if (this._persistedHtmlPath !== null) {
+    const loadFromInline = (): string => {
+      if (this._persistedHtmlPath === null) {
+        throw new Error(`Screenshot ${this._id}: HTML recovery path missing`);
+      }
       const data = extractImageByIdSync(this._persistedHtmlPath, this._id);
       if (data) {
         return data;
@@ -90,6 +97,24 @@ export class ScreenshotItem {
       throw new Error(
         `Screenshot ${this._id}: cannot recover from HTML (id not found in ${this._persistedHtmlPath})`,
       );
+    };
+
+    // Recover from the primary serialized mode first.
+    if (this._serializedRef?.storage === 'file') {
+      return loadFromFile();
+    }
+
+    if (this._serializedRef?.storage === 'inline') {
+      return loadFromInline();
+    }
+
+    // Fall back to whichever recovery path is available.
+    if (this._persistedPath !== null) {
+      return loadFromFile();
+    }
+
+    if (this._persistedHtmlPath !== null) {
+      return loadFromInline();
     }
 
     throw new Error(
@@ -108,16 +133,25 @@ export class ScreenshotItem {
    * @param htmlPath - absolute path to the HTML file containing the image
    */
   markPersistedInline(htmlPath: string): ScreenshotRef {
-    this._persistedAs = {
-      type: 'midscene_screenshot_ref',
-      id: this._id,
-      capturedAt: this._capturedAt,
-      mimeType: this._format === 'jpeg' ? 'image/jpeg' : 'image/png',
-      storage: 'inline',
-    };
+    const ref = this.createRef('inline');
+    this._serializedRef = ref;
     this._persistedHtmlPath = htmlPath;
     this._base64 = null;
-    return this._persistedAs;
+    return ref;
+  }
+
+  /**
+   * Register a file-backed recovery path without changing the serialized mode.
+   * Used when inline persistence also needs a shared file copy next to dumps.
+   */
+  registerPersistedFileCopy(
+    relativePath: string,
+    absolutePath: string,
+  ): ScreenshotRef {
+    const ref = this.createRef('file', relativePath);
+    this._persistedPath = absolutePath;
+    this._base64 = null;
+    return ref;
   }
 
   /**
@@ -130,23 +164,15 @@ export class ScreenshotItem {
     relativePath: string,
     absolutePath: string,
   ): ScreenshotRef {
-    this._persistedAs = {
-      type: 'midscene_screenshot_ref',
-      id: this._id,
-      capturedAt: this._capturedAt,
-      mimeType: this._format === 'jpeg' ? 'image/jpeg' : 'image/png',
-      storage: 'file',
-      path: relativePath,
-    };
-    this._persistedPath = absolutePath;
-    this._base64 = null;
-    return this._persistedAs;
+    const ref = this.registerPersistedFileCopy(relativePath, absolutePath);
+    this._serializedRef = ref;
+    return ref;
   }
 
   /** Serialize for JSON - format depends on persistence state */
   toSerializable(): ScreenshotSerializeFormat {
     return (
-      this._persistedAs ?? {
+      this._serializedRef ?? {
         type: 'midscene_screenshot_ref',
         id: this._id,
         capturedAt: this._capturedAt,
@@ -158,16 +184,28 @@ export class ScreenshotItem {
 
   /** Check if a value is a serialized ScreenshotItem reference (inline or directory mode) */
   static isSerialized(value: unknown): value is ScreenshotSerializeFormat {
-    if (typeof value !== 'object' || value === null) return false;
-    const record = value as Record<string, unknown>;
-    return (
-      record.type === 'midscene_screenshot_ref' &&
-      typeof record.id === 'string' &&
-      typeof record.capturedAt === 'number' &&
-      (record.mimeType === 'image/png' || record.mimeType === 'image/jpeg') &&
-      (record.storage === 'inline' ||
-        (record.storage === 'file' && typeof record.path === 'string'))
-    );
+    return normalizeScreenshotRef(value) !== null;
+  }
+
+  private createRef(
+    storage: 'inline' | 'file',
+    relativePath?: string,
+  ): ScreenshotRef {
+    const baseRef: Omit<ScreenshotRef, 'path'> = {
+      type: 'midscene_screenshot_ref',
+      id: this._id,
+      capturedAt: this._capturedAt,
+      mimeType: this._format === 'jpeg' ? 'image/jpeg' : 'image/png',
+      storage,
+    };
+    if (storage === 'file') {
+      return {
+        ...baseRef,
+        storage,
+        path: relativePath!,
+      };
+    }
+    return baseRef;
   }
 
   /**

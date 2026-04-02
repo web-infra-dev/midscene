@@ -170,9 +170,13 @@ export function reportHTMLContent(
       '\n</script>';
   } else {
     const { dumpString, attributes } = dumpData;
-    const attributesArr = Object.keys(attributes || {}).map((key) => {
-      return `${key}="${encodeURIComponent(attributes![key])}"`;
-    });
+    const attributesArr = Object.entries(attributes || {})
+      .filter((entry): entry is [string, string | number | boolean] => {
+        return entry[1] !== undefined && entry[1] !== null;
+      })
+      .map(([key, value]) => {
+        return `${key}="${encodeURIComponent(value)}"`;
+      });
 
     dumpContent =
       // do not use template string here, will cause bundle error

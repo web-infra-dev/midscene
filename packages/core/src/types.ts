@@ -172,9 +172,14 @@ export interface DumpMeta {
   logTime: number;
 }
 
+export type ReportAttributes = Record<
+  string,
+  string | number | boolean | null | undefined
+>;
+
 export interface ReportDumpWithAttributes {
   dumpString: string;
-  attributes?: Record<string, any>;
+  attributes?: ReportAttributes;
 }
 
 export interface ServiceDump extends DumpMeta {
@@ -1056,6 +1061,8 @@ export interface AgentOpt {
   groupDescription?: string;
   /* if auto generate report, default true */
   generateReport?: boolean;
+  /* if persist per-execution dump files next to the report, default false */
+  persistExecutionDump?: boolean;
   /* if auto print report msg, default true */
   autoPrintReportMsg?: boolean;
 
