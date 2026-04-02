@@ -338,13 +338,19 @@ async function initializeRecorder(sessionId: string): Promise<void> {
       // If running in an iframe, forward the event to the top frame
       if (isInIframe) {
         try {
+          // Strip non-serializable properties (e.g., HTMLElement references)
+          // before postMessage, which uses the structured clone algorithm.
+          // RecordedEvent contains 'element: HTMLElement' that cannot be cloned.
+          const serializableEvent = convertToChromeEvent(
+            event as unknown as RecordedEvent,
+          );
           window.top?.postMessage(
-            { type: IFRAME_EVENT_MESSAGE_TYPE, event },
+            { type: IFRAME_EVENT_MESSAGE_TYPE, event: serializableEvent },
             '*',
           );
           console.log(
             '[EventRecorder Bridge] Forwarded event from iframe to top:',
-            event.type,
+            serializableEvent.type,
           );
         } catch (_e) {
           console.warn(
