@@ -10,7 +10,7 @@ PuppeteerAgent、PlaywrightAgent 和 Chrome Bridge 共用一套 Action Space，M
 - `RightClick` —— 右键点击元素。
 - `DoubleClick` —— 双击元素。
 - `Hover` —— 悬停目标元素。
-- `Input` —— 输入文本，支持 `replace`/`append`/`clear` 模式。
+- `Input` —— 输入文本，支持 `replace`/`typeOnly`/`clear` 模式（`append` 是 `typeOnly` 的已废弃别名）。
 - `KeyboardPress` —— 按下指定键（可在按键前先聚焦目标）。
 - `Scroll` —— 以元素为起点或从屏幕中央滚动，支持滚动到顶/底/左/右。
 - `DragAndDrop` —— 从一个元素拖拽到另一个元素。
