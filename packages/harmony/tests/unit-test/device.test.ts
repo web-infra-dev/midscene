@@ -86,12 +86,10 @@ describe('HarmonyDevice', () => {
       const d = new HarmonyDevice('dev-1', {
         hdcPath: '/custom/hdc',
         autoDismissKeyboard: true,
-        screenshotResizeScale: 0.5,
       });
       expect(d).toBeDefined();
       expect(d.options?.hdcPath).toBe('/custom/hdc');
       expect(d.options?.autoDismissKeyboard).toBe(true);
-      expect(d.options?.screenshotResizeScale).toBe(0.5);
     });
   });
 
@@ -167,19 +165,24 @@ describe('HarmonyDevice', () => {
       expect(size).toEqual({ width: 1216, height: 2688 });
     });
 
-    it('should apply screenshotResizeScale', async () => {
+    it('should warn when deprecated screenshotResizeScale is used', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const d = new HarmonyDevice('dev', { screenshotResizeScale: 0.5 });
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('screenshotResizeScale is deprecated'),
+      );
+      warnSpy.mockRestore();
+    });
+
+    it('should ignore deprecated screenshotResizeScale in size()', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const d = new HarmonyDevice('dev', { screenshotResizeScale: 0.5 });
       await d.connect();
       const size = await d.size();
-      expect(size).toEqual({ width: 608, height: 1344 });
+      // size() should return raw physical size, ignoring screenshotResizeScale
+      expect(size).toEqual({ width: 1216, height: 2688 });
       await d.destroy();
-    });
-
-    it('should default scale to 1', async () => {
-      await device.connect();
-      const size = await device.size();
-      expect(size.width).toBe(1216);
-      expect(size.height).toBe(2688);
+      warnSpy.mockRestore();
     });
   });
 
@@ -483,21 +486,27 @@ describe('HarmonyDevice', () => {
       );
     });
 
-    it('should calculate swipe for scroll down (positive deltaY)', async () => {
+    it('should calculate fling for scroll down (positive deltaY)', async () => {
       await device.scroll(0, 500);
       // For positive deltaY: startY = height/4 = 600, endY = 600 - 500 = 100
-      expect(mockHdc.swipe).toHaveBeenCalledWith(300, 600, 300, 100, 600);
+      expect(mockHdc.fling).toHaveBeenCalledWith(300, 600, 300, 100, 2000);
     });
 
-    it('should calculate swipe for scroll up (negative deltaY)', async () => {
+    it('should calculate fling for scroll up (negative deltaY)', async () => {
       await device.scroll(0, -500);
       // For negative deltaY: startY = 3/4 * 2400 = 1800, endY = 1800 + 500 = 2300
-      expect(mockHdc.swipe).toHaveBeenCalledWith(300, 1800, 300, 2300, 600);
+      expect(mockHdc.fling).toHaveBeenCalledWith(300, 1800, 300, 2300, 2000);
     });
 
     it('should accept custom speed', async () => {
       await device.scroll(0, 500, 1000);
-      expect(mockHdc.swipe).toHaveBeenCalledWith(300, 600, 300, 100, 1000);
+      expect(mockHdc.fling).toHaveBeenCalledWith(300, 600, 300, 100, 1000);
+    });
+
+    it('should clamp endpoint to screen edge margin', async () => {
+      // deltaY=9999 clamped to startY=600, endY would be 0 → clamped to 50
+      await device.scroll(0, 9999);
+      expect(mockHdc.fling).toHaveBeenCalledWith(300, 600, 300, 50, 2000);
     });
   });
 
@@ -508,27 +517,27 @@ describe('HarmonyDevice', () => {
       await device.connect();
     });
 
-    it('scrollDown with startPoint should swipe from point upward', async () => {
+    it('scrollDown with startPoint should fling from point upward', async () => {
       await device.scrollDown(500, { left: 600, top: 1200 });
       // endY = max(0, 1200-500) = 700
-      expect(mockHdc.swipe).toHaveBeenCalledWith(600, 1200, 600, 700);
+      expect(mockHdc.fling).toHaveBeenCalledWith(600, 1200, 600, 700, 2000);
     });
 
     it('scrollDown without startPoint should call scroll', async () => {
       await device.scrollDown(500);
-      // delegates to scroll(0, 500) -> swipe(300, 600, 300, 100, 600)
-      expect(mockHdc.swipe).toHaveBeenCalled();
+      // delegates to scroll(0, 500) -> fling(300, 600, 300, 100, 2000)
+      expect(mockHdc.fling).toHaveBeenCalled();
     });
 
     it('scrollDown without distance should use full height', async () => {
       await device.scrollDown();
-      expect(mockHdc.swipe).toHaveBeenCalled();
+      expect(mockHdc.fling).toHaveBeenCalled();
     });
 
-    it('scrollUp with startPoint should swipe from point downward', async () => {
+    it('scrollUp with startPoint should fling from point downward', async () => {
       await device.scrollUp(500, { left: 600, top: 1200 });
       // endY = min(2400, 1200+500) = 1700
-      expect(mockHdc.swipe).toHaveBeenCalledWith(600, 1200, 600, 1700);
+      expect(mockHdc.fling).toHaveBeenCalledWith(600, 1200, 600, 1700, 2000);
     });
   });
 
@@ -539,16 +548,16 @@ describe('HarmonyDevice', () => {
       await device.connect();
     });
 
-    it('scrollLeft with startPoint should swipe right', async () => {
+    it('scrollLeft with startPoint should fling right', async () => {
       await device.scrollLeft(400, { left: 600, top: 1200 });
       // endX = min(1200, 600+400) = 1000
-      expect(mockHdc.swipe).toHaveBeenCalledWith(600, 1200, 1000, 1200);
+      expect(mockHdc.fling).toHaveBeenCalledWith(600, 1200, 1000, 1200, 2000);
     });
 
-    it('scrollRight with startPoint should swipe left', async () => {
+    it('scrollRight with startPoint should fling left', async () => {
       await device.scrollRight(400, { left: 600, top: 1200 });
       // endX = max(0, 600-400) = 200
-      expect(mockHdc.swipe).toHaveBeenCalledWith(600, 1200, 200, 1200);
+      expect(mockHdc.fling).toHaveBeenCalledWith(600, 1200, 200, 1200, 2000);
     });
   });
 
@@ -562,38 +571,38 @@ describe('HarmonyDevice', () => {
     it('scrollUntilTop with startPoint should fling multiple times', async () => {
       await device.scrollUntilTop({ left: 600, top: 1200 });
       expect(mockHdc.fling).toHaveBeenCalledTimes(10);
-      // fling toward bottom of screen (height=2400)
-      expect(mockHdc.fling).toHaveBeenCalledWith(600, 1200, 600, 2400, 2000);
+      // fling toward bottom of screen (height=2400 - margin=50 = 2350)
+      expect(mockHdc.fling).toHaveBeenCalledWith(600, 1200, 600, 2350, 2000);
     });
 
     it('scrollUntilBottom with startPoint should fling multiple times', async () => {
       await device.scrollUntilBottom({ left: 600, top: 1200 });
       expect(mockHdc.fling).toHaveBeenCalledTimes(10);
-      // fling toward top of screen (0)
-      expect(mockHdc.fling).toHaveBeenCalledWith(600, 1200, 600, 0, 2000);
+      // fling toward top of screen (margin=50)
+      expect(mockHdc.fling).toHaveBeenCalledWith(600, 1200, 600, 50, 2000);
     });
 
     it('scrollUntilTop without startPoint should use scroll', async () => {
       await device.scrollUntilTop();
-      // Should call swipe 10 times via scroll
-      expect(mockHdc.swipe).toHaveBeenCalledTimes(10);
+      // Should call fling 10 times via scroll
+      expect(mockHdc.fling).toHaveBeenCalledTimes(10);
     });
 
     it('scrollUntilBottom without startPoint should use scroll', async () => {
       await device.scrollUntilBottom();
-      expect(mockHdc.swipe).toHaveBeenCalledTimes(10);
+      expect(mockHdc.fling).toHaveBeenCalledTimes(10);
     });
 
     it('scrollUntilLeft with startPoint should fling multiple times', async () => {
       await device.scrollUntilLeft({ left: 600, top: 1200 });
       expect(mockHdc.fling).toHaveBeenCalledTimes(10);
-      expect(mockHdc.fling).toHaveBeenCalledWith(600, 1200, 1200, 1200, 2000);
+      expect(mockHdc.fling).toHaveBeenCalledWith(600, 1200, 1150, 1200, 2000);
     });
 
     it('scrollUntilRight with startPoint should fling multiple times', async () => {
       await device.scrollUntilRight({ left: 600, top: 1200 });
       expect(mockHdc.fling).toHaveBeenCalledTimes(10);
-      expect(mockHdc.fling).toHaveBeenCalledWith(600, 1200, 0, 1200, 2000);
+      expect(mockHdc.fling).toHaveBeenCalledWith(600, 1200, 50, 1200, 2000);
     });
   });
 

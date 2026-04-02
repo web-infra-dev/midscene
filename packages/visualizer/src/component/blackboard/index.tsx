@@ -1,7 +1,8 @@
 'use client';
 import type { BaseElement, Rect, UIContext } from '@midscene/core';
-import type { ReactElement } from 'react';
-import { useMemo } from 'react';
+import React, { type ReactElement } from 'react';
+import { getCenterHighlightBox } from '../../utils/highlight-element';
+import { normalizeBlackboardHighlights } from './highlights';
 import './index.less';
 
 export const Blackboard = (props: {
@@ -28,7 +29,12 @@ export const Blackboard = (props: {
   const screenWidth = shotSize.width;
   const screenHeight = shotSize.height;
 
-  const screenshotBase64 = useMemo(() => {
+  const highlightOverlays = React.useMemo(
+    () => normalizeBlackboardHighlights(highlightElements),
+    [highlightElements],
+  );
+
+  const screenshotBase64 = React.useMemo(() => {
     if (!screenshot) return '';
     if (typeof screenshot === 'object' && 'base64' in screenshot) {
       return (screenshot as { base64: string }).base64;
@@ -37,22 +43,24 @@ export const Blackboard = (props: {
     return '';
   }, [screenshot]);
 
-  const highlightElementRects: Rect[] = highlightElements.map((e) => e.rect);
+  const highlightBoxes = highlightOverlays.map((highlight) =>
+    getCenterHighlightBox(highlight),
+  );
 
   let bottomTipA: ReactElement | null = null;
-  if (highlightElementRects.length === 1) {
+  if (highlightBoxes.length === 1) {
     bottomTipA = (
       <div className="bottom-tip">
         <div className="bottom-tip-item">
-          Element: {JSON.stringify(highlightElementRects[0])}
+          Element: {JSON.stringify(highlightBoxes[0])}
         </div>
       </div>
     );
-  } else if (highlightElementRects.length > 1) {
+  } else if (highlightBoxes.length > 1) {
     bottomTipA = (
       <div className="bottom-tip">
         <div className="bottom-tip-item">
-          Element: {JSON.stringify(highlightElementRects)}
+          Element: {JSON.stringify(highlightBoxes)}
         </div>
       </div>
     );
@@ -63,7 +71,8 @@ export const Blackboard = (props: {
       <div
         className="blackboard-main-content"
         style={{
-          width: '100%',
+          width: 'fit-content',
+          maxWidth: '100%',
           position: 'relative',
         }}
       >
@@ -102,22 +111,22 @@ export const Blackboard = (props: {
           )}
 
           {/* Highlight elements */}
-          {highlightElements.map((el, idx) => (
-            <div
-              key={el.id || idx}
-              className="blackboard-rect blackboard-rect-highlight"
-              style={{
-                left: `${(el.rect.left / screenWidth) * 100}%`,
-                top: `${(el.rect.top / screenHeight) * 100}%`,
-                width: `${(el.rect.width / screenWidth) * 100}%`,
-                height: `${(el.rect.height / screenHeight) * 100}%`,
-              }}
-            >
-              {el.content && (
-                <span className="blackboard-rect-label">{el.content}</span>
-              )}
-            </div>
-          ))}
+          {highlightOverlays.map((el) => {
+            const highlightBox = getCenterHighlightBox(el);
+
+            return (
+              <div
+                key={`${el.key}-rect`}
+                className="blackboard-rect blackboard-rect-highlight"
+                style={{
+                  left: `${(highlightBox.left / screenWidth) * 100}%`,
+                  top: `${(highlightBox.top / screenHeight) * 100}%`,
+                  width: `${(highlightBox.width / screenWidth) * 100}%`,
+                  height: `${(highlightBox.height / screenHeight) * 100}%`,
+                }}
+              />
+            );
+          })}
         </div>
       </div>
 

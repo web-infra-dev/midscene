@@ -77,6 +77,7 @@ export function processCacheConfig(
 }
 
 const reportInitializedMap = new Map<string, boolean>();
+const reportGroupIdMap = new Map<string, string>();
 
 declare const __DEV_REPORT_PATH__: string;
 
@@ -142,11 +143,29 @@ export function reportHTMLContent(
   const writeToFile = reportPath && !ifInBrowser;
   let dumpContent = '';
 
+  const resolveAutoGroupId = (): string => {
+    if (!reportPath || !appendReport) {
+      return uuid();
+    }
+
+    const existingGroupId = reportGroupIdMap.get(reportPath);
+    if (existingGroupId) {
+      return existingGroupId;
+    }
+
+    const newGroupId = uuid();
+    reportGroupIdMap.set(reportPath, newGroupId);
+    return newGroupId;
+  };
+
   if (typeof dumpData === 'string') {
+    const groupId = resolveAutoGroupId();
     // do not use template string here, will cause bundle error
     dumpContent =
       // biome-ignore lint/style/useTemplate: <explanation>
-      '<script type="midscene_web_dump" type="application/json">\n' +
+      '<script type="midscene_web_dump" type="application/json" data-group-id="' +
+      encodeURIComponent(groupId) +
+      '">\n' +
       escapeScriptTag(dumpData) +
       '\n</script>';
   } else {

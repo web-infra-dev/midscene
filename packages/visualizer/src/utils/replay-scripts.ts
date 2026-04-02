@@ -1,17 +1,21 @@
 'use client';
 import { mousePointer } from '@/utils';
 import { paramStr, typeStr } from '@midscene/core/agent';
+import {
+  getCenterHighlightBox,
+  normalizeHighlightElementForReport,
+} from './highlight-element';
 
 import type {
   ExecutionDump,
   ExecutionTask,
   ExecutionTaskPlanning,
-  GroupedActionDump,
   IExecutionDump,
-  IGroupedActionDump,
+  IReportActionDump,
   LocateResultElement,
   ModelBrief,
   Rect,
+  ReportActionDump,
   UIContext,
 } from '@midscene/core';
 
@@ -159,16 +163,16 @@ const pushModelBriefIfNotExists = (
 };
 
 type DumpInput =
-  | GroupedActionDump
-  | IGroupedActionDump
+  | ReportActionDump
+  | IReportActionDump
   | ExecutionDump
   | null
   | undefined;
 
-const normalizeDump = (dump: DumpInput): IGroupedActionDump | null => {
+const normalizeDump = (dump: DumpInput): IReportActionDump | null => {
   if (!dump) return null;
-  return Array.isArray((dump as GroupedActionDump).executions)
-    ? (dump as GroupedActionDump)
+  return Array.isArray((dump as ReportActionDump).executions)
+    ? (dump as ReportActionDump)
     : {
         sdkVersion: '',
         groupName: 'Execution',
@@ -189,7 +193,7 @@ export interface DumpMetaInfo {
  * Extract lightweight metadata from a normalized dump without reading any .base64 fields.
  */
 const extractMetaFromNormalized = (
-  normalizedDump: IGroupedActionDump,
+  normalizedDump: IReportActionDump,
 ): DumpMetaInfo | null => {
   let firstWidth: number | undefined;
   let firstHeight: number | undefined;
@@ -228,7 +232,7 @@ const extractMetaFromNormalized = (
     height: firstHeight,
     sdkVersion,
     modelBriefs,
-    deviceType: (normalizedDump as IGroupedActionDump).deviceType,
+    deviceType: (normalizedDump as IReportActionDump).deviceType,
   };
 };
 
@@ -480,10 +484,13 @@ export const generateAnimationScripts = (
         );
 
         locateElements.forEach((element) => {
+          const highlightElement = normalizeHighlightElementForReport(element);
+          const highlightBox = getCenterHighlightBox(highlightElement);
+
           insightCameraState = {
-            ...cameraStateForRect(element.rect, width, height),
-            pointerLeft: element.center[0],
-            pointerTop: element.center[1],
+            ...cameraStateForRect(highlightBox, width, height),
+            pointerLeft: highlightElement.center[0],
+            pointerTop: highlightElement.center[1],
           };
 
           const newCameraState: TargetCameraState = insightCameraState;
@@ -494,12 +501,12 @@ export const generateAnimationScripts = (
                 type: 'insight',
                 context: context,
                 camera: newCameraState,
-                highlightElement: element,
+                highlightElement,
                 searchArea: task.log?.taskInfo?.searchArea,
                 duration: locateDuration * 0.5,
                 insightCameraDuration: locateDuration,
                 title,
-                subTitle: element.description || subTitle,
+                subTitle: highlightElement.description || subTitle,
                 imageWidth: context.shotSize?.width || imageWidth,
                 imageHeight: context.shotSize?.height || imageHeight,
                 taskId: currentTaskId,

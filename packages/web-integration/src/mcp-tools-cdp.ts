@@ -1,16 +1,222 @@
+import { spawn } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import http from 'node:http';
+import { join } from 'node:path';
 import { ScreenshotItem, z } from '@midscene/core';
+import { getDebug } from '@midscene/shared/logger';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import puppeteer from 'puppeteer-core';
 import type { Browser, Page } from 'puppeteer-core';
+import { PROXY_ENDPOINT_FILE, PROXY_PID_FILE } from './cdp-proxy-constants';
 import { PuppeteerAgent } from './puppeteer';
 import { StaticPage } from './static';
+
+const debug = getDebug('mcp:cdp');
+
+/** CDP target discovery may need a brief moment after WebSocket open. */
+const CDP_TARGET_DISCOVERY_DELAY_MS = 500;
+
+/**
+ * Check if a CDP endpoint is a page-level URL (e.g., /devtools/page/XXX).
+ */
+function isPageLevelEndpoint(endpoint: string): boolean {
+  return /\/devtools\/page\//.test(endpoint);
+}
+
+/**
+ * Try to resolve a page-level CDP endpoint to a browser-level endpoint
+ * by fetching /json/version from the same host:port.
+ */
+function resolveBrowserEndpoint(pageEndpoint: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let host: string;
+    try {
+      const url = new URL(pageEndpoint);
+      host = url.host; // host includes port (e.g. "127.0.0.1:9222")
+    } catch {
+      reject(new Error(`Invalid CDP endpoint URL: ${pageEndpoint}`));
+      return;
+    }
+
+    const req = http.get(
+      `http://${host}/json/version`,
+      { timeout: 5000 },
+      (res) => {
+        if (res.statusCode && res.statusCode >= 400) {
+          reject(new Error(`/json/version returned HTTP ${res.statusCode}`));
+          res.resume();
+          return;
+        }
+        let data = '';
+        res.on('data', (chunk: Buffer) => {
+          data += chunk.toString();
+        });
+        res.on('end', () => {
+          try {
+            const info = JSON.parse(data);
+            if (info.webSocketDebuggerUrl) {
+              resolve(info.webSocketDebuggerUrl);
+            } else {
+              reject(
+                new Error(
+                  'webSocketDebuggerUrl not found in /json/version response',
+                ),
+              );
+            }
+          } catch {
+            reject(
+              new Error(`Failed to parse /json/version response: ${data}`),
+            );
+          }
+        });
+      },
+    );
+    req.on('error', (err) =>
+      reject(new Error(`Failed to fetch /json/version: ${err.message}`)),
+    );
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Timeout fetching /json/version'));
+    });
+  });
+}
+
+/**
+ * Check if a previously spawned proxy process is still alive.
+ */
+function isProxyAlive(): boolean {
+  if (!existsSync(PROXY_PID_FILE)) return false;
+  try {
+    const pid = Number(readFileSync(PROXY_PID_FILE, 'utf-8').trim());
+    process.kill(pid, 0); // signal 0 = existence check
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Read the proxy endpoint written by cdp-proxy.ts.
+ */
+function readProxyEndpoint(): string | null {
+  if (!existsSync(PROXY_ENDPOINT_FILE)) return null;
+  try {
+    return readFileSync(PROXY_ENDPOINT_FILE, 'utf-8').trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Spawn the CDP proxy process and wait for it to print the endpoint.
+ */
+function spawnProxy(chromeEndpoint: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const proxyScript = join(__dirname, 'cdp-proxy.js');
+    const proc = spawn(process.execPath, [proxyScript, chromeEndpoint], {
+      detached: true,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    proc.unref();
+
+    let output = '';
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        reject(new Error('Proxy startup timeout (10s)'));
+      }
+    }, 10000);
+
+    const onData = (chunk: Buffer) => {
+      output += chunk.toString();
+      const lines = output.split('\n');
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const parsed = JSON.parse(line);
+          if (parsed.endpoint && !settled) {
+            settled = true;
+            clearTimeout(timer);
+            proc.stdout!.removeListener('data', onData);
+            resolve(parsed.endpoint);
+            return;
+          }
+        } catch {
+          // stdout may contain non-JSON lines during startup — skip them
+        }
+      }
+    };
+    proc.stdout!.on('data', onData);
+
+    proc.on('error', (err) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        reject(new Error(`Failed to spawn proxy: ${err.message}`));
+      }
+    });
+    proc.on('exit', (code) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        reject(new Error(`Proxy exited with code ${code} before ready`));
+      }
+    });
+  });
+}
+
+/**
+ * Get the proxy endpoint, spawning the proxy if needed.
+ * Falls back to direct connection if proxy cannot be started.
+ *
+ * If the user provides a page-level CDP URL, automatically resolves it
+ * to a browser-level endpoint via /json/version.
+ */
+async function getProxyEndpoint(chromeEndpoint: string): Promise<string> {
+  // If the user passed a page-level endpoint, resolve to browser-level first
+  let browserEndpoint = chromeEndpoint;
+  if (isPageLevelEndpoint(chromeEndpoint)) {
+    debug(
+      'Page-level CDP endpoint detected, resolving via /json/version: %s',
+      chromeEndpoint,
+    );
+    try {
+      browserEndpoint = await resolveBrowserEndpoint(chromeEndpoint);
+      debug('Resolved browser endpoint: %s', browserEndpoint);
+    } catch (err) {
+      throw new Error(
+        `Cannot use page-level CDP endpoint directly. Puppeteer requires a browser-level endpoint (e.g., ws://host:port/devtools/browser/<id>). Auto-resolution via /json/version failed: ${(err as Error).message}. Please provide a browser-level CDP endpoint instead.`,
+      );
+    }
+  }
+
+  // If proxy is alive and endpoint file exists, reuse it
+  if (isProxyAlive()) {
+    const endpoint = readProxyEndpoint();
+    if (endpoint) return endpoint;
+  }
+
+  // Spawn a new proxy
+  try {
+    return await spawnProxy(browserEndpoint);
+  } catch (err) {
+    console.warn(
+      `[cdp] proxy failed, falling back to direct connection: ${err}`,
+    );
+    return browserEndpoint;
+  }
+}
 
 /**
  * Tools manager for Web CDP-mode MCP.
  * Connects to an existing Chrome browser via CDP (Chrome DevTools Protocol) endpoint.
  * Unlike WebPuppeteerMidsceneTools which launches its own Chrome, this connects
  * to a browser that is already running with remote debugging enabled.
+ *
+ * Uses a persistent WebSocket proxy to avoid repeated Chrome permission popups
+ * when Chrome's settings-based remote debugging is used.
  */
 export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
   private cdpEndpoint: string;
@@ -42,31 +248,63 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
 
     if (this.agent) return this.agent;
 
-    // Connect to the existing browser via CDP endpoint
+    // Connect via proxy to avoid repeated Chrome permission popups
     if (!this.activeBrowser) {
+      const endpoint = await getProxyEndpoint(this.cdpEndpoint);
       this.activeBrowser = await puppeteer.connect({
-        browserWSEndpoint: this.cdpEndpoint,
+        browserWSEndpoint: endpoint,
         defaultViewport: null,
       });
     }
 
     const browser = this.activeBrowser;
-    const pages = await browser.pages();
+    let pages = await browser.pages();
+
+    // If no pages discovered, wait briefly and retry — some CDP targets
+    // need a moment to appear after the WebSocket connection is established.
+    if (pages.length === 0) {
+      await new Promise((r) => setTimeout(r, CDP_TARGET_DISCOVERY_DELAY_MS));
+      pages = await browser.pages();
+    }
+
+    const webPages = pages.filter((p) => /^https?:\/\//.test(p.url()));
+    debug(
+      'Found %d page(s), %d web page(s): %o',
+      pages.length,
+      webPages.length,
+      pages.map((p) => p.url()),
+    );
     let page: Page;
 
     if (navigateToUrl) {
-      page = await browser.newPage();
-      await page.goto(navigateToUrl, {
-        timeout: 30000,
-        waitUntil: 'domcontentloaded',
-      });
+      if (webPages.length > 0) {
+        // Reuse an existing page and navigate it — avoids creating invisible
+        // tabs when Chrome uses settings-based remote debugging (no HTTP
+        // discovery endpoints, /devtools/page/* returns 403).
+        page = webPages[webPages.length - 1];
+        await page.bringToFront();
+        await page.goto(navigateToUrl, {
+          timeout: 30000,
+          waitUntil: 'domcontentloaded',
+        });
+      } else {
+        // No existing web pages — fall back to creating a new tab
+        page = await browser.newPage();
+        await page.goto(navigateToUrl, {
+          timeout: 30000,
+          waitUntil: 'domcontentloaded',
+        });
+      }
     } else {
-      // Reuse the last web page
-      const webPages = pages.filter((p) => /^https?:\/\//.test(p.url()));
-      page =
-        webPages.length > 0
-          ? webPages[webPages.length - 1]
-          : pages[pages.length - 1] || (await browser.newPage());
+      // Reuse the last web page, or any existing page (including about:blank
+      // which may be the user's active tab). Only create a new page as last resort.
+      if (webPages.length > 0) {
+        page = webPages[webPages.length - 1];
+      } else if (pages.length > 0) {
+        page = pages[pages.length - 1];
+      } else {
+        page = await browser.newPage();
+      }
 
       await page.bringToFront();
     }
@@ -103,7 +341,9 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
           if (this.agent) {
             try {
               await this.agent.destroy?.();
-            } catch {}
+            } catch (e) {
+              console.debug('Failed to destroy agent during connect:', e);
+            }
             this.agent = undefined;
           }
 
@@ -129,7 +369,9 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
           if (this.agent) {
             try {
               await this.agent.destroy?.();
-            } catch {}
+            } catch (e) {
+              console.debug('Failed to destroy agent during disconnect:', e);
+            }
             this.agent = undefined;
           }
           if (this.activeBrowser) {

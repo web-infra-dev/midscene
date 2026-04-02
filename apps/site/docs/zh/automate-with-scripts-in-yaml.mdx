@@ -181,6 +181,10 @@ web:
   # 是否限制页面在当前 tab 打开，可选，默认 true
   forceSameTabNavigation: <boolean>
 
+  # CDP 连接端点，可选。设置后通过 CDP 连接到已有浏览器实例，而非启动新浏览器。
+  # 与 bridgeMode 互斥，不可同时使用。
+  cdpEndpoint: ws://localhost:9222/devtools/browser
+
   # 桥接模式，可选，默认 false，可以为 'newTabWithUrl' 或 'currentTab'。更多详情请参阅后文
   bridgeMode: false | 'newTabWithUrl' | 'currentTab'
 
@@ -217,7 +221,7 @@ android:
   # 其他 AndroidDevice 构造函数支持的所有选项
   # 例如：androidAdbPath, remoteAdbHost, remoteAdbPort,
   # imeStrategy, displayId, autoDismissKeyboard, keyboardDismissStrategy,
-  # screenshotResizeScale, alwaysRefreshScreenInfo 等
+  # alwaysRefreshScreenInfo 等
   # 完整配置项请参考 AndroidDevice 的构造函数文档
 ```
 
@@ -468,6 +472,7 @@ tasks:
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素。默认值为 False
         xpath: <xpath> # 可选，目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
         cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+        fileChooserAccept: <path> | [<path1>, <path2>] # 可选，当点击触发文件选择器时，指定要上传的文件路径；仅在 web 中可用
 
       # 鼠标悬停一个元素，用 prompt 描述元素位置
       - aiHover: <prompt>
@@ -535,6 +540,43 @@ tasks:
     flow:
       # ...
 ```
+
+#### 使用 `aiTap` 上传文件
+
+当点击某个按钮会弹出文件选择器时，可以在 `aiTap` 步骤上直接设置 `fileChooserAccept`。它支持单个路径，也支持路径数组。
+
+```yaml
+tasks:
+  - name: 上传单个文件
+    flow:
+      - aiTap: 选择文件按钮
+        fileChooserAccept: ./fixtures/document.pdf
+
+  - name: 上传多个文件
+    flow:
+      - aiTap: 上传图片按钮
+        fileChooserAccept:
+          - ./fixtures/image1.jpg
+          - ./fixtures/image2.png
+```
+
+如果你已经在用 `locate` 对象写 `prompt`、`images` 等定位信息，`fileChooserAccept` 仍然要和 `locate` 保持同级，不要放到 `locate` 或 `aiTap` 的嵌套对象里：
+
+```yaml
+tasks:
+  - name: 带 locate 的文件上传
+    flow:
+      - aiTap:
+        locate:
+          prompt: 点击上传按钮
+        fileChooserAccept: ./fixtures/document.pdf
+```
+
+注意：
+
+- `fileChooserAccept` 仅在 web 页面（Playwright、Puppeteer）中可用。
+- 相对路径会基于当前命令执行目录解析，而不是基于 YAML 文件所在目录解析。
+- 如果文件不存在，脚本会在执行点击前直接报错。
 
 #### 使用图像提示
 

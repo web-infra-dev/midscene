@@ -1,6 +1,6 @@
 {
   "name": "@midscene/playground-app",
-  "version": "1.5.7",
+  "version": "1.6.2",
   "description": "Reusable React shell for Midscene playground applications",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
@@ -27,8 +27,11 @@
   "dependencies": {
     "@midscene/playground": "workspace:*",
     "@midscene/visualizer": "workspace:*",
+    "@yume-chan/scrcpy": "2.3.0",
+    "@yume-chan/scrcpy-decoder-webcodecs": "2.5.0",
     "antd": "^5.21.6",
-    "react-resizable-panels": "2.0.22"
+    "react-resizable-panels": "2.0.22",
+    "socket.io-client": "4.8.1"
   },
   "devDependencies": {
     "@rsbuild/plugin-less": "^1.5.0",

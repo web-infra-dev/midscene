@@ -1,8 +1,12 @@
 import type { DeviceAction, ExecutionDump } from '@midscene/core';
-import { GroupedActionDump } from '@midscene/core';
+import { ReportActionDump } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import { executeAction, parseStructuredParams } from '../common';
+import {
+  type PlaygroundRuntimeInfo,
+  buildRuntimeInfo,
+} from '../runtime-metadata';
 import type {
   AgentFactory,
   ExecutionOptions,
@@ -237,7 +241,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
           const dumpString = agent.dumpDataString();
           if (dumpString) {
             const groupedDump =
-              GroupedActionDump.fromSerializedString(dumpString);
+              ReportActionDump.fromSerializedString(dumpString);
             response.dump = groupedDump.executions?.[0] || null;
           }
         }
@@ -317,10 +321,9 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       if (typeof this.agent.dumpDataString === 'function') {
         const dumpString = this.agent.dumpDataString();
         if (dumpString) {
-          // dumpDataString() returns GroupedActionDump: { executions: ExecutionDump[] }
+          // dumpDataString() returns ReportActionDump: { executions: ExecutionDump[] }
           // In Playground, each "Run" creates one execution, so we take executions[0]
-          const groupedDump =
-            GroupedActionDump.fromSerializedString(dumpString);
+          const groupedDump = ReportActionDump.fromSerializedString(dumpString);
           dump = groupedDump.executions?.[0] ?? null;
         }
       }
@@ -384,8 +387,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       if (this.agent?.dumpDataString) {
         const dumpString = this.agent.dumpDataString();
         if (dumpString) {
-          const groupedDump =
-            GroupedActionDump.fromSerializedString(dumpString);
+          const groupedDump = ReportActionDump.fromSerializedString(dumpString);
           response.dump = groupedDump.executions?.[0] || null;
         }
       }
@@ -420,6 +422,25 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       };
     } catch (error: unknown) {
       console.error('Failed to get interface info:', error);
+      return null;
+    }
+  }
+
+  async getRuntimeInfo(): Promise<PlaygroundRuntimeInfo | null> {
+    if (!this.agent?.interface) {
+      return null;
+    }
+
+    try {
+      return buildRuntimeInfo({
+        interfaceType: this.agent.interface.interfaceType || 'Unknown',
+        interfaceDescription: this.agent.interface.describe?.() || undefined,
+        supportsScreenshot:
+          typeof this.agent.interface.screenshotBase64 === 'function',
+        mjpegStreamUrl: this.agent.interface.mjpegStreamUrl,
+      });
+    } catch (error: unknown) {
+      console.error('Failed to get runtime info:', error);
       return null;
     }
   }

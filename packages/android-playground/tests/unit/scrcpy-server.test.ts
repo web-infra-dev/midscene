@@ -1,0 +1,61 @@
+import { describe, expect, it, vi } from 'vitest';
+import ScrcpyServer from '../../src/scrcpy-server';
+
+const mockPushServer = vi.fn();
+const mockStart = vi.fn();
+const mockReadableFrom = vi.fn();
+const mockCreateReadStream = vi.fn();
+const mockOptionsCtor = vi.fn((options) => options);
+
+vi.mock('@yume-chan/adb-scrcpy', () => ({
+  AdbScrcpyClient: {
+    pushServer: mockPushServer,
+    start: mockStart,
+  },
+  AdbScrcpyOptions3_3_3: mockOptionsCtor,
+}));
+
+vi.mock('@yume-chan/stream-extra', () => ({
+  ReadableStream: {
+    from: mockReadableFrom,
+  },
+}));
+
+vi.mock('@yume-chan/scrcpy', () => ({
+  DefaultServerPath: '/mocked/scrcpy-server.jar',
+}));
+
+vi.mock('node:fs', () => ({
+  createReadStream: mockCreateReadStream,
+}));
+
+describe('ScrcpyServer', () => {
+  it('enables frame metadata for the scrcpy web preview stream', async () => {
+    mockCreateReadStream.mockReturnValue({ stream: true });
+    mockReadableFrom.mockReturnValue({ readable: true });
+    mockStart.mockResolvedValue({ videoStream: Promise.resolve(null) });
+
+    const server = new ScrcpyServer();
+    const adb = { serial: 'device-1' };
+
+    await (server as any).startScrcpy(adb, { maxSize: 720 });
+
+    expect(mockPushServer).toHaveBeenCalledOnce();
+    expect(mockOptionsCtor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        audio: false,
+        control: true,
+        maxSize: 720,
+        sendFrameMeta: true,
+        videoBitRate: 2_000_000,
+      }),
+    );
+    expect(mockStart).toHaveBeenCalledWith(
+      adb,
+      '/mocked/scrcpy-server.jar',
+      expect.objectContaining({
+        sendFrameMeta: true,
+      }),
+    );
+  });
+});

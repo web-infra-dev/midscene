@@ -61,12 +61,16 @@ type HarmonyInputParam = {
 };
 
 const defaultScrollUntilTimes = 10;
-const defaultSwipeSpeed = 600;
 const defaultFastSwipeSpeed = 2000;
 const maxScrollDistance = 9999999;
 const scrollQuadrantDivisions = 4;
+// Minimum margin from screen edge for fling endpoints.
+// HarmonyOS uitest ignores fling gestures that end at exact screen boundaries.
+const screenEdgeMargin = 50;
 
 const debugDevice = getDebug('harmony:device');
+
+let screenshotResizeScaleWarned = false;
 
 // HarmonyOS uitest only accepts Back/Home/Power as string names.
 // All other keys must use numeric keycodes.
@@ -282,6 +286,16 @@ export class HarmonyDevice implements AbstractInterface {
     this.deviceId = deviceId;
     this.options = options;
     this.customActions = options?.customActions;
+
+    if (
+      options?.screenshotResizeScale !== undefined &&
+      !screenshotResizeScaleWarned
+    ) {
+      screenshotResizeScaleWarned = true;
+      console.warn(
+        '[midscene] screenshotResizeScale is deprecated. Use screenshotShrinkFactor in AgentOpt instead.',
+      );
+    }
   }
 
   describe(): string {
@@ -426,14 +440,9 @@ export class HarmonyDevice implements AbstractInterface {
 
   async size(): Promise<Size> {
     const screenInfo = await this.getScreenSize();
-    const scale = this.options?.screenshotResizeScale ?? 1;
-
-    const logicalWidth = Math.round(screenInfo.width * scale);
-    const logicalHeight = Math.round(screenInfo.height * scale);
-
     return {
-      width: logicalWidth,
-      height: logicalHeight,
+      width: screenInfo.width,
+      height: screenInfo.height,
     };
   }
 
@@ -594,11 +603,21 @@ export class HarmonyDevice implements AbstractInterface {
     deltaX = Math.max(-maxNegativeDeltaX, Math.min(deltaX, maxPositiveDeltaX));
     deltaY = Math.max(-maxNegativeDeltaY, Math.min(deltaY, maxPositiveDeltaY));
 
-    const endX = Math.round(startX - deltaX);
-    const endY = Math.round(startY - deltaY);
+    const endX = Math.round(
+      Math.max(
+        screenEdgeMargin,
+        Math.min(width - screenEdgeMargin, startX - deltaX),
+      ),
+    );
+    const endY = Math.round(
+      Math.max(
+        screenEdgeMargin,
+        Math.min(height - screenEdgeMargin, startY - deltaY),
+      ),
+    );
 
     const hdc = await this.getHdc();
-    await hdc.swipe(startX, startY, endX, endY, speed ?? defaultSwipeSpeed);
+    await hdc.fling(startX, startY, endX, endY, speed ?? defaultFastSwipeSpeed);
   }
 
   private async scrollInDirection(
@@ -618,14 +637,20 @@ export class HarmonyDevice implements AbstractInterface {
       const sy = Math.round(startPoint.top);
 
       const endPoints = {
-        down: { x: sx, y: Math.max(0, sy - scrollDistance) },
-        up: { x: sx, y: Math.min(height, sy + scrollDistance) },
-        left: { x: Math.min(width, sx + scrollDistance), y: sy },
-        right: { x: Math.max(0, sx - scrollDistance), y: sy },
+        down: { x: sx, y: Math.max(screenEdgeMargin, sy - scrollDistance) },
+        up: {
+          x: sx,
+          y: Math.min(height - screenEdgeMargin, sy + scrollDistance),
+        },
+        left: {
+          x: Math.min(width - screenEdgeMargin, sx + scrollDistance),
+          y: sy,
+        },
+        right: { x: Math.max(screenEdgeMargin, sx - scrollDistance), y: sy },
       } as const;
 
       const end = endPoints[direction];
-      await hdc.swipe(sx, sy, end.x, end.y);
+      await hdc.fling(sx, sy, end.x, end.y, defaultFastSwipeSpeed);
       return;
     }
 
@@ -667,10 +692,10 @@ export class HarmonyDevice implements AbstractInterface {
       const sy = Math.round(startPoint.top);
 
       const flingTargets = {
-        up: { x: sx, y: Math.round(height) },
-        down: { x: sx, y: 0 },
-        left: { x: Math.round(width), y: sy },
-        right: { x: 0, y: sy },
+        up: { x: sx, y: Math.round(height) - screenEdgeMargin },
+        down: { x: sx, y: screenEdgeMargin },
+        left: { x: Math.round(width) - screenEdgeMargin, y: sy },
+        right: { x: screenEdgeMargin, y: sy },
       } as const;
 
       const target = flingTargets[direction];

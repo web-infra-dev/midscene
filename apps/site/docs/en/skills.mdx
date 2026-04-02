@@ -8,11 +8,11 @@ Unlike [MCP integration](./mcp), Skills work by running CLI commands directly in
 
 | Skill | Package | CLI command | Description |
 |-------|---------|-------------|-------------|
-| Browser Automation | `@midscene/web` | `npx @midscene/web` | Headless Chrome via Puppeteer, opens new browser tabs |
-| Chrome Bridge Automation | `@midscene/web` | `npx @midscene/web --bridge` | User's own Chrome browser, preserves cookies and sessions |
+| Browser Automation | `@midscene/web` | `npx @midscene/web` | Browser automation with three modes: default Puppeteer headless, `--bridge` to use your own Chrome, `--cdp <ws-endpoint>` to connect via CDP |
 | Desktop Computer Automation | `@midscene/computer` | `npx @midscene/computer` | macOS, Windows, Linux desktop control |
 | Android Device Automation | `@midscene/android` | `npx @midscene/android` | Android device control via ADB |
 | iOS Device Automation | `@midscene/ios` | `npx @midscene/ios` | iOS device control via WebDriverAgent |
+| HarmonyOS Device Automation | `@midscene/harmony` | `npx @midscene/harmony` | HarmonyOS device control via HDC |
 
 ## Installation
 

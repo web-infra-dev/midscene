@@ -18,14 +18,25 @@ const promiseExec = promisify(exec);
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 
-function isLoopbackOrigin(origin?: string) {
+function isPrivateIP(hostname: string): boolean {
+  // 10.x.x.x, 172.16-31.x.x, 192.168.x.x
+  return (
+    LOOPBACK_HOSTS.has(hostname) ||
+    /^10\./.test(hostname) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
+    /^192\.168\./.test(hostname) ||
+    /^100\.(6[4-9]|[7-9]\d|1[0-2]\d)\./.test(hostname)
+  );
+}
+
+function isAllowedOrigin(origin?: string) {
   if (!origin) {
     return true;
   }
 
   try {
     const url = new URL(origin);
-    return LOOPBACK_HOSTS.has(url.hostname);
+    return isPrivateIP(url.hostname);
   } catch {
     return false;
   }
@@ -48,7 +59,7 @@ export default class ScrcpyServer {
     this.io = new Server(this.httpServer, {
       cors: {
         origin(origin, callback) {
-          callback(null, isLoopbackOrigin(origin));
+          callback(null, isAllowedOrigin(origin));
         },
         methods: ['GET', 'POST'],
         credentials: true,
@@ -58,7 +69,7 @@ export default class ScrcpyServer {
     this.app.use(
       cors({
         origin(origin, callback) {
-          callback(null, isLoopbackOrigin(origin));
+          callback(null, isAllowedOrigin(origin));
         },
         credentials: true,
       }),
@@ -218,6 +229,9 @@ export default class ScrcpyServer {
         audio: false,
         control: true,
         maxSize: 1024,
+        // use framed packets so the web decoder can distinguish
+        // configuration packets from frame data
+        sendFrameMeta: true,
         // use videoBitRate as property name
         videoBitRate: 2_000_000,
         // override default values with user provided options
@@ -473,8 +487,9 @@ export default class ScrcpyServer {
   async launch(port?: number) {
     this.port = port || this.defaultPort;
     return new Promise<this>((resolve) => {
-      this.httpServer.listen(this.port, () => {
-        console.log(`Scrcpy server running at: http://localhost:${this.port}`);
+      const listenPort = this.port ?? this.defaultPort;
+      this.httpServer.listen(listenPort, '0.0.0.0', () => {
+        console.log(`Scrcpy server running at: http://0.0.0.0:${this.port}`);
         // start device monitoring
         this.startDeviceMonitoring();
         resolve(this);

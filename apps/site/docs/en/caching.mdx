@@ -1,6 +1,6 @@
-# Caching AI planning & locate
+# Caching AI Planning and DOM Localization
 
-Midscene supports caching Plan steps and matched DOM element information to reduce AI model calls and greatly improve execution efficiency. Please note that DOM element cache is only supported for web automation tasks, and has [certain limitations](#limitations-of-xpath-in-caching-element-location).
+Midscene supports caching two kinds of data: AI Planning steps and matched element localization information. The former can be used across automation workflows to reduce AI model calls and improve execution efficiency; for web automation, the DOM localization part (XPath) in the latter can significantly reduce repeated locating overhead, but it is currently web-only and has [certain limitations](#limitations-of-xpath-in-caching-element-location).
 
 **Effect**
 
@@ -20,7 +20,7 @@ Midscene's caching mechanism is based on input stability and output reusability.
 
 The core caching mechanisms include:
 - **Task instruction caching**: For planning operations (such as `ai`, `aiAct`), Midscene uses the prompt instruction as the cache key to store the execution plan returned by AI
-- **Element location caching**: For location operations (such as `aiLocate`, `aiTap`), the system uses the location prompt as the cache key to store element XPath information, and verifies whether the XPath is still valid on the next execution
+- **Element location caching (web only)**: For location operations (such as `aiLocate`, `aiTap`), the system uses the location prompt as the cache key to store element XPath information, and verifies whether the XPath is still valid on the next execution
 - **Invalidation mechanism**: When cache becomes invalid, the system automatically falls back to AI model for re-analysis
 - **Never cache query results**: The query results like `aiBoolean`, `aiQuery`, `aiAssert` will never be cached.
 

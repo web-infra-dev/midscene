@@ -1,9 +1,9 @@
-import type { TUserPrompt } from './common';
+import type { TMultimodalPrompt, TUserPrompt } from './common';
 import type { AndroidDeviceOpt, IOSDeviceOpt } from './device';
 import type { AgentOpt, LocateResultElement, Rect } from './types';
 import type { UIContext } from './types';
 
-export interface LocateOption {
+export interface LocateOption extends Partial<TMultimodalPrompt> {
   prompt?: TUserPrompt;
   deepLocate?: boolean; // only available in vl model
   /** @deprecated Use `deepLocate` instead. Kept for backward compatibility. */
@@ -20,7 +20,8 @@ export interface ServiceExtractOption {
   [key: string]: unknown;
 }
 
-export interface DetailedLocateParam extends Omit<LocateOption, 'deepThink'> {
+export interface DetailedLocateParam
+  extends Omit<LocateOption, 'deepThink' | keyof TMultimodalPrompt> {
   prompt: TUserPrompt;
 }
 
@@ -75,14 +76,14 @@ export interface MidsceneYamlTask {
  * fields like functions and complex objects. All fields are optional.
  *
  * @remarks
- * - testId priority: CLI parameter > YAML agent.testId > filename
+ * - testId is deprecated; prefer reportFileName and cache.id
  * - These settings apply to all platforms (Web, Android, iOS, Generic Interface)
  * - modelConfig is configured through environment variables, not in YAML
  *
  * @example
  * ```yaml
  * agent:
- *   testId: "checkout-test"
+ *   reportFileName: "checkout-report"
  *   groupName: "E2E Test Suite"
  *   generateReport: true
  *   replanningCycleLimit: 30
@@ -93,7 +94,7 @@ export interface MidsceneYamlTask {
  */
 export type MidsceneYamlScriptAgentOpt = Pick<
   AgentOpt,
-  | 'testId'
+  | 'testId' // deprecated, kept for backward compatibility
   | 'groupName'
   | 'groupDescription'
   | 'generateReport'

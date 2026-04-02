@@ -7,7 +7,7 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import {
-  GroupedActionDump,
+  ReportActionDump,
   type ReportDumpWithAttributes,
 } from '@midscene/core';
 import { getReportFileName, printReportMsg } from '@midscene/core/agent';
@@ -194,8 +194,7 @@ class MidsceneReporter implements Reporter {
       // Parse the dump string and generate dump script tag
       let dumpScript = `<script type="midscene_web_dump">\n${escapeScriptTag(testData.dumpString)}\n</script>`;
 
-      // Add attributes to the dump script if this is merged report
-      if (this.mode === 'merged' && testData.attributes) {
+      if (testData.attributes) {
         const attributesArr = Object.keys(testData.attributes).map((key) => {
           return `${key}="${encodeURIComponent(testData.attributes![key])}"`;
         });
@@ -245,7 +244,7 @@ class MidsceneReporter implements Reporter {
     const tempFilePath = dumpAnnotation.description;
 
     // Track temp files for potential cleanup in onEnd
-    for (const filePath of GroupedActionDump.getFilePaths(tempFilePath)) {
+    for (const filePath of ReportActionDump.getFilePaths(tempFilePath)) {
       this.tempFiles.add(filePath);
     }
 
@@ -269,7 +268,7 @@ class MidsceneReporter implements Reporter {
         this.copyScreenshotsToReport(tempFilePath, reportPath);
       } else {
         // Inline mode: convert screenshots to base64
-        dumpString = GroupedActionDump.fromFilesAsInlineJson(tempFilePath);
+        dumpString = ReportActionDump.fromFilesAsInlineJson(tempFilePath);
       }
     } catch (error) {
       console.error(
@@ -293,6 +292,7 @@ class MidsceneReporter implements Reporter {
       const testData: ReportDumpWithAttributes = {
         dumpString,
         attributes: {
+          'data-group-id': testId,
           playwright_test_id: testId,
           playwright_test_title: `${test.title}${projectSuffix}${retry}`,
           playwright_test_status: result.status,
@@ -313,8 +313,8 @@ class MidsceneReporter implements Reporter {
 
     // Always try to clean up temp files
     try {
-      GroupedActionDump.cleanupFiles(tempFilePath);
-      for (const filePath of GroupedActionDump.getFilePaths(tempFilePath)) {
+      ReportActionDump.cleanupFiles(tempFilePath);
+      for (const filePath of ReportActionDump.getFilePaths(tempFilePath)) {
         this.tempFiles.delete(filePath);
       }
     } catch {

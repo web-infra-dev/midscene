@@ -389,6 +389,48 @@ describe('TaskExecutor - Null Data Handling', () => {
       expect(result.output).toBe(42);
       expect(result.thought).toBe('Extracted the numeric value successfully');
     });
+
+    it('should preserve domIncluded on Insight task params for report rendering', async () => {
+      const mockInsight = {
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
+        extract: vi.fn(async () => ({
+          data: {
+            Number: 42,
+          },
+          usage: { totalTokens: 100 },
+          thought: 'Extracted the numeric value successfully',
+          dump: createMockDump(
+            { Number: 42 },
+            'Extracted the numeric value successfully',
+            { totalTokens: 100 },
+          ),
+        })),
+        onceDumpUpdatedFn: undefined,
+      } as any;
+
+      const mockModelConfig: IModelConfig = {
+        modelName: 'mock-model',
+        modelDescription: 'mock-model-description',
+        intent: 'default',
+      };
+
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
+
+      const queryTask = await (taskExecutor as any).createTypeQueryTask(
+        'Number',
+        'Extract the price',
+        mockModelConfig,
+        { domIncluded: true },
+      );
+
+      expect(queryTask.param).toEqual({
+        domIncluded: true,
+        dataDemand: 'Extract the price',
+      });
+    });
+
     it('should handle null data for Number type query', async () => {
       const mockInsight = {
         contextRetrieverFn: vi.fn(async () => await createMockUIContext()),

@@ -4,7 +4,14 @@ import type { BasePlaygroundAdapter } from '../adapters/base';
 import { LocalExecutionAdapter } from '../adapters/local-execution';
 import { RemoteExecutionAdapter } from '../adapters/remote-execution';
 import type {
+  PlaygroundSessionSetup,
+  PlaygroundSessionState,
+  PlaygroundSessionTarget,
+} from '../platform';
+import type { PlaygroundRuntimeInfo } from '../runtime-metadata';
+import type {
   AgentFactory,
+  BeforeActionHook,
   ExecutionOptions,
   FormValue,
   PlaygroundAgent,
@@ -14,6 +21,7 @@ import type {
 
 export class PlaygroundSDK {
   private adapter: BasePlaygroundAdapter;
+  private beforeActionHook?: BeforeActionHook;
 
   constructor(config: PlaygroundConfig) {
     this.adapter = this.createAdapter(
@@ -54,13 +62,32 @@ export class PlaygroundSDK {
     }
   }
 
+  private runtimeMetadataAdapter():
+    | LocalExecutionAdapter
+    | RemoteExecutionAdapter
+    | null {
+    if (
+      this.adapter instanceof LocalExecutionAdapter ||
+      this.adapter instanceof RemoteExecutionAdapter
+    ) {
+      return this.adapter;
+    }
+
+    return null;
+  }
+
   async executeAction(
     actionType: string,
     value: FormValue,
     options: ExecutionOptions,
   ): Promise<unknown> {
+    await this.beforeActionHook?.(actionType, value, options);
     const result = await this.adapter.executeAction(actionType, value, options);
     return result;
+  }
+
+  setBeforeActionHook(hook?: BeforeActionHook): void {
+    this.beforeActionHook = hook;
   }
 
   async getActionSpace(context?: unknown): Promise<DeviceAction<unknown>[]> {
@@ -210,13 +237,69 @@ export class PlaygroundSDK {
     type: string;
     description?: string;
   } | null> {
-    if (this.adapter instanceof LocalExecutionAdapter) {
-      return this.adapter.getInterfaceInfo();
+    const adapter = this.runtimeMetadataAdapter();
+    if (!adapter) {
+      return null;
     }
+
+    return adapter.getInterfaceInfo();
+  }
+
+  async getRuntimeInfo(): Promise<PlaygroundRuntimeInfo | null> {
+    const adapter = this.runtimeMetadataAdapter();
+    if (!adapter) {
+      return null;
+    }
+
+    return adapter.getRuntimeInfo();
+  }
+
+  async getSessionInfo(): Promise<PlaygroundSessionState | null> {
     if (this.adapter instanceof RemoteExecutionAdapter) {
-      return this.adapter.getInterfaceInfo();
+      return this.adapter.getSessionInfo();
     }
+
     return null;
+  }
+
+  async getSessionSetup(
+    input?: Record<string, unknown>,
+  ): Promise<PlaygroundSessionSetup | null> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.getSessionSetup(input);
+    }
+
+    return null;
+  }
+
+  async listSessionTargets(): Promise<PlaygroundSessionTarget[]> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.listSessionTargets();
+    }
+
+    return [];
+  }
+
+  async createSession(input?: Record<string, unknown>): Promise<{
+    session: PlaygroundSessionState;
+    runtimeInfo: PlaygroundRuntimeInfo;
+  }> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.createSession(input);
+    }
+
+    throw new Error('Session creation is only supported in server mode');
+  }
+
+  async destroySession(): Promise<{
+    session: PlaygroundSessionState;
+    runtimeInfo: PlaygroundRuntimeInfo;
+  }> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.destroySession();
+    }
+
+    throw new Error('Session destruction is only supported in server mode');
   }
 
   // Get service mode based on adapter type

@@ -139,3 +139,8 @@ tsconfig.build.tsbuildinfo
 .webx
 .mcp.json
 package-lock.json
+packages/all-in-one-playground/static/*
+
+# rslib
+.rslib
+**/.rslib
