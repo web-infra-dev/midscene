@@ -634,7 +634,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true;
 });
 
-// Listen for iframe loads during recording to inject scripts into dynamically loaded iframes
+// Listen for iframe loads during recording to inject scripts into dynamically loaded iframes.
+// Uses a "pre-set flag + auto-start" pattern instead of chrome.tabs.sendMessage because
+// sendMessage with { frameId } is unreliable for dynamically injected content scripts —
+// the message listener may not be registered in Chrome's internal routing table even
+// though executeScript has resolved.
 chrome.webNavigation.onCompleted.addListener(async (details) => {
   // Only handle sub-frames (iframes), not the main frame
   if (details.frameId === 0) return;
@@ -642,23 +646,32 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
   // Only inject if recording is active on this tab
   if (!activeRecording || activeRecording.tabId !== details.tabId) return;
 
+  const sessionId = activeRecording.sessionId;
+
   try {
-    // Inject recorder scripts into the newly loaded iframe
+    // Step 1: Inject the EventRecorder class (recorder-iife.js)
     await chrome.scripting.executeScript({
       target: { tabId: details.tabId, frameIds: [details.frameId] },
       files: ['scripts/recorder-iife.js'],
     });
+
+    // Step 2: Pre-set the session ID flag BEFORE injecting the bridge script.
+    // The bridge script checks this flag at load time and auto-starts recording.
+    // This avoids the unreliable chrome.tabs.sendMessage timing issue.
+    await chrome.scripting.executeScript({
+      target: { tabId: details.tabId, frameIds: [details.frameId] },
+      func: (sid: string) => {
+        (globalThis as any).__midscene_auto_start_session = sid;
+      },
+      args: [sessionId],
+    });
+
+    // Step 3: Inject the bridge script — it will detect __midscene_auto_start_session
+    // and immediately initialize + start recording without needing a 'start' message.
     await chrome.scripting.executeScript({
       target: { tabId: details.tabId, frameIds: [details.frameId] },
       files: ['scripts/event-recorder-bridge.js'],
     });
-
-    // Send start message to the newly injected iframe
-    await chrome.tabs.sendMessage(
-      details.tabId,
-      { action: 'start', sessionId: activeRecording.sessionId },
-      { frameId: details.frameId },
-    );
 
     console.log(
       '[ServiceWorker] Injected recorder into iframe:',
@@ -667,7 +680,7 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
       details.url,
     );
   } catch (error) {
-    // Silently ignore injection failures (e.g., restricted pages)
+    // Silently ignore injection failures (e.g., restricted pages, chrome:// URLs)
     console.debug(
       '[ServiceWorker] Failed to inject into iframe:',
       details.frameId,

@@ -677,6 +677,42 @@ chrome.runtime.onMessage.addListener(
   },
 );
 
+// Auto-start recording if the service worker pre-set a session ID flag.
+// This handles dynamically loaded iframes where chrome.tabs.sendMessage is unreliable:
+//   1. Service worker detects iframe load via webNavigation.onCompleted
+//   2. Service worker injects recorder-iife.js
+//   3. Service worker sets window.__midscene_auto_start_session = sessionId (inline executeScript)
+//   4. Service worker injects this bridge script
+//   5. Bridge script detects the flag HERE and auto-starts recording
+// This bypasses the messaging system entirely, eliminating the timing race condition
+// where sendMessage arrives before the onMessage listener is registered in Chrome's
+// internal routing table.
+const autoStartSession = (globalThis as any).__midscene_auto_start_session;
+if (autoStartSession && !window.recorder?.isActive()) {
+  console.log(
+    '[EventRecorder Bridge] Auto-starting recording for dynamic iframe:',
+    { sessionId: autoStartSession, isInIframe, url: window.location.href },
+  );
+  initialScreenshot = captureScreenshot();
+  initializeRecorder(autoStartSession);
+  if (window.recorder) {
+    window.recorder.start();
+    events = [];
+    lastActivityTime = Date.now();
+    initialScreenshot
+      .then((screenshot) => {
+        if (screenshot) {
+          lastScreenshot = screenshot;
+        }
+      })
+      .catch(() => {});
+    startPageChangeMonitoring();
+    console.log('[EventRecorder Bridge] Auto-start completed successfully');
+  }
+  // Clean up the flag to prevent duplicate auto-starts on re-injection
+  (globalThis as any).__midscene_auto_start_session = undefined;
+}
+
 // Initialize when script loads
 document.addEventListener('DOMContentLoaded', () => {
   console.log('[EventRecorder Bridge] Bridge script loaded and ready');
