@@ -254,6 +254,29 @@ let pageChangeDetectionInterval: NodeJS.Timeout | null = null;
 const PAGE_CHANGE_CHECK_INTERVAL = 2000; // Check every 2 seconds
 const MAX_IDLE_TIME = 5000; // 5 seconds of inactivity before updating screenshot
 
+// Issue 1 fix: Capture screenshot on mousedown to preserve hover/cascade content.
+// When clicking elements like cascade selectors, the dropdown disappears on click.
+// By capturing on mousedown (which fires before click), we preserve the visual state
+// with hover content still visible.
+let mousedownScreenshotPromise: Promise<string | undefined> | null = null;
+document.addEventListener(
+  'mousedown',
+  () => {
+    if (window?.recorder?.isActive() && !isPageUnloading) {
+      mousedownScreenshotPromise = captureScreenshot();
+      // Also update lastScreenshot eagerly so it's available as a fallback
+      mousedownScreenshotPromise
+        .then((screenshot) => {
+          if (screenshot) {
+            lastScreenshot = screenshot;
+          }
+        })
+        .catch(() => {});
+    }
+  },
+  true,
+);
+
 // Function to update screenshot when page changes during idle time
 async function updateIdleScreenshot(): Promise<void> {
   if (isPageUnloading || !window.recorder?.isActive()) {
@@ -330,13 +353,82 @@ async function initializeRecorder(sessionId: string): Promise<void> {
       // Update last activity time when new event occurs
       lastActivityTime = Date.now();
 
+      // Issue 2 & 3 fix: Skip navigation events from iframes.
+      // When a click in the parent frame triggers an iframe load, the iframe's recorder
+      // emits a navigation event. This duplicates the parent's click event and clutters
+      // the step list. Only user-interaction events (click, input, scroll) are meaningful
+      // from iframe contexts.
+      if (isInIframe && event.type === 'navigation') {
+        console.log(
+          '[EventRecorder Bridge] Skipping navigation event from iframe:',
+          window.location.href,
+        );
+        return;
+      }
+
       // Capture beforeTitle: use the last captured title (state before this action)
       event.beforeTitle = lastCapturedTitle;
 
-      // Capture screenshotBefore immediately, before debounce delay
-      // Use lastScreenshot which represents the page state before this action
-      if (lastScreenshot) {
+      // Issue 1 fix: For click events, prefer the mousedown screenshot which captures
+      // the page state with hover/cascade content still visible (before click dismisses it).
+      if (event.type === 'click' && mousedownScreenshotPromise) {
+        try {
+          const mousedownScreenshot = await mousedownScreenshotPromise;
+          if (mousedownScreenshot) {
+            event.screenshotBefore = mousedownScreenshot;
+          }
+        } catch (_e) {
+          // Fall through to lastScreenshot fallback
+        }
+        mousedownScreenshotPromise = null;
+      }
+
+      // Fallback: Use lastScreenshot which represents the page state before this action
+      if (!event.screenshotBefore && lastScreenshot) {
         event.screenshotBefore = lastScreenshot;
+      }
+
+      // Issue 4 fix: Adjust coordinates for iframe events.
+      // elementRect from getBoundingClientRect() is relative to the iframe's viewport,
+      // but the screenshot from captureVisibleTab() covers the entire tab.
+      // Add the iframe's offset within the parent page to correct the position.
+      if (isInIframe && event.elementRect) {
+        try {
+          const frameEl = window.frameElement;
+          if (frameEl) {
+            const frameRect = frameEl.getBoundingClientRect();
+            // Adjust coordinates by adding iframe's position in parent
+            if (event.elementRect.left !== undefined) {
+              event.elementRect.left += frameRect.left;
+            }
+            if (event.elementRect.top !== undefined) {
+              event.elementRect.top += frameRect.top;
+            }
+            if (event.elementRect.x !== undefined) {
+              event.elementRect.x += frameRect.left;
+            }
+            if (event.elementRect.y !== undefined) {
+              event.elementRect.y += frameRect.top;
+            }
+          }
+        } catch (_e) {
+          // Cross-origin iframe: cannot access frameElement, coordinates remain as-is
+        }
+      }
+
+      // For iframe events, use the tab's dimensions for pageInfo instead of iframe's,
+      // since the screenshot covers the entire tab
+      if (isInIframe) {
+        try {
+          if (window.top) {
+            event.pageInfo = {
+              width: window.top.innerWidth,
+              height: window.top.innerHeight,
+            };
+          }
+        } catch (_e) {
+          // Cross-origin: keep iframe dimensions as fallback
+        }
       }
 
       const optimizedEvent = window.recorder!.optimizeEvent(event, events);
