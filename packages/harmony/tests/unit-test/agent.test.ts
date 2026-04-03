@@ -4,6 +4,7 @@ import {
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
 } from '@midscene/shared/env';
+import { normalizeForComparison } from '@midscene/shared/utils';
 import {
   type Mock,
   afterEach,
@@ -56,6 +57,22 @@ describe('HarmonyAgent', () => {
             modelConfig: mockedModelConfig,
           }),
       ).not.toThrow();
+    });
+
+    it('should inject default music app name mappings into device', () => {
+      const mockPage = new HarmonyDevice('test-device');
+      const setAppNameMappingSpy = vi.spyOn(mockPage, 'setAppNameMapping');
+
+      new HarmonyAgent(mockPage, {
+        modelConfig: mockedModelConfig,
+      });
+
+      expect(setAppNameMappingSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          [normalizeForComparison('华为音乐')]: 'com.huawei.hmsapp.music',
+          [normalizeForComparison('Music')]: 'com.huawei.hmsapp.music',
+        }),
+      );
     });
   });
 

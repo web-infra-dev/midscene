@@ -803,7 +803,7 @@ const terminateParamSchema = z.object({
   uri: z
     .string()
     .describe(
-      'Bundle name or app name to terminate. Use the exact bundle name, e.g. com.huawei.hmos.settings.',
+      'Bundle name or app name to terminate. Prioritize using the exact bundle name the user provided. If the bundle is unknown, use the accurate app name shown on screen, such as Settings or Music.',
     ),
 });
 
@@ -863,7 +863,8 @@ const createPlatformActions = (
     }),
     Terminate: defineAction<typeof terminateParamSchema, TerminateParam, void>({
       name: 'Terminate',
-      description: 'Terminate (force-stop) a HarmonyOS app by bundle name',
+      description:
+        'Terminate (force-stop) a HarmonyOS app by bundle name or mapped app name',
       interfaceAlias: 'terminate',
       paramSchema: terminateParamSchema,
       call: async (param) => {

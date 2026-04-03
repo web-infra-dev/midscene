@@ -465,6 +465,14 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.forceStop).toHaveBeenCalledWith('com.example.app');
     });
 
+    it('should resolve app name mapping before force-stop', async () => {
+      device.setAppNameMapping({
+        music: 'com.huawei.hmsapp.music',
+      });
+      await device.terminate('Music');
+      expect(mockHdc.forceStop).toHaveBeenCalledWith('com.huawei.hmsapp.music');
+    });
+
     it('should throw on terminate failure', async () => {
       mockHdc.forceStop.mockRejectedValueOnce(new Error('force-stop failed'));
       await expect(device.terminate('com.bad.app')).rejects.toThrow(
