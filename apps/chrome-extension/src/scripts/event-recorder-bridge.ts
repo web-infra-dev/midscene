@@ -131,25 +131,108 @@ const ACTIVE_TAB_SELECTORS = [
 ];
 
 /**
- * Capture the current page title combined with the active tab's text (if any).
- * Format: "pageTitle" or "pageTitle - activeTabName" when a tab component is present.
+ * Collect all active tab names from a document, across all nesting levels.
+ * Uses querySelectorAll with a combined selector to find all active tabs in DOM order,
+ * which naturally reflects the nesting hierarchy (outer tabs appear before inner tabs).
+ * Returns an array of tab names ordered from outermost to innermost.
+ */
+function collectActiveTabNames(doc: Document): string[] {
+  const tabNames: string[] = [];
+  const combinedSelector = ACTIVE_TAB_SELECTORS.join(', ');
+
+  try {
+    // querySelectorAll returns unique elements in document order (depth-first).
+    // For nested tabs (e.g., Element UI tabs inside tabs), outer active tabs
+    // appear before inner active tabs, giving us the correct hierarchy.
+    const activeTabs = doc.querySelectorAll(combinedSelector);
+    for (const tab of activeTabs) {
+      // Use direct text content only (not nested children's text) to avoid
+      // picking up text from nested tab containers. For Element UI, .el-tabs__item
+      // contains only the tab label text, so textContent is safe.
+      const tabText = (tab.textContent || '').trim();
+      if (tabText && !tabNames.includes(tabText)) {
+        tabNames.push(tabText);
+      }
+    }
+  } catch (_e) {
+    // Ignore selector errors
+  }
+
+  return tabNames;
+}
+
+/**
+ * Capture the current page title combined with all active tab names across nesting levels.
+ * Format: "pageTitle" when no tabs are present.
+ * Format: "pageTitle - TabLevel1 - TabLevel2" for nested tabs.
+ *
+ * When running inside an iframe, also searches parent/top documents for tab context,
+ * since Element UI tabs are typically in the parent frame while iframe content is
+ * inside the tab panel. This ensures that operating within an iframe still captures
+ * the tab hierarchy from the parent page.
  */
 function capturePageTitle(): string {
-  const pageTitle = document.title || '';
-
-  // Try each selector to find an active tab element
-  for (const selector of ACTIVE_TAB_SELECTORS) {
+  // Use the top-level page title when inside an iframe
+  let pageTitle = document.title || '';
+  if (isInIframe) {
     try {
-      const activeTab = document.querySelector(selector);
-      if (activeTab) {
-        const tabText = (activeTab.textContent || '').trim();
-        if (tabText) {
-          return `${pageTitle} - ${tabText}`;
+      if (window.top?.document?.title) {
+        pageTitle = window.top.document.title;
+      }
+    } catch (_e) {
+      // Cross-origin: can't access top document title, use iframe's own title
+    }
+  }
+
+  // Collect active tab names from all accessible documents.
+  // Process parent documents first so outer tab levels appear before inner ones.
+  const allTabNames: string[] = [];
+
+  if (isInIframe) {
+    // Try top-level document first (outermost tab context)
+    try {
+      if (window.top?.document && window.top.document !== document) {
+        const topTabs = collectActiveTabNames(window.top.document);
+        for (const name of topTabs) {
+          if (!allTabNames.includes(name)) {
+            allTabNames.push(name);
+          }
         }
       }
     } catch (_e) {
-      // Ignore invalid selector errors
+      // Cross-origin: can't access top document
     }
+
+    // Try intermediate parent document (for multi-level iframe nesting)
+    try {
+      if (
+        window.parent?.document &&
+        window.parent !== window.top &&
+        window.parent.document !== document
+      ) {
+        const parentTabs = collectActiveTabNames(window.parent.document);
+        for (const name of parentTabs) {
+          if (!allTabNames.includes(name)) {
+            allTabNames.push(name);
+          }
+        }
+      }
+    } catch (_e) {
+      // Cross-origin: can't access parent document
+    }
+  }
+
+  // Search current document for active tabs (handles non-iframe case
+  // and also picks up any tabs within the iframe itself)
+  const currentTabs = collectActiveTabNames(document);
+  for (const name of currentTabs) {
+    if (!allTabNames.includes(name)) {
+      allTabNames.push(name);
+    }
+  }
+
+  if (allTabNames.length > 0) {
+    return `${pageTitle} - ${allTabNames.join(' - ')}`;
   }
 
   return pageTitle;
