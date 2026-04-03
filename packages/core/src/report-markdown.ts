@@ -265,15 +265,17 @@ function renderExecution(
       lines.push(`- Error: ${task.errorMessage}`);
     }
 
-    const imageResult = screenshotAttachment(
-      task.uiContext?.screenshot,
-      screenshotBaseDir,
-      executionIndex,
-      taskIndex,
-    );
+    if (task.uiContext?.screenshot) {
+      const imageResult = screenshotAttachment(
+        task.uiContext.screenshot,
+        screenshotBaseDir,
+        executionIndex,
+        taskIndex,
+      );
 
-    lines.push(imageResult.markdown);
-    attachments.push(imageResult.attachment);
+      lines.push(imageResult.markdown);
+      attachments.push(imageResult.attachment);
+    }
 
     const recorderSection = recorderMarkdownSection(
       task.recorder,

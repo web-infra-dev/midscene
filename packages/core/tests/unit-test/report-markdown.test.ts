@@ -179,7 +179,7 @@ describe('report-markdown', () => {
     expect(result.attachments).toHaveLength(1);
   });
 
-  it('throws with invalid input and missing screenshot', () => {
+  it('throws with invalid input', () => {
     expect(() => executionToMarkdown({} as any)).toThrow(
       'executionToMarkdown: execution.tasks must be an array',
     );
@@ -189,15 +189,18 @@ describe('report-markdown', () => {
         groupName: 'bad',
       } as any),
     ).toThrow('reportToMarkdown: report.executions must be an array');
+  });
 
+  it('gracefully skips tasks without screenshots', () => {
     const execution: IExecutionDump = {
       logTime: 1710000000000,
-      name: 'missing-shot',
+      name: 'no-screenshot-execution',
       tasks: [createTask()],
     };
 
-    expect(() => executionToMarkdown(execution)).toThrow(
-      'executionToMarkdown: missing screenshot for execution #1 task #1',
-    );
+    const result = executionToMarkdown(execution);
+    expect(result.markdown).toContain('# no-screenshot-execution');
+    expect(result.markdown).toContain('Tap - Submit');
+    expect(result.attachments).toHaveLength(0);
   });
 });

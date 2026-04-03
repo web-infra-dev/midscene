@@ -143,17 +143,15 @@ const DetailPanel = (): JSX.Element => {
     }
   }, [activeExecution]);
 
-  const availableViewTypes = [
-    VIEW_TYPE_MARKDOWN,
-    VIEW_TYPE_SCREENSHOT,
-    VIEW_TYPE_JSON,
-  ];
-
-  if (
+  const hasReplay =
     activeTask?.type === 'Planning' &&
     animationScripts &&
-    animationScripts.length > 0
-  ) {
+    animationScripts.length > 0;
+
+  const availableViewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
+
+  if (hasReplay) {
+    availableViewTypes.unshift(VIEW_TYPE_MARKDOWN);
     availableViewTypes.unshift(VIEW_TYPE_REPLAY);
   }
 
