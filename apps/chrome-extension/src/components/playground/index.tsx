@@ -22,12 +22,12 @@ export function BrowserExtensionPlayground({
   onPlaygroundSDKChange,
 }: PlaygroundProps) {
   const extensionVersion = getExtensionVersion();
-  const { forceSameTabNavigation } = useEnvConfig((state) => ({
-    forceSameTabNavigation: state.forceSameTabNavigation,
-  }));
+  const forceSameTabNavigation = useEnvConfig(
+    (state) => state.forceSameTabNavigation,
+  );
 
   // Check if run button should be enabled - but DON'T call getAgent yet
-  const { config } = useEnvConfig();
+  const config = useEnvConfig((state) => state.config);
   const runEnabled = !!getAgent && Object.keys(config || {}).length >= 1;
 
   // Track active tab to trigger SDK recreation on tab change
