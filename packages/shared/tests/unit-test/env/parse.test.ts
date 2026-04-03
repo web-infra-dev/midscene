@@ -40,6 +40,7 @@ describe('getUITarsModelVersion', () => {
 describe('validateModelFamily', () => {
   it('should not throw on valid model families', () => {
     expect(() => validateModelFamily('qwen3-vl')).not.toThrow();
+    expect(() => validateModelFamily('qwen3.6')).not.toThrow();
     expect(() => validateModelFamily('doubao-vision')).not.toThrow();
     expect(() => validateModelFamily('gemini')).not.toThrow();
     expect(() => validateModelFamily('glm-v')).not.toThrow();

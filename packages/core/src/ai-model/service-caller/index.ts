@@ -687,7 +687,11 @@ export function resolveReasoningConfig({
   const debugMessages: string[] = [];
   const config: Record<string, unknown> = {};
 
-  if (modelFamily === 'qwen3-vl' || modelFamily === 'qwen3.5') {
+  if (
+    modelFamily === 'qwen3-vl' ||
+    modelFamily === 'qwen3.5' ||
+    modelFamily === 'qwen3.6'
+  ) {
     // reasoningEnabled → enable_thinking
     if (reasoningEnabled !== undefined) {
       config.enable_thinking = reasoningEnabled;

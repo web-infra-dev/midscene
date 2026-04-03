@@ -78,6 +78,20 @@ MIDSCENE_MODEL_FAMILY="doubao-seed" # 也兼容 "doubao-vision"
 # MIDSCENE_MODEL_REASONING_EFFORT="medium"
 ```
 
+### 千问 Qwen3.6 {#qwen36}
+
+以[阿里云](https://www.aliyun.com/)的 `qwen3.6-plus` 模型为例，推荐关闭平台默认的思考模式以提升执行速度，其环境变量配置如下：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen3.6-plus"
+MIDSCENE_MODEL_FAMILY="qwen3.6"
+MIDSCENE_MODEL_REASONING_ENABLED="false"
+```
+
+如果需要开启思考模式，可以配置 `MIDSCENE_MODEL_REASONING_ENABLED="true"` 并增加 `MIDSCENE_MODEL_REASONING_BUDGET="500"` 配置以控制思考耗时。
+
 ### 千问 Qwen3.5 {#qwen35}
 
 以[阿里云](https://www.aliyun.com/)的 `qwen3.5-plus` 模型为例，推荐关闭平台默认的思考模式以提升执行速度，其环境变量配置如下：
