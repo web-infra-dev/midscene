@@ -16,7 +16,7 @@ import type {
 import { executionToMarkdown } from '@midscene/core';
 import { filterBase64Value } from '@midscene/visualizer';
 import { Blackboard, Player } from '@midscene/visualizer';
-import { Button, Segmented } from 'antd';
+import { Segmented } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { fullTimeStrWithMilliseconds } from '../../../../../packages/visualizer/src/utils';
 import OpenInPlayground from '../open-in-playground';
@@ -151,8 +151,8 @@ const DetailPanel = (): JSX.Element => {
   const availableViewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
 
   if (hasReplay) {
-    availableViewTypes.unshift(VIEW_TYPE_MARKDOWN);
     availableViewTypes.unshift(VIEW_TYPE_REPLAY);
+    availableViewTypes.push(VIEW_TYPE_MARKDOWN);
   }
 
   const viewType =
@@ -172,28 +172,8 @@ const DetailPanel = (): JSX.Element => {
     );
   } else if (viewType === VIEW_TYPE_MARKDOWN) {
     if (markdownResult) {
-      const safeName = (activeExecution?.name || 'report')
-        .trim()
-        .replace(/\s+/g, '-')
-        .replace(/[^a-zA-Z0-9-_]/g, '');
       content = (
         <div className="markdown-view scrollable">
-          <div className="markdown-toolbar">
-            <Button
-              type="primary"
-              icon={<DownloadOutlined />}
-              size="small"
-              onClick={() =>
-                downloadMarkdownZip(
-                  markdownResult.markdown,
-                  markdownResult.attachments,
-                  safeName || 'report',
-                )
-              }
-            >
-              Download ZIP
-            </Button>
-          </div>
           <pre className="markdown-source">{markdownResult.markdown}</pre>
         </div>
       );
@@ -363,6 +343,11 @@ const DetailPanel = (): JSX.Element => {
       value: type,
     };
   });
+  const safeName = (activeExecution?.name || 'report')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-zA-Z0-9-_]/g, '');
+
   return (
     <div className="detail-panel">
       <div className="view-switcher">
@@ -375,9 +360,25 @@ const DetailPanel = (): JSX.Element => {
           }}
         />
 
-        <OpenInPlayground
-          context={(activeTask as ExecutionTaskPlanning)?.uiContext}
-        />
+        <div className="view-switcher-actions">
+          {viewType === VIEW_TYPE_MARKDOWN && markdownResult && (
+            <a
+              className="download-zip-link"
+              onClick={() =>
+                downloadMarkdownZip(
+                  markdownResult.markdown,
+                  markdownResult.attachments,
+                  safeName || 'report',
+                )
+              }
+            >
+              <DownloadOutlined /> Download ZIP
+            </a>
+          )}
+          <OpenInPlayground
+            context={(activeTask as ExecutionTaskPlanning)?.uiContext}
+          />
+        </div>
       </div>
       <div className="detail-content">{content}</div>
     </div>

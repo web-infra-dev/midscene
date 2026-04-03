@@ -21,6 +21,25 @@
     display: flex;
     justify-content: space-between;
     flex-direction: row;
+    align-items: center;
+  }
+
+  .view-switcher-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .download-zip-link {
+    font-size: 13px;
+    color: #1677ff;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+
+    &:hover {
+      color: #4096ff;
+    }
   }
 
   .detail-content {
@@ -40,13 +59,6 @@
   .markdown-view {
     display: flex;
     flex-direction: column;
-
-    .markdown-toolbar {
-      flex-shrink: 0;
-      margin-bottom: 12px;
-      display: flex;
-      gap: 8px;
-    }
 
     .markdown-source {
       flex: 1;
@@ -125,6 +137,14 @@
     background: #2d2d2d;
     border-color: rgba(255, 255, 255, 0.12);
     color: #e8eaed;
+  }
+
+  .download-zip-link {
+    color: #4096ff;
+
+    &:hover {
+      color: #69b1ff;
+    }
   }
 
   :where(.ant-segmented) .ant-segmented-item-selected {
