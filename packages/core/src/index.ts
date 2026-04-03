@@ -84,3 +84,12 @@ export {
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';
 export { ScreenshotStore, type ScreenshotRef } from './dump/screenshot-store';
+
+export {
+  executionToMarkdown,
+  reportToMarkdown,
+  type ExecutionMarkdownOptions,
+  type ExecutionMarkdownResult,
+  type ReportMarkdownResult,
+  type MarkdownAttachment,
+} from './report-markdown';
