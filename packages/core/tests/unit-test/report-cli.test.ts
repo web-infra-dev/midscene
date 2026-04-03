@@ -115,7 +115,7 @@ describe('createReportCliCommands', () => {
     expect(secondDump.executions[0].id).toBe('exec-2');
   });
 
-  it('runs markdown export through the generic report command', async () => {
+  it('runs to-markdown export through the generic report command', async () => {
     const reportPath = join(tmpDir, 'input-report-md', 'index.html');
     mkdirSync(join(tmpDir, 'input-report-md'), { recursive: true });
 
@@ -149,7 +149,7 @@ describe('createReportCliCommands', () => {
     const result = await command.def.handler({
       htmlPath: reportPath,
       outputDir,
-      action: 'markdown',
+      action: 'to-markdown',
     });
 
     expect(result.isError).toBe(false);

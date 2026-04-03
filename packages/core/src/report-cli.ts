@@ -182,10 +182,10 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
     'Transform Midscene report artifacts, including splitting executions and converting to markdown.',
   schema: {
     action: z
-      .enum(['split', 'markdown'])
+      .enum(['split', 'to-markdown'])
       .optional()
       .describe(
-        'Report action to run. Supports: split, markdown. Defaults to split.',
+        'Report action to run. Supports: split, to-markdown. Defaults to split.',
       ),
     htmlPath: z
       .string()
@@ -207,9 +207,9 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
       outputDir?: string;
     };
 
-    if (action !== 'split' && action !== 'markdown') {
+    if (action !== 'split' && action !== 'to-markdown') {
       throw new Error(
-        `report-tool: unsupported --action value "${action}". Currently supported: split, markdown`,
+        `report-tool: unsupported --action value "${action}". Currently supported: split, to-markdown`,
       );
     }
 
@@ -224,7 +224,7 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
       );
     }
 
-    if (action === 'markdown') {
+    if (action === 'to-markdown') {
       const result = await markdownFromReport(htmlPath, outputDir);
       return {
         isError: false,
