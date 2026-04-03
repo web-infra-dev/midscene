@@ -37,6 +37,33 @@
     margin: 0 auto;
   }
 
+  .markdown-view {
+    display: flex;
+    flex-direction: column;
+
+    .markdown-toolbar {
+      flex-shrink: 0;
+      margin-bottom: 12px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .markdown-source {
+      flex: 1;
+      overflow: auto;
+      padding: 16px;
+      background: #f6f8fa;
+      border: 1px solid @heavy-border-color;
+      border-radius: 6px;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0;
+    }
+  }
+
   .screenshot-item-wrapper {
     display: flex;
     flex-wrap: wrap;
@@ -92,6 +119,12 @@
         border-color: rgba(255, 255, 255, 0.12);
       }
     }
+  }
+
+  .markdown-view .markdown-source {
+    background: #2d2d2d;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #e8eaed;
   }
 
   :where(.ant-segmented) .ant-segmented-item-selected {
