@@ -41,7 +41,7 @@ const defaultPort = PLAYGROUND_SERVER_PORT;
  * the `_def` metadata the client relies on (typeName, innerType, values,
  * defaultValue, description, shape, etc.).
  */
-function serializeZodField(field: any): any {
+export function serializeZodField(field: any): any {
   if (!field || typeof field !== 'object') return field;
 
   const def = field._def;
