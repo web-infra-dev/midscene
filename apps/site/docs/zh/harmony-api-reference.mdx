@@ -16,6 +16,7 @@
 - `ClearInput` —— 清空输入框内容。
 - ~~`Pinch`~~ —— 不支持。HarmonyOS `uitest` 框架未提供多触点输入 API。
 - `Launch` —— 打开 HarmonyOS 应用（bundle name）。
+- `Terminate` —— 按 bundle name 强制停止应用。
 - `RunHdcShell` —— 执行原始 `hdc shell` 命令。
 - `HarmonyBackButton` —— 触发系统返回。
 - `HarmonyHomeButton` —— 回到桌面。
@@ -113,7 +114,7 @@ const agent = new HarmonyAgent(device, {
 :::info
 
 - 一个设备连接对应一个 Agent。
-- `launch`、`runHdcShell` 等 HarmonyOS 专属辅助函数也可在 YAML 脚本中使用，语法见 [HarmonyOS 平台特定动作](./automate-with-scripts-in-yaml#harmony-部分)。
+- `launch`、`terminate`、`runHdcShell` 等 HarmonyOS 专属辅助函数也可在 YAML 脚本中使用，语法见 [HarmonyOS 平台特定动作](./automate-with-scripts-in-yaml#harmony-部分)。
 - 通用交互方法请查阅 [API 参考（通用）](./api#interaction-methods)。
 
 :::
@@ -148,6 +149,20 @@ function runHdcShell(command: string): Promise<string>;
 ```ts
 const result = await agent.runHdcShell('hidumper -s RenderService -a screen');
 console.log(result);
+```
+
+#### `agent.terminate()`
+
+终止（强制停止）正在运行的 HarmonyOS 应用。
+
+```ts
+function terminate(uri: string): Promise<void>;
+```
+
+- `uri: string` —— 应用 bundle name、`appNameMapping` 中的应用名称，或 `bundle/Ability`（仅使用 bundle name 部分）。
+
+```ts
+await agent.terminate('com.huawei.hmos.settings');
 ```
 
 #### 导航辅助

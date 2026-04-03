@@ -119,6 +119,31 @@ describe('AndroidDevice', () => {
     });
   });
 
+  describe('terminate', () => {
+    it('should force-stop app by package name', async () => {
+      mockAdb.shell.mockResolvedValue('');
+      await device.terminate('com.android.settings');
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        'am force-stop com.android.settings',
+      );
+    });
+
+    it('should use package part when uri contains slash', async () => {
+      mockAdb.shell.mockResolvedValue('');
+      await device.terminate('com.android.settings/.Settings');
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        'am force-stop com.android.settings',
+      );
+    });
+
+    it('should throw on terminate failure', async () => {
+      mockAdb.shell.mockRejectedValue(new Error('force-stop failed'));
+      await expect(device.terminate('com.bad.app')).rejects.toThrow(
+        'Failed to terminate com.bad.app',
+      );
+    });
+  });
+
   describe('size', () => {
     it('should calculate screen size', async () => {
       vi.spyOn(device as any, 'getScreenSize').mockResolvedValue({

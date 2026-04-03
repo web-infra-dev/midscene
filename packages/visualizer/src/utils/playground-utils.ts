@@ -23,11 +23,10 @@ export const actionNameForType = (type: string) => {
 
   // For long names, keep the last 3 words to make them shorter
   const words = fullName.split(' ');
-  if (words.length > 3) {
-    return words.slice(-3).join(' ');
-  }
+  const result = words.length > 3 ? words.slice(-3).join(' ') : fullName;
 
-  return fullName;
+  // Capitalize the first letter of each word for consistent display
+  return result.replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
 // Create static agent from context
