@@ -12,6 +12,7 @@ export interface PlaywrightTaskAttributes {
     | 'skipped'
     | 'interrupted';
   playwright_test_duration: number;
+  is_merged?: boolean;
 }
 
 export interface PlaywrightTasks {

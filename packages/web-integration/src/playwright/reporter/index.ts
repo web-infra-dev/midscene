@@ -179,9 +179,19 @@ class MidsceneReporter implements Reporter {
       if (!firstReport) {
         return;
       }
-      const targetPath = this.getReportPath();
-      this.copyReport(firstReport.reportFilePath, targetPath);
-      printReportMsg(targetPath);
+      if (firstReport.reportFilePath) {
+        const targetPath = this.getReportPath();
+        this.copyReport(firstReport.reportFilePath, targetPath);
+        printReportMsg(targetPath);
+        return;
+      }
+
+      const mergedReportPath = tool.mergeReports(targetName, {
+        overwrite: true,
+      });
+      if (mergedReportPath) {
+        printReportMsg(mergedReportPath);
+      }
       return;
     }
 
@@ -198,9 +208,22 @@ class MidsceneReporter implements Reporter {
     for (const entry of this.reportsByTestId.values()) {
       const targetName = this.getReportFilename(entry.testTitle);
       if (entry.reports.length === 1) {
-        const targetPath = this.getReportPath(entry.testTitle);
-        this.copyReport(entry.reports[0].reportFilePath, targetPath);
-        printReportMsg(targetPath);
+        const firstReport = entry.reports[0];
+        if (firstReport.reportFilePath) {
+          const targetPath = this.getReportPath(entry.testTitle);
+          this.copyReport(firstReport.reportFilePath, targetPath);
+          printReportMsg(targetPath);
+          continue;
+        }
+
+        const tool = new ReportMergingTool();
+        tool.append(firstReport);
+        const reportPath = tool.mergeReports(targetName, {
+          overwrite: true,
+        });
+        if (reportPath) {
+          printReportMsg(reportPath);
+        }
         continue;
       }
 

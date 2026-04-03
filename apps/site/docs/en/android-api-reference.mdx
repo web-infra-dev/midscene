@@ -8,7 +8,7 @@ Use this doc when you need to customize Midscene's Android automation or review 
 
 - `Tap` &mdash; Tap an element.
 - `DoubleClick` &mdash; Double-tap an element.
-- `Input` &mdash; Enter text with `replace`/`append`/`clear` modes and optional `autoDismissKeyboard`.
+- `Input` &mdash; Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard` parameter.
 - `Scroll` &mdash; Scroll from an element or screen center in any direction, with helpers to reach the top, bottom, left, or right.
 - `DragAndDrop` &mdash; Drag from one element to another.
 - `KeyboardPress` &mdash; Press a specified key.
@@ -17,6 +17,7 @@ Use this doc when you need to customize Midscene's Android automation or review 
 - `Pinch` &mdash; Two-finger pinch gesture. Use `scale > 1` to zoom in, `scale < 1` to zoom out.
 - `ClearInput` &mdash; Clear the contents of an input field.
 - `Launch` &mdash; Open a web URL or `package/.Activity` string.
+- `Terminate` &mdash; Force-stop an app by package name.
 - `RunAdbShell` &mdash; Execute raw `adb shell` commands.
 - `AndroidBackButton` &mdash; Trigger the system back action.
 - `AndroidHomeButton` &mdash; Return to the home screen.
@@ -148,7 +149,7 @@ const agent = new AndroidAgent(device, {
 :::info
 
 - Use one agent per device connection.
-- Android-only helpers such as `launch` and `runAdbShell` are also exposed in YAML scripts. See [Android platform-specific actions](./automate-with-scripts-in-yaml#the-android-part).
+- Android-only helpers such as `launch`, `terminate`, and `runAdbShell` are also exposed in YAML scripts. See [Android platform-specific actions](./automate-with-scripts-in-yaml#the-android-part).
 - For shared interaction methods, see [API reference (Common)](./api#interaction-methods).
 
 :::
@@ -178,6 +179,20 @@ function runAdbShell(command: string): Promise<string>;
 ```ts
 const result = await agent.runAdbShell('dumpsys battery');
 console.log(result);
+```
+
+#### `agent.terminate()`
+
+Terminate (force-stop) a running Android app.
+
+```ts
+function terminate(uri: string): Promise<void>;
+```
+
+- `uri: string` &mdash; Package name, app name in `appNameMapping`, or `package/.Activity` (only the package part is used).
+
+```ts
+await agent.terminate('com.android.settings');
 ```
 
 #### Navigation helpers

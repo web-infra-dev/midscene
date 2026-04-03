@@ -81,6 +81,23 @@ test('ai shop', async ({
 `;
 
 export const YAML_EXAMPLE_CODE = `
+CRITICAL - YAML Indentation Rules:
+For actions with additional parameters (aiScroll, aiInput, aiKeyboardPress), the parameters must be SIBLING keys at the SAME indentation level as the action key, NOT nested children indented further.
+CORRECT (parameters align with the action key):
+      - aiScroll:
+        direction: 'down'
+        scrollType: 'singleAction'
+        distance: 500
+        locate: "main content area"
+      - aiInput: 'text value'
+        locate: 'input field description'
+WRONG (parameters are indented further than the action key, DO NOT do this):
+      - aiScroll:
+          direction: 'down'
+          scrollType: 'singleAction'
+      - aiInput: 'text value'
+          locate: 'input field description'
+
 1. Format:
 
 web:
@@ -92,13 +109,18 @@ tasks:
   - name: "descriptive task name"
     flow:
       - aiTap: "element description"
+        xpath: '/html/body/div[1]/button[1]'
       - aiInput: 'text value'
         locate: 'input field description'
+        xpath: '/html/body/div[1]/input[1]'
       - aiScroll:
-        direction: down/up
-        scrollType: scrollToBottom/scrollToTop/singleAction
+        direction: 'down'
+        scrollType: 'singleAction'
+        distance: 500
+        locate: "scrollable area description"
+        xpath: '/html/body/div[1]/main[1]'
       - aiAssert: "expected state"
-      - sleep: milliseconds
+      - sleep: 1000
 
 2. Action Types:
 - aiTap: for clicks (natural language targeting)
@@ -106,24 +128,6 @@ tasks:
 - aiScroll: with direction and scrollType
 - aiAssert: for validations
 - sleep: for delays (milliseconds)
-
-3. Best Practices:
-- Group related actions into logical tasks
-- Use natural language descriptions
-- Add deepLocate: true for complex interactions
-- Keep task names concise but descriptive
-
-4. CRITICAL - YAML Indentation Rules:
-- For actions with additional parameters (aiScroll, aiInput, aiKeyboardPress), the parameters must be SIBLING keys, NOT nested children
-- Parameters like direction, scrollType, locate must align with the action key, not indented further
-- CORRECT indentation example:
-      - aiScroll:
-        direction: down
-        scrollType: singleAction
-- WRONG indentation (DO NOT do this):
-      - aiScroll:
-          direction: down
-          scrollType: singleAction
 
 
 

@@ -36,6 +36,70 @@ import 'dotenv/config';
 
 const defaultPort = PLAYGROUND_SERVER_PORT;
 
+/**
+ * Recursively serialize a Zod field into a plain object that preserves
+ * the `_def` metadata the client relies on (typeName, innerType, values,
+ * defaultValue, description, shape, etc.).
+ */
+export function serializeZodField(field: any): any {
+  if (!field || typeof field !== 'object') return field;
+
+  const def = field._def;
+  if (!def || typeof def !== 'object') return field;
+
+  const typeName: string | undefined = def.typeName;
+
+  const result: Record<string, any> = {
+    _def: {
+      typeName,
+    },
+  };
+
+  // Preserve description
+  if (def.description) {
+    result._def.description = def.description;
+  }
+
+  // Wrapper types (ZodOptional, ZodDefault, ZodNullable) – recurse into innerType
+  if (def.innerType) {
+    result._def.innerType = serializeZodField(def.innerType);
+  }
+
+  // ZodDefault – preserve defaultValue as a serializable plain value
+  if (typeName === 'ZodDefault' && typeof def.defaultValue === 'function') {
+    try {
+      result._def._serializedDefaultValue = def.defaultValue();
+    } catch {
+      // ignore
+    }
+  }
+
+  // ZodEnum – preserve values array
+  if (typeName === 'ZodEnum' && Array.isArray(def.values)) {
+    result._def.values = def.values;
+  }
+
+  // ZodObject – recurse into shape
+  if (typeName === 'ZodObject') {
+    const rawShape = typeof def.shape === 'function' ? def.shape() : def.shape;
+    if (rawShape && typeof rawShape === 'object') {
+      const serializedShape: Record<string, any> = {};
+      for (const [k, v] of Object.entries(rawShape)) {
+        serializedShape[k] = serializeZodField(v);
+      }
+      result._def.shape = serializedShape;
+      result.shape = serializedShape;
+    }
+  }
+
+  // Copy top-level description for compatibility
+  if (field.description) {
+    result.description = field.description;
+  }
+
+  return result;
+}
+
 // Static path for playground files
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -222,6 +286,10 @@ class PlaygroundServer {
       | 'sidecars'
     >,
   ): void {
+    // Allow overriding the initial session created by agentFactory in launch()
+    if (this._activeConnection.session && this._activeConnection.agentFactory) {
+      this._activeConnection.session = null;
+    }
     this.assertNoActiveSessionForBaseStateUpdate('setPreparedPlatform');
     this.sessionManager = prepared.sessionManager;
     this._basePreparedMetadata = prepared.metadata
@@ -755,9 +823,17 @@ class PlaygroundServer {
                   typedAction.paramSchema.shape &&
                   typeof typedAction.paramSchema.shape === 'object'
                 ) {
+                  const rawShape = typedAction.paramSchema.shape as Record<
+                    string,
+                    any
+                  >;
+                  const serializedShape: Record<string, any> = {};
+                  for (const [key, field] of Object.entries(rawShape)) {
+                    serializedShape[key] = serializeZodField(field);
+                  }
                   processedSchema = {
                     type: 'ZodObject',
-                    shape: typedAction.paramSchema.shape,
+                    shape: serializedShape,
                   };
                 }
               } catch (e) {
@@ -1389,8 +1465,8 @@ class PlaygroundServer {
     this.port = port || defaultPort;
 
     return new Promise((resolve) => {
-      const serverPort = this.port;
-      this.server = this._app.listen(serverPort, () => {
+      const serverPort = this.port ?? defaultPort;
+      this.server = this._app.listen(serverPort, '0.0.0.0', () => {
         resolve(this);
       });
     });

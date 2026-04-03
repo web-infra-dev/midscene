@@ -133,6 +133,7 @@ export const PlaywrightAiFixture = (options?: {
 
       const agent = new PlaywrightAgent(page, {
         testId: `playwright-${testId}-${idForPage}`,
+        reportFileName: `playwright-${testId}-${idForPage}`,
         forceSameTabNavigation,
         cache: cacheConfig,
         groupName: title,

@@ -79,7 +79,8 @@ vi.mock('express', () => {
     get: vi.fn(),
     post: vi.fn(),
     delete: vi.fn(),
-    listen: vi.fn((port: number, callback?: () => void) => {
+    listen: vi.fn((...args: any[]) => {
+      const callback = args.find((a: any) => typeof a === 'function');
       setTimeout(() => callback?.(), 0);
       return {
         close: vi.fn((callback?: () => void) => {

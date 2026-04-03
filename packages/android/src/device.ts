@@ -177,6 +177,9 @@ export class AndroidDevice implements AbstractInterface {
             param.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
           await this.keyboardType(param.value, {
             autoDismissKeyboard,
+            // In replace mode (default), use overwrite to avoid yadb prepending
+            // placeholder/hint text from AccessibilityNodeInfo.getText()
+            overwrite: param.mode !== 'typeOnly',
           });
         },
       }),
@@ -606,13 +609,38 @@ ${Object.keys(size)
     return this;
   }
 
-  async execYadb(keyboardContent: string): Promise<void> {
+  /**
+   * Terminate (force-stop) an Android app by package name.
+   * Supports app name resolution via setAppNameMapping.
+   * If uri contains "/" (e.g. com.example.app/.MainActivity), only the package part is used.
+   */
+  public async terminate(uri: string): Promise<void> {
+    const packagePart = uri.includes('/') ? uri.split('/')[0] : uri;
+    const resolved = this.resolvePackageName(packagePart) ?? packagePart;
+    const adb = await this.getAdb();
+    try {
+      debugDevice(`Terminating app: ${resolved}`);
+      await adb.shell(`am force-stop ${resolved}`);
+      debugDevice(`Successfully terminated: ${resolved}`);
+    } catch (error: any) {
+      debugDevice(`Error terminating ${resolved}: ${error}`);
+      throw new Error(`Failed to terminate ${resolved}: ${error.message}`, {
+        cause: error,
+      });
+    }
+  }
+
+  async execYadb(
+    keyboardContent: string,
+    options?: { overwrite?: boolean },
+  ): Promise<void> {
     await this.ensureYadb();
 
     const adb = await this.getAdb();
+    const overwriteFlag = options?.overwrite ? ' --overwrite' : '';
 
     await adb.shell(
-      `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard '${keyboardContent}'`,
+      `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard '${keyboardContent}'${overwriteFlag}`,
     );
   }
 
@@ -1505,7 +1533,7 @@ ${Object.keys(size)
 
   async keyboardType(
     text: string,
-    options?: AndroidDeviceInputOpt,
+    options?: AndroidDeviceInputOpt & { overwrite?: boolean },
   ): Promise<void> {
     if (!text) return;
     const adb = await this.getAdb();
@@ -1526,7 +1554,9 @@ ${Object.keys(size)
       // yadb handles newlines natively: escapeForShell converts \n (0x0A)
       // to literal \n (two chars), which yadb interprets back as newline.
       // Single adb call for the entire text.
-      await this.execYadb(escapeForShell(text));
+      await this.execYadb(escapeForShell(text), {
+        overwrite: options?.overwrite,
+      });
     } else {
       // inputText cannot handle newlines, so split by \n and press Enter between segments.
       const segments = text.split('\n');
@@ -1980,17 +2010,28 @@ const launchParamSchema = z.object({
     ),
 });
 
+const terminateParamSchema = z.object({
+  uri: z
+    .string()
+    .describe(
+      'Package name or app name to terminate. Use the exact package name, e.g. com.android.settings.',
+    ),
+});
+
 type RunAdbShellParam = z.infer<typeof runAdbShellParamSchema>;
 type LaunchParam = z.infer<typeof launchParamSchema>;
+type TerminateParam = z.infer<typeof terminateParamSchema>;
 
 export type DeviceActionRunAdbShell = DeviceAction<RunAdbShellParam, string>;
 export type DeviceActionLaunch = DeviceAction<LaunchParam, void>;
+export type DeviceActionTerminate = DeviceAction<TerminateParam, void>;
 
 const createPlatformActions = (
   device: AndroidDevice,
 ): {
   RunAdbShell: DeviceActionRunAdbShell;
   Launch: DeviceActionLaunch;
+  Terminate: DeviceActionTerminate;
   AndroidBackButton: DeviceActionAndroidBackButton;
   AndroidHomeButton: DeviceActionAndroidHomeButton;
   AndroidRecentAppsButton: DeviceActionAndroidRecentAppsButton;
@@ -2029,6 +2070,18 @@ const createPlatformActions = (
           throw new Error('Launch requires a non-empty uri parameter');
         }
         await device.launch(param.uri);
+      },
+    }),
+    Terminate: defineAction<typeof terminateParamSchema, TerminateParam, void>({
+      name: 'Terminate',
+      description: 'Terminate (force-stop) an Android app by package name',
+      interfaceAlias: 'terminate',
+      paramSchema: terminateParamSchema,
+      call: async (param) => {
+        if (!param.uri || param.uri.trim() === '') {
+          throw new Error('Terminate requires a non-empty uri parameter');
+        }
+        await device.terminate(param.uri);
       },
     }),
     AndroidBackButton: defineAction({

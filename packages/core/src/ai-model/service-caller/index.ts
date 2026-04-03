@@ -274,6 +274,9 @@ export async function callAI(
   let timeCost: number | undefined;
   let requestId: string | null | undefined;
 
+  const hasUsableText = (value: string | null | undefined): value is string =>
+    typeof value === 'string' && value.trim().length > 0;
+
   const buildUsageInfo = (
     usageData?: OpenAI.CompletionUsage,
     requestId?: string | null,
@@ -499,17 +502,17 @@ export async function callAI(
           usage = result.usage;
           requestId = result._request_id;
 
-          if (
-            !content &&
-            accumulatedReasoning &&
-            (modelFamily === 'doubao-vision' || modelFamily === 'doubao-seed')
-          ) {
+          if (!hasUsableText(content) && hasUsableText(accumulatedReasoning)) {
             warnCall('empty content from AI model, using reasoning content');
             content = accumulatedReasoning;
           }
 
-          if (!content) {
-            throw new Error('empty content from AI model');
+          if (!hasUsableText(content)) {
+            throw new AIResponseParseError(
+              'empty content from AI model',
+              JSON.stringify(result),
+              buildUsageInfo(usage, requestId),
+            );
           }
 
           break; // Success, exit retry loop
@@ -558,6 +561,11 @@ export async function callAI(
     };
   } catch (e: any) {
     warnCall('call AI error', e);
+
+    if (e instanceof AIResponseParseError) {
+      throw e;
+    }
+
     const newError = new Error(
       `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${e.message}\nTrouble shooting: https://midscenejs.com/model-provider.html`,
       {

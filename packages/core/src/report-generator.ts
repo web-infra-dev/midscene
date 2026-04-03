@@ -136,6 +136,7 @@ export class ReportGenerator implements IReportGenerator {
 
     // In browser environment, file system is not available
     if (ifInBrowser) return nullReportGenerator;
+    validateReportFileName(reportFileName);
 
     const outputDir = join(getMidsceneRunSubDir('report'), reportFileName);
     return new ReportGenerator({
@@ -357,5 +358,23 @@ export class ReportGenerator implements IReportGenerator {
     const fileName = `${fileIndex}.execution.json`;
     const filePath = join(dirname(this.reportPath), fileName);
     writeFileSync(filePath, singleDump.serialize(2), 'utf-8');
+  }
+}
+
+function validateReportFileName(reportFileName: string): void {
+  if (!reportFileName?.trim()) {
+    throw new Error('reportFileName must be a non-empty string');
+  }
+
+  if (/[\\/]/.test(reportFileName)) {
+    throw new Error(
+      'reportFileName must not contain path separators (`/` or `\\\\`)',
+    );
+  }
+
+  if (/[:*?"<>|]/.test(reportFileName)) {
+    throw new Error(
+      'reportFileName contains illegal filename characters: : * ? " < > |',
+    );
   }
 }

@@ -450,6 +450,37 @@ describe('HarmonyDevice', () => {
     });
   });
 
+  describe('terminate', () => {
+    beforeEach(async () => {
+      await device.connect();
+    });
+
+    it('should force-stop app by bundle name', async () => {
+      await device.terminate('com.example.app');
+      expect(mockHdc.forceStop).toHaveBeenCalledWith('com.example.app');
+    });
+
+    it('should use bundle part when uri contains slash', async () => {
+      await device.terminate('com.example.app/MainAbility');
+      expect(mockHdc.forceStop).toHaveBeenCalledWith('com.example.app');
+    });
+
+    it('should resolve app name mapping before force-stop', async () => {
+      device.setAppNameMapping({
+        music: 'com.huawei.hmsapp.music',
+      });
+      await device.terminate('Music');
+      expect(mockHdc.forceStop).toHaveBeenCalledWith('com.huawei.hmsapp.music');
+    });
+
+    it('should throw on terminate failure', async () => {
+      mockHdc.forceStop.mockRejectedValueOnce(new Error('force-stop failed'));
+      await expect(device.terminate('com.bad.app')).rejects.toThrow(
+        'Failed to terminate com.bad.app',
+      );
+    });
+  });
+
   describe('scroll', () => {
     beforeEach(async () => {
       mockHdc.getScreenInfo.mockResolvedValue({ width: 1200, height: 2400 });
@@ -653,9 +684,9 @@ describe('HarmonyDevice', () => {
       expect(actionNames).toContain('CustomAction');
     });
 
-    it('should return 15 default actions + platform actions', () => {
+    it('should return 16 default actions + platform actions', () => {
       const actions = device.actionSpace();
-      expect(actions.length).toBe(15);
+      expect(actions.length).toBe(16);
     });
   });
 

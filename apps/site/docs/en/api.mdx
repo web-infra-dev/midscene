@@ -857,6 +857,10 @@ function aiLocate(
 - Return Value:
 
   - Returns a `Promise` when the element is located parsed as an locate info object.
+  - `rect` usually represents the matched element boundary.
+  - Some models only support point grounding rather than boundary grounding. In those cases, such as AutoGLM, `rect` will be a small `8x8` box containing the element center instead of the true element boundary.
+  - Because `rect` can vary significantly depending on model capability, it is not recommended to rely too heavily on this field for strict boundary semantics.
+  - If you need a stable click target, prefer the `center` field.
 
 - Examples:
 

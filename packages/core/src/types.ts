@@ -1054,6 +1054,7 @@ export type Cache =
   | CacheConfig; // Object configuration (requires explicit id)
 
 export interface AgentOpt {
+  // @deprecated Use `reportFileName` and `cache.id` instead.
   testId?: string;
   // @deprecated
   cacheId?: string; // Keep backward compatibility, but marked as deprecated
@@ -1166,13 +1167,20 @@ export type TestStatus =
   | 'skipped'
   | 'interrupted';
 
-export interface ReportFileWithAttributes {
-  reportFilePath: string;
-  reportAttributes: {
-    testDuration: number;
-    testStatus: TestStatus;
-    testTitle: string;
-    testId: string;
-    testDescription: string;
-  };
+export interface ReportFileAttributes {
+  testDuration: number;
+  testStatus: TestStatus;
+  testTitle: string;
+  testId: string;
+  testDescription: string;
 }
+
+export type ReportFileWithAttributes =
+  | {
+      reportFilePath: string;
+      reportAttributes: ReportFileAttributes;
+    }
+  | {
+      reportFilePath?: string;
+      reportAttributes: ReportFileAttributes & { testStatus: 'skipped' };
+    };

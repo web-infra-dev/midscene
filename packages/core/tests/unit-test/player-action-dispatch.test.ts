@@ -10,6 +10,10 @@ const launchParamSchema = z.object({
   uri: z.string(),
 });
 
+const terminateParamSchema = z.object({
+  uri: z.string(),
+});
+
 /**
  * Creates a minimal ScriptPlayer instance with given actionSpace injected,
  * then calls playTask to exercise the action dispatch logic in player.ts.
@@ -30,6 +34,7 @@ function createMockAgent(overrides: Record<string, any> = {}) {
   return {
     callActionInActionSpace: vi.fn().mockResolvedValue('action-result'),
     launch: vi.fn().mockResolvedValue('launch-result'),
+    terminate: vi.fn().mockResolvedValue('terminate-result'),
     runAdbShell: vi.fn().mockResolvedValue('adb-result'),
     ...overrides,
   } as any;
@@ -84,6 +89,31 @@ describe('player action dispatch ordering', () => {
     await player.playTask(taskStatus, agent);
 
     expect(agent.launch).toHaveBeenCalledWith('com.example.app');
+    expect(agent.callActionInActionSpace).not.toHaveBeenCalled();
+  });
+
+  it('should call agent.terminate directly for Terminate action', async () => {
+    const actionSpace = [
+      {
+        name: 'Terminate',
+        interfaceAlias: 'terminate',
+        paramSchema: terminateParamSchema,
+      },
+    ];
+    const player = createPlayerWithActionSpace(actionSpace);
+    const agent = createMockAgent();
+
+    const taskStatus = {
+      name: 'test',
+      flow: [{ terminate: 'com.example.app' }],
+      index: 0,
+      status: 'running' as const,
+      totalSteps: 1,
+    };
+
+    await player.playTask(taskStatus, agent);
+
+    expect(agent.terminate).toHaveBeenCalledWith('com.example.app');
     expect(agent.callActionInActionSpace).not.toHaveBeenCalled();
   });
 
@@ -165,6 +195,36 @@ describe('player action dispatch ordering', () => {
     await player.playTask(taskStatus, agent);
 
     expect(agent.callActionInActionSpace).toHaveBeenCalledWith('Launch', {
+      uri: 'com.example.app',
+    });
+  });
+
+  it('should wrap Terminate string params when helper is unavailable', async () => {
+    const actionSpace = [
+      {
+        name: 'Terminate',
+        interfaceAlias: 'terminate',
+        paramSchema: terminateParamSchema,
+      },
+    ];
+    const player = createPlayerWithActionSpace(actionSpace);
+    const agent = {
+      callActionInActionSpace: vi
+        .fn()
+        .mockResolvedValue('terminate-via-action'),
+    } as any;
+
+    const taskStatus = {
+      name: 'test',
+      flow: [{ terminate: 'com.example.app' }],
+      index: 0,
+      status: 'running' as const,
+      totalSteps: 1,
+    };
+
+    await player.playTask(taskStatus, agent);
+
+    expect(agent.callActionInActionSpace).toHaveBeenCalledWith('Terminate', {
       uri: 'com.example.app',
     });
   });
