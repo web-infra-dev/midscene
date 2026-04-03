@@ -155,11 +155,10 @@ function capturePageTitle(): string {
 // Track the last captured title so we can use it as beforeTitle for the next event
 let lastCapturedTitle = '';
 
-/**
- * Wait for page to become visually stable after an action.
- * Monitors DOM mutations and waits for them to settle, with a maximum timeout.
- */
-function waitForPageStable(timeout = 1500, settleTime = 300): Promise<void> {
+// Wait for page to stabilize after an action. Uses MutationObserver to detect
+// when the DOM stops changing, AND checks for iframe load completion.
+// This ensures screenshotAfter captures the fully loaded page state.
+function waitForPageStable(timeout = 3000, settleTime = 500): Promise<void> {
   return new Promise((resolve) => {
     let mutationTimer: NodeJS.Timeout | null = null;
     let timeoutTimer: NodeJS.Timeout | null = null;
@@ -194,8 +193,33 @@ function waitForPageStable(timeout = 1500, settleTime = 300): Promise<void> {
       characterData: true,
     });
 
-    // If no mutations happen within settleTime, resolve immediately
+    // If no mutations happen within settleTime, check iframe loading state
     mutationTimer = setTimeout(() => {
+      // Check if any visible iframes are still loading
+      const iframes = document.querySelectorAll('iframe');
+      let pendingIframes = 0;
+      for (const iframe of iframes) {
+        try {
+          if (
+            iframe.contentDocument &&
+            iframe.contentDocument.readyState !== 'complete'
+          ) {
+            pendingIframes++;
+          }
+        } catch (_e) {
+          // Cross-origin iframe, skip
+        }
+      }
+
+      if (pendingIframes > 0) {
+        // Some iframes still loading — wait up to remaining timeout
+        console.debug(
+          `[EventRecorder Bridge] Waiting for ${pendingIframes} iframe(s) to finish loading`,
+        );
+        // Don't cleanup yet; the mutation observer or timeout will resolve
+        return;
+      }
+
       cleanup();
       resolve();
     }, settleTime);
@@ -203,6 +227,12 @@ function waitForPageStable(timeout = 1500, settleTime = 300): Promise<void> {
 }
 
 // Helper function to capture screenshot with timeout
+// Rate limiting: Chrome enforces MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND (~2/sec).
+// Multiple callers (mousedown, idle monitor, event callback) can exceed this quota.
+// Track the last capture time and return the cached screenshot if called too soon.
+const MIN_CAPTURE_INTERVAL = 500; // ms between captureVisibleTab calls
+let lastCaptureTime = 0;
+
 async function captureScreenshot(timeout = 1000): Promise<string | undefined> {
   // Skip screenshot if page is unloading
   if (isPageUnloading) {
@@ -210,6 +240,16 @@ async function captureScreenshot(timeout = 1000): Promise<string | undefined> {
       '[EventRecorder Bridge] Skipping screenshot during page unload',
     );
     return undefined;
+  }
+
+  // Rate limit: if called within MIN_CAPTURE_INTERVAL of last capture,
+  // return cached screenshot to avoid exceeding Chrome's per-second quota.
+  const now = Date.now();
+  if (now - lastCaptureTime < MIN_CAPTURE_INTERVAL) {
+    console.debug(
+      '[EventRecorder Bridge] Screenshot rate-limited, using cached',
+    );
+    return lastScreenshot;
   }
 
   try {
@@ -228,6 +268,7 @@ async function captureScreenshot(timeout = 1000): Promise<string | undefined> {
         '[EventRecorder Bridge] Screenshot capture returned empty result',
       );
     }
+    lastCaptureTime = Date.now();
     return screenshot;
   } catch (error) {
     if (error instanceof Error) {
