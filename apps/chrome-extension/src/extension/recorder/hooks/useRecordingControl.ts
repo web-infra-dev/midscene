@@ -484,6 +484,37 @@ export const useRecordingControl = (
               recordLogger.info('Buffering event due to disconnected port');
               eventBuffer.push(optimizedEvent);
             }
+          } else if (message.action === 'update-after-screenshot') {
+            // Navigation afterScreenshot merging:
+            // When an iframe navigation is triggered by a click/interaction event,
+            // the iframe bridge captures the post-navigation screenshot and sends it here.
+            // We find the most recent event (the triggering click) and update its
+            // afterScreenshot with the navigation's screenshot, so the click event
+            // shows the fully loaded page state after navigation completes.
+            const currentEvents = useRecordStore.getState().events;
+            if (currentEvents.length > 0) {
+              const lastEvent = currentEvents[currentEvents.length - 1];
+              const updatedEvent: ChromeRecordedEvent = {
+                ...lastEvent,
+                screenshotAfter:
+                  message.screenshotAfter || lastEvent.screenshotAfter,
+                afterTitle: message.afterTitle || lastEvent.afterTitle,
+              };
+              recordLogger.info(
+                'Merging navigation afterScreenshot into last event',
+                {
+                  eventType: lastEvent.type,
+                  hashId: lastEvent.hashId,
+                  hasScreenshot: !!message.screenshotAfter,
+                  hasAfterTitle: !!message.afterTitle,
+                },
+              );
+              await updateEvent(updatedEvent);
+            } else {
+              recordLogger.warn(
+                'No events to merge navigation afterScreenshot into',
+              );
+            }
           } else {
             recordLogger.warn('Unhandled message format', {
               action: message.action,

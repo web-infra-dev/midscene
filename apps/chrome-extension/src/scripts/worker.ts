@@ -470,11 +470,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-  // Forward recording events to connected extension pages
+  // Forward recording events and screenshot updates to connected extension pages.
+  // 'update-after-screenshot' is sent by iframe bridges when a navigation event's
+  // afterScreenshot should be merged into the triggering click event.
   if (
     request.action === 'events' ||
     request.action === 'event' ||
-    request.action === 'event-update'
+    request.action === 'event-update' ||
+    request.action === 'update-after-screenshot'
   ) {
     if (connectedPorts.size === 0) {
       console.warn(

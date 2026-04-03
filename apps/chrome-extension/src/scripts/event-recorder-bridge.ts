@@ -38,12 +38,15 @@ interface ChromeMessage {
     | 'captureScreenshot'
     | 'events'
     | 'event-update'
+    | 'update-after-screenshot'
     | 'ping'
     | 'start'
     | 'stop'
     | 'getEvents'
     | 'clearEvents';
   data?: ChromeRecordedEvent[] | ChromeRecordedEvent;
+  screenshotAfter?: string;
+  afterTitle?: string;
   eventIndex?: number;
   totalEvents?: number;
   sessionId?: string;
@@ -394,16 +397,42 @@ async function initializeRecorder(sessionId: string): Promise<void> {
       // Update last activity time when new event occurs
       lastActivityTime = Date.now();
 
-      // Issue 2 & 3 fix: Skip navigation events from iframes.
+      // Navigation event merging for iframes:
       // When a click in the parent frame triggers an iframe load, the iframe's recorder
-      // emits a navigation event. This duplicates the parent's click event and clutters
-      // the step list. Only user-interaction events (click, input, scroll) are meaningful
-      // from iframe contexts.
+      // emits a navigation event. Instead of adding it as a separate step, we capture
+      // the navigation's afterScreenshot (showing the fully loaded page) and send it
+      // as an update to merge into the triggering click event's afterScreenshot.
+      // This ensures the click event's afterScreenshot reflects the final page state
+      // after the navigation completes.
       if (isInIframe && event.type === 'navigation') {
         console.log(
-          '[EventRecorder Bridge] Skipping navigation event from iframe:',
+          '[EventRecorder Bridge] Navigation event in iframe, capturing afterScreenshot for merge:',
           window.location.href,
         );
+        // Wait for the page to fully stabilize after navigation
+        await waitForPageStable(3000, 500);
+        const navScreenshot = await captureScreenshot();
+        const navAfterTitle = capturePageTitle();
+        if (navScreenshot) {
+          lastScreenshot = navScreenshot;
+        }
+        // Send the screenshot update to the service worker, which forwards it to the popup.
+        // The popup will find the most recent triggering event and update its afterScreenshot.
+        try {
+          await chrome.runtime.sendMessage({
+            action: 'update-after-screenshot',
+            screenshotAfter: navScreenshot || '',
+            afterTitle: navAfterTitle,
+          } as ChromeMessage);
+          console.log(
+            '[EventRecorder Bridge] Sent navigation afterScreenshot update for merge',
+          );
+        } catch (_e) {
+          console.debug(
+            '[EventRecorder Bridge] Failed to send navigation afterScreenshot update:',
+            _e,
+          );
+        }
         return;
       }
 
