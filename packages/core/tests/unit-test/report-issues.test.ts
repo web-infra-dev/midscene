@@ -126,19 +126,20 @@ describe('Issue 2: default groupName causes unrelated reports to merge', () => {
 
 // ---------- Issue 3: dedup key merges unrelated old executions ----------
 
-describe('Issue 3: dedup key merges old executions without id', () => {
+describe('Issue 3: execution persistence requires id', () => {
   /**
    * Old ExecutionDump entries have no `id` field. The dedup logic uses
    * `exec.id || exec.name` as key. When multiple old executions share the
    * same name (e.g. "Act - click login"), they get incorrectly merged
    * (only the last one survives).
    */
-  it('mergeDumpScripts loses old executions with same name and no id', async () => {
+  it('should throw when execution id is missing', async () => {
     const tmpDir = getTmpDir('dedup-old');
 
     const gen = new ReportGenerator({
       reportPath: join(tmpDir, 'dedup-old.html'),
       screenshotMode: 'inline',
+      persistExecutionDump: true,
       autoPrint: false,
     });
 
@@ -194,43 +195,10 @@ describe('Issue 3: dedup key merges old executions without id', () => {
       ],
     });
 
-    // Write both executions
     gen.onExecutionUpdate(exec1, groupMeta);
-    gen.onExecutionUpdate(exec2, groupMeta);
-    await gen.flush();
-
-    const html = readFileSync(join(tmpDir, 'dedup-old.html'), 'utf-8');
-
-    // Extract all dump scripts with data-group-id
-    const allDumps = extractAllDumpScriptsSync(
-      join(tmpDir, 'dedup-old.html'),
-    ).filter((d) => d.openTag.includes('data-group-id'));
-
-    // There should be 2 dump tags (one per execution update)
-    expect(allDumps.length).toBe(2);
-
-    // Now simulate what the Viewer does: merge and dedup
-    const allExecutions: any[] = [];
-    for (const d of allDumps) {
-      const content = antiEscapeScriptTag(d.content);
-      const parsed = JSON.parse(content);
-      allExecutions.push(...parsed.executions);
-    }
-
-    // We started with 2 executions
-    expect(allExecutions.length).toBe(2);
-
-    // Apply the dedup logic from App.tsx: only dedup by id, no-id entries kept
-    let noIdCounter = 0;
-    const deduped = new Map<string, any>();
-    for (const exec of allExecutions) {
-      const key = exec.id || `__no_id_${noIdCounter++}`;
-      deduped.set(key, exec);
-    }
-
-    // Both executions should survive dedup: without an id, executions with
-    // the same name are distinct and must not be collapsed.
-    expect(deduped.size).toBe(2);
+    await expect(gen.flush()).rejects.toThrow(
+      'execution.id is required for persisting execution dumps',
+    );
   });
 });
 

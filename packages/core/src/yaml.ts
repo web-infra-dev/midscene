@@ -98,6 +98,7 @@ export type MidsceneYamlScriptAgentOpt = Pick<
   | 'groupName'
   | 'groupDescription'
   | 'generateReport'
+  | 'persistExecutionDump'
   | 'autoPrintReportMsg'
   | 'reportFileName'
   | 'replanningCycleLimit'

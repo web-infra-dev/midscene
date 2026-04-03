@@ -7,6 +7,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import {
   GroupedActionDump,
   type ModelBrief,
+  dedupeExecutionsKeepLatest,
   restoreImageReferences,
 } from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
@@ -37,7 +38,10 @@ import {
 // Shared image cache across all test cases — resolved images are cached by id
 const imageCache = new Map<string, string>();
 
-function resolveImageFromDom(id: string): string {
+function resolveImageFromDom(
+  refOrId: string | { id: string; storage?: 'inline' | 'file'; path?: string },
+): string {
+  const id = typeof refOrId === 'string' ? refOrId : refOrId.id;
   const cached = imageCache.get(id);
   if (cached) return cached;
 
@@ -48,6 +52,10 @@ function resolveImageFromDom(id: string): string {
     const data = antiEscapeScriptTag(el.textContent);
     imageCache.set(id, data);
     return data;
+  }
+
+  if (typeof refOrId === 'object' && refOrId?.storage === 'file') {
+    return refOrId.path || `./screenshots/${id}.png`;
   }
 
   // Fallback to directory path
@@ -424,13 +432,7 @@ export function App() {
             // Deduplicate executions by id — keep only the last one.
             // Only executions with a stable id are deduped; old-format entries
             // without id are always kept (they may be distinct despite same name).
-            let noIdCounter = 0;
-            const deduped = new Map<string, any>();
-            for (const exec of allExecutions) {
-              const key = exec.id || `__no_id_${noIdCounter++}`;
-              deduped.set(key, exec);
-            }
-            baseDump!.executions = Array.from(deduped.values());
+            baseDump!.executions = dedupeExecutionsKeepLatest(allExecutions);
             cachedJsonContent = baseDump!;
 
             console.timeEnd('parse_grouped_dump');

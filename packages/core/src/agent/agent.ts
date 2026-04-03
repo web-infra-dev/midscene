@@ -1,3 +1,5 @@
+import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
+import yaml from 'js-yaml';
 import type { TUserPrompt } from '../ai-model/index';
 import { ScreenshotItem } from '../screenshot-item';
 import Service from '../service/index';
@@ -31,20 +33,16 @@ import {
   type ServiceAction,
   type ServiceExtractOption,
   type ServiceExtractParam,
+  type TestStatus,
   type UIContext,
 } from '../types';
 import type { MidsceneYamlScript } from '../yaml';
-export type TestStatus =
-  | 'passed'
-  | 'failed'
-  | 'timedOut'
-  | 'skipped'
-  | 'interrupted';
-import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
-import yaml from 'js-yaml';
 
 import type { IReportGenerator } from '@/report-generator';
-import { ReportGenerator } from '@/report-generator';
+import {
+  ReportGenerator,
+  assertReportGenerationOptions,
+} from '@/report-generator';
 import { getVersion, processCacheConfig, reportHTMLContent } from '@/utils';
 import {
   ScriptPlayer,
@@ -264,6 +262,7 @@ export class Agent<
     this.opts = Object.assign(
       {
         generateReport: true,
+        persistExecutionDump: false,
         autoPrintReportMsg: true,
         groupName: 'Midscene Report',
         groupDescription: '',
@@ -275,6 +274,7 @@ export class Agent<
         ? { replanningCycleLimit: envReplanningCycleLimit }
         : {},
     );
+    assertReportGenerationOptions(this.opts);
 
     const resolvedAiActContext =
       this.opts.aiActContext ?? this.opts.aiActionContext;
@@ -357,6 +357,7 @@ export class Agent<
 
     this.reportGenerator = ReportGenerator.create(this.reportFileName!, {
       generateReport: this.opts.generateReport,
+      persistExecutionDump: this.opts.persistExecutionDump,
       outputFormat: this.opts.outputFormat,
       autoPrintReportMsg: this.opts.autoPrintReportMsg,
     });

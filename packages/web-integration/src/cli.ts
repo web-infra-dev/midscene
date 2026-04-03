@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { createReportCliCommands } from '@midscene/core';
 import { CLIError, runToolsCLI } from '@midscene/shared/cli';
 import dotenv from 'dotenv';
 import { WebMidsceneTools } from './mcp-tools';
@@ -71,6 +72,7 @@ runToolsCLI(tools, 'midscene-web', {
   stripPrefix: 'web_',
   argv,
   version: __VERSION__,
+  extraCommands: createReportCliCommands(),
 }).catch((e) => {
   if (!(e instanceof CLIError)) console.error(e);
   process.exit(e instanceof CLIError ? e.exitCode : 1);

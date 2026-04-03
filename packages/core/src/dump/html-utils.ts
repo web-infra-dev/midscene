@@ -230,10 +230,28 @@ export function extractLastDumpScriptSync(filePath: string): string {
 export function extractAllDumpScriptsSync(
   filePath: string,
 ): { openTag: string; content: string }[] {
+  const results: { openTag: string; content: string }[] = [];
+  streamDumpScriptsSync(filePath, (dumpScript) => {
+    results.push(dumpScript);
+    return false;
+  });
+  return results;
+}
+
+/**
+ * Stream ALL dump scripts from an HTML file.
+ * Calls onMatch for each dump script and keeps memory bounded to a single
+ * dump script payload instead of accumulating every dump in memory.
+ *
+ * @param filePath - Absolute path to the HTML file
+ * @param onMatch - Callback for each dump script; return true to stop early
+ */
+export function streamDumpScriptsSync(
+  filePath: string,
+  onMatch: (dumpScript: { openTag: string; content: string }) => boolean,
+): void {
   const openTagPrefix = '<script type="midscene_web_dump"';
   const closeTag = '</script>';
-
-  const results: { openTag: string; content: string }[] = [];
 
   const fd = openSync(filePath, 'r');
   const fileSize = statSync(filePath).size;
@@ -264,10 +282,11 @@ export function extractAllDumpScriptsSync(
               currentContent = chunk.slice(tagEndIdx + 1);
               const endIdx = currentContent.indexOf(closeTag);
               if (endIdx !== -1) {
-                results.push({
+                const shouldStop = onMatch({
                   openTag: currentOpenTag,
                   content: currentContent.slice(0, endIdx).trim(),
                 });
+                if (shouldStop) return;
                 capturing = false;
                 currentContent = '';
                 currentOpenTag = '';
@@ -289,10 +308,11 @@ export function extractAllDumpScriptsSync(
           const endIdx = chunk.indexOf(closeTag, searchStart);
           if (endIdx !== -1) {
             currentContent += chunk.slice(searchStart, endIdx);
-            results.push({
+            const shouldStop = onMatch({
               openTag: currentOpenTag,
               content: currentContent.trim(),
             });
+            if (shouldStop) return;
             capturing = false;
             currentContent = '';
             currentOpenTag = '';
@@ -308,8 +328,6 @@ export function extractAllDumpScriptsSync(
   } finally {
     closeSync(fd);
   }
-
-  return results;
 }
 
 export function parseImageScripts(html: string): Record<string, string> {
@@ -437,7 +455,7 @@ export function getBaseUrlFixScript(): string {
 
 export function generateDumpScriptTag(
   json: string,
-  attributes?: Record<string, string>,
+  attributes?: Record<string, string | number | boolean>,
 ): string {
   let attrString = '';
   if (attributes && Object.keys(attributes).length > 0) {
