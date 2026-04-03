@@ -11,8 +11,8 @@ import {
 import type {
   ExecutionTaskPlanning,
   ExecutionTaskPlanningLocate,
-  MarkdownAttachment,
 } from '@midscene/core';
+import type { MarkdownAttachment } from '@midscene/core';
 import { executionToMarkdown } from '@midscene/core';
 import { filterBase64Value } from '@midscene/visualizer';
 import { Blackboard, Player } from '@midscene/visualizer';
@@ -20,6 +20,7 @@ import { Segmented } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { fullTimeStrWithMilliseconds } from '../../../../../packages/visualizer/src/utils';
 import OpenInPlayground from '../open-in-playground';
+import { getExecutionMarkdownView } from './markdown-view';
 
 const ScreenshotDisplay = (props: {
   title: string;
@@ -133,14 +134,11 @@ const DetailPanel = (): JSX.Element => {
   const isPageContextFrozen = Boolean(activeTask?.uiContext?._isFrozen);
 
   const markdownResult = useMemo(() => {
-    if (!activeExecution) return null;
-    try {
-      return executionToMarkdown(activeExecution, {
+    return getExecutionMarkdownView(activeExecution, (execution) =>
+      executionToMarkdown(execution, {
         screenshotBaseDir: './screenshots',
-      });
-    } catch {
-      return null;
-    }
+      }),
+    );
   }, [activeExecution]);
 
   const hasReplay =
@@ -171,11 +169,15 @@ const DetailPanel = (): JSX.Element => {
       />
     );
   } else if (viewType === VIEW_TYPE_MARKDOWN) {
-    if (markdownResult) {
+    if (markdownResult.status === 'ready') {
       content = (
         <div className="markdown-view scrollable">
           <pre className="markdown-source">{markdownResult.markdown}</pre>
         </div>
+      );
+    } else if (markdownResult.status === 'error') {
+      content = (
+        <div>Failed to render markdown: {markdownResult.errorMessage}</div>
       );
     } else {
       content = <div>No markdown available</div>;

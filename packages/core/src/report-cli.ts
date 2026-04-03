@@ -1,8 +1,7 @@
 import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 import { z } from 'zod';
-import { extractImageByIdSync } from './dump/html-utils';
-import { normalizeScreenshotRef } from './dump/screenshot-store';
+import { resolveScreenshotSource } from './dump/screenshot-store';
 import { collectDedupedExecutions, splitReportHtmlByExecution } from './report';
 import { reportToMarkdown } from './report-markdown';
 import type { MarkdownAttachment } from './report-markdown';
@@ -34,7 +33,6 @@ function writeAttachmentFromReport(
   attachment: MarkdownAttachment,
   opts: {
     htmlPath: string;
-    sourceDir: string;
     screenshotsDir: string;
     writtenFiles: Set<string>;
   },
@@ -42,55 +40,51 @@ function writeAttachmentFromReport(
   const { suggestedFileName, id, mimeType } = attachment;
   if (opts.writtenFiles.has(suggestedFileName)) return;
 
-  const ext = mimeType === 'image/jpeg' ? 'jpeg' : 'png';
   const absolutePath = path.join(opts.screenshotsDir, suggestedFileName);
 
-  const ref = {
-    type: 'midscene_screenshot_ref' as const,
-    id,
-    capturedAt: 0,
-    mimeType: (mimeType || 'image/png') as 'image/png' | 'image/jpeg',
-    storage: 'inline' as const,
-  };
+  const outputRelativePath = `./screenshots/${suggestedFileName}`;
+  const sourceRef =
+    attachment.filePath !== outputRelativePath
+      ? {
+          type: 'midscene_screenshot_ref' as const,
+          id,
+          capturedAt: 0,
+          mimeType: (mimeType || 'image/png') as 'image/png' | 'image/jpeg',
+          storage: 'file' as const,
+          path: attachment.filePath,
+        }
+      : null;
 
-  const normalized = normalizeScreenshotRef(ref);
-  if (!normalized) {
-    const filePath = path.join(opts.sourceDir, `screenshots/${id}.${ext}`);
-    if (existsSync(filePath)) {
-      copyFileSync(filePath, absolutePath);
-      opts.writtenFiles.add(suggestedFileName);
-      return;
-    }
-    throw new Error(
-      `Cannot resolve screenshot "${id}" for markdown attachment`,
+  const resolved = resolveScreenshotSource(sourceRef, {
+    reportPath: opts.htmlPath,
+    fallbackId: id,
+    fallbackMimeType: (mimeType || 'image/png') as 'image/png' | 'image/jpeg',
+  });
+
+  if (resolved.type === 'data-uri') {
+    const rawBase64 = resolved.dataUri.replace(
+      /^data:image\/[a-zA-Z+]+;base64,/,
+      '',
     );
-  }
-
-  const base64 = extractImageByIdSync(opts.htmlPath, id);
-  if (base64) {
-    const rawBase64 = base64.replace(/^data:image\/[a-zA-Z+]+;base64,/, '');
     writeFileSync(absolutePath, Buffer.from(rawBase64, 'base64'));
     opts.writtenFiles.add(suggestedFileName);
     return;
   }
 
-  const filePath = path.join(opts.sourceDir, `screenshots/${id}.${ext}`);
-  if (existsSync(filePath)) {
-    copyFileSync(filePath, absolutePath);
-    opts.writtenFiles.add(suggestedFileName);
-    return;
+  if (!existsSync(resolved.filePath)) {
+    throw new Error(
+      `Cannot resolve screenshot "${id}" for markdown attachment from ${opts.htmlPath}`,
+    );
   }
 
-  throw new Error(
-    `Cannot resolve screenshot "${id}" for markdown attachment from ${opts.htmlPath}`,
-  );
+  copyFileSync(resolved.filePath, absolutePath);
+  opts.writtenFiles.add(suggestedFileName);
 }
 
 async function markdownFromReport(
   htmlPath: string,
   outputDir: string,
 ): Promise<{ markdownFiles: string[]; screenshotFiles: string[] }> {
-  const sourceDir = path.dirname(htmlPath);
   const screenshotsDir = path.join(outputDir, 'screenshots');
 
   mkdirSync(outputDir, { recursive: true });
@@ -119,7 +113,6 @@ async function markdownFromReport(
   for (const attachment of result.attachments) {
     writeAttachmentFromReport(attachment, {
       htmlPath,
-      sourceDir,
       screenshotsDir,
       writtenFiles: writtenScreenshots,
     });

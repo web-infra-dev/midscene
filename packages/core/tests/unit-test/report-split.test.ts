@@ -248,4 +248,49 @@ describe('splitReportHtmlByExecution', () => {
     ).toBe(true);
     expect(existsSync(join(outputDir, 'Users'))).toBe(false);
   });
+
+  it('should fall back to sibling screenshots files for inline refs when image scripts are missing', () => {
+    const reportDir = join(tmpDir, 'fallback-report');
+    const reportPath = join(reportDir, 'index.html');
+    const reportScreenshotsDir = join(reportDir, 'screenshots');
+    mkdirSync(reportScreenshotsDir, { recursive: true });
+
+    const screenshotRef: ScreenshotRef = {
+      type: 'midscene_screenshot_ref',
+      id: 'fallback-shot',
+      capturedAt: Date.now(),
+      mimeType: 'image/png',
+      storage: 'inline',
+    };
+    writeFileSync(
+      join(reportScreenshotsDir, 'fallback-shot.png'),
+      Buffer.from('png-binary'),
+    );
+
+    const dump = new ReportActionDump({
+      groupName: 'fallback-test',
+      groupDescription: 'fallback-test',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [createExecution('exec-fallback', screenshotRef)],
+    });
+
+    writeFileSync(
+      reportPath,
+      generateDumpScriptTag(dump.serialize(), { 'data-group-id': 'group-1' }),
+      'utf-8',
+    );
+
+    const outputDir = join(tmpDir, 'fallback-output');
+    const result = splitReportHtmlByExecution({
+      htmlPath: reportPath,
+      outputDir,
+    });
+
+    expect(result.executionJsonFiles).toHaveLength(1);
+    expect(result.screenshotFiles).toHaveLength(1);
+    expect(
+      existsSync(join(outputDir, 'screenshots', 'fallback-shot.png')),
+    ).toBe(true);
+  });
 });

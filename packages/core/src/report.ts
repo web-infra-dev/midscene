@@ -14,13 +14,15 @@ import { antiEscapeScriptTag, logMsg } from '@midscene/shared/utils';
 import { getReportFileName } from './agent';
 import {
   extractAllDumpScriptsSync,
-  extractImageByIdSync,
   extractLastDumpScriptSync,
   getBaseUrlFixScript,
   streamDumpScriptsSync,
   streamImageScriptsToFile,
 } from './dump/html-utils';
-import { normalizeScreenshotRef } from './dump/screenshot-store';
+import {
+  normalizeScreenshotRef,
+  resolveScreenshotSource,
+} from './dump/screenshot-store';
 import {
   type ExecutionDump,
   type IExecutionDump,
@@ -335,7 +337,6 @@ function externalizeScreenshotsInExecution(
   execution: IExecutionDump,
   opts: {
     htmlPath: string;
-    sourceDir: string;
     screenshotsDir: string;
     writtenFiles: Set<string>;
   },
@@ -358,33 +359,17 @@ function externalizeScreenshotsInExecution(
       const absolutePath = path.join(opts.screenshotsDir, fileName);
 
       if (!opts.writtenFiles.has(fileName)) {
-        if (ref.storage === 'inline') {
-          const base64 = extractImageByIdSync(opts.htmlPath, ref.id);
-          if (!base64) {
-            throw new Error(
-              `Inline screenshot "${ref.id}" not found in ${opts.htmlPath}`,
-            );
-          }
-          const rawBase64 = base64.replace(
+        const resolved = resolveScreenshotSource(ref, {
+          reportPath: opts.htmlPath,
+        });
+        if (resolved.type === 'data-uri') {
+          const rawBase64 = resolved.dataUri.replace(
             /^data:image\/[a-zA-Z+]+;base64,/,
             '',
           );
           writeFileSync(absolutePath, Buffer.from(rawBase64, 'base64'));
         } else {
-          if (!ref.path) {
-            throw new Error(
-              `File screenshot ref "${ref.id}" missing path in execution dump`,
-            );
-          }
-          const sourceFile = path.isAbsolute(ref.path)
-            ? ref.path
-            : path.join(opts.sourceDir, ref.path);
-          if (!existsSync(sourceFile)) {
-            throw new Error(
-              `Screenshot file "${sourceFile}" not found for ref "${ref.id}"`,
-            );
-          }
-          copyFileSync(sourceFile, absolutePath);
+          copyFileSync(resolved.filePath, absolutePath);
         }
         opts.writtenFiles.add(fileName);
       }
@@ -410,7 +395,6 @@ export function splitReportHtmlByExecution(
   options: SplitReportHtmlOptions,
 ): SplitReportHtmlResult {
   const { htmlPath, outputDir } = options;
-  const sourceDir = path.dirname(htmlPath);
   const screenshotsDir = path.join(outputDir, 'screenshots');
 
   mkdirSync(outputDir, { recursive: true });
@@ -425,7 +409,6 @@ export function splitReportHtmlByExecution(
     fileIndex += 1;
     externalizeScreenshotsInExecution(execution, {
       htmlPath,
-      sourceDir,
       screenshotsDir,
       writtenFiles: writtenScreenshotFiles,
     });

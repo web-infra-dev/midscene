@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { generateDumpScriptTag, generateImageScriptTag } from '../../src/dump';
+import type { ScreenshotRef } from '../../src/dump/screenshot-store';
 import { createReportCliCommands } from '../../src/report-cli';
 import { ScreenshotItem } from '../../src/screenshot-item';
 import { ExecutionDump, ReportActionDump } from '../../src/types';
@@ -19,7 +20,7 @@ function fakeBase64(sizeBytes: number): string {
 
 function createExecution(
   id: string,
-  screenshot: ScreenshotItem,
+  screenshot: ScreenshotItem | ScreenshotRef,
 ): ExecutionDump {
   return new ExecutionDump({
     id,
@@ -210,5 +211,54 @@ describe('createReportCliCommands', () => {
     expect(mdContent).toContain('# execution-exec-md-dedup');
     expect(mdContent).toContain(newScreenshot.id);
     expect(mdContent).not.toContain(oldScreenshot.id);
+  });
+
+  it('copies file-backed screenshots during markdown export', async () => {
+    const reportDir = join(tmpDir, 'input-report-md-file');
+    const reportPath = join(reportDir, 'index.html');
+    mkdirSync(reportDir, { recursive: true });
+
+    const sourceScreenshotPath = join(tmpDir, 'source-shot.png');
+    writeFileSync(sourceScreenshotPath, Buffer.from('png-binary'));
+
+    const screenshotRef: ScreenshotRef = {
+      type: 'midscene_screenshot_ref',
+      id: 'file-shot',
+      capturedAt: Date.now(),
+      mimeType: 'image/png',
+      storage: 'file',
+      path: sourceScreenshotPath,
+    };
+    const dump = new ReportActionDump({
+      groupName: 'markdown-file-test',
+      groupDescription: 'markdown export file ref test',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [createExecution('exec-md-file', screenshotRef)],
+    });
+
+    writeFileSync(
+      reportPath,
+      generateDumpScriptTag(dump.serialize(), { 'data-group-id': 'group-1' }),
+      'utf-8',
+    );
+
+    const outputDir = join(tmpDir, 'output-md-file');
+    const [command] = createReportCliCommands();
+    await command.def.handler({
+      htmlPath: reportPath,
+      outputDir,
+      action: 'to-markdown',
+    });
+
+    const exportedScreenshot = join(
+      outputDir,
+      'screenshots',
+      'execution-1-task-1-file-shot.png',
+    );
+    expect(existsSync(exportedScreenshot)).toBe(true);
+    expect(readFileSync(exportedScreenshot)).toEqual(
+      readFileSync(sourceScreenshotPath),
+    );
   });
 });

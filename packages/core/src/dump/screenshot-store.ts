@@ -5,7 +5,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
 import type { ScreenshotItem } from '../screenshot-item';
 import { extractImageByIdSync } from './html-utils';
 
@@ -36,6 +36,94 @@ export function normalizeScreenshotRef(value: unknown): ScreenshotRef | null {
   }
 
   return null;
+}
+
+type ResolvedScreenshotSource =
+  | {
+      type: 'data-uri';
+      id: string;
+      mimeType: ScreenshotRef['mimeType'];
+      dataUri: string;
+    }
+  | {
+      type: 'file';
+      id: string;
+      mimeType: ScreenshotRef['mimeType'];
+      filePath: string;
+    };
+
+function extensionByMimeType(mimeType: ScreenshotRef['mimeType']): string {
+  return mimeType === 'image/jpeg' ? 'jpeg' : 'png';
+}
+
+export function resolveScreenshotSource(
+  refInput: unknown,
+  options: {
+    reportPath: string;
+    fallbackId?: string;
+    fallbackMimeType?: ScreenshotRef['mimeType'];
+  },
+): ResolvedScreenshotSource {
+  const ref = normalizeScreenshotRef(refInput);
+  const id = ref?.id ?? options.fallbackId;
+  const mimeType = ref?.mimeType ?? options.fallbackMimeType;
+
+  if (!id || !mimeType) {
+    throw new Error(
+      'ScreenshotStore: screenshot id and mimeType are required to resolve screenshot',
+    );
+  }
+
+  const resolveReportRelativePath = (filePath: string): string =>
+    isAbsolute(filePath)
+      ? filePath
+      : join(dirname(options.reportPath), filePath);
+
+  if (ref?.storage === 'file') {
+    if (!ref.path) {
+      throw new Error(
+        `ScreenshotStore: screenshot ref "${ref.id}" missing file path`,
+      );
+    }
+
+    const explicitFilePath = resolveReportRelativePath(ref.path);
+    if (existsSync(explicitFilePath)) {
+      return {
+        type: 'file',
+        id,
+        mimeType,
+        filePath: explicitFilePath,
+      };
+    }
+  }
+
+  const inlineDataUri = extractImageByIdSync(options.reportPath, id);
+  if (inlineDataUri) {
+    return {
+      type: 'data-uri',
+      id,
+      mimeType,
+      dataUri: inlineDataUri,
+    };
+  }
+
+  const siblingScreenshotPath = join(
+    dirname(options.reportPath),
+    'screenshots',
+    `${id}.${extensionByMimeType(mimeType)}`,
+  );
+  if (existsSync(siblingScreenshotPath)) {
+    return {
+      type: 'file',
+      id,
+      mimeType,
+      filePath: siblingScreenshotPath,
+    };
+  }
+
+  throw new Error(
+    `ScreenshotStore: cannot resolve screenshot "${id}" from ${options.reportPath}`,
+  );
 }
 
 export class ScreenshotStore {
@@ -135,25 +223,16 @@ export class ScreenshotStore {
       throw new Error('ScreenshotStore: invalid screenshot reference');
     }
 
-    if (ref.storage === 'inline') {
-      const result = extractImageByIdSync(this.reportPath, ref.id);
-      if (!result) {
-        throw new Error(
-          `ScreenshotStore: cannot resolve inline screenshot "${ref.id}" from ${this.reportPath}`,
-        );
-      }
-      return result;
+    const resolved = resolveScreenshotSource(ref, {
+      reportPath: this.reportPath,
+    });
+
+    if (resolved.type === 'data-uri') {
+      return resolved.dataUri;
     }
 
-    const expectedPath = ref.path;
-    if (!expectedPath) {
-      throw new Error(
-        `ScreenshotStore: screenshot ref "${ref.id}" missing file path`,
-      );
-    }
-    const absolute = join(dirname(this.reportPath), expectedPath);
-    const data = readFileSync(absolute);
-    return `data:${ref.mimeType};base64,${data.toString('base64')}`;
+    const data = readFileSync(resolved.filePath);
+    return `data:${resolved.mimeType};base64,${data.toString('base64')}`;
   }
 
   cleanup(): void {
