@@ -12,22 +12,11 @@ async function main() {
   const yadbPath = path.resolve(binDir, 'yadb');
   const versionFile = path.resolve(binDir, '.yadb-version');
 
-  // Check if binary exists AND matches the expected version
+  // Skip download if binary already exists (bundled or previously downloaded)
   try {
     await fs.access(yadbPath);
-    const installedVersion = await fs
-      .readFile(versionFile, 'utf-8')
-      .catch(() => '');
-    if (installedVersion.trim() === YADB_VERSION) {
-      console.log(
-        `[yadb] Binary already exists (${YADB_VERSION}), skipping download`,
-      );
-      return;
-    }
-    console.log(
-      `[yadb] Version mismatch (installed: ${installedVersion.trim() || 'unknown'}, expected: ${YADB_VERSION}), re-downloading...`,
-    );
-    await fs.unlink(yadbPath);
+    console.log('[yadb] Binary already exists, skipping download');
+    return;
   } catch {
     // file does not exist, continue downloading
   }

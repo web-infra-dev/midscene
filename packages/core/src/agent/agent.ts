@@ -18,8 +18,6 @@ import {
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
-  type GroupMeta,
-  GroupedActionDump,
   type LocateOption,
   type LocateResultElement,
   type LocateValidatorResult,
@@ -27,6 +25,8 @@ import {
   type OnTaskStartTip,
   type PlanningAction,
   type Rect,
+  ReportActionDump,
+  type ReportMeta,
   type ScrollParam,
   type ServiceAction,
   type ServiceExtractOption,
@@ -153,7 +153,7 @@ export class Agent<
 
   service: Service;
 
-  dump: GroupedActionDump;
+  dump: ReportActionDump;
 
   reportFile?: string | null;
 
@@ -351,6 +351,8 @@ export class Agent<
     this.dump = this.resetDump();
     this.reportFileName =
       opts?.reportFileName ||
+      // Keep deprecated testId behavior for generated report names until it is
+      // fully removed from the public API.
       getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
 
     this.reportGenerator = ReportGenerator.create(this.reportFileName!, {
@@ -433,7 +435,7 @@ export class Agent<
   }
 
   resetDump() {
-    this.dump = new GroupedActionDump({
+    this.dump = new ReportActionDump({
       sdkVersion: getVersion(),
       groupName: this.opts.groupName!,
       groupDescription: this.opts.groupDescription,
@@ -486,12 +488,12 @@ export class Agent<
     const exec = executionDump || this.lastExecutionDump;
     if (exec) {
       this.lastExecutionDump = exec;
-      this.reportGenerator.onExecutionUpdate(exec, this.getGroupMeta());
+      this.reportGenerator.onExecutionUpdate(exec, this.getReportMeta());
     }
     this.reportFile = this.reportGenerator.getReportPath();
   }
 
-  private getGroupMeta(): GroupMeta {
+  private getReportMeta(): ReportMeta {
     return {
       groupName: this.dump.groupName,
       groupDescription: this.dump.groupDescription,
@@ -1135,6 +1137,18 @@ export class Agent<
     return verifyResult;
   }
 
+  /**
+   * Locate an element and return both its center point and an approximate rect.
+   *
+   * - In most locate flows, `rect` represents the matched element boundary.
+   * - Some models only support point grounding instead of boundary grounding.
+   *   In those cases (for example, AutoGLM), `rect` falls back to a small 8x8
+   *   box centered on the located point.
+   *
+   * Because `rect` may vary with the underlying model capability, avoid relying
+   * on it too heavily for strict boundary semantics. If you need a stable click
+   * target, prefer `center`.
+   */
   async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
     const locateParam = buildDetailedLocateParam(prompt, opt);
     assert(locateParam, 'cannot get locate param for aiLocate');
@@ -1476,7 +1490,7 @@ export class Agent<
     // Use the unified utils function to process cache configuration
     const cacheConfig = processCacheConfig(
       opts.cache,
-      opts.cacheId || opts.testId || 'default',
+      opts.cacheId || 'default',
     );
 
     if (!cacheConfig) {
@@ -1527,7 +1541,9 @@ export class Agent<
     return files.map((file) => {
       const absolutePath = resolve(file);
       if (!existsSync(absolutePath)) {
-        throw new Error(`File not found: ${file}`);
+        throw new Error(
+          `File not found: ${file}. Resolved to: ${absolutePath}. Current working directory: ${process.cwd()}`,
+        );
       }
       return absolutePath;
     });

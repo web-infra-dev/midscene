@@ -17,8 +17,8 @@ import { ReportGenerator, nullReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
 import {
   ExecutionDump,
-  type GroupMeta,
-  GroupedActionDump,
+  ReportActionDump,
+  type ReportMeta,
   type UIContext,
 } from '@/types';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -35,7 +35,7 @@ function fakeBase64(sizeBytes: number, format: 'png' | 'jpeg' = 'png'): string {
   return `data:image/${format};base64,${'A'.repeat(sizeBytes)}`;
 }
 
-const defaultGroupMeta: GroupMeta = {
+const defaultReportMeta: ReportMeta = {
   groupName: 'test-group',
   groupDescription: 'test',
   sdkVersion: '1.0.0-test',
@@ -127,7 +127,7 @@ describe('ReportGenerator — append-only model', () => {
           allScreenshots,
           newScreenshot,
         );
-        generator.onExecutionUpdate(execution, defaultGroupMeta);
+        generator.onExecutionUpdate(execution, defaultReportMeta);
       }
       await generator.flush();
 
@@ -152,7 +152,7 @@ describe('ReportGenerator — append-only model', () => {
       const execution = createExecution([screenshot]);
 
       for (let i = 0; i < 10; i++) {
-        generator.onExecutionUpdate(execution, defaultGroupMeta);
+        generator.onExecutionUpdate(execution, defaultReportMeta);
       }
       await generator.flush();
 
@@ -174,13 +174,13 @@ describe('ReportGenerator — append-only model', () => {
       const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
       const execution = createExecution([screenshot]);
 
-      generator.onExecutionUpdate(execution, defaultGroupMeta);
+      generator.onExecutionUpdate(execution, defaultReportMeta);
       await generator.flush();
 
-      generator.onExecutionUpdate(execution, defaultGroupMeta);
+      generator.onExecutionUpdate(execution, defaultReportMeta);
       await generator.flush();
 
-      generator.onExecutionUpdate(execution, defaultGroupMeta);
+      generator.onExecutionUpdate(execution, defaultReportMeta);
       await generator.flush();
 
       const html = readFileSync(reportPath, 'utf-8');
@@ -202,7 +202,7 @@ describe('ReportGenerator — append-only model', () => {
       // Round 1: one screenshot
       const sharedId = 'same-exec-id';
       const exec1 = createExecution([screenshot1], 'test-execution', sharedId);
-      generator.onExecutionUpdate(exec1, defaultGroupMeta);
+      generator.onExecutionUpdate(exec1, defaultReportMeta);
 
       // Round 2: two screenshots (same execution id = update)
       const exec2 = createExecution(
@@ -210,7 +210,7 @@ describe('ReportGenerator — append-only model', () => {
         'test-execution',
         sharedId,
       );
-      generator.onExecutionUpdate(exec2, defaultGroupMeta);
+      generator.onExecutionUpdate(exec2, defaultReportMeta);
       await generator.flush();
 
       const html = readFileSync(reportPath, 'utf-8');
@@ -251,11 +251,11 @@ describe('ReportGenerator — append-only model', () => {
 
       // Write two different executions
       const exec1 = createExecution([s1], 'exec-1');
-      generator.onExecutionUpdate(exec1, defaultGroupMeta);
+      generator.onExecutionUpdate(exec1, defaultReportMeta);
       await generator.flush();
 
       const exec2 = createExecution([s2], 'exec-2');
-      generator.onExecutionUpdate(exec2, defaultGroupMeta);
+      generator.onExecutionUpdate(exec2, defaultReportMeta);
       await generator.flush();
 
       const html = readFileSync(reportPath, 'utf-8');
@@ -284,11 +284,11 @@ describe('ReportGenerator — append-only model', () => {
       const s2 = ScreenshotItem.create(fakeBase64(100), Date.now());
 
       const exec1 = createExecution([s1], 'Act - click login', 'unique-id-1');
-      generator.onExecutionUpdate(exec1, defaultGroupMeta);
+      generator.onExecutionUpdate(exec1, defaultReportMeta);
       await generator.flush();
 
       const exec2 = createExecution([s2], 'Act - click login', 'unique-id-2');
-      generator.onExecutionUpdate(exec2, defaultGroupMeta);
+      generator.onExecutionUpdate(exec2, defaultReportMeta);
       await generator.flush();
 
       const html = readFileSync(reportPath, 'utf-8');
@@ -306,7 +306,7 @@ describe('ReportGenerator — append-only model', () => {
       const screenshot = ScreenshotItem.create(fakeBase64(10000), Date.now());
       const execution = createExecution([screenshot]);
 
-      generator.onExecutionUpdate(execution, defaultGroupMeta);
+      generator.onExecutionUpdate(execution, defaultReportMeta);
       await generator.flush();
 
       // Screenshot memory should be released immediately (no truncation risk)
@@ -341,7 +341,7 @@ describe('ReportGenerator — append-only model', () => {
           allScreenshots,
           newScreenshot,
         );
-        generator.onExecutionUpdate(execution, defaultGroupMeta);
+        generator.onExecutionUpdate(execution, defaultReportMeta);
       }
       await generator.flush();
 
@@ -377,7 +377,7 @@ describe('ReportGenerator — append-only model', () => {
       );
       const execution = createExecution([jpegScreenshot, pngScreenshot]);
 
-      generator.onExecutionUpdate(execution, defaultGroupMeta);
+      generator.onExecutionUpdate(execution, defaultReportMeta);
       await generator.flush();
 
       const screenshotsDir = join(reportDir, 'screenshots');
@@ -401,7 +401,7 @@ describe('ReportGenerator — append-only model', () => {
       const screenshot = ScreenshotItem.create(fakeBase64(500), Date.now());
       const execution = createExecution([screenshot]);
 
-      generator.onExecutionUpdate(execution, defaultGroupMeta);
+      generator.onExecutionUpdate(execution, defaultReportMeta);
       await generator.flush();
       const screenshotsDir = join(reportDir, 'screenshots');
       const pngPath = join(screenshotsDir, `${screenshot.id}.png`);
@@ -412,7 +412,7 @@ describe('ReportGenerator — append-only model', () => {
         // busy wait
       }
 
-      generator.onExecutionUpdate(execution, defaultGroupMeta);
+      generator.onExecutionUpdate(execution, defaultReportMeta);
       await generator.flush();
       const mtimeSecond = statSync(pngPath).mtimeMs;
 
@@ -431,11 +431,11 @@ describe('ReportGenerator — append-only model', () => {
       const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
       const execution = createExecution([screenshot]);
 
-      generator.onExecutionUpdate(execution, defaultGroupMeta);
+      generator.onExecutionUpdate(execution, defaultReportMeta);
       await generator.flush();
 
       for (let i = 0; i < 4; i++) {
-        generator.onExecutionUpdate(execution, defaultGroupMeta);
+        generator.onExecutionUpdate(execution, defaultReportMeta);
       }
       await generator.flush();
 
@@ -457,7 +457,7 @@ describe('ReportGenerator — append-only model', () => {
       const screenshot2 = ScreenshotItem.create(fakeBase64(200), Date.now());
       const execution = createExecution([screenshot1, screenshot2]);
 
-      generator.onExecutionUpdate(execution, defaultGroupMeta);
+      generator.onExecutionUpdate(execution, defaultReportMeta);
       await generator.flush();
 
       const html = readFileSync(reportPath, 'utf-8');
@@ -488,7 +488,7 @@ describe('ReportGenerator — append-only model', () => {
       const screenshotId = screenshot.id;
       const execution = createExecution([screenshot]);
 
-      generator.onExecutionUpdate(execution, defaultGroupMeta);
+      generator.onExecutionUpdate(execution, defaultReportMeta);
       await generator.flush();
 
       const html = readFileSync(reportPath, 'utf-8');
@@ -516,7 +516,7 @@ describe('ReportGenerator — append-only model', () => {
       const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
       const execution = createExecution([screenshot]);
 
-      generator.onExecutionUpdate(execution, defaultGroupMeta);
+      generator.onExecutionUpdate(execution, defaultReportMeta);
       await generator.flush();
 
       // In directory mode, screenshots are always persisted immediately
@@ -546,11 +546,11 @@ describe('ReportGenerator — append-only model', () => {
       const s2 = ScreenshotItem.create(fakeBase64(100), Date.now());
 
       const exec1 = createExecution([s1], 'exec-1');
-      generator.onExecutionUpdate(exec1, defaultGroupMeta);
+      generator.onExecutionUpdate(exec1, defaultReportMeta);
       await generator.flush();
 
       const exec2 = createExecution([s2], 'exec-2');
-      generator.onExecutionUpdate(exec2, defaultGroupMeta);
+      generator.onExecutionUpdate(exec2, defaultReportMeta);
       await generator.flush();
 
       const html = readFileSync(reportPath, 'utf-8');
@@ -570,11 +570,11 @@ describe('ReportGenerator — append-only model', () => {
       const s2 = ScreenshotItem.create(fakeBase64(100), Date.now());
 
       const exec1 = createExecution([s1], 'Act - click login', 'dir-id-1');
-      generator.onExecutionUpdate(exec1, defaultGroupMeta);
+      generator.onExecutionUpdate(exec1, defaultReportMeta);
       await generator.flush();
 
       const exec2 = createExecution([s2], 'Act - click login', 'dir-id-2');
-      generator.onExecutionUpdate(exec2, defaultGroupMeta);
+      generator.onExecutionUpdate(exec2, defaultReportMeta);
       await generator.flush();
 
       const html = readFileSync(reportPath, 'utf-8');
@@ -587,7 +587,7 @@ describe('ReportGenerator — append-only model', () => {
       const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
       const execution = createExecution([screenshot]);
 
-      nullReportGenerator.onExecutionUpdate(execution, defaultGroupMeta);
+      nullReportGenerator.onExecutionUpdate(execution, defaultReportMeta);
       const result = await nullReportGenerator.finalize();
 
       expect(result).toBeUndefined();
@@ -619,6 +619,24 @@ describe('ReportGenerator — append-only model', () => {
       expect(reportPath).toContain('test-dir');
       expect(reportPath).toContain('index.html');
     });
+
+    it('should throw for reportFileName with path separators', () => {
+      expect(() => ReportGenerator.create('../bad-name', {})).toThrow(
+        'reportFileName must not contain path separators',
+      );
+      expect(() => ReportGenerator.create('bad/name', {})).toThrow(
+        'reportFileName must not contain path separators',
+      );
+    });
+
+    it('should throw for reportFileName with illegal filename characters', () => {
+      expect(() => ReportGenerator.create('bad:name', {})).toThrow(
+        'reportFileName contains illegal filename characters',
+      );
+      expect(() => ReportGenerator.create('bad*name', {})).toThrow(
+        'reportFileName contains illegal filename characters',
+      );
+    });
   });
 
   describe('lazy loading — memory release behavior', () => {
@@ -633,7 +651,7 @@ describe('ReportGenerator — append-only model', () => {
       const screenshot = ScreenshotItem.create(fakeBase64(10000), Date.now());
       const execution = createExecution([screenshot]);
 
-      generator.onExecutionUpdate(execution, defaultGroupMeta);
+      generator.onExecutionUpdate(execution, defaultReportMeta);
       await generator.flush();
 
       // Screenshot memory released immediately after writing
@@ -665,7 +683,7 @@ describe('ReportGenerator — append-only model', () => {
         screenshots.push(execScreenshots);
 
         const execution = createExecution(execScreenshots, `execution-${e}`);
-        generator.onExecutionUpdate(execution, defaultGroupMeta);
+        generator.onExecutionUpdate(execution, defaultReportMeta);
         await generator.flush();
       }
 
@@ -697,11 +715,11 @@ describe('ReportGenerator — append-only model', () => {
       const s2 = ScreenshotItem.create(fakeBase64(1000), Date.now());
 
       const exec1 = createExecution([s1], 'execution-0');
-      generator.onExecutionUpdate(exec1, defaultGroupMeta);
+      generator.onExecutionUpdate(exec1, defaultReportMeta);
       await generator.flush();
 
       const exec2 = createExecution([s2], 'execution-1');
-      generator.onExecutionUpdate(exec2, defaultGroupMeta);
+      generator.onExecutionUpdate(exec2, defaultReportMeta);
       await generator.flush();
 
       // Both released
@@ -727,11 +745,11 @@ describe('ReportGenerator — append-only model', () => {
       const s2 = ScreenshotItem.create(fakeBase64(1000), Date.now());
 
       const exec1 = createExecution([s1], 'execution-0');
-      generator.onExecutionUpdate(exec1, defaultGroupMeta);
+      generator.onExecutionUpdate(exec1, defaultReportMeta);
       await generator.flush();
 
       const exec2 = createExecution([s2], 'execution-1');
-      generator.onExecutionUpdate(exec2, defaultGroupMeta);
+      generator.onExecutionUpdate(exec2, defaultReportMeta);
       await generator.flush();
 
       // In directory mode, all screenshots are persisted immediately
@@ -766,7 +784,7 @@ describe('ReportGenerator — append-only model', () => {
         [screenshot1, screenshot2, screenshot3],
         'exec-1',
       );
-      generator.onExecutionUpdate(execution, defaultGroupMeta);
+      generator.onExecutionUpdate(execution, defaultReportMeta);
       await generator.flush();
 
       // All released immediately
@@ -798,7 +816,7 @@ describe('ReportGenerator — append-only model', () => {
         Date.now(),
       );
       const execution = createExecution([largeScreenshot], 'exec-1');
-      generator.onExecutionUpdate(execution, defaultGroupMeta);
+      generator.onExecutionUpdate(execution, defaultReportMeta);
       await generator.flush();
 
       const writtenScreenshots = (generator as any)

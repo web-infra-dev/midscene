@@ -93,7 +93,7 @@ export const PlaywrightAiFixture = (options?: {
       const cacheConfig = processTestCacheConfig(testInfo);
 
       pageAgentMap[idForPage] = new PlaywrightAgent(page, {
-        testId: `playwright-${testId}-${idForPage}`,
+        reportFileName: `playwright-${testId}-${idForPage}`,
         forceSameTabNavigation,
         cache: cacheConfig,
         groupName: title,

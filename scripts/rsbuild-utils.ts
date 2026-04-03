@@ -2,40 +2,31 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export interface CopyStaticOptions {
-  /** Source directory to copy from */
   srcDir: string;
-  /** Destination directory to copy to */
   destDir: string;
-  /** Optional favicon source path (relative to directory containing srcDir) */
   faviconPath?: string;
-  /** Name for the rsbuild plugin */
   pluginName?: string;
 }
 
-/**
- * Creates an rsbuild plugin that copies static files after build
- * @param options Configuration options for copying static files
- * @returns Rsbuild plugin object
- */
+export const commonIgnoreWarnings = [
+  /Critical dependency: the request of a dependency is an expression/,
+];
+
 export const createCopyStaticPlugin = (options: CopyStaticOptions) => ({
   name: options.pluginName || 'copy-static',
   setup(api: any) {
     api.onAfterBuild(async () => {
       const { srcDir, destDir, faviconPath } = options;
 
-      // Remove symlink left by dev mode before copying
       const stat = await fs.promises.lstat(destDir).catch(() => null);
       if (stat?.isSymbolicLink()) {
         await fs.promises.unlink(destDir);
       }
 
       await fs.promises.mkdir(destDir, { recursive: true });
-
-      // Copy directory contents recursively
       await fs.promises.cp(srcDir, destDir, { recursive: true });
       console.log(`Copied build artifacts from ${srcDir} to ${destDir}`);
 
-      // Copy favicon if specified
       if (faviconPath) {
         const faviconDest = path.join(destDir, 'favicon.ico');
         await fs.promises.copyFile(faviconPath, faviconDest);
@@ -45,14 +36,6 @@ export const createCopyStaticPlugin = (options: CopyStaticOptions) => ({
   },
 });
 
-/**
- * Helper function to create a copy static plugin for playground builds
- * @param srcDir Source directory (usually dist directory)
- * @param destDir Destination directory
- * @param pluginName Optional plugin name
- * @param faviconSrc Optional favicon source path
- * @returns Rsbuild plugin
- */
 export const createPlaygroundCopyPlugin = (
   srcDir: string,
   destDir: string,

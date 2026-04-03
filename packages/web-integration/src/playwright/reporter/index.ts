@@ -7,11 +7,14 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import {
-  GroupedActionDump,
+  ReportActionDump,
   type ReportDumpWithAttributes,
 } from '@midscene/core';
 import { getReportFileName, printReportMsg } from '@midscene/core/agent';
-import { getReportTpl } from '@midscene/core/utils';
+import {
+  getReportTpl,
+  insertContentBeforeClosingHtml,
+} from '@midscene/core/utils';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
   escapeScriptTag,
@@ -209,7 +212,11 @@ class MidsceneReporter implements Reporter {
       if (this.mode === 'merged') {
         // For merged report, write template + dump on first write, then only append dumps
         if (!this.mergedReportInitialized) {
-          writeFileSync(reportPath, tpl + dumpScript, { flag: 'w' });
+          writeFileSync(
+            reportPath,
+            insertContentBeforeClosingHtml(tpl, dumpScript),
+            { flag: 'w' },
+          );
           this.mergedReportInitialized = true;
         } else {
           // Append only the dump scripts for subsequent tests
@@ -217,7 +224,11 @@ class MidsceneReporter implements Reporter {
         }
       } else {
         // For separate reports, write each test to its own file with template
-        writeFileSync(reportPath, tpl + dumpScript, { flag: 'w' });
+        writeFileSync(
+          reportPath,
+          insertContentBeforeClosingHtml(tpl, dumpScript),
+          { flag: 'w' },
+        );
       }
 
       printReportMsg(reportPath);
@@ -244,7 +255,7 @@ class MidsceneReporter implements Reporter {
     const tempFilePath = dumpAnnotation.description;
 
     // Track temp files for potential cleanup in onEnd
-    for (const filePath of GroupedActionDump.getFilePaths(tempFilePath)) {
+    for (const filePath of ReportActionDump.getFilePaths(tempFilePath)) {
       this.tempFiles.add(filePath);
     }
 
@@ -268,7 +279,7 @@ class MidsceneReporter implements Reporter {
         this.copyScreenshotsToReport(tempFilePath, reportPath);
       } else {
         // Inline mode: convert screenshots to base64
-        dumpString = GroupedActionDump.fromFilesAsInlineJson(tempFilePath);
+        dumpString = ReportActionDump.fromFilesAsInlineJson(tempFilePath);
       }
     } catch (error) {
       console.error(
@@ -313,8 +324,8 @@ class MidsceneReporter implements Reporter {
 
     // Always try to clean up temp files
     try {
-      GroupedActionDump.cleanupFiles(tempFilePath);
-      for (const filePath of GroupedActionDump.getFilePaths(tempFilePath)) {
+      ReportActionDump.cleanupFiles(tempFilePath);
+      for (const filePath of ReportActionDump.getFilePaths(tempFilePath)) {
         this.tempFiles.delete(filePath);
       }
     } catch {

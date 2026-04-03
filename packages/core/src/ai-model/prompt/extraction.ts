@@ -56,6 +56,8 @@ The user will give you a screenshot, the contents of it (optional), and some dat
 
 If a key specifies a JSON data type (such as Number, String, Boolean, Object, Array), ensure the returned value strictly matches that data type.
 
+When DATA_DEMAND is a JSON object, the keys in your response must exactly match the keys in DATA_DEMAND. Do not rename, translate, or substitute any key.
+
 If the user provides multiple reference images, please carefully review the reference images with the screenshot and provide the correct answer for <DATA_DEMAND>.
 
 
@@ -119,7 +121,7 @@ If the DATA_DEMAND is:
 
 <DATA_DEMAND>
 {
-  "result": "Boolean, is it currently the SMS page?"
+  "StatementIsTruthy": "Boolean, is it currently the SMS page?"
 }
 </DATA_DEMAND>
 
@@ -127,7 +129,7 @@ By viewing the screenshot and page contents, you can extract the following data:
 
 <thought>According to the screenshot, i can see ...</thought>
 <data-json>
-{ "result": true }
+{ "StatementIsTruthy": true }
 </data-json>
 `;
 }

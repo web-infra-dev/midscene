@@ -182,6 +182,15 @@
           }
         }
 
+        &.disabled {
+          cursor: default;
+          opacity: 0.55;
+
+          &:hover {
+            background: transparent;
+          }
+        }
+
         .option-check {
           color: #00c851;
           font-weight: bold;
@@ -295,6 +304,12 @@
 
             .option-check {
               color: #52c41a;
+            }
+          }
+
+          &.disabled {
+            &:hover {
+              background: transparent;
             }
           }
 

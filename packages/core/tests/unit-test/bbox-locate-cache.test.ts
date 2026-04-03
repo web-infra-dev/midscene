@@ -292,7 +292,12 @@ describe('bbox locate cache fix', () => {
         }),
         expect.objectContaining({
           planLocatedElement: expect.objectContaining({
-            rect: expect.any(Object),
+            rect: {
+              left: 100,
+              top: 200,
+              width: 101,
+              height: 51,
+            },
           }),
         }),
         expect.objectContaining({

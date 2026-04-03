@@ -252,7 +252,10 @@ export class HdcClient {
   }
 
   async forceStop(bundleName: string): Promise<void> {
-    await this.shell(`aa force-stop ${bundleName}`);
+    const output = await this.shell(`aa force-stop ${bundleName}`);
+    if (output.includes('error:')) {
+      throw new Error(`Failed to force stop ${bundleName}: ${output.trim()}`);
+    }
   }
 
   async getScreenInfo(): Promise<{ width: number; height: number }> {

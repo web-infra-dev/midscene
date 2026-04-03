@@ -100,12 +100,16 @@ const isStringParamSchema = (schema?: ZodTypeAny): boolean => {
   }
 };
 
-const buildLaunchOrAdbShellParam = (
+const buildShortcutActionParam = (
   actionName: string,
   interfaceAlias: string | undefined,
   value: string,
 ) => {
   if (actionName === 'Launch' || interfaceAlias === 'launch') {
+    return { uri: value };
+  }
+
+  if (actionName === 'Terminate' || interfaceAlias === 'terminate') {
     return { uri: value };
   }
 
@@ -555,7 +559,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         let stringParamToCall: string | undefined;
         const specialActionParamToCall =
           typeof actionParamForMatchedAction === 'string'
-            ? buildLaunchOrAdbShellParam(
+            ? buildShortcutActionParam(
                 matchedAction.name,
                 matchedAction.interfaceAlias,
                 actionParamForMatchedAction,
@@ -570,6 +574,22 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           // Call agent.launch directly for Launch action with string param
           debug(`Calling agent.launch with: ${actionParamForMatchedAction}`);
           const result = await (agent as any).launch(
+            actionParamForMatchedAction,
+          );
+
+          const resultName = (flowItem as any).name;
+          if (result !== undefined) {
+            this.setResult(resultName, result);
+          }
+        } else if (
+          typeof actionParamForMatchedAction === 'string' &&
+          (matchedAction.name === 'Terminate' ||
+            matchedAction.interfaceAlias === 'terminate') &&
+          typeof (agent as any).terminate === 'function'
+        ) {
+          // Call agent.terminate directly for Terminate action with string param
+          debug(`Calling agent.terminate with: ${actionParamForMatchedAction}`);
+          const result = await (agent as any).terminate(
             actionParamForMatchedAction,
           );
 

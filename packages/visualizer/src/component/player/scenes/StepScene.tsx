@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { mouseLoading } from '../../../utils';
+import { getCenterHighlightBox } from '../../../utils/highlight-element';
 import { deriveFrameState } from './derive-frame-state';
 import type { FrameMap } from './frame-calculator';
 import { getPlaybackViewport } from './playback-layout';
@@ -121,16 +122,16 @@ export const StepsTimeline: React.FC<{
       const overlays: React.ReactNode[] = [];
 
       if (insight.highlightElement) {
-        const rect = insight.highlightElement.rect;
+        const highlightBox = getCenterHighlightBox(insight.highlightElement);
         overlays.push(
           <div
             key={`highlight-${idx}`}
             style={{
               position: 'absolute',
-              left: rect.left,
-              top: rect.top,
-              width: rect.width,
-              height: rect.height,
+              left: highlightBox.left,
+              top: highlightBox.top,
+              width: highlightBox.width,
+              height: highlightBox.height,
               background: 'rgba(253, 89, 7, 0.4)',
               border: `${2 * resScale}px solid #fd5907`,
               boxShadow: `${2 * resScale}px ${2 * resScale}px ${1 * resScale}px rgba(51, 51, 51, 0.3)`,

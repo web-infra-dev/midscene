@@ -20,7 +20,8 @@ export interface ZodType {
       | 'ZodBoolean';
     innerType?: ZodType;
     defaultValue?: () => unknown;
-    shape?: () => Record<string, ZodType>;
+    _serializedDefaultValue?: unknown;
+    shape?: (() => Record<string, ZodType>) | Record<string, ZodType>;
     values?: string[];
     description?: string;
   };
@@ -215,11 +216,15 @@ export const extractDefaultValue = (field: ZodType): unknown => {
   let currentField = field;
 
   while (currentField._def?.innerType) {
-    if (
-      currentField._def.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.DEFAULT &&
-      currentField._def.defaultValue
-    ) {
-      return currentField._def.defaultValue();
+    if (currentField._def.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.DEFAULT) {
+      // Runtime Zod: defaultValue is a function
+      if (typeof currentField._def.defaultValue === 'function') {
+        return currentField._def.defaultValue();
+      }
+      // Serialized from server: defaultValue was dropped, use fallback
+      if (currentField._def._serializedDefaultValue !== undefined) {
+        return currentField._def._serializedDefaultValue;
+      }
     }
     currentField = currentField._def.innerType;
   }
