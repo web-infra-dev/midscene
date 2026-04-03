@@ -92,7 +92,7 @@ importers:
         version: 1.2.2(@rsbuild/core@1.6.15)(typescript@5.8.3)
       '@rsbuild/plugin-type-check':
         specifier: ^1.3.2
-        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8(@swc/helpers@0.5.17))(typescript@5.8.3)
+        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8)(typescript@5.8.3)
       '@types/react':
         specifier: ^18.3.1
         version: 18.3.23
@@ -183,7 +183,7 @@ importers:
         version: 1.2.2(@rsbuild/core@1.6.15)(typescript@5.8.3)
       '@rsbuild/plugin-type-check':
         specifier: ^1.3.2
-        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8(@swc/helpers@0.5.17))(typescript@5.8.3)
+        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8)(typescript@5.8.3)
       '@tailwindcss/postcss':
         specifier: 4.1.11
         version: 4.1.11
@@ -259,7 +259,7 @@ importers:
         version: 1.2.2(@rsbuild/core@1.6.15)(typescript@5.8.3)
       '@rsbuild/plugin-type-check':
         specifier: ^1.3.2
-        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8(@swc/helpers@0.5.17))(typescript@5.8.3)
+        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8)(typescript@5.8.3)
       '@types/react':
         specifier: ^18.3.1
         version: 18.3.23
@@ -311,7 +311,7 @@ importers:
         version: 1.2.2(@rsbuild/core@1.6.15)(typescript@5.8.3)
       '@rsbuild/plugin-type-check':
         specifier: ^1.3.2
-        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8(@swc/helpers@0.5.17))(typescript@5.8.3)
+        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8)(typescript@5.8.3)
       '@types/react':
         specifier: ^18.3.1
         version: 18.3.23
@@ -372,7 +372,7 @@ importers:
         version: 1.4.1(@rsbuild/core@1.6.15)
       '@rsbuild/plugin-type-check':
         specifier: ^1.3.2
-        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8(@swc/helpers@0.5.17))(typescript@5.8.3)
+        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8)(typescript@5.8.3)
       '@types/react':
         specifier: ^18.3.1
         version: 18.3.23
@@ -417,13 +417,16 @@ importers:
         version: 1.4.1(@rsbuild/core@1.6.15)
       '@rsbuild/plugin-type-check':
         specifier: ^1.3.2
-        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(typescript@5.8.3)
+        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(typescript@5.8.3)
       '@types/chrome':
         specifier: 0.0.279
         version: 0.0.279
       antd:
         specifier: ^5.21.6
         version: 5.21.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      fflate:
+        specifier: 0.8.2
+        version: 0.8.2
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -445,7 +448,7 @@ importers:
         version: 1.2.2(@rsbuild/core@1.6.15)(typescript@5.8.3)
       '@rsdoctor/rspack-plugin':
         specifier: 1.0.2
-        version: 1.0.2(@rsbuild/core@1.6.15)(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(bufferutil@4.0.9)(webpack@5.99.5)
+        version: 1.0.2(@rsbuild/core@1.6.15)(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(bufferutil@4.0.9)(webpack@5.99.5)
       '@types/react':
         specifier: ^18.3.1
         version: 18.3.23
@@ -620,7 +623,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
 
   packages/android-playground:
     dependencies:
@@ -810,7 +813,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
 
   packages/computer-linux:
     dependencies:
@@ -900,7 +903,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
 
   packages/computer-playground:
     dependencies:
@@ -1085,7 +1088,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
       zod:
         specifier: 3.24.3
         version: 3.24.3
@@ -1180,7 +1183,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
       zod:
         specifier: 3.24.3
         version: 3.24.3
@@ -1238,7 +1241,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
 
   packages/ios-playground:
     dependencies:
@@ -1333,7 +1336,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
 
   packages/playground-app:
     dependencies:
@@ -1635,7 +1638,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
 
   packages/web-integration:
     dependencies:
@@ -1742,7 +1745,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
 
 packages:
 
@@ -6853,6 +6856,9 @@ packages:
 
   fetch-socks@1.3.2:
     resolution: {integrity: sha512-vkH5+Zgj2yEbU57Cei0iyLgTZ4OkEKJj56Xu3ViB5dpsl599JgEooQ3x6NVagIFRHWnWJ+7K0MO0aIV1TMgvnw==}
+
+  fflate@0.8.2:
+    resolution: {integrity: sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A==}
 
   figures@3.2.0:
     resolution: {integrity: sha512-yaduQFRKLXYOGgEn6AZau90j3ggSOyiqXU0F9JZfeXYhNa+Jk4X+s45A2zg5jns87GAFa34BBm2kXw4XpNcbdg==}
@@ -14670,24 +14676,24 @@ snapshots:
       - typescript
       - webpack-hot-middleware
 
-  '@rsbuild/plugin-type-check@1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8(@swc/helpers@0.5.17))(typescript@5.8.3)':
+  '@rsbuild/plugin-type-check@1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8)(typescript@5.8.3)':
     dependencies:
       deepmerge: 4.3.1
       json5: 2.2.3
       reduce-configs: 1.1.1
-      ts-checker-rspack-plugin: 1.2.2(@rspack/core@1.6.8(@swc/helpers@0.5.17))(typescript@5.8.3)
+      ts-checker-rspack-plugin: 1.2.2(@rspack/core@1.6.8)(typescript@5.8.3)
     optionalDependencies:
       '@rsbuild/core': 1.6.15
     transitivePeerDependencies:
       - '@rspack/core'
       - typescript
 
-  '@rsbuild/plugin-type-check@1.3.2(@rsbuild/core@1.6.15)(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(typescript@5.8.3)':
+  '@rsbuild/plugin-type-check@1.3.2(@rsbuild/core@1.6.15)(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(typescript@5.8.3)':
     dependencies:
       deepmerge: 4.3.1
       json5: 2.2.3
       reduce-configs: 1.1.1
-      ts-checker-rspack-plugin: 1.2.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(typescript@5.8.3)
+      ts-checker-rspack-plugin: 1.2.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(typescript@5.8.3)
     optionalDependencies:
       '@rsbuild/core': 1.6.15
     transitivePeerDependencies:
@@ -14696,13 +14702,13 @@ snapshots:
 
   '@rsdoctor/client@1.0.2': {}
 
-  '@rsdoctor/core@1.0.2(@rsbuild/core@1.6.15)(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(bufferutil@4.0.9)(webpack@5.99.5)':
+  '@rsdoctor/core@1.0.2(@rsbuild/core@1.6.15)(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(bufferutil@4.0.9)(webpack@5.99.5)':
     dependencies:
       '@rsbuild/plugin-check-syntax': 1.3.0(@rsbuild/core@1.6.15)
-      '@rsdoctor/graph': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(bufferutil@4.0.9)(webpack@5.99.5)
-      '@rsdoctor/sdk': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(bufferutil@4.0.9)(webpack@5.99.5)
-      '@rsdoctor/types': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(webpack@5.99.5)
-      '@rsdoctor/utils': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(webpack@5.99.5)
+      '@rsdoctor/graph': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(bufferutil@4.0.9)(webpack@5.99.5)
+      '@rsdoctor/sdk': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(bufferutil@4.0.9)(webpack@5.99.5)
+      '@rsdoctor/types': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(webpack@5.99.5)
+      '@rsdoctor/utils': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(webpack@5.99.5)
       axios: 1.9.0
       browserslist-load-config: 1.0.0
       enhanced-resolve: 5.12.0
@@ -14722,10 +14728,10 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/graph@1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(bufferutil@4.0.9)(webpack@5.99.5)':
+  '@rsdoctor/graph@1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(bufferutil@4.0.9)(webpack@5.99.5)':
     dependencies:
-      '@rsdoctor/types': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(webpack@5.99.5)
-      '@rsdoctor/utils': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(webpack@5.99.5)
+      '@rsdoctor/types': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(webpack@5.99.5)
+      '@rsdoctor/utils': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(webpack@5.99.5)
       lodash.unionby: 4.8.0
       socket.io: 4.8.1(bufferutil@4.0.9)(utf-8-validate@6.0.5)
       source-map: 0.7.4
@@ -14736,14 +14742,14 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/rspack-plugin@1.0.2(@rsbuild/core@1.6.15)(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(bufferutil@4.0.9)(webpack@5.99.5)':
+  '@rsdoctor/rspack-plugin@1.0.2(@rsbuild/core@1.6.15)(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(bufferutil@4.0.9)(webpack@5.99.5)':
     dependencies:
-      '@rsdoctor/core': 1.0.2(@rsbuild/core@1.6.15)(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(bufferutil@4.0.9)(webpack@5.99.5)
-      '@rsdoctor/graph': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(bufferutil@4.0.9)(webpack@5.99.5)
-      '@rsdoctor/sdk': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(bufferutil@4.0.9)(webpack@5.99.5)
-      '@rsdoctor/types': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(webpack@5.99.5)
-      '@rsdoctor/utils': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(webpack@5.99.5)
-      '@rspack/core': 2.0.0-alpha.1(@swc/helpers@0.5.18)
+      '@rsdoctor/core': 1.0.2(@rsbuild/core@1.6.15)(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(bufferutil@4.0.9)(webpack@5.99.5)
+      '@rsdoctor/graph': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(bufferutil@4.0.9)(webpack@5.99.5)
+      '@rsdoctor/sdk': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(bufferutil@4.0.9)(webpack@5.99.5)
+      '@rsdoctor/types': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(webpack@5.99.5)
+      '@rsdoctor/utils': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(webpack@5.99.5)
+      '@rspack/core': 2.0.0-alpha.1(@swc/helpers@0.5.17)
       lodash: 4.17.21
     transitivePeerDependencies:
       - '@rsbuild/core'
@@ -14753,12 +14759,12 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/sdk@1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(bufferutil@4.0.9)(webpack@5.99.5)':
+  '@rsdoctor/sdk@1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(bufferutil@4.0.9)(webpack@5.99.5)':
     dependencies:
       '@rsdoctor/client': 1.0.2
-      '@rsdoctor/graph': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(bufferutil@4.0.9)(webpack@5.99.5)
-      '@rsdoctor/types': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(webpack@5.99.5)
-      '@rsdoctor/utils': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(webpack@5.99.5)
+      '@rsdoctor/graph': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(bufferutil@4.0.9)(webpack@5.99.5)
+      '@rsdoctor/types': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(webpack@5.99.5)
+      '@rsdoctor/utils': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(webpack@5.99.5)
       '@types/fs-extra': 11.0.4
       body-parser: 1.20.3
       cors: 2.8.5
@@ -14778,7 +14784,7 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/types@1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(webpack@5.99.5)':
+  '@rsdoctor/types@1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(webpack@5.99.5)':
     dependencies:
       '@types/connect': 3.4.38
       '@types/estree': 1.0.5
@@ -14786,12 +14792,12 @@ snapshots:
       source-map: 0.7.4
       webpack: 5.99.5
     optionalDependencies:
-      '@rspack/core': 2.0.0-alpha.1(@swc/helpers@0.5.18)
+      '@rspack/core': 2.0.0-alpha.1(@swc/helpers@0.5.17)
 
-  '@rsdoctor/utils@1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(webpack@5.99.5)':
+  '@rsdoctor/utils@1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(webpack@5.99.5)':
     dependencies:
       '@babel/code-frame': 7.26.2
-      '@rsdoctor/types': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(webpack@5.99.5)
+      '@rsdoctor/types': 1.0.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(webpack@5.99.5)
       '@types/estree': 1.0.5
       acorn: 8.15.0
       acorn-import-attributes: 1.9.5(acorn@8.15.0)
@@ -14988,6 +14994,13 @@ snapshots:
     dependencies:
       '@module-federation/runtime-tools': 0.21.6
       '@rspack/binding': 1.6.8
+      '@rspack/lite-tapable': 1.1.0
+    optionalDependencies:
+      '@swc/helpers': 0.5.17
+
+  '@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17)':
+    dependencies:
+      '@rspack/binding': 2.0.0-alpha.1
       '@rspack/lite-tapable': 1.1.0
     optionalDependencies:
       '@swc/helpers': 0.5.17
@@ -18160,6 +18173,8 @@ snapshots:
     dependencies:
       socks: 2.8.3
       undici: 6.22.0
+
+  fflate@0.8.2: {}
 
   figures@3.2.0:
     dependencies:
@@ -22982,7 +22997,7 @@ snapshots:
     dependencies:
       utf8-byte-length: 1.0.5
 
-  ts-checker-rspack-plugin@1.2.2(@rspack/core@1.6.8(@swc/helpers@0.5.17))(typescript@5.8.3):
+  ts-checker-rspack-plugin@1.2.2(@rspack/core@1.6.8)(typescript@5.8.3):
     dependencies:
       '@babel/code-frame': 7.27.1
       '@rspack/lite-tapable': 1.1.0
@@ -22995,7 +23010,7 @@ snapshots:
     optionalDependencies:
       '@rspack/core': 1.6.8(@swc/helpers@0.5.17)
 
-  ts-checker-rspack-plugin@1.2.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.18))(typescript@5.8.3):
+  ts-checker-rspack-plugin@1.2.2(@rspack/core@2.0.0-alpha.1(@swc/helpers@0.5.17))(typescript@5.8.3):
     dependencies:
       '@babel/code-frame': 7.27.1
       '@rspack/lite-tapable': 1.1.0
@@ -23006,7 +23021,7 @@ snapshots:
       picocolors: 1.1.1
       typescript: 5.8.3
     optionalDependencies:
-      '@rspack/core': 2.0.0-alpha.1(@swc/helpers@0.5.18)
+      '@rspack/core': 2.0.0-alpha.1(@swc/helpers@0.5.17)
 
   ts-node@10.9.2(@types/node@18.19.118)(typescript@5.8.3):
     dependencies:
@@ -23477,7 +23492,7 @@ snapshots:
       sass-embedded: 1.86.3
       terser: 5.44.1
 
-  vitest@3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1):
+  vitest@3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1):
     dependencies:
       '@vitest/expect': 3.0.5
       '@vitest/mocker': 3.0.5(vite@5.4.10(@types/node@18.19.118)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1))

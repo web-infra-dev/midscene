@@ -114,4 +114,54 @@ describe('createReportCliCommands', () => {
     expect(firstDump.executions[0].id).toBe('exec-1');
     expect(secondDump.executions[0].id).toBe('exec-2');
   });
+
+  it('runs to-markdown export through the generic report command', async () => {
+    const reportPath = join(tmpDir, 'input-report-md', 'index.html');
+    mkdirSync(join(tmpDir, 'input-report-md'), { recursive: true });
+
+    const screenshot1 = ScreenshotItem.create(fakeBase64(100), Date.now());
+    const screenshot2 = ScreenshotItem.create(fakeBase64(120), Date.now());
+    const dump1 = new ReportActionDump({
+      groupName: 'markdown-test',
+      groupDescription: 'markdown export test',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [createExecution('exec-md-1', screenshot1)],
+    });
+    const dump2 = new ReportActionDump({
+      groupName: 'markdown-test',
+      groupDescription: 'markdown export test',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [createExecution('exec-md-2', screenshot2)],
+    });
+
+    const html = [
+      generateImageScriptTag(screenshot1.id, screenshot1.base64),
+      generateImageScriptTag(screenshot2.id, screenshot2.base64),
+      generateDumpScriptTag(dump1.serialize(), { 'data-group-id': 'group-1' }),
+      generateDumpScriptTag(dump2.serialize(), { 'data-group-id': 'group-1' }),
+    ].join('\n');
+    writeFileSync(reportPath, html, 'utf-8');
+
+    const outputDir = join(tmpDir, 'output-md');
+    const [command] = createReportCliCommands();
+    const result = await command.def.handler({
+      htmlPath: reportPath,
+      outputDir,
+      action: 'to-markdown',
+    });
+
+    expect(result.isError).toBe(false);
+    expect(result.content[0].text).toContain('Markdown export completed.');
+    expect(result.content[0].text).toContain(`Output path: ${outputDir}`);
+
+    const mdContent = readFileSync(join(outputDir, 'report.md'), 'utf-8');
+    expect(mdContent).toContain('# markdown-test');
+    expect(mdContent).toContain('# execution-exec-md-1');
+    expect(mdContent).toContain('# execution-exec-md-2');
+    expect(mdContent).toContain('Suggested execution markdown files');
+
+    expect(existsSync(join(outputDir, 'screenshots'))).toBe(true);
+  });
 });
