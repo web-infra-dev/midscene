@@ -56,7 +56,6 @@ export function dedupeExecutionsKeepLatest<T extends Pick<ExecutionDump, 'id'>>(
   }
   return Array.from(deduped.values());
 }
-
 export class ReportMergingTool {
   private reportInfos: ReportFileWithAttributes[] = [];
   public append(reportInfo: ReportFileWithAttributes) {

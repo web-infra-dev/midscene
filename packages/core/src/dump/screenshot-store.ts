@@ -53,12 +53,15 @@ export class ScreenshotStore {
     screenshotsDir?: string;
     writeInlineImage?: (id: string, base64: string) => void;
     alsoWriteFileCopy?: boolean;
+    /** @deprecated Use alsoWriteFileCopy instead. */
+    ensureFileCopy?: boolean;
   }) {
     this.mode = options.mode;
     this.reportPath = options.reportPath;
     this.screenshotsDir = options.screenshotsDir;
     this.writeInlineImage = options.writeInlineImage;
-    this.alsoWriteFileCopy = options.alsoWriteFileCopy ?? false;
+    this.alsoWriteFileCopy =
+      options.alsoWriteFileCopy ?? options.ensureFileCopy ?? false;
   }
 
   persist(screenshot: ScreenshotItem): ScreenshotRef {

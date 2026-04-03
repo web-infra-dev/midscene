@@ -113,6 +113,28 @@ describe('ScreenshotStore', () => {
     expect(store.loadBase64(ref)).toBe(pngBase64);
   });
 
+  it('keeps supporting ensureFileCopy as a deprecated alias', () => {
+    const reportPath = join(tmpRoot, 'inline-with-deprecated-file-copy.html');
+    const screenshotsDir = join(tmpRoot, 'screenshots');
+    const appendInline = vi.fn((id: string, base64: string) => {
+      writeFileSync(
+        reportPath,
+        `<script type="midscene-image" data-id="${id}">${base64}</script>`,
+      );
+    });
+    const store = new ScreenshotStore({
+      mode: 'inline',
+      reportPath,
+      screenshotsDir,
+      writeInlineImage: appendInline,
+      ensureFileCopy: true,
+    });
+    const item = ScreenshotItem.create(pngBase64, 100);
+
+    const ref = store.persist(item);
+    expect(ref.storage).toBe('inline');
+    expect(existsSync(join(screenshotsDir, `${item.id}.png`))).toBe(true);
+  });
   it('throws on non-ScreenshotRef inputs', () => {
     const reportPath = join(tmpRoot, 'invalid-ref.html');
     const store = new ScreenshotStore({
