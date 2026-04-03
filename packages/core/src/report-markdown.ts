@@ -18,6 +18,8 @@ export interface MarkdownAttachment {
   filePath: string;
   executionIndex: number;
   taskIndex: number;
+  /** Populated when screenshot data is available in memory (e.g. browser context). */
+  base64Data?: string;
 }
 
 export interface ExecutionMarkdownOptions {
@@ -111,6 +113,15 @@ function safeTaskParam(task: ExecutionTask): string {
   return '';
 }
 
+function tryExtractBase64(screenshot: unknown): string | undefined {
+  if (!screenshot || typeof screenshot !== 'object') return undefined;
+  const s = screenshot as Record<string, unknown>;
+  if (typeof s.base64 === 'string' && s.base64.length > 0) {
+    return s.base64;
+  }
+  return undefined;
+}
+
 function screenshotAttachment(
   screenshot: unknown,
   screenshotBaseDir: string,
@@ -130,31 +141,53 @@ function screenshotAttachment(
         mimeType: `image/${ext === 'jpeg' ? 'jpeg' : 'png'}`,
         executionIndex,
         taskIndex,
+        base64Data: tryExtractBase64(screenshot),
       },
     };
   }
 
   const ref = normalizeScreenshotRef(screenshot);
-  if (!ref) {
-    throw new Error(
-      `executionToMarkdown: missing screenshot for execution #${executionIndex + 1} task #${taskIndex + 1}`,
-    );
+  if (ref) {
+    const ext = ref.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
+    const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${ref.id}.${ext}`;
+    const filePath = ref.path || `${screenshotBaseDir}/${suggestedFileName}`;
+    return {
+      markdown: `\n![task-${taskIndex + 1}](${filePath})`,
+      attachment: {
+        id: ref.id,
+        suggestedFileName,
+        filePath,
+        mimeType: ref.mimeType,
+        executionIndex,
+        taskIndex,
+        base64Data: tryExtractBase64(screenshot),
+      },
+    };
   }
 
-  const ext = ref.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
-  const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${ref.id}.${ext}`;
-  const filePath = ref.path || `${screenshotBaseDir}/${suggestedFileName}`;
-  return {
-    markdown: `\n![task-${taskIndex + 1}](${filePath})`,
-    attachment: {
-      id: ref.id,
-      suggestedFileName,
-      filePath,
-      mimeType: ref.mimeType,
-      executionIndex,
-      taskIndex,
-    },
-  };
+  const base64 = tryExtractBase64(screenshot);
+  if (base64) {
+    const ext = base64.startsWith('data:image/jpeg') ? 'jpeg' : 'png';
+    const id = `restored-${executionIndex + 1}-${taskIndex + 1}`;
+    const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${id}.${ext}`;
+    const filePath = `${screenshotBaseDir}/${suggestedFileName}`;
+    return {
+      markdown: `\n![task-${taskIndex + 1}](${filePath})`,
+      attachment: {
+        id,
+        suggestedFileName,
+        filePath,
+        mimeType: `image/${ext}`,
+        executionIndex,
+        taskIndex,
+        base64Data: base64,
+      },
+    };
+  }
+
+  throw new Error(
+    `executionToMarkdown: missing screenshot for execution #${executionIndex + 1} task #${taskIndex + 1}`,
+  );
 }
 
 function recorderMarkdownSection(
