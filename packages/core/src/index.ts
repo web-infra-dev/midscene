@@ -71,6 +71,7 @@ export {
 export type { IReportGenerator } from './report-generator';
 export { ReportGenerator, nullReportGenerator } from './report-generator';
 export {
+  collectDedupedExecutions,
   ReportMergingTool,
   dedupeExecutionsKeepLatest,
   splitReportHtmlByExecution,

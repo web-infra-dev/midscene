@@ -254,6 +254,77 @@ export interface SplitReportHtmlResult {
   screenshotFiles: string[];
 }
 
+export interface CollectedReportExecutions {
+  baseDump: ReportActionDump;
+  executions: IExecutionDump[];
+}
+
+/**
+ * Collect executions from a report HTML, deduplicating by stable id while
+ * keeping only the latest occurrence. Old-format executions without id are
+ * always preserved.
+ */
+export function collectDedupedExecutions(
+  htmlPath: string,
+): CollectedReportExecutions {
+  let baseDump: ReportActionDump | null = null;
+  let executionSerial = 0;
+  const latestSerialByExecutionId = new Map<string, number>();
+
+  streamDumpScriptsSync(htmlPath, (dumpScript) => {
+    if (!dumpScript.openTag.includes('data-group-id')) {
+      return false;
+    }
+    const groupedDump = ReportActionDump.fromSerializedString(
+      antiEscapeScriptTag(dumpScript.content),
+    );
+    for (const execution of groupedDump.executions) {
+      executionSerial += 1;
+      if (execution.id) {
+        latestSerialByExecutionId.set(execution.id, executionSerial);
+      }
+    }
+    return false;
+  });
+
+  const executions: IExecutionDump[] = [];
+  executionSerial = 0;
+  streamDumpScriptsSync(htmlPath, (dumpScript) => {
+    if (!dumpScript.openTag.includes('data-group-id')) {
+      return false;
+    }
+
+    const groupedDump = ReportActionDump.fromSerializedString(
+      antiEscapeScriptTag(dumpScript.content),
+    );
+    if (!baseDump) {
+      baseDump = groupedDump;
+    }
+
+    for (const execution of groupedDump.executions) {
+      executionSerial += 1;
+      if (
+        execution.id &&
+        latestSerialByExecutionId.get(execution.id) !== executionSerial
+      ) {
+        continue;
+      }
+      executions.push(execution);
+    }
+
+    return false;
+  });
+
+  if (!baseDump) {
+    throw new Error(`No report dump scripts found in ${htmlPath}`);
+  }
+
+  return {
+    baseDump,
+    executions,
+  };
+}
+
 function extensionByMimeType(mimeType: string): 'png' | 'jpeg' {
   if (mimeType === 'image/png') return 'png';
   if (mimeType === 'image/jpeg') return 'jpeg';
@@ -347,72 +418,29 @@ export function splitReportHtmlByExecution(
 
   const executionJsonFiles: string[] = [];
   const writtenScreenshotFiles = new Set<string>();
-  let hasDumpScript = false;
-  let executionSerial = 0;
-  const latestSerialByExecutionId = new Map<string, number>();
-
-  // Match the report frontend behavior: keep only the latest execution for a
-  // stable id across the whole report, and keep all legacy executions without id.
-  streamDumpScriptsSync(htmlPath, (dumpScript) => {
-    if (!dumpScript.openTag.includes('data-group-id')) {
-      return false;
-    }
-    const groupedDump = ReportActionDump.fromSerializedString(
-      antiEscapeScriptTag(dumpScript.content),
-    );
-    for (const execution of groupedDump.executions) {
-      executionSerial += 1;
-      if (execution.id) {
-        latestSerialByExecutionId.set(execution.id, executionSerial);
-      }
-    }
-    return false;
-  });
+  const { baseDump, executions } = collectDedupedExecutions(htmlPath);
 
   let fileIndex = 0;
-  executionSerial = 0;
-  streamDumpScriptsSync(htmlPath, (dumpScript) => {
-    if (!dumpScript.openTag.includes('data-group-id')) {
-      return false;
-    }
-    hasDumpScript = true;
-    const groupedDump = ReportActionDump.fromSerializedString(
-      antiEscapeScriptTag(dumpScript.content),
-    );
-    for (const execution of groupedDump.executions) {
-      executionSerial += 1;
-      if (
-        execution.id &&
-        latestSerialByExecutionId.get(execution.id) !== executionSerial
-      ) {
-        continue;
-      }
+  for (const execution of executions) {
+    fileIndex += 1;
+    externalizeScreenshotsInExecution(execution, {
+      htmlPath,
+      sourceDir,
+      screenshotsDir,
+      writtenFiles: writtenScreenshotFiles,
+    });
+    const singleExecutionDump = new ReportActionDump({
+      sdkVersion: baseDump.sdkVersion,
+      groupName: baseDump.groupName,
+      groupDescription: baseDump.groupDescription,
+      modelBriefs: baseDump.modelBriefs,
+      deviceType: baseDump.deviceType,
+      executions: [execution],
+    });
 
-      fileIndex += 1;
-      externalizeScreenshotsInExecution(execution, {
-        htmlPath,
-        sourceDir,
-        screenshotsDir,
-        writtenFiles: writtenScreenshotFiles,
-      });
-      const singleExecutionDump = new ReportActionDump({
-        sdkVersion: groupedDump.sdkVersion,
-        groupName: groupedDump.groupName,
-        groupDescription: groupedDump.groupDescription,
-        modelBriefs: groupedDump.modelBriefs,
-        deviceType: groupedDump.deviceType,
-        executions: [execution],
-      });
-
-      const jsonFilePath = path.join(outputDir, `${fileIndex}.execution.json`);
-      writeFileSync(jsonFilePath, singleExecutionDump.serialize(2), 'utf-8');
-      executionJsonFiles.push(jsonFilePath);
-    }
-    return false;
-  });
-
-  if (!hasDumpScript) {
-    throw new Error(`No report dump scripts found in ${htmlPath}`);
+    const jsonFilePath = path.join(outputDir, `${fileIndex}.execution.json`);
+    writeFileSync(jsonFilePath, singleExecutionDump.serialize(2), 'utf-8');
+    executionJsonFiles.push(jsonFilePath);
   }
 
   return {

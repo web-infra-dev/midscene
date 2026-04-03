@@ -164,4 +164,51 @@ describe('createReportCliCommands', () => {
 
     expect(existsSync(join(outputDir, 'screenshots'))).toBe(true);
   });
+
+  it('keeps only the latest execution for duplicate ids in markdown export', async () => {
+    const reportPath = join(tmpDir, 'input-report-md-dedup', 'index.html');
+    mkdirSync(join(tmpDir, 'input-report-md-dedup'), { recursive: true });
+
+    const oldScreenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
+    const newScreenshot = ScreenshotItem.create(fakeBase64(120), Date.now());
+    const oldDump = new ReportActionDump({
+      groupName: 'markdown-dedup-test',
+      groupDescription: 'markdown export dedup test',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [createExecution('exec-md-dedup', oldScreenshot)],
+    });
+    const newDump = new ReportActionDump({
+      groupName: 'markdown-dedup-test',
+      groupDescription: 'markdown export dedup test',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [createExecution('exec-md-dedup', newScreenshot)],
+    });
+
+    const html = [
+      generateImageScriptTag(oldScreenshot.id, oldScreenshot.base64),
+      generateImageScriptTag(newScreenshot.id, newScreenshot.base64),
+      generateDumpScriptTag(oldDump.serialize(), {
+        'data-group-id': 'group-1',
+      }),
+      generateDumpScriptTag(newDump.serialize(), {
+        'data-group-id': 'group-1',
+      }),
+    ].join('\n');
+    writeFileSync(reportPath, html, 'utf-8');
+
+    const outputDir = join(tmpDir, 'output-md-dedup');
+    const [command] = createReportCliCommands();
+    await command.def.handler({
+      htmlPath: reportPath,
+      outputDir,
+      action: 'to-markdown',
+    });
+
+    const mdContent = readFileSync(join(outputDir, 'report.md'), 'utf-8');
+    expect(mdContent).toContain('# execution-exec-md-dedup');
+    expect(mdContent).toContain(newScreenshot.id);
+    expect(mdContent).not.toContain(oldScreenshot.id);
+  });
 });

@@ -1,13 +1,12 @@
 import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 import { z } from 'zod';
-import { extractImageByIdSync, streamDumpScriptsSync } from './dump/html-utils';
+import { extractImageByIdSync } from './dump/html-utils';
 import { normalizeScreenshotRef } from './dump/screenshot-store';
-import { splitReportHtmlByExecution } from './report';
+import { collectDedupedExecutions, splitReportHtmlByExecution } from './report';
 import { reportToMarkdown } from './report-markdown';
 import type { MarkdownAttachment } from './report-markdown';
 import { ReportActionDump } from './types';
-import type { IExecutionDump } from './types';
 
 type ReportCliToolResult = {
   isError: boolean;
@@ -91,63 +90,21 @@ async function markdownFromReport(
   htmlPath: string,
   outputDir: string,
 ): Promise<{ markdownFiles: string[]; screenshotFiles: string[] }> {
-  const { antiEscapeScriptTag } = await import('@midscene/shared/utils');
   const sourceDir = path.dirname(htmlPath);
   const screenshotsDir = path.join(outputDir, 'screenshots');
 
   mkdirSync(outputDir, { recursive: true });
   mkdirSync(screenshotsDir, { recursive: true });
 
-  const allExecutions: IExecutionDump[] = [];
-  let baseDump: ReportActionDump | null = null;
-  const latestSerialByExecutionId = new Map<string, number>();
-  let executionSerial = 0;
-
-  streamDumpScriptsSync(htmlPath, (dumpScript) => {
-    if (!dumpScript.openTag.includes('data-group-id')) return false;
-    const groupedDump = ReportActionDump.fromSerializedString(
-      antiEscapeScriptTag(dumpScript.content),
-    );
-    for (const execution of groupedDump.executions) {
-      executionSerial += 1;
-      if (execution.id) {
-        latestSerialByExecutionId.set(execution.id, executionSerial);
-      }
-    }
-    return false;
-  });
-
-  executionSerial = 0;
-  streamDumpScriptsSync(htmlPath, (dumpScript) => {
-    if (!dumpScript.openTag.includes('data-group-id')) return false;
-    const groupedDump = ReportActionDump.fromSerializedString(
-      antiEscapeScriptTag(dumpScript.content),
-    );
-    if (!baseDump) baseDump = groupedDump;
-    for (const execution of groupedDump.executions) {
-      executionSerial += 1;
-      if (
-        execution.id &&
-        latestSerialByExecutionId.get(execution.id) !== executionSerial
-      ) {
-        continue;
-      }
-      allExecutions.push(execution);
-    }
-    return false;
-  });
-
-  if (!baseDump) {
-    throw new Error(`No report dump scripts found in ${htmlPath}`);
-  }
+  const { baseDump, executions } = collectDedupedExecutions(htmlPath);
 
   const mergedReport = new ReportActionDump({
-    sdkVersion: (baseDump as ReportActionDump).sdkVersion,
-    groupName: (baseDump as ReportActionDump).groupName,
-    groupDescription: (baseDump as ReportActionDump).groupDescription,
-    modelBriefs: (baseDump as ReportActionDump).modelBriefs,
-    deviceType: (baseDump as ReportActionDump).deviceType,
-    executions: allExecutions,
+    sdkVersion: baseDump.sdkVersion,
+    groupName: baseDump.groupName,
+    groupDescription: baseDump.groupDescription,
+    modelBriefs: baseDump.modelBriefs,
+    deviceType: baseDump.deviceType,
+    executions,
   });
 
   const result = reportToMarkdown(mergedReport);
