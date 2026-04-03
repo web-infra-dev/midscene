@@ -27,9 +27,8 @@
     "commit-msg": "npx --no -- commitlint --edit $1"
   },
   "lint-staged": {
-    "*.{mdx,json,css,less,scss}": [
-      "npx biome check --diagnostic-level=info --fix"
-    ],
+    "*.{mdx,json,css}": ["npx biome check --diagnostic-level=info --fix"],
+    "*.{less,scss}": ["npx prettier --write"],
     "*.{js,jsx,ts,tsx,mjs,cjs}": [
       "npx biome check --diagnostic-level=info --fix"
     ],
