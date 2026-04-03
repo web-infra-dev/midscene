@@ -6,6 +6,7 @@ import {
   readdirSync,
   rmSync,
   unlinkSync,
+  writeFileSync,
 } from 'node:fs';
 import * as path from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
@@ -15,9 +16,18 @@ import {
   extractAllDumpScriptsSync,
   extractLastDumpScriptSync,
   getBaseUrlFixScript,
+  streamDumpScriptsSync,
   streamImageScriptsToFile,
 } from './dump/html-utils';
-import { ReportActionDump } from './types';
+import {
+  normalizeScreenshotRef,
+  resolveScreenshotSource,
+} from './dump/screenshot-store';
+import {
+  type ExecutionDump,
+  type IExecutionDump,
+  ReportActionDump,
+} from './types';
 import type { ReportFileWithAttributes } from './types';
 import { getReportTpl, reportHTMLContent } from './utils';
 
@@ -33,6 +43,21 @@ export function isDirectoryModeReport(reportFilePath: string): boolean {
   );
 }
 
+/**
+ * Deduplicate executions by stable id, keeping only the last occurrence.
+ * Old-format executions without id are always preserved.
+ */
+export function dedupeExecutionsKeepLatest<T extends Pick<ExecutionDump, 'id'>>(
+  executions: T[],
+): T[] {
+  let noIdCounter = 0;
+  const deduped = new Map<string, T>();
+  for (const exec of executions) {
+    const key = exec.id || `__no_id_${noIdCounter++}`;
+    deduped.set(key, exec);
+  }
+  return Array.from(deduped.values());
+}
 export class ReportMergingTool {
   private reportInfos: ReportFileWithAttributes[] = [];
   public append(reportInfo: ReportFileWithAttributes) {
@@ -64,13 +89,7 @@ export class ReportMergingTool {
       const other = ReportActionDump.fromSerializedString(unescaped[i]);
       allExecutions.push(...other.executions);
     }
-    let noIdCounter = 0;
-    const deduped = new Map<string, (typeof allExecutions)[0]>();
-    for (const exec of allExecutions) {
-      const key = exec.id || `__no_id_${noIdCounter++}`;
-      deduped.set(key, exec);
-    }
-    base.executions = Array.from(deduped.values());
+    base.executions = dedupeExecutionsKeepLatest(allExecutions);
     return base.serialize();
   }
 
@@ -225,4 +244,192 @@ export class ReportMergingTool {
       throw error;
     }
   }
+}
+
+export interface SplitReportHtmlOptions {
+  htmlPath: string;
+  outputDir: string;
+}
+
+export interface SplitReportHtmlResult {
+  executionJsonFiles: string[];
+  screenshotFiles: string[];
+}
+
+export interface CollectedReportExecutions {
+  baseDump: ReportActionDump;
+  executions: IExecutionDump[];
+}
+
+/**
+ * Collect executions from a report HTML, deduplicating by stable id while
+ * keeping only the latest occurrence. Old-format executions without id are
+ * always preserved.
+ */
+export function collectDedupedExecutions(
+  htmlPath: string,
+): CollectedReportExecutions {
+  let baseDump: ReportActionDump | null = null;
+  let executionSerial = 0;
+  const latestSerialByExecutionId = new Map<string, number>();
+
+  streamDumpScriptsSync(htmlPath, (dumpScript) => {
+    if (!dumpScript.openTag.includes('data-group-id')) {
+      return false;
+    }
+    const groupedDump = ReportActionDump.fromSerializedString(
+      antiEscapeScriptTag(dumpScript.content),
+    );
+    for (const execution of groupedDump.executions) {
+      executionSerial += 1;
+      if (execution.id) {
+        latestSerialByExecutionId.set(execution.id, executionSerial);
+      }
+    }
+    return false;
+  });
+
+  const executions: IExecutionDump[] = [];
+  executionSerial = 0;
+  streamDumpScriptsSync(htmlPath, (dumpScript) => {
+    if (!dumpScript.openTag.includes('data-group-id')) {
+      return false;
+    }
+
+    const groupedDump = ReportActionDump.fromSerializedString(
+      antiEscapeScriptTag(dumpScript.content),
+    );
+    if (!baseDump) {
+      baseDump = groupedDump;
+    }
+
+    for (const execution of groupedDump.executions) {
+      executionSerial += 1;
+      if (
+        execution.id &&
+        latestSerialByExecutionId.get(execution.id) !== executionSerial
+      ) {
+        continue;
+      }
+      executions.push(execution);
+    }
+
+    return false;
+  });
+
+  if (!baseDump) {
+    throw new Error(`No report dump scripts found in ${htmlPath}`);
+  }
+
+  return {
+    baseDump,
+    executions,
+  };
+}
+
+function extensionByMimeType(mimeType: string): 'png' | 'jpeg' {
+  if (mimeType === 'image/png') return 'png';
+  if (mimeType === 'image/jpeg') return 'jpeg';
+  throw new Error(`Unsupported screenshot mime type: ${mimeType}`);
+}
+
+function externalizeScreenshotsInExecution(
+  execution: IExecutionDump,
+  opts: {
+    htmlPath: string;
+    screenshotsDir: string;
+    writtenFiles: Set<string>;
+  },
+): void {
+  const visit = (node: unknown): void => {
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        visit(item);
+      }
+      return;
+    }
+
+    if (typeof node !== 'object' || node === null) return;
+
+    const ref = normalizeScreenshotRef(node);
+    if (ref) {
+      const ext = extensionByMimeType(ref.mimeType);
+      const fileName = `${ref.id}.${ext}`;
+      const relativePath = `./screenshots/${fileName}`;
+      const absolutePath = path.join(opts.screenshotsDir, fileName);
+
+      if (!opts.writtenFiles.has(fileName)) {
+        const resolved = resolveScreenshotSource(ref, {
+          reportPath: opts.htmlPath,
+        });
+        if (resolved.type === 'data-uri') {
+          const rawBase64 = resolved.dataUri.replace(
+            /^data:image\/[a-zA-Z+]+;base64,/,
+            '',
+          );
+          writeFileSync(absolutePath, Buffer.from(rawBase64, 'base64'));
+        } else {
+          copyFileSync(resolved.filePath, absolutePath);
+        }
+        opts.writtenFiles.add(fileName);
+      }
+
+      ref.storage = 'file';
+      ref.path = relativePath;
+      return;
+    }
+
+    for (const value of Object.values(node)) {
+      visit(value);
+    }
+  };
+
+  visit(execution);
+}
+
+/**
+ * Reverse parse a Midscene report HTML into per-execution JSON files and
+ * externalized screenshots.
+ */
+export function splitReportHtmlByExecution(
+  options: SplitReportHtmlOptions,
+): SplitReportHtmlResult {
+  const { htmlPath, outputDir } = options;
+  const screenshotsDir = path.join(outputDir, 'screenshots');
+
+  mkdirSync(outputDir, { recursive: true });
+  mkdirSync(screenshotsDir, { recursive: true });
+
+  const executionJsonFiles: string[] = [];
+  const writtenScreenshotFiles = new Set<string>();
+  const { baseDump, executions } = collectDedupedExecutions(htmlPath);
+
+  let fileIndex = 0;
+  for (const execution of executions) {
+    fileIndex += 1;
+    externalizeScreenshotsInExecution(execution, {
+      htmlPath,
+      screenshotsDir,
+      writtenFiles: writtenScreenshotFiles,
+    });
+    const singleExecutionDump = new ReportActionDump({
+      sdkVersion: baseDump.sdkVersion,
+      groupName: baseDump.groupName,
+      groupDescription: baseDump.groupDescription,
+      modelBriefs: baseDump.modelBriefs,
+      deviceType: baseDump.deviceType,
+      executions: [execution],
+    });
+
+    const jsonFilePath = path.join(outputDir, `${fileIndex}.execution.json`);
+    writeFileSync(jsonFilePath, singleExecutionDump.serialize(2), 'utf-8');
+    executionJsonFiles.push(jsonFilePath);
+  }
+
+  return {
+    executionJsonFiles,
+    screenshotFiles: Array.from(writtenScreenshotFiles)
+      .sort()
+      .map((fileName) => path.join(screenshotsDir, fileName)),
+  };
 }

@@ -135,7 +135,6 @@ describe('ScreenshotStore', () => {
     expect(ref.storage).toBe('inline');
     expect(existsSync(join(screenshotsDir, `${item.id}.png`))).toBe(true);
   });
-
   it('throws on non-ScreenshotRef inputs', () => {
     const reportPath = join(tmpRoot, 'invalid-ref.html');
     const store = new ScreenshotStore({

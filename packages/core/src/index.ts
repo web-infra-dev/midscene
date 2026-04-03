@@ -70,7 +70,27 @@ export {
 // Report generator
 export type { IReportGenerator } from './report-generator';
 export { ReportGenerator, nullReportGenerator } from './report-generator';
+export {
+  collectDedupedExecutions,
+  ReportMergingTool,
+  dedupeExecutionsKeepLatest,
+  splitReportHtmlByExecution,
+} from './report';
+export {
+  createReportCliCommands,
+  type ReportCliCommandDefinition,
+  type ReportCliCommandEntry,
+} from './report-cli';
 
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';
 export { ScreenshotStore, type ScreenshotRef } from './dump/screenshot-store';
+
+export {
+  executionToMarkdown,
+  reportToMarkdown,
+  type ExecutionMarkdownOptions,
+  type ExecutionMarkdownResult,
+  type ReportMarkdownResult,
+  type MarkdownAttachment,
+} from './report-markdown';
