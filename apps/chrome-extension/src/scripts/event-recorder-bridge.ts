@@ -305,7 +305,7 @@ async function updateIdleScreenshot(): Promise<void> {
   }
 }
 
-// Function to start page change monitoring (only in top frame, not iframes)
+// Function to start page change monitoring
 function startPageChangeMonitoring(): void {
   if (isInIframe) return;
 
