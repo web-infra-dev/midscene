@@ -117,17 +117,6 @@ MIDSCENE_MODEL_NAME="qwen3-vl-plus"
 MIDSCENE_MODEL_FAMILY="qwen3-vl"
 ```
 
-### 千问 Qwen2.5-VL {#qwen25-vl}
-
-以阿里云 `qwen-vl-max-latest` 模型为例，它的环境变量配置如下：
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
-MIDSCENE_MODEL_FAMILY="qwen2.5-vl"
-```
-
 ### 智谱 GLM-V {#glm-v}
 
 智谱 GLM-V 是智谱 AI 推出的开源视觉模型。以 `GLM-4.6V` 为例：
@@ -207,6 +196,18 @@ MIDSCENE_MODEL_FAMILY="gpt-5"
 - OpenAI 在 computer use 文档中提到，他们观察到 `1440x900` 和 `1600x900` 这两种截图尺寸上通常能获得比较好的效果，详见 [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)。因此，建议按照 OpenAI 的推荐对截图尺寸进行调整。在 Midscene 中，你可以通过 Agent 参数里的 `screenshotShrinkFactor` 控制截图压缩倍率。如果是浏览器自动化，还可以通过浏览器 `viewport` 指定页面的尺寸和比例。
 
 :::
+
+### 千问 Qwen2.5-VL {#qwen25-vl}
+
+- 更推荐 qwen3 系列的新模型，通常来说，新模型的速度和效果都会优于老模型。
+- 以[阿里云](https://www.aliyun.com/) `qwen-vl-max-latest` 模型为例，它的环境变量配置如下。
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+MIDSCENE_MODEL_FAMILY="qwen2.5-vl"
+```
 
 ### UI-TARS {#ui-tars}
 

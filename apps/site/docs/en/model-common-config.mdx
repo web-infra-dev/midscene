@@ -119,17 +119,6 @@ MIDSCENE_MODEL_FAMILY="qwen3-vl"
 
 You can also use Qwen3-VL from [OpenRouter](https://openrouter.ai/qwen).
 
-### Qwen2.5-VL {#qwen25-vl}
-
-Using Alibaba Cloud's `qwen-vl-max-latest` as an example:
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
-MIDSCENE_MODEL_FAMILY="qwen2.5-vl"
-```
-
 ### Zhipu GLM-V {#glm-v}
 
 Zhipu GLM-V is an open-source vision model from Zhipu AI. Using `GLM-4.6V` as an example:
@@ -209,6 +198,18 @@ MIDSCENE_MODEL_FAMILY="gpt-5"
 
 :::
 
+### Qwen2.5-VL {#qwen25-vl}
+
+- We recommend the newer Qwen3-series models instead. In general, newer models are usually better than older ones in both speed and quality.
+- Using Alibaba Cloud's `qwen-vl-max-latest` as an example, the environment variable configuration is as follows.
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+MIDSCENE_MODEL_FAMILY="qwen2.5-vl"
+```
+
 ### UI-TARS {#ui-tars}
 
 Use the deployed `doubao-1.5-ui-tars` on [Volcano Engine](https://volcengine.com):
@@ -240,7 +241,7 @@ Migration mapping:
 
 ### ~~GPT-4o~~
 
-Starting with version 1.0, Midscene no longer supports gpt series models as the default model. See [Model strategy](./model-strategy) for details.
+Starting with version 1.0, Midscene no longer supports GPT-4o as the planning model for UI operations. See [Model strategy](./model-strategy) for details.
 
 ## Multi-model example: GPT-5.1 planning/insight + Qwen3-VL for vision {#gpt51-planning-insight-qwen3}
 
