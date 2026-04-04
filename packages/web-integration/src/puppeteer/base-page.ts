@@ -297,11 +297,24 @@ export class Page<
     return sizeInfo;
   }
 
+  private async waitForVisualReadyBeforeScreenshot(): Promise<void> {
+    // Give the page two animation frames to flush DOM/state updates before
+    // taking a screenshot for downstream assertions and queries.
+    await this.evaluate(async () => {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => resolve());
+        });
+      });
+    });
+  }
+
   async screenshotBase64(): Promise<string> {
     const imgType = 'jpeg' as const;
     const quality = 90;
     const startTime = Date.now();
     debugPage('screenshotBase64 begin');
+    await this.waitForVisualReadyBeforeScreenshot();
 
     let base64: string;
     if (this.interfaceType === 'puppeteer') {
