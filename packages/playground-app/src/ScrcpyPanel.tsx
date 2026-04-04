@@ -8,6 +8,7 @@ import { Alert, Button, Card, Space, Spin, Typography } from 'antd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
+import { createScrcpyVideoStream } from './scrcpy-stream';
 
 const { Text } = Typography;
 
@@ -157,74 +158,6 @@ export function ScrcpyPanel({
       return decoder;
     };
 
-    const setupVideoStream = () => {
-      const socket = socketRef.current;
-      let configurationPacketSent = false;
-      let pendingDataPackets: Array<{
-        type: string;
-        data: Uint8Array;
-        timestamp: number;
-      }> = [];
-
-      const transformStream = new TransformStream({
-        transform(chunk: any, controller: TransformStreamDefaultController) {
-          const packet = {
-            type: chunk.type,
-            data: new Uint8Array(chunk.data),
-            timestamp: chunk.timestamp,
-          };
-
-          if (packet.type === 'configuration') {
-            configurationPacketSent = true;
-            controller.enqueue(packet);
-            pendingDataPackets.forEach((queuedPacket) =>
-              controller.enqueue(queuedPacket),
-            );
-            pendingDataPackets = [];
-            return;
-          }
-
-          if (packet.type === 'data' && !configurationPacketSent) {
-            pendingDataPackets.push(packet);
-            return;
-          }
-
-          controller.enqueue(packet);
-        },
-      });
-
-      let cleanupListeners: (() => void) | undefined;
-      const readable = new ReadableStream({
-        start(controller) {
-          const handleVideoData = (data: any) => {
-            try {
-              controller.enqueue(data);
-            } catch (error) {
-              controller.error(error);
-            }
-          };
-
-          const handleDisconnect = () => controller.close();
-          const handleError = (error: Error) => controller.error(error);
-
-          cleanupListeners = () => {
-            socket?.off('video-data', handleVideoData);
-            socket?.off('disconnect', handleDisconnect);
-            socket?.off('error', handleError);
-          };
-
-          socket?.on('video-data', handleVideoData);
-          socket?.on('disconnect', handleDisconnect);
-          socket?.on('error', handleError);
-        },
-        cancel() {
-          cleanupListeners?.();
-        },
-      });
-
-      return readable.pipeThrough(transformStream);
-    };
-
     const connect = () => {
       if (disposed) {
         return;
@@ -241,6 +174,7 @@ export function ScrcpyPanel({
         timeout: 10000,
       });
       socketRef.current = socket;
+      const videoStream = createScrcpyVideoStream(socket);
 
       socket.on('connect', () => {
         socket.emit('connect-device', {
@@ -263,16 +197,14 @@ export function ScrcpyPanel({
             });
           }
 
-          setupVideoStream()
-            .pipeTo(decoder.writable)
-            .catch((error: Error) => {
-              if (disposed) {
-                return;
-              }
-              setStatus('error');
-              setErrorMessage(error.message);
-              scheduleReconnect();
-            });
+          videoStream.pipeTo(decoder.writable).catch((error: Error) => {
+            if (disposed) {
+              return;
+            }
+            setStatus('error');
+            setErrorMessage(error.message);
+            scheduleReconnect();
+          });
 
           setStatus('connected');
         } catch (error) {
