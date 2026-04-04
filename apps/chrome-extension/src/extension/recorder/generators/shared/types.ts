@@ -51,7 +51,7 @@ export interface PlaywrightGenerationOptions extends TestGenerationOptions {
 }
 
 export interface YamlGenerationOptions extends TestGenerationOptions {
-  // YAML-specific options can be added here
+  language?: string;
 }
 
 export interface FilteredEvents {

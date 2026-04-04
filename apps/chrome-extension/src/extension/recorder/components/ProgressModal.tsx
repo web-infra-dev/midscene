@@ -29,6 +29,13 @@ import {
   resolveSessionName,
   stopRecordingIfActive,
 } from '../shared/exportControlsUtils';
+import {
+  YAML_LANGUAGE_OPTIONS,
+  type YamlLanguagePreference,
+  getStoredYamlLanguagePreference,
+  persistYamlLanguagePreference,
+  resolveYamlGenerationLanguage,
+} from '../shared/yamlLanguage';
 import { generateRecordTitle } from '../utils';
 import { CodeBlock } from './ProgressModal/CodeBlock';
 import { StepList } from './ProgressModal/StepList';
@@ -81,6 +88,8 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     }
     return 'yaml'; // fallback default
   });
+  const [yamlLanguagePreference, setYamlLanguagePreference] =
+    useState<YamlLanguagePreference>(() => getStoredYamlLanguagePreference());
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
   const [slidingOutSteps, setSlidingOutSteps] = useState<Set<string>>(
     new Set(),
@@ -107,6 +116,13 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     } catch (error) {
       console.warn('Failed to save default code type to localStorage:', error);
     }
+  };
+
+  const updateYamlLanguagePreference = (
+    newPreference: YamlLanguagePreference,
+  ) => {
+    setYamlLanguagePreference(newPreference);
+    persistYamlLanguagePreference(newPreference);
   };
 
   // Get current session helper
@@ -199,6 +215,9 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   };
 
   const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
+  const resolvedYamlLanguage = resolveYamlGenerationLanguage(
+    yamlLanguagePreference,
+  );
 
   // Generate session title and description using AI
   const generateSessionTitleAndDescription = async (
@@ -507,7 +526,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         details:
           type === 'playwright'
             ? 'Generating Playwright test code...'
-            : 'Generating YAML configuration...',
+            : `Generating YAML configuration in ${resolvedYamlLanguage}...`,
       });
 
       finalEvents = getCurrentEvents();
@@ -538,6 +557,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
             testName: currentSessionName,
             description: `Test session recorded on ${new Date().toLocaleDateString()}`,
             includeTimestamps: true,
+            language: resolvedYamlLanguage,
           },
           defaultModelConfig,
         );
@@ -859,6 +879,22 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                 </Select.Option>
               ))}
             </Select>
+            {selectedType === 'yaml' && (
+              <Select<YamlLanguagePreference>
+                value={yamlLanguagePreference}
+                onChange={updateYamlLanguagePreference}
+                options={YAML_LANGUAGE_OPTIONS.map((option) => ({
+                  label:
+                    option.value === 'auto'
+                      ? `Auto (${resolvedYamlLanguage})`
+                      : option.label,
+                  value: option.value,
+                }))}
+                className="w-40"
+                size="middle"
+                disabled={isGenerating}
+              />
+            )}
             {(selectedType === 'playwright' || selectedType === 'yaml') &&
               (showGeneratedCode || isStreaming) && (
                 <div className="flex gap-0.2 ml-auto">

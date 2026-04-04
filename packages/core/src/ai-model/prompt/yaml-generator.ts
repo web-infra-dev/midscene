@@ -65,6 +65,7 @@ export interface YamlGenerationOptions {
   includeTimestamps?: boolean;
   maxScreenshots?: number;
   description?: string;
+  language?: string;
 }
 
 export interface FilteredEvents {
@@ -257,6 +258,71 @@ export const createMessageContent = (
   return messageContent;
 };
 
+const getYamlLanguageInstruction = (language?: string) => {
+  const normalizedLanguage = language?.trim();
+  if (!normalizedLanguage) {
+    return '';
+  }
+
+  return `
+Language requirement:
+- Write all human-readable YAML content in ${normalizedLanguage}.
+- Keep YAML keys, field names, and Midscene API names unchanged.`;
+};
+
+const createYamlPrompt = ({
+  yamlSummary,
+  screenshots,
+  language,
+}: {
+  yamlSummary: EventSummary & { includeTimestamps: boolean };
+  screenshots: string[];
+  language?: string;
+}): ChatCompletionMessageParam[] => {
+  const prompt: ChatCompletionMessageParam[] = [
+    {
+      role: 'system',
+      content: `You are an expert in Midscene.js YAML test generation. Generate clean, accurate YAML following these rules: ${YAML_EXAMPLE_CODE}`,
+    },
+    {
+      role: 'user',
+      content: `Generate YAML test for Midscene.js automation from recorded browser events.
+
+Event Summary:
+${JSON.stringify(yamlSummary, null, 2)}
+
+Convert events:
+- navigation → target.url
+- click → aiTap with element description
+- input → aiInput with value and locate
+- scroll → aiScroll with appropriate direction
+- Add aiAssert for important state changes${getYamlLanguageInstruction(language)}
+
+Important: Return ONLY the raw YAML content. Do NOT wrap the response in markdown code blocks (no \`\`\`yaml or \`\`\`). Start directly with the YAML content.`,
+    },
+  ];
+
+  if (screenshots.length > 0) {
+    prompt.push({
+      role: 'user',
+      content:
+        'Here are screenshots from the recording session to help you understand the context:',
+    });
+
+    prompt.push({
+      role: 'user',
+      content: screenshots.map((screenshot) => ({
+        type: 'image_url',
+        image_url: {
+          url: screenshot,
+        },
+      })),
+    });
+  }
+
+  return prompt;
+};
+
 /**
  * Validate events before processing
  */
@@ -298,48 +364,11 @@ export const generateYamlTest = async (
       options.maxScreenshots || 3,
     );
 
-    // Use LLM to generate the YAML test configuration
-    const prompt: ChatCompletionMessageParam[] = [
-      {
-        role: 'system',
-        content: `You are an expert in Midscene.js YAML test generation. Generate clean, accurate YAML following these rules: ${YAML_EXAMPLE_CODE}`,
-      },
-      {
-        role: 'user',
-        content: `Generate YAML test for Midscene.js automation from recorded browser events.
-
-Event Summary:
-${JSON.stringify(yamlSummary, null, 2)}
-
-Convert events:
-- navigation → target.url
-- click → aiTap with element description
-- input → aiInput with value and locate
-- scroll → aiScroll with appropriate direction
-- Add aiAssert for important state changes
-
-Important: Return ONLY the raw YAML content. Do NOT wrap the response in markdown code blocks (no \`\`\`yaml or \`\`\`). Start directly with the YAML content.`,
-      },
-    ];
-
-    // Add screenshots if available and requested
-    if (screenshots.length > 0) {
-      prompt.push({
-        role: 'user',
-        content:
-          'Here are screenshots from the recording session to help you understand the context:',
-      });
-
-      prompt.push({
-        role: 'user',
-        content: screenshots.map((screenshot) => ({
-          type: 'image_url',
-          image_url: {
-            url: screenshot,
-          },
-        })),
-      });
-    }
+    const prompt = createYamlPrompt({
+      yamlSummary,
+      screenshots,
+      language: options.language,
+    });
 
     const response = await callAIWithStringResponse(prompt, modelConfig);
 
@@ -383,48 +412,11 @@ export const generateYamlTestStream = async (
       options.maxScreenshots || 3,
     );
 
-    // Use LLM to generate the YAML test configuration
-    const prompt: ChatCompletionMessageParam[] = [
-      {
-        role: 'system',
-        content: `You are an expert in Midscene.js YAML test generation. Generate clean, accurate YAML following these rules: ${YAML_EXAMPLE_CODE}`,
-      },
-      {
-        role: 'user',
-        content: `Generate YAML test for Midscene.js automation from recorded browser events.
-
-Event Summary:
-${JSON.stringify(yamlSummary, null, 2)}
-
-Convert events:
-- navigation → target.url
-- click → aiTap with element description
-- input → aiInput with value and locate
-- scroll → aiScroll with appropriate direction
-- Add aiAssert for important state changes
-
-Important: Return ONLY the raw YAML content. Do NOT wrap the response in markdown code blocks (no \`\`\`yaml or \`\`\`). Start directly with the YAML content.`,
-      },
-    ];
-
-    // Add screenshots if available and requested
-    if (screenshots.length > 0) {
-      prompt.push({
-        role: 'user',
-        content:
-          'Here are screenshots from the recording session to help you understand the context:',
-      });
-
-      prompt.push({
-        role: 'user',
-        content: screenshots.map((screenshot) => ({
-          type: 'image_url',
-          image_url: {
-            url: screenshot,
-          },
-        })),
-      });
-    }
+    const prompt = createYamlPrompt({
+      yamlSummary,
+      screenshots,
+      language: options.language,
+    });
 
     if (options.stream && options.onChunk) {
       // Use streaming
