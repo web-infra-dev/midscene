@@ -298,15 +298,54 @@ export class Page<
   }
 
   private async waitForVisualReadyBeforeScreenshot(): Promise<void> {
-    // Give the page two animation frames to flush DOM/state updates before
-    // taking a screenshot for downstream assertions and queries.
-    await this.evaluate(async () => {
-      await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => resolve());
+    try {
+      // Give the page two animation frames to flush DOM/state updates before
+      // taking a screenshot for downstream assertions and queries. Hidden tabs
+      // can pause requestAnimationFrame indefinitely, so treat this as a
+      // best-effort wait and fall back quickly when the page is backgrounded.
+      await this.evaluate(async () => {
+        if (
+          typeof document !== 'undefined' &&
+          document.visibilityState !== 'visible'
+        ) {
+          return;
+        }
+
+        await new Promise<void>((resolve) => {
+          let finished = false;
+          const finish = () => {
+            if (finished) {
+              return;
+            }
+            finished = true;
+            resolve();
+          };
+
+          const timeoutId = setTimeout(finish, 50);
+          if (typeof requestAnimationFrame !== 'function') {
+            clearTimeout(timeoutId);
+            finish();
+            return;
+          }
+
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              clearTimeout(timeoutId);
+              finish();
+            });
+          });
         });
       });
-    });
+    } catch (error) {
+      if (isClosedPageError(error)) {
+        throw error;
+      }
+
+      debugPage(
+        'waitForVisualReadyBeforeScreenshot failed, continuing without the extra paint wait: %s',
+        error,
+      );
+    }
   }
 
   async screenshotBase64(): Promise<string> {

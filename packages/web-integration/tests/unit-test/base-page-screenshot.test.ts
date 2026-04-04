@@ -1,5 +1,5 @@
 import { Page } from '@/puppeteer/base-page';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@midscene/shared/logger', () => ({
   getDebug: vi.fn(() => vi.fn()),
@@ -24,6 +24,10 @@ vi.mock('@/web-page', () => ({
 }));
 
 describe('Page screenshotBase64', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('waits for a visual paint before taking a playwright screenshot', async () => {
     const callOrder: string[] = [];
     const evaluate = vi.fn().mockImplementation(async (fn: () => unknown) => {
@@ -92,6 +96,44 @@ describe('Page screenshotBase64', () => {
     expect(result).toContain('data:image/jpeg;base64,');
     expect(screenshot).toHaveBeenCalledTimes(1);
     expect(newCDPSession).not.toHaveBeenCalled();
+  });
+
+  it('skips the visual paint wait when the page is hidden', async () => {
+    const requestAnimationFrame = vi.fn(() => {
+      throw new Error('requestAnimationFrame should not run on hidden pages');
+    });
+    vi.stubGlobal('document', { visibilityState: 'hidden' });
+    vi.stubGlobal('requestAnimationFrame', requestAnimationFrame);
+
+    const callOrder: string[] = [];
+    const evaluate = vi.fn().mockImplementation(async (fn: () => unknown) => {
+      callOrder.push('evaluate');
+      return await fn();
+    });
+    const screenshot = vi.fn().mockImplementation(async () => {
+      callOrder.push('screenshot');
+      return Buffer.from('hidden-page-shot');
+    });
+    const mockPage = {
+      url: () => 'http://example.com',
+      isClosed: () => false,
+      evaluate,
+      screenshot,
+      context: () => ({
+        browser: () => ({
+          browserType: () => ({
+            name: () => 'chromium',
+          }),
+        }),
+        newCDPSession: vi.fn(),
+      }),
+    } as any;
+
+    const page = new Page(mockPage, 'playwright');
+    await page.screenshotBase64();
+
+    expect(requestAnimationFrame).not.toHaveBeenCalled();
+    expect(callOrder).toEqual(['evaluate', 'screenshot']);
   });
 
   it('falls back to a CDP screenshot when playwright screenshot times out', async () => {
