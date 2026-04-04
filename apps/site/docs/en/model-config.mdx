@@ -49,7 +49,7 @@ Notes:
 | `MIDSCENE_MODEL_REASONING_BUDGET` | Thinking token budget (number). Passed through as `thinking_budget` for qwen. Unsupported families ignore this setting |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS proxy, e.g., `http://127.0.0.1:8080` or `https://proxy.example.com:8080`. Takes precedence over `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS proxy, e.g., `socks5://127.0.0.1:1080` |
-| `MIDSCENE_MODEL_INIT_CONFIG_JSON` | JSON blob that overrides the OpenAI SDK initialization config |
+| `MIDSCENE_MODEL_INIT_CONFIG_JSON` | JSON blob that overrides the OpenAI SDK initialization config. Use `defaultHeaders` for custom auth headers; `extra_headers` and `extraHeaders` are accepted as aliases |
 | `MIDSCENE_MODEL_EXTRA_BODY_JSON` | JSON blob merged into each chat completion request body. Unlike `MIDSCENE_MODEL_INIT_CONFIG_JSON` (which configures the SDK client), this is spread into every `completion.create()` call sent to the model, e.g. enabling thinking mode in vLLM: `'{"chat_template_kwargs":{"enable_thinking":true}}'` |
 | `MIDSCENE_RUN_DIR` | Run artifact directory, like report and logs. Defaults to `midscene_run` in the current working directory; accepts absolute or relative paths |
 | `MIDSCENE_PREFERRED_LANGUAGE` | Optional. Preferred response language. Defaults to `Chinese` if timezone is GMT+8, otherwise `English` |
