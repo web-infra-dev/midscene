@@ -137,6 +137,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     return runConnectivityTest({
       defaultModelConfig: globalModelConfigManager.getModelConfig('default'),
       planningModelConfig: globalModelConfigManager.getModelConfig('planning'),
+      insightModelConfig: globalModelConfigManager.getModelConfig('insight'),
     });
   }
 

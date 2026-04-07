@@ -36,6 +36,8 @@ vi.setConfig({
       globalModelConfigManager.getModelConfig('default');
     const planningModelConfig = () =>
       globalModelConfigManager.getModelConfig('planning');
+    const insightModelConfig = () =>
+      globalModelConfigManager.getModelConfig('insight');
 
     beforeAll(() => {
       const result = dotenv.config({
@@ -143,6 +145,7 @@ vi.setConfig({
       const result = await runConnectivityTest({
         defaultModelConfig: defaultModelConfig(),
         planningModelConfig: planningModelConfig(),
+        insightModelConfig: insightModelConfig(),
       });
 
       expect(result.passed).toBe(true);

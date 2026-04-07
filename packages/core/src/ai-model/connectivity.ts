@@ -30,6 +30,7 @@ export interface ConnectivityTestResult {
 export interface ConnectivityTestConfig {
   defaultModelConfig: IModelConfig;
   planningModelConfig: IModelConfig;
+  insightModelConfig: IModelConfig;
 }
 
 function normalizeText(text: string): string {
@@ -161,12 +162,12 @@ export async function runConnectivityTest(
             ],
           },
         ],
-        config.planningModelConfig,
+        config.insightModelConfig,
       );
       const normalized = normalizeText(result.content);
       const passed = normalized.includes(VISION_EXPECTED_TEXT);
       checks.push(
-        buildCheckResult('vision', config.planningModelConfig, {
+        buildCheckResult('vision', config.insightModelConfig, {
           passed,
           durationMs: Date.now() - startTime,
           message: passed
@@ -176,7 +177,7 @@ export async function runConnectivityTest(
       );
     } catch (error) {
       checks.push(
-        buildCheckResult('vision', config.planningModelConfig, {
+        buildCheckResult('vision', config.insightModelConfig, {
           passed: false,
           durationMs: Date.now() - startTime,
           message: error instanceof Error ? error.message : String(error),

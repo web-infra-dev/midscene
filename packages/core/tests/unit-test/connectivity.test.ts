@@ -38,6 +38,12 @@ describe('runConnectivityTest', () => {
     modelFamily: 'qwen2.5-vl',
     intent: 'planning',
   };
+  const insightModelConfig: IModelConfig = {
+    modelName: 'test-insight-model',
+    modelDescription: 'test-insight-model-desc',
+    modelFamily: 'gpt-5',
+    intent: 'insight',
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -66,17 +72,18 @@ describe('runConnectivityTest', () => {
     const result = await runConnectivityTest({
       defaultModelConfig,
       planningModelConfig,
+      insightModelConfig,
     });
 
     expect(result.passed).toBe(true);
     expect(result.checks.map((item) => item.intent)).toEqual([
       'planning',
-      'planning',
+      'insight',
       'default',
     ]);
     expect(result.checks.map((item) => item.modelName)).toEqual([
       'test-planning-model',
-      'test-planning-model',
+      'test-insight-model',
       'test-model',
     ]);
     expect(result.checks.map((item) => item.passed)).toEqual([
@@ -90,7 +97,7 @@ describe('runConnectivityTest', () => {
       defaultModelConfig,
     );
     expect(vi.mocked(callAI).mock.calls[0]?.[1]).toBe(planningModelConfig);
-    expect(vi.mocked(callAI).mock.calls[1]?.[1]).toBe(planningModelConfig);
+    expect(vi.mocked(callAI).mock.calls[1]?.[1]).toBe(insightModelConfig);
   });
 
   it('marks individual failures without throwing', async () => {
@@ -116,6 +123,7 @@ describe('runConnectivityTest', () => {
     const result = await runConnectivityTest({
       defaultModelConfig,
       planningModelConfig,
+      insightModelConfig,
     });
 
     expect(result.passed).toBe(false);

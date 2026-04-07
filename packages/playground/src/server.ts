@@ -1286,6 +1286,8 @@ class PlaygroundServer {
               globalModelConfigManager.getModelConfig('default'),
             planningModelConfig:
               globalModelConfigManager.getModelConfig('planning'),
+            insightModelConfig:
+              globalModelConfigManager.getModelConfig('insight'),
           });
           return res.json(result);
         } catch (error: unknown) {
