@@ -30,6 +30,7 @@ import type {
   PlaywrightTasks,
   VisualizerProps,
 } from './types';
+import { formatModelBriefText } from './utils/model-brief';
 import {
   getEmptyDumpDescription,
   parseDumpAttributes,
@@ -66,15 +67,6 @@ let globalRenderCount = 1;
 const SIDEBAR_WIDTH_KEY = 'midscene-sidebar-width';
 const DEFAULT_SIDEBAR_WIDTH = 280;
 
-const formatModelBrief = (
-  modelBrief: ModelBrief,
-  includeIntent: boolean,
-): string => {
-  const { name, modelDescription, intent } = modelBrief;
-  const base = modelDescription ? `${name}(${modelDescription})` : name;
-  return includeIntent ? `${intent}/${base}` : `${base}`;
-};
-
 function Visualizer(props: VisualizerProps): JSX.Element {
   const { dumps } = props;
 
@@ -97,9 +89,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const playwrightAttributes = useExecutionDump(
     (store) => store.playwrightAttributes,
   );
-  const modelBriefText = modelBriefs
-    .map((brief) => formatModelBrief(brief, modelBriefs.length > 1))
-    .join(', ');
+  const modelBriefText = formatModelBriefText(modelBriefs);
   const reset = useExecutionDump((store) => store.reset);
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
   const [sidebarWidth, setSidebarWidth] = useState(() => {

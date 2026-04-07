@@ -722,7 +722,8 @@ class CodexAppServerConnection {
       time_cost: Date.now() - startTime,
       model_name: modelConfig.modelName,
       model_description: modelConfig.modelDescription,
-      intent: modelConfig.intent,
+      resolved_intent: modelConfig.intent,
+      semantic_intent: undefined,
       request_id: turnId,
     } satisfies AIUsageInfo;
   }
