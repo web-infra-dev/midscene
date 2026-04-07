@@ -1,6 +1,13 @@
-import type { DeviceAction, ExecutionDump } from '@midscene/core';
-import { ReportActionDump } from '@midscene/core';
-import { overrideAIConfig } from '@midscene/shared/env';
+import type {
+  ConnectivityTestResult,
+  DeviceAction,
+  ExecutionDump,
+} from '@midscene/core';
+import { ReportActionDump, runConnectivityTest } from '@midscene/core';
+import {
+  globalModelConfigManager,
+  overrideAIConfig,
+} from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import { executeAction, parseStructuredParams } from '../common';
 import {
@@ -124,6 +131,14 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     // For local execution, use the shared env override function
     overrideAIConfig(aiConfig);
     console.log('Config updated. Agent will be recreated on next execution.');
+  }
+
+  async runConnectivityTest(): Promise<ConnectivityTestResult> {
+    return runConnectivityTest({
+      defaultModelConfig: globalModelConfigManager.getModelConfig('default'),
+      planningModelConfig: globalModelConfigManager.getModelConfig('planning'),
+      insightModelConfig: globalModelConfigManager.getModelConfig('insight'),
+    });
   }
 
   /**

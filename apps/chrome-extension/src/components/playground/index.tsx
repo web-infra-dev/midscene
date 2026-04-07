@@ -11,6 +11,7 @@ export interface PlaygroundProps {
   getAgent: (forceSameTabNavigation?: boolean) => any | null;
   showContextPreview?: boolean;
   dryMode?: boolean;
+  onPlaygroundSDKChange?: (sdk: PlaygroundSDK | null) => void;
 }
 
 // Browser Extension Playground Component using Universal Playground
@@ -18,15 +19,16 @@ export function BrowserExtensionPlayground({
   getAgent,
   showContextPreview = true,
   dryMode = false,
+  onPlaygroundSDKChange,
 }: PlaygroundProps) {
   const extensionVersion = getExtensionVersion();
-  const { forceSameTabNavigation } = useEnvConfig((state) => ({
-    forceSameTabNavigation: state.forceSameTabNavigation,
-  }));
+  const forceSameTabNavigation = useEnvConfig(
+    (state) => state.forceSameTabNavigation,
+  );
 
-  // Check if run button should be enabled - but DON'T call getAgent yet
-  const { config } = useEnvConfig();
-  const runEnabled = !!getAgent && Object.keys(config || {}).length >= 1;
+  // Initialize SDK whenever the extension can attach to the active tab.
+  // Execution remains gated elsewhere by the saved model configuration.
+  const canInitializeSDK = !!getAgent;
 
   // Track active tab to trigger SDK recreation on tab change
   const [activeTabId, setActiveTabId] = useState<number | null>(null);
@@ -43,7 +45,7 @@ export function BrowserExtensionPlayground({
 
   // Create SDK when needed - recreate on tab change
   const playgroundSDK = useMemo(() => {
-    if (!runEnabled || activeTabId === null) {
+    if (!canInitializeSDK || activeTabId === null) {
       return null;
     }
 
@@ -56,7 +58,11 @@ export function BrowserExtensionPlayground({
       console.error('Failed to initialize PlaygroundSDK:', error);
       return null;
     }
-  }, [runEnabled, getAgent, forceSameTabNavigation, activeTabId]);
+  }, [canInitializeSDK, getAgent, forceSameTabNavigation, activeTabId]);
+
+  useEffect(() => {
+    onPlaygroundSDKChange?.(playgroundSDK);
+  }, [playgroundSDK, onPlaygroundSDKChange]);
 
   // Progress callback handling is now managed in usePlaygroundExecution hook
   // No need to override onProgressUpdate here

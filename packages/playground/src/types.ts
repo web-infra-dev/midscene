@@ -1,4 +1,4 @@
-import type { DeviceAction } from '@midscene/core';
+import type { ConnectivityTestResult, DeviceAction } from '@midscene/core';
 import type { Agent } from '@midscene/core/agent';
 
 export interface PlaygroundAgent extends Agent {
@@ -113,4 +113,5 @@ export interface PlaygroundAdapter {
   ): Promise<unknown>;
 
   getActionSpace?(context: any): Promise<DeviceAction<unknown>[]>;
+  runConnectivityTest?(): Promise<ConnectivityTestResult>;
 }

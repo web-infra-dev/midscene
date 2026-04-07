@@ -1,4 +1,4 @@
-import type { DeviceAction } from '@midscene/core';
+import type { ConnectivityTestResult, DeviceAction } from '@midscene/core';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import type { BasePlaygroundAdapter } from '../adapters/base';
 import { LocalExecutionAdapter } from '../adapters/local-execution';
@@ -139,10 +139,11 @@ export class PlaygroundSDK {
   }
 
   async overrideConfig(aiConfig: any): Promise<void> {
-    if (this.adapter instanceof RemoteExecutionAdapter) {
-      return this.adapter.overrideConfig(aiConfig);
-    }
-    // For local execution, this is a no-op
+    return this.adapter.overrideConfig(aiConfig);
+  }
+
+  async runConnectivityTest(): Promise<ConnectivityTestResult> {
+    return this.adapter.runConnectivityTest();
   }
 
   // Get task progress (for remote execution)

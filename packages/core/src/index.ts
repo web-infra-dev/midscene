@@ -6,6 +6,7 @@ import { getVersion } from './utils';
 export {
   plan,
   AiLocateElement,
+  runConnectivityTest,
   getMidsceneLocationSchema,
   PointSchema,
   SizeSchema,
@@ -14,6 +15,9 @@ export {
   TUserPromptSchema,
   type TMultimodalPrompt,
   type TUserPrompt,
+  type ConnectivityCheckResultItem,
+  type ConnectivityTestConfig,
+  type ConnectivityTestResult,
 } from './ai-model/index';
 
 export {
