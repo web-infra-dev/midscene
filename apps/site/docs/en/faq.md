@@ -15,6 +15,8 @@ You can use `defaultHeaders` in the `MIDSCENE_MODEL_INIT_CONFIG_JSON` environmen
 MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"foo":"bar"}}'
 ```
 
+If your provider documentation calls this field `extra_headers` or `extraHeaders`, Midscene also accepts those aliases and normalizes them to `defaultHeaders`. When multiple aliases are present, the priority is: `defaultHeaders` > `extra_headers` > `extraHeaders`.
+
 You can generate the JSON string with JSON serialization to avoid mistakes when writing it by hand:
 
 ```javascript
