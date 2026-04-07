@@ -23,6 +23,55 @@ vi.mock('@/web-page', () => ({
   commonWebActionsForWebPage: vi.fn(() => []),
 }));
 
+// NOTE: evaluate mocks execute the callback directly in Node rather than in a
+// browser sandbox.  This means checks like `document.visibilityState` are
+// validated against Node globals (set via vi.stubGlobal), not a real browser.
+// A real-browser integration test is still needed for full confidence.
+
+function stubRaf() {
+  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+    cb(0);
+    return 1;
+  });
+}
+
+function createEvaluateMock() {
+  return vi.fn().mockImplementation(async (fn: () => unknown) => {
+    stubRaf();
+    return await fn();
+  });
+}
+
+function createMockPage(
+  overrides: Record<string, unknown> = {},
+  interfaceType: 'playwright' | 'puppeteer' = 'playwright',
+) {
+  const base: Record<string, unknown> = {
+    url: () => 'http://example.com',
+    isClosed: () => false,
+    evaluate: createEvaluateMock(),
+    screenshot: vi.fn().mockResolvedValue(Buffer.from('shot')),
+    context: () => ({
+      browser: () => ({
+        browserType: () => ({
+          name: () => 'chromium',
+        }),
+      }),
+      newCDPSession: vi.fn(),
+    }),
+    ...overrides,
+  };
+
+  if (interfaceType === 'puppeteer') {
+    // Puppeteer screenshot returns a base64 string when encoding is 'base64'
+    if (!overrides.screenshot) {
+      base.screenshot = vi.fn().mockResolvedValue('cHVwcGV0ZWVyLXNob3Q=');
+    }
+  }
+
+  return base as any;
+}
+
 describe('Page screenshotBase64', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -32,30 +81,14 @@ describe('Page screenshotBase64', () => {
     const callOrder: string[] = [];
     const evaluate = vi.fn().mockImplementation(async (fn: () => unknown) => {
       callOrder.push('evaluate');
-      globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => {
-        cb(0);
-        return 1;
-      };
+      stubRaf();
       return await fn();
     });
     const screenshot = vi.fn().mockImplementation(async () => {
       callOrder.push('screenshot');
       return Buffer.from('paint-ready-shot');
     });
-    const mockPage = {
-      url: () => 'http://example.com',
-      isClosed: () => false,
-      evaluate,
-      screenshot,
-      context: () => ({
-        browser: () => ({
-          browserType: () => ({
-            name: () => 'chromium',
-          }),
-        }),
-        newCDPSession: vi.fn(),
-      }),
-    } as any;
+    const mockPage = createMockPage({ evaluate, screenshot });
 
     const page = new Page(mockPage, 'playwright');
     await page.screenshotBase64();
@@ -66,44 +99,30 @@ describe('Page screenshotBase64', () => {
   });
 
   it('uses the regular playwright screenshot path when it succeeds', async () => {
-    const evaluate = vi.fn().mockImplementation(async (fn: () => unknown) => {
-      globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => {
-        cb(0);
-        return 1;
-      };
-      return await fn();
-    });
-    const screenshot = vi.fn().mockResolvedValue(Buffer.from('plain-shot'));
     const newCDPSession = vi.fn();
-    const mockPage = {
-      url: () => 'http://example.com',
-      isClosed: () => false,
-      evaluate,
-      screenshot,
+    const mockPage = createMockPage({
       context: () => ({
         browser: () => ({
-          browserType: () => ({
-            name: () => 'chromium',
-          }),
+          browserType: () => ({ name: () => 'chromium' }),
         }),
         newCDPSession,
       }),
-    } as any;
+    });
 
     const page = new Page(mockPage, 'playwright');
     const result = await page.screenshotBase64();
 
     expect(result).toContain('data:image/jpeg;base64,');
-    expect(screenshot).toHaveBeenCalledTimes(1);
+    expect(mockPage.screenshot).toHaveBeenCalledTimes(1);
     expect(newCDPSession).not.toHaveBeenCalled();
   });
 
   it('skips the visual paint wait when the page is hidden', async () => {
-    const requestAnimationFrame = vi.fn(() => {
+    const raf = vi.fn(() => {
       throw new Error('requestAnimationFrame should not run on hidden pages');
     });
     vi.stubGlobal('document', { visibilityState: 'hidden' });
-    vi.stubGlobal('requestAnimationFrame', requestAnimationFrame);
+    vi.stubGlobal('requestAnimationFrame', raf);
 
     const callOrder: string[] = [];
     const evaluate = vi.fn().mockImplementation(async (fn: () => unknown) => {
@@ -114,36 +133,41 @@ describe('Page screenshotBase64', () => {
       callOrder.push('screenshot');
       return Buffer.from('hidden-page-shot');
     });
-    const mockPage = {
-      url: () => 'http://example.com',
-      isClosed: () => false,
-      evaluate,
-      screenshot,
-      context: () => ({
-        browser: () => ({
-          browserType: () => ({
-            name: () => 'chromium',
-          }),
-        }),
-        newCDPSession: vi.fn(),
-      }),
-    } as any;
+    const mockPage = createMockPage({ evaluate, screenshot });
 
     const page = new Page(mockPage, 'playwright');
     await page.screenshotBase64();
 
-    expect(requestAnimationFrame).not.toHaveBeenCalled();
+    expect(raf).not.toHaveBeenCalled();
     expect(callOrder).toEqual(['evaluate', 'screenshot']);
   });
 
+  it('degrades gracefully when evaluate throws a non-close error', async () => {
+    const evaluate = vi
+      .fn()
+      .mockRejectedValue(new Error('random evaluate failure'));
+    const screenshot = vi.fn().mockResolvedValue(Buffer.from('fallback-shot'));
+    const mockPage = createMockPage({ evaluate, screenshot });
+
+    const page = new Page(mockPage, 'playwright');
+    const result = await page.screenshotBase64();
+
+    expect(result).toContain('data:image/jpeg;base64,');
+    expect(screenshot).toHaveBeenCalledTimes(1);
+  });
+
+  it('works with the puppeteer screenshot path', async () => {
+    const mockPage = createMockPage({}, 'puppeteer');
+
+    const page = new Page(mockPage, 'puppeteer');
+    const result = await page.screenshotBase64();
+
+    expect(result).toContain('data:image/jpeg;base64,');
+    expect(mockPage.evaluate).toHaveBeenCalledTimes(1);
+    expect(mockPage.screenshot).toHaveBeenCalledTimes(1);
+  });
+
   it('falls back to a CDP screenshot when playwright screenshot times out', async () => {
-    const evaluate = vi.fn().mockImplementation(async (fn: () => unknown) => {
-      globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => {
-        cb(0);
-        return 1;
-      };
-      return await fn();
-    });
     const screenshot = vi
       .fn()
       .mockRejectedValue(
@@ -155,20 +179,15 @@ describe('Page screenshotBase64', () => {
       send,
       detach,
     });
-    const mockPage = {
-      url: () => 'http://example.com',
-      isClosed: () => false,
-      evaluate,
+    const mockPage = createMockPage({
       screenshot,
       context: () => ({
         browser: () => ({
-          browserType: () => ({
-            name: () => 'chromium',
-          }),
+          browserType: () => ({ name: () => 'chromium' }),
         }),
         newCDPSession,
       }),
-    } as any;
+    });
 
     const page = new Page(mockPage, 'playwright');
     const result = await page.screenshotBase64();
