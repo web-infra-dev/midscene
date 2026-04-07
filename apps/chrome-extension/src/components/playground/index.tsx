@@ -26,9 +26,9 @@ export function BrowserExtensionPlayground({
     (state) => state.forceSameTabNavigation,
   );
 
-  // Check if run button should be enabled - but DON'T call getAgent yet
-  const config = useEnvConfig((state) => state.config);
-  const runEnabled = !!getAgent && Object.keys(config || {}).length >= 1;
+  // Enable SDK creation as long as getAgent exists; config can be injected later
+  // from the env-config modal via `overrideConfig` on first save.
+  const runEnabled = !!getAgent;
 
   // Track active tab to trigger SDK recreation on tab change
   const [activeTabId, setActiveTabId] = useState<number | null>(null);
