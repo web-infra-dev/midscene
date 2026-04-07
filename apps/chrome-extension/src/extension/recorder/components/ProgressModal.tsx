@@ -14,7 +14,14 @@ import {
 import type { CodeGenerationChunk, StreamingCallback } from '@midscene/core';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { globalModelConfigManager } from '@midscene/shared/env';
-import { Button, Select, Tooltip, Typography, message } from 'antd';
+import {
+  AutoComplete,
+  Button,
+  Select,
+  Tooltip,
+  Typography,
+  message,
+} from 'antd';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useRecordingSessionStore } from '../../../store';
@@ -30,7 +37,7 @@ import {
   stopRecordingIfActive,
 } from '../shared/exportControlsUtils';
 import {
-  YAML_LANGUAGE_OPTIONS,
+  YAML_LANGUAGE_SUGGESTIONS,
   type YamlLanguagePreference,
   getStoredYamlLanguagePreference,
   persistYamlLanguagePreference,
@@ -880,10 +887,10 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
               ))}
             </Select>
             {selectedType === 'yaml' && (
-              <Select<YamlLanguagePreference>
+              <AutoComplete
                 value={yamlLanguagePreference}
                 onChange={updateYamlLanguagePreference}
-                options={YAML_LANGUAGE_OPTIONS.map((option) => ({
+                options={YAML_LANGUAGE_SUGGESTIONS.map((option) => ({
                   label:
                     option.value === 'auto'
                       ? `Auto (${resolvedYamlLanguage})`
@@ -893,6 +900,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                 className="w-40"
                 size="middle"
                 disabled={isGenerating}
+                placeholder="Language"
               />
             )}
             {(selectedType === 'playwright' || selectedType === 'yaml') &&

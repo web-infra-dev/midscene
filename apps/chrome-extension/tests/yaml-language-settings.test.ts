@@ -18,14 +18,12 @@ describe('yaml language settings', () => {
     );
   });
 
-  it('falls back to auto when storage contains an unsupported value', () => {
+  it('returns a custom language stored by the user', () => {
     const storage = {
       getItem: vi.fn(() => 'Japanese'),
     };
 
-    expect(getStoredYamlLanguagePreference(storage)).toBe(
-      DEFAULT_YAML_LANGUAGE_PREFERENCE,
-    );
+    expect(getStoredYamlLanguagePreference(storage)).toBe('Japanese');
   });
 
   it('returns an explicitly stored YAML language', () => {

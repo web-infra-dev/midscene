@@ -2,29 +2,26 @@ import { getPreferredLanguage } from '@midscene/shared/env';
 
 export const YAML_LANGUAGE_STORAGE_KEY = 'midscene-yaml-language';
 
-export const YAML_LANGUAGE_OPTIONS = [
+export const YAML_LANGUAGE_SUGGESTIONS = [
   { label: 'Auto', value: 'auto' },
   { label: 'English', value: 'English' },
   { label: 'Chinese', value: 'Chinese' },
-] as const;
+  { label: 'Japanese', value: 'Japanese' },
+  { label: 'Korean', value: 'Korean' },
+  { label: 'French', value: 'French' },
+  { label: 'Spanish', value: 'Spanish' },
+];
 
-export type YamlLanguagePreference =
-  (typeof YAML_LANGUAGE_OPTIONS)[number]['value'];
+export type YamlLanguagePreference = string;
 
 export const DEFAULT_YAML_LANGUAGE_PREFERENCE: YamlLanguagePreference = 'auto';
-
-const isYamlLanguagePreference = (
-  value: string,
-): value is YamlLanguagePreference => {
-  return YAML_LANGUAGE_OPTIONS.some((option) => option.value === value);
-};
 
 export const getStoredYamlLanguagePreference = (
   storage: Pick<Storage, 'getItem'> = localStorage,
 ): YamlLanguagePreference => {
   try {
     const stored = storage.getItem(YAML_LANGUAGE_STORAGE_KEY);
-    if (stored && isYamlLanguagePreference(stored)) {
+    if (stored) {
       return stored;
     }
   } catch (error) {

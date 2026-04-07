@@ -1,3 +1,4 @@
+import type { YamlGenerationOptions as CoreYamlGenerationOptions } from '@midscene/core/ai-model';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
 
 // Common interfaces for test generation
@@ -50,9 +51,9 @@ export interface PlaywrightGenerationOptions extends TestGenerationOptions {
   waitForNetworkIdleTimeout?: number;
 }
 
-export interface YamlGenerationOptions extends TestGenerationOptions {
-  language?: string;
-}
+export interface YamlGenerationOptions
+  extends TestGenerationOptions,
+    CoreYamlGenerationOptions {}
 
 export interface FilteredEvents {
   navigationEvents: ChromeRecordedEvent[];

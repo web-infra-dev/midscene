@@ -65,6 +65,7 @@ export interface YamlGenerationOptions {
   includeTimestamps?: boolean;
   maxScreenshots?: number;
   description?: string;
+  /** Language for human-readable YAML content (e.g. 'English', 'Chinese'). Keys and API names are kept as-is. */
   language?: string;
 }
 
