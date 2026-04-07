@@ -3,8 +3,7 @@ import type { ScrcpyMediaStreamPacket } from '@yume-chan/scrcpy';
 interface RawScrcpyVideoPacket {
   type?: string;
   data: ArrayLike<number>;
-  timestamp: number;
-  keyframe?: boolean;
+  keyFrame?: boolean;
 }
 
 interface ScrcpyVideoSocketLike {
@@ -63,8 +62,7 @@ export function createScrcpyVideoStream(
           controller.enqueue({
             type: 'data',
             data: payload,
-            keyframe: data.keyframe,
-            pts: BigInt(data.timestamp),
+            keyframe: data.keyFrame,
           });
         } catch (error) {
           controller.error(error);
