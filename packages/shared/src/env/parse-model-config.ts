@@ -140,36 +140,20 @@ const normalizeOpenaiExtraConfig = (
   config: unknown,
 ): Record<string, unknown> | undefined => {
   if (!config || typeof config !== 'object' || Array.isArray(config)) {
-    return config as Record<string, unknown> | undefined;
+    return undefined;
   }
 
-  const configRecord = config as Record<string, unknown>;
-  const hasDefaultHeaders = Object.prototype.hasOwnProperty.call(
-    configRecord,
-    'defaultHeaders',
-  );
-  const {
-    extra_headers: _extraHeaders,
-    extraHeaders: _extraHeadersCamel,
-    ...rest
-  } = configRecord;
+  const { defaultHeaders, extra_headers, extraHeaders, ...rest } =
+    config as Record<string, unknown>;
 
-  if (hasDefaultHeaders) {
-    return {
-      ...rest,
-      defaultHeaders: configRecord.defaultHeaders,
-    };
+  // Priority: defaultHeaders > extra_headers > extraHeaders
+  const headers = defaultHeaders ?? extra_headers ?? extraHeaders;
+
+  if (headers !== undefined) {
+    return { ...rest, defaultHeaders: headers };
   }
 
-  const extraHeaders = configRecord.extra_headers ?? configRecord.extraHeaders;
-  if (typeof extraHeaders === 'undefined') {
-    return configRecord;
-  }
-
-  return {
-    ...rest,
-    defaultHeaders: extraHeaders,
-  };
+  return rest;
 };
 
 /**

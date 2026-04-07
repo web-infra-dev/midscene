@@ -104,6 +104,22 @@ describe('decideOpenaiSdkConfig', () => {
     });
   });
 
+  it('prefers extra_headers over extraHeaders when both provided', () => {
+    const result = parseOpenaiSdkConfig({
+      keys: DEFAULT_MODEL_CONFIG_KEYS,
+      provider: {
+        [MIDSCENE_MODEL_INIT_CONFIG_JSON]: JSON.stringify({
+          extra_headers: { 'X-Source': 'snake' },
+          extraHeaders: { 'X-Source': 'camel' },
+        }),
+      },
+    });
+
+    expect(result.openaiExtraConfig).toEqual({
+      defaultHeaders: { 'X-Source': 'snake' },
+    });
+  });
+
   it('prefers defaultHeaders when aliases are also provided', () => {
     const result = parseOpenaiSdkConfig({
       keys: DEFAULT_MODEL_CONFIG_KEYS,
