@@ -44,7 +44,8 @@ export type AIUsageInfo = Record<string, any> & {
   time_cost: number | undefined;
   model_name: string | undefined;
   model_description: string | undefined;
-  intent: string | undefined;
+  semantic_intent: string | undefined;
+  resolved_intent: string | undefined;
   request_id: string | undefined;
 };
 

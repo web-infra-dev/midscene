@@ -42,7 +42,8 @@ describe('runConnectivityTest', () => {
         openaiApiKey: 'sk-test',
         openaiBaseURL: 'https://api.example.com/v1',
         modelName: 'gpt-4o',
-        intent: 'default',
+        semanticIntent: 'default',
+        resolvedIntent: 'default',
         timeout: 30_000,
       }),
       expect.objectContaining({

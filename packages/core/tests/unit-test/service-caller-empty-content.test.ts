@@ -56,8 +56,10 @@ describe('service-caller empty content handling', () => {
         total_tokens: 12,
         model_name: 'gpt-4o',
         model_description: 'test model',
+        resolved_intent: 'default',
         request_id: 'req_test_123',
       });
+      expect(typedError.usage?.semantic_intent).toBeUndefined();
       expect(typedError.rawResponse).toContain('"choices"');
     }
   });
