@@ -19,6 +19,7 @@ export {
   generateYamlTest,
   generateYamlTestStream,
 } from './prompt/yaml-generator';
+export type { YamlGenerationOptions } from './prompt/yaml-generator';
 
 export type { ChatCompletionMessageParam } from 'openai/resources/index';
 
