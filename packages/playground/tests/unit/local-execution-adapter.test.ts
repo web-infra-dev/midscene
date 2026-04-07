@@ -207,7 +207,8 @@ describe('LocalExecutionAdapter', () => {
         intent: 'planning',
       } as any;
       const insightModelConfig = {
-        modelName: 'test-model',
+        modelName: 'test-insight-model',
+        intent: 'insight',
       } as any;
       const result = {
         passed: true,
