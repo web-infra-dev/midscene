@@ -24,6 +24,7 @@ describe('service.locate deepLocate routing', () => {
     modelName: 'test-model',
     modelDescription: 'test-model-desc',
     intent: 'default',
+    slot: 'default',
   };
 
   beforeEach(() => {

@@ -44,6 +44,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
           modelName: 'mock-model',
           modelDescription: 'mock-model-description',
           intent: 'default',
+          slot: 'default',
         },
       );
       return {

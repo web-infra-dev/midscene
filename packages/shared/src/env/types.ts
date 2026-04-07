@@ -427,7 +427,7 @@ export enum UITarsModelVersion {
 
 /**
  * Callback to create custom OpenAI client instance
- * @param config - Resolved model configuration including apiKey, baseURL, modelName, intent, etc.
+ * @param config - Resolved model configuration including apiKey, baseURL, modelName, intent, slot, etc.
  * @returns OpenAI client instance (can be wrapped with langsmith, langfuse, etc.)
  *
  * Note: Wrapper functions like langsmith's wrapOpenAI() return the same OpenAI instance
@@ -521,9 +521,16 @@ export interface IModelConfig {
   uiTarsModelVersion?: UITarsModelVersion;
   modelDescription: string;
   /**
-   * original intent from the config
+   * The semantic intent this config is requested for.
+   * For example, getModelConfig('planning') always returns intent === 'planning'.
    */
   intent: TIntent;
+  /**
+   * The model-config slot this config was resolved from.
+   * For example, getModelConfig('planning') may resolve from slot === 'default'
+   * when MIDSCENE_PLANNING_MODEL_NAME is not configured.
+   */
+  slot: TIntent;
   /**
    * Custom OpenAI client factory function
    *

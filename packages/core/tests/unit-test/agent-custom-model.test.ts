@@ -76,6 +76,7 @@ describe('Agent with custom OpenAI client', () => {
           "reasoningEnabled": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
+          "slot": "default",
           "socksProxy": undefined,
           "temperature": 0,
           "timeout": undefined,
@@ -91,7 +92,7 @@ describe('Agent with custom OpenAI client', () => {
           "createOpenAIClient": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
-          "intent": "default",
+          "intent": "planning",
           "modelDescription": "qwen2.5-vl mode",
           "modelFamily": "qwen2.5-vl",
           "modelName": "qwen2.5-vl-max",
@@ -103,6 +104,7 @@ describe('Agent with custom OpenAI client', () => {
           "reasoningEnabled": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
+          "slot": "default",
           "socksProxy": undefined,
           "temperature": 0,
           "timeout": undefined,
@@ -118,7 +120,7 @@ describe('Agent with custom OpenAI client', () => {
           "createOpenAIClient": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
-          "intent": "default",
+          "intent": "insight",
           "modelDescription": "qwen2.5-vl mode",
           "modelFamily": "qwen2.5-vl",
           "modelName": "qwen2.5-vl-max",
@@ -130,6 +132,7 @@ describe('Agent with custom OpenAI client', () => {
           "reasoningEnabled": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
+          "slot": "default",
           "socksProxy": undefined,
           "temperature": 0,
           "timeout": undefined,
@@ -169,6 +172,7 @@ describe('Agent with custom OpenAI client', () => {
           "reasoningEnabled": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
+          "slot": "default",
           "socksProxy": undefined,
           "temperature": 0,
           "timeout": undefined,
@@ -196,6 +200,7 @@ describe('Agent with custom OpenAI client', () => {
           "reasoningEnabled": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
+          "slot": "planning",
           "socksProxy": undefined,
           "temperature": 0,
           "timeout": undefined,
@@ -223,6 +228,7 @@ describe('Agent with custom OpenAI client', () => {
           "reasoningEnabled": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
+          "slot": "insight",
           "socksProxy": undefined,
           "temperature": 0,
           "timeout": undefined,
@@ -313,12 +319,14 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(planningConfig.createOpenAIClient).toBe(mockCreateClient);
       expect(planningConfig.intent).toBe('planning');
+      expect(planningConfig.slot).toBe('planning');
 
       const defaultConfig = (agent as any).modelConfigManager.getModelConfig(
         'default',
       );
       expect(defaultConfig.createOpenAIClient).toBe(mockCreateClient);
       expect(defaultConfig.intent).toBe('default');
+      expect(defaultConfig.slot).toBe('default');
     });
   });
 

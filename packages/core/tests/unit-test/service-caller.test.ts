@@ -147,7 +147,7 @@ describe('service-caller', () => {
         openaiBaseURL: 'https://api.openai.com/v1',
         modelDescription: 'test',
         intent: 'default',
-        from: 'modelConfig',
+        slot: 'default',
         createOpenAIClient: mockCreateClient,
       };
 
@@ -163,7 +163,7 @@ describe('service-caller', () => {
         openaiBaseURL: 'https://api.openai.com/v1',
         modelDescription: 'test',
         intent: 'default',
-        from: 'env',
+        slot: 'default',
       };
 
       // Should not have createOpenAIClient

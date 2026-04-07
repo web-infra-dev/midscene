@@ -20,7 +20,7 @@ const baseConfig = (overrides: Partial<IModelConfig> = {}): IModelConfig =>
     openaiBaseURL: 'https://api.openai.com/v1',
     modelDescription: 'test model',
     intent: 'default',
-    from: 'modelConfig',
+    slot: 'default',
     retryCount: 0,
     ...overrides,
   }) as IModelConfig;

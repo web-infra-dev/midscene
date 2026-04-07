@@ -324,7 +324,8 @@ export async function callAI(
       time_cost: timeCost ?? 0,
       model_name: modelName,
       model_description: modelDescription,
-      intent: modelConfig.intent,
+      slot: modelConfig.slot,
+      intent: undefined,
       request_id: requestId ?? undefined,
     } satisfies AIUsageInfo;
   };
@@ -544,7 +545,7 @@ export async function callAI(
           const wasHardTimeout = isHardTimeoutError(lastError);
           if (wasHardTimeout) {
             warnCall(
-              `AI call hit hard timeout (${effectiveTimeoutMs}ms, attempt ${attempt}/${maxAttempts}, model ${modelName}, intent ${modelConfig.intent})`,
+              `AI call hit hard timeout (${effectiveTimeoutMs}ms, attempt ${attempt}/${maxAttempts}, model ${modelName}, slot ${modelConfig.slot})`,
             );
           }
           // Do not retry if the request was aborted by the caller

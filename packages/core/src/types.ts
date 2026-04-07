@@ -44,7 +44,15 @@ export type AIUsageInfo = Record<string, any> & {
   time_cost: number | undefined;
   model_name: string | undefined;
   model_description: string | undefined;
+  /**
+   * Semantic intent of the model call, such as default, planning, or insight.
+   */
   intent: string | undefined;
+  /**
+   * Config slot where the model config was resolved from. For example, a
+   * planning call may use the default slot when no planning model is configured.
+   */
+  slot: string | undefined;
   request_id: string | undefined;
 };
 

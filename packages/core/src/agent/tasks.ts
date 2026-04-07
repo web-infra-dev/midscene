@@ -41,6 +41,7 @@ export { locatePlanForLocate } from './task-builder';
 import { setTimingFieldOnce } from '@/task-timing';
 import { descriptionOfTree } from '@midscene/shared/extractor';
 import { taskTitleStr } from './ui-utils';
+import { withUsageIntent } from './usage-intent';
 import { parsePrompt } from './utils';
 
 interface ExecutionResult<OutputType = any> {
@@ -393,7 +394,10 @@ export class TaskExecutor {
             } catch (planError) {
               if (planError instanceof AIResponseParseError) {
                 // Record usage and rawResponse even when parsing fails
-                executorContext.task.usage = planError.usage;
+                executorContext.task.usage = withUsageIntent(
+                  planError.usage,
+                  'planning',
+                );
                 executorContext.task.log = {
                   ...(executorContext.task.log || {}),
                   rawResponse: planError.rawResponse,
@@ -425,7 +429,7 @@ export class TaskExecutor {
               ...(executorContext.task.log || {}),
               rawResponse,
             };
-            executorContext.task.usage = usage;
+            executorContext.task.usage = withUsageIntent(usage, 'planning');
             executorContext.task.reasoning_content = reasoning_content;
             executorContext.task.output = {
               actions: actions || [],
@@ -580,7 +584,7 @@ export class TaskExecutor {
             dump,
             rawResponse: dump.taskInfo?.rawResponse,
           };
-          task.usage = dump.taskInfo?.usage;
+          task.usage = withUsageIntent(dump.taskInfo?.usage, 'insight');
           if (dump.taskInfo?.reasoning_content) {
             task.reasoning_content = dump.taskInfo.reasoning_content;
           }

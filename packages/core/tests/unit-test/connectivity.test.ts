@@ -32,18 +32,21 @@ describe('runConnectivityTest', () => {
     modelDescription: 'test-model-desc',
     modelFamily: 'qwen2.5-vl',
     intent: 'default',
+    slot: 'default',
   };
   const planningModelConfig: IModelConfig = {
     modelName: 'test-planning-model',
     modelDescription: 'test-planning-model-desc',
     modelFamily: 'qwen2.5-vl',
     intent: 'planning',
+    slot: 'planning',
   };
   const insightModelConfig: IModelConfig = {
     modelName: 'test-insight-model',
     modelDescription: 'test-insight-model-desc',
     modelFamily: 'gpt-5',
     intent: 'insight',
+    slot: 'insight',
   };
 
   beforeEach(() => {

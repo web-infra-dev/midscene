@@ -66,7 +66,7 @@ const mockedModelConfig = {
 
 const modelConfigCalcByMockedModelConfig = {
   httpProxy: undefined,
-  intent: 'default',
+  intent: 'insight',
   modelDescription: 'qwen3-vl mode',
   modelName: 'mock-model',
   openaiApiKey: 'mock-api-key',
@@ -77,8 +77,13 @@ const modelConfigCalcByMockedModelConfig = {
   uiTarsModelVersion: undefined,
   modelFamily: 'qwen3-vl',
   createOpenAIClient: undefined,
+  extraBody: undefined,
+  reasoningBudget: undefined,
+  reasoningEffort: undefined,
+  reasoningEnabled: undefined,
   retryCount: 1,
   retryInterval: 2000,
+  slot: 'default',
   timeout: undefined,
 };
 

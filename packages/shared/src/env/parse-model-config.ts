@@ -244,6 +244,7 @@ export const parseOpenaiSdkConfig = ({
     modelName: modelName!,
     modelDescription,
     intent: '-' as any,
+    slot: '-' as any,
     timeout: provider[keys.timeout]
       ? Number(provider[keys.timeout])
       : undefined,
@@ -308,6 +309,7 @@ export const decideModelConfigFromIntentConfig = (
     useLegacyLogic: intent === 'default',
   });
   finalResult.intent = intent;
+  finalResult.slot = intent;
 
   debugLog(
     'decideModelConfig result by agent.modelConfig() with intent',
