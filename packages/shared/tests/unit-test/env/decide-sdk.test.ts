@@ -74,44 +74,65 @@ describe('decideOpenaiSdkConfig', () => {
     ).toThrow();
   });
 
-  it('throws on extra_headers in OpenAI init config', () => {
-    expect(() =>
-      parseOpenaiSdkConfig({
-        keys: DEFAULT_MODEL_CONFIG_KEYS,
-        provider: {
-          [MIDSCENE_MODEL_INIT_CONFIG_JSON]: JSON.stringify({
-            extra_headers: { Authorization: 'Bearer token' },
-          }),
-        },
-      }),
-    ).toThrow('defaultHeaders');
-  });
-
-  it('throws on extraHeaders in OpenAI init config', () => {
-    expect(() =>
-      parseOpenaiSdkConfig({
-        keys: DEFAULT_MODEL_CONFIG_KEYS,
-        provider: {
-          [MIDSCENE_MODEL_INIT_CONFIG_JSON]: JSON.stringify({
-            extraHeaders: { Authorization: 'Bearer token' },
-          }),
-        },
-      }),
-    ).toThrow('defaultHeaders');
-  });
-
-  it('accepts defaultHeaders without error', () => {
+  it('maps extra_headers to defaultHeaders for OpenAI init config', () => {
     const result = parseOpenaiSdkConfig({
       keys: DEFAULT_MODEL_CONFIG_KEYS,
       provider: {
         [MIDSCENE_MODEL_INIT_CONFIG_JSON]: JSON.stringify({
-          defaultHeaders: { Authorization: 'Bearer token' },
+          extra_headers: { Authorization: 'Bearer alias-token' },
         }),
       },
     });
 
     expect(result.openaiExtraConfig).toEqual({
-      defaultHeaders: { Authorization: 'Bearer token' },
+      defaultHeaders: { Authorization: 'Bearer alias-token' },
+    });
+  });
+
+  it('maps extraHeaders to defaultHeaders for OpenAI init config', () => {
+    const result = parseOpenaiSdkConfig({
+      keys: DEFAULT_MODEL_CONFIG_KEYS,
+      provider: {
+        [MIDSCENE_MODEL_INIT_CONFIG_JSON]: JSON.stringify({
+          extraHeaders: { Authorization: 'Bearer alias-token' },
+        }),
+      },
+    });
+
+    expect(result.openaiExtraConfig).toEqual({
+      defaultHeaders: { Authorization: 'Bearer alias-token' },
+    });
+  });
+
+  it('prefers extra_headers over extraHeaders when both provided', () => {
+    const result = parseOpenaiSdkConfig({
+      keys: DEFAULT_MODEL_CONFIG_KEYS,
+      provider: {
+        [MIDSCENE_MODEL_INIT_CONFIG_JSON]: JSON.stringify({
+          extra_headers: { 'X-Source': 'snake' },
+          extraHeaders: { 'X-Source': 'camel' },
+        }),
+      },
+    });
+
+    expect(result.openaiExtraConfig).toEqual({
+      defaultHeaders: { 'X-Source': 'snake' },
+    });
+  });
+
+  it('prefers defaultHeaders when aliases are also provided', () => {
+    const result = parseOpenaiSdkConfig({
+      keys: DEFAULT_MODEL_CONFIG_KEYS,
+      provider: {
+        [MIDSCENE_MODEL_INIT_CONFIG_JSON]: JSON.stringify({
+          defaultHeaders: { Authorization: 'Bearer canonical-token' },
+          extra_headers: { Authorization: 'Bearer alias-token' },
+        }),
+      },
+    });
+
+    expect(result.openaiExtraConfig).toEqual({
+      defaultHeaders: { Authorization: 'Bearer canonical-token' },
     });
   });
 });

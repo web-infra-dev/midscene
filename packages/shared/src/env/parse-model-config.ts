@@ -136,24 +136,24 @@ const getModelDescription = (
   return '';
 };
 
-const validateOpenaiExtraConfig = (
+const normalizeOpenaiExtraConfig = (
   config: unknown,
 ): Record<string, unknown> | undefined => {
   if (!config || typeof config !== 'object' || Array.isArray(config)) {
     return undefined;
   }
 
-  const configRecord = config as Record<string, unknown>;
+  const { defaultHeaders, extra_headers, extraHeaders, ...rest } =
+    config as Record<string, unknown>;
 
-  if ('extra_headers' in configRecord || 'extraHeaders' in configRecord) {
-    throw new Error(
-      'MIDSCENE_MODEL_INIT_CONFIG_JSON contains "extra_headers" or "extraHeaders", ' +
-        'which is a Python OpenAI SDK option. The Node.js OpenAI SDK uses "defaultHeaders" instead. ' +
-        'Please replace it with "defaultHeaders" in your config.',
-    );
+  // Priority: defaultHeaders > extra_headers > extraHeaders
+  const headers = defaultHeaders ?? extra_headers ?? extraHeaders;
+
+  if (headers !== undefined) {
+    return { ...rest, defaultHeaders: headers };
   }
 
-  return configRecord;
+  return rest;
 };
 
 /**
@@ -221,7 +221,7 @@ export const parseOpenaiSdkConfig = ({
     httpProxy,
     openaiBaseURL,
     openaiApiKey,
-    openaiExtraConfig: validateOpenaiExtraConfig(openaiExtraConfig),
+    openaiExtraConfig: normalizeOpenaiExtraConfig(openaiExtraConfig),
     extraBody,
     modelFamily,
     uiTarsModelVersion,

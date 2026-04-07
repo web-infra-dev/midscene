@@ -15,6 +15,8 @@ Midscene 会发送页面截图到 AI 模型。在某些场景下，例如调用 
 MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"foo":"bar"}}'
 ```
 
+如果你的模型服务商文档里把这个字段写成 `extra_headers` 或 `extraHeaders`，Midscene 也会兼容这两种别名，并自动归一化到 `defaultHeaders`。多个别名同时存在时，优先级为：`defaultHeaders` > `extra_headers` > `extraHeaders`。
+
 你可以通过 JSON 序列化来生成这个 JSON 的文本以避免手动拼接出错：
 
 ```javascript
