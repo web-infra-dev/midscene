@@ -11,7 +11,7 @@ Here is a demo workflow: use the [Remotion Skill](https://www.remotion.dev/docs/
 After installing the Skills, you can use a prompt like this:
 
 ```text
-Generate a flashy Remotion replay video based on the contents of report.md.
+Generate a space-themed Remotion replay video based on the contents of report.md.
 ```
 
 The generated video looks like this:
