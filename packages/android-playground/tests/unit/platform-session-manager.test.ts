@@ -61,6 +61,7 @@ describe('androidPlaygroundPlatform session manager', () => {
       type: 'select',
       defaultValue: 'SERIAL123',
     });
+    expect(setup?.autoSubmitWhenReady).toBe(true);
     expect(setup?.fields[0]?.options?.[0]?.description).toBe(
       'Pixel 8 · 1080x2400',
     );

@@ -26,6 +26,7 @@ import { PreviewRenderer } from './PreviewRenderer';
 import { SessionSetupPanel } from './SessionSetupPanel';
 import ServerOfflineBackground from './icons/server-offline-background.svg';
 import ServerOfflineForeground from './icons/server-offline-foreground.svg';
+import { resolveAutoCreateSessionInput } from './session-setup';
 import {
   buildSessionInitialValues,
   resolveSessionViewState,
@@ -97,6 +98,7 @@ export function PlaygroundApp({
     deviceType,
     runtimeInfo,
     executionUxHints,
+    refreshServerState,
   } = useServerStatus(playgroundSDK, defaultDeviceType, pollIntervalMs);
   const sessionViewState = useMemo(
     () => resolveSessionViewState(runtimeInfo),
@@ -107,6 +109,8 @@ export function PlaygroundApp({
   const countdownResolveRef = useRef<(() => void) | null>(null);
   const mountedRef = useRef(true);
   const lastSetupPlatformIdRef = useRef<string | undefined>(undefined);
+  const autoCreateSignatureRef = useRef<string | null>(null);
+  const autoCreateDisabledRef = useRef(false);
 
   const finishCountdown = useCallback(() => {
     if (countdownTimerRef.current !== null) {
@@ -290,31 +294,48 @@ export function PlaygroundApp({
       runtimeInfo?.platformId ?? branding?.targetName ?? deviceType ?? 'screen',
   };
 
-  const handleCreateSession = useCallback(async () => {
-    try {
-      const values = await setupForm.validateFields();
-      setSessionMutating(true);
-      await playgroundSDK.createSession(values);
-      messageApi.success('Agent created');
-      await refreshSessionSetup();
-    } catch (error) {
-      if ((error as { errorFields?: unknown }).errorFields) {
-        return;
-      }
+  const createSession = useCallback(
+    async (
+      input?: Record<string, unknown>,
+      options?: { silent?: boolean },
+    ): Promise<boolean> => {
+      try {
+        const values = input ?? (await setupForm.validateFields());
+        setSessionMutating(true);
+        await playgroundSDK.createSession(values);
+        if (!options?.silent) {
+          messageApi.success('Agent created');
+        }
+        await refreshServerState();
+        return true;
+      } catch (error) {
+        if ((error as { errorFields?: unknown }).errorFields) {
+          return false;
+        }
 
-      const errorMessage =
-        error instanceof Error ? error.message : 'Failed to create Agent';
-      messageApi.error(errorMessage);
-    } finally {
-      setSessionMutating(false);
-    }
-  }, [messageApi, playgroundSDK, refreshSessionSetup, setupForm]);
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to create Agent';
+        messageApi.error(errorMessage);
+        return false;
+      } finally {
+        setSessionMutating(false);
+      }
+    },
+    [messageApi, playgroundSDK, refreshServerState, setupForm],
+  );
+
+  const handleCreateSession = useCallback(async () => {
+    autoCreateDisabledRef.current = true;
+    await createSession();
+  }, [createSession]);
 
   const handleDestroySession = useCallback(async () => {
     try {
+      autoCreateDisabledRef.current = true;
       setSessionMutating(true);
       await playgroundSDK.destroySession();
       messageApi.success('Session disconnected');
+      await refreshServerState();
       await refreshSessionSetup();
     } catch (error) {
       const errorMessage =
@@ -323,7 +344,57 @@ export function PlaygroundApp({
     } finally {
       setSessionMutating(false);
     }
-  }, [messageApi, playgroundSDK, refreshSessionSetup]);
+  }, [messageApi, playgroundSDK, refreshServerState, refreshSessionSetup]);
+
+  useEffect(() => {
+    if (sessionViewState.connected) {
+      autoCreateSignatureRef.current = null;
+      return;
+    }
+
+    if (
+      !serverOnline ||
+      sessionLoading ||
+      sessionMutating ||
+      sessionSetupError ||
+      autoCreateDisabledRef.current
+    ) {
+      return;
+    }
+
+    const autoCreateInput = resolveAutoCreateSessionInput(
+      sessionSetup,
+      setupForm.getFieldsValue(true),
+    );
+
+    if (!autoCreateInput) {
+      autoCreateSignatureRef.current = null;
+      return;
+    }
+
+    const signature = JSON.stringify(autoCreateInput);
+    if (autoCreateSignatureRef.current === signature) {
+      return;
+    }
+
+    autoCreateSignatureRef.current = signature;
+
+    void (async () => {
+      const created = await createSession(autoCreateInput, { silent: true });
+      if (!created) {
+        autoCreateSignatureRef.current = null;
+      }
+    })();
+  }, [
+    createSession,
+    serverOnline,
+    sessionLoading,
+    sessionMutating,
+    sessionSetup,
+    sessionSetupError,
+    sessionViewState.connected,
+    setupForm,
+  ]);
 
   if (!serverOnline) {
     return (

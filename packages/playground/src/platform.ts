@@ -68,6 +68,7 @@ export interface PlaygroundSessionSetup {
   title?: string;
   description?: string;
   primaryActionLabel?: string;
+  autoSubmitWhenReady?: boolean;
   fields: PlaygroundSessionField[];
   targets?: PlaygroundSessionTarget[];
   platformRegistry?: PlaygroundPlatformRegistration[];

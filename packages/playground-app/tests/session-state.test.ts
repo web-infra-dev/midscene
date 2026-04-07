@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { resolveAutoCreateSessionInput } from '../src/session-setup';
 import {
   buildSessionInitialValues,
   resolveSessionViewState,
@@ -42,5 +43,40 @@ describe('playground session state helpers', () => {
       host: 'localhost',
       port: 8100,
     });
+  });
+
+  test('resolves auto-create input from setup defaults', () => {
+    expect(
+      resolveAutoCreateSessionInput({
+        autoSubmitWhenReady: true,
+        fields: [
+          {
+            key: 'deviceId',
+            label: 'ADB device',
+            type: 'select',
+            required: true,
+            defaultValue: 'SERIAL123',
+          },
+        ],
+      }),
+    ).toEqual({
+      deviceId: 'SERIAL123',
+    });
+  });
+
+  test('skips auto-create when required setup is incomplete', () => {
+    expect(
+      resolveAutoCreateSessionInput({
+        autoSubmitWhenReady: true,
+        fields: [
+          {
+            key: 'deviceId',
+            label: 'ADB device',
+            type: 'select',
+            required: true,
+          },
+        ],
+      }),
+    ).toBeNull();
   });
 });

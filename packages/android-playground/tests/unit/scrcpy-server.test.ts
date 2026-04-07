@@ -1,11 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
 import ScrcpyServer from '../../src/scrcpy-server';
 
-const mockPushServer = vi.fn();
-const mockStart = vi.fn();
-const mockReadableFrom = vi.fn();
-const mockCreateReadStream = vi.fn();
-const mockOptionsCtor = vi.fn((options) => options);
+const {
+  mockPushServer,
+  mockStart,
+  mockReadableFrom,
+  mockCreateReadStream,
+  mockOptionsCtor,
+} = vi.hoisted(() => ({
+  mockPushServer: vi.fn(),
+  mockStart: vi.fn(),
+  mockReadableFrom: vi.fn(),
+  mockCreateReadStream: vi.fn(),
+  mockOptionsCtor: vi.fn((options) => options),
+}));
 
 vi.mock('@yume-chan/adb-scrcpy', () => ({
   AdbScrcpyClient: {

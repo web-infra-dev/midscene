@@ -18,7 +18,9 @@
   "scripts": {
     "dev": "npm run build:watch",
     "build": "rslib build",
-    "build:watch": "rslib build --watch --no-clean"
+    "build:watch": "rslib build --watch --no-clean",
+    "test": "vitest --run",
+    "test:watch": "vitest"
   },
   "peerDependencies": {
     "react": "^18.0.0",
@@ -45,7 +47,8 @@
     "less": "^4.2.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "3.0.5"
   },
   "sideEffects": ["**/*.css", "**/*.less", "**/*.sass", "**/*.scss"],
   "publishConfig": {

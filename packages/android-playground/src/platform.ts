@@ -74,6 +74,7 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
           description:
             'Select an available ADB device to create the current Android Agent.',
           primaryActionLabel: 'Create Agent',
+          autoSubmitWhenReady: targets.length === 1,
           fields: [
             {
               key: 'deviceId',
