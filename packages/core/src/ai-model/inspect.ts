@@ -638,7 +638,14 @@ export async function AiJudgeOrderSensitive(
     },
   ];
 
-  const result = await callAIFn(msgs, modelConfig);
+  debugInspect(
+    'AiJudgeOrderSensitive: deepThink=false, description=%s',
+    description,
+  );
+
+  const result = await callAIFn(msgs, modelConfig, {
+    deepThink: false,
+  });
 
   return {
     isOrderSensitive: result.content.isOrderSensitive ?? false,
