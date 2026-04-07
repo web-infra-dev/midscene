@@ -206,17 +206,18 @@ describe('LocalExecutionAdapter', () => {
         modelName: 'test-planning-model',
         intent: 'planning',
       } as any;
+      const insightModelConfig = {
+        modelName: 'test-model',
+      } as any;
       const result = {
         passed: true,
         checks: [],
       };
 
-      vi.mocked(globalModelConfigManager.getModelConfig).mockReturnValue(
-        modelConfig,
-      );
       vi.mocked(globalModelConfigManager.getModelConfig)
         .mockReturnValueOnce(modelConfig)
-        .mockReturnValueOnce(planningModelConfig);
+        .mockReturnValueOnce(planningModelConfig)
+        .mockReturnValueOnce(insightModelConfig);
       vi.mocked(runConnectivityTest).mockResolvedValue(result);
 
       await expect(adapter.runConnectivityTest()).resolves.toEqual(result);
@@ -226,9 +227,13 @@ describe('LocalExecutionAdapter', () => {
       expect(globalModelConfigManager.getModelConfig).toHaveBeenCalledWith(
         'planning',
       );
+      expect(globalModelConfigManager.getModelConfig).toHaveBeenCalledWith(
+        'insight',
+      );
       expect(runConnectivityTest).toHaveBeenCalledWith({
         defaultModelConfig: modelConfig,
         planningModelConfig,
+        insightModelConfig,
       });
     });
   });
