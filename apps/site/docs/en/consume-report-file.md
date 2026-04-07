@@ -16,8 +16,7 @@ Generate a flashy Remotion replay video based on the contents of report.md.
 
 The generated video looks like this:
 
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/midscene-replay.mp4" height="300" controls />
-
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/midscene-replay.mp4" height="300" controls></video>
 
 ## Parse With The CLI
 

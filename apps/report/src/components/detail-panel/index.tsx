@@ -150,7 +150,8 @@ const DetailPanel = (): JSX.Element => {
 
   if (hasReplay) {
     availableViewTypes.unshift(VIEW_TYPE_REPLAY);
-    availableViewTypes.push(VIEW_TYPE_MARKDOWN);
+    // Temporary: hide the Markdown segment without removing the implementation.
+    // availableViewTypes.push(VIEW_TYPE_MARKDOWN);
   }
 
   const viewType =
