@@ -188,6 +188,10 @@ export default defineConfig({
           link: '/caching',
         },
         {
+          text: 'Consume report files',
+          link: '/consume-report-file',
+        },
+        {
           text: 'Integrate Midscene with any interface',
           link: '/integrate-with-any-interface',
         },
@@ -362,6 +366,10 @@ export default defineConfig({
         {
           text: '缓存 AI 规划和定位',
           link: '/zh/caching',
+        },
+        {
+          text: '解析报告文件',
+          link: '/zh/consume-report-file',
         },
         {
           text: '将 Midscene 集成到任意界面',
