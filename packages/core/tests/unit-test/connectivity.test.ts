@@ -24,6 +24,7 @@ vi.mock('@midscene/shared/img', async () => {
 import { runConnectivityTest } from '@/ai-model/connectivity';
 import { callAI } from '@/ai-model/service-caller/index';
 import Service from '@/service';
+import { imageInfoOfBase64 } from '@midscene/shared/img';
 
 describe('runConnectivityTest', () => {
   const defaultModelConfig: IModelConfig = {
@@ -98,6 +99,22 @@ describe('runConnectivityTest', () => {
     );
     expect(vi.mocked(callAI).mock.calls[0]?.[1]).toBe(planningModelConfig);
     expect(vi.mocked(callAI).mock.calls[1]?.[1]).toBe(insightModelConfig);
+    expect(vi.mocked(imageInfoOfBase64)).toHaveBeenCalledWith(
+      expect.stringMatching(/^data:image\/png;base64,/),
+    );
+
+    const visionCall = vi.mocked(callAI).mock.calls[1]?.[0]?.[0];
+    expect(visionCall).toMatchObject({
+      role: 'user',
+      content: expect.arrayContaining([
+        expect.objectContaining({
+          type: 'image_url',
+          image_url: expect.objectContaining({
+            url: expect.stringMatching(/^data:image\/png;base64,/),
+          }),
+        }),
+      ]),
+    });
   });
 
   it('marks individual failures without throwing', async () => {
