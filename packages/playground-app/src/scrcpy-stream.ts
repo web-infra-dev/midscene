@@ -1,13 +1,10 @@
-export interface ScrcpyVideoPacket {
-  type: string;
-  data: Uint8Array;
-  timestamp: number;
-}
+import type { ScrcpyMediaStreamPacket } from '@yume-chan/scrcpy';
 
 interface RawScrcpyVideoPacket {
   type?: string;
   data: ArrayLike<number>;
   timestamp: number;
+  keyframe?: boolean;
 }
 
 interface ScrcpyVideoSocketLike {
@@ -21,13 +18,13 @@ interface ScrcpyVideoSocketLike {
 
 export function createScrcpyVideoStream(
   socket: ScrcpyVideoSocketLike,
-): ReadableStream<ScrcpyVideoPacket> {
+): ReadableStream<ScrcpyMediaStreamPacket> {
   let configurationPacketSent = false;
-  let pendingDataPackets: ScrcpyVideoPacket[] = [];
+  let pendingDataPackets: ScrcpyMediaStreamPacket[] = [];
 
   const transformStream = new TransformStream<
-    ScrcpyVideoPacket,
-    ScrcpyVideoPacket
+    ScrcpyMediaStreamPacket,
+    ScrcpyMediaStreamPacket
   >({
     transform(chunk, controller) {
       if (chunk.type === 'configuration') {
@@ -50,14 +47,24 @@ export function createScrcpyVideoStream(
   });
 
   let cleanupListeners: (() => void) | undefined;
-  const readable = new ReadableStream<ScrcpyVideoPacket>({
+  const readable = new ReadableStream<ScrcpyMediaStreamPacket>({
     start(controller) {
       const handleVideoData = (data: RawScrcpyVideoPacket) => {
         try {
+          const payload = new Uint8Array(data.data);
+          if (data.type === 'configuration') {
+            controller.enqueue({
+              type: 'configuration',
+              data: payload,
+            });
+            return;
+          }
+
           controller.enqueue({
-            type: data.type || 'data',
-            data: new Uint8Array(data.data),
-            timestamp: data.timestamp,
+            type: 'data',
+            data: payload,
+            keyframe: data.keyframe,
+            pts: BigInt(data.timestamp),
           });
         } catch (error) {
           controller.error(error);
