@@ -223,11 +223,21 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
       .describe('Output directory for generated report artifacts'),
   },
   handler: async (args) => {
-    const { action, htmlPath, outputDir } = args as {
-      action?: ConsumeReportFileAction;
+    const {
+      action = 'split',
+      htmlPath,
+      outputDir,
+    } = args as {
+      action?: string;
       htmlPath?: string;
       outputDir?: string;
     };
+    if (action !== 'split' && action !== 'to-markdown') {
+      throw new Error(
+        `report-tool: unsupported --action value "${action}". Currently supported: split, to-markdown`,
+      );
+    }
+
     if (action === 'to-markdown') {
       const result = await reportFileToMarkdown({
         htmlPath: htmlPath || '',
@@ -242,12 +252,6 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
           },
         ],
       };
-    }
-
-    if (action !== undefined && action !== 'split') {
-      throw new Error(
-        `report-tool: unsupported --action value "${action}". Currently supported: split, to-markdown`,
-      );
     }
 
     const result = splitReportFile({

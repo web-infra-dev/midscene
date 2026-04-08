@@ -264,6 +264,20 @@ describe('createReportCliCommands', () => {
     );
   });
 
+  it('rejects unsupported action values before executing report logic', async () => {
+    const [command] = createReportCliCommands();
+
+    await expect(
+      command.def.handler({
+        action: 'invalid-action',
+        htmlPath: join(tmpDir, 'missing-report', 'index.html'),
+        outputDir: join(tmpDir, 'unused-output'),
+      }),
+    ).rejects.toThrow(
+      'report-tool: unsupported --action value "invalid-action". Currently supported: split, to-markdown',
+    );
+  });
+
   it('runs to-markdown export through the generic report command', async () => {
     const reportPath = join(tmpDir, 'input-report-md', 'index.html');
     mkdirSync(join(tmpDir, 'input-report-md'), { recursive: true });
