@@ -17,6 +17,7 @@
 - Start: 2024-03-09T16:00:00.000Z
 - End: 2024-03-09T16:00:00.100Z
 - Cost(ms): 100
+- Screen size: 1440 x 900
 
 ![task-1](./screenshots/shot-exec-1.png)
 
@@ -32,10 +33,12 @@
 - Execution start: 2024-03-09T16:00:00.200Z
 - Task count: 1
 
-## 1. Hover - Submit
+## 1. Locate - Submit
 - Status: finished
 - Start: 2024-03-09T16:00:00.000Z
 - End: 2024-03-09T16:00:00.100Z
 - Cost(ms): 100
+- Screen size: 1024 x 768
+- Locate center: (512, 333)
 
 ![task-1](./screenshots/shot-exec-2.png)

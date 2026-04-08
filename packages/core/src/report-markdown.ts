@@ -113,6 +113,60 @@ function safeTaskParam(task: ExecutionTask): string {
   return '';
 }
 
+function formatSize(
+  size?: { width?: number; height?: number } | null,
+): string | undefined {
+  if (
+    !size ||
+    typeof size.width !== 'number' ||
+    typeof size.height !== 'number' ||
+    Number.isNaN(size.width) ||
+    Number.isNaN(size.height)
+  ) {
+    return undefined;
+  }
+
+  return `${size.width} x ${size.height}`;
+}
+
+function extractLocateCenter(
+  task: ExecutionTask,
+): [number, number] | undefined {
+  const outputCenter = (task.output as { element?: { center?: unknown } })
+    ?.element?.center;
+  if (
+    Array.isArray(outputCenter) &&
+    outputCenter.length >= 2 &&
+    typeof outputCenter[0] === 'number' &&
+    typeof outputCenter[1] === 'number'
+  ) {
+    return [outputCenter[0], outputCenter[1]];
+  }
+
+  const paramLocateCenter = (task.param as { locate?: { center?: unknown } })
+    ?.locate?.center;
+  if (
+    Array.isArray(paramLocateCenter) &&
+    paramLocateCenter.length >= 2 &&
+    typeof paramLocateCenter[0] === 'number' &&
+    typeof paramLocateCenter[1] === 'number'
+  ) {
+    return [paramLocateCenter[0], paramLocateCenter[1]];
+  }
+
+  const paramCenter = (task.param as { center?: unknown })?.center;
+  if (
+    Array.isArray(paramCenter) &&
+    paramCenter.length >= 2 &&
+    typeof paramCenter[0] === 'number' &&
+    typeof paramCenter[1] === 'number'
+  ) {
+    return [paramCenter[0], paramCenter[1]];
+  }
+
+  return undefined;
+}
+
 function tryExtractBase64(screenshot: unknown): string | undefined {
   if (!screenshot || typeof screenshot !== 'object') return undefined;
   const s = screenshot as Record<string, unknown>;
@@ -260,6 +314,16 @@ function renderExecution(
     lines.push(
       `- Cost(ms): ${typeof time.cost === 'number' ? time.cost : 'N/A'}`,
     );
+    lines.push(
+      `- Screen size: ${formatSize(task.uiContext?.shotSize) || 'N/A'}`,
+    );
+
+    if (task.subType === 'Locate') {
+      const locateCenter = extractLocateCenter(task);
+      if (locateCenter) {
+        lines.push(`- Locate center: (${locateCenter[0]}, ${locateCenter[1]})`);
+      }
+    }
 
     if (task.errorMessage) {
       lines.push(`- Error: ${task.errorMessage}`);
