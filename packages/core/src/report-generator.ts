@@ -139,9 +139,14 @@ export class ReportGenerator implements IReportGenerator {
     if (ifInBrowser) return nullReportGenerator;
     validateReportFileName(reportFileName);
 
-    const outputDir = join(getMidsceneRunSubDir('report'), reportFileName);
+    const reportRootDir = getMidsceneRunSubDir('report');
+    const outputDir = join(reportRootDir, reportFileName);
+    const reportPath =
+      opts.outputFormat === 'html-and-external-assets'
+        ? join(outputDir, 'index.html')
+        : join(reportRootDir, ensureHtmlFileName(reportFileName));
     return new ReportGenerator({
-      reportPath: join(outputDir, 'index.html'),
+      reportPath,
       screenshotMode:
         opts.outputFormat === 'html-and-external-assets'
           ? 'directory'
@@ -384,6 +389,12 @@ export class ReportGenerator implements IReportGenerator {
     const filePath = join(dirname(this.reportPath), fileName);
     writeFileSync(filePath, singleDump.serialize(2), 'utf-8');
   }
+}
+
+function ensureHtmlFileName(reportFileName: string): string {
+  return reportFileName.endsWith('.html')
+    ? reportFileName
+    : `${reportFileName}.html`;
 }
 
 function validateReportFileName(reportFileName: string): void {
