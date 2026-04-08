@@ -211,6 +211,32 @@ if (!env.available) {
 }
 ```
 
+## FAQ
+
+### macOS: Script cannot control mouse or keyboard
+
+macOS requires Accessibility permissions for keyboard and mouse control. Go to **System Settings > Privacy & Security > Accessibility** and enable the toggle for the application running your script (e.g., Terminal, iTerm2, VS Code, or WebStorm).
+
+If you have already granted permission but it still doesn't work, try removing the app from the Accessibility list and re-adding it — macOS sometimes caches stale permissions.
+
+### Linux: Screenshots or interactions fail on a headless server
+
+A headless Linux environment (e.g. CI) has no physical display. You need to install Xvfb and ImageMagick, and enable headless mode:
+
+```bash
+sudo apt-get install -y xvfb x11-xserver-utils imagemagick
+```
+
+```typescript
+const agent = await agentFromComputer({ headless: true });
+```
+
+Or set the environment variable:
+
+```bash
+MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
+```
+
 ## Next Steps
 
 - [API Reference](./computer-api-reference)
