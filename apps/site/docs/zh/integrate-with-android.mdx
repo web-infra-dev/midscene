@@ -496,6 +496,11 @@ const device = new AndroidDevice('device-id', {
 });
 ```
 
+关闭后键盘不会自动隐藏，可能导致键盘覆盖大量屏幕区域。你可以通过以下方式应对：
+
+- 使用 `aiAct` 指令手动隐藏键盘，例如 `await agent.aiAct('隐藏键盘')`
+- 安装并切换到 [ADBKeyBoard](https://github.com/senzhk/ADBKeyBoard)——这是一款极小面积的虚拟键盘，即使不隐藏也几乎不影响屏幕操作
+
 ### 如何使用自定义的 adb 路径、远程 adb 主机和端口？
 
 你可以使用 `MIDSCENE_ADB_PATH` 环境变量来指定 adb 可执行文件的路径，`MIDSCENE_ADB_REMOTE_HOST` 环境变量来指定远程 adb 主机，`MIDSCENE_ADB_REMOTE_PORT` 环境变量来指定远程 adb 端口。

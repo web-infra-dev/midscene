@@ -201,6 +201,24 @@ await agent.aiAct('click the red button five times');
 
 Check [Integrate with any interface](./integrate-with-any-interface#define-a-custom-action) for more details about defining custom actions.
 
+## FAQ
+
+### The webpage continues to flash when running in headed mode
+
+This is caused by a mismatch between the viewport's `deviceScaleFactor` and the system pixel ratio. Set `deviceScaleFactor` to `0` to automatically use the device pixel ratio:
+
+```typescript
+await page.setViewport({
+  deviceScaleFactor: 0,
+});
+```
+
+For more details, see [Playwright FAQ — The webpage continues to flash](./integrate-with-playwright#the-webpage-continues-to-flash-when-running-in-headed-mode).
+
+### Customize the network timeout
+
+Midscene automatically waits for the network to be idle after interactions. You can customize or disable the timeout — see [Playwright FAQ — Customize the network timeout](./integrate-with-playwright#customize-the-network-timeout) for details.
+
 ## More
 
 - For every Agent method, check the [API Reference](./api#interaction-methods).
