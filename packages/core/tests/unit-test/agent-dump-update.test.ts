@@ -26,6 +26,11 @@ function createMockInterface() {
   } as any;
 }
 
+function createLargeBase64DataUri(byteSize: number): string {
+  const payload = 'A'.repeat(byteSize);
+  return `data:image/png;base64,${payload}`;
+}
+
 describe('Agent dump update screenshot serialization', () => {
   afterEach(() => {
     vi.clearAllMocks();
@@ -61,6 +66,54 @@ describe('Agent dump update screenshot serialization', () => {
     expect(dumpString).toContain('"type":"midscene_screenshot_ref"');
     expect(dumpString).not.toContain('data:image/png;base64');
     expect(reportGeneratorStub.flush).toHaveBeenCalled();
+
+    await agent.destroy();
+  });
+
+  it('keeps dump callback payload bounded after many updates with large screenshots', async () => {
+    const largeScreenshot = createLargeBase64DataUri(200_000);
+    const agent = new Agent(
+      {
+        ...createMockInterface(),
+        screenshotBase64: async () => largeScreenshot,
+      } as any,
+      {
+        modelConfig,
+        generateReport: false,
+      },
+    );
+
+    const reportGeneratorStub = {
+      onExecutionUpdate(execution: ExecutionDump, _reportMeta: ReportMeta) {
+        for (const screenshot of execution.collectScreenshots()) {
+          screenshot.markPersistedInline('/tmp/mock-report.html');
+        }
+      },
+      flush: vi.fn(async () => {}),
+      finalize: vi.fn(async () => undefined),
+      getReportPath: vi.fn(() => undefined),
+    };
+
+    (agent as any).reportGenerator = reportGeneratorStub;
+
+    let maxDumpLength = 0;
+    agent.onDumpUpdate = (dumpString) => {
+      maxDumpLength = Math.max(maxDumpLength, dumpString.length);
+      expect(dumpString).toContain('"type":"midscene_screenshot_ref"');
+      expect(dumpString).not.toContain('data:image/png;base64');
+    };
+
+    const iterations = 80;
+    for (let i = 0; i < iterations; i++) {
+      await agent.recordToReport(`snapshot-${i}`, {
+        content: `stress-${i}`,
+      });
+    }
+
+    // With 80 * 200KB screenshots, inline base64 would push dumps > 16MB.
+    // Reference serialization should stay lightweight.
+    expect(maxDumpLength).toBeLessThan(500_000);
+    expect(reportGeneratorStub.flush).toHaveBeenCalledTimes(iterations);
 
     await agent.destroy();
   });
