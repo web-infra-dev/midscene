@@ -78,29 +78,17 @@ MIDSCENE_MODEL_FAMILY="doubao-seed" # 也兼容 "doubao-vision"
 # MIDSCENE_MODEL_REASONING_EFFORT="medium"
 ```
 
-### 千问 Qwen3.6 {#qwen36}
+### 千问 Qwen3.X 系列 {#qwen3x}
 
-以[阿里云](https://www.aliyun.com/)的 `qwen3.6-plus` 模型为例，推荐关闭平台默认的思考模式以提升执行速度，其环境变量配置如下：
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen3.6-plus"
-MIDSCENE_MODEL_FAMILY="qwen3.6"
-MIDSCENE_MODEL_REASONING_ENABLED="false"
-```
-
-如果需要开启思考模式，可以配置 `MIDSCENE_MODEL_REASONING_ENABLED="true"` 并增加 `MIDSCENE_MODEL_REASONING_BUDGET="500"` 配置以控制思考耗时。
-
-### 千问 Qwen3.5 {#qwen35}
+目前已支持 Qwen3.X 系列中的 Qwen3.5、Qwen3.6。
 
 以[阿里云](https://www.aliyun.com/)的 `qwen3.5-plus` 模型为例，推荐关闭平台默认的思考模式以提升执行速度，其环境变量配置如下：
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen3.5-plus"
-MIDSCENE_MODEL_FAMILY="qwen3.5"
+MIDSCENE_MODEL_NAME="qwen3.5-plus" # Qwen3.6 系列的 plus 模型是 "qwen3.6-plus"
+MIDSCENE_MODEL_FAMILY="qwen3.5" # Qwen3.6 系列对应的 family 是 "qwen3.6"
 MIDSCENE_MODEL_REASONING_ENABLED="false"
 ```
 
@@ -117,20 +105,23 @@ MIDSCENE_MODEL_NAME="qwen3-vl-plus"
 MIDSCENE_MODEL_FAMILY="qwen3-vl"
 ```
 
-### 智谱 GLM-V {#glm-v}
+### 智谱 GLM-V 系列 {#glm-v}
 
-智谱 GLM-V 是智谱 AI 推出的开源视觉模型。以 `GLM-4.6V` 为例：
+智谱 GLM-V 是智谱 AI 推出的视觉理解模型。最新版本有 `GLM-4.6V`（开源）、`GLM-5V-Turbo`。
+
+推荐关闭平台默认的思考模式以提升执行速度，以 `GLM-4.6V` 为例：
 
 从 [Z.AI（国际）](https://z.ai/manage-apikey/apikey-list)或 [BigModel（国内）](https://bigmodel.cn/usercenter/proj-mgmt/apikeys)获取 API 密钥，然后设置：
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://open.bigmodel.cn/api/paas/v4" # 或 https://api.z.ai/api/paas/v4
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="glm-4.6v"
+MIDSCENE_MODEL_NAME="glm-4.6v" # GLM-5V-Turbo 的对应模型名为 "glm-5v-turbo"
 MIDSCENE_MODEL_FAMILY="glm-v"
+MIDSCENE_MODEL_REASONING_ENABLED="false"
 ```
 
-**了解更多关于智谱 GLM-V**
+**了解更多关于智谱 GLM-V 开源模型**
 
 - Github: [https://github.com/zai-org/GLM-V](https://github.com/zai-org/GLM-V)
 - Hugging Face: [https://huggingface.co/zai-org/GLM-4.6V](https://huggingface.co/zai-org/GLM-4.6V)

@@ -74,37 +74,21 @@ MIDSCENE_MODEL_FAMILY="doubao-seed" # "doubao-vision" is also supported
 # Optional: control reasoning effort (low, medium, high)
 # MIDSCENE_MODEL_REASONING_EFFORT="medium"
 ```
-### Qwen3.6 {#qwen36}
+### Qwen3.X Series {#qwen3x}
 
-Using Alibaba Cloud's `qwen3.6-plus` as an example. It is recommended to disable the platform's default thinking mode to improve execution speed, the environment variable configuration is as follows:
+Qwen3.5 and Qwen3.6 are currently supported in the Qwen3.X series.
 
-```bash
-MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen3.6-plus"
-MIDSCENE_MODEL_FAMILY="qwen3.6"
-MIDSCENE_MODEL_REASONING_ENABLED="false"
-```
-
-To enable thinking mode, remove the `MIDSCENE_MODEL_REASONING_ENABLED="false"` line and add `MIDSCENE_MODEL_REASONING_BUDGET="500"` to control thinking cost.
-
-You can also use Qwen3.6 from [OpenRouter](https://openrouter.ai/qwen).
-
-### Qwen3.5 {#qwen35}
-
-Using Alibaba Cloud's `qwen3.5-plus` as an example. It is recommended to disable the platform's default thinking mode to improve execution speed, the environment variable configuration is as follows:
+Using Alibaba Cloud's `qwen3.5-plus` as an example. It is recommended to disable the platform's default thinking mode to improve execution speed:
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen3.5-plus"
-MIDSCENE_MODEL_FAMILY="qwen3.5"
+MIDSCENE_MODEL_NAME="qwen3.5-plus" # For Qwen3.6, use "qwen3.6-plus"
+MIDSCENE_MODEL_FAMILY="qwen3.5" # For Qwen3.6, use "qwen3.6"
 MIDSCENE_MODEL_REASONING_ENABLED="false"
 ```
 
-To enable thinking mode, remove the `MIDSCENE_MODEL_REASONING_ENABLED="false"` line and add `MIDSCENE_MODEL_REASONING_BUDGET="500"` to control thinking cost.
-
-You can also use Qwen3.5 from [OpenRouter](https://openrouter.ai/qwen).
+To enable thinking mode, set `MIDSCENE_MODEL_REASONING_ENABLED="true"` and add `MIDSCENE_MODEL_REASONING_BUDGET="500"` to control thinking cost.
 
 ### Qwen3-VL {#qwen3-vl}
 
@@ -119,20 +103,23 @@ MIDSCENE_MODEL_FAMILY="qwen3-vl"
 
 You can also use Qwen3-VL from [OpenRouter](https://openrouter.ai/qwen).
 
-### Zhipu GLM-V {#glm-v}
+### Zhipu GLM-V Series {#glm-v}
 
-Zhipu GLM-V is an open-source vision model from Zhipu AI. Using `GLM-4.6V` as an example:
+Zhipu GLM-V is a vision understanding model from Zhipu AI. The latest versions include `GLM-4.6V` (open-source) and `GLM-5V-Turbo`.
+
+It is recommended to disable the platform's default thinking mode to improve execution speed. Using `GLM-4.6V` as an example:
 
 Obtain an API key from [Z.AI (Global)](https://z.ai/manage-apikey/apikey-list) or [BigModel (CN)](https://bigmodel.cn/usercenter/proj-mgmt/apikeys), and set:
 
 ```bash
-MIDSCENE_MODEL_BASE_URL="https://api.z.ai/api/paas/v4" # Or https://open.bigmodel.cn/api/paas/v4
+MIDSCENE_MODEL_BASE_URL="https://open.bigmodel.cn/api/paas/v4" # Or https://api.z.ai/api/paas/v4
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="glm-4.6v"
+MIDSCENE_MODEL_NAME="glm-4.6v" # For GLM-5V-Turbo, use "glm-5v-turbo"
 MIDSCENE_MODEL_FAMILY="glm-v"
+MIDSCENE_MODEL_REASONING_ENABLED="false"
 ```
 
-**Learn more about Zhipu GLM-V**
+**Learn more about the open-source Zhipu GLM-V model**
 
 - Github: [https://github.com/zai-org/GLM-V](https://github.com/zai-org/GLM-V)
 - Hugging Face: [https://huggingface.co/zai-org/GLM-4.6V](https://huggingface.co/zai-org/GLM-4.6V)
