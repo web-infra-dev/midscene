@@ -1,6 +1,6 @@
 {
   "name": "@midscene/android",
-  "version": "1.6.3",
+  "version": "1.7.0",
   "description": "Android automation library for Midscene",
   "keywords": [
     "Android UI automation",

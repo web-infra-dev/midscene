@@ -1,6 +1,6 @@
 {
   "name": "@midscene/harmony-playground",
-  "version": "1.6.3",
+  "version": "1.7.0",
   "description": "HarmonyOS playground for Midscene",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
