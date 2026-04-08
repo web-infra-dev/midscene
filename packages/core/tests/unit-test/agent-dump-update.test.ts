@@ -65,6 +65,10 @@ describe('Agent dump update screenshot serialization', () => {
 
     expect(dumpString).toContain('"type":"midscene_screenshot_ref"');
     expect(dumpString).not.toContain('data:image/png;base64');
+    const screenshotsInAgentDump = (agent as any).dump.collectAllScreenshots();
+    for (const screenshot of screenshotsInAgentDump) {
+      expect(screenshot.hasBase64()).toBe(false);
+    }
     expect(reportGeneratorStub.flush).toHaveBeenCalled();
 
     await agent.destroy();
@@ -97,10 +101,24 @@ describe('Agent dump update screenshot serialization', () => {
     (agent as any).reportGenerator = reportGeneratorStub;
 
     let maxDumpLength = 0;
+    let leakedBase64Count = 0;
     agent.onDumpUpdate = (dumpString) => {
       maxDumpLength = Math.max(maxDumpLength, dumpString.length);
-      expect(dumpString).toContain('"type":"midscene_screenshot_ref"');
-      expect(dumpString).not.toContain('data:image/png;base64');
+      if (!dumpString.includes('"type":"midscene_screenshot_ref"')) {
+        leakedBase64Count += 1;
+      }
+      if (dumpString.includes('data:image/png;base64')) {
+        leakedBase64Count += 1;
+      }
+      const screenshotsInAgentDump = (
+        agent as any
+      ).dump.collectAllScreenshots();
+      for (const screenshot of screenshotsInAgentDump) {
+        if (screenshot.hasBase64()) {
+          leakedBase64Count += 1;
+          break;
+        }
+      }
     };
 
     const iterations = 80;
@@ -112,6 +130,7 @@ describe('Agent dump update screenshot serialization', () => {
 
     // With 80 * 200KB screenshots, inline base64 would push dumps > 16MB.
     // Reference serialization should stay lightweight.
+    expect(leakedBase64Count).toBe(0);
     expect(maxDumpLength).toBeLessThan(500_000);
     expect(reportGeneratorStub.flush).toHaveBeenCalledTimes(iterations);
 
