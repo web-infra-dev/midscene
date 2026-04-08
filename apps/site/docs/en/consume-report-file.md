@@ -1,4 +1,4 @@
-# Consume Report Files (Beta)
+# Consume Report Files
 
 Midscene HTML report files capture the full execution history of a single Agent, making them useful for replay and debugging.
 
@@ -6,13 +6,40 @@ Starting in v1.7.0, you can extract raw screenshots and JSON data from a report 
 
 ## Example
 
-Here is a demo workflow: use the [Remotion Skill](https://www.remotion.dev/docs/ai/skills?utm_source=midscenejs) to parse a Midscene Markdown report and generate a customized replay video.
+With the CLI, you can parse a report file into a Markdown file like this:
 
-After installing the Skills, you can use a prompt like this:
+```md
+# Act - Search for and play videos related to Midscene
 
-```text
-Generate a space-themed Remotion replay video based on the contents of report.md.
+- Execution start: 2026-04-08T02:13:04.795Z
+- Task count: 21
+
+## 1. Plan - Click the top search box to activate input
+- Status: finished
+- Start: 2026-04-08T02:13:04.845Z
+- End: 2026-04-08T02:13:15.296Z
+- Cost(ms): 10451
+- Screen size: 2880 x 1536
+
+![task-1](./screenshots/execution-1-task-1-f9fc3bf9-bdf6-48dd-abea-f8f29874d8c1.jpeg)
+
+### Recorder
+- #1 type=screenshot, ts=2026-04-08T02:13:15.296Z, timing=after-calling
+
+![task-1](./screenshots/execution-1-task-1-c521b130-5037-4ed2-b70f-705e181d981a.jpeg)
+
+## 2. Locate - The search input with the placeholder text "Li Weigang's Daily Life" at the top
+- Status: finished
+- Start: 2026-04-08T02:13:15.305Z
+- End: 2026-04-08T02:13:15.306Z
+- Cost(ms): 1
+- Screen size: 2880 x 1536
+- Locate center: (1489, 71)
+
+.....
 ```
+
+You can then combine it with the [Remotion Skill](https://www.remotion.dev/docs/ai/skills?utm_source=midscenejs) to parse the Markdown file and generate a customized replay video.
 
 The generated video looks like this:
 
@@ -56,4 +83,4 @@ console.log(markdownResult.markdownFiles);
 
 ## About Fields In JSON And Markdown
 
-The JSON and Markdown structures parsed from report files may change as Midscene evolves.
+The parsed JSON and Markdown structures may change as Midscene evolves. Use the actual conversion result as the source of truth.
