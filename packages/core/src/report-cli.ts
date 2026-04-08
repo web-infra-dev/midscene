@@ -37,15 +37,13 @@ export interface ReportCliCommandEntry {
 
 export type ConsumeReportFileAction = 'split' | 'to-markdown';
 
-export interface SplitReportFileOptions {
+export interface ConsumeReportFileOptions {
   htmlPath: string;
   outputDir: string;
 }
 
-export interface ReportFileToMarkdownOptions {
-  htmlPath: string;
-  outputDir: string;
-}
+export type SplitReportFileOptions = ConsumeReportFileOptions;
+export type ReportFileToMarkdownOptions = ConsumeReportFileOptions;
 
 function writeAttachmentFromReport(
   attachment: MarkdownAttachment,
