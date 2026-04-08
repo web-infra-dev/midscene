@@ -1,6 +1,10 @@
 {
   "name": "@midscene/computer-mac",
+<<<<<<< HEAD
   "version": "1.7.0",
+=======
+  "version": "1.6.4-0",
+>>>>>>> 860facb0a (fix(android): harden MidsceneIME keyboard dismissal)
   "description": "Midscene.js Computer Desktop Automation for macOS",
   "license": "MIT",
   "repository": {

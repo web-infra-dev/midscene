@@ -1,6 +1,10 @@
 {
   "name": "@midscene/ios-mcp",
+<<<<<<< HEAD
   "version": "1.7.0",
+=======
+  "version": "1.6.4-0",
+>>>>>>> 860facb0a (fix(android): harden MidsceneIME keyboard dismissal)
   "description": "Midscene MCP Server for iOS automation",
   "bin": "dist/index.js",
   "files": ["dist"],

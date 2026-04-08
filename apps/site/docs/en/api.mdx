@@ -286,7 +286,12 @@ function aiInput(
     deepLocate?: boolean;
     xpath?: string;
     cacheable?: boolean;
-    autoDismissKeyboard?: boolean;
+    autoDismissKeyboard?:
+      | boolean
+      | 'back'
+      | 'esc'
+      | 'midscene-ime'
+      | 'midscene-ime-auto-install';
     mode?: 'replace' | 'clear' | 'typeOnly';
   },
 ): Promise<void>;
@@ -311,7 +316,12 @@ function aiInput(
     - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). Previously named `deepThink`, now renamed to `deepLocate`. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
-    - `autoDismissKeyboard?: boolean` - If true, the keyboard will be dismissed after input text, only available in Android/iOS. (Default: true)
+    - `autoDismissKeyboard?: boolean | 'back' | 'esc' | 'midscene-ime' | 'midscene-ime-auto-install'` - Controls keyboard dismissal after input on mobile devices. `true` / `false` works across mobile platforms. Android additionally accepts `'back'`, `'esc'`, `'midscene-ime'`, and `'midscene-ime-auto-install'`.
+      - `true` - Use the platform default auto-dismiss behavior. On Android this maps to `'esc'`.
+      - `false` - Leave the keyboard open.
+      - `'back'` / `'esc'` - Android-only explicit key-event strategies.
+      - `'midscene-ime'` - Android-only helper-IME strategy that dismisses the keyboard without sending ESC/BACK into the focused field.
+      - `'midscene-ime-auto-install'` - Android-only helper-IME strategy that lets `AndroidAgent` approve helper installation prompts when needed. If safe installation cannot complete, it throws instead of falling back to key events.
     - `mode?: 'replace' | 'clear' | 'typeOnly'` - Input mode. (Default: 'replace')
       - `'replace'`: Clear the input field first, then input the text.
       - `'typeOnly'`: Type the value directly without clearing the field first.

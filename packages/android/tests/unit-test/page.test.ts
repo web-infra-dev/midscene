@@ -27,6 +27,7 @@ const createMockAdb = () => ({
   keyevent: vi.fn(),
   clearTextField: vi.fn(),
   hideKeyboard: vi.fn(),
+  install: vi.fn(),
   push: vi.fn(),
   isSoftKeyboardPresent: vi.fn().mockResolvedValue(false),
 });
@@ -1007,6 +1008,22 @@ describe('AndroidDevice', () => {
         vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
       });
 
+      it('should accept Android-specific dismissal modes in the Input action schema', () => {
+        const inputAction = device
+          .actionSpace()
+          .find((action) => action.name === 'Input');
+
+        const parsedParam = inputAction?.paramSchema?.parse({
+          value: 'hello',
+          autoDismissKeyboard: 'midscene-ime-auto-install',
+        });
+
+        expect(parsedParam).toMatchObject({
+          value: 'hello',
+          autoDismissKeyboard: 'midscene-ime-auto-install',
+        });
+      });
+
       it('should use esc strategy by default', async () => {
         device.options = { imeStrategy: 'yadb-for-non-ascii' };
         mockAdb.isSoftKeyboardPresent
@@ -1358,30 +1375,26 @@ describe('AndroidDevice', () => {
         );
       });
 
-      it('should fall back to key events if midscene-ime-auto-install fails', async () => {
+      it('should throw error if midscene-ime-auto-install fails instead of falling back to key events', async () => {
         device.options = {
           imeStrategy: 'yadb-for-non-ascii',
           autoDismissKeyboard: 'midscene-ime-auto-install',
         };
 
-        mockAdb.isSoftKeyboardPresent
-          .mockResolvedValueOnce({
-            isKeyboardShown: true,
-            canCloseKeyboard: true,
-          })
-          .mockResolvedValueOnce({
-            isKeyboardShown: false,
-            canCloseKeyboard: true,
-          });
+        mockAdb.isSoftKeyboardPresent.mockResolvedValueOnce({
+          isKeyboardShown: true,
+          canCloseKeyboard: true,
+        });
 
         vi.spyOn(device as any, 'ensureMidsceneImeInstalled').mockRejectedValue(
           new Error('install failed'),
         );
 
-        await device.keyboardType('hello');
+        await expect(device.keyboardType('hello')).rejects.toThrow(
+          /will not fall back to ESC\/BACK/,
+        );
 
-        // Falls back to ESC key event
-        expect(mockAdb.keyevent).toHaveBeenCalledWith(111);
+        expect(mockAdb.keyevent).not.toHaveBeenCalled();
       });
 
       it('hideKeyboardViaMidsceneIme should switch IME, broadcast, and restore', async () => {

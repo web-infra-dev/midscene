@@ -215,12 +215,16 @@ android:
   # The launch URL, optional, defaults to the device's current page.
   launch: <url>
 
+  # How to dismiss the keyboard after input, optional.
+  # Android accepts boolean plus 'back' | 'esc' | 'midscene-ime' | 'midscene-ime-auto-install'.
+  autoDismissKeyboard: <boolean | 'back' | 'esc' | 'midscene-ime' | 'midscene-ime-auto-install'>
+
   # The path to the JSON file for outputting aiQuery/aiAssert results, optional.
   output: <path-to-output-file>
 
   # All other options supported by the AndroidDevice constructor
   # For example: androidAdbPath, remoteAdbHost, remoteAdbPort,
-  # imeStrategy, displayId, autoDismissKeyboard, keyboardDismissStrategy,
+  # imeStrategy, displayId, autoDismissKeyboard, keyboardDismissStrategy (deprecated),
   # alwaysRefreshScreenInfo, etc.
   # See the AndroidDevice constructor documentation for the complete list
 ```

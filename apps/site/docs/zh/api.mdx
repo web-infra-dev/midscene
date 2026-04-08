@@ -279,7 +279,12 @@ function aiInput(
     deepLocate?: boolean;
     xpath?: string;
     cacheable?: boolean;
-    autoDismissKeyboard?: boolean;
+    autoDismissKeyboard?:
+      | boolean
+      | 'back'
+      | 'esc'
+      | 'midscene-ime'
+      | 'midscene-ime-auto-install';
     mode?: 'replace' | 'clear' | 'typeOnly';
   },
 ): Promise<void>;
@@ -304,7 +309,12 @@ function aiInput(
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
-    - `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android/iOS 中有效。默认值为 true。
+    - `autoDismissKeyboard?: boolean | 'back' | 'esc' | 'midscene-ime' | 'midscene-ime-auto-install'` - 控制移动端输入后的键盘关闭行为。`true` / `false` 适用于各个移动平台；Android 额外支持 `'back'`、`'esc'`、`'midscene-ime'` 和 `'midscene-ime-auto-install'`。
+      - `true` - 使用平台默认的自动收起行为；在 Android 上等价于 `'esc'`。
+      - `false` - 不自动关闭键盘。
+      - `'back'` / `'esc'` - Android 专属的显式按键策略。
+      - `'midscene-ime'` - Android 专属的辅助输入法策略，不会向当前输入框发送 ESC/BACK 按键事件。
+      - `'midscene-ime-auto-install'` - Android 专属的辅助输入法策略；当需要安装辅助输入法时，`AndroidAgent` 会尝试自动点击安装确认。如果无法安全安装完成，会直接抛错，而不是退回到按键事件。
     - `mode?: 'replace' | 'clear' | 'typeOnly'` - 输入模式。(默认值: 'replace')
       - `'replace'`: 先清空输入框，然后输入文本。
       - `'typeOnly'`: 直接输入文本，不会先清空输入框。

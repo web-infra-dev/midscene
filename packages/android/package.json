@@ -1,6 +1,10 @@
 {
   "name": "@midscene/android",
+<<<<<<< HEAD
   "version": "1.7.0",
+=======
+  "version": "1.6.4-0",
+>>>>>>> 860facb0a (fix(android): harden MidsceneIME keyboard dismissal)
   "description": "Android automation library for Midscene",
   "keywords": [
     "Android UI automation",
@@ -34,7 +38,7 @@
     "prebuild": "node scripts/download-scrcpy-server.mjs && node scripts/download-yadb.mjs && node scripts/build-midscene-ime.mjs",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
-    "prepack": "node scripts/download-scrcpy-server.mjs && node scripts/download-yadb.mjs && node scripts/build-midscene-ime.mjs",
+    "prepack": "node scripts/download-scrcpy-server.mjs && node scripts/download-yadb.mjs && node scripts/build-midscene-ime.mjs --strict --force",
     "playground": "DEBUG=midscene:* tsx demo/playground.ts",
     "test": "vitest --run",
     "test:u": "vitest --run -u",

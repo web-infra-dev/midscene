@@ -52,7 +52,10 @@ import {
 
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { AbstractInterface } from '@/device';
+import type {
+  AbstractInterface,
+  TextInputAutoDismissKeyboardOption,
+} from '@/device';
 import type { TaskRunner } from '@/task-runner';
 import {
   type IModelConfig,
@@ -75,6 +78,12 @@ import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
 import { commonContextParser, getReportFileName, parsePrompt } from './utils';
 
 const debug = getDebug('agent');
+
+type AiInputOption = LocateOption & {
+  value: string | number;
+  autoDismissKeyboard?: TextInputAutoDismissKeyboardOption;
+  mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
+};
 
 const distanceOfTwoPoints = (p1: [number, number], p2: [number, number]) => {
   const [x1, y1] = p1;
@@ -610,12 +619,7 @@ export class Agent<
   }
 
   // New signature, always use locatePrompt as the first param
-  async aiInput(
-    locatePrompt: TUserPrompt,
-    opt: LocateOption & { value: string | number } & {
-      autoDismissKeyboard?: boolean;
-    } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' },
-  ): Promise<any>;
+  async aiInput(locatePrompt: TUserPrompt, opt: AiInputOption): Promise<any>;
 
   // Legacy signature - deprecated
   /**
@@ -624,29 +628,24 @@ export class Agent<
   async aiInput(
     value: string | number,
     locatePrompt: TUserPrompt,
-    opt?: LocateOption & { autoDismissKeyboard?: boolean } & {
+    opt?: LocateOption & {
+      autoDismissKeyboard?: TextInputAutoDismissKeyboardOption;
       mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
-    }, // AndroidDeviceInputOpt &
+    },
   ): Promise<any>;
 
   // Implementation
   async aiInput(
     locatePromptOrValue: TUserPrompt | string | number,
-    locatePromptOrOpt:
-      | TUserPrompt
-      | (LocateOption & { value: string | number } & {
-          autoDismissKeyboard?: boolean;
-        } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' }) // AndroidDeviceInputOpt &
-      | undefined,
-    optOrUndefined?: LocateOption, // AndroidDeviceInputOpt &
+    locatePromptOrOpt: TUserPrompt | AiInputOption | undefined,
+    optOrUndefined?: LocateOption & {
+      autoDismissKeyboard?: TextInputAutoDismissKeyboardOption;
+      mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
+    },
   ) {
     let value: string | number;
     let locatePrompt: TUserPrompt;
-    let opt:
-      | (LocateOption & { value: string | number } & {
-          autoDismissKeyboard?: boolean;
-        } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' }) // AndroidDeviceInputOpt &
-      | undefined;
+    let opt: AiInputOption | undefined;
 
     // Check if using new signature (first param is locatePrompt, second has value)
     if (
@@ -656,11 +655,7 @@ export class Agent<
     ) {
       // New signature: aiInput(locatePrompt, opt)
       locatePrompt = locatePromptOrValue as TUserPrompt;
-      const optWithValue = locatePromptOrOpt as LocateOption & {
-        // AndroidDeviceInputOpt &
-        value: string | number;
-        autoDismissKeyboard?: boolean;
-      };
+      const optWithValue = locatePromptOrOpt as AiInputOption;
       value = optWithValue.value;
       opt = optWithValue;
     } else {

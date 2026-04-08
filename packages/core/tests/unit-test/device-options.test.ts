@@ -23,7 +23,7 @@ describe('Device Options Type Definitions', () => {
         usePhysicalDisplayIdForDisplayLookup: true,
         screenshotResizeScale: 0.5,
         alwaysRefreshScreenInfo: true,
-        autoDismissKeyboard: true,
+        autoDismissKeyboard: 'midscene-ime-auto-install',
         keyboardDismissStrategy: 'esc-first',
       };
 
@@ -41,7 +41,7 @@ describe('Device Options Type Definitions', () => {
 
     test('AndroidDeviceInputOpt should include keyboard options', () => {
       const inputOptions: AndroidDeviceInputOpt = {
-        autoDismissKeyboard: true,
+        autoDismissKeyboard: 'midscene-ime',
         keyboardDismissStrategy: 'back-first',
       };
 
@@ -94,7 +94,7 @@ describe('Device Options Type Definitions', () => {
         usePhysicalDisplayIdForDisplayLookup: true,
         screenshotResizeScale: 0.5,
         alwaysRefreshScreenInfo: true,
-        autoDismissKeyboard: true,
+        autoDismissKeyboard: 'back',
         keyboardDismissStrategy: 'esc-first',
 
         // YAML-specific
@@ -224,6 +224,25 @@ describe('Device Options Type Definitions', () => {
       validStrategies.forEach((strategy) => {
         const options: AndroidDeviceOpt = {
           keyboardDismissStrategy: strategy,
+        };
+        expect(options).toBeDefined();
+      });
+    });
+
+    test('should only accept valid autoDismissKeyboard values', () => {
+      const validStrategies: Array<AndroidDeviceOpt['autoDismissKeyboard']> = [
+        true,
+        false,
+        'esc',
+        'back',
+        'midscene-ime',
+        'midscene-ime-auto-install',
+        undefined,
+      ];
+
+      validStrategies.forEach((strategy) => {
+        const options: AndroidDeviceOpt = {
+          autoDismissKeyboard: strategy,
         };
         expect(options).toBeDefined();
       });

@@ -683,8 +683,10 @@ export type { DeviceAction } from '../types';
 export type {
   AndroidDeviceOpt,
   AndroidDeviceInputOpt,
+  AndroidKeyboardDismissMode,
   IOSDeviceOpt,
   IOSDeviceInputOpt,
   HarmonyDeviceOpt,
   HarmonyDeviceInputOpt,
+  TextInputAutoDismissKeyboardOption,
 } from './device-options';

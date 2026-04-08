@@ -1,7 +1,11 @@
 {
   "name": "@midscene/cli",
   "description": "An AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language. See https://midscenejs.com/ for details.",
+<<<<<<< HEAD
   "version": "1.7.0",
+=======
+  "version": "1.6.4-0",
+>>>>>>> 860facb0a (fix(android): harden MidsceneIME keyboard dismissal)
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",

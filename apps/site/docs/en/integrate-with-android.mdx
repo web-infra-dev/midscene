@@ -121,8 +121,13 @@ The AndroidDevice constructor supports the following parameters:
 
 - `deviceId: string` - The device id
 - `opts?: AndroidDeviceOpt` - Optional, the options for the AndroidDevice
-  - `autoDismissKeyboard?: boolean` - Optional, whether to dismiss the keyboard after inputting. (Default: true)
-  - `keyboardDismissStrategy?: 'esc-first' | 'back-first'` - Optional, the strategy to dismiss the keyboard. 'esc-first' tries ESC key first, then back key if needed. 'back-first' tries back key first, then ESC key if needed. (Default: 'esc-first')
+  - `autoDismissKeyboard?: boolean | 'back' | 'esc' | 'midscene-ime' | 'midscene-ime-auto-install'` - Optional, how to dismiss the keyboard after inputting. (Default: `true`, which maps to `'esc'` on Android)
+    - `true` / `'esc'` - Try ESC first, then BACK if needed.
+    - `'back'` - Try BACK first, then ESC if needed.
+    - `'midscene-ime'` - Use the MidsceneIME helper keyboard to dismiss without sending ESC/BACK key events into the focused field.
+    - `'midscene-ime-auto-install'` - Same helper-IME flow, but `AndroidAgent` will use AI to approve install prompts if the device blocks silent installs. If safe installation cannot complete, Midscene throws instead of falling back to ESC/BACK.
+    - `false` - Leave the keyboard open after input.
+  - `keyboardDismissStrategy?: 'esc-first' | 'back-first'` - Deprecated backward-compatibility alias for `autoDismissKeyboard: 'esc' | 'back'`.
   - `androidAdbPath?: string` - Optional, the path to the adb executable.
   - `remoteAdbHost?: string` - Optional, the remote adb host.
   - `remoteAdbPort?: number` - Optional, the remote adb port.
@@ -327,21 +332,31 @@ Please check if the device is unlocked in the developer options of the system se
 
 ### Text input fails in WebView / Mobile web pages (input field appears empty after typing)
 
-This is typically caused by the keyboard dismiss strategy. After Midscene inputs text via the virtual keyboard, it automatically dismisses the keyboard. The default strategy (`esc-first`) sends an **ESCAPE key event** first, which may be captured by WebView JavaScript and cause side effects such as:
+This is typically caused by key-event-based keyboard dismissal. After Midscene inputs text via the virtual keyboard, Android often needs an extra step to dismiss the keyboard. If that step sends **ESC** or **BACK** into the focused field, WebView JavaScript may capture it and cause side effects such as:
 
 - Closing the popup/modal that contains the input field
 - Clearing the text just entered
 - Navigating away from the current view
 
-**Solution:** Set `keyboardDismissStrategy` to `'back-first'` when creating the AndroidDevice, which uses the Android BACK key instead of ESCAPE to dismiss the keyboard:
+**Recommended solution:** Use `autoDismissKeyboard: 'midscene-ime'` so Midscene switches to the helper IME and dismisses the keyboard without sending key events into the field:
 
 ```typescript
 const device = new AndroidDevice('device-id', {
-  keyboardDismissStrategy: 'back-first',
+  autoDismissKeyboard: 'midscene-ime',
 });
 ```
 
-If the input still fails, you can also try disabling auto keyboard dismiss entirely and let the AI agent handle keyboard state:
+If your ROM shows an install approval dialog for helper APKs, use `autoDismissKeyboard: 'midscene-ime-auto-install'` together with `AndroidAgent`. Midscene will ask the Agent to approve the install prompt. If safe installation still cannot complete, it throws instead of falling back to ESC/BACK.
+
+If you do not want to use the helper IME, you can still try the legacy `'back'` strategy, which is safer than `'esc'` for many WebView flows but still sends a key event:
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  autoDismissKeyboard: 'back',
+});
+```
+
+Or disable auto keyboard dismissal entirely and let the Agent manage the keyboard state:
 
 ```typescript
 const device = new AndroidDevice('device-id', {

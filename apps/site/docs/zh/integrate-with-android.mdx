@@ -188,8 +188,13 @@ AndroidDevice 的构造函数支持以下参数：
 
 - `deviceId: string` - 设备 id
 - `opts?: AndroidDeviceOpt` - 可选参数，用于初始化 AndroidDevice 的配置
-  - `autoDismissKeyboard?: boolean` - 可选参数，是否在输入文本后自动关闭键盘。默认值为 true。
-  - `keyboardDismissStrategy?: 'esc-first' | 'back-first'` - 可选参数，关闭键盘的策略。'esc-first' 优先尝试 ESC 键，如果键盘仍存在则尝试返回键。'back-first' 优先尝试返回键，如果键盘仍存在则尝试 ESC 键。默认值为 'esc-first'。
+  - `autoDismissKeyboard?: boolean | 'back' | 'esc' | 'midscene-ime' | 'midscene-ime-auto-install'` - 可选参数，控制输入文本后如何关闭键盘。默认值为 `true`，在 Android 上等价于 `'esc'`。
+    - `true` / `'esc'` - 优先尝试 ESC，如果失败再回退到 BACK。
+    - `'back'` - 优先尝试 BACK，如果失败再回退到 ESC。
+    - `'midscene-ime'` - 使用 MidsceneIME 辅助输入法关闭键盘，不会向当前输入框发送 ESC/BACK 按键事件。
+    - `'midscene-ime-auto-install'` - 同样使用辅助输入法关闭键盘；如果设备拦截静默安装，`AndroidAgent` 会用 AI 自动点击安装确认。如果无法安全完成安装，Midscene 会直接抛错，而不是退回到 ESC/BACK。
+    - `false` - 输入后保持键盘打开。
+  - `keyboardDismissStrategy?: 'esc-first' | 'back-first'` - 已废弃，仅用于向后兼容，分别等价于 `autoDismissKeyboard: 'esc' | 'back'`。
   - `androidAdbPath?: string` - 可选参数，用于指定 adb 可执行文件的路径。
   - `remoteAdbHost?: string` - 可选参数，用于指定远程 adb 主机。
   - `remoteAdbPort?: number` - 可选参数，用于指定远程 adb 端口。
@@ -474,21 +479,31 @@ java.lang.SecurityException: Injecting input events requires the caller (or the 
 
 ### 在 WebView / 移动端网页中文本输入失败（输入后搜索框为空）
 
-这通常是键盘关闭策略导致的。Midscene 通过虚拟键盘输入文本后，会自动关闭键盘。默认策略（`esc-first`）会先发送 **ESCAPE 按键事件**，该事件可能被 WebView 中的 JavaScript 捕获，导致以下副作用：
+这通常是“通过按键事件关闭键盘”导致的。Midscene 通过虚拟键盘输入文本后，Android 往往还需要一步额外操作来收起键盘。如果这一步向当前输入框发送了 **ESC** 或 **BACK** 按键事件，WebView 中的 JavaScript 可能会捕获它，从而导致以下副作用：
 
 - 关闭包含输入框的弹窗/模态框
 - 清空刚刚输入的文本
 - 导航离开当前页面
 
-**解决方法：** 在创建 AndroidDevice 时，将 `keyboardDismissStrategy` 设置为 `'back-first'`，这将使用 Android BACK 键代替 ESCAPE 键来关闭键盘：
+**推荐做法：** 使用 `autoDismissKeyboard: 'midscene-ime'`，让 Midscene 切换到辅助输入法，再通过辅助输入法收起键盘，从而避免向输入框发送按键事件：
 
 ```typescript
 const device = new AndroidDevice('device-id', {
-  keyboardDismissStrategy: 'back-first',
+  autoDismissKeyboard: 'midscene-ime',
 });
 ```
 
-如果输入仍然失败，也可以尝试完全禁用自动关闭键盘，让 AI agent 自行管理键盘状态：
+如果设备在安装辅助输入法时会弹出确认框，请配合 `AndroidAgent` 使用 `autoDismissKeyboard: 'midscene-ime-auto-install'`。Midscene 会让 Agent 自动点击安装确认；如果仍然无法安全完成安装，会直接抛错，而不是退回到 ESC/BACK。
+
+如果你不想使用辅助输入法，也可以退而求其次使用旧的 `'back'` 策略。它通常比 `'esc'` 更安全，但本质上仍然会向输入框发送按键事件：
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  autoDismissKeyboard: 'back',
+});
+```
+
+如果输入仍然失败，也可以尝试完全禁用自动关闭键盘，让 AI Agent 自行管理键盘状态：
 
 ```typescript
 const device = new AndroidDevice('device-id', {

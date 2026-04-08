@@ -8,7 +8,7 @@
 
 - `Tap` —— 点击元素。
 - `DoubleClick` —— 双击元素。
-- `Input` —— 输入文本，支持 `replace`/`typeOnly`/`clear` 模式（`append` 是 `typeOnly` 的已废弃别名）。支持可选参数 `autoDismissKeyboard`。
+- `Input` —— 输入文本，支持 `replace`/`typeOnly`/`clear` 模式（`append` 是 `typeOnly` 的已废弃别名）。支持可选参数 `autoDismissKeyboard`，并且在 Android 上额外支持 `'back'`、`'esc'` 以及基于 MidsceneIME 的关闭策略。
 - `Scroll` —— 以元素为起点或从屏幕中央向上/下/左/右滚动，支持滚动到顶/底/左/右。
 - `DragAndDrop` —— 从一个元素拖拽到另一个元素。
 - `KeyboardPress` —— 按下指定键位。
@@ -44,8 +44,13 @@ const device = new AndroidDevice(deviceId, {
 ### 设备选项
 
 - `deviceId: string` —— 来自 `adb devices` 或 `getConnectedDevices()` 的值。
-- `autoDismissKeyboard?: boolean` —— 输入完成后自动隐藏键盘，默认 `true`。
-- `keyboardDismissStrategy?: 'esc-first' | 'back-first'` —— 关闭键盘的顺序，默认 `'esc-first'`。
+- `autoDismissKeyboard?: boolean | 'back' | 'esc' | 'midscene-ime' | 'midscene-ime-auto-install'` —— 控制 Midscene 在输入后如何关闭键盘。默认 `true`，在 Android 上等价于 `'esc'`。
+  - `true` / `'esc'` —— 先发送 ESC；如果键盘还在，再回退到 BACK。
+  - `'back'` —— 先发送 BACK，再回退到 ESC。
+  - `'midscene-ime'` —— 使用 MidsceneIME 辅助输入法关闭键盘，不会向当前输入框发送 ESC/BACK 按键事件。只要设备允许静默安装，Midscene 会自动安装并启用该辅助输入法；在受限 ROM 上，你可能需要手动确认安装或预先安装 APK。
+  - `'midscene-ime-auto-install'` —— 同样使用辅助输入法关闭键盘；如果系统弹出安装确认框，`AndroidAgent` 会用 AI 自动点击确认。如果无法安全完成安装，Midscene 会直接抛错，而不是退回到 ESC/BACK。
+  - `false` —— 保持键盘不关闭。
+- `keyboardDismissStrategy?: 'esc-first' | 'back-first'` —— 已废弃，仅用于向后兼容，分别等价于 `autoDismissKeyboard: 'esc' | 'back'`。
 - `androidAdbPath?: string` —— adb 可执行文件的自定义路径。
 - `remoteAdbHost?: string` / `remoteAdbPort?: number` —— 指向远程 adb server。
 - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` —— 控制何时调用 [yadb](https://github.com/ysbing/YADB) 进行文本输入，默认 `'yadb-for-non-ascii'`。

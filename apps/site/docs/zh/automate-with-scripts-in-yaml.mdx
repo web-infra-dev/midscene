@@ -215,12 +215,16 @@ android:
   # 启动 URL，可选，默认使用设备当前页面
   launch: <url>
 
+  # 输入完成后如何关闭键盘，可选
+  # Android 支持 boolean，以及 'back' | 'esc' | 'midscene-ime' | 'midscene-ime-auto-install'
+  autoDismissKeyboard: <boolean | 'back' | 'esc' | 'midscene-ime' | 'midscene-ime-auto-install'>
+
   # 输出 aiQuery/aiAssert 结果的 JSON 文件路径，可选
   output: <path-to-output-file>
 
   # 其他 AndroidDevice 构造函数支持的所有选项
   # 例如：androidAdbPath, remoteAdbHost, remoteAdbPort,
-  # imeStrategy, displayId, autoDismissKeyboard, keyboardDismissStrategy,
+  # imeStrategy, displayId, autoDismissKeyboard, keyboardDismissStrategy（已废弃）,
   # alwaysRefreshScreenInfo 等
   # 完整配置项请参考 AndroidDevice 的构造函数文档
 ```

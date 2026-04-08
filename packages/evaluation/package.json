@@ -39,5 +39,9 @@
     "registry": "https://registry.npmjs.org"
   },
   "license": "MIT",
+<<<<<<< HEAD
   "version": "1.7.0"
+=======
+  "version": "1.6.4-0"
+>>>>>>> 860facb0a (fix(android): harden MidsceneIME keyboard dismissal)
 }

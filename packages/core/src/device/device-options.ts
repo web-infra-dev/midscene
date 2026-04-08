@@ -1,5 +1,21 @@
 import type { DeviceAction } from '../types';
 
+export type AndroidKeyboardDismissMode =
+  | 'back'
+  | 'esc'
+  | 'midscene-ime'
+  | 'midscene-ime-auto-install';
+
+/**
+ * Shared aiInput keyboard-dismiss option.
+ *
+ * `true`/`false` works across mobile platforms. Android additionally accepts
+ * string strategies for explicit dismissal behavior.
+ */
+export type TextInputAutoDismissKeyboardOption =
+  | boolean
+  | AndroidKeyboardDismissMode;
+
 /**
  * Android device input options
  */
@@ -19,12 +35,7 @@ export type AndroidDeviceInputOpt = {
    *
    * @default 'esc'
    */
-  autoDismissKeyboard?:
-    | 'back'
-    | 'esc'
-    | 'midscene-ime'
-    | 'midscene-ime-auto-install'
-    | boolean;
+  autoDismissKeyboard?: TextInputAutoDismissKeyboardOption;
   /**
    * @deprecated Use `autoDismissKeyboard` instead. This option will be removed in a future version.
    * If both `autoDismissKeyboard` and `keyboardDismissStrategy` are set, `autoDismissKeyboard` takes precedence.

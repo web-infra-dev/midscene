@@ -69,6 +69,15 @@ const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
 const MIDSCENE_IME_PACKAGE = 'com.midscene.ime';
 const MIDSCENE_IME_ID = `${MIDSCENE_IME_PACKAGE}/.MidsceneIME`;
 const MIDSCENE_IME_DISMISS_ACTION = `${MIDSCENE_IME_PACKAGE}.DISMISS`;
+const AUTO_DISMISS_KEYBOARD_SCHEMA = z
+  .union([
+    z.boolean(),
+    z.enum(['back', 'esc', 'midscene-ime', 'midscene-ime-auto-install']),
+  ])
+  .optional()
+  .describe(
+    "Dismiss the keyboard after input. Use `true` for the default ESC-based behavior, `false` to leave the keyboard open, `'back'`/`'esc'` for explicit key-event strategies, or `'midscene-ime'` / `'midscene-ime-auto-install'` for the zero-key-event helper IME flow.",
+  );
 
 const debugDevice = getDebug('android:device');
 
@@ -135,12 +144,7 @@ export class AndroidDevice implements AbstractInterface {
             .describe(
               'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
             ),
-          autoDismissKeyboard: z
-            .boolean()
-            .optional()
-            .describe(
-              'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
-            ),
+          autoDismissKeyboard: AUTO_DISMISS_KEYBOARD_SCHEMA,
           mode: z.preprocess(
             (val) => (val === 'append' ? 'typeOnly' : val),
             z
@@ -161,7 +165,7 @@ export class AndroidDevice implements AbstractInterface {
         },
         call: async (param: {
           value: string;
-          autoDismissKeyboard?: boolean;
+          autoDismissKeyboard?: AndroidDeviceInputOpt['autoDismissKeyboard'];
           mode?: 'replace' | 'clear' | 'typeOnly';
           locate?: LocateResultElement;
         }) => {
@@ -2026,6 +2030,11 @@ ${Object.keys(size)
       'bin',
       'midscene-ime.apk',
     );
+    if (!fs.existsSync(apkPath)) {
+      throw new Error(
+        `MidsceneIME APK not found at ${apkPath}. Run the @midscene/android prepack/build step to generate bin/midscene-ime.apk before using the MidsceneIME keyboard-dismiss strategy.`,
+      );
+    }
 
     // First attempt: direct install (works on stock Android, Samsung, etc.)
     try {
@@ -2154,19 +2163,21 @@ ${Object.keys(size)
       strategy === 'midscene-ime' ||
       strategy === 'midscene-ime-auto-install'
     ) {
+      const autoApprove = strategy === 'midscene-ime-auto-install';
       try {
-        const autoApprove = strategy === 'midscene-ime-auto-install';
         await this.ensureMidsceneImeInstalled(adb, autoApprove);
-        return await this.hideKeyboardViaMidsceneIme(adb, timeoutMs);
-      } catch (e) {
-        if (strategy === 'midscene-ime') {
-          throw new Error(
-            `Failed to use MidsceneIME for keyboard dismissal. Please install the APK manually: adb install <path-to-midscene-ime.apk>. Or use autoDismissKeyboard: 'midscene-ime-auto-install' to auto-approve installation. Original error: ${e}`,
+        const hidden = await this.hideKeyboardViaMidsceneIme(adb, timeoutMs);
+        if (!hidden) {
+          console.warn(
+            'Warning: MidsceneIME was invoked but the software keyboard is still visible',
           );
         }
-        debugDevice(
-          `MidsceneIME auto-install failed: ${e}, falling back to key events`,
-        );
+        return hidden;
+      } catch (e) {
+        const installHint = autoApprove
+          ? 'Failed to use MidsceneIME auto-install for keyboard dismissal. MidsceneIME will not fall back to ESC/BACK because that can clear user input. Please enable USB installs on the device or preinstall the helper APK manually: adb install <path-to-midscene-ime.apk>.'
+          : "Failed to use MidsceneIME for keyboard dismissal. Please install the APK manually: adb install <path-to-midscene-ime.apk>, or use autoDismissKeyboard: 'midscene-ime-auto-install' with an AndroidAgent to auto-approve installation prompts.";
+        throw new Error(`${installHint} Original error: ${e}`);
       }
     }
 

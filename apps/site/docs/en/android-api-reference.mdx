@@ -8,7 +8,7 @@ Use this doc when you need to customize Midscene's Android automation or review 
 
 - `Tap` &mdash; Tap an element.
 - `DoubleClick` &mdash; Double-tap an element.
-- `Input` &mdash; Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard` parameter.
+- `Input` &mdash; Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard` parameter, including Android-only string strategies such as `'back'`, `'esc'`, and MidsceneIME-based dismissal.
 - `Scroll` &mdash; Scroll from an element or screen center in any direction, with helpers to reach the top, bottom, left, or right.
 - `DragAndDrop` &mdash; Drag from one element to another.
 - `KeyboardPress` &mdash; Press a specified key.
@@ -44,8 +44,13 @@ const device = new AndroidDevice(deviceId, {
 ### Device options
 
 - `deviceId: string` &mdash; Value returned by `adb devices` or `getConnectedDevices()`.
-- `autoDismissKeyboard?: boolean` &mdash; Automatically hide the keyboard after input. Default `true`.
-- `keyboardDismissStrategy?: 'esc-first' | 'back-first'` &mdash; Order for dismissing keyboards. Default `'esc-first'`.
+- `autoDismissKeyboard?: boolean | 'back' | 'esc' | 'midscene-ime' | 'midscene-ime-auto-install'` &mdash; Controls how Midscene hides the keyboard after input. Default `true`, which maps to `'esc'` on Android.
+  - `true` / `'esc'` &mdash; Send ESC first, then BACK if ESC does not close the keyboard.
+  - `'back'` &mdash; Send BACK first, then ESC as fallback.
+  - `'midscene-ime'` &mdash; Use the MidsceneIME helper keyboard to dismiss without sending ESC/BACK key events into the focused field. Midscene installs and enables the helper when the device allows silent installs; on restricted ROMs you may need to approve or preinstall the APK manually.
+  - `'midscene-ime-auto-install'` &mdash; Same helper-IME flow, but when an install approval dialog appears, `AndroidAgent` will use AI to approve it. If safe installation cannot complete, Midscene throws instead of falling back to ESC/BACK.
+  - `false` &mdash; Leave the keyboard open.
+- `keyboardDismissStrategy?: 'esc-first' | 'back-first'` &mdash; Deprecated backward-compatibility alias for `autoDismissKeyboard: 'esc' | 'back'`.
 - `androidAdbPath?: string` &mdash; Custom path to the adb executable.
 - `remoteAdbHost?: string` / `remoteAdbPort?: number` &mdash; Point to a remote adb server.
 - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` &mdash; Choose when to invoke [yadb](https://github.com/ysbing/YADB) for text input. Default `'yadb-for-non-ascii'`.
