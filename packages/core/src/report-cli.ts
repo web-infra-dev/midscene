@@ -1,4 +1,10 @@
-import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import * as path from 'node:path';
 import { z } from 'zod';
 import { resolveScreenshotSource } from './dump/screenshot-store';
@@ -126,6 +132,28 @@ async function markdownFromReport(
   };
 }
 
+function resolveReportHtmlPath(htmlPath: string): string {
+  const normalizedPath = path.resolve(htmlPath);
+
+  if (!existsSync(normalizedPath)) {
+    throw new Error(`report-tool: --htmlPath does not exist: ${htmlPath}`);
+  }
+
+  const stats = statSync(normalizedPath);
+  if (!stats.isDirectory()) {
+    return normalizedPath;
+  }
+
+  const indexHtmlPath = path.join(normalizedPath, 'index.html');
+  if (!existsSync(indexHtmlPath)) {
+    throw new Error(
+      `report-tool: "${htmlPath}" is not an HTML report file, and no index.html was found under this directory.`,
+    );
+  }
+
+  return indexHtmlPath;
+}
+
 const reportCommandDefinition: ReportCliCommandDefinition = {
   name: 'report-tool',
   description:
@@ -174,8 +202,10 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
       );
     }
 
+    const resolvedHtmlPath = resolveReportHtmlPath(htmlPath);
+
     if (action === 'to-markdown') {
-      const result = await markdownFromReport(htmlPath, outputDir);
+      const result = await markdownFromReport(resolvedHtmlPath, outputDir);
       return {
         isError: false,
         content: [
@@ -187,7 +217,10 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
       };
     }
 
-    const result = splitReportHtmlByExecution({ htmlPath, outputDir });
+    const result = splitReportHtmlByExecution({
+      htmlPath: resolvedHtmlPath,
+      outputDir,
+    });
 
     return {
       isError: false,

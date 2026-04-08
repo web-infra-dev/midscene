@@ -116,6 +116,56 @@ describe('createReportCliCommands', () => {
     expect(secondDump.executions[0].id).toBe('exec-2');
   });
 
+  it('uses index.html when htmlPath points to a directory', async () => {
+    const reportDir = join(tmpDir, 'input-report-dir');
+    const reportPath = join(reportDir, 'index.html');
+    mkdirSync(reportDir, { recursive: true });
+
+    const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
+    const dump = new ReportActionDump({
+      groupName: 'split-dir-test',
+      groupDescription: 'split-dir-test',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [createExecution('exec-dir-1', screenshot)],
+    });
+
+    const html = [
+      generateImageScriptTag(screenshot.id, screenshot.base64),
+      generateDumpScriptTag(dump.serialize(), { 'data-group-id': 'group-1' }),
+    ].join('\n');
+    writeFileSync(reportPath, html, 'utf-8');
+
+    const outputDir = join(tmpDir, 'output-dir');
+    const [command] = createReportCliCommands();
+    const result = await command.def.handler({
+      htmlPath: reportDir,
+      outputDir,
+      action: 'split',
+    });
+
+    expect(result.isError).toBe(false);
+    expect(existsSync(join(outputDir, '1.execution.json'))).toBe(true);
+  });
+
+  it('throws when htmlPath is a directory without index.html', async () => {
+    const reportDir = join(tmpDir, 'input-report-dir-no-index');
+    mkdirSync(reportDir, { recursive: true });
+
+    const outputDir = join(tmpDir, 'output-dir-no-index');
+    const [command] = createReportCliCommands();
+
+    await expect(
+      command.def.handler({
+        htmlPath: reportDir,
+        outputDir,
+        action: 'split',
+      }),
+    ).rejects.toThrow(
+      `"${reportDir}" is not an HTML report file, and no index.html was found under this directory.`,
+    );
+  });
+
   it('runs to-markdown export through the generic report command', async () => {
     const reportPath = join(tmpDir, 'input-report-md', 'index.html');
     mkdirSync(join(tmpDir, 'input-report-md'), { recursive: true });
