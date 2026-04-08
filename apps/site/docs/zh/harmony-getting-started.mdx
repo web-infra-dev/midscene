@@ -281,3 +281,33 @@ describe('HarmonyOS Settings Test', () => {
 合并报告默认存放在 `midscene_run/report` 目录。在 CI 中运行时可通过 `MIDSCENE_RUN_DIR` 覆盖。
 
 :::
+
+## 常见问题
+
+### 输入文本后，输入框内容被清空或消失
+
+Midscene 在输入文本后会自动隐藏键盘（默认发送 BACK 按键事件）。如果你的输入框监听了 BACK 事件并执行了清空或关闭操作，可以关闭自动隐藏键盘：
+
+```typescript
+const device = new HarmonyDevice('device-id', {
+  autoDismissKeyboard: false,
+});
+```
+
+关闭后键盘不会自动隐藏，你可以使用 `aiAct` 指令手动隐藏键盘，例如 `await agent.aiAct('隐藏键盘')`。
+
+### 如何使用自定义的 HDC 路径？
+
+通过 `HDC_HOME` 环境变量指定 HDC 所在目录：
+
+```bash
+export HDC_HOME=/path/to/hdc/directory
+```
+
+也可以通过构造函数传入：
+
+```typescript
+const device = new HarmonyDevice('0123456789ABCDEF', {
+  hdcPath: '/path/to/hdc',
+});
+```

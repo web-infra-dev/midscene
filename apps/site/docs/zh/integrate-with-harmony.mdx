@@ -371,6 +371,18 @@ await agent.aiAct('点击红色按钮五次');
 
 ## FAQ
 
+### 输入文本后，输入框内容被清空或消失
+
+Midscene 在输入文本后会自动隐藏键盘（默认发送 BACK 按键事件）。如果你的输入框监听了 BACK 事件并执行了清空或关闭操作，可以关闭自动隐藏键盘：
+
+```typescript
+const device = new HarmonyDevice('device-id', {
+  autoDismissKeyboard: false,
+});
+```
+
+关闭后键盘不会自动隐藏，你可以使用 `aiAct` 指令手动隐藏键盘，例如 `await agent.aiAct('隐藏键盘')`。
+
 ### 如何使用自定义的 HDC 路径？
 
 你可以使用 `HDC_HOME` 环境变量来指定 HDC 所在目录：

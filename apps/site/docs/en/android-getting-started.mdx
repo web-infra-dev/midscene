@@ -312,6 +312,41 @@ Make sure USB debugging is enabled and the device is unlocked in developer optio
   <img src="/android-usb-debug-en.png" alt="android usb debug" width="400" />
 </p>
 
+### Text input is cleared or lost after typing
+
+After entering text, Midscene automatically dismisses the keyboard. The default behavior sends an **ESC key event**. However, some input fields (especially those inside WebView) listen for the ESC key event, which can cause side effects such as:
+
+- Clearing the text just entered
+- Closing the popup/modal containing the input field
+- Navigating away from the current page
+
+You can try the following solutions in order of priority:
+
+**Option 1: Use BACK key to dismiss the keyboard**
+
+Set `keyboardDismissStrategy` to `'back-first'` to use the Android BACK key instead of ESC to dismiss the keyboard:
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  keyboardDismissStrategy: 'back-first',
+});
+```
+
+**Option 2: Disable auto keyboard dismiss**
+
+If your input field also listens for the BACK key, you can disable auto keyboard dismiss entirely and let the AI Agent or subsequent actions manage the keyboard state:
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  autoDismissKeyboard: false,
+});
+```
+
+With auto dismiss disabled, the keyboard will remain visible and may cover a large portion of the screen. You can work around this by:
+
+- Using `aiAct` to manually dismiss the keyboard, e.g. `await agent.aiAct('dismiss the keyboard')`
+- Installing and switching to [ADBKeyBoard](https://github.com/senzhk/ADBKeyBoard) — a minimal virtual keyboard that takes up very little screen space, so it barely affects screen interactions even when visible
+
 ### How do I use a custom adb path or remote adb server?
 
 Set the environment variables first:

@@ -188,6 +188,82 @@ await agent.aiAct('click the red button five times');
 
 关于自定义动作和动作 Schema 的更多解释，请参阅 [与任意界面集成](./integrate-with-any-interface#define-a-custom-action)。
 
+## 常见问题
+
+### 为什么连接了设备，但仍然无法控制？
+
+一个典型的错误信息是：
+
+```
+Error:
+Exception occurred while executing 'tap':
+java.lang.SecurityException: Injecting input events requires the caller (or the source of the instrumentation, if any) to have the INJECT_EVENTS permission.
+```
+
+请在系统设置的开发者选项中确认以下选项已开启：
+
+1. **USB 调试**
+2. **USB 调试（安全设置）**（如果存在）
+
+<p align="center">
+  <img src="/android-usb-debug.png" alt="android usb debug" width="400" />
+</p>
+
+### 输入文本后，输入框内容被清空或消失
+
+Midscene 在输入文本后会自动隐藏键盘，默认行为是发送 **ESC 按键事件**。然而，部分输入框（尤其是 WebView 中的输入框）会监听 ESC 按键事件，导致以下副作用：
+
+- 清空刚输入的文本
+- 关闭包含输入框的弹窗或模态框
+- 导航离开当前页面
+
+你可以按以下优先级逐步尝试解决：
+
+**方案一：改用 BACK 键隐藏键盘**
+
+将 `keyboardDismissStrategy` 设为 `'back-first'`，用 Android BACK 键替代 ESC 键来隐藏键盘：
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  keyboardDismissStrategy: 'back-first',
+});
+```
+
+**方案二：关闭自动隐藏键盘**
+
+如果你的输入框同时监听了 BACK 键，可以彻底关闭自动隐藏键盘，由 AI Agent 或后续操作自行管理键盘状态：
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  autoDismissKeyboard: false,
+});
+```
+
+关闭后键盘不会自动隐藏，可能导致键盘覆盖大量屏幕区域。你可以通过以下方式应对：
+
+- 使用 `aiAct` 指令手动隐藏键盘，例如 `await agent.aiAct('隐藏键盘')`
+- 安装并切换到 [ADBKeyBoard](https://github.com/senzhk/ADBKeyBoard)——这是一款极小面积的虚拟键盘，即使不隐藏也几乎不影响屏幕操作
+
+### 如何使用自定义的 adb 路径或远程 adb 服务器？
+
+通过环境变量设置：
+
+```bash
+export MIDSCENE_ADB_PATH=/path/to/adb
+export MIDSCENE_ADB_REMOTE_HOST=192.168.1.100
+export MIDSCENE_ADB_REMOTE_PORT=5037
+```
+
+也可以通过 AndroidDevice 构造函数传入：
+
+```typescript
+const device = new AndroidDevice('s4ey59', {
+  androidAdbPath: '/path/to/adb',
+  remoteAdbHost: '192.168.1.100',
+  remoteAdbPort: 5037,
+});
+```
+
 ## 更多
 
 - 查看所有 Agent 方法：[API 参考（通用）](./api#interaction-methods)
