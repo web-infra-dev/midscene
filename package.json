@@ -1,11 +1,7 @@
 {
   "name": "midscene",
   "private": true,
-<<<<<<< HEAD
-  "version": "1.7.0",
-=======
-  "version": "1.6.4-0",
->>>>>>> 860facb0a (fix(android): harden MidsceneIME keyboard dismissal)
+  "version": "1.7.1-0",
   "scripts": {
     "dev": "node scripts/dev-prepare.js && nx run-many --target=build:watch --exclude=android-playground,chrome-extension,@midscene/report,doc --verbose --parallel=6",
     "build": "nx run-many --target=build --exclude=doc --verbose",
