@@ -329,9 +329,14 @@ export class Agent<
       useDeviceTimestamp: this.opts.useDeviceTimestamp,
       actionSpace: this.fullActionSpace,
       hooks: {
-        onTaskUpdate: (runner) => {
+        onTaskUpdate: async (runner) => {
           const executionDump = runner.dump();
           this.appendExecutionDump(executionDump, runner);
+
+          // Persist report updates before notifying listeners so screenshot
+          // payloads can be released from memory and serialized as references.
+          this.writeOutActionDumps(executionDump);
+          await this.reportGenerator.flush();
 
           // Call all registered dump update listeners
           const dumpString = this.dumpDataString();
@@ -342,9 +347,6 @@ export class Agent<
               console.error('Error in onDumpUpdate listener', error);
             }
           }
-
-          // Fire and forget - don't block task execution
-          this.writeOutActionDumps(executionDump);
         },
       },
     });
@@ -1400,6 +1402,9 @@ export class Agent<
     // 5. append to execution dump
     this.appendExecutionDump(executionDump);
 
+    this.writeOutActionDumps(executionDump);
+    await this.reportGenerator.flush();
+
     // Call all registered dump update listeners
     const dumpString = this.dumpDataString();
     for (const listener of this.dumpUpdateListeners) {
@@ -1409,9 +1414,6 @@ export class Agent<
         console.error('Error in onDumpUpdate listener', error);
       }
     }
-
-    this.writeOutActionDumps(executionDump);
-    await this.reportGenerator.flush();
   }
 
   /**
