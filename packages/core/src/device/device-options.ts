@@ -4,9 +4,31 @@ import type { DeviceAction } from '../types';
  * Android device input options
  */
 export type AndroidDeviceInputOpt = {
-  /** Automatically dismiss the keyboard after input is completed */
-  autoDismissKeyboard?: boolean;
-  /** Strategy for dismissing the keyboard: 'esc-first' tries ESC before BACK, 'back-first' tries BACK before ESC */
+  /**
+   * How to dismiss the keyboard after input is completed.
+   *
+   * - `'back'` — Send BACK key event (KEYCODE_BACK). Simple but some input fields
+   *   intercept BACK to clear content.
+   * - `'esc'` — Send ESC key event (KEYCODE_ESCAPE). Same caveat as `'back'`.
+   * - `'midscene-ime'` — Use the MidsceneIME helper keyboard to dismiss via
+   *   `requestHideSelf()`. Zero side-effects but requires manual APK installation
+   *   on devices with install restrictions (e.g. MIUI).
+   * - `'midscene-ime-auto-install'` — Same as `'midscene-ime'` but automatically
+   *   installs the APK and uses AI action to approve install prompts on restricted ROMs.
+   * - `false` — Do not dismiss the keyboard.
+   *
+   * @default 'esc'
+   */
+  autoDismissKeyboard?:
+    | 'back'
+    | 'esc'
+    | 'midscene-ime'
+    | 'midscene-ime-auto-install'
+    | boolean;
+  /**
+   * @deprecated Use `autoDismissKeyboard` instead. This option will be removed in a future version.
+   * If both `autoDismissKeyboard` and `keyboardDismissStrategy` are set, `autoDismissKeyboard` takes precedence.
+   */
   keyboardDismissStrategy?: 'esc-first' | 'back-first';
 };
 

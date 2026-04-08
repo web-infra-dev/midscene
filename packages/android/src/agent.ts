@@ -70,6 +70,13 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
     // Set the mapping on the device instance
     device.setAppNameMapping(this.appNameMapping);
 
+    // Set up install approval handler for midscene-ime-auto-install
+    device.setInstallApprovalHandler(async () => {
+      await this.aiAct(
+        'A system dialog is asking to approve USB installation. Click the "Continue Install", "Allow", "Install" or similar approval button.',
+      );
+    });
+
     this.back =
       this.createActionWrapper<DeviceActionAndroidBackButton>(
         'AndroidBackButton',

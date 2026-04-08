@@ -66,6 +66,10 @@ const defaultNormalScrollDuration = 1000;
 const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
 const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
 
+const MIDSCENE_IME_PACKAGE = 'com.midscene.ime';
+const MIDSCENE_IME_ID = `${MIDSCENE_IME_PACKAGE}/.MidsceneIME`;
+const MIDSCENE_IME_DISMISS_ACTION = `${MIDSCENE_IME_PACKAGE}.DISMISS`;
+
 const debugDevice = getDebug('android:device');
 
 /**
@@ -83,6 +87,8 @@ export function escapeForShell(text: string): string {
 export class AndroidDevice implements AbstractInterface {
   private deviceId: string;
   private yadbPushed = false;
+  private midsceneImeInstalled = false;
+  private installApprovalHandler?: () => Promise<void>;
   private devicePixelRatio = 1;
   private devicePixelRatioInitialized = false;
   private adb: ADB | null = null;
@@ -558,6 +564,15 @@ ${Object.keys(size)
    */
   public setAppNameMapping(mapping: Record<string, string>): void {
     this.appNameMapping = mapping;
+  }
+
+  /**
+   * Set a handler that will be called when APK installation needs user approval
+   * (e.g. on MIUI devices). The handler should use aiAct or similar to click
+   * the approval button on screen.
+   */
+  public setInstallApprovalHandler(handler: () => Promise<void>): void {
+    this.installApprovalHandler = handler;
   }
 
   /**
@@ -1541,8 +1556,11 @@ ${Object.keys(size)
       (this.options?.imeStrategy ||
         globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
       IME_STRATEGY_YADB_FOR_NON_ASCII;
-    const shouldAutoDismissKeyboard =
-      options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
+    const autoDismiss =
+      options?.autoDismissKeyboard ??
+      this.options?.autoDismissKeyboard ??
+      'esc';
+    const shouldAutoDismissKeyboard = autoDismiss !== false;
 
     // Decide input path for the entire text, not per-segment.
     const useYadb =
@@ -1771,6 +1789,7 @@ ${Object.keys(size)
 
     this.connectingAdb = null;
     this.yadbPushed = false;
+    this.midsceneImeInstalled = false;
   }
 
   /**
@@ -1931,15 +1950,193 @@ ${Object.keys(size)
     }
   }
 
+  private resolveAutoDismissKeyboard(
+    options?: AndroidDeviceInputOpt,
+  ): 'back' | 'esc' | 'midscene-ime' | 'midscene-ime-auto-install' | false {
+    const raw =
+      options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
+
+    // Handle boolean values for backward compatibility
+    if (raw === true) {
+      // true → use default strategy
+    } else if (raw === false) {
+      return false;
+    } else if (raw !== undefined) {
+      return raw;
+    }
+
+    // Map deprecated keyboardDismissStrategy
+    const legacy =
+      options?.keyboardDismissStrategy ?? this.options?.keyboardDismissStrategy;
+    if (legacy === 'back-first') {
+      return 'back';
+    }
+
+    // Default: 'esc'
+    return 'esc';
+  }
+
+  private async waitForKeyboardHidden(
+    adb: ADB,
+    timeoutMs: number,
+  ): Promise<boolean> {
+    const startTime = Date.now();
+    const intervalMs = 100;
+    while (Date.now() - startTime < timeoutMs) {
+      await sleep(intervalMs);
+      const currentStatus = await adb.isSoftKeyboardPresent();
+      const isStillShown =
+        typeof currentStatus === 'boolean'
+          ? currentStatus
+          : currentStatus?.isKeyboardShown;
+      if (!isStillShown) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private async ensureMidsceneImeInstalled(
+    adb: ADB,
+    autoApprove = false,
+  ): Promise<void> {
+    if (this.midsceneImeInstalled) {
+      return;
+    }
+
+    // Check if already installed on device
+    try {
+      const output = await adb.shell(
+        `pm list packages ${MIDSCENE_IME_PACKAGE}`,
+      );
+      if (output.includes(MIDSCENE_IME_PACKAGE)) {
+        await adb.shell(`ime enable ${MIDSCENE_IME_ID}`);
+        this.midsceneImeInstalled = true;
+        return;
+      }
+    } catch {
+      // Not installed, proceed to install
+    }
+
+    const androidPkgJson = createRequire(import.meta.url).resolve(
+      '@midscene/android/package.json',
+    );
+    const apkPath = path.join(
+      path.dirname(androidPkgJson),
+      'bin',
+      'midscene-ime.apk',
+    );
+
+    // First attempt: direct install (works on stock Android, Samsung, etc.)
+    try {
+      await adb.install(apkPath);
+      await adb.shell(`ime enable ${MIDSCENE_IME_ID}`);
+      this.midsceneImeInstalled = true;
+      return;
+    } catch (e) {
+      const errorMsg = String(e);
+      if (!errorMsg.includes('INSTALL_FAILED_USER_RESTRICTED')) {
+        throw e;
+      }
+      if (!autoApprove || !this.installApprovalHandler) {
+        throw new Error(
+          `APK installation was blocked by the device (INSTALL_FAILED_USER_RESTRICTED). On some ROMs (e.g. MIUI), enable "Install via USB" in Developer Options, or use autoDismissKeyboard: 'midscene-ime-auto-install' with an agent to auto-approve. Original error: ${e}`,
+        );
+      }
+      debugDevice(
+        'Install blocked by device, retrying with approval handler...',
+      );
+    }
+
+    // Second attempt: install with auto-approval via aiAct
+    // Push APK first, then use pm install which triggers the approval dialog
+    await adb.push(apkPath, '/data/local/tmp/midscene-ime.apk');
+
+    // Start install in background (it will show the approval dialog)
+    const installPromise = adb.shell(
+      'pm install -r -t /data/local/tmp/midscene-ime.apk',
+    );
+
+    // Wait for the approval dialog to appear, then use aiAct to approve
+    await sleep(2000);
+
+    try {
+      await this.installApprovalHandler();
+    } catch (approvalError) {
+      debugDevice(`Install approval handler failed: ${approvalError}`);
+    }
+
+    // Wait for install to complete
+    try {
+      const result = await installPromise;
+      if (result.includes('Success')) {
+        await adb.shell(`ime enable ${MIDSCENE_IME_ID}`);
+        this.midsceneImeInstalled = true;
+        debugDevice('MidsceneIME installed via auto-approval');
+        return;
+      }
+      throw new Error(`Install failed: ${result}`);
+    } catch (e) {
+      throw new Error(
+        `Failed to install MidsceneIME even with auto-approval. Please manually enable "Install via USB" in Developer Options. Original error: ${e}`,
+      );
+    }
+  }
+
+  private async hideKeyboardViaMidsceneIme(
+    adb: ADB,
+    timeoutMs: number,
+  ): Promise<boolean> {
+    // Remember original IME
+    const originalIme = await adb.shell(
+      'settings get secure default_input_method',
+    );
+    const trimmedOriginalIme = originalIme.trim();
+
+    try {
+      // Switch to MidsceneIME
+      await adb.shell(`ime set ${MIDSCENE_IME_ID}`);
+      await sleep(500);
+
+      // Send dismiss broadcast — MidsceneIME calls requestHideSelf()
+      await adb.shell(`am broadcast -a ${MIDSCENE_IME_DISMISS_ACTION}`);
+      await sleep(500);
+
+      // Restore original IME
+      if (trimmedOriginalIme && trimmedOriginalIme !== MIDSCENE_IME_ID) {
+        await adb.shell(`ime set ${trimmedOriginalIme}`);
+      }
+
+      if (await this.waitForKeyboardHidden(adb, timeoutMs)) {
+        debugDevice('Keyboard hidden successfully with MidsceneIME');
+        return true;
+      }
+
+      debugDevice('MidsceneIME did not dismiss keyboard');
+      return false;
+    } catch (e) {
+      // Restore original IME on error
+      if (trimmedOriginalIme && trimmedOriginalIme !== MIDSCENE_IME_ID) {
+        try {
+          await adb.shell(`ime set ${trimmedOriginalIme}`);
+        } catch {
+          // best effort
+        }
+      }
+      throw e;
+    }
+  }
+
   async hideKeyboard(
     options?: AndroidDeviceInputOpt,
     timeoutMs = 1000,
   ): Promise<boolean> {
     const adb = await this.getAdb();
-    const keyboardDismissStrategy =
-      options?.keyboardDismissStrategy ??
-      this.options?.keyboardDismissStrategy ??
-      'esc-first';
+    const strategy = this.resolveAutoDismissKeyboard(options);
+
+    if (strategy === false) {
+      return false;
+    }
 
     // Check if keyboard is shown
     const keyboardStatus = await adb.isSoftKeyboardPresent();
@@ -1953,42 +2150,50 @@ ${Object.keys(size)
       return false;
     }
 
-    // Determine key codes order based on strategy
-    const keyCodes =
-      keyboardDismissStrategy === 'back-first'
-        ? [4, 111] // KEYCODE_BACK, KEYCODE_ESCAPE
-        : [111, 4]; // KEYCODE_ESCAPE, KEYCODE_BACK
-
-    // Try each key code with waiting
-    for (const keyCode of keyCodes) {
-      await adb.keyevent(keyCode);
-
-      // Wait for keyboard to be hidden with timeout
-      const startTime = Date.now();
-      const intervalMs = 100;
-
-      while (Date.now() - startTime < timeoutMs) {
-        await sleep(intervalMs);
-
-        const currentStatus = await adb.isSoftKeyboardPresent();
-        const isStillShown =
-          typeof currentStatus === 'boolean'
-            ? currentStatus
-            : currentStatus?.isKeyboardShown;
-
-        if (!isStillShown) {
-          debugDevice(`Keyboard hidden successfully with keycode ${keyCode}`);
-          return true;
+    if (
+      strategy === 'midscene-ime' ||
+      strategy === 'midscene-ime-auto-install'
+    ) {
+      try {
+        const autoApprove = strategy === 'midscene-ime-auto-install';
+        await this.ensureMidsceneImeInstalled(adb, autoApprove);
+        return await this.hideKeyboardViaMidsceneIme(adb, timeoutMs);
+      } catch (e) {
+        if (strategy === 'midscene-ime') {
+          throw new Error(
+            `Failed to use MidsceneIME for keyboard dismissal. Please install the APK manually: adb install <path-to-midscene-ime.apk>. Or use autoDismissKeyboard: 'midscene-ime-auto-install' to auto-approve installation. Original error: ${e}`,
+          );
         }
+        debugDevice(
+          `MidsceneIME auto-install failed: ${e}, falling back to key events`,
+        );
       }
+    }
 
+    // Key event strategy: 'esc' or 'back'
+    const keyCode = strategy === 'back' ? 4 : 111;
+    await adb.keyevent(keyCode);
+
+    if (await this.waitForKeyboardHidden(adb, timeoutMs)) {
       debugDevice(
-        `Keyboard still shown after keycode ${keyCode}, trying next key`,
+        `Keyboard hidden successfully with keycode ${keyCode} (${strategy})`,
       );
+      return true;
+    }
+
+    // If first key didn't work, try the other one as fallback
+    const fallbackKeyCode = strategy === 'back' ? 111 : 4;
+    await adb.keyevent(fallbackKeyCode);
+
+    if (await this.waitForKeyboardHidden(adb, timeoutMs)) {
+      debugDevice(
+        `Keyboard hidden successfully with fallback keycode ${fallbackKeyCode}`,
+      );
+      return true;
     }
 
     console.warn(
-      'Warning: Failed to hide the software keyboard after trying both ESC and BACK keys',
+      'Warning: Failed to hide the software keyboard after trying all strategies',
     );
     return false;
   }

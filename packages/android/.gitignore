@@ -3,7 +3,9 @@
 midscene_run/report
 midscene_run/tmp
 
-# Binaries (downloaded during build)
+# Binaries (downloaded or built during build)
 bin/scrcpy-server
 bin/scrcpy-server.version
 bin/.yadb-version
+bin/midscene-ime.apk
+midscene-ime/.build/

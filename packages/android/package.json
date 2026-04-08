@@ -31,10 +31,10 @@
   },
   "scripts": {
     "dev": "npm run build:watch",
-    "prebuild": "node scripts/download-scrcpy-server.mjs && node scripts/download-yadb.mjs",
+    "prebuild": "node scripts/download-scrcpy-server.mjs && node scripts/download-yadb.mjs && node scripts/build-midscene-ime.mjs",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
-    "prepack": "node scripts/download-scrcpy-server.mjs && node scripts/download-yadb.mjs",
+    "prepack": "node scripts/download-scrcpy-server.mjs && node scripts/download-yadb.mjs && node scripts/build-midscene-ime.mjs",
     "playground": "DEBUG=midscene:* tsx demo/playground.ts",
     "test": "vitest --run",
     "test:u": "vitest --run -u",

@@ -42,6 +42,7 @@ describe('AndroidAgent', () => {
         launch: vi.fn(),
         destroy: vi.fn(),
         setAppNameMapping: vi.fn(),
+        setInstallApprovalHandler: vi.fn(),
       };
     });
   });
@@ -59,6 +60,37 @@ describe('AndroidAgent', () => {
             modelConfig: mockedModelConfig,
           }),
       ).not.toThrow();
+    });
+
+    it('should register install approval handler on the device', () => {
+      const mockPage = new AndroidDevice('test-device');
+      const handlerSpy = vi.spyOn(mockPage, 'setInstallApprovalHandler');
+
+      new AndroidAgent(mockPage, {
+        modelConfig: mockedModelConfig,
+      });
+
+      expect(handlerSpy).toHaveBeenCalledTimes(1);
+      expect(handlerSpy).toHaveBeenCalledWith(expect.any(Function));
+    });
+
+    it('should use aiAct for install approval', async () => {
+      const mockPage = new AndroidDevice('test-device');
+      const handlerSpy = vi.spyOn(mockPage, 'setInstallApprovalHandler');
+
+      const agent = new AndroidAgent(mockPage, {
+        modelConfig: mockedModelConfig,
+      });
+      const aiActSpy = vi.spyOn(agent, 'aiAct').mockResolvedValue(undefined);
+
+      const installApprovalHandler = handlerSpy.mock.calls[0]?.[0];
+      expect(installApprovalHandler).toBeTypeOf('function');
+
+      await installApprovalHandler();
+
+      expect(aiActSpy).toHaveBeenCalledWith(
+        expect.stringContaining('approve USB installation'),
+      );
     });
   });
 
@@ -183,6 +215,7 @@ describe('AndroidAgent', () => {
           url: vi.fn(),
           launch: vi.fn(),
           setAppNameMapping: vi.fn(),
+          setInstallApprovalHandler: vi.fn(),
         };
       });
 
@@ -211,6 +244,7 @@ describe('AndroidAgent', () => {
           url: vi.fn(),
           launch: vi.fn(),
           setAppNameMapping: vi.fn(),
+          setInstallApprovalHandler: vi.fn(),
         };
       });
 
@@ -238,6 +272,7 @@ describe('AndroidAgent', () => {
           url: vi.fn(),
           launch: vi.fn(),
           setAppNameMapping: vi.fn(),
+          setInstallApprovalHandler: vi.fn(),
         };
       });
 

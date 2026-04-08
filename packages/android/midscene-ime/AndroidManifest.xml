@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.midscene.ime">
+
+    <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
+
+    <application android:label="MidsceneIME">
+        <service
+            android:name=".MidsceneIME"
+            android:permission="android.permission.BIND_INPUT_METHOD"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.view.InputMethod" />
+            </intent-filter>
+            <meta-data
+                android:name="android.view.im"
+                android:resource="@xml/method" />
+        </service>
+
+        <receiver
+            android:name=".DismissReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.midscene.ime.DISMISS" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

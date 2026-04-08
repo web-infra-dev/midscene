@@ -1007,26 +1007,25 @@ describe('AndroidDevice', () => {
         vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
       });
 
-      it('should hide keyboard when autoDismissKeyboard is true (default)', async () => {
+      it('should use esc strategy by default', async () => {
         device.options = { imeStrategy: 'yadb-for-non-ascii' };
         mockAdb.isSoftKeyboardPresent
           .mockResolvedValueOnce({
             isKeyboardShown: true,
             canCloseKeyboard: true,
-          }) // keyboard shown initially
+          })
           .mockResolvedValueOnce({
             isKeyboardShown: false,
             canCloseKeyboard: true,
-          }); // keyboard hidden after ESC
+          });
 
         await device.keyboardType('hello');
 
         expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
-        expect(mockAdb.isSoftKeyboardPresent).toHaveBeenCalled();
         expect(mockAdb.keyevent).toHaveBeenCalledWith(111); // ESC key
       });
 
-      it('should hide keyboard when autoDismissKeyboard is explicitly true', async () => {
+      it('should use esc strategy when autoDismissKeyboard is true (backward compat)', async () => {
         device.options = {
           imeStrategy: 'yadb-for-non-ascii',
           autoDismissKeyboard: true,
@@ -1035,17 +1034,55 @@ describe('AndroidDevice', () => {
           .mockResolvedValueOnce({
             isKeyboardShown: true,
             canCloseKeyboard: true,
-          }) // keyboard shown initially
+          })
           .mockResolvedValueOnce({
             isKeyboardShown: false,
             canCloseKeyboard: true,
-          }); // keyboard hidden after ESC
+          });
 
         await device.keyboardType('hello');
 
-        expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
-        expect(mockAdb.isSoftKeyboardPresent).toHaveBeenCalled();
+        expect(mockAdb.keyevent).toHaveBeenCalledWith(111); // ESC key (default for true)
+      });
+
+      it('should use esc strategy when autoDismissKeyboard is "esc"', async () => {
+        device.options = {
+          imeStrategy: 'yadb-for-non-ascii',
+          autoDismissKeyboard: 'esc',
+        };
+        mockAdb.isSoftKeyboardPresent
+          .mockResolvedValueOnce({
+            isKeyboardShown: true,
+            canCloseKeyboard: true,
+          })
+          .mockResolvedValueOnce({
+            isKeyboardShown: false,
+            canCloseKeyboard: true,
+          });
+
+        await device.keyboardType('hello');
+
         expect(mockAdb.keyevent).toHaveBeenCalledWith(111); // ESC key
+      });
+
+      it('should use back strategy when autoDismissKeyboard is "back"', async () => {
+        device.options = {
+          imeStrategy: 'yadb-for-non-ascii',
+          autoDismissKeyboard: 'back',
+        };
+        mockAdb.isSoftKeyboardPresent
+          .mockResolvedValueOnce({
+            isKeyboardShown: true,
+            canCloseKeyboard: true,
+          })
+          .mockResolvedValueOnce({
+            isKeyboardShown: false,
+            canCloseKeyboard: true,
+          });
+
+        await device.keyboardType('hello');
+
+        expect(mockAdb.keyevent).toHaveBeenCalledWith(4); // BACK key
       });
 
       it('should not hide keyboard when autoDismissKeyboard is false', async () => {
@@ -1066,119 +1103,58 @@ describe('AndroidDevice', () => {
       it('should respect autoDismissKeyboard option passed to type method', async () => {
         device.options = {
           imeStrategy: 'yadb-for-non-ascii',
-          autoDismissKeyboard: true,
+          autoDismissKeyboard: 'esc',
         };
         mockAdb.isSoftKeyboardPresent.mockClear();
         mockAdb.keyevent.mockClear();
 
-        // Override with false in method call
         await device.keyboardType('hello', { autoDismissKeyboard: false });
 
         expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
         expect(mockAdb.isSoftKeyboardPresent).not.toHaveBeenCalled();
         expect(mockAdb.keyevent).not.toHaveBeenCalled();
       });
-    });
 
-    describe('keyboardDismissStrategy option', () => {
-      beforeEach(() => {
-        vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
-        mockAdb.keyevent.mockClear();
-        mockAdb.isSoftKeyboardPresent.mockClear();
-      });
-
-      it('should use esc-first strategy by default', async () => {
-        device.options = { imeStrategy: 'yadb-for-non-ascii' };
-        mockAdb.isSoftKeyboardPresent
-          .mockResolvedValueOnce({
-            isKeyboardShown: true,
-            canCloseKeyboard: true,
-          }) // keyboard shown initially
-          .mockResolvedValueOnce({
-            isKeyboardShown: false,
-            canCloseKeyboard: true,
-          }); // keyboard hidden after ESC
-
-        await device.keyboardType('hello');
-
-        expect(mockAdb.keyevent).toHaveBeenCalledWith(111); // ESC key first
-        expect(mockAdb.keyevent).toHaveBeenCalledTimes(1);
-      });
-
-      it('should use back-first strategy when specified', async () => {
+      it('should try fallback key if primary fails', async () => {
         device.options = {
           imeStrategy: 'yadb-for-non-ascii',
-          keyboardDismissStrategy: 'back-first',
-        };
-        mockAdb.isSoftKeyboardPresent
-          .mockResolvedValueOnce({
-            isKeyboardShown: true,
-            canCloseKeyboard: true,
-          }) // keyboard shown initially
-          .mockResolvedValueOnce({
-            isKeyboardShown: false,
-            canCloseKeyboard: true,
-          }); // keyboard hidden after BACK
-
-        await device.keyboardType('hello');
-
-        expect(mockAdb.keyevent).toHaveBeenCalledWith(4); // BACK key first
-        expect(mockAdb.keyevent).toHaveBeenCalledTimes(1);
-      });
-
-      it('should try second key if first fails with esc-first strategy', async () => {
-        device.options = {
-          imeStrategy: 'yadb-for-non-ascii',
-          keyboardDismissStrategy: 'esc-first',
+          autoDismissKeyboard: 'esc',
         };
 
-        // Mock hideKeyboard to use a small timeout for faster test
         const originalHideKeyboard = (device as any).hideKeyboard.bind(device);
         vi.spyOn(device as any, 'hideKeyboard').mockImplementation(
-          async (options) => {
-            // Use 150ms timeout to ensure at least one check in the loop
-            const result = await originalHideKeyboard(options, 150);
-            return result;
-          },
+          async (options: any) => originalHideKeyboard(options, 150),
         );
 
-        // Mock to simulate: keyboard shown -> ESC fails (stays shown) -> BACK succeeds (hidden)
-        let callCount = 0;
         let currentKeyEvent = 0;
-
-        // Track keyevent calls
         mockAdb.keyevent.mockImplementation(() => {
           currentKeyEvent++;
           return Promise.resolve();
         });
 
+        let callCount = 0;
         mockAdb.isSoftKeyboardPresent.mockImplementation(() => {
           callCount++;
-
-          // Initial check - keyboard is shown
           if (callCount === 1) {
             return Promise.resolve({
               isKeyboardShown: true,
               canCloseKeyboard: true,
             });
           }
-
-          // If we're checking after the first key (ESC=111), keyboard stays shown
+          // ESC fails
           if (currentKeyEvent === 1) {
             return Promise.resolve({
               isKeyboardShown: true,
               canCloseKeyboard: true,
             });
           }
-
-          // After second key (BACK=4), keyboard is hidden
+          // BACK succeeds
           if (currentKeyEvent === 2) {
             return Promise.resolve({
               isKeyboardShown: false,
               canCloseKeyboard: true,
             });
           }
-
           return Promise.resolve({
             isKeyboardShown: true,
             canCloseKeyboard: true,
@@ -1188,129 +1164,31 @@ describe('AndroidDevice', () => {
         await device.keyboardType('hello');
 
         expect(mockAdb.keyevent).toHaveBeenNthCalledWith(1, 111); // ESC first
-        expect(mockAdb.keyevent).toHaveBeenNthCalledWith(2, 4); // BACK second
-        expect(mockAdb.keyevent).toHaveBeenCalledTimes(2);
+        expect(mockAdb.keyevent).toHaveBeenNthCalledWith(2, 4); // BACK fallback
       });
 
-      it('should try second key if first fails with back-first strategy', async () => {
+      it('should log warning if all strategies fail', async () => {
         device.options = {
           imeStrategy: 'yadb-for-non-ascii',
-          keyboardDismissStrategy: 'back-first',
+          autoDismissKeyboard: 'esc',
         };
-
-        // Mock hideKeyboard to use a small timeout for faster test
-        const originalHideKeyboard = (device as any).hideKeyboard.bind(device);
-        vi.spyOn(device as any, 'hideKeyboard').mockImplementation(
-          async (options) => {
-            // Use 150ms timeout to ensure at least one check in the loop
-            const result = await originalHideKeyboard(options, 150);
-            return result;
-          },
-        );
-
-        // Mock to simulate: keyboard shown -> BACK fails (stays shown) -> ESC succeeds (hidden)
-        let callCount = 0;
-        let currentKeyEvent = 0;
-
-        // Track keyevent calls
-        mockAdb.keyevent.mockImplementation(() => {
-          currentKeyEvent++;
-          return Promise.resolve();
-        });
-
-        mockAdb.isSoftKeyboardPresent.mockImplementation(() => {
-          callCount++;
-
-          // Initial check - keyboard is shown
-          if (callCount === 1) {
-            return Promise.resolve({
-              isKeyboardShown: true,
-              canCloseKeyboard: true,
-            });
-          }
-
-          // If we're checking after the first key (BACK=4), keyboard stays shown
-          if (currentKeyEvent === 1) {
-            return Promise.resolve({
-              isKeyboardShown: true,
-              canCloseKeyboard: true,
-            });
-          }
-
-          // After second key (ESC=111), keyboard is hidden
-          if (currentKeyEvent === 2) {
-            return Promise.resolve({
-              isKeyboardShown: false,
-              canCloseKeyboard: true,
-            });
-          }
-
-          return Promise.resolve({
-            isKeyboardShown: true,
-            canCloseKeyboard: true,
-          });
-        });
-
-        await device.keyboardType('hello');
-
-        expect(mockAdb.keyevent).toHaveBeenNthCalledWith(1, 4); // BACK first
-        expect(mockAdb.keyevent).toHaveBeenNthCalledWith(2, 111); // ESC second
-        expect(mockAdb.keyevent).toHaveBeenCalledTimes(2);
-      });
-
-      it('should respect keyboardDismissStrategy option passed to type method', async () => {
-        device.options = {
-          imeStrategy: 'yadb-for-non-ascii',
-          keyboardDismissStrategy: 'esc-first',
-        };
-        mockAdb.isSoftKeyboardPresent
-          .mockResolvedValueOnce({
-            isKeyboardShown: true,
-            canCloseKeyboard: true,
-          }) // keyboard shown initially
-          .mockResolvedValueOnce({
-            isKeyboardShown: false,
-            canCloseKeyboard: true,
-          }); // keyboard hidden after BACK
-
-        // Override with back-first in method call
-        await device.keyboardType('hello', {
-          keyboardDismissStrategy: 'back-first',
-        });
-
-        expect(mockAdb.keyevent).toHaveBeenCalledWith(4); // BACK key first (overridden)
-        expect(mockAdb.keyevent).toHaveBeenCalledTimes(1);
-      });
-
-      it('should log warning if both keys fail to hide keyboard', async () => {
-        device.options = {
-          imeStrategy: 'yadb-for-non-ascii',
-          keyboardDismissStrategy: 'esc-first',
-        };
-        // Always return true (keyboard always shown)
         mockAdb.isSoftKeyboardPresent.mockResolvedValue({
           isKeyboardShown: true,
           canCloseKeyboard: true,
         });
 
-        // Mock hideKeyboard to use a small timeout for faster test
         const originalHideKeyboard = (device as any).hideKeyboard.bind(device);
         vi.spyOn(device as any, 'hideKeyboard').mockImplementation(
-          (options) => originalHideKeyboard(options, 100), // Use 100ms timeout instead of default 1000ms
+          (options: any) => originalHideKeyboard(options, 100),
         );
 
-        // Spy on console.warn to verify warning is logged
         const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-        // Should not throw error anymore
         await device.keyboardType('hello', { autoDismissKeyboard: true });
 
-        // Verify warning was logged
         expect(warnSpy).toHaveBeenCalledWith(
-          'Warning: Failed to hide the software keyboard after trying both ESC and BACK keys',
+          'Warning: Failed to hide the software keyboard after trying all strategies',
         );
-
-        // Clean up
         warnSpy.mockRestore();
       });
 
@@ -1319,14 +1197,253 @@ describe('AndroidDevice', () => {
         mockAdb.isSoftKeyboardPresent.mockResolvedValue({
           isKeyboardShown: false,
           canCloseKeyboard: true,
-        }); // keyboard already hidden
+        });
         mockAdb.keyevent.mockClear();
 
         await device.keyboardType('hello');
 
         expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
         expect(mockAdb.isSoftKeyboardPresent).toHaveBeenCalled();
-        expect(mockAdb.keyevent).not.toHaveBeenCalled(); // No key events needed
+        expect(mockAdb.keyevent).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('deprecated keyboardDismissStrategy backward compat', () => {
+      beforeEach(() => {
+        vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+        mockAdb.keyevent.mockClear();
+        mockAdb.isSoftKeyboardPresent.mockClear();
+      });
+
+      it('should map back-first to back strategy', async () => {
+        device.options = {
+          imeStrategy: 'yadb-for-non-ascii',
+          keyboardDismissStrategy: 'back-first',
+        };
+        mockAdb.isSoftKeyboardPresent
+          .mockResolvedValueOnce({
+            isKeyboardShown: true,
+            canCloseKeyboard: true,
+          })
+          .mockResolvedValueOnce({
+            isKeyboardShown: false,
+            canCloseKeyboard: true,
+          });
+
+        await device.keyboardType('hello');
+
+        expect(mockAdb.keyevent).toHaveBeenCalledWith(4); // BACK key
+      });
+
+      it('should map esc-first to esc strategy (default)', async () => {
+        device.options = {
+          imeStrategy: 'yadb-for-non-ascii',
+          keyboardDismissStrategy: 'esc-first',
+        };
+        mockAdb.isSoftKeyboardPresent
+          .mockResolvedValueOnce({
+            isKeyboardShown: true,
+            canCloseKeyboard: true,
+          })
+          .mockResolvedValueOnce({
+            isKeyboardShown: false,
+            canCloseKeyboard: true,
+          });
+
+        await device.keyboardType('hello');
+
+        expect(mockAdb.keyevent).toHaveBeenCalledWith(111); // ESC key
+      });
+
+      it('should respect keyboardDismissStrategy passed to type method', async () => {
+        device.options = {
+          imeStrategy: 'yadb-for-non-ascii',
+          keyboardDismissStrategy: 'esc-first',
+        };
+        mockAdb.isSoftKeyboardPresent
+          .mockResolvedValueOnce({
+            isKeyboardShown: true,
+            canCloseKeyboard: true,
+          })
+          .mockResolvedValueOnce({
+            isKeyboardShown: false,
+            canCloseKeyboard: true,
+          });
+
+        await device.keyboardType('hello', {
+          keyboardDismissStrategy: 'back-first',
+        });
+
+        expect(mockAdb.keyevent).toHaveBeenCalledWith(4); // BACK (overridden)
+      });
+
+      it('autoDismissKeyboard takes precedence over keyboardDismissStrategy', async () => {
+        device.options = {
+          imeStrategy: 'yadb-for-non-ascii',
+          autoDismissKeyboard: 'back',
+          keyboardDismissStrategy: 'esc-first',
+        };
+        mockAdb.isSoftKeyboardPresent
+          .mockResolvedValueOnce({
+            isKeyboardShown: true,
+            canCloseKeyboard: true,
+          })
+          .mockResolvedValueOnce({
+            isKeyboardShown: false,
+            canCloseKeyboard: true,
+          });
+
+        await device.keyboardType('hello');
+
+        expect(mockAdb.keyevent).toHaveBeenCalledWith(4); // BACK (autoDismissKeyboard wins)
+      });
+    });
+
+    describe('midscene-ime strategy', () => {
+      beforeEach(() => {
+        vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+        mockAdb.keyevent.mockClear();
+        mockAdb.isSoftKeyboardPresent.mockClear();
+      });
+
+      it('should use MidsceneIME to dismiss keyboard', async () => {
+        device.options = {
+          imeStrategy: 'yadb-for-non-ascii',
+          autoDismissKeyboard: 'midscene-ime',
+        };
+
+        // Mock keyboard shown
+        mockAdb.isSoftKeyboardPresent
+          .mockResolvedValueOnce({
+            isKeyboardShown: true,
+            canCloseKeyboard: true,
+          })
+          .mockResolvedValueOnce({
+            isKeyboardShown: false,
+            canCloseKeyboard: true,
+          });
+
+        // Mock ensureMidsceneImeInstalled and hideKeyboardViaMidsceneIme
+        vi.spyOn(device as any, 'ensureMidsceneImeInstalled').mockResolvedValue(
+          undefined,
+        );
+        vi.spyOn(device as any, 'hideKeyboardViaMidsceneIme').mockResolvedValue(
+          true,
+        );
+
+        await device.keyboardType('hello');
+
+        expect((device as any).ensureMidsceneImeInstalled).toHaveBeenCalled();
+        expect((device as any).hideKeyboardViaMidsceneIme).toHaveBeenCalled();
+        expect(mockAdb.keyevent).not.toHaveBeenCalled(); // No key events
+      });
+
+      it('should throw error if MidsceneIME install fails with midscene-ime strategy', async () => {
+        device.options = {
+          imeStrategy: 'yadb-for-non-ascii',
+          autoDismissKeyboard: 'midscene-ime',
+        };
+
+        mockAdb.isSoftKeyboardPresent.mockResolvedValueOnce({
+          isKeyboardShown: true,
+          canCloseKeyboard: true,
+        });
+
+        vi.spyOn(device as any, 'ensureMidsceneImeInstalled').mockRejectedValue(
+          new Error('INSTALL_FAILED_USER_RESTRICTED'),
+        );
+
+        await expect(device.keyboardType('hello')).rejects.toThrow(
+          /Failed to use MidsceneIME/,
+        );
+      });
+
+      it('should fall back to key events if midscene-ime-auto-install fails', async () => {
+        device.options = {
+          imeStrategy: 'yadb-for-non-ascii',
+          autoDismissKeyboard: 'midscene-ime-auto-install',
+        };
+
+        mockAdb.isSoftKeyboardPresent
+          .mockResolvedValueOnce({
+            isKeyboardShown: true,
+            canCloseKeyboard: true,
+          })
+          .mockResolvedValueOnce({
+            isKeyboardShown: false,
+            canCloseKeyboard: true,
+          });
+
+        vi.spyOn(device as any, 'ensureMidsceneImeInstalled').mockRejectedValue(
+          new Error('install failed'),
+        );
+
+        await device.keyboardType('hello');
+
+        // Falls back to ESC key event
+        expect(mockAdb.keyevent).toHaveBeenCalledWith(111);
+      });
+
+      it('hideKeyboardViaMidsceneIme should switch IME, broadcast, and restore', async () => {
+        mockAdb.shell
+          .mockResolvedValueOnce('com.example.keyboard/.IME') // settings get default_input_method
+          .mockResolvedValueOnce('') // ime set MidsceneIME
+          .mockResolvedValueOnce('') // am broadcast
+          .mockResolvedValueOnce(''); // ime set restore
+
+        mockAdb.isSoftKeyboardPresent.mockResolvedValueOnce({
+          isKeyboardShown: false,
+          canCloseKeyboard: true,
+        });
+
+        const result = await (device as any).hideKeyboardViaMidsceneIme(
+          mockAdb,
+          1000,
+        );
+
+        expect(result).toBe(true);
+        // Should get original IME
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          'settings get secure default_input_method',
+        );
+        // Should switch to MidsceneIME
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          expect.stringContaining('ime set com.midscene.ime/.MidsceneIME'),
+        );
+        // Should send dismiss broadcast
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          expect.stringContaining('am broadcast -a com.midscene.ime.DISMISS'),
+        );
+        // Should restore original IME
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          expect.stringContaining('ime set com.example.keyboard/.IME'),
+        );
+      });
+
+      it('ensureMidsceneImeInstalled should skip if already installed', async () => {
+        (device as any).midsceneImeInstalled = true;
+        const shellSpy = vi.spyOn(mockAdb, 'shell');
+
+        await (device as any).ensureMidsceneImeInstalled(mockAdb);
+
+        // Should not call shell at all since midsceneImeInstalled is true
+        expect(shellSpy).not.toHaveBeenCalled();
+      });
+
+      it('ensureMidsceneImeInstalled should check device and skip if package exists', async () => {
+        (device as any).midsceneImeInstalled = false;
+        mockAdb.shell.mockResolvedValueOnce('package:com.midscene.ime'); // pm list packages
+        mockAdb.shell.mockResolvedValueOnce(''); // ime enable
+
+        await (device as any).ensureMidsceneImeInstalled(mockAdb);
+
+        expect((device as any).midsceneImeInstalled).toBe(true);
+      });
+
+      it('setInstallApprovalHandler should set handler', () => {
+        const handler = vi.fn().mockResolvedValue(undefined);
+        device.setInstallApprovalHandler(handler);
+        expect((device as any).installApprovalHandler).toBe(handler);
       });
     });
   });
