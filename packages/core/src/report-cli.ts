@@ -238,10 +238,18 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
       );
     }
 
+    if (!htmlPath) {
+      throw new Error('report-tool: --htmlPath is required');
+    }
+
+    if (!outputDir) {
+      throw new Error('report-tool: --outputDir is required');
+    }
+
     if (action === 'to-markdown') {
       const result = await reportFileToMarkdown({
-        htmlPath: htmlPath || '',
-        outputDir: outputDir || '',
+        htmlPath,
+        outputDir,
       });
       return {
         isError: false,
@@ -255,8 +263,8 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
     }
 
     const result = splitReportFile({
-      htmlPath: htmlPath || '',
-      outputDir: outputDir || '',
+      htmlPath,
+      outputDir,
     });
 
     return {
