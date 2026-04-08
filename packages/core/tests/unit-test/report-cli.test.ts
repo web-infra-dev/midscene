@@ -149,6 +149,22 @@ describe('createReportCliCommands', () => {
     expect(existsSync(join(outputDir, '1.execution.json'))).toBe(true);
   });
 
+  it('throws SDK-friendly validation errors for splitReportFile', () => {
+    expect(() =>
+      splitReportFile({
+        htmlPath: '',
+        outputDir: join(tmpDir, 'output-sdk-missing-html'),
+      }),
+    ).toThrow('splitReportFile: htmlPath is required');
+
+    expect(() =>
+      splitReportFile({
+        htmlPath: join(tmpDir, 'input-report-sdk-missing-output', 'index.html'),
+        outputDir: '',
+      }),
+    ).toThrow('splitReportFile: outputDir is required');
+  });
+
   it('supports to-markdown via the JS SDK API', async () => {
     const reportPath = join(tmpDir, 'input-report-sdk-md', 'index.html');
     mkdirSync(join(tmpDir, 'input-report-sdk-md'), { recursive: true });
@@ -176,6 +192,26 @@ describe('createReportCliCommands', () => {
 
     expect(result.markdownFiles.length).toBe(1);
     expect(existsSync(join(outputDir, 'report.md'))).toBe(true);
+  });
+
+  it('throws SDK-friendly validation errors for reportFileToMarkdown', async () => {
+    await expect(
+      reportFileToMarkdown({
+        htmlPath: '',
+        outputDir: join(tmpDir, 'output-sdk-md-missing-html'),
+      }),
+    ).rejects.toThrow('reportFileToMarkdown: htmlPath is required');
+
+    await expect(
+      reportFileToMarkdown({
+        htmlPath: join(
+          tmpDir,
+          'input-report-sdk-md-missing-output',
+          'index.html',
+        ),
+        outputDir: '',
+      }),
+    ).rejects.toThrow('reportFileToMarkdown: outputDir is required');
   });
 
   it('uses index.html when htmlPath points to a directory', async () => {

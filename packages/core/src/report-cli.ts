@@ -172,11 +172,11 @@ export function splitReportFile(options: SplitReportFileOptions): {
 } {
   const { htmlPath, outputDir } = options;
   if (!htmlPath) {
-    throw new Error('report-tool: --htmlPath is required when --action=split');
+    throw new Error('splitReportFile: htmlPath is required');
   }
 
   if (!outputDir) {
-    throw new Error('report-tool: --outputDir is required when --action=split');
+    throw new Error('splitReportFile: outputDir is required');
   }
 
   const resolvedHtmlPath = resolveReportHtmlPath(htmlPath);
@@ -191,15 +191,11 @@ export async function reportFileToMarkdown(
 ): Promise<{ markdownFiles: string[]; screenshotFiles: string[] }> {
   const { htmlPath, outputDir } = options;
   if (!htmlPath) {
-    throw new Error(
-      'report-tool: --htmlPath is required when --action=to-markdown',
-    );
+    throw new Error('reportFileToMarkdown: htmlPath is required');
   }
 
   if (!outputDir) {
-    throw new Error(
-      'report-tool: --outputDir is required when --action=to-markdown',
-    );
+    throw new Error('reportFileToMarkdown: outputDir is required');
   }
 
   const resolvedHtmlPath = resolveReportHtmlPath(htmlPath);
