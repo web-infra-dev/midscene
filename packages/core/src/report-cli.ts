@@ -35,6 +35,18 @@ export interface ReportCliCommandEntry {
   def: ReportCliCommandDefinition;
 }
 
+export type ConsumeReportFileAction = 'split' | 'to-markdown';
+
+export interface SplitReportFileOptions {
+  htmlPath: string;
+  outputDir: string;
+}
+
+export interface ReportFileToMarkdownOptions {
+  htmlPath: string;
+  outputDir: string;
+}
+
 function writeAttachmentFromReport(
   attachment: MarkdownAttachment,
   opts: {
@@ -154,6 +166,46 @@ function resolveReportHtmlPath(htmlPath: string): string {
   return indexHtmlPath;
 }
 
+export function splitReportFile(options: SplitReportFileOptions): {
+  executionJsonFiles: string[];
+  screenshotFiles: string[];
+} {
+  const { htmlPath, outputDir } = options;
+  if (!htmlPath) {
+    throw new Error('report-tool: --htmlPath is required when --action=split');
+  }
+
+  if (!outputDir) {
+    throw new Error('report-tool: --outputDir is required when --action=split');
+  }
+
+  const resolvedHtmlPath = resolveReportHtmlPath(htmlPath);
+  return splitReportHtmlByExecution({
+    htmlPath: resolvedHtmlPath,
+    outputDir,
+  });
+}
+
+export async function reportFileToMarkdown(
+  options: ReportFileToMarkdownOptions,
+): Promise<{ markdownFiles: string[]; screenshotFiles: string[] }> {
+  const { htmlPath, outputDir } = options;
+  if (!htmlPath) {
+    throw new Error(
+      'report-tool: --htmlPath is required when --action=to-markdown',
+    );
+  }
+
+  if (!outputDir) {
+    throw new Error(
+      'report-tool: --outputDir is required when --action=to-markdown',
+    );
+  }
+
+  const resolvedHtmlPath = resolveReportHtmlPath(htmlPath);
+  return markdownFromReport(resolvedHtmlPath, outputDir);
+}
+
 const reportCommandDefinition: ReportCliCommandDefinition = {
   name: 'report-tool',
   description:
@@ -175,37 +227,16 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
       .describe('Output directory for generated report artifacts'),
   },
   handler: async (args) => {
-    const {
-      action = 'split',
-      htmlPath,
-      outputDir,
-    } = args as {
-      action?: string;
+    const { action, htmlPath, outputDir } = args as {
+      action?: ConsumeReportFileAction;
       htmlPath?: string;
       outputDir?: string;
     };
-
-    if (action !== 'split' && action !== 'to-markdown') {
-      throw new Error(
-        `report-tool: unsupported --action value "${action}". Currently supported: split, to-markdown`,
-      );
-    }
-
-    if (!htmlPath) {
-      throw new Error(
-        `report-tool: --htmlPath is required when --action=${action}`,
-      );
-    }
-    if (!outputDir) {
-      throw new Error(
-        `report-tool: --outputDir is required when --action=${action}`,
-      );
-    }
-
-    const resolvedHtmlPath = resolveReportHtmlPath(htmlPath);
-
     if (action === 'to-markdown') {
-      const result = await markdownFromReport(resolvedHtmlPath, outputDir);
+      const result = await reportFileToMarkdown({
+        htmlPath: htmlPath || '',
+        outputDir: outputDir || '',
+      });
       return {
         isError: false,
         content: [
@@ -217,9 +248,15 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
       };
     }
 
-    const result = splitReportHtmlByExecution({
-      htmlPath: resolvedHtmlPath,
-      outputDir,
+    if (action !== undefined && action !== 'split') {
+      throw new Error(
+        `report-tool: unsupported --action value "${action}". Currently supported: split, to-markdown`,
+      );
+    }
+
+    const result = splitReportFile({
+      htmlPath: htmlPath || '',
+      outputDir: outputDir || '',
     });
 
     return {

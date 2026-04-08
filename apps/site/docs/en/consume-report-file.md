@@ -34,6 +34,26 @@ Convert the report file into Markdown and write the result into the `output-mark
 npx @midscene/web report-tool --action to-markdown --htmlPath ./midscene_run/report/puppeteer-2026/index.html --outputDir ./output-markdown
 ```
 
+## Parse With The JavaScript SDK
+
+If you prefer to control report parsing in code, use `splitReportFile` and `reportFileToMarkdown` from `@midscene/core`.
+
+```ts
+import { reportFileToMarkdown, splitReportFile } from '@midscene/core';
+
+const splitResult = splitReportFile({
+  htmlPath: './midscene_run/report/puppeteer-2026/index.html',
+  outputDir: './output-data',
+});
+console.log(splitResult.executionJsonFiles);
+
+const markdownResult = await reportFileToMarkdown({
+  htmlPath: './midscene_run/report/puppeteer-2026/index.html',
+  outputDir: './output-markdown',
+});
+console.log(markdownResult.markdownFiles);
+```
+
 ## About Fields In JSON And Markdown
 
 The JSON and Markdown structures parsed from report files may change as Midscene evolves.
