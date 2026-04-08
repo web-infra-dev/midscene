@@ -28,6 +28,7 @@
   },
   "lint-staged": {
     "*.{json,css}": ["npx biome check --diagnostic-level=info --fix"],
+    "*.{md,mdx}": ["npx prettier --write"],
     "*.{less,scss}": ["npx prettier --write"],
     "*.{js,jsx,ts,tsx,mjs,cjs}": [
       "npx biome check --diagnostic-level=info --fix"

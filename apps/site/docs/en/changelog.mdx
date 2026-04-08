@@ -8,29 +8,27 @@ v1.7 adds Qwen 3.6 model support, configurable YAML output language in Chrome ex
 
 Added support for the Qwen 3.6 model. See: [Model Config](./model-config)
 
-### Chrome Extension Configurable YAML Output Language
+### Chrome Extension Recording Language Setting
 
-The Chrome extension now allows you to choose the output language when recording YAML scripts.
+A new YAML output language option is available in the Chrome extension's recording settings, supporting English, Chinese, Japanese, and more. You can also set it to Auto to follow the system language.
 
 ### Report Tool Enhancements
 
-- Report merging tool now supports processing individual report files
-- Added report splitting tools to break large reports into multiple independent files
+- The `report-tool` CLI now supports `split` and `to-markdown` actions, allowing you to extract screenshots and JSON data from HTML reports, or convert them to Markdown for consumption by other tools. See: [Consume Report Files](./consume-report-file)
+- `mergeReports()` API now accepts a single report and no longer requires at least two
 - Report Markdown output now includes screen size and locate center point for easier debugging
-
-See: [Consume Report Files](./consume-report-file)
 
 ### Android / HarmonyOS Improvements
 
-- Added terminate action on Android and HarmonyOS to force-stop apps, useful for resetting app state during testing. See: [Android API](./android-api-reference)
+- Added `terminate` action on Android and HarmonyOS to force-stop apps, useful for resetting app state during testing. See: [Android API](./android-api-reference), [HarmonyOS API](./harmony-api-reference)
 - Fixed placeholder text unexpectedly retained when typing on X/Twitter on Android
 - Fixed Android Playground LAN access issues
 
 ### Debugging Improvements
 
 - Execution logs can now be saved to disk for post-hoc troubleshooting
-- Model config now supports running a connectivity test on save to catch configuration errors early
-- Skill CLI now supports image-based prompting
+- Playground config page now supports running a connectivity test when saving model config, catching configuration errors early
+- Skill CLI `run` command now supports passing images as prompts via the `--image` flag
 
 ### Bug Fixes
 
