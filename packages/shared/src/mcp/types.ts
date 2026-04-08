@@ -80,6 +80,7 @@ export interface ActionSpaceItem {
  */
 export interface BaseAgent {
   getActionSpace(): Promise<ActionSpaceItem[]>;
+  reportFileName?: string;
   destroy?(): Promise<void>;
   page?: {
     screenshotBase64(): Promise<string>;
