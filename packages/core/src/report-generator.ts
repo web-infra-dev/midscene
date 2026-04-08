@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
@@ -119,6 +119,7 @@ export class ReportGenerator implements IReportGenerator {
       },
       alsoWriteFileCopy: this.shouldPersistExecutionDump,
     });
+    this.hydrateStateFromExistingReport();
     this.printReportPath('will be generated at');
   }
 
@@ -238,6 +239,30 @@ export class ReportGenerator implements IReportGenerator {
         continue;
       }
       this.reportAttributes[key] = String(value);
+    }
+  }
+
+  private hydrateStateFromExistingReport(): void {
+    if (!existsSync(this.reportPath)) {
+      return;
+    }
+
+    // Reuse existing report file and append new updates instead of rewriting.
+    this.initialized = true;
+
+    if (!this.shouldPersistExecutionDump) {
+      return;
+    }
+
+    const reportDir = dirname(this.reportPath);
+    const existingExecutionIndices = readdirSync(reportDir)
+      .map((name) => /^(\d+)\.execution\.json$/.exec(name)?.[1])
+      .filter((index): index is string => Boolean(index))
+      .map((index) => Number.parseInt(index, 10))
+      .filter((index) => Number.isFinite(index));
+
+    if (existingExecutionIndices.length > 0) {
+      this.executionLogIndex = Math.max(...existingExecutionIndices);
     }
   }
 
