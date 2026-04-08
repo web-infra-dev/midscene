@@ -170,9 +170,13 @@ import { PlaywrightAiFixture } from '@midscene/web/playwright';
 export const test = base.extend<PlayWrightAiFixtureType>(
   PlaywrightAiFixture({
     waitForNetworkIdleTimeout: 2000, // optional, the timeout for waiting for network idle between each action, default is 2000ms
+    replanningCycleLimit: 30, // optional, override the default aiAct replanning cycle limit
   }),
 );
 ```
+
+`PlaywrightAiFixture()` also accepts Agent initialization options (for example `replanningCycleLimit`, `waitAfterAction`, and `modelConfig`) in addition to fixture-specific options. See [Agent API](./api) for the full option list.
+
 
 ### Step 3: Write test cases
 
