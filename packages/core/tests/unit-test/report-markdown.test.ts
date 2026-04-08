@@ -38,7 +38,10 @@ describe('report-markdown', () => {
       name: 'single execution',
       tasks: [
         createTask({
-          uiContext: { screenshot },
+          uiContext: {
+            screenshot,
+            shotSize: { width: 1280, height: 720 },
+          },
           recorder: [
             {
               type: 'screenshot',
@@ -65,6 +68,7 @@ describe('report-markdown', () => {
     expect(result.markdown).toContain('![task-1](./screenshots/');
     expect(result.markdown).toContain('### Recorder');
     expect(result.markdown).toContain('timing=after click');
+    expect(result.markdown).toContain('Screen size: 1280 x 720');
     expect(result.attachments).toHaveLength(2);
     expect(result.attachments[0].filePath).toContain('./screenshots/');
     expect(result.attachments[0].suggestedFileName).toContain('.png');
@@ -91,6 +95,7 @@ describe('report-markdown', () => {
                   storage: 'file',
                   path: './screenshots/shot-exec-1.png',
                 },
+                shotSize: { width: 1440, height: 900 },
               },
               recorder: [
                 {
@@ -116,7 +121,12 @@ describe('report-markdown', () => {
           tasks: [
             createTask({
               taskId: 'task-2',
-              subType: 'Hover',
+              subType: 'Locate',
+              output: {
+                element: {
+                  center: [512, 333],
+                },
+              },
               uiContext: {
                 screenshot: {
                   type: 'midscene_screenshot_ref',
@@ -126,6 +136,7 @@ describe('report-markdown', () => {
                   storage: 'file',
                   path: './screenshots/shot-exec-2.png',
                 },
+                shotSize: { width: 1024, height: 768 },
               },
             }),
           ],
@@ -140,6 +151,9 @@ describe('report-markdown', () => {
     expect(result.markdown).toContain('# exec-2');
     expect(result.markdown).toContain('Suggested execution markdown files');
     expect(result.markdown).toContain('timing=record-step-1');
+    expect(result.markdown).toContain('Screen size: 1440 x 900');
+    expect(result.markdown).toContain('Screen size: 1024 x 768');
+    expect(result.markdown).toContain('Locate center: (512, 333)');
     expect(result.attachments).toHaveLength(3);
 
     await expect(result.markdown).toMatchFileSnapshot(
@@ -165,6 +179,7 @@ describe('report-markdown', () => {
           },
           uiContext: {
             screenshot,
+            shotSize: { width: 800, height: 600 },
           },
         }),
       ],
@@ -176,6 +191,7 @@ describe('report-markdown', () => {
 
     expect(result.markdown).toContain('./shots/');
     expect(result.markdown).toContain('Cost(ms): 8');
+    expect(result.markdown).toContain('Screen size: 800 x 600');
     expect(result.attachments).toHaveLength(1);
   });
 
@@ -201,6 +217,7 @@ describe('report-markdown', () => {
     const result = executionToMarkdown(execution);
     expect(result.markdown).toContain('# no-screenshot-execution');
     expect(result.markdown).toContain('Tap - Submit');
+    expect(result.markdown).toContain('Screen size: N/A');
     expect(result.attachments).toHaveLength(0);
   });
 });
