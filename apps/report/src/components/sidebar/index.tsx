@@ -778,14 +778,26 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             </span>
           </div>
           <div className="page-nav-toolbar">
-            <div
-              className="icon-button"
-              onClick={() => {
-                setReplayAllMode?.(true);
-              }}
-            >
-              <PlayIcon />
-            </div>
+            <Tooltip title="Replay All" placement="bottom">
+              <div
+                className="icon-button"
+                // biome-ignore lint/a11y/useSemanticElements: using div for icon-button to match existing styles
+                role="button"
+                aria-label="Replay All"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setReplayAllMode?.(true);
+                  }
+                }}
+                onClick={() => {
+                  setReplayAllMode?.(true);
+                }}
+              >
+                <PlayIcon />
+              </div>
+            </Tooltip>
           </div>
         </div>
       </div>
