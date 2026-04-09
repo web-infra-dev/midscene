@@ -21,6 +21,17 @@ vi.mock('@midscene/shared/node', () => ({
 }));
 
 vi.mock('@/web-element', () => ({
+  InteractionMode: {
+    Mouse: 'mouse',
+    Touch: 'touch',
+  },
+  resolveWebPageInteractionOptions: vi.fn((opts?: any) => ({
+    interactionMode:
+      opts?.interactionMode ??
+      (opts?.enableTouchEventsInActionSpace ? 'touch' : 'mouse'),
+    enableTouchEventsInActionSpace:
+      opts?.enableTouchEventsInActionSpace ?? opts?.interactionMode === 'touch',
+  })),
   WebPageContextParser: vi.fn().mockResolvedValue({
     tree: { node: null, children: [] },
     shotSize: { width: 1024, height: 768 },

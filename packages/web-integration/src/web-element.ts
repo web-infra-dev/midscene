@@ -9,11 +9,17 @@ import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import type { NodeType } from '@midscene/shared/constants';
 export type { WebElementInfo };
 
+export enum InteractionMode {
+  Mouse = 'mouse',
+  Touch = 'touch',
+}
+
 export type WebPageAgentOpt = AgentOpt & WebPageOpt;
 export type WebPageOpt = {
   waitForNavigationTimeout?: number;
   waitForNetworkIdleTimeout?: number;
   forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
+  interactionMode?: InteractionMode;
   enableTouchEventsInActionSpace?: boolean;
   /**
    * Force Chrome to render select elements using base-select appearance instead of OS-native rendering.
@@ -28,6 +34,23 @@ export type WebPageOpt = {
   afterInvokeAction?: () => Promise<void>;
   customActions?: DeviceAction<any>[];
 };
+
+export function resolveWebPageInteractionOptions(
+  opts?: Pick<WebPageOpt, 'interactionMode' | 'enableTouchEventsInActionSpace'>,
+) {
+  const interactionMode =
+    opts?.interactionMode ??
+    (opts?.enableTouchEventsInActionSpace
+      ? InteractionMode.Touch
+      : InteractionMode.Mouse);
+
+  return {
+    interactionMode,
+    enableTouchEventsInActionSpace:
+      opts?.enableTouchEventsInActionSpace ??
+      interactionMode === InteractionMode.Touch,
+  };
+}
 
 export class WebElementInfoImpl implements WebElementInfo {
   content: string;

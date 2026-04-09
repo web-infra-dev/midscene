@@ -1,5 +1,9 @@
 import { Agent, type AgentOpt } from '@midscene/core/agent';
 import { assert } from '@midscene/shared/utils';
+import {
+  InteractionMode,
+  resolveWebPageInteractionOptions,
+} from '../web-element';
 import { commonWebActionsForWebPage } from '../web-page';
 import type { KeyboardAction, MouseAction } from '../web-page';
 import {
@@ -51,6 +55,9 @@ export const getBridgePageInCliSide = (options?: {
       await server.call(BridgeEvent.UpdateAgentStatus, [message]);
     },
   };
+  const state = {
+    interactionMode: InteractionMode.Mouse,
+  };
 
   const proxyPage = new Proxy(page, {
     get(target, prop, receiver) {
@@ -69,7 +76,8 @@ export const getBridgePageInCliSide = (options?: {
       }
 
       if (prop === 'actionSpace') {
-        return () => commonWebActionsForWebPage(proxyPage);
+        return () =>
+          commonWebActionsForWebPage(proxyPage, state.interactionMode);
       }
 
       if (Object.keys(page).includes(prop)) {
@@ -109,6 +117,8 @@ export const getBridgePageInCliSide = (options?: {
       // Special handling for methods that support timeout in options
       if (prop === 'connectNewTabWithUrl') {
         return async (url: string, options?: BridgeConnectTabOptions) => {
+          state.interactionMode =
+            resolveWebPageInteractionOptions(options).interactionMode;
           const timeout = options?.timeout;
           const caller = bridgeCaller(prop, timeout);
           return await caller(url, options);
@@ -117,6 +127,8 @@ export const getBridgePageInCliSide = (options?: {
 
       if (prop === 'connectCurrentTab') {
         return async (options?: BridgeConnectTabOptions) => {
+          state.interactionMode =
+            resolveWebPageInteractionOptions(options).interactionMode;
           const timeout = options?.timeout;
           const caller = bridgeCaller(prop, timeout);
           return await caller(options);

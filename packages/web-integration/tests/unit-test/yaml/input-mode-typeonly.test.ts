@@ -1,3 +1,4 @@
+import { InteractionMode } from '@/web-element';
 import { commonWebActionsForWebPage } from '@/web-page';
 import { describe, expect, test, vi } from 'vitest';
 
@@ -23,7 +24,7 @@ describe('Input action typeOnly mode', () => {
     } as any;
 
     // Get actions from commonWebActionsForWebPage
-    const actions = commonWebActionsForWebPage(mockPage, false);
+    const actions = commonWebActionsForWebPage(mockPage, InteractionMode.Mouse);
 
     // Find the Input action
     const inputAction = actions.find((a) => a.name === 'Input');
@@ -69,7 +70,7 @@ describe('Input action typeOnly mode', () => {
       },
     } as any;
 
-    const actions = commonWebActionsForWebPage(mockPage, false);
+    const actions = commonWebActionsForWebPage(mockPage, InteractionMode.Mouse);
     const inputAction = actions.find((a) => a.name === 'Input');
 
     // Test with mode = 'replace' (default)
@@ -111,7 +112,7 @@ describe('Input action typeOnly mode', () => {
       },
     } as any;
 
-    const actions = commonWebActionsForWebPage(mockPage, false);
+    const actions = commonWebActionsForWebPage(mockPage, InteractionMode.Mouse);
     const inputAction = actions.find((a) => a.name === 'Input');
 
     // Test with mode = 'clear'

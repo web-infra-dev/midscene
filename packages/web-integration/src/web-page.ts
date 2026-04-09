@@ -25,6 +25,7 @@ import { sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
+import { InteractionMode } from './web-element';
 
 const debug = getDebug('web:page');
 
@@ -442,7 +443,7 @@ export abstract class AbstractWebPage extends AbstractInterface {
 
 export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
   page: T,
-  includeTouchEvents = false,
+  interactionMode: InteractionMode = InteractionMode.Mouse,
 ): DeviceAction<any>[] => [
   defineActionTap(async (param) => {
     const element = param.locate;
@@ -579,15 +580,20 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     await page.longPress(element.center[0], element.center[1], duration);
   }),
 
-  defineActionPinch(async (param) => {
-    const { centerX, centerY, startDistance, endDistance, duration } =
-      normalizePinchParam(param, await page.size());
-
-    await page.pinch(centerX, centerY, startDistance, endDistance, duration);
-  }),
-
-  ...(includeTouchEvents
+  ...(interactionMode === InteractionMode.Touch
     ? [
+        defineActionPinch(async (param) => {
+          const { centerX, centerY, startDistance, endDistance, duration } =
+            normalizePinchParam(param, await page.size());
+
+          await page.pinch(
+            centerX,
+            centerY,
+            startDistance,
+            endDistance,
+            duration,
+          );
+        }),
         defineActionSwipe(async (param) => {
           const { width, height } = await page.size();
           const { start, end } = param;

@@ -5,7 +5,11 @@
   The page must be active when interacting with it.
 */
 
-import { limitOpenNewTabScript } from '@/web-element';
+import {
+  type InteractionMode,
+  limitOpenNewTabScript,
+  resolveWebPageInteractionOptions,
+} from '@/web-element';
 import type {
   ElementCacheFeature,
   ElementTreeNode,
@@ -50,6 +54,8 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   public forceSameTabNavigation: boolean;
 
+  public interactionMode: InteractionMode;
+
   private viewportSize?: Size;
 
   private activeTabId: number | null = null;
@@ -60,12 +66,19 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   public _continueWhenFailedToAttachDebugger = false;
 
-  constructor(forceSameTabNavigation: boolean) {
+  constructor(
+    forceSameTabNavigation: boolean,
+    interactionMode?: InteractionMode,
+  ) {
     this.forceSameTabNavigation = forceSameTabNavigation;
+    const interactionOptions = resolveWebPageInteractionOptions({
+      interactionMode,
+    });
+    this.interactionMode = interactionOptions.interactionMode;
   }
 
   actionSpace(): DeviceAction[] {
-    return commonWebActionsForWebPage(this);
+    return commonWebActionsForWebPage(this, this.interactionMode);
   }
 
   public async setActiveTabId(tabId: number) {
@@ -682,13 +695,29 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
       const finalX = startX || this.latestMouseX;
       const finalY = startY || this.latestMouseY;
       await this.showMousePointer(finalX, finalY);
-      await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
-        type: 'mouseWheel',
-        x: finalX,
-        y: finalY,
-        deltaX,
-        deltaY,
-      });
+      if (this.interactionMode === 'touch') {
+        await this.sendCommandToDebugger('Input.synthesizeScrollGesture', {
+          x: finalX,
+          y: finalY,
+          // synthesizeScrollGesture uses gesture distances, whose directions are
+          // opposite to wheel deltas for the same visual scroll result.
+          xDistance: -deltaX,
+          yDistance: -deltaY,
+          // speed is measured in pixels per second, so it must stay very high;
+          // otherwise our "scroll to edge" calls would take a long time to finish.
+          speed: 9999999,
+          repeatCount: 0,
+          preventFling: true,
+        });
+      } else {
+        await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
+          type: 'mouseWheel',
+          x: finalX,
+          y: finalY,
+          deltaX,
+          deltaY,
+        });
+      }
       this.latestMouseX = finalX;
       this.latestMouseY = finalY;
     },

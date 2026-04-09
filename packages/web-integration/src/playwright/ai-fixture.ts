@@ -1,5 +1,5 @@
 import { PlaywrightAgent, type PlaywrightWebPage } from '@/playwright/index';
-import type { WebPageAgentOpt } from '@/web-element';
+import type { InteractionMode, WebPageAgentOpt } from '@/web-element';
 import type { Cache } from '@midscene/core';
 import type { AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { processCacheConfig } from '@midscene/core/utils';
@@ -60,12 +60,14 @@ export const PlaywrightAiFixture = (options?: {
   forceSameTabNavigation?: boolean;
   waitForNetworkIdleTimeout?: number;
   waitForNavigationTimeout?: number;
+  interactionMode?: InteractionMode;
   cache?: PlaywrightCache;
 }) => {
   const {
     forceSameTabNavigation = true,
     waitForNetworkIdleTimeout = DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
     waitForNavigationTimeout = DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
+    interactionMode,
     cache,
   } = options ?? {};
 
@@ -135,6 +137,7 @@ export const PlaywrightAiFixture = (options?: {
         testId: `playwright-${testId}-${idForPage}`,
         reportFileName: `playwright-${testId}-${idForPage}`,
         forceSameTabNavigation,
+        interactionMode,
         cache: cacheConfig,
         groupName: title,
         groupDescription: file,
