@@ -28,6 +28,7 @@ const createMockDump = (
   data: any,
   thought?: string,
   usage?: { totalTokens: number },
+  rawResponse?: string,
 ): ServiceDump => ({
   type: 'extract',
   logId: 'mock-log-id',
@@ -36,7 +37,7 @@ const createMockDump = (
   data,
   taskInfo: {
     durationMs: 100,
-    rawResponse: JSON.stringify(data),
+    rawResponse: rawResponse ?? JSON.stringify(data),
     usage: usage ? { inputTokens: 0, outputTokens: 0, ...usage } : undefined,
     reasoning_content: thought,
   },
@@ -219,7 +220,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       expect(result.thought).toBe('Condition is met');
     });
 
-    it('should handle string data for WaitFor operation', async () => {
+    it('should coerce string boolean data for WaitFor operation', async () => {
       const mockInsight = {
         contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
         extract: vi.fn(async () => ({
@@ -255,8 +256,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         uiContext: await createEmptyUIContext(),
       } as any);
 
-      // When AI returns a plain string, it should be used directly
-      expect(result.output).toBe('true');
+      expect(result.output).toBe(true);
     });
 
     it('should handle null data for Query operation', async () => {
@@ -388,6 +388,149 @@ describe('TaskExecutor - Null Data Handling', () => {
       );
       expect(result.output).toBe(42);
       expect(result.thought).toBe('Extracted the numeric value successfully');
+    });
+
+    it('should handle primitive number data for Number type query', async () => {
+      const mockInsight = {
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
+        extract: vi.fn(async () => ({
+          data: 42,
+          usage: { totalTokens: 100 },
+          thought: 'Extracted the numeric value directly',
+          dump: createMockDump(42, 'Extracted the numeric value directly', {
+            totalTokens: 100,
+          }),
+        })),
+        onceDumpUpdatedFn: undefined,
+      } as any;
+
+      const mockModelConfig: IModelConfig = {
+        modelName: 'mock-model',
+        modelDescription: 'mock-model-description',
+        intent: 'default',
+      };
+
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
+
+      const queryTask = await (taskExecutor as any).createTypeQueryTask(
+        'Number',
+        'Extract the price',
+        mockModelConfig,
+        {},
+      );
+
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: await createEmptyUIContext(),
+      } as any);
+
+      expect(result.output).toBe(42);
+      expect(result.thought).toBe('Extracted the numeric value directly');
+    });
+
+    it('should coerce numeric string data for Number type query', async () => {
+      const mockInsight = {
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
+        extract: vi.fn(async () => ({
+          data: '42',
+          usage: { totalTokens: 100 },
+          thought: 'Extracted the numeric value as a string',
+          dump: createMockDump(
+            '42',
+            'Extracted the numeric value as a string',
+            {
+              totalTokens: 100,
+            },
+          ),
+        })),
+        onceDumpUpdatedFn: undefined,
+      } as any;
+
+      const mockModelConfig: IModelConfig = {
+        modelName: 'mock-model',
+        modelDescription: 'mock-model-description',
+        intent: 'default',
+      };
+
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
+
+      const queryTask = await (taskExecutor as any).createTypeQueryTask(
+        'Number',
+        'Extract the price',
+        mockModelConfig,
+        {},
+      );
+
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: await createEmptyUIContext(),
+      } as any);
+
+      expect(result.output).toBe(42);
+      expect(result.thought).toBe('Extracted the numeric value as a string');
+    });
+
+    it('should fall back to raw data-json text for malformed String query results', async () => {
+      const rawDataJson = `
+页面1：知识问答搜索输入页面
+1.1 属于模块：Mind AI新对话的知识问答功能模块
+1.2 页面详细解释说明：当前搜索输入框内已输入内容 @ecom，下拉搜索结果显示暂无搜索结果。
+1.3 使用组件：文本搜索输入框、搜索结果下拉弹窗、模式下拉选择按钮、发送提交按钮
+      `.trim();
+      const mockInsight = {
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
+        extract: vi.fn(async () => ({
+          data: [
+            '页面1：知识问答搜索输入页面',
+            1.1,
+            '属于模块：Mind AI新对话的知识问答功能模块',
+          ],
+          usage: { totalTokens: 100 },
+          thought: 'jsonrepair repaired the prose into an array',
+          dump: createMockDump(
+            [
+              '页面1：知识问答搜索输入页面',
+              1.1,
+              '属于模块：Mind AI新对话的知识问答功能模块',
+            ],
+            'jsonrepair repaired the prose into an array',
+            { totalTokens: 100 },
+            `<thought>jsonrepair repaired the prose into an array</thought><data-json>${rawDataJson}</data-json>`,
+          ),
+        })),
+        onceDumpUpdatedFn: undefined,
+      } as any;
+
+      const mockModelConfig: IModelConfig = {
+        modelName: 'mock-model',
+        modelDescription: 'mock-model-description',
+        intent: 'default',
+      };
+
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
+
+      const queryTask = await (taskExecutor as any).createTypeQueryTask(
+        'String',
+        'Summarize the Figma screenshot',
+        mockModelConfig,
+        {},
+      );
+
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: await createEmptyUIContext(),
+      } as any);
+
+      expect(result.output).toBe(rawDataJson);
+      expect(result.thought).toBe(
+        'jsonrepair repaired the prose into an array',
+      );
     });
 
     it('should preserve domIncluded on Insight task params for report rendering', async () => {

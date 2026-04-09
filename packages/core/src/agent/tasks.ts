@@ -6,6 +6,7 @@ import {
   uiTarsPlanning,
 } from '@/ai-model';
 import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
+import { extractXMLTag } from '@/ai-model/prompt/util';
 import {
   type TMultimodalPrompt,
   type TUserPrompt,
@@ -61,6 +62,42 @@ const debug = getDebug('device-task-executor');
 const maxErrorCountAllowedInOnePlanningLoop = 5;
 
 export { TaskExecutionError };
+
+function looksLikeStructuredJsonLiteral(value: string): boolean {
+  if (!value) {
+    return false;
+  }
+
+  const trimmed = value.trim();
+  return (
+    trimmed.startsWith('{') ||
+    trimmed.startsWith('[') ||
+    trimmed.startsWith('"') ||
+    trimmed === 'null' ||
+    trimmed === 'true' ||
+    trimmed === 'false' ||
+    /^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(trimmed)
+  );
+}
+
+function fallbackStringResultFromRawResponse(
+  rawResponse?: string,
+): string | undefined {
+  if (!rawResponse) {
+    return undefined;
+  }
+
+  const rawDataJson = extractXMLTag(rawResponse, 'data-json')?.trim();
+  if (!rawDataJson || looksLikeStructuredJsonLiteral(rawDataJson)) {
+    return undefined;
+  }
+
+  return rawDataJson;
+}
+
+function looksLikeNumericLiteral(value: string): boolean {
+  return /^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(value.trim());
+}
 
 export class TaskExecutor {
   interface: AbstractInterface;
@@ -628,11 +665,32 @@ export class TaskExecutor {
 
         const { data, thought, dump } = extractResult;
         applyDump(dump);
+        const rawResponse = dump.taskInfo?.rawResponse;
 
         let outputResult = data;
         if (ifTypeRestricted) {
-          // If AI returned a plain string instead of structured format, use it directly
           if (typeof data === 'string') {
+            const trimmedData = data.trim();
+            if (type === 'Number' && looksLikeNumericLiteral(trimmedData)) {
+              outputResult = Number(trimmedData);
+            } else if (
+              (type === 'Boolean' || type === 'Assert' || type === 'WaitFor') &&
+              /^(true|false)$/i.test(trimmedData)
+            ) {
+              outputResult = trimmedData.toLowerCase() === 'true';
+            } else {
+              outputResult = data;
+            }
+          } else if (type === 'String' && typeof data === 'number') {
+            outputResult = String(data);
+          } else if (type === 'String' && typeof data === 'boolean') {
+            outputResult = String(data);
+          } else if (type === 'Number' && typeof data === 'number') {
+            outputResult = data;
+          } else if (
+            (type === 'Boolean' || type === 'Assert' || type === 'WaitFor') &&
+            typeof data === 'boolean'
+          ) {
             outputResult = data;
           } else if (type === 'WaitFor') {
             if (data === null || data === undefined) {
@@ -648,6 +706,14 @@ export class TaskExecutor {
               outputResult = (data as any)[keyOfResult];
             } else if (data?.result !== undefined) {
               outputResult = (data as any).result;
+            } else if (type === 'String') {
+              const fallbackString =
+                fallbackStringResultFromRawResponse(rawResponse);
+              if (fallbackString !== undefined) {
+                outputResult = fallbackString;
+              } else {
+                assert(false, 'No result in query data');
+              }
             } else {
               assert(false, 'No result in query data');
             }
