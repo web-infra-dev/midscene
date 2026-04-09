@@ -56,7 +56,8 @@ jobs:
     - name: Install Puppeteer browser
       run: cd packages/web-integration && npx puppeteer browsers install chrome
 
-    - name: Lock branch
+    - name: Lock main branch
+      if: github.event.inputs.branch == 'main'
       run: |
         gh api repos/${{ github.repository }}/branches/main/protection/lock \
           --method PUT --input /dev/null
@@ -68,8 +69,8 @@ jobs:
       env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-    - name: Unlock branch
-      if: always()
+    - name: Unlock main branch
+      if: always() && github.event.inputs.branch == 'main'
       run: |
         gh api repos/${{ github.repository }}/branches/main/protection/lock \
           --method DELETE
