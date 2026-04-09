@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { fetchVersion } from 'gh-release-fetch';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const YADB_VERSION = 'v1.1.0';
+const YADB_VERSION = 'v1.1.1';
 
 async function main() {
   const binDir = path.resolve(__dirname, '../bin');
