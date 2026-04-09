@@ -41,9 +41,12 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
       ...(headless !== undefined ? { headless } : {}),
     };
     const agent = await agentFromComputer(
-      Object.keys(opts).length > 0 ? opts : undefined,
+      Object.keys(opts).length > 0
+        ? { ...opts, reportFileName: this.getPersistedReportFileName() }
+        : { reportFileName: this.getPersistedReportFileName() },
     );
     this.agent = agent;
+    this.persistAgentReportFileName(this.agent);
     return agent;
   }
 

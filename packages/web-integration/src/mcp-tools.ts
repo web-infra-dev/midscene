@@ -42,7 +42,10 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
   private async initBridgeModeAgent(
     url?: string,
   ): Promise<AgentOverChromeBridge> {
-    const agent = new AgentOverChromeBridge({ closeConflictServer: true });
+    const agent = new AgentOverChromeBridge({
+      closeConflictServer: true,
+      reportFileName: this.getPersistedReportFileName(),
+    });
 
     if (!url) {
       await agent.connectCurrentTab();
@@ -50,6 +53,7 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
       await agent.connectNewTabWithUrl(url);
     }
 
+    this.persistAgentReportFileName(agent);
     return agent;
   }
 

@@ -182,7 +182,10 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
       }
     }
 
-    this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage);
+    this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage, {
+      reportFileName: this.getPersistedReportFileName(),
+    });
+    this.persistAgentReportFileName(this.agent);
     return this.agent;
   }
 

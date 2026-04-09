@@ -2,6 +2,10 @@ import { parseBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
+  persistReportFileName,
+  readPersistedReportFileName,
+} from './report-file-name';
+import {
   generateCommonTools,
   generateToolsFromActionSpace,
 } from './tool-generator';
@@ -181,5 +185,18 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
 
       return this.buildTextResult(`Disconnected from ${platformName}`);
     };
+  }
+
+  protected getPersistedReportFileName(): string | undefined {
+    return readPersistedReportFileName();
+  }
+
+  protected persistAgentReportFileName(agent: TAgent): void {
+    if (!agent.reportFileName) {
+      throw new Error(
+        'agent reportFileName is required when persisting report state',
+      );
+    }
+    persistReportFileName(agent.reportFileName);
   }
 }

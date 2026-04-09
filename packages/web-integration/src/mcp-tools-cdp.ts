@@ -309,7 +309,10 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
       await page.bringToFront();
     }
 
-    this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage);
+    this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage, {
+      reportFileName: this.getPersistedReportFileName(),
+    });
+    this.persistAgentReportFileName(this.agent);
     return this.agent;
   }
 

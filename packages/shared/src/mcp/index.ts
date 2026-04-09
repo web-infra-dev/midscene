@@ -5,3 +5,4 @@ export * from './types';
 export * from './inject-report-html-plugin';
 export * from './launcher-helper';
 export * from './chrome-path';
+export * from './report-file-name';
