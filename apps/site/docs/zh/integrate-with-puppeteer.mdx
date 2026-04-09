@@ -201,6 +201,24 @@ await agent.aiAct('点击红色按钮五次');
 
 更多关于自定义动作的细节，请参考 [集成到任意界面](./integrate-with-any-interface)。
 
+## FAQ
+
+### 浏览器界面持续闪动
+
+通常是 viewport 的 `deviceScaleFactor` 与系统像素比不匹配所致。将 `deviceScaleFactor` 设为 `0` 可自动适配：
+
+```typescript
+await page.setViewport({
+  deviceScaleFactor: 0,
+});
+```
+
+更多详情请参考 [Playwright FAQ — 浏览器界面持续闪动](./integrate-with-playwright#浏览器界面持续闪动)。
+
+### 自定义网络超时
+
+Midscene 在执行操作后会自动等待网络空闲，你可以自定义或关闭超时时间——详见 [Playwright FAQ — 自定义网络超时](./integrate-with-playwright#自定义网络超时)。
+
 ## 更多
 
 - 更多 Agent 的 API 文档请参考 [API 参考](./api#interaction-methods)。

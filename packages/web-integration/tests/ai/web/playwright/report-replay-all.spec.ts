@@ -7,7 +7,7 @@ import { expect, test } from '@playwright/test';
 const TEST_TIMEOUT = 15 * 60 * 1000;
 
 function getReportPath(reportFileName: string): string {
-  return join(getMidsceneRunSubDir('report'), reportFileName, 'index.html');
+  return join(getMidsceneRunSubDir('report'), `${reportFileName}.html`);
 }
 
 test.describe('report replay-all', () => {

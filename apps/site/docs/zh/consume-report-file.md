@@ -60,6 +60,26 @@ npx @midscene/web report-tool --action split --htmlPath ./midscene_run/report/pu
 npx @midscene/web report-tool --action to-markdown --htmlPath ./midscene_run/report/puppeteer-2026/index.html --outputDir ./output-markdown
 ```
 
+## 使用 JavaScript SDK 解析
+
+如果你希望在代码里控制报告解析，可以使用 `@midscene/core` 提供的 `splitReportFile` 和 `reportFileToMarkdown`。
+
+```ts
+import { reportFileToMarkdown, splitReportFile } from '@midscene/core';
+
+const splitResult = splitReportFile({
+  htmlPath: './midscene_run/report/puppeteer-2026/index.html',
+  outputDir: './output-data',
+});
+console.log(splitResult.executionJsonFiles);
+
+const markdownResult = await reportFileToMarkdown({
+  htmlPath: './midscene_run/report/puppeteer-2026/index.html',
+  outputDir: './output-markdown',
+});
+console.log(markdownResult.markdownFiles);
+```
+
 ## 关于 JSON 和 Markdown 的内容字段
 
 解析得到的 JSON 和 Markdown 数据结构可能会随着 Midscene 版本演进而变化，请以实际转换结果为准。

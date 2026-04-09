@@ -499,6 +499,14 @@ export default defineConfig({
           to: '/android-getting-started',
         },
         {
+          from: '^/integrate-with-ios(?:\\.html)?/?$',
+          to: '/ios-getting-started',
+        },
+        {
+          from: '^/integrate-with-harmony(?:\\.html)?/?$',
+          to: '/harmony-getting-started',
+        },
+        {
           from: '^/android-playground(?:\\.html)?/?$',
           to: '/android-introduction',
         },
@@ -553,6 +561,18 @@ export default defineConfig({
         {
           from: '^/zh/mcp-android(?:\\.html)?/?$',
           to: '/zh/mcp',
+        },
+        {
+          from: '^/zh/integrate-with-android(?:\\.html)?/?$',
+          to: '/zh/android-getting-started',
+        },
+        {
+          from: '^/zh/integrate-with-ios(?:\\.html)?/?$',
+          to: '/zh/ios-getting-started',
+        },
+        {
+          from: '^/zh/integrate-with-harmony(?:\\.html)?/?$',
+          to: '/zh/harmony-getting-started',
         },
         {
           from: '^/zh/blog-support-android-automation(?:\\.html)?/?$',

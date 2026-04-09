@@ -211,6 +211,32 @@ if (!env.available) {
 }
 ```
 
+## 常见问题
+
+### macOS：脚本无法控制鼠标或键盘
+
+macOS 需要辅助功能权限才能控制键盘和鼠标。请前往 **系统设置 > 隐私与安全性 > 辅助功能**，为运行脚本的应用程序（如 Terminal、iTerm2、VS Code 或 WebStorm）开启权限。
+
+如果已经授权但仍然无法控制，可以尝试将该应用从辅助功能列表中移除后重新添加——macOS 有时会缓存过期的权限。
+
+### Linux：在无头服务器上截图或交互失败
+
+无头 Linux 环境（如 CI）没有物理显示器，需要安装 Xvfb 和 ImageMagick，并启用无头模式：
+
+```bash
+sudo apt-get install -y xvfb x11-xserver-utils imagemagick
+```
+
+```typescript
+const agent = await agentFromComputer({ headless: true });
+```
+
+或通过环境变量设置：
+
+```bash
+MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
+```
+
 ## 下一步
 
 - [API 参考](./computer-api-reference)
