@@ -177,9 +177,6 @@ export class AndroidDevice implements AbstractInterface {
             param.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
           await this.keyboardType(param.value, {
             autoDismissKeyboard,
-            // In replace mode (default), use overwrite to avoid yadb prepending
-            // placeholder/hint text from AccessibilityNodeInfo.getText()
-            overwrite: param.mode !== 'typeOnly',
           });
         },
       }),
@@ -630,17 +627,13 @@ ${Object.keys(size)
     }
   }
 
-  async execYadb(
-    keyboardContent: string,
-    options?: { overwrite?: boolean },
-  ): Promise<void> {
+  async execYadb(keyboardContent: string): Promise<void> {
     await this.ensureYadb();
 
     const adb = await this.getAdb();
-    const overwriteFlag = options?.overwrite ? ' --overwrite' : '';
 
     await adb.shell(
-      `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard '${keyboardContent}'${overwriteFlag}`,
+      `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard '${keyboardContent}'`,
     );
   }
 
@@ -1533,7 +1526,7 @@ ${Object.keys(size)
 
   async keyboardType(
     text: string,
-    options?: AndroidDeviceInputOpt & { overwrite?: boolean },
+    options?: AndroidDeviceInputOpt,
   ): Promise<void> {
     if (!text) return;
     const adb = await this.getAdb();
@@ -1554,9 +1547,7 @@ ${Object.keys(size)
       // yadb handles newlines natively: escapeForShell converts \n (0x0A)
       // to literal \n (two chars), which yadb interprets back as newline.
       // Single adb call for the entire text.
-      await this.execYadb(escapeForShell(text), {
-        overwrite: options?.overwrite,
-      });
+      await this.execYadb(escapeForShell(text));
     } else {
       // inputText cannot handle newlines, so split by \n and press Enter between segments.
       const segments = text.split('\n');
