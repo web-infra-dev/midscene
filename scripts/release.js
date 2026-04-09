@@ -198,9 +198,13 @@ async function bumpVersion() {
 }
 
 async function pushToGithub(selectVersion, maxRetries = 3) {
+  const branch = args.branch || 'main';
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      await run('git', ['pull', '--rebase', '--autostash']);
+      // Fetch only the current branch to avoid permission errors on other
+      // remote refs created by actions/checkout.
+      await run('git', ['fetch', 'origin', branch]);
+      await run('git', ['rebase', `origin/${branch}`]);
       await run('git', ['tag', '-f', `v${selectVersion.newVersion}`]);
       await run('git', ['push']);
       await run('git', ['push', 'origin', '--tags', '--force']);

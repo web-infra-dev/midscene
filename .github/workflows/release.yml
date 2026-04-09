@@ -57,7 +57,7 @@ jobs:
       run: cd packages/web-integration && npx puppeteer browsers install chrome
 
     - name: release
-      run: node ./scripts/release.js --version=${{ github.event.inputs.version }}
+      run: node ./scripts/release.js --version=${{ github.event.inputs.version }} --branch=${{ github.event.inputs.branch }}
       env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     
