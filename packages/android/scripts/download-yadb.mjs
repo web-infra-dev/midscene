@@ -5,18 +5,28 @@ import { fileURLToPath } from 'node:url';
 import { fetchVersion } from 'gh-release-fetch';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const YADB_VERSION = 'v1.1.0';
+const YADB_VERSION = 'v1.1.1';
 
 async function main() {
   const binDir = path.resolve(__dirname, '../bin');
   const yadbPath = path.resolve(binDir, 'yadb');
   const versionFile = path.resolve(binDir, '.yadb-version');
 
-  // Skip download if binary already exists (bundled or previously downloaded)
+  // Skip download if binary already exists with the correct version
   try {
     await fs.access(yadbPath);
-    console.log('[yadb] Binary already exists, skipping download');
-    return;
+    const currentVersion = await fs
+      .readFile(versionFile, 'utf-8')
+      .catch(() => '');
+    if (currentVersion.trim() === YADB_VERSION) {
+      console.log(
+        '[yadb] Binary already exists with correct version, skipping download',
+      );
+      return;
+    }
+    console.log(
+      `[yadb] Version mismatch (current: ${currentVersion.trim() || 'unknown'}, expected: ${YADB_VERSION}), re-downloading...`,
+    );
   } catch {
     // file does not exist, continue downloading
   }

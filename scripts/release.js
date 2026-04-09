@@ -197,14 +197,22 @@ async function bumpVersion() {
   }
 }
 
-async function pushToGithub(selectVersion) {
-  try {
-    await run('git', ['tag', `v${selectVersion.newVersion}`]);
-    await run('git', ['push']);
-    await run('git', ['push', 'origin', '--tags']);
-  } catch (error) {
-    console.error(chalk.red('Error pushing to GitHub'));
-    throw error;
+async function pushToGithub(selectVersion, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await run('git', ['pull', '--rebase', '--autostash']);
+      await run('git', ['tag', '-f', `v${selectVersion.newVersion}`]);
+      await run('git', ['push']);
+      await run('git', ['push', 'origin', '--tags', '--force']);
+      return;
+    } catch (error) {
+      console.error(chalk.red(`Push attempt ${attempt}/${maxRetries} failed`));
+      if (attempt === maxRetries) {
+        console.error(chalk.red('Error pushing to GitHub'));
+        throw error;
+      }
+      console.log(chalk.yellow('Retrying...'));
+    }
   }
 }
 
