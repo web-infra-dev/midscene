@@ -102,15 +102,15 @@ export const injectScript = async (currentTab: chrome.tabs.Tab | null) => {
   }
 
   try {
-    // Inject the record script first
+    // Inject the record script first (allFrames: true to support nested iframes)
     await safeChromeAPI.scripting.executeScript({
-      target: { tabId: currentTab.id },
+      target: { tabId: currentTab.id, allFrames: true },
       files: ['scripts/recorder-iife.js'],
     });
 
-    // Then inject the content script wrapper
+    // Then inject the content script wrapper (allFrames: true to support nested iframes)
     await safeChromeAPI.scripting.executeScript({
-      target: { tabId: currentTab.id },
+      target: { tabId: currentTab.id, allFrames: true },
       files: ['scripts/event-recorder-bridge.js'],
     });
 

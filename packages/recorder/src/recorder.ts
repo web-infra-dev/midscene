@@ -50,6 +50,10 @@ export interface ChromeRecordedEvent {
   };
   screenshotBefore?: string;
   screenshotAfter?: string;
+  // Page title (including active tab name if present) before the action
+  beforeTitle?: string;
+  // Page title (including active tab name if present) after the action
+  afterTitle?: string;
   elementDescription?: string;
   // Loading state for AI description generation
   descriptionLoading?: boolean;
@@ -488,6 +492,37 @@ export class EventRecorder {
       }
     }
 
+    // Issue 3 fix: Merge consecutive navigation events, keeping only the latest.
+    // When multiple iframes load simultaneously, each emits a navigation event,
+    // cluttering the step list with redundant entries.
+    if (event.type === 'navigation') {
+      if (lastEvent && lastEvent.type === 'navigation') {
+        const newEvents = [...events];
+        newEvents[events.length - 1] = event;
+        debugLog('Replacing consecutive navigation event:', {
+          oldUrl: lastEvent.url,
+          newUrl: event.url,
+        });
+        return newEvents;
+      }
+
+      // Issue 2 fix: Skip navigation events that immediately follow a click event.
+      // When clicking triggers an iframe/page load, both a click and navigation event
+      // are recorded. The click event already captures the action; the navigation is
+      // redundant. Use a 3-second window to detect this pattern.
+      if (
+        lastEvent &&
+        lastEvent.type === 'click' &&
+        event.timestamp - lastEvent.timestamp < 3000
+      ) {
+        debugLog(
+          'Skipping navigation event immediately after click:',
+          event.url,
+        );
+        return events;
+      }
+    }
+
     // Add other events directly
     return [...events, event];
   }
@@ -506,6 +541,8 @@ export function convertToChromeEvent(
     pageInfo: event.pageInfo,
     screenshotBefore: event.screenshotBefore,
     screenshotAfter: event.screenshotAfter,
+    beforeTitle: event.beforeTitle,
+    afterTitle: event.afterTitle,
     elementDescription: event.elementDescription,
     descriptionLoading: event.descriptionLoading,
     screenshotWithBox: event.screenshotWithBox,

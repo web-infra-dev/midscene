@@ -327,7 +327,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         });
       } catch (error) {
         console.error('Failed to optimize event:', error);
-        event.elementDescription = 'failed to generate element description';
+        event.elementDescription = `${event.type || 'element'}`;
         event.descriptionLoading = false;
         completedCount++;
       }

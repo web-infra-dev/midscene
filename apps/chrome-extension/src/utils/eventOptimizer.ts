@@ -53,9 +53,27 @@ export const clearDescriptionCache = (): void => {
   console.log('All caches and ongoing operations cleared');
 };
 
-// Generate fallback description for events when AI fails
-export const generateFallbackDescription = (): string => {
-  return 'failed to generate element description';
+// Generate fallback description based on event data when AI is unavailable.
+// Provides a meaningful description using the event type and position info
+// instead of a generic "failed" message.
+export const generateFallbackDescription = (event?: RecordedEvent): string => {
+  if (!event) return 'element';
+  const pos =
+    event.elementRect?.x !== undefined && event.elementRect?.y !== undefined
+      ? ` at (${Math.round(event.elementRect.x)}, ${Math.round(event.elementRect.y)})`
+      : '';
+  return `${event.type || 'element'}${pos}`;
+};
+
+// Check if AI model is configured and available for description generation
+const isModelConfigured = (): boolean => {
+  try {
+    const config = globalModelConfigManager.getModelConfig('default');
+    // A valid config needs at least an API key or base URL
+    return Boolean(config);
+  } catch (_e) {
+    return false;
+  }
 };
 
 // Check if event has valid rect information
@@ -98,13 +116,23 @@ const extractRect = (event: RecordedEvent): Rect | [number, number] | null => {
   return null;
 };
 
-// Generate AI description asynchronously
+// Generate AI description asynchronously.
+// If no AI model is configured, immediately returns a meaningful fallback
+// description instead of attempting (and failing) the API call.
 export const generateAIDescription = async (
   event: RecordedEvent,
   hashId: string,
 ): Promise<string> => {
   if (!event.screenshotBefore || !hasValidRect(event)) {
-    return generateFallbackDescription();
+    return generateFallbackDescription(event);
+  }
+
+  // Skip AI call entirely if no model is configured — avoids repeated
+  // "failed to generate element description" errors in the step list.
+  if (!isModelConfigured()) {
+    const fallback = generateFallbackDescription(event);
+    addToCache(descriptionCache, hashId, fallback);
+    return fallback;
   }
 
   if (ongoingDescriptionRequests.has(hashId)) {
@@ -159,7 +187,7 @@ export const generateAIDescription = async (
       return description;
     } catch (error) {
       console.error('Failed to generate AI description:', error);
-      const fallbackDescription = generateFallbackDescription();
+      const fallbackDescription = generateFallbackDescription(event);
       addToCache(descriptionCache, hashId, fallbackDescription);
       return fallbackDescription;
     } finally {
@@ -271,7 +299,7 @@ export const optimizeEvent = async (
         );
         updateCallback({
           ...event,
-          elementDescription: generateFallbackDescription(),
+          elementDescription: generateFallbackDescription(event),
           descriptionLoading: false,
         });
       });
@@ -280,7 +308,7 @@ export const optimizeEvent = async (
     console.error('[optimizeEvent] Error processing event:', error);
     return {
       ...event,
-      elementDescription: generateFallbackDescription(),
+      elementDescription: generateFallbackDescription(event),
       descriptionLoading: false,
     };
   }

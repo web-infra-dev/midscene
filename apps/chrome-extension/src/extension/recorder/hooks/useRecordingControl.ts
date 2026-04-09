@@ -71,6 +71,13 @@ export const useRecordingControl = (
     // Set isRecording to false immediately to prevent UI from showing recording state
     await setIsRecording(false);
 
+    // Notify service worker to stop tracking iframe loads
+    try {
+      chrome.runtime.sendMessage({ action: 'recordingStopped' });
+    } catch (_e) {
+      // Non-critical
+    }
+
     try {
       // Check if content script is still available before sending message
       try {
@@ -268,6 +275,17 @@ export const useRecordingControl = (
         });
         await setIsRecording(true);
 
+        // Notify service worker so it can inject scripts into dynamically loaded iframes
+        try {
+          chrome.runtime.sendMessage({
+            action: 'recordingStarted',
+            tabId: currentTab.id,
+            sessionId: sessionToUse.id,
+          });
+        } catch (_e) {
+          // Non-critical: iframe injection will still work for existing frames
+        }
+
         // Only clear events if this is a new session or if the session has no existing events
         // This allows resuming recording on existing sessions without losing previous events
         if (sessionToUse.events.length === 0) {
@@ -441,6 +459,37 @@ export const useRecordingControl = (
               // Buffer events if not connected
               recordLogger.info('Buffering event due to disconnected port');
               eventBuffer.push(optimizedEvent);
+            }
+          } else if (message.action === 'update-after-screenshot') {
+            // Navigation afterScreenshot merging:
+            // When an iframe navigation is triggered by a click/interaction event,
+            // the iframe bridge captures the post-navigation screenshot and sends it here.
+            // We find the most recent event (the triggering click) and update its
+            // afterScreenshot with the navigation's screenshot, so the click event
+            // shows the fully loaded page state after navigation completes.
+            const currentEvents = useRecordStore.getState().events;
+            if (currentEvents.length > 0) {
+              const lastEvent = currentEvents[currentEvents.length - 1];
+              const updatedEvent: ChromeRecordedEvent = {
+                ...lastEvent,
+                screenshotAfter:
+                  message.screenshotAfter || lastEvent.screenshotAfter,
+                afterTitle: message.afterTitle || lastEvent.afterTitle,
+              };
+              recordLogger.info(
+                'Merging navigation afterScreenshot into last event',
+                {
+                  eventType: lastEvent.type,
+                  hashId: lastEvent.hashId,
+                  hasScreenshot: !!message.screenshotAfter,
+                  hasAfterTitle: !!message.afterTitle,
+                },
+              );
+              await updateEvent(updatedEvent);
+            } else {
+              recordLogger.warn(
+                'No events to merge navigation afterScreenshot into',
+              );
             }
           } else {
             recordLogger.warn('Unhandled message format', {

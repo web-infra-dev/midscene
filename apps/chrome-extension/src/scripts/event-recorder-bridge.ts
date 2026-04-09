@@ -38,12 +38,15 @@ interface ChromeMessage {
     | 'captureScreenshot'
     | 'events'
     | 'event-update'
+    | 'update-after-screenshot'
     | 'ping'
     | 'start'
     | 'stop'
     | 'getEvents'
     | 'clearEvents';
   data?: ChromeRecordedEvent[] | ChromeRecordedEvent;
+  screenshotAfter?: string;
+  afterTitle?: string;
   eventIndex?: number;
   totalEvents?: number;
   sessionId?: string;
@@ -74,7 +77,248 @@ let pendingEvents: ChromeRecordedEvent[] | null = null;
 let isPageUnloading = false;
 const eventSendStats = { sent: 0, failed: 0, pending: 0 };
 
+// Detect if running inside an iframe.
+// Uses two independent checks for robustness:
+//   1. window !== window.top (standard check, may fail in some content script worlds)
+//   2. window.frameElement !== null (same-origin iframes; throws SecurityError for cross-origin)
+// If either check confirms we're in an iframe, isInIframe is true.
+let isInIframe = false;
+try {
+  isInIframe = window !== window.top;
+} catch (_e) {
+  // Cross-origin iframe: accessing window.top throws SecurityError
+  isInIframe = true;
+}
+// Fallback: frameElement is non-null inside same-origin iframes
+if (!isInIframe) {
+  try {
+    if (window.frameElement !== null) {
+      isInIframe = true;
+    }
+  } catch (_e) {
+    // Cross-origin iframe: accessing frameElement throws SecurityError
+    isInIframe = true;
+  }
+}
+
+// Log iframe detection result for debugging dynamic iframe injection issues
+console.log('[EventRecorder Bridge] Initialized:', {
+  isInIframe,
+  url: window.location.href,
+  hasEventRecorder: typeof window.EventRecorder !== 'undefined',
+});
+
+// Common selectors for active tab components across popular UI frameworks
+const ACTIVE_TAB_SELECTORS = [
+  // Ant Design
+  '.ant-tabs-tab-active',
+  // Element UI / Element Plus
+  '.el-tabs__item.is-active',
+  // Generic patterns
+  '.tab.active',
+  '.tab-item.active',
+  '.tab.is-active',
+  '.tab-item.is-active',
+  '[role="tab"][aria-selected="true"]',
+  // Bootstrap
+  '.nav-link.active',
+  // Material UI
+  '.Mui-selected[role="tab"]',
+  // Vuetify
+  '.v-tab--active',
+  // iView
+  '.ivu-tabs-tab-active',
+];
+
+/**
+ * Collect all active tab names from a document, across all nesting levels.
+ * Uses querySelectorAll with a combined selector to find all active tabs in DOM order,
+ * which naturally reflects the nesting hierarchy (outer tabs appear before inner tabs).
+ * Returns an array of tab names ordered from outermost to innermost.
+ */
+function collectActiveTabNames(doc: Document): string[] {
+  const tabNames: string[] = [];
+  const combinedSelector = ACTIVE_TAB_SELECTORS.join(', ');
+
+  try {
+    // querySelectorAll returns unique elements in document order (depth-first).
+    // For nested tabs (e.g., Element UI tabs inside tabs), outer active tabs
+    // appear before inner active tabs, giving us the correct hierarchy.
+    const activeTabs = doc.querySelectorAll(combinedSelector);
+    for (const tab of activeTabs) {
+      // Use direct text content only (not nested children's text) to avoid
+      // picking up text from nested tab containers. For Element UI, .el-tabs__item
+      // contains only the tab label text, so textContent is safe.
+      const tabText = (tab.textContent || '').trim();
+      if (tabText && !tabNames.includes(tabText)) {
+        tabNames.push(tabText);
+      }
+    }
+  } catch (_e) {
+    // Ignore selector errors
+  }
+
+  return tabNames;
+}
+
+/**
+ * Capture the current page title combined with all active tab names across nesting levels.
+ * Format: "pageTitle" when no tabs are present.
+ * Format: "pageTitle - TabLevel1 - TabLevel2" for nested tabs.
+ *
+ * When running inside an iframe, also searches parent/top documents for tab context,
+ * since Element UI tabs are typically in the parent frame while iframe content is
+ * inside the tab panel. This ensures that operating within an iframe still captures
+ * the tab hierarchy from the parent page.
+ */
+function capturePageTitle(): string {
+  // Use the top-level page title when inside an iframe
+  let pageTitle = document.title || '';
+  if (isInIframe) {
+    try {
+      if (window.top?.document?.title) {
+        pageTitle = window.top.document.title;
+      }
+    } catch (_e) {
+      // Cross-origin: can't access top document title, use iframe's own title
+    }
+  }
+
+  // Collect active tab names from all accessible documents.
+  // Process parent documents first so outer tab levels appear before inner ones.
+  const allTabNames: string[] = [];
+
+  if (isInIframe) {
+    // Try top-level document first (outermost tab context)
+    try {
+      if (window.top?.document && window.top.document !== document) {
+        const topTabs = collectActiveTabNames(window.top.document);
+        for (const name of topTabs) {
+          if (!allTabNames.includes(name)) {
+            allTabNames.push(name);
+          }
+        }
+      }
+    } catch (_e) {
+      // Cross-origin: can't access top document
+    }
+
+    // Try intermediate parent document (for multi-level iframe nesting)
+    try {
+      if (
+        window.parent?.document &&
+        window.parent !== window.top &&
+        window.parent.document !== document
+      ) {
+        const parentTabs = collectActiveTabNames(window.parent.document);
+        for (const name of parentTabs) {
+          if (!allTabNames.includes(name)) {
+            allTabNames.push(name);
+          }
+        }
+      }
+    } catch (_e) {
+      // Cross-origin: can't access parent document
+    }
+  }
+
+  // Search current document for active tabs (handles non-iframe case
+  // and also picks up any tabs within the iframe itself)
+  const currentTabs = collectActiveTabNames(document);
+  for (const name of currentTabs) {
+    if (!allTabNames.includes(name)) {
+      allTabNames.push(name);
+    }
+  }
+
+  if (allTabNames.length > 0) {
+    return `${pageTitle} - ${allTabNames.join(' - ')}`;
+  }
+
+  return pageTitle;
+}
+
+// Track the last captured title so we can use it as beforeTitle for the next event
+let lastCapturedTitle = '';
+
+// Wait for page to stabilize after an action. Uses MutationObserver to detect
+// when the DOM stops changing, AND checks for iframe load completion.
+// This ensures screenshotAfter captures the fully loaded page state.
+function waitForPageStable(timeout = 3000, settleTime = 500): Promise<void> {
+  return new Promise((resolve) => {
+    let mutationTimer: NodeJS.Timeout | null = null;
+    let timeoutTimer: NodeJS.Timeout | null = null;
+    let observer: MutationObserver | null = null;
+
+    const cleanup = () => {
+      if (mutationTimer) clearTimeout(mutationTimer);
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      if (observer) observer.disconnect();
+    };
+
+    // Maximum wait time
+    timeoutTimer = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, timeout);
+
+    // Observe DOM mutations
+    observer = new MutationObserver(() => {
+      // Reset the settle timer on each mutation
+      if (mutationTimer) clearTimeout(mutationTimer);
+      mutationTimer = setTimeout(() => {
+        cleanup();
+        resolve();
+      }, settleTime);
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      characterData: true,
+    });
+
+    // If no mutations happen within settleTime, check iframe loading state
+    mutationTimer = setTimeout(() => {
+      // Check if any visible iframes are still loading
+      const iframes = document.querySelectorAll('iframe');
+      let pendingIframes = 0;
+      for (const iframe of iframes) {
+        try {
+          if (
+            iframe.contentDocument &&
+            iframe.contentDocument.readyState !== 'complete'
+          ) {
+            pendingIframes++;
+          }
+        } catch (_e) {
+          // Cross-origin iframe, skip
+        }
+      }
+
+      if (pendingIframes > 0) {
+        // Some iframes still loading — wait up to remaining timeout
+        console.debug(
+          `[EventRecorder Bridge] Waiting for ${pendingIframes} iframe(s) to finish loading`,
+        );
+        // Don't cleanup yet; the mutation observer or timeout will resolve
+        return;
+      }
+
+      cleanup();
+      resolve();
+    }, settleTime);
+  });
+}
+
 // Helper function to capture screenshot with timeout
+// Rate limiting: Chrome enforces MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND (~2/sec).
+// Multiple callers (mousedown, idle monitor, event callback) can exceed this quota.
+// Track the last capture time and return the cached screenshot if called too soon.
+const MIN_CAPTURE_INTERVAL = 500; // ms between captureVisibleTab calls
+let lastCaptureTime = 0;
+
 async function captureScreenshot(timeout = 1000): Promise<string | undefined> {
   // Skip screenshot if page is unloading
   if (isPageUnloading) {
@@ -82,6 +326,16 @@ async function captureScreenshot(timeout = 1000): Promise<string | undefined> {
       '[EventRecorder Bridge] Skipping screenshot during page unload',
     );
     return undefined;
+  }
+
+  // Rate limit: if called within MIN_CAPTURE_INTERVAL of last capture,
+  // return cached screenshot to avoid exceeding Chrome's per-second quota.
+  const now = Date.now();
+  if (now - lastCaptureTime < MIN_CAPTURE_INTERVAL) {
+    console.debug(
+      '[EventRecorder Bridge] Screenshot rate-limited, using cached',
+    );
+    return lastScreenshot;
   }
 
   try {
@@ -100,6 +354,7 @@ async function captureScreenshot(timeout = 1000): Promise<string | undefined> {
         '[EventRecorder Bridge] Screenshot capture returned empty result',
       );
     }
+    lastCaptureTime = Date.now();
     return screenshot;
   } catch (error) {
     if (error instanceof Error) {
@@ -124,7 +379,30 @@ let lastActivityTime = Date.now();
 let lastScreenshot: string | undefined = undefined;
 let pageChangeDetectionInterval: NodeJS.Timeout | null = null;
 const PAGE_CHANGE_CHECK_INTERVAL = 2000; // Check every 2 seconds
-const MAX_IDLE_TIME = 100; // 5 seconds of inactivity before updating screenshot
+const MAX_IDLE_TIME = 5000; // 5 seconds of inactivity before updating screenshot
+
+// Issue 1 fix: Capture screenshot on mousedown to preserve hover/cascade content.
+// When clicking elements like cascade selectors, the dropdown disappears on click.
+// By capturing on mousedown (which fires before click), we preserve the visual state
+// with hover content still visible.
+let mousedownScreenshotPromise: Promise<string | undefined> | null = null;
+document.addEventListener(
+  'mousedown',
+  () => {
+    if (window?.recorder?.isActive() && !isPageUnloading) {
+      mousedownScreenshotPromise = captureScreenshot();
+      // Also update lastScreenshot eagerly so it's available as a fallback
+      mousedownScreenshotPromise
+        .then((screenshot) => {
+          if (screenshot) {
+            lastScreenshot = screenshot;
+          }
+        })
+        .catch(() => {});
+    }
+  },
+  true,
+);
 
 // Function to update screenshot when page changes during idle time
 async function updateIdleScreenshot(): Promise<void> {
@@ -156,14 +434,16 @@ async function updateIdleScreenshot(): Promise<void> {
 
 // Function to start page change monitoring
 function startPageChangeMonitoring(): void {
+  if (isInIframe) return;
+
   if (pageChangeDetectionInterval) {
     clearInterval(pageChangeDetectionInterval);
   }
 
-  // pageChangeDetectionInterval = setInterval(
-  //   updateIdleScreenshot,
-  //   PAGE_CHANGE_CHECK_INTERVAL,
-  // );
+  pageChangeDetectionInterval = setInterval(
+    updateIdleScreenshot,
+    PAGE_CHANGE_CHECK_INTERVAL,
+  );
 }
 
 // Function to stop page change monitoring
@@ -175,6 +455,15 @@ function stopPageChangeMonitoring(): void {
 }
 
 // Initialize recorder with callback to send events to extension
+// DESIGN: Each frame (top frame + iframes) independently captures events and sends
+// them to the service worker via chrome.runtime.sendMessage. This avoids the fragile
+// postMessage forwarding mechanism which can fail due to:
+//   - Content script world boundaries preventing postMessage delivery
+//   - isInIframe detection failures in some iframe contexts
+//   - Cross-origin restrictions on window.top access
+// The service worker forwards all events to the popup via connected ports.
+// Each frame maintains its own screenshots (via captureVisibleTab which captures
+// the entire tab) and titles (from its own document.title).
 async function initializeRecorder(sessionId: string): Promise<void> {
   if (!window.EventRecorder) {
     console.error(
@@ -183,10 +472,117 @@ async function initializeRecorder(sessionId: string): Promise<void> {
     return;
   }
 
+  // Initialize lastCapturedTitle with current page title
+  lastCapturedTitle = capturePageTitle();
+
   window.recorder = new window.EventRecorder(
     async (event: ChromeRecordedEvent) => {
       // Update last activity time when new event occurs
       lastActivityTime = Date.now();
+
+      // Navigation event merging for iframes:
+      // When a click in the parent frame triggers an iframe load, the iframe's recorder
+      // emits a navigation event. Instead of adding it as a separate step, we capture
+      // the navigation's afterScreenshot (showing the fully loaded page) and send it
+      // as an update to merge into the triggering click event's afterScreenshot.
+      // This ensures the click event's afterScreenshot reflects the final page state
+      // after the navigation completes.
+      if (isInIframe && event.type === 'navigation') {
+        console.log(
+          '[EventRecorder Bridge] Navigation event in iframe, capturing afterScreenshot for merge:',
+          window.location.href,
+        );
+        // Wait for the page to fully stabilize after navigation
+        await waitForPageStable(3000, 500);
+        const navScreenshot = await captureScreenshot();
+        const navAfterTitle = capturePageTitle();
+        if (navScreenshot) {
+          lastScreenshot = navScreenshot;
+        }
+        // Send the screenshot update to the service worker, which forwards it to the popup.
+        // The popup will find the most recent triggering event and update its afterScreenshot.
+        try {
+          await chrome.runtime.sendMessage({
+            action: 'update-after-screenshot',
+            screenshotAfter: navScreenshot || '',
+            afterTitle: navAfterTitle,
+          } as ChromeMessage);
+          console.log(
+            '[EventRecorder Bridge] Sent navigation afterScreenshot update for merge',
+          );
+        } catch (_e) {
+          console.debug(
+            '[EventRecorder Bridge] Failed to send navigation afterScreenshot update:',
+            _e,
+          );
+        }
+        return;
+      }
+
+      // Capture beforeTitle: use the last captured title (state before this action)
+      event.beforeTitle = lastCapturedTitle;
+
+      // Issue 1 fix: For click events, prefer the mousedown screenshot which captures
+      // the page state with hover/cascade content still visible (before click dismisses it).
+      if (event.type === 'click' && mousedownScreenshotPromise) {
+        try {
+          const mousedownScreenshot = await mousedownScreenshotPromise;
+          if (mousedownScreenshot) {
+            event.screenshotBefore = mousedownScreenshot;
+          }
+        } catch (_e) {
+          // Fall through to lastScreenshot fallback
+        }
+        mousedownScreenshotPromise = null;
+      }
+
+      // Fallback: Use lastScreenshot which represents the page state before this action
+      if (!event.screenshotBefore && lastScreenshot) {
+        event.screenshotBefore = lastScreenshot;
+      }
+
+      // Issue 4 fix: Adjust coordinates for iframe events.
+      // elementRect from getBoundingClientRect() is relative to the iframe's viewport,
+      // but the screenshot from captureVisibleTab() covers the entire tab.
+      // Add the iframe's offset within the parent page to correct the position.
+      if (isInIframe && event.elementRect) {
+        try {
+          const frameEl = window.frameElement;
+          if (frameEl) {
+            const frameRect = frameEl.getBoundingClientRect();
+            // Adjust coordinates by adding iframe's position in parent
+            if (event.elementRect.left !== undefined) {
+              event.elementRect.left += frameRect.left;
+            }
+            if (event.elementRect.top !== undefined) {
+              event.elementRect.top += frameRect.top;
+            }
+            if (event.elementRect.x !== undefined) {
+              event.elementRect.x += frameRect.left;
+            }
+            if (event.elementRect.y !== undefined) {
+              event.elementRect.y += frameRect.top;
+            }
+          }
+        } catch (_e) {
+          // Cross-origin iframe: cannot access frameElement, coordinates remain as-is
+        }
+      }
+
+      // For iframe events, use the tab's dimensions for pageInfo instead of iframe's,
+      // since the screenshot covers the entire tab
+      if (isInIframe) {
+        try {
+          if (window.top) {
+            event.pageInfo = {
+              width: window.top.innerWidth,
+              height: window.top.innerHeight,
+            };
+          }
+        } catch (_e) {
+          // Cross-origin: keep iframe dimensions as fallback
+        }
+      }
 
       const optimizedEvent = window.recorder!.optimizeEvent(event, events);
 
@@ -257,7 +653,15 @@ async function sendEventsToExtension(
           '[EventRecorder Bridge] Using lastScreenshot for immediate screenshotAfter',
         );
       }
+
+      // Capture afterTitle for immediate/unload path
+      const afterTitle = capturePageTitle();
+      latestEvent.afterTitle = afterTitle;
+      lastCapturedTitle = afterTitle;
     } else {
+      // Wait for page to stabilize after the action before capturing screenshotAfter
+      await waitForPageStable(1500, 300);
+
       const screenshotAfter = await captureScreenshot();
       let screenshotBefore: string | undefined;
 
@@ -294,7 +698,15 @@ async function sendEventsToExtension(
 
       // Ensure we have valid screenshots before assigning
       latestEvent.screenshotAfter = screenshotAfter || lastScreenshot || '';
-      latestEvent.screenshotBefore = screenshotBefore || '';
+      // Use pre-captured screenshotBefore from event callback if available
+      latestEvent.screenshotBefore =
+        latestEvent.screenshotBefore || screenshotBefore || '';
+
+      // Capture afterTitle after page has stabilized
+      const afterTitle = capturePageTitle();
+      latestEvent.afterTitle = afterTitle;
+      // Update lastCapturedTitle for the next event's beforeTitle
+      lastCapturedTitle = afterTitle;
 
       // Log warning if screenshots are missing
       if (!latestEvent.screenshotAfter) {
@@ -440,11 +852,12 @@ chrome.runtime.onMessage.addListener(
             );
           });
 
-        startPageChangeMonitoring(); // Start monitoring page changes
-        console.log(
-          '[EventRecorder Bridge] Recording started successfully with session ID:',
-          message.sessionId,
-        );
+        startPageChangeMonitoring(); // Start monitoring page changes (no-op in iframes)
+        console.log('[EventRecorder Bridge] Recording started successfully:', {
+          sessionId: message.sessionId,
+          isInIframe,
+          url: window.location.href,
+        });
         sendResponse({
           success: true,
         });
@@ -509,6 +922,58 @@ chrome.runtime.onMessage.addListener(
   },
 );
 
+// Auto-start recording if the service worker pre-set a session ID flag.
+// This handles dynamically loaded iframes where chrome.tabs.sendMessage is unreliable:
+//   1. Service worker detects iframe load via webNavigation.onCompleted
+//   2. Service worker injects recorder-iife.js
+//   3. Service worker sets window.__midscene_auto_start_session = sessionId (inline executeScript)
+//   4. Service worker injects this bridge script
+//   5. Bridge script detects the flag HERE and auto-starts recording
+// This bypasses the messaging system entirely, eliminating the timing race condition
+// where sendMessage arrives before the onMessage listener is registered in Chrome's
+// internal routing table.
+//
+// IMPORTANT: This logic is wrapped in a function to prevent TypeScript's top-level
+// control flow analysis from narrowing window.recorder to 'never'. At the top level,
+// TypeScript traces window.recorder = null (line 70) and cannot track that
+// initializeRecorder() mutates window.recorder, so if (window.recorder) would be
+// narrowed to 'never'. Inside a function, TypeScript does not carry top-level
+// narrowing, so the same pattern used in the 'start' message handler works correctly.
+function tryAutoStartRecording() {
+  const autoStartSession = (globalThis as any).__midscene_auto_start_session;
+  if (!autoStartSession) return;
+
+  console.log(
+    '[EventRecorder Bridge] Auto-starting recording for dynamic iframe:',
+    { sessionId: autoStartSession, isInIframe, url: window.location.href },
+  );
+
+  if (!window.recorder) {
+    initializeRecorder(autoStartSession);
+  }
+
+  if (window.recorder) {
+    initialScreenshot = captureScreenshot();
+    window.recorder.start();
+    events = [];
+    lastActivityTime = Date.now();
+    initialScreenshot
+      .then((screenshot) => {
+        if (screenshot) {
+          lastScreenshot = screenshot;
+        }
+      })
+      .catch(() => {});
+    startPageChangeMonitoring();
+    console.log('[EventRecorder Bridge] Auto-start completed successfully');
+  }
+  // Clean up the flag to prevent duplicate auto-starts on re-injection
+  (globalThis as any).__midscene_auto_start_session = undefined;
+}
+
+// Execute auto-start check for dynamically loaded iframes
+tryAutoStartRecording();
+
 // Initialize when script loads
 document.addEventListener('DOMContentLoaded', () => {
   console.log('[EventRecorder Bridge] Bridge script loaded and ready');
@@ -549,9 +1014,7 @@ window.addEventListener('pagehide', async () => {
       await sendEventsToExtension(events, true);
     }
   }
-  if (pageChangeDetectionInterval) {
-    clearInterval(pageChangeDetectionInterval);
-  }
+  stopPageChangeMonitoring();
 });
 
 // Handle visibility changes (tab switches, minimizing) with debounce
@@ -576,10 +1039,11 @@ document.addEventListener('visibilitychange', () => {
       clearTimeout(visibilityTimer);
       visibilityTimer = null;
     }
-  }
-
-  if (pageChangeDetectionInterval) {
-    clearInterval(pageChangeDetectionInterval);
+    // Restart idle screenshot monitoring when page becomes visible again
+    startPageChangeMonitoring();
+  } else {
+    // Stop monitoring when hidden
+    stopPageChangeMonitoring();
   }
 });
 
@@ -600,9 +1064,8 @@ const checkForNavigation = () => {
     }
   }
 
-  if (pageChangeDetectionInterval) {
-    clearInterval(pageChangeDetectionInterval);
-  }
+  // Restart idle screenshot monitoring after SPA navigation
+  startPageChangeMonitoring();
 };
 
 // Wrap native history API to catch SPA navigation immediately

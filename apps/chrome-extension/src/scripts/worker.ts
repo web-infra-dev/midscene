@@ -407,6 +407,9 @@ const cacheKeyOrder: string[] = [];
 // Store connected ports for message forwarding
 const connectedPorts = new Set<chrome.runtime.Port>();
 
+// Track active recording state for iframe injection
+let activeRecording: { tabId: number; sessionId: string } | null = null;
+
 // Listen for connections from extension pages
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name === 'record-events') {
@@ -461,11 +464,36 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
   }
 
-  // Forward recording events to connected extension pages
+  // Track recording state for iframe script injection
+  if (request.action === 'recordingStarted') {
+    activeRecording = {
+      tabId: request.tabId,
+      sessionId: request.sessionId,
+    };
+    console.log(
+      '[ServiceWorker] Recording started on tab:',
+      request.tabId,
+      'session:',
+      request.sessionId,
+    );
+    sendResponse({ success: true });
+    return true;
+  }
+  if (request.action === 'recordingStopped') {
+    console.log('[ServiceWorker] Recording stopped');
+    activeRecording = null;
+    sendResponse({ success: true });
+    return true;
+  }
+
+  // Forward recording events and screenshot updates to connected extension pages.
+  // 'update-after-screenshot' is sent by iframe bridges when a navigation event's
+  // afterScreenshot should be merged into the triggering click event.
   if (
     request.action === 'events' ||
     request.action === 'event' ||
-    request.action === 'event-update'
+    request.action === 'event-update' ||
+    request.action === 'update-after-screenshot'
   ) {
     if (connectedPorts.size === 0) {
       console.warn(
@@ -623,6 +651,61 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // Return true to indicate we will send a response asynchronously
   return true;
+});
+
+// Listen for iframe loads during recording to inject scripts into dynamically loaded iframes.
+// Uses a "pre-set flag + auto-start" pattern instead of chrome.tabs.sendMessage because
+// sendMessage with { frameId } is unreliable for dynamically injected content scripts —
+// the message listener may not be registered in Chrome's internal routing table even
+// though executeScript has resolved.
+chrome.webNavigation.onCompleted.addListener(async (details) => {
+  // Only handle sub-frames (iframes), not the main frame
+  if (details.frameId === 0) return;
+
+  // Only inject if recording is active on this tab
+  if (!activeRecording || activeRecording.tabId !== details.tabId) return;
+
+  const sessionId = activeRecording.sessionId;
+
+  try {
+    // Step 1: Inject the EventRecorder class (recorder-iife.js)
+    await chrome.scripting.executeScript({
+      target: { tabId: details.tabId, frameIds: [details.frameId] },
+      files: ['scripts/recorder-iife.js'],
+    });
+
+    // Step 2: Pre-set the session ID flag BEFORE injecting the bridge script.
+    // The bridge script checks this flag at load time and auto-starts recording.
+    // This avoids the unreliable chrome.tabs.sendMessage timing issue.
+    await chrome.scripting.executeScript({
+      target: { tabId: details.tabId, frameIds: [details.frameId] },
+      func: (sid: string) => {
+        (globalThis as any).__midscene_auto_start_session = sid;
+      },
+      args: [sessionId],
+    });
+
+    // Step 3: Inject the bridge script — it will detect __midscene_auto_start_session
+    // and immediately initialize + start recording without needing a 'start' message.
+    await chrome.scripting.executeScript({
+      target: { tabId: details.tabId, frameIds: [details.frameId] },
+      files: ['scripts/event-recorder-bridge.js'],
+    });
+
+    console.log(
+      '[ServiceWorker] Injected recorder into iframe:',
+      details.frameId,
+      'url:',
+      details.url,
+    );
+  } catch (error) {
+    // Silently ignore injection failures (e.g., restricted pages, chrome:// URLs)
+    console.debug(
+      '[ServiceWorker] Failed to inject into iframe:',
+      details.frameId,
+      error,
+    );
+  }
 });
 
 // Reload all tabs after extension is installed or updated (development only)

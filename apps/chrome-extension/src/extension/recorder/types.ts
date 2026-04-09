@@ -5,11 +5,19 @@ export type ViewMode = 'list' | 'detail';
 
 // Message types for content script communication
 export interface RecordMessage {
-  action: 'start' | 'stop' | 'event' | 'events' | 'event-update';
+  action:
+    | 'start'
+    | 'stop'
+    | 'event'
+    | 'events'
+    | 'event-update'
+    | 'update-after-screenshot';
   data?: any;
   eventIndex?: number;
   totalEvents?: number;
   sessionId?: string;
+  screenshotAfter?: string;
+  afterTitle?: string;
 }
 
 // Chrome API safety check
