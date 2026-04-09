@@ -6,7 +6,7 @@ Starting in v1.7.0, you can extract raw screenshots and JSON data from a report 
 
 ## Example
 
-With the CLI, you can parse a report file into a Markdown file like this:
+You can parse a report file into a Markdown file like this:
 
 ```md
 # Act - Search for and play videos related to Midscene

@@ -1,5 +1,75 @@
 # 更新日志
 
+## v1.7 - 灵活处理报告文件、支持 Qwen 3.6 模型
+
+### 灵活处理报告文件
+
+从 v1.7.0 开始，你可以把报告文件中的原始截图和 JSON 数据提取出来，或者把报告转录为 Markdown，方便其他工具继续消费这些内容。
+
+## 示例
+
+你可以把报告文件解析为这样一份 Markdown 文件：
+
+```
+# Act - 搜索并播放 Midscene 相关的视频
+
+- Execution start: 2026-04-08T02:13:04.795Z
+- Task count: 21
+
+## 1. Plan - 点击顶部的搜索框以激活输入
+- Status: finished
+- Start: 2026-04-08T02:13:04.845Z
+- End: 2026-04-08T02:13:15.296Z
+- Cost(ms): 10451
+- Screen size: 2880 x 1536
+
+![task-1](./screenshots/execution-1-task-1-f9fc3bf9-bdf6-48dd-abea-f8f29874d8c1.jpeg)
+
+.....
+```
+
+进一步，你可以结合 [Remotion Skill](https://www.remotion.dev/docs/ai/skills?utm_source=midscenejs) 解析这份 Markdown 文件，并生成一个个性化的回放视频。
+
+视频生成结果如下：
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/midscene-replay.mp4" height="300" controls></video>
+
+Midscene 支持通过命令行工具或者 JavaScript SDK 来解析报告文件，使用方法详见：[解析报告文件](./consume-report-file)
+
+### 新增 Qwen 3.6 模型支持
+
+适配了 Qwen 3.6 模型，可以在 Midscene 中使用最新的通义千问模型。详见：[模型配置](./model-config)
+
+### Chrome 扩展录制语言设置
+
+Chrome 扩展的录制设置中新增了 YAML 输出语言选项，支持 English、Chinese、Japanese 等多种语言，也可设为 Auto 自动跟随系统语言。
+
+### Android / 鸿蒙端改进
+
+- Android 和鸿蒙端新增 `terminate` 操作，支持强制停止指定应用，方便在测试中重置应用状态。详见：[Android API](./android-api-reference)、[鸿蒙 API](./harmony-api-reference)
+- 修复 Android 端在 X/Twitter 上输入时 placeholder 文本被意外保留的问题
+- 修复 Android Playground 局域网访问问题
+
+### 调试体验改进
+
+- 执行日志支持保存到磁盘，便于事后排查问题
+- Playground 配置页面保存模型配置时，可运行连通性测试，及时发现配置错误
+- Skill CLI 的 `run` 命令支持通过 `--image` 参数传入图片作为提示
+
+### 问题修复
+
+- 修复文件选择器缺失文件时错误提示不清晰的问题
+- 修复 CLI 批量运行时错误信息汇总不完整的问题
+- 修复 YAML 脚本中 `aiScroll` 缩进格式错误的问题
+- 修复 `aiLocate` 元素定位框不准确的问题
+- 修复截图失败时缺少降级方案的问题
+- 修复部分模型返回空响应时未正确处理的问题
+- 修复 CDP 连接模式下标签页复用问题
+- 修复 `aiQuery` 在特定数据结构下结果缺失的问题
+- 修复 AutoGLM 启动应用时参数格式不正确的问题
+- 修复 Playground 中部分下拉菜单显示异常的问题
+- 修复模型配置中自定义请求头别名不生效的问题
+
 ## v1.6 - CDP 连接、双指缩放与多模型增强
 
 v1.6 版本新增了 CDP 浏览器连接模式、跨平台双指缩放手势、GPT-5/GPT-5.4 模型支持，同时对元素定位、报告系统、Chrome 扩展等进行了多项改进。
