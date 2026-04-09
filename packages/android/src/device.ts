@@ -1267,7 +1267,7 @@ ${Object.keys(size)
     } else {
       // Use the yadb tool to clear the input box
       await adb.shell(
-        `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"`,
+        `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboardClear`,
       );
     }
 
