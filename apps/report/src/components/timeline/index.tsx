@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import './index.less';
 import type { ExecutionRecorderItem, ExecutionTask } from '@midscene/core';
@@ -447,53 +447,57 @@ const Timeline = () => {
     (store) => store.setHoverPreviewConfig,
   );
 
-  let startingTime = -1;
-  let idCount = 1;
-  const idTaskMap: Record<string, ExecutionTask> = {};
-  const allScreenshots: TimelineItem[] = allTasks
-    .reduce<(ExecutionRecorderItem & { id: string })[]>((acc, current) => {
-      const uiContextRecorderItem: (ExecutionRecorderItem & { id: string })[] =
-        [];
-      const screenshotFromContext = current.uiContext?.screenshot;
-      if (screenshotFromContext && current.timing?.start) {
-        const idStr = `id_${idCount++}`;
-        idTaskMap[idStr] = current;
-        uiContextRecorderItem.push({
-          type: 'screenshot',
-          ts: current.timing.start,
-          screenshot: screenshotFromContext,
-          timing: 'before-calling',
-          id: idStr,
-        });
-      }
-
-      const recorders = current.recorder || [];
-      recorders.forEach((item) => {
-        if (startingTime === -1 || startingTime > item.ts) {
-          startingTime = item.ts;
+  const { allScreenshots, idTaskMap, startingTime } = useMemo(() => {
+    let startingTime = -1;
+    let idCount = 1;
+    const idTaskMap: Record<string, ExecutionTask> = {};
+    const allScreenshots: TimelineItem[] = allTasks
+      .reduce<(ExecutionRecorderItem & { id: string })[]>((acc, current) => {
+        const uiContextRecorderItem: (ExecutionRecorderItem & {
+          id: string;
+        })[] = [];
+        const screenshotFromContext = current.uiContext?.screenshot;
+        if (screenshotFromContext && current.timing?.start) {
+          const idStr = `id_${idCount++}`;
+          idTaskMap[idStr] = current;
+          uiContextRecorderItem.push({
+            type: 'screenshot',
+            ts: current.timing.start,
+            screenshot: screenshotFromContext,
+            timing: 'before-calling',
+            id: idStr,
+          });
         }
-      });
-      if (
-        current.timing?.start &&
-        (startingTime === -1 || startingTime > current.timing.start)
-      ) {
-        startingTime = current.timing.start;
-      }
-      const recorderItemWithId = recorders.map((item) => {
-        const idStr = `id_${idCount++}`;
-        idTaskMap[idStr] = current;
-        return { ...item, id: idStr };
-      });
 
-      return acc.concat(uiContextRecorderItem, recorderItemWithId || []);
-    }, [])
-    .filter((item) => item.screenshot)
-    .map((recorderItem) => ({
-      id: recorderItem.id,
-      img: recorderItem.screenshot?.base64 || '',
-      timeOffset: recorderItem.ts - startingTime,
-    }))
-    .sort((a, b) => a.timeOffset - b.timeOffset);
+        const recorders = current.recorder || [];
+        recorders.forEach((item) => {
+          if (startingTime === -1 || startingTime > item.ts) {
+            startingTime = item.ts;
+          }
+        });
+        if (
+          current.timing?.start &&
+          (startingTime === -1 || startingTime > current.timing.start)
+        ) {
+          startingTime = current.timing.start;
+        }
+        const recorderItemWithId = recorders.map((item) => {
+          const idStr = `id_${idCount++}`;
+          idTaskMap[idStr] = current;
+          return { ...item, id: idStr };
+        });
+
+        return acc.concat(uiContextRecorderItem, recorderItemWithId || []);
+      }, [])
+      .filter((item) => item.screenshot)
+      .map((recorderItem) => ({
+        id: recorderItem.id,
+        img: recorderItem.screenshot?.base64 || '',
+        timeOffset: recorderItem.ts - startingTime,
+      }))
+      .sort((a, b) => a.timeOffset - b.timeOffset);
+    return { allScreenshots, idTaskMap, startingTime };
+  }, [allTasks]);
 
   const itemOnTap = (item: TimelineItem) => {
     const task = idTaskMap[item.id];

@@ -1,0 +1,4 @@
+## 2024-04-09 - Memoize heavy global state selectors
+
+**Learning:** In `apps/report/src/components/store/index.tsx` there was an unmemoized selector `useAllCurrentTasks` which iterated over all task executions and returned a newly constructed array. This caused referential instability that triggered unnecessary re-evaluations in downstream components (like `Timeline` rendering `allScreenshots`), regardless of whether the `dump` state actually changed.
+**Action:** When working on global store selectors (Zustand, Redux, etc.) that return derived arrays or objects, ensure they are memoized. If a hook recalculates and returns a fresh object/array reference on every call, it effectively defeats any downstream memoization (`useMemo` or `React.memo`) that relies on it. Wrap the expensive generation logic in `useMemo` so that references remain stable unless underlying state changes.
