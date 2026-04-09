@@ -56,10 +56,26 @@ jobs:
     - name: Install Puppeteer browser
       run: cd packages/web-integration && npx puppeteer browsers install chrome
 
+    - name: Lock main branch
+      if: github.event.inputs.branch == 'main'
+      run: |
+        gh api repos/${{ github.repository }}/branches/main/protection/lock \
+          --method PUT --input /dev/null
+      env:
+        GH_TOKEN: ${{ secrets.PUSH_TO_PROTECTED_BRANCH }}
+
     - name: release
       run: node ./scripts/release.js --version=${{ github.event.inputs.version }}
       env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    - name: Unlock main branch
+      if: always() && github.event.inputs.branch == 'main'
+      run: |
+        gh api repos/${{ github.repository }}/branches/main/protection/lock \
+          --method DELETE
+      env:
+        GH_TOKEN: ${{ secrets.PUSH_TO_PROTECTED_BRANCH }}
     
     - name: Get version from core package
       id: get_version
