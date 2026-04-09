@@ -56,54 +56,10 @@ jobs:
     - name: Install Puppeteer browser
       run: cd packages/web-integration && npx puppeteer browsers install chrome
 
-    - name: Lock main branch
-      if: github.event.inputs.branch == 'main'
-      id: lock_branch
-      run: |
-        RULESET_ID=$(gh api repos/${{ github.repository }}/rulesets \
-          --method POST \
-          --input - <<'EOF' | jq '.id'
-        {
-          "name": "release-lock-main",
-          "target": "branch",
-          "enforcement": "active",
-          "conditions": {
-            "ref_name": {
-              "include": ["refs/heads/main"],
-              "exclude": []
-            }
-          },
-          "rules": [
-            { "type": "restrict_pushes", "parameters": { "restrict_pushes": true } }
-          ],
-          "bypass_actors": [
-            {
-              "actor_id": ${{ github.actor_id }},
-              "actor_type": "User",
-              "bypass_mode": "always"
-            }
-          ]
-        }
-        EOF
-        )
-        echo "ruleset_id=$RULESET_ID" >> $GITHUB_OUTPUT
-        echo "Created ruleset $RULESET_ID to lock main branch"
-      env:
-        GH_TOKEN: ${{ secrets.PUSH_TO_PROTECTED_BRANCH }}
-
     - name: release
       run: node ./scripts/release.js --version=${{ github.event.inputs.version }}
       env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-    - name: Unlock main branch
-      if: always() && steps.lock_branch.outputs.ruleset_id
-      run: |
-        gh api repos/${{ github.repository }}/rulesets/${{ steps.lock_branch.outputs.ruleset_id }} \
-          --method DELETE
-        echo "Deleted ruleset ${{ steps.lock_branch.outputs.ruleset_id }}"
-      env:
-        GH_TOKEN: ${{ secrets.PUSH_TO_PROTECTED_BRANCH }}
     
     - name: Get version from core package
       id: get_version
