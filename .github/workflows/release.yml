@@ -58,7 +58,7 @@ jobs:
 
     - name: Lock branch
       run: |
-        gh api repos/${{ github.repository }}/branches/${{ github.event.inputs.branch }}/protection/lock \
+        gh api repos/${{ github.repository }}/branches/main/protection/lock \
           --method PUT --input /dev/null
       env:
         GH_TOKEN: ${{ secrets.PUSH_TO_PROTECTED_BRANCH }}
@@ -71,7 +71,7 @@ jobs:
     - name: Unlock branch
       if: always()
       run: |
-        gh api repos/${{ github.repository }}/branches/${{ github.event.inputs.branch }}/protection/lock \
+        gh api repos/${{ github.repository }}/branches/main/protection/lock \
           --method DELETE
       env:
         GH_TOKEN: ${{ secrets.PUSH_TO_PROTECTED_BRANCH }}
