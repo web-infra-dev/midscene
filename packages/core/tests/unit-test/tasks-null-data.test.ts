@@ -173,6 +173,18 @@ describe('TaskExecutor - Null Data Handling', () => {
           uiContext: await createEmptyUIContext(),
         } as any),
       ).rejects.toThrow('Assertion failed: Could not verify assertion');
+
+      expect(mockInsight.extract).toHaveBeenCalledWith(
+        {
+          StatementIsTruthy:
+            'Boolean, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, whether the following statement is true: Page title is correct',
+        },
+        mockModelConfig,
+        {},
+        '',
+        undefined,
+        expect.anything(),
+      );
     });
 
     it('should handle valid data for WaitFor operation', async () => {
@@ -378,7 +390,8 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       expect(mockInsight.extract).toHaveBeenCalledWith(
         {
-          Number: 'Number, Extract the price',
+          Number:
+            'Number, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, Extract the price',
         },
         mockModelConfig,
         {},
@@ -467,7 +480,72 @@ describe('TaskExecutor - Null Data Handling', () => {
         uiContext: await createEmptyUIContext(),
       } as any);
 
+      expect(mockInsight.extract).toHaveBeenCalledWith(
+        {
+          Number:
+            'Number, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, Extract the price',
+        },
+        mockModelConfig,
+        {},
+        '',
+        undefined,
+        expect.anything(),
+      );
       expect(result.output).toBeNull();
+    });
+
+    it('should prepend current screenshot guidance for Boolean type query', async () => {
+      const mockInsight = {
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
+        extract: vi.fn(async () => ({
+          data: {
+            Boolean: true,
+          },
+          usage: { totalTokens: 100 },
+          thought: 'The condition is satisfied in the current screenshot',
+          dump: createMockDump(
+            { Boolean: true },
+            'The condition is satisfied in the current screenshot',
+            { totalTokens: 100 },
+          ),
+        })),
+        onceDumpUpdatedFn: undefined,
+      } as any;
+
+      const mockModelConfig: IModelConfig = {
+        modelName: 'mock-model',
+        modelDescription: 'mock-model-description',
+        intent: 'default',
+      };
+
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
+
+      const queryTask = await (taskExecutor as any).createTypeQueryTask(
+        'Boolean',
+        'there is a like button',
+        mockModelConfig,
+        {},
+      );
+
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: await createEmptyUIContext(),
+      } as any);
+
+      expect(mockInsight.extract).toHaveBeenCalledWith(
+        {
+          Boolean:
+            'Boolean, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, there is a like button',
+        },
+        mockModelConfig,
+        {},
+        '',
+        undefined,
+        expect.anything(),
+      );
+      expect(result.output).toBe(true);
     });
   });
 });
