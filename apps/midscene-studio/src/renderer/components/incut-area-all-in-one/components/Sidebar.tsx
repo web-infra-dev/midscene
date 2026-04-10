@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { incutAssetUrls } from '../assets';
 
 type DeviceStatus = 'active' | 'idle';
 
@@ -55,8 +56,7 @@ const sections: SectionItem[] = [
   {
     id: '7911:68271',
     iconId: '7911:68267',
-    iconSrc:
-      'https://lf0-incut.bytedance.net/obj/incut//direct-gen-assets/cmnrfdkyz001l4zj0162mh287/7911_68267-d31b72c557804e7438390b33ebd48eb3-1a1ca9fa030d5528.png',
+    iconSrc: incutAssetUrls.sidebar.ios,
     key: 'ios',
     label: 'iOS',
     devices: [
@@ -77,8 +77,7 @@ const sections: SectionItem[] = [
   {
     id: '7911:68296',
     iconId: '7911:68291',
-    iconSrc:
-      'https://lf0-incut.bytedance.net/obj/incut//direct-gen-assets/cmnrfdkyz001l4zj0162mh287/7911_68291-106c8b8f4a3a7bf1ab2662810d641517-97cf46070eae41bc.png',
+    iconSrc: incutAssetUrls.sidebar.computer,
     key: 'computer',
     label: 'Computer',
     devices: [
@@ -96,8 +95,7 @@ const sections: SectionItem[] = [
       "absolute left-[155.5px] top-[6px] text-[12px] leading-[20px] font-normal text-[#474848] font-['PingFang_SC']",
     id: '7911:68315',
     iconId: '7911:68310',
-    iconSrc:
-      'https://lf0-incut.bytedance.net/obj/incut//direct-gen-assets/cmnrfdkyz001l4zj0162mh287/7911_68310-27eb1762267d9a96d19609df5085b114-8d7fa179522a06d2.png',
+    iconSrc: incutAssetUrls.sidebar.harmony,
     key: 'harmony',
     label: 'HarmonyOS',
     devices: [
@@ -118,8 +116,7 @@ const sections: SectionItem[] = [
   {
     id: '7911:68343',
     iconId: '7911:68336',
-    iconSrc:
-      'https://lf0-incut.bytedance.net/obj/incut//direct-gen-assets/cmnrfdkyz001l4zj0162mh287/7911_68336-ea22db3b401e6cd095d0269b49d8ff4e-caf728ec7627fda8.png',
+    iconSrc: incutAssetUrls.sidebar.web,
     key: 'web',
     label: 'Web',
     devices: [],
@@ -256,7 +253,7 @@ export default function Sidebar() {
           alt=""
           className="absolute left-[12px] top-[8px] h-4 w-4"
           data-reference-id="7911:68213"
-          src="https://lf0-incut.bytedance.net/obj/incut//direct-gen-assets/cmnrfdkyz001l4zj0162mh287/7911_68213-6dd059d95bed3719f0957b9f57dc7004-cf22dfa3095942a7.png"
+          src={incutAssetUrls.sidebar.overview}
         />
         <span
           className="absolute left-[40px] top-[5px] overflow-hidden whitespace-nowrap text-[13px] font-medium text-[#474848] leading-[22px]"
@@ -329,7 +326,7 @@ export function SidebarFooter() {
           alt=""
           className="h-4 w-4"
           data-reference-id="7780:177924"
-          src="https://lf0-incut.bytedance.net/obj/incut//direct-gen-assets/cmnrfdkyz001l4zj0162mh287/7780_177924-f30a2e77a5f1d2348abb60f533a7f91d-3d404be91bcce8db.png"
+          src={incutAssetUrls.sidebar.settings}
         />
         <span
           className="ml-[6px] text-[13px] leading-[22px] font-normal text-[#474848] font-['PingFang_SC']"

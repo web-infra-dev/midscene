@@ -1,7 +1,4 @@
-const midsceneIconUrl = new URL(
-  '../../../../../../site/docs/public/midscene-icon.png',
-  import.meta.url,
-).href;
+import { incutAssetUrls } from '../assets';
 
 export default function Playground() {
   return (
@@ -26,7 +23,7 @@ export default function Playground() {
           alt="Logo"
           className="absolute left-[175.3px] top-[240px] h-12 w-[51px] object-contain"
           data-reference-id="7792:184434"
-          src={midsceneIconUrl}
+          src={incutAssetUrls.playground.midsceneIcon}
         />
         <h2
           className="absolute left-[81px] top-[307px] h-[44px] w-[240px] text-center font-['Roboto'] text-[18px] leading-[22px] font-semibold text-black"
@@ -62,7 +59,7 @@ Please enter your instructions in the input box below to start experiencing.`}
                   alt=""
                   className="h-4 w-4"
                   data-reference-id="7780:178115"
-                  src="https://lf0-incut.bytedance.net/obj/incut//direct-gen-assets/cmnrfdkyz001l4zj0162mh287/7780_178115-bbe24799867c224ea996cb6082c12c7d-f8c0f6632f93e3a7.png"
+                  src={incutAssetUrls.playground.action}
                 />
                 <span
                   className="ml-[4px] text-[12px] leading-[16px] font-medium text-[#878787]"
@@ -74,7 +71,7 @@ Please enter your instructions in the input box below to start experiencing.`}
                   alt=""
                   className="ml-[4px] h-[9.3px] w-[5.3px] opacity-25"
                   data-reference-id="7780:178117"
-                  src="https://lf0-incut.bytedance.net/obj/incut//direct-gen-assets/cmnrfdkyz001l4zj0162mh287/7780_178117-8ef0e01e023d80a9a86ab418d5721ee2-bce11df5502a5edc.png"
+                  src={incutAssetUrls.playground.actionChevron}
                 />
               </div>
               <div
@@ -84,7 +81,7 @@ Please enter your instructions in the input box below to start experiencing.`}
                 <img
                   alt=""
                   className="h-4 w-4"
-                  src="https://lf0-incut.bytedance.net/obj/incut//direct-gen-assets/cmnrfdkyz001l4zj0162mh287/7780_178119-3a360071958d6689805c86a6a57ebc05-14b5c35d66704df1.png"
+                  src={incutAssetUrls.playground.tool}
                 />
               </div>
               <div className="flex h-8 w-8 items-center justify-center rounded-[32px] hover:bg-black/5">
@@ -92,7 +89,7 @@ Please enter your instructions in the input box below to start experiencing.`}
                   alt=""
                   className="h-[14px] w-[13.9px]"
                   data-reference-id="7780:178130"
-                  src="https://lf0-incut.bytedance.net/obj/incut//direct-gen-assets/cmnrfdkyz001l4zj0162mh287/7780_178130-41feffde95fdcaaaab3adf6819ed7ce1-94dddad8f397b7ce.png"
+                  src={incutAssetUrls.playground.history}
                 />
               </div>
             </div>
@@ -100,7 +97,7 @@ Please enter your instructions in the input box below to start experiencing.`}
               alt="Send"
               className="h-8 w-8 cursor-pointer"
               data-reference-id="7780:178133"
-              src="https://lf0-incut.bytedance.net/obj/incut//direct-gen-assets/cmnrfdkyz001l4zj0162mh287/7780_178133-76e515e427550c483acc2e40ca9bf975-b7e97f3fdad51478.png"
+              src={incutAssetUrls.playground.send}
             />
           </div>
         </div>
