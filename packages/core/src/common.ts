@@ -561,6 +561,19 @@ export const ifMidsceneLocatorField = (field: any): boolean => {
   return false;
 };
 
+const formatPromptWithImages = (promptObj: any): string => {
+  let promptString = promptObj.prompt;
+  if (
+    promptObj.images &&
+    Array.isArray(promptObj.images) &&
+    promptObj.images.length > 0
+  ) {
+    const imageCount = promptObj.images.length;
+    promptString += ` (with ${imageCount} image${imageCount > 1 ? 's' : ''})`;
+  }
+  return promptString;
+};
+
 export const dumpMidsceneLocatorField = (field: any): string => {
   assert(
     ifMidsceneLocatorField(field),
@@ -580,7 +593,7 @@ export const dumpMidsceneLocatorField = (field: any): string => {
     }
     // If prompt is a TUserPrompt object, extract the prompt string
     if (typeof field.prompt === 'object' && field.prompt.prompt) {
-      return field.prompt.prompt; // TODO: dump images if necessary
+      return formatPromptWithImages(field.prompt);
     }
   }
 
@@ -648,7 +661,7 @@ export const dumpActionParam = (
             fieldValue.prompt.prompt
           ) {
             // If prompt is a TUserPrompt object, extract the prompt string
-            result[fieldName] = fieldValue.prompt.prompt;
+            result[fieldName] = formatPromptWithImages(fieldValue.prompt);
           }
         }
       }
