@@ -1,23 +1,24 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
-const requiredFiles = [
+export const defaultRequiredFiles = [
   path.join(rootDir, 'dist/main/main.cjs'),
   path.join(rootDir, 'dist/preload/preload.cjs'),
 ];
-const rendererUrl = 'http://127.0.0.1:3210';
-const maxWaitMs = 180000;
-const pollIntervalMs = 500;
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+export const defaultRendererUrl = 'http://127.0.0.1:3210';
+export const defaultMaxWaitMs = 180000;
+export const defaultPollIntervalMs = 500;
 
-const getFileMtime = (file) => {
+export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export const readMtimeMs = (file) => {
   try {
     return fs.statSync(file).mtimeMs;
   } catch {
@@ -25,9 +26,32 @@ const getFileMtime = (file) => {
   }
 };
 
-const isRendererReady = () =>
+/**
+ * Build a "has this dev cycle produced a fresh build?" checker.
+ *
+ * The checker snapshots each required file's mtime at creation time, then
+ * on every call it returns true only when every file exists AND either was
+ * absent in the snapshot or now has a strictly newer mtime. This avoids
+ * treating stale dist artifacts from a previous `pnpm dev` run as "fresh".
+ */
+export const createFreshBuildChecker = (files, readMtime = readMtimeMs) => {
+  const initialMtimes = new Map(files.map((file) => [file, readMtime(file)]));
+
+  return () =>
+    files.every((file) => {
+      const current = readMtime(file);
+      if (current === null) {
+        return false;
+      }
+
+      const initial = initialMtimes.get(file);
+      return initial === null || current > initial;
+    });
+};
+
+export const checkRendererReady = (url) =>
   new Promise((resolve) => {
-    const request = http.get(rendererUrl, (response) => {
+    const request = http.get(url, (response) => {
       response.resume();
       resolve(response.statusCode === 200);
     });
@@ -39,35 +63,50 @@ const isRendererReady = () =>
     });
   });
 
-const initialBuildTimes = new Map(
-  requiredFiles.map((file) => [file, getFileMtime(file)]),
-);
+/**
+ * Poll until the required build outputs are fresh AND the renderer dev
+ * server is serving a 200, or until `maxWaitMs` elapses. Dependencies are
+ * injectable so the loop can be unit-tested with a virtual clock.
+ */
+export const waitForBuild = async ({
+  requiredFiles = defaultRequiredFiles,
+  rendererUrl = defaultRendererUrl,
+  maxWaitMs = defaultMaxWaitMs,
+  pollIntervalMs = defaultPollIntervalMs,
+  readMtime = readMtimeMs,
+  isRendererReady = () => checkRendererReady(rendererUrl),
+  now = () => Date.now(),
+  delay = sleep,
+} = {}) => {
+  const hasFreshBuild = createFreshBuildChecker(requiredFiles, readMtime);
+  const startedAt = now();
 
-const hasFreshBuild = () =>
-  requiredFiles.every((file) => {
-    const currentMtime = getFileMtime(file);
-    if (currentMtime === null) {
-      return false;
+  while (now() - startedAt < maxWaitMs) {
+    if (hasFreshBuild() && (await isRendererReady())) {
+      return true;
     }
 
-    const initialMtime = initialBuildTimes.get(file);
-    return initialMtime === null || currentMtime > initialMtime;
-  });
+    await delay(pollIntervalMs);
+  }
 
-console.log('Waiting for Midscene Studio shell build output...');
+  return false;
+};
 
-const startedAt = Date.now();
+const isDirectInvocation =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 
-while (Date.now() - startedAt < maxWaitMs) {
-  if (hasFreshBuild() && (await isRendererReady())) {
+if (isDirectInvocation) {
+  console.log('Waiting for Midscene Studio shell build output...');
+
+  const ready = await waitForBuild();
+
+  if (ready) {
     console.log('Midscene Studio shell build is ready.');
     process.exit(0);
   }
 
-  await sleep(pollIntervalMs);
+  console.error(
+    'Timed out waiting for the Midscene Studio shell build to finish.',
+  );
+  process.exit(1);
 }
-
-console.error(
-  'Timed out waiting for the Midscene Studio shell build to finish.',
-);
-process.exit(1);

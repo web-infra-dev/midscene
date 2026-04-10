@@ -1,4 +1,4 @@
-import { incutAssetUrls } from './asset-urls';
+import { incutAssetUrls } from '../../assets';
 
 export default function MainContent() {
   return (
@@ -74,7 +74,7 @@ export default function MainContent() {
       <div className="relative min-h-0 flex-1 overflow-hidden bg-white">
         <img
           alt="Phone screen"
-          className="absolute top-[111.7px] left-1/2 h-[640.5px] w-[360.4px] -translate-x-1/2"
+          className="absolute left-1/2 top-[111.7px] h-[640.5px] w-[360.4px] -translate-x-1/2"
           data-reference-id="7780:178156"
           src={incutAssetUrls.main.phoneScreen}
         />

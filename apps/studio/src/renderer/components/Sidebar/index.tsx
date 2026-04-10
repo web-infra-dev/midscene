@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { incutAssetUrls } from './asset-urls';
+import { incutAssetUrls } from '../../assets';
 
 type DeviceStatus = 'active' | 'idle';
 
@@ -204,8 +204,8 @@ function DeviceRow({
       <span
         className={`absolute left-[40px] w-[158px] overflow-hidden whitespace-nowrap text-[13px] ${
           selected
-            ? 'top-[4.5px] font-medium text-[#0D0D0D] leading-[22.1px]'
-            : 'top-[8px] font-normal text-[#474848] leading-[15.7px]'
+            ? 'top-[4.5px] font-medium leading-[22.1px] text-[#0D0D0D]'
+            : 'top-[8px] font-normal leading-[15.7px] text-[#474848]'
         }`}
         data-reference-id={referenceId}
       >
@@ -262,7 +262,7 @@ export default function Sidebar() {
           设备总览
         </span>
         <span
-          className="absolute left-[98px] top-[6px] text-[11px] font-normal text-[#797A7A] leading-[20px] font-['PingFang_SC']"
+          className="absolute left-[98px] top-[6px] font-['PingFang_SC'] text-[11px] font-normal leading-[20px] text-[#797A7A]"
           data-reference-id="7911:68216"
         >
           4
@@ -274,13 +274,13 @@ export default function Sidebar() {
         <div className="mt-1 flex flex-col">
           <div className="relative h-8 w-full" data-reference-id="7911:68219">
             <span
-              className="absolute left-[12px] top-[5px] overflow-hidden whitespace-nowrap text-[13px] font-medium text-[#9D9FA0] leading-[22px]"
+              className="absolute left-[12px] top-[5px] overflow-hidden whitespace-nowrap text-[13px] font-medium leading-[22px] text-[#9D9FA0]"
               data-reference-id="7911:68221"
             >
               Platform
             </span>
             <span
-              className="absolute left-[204px] top-[6px] text-[12px] font-normal text-[#474848] leading-[20px] font-['PingFang_SC']"
+              className="absolute left-[204px] top-[6px] font-['PingFang_SC'] text-[12px] font-normal leading-[20px] text-[#474848]"
               data-reference-id="7911:68223"
             >
               4
@@ -329,7 +329,7 @@ export function SidebarFooter() {
           src={incutAssetUrls.sidebar.settings}
         />
         <span
-          className="ml-[6px] text-[13px] leading-[22px] font-normal text-[#474848] font-['PingFang_SC']"
+          className="ml-[6px] font-['PingFang_SC'] text-[13px] font-normal leading-[22px] text-[#474848]"
           data-reference-id="7780:177925"
         >
           设置
@@ -340,7 +340,7 @@ export function SidebarFooter() {
             type="button"
           >
             <span
-              className="overflow-hidden whitespace-nowrap text-[11px] leading-[20px] font-medium text-[#474848] font-['PingFang_SC']"
+              className="overflow-hidden whitespace-nowrap font-['PingFang_SC'] text-[11px] font-medium leading-[20px] text-[#474848]"
               data-reference-id="7780:177927"
             >
               模型
@@ -350,7 +350,7 @@ export function SidebarFooter() {
             className="flex h-[30px] min-w-[44px] items-center justify-center rounded-[14px] border border-black/8 bg-white px-[12px] shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
             type="button"
           >
-            <span className="overflow-hidden whitespace-nowrap text-[11px] leading-[20px] font-medium text-[#474848] font-['PingFang_SC']">
+            <span className="overflow-hidden whitespace-nowrap text-[11px] font-medium leading-[20px] text-[#474848]">
               环境
             </span>
           </button>
