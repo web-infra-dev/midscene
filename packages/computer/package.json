@@ -14,7 +14,13 @@
   "bin": {
     "midscene-computer": "./bin/midscene-computer"
   },
-  "files": ["bin", "dist", "README.md"],
+  "files": [
+    "bin",
+    "dist",
+    "prebuilds",
+    "scripts/install-libnut-prebuild.cjs",
+    "README.md"
+  ],
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
@@ -32,7 +38,8 @@
     "build": "rslib build",
     "dev": "rslib build --watch",
     "test": "vitest run",
-    "test:ai": "AI_TEST_TYPE=computer vitest run"
+    "test:ai": "AI_TEST_TYPE=computer vitest run",
+    "postinstall": "node scripts/install-libnut-prebuild.cjs"
   },
   "dependencies": {
     "@computer-use/libnut": "^4.2.0",
