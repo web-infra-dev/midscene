@@ -108,6 +108,14 @@ async function main() {
       console.log('No changes to commit.');
     }
 
+    if (!actionPublishCanary && selectVersion) {
+      // Push version bump commit and tag before npm publish.
+      // If push fails (e.g. remote has new commits), nothing is published
+      // yet, so the release can be safely retried.
+      step('\nPushing to GitHub...');
+      await pushToGithub(selectVersion);
+    }
+
     if (selectVersion) {
       step('\nPublishing...');
       await publish(selectVersion.newVersion);
@@ -116,11 +124,6 @@ async function main() {
       await createVersionMarkerFile(selectVersion.newVersion);
     } else {
       console.log('No new version:', selectVersion);
-    }
-
-    if (!actionPublishCanary) {
-      step('\nPushing to GitHub...');
-      await pushToGithub(selectVersion);
     }
   } catch (error) {
     console.error(
@@ -197,26 +200,14 @@ async function bumpVersion() {
   }
 }
 
-async function pushToGithub(selectVersion, maxRetries = 3) {
-  const branch = args.branch || 'main';
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      // Fetch only the current branch to avoid permission errors on other
-      // remote refs created by actions/checkout.
-      await run('git', ['fetch', 'origin', branch]);
-      await run('git', ['rebase', `origin/${branch}`]);
-      await run('git', ['tag', '-f', `v${selectVersion.newVersion}`]);
-      await run('git', ['push']);
-      await run('git', ['push', 'origin', '--tags', '--force']);
-      return;
-    } catch (error) {
-      console.error(chalk.red(`Push attempt ${attempt}/${maxRetries} failed`));
-      if (attempt === maxRetries) {
-        console.error(chalk.red('Error pushing to GitHub'));
-        throw error;
-      }
-      console.log(chalk.yellow('Retrying...'));
-    }
+async function pushToGithub(selectVersion) {
+  try {
+    await run('git', ['tag', `v${selectVersion.newVersion}`]);
+    await run('git', ['push']);
+    await run('git', ['push', 'origin', '--tags']);
+  } catch (error) {
+    console.error(chalk.red('Error pushing to GitHub'));
+    throw error;
   }
 }
 
