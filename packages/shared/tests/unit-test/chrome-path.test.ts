@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
+  clearSystemChromePathCache,
   getSystemChromePath,
   resolveChromePath,
 } from '../../src/mcp/chrome-path';
@@ -22,6 +23,7 @@ describe('Chrome Path Resolution', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(existsSync).mockReturnValue(false);
+    clearSystemChromePathCache();
   });
 
   afterEach(() => {

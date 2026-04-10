@@ -1,7 +1,17 @@
 import { existsSync } from 'node:fs';
 import { MIDSCENE_MCP_CHROME_PATH, globalConfigManager } from '../env';
 
+let cachedSystemChromePath: string | undefined = undefined;
+
+export function clearSystemChromePathCache() {
+  cachedSystemChromePath = undefined;
+}
+
 export function getSystemChromePath(): string | undefined {
+  if (cachedSystemChromePath !== undefined) {
+    return cachedSystemChromePath;
+  }
+
   const platform = process.platform;
 
   const chromePaths: Record<string, string[]> = {
@@ -29,7 +39,13 @@ export function getSystemChromePath(): string | undefined {
   };
 
   const paths = chromePaths[platform] ?? [];
-  return paths.find((p) => existsSync(p));
+  const foundPath = paths.find((p) => existsSync(p));
+
+  if (foundPath) {
+    cachedSystemChromePath = foundPath;
+  }
+
+  return foundPath;
 }
 
 export function resolveChromePath(): string {
