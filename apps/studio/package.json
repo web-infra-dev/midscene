@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "rsbuild build && node scripts/sync-static-assets.mjs",
-    "dev": "concurrently -k -n build,app \"rsbuild dev\" \"node scripts/wait-for-electron-build.mjs && MIDSCENE_STUDIO_RENDERER_URL=http://127.0.0.1:3210 electron dist/main/main.cjs\"",
+    "dev": "concurrently -k -n build,app \"rsbuild dev\" \"node scripts/wait-for-electron-build.mjs && node scripts/launch-electron-dev.mjs\"",
     "preview": "rsbuild preview --environment renderer",
     "start": "node scripts/sync-static-assets.mjs && electron dist/main/main.cjs",
     "test": "vitest run"

@@ -85,6 +85,22 @@ describe('createFreshBuildChecker', () => {
     // fallback, so equal-mtime must stay false.
     expect(isFresh()).toBe(false);
   });
+
+  it('propagates non-ENOENT read errors instead of treating them as missing files', () => {
+    // Regression guard: readMtimeMs narrows its catch to ENOENT so real IO
+    // errors (permission denied, disk failure, ...) surface instead of being
+    // silently reinterpreted as "file not built yet". If someone widens the
+    // catch back to `catch {}`, this test must break.
+    const throwingReader = () => {
+      const error = new Error('permission denied');
+      error.code = 'EACCES';
+      throw error;
+    };
+
+    expect(() => createFreshBuildChecker([FILE_A], throwingReader)).toThrow(
+      /permission denied/,
+    );
+  });
 });
 
 describe('waitForBuild', () => {

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { rendererDevUrl } from './renderer-dev-config.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,7 +13,7 @@ export const defaultRequiredFiles = [
   path.join(rootDir, 'dist/preload/preload.cjs'),
 ];
 
-export const defaultRendererUrl = 'http://127.0.0.1:3210';
+export const defaultRendererUrl = rendererDevUrl;
 export const defaultMaxWaitMs = 180000;
 export const defaultPollIntervalMs = 500;
 
@@ -26,7 +27,12 @@ export const readMtimeMs = (file) => {
     // (permission denied, IO error, ...) should surface instead of being
     // silently swallowed into a stale-build state.
     if (error && error.code === 'ENOENT') return null;
-    throw error;
+    throw new Error(
+      `wait-for-electron-build: failed to stat ${file}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      { cause: error },
+    );
   }
 };
 
