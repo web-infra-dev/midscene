@@ -6,7 +6,7 @@ Starting in v1.7.0, you can extract raw screenshots and JSON data from a report 
 
 ## Example
 
-With the CLI, you can parse a report file into a Markdown file like this:
+You can parse a report file into a Markdown file like this:
 
 ```md
 # Act - Search for and play videos related to Midscene
@@ -59,6 +59,26 @@ Convert the report file into Markdown and write the result into the `output-mark
 
 ```shell
 npx @midscene/web report-tool --action to-markdown --htmlPath ./midscene_run/report/puppeteer-2026/index.html --outputDir ./output-markdown
+```
+
+## Parse With The JavaScript SDK
+
+If you prefer to control report parsing in code, use `splitReportFile` and `reportFileToMarkdown` from `@midscene/core`.
+
+```ts
+import { reportFileToMarkdown, splitReportFile } from '@midscene/core';
+
+const splitResult = splitReportFile({
+  htmlPath: './midscene_run/report/puppeteer-2026/index.html',
+  outputDir: './output-data',
+});
+console.log(splitResult.executionJsonFiles);
+
+const markdownResult = await reportFileToMarkdown({
+  htmlPath: './midscene_run/report/puppeteer-2026/index.html',
+  outputDir: './output-markdown',
+});
+console.log(markdownResult.markdownFiles);
 ```
 
 ## About Fields In JSON And Markdown

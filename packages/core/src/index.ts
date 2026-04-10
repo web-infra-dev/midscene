@@ -82,8 +82,13 @@ export {
 } from './report';
 export {
   createReportCliCommands,
+  reportFileToMarkdown,
+  splitReportFile,
+  type ConsumeReportFileAction,
+  type ReportFileToMarkdownOptions,
   type ReportCliCommandDefinition,
   type ReportCliCommandEntry,
+  type SplitReportFileOptions,
 } from './report-cli';
 
 // ScreenshotItem
