@@ -1,4 +1,4 @@
-import { incutAssetUrls } from '../../assets';
+import { assetUrls } from '../../assets';
 
 export default function Playground() {
   return (
@@ -23,7 +23,7 @@ export default function Playground() {
           alt="Logo"
           className="absolute left-[175.3px] top-[240px] h-12 w-[51px] object-contain"
           data-reference-id="7792:184434"
-          src={incutAssetUrls.playground.midsceneIcon}
+          src={assetUrls.playground.midsceneIcon}
         />
         <h2
           className="absolute left-[81px] top-[307px] h-[44px] w-[240px] text-center font-['Roboto'] text-[18px] leading-[22px] font-semibold text-black"
@@ -59,7 +59,7 @@ Please enter your instructions in the input box below to start experiencing.`}
                   alt=""
                   className="h-4 w-4"
                   data-reference-id="7780:178115"
-                  src={incutAssetUrls.playground.action}
+                  src={assetUrls.playground.action}
                 />
                 <span
                   className="ml-[4px] text-[12px] leading-[16px] font-medium text-[#878787]"
@@ -71,7 +71,7 @@ Please enter your instructions in the input box below to start experiencing.`}
                   alt=""
                   className="ml-[4px] h-[9.3px] w-[5.3px] opacity-25"
                   data-reference-id="7780:178117"
-                  src={incutAssetUrls.playground.actionChevron}
+                  src={assetUrls.playground.actionChevron}
                 />
               </div>
               <div
@@ -81,7 +81,7 @@ Please enter your instructions in the input box below to start experiencing.`}
                 <img
                   alt=""
                   className="h-4 w-4"
-                  src={incutAssetUrls.playground.tool}
+                  src={assetUrls.playground.tool}
                 />
               </div>
               <div className="flex h-8 w-8 items-center justify-center rounded-[32px] hover:bg-black/5">
@@ -89,7 +89,7 @@ Please enter your instructions in the input box below to start experiencing.`}
                   alt=""
                   className="h-[14px] w-[13.9px]"
                   data-reference-id="7780:178130"
-                  src={incutAssetUrls.playground.history}
+                  src={assetUrls.playground.history}
                 />
               </div>
             </div>
@@ -97,7 +97,7 @@ Please enter your instructions in the input box below to start experiencing.`}
               alt="Send"
               className="h-8 w-8 cursor-pointer"
               data-reference-id="7780:178133"
-              src={incutAssetUrls.playground.send}
+              src={assetUrls.playground.send}
             />
           </div>
         </div>

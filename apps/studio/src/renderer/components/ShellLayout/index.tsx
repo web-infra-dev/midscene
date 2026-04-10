@@ -3,11 +3,10 @@ import MainContent from '../MainContent';
 import Playground from '../Playground';
 import Sidebar, { SidebarFooter } from '../Sidebar';
 
-export default function IncutAreaAllInOne() {
+export default function ShellLayout() {
   return (
     <div
       className="relative h-full w-full overflow-hidden bg-[#F6F6F6] font-sans"
-      data-incut-root="incut-scene-replica"
       data-reference-id="7780:177790"
     >
       <div className="absolute left-0 top-0 h-full w-[240px]">

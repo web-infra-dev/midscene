@@ -1,4 +1,4 @@
-export const incutAssetUrls = {
+export const assetUrls = {
   main: {
     chat: new URL('./main-chat.png', import.meta.url).href,
     device: new URL('./main-device.png', import.meta.url).href,

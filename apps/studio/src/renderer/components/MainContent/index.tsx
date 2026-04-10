@@ -1,4 +1,4 @@
-import { incutAssetUrls } from '../../assets';
+import { assetUrls } from '../../assets';
 
 export default function MainContent() {
   return (
@@ -13,7 +13,7 @@ export default function MainContent() {
               alt=""
               className="h-[21.6px]"
               data-reference-id="7878:58312"
-              src={incutAssetUrls.main.device}
+              src={assetUrls.main.device}
             />
           </div>
           <span
@@ -42,7 +42,7 @@ export default function MainContent() {
               alt=""
               className="mr-[5px] h-3.5 w-3.5"
               data-reference-id="7878:57214"
-              src={incutAssetUrls.main.disconnect}
+              src={assetUrls.main.disconnect}
             />
             <span
               className="whitespace-nowrap px-[3px] text-[13px] leading-[20px] font-medium text-black/90"
@@ -59,7 +59,7 @@ export default function MainContent() {
               className="flex h-4 w-4 items-center"
               data-reference-id="7780:178153"
             >
-              <img alt="" className="h-4 w-4" src={incutAssetUrls.main.chat} />
+              <img alt="" className="h-4 w-4" src={assetUrls.main.chat} />
             </div>
             <span
               className="overflow-hidden whitespace-nowrap text-[13px] leading-[20px] font-medium text-black/90"
@@ -76,7 +76,7 @@ export default function MainContent() {
           alt="Phone screen"
           className="absolute left-1/2 top-[111.7px] h-[640.5px] w-[360.4px] -translate-x-1/2"
           data-reference-id="7780:178156"
-          src={incutAssetUrls.main.phoneScreen}
+          src={assetUrls.main.phoneScreen}
         />
       </div>
     </div>

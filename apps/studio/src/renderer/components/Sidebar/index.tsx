@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { incutAssetUrls } from '../../assets';
+import { assetUrls } from '../../assets';
 
 type DeviceStatus = 'active' | 'idle';
 
@@ -56,7 +56,7 @@ const sections: SectionItem[] = [
   {
     id: '7911:68271',
     iconId: '7911:68267',
-    iconSrc: incutAssetUrls.sidebar.ios,
+    iconSrc: assetUrls.sidebar.ios,
     key: 'ios',
     label: 'iOS',
     devices: [
@@ -77,7 +77,7 @@ const sections: SectionItem[] = [
   {
     id: '7911:68296',
     iconId: '7911:68291',
-    iconSrc: incutAssetUrls.sidebar.computer,
+    iconSrc: assetUrls.sidebar.computer,
     key: 'computer',
     label: 'Computer',
     devices: [
@@ -95,7 +95,7 @@ const sections: SectionItem[] = [
       "absolute left-[155.5px] top-[6px] text-[12px] leading-[20px] font-normal text-[#474848] font-['PingFang_SC']",
     id: '7911:68315',
     iconId: '7911:68310',
-    iconSrc: incutAssetUrls.sidebar.harmony,
+    iconSrc: assetUrls.sidebar.harmony,
     key: 'harmony',
     label: 'HarmonyOS',
     devices: [
@@ -116,7 +116,7 @@ const sections: SectionItem[] = [
   {
     id: '7911:68343',
     iconId: '7911:68336',
-    iconSrc: incutAssetUrls.sidebar.web,
+    iconSrc: assetUrls.sidebar.web,
     key: 'web',
     label: 'Web',
     devices: [],
@@ -250,7 +250,7 @@ export default function Sidebar() {
           alt=""
           className="absolute left-[12px] top-[8px] h-4 w-4"
           data-reference-id="7911:68213"
-          src={incutAssetUrls.sidebar.overview}
+          src={assetUrls.sidebar.overview}
         />
         <span
           className="absolute left-[40px] top-[5px] overflow-hidden whitespace-nowrap text-[13px] font-medium text-[#474848] leading-[22px]"
@@ -314,7 +314,7 @@ export function SidebarFooter() {
           alt=""
           className="h-4 w-4"
           data-reference-id="7780:177924"
-          src={incutAssetUrls.sidebar.settings}
+          src={assetUrls.sidebar.settings}
         />
         <span
           className="ml-[6px] font-['PingFang_SC'] text-[13px] font-normal leading-[22px] text-[#474848]"
