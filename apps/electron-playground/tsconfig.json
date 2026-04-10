@@ -1,0 +1,15 @@
+{
+  "extends": "../../packages/shared/tsconfig.app.base.json",
+  "compilerOptions": {
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "baseUrl": "./src",
+    "paths": {
+      "@main/*": ["main/*"],
+      "@preload/*": ["preload/*"],
+      "@renderer/*": ["renderer/*"],
+      "@shared/*": ["shared/*"]
+    }
+  },
+  "include": ["src"]
+}
