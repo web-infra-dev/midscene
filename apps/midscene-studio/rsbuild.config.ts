@@ -16,7 +16,7 @@ export default defineConfig({
   environments: {
     renderer: {
       html: {
-        title: 'Midscene Electron Playground',
+        title: 'Midscene Studio',
       },
       source: {
         entry: {

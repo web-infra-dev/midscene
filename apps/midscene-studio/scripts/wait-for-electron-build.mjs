@@ -17,6 +17,14 @@ const pollIntervalMs = 500;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const getFileMtime = (file) => {
+  try {
+    return fs.statSync(file).mtimeMs;
+  } catch {
+    return null;
+  }
+};
+
 const isRendererReady = () =>
   new Promise((resolve) => {
     const request = http.get(rendererUrl, (response) => {
@@ -31,21 +39,35 @@ const isRendererReady = () =>
     });
   });
 
-const hasInitialBuild = () =>
-  requiredFiles.every((file) => fs.existsSync(file));
+const initialBuildTimes = new Map(
+  requiredFiles.map((file) => [file, getFileMtime(file)]),
+);
 
-console.log('Waiting for Electron shell build output...');
+const hasFreshBuild = () =>
+  requiredFiles.every((file) => {
+    const currentMtime = getFileMtime(file);
+    if (currentMtime === null) {
+      return false;
+    }
+
+    const initialMtime = initialBuildTimes.get(file);
+    return initialMtime === null || currentMtime > initialMtime;
+  });
+
+console.log('Waiting for Midscene Studio shell build output...');
 
 const startedAt = Date.now();
 
 while (Date.now() - startedAt < maxWaitMs) {
-  if (hasInitialBuild() && (await isRendererReady())) {
-    console.log('Electron shell build is ready.');
+  if (hasFreshBuild() && (await isRendererReady())) {
+    console.log('Midscene Studio shell build is ready.');
     process.exit(0);
   }
 
   await sleep(pollIntervalMs);
 }
 
-console.error('Timed out waiting for the Electron shell build to finish.');
+console.error(
+  'Timed out waiting for the Midscene Studio shell build to finish.',
+);
 process.exit(1);
