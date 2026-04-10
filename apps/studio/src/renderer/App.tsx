@@ -1,5 +1,5 @@
 import './App.css';
-import IncutAreaAllInOne from './components/incut-area-all-in-one';
+import IncutAreaAllInOne from './components/IncutAreaAllInOne';
 
 export default function App() {
   return (

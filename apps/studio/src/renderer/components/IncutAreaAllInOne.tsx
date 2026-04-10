@@ -1,7 +1,7 @@
-import MainContent from './components/MainContent';
-import Playground from './components/Playground';
-import Sidebar, { SidebarFooter } from './components/Sidebar';
 import './globals.css';
+import MainContent from './MainContent';
+import Playground from './Playground';
+import Sidebar, { SidebarFooter } from './Sidebar';
 
 export default function IncutAreaAllInOne() {
   return (

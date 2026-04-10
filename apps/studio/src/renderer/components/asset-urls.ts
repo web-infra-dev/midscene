@@ -13,10 +13,8 @@ export const incutAssetUrls = {
       import.meta.url,
     ).href,
     history: new URL('./assets/playground-history.png', import.meta.url).href,
-    midsceneIcon: new URL(
-      '../../../../assets/midscene-icon.png',
-      import.meta.url,
-    ).href,
+    midsceneIcon: new URL('../../../assets/midscene-icon.png', import.meta.url)
+      .href,
     send: new URL('./assets/playground-send.png', import.meta.url).href,
     tool: new URL('./assets/playground-tool.png', import.meta.url).href,
   },
