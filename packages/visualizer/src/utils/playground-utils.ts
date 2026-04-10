@@ -89,7 +89,7 @@ export const isRunButtonEnabled = (
   runButtonEnabled: boolean,
   needsStructuredParams: boolean,
   params: any,
-  actionSpace: any[] | undefined,
+  actionMap: Map<string, any> | undefined,
   selectedType: string,
   promptValue: string,
 ) => {
@@ -97,15 +97,12 @@ export const isRunButtonEnabled = (
     return false;
   }
 
+  const action = actionMap?.get(selectedType);
+
   // Check if this method needs any input
   const needsAnyInput = (() => {
-    if (actionSpace) {
-      // Use actionSpace to determine if method needs any input
-      const action = actionSpace.find(
-        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
-      );
-
-      // If action exists in actionSpace, check if it has paramSchema with actual fields
+    if (actionMap) {
+      // If action exists in actionMap, check if it has paramSchema with actual fields
       if (action) {
         if (!action.paramSchema) return false;
 
@@ -125,7 +122,7 @@ export const isRunButtonEnabled = (
         return true;
       }
 
-      // If not found in actionSpace, assume most methods need input
+      // If not found in actionMap, assume most methods need input
       return true;
     }
 
@@ -140,9 +137,7 @@ export const isRunButtonEnabled = (
 
   if (needsStructuredParams) {
     const currentParams = params || {};
-    const action = actionSpace?.find(
-      (a) => a.interfaceAlias === selectedType || a.name === selectedType,
-    );
+
     if (action?.paramSchema && isZodObjectSchema(action.paramSchema)) {
       // Check if all required fields are filled
       const schema = action.paramSchema as unknown as ZodObjectSchema;

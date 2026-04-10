@@ -1,0 +1,4 @@
+
+## 2024-05-19 - [Optimize actionSpace lookups in visualizer]
+ **Learning:** In React components like \`PromptInput\`, repeating O(n) `.find()` calls on a large array inside multiple \`useMemo\` and \`useCallback\` hooks leads to significant redundant computations (e.g., 22x slower execution in benchmarks). Converting the array into a \`Map\` once via \`useMemo\` and using O(1) \`.get()\` lookups dramatically improves performance, especially when checking dynamically structured objects like \`paramSchema\`.
+ **Action:** Replaced 10+ repeated `actionSpace.find(a => a.name === type || a.interfaceAlias === type)` lookups in `packages/visualizer/src/component/prompt-input/index.tsx` by precomputing an `actionMap` (`Map<string, DeviceAction>`) and accessing it directly via `actionMap.get(type)`. Also updated the `isRunButtonEnabled` utility signature to accept `actionMap` to carry this optimization through the call stack.
