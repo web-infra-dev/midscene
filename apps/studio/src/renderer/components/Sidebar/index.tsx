@@ -223,7 +223,6 @@ function DeviceRow({
 }
 
 export default function Sidebar() {
-  const [overviewExpanded, setOverviewExpanded] = useState(true);
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
   >({
@@ -243,11 +242,9 @@ export default function Sidebar() {
 
   return (
     <div className="flex flex-col">
-      <button
-        className="relative h-8 w-full cursor-pointer appearance-none rounded-[10px] border-0 bg-transparent p-0 text-left hover:bg-black/5"
+      <div
+        className="relative h-8 w-full rounded-[10px] bg-black/5"
         data-reference-id="7911:68209"
-        onClick={() => setOverviewExpanded((current) => !current)}
-        type="button"
       >
         <img
           alt=""
@@ -261,59 +258,50 @@ export default function Sidebar() {
         >
           设备总览
         </span>
-        <span
-          className="absolute left-[98px] top-[6px] font-['PingFang_SC'] text-[11px] font-normal leading-[20px] text-[#797A7A]"
-          data-reference-id="7911:68216"
-        >
-          4
-        </span>
-        <ChevronDown className="absolute left-[109px] top-0 flex h-full w-4 items-center justify-center" />
-      </button>
+      </div>
 
-      {overviewExpanded ? (
-        <div className="mt-1 flex flex-col">
-          <div className="relative h-8 w-full" data-reference-id="7911:68219">
-            <span
-              className="absolute left-[12px] top-[5px] overflow-hidden whitespace-nowrap text-[13px] font-medium leading-[22px] text-[#9D9FA0]"
-              data-reference-id="7911:68221"
-            >
-              Platform
-            </span>
-            <span
-              className="absolute left-[204px] top-[6px] font-['PingFang_SC'] text-[12px] font-normal leading-[20px] text-[#474848]"
-              data-reference-id="7911:68223"
-            >
-              4
-            </span>
-          </div>
-
-          <div className="flex flex-col">
-            {sections.map((section) => (
-              <div className="flex flex-col" key={section.key}>
-                <SectionHeader
-                  count={section.count}
-                  countClassName={section.countClassName}
-                  iconId={section.iconId}
-                  iconSrc={section.iconSrc}
-                  id={section.id}
-                  label={section.label}
-                  onClick={() => toggleSection(section.key)}
-                />
-
-                {expandedSections[section.key]
-                  ? section.devices.map((device, index) => (
-                      <DeviceRow
-                        key={device.id}
-                        selected={section.key === 'android' && index === 0}
-                        {...device}
-                      />
-                    ))
-                  : null}
-              </div>
-            ))}
-          </div>
+      <div className="mt-1 flex flex-col">
+        <div className="relative h-8 w-full" data-reference-id="7911:68219">
+          <span
+            className="absolute left-[12px] top-[5px] overflow-hidden whitespace-nowrap text-[13px] font-medium leading-[22px] text-[#9D9FA0]"
+            data-reference-id="7911:68221"
+          >
+            Platform
+          </span>
+          <span
+            className="absolute left-[204px] top-[6px] font-['PingFang_SC'] text-[12px] font-normal leading-[20px] text-[#474848]"
+            data-reference-id="7911:68223"
+          >
+            4
+          </span>
         </div>
-      ) : null}
+
+        <div className="flex flex-col">
+          {sections.map((section) => (
+            <div className="flex flex-col" key={section.key}>
+              <SectionHeader
+                count={section.count}
+                countClassName={section.countClassName}
+                iconId={section.iconId}
+                iconSrc={section.iconSrc}
+                id={section.id}
+                label={section.label}
+                onClick={() => toggleSection(section.key)}
+              />
+
+              {expandedSections[section.key]
+                ? section.devices.map((device, index) => (
+                    <DeviceRow
+                      key={device.id}
+                      selected={section.key === 'android' && index === 0}
+                      {...device}
+                    />
+                  ))
+                : null}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
