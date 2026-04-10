@@ -11,6 +11,10 @@ import {
   rendererDevPort,
 } from './scripts/renderer-dev-config.mjs';
 
+// Must match the port used by MIDSCENE_STUDIO_RENDERER_URL in the `dev`
+// script of package.json.
+const rendererDevPort = 3210;
+
 export default defineConfig({
   tools: {
     rspack: {
