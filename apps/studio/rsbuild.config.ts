@@ -4,10 +4,14 @@ import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
 import { version as appVersion } from './package.json';
 
+// Must match the port used by MIDSCENE_STUDIO_RENDERER_URL in the `dev`
+// script of package.json.
+const rendererDevPort = 3210;
+
 export default defineConfig({
   server: {
     host: '127.0.0.1',
-    port: 3210,
+    port: rendererDevPort,
   },
   dev: {
     writeToDisk: true,

@@ -6,16 +6,13 @@ type DeviceStatus = 'active' | 'idle';
 interface DeviceItem {
   id: string;
   label: string;
-  referenceId: string;
   status: DeviceStatus;
 }
 
 interface SectionItem {
   count?: number;
   countClassName?: string;
-  iconId?: string;
   iconSrc?: string;
-  id: string;
   key: string;
   label: string;
   devices: DeviceItem[];
@@ -23,39 +20,32 @@ interface SectionItem {
 
 const sections: SectionItem[] = [
   {
-    id: '7911:68236',
     key: 'android',
     label: 'Android',
     devices: [
       {
         id: 'android-primary',
         label: '三星 Galaxy S26 Ultra',
-        referenceId: '7911:68245',
         status: 'idle',
       },
       {
         id: 'android-1',
         label: '三星 Galaxy S26 Ultra',
-        referenceId: '7911:68250',
         status: 'idle',
       },
       {
         id: 'android-2',
         label: '三星 Galaxy S26 Ultra',
-        referenceId: '7911:68255',
         status: 'idle',
       },
       {
         id: 'android-3',
         label: '三星 Galaxy S26 Ultra',
-        referenceId: '7911:68260',
         status: 'idle',
       },
     ],
   },
   {
-    id: '7911:68271',
-    iconId: '7911:68267',
     iconSrc: assetUrls.sidebar.ios,
     key: 'ios',
     label: 'iOS',
@@ -63,20 +53,16 @@ const sections: SectionItem[] = [
       {
         id: 'ios-1',
         label: 'iPhone 12 Pro Max',
-        referenceId: '7911:68278',
         status: 'active',
       },
       {
         id: 'ios-2',
         label: 'iPhone 17 Pro',
-        referenceId: '7911:68283',
         status: 'idle',
       },
     ],
   },
   {
-    id: '7911:68296',
-    iconId: '7911:68291',
     iconSrc: assetUrls.sidebar.computer,
     key: 'computer',
     label: 'Computer',
@@ -84,7 +70,6 @@ const sections: SectionItem[] = [
       {
         id: 'computer-1',
         label: 'Macbook pro 16',
-        referenceId: '7911:68303',
         status: 'idle',
       },
     ],
@@ -93,8 +78,6 @@ const sections: SectionItem[] = [
     count: 0,
     countClassName:
       "absolute left-[155.5px] top-[6px] text-[12px] leading-[20px] font-normal text-[#474848] font-['PingFang_SC']",
-    id: '7911:68315',
-    iconId: '7911:68310',
     iconSrc: assetUrls.sidebar.harmony,
     key: 'harmony',
     label: 'HarmonyOS',
@@ -102,20 +85,16 @@ const sections: SectionItem[] = [
       {
         id: 'harmony-1',
         label: '华为P50(鸿蒙3.0.0)',
-        referenceId: '7911:68324',
         status: 'idle',
       },
       {
         id: 'harmony-2',
         label: '华为P50(鸿蒙3.0.0)',
-        referenceId: '7911:68329',
         status: 'idle',
       },
     ],
   },
   {
-    id: '7911:68343',
-    iconId: '7911:68336',
     iconSrc: assetUrls.sidebar.web,
     key: 'web',
     label: 'Web',
@@ -142,17 +121,13 @@ function ChevronDown({ className }: { className?: string }) {
 function SectionHeader({
   count,
   countClassName,
-  iconId,
   iconSrc,
-  id,
   label,
   onClick,
 }: {
   count?: number;
   countClassName?: string;
-  iconId?: string;
   iconSrc?: string;
-  id: string;
   label: string;
   onClick: () => void;
 }) {
@@ -184,7 +159,6 @@ function SectionHeader({
 
 function DeviceRow({
   label,
-  referenceId,
   selected,
   status,
 }: DeviceItem & {
@@ -264,9 +238,7 @@ export default function Sidebar() {
               <SectionHeader
                 count={section.count}
                 countClassName={section.countClassName}
-                iconId={section.iconId}
                 iconSrc={section.iconSrc}
-                id={section.id}
                 label={section.label}
                 onClick={() => toggleSection(section.key)}
               />

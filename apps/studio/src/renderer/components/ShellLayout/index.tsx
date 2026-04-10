@@ -1,4 +1,3 @@
-import './globals.css';
 import MainContent from '../MainContent';
 import Playground from '../Playground';
 import Sidebar, { SidebarFooter } from '../Sidebar';

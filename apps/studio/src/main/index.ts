@@ -116,16 +116,12 @@ const registerIpcHandlers = () => {
     mainWindow?.minimize();
   });
   ipcMain.handle(IPC_CHANNELS.toggleMaximizeWindow, () => {
-    if (!mainWindow) {
-      return;
-    }
-
+    if (!mainWindow) return;
     if (mainWindow.isMaximized()) {
       mainWindow.unmaximize();
-      return;
+    } else {
+      mainWindow.maximize();
     }
-
-    mainWindow.maximize();
   });
   ipcMain.handle(IPC_CHANNELS.closeWindow, () => {
     mainWindow?.close();

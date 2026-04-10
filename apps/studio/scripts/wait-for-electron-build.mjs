@@ -21,8 +21,12 @@ export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 export const readMtimeMs = (file) => {
   try {
     return fs.statSync(file).mtimeMs;
-  } catch {
-    return null;
+  } catch (error) {
+    // Missing file is an expected signal ("not built yet"); anything else
+    // (permission denied, IO error, ...) should surface instead of being
+    // silently swallowed into a stale-build state.
+    if (error && error.code === 'ENOENT') return null;
+    throw error;
   }
 };
 
