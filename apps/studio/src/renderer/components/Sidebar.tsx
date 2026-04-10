@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { incutAssetUrls } from '../assets';
+import { incutAssetUrls } from './asset-urls';
 
 type DeviceStatus = 'active' | 'idle';
 

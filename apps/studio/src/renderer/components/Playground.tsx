@@ -1,4 +1,4 @@
-import { incutAssetUrls } from '../assets';
+import { incutAssetUrls } from './asset-urls';
 
 export default function Playground() {
   return (
