@@ -1,17 +1,12 @@
 import { existsSync } from 'node:fs';
-import fs from 'node:fs/promises';
 import path from 'node:path';
-import {
-  IPC_CHANNELS,
-  type ThemePreference,
-  type ThemeSnapshot,
-} from '@shared/electron-contract';
+import { IPC_CHANNELS } from '@shared/electron-contract';
 import {
   BrowserWindow,
+  type NativeImage,
   app,
   ipcMain,
   nativeImage,
-  nativeTheme,
 } from 'electron';
 import type { TitleBarOverlay } from 'electron';
 
@@ -21,21 +16,8 @@ import type { TitleBarOverlay } from 'electron';
  * delegated to a dedicated Node-side service, not imported into the renderer.
  */
 
-const shellSettingsFileName = 'electron-playground-shell.json';
-
-interface ShellSettings {
-  themeSource: ThemePreference;
-}
-
-const defaultSettings: ShellSettings = {
-  themeSource: 'light',
-};
-
 let mainWindow: BrowserWindow | null = null;
-let shellSettings: ShellSettings = { ...defaultSettings };
-
-const getSettingsFilePath = () =>
-  path.join(app.getPath('userData'), shellSettingsFileName);
+let cachedAppIcon: NativeImage | null = null;
 
 const getRendererEntryPath = () =>
   path.join(__dirname, '../renderer/index.html');
@@ -45,8 +27,9 @@ const getPreloadEntryPath = () =>
 
 const getAppIconPath = () => {
   const candidatePaths = [
-    path.resolve(__dirname, '../../../site/docs/public/midscene-icon.png'),
-    path.resolve(process.cwd(), 'apps/site/docs/public/midscene-icon.png'),
+    path.resolve(process.resourcesPath, 'assets/midscene-icon.png'),
+    path.resolve(app.getAppPath(), 'assets/midscene-icon.png'),
+    path.resolve(__dirname, '../assets/midscene-icon.png'),
   ];
 
   const iconPath = candidatePaths.find((candidatePath) =>
@@ -55,7 +38,7 @@ const getAppIconPath = () => {
 
   if (!iconPath) {
     throw new Error(
-      `Electron app icon not found. Checked: ${candidatePaths.join(', ')}`,
+      `Midscene Studio app icon not found. Checked: ${candidatePaths.join(', ')}`,
     );
   }
 
@@ -63,93 +46,31 @@ const getAppIconPath = () => {
 };
 
 const getAppIcon = () => {
+  if (cachedAppIcon) {
+    return cachedAppIcon;
+  }
+
   const icon = nativeImage.createFromPath(getAppIconPath());
 
   if (icon.isEmpty()) {
-    throw new Error('Electron app icon could not be loaded.');
+    throw new Error('Midscene Studio app icon could not be loaded.');
   }
 
+  cachedAppIcon = icon;
   return icon;
 };
 
-const getResolvedTheme = (): ThemeSnapshot['resolved'] =>
-  nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
-
-const getThemeSnapshot = (): ThemeSnapshot => ({
-  source: shellSettings.themeSource,
-  resolved: getResolvedTheme(),
-});
-
 const getBackgroundColor = () =>
-  process.platform === 'darwin'
-    ? '#00000000'
-    : getResolvedTheme() === 'dark'
-      ? '#10151b'
-      : '#eef1f5';
+  process.platform === 'darwin' ? '#00000000' : '#eef1f5';
 
 const getTitleBarOverlay = (): TitleBarOverlay => ({
   color: '#00000000',
   height: 56,
-  symbolColor: getResolvedTheme() === 'dark' ? '#f7fafc' : '#17212b',
+  symbolColor: '#17212b',
 });
 
-const readSettings = async (): Promise<ShellSettings> => {
-  try {
-    const fileContent = await fs.readFile(getSettingsFilePath(), 'utf8');
-    const parsed = JSON.parse(fileContent) as Partial<ShellSettings>;
-    return {
-      themeSource:
-        parsed.themeSource === 'light' ||
-        parsed.themeSource === 'dark' ||
-        parsed.themeSource === 'system'
-          ? parsed.themeSource
-          : defaultSettings.themeSource,
-    };
-  } catch {
-    return { ...defaultSettings };
-  }
-};
-
-const writeSettings = async () => {
-  await fs.mkdir(app.getPath('userData'), { recursive: true });
-  await fs.writeFile(
-    getSettingsFilePath(),
-    JSON.stringify(shellSettings, null, 2),
-    'utf8',
-  );
-};
-
-const syncWindowChrome = () => {
-  if (!mainWindow) {
-    return;
-  }
-
-  mainWindow.setBackgroundColor(getBackgroundColor());
-
-  if (process.platform !== 'darwin') {
-    mainWindow.setTitleBarOverlay(getTitleBarOverlay());
-  }
-};
-
-const broadcastThemeSnapshot = () => {
-  const snapshot = getThemeSnapshot();
-  syncWindowChrome();
-  mainWindow?.webContents.send(IPC_CHANNELS.themeChanged, snapshot);
-};
-
-const applyThemeSource = async (source: ThemePreference) => {
-  shellSettings = {
-    ...shellSettings,
-    themeSource: source,
-  };
-  nativeTheme.themeSource = source;
-  await writeSettings();
-  broadcastThemeSnapshot();
-  return getThemeSnapshot();
-};
-
 const createMainWindow = () => {
-  const rendererDevUrl = process.env.MIDSCENE_ELECTRON_RENDERER_URL;
+  const rendererDevUrl = process.env.MIDSCENE_STUDIO_RENDERER_URL;
   const appIcon = getAppIcon();
   const window = new BrowserWindow({
     width: 1440,
@@ -191,11 +112,6 @@ const createMainWindow = () => {
 };
 
 const registerIpcHandlers = () => {
-  ipcMain.handle(IPC_CHANNELS.getThemeSnapshot, () => getThemeSnapshot());
-  ipcMain.handle(
-    IPC_CHANNELS.updateThemeSource,
-    async (_event, source: ThemePreference) => applyThemeSource(source),
-  );
   ipcMain.handle(IPC_CHANNELS.minimizeWindow, () => {
     mainWindow?.minimize();
   });
@@ -216,23 +132,13 @@ const registerIpcHandlers = () => {
   });
 };
 
-app.whenReady().then(async () => {
-  shellSettings = {
-    ...(await readSettings()),
-    themeSource: 'light',
-  };
-  nativeTheme.themeSource = 'light';
-
+app.whenReady().then(() => {
   if (process.platform === 'darwin' && app.dock) {
     app.dock.setIcon(getAppIcon());
   }
 
   registerIpcHandlers();
   createMainWindow();
-
-  nativeTheme.on('updated', () => {
-    broadcastThemeSnapshot();
-  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

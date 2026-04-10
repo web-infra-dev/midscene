@@ -1,13 +1,13 @@
 {
-  "name": "electron-playground",
+  "name": "midscene-studio",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "build": "rsbuild build",
-    "dev": "concurrently -k -n build,app \"rsbuild dev\" \"node scripts/wait-for-electron-build.mjs && MIDSCENE_ELECTRON_RENDERER_URL=http://127.0.0.1:3210 electron dist/main/main.cjs\"",
+    "build": "rsbuild build && node scripts/sync-static-assets.mjs",
+    "dev": "concurrently -k -n build,app \"rsbuild dev\" \"node scripts/wait-for-electron-build.mjs && MIDSCENE_STUDIO_RENDERER_URL=http://127.0.0.1:3210 electron dist/main/main.cjs\"",
     "preview": "rsbuild preview --environment renderer",
-    "start": "electron dist/main/main.cjs"
+    "start": "node scripts/sync-static-assets.mjs && electron dist/main/main.cjs"
   },
   "dependencies": {
     "react": "18.3.1",

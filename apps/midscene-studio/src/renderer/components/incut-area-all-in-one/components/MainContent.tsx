@@ -1,3 +1,5 @@
+import { incutAssetUrls } from '../assets';
+
 export default function MainContent() {
   return (
     <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-l-[12px] border-r border-[#ECECEC] bg-white">
@@ -11,7 +13,7 @@ export default function MainContent() {
               alt=""
               className="h-[21.6px]"
               data-reference-id="7878:58312"
-              src="https://lf0-incut.bytedance.net/obj/incut//direct-gen-assets/cmnrfdkyz001l4zj0162mh287/7878_58312-6d6372dac5f56233533ebbff5a4b41f3-4d1780451876dd28.png"
+              src={incutAssetUrls.main.device}
             />
           </div>
           <span
@@ -40,7 +42,7 @@ export default function MainContent() {
               alt=""
               className="mr-[5px] h-3.5 w-3.5"
               data-reference-id="7878:57214"
-              src="https://lf0-incut.bytedance.net/obj/incut//direct-gen-assets/cmnrfdkyz001l4zj0162mh287/7878_57214-0811a61dfc91ca2aa1a06bdda7d10e43-663fcc7009370376.png"
+              src={incutAssetUrls.main.disconnect}
             />
             <span
               className="whitespace-nowrap px-[3px] text-[13px] leading-[20px] font-medium text-black/90"
@@ -57,11 +59,7 @@ export default function MainContent() {
               className="flex h-4 w-4 items-center"
               data-reference-id="7780:178153"
             >
-              <img
-                alt=""
-                className="h-4 w-4"
-                src="https://lf0-incut.bytedance.net/obj/incut//direct-gen-assets/cmnrfdkyz001l4zj0162mh287/7780_178153-5aaaf04ef0299154c65d4ad6f22af40d-d31f325f259c5abb.png"
-              />
+              <img alt="" className="h-4 w-4" src={incutAssetUrls.main.chat} />
             </div>
             <span
               className="overflow-hidden whitespace-nowrap text-[13px] leading-[20px] font-medium text-black/90"
@@ -78,7 +76,7 @@ export default function MainContent() {
           alt="Phone screen"
           className="absolute top-[111.7px] left-1/2 h-[640.5px] w-[360.4px] -translate-x-1/2"
           data-reference-id="7780:178156"
-          src="https://lf0-incut.bytedance.net/obj/incut//direct-gen-assets/cmnrfdkyz001l4zj0162mh287/7780_178156-293a978cb6aa14d69b884a6314ecd372-f28f4fd411ae7735.png"
+          src={incutAssetUrls.main.phoneScreen}
         />
       </div>
     </div>
