@@ -36,6 +36,21 @@ if (!chromeEndpoint) {
   process.exit(1);
 }
 
+let parsedEndpoint: URL;
+try {
+  parsedEndpoint = new URL(chromeEndpoint);
+} catch {
+  process.stderr.write(`Invalid CDP endpoint URL: ${chromeEndpoint}\n`);
+  process.exit(1);
+}
+
+if (parsedEndpoint.protocol !== 'ws:' && parsedEndpoint.protocol !== 'wss:') {
+  process.stderr.write(
+    `Invalid CDP endpoint protocol: ${parsedEndpoint.protocol}. Only ws: and wss: are allowed.\n`,
+  );
+  process.exit(1);
+}
+
 // ---------------------------------------------------------------------------
 // Cleanup
 // ---------------------------------------------------------------------------
