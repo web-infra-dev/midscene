@@ -174,6 +174,8 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 );
 ```
 
+`PlaywrightAiFixture()` 也支持传入 `PlaywrightAgent` 的全部配置，因此你可以在创建 fixture 时统一配置共享的 Agent 行为。`testId`、`reportFileName`、`groupName`、`groupDescription` 这类由 fixture 管理的元信息仍会自动生成。
+
 ### 第三步：编写测试用例
 
 完整的交互、查询和辅助 API 请参考 [Agent API 参考](./api#interaction-methods)。如果需要调用更底层的能力，可以使用 `agentForPage` 获取 `PageAgent` 实例，再直接调用对应的方法：
