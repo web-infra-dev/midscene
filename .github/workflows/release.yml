@@ -90,3 +90,14 @@ jobs:
           ${{ github.workspace }}/apps/chrome-extension/extension_output/**/*.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Publish Chrome extension to Chrome Web Store
+      if: ${{ !contains(steps.get_version.outputs.version, 'beta') && !contains(steps.get_version.outputs.version, 'alpha') && !contains(steps.get_version.outputs.version, 'rc') }}
+      run: |
+        bash ./scripts/publish-chrome-extension.sh \
+          --zip-path "${{ github.workspace }}/apps/chrome-extension/extension_output/midscene-extension-${{ steps.get_version.outputs.version }}.zip"
+      env:
+        CHROME_WEB_STORE_PUBLISHER_ID: ${{ secrets.CHROME_WEB_STORE_PUBLISHER_ID }}
+        CHROME_WEB_STORE_CLIENT_ID: ${{ secrets.CHROME_WEB_STORE_CLIENT_ID }}
+        CHROME_WEB_STORE_CLIENT_SECRET: ${{ secrets.CHROME_WEB_STORE_CLIENT_SECRET }}
+        CHROME_WEB_STORE_REFRESH_TOKEN: ${{ secrets.CHROME_WEB_STORE_REFRESH_TOKEN }}
