@@ -1,6 +1,9 @@
 import assert from 'node:assert';
-import { execFileSync, execSync } from 'node:child_process';
+import { execFileSync, execSync, spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   type DeviceAction,
   type InterfaceType,
@@ -192,6 +195,61 @@ async function getLibnut(): Promise<LibNut> {
 }
 
 const debugDevice = getDebug('computer:device');
+
+/**
+ * Resolve the phased-scroll helper binary bundled with the package.
+ * Returns null on non-darwin or when the binary is missing.
+ *
+ * The binary is a tiny CoreGraphics helper that posts trackpad-like scroll
+ * events with proper gesture phase markers, which WebKit and modern AppKit
+ * scroll views accept without needing keyboard focus — unlike libnut's
+ * phase-less CGScrollEvent path.
+ */
+let phasedScrollBinaryPath: string | null | undefined;
+function getPhasedScrollBinary(): string | null {
+  if (phasedScrollBinaryPath !== undefined) return phasedScrollBinaryPath;
+  if (process.platform !== 'darwin') {
+    phasedScrollBinaryPath = null;
+    return null;
+  }
+  const hereDir = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    resolve(hereDir, '../bin/darwin/phased-scroll'), // src/device.ts
+    resolve(hereDir, '../../bin/darwin/phased-scroll'), // dist/{lib,es}/*.js
+    resolve(hereDir, '../../../bin/darwin/phased-scroll'),
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) {
+      phasedScrollBinaryPath = p;
+      return p;
+    }
+  }
+  debugDevice('phased-scroll binary not found, tried:', candidates);
+  phasedScrollBinaryPath = null;
+  return null;
+}
+
+function runPhasedScroll(
+  direction: 'up' | 'down' | 'left' | 'right',
+  pixels: number,
+  steps = 20,
+): boolean {
+  const bin = getPhasedScrollBinary();
+  if (!bin) return false;
+  try {
+    const res = spawnSync(
+      bin,
+      [direction, String(Math.max(1, Math.round(pixels))), String(steps)],
+      { stdio: 'ignore' },
+    );
+    if (res.status === 0) return true;
+    debugDevice('phased-scroll exited non-zero', res.status, res.error);
+    return false;
+  } catch (err) {
+    debugDevice('phased-scroll spawn failed', err);
+    return false;
+  }
+}
 
 /**
  * Smooth mouse movement to trigger mousemove events
@@ -756,9 +814,26 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
         const edgeAction = scrollToEdgeActions[scrollType || ''];
         if (edgeAction) {
-          // On macOS, WebKit (Safari) and some other apps drop synthetic
-          // CGScrollEvents from libnut, so edge scrolls silently no-op.
-          // Prefer keyboard navigation via AppleScript when available.
+          const edgeDirection = (
+            {
+              scrollToTop: 'up',
+              scrollToBottom: 'down',
+              scrollToLeft: 'left',
+              scrollToRight: 'right',
+            } as const
+          )[scrollType as 'scrollToTop'];
+
+          // Preferred path on macOS: phased scroll helper emits trackpad-like
+          // events that WebKit / Filo / AppKit scroll views accept without
+          // keyboard focus. Fires a very large distance so normal pages hit
+          // the edge; modern scroll views clamp at the boundary.
+          if (edgeDirection && runPhasedScroll(edgeDirection, 50000, 400)) {
+            await sleep(SCROLL_COMPLETE_DELAY);
+            return;
+          }
+
+          // Fallback: keyboard via AppleScript (requires the scroll view to
+          // be focused, but works for many already-focused Cocoa apps).
           const edgeKey = this.useAppleScript
             ? {
                 scrollToTop: 'home',
@@ -773,6 +848,8 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
             return;
           }
 
+          // Last-resort fallback: libnut scroll-wheel ticks. WebKit silently
+          // drops these, but non-web apps on Linux/Windows still respond.
           const [dx, dy] = edgeAction;
           for (let i = 0; i < SCROLL_REPEAT_COUNT; i++) {
             libnut.scrollMouse(dx, dy);
@@ -786,9 +863,22 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
           const distance = param?.distance || 500;
           const direction = param?.direction || 'down';
 
-          // macOS: vertical scroll via PageUp/PageDown to bypass WebKit's
-          // synthetic-scroll filtering. Approximate distance using viewport
-          // pages (~600px per page).
+          if (
+            (direction === 'up' ||
+              direction === 'down' ||
+              direction === 'left' ||
+              direction === 'right') &&
+            runPhasedScroll(
+              direction,
+              distance,
+              Math.max(10, Math.round(distance / 30)),
+            )
+          ) {
+            await sleep(SCROLL_COMPLETE_DELAY);
+            return;
+          }
+
+          // Fallback on macOS: keyboard PageUp/PageDown (vertical only).
           if (
             this.useAppleScript &&
             (direction === 'up' || direction === 'down')
