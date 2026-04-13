@@ -8,10 +8,16 @@ export default function Playground() {
 
   return (
     <div className="flex h-full w-[400px] shrink-0 flex-col overflow-hidden rounded-r-[12px] bg-white">
-      <div className="flex h-[56px] items-center px-[22px]">
+      <div className="flex h-[56px] items-center justify-between px-[22px]">
         <span className="text-[13px] leading-[22.1px] font-medium text-[#0D0D0D]">
           Playground
         </span>
+        {studioPlayground.phase === 'ready' ? (
+          <EnvConfig
+            playgroundSDK={studioPlayground.controller.state.playgroundSDK}
+            showTooltipWhenEmpty={false}
+          />
+        ) : null}
       </div>
 
       <div className="min-h-0 flex-1 overflow-hidden px-4 pb-4">
