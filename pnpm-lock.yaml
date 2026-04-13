@@ -510,6 +510,18 @@ importers:
 
   apps/studio:
     dependencies:
+      '@midscene/android-playground':
+        specifier: workspace:*
+        version: link:../../packages/android-playground
+      '@midscene/playground':
+        specifier: workspace:*
+        version: link:../../packages/playground
+      '@midscene/playground-app':
+        specifier: workspace:*
+        version: link:../../packages/playground-app
+      '@midscene/visualizer':
+        specifier: workspace:*
+        version: link:../../packages/visualizer
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -1395,6 +1407,9 @@ importers:
       '@midscene/playground':
         specifier: workspace:*
         version: link:../playground
+      '@midscene/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@midscene/visualizer':
         specifier: workspace:*
         version: link:../visualizer

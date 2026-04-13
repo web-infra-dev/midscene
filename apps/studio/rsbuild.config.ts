@@ -1,7 +1,10 @@
+import path from 'node:path';
 import { defineConfig } from '@rsbuild/core';
 import { pluginLess } from '@rsbuild/plugin-less';
+import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
+import { commonIgnoreWarnings } from '../../scripts/rsbuild-utils.ts';
 import { version as appVersion } from './package.json';
 import {
   rendererDevHost,
@@ -9,6 +12,11 @@ import {
 } from './scripts/renderer-dev-config.mjs';
 
 export default defineConfig({
+  tools: {
+    rspack: {
+      ignoreWarnings: commonIgnoreWarnings,
+    },
+  },
   server: {
     host: rendererDevHost,
     port: rendererDevPort,
@@ -16,7 +24,26 @@ export default defineConfig({
   dev: {
     writeToDisk: true,
   },
-  plugins: [pluginReact(), pluginLess(), pluginTypeCheck()],
+  plugins: [
+    pluginReact(),
+    pluginLess(),
+    pluginNodePolyfill(),
+    pluginTypeCheck(),
+  ],
+  resolve: {
+    alias: {
+      async_hooks: path.join(
+        __dirname,
+        '../../packages/shared/src/polyfills/async-hooks.ts',
+      ),
+      'node:async_hooks': path.join(
+        __dirname,
+        '../../packages/shared/src/polyfills/async-hooks.ts',
+      ),
+      undici: false,
+      'fetch-socks': false,
+    },
+  },
   environments: {
     renderer: {
       html: {
@@ -35,6 +62,7 @@ export default defineConfig({
         distPath: {
           root: 'dist/renderer',
         },
+        externals: ['sharp'],
         sourceMap: true,
       },
     },
@@ -58,7 +86,7 @@ export default defineConfig({
         filename: {
           js: '[name].cjs',
         },
-        externals: ['electron'],
+        externals: ['electron', '@midscene/android-playground'],
         sourceMap: true,
       },
     },

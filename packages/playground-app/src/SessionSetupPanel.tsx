@@ -15,7 +15,9 @@ import {
   Typography,
 } from 'antd';
 import type { FormInstance } from 'antd';
+import type { PlaygroundFormValues } from './controller/types';
 import type { PlaygroundSessionViewState } from './session-state';
+import './SessionSetupPanel.less';
 
 const { Paragraph, Title } = Typography;
 
@@ -119,7 +121,7 @@ function renderSessionField(
 }
 
 export interface SessionSetupPanelProps {
-  form: FormInstance<Record<string, unknown>>;
+  form: FormInstance<PlaygroundFormValues>;
   sessionSetup: PlaygroundSessionSetup | null;
   sessionSetupError: string | null;
   sessionViewState: PlaygroundSessionViewState;

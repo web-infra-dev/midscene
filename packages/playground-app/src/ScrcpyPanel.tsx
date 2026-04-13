@@ -8,12 +8,22 @@ import { Alert, Button, Card, Space, Spin, Typography } from 'antd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
+import {
+  SCRCPY_METADATA_TIMEOUT_MS,
+  type ScrcpyPreviewStatus,
+  getDefaultScrcpyWaitingStatusText,
+  getScrcpyDecoderStatusText,
+  getScrcpyMetadataTimeoutMessage,
+  getScrcpyPreviewStatusText,
+  isScrcpyPreviewStatusEvent,
+} from './scrcpy-preview';
 import { createScrcpyVideoStream } from './scrcpy-stream';
 
 const { Text } = Typography;
 
 interface ScrcpyPanelProps {
   serverUrl?: string;
+  metadataTimeoutMs?: number;
   reconnectInterval?: number;
 }
 
@@ -25,37 +35,33 @@ interface VideoMetadata {
 
 export function ScrcpyPanel({
   serverUrl,
+  metadataTimeoutMs = SCRCPY_METADATA_TIMEOUT_MS,
   reconnectInterval = 3000,
 }: ScrcpyPanelProps) {
   const canvasStageRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const decoderRef = useRef<WebCodecsVideoDecoder | null>(null);
+  const metadataTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const connectRef = useRef<(() => void) | null>(null);
   const disconnectRef = useRef<(() => void) | null>(null);
   const manuallyDisconnectedRef = useRef(false);
-  const [status, setStatus] = useState<
-    'connecting' | 'connected' | 'disconnected' | 'error'
-  >('connecting');
+  const ignoreDisconnectRef = useRef(false);
+  const [status, setStatus] = useState<ScrcpyPreviewStatus>('connecting');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [waitingStatusMessage, setWaitingStatusMessage] = useState<string>(() =>
+    getDefaultScrcpyWaitingStatusText(),
+  );
   const [screenInfo, setScreenInfo] = useState<{
     width: number;
     height: number;
   } | null>(null);
   const [webCodecsSupported, setWebCodecsSupported] = useState(true);
 
-  const statusText = useMemo(() => {
-    switch (status) {
-      case 'connected':
-        return 'Live scrcpy preview connected';
-      case 'error':
-        return 'Unable to start scrcpy preview';
-      case 'disconnected':
-        return 'scrcpy preview disconnected, retrying…';
-      default:
-        return 'Connecting to scrcpy preview…';
-    }
-  }, [status]);
+  const statusText = useMemo(
+    () => getScrcpyPreviewStatusText(status, waitingStatusMessage),
+    [status, waitingStatusMessage],
+  );
 
   const clearCanvas = () => {
     const stage = canvasStageRef.current;
@@ -73,6 +79,13 @@ export function ScrcpyPanel({
 
     decoderRef.current.dispose();
     decoderRef.current = null;
+  };
+
+  const clearMetadataTimeout = () => {
+    if (metadataTimeoutRef.current) {
+      clearTimeout(metadataTimeoutRef.current);
+      metadataTimeoutRef.current = null;
+    }
   };
 
   const handleConnect = useCallback(() => {
@@ -104,6 +117,7 @@ export function ScrcpyPanel({
     let disposed = false;
 
     const cleanup = () => {
+      clearMetadataTimeout();
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
@@ -164,9 +178,11 @@ export function ScrcpyPanel({
       }
 
       manuallyDisconnectedRef.current = false;
+      ignoreDisconnectRef.current = false;
       setStatus('connecting');
       setErrorMessage(null);
       setScreenInfo(null);
+      setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
 
       const socket = io(serverUrl, {
         withCredentials: true,
@@ -177,14 +193,42 @@ export function ScrcpyPanel({
       const videoStream = createScrcpyVideoStream(socket);
 
       socket.on('connect', () => {
+        setStatus('waiting-for-stream');
+        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
+        clearMetadataTimeout();
+        metadataTimeoutRef.current = setTimeout(() => {
+          if (disposed || manuallyDisconnectedRef.current) {
+            return;
+          }
+
+          ignoreDisconnectRef.current = true;
+          setStatus('error');
+          setErrorMessage(getScrcpyMetadataTimeoutMessage(metadataTimeoutMs));
+          setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
+          socket.disconnect();
+          socketRef.current = null;
+          scheduleReconnect();
+        }, metadataTimeoutMs);
+
         socket.emit('connect-device', {
           maxSize: 1024,
         });
       });
 
+      socket.on('preview-status', (event: unknown) => {
+        if (disposed || !isScrcpyPreviewStatusEvent(event)) {
+          return;
+        }
+
+        setStatus('waiting-for-stream');
+        setWaitingStatusMessage(event.message);
+      });
+
       socket.on('video-metadata', async (metadata: VideoMetadata) => {
         try {
+          clearMetadataTimeout();
           disposeDecoder();
+          setWaitingStatusMessage(getScrcpyDecoderStatusText());
           const codecId = metadata.codec
             ? (metadata.codec as unknown as ScrcpyVideoCodecId)
             : ScrcpyVideoCodecId.H264;
@@ -206,6 +250,7 @@ export function ScrcpyPanel({
             scheduleReconnect();
           });
 
+          setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
           setStatus('connected');
         } catch (error) {
           if (disposed) {
@@ -215,33 +260,45 @@ export function ScrcpyPanel({
           setErrorMessage(
             error instanceof Error ? error.message : 'Failed to start decoder.',
           );
+          setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
           scheduleReconnect();
         }
       });
 
       socket.on('disconnect', () => {
+        clearMetadataTimeout();
         if (disposed) {
           return;
         }
+        if (ignoreDisconnectRef.current) {
+          ignoreDisconnectRef.current = false;
+          return;
+        }
         setStatus('disconnected');
+        setErrorMessage(null);
+        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
         scheduleReconnect();
       });
 
       socket.on('connect_error', (error: Error) => {
+        clearMetadataTimeout();
         if (disposed) {
           return;
         }
         setStatus('error');
         setErrorMessage(error.message);
+        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
         scheduleReconnect();
       });
 
       socket.on('error', (error: Error) => {
+        clearMetadataTimeout();
         if (disposed) {
           return;
         }
         setStatus('error');
         setErrorMessage(error.message);
+        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
         scheduleReconnect();
       });
     };
@@ -251,6 +308,7 @@ export function ScrcpyPanel({
       setStatus('disconnected');
       setErrorMessage(null);
       setScreenInfo(null);
+      setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
     };
 
     connectRef.current = connect;
@@ -264,7 +322,7 @@ export function ScrcpyPanel({
       disconnectRef.current = null;
       cleanup();
     };
-  }, [reconnectInterval, serverUrl]);
+  }, [metadataTimeoutMs, reconnectInterval, serverUrl]);
 
   return (
     <Card
@@ -294,7 +352,9 @@ export function ScrcpyPanel({
             <Button
               size="small"
               type="primary"
-              loading={status === 'connecting'}
+              loading={
+                status === 'connecting' || status === 'waiting-for-stream'
+              }
               onClick={handleConnect}
             >
               Connect
@@ -352,8 +412,13 @@ export function ScrcpyPanel({
               zIndex: 1,
             }}
           >
-            <Spin spinning />
+            {status === 'error' ? null : <Spin spinning />}
             <Text style={{ color: '#fff' }}>{statusText}</Text>
+            {status === 'error' ? (
+              <Text style={{ color: '#d1d5db' }}>
+                Scrcpy preview will retry automatically.
+              </Text>
+            ) : null}
             {!webCodecsSupported && (
               <Text style={{ color: '#d1d5db' }}>
                 Please use a modern Chromium browser to view the stream.

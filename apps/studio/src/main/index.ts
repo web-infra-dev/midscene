@@ -9,6 +9,7 @@ import {
   nativeImage,
 } from 'electron';
 import type { TitleBarOverlay } from 'electron';
+import { createAndroidPlaygroundRuntimeService } from './playground/android-runtime';
 
 /**
  * Main process owns native shell concerns only.
@@ -18,6 +19,7 @@ import type { TitleBarOverlay } from 'electron';
 
 let mainWindow: BrowserWindow | null = null;
 let cachedAppIcon: NativeImage | null = null;
+const androidPlaygroundRuntime = createAndroidPlaygroundRuntimeService();
 
 const getRendererEntryPath = () =>
   path.join(__dirname, '../renderer/index.html');
@@ -126,6 +128,12 @@ const registerIpcHandlers = () => {
   ipcMain.handle(IPC_CHANNELS.closeWindow, () => {
     mainWindow?.close();
   });
+  ipcMain.handle(IPC_CHANNELS.getAndroidPlaygroundBootstrap, () =>
+    androidPlaygroundRuntime.getBootstrap(),
+  );
+  ipcMain.handle(IPC_CHANNELS.restartAndroidPlayground, async () =>
+    androidPlaygroundRuntime.restart(),
+  );
 };
 
 app.whenReady().then(() => {
@@ -134,6 +142,7 @@ app.whenReady().then(() => {
   }
 
   registerIpcHandlers();
+  void androidPlaygroundRuntime.start();
   createMainWindow();
 
   app.on('activate', () => {
@@ -147,4 +156,8 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('before-quit', () => {
+  void androidPlaygroundRuntime.close();
 });

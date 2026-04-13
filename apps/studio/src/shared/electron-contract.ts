@@ -7,7 +7,16 @@ export const IPC_CHANNELS = {
   closeWindow: 'shell:close-window',
   minimizeWindow: 'shell:minimize-window',
   toggleMaximizeWindow: 'shell:toggle-maximize-window',
+  getAndroidPlaygroundBootstrap: 'studio:get-android-playground-bootstrap',
+  restartAndroidPlayground: 'studio:restart-android-playground',
 } as const;
+
+export interface AndroidPlaygroundBootstrap {
+  status: 'starting' | 'ready' | 'error';
+  serverUrl: string | null;
+  port: number | null;
+  error: string | null;
+}
 
 /**
  * Public API exposed on `window.electronShell` by the preload bridge.
@@ -26,4 +35,9 @@ export interface ElectronShellApi {
    * window is not available (e.g. during teardown).
    */
   toggleMaximizeWindow: () => Promise<void>;
+}
+
+export interface StudioRuntimeApi {
+  getAndroidPlaygroundBootstrap: () => Promise<AndroidPlaygroundBootstrap>;
+  restartAndroidPlayground: () => Promise<AndroidPlaygroundBootstrap>;
 }

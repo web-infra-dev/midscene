@@ -7,10 +7,14 @@
     "build": "rsbuild build && node scripts/sync-static-assets.mjs",
     "dev": "concurrently -k -n build,app \"rsbuild dev\" \"node scripts/wait-for-electron-build.mjs && node scripts/launch-electron-dev.mjs\"",
     "preview": "rsbuild preview --environment renderer",
-    "start": "node scripts/sync-static-assets.mjs && electron dist/main/main.cjs",
+    "start": "node scripts/sync-static-assets.mjs && node scripts/launch-electron-prod.mjs",
     "test": "vitest run"
   },
   "dependencies": {
+    "@midscene/android-playground": "workspace:*",
+    "@midscene/playground": "workspace:*",
+    "@midscene/playground-app": "workspace:*",
+    "@midscene/visualizer": "workspace:*",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
