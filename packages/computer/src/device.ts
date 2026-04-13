@@ -756,6 +756,23 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
         const edgeAction = scrollToEdgeActions[scrollType || ''];
         if (edgeAction) {
+          // On macOS, WebKit (Safari) and some other apps drop synthetic
+          // CGScrollEvents from libnut, so edge scrolls silently no-op.
+          // Prefer keyboard navigation via AppleScript when available.
+          const edgeKey = this.useAppleScript
+            ? {
+                scrollToTop: 'home',
+                scrollToBottom: 'end',
+                scrollToLeft: 'home',
+                scrollToRight: 'end',
+              }[scrollType as string]
+            : undefined;
+          if (edgeKey) {
+            sendKeyViaAppleScript(edgeKey);
+            await sleep(SCROLL_COMPLETE_DELAY);
+            return;
+          }
+
           const [dx, dy] = edgeAction;
           for (let i = 0; i < SCROLL_REPEAT_COUNT; i++) {
             libnut.scrollMouse(dx, dy);
@@ -767,9 +784,26 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         // Single scroll action
         if (scrollType === 'singleAction' || !scrollType) {
           const distance = param?.distance || 500;
-          const ticks = Math.ceil(distance / 100);
           const direction = param?.direction || 'down';
 
+          // macOS: vertical scroll via PageUp/PageDown to bypass WebKit's
+          // synthetic-scroll filtering. Approximate distance using viewport
+          // pages (~600px per page).
+          if (
+            this.useAppleScript &&
+            (direction === 'up' || direction === 'down')
+          ) {
+            const pages = Math.max(1, Math.round(distance / 600));
+            const key = direction === 'up' ? 'pageup' : 'pagedown';
+            for (let i = 0; i < pages; i++) {
+              sendKeyViaAppleScript(key);
+              await sleep(SCROLL_STEP_DELAY);
+            }
+            await sleep(SCROLL_COMPLETE_DELAY);
+            return;
+          }
+
+          const ticks = Math.ceil(distance / 100);
           const directionMap: Record<string, [number, number]> = {
             up: [0, ticks],
             down: [0, -ticks],
