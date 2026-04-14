@@ -107,6 +107,11 @@ export default defineConfig({
       ),
       react: path.resolve(__dirname, 'node_modules/react'),
       'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+      // Node-only image libs: never executed in the extension (browser path
+      // uses @silvia-odwyer/photon + Canvas fallback). Aliasing to false
+      // prevents the bundler from walking their native/optional deps.
+      sharp: false,
+      '@silvia-odwyer/photon-node': false,
     },
   },
   plugins: [
