@@ -90,8 +90,22 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
             </div>
             {errorNode}
           </div>
-          <div style={{ flex: '1 1 auto', minHeight: 0 }}>
-            <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+          <div
+            style={{
+              flex: '1 1 auto',
+              minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+            }}
+          >
+            <div
+              style={{
+                fontWeight: 'bold',
+                marginBottom: '8px',
+                alignSelf: 'stretch',
+              }}
+            >
               Report:
             </div>
             <Player
@@ -140,8 +154,24 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
           <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Output:</div>
           {resultOutput}
         </div>
-        <div style={{ flex: '1 1 auto', minHeight: 0 }}>
-          <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Report:</div>
+        <div
+          style={{
+            flex: '1 1 auto',
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+        >
+          <div
+            style={{
+              fontWeight: 'bold',
+              marginBottom: '8px',
+              alignSelf: 'stretch',
+            }}
+          >
+            Report:
+          </div>
           <Player
             key={replayCounter}
             replayScripts={replayScriptsInfo.scripts}
