@@ -187,5 +187,5 @@ export function resolveAndroidDeviceLabel(
     items.find((item) => item.status === 'active') ||
     items.find((item) => item.selected);
 
-  return currentDevice?.label ?? '未连接 Android 设备';
+  return currentDevice?.label ?? 'No Android device selected';
 }

@@ -5,10 +5,15 @@ import type {
 import { ScreenshotViewer } from '@midscene/visualizer';
 import { WebCodecsVideoDecoder } from '@yume-chan/scrcpy-decoder-webcodecs';
 import { Alert, Popover } from 'antd';
-import { ScrcpyPanel } from './ScrcpyPanel';
+import type { ReactNode } from 'react';
+import { type ScrcpyErrorOverlayRenderer, ScrcpyPanel } from './ScrcpyPanel';
 import { resolvePreviewConnectionInfo } from './runtime-info';
+import type { ScrcpyPreviewStatus } from './scrcpy-preview';
 
 interface PreviewRendererProps {
+  connectingOverlay?: ReactNode;
+  onScrcpyStatusChange?: (status: ScrcpyPreviewStatus) => void;
+  renderErrorOverlay?: ScrcpyErrorOverlayRenderer;
   playgroundSDK: PlaygroundSDK;
   runtimeInfo: PlaygroundRuntimeInfo | null;
   serverUrl: string;
@@ -29,6 +34,9 @@ function isNonLocalhostHttp(): boolean {
 }
 
 export function PreviewRenderer({
+  connectingOverlay,
+  onScrcpyStatusChange,
+  renderErrorOverlay,
   playgroundSDK,
   runtimeInfo,
   serverUrl,
@@ -131,7 +139,12 @@ export function PreviewRenderer({
           description="This session did not expose a preview capability in runtime metadata."
         />
       ) : scrcpyAvailable ? (
-        <ScrcpyPanel serverUrl={previewConnection.scrcpyUrl} />
+        <ScrcpyPanel
+          connectingOverlay={connectingOverlay}
+          onStatusChange={onScrcpyStatusChange}
+          renderErrorOverlay={renderErrorOverlay}
+          serverUrl={previewConnection.scrcpyUrl}
+        />
       ) : (
         <ScreenshotViewer
           getScreenshot={() =>

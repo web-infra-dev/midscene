@@ -21,6 +21,12 @@ export interface PlaygroundConversationPanelProps {
   playgroundConfig?: Partial<UniversalPlaygroundConfig>;
   header?: ReactNode;
   className?: string;
+  /**
+   * Custom content shown while the session is not yet connected.
+   * When supplied, replaces the built-in `SessionSetupPanel`, letting hosts
+   * drive device selection elsewhere.
+   */
+  notConnectedFallback?: ReactNode;
 }
 
 export function PlaygroundConversationPanel({
@@ -31,6 +37,7 @@ export function PlaygroundConversationPanel({
   playgroundConfig,
   header,
   className,
+  notConnectedFallback,
 }: PlaygroundConversationPanelProps) {
   const { state, actions } = controller;
   const mergedConfig = buildConversationConfig(state, playgroundConfig);
@@ -121,6 +128,8 @@ export function PlaygroundConversationPanel({
             branding={mergedBranding}
             className="playground-container"
           />
+        ) : notConnectedFallback !== undefined ? (
+          <>{notConnectedFallback}</>
         ) : (
           <SessionSetupPanel
             form={state.form}
@@ -132,9 +141,6 @@ export function PlaygroundConversationPanel({
             onCreateSession={async () => {
               await actions.createSession();
             }}
-            onRefreshTargets={() =>
-              actions.refreshSessionSetup(state.formValues)
-            }
           />
         )}
       </div>

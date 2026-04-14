@@ -4,8 +4,15 @@ import {
   WebCodecsVideoDecoder,
   WebGLVideoFrameRenderer,
 } from '@yume-chan/scrcpy-decoder-webcodecs';
-import { Alert, Button, Card, Space, Spin, Typography } from 'antd';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Spin, Typography } from 'antd';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
 import {
@@ -21,7 +28,21 @@ import { createScrcpyVideoStream } from './scrcpy-stream';
 
 const { Text } = Typography;
 
+export interface ScrcpyErrorOverlayContext {
+  errorMessage: string | null;
+  retry: () => void;
+  status: ScrcpyPreviewStatus;
+  statusText: string;
+}
+
+export type ScrcpyErrorOverlayRenderer = (
+  context: ScrcpyErrorOverlayContext,
+) => ReactNode;
+
 interface ScrcpyPanelProps {
+  connectingOverlay?: ReactNode;
+  onStatusChange?: (status: ScrcpyPreviewStatus) => void;
+  renderErrorOverlay?: ScrcpyErrorOverlayRenderer;
   serverUrl?: string;
   metadataTimeoutMs?: number;
   reconnectInterval?: number;
@@ -34,6 +55,9 @@ interface VideoMetadata {
 }
 
 export function ScrcpyPanel({
+  connectingOverlay,
+  onStatusChange,
+  renderErrorOverlay,
   serverUrl,
   metadataTimeoutMs = SCRCPY_METADATA_TIMEOUT_MS,
   reconnectInterval = 3000,
@@ -43,25 +67,34 @@ export function ScrcpyPanel({
   const decoderRef = useRef<WebCodecsVideoDecoder | null>(null);
   const metadataTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const connectRef = useRef<(() => void) | null>(null);
-  const disconnectRef = useRef<(() => void) | null>(null);
-  const manuallyDisconnectedRef = useRef(false);
   const ignoreDisconnectRef = useRef(false);
   const [status, setStatus] = useState<ScrcpyPreviewStatus>('connecting');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [waitingStatusMessage, setWaitingStatusMessage] = useState<string>(() =>
     getDefaultScrcpyWaitingStatusText(),
   );
-  const [screenInfo, setScreenInfo] = useState<{
-    width: number;
-    height: number;
-  } | null>(null);
   const [webCodecsSupported, setWebCodecsSupported] = useState(true);
+  const [retryNonce, setRetryNonce] = useState(0);
 
   const statusText = useMemo(
     () => getScrcpyPreviewStatusText(status, waitingStatusMessage),
     [status, waitingStatusMessage],
   );
+  const showCustomErrorOverlay =
+    (status === 'error' || status === 'disconnected') &&
+    Boolean(renderErrorOverlay);
+  const renderResolvedErrorOverlay = renderErrorOverlay;
+
+  const requestRetry = useCallback(() => {
+    setStatus('connecting');
+    setErrorMessage(null);
+    setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
+    setRetryNonce((current) => current + 1);
+  }, []);
+
+  useEffect(() => {
+    onStatusChange?.(status);
+  }, [onStatusChange, status]);
 
   const clearCanvas = () => {
     const stage = canvasStageRef.current;
@@ -87,16 +120,6 @@ export function ScrcpyPanel({
       metadataTimeoutRef.current = null;
     }
   };
-
-  const handleConnect = useCallback(() => {
-    manuallyDisconnectedRef.current = false;
-    connectRef.current?.();
-  }, []);
-
-  const handleDisconnect = useCallback(() => {
-    manuallyDisconnectedRef.current = true;
-    disconnectRef.current?.();
-  }, []);
 
   useEffect(() => {
     if (!serverUrl) {
@@ -133,11 +156,7 @@ export function ScrcpyPanel({
     };
 
     const scheduleReconnect = () => {
-      if (
-        disposed ||
-        reconnectTimerRef.current ||
-        manuallyDisconnectedRef.current
-      ) {
+      if (disposed || reconnectTimerRef.current) {
         return;
       }
 
@@ -164,11 +183,6 @@ export function ScrcpyPanel({
         codec: codecId,
         renderer,
       });
-      decoder.sizeChanged(
-        ({ width, height }: { width: number; height: number }) => {
-          setScreenInfo({ width, height });
-        },
-      );
       return decoder;
     };
 
@@ -177,11 +191,9 @@ export function ScrcpyPanel({
         return;
       }
 
-      manuallyDisconnectedRef.current = false;
       ignoreDisconnectRef.current = false;
       setStatus('connecting');
       setErrorMessage(null);
-      setScreenInfo(null);
       setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
 
       const socket = io(serverUrl, {
@@ -197,7 +209,7 @@ export function ScrcpyPanel({
         setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
         clearMetadataTimeout();
         metadataTimeoutRef.current = setTimeout(() => {
-          if (disposed || manuallyDisconnectedRef.current) {
+          if (disposed) {
             return;
           }
 
@@ -234,12 +246,6 @@ export function ScrcpyPanel({
             : ScrcpyVideoCodecId.H264;
           const decoder = await createDecoder(codecId);
           decoderRef.current = decoder;
-          if (metadata.width && metadata.height) {
-            setScreenInfo({
-              width: metadata.width,
-              height: metadata.height,
-            });
-          }
 
           videoStream.pipeTo(decoder.writable).catch((error: Error) => {
             if (disposed) {
@@ -303,67 +309,17 @@ export function ScrcpyPanel({
       });
     };
 
-    const disconnect = () => {
-      cleanup();
-      setStatus('disconnected');
-      setErrorMessage(null);
-      setScreenInfo(null);
-      setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
-    };
-
-    connectRef.current = connect;
-    disconnectRef.current = disconnect;
-
     connect();
 
     return () => {
       disposed = true;
-      connectRef.current = null;
-      disconnectRef.current = null;
       cleanup();
     };
-  }, [metadataTimeoutMs, reconnectInterval, serverUrl]);
+  }, [metadataTimeoutMs, reconnectInterval, retryNonce, serverUrl]);
 
   return (
-    <Card
-      size="small"
-      title="Live scrcpy preview"
-      style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-      styles={{
-        body: {
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 0,
-        },
-      }}
-      extra={
-        <Space size="small">
-          {screenInfo ? (
-            <Text type="secondary">
-              {screenInfo.width} × {screenInfo.height}
-            </Text>
-          ) : null}
-          {status === 'connected' ? (
-            <Button size="small" onClick={handleDisconnect}>
-              Disconnect
-            </Button>
-          ) : (
-            <Button
-              size="small"
-              type="primary"
-              loading={
-                status === 'connecting' || status === 'waiting-for-stream'
-              }
-              onClick={handleConnect}
-            >
-              Connect
-            </Button>
-          )}
-        </Space>
-      }
-    >
-      {errorMessage ? (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {errorMessage && !showCustomErrorOverlay ? (
         <Alert
           type="warning"
           showIcon
@@ -395,38 +351,67 @@ export function ScrcpyPanel({
             justifyContent: 'center',
           }}
         />
-        {status !== 'connected' && (
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 12,
-              color: '#fff',
-              background: 'rgba(17, 24, 39, 0.78)',
-              textAlign: 'center',
-              padding: 24,
-              zIndex: 1,
-            }}
-          >
-            {status === 'error' ? null : <Spin spinning />}
-            <Text style={{ color: '#fff' }}>{statusText}</Text>
-            {status === 'error' ? (
-              <Text style={{ color: '#d1d5db' }}>
-                Scrcpy preview will retry automatically.
-              </Text>
-            ) : null}
-            {!webCodecsSupported && (
-              <Text style={{ color: '#d1d5db' }}>
-                Please use a modern Chromium browser to view the stream.
-              </Text>
-            )}
-          </div>
-        )}
+        {status !== 'connected' ? (
+          showCustomErrorOverlay && renderResolvedErrorOverlay ? (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 1,
+              }}
+            >
+              {renderResolvedErrorOverlay({
+                errorMessage,
+                retry: requestRetry,
+                status,
+                statusText,
+              })}
+            </div>
+          ) : status !== 'error' &&
+            status !== 'disconnected' &&
+            connectingOverlay ? (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 1,
+              }}
+            >
+              {connectingOverlay}
+            </div>
+          ) : (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 12,
+                color: '#fff',
+                background: 'rgba(17, 24, 39, 0.78)',
+                textAlign: 'center',
+                padding: 24,
+                zIndex: 1,
+              }}
+            >
+              {status === 'error' ? null : <Spin spinning />}
+              <Text style={{ color: '#fff' }}>{statusText}</Text>
+              {status === 'error' ? (
+                <Text style={{ color: '#d1d5db' }}>
+                  Scrcpy preview will retry automatically.
+                </Text>
+              ) : null}
+              {!webCodecsSupported && (
+                <Text style={{ color: '#d1d5db' }}>
+                  Please use a modern Chromium browser to view the stream.
+                </Text>
+              )}
+            </div>
+          )
+        ) : null}
       </div>
-    </Card>
+    </div>
   );
 }
