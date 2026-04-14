@@ -90,37 +90,18 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
             </div>
             {errorNode}
           </div>
-          <div
-            style={{
-              flex: '1 1 auto',
-              minHeight: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}
-          >
-            <div
-              style={{
-                fontWeight: 'bold',
-                marginBottom: '8px',
-                alignSelf: 'stretch',
-              }}
-            >
-              Report:
-            </div>
-            <Player
-              key={replayCounter}
-              replayScripts={replayScriptsInfo?.scripts}
-              imageWidth={replayScriptsInfo?.width}
-              imageHeight={replayScriptsInfo?.height}
-              reportFileContent={result.reportHTML || null}
-              fitMode={fitMode}
-              autoZoom={autoZoom}
-              canDownloadReport={
-                canDownloadReport ?? serviceMode !== 'In-Browser'
-              }
-            />
-          </div>
+          <Player
+            key={replayCounter}
+            replayScripts={replayScriptsInfo?.scripts}
+            imageWidth={replayScriptsInfo?.width}
+            imageHeight={replayScriptsInfo?.height}
+            reportFileContent={result.reportHTML || null}
+            fitMode={fitMode}
+            autoZoom={autoZoom}
+            canDownloadReport={
+              canDownloadReport ?? serviceMode !== 'In-Browser'
+            }
+          />
         </div>
       );
     } else {
@@ -154,37 +135,16 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
           <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Output:</div>
           {resultOutput}
         </div>
-        <div
-          style={{
-            flex: '1 1 auto',
-            minHeight: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
-          <div
-            style={{
-              fontWeight: 'bold',
-              marginBottom: '8px',
-              alignSelf: 'stretch',
-            }}
-          >
-            Report:
-          </div>
-          <Player
-            key={replayCounter}
-            replayScripts={replayScriptsInfo.scripts}
-            imageWidth={replayScriptsInfo.width}
-            imageHeight={replayScriptsInfo.height}
-            reportFileContent={reportContent}
-            fitMode={fitMode}
-            autoZoom={autoZoom}
-            canDownloadReport={
-              canDownloadReport ?? serviceMode !== 'In-Browser'
-            }
-          />
-        </div>
+        <Player
+          key={replayCounter}
+          replayScripts={replayScriptsInfo.scripts}
+          imageWidth={replayScriptsInfo.width}
+          imageHeight={replayScriptsInfo.height}
+          reportFileContent={reportContent}
+          fitMode={fitMode}
+          autoZoom={autoZoom}
+          canDownloadReport={canDownloadReport ?? serviceMode !== 'In-Browser'}
+        />
       </div>
     );
   } else if (replayScriptsInfo) {
