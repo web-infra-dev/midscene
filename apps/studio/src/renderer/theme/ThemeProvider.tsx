@@ -35,6 +35,10 @@ function applyMode(mode: StudioThemeMode) {
   document.documentElement.classList.toggle('dark', mode === 'dark');
 }
 
+export function applyStoredThemeMode() {
+  applyMode(readStoredMode());
+}
+
 export function ThemeProvider({ children }: PropsWithChildren) {
   const [mode, setModeState] = useState<StudioThemeMode>(() =>
     readStoredMode(),
