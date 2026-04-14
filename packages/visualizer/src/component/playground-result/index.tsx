@@ -76,39 +76,18 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
 
     if (result.reportHTML || replayScriptsInfo) {
       resultDataToShow = (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-            height: '100%',
-          }}
-        >
+        <div className="combined-result-layout">
           <div style={{ flex: '0 0 auto', maxHeight: '40%', overflow: 'auto' }}>
             <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
               Error:
             </div>
             {errorNode}
           </div>
-          <div
-            style={{
-              flex: '1 1 auto',
-              minHeight: 0,
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
+          <div className="combined-result-section">
             <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
               Report:
             </div>
-            <div
-              style={{
-                flex: '1 1 auto',
-                minHeight: 0,
-                width: '100%',
-                overflow: 'hidden',
-              }}
-            >
+            <div className="combined-result-player">
               <Player
                 key={replayCounter}
                 replayScripts={replayScriptsInfo?.scripts}
@@ -144,35 +123,14 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
     const reportContent = result?.reportHTML || null;
 
     resultDataToShow = (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px',
-          height: '100%',
-        }}
-      >
+      <div className="combined-result-layout">
         <div style={{ flex: '0 0 auto' }}>
           <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Output:</div>
           {resultOutput}
         </div>
-        <div
-          style={{
-            flex: '1 1 auto',
-            minHeight: 0,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
+        <div className="combined-result-section">
           <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Report:</div>
-          <div
-            style={{
-              flex: '1 1 auto',
-              minHeight: 0,
-              width: '100%',
-              overflow: 'hidden',
-            }}
-          >
+          <div className="combined-result-player">
             <Player
               key={replayCounter}
               replayScripts={replayScriptsInfo.scripts}
@@ -219,29 +177,24 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
       );
 
     resultDataToShow = (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px',
-          height: '100%',
-        }}
-      >
+      <div className="combined-result-layout">
         <div style={{ flex: '0 0 auto' }}>
           <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Output:</div>
           {resultOutput}
         </div>
-        <div style={{ flex: '1 1 auto', minHeight: 0 }}>
+        <div className="combined-result-section">
           <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Report:</div>
-          <Player
-            key={replayCounter}
-            reportFileContent={result.reportHTML}
-            fitMode={fitMode}
-            autoZoom={autoZoom}
-            canDownloadReport={
-              canDownloadReport ?? serviceMode !== 'In-Browser'
-            }
-          />
+          <div className="combined-result-player">
+            <Player
+              key={replayCounter}
+              reportFileContent={result.reportHTML}
+              fitMode={fitMode}
+              autoZoom={autoZoom}
+              canDownloadReport={
+                canDownloadReport ?? serviceMode !== 'In-Browser'
+              }
+            />
+          </div>
         </div>
       </div>
     );
