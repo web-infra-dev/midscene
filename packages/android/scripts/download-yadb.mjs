@@ -3,9 +3,26 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchVersion } from 'gh-release-fetch';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const YADB_VERSION = 'v1.1.1';
+const PROXY_URL =
+  process.env.HTTPS_PROXY_URL ||
+  process.env.HTTP_PROXY_URL ||
+  process.env.https_proxy_url ||
+  process.env.http_proxy_url;
+
+function createProxyAgent() {
+  if (!PROXY_URL) {
+    return undefined;
+  }
+
+  console.log(
+    `[yadb] Using proxy: ${PROXY_URL.replace(/\/\/.*@/, '//***:***@')}`,
+  );
+  return new HttpsProxyAgent(PROXY_URL);
+}
 
 async function main() {
   const binDir = path.resolve(__dirname, '../bin');
@@ -36,15 +53,19 @@ async function main() {
   await fs.mkdir(binDir, { recursive: true });
 
   const maxRetries = 3;
+  const agent = createProxyAgent();
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      await fetchVersion({
-        repository: 'ysbing/YADB',
-        version: YADB_VERSION,
-        package: 'yadb',
-        destination: binDir,
-        extract: false,
-      });
+      await fetchVersion(
+        {
+          repository: 'ysbing/YADB',
+          version: YADB_VERSION,
+          package: 'yadb',
+          destination: binDir,
+          extract: false,
+        },
+        { agent },
+      );
       break;
     } catch (err) {
       if (attempt === maxRetries) throw err;
