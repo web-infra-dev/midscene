@@ -33,6 +33,7 @@ function applyMode(mode: StudioThemeMode) {
     return;
   }
   document.documentElement.classList.toggle('dark', mode === 'dark');
+  document.documentElement.dataset.theme = mode;
 }
 
 export function applyStoredThemeMode() {
