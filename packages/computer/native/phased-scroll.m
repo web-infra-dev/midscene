@@ -4,6 +4,12 @@
 // omits the phase fields, which modern scroll views filter out.
 //
 // Usage: phased-scroll <up|down|left|right> <totalPixels> [steps]
+//
+// IMPORTANT: after editing this file you MUST rebuild the committed binary:
+//   pnpm --filter @midscene/computer run build:native
+// and commit the resulting bin/darwin/phased-scroll in the same change.
+// The prepublishOnly hook also rebuilds it on publish, but drift during
+// development is only visible if you rebuild locally.
 
 #include <ApplicationServices/ApplicationServices.h>
 #include <stdio.h>

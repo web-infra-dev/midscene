@@ -31,6 +31,7 @@
   "scripts": {
     "build": "rslib build",
     "build:native": "mkdir -p bin/darwin && clang -O2 -arch arm64 -arch x86_64 -framework ApplicationServices -o bin/darwin/phased-scroll native/phased-scroll.m",
+    "prepublishOnly": "node -e \"if (process.platform==='darwin') { require('child_process').execSync('pnpm run build:native', { stdio: 'inherit' }); } else { console.warn('[prepublishOnly] Skipping build:native on non-darwin; ensure bin/darwin/phased-scroll is up to date.'); }\"",
     "dev": "rslib build --watch",
     "test": "vitest run",
     "test:ai": "AI_TEST_TYPE=computer vitest run"

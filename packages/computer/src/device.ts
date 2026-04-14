@@ -88,6 +88,42 @@ const INPUT_CLEAR_DELAY = 150;
 const SCROLL_REPEAT_COUNT = 10;
 const SCROLL_STEP_DELAY = 100;
 const SCROLL_COMPLETE_DELAY = 500;
+// Edge scrolls (scrollToTop / scrollToBottom / ...) use a large total
+// distance so ordinary pages clamp at the boundary. The step count controls
+// smoothness; 400 steps at ~16ms each is ~6.4s in the worst case but WebKit
+// short-circuits the remaining events once the boundary is reached.
+const EDGE_SCROLL_TOTAL_PX = 50_000;
+const EDGE_SCROLL_STEPS = 400;
+// singleAction vertical/horizontal scroll: target ~30px per step and a
+// minimum of 10 steps so small distances still feel momentum-like.
+const PHASED_PIXELS_PER_STEP = 30;
+const PHASED_MIN_STEPS = 10;
+// Approximate viewport height for mapping "distance in px" to PageUp/PageDown
+// count when falling back to keyboard navigation.
+const APPROX_VIEWPORT_HEIGHT_PX = 600;
+
+type EdgeScrollType =
+  | 'scrollToTop'
+  | 'scrollToBottom'
+  | 'scrollToLeft'
+  | 'scrollToRight';
+type ScrollDirection = 'up' | 'down' | 'left' | 'right';
+
+interface EdgeScrollStrategy {
+  direction: ScrollDirection;
+  key: 'home' | 'end';
+  libnut: readonly [number, number];
+}
+
+// Single source of truth for edge scroll dispatch. Adding a new scrollType
+// only requires one entry here; the three backends (phased binary /
+// AppleScript / libnut) all read from the same spec.
+const EDGE_SCROLL_SPEC: Record<EdgeScrollType, EdgeScrollStrategy> = {
+  scrollToTop: { direction: 'up', key: 'home', libnut: [0, 10] },
+  scrollToBottom: { direction: 'down', key: 'end', libnut: [0, -10] },
+  scrollToLeft: { direction: 'left', key: 'home', libnut: [-10, 0] },
+  scrollToRight: { direction: 'right', key: 'end', libnut: [10, 0] },
+};
 
 // macOS AppleScript key code mapping
 // Reference: https://eastmanreference.com/complete-list-of-applescript-key-codes
@@ -198,44 +234,73 @@ const debugDevice = getDebug('computer:device');
 
 /**
  * Resolve the phased-scroll helper binary bundled with the package.
- * Returns null on non-darwin or when the binary is missing.
  *
  * The binary is a tiny CoreGraphics helper that posts trackpad-like scroll
  * events with proper gesture phase markers, which WebKit and modern AppKit
  * scroll views accept without needing keyboard focus — unlike libnut's
  * phase-less CGScrollEvent path.
+ *
+ * Returns null on non-darwin or when the binary is missing (expected if a
+ * consumer stripped the optional `bin/darwin/` directory from their install).
  */
 let phasedScrollBinaryPath: string | null | undefined;
-function getPhasedScrollBinary(): string | null {
+/** @internal exported for unit tests — do not consume from outside this package */
+export function getPhasedScrollBinary(): string | null {
   if (phasedScrollBinaryPath !== undefined) return phasedScrollBinaryPath;
   if (process.platform !== 'darwin') {
     phasedScrollBinaryPath = null;
     return null;
   }
-  const hereDir = dirname(fileURLToPath(import.meta.url));
-  const candidates = [
-    resolve(hereDir, '../bin/darwin/phased-scroll'), // src/device.ts
-    resolve(hereDir, '../../bin/darwin/phased-scroll'), // dist/{lib,es}/*.js
-    resolve(hereDir, '../../../bin/darwin/phased-scroll'),
-  ];
-  for (const p of candidates) {
-    if (existsSync(p)) {
-      phasedScrollBinaryPath = p;
-      return p;
+
+  // Resolve the package root via its own package.json so the lookup is
+  // independent of how the library is bundled (src/ during dev, dist/lib
+  // or dist/es after rslib build). require.resolve handles pnpm layouts,
+  // symlinks, and nested workspaces out of the box.
+  const require = createRequire(import.meta.url);
+  let pkgRoot: string | null = null;
+  try {
+    pkgRoot = dirname(require.resolve('@midscene/computer/package.json'));
+  } catch {
+    // Fallback for the dev/test path where the package is not resolvable by
+    // its public name (e.g. tests import from src directly).
+    const hereDir = dirname(fileURLToPath(import.meta.url));
+    for (const candidate of [
+      resolve(hereDir, '..'), // src/device.ts -> package root
+      resolve(hereDir, '../..'), // dist/{lib,es}/*.js -> package root
+    ]) {
+      if (existsSync(resolve(candidate, 'package.json'))) {
+        pkgRoot = candidate;
+        break;
+      }
     }
   }
-  debugDevice('phased-scroll binary not found, tried:', candidates);
-  phasedScrollBinaryPath = null;
-  return null;
+  if (!pkgRoot) {
+    debugDevice('phased-scroll: cannot locate @midscene/computer package root');
+    phasedScrollBinaryPath = null;
+    return null;
+  }
+
+  const binPath = resolve(pkgRoot, 'bin/darwin/phased-scroll');
+  if (!existsSync(binPath)) {
+    debugDevice('phased-scroll binary not found at', binPath);
+    phasedScrollBinaryPath = null;
+    return null;
+  }
+  phasedScrollBinaryPath = binPath;
+  return binPath;
 }
 
-function runPhasedScroll(
-  direction: 'up' | 'down' | 'left' | 'right',
+let phasedScrollExecWarned = false;
+/** @internal exported for unit tests — do not consume from outside this package */
+export function runPhasedScroll(
+  direction: ScrollDirection,
   pixels: number,
-  steps = 20,
+  steps: number,
 ): boolean {
   const bin = getPhasedScrollBinary();
   if (!bin) return false;
+  // phased-scroll posts events at the current cursor location — callers that
+  // care about routing should move the mouse before invoking.
   try {
     const res = spawnSync(
       bin,
@@ -243,9 +308,21 @@ function runPhasedScroll(
       { stdio: 'ignore' },
     );
     if (res.status === 0) return true;
+    if (!phasedScrollExecWarned) {
+      phasedScrollExecWarned = true;
+      console.warn(
+        `[@midscene/computer] phased-scroll helper exited with status ${res.status}; falling back to keyboard/libnut. This usually means Accessibility permission has not been granted to the host process.`,
+      );
+    }
     debugDevice('phased-scroll exited non-zero', res.status, res.error);
     return false;
   } catch (err) {
+    if (!phasedScrollExecWarned) {
+      phasedScrollExecWarned = true;
+      console.warn(
+        `[@midscene/computer] phased-scroll helper failed to spawn (${(err as Error)?.message}); falling back to keyboard/libnut.`,
+      );
+    }
     debugDevice('phased-scroll spawn failed', err);
     return false;
   }
@@ -804,53 +881,37 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
         const scrollType = param?.scrollType;
 
-        // Scroll to edge actions
-        const scrollToEdgeActions: Record<string, [number, number]> = {
-          scrollToTop: [0, 10],
-          scrollToBottom: [0, -10],
-          scrollToLeft: [-10, 0],
-          scrollToRight: [10, 0],
-        };
-
-        const edgeAction = scrollToEdgeActions[scrollType || ''];
-        if (edgeAction) {
-          const edgeDirection = (
-            {
-              scrollToTop: 'up',
-              scrollToBottom: 'down',
-              scrollToLeft: 'left',
-              scrollToRight: 'right',
-            } as const
-          )[scrollType as 'scrollToTop'];
-
+        const edgeSpec =
+          scrollType && scrollType in EDGE_SCROLL_SPEC
+            ? EDGE_SCROLL_SPEC[scrollType as EdgeScrollType]
+            : null;
+        if (edgeSpec) {
           // Preferred path on macOS: phased scroll helper emits trackpad-like
           // events that WebKit / Filo / AppKit scroll views accept without
           // keyboard focus. Fires a very large distance so normal pages hit
           // the edge; modern scroll views clamp at the boundary.
-          if (edgeDirection && runPhasedScroll(edgeDirection, 50000, 400)) {
+          if (
+            runPhasedScroll(
+              edgeSpec.direction,
+              EDGE_SCROLL_TOTAL_PX,
+              EDGE_SCROLL_STEPS,
+            )
+          ) {
             await sleep(SCROLL_COMPLETE_DELAY);
             return;
           }
 
           // Fallback: keyboard via AppleScript (requires the scroll view to
           // be focused, but works for many already-focused Cocoa apps).
-          const edgeKey = this.useAppleScript
-            ? {
-                scrollToTop: 'home',
-                scrollToBottom: 'end',
-                scrollToLeft: 'home',
-                scrollToRight: 'end',
-              }[scrollType as string]
-            : undefined;
-          if (edgeKey) {
-            sendKeyViaAppleScript(edgeKey);
+          if (this.useAppleScript) {
+            sendKeyViaAppleScript(edgeSpec.key);
             await sleep(SCROLL_COMPLETE_DELAY);
             return;
           }
 
           // Last-resort fallback: libnut scroll-wheel ticks. WebKit silently
           // drops these, but non-web apps on Linux/Windows still respond.
-          const [dx, dy] = edgeAction;
+          const [dx, dy] = edgeSpec.libnut;
           for (let i = 0; i < SCROLL_REPEAT_COUNT; i++) {
             libnut.scrollMouse(dx, dy);
             await sleep(SCROLL_STEP_DELAY);
@@ -861,21 +922,22 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         // Single scroll action
         if (scrollType === 'singleAction' || !scrollType) {
           const distance = param?.distance || 500;
-          const direction = param?.direction || 'down';
+          const direction = (param?.direction || 'down') as ScrollDirection;
+          const isKnownDirection =
+            direction === 'up' ||
+            direction === 'down' ||
+            direction === 'left' ||
+            direction === 'right';
 
-          if (
-            (direction === 'up' ||
-              direction === 'down' ||
-              direction === 'left' ||
-              direction === 'right') &&
-            runPhasedScroll(
-              direction,
-              distance,
-              Math.max(10, Math.round(distance / 30)),
-            )
-          ) {
-            await sleep(SCROLL_COMPLETE_DELAY);
-            return;
+          if (isKnownDirection) {
+            const steps = Math.max(
+              PHASED_MIN_STEPS,
+              Math.round(distance / PHASED_PIXELS_PER_STEP),
+            );
+            if (runPhasedScroll(direction, distance, steps)) {
+              await sleep(SCROLL_COMPLETE_DELAY);
+              return;
+            }
           }
 
           // Fallback on macOS: keyboard PageUp/PageDown (vertical only).
@@ -883,7 +945,10 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
             this.useAppleScript &&
             (direction === 'up' || direction === 'down')
           ) {
-            const pages = Math.max(1, Math.round(distance / 600));
+            const pages = Math.max(
+              1,
+              Math.round(distance / APPROX_VIEWPORT_HEIGHT_PX),
+            );
             const key = direction === 'up' ? 'pageup' : 'pagedown';
             for (let i = 0; i < pages; i++) {
               sendKeyViaAppleScript(key);
