@@ -4,7 +4,7 @@ function ChevronIcon() {
   return (
     <svg
       aria-hidden="true"
-      className="h-[12px] w-[12px] text-[#474848]"
+      className="h-[12px] w-[12px] text-text-secondary"
       fill="none"
       viewBox="0 0 12 12"
     >
@@ -23,7 +23,7 @@ function ExternalLinkIcon() {
   return (
     <svg
       aria-hidden="true"
-      className="h-[12px] w-[12px] text-[#474848]"
+      className="h-[12px] w-[12px] text-text-secondary"
       fill="none"
       viewBox="0 0 12 12"
     >
@@ -74,7 +74,7 @@ export default function SettingsPanel({
   theme = 'Light',
 }: SettingsPanelProps) {
   const panelClassName = [
-    'flex h-[220px] w-[244px] flex-col overflow-hidden rounded-[12px] border border-[#E9EDF3] bg-white p-[6px] shadow-lg',
+    'flex h-[220px] w-[244px] flex-col overflow-hidden rounded-[12px] border border-border-subtle bg-surface-elevated p-[6px] shadow-lg',
     className,
   ]
     .filter(Boolean)
@@ -97,7 +97,7 @@ export default function SettingsPanel({
         />
       </div>
 
-      <div className="my-[4px] h-px w-full bg-black/8" />
+      <div className="my-[4px] h-px w-full bg-divider" />
 
       <div className="flex flex-col">
         <SettingItem
@@ -112,7 +112,7 @@ export default function SettingsPanel({
         />
       </div>
 
-      <div className="my-[4px] h-px w-full bg-black/8" />
+      <div className="my-[4px] h-px w-full bg-divider" />
 
       <div className="flex flex-col">
         <SettingItem

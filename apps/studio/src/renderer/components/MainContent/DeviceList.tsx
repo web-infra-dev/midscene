@@ -88,17 +88,17 @@ function StatusBadge({ status }: { status: DeviceConnectionState }) {
   return (
     <div
       className={`inline-flex h-[18px] shrink-0 items-center gap-[5px] rounded-full px-[6px] ${
-        isLive ? 'bg-[#E5FFF4]' : 'bg-[#E5F0FF]'
+        isLive ? 'bg-status-success-bg' : 'bg-status-info-bg'
       }`}
     >
       <div
         className={`h-[6px] w-[6px] rounded-full ${
-          isLive ? 'bg-[#12B981]' : 'bg-[#1979FF]'
+          isLive ? 'bg-status-success' : 'bg-status-info'
         }`}
       />
       <span
         className={`font-['Inter'] text-[11px] font-medium leading-[12px] ${
-          isLive ? 'text-[#079669]' : 'text-[#1979FF]'
+          isLive ? 'text-status-success-fg' : 'text-status-info'
         }`}
       >
         {isLive ? 'Live' : 'Connecting'}
@@ -131,14 +131,14 @@ function DeviceCard({
   const isLive = status === 'live';
   return (
     <button
-      className="flex h-[66px] w-[394px] shrink-0 cursor-pointer items-center gap-[12px] rounded-[16px] border border-[#E9ECF3] bg-white p-[12px] text-left hover:border-[#C5CCD9] disabled:cursor-not-allowed disabled:opacity-70"
+      className="flex h-[66px] w-[394px] shrink-0 cursor-pointer items-center gap-[12px] rounded-[16px] border border-border-subtle bg-surface-elevated p-[12px] text-left hover:border-border-strong disabled:cursor-not-allowed disabled:opacity-70"
       disabled={isConnecting}
       onClick={() => {
         void onConnect?.();
       }}
       type="button"
     >
-      <div className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-[6px] bg-white">
+      <div className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-[6px] bg-surface">
         {iconSrc ? (
           <img
             alt=""
@@ -150,12 +150,12 @@ function DeviceCard({
 
       <div className="flex min-w-0 flex-1 flex-col justify-center">
         <div className="flex items-center gap-[8px]">
-          <span className="overflow-hidden truncate font-['PingFang_SC'] text-[14px] font-medium leading-[22px] text-black">
+          <span className="overflow-hidden truncate font-['PingFang_SC'] text-[14px] font-medium leading-[22px] text-text-primary">
             {device.label}
           </span>
           <StatusBadge status={status} />
         </div>
-        <span className="overflow-hidden truncate font-['Inter'] text-[12px] leading-[20px] text-black/70">
+        <span className="overflow-hidden truncate font-['Inter'] text-[12px] leading-[20px] text-text-secondary">
           {device.description ?? device.id}
         </span>
       </div>
@@ -163,10 +163,10 @@ function DeviceCard({
       <div
         className={`flex h-[24px] w-[24px] shrink-0 items-center justify-center ${
           isConnecting
-            ? 'text-[#1979FF]'
+            ? 'text-status-info'
             : isLive
-              ? 'text-[#079669]'
-              : 'text-black/60'
+              ? 'text-status-success-fg'
+              : 'text-text-tertiary'
         }`}
       >
         {isConnecting ? <SpinnerIcon /> : <LinkIcon />}
@@ -189,11 +189,11 @@ export function DeviceList({
     <div className="flex h-full w-full flex-col gap-[32px] overflow-y-auto px-[118px] pb-[40px] pt-[59px]">
       {sections.map((section) => (
         <div className="flex w-[800px] flex-col gap-[16px]" key={section.key}>
-          <span className="font-['Inter'] text-[13px] font-medium leading-[22px] text-[#474848]">
+          <span className="font-['Inter'] text-[13px] font-medium leading-[22px] text-text-secondary">
             {section.label}
           </span>
           {section.devices.length === 0 ? (
-            <div className="flex h-[66px] w-[394px] items-center justify-center rounded-[16px] border border-dashed border-[#E9ECF3] font-['PingFang_SC'] text-[12px] text-black/40">
+            <div className="flex h-[66px] w-[394px] items-center justify-center rounded-[16px] border border-dashed border-border-subtle font-['PingFang_SC'] text-[12px] text-text-tertiary">
               No devices
             </div>
           ) : (

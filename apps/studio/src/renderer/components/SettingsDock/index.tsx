@@ -4,7 +4,7 @@ function ChevronRight() {
   return (
     <svg
       aria-hidden="true"
-      className="shrink-0"
+      className="shrink-0 text-text-tertiary"
       fill="none"
       height="7"
       viewBox="0 0 4 7"
@@ -12,7 +12,7 @@ function ChevronRight() {
     >
       <path
         d="M0.5 0.5L3.5 3.5L0.5 6.5"
-        stroke="#797A7A"
+        stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -28,11 +28,11 @@ interface ActionChipProps {
 function ActionChip({ label, onClick }: ActionChipProps) {
   return (
     <button
-      className="flex h-[24px] cursor-pointer items-center gap-[4px] rounded-lg border border-black/8 bg-white px-[6px] hover:bg-black/5"
+      className="flex h-[24px] cursor-pointer items-center gap-[4px] rounded-lg border border-border-strong bg-surface-elevated px-[6px] hover:bg-surface-hover"
       onClick={onClick}
       type="button"
     >
-      <span className="overflow-hidden whitespace-nowrap text-center font-['PingFang_SC'] text-[11px] leading-[12px] text-[#474848]">
+      <span className="overflow-hidden whitespace-nowrap text-center font-['PingFang_SC'] text-[11px] leading-[12px] text-text-secondary">
         {label}
       </span>
       <ChevronRight />
@@ -56,7 +56,9 @@ export default function SettingsDock({
       <button
         aria-expanded={settingsOpen}
         className={`relative flex h-[30px] w-[139px] items-center rounded-lg border-0 px-[8px] text-left ${
-          settingsOpen ? 'bg-black/5' : 'bg-transparent hover:bg-black/5'
+          settingsOpen
+            ? 'bg-surface-hover'
+            : 'bg-transparent hover:bg-surface-hover'
         }`}
         onClick={onToggleSettings}
         type="button"
@@ -66,7 +68,7 @@ export default function SettingsDock({
           className="h-4 w-4 shrink-0"
           src={assetUrls.sidebar.settings}
         />
-        <span className="ml-[6px] overflow-hidden whitespace-nowrap font-['PingFang_SC'] text-[13px] leading-[22px] text-[#474848]">
+        <span className="ml-[6px] overflow-hidden whitespace-nowrap font-['PingFang_SC'] text-[13px] leading-[22px] text-text-secondary">
           Settings
         </span>
       </button>

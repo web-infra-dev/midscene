@@ -7,9 +7,9 @@ export default function Playground() {
   const studioPlayground = useStudioPlayground();
 
   return (
-    <div className="flex h-full w-[400px] shrink-0 flex-col overflow-hidden rounded-r-[12px] bg-white">
+    <div className="flex h-full w-[400px] shrink-0 flex-col overflow-hidden rounded-r-[12px] bg-surface">
       <div className="flex h-[56px] items-center px-[22px]">
-        <span className="text-[13px] leading-[22.1px] font-medium text-[#0D0D0D]">
+        <span className="text-[13px] leading-[22.1px] font-medium text-text-primary">
           Playground
         </span>
       </div>
