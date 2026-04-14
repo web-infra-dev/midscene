@@ -90,18 +90,39 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
             </div>
             {errorNode}
           </div>
-          <Player
-            key={replayCounter}
-            replayScripts={replayScriptsInfo?.scripts}
-            imageWidth={replayScriptsInfo?.width}
-            imageHeight={replayScriptsInfo?.height}
-            reportFileContent={result.reportHTML || null}
-            fitMode={fitMode}
-            autoZoom={autoZoom}
-            canDownloadReport={
-              canDownloadReport ?? serviceMode !== 'In-Browser'
-            }
-          />
+          <div
+            style={{
+              flex: '1 1 auto',
+              minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+              Report:
+            </div>
+            <div
+              style={{
+                flex: '1 1 auto',
+                minHeight: 0,
+                display: 'flex',
+                justifyContent: 'center',
+              }}
+            >
+              <Player
+                key={replayCounter}
+                replayScripts={replayScriptsInfo?.scripts}
+                imageWidth={replayScriptsInfo?.width}
+                imageHeight={replayScriptsInfo?.height}
+                reportFileContent={result.reportHTML || null}
+                fitMode={fitMode}
+                autoZoom={autoZoom}
+                canDownloadReport={
+                  canDownloadReport ?? serviceMode !== 'In-Browser'
+                }
+              />
+            </div>
+          </div>
         </div>
       );
     } else {
@@ -135,16 +156,37 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
           <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Output:</div>
           {resultOutput}
         </div>
-        <Player
-          key={replayCounter}
-          replayScripts={replayScriptsInfo.scripts}
-          imageWidth={replayScriptsInfo.width}
-          imageHeight={replayScriptsInfo.height}
-          reportFileContent={reportContent}
-          fitMode={fitMode}
-          autoZoom={autoZoom}
-          canDownloadReport={canDownloadReport ?? serviceMode !== 'In-Browser'}
-        />
+        <div
+          style={{
+            flex: '1 1 auto',
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Report:</div>
+          <div
+            style={{
+              flex: '1 1 auto',
+              minHeight: 0,
+              display: 'flex',
+              justifyContent: 'center',
+            }}
+          >
+            <Player
+              key={replayCounter}
+              replayScripts={replayScriptsInfo.scripts}
+              imageWidth={replayScriptsInfo.width}
+              imageHeight={replayScriptsInfo.height}
+              reportFileContent={reportContent}
+              fitMode={fitMode}
+              autoZoom={autoZoom}
+              canDownloadReport={
+                canDownloadReport ?? serviceMode !== 'In-Browser'
+              }
+            />
+          </div>
+        </div>
       </div>
     );
   } else if (replayScriptsInfo) {
