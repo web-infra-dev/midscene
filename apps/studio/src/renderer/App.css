@@ -2,90 +2,90 @@
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme {
-  --color-app-bg: var(--studio-app-bg);
-  --color-surface: var(--studio-surface);
-  --color-surface-elevated: var(--studio-surface-elevated);
-  --color-surface-muted: var(--studio-surface-muted);
-  --color-surface-hover: var(--studio-surface-hover);
-  --color-surface-hover-strong: var(--studio-surface-hover-strong);
-  --color-surface-active: var(--studio-surface-active);
-  --color-border-subtle: var(--studio-border-subtle);
-  --color-border-strong: var(--studio-border-strong);
-  --color-divider: var(--studio-divider);
-  --color-text-primary: var(--studio-text-primary);
-  --color-text-secondary: var(--studio-text-secondary);
-  --color-text-tertiary: var(--studio-text-tertiary);
-  --color-text-placeholder: var(--studio-text-placeholder);
-  --color-text-inverted: var(--studio-text-inverted);
-  --color-icon-muted: var(--studio-icon-muted);
-  --color-brand: var(--studio-brand);
-  --color-status-success: var(--studio-status-success);
-  --color-status-success-bg: var(--studio-status-success-bg);
-  --color-status-success-fg: var(--studio-status-success-fg);
-  --color-status-error: var(--studio-status-error);
-  --color-status-error-bg: var(--studio-status-error-bg);
-  --color-status-info: var(--studio-status-info);
-  --color-status-info-bg: var(--studio-status-info-bg);
-  --color-status-idle: var(--studio-status-idle);
+  --color-app-bg: var(--midscene-app-bg);
+  --color-surface: var(--midscene-surface);
+  --color-surface-elevated: var(--midscene-surface-elevated);
+  --color-surface-muted: var(--midscene-surface-muted);
+  --color-surface-hover: var(--midscene-surface-hover);
+  --color-surface-hover-strong: var(--midscene-surface-hover-strong);
+  --color-surface-active: var(--midscene-surface-active);
+  --color-border-subtle: var(--midscene-border-subtle);
+  --color-border-strong: var(--midscene-border-strong);
+  --color-divider: var(--midscene-divider);
+  --color-text-primary: var(--midscene-text-primary);
+  --color-text-secondary: var(--midscene-text-secondary);
+  --color-text-tertiary: var(--midscene-text-tertiary);
+  --color-text-placeholder: var(--midscene-text-placeholder);
+  --color-text-inverted: var(--midscene-text-inverted);
+  --color-icon-muted: var(--midscene-icon-muted);
+  --color-brand: var(--midscene-brand);
+  --color-status-success: var(--midscene-status-success);
+  --color-status-success-bg: var(--midscene-status-success-bg);
+  --color-status-success-fg: var(--midscene-status-success-fg);
+  --color-status-error: var(--midscene-status-error);
+  --color-status-error-bg: var(--midscene-status-error-bg);
+  --color-status-info: var(--midscene-status-info);
+  --color-status-info-bg: var(--midscene-status-info-bg);
+  --color-status-idle: var(--midscene-status-idle);
 }
 
 :root {
-  --studio-app-bg: #f6f6f6;
-  --studio-surface: #ffffff;
-  --studio-surface-elevated: #ffffff;
-  --studio-surface-muted: #f2f4f7;
-  --studio-surface-hover: rgba(0, 0, 0, 0.05);
-  --studio-surface-hover-strong: rgba(0, 0, 0, 0.08);
-  --studio-surface-active: rgba(0, 0, 0, 0.1);
-  --studio-border-subtle: #ececec;
-  --studio-border-strong: #e9ecf3;
-  --studio-divider: rgba(0, 0, 0, 0.08);
-  --studio-text-primary: #0d0d0d;
-  --studio-text-secondary: #474848;
-  --studio-text-tertiary: #797a7a;
-  --studio-text-placeholder: #9d9fa0;
-  --studio-text-inverted: #f2f4f7;
-  --studio-icon-muted: #b6b6b6;
-  --studio-brand: #1979ff;
-  --studio-status-success: #12b981;
-  --studio-status-success-bg: #e5fff4;
-  --studio-status-success-fg: #079669;
-  --studio-status-error: #e13e37;
-  --studio-status-error-bg: #f7eceb;
-  --studio-status-info: #1979ff;
-  --studio-status-info-bg: #e5f0ff;
-  --studio-status-idle: #b6b6b6;
+  --midscene-app-bg: #f6f6f6;
+  --midscene-surface: #ffffff;
+  --midscene-surface-elevated: #ffffff;
+  --midscene-surface-muted: #f2f4f7;
+  --midscene-surface-hover: rgba(0, 0, 0, 0.05);
+  --midscene-surface-hover-strong: rgba(0, 0, 0, 0.08);
+  --midscene-surface-active: rgba(0, 0, 0, 0.1);
+  --midscene-border-subtle: #ececec;
+  --midscene-border-strong: #e9ecf3;
+  --midscene-divider: rgba(0, 0, 0, 0.08);
+  --midscene-text-primary: #0d0d0d;
+  --midscene-text-secondary: #474848;
+  --midscene-text-tertiary: #797a7a;
+  --midscene-text-placeholder: #9d9fa0;
+  --midscene-text-inverted: #f2f4f7;
+  --midscene-icon-muted: #b6b6b6;
+  --midscene-brand: #1979ff;
+  --midscene-status-success: #12b981;
+  --midscene-status-success-bg: #e5fff4;
+  --midscene-status-success-fg: #079669;
+  --midscene-status-error: #e13e37;
+  --midscene-status-error-bg: #f7eceb;
+  --midscene-status-info: #1979ff;
+  --midscene-status-info-bg: #e5f0ff;
+  --midscene-status-idle: #b6b6b6;
 }
 
-:root.dark {
-  --studio-app-bg: #171717;
-  --studio-surface: #1e1e1e;
-  --studio-surface-elevated: #2b2b2b;
-  --studio-surface-muted: #2b2b2b;
-  --studio-surface-hover: rgba(255, 255, 255, 0.05);
-  --studio-surface-hover-strong: rgba(255, 255, 255, 0.1);
-  --studio-surface-active: rgba(255, 255, 255, 0.15);
-  --studio-border-subtle: #2e2e2e;
-  --studio-border-strong: rgba(255, 255, 255, 0.08);
-  --studio-divider: rgba(255, 255, 255, 0.08);
-  --studio-text-primary: #ffffff;
-  --studio-text-secondary: #d0d0d1;
-  --studio-text-tertiary: #9da0a1;
-  --studio-text-placeholder: #6f7173;
-  --studio-text-inverted: #0d0d0d;
-  --studio-icon-muted: #6f7173;
-  --studio-brand: #2b84ff;
-  --studio-status-success: #12b981;
-  --studio-status-success-bg: rgba(18, 185, 129, 0.15);
-  --studio-status-success-fg: #34d399;
-  --studio-status-error: #e13e37;
-  --studio-status-error-bg: rgba(225, 62, 55, 0.15);
-  --studio-status-info: #2b84ff;
-  --studio-status-info-bg: rgba(43, 132, 255, 0.15);
-  --studio-status-idle: #6f7173;
+[data-theme="dark"] {
+  --midscene-app-bg: #171717;
+  --midscene-surface: #1e1e1e;
+  --midscene-surface-elevated: #2b2b2b;
+  --midscene-surface-muted: #2b2b2b;
+  --midscene-surface-hover: rgba(255, 255, 255, 0.05);
+  --midscene-surface-hover-strong: rgba(255, 255, 255, 0.1);
+  --midscene-surface-active: rgba(255, 255, 255, 0.15);
+  --midscene-border-subtle: #2e2e2e;
+  --midscene-border-strong: rgba(255, 255, 255, 0.08);
+  --midscene-divider: rgba(255, 255, 255, 0.08);
+  --midscene-text-primary: #ffffff;
+  --midscene-text-secondary: #d0d0d1;
+  --midscene-text-tertiary: #9da0a1;
+  --midscene-text-placeholder: #6f7173;
+  --midscene-text-inverted: #0d0d0d;
+  --midscene-icon-muted: #6f7173;
+  --midscene-brand: #1979ff;
+  --midscene-status-success: #12b981;
+  --midscene-status-success-bg: rgba(18, 185, 129, 0.15);
+  --midscene-status-success-fg: #34d399;
+  --midscene-status-error: #e13e37;
+  --midscene-status-error-bg: rgba(225, 62, 55, 0.15);
+  --midscene-status-info: #1979ff;
+  --midscene-status-info-bg: rgba(25, 121, 255, 0.15);
+  --midscene-status-idle: #6f7173;
 }
 
 @layer base {
@@ -101,7 +101,7 @@
 
   body {
     overscroll-behavior: none;
-    color: var(--studio-text-primary);
+    color: var(--midscene-text-primary);
   }
 }
 

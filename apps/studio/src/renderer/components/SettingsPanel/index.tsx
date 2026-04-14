@@ -1,4 +1,11 @@
+import { useStudioTheme } from '../../theme/ThemeProvider';
 import SettingItem from './SettingItem';
+
+const THEME_LABELS: Record<string, string> = {
+  light: 'Light',
+  dark: 'Dark',
+  system: 'System',
+};
 
 function ChevronIcon() {
   return (
@@ -60,7 +67,6 @@ export interface SettingsPanelProps {
   onLanguageClick?: () => void;
   onThemeClick?: () => void;
   onWebsiteClick?: () => void;
-  theme?: string;
 }
 
 export default function SettingsPanel({
@@ -71,8 +77,8 @@ export default function SettingsPanel({
   onLanguageClick,
   onThemeClick,
   onWebsiteClick,
-  theme = 'Light',
 }: SettingsPanelProps) {
+  const { mode, cycleMode } = useStudioTheme();
   const panelClassName = [
     'flex h-[220px] w-[244px] flex-col overflow-hidden rounded-[12px] border border-border-subtle bg-surface-elevated p-[6px] shadow-lg',
     className,
@@ -91,9 +97,9 @@ export default function SettingsPanel({
         />
         <SettingItem
           label="Theme"
-          onClick={onThemeClick}
+          onClick={cycleMode}
           trailingIcon={<ChevronIcon />}
-          value={theme}
+          value={THEME_LABELS[mode]}
         />
       </div>
 

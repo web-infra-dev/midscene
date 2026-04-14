@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { STUDIO_EXTERNAL_LINKS } from '../../../shared/external-links';
 import { assetUrls } from '../../assets';
-import { useStudioTheme } from '../../theme/ThemeProvider';
 import MainContent from '../MainContent';
 import Playground from '../Playground';
 import SettingsPanel from '../SettingsPanel';
@@ -50,7 +49,6 @@ function SidebarToggleButton({
 }
 
 export default function ShellLayout() {
-  const { mode, toggleMode } = useStudioTheme();
   const [collapsed, setCollapsed] = useState(false);
   const [activeView, setActiveView] = useState<ShellActiveView>('device');
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -136,7 +134,6 @@ export default function ShellLayout() {
                   onWebsiteClick={() =>
                     openExternalUrl(STUDIO_EXTERNAL_LINKS.website)
                   }
-                  theme={mode === 'dark' ? 'Dark' : 'Light'}
                 />
               </div>
             )}

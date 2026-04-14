@@ -25,6 +25,21 @@ export interface ModelEnvConfigModalProps {
 
 const TEXT_PLACEHOLDER = 'OPENAI_API_KEY=sk-...\nMIDSCENE_MODEL=';
 
+const STATUS_BANNER_PALETTE = {
+  running: {
+    color: 'var(--midscene-status-info)',
+    background: 'var(--midscene-status-info-bg)',
+  },
+  success: {
+    color: 'var(--midscene-status-success-fg)',
+    background: 'var(--midscene-status-success-bg)',
+  },
+  error: {
+    color: 'var(--midscene-status-error)',
+    background: 'var(--midscene-status-error-bg)',
+  },
+} as const;
+
 function CloseIcon() {
   return (
     <svg
@@ -111,22 +126,19 @@ export function ModelEnvConfigModal({
   const statusBanner = useMemo(() => {
     if (testStatus.kind === 'running') {
       return {
-        color: 'var(--studio-status-info)',
-        background: 'var(--studio-status-info-bg)',
+        ...STATUS_BANNER_PALETTE.running,
         message: 'Running connectivity test...',
       };
     }
     if (testStatus.kind === 'success') {
       return {
-        color: 'var(--studio-status-success-fg)',
-        background: 'var(--studio-status-success-bg)',
+        ...STATUS_BANNER_PALETTE.success,
         message: `Connectivity test passed: "${testStatus.sample.slice(0, 80)}"`,
       };
     }
     if (testStatus.kind === 'error') {
       return {
-        color: 'var(--studio-status-error)',
-        background: 'var(--studio-status-error-bg)',
+        ...STATUS_BANNER_PALETTE.error,
         message: testStatus.message,
       };
     }

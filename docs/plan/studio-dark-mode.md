@@ -124,19 +124,31 @@ export function globalThemeConfig(mode: 'light' | 'dark' = 'light'): ThemeConfig
 5. 接入 `ThemeModeProvider`，在 Studio 顶栏/设置里加一个三态开关（`light` / `dark` / `system`）。
 6. Chrome extension + report 跟随升级（它们已经共享 `globalThemeConfig`，成本最低）。
 
-## PoC 建议范围
+## PoC 落地情况（已实现）
 
-先只做：
-- `visualizer/theme/tokens.{css,ts}` + `globalThemeConfig(mode)` 改造。
-- `apps/studio/src/renderer/components/MainContent/DeviceList.tsx` + `SessionSetupPanel.{tsx,less}` 完全切到 token。
-- Studio 顶栏新增手动切换入口。
+- Token 层：`apps/studio/src/renderer/App.css` 定义 `--midscene-*` 16+ 个语义
+  token，light + `[data-theme='dark']` 两套值，通过 Tailwind v4 `@theme`
+  暴露为 utility 类，`@custom-variant dark ([data-theme='dark'])`。
+- 状态管理：`apps/studio/src/renderer/theme/ThemeProvider.tsx` 支持
+  `light` / `dark` / `system` 三档，`system` 下通过 `matchMedia` 跟随 OS；
+  仅写 `<html data-theme>`，避免 `.dark` class 与 data-attr 双信号。
+- FOUC：`index.tsx` 在 React mount 前同步 `applyStoredThemeMode()`。
+- antd 集成：`StudioAntdProvider` 使用真实 hex（按 `resolved` 选 light /
+  dark 常量表）喂给 antd，避免 `var(--…)` 被 tinycolor 解析失败导致
+  hover/active 衍生色错乱；`algorithm` 跟随模式切换。
+- 外部包复用：`@midscene/visualizer` 的 `universal-playground` /
+  `prompt-input` / `playground-result` 与 `@midscene/playground-app` 的
+  `SessionSetupPanel.less` 全部通过 `var(--midscene-*)` 带 light fallback
+  读 token，既跟随 host 切换，也兼容没有设 token 的场景。
+- 入口：左下角设置菜单的 Theme 项循环切 `Light → Dark → System`。
 
-这样可以在不动 Sidebar/ShellLayout 大片 CSS 的前提下验证：
-- antd token 通过 CSS 变量切 dark 是否有视觉 bug（Select hover、Form label）。
-- Tailwind v4 `@theme` + CSS 变量联动是否如预期。
-- Scrcpy 预览、modal、dock 这些没走 token 的区块是否会有反差。
+## 仍待推进
 
-PoC 成功后再推全量替换，否则有改造方向的窗口。
+- `packages/visualizer/src/utils/color.ts` 的 `globalThemeConfig()` 还是
+  硬编码 light；chrome-extension、report 接入 dark 需要把这个函数改成
+  `globalThemeConfig(mode)` 并共用同一套 `--midscene-*` token。
+- scrcpy 预览、phone/pc 插画仍是浅色素材；需要给 dark 单独出图或加 filter。
+- Player / scroll-to-bottom 等少量 visualizer `.less` 片段仍有硬编码色。
 
 ## 风险与取舍
 
