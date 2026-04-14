@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-import { Buffer } from 'node:buffer';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { fetchVersion } from 'gh-release-fetch';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(scriptPath);
@@ -12,6 +13,22 @@ export const SCRCPY_SERVER_VERSION_TAG = `v${SCRCPY_PROTOCOL_VERSION}`;
 export const SCRCPY_SERVER_VERSION_FILENAME = 'scrcpy-server.version';
 
 const SCRCPY_VERSION = SCRCPY_SERVER_VERSION_TAG;
+const PROXY_URL =
+  process.env.HTTPS_PROXY_URL ||
+  process.env.HTTP_PROXY_URL ||
+  process.env.https_proxy_url ||
+  process.env.http_proxy_url;
+
+function createProxyAgent() {
+  if (!PROXY_URL) {
+    return undefined;
+  }
+
+  console.log(
+    `[scrcpy] Using proxy: ${PROXY_URL.replace(/\/\/.*@/, '//***:***@')}`,
+  );
+  return new HttpsProxyAgent(PROXY_URL);
+}
 
 export function shouldDownloadScrcpyServer(
   existingVersion,
@@ -59,28 +76,6 @@ export async function installDownloadedScrcpyServer({
     }
     throw error;
   }
-}
-
-export function getScrcpyServerDownloadUrl(version = SCRCPY_VERSION) {
-  return `https://github.com/Genymobile/scrcpy/releases/download/${version}/scrcpy-server-${version}`;
-}
-
-export async function downloadScrcpyServerReleaseAsset({
-  destinationPath,
-  fetchImpl = fetch,
-  fsApi = fs,
-  version = SCRCPY_VERSION,
-}) {
-  const response = await fetchImpl(getScrcpyServerDownloadUrl(version));
-
-  if (!response.ok) {
-    throw new Error(
-      `Response code ${response.status} (${response.statusText})`,
-    );
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  await fsApi.writeFile(destinationPath, Buffer.from(arrayBuffer));
 }
 
 export async function main() {
@@ -142,13 +137,20 @@ export async function main() {
   const maxRetries = 3;
   const downloadedFile = path.join(binDir, `scrcpy-server-${SCRCPY_VERSION}`);
   await fs.rm(downloadedFile, { force: true });
+  const agent = createProxyAgent();
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      await downloadScrcpyServerReleaseAsset({
-        destinationPath: downloadedFile,
-        version: SCRCPY_VERSION,
-      });
+      await fetchVersion(
+        {
+          repository: 'Genymobile/scrcpy',
+          version: SCRCPY_VERSION,
+          package: `scrcpy-server-${SCRCPY_VERSION}`,
+          destination: binDir,
+          extract: false,
+        },
+        { agent },
+      );
       break;
     } catch (err) {
       if (attempt === maxRetries) throw err;

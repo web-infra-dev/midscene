@@ -64,7 +64,8 @@
     "typescript": "^5.8.3",
     "tsx": "^4.19.2",
     "vitest": "3.0.5",
-    "zod": "^3.25.1"
+    "zod": "^3.25.1",
+    "https-proxy-agent": "7.0.6"
   },
   "license": "MIT"
 }
