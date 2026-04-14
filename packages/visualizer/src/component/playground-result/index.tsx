@@ -105,8 +105,8 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
               style={{
                 flex: '1 1 auto',
                 minHeight: 0,
-                display: 'flex',
-                justifyContent: 'center',
+                width: '100%',
+                overflow: 'hidden',
               }}
             >
               <Player
@@ -169,8 +169,8 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
             style={{
               flex: '1 1 auto',
               minHeight: 0,
-              display: 'flex',
-              justifyContent: 'center',
+              width: '100%',
+              overflow: 'hidden',
             }}
           >
             <Player
