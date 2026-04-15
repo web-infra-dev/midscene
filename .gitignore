@@ -138,7 +138,6 @@ packages/playground/static/
 tsconfig.build.tsbuildinfo
 .webx
 .mcp.json
-docs/
 package-lock.json
 packages/all-in-one-playground/static/*
 
