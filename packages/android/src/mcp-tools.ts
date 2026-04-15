@@ -6,6 +6,29 @@ import { AndroidDevice } from './device';
 
 const debug = getDebug('mcp:android-tools');
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getDeviceIdFromArgs(
+  args: Record<string, unknown>,
+): string | undefined {
+  if (typeof args.deviceId === 'string') {
+    return args.deviceId;
+  }
+
+  if (typeof args['android.deviceId'] === 'string') {
+    return args['android.deviceId'];
+  }
+
+  const androidArgs = args.android;
+  if (isRecord(androidArgs) && typeof androidArgs.deviceId === 'string') {
+    return androidArgs.deviceId;
+  }
+
+  return undefined;
+}
+
 /**
  * Android-specific tools manager
  * Extends BaseMidsceneTools to provide Android ADB device connection tools
@@ -17,7 +40,25 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<AndroidAgent> {
     return new AndroidDevice('temp-for-action-space', {});
   }
 
-  protected async ensureAgent(deviceId?: string): Promise<AndroidAgent> {
+  protected extractAgentInitParam(args: Record<string, unknown>): unknown {
+    return getDeviceIdFromArgs(args);
+  }
+
+  protected sanitizeToolArgs(
+    args: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const {
+      deviceId: _deviceId,
+      'android.deviceId': _androidDeviceId,
+      android: _android,
+      ...sanitizedArgs
+    } = args;
+    return sanitizedArgs;
+  }
+
+  protected async ensureAgent(initParam?: unknown): Promise<AndroidAgent> {
+    const deviceId = typeof initParam === 'string' ? initParam : undefined;
+
     if (this.agent && deviceId) {
       // If a specific deviceId is requested and we have an agent,
       // destroy it to create a new one with the new device

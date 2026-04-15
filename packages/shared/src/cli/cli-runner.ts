@@ -62,6 +62,25 @@ export function parseValue(raw: string): unknown {
 export function parseCliArgs(args: string[]): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
+  const setArgValue = (key: string, value: unknown) => {
+    const segments = key.split('.');
+    let current = result;
+
+    for (const segment of segments.slice(0, -1)) {
+      const nestedValue = current[segment];
+      if (
+        typeof nestedValue !== 'object' ||
+        nestedValue === null ||
+        Array.isArray(nestedValue)
+      ) {
+        current[segment] = {};
+      }
+      current = current[segment] as Record<string, unknown>;
+    }
+
+    current[segments.at(-1) as string] = value;
+  };
+
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (!arg.startsWith('--')) continue;
@@ -71,14 +90,14 @@ export function parseCliArgs(args: string[]): Record<string, unknown> {
 
     if (eqIdx >= 0) {
       // --key=value
-      result[body.slice(0, eqIdx)] = parseValue(body.slice(eqIdx + 1));
+      setArgValue(body.slice(0, eqIdx), parseValue(body.slice(eqIdx + 1)));
     } else if (args[i + 1] && !args[i + 1].startsWith('--')) {
       // --key value
       i++;
-      result[body] = parseValue(args[i]);
+      setArgValue(body, parseValue(args[i]));
     } else {
       // --flag (boolean)
-      result[body] = true;
+      setArgValue(body, true);
     }
   }
 

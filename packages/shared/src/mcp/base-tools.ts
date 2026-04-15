@@ -33,7 +33,23 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
    * @returns Promise resolving to initialized agent instance
    * @throws Error if agent initialization fails
    */
-  protected abstract ensureAgent(initParam?: string): Promise<TAgent>;
+  protected abstract ensureAgent(initParam?: unknown): Promise<TAgent>;
+
+  /**
+   * Extract a platform-specific agent init parameter from CLI/MCP tool args.
+   */
+  protected extractAgentInitParam(_args: Record<string, unknown>): unknown {
+    return undefined;
+  }
+
+  /**
+   * Remove platform-specific init args before dispatching a tool payload to the action itself.
+   */
+  protected sanitizeToolArgs(
+    args: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return args;
+  }
 
   /**
    * Optional: prepare platform-specific tools (e.g., device connection)
@@ -83,13 +99,16 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
     }
 
     // 3. Generate tools from action space (core innovation)
-    const actionTools = generateToolsFromActionSpace(actionSpace, () =>
-      this.ensureAgent(),
+    const actionTools = generateToolsFromActionSpace(
+      actionSpace,
+      (args = {}) => this.ensureAgent(this.extractAgentInitParam(args)),
+      (args = {}) => this.sanitizeToolArgs(args),
     );
 
     // 4. Add common tools (screenshot, waitFor)
-    const commonTools = generateCommonTools(() => this.ensureAgent());
-
+    const commonTools = generateCommonTools((args = {}) =>
+      this.ensureAgent(this.extractAgentInitParam(args)),
+    );
     this.toolDefinitions.push(...actionTools, ...commonTools);
 
     debug('Total tools prepared:', this.toolDefinitions.length);

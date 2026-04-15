@@ -162,4 +162,43 @@ describe('generateToolsFromActionSpace', () => {
       ],
     });
   });
+
+  it('passes raw args to the agent getter while stripping init args from action payload', async () => {
+    const callActionInActionSpace = vi
+      .fn()
+      .mockResolvedValue('pm clear output');
+    const getAgent = vi.fn().mockResolvedValue({
+      callActionInActionSpace,
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: {
+        screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+      },
+    });
+    const [tool] = generateToolsFromActionSpace(
+      [
+        {
+          name: 'RunAdbShell',
+          description: 'Execute ADB shell command',
+          paramSchema: z.object({
+            command: z.string(),
+          }),
+        },
+      ],
+      getAgent,
+      ({ deviceId: _deviceId, ...rest }) => rest,
+    );
+
+    await tool.handler({
+      command: 'pm clear com.example.app',
+      deviceId: 'target-device',
+    });
+
+    expect(getAgent).toHaveBeenCalledWith({
+      command: 'pm clear com.example.app',
+      deviceId: 'target-device',
+    });
+    expect(callActionInActionSpace).toHaveBeenCalledWith('RunAdbShell', {
+      command: 'pm clear com.example.app',
+    });
+  });
 });

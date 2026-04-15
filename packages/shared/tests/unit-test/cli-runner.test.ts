@@ -160,6 +160,14 @@ describe('parseCliArgs', () => {
       content: 'hello world',
     });
   });
+
+  it('parses dotted keys into nested objects', () => {
+    expect(parseCliArgs(['--android.deviceId', '127.0.0.1:7555'])).toEqual({
+      android: {
+        deviceId: '127.0.0.1:7555',
+      },
+    });
+  });
 });
 
 describe('removePrefix', () => {
