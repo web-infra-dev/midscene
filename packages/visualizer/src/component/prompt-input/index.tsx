@@ -14,7 +14,7 @@ import React, {
 import type { HistoryItem } from '../../store/history';
 import { useHistoryStore } from '../../store/history';
 import type { DeviceType, RunType } from '../../types';
-import type { ServiceModeType } from '../../types';
+import type { PromptInputChromeConfig, ServiceModeType } from '../../types';
 import {
   type FormParams,
   type ZodObjectSchema,
@@ -25,6 +25,7 @@ import {
   isZodObjectSchema,
   unwrapZodType,
 } from '../../types';
+import { getPromptInputActionLabel } from '../../utils/action-label';
 import { apiMetadata, defaultMainButtons } from '../../utils/constants';
 import { hasDeviceSpecificConfig } from '../../utils/device-capabilities';
 import {
@@ -32,6 +33,10 @@ import {
   isRunButtonEnabled as calculateIsRunButtonEnabled,
   getPlaceholderForType,
 } from '../../utils/playground-utils';
+import {
+  getAvailablePromptActionTypes,
+  getInlineStructuredFieldConfig,
+} from '../../utils/prompt-input-utils';
 import { ConfigSelector } from '../config-selector';
 import {
   BooleanField,
@@ -43,6 +48,8 @@ import {
 import { HistorySelector } from '../history-selector';
 import './index.less';
 import type { DeviceAction } from '@midscene/core';
+import HistoryOutlined from '../../icons/history.svg';
+import SettingOutlined from '../../icons/setting.svg';
 
 const { TextArea } = Input;
 
@@ -60,6 +67,7 @@ interface PromptInputProps {
   hideDomAndScreenshotOptions?: boolean; // Hide domIncluded and screenshotIncluded options
   actionSpace: DeviceAction<any>[]; // Required actionSpace for dynamic parameter detection
   deviceType?: DeviceType;
+  chrome?: PromptInputChromeConfig;
 }
 
 export const PromptInput: React.FC<PromptInputProps> = ({
@@ -76,10 +84,19 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   actionSpace,
   hideDomAndScreenshotOptions = false,
   deviceType,
+  chrome,
 }) => {
   const [hoveringSettings, setHoveringSettings] = useState(false);
   const [promptValue, setPromptValue] = useState('');
+  const [incutHasExplicitTypeSelection, setIncutHasExplicitTypeSelection] =
+    useState(false);
   const placeholder = getPlaceholderForType(selectedType);
+  const isIncutChrome = chrome?.variant === 'incut';
+  const resolvedPlaceholder = chrome?.placeholder || placeholder;
+  const actionButtonLabel = getPromptInputActionLabel(
+    selectedType,
+    chrome?.primaryActionLabel,
+  );
   const textAreaRef = useRef<any>(null); // Ant Design TextArea ref with internal structure
   const modeRadioGroupRef = useRef<HTMLDivElement>(null); // Ref for the mode-radio-group container
   const params = Form.useWatch('params', form);
@@ -96,6 +113,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     () => history[selectedType] || [],
     [history, selectedType],
   );
+  const skipIncutSyncRef = useRef(false);
+  const initializedIncutTypeRef = useRef(false);
 
   // Check if current method needs structured parameters (dynamic based on actionSpace)
   const needsStructuredParams = useMemo(() => {
@@ -229,50 +248,278 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     deviceType,
   ]);
 
-  // Get available methods for dropdown (filtered by actionSpace)
-  const availableDropdownMethods = useMemo(() => {
-    const metadataMethods = Object.keys(apiMetadata);
+  const availableDropdownMethods = useMemo(
+    () => getAvailablePromptActionTypes(actionSpace),
+    [actionSpace],
+  );
 
-    if (!actionSpace || actionSpace.length === 0) {
-      // Fallback to metadata methods if actionSpace is not available
-      return metadataMethods;
-    }
+  const actionDropdownMenu = useMemo<MenuProps>(() => {
+    const hiddenAPIs = availableDropdownMethods.filter(
+      (api) => !defaultMainButtons.includes(api),
+    );
+    const groupedItems: NonNullable<MenuProps['items']> = [];
 
-    // Extract available methods from actionSpace
-    const availableMethods = actionSpace.map(
-      (action) => action.interfaceAlias || action.name,
+    const primaryActions = defaultMainButtons.filter(
+      (api) => api === 'aiAct' || availableDropdownMethods.includes(api),
     );
 
-    // Combine methods from two sources:
-    // 1. Methods from apiMetadata (filtered by rules)
-    // 2. Methods from actionSpace (even if not in apiMetadata)
-    const finalMethods = new Set<string>();
+    if (primaryActions.length > 0) {
+      groupedItems.push({
+        key: 'primary-group',
+        type: 'group',
+        label: 'Primary APIs',
+        children: primaryActions.map((api) => ({
+          key: api,
+          label: actionNameForType(api),
+          title: apiMetadata[api as keyof typeof apiMetadata]?.title || '',
+          onClick: () => {
+            if (isIncutChrome) {
+              setIncutHasExplicitTypeSelection(true);
+            }
+            form.setFieldValue('type', api);
+          },
+        })),
+      });
+    }
 
-    // Add filtered apiMetadata methods
-    metadataMethods.forEach((method) => {
-      const methodInfo = apiMetadata[method as keyof typeof apiMetadata];
+    const interactionAPIs = hiddenAPIs.filter(
+      (api) =>
+        apiMetadata[api as keyof typeof apiMetadata]?.group === 'interaction',
+    );
+    if (interactionAPIs.length > 0) {
+      groupedItems.push({
+        key: 'interaction-group',
+        type: 'group',
+        label: 'Interaction APIs',
+        children: interactionAPIs.map((api) => ({
+          key: api,
+          label: actionNameForType(api),
+          title: apiMetadata[api as keyof typeof apiMetadata]?.title || '',
+          onClick: () => {
+            if (isIncutChrome) {
+              setIncutHasExplicitTypeSelection(true);
+            }
+            form.setFieldValue('type', api);
+          },
+        })),
+      });
+    }
 
-      // Always include extraction and validation methods
-      if (
-        methodInfo?.group === 'extraction' ||
-        methodInfo?.group === 'validation'
-      ) {
-        finalMethods.add(method);
-      } else {
-        // For interaction methods, check if they're available in actionSpace
-        if (availableMethods.includes(method)) {
-          finalMethods.add(method);
-        }
-      }
+    const extractionAPIs = hiddenAPIs.filter(
+      (api) =>
+        apiMetadata[api as keyof typeof apiMetadata]?.group === 'extraction',
+    );
+    if (extractionAPIs.length > 0) {
+      groupedItems.push({
+        key: 'extraction-group',
+        type: 'group',
+        label: 'Data Extraction APIs',
+        children: extractionAPIs.map((api) => ({
+          key: api,
+          label: actionNameForType(api),
+          title: apiMetadata[api as keyof typeof apiMetadata]?.title || '',
+          onClick: () => {
+            if (isIncutChrome) {
+              setIncutHasExplicitTypeSelection(true);
+            }
+            form.setFieldValue('type', api);
+          },
+        })),
+      });
+    }
+
+    const validationAPIs = hiddenAPIs.filter(
+      (api) =>
+        apiMetadata[api as keyof typeof apiMetadata]?.group === 'validation',
+    );
+    if (validationAPIs.length > 0) {
+      groupedItems.push({
+        key: 'validation-group',
+        type: 'group',
+        label: 'Validation APIs',
+        children: validationAPIs.map((api) => ({
+          key: api,
+          label: actionNameForType(api),
+          title: apiMetadata[api as keyof typeof apiMetadata]?.title || '',
+          onClick: () => {
+            if (isIncutChrome) {
+              setIncutHasExplicitTypeSelection(true);
+            }
+            form.setFieldValue('type', api);
+          },
+        })),
+      });
+    }
+
+    const deviceSpecificAPIs = hiddenAPIs.filter(
+      (api) => !apiMetadata[api as keyof typeof apiMetadata],
+    );
+    if (deviceSpecificAPIs.length > 0) {
+      groupedItems.push({
+        key: 'device-specific-group',
+        type: 'group',
+        label: 'Device-Specific APIs',
+        children: deviceSpecificAPIs.map((api) => ({
+          key: api,
+          label: actionNameForType(api),
+          title: '',
+          onClick: () => {
+            if (isIncutChrome) {
+              setIncutHasExplicitTypeSelection(true);
+            }
+            form.setFieldValue('type', api);
+          },
+        })),
+      });
+    }
+
+    return { items: groupedItems };
+  }, [availableDropdownMethods, form, isIncutChrome]);
+
+  const moreApisDropdownMenu = useMemo<MenuProps>(() => {
+    const hiddenAPIs = availableDropdownMethods.filter(
+      (api) => !defaultMainButtons.includes(api),
+    );
+    const groupedItems: NonNullable<MenuProps['items']> = [];
+
+    const interactionAPIs = hiddenAPIs.filter(
+      (api) =>
+        apiMetadata[api as keyof typeof apiMetadata]?.group === 'interaction',
+    );
+    if (interactionAPIs.length > 0) {
+      groupedItems.push({
+        key: 'interaction-group',
+        type: 'group',
+        label: 'Interaction APIs',
+        children: interactionAPIs.map((api) => ({
+          key: api,
+          label: actionNameForType(api),
+          title: apiMetadata[api as keyof typeof apiMetadata]?.title || '',
+          onClick: () => {
+            if (isIncutChrome) {
+              setIncutHasExplicitTypeSelection(true);
+            }
+            form.setFieldValue('type', api);
+          },
+        })),
+      });
+    }
+
+    const extractionAPIs = hiddenAPIs.filter(
+      (api) =>
+        apiMetadata[api as keyof typeof apiMetadata]?.group === 'extraction',
+    );
+    if (extractionAPIs.length > 0) {
+      groupedItems.push({
+        key: 'extraction-group',
+        type: 'group',
+        label: 'Data Extraction APIs',
+        children: extractionAPIs.map((api) => ({
+          key: api,
+          label: actionNameForType(api),
+          title: apiMetadata[api as keyof typeof apiMetadata]?.title || '',
+          onClick: () => {
+            if (isIncutChrome) {
+              setIncutHasExplicitTypeSelection(true);
+            }
+            form.setFieldValue('type', api);
+          },
+        })),
+      });
+    }
+
+    const validationAPIs = hiddenAPIs.filter(
+      (api) =>
+        apiMetadata[api as keyof typeof apiMetadata]?.group === 'validation',
+    );
+    if (validationAPIs.length > 0) {
+      groupedItems.push({
+        key: 'validation-group',
+        type: 'group',
+        label: 'Validation APIs',
+        children: validationAPIs.map((api) => ({
+          key: api,
+          label: actionNameForType(api),
+          title: apiMetadata[api as keyof typeof apiMetadata]?.title || '',
+          onClick: () => {
+            if (isIncutChrome) {
+              setIncutHasExplicitTypeSelection(true);
+            }
+            form.setFieldValue('type', api);
+          },
+        })),
+      });
+    }
+
+    const deviceSpecificAPIs = hiddenAPIs.filter(
+      (api) => !apiMetadata[api as keyof typeof apiMetadata],
+    );
+    if (deviceSpecificAPIs.length > 0) {
+      groupedItems.push({
+        key: 'device-specific-group',
+        type: 'group',
+        label: 'Device-Specific APIs',
+        children: deviceSpecificAPIs.map((api) => ({
+          key: api,
+          label: actionNameForType(api),
+          title: '',
+          onClick: () => {
+            if (isIncutChrome) {
+              setIncutHasExplicitTypeSelection(true);
+            }
+            form.setFieldValue('type', api);
+          },
+        })),
+      });
+    }
+
+    return { items: groupedItems };
+  }, [availableDropdownMethods, form, isIncutChrome]);
+
+  useEffect(() => {
+    if (
+      !isIncutChrome ||
+      initializedIncutTypeRef.current ||
+      !selectedType ||
+      incutHasExplicitTypeSelection
+    ) {
+      return;
+    }
+
+    initializedIncutTypeRef.current = true;
+
+    if (selectedType === 'aiAct') {
+      return;
+    }
+
+    skipIncutSyncRef.current = false;
+    lastHistoryRef.current = null;
+    form.setFieldsValue({
+      type: 'aiAct',
+      prompt: '',
+      params: {},
     });
+    setPromptValue('');
+  }, [form, incutHasExplicitTypeSelection, isIncutChrome, selectedType]);
 
-    // Add all methods from actionSpace (including Android-specific ones)
-    availableMethods.forEach((method) => {
-      finalMethods.add(method);
+  useEffect(() => {
+    if (
+      !isIncutChrome ||
+      incutHasExplicitTypeSelection ||
+      !selectedType ||
+      selectedType === 'aiAct'
+    ) {
+      return;
+    }
+
+    lastHistoryRef.current = null;
+    form.setFieldsValue({
+      type: 'aiAct',
+      prompt: '',
+      params: {},
     });
-
-    return Array.from(finalMethods);
-  }, [actionSpace]);
+    setPromptValue('');
+  }, [form, incutHasExplicitTypeSelection, isIncutChrome, selectedType]);
 
   // Get default values for fields with defaults
   const getDefaultParams = useCallback((): FormParams => {
@@ -308,17 +555,17 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   // Initialize form with last selected type when component mounts
   useEffect(() => {
-    if (!form.getFieldValue('type') && lastSelectedType) {
+    if (!isIncutChrome && !form.getFieldValue('type') && lastSelectedType) {
       form.setFieldValue('type', lastSelectedType);
     }
-  }, [form, lastSelectedType]);
+  }, [form, isIncutChrome, lastSelectedType]);
 
   // Save selected type when it changes
   useEffect(() => {
-    if (selectedType && selectedType !== lastSelectedType) {
+    if (!isIncutChrome && selectedType && selectedType !== lastSelectedType) {
       setLastSelectedType(selectedType);
     }
-  }, [selectedType, lastSelectedType, setLastSelectedType]);
+  }, [selectedType, isIncutChrome, lastSelectedType, setLastSelectedType]);
 
   // Scroll to selected item in mode-radio-group
   const scrollToSelectedItem = useCallback(() => {
@@ -367,6 +614,22 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   // When the selectedType changes, populate the form with the last item from that type's history.
   useEffect(() => {
+    if (skipIncutSyncRef.current) {
+      skipIncutSyncRef.current = false;
+      return;
+    }
+
+    if (isIncutChrome) {
+      const defaultParams = getDefaultParams();
+      form.setFieldsValue({
+        prompt: '',
+        params: defaultParams,
+      });
+      setPromptValue('');
+      lastHistoryRef.current = null;
+      return;
+    }
+
     const lastHistory = historyForSelectedType[0];
 
     // Skip auto-filling if this is the same history item we just added
@@ -396,7 +659,13 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       setPromptValue('');
       lastHistoryRef.current = null;
     }
-  }, [selectedType, historyForSelectedType, form, getDefaultParams]);
+  }, [
+    selectedType,
+    historyForSelectedType,
+    form,
+    getDefaultParams,
+    isIncutChrome,
+  ]);
 
   // Scroll to selected item when selectedType changes
   useEffect(() => {
@@ -421,6 +690,10 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   // Handle history selection internally
   const handleSelectHistory = useCallback(
     (historyItem: HistoryItem) => {
+      if (isIncutChrome) {
+        setIncutHasExplicitTypeSelection(true);
+      }
+      skipIncutSyncRef.current = historyItem.type !== selectedType;
       form.setFieldsValue({
         prompt: historyItem.prompt,
         type: historyItem.type,
@@ -428,7 +701,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       });
       setPromptValue(historyItem.prompt);
     },
-    [form],
+    [form, isIncutChrome, selectedType],
   );
 
   // Handle prompt input change
@@ -455,6 +728,14 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     }
     return false;
   }, [selectedType, needsStructuredParams, actionSpace]);
+
+  const incutInlineFieldConfig = useMemo(
+    () =>
+      isIncutChrome
+        ? getInlineStructuredFieldConfig(actionSpace, selectedType)
+        : null,
+    [actionSpace, isIncutChrome, selectedType],
+  );
 
   // Calculate if run button should be enabled
   const isRunButtonEnabled = useMemo(
@@ -848,16 +1129,23 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   // Render action button based on current state
   const renderActionButton = useCallback(() => {
+    const sendIcon = chrome?.icons?.send ? (
+      <img alt="" className="incut-send-icon" src={chrome.icons.send} />
+    ) : (
+      <SendOutlined />
+    );
+
     const runButton = (text: string) => (
       <Button
         type="primary"
-        icon={<SendOutlined />}
+        icon={sendIcon}
         style={{ borderRadius: 20, zIndex: 999 }}
         onClick={handleRunWithHistory}
         disabled={!isRunButtonEnabled}
         loading={loading}
+        className={isIncutChrome ? 'incut-send-button' : undefined}
       >
-        {text}
+        {isIncutChrome ? null : text}
       </Button>
     );
 
@@ -874,11 +1162,12 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     if (stoppable) {
       return (
         <Button
-          icon={<BorderOutlined />}
+          icon={isIncutChrome ? undefined : <BorderOutlined />}
           onClick={onStop}
           style={{ borderRadius: 20, zIndex: 999 }}
+          className={isIncutChrome ? 'incut-stop-button' : undefined}
         >
-          Stop
+          {isIncutChrome ? 'Stop' : undefined}
         </Button>
       );
     }
@@ -892,7 +1181,184 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     isRunButtonEnabled,
     selectedType,
     stoppable,
+    chrome?.icons?.send,
+    isIncutChrome,
   ]);
+
+  const inputContent = needsAnyInput ? (
+    needsStructuredParams ? (
+      incutInlineFieldConfig ? (
+        <Form.Item
+          name={['params', incutInlineFieldConfig.name]}
+          style={{ margin: 0 }}
+        >
+          <TextArea
+            className="main-side-console-input-textarea"
+            disabled={!runButtonEnabled}
+            rows={3}
+            placeholder={
+              incutInlineFieldConfig.name === 'prompt'
+                ? resolvedPlaceholder
+                : incutInlineFieldConfig.placeholder
+            }
+            autoFocus
+            onKeyDown={handleStructuredKeyDown}
+          />
+        </Form.Item>
+      ) : hasSingleStructuredParam ? (
+        renderStructuredParams()
+      ) : (
+        <div className="structured-params-container">
+          {renderStructuredParams()}
+        </div>
+      )
+    ) : (
+      <Form.Item name="prompt" style={{ margin: 0 }}>
+        <TextArea
+          className="main-side-console-input-textarea"
+          disabled={!runButtonEnabled}
+          rows={3}
+          placeholder={resolvedPlaceholder}
+          autoFocus
+          onKeyDown={handleKeyDown}
+          onChange={handlePromptChange}
+          ref={textAreaRef}
+        />
+      </Form.Item>
+    )
+  ) : (
+    <div
+      className="no-input-method"
+      style={{
+        padding: '20px',
+        textAlign: 'center',
+        color: '#666',
+        fontSize: '14px',
+      }}
+    >
+      Click "Run" to execute {actionNameForType(selectedType)}
+    </div>
+  );
+
+  if (isIncutChrome) {
+    return (
+      <div className="prompt-input-wrapper prompt-input-wrapper-incut">
+        <Form.Item hidden name="type" style={{ margin: 0 }}>
+          <Input />
+        </Form.Item>
+        <div
+          className={`main-side-console-input incut-main-side-console-input ${
+            !runButtonEnabled ? 'disabled' : ''
+          } ${loading ? 'loading' : ''}`}
+        >
+          {inputContent}
+
+          <div className="incut-toolbar-row">
+            <div className="incut-toolbar-left">
+              <Dropdown
+                menu={actionDropdownMenu}
+                placement="topLeft"
+                trigger={['click']}
+                disabled={!runButtonEnabled}
+                overlayClassName="more-apis-dropdown"
+              >
+                <button
+                  className="incut-action-trigger"
+                  disabled={!runButtonEnabled}
+                  type="button"
+                >
+                  {chrome?.icons?.action ? (
+                    <img
+                      alt=""
+                      className="incut-action-icon"
+                      src={chrome.icons.action}
+                    />
+                  ) : null}
+                  <span className="incut-action-label">
+                    {actionButtonLabel}
+                  </span>
+                  {chrome?.icons?.actionChevron ? (
+                    <img
+                      alt=""
+                      className="incut-action-chevron"
+                      src={chrome.icons.actionChevron}
+                    />
+                  ) : (
+                    <DownOutlined className="incut-action-chevron-fallback" />
+                  )}
+                </button>
+              </Dropdown>
+
+              <HistorySelector
+                onSelect={handleSelectHistory}
+                history={historyForSelectedType}
+                currentType={selectedType}
+                trigger={
+                  <button className="incut-icon-trigger" type="button">
+                    {chrome?.icons?.history ? (
+                      <img
+                        alt=""
+                        className="incut-toolbar-icon"
+                        src={chrome.icons.history}
+                      />
+                    ) : (
+                      <HistoryOutlined
+                        className="incut-toolbar-icon incut-toolbar-icon-history incut-toolbar-icon-fallback"
+                        width={18}
+                        height={18}
+                      />
+                    )}
+                  </button>
+                }
+              />
+
+              {hasConfigOptions ? (
+                <div
+                  className={
+                    hoveringSettings
+                      ? 'settings-wrapper settings-wrapper-hover'
+                      : 'settings-wrapper'
+                  }
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                >
+                  <ConfigSelector
+                    enableTracking={serviceMode === 'In-Browser-Extension'}
+                    showDeepLocateOption={showDeepLocateOption}
+                    showDeepThinkOption={showDeepThinkOption}
+                    showDataExtractionOptions={showDataExtractionOptions}
+                    hideDomAndScreenshotOptions={hideDomAndScreenshotOptions}
+                    deviceType={deviceType}
+                    trigger={
+                      <button className="incut-icon-trigger" type="button">
+                        {chrome?.icons?.settings ? (
+                          <img
+                            alt=""
+                            className="incut-toolbar-icon"
+                            src={chrome.icons.settings}
+                          />
+                        ) : (
+                          <SettingOutlined
+                            className="incut-toolbar-icon incut-toolbar-icon-fallback"
+                            width={16}
+                            height={16}
+                          />
+                        )}
+                      </button>
+                    }
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            <div className="form-controller-wrapper">
+              {renderActionButton()}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="prompt-input-wrapper">
@@ -917,103 +1383,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             </Radio.Group>
           </Form.Item>
           <Dropdown
-            menu={(() => {
-              // Get all APIs not currently shown in main buttons, filtered by actionSpace
-              const hiddenAPIs = availableDropdownMethods.filter(
-                (api) => !defaultMainButtons.includes(api),
-              );
-
-              // Group hidden APIs by category
-              const groupedItems: any[] = [];
-
-              const interactionAPIs = hiddenAPIs.filter(
-                (api) =>
-                  apiMetadata[api as keyof typeof apiMetadata]?.group ===
-                  'interaction',
-              );
-              if (interactionAPIs.length > 0) {
-                groupedItems.push({
-                  key: 'interaction-group',
-                  type: 'group',
-                  label: 'Interaction APIs',
-                  children: interactionAPIs.map((api) => ({
-                    key: api,
-                    label: actionNameForType(api),
-                    title:
-                      apiMetadata[api as keyof typeof apiMetadata]?.title || '',
-                    onClick: () => {
-                      form.setFieldValue('type', api);
-                    },
-                  })),
-                });
-              }
-
-              const extractionAPIs = hiddenAPIs.filter(
-                (api) =>
-                  apiMetadata[api as keyof typeof apiMetadata]?.group ===
-                  'extraction',
-              );
-              if (extractionAPIs.length > 0) {
-                groupedItems.push({
-                  key: 'extraction-group',
-                  type: 'group',
-                  label: 'Data Extraction APIs',
-                  children: extractionAPIs.map((api) => ({
-                    key: api,
-                    label: actionNameForType(api),
-                    title:
-                      apiMetadata[api as keyof typeof apiMetadata]?.title || '',
-                    onClick: () => {
-                      form.setFieldValue('type', api);
-                    },
-                  })),
-                });
-              }
-
-              const validationAPIs = hiddenAPIs.filter(
-                (api) =>
-                  apiMetadata[api as keyof typeof apiMetadata]?.group ===
-                  'validation',
-              );
-              if (validationAPIs.length > 0) {
-                groupedItems.push({
-                  key: 'validation-group',
-                  type: 'group',
-                  label: 'Validation APIs',
-                  children: validationAPIs.map((api) => ({
-                    key: api,
-                    label: actionNameForType(api),
-                    title:
-                      apiMetadata[api as keyof typeof apiMetadata]?.title || '',
-                    onClick: () => {
-                      form.setFieldValue('type', api);
-                    },
-                  })),
-                });
-              }
-
-              // Add device-specific APIs (those not in apiMetadata)
-              const deviceSpecificAPIs = hiddenAPIs.filter(
-                (api) => !apiMetadata[api as keyof typeof apiMetadata],
-              );
-              if (deviceSpecificAPIs.length > 0) {
-                groupedItems.push({
-                  key: 'device-specific-group',
-                  type: 'group',
-                  label: 'Device-Specific APIs',
-                  children: deviceSpecificAPIs.map((api) => ({
-                    key: api,
-                    label: actionNameForType(api),
-                    title: '',
-                    onClick: () => {
-                      form.setFieldValue('type', api);
-                    },
-                  })),
-                });
-              }
-
-              return { items: groupedItems } as MenuProps;
-            })()}
+            menu={moreApisDropdownMenu}
             placement="bottomLeft"
             trigger={['click']}
             disabled={!runButtonEnabled}
@@ -1063,45 +1433,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       <div
         className={`main-side-console-input ${!runButtonEnabled ? 'disabled' : ''} ${loading ? 'loading' : ''}`}
       >
-        {needsAnyInput ? (
-          needsStructuredParams ? (
-            hasSingleStructuredParam ? (
-              renderStructuredParams()
-            ) : (
-              // Render structured parameters for specific AI methods
-              <div className="structured-params-container">
-                {renderStructuredParams()}
-              </div>
-            )
-          ) : (
-            // Render traditional prompt input for other methods
-            <Form.Item name="prompt" style={{ margin: 0 }}>
-              <TextArea
-                className="main-side-console-input-textarea"
-                disabled={!runButtonEnabled}
-                rows={3}
-                placeholder={placeholder}
-                autoFocus
-                onKeyDown={handleKeyDown}
-                onChange={handlePromptChange}
-                ref={textAreaRef}
-              />
-            </Form.Item>
-          )
-        ) : (
-          // Methods that don't need any input - show a message or empty state
-          <div
-            className="no-input-method"
-            style={{
-              padding: '20px',
-              textAlign: 'center',
-              color: '#666',
-              fontSize: '14px',
-            }}
-          >
-            Click "Run" to execute {actionNameForType(selectedType)}
-          </div>
-        )}
+        {inputContent}
 
         <div className="form-controller-wrapper">{renderActionButton()}</div>
       </div>

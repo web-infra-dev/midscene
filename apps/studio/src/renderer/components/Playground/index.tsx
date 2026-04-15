@@ -1,5 +1,9 @@
 import { PlaygroundConversationPanel } from '@midscene/playground-app';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
+import {
+  IncutPlaygroundShell,
+  incutPlaygroundImportAssets,
+} from '../IncutPlaygroundImport';
 
 declare const __APP_VERSION__: string;
 
@@ -7,14 +11,8 @@ export default function Playground() {
   const studioPlayground = useStudioPlayground();
 
   return (
-    <div className="flex h-full w-[400px] shrink-0 flex-col overflow-hidden rounded-r-[12px] bg-surface">
-      <div className="flex h-[56px] items-center px-[22px]">
-        <span className="text-[13px] leading-[22.1px] font-medium text-text-primary">
-          Playground
-        </span>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-hidden px-4 pb-4">
+    <IncutPlaygroundShell>
+      <div className="min-h-0 h-full flex-1 overflow-hidden">
         {studioPlayground.phase === 'booting' ? (
           <div className="flex h-full items-center justify-center px-6 text-center text-[14px] leading-[22px] text-black/60">
             Android playground starting...
@@ -39,10 +37,26 @@ export default function Playground() {
             appVersion={__APP_VERSION__}
             className="h-full"
             controller={studioPlayground.controller}
+            playgroundConfig={{
+              promptInputChrome: {
+                variant: 'incut',
+                placeholder: 'Type a message',
+                primaryActionLabel: 'Action',
+                icons: {
+                  action: incutPlaygroundImportAssets.main.action,
+                  actionChevron: incutPlaygroundImportAssets.main.actionChevron,
+                  history: undefined,
+                  send: incutPlaygroundImportAssets.main.actionChevron,
+                  settings: incutPlaygroundImportAssets.main.tool,
+                },
+              },
+              showEnvConfigReminder: false,
+              showVersionInfo: false,
+            }}
             title="Android Playground"
           />
         )}
       </div>
-    </div>
+    </IncutPlaygroundShell>
   );
 }

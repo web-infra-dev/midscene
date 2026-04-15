@@ -194,7 +194,8 @@ export function UniversalPlayground({
     (!dryMode && !actionSpaceLoading && configAlreadySet);
 
   // Get the currently selected type
-  const selectedType = Form.useWatch('type', form);
+  const watchedType = Form.useWatch('type', form);
+  const selectedType = watchedType || form.getFieldValue('type');
 
   // Determine service mode based on SDK adapter type
   const serviceMode = useMemo(() => {
@@ -397,6 +398,7 @@ export function UniversalPlayground({
             onRun={handleFormRun}
             onStop={handleStop}
             actionSpace={actionSpace}
+            chrome={componentConfig.promptInputChrome}
             deviceType={deviceType}
           />
         </div>

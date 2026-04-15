@@ -387,6 +387,20 @@ export interface UniversalPlaygroundConfig {
   showEnvConfigReminder?: boolean;
   deviceType?: DeviceType;
   executionUx?: ExecutionUxConfig;
+  promptInputChrome?: PromptInputChromeConfig;
+}
+
+export interface PromptInputChromeConfig {
+  variant?: 'default' | 'incut';
+  placeholder?: string;
+  primaryActionLabel?: string;
+  icons?: {
+    action?: string;
+    actionChevron?: string;
+    history?: string;
+    send?: string;
+    settings?: string;
+  };
 }
 
 // branding interface
