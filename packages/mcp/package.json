@@ -1,6 +1,6 @@
 {
   "name": "@midscene/mcp",
-  "version": "1.7.3-beta-20260415115018.0",
+  "version": "1.7.2",
   "description": "Deprecated - Use @midscene/web-bridge-mcp, @midscene/android-mcp, or @midscene/ios-mcp",
   "bin": "dist/index.js",
   "files": ["dist"],
