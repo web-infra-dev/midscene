@@ -48,9 +48,33 @@ describe('service-caller request timeout', () => {
       baseConfig({ timeout: 50 }),
     );
 
-    await expect(promise).rejects.toThrow(/timed out after 50ms/);
+    await expect(promise).rejects.toThrow(/hard timeout after 50ms/);
     expect(observedSignal).toBeDefined();
     expect(observedSignal?.aborted).toBe(true);
+  });
+
+  it('tags the timeout error with AI_CALL_HARD_TIMEOUT so callers can branch on it', async () => {
+    const { callAI, isHardTimeoutError, AI_CALL_HARD_TIMEOUT_CODE } =
+      await import('@/ai-model/service-caller');
+
+    expect(AI_CALL_HARD_TIMEOUT_CODE).toBe('AI_CALL_HARD_TIMEOUT');
+
+    mockCreate.mockImplementation((_body, opts) => {
+      const signal = opts?.signal as AbortSignal | undefined;
+      return new Promise((_resolve, reject) => {
+        signal?.addEventListener('abort', () => reject(signal.reason));
+      });
+    });
+
+    try {
+      await callAI(
+        [{ role: 'user', content: 'hello' }],
+        baseConfig({ timeout: 30 }),
+      );
+      throw new Error('should have timed out');
+    } catch (err) {
+      expect(isHardTimeoutError(err)).toBe(true);
+    }
   });
 
   it('uses the 180s default timeout when none is configured', async () => {
