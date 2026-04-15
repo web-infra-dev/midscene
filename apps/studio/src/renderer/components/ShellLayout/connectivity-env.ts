@@ -69,8 +69,33 @@ function unquoteValue(value: string): string {
     }
   }
 
-  const innerValue = value.slice(1, -1);
-  return innerValue.replace(/\\\\/g, '\\').replace(/\\'/g, "'");
+  return unquoteSingleQuotedValue(value.slice(1, -1));
+}
+
+function unquoteSingleQuotedValue(value: string): string {
+  let result = '';
+
+  for (let index = 0; index < value.length; index += 1) {
+    const currentChar = value[index];
+
+    if (currentChar !== '\\' || index === value.length - 1) {
+      result += currentChar;
+      continue;
+    }
+
+    const nextChar = value[index + 1];
+
+    if (nextChar === "'" || nextChar === '\\') {
+      result += nextChar;
+      index += 1;
+      continue;
+    }
+
+    result += `\\${nextChar}`;
+    index += 1;
+  }
+
+  return result;
 }
 
 export function resolveModelConnection(

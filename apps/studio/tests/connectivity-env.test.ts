@@ -92,6 +92,23 @@ describe('resolveModelConnection', () => {
     expect(parseEnvEntries(round)).toEqual(entries);
   });
 
+  it('preserves unknown backslash sequences in single-quoted values', () => {
+    expect(
+      parseEnvEntries(
+        "MIDSCENE_MODEL_BASE_URL='https://example.com/v1?path=C:\\models\\prod'\nMIDSCENE_MODEL_NAME='it\\'s-ready'",
+      ),
+    ).toEqual([
+      {
+        key: 'MIDSCENE_MODEL_BASE_URL',
+        value: 'https://example.com/v1?path=C:\\models\\prod',
+      },
+      {
+        key: 'MIDSCENE_MODEL_NAME',
+        value: "it's-ready",
+      },
+    ]);
+  });
+
   it('reports missing required keys', () => {
     const result = resolveModelConnection({ OPENAI_API_KEY: 'sk' });
     expect(result).toEqual({
