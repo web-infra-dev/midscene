@@ -181,6 +181,12 @@ describe('parseCliArgs', () => {
     });
   });
 
+  it('throws CLIError when a scalar and a namespace share the same key', () => {
+    expect(() =>
+      parseCliArgs(['--android', 'foo', '--android.deviceId', 'bar']),
+    ).toThrow(CLIError);
+  });
+
   it('parses dotted kebab-case keys into nested objects and preserves camel aliases', () => {
     expect(parseCliArgs(['--android.device-id', '127.0.0.1:7555'])).toEqual({
       android: {

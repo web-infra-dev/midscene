@@ -111,4 +111,43 @@ describe('IOSMidsceneTools', () => {
       }),
     );
   });
+
+  it('reuses the iOS agent when called twice with identical init args', async () => {
+    const mockAgent = createMockAgent();
+    vi.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
+
+    const tools = new IOSMidsceneTools();
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+
+    await takeScreenshotTool?.handler({ ios: { deviceId: 'udid-A' } });
+    await takeScreenshotTool?.handler({ ios: { deviceId: 'udid-A' } });
+
+    expect(agentFromWebDriverAgent).toHaveBeenCalledTimes(1);
+    expect(mockAgent.destroy).not.toHaveBeenCalled();
+  });
+
+  it('rebuilds the iOS agent when init args change', async () => {
+    const firstAgent = createMockAgent();
+    const secondAgent = createMockAgent();
+    vi.mocked(agentFromWebDriverAgent)
+      .mockResolvedValueOnce(firstAgent as any)
+      .mockResolvedValueOnce(secondAgent as any);
+
+    const tools = new IOSMidsceneTools();
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+
+    await takeScreenshotTool?.handler({ ios: { deviceId: 'udid-A' } });
+    await takeScreenshotTool?.handler({ ios: { deviceId: 'udid-B' } });
+
+    expect(agentFromWebDriverAgent).toHaveBeenCalledTimes(2);
+    expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
+  });
 });

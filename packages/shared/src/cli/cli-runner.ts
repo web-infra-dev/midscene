@@ -73,19 +73,28 @@ export function parseCliArgs(args: string[]): Record<string, unknown> {
     let current = result;
 
     for (const segment of segments.slice(0, -1)) {
-      const nestedValue = getKeyAliases(segment)
-        .map((alias) => current[alias])
-        .find(isRecord);
-      const target = nestedValue ?? {};
+      const aliases = getKeyAliases(segment);
+      const existing = aliases.map((alias) => current[alias]);
+      const nestedRecord = existing.find(isRecord);
+      const conflictingScalar = existing.find(
+        (entry) => entry !== undefined && !isRecord(entry),
+      );
+      if (conflictingScalar !== undefined) {
+        throw new CLIError(
+          `Conflicting CLI args: "${segment}" is used both as a value and as a namespace`,
+        );
+      }
+      const target = nestedRecord ?? {};
 
-      for (const alias of getKeyAliases(segment)) {
+      for (const alias of aliases) {
         current[alias] = target;
       }
 
       current = target;
     }
 
-    for (const alias of getKeyAliases(segments.at(-1) as string)) {
+    const leafSegment = segments[segments.length - 1];
+    for (const alias of getKeyAliases(leafSegment)) {
       current[alias] = value;
     }
   };

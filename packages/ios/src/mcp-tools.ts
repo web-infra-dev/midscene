@@ -2,22 +2,14 @@ import { z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import {
   BaseMidsceneTools,
+  type InitArgSpec,
   type ToolDefinition,
-  createNamespacedInitArgSchema,
-  extractNamespacedArgs,
-  sanitizeNamespacedArgs,
 } from '@midscene/shared/mcp';
 import { type IOSAgent, agentFromWebDriverAgent } from './agent';
 import { IOSDevice, type IOSDeviceOpt } from './device';
 
 const debug = getDebug('mcp:ios-tools');
-const IOS_INIT_ARG_KEYS = [
-  'deviceId',
-  'wdaHost',
-  'wdaPort',
-  'useWDA',
-  'wdaMjpegPort',
-] as const;
+
 const iosInitArgShape = {
   deviceId: z
     .string()
@@ -37,6 +29,7 @@ const iosInitArgShape = {
     .optional()
     .describe('WebDriverAgent MJPEG streaming port'),
 };
+
 type IOSInitArgs = Pick<
   IOSDeviceOpt,
   'deviceId' | 'wdaHost' | 'wdaPort' | 'useWDA' | 'wdaMjpegPort'
@@ -46,37 +39,26 @@ type IOSInitArgs = Pick<
  * iOS-specific tools manager
  * Extends BaseMidsceneTools to provide iOS WebDriverAgent connection tools
  */
-export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent> {
+export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
+  protected readonly initArgSpec: InitArgSpec<IOSInitArgs> = {
+    namespace: 'ios',
+    shape: iosInitArgShape,
+    adapt: (extracted) => extracted as IOSInitArgs | undefined,
+  };
+
+  private lastOptsSignature?: string;
+
   protected createTemporaryDevice() {
     // Create minimal temporary instance without connecting to WebDriverAgent
     // The constructor only initializes WDA backend, doesn't establish connection
     return new IOSDevice({});
   }
 
-  protected extractAgentInitParam(args: Record<string, unknown>): unknown {
-    return extractNamespacedArgs<
-      (typeof IOS_INIT_ARG_KEYS)[number],
-      IOSInitArgs
-    >(args, 'ios', IOS_INIT_ARG_KEYS);
-  }
+  protected async ensureAgent(opts?: IOSInitArgs): Promise<IOSAgent> {
+    const hasOpts = !!opts && Object.keys(opts).length > 0;
+    const nextSignature = hasOpts ? JSON.stringify(opts) : undefined;
 
-  protected sanitizeToolArgs(
-    args: Record<string, unknown>,
-  ): Record<string, unknown> {
-    return sanitizeNamespacedArgs(args, 'ios', IOS_INIT_ARG_KEYS);
-  }
-
-  protected getAgentInitArgSchema() {
-    return createNamespacedInitArgSchema('ios', iosInitArgShape);
-  }
-
-  protected async ensureAgent(initParam?: unknown): Promise<IOSAgent> {
-    const opts =
-      typeof initParam === 'object' && initParam !== null
-        ? (initParam as IOSInitArgs)
-        : undefined;
-
-    if (this.agent && opts && Object.keys(opts).length > 0) {
+    if (this.agent && hasOpts && nextSignature !== this.lastOptsSignature) {
       try {
         await this.agent.destroy?.();
       } catch (error) {
@@ -94,6 +76,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent> {
       autoDismissKeyboard: false,
       ...(opts ?? {}),
     });
+    this.lastOptsSignature = nextSignature;
     return this.agent;
   }
 
@@ -107,9 +90,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent> {
         description: 'Connect to iOS device or simulator via WebDriverAgent',
         schema: this.getAgentInitArgSchema(),
         handler: async (args: Record<string, unknown>) => {
-          const initArgs = this.extractAgentInitParam(args) as
-            | IOSInitArgs
-            | undefined;
+          const initArgs = this.extractAgentInitParam(args);
           const agent = await this.ensureAgent(initArgs);
           const screenshot = await agent.page.screenshotBase64();
 

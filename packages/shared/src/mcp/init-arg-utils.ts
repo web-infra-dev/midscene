@@ -20,9 +20,16 @@ function readNamespacedArg(
   namespace: string,
   key: string,
 ): unknown | undefined {
-  const directValue = readAliasedValue(args, key);
-  if (directValue !== undefined) {
-    return directValue;
+  // Lookup order: namespace object first, then flat dotted form, then bare key
+  // fallback. Namespace-aware inputs win so multi-platform callers cannot be
+  // cross-contaminated by a top-level bare `deviceId` leaking into the wrong
+  // platform.
+  const namespacedArgs = readAliasedValue(args, namespace);
+  if (isRecord(namespacedArgs)) {
+    const nestedValue = readAliasedValue(namespacedArgs, key);
+    if (nestedValue !== undefined) {
+      return nestedValue;
+    }
   }
 
   const dottedValue = readAliasedValue(args, `${namespace}.${key}`);
@@ -30,9 +37,9 @@ function readNamespacedArg(
     return dottedValue;
   }
 
-  const namespacedArgs = readAliasedValue(args, namespace);
-  if (isRecord(namespacedArgs)) {
-    return readAliasedValue(namespacedArgs, key);
+  const directValue = readAliasedValue(args, key);
+  if (directValue !== undefined) {
+    return directValue;
   }
 
   return undefined;
@@ -80,6 +87,14 @@ export function sanitizeNamespacedArgs(
   );
 }
 
+/**
+ * Build a flat MCP tool schema whose keys are dotted `"<namespace>.<field>"`.
+ *
+ * We intentionally stay flat (rather than `{ namespace: z.object({...}) }`) so
+ * that CLI (`--android.device-id`), MCP clients, and `--help` output all share
+ * the same spelling. `readNamespacedArg` understands all three input shapes:
+ * nested namespace object, dotted flat key, and bare key fallback.
+ */
 export function createNamespacedInitArgSchema(
   namespace: string,
   shape: Record<string, z.ZodTypeAny>,

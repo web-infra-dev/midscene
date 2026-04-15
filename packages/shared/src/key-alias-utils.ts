@@ -1,3 +1,9 @@
+/**
+ * Internal-only helpers for CLI/MCP argument key aliasing.
+ * Not re-exported from the package entry point — keep consumers within
+ * `cli/` and `mcp/`.
+ */
+
 export function kebabToCamel(str: string): string {
   return str.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
 }

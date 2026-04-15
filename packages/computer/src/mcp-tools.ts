@@ -2,16 +2,14 @@ import { z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import {
   BaseMidsceneTools,
+  type InitArgSpec,
   type ToolDefinition,
-  createNamespacedInitArgSchema,
-  extractNamespacedArgs,
-  sanitizeNamespacedArgs,
 } from '@midscene/shared/mcp';
 import { type ComputerAgent, agentFromComputer } from './agent';
 import { ComputerDevice, type ComputerDeviceOpt } from './device';
 
 const debug = getDebug('mcp:computer-tools');
-const COMPUTER_INIT_ARG_KEYS = ['displayId', 'headless'] as const;
+
 const computerInitArgShape = {
   displayId: z
     .string()
@@ -22,40 +20,29 @@ const computerInitArgShape = {
     .optional()
     .describe('Start virtual display via Xvfb (Linux only)'),
 };
+
 type ComputerInitArgs = Pick<ComputerDeviceOpt, 'displayId' | 'headless'>;
 
 /**
  * Computer-specific tools manager
  * Extends BaseMidsceneTools to provide desktop automation tools
  */
-export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
+export class ComputerMidsceneTools extends BaseMidsceneTools<
+  ComputerAgent,
+  ComputerInitArgs
+> {
+  protected readonly initArgSpec: InitArgSpec<ComputerInitArgs> = {
+    namespace: 'computer',
+    shape: computerInitArgShape,
+    adapt: (extracted) => extracted as ComputerInitArgs | undefined,
+  };
+
   protected createTemporaryDevice() {
     // Create minimal temporary instance
     return new ComputerDevice({});
   }
 
-  protected extractAgentInitParam(args: Record<string, unknown>): unknown {
-    return extractNamespacedArgs<
-      (typeof COMPUTER_INIT_ARG_KEYS)[number],
-      ComputerInitArgs
-    >(args, 'computer', COMPUTER_INIT_ARG_KEYS);
-  }
-
-  protected sanitizeToolArgs(
-    args: Record<string, unknown>,
-  ): Record<string, unknown> {
-    return sanitizeNamespacedArgs(args, 'computer', COMPUTER_INIT_ARG_KEYS);
-  }
-
-  protected getAgentInitArgSchema() {
-    return createNamespacedInitArgSchema('computer', computerInitArgShape);
-  }
-
-  protected async ensureAgent(initParam?: unknown): Promise<ComputerAgent> {
-    const opts =
-      typeof initParam === 'object' && initParam !== null
-        ? (initParam as ComputerInitArgs)
-        : undefined;
+  protected async ensureAgent(opts?: ComputerInitArgs): Promise<ComputerAgent> {
     const displayId = opts?.displayId;
     const headless = opts?.headless;
 
@@ -97,9 +84,7 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
           'Connect to computer desktop. Provide displayId to connect to a specific display (use computer_list_displays to get available IDs). If not provided, uses the primary display.',
         schema: this.getAgentInitArgSchema(),
         handler: async (args: Record<string, unknown>) => {
-          const initArgs = this.extractAgentInitParam(args) as
-            | ComputerInitArgs
-            | undefined;
+          const initArgs = this.extractAgentInitParam(args);
           const agent = await this.ensureAgent(initArgs);
           const screenshot = await agent.interface.screenshotBase64();
 

@@ -133,4 +133,24 @@ describe('AndroidMidsceneTools', () => {
     expect(takeScreenshotTool?.schema).toHaveProperty('android.deviceId');
     expect(actTool?.schema).toHaveProperty('android.deviceId');
   });
+
+  it('prefers namespaced deviceId over top-level bare deviceId', async () => {
+    const tools = new AndroidMidsceneTools();
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+
+    // When both forms are present, the namespaced form wins so multi-platform
+    // callers cannot be cross-contaminated by a stray top-level deviceId.
+    await takeScreenshotTool?.handler({
+      deviceId: 'bare-loser',
+      android: { deviceId: 'namespaced-winner' },
+    });
+
+    expect(agentFromAdbDevice).toHaveBeenCalledWith('namespaced-winner', {
+      autoDismissKeyboard: false,
+    });
+  });
 });

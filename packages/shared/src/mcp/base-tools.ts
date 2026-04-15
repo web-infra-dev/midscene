@@ -1,6 +1,12 @@
 import { parseBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { z } from 'zod';
+import {
+  createNamespacedInitArgSchema,
+  extractNamespacedArgs,
+  sanitizeNamespacedArgs,
+} from './init-arg-utils';
 import {
   generateCommonTools,
   generateToolsFromActionSpace,
@@ -17,15 +23,49 @@ import type {
 const debug = getDebug('mcp:base-tools');
 
 /**
- * Base class for platform-specific MCP tools
- * Generic type TAgent allows subclasses to use their specific agent types
+ * Declarative description of a platform's agent init args.
+ * Collapses the `extractAgentInitParam` / `sanitizeToolArgs` /
+ * `getAgentInitArgSchema` trio into a single data declaration.
  */
-export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
-  implements IMidsceneTools
+export interface InitArgSpec<TInitParam> {
+  /** Arg namespace, e.g. `android`, `ios`. */
+  namespace: string;
+  /** Zod shape describing the init args. Field names drive the MCP schema. */
+  shape: Record<string, z.ZodTypeAny>;
+  /**
+   * Adapt extracted namespaced args into the concrete `TInitParam` passed to
+   * `ensureAgent`. Defaults to returning the raw extracted record.
+   */
+  adapt?: (
+    extracted: Record<string, unknown> | undefined,
+  ) => TInitParam | undefined;
+}
+
+/**
+ * Base class for platform-specific MCP tools.
+ * @typeParam TAgent - Platform-specific agent type.
+ * @typeParam TInitParam - Platform-specific init parameter consumed by
+ *   `ensureAgent`. Defaults to `undefined` for platforms that take no args.
+ */
+export abstract class BaseMidsceneTools<
+  TAgent extends BaseAgent = BaseAgent,
+  TInitParam = undefined,
+> implements IMidsceneTools
 {
   protected mcpServer?: McpServer;
   protected agent?: TAgent;
   protected toolDefinitions: ToolDefinition[] = [];
+
+  /**
+   * Declarative init-arg spec. Subclasses that accept CLI/MCP init args should
+   * set this once and get `extractAgentInitParam` / `sanitizeToolArgs` /
+   * `getAgentInitArgSchema` auto-implemented.
+   *
+   * Declared with `declare` so that TS doesn't emit an `Object.defineProperty`
+   * for this field on the base constructor, which would otherwise overwrite
+   * a subclass field initializer under `useDefineForClassFields`.
+   */
+  protected declare readonly initArgSpec?: InitArgSpec<TInitParam>;
 
   /**
    * Ensure agent is initialized and ready for use.
@@ -34,13 +74,30 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
    * @returns Promise resolving to initialized agent instance
    * @throws Error if agent initialization fails
    */
-  protected abstract ensureAgent(initParam?: unknown): Promise<TAgent>;
+  protected abstract ensureAgent(initParam?: TInitParam): Promise<TAgent>;
+
+  private getInitArgKeys(): readonly string[] {
+    return this.initArgSpec ? Object.keys(this.initArgSpec.shape) : [];
+  }
 
   /**
    * Extract a platform-specific agent init parameter from CLI/MCP tool args.
    */
-  protected extractAgentInitParam(_args: Record<string, unknown>): unknown {
-    return undefined;
+  protected extractAgentInitParam(
+    args: Record<string, unknown>,
+  ): TInitParam | undefined {
+    if (!this.initArgSpec) {
+      return undefined;
+    }
+    const extracted = extractNamespacedArgs(
+      args,
+      this.initArgSpec.namespace,
+      this.getInitArgKeys(),
+    );
+    if (this.initArgSpec.adapt) {
+      return this.initArgSpec.adapt(extracted);
+    }
+    return extracted as TInitParam | undefined;
   }
 
   /**
@@ -49,14 +106,27 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
   protected sanitizeToolArgs(
     args: Record<string, unknown>,
   ): Record<string, unknown> {
-    return args;
+    if (!this.initArgSpec) {
+      return args;
+    }
+    return sanitizeNamespacedArgs(
+      args,
+      this.initArgSpec.namespace,
+      this.getInitArgKeys(),
+    );
   }
 
   /**
-   * Optional: expose platform-specific init args on action/common tool schemas.
+   * Expose platform-specific init args on action/common tool schemas.
    */
   protected getAgentInitArgSchema(): ToolSchema {
-    return {};
+    if (!this.initArgSpec) {
+      return {};
+    }
+    return createNamespacedInitArgSchema(
+      this.initArgSpec.namespace,
+      this.initArgSpec.shape,
+    );
   }
 
   /**
