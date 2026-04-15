@@ -170,9 +170,13 @@ import { PlaywrightAiFixture } from '@midscene/web/playwright';
 export const test = base.extend<PlayWrightAiFixtureType>(
   PlaywrightAiFixture({
     waitForNetworkIdleTimeout: 2000, // 可选, 交互过程中等待网络空闲的超时时间, 默认值为 2000ms, 设置为 0 则禁用超时
+    replanningCycleLimit: 30, // 可选，覆盖 aiAct 默认的重规划次数上限
   }),
 );
 ```
+
+`PlaywrightAiFixture()` 除了 fixture 自身配置外，也支持传入 Agent 初始化参数（例如 `replanningCycleLimit`、`waitAfterAction`、`modelConfig`）。完整参数列表请参考 [Agent API 文档](./api)。
+
 
 ### 第三步：编写测试用例
 

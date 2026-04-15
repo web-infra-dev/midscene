@@ -56,17 +56,17 @@ type PlaywrightCacheConfig = {
 };
 type PlaywrightCache = false | true | PlaywrightCacheConfig;
 
-export const PlaywrightAiFixture = (options?: {
-  forceSameTabNavigation?: boolean;
-  waitForNetworkIdleTimeout?: number;
-  waitForNavigationTimeout?: number;
+type PlaywrightAiFixtureOptions = Omit<WebPageAgentOpt, 'cache'> & {
   cache?: PlaywrightCache;
-}) => {
+};
+
+export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
   const {
     forceSameTabNavigation = true,
     waitForNetworkIdleTimeout = DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
     waitForNavigationTimeout = DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
     cache,
+    ...fixtureAgentOptions
   } = options ?? {};
 
   // Helper function to process cache configuration and auto-generate ID from test info
@@ -192,6 +192,7 @@ export const PlaywrightAiFixture = (options?: {
   }) {
     const { page, testInfo, use, aiActionType } = options;
     const agent = createOrReuseAgentForPage(page, testInfo, {
+      ...fixtureAgentOptions,
       waitForNavigationTimeout,
       waitForNetworkIdleTimeout,
     }) as PlaywrightAgent;
@@ -289,6 +290,7 @@ export const PlaywrightAiFixture = (options?: {
           }
 
           const agent = createOrReuseAgentForPage(propsPage || page, testInfo, {
+            ...fixtureAgentOptions,
             waitForNavigationTimeout,
             waitForNetworkIdleTimeout,
             cache: finalCacheConfig,
