@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "rsbuild build && node scripts/sync-static-assets.mjs",
-    "dev": "concurrently -k -n deps,build,app \"nx run-many --target=dev --projects=@midscene/visualizer,@midscene/playground-app,@midscene/android-playground,@midscene/playground --parallel\" \"rsbuild dev\" \"node scripts/wait-for-electron-build.mjs && node scripts/launch-electron-dev.mjs\"",
+    "dev": "concurrently -k -n build,app \"rsbuild dev\" \"node scripts/wait-for-electron-build.mjs && node scripts/launch-electron-dev.mjs\"",
     "preview": "rsbuild preview --environment renderer",
     "start": "node scripts/sync-static-assets.mjs && node scripts/launch-electron-prod.mjs",
     "test": "vitest run"
@@ -17,7 +17,6 @@
     "@midscene/playground-app": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/visualizer": "workspace:*",
-    "antd": "^5.21.6",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
@@ -32,7 +31,6 @@
     "@types/react-dom": "^18.3.1",
     "concurrently": "^8.2.0",
     "electron": "41.2.0",
-    "jsdom": "29.0.2",
     "less": "^4.2.0",
     "tailwindcss": "4.1.11",
     "typescript": "^5.8.3",
