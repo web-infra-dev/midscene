@@ -341,6 +341,41 @@ describe('llm planning - build yaml flow', () => {
       },
     ]);
   });
+
+  it('inline single-string shortcut for Terminate/Launch/RunAdbShell', () => {
+    const flow = buildYamlFlowFromPlans(
+      [
+        { type: 'Terminate', param: { uri: 'com.mi.car.mobile' } },
+        { type: 'Launch', param: { uri: 'com.mi.car.mobile' } },
+        { type: 'RunAdbShell', param: { command: 'input keyevent 3' } },
+      ],
+      [
+        {
+          name: 'Terminate',
+          interfaceAlias: 'terminate',
+          paramSchema: z.object({ uri: z.string() }),
+          call: async () => {},
+        },
+        {
+          name: 'Launch',
+          interfaceAlias: 'launch',
+          paramSchema: z.object({ uri: z.string() }),
+          call: async () => {},
+        },
+        {
+          name: 'RunAdbShell',
+          interfaceAlias: 'runAdbShell',
+          paramSchema: z.object({ command: z.string() }),
+          call: async () => {},
+        },
+      ],
+    );
+    expect(flow).toEqual([
+      { terminate: 'com.mi.car.mobile' },
+      { launch: 'com.mi.car.mobile' },
+      { runAdbShell: 'input keyevent 3' },
+    ]);
+  });
 });
 
 describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () => {

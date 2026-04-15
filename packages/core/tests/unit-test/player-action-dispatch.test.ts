@@ -41,7 +41,7 @@ function createMockAgent(overrides: Record<string, any> = {}) {
 }
 
 describe('player action dispatch ordering', () => {
-  it('should call agent.runAdbShell directly for RunAdbShell action', async () => {
+  it('should dispatch RunAdbShell string param via callActionInActionSpace', async () => {
     const actionSpace = [
       {
         name: 'RunAdbShell',
@@ -62,12 +62,13 @@ describe('player action dispatch ordering', () => {
 
     await player.playTask(taskStatus, agent);
 
-    // Should call agent.runAdbShell directly, NOT callActionInActionSpace
-    expect(agent.runAdbShell).toHaveBeenCalledWith('input tap 100 200');
-    expect(agent.callActionInActionSpace).not.toHaveBeenCalled();
+    expect(agent.callActionInActionSpace).toHaveBeenCalledWith('RunAdbShell', {
+      command: 'input tap 100 200',
+    });
+    expect(agent.runAdbShell).not.toHaveBeenCalled();
   });
 
-  it('should call agent.launch directly for Launch action', async () => {
+  it('should dispatch Launch string param via callActionInActionSpace', async () => {
     const actionSpace = [
       {
         name: 'Launch',
@@ -88,11 +89,13 @@ describe('player action dispatch ordering', () => {
 
     await player.playTask(taskStatus, agent);
 
-    expect(agent.launch).toHaveBeenCalledWith('com.example.app');
-    expect(agent.callActionInActionSpace).not.toHaveBeenCalled();
+    expect(agent.callActionInActionSpace).toHaveBeenCalledWith('Launch', {
+      uri: 'com.example.app',
+    });
+    expect(agent.launch).not.toHaveBeenCalled();
   });
 
-  it('should call agent.terminate directly for Terminate action', async () => {
+  it('should dispatch Terminate string param via callActionInActionSpace', async () => {
     const actionSpace = [
       {
         name: 'Terminate',
@@ -113,8 +116,10 @@ describe('player action dispatch ordering', () => {
 
     await player.playTask(taskStatus, agent);
 
-    expect(agent.terminate).toHaveBeenCalledWith('com.example.app');
-    expect(agent.callActionInActionSpace).not.toHaveBeenCalled();
+    expect(agent.callActionInActionSpace).toHaveBeenCalledWith('Terminate', {
+      uri: 'com.example.app',
+    });
+    expect(agent.terminate).not.toHaveBeenCalled();
   });
 
   it('should call callActionInActionSpace for generic string param action with paramSchema', async () => {
@@ -239,7 +244,7 @@ describe('player action dispatch ordering', () => {
     ];
     const player = createPlayerWithActionSpace(actionSpace);
     const agent = createMockAgent({
-      runAdbShell: vi.fn().mockResolvedValue('shell output'),
+      callActionInActionSpace: vi.fn().mockResolvedValue('shell output'),
     });
 
     const taskStatus = {
