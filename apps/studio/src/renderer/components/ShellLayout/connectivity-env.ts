@@ -27,7 +27,7 @@ export function parseEnvEntries(text: string): EnvEntry[] {
       ((value.startsWith('"') && value.endsWith('"')) ||
         (value.startsWith("'") && value.endsWith("'")))
     ) {
-      value = value.slice(1, -1);
+      value = unquoteValue(value);
     }
     if (key) {
       entries.push({ key, value });
@@ -55,9 +55,22 @@ function quoteValueIfNeeded(value: string): string {
     return '';
   }
   if (/[\s"'#=]/.test(value)) {
-    return `'${value.replace(/'/g, "\\'")}'`;
+    return JSON.stringify(value);
   }
   return value;
+}
+
+function unquoteValue(value: string): string {
+  if (value.startsWith('"') && value.endsWith('"')) {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value.slice(1, -1);
+    }
+  }
+
+  const innerValue = value.slice(1, -1);
+  return innerValue.replace(/\\\\/g, '\\').replace(/\\'/g, "'");
 }
 
 export function resolveModelConnection(

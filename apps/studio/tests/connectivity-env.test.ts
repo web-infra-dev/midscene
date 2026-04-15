@@ -76,6 +76,22 @@ describe('resolveModelConnection', () => {
     expect(parseEnvEntries(round)).toEqual(entries);
   });
 
+  it('round-trips backslashes and embedded quotes', () => {
+    const entries = [
+      {
+        key: 'MIDSCENE_MODEL_BASE_URL',
+        value: 'https://example.com/v1?path=C:\\models\\prod',
+      },
+      {
+        key: 'MIDSCENE_MODEL_NAME',
+        value: `model "alpha" with 'quote'`,
+      },
+    ];
+
+    const round = serializeEnvEntries(entries);
+    expect(parseEnvEntries(round)).toEqual(entries);
+  });
+
   it('reports missing required keys', () => {
     const result = resolveModelConnection({ OPENAI_API_KEY: 'sk' });
     expect(result).toEqual({
