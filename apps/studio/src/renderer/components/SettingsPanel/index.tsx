@@ -58,7 +58,6 @@ export interface SettingsPanelProps {
   onEnvConfigClick?: () => void;
   onGithubClick?: () => void;
   onLanguageClick?: () => void;
-  onModelConfigClick?: () => void;
   onThemeClick?: () => void;
   onWebsiteClick?: () => void;
   theme?: string;
@@ -70,7 +69,6 @@ export default function SettingsPanel({
   onEnvConfigClick,
   onGithubClick,
   onLanguageClick,
-  onModelConfigClick,
   onThemeClick,
   onWebsiteClick,
   theme = 'Light',
@@ -120,11 +118,6 @@ export default function SettingsPanel({
         <SettingItem
           label="Environment"
           onClick={onEnvConfigClick}
-          trailingIcon={<ChevronIcon />}
-        />
-        <SettingItem
-          label="Model"
-          onClick={onModelConfigClick}
           trailingIcon={<ChevronIcon />}
         />
       </div>

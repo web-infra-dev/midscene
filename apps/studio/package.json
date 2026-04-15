@@ -12,8 +12,10 @@
   },
   "dependencies": {
     "@midscene/android-playground": "workspace:*",
+    "@midscene/core": "workspace:*",
     "@midscene/playground": "workspace:*",
     "@midscene/playground-app": "workspace:*",
+    "@midscene/shared": "workspace:*",
     "@midscene/visualizer": "workspace:*",
     "react": "18.3.1",
     "react-dom": "18.3.1"

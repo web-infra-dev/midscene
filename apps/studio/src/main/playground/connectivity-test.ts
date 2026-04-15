@@ -1,29 +1,36 @@
+import {
+  type ChatCompletionMessageParam,
+  callAIWithStringResponse,
+} from '@midscene/core/ai-model';
 import type {
   ConnectivityTestRequest,
   ConnectivityTestResult,
 } from '@shared/electron-contract';
+import {
+  connectivityRequestToModelConfig,
+  resolveModelConnectionWithConfig,
+} from '../../shared/model-connection';
 
 const CONNECTIVITY_TIMEOUT_MS = 30_000;
-
-function normalizeBaseUrl(baseUrl: string): string {
-  return baseUrl.replace(/\/+$/, '');
-}
+const CONNECTIVITY_PROMPT: ChatCompletionMessageParam[] = [
+  {
+    role: 'system',
+    content: 'Reply with the exact token the user asks for.',
+  },
+  {
+    role: 'user',
+    content: 'Return exactly CONNECTIVITY_OK',
+  },
+];
 
 export async function runConnectivityTest(
   request: ConnectivityTestRequest,
 ): Promise<ConnectivityTestResult> {
-  const { apiKey, baseUrl, model } = request;
-
-  if (!apiKey) {
-    return { ok: false, error: 'API key is missing.' };
-  }
-
-  if (!baseUrl) {
-    return { ok: false, error: 'Base URL is missing.' };
-  }
-
-  if (!model) {
-    return { ok: false, error: 'Model name is missing.' };
+  const resolvedWithConfig = resolveModelConnectionWithConfig(
+    connectivityRequestToModelConfig(request),
+  );
+  if ('error' in resolvedWithConfig) {
+    return { ok: false, error: resolvedWithConfig.error };
   }
 
   const controller = new AbortController();
@@ -33,39 +40,20 @@ export async function runConnectivityTest(
   );
 
   try {
-    const response = await fetch(
-      `${normalizeBaseUrl(baseUrl)}/chat/completions`,
+    const { content } = await callAIWithStringResponse(
+      CONNECTIVITY_PROMPT,
       {
-        body: JSON.stringify({
-          messages: [{ content: 'Hello, how are you?', role: 'user' }],
-          model,
-        }),
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-        signal: controller.signal,
+        ...resolvedWithConfig.modelConfig,
+        timeout: Math.min(
+          resolvedWithConfig.modelConfig.timeout ?? CONNECTIVITY_TIMEOUT_MS,
+          CONNECTIVITY_TIMEOUT_MS,
+        ),
+      },
+      {
+        abortSignal: controller.signal,
       },
     );
 
-    const rawBody = await response.text();
-
-    if (!response.ok) {
-      return {
-        error: `HTTP ${response.status}: ${rawBody.slice(0, 200) || response.statusText}`,
-        ok: false,
-      };
-    }
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(rawBody);
-    } catch {
-      return { error: 'Response is not valid JSON.', ok: false };
-    }
-
-    const content = extractCompletionContent(parsed);
     if (!content) {
       return {
         error: 'Response did not contain any completion text.',
@@ -84,26 +72,4 @@ export async function runConnectivityTest(
   } finally {
     clearTimeout(timeoutId);
   }
-}
-
-function extractCompletionContent(payload: unknown): string | null {
-  if (!payload || typeof payload !== 'object') {
-    return null;
-  }
-
-  const choices = (payload as { choices?: unknown }).choices;
-  if (!Array.isArray(choices) || choices.length === 0) {
-    return null;
-  }
-
-  const firstChoice = choices[0] as
-    | { message?: { content?: unknown } }
-    | undefined;
-  const content = firstChoice?.message?.content;
-
-  if (typeof content === 'string' && content.trim().length > 0) {
-    return content;
-  }
-
-  return null;
 }

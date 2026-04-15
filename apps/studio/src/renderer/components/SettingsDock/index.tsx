@@ -42,14 +42,12 @@ function ActionChip({ label, onClick }: ActionChipProps) {
 
 export interface SettingsDockProps {
   onEnvClick?: () => void;
-  onModelClick?: () => void;
   onToggleSettings: () => void;
   settingsOpen: boolean;
 }
 
 export default function SettingsDock({
   onEnvClick,
-  onModelClick,
   onToggleSettings,
   settingsOpen,
 }: SettingsDockProps) {
@@ -74,7 +72,6 @@ export default function SettingsDock({
       </button>
 
       <div className="flex items-center gap-[4px]">
-        <ActionChip label="Model" onClick={onModelClick} />
         <ActionChip label="Env" onClick={onEnvClick} />
       </div>
     </div>

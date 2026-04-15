@@ -326,20 +326,17 @@ export default function Sidebar({
 export interface SidebarFooterProps {
   settingsOpen: boolean;
   onToggleSettings: () => void;
-  onModelClick?: () => void;
   onEnvClick?: () => void;
 }
 
 export function SidebarFooter({
   settingsOpen,
   onToggleSettings,
-  onModelClick,
   onEnvClick,
 }: SidebarFooterProps) {
   return (
     <SettingsDock
       onEnvClick={onEnvClick}
-      onModelClick={onModelClick}
       onToggleSettings={onToggleSettings}
       settingsOpen={settingsOpen}
     />

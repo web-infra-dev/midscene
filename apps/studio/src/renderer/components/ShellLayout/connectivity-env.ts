@@ -1,8 +1,9 @@
-export interface ModelConnectionParams {
-  apiKey: string;
-  baseUrl: string;
-  model: string;
-}
+import {
+  type ModelConnectionParams,
+  resolveModelConnection as resolveStudioModelConnection,
+} from '../../../shared/model-connection';
+
+export type { ModelConnectionParams };
 
 export interface EnvEntry {
   key: string;
@@ -98,22 +99,4 @@ function unquoteSingleQuotedValue(value: string): string {
   return result;
 }
 
-export function resolveModelConnection(
-  env: Record<string, string>,
-): ModelConnectionParams | { error: string } {
-  const apiKey = env.MIDSCENE_MODEL_API_KEY || env.OPENAI_API_KEY || '';
-  const baseUrl = env.MIDSCENE_MODEL_BASE_URL || env.OPENAI_BASE_URL || '';
-  const model =
-    env.MIDSCENE_MODEL_NAME || env.MIDSCENE_MODEL || env.OPENAI_MODEL || '';
-
-  const missing: string[] = [];
-  if (!apiKey) missing.push('OPENAI_API_KEY');
-  if (!baseUrl) missing.push('OPENAI_BASE_URL');
-  if (!model) missing.push('MIDSCENE_MODEL_NAME');
-
-  if (missing.length > 0) {
-    return { error: `Missing required keys: ${missing.join(', ')}` };
-  }
-
-  return { apiKey, baseUrl, model };
-}
+export const resolveModelConnection = resolveStudioModelConnection;

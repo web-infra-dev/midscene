@@ -65,7 +65,7 @@ export default function ShellLayout() {
 
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const openSettings = useCallback(() => setSettingsOpen(true), []);
-  const openModelModal = useCallback(() => {
+  const openEnvModal = useCallback(() => {
     setSettingsOpen(false);
     setModelModalOpen(true);
   }, []);
@@ -127,11 +127,10 @@ export default function ShellLayout() {
             {settingsOpen && (
               <div className="absolute bottom-[46px] left-0 z-50">
                 <SettingsPanel
-                  onEnvConfigClick={openModelModal}
+                  onEnvConfigClick={openEnvModal}
                   onGithubClick={() =>
                     openExternalUrl(STUDIO_EXTERNAL_LINKS.github)
                   }
-                  onModelConfigClick={openModelModal}
                   onWebsiteClick={() =>
                     openExternalUrl(STUDIO_EXTERNAL_LINKS.website)
                   }
@@ -139,8 +138,7 @@ export default function ShellLayout() {
               </div>
             )}
             <SidebarFooter
-              onEnvClick={openModelModal}
-              onModelClick={openModelModal}
+              onEnvClick={openEnvModal}
               onToggleSettings={() => setSettingsOpen((prev) => !prev)}
               settingsOpen={settingsOpen}
             />
@@ -165,7 +163,7 @@ export default function ShellLayout() {
           activeView={activeView}
           envConfigured={modelEnvConfigured}
           headerOffsetClass={collapsed ? collapsedHeaderOffsetClass : undefined}
-          onOpenModelConfig={openModelModal}
+          onOpenModelConfig={openEnvModal}
           onOpenSettings={openSettings}
           onSelectDeviceView={() => setActiveView('device')}
         />

@@ -232,6 +232,7 @@ export function ModelEnvConfigModal({
               onChange={(event) => setText(event.target.value)}
               placeholder={TEXT_PLACEHOLDER}
               value={text}
+              wrap="off"
             />
           ) : formEntries.length === 0 ? (
             <div className="flex h-[162px] items-center justify-center rounded-[12px] bg-[#F2F4F7] text-[13px] text-black/50">
