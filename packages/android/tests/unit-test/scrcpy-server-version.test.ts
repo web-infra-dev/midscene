@@ -6,6 +6,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   SCRCPY_PROTOCOL_VERSION,
   SCRCPY_SERVER_VERSION_TAG,
+  downloadScrcpyServerReleaseAsset,
+  getScrcpyServerDownloadUrl,
   installDownloadedScrcpyServer,
   shouldDownloadScrcpyServer,
 } from '../../scripts/download-scrcpy-server.mjs';
@@ -36,6 +38,40 @@ describe('scrcpy server version helper', () => {
     expect(shouldDownloadScrcpyServer(null, 'v3.3.3')).toBe(true);
     expect(shouldDownloadScrcpyServer('v3.3.4', 'v3.3.3')).toBe(true);
     expect(shouldDownloadScrcpyServer(' v3.3.3\n', 'v3.3.3')).toBe(false);
+  });
+
+  it('uses the public GitHub release asset URL for the scrcpy server', () => {
+    expect(getScrcpyServerDownloadUrl('v3.3.3')).toBe(
+      'https://github.com/Genymobile/scrcpy/releases/download/v3.3.3/scrcpy-server-v3.3.3',
+    );
+  });
+
+  it('downloads the scrcpy server from the release asset URL directly', async () => {
+    const dirPath = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'midscene-scrcpy-server-'),
+    );
+    tempDirs.push(dirPath);
+
+    const destinationPath = path.join(dirPath, 'scrcpy-server-v3.3.3');
+    const fetchImpl = vi.fn(async () => ({
+      ok: true,
+      arrayBuffer: async () => new TextEncoder().encode('server-binary').buffer,
+      status: 200,
+      statusText: 'OK',
+    }));
+
+    await downloadScrcpyServerReleaseAsset({
+      destinationPath,
+      fetchImpl,
+      version: 'v3.3.3',
+    });
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      'https://github.com/Genymobile/scrcpy/releases/download/v3.3.3/scrcpy-server-v3.3.3',
+    );
+    await expect(fs.readFile(destinationPath, 'utf8')).resolves.toBe(
+      'server-binary',
+    );
   });
 
   it('replaces the cached server only after the new download is ready', async () => {
