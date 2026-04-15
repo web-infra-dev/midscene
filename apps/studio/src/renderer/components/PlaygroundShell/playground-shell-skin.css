@@ -1,0 +1,99 @@
+/*
+ * TEMPORARY: these selectors reach into `@midscene/visualizer` /
+ * `@midscene/playground-app` internal DOM (e.g. `.playground-conversation-panel`,
+ * `.clear-button-container`, `.scroll-to-bottom-button`, `.version-info-section`,
+ * `.system-message-header`, `.bottom-input-section`, `.progress-action-item`) to
+ * hide chrome and tighten spacing inside the Studio shell.
+ *
+ * This is a known coupling violation: rename any of these internal class names
+ * upstream and the Studio shell silently breaks. It is kept here to keep the
+ * dark-mode PR focused. A follow-up PR will promote the "hide" toggles and
+ * spacing knobs into the public visualizer `UniversalPlaygroundConfig` so this
+ * file can collapse to pure scoped layout rules.
+ *
+ * Follow-up tracked as: playground visualizer chrome config API (TBD).
+ */
+
+.playground-shell {
+  position: relative;
+  display: flex;
+  height: 100%;
+  width: 400px;
+  flex-shrink: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+  background: var(--midscene-surface, #fff);
+}
+
+.playground-shell .playground-conversation-panel,
+.playground-shell .playground-conversation-body,
+.playground-shell .playground-container,
+.playground-shell .command-form,
+.playground-shell .middle-dialog-area {
+  min-height: 0;
+  height: 100%;
+}
+
+.playground-shell .playground-container {
+  background: var(--midscene-surface, #fff);
+}
+
+.playground-shell .middle-dialog-area .info-list-container {
+  padding: 20px 16px 32px;
+}
+
+.playground-shell .middle-dialog-area .info-list-container .ant-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.playground-shell .middle-dialog-area .info-list-container .list-item {
+  padding: 0;
+}
+
+.playground-shell .clear-button-container,
+.playground-shell .scroll-to-bottom-button,
+.playground-shell .version-info-section,
+.playground-shell .system-message-header {
+  display: none;
+}
+
+.playground-shell .user-message-container {
+  margin: 0;
+}
+
+.playground-shell .user-message-container .user-message-bubble {
+  max-width: min(80%, 280px);
+  border-radius: 12px;
+  padding: 8px 16px;
+  line-height: 22px;
+}
+
+.playground-shell .system-message-content,
+.playground-shell .system-message-content .system-message-text,
+.playground-shell .progress-description {
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.playground-shell .progress-action-item {
+  height: auto;
+  min-height: 28px;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  margin: 0 0 8px;
+  padding: 2px 8px 2px 4px;
+}
+
+.playground-shell .bottom-input-section {
+  flex-shrink: 0;
+  border-top: 1px solid var(--midscene-border-subtle, #ececec);
+  background: var(--midscene-surface, #fff);
+  padding: 12px;
+}

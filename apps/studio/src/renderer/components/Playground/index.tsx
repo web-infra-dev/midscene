@@ -1,20 +1,16 @@
 import { PlaygroundConversationPanel } from '@midscene/playground-app';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
+import { PlaygroundShell, playgroundShellAssets } from '../PlaygroundShell';
 
 declare const __APP_VERSION__: string;
 
 export default function Playground() {
   const studioPlayground = useStudioPlayground();
+  const { promptInputIcons } = playgroundShellAssets;
 
   return (
-    <div className="flex h-full w-[400px] shrink-0 flex-col overflow-hidden rounded-r-[12px] bg-surface">
-      <div className="flex h-[56px] items-center px-[22px]">
-        <span className="text-[13px] leading-[22.1px] font-medium text-text-primary">
-          Playground
-        </span>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-hidden px-4 pb-4">
+    <PlaygroundShell>
+      <div className="min-h-0 h-full flex-1 overflow-hidden">
         {studioPlayground.phase === 'booting' ? (
           <div className="flex h-full items-center justify-center px-6 text-center text-[14px] leading-[22px] text-text-tertiary">
             Android playground starting...
@@ -39,10 +35,26 @@ export default function Playground() {
             appVersion={__APP_VERSION__}
             className="h-full"
             controller={studioPlayground.controller}
+            playgroundConfig={{
+              promptInputChrome: {
+                variant: 'minimal',
+                placeholder: 'Type a message',
+                primaryActionLabel: 'Action',
+                icons: {
+                  action: promptInputIcons.action,
+                  actionChevron: promptInputIcons.actionChevron,
+                  history: undefined,
+                  send: promptInputIcons.actionChevron,
+                  settings: promptInputIcons.tool,
+                },
+              },
+              showEnvConfigReminder: false,
+              showVersionInfo: false,
+            }}
             title="Android Playground"
           />
         )}
       </div>
-    </div>
+    </PlaygroundShell>
   );
 }

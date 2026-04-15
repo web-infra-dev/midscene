@@ -387,6 +387,33 @@ export interface UniversalPlaygroundConfig {
   showEnvConfigReminder?: boolean;
   deviceType?: DeviceType;
   executionUx?: ExecutionUxConfig;
+  promptInputChrome?: PromptInputChromeConfig;
+}
+
+/**
+ * Optional visual chrome overrides for the embedded prompt input.
+ * - `default` renders the full-featured prompt input (type radio row,
+ *   history button, full send/stop controls).
+ * - `minimal` renders a compact toolbar with only inline params, an action
+ *   dropdown, send/stop — intended for embedded hosts (e.g. Studio) whose
+ *   outer shell already owns the type selection affordance.
+ */
+export interface PromptInputChromeConfig {
+  variant?: 'default' | 'minimal';
+  placeholder?: string;
+  /**
+   * Label shown on the primary action button. When provided, overrides the
+   * auto-derived label (`actionNameForType(type)`). If omitted, the action
+   * name derived from the current type is used, falling back to "Action".
+   */
+  primaryActionLabel?: string;
+  icons?: {
+    action?: string;
+    actionChevron?: string;
+    history?: string;
+    send?: string;
+    settings?: string;
+  };
 }
 
 // branding interface

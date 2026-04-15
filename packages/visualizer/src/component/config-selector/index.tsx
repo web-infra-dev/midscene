@@ -1,5 +1,6 @@
 import { Checkbox, Dropdown, type MenuProps, Radio, Tooltip } from 'antd';
 import type React from 'react';
+import type { ReactNode } from 'react';
 import SettingOutlined from '../../icons/setting.svg';
 import { useEnvConfig } from '../../store/store';
 import type { DeviceType } from '../../types';
@@ -26,6 +27,7 @@ interface ConfigSelectorProps {
   showDataExtractionOptions: boolean;
   hideDomAndScreenshotOptions?: boolean; // Hide domIncluded and screenshotIncluded options
   deviceType?: DeviceType;
+  trigger?: ReactNode;
 }
 
 export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
@@ -35,6 +37,7 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
   showDataExtractionOptions = false,
   hideDomAndScreenshotOptions = false,
   deviceType,
+  trigger,
 }) => {
   const forceSameTabNavigation = useEnvConfig(
     (state) => state.forceSameTabNavigation,
@@ -93,7 +96,7 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
   return (
     <div className="selector-trigger">
       <Dropdown menu={{ items: configItems }} trigger={['click']}>
-        <SettingOutlined width={24} height={24} />
+        {trigger ?? <SettingOutlined width={24} height={24} />}
       </Dropdown>
     </div>
   );

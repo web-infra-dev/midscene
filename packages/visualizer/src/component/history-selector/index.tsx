@@ -1,5 +1,6 @@
 import { Button, Input, Typography } from 'antd';
 import type React from 'react';
+import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import CloseOutlined from '../../icons/close.svg';
 import HistoryOutlined from '../../icons/history.svg';
@@ -14,12 +15,14 @@ interface HistorySelectorProps {
   onSelect: (history: HistoryItem) => void;
   history: HistoryItem[];
   currentType: string;
+  trigger?: ReactNode;
 }
 
 export const HistorySelector: React.FC<HistorySelectorProps> = ({
   onSelect,
   history,
   currentType,
+  trigger,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -107,7 +110,7 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
   return (
     <div className="history-selector-wrapper">
       <div className="selector-trigger" onClick={() => setIsModalOpen(true)}>
-        <HistoryOutlined width={24} height={24} />
+        {trigger ?? <HistoryOutlined width={24} height={24} />}
       </div>
 
       {isModalOpen && (
