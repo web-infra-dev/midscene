@@ -3,21 +3,13 @@ import type {
   PlaygroundSessionField,
   PlaygroundSessionSetup,
 } from '@midscene/playground';
-import {
-  Alert,
-  Button,
-  Form,
-  Input,
-  InputNumber,
-  Radio,
-  Select,
-  Space,
-  Typography,
-} from 'antd';
+import { Alert, Form, Input, InputNumber, Radio, Select } from 'antd';
 import type { FormInstance } from 'antd';
+import type { PlaygroundFormValues } from './controller/types';
+import DropdownChevron from './icons/dropdown-chevron.svg';
+import MidsceneLogo from './icons/midscene-logo.svg';
 import type { PlaygroundSessionViewState } from './session-state';
-
-const { Paragraph, Title } = Typography;
+import './SessionSetupPanel.less';
 
 function getPlatformSelectorFieldKey(
   setup: PlaygroundSessionSetup | null,
@@ -45,6 +37,12 @@ function getPlatformSelectorOptions(
   );
 
   return registryOptions.length > 0 ? registryOptions : field.options;
+}
+
+function DropdownSuffix() {
+  return (
+    <DropdownChevron aria-hidden="true" className="session-setup-select-icon" />
+  );
 }
 
 function renderSessionField(
@@ -88,7 +86,8 @@ function renderSessionField(
     return (
       <Select
         placeholder={field.placeholder}
-        options={(platformOptions || field.options || []).map((option) => ({
+        suffixIcon={<DropdownSuffix />}
+        options={(platformOptions ?? field.options ?? []).map((option) => ({
           label: option.label,
           value: option.value,
           description: option.description,
@@ -119,15 +118,17 @@ function renderSessionField(
 }
 
 export interface SessionSetupPanelProps {
-  form: FormInstance<Record<string, unknown>>;
+  form: FormInstance<PlaygroundFormValues>;
   sessionSetup: PlaygroundSessionSetup | null;
   sessionSetupError: string | null;
   sessionViewState: PlaygroundSessionViewState;
   sessionLoading: boolean;
   sessionMutating: boolean;
   onCreateSession: () => void | Promise<void>;
-  onRefreshTargets: () => void | Promise<void>;
 }
+
+const DEFAULT_TITLE = 'Create Agent';
+const DEFAULT_DESCRIPTION = 'Create a platform session before running actions.';
 
 export function SessionSetupPanel({
   form,
@@ -137,16 +138,22 @@ export function SessionSetupPanel({
   sessionLoading,
   sessionMutating,
   onCreateSession,
-  onRefreshTargets,
 }: SessionSetupPanelProps) {
+  const submitDisabled =
+    sessionMutating ||
+    sessionLoading ||
+    sessionViewState.setupState === 'blocked';
+  const primaryLabel = sessionSetup?.primaryActionLabel ?? DEFAULT_TITLE;
+  const title = sessionSetup?.title ?? DEFAULT_TITLE;
+  const description = sessionSetup?.description ?? DEFAULT_DESCRIPTION;
+
   return (
     <div className="session-setup-panel">
       <div className="session-setup-card">
-        <Title level={4}>{sessionSetup?.title || 'Create Agent'}</Title>
-        <Paragraph type="secondary">
-          {sessionSetup?.description ||
-            'Create a platform session before running actions.'}
-        </Paragraph>
+        <MidsceneLogo aria-hidden="true" className="session-setup-logo" />
+        <h1 className="session-setup-title">{title}</h1>
+        <p className="session-setup-description">{description}</p>
+
         {sessionViewState.setupState === 'blocked' &&
           sessionViewState.setupBlockingReason && (
             <Alert
@@ -154,6 +161,7 @@ export function SessionSetupPanel({
               showIcon
               message="Setup blocked"
               description={sessionViewState.setupBlockingReason}
+              className="session-setup-alert"
             />
           )}
         {sessionSetupError ? (
@@ -162,10 +170,22 @@ export function SessionSetupPanel({
             showIcon
             message="Failed to load setup"
             description={sessionSetupError}
+            className="session-setup-alert"
           />
         ) : null}
-        <Form form={form} layout="vertical" className="session-setup-form">
-          {(sessionSetup?.fields || []).map((field) => (
+
+        <Form
+          form={form}
+          layout="vertical"
+          className="session-setup-form"
+          onFinish={() => {
+            if (submitDisabled) {
+              return;
+            }
+            void onCreateSession();
+          }}
+        >
+          {(sessionSetup?.fields ?? []).map((field) => (
             <Form.Item
               key={field.key}
               label={field.label}
@@ -185,22 +205,15 @@ export function SessionSetupPanel({
               {renderSessionField(field, sessionSetup)}
             </Form.Item>
           ))}
-        </Form>
-        <Space size={12}>
-          <Button
-            type="primary"
-            loading={sessionMutating}
-            disabled={
-              sessionLoading || sessionViewState.setupState === 'blocked'
-            }
-            onClick={onCreateSession}
+
+          <button
+            type="submit"
+            className="session-setup-submit"
+            disabled={submitDisabled}
           >
-            {sessionSetup?.primaryActionLabel || 'Create Agent'}
-          </Button>
-          <Button onClick={onRefreshTargets} loading={sessionLoading}>
-            Refresh targets
-          </Button>
-        </Space>
+            {sessionMutating ? 'Creating...' : primaryLabel}
+          </button>
+        </Form>
       </div>
     </div>
   );

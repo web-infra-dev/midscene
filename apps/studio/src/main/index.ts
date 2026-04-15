@@ -1,14 +1,18 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { IPC_CHANNELS } from '@shared/electron-contract';
+import { resolveExternalUrl } from '@shared/external-links';
 import {
   BrowserWindow,
   type NativeImage,
   app,
   ipcMain,
   nativeImage,
+  shell,
 } from 'electron';
 import type { TitleBarOverlay } from 'electron';
+import { createAndroidPlaygroundRuntimeService } from './playground/android-runtime';
+import { runConnectivityTest } from './playground/connectivity-test';
 
 /**
  * Main process owns native shell concerns only.
@@ -18,6 +22,7 @@ import type { TitleBarOverlay } from 'electron';
 
 let mainWindow: BrowserWindow | null = null;
 let cachedAppIcon: NativeImage | null = null;
+const androidPlaygroundRuntime = createAndroidPlaygroundRuntimeService();
 
 const getRendererEntryPath = () =>
   path.join(__dirname, '../renderer/index.html');
@@ -115,6 +120,9 @@ const registerIpcHandlers = () => {
   ipcMain.handle(IPC_CHANNELS.minimizeWindow, () => {
     mainWindow?.minimize();
   });
+  ipcMain.handle(IPC_CHANNELS.openExternalUrl, async (_event, url: string) => {
+    await shell.openExternal(resolveExternalUrl(url));
+  });
   ipcMain.handle(IPC_CHANNELS.toggleMaximizeWindow, () => {
     if (!mainWindow) return;
     if (mainWindow.isMaximized()) {
@@ -126,6 +134,15 @@ const registerIpcHandlers = () => {
   ipcMain.handle(IPC_CHANNELS.closeWindow, () => {
     mainWindow?.close();
   });
+  ipcMain.handle(IPC_CHANNELS.getAndroidPlaygroundBootstrap, () =>
+    androidPlaygroundRuntime.getBootstrap(),
+  );
+  ipcMain.handle(IPC_CHANNELS.restartAndroidPlayground, async () =>
+    androidPlaygroundRuntime.restart(),
+  );
+  ipcMain.handle(IPC_CHANNELS.runConnectivityTest, async (_event, request) =>
+    runConnectivityTest(request),
+  );
 };
 
 app.whenReady().then(() => {
@@ -134,6 +151,7 @@ app.whenReady().then(() => {
   }
 
   registerIpcHandlers();
+  void androidPlaygroundRuntime.start();
   createMainWindow();
 
   app.on('activate', () => {
@@ -147,4 +165,8 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('before-quit', () => {
+  void androidPlaygroundRuntime.close();
 });

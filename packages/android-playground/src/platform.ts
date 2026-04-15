@@ -70,9 +70,9 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
       async getSetupSchema() {
         const targets = await getAdbTargets();
         return {
-          title: 'Connect Android device',
+          title: 'Welcome to\nMidscene.js Playground!',
           description:
-            'Select an available ADB device to create the current Android Agent.',
+            'Select an available ADB device to create the current Android Agent',
           primaryActionLabel: 'Create Agent',
           autoSubmitWhenReady: targets.length === 1,
           fields: [

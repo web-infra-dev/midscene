@@ -6,8 +6,29 @@
 export const IPC_CHANNELS = {
   closeWindow: 'shell:close-window',
   minimizeWindow: 'shell:minimize-window',
+  openExternalUrl: 'shell:open-external-url',
   toggleMaximizeWindow: 'shell:toggle-maximize-window',
+  getAndroidPlaygroundBootstrap: 'studio:get-android-playground-bootstrap',
+  restartAndroidPlayground: 'studio:restart-android-playground',
+  runConnectivityTest: 'studio:run-connectivity-test',
 } as const;
+
+export interface ConnectivityTestRequest {
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+}
+
+export type ConnectivityTestResult =
+  | { ok: true; sample: string }
+  | { ok: false; error: string };
+
+export interface AndroidPlaygroundBootstrap {
+  status: 'starting' | 'ready' | 'error';
+  serverUrl: string | null;
+  port: number | null;
+  error: string | null;
+}
 
 /**
  * Public API exposed on `window.electronShell` by the preload bridge.
@@ -21,9 +42,19 @@ export interface ElectronShellApi {
   closeWindow: () => Promise<void>;
   /** Request the main process to minimize the current shell window. */
   minimizeWindow: () => Promise<void>;
+  /** Open an external HTTP(S) link in the system browser. */
+  openExternalUrl: (url: string) => Promise<void>;
   /**
    * Toggle maximize/unmaximize on the current shell window. No-op if the
    * window is not available (e.g. during teardown).
    */
   toggleMaximizeWindow: () => Promise<void>;
+}
+
+export interface StudioRuntimeApi {
+  getAndroidPlaygroundBootstrap: () => Promise<AndroidPlaygroundBootstrap>;
+  restartAndroidPlayground: () => Promise<AndroidPlaygroundBootstrap>;
+  runConnectivityTest: (
+    request: ConnectivityTestRequest,
+  ) => Promise<ConnectivityTestResult>;
 }

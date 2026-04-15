@@ -1,8 +1,12 @@
-import type { ElectronShellApi } from './shared/electron-contract';
+import type {
+  ElectronShellApi,
+  StudioRuntimeApi,
+} from './shared/electron-contract';
 
 declare global {
   interface Window {
     electronShell?: ElectronShellApi;
+    studioRuntime?: StudioRuntimeApi;
   }
 }
 

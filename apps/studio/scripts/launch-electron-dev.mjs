@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { rendererDevUrl } from './renderer-dev-config.mjs';
+import { buildStudioRuntimeEnv } from './runtime-env.mjs';
 
 // Spawns Electron with MIDSCENE_STUDIO_RENDERER_URL sourced from the shared
 // dev config, so the port is not duplicated in package.json scripts.
@@ -17,7 +18,11 @@ const child = spawn(
   electronBinary,
   [path.join(rootDir, 'dist/main/main.cjs')],
   {
-    env: { ...process.env, MIDSCENE_STUDIO_RENDERER_URL: rendererDevUrl },
+    env: buildStudioRuntimeEnv({
+      baseEnv: process.env,
+      overrides: { MIDSCENE_STUDIO_RENDERER_URL: rendererDevUrl },
+      studioRootDir: rootDir,
+    }),
     stdio: 'inherit',
   },
 );

@@ -1,4 +1,8 @@
-import { type ElectronShellApi, IPC_CHANNELS } from '@shared/electron-contract';
+import {
+  type ElectronShellApi,
+  IPC_CHANNELS,
+  type StudioRuntimeApi,
+} from '@shared/electron-contract';
 import { contextBridge, ipcRenderer } from 'electron';
 
 /**
@@ -9,8 +13,20 @@ import { contextBridge, ipcRenderer } from 'electron';
 const electronShellApi: ElectronShellApi = {
   closeWindow: () => ipcRenderer.invoke(IPC_CHANNELS.closeWindow),
   minimizeWindow: () => ipcRenderer.invoke(IPC_CHANNELS.minimizeWindow),
+  openExternalUrl: (url) =>
+    ipcRenderer.invoke(IPC_CHANNELS.openExternalUrl, url),
   toggleMaximizeWindow: () =>
     ipcRenderer.invoke(IPC_CHANNELS.toggleMaximizeWindow),
 };
 
+const studioRuntimeApi: StudioRuntimeApi = {
+  getAndroidPlaygroundBootstrap: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.getAndroidPlaygroundBootstrap),
+  restartAndroidPlayground: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.restartAndroidPlayground),
+  runConnectivityTest: (request) =>
+    ipcRenderer.invoke(IPC_CHANNELS.runConnectivityTest, request),
+};
+
 contextBridge.exposeInMainWorld('electronShell', electronShellApi);
+contextBridge.exposeInMainWorld('studioRuntime', studioRuntimeApi);

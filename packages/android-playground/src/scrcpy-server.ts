@@ -5,15 +5,25 @@ import type { Server as HttpServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { SCRCPY_SERVER_PORT } from '@midscene/shared/constants';
+import {
+  SCRCPY_PREVIEW_METADATA_TIMEOUT_MS,
+  SCRCPY_PUSH_TIMEOUT_MS,
+  SCRCPY_SERVER_PORT,
+  SCRCPY_START_TIMEOUT_MS,
+  SCRCPY_VIDEO_STREAM_TIMEOUT_MS,
+} from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
 import type { Adb, AdbServerClient } from '@yume-chan/adb';
 import cors from 'cors';
 import express from 'express';
 import { Server } from 'socket.io';
+import {
+  type ScrcpyPreviewPhase,
+  buildScrcpyPreviewStatusEvent,
+} from './scrcpy-preview-status';
+import { withTimeout } from './timeout';
 
 export const debugPage = getDebug('android:playground');
-
 const promiseExec = promisify(exec);
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
@@ -203,7 +213,11 @@ export default class ScrcpyServer {
   }
 
   // start scrcpy
-  private async startScrcpy(adb: Adb, options = {}) {
+  private async startScrcpy(
+    adb: Adb,
+    options = {},
+    onProgress?: (phase: ScrcpyPreviewPhase) => void,
+  ) {
     const { AdbScrcpyClient, AdbScrcpyOptions3_3_3 } = await import(
       '@yume-chan/adb-scrcpy'
     );
@@ -218,9 +232,14 @@ export default class ScrcpyServer {
 
     try {
       // Push server - use file path directly for createReadStream
-      await AdbScrcpyClient.pushServer(
-        adb,
-        ReadableStream.from(createReadStream(serverBinPath)),
+      onProgress?.('pushing-server');
+      await withTimeout(
+        AdbScrcpyClient.pushServer(
+          adb,
+          ReadableStream.from(createReadStream(serverBinPath)),
+        ),
+        SCRCPY_PUSH_TIMEOUT_MS,
+        `Timed out pushing scrcpy server to device after ${Math.round(SCRCPY_PUSH_TIMEOUT_MS / 1000)}s`,
       );
 
       // Start scrcpy service
@@ -238,7 +257,30 @@ export default class ScrcpyServer {
         ...options,
       });
 
-      return await AdbScrcpyClient.start(adb, DefaultServerPath, scrcpyOptions);
+      onProgress?.('starting-service');
+      const startPromise = AdbScrcpyClient.start(
+        adb,
+        DefaultServerPath,
+        scrcpyOptions,
+      );
+
+      return await withTimeout(
+        startPromise,
+        SCRCPY_START_TIMEOUT_MS,
+        `Timed out starting scrcpy service after ${Math.round(SCRCPY_START_TIMEOUT_MS / 1000)}s`,
+        {
+          onSettledAfterTimeout: async (lateClient) => {
+            try {
+              await lateClient.close();
+            } catch (closeError) {
+              console.error(
+                'failed to close late scrcpy client after timeout:',
+                closeError,
+              );
+            }
+          },
+        },
+      );
     } catch (error) {
       console.error('failed to start scrcpy:', error);
       throw error;
@@ -256,6 +298,10 @@ export default class ScrcpyServer {
 
       let scrcpyClient: any = null;
       let adb = null;
+
+      const emitPreviewStatus = (phase: ScrcpyPreviewPhase) => {
+        socket.emit('preview-status', buildScrcpyPreviewStatusEvent(phase));
+      };
 
       // send devices list to client
       const sendDevicesList = async () => {
@@ -319,6 +365,8 @@ export default class ScrcpyServer {
             socket.id,
           );
 
+          emitPreviewStatus('connecting-device');
+
           // use current selected device id or default the first online device
           adb = await this.getAdb(this.currentDeviceId || undefined);
           if (!adb) {
@@ -331,7 +379,11 @@ export default class ScrcpyServer {
             'starting scrcpy service, device id: %s',
             this.currentDeviceId,
           );
-          scrcpyClient = await this.startScrcpy(adb, options);
+          scrcpyClient = await this.startScrcpy(
+            adb,
+            options,
+            emitPreviewStatus,
+          );
           debugPage('scrcpy service started successfully');
 
           // check scrcpyClient object structure
@@ -364,9 +416,15 @@ export default class ScrcpyServer {
                 debugPage(
                   'videoStream is a Promise, waiting for resolution...',
                 );
-                videoStream = await scrcpyClient.videoStream;
+                emitPreviewStatus('waiting-for-video');
+                videoStream = await withTimeout(
+                  scrcpyClient.videoStream,
+                  SCRCPY_VIDEO_STREAM_TIMEOUT_MS,
+                  `Timed out waiting for scrcpy video stream metadata after ${Math.round(SCRCPY_VIDEO_STREAM_TIMEOUT_MS / 1000)}s`,
+                );
               } else {
                 debugPage('videoStream is not a Promise, directly use');
+                emitPreviewStatus('waiting-for-video');
                 videoStream = scrcpyClient.videoStream;
               }
 
@@ -402,8 +460,9 @@ export default class ScrcpyServer {
               );
               socket.emit('video-metadata', metadata);
               debugPage(
-                'video-metadata event sent to client, id: %s',
+                'video-metadata event sent to client, id: %s, timeout budget: %ss',
                 socket.id,
+                Math.round(SCRCPY_PREVIEW_METADATA_TIMEOUT_MS / 1000),
               );
 
               const { stream } = videoStream;
@@ -459,6 +518,17 @@ export default class ScrcpyServer {
           }
         } catch (error: any) {
           console.error('failed to connect device:', error);
+          if (scrcpyClient) {
+            try {
+              await scrcpyClient.close();
+            } catch (closeError) {
+              console.error(
+                'failed to close scrcpy client after error:',
+                closeError,
+              );
+            }
+            scrcpyClient = null;
+          }
           socket.emit('error', {
             message: `Failed to connect device: ${error?.message || 'Unknown error'}`,
           });

@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@midscene/playground": "workspace:*",
+    "@midscene/shared": "workspace:*",
     "@midscene/visualizer": "workspace:*",
     "@yume-chan/scrcpy": "2.3.0",
     "@yume-chan/scrcpy-decoder-webcodecs": "2.5.0",

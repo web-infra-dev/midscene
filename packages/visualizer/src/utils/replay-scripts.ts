@@ -118,6 +118,30 @@ export const cameraStateForRect = (
   };
 };
 
+const createFullPageCameraState = (
+  imageWidth: number,
+  imageHeight: number,
+): TargetCameraState =>
+  cameraStateForRect(
+    {
+      left: 0,
+      top: 0,
+      width: imageWidth,
+      height: imageHeight,
+    },
+    imageWidth,
+    imageHeight,
+  );
+
+const resolveTaskShotSize = (
+  task: Pick<ExecutionTask, 'uiContext'> | undefined,
+  fallbackWidth: number,
+  fallbackHeight: number,
+): { width: number; height: number } => ({
+  width: task?.uiContext?.shotSize?.width || fallbackWidth,
+  height: task?.uiContext?.shotSize?.height || fallbackHeight,
+});
+
 export const mergeTwoCameraState = (
   cameraState1: TargetCameraState,
   cameraState2: TargetCameraState,
@@ -352,17 +376,6 @@ export const generateAnimationScripts = (
     return null;
   }
 
-  const fullPageCameraState = cameraStateForRect(
-    {
-      left: 0,
-      top: 0,
-      width: imageWidth,
-      height: imageHeight,
-    },
-    imageWidth,
-    imageHeight,
-  );
-
   // Get taskId from the task object
   const getTaskId = (taskIndex: number): string | undefined => {
     return tasksIncluded[taskIndex]?.taskId;
@@ -568,16 +581,24 @@ export const generateAnimationScripts = (
       // currentCameraState = insightCameraState ?? fullPageCameraState;
       // const ifLastTask = index === taskCount - 1;
       const screenshot = task.recorder?.[0]?.screenshot;
+      const { width, height } = resolveTaskShotSize(
+        task,
+        imageWidth,
+        imageHeight,
+      );
       scripts.push(
         createScript(
           {
             type: 'img',
             duration: actionDuration,
-            camera: task.subType === 'Sleep' ? fullPageCameraState : undefined,
+            camera:
+              task.subType === 'Sleep'
+                ? createFullPageCameraState(width, height)
+                : undefined,
             title,
             subTitle,
-            imageWidth: task.uiContext?.shotSize?.width || imageWidth,
-            imageHeight: task.uiContext?.shotSize?.height || imageHeight,
+            imageWidth: width,
+            imageHeight: height,
             taskId: currentTaskId,
           },
           asScreenshot(screenshot),
@@ -590,16 +611,21 @@ export const generateAnimationScripts = (
       const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
 
       if (screenshot) {
+        const { width, height } = resolveTaskShotSize(
+          task,
+          imageWidth,
+          imageHeight,
+        );
         scripts.push(
           createScript(
             {
               type: 'img',
               duration: stillDuration,
-              camera: fullPageCameraState,
+              camera: createFullPageCameraState(width, height),
               title,
               subTitle,
-              imageWidth: task.uiContext?.shotSize?.width || imageWidth,
-              imageHeight: task.uiContext?.shotSize?.height || imageHeight,
+              imageWidth: width,
+              imageHeight: height,
               taskId: currentTaskId,
             },
             asScreenshot(screenshot),
@@ -616,16 +642,21 @@ export const generateAnimationScripts = (
           ? 'Further actions cannot be performed in the current environment'
           : errorMsg;
       const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
+      const { width, height } = resolveTaskShotSize(
+        task,
+        imageWidth,
+        imageHeight,
+      );
       scripts.push(
         createScript(
           {
             type: 'img',
-            camera: fullPageCameraState,
+            camera: createFullPageCameraState(width, height),
             duration: stillDuration,
             title: errorTitle,
             subTitle: errorSubTitle,
-            imageWidth: task.uiContext?.shotSize?.width || imageWidth,
-            imageHeight: task.uiContext?.shotSize?.height || imageHeight,
+            imageWidth: width,
+            imageHeight: height,
             taskId: currentTaskId,
           },
           asScreenshot(screenshot),
@@ -645,12 +676,24 @@ export const generateAnimationScripts = (
     insightOnTop = false;
   }
 
+  const lastTaskShotSize =
+    tasksIncluded.length > 0
+      ? resolveTaskShotSize(
+          tasksIncluded[tasksIncluded.length - 1],
+          imageWidth,
+          imageHeight,
+        )
+      : { width: imageWidth, height: imageHeight };
+
   scripts.push({
     title: 'End',
     subTitle: initSubTitle,
     type: 'img',
     duration: lastFrameDuration,
-    camera: fullPageCameraState,
+    camera: createFullPageCameraState(
+      lastTaskShotSize.width,
+      lastTaskShotSize.height,
+    ),
     taskId: undefined, // Explicitly set to undefined to clear the playing state
   });
 
