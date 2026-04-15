@@ -11,6 +11,7 @@ import type {
   BaseDevice,
   IMidsceneTools,
   ToolDefinition,
+  ToolSchema,
 } from './types';
 
 const debug = getDebug('mcp:base-tools');
@@ -49,6 +50,13 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
     args: Record<string, unknown>,
   ): Record<string, unknown> {
     return args;
+  }
+
+  /**
+   * Optional: expose platform-specific init args on action/common tool schemas.
+   */
+  protected getAgentInitArgSchema(): ToolSchema {
+    return {};
   }
 
   /**
@@ -103,11 +111,13 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
       actionSpace,
       (args = {}) => this.ensureAgent(this.extractAgentInitParam(args)),
       (args = {}) => this.sanitizeToolArgs(args),
+      this.getAgentInitArgSchema(),
     );
 
     // 4. Add common tools (screenshot, waitFor)
-    const commonTools = generateCommonTools((args = {}) =>
-      this.ensureAgent(this.extractAgentInitParam(args)),
+    const commonTools = generateCommonTools(
+      (args = {}) => this.ensureAgent(this.extractAgentInitParam(args)),
+      this.getAgentInitArgSchema(),
     );
     this.toolDefinitions.push(...actionTools, ...commonTools);
 

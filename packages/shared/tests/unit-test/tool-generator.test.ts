@@ -1,4 +1,7 @@
-import { generateToolsFromActionSpace } from '@/mcp/tool-generator';
+import {
+  generateCommonTools,
+  generateToolsFromActionSpace,
+} from '@/mcp/tool-generator';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -200,5 +203,43 @@ describe('generateToolsFromActionSpace', () => {
     expect(callActionInActionSpace).toHaveBeenCalledWith('RunAdbShell', {
       command: 'pm clear com.example.app',
     });
+  });
+
+  it('merges init arg schema into action and common tools', () => {
+    const initArgSchema = {
+      'android.deviceId': z.string().optional().describe('Android device ID'),
+    };
+    const [actionTool] = generateToolsFromActionSpace(
+      actionSpace,
+      async () => ({
+        getActionSpace: vi.fn().mockResolvedValue([]),
+        page: {
+          screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+        },
+      }),
+      undefined,
+      initArgSchema,
+    );
+    const commonTools = generateCommonTools(
+      async () => ({
+        getActionSpace: vi.fn().mockResolvedValue([]),
+        page: {
+          screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+        },
+      }),
+      initArgSchema,
+    );
+
+    expect(actionTool.schema).toHaveProperty('locate');
+    expect(actionTool.schema).toHaveProperty('android.deviceId');
+    expect(
+      commonTools.find((tool) => tool.name === 'take_screenshot')?.schema,
+    ).toHaveProperty('android.deviceId');
+    expect(commonTools.find((tool) => tool.name === 'act')?.schema).toEqual(
+      expect.objectContaining({
+        prompt: expect.anything(),
+        'android.deviceId': expect.anything(),
+      }),
+    );
   });
 });

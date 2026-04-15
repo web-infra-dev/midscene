@@ -71,6 +71,28 @@ describe('AndroidMidsceneTools', () => {
     });
   });
 
+  it('passes nested android.device-id to take_screenshot', async () => {
+    const tools = new AndroidMidsceneTools();
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+
+    expect(takeScreenshotTool).toBeDefined();
+
+    await takeScreenshotTool?.handler({
+      android: { 'device-id': 'nested-kebab-target-device' },
+    });
+
+    expect(agentFromAdbDevice).toHaveBeenCalledWith(
+      'nested-kebab-target-device',
+      {
+        autoDismissKeyboard: false,
+      },
+    );
+  });
+
   it('passes nested android.deviceId to act', async () => {
     const mockAgent = createMockAgent();
     vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
@@ -95,5 +117,20 @@ describe('AndroidMidsceneTools', () => {
     expect(mockAgent.aiAction).toHaveBeenCalledWith('open settings', {
       deepThink: false,
     });
+  });
+
+  it('exposes android init args on action and common tool schemas', async () => {
+    const tools = new AndroidMidsceneTools();
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+    const actTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'act');
+
+    expect(takeScreenshotTool?.schema).toHaveProperty('android.deviceId');
+    expect(actTool?.schema).toHaveProperty('android.deviceId');
   });
 });

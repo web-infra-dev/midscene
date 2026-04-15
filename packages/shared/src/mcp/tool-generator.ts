@@ -11,6 +11,7 @@ import type {
   BaseAgent,
   ToolDefinition,
   ToolResult,
+  ToolSchema,
 } from './types';
 
 /**
@@ -463,9 +464,13 @@ export function generateToolsFromActionSpace(
   sanitizeArgs: (args: Record<string, unknown>) => Record<string, unknown> = (
     args,
   ) => args,
+  initArgSchema: ToolSchema = {},
 ): ToolDefinition[] {
   return actionSpace.map((action) => {
-    const schema = extractActionSchema(action.paramSchema as z.ZodTypeAny);
+    const schema = {
+      ...extractActionSchema(action.paramSchema as z.ZodTypeAny),
+      ...initArgSchema,
+    };
 
     return {
       name: action.name,
@@ -520,12 +525,15 @@ export function generateToolsFromActionSpace(
  */
 export function generateCommonTools(
   getAgent: (args?: Record<string, unknown>) => Promise<BaseAgent>,
+  initArgSchema: ToolSchema = {},
 ): ToolDefinition[] {
   return [
     {
       name: 'take_screenshot',
       description: 'Capture screenshot of current page/screen',
-      schema: {},
+      schema: {
+        ...initArgSchema,
+      },
       handler: async (
         args: Record<string, unknown> = {},
       ): Promise<ToolResult> => {
@@ -558,6 +566,7 @@ export function generateCommonTools(
           .describe(
             'Natural language description of the action to perform, e.g. "press Command+Space, type Safari, press Enter"',
           ),
+        ...initArgSchema,
       },
       handler: async (
         args: Record<string, unknown> = {},

@@ -161,10 +161,31 @@ describe('parseCliArgs', () => {
     });
   });
 
-  it('parses dotted keys into nested objects', () => {
-    expect(parseCliArgs(['--android.deviceId', '127.0.0.1:7555'])).toEqual({
+  it('parses dotted keys into nested objects and preserves camel/kebab aliases', () => {
+    expect(
+      parseCliArgs([
+        '--android.deviceId',
+        '127.0.0.1:7555',
+        '--ios.wda-port',
+        '8100',
+      ]),
+    ).toEqual({
       android: {
         deviceId: '127.0.0.1:7555',
+        'device-id': '127.0.0.1:7555',
+      },
+      ios: {
+        wdaPort: 8100,
+        'wda-port': 8100,
+      },
+    });
+  });
+
+  it('parses dotted kebab-case keys into nested objects and preserves camel aliases', () => {
+    expect(parseCliArgs(['--android.device-id', '127.0.0.1:7555'])).toEqual({
+      android: {
+        deviceId: '127.0.0.1:7555',
+        'device-id': '127.0.0.1:7555',
       },
     });
   });

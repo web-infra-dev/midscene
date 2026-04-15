@@ -2,6 +2,7 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import dotenv from 'dotenv';
+import { getKeyAliases, isRecord } from '../key-alias-utils';
 import { getDebug } from '../logger';
 import type { BaseMidsceneTools } from '../mcp/base-tools';
 import type {
@@ -63,22 +64,30 @@ export function parseCliArgs(args: string[]): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
   const setArgValue = (key: string, value: unknown) => {
+    if (!key.includes('.')) {
+      result[key] = value;
+      return;
+    }
+
     const segments = key.split('.');
     let current = result;
 
     for (const segment of segments.slice(0, -1)) {
-      const nestedValue = current[segment];
-      if (
-        typeof nestedValue !== 'object' ||
-        nestedValue === null ||
-        Array.isArray(nestedValue)
-      ) {
-        current[segment] = {};
+      const nestedValue = getKeyAliases(segment)
+        .map((alias) => current[alias])
+        .find(isRecord);
+      const target = nestedValue ?? {};
+
+      for (const alias of getKeyAliases(segment)) {
+        current[alias] = target;
       }
-      current = current[segment] as Record<string, unknown>;
+
+      current = target;
     }
 
-    current[segments.at(-1) as string] = value;
+    for (const alias of getKeyAliases(segments.at(-1) as string)) {
+      current[alias] = value;
+    }
   };
 
   for (let i = 0; i < args.length; i++) {

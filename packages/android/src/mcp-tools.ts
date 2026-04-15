@@ -1,32 +1,32 @@
 import { z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
-import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
+import {
+  BaseMidsceneTools,
+  type ToolDefinition,
+  createNamespacedInitArgSchema,
+  extractNamespacedArgs,
+  sanitizeNamespacedArgs,
+} from '@midscene/shared/mcp';
 import { type AndroidAgent, agentFromAdbDevice } from './agent';
 import { AndroidDevice } from './device';
 
 const debug = getDebug('mcp:android-tools');
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
+const ANDROID_INIT_ARG_KEYS = ['deviceId'] as const;
+type AndroidInitArgs = { deviceId?: string };
+const androidInitArgShape = {
+  deviceId: z
+    .string()
+    .optional()
+    .describe('Android device ID (from adb devices)'),
+};
 
 function getDeviceIdFromArgs(
   args: Record<string, unknown>,
 ): string | undefined {
-  if (typeof args.deviceId === 'string') {
-    return args.deviceId;
-  }
-
-  if (typeof args['android.deviceId'] === 'string') {
-    return args['android.deviceId'];
-  }
-
-  const androidArgs = args.android;
-  if (isRecord(androidArgs) && typeof androidArgs.deviceId === 'string') {
-    return androidArgs.deviceId;
-  }
-
-  return undefined;
+  return extractNamespacedArgs<
+    (typeof ANDROID_INIT_ARG_KEYS)[number],
+    AndroidInitArgs
+  >(args, 'android', ANDROID_INIT_ARG_KEYS)?.deviceId;
 }
 
 /**
@@ -47,13 +47,11 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<AndroidAgent> {
   protected sanitizeToolArgs(
     args: Record<string, unknown>,
   ): Record<string, unknown> {
-    const {
-      deviceId: _deviceId,
-      'android.deviceId': _androidDeviceId,
-      android: _android,
-      ...sanitizedArgs
-    } = args;
-    return sanitizedArgs;
+    return sanitizeNamespacedArgs(args, 'android', ANDROID_INIT_ARG_KEYS);
+  }
+
+  protected getAgentInitArgSchema() {
+    return createNamespacedInitArgSchema('android', androidInitArgShape);
   }
 
   protected async ensureAgent(initParam?: unknown): Promise<AndroidAgent> {
@@ -91,13 +89,9 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<AndroidAgent> {
         name: 'android_connect',
         description:
           'Connect to Android device via ADB. If deviceId not provided, uses the first available device.',
-        schema: {
-          deviceId: z
-            .string()
-            .optional()
-            .describe('Android device ID (from adb devices)'),
-        },
-        handler: async ({ deviceId }: { deviceId?: string }) => {
+        schema: this.getAgentInitArgSchema(),
+        handler: async (args: Record<string, unknown>) => {
+          const deviceId = getDeviceIdFromArgs(args);
           const agent = await this.ensureAgent(deviceId);
           const screenshot = await agent.page.screenshotBase64();
 

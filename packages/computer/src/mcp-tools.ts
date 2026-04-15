@@ -1,10 +1,28 @@
 import { z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
-import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
+import {
+  BaseMidsceneTools,
+  type ToolDefinition,
+  createNamespacedInitArgSchema,
+  extractNamespacedArgs,
+  sanitizeNamespacedArgs,
+} from '@midscene/shared/mcp';
 import { type ComputerAgent, agentFromComputer } from './agent';
-import { ComputerDevice } from './device';
+import { ComputerDevice, type ComputerDeviceOpt } from './device';
 
 const debug = getDebug('mcp:computer-tools');
+const COMPUTER_INIT_ARG_KEYS = ['displayId', 'headless'] as const;
+const computerInitArgShape = {
+  displayId: z
+    .string()
+    .optional()
+    .describe('Display ID (from computer_list_displays)'),
+  headless: z
+    .boolean()
+    .optional()
+    .describe('Start virtual display via Xvfb (Linux only)'),
+};
+type ComputerInitArgs = Pick<ComputerDeviceOpt, 'displayId' | 'headless'>;
 
 /**
  * Computer-specific tools manager
@@ -16,11 +34,32 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
     return new ComputerDevice({});
   }
 
-  protected async ensureAgent(
-    displayId?: string,
-    headless?: boolean,
-  ): Promise<ComputerAgent> {
-    if (this.agent && displayId) {
+  protected extractAgentInitParam(args: Record<string, unknown>): unknown {
+    return extractNamespacedArgs<
+      (typeof COMPUTER_INIT_ARG_KEYS)[number],
+      ComputerInitArgs
+    >(args, 'computer', COMPUTER_INIT_ARG_KEYS);
+  }
+
+  protected sanitizeToolArgs(
+    args: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return sanitizeNamespacedArgs(args, 'computer', COMPUTER_INIT_ARG_KEYS);
+  }
+
+  protected getAgentInitArgSchema() {
+    return createNamespacedInitArgSchema('computer', computerInitArgShape);
+  }
+
+  protected async ensureAgent(initParam?: unknown): Promise<ComputerAgent> {
+    const opts =
+      typeof initParam === 'object' && initParam !== null
+        ? (initParam as ComputerInitArgs)
+        : undefined;
+    const displayId = opts?.displayId;
+    const headless = opts?.headless;
+
+    if (this.agent && (displayId !== undefined || headless !== undefined)) {
       // If a specific displayId is requested and we have an agent,
       // destroy it to create a new one with the new display
       try {
@@ -36,12 +75,12 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
     }
 
     debug('Creating Computer agent with displayId:', displayId || 'primary');
-    const opts = {
+    const agentOpts = {
       ...(displayId ? { displayId } : {}),
       ...(headless !== undefined ? { headless } : {}),
     };
     const agent = await agentFromComputer(
-      Object.keys(opts).length > 0 ? opts : undefined,
+      Object.keys(agentOpts).length > 0 ? agentOpts : undefined,
     );
     this.agent = agent;
     return agent;
@@ -56,28 +95,19 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
         name: 'computer_connect',
         description:
           'Connect to computer desktop. Provide displayId to connect to a specific display (use computer_list_displays to get available IDs). If not provided, uses the primary display.',
-        schema: {
-          displayId: z
-            .string()
-            .optional()
-            .describe('Display ID (from computer_list_displays)'),
-          headless: z
-            .boolean()
-            .optional()
-            .describe('Start virtual display via Xvfb (Linux only)'),
-        },
-        handler: async ({
-          displayId,
-          headless,
-        }: { displayId?: string; headless?: boolean }) => {
-          const agent = await this.ensureAgent(displayId, headless);
+        schema: this.getAgentInitArgSchema(),
+        handler: async (args: Record<string, unknown>) => {
+          const initArgs = this.extractAgentInitParam(args) as
+            | ComputerInitArgs
+            | undefined;
+          const agent = await this.ensureAgent(initArgs);
           const screenshot = await agent.interface.screenshotBase64();
 
           return {
             content: [
               {
                 type: 'text',
-                text: `Connected to computer${displayId ? ` (Display: ${displayId})` : ' (Primary display)'}`,
+                text: `Connected to computer${initArgs?.displayId ? ` (Display: ${initArgs.displayId})` : ' (Primary display)'}`,
               },
               ...this.buildScreenshotContent(screenshot),
             ],
