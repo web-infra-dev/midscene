@@ -88,10 +88,10 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 }) => {
   const [hoveringSettings, setHoveringSettings] = useState(false);
   const [promptValue, setPromptValue] = useState('');
-  const [incutHasExplicitTypeSelection, setIncutHasExplicitTypeSelection] =
+  const [minimalHasExplicitTypeSelection, setMinimalHasExplicitTypeSelection] =
     useState(false);
   const placeholder = getPlaceholderForType(selectedType);
-  const isIncutChrome = chrome?.variant === 'incut';
+  const isMinimalChrome = chrome?.variant === 'minimal';
   const resolvedPlaceholder = chrome?.placeholder || placeholder;
   const actionButtonLabel = getPromptInputActionLabel(
     selectedType,
@@ -113,8 +113,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     () => history[selectedType] || [],
     [history, selectedType],
   );
-  const skipIncutSyncRef = useRef(false);
-  const initializedIncutTypeRef = useRef(false);
+  const skipMinimalSyncRef = useRef(false);
+  const initializedMinimalTypeRef = useRef(false);
 
   // Check if current method needs structured parameters (dynamic based on actionSpace)
   const needsStructuredParams = useMemo(() => {
@@ -253,246 +253,117 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     [actionSpace],
   );
 
-  const actionDropdownMenu = useMemo<MenuProps>(() => {
-    const hiddenAPIs = availableDropdownMethods.filter(
-      (api) => !defaultMainButtons.includes(api),
-    );
-    const groupedItems: NonNullable<MenuProps['items']> = [];
+  const hiddenDropdownAPIs = useMemo(
+    () =>
+      availableDropdownMethods.filter(
+        (api) => !defaultMainButtons.includes(api),
+      ),
+    [availableDropdownMethods],
+  );
 
+  const handleTypeSelect = useCallback(
+    (api: string) => {
+      if (isMinimalChrome) {
+        setMinimalHasExplicitTypeSelection(true);
+      }
+      form.setFieldValue('type', api);
+    },
+    [form, isMinimalChrome],
+  );
+
+  const apiGroupDefinitions = useMemo(
+    () => [
+      {
+        key: 'interaction-group',
+        label: 'Interaction APIs',
+        match: (api: string) =>
+          apiMetadata[api as keyof typeof apiMetadata]?.group === 'interaction',
+      },
+      {
+        key: 'extraction-group',
+        label: 'Data Extraction APIs',
+        match: (api: string) =>
+          apiMetadata[api as keyof typeof apiMetadata]?.group === 'extraction',
+      },
+      {
+        key: 'validation-group',
+        label: 'Validation APIs',
+        match: (api: string) =>
+          apiMetadata[api as keyof typeof apiMetadata]?.group === 'validation',
+      },
+      {
+        key: 'device-specific-group',
+        label: 'Device-Specific APIs',
+        match: (api: string) => !apiMetadata[api as keyof typeof apiMetadata],
+      },
+    ],
+    [],
+  );
+
+  const buildApiMenuItem = useCallback(
+    (api: string) => ({
+      key: api,
+      label: actionNameForType(api),
+      title: apiMetadata[api as keyof typeof apiMetadata]?.title || '',
+      onClick: () => handleTypeSelect(api),
+    }),
+    [handleTypeSelect],
+  );
+
+  const hiddenApiGroupItems = useMemo<NonNullable<MenuProps['items']>>(() => {
+    const items: NonNullable<MenuProps['items']> = [];
+    for (const group of apiGroupDefinitions) {
+      const apisInGroup = hiddenDropdownAPIs.filter(group.match);
+      if (apisInGroup.length === 0) continue;
+      items.push({
+        key: group.key,
+        type: 'group',
+        label: group.label,
+        children: apisInGroup.map(buildApiMenuItem),
+      });
+    }
+    return items;
+  }, [apiGroupDefinitions, hiddenDropdownAPIs, buildApiMenuItem]);
+
+  const actionDropdownMenu = useMemo<MenuProps>(() => {
     const primaryActions = defaultMainButtons.filter(
       (api) => api === 'aiAct' || availableDropdownMethods.includes(api),
     );
-
+    const items: NonNullable<MenuProps['items']> = [];
     if (primaryActions.length > 0) {
-      groupedItems.push({
+      items.push({
         key: 'primary-group',
         type: 'group',
         label: 'Primary APIs',
-        children: primaryActions.map((api) => ({
-          key: api,
-          label: actionNameForType(api),
-          title: apiMetadata[api as keyof typeof apiMetadata]?.title || '',
-          onClick: () => {
-            if (isIncutChrome) {
-              setIncutHasExplicitTypeSelection(true);
-            }
-            form.setFieldValue('type', api);
-          },
-        })),
+        children: primaryActions.map(buildApiMenuItem),
       });
     }
+    items.push(...hiddenApiGroupItems);
+    return { items };
+  }, [availableDropdownMethods, buildApiMenuItem, hiddenApiGroupItems]);
 
-    const interactionAPIs = hiddenAPIs.filter(
-      (api) =>
-        apiMetadata[api as keyof typeof apiMetadata]?.group === 'interaction',
-    );
-    if (interactionAPIs.length > 0) {
-      groupedItems.push({
-        key: 'interaction-group',
-        type: 'group',
-        label: 'Interaction APIs',
-        children: interactionAPIs.map((api) => ({
-          key: api,
-          label: actionNameForType(api),
-          title: apiMetadata[api as keyof typeof apiMetadata]?.title || '',
-          onClick: () => {
-            if (isIncutChrome) {
-              setIncutHasExplicitTypeSelection(true);
-            }
-            form.setFieldValue('type', api);
-          },
-        })),
-      });
-    }
-
-    const extractionAPIs = hiddenAPIs.filter(
-      (api) =>
-        apiMetadata[api as keyof typeof apiMetadata]?.group === 'extraction',
-    );
-    if (extractionAPIs.length > 0) {
-      groupedItems.push({
-        key: 'extraction-group',
-        type: 'group',
-        label: 'Data Extraction APIs',
-        children: extractionAPIs.map((api) => ({
-          key: api,
-          label: actionNameForType(api),
-          title: apiMetadata[api as keyof typeof apiMetadata]?.title || '',
-          onClick: () => {
-            if (isIncutChrome) {
-              setIncutHasExplicitTypeSelection(true);
-            }
-            form.setFieldValue('type', api);
-          },
-        })),
-      });
-    }
-
-    const validationAPIs = hiddenAPIs.filter(
-      (api) =>
-        apiMetadata[api as keyof typeof apiMetadata]?.group === 'validation',
-    );
-    if (validationAPIs.length > 0) {
-      groupedItems.push({
-        key: 'validation-group',
-        type: 'group',
-        label: 'Validation APIs',
-        children: validationAPIs.map((api) => ({
-          key: api,
-          label: actionNameForType(api),
-          title: apiMetadata[api as keyof typeof apiMetadata]?.title || '',
-          onClick: () => {
-            if (isIncutChrome) {
-              setIncutHasExplicitTypeSelection(true);
-            }
-            form.setFieldValue('type', api);
-          },
-        })),
-      });
-    }
-
-    const deviceSpecificAPIs = hiddenAPIs.filter(
-      (api) => !apiMetadata[api as keyof typeof apiMetadata],
-    );
-    if (deviceSpecificAPIs.length > 0) {
-      groupedItems.push({
-        key: 'device-specific-group',
-        type: 'group',
-        label: 'Device-Specific APIs',
-        children: deviceSpecificAPIs.map((api) => ({
-          key: api,
-          label: actionNameForType(api),
-          title: '',
-          onClick: () => {
-            if (isIncutChrome) {
-              setIncutHasExplicitTypeSelection(true);
-            }
-            form.setFieldValue('type', api);
-          },
-        })),
-      });
-    }
-
-    return { items: groupedItems };
-  }, [availableDropdownMethods, form, isIncutChrome]);
-
-  const moreApisDropdownMenu = useMemo<MenuProps>(() => {
-    const hiddenAPIs = availableDropdownMethods.filter(
-      (api) => !defaultMainButtons.includes(api),
-    );
-    const groupedItems: NonNullable<MenuProps['items']> = [];
-
-    const interactionAPIs = hiddenAPIs.filter(
-      (api) =>
-        apiMetadata[api as keyof typeof apiMetadata]?.group === 'interaction',
-    );
-    if (interactionAPIs.length > 0) {
-      groupedItems.push({
-        key: 'interaction-group',
-        type: 'group',
-        label: 'Interaction APIs',
-        children: interactionAPIs.map((api) => ({
-          key: api,
-          label: actionNameForType(api),
-          title: apiMetadata[api as keyof typeof apiMetadata]?.title || '',
-          onClick: () => {
-            if (isIncutChrome) {
-              setIncutHasExplicitTypeSelection(true);
-            }
-            form.setFieldValue('type', api);
-          },
-        })),
-      });
-    }
-
-    const extractionAPIs = hiddenAPIs.filter(
-      (api) =>
-        apiMetadata[api as keyof typeof apiMetadata]?.group === 'extraction',
-    );
-    if (extractionAPIs.length > 0) {
-      groupedItems.push({
-        key: 'extraction-group',
-        type: 'group',
-        label: 'Data Extraction APIs',
-        children: extractionAPIs.map((api) => ({
-          key: api,
-          label: actionNameForType(api),
-          title: apiMetadata[api as keyof typeof apiMetadata]?.title || '',
-          onClick: () => {
-            if (isIncutChrome) {
-              setIncutHasExplicitTypeSelection(true);
-            }
-            form.setFieldValue('type', api);
-          },
-        })),
-      });
-    }
-
-    const validationAPIs = hiddenAPIs.filter(
-      (api) =>
-        apiMetadata[api as keyof typeof apiMetadata]?.group === 'validation',
-    );
-    if (validationAPIs.length > 0) {
-      groupedItems.push({
-        key: 'validation-group',
-        type: 'group',
-        label: 'Validation APIs',
-        children: validationAPIs.map((api) => ({
-          key: api,
-          label: actionNameForType(api),
-          title: apiMetadata[api as keyof typeof apiMetadata]?.title || '',
-          onClick: () => {
-            if (isIncutChrome) {
-              setIncutHasExplicitTypeSelection(true);
-            }
-            form.setFieldValue('type', api);
-          },
-        })),
-      });
-    }
-
-    const deviceSpecificAPIs = hiddenAPIs.filter(
-      (api) => !apiMetadata[api as keyof typeof apiMetadata],
-    );
-    if (deviceSpecificAPIs.length > 0) {
-      groupedItems.push({
-        key: 'device-specific-group',
-        type: 'group',
-        label: 'Device-Specific APIs',
-        children: deviceSpecificAPIs.map((api) => ({
-          key: api,
-          label: actionNameForType(api),
-          title: '',
-          onClick: () => {
-            if (isIncutChrome) {
-              setIncutHasExplicitTypeSelection(true);
-            }
-            form.setFieldValue('type', api);
-          },
-        })),
-      });
-    }
-
-    return { items: groupedItems };
-  }, [availableDropdownMethods, form, isIncutChrome]);
+  const moreApisDropdownMenu = useMemo<MenuProps>(
+    () => ({ items: hiddenApiGroupItems }),
+    [hiddenApiGroupItems],
+  );
 
   useEffect(() => {
     if (
-      !isIncutChrome ||
-      initializedIncutTypeRef.current ||
+      !isMinimalChrome ||
+      initializedMinimalTypeRef.current ||
       !selectedType ||
-      incutHasExplicitTypeSelection
+      minimalHasExplicitTypeSelection
     ) {
       return;
     }
 
-    initializedIncutTypeRef.current = true;
+    initializedMinimalTypeRef.current = true;
 
     if (selectedType === 'aiAct') {
       return;
     }
 
-    skipIncutSyncRef.current = false;
+    skipMinimalSyncRef.current = false;
     lastHistoryRef.current = null;
     form.setFieldsValue({
       type: 'aiAct',
@@ -500,12 +371,12 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       params: {},
     });
     setPromptValue('');
-  }, [form, incutHasExplicitTypeSelection, isIncutChrome, selectedType]);
+  }, [form, minimalHasExplicitTypeSelection, isMinimalChrome, selectedType]);
 
   useEffect(() => {
     if (
-      !isIncutChrome ||
-      incutHasExplicitTypeSelection ||
+      !isMinimalChrome ||
+      minimalHasExplicitTypeSelection ||
       !selectedType ||
       selectedType === 'aiAct'
     ) {
@@ -519,7 +390,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       params: {},
     });
     setPromptValue('');
-  }, [form, incutHasExplicitTypeSelection, isIncutChrome, selectedType]);
+  }, [form, minimalHasExplicitTypeSelection, isMinimalChrome, selectedType]);
 
   // Get default values for fields with defaults
   const getDefaultParams = useCallback((): FormParams => {
@@ -555,17 +426,17 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   // Initialize form with last selected type when component mounts
   useEffect(() => {
-    if (!isIncutChrome && !form.getFieldValue('type') && lastSelectedType) {
+    if (!isMinimalChrome && !form.getFieldValue('type') && lastSelectedType) {
       form.setFieldValue('type', lastSelectedType);
     }
-  }, [form, isIncutChrome, lastSelectedType]);
+  }, [form, isMinimalChrome, lastSelectedType]);
 
   // Save selected type when it changes
   useEffect(() => {
-    if (!isIncutChrome && selectedType && selectedType !== lastSelectedType) {
+    if (!isMinimalChrome && selectedType && selectedType !== lastSelectedType) {
       setLastSelectedType(selectedType);
     }
-  }, [selectedType, isIncutChrome, lastSelectedType, setLastSelectedType]);
+  }, [selectedType, isMinimalChrome, lastSelectedType, setLastSelectedType]);
 
   // Scroll to selected item in mode-radio-group
   const scrollToSelectedItem = useCallback(() => {
@@ -614,12 +485,12 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   // When the selectedType changes, populate the form with the last item from that type's history.
   useEffect(() => {
-    if (skipIncutSyncRef.current) {
-      skipIncutSyncRef.current = false;
+    if (skipMinimalSyncRef.current) {
+      skipMinimalSyncRef.current = false;
       return;
     }
 
-    if (isIncutChrome) {
+    if (isMinimalChrome) {
       const defaultParams = getDefaultParams();
       form.setFieldsValue({
         prompt: '',
@@ -664,7 +535,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     historyForSelectedType,
     form,
     getDefaultParams,
-    isIncutChrome,
+    isMinimalChrome,
   ]);
 
   // Scroll to selected item when selectedType changes
@@ -690,10 +561,10 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   // Handle history selection internally
   const handleSelectHistory = useCallback(
     (historyItem: HistoryItem) => {
-      if (isIncutChrome) {
-        setIncutHasExplicitTypeSelection(true);
+      if (isMinimalChrome) {
+        setMinimalHasExplicitTypeSelection(true);
       }
-      skipIncutSyncRef.current = historyItem.type !== selectedType;
+      skipMinimalSyncRef.current = historyItem.type !== selectedType;
       form.setFieldsValue({
         prompt: historyItem.prompt,
         type: historyItem.type,
@@ -701,7 +572,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       });
       setPromptValue(historyItem.prompt);
     },
-    [form, isIncutChrome, selectedType],
+    [form, isMinimalChrome, selectedType],
   );
 
   // Handle prompt input change
@@ -729,12 +600,12 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     return false;
   }, [selectedType, needsStructuredParams, actionSpace]);
 
-  const incutInlineFieldConfig = useMemo(
+  const minimalInlineFieldConfig = useMemo(
     () =>
-      isIncutChrome
+      isMinimalChrome
         ? getInlineStructuredFieldConfig(actionSpace, selectedType)
         : null,
-    [actionSpace, isIncutChrome, selectedType],
+    [actionSpace, isMinimalChrome, selectedType],
   );
 
   // Calculate if run button should be enabled
@@ -1130,7 +1001,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   // Render action button based on current state
   const renderActionButton = useCallback(() => {
     const sendIcon = chrome?.icons?.send ? (
-      <img alt="" className="incut-send-icon" src={chrome.icons.send} />
+      <img alt="" className="minimal-send-icon" src={chrome.icons.send} />
     ) : (
       <SendOutlined />
     );
@@ -1143,9 +1014,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         onClick={handleRunWithHistory}
         disabled={!isRunButtonEnabled}
         loading={loading}
-        className={isIncutChrome ? 'incut-send-button' : undefined}
+        className={isMinimalChrome ? 'minimal-send-button' : undefined}
       >
-        {isIncutChrome ? null : text}
+        {isMinimalChrome ? null : text}
       </Button>
     );
 
@@ -1162,12 +1033,12 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     if (stoppable) {
       return (
         <Button
-          icon={isIncutChrome ? undefined : <BorderOutlined />}
+          icon={isMinimalChrome ? undefined : <BorderOutlined />}
           onClick={onStop}
           style={{ borderRadius: 20, zIndex: 999 }}
-          className={isIncutChrome ? 'incut-stop-button' : undefined}
+          className={isMinimalChrome ? 'minimal-stop-button' : undefined}
         >
-          {isIncutChrome ? 'Stop' : undefined}
+          {isMinimalChrome ? 'Stop' : undefined}
         </Button>
       );
     }
@@ -1182,14 +1053,14 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     selectedType,
     stoppable,
     chrome?.icons?.send,
-    isIncutChrome,
+    isMinimalChrome,
   ]);
 
   const inputContent = needsAnyInput ? (
     needsStructuredParams ? (
-      incutInlineFieldConfig ? (
+      minimalInlineFieldConfig ? (
         <Form.Item
-          name={['params', incutInlineFieldConfig.name]}
+          name={['params', minimalInlineFieldConfig.name]}
           style={{ margin: 0 }}
         >
           <TextArea
@@ -1197,9 +1068,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             disabled={!runButtonEnabled}
             rows={3}
             placeholder={
-              incutInlineFieldConfig.name === 'prompt'
+              minimalInlineFieldConfig.name === 'prompt'
                 ? resolvedPlaceholder
-                : incutInlineFieldConfig.placeholder
+                : minimalInlineFieldConfig.placeholder
             }
             autoFocus
             onKeyDown={handleStructuredKeyDown}
@@ -1240,21 +1111,21 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     </div>
   );
 
-  if (isIncutChrome) {
+  if (isMinimalChrome) {
     return (
-      <div className="prompt-input-wrapper prompt-input-wrapper-incut">
+      <div className="prompt-input-wrapper prompt-input-wrapper-minimal">
         <Form.Item hidden name="type" style={{ margin: 0 }}>
           <Input />
         </Form.Item>
         <div
-          className={`main-side-console-input incut-main-side-console-input ${
+          className={`main-side-console-input minimal-main-side-console-input ${
             !runButtonEnabled ? 'disabled' : ''
           } ${loading ? 'loading' : ''}`}
         >
           {inputContent}
 
-          <div className="incut-toolbar-row">
-            <div className="incut-toolbar-left">
+          <div className="minimal-toolbar-row">
+            <div className="minimal-toolbar-left">
               <Dropdown
                 menu={actionDropdownMenu}
                 placement="topLeft"
@@ -1263,28 +1134,28 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                 overlayClassName="more-apis-dropdown"
               >
                 <button
-                  className="incut-action-trigger"
+                  className="minimal-action-trigger"
                   disabled={!runButtonEnabled}
                   type="button"
                 >
                   {chrome?.icons?.action ? (
                     <img
                       alt=""
-                      className="incut-action-icon"
+                      className="minimal-action-icon"
                       src={chrome.icons.action}
                     />
                   ) : null}
-                  <span className="incut-action-label">
+                  <span className="minimal-action-label">
                     {actionButtonLabel}
                   </span>
                   {chrome?.icons?.actionChevron ? (
                     <img
                       alt=""
-                      className="incut-action-chevron"
+                      className="minimal-action-chevron"
                       src={chrome.icons.actionChevron}
                     />
                   ) : (
-                    <DownOutlined className="incut-action-chevron-fallback" />
+                    <DownOutlined className="minimal-action-chevron-fallback" />
                   )}
                 </button>
               </Dropdown>
@@ -1294,16 +1165,16 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                 history={historyForSelectedType}
                 currentType={selectedType}
                 trigger={
-                  <button className="incut-icon-trigger" type="button">
+                  <button className="minimal-icon-trigger" type="button">
                     {chrome?.icons?.history ? (
                       <img
                         alt=""
-                        className="incut-toolbar-icon"
+                        className="minimal-toolbar-icon"
                         src={chrome.icons.history}
                       />
                     ) : (
                       <HistoryOutlined
-                        className="incut-toolbar-icon incut-toolbar-icon-history incut-toolbar-icon-fallback"
+                        className="minimal-toolbar-icon minimal-toolbar-icon-history minimal-toolbar-icon-fallback"
                         width={18}
                         height={18}
                       />
@@ -1330,16 +1201,16 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                     hideDomAndScreenshotOptions={hideDomAndScreenshotOptions}
                     deviceType={deviceType}
                     trigger={
-                      <button className="incut-icon-trigger" type="button">
+                      <button className="minimal-icon-trigger" type="button">
                         {chrome?.icons?.settings ? (
                           <img
                             alt=""
-                            className="incut-toolbar-icon"
+                            className="minimal-toolbar-icon"
                             src={chrome.icons.settings}
                           />
                         ) : (
                           <SettingOutlined
-                            className="incut-toolbar-icon incut-toolbar-icon-fallback"
+                            className="minimal-toolbar-icon minimal-toolbar-icon-fallback"
                             width={16}
                             height={16}
                           />

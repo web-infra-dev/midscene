@@ -2,16 +2,17 @@ import { describe, expect, test } from 'vitest';
 import { getPromptInputActionLabel } from '../src/utils/action-label';
 
 describe('getPromptInputActionLabel', () => {
-  test('prefers the selected action label over the fallback label', () => {
-    expect(getPromptInputActionLabel('aiAct', 'Action')).toBe('Act');
-    expect(getPromptInputActionLabel('aiTap', 'Action')).toBe('Tap');
+  test('override label wins over the auto-derived type label', () => {
+    expect(getPromptInputActionLabel('aiAct', 'Action')).toBe('Action');
+    expect(getPromptInputActionLabel('aiTap', 'Send')).toBe('Send');
   });
 
-  test('falls back to the provided label when there is no selected type', () => {
-    expect(getPromptInputActionLabel('', 'Action')).toBe('Action');
+  test('derives the label from the selected type when no override is given', () => {
+    expect(getPromptInputActionLabel('aiAct')).toBe('Act');
+    expect(getPromptInputActionLabel('aiTap')).toBe('Tap');
   });
 
-  test('uses Action as the final fallback', () => {
+  test('falls back to Action when neither an override nor a usable type exists', () => {
     expect(getPromptInputActionLabel('')).toBe('Action');
   });
 });

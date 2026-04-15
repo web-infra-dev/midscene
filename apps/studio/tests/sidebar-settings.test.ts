@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import SettingsDock from '../src/renderer/components/SettingsDock';
 import SettingsPanel from '../src/renderer/components/SettingsPanel';
+import { ThemeProvider } from '../src/renderer/theme/ThemeProvider';
 
 describe('studio sidebar settings entrypoints', () => {
   it('renders only a single Env quick action in the bottom dock', () => {
@@ -20,9 +21,13 @@ describe('studio sidebar settings entrypoints', () => {
 
   it('keeps Environment in the settings panel and removes the duplicate Model row', () => {
     const html = renderToStaticMarkup(
-      createElement(SettingsPanel, {
-        onEnvConfigClick: () => undefined,
-      }),
+      createElement(
+        ThemeProvider,
+        null,
+        createElement(SettingsPanel, {
+          onEnvConfigClick: () => undefined,
+        }),
+      ),
     );
 
     expect(html).toContain('Environment');

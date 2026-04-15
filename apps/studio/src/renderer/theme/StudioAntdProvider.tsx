@@ -2,6 +2,19 @@ import { ConfigProvider, theme as antdTheme } from 'antd';
 import type { PropsWithChildren } from 'react';
 import { useStudioTheme } from './ThemeProvider';
 
+/*
+ * antd's ConfigProvider tokens must be real hex values, not CSS variables:
+ * tinycolor (used internally to derive hover/active/border variants) cannot
+ * parse `var(--...)` strings. So we maintain two sources of the same palette:
+ *
+ *   - `App.css` `:root` / `[data-theme='dark']` define `--midscene-*`
+ *   - The LIGHT_TOKENS / DARK_TOKENS tables below feed the same palette to antd
+ *
+ * Whenever you change a token value here, update the matching `--midscene-*`
+ * in `App.css` (and vice versa). Keep the two tables byte-identical for colors
+ * that map one-to-one (surface, text, border, brand, status).
+ */
+
 const BRAND = '#1979ff';
 
 const LIGHT_TOKENS = {

@@ -23,9 +23,19 @@ export const actionNameForType = (type: string) => {
   return result.replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
+/**
+ * Resolves the label shown on the prompt input primary action button.
+ *
+ * Priority:
+ *   1. `overrideLabel` — when provided, it wins unconditionally. This lets an
+ *      embedding host pin a stable label regardless of the current type.
+ *   2. `actionNameForType(type)` — the auto-derived label for the selected type.
+ *   3. Literal `'Action'` — last-resort fallback when neither is available.
+ */
 export const getPromptInputActionLabel = (
   type: string,
-  fallbackLabel?: string,
+  overrideLabel?: string,
 ) => {
-  return actionNameForType(type) || fallbackLabel || 'Action';
+  if (overrideLabel) return overrideLabel;
+  return actionNameForType(type) || 'Action';
 };

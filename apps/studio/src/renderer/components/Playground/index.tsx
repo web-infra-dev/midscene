@@ -1,29 +1,27 @@
 import { PlaygroundConversationPanel } from '@midscene/playground-app';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
-import {
-  IncutPlaygroundShell,
-  incutPlaygroundImportAssets,
-} from '../IncutPlaygroundImport';
+import { PlaygroundShell, playgroundShellAssets } from '../PlaygroundShell';
 
 declare const __APP_VERSION__: string;
 
 export default function Playground() {
   const studioPlayground = useStudioPlayground();
+  const { promptInputIcons } = playgroundShellAssets;
 
   return (
-    <IncutPlaygroundShell>
+    <PlaygroundShell>
       <div className="min-h-0 h-full flex-1 overflow-hidden">
         {studioPlayground.phase === 'booting' ? (
-          <div className="flex h-full items-center justify-center px-6 text-center text-[14px] leading-[22px] text-black/60">
+          <div className="flex h-full items-center justify-center px-6 text-center text-[14px] leading-[22px] text-text-tertiary">
             Android playground starting...
           </div>
         ) : studioPlayground.phase === 'error' ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
-            <div className="text-[14px] leading-[22px] text-black/70">
+            <div className="text-[14px] leading-[22px] text-text-secondary">
               {studioPlayground.error}
             </div>
             <button
-              className="rounded-lg border border-[#ECECEC] px-4 py-2 text-[13px] font-medium text-black/90"
+              className="rounded-lg border border-border-subtle px-4 py-2 text-[13px] font-medium text-text-primary"
               onClick={() => {
                 void studioPlayground.restartAndroidPlayground();
               }}
@@ -39,15 +37,15 @@ export default function Playground() {
             controller={studioPlayground.controller}
             playgroundConfig={{
               promptInputChrome: {
-                variant: 'incut',
+                variant: 'minimal',
                 placeholder: 'Type a message',
                 primaryActionLabel: 'Action',
                 icons: {
-                  action: incutPlaygroundImportAssets.main.action,
-                  actionChevron: incutPlaygroundImportAssets.main.actionChevron,
+                  action: promptInputIcons.action,
+                  actionChevron: promptInputIcons.actionChevron,
                   history: undefined,
-                  send: incutPlaygroundImportAssets.main.actionChevron,
-                  settings: incutPlaygroundImportAssets.main.tool,
+                  send: promptInputIcons.actionChevron,
+                  settings: promptInputIcons.tool,
                 },
               },
               showEnvConfigReminder: false,
@@ -57,6 +55,6 @@ export default function Playground() {
           />
         )}
       </div>
-    </IncutPlaygroundShell>
+    </PlaygroundShell>
   );
 }

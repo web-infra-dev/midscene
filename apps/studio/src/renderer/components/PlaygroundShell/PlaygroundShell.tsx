@@ -1,23 +1,19 @@
 import type { ReactNode } from 'react';
-import './incut-playground-skin.css';
+import './playground-shell-skin.css';
 
-export interface IncutPlaygroundShellProps {
+export interface PlaygroundShellProps {
   children: ReactNode;
   className?: string;
   title?: string;
 }
 
-export function IncutPlaygroundShell({
+export function PlaygroundShell({
   children,
   className,
   title = 'Playground',
-}: IncutPlaygroundShellProps) {
+}: PlaygroundShellProps) {
   return (
-    <div
-      className={['incut-playground-shell', className]
-        .filter(Boolean)
-        .join(' ')}
-    >
+    <div className={['playground-shell', className].filter(Boolean).join(' ')}>
       <div className="pointer-events-none absolute left-0 top-0 z-10 flex h-[56px] w-full items-center border-b border-border-subtle bg-surface px-[22px]">
         <span className="text-[13px] leading-[22.1px] font-medium text-text-primary">
           {title}
