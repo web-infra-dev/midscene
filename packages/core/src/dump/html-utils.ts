@@ -139,6 +139,70 @@ export function streamImageScriptsToFile(
 }
 
 /**
+ * Extract the content of the trailing `<script type="midscene_web_dump">`
+ * tag by reading only a bounded tail of the file.
+ *
+ * Unlike {@link extractLastDumpScriptSync}, which streams from the start and
+ * can be fooled by inline-mode reports whose bundled runtime includes string
+ * literals like `'<script type="midscene_web_dump" type="application/json">\n'`,
+ * this tail-read approach restricts the search to the region where real
+ * dump tags actually live (appended after the template) and validates that
+ * the captured content is a JSON object. Useful when callers only need the
+ * last dump and want to avoid the cost of scanning a multi-megabyte
+ * template, plus sidestep the bundle false-positive trap entirely.
+ *
+ * @param filePath  Absolute path to the HTML file.
+ * @param tailBytes How many trailing bytes to inspect. 1 MB is enough for
+ *                  all directory-mode reports and every sane inline-mode
+ *                  report generated post-#2153.
+ * @returns The last dump tag's JSON content, or an empty string if none.
+ */
+export function extractLastDumpScriptFromTailSync(
+  filePath: string,
+  tailBytes = 1024 * 1024,
+): string {
+  const openTagPrefix = '<script type="midscene_web_dump"';
+  const closeTag = '</script>';
+
+  const fd = openSync(filePath, 'r');
+  try {
+    const fileSize = statSync(filePath).size;
+    if (fileSize === 0) return '';
+    const readLen = Math.min(fileSize, Math.max(tailBytes, 1));
+    const buffer = Buffer.alloc(readLen);
+    readSync(fd, buffer, 0, readLen, fileSize - readLen);
+    const tail = buffer.toString('utf-8');
+
+    // Walk tag occurrences from the end so we return the most recent one.
+    let searchFromIndex = tail.length;
+    while (searchFromIndex > 0) {
+      const openIdx = tail.lastIndexOf(openTagPrefix, searchFromIndex);
+      if (openIdx === -1) return '';
+      const tagEndIdx = tail.indexOf('>', openIdx + openTagPrefix.length);
+      if (tagEndIdx === -1) {
+        // Unterminated opening tag — step back and keep searching.
+        searchFromIndex = openIdx - 1;
+        continue;
+      }
+      const closeIdx = tail.indexOf(closeTag, tagEndIdx + 1);
+      if (closeIdx === -1) {
+        searchFromIndex = openIdx - 1;
+        continue;
+      }
+      const content = tail.slice(tagEndIdx + 1, closeIdx).trim();
+      // Reject bundle false positives: real dumps start with `{`.
+      if (content.length > 0 && content.charCodeAt(0) === 0x7b /* { */) {
+        return content;
+      }
+      searchFromIndex = openIdx - 1;
+    }
+    return '';
+  } finally {
+    closeSync(fd);
+  }
+}
+
+/**
  * Extract the LAST dump script content from HTML file using streaming.
  * Memory usage: O(dump_size), not O(file_size).
  *

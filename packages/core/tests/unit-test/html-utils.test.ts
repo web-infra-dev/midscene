@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   extractImageByIdSync,
+  extractLastDumpScriptFromTailSync,
   extractLastDumpScriptSync,
   generateImageScriptTag,
   streamImageScriptsToFile,
@@ -182,6 +183,97 @@ test
       const result = extractLastDumpScriptSync(htmlPath);
       unlinkSync(htmlPath);
       expect(result).toBe('');
+    });
+  });
+
+  describe('extractLastDumpScriptFromTailSync', () => {
+    it('returns the last dump content when present in the file tail', () => {
+      const htmlPath = getTmpFile('html');
+      if (!htmlPath) throw new Error('Failed to create temp html file');
+      const real = '{"sdkVersion":"x","groupName":"g","executions":[]}';
+      writeFileSync(
+        htmlPath,
+        `<html><body>
+<script type="midscene_web_dump" data-group-id="a">${real}</script>
+</body></html>`,
+        'utf8',
+      );
+      const result = extractLastDumpScriptFromTailSync(htmlPath);
+      unlinkSync(htmlPath);
+      expect(result).toBe(real);
+    });
+
+    it('returns the latest dump when multiple are present', () => {
+      const htmlPath = getTmpFile('html');
+      if (!htmlPath) throw new Error('Failed to create temp html file');
+      writeFileSync(
+        htmlPath,
+        `<html><body>
+<script type="midscene_web_dump">{"id":"first"}</script>
+<script type="midscene_web_dump">{"id":"second"}</script>
+<script type="midscene_web_dump">{"id":"last"}</script>
+</body></html>`,
+        'utf8',
+      );
+      const result = extractLastDumpScriptFromTailSync(htmlPath);
+      unlinkSync(htmlPath);
+      expect(result).toBe('{"id":"last"}');
+    });
+
+    // The critical case: inline-mode reports bundle a JS runtime that
+    // contains string literals like
+    // `'<script type="midscene_web_dump" type="application/json">\n'`, which
+    // the original start-from-beginning scanner treats as real dump tags
+    // and returns as JS source. Tail-read + JSON-object validation avoids
+    // that failure mode.
+    it('skips bundled JS false positives and returns real JSON', () => {
+      const htmlPath = getTmpFile('html');
+      if (!htmlPath) throw new Error('Failed to create temp html file');
+      const real = '{"groupName":"real","executions":[]}';
+      const bundleNoise =
+        'encodeURIComponent(r)+\'"\'}).join(" ")),\'<script type="midscene_web_dump"\'+r+">"+t_(e)+"<\\/script>"}';
+      writeFileSync(
+        htmlPath,
+        `<html><body>
+<script type="midscene_web_dump" data-group-id="g">${real}</script>
+<script defer>${bundleNoise}</script>
+</body></html>`,
+        'utf8',
+      );
+      const result = extractLastDumpScriptFromTailSync(htmlPath);
+      unlinkSync(htmlPath);
+      expect(result).toBe(real);
+    });
+
+    it('returns empty string when the file has no dump scripts', () => {
+      const htmlPath = getTmpFile('html');
+      if (!htmlPath) throw new Error('Failed to create temp html file');
+      writeFileSync(htmlPath, '<html><body>nothing here</body></html>', 'utf8');
+      const result = extractLastDumpScriptFromTailSync(htmlPath);
+      unlinkSync(htmlPath);
+      expect(result).toBe('');
+    });
+
+    it('reads only the requested tail window, ignoring earlier content', () => {
+      const htmlPath = getTmpFile('html');
+      if (!htmlPath) throw new Error('Failed to create temp html file');
+      // Real dump sits near the top of the file; with a tiny tail window we
+      // should not find it — confirming the read is genuinely bounded.
+      const real = '{"id":"early"}';
+      const filler = 'x'.repeat(200 * 1024);
+      writeFileSync(
+        htmlPath,
+        `<html><body>
+<script type="midscene_web_dump">${real}</script>
+${filler}
+</body></html>`,
+        'utf8',
+      );
+      const resultTiny = extractLastDumpScriptFromTailSync(htmlPath, 1024);
+      const resultFull = extractLastDumpScriptFromTailSync(htmlPath);
+      unlinkSync(htmlPath);
+      expect(resultTiny).toBe('');
+      expect(resultFull).toBe(real);
     });
   });
 
