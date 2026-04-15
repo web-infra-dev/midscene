@@ -38,6 +38,49 @@ import {
 } from './codex-app-server';
 import { shouldForceOriginalImageDetail } from './image-detail';
 
+// Hard default to prevent AI HTTP calls from hanging indefinitely when the
+// underlying socket stalls (the OpenAI SDK's request-level timeout has been
+// observed to miss those cases). Users can still override per-intent via
+// MIDSCENE_MODEL_TIMEOUT / MIDSCENE_INSIGHT_MODEL_TIMEOUT /
+// MIDSCENE_PLANNING_MODEL_TIMEOUT.
+export const DEFAULT_AI_CALL_TIMEOUT_MS = 180_000;
+
+// Wires a hard timeout into the abort signal passed to fetch so the request
+// is actually cancelled even if the SDK-level timeout fails to fire. Honours
+// any abortSignal supplied by the caller.
+function buildRequestAbortSignal(
+  timeoutMs: number,
+  userSignal?: AbortSignal,
+): { signal: AbortSignal; cleanup: () => void } {
+  const controller = new AbortController();
+
+  if (userSignal?.aborted) {
+    controller.abort(userSignal.reason);
+    return { signal: controller.signal, cleanup: () => {} };
+  }
+
+  const timer = setTimeout(() => {
+    controller.abort(new Error(`AI call timed out after ${timeoutMs}ms`));
+  }, timeoutMs);
+  // Allow the process to exit even if the timer is still pending.
+  if (typeof (timer as { unref?: () => void }).unref === 'function') {
+    (timer as { unref: () => void }).unref();
+  }
+
+  const onUserAbort = () => {
+    controller.abort(userSignal?.reason);
+  };
+  userSignal?.addEventListener('abort', onUserAbort, { once: true });
+
+  return {
+    signal: controller.signal,
+    cleanup: () => {
+      clearTimeout(timer);
+      userSignal?.removeEventListener('abort', onUserAbort);
+    },
+  };
+}
+
 async function createChatClient({
   modelConfig,
 }: {
@@ -48,6 +91,7 @@ async function createChatClient({
   modelDescription: string;
   uiTarsModelVersion?: UITarsModelVersion;
   modelFamily: TModelFamily | undefined;
+  effectiveTimeoutMs: number;
 }> {
   const {
     socksProxy,
@@ -162,7 +206,7 @@ async function createChatClient({
     // Note: Type assertion needed due to undici version mismatch between dependencies
     ...(proxyAgent ? { fetchOptions: { dispatcher: proxyAgent as any } } : {}),
     ...openaiExtraConfig,
-    ...(typeof timeout === 'number' ? { timeout } : {}),
+    timeout: typeof timeout === 'number' ? timeout : DEFAULT_AI_CALL_TIMEOUT_MS,
     dangerouslyAllowBrowser: true,
   };
 
@@ -214,6 +258,8 @@ async function createChatClient({
     modelDescription,
     uiTarsModelVersion,
     modelFamily,
+    effectiveTimeoutMs:
+      typeof timeout === 'number' ? timeout : DEFAULT_AI_CALL_TIMEOUT_MS,
   };
 }
 
@@ -242,6 +288,7 @@ export async function callAI(
     modelDescription,
     uiTarsModelVersion,
     modelFamily,
+    effectiveTimeoutMs,
   } = await createChatClient({
     modelConfig,
   });
@@ -384,21 +431,31 @@ export async function callAI(
     );
 
     if (isStreaming) {
-      const stream = (await completion.create(
-        {
-          model: modelName,
-          messages: messagesWithImageDetail,
-          ...commonConfig,
-          ...reasoningEffortConfig,
-          ...extraBody,
-        },
-        {
-          stream: true,
-          ...(options?.abortSignal ? { signal: options.abortSignal } : {}),
-        },
-      )) as Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
+      const { signal: streamSignal, cleanup: cleanupStreamSignal } =
+        buildRequestAbortSignal(effectiveTimeoutMs, options?.abortSignal);
+      let stream: Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
         _request_id?: string | null;
       };
+      try {
+        stream = (await completion.create(
+          {
+            model: modelName,
+            messages: messagesWithImageDetail,
+            ...commonConfig,
+            ...reasoningEffortConfig,
+            ...extraBody,
+          },
+          {
+            stream: true,
+            signal: streamSignal,
+          },
+        )) as Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
+          _request_id?: string | null;
+        };
+      } catch (err) {
+        cleanupStreamSignal();
+        throw err;
+      }
 
       requestId = stream._request_id;
 
@@ -455,6 +512,7 @@ export async function callAI(
           break;
         }
       }
+      cleanupStreamSignal();
       content = accumulated;
       debugProfileStats(
         `streaming model, ${modelName}, mode, ${modelFamily || 'default'}, cost-ms, ${timeCost}, temperature, ${temperature ?? ''}`,
@@ -468,6 +526,8 @@ export async function callAI(
       let lastError: Error | undefined;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const { signal: attemptSignal, cleanup: cleanupAttemptSignal } =
+          buildRequestAbortSignal(effectiveTimeoutMs, options?.abortSignal);
         try {
           const result = await completion.create(
             {
@@ -477,7 +537,7 @@ export async function callAI(
               ...reasoningEffortConfig,
               ...extraBody,
             } as any,
-            options?.abortSignal ? { signal: options.abortSignal } : undefined,
+            { signal: attemptSignal },
           );
 
           timeCost = Date.now() - startTime;
@@ -528,6 +588,8 @@ export async function callAI(
             );
             await new Promise((resolve) => setTimeout(resolve, retryInterval));
           }
+        } finally {
+          cleanupAttemptSignal();
         }
       }
 
