@@ -6,6 +6,7 @@ import { getKeyAliases, isRecord } from '../key-alias-utils';
 import { getDebug } from '../logger';
 import type { BaseMidsceneTools } from '../mcp/base-tools';
 import type {
+  BaseAgent,
   ToolDefinition,
   ToolResult,
   ToolResultContent,
@@ -195,8 +196,11 @@ function printHelp(
   console.log(`\nRun "${scriptName} <command> --help" for more info.`);
 }
 
-export async function runToolsCLI(
-  tools: BaseMidsceneTools,
+export async function runToolsCLI<
+  TAgent extends BaseAgent = BaseAgent,
+  TInitParam = unknown,
+>(
+  tools: BaseMidsceneTools<TAgent, TInitParam>,
   scriptName: string,
   options?: CLIRunnerOptions,
 ): Promise<void> {
