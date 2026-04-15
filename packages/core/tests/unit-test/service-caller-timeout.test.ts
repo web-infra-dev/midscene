@@ -75,6 +75,64 @@ describe('service-caller request timeout', () => {
     expect(lastCallOptions?.timeout).toBe(180_000);
   });
 
+  it('retries after a hard timeout and returns the next successful response', async () => {
+    const { callAI } = await import('@/ai-model/service-caller');
+
+    mockCreate
+      .mockImplementationOnce((_body, opts) => {
+        const signal = opts?.signal as AbortSignal | undefined;
+        return new Promise((_resolve, reject) => {
+          signal?.addEventListener('abort', () => {
+            reject(signal.reason ?? new Error('aborted'));
+          });
+        });
+      })
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'recovered' } }],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        _request_id: 'req_retry_ok',
+      });
+
+    const result = await callAI(
+      [{ role: 'user', content: 'hello' }],
+      baseConfig({ timeout: 30, retryCount: 1, retryInterval: 0 }),
+    );
+
+    expect(result.content).toBe('recovered');
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+  });
+
+  it('disables the hard timeout when modelConfig.timeout is 0', async () => {
+    const { callAI, resolveEffectiveTimeoutMs } = await import(
+      '@/ai-model/service-caller'
+    );
+
+    expect(resolveEffectiveTimeoutMs({ timeout: 0 })).toBeNull();
+
+    mockCreate.mockResolvedValue({
+      choices: [{ message: { content: 'ok' } }],
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      _request_id: 'req_no_timeout',
+    });
+
+    await callAI(
+      [{ role: 'user', content: 'hello' }],
+      baseConfig({ timeout: 0 }),
+    );
+
+    const OpenAI = (await import('openai')).default as unknown as ReturnType<
+      typeof vi.fn
+    >;
+    const lastCallOptions = OpenAI.mock.calls.at(-1)?.[0];
+    // When timeout is disabled we should NOT forward a timeout to the SDK.
+    expect(lastCallOptions?.timeout).toBeUndefined();
+
+    // And the signal we injected should not auto-abort.
+    const lastCreateOpts = mockCreate.mock.calls.at(-1)?.[1];
+    const signal = lastCreateOpts?.signal as AbortSignal;
+    expect(signal.aborted).toBe(false);
+  });
+
   it('honours the caller abortSignal even before the timeout fires', async () => {
     const { callAI } = await import('@/ai-model/service-caller');
 
