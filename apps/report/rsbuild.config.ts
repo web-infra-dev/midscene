@@ -154,6 +154,7 @@ export default defineConfig({
     },
   },
   output: {
+    assetPrefix: './',
     inlineScripts: true,
     injectStyles: true,
   },
