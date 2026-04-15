@@ -107,9 +107,9 @@ export default defineConfig({
       ),
       react: path.resolve(__dirname, 'node_modules/react'),
       'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
-      // Node-only image libs: never executed in the extension (browser path
-      // uses @silvia-odwyer/photon + Canvas fallback). Aliasing to false
-      // prevents the bundler from walking their native/optional deps.
+      // Keep the browser-side Photon WASM path intact for the extension.
+      // Only stub the node-only image dependencies so rspack does not walk
+      // native/optional modules from shared image helpers.
       sharp: false,
       '@silvia-odwyer/photon-node': false,
     },
