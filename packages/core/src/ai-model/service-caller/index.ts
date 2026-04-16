@@ -37,114 +37,11 @@ import {
   isCodexAppServerProvider,
 } from './codex-app-server';
 import { shouldForceOriginalImageDetail } from './image-detail';
-
-/**
- * Default hard timeout (ms) applied to every AI HTTP call.
- *
- * Why we need our own timeout on top of the SDK one:
- * The openai SDK (>= v4) implements `timeout` inside `fetchWithTimeout` via
- * `setTimeout(controller.abort, ms)` that is cleared in a `finally` block as
- * soon as `await fetch()` resolves. `fetch` resolves when response headers
- * arrive, NOT when the body has been fully read. The JSON body is only
- * consumed later via `await response.json()`, which has no timer attached.
- * So if a server returns `200 OK` fast but then stalls while streaming the
- * body, the SDK-level timeout is already cleared and the read hangs
- * indefinitely (observed: 37 minutes on doubao-seed in production).
- *
- * Our `buildRequestAbortSignal` installs an end-to-end AbortSignal that
- * aborts the underlying ReadableStream, covering the body-read phase.
- *
- * Override per intent via `MIDSCENE_MODEL_TIMEOUT`,
- * `MIDSCENE_INSIGHT_MODEL_TIMEOUT`, or `MIDSCENE_PLANNING_MODEL_TIMEOUT`.
- * Set the env var (or `modelConfig.timeout`) to `0` to disable the hard
- * timeout entirely — only a caller-provided `abortSignal` will cancel the
- * request.
- */
-export const DEFAULT_AI_CALL_TIMEOUT_MS = 180_000;
-
-/** Identifying code set on the AbortError raised by our hard timeout. */
-export const AI_CALL_HARD_TIMEOUT_CODE = 'AI_CALL_HARD_TIMEOUT';
-
-/**
- * Resolve the hard request timeout for an AI call.
- * Returns `null` when the user explicitly opted out (`timeout === 0`).
- */
-export function resolveEffectiveTimeoutMs(
-  modelConfig: Pick<IModelConfig, 'timeout'>,
-): number | null {
-  const { timeout } = modelConfig;
-  if (typeof timeout !== 'number') return DEFAULT_AI_CALL_TIMEOUT_MS;
-  if (timeout <= 0) return null;
-  return timeout;
-}
-
-/**
- * True if the error was raised by our hard-timeout AbortSignal (vs any other
- * abort/network/HTTP error). Used to drive observability without having to
- * string-match the message.
- */
-export function isHardTimeoutError(err: unknown): boolean {
-  if (!err || typeof err !== 'object') return false;
-  const code = (err as { code?: unknown }).code;
-  if (code === AI_CALL_HARD_TIMEOUT_CODE) return true;
-  const cause = (err as { cause?: unknown }).cause;
-  if (
-    cause &&
-    typeof cause === 'object' &&
-    (cause as { code?: unknown }).code === AI_CALL_HARD_TIMEOUT_CODE
-  ) {
-    return true;
-  }
-  return false;
-}
-
-// Wires a hard timeout into the abort signal passed to fetch so the request
-// is actually cancelled even if the SDK-level timeout fails to fire. Honours
-// any abortSignal supplied by the caller. Passing `null` for `timeoutMs`
-// disables the hard timeout and only forwards the user signal.
-function buildRequestAbortSignal(
-  timeoutMs: number | null,
-  userSignal?: AbortSignal,
-): { signal: AbortSignal; cleanup: () => void } {
-  const controller = new AbortController();
-
-  if (userSignal?.aborted) {
-    controller.abort(userSignal.reason);
-    return { signal: controller.signal, cleanup: () => {} };
-  }
-
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  if (timeoutMs !== null) {
-    timer = setTimeout(() => {
-      const err = new Error(
-        `AI call hard timeout after ${timeoutMs}ms (SDK body-read has no native timer, see DEFAULT_AI_CALL_TIMEOUT_MS)`,
-      ) as Error & { code?: string };
-      err.code = AI_CALL_HARD_TIMEOUT_CODE;
-      controller.abort(err);
-    }, timeoutMs);
-    // Allow the process to exit even if the timer is still pending.
-    if (typeof (timer as { unref?: () => void }).unref === 'function') {
-      (timer as { unref: () => void }).unref();
-    }
-  }
-
-  const onUserAbort = userSignal
-    ? () => controller.abort(userSignal.reason)
-    : undefined;
-  if (userSignal && onUserAbort) {
-    userSignal.addEventListener('abort', onUserAbort, { once: true });
-  }
-
-  return {
-    signal: controller.signal,
-    cleanup: () => {
-      if (timer) clearTimeout(timer);
-      if (userSignal && onUserAbort) {
-        userSignal.removeEventListener('abort', onUserAbort);
-      }
-    },
-  };
-}
+import {
+  buildRequestAbortSignal,
+  isHardTimeoutError,
+  resolveEffectiveTimeoutMs,
+} from './request-timeout';
 
 async function createChatClient({
   modelConfig,

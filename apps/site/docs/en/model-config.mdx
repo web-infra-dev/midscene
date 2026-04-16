@@ -39,7 +39,7 @@ Notes:
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_MODEL_TIMEOUT` | Hard timeout for AI API calls in milliseconds (default intent). Defaults to `180000` (180s). Set to `0` to disable the hard timeout and let the request run indefinitely (only a caller-provided `AbortSignal` will cancel it). Note: the OpenAI SDK's built-in timeout only covers response-header arrival, not body reading, so Midscene installs an additional end-to-end `AbortSignal` to prevent stalled body reads from hanging the process |
+| `MIDSCENE_MODEL_TIMEOUT` | Hard timeout for AI API calls in milliseconds (default intent). Defaults to `180000` (180s). Set to `0` to disable the hard timeout and let the request run indefinitely (only a caller-provided `AbortSignal` will cancel it). Note: Midscene controls the full request lifetime, not just the time until the first response header arrives, so stalled body reads can still be terminated cleanly |
 | `MIDSCENE_MODEL_TEMPERATURE` | Sampling temperature for model responses |
 | `MIDSCENE_MODEL_MAX_TOKENS` | `max_tokens` for responses, default 2048 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | Number of retries when AI call fails, default 1 (i.e., retry once after failure) |

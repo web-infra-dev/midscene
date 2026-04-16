@@ -30,6 +30,60 @@ describe('service-caller request timeout', () => {
     vi.clearAllMocks();
   });
 
+  it('resolves default, custom and disabled timeout values', async () => {
+    const { DEFAULT_AI_CALL_TIMEOUT_MS, resolveEffectiveTimeoutMs } =
+      await import('@/ai-model/service-caller/request-timeout');
+
+    expect(DEFAULT_AI_CALL_TIMEOUT_MS).toBe(180_000);
+    expect(resolveEffectiveTimeoutMs({})).toBe(180_000);
+    expect(resolveEffectiveTimeoutMs({ timeout: 12_345 })).toBe(12_345);
+    expect(resolveEffectiveTimeoutMs({ timeout: 0 })).toBeNull();
+    expect(resolveEffectiveTimeoutMs({ timeout: -1 })).toBeNull();
+  });
+
+  it('identifies hard-timeout errors both directly and through cause chains', async () => {
+    const { AI_CALL_HARD_TIMEOUT_CODE, isHardTimeoutError } = await import(
+      '@/ai-model/service-caller/request-timeout'
+    );
+
+    const direct = Object.assign(new Error('timeout'), {
+      code: AI_CALL_HARD_TIMEOUT_CODE,
+    });
+    const wrapped = new Error('wrapped', { cause: direct });
+
+    expect(isHardTimeoutError(direct)).toBe(true);
+    expect(isHardTimeoutError(wrapped)).toBe(true);
+    expect(isHardTimeoutError(new Error('other'))).toBe(false);
+  });
+
+  it('cleans up the injected timer so it does not auto-abort after success', async () => {
+    const { buildRequestAbortSignal } = await import(
+      '@/ai-model/service-caller/request-timeout'
+    );
+
+    const { signal, cleanup } = buildRequestAbortSignal(20);
+
+    cleanup();
+    await new Promise((resolve) => setTimeout(resolve, 40));
+
+    expect(signal.aborted).toBe(false);
+  });
+
+  it('forwards an already-aborted caller signal immediately', async () => {
+    const { buildRequestAbortSignal } = await import(
+      '@/ai-model/service-caller/request-timeout'
+    );
+
+    const controller = new AbortController();
+    const reason = new Error('caller already cancelled');
+    controller.abort(reason);
+
+    const { signal } = buildRequestAbortSignal(60_000, controller.signal);
+
+    expect(signal.aborted).toBe(true);
+    expect(signal.reason).toBe(reason);
+  });
+
   it('aborts a hung request via the injected AbortSignal once timeout elapses', async () => {
     const { callAI } = await import('@/ai-model/service-caller');
 
@@ -54,8 +108,10 @@ describe('service-caller request timeout', () => {
   });
 
   it('tags the timeout error with AI_CALL_HARD_TIMEOUT so callers can branch on it', async () => {
-    const { callAI, isHardTimeoutError, AI_CALL_HARD_TIMEOUT_CODE } =
-      await import('@/ai-model/service-caller');
+    const { callAI } = await import('@/ai-model/service-caller');
+    const { AI_CALL_HARD_TIMEOUT_CODE, isHardTimeoutError } = await import(
+      '@/ai-model/service-caller/request-timeout'
+    );
 
     expect(AI_CALL_HARD_TIMEOUT_CODE).toBe('AI_CALL_HARD_TIMEOUT');
 
@@ -78,8 +134,9 @@ describe('service-caller request timeout', () => {
   });
 
   it('uses the 180s default timeout when none is configured', async () => {
-    const { callAI, DEFAULT_AI_CALL_TIMEOUT_MS } = await import(
-      '@/ai-model/service-caller'
+    const { callAI } = await import('@/ai-model/service-caller');
+    const { DEFAULT_AI_CALL_TIMEOUT_MS } = await import(
+      '@/ai-model/service-caller/request-timeout'
     );
 
     expect(DEFAULT_AI_CALL_TIMEOUT_MS).toBe(180_000);
@@ -127,8 +184,9 @@ describe('service-caller request timeout', () => {
   });
 
   it('disables the hard timeout when modelConfig.timeout is 0', async () => {
-    const { callAI, resolveEffectiveTimeoutMs } = await import(
-      '@/ai-model/service-caller'
+    const { callAI } = await import('@/ai-model/service-caller');
+    const { resolveEffectiveTimeoutMs } = await import(
+      '@/ai-model/service-caller/request-timeout'
     );
 
     expect(resolveEffectiveTimeoutMs({ timeout: 0 })).toBeNull();
