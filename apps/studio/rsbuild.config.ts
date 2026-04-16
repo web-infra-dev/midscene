@@ -86,7 +86,11 @@ export default defineConfig({
         filename: {
           js: '[name].cjs',
         },
-        externals: ['electron', '@midscene/android-playground'],
+        externals: [
+          'electron',
+          '@midscene/android-playground',
+          '@midscene/playground',
+        ],
         sourceMap: true,
       },
     },
