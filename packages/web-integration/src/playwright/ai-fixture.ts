@@ -1,7 +1,7 @@
 import { PlaywrightAgent, type PlaywrightWebPage } from '@/playwright/index';
 import type { WebPageAgentOpt } from '@/web-element';
 import type { Cache } from '@midscene/core';
-import type { AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
+import type { Agent as PageAgent } from '@midscene/core/agent';
 import { processCacheConfig } from '@midscene/core/utils';
 import {
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
@@ -56,17 +56,25 @@ type PlaywrightCacheConfig = {
 };
 type PlaywrightCache = false | true | PlaywrightCacheConfig;
 
-export const PlaywrightAiFixture = (options?: {
-  forceSameTabNavigation?: boolean;
-  waitForNetworkIdleTimeout?: number;
-  waitForNavigationTimeout?: number;
+export type PlaywrightAiFixtureOptions = Omit<
+  WebPageAgentOpt,
+  | 'testId'
+  | 'cacheId'
+  | 'groupName'
+  | 'groupDescription'
+  | 'reportFileName'
+  | 'cache'
+> & {
   cache?: PlaywrightCache;
-}) => {
+};
+
+export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
   const {
     forceSameTabNavigation = true,
     waitForNetworkIdleTimeout = DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
     waitForNavigationTimeout = DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
     cache,
+    ...sharedAgentOptions
   } = options ?? {};
 
   // Helper function to process cache configuration and auto-generate ID from test info
@@ -139,6 +147,7 @@ export const PlaywrightAiFixture = (options?: {
         groupName: title,
         groupDescription: file,
         generateReport: true,
+        ...sharedAgentOptions,
         ...opts,
       });
       pageAgentMap[idForPage] = agent;
@@ -261,7 +270,7 @@ export const PlaywrightAiFixture = (options?: {
       await use(
         async (
           propsPage?: OriginPlaywrightPage | undefined,
-          opts?: AgentOpt,
+          opts?: WebPageAgentOpt,
         ) => {
           const cacheConfig = processTestCacheConfig(testInfo);
 
@@ -606,8 +615,8 @@ export const PlaywrightAiFixture = (options?: {
 
 export type PlayWrightAiFixtureType = {
   agentForPage: (
-    page?: any,
-    opts?: any,
+    page?: OriginPlaywrightPage,
+    opts?: WebPageAgentOpt,
   ) => Promise<PageAgent<PlaywrightWebPage>>;
   ai: <T = any>(...args: Parameters<PageAgent['ai']>) => Promise<T>;
   aiAct: (
