@@ -6,12 +6,11 @@ import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connect
 
 如果你想快速开始体验 Midscene，请选择模型并参考配置文档：
 * [豆包 Seed 模型](./model-common-config#doubao-seed-model)
-* 千问系列: [Qwen3.X 系列](./model-common-config#qwen3x), [Qwen3-VL](./model-common-config#qwen3-vl)
+* [Qwen3.X 系列](./model-common-config#qwen3x)、[Qwen3-VL](./model-common-config#qwen3-vl)
 * [智谱 GLM-V](./model-common-config#glm-v)
 * [智谱 AutoGLM](./model-common-config#auto-glm)
-* [Gemini-3-Pro / Gemini-3-Flash](./model-common-config#gemini-3-pro)
+* [Gemini-3-Flash](./model-common-config#gemini-3-pro)
 * [GPT-5.4](./model-common-config#gpt-5-4)
-* [UI-TARS](./model-common-config#ui-tars)
 
 :::
 
@@ -44,7 +43,7 @@ DOM 定位方案的稳定性不足预期，它常在 Canvas 元素、CSS backgro
 
 ## 推荐使用的视觉模型
 
-经过大量项目实测，我们推荐使用这些模型作为使用 Midscene 的默认模型：豆包 Seed，千问 VL，Gemini-3（Pro/Flash），UI-TARS。
+经过大量项目实测，我们推荐使用这些模型作为使用 Midscene 的默认模型：豆包 Seed、千问 Qwen3.x、智谱 GLM-V、智谱 AutoGLM、Gemini-3-Flash。
 
 这些模型都具备良好的“元素定位”能力，且在任务规划、界面理解等场景上也有不错的表现。
 
@@ -53,10 +52,12 @@ DOM 定位方案的稳定性不足预期，它常在 Canvas 元素、CSS backgro
 |模型系列|部署|Midscene 评价|
 |---|---|---|
 |豆包 Seed 模型<br />[快速配置](./model-common-config#doubao-seed-model)|火山引擎版本：<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)<br />[Doubao-Seed-2.0-Lite](https://www.volcengine.com/docs/82379/1799865)|⭐⭐⭐⭐<br/>UI 操作规划、定位能力较强<br />速度略慢|
-|千问 Qwen3.5<br />[快速配置](./model-common-config#qwen3x)|[阿里云](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)|⭐⭐⭐⭐<br/>综合效果优于 Qwen3-VL 和 Qwen2.5-VL |
+|千问 Qwen3.x<br />[快速配置](./model-common-config#qwen3x)|[阿里云](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)|⭐⭐⭐⭐<br/>综合效果优于 Qwen3-VL 和 Qwen2.5-VL |
 |智谱 GLM-4.6V<br />[快速配置](./model-common-config#glm-v)|[Z.AI (Global)](https://docs.z.ai/guides/vlm/glm-4.6v)<br/>[BigModel (CN)](https://docs.bigmodel.cn/cn/guide/models/vlm/glm-4.6v)|全新接入，欢迎体验<br />模型权重开源[HuggingFace](https://huggingface.co/zai-org/GLM-4.6V) |
-|Gemini-3-Pro / Gemini-3-Flash<br />[快速配置](./model-common-config#gemini-3-pro)|[Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini)|⭐⭐⭐<br />支持 Gemini-3-Flash<br />价格高于豆包和千问|
-|UI-TARS <br />[快速配置](./model-common-config#ui-tars)|[火山引擎](https://www.volcengine.com/docs/82379/1536429)|⭐⭐<br /> 有探索能力，但在不同场景表现可能差异较大<br />有开源版本（[HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT) / [Github](https://github.com/bytedance/ui-tars)） |
+|智谱 AutoGLM<br />[快速配置](./model-common-config#auto-glm)|[Z.AI (Global)](https://z.ai/model-api/AutoGLM/AutoGLM-Phone-9B)<br/>[BigModel (CN)](https://docs.bigmodel.cn/cn/guide/models/autoglm)|专用于移动端应用操作<br />如需 `aiAssert`、`aiQuery` 等页面理解能力，建议搭配独立 Insight 模型 |
+|Gemini-3-Flash<br />[快速配置](./model-common-config#gemini-3-pro)|[Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini)|⭐⭐⭐<br />价格高于豆包和千问|
+
+此外，Midscene 兼容[UI-TARS](./model-common-config#ui-tars)，但不推荐作为默认选择。
 
 :::info 为什么不能使用 gpt-5 这样的多模态模型作为默认模型 ?
 
