@@ -94,17 +94,6 @@ MIDSCENE_MODEL_REASONING_ENABLED="false"
 
 如果需要开启思考模式，可以配置 `MIDSCENE_MODEL_REASONING_ENABLED="true"` 并增加 `MIDSCENE_MODEL_REASONING_BUDGET="500"` 配置以控制思考耗时。
 
-### 千问 Qwen3-VL {#qwen3-vl}
-
-以[阿里云](https://www.aliyun.com/)的 `qwen3-vl-plus` 模型为例，它的环境变量配置如下：
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen3-vl-plus"
-MIDSCENE_MODEL_FAMILY="qwen3-vl"
-```
-
 ### 智谱 GLM-V 系列 {#glm-v}
 
 智谱 GLM-V 是智谱 AI 推出的视觉理解模型。最新版本有 `GLM-4.6V`（开源）、`GLM-5V-Turbo`。
@@ -189,6 +178,17 @@ MIDSCENE_MODEL_FAMILY="gpt-5"
 :::
 
 ## 其他模型
+
+### 千问 Qwen3-VL {#qwen3-vl}
+
+以[阿里云](https://www.aliyun.com/)的 `qwen3-vl-plus` 模型为例，它的环境变量配置如下：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen3-vl-plus"
+MIDSCENE_MODEL_FAMILY="qwen3-vl"
+```
 
 ### 千问 Qwen2.5-VL（不推荐） {#qwen25-vl}
 
