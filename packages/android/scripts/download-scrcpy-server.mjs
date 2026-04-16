@@ -3,6 +3,12 @@ import { Buffer } from 'node:buffer';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ProxyAgent } from 'undici';
+import {
+  createProxyDispatcher,
+  getProxyUrl,
+  sanitizeProxyUrl,
+} from './proxy-dispatcher.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(scriptPath);
@@ -70,8 +76,11 @@ export async function downloadScrcpyServerReleaseAsset({
   fetchImpl = fetch,
   fsApi = fs,
   version = SCRCPY_VERSION,
+  dispatcher,
 }) {
-  const response = await fetchImpl(getScrcpyServerDownloadUrl(version));
+  const response = await fetchImpl(getScrcpyServerDownloadUrl(version), {
+    ...(dispatcher ? { dispatcher } : {}),
+  });
 
   if (!response.ok) {
     throw new Error(
@@ -142,11 +151,20 @@ export async function main() {
   const maxRetries = 3;
   const downloadedFile = path.join(binDir, `scrcpy-server-${SCRCPY_VERSION}`);
   await fs.rm(downloadedFile, { force: true });
+  const proxyUrl = getProxyUrl();
+  const dispatcher = createProxyDispatcher({
+    ProxyAgentClass: ProxyAgent,
+  });
+
+  if (proxyUrl) {
+    console.log(`[scrcpy] Using proxy: ${sanitizeProxyUrl(proxyUrl)}`);
+  }
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       await downloadScrcpyServerReleaseAsset({
         destinationPath: downloadedFile,
+        dispatcher,
         version: SCRCPY_VERSION,
       });
       break;
