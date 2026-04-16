@@ -65,6 +65,7 @@ const defaultNormalScrollDuration = 1000;
 
 const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
 const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
+type ScrollDirection = 'up' | 'down' | 'left' | 'right';
 
 const debugDevice = getDebug('android:device');
 
@@ -1066,6 +1067,33 @@ ${Object.keys(size)
     return { x: endX, y: endY };
   }
 
+  private warnScrollDistanceClamped(
+    direction: ScrollDirection,
+    requestedDistance: number,
+    appliedDistance: number,
+  ): void {
+    if (requestedDistance <= appliedDistance) {
+      return;
+    }
+
+    const scrollToSuggestion: Record<ScrollDirection, string> = {
+      down: 'scrollToBottom',
+      up: 'scrollToTop',
+      left: 'scrollToLeft',
+      right: 'scrollToRight',
+    };
+    const edgeLabel: Record<ScrollDirection, string> = {
+      down: 'bottom',
+      up: 'top',
+      left: 'left edge',
+      right: 'right edge',
+    };
+
+    console.warn(
+      `[midscene] Android ADB swipe coordinates must stay within the screen bounds. The requested scroll distance (${requestedDistance}px) exceeds the maximum single swipe distance (${appliedDistance}px) from the current start point, so it will be clamped. If you want to scroll to the ${edgeLabel[direction]}, use ${scrollToSuggestion[direction]} instead.`,
+    );
+  }
+
   async screenshotBase64(): Promise<string> {
     debugDevice('screenshotBase64 begin');
 
@@ -1384,6 +1412,7 @@ ${Object.keys(size)
   async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
     const { height } = await this.size();
     const scrollDistance = Math.round(distance || height);
+    const hasExplicitDistance = distance !== undefined;
 
     if (startPoint) {
       const start = {
@@ -1397,16 +1426,24 @@ ${Object.keys(size)
         0,
         height,
       );
+      if (hasExplicitDistance) {
+        this.warnScrollDistanceClamped(
+          'up',
+          scrollDistance,
+          Math.abs(end.y - start.y),
+        );
+      }
       await this.mouseDrag(start, end);
       return;
     }
 
-    await this.scroll(0, -scrollDistance);
+    await this.scroll(0, -scrollDistance, undefined, hasExplicitDistance, 'up');
   }
 
   async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
     const { height } = await this.size();
     const scrollDistance = Math.round(distance || height);
+    const hasExplicitDistance = distance !== undefined;
 
     if (startPoint) {
       const start = {
@@ -1420,16 +1457,30 @@ ${Object.keys(size)
         0,
         height,
       );
+      if (hasExplicitDistance) {
+        this.warnScrollDistanceClamped(
+          'down',
+          scrollDistance,
+          Math.abs(end.y - start.y),
+        );
+      }
       await this.mouseDrag(start, end);
       return;
     }
 
-    await this.scroll(0, scrollDistance);
+    await this.scroll(
+      0,
+      scrollDistance,
+      undefined,
+      hasExplicitDistance,
+      'down',
+    );
   }
 
   async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
     const { width } = await this.size();
     const scrollDistance = Math.round(distance || width);
+    const hasExplicitDistance = distance !== undefined;
 
     if (startPoint) {
       const start = {
@@ -1443,16 +1494,30 @@ ${Object.keys(size)
         width,
         0,
       );
+      if (hasExplicitDistance) {
+        this.warnScrollDistanceClamped(
+          'left',
+          scrollDistance,
+          Math.abs(end.x - start.x),
+        );
+      }
       await this.mouseDrag(start, end);
       return;
     }
 
-    await this.scroll(-scrollDistance, 0);
+    await this.scroll(
+      -scrollDistance,
+      0,
+      undefined,
+      hasExplicitDistance,
+      'left',
+    );
   }
 
   async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
     const { width } = await this.size();
     const scrollDistance = Math.round(distance || width);
+    const hasExplicitDistance = distance !== undefined;
 
     if (startPoint) {
       const start = {
@@ -1466,11 +1531,24 @@ ${Object.keys(size)
         width,
         0,
       );
+      if (hasExplicitDistance) {
+        this.warnScrollDistanceClamped(
+          'right',
+          scrollDistance,
+          Math.abs(end.x - start.x),
+        );
+      }
       await this.mouseDrag(start, end);
       return;
     }
 
-    await this.scroll(scrollDistance, 0);
+    await this.scroll(
+      scrollDistance,
+      0,
+      undefined,
+      hasExplicitDistance,
+      'right',
+    );
   }
 
   async ensureYadb() {
@@ -1678,6 +1756,8 @@ ${Object.keys(size)
     deltaX: number,
     deltaY: number,
     duration?: number,
+    warnOnClamp = false,
+    direction?: ScrollDirection,
   ): Promise<void> {
     // Input validation
     if (deltaX === 0 && deltaY === 0) {
@@ -1704,10 +1784,32 @@ ${Object.keys(size)
     const maxNegativeDeltaX = width - startX;
     const maxPositiveDeltaY = startY;
     const maxNegativeDeltaY = height - startY;
+    const originalDeltaX = deltaX;
+    const originalDeltaY = deltaY;
 
     // Limit the swipe distance
     deltaX = Math.max(-maxNegativeDeltaX, Math.min(deltaX, maxPositiveDeltaX));
     deltaY = Math.max(-maxNegativeDeltaY, Math.min(deltaY, maxPositiveDeltaY));
+
+    if (
+      warnOnClamp &&
+      direction &&
+      (deltaX !== originalDeltaX || deltaY !== originalDeltaY)
+    ) {
+      const requestedDistance =
+        direction === 'left' || direction === 'right'
+          ? Math.abs(originalDeltaX)
+          : Math.abs(originalDeltaY);
+      const appliedDistance =
+        direction === 'left' || direction === 'right'
+          ? Math.abs(deltaX)
+          : Math.abs(deltaY);
+      this.warnScrollDistanceClamped(
+        direction,
+        requestedDistance,
+        appliedDistance,
+      );
+    }
 
     // Calculate the end coordinates
     // Note: For swipe, we need to reverse the delta direction
