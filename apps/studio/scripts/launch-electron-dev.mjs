@@ -14,18 +14,24 @@ const rootDir = path.resolve(
   '..',
 );
 
-const child = spawn(
-  electronBinary,
-  [path.join(rootDir, 'dist/main/main.cjs')],
-  {
-    env: buildStudioRuntimeEnv({
-      baseEnv: process.env,
-      overrides: { MIDSCENE_STUDIO_RENDERER_URL: rendererDevUrl },
-      studioRootDir: rootDir,
-    }),
-    stdio: 'inherit',
-  },
-);
+// Enable Node inspector on the Electron main process in dev so external
+// profilers (chrome://inspect, CDP clients) can attach for a V8 CPU
+// profile. Set MIDSCENE_STUDIO_MAIN_INSPECT=0 to disable, or a custom port
+// like `9230` to override; default 9229 matches Node's own default.
+const inspectSetting = process.env.MIDSCENE_STUDIO_MAIN_INSPECT ?? '9229';
+const electronArgs = [path.join(rootDir, 'dist/main/main.cjs')];
+if (inspectSetting !== '0' && inspectSetting !== 'false') {
+  electronArgs.unshift(`--inspect=${inspectSetting}`);
+}
+
+const child = spawn(electronBinary, electronArgs, {
+  env: buildStudioRuntimeEnv({
+    baseEnv: process.env,
+    overrides: { MIDSCENE_STUDIO_RENDERER_URL: rendererDevUrl },
+    studioRootDir: rootDir,
+  }),
+  stdio: 'inherit',
+});
 
 const forwardSignal = (signal) => {
   if (!child.killed) child.kill(signal);
