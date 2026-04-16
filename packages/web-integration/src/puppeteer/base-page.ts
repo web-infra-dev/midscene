@@ -39,6 +39,7 @@ import {
 } from '../web-page';
 
 export const debugPage = getDebug('web:page');
+const warnPage = getDebug('web:page', { console: true });
 
 export const BROWSER_NAVIGATION_ERROR_PATTERN =
   /execution context was destroyed|frame was detached|target closed|page has been closed|context was destroyed|net::ERR_ABORTED/i;
@@ -189,7 +190,7 @@ export class Page<
     } else {
       if (!this.playwrightNetworkIdleWarningShown) {
         this.playwrightNetworkIdleWarningShown = true;
-        console.warn(
+        warnPage(
           '[midscene:warning] waitForNetworkIdle is skipped for Playwright. Playwright does not provide an equivalent underlying capability for the intended post-action network idle behavior here.',
         );
       }
