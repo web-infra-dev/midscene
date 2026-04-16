@@ -105,6 +105,14 @@ const clients = new Set<WebSocket>();
 let reconnecting = false;
 
 /**
+ * Whether the upstream WebSocket needs to be reconnected before the next
+ * client can use it.  Set to true when all downstream clients disconnect;
+ * the actual reconnect is deferred until a new client connects so that
+ * Chrome's permission popup only fires when someone actually needs it.
+ */
+let needsUpstreamReconnect = false;
+
+/**
  * Messages from downstream clients that arrived while the upstream WebSocket
  * was not yet open (e.g. during a reconnect). Flushed once upstream opens.
  */
@@ -180,6 +188,14 @@ const httpServer = createServer((_req, res) => {
 const wss = new WebSocketServer({ server: httpServer });
 
 wss.on('connection', (clientWs) => {
+  // Reconnect the upstream WebSocket if the previous session ended.
+  // This resets Chrome's CDP protocol state (Target.setDiscoverTargets, etc.)
+  // so the new client receives all targetCreated events.
+  if (needsUpstreamReconnect && upstream.readyState === WebSocket.OPEN) {
+    reconnectUpstream();
+    needsUpstreamReconnect = false;
+  }
+
   clients.add(clientWs);
   resetIdleTimer();
 
@@ -195,16 +211,13 @@ wss.on('connection', (clientWs) => {
 
   const removeClient = () => {
     clients.delete(clientWs);
-    // When all downstream clients disconnect, reconnect the upstream WebSocket
-    // to reset Chrome's CDP protocol state (Target.setDiscoverTargets, etc.).
-    // This ensures the next client gets fresh targetCreated events.
+    // When all downstream clients disconnect, mark that the upstream needs
+    // reconnecting to reset Chrome's CDP protocol state.  The actual
+    // reconnect is deferred until the next client connects so we don't
+    // trigger Chrome's permission popup while nobody is using the proxy.
     if (clients.size === 0) {
-      // Drop any buffered messages from the now-gone client so they are not
-      // replayed against Chrome after the upstream reconnects.
       pendingUpstreamMessages.length = 0;
-      if (upstream.readyState === WebSocket.OPEN) {
-        reconnectUpstream();
-      }
+      needsUpstreamReconnect = true;
     }
   };
 

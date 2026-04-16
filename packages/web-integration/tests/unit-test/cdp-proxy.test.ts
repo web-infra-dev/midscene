@@ -230,7 +230,7 @@ describe('CDP WebSocket Proxy', () => {
     expect(existsSync(PROXY_PID_FILE)).toBe(false);
   });
 
-  it('reconnects upstream when all clients disconnect', async () => {
+  it('reconnects upstream when next client connects after all disconnect', async () => {
     const { proc, proxyEndpoint } = await startProxy(fakeChrome.endpoint);
     proxyProc = proc;
 
@@ -243,23 +243,25 @@ describe('CDP WebSocket Proxy', () => {
     });
     expect(res1).toHaveProperty('id', 1);
 
-    // Record how many Chrome-side connections exist before client disconnects
-    const connectionsBefore = fakeChrome.clients.size;
     client1.close();
 
-    // Wait for proxy to reconnect upstream
-    await new Promise((r) => setTimeout(r, 500));
+    // Wait for the close event to propagate
+    await new Promise((r) => setTimeout(r, 200));
 
-    // Verify Chrome got a new connection (reconnect happened)
-    // The old connection was closed and a new one was established,
-    // so the count should be at least what it was (old one removed, new one added).
-    // In practice the fake Chrome set tracks connections, so we verify
-    // a new one appeared.
-    expect(fakeChrome.clients.size).toBeGreaterThanOrEqual(1);
+    // Upstream reconnect is deferred — it should NOT have happened yet.
+    // Chrome should still have only 1 connection (the original).
+    expect(fakeChrome.clients.size).toBe(1);
 
-    // Second client connects through the same proxy and should work
+    // Second client connects — this triggers the deferred upstream reconnect
     const client2 = new WebSocket(proxyEndpoint);
     await new Promise<void>((r) => client2.on('open', r));
+
+    // Wait for upstream reconnect to complete
+    await new Promise((r) => setTimeout(r, 300));
+
+    // Verify Chrome got a new connection (reconnect happened on new client)
+    expect(fakeChrome.clients.size).toBeGreaterThanOrEqual(1);
+
     const res2 = await new Promise<Record<string, unknown>>((r) => {
       client2.on('message', (d) => r(JSON.parse(d.toString())));
       client2.send(JSON.stringify({ id: 2, method: 'test' }));
@@ -275,15 +277,17 @@ describe('CDP WebSocket Proxy', () => {
     const { proc, proxyEndpoint } = await startProxy(fakeChrome.endpoint);
     proxyProc = proc;
 
-    // First client connects and disconnects to trigger upstream reconnect
+    // First client connects and disconnects to mark upstream for reconnect
     const client1 = new WebSocket(proxyEndpoint);
     await new Promise<void>((r) => client1.on('open', r));
     client1.close();
 
-    // Immediately connect a second client — upstream may still be reconnecting
-    // Give just a tiny bit of time for the close event to propagate
-    await new Promise((r) => setTimeout(r, 50));
+    // Wait for the close event to propagate so the reconnect flag is set
+    await new Promise((r) => setTimeout(r, 100));
 
+    // Second client connects — triggers deferred upstream reconnect.
+    // The upstream may still be reconnecting when the client sends a message,
+    // so the message should be buffered and flushed once upstream opens.
     const client2 = new WebSocket(proxyEndpoint);
     await new Promise<void>((r) => client2.on('open', r));
 
