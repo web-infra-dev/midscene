@@ -630,18 +630,15 @@ importers:
       dotenv:
         specifier: ^16.4.5
         version: 16.4.5
-      gh-release-fetch:
-        specifier: ^4.0.3
-        version: 4.0.3
-      https-proxy-agent:
-        specifier: 7.0.6
-        version: 7.0.6
       tsx:
         specifier: ^4.19.2
         version: 4.19.2
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
+      undici:
+        specifier: ^6.0.0
+        version: 6.22.0
       vitest:
         specifier: 3.0.5
         version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@29.0.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
