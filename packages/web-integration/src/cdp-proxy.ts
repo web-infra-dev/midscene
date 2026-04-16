@@ -96,21 +96,77 @@ resetIdleTimer();
 // Upstream: connect to Chrome
 // ---------------------------------------------------------------------------
 
-const upstream = new WebSocket(chromeEndpoint);
 const clients = new Set<WebSocket>();
 
-upstream.on('error', (err) => shutdown(`upstream error: ${err.message}`));
-upstream.on('close', () => shutdown('upstream closed'));
+/**
+ * Whether we are intentionally reconnecting the upstream WebSocket.
+ * When true, the old upstream's close/error events should not trigger shutdown.
+ */
+let reconnecting = false;
 
-// Forward upstream messages to all downstream clients
-upstream.on('message', (data, isBinary) => {
-  resetIdleTimer();
-  for (const client of clients) {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(data, { binary: isBinary });
+/**
+ * Messages from downstream clients that arrived while the upstream WebSocket
+ * was not yet open (e.g. during a reconnect). Flushed once upstream opens.
+ */
+const pendingUpstreamMessages: {
+  data: WebSocket.RawData;
+  isBinary: boolean;
+}[] = [];
+
+/**
+ * Create a new upstream WebSocket to Chrome and bind its event handlers.
+ * Used for both initial connection and reconnection.
+ */
+function createUpstream(endpoint: string): WebSocket {
+  const ws = new WebSocket(endpoint);
+
+  ws.on('error', (err) => {
+    if (!reconnecting) shutdown(`upstream error: ${err.message}`);
+  });
+
+  ws.on('close', () => {
+    if (!reconnecting) shutdown('upstream closed');
+  });
+
+  // Forward upstream messages to all downstream clients
+  ws.on('message', (data, isBinary) => {
+    resetIdleTimer();
+    for (const client of clients) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(data, { binary: isBinary });
+      }
     }
-  }
-});
+  });
+
+  // Flush any messages that were buffered while upstream was reconnecting
+  ws.on('open', () => {
+    for (const msg of pendingUpstreamMessages) {
+      ws.send(msg.data, { binary: msg.isBinary });
+    }
+    pendingUpstreamMessages.length = 0;
+  });
+
+  return ws;
+}
+
+let upstream = createUpstream(chromeEndpoint);
+
+/**
+ * Reconnect the upstream WebSocket to Chrome.
+ *
+ * Called when all downstream clients have disconnected. This resets the CDP
+ * protocol state on Chrome's side — critically, the Target.setDiscoverTargets
+ * subscription — so the next client that connects gets a fresh session and
+ * receives all targetCreated events.
+ */
+function reconnectUpstream() {
+  reconnecting = true;
+  upstream.removeAllListeners();
+  upstream.close();
+  upstream = createUpstream(chromeEndpoint);
+  reconnecting = false;
+  resetIdleTimer();
+}
 
 // ---------------------------------------------------------------------------
 // Downstream: local WebSocket server
@@ -127,23 +183,43 @@ wss.on('connection', (clientWs) => {
   clients.add(clientWs);
   resetIdleTimer();
 
-  // Forward downstream messages to upstream
+  // Forward downstream messages to upstream (buffer if upstream is reconnecting)
   clientWs.on('message', (data, isBinary) => {
     resetIdleTimer();
     if (upstream.readyState === WebSocket.OPEN) {
       upstream.send(data, { binary: isBinary });
+    } else {
+      pendingUpstreamMessages.push({ data, isBinary });
     }
   });
 
-  clientWs.on('close', () => clients.delete(clientWs));
-  clientWs.on('error', () => clients.delete(clientWs));
+  const removeClient = () => {
+    clients.delete(clientWs);
+    // When all downstream clients disconnect, reconnect the upstream WebSocket
+    // to reset Chrome's CDP protocol state (Target.setDiscoverTargets, etc.).
+    // This ensures the next client gets fresh targetCreated events.
+    if (clients.size === 0) {
+      // Drop any buffered messages from the now-gone client so they are not
+      // replayed against Chrome after the upstream reconnects.
+      pendingUpstreamMessages.length = 0;
+      if (upstream.readyState === WebSocket.OPEN) {
+        reconnectUpstream();
+      }
+    }
+  };
+
+  clientWs.on('close', removeClient);
+  clientWs.on('error', removeClient);
 });
 
 // ---------------------------------------------------------------------------
 // Start
 // ---------------------------------------------------------------------------
 
-upstream.on('open', () => {
+// Start the HTTP/WebSocket server once the initial upstream connection opens.
+// This listener is added *after* createUpstream() already bound its own 'open'
+// handler (which flushes pendingUpstreamMessages), so both will fire.
+upstream.once('open', () => {
   // Check for duplicate proxy
   if (existsSync(PROXY_PID_FILE)) {
     try {

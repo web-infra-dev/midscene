@@ -13,3 +13,4 @@ export const PROXY_UPSTREAM_FILE = join(
   tmpdir(),
   'midscene-cdp-proxy-upstream',
 );
+export const TARGET_ID_FILE = join(tmpdir(), 'midscene-cdp-target-id');

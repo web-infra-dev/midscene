@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync, unlinkSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
 import { join } from 'node:path';
 import { ScreenshotItem, z } from '@midscene/core';
@@ -12,6 +12,7 @@ import {
   PROXY_ENDPOINT_FILE,
   PROXY_PID_FILE,
   PROXY_UPSTREAM_FILE,
+  TARGET_ID_FILE,
 } from './cdp-proxy-constants';
 import { PuppeteerAgent } from './puppeteer';
 import { StaticPage } from './static';
@@ -142,6 +143,39 @@ function killProxy(): void {
   } catch {}
   try {
     if (existsSync(PROXY_UPSTREAM_FILE)) unlinkSync(PROXY_UPSTREAM_FILE);
+  } catch {}
+}
+
+/**
+ * Read the saved targetId from the temporary file.
+ */
+function readSavedTargetId(): string | null {
+  if (!existsSync(TARGET_ID_FILE)) return null;
+  try {
+    return readFileSync(TARGET_ID_FILE, 'utf-8').trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Save a targetId to the temporary file for cross-command tab reuse.
+ */
+function saveTargetId(targetId: string): void {
+  try {
+    writeFileSync(TARGET_ID_FILE, targetId, 'utf-8');
+    debug('Saved targetId: %s', targetId);
+  } catch (err) {
+    debug('Failed to save targetId: %s', err);
+  }
+}
+
+/**
+ * Remove the saved targetId file.
+ */
+function cleanupTargetIdFile(): void {
+  try {
+    if (existsSync(TARGET_ID_FILE)) unlinkSync(TARGET_ID_FILE);
   } catch {}
 }
 
@@ -345,9 +379,28 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
         });
       }
     } else {
-      // Reuse the last web page, or any existing page (including about:blank
-      // which may be the user's active tab). Only create a new page as last resort.
-      if (webPages.length > 0) {
+      // Try to find the exact tab from a previous `connect` command via saved targetId.
+      const savedTargetId = readSavedTargetId();
+      let matchedPage: Page | undefined;
+
+      if (savedTargetId && pages.length > 0) {
+        matchedPage = pages.find(
+          (p) => (p.target() as any)._targetId === savedTargetId,
+        );
+        if (matchedPage) {
+          debug('Matched saved targetId %s', savedTargetId);
+        } else {
+          debug(
+            'Saved targetId %s not found among %d pages, falling back',
+            savedTargetId,
+            pages.length,
+          );
+        }
+      }
+
+      if (matchedPage) {
+        page = matchedPage;
+      } else if (webPages.length > 0) {
         page = webPages[webPages.length - 1];
       } else if (pages.length > 0) {
         page = pages[pages.length - 1];
@@ -356,6 +409,12 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
       }
 
       await page.bringToFront();
+    }
+
+    // Persist the targetId so subsequent CLI commands can find this exact tab
+    const targetId = (page.target() as any)._targetId;
+    if (targetId) {
+      saveTargetId(targetId);
     }
 
     this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage);
@@ -427,6 +486,7 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
             this.activeBrowser.disconnect();
             this.activeBrowser = null;
           }
+          cleanupTargetIdFile();
           return this.buildTextResult(
             'Disconnected from web page (browser still running externally)',
           );
