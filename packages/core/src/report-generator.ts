@@ -1,3 +1,12 @@
+/*
+ * PERF INVARIANT — DO NOT reintroduce sync fs APIs (writeFileSync /
+ * appendFileSync) in this file's write paths. `ReportGenerator` runs on
+ * the Electron main event loop during agent execution, and a single
+ * progress tick appends a multi-MB ExecutionDump payload. Sync I/O here
+ * blocked the loop for 20+ seconds per run, freezing IPC, scrcpy and
+ * every renderer round-trip. Always use `fs/promises`. See commit
+ * 6a25e05c and `report-generator-async-contract.test.ts`.
+ */
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import {
   appendFile as appendFileAsync,
