@@ -402,17 +402,39 @@ export interface UniversalPlaygroundConfig {
    */
   showSystemMessageHeader?: boolean;
   /**
-   * When `true`, consecutive progress items in the conversation log are
-   * wrapped under a single collapsible group header. A "run" is bounded by
-   * the first non-progress item before and after it. Defaults to `false`
-   * (flat list, every progress item renders inline).
+   * Opt-in controls for how consecutive progress items render in the
+   * conversation log. Defaults flatten every progress step inline (no
+   * grouping, no connector) so existing hosts keep their behaviour.
    */
-  collapsibleProgressGroup?: boolean;
+  executionFlow?: ExecutionFlowConfig;
+}
+
+export interface ExecutionFlowConfig {
   /**
-   * Label shown on the collapsible progress group header when
-   * `collapsibleProgressGroup` is enabled. Defaults to `'Execution Flow'`.
+   * When `true`, consecutive progress items are wrapped under a single
+   * collapsible "Execution Flow" header. A "run" is bounded by the first
+   * non-progress item before and after it.
    */
-  progressGroupLabel?: string;
+  collapsible?: boolean;
+  /**
+   * Label shown on the collapsible header. Defaults to `'Execution Flow'`.
+   */
+  label?: string;
+  /**
+   * Visual variant for the progress column.
+   *
+   * - `'flat'` (default): pills and descriptions render inline at the
+   *   conversation column's left edge, no connector line.
+   * - `'incut'`: pills stair-step 24px right of the description column,
+   *   a 1px connector line runs down the reserved gutter between
+   *   consecutive runs, and intra-step spacing is tightened to 8px on
+   *   both sides. Matches the incut ProcessFlow design.
+   *
+   * The variant is applied via a single `data-execution-flow-variant`
+   * attribute on the root container, so hosts can also target it in
+   * their own CSS when needed.
+   */
+  variant?: 'flat' | 'incut';
 }
 
 /**

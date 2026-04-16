@@ -51,7 +51,10 @@ export default function Playground() {
               enableScrollToBottom: false,
               showEnvConfigReminder: false,
               showVersionInfo: false,
-              collapsibleProgressGroup: true,
+              executionFlow: {
+                collapsible: true,
+                variant: 'incut',
+              },
             }}
             title="Playground"
           />
