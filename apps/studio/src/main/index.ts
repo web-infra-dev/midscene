@@ -24,6 +24,18 @@ let mainWindow: BrowserWindow | null = null;
 let cachedAppIcon: NativeImage | null = null;
 const androidPlaygroundRuntime = createAndroidPlaygroundRuntimeService();
 
+// Expose the Chromium DevTools Protocol on a fixed port in dev so external
+// profilers (e.g. chrome-devtools-mcp at http://localhost:9224) can attach to
+// the renderer without the user keeping DevTools open. Production builds never
+// set this — it would be a liability. The port can be overridden with the
+// MIDSCENE_STUDIO_CDP_PORT env var when multiple dev instances are running.
+if (!app.isPackaged) {
+  const cdpPort = process.env.MIDSCENE_STUDIO_CDP_PORT ?? '9224';
+  app.commandLine.appendSwitch('remote-debugging-port', cdpPort);
+  // Bind to loopback so the debug endpoint isn't reachable from the network.
+  app.commandLine.appendSwitch('remote-debugging-address', '127.0.0.1');
+}
+
 const getRendererEntryPath = () =>
   path.join(__dirname, '../renderer/index.html');
 
