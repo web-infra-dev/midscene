@@ -4,7 +4,7 @@ import type {
   ModelBrief,
   UIContext,
 } from '@midscene/core';
-import type { ComponentType } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 
 // Zod schema related types - compatible with actual zod types
 export interface ZodType {
@@ -374,6 +374,14 @@ export interface InfoListItem {
   loadingProgressText?: string;
   verticalMode?: boolean;
   actionType?: string; // Track which action type was executed
+  /**
+   * Identifier for the ExecutionTask that produced this progress item —
+   * `task.subType || task.type`, e.g. `'Planning'`, `'Locate'`, `'Tap'`,
+   * `'Input'`, `'Scroll'`, `'RunAdbShell'`. Hosts can use this with
+   * {@link PromptInputChromeConfig.resolveProgressActionIcon} to render
+   * a domain-specific icon in the progress pill.
+   */
+  actionKind?: string;
 }
 
 // main component config interface
@@ -435,6 +443,15 @@ export interface ExecutionFlowConfig {
    * their own CSS when needed.
    */
   variant?: 'flat' | 'incut';
+  /**
+   * Resolve a domain-specific icon for each progress step. Called with
+   * `InfoListItem.actionKind` (e.g. `'Planning'`, `'Locate'`, `'Tap'`,
+   * `'Input'`, `'RunAdbShell'`). Returning a React node renders it to
+   * the left of the status glyph inside the pill; returning `undefined`
+   * falls back to the default mapping shipped by the visualiser, and
+   * returning `null` hides the icon slot entirely.
+   */
+  resolveActionIcon?: (kind: string) => ReactNode | null | undefined;
 }
 
 /**

@@ -16,6 +16,7 @@ import { PlaygroundResultView } from '../playground-result';
 import './index.less';
 import PlaygroundIcon from '../../icons/avatar.svg';
 import { defaultMainButtons } from '../../utils/constants';
+import { resolveProgressActionIcon } from '../../utils/progress-action-icon';
 import { PromptInput } from '../prompt-input';
 import ShinyText from '../shiny-text';
 import {
@@ -355,24 +356,33 @@ export function UniversalPlayground({
                         const isLatestProgress = item.id === latestProgressId;
                         const shouldShowLoading = loading && isLatestProgress;
 
+                        const state: 'loading' | 'error' | 'completed' =
+                          shouldShowLoading
+                            ? 'loading'
+                            : item.result?.error
+                              ? 'error'
+                              : 'completed';
+                        const domainIcon =
+                          state === 'completed'
+                            ? resolveProgressActionIcon(
+                                item.actionKind,
+                                executionFlowConfig.resolveActionIcon,
+                              )
+                            : null;
                         return (
                           <>
                             {action && (
                               <span className="progress-action-item">
                                 {action}
                                 <span
-                                  className={`progress-status-icon ${
-                                    shouldShowLoading
-                                      ? 'loading'
-                                      : item.result?.error
-                                        ? 'error'
-                                        : 'completed'
-                                  }`}
+                                  className={`progress-status-icon ${state}`}
                                 >
-                                  {shouldShowLoading ? (
+                                  {state === 'loading' ? (
                                     <LoadingOutlined spin />
-                                  ) : item.result?.error ? (
+                                  ) : state === 'error' ? (
                                     '✗'
+                                  ) : domainIcon !== null ? (
+                                    domainIcon
                                   ) : (
                                     '✓'
                                   )}

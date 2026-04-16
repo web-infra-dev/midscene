@@ -167,6 +167,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
                   id: `progress-${thisRunningId}-task-${index}`,
                   type: 'progress' as const,
                   content: buildProgressContent(task),
+                  actionKind: typeStr(task),
                   timestamp: new Date(task.timing?.start || Date.now()),
                   result: task.error
                     ? { error: formatError(task.error), result: null }
