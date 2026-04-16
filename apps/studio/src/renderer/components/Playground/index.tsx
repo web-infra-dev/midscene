@@ -51,6 +51,7 @@ export default function Playground() {
               enableScrollToBottom: false,
               showEnvConfigReminder: false,
               showVersionInfo: false,
+              collapsibleProgressGroup: true,
             }}
             title="Android Playground"
           />

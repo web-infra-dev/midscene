@@ -13,11 +13,12 @@
  *
  * Visual target: the "incut" design bundle cmo173ayq001051jsh9gyx6p3.zip
  * (ProcessFlow / InputBar). That mock groups consecutive progress steps
- * under a "执行流程" header; each step is a pill (28px tall, 38px radius,
- * rgba(0,0,0,0.08) bg, 4px-12px padding, 8px icon→label gap) followed by
- * a description 20px in from the column edge. Successive steps stack with
- * an 8px gap after the pill and 16px gap after the description; a 1px
- * connector line runs down the icon column but never under any glyphs.
+ * under a collapsible "Execution Flow" header; each step is a pill
+ * (28px tall, 38px radius, rgba(0,0,0,0.08) bg, 4px-12px padding,
+ * 8px icon->label gap) followed by a description 20px in from the column
+ * edge. Successive steps stack with an 8px gap after the pill and 16px
+ * gap after the description; a 1px connector line runs down the icon
+ * column but never under any glyphs.
  */
 
 .playground-shell {
@@ -99,25 +100,15 @@
   padding-left: 0;
 }
 
-/* Group header: only shown on the FIRST progress list item of a run.
- * The adjacent-sibling override below hides it on every subsequent
- * progress item so a single run has exactly one "执行流程" header. */
-.playground-shell .list-item:has(.progress-action-item)::before {
-  content: "执行流程";
-  display: block;
-  margin: 0 0 8px;
+/* The group header ("Execution Flow ^") and its collapse state are
+ * rendered by `UniversalPlayground` when `collapsibleProgressGroup` is
+ * enabled — see `.progress-group-toggle` in
+ * `universal-playground/index.less`. This skin only tunes its offset
+ * so the chevron sits in the Studio reserved gutter column, flush with
+ * the rest of the execution flow. */
+.playground-shell .progress-group-toggle {
   padding-left: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 14.5px;
-  color: rgba(0, 0, 0, 0.5);
-  letter-spacing: 0;
-}
-
-.playground-shell
-  .list-item:has(.progress-action-item)
-  + .list-item:has(.progress-action-item)::before {
-  display: none;
+  margin: 0 0 8px;
 }
 
 /*
@@ -209,7 +200,7 @@
  * Vertical connector between consecutive progress items.
  *
  * The base rule leaves a 23px top inset so the line sits below the
- * "执行流程" header on the first item of a run. The more-specific
+ * "Execution Flow" header on the first item of a run. The more-specific
  * adjacent-sibling rule resets `top` to 0 on subsequent items so their
  * connector meets the previous item's line without a break.
  *

@@ -2,6 +2,7 @@ import Icon, {
   ClearOutlined,
   LoadingOutlined,
   ArrowDownOutlined,
+  UpOutlined,
 } from '@ant-design/icons';
 import { Alert, Button, Form, List, Typography, message } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -215,6 +216,59 @@ export function UniversalPlayground({
   const layout = componentConfig.layout || 'vertical';
   const showVersionInfo = componentConfig.showVersionInfo !== false;
   const deviceType = componentConfig.deviceType;
+  const collapsibleProgressGroup =
+    componentConfig.collapsibleProgressGroup === true;
+  const progressGroupLabel =
+    componentConfig.progressGroupLabel ?? 'Execution Flow';
+
+  // Collapse state for progress groups, keyed by the id of the first progress
+  // item of each run. A run is a maximal sequence of consecutive `progress`
+  // items without any non-progress item interrupting it.
+  const [collapsedProgressGroups, setCollapsedProgressGroups] = useState<
+    Set<string>
+  >(() => new Set());
+
+  const toggleProgressGroup = useCallback((groupId: string) => {
+    setCollapsedProgressGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  }, []);
+
+  /*
+   * Walk `infoList` once and compute two things:
+   *   1. which item ids are the FIRST progress item of a run (they carry the
+   *      collapsible header);
+   *   2. the visible list after hiding items that belong to a collapsed run.
+   * Both are derived memos so the render loop below can stay declarative.
+   */
+  const { firstInProgressGroup, visibleInfoList } = useMemo(() => {
+    const firstIds = new Set<string>();
+    const visible: typeof infoList = [];
+    let currentGroupFirstId: string | null = null;
+    for (const item of infoList) {
+      if (item.type === 'progress') {
+        if (currentGroupFirstId === null) {
+          currentGroupFirstId = item.id;
+          firstIds.add(item.id);
+          visible.push(item);
+          continue;
+        }
+        if (
+          !collapsibleProgressGroup ||
+          !collapsedProgressGroups.has(currentGroupFirstId)
+        ) {
+          visible.push(item);
+        }
+      } else {
+        currentGroupFirstId = null;
+        visible.push(item);
+      }
+    }
+    return { firstInProgressGroup: firstIds, visibleInfoList: visible };
+  }, [collapsedProgressGroups, collapsibleProgressGroup, infoList]);
 
   return (
     <div className={`playground-container ${layout}-mode ${className}`.trim()}>
@@ -249,9 +303,27 @@ export function UniversalPlayground({
           <div ref={infoListRef} className="info-list-container">
             <List
               itemLayout="vertical"
-              dataSource={infoList}
+              dataSource={visibleInfoList}
               renderItem={(item) => (
                 <List.Item key={item.id} className="list-item">
+                  {collapsibleProgressGroup &&
+                  firstInProgressGroup.has(item.id) ? (
+                    <button
+                      type="button"
+                      className={`progress-group-toggle ${
+                        collapsedProgressGroups.has(item.id)
+                          ? 'is-collapsed'
+                          : 'is-expanded'
+                      }`}
+                      aria-expanded={!collapsedProgressGroups.has(item.id)}
+                      onClick={() => toggleProgressGroup(item.id)}
+                    >
+                      <span className="progress-group-toggle-label">
+                        {progressGroupLabel}
+                      </span>
+                      <UpOutlined className="progress-group-toggle-chevron" />
+                    </button>
+                  ) : null}
                   {/* User Message */}
                   {item.type === 'user' ? (
                     <div className="user-message-container">

@@ -401,6 +401,18 @@ export interface UniversalPlaygroundConfig {
    * host shell own the branding.
    */
   showSystemMessageHeader?: boolean;
+  /**
+   * When `true`, consecutive progress items in the conversation log are
+   * wrapped under a single collapsible group header. A "run" is bounded by
+   * the first non-progress item before and after it. Defaults to `false`
+   * (flat list, every progress item renders inline).
+   */
+  collapsibleProgressGroup?: boolean;
+  /**
+   * Label shown on the collapsible progress group header when
+   * `collapsibleProgressGroup` is enabled. Defaults to `'Execution Flow'`.
+   */
+  progressGroupLabel?: string;
 }
 
 /**

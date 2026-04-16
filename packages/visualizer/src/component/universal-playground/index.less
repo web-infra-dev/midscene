@@ -270,6 +270,37 @@
     }
   }
 
+  // Collapsible progress group header (only shown when
+  // `UniversalPlaygroundConfig.collapsibleProgressGroup` is enabled).
+  .progress-group-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    color: var(--midscene-text-tertiary, rgba(0, 0, 0, 0.5));
+    padding: 0 4px;
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 15px;
+    user-select: none;
+
+    &:hover {
+      color: var(--midscene-text-secondary, rgba(0, 0, 0, 0.7));
+    }
+
+    .progress-group-toggle-chevron {
+      font-size: 10px;
+      transition: transform 0.15s ease-out;
+    }
+
+    &.is-collapsed .progress-group-toggle-chevron {
+      transform: rotate(180deg);
+    }
+  }
+
   // Bottom Input Section
   .bottom-input-section {
     flex-shrink: 0;
