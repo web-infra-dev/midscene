@@ -154,6 +154,7 @@ describe('service-caller request timeout', () => {
     >;
     const lastCallOptions = OpenAI.mock.calls.at(-1)?.[0];
     expect(lastCallOptions?.timeout).toBe(180_000);
+    expect(lastCallOptions?.maxRetries).toBe(0);
   });
 
   it('retries after a hard timeout and returns the next successful response', async () => {

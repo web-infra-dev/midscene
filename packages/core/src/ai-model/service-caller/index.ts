@@ -168,6 +168,9 @@ async function createChatClient({
     // Note: Type assertion needed due to undici version mismatch between dependencies
     ...(proxyAgent ? { fetchOptions: { dispatcher: proxyAgent as any } } : {}),
     ...openaiExtraConfig,
+    // Midscene already handles retries in callAI(), so disable SDK-level retries
+    // to avoid duplicate attempts and duplicated backoff latency.
+    maxRetries: 0,
     // When disabled (timeoutMs === null) fall through to the SDK default so
     // only the caller-provided abortSignal can cancel the request.
     ...(effectiveTimeoutMs !== null ? { timeout: effectiveTimeoutMs } : {}),
