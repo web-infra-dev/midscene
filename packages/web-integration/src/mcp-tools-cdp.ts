@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync } from 'node:fs';
 import http from 'node:http';
 import { join } from 'node:path';
 import { ScreenshotItem, z } from '@midscene/core';
@@ -8,7 +8,11 @@ import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import puppeteer from 'puppeteer-core';
 import type { Browser, Page } from 'puppeteer-core';
-import { PROXY_ENDPOINT_FILE, PROXY_PID_FILE } from './cdp-proxy-constants';
+import {
+  PROXY_ENDPOINT_FILE,
+  PROXY_PID_FILE,
+  PROXY_UPSTREAM_FILE,
+} from './cdp-proxy-constants';
 import { PuppeteerAgent } from './puppeteer';
 import { StaticPage } from './static';
 
@@ -109,6 +113,39 @@ function readProxyEndpoint(): string | null {
 }
 
 /**
+ * Read the Chrome endpoint that the running proxy is connected to.
+ */
+function readProxyUpstream(): string | null {
+  if (!existsSync(PROXY_UPSTREAM_FILE)) return null;
+  try {
+    return readFileSync(PROXY_UPSTREAM_FILE, 'utf-8').trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Kill the running proxy process.
+ */
+function killProxy(): void {
+  if (!existsSync(PROXY_PID_FILE)) return;
+  try {
+    const pid = Number(readFileSync(PROXY_PID_FILE, 'utf-8').trim());
+    process.kill(pid, 'SIGTERM');
+    debug('Killed proxy pid: %d', pid);
+  } catch {}
+  try {
+    if (existsSync(PROXY_ENDPOINT_FILE)) unlinkSync(PROXY_ENDPOINT_FILE);
+  } catch {}
+  try {
+    if (existsSync(PROXY_PID_FILE)) unlinkSync(PROXY_PID_FILE);
+  } catch {}
+  try {
+    if (existsSync(PROXY_UPSTREAM_FILE)) unlinkSync(PROXY_UPSTREAM_FILE);
+  } catch {}
+}
+
+/**
  * Spawn the CDP proxy process and wait for it to print the endpoint.
  */
 function spawnProxy(chromeEndpoint: string): Promise<string> {
@@ -192,10 +229,22 @@ async function getProxyEndpoint(chromeEndpoint: string): Promise<string> {
     }
   }
 
-  // If proxy is alive and endpoint file exists, reuse it
+  // If proxy is alive and connected to the same Chrome, reuse it
   if (isProxyAlive()) {
     const endpoint = readProxyEndpoint();
-    if (endpoint) return endpoint;
+    const savedUpstream = readProxyUpstream();
+    if (endpoint) {
+      if (savedUpstream && savedUpstream !== browserEndpoint) {
+        // Proxy is connected to a different Chrome — kill it and start fresh
+        debug(
+          'Proxy connected to different upstream (%s), killing',
+          savedUpstream,
+        );
+        killProxy();
+      } else {
+        return endpoint;
+      }
+    }
   }
 
   // Spawn a new proxy

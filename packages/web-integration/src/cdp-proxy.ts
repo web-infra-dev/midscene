@@ -22,7 +22,11 @@
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import WebSocket, { WebSocketServer } from 'ws';
-import { PROXY_ENDPOINT_FILE, PROXY_PID_FILE } from './cdp-proxy-constants';
+import {
+  PROXY_ENDPOINT_FILE,
+  PROXY_PID_FILE,
+  PROXY_UPSTREAM_FILE,
+} from './cdp-proxy-constants';
 
 // ---------------------------------------------------------------------------
 // Config
@@ -41,17 +45,24 @@ if (!chromeEndpoint) {
 // ---------------------------------------------------------------------------
 
 function cleanupIfOwned() {
+  // Only clean up if the PID file exists and records *our* PID.
+  // If the file is missing (e.g. already deleted by killProxy()) or
+  // unreadable, skip cleanup — another process may have taken over.
   try {
-    if (existsSync(PROXY_PID_FILE)) {
-      const pid = Number(readFileSync(PROXY_PID_FILE, 'utf-8').trim());
-      if (pid !== process.pid) return;
-    }
-  } catch {}
+    if (!existsSync(PROXY_PID_FILE)) return;
+    const pid = Number(readFileSync(PROXY_PID_FILE, 'utf-8').trim());
+    if (pid !== process.pid) return;
+  } catch {
+    return;
+  }
   try {
     if (existsSync(PROXY_ENDPOINT_FILE)) unlinkSync(PROXY_ENDPOINT_FILE);
   } catch {}
   try {
     if (existsSync(PROXY_PID_FILE)) unlinkSync(PROXY_PID_FILE);
+  } catch {}
+  try {
+    if (existsSync(PROXY_UPSTREAM_FILE)) unlinkSync(PROXY_UPSTREAM_FILE);
   } catch {}
 }
 
@@ -159,6 +170,7 @@ upstream.on('open', () => {
 
     writeFileSync(PROXY_ENDPOINT_FILE, proxyEndpoint);
     writeFileSync(PROXY_PID_FILE, String(process.pid));
+    writeFileSync(PROXY_UPSTREAM_FILE, chromeEndpoint);
 
     process.stdout.write(`${JSON.stringify({ endpoint: proxyEndpoint })}\n`);
   });

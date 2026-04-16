@@ -8,6 +8,7 @@ import WebSocket, { WebSocketServer } from 'ws';
 
 const PROXY_ENDPOINT_FILE = join(tmpdir(), 'midscene-cdp-proxy-endpoint');
 const PROXY_PID_FILE = join(tmpdir(), 'midscene-cdp-proxy-pid');
+const PROXY_UPSTREAM_FILE = join(tmpdir(), 'midscene-cdp-proxy-upstream');
 const PROXY_SCRIPT = join(__dirname, '../../dist/lib/cdp-proxy.js');
 
 /**
@@ -111,6 +112,9 @@ function cleanupFiles() {
   } catch {}
   try {
     if (existsSync(PROXY_PID_FILE)) unlinkSync(PROXY_PID_FILE);
+  } catch {}
+  try {
+    if (existsSync(PROXY_UPSTREAM_FILE)) unlinkSync(PROXY_UPSTREAM_FILE);
   } catch {}
 }
 
@@ -250,5 +254,59 @@ describe('CDP WebSocket Proxy', () => {
     const exitCode = await exitPromise;
     proxyProc = null;
     expect(exitCode).toBe(0);
+  });
+
+  it('writes upstream endpoint file on startup', async () => {
+    const { proc } = await startProxy(fakeChrome.endpoint);
+    proxyProc = proc;
+
+    expect(existsSync(PROXY_UPSTREAM_FILE)).toBe(true);
+    const savedUpstream = readFileSync(PROXY_UPSTREAM_FILE, 'utf-8').trim();
+    expect(savedUpstream).toBe(fakeChrome.endpoint);
+  });
+
+  it('cleans up upstream file on SIGTERM', async () => {
+    const { proc } = await startProxy(fakeChrome.endpoint);
+    proxyProc = proc;
+
+    expect(existsSync(PROXY_UPSTREAM_FILE)).toBe(true);
+
+    proc.kill('SIGTERM');
+    await new Promise<void>((resolve) => proc.on('exit', resolve));
+    proxyProc = null;
+
+    await new Promise((r) => setTimeout(r, 100));
+    expect(existsSync(PROXY_UPSTREAM_FILE)).toBe(false);
+  });
+
+  it('records different upstream for different Chrome endpoints', async () => {
+    // Start proxy for first fake Chrome
+    const { proc: proc1 } = await startProxy(fakeChrome.endpoint);
+    proxyProc = proc1;
+
+    const upstream1 = readFileSync(PROXY_UPSTREAM_FILE, 'utf-8').trim();
+    expect(upstream1).toBe(fakeChrome.endpoint);
+
+    // Kill first proxy
+    proc1.kill('SIGTERM');
+    await new Promise<void>((resolve) => proc1.on('exit', resolve));
+    proxyProc = null;
+    cleanupFiles();
+
+    // Start a second fake Chrome on a different port
+    const fakeChrome2 = await createFakeChrome();
+
+    try {
+      const { proc: proc2 } = await startProxy(fakeChrome2.endpoint);
+      proxyProc = proc2;
+
+      const upstream2 = readFileSync(PROXY_UPSTREAM_FILE, 'utf-8').trim();
+      expect(upstream2).toBe(fakeChrome2.endpoint);
+      // The upstream should differ since the fake Chromes are on different ports
+      expect(upstream2).not.toBe(upstream1);
+    } finally {
+      fakeChrome2.wss.close();
+      fakeChrome2.server.close();
+    }
   });
 });

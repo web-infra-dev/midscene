@@ -9,3 +9,7 @@ export const PROXY_ENDPOINT_FILE = join(
   'midscene-cdp-proxy-endpoint',
 );
 export const PROXY_PID_FILE = join(tmpdir(), 'midscene-cdp-proxy-pid');
+export const PROXY_UPSTREAM_FILE = join(
+  tmpdir(),
+  'midscene-cdp-proxy-upstream',
+);
