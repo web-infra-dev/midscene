@@ -199,6 +199,48 @@ describe('ReportGenerator — append-only model', () => {
       expect(countGroupedDumpScripts(html)).toBe(3);
     });
 
+    it('should append to existing report file when a new generator uses the same path', async () => {
+      const reportPath = join(tmpDir, 'append-existing-report.html');
+      const firstGenerator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        persistExecutionDump: true,
+        autoPrint: false,
+      });
+
+      const firstScreenshot = ScreenshotItem.create(
+        fakeBase64(100),
+        Date.now(),
+      );
+      firstGenerator.onExecutionUpdate(
+        createExecution([firstScreenshot], 'first-execution', 'exec-1'),
+        defaultReportMeta,
+      );
+      await firstGenerator.finalize();
+
+      const secondGenerator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        persistExecutionDump: true,
+        autoPrint: false,
+      });
+      const secondScreenshot = ScreenshotItem.create(
+        fakeBase64(120),
+        Date.now(),
+      );
+      secondGenerator.onExecutionUpdate(
+        createExecution([secondScreenshot], 'second-execution', 'exec-2'),
+        defaultReportMeta,
+      );
+      await secondGenerator.finalize();
+
+      const html = readFileSync(reportPath, 'utf-8');
+      // each finalize() re-writes last execution once, so total dump tags = 4
+      expect(countGroupedDumpScripts(html)).toBe(4);
+      expect(html).toContain(firstScreenshot.id);
+      expect(html).toContain(secondScreenshot.id);
+    });
+
     it('should append and override report attributes across updates', async () => {
       const reportPath = join(tmpDir, 'attribute-merge-inline.html');
       const generator = new ReportGenerator({
@@ -280,6 +322,46 @@ describe('ReportGenerator — append-only model', () => {
       expect(firstDump.executions[0].tasks[0].uiContext.screenshot.id).toBe(
         screenshot.id,
       );
+    });
+
+    it('should continue execution dump index when appending with the same report path', async () => {
+      const reportPath = join(tmpDir, 'append-existing-report-with-json.html');
+      const firstGenerator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        persistExecutionDump: true,
+        autoPrint: false,
+      });
+      firstGenerator.onExecutionUpdate(
+        createExecution(
+          [ScreenshotItem.create(fakeBase64(90), Date.now())],
+          'first-execution',
+          'first-id',
+        ),
+        defaultReportMeta,
+      );
+      await firstGenerator.finalize();
+
+      const secondGenerator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        persistExecutionDump: true,
+        autoPrint: false,
+      });
+      secondGenerator.onExecutionUpdate(
+        createExecution(
+          [ScreenshotItem.create(fakeBase64(110), Date.now())],
+          'second-execution',
+          'second-id',
+        ),
+        defaultReportMeta,
+      );
+      await secondGenerator.finalize();
+
+      const jsonFiles = readdirSync(tmpDir)
+        .filter((name) => /^\d+\.execution\.json$/.test(name))
+        .sort();
+      expect(jsonFiles).toEqual(['1.execution.json', '2.execution.json']);
     });
 
     it('should persist execution dump files with pretty-printed JSON', async () => {
@@ -865,8 +947,16 @@ describe('ReportGenerator — append-only model', () => {
       const gen = ReportGenerator.create('test-inline', {});
       expect(gen).toBeInstanceOf(ReportGenerator);
       const reportPath = gen.getReportPath();
-      expect(reportPath).toContain('test-inline');
-      expect(reportPath).toContain('index.html');
+      expect(reportPath).toContain('test-inline.html');
+      expect(reportPath).not.toContain('index.html');
+    });
+
+    it('should preserve .html extension for inline mode generator', () => {
+      const gen = ReportGenerator.create('already-html.html', {});
+      expect(gen).toBeInstanceOf(ReportGenerator);
+      const reportPath = gen.getReportPath();
+      expect(reportPath).toContain('already-html.html');
+      expect(reportPath).not.toContain('already-html.html.html');
     });
 
     it('should create directory mode generator when outputFormat is html-and-external-assets', () => {

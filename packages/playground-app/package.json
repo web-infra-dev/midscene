@@ -1,6 +1,6 @@
 {
   "name": "@midscene/playground-app",
-  "version": "1.7.0",
+  "version": "1.7.2",
   "description": "Reusable React shell for Midscene playground applications",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@midscene/playground": "workspace:*",
+    "@midscene/shared": "workspace:*",
     "@midscene/visualizer": "workspace:*",
     "@yume-chan/scrcpy": "2.3.0",
     "@yume-chan/scrcpy-decoder-webcodecs": "2.5.0",

@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { execSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import {
   type DeviceAction,
@@ -158,16 +158,13 @@ function sendKeyViaAppleScript(key: string, modifiers: string[] = []): void {
   if (keyCode !== undefined) {
     // Use key code for special keys
     script = `tell application "System Events" to key code ${keyCode}${modifierStr}`;
-  } else if (lowerKey.length === 1) {
-    // Use keystroke for single characters (letters, numbers, symbols)
-    script = `tell application "System Events" to keystroke "${key}"${modifierStr}`;
   } else {
-    // Fallback: try as keystroke
-    script = `tell application "System Events" to keystroke "${key}"${modifierStr}`;
+    const escapedKey = key.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    script = `tell application "System Events" to keystroke "${escapedKey}"${modifierStr}`;
   }
 
   debugDevice('sendKeyViaAppleScript', { key, modifiers, script });
-  execSync(`osascript -e '${script}'`);
+  execFileSync('osascript', ['-e', script]);
 }
 
 // Lazy load libnut with fallback

@@ -1,0 +1,433 @@
+import type { PlaygroundSessionSetup } from '@midscene/playground';
+import { PlaygroundSDK } from '@midscene/playground';
+import { type DeviceType, useEnvConfig } from '@midscene/visualizer';
+import { Form, message } from 'antd';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { resolveAutoCreateSessionInput } from '../session-setup';
+import {
+  buildSessionInitialValues,
+  resolveSessionViewState,
+} from '../session-state';
+import { useServerStatus } from '../useServerStatus';
+import { applyPlaygroundAiConfig, hasPlaygroundAiConfig } from './ai-config';
+import {
+  resolveAutoCreateDecision,
+  serializeAutoCreateInput,
+  shouldResetAutoCreateBlock,
+} from './auto-create';
+import type { PlaygroundControllerResult, PlaygroundFormValues } from './types';
+
+function getPlatformSelectorFieldKey(
+  setup: PlaygroundSessionSetup | null,
+): string | undefined {
+  return setup?.platformSelector?.fieldKey;
+}
+
+export interface UsePlaygroundControllerOptions {
+  serverUrl: string;
+  defaultDeviceType?: DeviceType;
+  pollIntervalMs?: number;
+  countdownSeconds?: number;
+}
+
+export function usePlaygroundController({
+  serverUrl,
+  defaultDeviceType = 'web',
+  pollIntervalMs = 5000,
+  countdownSeconds = 3,
+}: UsePlaygroundControllerOptions): PlaygroundControllerResult {
+  const [form] = Form.useForm<PlaygroundFormValues>();
+  const formValues = (Form.useWatch([], form) ?? {}) as Record<string, unknown>;
+  const [countdown, setCountdown] = useState<number | string | null>(null);
+  const [sessionSetup, setSessionSetup] =
+    useState<PlaygroundSessionSetup | null>(null);
+  const [sessionSetupError, setSessionSetupError] = useState<string | null>(
+    null,
+  );
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [sessionMutating, setSessionMutating] = useState(false);
+  const aiConfig = useEnvConfig((state) => state.config);
+  const platformSelectorFieldKey = getPlatformSelectorFieldKey(sessionSetup);
+  const selectedPlatformId =
+    typeof platformSelectorFieldKey === 'string'
+      ? formValues[platformSelectorFieldKey]
+      : undefined;
+
+  const playgroundSDK = useMemo(
+    () =>
+      new PlaygroundSDK({
+        type: 'remote-execution',
+        serverUrl,
+      }),
+    [serverUrl],
+  );
+
+  const {
+    serverOnline,
+    isUserOperating,
+    deviceType,
+    runtimeInfo,
+    executionUxHints,
+    refreshServerState,
+  } = useServerStatus(playgroundSDK, defaultDeviceType, pollIntervalMs);
+  const sessionViewState = useMemo(
+    () => resolveSessionViewState(runtimeInfo),
+    [runtimeInfo],
+  );
+  const applyAiConfig = useCallback(async () => {
+    if (!hasPlaygroundAiConfig(aiConfig)) {
+      return true;
+    }
+
+    try {
+      await applyPlaygroundAiConfig(playgroundSDK, aiConfig);
+      return true;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to apply AI configuration';
+      message.error(errorMessage);
+      return false;
+    }
+  }, [aiConfig, playgroundSDK]);
+
+  const countdownTimerRef = useRef<number | null>(null);
+  const countdownResolveRef = useRef<(() => void) | null>(null);
+  const mountedRef = useRef(true);
+  const lastSetupPlatformIdRef = useRef<string | undefined>(undefined);
+  const autoCreateSignatureRef = useRef<string | null>(null);
+  const autoCreateBlockedSignatureRef = useRef<string | null>(null);
+
+  const finishCountdown = useCallback(() => {
+    if (countdownTimerRef.current !== null) {
+      window.clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+
+    const resolve = countdownResolveRef.current;
+    countdownResolveRef.current = null;
+
+    if (mountedRef.current) {
+      setCountdown(null);
+    }
+
+    resolve?.();
+  }, []);
+
+  const showCountdownModal = useCallback(async () => {
+    if (countdownSeconds <= 0) {
+      return;
+    }
+
+    finishCountdown();
+
+    return new Promise<void>((resolve) => {
+      countdownResolveRef.current = resolve;
+      let count = countdownSeconds;
+
+      if (mountedRef.current) {
+        setCountdown(count);
+      }
+
+      countdownTimerRef.current = window.setInterval(() => {
+        count -= 1;
+        if (count > 0) {
+          if (mountedRef.current) {
+            setCountdown(count);
+          }
+          return;
+        }
+
+        if (count === 0) {
+          if (mountedRef.current) {
+            setCountdown('GO!');
+          }
+          return;
+        }
+
+        finishCountdown();
+      }, 1000);
+    });
+  }, [countdownSeconds, finishCountdown]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+      finishCountdown();
+    };
+  }, [finishCountdown]);
+
+  useEffect(() => {
+    if (!executionUxHints.includes('countdown-before-run')) {
+      playgroundSDK.setBeforeActionHook(undefined);
+      return;
+    }
+
+    playgroundSDK.setBeforeActionHook(async () => {
+      await showCountdownModal();
+    });
+
+    return () => {
+      playgroundSDK.setBeforeActionHook(undefined);
+    };
+  }, [executionUxHints, playgroundSDK, showCountdownModal]);
+
+  const refreshSessionSetup = useCallback(
+    async (input?: Record<string, unknown>) => {
+      const currentValues = {
+        ...form.getFieldsValue(true),
+        ...(input || {}),
+      } as PlaygroundFormValues;
+
+      setSessionLoading(true);
+      try {
+        const setup = await playgroundSDK.getSessionSetup(input);
+        setSessionSetup(setup);
+        setSessionSetupError(null);
+        const currentPlatformSelectorFieldKey =
+          getPlatformSelectorFieldKey(setup);
+        lastSetupPlatformIdRef.current =
+          currentPlatformSelectorFieldKey &&
+          typeof currentValues[currentPlatformSelectorFieldKey] === 'string'
+            ? (currentValues[currentPlatformSelectorFieldKey] as string)
+            : undefined;
+        form.setFieldsValue(
+          buildSessionInitialValues(
+            setup,
+            currentValues,
+          ) as PlaygroundFormValues,
+        );
+      } catch (error) {
+        console.error('Failed to load session setup:', error);
+        setSessionSetupError(
+          error instanceof Error
+            ? error.message
+            : 'Failed to load session setup',
+        );
+      } finally {
+        setSessionLoading(false);
+      }
+    },
+    [form, playgroundSDK],
+  );
+
+  const createSession = useCallback(
+    async (
+      input?: Record<string, unknown>,
+      options?: { silent?: boolean },
+    ): Promise<boolean> => {
+      try {
+        if (!(await applyAiConfig())) {
+          return false;
+        }
+
+        const values = input ?? (await form.validateFields());
+        setSessionMutating(true);
+        await playgroundSDK.createSession(values);
+        if (shouldResetAutoCreateBlock(options)) {
+          autoCreateBlockedSignatureRef.current = null;
+        }
+        if (!options?.silent) {
+          message.success('Agent created');
+        }
+        await refreshServerState();
+        return true;
+      } catch (error) {
+        if ((error as { errorFields?: unknown }).errorFields) {
+          return false;
+        }
+
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to create Agent';
+        message.error(errorMessage);
+        return false;
+      } finally {
+        setSessionMutating(false);
+      }
+    },
+    [applyAiConfig, form, playgroundSDK, refreshServerState],
+  );
+
+  const destroySession = useCallback(async () => {
+    try {
+      autoCreateBlockedSignatureRef.current = serializeAutoCreateInput(
+        resolveAutoCreateSessionInput(sessionSetup, form.getFieldsValue(true)),
+      );
+      setSessionMutating(true);
+      await playgroundSDK.destroySession();
+      message.success('Session disconnected');
+      await refreshServerState();
+      await refreshSessionSetup();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to disconnect session';
+      message.error(errorMessage);
+    } finally {
+      setSessionMutating(false);
+    }
+  }, [
+    form,
+    playgroundSDK,
+    refreshServerState,
+    refreshSessionSetup,
+    sessionSetup,
+  ]);
+
+  useEffect(() => {
+    if (!serverOnline) {
+      return;
+    }
+
+    void applyAiConfig();
+  }, [applyAiConfig, serverOnline]);
+
+  useEffect(() => {
+    if (!serverOnline || sessionViewState.connected) {
+      return;
+    }
+
+    let disposed = false;
+    let refreshing = false;
+
+    const refreshTargets = async () => {
+      if (disposed || refreshing) {
+        return;
+      }
+
+      refreshing = true;
+      try {
+        await refreshSessionSetup(form.getFieldsValue(true));
+      } finally {
+        refreshing = false;
+      }
+    };
+
+    void refreshTargets();
+
+    const intervalId = window.setInterval(() => {
+      void refreshTargets();
+    }, pollIntervalMs);
+
+    return () => {
+      disposed = true;
+      window.clearInterval(intervalId);
+    };
+  }, [
+    form,
+    pollIntervalMs,
+    refreshSessionSetup,
+    serverOnline,
+    sessionViewState.connected,
+  ]);
+
+  useEffect(() => {
+    if (!serverOnline || sessionViewState.connected || !selectedPlatformId) {
+      return;
+    }
+
+    const currentPlatformSelectorFieldKey =
+      getPlatformSelectorFieldKey(sessionSetup);
+    if (!currentPlatformSelectorFieldKey) {
+      return;
+    }
+
+    if (lastSetupPlatformIdRef.current === selectedPlatformId) {
+      return;
+    }
+
+    void refreshSessionSetup({
+      ...form.getFieldsValue(true),
+      [currentPlatformSelectorFieldKey]: selectedPlatformId,
+    });
+  }, [
+    form,
+    refreshSessionSetup,
+    selectedPlatformId,
+    serverOnline,
+    sessionSetup,
+    sessionViewState.connected,
+  ]);
+
+  useEffect(() => {
+    if (sessionViewState.connected) {
+      autoCreateSignatureRef.current = null;
+      return;
+    }
+
+    if (
+      !serverOnline ||
+      sessionLoading ||
+      sessionMutating ||
+      sessionSetupError
+    ) {
+      return;
+    }
+
+    const autoCreateInput = resolveAutoCreateSessionInput(
+      sessionSetup,
+      form.getFieldsValue(true),
+    );
+    const { signature, shouldCreate } = resolveAutoCreateDecision({
+      autoCreateInput,
+      lastAttemptedSignature: autoCreateSignatureRef.current,
+      blockedSignature: autoCreateBlockedSignatureRef.current,
+    });
+
+    if (!shouldCreate || !signature) {
+      if (!signature) {
+        autoCreateSignatureRef.current = null;
+      }
+      return;
+    }
+
+    autoCreateSignatureRef.current = signature;
+
+    void (async () => {
+      const created = await createSession(autoCreateInput ?? undefined, {
+        silent: true,
+      });
+      if (!created) {
+        autoCreateSignatureRef.current = null;
+      }
+    })();
+  }, [
+    createSession,
+    form,
+    serverOnline,
+    sessionLoading,
+    sessionMutating,
+    sessionSetup,
+    sessionSetupError,
+    sessionViewState.connected,
+  ]);
+
+  return {
+    state: {
+      playgroundSDK,
+      form,
+      formValues,
+      serverOnline,
+      isUserOperating,
+      deviceType,
+      runtimeInfo,
+      executionUxHints,
+      sessionViewState,
+      sessionSetup,
+      sessionSetupError,
+      sessionLoading,
+      sessionMutating,
+      countdown,
+      countdownSeconds,
+    },
+    actions: {
+      refreshServerState,
+      refreshSessionSetup,
+      createSession,
+      destroySession,
+      finishCountdown,
+    },
+  };
+}
