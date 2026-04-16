@@ -167,7 +167,19 @@
  */
 .playground-shell .progress-action-item + div {
   padding-left: 20px;
-  margin-bottom: 16px;
+  margin-bottom: 0;
+}
+
+/*
+ * Ant-list's 16px gap is too large between consecutive progress steps —
+ * it makes the description-to-next-pill gap visibly larger than the
+ * pill-to-description gap. Pull each subsequent progress item up so the
+ * effective gap ends up at 8px, matching the pill's own bottom margin.
+ */
+.playground-shell
+  .list-item:has(.progress-action-item)
+  + .list-item:has(.progress-action-item) {
+  margin-top: -8px;
 }
 
 .playground-shell .progress-description {
