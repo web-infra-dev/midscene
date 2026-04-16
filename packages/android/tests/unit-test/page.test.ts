@@ -1262,6 +1262,7 @@ describe('AndroidDevice', () => {
 
         // Verify warning was logged
         expect(warnSpy).toHaveBeenCalledWith(
+          '[Midscene]',
           'Warning: Failed to hide the software keyboard after trying both ESC and BACK keys',
         );
 
@@ -1299,7 +1300,7 @@ describe('AndroidDevice', () => {
         .spyOn(device as any, 'scroll')
         .mockResolvedValue(undefined);
       await device.scrollUp(100);
-      expect(wheelSpy).toHaveBeenCalledWith(0, -100);
+      expect(wheelSpy).toHaveBeenCalledWith(0, -100, undefined, true, 'up');
     });
 
     it('scrollDown should call scroll with positive Y delta', async () => {
@@ -1307,10 +1308,14 @@ describe('AndroidDevice', () => {
         .spyOn(device as any, 'scroll')
         .mockResolvedValue(undefined);
       await device.scrollDown(100);
-      expect(wheelSpy).toHaveBeenCalledWith(0, 100);
+      expect(wheelSpy).toHaveBeenCalledWith(0, 100, undefined, true, 'down');
     });
 
     describe('scroll input validation', () => {
+      beforeEach(() => {
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+      });
+
       it('should throw error when both deltaX and deltaY are zero', async () => {
         await expect((device as any).scroll(0, 0)).rejects.toThrow(
           'Scroll distance cannot be zero in both directions',
@@ -1327,6 +1332,7 @@ describe('AndroidDevice', () => {
         expect(mockAdb.shell).toHaveBeenCalledWith(
           expect.stringContaining('input swipe'),
         );
+        expect(console.warn).not.toHaveBeenCalled();
       });
 
       it('should allow scrolling with zero deltaX and non-zero deltaY', async () => {
@@ -1339,12 +1345,16 @@ describe('AndroidDevice', () => {
         expect(mockAdb.shell).toHaveBeenCalledWith(
           expect.stringContaining('input swipe'),
         );
+        expect(console.warn).not.toHaveBeenCalled();
       });
 
       it('should allow symmetric horizontal range from the same start position', async () => {
         const adjustCoordinatesSpy = vi
           .spyOn(device as any, 'adjustCoordinates')
-          .mockImplementation(async (x: number, y: number) => ({ x, y }));
+          .mockImplementation(async (...args: unknown[]) => {
+            const [x, y] = args as [number, number];
+            return { x, y };
+          });
 
         await (device as any).scroll(9999999, 0);
         const rightSwipeCmd = (mockAdb.shell as Mock).mock.calls.at(
@@ -1358,6 +1368,7 @@ describe('AndroidDevice', () => {
 
         expect(rightSwipeCmd).toBe('input swipe 270 480 0 480 1000');
         expect(leftSwipeCmd).toBe('input swipe 810 480 1080 480 1000');
+        expect(console.warn).not.toHaveBeenCalled();
 
         adjustCoordinatesSpy.mockRestore();
       });
@@ -1371,6 +1382,36 @@ describe('AndroidDevice', () => {
         expect(mockAdb.shell).toHaveBeenCalledWith(
           expect.stringContaining('input swipe'),
         );
+        expect(console.warn).not.toHaveBeenCalled();
+      });
+
+      it('should warn when explicit scrollDown distance exceeds the swipe boundary', async () => {
+        vi.spyOn(device as any, 'adjustCoordinates').mockImplementation(
+          async (...args: unknown[]) => {
+            const [x, y] = args as [number, number];
+            return { x, y };
+          },
+        );
+
+        await device.scrollDown(9999999);
+
+        expect(console.warn).toHaveBeenCalledWith(
+          '[Midscene]',
+          '[midscene] Android ADB swipe coordinates must stay within the screen bounds. The requested scroll distance (9999999px) exceeds the maximum single swipe distance (480px) from the current start point, so it will be clamped. If you want to scroll to the bottom, use scrollToBottom instead.',
+        );
+      });
+
+      it('should not warn for internal scrollToBottom clamp behavior', async () => {
+        vi.spyOn(device as any, 'adjustCoordinates').mockImplementation(
+          async (...args: unknown[]) => {
+            const [x, y] = args as [number, number];
+            return { x, y };
+          },
+        );
+
+        await device.scrollUntilBottom();
+
+        expect(console.warn).not.toHaveBeenCalled();
       });
     });
 
@@ -1617,6 +1658,7 @@ describe('AndroidDevice', () => {
     describe('scroll methods with calculateScrollEndPoint integration', () => {
       beforeEach(() => {
         vi.spyOn(device as any, 'mouseDrag').mockResolvedValue(undefined);
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
       });
 
       it('scrollDown with startPoint should use calculateScrollEndPoint', async () => {
@@ -1785,6 +1827,25 @@ describe('AndroidDevice', () => {
           0,
           1920,
         );
+      });
+
+      it('scrollDown with startPoint should warn when explicit distance is clamped', async () => {
+        const startPoint = { left: 100, top: 100 };
+
+        await device.scrollDown(500, startPoint);
+
+        expect(console.warn).toHaveBeenCalledWith(
+          '[Midscene]',
+          '[midscene] Android ADB swipe coordinates must stay within the screen bounds. The requested scroll distance (500px) exceeds the maximum single swipe distance (100px) from the current start point, so it will be clamped. If you want to scroll to the bottom, use scrollToBottom instead.',
+        );
+      });
+
+      it('scrollDown with startPoint should not warn for default distance clamp', async () => {
+        const startPoint = { left: 100, top: 100 };
+
+        await device.scrollDown(undefined, startPoint);
+
+        expect(console.warn).not.toHaveBeenCalled();
       });
     });
   });
@@ -2184,7 +2245,10 @@ describe('AndroidDevice', () => {
       vi.spyOn(
         deviceWithDisplay as any,
         'adjustCoordinates',
-      ).mockImplementation(async (x: number, y: number) => ({ x, y }));
+      ).mockImplementation(async (...args: unknown[]) => {
+        const [x, y] = args as [number, number];
+        return { x, y };
+      });
 
       await deviceWithDisplay.longPress(100, 200, 1500);
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
