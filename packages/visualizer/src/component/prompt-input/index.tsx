@@ -48,6 +48,7 @@ import {
 import { HistorySelector } from '../history-selector';
 import './index.less';
 import type { DeviceAction } from '@midscene/core';
+import { useMinimalTypeGate } from '../../hooks/useMinimalTypeGate';
 import HistoryOutlined from '../../icons/history.svg';
 import SettingOutlined from '../../icons/setting.svg';
 
@@ -88,8 +89,6 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 }) => {
   const [hoveringSettings, setHoveringSettings] = useState(false);
   const [promptValue, setPromptValue] = useState('');
-  const [minimalHasExplicitTypeSelection, setMinimalHasExplicitTypeSelection] =
-    useState(false);
   const placeholder = getPlaceholderForType(selectedType);
   const isMinimalChrome = chrome?.variant === 'minimal';
   const resolvedPlaceholder = chrome?.placeholder || placeholder;
@@ -113,10 +112,16 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     () => history[selectedType] || [],
     [history, selectedType],
   );
-  // Guard: when a history selection changes the type, suppress the
-  // "history restore" effect one tick so it does not overwrite the freshly
-  // picked history item.
-  const skipMinimalSyncRef = useRef(false);
+
+  const minimalTypeGate = useMinimalTypeGate({
+    enabled: isMinimalChrome,
+    form,
+    selectedType,
+    onAfterReset: () => {
+      lastHistoryRef.current = null;
+      setPromptValue('');
+    },
+  });
 
   // Check if current method needs structured parameters (dynamic based on actionSpace)
   const needsStructuredParams = useMemo(() => {
@@ -265,12 +270,10 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   const handleTypeSelect = useCallback(
     (api: string) => {
-      if (isMinimalChrome) {
-        setMinimalHasExplicitTypeSelection(true);
-      }
+      minimalTypeGate.markExplicitSelection();
       form.setFieldValue('type', api);
     },
-    [form, isMinimalChrome],
+    [form, minimalTypeGate],
   );
 
   const apiGroupDefinitions = useMemo(
@@ -349,30 +352,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     [hiddenApiGroupItems],
   );
 
-  // Minimal chrome hides the type radio row and uses `aiAct` as the implicit
-  // default. If another pathway (e.g. restored `lastSelectedType` from local
-  // storage) lands a non-`aiAct` type in the form while the user has not
-  // explicitly selected anything from the action dropdown, snap it back to
-  // `aiAct` and clear the stale prompt/params so the UI matches expectations.
-  useEffect(() => {
-    if (
-      !isMinimalChrome ||
-      minimalHasExplicitTypeSelection ||
-      !selectedType ||
-      selectedType === 'aiAct'
-    ) {
-      return;
-    }
-
-    skipMinimalSyncRef.current = false;
-    lastHistoryRef.current = null;
-    form.setFieldsValue({
-      type: 'aiAct',
-      prompt: '',
-      params: {},
-    });
-    setPromptValue('');
-  }, [form, minimalHasExplicitTypeSelection, isMinimalChrome, selectedType]);
+  // Minimal chrome's snap-back-to-aiAct behaviour is owned by
+  // `useMinimalTypeGate` above. No local effect needed here any more.
 
   // Get default values for fields with defaults
   const getDefaultParams = useCallback((): FormParams => {
@@ -467,8 +448,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   // When the selectedType changes, populate the form with the last item from that type's history.
   useEffect(() => {
-    if (skipMinimalSyncRef.current) {
-      skipMinimalSyncRef.current = false;
+    if (minimalTypeGate.shouldSkipRestoreOnce()) {
       return;
     }
 
@@ -518,6 +498,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     form,
     getDefaultParams,
     isMinimalChrome,
+    minimalTypeGate,
   ]);
 
   // Scroll to selected item when selectedType changes
@@ -543,10 +524,10 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   // Handle history selection internally
   const handleSelectHistory = useCallback(
     (historyItem: HistoryItem) => {
-      if (isMinimalChrome) {
-        setMinimalHasExplicitTypeSelection(true);
+      minimalTypeGate.markExplicitSelection();
+      if (historyItem.type !== selectedType) {
+        minimalTypeGate.skipNextRestore();
       }
-      skipMinimalSyncRef.current = historyItem.type !== selectedType;
       form.setFieldsValue({
         prompt: historyItem.prompt,
         type: historyItem.type,
@@ -554,7 +535,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       });
       setPromptValue(historyItem.prompt);
     },
-    [form, isMinimalChrome, selectedType],
+    [form, minimalTypeGate, selectedType],
   );
 
   // Handle prompt input change
