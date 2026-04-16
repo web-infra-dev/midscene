@@ -1,3 +1,5 @@
+import { ProxyAgent } from 'undici';
+
 export function getProxyUrl(env = process.env) {
   return env.HTTPS_PROXY || env.HTTP_PROXY || env.https_proxy || env.http_proxy;
 }
@@ -15,21 +17,26 @@ export function sanitizeProxyUrl(url) {
   }
 }
 
-export function createProxyDispatcher({
-  env = process.env,
-  ProxyAgentClass,
-} = {}) {
-  const proxyUrl = getProxyUrl(env);
+export function createProxyDispatcher({ proxyUrl } = {}) {
   if (!proxyUrl) {
     return undefined;
   }
 
-  const ProxyAgentImpl = ProxyAgentClass;
-  if (!ProxyAgentImpl) {
-    throw new Error('ProxyAgent implementation is required');
-  }
-
-  return new ProxyAgentImpl({
+  return new ProxyAgent({
     uri: proxyUrl,
   });
+}
+
+export function createLoggedProxyDispatcher({
+  env = process.env,
+  log = console.log,
+  logPrefix,
+} = {}) {
+  const proxyUrl = getProxyUrl(env);
+
+  if (proxyUrl) {
+    log(`[${logPrefix}] Using proxy: ${sanitizeProxyUrl(proxyUrl)}`);
+  }
+
+  return createProxyDispatcher({ proxyUrl });
 }

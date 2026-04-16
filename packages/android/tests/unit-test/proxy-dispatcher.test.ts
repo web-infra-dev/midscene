@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('undici', () => ({
+  ProxyAgent: vi.fn(),
+}));
+
+import { ProxyAgent } from 'undici';
 import {
+  createLoggedProxyDispatcher,
   createProxyDispatcher,
   getProxyUrl,
   sanitizeProxyUrl,
@@ -30,27 +37,36 @@ describe('proxy dispatcher helper', () => {
   });
 
   it('creates a ProxyAgent-compatible dispatcher when proxy is configured', () => {
-    const ProxyAgentClass = vi.fn();
-
     const dispatcher = createProxyDispatcher({
-      env: {
-        HTTPS_PROXY: 'http://proxy.example.com:8080',
-      },
-      ProxyAgentClass,
+      proxyUrl: 'http://proxy.example.com:8080',
     });
 
-    expect(ProxyAgentClass).toHaveBeenCalledWith({
+    expect(ProxyAgent).toHaveBeenCalledWith({
       uri: 'http://proxy.example.com:8080',
     });
-    expect(dispatcher).toBeInstanceOf(ProxyAgentClass);
+    expect(dispatcher).toBeInstanceOf(ProxyAgent as any);
   });
 
   it('returns undefined when no proxy is configured', () => {
-    expect(
-      createProxyDispatcher({
-        env: {},
-        ProxyAgentClass: vi.fn(),
-      }),
-    ).toBeUndefined();
+    expect(createProxyDispatcher()).toBeUndefined();
+  });
+
+  it('logs sanitized proxy url and creates dispatcher from env', () => {
+    const log = vi.fn();
+
+    createLoggedProxyDispatcher({
+      env: {
+        HTTPS_PROXY: 'http://user:secret@proxy.example.com:8080',
+      },
+      log,
+      logPrefix: 'scrcpy',
+    });
+
+    expect(log).toHaveBeenCalledWith(
+      '[scrcpy] Using proxy: http://user:****@proxy.example.com:8080/',
+    );
+    expect(ProxyAgent).toHaveBeenLastCalledWith({
+      uri: 'http://user:secret@proxy.example.com:8080',
+    });
   });
 });

@@ -3,12 +3,7 @@ import { Buffer } from 'node:buffer';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ProxyAgent } from 'undici';
-import {
-  createProxyDispatcher,
-  getProxyUrl,
-  sanitizeProxyUrl,
-} from './proxy-dispatcher.mjs';
+import { createLoggedProxyDispatcher } from './proxy-dispatcher.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(scriptPath);
@@ -68,14 +63,9 @@ export async function main() {
   await fs.mkdir(binDir, { recursive: true });
 
   const maxRetries = 3;
-  const proxyUrl = getProxyUrl();
-  const dispatcher = createProxyDispatcher({
-    ProxyAgentClass: ProxyAgent,
+  const dispatcher = createLoggedProxyDispatcher({
+    logPrefix: 'yadb',
   });
-
-  if (proxyUrl) {
-    console.log(`[yadb] Using proxy: ${sanitizeProxyUrl(proxyUrl)}`);
-  }
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
