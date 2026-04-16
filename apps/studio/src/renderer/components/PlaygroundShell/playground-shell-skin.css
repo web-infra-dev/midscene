@@ -14,7 +14,10 @@
  * Visual target: the "incut" design bundle
  * (cmnwvgv04001u4zj04xd7venv.zip), whose chat bubble and execution-flow
  * styling this file is matching pixel-for-pixel within the existing
- * visualizer DOM.
+ * visualizer DOM. That bundle groups consecutive progress steps under
+ * a "执行流程" header and draws a vertical connector line down the left
+ * icon column; both are reproduced here with :has() + adjacent sibling
+ * selectors so no visualizer structural change is required.
  */
 
 .playground-shell {
@@ -77,7 +80,42 @@
   color: rgba(0, 0, 0, 0.85);
 }
 
-/* Execution flow / progress steps — incut pill + connector line. */
+/* --- Execution flow (progress items) --- */
+
+/*
+ * Shift every progress list item right by 20px. That reserved column
+ * hosts:
+ *   - the "执行流程" ::before label above the first pill of a run
+ *   - the vertical ::after connector line between consecutive pills
+ * The pill itself then sits at x=20, leaving ~8px of gutter between its
+ * left edge and the connector line at x=12.
+ */
+.playground-shell .list-item:has(.progress-action-item) {
+  position: relative;
+  padding-left: 20px;
+}
+
+/* Group header: only shown on the FIRST progress list item of a run.
+ * The adjacent-sibling override below hides it on every subsequent
+ * progress item so a single run has exactly one "执行流程" header. */
+.playground-shell .list-item:has(.progress-action-item)::before {
+  content: "执行流程";
+  display: block;
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 15px;
+  color: rgba(0, 0, 0, 0.5);
+  letter-spacing: 0;
+}
+
+.playground-shell
+  .list-item:has(.progress-action-item)
+  + .list-item:has(.progress-action-item)::before {
+  display: none;
+}
+
+/* Pill styling. */
 .playground-shell .progress-action-item {
   display: inline-flex;
   width: fit-content;
@@ -85,7 +123,7 @@
   height: 28px;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px 2px 4px;
+  padding: 2px 8px 2px 10px;
   margin: 0 0 8px;
   border-radius: 38px;
   background: rgba(0, 0, 0, 0.08);
@@ -111,30 +149,33 @@
 }
 
 /*
- * Vertical connector between consecutive progress items, mirroring the
- * incut "执行流程" column. The `:has()` combinator draws the line only
- * when the current list item carries a progress pill AND the next list
- * item does too, so the final step in a run has no trailing stub.
+ * Vertical connector between consecutive progress items.
+ *
+ * The base rule leaves a 23px top inset so the line sits below the
+ * "执行流程" header on the first item of a run. The more-specific
+ * adjacent-sibling rule resets `top` to 0 on subsequent items so their
+ * connector meets the previous item's line without a break.
  */
-.playground-shell
-  .list-item:has(.progress-action-item):has(
-    + .list-item .progress-action-item
-  ) {
-  position: relative;
-}
-
 .playground-shell
   .list-item:has(.progress-action-item):has(
     + .list-item .progress-action-item
   )::after {
   content: "";
   position: absolute;
-  left: 13px;
-  top: 28px;
+  left: 12px;
+  top: 23px;
   bottom: -16px;
   width: 1px;
   background: rgba(0, 0, 0, 0.08);
   pointer-events: none;
+}
+
+.playground-shell
+  .list-item:has(.progress-action-item)
+  + .list-item:has(.progress-action-item):has(
+    + .list-item .progress-action-item
+  )::after {
+  top: 0;
 }
 
 .playground-shell .bottom-input-section {
@@ -144,12 +185,18 @@
   padding: 12px;
 }
 
-/* Dark mode: rgba(0,0,0,0.08) on dark background is invisible. Flip to
- * rgba(255,255,255,0.12) so the connector line and pill surface stay
- * readable. */
+/* Dark mode: rgba(0,0,0,0.08) on a dark surface is invisible. Flip the
+ * pill background, connector line, header and body colours to the light
+ * channel so the whole execution flow column stays readable. */
 [data-theme="dark"] .playground-shell .progress-action-item {
   background: rgba(255, 255, 255, 0.08);
   color: var(--midscene-text-primary);
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .list-item:has(.progress-action-item)::before {
+  color: rgba(255, 255, 255, 0.5);
 }
 
 [data-theme="dark"]
