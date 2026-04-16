@@ -10,6 +10,11 @@
  * What remains here is pure layout tightening (sizing, padding, bubble
  * styling) that depends on the upstream DOM structure; if the upstream
  * markup changes these rules will simply no-op rather than break behaviour.
+ *
+ * Visual target: the "incut" design bundle
+ * (cmnwvgv04001u4zj04xd7venv.zip), whose chat bubble and execution-flow
+ * styling this file is matching pixel-for-pixel within the existing
+ * visualizer DOM.
  */
 
 .playground-shell {
@@ -60,6 +65,7 @@
   max-width: min(80%, 280px);
   border-radius: 12px;
   padding: 8px 16px;
+  font-size: 14px;
   line-height: 22px;
 }
 
@@ -68,18 +74,67 @@
 .playground-shell .progress-description {
   font-size: 14px;
   line-height: 22px;
+  color: rgba(0, 0, 0, 0.85);
 }
 
+/* Execution flow / progress steps — incut pill + connector line. */
 .playground-shell .progress-action-item {
-  height: auto;
-  min-height: 28px;
+  display: inline-flex;
   width: fit-content;
   max-width: 100%;
+  height: 28px;
   align-items: center;
-  gap: 6px;
-  border-radius: 999px;
-  margin: 0 0 8px;
+  gap: 4px;
   padding: 2px 8px 2px 4px;
+  margin: 0 0 8px;
+  border-radius: 38px;
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.85);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.playground-shell .progress-action-item .progress-status-icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0;
+  font-size: 12px;
+}
+
+.playground-shell .progress-description {
+  padding: 0;
+  margin-bottom: 8px;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+/*
+ * Vertical connector between consecutive progress items, mirroring the
+ * incut "执行流程" column. The `:has()` combinator draws the line only
+ * when the current list item carries a progress pill AND the next list
+ * item does too, so the final step in a run has no trailing stub.
+ */
+.playground-shell
+  .list-item:has(.progress-action-item):has(
+    + .list-item .progress-action-item
+  ) {
+  position: relative;
+}
+
+.playground-shell
+  .list-item:has(.progress-action-item):has(
+    + .list-item .progress-action-item
+  )::after {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 28px;
+  bottom: -16px;
+  width: 1px;
+  background: rgba(0, 0, 0, 0.08);
+  pointer-events: none;
 }
 
 .playground-shell .bottom-input-section {
@@ -87,4 +142,29 @@
   border-top: 1px solid var(--midscene-border-subtle);
   background: var(--midscene-surface);
   padding: 12px;
+}
+
+/* Dark mode: rgba(0,0,0,0.08) on dark background is invisible. Flip to
+ * rgba(255,255,255,0.12) so the connector line and pill surface stay
+ * readable. */
+[data-theme="dark"] .playground-shell .progress-action-item {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--midscene-text-primary);
+}
+
+[data-theme="dark"]
+  .playground-shell
+  .list-item:has(.progress-action-item):has(
+    + .list-item .progress-action-item
+  )::after {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .playground-shell .system-message-content,
+[data-theme="dark"]
+  .playground-shell
+  .system-message-content
+  .system-message-text,
+[data-theme="dark"] .playground-shell .progress-description {
+  color: var(--midscene-text-primary);
 }
