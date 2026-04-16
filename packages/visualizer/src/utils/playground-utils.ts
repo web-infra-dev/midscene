@@ -2,6 +2,12 @@ import type { UIContext } from '@midscene/core';
 import { StaticPage, StaticPageAgent } from '@midscene/web/static';
 import type { ZodObjectSchema } from '../types';
 import { isZodObjectSchema, unwrapZodType } from '../types';
+
+/**
+ * @deprecated Import `actionNameForType` from `./action-label` directly.
+ * This re-export exists only to keep older import paths working and may be
+ * removed once all call sites are migrated.
+ */
 export { actionNameForType } from './action-label';
 
 // Create static agent from context

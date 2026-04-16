@@ -1,17 +1,15 @@
 /*
- * TEMPORARY: these selectors reach into `@midscene/visualizer` /
- * `@midscene/playground-app` internal DOM (e.g. `.playground-conversation-panel`,
- * `.clear-button-container`, `.scroll-to-bottom-button`, `.version-info-section`,
- * `.system-message-header`, `.bottom-input-section`, `.progress-action-item`) to
- * hide chrome and tighten spacing inside the Studio shell.
+ * Scoped layout overrides for the Studio Playground panel.
  *
- * This is a known coupling violation: rename any of these internal class names
- * upstream and the Studio shell silently breaks. It is kept here to keep the
- * dark-mode PR focused. A follow-up PR will promote the "hide" toggles and
- * spacing knobs into the public visualizer `UniversalPlaygroundConfig` so this
- * file can collapse to pure scoped layout rules.
- *
- * Follow-up tracked as: playground visualizer chrome config API (TBD).
+ * These selectors still reach into `@midscene/visualizer` /
+ * `@midscene/playground-app` internal DOM (for example
+ * `.playground-conversation-panel`, `.bottom-input-section`,
+ * `.progress-action-item`). Chrome visibility toggles (clear button,
+ * scroll-to-bottom, version info, system-message header) have been promoted
+ * to `UniversalPlaygroundConfig` flags instead of CSS `display: none` tricks.
+ * What remains here is pure layout tightening (sizing, padding, bubble
+ * styling) that depends on the upstream DOM structure; if the upstream
+ * markup changes these rules will simply no-op rather than break behaviour.
  */
 
 .playground-shell {
@@ -24,7 +22,7 @@
   overflow: hidden;
   border-top-right-radius: 12px;
   border-bottom-right-radius: 12px;
-  background: var(--midscene-surface, #fff);
+  background: var(--midscene-surface);
 }
 
 .playground-shell .playground-conversation-panel,
@@ -37,7 +35,7 @@
 }
 
 .playground-shell .playground-container {
-  background: var(--midscene-surface, #fff);
+  background: var(--midscene-surface);
 }
 
 .playground-shell .middle-dialog-area .info-list-container {
@@ -52,13 +50,6 @@
 
 .playground-shell .middle-dialog-area .info-list-container .list-item {
   padding: 0;
-}
-
-.playground-shell .clear-button-container,
-.playground-shell .scroll-to-bottom-button,
-.playground-shell .version-info-section,
-.playground-shell .system-message-header {
-  display: none;
 }
 
 .playground-shell .user-message-container {
@@ -93,7 +84,7 @@
 
 .playground-shell .bottom-input-section {
   flex-shrink: 0;
-  border-top: 1px solid var(--midscene-border-subtle, #ececec);
-  background: var(--midscene-surface, #fff);
+  border-top: 1px solid var(--midscene-border-subtle);
+  background: var(--midscene-surface);
   padding: 12px;
 }

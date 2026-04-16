@@ -113,8 +113,10 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     () => history[selectedType] || [],
     [history, selectedType],
   );
+  // Guard: when a history selection changes the type, suppress the
+  // "history restore" effect one tick so it does not overwrite the freshly
+  // picked history item.
   const skipMinimalSyncRef = useRef(false);
-  const initializedMinimalTypeRef = useRef(false);
 
   // Check if current method needs structured parameters (dynamic based on actionSpace)
   const needsStructuredParams = useMemo(() => {
@@ -347,32 +349,11 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     [hiddenApiGroupItems],
   );
 
-  useEffect(() => {
-    if (
-      !isMinimalChrome ||
-      initializedMinimalTypeRef.current ||
-      !selectedType ||
-      minimalHasExplicitTypeSelection
-    ) {
-      return;
-    }
-
-    initializedMinimalTypeRef.current = true;
-
-    if (selectedType === 'aiAct') {
-      return;
-    }
-
-    skipMinimalSyncRef.current = false;
-    lastHistoryRef.current = null;
-    form.setFieldsValue({
-      type: 'aiAct',
-      prompt: '',
-      params: {},
-    });
-    setPromptValue('');
-  }, [form, minimalHasExplicitTypeSelection, isMinimalChrome, selectedType]);
-
+  // Minimal chrome hides the type radio row and uses `aiAct` as the implicit
+  // default. If another pathway (e.g. restored `lastSelectedType` from local
+  // storage) lands a non-`aiAct` type in the form while the user has not
+  // explicitly selected anything from the action dropdown, snap it back to
+  // `aiAct` and clear the stale prompt/params so the UI matches expectations.
   useEffect(() => {
     if (
       !isMinimalChrome ||
@@ -383,6 +364,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       return;
     }
 
+    skipMinimalSyncRef.current = false;
     lastHistoryRef.current = null;
     form.setFieldsValue({
       type: 'aiAct',
@@ -1006,8 +988,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       <SendOutlined />
     );
 
-    const runButton = (text: string) => (
+    const runButton = (text?: string) => (
       <Button
+        aria-label={isMinimalChrome ? 'Run action' : undefined}
         type="primary"
         icon={sendIcon}
         style={{ borderRadius: 20, zIndex: 999 }}
@@ -1033,6 +1016,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     if (stoppable) {
       return (
         <Button
+          aria-label={isMinimalChrome ? 'Stop action' : undefined}
           icon={isMinimalChrome ? undefined : <BorderOutlined />}
           onClick={onStop}
           style={{ borderRadius: 20, zIndex: 999 }}
@@ -1098,15 +1082,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       </Form.Item>
     )
   ) : (
-    <div
-      className="no-input-method"
-      style={{
-        padding: '20px',
-        textAlign: 'center',
-        color: '#666',
-        fontSize: '14px',
-      }}
-    >
+    <div className="no-input-method">
       Click "Run" to execute {actionNameForType(selectedType)}
     </div>
   );
@@ -1134,6 +1110,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                 overlayClassName="more-apis-dropdown"
               >
                 <button
+                  aria-label={`Select action type (current: ${actionButtonLabel})`}
                   className="minimal-action-trigger"
                   disabled={!runButtonEnabled}
                   type="button"
@@ -1165,7 +1142,11 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                 history={historyForSelectedType}
                 currentType={selectedType}
                 trigger={
-                  <button className="minimal-icon-trigger" type="button">
+                  <button
+                    aria-label="Open prompt history"
+                    className="minimal-icon-trigger"
+                    type="button"
+                  >
                     {chrome?.icons?.history ? (
                       <img
                         alt=""
@@ -1201,7 +1182,11 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                     hideDomAndScreenshotOptions={hideDomAndScreenshotOptions}
                     deviceType={deviceType}
                     trigger={
-                      <button className="minimal-icon-trigger" type="button">
+                      <button
+                        aria-label="Open run configuration"
+                        className="minimal-icon-trigger"
+                        type="button"
+                      >
                         {chrome?.icons?.settings ? (
                           <img
                             alt=""

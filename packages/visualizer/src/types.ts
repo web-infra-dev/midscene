@@ -388,6 +388,19 @@ export interface UniversalPlaygroundConfig {
   deviceType?: DeviceType;
   executionUx?: ExecutionUxConfig;
   promptInputChrome?: PromptInputChromeConfig;
+  /**
+   * Whether to render the "clear conversation" button that appears above the
+   * message list once there is more than one item. Defaults to `true`.
+   * Embedding hosts whose own shell exposes a clear affordance can set this
+   * to `false`.
+   */
+  showClearButton?: boolean;
+  /**
+   * Whether each system message renders its header (branding icon + title).
+   * Defaults to `true`. Compact embeddings may set this to `false` to let the
+   * host shell own the branding.
+   */
+  showSystemMessageHeader?: boolean;
 }
 
 /**

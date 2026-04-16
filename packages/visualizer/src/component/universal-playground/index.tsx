@@ -193,7 +193,11 @@ export function UniversalPlayground({
     componentConfig.serverMode ||
     (!dryMode && !actionSpaceLoading && configAlreadySet);
 
-  // Get the currently selected type
+  // Get the currently selected type.
+  // `Form.useWatch` returns `undefined` on the first render before the form
+  // initialises its values, so we fall back to `getFieldValue` to avoid a
+  // one-frame window where downstream consumers (e.g. PromptInput minimal
+  // chrome) observe an empty type and run type-sync effects unnecessarily.
   const watchedType = Form.useWatch('type', form);
   const selectedType = watchedType || form.getFieldValue('type');
 
@@ -229,7 +233,7 @@ export function UniversalPlayground({
         {/* Main Dialog Area */}
         <div className="middle-dialog-area">
           {/* Clear Button */}
-          {infoList.length > 1 && (
+          {componentConfig.showClearButton !== false && infoList.length > 1 && (
             <div className="clear-button-container">
               <Button
                 size="small"
@@ -323,15 +327,17 @@ export function UniversalPlayground({
                   ) : (
                     /* System Message */
                     <div className="system-message-container">
-                      <div className="system-message-header">
-                        <Icon
-                          component={branding.icon || PlaygroundIcon}
-                          style={{ fontSize: 20 }}
-                        />
-                        <span className="system-message-title">
-                          {branding.title || 'Playground'}
-                        </span>
-                      </div>
+                      {componentConfig.showSystemMessageHeader !== false && (
+                        <div className="system-message-header">
+                          <Icon
+                            component={branding.icon || PlaygroundIcon}
+                            style={{ fontSize: 20 }}
+                          />
+                          <span className="system-message-title">
+                            {branding.title || 'Playground'}
+                          </span>
+                        </div>
+                      )}
                       {(item.content || item.result) && (
                         <div className="system-message-content">
                           {item.type === 'result' ? (

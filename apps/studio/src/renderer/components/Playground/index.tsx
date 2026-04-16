@@ -43,11 +43,13 @@ export default function Playground() {
                 icons: {
                   action: promptInputIcons.action,
                   actionChevron: promptInputIcons.actionChevron,
-                  history: undefined,
                   send: promptInputIcons.actionChevron,
                   settings: promptInputIcons.tool,
                 },
               },
+              showClearButton: false,
+              showSystemMessageHeader: false,
+              enableScrollToBottom: false,
               showEnvConfigReminder: false,
               showVersionInfo: false,
             }}

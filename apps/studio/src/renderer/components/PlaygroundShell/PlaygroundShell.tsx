@@ -3,17 +3,16 @@ import './playground-shell-skin.css';
 
 export interface PlaygroundShellProps {
   children: ReactNode;
-  className?: string;
+  /** Label shown in the shell header. Defaults to `'Playground'`. */
   title?: string;
 }
 
 export function PlaygroundShell({
   children,
-  className,
   title = 'Playground',
 }: PlaygroundShellProps) {
   return (
-    <div className={['playground-shell', className].filter(Boolean).join(' ')}>
+    <div className="playground-shell">
       <div className="pointer-events-none absolute left-0 top-0 z-10 flex h-[56px] w-full items-center border-b border-border-subtle bg-surface px-[22px]">
         <span className="text-[13px] leading-[22.1px] font-medium text-text-primary">
           {title}
