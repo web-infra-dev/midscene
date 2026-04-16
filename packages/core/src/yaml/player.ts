@@ -565,57 +565,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
                 actionParamForMatchedAction,
               )
             : undefined;
-        if (
-          typeof actionParamForMatchedAction === 'string' &&
-          (matchedAction.name === 'Launch' ||
-            matchedAction.interfaceAlias === 'launch') &&
-          typeof (agent as any).launch === 'function'
-        ) {
-          // Call agent.launch directly for Launch action with string param
-          debug(`Calling agent.launch with: ${actionParamForMatchedAction}`);
-          const result = await (agent as any).launch(
-            actionParamForMatchedAction,
-          );
-
-          const resultName = (flowItem as any).name;
-          if (result !== undefined) {
-            this.setResult(resultName, result);
-          }
-        } else if (
-          typeof actionParamForMatchedAction === 'string' &&
-          (matchedAction.name === 'Terminate' ||
-            matchedAction.interfaceAlias === 'terminate') &&
-          typeof (agent as any).terminate === 'function'
-        ) {
-          // Call agent.terminate directly for Terminate action with string param
-          debug(`Calling agent.terminate with: ${actionParamForMatchedAction}`);
-          const result = await (agent as any).terminate(
-            actionParamForMatchedAction,
-          );
-
-          const resultName = (flowItem as any).name;
-          if (result !== undefined) {
-            this.setResult(resultName, result);
-          }
-        } else if (
-          typeof actionParamForMatchedAction === 'string' &&
-          (matchedAction.name === 'RunAdbShell' ||
-            matchedAction.interfaceAlias === 'runAdbShell') &&
-          typeof (agent as any).runAdbShell === 'function'
-        ) {
-          // Call agent.runAdbShell directly for RunAdbShell action with string param
-          debug(
-            `Calling agent.runAdbShell with: ${actionParamForMatchedAction}`,
-          );
-          const result = await (agent as any).runAdbShell(
-            actionParamForMatchedAction,
-          );
-
-          const resultName = (flowItem as any).name;
-          if (result !== undefined) {
-            this.setResult(resultName, result);
-          }
-        } else if (specialActionParamToCall) {
+        if (specialActionParamToCall) {
           debug(
             `matchedAction: ${matchedAction.name}`,
             `flowParams: ${JSON.stringify(specialActionParamToCall)}`,
