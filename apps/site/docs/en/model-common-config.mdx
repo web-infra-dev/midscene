@@ -230,28 +230,28 @@ Migration mapping:
 
 Starting with version 1.0, Midscene no longer supports GPT-4o as the planning model for UI operations. See [Model strategy](./model-strategy) for details.
 
-## Multi-model example: GPT-5.1 planning/insight + Qwen3-VL for vision {#gpt51-planning-insight-qwen3}
+## Multi-model example: GPT-5.4 planning/insight + Qwen 3.5 for vision {#gpt54-planning-insight-qwen35}
 
 For more information on combining multiple models, see [Advanced: Combining Multiple Models](./model-strategy#advanced-combining-multiple-models).
 
-Below is an example using GPT-5.1 for Planning/Insight and Qwen3-VL for vision. Use GPT-5.1 for Planning and/or Insight to handle heavy reasoning, while Qwen3-VL focuses on visual grounding. You can enable either role or both—toggle them based on your workload.
+Below is an example using GPT-5.4 for Planning/Insight and Qwen 3.5 for vision. Use GPT-5.4 for Planning and/or Insight to handle heavy reasoning, while Qwen 3.5 focuses on visual grounding. You can enable either role or both—toggle them based on your workload.
 
 ```bash
-# Default vision model: Qwen3-VL
-export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen3-VL endpoint
-export MIDSCENE_MODEL_API_KEY="..."                # Your Qwen3-VL API key
-export MIDSCENE_MODEL_NAME="qwen3-vl-plus"
-export MIDSCENE_MODEL_FAMILY="qwen3-vl"
+# Default vision model: Qwen 3.5
+export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 endpoint
+export MIDSCENE_MODEL_API_KEY="..."                # Your Qwen 3.5 API key
+export MIDSCENE_MODEL_NAME="qwen3.5-plus"
+export MIDSCENE_MODEL_FAMILY="qwen3.5"
 
-# Planning model: GPT-5.1
-export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # Your GPT-5.1 API key
+# Planning model: GPT-5.4
+export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # Your GPT-5.4 API key
 export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..." 
-export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.1"
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
 
-# Insight model: GPT-5.1
-export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # Your GPT-5.1 API key
+# Insight model: GPT-5.4
+export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # Your GPT-5.4 API key
 export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
-export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.1"
+export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.4"
 ```
 
 ## More

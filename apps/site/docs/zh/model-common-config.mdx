@@ -233,28 +233,28 @@ MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"
 
 从 1.0 版本开始，Midscene 不再支持使用 GPT-4o 作为 UI 操作的规划模型。详见：[模型策略](./model-strategy)。
 
-## 多模型示例：GPT-5.1 用于 Planning/Insight，Qwen3-VL 负责视觉 {#gpt51-planning-insight-qwen3}
+## 多模型示例：GPT-5.4 用于 Planning/Insight，Qwen 3.5 负责视觉 {#gpt54-planning-insight-qwen35}
 
 关于组合多个模型的更多信息，可查阅 [进阶：组合多个模型](./model-strategy#advanced-combining-multiple-models)。
 
-下面以 GPT-5.1 用于 Planning/Insight、Qwen3-VL 负责视觉为例。使用 GPT-5.1 处理重度推理（Planning 和/或 Insight），让 Qwen3-VL 专注视觉定位。独立的 Planning 和 Insight 模型可按需启用，不需要同时开启。
+下面以 GPT-5.4 用于 Planning/Insight、Qwen 3.5 负责视觉为例。使用 GPT-5.4 处理重度推理（Planning 和/或 Insight），让 Qwen 3.5 专注视觉定位。独立的 Planning 和 Insight 模型可按需启用，不需要同时开启。
 
 ```bash
-# 默认视觉模型：Qwen3-VL
-export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen3-VL 接口地址
-export MIDSCENE_MODEL_API_KEY="..."                # 你的 Qwen3-VL API Key
-export MIDSCENE_MODEL_NAME="qwen3-vl-plus"
-export MIDSCENE_MODEL_FAMILY="qwen3-vl"
+# 默认视觉模型：Qwen 3.5
+export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 接口地址
+export MIDSCENE_MODEL_API_KEY="..."                # 你的 Qwen 3.5 API Key
+export MIDSCENE_MODEL_NAME="qwen3.5-plus"
+export MIDSCENE_MODEL_FAMILY="qwen3.5"
 
-# Planning 模型：GPT-5.1
-export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # 你的 GPT-5.1 API Key
+# Planning 模型：GPT-5.4
+export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # 你的 GPT-5.4 API Key
 export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..."
-export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.1"
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
 
-# Insight 模型：GPT-5.1
-export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # 你的 GPT-5.1 API Key
+# Insight 模型：GPT-5.4
+export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # 你的 GPT-5.4 API Key
 export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
-export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.1"
+export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.4"
 ```
 
 ## 更多

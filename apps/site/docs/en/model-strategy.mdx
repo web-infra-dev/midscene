@@ -93,13 +93,13 @@ By default, the system follows these rules (unset intents fall back to the defau
 
 In short: **Planning goes to the Planning model, localization stays on the default model, and extraction/assertion goes to Insight** when configured.
 
-For a ready-to-use environment snippet, including an Insight model, see the [multi-model example](./model-common-config#gpt51-planning-insight-qwen3).
+For a ready-to-use environment snippet, including an Insight model, see the [multi-model example](./model-common-config#gpt54-planning-insight-qwen35).
 
 ### *Planning* intent
 
 For `aiAct` or `ai` planning tasks, add settings with the `MIDSCENE_PLANNING_MODEL_` prefix to use a dedicated model for the Planning intent.
 
-We recommend `gpt-5.1` or other multimodal models that understand UI workflows.
+We recommend `gpt-5.4` or other multimodal models that understand UI workflows.
 
 ### *Insight* intent
 
@@ -107,7 +107,7 @@ Midscene provides page-understanding APIs such as AI assertions (`aiAssert`) and
 
 Add settings with the `MIDSCENE_INSIGHT_MODEL_` prefix to use a dedicated model for Insight workloads.
 
-We recommend `gpt-5.1` or other models with strong VQA capability.
+We recommend `gpt-5.4` or other models with strong VQA capability.
 
 ## How do I tune execution results?
 
