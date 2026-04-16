@@ -211,6 +211,9 @@ function spawnProxy(chromeEndpoint: string): Promise<string> {
             settled = true;
             clearTimeout(timer);
             proc.stdout!.removeListener('data', onData);
+            // Destroy the stdout pipe so it doesn't keep the parent
+            // process event loop alive after we've read the endpoint.
+            proc.stdout!.destroy();
             resolve(parsed.endpoint);
             return;
           }
