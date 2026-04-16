@@ -424,7 +424,6 @@ export interface PromptInputChromeConfig {
     action?: string;
     actionChevron?: string;
     history?: string;
-    send?: string;
     settings?: string;
   };
 }

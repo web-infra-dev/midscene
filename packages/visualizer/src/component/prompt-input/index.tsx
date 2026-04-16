@@ -982,24 +982,16 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   // Render action button based on current state
   const renderActionButton = useCallback(() => {
-    const sendIcon = chrome?.icons?.send ? (
-      <img alt="" className="minimal-send-icon" src={chrome.icons.send} />
-    ) : (
-      <SendOutlined />
-    );
-
-    const runButton = (text?: string) => (
+    const runButton = (text: string) => (
       <Button
-        aria-label={isMinimalChrome ? 'Run action' : undefined}
         type="primary"
-        icon={sendIcon}
+        icon={<SendOutlined />}
         style={{ borderRadius: 20, zIndex: 999 }}
         onClick={handleRunWithHistory}
         disabled={!isRunButtonEnabled}
         loading={loading}
-        className={isMinimalChrome ? 'minimal-send-button' : undefined}
       >
-        {isMinimalChrome ? null : text}
+        {text}
       </Button>
     );
 
@@ -1016,13 +1008,11 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     if (stoppable) {
       return (
         <Button
-          aria-label={isMinimalChrome ? 'Stop action' : undefined}
-          icon={isMinimalChrome ? undefined : <BorderOutlined />}
+          icon={<BorderOutlined />}
           onClick={onStop}
           style={{ borderRadius: 20, zIndex: 999 }}
-          className={isMinimalChrome ? 'minimal-stop-button' : undefined}
         >
-          {isMinimalChrome ? 'Stop' : undefined}
+          Stop
         </Button>
       );
     }
@@ -1036,8 +1026,6 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     isRunButtonEnabled,
     selectedType,
     stoppable,
-    chrome?.icons?.send,
-    isMinimalChrome,
   ]);
 
   const inputContent = needsAnyInput ? (

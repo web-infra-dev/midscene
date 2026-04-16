@@ -43,7 +43,6 @@ export default function Playground() {
                 icons: {
                   action: promptInputIcons.action,
                   actionChevron: promptInputIcons.actionChevron,
-                  send: promptInputIcons.actionChevron,
                   settings: promptInputIcons.tool,
                 },
               },
