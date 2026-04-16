@@ -121,6 +121,20 @@
 }
 
 /*
+ * Wrap pill + description in a flex column so the gap between them is
+ * governed by a single `gap: 8px` rule rather than the pill's own
+ * margin-bottom (which is subject to line-box quirks when the pill is
+ * inline-flex). This guarantees the pill↔description gap equals the
+ * description↔next-pill gap.
+ */
+.playground-shell .list-item > div:has(> .progress-action-item) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/*
  * Pill: incut spec is `h-[28px] rounded-[38px] bg-[rgba(0,0,0,0.08)]
  * px-1 py-[2px]` with `gap-2` (8px) between a 24×24 icon and a label
  * that carries its own `pr-2` (8px). We render a smaller status glyph
@@ -131,7 +145,7 @@
  * incut pl-6 stair-step.
  */
 .playground-shell .progress-action-item {
-  display: inline-flex;
+  display: flex;
   width: fit-content;
   max-width: 100%;
   height: 28px;
@@ -140,7 +154,7 @@
   justify-content: flex-end;
   gap: 8px;
   padding: 2px 12px 2px 4px;
-  margin: 0 0 8px 24px;
+  margin: 0 0 0 24px;
   border-radius: 38px;
   background: rgba(0, 0, 0, 0.08);
   color: rgba(0, 0, 0, 0.7);
@@ -162,30 +176,33 @@
  * Description wrapper: the visualiser renders the description inside an
  * unclassed `<div>` that comes right after the pill span. We select it
  * via `.progress-action-item + div` to apply the incut `pl-5` left
- * padding (20px) and the `mb-4` (16px) bottom spacing that separates
- * one step from the next. The inner span resets its own legacy margins.
+ * padding (20px). The vertical gap with the pill is now controlled by
+ * the parent flex column's `gap: 8px`, not margin, so this block only
+ * handles horizontal offset.
  */
 .playground-shell .progress-action-item + div {
   padding-left: 20px;
-  margin-bottom: 0;
-}
-
-/*
- * Ant-list's 16px gap is too large between consecutive progress steps —
- * it makes the description-to-next-pill gap visibly larger than the
- * pill-to-description gap. Pull each subsequent progress item up so the
- * effective gap ends up at 8px, matching the pill's own bottom margin.
- */
-.playground-shell
-  .list-item:has(.progress-action-item)
-  + .list-item:has(.progress-action-item) {
-  margin-top: -8px;
+  margin: 0;
+  width: 100%;
 }
 
 .playground-shell .progress-description {
   padding: 0;
   margin: 0;
   color: rgba(0, 0, 0, 0.85);
+}
+
+/*
+ * Ant-list's `gap: 16px` between list items is too wide between two
+ * consecutive progress steps — it would make the description-to-next-pill
+ * gap visibly larger than the pill-to-description gap inside a step.
+ * Pull the subsequent progress item up by 8px so the effective inter-item
+ * gap becomes 8px, matching the intra-item gap exactly.
+ */
+.playground-shell
+  .list-item:has(.progress-action-item)
+  + .list-item:has(.progress-action-item) {
+  margin-top: -8px;
 }
 
 /*
