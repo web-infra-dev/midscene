@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Midscene Computer Scroll Test Fixture</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: #fafafa; color: #1b1b1b; }
+  header, footer {
+    padding: 72px 48px;
+    text-align: center;
+    color: white;
+    font-size: 64px;
+    font-weight: 800;
+    letter-spacing: 4px;
+  }
+  header { background: #0055ff; }
+  footer { background: #c70039; }
+  main { padding: 48px; }
+  .row {
+    margin: 18px 0;
+    padding: 28px 32px;
+    background: white;
+    border-left: 10px solid #ccc;
+    border-radius: 6px;
+    font-size: 22px;
+  }
+  .row.odd { border-left-color: #999; }
+</style>
+</head>
+<body>
+  <header>TOP MARKER — MIDSCENE SCROLL TEST</header>
+  <main id="body">
+    <!-- 120 rows gives plenty of scroll distance; each row renders at ~90px -->
+  </main>
+  <footer>BOTTOM MARKER — MIDSCENE SCROLL TEST</footer>
+  <script>
+    const main = document.getElementById('body');
+    for (let i = 1; i <= 120; i++) {
+      const row = document.createElement('div');
+      row.className = 'row' + (i % 2 ? ' odd' : '');
+      row.textContent = 'Row ' + i + ' of 120 — scroll body content';
+      main.appendChild(row);
+    }
+  </script>
+</body>
+</html>
