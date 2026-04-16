@@ -1,10 +1,17 @@
+import { useStudioTheme } from '../../theme/ThemeProvider';
 import SettingItem from './SettingItem';
+
+const THEME_LABELS: Record<string, string> = {
+  light: 'Light',
+  dark: 'Dark',
+  system: 'System',
+};
 
 function ChevronIcon() {
   return (
     <svg
       aria-hidden="true"
-      className="h-[12px] w-[12px] text-[#474848]"
+      className="h-[12px] w-[12px] text-text-secondary"
       fill="none"
       viewBox="0 0 12 12"
     >
@@ -23,7 +30,7 @@ function ExternalLinkIcon() {
   return (
     <svg
       aria-hidden="true"
-      className="h-[12px] w-[12px] text-[#474848]"
+      className="h-[12px] w-[12px] text-text-secondary"
       fill="none"
       viewBox="0 0 12 12"
     >
@@ -60,7 +67,6 @@ export interface SettingsPanelProps {
   onLanguageClick?: () => void;
   onThemeClick?: () => void;
   onWebsiteClick?: () => void;
-  theme?: string;
 }
 
 export default function SettingsPanel({
@@ -71,10 +77,10 @@ export default function SettingsPanel({
   onLanguageClick,
   onThemeClick,
   onWebsiteClick,
-  theme = 'Light',
 }: SettingsPanelProps) {
+  const { mode, cycleMode } = useStudioTheme();
   const panelClassName = [
-    'flex h-[220px] w-[244px] flex-col overflow-hidden rounded-[12px] border border-[#E9EDF3] bg-white p-[6px] shadow-lg',
+    'flex h-[220px] w-[244px] flex-col overflow-hidden rounded-[12px] border border-border-subtle bg-surface-elevated p-[6px] shadow-lg',
     className,
   ]
     .filter(Boolean)
@@ -91,13 +97,13 @@ export default function SettingsPanel({
         />
         <SettingItem
           label="Theme"
-          onClick={onThemeClick}
+          onClick={cycleMode}
           trailingIcon={<ChevronIcon />}
-          value={theme}
+          value={THEME_LABELS[mode]}
         />
       </div>
 
-      <div className="my-[4px] h-px w-full bg-black/8" />
+      <div className="my-[4px] h-px w-full bg-divider" />
 
       <div className="flex flex-col">
         <SettingItem
@@ -112,7 +118,7 @@ export default function SettingsPanel({
         />
       </div>
 
-      <div className="my-[4px] h-px w-full bg-black/8" />
+      <div className="my-[4px] h-px w-full bg-divider" />
 
       <div className="flex flex-col">
         <SettingItem

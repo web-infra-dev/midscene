@@ -15,16 +15,16 @@ export default function SettingItem({
 }: SettingItemProps) {
   return (
     <button
-      className="flex h-[32px] w-full cursor-pointer items-center justify-between rounded-[10px] border-0 bg-transparent px-[8px] text-left hover:bg-gray-50"
+      className="flex h-[32px] w-full cursor-pointer items-center justify-between rounded-[10px] border-0 bg-transparent px-[8px] text-left hover:bg-surface-hover"
       onClick={onClick}
       type="button"
     >
-      <span className="overflow-hidden whitespace-nowrap font-['PingFang_SC'] text-[13px] leading-[22px] text-[#474848]">
+      <span className="overflow-hidden whitespace-nowrap font-['PingFang_SC'] text-[13px] leading-[22px] text-text-secondary">
         {label}
       </span>
       <div className="flex items-center gap-[12px]">
         {value ? (
-          <span className="overflow-hidden whitespace-nowrap font-['PingFang_SC'] text-[13px] leading-[22px] text-[#474848]">
+          <span className="overflow-hidden whitespace-nowrap font-['PingFang_SC'] text-[13px] leading-[22px] text-text-secondary">
             {value}
           </span>
         ) : null}

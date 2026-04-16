@@ -1,13 +1,19 @@
 import './App.css';
 import { ShellLayout } from './components';
 import { StudioPlaygroundProvider } from './playground/StudioPlaygroundProvider';
+import { StudioAntdProvider } from './theme/StudioAntdProvider';
+import { ThemeProvider } from './theme/ThemeProvider';
 
 export default function App() {
   return (
-    <div className="h-full w-full overflow-hidden bg-[#F6F6F6] text-slate-900">
-      <StudioPlaygroundProvider>
-        <ShellLayout />
-      </StudioPlaygroundProvider>
-    </div>
+    <ThemeProvider>
+      <StudioAntdProvider>
+        <div className="h-full w-full overflow-hidden bg-app-bg text-text-primary">
+          <StudioPlaygroundProvider>
+            <ShellLayout />
+          </StudioPlaygroundProvider>
+        </div>
+      </StudioAntdProvider>
+    </ThemeProvider>
   );
 }

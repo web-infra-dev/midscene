@@ -33,7 +33,7 @@ function SidebarToggleButton({
   return (
     <button
       aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-[#474848] hover:bg-black/5"
+      className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-text-secondary hover:bg-surface-hover"
       onClick={onToggle}
       type="button"
     >
@@ -102,7 +102,7 @@ export default function ShellLayout() {
   }, [settingsOpen, closeSettings]);
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[#F6F6F6] font-sans">
+    <div className="relative h-full w-full overflow-hidden bg-app-bg font-sans">
       {!collapsed && (
         <div className="absolute left-0 top-0 h-full w-[240px]">
           <div className="absolute right-[12px] top-[18px]">
@@ -155,7 +155,7 @@ export default function ShellLayout() {
       )}
 
       <div
-        className={`absolute bottom-[4px] right-[4px] top-[4px] flex rounded-[12px] bg-white ${
+        className={`absolute bottom-[4px] right-[4px] top-[4px] flex rounded-[12px] bg-surface ${
           collapsed ? 'left-[4px]' : 'left-[240px]'
         }`}
       >

@@ -70,7 +70,7 @@ function OverviewToolbar({
     <div className="absolute right-[16px] top-[12px] z-10 flex items-center gap-[8px]">
       <button
         aria-label="Refresh devices"
-        className="flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border border-[#ECECEC] bg-white text-black/70 transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border border-border-subtle bg-surface text-text-secondary transition-colors hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60"
         disabled={refreshing}
         onClick={onRefresh}
         type="button"
@@ -96,7 +96,7 @@ function OverviewEmptyState({ onAction }: { onAction?: () => void }) {
       </div>
 
       <button
-        className="flex h-[32px] w-[117px] cursor-pointer items-center justify-center rounded-[8px] border-0 bg-[#ebedef] p-0 transition-colors hover:bg-[#e2e4e6] active:bg-[#d8dadc]"
+        className="flex h-[32px] w-[117px] cursor-pointer items-center justify-center rounded-[8px] border-0 bg-surface-muted p-0 transition-colors hover:bg-surface-hover-strong active:bg-surface-active"
         onClick={onAction}
         type="button"
       >
@@ -169,7 +169,7 @@ export default function MainContent({
   if (activeView === 'overview') {
     if (!envConfigured) {
       return (
-        <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-l-[12px] border-r border-[#ECECEC] bg-white">
+        <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-l-[12px] border-r border-border-subtle bg-surface">
           <div className="flex h-full w-full items-center justify-center">
             <OverviewEmptyState
               onAction={onOpenModelConfig ?? onOpenSettings}
@@ -193,7 +193,7 @@ export default function MainContent({
         : undefined;
 
     return (
-      <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-l-[12px] border-r border-[#ECECEC] bg-white">
+      <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-l-[12px] border-r border-border-subtle bg-surface">
         <OverviewToolbar
           onRefresh={async () => {
             if (!isReady || overviewRefreshing) {
@@ -238,44 +238,44 @@ export default function MainContent({
   }
 
   return (
-    <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-l-[12px] border-r border-[#ECECEC] bg-white">
+    <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-l-[12px] border-r border-border-subtle bg-surface">
       <div
         className={`flex h-[52px] items-center pr-4 ${
           headerOffsetClass || 'pl-[8px]'
         }`}
       >
         <div className="flex items-center">
-          <div className="ml-[8px] flex h-6 w-6 items-center justify-center rounded-[3.6px] bg-white">
+          <div className="ml-[8px] flex h-6 w-6 items-center justify-center rounded-[3.6px] bg-surface">
             <img alt="" className="h-[21.6px]" src={assetUrls.main.device} />
           </div>
-          <span className="ml-[8px] w-[134px] overflow-hidden whitespace-nowrap text-[13px] leading-[22.1px] font-medium text-[#0D0D0D]">
+          <span className="ml-[8px] w-[134px] overflow-hidden whitespace-nowrap text-[13px] leading-[22.1px] font-medium text-text-primary">
             {deviceLabel}
           </span>
           <div
             className={`ml-[8px] flex h-[28px] items-center gap-[8.04px] rounded-[16.07px] px-[10px] ${
               previewConnectionFailed
-                ? 'bg-[#F7ECEB]'
+                ? 'bg-status-error-bg'
                 : isConnected
-                  ? 'bg-[#E5FFF4]'
-                  : 'bg-[#F0F2F5]'
+                  ? 'bg-status-success-bg'
+                  : 'bg-surface-muted'
             }`}
           >
             <div
-              className={`h-2 w-2 rounded-full border-2 ${
+              className={`h-2 w-2 rounded-full border-2 border-transparent ${
                 previewConnectionFailed
-                  ? 'border-[#F0B7B3] bg-[#E13E37]'
+                  ? 'bg-status-error'
                   : isConnected
-                    ? 'border-[#ADECD0] bg-[#12B981]'
-                    : 'border-[#D9D9D9] bg-[#B6B6B6]'
+                    ? 'bg-status-success'
+                    : 'bg-status-idle'
               }`}
             />
             <span
               className={`text-[12.1px] leading-[12.1px] font-medium ${
                 previewConnectionFailed
-                  ? 'text-[#E13E37]'
+                  ? 'text-status-error'
                   : isConnected
-                    ? 'text-[#079669]'
-                    : 'text-[#6B7280]'
+                    ? 'text-status-success-fg'
+                    : 'text-text-tertiary'
               }`}
             >
               {connectionStatusLabel}
@@ -285,9 +285,9 @@ export default function MainContent({
 
         <div className="flex flex-1 justify-end gap-[8.04px]">
           <button
-            className={`flex h-8 items-center rounded-lg border border-[#ECECEC] px-3 ${
+            className={`flex h-8 items-center rounded-lg border border-border-subtle px-3 ${
               isConnected
-                ? 'bg-white shadow-[0_1px_2px_rgba(15,23,42,0.06)]'
+                ? 'bg-surface shadow-[0_1px_2px_rgba(15,23,42,0.06)]'
                 : 'bg-transparent'
             } ${disconnectDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
             disabled={disconnectDisabled}
@@ -305,36 +305,36 @@ export default function MainContent({
               className="mr-[5px] h-3.5 w-3.5"
               src={assetUrls.main.disconnect}
             />
-            <span className="whitespace-nowrap px-[3px] text-[13px] leading-[20px] font-medium text-black/90">
+            <span className="whitespace-nowrap px-[3px] text-[13px] leading-[20px] font-medium text-text-primary">
               Disconnect
             </span>
           </button>
           <button
-            className="flex h-8 items-center gap-[4.02px] rounded-lg border border-[#ECECEC] bg-[#F0F2F5] px-3"
+            className="flex h-8 items-center gap-[4.02px] rounded-lg border border-border-subtle bg-surface-muted px-3"
             type="button"
           >
             <div className="flex h-4 w-4 items-center">
               <img alt="" className="h-4 w-4" src={assetUrls.main.chat} />
             </div>
-            <span className="overflow-hidden whitespace-nowrap text-[13px] leading-[20px] font-medium text-black/90">
+            <span className="overflow-hidden whitespace-nowrap text-[13px] leading-[20px] font-medium text-text-primary">
               Chat
             </span>
           </button>
         </div>
       </div>
 
-      <div className="relative min-h-0 flex-1 overflow-hidden bg-white">
+      <div className="relative min-h-0 flex-1 overflow-hidden bg-surface">
         {studioPlayground.phase === 'booting' ? (
-          <div className="flex h-full items-center justify-center px-6 text-[14px] text-black/60">
+          <div className="flex h-full items-center justify-center px-6 text-[14px] text-text-tertiary">
             Android playground starting...
           </div>
         ) : studioPlayground.phase === 'error' ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">
-            <div className="max-w-[420px] text-[14px] leading-[22px] text-black/70">
+            <div className="max-w-[420px] text-[14px] leading-[22px] text-text-secondary">
               {studioPlayground.error}
             </div>
             <button
-              className="rounded-lg border border-[#ECECEC] px-4 py-2 text-[13px] font-medium text-black/90"
+              className="rounded-lg border border-border-subtle px-4 py-2 text-[13px] font-medium text-text-primary"
               onClick={() => {
                 void studioPlayground.restartAndroidPlayground();
               }}
@@ -344,7 +344,7 @@ export default function MainContent({
             </button>
           </div>
         ) : !studioPlayground.controller.state.serverOnline ? (
-          <div className="flex h-full items-center justify-center px-8 text-center text-[14px] leading-[22px] text-black/60">
+          <div className="flex h-full items-center justify-center px-8 text-center text-[14px] leading-[22px] text-text-tertiary">
             Android playground server is offline.
           </div>
         ) : studioPlayground.controller.state.sessionViewState.connected ? (

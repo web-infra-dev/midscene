@@ -25,6 +25,21 @@ export interface ModelEnvConfigModalProps {
 
 const TEXT_PLACEHOLDER = 'OPENAI_API_KEY=sk-...\nMIDSCENE_MODEL=';
 
+const STATUS_BANNER_PALETTE = {
+  running: {
+    color: 'var(--midscene-status-info)',
+    background: 'var(--midscene-status-info-bg)',
+  },
+  success: {
+    color: 'var(--midscene-status-success-fg)',
+    background: 'var(--midscene-status-success-bg)',
+  },
+  error: {
+    color: 'var(--midscene-status-error)',
+    background: 'var(--midscene-status-error-bg)',
+  },
+} as const;
+
 function CloseIcon() {
   return (
     <svg
@@ -111,22 +126,19 @@ export function ModelEnvConfigModal({
   const statusBanner = useMemo(() => {
     if (testStatus.kind === 'running') {
       return {
-        color: '#2B84FF',
-        background: 'rgba(43,132,255,0.10)',
+        ...STATUS_BANNER_PALETTE.running,
         message: 'Running connectivity test...',
       };
     }
     if (testStatus.kind === 'success') {
       return {
-        color: '#12B981',
-        background: 'rgba(18,185,129,0.12)',
+        ...STATUS_BANNER_PALETTE.success,
         message: `Connectivity test passed: "${testStatus.sample.slice(0, 80)}"`,
       };
     }
     if (testStatus.kind === 'error') {
       return {
-        color: '#E13E37',
-        background: 'rgba(225,62,55,0.10)',
+        ...STATUS_BANNER_PALETTE.error,
         message: testStatus.message,
       };
     }
@@ -181,16 +193,16 @@ export function ModelEnvConfigModal({
       role="dialog"
     >
       <div
-        className="relative flex w-[400px] flex-col overflow-hidden rounded-[16px] bg-white shadow-lg"
+        className="relative flex w-[400px] flex-col overflow-hidden rounded-[16px] bg-surface-elevated shadow-lg"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between px-[20px] pb-[16px] pt-[20px]">
-          <span className="font-['Inter'] text-[16px] font-semibold leading-[24px] text-black">
+          <span className="font-['Inter'] text-[16px] font-semibold leading-[24px] text-text-primary">
             Model Env Config
           </span>
           <button
             aria-label="Close"
-            className="flex h-4 w-4 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-black/60 hover:text-black"
+            className="flex h-4 w-4 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-text-tertiary hover:text-text-primary"
             onClick={onClose}
             type="button"
           >
@@ -199,12 +211,12 @@ export function ModelEnvConfigModal({
         </div>
 
         <div className="px-[20px]">
-          <div className="flex h-[36px] w-[146px] items-center rounded-[12px] bg-[#F2F4F7] p-[2px]">
+          <div className="flex h-[36px] w-[146px] items-center rounded-[12px] bg-surface-muted p-[2px]">
             <button
               className={`flex h-full flex-1 cursor-pointer items-center justify-center rounded-[10px] border-0 text-[14px] font-['Inter'] ${
                 tab === 'text'
-                  ? 'bg-white font-medium text-black shadow-sm'
-                  : 'bg-transparent font-normal text-black/70'
+                  ? 'bg-surface-elevated font-medium text-text-primary shadow-sm'
+                  : 'bg-transparent font-normal text-text-secondary'
               }`}
               onClick={() => setTab('text')}
               type="button"
@@ -214,8 +226,8 @@ export function ModelEnvConfigModal({
             <button
               className={`flex h-full flex-1 cursor-pointer items-center justify-center rounded-[10px] border-0 text-[14px] font-['Inter'] ${
                 tab === 'form'
-                  ? 'bg-white font-medium text-black shadow-sm'
-                  : 'bg-transparent font-normal text-black/70'
+                  ? 'bg-surface-elevated font-medium text-text-primary shadow-sm'
+                  : 'bg-transparent font-normal text-text-secondary'
               }`}
               onClick={() => setTab('form')}
               type="button"
@@ -228,14 +240,14 @@ export function ModelEnvConfigModal({
         <div className="mt-[16px] px-[20px]">
           {tab === 'text' ? (
             <textarea
-              className="box-border h-[162px] w-full resize-none rounded-[12px] border-0 bg-[#F2F4F7] p-[12px] font-['Inter'] text-[14px] leading-[20px] text-black placeholder:text-black/35 outline-none"
+              className="box-border h-[162px] w-full resize-none rounded-[12px] border-0 bg-surface-muted p-[12px] font-['Inter'] text-[14px] leading-[20px] text-text-primary placeholder:text-text-placeholder outline-none"
               onChange={(event) => setText(event.target.value)}
               placeholder={TEXT_PLACEHOLDER}
               value={text}
               wrap="off"
             />
           ) : formEntries.length === 0 ? (
-            <div className="flex h-[162px] items-center justify-center rounded-[12px] bg-[#F2F4F7] text-[13px] text-black/50">
+            <div className="flex h-[162px] items-center justify-center rounded-[12px] bg-surface-muted text-[13px] text-text-tertiary">
               Add KEY=VALUE lines in the Text tab to populate fields here.
             </div>
           ) : (
@@ -247,22 +259,22 @@ export function ModelEnvConfigModal({
                 >
                   <input
                     aria-label={`${entry.key} key`}
-                    className="box-border w-full border-0 bg-transparent font-['PingFang_SC'] text-[14px] leading-[19.6px] text-black/90 outline-none"
+                    className="box-border w-full border-0 bg-transparent font-['PingFang_SC'] text-[14px] leading-[19.6px] text-text-primary outline-none"
                     onChange={(event) =>
                       updateFormEntry(index, { key: event.target.value })
                     }
                     value={entry.key}
                   />
-                  <div className="box-border flex min-h-[36px] items-center justify-between rounded-[8px] bg-[#F2F4F7] px-[12px] py-[8px]">
+                  <div className="box-border flex min-h-[36px] items-center justify-between rounded-[8px] bg-surface-muted px-[12px] py-[8px]">
                     <input
                       aria-label={`${entry.key} value`}
-                      className="box-border w-full flex-1 border-0 bg-transparent font-['Inter'] text-[14px] leading-[16.9px] text-black outline-none"
+                      className="box-border w-full flex-1 border-0 bg-transparent font-['Inter'] text-[14px] leading-[16.9px] text-text-primary outline-none"
                       onChange={(event) =>
                         updateFormEntry(index, { value: event.target.value })
                       }
                       value={entry.value}
                     />
-                    <div className="ml-2 flex h-4 w-4 shrink-0 items-center justify-center text-black/60">
+                    <div className="ml-2 flex h-4 w-4 shrink-0 items-center justify-center text-text-tertiary">
                       <ChevronIcon />
                     </div>
                   </div>
@@ -273,10 +285,10 @@ export function ModelEnvConfigModal({
         </div>
 
         <div className="mt-[12px] px-[20px]">
-          <p className="font-['Inter'] text-[12px] leading-[14.5px] text-black/65">
+          <p className="font-['Inter'] text-[12px] leading-[14.5px] text-text-secondary">
             The format is KEY=VALUE and separated by new lines. These data will
             be saved{' '}
-            <span className="font-bold text-black">
+            <span className="font-bold text-text-primary">
               locally in your browser
             </span>
             .
@@ -304,7 +316,7 @@ export function ModelEnvConfigModal({
 
         <div className="mt-[24px] flex items-center justify-between px-[20px] pb-[20px]">
           <button
-            className="flex h-[32px] w-[159px] cursor-pointer items-center justify-center gap-[6px] rounded-[8px] border border-black/12 bg-white px-[12px] text-black hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex h-[32px] w-[159px] cursor-pointer items-center justify-center gap-[6px] rounded-[8px] border border-border-strong bg-surface-elevated px-[12px] text-text-primary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60"
             disabled={testStatus.kind === 'running'}
             onClick={handleConnectivityTest}
             type="button"
@@ -319,16 +331,16 @@ export function ModelEnvConfigModal({
 
           <div className="flex items-center gap-[8px]">
             <button
-              className="flex h-[32px] w-[76px] cursor-pointer items-center justify-center rounded-[8px] border-0 bg-[#F0F2F5] hover:bg-gray-200"
+              className="flex h-[32px] w-[76px] cursor-pointer items-center justify-center rounded-[8px] border-0 bg-surface-muted hover:bg-surface-hover-strong"
               onClick={onClose}
               type="button"
             >
-              <span className="font-['Inter'] text-[14px] font-medium leading-[16px] text-black/70">
+              <span className="font-['Inter'] text-[14px] font-medium leading-[16px] text-text-secondary">
                 Cancel
               </span>
             </button>
             <button
-              className="flex h-[32px] w-[76px] cursor-pointer items-center justify-center rounded-[8px] border-0 bg-[#2B84FF] hover:bg-blue-600"
+              className="flex h-[32px] w-[76px] cursor-pointer items-center justify-center rounded-[8px] border-0 bg-brand hover:opacity-90"
               onClick={() => onSave?.({ text })}
               type="button"
             >

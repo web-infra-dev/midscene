@@ -5,7 +5,7 @@
   align-items: center;
   justify-content: flex-start;
   padding: 0 56px;
-  background: #fff;
+  background: var(--midscene-surface, #fff);
 }
 
 .session-setup-card {
@@ -31,7 +31,7 @@
   font-size: 18px;
   font-weight: 600;
   line-height: 22px;
-  color: #000;
+  color: var(--midscene-text-primary, #000);
   text-align: center;
   white-space: pre-line;
 }
@@ -43,7 +43,7 @@
   font-size: 12px;
   font-weight: 400;
   line-height: 20px;
-  color: rgba(0, 0, 0, 0.7);
+  color: var(--midscene-text-secondary, rgba(0, 0, 0, 0.7));
   text-align: center;
 }
 
@@ -70,18 +70,18 @@
     font-size: 12px;
     font-weight: 500;
     line-height: 14.5px;
-    color: rgba(0, 0, 0, 0.5);
+    color: var(--midscene-text-tertiary, rgba(0, 0, 0, 0.5));
   }
 
   .ant-form-item-label > label.ant-form-item-required::before {
-    color: rgba(0, 0, 0, 0.5);
+    color: var(--midscene-text-tertiary, rgba(0, 0, 0, 0.5));
     margin-inline-end: 2px;
   }
 
   .ant-select-single .ant-select-selector {
     height: 36px;
     padding: 0 12px;
-    background: #f2f4f7;
+    background: var(--midscene-surface-muted, #f2f4f7);
     border: none;
     border-radius: 8px;
     box-shadow: none;
@@ -95,11 +95,11 @@
     font-family: Inter, system-ui, sans-serif;
     font-size: 14px;
     font-weight: 400;
-    color: #000;
+    color: var(--midscene-text-primary, #000);
   }
 
   .ant-select-single .ant-select-selector .ant-select-selection-placeholder {
-    color: rgba(0, 0, 0, 0.4);
+    color: var(--midscene-text-placeholder, rgba(0, 0, 0, 0.4));
   }
 
   .ant-select-arrow {
@@ -109,13 +109,13 @@
   .ant-input,
   .ant-input-number {
     height: 36px;
-    background: #f2f4f7;
+    background: var(--midscene-surface-muted, #f2f4f7);
     border: none;
     border-radius: 8px;
     box-shadow: none;
     font-family: Inter, system-ui, sans-serif;
     font-size: 14px;
-    color: #000;
+    color: var(--midscene-text-primary, #000);
   }
 
   .ant-input-number-input {
@@ -136,7 +136,7 @@
   height: 32px;
   border: 0;
   border-radius: 8px;
-  background: #1979ff;
+  background: var(--midscene-brand, #1979ff);
   color: #f2f4f7;
   font-family: Inter, system-ui, sans-serif;
   font-size: 14px;

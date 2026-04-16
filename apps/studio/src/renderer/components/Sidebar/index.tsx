@@ -38,7 +38,7 @@ function SectionChevron({ expanded }: { expanded: boolean }) {
   return (
     <svg
       aria-hidden="true"
-      className={`transition-transform ${expanded ? 'rotate-180' : ''}`}
+      className={`text-text-tertiary transition-transform ${expanded ? 'rotate-180' : ''}`}
       fill="none"
       height="16"
       viewBox="0 0 16 16"
@@ -46,7 +46,7 @@ function SectionChevron({ expanded }: { expanded: boolean }) {
     >
       <path
         d="M12 10L8 6L4 10"
-        stroke="#797A7A"
+        stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -67,7 +67,7 @@ function SectionHeader({
 }) {
   return (
     <button
-      className="relative h-8 w-full appearance-none rounded-lg border-0 bg-transparent p-0 text-left hover:bg-black/5"
+      className="relative h-8 w-full appearance-none rounded-lg border-0 bg-transparent p-0 text-left hover:bg-surface-hover"
       onClick={onClick}
       type="button"
     >
@@ -80,7 +80,7 @@ function SectionHeader({
       ) : (
         <div className="absolute left-[15px] top-[8px] h-4 w-4" />
       )}
-      <span className="absolute left-[40px] top-[5px] text-[13px] leading-[22px] font-medium text-[#474848]">
+      <span className="absolute left-[40px] top-[5px] text-[13px] leading-[22px] font-medium text-text-secondary">
         {label}
       </span>
       <div className="absolute left-[204px] top-0 flex h-full w-4 items-center justify-center">
@@ -102,8 +102,8 @@ function DeviceRow({
     <button
       className={`relative h-8 w-full cursor-pointer appearance-none rounded-[10px] border-0 bg-transparent p-0 text-left transition-colors ${
         selected
-          ? 'bg-black/8 hover:bg-black/10'
-          : 'hover:bg-black/6 active:bg-black/10'
+          ? 'bg-surface-hover-strong hover:bg-surface-active'
+          : 'hover:bg-surface-hover active:bg-surface-active'
       }`}
       onClick={onClick}
       type="button"
@@ -111,8 +111,8 @@ function DeviceRow({
       <span
         className={`absolute left-[40px] w-[158px] overflow-hidden whitespace-nowrap text-[13px] ${
           selected
-            ? 'top-[4.5px] font-medium leading-[22.1px] text-[#0D0D0D]'
-            : 'top-[8px] font-normal leading-[15.7px] text-[#474848]'
+            ? 'top-[4.5px] font-medium leading-[22.1px] text-text-primary'
+            : 'top-[8px] font-normal leading-[15.7px] text-text-secondary'
         }`}
       >
         {label}
@@ -120,7 +120,7 @@ function DeviceRow({
       <div className="absolute left-[204px] top-[8px] flex h-4 w-4 items-center justify-center">
         <div
           className={`h-[6px] w-[6px] rounded-full ${
-            status === 'active' ? 'bg-[#12B981]' : 'bg-[#B6B6B6]'
+            status === 'active' ? 'bg-status-success' : 'bg-status-idle'
           }`}
         />
       </div>
@@ -131,7 +131,7 @@ function DeviceRow({
 function EmptyDeviceRow() {
   return (
     <div className="relative h-8 w-full rounded-lg">
-      <span className="absolute left-[40px] top-[8px] overflow-hidden whitespace-nowrap text-[12px] font-normal leading-[15.7px] text-[#9D9FA0]">
+      <span className="absolute left-[40px] top-[8px] overflow-hidden whitespace-nowrap text-[12px] font-normal leading-[15.7px] text-text-tertiary">
         No devices
       </span>
     </div>
@@ -255,7 +255,7 @@ export default function Sidebar({
         className={`relative h-8 w-full appearance-none border-0 p-0 text-left ${
           overviewActive
             ? 'rounded-[10px] bg-black/5'
-            : 'rounded-lg bg-transparent hover:bg-black/5'
+            : 'rounded-lg bg-transparent hover:bg-surface-hover'
         }`}
         onClick={onSelectOverview}
         type="button"
@@ -265,17 +265,17 @@ export default function Sidebar({
           className="absolute left-[12px] top-[8px] h-4 w-4"
           src={assetUrls.sidebar.overview}
         />
-        <span className="absolute left-[40px] top-[5px] overflow-hidden whitespace-nowrap text-[13px] leading-[22px] font-medium text-[#474848]">
+        <span className="absolute left-[40px] top-[5px] overflow-hidden whitespace-nowrap text-[13px] leading-[22px] font-medium text-text-secondary">
           Device overview
         </span>
-        <span className="absolute right-[12px] top-[6px] font-['PingFang_SC'] text-[11px] font-normal leading-[20px] text-[#797A7A]">
+        <span className="absolute right-[12px] top-[6px] font-['PingFang_SC'] text-[11px] font-normal leading-[20px] text-text-tertiary">
           {totalDeviceCount}
         </span>
       </button>
 
       <div className="mt-1 flex flex-col">
         <div className="relative h-8 w-full">
-          <span className="absolute left-[12px] top-[5px] overflow-hidden whitespace-nowrap text-[13px] font-medium leading-[22px] text-[#9D9FA0]">
+          <span className="absolute left-[12px] top-[5px] overflow-hidden whitespace-nowrap text-[13px] font-medium leading-[22px] text-text-tertiary">
             Platform
           </span>
         </div>
