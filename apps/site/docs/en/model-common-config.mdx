@@ -74,65 +74,39 @@ MIDSCENE_MODEL_FAMILY="doubao-seed" # "doubao-vision" is also supported
 # Optional: control reasoning effort (low, medium, high)
 # MIDSCENE_MODEL_REASONING_EFFORT="medium"
 ```
-### Qwen3.6 {#qwen36}
+### Qwen3.X Series {#qwen3x}
 
-Using Alibaba Cloud's `qwen3.6-plus` as an example. It is recommended to disable the platform's default thinking mode to improve execution speed, the environment variable configuration is as follows:
+Qwen3.5 and Qwen3.6 are currently supported in the Qwen3.X series.
+
+Using Alibaba Cloud's `qwen3.5-plus` as an example. It is recommended to disable the platform's default thinking mode to improve execution speed:
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen3.6-plus"
-MIDSCENE_MODEL_FAMILY="qwen3.6"
+MIDSCENE_MODEL_NAME="qwen3.5-plus" # For Qwen3.6, use "qwen3.6-plus"
+MIDSCENE_MODEL_FAMILY="qwen3.5" # For Qwen3.6, use "qwen3.6"
 MIDSCENE_MODEL_REASONING_ENABLED="false"
 ```
 
-To enable thinking mode, remove the `MIDSCENE_MODEL_REASONING_ENABLED="false"` line and add `MIDSCENE_MODEL_REASONING_BUDGET="500"` to control thinking cost.
+To enable thinking mode, set `MIDSCENE_MODEL_REASONING_ENABLED="true"` and add `MIDSCENE_MODEL_REASONING_BUDGET="500"` to control thinking cost.
 
-You can also use Qwen3.6 from [OpenRouter](https://openrouter.ai/qwen).
+### Zhipu GLM-V Series {#glm-v}
 
-### Qwen3.5 {#qwen35}
+Zhipu GLM-V is a vision understanding model from Zhipu AI. The latest versions include `GLM-4.6V` (open-source) and `GLM-5V-Turbo`.
 
-Using Alibaba Cloud's `qwen3.5-plus` as an example. It is recommended to disable the platform's default thinking mode to improve execution speed, the environment variable configuration is as follows:
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen3.5-plus"
-MIDSCENE_MODEL_FAMILY="qwen3.5"
-MIDSCENE_MODEL_REASONING_ENABLED="false"
-```
-
-To enable thinking mode, remove the `MIDSCENE_MODEL_REASONING_ENABLED="false"` line and add `MIDSCENE_MODEL_REASONING_BUDGET="500"` to control thinking cost.
-
-You can also use Qwen3.5 from [OpenRouter](https://openrouter.ai/qwen).
-
-### Qwen3-VL {#qwen3-vl}
-
-Using Alibaba Cloud's `qwen3-vl-plus` as an example:
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen3-vl-plus"
-MIDSCENE_MODEL_FAMILY="qwen3-vl"
-```
-
-You can also use Qwen3-VL from [OpenRouter](https://openrouter.ai/qwen).
-
-### Zhipu GLM-V {#glm-v}
-
-Zhipu GLM-V is an open-source vision model from Zhipu AI. Using `GLM-4.6V` as an example:
+It is recommended to disable the platform's default thinking mode to improve execution speed. Using `GLM-4.6V` as an example:
 
 Obtain an API key from [Z.AI (Global)](https://z.ai/manage-apikey/apikey-list) or [BigModel (CN)](https://bigmodel.cn/usercenter/proj-mgmt/apikeys), and set:
 
 ```bash
-MIDSCENE_MODEL_BASE_URL="https://api.z.ai/api/paas/v4" # Or https://open.bigmodel.cn/api/paas/v4
+MIDSCENE_MODEL_BASE_URL="https://open.bigmodel.cn/api/paas/v4" # Or https://api.z.ai/api/paas/v4
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="glm-4.6v"
+MIDSCENE_MODEL_NAME="glm-4.6v" # For GLM-5V-Turbo, use "glm-5v-turbo"
 MIDSCENE_MODEL_FAMILY="glm-v"
+MIDSCENE_MODEL_REASONING_ENABLED="false"
 ```
 
-**Learn more about Zhipu GLM-V**
+**Learn more about the open-source Zhipu GLM-V model**
 
 - Github: [https://github.com/zai-org/GLM-V](https://github.com/zai-org/GLM-V)
 - Hugging Face: [https://huggingface.co/zai-org/GLM-4.6V](https://huggingface.co/zai-org/GLM-4.6V)
@@ -168,14 +142,14 @@ AutoGLM is best suited for mobile interactions and operations. If you need to us
 - Github: [https://github.com/zai-org/Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM)
 - Hugging Face: [https://huggingface.co/zai-org/AutoGLM-Phone-9B](https://huggingface.co/zai-org/AutoGLM-Phone-9B)
 
-### Gemini-3-Pro and Gemini-3-Flash {#gemini-3-pro}
+### Gemini-3-Flash {#gemini-3-pro}
 
-After requesting an API key from [Google Gemini](https://gemini.google.com/), configure. Use your specific Gemini-3-Pro or Gemini-3-Flash release name for `MIDSCENE_MODEL_NAME`:
+After requesting an API key from [Google Gemini](https://gemini.google.com/), configure. Use your specific Gemini-3-Flash release name for `MIDSCENE_MODEL_NAME`:
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="gemini-3.0-pro-preview" # Or a gemini-3-flash release name
+MIDSCENE_MODEL_NAME="gemini-3-flash" # Or a specific Gemini-3-Flash release name
 MIDSCENE_MODEL_FAMILY="gemini"
 ```
 
@@ -197,6 +171,21 @@ MIDSCENE_MODEL_FAMILY="gpt-5"
 - In the computer use guide, OpenAI says they observe good performance around `1440x900` and `1600x900`. We recommend adjusting screenshot sizes accordingly. In Midscene, you can control screenshot compression with `screenshotShrinkFactor` in the agent options. For browser automation, you can also control the page size and scale through the browser `viewport`.
 
 :::
+
+## Other Models
+
+### Qwen3-VL {#qwen3-vl}
+
+Using Alibaba Cloud's `qwen3-vl-plus` as an example:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen3-vl-plus"
+MIDSCENE_MODEL_FAMILY="qwen3-vl"
+```
+
+You can also use Qwen3-VL from [OpenRouter](https://openrouter.ai/qwen).
 
 ### Qwen2.5-VL (Not recommended) {#qwen25-vl}
 
@@ -243,28 +232,28 @@ Migration mapping:
 
 Starting with version 1.0, Midscene no longer supports GPT-4o as the planning model for UI operations. See [Model strategy](./model-strategy) for details.
 
-## Multi-model example: GPT-5.1 planning/insight + Qwen3-VL for vision {#gpt51-planning-insight-qwen3}
+## Multi-model example: GPT-5.4 for planning/insight + Qwen 3.5 for visual grounding {#gpt54-planning-insight-qwen35}
 
 For more information on combining multiple models, see [Advanced: Combining Multiple Models](./model-strategy#advanced-combining-multiple-models).
 
-Below is an example using GPT-5.1 for Planning/Insight and Qwen3-VL for vision. Use GPT-5.1 for Planning and/or Insight to handle heavy reasoning, while Qwen3-VL focuses on visual grounding. You can enable either role or both—toggle them based on your workload.
+Below is an example using GPT-5.4 for Planning/Insight and Qwen 3.5 for vision. Use GPT-5.4 for Planning and/or Insight to handle heavy reasoning, while Qwen 3.5 focuses on visual grounding. You can enable either role or both—toggle them based on your workload.
 
 ```bash
-# Default vision model: Qwen3-VL
-export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen3-VL endpoint
-export MIDSCENE_MODEL_API_KEY="..."                # Your Qwen3-VL API key
-export MIDSCENE_MODEL_NAME="qwen3-vl-plus"
-export MIDSCENE_MODEL_FAMILY="qwen3-vl"
+# Default vision model: Qwen 3.5
+export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 endpoint
+export MIDSCENE_MODEL_API_KEY="..."                # Your Qwen 3.5 API key
+export MIDSCENE_MODEL_NAME="qwen3.5-plus"
+export MIDSCENE_MODEL_FAMILY="qwen3.5"
 
-# Planning model: GPT-5.1
-export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # Your GPT-5.1 API key
+# Planning model: GPT-5.4
+export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # Your GPT-5.4 API key
 export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..." 
-export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.1"
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
 
-# Insight model: GPT-5.1
-export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # Your GPT-5.1 API key
+# Insight model: GPT-5.4
+export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # Your GPT-5.4 API key
 export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
-export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.1"
+export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.4"
 ```
 
 ## More
