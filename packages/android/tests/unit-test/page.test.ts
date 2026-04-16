@@ -1262,6 +1262,7 @@ describe('AndroidDevice', () => {
 
         // Verify warning was logged
         expect(warnSpy).toHaveBeenCalledWith(
+          '[Midscene]',
           'Warning: Failed to hide the software keyboard after trying both ESC and BACK keys',
         );
 
@@ -1395,6 +1396,7 @@ describe('AndroidDevice', () => {
         await device.scrollDown(9999999);
 
         expect(console.warn).toHaveBeenCalledWith(
+          '[Midscene]',
           '[midscene] Android ADB swipe coordinates must stay within the screen bounds. The requested scroll distance (9999999px) exceeds the maximum single swipe distance (480px) from the current start point, so it will be clamped. If you want to scroll to the bottom, use scrollToBottom instead.',
         );
       });
@@ -1833,6 +1835,7 @@ describe('AndroidDevice', () => {
         await device.scrollDown(500, startPoint);
 
         expect(console.warn).toHaveBeenCalledWith(
+          '[Midscene]',
           '[midscene] Android ADB swipe coordinates must stay within the screen bounds. The requested scroll distance (500px) exceeds the maximum single swipe distance (100px) from the current start point, so it will be clamped. If you want to scroll to the bottom, use scrollToBottom instead.',
         );
       });

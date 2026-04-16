@@ -68,6 +68,7 @@ const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
 type ScrollDirection = 'up' | 'down' | 'left' | 'right';
 
 const debugDevice = getDebug('android:device');
+const warnDevice = getDebug('android:device', { console: true });
 
 /**
  * Escape text for safe use in shell single-quoted strings.
@@ -396,7 +397,7 @@ export class AndroidDevice implements AbstractInterface {
         );
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.warn(
+        warnDevice(
           `[midscene] Scrcpy unavailable, using ADB fallback (device: ${this.deviceId}): ${msg}`,
         );
       }
@@ -1089,7 +1090,7 @@ ${Object.keys(size)
       right: 'right edge',
     };
 
-    console.warn(
+    warnDevice(
       `[midscene] Android ADB swipe coordinates must stay within the screen bounds. The requested scroll distance (${requestedDistance}px) exceeds the maximum single swipe distance (${appliedDistance}px) from the current start point, so it will be clamped. If you want to scroll to the ${edgeLabel[direction]}, use ${scrollToSuggestion[direction]} instead.`,
     );
   }
@@ -2080,7 +2081,7 @@ ${Object.keys(size)
       );
     }
 
-    console.warn(
+    warnDevice(
       'Warning: Failed to hide the software keyboard after trying both ESC and BACK keys',
     );
     return false;
