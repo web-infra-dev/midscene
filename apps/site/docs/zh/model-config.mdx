@@ -37,7 +37,7 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 
 | 名称 | 描述 |
 |------|-------------|
-| `MIDSCENE_MODEL_TIMEOUT` | AI 接口调用超时时间（毫秒，默认意图），默认使用 OpenAI SDK 默认值（10 分钟）|
+| `MIDSCENE_MODEL_TIMEOUT` | AI 接口调用硬超时（毫秒，默认意图），默认 `180000`（180 秒）。设为 `0` 可禁用硬超时，只有调用方传入的 `AbortSignal` 能取消请求。说明：Midscene 控制的是完整请求生命周期，而不只是首个响应 header 返回的时间，因此即使响应体读取阶段卡住，也能被及时终止 |
 | `MIDSCENE_MODEL_TEMPERATURE` | 模型采样温度 |
 | `MIDSCENE_MODEL_MAX_TOKENS` | 模型响应的 max_tokens 数配置，默认是 2048 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | AI 调用失败时的重试次数，默认 1（即失败后重试 1 次）|
