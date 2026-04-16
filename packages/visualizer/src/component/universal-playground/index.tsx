@@ -270,6 +270,18 @@ export function UniversalPlayground({
     return { firstInProgressGroup: firstIds, visibleInfoList: visible };
   }, [collapsedProgressGroups, collapsibleProgressGroup, infoList]);
 
+  // Precompute the id of the latest progress item once so each renderItem
+  // can do a single string compare instead of re-scanning `infoList` with
+  // `findIndex` + `slice` on every render. On long agent runs that scan was
+  // the dominant cost — O(n) per progress item × N items = O(n²) per state
+  // update, visibly stuttering the UI at 15+ steps.
+  const latestProgressId = useMemo(() => {
+    for (let i = infoList.length - 1; i >= 0; i--) {
+      if (infoList[i].type === 'progress') return infoList[i].id;
+    }
+    return null;
+  }, [infoList]);
+
   return (
     <div className={`playground-container ${layout}-mode ${className}`.trim()}>
       <Form form={form} onFinish={handleFormRun} className="command-form">
@@ -337,13 +349,7 @@ export function UniversalPlayground({
                         const action = parts[0]?.trim();
                         const description = parts.slice(1).join(' - ').trim();
 
-                        const currentIndex = infoList.findIndex(
-                          (listItem) => listItem.id === item.id,
-                        );
-                        const laterProgressExists = infoList
-                          .slice(currentIndex + 1)
-                          .some((listItem) => listItem.type === 'progress');
-                        const isLatestProgress = !laterProgressExists;
+                        const isLatestProgress = item.id === latestProgressId;
                         const shouldShowLoading = loading && isLatestProgress;
 
                         return (
