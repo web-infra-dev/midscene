@@ -209,16 +209,6 @@ export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
       return new Promise((resolve, reject) => {
         test.step(`ai-${aiActionType} - ${JSON.stringify(taskPrompt)}`, async () => {
           try {
-            debugPage(
-              `waitForNetworkIdle timeout: ${waitForNetworkIdleTimeout}`,
-            );
-            await agent.waitForNetworkIdle(waitForNetworkIdleTimeout);
-          } catch (error) {
-            console.warn(
-              '[midscene:warning] Waiting for network idle has timed out, but Midscene will continue execution. Please check https://midscenejs.com/faq.html#customize-the-network-timeout for more information on customizing the network timeout',
-            );
-          }
-          try {
             type AgentMethod = (
               prompt: string,
               ...restArgs: any[]

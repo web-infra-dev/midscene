@@ -70,6 +70,7 @@ export class Page<
   private puppeteerFileChooserHandler?: (
     event: Protocol.Page.FileChooserOpenedEvent,
   ) => Promise<void>;
+  private playwrightNetworkIdleWarningShown = false;
   interfaceType: AgentType;
 
   actionSpace(): DeviceAction[] {
@@ -186,7 +187,12 @@ export class Page<
       }
       debugPage('waitForNetworkIdle end');
     } else {
-      // TODO: implement playwright waitForNetworkIdle
+      if (!this.playwrightNetworkIdleWarningShown) {
+        this.playwrightNetworkIdleWarningShown = true;
+        console.warn(
+          '[midscene:warning] waitForNetworkIdle is skipped for Playwright. Playwright does not provide an equivalent underlying capability for the intended post-action network idle behavior here.',
+        );
+      }
     }
   }
 
