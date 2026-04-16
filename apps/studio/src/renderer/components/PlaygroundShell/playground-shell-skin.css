@@ -84,11 +84,9 @@
 
 /*
  * Shift every progress list item right by 20px. That reserved column
- * hosts:
- *   - the "执行流程" ::before label above the first pill of a run
- *   - the vertical ::after connector line between consecutive pills
- * The pill itself then sits at x=20, leaving ~8px of gutter between its
- * left edge and the connector line at x=12.
+ * hosts the vertical ::after connector line at x=6. The header, pill
+ * and description all sit at the content edge (x=20), so the text
+ * column is flush-left and the line never crosses any glyphs.
  */
 .playground-shell .list-item:has(.progress-action-item) {
   position: relative;
@@ -121,9 +119,10 @@
  * (which renders the domain icon on the left of the label). The visualiser
  * still emits `{label}{statusIcon}` markup, so this is the one-line
  * equivalent of swapping them in JSX.
- * `margin-left: 32px` indents the pill further right than the description
- * text, so the description stays flush to the column edge while the pill
- * stair-steps to sit clear of the connector line.
+ * The pill is left-aligned with the "执行流程" header and the step
+ * description so the whole column reads as a flush stack. The connector
+ * line lives entirely inside the list item's reserved left padding and
+ * never crosses the text column.
  */
 .playground-shell .progress-action-item {
   display: inline-flex;
@@ -135,7 +134,7 @@
   justify-content: flex-end;
   gap: 6px;
   padding: 2px 12px 2px 10px;
-  margin: 0 0 8px 32px;
+  margin: 0 0 8px;
   border-radius: 38px;
   background: rgba(0, 0, 0, 0.08);
   color: rgba(0, 0, 0, 0.85);
@@ -173,7 +172,7 @@
   )::after {
   content: "";
   position: absolute;
-  left: 12px;
+  left: 6px;
   top: 23px;
   bottom: -16px;
   width: 1px;
