@@ -68,6 +68,7 @@ describe('scrcpy server version helper', () => {
 
     expect(fetchImpl).toHaveBeenCalledWith(
       'https://github.com/Genymobile/scrcpy/releases/download/v3.3.3/scrcpy-server-v3.3.3',
+      {},
     );
     await expect(fs.readFile(destinationPath, 'utf8')).resolves.toBe(
       'server-binary',

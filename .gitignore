@@ -144,3 +144,6 @@ packages/all-in-one-playground/static/*
 # rslib
 .rslib
 **/.rslib
+
+# jetbrains
+.idea/

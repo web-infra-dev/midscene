@@ -47,7 +47,6 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^18.0.0",
-    "gh-release-fetch": "^4.0.3",
     "typescript": "^5.8.3"
   },
   "license": "MIT"
