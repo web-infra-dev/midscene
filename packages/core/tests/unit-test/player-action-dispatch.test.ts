@@ -1,3 +1,4 @@
+import { buildYamlFlowFromPlans } from '@/common';
 import { ScriptPlayer } from '@/yaml/player';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -286,5 +287,64 @@ describe('player action dispatch ordering', () => {
     expect(agent.callActionInActionSpace).toHaveBeenCalledWith('RunAdbShell', {
       command: 'ls /sdcard',
     });
+  });
+
+  it('round-trip: cached plan → buildYamlFlowFromPlans → player dispatches with correct param', async () => {
+    // Regression for the cache-replay bug: a Terminate plan was serialized as
+    // { terminate: '', uri: '...' }, then replayed as agent.terminate('').
+    const actionSpaceDefs = [
+      {
+        name: 'Terminate',
+        interfaceAlias: 'terminate',
+        paramSchema: terminateParamSchema,
+      },
+      {
+        name: 'Launch',
+        interfaceAlias: 'launch',
+        paramSchema: launchParamSchema,
+      },
+      {
+        name: 'RunAdbShell',
+        interfaceAlias: 'runAdbShell',
+        paramSchema: runAdbShellParamSchema,
+      },
+    ];
+
+    const flow = buildYamlFlowFromPlans(
+      [
+        { type: 'Terminate', param: { uri: 'com.mi.car.mobile' } },
+        { type: 'Launch', param: { uri: 'com.mi.car.mobile' } },
+        { type: 'RunAdbShell', param: { command: 'input keyevent 3' } },
+      ],
+      actionSpaceDefs.map((def) => ({ ...def, call: async () => {} })),
+    );
+
+    const player = createPlayerWithActionSpace(actionSpaceDefs);
+    const agent = createMockAgent();
+
+    await player.playTask(
+      {
+        name: 'test',
+        flow,
+        index: 0,
+        status: 'running' as const,
+        totalSteps: flow.length,
+      },
+      agent,
+    );
+
+    expect(agent.callActionInActionSpace).toHaveBeenNthCalledWith(
+      1,
+      'Terminate',
+      { uri: 'com.mi.car.mobile' },
+    );
+    expect(agent.callActionInActionSpace).toHaveBeenNthCalledWith(2, 'Launch', {
+      uri: 'com.mi.car.mobile',
+    });
+    expect(agent.callActionInActionSpace).toHaveBeenNthCalledWith(
+      3,
+      'RunAdbShell',
+      { command: 'input keyevent 3' },
+    );
   });
 });

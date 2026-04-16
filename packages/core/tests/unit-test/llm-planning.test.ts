@@ -376,6 +376,33 @@ describe('llm planning - build yaml flow', () => {
       { runAdbShell: 'input keyevent 3' },
     ]);
   });
+
+  it('fallback to expanded format when shortcut action carries extra fields', () => {
+    // If a future schema adds a second field (e.g. Terminate.force), we must
+    // NOT inline; the player's string-param path would drop the extras.
+    const flow = buildYamlFlowFromPlans(
+      [
+        {
+          type: 'Terminate',
+          param: { uri: 'com.mi.car.mobile', force: true } as any,
+        },
+      ],
+      [
+        {
+          name: 'Terminate',
+          interfaceAlias: 'terminate',
+          paramSchema: z.object({
+            uri: z.string(),
+            force: z.boolean().optional(),
+          }),
+          call: async () => {},
+        },
+      ],
+    );
+    expect(flow).toEqual([
+      { terminate: '', uri: 'com.mi.car.mobile', force: true },
+    ]);
+  });
 });
 
 describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () => {
