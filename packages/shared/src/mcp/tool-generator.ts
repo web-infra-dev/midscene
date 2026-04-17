@@ -6,19 +6,13 @@ import {
   isMidsceneLocatorField,
   unwrapZodField,
 } from '../zod-schema-utils';
+import { getErrorMessage } from './error-formatter';
 import type {
   ActionSpaceItem,
   BaseAgent,
   ToolDefinition,
   ToolResult,
 } from './types';
-
-/**
- * Extract error message from unknown error type
- */
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 /**
  * Generate MCP tool description from ActionSpaceItem
