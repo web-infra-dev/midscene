@@ -350,6 +350,39 @@ describe('CDP WebSocket Proxy', () => {
     expect(existsSync(PROXY_UPSTREAM_FILE)).toBe(false);
   });
 
+  it('announces duplicate-proxy detection on stderr before exiting', async () => {
+    // Start the first proxy normally.
+    const { proc: proc1 } = await startProxy(fakeChrome.endpoint);
+    proxyProc = proc1;
+
+    // Spawn a second proxy against the same Chrome while the first is alive.
+    // The second should see the existing pid file and exit 0 with a
+    // diagnostic line on stderr.
+    const second = spawn(
+      process.execPath,
+      [PROXY_SCRIPT, fakeChrome.endpoint],
+      {
+        stdio: ['ignore', 'pipe', 'pipe'],
+      },
+    );
+
+    let secondStderr = '';
+    second.stderr?.on('data', (c: Buffer) => {
+      secondStderr += c.toString();
+    });
+
+    const exitCode = await new Promise<number | null>((resolve) =>
+      second.on('exit', (code) => resolve(code)),
+    );
+    expect(exitCode).toBe(0);
+    expect(secondStderr).toMatch(/duplicate proxy detected/);
+
+    // The first proxy's metadata must still be intact — the second must
+    // not have wiped the endpoint/pid files on its way out.
+    expect(existsSync(PROXY_PID_FILE)).toBe(true);
+    expect(existsSync(PROXY_ENDPOINT_FILE)).toBe(true);
+  });
+
   it('records different upstream for different Chrome endpoints', async () => {
     // Start proxy for first fake Chrome
     const { proc: proc1 } = await startProxy(fakeChrome.endpoint);

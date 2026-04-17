@@ -179,24 +179,46 @@ function cleanupTargetIdFile(): void {
   } catch {}
 }
 
+/** Keep at most this many bytes of proxy stderr for diagnostics. */
+const PROXY_STDERR_BUFFER_LIMIT = 8 * 1024;
+
 /**
  * Spawn the CDP proxy process and wait for it to print the endpoint.
+ *
+ * Captures the child's stderr so that when startup fails we can surface
+ * the real reason (upstream closed / duplicate proxy / upstream error)
+ * instead of the generic "exited before ready".
  */
 function spawnProxy(chromeEndpoint: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const proxyScript = join(__dirname, 'cdp-proxy.js');
     const proc = spawn(process.execPath, [proxyScript, chromeEndpoint], {
       detached: true,
-      stdio: ['ignore', 'pipe', 'ignore'],
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
     proc.unref();
 
     let output = '';
+    let stderrBuf = '';
     let settled = false;
+
+    const appendStderr = (chunk: Buffer) => {
+      stderrBuf += chunk.toString();
+      if (stderrBuf.length > PROXY_STDERR_BUFFER_LIMIT) {
+        stderrBuf = stderrBuf.slice(-PROXY_STDERR_BUFFER_LIMIT);
+      }
+    };
+    proc.stderr!.on('data', appendStderr);
+
+    const formatStderr = () => {
+      const trimmed = stderrBuf.trim();
+      return trimmed ? ` (stderr: ${trimmed})` : '';
+    };
+
     const timer = setTimeout(() => {
       if (!settled) {
         settled = true;
-        reject(new Error('Proxy startup timeout (10s)'));
+        reject(new Error(`Proxy startup timeout (10s)${formatStderr()}`));
       }
     }, 10000);
 
@@ -211,9 +233,11 @@ function spawnProxy(chromeEndpoint: string): Promise<string> {
             settled = true;
             clearTimeout(timer);
             proc.stdout!.removeListener('data', onData);
-            // Destroy the stdout pipe so it doesn't keep the parent
+            proc.stderr!.removeListener('data', appendStderr);
+            // Destroy the stdio pipes so they don't keep the parent
             // process event loop alive after we've read the endpoint.
             proc.stdout!.destroy();
+            proc.stderr!.destroy();
             resolve(parsed.endpoint);
             return;
           }
@@ -231,11 +255,14 @@ function spawnProxy(chromeEndpoint: string): Promise<string> {
         reject(new Error(`Failed to spawn proxy: ${err.message}`));
       }
     });
-    proc.on('exit', (code) => {
+    proc.on('exit', (code, signal) => {
       if (!settled) {
         settled = true;
         clearTimeout(timer);
-        reject(new Error(`Proxy exited with code ${code} before ready`));
+        const how = signal ? `signal ${signal}` : `code ${code}`;
+        reject(
+          new Error(`Proxy exited with ${how} before ready${formatStderr()}`),
+        );
       }
     });
   });

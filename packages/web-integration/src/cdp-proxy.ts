@@ -66,10 +66,35 @@ function cleanupIfOwned() {
   } catch {}
 }
 
-function shutdown(reason: string) {
-  process.stderr.write(`[cdp-proxy] shutting down: ${reason}\n`);
+/**
+ * Exit after the stderr diagnostic has been flushed.
+ *
+ * When the proxy's stderr is a pipe (parent uses stdio 'pipe'), Node's
+ * process.stderr.write() is asynchronous on POSIX. Calling process.exit()
+ * immediately afterwards can drop the pending write, which would silently
+ * lose the very diagnostic the caller is relying on. Wait for the drain
+ * callback before exiting, with a short fallback timer in case the
+ * callback never fires (e.g. the pipe is already closed).
+ */
+function exitWithStderr(message: string, code = 0): void {
+  let exited = false;
+  const doExit = () => {
+    if (exited) return;
+    exited = true;
+    process.exit(code);
+  };
+  const fallback = setTimeout(doExit, 500);
+  fallback.unref?.();
+  try {
+    process.stderr.write(message, () => doExit());
+  } catch {
+    doExit();
+  }
+}
+
+function shutdown(reason: string): void {
   cleanupIfOwned();
-  process.exit(0);
+  exitWithStderr(`[cdp-proxy] shutting down: ${reason}\n`, 0);
 }
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
@@ -132,8 +157,13 @@ function createUpstream(endpoint: string): WebSocket {
     if (!reconnecting) shutdown(`upstream error: ${err.message}`);
   });
 
-  ws.on('close', () => {
-    if (!reconnecting) shutdown('upstream closed');
+  ws.on('close', (code, reasonBuf) => {
+    if (reconnecting) return;
+    const reason = reasonBuf?.toString?.() || '';
+    const detail = reason
+      ? ` (code=${code}, reason=${reason})`
+      : ` (code=${code})`;
+    shutdown(`upstream closed${detail}`);
   });
 
   // Forward upstream messages to all downstream clients
@@ -240,7 +270,15 @@ upstream.once('open', () => {
       if (existingPid !== process.pid) {
         try {
           process.kill(existingPid, 0);
-          process.exit(0); // another proxy is alive
+          // Another proxy is alive — exit without cleanupIfOwned() (we don't
+          // own the metadata files). Announce the reason on stderr so the
+          // parent process can distinguish this path from upstream failures,
+          // then bail out of this open handler so we don't proceed to listen().
+          exitWithStderr(
+            `[cdp-proxy] duplicate proxy detected (existing pid=${existingPid})\n`,
+            0,
+          );
+          return;
         } catch {
           // dead — we take over
         }
