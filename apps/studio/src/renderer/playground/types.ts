@@ -23,16 +23,22 @@ export type StudioSidebarDeviceBuckets = Record<
 export type StudioPlaygroundContextValue =
   | {
       phase: 'booting';
+      restartPlayground: () => Promise<void>;
+      /** @deprecated Use restartPlayground */
       restartAndroidPlayground: () => Promise<void>;
     }
   | {
       phase: 'error';
       error: string;
+      restartPlayground: () => Promise<void>;
+      /** @deprecated Use restartPlayground */
       restartAndroidPlayground: () => Promise<void>;
     }
   | {
       phase: 'ready';
       serverUrl: string;
       controller: PlaygroundControllerResult;
+      restartPlayground: () => Promise<void>;
+      /** @deprecated Use restartPlayground */
       restartAndroidPlayground: () => Promise<void>;
     };

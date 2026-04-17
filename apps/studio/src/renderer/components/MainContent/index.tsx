@@ -130,10 +130,10 @@ export default function MainContent({
     : [];
   const deviceLabel =
     studioPlayground.phase === 'error'
-      ? 'Android Runtime Error'
+      ? 'Runtime Error'
       : isReady
         ? resolveAndroidDeviceLabel(androidItems)
-        : 'Android playground starting';
+        : 'Playground starting';
   const isConnected = isReady
     ? studioPlayground.controller.state.sessionViewState.connected
     : false;
@@ -353,7 +353,7 @@ export default function MainContent({
       <div className="relative min-h-0 flex-1 overflow-hidden bg-surface">
         {studioPlayground.phase === 'booting' ? (
           <div className="flex h-full items-center justify-center px-6 text-[14px] text-text-tertiary">
-            Android playground starting...
+            Playground starting...
           </div>
         ) : studioPlayground.phase === 'error' ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">
@@ -363,16 +363,16 @@ export default function MainContent({
             <button
               className="rounded-lg border border-border-subtle px-4 py-2 text-[13px] font-medium text-text-primary"
               onClick={() => {
-                void studioPlayground.restartAndroidPlayground();
+                void studioPlayground.restartPlayground();
               }}
               type="button"
             >
-              Retry Android runtime
+              Retry runtime
             </button>
           </div>
         ) : !studioPlayground.controller.state.serverOnline ? (
           <div className="flex h-full items-center justify-center px-8 text-center text-[14px] leading-[22px] text-text-tertiary">
-            Android playground server is offline.
+            Playground server is offline.
           </div>
         ) : studioPlayground.controller.state.sessionViewState.connected ? (
           <div className="h-full w-full">

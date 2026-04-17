@@ -2,7 +2,7 @@ import {
   PlaygroundThemeProvider,
   usePlaygroundController,
 } from '@midscene/playground-app';
-import type { AndroidPlaygroundBootstrap } from '@shared/electron-contract';
+import type { PlaygroundBootstrap } from '@shared/electron-contract';
 import type { PropsWithChildren } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StudioPlaygroundContext } from './useStudioPlayground';
@@ -11,23 +11,20 @@ function getMissingBridgeError() {
   return 'Studio preload bridge is unavailable. Restart the Electron app.';
 }
 
-function normalizeBootstrapError(
-  bootstrap: AndroidPlaygroundBootstrap,
-): string {
-  return bootstrap.error || 'Failed to start Android playground runtime.';
+function normalizeBootstrapError(bootstrap: PlaygroundBootstrap): string {
+  return bootstrap.error || 'Failed to start playground runtime.';
 }
 
 function ReadyStudioPlaygroundProvider({
   children,
-  restartAndroidPlayground,
+  restartPlayground,
   serverUrl,
 }: PropsWithChildren<{
-  restartAndroidPlayground: () => Promise<void>;
+  restartPlayground: () => Promise<void>;
   serverUrl: string;
 }>) {
   const controller = usePlaygroundController({
     serverUrl,
-    defaultDeviceType: 'android',
   });
 
   const contextValue = useMemo(
@@ -35,9 +32,12 @@ function ReadyStudioPlaygroundProvider({
       phase: 'ready' as const,
       serverUrl,
       controller,
-      restartAndroidPlayground,
+      restartPlayground,
+      // Legacy alias so downstream code that still reads
+      // `restartAndroidPlayground` keeps working during migration.
+      restartAndroidPlayground: restartPlayground,
     }),
-    [controller, restartAndroidPlayground, serverUrl],
+    [controller, restartPlayground, serverUrl],
   );
 
   return (
@@ -64,8 +64,7 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    const nextBootstrap =
-      await window.studioRuntime.getAndroidPlaygroundBootstrap();
+    const nextBootstrap = await window.studioRuntime.getPlaygroundBootstrap();
     if (nextBootstrap.status === 'ready' && nextBootstrap.serverUrl) {
       setBootstrap({
         phase: 'ready',
@@ -113,7 +112,7 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
     };
   }, [bootstrap.phase, bootstrapTick, readBootstrap]);
 
-  const restartAndroidPlayground = useCallback(async () => {
+  const restartPlayground = useCallback(async () => {
     setBootstrap({ phase: 'booting' });
 
     if (!window.studioRuntime) {
@@ -124,7 +123,7 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    const nextBootstrap = await window.studioRuntime.restartAndroidPlayground();
+    const nextBootstrap = await window.studioRuntime.restartPlayground();
     if (nextBootstrap.status === 'ready' && nextBootstrap.serverUrl) {
       setBootstrap({
         phase: 'ready',
@@ -146,21 +145,23 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
       return {
         phase: 'error' as const,
         error: bootstrap.error,
-        restartAndroidPlayground,
+        restartPlayground,
+        restartAndroidPlayground: restartPlayground,
       };
     }
 
     return {
       phase: 'booting' as const,
-      restartAndroidPlayground,
+      restartPlayground,
+      restartAndroidPlayground: restartPlayground,
     };
-  }, [bootstrap, restartAndroidPlayground]);
+  }, [bootstrap, restartPlayground]);
 
   return (
     <PlaygroundThemeProvider>
       {bootstrap.phase === 'ready' ? (
         <ReadyStudioPlaygroundProvider
-          restartAndroidPlayground={restartAndroidPlayground}
+          restartPlayground={restartPlayground}
           serverUrl={bootstrap.serverUrl}
         >
           {children}

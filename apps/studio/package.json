@@ -12,7 +12,11 @@
   },
   "dependencies": {
     "@midscene/android-playground": "workspace:*",
+    "@midscene/computer": "workspace:*",
+    "@midscene/computer-playground": "workspace:*",
     "@midscene/core": "workspace:*",
+    "@midscene/harmony": "workspace:*",
+    "@midscene/ios": "workspace:*",
     "@midscene/playground": "workspace:*",
     "@midscene/playground-app": "workspace:*",
     "@midscene/shared": "workspace:*",

@@ -11,8 +11,8 @@ import {
   shell,
 } from 'electron';
 import type { TitleBarOverlay } from 'electron';
-import { createAndroidPlaygroundRuntimeService } from './playground/android-runtime';
 import { runConnectivityTest } from './playground/connectivity-test';
+import { createMultiPlatformRuntimeService } from './playground/multi-platform-runtime';
 
 /**
  * Main process owns native shell concerns only.
@@ -22,7 +22,7 @@ import { runConnectivityTest } from './playground/connectivity-test';
 
 let mainWindow: BrowserWindow | null = null;
 let cachedAppIcon: NativeImage | null = null;
-const androidPlaygroundRuntime = createAndroidPlaygroundRuntimeService();
+const playgroundRuntime = createMultiPlatformRuntimeService();
 
 const getRendererEntryPath = () =>
   path.join(__dirname, '../renderer/index.html');
@@ -134,11 +134,15 @@ const registerIpcHandlers = () => {
   ipcMain.handle(IPC_CHANNELS.closeWindow, () => {
     mainWindow?.close();
   });
-  ipcMain.handle(IPC_CHANNELS.getAndroidPlaygroundBootstrap, () =>
-    androidPlaygroundRuntime.getBootstrap(),
+  // Multi-platform playground — a single server for Android, iOS,
+  // HarmonyOS, and Computer. Legacy channel names (getAndroidPlayground*)
+  // are aliased to the same strings in IPC_CHANNELS, so the old
+  // renderer code keeps working transparently.
+  ipcMain.handle(IPC_CHANNELS.getPlaygroundBootstrap, () =>
+    playgroundRuntime.getBootstrap(),
   );
-  ipcMain.handle(IPC_CHANNELS.restartAndroidPlayground, async () =>
-    androidPlaygroundRuntime.restart(),
+  ipcMain.handle(IPC_CHANNELS.restartPlayground, async () =>
+    playgroundRuntime.restart(),
   );
   ipcMain.handle(IPC_CHANNELS.runConnectivityTest, async (_event, request) =>
     runConnectivityTest(request),
@@ -151,7 +155,7 @@ app.whenReady().then(() => {
   }
 
   registerIpcHandlers();
-  void androidPlaygroundRuntime.start();
+  void playgroundRuntime.start();
   createMainWindow();
 
   app.on('activate', () => {
@@ -168,5 +172,5 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
-  void androidPlaygroundRuntime.close();
+  void playgroundRuntime.close();
 });
