@@ -8,8 +8,13 @@ export const IPC_CHANNELS = {
   minimizeWindow: 'shell:minimize-window',
   openExternalUrl: 'shell:open-external-url',
   toggleMaximizeWindow: 'shell:toggle-maximize-window',
-  getAndroidPlaygroundBootstrap: 'studio:get-android-playground-bootstrap',
-  restartAndroidPlayground: 'studio:restart-android-playground',
+  // Multi-platform playground — replaces the Android-only channels below.
+  getPlaygroundBootstrap: 'studio:get-playground-bootstrap',
+  restartPlayground: 'studio:restart-playground',
+  // Legacy aliases — kept so renderer code that hasn't migrated yet keeps
+  // working. Both resolve to the same multi-platform runtime in main.
+  getAndroidPlaygroundBootstrap: 'studio:get-playground-bootstrap',
+  restartAndroidPlayground: 'studio:restart-playground',
   runConnectivityTest: 'studio:run-connectivity-test',
 } as const;
 
@@ -23,12 +28,16 @@ export type ConnectivityTestResult =
   | { ok: true; sample: string }
   | { ok: false; error: string };
 
-export interface AndroidPlaygroundBootstrap {
+/** Generic bootstrap status for the multi-platform playground server. */
+export interface PlaygroundBootstrap {
   status: 'starting' | 'ready' | 'error';
   serverUrl: string | null;
   port: number | null;
   error: string | null;
 }
+
+/** @deprecated Use {@link PlaygroundBootstrap} instead. */
+export type AndroidPlaygroundBootstrap = PlaygroundBootstrap;
 
 /**
  * Public API exposed on `window.electronShell` by the preload bridge.
@@ -52,8 +61,12 @@ export interface ElectronShellApi {
 }
 
 export interface StudioRuntimeApi {
-  getAndroidPlaygroundBootstrap: () => Promise<AndroidPlaygroundBootstrap>;
-  restartAndroidPlayground: () => Promise<AndroidPlaygroundBootstrap>;
+  getPlaygroundBootstrap: () => Promise<PlaygroundBootstrap>;
+  restartPlayground: () => Promise<PlaygroundBootstrap>;
+  /** @deprecated Use {@link getPlaygroundBootstrap}. */
+  getAndroidPlaygroundBootstrap: () => Promise<PlaygroundBootstrap>;
+  /** @deprecated Use {@link restartPlayground}. */
+  restartAndroidPlayground: () => Promise<PlaygroundBootstrap>;
   runConnectivityTest: (
     request: ConnectivityTestRequest,
   ) => Promise<ConnectivityTestResult>;
