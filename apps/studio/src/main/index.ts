@@ -12,6 +12,7 @@ import {
 } from 'electron';
 import type { TitleBarOverlay } from 'electron';
 import { runConnectivityTest } from './playground/connectivity-test';
+import { discoverAllDevices } from './playground/device-discovery';
 import { createMultiPlatformRuntimeService } from './playground/multi-platform-runtime';
 
 /**
@@ -143,6 +144,9 @@ const registerIpcHandlers = () => {
   );
   ipcMain.handle(IPC_CHANNELS.restartPlayground, async () =>
     playgroundRuntime.restart(),
+  );
+  ipcMain.handle(IPC_CHANNELS.discoverDevices, async () =>
+    discoverAllDevices(),
   );
   ipcMain.handle(IPC_CHANNELS.runConnectivityTest, async (_event, request) =>
     runConnectivityTest(request),

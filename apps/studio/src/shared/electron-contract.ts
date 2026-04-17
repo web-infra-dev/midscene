@@ -11,6 +11,10 @@ export const IPC_CHANNELS = {
   // Multi-platform playground — replaces the Android-only channels below.
   getPlaygroundBootstrap: 'studio:get-playground-bootstrap',
   restartPlayground: 'studio:restart-playground',
+  // Cross-platform device discovery — returns devices from ALL platforms
+  // at once (Android via ADB, Harmony via HDC, Computer via display
+  // enumeration). Independent of session manager.
+  discoverDevices: 'studio:discover-devices',
   // Legacy aliases — kept so renderer code that hasn't migrated yet keeps
   // working. Both resolve to the same multi-platform runtime in main.
   getAndroidPlaygroundBootstrap: 'studio:get-playground-bootstrap',
@@ -39,6 +43,17 @@ export interface PlaygroundBootstrap {
 /** @deprecated Use {@link PlaygroundBootstrap} instead. */
 export type AndroidPlaygroundBootstrap = PlaygroundBootstrap;
 
+/** A device discovered across any platform, tagged with its platform. */
+export interface DiscoveredDevice {
+  platformId: 'android' | 'ios' | 'harmony' | 'computer';
+  id: string;
+  label: string;
+  description?: string;
+}
+
+/** Result of the cross-platform device discovery scan. */
+export type DiscoverDevicesResult = DiscoveredDevice[];
+
 /**
  * Public API exposed on `window.electronShell` by the preload bridge.
  *
@@ -63,6 +78,8 @@ export interface ElectronShellApi {
 export interface StudioRuntimeApi {
   getPlaygroundBootstrap: () => Promise<PlaygroundBootstrap>;
   restartPlayground: () => Promise<PlaygroundBootstrap>;
+  /** Scan ALL platforms for connected devices (ADB, HDC, displays). */
+  discoverDevices: () => Promise<DiscoverDevicesResult>;
   /** @deprecated Use {@link getPlaygroundBootstrap}. */
   getAndroidPlaygroundBootstrap: () => Promise<PlaygroundBootstrap>;
   /** @deprecated Use {@link restartPlayground}. */

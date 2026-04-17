@@ -2,7 +2,10 @@ import {
   PlaygroundThemeProvider,
   usePlaygroundController,
 } from '@midscene/playground-app';
-import type { PlaygroundBootstrap } from '@shared/electron-contract';
+import type {
+  DiscoveredDevice,
+  PlaygroundBootstrap,
+} from '@shared/electron-contract';
 import type { PropsWithChildren } from 'react';
 import {
   useCallback,
@@ -11,6 +14,10 @@ import {
   useMemo,
   useState,
 } from 'react';
+import type {
+  DiscoveredDevicesByPlatform,
+  StudioSidebarPlatformKey,
+} from './types';
 import { StudioPlaygroundContext } from './useStudioPlayground';
 
 function getMissingBridgeError() {
@@ -23,9 +30,11 @@ function normalizeBootstrapError(bootstrap: PlaygroundBootstrap): string {
 
 function ReadyStudioPlaygroundProvider({
   children,
+  discoveredDevices,
   restartPlayground,
   serverUrl,
 }: PropsWithChildren<{
+  discoveredDevices?: DiscoveredDevicesByPlatform;
   restartPlayground: () => Promise<void>;
   serverUrl: string;
 }>) {
@@ -52,11 +61,10 @@ function ReadyStudioPlaygroundProvider({
       serverUrl,
       controller,
       restartPlayground,
-      // Legacy alias so downstream code that still reads
-      // `restartAndroidPlayground` keeps working during migration.
       restartAndroidPlayground: restartPlayground,
+      discoveredDevices,
     }),
-    [controller, restartPlayground, serverUrl],
+    [controller, discoveredDevices, restartPlayground, serverUrl],
   );
 
   return (
@@ -66,6 +74,25 @@ function ReadyStudioPlaygroundProvider({
   );
 }
 
+function bucketDiscoveredDevices(
+  devices: DiscoveredDevice[],
+): DiscoveredDevicesByPlatform {
+  const buckets: DiscoveredDevicesByPlatform = {
+    android: [],
+    ios: [],
+    computer: [],
+    harmony: [],
+    web: [],
+  };
+  for (const device of devices) {
+    const key = device.platformId as StudioSidebarPlatformKey;
+    if (buckets[key]) {
+      buckets[key].push(device);
+    }
+  }
+  return buckets;
+}
+
 export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
   const [bootstrap, setBootstrap] = useState<
     | { phase: 'booting' }
@@ -73,6 +100,31 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
     | { phase: 'ready'; serverUrl: string }
   >({ phase: 'booting' });
   const [bootstrapTick, setBootstrapTick] = useState(0);
+
+  // Cross-platform device discovery — polls ALL platforms (ADB, HDC,
+  // displays) independently of the session manager so the sidebar
+  // shows devices from every platform simultaneously.
+  const [discoveredDevices, setDiscoveredDevices] = useState<
+    DiscoveredDevicesByPlatform | undefined
+  >();
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      if (!window.studioRuntime?.discoverDevices) return;
+      try {
+        const devices = await window.studioRuntime.discoverDevices();
+        if (!cancelled) setDiscoveredDevices(bucketDiscoveredDevices(devices));
+      } catch {
+        // Silent — device discovery is best-effort.
+      }
+    };
+    void poll();
+    const id = window.setInterval(poll, 5000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, []);
 
   const readBootstrap = useCallback(async () => {
     if (!window.studioRuntime) {
@@ -166,6 +218,7 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
         error: bootstrap.error,
         restartPlayground,
         restartAndroidPlayground: restartPlayground,
+        discoveredDevices,
       };
     }
 
@@ -173,13 +226,15 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
       phase: 'booting' as const,
       restartPlayground,
       restartAndroidPlayground: restartPlayground,
+      discoveredDevices,
     };
-  }, [bootstrap, restartPlayground]);
+  }, [bootstrap, discoveredDevices, restartPlayground]);
 
   return (
     <PlaygroundThemeProvider>
       {bootstrap.phase === 'ready' ? (
         <ReadyStudioPlaygroundProvider
+          discoveredDevices={discoveredDevices}
           restartPlayground={restartPlayground}
           serverUrl={bootstrap.serverUrl}
         >

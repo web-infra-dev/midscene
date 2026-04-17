@@ -24,6 +24,7 @@ const studioRuntimeApi: StudioRuntimeApi = {
   getPlaygroundBootstrap: () =>
     ipcRenderer.invoke(IPC_CHANNELS.getPlaygroundBootstrap),
   restartPlayground: () => ipcRenderer.invoke(IPC_CHANNELS.restartPlayground),
+  discoverDevices: () => ipcRenderer.invoke(IPC_CHANNELS.discoverDevices),
   // Legacy aliases — both resolve to the same IPC channel
   getAndroidPlaygroundBootstrap: () =>
     ipcRenderer.invoke(IPC_CHANNELS.getPlaygroundBootstrap),

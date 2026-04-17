@@ -167,7 +167,11 @@ export default function Sidebar({
     }));
   };
 
-  const deviceBuckets =
+  // Device buckets: merge session-setup targets (from the currently
+  // selected platform) with cross-platform discovered devices so the
+  // sidebar shows ALL connected devices across platforms, not just the
+  // selected one's targets.
+  const sessionBuckets =
     studioPlayground.phase === 'ready'
       ? buildStudioSidebarDeviceBuckets({
           formValues: studioPlayground.controller.state.formValues,
@@ -182,6 +186,32 @@ export default function Sidebar({
           harmony: [],
           web: [],
         };
+
+  const discovered = studioPlayground.discoveredDevices;
+  const deviceBuckets = { ...sessionBuckets };
+  if (discovered) {
+    for (const key of Object.keys(discovered) as Array<
+      keyof typeof discovered
+    >) {
+      const discoveredIds = new Set(discovered[key].map((d) => d.id));
+      const sessionIds = new Set(sessionBuckets[key].map((d) => d.id));
+      // Add discovered devices that aren't already in the session bucket
+      for (const dev of discovered[key]) {
+        if (!sessionIds.has(dev.id)) {
+          deviceBuckets[key] = [
+            ...deviceBuckets[key],
+            {
+              id: dev.id,
+              label: dev.label,
+              description: dev.description,
+              selected: false,
+              status: 'idle' as const,
+            },
+          ];
+        }
+      }
+    }
+  }
 
   const connectedDeviceId =
     studioPlayground.phase === 'ready'
