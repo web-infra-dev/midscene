@@ -425,8 +425,9 @@ describe('CDP WebSocket Proxy', () => {
     // bookkeeping with manual SIGTERM + cleanupFiles() in between, which
     // hides whether killProxy()'s synchronous unlinks let the next
     // spawnProxy() through without tripping its duplicate-proxy guard.
-    const { __test__ } = await import('../../dist/lib/mcp-tools-cdp.js');
-    const { getProxyEndpoint, isProxyAlive, readProxyUpstream } = __test__;
+    const { getProxyEndpoint, isProxyAlive, readProxyUpstream } = await import(
+      '../../dist/lib/cdp-proxy-manager.js'
+    );
 
     cleanupFiles();
     try {
