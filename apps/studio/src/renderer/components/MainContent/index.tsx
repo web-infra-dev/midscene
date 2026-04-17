@@ -240,12 +240,18 @@ export default function MainContent({
         <DeviceList
           buckets={overviewBuckets}
           connectingDeviceId={overviewSelectedDeviceId}
-          onConnect={async (_platform, device) => {
+          onConnect={async (platform, device) => {
             if (!isReady) {
               return;
             }
             const { actions, state } = studioPlayground.controller;
-            state.form.setFieldsValue({ deviceId: device.id });
+            // Multi-platform: set the platform selector + the
+            // platform-prefixed device field so the unified session
+            // manager routes to the right backend.
+            state.form.setFieldsValue({
+              platformId: platform,
+              [`${platform}.deviceId`]: device.id,
+            });
             onSelectDeviceView?.();
             if (connectedAndroidDeviceId === device.id) {
               return;
@@ -255,7 +261,8 @@ export default function MainContent({
             }
             const sessionValues = {
               ...state.form.getFieldsValue(true),
-              deviceId: device.id,
+              platformId: platform,
+              [`${platform}.deviceId`]: device.id,
             };
             await actions.createSession(sessionValues);
           }}

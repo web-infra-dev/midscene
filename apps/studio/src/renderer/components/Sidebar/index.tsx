@@ -183,54 +183,80 @@ export default function Sidebar({
           web: [],
         };
 
-  const connectedAndroidDeviceId =
+  const connectedDeviceId =
     studioPlayground.phase === 'ready'
       ? resolveConnectedAndroidDeviceId(
           studioPlayground.controller.state.runtimeInfo,
         )
       : undefined;
 
-  const androidDevices: DeviceItem[] =
-    studioPlayground.phase === 'ready'
-      ? deviceBuckets.android.map((item) => ({
-          id: item.id,
-          label: item.label,
-          status: item.status,
-          onClick: async () => {
-            if (studioPlayground.phase !== 'ready') {
-              return;
-            }
-            const { actions, state } = studioPlayground.controller;
-            state.form.setFieldsValue({ deviceId: item.id });
-            onSelectDevice();
-            if (connectedAndroidDeviceId === item.id) {
-              return;
-            }
-            if (state.sessionViewState.connected) {
-              await actions.destroySession();
-            }
-            const sessionValues = {
-              ...state.form.getFieldsValue(true),
-              deviceId: item.id,
-            };
-            await actions.createSession(sessionValues);
-          },
-        }))
-      : [
+  /**
+   * Build a click-enabled device list for any platform section. The
+   * multi-platform session manager expects:
+   *   - `platformId` — which platform this device belongs to
+   *   - `{platformId}.deviceId` — the prefixed field key for the target
+   */
+  const buildDeviceItemsForPlatform = (
+    platformKey: StudioSidebarPlatformKey,
+    devices: typeof deviceBuckets.android,
+  ): DeviceItem[] => {
+    if (studioPlayground.phase !== 'ready') {
+      if (platformKey === 'android') {
+        return [
           {
-            id: 'android-placeholder',
+            id: `${platformKey}-placeholder`,
             label:
               studioPlayground.phase === 'booting'
                 ? 'Playground starting'
-                : 'Android runtime failed to start',
+                : 'Runtime failed to start',
             status: 'idle' as const,
           },
         ];
+      }
+      return [];
+    }
 
-  const selectedAndroidDeviceIds =
+    return devices.map((item) => ({
+      id: item.id,
+      label: item.label,
+      status: item.status,
+      onClick: async () => {
+        if (studioPlayground.phase !== 'ready') {
+          return;
+        }
+        const { actions, state } = studioPlayground.controller;
+
+        // Tell the multi-platform session manager which platform +
+        // device to target. Field keys follow the `{platformId}.fieldKey`
+        // convention from `prepareMultiPlatformPlayground`.
+        state.form.setFieldsValue({
+          platformId: platformKey,
+          [`${platformKey}.deviceId`]: item.id,
+        });
+
+        onSelectDevice();
+
+        if (connectedDeviceId === item.id) {
+          return;
+        }
+        if (state.sessionViewState.connected) {
+          await actions.destroySession();
+        }
+        const sessionValues = {
+          ...state.form.getFieldsValue(true),
+          platformId: platformKey,
+          [`${platformKey}.deviceId`]: item.id,
+        };
+        await actions.createSession(sessionValues);
+      },
+    }));
+  };
+
+  const selectedDeviceIds =
     studioPlayground.phase === 'ready'
       ? new Set(
-          deviceBuckets.android
+          Object.values(deviceBuckets)
+            .flat()
             .filter((item) => item.selected)
             .map((item) => item.id),
         )
@@ -243,8 +269,10 @@ export default function Sidebar({
 
   const resolvedSections = sectionDefinitions.map((section) => ({
     ...section,
-    devices:
-      section.key === 'android' ? androidDevices : deviceBuckets[section.key],
+    devices: buildDeviceItemsForPlatform(
+      section.key,
+      deviceBuckets[section.key],
+    ),
   }));
 
   const overviewActive = activeView === 'overview';
@@ -299,11 +327,9 @@ export default function Sidebar({
                       <DeviceRow
                         key={device.id}
                         selected={
-                          section.key === 'android'
-                            ? studioPlayground.phase === 'ready'
-                              ? selectedAndroidDeviceIds.has(device.id)
-                              : index === 0
-                            : false
+                          studioPlayground.phase === 'ready'
+                            ? selectedDeviceIds.has(device.id)
+                            : index === 0
                         }
                         {...device}
                       />
