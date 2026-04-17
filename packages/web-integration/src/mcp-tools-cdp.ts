@@ -125,21 +125,18 @@ function readProxyUpstream(): string | null {
   }
 }
 
+/** Time to wait for the proxy to exit on SIGTERM before resorting to SIGKILL. */
+const PROXY_TERM_GRACE_MS = 2000;
+
+/** Polling interval while waiting for the proxy's PID file to disappear. */
+const PROXY_TERM_POLL_MS = 50;
+
 /**
- * Kill the running proxy process and clear all CDP-mode metadata files
- * (proxy endpoint/pid/upstream and the cross-command targetId).
+ * Best-effort sweep of proxy metadata files. Only used as a fallback when
+ * the proxy fails to exit and run its own `cleanupIfOwned()`. In the happy
+ * path the child owns these files and removes them itself.
  */
-function killProxy(): void {
-  if (!existsSync(PROXY_PID_FILE)) return;
-  try {
-    const pid = Number(readFileSync(PROXY_PID_FILE, 'utf-8').trim());
-    process.kill(pid, 'SIGTERM');
-    debug('Killed proxy pid: %d', pid);
-  } catch (err) {
-    // ESRCH (already dead) is the common case; surface anything else
-    // (e.g. EPERM) via debug so it does not vanish silently.
-    debug('killProxy failed: %s', err);
-  }
+function sweepProxyMetadataFiles(): void {
   try {
     if (existsSync(PROXY_ENDPOINT_FILE)) unlinkSync(PROXY_ENDPOINT_FILE);
   } catch {}
@@ -149,9 +146,66 @@ function killProxy(): void {
   try {
     if (existsSync(PROXY_UPSTREAM_FILE)) unlinkSync(PROXY_UPSTREAM_FILE);
   } catch {}
-  // The saved targetId points into the now-defunct upstream's tab list,
-  // so it cannot match anything in a fresh Chrome and must be discarded.
+}
+
+/**
+ * Stop the running proxy and discard the cross-command targetId.
+ *
+ * Sends SIGTERM and waits for the proxy's own SIGTERM handler to remove
+ * its PROXY_*_FILE metadata via `cleanupIfOwned()`. When the PID file
+ * disappears we know the next `spawnProxy()` can safely take over
+ * without tripping the duplicate-proxy guard. Falls back to SIGKILL +
+ * manual sweep if the proxy is unresponsive within `PROXY_TERM_GRACE_MS`.
+ *
+ * The targetId file belongs to mcp-tools (it points at a tab inside the
+ * outgoing Chrome) and is cleared regardless of the proxy's state.
+ */
+async function killProxy(): Promise<void> {
   cleanupTargetIdFile();
+
+  if (!existsSync(PROXY_PID_FILE)) return;
+
+  let pid: number;
+  try {
+    pid = Number(readFileSync(PROXY_PID_FILE, 'utf-8').trim());
+    if (!Number.isFinite(pid)) {
+      sweepProxyMetadataFiles();
+      return;
+    }
+  } catch (err) {
+    debug('killProxy: cannot read pid file: %s', err);
+    sweepProxyMetadataFiles();
+    return;
+  }
+
+  try {
+    process.kill(pid, 'SIGTERM');
+    debug('Sent SIGTERM to proxy pid %d', pid);
+  } catch (err) {
+    // ESRCH (already dead) is the common case; surface anything else
+    // (e.g. EPERM) via debug so it does not vanish silently. Either way
+    // sweep the orphan metadata so the next spawn has a clean slate.
+    debug('killProxy: SIGTERM failed (pid %d): %s', pid, err);
+    sweepProxyMetadataFiles();
+    return;
+  }
+
+  const deadline = Date.now() + PROXY_TERM_GRACE_MS;
+  while (Date.now() < deadline && existsSync(PROXY_PID_FILE)) {
+    await new Promise((r) => setTimeout(r, PROXY_TERM_POLL_MS));
+  }
+
+  if (existsSync(PROXY_PID_FILE)) {
+    debug(
+      'proxy pid %d did not clean up within %dms, forcing SIGKILL',
+      pid,
+      PROXY_TERM_GRACE_MS,
+    );
+    try {
+      process.kill(pid, 'SIGKILL');
+    } catch {}
+    sweepProxyMetadataFiles();
+  }
 }
 
 /**
@@ -317,12 +371,13 @@ async function getProxyEndpoint(chromeEndpoint: string): Promise<string> {
     const savedUpstream = readProxyUpstream();
     if (endpoint) {
       if (savedUpstream && savedUpstream !== browserEndpoint) {
-        // Proxy is connected to a different Chrome — kill it and start fresh
+        // Proxy is connected to a different Chrome — kill it and wait for
+        // its SIGTERM handler to clean up before spawning the new one.
         debug(
           'Proxy connected to different upstream (%s), killing',
           savedUpstream,
         );
-        killProxy();
+        await killProxy();
       } else {
         return endpoint;
       }
