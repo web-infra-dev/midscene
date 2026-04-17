@@ -4,7 +4,13 @@ import {
 } from '@midscene/playground-app';
 import type { PlaygroundBootstrap } from '@shared/electron-contract';
 import type { PropsWithChildren } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { StudioPlaygroundContext } from './useStudioPlayground';
 
 function getMissingBridgeError() {
@@ -26,6 +32,19 @@ function ReadyStudioPlaygroundProvider({
   const controller = usePlaygroundController({
     serverUrl,
   });
+
+  // Pre-select "android" as the default platform so the very first
+  // `refreshSessionSetup` poll sees a `platformId` in the form values
+  // and the multi-platform session manager resolves Android targets
+  // immediately. Without this, the initial poll returns "Choose a
+  // platform" with no targets and the sidebar stays empty until the
+  // user manually picks a platform in the setup form.
+  useLayoutEffect(() => {
+    const currentPlatformId = controller.state.form.getFieldValue('platformId');
+    if (!currentPlatformId) {
+      controller.state.form.setFieldsValue({ platformId: 'android' });
+    }
+  }, [controller.state.form]);
 
   const contextValue = useMemo(
     () => ({
