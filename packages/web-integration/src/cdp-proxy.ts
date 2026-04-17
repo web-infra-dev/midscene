@@ -1,22 +1,38 @@
 /**
  * CDP WebSocket Proxy — standalone process.
  *
- * Holds a single persistent WebSocket connection to Chrome's CDP endpoint and
- * exposes a local WebSocket server. Midscene CLI processes connect to the proxy
- * instead of Chrome directly, so Chrome's "Allow remote debugging" permission
- * popup only fires once (when the proxy connects).
+ * Holds a persistent WebSocket connection to Chrome's CDP endpoint and
+ * exposes a local WebSocket server. Midscene CLI processes connect to the
+ * proxy instead of Chrome directly, so Chrome's "Allow remote debugging"
+ * permission popup only fires once (when the proxy connects).
+ *
+ * Lifecycle notes:
+ *  - When all downstream clients disconnect the proxy stays running but
+ *    marks the upstream as needing reconnection. The actual reconnect is
+ *    deferred to the moment the next client connects, so Chrome's CDP
+ *    state (notably Target.setDiscoverTargets) is reset and the new
+ *    client receives all targetCreated events.
+ *  - On startup, if another proxy is already alive the new instance
+ *    announces "duplicate proxy detected" on stderr and exits 0 without
+ *    touching the existing metadata files.
  *
  * Exit conditions:
  *  1. Upstream Chrome connection closes or errors.
  *  2. No downstream client message for IDLE_TIMEOUT_MS (default 5 min).
  *  3. SIGTERM / SIGINT.
+ *  4. Duplicate proxy detected on startup (exits 0 with stderr notice).
  *
  * Usage (spawned by mcp-tools-cdp.ts):
  *   node cdp-proxy.js <chrome-ws-endpoint>
  *
  * On startup, prints the proxy endpoint to stdout as a single JSON line:
  *   {"endpoint":"ws://127.0.0.1:<port>/devtools/browser"}
- * and writes the same endpoint to PROXY_ENDPOINT_FILE.
+ * and writes:
+ *   - PROXY_ENDPOINT_FILE — the local proxy URL above
+ *   - PROXY_PID_FILE      — this process's pid
+ *   - PROXY_UPSTREAM_FILE — the Chrome endpoint the proxy is connected to,
+ *                           so callers can detect when the requested
+ *                           upstream has changed and replace the proxy.
  */
 
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
@@ -67,6 +83,15 @@ function cleanupIfOwned() {
 }
 
 /**
+ * Maximum time to wait for the stderr drain callback before forcing exit.
+ * The callback should normally fire within microseconds, but if the pipe
+ * has been closed by the parent it may never run. 500ms is generous
+ * enough to be effectively unreachable in the happy path while still
+ * keeping the process from hanging if something goes wrong.
+ */
+const STDERR_FLUSH_FALLBACK_MS = 500;
+
+/**
  * Exit after the stderr diagnostic has been flushed.
  *
  * When the proxy's stderr is a pipe (parent uses stdio 'pipe'), Node's
@@ -83,7 +108,7 @@ function exitWithStderr(message: string, code = 0): void {
     exited = true;
     process.exit(code);
   };
-  const fallback = setTimeout(doExit, 500);
+  const fallback = setTimeout(doExit, STDERR_FLUSH_FALLBACK_MS);
   fallback.unref?.();
   try {
     process.stderr.write(message, () => doExit());

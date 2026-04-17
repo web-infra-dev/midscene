@@ -126,7 +126,8 @@ function readProxyUpstream(): string | null {
 }
 
 /**
- * Kill the running proxy process.
+ * Kill the running proxy process and clear all CDP-mode metadata files
+ * (proxy endpoint/pid/upstream and the cross-command targetId).
  */
 function killProxy(): void {
   if (!existsSync(PROXY_PID_FILE)) return;
@@ -134,7 +135,11 @@ function killProxy(): void {
     const pid = Number(readFileSync(PROXY_PID_FILE, 'utf-8').trim());
     process.kill(pid, 'SIGTERM');
     debug('Killed proxy pid: %d', pid);
-  } catch {}
+  } catch (err) {
+    // ESRCH (already dead) is the common case; surface anything else
+    // (e.g. EPERM) via debug so it does not vanish silently.
+    debug('killProxy failed: %s', err);
+  }
   try {
     if (existsSync(PROXY_ENDPOINT_FILE)) unlinkSync(PROXY_ENDPOINT_FILE);
   } catch {}
@@ -144,6 +149,9 @@ function killProxy(): void {
   try {
     if (existsSync(PROXY_UPSTREAM_FILE)) unlinkSync(PROXY_UPSTREAM_FILE);
   } catch {}
+  // The saved targetId points into the now-defunct upstream's tab list,
+  // so it cannot match anything in a fresh Chrome and must be discarded.
+  cleanupTargetIdFile();
 }
 
 /**
@@ -177,6 +185,16 @@ function cleanupTargetIdFile(): void {
   try {
     if (existsSync(TARGET_ID_FILE)) unlinkSync(TARGET_ID_FILE);
   } catch {}
+}
+
+/**
+ * puppeteer-core does not expose a public method for the underlying
+ * CDP target id, so we reach into `_targetId`. Centralised here so that
+ * a future puppeteer release exposing this properly only requires one
+ * change. Callers must treat the result as optional.
+ */
+function getTargetId(page: Page): string | undefined {
+  return (page.target() as unknown as { _targetId?: string })._targetId;
 }
 
 /** Keep at most this many bytes of proxy stderr for diagnostics. */
@@ -414,9 +432,7 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
       let matchedPage: Page | undefined;
 
       if (savedTargetId && pages.length > 0) {
-        matchedPage = pages.find(
-          (p) => (p.target() as any)._targetId === savedTargetId,
-        );
+        matchedPage = pages.find((p) => getTargetId(p) === savedTargetId);
         if (matchedPage) {
           debug('Matched saved targetId %s', savedTargetId);
         } else {
@@ -442,9 +458,16 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
     }
 
     // Persist the targetId so subsequent CLI commands can find this exact tab
-    const targetId = (page.target() as any)._targetId;
+    const targetId = getTargetId(page);
     if (targetId) {
       saveTargetId(targetId);
+    } else {
+      // If puppeteer ever drops the private _targetId field, this branch
+      // makes the regression visible instead of silently disabling the
+      // cross-command tab reuse path.
+      debug(
+        'No targetId on page.target(); cross-command tab reuse disabled until puppeteer integration is updated.',
+      );
     }
 
     this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage);
@@ -525,3 +548,13 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
     ];
   }
 }
+
+/**
+ * Internal helpers exposed for unit tests. Not part of the public API.
+ */
+export const __test__ = {
+  getProxyEndpoint,
+  killProxy,
+  readProxyUpstream,
+  isProxyAlive,
+};

@@ -413,4 +413,68 @@ describe('CDP WebSocket Proxy', () => {
       fakeChrome2.server.close();
     }
   });
+
+  it('getProxyEndpoint replaces a live proxy when upstream changes', async () => {
+    // This test exercises the real getProxyEndpoint() / killProxy() path.
+    // It guards against the bug where an alive proxy connected to Chrome A
+    // would be reused for a request targeting Chrome B (#2354) — including
+    // the timing window where the old proxy has not finished exiting yet
+    // when the new one is spawned.
+    //
+    // The "records different upstream" test above only covers metadata
+    // bookkeeping with manual SIGTERM + cleanupFiles() in between, which
+    // hides whether killProxy()'s synchronous unlinks let the next
+    // spawnProxy() through without tripping its duplicate-proxy guard.
+    const { __test__ } = await import('../../dist/lib/mcp-tools-cdp.js');
+    const { getProxyEndpoint, isProxyAlive, readProxyUpstream } = __test__;
+
+    cleanupFiles();
+    try {
+      if (existsSync(join(tmpdir(), 'midscene-cdp-target-id'))) {
+        unlinkSync(join(tmpdir(), 'midscene-cdp-target-id'));
+      }
+    } catch {}
+
+    const fakeChromeB = await createFakeChrome();
+    let endpointA = '';
+    let endpointB = '';
+    try {
+      endpointA = await getProxyEndpoint(fakeChrome.endpoint);
+      expect(endpointA).toMatch(/^ws:\/\/127\.0\.0\.1:\d+\/devtools\/browser$/);
+      expect(readProxyUpstream()).toBe(fakeChrome.endpoint);
+      expect(isProxyAlive()).toBe(true);
+
+      // Switching upstream — should kill the old proxy and start a new one.
+      // We do NOT cleanupFiles() between calls; the killProxy() path inside
+      // getProxyEndpoint() must handle the metadata files itself so that
+      // the new spawn does not see a stale PID file and exit early.
+      endpointB = await getProxyEndpoint(fakeChromeB.endpoint);
+      expect(endpointB).toMatch(/^ws:\/\/127\.0\.0\.1:\d+\/devtools\/browser$/);
+      expect(endpointB).not.toBe(endpointA);
+      expect(readProxyUpstream()).toBe(fakeChromeB.endpoint);
+      expect(isProxyAlive()).toBe(true);
+
+      // The new proxy must actually accept downstream connections —
+      // i.e. spawnProxy() did not silently fall back to returning the raw
+      // Chrome endpoint after the duplicate-proxy guard fired.
+      const ws = new WebSocket(endpointB);
+      await new Promise<void>((resolve, reject) => {
+        ws.on('open', resolve);
+        ws.on('error', reject);
+      });
+      ws.close();
+    } finally {
+      // Tear down the live proxy we created via getProxyEndpoint.
+      if (existsSync(PROXY_PID_FILE)) {
+        try {
+          const pid = Number(readFileSync(PROXY_PID_FILE, 'utf-8').trim());
+          process.kill(pid, 'SIGTERM');
+          await new Promise((r) => setTimeout(r, 200));
+        } catch {}
+      }
+      cleanupFiles();
+      fakeChromeB.wss.close();
+      fakeChromeB.server.close();
+    }
+  });
 });
