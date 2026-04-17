@@ -224,7 +224,26 @@ export function paramStr(task: ExecutionTask) {
     if (locateStr) {
       return locateStr;
     }
-    return JSON.stringify(value, undefined, 2);
+    // Flatten `{key: "raw value"}` into `key: raw value` instead of emitting
+    // a pretty-printed JSON string. JSON.stringify would escape every inner
+    // quote as `\"`, and the UI renders the result as plain text — so a
+    // command like `grep -E "version"` ends up shown with the literal
+    // backslashes, which is both noisy and confusing for users.
+    const entries = Object.entries(value as Record<string, unknown>);
+    if (entries.length === 0) {
+      return '';
+    }
+    const formatValue = (v: unknown): string => {
+      if (typeof v === 'string') return v;
+      if (v === null || v === undefined) return String(v);
+      if (typeof v === 'object') return JSON.stringify(v);
+      return String(v);
+    };
+    if (entries.length === 1) {
+      const [key, v] = entries[0];
+      return `${key}: ${formatValue(v)}`;
+    }
+    return entries.map(([key, v]) => `${key}: ${formatValue(v)}`).join(', ');
   }
 
   return String(value);
