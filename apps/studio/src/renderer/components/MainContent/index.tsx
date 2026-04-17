@@ -1,5 +1,5 @@
 import { PlaygroundPreview } from '@midscene/playground-app';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { assetUrls } from '../../assets';
 import {
   buildAndroidDeviceItems,
@@ -165,6 +165,33 @@ export default function MainContent({
       setPreviewStatus(null);
     }
   }, [isConnected]);
+
+  // When the scrcpy preview reports an error (most common cause: the physical
+  // device was unplugged after the sidebar rendered), refresh the session
+  // setup so the now-stale device drops out of the sidebar and overview
+  // buckets. `refreshSessionSetup` re-runs `adb devices`, so anything still
+  // plugged in stays put.
+  const refreshSessionSetup =
+    studioPlayground.phase === 'ready'
+      ? studioPlayground.controller.actions.refreshSessionSetup
+      : null;
+  const currentFormValuesRef = useRef<Record<string, unknown> | null>(null);
+  currentFormValuesRef.current =
+    studioPlayground.phase === 'ready'
+      ? studioPlayground.controller.state.formValues
+      : null;
+  const previewStatusRef = useRef<PreviewConnectionState>(null);
+  useEffect(() => {
+    const previous = previewStatusRef.current;
+    previewStatusRef.current = previewStatus;
+    if (previewStatus !== 'error' || previous === 'error') {
+      return;
+    }
+    if (!refreshSessionSetup) {
+      return;
+    }
+    void refreshSessionSetup(currentFormValuesRef.current ?? undefined);
+  }, [previewStatus, refreshSessionSetup]);
 
   if (activeView === 'overview') {
     if (!envConfigured) {

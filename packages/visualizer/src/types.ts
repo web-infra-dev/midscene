@@ -387,6 +387,57 @@ export interface UniversalPlaygroundConfig {
   showEnvConfigReminder?: boolean;
   deviceType?: DeviceType;
   executionUx?: ExecutionUxConfig;
+  promptInputChrome?: PromptInputChromeConfig;
+  /**
+   * Whether to render the "clear conversation" button that appears above the
+   * message list once there is more than one item. Defaults to `true`.
+   * Embedding hosts whose own shell exposes a clear affordance can set this
+   * to `false`.
+   */
+  showClearButton?: boolean;
+  /**
+   * Whether each system message renders its header (branding icon + title).
+   * Defaults to `true`. Compact embeddings may set this to `false` to let the
+   * host shell own the branding.
+   */
+  showSystemMessageHeader?: boolean;
+  /**
+   * When `true`, consecutive progress items in the conversation log are
+   * wrapped under a single collapsible group header. A "run" is bounded by
+   * the first non-progress item before and after it. Defaults to `false`
+   * (flat list, every progress item renders inline).
+   */
+  collapsibleProgressGroup?: boolean;
+  /**
+   * Label shown on the collapsible progress group header when
+   * `collapsibleProgressGroup` is enabled. Defaults to `'Execution Flow'`.
+   */
+  progressGroupLabel?: string;
+}
+
+/**
+ * Optional visual chrome overrides for the embedded prompt input.
+ * - `default` renders the full-featured prompt input (type radio row,
+ *   history button, full send/stop controls).
+ * - `minimal` renders a compact toolbar with only inline params, an action
+ *   dropdown, send/stop — intended for embedded hosts (e.g. Studio) whose
+ *   outer shell already owns the type selection affordance.
+ */
+export interface PromptInputChromeConfig {
+  variant?: 'default' | 'minimal';
+  placeholder?: string;
+  /**
+   * Label shown on the primary action button. When provided, overrides the
+   * auto-derived label (`actionNameForType(type)`). If omitted, the action
+   * name derived from the current type is used, falling back to "Action".
+   */
+  primaryActionLabel?: string;
+  icons?: {
+    action?: string;
+    actionChevron?: string;
+    history?: string;
+    settings?: string;
+  };
 }
 
 // branding interface
