@@ -58,11 +58,12 @@ function buildGenericConnectedDeviceItem(
 ): StudioAndroidDeviceItem | null {
   const metadata = runtimeInfo?.metadata || {};
   const deviceId = isString(metadata.deviceId) ? metadata.deviceId : undefined;
+  // Prefer the concrete device id over the platform title (which is
+  // something generic like "Midscene HarmonyOS Playground").
   const label = isString(metadata.sessionDisplayName)
     ? metadata.sessionDisplayName
-    : isString(runtimeInfo?.title)
-      ? runtimeInfo.title
-      : deviceId;
+    : deviceId ||
+      (isString(runtimeInfo?.title) ? runtimeInfo.title : undefined);
 
   if (!label) {
     return null;
