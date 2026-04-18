@@ -510,6 +510,9 @@ importers:
 
   apps/studio:
     dependencies:
+      '@midscene/android':
+        specifier: workspace:*
+        version: link:../../packages/android
       '@midscene/android-playground':
         specifier: workspace:*
         version: link:../../packages/android-playground

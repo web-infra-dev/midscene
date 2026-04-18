@@ -30,14 +30,16 @@ export async function discoverAllDevices(): Promise<DiscoveredDevice[]> {
 
 async function scanAndroidDevices(): Promise<DiscoveredDevice[]> {
   try {
-    const { getConnectedDevicesWithDetails } = await import(
-      '@midscene/android'
-    );
-    const devices = await getConnectedDevicesWithDetails();
-    return devices.map((device: { udid: string; label?: string }) => ({
+    // Dynamic import with `as string` to bypass TS module resolution —
+    // @midscene/android is externalized and resolved at runtime by Node.
+    const mod = await (import('@midscene/android' as string) as Promise<
+      typeof import('@midscene/android')
+    >);
+    const devices = await mod.getConnectedDevicesWithDetails();
+    return devices.map((device) => ({
       platformId: 'android' as const,
       id: device.udid,
-      label: device.label || device.udid,
+      label: (device as { label?: string }).label || device.udid,
       description: `ADB: ${device.udid}`,
     }));
   } catch {
@@ -47,13 +49,13 @@ async function scanAndroidDevices(): Promise<DiscoveredDevice[]> {
 
 async function scanHarmonyDevices(): Promise<DiscoveredDevice[]> {
   try {
-    const { getConnectedDevices } = await import('@midscene/harmony');
-    const devices = await getConnectedDevices();
-    return devices.map((deviceId: string) => ({
+    const mod = await import('@midscene/harmony');
+    const devices = await mod.getConnectedDevices();
+    return devices.map((device) => ({
       platformId: 'harmony' as const,
-      id: deviceId,
-      label: deviceId,
-      description: `HDC: ${deviceId}`,
+      id: device.deviceId,
+      label: device.deviceId,
+      description: `HDC: ${device.deviceId}`,
     }));
   } catch {
     return [];
@@ -62,8 +64,8 @@ async function scanHarmonyDevices(): Promise<DiscoveredDevice[]> {
 
 async function scanComputerDisplays(): Promise<DiscoveredDevice[]> {
   try {
-    const { getConnectedDisplays } = await import('@midscene/computer');
-    const displays = await getConnectedDisplays();
+    const mod = await import('@midscene/computer');
+    const displays = await mod.getConnectedDisplays();
     return displays.map(
       (display: {
         id: string | number;

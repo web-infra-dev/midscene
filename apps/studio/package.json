@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@midscene/android": "workspace:*",
     "@midscene/android-playground": "workspace:*",
     "@midscene/computer": "workspace:*",
     "@midscene/computer-playground": "workspace:*",

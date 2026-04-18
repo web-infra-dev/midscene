@@ -88,6 +88,7 @@ export default defineConfig({
         },
         externals: [
           'electron',
+          '@midscene/android',
           '@midscene/android-playground',
           '@midscene/computer',
           '@midscene/computer-playground',
