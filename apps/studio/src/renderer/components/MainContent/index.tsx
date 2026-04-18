@@ -128,11 +128,26 @@ export default function MainContent({
         targets: studioPlayground.controller.state.sessionSetup?.targets || [],
       })
     : [];
+  // Resolve device label from runtimeInfo (platform-agnostic). Falls back
+  // to the Android-specific resolver for backward compat, then to a
+  // generic "No device selected" when nothing matches.
   const deviceLabel =
     studioPlayground.phase === 'error'
       ? 'Runtime Error'
       : isReady
-        ? resolveAndroidDeviceLabel(androidItems)
+        ? (() => {
+            const ri = studioPlayground.controller.state.runtimeInfo;
+            const meta = ri?.metadata || {};
+            // Connected device: prefer sessionDisplayName → deviceId → displayId
+            if (meta.sessionDisplayName) return String(meta.sessionDisplayName);
+            if (meta.deviceId) return String(meta.deviceId);
+            if (meta.displayId) return `Display ${meta.displayId}`;
+            // Fallback to Android items or generic
+            const androidLabel = resolveAndroidDeviceLabel(androidItems);
+            return androidLabel !== 'No Android device selected'
+              ? androidLabel
+              : 'No device selected';
+          })()
         : 'Playground starting';
   const isConnected = isReady
     ? studioPlayground.controller.state.sessionViewState.connected
