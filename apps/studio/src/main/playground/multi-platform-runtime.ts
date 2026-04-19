@@ -1,16 +1,19 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { ScrcpyServer } from '@midscene/android-playground';
-import { androidPlaygroundPlatform } from '@midscene/android-playground';
+import {
+  ScrcpyServer,
+  androidPlaygroundPlatform,
+} from '@midscene/android-playground';
 import { computerPlaygroundPlatform } from '@midscene/computer-playground';
 import { harmonyPlaygroundPlatform } from '@midscene/harmony';
 import { iosPlaygroundPlatform } from '@midscene/ios';
 import {
   type LaunchPlaygroundResult,
+  type PreparedPlaygroundPlatform,
   type RegisteredPlaygroundPlatform,
+  launchPreparedPlaygroundPlatform,
   prepareMultiPlatformPlayground,
 } from '@midscene/playground';
-import { launchPreparedPlaygroundPlatform } from '@midscene/playground';
 import type { PlaygroundBootstrap } from '@shared/electron-contract';
 import { createStudioCorsOptions } from './cors';
 import type { PlaygroundRuntimeService } from './types';
@@ -28,128 +31,73 @@ function resolveStaticDir(packageName: string): string {
   return path.join(path.dirname(packageJsonPath), 'static');
 }
 
-function tryResolveStaticDir(packageName: string): string | null {
-  try {
-    return resolveStaticDir(packageName);
-  } catch {
-    return null;
-  }
+interface StudioPlatformSpec {
+  id: string;
+  label: string;
+  description: string;
+  staticDirPackage: string;
+  prepare: (staticDir: string) => Promise<PreparedPlaygroundPlatform>;
 }
 
-/**
- * Build the list of registered platforms. Each platform is resolved lazily
- * so that a missing optional package (e.g. `@midscene/ios` on a machine
- * without Xcode) marks the platform unavailable instead of crashing.
- */
+const studioPlatformSpecs: StudioPlatformSpec[] = [
+  {
+    id: 'android',
+    label: 'Android',
+    description: 'Connect to an Android device via ADB',
+    staticDirPackage: '@midscene/android-playground',
+    prepare: (staticDir) =>
+      androidPlaygroundPlatform.prepare({
+        staticDir,
+        scrcpyServer: new ScrcpyServer(),
+      }),
+  },
+  {
+    id: 'ios',
+    label: 'iOS',
+    description: 'Connect to an iOS device via WebDriverAgent',
+    staticDirPackage: '@midscene/ios',
+    prepare: (staticDir) => iosPlaygroundPlatform.prepare({ staticDir }),
+  },
+  {
+    id: 'harmony',
+    label: 'HarmonyOS',
+    description: 'Connect to a HarmonyOS device via HDC',
+    staticDirPackage: '@midscene/harmony',
+    prepare: (staticDir) => harmonyPlaygroundPlatform.prepare({ staticDir }),
+  },
+  {
+    id: 'computer',
+    label: 'Computer',
+    description: 'Control the local desktop',
+    staticDirPackage: '@midscene/computer-playground',
+    // In the Electron context, pass null — the computer agent works
+    // without a window controller, it just won't auto-minimize Studio
+    // during task execution. A follow-up can provide an Electron-native
+    // adapter that calls mainWindow.minimize()/restore().
+    prepare: (staticDir) =>
+      computerPlaygroundPlatform.prepare({
+        staticDir,
+        getWindowController: () => null,
+      }),
+  },
+];
+
 function buildRegisteredPlatforms(): RegisteredPlaygroundPlatform[] {
-  const platforms: RegisteredPlaygroundPlatform[] = [];
-
-  // ── Android ───────────────────────────────────────────────────────
-  const androidStaticDir = tryResolveStaticDir('@midscene/android-playground');
-  if (androidStaticDir) {
-    platforms.push({
-      id: 'android',
-      label: 'Android',
-      description: 'Connect to an Android device via ADB',
-      prepare: async () =>
-        androidPlaygroundPlatform.prepare({
-          staticDir: androidStaticDir,
-          scrcpyServer: new ScrcpyServer(),
-        }),
-    });
-  } else {
-    platforms.push({
-      id: 'android',
-      label: 'Android',
-      unavailableReason:
-        '@midscene/android-playground package not found. Run pnpm install.',
-      prepare: async () => {
-        throw new Error('Android platform is not available');
-      },
-    });
-  }
-
-  // ── iOS ───────────────────────────────────────────────────────────
-  const iosStaticDir = tryResolveStaticDir('@midscene/ios');
-  if (iosStaticDir) {
-    platforms.push({
-      id: 'ios',
-      label: 'iOS',
-      description: 'Connect to an iOS device via WebDriverAgent',
-      prepare: async () =>
-        iosPlaygroundPlatform.prepare({ staticDir: iosStaticDir }),
-    });
-  } else {
-    platforms.push({
-      id: 'ios',
-      label: 'iOS',
-      unavailableReason: '@midscene/ios package not found. Run pnpm install.',
-      prepare: async () => {
-        throw new Error('iOS platform is not available');
-      },
-    });
-  }
-
-  // ── HarmonyOS ─────────────────────────────────────────────────────
-  const harmonyStaticDir = tryResolveStaticDir('@midscene/harmony');
-  if (harmonyStaticDir) {
-    platforms.push({
-      id: 'harmony',
-      label: 'HarmonyOS',
-      description: 'Connect to a HarmonyOS device via HDC',
-      prepare: async () =>
-        harmonyPlaygroundPlatform.prepare({ staticDir: harmonyStaticDir }),
-    });
-  } else {
-    platforms.push({
-      id: 'harmony',
-      label: 'HarmonyOS',
-      unavailableReason:
-        '@midscene/harmony package not found. Run pnpm install.',
-      prepare: async () => {
-        throw new Error('HarmonyOS platform is not available');
-      },
-    });
-  }
-
-  // ── Computer ──────────────────────────────────────────────────────
-  const computerStaticDir = tryResolveStaticDir(
-    '@midscene/computer-playground',
-  );
-  if (computerStaticDir) {
-    platforms.push({
-      id: 'computer',
-      label: 'Computer',
-      description: 'Control the local desktop',
-      prepare: async () =>
-        computerPlaygroundPlatform.prepare({
-          staticDir: computerStaticDir,
-          // In the Electron context, pass null — the computer agent works
-          // without window controller, it just won't auto-minimize Studio
-          // during task execution. A follow-up can provide an Electron-
-          // native adapter that calls mainWindow.minimize()/restore().
-          getWindowController: () => null,
-        }),
-    });
-  } else {
-    platforms.push({
-      id: 'computer',
-      label: 'Computer',
-      unavailableReason:
-        '@midscene/computer-playground package not found. Run pnpm install.',
-      prepare: async () => {
-        throw new Error('Computer platform is not available');
-      },
-    });
-  }
-
-  return platforms;
+  return studioPlatformSpecs.map((spec) => {
+    const staticDir = resolveStaticDir(spec.staticDirPackage);
+    return {
+      id: spec.id,
+      label: spec.label,
+      description: spec.description,
+      prepare: () => spec.prepare(staticDir),
+    };
+  });
 }
 
 /**
  * Creates a multi-platform playground runtime service for the Studio
- * Electron main process. On `start()`, it registers all available
- * platforms (Android, iOS, HarmonyOS, Computer) with
+ * Electron main process. On `start()`, it registers all platforms
+ * (Android, iOS, HarmonyOS, Computer) with
  * `prepareMultiPlatformPlayground` and launches a SINGLE unified HTTP
  * server. The renderer talks to this one server; the platform selector
  * on the setup form routes to the correct backend.

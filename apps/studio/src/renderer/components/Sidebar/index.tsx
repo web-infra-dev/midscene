@@ -16,6 +16,8 @@ interface DeviceItem {
   label: string;
   status: DeviceStatus;
   onClick?: () => void | Promise<void>;
+  /** Purely informational rows that should never appear "selected". */
+  isPlaceholder?: boolean;
 }
 
 interface SectionDefinition {
@@ -240,10 +242,25 @@ export default function Sidebar({
                 ? 'Playground starting'
                 : 'Runtime failed to start',
             status: 'idle' as const,
+            isPlaceholder: true,
           },
         ];
       }
       return [];
+    }
+
+    // iOS discovery needs WebDriverAgent running, which is a manual
+    // setup step; surface a hint row instead of an empty section so
+    // users know it isn't a bug.
+    if (platformKey === 'ios' && devices.length === 0) {
+      return [
+        {
+          id: 'ios-setup-hint',
+          label: 'Set up iOS via the playground form',
+          status: 'idle' as const,
+          isPlaceholder: true,
+        },
+      ];
     }
 
     return devices.map((item) => ({
@@ -290,7 +307,7 @@ export default function Sidebar({
             .filter((item) => item.selected)
             .map((item) => item.id),
         )
-      : new Set<string>(['android-placeholder']);
+      : new Set<string>();
 
   const totalDeviceCount = sectionDefinitions.reduce(
     (sum, section) => sum + deviceBuckets[section.key].length,
@@ -353,13 +370,12 @@ export default function Sidebar({
 
                 {isExpanded ? (
                   hasDevices ? (
-                    section.devices.map((device, index) => (
+                    section.devices.map((device) => (
                       <DeviceRow
                         key={device.id}
                         selected={
-                          studioPlayground.phase === 'ready'
-                            ? selectedDeviceIds.has(device.id)
-                            : index === 0
+                          !device.isPlaceholder &&
+                          selectedDeviceIds.has(device.id)
                         }
                         {...device}
                       />

@@ -8,17 +8,13 @@ export const IPC_CHANNELS = {
   minimizeWindow: 'shell:minimize-window',
   openExternalUrl: 'shell:open-external-url',
   toggleMaximizeWindow: 'shell:toggle-maximize-window',
-  // Multi-platform playground — replaces the Android-only channels below.
+  // Multi-platform playground runtime (Android, iOS, HarmonyOS, Computer).
   getPlaygroundBootstrap: 'studio:get-playground-bootstrap',
   restartPlayground: 'studio:restart-playground',
   // Cross-platform device discovery — returns devices from ALL platforms
   // at once (Android via ADB, Harmony via HDC, Computer via display
   // enumeration). Independent of session manager.
   discoverDevices: 'studio:discover-devices',
-  // Legacy aliases — kept so renderer code that hasn't migrated yet keeps
-  // working. Both resolve to the same multi-platform runtime in main.
-  getAndroidPlaygroundBootstrap: 'studio:get-playground-bootstrap',
-  restartAndroidPlayground: 'studio:restart-playground',
   runConnectivityTest: 'studio:run-connectivity-test',
 } as const;
 
@@ -40,12 +36,24 @@ export interface PlaygroundBootstrap {
   error: string | null;
 }
 
-/** @deprecated Use {@link PlaygroundBootstrap} instead. */
-export type AndroidPlaygroundBootstrap = PlaygroundBootstrap;
+/**
+ * Canonical set of platform identifiers the Studio shell understands.
+ * Shared between main process discovery and renderer sidebar/buckets so
+ * neither side can drift into using a stringly-typed platform id.
+ */
+export const STUDIO_PLATFORM_IDS = [
+  'android',
+  'ios',
+  'computer',
+  'harmony',
+  'web',
+] as const;
+
+export type StudioPlatformId = (typeof STUDIO_PLATFORM_IDS)[number];
 
 /** A device discovered across any platform, tagged with its platform. */
 export interface DiscoveredDevice {
-  platformId: 'android' | 'ios' | 'harmony' | 'computer';
+  platformId: StudioPlatformId;
   id: string;
   label: string;
   description?: string;
@@ -80,10 +88,6 @@ export interface StudioRuntimeApi {
   restartPlayground: () => Promise<PlaygroundBootstrap>;
   /** Scan ALL platforms for connected devices (ADB, HDC, displays). */
   discoverDevices: () => Promise<DiscoverDevicesResult>;
-  /** @deprecated Use {@link getPlaygroundBootstrap}. */
-  getAndroidPlaygroundBootstrap: () => Promise<PlaygroundBootstrap>;
-  /** @deprecated Use {@link restartPlayground}. */
-  restartAndroidPlayground: () => Promise<PlaygroundBootstrap>;
   runConnectivityTest: (
     request: ConnectivityTestRequest,
   ) => Promise<ConnectivityTestResult>;

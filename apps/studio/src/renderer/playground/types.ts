@@ -1,12 +1,10 @@
 import type { PlaygroundControllerResult } from '@midscene/playground-app';
-import type { DiscoveredDevice } from '@shared/electron-contract';
+import type {
+  DiscoveredDevice,
+  StudioPlatformId,
+} from '@shared/electron-contract';
 
-export type StudioSidebarPlatformKey =
-  | 'android'
-  | 'ios'
-  | 'computer'
-  | 'harmony'
-  | 'web';
+export type StudioSidebarPlatformKey = StudioPlatformId;
 
 export interface StudioAndroidDeviceItem {
   id: string;
@@ -14,6 +12,7 @@ export interface StudioAndroidDeviceItem {
   description?: string;
   selected: boolean;
   status: 'active' | 'idle';
+  isPlaceholder?: boolean;
 }
 
 export type StudioSidebarDeviceBuckets = Record<
@@ -31,16 +30,12 @@ export type StudioPlaygroundContextValue =
   | {
       phase: 'booting';
       restartPlayground: () => Promise<void>;
-      /** @deprecated Use restartPlayground */
-      restartAndroidPlayground: () => Promise<void>;
       discoveredDevices?: DiscoveredDevicesByPlatform;
     }
   | {
       phase: 'error';
       error: string;
       restartPlayground: () => Promise<void>;
-      /** @deprecated Use restartPlayground */
-      restartAndroidPlayground: () => Promise<void>;
       discoveredDevices?: DiscoveredDevicesByPlatform;
     }
   | {
@@ -48,7 +43,5 @@ export type StudioPlaygroundContextValue =
       serverUrl: string;
       controller: PlaygroundControllerResult;
       restartPlayground: () => Promise<void>;
-      /** @deprecated Use restartPlayground */
-      restartAndroidPlayground: () => Promise<void>;
       discoveredDevices?: DiscoveredDevicesByPlatform;
     };

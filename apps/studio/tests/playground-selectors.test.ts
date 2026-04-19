@@ -3,6 +3,7 @@ import {
   buildAndroidDeviceItems,
   buildStudioSidebarDeviceBuckets,
   resolveAndroidDeviceLabel,
+  resolveConnectedDeviceLabel,
   resolveVisibleSidebarPlatforms,
 } from '../src/renderer/playground/selectors';
 
@@ -194,5 +195,73 @@ describe('resolveAndroidDeviceLabel', () => {
         },
       ]),
     ).toBe('Pixel 8');
+  });
+});
+
+describe('resolveConnectedDeviceLabel', () => {
+  const emptyOpts = { emptyLabel: 'No device' };
+
+  it('returns emptyLabel when no runtime info is available', () => {
+    expect(resolveConnectedDeviceLabel(null, emptyOpts)).toBe('No device');
+  });
+
+  it('prefers sessionDisplayName over raw device id', () => {
+    expect(
+      resolveConnectedDeviceLabel(
+        {
+          interface: { type: 'android' },
+          preview: { kind: 'none', capabilities: [] },
+          executionUxHints: [],
+          metadata: {
+            deviceId: 'emulator-5554',
+            sessionDisplayName: 'Pixel 9',
+          },
+        },
+        emptyOpts,
+      ),
+    ).toBe('Pixel 9');
+  });
+
+  it('falls back to deviceId when sessionDisplayName is absent', () => {
+    expect(
+      resolveConnectedDeviceLabel(
+        {
+          interface: { type: 'android' },
+          preview: { kind: 'none', capabilities: [] },
+          executionUxHints: [],
+          metadata: { deviceId: 'emulator-5554' },
+        },
+        emptyOpts,
+      ),
+    ).toBe('emulator-5554');
+  });
+
+  it('labels computer displays using the displayId', () => {
+    expect(
+      resolveConnectedDeviceLabel(
+        {
+          interface: { type: 'computer' },
+          preview: { kind: 'none', capabilities: [] },
+          executionUxHints: [],
+          metadata: { displayId: '1' },
+        },
+        emptyOpts,
+      ),
+    ).toBe('Display 1');
+  });
+
+  it('falls back to runtime title when no device metadata is present', () => {
+    expect(
+      resolveConnectedDeviceLabel(
+        {
+          title: 'Midscene Playground',
+          interface: { type: 'android' },
+          preview: { kind: 'none', capabilities: [] },
+          executionUxHints: [],
+          metadata: {},
+        },
+        emptyOpts,
+      ),
+    ).toBe('Midscene Playground');
   });
 });

@@ -3,21 +3,13 @@ import {
   usePlaygroundController,
 } from '@midscene/playground-app';
 import type {
-  DiscoveredDevice,
   PlaygroundBootstrap,
+  StudioPlatformId,
 } from '@shared/electron-contract';
 import type { PropsWithChildren } from 'react';
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useState,
-} from 'react';
-import type {
-  DiscoveredDevicesByPlatform,
-  StudioSidebarPlatformKey,
-} from './types';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { bucketDiscoveredDevices } from './selectors';
+import type { DiscoveredDevicesByPlatform } from './types';
 import { StudioPlaygroundContext } from './useStudioPlayground';
 
 function getMissingBridgeError() {
@@ -27,6 +19,11 @@ function getMissingBridgeError() {
 function normalizeBootstrapError(bootstrap: PlaygroundBootstrap): string {
   return bootstrap.error || 'Failed to start playground runtime.';
 }
+
+// Default platform for Studio — pre-selected so the first session-setup
+// poll already has a `platformId` and immediately returns Android
+// targets, instead of the generic "Choose a platform" setup.
+const DEFAULT_PLATFORM_ID: StudioPlatformId = 'android';
 
 function ReadyStudioPlaygroundProvider({
   children,
@@ -40,20 +37,8 @@ function ReadyStudioPlaygroundProvider({
 }>) {
   const controller = usePlaygroundController({
     serverUrl,
+    initialFormValues: { platformId: DEFAULT_PLATFORM_ID },
   });
-
-  // Pre-select "android" as the default platform so the very first
-  // `refreshSessionSetup` poll sees a `platformId` in the form values
-  // and the multi-platform session manager resolves Android targets
-  // immediately. Without this, the initial poll returns "Choose a
-  // platform" with no targets and the sidebar stays empty until the
-  // user manually picks a platform in the setup form.
-  useLayoutEffect(() => {
-    const currentPlatformId = controller.state.form.getFieldValue('platformId');
-    if (!currentPlatformId) {
-      controller.state.form.setFieldsValue({ platformId: 'android' });
-    }
-  }, [controller.state.form]);
 
   const contextValue = useMemo(
     () => ({
@@ -61,7 +46,6 @@ function ReadyStudioPlaygroundProvider({
       serverUrl,
       controller,
       restartPlayground,
-      restartAndroidPlayground: restartPlayground,
       discoveredDevices,
     }),
     [controller, discoveredDevices, restartPlayground, serverUrl],
@@ -74,24 +58,7 @@ function ReadyStudioPlaygroundProvider({
   );
 }
 
-function bucketDiscoveredDevices(
-  devices: DiscoveredDevice[],
-): DiscoveredDevicesByPlatform {
-  const buckets: DiscoveredDevicesByPlatform = {
-    android: [],
-    ios: [],
-    computer: [],
-    harmony: [],
-    web: [],
-  };
-  for (const device of devices) {
-    const key = device.platformId as StudioSidebarPlatformKey;
-    if (buckets[key]) {
-      buckets[key].push(device);
-    }
-  }
-  return buckets;
-}
+const DISCOVERY_POLL_INTERVAL_MS = 5000;
 
 export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
   const [bootstrap, setBootstrap] = useState<
@@ -102,29 +69,37 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
   const [bootstrapTick, setBootstrapTick] = useState(0);
 
   // Cross-platform device discovery — polls ALL platforms (ADB, HDC,
-  // displays) independently of the session manager so the sidebar
-  // shows devices from every platform simultaneously.
+  // displays) once the playground runtime is ready, so the sidebar shows
+  // devices from every platform simultaneously. Gated on the ready phase
+  // to avoid waking up adb/hdc while we are still booting or in error.
   const [discoveredDevices, setDiscoveredDevices] = useState<
     DiscoveredDevicesByPlatform | undefined
   >();
+  const pollingActive = bootstrap.phase === 'ready';
   useEffect(() => {
+    if (!pollingActive || !window.studioRuntime?.discoverDevices) {
+      return;
+    }
     let cancelled = false;
     const poll = async () => {
-      if (!window.studioRuntime?.discoverDevices) return;
       try {
-        const devices = await window.studioRuntime.discoverDevices();
-        if (!cancelled) setDiscoveredDevices(bucketDiscoveredDevices(devices));
-      } catch {
-        // Silent — device discovery is best-effort.
+        const devices = await window.studioRuntime!.discoverDevices();
+        if (!cancelled) {
+          setDiscoveredDevices(bucketDiscoveredDevices(devices));
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.warn('[studio] device discovery failed:', err);
+        }
       }
     };
     void poll();
-    const id = window.setInterval(poll, 5000);
+    const id = window.setInterval(poll, DISCOVERY_POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, []);
+  }, [pollingActive]);
 
   const readBootstrap = useCallback(async () => {
     if (!window.studioRuntime) {
@@ -217,7 +192,6 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
         phase: 'error' as const,
         error: bootstrap.error,
         restartPlayground,
-        restartAndroidPlayground: restartPlayground,
         discoveredDevices,
       };
     }
@@ -225,7 +199,6 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
     return {
       phase: 'booting' as const,
       restartPlayground,
-      restartAndroidPlayground: restartPlayground,
       discoveredDevices,
     };
   }, [bootstrap, discoveredDevices, restartPlayground]);

@@ -2,7 +2,10 @@ import type {
   PlaygroundRuntimeInfo,
   PlaygroundSessionTarget,
 } from '@midscene/playground';
+import type { DiscoveredDevice } from '@shared/electron-contract';
+import { STUDIO_PLATFORM_IDS } from '@shared/electron-contract';
 import type {
+  DiscoveredDevicesByPlatform,
   StudioAndroidDeviceItem,
   StudioSidebarDeviceBuckets,
   StudioSidebarPlatformKey,
@@ -52,20 +55,57 @@ function normalizeSidebarPlatformKey(
   }
 }
 
+/**
+ * Platforms use different metadata keys for the device id:
+ *   Android / Harmony → metadata.deviceId
+ *   Computer          → metadata.displayId
+ */
+function resolveConnectedDeviceId(
+  runtimeInfo: PlaygroundRuntimeInfo | null,
+): string | undefined {
+  const metadata = runtimeInfo?.metadata || {};
+  if (isString(metadata.deviceId)) {
+    return metadata.deviceId;
+  }
+  if (isString(metadata.displayId)) {
+    return metadata.displayId;
+  }
+  return undefined;
+}
+
+/**
+ * Human-readable label for whatever device the playground is currently
+ * connected to, across platforms. Prefers the session display name, then
+ * falls back to a concrete device id, then to the platform title, and
+ * finally to `emptyLabel` when nothing is connected.
+ */
+export function resolveConnectedDeviceLabel(
+  runtimeInfo: PlaygroundRuntimeInfo | null,
+  options: { emptyLabel: string },
+): string {
+  const metadata = runtimeInfo?.metadata || {};
+  if (isString(metadata.sessionDisplayName)) {
+    return metadata.sessionDisplayName;
+  }
+  const deviceId = resolveConnectedDeviceId(runtimeInfo);
+  if (deviceId) {
+    // "Display 1" reads better than a bare numeric id for computer.
+    return isString(metadata.displayId) && !isString(metadata.deviceId)
+      ? `Display ${deviceId}`
+      : deviceId;
+  }
+  if (isString(runtimeInfo?.title)) {
+    return runtimeInfo.title;
+  }
+  return options.emptyLabel;
+}
+
 function buildGenericConnectedDeviceItem(
   runtimeInfo: PlaygroundRuntimeInfo | null,
   platformKey: Exclude<StudioSidebarPlatformKey, 'android'>,
 ): StudioAndroidDeviceItem | null {
   const metadata = runtimeInfo?.metadata || {};
-  // Different platforms use different metadata keys for the device id:
-  // Android/Harmony → metadata.deviceId, Computer → metadata.displayId.
-  const deviceId = isString(metadata.deviceId)
-    ? metadata.deviceId
-    : isString(metadata.displayId)
-      ? metadata.displayId
-      : undefined;
-  // Prefer the concrete device id over the platform title (which is
-  // something generic like "Midscene HarmonyOS Playground").
+  const deviceId = resolveConnectedDeviceId(runtimeInfo);
   const label = isString(metadata.sessionDisplayName)
     ? metadata.sessionDisplayName
     : deviceId ||
@@ -185,6 +225,25 @@ export function resolveVisibleSidebarPlatforms(
   )
     .filter(([, devices]) => devices.length > 0)
     .map(([platformKey]) => platformKey);
+}
+
+/**
+ * Bucket a flat discovery result by platform, driven off the canonical
+ * platform id set so a new platform can't be silently dropped.
+ */
+export function bucketDiscoveredDevices(
+  devices: DiscoveredDevice[],
+): DiscoveredDevicesByPlatform {
+  const buckets = Object.fromEntries(
+    STUDIO_PLATFORM_IDS.map((key) => [key, [] as DiscoveredDevice[]]),
+  ) as DiscoveredDevicesByPlatform;
+  for (const device of devices) {
+    const bucket = buckets[device.platformId];
+    if (bucket) {
+      bucket.push(device);
+    }
+  }
+  return buckets;
 }
 
 export function resolveAndroidDeviceLabel(
