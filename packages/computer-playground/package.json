@@ -1,6 +1,6 @@
 {
   "name": "@midscene/computer-playground",
-  "version": "1.7.4",
+  "version": "1.7.5-beta-20260420144621.0",
   "description": "Computer playground for Midscene - PC desktop automation",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
