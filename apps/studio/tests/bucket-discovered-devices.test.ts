@@ -15,15 +15,33 @@ describe('bucketDiscoveredDevices', () => {
   it('groups devices by their platformId tag', () => {
     const result = bucketDiscoveredDevices([
       { platformId: 'android', id: 'a1', label: 'Pixel' },
-      { platformId: 'harmony', id: 'h1', label: 'Huawei P70' },
+      {
+        platformId: 'ios',
+        id: 'localhost:8100',
+        label: 'iOS via WDA',
+        sessionValues: {
+          host: 'localhost',
+          port: 8100,
+        },
+      },
       { platformId: 'android', id: 'a2', label: 'Galaxy' },
       { platformId: 'computer', id: 'c1', label: 'Display 1' },
     ]);
 
     expect(result.android.map((d) => d.id)).toEqual(['a1', 'a2']);
-    expect(result.harmony.map((d) => d.id)).toEqual(['h1']);
+    expect(result.ios).toEqual([
+      {
+        platformId: 'ios',
+        id: 'localhost:8100',
+        label: 'iOS via WDA',
+        sessionValues: {
+          host: 'localhost',
+          port: 8100,
+        },
+      },
+    ]);
     expect(result.computer.map((d) => d.id)).toEqual(['c1']);
-    expect(result.ios).toEqual([]);
+    expect(result.harmony).toEqual([]);
     expect(result.web).toEqual([]);
   });
 });

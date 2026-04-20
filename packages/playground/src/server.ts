@@ -1159,8 +1159,11 @@ class PlaygroundServer {
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
-        console.error(`Failed to take screenshot: ${errorMessage}`);
-        res.status(errorMessage === 'No active session' ? 409 : 500).json({
+        const statusCode = errorMessage === 'No active session' ? 409 : 500;
+        if (statusCode !== 409) {
+          console.error(`Failed to take screenshot: ${errorMessage}`);
+        }
+        res.status(statusCode).json({
           error: `Failed to take screenshot: ${errorMessage}`,
         });
       }

@@ -446,7 +446,9 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       const response = await fetch(`${this.serverUrl}/screenshot`);
 
       if (!response.ok) {
-        console.warn(`Screenshot request failed: ${response.statusText}`);
+        if (response.status !== 409) {
+          console.warn(`Screenshot request failed: ${response.statusText}`);
+        }
         return null;
       }
 

@@ -2,11 +2,12 @@ import { PlaygroundPreview } from '@midscene/playground-app';
 import { useEffect, useRef, useState } from 'react';
 import { assetUrls } from '../../assets';
 import {
+  buildDeviceSelectionFormValues,
   buildStudioSidebarDeviceBuckets,
   mergeSidebarDeviceBucketsWithDiscovery,
-  resolveConnectedAndroidDeviceId,
+  resolveConnectedDeviceId,
   resolveConnectedDeviceLabel,
-  resolveSelectedAndroidDeviceId,
+  resolveSelectedDeviceId,
 } from '../../playground/selectors';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
 import ConnectingPreview from '../ConnectingPreview';
@@ -133,17 +134,13 @@ export default function MainContent({
   const isConnected = isReady
     ? studioPlayground.controller.state.sessionViewState.connected
     : false;
-  const connectedAndroidDeviceId = isReady
-    ? resolveConnectedAndroidDeviceId(
-        studioPlayground.controller.state.runtimeInfo,
-      )
+  const connectedDeviceId = isReady
+    ? resolveConnectedDeviceId(studioPlayground.controller.state.runtimeInfo)
     : undefined;
-  const selectedAndroidDeviceId = isReady
-    ? resolveSelectedAndroidDeviceId(
-        studioPlayground.controller.state.formValues,
-      )
+  const selectedDeviceId = isReady
+    ? resolveSelectedDeviceId(studioPlayground.controller.state.formValues)
     : undefined;
-  const previewDeviceId = connectedAndroidDeviceId ?? selectedAndroidDeviceId;
+  const previewDeviceId = connectedDeviceId ?? selectedDeviceId;
   const disconnectDisabled =
     !isReady || !studioPlayground.controller.state.sessionViewState.connected;
   const previewConnectionFailed =
@@ -216,7 +213,7 @@ export default function MainContent({
     );
     const overviewSelectedDeviceId =
       isReady && studioPlayground.controller.state.sessionMutating
-        ? selectedAndroidDeviceId
+        ? selectedDeviceId
         : undefined;
 
     return (
@@ -252,15 +249,13 @@ export default function MainContent({
               return;
             }
             const { actions, state } = studioPlayground.controller;
-            // Multi-platform: set the platform selector + the
-            // platform-prefixed device field so the unified session
-            // manager routes to the right backend.
-            state.form.setFieldsValue({
-              platformId: platform,
-              [`${platform}.deviceId`]: device.id,
-            });
+            const selectionValues = buildDeviceSelectionFormValues(
+              platform,
+              device,
+            );
+            state.form.setFieldsValue(selectionValues);
             onSelectDeviceView?.();
-            if (connectedAndroidDeviceId === device.id) {
+            if (connectedDeviceId === device.id) {
               return;
             }
             if (state.sessionViewState.connected) {
@@ -268,8 +263,7 @@ export default function MainContent({
             }
             const sessionValues = {
               ...state.form.getFieldsValue(true),
-              platformId: platform,
-              [`${platform}.deviceId`]: device.id,
+              ...selectionValues,
             };
             await actions.createSession(sessionValues);
           }}

@@ -13,6 +13,7 @@ export interface StudioAndroidDeviceItem {
   selected: boolean;
   status: 'active' | 'idle';
   isPlaceholder?: boolean;
+  sessionValues?: DiscoveredDevice['sessionValues'];
 }
 
 export type StudioSidebarDeviceBuckets = Record<

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { assetUrls } from '../../assets';
 import {
+  buildDeviceSelectionFormValues,
   buildStudioSidebarDeviceBuckets,
   mergeSidebarDeviceBucketsWithDiscovery,
-  resolveConnectedAndroidDeviceId,
+  resolveConnectedDeviceId,
 } from '../../playground/selectors';
 import type { StudioSidebarPlatformKey } from '../../playground/types';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
@@ -197,9 +198,7 @@ export default function Sidebar({
 
   const connectedDeviceId =
     studioPlayground.phase === 'ready'
-      ? resolveConnectedAndroidDeviceId(
-          studioPlayground.controller.state.runtimeInfo,
-        )
+      ? resolveConnectedDeviceId(studioPlayground.controller.state.runtimeInfo)
       : undefined;
 
   /**
@@ -239,6 +238,19 @@ export default function Sidebar({
           label: 'Set up iOS via the playground form',
           status: 'idle' as const,
           isPlaceholder: true,
+          onClick: async () => {
+            if (studioPlayground.phase !== 'ready') {
+              return;
+            }
+            const { actions, state } = studioPlayground.controller;
+            const nextValues = {
+              ...state.form.getFieldsValue(true),
+              platformId: 'ios',
+            };
+            state.form.setFieldsValue(nextValues);
+            onSelectDevice();
+            await actions.refreshSessionSetup(nextValues);
+          },
         },
       ];
     }
@@ -256,10 +268,11 @@ export default function Sidebar({
         // Tell the multi-platform session manager which platform +
         // device to target. Field keys follow the `{platformId}.fieldKey`
         // convention from `prepareMultiPlatformPlayground`.
-        state.form.setFieldsValue({
-          platformId: platformKey,
-          [`${platformKey}.deviceId`]: item.id,
-        });
+        const selectionValues = buildDeviceSelectionFormValues(
+          platformKey,
+          item,
+        );
+        state.form.setFieldsValue(selectionValues);
 
         onSelectDevice();
 
@@ -271,8 +284,7 @@ export default function Sidebar({
         }
         const sessionValues = {
           ...state.form.getFieldsValue(true),
-          platformId: platformKey,
-          [`${platformKey}.deviceId`]: item.id,
+          ...selectionValues,
         };
         await actions.createSession(sessionValues);
       },

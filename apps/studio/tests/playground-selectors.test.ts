@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildAndroidDeviceItems,
+  buildDeviceSelectionFormValues,
   buildStudioSidebarDeviceBuckets,
   mergeSidebarDeviceBucketsWithDiscovery,
   resolveAndroidDeviceLabel,
+  resolveConnectedDeviceId,
   resolveConnectedDeviceLabel,
+  resolveSelectedDeviceId,
   resolveVisibleSidebarPlatforms,
 } from '../src/renderer/playground/selectors';
 
@@ -42,6 +45,9 @@ describe('buildAndroidDeviceItems', () => {
         description: undefined,
         selected: true,
         status: 'active',
+        sessionValues: {
+          deviceId: 'device-1',
+        },
       },
       {
         id: 'device-2',
@@ -49,6 +55,9 @@ describe('buildAndroidDeviceItems', () => {
         description: undefined,
         selected: false,
         status: 'idle',
+        sessionValues: {
+          deviceId: 'device-2',
+        },
       },
     ]);
   });
@@ -117,6 +126,9 @@ describe('buildStudioSidebarDeviceBuckets', () => {
           description: undefined,
           selected: true,
           status: 'active',
+          sessionValues: {
+            deviceId: 'device-1',
+          },
         },
         {
           id: 'device-2',
@@ -124,6 +136,9 @@ describe('buildStudioSidebarDeviceBuckets', () => {
           description: undefined,
           selected: false,
           status: 'idle',
+          sessionValues: {
+            deviceId: 'device-2',
+          },
         },
       ],
       ios: [],
@@ -161,6 +176,9 @@ describe('buildStudioSidebarDeviceBuckets', () => {
           description: 'HDC-001',
           selected: true,
           status: 'active',
+          sessionValues: {
+            deviceId: 'HDC-001',
+          },
         },
       ],
       web: [],
@@ -275,22 +293,106 @@ describe('mergeSidebarDeviceBucketsWithDiscovery', () => {
     ]);
   });
 
-  it('passes iOS through unchanged because iOS has no discovery source', () => {
+  it('preserves manual iOS session rows while appending local WDA probes', () => {
     const session = {
       ...emptyBuckets,
       ios: [
         {
-          id: 'ios-1',
+          id: 'remote-wda:8100',
           label: 'iPhone 15',
           selected: true,
           status: 'active' as const,
         },
       ],
     };
+    const discovered = {
+      ...emptyBuckets,
+      ios: [
+        {
+          platformId: 'ios' as const,
+          id: 'localhost:8100',
+          label: 'iOS via WDA',
+          description: 'WebDriverAgent: localhost:8100',
+          sessionValues: {
+            host: 'localhost',
+            port: 8100,
+          },
+        },
+      ],
+    };
 
     expect(
-      mergeSidebarDeviceBucketsWithDiscovery(session, emptyBuckets).ios,
-    ).toEqual(session.ios);
+      mergeSidebarDeviceBucketsWithDiscovery(session, discovered).ios,
+    ).toEqual([
+      {
+        id: 'remote-wda:8100',
+        label: 'iPhone 15',
+        selected: true,
+        status: 'active',
+      },
+      {
+        id: 'localhost:8100',
+        label: 'iOS via WDA',
+        description: 'WebDriverAgent: localhost:8100',
+        selected: false,
+        status: 'idle',
+        sessionValues: {
+          host: 'localhost',
+          port: 8100,
+        },
+      },
+    ]);
+  });
+
+  it('appends local iOS WDA probes without evicting manual iOS sessions', () => {
+    const session = {
+      ...emptyBuckets,
+      ios: [
+        {
+          id: 'remote-wda:8100',
+          label: 'Remote iPhone',
+          selected: true,
+          status: 'active' as const,
+        },
+      ],
+    };
+    const discovered = {
+      ...emptyBuckets,
+      ios: [
+        {
+          platformId: 'ios' as const,
+          id: 'localhost:8100',
+          label: 'iOS via WDA',
+          description: 'WebDriverAgent: localhost:8100',
+          sessionValues: {
+            host: 'localhost',
+            port: 8100,
+          },
+        },
+      ],
+    };
+
+    expect(
+      mergeSidebarDeviceBucketsWithDiscovery(session, discovered).ios,
+    ).toEqual([
+      {
+        id: 'remote-wda:8100',
+        label: 'Remote iPhone',
+        selected: true,
+        status: 'active',
+      },
+      {
+        id: 'localhost:8100',
+        label: 'iOS via WDA',
+        description: 'WebDriverAgent: localhost:8100',
+        selected: false,
+        status: 'idle',
+        sessionValues: {
+          host: 'localhost',
+          port: 8100,
+        },
+      },
+    ]);
   });
 });
 
@@ -346,6 +448,20 @@ describe('resolveConnectedDeviceLabel', () => {
     ).toBe('Display 1');
   });
 
+  it('uses WDA host and port as the fallback iOS connection id', () => {
+    expect(
+      resolveConnectedDeviceId({
+        interface: { type: 'ios' },
+        preview: { kind: 'none', capabilities: [] },
+        executionUxHints: [],
+        metadata: {
+          wdaHost: 'localhost',
+          wdaPort: 8100,
+        },
+      }),
+    ).toBe('localhost:8100');
+  });
+
   it('falls back to runtime title when no device metadata is present', () => {
     expect(
       resolveConnectedDeviceLabel(
@@ -359,5 +475,44 @@ describe('resolveConnectedDeviceLabel', () => {
         emptyOpts,
       ),
     ).toBe('Midscene Playground');
+  });
+});
+
+describe('resolveSelectedDeviceId', () => {
+  it('supports prefixed Android selection values', () => {
+    expect(
+      resolveSelectedDeviceId({
+        platformId: 'android',
+        'android.deviceId': 'device-2',
+      }),
+    ).toBe('device-2');
+  });
+
+  it('builds the iOS selection id from host and port', () => {
+    expect(
+      resolveSelectedDeviceId({
+        platformId: 'ios',
+        'ios.host': 'localhost',
+        'ios.port': 8100,
+      }),
+    ).toBe('localhost:8100');
+  });
+});
+
+describe('buildDeviceSelectionFormValues', () => {
+  it('prefixes discovery-provided session values for iOS', () => {
+    expect(
+      buildDeviceSelectionFormValues('ios', {
+        id: 'localhost:8100',
+        sessionValues: {
+          host: 'localhost',
+          port: 8100,
+        },
+      }),
+    ).toEqual({
+      platformId: 'ios',
+      'ios.host': 'localhost',
+      'ios.port': 8100,
+    });
   });
 });

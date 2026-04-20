@@ -51,12 +51,19 @@ export const STUDIO_PLATFORM_IDS = [
 
 export type StudioPlatformId = (typeof STUDIO_PLATFORM_IDS)[number];
 
+export type StudioSessionValue = string | number | boolean;
+
 /** A device discovered across any platform, tagged with its platform. */
 export interface DiscoveredDevice {
   platformId: StudioPlatformId;
   id: string;
   label: string;
   description?: string;
+  /**
+   * Session-setup field values for this discovered target, before Studio
+   * prefixes them with `{platformId}.`.
+   */
+  sessionValues?: Record<string, StudioSessionValue>;
 }
 
 /** Result of the cross-platform device discovery scan. */

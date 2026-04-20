@@ -2,7 +2,10 @@ import type {
   PlaygroundRuntimeInfo,
   PlaygroundSessionTarget,
 } from '@midscene/playground';
-import type { DiscoveredDevice } from '@shared/electron-contract';
+import type {
+  DiscoveredDevice,
+  StudioSessionValue,
+} from '@shared/electron-contract';
 import { STUDIO_PLATFORM_IDS } from '@shared/electron-contract';
 import type {
   DiscoveredDevicesByPlatform,
@@ -23,6 +26,23 @@ function createEmptySidebarDeviceBuckets(): StudioSidebarDeviceBuckets {
     harmony: [],
     web: [],
   };
+}
+
+function normalizePort(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return undefined;
+}
+
+function buildHostPortId(host: string, port: number): string {
+  return `${host}:${port}`;
 }
 
 function normalizeSidebarPlatformKey(
@@ -59,8 +79,9 @@ function normalizeSidebarPlatformKey(
  * Platforms use different metadata keys for the device id:
  *   Android / Harmony → metadata.deviceId
  *   Computer          → metadata.displayId
+ *   iOS               → metadata.wdaHost + metadata.wdaPort
  */
-function resolveConnectedDeviceId(
+export function resolveConnectedDeviceId(
   runtimeInfo: PlaygroundRuntimeInfo | null,
 ): string | undefined {
   const metadata = runtimeInfo?.metadata || {};
@@ -70,7 +91,47 @@ function resolveConnectedDeviceId(
   if (isString(metadata.displayId)) {
     return metadata.displayId;
   }
+  if (isString(metadata.wdaHost)) {
+    const wdaPort = normalizePort(metadata.wdaPort);
+    if (wdaPort !== undefined) {
+      return buildHostPortId(metadata.wdaHost, wdaPort);
+    }
+  }
   return undefined;
+}
+
+function resolveConnectedSessionValues(
+  runtimeInfo: PlaygroundRuntimeInfo | null,
+  platformKey: StudioSidebarPlatformKey,
+): Record<string, StudioSessionValue> | undefined {
+  const metadata = runtimeInfo?.metadata || {};
+
+  switch (platformKey) {
+    case 'android':
+    case 'harmony':
+      return isString(metadata.deviceId)
+        ? {
+            deviceId: metadata.deviceId,
+          }
+        : undefined;
+    case 'computer':
+      return isString(metadata.displayId)
+        ? {
+            displayId: metadata.displayId,
+          }
+        : undefined;
+    case 'ios': {
+      const wdaPort = normalizePort(metadata.wdaPort);
+      return isString(metadata.wdaHost) && wdaPort !== undefined
+        ? {
+            host: metadata.wdaHost,
+            port: wdaPort,
+          }
+        : undefined;
+    }
+    default:
+      return undefined;
+  }
 }
 
 /**
@@ -102,7 +163,7 @@ export function resolveConnectedDeviceLabel(
 
 function buildGenericConnectedDeviceItem(
   runtimeInfo: PlaygroundRuntimeInfo | null,
-  platformKey: Exclude<StudioSidebarPlatformKey, 'android'>,
+  platformKey: StudioSidebarPlatformKey,
 ): StudioAndroidDeviceItem | null {
   const metadata = runtimeInfo?.metadata || {};
   const deviceId = resolveConnectedDeviceId(runtimeInfo);
@@ -121,6 +182,7 @@ function buildGenericConnectedDeviceItem(
     description: deviceId && deviceId !== label ? deviceId : undefined,
     selected: true,
     status: 'active',
+    sessionValues: resolveConnectedSessionValues(runtimeInfo, platformKey),
   };
 }
 
@@ -135,7 +197,98 @@ export function resolveConnectedAndroidDeviceId(
 export function resolveSelectedAndroidDeviceId(
   formValues: Record<string, unknown>,
 ): string | undefined {
+  if (isString(formValues['android.deviceId'])) {
+    return formValues['android.deviceId'];
+  }
   return isString(formValues.deviceId) ? formValues.deviceId : undefined;
+}
+
+export function resolveSelectedDeviceId(
+  formValues: Record<string, unknown>,
+): string | undefined {
+  const selectedPlatform = normalizeSidebarPlatformKey(formValues.platformId);
+
+  if (selectedPlatform === 'ios') {
+    const host = isString(formValues['ios.host'])
+      ? formValues['ios.host']
+      : isString(formValues.host)
+        ? formValues.host
+        : undefined;
+    const port = normalizePort(formValues['ios.port'] ?? formValues.port);
+    return host && port !== undefined ? buildHostPortId(host, port) : undefined;
+  }
+
+  if (selectedPlatform === 'computer') {
+    return isString(formValues['computer.displayId'])
+      ? formValues['computer.displayId']
+      : isString(formValues.displayId)
+        ? formValues.displayId
+        : undefined;
+  }
+
+  if (selectedPlatform === 'harmony') {
+    return isString(formValues['harmony.deviceId'])
+      ? formValues['harmony.deviceId']
+      : isString(formValues.deviceId)
+        ? formValues.deviceId
+        : undefined;
+  }
+
+  if (selectedPlatform === 'android') {
+    return resolveSelectedAndroidDeviceId(formValues);
+  }
+
+  return (
+    resolveSelectedAndroidDeviceId(formValues) ||
+    (isString(formValues['computer.displayId'])
+      ? formValues['computer.displayId']
+      : undefined) ||
+    ((): string | undefined => {
+      const host = isString(formValues['ios.host'])
+        ? formValues['ios.host']
+        : undefined;
+      const port = normalizePort(formValues['ios.port']);
+      return host && port !== undefined
+        ? buildHostPortId(host, port)
+        : undefined;
+    })()
+  );
+}
+
+function prefixSessionValues(
+  platform: StudioSidebarPlatformKey,
+  sessionValues: Record<string, StudioSessionValue>,
+): Record<string, StudioSessionValue> {
+  return Object.fromEntries(
+    Object.entries(sessionValues).map(([key, value]) => [
+      `${platform}.${key}`,
+      value,
+    ]),
+  );
+}
+
+export function buildDeviceSelectionFormValues(
+  platform: StudioSidebarPlatformKey,
+  device: Pick<StudioAndroidDeviceItem, 'id' | 'sessionValues'>,
+): Record<string, StudioSessionValue> {
+  if (device.sessionValues) {
+    return {
+      platformId: platform,
+      ...prefixSessionValues(platform, device.sessionValues),
+    };
+  }
+
+  if (platform === 'computer') {
+    return {
+      platformId: platform,
+      [`${platform}.displayId`]: device.id,
+    };
+  }
+
+  return {
+    platformId: platform,
+    [`${platform}.deviceId`]: device.id,
+  };
 }
 
 export function buildAndroidDeviceItems({
@@ -159,6 +312,7 @@ export function buildAndroidDeviceItems({
           : connectedDeviceId,
         selected: true,
         status: 'active',
+        sessionValues: resolveConnectedSessionValues(runtimeInfo, 'android'),
       },
     ];
   }
@@ -171,6 +325,9 @@ export function buildAndroidDeviceItems({
       target.id === connectedDeviceId ||
       (!connectedDeviceId && target.id === selectedDeviceId),
     status: target.id === connectedDeviceId ? 'active' : 'idle',
+    sessionValues: {
+      deviceId: target.id,
+    },
   }));
 }
 
@@ -253,7 +410,12 @@ export function bucketDiscoveredDevices(
  * least once, a session item that isn't discovered anymore is stale
  * (e.g. the user unplugged the device while a session was still open).
  */
-const DISCOVERABLE_PLATFORMS = ['android', 'harmony', 'computer'] as const;
+const AUTHORITATIVE_DISCOVERY_PLATFORMS = [
+  'android',
+  'harmony',
+  'computer',
+] as const;
+const ADDITIVE_DISCOVERY_PLATFORMS = ['ios'] as const;
 
 /**
  * Merge session-setup buckets with the live discovery snapshot. For
@@ -261,8 +423,9 @@ const DISCOVERABLE_PLATFORMS = ['android', 'harmony', 'computer'] as const;
  * discovery snapshot are dropped (catches unplug while connected), and
  * items only present in discovery are appended as idle entries.
  *
- * iOS (and web) have no discovery source, so `sessionBuckets` is
- * passed through unchanged.
+ * iOS discovery is additive only: local WDA probes are appended to the
+ * sidebar, but they do not evict existing session rows because Studio can
+ * still connect to manually entered non-local WDA hosts.
  *
  * If `discovered` is undefined (first poll hasn't landed yet), the
  * session buckets are returned as-is rather than being wiped out.
@@ -277,7 +440,7 @@ export function mergeSidebarDeviceBucketsWithDiscovery(
 
   const merged: StudioSidebarDeviceBuckets = { ...sessionBuckets };
 
-  for (const key of DISCOVERABLE_PLATFORMS) {
+  for (const key of AUTHORITATIVE_DISCOVERY_PLATFORMS) {
     const discoveredBucket = discovered[key];
     const discoveredIds = new Set(discoveredBucket.map((d) => d.id));
 
@@ -298,11 +461,32 @@ export function mergeSidebarDeviceBucketsWithDiscovery(
           description: dev.description,
           selected: false,
           status: 'idle',
+          sessionValues: dev.sessionValues,
         });
       }
     }
 
     merged[key] = [...survivingSessionItems, ...additions];
+  }
+
+  for (const key of ADDITIVE_DISCOVERY_PLATFORMS) {
+    const existingIds = new Set(sessionBuckets[key].map((item) => item.id));
+    const additions: StudioAndroidDeviceItem[] = [];
+
+    for (const dev of discovered[key]) {
+      if (!existingIds.has(dev.id)) {
+        additions.push({
+          id: dev.id,
+          label: dev.label,
+          description: dev.description,
+          selected: false,
+          status: 'idle',
+          sessionValues: dev.sessionValues,
+        });
+      }
+    }
+
+    merged[key] = [...sessionBuckets[key], ...additions];
   }
 
   return merged;
