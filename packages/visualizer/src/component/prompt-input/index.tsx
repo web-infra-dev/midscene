@@ -1161,6 +1161,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                     showDataExtractionOptions={showDataExtractionOptions}
                     hideDomAndScreenshotOptions={hideDomAndScreenshotOptions}
                     deviceType={deviceType}
+                    popupPlacement="topRight"
                     trigger={
                       <button
                         aria-label="Open run configuration"
