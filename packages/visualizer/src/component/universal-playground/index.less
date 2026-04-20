@@ -387,20 +387,20 @@
 }
 
 /*
- * --- Execution Flow: "incut" variant ---
+ * --- Execution Flow: shell skin ---
  *
- * Opt-in variant, selected by hosts via
- * `UniversalPlaygroundConfig.executionFlow.variant = 'incut'`. Renders
+ * Opt-in skin, selected by hosts via an extra root class
+ * (`playground-shell-skin`). Renders
  * consecutive progress steps as a stair-stepped column: pills indent
  * 24px right of the description column, a 1px connector line runs
  * through the reserved gutter, and intra-step vertical spacing is
  * tightened to 8px on both sides of the description.
  *
- * All selectors below are namespaced under the opt-in data attribute so
+ * All selectors below are namespaced under the opt-in class so
  * flat hosts (chrome-extension, report, web playground) keep their
  * untouched rendering.
  */
-.playground-container[data-execution-flow-variant='incut'] {
+.playground-container.playground-shell-skin {
   .list-item:has(.progress-action-item) {
     position: relative;
     padding-left: 0;
@@ -447,10 +447,10 @@
 
   // Description wrapper: the visualiser renders descriptions inside an
   // unclassed `<div>` right after the pill span. Selecting via
-  // `.progress-action-item + div` applies the incut `pl-5` (20px) left
-  // padding. The vertical gap with the pill is controlled by the parent
-  // flex column's `gap: 8px`, so this block only handles horizontal
-  // offset.
+  // `.progress-action-item + div` applies the 20px left padding used by
+  // this shell skin. The vertical gap with the pill is controlled by the
+  // parent flex column's `gap: 8px`, so this block only handles
+  // horizontal offset.
   .progress-action-item + div {
     padding-left: 20px;
     margin: 0;
@@ -507,9 +507,9 @@
   }
 }
 
-// Dark mode palette for the incut variant — rgba(0,0,0,0.08) on a dark
+// Dark mode palette for the shell skin — rgba(0,0,0,0.08) on a dark
 // surface is invisible, flip every channel.
-[data-theme='dark'] .playground-container[data-execution-flow-variant='incut'] {
+[data-theme='dark'] .playground-container.playground-shell-skin {
   .progress-action-item {
     background: rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.7);

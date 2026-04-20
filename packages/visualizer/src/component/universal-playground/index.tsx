@@ -220,7 +220,6 @@ export function UniversalPlayground({
   const executionFlowConfig = componentConfig.executionFlow ?? {};
   const collapsibleProgressGroup = executionFlowConfig.collapsible === true;
   const progressGroupLabel = executionFlowConfig.label ?? 'Execution Flow';
-  const executionFlowVariant = executionFlowConfig.variant ?? 'flat';
 
   // Collapse state for progress groups, keyed by the id of the first progress
   // item of each run. A run is a maximal sequence of consecutive `progress`
@@ -284,10 +283,7 @@ export function UniversalPlayground({
   }, [infoList]);
 
   return (
-    <div
-      className={`playground-container ${layout}-mode ${className}`.trim()}
-      data-execution-flow-variant={executionFlowVariant}
-    >
+    <div className={`playground-container ${layout}-mode ${className}`.trim()}>
       <Form form={form} onFinish={handleFormRun} className="command-form">
         {/* Context Preview Section */}
         {finalShowContextPreview && (

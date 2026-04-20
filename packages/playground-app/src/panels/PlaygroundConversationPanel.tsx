@@ -22,6 +22,12 @@ export interface PlaygroundConversationPanelProps {
   header?: ReactNode;
   className?: string;
   /**
+   * Extra class applied to the inner `UniversalPlayground` root.
+   * Use this when the host needs an opt-in visual skin without widening
+   * the shared `UniversalPlaygroundConfig` surface.
+   */
+  playgroundClassName?: string;
+  /**
    * Custom content shown while the session is not yet connected.
    * When supplied, replaces the built-in `SessionSetupPanel`, letting hosts
    * drive device selection elsewhere.
@@ -37,6 +43,7 @@ export function PlaygroundConversationPanel({
   playgroundConfig,
   header,
   className,
+  playgroundClassName,
   notConnectedFallback,
 }: PlaygroundConversationPanelProps) {
   const { state, actions } = controller;
@@ -126,7 +133,9 @@ export function PlaygroundConversationPanel({
             playgroundSDK={state.playgroundSDK}
             config={mergedConfig}
             branding={mergedBranding}
-            className="playground-container"
+            className={['playground-container', playgroundClassName]
+              .filter(Boolean)
+              .join(' ')}
           />
         ) : notConnectedFallback !== undefined ? (
           <>{notConnectedFallback}</>

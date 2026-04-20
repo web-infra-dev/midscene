@@ -429,21 +429,6 @@ export interface ExecutionFlowConfig {
    */
   label?: string;
   /**
-   * Visual variant for the progress column.
-   *
-   * - `'flat'` (default): pills and descriptions render inline at the
-   *   conversation column's left edge, no connector line.
-   * - `'incut'`: pills stair-step 24px right of the description column,
-   *   a 1px connector line runs down the reserved gutter between
-   *   consecutive runs, and intra-step spacing is tightened to 8px on
-   *   both sides. Matches the incut ProcessFlow design.
-   *
-   * The variant is applied via a single `data-execution-flow-variant`
-   * attribute on the root container, so hosts can also target it in
-   * their own CSS when needed.
-   */
-  variant?: 'flat' | 'incut';
-  /**
    * Resolve a domain-specific icon for each progress step. Called with
    * `InfoListItem.actionKind` (e.g. `'Planning'`, `'Locate'`, `'Tap'`,
    * `'Input'`, `'RunAdbShell'`). Returning a React node renders it to

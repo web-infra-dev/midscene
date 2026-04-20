@@ -1,13 +1,13 @@
 /*
  * Scoped layout for the Studio Playground panel.
  *
- * This file is deliberately thin now. The incut-specific pill / connector /
+ * This file is deliberately thin now. The pill / connector / execution-flow
  * spacing rules that previously lived here have been promoted to the
- * visualizer's own `universal-playground/index.less`, gated on
- * `data-execution-flow-variant="incut"`. Studio opts in via
- * `UniversalPlaygroundConfig.executionFlow = { collapsible: true, variant: 'incut' }`
- * in `Playground/index.tsx`, and the rendering lives entirely inside
- * `@midscene/visualizer` — no more reaching into its internals.
+ * visualizer's own `universal-playground/index.less`, gated on the
+ * `playground-shell-skin` root class that Studio passes into
+ * `UniversalPlayground` via `PlaygroundConversationPanel`. The rendering
+ * lives entirely inside `@midscene/visualizer` — no more reaching into
+ * its internals.
  *
  * What remains below is pure container chrome (the 400px right-column
  * panel, rounded corners, bottom input separator) plus two tight

@@ -35,6 +35,7 @@ export default function Playground() {
             appVersion={__APP_VERSION__}
             className="h-full"
             controller={studioPlayground.controller}
+            playgroundClassName="playground-shell-skin"
             playgroundConfig={{
               promptInputChrome: {
                 variant: 'minimal',
@@ -53,7 +54,6 @@ export default function Playground() {
               showVersionInfo: false,
               executionFlow: {
                 collapsible: true,
-                variant: 'incut',
               },
             }}
             title="Playground"
