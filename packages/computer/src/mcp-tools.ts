@@ -34,6 +34,9 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
   protected readonly initArgSpec: InitArgSpec<ComputerInitArgs> = {
     namespace: 'computer',
     shape: computerInitArgShape,
+    cli: {
+      preferBareKeys: true,
+    },
     adapt: (extracted) => extracted as ComputerInitArgs | undefined,
   };
 
@@ -83,6 +86,7 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
         description:
           'Connect to computer desktop. Provide displayId to connect to a specific display (use computer_list_displays to get available IDs). If not provided, uses the primary display.',
         schema: this.getAgentInitArgSchema(),
+        cli: this.getAgentInitArgCliMetadata(),
         handler: async (args: Record<string, unknown>) => {
           const initArgs = this.extractAgentInitParam(args);
           const agent = await this.ensureAgent(initArgs);

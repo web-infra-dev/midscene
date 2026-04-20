@@ -6,6 +6,7 @@ import { getKeyAliases, isRecord } from '../key-alias-utils';
 import { getDebug } from '../logger';
 import type { BaseMidsceneTools } from '../mcp/base-tools';
 import type {
+  ToolCliOption,
   ToolDefinition,
   ToolResult,
   ToolResultContent,
@@ -158,6 +159,22 @@ export function removePrefix(name: string, prefix?: string): string {
   return name;
 }
 
+function formatCliOptionName(name: string): string {
+  return `--${name}`;
+}
+
+function getCliOptionDisplay(
+  key: string,
+  cliOption?: ToolCliOption,
+): { label: string; aliases: string[] } {
+  const label = formatCliOptionName(cliOption?.preferredName ?? key);
+  const aliases = [...new Set(cliOption?.aliases ?? [])]
+    .map((alias) => formatCliOptionName(alias))
+    .filter((alias) => alias !== label);
+
+  return { label, aliases };
+}
+
 function printCommandHelp(scriptName: string, cmd: CLICommand): void {
   const { def } = cmd;
   console.log(`\nUsage: ${scriptName} ${cmd.name} [options]\n`);
@@ -165,10 +182,23 @@ function printCommandHelp(scriptName: string, cmd: CLICommand): void {
 
   const schemaEntries = Object.entries(def.schema);
   if (schemaEntries.length > 0) {
+    const optionWidth = Math.max(
+      22,
+      ...schemaEntries.map(
+        ([key]) =>
+          getCliOptionDisplay(key, def.cli?.options?.[key]).label.length,
+      ),
+    );
     console.log('\nOptions:');
     for (const [key, zodType] of schemaEntries) {
+      const { label, aliases } = getCliOptionDisplay(
+        key,
+        def.cli?.options?.[key],
+      );
       const desc = zodType.description ?? '';
-      console.log(`  --${key.padEnd(20)} ${desc}`);
+      const aliasText =
+        aliases.length > 0 ? ` (aliases: ${aliases.join(', ')})` : '';
+      console.log(`  ${label.padEnd(optionWidth)} ${desc}${aliasText}`);
     }
   }
 }
@@ -195,7 +225,6 @@ function printHelp(
   console.log(`\nRun "${scriptName} <command> --help" for more info.`);
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: accept any platform subclass without forcing TS to reconcile TAgent/TInitParam across a union of mcp-tools classes.
 type AnyMidsceneTools = BaseMidsceneTools<any, any>;
 
 export async function runToolsCLI(

@@ -6,20 +6,15 @@ import {
   isMidsceneLocatorField,
   unwrapZodField,
 } from '../zod-schema-utils';
+import { getErrorMessage } from './error-formatter';
 import type {
   ActionSpaceItem,
   BaseAgent,
+  ToolCliMetadata,
   ToolDefinition,
   ToolResult,
   ToolSchema,
 } from './types';
-
-/**
- * Extract error message from unknown error type
- */
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 /**
  * Generate MCP tool description from ActionSpaceItem
@@ -454,6 +449,18 @@ async function captureFailureResult(
   }
 }
 
+function mergeToolCliMetadata(
+  base?: ToolCliMetadata,
+  extra?: ToolCliMetadata,
+): ToolCliMetadata | undefined {
+  const options = {
+    ...(base?.options ?? {}),
+    ...(extra?.options ?? {}),
+  };
+
+  return Object.keys(options).length > 0 ? { options } : undefined;
+}
+
 /**
  * Converts DeviceAction from actionSpace into MCP ToolDefinition
  * This is the core logic that removes need for hardcoded tool definitions
@@ -465,6 +472,7 @@ export function generateToolsFromActionSpace(
     args,
   ) => args,
   initArgSchema: ToolSchema = {},
+  initArgCliMetadata?: ToolCliMetadata,
 ): ToolDefinition[] {
   return actionSpace.map((action) => {
     const schema = {
@@ -476,6 +484,7 @@ export function generateToolsFromActionSpace(
       name: action.name,
       description: describeActionForMCP(action),
       schema,
+      cli: initArgCliMetadata,
       handler: async (args: Record<string, unknown>) => {
         try {
           const agent = await getAgent(args);
@@ -526,6 +535,7 @@ export function generateToolsFromActionSpace(
 export function generateCommonTools(
   getAgent: (args?: Record<string, unknown>) => Promise<BaseAgent>,
   initArgSchema: ToolSchema = {},
+  initArgCliMetadata?: ToolCliMetadata,
 ): ToolDefinition[] {
   return [
     {
@@ -534,6 +544,7 @@ export function generateCommonTools(
       schema: {
         ...initArgSchema,
       },
+      cli: initArgCliMetadata,
       handler: async (
         args: Record<string, unknown> = {},
       ): Promise<ToolResult> => {
@@ -568,6 +579,7 @@ export function generateCommonTools(
           ),
         ...initArgSchema,
       },
+      cli: mergeToolCliMetadata(undefined, initArgCliMetadata),
       handler: async (
         args: Record<string, unknown> = {},
       ): Promise<ToolResult> => {

@@ -379,6 +379,50 @@ describe('runToolsCLI', () => {
     consoleSpy.mockRestore();
   });
 
+  it('prefers CLI display metadata for command help output', async () => {
+    const tools = {
+      initTools: vi.fn().mockResolvedValue(undefined),
+      destroy: vi.fn().mockResolvedValue(undefined),
+      getToolDefinitions: vi.fn().mockReturnValue([
+        {
+          name: 'android_connect',
+          description: 'Connect to Android device',
+          schema: {
+            'android.deviceId': {
+              description: 'Android device ID (from adb devices)',
+            },
+          },
+          cli: {
+            options: {
+              'android.deviceId': {
+                preferredName: 'device-id',
+                aliases: ['deviceId', 'android.device-id', 'android.deviceId'],
+              },
+            },
+          },
+          handler: vi.fn(),
+        },
+      ]),
+    } as any;
+    const lines: string[] = [];
+    const consoleSpy = vi
+      .spyOn(console, 'log')
+      .mockImplementation((...args: any[]) => {
+        lines.push(args.map(String).join(' '));
+      });
+
+    await runToolsCLI(tools, 'midscene-android', {
+      stripPrefix: 'android_',
+      argv: ['connect', '--help'],
+    });
+
+    expect(lines.join('\n')).toContain('--device-id');
+    expect(lines.join('\n')).toContain(
+      '(aliases: --deviceId, --android.device-id, --android.deviceId)',
+    );
+    consoleSpy.mockRestore();
+  });
+
   it('throws CLIError for unknown command', async () => {
     const tools = createMockTools([
       {

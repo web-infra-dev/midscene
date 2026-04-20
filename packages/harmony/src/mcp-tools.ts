@@ -22,6 +22,9 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<
         .optional()
         .describe('HarmonyOS device ID (from hdc list targets)'),
     },
+    cli: {
+      preferBareKeys: true,
+    },
     adapt: (extracted) => extracted?.deviceId as string | undefined,
   };
 
@@ -58,6 +61,7 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<
         description:
           'Connect to HarmonyOS device via HDC. If deviceId not provided, uses the first available device.',
         schema: this.getAgentInitArgSchema(),
+        cli: this.getAgentInitArgCliMetadata(),
         handler: async (args: Record<string, unknown>) => {
           const deviceId = this.extractAgentInitParam(args);
           const agent = await this.ensureAgent(deviceId);

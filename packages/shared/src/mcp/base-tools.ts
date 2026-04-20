@@ -2,6 +2,7 @@ import { parseBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { z } from 'zod';
+import { camelToKebab, getKeyAliases } from '../key-alias-utils';
 import {
   createNamespacedInitArgSchema,
   extractNamespacedArgs,
@@ -16,6 +17,7 @@ import type {
   BaseAgent,
   BaseDevice,
   IMidsceneTools,
+  ToolCliMetadata,
   ToolDefinition,
   ToolSchema,
 } from './types';
@@ -33,6 +35,16 @@ export interface InitArgSpec<TInitParam> {
   /** Zod shape describing the init args. Field names drive the MCP schema. */
   shape: Record<string, z.ZodTypeAny>;
   /**
+   * Optional CLI presentation hints. These affect `--help` output for
+   * single-platform CLIs but do not alter MCP/YAML protocol keys.
+   */
+  cli?: {
+    /** Prefer bare `--device-id`-style options in platform CLI help output. */
+    preferBareKeys?: boolean;
+    /** Override the displayed option name for specific init arg fields. */
+    preferredNames?: Record<string, string>;
+  };
+  /**
    * Adapt extracted namespaced args into the concrete `TInitParam` passed to
    * `ensureAgent`. Defaults to returning the raw extracted record.
    */
@@ -49,7 +61,7 @@ export interface InitArgSpec<TInitParam> {
  */
 export abstract class BaseMidsceneTools<
   TAgent extends BaseAgent = BaseAgent,
-  TInitParam = undefined,
+  TInitParam = unknown,
 > implements IMidsceneTools
 {
   protected mcpServer?: McpServer;
@@ -130,6 +142,46 @@ export abstract class BaseMidsceneTools<
   }
 
   /**
+   * Expose CLI-only metadata for platform init args so single-platform help can
+   * show ergonomic bare flags while the underlying schema stays namespaced.
+   */
+  protected getAgentInitArgCliMetadata(): ToolCliMetadata | undefined {
+    if (!this.initArgSpec?.cli) {
+      return undefined;
+    }
+
+    const options = Object.fromEntries(
+      this.getInitArgKeys().map((key) => {
+        const canonicalKey = `${this.initArgSpec!.namespace}.${key}`;
+        const preferredName =
+          this.initArgSpec!.cli?.preferredNames?.[key] ??
+          (this.initArgSpec!.cli?.preferBareKeys
+            ? camelToKebab(key)
+            : canonicalKey);
+
+        const aliases = new Set(getKeyAliases(canonicalKey));
+        if (this.initArgSpec!.cli?.preferBareKeys) {
+          for (const alias of getKeyAliases(key)) {
+            aliases.add(alias);
+          }
+        }
+
+        aliases.delete(preferredName);
+
+        return [
+          canonicalKey,
+          {
+            preferredName,
+            aliases: [...aliases],
+          },
+        ];
+      }),
+    );
+
+    return { options };
+  }
+
+  /**
    * Optional: prepare platform-specific tools (e.g., device connection)
    */
   protected preparePlatformTools(): ToolDefinition[] {
@@ -182,12 +234,14 @@ export abstract class BaseMidsceneTools<
       (args = {}) => this.ensureAgent(this.extractAgentInitParam(args)),
       (args = {}) => this.sanitizeToolArgs(args),
       this.getAgentInitArgSchema(),
+      this.getAgentInitArgCliMetadata(),
     );
 
     // 4. Add common tools (screenshot, waitFor)
     const commonTools = generateCommonTools(
       (args = {}) => this.ensureAgent(this.extractAgentInitParam(args)),
       this.getAgentInitArgSchema(),
+      this.getAgentInitArgCliMetadata(),
     );
     this.toolDefinitions.push(...actionTools, ...commonTools);
 

@@ -66,6 +66,32 @@ describe('Android CLI integration', () => {
     });
   });
 
+  it('routes --device-id (preferred bare form) through the same pipeline', async () => {
+    const tools = new AndroidMidsceneTools();
+
+    await runToolsCLI(tools, 'midscene-android', {
+      stripPrefix: 'android_',
+      argv: ['take_screenshot', '--device-id', 'bare-kebab-device'],
+    });
+
+    expect(agentFromAdbDevice).toHaveBeenCalledWith('bare-kebab-device', {
+      autoDismissKeyboard: false,
+    });
+  });
+
+  it('routes --deviceId (preferred bare camel form) through the same pipeline', async () => {
+    const tools = new AndroidMidsceneTools();
+
+    await runToolsCLI(tools, 'midscene-android', {
+      stripPrefix: 'android_',
+      argv: ['take_screenshot', '--deviceId', 'bare-camel-device'],
+    });
+
+    expect(agentFromAdbDevice).toHaveBeenCalledWith('bare-camel-device', {
+      autoDismissKeyboard: false,
+    });
+  });
+
   it('routes --android.deviceId (camel) through the same pipeline', async () => {
     const tools = new AndroidMidsceneTools();
 
@@ -75,6 +101,25 @@ describe('Android CLI integration', () => {
     });
 
     expect(agentFromAdbDevice).toHaveBeenCalledWith('camel-device', {
+      autoDismissKeyboard: false,
+    });
+  });
+
+  it('prefers namespaced init args over bare flags when both are provided', async () => {
+    const tools = new AndroidMidsceneTools();
+
+    await runToolsCLI(tools, 'midscene-android', {
+      stripPrefix: 'android_',
+      argv: [
+        'take_screenshot',
+        '--device-id',
+        'bare-device',
+        '--android.deviceId',
+        'namespaced-device',
+      ],
+    });
+
+    expect(agentFromAdbDevice).toHaveBeenCalledWith('namespaced-device', {
       autoDismissKeyboard: false,
     });
   });
@@ -147,5 +192,23 @@ describe('Android CLI integration', () => {
     // not action-level. `sanitizeToolArgs` is what strips them.
     const [, actionOpts] = mockAgent.aiAction.mock.calls[0];
     expect(actionOpts).toEqual({ deepThink: false });
+  });
+
+  it('renders bare flags first in single-platform command help', async () => {
+    const tools = new AndroidMidsceneTools();
+    const output: string[] = [];
+    const logSpy = vi.spyOn(console, 'log').mockImplementation((...args) => {
+      output.push(args.map(String).join(' '));
+    });
+
+    await runToolsCLI(tools, 'midscene-android', {
+      stripPrefix: 'android_',
+      argv: ['connect', '--help'],
+    });
+
+    expect(output.join('\n')).toContain('--device-id');
+    expect(output.join('\n')).toContain('--android.device-id');
+
+    logSpy.mockRestore();
   });
 });

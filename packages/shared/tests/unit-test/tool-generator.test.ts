@@ -209,6 +209,14 @@ describe('generateToolsFromActionSpace', () => {
     const initArgSchema = {
       'android.deviceId': z.string().optional().describe('Android device ID'),
     };
+    const initArgCliMetadata = {
+      options: {
+        'android.deviceId': {
+          preferredName: 'device-id',
+          aliases: ['deviceId', 'android.device-id', 'android.deviceId'],
+        },
+      },
+    };
     const [actionTool] = generateToolsFromActionSpace(
       actionSpace,
       async () => ({
@@ -219,6 +227,7 @@ describe('generateToolsFromActionSpace', () => {
       }),
       undefined,
       initArgSchema,
+      initArgCliMetadata,
     );
     const commonTools = generateCommonTools(
       async () => ({
@@ -228,18 +237,26 @@ describe('generateToolsFromActionSpace', () => {
         },
       }),
       initArgSchema,
+      initArgCliMetadata,
     );
 
     expect(actionTool.schema).toHaveProperty('locate');
     expect(actionTool.schema).toHaveProperty('android.deviceId');
+    expect(actionTool.cli).toEqual(initArgCliMetadata);
     expect(
       commonTools.find((tool) => tool.name === 'take_screenshot')?.schema,
     ).toHaveProperty('android.deviceId');
+    expect(
+      commonTools.find((tool) => tool.name === 'take_screenshot')?.cli,
+    ).toEqual(initArgCliMetadata);
     expect(commonTools.find((tool) => tool.name === 'act')?.schema).toEqual(
       expect.objectContaining({
         prompt: expect.anything(),
         'android.deviceId': expect.anything(),
       }),
+    );
+    expect(commonTools.find((tool) => tool.name === 'act')?.cli).toEqual(
+      initArgCliMetadata,
     );
   });
 });

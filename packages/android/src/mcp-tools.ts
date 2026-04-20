@@ -26,6 +26,9 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
         .optional()
         .describe('Android device ID (from adb devices)'),
     },
+    cli: {
+      preferBareKeys: true,
+    },
     adapt: (extracted) => extracted?.deviceId as string | undefined,
   };
 
@@ -69,6 +72,7 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
         description:
           'Connect to Android device via ADB. If deviceId not provided, uses the first available device.',
         schema: this.getAgentInitArgSchema(),
+        cli: this.getAgentInitArgCliMetadata(),
         handler: async (args: Record<string, unknown>) => {
           const deviceId = this.extractAgentInitParam(args);
           const agent = await this.ensureAgent(deviceId);

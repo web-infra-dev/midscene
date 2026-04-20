@@ -43,6 +43,9 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
   protected readonly initArgSpec: InitArgSpec<IOSInitArgs> = {
     namespace: 'ios',
     shape: iosInitArgShape,
+    cli: {
+      preferBareKeys: true,
+    },
     adapt: (extracted) => extracted as IOSInitArgs | undefined,
   };
 
@@ -89,6 +92,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
         name: 'ios_connect',
         description: 'Connect to iOS device or simulator via WebDriverAgent',
         schema: this.getAgentInitArgSchema(),
+        cli: this.getAgentInitArgCliMetadata(),
         handler: async (args: Record<string, unknown>) => {
           const initArgs = this.extractAgentInitParam(args);
           const agent = await this.ensureAgent(initArgs);
