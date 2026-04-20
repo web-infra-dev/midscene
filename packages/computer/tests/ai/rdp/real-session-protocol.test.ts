@@ -1,5 +1,5 @@
-import { ComputerAgent, RDPDevice } from '@/index';
 import { describe, expect, it } from 'vitest';
+import { ComputerAgent, RDPDevice } from '../../../src';
 
 const realRdpEnv = {
   enabled: process.env.MIDSCENE_RDP_REAL_TEST === '1',

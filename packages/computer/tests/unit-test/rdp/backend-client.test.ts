@@ -4,7 +4,7 @@ import {
   HelperProcessRDPBackendClient,
   type RDPHelperRequest,
   type RDPHelperResponse,
-} from '@/index';
+} from '../../../src';
 
 class FakeChildProcess extends EventEmitter {
   stdout = new PassThrough();

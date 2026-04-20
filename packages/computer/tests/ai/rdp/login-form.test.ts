@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { ComputerAgent, RDPDevice } from '@/index';
+import type { Rect, Size } from '@midscene/core';
+import { describe, expect, it } from 'vitest';
+import { ComputerAgent, RDPDevice } from '../../../src';
 import type {
   RDPBackendClient,
   RDPConnectionConfig,
@@ -8,9 +10,7 @@ import type {
   RDPMouseButton,
   RDPMouseButtonAction,
   RDPScrollDirection,
-} from '@/index';
-import type { Rect, Size } from '@midscene/core';
-import { describe, expect, it } from 'vitest';
+} from '../../../src';
 
 interface FixtureTreeNode {
   node?: {

@@ -1,4 +1,5 @@
-import { ComputerAgent, RDPDevice, agentFromComputer } from '@/index';
+import type { Size } from '@midscene/core';
+import { ComputerAgent, RDPDevice, agentFromComputer } from '../../../src';
 import type {
   RDPBackendClient,
   RDPConnectionConfig,
@@ -6,8 +7,7 @@ import type {
   RDPMouseButton,
   RDPMouseButtonAction,
   RDPScrollDirection,
-} from '@/index';
-import type { Size } from '@midscene/core';
+} from '../../../src';
 
 class FakeRDPBackend implements RDPBackendClient {
   calls: Array<{ name: string; args: unknown[] }> = [];
