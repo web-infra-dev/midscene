@@ -2,6 +2,10 @@ import { PlaygroundPreview } from '@midscene/playground-app';
 import { useEffect, useRef, useState } from 'react';
 import { assetUrls } from '../../assets';
 import {
+  type StudioPreviewConnectionState,
+  shouldPauseDiscoveryPollingDuringPreview,
+} from '../../playground/preview-discovery';
+import {
   buildDeviceSelectionFormValues,
   buildStudioSidebarDeviceBuckets,
   mergeSidebarDeviceBucketsWithDiscovery,
@@ -24,14 +28,6 @@ export interface MainContentProps {
   onOpenSettings?: () => void;
   onSelectDeviceView?: () => void;
 }
-
-type PreviewConnectionState =
-  | 'connecting'
-  | 'waiting-for-stream'
-  | 'connected'
-  | 'disconnected'
-  | 'error'
-  | null;
 
 function RefreshIcon({ spinning }: { spinning?: boolean }) {
   return (
@@ -119,7 +115,10 @@ export default function MainContent({
 }: MainContentProps) {
   const studioPlayground = useStudioPlayground();
   const [previewStatus, setPreviewStatus] =
-    useState<PreviewConnectionState>(null);
+    useState<StudioPreviewConnectionState>(null);
+  const [previewStatusText, setPreviewStatusText] = useState<string | null>(
+    null,
+  );
   const [overviewRefreshing, setOverviewRefreshing] = useState(false);
   const isReady = studioPlayground.phase === 'ready';
   const deviceLabel =
@@ -156,8 +155,26 @@ export default function MainContent({
   useEffect(() => {
     if (!isConnected) {
       setPreviewStatus(null);
+      setPreviewStatusText(null);
     }
   }, [isConnected]);
+
+  const runtimeInfo =
+    studioPlayground.phase === 'ready'
+      ? studioPlayground.controller.state.runtimeInfo
+      : null;
+  const pauseDiscoveryPolling = shouldPauseDiscoveryPollingDuringPreview({
+    previewStatus,
+    runtimeInfo,
+    sessionConnected: isConnected,
+  });
+
+  useEffect(() => {
+    studioPlayground.setDiscoveryPollingPaused(pauseDiscoveryPolling);
+    return () => {
+      studioPlayground.setDiscoveryPollingPaused(false);
+    };
+  }, [pauseDiscoveryPolling, studioPlayground]);
 
   // When the scrcpy preview reports an error (most common cause: the physical
   // device was unplugged after the sidebar rendered), refresh the session
@@ -173,7 +190,7 @@ export default function MainContent({
     studioPlayground.phase === 'ready'
       ? studioPlayground.controller.state.formValues
       : null;
-  const previewStatusRef = useRef<PreviewConnectionState>(null);
+  const previewStatusRef = useRef<StudioPreviewConnectionState>(null);
   useEffect(() => {
     const previous = previewStatusRef.current;
     previewStatusRef.current = previewStatus;
@@ -389,9 +406,15 @@ export default function MainContent({
                 <ConnectingPreview
                   pcSrc={assetUrls.main.pc}
                   phoneSrc={assetUrls.main.phone}
+                  statusLabel={
+                    previewStatusText || 'Preparing Android device connection…'
+                  }
                 />
               }
-              onScrcpyStatusChange={setPreviewStatus}
+              onScrcpyStatusChange={(status, statusText) => {
+                setPreviewStatus(status);
+                setPreviewStatusText(statusText);
+              }}
               renderErrorOverlay={({ retry }) => (
                 <ConnectionFailedPreview
                   adbId={previewDeviceId}

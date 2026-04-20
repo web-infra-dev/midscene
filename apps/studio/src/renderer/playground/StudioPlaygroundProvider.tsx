@@ -7,7 +7,7 @@ import type {
   StudioPlatformId,
 } from '@shared/electron-contract';
 import type { PropsWithChildren } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { bucketDiscoveredDevices } from './selectors';
 import type { DiscoveredDevicesByPlatform } from './types';
 import { StudioPlaygroundContext } from './useStudioPlayground';
@@ -30,11 +30,13 @@ function ReadyStudioPlaygroundProvider({
   discoveredDevices,
   refreshDiscoveredDevices,
   restartPlayground,
+  setDiscoveryPollingPaused,
   serverUrl,
 }: PropsWithChildren<{
   discoveredDevices?: DiscoveredDevicesByPlatform;
   refreshDiscoveredDevices: () => Promise<void>;
   restartPlayground: () => Promise<void>;
+  setDiscoveryPollingPaused: (paused: boolean) => void;
   serverUrl: string;
 }>) {
   const controller = usePlaygroundController({
@@ -49,6 +51,7 @@ function ReadyStudioPlaygroundProvider({
       controller,
       restartPlayground,
       refreshDiscoveredDevices,
+      setDiscoveryPollingPaused,
       discoveredDevices,
     }),
     [
@@ -56,6 +59,7 @@ function ReadyStudioPlaygroundProvider({
       discoveredDevices,
       refreshDiscoveredDevices,
       restartPlayground,
+      setDiscoveryPollingPaused,
       serverUrl,
     ],
   );
@@ -84,22 +88,41 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
   const [discoveredDevices, setDiscoveredDevices] = useState<
     DiscoveredDevicesByPlatform | undefined
   >();
+  const [discoveryPollingPaused, setDiscoveryPollingPaused] = useState(false);
+  const refreshDiscoveredDevicesRef = useRef<Promise<void> | null>(null);
+
+  const setDiscoveryPollingPausedValue = useCallback((paused: boolean) => {
+    setDiscoveryPollingPaused(paused);
+  }, []);
 
   // Imperative scan — safe to call from anywhere (user-initiated refresh,
   // post-destroy session cleanup, etc). Resolves after state is updated.
   const refreshDiscoveredDevices = useCallback(async () => {
-    if (!window.studioRuntime?.discoverDevices) {
+    const studioRuntime = window.studioRuntime;
+    if (!studioRuntime?.discoverDevices) {
       return;
     }
-    try {
-      const devices = await window.studioRuntime.discoverDevices();
-      setDiscoveredDevices(bucketDiscoveredDevices(devices));
-    } catch (err) {
-      console.warn('[studio] device discovery failed:', err);
+
+    if (refreshDiscoveredDevicesRef.current) {
+      return refreshDiscoveredDevicesRef.current;
     }
+
+    const pendingRefresh = (async () => {
+      try {
+        const devices = await studioRuntime.discoverDevices();
+        setDiscoveredDevices(bucketDiscoveredDevices(devices));
+      } catch (err) {
+        console.warn('[studio] device discovery failed:', err);
+      } finally {
+        refreshDiscoveredDevicesRef.current = null;
+      }
+    })();
+
+    refreshDiscoveredDevicesRef.current = pendingRefresh;
+    return pendingRefresh;
   }, []);
 
-  const pollingActive = bootstrap.phase === 'ready';
+  const pollingActive = bootstrap.phase === 'ready' && !discoveryPollingPaused;
   useEffect(() => {
     if (!pollingActive) {
       return;
@@ -205,6 +228,7 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
         error: bootstrap.error,
         restartPlayground,
         refreshDiscoveredDevices,
+        setDiscoveryPollingPaused: setDiscoveryPollingPausedValue,
         discoveredDevices,
       };
     }
@@ -213,6 +237,7 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
       phase: 'booting' as const,
       restartPlayground,
       refreshDiscoveredDevices,
+      setDiscoveryPollingPaused: setDiscoveryPollingPausedValue,
       discoveredDevices,
     };
   }, [
@@ -220,6 +245,7 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
     discoveredDevices,
     refreshDiscoveredDevices,
     restartPlayground,
+    setDiscoveryPollingPausedValue,
   ]);
 
   return (
@@ -229,6 +255,7 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
           discoveredDevices={discoveredDevices}
           refreshDiscoveredDevices={refreshDiscoveredDevices}
           restartPlayground={restartPlayground}
+          setDiscoveryPollingPaused={setDiscoveryPollingPausedValue}
           serverUrl={bootstrap.serverUrl}
         >
           {children}

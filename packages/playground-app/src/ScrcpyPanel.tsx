@@ -41,7 +41,7 @@ export type ScrcpyErrorOverlayRenderer = (
 
 interface ScrcpyPanelProps {
   connectingOverlay?: ReactNode;
-  onStatusChange?: (status: ScrcpyPreviewStatus) => void;
+  onStatusChange?: (status: ScrcpyPreviewStatus, statusText: string) => void;
   renderErrorOverlay?: ScrcpyErrorOverlayRenderer;
   serverUrl?: string;
   metadataTimeoutMs?: number;
@@ -93,8 +93,8 @@ export function ScrcpyPanel({
   }, []);
 
   useEffect(() => {
-    onStatusChange?.(status);
-  }, [onStatusChange, status]);
+    onStatusChange?.(status, statusText);
+  }, [onStatusChange, status, statusText]);
 
   const clearCanvas = () => {
     const stage = canvasStageRef.current;

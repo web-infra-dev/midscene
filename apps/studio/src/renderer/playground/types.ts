@@ -32,6 +32,7 @@ export type StudioPlaygroundContextValue =
       phase: 'booting';
       restartPlayground: () => Promise<void>;
       refreshDiscoveredDevices: () => Promise<void>;
+      setDiscoveryPollingPaused: (paused: boolean) => void;
       discoveredDevices?: DiscoveredDevicesByPlatform;
     }
   | {
@@ -39,6 +40,7 @@ export type StudioPlaygroundContextValue =
       error: string;
       restartPlayground: () => Promise<void>;
       refreshDiscoveredDevices: () => Promise<void>;
+      setDiscoveryPollingPaused: (paused: boolean) => void;
       discoveredDevices?: DiscoveredDevicesByPlatform;
     }
   | {
@@ -47,5 +49,6 @@ export type StudioPlaygroundContextValue =
       controller: PlaygroundControllerResult;
       restartPlayground: () => Promise<void>;
       refreshDiscoveredDevices: () => Promise<void>;
+      setDiscoveryPollingPaused: (paused: boolean) => void;
       discoveredDevices?: DiscoveredDevicesByPlatform;
     };
