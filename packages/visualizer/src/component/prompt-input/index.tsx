@@ -50,44 +50,17 @@ import './index.less';
 import type { DeviceAction } from '@midscene/core';
 import { useMinimalTypeGate } from '../../hooks/useMinimalTypeGate';
 import HistoryOutlined from '../../icons/history.svg';
-import SettingOutlined from '../../icons/setting.svg';
 
 const { TextArea } = Input;
 
-function DefaultMinimalActionIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="minimal-action-icon-fallback"
-      fill="none"
-      viewBox="0 0 20 20"
-    >
-      <rect
-        height="8.5"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        width="8.5"
-        x="2.75"
-        y="4.25"
-      />
-      <path
-        d="M11 5.25H15.25V9.5"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.5"
-      />
-      <path
-        d="M14.95 5.55L9.85 10.65"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.5"
-      />
-    </svg>
-  );
-}
+const STUDIO_MINIMAL_PROMPT_ICONS = {
+  action:
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAASdJREFUeAHtlt3NgjAUhg8/CVx+G8gGX5xAnUDdQMcgkIgJBLbQEXQD3MAR6gZewgXgOUn9iRp6vAC96JM07YG36Zv+nBZAwySO4ymWgUoXRdEfaYGJyRElSbKyLGuHJVdpHcc5khb7RMCAZcA0TU82PYZ8IPsoZ4ttoEu0ga8bMB6DNE1X8H6jTUBuLmQL7SxkLbDkzz/ruhZBEKxfDGRZNm2aZgc9UFXVLAzDPbVvS1AUxQGrE3SPwHK8BganBy7NBuTU+r5vKLSNbG5RuwQF+hRoA9rA76RifMl4+JjI4Z5yu0KUZTnE8c4U3GbAdd3/HgYnPNu2R9eg98uIvmOGfL2M2tCpWBv4BQPiqW7j9IGWZ4CODT7X5pRAVFrUjEn7eNQ0bVwAyWpjMDlJKpAAAAAASUVORK5CYII=',
+  actionChevron:
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAUxJREFUeAHtUztOw0AQ3V1SuLCldP4VuEyHuQE34Aqho0tugHKCwBFyApwTYEoqyAlwCsufKkgu3NjmjfkoCDu7KSP5SaNZ774Zv9nZYWzAgH2MAdu2z4+J4apEy7I8uBDWlGV5uQNU4gRTBOd8CUfqPU3THlXjzlRIUH8HdwuLYB8wX9d1XhRFKIuVXpHjONd1XQdN0+yEED48h72iojGOr9I0fT4ULyTKPSR/aJVwPk+SZIuEET6n33uBrOmyHoTs694XSLz62cyybI3k96iEqgjodbFjAWVLVNDAnvo4dEYc4vZxOiswTXMGdXMsIyidsn7cwLbExU9mXQTeocqDe28POffo3tkBuK57UVXVG63RLz/P8w3rq2BvmH6byiSI43hD3DaZEP/68WcODMOg9z5BySs0dcEUgXl4wVzQ0h+NRhN8r9mAAaeDT7K0eaMcqhtVAAAAAElFTkSuQmCC',
+  settings:
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAaFJREFUeAHtlt9tgzAQxi8EJa/pBMkIHYENygalG7RvSQQKlfjz2I5ANkg3oBukG6QbtI9IIPq5ihHQOBXmFImqPwnZBvtsf9ydTfQPA77vz4IguCENDGJgOp3ux+PxLgxDnzrCsgAw/zZmGPOO48iUFci4wE42xITKXlEUO9d1X34s4NjZISZU9qCSjeKqastKWZYpMaKyNxqNto02MRDHcXmsJqvV6q7LWBYnxK4+SBOTeHDw2HAwn4aGlg9EUfQE2e+xYwchtaUeaPmAmFyUyH4W9aThA9jZ7alOiN39crl8O/FpoRpzjrq96hcgj2/wwVcNQlxb6/X6VdRrYaeNtGfUVvXbgE9iRNprOCHktPF/Z+3OeZ4fPM9LZbumgHjX2Qnr9rSioE/ma6MVBZDvWWQ/cbLR0GE5jEQoQhFLpGIkpvcuY1nOAkyeiBKJSRSXPw37UCkgbrWmaSZwsBkxoLInHBgJ6EG2KwUgn801+Tl78hyRVApkWfaIexxp4rRfqOzBUdN6+29cyYAMvQN1hCUMIbc1mUyu4VzDz4wX5wvRfah9kIOcwwAAAABJRU5ErkJggg==',
+} as const;
 
 interface PromptInputProps {
   runButtonEnabled: boolean;
@@ -1092,6 +1065,12 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       Click "Run" to execute {actionNameForType(selectedType)}
     </div>
   );
+  const minimalActionIconSrc =
+    chrome?.icons?.action ?? STUDIO_MINIMAL_PROMPT_ICONS.action;
+  const minimalActionChevronSrc =
+    chrome?.icons?.actionChevron ?? STUDIO_MINIMAL_PROMPT_ICONS.actionChevron;
+  const minimalSettingsIconSrc =
+    chrome?.icons?.settings ?? STUDIO_MINIMAL_PROMPT_ICONS.settings;
 
   if (isMinimalChrome) {
     return (
@@ -1121,27 +1100,19 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                   disabled={!runButtonEnabled}
                   type="button"
                 >
-                  {chrome?.icons?.action ? (
-                    <img
-                      alt=""
-                      className="minimal-action-icon"
-                      src={chrome.icons.action}
-                    />
-                  ) : (
-                    <DefaultMinimalActionIcon />
-                  )}
+                  <img
+                    alt=""
+                    className="minimal-action-icon"
+                    src={minimalActionIconSrc}
+                  />
                   <span className="minimal-action-label">
                     {actionButtonLabel}
                   </span>
-                  {chrome?.icons?.actionChevron ? (
-                    <img
-                      alt=""
-                      className="minimal-action-chevron"
-                      src={chrome.icons.actionChevron}
-                    />
-                  ) : (
-                    <DownOutlined className="minimal-action-chevron-fallback" />
-                  )}
+                  <img
+                    alt=""
+                    className="minimal-action-chevron"
+                    src={minimalActionChevronSrc}
+                  />
                 </button>
               </Dropdown>
 
@@ -1149,6 +1120,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                 onSelect={handleSelectHistory}
                 history={historyForSelectedType}
                 currentType={selectedType}
+                popupPlacement="top"
                 trigger={
                   <button
                     aria-label="Open prompt history"
@@ -1195,19 +1167,11 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                         className="minimal-icon-trigger"
                         type="button"
                       >
-                        {chrome?.icons?.settings ? (
-                          <img
-                            alt=""
-                            className="minimal-toolbar-icon"
-                            src={chrome.icons.settings}
-                          />
-                        ) : (
-                          <SettingOutlined
-                            className="minimal-toolbar-icon minimal-toolbar-icon-fallback"
-                            width={16}
-                            height={16}
-                          />
-                        )}
+                        <img
+                          alt=""
+                          className="minimal-toolbar-icon"
+                          src={minimalSettingsIconSrc}
+                        />
                       </button>
                     }
                   />

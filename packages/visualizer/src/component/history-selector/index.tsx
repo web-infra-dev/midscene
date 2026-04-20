@@ -16,6 +16,7 @@ interface HistorySelectorProps {
   history: HistoryItem[];
   currentType: string;
   trigger?: ReactNode;
+  popupPlacement?: 'top' | 'bottom';
 }
 
 export const HistorySelector: React.FC<HistorySelectorProps> = ({
@@ -23,6 +24,7 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
   history,
   currentType,
   trigger,
+  popupPlacement = 'bottom',
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -114,7 +116,10 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
       </div>
 
       {isModalOpen && (
-        <div className="history-modal-overlay" ref={modalRef}>
+        <div
+          className={`history-modal-overlay history-modal-overlay-${popupPlacement}`}
+          ref={modalRef}
+        >
           <div className="history-modal-container">
             {/* top title bar */}
             <div className="history-modal-header">
