@@ -13,7 +13,7 @@ export default function Playground() {
       <div className="min-h-0 h-full flex-1 overflow-hidden">
         {studioPlayground.phase === 'booting' ? (
           <div className="flex h-full items-center justify-center px-6 text-center text-[14px] leading-[22px] text-text-tertiary">
-            Android playground starting...
+            Playground starting...
           </div>
         ) : studioPlayground.phase === 'error' ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
@@ -23,11 +23,11 @@ export default function Playground() {
             <button
               className="rounded-lg border border-border-subtle px-4 py-2 text-[13px] font-medium text-text-primary"
               onClick={() => {
-                void studioPlayground.restartAndroidPlayground();
+                void studioPlayground.restartPlayground();
               }}
               type="button"
             >
-              Retry Android runtime
+              Retry runtime
             </button>
           </div>
         ) : (
@@ -53,7 +53,7 @@ export default function Playground() {
               showVersionInfo: false,
               collapsibleProgressGroup: true,
             }}
-            title="Android Playground"
+            title="Playground"
           />
         )}
       </div>

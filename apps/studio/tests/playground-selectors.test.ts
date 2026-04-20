@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildAndroidDeviceItems,
+  buildDeviceSelectionFormValues,
   buildStudioSidebarDeviceBuckets,
+  mergeSidebarDeviceBucketsWithDiscovery,
   resolveAndroidDeviceLabel,
+  resolveConnectedDeviceId,
+  resolveConnectedDeviceLabel,
+  resolveSelectedDeviceId,
   resolveVisibleSidebarPlatforms,
 } from '../src/renderer/playground/selectors';
 
@@ -40,6 +45,9 @@ describe('buildAndroidDeviceItems', () => {
         description: undefined,
         selected: true,
         status: 'active',
+        sessionValues: {
+          deviceId: 'device-1',
+        },
       },
       {
         id: 'device-2',
@@ -47,6 +55,9 @@ describe('buildAndroidDeviceItems', () => {
         description: undefined,
         selected: false,
         status: 'idle',
+        sessionValues: {
+          deviceId: 'device-2',
+        },
       },
     ]);
   });
@@ -115,6 +126,9 @@ describe('buildStudioSidebarDeviceBuckets', () => {
           description: undefined,
           selected: true,
           status: 'active',
+          sessionValues: {
+            deviceId: 'device-1',
+          },
         },
         {
           id: 'device-2',
@@ -122,6 +136,9 @@ describe('buildStudioSidebarDeviceBuckets', () => {
           description: undefined,
           selected: false,
           status: 'idle',
+          sessionValues: {
+            deviceId: 'device-2',
+          },
         },
       ],
       ios: [],
@@ -159,6 +176,9 @@ describe('buildStudioSidebarDeviceBuckets', () => {
           description: 'HDC-001',
           selected: true,
           status: 'active',
+          sessionValues: {
+            deviceId: 'HDC-001',
+          },
         },
       ],
       web: [],
@@ -194,5 +214,305 @@ describe('resolveAndroidDeviceLabel', () => {
         },
       ]),
     ).toBe('Pixel 8');
+  });
+});
+
+describe('mergeSidebarDeviceBucketsWithDiscovery', () => {
+  const emptyBuckets = {
+    android: [],
+    ios: [],
+    computer: [],
+    harmony: [],
+    web: [],
+  };
+
+  it('returns session buckets unchanged when discovery has not polled yet', () => {
+    const session = {
+      ...emptyBuckets,
+      android: [
+        {
+          id: 'device-1',
+          label: 'Pixel 9',
+          selected: true,
+          status: 'active' as const,
+        },
+      ],
+    };
+
+    expect(mergeSidebarDeviceBucketsWithDiscovery(session, undefined)).toBe(
+      session,
+    );
+  });
+
+  it('drops a session item that is no longer discoverable (phone unplugged)', () => {
+    const session = {
+      ...emptyBuckets,
+      android: [
+        {
+          id: 'device-1',
+          label: 'Pixel 9',
+          selected: true,
+          status: 'active' as const,
+        },
+      ],
+    };
+    const discovered = {
+      ...emptyBuckets,
+      // device-1 has vanished from ADB
+    };
+
+    expect(
+      mergeSidebarDeviceBucketsWithDiscovery(session, discovered).android,
+    ).toEqual([]);
+  });
+
+  it('appends discovered devices that session setup has not surfaced', () => {
+    const session = emptyBuckets;
+    const discovered = {
+      ...emptyBuckets,
+      android: [
+        {
+          platformId: 'android' as const,
+          id: 'device-2',
+          label: 'Galaxy',
+          description: 'ADB: device-2',
+        },
+      ],
+    };
+
+    expect(
+      mergeSidebarDeviceBucketsWithDiscovery(session, discovered).android,
+    ).toEqual([
+      {
+        id: 'device-2',
+        label: 'Galaxy',
+        description: 'ADB: device-2',
+        selected: false,
+        status: 'idle',
+      },
+    ]);
+  });
+
+  it('preserves manual iOS session rows while appending local WDA probes', () => {
+    const session = {
+      ...emptyBuckets,
+      ios: [
+        {
+          id: 'remote-wda:8100',
+          label: 'iPhone 15',
+          selected: true,
+          status: 'active' as const,
+        },
+      ],
+    };
+    const discovered = {
+      ...emptyBuckets,
+      ios: [
+        {
+          platformId: 'ios' as const,
+          id: 'localhost:8100',
+          label: 'iOS via WDA',
+          description: 'WebDriverAgent: localhost:8100',
+          sessionValues: {
+            host: 'localhost',
+            port: 8100,
+          },
+        },
+      ],
+    };
+
+    expect(
+      mergeSidebarDeviceBucketsWithDiscovery(session, discovered).ios,
+    ).toEqual([
+      {
+        id: 'remote-wda:8100',
+        label: 'iPhone 15',
+        selected: true,
+        status: 'active',
+      },
+      {
+        id: 'localhost:8100',
+        label: 'iOS via WDA',
+        description: 'WebDriverAgent: localhost:8100',
+        selected: false,
+        status: 'idle',
+        sessionValues: {
+          host: 'localhost',
+          port: 8100,
+        },
+      },
+    ]);
+  });
+
+  it('appends local iOS WDA probes without evicting manual iOS sessions', () => {
+    const session = {
+      ...emptyBuckets,
+      ios: [
+        {
+          id: 'remote-wda:8100',
+          label: 'Remote iPhone',
+          selected: true,
+          status: 'active' as const,
+        },
+      ],
+    };
+    const discovered = {
+      ...emptyBuckets,
+      ios: [
+        {
+          platformId: 'ios' as const,
+          id: 'localhost:8100',
+          label: 'iOS via WDA',
+          description: 'WebDriverAgent: localhost:8100',
+          sessionValues: {
+            host: 'localhost',
+            port: 8100,
+          },
+        },
+      ],
+    };
+
+    expect(
+      mergeSidebarDeviceBucketsWithDiscovery(session, discovered).ios,
+    ).toEqual([
+      {
+        id: 'remote-wda:8100',
+        label: 'Remote iPhone',
+        selected: true,
+        status: 'active',
+      },
+      {
+        id: 'localhost:8100',
+        label: 'iOS via WDA',
+        description: 'WebDriverAgent: localhost:8100',
+        selected: false,
+        status: 'idle',
+        sessionValues: {
+          host: 'localhost',
+          port: 8100,
+        },
+      },
+    ]);
+  });
+});
+
+describe('resolveConnectedDeviceLabel', () => {
+  const emptyOpts = { emptyLabel: 'No device' };
+
+  it('returns emptyLabel when no runtime info is available', () => {
+    expect(resolveConnectedDeviceLabel(null, emptyOpts)).toBe('No device');
+  });
+
+  it('prefers sessionDisplayName over raw device id', () => {
+    expect(
+      resolveConnectedDeviceLabel(
+        {
+          interface: { type: 'android' },
+          preview: { kind: 'none', capabilities: [] },
+          executionUxHints: [],
+          metadata: {
+            deviceId: 'emulator-5554',
+            sessionDisplayName: 'Pixel 9',
+          },
+        },
+        emptyOpts,
+      ),
+    ).toBe('Pixel 9');
+  });
+
+  it('falls back to deviceId when sessionDisplayName is absent', () => {
+    expect(
+      resolveConnectedDeviceLabel(
+        {
+          interface: { type: 'android' },
+          preview: { kind: 'none', capabilities: [] },
+          executionUxHints: [],
+          metadata: { deviceId: 'emulator-5554' },
+        },
+        emptyOpts,
+      ),
+    ).toBe('emulator-5554');
+  });
+
+  it('labels computer displays using the displayId', () => {
+    expect(
+      resolveConnectedDeviceLabel(
+        {
+          interface: { type: 'computer' },
+          preview: { kind: 'none', capabilities: [] },
+          executionUxHints: [],
+          metadata: { displayId: '1' },
+        },
+        emptyOpts,
+      ),
+    ).toBe('Display 1');
+  });
+
+  it('uses WDA host and port as the fallback iOS connection id', () => {
+    expect(
+      resolveConnectedDeviceId({
+        interface: { type: 'ios' },
+        preview: { kind: 'none', capabilities: [] },
+        executionUxHints: [],
+        metadata: {
+          wdaHost: 'localhost',
+          wdaPort: 8100,
+        },
+      }),
+    ).toBe('localhost:8100');
+  });
+
+  it('falls back to runtime title when no device metadata is present', () => {
+    expect(
+      resolveConnectedDeviceLabel(
+        {
+          title: 'Midscene Playground',
+          interface: { type: 'android' },
+          preview: { kind: 'none', capabilities: [] },
+          executionUxHints: [],
+          metadata: {},
+        },
+        emptyOpts,
+      ),
+    ).toBe('Midscene Playground');
+  });
+});
+
+describe('resolveSelectedDeviceId', () => {
+  it('supports prefixed Android selection values', () => {
+    expect(
+      resolveSelectedDeviceId({
+        platformId: 'android',
+        'android.deviceId': 'device-2',
+      }),
+    ).toBe('device-2');
+  });
+
+  it('builds the iOS selection id from host and port', () => {
+    expect(
+      resolveSelectedDeviceId({
+        platformId: 'ios',
+        'ios.host': 'localhost',
+        'ios.port': 8100,
+      }),
+    ).toBe('localhost:8100');
+  });
+});
+
+describe('buildDeviceSelectionFormValues', () => {
+  it('prefixes discovery-provided session values for iOS', () => {
+    expect(
+      buildDeviceSelectionFormValues('ios', {
+        id: 'localhost:8100',
+        sessionValues: {
+          host: 'localhost',
+          port: 8100,
+        },
+      }),
+    ).toEqual({
+      platformId: 'ios',
+      'ios.host': 'localhost',
+      'ios.port': 8100,
+    });
   });
 });

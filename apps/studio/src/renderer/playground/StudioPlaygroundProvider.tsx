@@ -2,32 +2,44 @@ import {
   PlaygroundThemeProvider,
   usePlaygroundController,
 } from '@midscene/playground-app';
-import type { AndroidPlaygroundBootstrap } from '@shared/electron-contract';
+import type {
+  PlaygroundBootstrap,
+  StudioPlatformId,
+} from '@shared/electron-contract';
 import type { PropsWithChildren } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { bucketDiscoveredDevices } from './selectors';
+import type { DiscoveredDevicesByPlatform } from './types';
 import { StudioPlaygroundContext } from './useStudioPlayground';
 
 function getMissingBridgeError() {
   return 'Studio preload bridge is unavailable. Restart the Electron app.';
 }
 
-function normalizeBootstrapError(
-  bootstrap: AndroidPlaygroundBootstrap,
-): string {
-  return bootstrap.error || 'Failed to start Android playground runtime.';
+function normalizeBootstrapError(bootstrap: PlaygroundBootstrap): string {
+  return bootstrap.error || 'Failed to start playground runtime.';
 }
+
+// Default platform for Studio — pre-selected so the first session-setup
+// poll already has a `platformId` and immediately returns Android
+// targets, instead of the generic "Choose a platform" setup.
+const DEFAULT_PLATFORM_ID: StudioPlatformId = 'android';
 
 function ReadyStudioPlaygroundProvider({
   children,
-  restartAndroidPlayground,
+  discoveredDevices,
+  refreshDiscoveredDevices,
+  restartPlayground,
   serverUrl,
 }: PropsWithChildren<{
-  restartAndroidPlayground: () => Promise<void>;
+  discoveredDevices?: DiscoveredDevicesByPlatform;
+  refreshDiscoveredDevices: () => Promise<void>;
+  restartPlayground: () => Promise<void>;
   serverUrl: string;
 }>) {
   const controller = usePlaygroundController({
     serverUrl,
-    defaultDeviceType: 'android',
+    initialFormValues: { platformId: DEFAULT_PLATFORM_ID },
   });
 
   const contextValue = useMemo(
@@ -35,9 +47,17 @@ function ReadyStudioPlaygroundProvider({
       phase: 'ready' as const,
       serverUrl,
       controller,
-      restartAndroidPlayground,
+      restartPlayground,
+      refreshDiscoveredDevices,
+      discoveredDevices,
     }),
-    [controller, restartAndroidPlayground, serverUrl],
+    [
+      controller,
+      discoveredDevices,
+      refreshDiscoveredDevices,
+      restartPlayground,
+      serverUrl,
+    ],
   );
 
   return (
@@ -47,6 +67,8 @@ function ReadyStudioPlaygroundProvider({
   );
 }
 
+const DISCOVERY_POLL_INTERVAL_MS = 5000;
+
 export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
   const [bootstrap, setBootstrap] = useState<
     | { phase: 'booting' }
@@ -54,6 +76,42 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
     | { phase: 'ready'; serverUrl: string }
   >({ phase: 'booting' });
   const [bootstrapTick, setBootstrapTick] = useState(0);
+
+  // Cross-platform device discovery — polls ALL platforms (ADB, HDC,
+  // displays) once the playground runtime is ready, so the sidebar shows
+  // devices from every platform simultaneously. Gated on the ready phase
+  // to avoid waking up adb/hdc while we are still booting or in error.
+  const [discoveredDevices, setDiscoveredDevices] = useState<
+    DiscoveredDevicesByPlatform | undefined
+  >();
+
+  // Imperative scan — safe to call from anywhere (user-initiated refresh,
+  // post-destroy session cleanup, etc). Resolves after state is updated.
+  const refreshDiscoveredDevices = useCallback(async () => {
+    if (!window.studioRuntime?.discoverDevices) {
+      return;
+    }
+    try {
+      const devices = await window.studioRuntime.discoverDevices();
+      setDiscoveredDevices(bucketDiscoveredDevices(devices));
+    } catch (err) {
+      console.warn('[studio] device discovery failed:', err);
+    }
+  }, []);
+
+  const pollingActive = bootstrap.phase === 'ready';
+  useEffect(() => {
+    if (!pollingActive) {
+      return;
+    }
+    void refreshDiscoveredDevices();
+    const id = window.setInterval(() => {
+      void refreshDiscoveredDevices();
+    }, DISCOVERY_POLL_INTERVAL_MS);
+    return () => {
+      window.clearInterval(id);
+    };
+  }, [pollingActive, refreshDiscoveredDevices]);
 
   const readBootstrap = useCallback(async () => {
     if (!window.studioRuntime) {
@@ -64,8 +122,7 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    const nextBootstrap =
-      await window.studioRuntime.getAndroidPlaygroundBootstrap();
+    const nextBootstrap = await window.studioRuntime.getPlaygroundBootstrap();
     if (nextBootstrap.status === 'ready' && nextBootstrap.serverUrl) {
       setBootstrap({
         phase: 'ready',
@@ -113,7 +170,7 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
     };
   }, [bootstrap.phase, bootstrapTick, readBootstrap]);
 
-  const restartAndroidPlayground = useCallback(async () => {
+  const restartPlayground = useCallback(async () => {
     setBootstrap({ phase: 'booting' });
 
     if (!window.studioRuntime) {
@@ -124,7 +181,7 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    const nextBootstrap = await window.studioRuntime.restartAndroidPlayground();
+    const nextBootstrap = await window.studioRuntime.restartPlayground();
     if (nextBootstrap.status === 'ready' && nextBootstrap.serverUrl) {
       setBootstrap({
         phase: 'ready',
@@ -146,21 +203,32 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
       return {
         phase: 'error' as const,
         error: bootstrap.error,
-        restartAndroidPlayground,
+        restartPlayground,
+        refreshDiscoveredDevices,
+        discoveredDevices,
       };
     }
 
     return {
       phase: 'booting' as const,
-      restartAndroidPlayground,
+      restartPlayground,
+      refreshDiscoveredDevices,
+      discoveredDevices,
     };
-  }, [bootstrap, restartAndroidPlayground]);
+  }, [
+    bootstrap,
+    discoveredDevices,
+    refreshDiscoveredDevices,
+    restartPlayground,
+  ]);
 
   return (
     <PlaygroundThemeProvider>
       {bootstrap.phase === 'ready' ? (
         <ReadyStudioPlaygroundProvider
-          restartAndroidPlayground={restartAndroidPlayground}
+          discoveredDevices={discoveredDevices}
+          refreshDiscoveredDevices={refreshDiscoveredDevices}
+          restartPlayground={restartPlayground}
           serverUrl={bootstrap.serverUrl}
         >
           {children}

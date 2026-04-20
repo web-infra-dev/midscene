@@ -608,4 +608,38 @@ describe('RemoteExecutionAdapter', () => {
       });
     });
   });
+
+  describe('getScreenshot', () => {
+    it('should return screenshot data when the server responds successfully', async () => {
+      const screenshotResponse = {
+        screenshot: 'data:image/png;base64,abc123',
+        timestamp: 123,
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(screenshotResponse),
+      });
+
+      await expect(adapter.getScreenshot()).resolves.toEqual(
+        screenshotResponse,
+      );
+      expect(mockFetch).toHaveBeenCalledWith(`${mockServerUrl}/screenshot`);
+    });
+
+    it('should suppress warning logs for expected 409 no-session screenshot responses', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 409,
+        statusText: 'Conflict',
+      });
+      const consoleWarnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {});
+
+      await expect(adapter.getScreenshot()).resolves.toBeNull();
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+
+      consoleWarnSpy.mockRestore();
+    });
+  });
 });

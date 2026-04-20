@@ -2,7 +2,14 @@ import type { PlaygroundSessionSetup } from '@midscene/playground';
 import { PlaygroundSDK } from '@midscene/playground';
 import { type DeviceType, useEnvConfig } from '@midscene/visualizer';
 import { Form, message } from 'antd';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { resolveAutoCreateSessionInput } from '../session-setup';
 import {
   buildSessionInitialValues,
@@ -28,6 +35,13 @@ export interface UsePlaygroundControllerOptions {
   defaultDeviceType?: DeviceType;
   pollIntervalMs?: number;
   countdownSeconds?: number;
+  /**
+   * Seed values written into the session-setup form on the first render.
+   * Useful for pre-selecting a default platform so the initial
+   * `refreshSessionSetup` poll already has a `platformId`, instead of
+   * returning a generic "Choose a platform" setup.
+   */
+  initialFormValues?: Record<string, unknown>;
 }
 
 export function usePlaygroundController({
@@ -35,8 +49,23 @@ export function usePlaygroundController({
   defaultDeviceType = 'web',
   pollIntervalMs = 5000,
   countdownSeconds = 3,
+  initialFormValues,
 }: UsePlaygroundControllerOptions): PlaygroundControllerResult {
   const [form] = Form.useForm<PlaygroundFormValues>();
+  const initialFormValuesRef = useRef(initialFormValues);
+  // Seed the form ONCE before paint. Later prop changes are ignored so
+  // the user's in-flight edits never get overwritten.
+  useLayoutEffect(() => {
+    const seed = initialFormValuesRef.current;
+    if (!seed) {
+      return;
+    }
+    for (const [key, value] of Object.entries(seed)) {
+      if (form.getFieldValue(key) === undefined) {
+        form.setFieldsValue({ [key]: value } as Partial<PlaygroundFormValues>);
+      }
+    }
+  }, [form]);
   const formValues = (Form.useWatch([], form) ?? {}) as Record<string, unknown>;
   const [countdown, setCountdown] = useState<number | string | null>(null);
   const [sessionSetup, setSessionSetup] =

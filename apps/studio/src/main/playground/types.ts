@@ -1,13 +1,9 @@
-import type { AndroidPlaygroundBootstrap } from '@shared/electron-contract';
+import type { PlaygroundBootstrap } from '@shared/electron-contract';
 
-export interface AndroidPlaygroundPackagePaths {
-  packageRoot: string;
-  staticDir: string;
-}
-
-export interface AndroidPlaygroundRuntimeService {
+/** Lifecycle contract for a playground runtime (single- or multi-platform). */
+export interface PlaygroundRuntimeService {
   close: () => Promise<void>;
-  getBootstrap: () => AndroidPlaygroundBootstrap;
-  restart: () => Promise<AndroidPlaygroundBootstrap>;
-  start: () => Promise<AndroidPlaygroundBootstrap>;
+  getBootstrap: () => PlaygroundBootstrap;
+  restart: () => Promise<PlaygroundBootstrap>;
+  start: () => Promise<PlaygroundBootstrap>;
 }

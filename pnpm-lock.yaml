@@ -510,12 +510,27 @@ importers:
 
   apps/studio:
     dependencies:
+      '@midscene/android':
+        specifier: workspace:*
+        version: link:../../packages/android
       '@midscene/android-playground':
         specifier: workspace:*
         version: link:../../packages/android-playground
+      '@midscene/computer':
+        specifier: workspace:*
+        version: link:../../packages/computer
+      '@midscene/computer-playground':
+        specifier: workspace:*
+        version: link:../../packages/computer-playground
       '@midscene/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@midscene/harmony':
+        specifier: workspace:*
+        version: link:../../packages/harmony
+      '@midscene/ios':
+        specifier: workspace:*
+        version: link:../../packages/ios
       '@midscene/playground':
         specifier: workspace:*
         version: link:../../packages/playground

@@ -20,10 +20,10 @@ const electronShellApi: ElectronShellApi = {
 };
 
 const studioRuntimeApi: StudioRuntimeApi = {
-  getAndroidPlaygroundBootstrap: () =>
-    ipcRenderer.invoke(IPC_CHANNELS.getAndroidPlaygroundBootstrap),
-  restartAndroidPlayground: () =>
-    ipcRenderer.invoke(IPC_CHANNELS.restartAndroidPlayground),
+  getPlaygroundBootstrap: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.getPlaygroundBootstrap),
+  restartPlayground: () => ipcRenderer.invoke(IPC_CHANNELS.restartPlayground),
+  discoverDevices: () => ipcRenderer.invoke(IPC_CHANNELS.discoverDevices),
   runConnectivityTest: (request) =>
     ipcRenderer.invoke(IPC_CHANNELS.runConnectivityTest, request),
 };

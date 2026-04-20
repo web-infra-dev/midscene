@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { assetUrls } from '../../assets';
 import {
+  buildDeviceSelectionFormValues,
   buildStudioSidebarDeviceBuckets,
-  resolveConnectedAndroidDeviceId,
+  mergeSidebarDeviceBucketsWithDiscovery,
+  resolveConnectedDeviceId,
 } from '../../playground/selectors';
 import type { StudioSidebarPlatformKey } from '../../playground/types';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
@@ -16,6 +18,8 @@ interface DeviceItem {
   label: string;
   status: DeviceStatus;
   onClick?: () => void | Promise<void>;
+  /** Purely informational rows that should never appear "selected". */
+  isPlaceholder?: boolean;
 }
 
 interface SectionDefinition {
@@ -167,7 +171,11 @@ export default function Sidebar({
     }));
   };
 
-  const deviceBuckets =
+  // Device buckets: merge session-setup targets (from the currently
+  // selected platform) with cross-platform discovered devices. Discovery
+  // is the source of truth for platforms that support it (ADB/HDC/
+  // displays) — this is what makes an unplug disappear from the list.
+  const sessionBuckets =
     studioPlayground.phase === 'ready'
       ? buildStudioSidebarDeviceBuckets({
           formValues: studioPlayground.controller.state.formValues,
@@ -183,58 +191,115 @@ export default function Sidebar({
           web: [],
         };
 
-  const connectedAndroidDeviceId =
+  const deviceBuckets = mergeSidebarDeviceBucketsWithDiscovery(
+    sessionBuckets,
+    studioPlayground.discoveredDevices,
+  );
+
+  const connectedDeviceId =
     studioPlayground.phase === 'ready'
-      ? resolveConnectedAndroidDeviceId(
-          studioPlayground.controller.state.runtimeInfo,
-        )
+      ? resolveConnectedDeviceId(studioPlayground.controller.state.runtimeInfo)
       : undefined;
 
-  const androidDevices: DeviceItem[] =
-    studioPlayground.phase === 'ready'
-      ? deviceBuckets.android.map((item) => ({
-          id: item.id,
-          label: item.label,
-          status: item.status,
+  /**
+   * Build a click-enabled device list for any platform section. The
+   * multi-platform session manager expects:
+   *   - `platformId` — which platform this device belongs to
+   *   - `{platformId}.deviceId` — the prefixed field key for the target
+   */
+  const buildDeviceItemsForPlatform = (
+    platformKey: StudioSidebarPlatformKey,
+    devices: typeof deviceBuckets.android,
+  ): DeviceItem[] => {
+    if (studioPlayground.phase !== 'ready') {
+      if (platformKey === 'android') {
+        return [
+          {
+            id: `${platformKey}-placeholder`,
+            label:
+              studioPlayground.phase === 'booting'
+                ? 'Playground starting'
+                : 'Runtime failed to start',
+            status: 'idle' as const,
+            isPlaceholder: true,
+          },
+        ];
+      }
+      return [];
+    }
+
+    // iOS discovery needs WebDriverAgent running, which is a manual
+    // setup step; surface a hint row instead of an empty section so
+    // users know it isn't a bug.
+    if (platformKey === 'ios' && devices.length === 0) {
+      return [
+        {
+          id: 'ios-setup-hint',
+          label: 'Set up iOS via the playground form',
+          status: 'idle' as const,
+          isPlaceholder: true,
           onClick: async () => {
             if (studioPlayground.phase !== 'ready') {
               return;
             }
             const { actions, state } = studioPlayground.controller;
-            state.form.setFieldsValue({ deviceId: item.id });
-            onSelectDevice();
-            if (connectedAndroidDeviceId === item.id) {
-              return;
-            }
-            if (state.sessionViewState.connected) {
-              await actions.destroySession();
-            }
-            const sessionValues = {
+            const nextValues = {
               ...state.form.getFieldsValue(true),
-              deviceId: item.id,
+              platformId: 'ios',
             };
-            await actions.createSession(sessionValues);
+            state.form.setFieldsValue(nextValues);
+            onSelectDevice();
+            await actions.refreshSessionSetup(nextValues);
           },
-        }))
-      : [
-          {
-            id: 'android-placeholder',
-            label:
-              studioPlayground.phase === 'booting'
-                ? 'Playground starting'
-                : 'Android runtime failed to start',
-            status: 'idle' as const,
-          },
-        ];
+        },
+      ];
+    }
 
-  const selectedAndroidDeviceIds =
+    return devices.map((item) => ({
+      id: item.id,
+      label: item.label,
+      status: item.status,
+      onClick: async () => {
+        if (studioPlayground.phase !== 'ready') {
+          return;
+        }
+        const { actions, state } = studioPlayground.controller;
+
+        // Tell the multi-platform session manager which platform +
+        // device to target. Field keys follow the `{platformId}.fieldKey`
+        // convention from `prepareMultiPlatformPlayground`.
+        const selectionValues = buildDeviceSelectionFormValues(
+          platformKey,
+          item,
+        );
+        state.form.setFieldsValue(selectionValues);
+
+        onSelectDevice();
+
+        if (connectedDeviceId === item.id) {
+          return;
+        }
+        if (state.sessionViewState.connected) {
+          await actions.destroySession();
+        }
+        const sessionValues = {
+          ...state.form.getFieldsValue(true),
+          ...selectionValues,
+        };
+        await actions.createSession(sessionValues);
+      },
+    }));
+  };
+
+  const selectedDeviceIds =
     studioPlayground.phase === 'ready'
       ? new Set(
-          deviceBuckets.android
+          Object.values(deviceBuckets)
+            .flat()
             .filter((item) => item.selected)
             .map((item) => item.id),
         )
-      : new Set<string>(['android-placeholder']);
+      : new Set<string>();
 
   const totalDeviceCount = sectionDefinitions.reduce(
     (sum, section) => sum + deviceBuckets[section.key].length,
@@ -243,8 +308,10 @@ export default function Sidebar({
 
   const resolvedSections = sectionDefinitions.map((section) => ({
     ...section,
-    devices:
-      section.key === 'android' ? androidDevices : deviceBuckets[section.key],
+    devices: buildDeviceItemsForPlatform(
+      section.key,
+      deviceBuckets[section.key],
+    ),
   }));
 
   const overviewActive = activeView === 'overview';
@@ -295,15 +362,12 @@ export default function Sidebar({
 
                 {isExpanded ? (
                   hasDevices ? (
-                    section.devices.map((device, index) => (
+                    section.devices.map((device) => (
                       <DeviceRow
                         key={device.id}
                         selected={
-                          section.key === 'android'
-                            ? studioPlayground.phase === 'ready'
-                              ? selectedAndroidDeviceIds.has(device.id)
-                              : index === 0
-                            : false
+                          !device.isPlaceholder &&
+                          selectedDeviceIds.has(device.id)
                         }
                         {...device}
                       />

@@ -22,7 +22,7 @@ function createMockResponse() {
 
 function getRouteHandler(
   server: PlaygroundServer,
-  method: 'post' | 'delete',
+  method: 'get' | 'post' | 'delete',
   route: string,
 ) {
   const calls = (server.app[method] as any).mock.calls as Array<[string, any]>;
@@ -163,6 +163,48 @@ describe('PlaygroundServer session manager APIs', () => {
       },
     });
     expect(sidecar.stop).toHaveBeenCalledTimes(1);
+  });
+
+  test('returns 409 without logging an error when screenshot is requested without a session', async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    const server = new PlaygroundServer();
+    server.setPreparedPlatform({
+      platformId: 'computer',
+      title: 'Midscene Computer Playground',
+      description: 'Computer playground platform descriptor',
+      preview: {
+        kind: 'screenshot',
+        title: 'Desktop preview',
+        screenshotPath: '/screenshot',
+        capabilities: [],
+      },
+      metadata: {
+        sessionConnected: false,
+        setupState: 'required',
+      },
+      sessionManager: {
+        async createSession() {
+          throw new Error('not needed');
+        },
+      },
+    });
+
+    await server.launch(6105);
+    const screenshotHandler = getRouteHandler(server, 'get', '/screenshot');
+    expect(screenshotHandler).toBeTypeOf('function');
+
+    const response = createMockResponse();
+    await screenshotHandler({}, response);
+
+    expect(response.statusCode).toBe(409);
+    expect(response.body).toMatchObject({
+      error: 'Failed to take screenshot: No active session',
+    });
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
   });
 
   test('stops started sidecars and restores base runtime when session creation fails after apply', async () => {
