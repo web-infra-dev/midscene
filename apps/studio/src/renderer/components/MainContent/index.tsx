@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { assetUrls } from '../../assets';
 import {
   buildStudioSidebarDeviceBuckets,
+  mergeSidebarDeviceBucketsWithDiscovery,
   resolveConnectedAndroidDeviceId,
   resolveConnectedDeviceLabel,
   resolveSelectedAndroidDeviceId,
@@ -201,7 +202,7 @@ export default function MainContent({
       );
     }
 
-    const overviewBuckets = isReady
+    const overviewSessionBuckets = isReady
       ? buildStudioSidebarDeviceBuckets({
           formValues: studioPlayground.controller.state.formValues,
           runtimeInfo: studioPlayground.controller.state.runtimeInfo,
@@ -209,6 +210,10 @@ export default function MainContent({
             studioPlayground.controller.state.sessionSetup?.targets || [],
         })
       : { android: [], ios: [], computer: [], harmony: [], web: [] };
+    const overviewBuckets = mergeSidebarDeviceBucketsWithDiscovery(
+      overviewSessionBuckets,
+      studioPlayground.discoveredDevices,
+    );
     const overviewSelectedDeviceId =
       isReady && studioPlayground.controller.state.sessionMutating
         ? selectedAndroidDeviceId
@@ -223,9 +228,16 @@ export default function MainContent({
             }
             setOverviewRefreshing(true);
             try {
-              await studioPlayground.controller.actions.refreshSessionSetup(
-                studioPlayground.controller.state.formValues,
-              );
+              // Refresh BOTH sources: session-setup targets (server-side
+              // list) and cross-platform discovery (ADB/HDC/displays).
+              // Discovery is what surfaces an unplug while a session is
+              // still technically "connected" on the server.
+              await Promise.all([
+                studioPlayground.controller.actions.refreshSessionSetup(
+                  studioPlayground.controller.state.formValues,
+                ),
+                studioPlayground.refreshDiscoveredDevices(),
+              ]);
             } finally {
               setOverviewRefreshing(false);
             }

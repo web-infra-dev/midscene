@@ -28,10 +28,12 @@ const DEFAULT_PLATFORM_ID: StudioPlatformId = 'android';
 function ReadyStudioPlaygroundProvider({
   children,
   discoveredDevices,
+  refreshDiscoveredDevices,
   restartPlayground,
   serverUrl,
 }: PropsWithChildren<{
   discoveredDevices?: DiscoveredDevicesByPlatform;
+  refreshDiscoveredDevices: () => Promise<void>;
   restartPlayground: () => Promise<void>;
   serverUrl: string;
 }>) {
@@ -46,9 +48,16 @@ function ReadyStudioPlaygroundProvider({
       serverUrl,
       controller,
       restartPlayground,
+      refreshDiscoveredDevices,
       discoveredDevices,
     }),
-    [controller, discoveredDevices, restartPlayground, serverUrl],
+    [
+      controller,
+      discoveredDevices,
+      refreshDiscoveredDevices,
+      restartPlayground,
+      serverUrl,
+    ],
   );
 
   return (
@@ -75,31 +84,34 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
   const [discoveredDevices, setDiscoveredDevices] = useState<
     DiscoveredDevicesByPlatform | undefined
   >();
-  const pollingActive = bootstrap.phase === 'ready';
-  useEffect(() => {
-    if (!pollingActive || !window.studioRuntime?.discoverDevices) {
+
+  // Imperative scan — safe to call from anywhere (user-initiated refresh,
+  // post-destroy session cleanup, etc). Resolves after state is updated.
+  const refreshDiscoveredDevices = useCallback(async () => {
+    if (!window.studioRuntime?.discoverDevices) {
       return;
     }
-    let cancelled = false;
-    const poll = async () => {
-      try {
-        const devices = await window.studioRuntime!.discoverDevices();
-        if (!cancelled) {
-          setDiscoveredDevices(bucketDiscoveredDevices(devices));
-        }
-      } catch (err) {
-        if (!cancelled) {
-          console.warn('[studio] device discovery failed:', err);
-        }
-      }
-    };
-    void poll();
-    const id = window.setInterval(poll, DISCOVERY_POLL_INTERVAL_MS);
+    try {
+      const devices = await window.studioRuntime.discoverDevices();
+      setDiscoveredDevices(bucketDiscoveredDevices(devices));
+    } catch (err) {
+      console.warn('[studio] device discovery failed:', err);
+    }
+  }, []);
+
+  const pollingActive = bootstrap.phase === 'ready';
+  useEffect(() => {
+    if (!pollingActive) {
+      return;
+    }
+    void refreshDiscoveredDevices();
+    const id = window.setInterval(() => {
+      void refreshDiscoveredDevices();
+    }, DISCOVERY_POLL_INTERVAL_MS);
     return () => {
-      cancelled = true;
       window.clearInterval(id);
     };
-  }, [pollingActive]);
+  }, [pollingActive, refreshDiscoveredDevices]);
 
   const readBootstrap = useCallback(async () => {
     if (!window.studioRuntime) {
@@ -192,6 +204,7 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
         phase: 'error' as const,
         error: bootstrap.error,
         restartPlayground,
+        refreshDiscoveredDevices,
         discoveredDevices,
       };
     }
@@ -199,15 +212,22 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
     return {
       phase: 'booting' as const,
       restartPlayground,
+      refreshDiscoveredDevices,
       discoveredDevices,
     };
-  }, [bootstrap, discoveredDevices, restartPlayground]);
+  }, [
+    bootstrap,
+    discoveredDevices,
+    refreshDiscoveredDevices,
+    restartPlayground,
+  ]);
 
   return (
     <PlaygroundThemeProvider>
       {bootstrap.phase === 'ready' ? (
         <ReadyStudioPlaygroundProvider
           discoveredDevices={discoveredDevices}
+          refreshDiscoveredDevices={refreshDiscoveredDevices}
           restartPlayground={restartPlayground}
           serverUrl={bootstrap.serverUrl}
         >

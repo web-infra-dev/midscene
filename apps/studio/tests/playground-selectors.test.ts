@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildAndroidDeviceItems,
   buildStudioSidebarDeviceBuckets,
+  mergeSidebarDeviceBucketsWithDiscovery,
   resolveAndroidDeviceLabel,
   resolveConnectedDeviceLabel,
   resolveVisibleSidebarPlatforms,
@@ -195,6 +196,101 @@ describe('resolveAndroidDeviceLabel', () => {
         },
       ]),
     ).toBe('Pixel 8');
+  });
+});
+
+describe('mergeSidebarDeviceBucketsWithDiscovery', () => {
+  const emptyBuckets = {
+    android: [],
+    ios: [],
+    computer: [],
+    harmony: [],
+    web: [],
+  };
+
+  it('returns session buckets unchanged when discovery has not polled yet', () => {
+    const session = {
+      ...emptyBuckets,
+      android: [
+        {
+          id: 'device-1',
+          label: 'Pixel 9',
+          selected: true,
+          status: 'active' as const,
+        },
+      ],
+    };
+
+    expect(mergeSidebarDeviceBucketsWithDiscovery(session, undefined)).toBe(
+      session,
+    );
+  });
+
+  it('drops a session item that is no longer discoverable (phone unplugged)', () => {
+    const session = {
+      ...emptyBuckets,
+      android: [
+        {
+          id: 'device-1',
+          label: 'Pixel 9',
+          selected: true,
+          status: 'active' as const,
+        },
+      ],
+    };
+    const discovered = {
+      ...emptyBuckets,
+      // device-1 has vanished from ADB
+    };
+
+    expect(
+      mergeSidebarDeviceBucketsWithDiscovery(session, discovered).android,
+    ).toEqual([]);
+  });
+
+  it('appends discovered devices that session setup has not surfaced', () => {
+    const session = emptyBuckets;
+    const discovered = {
+      ...emptyBuckets,
+      android: [
+        {
+          platformId: 'android' as const,
+          id: 'device-2',
+          label: 'Galaxy',
+          description: 'ADB: device-2',
+        },
+      ],
+    };
+
+    expect(
+      mergeSidebarDeviceBucketsWithDiscovery(session, discovered).android,
+    ).toEqual([
+      {
+        id: 'device-2',
+        label: 'Galaxy',
+        description: 'ADB: device-2',
+        selected: false,
+        status: 'idle',
+      },
+    ]);
+  });
+
+  it('passes iOS through unchanged because iOS has no discovery source', () => {
+    const session = {
+      ...emptyBuckets,
+      ios: [
+        {
+          id: 'ios-1',
+          label: 'iPhone 15',
+          selected: true,
+          status: 'active' as const,
+        },
+      ],
+    };
+
+    expect(
+      mergeSidebarDeviceBucketsWithDiscovery(session, emptyBuckets).ios,
+    ).toEqual(session.ios);
   });
 });
 

@@ -246,6 +246,68 @@ export function bucketDiscoveredDevices(
   return buckets;
 }
 
+/**
+ * Platforms that expose a real-time discovery source (ADB / HDC /
+ * display enumeration) in the main process. For these, discovery is
+ * the authoritative "physically present" list — once it has polled at
+ * least once, a session item that isn't discovered anymore is stale
+ * (e.g. the user unplugged the device while a session was still open).
+ */
+const DISCOVERABLE_PLATFORMS = ['android', 'harmony', 'computer'] as const;
+
+/**
+ * Merge session-setup buckets with the live discovery snapshot. For
+ * discoverable platforms, discovery wins — items not present in the
+ * discovery snapshot are dropped (catches unplug while connected), and
+ * items only present in discovery are appended as idle entries.
+ *
+ * iOS (and web) have no discovery source, so `sessionBuckets` is
+ * passed through unchanged.
+ *
+ * If `discovered` is undefined (first poll hasn't landed yet), the
+ * session buckets are returned as-is rather than being wiped out.
+ */
+export function mergeSidebarDeviceBucketsWithDiscovery(
+  sessionBuckets: StudioSidebarDeviceBuckets,
+  discovered: DiscoveredDevicesByPlatform | undefined,
+): StudioSidebarDeviceBuckets {
+  if (!discovered) {
+    return sessionBuckets;
+  }
+
+  const merged: StudioSidebarDeviceBuckets = { ...sessionBuckets };
+
+  for (const key of DISCOVERABLE_PLATFORMS) {
+    const discoveredBucket = discovered[key];
+    const discoveredIds = new Set(discoveredBucket.map((d) => d.id));
+
+    // Drop any session items whose id is not physically present anymore.
+    const survivingSessionItems = sessionBuckets[key].filter((item) =>
+      discoveredIds.has(item.id),
+    );
+    const survivingIds = new Set(survivingSessionItems.map((item) => item.id));
+
+    // Append discovered devices that aren't already covered by the
+    // session bucket (those already carry label/selected/active metadata).
+    const additions: StudioAndroidDeviceItem[] = [];
+    for (const dev of discoveredBucket) {
+      if (!survivingIds.has(dev.id)) {
+        additions.push({
+          id: dev.id,
+          label: dev.label,
+          description: dev.description,
+          selected: false,
+          status: 'idle',
+        });
+      }
+    }
+
+    merged[key] = [...survivingSessionItems, ...additions];
+  }
+
+  return merged;
+}
+
 export function resolveAndroidDeviceLabel(
   items: StudioAndroidDeviceItem[],
 ): string {

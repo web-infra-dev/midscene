@@ -30,12 +30,14 @@ export type StudioPlaygroundContextValue =
   | {
       phase: 'booting';
       restartPlayground: () => Promise<void>;
+      refreshDiscoveredDevices: () => Promise<void>;
       discoveredDevices?: DiscoveredDevicesByPlatform;
     }
   | {
       phase: 'error';
       error: string;
       restartPlayground: () => Promise<void>;
+      refreshDiscoveredDevices: () => Promise<void>;
       discoveredDevices?: DiscoveredDevicesByPlatform;
     }
   | {
@@ -43,5 +45,6 @@ export type StudioPlaygroundContextValue =
       serverUrl: string;
       controller: PlaygroundControllerResult;
       restartPlayground: () => Promise<void>;
+      refreshDiscoveredDevices: () => Promise<void>;
       discoveredDevices?: DiscoveredDevicesByPlatform;
     };

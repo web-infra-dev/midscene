@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { assetUrls } from '../../assets';
 import {
   buildStudioSidebarDeviceBuckets,
+  mergeSidebarDeviceBucketsWithDiscovery,
   resolveConnectedAndroidDeviceId,
 } from '../../playground/selectors';
 import type { StudioSidebarPlatformKey } from '../../playground/types';
@@ -170,9 +171,9 @@ export default function Sidebar({
   };
 
   // Device buckets: merge session-setup targets (from the currently
-  // selected platform) with cross-platform discovered devices so the
-  // sidebar shows ALL connected devices across platforms, not just the
-  // selected one's targets.
+  // selected platform) with cross-platform discovered devices. Discovery
+  // is the source of truth for platforms that support it (ADB/HDC/
+  // displays) — this is what makes an unplug disappear from the list.
   const sessionBuckets =
     studioPlayground.phase === 'ready'
       ? buildStudioSidebarDeviceBuckets({
@@ -189,31 +190,10 @@ export default function Sidebar({
           web: [],
         };
 
-  const discovered = studioPlayground.discoveredDevices;
-  const deviceBuckets = { ...sessionBuckets };
-  if (discovered) {
-    for (const key of Object.keys(discovered) as Array<
-      keyof typeof discovered
-    >) {
-      const discoveredIds = new Set(discovered[key].map((d) => d.id));
-      const sessionIds = new Set(sessionBuckets[key].map((d) => d.id));
-      // Add discovered devices that aren't already in the session bucket
-      for (const dev of discovered[key]) {
-        if (!sessionIds.has(dev.id)) {
-          deviceBuckets[key] = [
-            ...deviceBuckets[key],
-            {
-              id: dev.id,
-              label: dev.label,
-              description: dev.description,
-              selected: false,
-              status: 'idle' as const,
-            },
-          ];
-        }
-      }
-    }
-  }
+  const deviceBuckets = mergeSidebarDeviceBucketsWithDiscovery(
+    sessionBuckets,
+    studioPlayground.discoveredDevices,
+  );
 
   const connectedDeviceId =
     studioPlayground.phase === 'ready'
