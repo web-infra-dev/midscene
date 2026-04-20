@@ -562,6 +562,9 @@ importers:
       '@rsbuild/plugin-less':
         specifier: ^1.5.0
         version: 1.5.0(@rsbuild/core@1.6.15)
+      '@rsbuild/plugin-node-polyfill':
+        specifier: 1.4.2
+        version: 1.4.2(@rsbuild/core@1.6.15)
       '@rsbuild/plugin-react':
         specifier: ^1.4.1
         version: 1.4.6(@rsbuild/core@1.6.15)

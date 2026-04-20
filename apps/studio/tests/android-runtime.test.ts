@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createMultiPlatformRuntimeService } from '../src/main/playground/multi-platform-runtime';
 import {
   createStudioCorsOptions,
   isAllowedStudioOrigin,
@@ -38,5 +39,29 @@ describe('android runtime CORS policy', () => {
     expect(allowedResult).toBe(true);
     expect(blockedResult).toBe(false);
     expect(corsOptions.credentials).toBe(true);
+  });
+});
+
+describe('playground runtime bootstrap', () => {
+  it('reports dependency load failures through the bootstrap state', async () => {
+    const runtime = createMultiPlatformRuntimeService({
+      loadModules: async () => {
+        throw new Error('Synthetic dependency resolution failure');
+      },
+    });
+
+    await expect(runtime.start()).resolves.toEqual({
+      status: 'error',
+      serverUrl: null,
+      port: null,
+      error: 'Synthetic dependency resolution failure',
+    });
+
+    expect(runtime.getBootstrap()).toEqual({
+      status: 'error',
+      serverUrl: null,
+      port: null,
+      error: 'Synthetic dependency resolution failure',
+    });
   });
 });

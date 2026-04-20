@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildArtifactBaseName,
   buildPackagedAppManifest,
+  buildPackagerOptions,
   normalizeReleaseVersion,
   shouldUseShellForCommand,
 } from '../scripts/package-electron.mjs';
@@ -56,6 +57,25 @@ describe('package-electron helpers', () => {
         arch: 'x64',
       }),
     ).toThrow(/Unsupported Electron platform/);
+  });
+
+  it('ships the app unpacked so pnpm workspace symlinks stay valid', () => {
+    expect(
+      buildPackagerOptions({
+        arch: 'x64',
+        outDir: '/tmp/out',
+        platform: 'darwin',
+        stageDir: '/tmp/stage',
+      }),
+    ).toMatchObject({
+      arch: 'x64',
+      asar: false,
+      derefSymlinks: false,
+      dir: '/tmp/stage',
+      out: '/tmp/out',
+      platform: 'darwin',
+      prune: false,
+    });
   });
 
   it('uses a shell for Windows .cmd package manager shims', () => {

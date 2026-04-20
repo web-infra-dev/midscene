@@ -98,6 +98,23 @@ export const buildPackagedAppManifest = (packageJson, version) => ({
   dependencies: packageJson.dependencies ?? {},
 });
 
+export const buildPackagerOptions = ({ arch, outDir, platform, stageDir }) => ({
+  arch,
+  // `pnpm deploy` preserves workspace packages as relative symlinks into the
+  // staged `.pnpm` store. Those links work on disk, but they break once the
+  // app is packed into `app.asar`, so the Studio release bundle must ship the
+  // app directory unpacked.
+  asar: false,
+  derefSymlinks: false,
+  dir: stageDir,
+  ignore: packagedIgnorePatterns,
+  name: packagedProductName,
+  out: outDir,
+  overwrite: true,
+  platform,
+  prune: false,
+});
+
 const packageManagerCommand =
   process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 
@@ -195,17 +212,14 @@ export const packageStudioElectronApp = async ({
   await removeIfExists(packagedDir);
   await fs.mkdir(packagedDir, { recursive: true });
 
-  const packagedAppPaths = await packager({
-    arch,
-    derefSymlinks: false,
-    dir: stageDir,
-    ignore: packagedIgnorePatterns,
-    name: packagedProductName,
-    out: packagedDir,
-    overwrite: true,
-    platform,
-    prune: false,
-  });
+  const packagedAppPaths = await packager(
+    buildPackagerOptions({
+      arch,
+      outDir: packagedDir,
+      platform,
+      stageDir,
+    }),
+  );
 
   if (packagedAppPaths.length !== 1) {
     throw new Error(
