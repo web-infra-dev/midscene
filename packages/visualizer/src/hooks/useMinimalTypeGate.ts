@@ -1,5 +1,5 @@
 import type { FormInstance } from 'antd';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 /**
  * Options for {@link useMinimalTypeGate}.
@@ -132,5 +132,12 @@ export function useMinimalTypeGate(
     return true;
   }, []);
 
-  return { markExplicitSelection, skipNextRestore, shouldSkipRestoreOnce };
+  return useMemo(
+    () => ({
+      markExplicitSelection,
+      skipNextRestore,
+      shouldSkipRestoreOnce,
+    }),
+    [markExplicitSelection, skipNextRestore, shouldSkipRestoreOnce],
+  );
 }

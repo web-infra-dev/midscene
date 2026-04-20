@@ -54,6 +54,41 @@ import SettingOutlined from '../../icons/setting.svg';
 
 const { TextArea } = Input;
 
+function DefaultMinimalActionIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="minimal-action-icon-fallback"
+      fill="none"
+      viewBox="0 0 20 20"
+    >
+      <rect
+        height="8.5"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        width="8.5"
+        x="2.75"
+        y="4.25"
+      />
+      <path
+        d="M11 5.25H15.25V9.5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M14.95 5.55L9.85 10.65"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+}
+
 interface PromptInputProps {
   runButtonEnabled: boolean;
   form: any; // Ant Design FormInstance - keeping as any since it's external library type
@@ -113,15 +148,17 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     [history, selectedType],
   );
 
-  const minimalTypeGate = useMinimalTypeGate({
-    enabled: isMinimalChrome,
-    form,
-    selectedType,
-    onAfterReset: () => {
-      lastHistoryRef.current = null;
-      setPromptValue('');
-    },
-  });
+  const handleMinimalTypeGateReset = useCallback(() => {
+    lastHistoryRef.current = null;
+    setPromptValue('');
+  }, []);
+  const { markExplicitSelection, skipNextRestore, shouldSkipRestoreOnce } =
+    useMinimalTypeGate({
+      enabled: isMinimalChrome,
+      form,
+      selectedType,
+      onAfterReset: handleMinimalTypeGateReset,
+    });
 
   // Check if current method needs structured parameters (dynamic based on actionSpace)
   const needsStructuredParams = useMemo(() => {
@@ -270,10 +307,10 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   const handleTypeSelect = useCallback(
     (api: string) => {
-      minimalTypeGate.markExplicitSelection();
+      markExplicitSelection();
       form.setFieldValue('type', api);
     },
-    [form, minimalTypeGate],
+    [form, markExplicitSelection],
   );
 
   const apiGroupDefinitions = useMemo(
@@ -448,7 +485,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   // When the selectedType changes, populate the form with the last item from that type's history.
   useEffect(() => {
-    if (minimalTypeGate.shouldSkipRestoreOnce()) {
+    if (shouldSkipRestoreOnce()) {
       return;
     }
 
@@ -498,7 +535,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     form,
     getDefaultParams,
     isMinimalChrome,
-    minimalTypeGate,
+    shouldSkipRestoreOnce,
   ]);
 
   // Scroll to selected item when selectedType changes
@@ -524,9 +561,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   // Handle history selection internally
   const handleSelectHistory = useCallback(
     (historyItem: HistoryItem) => {
-      minimalTypeGate.markExplicitSelection();
+      markExplicitSelection();
       if (historyItem.type !== selectedType) {
-        minimalTypeGate.skipNextRestore();
+        skipNextRestore();
       }
       form.setFieldsValue({
         prompt: historyItem.prompt,
@@ -535,7 +572,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       });
       setPromptValue(historyItem.prompt);
     },
-    [form, minimalTypeGate, selectedType],
+    [form, markExplicitSelection, selectedType, skipNextRestore],
   );
 
   // Handle prompt input change
@@ -1091,7 +1128,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                       src={chrome.icons.action}
                     />
                   ) : (
-                    <BorderOutlined className="minimal-action-icon-fallback" />
+                    <DefaultMinimalActionIcon />
                   )}
                   <span className="minimal-action-label">
                     {actionButtonLabel}
