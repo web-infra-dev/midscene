@@ -142,7 +142,7 @@ jobs:
         - os: windows-latest
           platform: win32
           arch: x64
-        - os: macos-13
+        - os: macos-15-intel
           platform: darwin
           arch: x64
     steps:
