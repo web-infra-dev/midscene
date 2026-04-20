@@ -85,9 +85,9 @@ jobs:
         
     - name: Upload Release Assets
       uses: softprops/action-gh-release@v2
-      if: ${{ !contains(steps.get_version.outputs.version, 'beta') && !contains(steps.get_version.outputs.version, 'alpha') }}
       with:
         tag_name: ${{ steps.get_version.outputs.version }}
+        prerelease: ${{ contains(steps.get_version.outputs.version, 'beta') || contains(steps.get_version.outputs.version, 'alpha') || contains(steps.get_version.outputs.version, 'rc') }}
         files: |
           ${{ github.workspace }}/apps/chrome-extension/extension_output/**/*.zip
       env:
@@ -127,3 +127,60 @@ jobs:
         echo "Download the packaged extension zip from the GitHub Release page and upload it manually:" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "https://github.com/${{ github.repository }}/releases/tag/${{ needs.release.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+
+  package_studio:
+    needs: release
+    if: ${{ needs.release.result == 'success' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - os: ubuntu-latest
+          platform: linux
+          arch: x64
+        - os: windows-latest
+          platform: win32
+          arch: x64
+        - os: macos-13
+          platform: darwin
+          arch: x64
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.inputs.branch }}
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 9.3.0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24.13.0'
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile --ignore-scripts
+
+    - name: Build Studio and Nx dependencies
+      run: npx nx build studio
+
+    - name: Package Midscene Studio
+      run: pnpm --dir apps/studio run package:release -- --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --version=${{ needs.release.outputs.version }}
+
+    - name: Upload packaged Studio artifact
+      uses: actions/upload-artifact@v4
+      with:
+        if-no-files-found: error
+        name: studio_${{ matrix.platform }}_${{ matrix.arch }}
+        path: ${{ github.workspace }}/apps/studio/.release/artifacts/*.zip
+
+    - name: Upload Studio asset to GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ needs.release.outputs.version }}
+        prerelease: ${{ contains(needs.release.outputs.version, 'beta') || contains(needs.release.outputs.version, 'alpha') || contains(needs.release.outputs.version, 'rc') }}
+        files: ${{ github.workspace }}/apps/studio/.release/artifacts/*.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
