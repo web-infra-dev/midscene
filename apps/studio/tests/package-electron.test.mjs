@@ -3,6 +3,7 @@ import {
   buildArtifactBaseName,
   buildPackagedAppManifest,
   normalizeReleaseVersion,
+  shouldUseShellForCommand,
 } from '../scripts/package-electron.mjs';
 
 describe('package-electron helpers', () => {
@@ -55,5 +56,10 @@ describe('package-electron helpers', () => {
         arch: 'x64',
       }),
     ).toThrow(/Unsupported Electron platform/);
+  });
+
+  it('uses a shell for Windows .cmd package manager shims', () => {
+    expect(shouldUseShellForCommand('pnpm.cmd', 'win32')).toBe(true);
+    expect(shouldUseShellForCommand('pnpm', 'linux')).toBe(false);
   });
 });

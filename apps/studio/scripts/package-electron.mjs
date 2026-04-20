@@ -29,11 +29,17 @@ const packagedIgnorePatterns = [
 
 const supportedPlatforms = new Set(['darwin', 'linux', 'win32']);
 
+export const shouldUseShellForCommand = (
+  command,
+  platform = process.platform,
+) => platform === 'win32' && /\.(cmd|bat)$/i.test(command);
+
 const run = (command, args, { cwd = workspaceRootDir, env } = {}) =>
   new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd,
       env: env ? { ...process.env, ...env } : process.env,
+      shell: shouldUseShellForCommand(command),
       stdio: 'inherit',
     });
 
