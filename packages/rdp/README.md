@@ -11,6 +11,9 @@ protocol. It does not route screenshots or input through a local
 - Runtime helper: `darwin` only
 - Native dependency: local FreeRDP development headers and libraries available
   through `pkg-config`
+- Cross-platform helper scaffold: `native/CMakeLists.txt`, `native/include`,
+  and `native/src` now define the target layout for future Linux and Windows
+  ports, but they are not wired into the runtime build yet
 
 ## Build the native helper
 

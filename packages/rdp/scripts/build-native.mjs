@@ -7,15 +7,23 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(__dirname, '..');
 const sourceFile = path.join(packageRoot, 'native', 'rdp-helper.m');
-const outputDir = path.join(packageRoot, 'bin', 'darwin');
-const outputFile = path.join(outputDir, 'rdp-helper');
-
-if (process.platform !== 'darwin') {
-  console.warn(
-    `[build:native] Skipping @midscene/rdp helper build on unsupported platform ${process.platform}`,
-  );
-  process.exit(0);
-}
+const platformTargets = {
+  darwin: {
+    outputDir: path.join(packageRoot, 'bin', 'darwin'),
+    outputFile: path.join(packageRoot, 'bin', 'darwin', 'rdp-helper'),
+    buildStrategy: 'legacy-objc',
+  },
+  linux: {
+    outputDir: path.join(packageRoot, 'bin', 'linux'),
+    outputFile: path.join(packageRoot, 'bin', 'linux', 'rdp-helper'),
+    buildStrategy: 'cmake-scaffold',
+  },
+  win32: {
+    outputDir: path.join(packageRoot, 'bin', 'win32'),
+    outputFile: path.join(packageRoot, 'bin', 'win32', 'rdp-helper.exe'),
+    buildStrategy: 'cmake-scaffold',
+  },
+};
 
 function run(command, args) {
   const result = spawnSync(command, args, {
@@ -31,7 +39,22 @@ function run(command, args) {
 }
 
 try {
-  mkdirSync(outputDir, { recursive: true });
+  const target = platformTargets[process.platform];
+  if (!target) {
+    console.warn(
+      `[build:native] Skipping @midscene/rdp helper build on unsupported platform ${process.platform}`,
+    );
+    process.exit(0);
+  }
+
+  if (target.buildStrategy !== 'legacy-objc') {
+    console.warn(
+      `[build:native] Cross-platform helper scaffolding exists for ${process.platform}, but the real native build is not wired yet.`,
+    );
+    process.exit(0);
+  }
+
+  mkdirSync(target.outputDir, { recursive: true });
 
   const cflags = run('pkg-config', ['--cflags', 'freerdp3', 'freerdp-client3'])
     .split(/\s+/)
@@ -45,7 +68,7 @@ try {
     '-fobjc-arc',
     sourceFile,
     '-o',
-    outputFile,
+    target.outputFile,
     '-framework',
     'Foundation',
     '-framework',
@@ -65,7 +88,9 @@ try {
     process.exit(compileResult.status || 1);
   }
 
-  console.log(`[build:native] Built ${path.relative(packageRoot, outputFile)}`);
+  console.log(
+    `[build:native] Built ${path.relative(packageRoot, target.outputFile)}`,
+  );
 } catch (error) {
   console.error(
     `[build:native] Failed to build @midscene/rdp helper: ${error instanceof Error ? error.message : String(error)}`,
