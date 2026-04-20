@@ -16,7 +16,11 @@ import {
   resolveSessionViewState,
 } from '../session-state';
 import { useServerStatus } from '../useServerStatus';
-import { applyPlaygroundAiConfig, hasPlaygroundAiConfig } from './ai-config';
+import {
+  applyPlaygroundAiConfig,
+  hasPlaygroundAiConfig,
+  serializePlaygroundAiConfig,
+} from './ai-config';
 import {
   resolveAutoCreateDecision,
   serializeAutoCreateInput,
@@ -76,6 +80,10 @@ export function usePlaygroundController({
   const [sessionLoading, setSessionLoading] = useState(false);
   const [sessionMutating, setSessionMutating] = useState(false);
   const aiConfig = useEnvConfig((state) => state.config);
+  const aiConfigSignature = useMemo(
+    () => serializePlaygroundAiConfig(aiConfig),
+    [aiConfig],
+  );
   const platformSelectorFieldKey = getPlatformSelectorFieldKey(sessionSetup);
   const selectedPlatformId =
     typeof platformSelectorFieldKey === 'string'
@@ -103,24 +111,6 @@ export function usePlaygroundController({
     () => resolveSessionViewState(runtimeInfo),
     [runtimeInfo],
   );
-  const applyAiConfig = useCallback(async () => {
-    if (!hasPlaygroundAiConfig(aiConfig)) {
-      return true;
-    }
-
-    try {
-      await applyPlaygroundAiConfig(playgroundSDK, aiConfig);
-      return true;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Failed to apply AI configuration';
-      message.error(errorMessage);
-      return false;
-    }
-  }, [aiConfig, playgroundSDK]);
-
   const countdownTimerRef = useRef<number | null>(null);
   const countdownResolveRef = useRef<(() => void) | null>(null);
   const mountedRef = useRef(true);
@@ -128,6 +118,55 @@ export function usePlaygroundController({
   const autoCreateSignatureRef = useRef<string | null>(null);
   const autoCreateBlockedSignatureRef = useRef<string | null>(null);
   const sessionMutatingRef = useRef(false);
+  const appliedAiConfigSignatureRef = useRef<string | null>(null);
+  const pendingAiConfigApplicationRef = useRef<{
+    promise: Promise<boolean>;
+    signature: string;
+  } | null>(null);
+
+  const applyAiConfig = useCallback(async () => {
+    if (!hasPlaygroundAiConfig(aiConfig)) {
+      appliedAiConfigSignatureRef.current = null;
+      pendingAiConfigApplicationRef.current = null;
+      return true;
+    }
+
+    if (appliedAiConfigSignatureRef.current === aiConfigSignature) {
+      return true;
+    }
+
+    const pendingApplication = pendingAiConfigApplicationRef.current;
+    if (pendingApplication?.signature === aiConfigSignature) {
+      return pendingApplication.promise;
+    }
+
+    const pendingApplicationState = {
+      promise: Promise.resolve(true) as Promise<boolean>,
+      signature: aiConfigSignature,
+    };
+    const applyPromise = (async () => {
+      try {
+        await applyPlaygroundAiConfig(playgroundSDK, aiConfig);
+        appliedAiConfigSignatureRef.current = aiConfigSignature;
+        return true;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Failed to apply AI configuration';
+        message.error(errorMessage);
+        return false;
+      } finally {
+        if (pendingAiConfigApplicationRef.current === pendingApplicationState) {
+          pendingAiConfigApplicationRef.current = null;
+        }
+      }
+    })();
+
+    pendingApplicationState.promise = applyPromise;
+    pendingAiConfigApplicationRef.current = pendingApplicationState;
+    return applyPromise;
+  }, [aiConfig, aiConfigSignature, playgroundSDK]);
 
   const finishCountdown = useCallback(() => {
     if (countdownTimerRef.current !== null) {
