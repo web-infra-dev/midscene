@@ -397,7 +397,6 @@ describe('runToolsCLI', () => {
               'android.deviceId': {
                 preferredName: 'device-id',
                 aliases: ['deviceId'],
-                acceptedNames: ['device-id', 'deviceId'],
               },
             },
           },
@@ -423,7 +422,7 @@ describe('runToolsCLI', () => {
     consoleSpy.mockRestore();
   });
 
-  it('rejects disallowed dotted init-arg spellings when CLI metadata narrows accepted names', async () => {
+  it('rejects disallowed dotted init-arg spellings via CLI schema', async () => {
     const tools = {
       initTools: vi.fn().mockResolvedValue(undefined),
       destroy: vi.fn().mockResolvedValue(undefined),
@@ -441,7 +440,6 @@ describe('runToolsCLI', () => {
               'android.deviceId': {
                 preferredName: 'device-id',
                 aliases: ['deviceId'],
-                acceptedNames: ['device-id', 'deviceId'],
               },
             },
           },

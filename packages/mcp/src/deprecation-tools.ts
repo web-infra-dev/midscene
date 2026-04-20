@@ -1,9 +1,6 @@
 import { z } from '@midscene/core';
-import {
-  type BaseAgent,
-  BaseMidsceneTools,
-  type ToolDefinition,
-} from '@midscene/shared/mcp';
+import { BaseMidsceneTools } from '@midscene/shared/mcp/base-tools';
+import type { BaseAgent, ToolDefinition } from '@midscene/shared/mcp/types';
 
 const DEPRECATION_MESSAGE = `
 ⚠️ DEPRECATION NOTICE ⚠️

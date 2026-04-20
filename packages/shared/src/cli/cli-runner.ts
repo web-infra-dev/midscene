@@ -2,6 +2,7 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import dotenv from 'dotenv';
+import { z } from 'zod';
 import { getKeyAliases, isRecord } from '../key-alias-utils';
 import { getDebug } from '../logger';
 import type { BaseMidsceneTools } from '../mcp/base-tools';
@@ -61,10 +62,43 @@ export function parseValue(raw: string): unknown {
   return raw;
 }
 
+function walkCliArgs(
+  args: string[],
+  setArgValue: (key: string, value: unknown) => void,
+): void {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (!arg.startsWith('--')) continue;
+
+    const body = arg.slice(2);
+    const eqIdx = body.indexOf('=');
+
+    if (eqIdx >= 0) {
+      // --key=value
+      setArgValue(body.slice(0, eqIdx), parseValue(body.slice(eqIdx + 1)));
+    } else if (args[i + 1] && !args[i + 1].startsWith('--')) {
+      // --key value
+      i++;
+      setArgValue(body, parseValue(args[i]));
+    } else {
+      // --flag (boolean)
+      setArgValue(body, true);
+    }
+  }
+}
+
+function parseRawCliArgs(args: string[]): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  walkCliArgs(args, (key, value) => {
+    result[key] = value;
+  });
+  return result;
+}
+
 export function parseCliArgs(args: string[]): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
-  const setArgValue = (key: string, value: unknown) => {
+  walkCliArgs(args, (key, value) => {
     if (!key.includes('.')) {
       result[key] = value;
       return;
@@ -98,27 +132,7 @@ export function parseCliArgs(args: string[]): Record<string, unknown> {
     for (const alias of getKeyAliases(leafSegment)) {
       current[alias] = value;
     }
-  };
-
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-    if (!arg.startsWith('--')) continue;
-
-    const body = arg.slice(2);
-    const eqIdx = body.indexOf('=');
-
-    if (eqIdx >= 0) {
-      // --key=value
-      setArgValue(body.slice(0, eqIdx), parseValue(body.slice(eqIdx + 1)));
-    } else if (args[i + 1] && !args[i + 1].startsWith('--')) {
-      // --key value
-      i++;
-      setArgValue(body, parseValue(args[i]));
-    } else {
-      // --flag (boolean)
-      setArgValue(body, true);
-    }
-  }
+  });
 
   return result;
 }
@@ -175,28 +189,63 @@ function getCliOptionDisplay(
   return { label, aliases };
 }
 
-function validateRestrictedCliArgSpellings(
-  args: string[],
-  scriptName: string,
-  commandName: string,
-  def: ToolDefinition,
-): void {
+function getAcceptedCliOptionNames(
+  key: string,
+  cliOption?: ToolCliOption,
+): string[] {
+  return [
+    ...new Set(
+      cliOption
+        ? [cliOption.preferredName ?? key, ...(cliOption.aliases ?? [])]
+        : [key, ...getKeyAliases(key)],
+    ),
+  ];
+}
+
+function toOptionalCliSchemaField(field: unknown): z.ZodTypeAny {
+  if (
+    typeof field === 'object' &&
+    field !== null &&
+    typeof (field as z.ZodTypeAny).optional === 'function'
+  ) {
+    return (field as z.ZodTypeAny).optional();
+  }
+
+  const description =
+    typeof field === 'object' &&
+    field !== null &&
+    'description' in field &&
+    typeof (field as { description?: unknown }).description === 'string'
+      ? (field as { description: string }).description
+      : undefined;
+  return description ? z.any().describe(description) : z.any();
+}
+
+function buildCliArgSchema(def: ToolDefinition): Record<string, z.ZodTypeAny> {
+  return Object.fromEntries(
+    Object.entries(def.schema).flatMap(([key, zodType]) =>
+      getAcceptedCliOptionNames(key, def.cli?.options?.[key]).map((cliKey) => [
+        cliKey,
+        toOptionalCliSchemaField(zodType),
+      ]),
+    ),
+  );
+}
+
+function buildDisallowedCliSpellings(def: ToolDefinition): Map<string, string> {
   const disallowedSpellings = new Map<string, string>();
 
   for (const [key] of Object.entries(def.schema)) {
     const cliOption = def.cli?.options?.[key];
-    if (!cliOption?.acceptedNames?.length) {
-      continue;
-    }
-
-    const acceptedNames = new Set(cliOption.acceptedNames);
-    const preferredLabel = formatCliOptionName(cliOption.preferredName ?? key);
+    const preferredLabel = formatCliOptionName(cliOption?.preferredName ?? key);
+    const acceptedNames = new Set(getAcceptedCliOptionNames(key, cliOption));
     const knownSpellings = new Set<string>([
       key,
       ...getKeyAliases(key),
-      cliOption.preferredName ?? key,
-      ...(cliOption.aliases ?? []),
-      ...cliOption.acceptedNames,
+      ...(cliOption?.preferredName
+        ? getKeyAliases(cliOption.preferredName)
+        : []),
+      ...(cliOption?.aliases ?? []),
     ]);
 
     for (const spelling of knownSpellings) {
@@ -206,21 +255,46 @@ function validateRestrictedCliArgSpellings(
     }
   }
 
-  for (const arg of args) {
-    if (!arg.startsWith('--')) {
-      continue;
-    }
+  return disallowedSpellings;
+}
 
-    const key = arg.slice(2).split('=')[0];
-    const preferredLabel = disallowedSpellings.get(key);
-    if (!preferredLabel) {
-      continue;
-    }
-
-    throw new CLIError(
-      `Unsupported option "--${key}" for ${scriptName} ${commandName}. Use "${preferredLabel}" instead.`,
-    );
+function formatCliValidationError(
+  scriptName: string,
+  commandName: string,
+  def: ToolDefinition,
+  rawArgs: Record<string, unknown>,
+): string | undefined {
+  if (Object.keys(def.schema).length === 0) {
+    return undefined;
   }
+
+  const cliSchema = z.object(buildCliArgSchema(def)).strict();
+  const parsed = cliSchema.safeParse(rawArgs);
+  if (parsed.success) {
+    return undefined;
+  }
+
+  const disallowedSpellings = buildDisallowedCliSpellings(def);
+  const unknownKeys = parsed.error.issues.flatMap((issue) =>
+    issue.code === 'unrecognized_keys' ? issue.keys : [],
+  );
+
+  if (unknownKeys.length > 0) {
+    return unknownKeys
+      .map((key) => {
+        const preferredLabel = disallowedSpellings.get(key);
+        if (preferredLabel) {
+          return `Unsupported option "--${key}" for ${scriptName} ${commandName}. Use "${preferredLabel}" instead.`;
+        }
+        return `Unknown option "--${key}" for ${scriptName} ${commandName}.`;
+      })
+      .join('\n');
+  }
+
+  const [issue] = parsed.error.issues;
+  const optionName =
+    typeof issue?.path[0] === 'string' ? `--${issue.path[0]}` : 'CLI arguments';
+  return `Invalid value for "${optionName}" in ${scriptName} ${commandName}: ${issue?.message ?? parsed.error.message}`;
 }
 
 function printCommandHelp(scriptName: string, cmd: CLICommand): void {
@@ -343,20 +417,25 @@ export async function runToolsCLI(
     throw new CLIError(`Unknown command: ${commandName}`);
   }
 
-  validateRestrictedCliArgSpellings(
-    restArgs,
-    scriptName,
-    match.name,
-    match.def,
-  );
-  const parsedArgs = parseCliArgs(restArgs);
-  debug('command: %s, args: %s', match.name, JSON.stringify(parsedArgs));
-
-  if (parsedArgs.help === true) {
+  const rawCliArgs = parseRawCliArgs(restArgs);
+  if (rawCliArgs.help === true) {
     debug('showing command help for: %s', match.name);
     printCommandHelp(scriptName, match);
     return;
   }
+
+  const cliValidationError = formatCliValidationError(
+    scriptName,
+    match.name,
+    match.def,
+    rawCliArgs,
+  );
+  if (cliValidationError) {
+    throw new CLIError(cliValidationError);
+  }
+
+  const parsedArgs = parseCliArgs(restArgs);
+  debug('command: %s, args: %s', match.name, JSON.stringify(parsedArgs));
 
   const result = await match.def.handler(parsedArgs);
   debug(

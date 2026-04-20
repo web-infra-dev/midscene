@@ -214,7 +214,6 @@ describe('generateToolsFromActionSpace', () => {
         'android.deviceId': {
           preferredName: 'device-id',
           aliases: ['deviceId'],
-          acceptedNames: ['device-id', 'deviceId'],
         },
       },
     };

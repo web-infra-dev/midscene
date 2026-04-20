@@ -50,7 +50,6 @@ export type ToolSchema = Record<string, z.ZodTypeAny>;
 export interface ToolCliOption {
   preferredName?: string;
   aliases?: string[];
-  acceptedNames?: string[];
 }
 
 export interface ToolCliMetadata {

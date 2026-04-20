@@ -3,8 +3,8 @@ import { getDebug } from '@midscene/shared/logger';
 import {
   BaseMidsceneTools,
   type InitArgSpec,
-  type ToolDefinition,
-} from '@midscene/shared/mcp';
+} from '@midscene/shared/mcp/base-tools';
+import type { ToolDefinition } from '@midscene/shared/mcp/types';
 import { type HarmonyAgent, agentFromHdcDevice } from './agent';
 import { HarmonyDevice } from './device';
 

@@ -162,25 +162,19 @@ export abstract class BaseMidsceneTools<
             ? camelToKebab(key)
             : canonicalKey);
 
-        const acceptedNames = this.initArgSpec!.cli?.preferBareKeys
-          ? [...new Set([preferredName, ...getKeyAliases(key)])]
-          : undefined;
-        const aliases = new Set<string>(acceptedNames ?? getKeyAliases(key));
-        if (this.initArgSpec!.cli?.preferBareKeys) {
-          aliases.delete(preferredName);
-        } else {
-          for (const alias of getKeyAliases(canonicalKey)) {
-            aliases.add(alias);
-          }
-          aliases.delete(preferredName);
-        }
+        const acceptedNames = new Set<string>([
+          preferredName,
+          ...(this.initArgSpec!.cli?.preferBareKeys
+            ? getKeyAliases(key)
+            : getKeyAliases(canonicalKey)),
+        ]);
+        acceptedNames.delete(preferredName);
 
         return [
           canonicalKey,
           {
             preferredName,
-            aliases: [...aliases],
-            acceptedNames,
+            aliases: [...acceptedNames],
           },
         ];
       }),

@@ -1,6 +1,6 @@
 import { CLIError, runToolsCLI } from '@midscene/shared/cli';
-import { BaseMidsceneTools } from '@midscene/shared/mcp';
-import type { BaseAgent, BaseDevice } from '@midscene/shared/mcp';
+import { BaseMidsceneTools } from '@midscene/shared/mcp/base-tools';
+import type { BaseAgent, BaseDevice } from '@midscene/shared/mcp/types';
 import { Agent } from '../agent/agent';
 import type { AbstractInterface } from '../device';
 
