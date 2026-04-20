@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { execFileSync, execSync, spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { chmodSync, existsSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -290,6 +290,31 @@ export function getPhasedScrollBinary(): string | null {
   return binPath;
 }
 
+/** @internal exported for unit tests — do not consume from outside this package */
+export function ensurePhasedScrollBinaryExecutable(binPath: string): boolean {
+  try {
+    const currentMode = statSync(binPath).mode & 0o777;
+    if ((currentMode & 0o111) !== 0) {
+      return true;
+    }
+
+    const repairedMode = currentMode | 0o111;
+    chmodSync(binPath, repairedMode);
+    debugDevice('phased-scroll permissions repaired', {
+      binPath,
+      from: currentMode.toString(8),
+      to: repairedMode.toString(8),
+    });
+    return true;
+  } catch (err) {
+    debugDevice('failed to ensure phased-scroll is executable', {
+      binPath,
+      err,
+    });
+    return false;
+  }
+}
+
 let phasedScrollExecWarned = false;
 /** @internal exported for unit tests — do not consume from outside this package */
 export function runPhasedScroll(
@@ -299,6 +324,7 @@ export function runPhasedScroll(
 ): boolean {
   const bin = getPhasedScrollBinary();
   if (!bin) return false;
+  ensurePhasedScrollBinaryExecutable(bin);
   // phased-scroll posts events at the current cursor location — callers that
   // care about routing should move the mouse before invoking.
   try {

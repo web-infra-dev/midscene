@@ -1,7 +1,18 @@
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import {
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  mkdtempSync,
+  rmSync,
+  statSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { getPhasedScrollBinary } from '../../src/device';
+import {
+  ensurePhasedScrollBinaryExecutable,
+  getPhasedScrollBinary,
+} from '../../src/device';
 
 describe('phased-scroll binary resolution', () => {
   it('returns null on non-darwin platforms', () => {
@@ -25,5 +36,28 @@ describe('phased-scroll binary resolution', () => {
     const pkgRoot = resolve(__dirname, '../..');
     expect(binPath.startsWith(pkgRoot)).toBe(true);
     expect(binPath.endsWith('bin/darwin/phased-scroll')).toBe(true);
+  });
+
+  it('repairs execute permissions when install packaging strips them', () => {
+    if (process.platform === 'win32') return;
+
+    const sourceBinary =
+      getPhasedScrollBinary() ??
+      resolve(__dirname, '../../bin/darwin/phased-scroll');
+    expect(existsSync(sourceBinary)).toBe(true);
+
+    const tempDir = mkdtempSync(join(tmpdir(), 'midscene-phased-scroll-'));
+    const copiedBinary = join(tempDir, 'phased-scroll');
+
+    try {
+      copyFileSync(sourceBinary, copiedBinary);
+      chmodSync(copiedBinary, 0o644);
+      expect(statSync(copiedBinary).mode & 0o111).toBe(0);
+
+      expect(ensurePhasedScrollBinaryExecutable(copiedBinary)).toBe(true);
+      expect(statSync(copiedBinary).mode & 0o111).not.toBe(0);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 });
