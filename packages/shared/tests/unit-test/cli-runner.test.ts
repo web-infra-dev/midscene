@@ -162,7 +162,7 @@ describe('parseCliArgs', () => {
     });
   });
 
-  it('parses dotted keys into nested objects and preserves camel/kebab aliases', () => {
+  it('preserves dotted keys as flat args', () => {
     expect(
       parseCliArgs([
         '--android.deviceId',
@@ -171,29 +171,23 @@ describe('parseCliArgs', () => {
         '8100',
       ]),
     ).toEqual({
-      android: {
-        deviceId: '127.0.0.1:7555',
-        'device-id': '127.0.0.1:7555',
-      },
-      ios: {
-        wdaPort: 8100,
-        'wda-port': 8100,
-      },
+      'android.deviceId': '127.0.0.1:7555',
+      'ios.wda-port': 8100,
     });
   });
 
-  it('throws CLIError when a scalar and a namespace share the same key', () => {
-    expect(() =>
+  it('treats namespace-like keys as independent flat args', () => {
+    expect(
       parseCliArgs(['--android', 'foo', '--android.deviceId', 'bar']),
-    ).toThrow(CLIError);
+    ).toEqual({
+      android: 'foo',
+      'android.deviceId': 'bar',
+    });
   });
 
-  it('parses dotted kebab-case keys into nested objects and preserves camel aliases', () => {
+  it('preserves dotted kebab-case keys as flat args', () => {
     expect(parseCliArgs(['--android.device-id', '127.0.0.1:7555'])).toEqual({
-      android: {
-        deviceId: '127.0.0.1:7555',
-        'device-id': '127.0.0.1:7555',
-      },
+      'android.device-id': '127.0.0.1:7555',
     });
   });
 });
@@ -472,7 +466,7 @@ describe('runToolsCLI', () => {
         argv: ['connect', '--android.deviceId', 'emulator-5554'],
       }),
     ).rejects.toThrow(
-      'Unsupported option "--android.deviceId" for midscene-android connect. Use "--device-id" instead.',
+      'Unsupported option "--android.deviceId" for midscene-android connect.',
     );
   });
 

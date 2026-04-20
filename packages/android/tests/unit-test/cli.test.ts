@@ -88,7 +88,7 @@ describe('Android CLI integration', () => {
         argv: ['take_screenshot', '--android.device-id', 'kebab-device'],
       }),
     ).rejects.toThrow(
-      'Unsupported option "--android.device-id" for midscene-android take_screenshot. Use "--device-id" instead.',
+      'Unsupported option "--android.device-id" for midscene-android take_screenshot.',
     );
 
     expect(agentFromAdbDevice).not.toHaveBeenCalled();
@@ -103,7 +103,7 @@ describe('Android CLI integration', () => {
         argv: ['take_screenshot', '--android.deviceId', 'camel-device'],
       }),
     ).rejects.toThrow(
-      'Unsupported option "--android.deviceId" for midscene-android take_screenshot. Use "--device-id" instead.',
+      'Unsupported option "--android.deviceId" for midscene-android take_screenshot.',
     );
 
     expect(agentFromAdbDevice).not.toHaveBeenCalled();

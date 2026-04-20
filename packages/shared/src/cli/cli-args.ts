@@ -1,7 +1,6 @@
 import { z } from 'zod';
-import { getKeyAliases, isRecord } from '../key-alias-utils';
+import { getKeyAliases } from '../key-alias-utils';
 import type { ToolCliOption, ToolDefinition } from '../mcp/types';
-import { CLIError } from './cli-error';
 
 export function parseValue(raw: string): unknown {
   if (raw.startsWith('{') || raw.startsWith('[')) {
@@ -41,51 +40,11 @@ function walkCliArgs(
   }
 }
 
-export function parseRawCliArgs(args: string[]): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  walkCliArgs(args, (key, value) => {
-    result[key] = value;
-  });
-  return result;
-}
-
 export function parseCliArgs(args: string[]): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
   walkCliArgs(args, (key, value) => {
-    if (!key.includes('.')) {
-      result[key] = value;
-      return;
-    }
-
-    const segments = key.split('.');
-    let current = result;
-
-    for (const segment of segments.slice(0, -1)) {
-      const aliases = getKeyAliases(segment);
-      const existing = aliases.map((alias) => current[alias]);
-      const nestedRecord = existing.find(isRecord);
-      const conflictingScalar = existing.find(
-        (entry) => entry !== undefined && !isRecord(entry),
-      );
-      if (conflictingScalar !== undefined) {
-        throw new CLIError(
-          `Conflicting CLI args: "${segment}" is used both as a value and as a namespace`,
-        );
-      }
-      const target = nestedRecord ?? {};
-
-      for (const alias of aliases) {
-        current[alias] = target;
-      }
-
-      current = target;
-    }
-
-    const leafSegment = segments[segments.length - 1];
-    for (const alias of getKeyAliases(leafSegment)) {
-      current[alias] = value;
-    }
+    result[key] = value;
   });
 
   return result;
@@ -150,12 +109,11 @@ function buildCliArgSchema(def: ToolDefinition): Record<string, z.ZodTypeAny> {
   );
 }
 
-function buildDisallowedCliSpellings(def: ToolDefinition): Map<string, string> {
-  const disallowedSpellings = new Map<string, string>();
+function buildDisallowedCliSpellings(def: ToolDefinition): Set<string> {
+  const disallowedSpellings = new Set<string>();
 
   for (const [key] of Object.entries(def.schema)) {
     const cliOption = def.cli?.options?.[key];
-    const preferredLabel = formatCliOptionName(cliOption?.preferredName ?? key);
     const acceptedNames = new Set(getAcceptedCliOptionNames(key, cliOption));
     const knownSpellings = new Set<string>([
       key,
@@ -168,7 +126,7 @@ function buildDisallowedCliSpellings(def: ToolDefinition): Map<string, string> {
 
     for (const spelling of knownSpellings) {
       if (!acceptedNames.has(spelling)) {
-        disallowedSpellings.set(spelling, preferredLabel);
+        disallowedSpellings.add(spelling);
       }
     }
   }
@@ -200,9 +158,8 @@ export function formatCliValidationError(
   if (unknownKeys.length > 0) {
     return unknownKeys
       .map((key) => {
-        const preferredLabel = disallowedSpellings.get(key);
-        if (preferredLabel) {
-          return `Unsupported option "--${key}" for ${scriptName} ${commandName}. Use "${preferredLabel}" instead.`;
+        if (disallowedSpellings.has(key)) {
+          return `Unsupported option "--${key}" for ${scriptName} ${commandName}.`;
         }
         return `Unknown option "--${key}" for ${scriptName} ${commandName}.`;
       })

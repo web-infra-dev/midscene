@@ -13,7 +13,6 @@ import {
   formatCliValidationError,
   getCliOptionDisplay,
   parseCliArgs,
-  parseRawCliArgs,
 } from './cli-args';
 import { CLIError } from './cli-error';
 
@@ -198,8 +197,8 @@ export async function runToolsCLI(
     throw new CLIError(`Unknown command: ${commandName}`);
   }
 
-  const rawCliArgs = parseRawCliArgs(restArgs);
-  if (rawCliArgs.help === true) {
+  const parsedArgs = parseCliArgs(restArgs);
+  if (parsedArgs.help === true) {
     debug('showing command help for: %s', match.name);
     printCommandHelp(scriptName, match);
     return;
@@ -209,13 +208,12 @@ export async function runToolsCLI(
     scriptName,
     match.name,
     match.def,
-    rawCliArgs,
+    parsedArgs,
   );
   if (cliValidationError) {
     throw new CLIError(cliValidationError);
   }
 
-  const parsedArgs = parseCliArgs(restArgs);
   debug('command: %s, args: %s', match.name, JSON.stringify(parsedArgs));
 
   const result = await match.def.handler(parsedArgs);
