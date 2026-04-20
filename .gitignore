@@ -144,6 +144,7 @@ packages/all-in-one-playground/static/*
 # rslib
 .rslib
 **/.rslib
+**/.native-build/
 
 # jetbrains
 .idea/

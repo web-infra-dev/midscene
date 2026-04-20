@@ -1,41 +1,42 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(__dirname, '..');
-const sourceFile = path.join(packageRoot, 'native', 'rdp-helper.m');
+const nativeRoot = path.join(packageRoot, 'native');
+const buildRoot = path.join(packageRoot, '.native-build');
+
 const platformTargets = {
   darwin: {
     outputDir: path.join(packageRoot, 'bin', 'darwin'),
-    outputFile: path.join(packageRoot, 'bin', 'darwin', 'rdp-helper'),
-    buildStrategy: 'legacy-objc',
+    outputName: 'rdp-helper',
+    binaryPath: path.join(packageRoot, 'bin', 'darwin', 'rdp-helper'),
   },
   linux: {
     outputDir: path.join(packageRoot, 'bin', 'linux'),
-    outputFile: path.join(packageRoot, 'bin', 'linux', 'rdp-helper'),
-    buildStrategy: 'cmake-scaffold',
+    outputName: 'rdp-helper',
+    binaryPath: path.join(packageRoot, 'bin', 'linux', 'rdp-helper'),
   },
   win32: {
     outputDir: path.join(packageRoot, 'bin', 'win32'),
-    outputFile: path.join(packageRoot, 'bin', 'win32', 'rdp-helper.exe'),
-    buildStrategy: 'cmake-scaffold',
+    outputName: 'rdp-helper',
+    binaryPath: path.join(packageRoot, 'bin', 'win32', 'rdp-helper.exe'),
   },
 };
 
-function run(command, args) {
+function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     cwd: packageRoot,
-    encoding: 'utf8',
+    stdio: 'inherit',
+    ...options,
   });
 
   if (result.status !== 0) {
-    throw new Error(result.stderr || result.stdout || `${command} failed`);
+    process.exit(result.status || 1);
   }
-
-  return result.stdout.trim();
 }
 
 try {
@@ -47,49 +48,41 @@ try {
     process.exit(0);
   }
 
-  if (target.buildStrategy !== 'legacy-objc') {
-    console.warn(
-      `[build:native] Cross-platform helper scaffolding exists for ${process.platform}, but the real native build is not wired yet.`,
-    );
-    process.exit(0);
-  }
-
   mkdirSync(target.outputDir, { recursive: true });
+  mkdirSync(buildRoot, { recursive: true });
 
-  const cflags = run('pkg-config', ['--cflags', 'freerdp3', 'freerdp-client3'])
-    .split(/\s+/)
-    .filter(Boolean);
-  const libs = run('pkg-config', ['--libs', 'freerdp3', 'freerdp-client3'])
-    .split(/\s+/)
-    .filter(Boolean);
+  const buildDir = path.join(buildRoot, process.platform);
+  mkdirSync(buildDir, { recursive: true });
 
-  const clangArgs = [
-    '-O2',
-    '-fobjc-arc',
-    sourceFile,
-    '-o',
-    target.outputFile,
-    '-framework',
-    'Foundation',
-    '-framework',
-    'CoreGraphics',
-    '-framework',
-    'ImageIO',
-    ...cflags,
-    ...libs,
+  const configureArgs = [
+    '-S',
+    nativeRoot,
+    '-B',
+    buildDir,
+    `-DRDP_HELPER_OUTPUT_DIR=${target.outputDir}`,
+    `-DRDP_HELPER_OUTPUT_NAME=${target.outputName}`,
   ];
 
-  const compileResult = spawnSync('clang', clangArgs, {
-    cwd: packageRoot,
-    stdio: 'inherit',
-  });
+  if (process.platform === 'win32') {
+    configureArgs.push('-DCMAKE_BUILD_TYPE=Release');
+  }
 
-  if (compileResult.status !== 0) {
-    process.exit(compileResult.status || 1);
+  run('cmake', configureArgs);
+
+  const buildArgs = ['--build', buildDir];
+  if (process.platform === 'win32') {
+    buildArgs.push('--config', 'Release');
+  }
+  run('cmake', buildArgs);
+
+  if (!existsSync(target.binaryPath)) {
+    throw new Error(
+      `Expected helper binary at ${path.relative(packageRoot, target.binaryPath)}`,
+    );
   }
 
   console.log(
-    `[build:native] Built ${path.relative(packageRoot, target.outputFile)}`,
+    `[build:native] Built ${path.relative(packageRoot, target.binaryPath)}`,
   );
 } catch (error) {
   console.error(

@@ -27,7 +27,7 @@ function createRealRdpDevice() {
     port: realRdpEnv.port,
     username: realRdpEnv.username!,
     password: realRdpEnv.password!,
-    adminSession: true,
+    adminSession: false,
     ignoreCertificate: realRdpEnv.ignoreCertificate,
   });
 }
