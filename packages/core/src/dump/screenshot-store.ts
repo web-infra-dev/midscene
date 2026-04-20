@@ -1,10 +1,5 @@
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { writeFile as writeFileAsync } from 'node:fs/promises';
 import { dirname, isAbsolute, join } from 'node:path';
 import type { ScreenshotItem } from '../screenshot-item';
 import { extractImageByIdSync } from './html-utils';
@@ -130,7 +125,10 @@ export class ScreenshotStore {
   private readonly mode: 'inline' | 'directory';
   private readonly reportPath: string;
   private readonly screenshotsDir?: string;
-  private readonly writeInlineImage?: (id: string, base64: string) => void;
+  private readonly writeInlineImage?: (
+    id: string,
+    base64: string,
+  ) => void | Promise<void>;
   private readonly alsoWriteFileCopy: boolean;
   private readonly writtenInlineIds = new Set<string>();
   private readonly writtenFileIds = new Set<string>();
@@ -139,7 +137,7 @@ export class ScreenshotStore {
     mode: 'inline' | 'directory';
     reportPath: string;
     screenshotsDir?: string;
-    writeInlineImage?: (id: string, base64: string) => void;
+    writeInlineImage?: (id: string, base64: string) => void | Promise<void>;
     alsoWriteFileCopy?: boolean;
     /** @deprecated Use alsoWriteFileCopy instead. */
     ensureFileCopy?: boolean;
@@ -152,11 +150,11 @@ export class ScreenshotStore {
       options.alsoWriteFileCopy ?? options.ensureFileCopy ?? false;
   }
 
-  persist(screenshot: ScreenshotItem): ScreenshotRef {
+  async persist(screenshot: ScreenshotItem): Promise<ScreenshotRef> {
     const shouldWriteFileCopy =
       this.mode === 'directory' || this.alsoWriteFileCopy;
     const fileRef = shouldWriteFileCopy
-      ? this.persistToSharedFileIfNeeded(screenshot, {
+      ? await this.persistToSharedFileIfNeeded(screenshot, {
           markAsPersisted: this.mode === 'directory',
         })
       : null;
@@ -168,7 +166,7 @@ export class ScreenshotStore {
         );
       }
       if (!this.writtenInlineIds.has(screenshot.id)) {
-        this.writeInlineImage(screenshot.id, screenshot.base64);
+        await this.writeInlineImage(screenshot.id, screenshot.base64);
         this.writtenInlineIds.add(screenshot.id);
       }
       return screenshot.markPersistedInline(this.reportPath);
@@ -182,12 +180,12 @@ export class ScreenshotStore {
     return fileRef;
   }
 
-  private persistToSharedFileIfNeeded(
+  private async persistToSharedFileIfNeeded(
     screenshot: ScreenshotItem,
     options: {
       markAsPersisted: boolean;
     },
-  ): ScreenshotRef {
+  ): Promise<ScreenshotRef> {
     const screenshotsDir = this.screenshotsDir;
     if (!screenshotsDir) {
       throw new Error(
@@ -206,7 +204,7 @@ export class ScreenshotStore {
 
     if (!this.writtenFileIds.has(screenshot.id)) {
       const buffer = Buffer.from(screenshot.rawBase64, 'base64');
-      writeFileSync(absolutePath, buffer);
+      await writeFileAsync(absolutePath, buffer);
       this.writtenFileIds.add(screenshot.id);
     }
 

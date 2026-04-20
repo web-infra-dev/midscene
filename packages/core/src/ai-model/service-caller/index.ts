@@ -37,6 +37,11 @@ import {
   isCodexAppServerProvider,
 } from './codex-app-server';
 import { shouldForceOriginalImageDetail } from './image-detail';
+import {
+  buildRequestAbortSignal,
+  isHardTimeoutError,
+  resolveEffectiveTimeoutMs,
+} from './request-timeout';
 
 async function createChatClient({
   modelConfig,
@@ -155,6 +160,7 @@ async function createChatClient({
     }
   }
 
+  const effectiveTimeoutMs = resolveEffectiveTimeoutMs({ timeout });
   const openAIOptions = {
     baseURL: openaiBaseURL,
     apiKey: openaiApiKey,
@@ -162,7 +168,12 @@ async function createChatClient({
     // Note: Type assertion needed due to undici version mismatch between dependencies
     ...(proxyAgent ? { fetchOptions: { dispatcher: proxyAgent as any } } : {}),
     ...openaiExtraConfig,
-    ...(typeof timeout === 'number' ? { timeout } : {}),
+    // Midscene already handles retries in callAI(), so disable SDK-level retries
+    // to avoid duplicate attempts and duplicated backoff latency.
+    maxRetries: 0,
+    // When disabled (timeoutMs === null) fall through to the SDK default so
+    // only the caller-provided abortSignal can cancel the request.
+    ...(effectiveTimeoutMs !== null ? { timeout: effectiveTimeoutMs } : {}),
     dangerouslyAllowBrowser: true,
   };
 
@@ -245,6 +256,7 @@ export async function callAI(
   } = await createChatClient({
     modelConfig,
   });
+  const effectiveTimeoutMs = resolveEffectiveTimeoutMs(modelConfig);
 
   const extraBody = modelConfig.extraBody;
 
@@ -384,76 +396,82 @@ export async function callAI(
     );
 
     if (isStreaming) {
-      const stream = (await completion.create(
-        {
-          model: modelName,
-          messages: messagesWithImageDetail,
-          ...commonConfig,
-          ...reasoningEffortConfig,
-          ...extraBody,
-        },
-        {
-          stream: true,
-          ...(options?.abortSignal ? { signal: options.abortSignal } : {}),
-        },
-      )) as Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
-        _request_id?: string | null;
-      };
+      const { signal: streamSignal, cleanup: cleanupStreamSignal } =
+        buildRequestAbortSignal(effectiveTimeoutMs, options?.abortSignal);
+      try {
+        const stream = (await completion.create(
+          {
+            model: modelName,
+            messages: messagesWithImageDetail,
+            ...commonConfig,
+            ...reasoningEffortConfig,
+            ...extraBody,
+          },
+          {
+            stream: true,
+            signal: streamSignal,
+          },
+        )) as Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
+          _request_id?: string | null;
+        };
 
-      requestId = stream._request_id;
+        requestId = stream._request_id;
 
-      for await (const chunk of stream) {
-        const content = chunk.choices?.[0]?.delta?.content || '';
-        const reasoning_content =
-          (chunk.choices?.[0]?.delta as any)?.reasoning_content || '';
+        for await (const chunk of stream) {
+          const content = chunk.choices?.[0]?.delta?.content || '';
+          const reasoning_content =
+            (chunk.choices?.[0]?.delta as any)?.reasoning_content || '';
 
-        // Check for usage info in any chunk (OpenAI provides usage in separate chunks)
-        if (chunk.usage) {
-          usage = chunk.usage;
-        }
-
-        if (content || reasoning_content) {
-          accumulated += content;
-          accumulatedReasoning += reasoning_content;
-          const chunkData: CodeGenerationChunk = {
-            content,
-            reasoning_content,
-            accumulated,
-            isComplete: false,
-            usage: undefined,
-          };
-          options.onChunk!(chunkData);
-        }
-
-        // Check if stream is complete
-        if (chunk.choices?.[0]?.finish_reason) {
-          timeCost = Date.now() - startTime;
-
-          // If usage is not available from the stream, provide a basic usage info
-          if (!usage) {
-            // Estimate token counts based on content length (rough approximation)
-            const estimatedTokens = Math.max(
-              1,
-              Math.floor(accumulated.length / 4),
-            );
-            usage = {
-              prompt_tokens: estimatedTokens,
-              completion_tokens: estimatedTokens,
-              total_tokens: estimatedTokens * 2,
-            };
+          // Check for usage info in any chunk (OpenAI provides usage in separate chunks)
+          if (chunk.usage) {
+            usage = chunk.usage;
           }
 
-          // Send final chunk
-          const finalChunk: CodeGenerationChunk = {
-            content: '',
-            accumulated,
-            reasoning_content: '',
-            isComplete: true,
-            usage: buildUsageInfo(usage, requestId),
-          };
-          options.onChunk!(finalChunk);
-          break;
+          if (content || reasoning_content) {
+            accumulated += content;
+            accumulatedReasoning += reasoning_content;
+            const chunkData: CodeGenerationChunk = {
+              content,
+              reasoning_content,
+              accumulated,
+              isComplete: false,
+              usage: undefined,
+            };
+            options.onChunk!(chunkData);
+          }
+
+          // Check if stream is complete
+          if (chunk.choices?.[0]?.finish_reason) {
+            timeCost = Date.now() - startTime;
+
+            // If usage is not available from the stream, provide a basic usage info
+            if (!usage) {
+              // Estimate token counts based on content length (rough approximation)
+              const estimatedTokens = Math.max(
+                1,
+                Math.floor(accumulated.length / 4),
+              );
+              usage = {
+                prompt_tokens: estimatedTokens,
+                completion_tokens: estimatedTokens,
+                total_tokens: estimatedTokens * 2,
+              };
+            }
+
+            // Send final chunk
+            const finalChunk: CodeGenerationChunk = {
+              content: '',
+              accumulated,
+              reasoning_content: '',
+              isComplete: true,
+              usage: buildUsageInfo(usage, requestId),
+            };
+            options.onChunk!(finalChunk);
+            break;
+          }
         }
+      } finally {
+        cleanupStreamSignal();
       }
       content = accumulated;
       debugProfileStats(
@@ -468,6 +486,8 @@ export async function callAI(
       let lastError: Error | undefined;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const { signal: attemptSignal, cleanup: cleanupAttemptSignal } =
+          buildRequestAbortSignal(effectiveTimeoutMs, options?.abortSignal);
         try {
           const result = await completion.create(
             {
@@ -477,7 +497,7 @@ export async function callAI(
               ...reasoningEffortConfig,
               ...extraBody,
             } as any,
-            options?.abortSignal ? { signal: options.abortSignal } : undefined,
+            { signal: attemptSignal },
           );
 
           timeCost = Date.now() - startTime;
@@ -518,6 +538,12 @@ export async function callAI(
           break; // Success, exit retry loop
         } catch (error) {
           lastError = error as Error;
+          const wasHardTimeout = isHardTimeoutError(lastError);
+          if (wasHardTimeout) {
+            warnCall(
+              `AI call hit hard timeout (${effectiveTimeoutMs}ms, attempt ${attempt}/${maxAttempts}, model ${modelName}, intent ${modelConfig.intent})`,
+            );
+          }
           // Do not retry if the request was aborted by the caller
           if (options?.abortSignal?.aborted) {
             break;
@@ -528,6 +554,8 @@ export async function callAI(
             );
             await new Promise((resolve) => setTimeout(resolve, retryInterval));
           }
+        } finally {
+          cleanupAttemptSignal();
         }
       }
 

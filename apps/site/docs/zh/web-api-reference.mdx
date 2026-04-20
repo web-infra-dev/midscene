@@ -194,6 +194,8 @@ test('search flow', async ({ agentForPage, page }) => {
 });
 ```
 
+这个 fixture 也支持传入 `PlaywrightAgent` 的全部配置，因此你可以在创建 fixture 时统一配置共享的 Agent 行为。`testId`、`reportFileName`、`groupName`、`groupDescription` 这类按测试自动生成的元信息仍由 fixture 管理。
+
 ### 另请参阅
 
 - [集成到 Playwright](./integrate-with-playwright) 获取安装、Fixture 用法和更多配置。

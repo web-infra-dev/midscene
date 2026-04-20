@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
 import { join } from 'node:path';
 import { ScreenshotItem, z } from '@midscene/core';
@@ -8,7 +8,12 @@ import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import puppeteer from 'puppeteer-core';
 import type { Browser, Page } from 'puppeteer-core';
-import { PROXY_ENDPOINT_FILE, PROXY_PID_FILE } from './cdp-proxy-constants';
+import {
+  PROXY_ENDPOINT_FILE,
+  PROXY_PID_FILE,
+  PROXY_UPSTREAM_FILE,
+  TARGET_ID_FILE,
+} from './cdp-proxy-constants';
 import { PuppeteerAgent } from './puppeteer';
 import { StaticPage } from './static';
 
@@ -109,23 +114,129 @@ function readProxyEndpoint(): string | null {
 }
 
 /**
+ * Read the Chrome endpoint that the running proxy is connected to.
+ */
+function readProxyUpstream(): string | null {
+  if (!existsSync(PROXY_UPSTREAM_FILE)) return null;
+  try {
+    return readFileSync(PROXY_UPSTREAM_FILE, 'utf-8').trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Kill the running proxy process and clear all CDP-mode metadata files
+ * (proxy endpoint/pid/upstream and the cross-command targetId).
+ */
+function killProxy(): void {
+  if (!existsSync(PROXY_PID_FILE)) return;
+  try {
+    const pid = Number(readFileSync(PROXY_PID_FILE, 'utf-8').trim());
+    process.kill(pid, 'SIGTERM');
+    debug('Killed proxy pid: %d', pid);
+  } catch (err) {
+    // ESRCH (already dead) is the common case; surface anything else
+    // (e.g. EPERM) via debug so it does not vanish silently.
+    debug('killProxy failed: %s', err);
+  }
+  try {
+    if (existsSync(PROXY_ENDPOINT_FILE)) unlinkSync(PROXY_ENDPOINT_FILE);
+  } catch {}
+  try {
+    if (existsSync(PROXY_PID_FILE)) unlinkSync(PROXY_PID_FILE);
+  } catch {}
+  try {
+    if (existsSync(PROXY_UPSTREAM_FILE)) unlinkSync(PROXY_UPSTREAM_FILE);
+  } catch {}
+  // The saved targetId points into the now-defunct upstream's tab list,
+  // so it cannot match anything in a fresh Chrome and must be discarded.
+  cleanupTargetIdFile();
+}
+
+/**
+ * Read the saved targetId from the temporary file.
+ */
+function readSavedTargetId(): string | null {
+  if (!existsSync(TARGET_ID_FILE)) return null;
+  try {
+    return readFileSync(TARGET_ID_FILE, 'utf-8').trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Save a targetId to the temporary file for cross-command tab reuse.
+ */
+function saveTargetId(targetId: string): void {
+  try {
+    writeFileSync(TARGET_ID_FILE, targetId, 'utf-8');
+    debug('Saved targetId: %s', targetId);
+  } catch (err) {
+    debug('Failed to save targetId: %s', err);
+  }
+}
+
+/**
+ * Remove the saved targetId file.
+ */
+function cleanupTargetIdFile(): void {
+  try {
+    if (existsSync(TARGET_ID_FILE)) unlinkSync(TARGET_ID_FILE);
+  } catch {}
+}
+
+/**
+ * puppeteer-core does not expose a public method for the underlying
+ * CDP target id, so we reach into `_targetId`. Centralised here so that
+ * a future puppeteer release exposing this properly only requires one
+ * change. Callers must treat the result as optional.
+ */
+function getTargetId(page: Page): string | undefined {
+  return (page.target() as unknown as { _targetId?: string })._targetId;
+}
+
+/** Keep at most this many bytes of proxy stderr for diagnostics. */
+const PROXY_STDERR_BUFFER_LIMIT = 8 * 1024;
+
+/**
  * Spawn the CDP proxy process and wait for it to print the endpoint.
+ *
+ * Captures the child's stderr so that when startup fails we can surface
+ * the real reason (upstream closed / duplicate proxy / upstream error)
+ * instead of the generic "exited before ready".
  */
 function spawnProxy(chromeEndpoint: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const proxyScript = join(__dirname, 'cdp-proxy.js');
     const proc = spawn(process.execPath, [proxyScript, chromeEndpoint], {
       detached: true,
-      stdio: ['ignore', 'pipe', 'ignore'],
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
     proc.unref();
 
     let output = '';
+    let stderrBuf = '';
     let settled = false;
+
+    const appendStderr = (chunk: Buffer) => {
+      stderrBuf += chunk.toString();
+      if (stderrBuf.length > PROXY_STDERR_BUFFER_LIMIT) {
+        stderrBuf = stderrBuf.slice(-PROXY_STDERR_BUFFER_LIMIT);
+      }
+    };
+    proc.stderr!.on('data', appendStderr);
+
+    const formatStderr = () => {
+      const trimmed = stderrBuf.trim();
+      return trimmed ? ` (stderr: ${trimmed})` : '';
+    };
+
     const timer = setTimeout(() => {
       if (!settled) {
         settled = true;
-        reject(new Error('Proxy startup timeout (10s)'));
+        reject(new Error(`Proxy startup timeout (10s)${formatStderr()}`));
       }
     }, 10000);
 
@@ -140,6 +251,11 @@ function spawnProxy(chromeEndpoint: string): Promise<string> {
             settled = true;
             clearTimeout(timer);
             proc.stdout!.removeListener('data', onData);
+            proc.stderr!.removeListener('data', appendStderr);
+            // Destroy the stdio pipes so they don't keep the parent
+            // process event loop alive after we've read the endpoint.
+            proc.stdout!.destroy();
+            proc.stderr!.destroy();
             resolve(parsed.endpoint);
             return;
           }
@@ -157,11 +273,14 @@ function spawnProxy(chromeEndpoint: string): Promise<string> {
         reject(new Error(`Failed to spawn proxy: ${err.message}`));
       }
     });
-    proc.on('exit', (code) => {
+    proc.on('exit', (code, signal) => {
       if (!settled) {
         settled = true;
         clearTimeout(timer);
-        reject(new Error(`Proxy exited with code ${code} before ready`));
+        const how = signal ? `signal ${signal}` : `code ${code}`;
+        reject(
+          new Error(`Proxy exited with ${how} before ready${formatStderr()}`),
+        );
       }
     });
   });
@@ -192,10 +311,22 @@ async function getProxyEndpoint(chromeEndpoint: string): Promise<string> {
     }
   }
 
-  // If proxy is alive and endpoint file exists, reuse it
+  // If proxy is alive and connected to the same Chrome, reuse it
   if (isProxyAlive()) {
     const endpoint = readProxyEndpoint();
-    if (endpoint) return endpoint;
+    const savedUpstream = readProxyUpstream();
+    if (endpoint) {
+      if (savedUpstream && savedUpstream !== browserEndpoint) {
+        // Proxy is connected to a different Chrome — kill it and start fresh
+        debug(
+          'Proxy connected to different upstream (%s), killing',
+          savedUpstream,
+        );
+        killProxy();
+      } else {
+        return endpoint;
+      }
+    }
   }
 
   // Spawn a new proxy
@@ -296,9 +427,26 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
         });
       }
     } else {
-      // Reuse the last web page, or any existing page (including about:blank
-      // which may be the user's active tab). Only create a new page as last resort.
-      if (webPages.length > 0) {
+      // Try to find the exact tab from a previous `connect` command via saved targetId.
+      const savedTargetId = readSavedTargetId();
+      let matchedPage: Page | undefined;
+
+      if (savedTargetId && pages.length > 0) {
+        matchedPage = pages.find((p) => getTargetId(p) === savedTargetId);
+        if (matchedPage) {
+          debug('Matched saved targetId %s', savedTargetId);
+        } else {
+          debug(
+            'Saved targetId %s not found among %d pages, falling back',
+            savedTargetId,
+            pages.length,
+          );
+        }
+      }
+
+      if (matchedPage) {
+        page = matchedPage;
+      } else if (webPages.length > 0) {
         page = webPages[webPages.length - 1];
       } else if (pages.length > 0) {
         page = pages[pages.length - 1];
@@ -307,6 +455,19 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
       }
 
       await page.bringToFront();
+    }
+
+    // Persist the targetId so subsequent CLI commands can find this exact tab
+    const targetId = getTargetId(page);
+    if (targetId) {
+      saveTargetId(targetId);
+    } else {
+      // If puppeteer ever drops the private _targetId field, this branch
+      // makes the regression visible instead of silently disabling the
+      // cross-command tab reuse path.
+      debug(
+        'No targetId on page.target(); cross-command tab reuse disabled until puppeteer integration is updated.',
+      );
     }
 
     this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage);
@@ -378,6 +539,7 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
             this.activeBrowser.disconnect();
             this.activeBrowser = null;
           }
+          cleanupTargetIdFile();
           return this.buildTextResult(
             'Disconnected from web page (browser still running externally)',
           );
@@ -386,3 +548,13 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
     ];
   }
 }
+
+/**
+ * Internal helpers exposed for unit tests. Not part of the public API.
+ */
+export const __test__ = {
+  getProxyEndpoint,
+  killProxy,
+  readProxyUpstream,
+  isProxyAlive,
+};

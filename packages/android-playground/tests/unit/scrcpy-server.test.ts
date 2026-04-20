@@ -45,8 +45,9 @@ describe('ScrcpyServer', () => {
 
     const server = new ScrcpyServer();
     const adb = { serial: 'device-1' };
+    const onProgress = vi.fn();
 
-    await (server as any).startScrcpy(adb, { maxSize: 720 });
+    await (server as any).startScrcpy(adb, { maxSize: 720 }, onProgress);
 
     expect(mockPushServer).toHaveBeenCalledOnce();
     expect(mockOptionsCtor).toHaveBeenCalledWith(
@@ -65,5 +66,9 @@ describe('ScrcpyServer', () => {
         sendFrameMeta: true,
       }),
     );
+    expect(onProgress.mock.calls.map(([phase]) => phase)).toEqual([
+      'pushing-server',
+      'starting-service',
+    ]);
   });
 });

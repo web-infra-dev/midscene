@@ -6,7 +6,8 @@
   flex-direction: column;
   height: 100vh;
   width: 100%;
-  background: #fff;
+  background: var(--midscene-surface, #fff);
+  color: var(--midscene-text-primary, inherit);
   position: relative;
 
   .command-form {
@@ -99,8 +100,8 @@
       bottom: 10px;
       right: 0;
       z-index: 10;
-      background: #fff;
-      border: 1px solid rgba(0, 0, 0, 0.08);
+      background: var(--midscene-surface-elevated, #fff);
+      border: 1px solid var(--midscene-border-strong, rgba(0, 0, 0, 0.08));
 
       &:hover {
         background: #1890ff;
@@ -125,10 +126,10 @@
     margin: 20px 0 30px;
 
     .user-message-bubble {
-      background: rgba(242, 244, 247, 1);
+      background: var(--midscene-surface-muted, rgba(242, 244, 247, 1));
       border-radius: 12px;
       padding: 12px 16px;
-      color: rgba(0, 0, 0, 0.85);
+      color: var(--midscene-text-primary, rgba(0, 0, 0, 0.85));
       display: inline-block;
       max-width: 80%;
       text-align: left;
@@ -139,8 +140,8 @@
 
   // Progress Message Styles
   .progress-action-item {
-    background: #f2f4f7;
-    color: #000;
+    background: var(--midscene-surface-muted, #f2f4f7);
+    color: var(--midscene-text-primary, #000);
     font-size: 14px;
     height: 36px;
     line-height: 36px;
@@ -194,13 +195,13 @@
     }
 
     .system-message-content {
-      color: rgba(0, 0, 0, 0.85);
+      color: var(--midscene-text-primary, rgba(0, 0, 0, 0.85));
       font-size: 14px;
 
       .system-message-text {
         font-size: 14px;
         line-height: 25px;
-        color: rgba(0, 0, 0, 0.85);
+        color: var(--midscene-text-primary, rgba(0, 0, 0, 0.85));
       }
 
       .error-message {
@@ -252,27 +253,58 @@
       left: 0;
       right: 0;
       height: 1px;
-      background-color: #e8e8e8;
+      background-color: var(--midscene-divider, #e8e8e8);
     }
 
     .separator-text-container {
-      background-color: #fff;
+      background-color: var(--midscene-surface, #fff);
       padding: 0 16px;
       position: relative;
       z-index: 1;
 
       .separator-text {
         font-size: 12px;
-        color: #999;
-        background-color: #fff;
+        color: var(--midscene-text-tertiary, #999);
+        background-color: var(--midscene-surface, #fff);
       }
+    }
+  }
+
+  // Collapsible progress group header (only shown when
+  // `UniversalPlaygroundConfig.collapsibleProgressGroup` is enabled).
+  .progress-group-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    color: var(--midscene-text-tertiary, rgba(0, 0, 0, 0.5));
+    padding: 0 4px;
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 15px;
+    user-select: none;
+
+    &:hover {
+      color: var(--midscene-text-secondary, rgba(0, 0, 0, 0.7));
+    }
+
+    .progress-group-toggle-chevron {
+      font-size: 10px;
+      transition: transform 0.15s ease-out;
+    }
+
+    &.is-collapsed .progress-group-toggle-chevron {
+      transform: rotate(180deg);
     }
   }
 
   // Bottom Input Section
   .bottom-input-section {
     flex-shrink: 0;
-    background-color: #fff;
+    background-color: var(--midscene-surface, #fff);
     padding: 16px 0 0 0;
   }
 
