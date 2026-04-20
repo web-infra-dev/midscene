@@ -1,6 +1,6 @@
 {
   "name": "@midscene/visualizer",
-  "version": "1.7.5-beta-20260420144621.0",
+  "version": "1.7.4",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./dist/types/index.d.ts",

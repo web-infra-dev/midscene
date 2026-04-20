@@ -1,6 +1,6 @@
 {
   "name": "@midscene/harmony",
-  "version": "1.7.5-beta-20260420144621.0",
+  "version": "1.7.4",
   "description": "HarmonyOS automation library for Midscene",
   "keywords": [
     "HarmonyOS UI automation",

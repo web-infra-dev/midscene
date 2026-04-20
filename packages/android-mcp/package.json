@@ -1,6 +1,6 @@
 {
   "name": "@midscene/android-mcp",
-  "version": "1.7.5-beta-20260420144621.0",
+  "version": "1.7.4",
   "description": "Midscene MCP Server for Android automation",
   "bin": "dist/index.js",
   "files": ["dist"],
