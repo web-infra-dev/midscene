@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { RDPAgent } from '@/agent';
-import { RDPDevice } from '@/device';
+import { ComputerAgent, RDPDevice } from '@/index';
 import type {
   RDPBackendClient,
   RDPConnectionConfig,
@@ -9,7 +8,7 @@ import type {
   RDPMouseButton,
   RDPMouseButtonAction,
   RDPScrollDirection,
-} from '@/protocol';
+} from '@/index';
 import type { Rect, Size } from '@midscene/core';
 import { describe, expect, it } from 'vitest';
 
@@ -109,7 +108,7 @@ class FixtureRDPBackend implements RDPBackendClient {
 
 const fixturePath = path.join(
   __dirname,
-  '../../../web-integration/tests/ai/fixtures/ui-context.json',
+  '../../../../web-integration/tests/ai/fixtures/ui-context.json',
 );
 const fixture = JSON.parse(readFileSync(fixturePath, 'utf8')) as FixtureDump;
 
@@ -145,7 +144,7 @@ function isPointInsideRect(x: number, y: number, rect: Rect): boolean {
 }
 
 describe(
-  '@midscene/rdp AI login flow',
+  '@midscene/computer RDP AI login flow',
   {
     timeout: 3 * 60 * 1000,
   },
@@ -163,7 +162,7 @@ describe(
       });
       await device.connect();
 
-      const agent = new RDPAgent(device, {
+      const agent = new ComputerAgent(device, {
         aiActionContext:
           'You are controlling a remote desktop through the RDP protocol. Use Input for text fields and Tap for buttons based only on the visible screenshot.',
         generateReport: true,

@@ -1,5 +1,4 @@
-import { RDPAgent } from '@/agent';
-import { RDPDevice } from '@/device';
+import { ComputerAgent, RDPDevice } from '@/index';
 import { describe, expect, it } from 'vitest';
 
 const realRdpEnv = {
@@ -17,8 +16,8 @@ const shouldRunRealRdpTest = Boolean(
     realRdpEnv.username &&
     realRdpEnv.password,
 );
-const SESSION_CONFLICT_PATTERN =
-  /ERRINFO_RPC_INITIATED_DISCONNECT|administrative tool on the server in another session/u;
+const TRANSIENT_REAL_RDP_FAILURE_PATTERN =
+  /ERRCONNECT_CONNECT_FAILED|ERRINFO_RPC_INITIATED_DISCONNECT|administrative tool on the server in another session/u;
 const MAX_REAL_RDP_ATTEMPTS = 3;
 
 function makeRealReportFileName(attempt: number) {
@@ -42,9 +41,9 @@ function createRealRdpDevice() {
   });
 }
 
-function isSessionConflict(error: unknown): boolean {
+function isTransientRealRdpFailure(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
-  return SESSION_CONFLICT_PATTERN.test(message);
+  return TRANSIENT_REAL_RDP_FAILURE_PATTERN.test(message);
 }
 
 async function delay(ms: number) {
@@ -52,7 +51,7 @@ async function delay(ms: number) {
 }
 
 describe.skipIf(!shouldRunRealRdpTest)(
-  '@midscene/rdp real protocol session',
+  '@midscene/computer real RDP protocol session',
   {
     timeout: 8 * 60 * 1000,
   },
@@ -66,7 +65,7 @@ describe.skipIf(!shouldRunRealRdpTest)(
           device = createRealRdpDevice();
           await device.connect();
 
-          const agent = new RDPAgent(device, {
+          const agent = new ComputerAgent(device, {
             aiActionContext:
               'You are controlling a remote Windows desktop directly through the RDP protocol. Every screenshot and action comes from the remote machine itself, not from the local macOS desktop.',
             generateReport: true,
@@ -83,7 +82,10 @@ describe.skipIf(!shouldRunRealRdpTest)(
         } catch (error) {
           lastError = error;
 
-          if (!isSessionConflict(error) || attempt === MAX_REAL_RDP_ATTEMPTS) {
+          if (
+            !isTransientRealRdpFailure(error) ||
+            attempt === MAX_REAL_RDP_ATTEMPTS
+          ) {
             throw error;
           }
 

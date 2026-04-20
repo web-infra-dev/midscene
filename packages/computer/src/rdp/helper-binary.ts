@@ -39,12 +39,15 @@ export function getRdpHelperBinaryPath(): string {
   const platformBinary = getPlatformBinary(process.platform);
   if (!platformBinary) {
     throw new Error(
-      `@midscene/rdp helper does not support platform ${process.platform}`,
+      `@midscene/computer RDP helper does not support platform ${process.platform}`,
     );
   }
 
   const hereDir = currentDirname();
-  const candidateRoots = [resolve(hereDir, '..'), resolve(hereDir, '../..')];
+  const candidateRoots = [
+    resolve(hereDir, '../..'),
+    resolve(hereDir, '../../..'),
+  ];
 
   for (const root of candidateRoots) {
     const binaryPath = resolve(
@@ -59,6 +62,6 @@ export function getRdpHelperBinaryPath(): string {
   }
 
   throw new Error(
-    `RDP helper binary not found for ${process.platform}. Run \`pnpm --filter @midscene/rdp run build:native\` first.`,
+    `RDP helper binary not found for ${process.platform}. Run \`pnpm --filter @midscene/computer run build:native\` first.`,
   );
 }

@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(RDP_HELPER_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../bin/${CMAKE_SYSTEM_NAME}" CACHE PATH "Output directory for the built RDP helper")
+set(RDP_HELPER_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../bin/${CMAKE_SYSTEM_NAME}" CACHE PATH "Output directory for the built RDP helper")
 set(RDP_HELPER_OUTPUT_NAME "rdp-helper" CACHE STRING "Output name for the built RDP helper")
 
 find_package(Threads REQUIRED)

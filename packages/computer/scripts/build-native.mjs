@@ -6,10 +6,9 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(__dirname, '..');
-const nativeRoot = path.join(packageRoot, 'native');
 const buildRoot = path.join(packageRoot, '.native-build');
 
-const platformTargets = {
+const rdpPlatformTargets = {
   darwin: {
     outputDir: path.join(packageRoot, 'bin', 'darwin'),
     outputName: 'rdp-helper',
@@ -39,19 +38,53 @@ function run(command, args, options = {}) {
   }
 }
 
-try {
-  const target = platformTargets[process.platform];
-  if (!target) {
+function buildPhasedScroll() {
+  if (process.platform !== 'darwin') {
     console.warn(
-      `[build:native] Skipping @midscene/rdp helper build on unsupported platform ${process.platform}`,
+      `[build:native] Skipping phased-scroll build on unsupported platform ${process.platform}`,
     );
-    process.exit(0);
+    return;
   }
 
-  mkdirSync(target.outputDir, { recursive: true });
-  mkdirSync(buildRoot, { recursive: true });
+  const outputDir = path.join(packageRoot, 'bin', 'darwin');
+  const outputPath = path.join(outputDir, 'phased-scroll');
+  mkdirSync(outputDir, { recursive: true });
 
-  const buildDir = path.join(buildRoot, process.platform);
+  run('clang', [
+    '-O2',
+    '-arch',
+    'arm64',
+    '-arch',
+    'x86_64',
+    '-framework',
+    'ApplicationServices',
+    '-o',
+    outputPath,
+    path.join(packageRoot, 'native', 'phased-scroll.m'),
+  ]);
+
+  if (!existsSync(outputPath)) {
+    throw new Error(
+      `Expected phased-scroll helper at ${path.relative(packageRoot, outputPath)}`,
+    );
+  }
+
+  console.log(`[build:native] Built ${path.relative(packageRoot, outputPath)}`);
+}
+
+function buildRdpHelper() {
+  const target = rdpPlatformTargets[process.platform];
+  if (!target) {
+    console.warn(
+      `[build:native] Skipping RDP helper build on unsupported platform ${process.platform}`,
+    );
+    return;
+  }
+
+  const nativeRoot = path.join(packageRoot, 'native', 'rdp');
+  const buildDir = path.join(buildRoot, 'rdp', process.platform);
+
+  mkdirSync(target.outputDir, { recursive: true });
   mkdirSync(buildDir, { recursive: true });
 
   const configureArgs = [
@@ -73,20 +106,27 @@ try {
   if (process.platform === 'win32') {
     buildArgs.push('--config', 'Release');
   }
+
   run('cmake', buildArgs);
 
   if (!existsSync(target.binaryPath)) {
     throw new Error(
-      `Expected helper binary at ${path.relative(packageRoot, target.binaryPath)}`,
+      `Expected RDP helper at ${path.relative(packageRoot, target.binaryPath)}`,
     );
   }
 
   console.log(
     `[build:native] Built ${path.relative(packageRoot, target.binaryPath)}`,
   );
+}
+
+try {
+  mkdirSync(buildRoot, { recursive: true });
+  buildPhasedScroll();
+  buildRdpHelper();
 } catch (error) {
   console.error(
-    `[build:native] Failed to build @midscene/rdp helper: ${error instanceof Error ? error.message : String(error)}`,
+    `[build:native] Failed to build @midscene/computer native helpers: ${error instanceof Error ? error.message : String(error)}`,
   );
   process.exit(1);
 }

@@ -20,10 +20,7 @@ import {
   defineActionTap,
 } from '@midscene/core/device';
 import { getDebug } from '@midscene/shared/logger';
-import {
-  UnsupportedRDPBackendClient,
-  createDefaultRDPBackendClient,
-} from './backend-client';
+import { createDefaultRDPBackendClient } from './backend-client';
 import type {
   RDPBackendClient,
   RDPConnectionConfig,
@@ -252,5 +249,3 @@ export class RDPDevice implements AbstractInterface {
     }
   }
 }
-
-export { UnsupportedRDPBackendClient };

@@ -1,4 +1,4 @@
-import { RDPDevice, agentFromRdp } from '@/index';
+import { ComputerAgent, RDPDevice, agentFromComputer } from '@/index';
 import type {
   RDPBackendClient,
   RDPConnectionConfig,
@@ -6,7 +6,7 @@ import type {
   RDPMouseButton,
   RDPMouseButtonAction,
   RDPScrollDirection,
-} from '@/protocol';
+} from '@/index';
 import type { Size } from '@midscene/core';
 
 class FakeRDPBackend implements RDPBackendClient {
@@ -68,20 +68,36 @@ class FakeRDPBackend implements RDPBackendClient {
   }
 }
 
-describe('@midscene/rdp scaffold', () => {
-  it('connects and exposes the RDP device through agentFromRdp', async () => {
+describe('@midscene/computer RDP device', () => {
+  it('connects and exposes the RDP device through agentFromComputer', async () => {
     const backend = new FakeRDPBackend();
-    const agent = await agentFromRdp({
-      host: '10.0.0.1',
-      port: 3389,
-      username: 'Admin',
-      backend,
+    const agent = await agentFromComputer({
+      remote: {
+        type: 'rdp',
+        host: '10.0.0.1',
+        port: 3389,
+        username: 'Admin',
+        backend,
+      },
       generateReport: false,
     });
 
     expect(agent.interface.interfaceType).toBe('rdp');
     expect(agent.interface.describe()).toContain('10.0.0.1:3389');
     expect(backend.calls[0]?.name).toBe('connect');
+  });
+
+  it('allows ComputerAgent to wrap an RDP device directly', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({
+      host: '10.0.0.2',
+      backend,
+    });
+    await device.connect();
+
+    const agent = new ComputerAgent(device);
+    expect(agent.interface).toBe(device);
+    expect(agent.interface.interfaceType).toBe('rdp');
   });
 
   it('translates tap into backend pointer calls', async () => {

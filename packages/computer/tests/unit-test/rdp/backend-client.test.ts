@@ -1,7 +1,10 @@
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
-import { HelperProcessRDPBackendClient } from '@/backend-client';
-import type { RDPHelperRequest, RDPHelperResponse } from '@/protocol';
+import {
+  HelperProcessRDPBackendClient,
+  type RDPHelperRequest,
+  type RDPHelperResponse,
+} from '@/index';
 
 class FakeChildProcess extends EventEmitter {
   stdout = new PassThrough();
