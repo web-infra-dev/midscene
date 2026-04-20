@@ -144,6 +144,9 @@ export abstract class BaseMidsceneTools<
   /**
    * Expose CLI-only metadata for platform init args so single-platform help can
    * show ergonomic bare flags while the underlying schema stays namespaced.
+   * When `preferBareKeys` is enabled, single-platform CLIs only accept the
+   * bare spellings; namespaced dotted spellings remain available through the
+   * MCP/YAML schema instead of the platform CLI surface.
    */
   protected getAgentInitArgCliMetadata(): ToolCliMetadata | undefined {
     if (!this.initArgSpec?.cli) {
@@ -159,20 +162,25 @@ export abstract class BaseMidsceneTools<
             ? camelToKebab(key)
             : canonicalKey);
 
-        const aliases = new Set(getKeyAliases(canonicalKey));
+        const acceptedNames = this.initArgSpec!.cli?.preferBareKeys
+          ? [...new Set([preferredName, ...getKeyAliases(key)])]
+          : undefined;
+        const aliases = new Set<string>(acceptedNames ?? getKeyAliases(key));
         if (this.initArgSpec!.cli?.preferBareKeys) {
-          for (const alias of getKeyAliases(key)) {
+          aliases.delete(preferredName);
+        } else {
+          for (const alias of getKeyAliases(canonicalKey)) {
             aliases.add(alias);
           }
+          aliases.delete(preferredName);
         }
-
-        aliases.delete(preferredName);
 
         return [
           canonicalKey,
           {
             preferredName,
             aliases: [...aliases],
+            acceptedNames,
           },
         ];
       }),

@@ -175,6 +175,54 @@ function getCliOptionDisplay(
   return { label, aliases };
 }
 
+function validateRestrictedCliArgSpellings(
+  args: string[],
+  scriptName: string,
+  commandName: string,
+  def: ToolDefinition,
+): void {
+  const disallowedSpellings = new Map<string, string>();
+
+  for (const [key] of Object.entries(def.schema)) {
+    const cliOption = def.cli?.options?.[key];
+    if (!cliOption?.acceptedNames?.length) {
+      continue;
+    }
+
+    const acceptedNames = new Set(cliOption.acceptedNames);
+    const preferredLabel = formatCliOptionName(cliOption.preferredName ?? key);
+    const knownSpellings = new Set<string>([
+      key,
+      ...getKeyAliases(key),
+      cliOption.preferredName ?? key,
+      ...(cliOption.aliases ?? []),
+      ...cliOption.acceptedNames,
+    ]);
+
+    for (const spelling of knownSpellings) {
+      if (!acceptedNames.has(spelling)) {
+        disallowedSpellings.set(spelling, preferredLabel);
+      }
+    }
+  }
+
+  for (const arg of args) {
+    if (!arg.startsWith('--')) {
+      continue;
+    }
+
+    const key = arg.slice(2).split('=')[0];
+    const preferredLabel = disallowedSpellings.get(key);
+    if (!preferredLabel) {
+      continue;
+    }
+
+    throw new CLIError(
+      `Unsupported option "--${key}" for ${scriptName} ${commandName}. Use "${preferredLabel}" instead.`,
+    );
+  }
+}
+
 function printCommandHelp(scriptName: string, cmd: CLICommand): void {
   const { def } = cmd;
   console.log(`\nUsage: ${scriptName} ${cmd.name} [options]\n`);
@@ -295,6 +343,12 @@ export async function runToolsCLI(
     throw new CLIError(`Unknown command: ${commandName}`);
   }
 
+  validateRestrictedCliArgSpellings(
+    restArgs,
+    scriptName,
+    match.name,
+    match.def,
+  );
   const parsedArgs = parseCliArgs(restArgs);
   debug('command: %s, args: %s', match.name, JSON.stringify(parsedArgs));
 

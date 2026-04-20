@@ -396,7 +396,8 @@ describe('runToolsCLI', () => {
             options: {
               'android.deviceId': {
                 preferredName: 'device-id',
-                aliases: ['deviceId', 'android.device-id', 'android.deviceId'],
+                aliases: ['deviceId'],
+                acceptedNames: ['device-id', 'deviceId'],
               },
             },
           },
@@ -417,10 +418,46 @@ describe('runToolsCLI', () => {
     });
 
     expect(lines.join('\n')).toContain('--device-id');
-    expect(lines.join('\n')).toContain(
-      '(aliases: --deviceId, --android.device-id, --android.deviceId)',
-    );
+    expect(lines.join('\n')).toContain('(aliases: --deviceId)');
+    expect(lines.join('\n')).not.toContain('--android.device-id');
     consoleSpy.mockRestore();
+  });
+
+  it('rejects disallowed dotted init-arg spellings when CLI metadata narrows accepted names', async () => {
+    const tools = {
+      initTools: vi.fn().mockResolvedValue(undefined),
+      destroy: vi.fn().mockResolvedValue(undefined),
+      getToolDefinitions: vi.fn().mockReturnValue([
+        {
+          name: 'android_connect',
+          description: 'Connect to Android device',
+          schema: {
+            'android.deviceId': {
+              description: 'Android device ID (from adb devices)',
+            },
+          },
+          cli: {
+            options: {
+              'android.deviceId': {
+                preferredName: 'device-id',
+                aliases: ['deviceId'],
+                acceptedNames: ['device-id', 'deviceId'],
+              },
+            },
+          },
+          handler: vi.fn(),
+        },
+      ]),
+    } as any;
+
+    await expect(
+      runToolsCLI(tools, 'midscene-android', {
+        stripPrefix: 'android_',
+        argv: ['connect', '--android.deviceId', 'emulator-5554'],
+      }),
+    ).rejects.toThrow(
+      'Unsupported option "--android.deviceId" for midscene-android connect. Use "--device-id" instead.',
+    );
   });
 
   it('throws CLIError for unknown command', async () => {

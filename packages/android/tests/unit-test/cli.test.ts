@@ -6,7 +6,7 @@
  * instance (only the adb agent factory is mocked). This complements the
  * handler-level unit tests by locking down the CLI argument plumbing.
  */
-import { CLIError, runToolsCLI } from '@midscene/shared/cli';
+import { runToolsCLI } from '@midscene/shared/cli';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { agentFromAdbDevice } from '../../src/agent';
 import { AndroidMidsceneTools } from '../../src/mcp-tools';
@@ -53,19 +53,6 @@ describe('Android CLI integration', () => {
     vi.mocked(agentFromAdbDevice).mockReset();
   });
 
-  it('routes --android.device-id (kebab) through parse → handler → adb factory', async () => {
-    const tools = new AndroidMidsceneTools();
-
-    await runToolsCLI(tools, 'midscene-android', {
-      stripPrefix: 'android_',
-      argv: ['take_screenshot', '--android.device-id', 'kebab-device'],
-    });
-
-    expect(agentFromAdbDevice).toHaveBeenCalledWith('kebab-device', {
-      autoDismissKeyboard: false,
-    });
-  });
-
   it('routes --device-id (preferred bare form) through the same pipeline', async () => {
     const tools = new AndroidMidsceneTools();
 
@@ -92,36 +79,34 @@ describe('Android CLI integration', () => {
     });
   });
 
-  it('routes --android.deviceId (camel) through the same pipeline', async () => {
+  it('rejects --android.device-id in the single-platform CLI', async () => {
     const tools = new AndroidMidsceneTools();
 
-    await runToolsCLI(tools, 'midscene-android', {
-      stripPrefix: 'android_',
-      argv: ['take_screenshot', '--android.deviceId', 'camel-device'],
-    });
+    await expect(
+      runToolsCLI(tools, 'midscene-android', {
+        stripPrefix: 'android_',
+        argv: ['take_screenshot', '--android.device-id', 'kebab-device'],
+      }),
+    ).rejects.toThrow(
+      'Unsupported option "--android.device-id" for midscene-android take_screenshot. Use "--device-id" instead.',
+    );
 
-    expect(agentFromAdbDevice).toHaveBeenCalledWith('camel-device', {
-      autoDismissKeyboard: false,
-    });
+    expect(agentFromAdbDevice).not.toHaveBeenCalled();
   });
 
-  it('prefers namespaced init args over bare flags when both are provided', async () => {
+  it('rejects --android.deviceId in the single-platform CLI', async () => {
     const tools = new AndroidMidsceneTools();
 
-    await runToolsCLI(tools, 'midscene-android', {
-      stripPrefix: 'android_',
-      argv: [
-        'take_screenshot',
-        '--device-id',
-        'bare-device',
-        '--android.deviceId',
-        'namespaced-device',
-      ],
-    });
+    await expect(
+      runToolsCLI(tools, 'midscene-android', {
+        stripPrefix: 'android_',
+        argv: ['take_screenshot', '--android.deviceId', 'camel-device'],
+      }),
+    ).rejects.toThrow(
+      'Unsupported option "--android.deviceId" for midscene-android take_screenshot. Use "--device-id" instead.',
+    );
 
-    expect(agentFromAdbDevice).toHaveBeenCalledWith('namespaced-device', {
-      autoDismissKeyboard: false,
-    });
+    expect(agentFromAdbDevice).not.toHaveBeenCalled();
   });
 
   it('threads init args through the act command alongside --prompt', async () => {
@@ -132,13 +117,7 @@ describe('Android CLI integration', () => {
 
     await runToolsCLI(tools, 'midscene-android', {
       stripPrefix: 'android_',
-      argv: [
-        'act',
-        '--prompt',
-        'open settings',
-        '--android.deviceId',
-        'act-device',
-      ],
+      argv: ['act', '--prompt', 'open settings', '--device-id', 'act-device'],
     });
 
     expect(agentFromAdbDevice).toHaveBeenCalledWith('act-device', {
@@ -149,28 +128,6 @@ describe('Android CLI integration', () => {
     });
   });
 
-  it('fails fast when a scalar and a namespace share the same key', async () => {
-    const tools = new AndroidMidsceneTools();
-
-    // `--android foo` registers a scalar under `android`; the next dotted
-    // arg tries to re-use the same key as a namespace. The parser should
-    // reject this rather than silently overwriting.
-    await expect(
-      runToolsCLI(tools, 'midscene-android', {
-        stripPrefix: 'android_',
-        argv: [
-          'take_screenshot',
-          '--android',
-          'foo',
-          '--android.deviceId',
-          'should-never-connect',
-        ],
-      }),
-    ).rejects.toThrow(CLIError);
-
-    expect(agentFromAdbDevice).not.toHaveBeenCalled();
-  });
-
   it('strips init args from the payload passed to the action', async () => {
     const mockAgent = createMockAgent();
     vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
@@ -179,13 +136,7 @@ describe('Android CLI integration', () => {
 
     await runToolsCLI(tools, 'midscene-android', {
       stripPrefix: 'android_',
-      argv: [
-        'act',
-        '--prompt',
-        'do X',
-        '--android.deviceId',
-        'sanitize-target',
-      ],
+      argv: ['act', '--prompt', 'do X', '--device-id', 'sanitize-target'],
     });
 
     // The aiAction call must not carry the init args — they are agent-level,
@@ -207,7 +158,9 @@ describe('Android CLI integration', () => {
     });
 
     expect(output.join('\n')).toContain('--device-id');
-    expect(output.join('\n')).toContain('--android.device-id');
+    expect(output.join('\n')).toContain('--deviceId');
+    expect(output.join('\n')).not.toContain('--android.device-id');
+    expect(output.join('\n')).not.toContain('--android.deviceId');
 
     logSpy.mockRestore();
   });
