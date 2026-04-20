@@ -1090,7 +1090,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                       className="minimal-action-icon"
                       src={chrome.icons.action}
                     />
-                  ) : null}
+                  ) : (
+                    <BorderOutlined className="minimal-action-icon-fallback" />
+                  )}
                   <span className="minimal-action-label">
                     {actionButtonLabel}
                   </span>

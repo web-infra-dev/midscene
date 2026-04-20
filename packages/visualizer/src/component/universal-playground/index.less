@@ -387,20 +387,47 @@
 }
 
 /*
- * --- Execution Flow: shell skin ---
+ * --- Conversation skin ---
  *
- * Opt-in skin, selected by hosts via an extra root class
- * (`playground-shell-skin`). Renders
- * consecutive progress steps as a stair-stepped column: pills indent
- * 24px right of the description column, a 1px connector line runs
- * through the reserved gutter, and intra-step vertical spacing is
- * tightened to 8px on both sides of the description.
- *
- * All selectors below are namespaced under the opt-in class so
- * flat hosts (chrome-extension, report, web playground) keep their
- * untouched rendering.
+ * Shared skin used by `PlaygroundConversationPanel` across Studio and the
+ * standalone playground apps. Renders consecutive progress steps as a
+ * stair-stepped column, tightens message spacing, and adopts the compact
+ * bubble/input treatment previously unique to the Studio shell.
  */
-.playground-container.playground-shell-skin {
+.playground-container.playground-conversation-skin {
+  .middle-dialog-area .info-list-container {
+    padding: 20px 16px 32px;
+  }
+
+  .middle-dialog-area .info-list-container .ant-list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .middle-dialog-area .info-list-container .list-item {
+    padding: 0;
+  }
+
+  .user-message-container {
+    margin: 0;
+  }
+
+  .user-message-container .user-message-bubble {
+    max-width: min(80%, 280px);
+    border-radius: 12px;
+    padding: 8px 16px;
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  .bottom-input-section {
+    flex-shrink: 0;
+    border-top: 1px solid var(--midscene-border-subtle);
+    background: var(--midscene-surface);
+    padding: 12px;
+  }
+
   .list-item:has(.progress-action-item) {
     position: relative;
     padding-left: 0;
@@ -507,9 +534,9 @@
   }
 }
 
-// Dark mode palette for the shell skin — rgba(0,0,0,0.08) on a dark
+// Dark mode palette for the conversation skin — rgba(0,0,0,0.08) on a dark
 // surface is invisible, flip every channel.
-[data-theme='dark'] .playground-container.playground-shell-skin {
+[data-theme='dark'] .playground-container.playground-conversation-skin {
   .progress-action-item {
     background: rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.7);

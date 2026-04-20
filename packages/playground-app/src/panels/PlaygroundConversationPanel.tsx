@@ -13,6 +13,8 @@ import {
 import type { PlaygroundControllerResult } from '../controller/types';
 import './PlaygroundConversationPanel.less';
 
+const PLAYGROUND_CONVERSATION_SKIN_CLASS = 'playground-conversation-skin';
+
 export interface PlaygroundConversationPanelProps {
   controller: PlaygroundControllerResult;
   appVersion: string;
@@ -22,9 +24,7 @@ export interface PlaygroundConversationPanelProps {
   header?: ReactNode;
   className?: string;
   /**
-   * Extra class applied to the inner `UniversalPlayground` root.
-   * Use this when the host needs an opt-in visual skin without widening
-   * the shared `UniversalPlaygroundConfig` surface.
+   * Extra class appended to the inner `UniversalPlayground` root.
    */
   playgroundClassName?: string;
   /**
@@ -133,7 +133,11 @@ export function PlaygroundConversationPanel({
             playgroundSDK={state.playgroundSDK}
             config={mergedConfig}
             branding={mergedBranding}
-            className={['playground-container', playgroundClassName]
+            className={[
+              'playground-container',
+              PLAYGROUND_CONVERSATION_SKIN_CLASS,
+              playgroundClassName,
+            ]
               .filter(Boolean)
               .join(' ')}
           />

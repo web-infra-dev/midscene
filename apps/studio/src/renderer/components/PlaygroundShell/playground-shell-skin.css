@@ -1,18 +1,9 @@
 /*
  * Scoped layout for the Studio Playground panel.
  *
- * This file is deliberately thin now. The pill / connector / execution-flow
- * spacing rules that previously lived here have been promoted to the
- * visualizer's own `universal-playground/index.less`, gated on the
- * `playground-shell-skin` root class that Studio passes into
- * `UniversalPlayground` via `PlaygroundConversationPanel`. The rendering
- * lives entirely inside `@midscene/visualizer` — no more reaching into
- * its internals.
- *
- * What remains below is pure container chrome (the 400px right-column
- * panel, rounded corners, bottom input separator) plus two tight
- * tweaks to the conversation list padding / gap that are cosmetic
- * enough to stay on the Studio side.
+ * The chat window visual treatment now lives in the shared playground
+ * packages so Studio and the standalone playground apps render the same
+ * conversation UI. This file only owns the outer shell chrome.
  */
 
 .playground-shell {
@@ -39,37 +30,4 @@
 
 .playground-shell .playground-container {
   background: var(--midscene-surface);
-}
-
-.playground-shell .middle-dialog-area .info-list-container {
-  padding: 20px 16px 32px;
-}
-
-.playground-shell .middle-dialog-area .info-list-container .ant-list-items {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.playground-shell .middle-dialog-area .info-list-container .list-item {
-  padding: 0;
-}
-
-.playground-shell .user-message-container {
-  margin: 0;
-}
-
-.playground-shell .user-message-container .user-message-bubble {
-  max-width: min(80%, 280px);
-  border-radius: 12px;
-  padding: 8px 16px;
-  font-size: 14px;
-  line-height: 22px;
-}
-
-.playground-shell .bottom-input-section {
-  flex-shrink: 0;
-  border-top: 1px solid var(--midscene-border-subtle);
-  background: var(--midscene-surface);
-  padding: 12px;
 }

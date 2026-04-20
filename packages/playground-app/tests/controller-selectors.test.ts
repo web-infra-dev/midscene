@@ -5,7 +5,7 @@ import {
 } from '../src/controller/selectors';
 
 describe('buildConversationConfig', () => {
-  it('uses controller execution hints and countdown by default', () => {
+  it('uses the shared Studio-style playground chrome by default', () => {
     expect(
       buildConversationConfig({
         deviceType: 'android',
@@ -15,11 +15,46 @@ describe('buildConversationConfig', () => {
     ).toMatchObject({
       showContextPreview: false,
       layout: 'vertical',
+      showVersionInfo: false,
+      enableScrollToBottom: false,
+      showEnvConfigReminder: false,
+      showClearButton: false,
+      showSystemMessageHeader: false,
       serverMode: true,
       deviceType: 'android',
+      promptInputChrome: {
+        variant: 'minimal',
+        placeholder: 'Type a message',
+        primaryActionLabel: 'Action',
+      },
+      executionFlow: {
+        collapsible: true,
+      },
       executionUx: {
         hints: ['countdown-before-run'],
         countdownSeconds: 5,
+      },
+    });
+  });
+
+  it('preserves shared execution flow defaults when hosts add partial overrides', () => {
+    expect(
+      buildConversationConfig(
+        {
+          deviceType: 'web',
+          executionUxHints: [],
+          countdownSeconds: 3,
+        },
+        {
+          executionFlow: {
+            label: 'Process',
+          },
+        },
+      ),
+    ).toMatchObject({
+      executionFlow: {
+        collapsible: true,
+        label: 'Process',
       },
     });
   });
