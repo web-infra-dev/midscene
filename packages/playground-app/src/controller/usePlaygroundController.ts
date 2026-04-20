@@ -26,6 +26,7 @@ import {
   serializeAutoCreateInput,
   shouldResetAutoCreateBlock,
 } from './auto-create';
+import { runSingleFlight } from './single-flight';
 import type { PlaygroundControllerResult, PlaygroundFormValues } from './types';
 
 function getPlatformSelectorFieldKey(
@@ -119,6 +120,7 @@ export function usePlaygroundController({
   const autoCreateBlockedSignatureRef = useRef<string | null>(null);
   const sessionMutatingRef = useRef(false);
   const appliedAiConfigSignatureRef = useRef<string | null>(null);
+  const pendingCreateSessionRef = useRef<Promise<boolean> | null>(null);
   const pendingAiConfigApplicationRef = useRef<{
     promise: Promise<boolean>;
     signature: string;
@@ -287,38 +289,39 @@ export function usePlaygroundController({
     async (
       input?: Record<string, unknown>,
       options?: { silent?: boolean },
-    ): Promise<boolean> => {
-      try {
-        sessionMutatingRef.current = true;
-        if (!(await applyAiConfig())) {
-          return false;
-        }
+    ): Promise<boolean> =>
+      runSingleFlight(pendingCreateSessionRef, async () => {
+        try {
+          sessionMutatingRef.current = true;
+          setSessionMutating(true);
+          if (!(await applyAiConfig())) {
+            return false;
+          }
 
-        const values = input ?? (await form.validateFields());
-        setSessionMutating(true);
-        await playgroundSDK.createSession(values);
-        if (shouldResetAutoCreateBlock(options)) {
-          autoCreateBlockedSignatureRef.current = null;
-        }
-        if (!options?.silent) {
-          message.success('Agent created');
-        }
-        await refreshServerState();
-        return true;
-      } catch (error) {
-        if ((error as { errorFields?: unknown }).errorFields) {
-          return false;
-        }
+          const values = input ?? (await form.validateFields());
+          await playgroundSDK.createSession(values);
+          if (shouldResetAutoCreateBlock(options)) {
+            autoCreateBlockedSignatureRef.current = null;
+          }
+          if (!options?.silent) {
+            message.success('Agent created');
+          }
+          await refreshServerState();
+          return true;
+        } catch (error) {
+          if ((error as { errorFields?: unknown }).errorFields) {
+            return false;
+          }
 
-        const errorMessage =
-          error instanceof Error ? error.message : 'Failed to create Agent';
-        message.error(errorMessage);
-        return false;
-      } finally {
-        sessionMutatingRef.current = false;
-        setSessionMutating(false);
-      }
-    },
+          const errorMessage =
+            error instanceof Error ? error.message : 'Failed to create Agent';
+          message.error(errorMessage);
+          return false;
+        } finally {
+          sessionMutatingRef.current = false;
+          setSessionMutating(false);
+        }
+      }),
     [applyAiConfig, form, playgroundSDK, refreshServerState],
   );
 
