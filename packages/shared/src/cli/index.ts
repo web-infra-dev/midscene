@@ -1,6 +1,7 @@
 export {
   runToolsCLI,
   CLIError,
+  reportCLIError,
   parseValue,
   parseCliArgs,
   removePrefix,

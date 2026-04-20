@@ -3,6 +3,7 @@ import {
   parseCliArgs,
   parseValue,
   removePrefix,
+  reportCLIError,
   runToolsCLI,
 } from '@/cli/cli-runner';
 import { describe, expect, it, vi } from 'vitest';
@@ -233,6 +234,23 @@ describe('CLIError', () => {
 
   it('is instanceof Error', () => {
     expect(new CLIError('test')).toBeInstanceOf(Error);
+  });
+});
+
+describe('reportCLIError', () => {
+  it('prints CLIError messages and returns their exit code', () => {
+    const log = vi.fn();
+
+    expect(reportCLIError(new CLIError('bad args', 2), log)).toBe(2);
+    expect(log).toHaveBeenCalledWith('bad args');
+  });
+
+  it('prints non-CLI errors and returns exit code 1', () => {
+    const log = vi.fn();
+    const error = new Error('boom');
+
+    expect(reportCLIError(error, log)).toBe(1);
+    expect(log).toHaveBeenCalledWith(error);
   });
 });
 
