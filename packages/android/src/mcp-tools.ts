@@ -1,6 +1,10 @@
 import { z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
-import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
+import {
+  BaseMidsceneTools,
+  type InitArgSpec,
+} from '@midscene/shared/mcp/base-tools';
+import type { ToolDefinition } from '@midscene/shared/mcp/types';
 import { type AndroidAgent, agentFromAdbDevice } from './agent';
 import { AndroidDevice } from './device';
 
@@ -10,7 +14,24 @@ const debug = getDebug('mcp:android-tools');
  * Android-specific tools manager
  * Extends BaseMidsceneTools to provide Android ADB device connection tools
  */
-export class AndroidMidsceneTools extends BaseMidsceneTools<AndroidAgent> {
+export class AndroidMidsceneTools extends BaseMidsceneTools<
+  AndroidAgent,
+  string
+> {
+  protected readonly initArgSpec: InitArgSpec<string> = {
+    namespace: 'android',
+    shape: {
+      deviceId: z
+        .string()
+        .optional()
+        .describe('Android device ID (from adb devices)'),
+    },
+    cli: {
+      preferBareKeys: true,
+    },
+    adapt: (extracted) => extracted?.deviceId as string | undefined,
+  };
+
   protected createTemporaryDevice() {
     // Create minimal temporary instance without connecting to device
     // The constructor doesn't establish ADB connection
@@ -50,13 +71,10 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<AndroidAgent> {
         name: 'android_connect',
         description:
           'Connect to Android device via ADB. If deviceId not provided, uses the first available device.',
-        schema: {
-          deviceId: z
-            .string()
-            .optional()
-            .describe('Android device ID (from adb devices)'),
-        },
-        handler: async ({ deviceId }: { deviceId?: string }) => {
+        schema: this.getAgentInitArgSchema(),
+        cli: this.getAgentInitArgCliMetadata(),
+        handler: async (args: Record<string, unknown>) => {
+          const deviceId = this.extractAgentInitParam(args);
           const agent = await this.ensureAgent(deviceId);
           const screenshot = await agent.page.screenshotBase64();
 

@@ -1,4 +1,7 @@
-import { generateToolsFromActionSpace } from '@/mcp/tool-generator';
+import {
+  generateCommonTools,
+  generateToolsFromActionSpace,
+} from '@/mcp/tool-generator';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -161,5 +164,99 @@ describe('generateToolsFromActionSpace', () => {
         { type: 'image', data: 'Zm9v', mimeType: 'image/png' },
       ],
     });
+  });
+
+  it('passes raw args to the agent getter while stripping init args from action payload', async () => {
+    const callActionInActionSpace = vi
+      .fn()
+      .mockResolvedValue('pm clear output');
+    const getAgent = vi.fn().mockResolvedValue({
+      callActionInActionSpace,
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: {
+        screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+      },
+    });
+    const [tool] = generateToolsFromActionSpace(
+      [
+        {
+          name: 'RunAdbShell',
+          description: 'Execute ADB shell command',
+          paramSchema: z.object({
+            command: z.string(),
+          }),
+        },
+      ],
+      getAgent,
+      ({ deviceId: _deviceId, ...rest }) => rest,
+    );
+
+    await tool.handler({
+      command: 'pm clear com.example.app',
+      deviceId: 'target-device',
+    });
+
+    expect(getAgent).toHaveBeenCalledWith({
+      command: 'pm clear com.example.app',
+      deviceId: 'target-device',
+    });
+    expect(callActionInActionSpace).toHaveBeenCalledWith('RunAdbShell', {
+      command: 'pm clear com.example.app',
+    });
+  });
+
+  it('merges init arg schema into action and common tools', () => {
+    const initArgSchema = {
+      'android.deviceId': z.string().optional().describe('Android device ID'),
+    };
+    const initArgCliMetadata = {
+      options: {
+        'android.deviceId': {
+          preferredName: 'device-id',
+          aliases: ['deviceId'],
+        },
+      },
+    };
+    const [actionTool] = generateToolsFromActionSpace(
+      actionSpace,
+      async () => ({
+        getActionSpace: vi.fn().mockResolvedValue([]),
+        page: {
+          screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+        },
+      }),
+      undefined,
+      initArgSchema,
+      initArgCliMetadata,
+    );
+    const commonTools = generateCommonTools(
+      async () => ({
+        getActionSpace: vi.fn().mockResolvedValue([]),
+        page: {
+          screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+        },
+      }),
+      initArgSchema,
+      initArgCliMetadata,
+    );
+
+    expect(actionTool.schema).toHaveProperty('locate');
+    expect(actionTool.schema).toHaveProperty('android.deviceId');
+    expect(actionTool.cli).toEqual(initArgCliMetadata);
+    expect(
+      commonTools.find((tool) => tool.name === 'take_screenshot')?.schema,
+    ).toHaveProperty('android.deviceId');
+    expect(
+      commonTools.find((tool) => tool.name === 'take_screenshot')?.cli,
+    ).toEqual(initArgCliMetadata);
+    expect(commonTools.find((tool) => tool.name === 'act')?.schema).toEqual(
+      expect.objectContaining({
+        prompt: expect.anything(),
+        'android.deviceId': expect.anything(),
+      }),
+    );
+    expect(commonTools.find((tool) => tool.name === 'act')?.cli).toEqual(
+      initArgCliMetadata,
+    );
   });
 });

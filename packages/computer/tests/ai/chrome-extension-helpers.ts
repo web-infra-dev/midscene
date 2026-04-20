@@ -13,6 +13,7 @@ const EXTENSION_POLL_INTERVAL = 2_000;
 const CDP_INJECTION_TIMEOUT = 10_000;
 const NAVIGATE_INJECT_TIMEOUT = 15_000;
 const RELOAD_TIMEOUT = 5_000;
+const BRING_TO_FRONT_TIMEOUT = 5_000;
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -170,11 +171,15 @@ function cdpParse(event: MessageEvent): {
   );
 }
 
+async function listCdpTargets(): Promise<CdpTarget[]> {
+  const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
+  return res.json();
+}
+
 export async function findExtensionPageTarget(
   extensionId: string,
 ): Promise<CdpTarget | null> {
-  const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
-  const targets: CdpTarget[] = await res.json();
+  const targets = await listCdpTargets();
   console.log(
     'CDP targets:',
     targets.map((t) => `${t.type}: ${t.url?.substring(0, 80)}`),
@@ -184,6 +189,39 @@ export async function findExtensionPageTarget(
     targets.find((t) => t.url?.startsWith(extPrefix) && t.type === 'page') ??
     null
   );
+}
+
+export async function findPageTargetByUrlPrefix(
+  urlPrefix: string,
+): Promise<CdpTarget | null> {
+  const targets = await listCdpTargets();
+  return (
+    targets.find(
+      (t) =>
+        t.type === 'page' &&
+        t.webSocketDebuggerUrl &&
+        t.url?.startsWith(urlPrefix),
+    ) ?? null
+  );
+}
+
+export async function bringPageToFront(wsUrl: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(wsUrl);
+    ws.onopen = () => cdpSend(ws, 1, 'Page.bringToFront');
+    ws.onmessage = (event) => {
+      const msg = cdpParse(event);
+      if (msg.id === 1) {
+        ws.close();
+        resolve();
+      }
+    };
+    ws.onerror = (e) => reject(e);
+    setTimeout(() => {
+      ws.close();
+      reject(new Error('Bring-to-front timed out'));
+    }, BRING_TO_FRONT_TIMEOUT);
+  });
 }
 
 // ─── Config Injection ───────────────────────────────────────────────────────
@@ -290,8 +328,7 @@ export async function injectExtensionConfig(
     console.log(
       'No extension page target, navigating existing tab to inject...',
     );
-    const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
-    const allTargets: CdpTarget[] = await res.json();
+    const allTargets = await listCdpTargets();
     const anyPage = allTargets.find(
       (t) => t.type === 'page' && t.webSocketDebuggerUrl,
     );
@@ -316,8 +353,7 @@ export async function injectExtensionConfig(
 async function findServiceWorkerTarget(
   extensionId: string,
 ): Promise<CdpTarget | null> {
-  const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
-  const targets: CdpTarget[] = await res.json();
+  const targets = await listCdpTargets();
   const extPrefix = `chrome-extension://${extensionId}`;
   return (
     targets.find(

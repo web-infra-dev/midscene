@@ -4,11 +4,9 @@ import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ScreenshotItem, z } from '@midscene/core';
-import {
-  BaseMidsceneTools,
-  type ToolDefinition,
-  resolveChromePath,
-} from '@midscene/shared/mcp';
+import { BaseMidsceneTools } from '@midscene/shared/mcp/base-tools';
+import { resolveChromePath } from '@midscene/shared/mcp/chrome-path';
+import type { ToolDefinition } from '@midscene/shared/mcp/types';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import puppeteer from 'puppeteer-core';
 import type { Browser, Page } from 'puppeteer-core';

@@ -10,8 +10,10 @@ import { getErrorMessage } from './error-formatter';
 import type {
   ActionSpaceItem,
   BaseAgent,
+  ToolCliMetadata,
   ToolDefinition,
   ToolResult,
+  ToolSchema,
 } from './types';
 
 /**
@@ -447,25 +449,49 @@ async function captureFailureResult(
   }
 }
 
+function mergeToolCliMetadata(
+  base?: ToolCliMetadata,
+  extra?: ToolCliMetadata,
+): ToolCliMetadata | undefined {
+  const options = {
+    ...(base?.options ?? {}),
+    ...(extra?.options ?? {}),
+  };
+
+  return Object.keys(options).length > 0 ? { options } : undefined;
+}
+
 /**
  * Converts DeviceAction from actionSpace into MCP ToolDefinition
  * This is the core logic that removes need for hardcoded tool definitions
  */
 export function generateToolsFromActionSpace(
   actionSpace: ActionSpaceItem[],
-  getAgent: () => Promise<BaseAgent>,
+  getAgent: (args?: Record<string, unknown>) => Promise<BaseAgent>,
+  sanitizeArgs: (args: Record<string, unknown>) => Record<string, unknown> = (
+    args,
+  ) => args,
+  initArgSchema: ToolSchema = {},
+  initArgCliMetadata?: ToolCliMetadata,
 ): ToolDefinition[] {
   return actionSpace.map((action) => {
-    const schema = extractActionSchema(action.paramSchema as z.ZodTypeAny);
+    const schema = {
+      ...extractActionSchema(action.paramSchema as z.ZodTypeAny),
+      ...initArgSchema,
+    };
 
     return {
       name: action.name,
       description: describeActionForMCP(action),
       schema,
+      cli: initArgCliMetadata,
       handler: async (args: Record<string, unknown>) => {
         try {
-          const agent = await getAgent();
-          const normalizedArgs = normalizeActionArgs(args, action.paramSchema);
+          const agent = await getAgent(args);
+          const normalizedArgs = normalizeActionArgs(
+            sanitizeArgs(args),
+            action.paramSchema,
+          );
           let actionResult: unknown;
 
           try {
@@ -507,16 +533,23 @@ export function generateToolsFromActionSpace(
  * Generate common tools (screenshot, act)
  */
 export function generateCommonTools(
-  getAgent: () => Promise<BaseAgent>,
+  getAgent: (args?: Record<string, unknown>) => Promise<BaseAgent>,
+  initArgSchema: ToolSchema = {},
+  initArgCliMetadata?: ToolCliMetadata,
 ): ToolDefinition[] {
   return [
     {
       name: 'take_screenshot',
       description: 'Capture screenshot of current page/screen',
-      schema: {},
-      handler: async (): Promise<ToolResult> => {
+      schema: {
+        ...initArgSchema,
+      },
+      cli: initArgCliMetadata,
+      handler: async (
+        args: Record<string, unknown> = {},
+      ): Promise<ToolResult> => {
         try {
-          const agent = await getAgent();
+          const agent = await getAgent(args);
           const screenshot = await agent.page?.screenshotBase64();
           if (!screenshot) {
             return createErrorResult('Screenshot not available');
@@ -544,11 +577,15 @@ export function generateCommonTools(
           .describe(
             'Natural language description of the action to perform, e.g. "press Command+Space, type Safari, press Enter"',
           ),
+        ...initArgSchema,
       },
-      handler: async (args: Record<string, unknown>): Promise<ToolResult> => {
+      cli: mergeToolCliMetadata(undefined, initArgCliMetadata),
+      handler: async (
+        args: Record<string, unknown> = {},
+      ): Promise<ToolResult> => {
         const prompt = args.prompt as string;
         try {
-          const agent = await getAgent();
+          const agent = await getAgent(args);
           if (!agent.aiAction) {
             return createErrorResult('act is not supported by this agent');
           }

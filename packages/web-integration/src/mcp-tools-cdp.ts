@@ -1,6 +1,7 @@
 import { ScreenshotItem, z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
-import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
+import { BaseMidsceneTools } from '@midscene/shared/mcp/base-tools';
+import type { ToolDefinition } from '@midscene/shared/mcp/types';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import puppeteer from 'puppeteer-core';
 import type { Browser, Page } from 'puppeteer-core';
