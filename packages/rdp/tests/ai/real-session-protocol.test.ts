@@ -21,6 +21,16 @@ const SESSION_CONFLICT_PATTERN =
   /ERRINFO_RPC_INITIATED_DISCONNECT|administrative tool on the server in another session/u;
 const MAX_REAL_RDP_ATTEMPTS = 3;
 
+function makeRealReportFileName(attempt: number) {
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[:.]/g, '-')
+    .replace('T', '-')
+    .replace('Z', '');
+
+  return `rdp-real-settings-ai-report-${timestamp}-attempt-${attempt}`;
+}
+
 function createRealRdpDevice() {
   return new RDPDevice({
     host: realRdpEnv.host!,
@@ -47,7 +57,7 @@ describe.skipIf(!shouldRunRealRdpTest)(
     timeout: 8 * 60 * 1000,
   },
   () => {
-    it('opens the remote Windows Start menu through the protocol backend', async () => {
+    it('opens the Windows Start menu and enters Settings through the protocol backend', async () => {
       let lastError: unknown;
 
       for (let attempt = 1; attempt <= MAX_REAL_RDP_ATTEMPTS; attempt++) {
@@ -61,11 +71,11 @@ describe.skipIf(!shouldRunRealRdpTest)(
               'You are controlling a remote Windows desktop directly through the RDP protocol. Every screenshot and action comes from the remote machine itself, not from the local macOS desktop.',
             generateReport: true,
             autoPrintReportMsg: false,
-            reportFileName: 'rdp-real-session-protocol-ai-report',
+            reportFileName: makeRealReportFileName(attempt),
           });
 
           const result = await agent.aiAct(
-            'Open the Windows Start menu on the remote desktop. Stop only after the Start menu is clearly visible in the remote screenshot.',
+            'Click the Windows Start button on the remote desktop, open the Settings app, and stop only after the Windows Settings page is clearly visible in the remote screenshot.',
           );
 
           expect(result).toBeTruthy();
