@@ -12,11 +12,17 @@ export function shouldPauseDiscoveryPollingDuringPreview({
   previewStatus,
   runtimeInfo,
   sessionConnected,
+  sessionMutating,
 }: {
   previewStatus: StudioPreviewConnectionState;
   runtimeInfo: PlaygroundRuntimeInfo | null;
   sessionConnected: boolean;
+  sessionMutating: boolean;
 }): boolean {
+  if (sessionMutating) {
+    return true;
+  }
+
   if (!sessionConnected) {
     return false;
   }

@@ -31,6 +31,7 @@ function expectPauseDecision(
       previewStatus,
       runtimeInfo: createRuntimeInfo('scrcpy'),
       sessionConnected: true,
+      sessionMutating: false,
     }),
   ).toBe(expected);
 }
@@ -54,6 +55,7 @@ describe('shouldPauseDiscoveryPollingDuringPreview', () => {
         previewStatus: 'connecting',
         runtimeInfo: createRuntimeInfo('screenshot'),
         sessionConnected: true,
+        sessionMutating: false,
       }),
     ).toBe(false);
     expect(
@@ -61,7 +63,19 @@ describe('shouldPauseDiscoveryPollingDuringPreview', () => {
         previewStatus: 'connecting',
         runtimeInfo: createRuntimeInfo('scrcpy'),
         sessionConnected: false,
+        sessionMutating: false,
       }),
     ).toBe(false);
+  });
+
+  it('pauses discovery while the session itself is mutating', () => {
+    expect(
+      shouldPauseDiscoveryPollingDuringPreview({
+        previewStatus: 'error',
+        runtimeInfo: createRuntimeInfo('screenshot'),
+        sessionConnected: false,
+        sessionMutating: true,
+      }),
+    ).toBe(true);
   });
 });

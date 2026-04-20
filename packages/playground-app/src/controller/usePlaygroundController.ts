@@ -127,6 +127,7 @@ export function usePlaygroundController({
   const lastSetupPlatformIdRef = useRef<string | undefined>(undefined);
   const autoCreateSignatureRef = useRef<string | null>(null);
   const autoCreateBlockedSignatureRef = useRef<string | null>(null);
+  const sessionMutatingRef = useRef(false);
 
   const finishCountdown = useCallback(() => {
     if (countdownTimerRef.current !== null) {
@@ -249,6 +250,7 @@ export function usePlaygroundController({
       options?: { silent?: boolean },
     ): Promise<boolean> => {
       try {
+        sessionMutatingRef.current = true;
         if (!(await applyAiConfig())) {
           return false;
         }
@@ -274,6 +276,7 @@ export function usePlaygroundController({
         message.error(errorMessage);
         return false;
       } finally {
+        sessionMutatingRef.current = false;
         setSessionMutating(false);
       }
     },
@@ -285,6 +288,7 @@ export function usePlaygroundController({
       autoCreateBlockedSignatureRef.current = serializeAutoCreateInput(
         resolveAutoCreateSessionInput(sessionSetup, form.getFieldsValue(true)),
       );
+      sessionMutatingRef.current = true;
       setSessionMutating(true);
       await playgroundSDK.destroySession();
       message.success('Session disconnected');
@@ -295,6 +299,7 @@ export function usePlaygroundController({
         error instanceof Error ? error.message : 'Failed to disconnect session';
       message.error(errorMessage);
     } finally {
+      sessionMutatingRef.current = false;
       setSessionMutating(false);
     }
   }, [
@@ -390,6 +395,7 @@ export function usePlaygroundController({
       !serverOnline ||
       sessionLoading ||
       sessionMutating ||
+      sessionMutatingRef.current ||
       sessionSetupError
     ) {
       return;

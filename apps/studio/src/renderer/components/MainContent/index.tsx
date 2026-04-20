@@ -167,6 +167,10 @@ export default function MainContent({
     previewStatus,
     runtimeInfo,
     sessionConnected: isConnected,
+    sessionMutating:
+      studioPlayground.phase === 'ready'
+        ? studioPlayground.controller.state.sessionMutating
+        : false,
   });
 
   useEffect(() => {
