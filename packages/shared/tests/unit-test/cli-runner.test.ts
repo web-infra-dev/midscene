@@ -5,7 +5,7 @@ import {
   removePrefix,
   reportCLIError,
   runToolsCLI,
-} from '@/cli/cli-runner';
+} from '@/cli';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('parseValue', () => {
