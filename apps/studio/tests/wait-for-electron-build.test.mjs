@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   createFreshBuildChecker,
   waitForBuild,
-  waitForRendererDeps,
 } from '../scripts/wait-for-electron-build.mjs';
 
 const FILE_A = '/fake/main.cjs';
@@ -186,73 +185,5 @@ describe('waitForBuild', () => {
 
     expect(result).toBe(true);
     expect(rendererReadyCalls).toBe(3);
-  });
-});
-
-describe('waitForRendererDeps', () => {
-  const makeVirtualClock = () => {
-    let tick = 0;
-    return {
-      now: () => tick,
-      delay: async (ms) => {
-        tick += ms;
-      },
-    };
-  };
-
-  it('resolves true once every renderer dependency file is freshly written', async () => {
-    const mtimes = new Map();
-    const read = readerFrom(mtimes);
-    const clock = makeVirtualClock();
-
-    const promise = waitForRendererDeps({
-      requiredFiles: [FILE_A, FILE_B],
-      maxWaitMs: 10000,
-      pollIntervalMs: 250,
-      readMtime: read,
-      now: clock.now,
-      delay: clock.delay,
-    });
-
-    mtimes.set(FILE_A, 100);
-    mtimes.set(FILE_B, 200);
-
-    await expect(promise).resolves.toBe(true);
-  });
-
-  it('does not trust a stale renderer dependency marker from a previous run', async () => {
-    const mtimes = new Map([[FILE_A, 100]]);
-    const read = readerFrom(mtimes);
-    const clock = makeVirtualClock();
-
-    const promise = waitForRendererDeps({
-      requiredFiles: [FILE_A],
-      maxWaitMs: 1000,
-      pollIntervalMs: 250,
-      readMtime: read,
-      now: clock.now,
-      delay: clock.delay,
-    });
-
-    mtimes.set(FILE_A, 200);
-
-    await expect(promise).resolves.toBe(true);
-  });
-
-  it('resolves false after maxWaitMs when a dependency never appears', async () => {
-    const mtimes = new Map([[FILE_A, 100]]);
-    const read = readerFrom(mtimes);
-    const clock = makeVirtualClock();
-
-    const result = await waitForRendererDeps({
-      requiredFiles: [FILE_A, FILE_B],
-      maxWaitMs: 1000,
-      pollIntervalMs: 500,
-      readMtime: read,
-      now: clock.now,
-      delay: clock.delay,
-    });
-
-    expect(result).toBe(false);
   });
 });

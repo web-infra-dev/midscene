@@ -7,15 +7,7 @@ import { rendererDevUrl } from './renderer-dev-config.mjs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
-
-export const studioRendererDepsReadyFile = path.join(
-  rootDir,
-  '.studio-dev',
-  'renderer-deps.ready',
-);
-export const defaultRendererDependencyFiles = [studioRendererDepsReadyFile];
 export const defaultRequiredFiles = [
-  studioRendererDepsReadyFile,
   path.join(rootDir, 'dist/main/main.cjs'),
   path.join(rootDir, 'dist/preload/preload.cjs'),
 ];
@@ -80,28 +72,6 @@ export const checkRendererReady = (url) =>
     });
   });
 
-export const waitForRendererDeps = async ({
-  requiredFiles = defaultRendererDependencyFiles,
-  maxWaitMs = defaultMaxWaitMs,
-  pollIntervalMs = defaultPollIntervalMs,
-  readMtime = readMtimeMs,
-  now = () => Date.now(),
-  delay = sleep,
-} = {}) => {
-  const hasFreshReadySignal = createFreshBuildChecker(requiredFiles, readMtime);
-  const startedAt = now();
-
-  while (now() - startedAt < maxWaitMs) {
-    if (hasFreshReadySignal()) {
-      return true;
-    }
-
-    await delay(pollIntervalMs);
-  }
-
-  return false;
-};
-
 /**
  * Poll until the required build outputs are fresh AND the renderer dev
  * server is serving a 200, or until `maxWaitMs` elapses. Dependencies are
@@ -135,24 +105,6 @@ const isDirectInvocation =
   process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isDirectInvocation) {
-  const mode = process.argv[2] ?? 'shell-build';
-
-  if (mode === 'renderer-deps') {
-    console.log('Waiting for Midscene Studio renderer dependencies...');
-
-    const ready = await waitForRendererDeps();
-
-    if (ready) {
-      console.log('Midscene Studio renderer dependencies are ready.');
-      process.exit(0);
-    }
-
-    console.error(
-      'Timed out waiting for the Midscene Studio renderer dependencies to finish building.',
-    );
-    process.exit(1);
-  }
-
   console.log('Waiting for Midscene Studio shell build output...');
 
   const ready = await waitForBuild();
