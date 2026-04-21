@@ -784,7 +784,11 @@ export class Agent<
     let opt: LocateOption | undefined;
 
     const isLocatePromptLike = (value: unknown): value is TUserPrompt => {
-      if (typeof value === 'string' || typeof value === 'undefined') {
+      if (
+        typeof value === 'string' ||
+        typeof value === 'undefined' ||
+        value === null
+      ) {
         return true;
       }
 

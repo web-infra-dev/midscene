@@ -856,6 +856,39 @@ tasks:
     ).toHaveLength(0);
   });
 
+  test('aiScroll without locate keeps global scroll semantics', async () => {
+    const yamlString = `
+android:
+
+tasks:
+  - name: scroll to bottom
+    flow:
+      - aiScroll:
+        scrollType: scrollToBottom
+        deepThink: true
+`;
+
+    const script = parseYamlScript(yamlString);
+    const mockAgent = await getMockAgent();
+    const player = new ScriptPlayer<any>(script, async () => mockAgent);
+
+    await player.run();
+
+    expect(player.errorInSetup).toBeUndefined();
+    expect(player.status).toBe('done');
+    expect(
+      (mockAgent.agent.aiScroll as MockedFunction<any>).mock.calls,
+    ).toEqual([
+      [
+        undefined,
+        {
+          scrollType: 'scrollToBottom',
+          deepThink: true,
+        },
+      ],
+    ]);
+  });
+
   test('should handle errors in action space', async () => {
     const yamlString = `
 target:
