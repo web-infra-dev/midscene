@@ -144,6 +144,7 @@ export function PreviewRenderer({
       ) : scrcpyAvailable ? (
         <ScrcpyPanel
           connectingOverlay={connectingOverlay}
+          deviceId={previewConnection.deviceId}
           onStatusChange={onScrcpyStatusChange}
           renderErrorOverlay={renderErrorOverlay}
           serverUrl={previewConnection.scrcpyUrl}

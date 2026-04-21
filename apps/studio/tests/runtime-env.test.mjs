@@ -35,4 +35,17 @@ describe('runtime-env', () => {
 
     expect(env.DOTENV_CONFIG_PATH).toBe('/custom/.env');
   });
+
+  it('strips NODE_PATH so Electron resolves workspace packages deterministically', () => {
+    const env = buildStudioRuntimeEnv({
+      baseEnv: {
+        FOO: 'bar',
+        NODE_PATH: '/tmp/global-node-path',
+      },
+      studioRootDir,
+    });
+
+    expect(env.FOO).toBe('bar');
+    expect(env.NODE_PATH).toBeUndefined();
+  });
 });
