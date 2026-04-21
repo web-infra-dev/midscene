@@ -14,6 +14,7 @@ import type { TitleBarOverlay } from 'electron';
 import { runConnectivityTest } from './playground/connectivity-test';
 import { discoverAllDevices } from './playground/device-discovery';
 import { createMultiPlatformRuntimeService } from './playground/multi-platform-runtime';
+import { registerWindowRevealHandlers } from './window-reveal';
 
 /**
  * Main process owns native shell concerns only.
@@ -116,8 +117,14 @@ const createMainWindow = () => {
     },
   });
 
-  window.once('ready-to-show', () => {
-    window.show();
+  registerWindowRevealHandlers({
+    isDestroyed: () => window.isDestroyed(),
+    onDidFailLoad: (listener) =>
+      window.webContents.once('did-fail-load', listener),
+    onDidFinishLoad: (listener) =>
+      window.webContents.once('did-finish-load', listener),
+    onReadyToShow: (listener) => window.once('ready-to-show', listener),
+    show: () => window.show(),
   });
 
   if (rendererDevUrl) {

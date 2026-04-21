@@ -1,5 +1,10 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import type {
+  LaunchPlaygroundResult,
+  PreparedPlaygroundPlatform,
+  RegisteredPlaygroundPlatform,
+} from '@midscene/playground';
 import type { PlaygroundBootstrap } from '@shared/electron-contract';
 import { createStudioCorsOptions } from './cors';
 import type { PlaygroundRuntimeService } from './types';
@@ -12,66 +17,27 @@ function getErrorMessage(error: unknown): string {
     : 'Unknown playground runtime error';
 }
 
-interface MultiPlatformRuntimeModules {
-  ScrcpyServer: new () => unknown;
-  androidPlaygroundPlatform: {
-    prepare: (options: {
-      staticDir: string;
-      scrcpyServer: unknown;
-    }) => Promise<PreparedPlaygroundPlatform>;
-  };
-  computerPlaygroundPlatform: {
-    prepare: (options: {
-      staticDir: string;
-      getWindowController: () => null;
-    }) => Promise<PreparedPlaygroundPlatform>;
-  };
-  harmonyPlaygroundPlatform: {
-    prepare: (options: {
-      staticDir: string;
-    }) => Promise<PreparedPlaygroundPlatform>;
-  };
-  iosPlaygroundPlatform: {
-    prepare: (options: {
-      staticDir: string;
-    }) => Promise<PreparedPlaygroundPlatform>;
-  };
-  launchPreparedPlaygroundPlatform: (
-    prepared: unknown,
-    options: {
-      corsOptions: ReturnType<typeof createStudioCorsOptions>;
-      enableCors: boolean;
-      openBrowser: boolean;
-      verbose: boolean;
-    },
-  ) => Promise<LaunchPlaygroundResult>;
-  prepareMultiPlatformPlayground: (
-    platforms: RegisteredPlaygroundPlatform[],
-    options: {
-      title: string;
-      description: string;
-      selectorFieldKey: string;
-      selectorVariant: string;
-    },
-  ) => Promise<unknown>;
-}
-
-interface PreparedPlaygroundPlatform {
-  [key: string]: unknown;
-}
-
-interface RegisteredPlaygroundPlatform {
-  id: string;
-  label: string;
-  description: string;
-  prepare: () => Promise<PreparedPlaygroundPlatform>;
-}
-
-interface LaunchPlaygroundResult {
-  close: () => Promise<void>;
-  host: string;
-  port: number;
-}
+type MultiPlatformRuntimeModules = {
+  ScrcpyServer: typeof import('@midscene/android-playground')['ScrcpyServer'];
+  androidPlaygroundPlatform: typeof import(
+    '@midscene/android-playground',
+  )['androidPlaygroundPlatform'];
+  computerPlaygroundPlatform: typeof import(
+    '@midscene/computer-playground',
+  )['computerPlaygroundPlatform'];
+  harmonyPlaygroundPlatform: typeof import(
+    '@midscene/harmony',
+  )['harmonyPlaygroundPlatform'];
+  iosPlaygroundPlatform: typeof import(
+    '@midscene/ios',
+  )['iosPlaygroundPlatform'];
+  launchPreparedPlaygroundPlatform: typeof import(
+    '@midscene/playground',
+  )['launchPreparedPlaygroundPlatform'];
+  prepareMultiPlatformPlayground: typeof import(
+    '@midscene/playground',
+  )['prepareMultiPlatformPlayground'];
+};
 
 export async function loadMultiPlatformRuntimeModules(): Promise<MultiPlatformRuntimeModules> {
   const [
@@ -245,13 +211,15 @@ export function createMultiPlatformRuntimeService({
           },
         );
 
-        const nextLaunchResult =
-          await modules.launchPreparedPlaygroundPlatform(prepared, {
+        const nextLaunchResult = await modules.launchPreparedPlaygroundPlatform(
+          prepared,
+          {
             corsOptions: createStudioCorsOptions(),
             enableCors: true,
             openBrowser: false,
             verbose: false,
-          });
+          },
+        );
 
         launchResult = nextLaunchResult;
         bootstrap = {

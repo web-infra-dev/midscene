@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { createMultiPlatformRuntimeService } from '../src/main/playground/multi-platform-runtime';
 import {
   createStudioCorsOptions,
   isAllowedStudioOrigin,
 } from '../src/main/playground/cors';
+import { createMultiPlatformRuntimeService } from '../src/main/playground/multi-platform-runtime';
 
 describe('android runtime CORS policy', () => {
   it('allows Studio origins used by Electron and local renderer dev', () => {
