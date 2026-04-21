@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import {
   initialBuildReadyPattern,
   studioRendererDepsReadyFile,
-} from './studio-dev-deps.mjs';
+} from './wait-for-electron-build.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
