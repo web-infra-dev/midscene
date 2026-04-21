@@ -297,6 +297,28 @@ describe('system prompts', () => {
     expect(prompt).not.toContain('Submit the registration form');
   });
 
+  it('planning should include priority override guidance for input verification', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: undefined,
+      includeBbox: false,
+      includeSubGoals: false,
+    });
+
+    expect(prompt).toContain(
+      'CRITICAL PRIORITY OVERRIDE - Input verification after an input action:',
+    );
+    expect(prompt).toContain(
+      'This rule overrides the general requirement to verify the exact target text from the screenshot.',
+    );
+    expect(prompt).toContain(
+      'If the previous step already executed an input action, and the current input field is not empty, you MUST directly treat that input as successful.',
+    );
+    expect(prompt).toContain(
+      'The general rule "do EXACTLY what the user asked" still applies to the intended input value you execute, but it MUST NOT be enforced by re-validating the visible text in the screenshot after the input action.',
+    );
+  });
+
   it('planning - multi-turn example with includeSubGoals true should have sub-goal tags', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,

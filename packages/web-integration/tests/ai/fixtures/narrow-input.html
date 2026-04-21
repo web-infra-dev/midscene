@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Narrow Input Prompt Test</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #f5f5f5;
+        font-family:
+          ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace;
+      }
+
+      .panel {
+        width: 220px;
+        padding: 24px;
+        background: #fff;
+        border: 1px solid #d4d4d8;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      }
+
+      label {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 14px;
+        color: #18181b;
+      }
+
+      input {
+        width: 96px;
+        padding: 10px 12px;
+        font-size: 20px;
+        line-height: 1.2;
+        border: 1px solid #a1a1aa;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <label for="prompt-input">请输入文本</label>
+      <input
+        id="prompt-input"
+        type="text"
+        placeholder="请输入文本"
+        autocomplete="off"
+        spellcheck="false"
+        autofocus
+      />
+    </div>
+  </body>
+</html>
