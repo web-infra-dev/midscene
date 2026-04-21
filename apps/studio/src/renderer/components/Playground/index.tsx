@@ -1,12 +1,11 @@
 import { PlaygroundConversationPanel } from '@midscene/playground-app';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
-import { PlaygroundShell, playgroundShellAssets } from '../PlaygroundShell';
+import { PlaygroundShell } from '../PlaygroundShell';
 
 declare const __APP_VERSION__: string;
 
 export default function Playground() {
   const studioPlayground = useStudioPlayground();
-  const { promptInputIcons } = playgroundShellAssets;
 
   return (
     <PlaygroundShell>
@@ -35,24 +34,6 @@ export default function Playground() {
             appVersion={__APP_VERSION__}
             className="h-full"
             controller={studioPlayground.controller}
-            playgroundConfig={{
-              promptInputChrome: {
-                variant: 'minimal',
-                placeholder: 'Type a message',
-                primaryActionLabel: 'Action',
-                icons: {
-                  action: promptInputIcons.action,
-                  actionChevron: promptInputIcons.actionChevron,
-                  settings: promptInputIcons.tool,
-                },
-              },
-              showClearButton: false,
-              showSystemMessageHeader: false,
-              enableScrollToBottom: false,
-              showEnvConfigReminder: false,
-              showVersionInfo: false,
-              collapsibleProgressGroup: true,
-            }}
             title="Playground"
           />
         )}

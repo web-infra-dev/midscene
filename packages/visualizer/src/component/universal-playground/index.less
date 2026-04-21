@@ -386,6 +386,175 @@
   }
 }
 
+/*
+ * --- Conversation skin ---
+ *
+ * Shared skin used by `PlaygroundConversationPanel` across Studio and the
+ * standalone playground apps. Renders consecutive progress steps as a
+ * stair-stepped column, tightens message spacing, and adopts the compact
+ * bubble/input treatment previously unique to the Studio shell.
+ */
+.playground-container.playground-conversation-skin {
+  .middle-dialog-area .info-list-container {
+    padding: 20px 16px 32px;
+  }
+
+  .middle-dialog-area .info-list-container .ant-list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .middle-dialog-area .info-list-container .list-item {
+    padding: 0;
+  }
+
+  .user-message-container {
+    margin: 0;
+  }
+
+  .user-message-container .user-message-bubble {
+    max-width: min(80%, 280px);
+    border-radius: 12px;
+    padding: 8px 16px;
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  .bottom-input-section {
+    flex-shrink: 0;
+    border-top: 1px solid var(--midscene-border-subtle);
+    background: var(--midscene-surface);
+    padding: 12px;
+  }
+
+  .list-item:has(.progress-action-item) {
+    position: relative;
+    padding-left: 0;
+  }
+
+  // Wrap pill + description in a flex column so the gap between them is
+  // governed by a single `gap: 8px` rule rather than the pill's own
+  // margin-bottom (inline-flex line-box quirks inflate the distance
+  // otherwise).
+  .list-item > div:has(> .progress-action-item) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .progress-action-item {
+    display: flex;
+    width: fit-content;
+    max-width: 100%;
+    height: 28px;
+    align-items: center;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 2px 12px 2px 4px;
+    margin: 0 0 0 24px;
+    border-radius: 38px;
+    background: rgba(0, 0, 0, 0.08);
+    color: rgba(0, 0, 0, 0.7);
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  .progress-action-item .progress-status-icon {
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0;
+    font-size: 14px;
+  }
+
+  // Description wrapper: the visualiser renders descriptions inside an
+  // unclassed `<div>` right after the pill span. Selecting via
+  // `.progress-action-item + div` applies the 20px left padding used by
+  // this shell skin. The vertical gap with the pill is controlled by the
+  // parent flex column's `gap: 8px`, so this block only handles
+  // horizontal offset.
+  .progress-action-item + div {
+    padding-left: 20px;
+    margin: 0;
+    width: 100%;
+  }
+
+  .progress-description {
+    padding: 0;
+    margin: 0;
+    color: rgba(0, 0, 0, 0.85);
+  }
+
+  .system-message-content,
+  .system-message-content .system-message-text {
+    font-size: 14px;
+    line-height: 22px;
+    color: rgba(0, 0, 0, 0.85);
+  }
+
+  // Ant-list's 16px row gap would visibly outpace the 8px intra-step
+  // gap; pull each subsequent progress item up by 8px to equalise.
+  .list-item:has(.progress-action-item)
+    + .list-item:has(.progress-action-item) {
+    margin-top: -8px;
+  }
+
+  // Vertical connector between consecutive progress items. Drawn from a
+  // 23px top inset so the first step's line sits below the collapsible
+  // "Execution Flow" header; the adjacent-sibling rule resets to top 0
+  // on subsequent items so segments meet without a break.
+  .list-item:has(.progress-action-item):has(
+      + .list-item .progress-action-item
+    )::after {
+    content: '';
+    position: absolute;
+    left: 12px;
+    top: 23px;
+    bottom: -16px;
+    width: 1px;
+    background: rgba(0, 0, 0, 0.08);
+    pointer-events: none;
+  }
+
+  .list-item:has(.progress-action-item)
+    + .list-item:has(.progress-action-item):has(
+      + .list-item .progress-action-item
+    )::after {
+    top: 0;
+  }
+
+  .progress-group-toggle {
+    padding-left: 4px;
+    margin: 0 0 8px;
+  }
+}
+
+// Dark mode palette for the conversation skin — rgba(0,0,0,0.08) on a dark
+// surface is invisible, flip every channel.
+[data-theme='dark'] .playground-container.playground-conversation-skin {
+  .progress-action-item {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .list-item:has(.progress-action-item):has(
+      + .list-item .progress-action-item
+    )::after {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .system-message-content,
+  .system-message-content .system-message-text,
+  .progress-description {
+    color: var(--midscene-text-primary);
+  }
+}
+
 // Dark mode styles
 [data-theme='dark'] {
   .universal-playground {

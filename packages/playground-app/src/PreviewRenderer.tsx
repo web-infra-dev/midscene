@@ -12,7 +12,10 @@ import type { ScrcpyPreviewStatus } from './scrcpy-preview';
 
 interface PreviewRendererProps {
   connectingOverlay?: ReactNode;
-  onScrcpyStatusChange?: (status: ScrcpyPreviewStatus) => void;
+  onScrcpyStatusChange?: (
+    status: ScrcpyPreviewStatus,
+    statusText: string,
+  ) => void;
   renderErrorOverlay?: ScrcpyErrorOverlayRenderer;
   playgroundSDK: PlaygroundSDK;
   runtimeInfo: PlaygroundRuntimeInfo | null;

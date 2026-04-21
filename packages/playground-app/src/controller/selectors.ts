@@ -12,19 +12,41 @@ export function buildConversationConfig(
   >,
   playgroundConfig?: Partial<UniversalPlaygroundConfig>,
 ): UniversalPlaygroundConfig {
-  return {
+  const defaultConfig: UniversalPlaygroundConfig = {
     showContextPreview: false,
     layout: 'vertical',
-    showVersionInfo: true,
-    enableScrollToBottom: true,
+    showVersionInfo: false,
+    enableScrollToBottom: false,
     serverMode: true,
-    showEnvConfigReminder: true,
+    showEnvConfigReminder: false,
+    showClearButton: false,
+    showSystemMessageHeader: false,
+    promptInputChrome: {
+      variant: 'minimal',
+      placeholder: 'Type a message',
+      primaryActionLabel: 'Action',
+    },
+    executionFlow: {
+      collapsible: true,
+    },
     deviceType: state.deviceType,
     executionUx: {
       hints: state.executionUxHints,
       countdownSeconds: state.countdownSeconds,
     },
+  };
+
+  return {
+    ...defaultConfig,
     ...playgroundConfig,
+    executionFlow: {
+      ...defaultConfig.executionFlow,
+      ...playgroundConfig?.executionFlow,
+    },
+    executionUx: {
+      ...defaultConfig.executionUx,
+      ...playgroundConfig?.executionUx,
+    },
   };
 }
 

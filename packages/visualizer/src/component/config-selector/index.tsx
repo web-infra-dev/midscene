@@ -28,6 +28,7 @@ interface ConfigSelectorProps {
   hideDomAndScreenshotOptions?: boolean; // Hide domIncluded and screenshotIncluded options
   deviceType?: DeviceType;
   trigger?: ReactNode;
+  popupPlacement?: 'topRight' | 'bottomRight';
 }
 
 export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
@@ -38,6 +39,7 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
   hideDomAndScreenshotOptions = false,
   deviceType,
   trigger,
+  popupPlacement = 'bottomRight',
 }) => {
   const forceSameTabNavigation = useEnvConfig(
     (state) => state.forceSameTabNavigation,
@@ -95,7 +97,14 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
 
   return (
     <div className="selector-trigger">
-      <Dropdown menu={{ items: configItems }} trigger={['click']}>
+      <Dropdown
+        getPopupContainer={(triggerNode) => triggerNode.ownerDocument.body}
+        menu={{ items: configItems }}
+        overlayClassName="config-selector-dropdown"
+        overlayStyle={{ zIndex: 10010 }}
+        placement={popupPlacement}
+        trigger={['click']}
+      >
         {trigger ?? <SettingOutlined width={24} height={24} />}
       </Dropdown>
     </div>

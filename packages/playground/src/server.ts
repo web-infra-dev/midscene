@@ -36,6 +36,14 @@ import 'dotenv/config';
 
 const defaultPort = PLAYGROUND_SERVER_PORT;
 
+function serializeAiConfigSignature(aiConfig: Record<string, unknown>): string {
+  return JSON.stringify(
+    Object.entries(aiConfig).sort(([leftKey], [rightKey]) =>
+      leftKey.localeCompare(rightKey),
+    ),
+  );
+}
+
 /**
  * Recursively serialize a Zod field into a plain object that preserves
  * the `_def` metadata the client relies on (typeName, innerType, values,
@@ -168,6 +176,7 @@ class PlaygroundServer {
 
   // Flag to track if AI config has changed and agent needs recreation
   private _configDirty = false;
+  private _lastAiConfigSignature: string | null = null;
   private _baseRuntimeState?: PlaygroundRuntimeState;
   private _basePreparedMetadata?: Record<string, unknown>;
   private _baseExecutionHooks?: PlaygroundExecutionHooks;
@@ -431,6 +440,8 @@ class PlaygroundServer {
       console.warn('Failed to destroy old agent:', error);
     } finally {
       this._activeConnection.agent = null;
+      // Once the stale agent is gone there is nothing left to recreate.
+      this._configDirty = false;
     }
   }
 
@@ -1248,15 +1259,28 @@ class PlaygroundServer {
         });
       }
 
+      const nextConfigSignature = serializeAiConfigSignature(aiConfig);
+      const configChanged = nextConfigSignature !== this._lastAiConfigSignature;
+
       try {
-        overrideAIConfig(aiConfig);
-        this._configDirty = true;
+        if (configChanged) {
+          overrideAIConfig(aiConfig);
+          this._lastAiConfigSignature = nextConfigSignature;
+          this._configDirty = Boolean(this._activeConnection.agent);
+        }
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
         console.error(`Failed to update AI config: ${errorMessage}`);
         return res.status(500).json({
           error: `Failed to update AI config: ${errorMessage}`,
+        });
+      }
+
+      if (!configChanged) {
+        return res.json({
+          status: 'ok',
+          message: 'AI config not changed because it is identical to current',
         });
       }
 
@@ -1272,11 +1296,11 @@ class PlaygroundServer {
         });
       }
 
-      // Note: Agent will be recreated on next execution to apply new config
       return res.json({
         status: 'ok',
-        message:
-          'AI config updated. Agent will be recreated on next execution.',
+        message: this._configDirty
+          ? 'AI config updated. Agent will be recreated on next execution.'
+          : 'AI config updated. New sessions will use it immediately.',
       });
     });
 

@@ -16,12 +16,17 @@ import {
   resolveSessionViewState,
 } from '../session-state';
 import { useServerStatus } from '../useServerStatus';
-import { applyPlaygroundAiConfig, hasPlaygroundAiConfig } from './ai-config';
+import {
+  applyPlaygroundAiConfig,
+  hasPlaygroundAiConfig,
+  serializePlaygroundAiConfig,
+} from './ai-config';
 import {
   resolveAutoCreateDecision,
   serializeAutoCreateInput,
   shouldResetAutoCreateBlock,
 } from './auto-create';
+import { runSingleFlight } from './single-flight';
 import type { PlaygroundControllerResult, PlaygroundFormValues } from './types';
 
 function getPlatformSelectorFieldKey(
@@ -76,6 +81,10 @@ export function usePlaygroundController({
   const [sessionLoading, setSessionLoading] = useState(false);
   const [sessionMutating, setSessionMutating] = useState(false);
   const aiConfig = useEnvConfig((state) => state.config);
+  const aiConfigSignature = useMemo(
+    () => serializePlaygroundAiConfig(aiConfig),
+    [aiConfig],
+  );
   const platformSelectorFieldKey = getPlatformSelectorFieldKey(sessionSetup);
   const selectedPlatformId =
     typeof platformSelectorFieldKey === 'string'
@@ -103,30 +112,63 @@ export function usePlaygroundController({
     () => resolveSessionViewState(runtimeInfo),
     [runtimeInfo],
   );
-  const applyAiConfig = useCallback(async () => {
-    if (!hasPlaygroundAiConfig(aiConfig)) {
-      return true;
-    }
-
-    try {
-      await applyPlaygroundAiConfig(playgroundSDK, aiConfig);
-      return true;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Failed to apply AI configuration';
-      message.error(errorMessage);
-      return false;
-    }
-  }, [aiConfig, playgroundSDK]);
-
   const countdownTimerRef = useRef<number | null>(null);
   const countdownResolveRef = useRef<(() => void) | null>(null);
   const mountedRef = useRef(true);
   const lastSetupPlatformIdRef = useRef<string | undefined>(undefined);
   const autoCreateSignatureRef = useRef<string | null>(null);
   const autoCreateBlockedSignatureRef = useRef<string | null>(null);
+  const sessionMutatingRef = useRef(false);
+  const appliedAiConfigSignatureRef = useRef<string | null>(null);
+  const pendingCreateSessionRef = useRef<Promise<boolean> | null>(null);
+  const pendingAiConfigApplicationRef = useRef<{
+    promise: Promise<boolean>;
+    signature: string;
+  } | null>(null);
+
+  const applyAiConfig = useCallback(async () => {
+    if (!hasPlaygroundAiConfig(aiConfig)) {
+      appliedAiConfigSignatureRef.current = null;
+      pendingAiConfigApplicationRef.current = null;
+      return true;
+    }
+
+    if (appliedAiConfigSignatureRef.current === aiConfigSignature) {
+      return true;
+    }
+
+    const pendingApplication = pendingAiConfigApplicationRef.current;
+    if (pendingApplication?.signature === aiConfigSignature) {
+      return pendingApplication.promise;
+    }
+
+    const pendingApplicationState = {
+      promise: Promise.resolve(true) as Promise<boolean>,
+      signature: aiConfigSignature,
+    };
+    const applyPromise = (async () => {
+      try {
+        await applyPlaygroundAiConfig(playgroundSDK, aiConfig);
+        appliedAiConfigSignatureRef.current = aiConfigSignature;
+        return true;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Failed to apply AI configuration';
+        message.error(errorMessage);
+        return false;
+      } finally {
+        if (pendingAiConfigApplicationRef.current === pendingApplicationState) {
+          pendingAiConfigApplicationRef.current = null;
+        }
+      }
+    })();
+
+    pendingApplicationState.promise = applyPromise;
+    pendingAiConfigApplicationRef.current = pendingApplicationState;
+    return applyPromise;
+  }, [aiConfig, aiConfigSignature, playgroundSDK]);
 
   const finishCountdown = useCallback(() => {
     if (countdownTimerRef.current !== null) {
@@ -247,36 +289,39 @@ export function usePlaygroundController({
     async (
       input?: Record<string, unknown>,
       options?: { silent?: boolean },
-    ): Promise<boolean> => {
-      try {
-        if (!(await applyAiConfig())) {
-          return false;
-        }
+    ): Promise<boolean> =>
+      runSingleFlight(pendingCreateSessionRef, async () => {
+        try {
+          sessionMutatingRef.current = true;
+          setSessionMutating(true);
+          if (!(await applyAiConfig())) {
+            return false;
+          }
 
-        const values = input ?? (await form.validateFields());
-        setSessionMutating(true);
-        await playgroundSDK.createSession(values);
-        if (shouldResetAutoCreateBlock(options)) {
-          autoCreateBlockedSignatureRef.current = null;
-        }
-        if (!options?.silent) {
-          message.success('Agent created');
-        }
-        await refreshServerState();
-        return true;
-      } catch (error) {
-        if ((error as { errorFields?: unknown }).errorFields) {
-          return false;
-        }
+          const values = input ?? (await form.validateFields());
+          await playgroundSDK.createSession(values);
+          if (shouldResetAutoCreateBlock(options)) {
+            autoCreateBlockedSignatureRef.current = null;
+          }
+          if (!options?.silent) {
+            message.success('Agent created');
+          }
+          await refreshServerState();
+          return true;
+        } catch (error) {
+          if ((error as { errorFields?: unknown }).errorFields) {
+            return false;
+          }
 
-        const errorMessage =
-          error instanceof Error ? error.message : 'Failed to create Agent';
-        message.error(errorMessage);
-        return false;
-      } finally {
-        setSessionMutating(false);
-      }
-    },
+          const errorMessage =
+            error instanceof Error ? error.message : 'Failed to create Agent';
+          message.error(errorMessage);
+          return false;
+        } finally {
+          sessionMutatingRef.current = false;
+          setSessionMutating(false);
+        }
+      }),
     [applyAiConfig, form, playgroundSDK, refreshServerState],
   );
 
@@ -285,6 +330,7 @@ export function usePlaygroundController({
       autoCreateBlockedSignatureRef.current = serializeAutoCreateInput(
         resolveAutoCreateSessionInput(sessionSetup, form.getFieldsValue(true)),
       );
+      sessionMutatingRef.current = true;
       setSessionMutating(true);
       await playgroundSDK.destroySession();
       message.success('Session disconnected');
@@ -295,6 +341,7 @@ export function usePlaygroundController({
         error instanceof Error ? error.message : 'Failed to disconnect session';
       message.error(errorMessage);
     } finally {
+      sessionMutatingRef.current = false;
       setSessionMutating(false);
     }
   }, [
@@ -390,6 +437,7 @@ export function usePlaygroundController({
       !serverOnline ||
       sessionLoading ||
       sessionMutating ||
+      sessionMutatingRef.current ||
       sessionSetupError
     ) {
       return;
