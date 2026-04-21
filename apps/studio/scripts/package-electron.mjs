@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -10,7 +11,13 @@ const __dirname = path.dirname(__filename);
 const studioRootDir = path.resolve(__dirname, '..');
 const workspaceRootDir = path.resolve(studioRootDir, '..', '..');
 
-export const releaseWorkspaceDir = path.join(studioRootDir, '.release');
+// Keep release staging outside `apps/studio` so `pnpm deploy` does not scan
+// or recursively copy prior `.release` outputs back into the package payload.
+export const releaseWorkspaceDir = path.join(
+  workspaceRootDir,
+  '.release',
+  'studio',
+);
 export const artifactDir = path.join(releaseWorkspaceDir, 'artifacts');
 const deployDir = path.join(releaseWorkspaceDir, 'deploy');
 const packagedDir = path.join(releaseWorkspaceDir, 'packaged');
@@ -107,6 +114,7 @@ export const buildPackagerOptions = ({ arch, outDir, platform, stageDir }) => ({
   asar: false,
   derefSymlinks: false,
   dir: stageDir,
+  electronVersion: getStudioElectronVersion(),
   ignore: packagedIgnorePatterns,
   name: packagedProductName,
   out: outDir,
@@ -117,6 +125,32 @@ export const buildPackagerOptions = ({ arch, outDir, platform, stageDir }) => ({
 
 const packageManagerCommand =
   process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+
+let cachedStudioElectronVersion;
+
+export const getStudioElectronVersion = () => {
+  if (cachedStudioElectronVersion) {
+    return cachedStudioElectronVersion;
+  }
+
+  const studioPackageJson = JSON.parse(
+    readFileSync(path.join(studioRootDir, 'package.json'), 'utf8'),
+  );
+  const electronVersion =
+    studioPackageJson.dependencies?.electron ??
+    studioPackageJson.devDependencies?.electron ??
+    studioPackageJson.dependencies?.['electron-nightly'] ??
+    studioPackageJson.devDependencies?.['electron-nightly'];
+
+  if (!electronVersion) {
+    throw new Error(
+      'Midscene Studio package.json must declare electron or electron-nightly.',
+    );
+  }
+
+  cachedStudioElectronVersion = electronVersion;
+  return electronVersion;
+};
 
 const removeIfExists = async (targetPath) => {
   await fs.rm(targetPath, { force: true, recursive: true });

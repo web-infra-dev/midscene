@@ -1,9 +1,12 @@
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   buildArtifactBaseName,
   buildPackagedAppManifest,
   buildPackagerOptions,
+  getStudioElectronVersion,
   normalizeReleaseVersion,
+  releaseWorkspaceDir,
   shouldUseShellForCommand,
 } from '../scripts/package-electron.mjs';
 
@@ -72,6 +75,7 @@ describe('package-electron helpers', () => {
       asar: false,
       derefSymlinks: false,
       dir: '/tmp/stage',
+      electronVersion: getStudioElectronVersion(),
       out: '/tmp/out',
       platform: 'darwin',
       prune: false,
@@ -81,5 +85,14 @@ describe('package-electron helpers', () => {
   it('uses a shell for Windows .cmd package manager shims', () => {
     expect(shouldUseShellForCommand('pnpm.cmd', 'win32')).toBe(true);
     expect(shouldUseShellForCommand('pnpm', 'linux')).toBe(false);
+  });
+
+  it('keeps release staging outside the studio package root', () => {
+    expect(path.normalize(releaseWorkspaceDir)).toContain(
+      path.normalize(`${path.sep}.release${path.sep}studio`),
+    );
+    expect(path.normalize(releaseWorkspaceDir)).not.toContain(
+      path.normalize(`${path.sep}apps${path.sep}studio${path.sep}.release`),
+    );
   });
 });

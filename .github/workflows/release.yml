@@ -174,13 +174,13 @@ jobs:
       with:
         if-no-files-found: error
         name: studio_${{ matrix.platform }}_${{ matrix.arch }}
-        path: ${{ github.workspace }}/apps/studio/.release/artifacts/*.zip
+        path: ${{ github.workspace }}/.release/studio/artifacts/*.zip
 
     - name: Upload Studio asset to GitHub Release
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ needs.release.outputs.version }}
         prerelease: ${{ contains(needs.release.outputs.version, 'beta') || contains(needs.release.outputs.version, 'alpha') || contains(needs.release.outputs.version, 'rc') }}
-        files: ${{ github.workspace }}/apps/studio/.release/artifacts/*.zip
+        files: ${{ github.workspace }}/.release/studio/artifacts/*.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
