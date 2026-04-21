@@ -1,4 +1,7 @@
-import { parseXMLPlanningResponse } from '@/ai-model/llm-planning';
+import {
+  parseXMLPlanningResponse,
+  recoverPlanningActionFromReasoningContent,
+} from '@/ai-model/llm-planning';
 import { descriptionForAction } from '@/ai-model/prompt/llm-planning';
 import {
   parseMarkFinishedIndexes,
@@ -1154,6 +1157,80 @@ Extracted data:
       { index: 2, status: 'pending', description: 'Complete all to-do items' },
     ]);
     expect(result.markFinishedIndexes).toEqual([1]);
+  });
+});
+
+describe('recoverPlanningActionFromReasoningContent', () => {
+  it('should recover an action from reasoning_content when content finalized early', () => {
+    const modelFamily = 'doubao-vision';
+    const contentPlan = parseXMLPlanningResponse(
+      `<complete success="true">Successfully typed "Hello world" in the search box and clicked the Search button.</complete>`,
+      modelFamily,
+    );
+
+    const recoveredPlan = recoverPlanningActionFromReasoningContent(
+      contentPlan,
+      `
+<thought>Click the Search button next.</thought>
+<log>Click the blue Search button next to the search box</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "the blue Search button to the right of the search input box",
+    "bbox": [640, 229, 708, 276]
+  }
+}
+</action-param-json>
+      `.trim(),
+      modelFamily,
+    );
+
+    expect(recoveredPlan).toEqual({
+      thought: 'Click the Search button next.',
+      log: 'Click the blue Search button next to the search box',
+      action: {
+        type: 'Tap',
+        param: {
+          locate: {
+            prompt:
+              'the blue Search button to the right of the search input box',
+            bbox: [640, 229, 708, 276],
+          },
+        },
+      },
+    });
+  });
+
+  it('should not override an explicit failed completion with reasoning_content', () => {
+    const modelFamily = 'doubao-vision';
+    const contentPlan = parseXMLPlanningResponse(
+      `<complete success="false">Unable to proceed</complete>`,
+      modelFamily,
+    );
+
+    const recoveredPlan = recoverPlanningActionFromReasoningContent(
+      contentPlan,
+      `
+<log>Try clicking retry</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "Retry button"
+  }
+}
+</action-param-json>
+      `.trim(),
+      modelFamily,
+    );
+
+    expect(recoveredPlan).toEqual({
+      log: '',
+      action: null,
+      finalizeMessage: 'Unable to proceed',
+      finalizeSuccess: false,
+    });
   });
 });
 
