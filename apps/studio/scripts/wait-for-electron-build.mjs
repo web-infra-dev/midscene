@@ -3,12 +3,14 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { rendererDevUrl } from './renderer-dev-config.mjs';
+import { studioRendererDepsReadyFile } from './studio-dev-deps.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
 export const defaultRequiredFiles = [
+  studioRendererDepsReadyFile,
   path.join(rootDir, 'dist/main/main.cjs'),
   path.join(rootDir, 'dist/preload/preload.cjs'),
 ];

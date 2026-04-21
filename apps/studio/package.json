@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "rsbuild build && node scripts/sync-static-assets.mjs",
-    "dev": "concurrently -k -n deps,build,app \"nx run-many --target=dev --projects=@midscene/visualizer,@midscene/playground-app,@midscene/android-playground,@midscene/playground --parallel\" \"rsbuild dev\" \"node scripts/wait-for-electron-build.mjs && node scripts/launch-electron-dev.mjs\"",
+    "dev": "concurrently -k -n deps,build,app \"node scripts/start-studio-deps.mjs\" \"node scripts/wait-for-renderer-deps.mjs && rsbuild dev\" \"node scripts/wait-for-electron-build.mjs && node scripts/launch-electron-dev.mjs\"",
     "preview": "rsbuild preview --environment renderer",
     "start": "node scripts/sync-static-assets.mjs && node scripts/launch-electron-prod.mjs",
     "test": "vitest run"

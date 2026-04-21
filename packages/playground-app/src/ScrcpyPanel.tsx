@@ -41,6 +41,7 @@ export type ScrcpyErrorOverlayRenderer = (
 
 interface ScrcpyPanelProps {
   connectingOverlay?: ReactNode;
+  deviceId?: string;
   onStatusChange?: (status: ScrcpyPreviewStatus, statusText: string) => void;
   renderErrorOverlay?: ScrcpyErrorOverlayRenderer;
   serverUrl?: string;
@@ -56,6 +57,7 @@ interface VideoMetadata {
 
 export function ScrcpyPanel({
   connectingOverlay,
+  deviceId,
   onStatusChange,
   renderErrorOverlay,
   serverUrl,
@@ -138,8 +140,13 @@ export function ScrcpyPanel({
     }
 
     let disposed = false;
+    let connectTimer: ReturnType<typeof setTimeout> | null = null;
 
     const cleanup = () => {
+      if (connectTimer) {
+        clearTimeout(connectTimer);
+        connectTimer = null;
+      }
       clearMetadataTimeout();
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
@@ -200,6 +207,7 @@ export function ScrcpyPanel({
         withCredentials: true,
         reconnection: false,
         timeout: 10000,
+        transports: ['websocket'],
       });
       socketRef.current = socket;
       const videoStream = createScrcpyVideoStream(socket);
@@ -223,6 +231,9 @@ export function ScrcpyPanel({
         }, metadataTimeoutMs);
 
         socket.emit('connect-device', {
+          ...(typeof deviceId === 'string' && deviceId.trim()
+            ? { deviceId: deviceId.trim() }
+            : {}),
           maxSize: 1024,
         });
       });
@@ -309,13 +320,19 @@ export function ScrcpyPanel({
       });
     };
 
-    connect();
+    // React StrictMode mounts, cleans up, and remounts effects in dev.
+    // Defer the real socket connection by a tick so the probe mount is
+    // cancelled before it can start a scrcpy session.
+    connectTimer = setTimeout(() => {
+      connectTimer = null;
+      connect();
+    }, 0);
 
     return () => {
       disposed = true;
       cleanup();
     };
-  }, [metadataTimeoutMs, reconnectInterval, retryNonce, serverUrl]);
+  }, [deviceId, metadataTimeoutMs, reconnectInterval, retryNonce, serverUrl]);
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>

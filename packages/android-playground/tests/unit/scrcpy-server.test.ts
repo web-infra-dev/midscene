@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import ScrcpyServer from '../../src/scrcpy-server';
+import ScrcpyServer, {
+  resolveRequestedDeviceId,
+} from '../../src/scrcpy-server';
 
 const {
   mockPushServer,
@@ -38,6 +40,19 @@ vi.mock('node:fs', () => ({
 }));
 
 describe('ScrcpyServer', () => {
+  it('prefers the explicit device from the preview handshake', () => {
+    expect(
+      resolveRequestedDeviceId(
+        { deviceId: 'SERIAL123', maxSize: 1024 },
+        'OLD_DEVICE',
+      ),
+    ).toBe('SERIAL123');
+    expect(resolveRequestedDeviceId({ deviceId: '  ' }, 'OLD_DEVICE')).toBe(
+      'OLD_DEVICE',
+    );
+    expect(resolveRequestedDeviceId({}, null)).toBeUndefined();
+  });
+
   it('enables frame metadata for the scrcpy web preview stream', async () => {
     mockCreateReadStream.mockReturnValue({ stream: true });
     mockReadableFrom.mockReturnValue({ readable: true });
