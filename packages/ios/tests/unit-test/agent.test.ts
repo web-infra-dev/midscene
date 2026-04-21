@@ -52,14 +52,14 @@ describe('IOSAgent', () => {
           name: 'Launch',
           paramSchema: undefined,
           call: async (param: any) => {
-            return mockDevice.launch!(param);
+            return mockDevice.launch!(param.uri);
           },
         },
         {
           name: 'Terminate',
           paramSchema: undefined,
           call: async (param: any) => {
-            return mockDevice.terminate!(param);
+            return mockDevice.terminate!(param.uri);
           },
         },
         {

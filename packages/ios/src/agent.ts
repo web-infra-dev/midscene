@@ -36,22 +36,10 @@ type WrappedAction<T extends DeviceAction> = (
 
 export class IOSAgent extends PageAgent<IOSDevice> {
   /**
-   * Launch an iOS app or URL
-   * Type-safe wrapper around the Launch action from actionSpace
-   */
-  launch!: WrappedAction<DeviceActionLaunch>;
-
-  /**
    * Execute WebDriverAgent API request directly
    * Type-safe wrapper around the RunWdaRequest action from actionSpace
    */
   runWdaRequest!: WrappedAction<DeviceActionRunWdaRequest>;
-
-  /**
-   * Terminate (close) an iOS app by bundle ID
-   * Type-safe wrapper around the Terminate action from actionSpace
-   */
-  terminate!: WrappedAction<DeviceActionTerminate>;
 
   /**
    * Trigger the system home operation on iOS devices
@@ -81,15 +69,31 @@ export class IOSAgent extends PageAgent<IOSDevice> {
     // Set the mapping on the device instance
     device.setAppNameMapping(this.appNameMapping);
 
-    this.launch = this.createActionWrapper<DeviceActionLaunch>('Launch');
     this.runWdaRequest =
       this.createActionWrapper<DeviceActionRunWdaRequest>('RunWdaRequest');
-    this.terminate =
-      this.createActionWrapper<DeviceActionTerminate>('Terminate');
     this.home =
       this.createActionWrapper<DeviceActionIOSHomeButton>('IOSHomeButton');
     this.appSwitcher =
       this.createActionWrapper<DeviceActionIOSAppSwitcher>('IOSAppSwitcher');
+  }
+
+  /**
+   * Launch an iOS app or URL
+   * @param uri - App name, bundle ID, or URL to launch
+   */
+  async launch(uri: string): Promise<void> {
+    const action = this.wrapActionInActionSpace<DeviceActionLaunch>('Launch');
+    return action({ uri });
+  }
+
+  /**
+   * Terminate (close) an iOS app by bundle ID
+   * @param uri - Bundle ID of the app to terminate
+   */
+  async terminate(uri: string): Promise<void> {
+    const action =
+      this.wrapActionInActionSpace<DeviceActionTerminate>('Terminate');
+    return action({ uri });
   }
 
   private createActionWrapper<T extends DeviceAction>(
