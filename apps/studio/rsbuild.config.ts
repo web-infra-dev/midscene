@@ -12,6 +12,8 @@ import {
   rendererDevPort,
 } from './scripts/renderer-dev-config.mjs';
 
+const rendererAssetPrefix = process.env.NODE_ENV === 'development' ? '/' : './';
+
 export default defineConfig({
   tools: {
     rspack: {
@@ -60,6 +62,7 @@ export default defineConfig({
         },
       },
       output: {
+        assetPrefix: rendererAssetPrefix,
         target: 'web',
         distPath: {
           root: 'dist/renderer',
