@@ -137,7 +137,11 @@ export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
       (page as any)[midsceneAgentKeyId] = idForPage;
       const { file, title } = groupAndCaseForTest(testInfo);
       const cacheConfig = processTestCacheConfig(testInfo);
-      const reportTag = `playwright-${title}-${idForPage}`;
+      // `replaceIllegalPathCharsAndSpace` intentionally preserves `/` and `\`
+      // so groupName/groupDescription can still carry hierarchy. But
+      // ReportGenerator rejects path separators in the file name, so strip
+      // them here for the report tag only.
+      const reportTag = `playwright-${title.replace(/[\\/]/g, '-')}-${idForPage}`;
 
       const agent = new PlaywrightAgent(page, {
         testId: reportTag,

@@ -123,7 +123,7 @@ describe('PlaywrightAiFixture reportFileName derivation', () => {
     expect(a.reportFileName).not.toBe(b.reportFileName);
   });
 
-  it('sanitizes filename-hostile characters but preserves path separators', async () => {
+  it('sanitizes filename-hostile characters so the result passes ReportGenerator validation', async () => {
     const opts = await runAi({
       testId: 'uuid',
       titlePath: ['auth.spec.ts', 'can I click "Submit" on #home?'],
@@ -138,5 +138,27 @@ describe('PlaywrightAiFixture reportFileName derivation', () => {
     // Readable words still come through.
     expect(opts.reportFileName).toContain('Submit');
     expect(opts.reportFileName).toContain('home');
+  });
+
+  it('strips path separators from the title so ReportGenerator.create does not throw', async () => {
+    const opts = await runAi({
+      testId: 'uuid',
+      titlePath: ['auth.spec.ts', 'login / sign\\up flow'],
+      annotations: [],
+      retry: 0,
+    });
+
+    // ReportGenerator's validateReportFileName rejects `/` and `\`. The
+    // fixture must strip them even though replaceIllegalPathCharsAndSpace
+    // intentionally leaves path separators alone for groupName.
+    expect(opts.reportFileName).not.toContain('/');
+    expect(opts.reportFileName).not.toContain('\\');
+    // Surrounding words still survive so the filename stays recognizable.
+    expect(opts.reportFileName).toContain('login');
+    expect(opts.reportFileName).toContain('sign');
+    expect(opts.reportFileName).toContain('up');
+    // groupName keeps the original hierarchy-carrying separators.
+    expect(opts.groupName).toContain('/');
+    expect(opts.groupName).toContain('\\');
   });
 });
