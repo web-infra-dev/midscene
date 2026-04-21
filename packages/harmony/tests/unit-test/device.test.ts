@@ -725,4 +725,34 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.getScreenInfo).toHaveBeenCalledTimes(1);
     });
   });
+
+  // Cross-platform contract for https://github.com/web-infra-dev/midscene/issues/2313:
+  // Launch/Terminate on every mobile platform must expose the SAME `uri` field.
+  describe('Launch/Terminate action schema contract', () => {
+    it('Launch paramSchema is a ZodObject with a `uri: ZodString` field', () => {
+      const launchAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Launch');
+      expect(launchAction).toBeDefined();
+      expect((launchAction!.paramSchema as any)?._def?.typeName).toBe(
+        'ZodObject',
+      );
+      expect(
+        (launchAction!.paramSchema as any).shape?.uri?._def?.typeName,
+      ).toBe('ZodString');
+    });
+
+    it('Terminate paramSchema is a ZodObject with a `uri: ZodString` field', () => {
+      const terminateAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Terminate');
+      expect(terminateAction).toBeDefined();
+      expect((terminateAction!.paramSchema as any)?._def?.typeName).toBe(
+        'ZodObject',
+      );
+      expect(
+        (terminateAction!.paramSchema as any).shape?.uri?._def?.typeName,
+      ).toBe('ZodString');
+    });
+  });
 });

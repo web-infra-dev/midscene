@@ -572,5 +572,26 @@ describe('IOSDevice', () => {
         'Launch requires a non-empty uri parameter',
       );
     });
+
+    it('Terminate.call delegates the uri to device.terminate', async () => {
+      await device.connect();
+      const terminateAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Terminate');
+      await terminateAction!.call({ uri: 'com.apple.Preferences' }, {} as any);
+      expect(mockWdaClient.terminateApp).toHaveBeenCalledWith(
+        'com.apple.Preferences',
+      );
+    });
+
+    it('Terminate.call rejects an empty uri', async () => {
+      await device.connect();
+      const terminateAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Terminate');
+      await expect(
+        terminateAction!.call({ uri: '' }, {} as any),
+      ).rejects.toThrow('Terminate requires a non-empty uri parameter');
+    });
   });
 });
