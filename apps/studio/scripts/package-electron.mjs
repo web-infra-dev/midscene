@@ -107,10 +107,10 @@ export const buildPackagedAppManifest = (packageJson, version) => ({
 
 export const buildPackagerOptions = ({ arch, outDir, platform, stageDir }) => ({
   arch,
-  // `pnpm deploy` preserves workspace packages as relative symlinks into the
-  // staged `.pnpm` store. Those links work on disk, but they break once the
-  // app is packed into `app.asar`, so the Studio release bundle must ship the
-  // app directory unpacked.
+  // Keep the app directory unpacked so pnpm's dependency graph can stay
+  // symlink-based. `electron-packager` rewrites those links to absolute source
+  // paths during copy, so a later post-process step rewires them back to
+  // portable in-app relative links.
   asar: false,
   derefSymlinks: false,
   dir: stageDir,
@@ -154,6 +154,215 @@ export const getStudioElectronVersion = () => {
 
 const removeIfExists = async (targetPath) => {
   await fs.rm(targetPath, { force: true, recursive: true });
+};
+
+const resolveSymlinkTarget = (entryPath, targetPath) =>
+  path.isAbsolute(targetPath)
+    ? targetPath
+    : path.resolve(path.dirname(entryPath), targetPath);
+
+export const collectPackagedNodeModuleSymlinkIssues = async (
+  rootDir,
+  issues = [],
+) => {
+  let entries;
+  try {
+    entries = await fs.readdir(rootDir, { withFileTypes: true });
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return issues;
+    }
+    throw error;
+  }
+
+  for (const entry of entries) {
+    const entryPath = path.join(rootDir, entry.name);
+    const stats = await fs.lstat(entryPath);
+
+    if (stats.isSymbolicLink()) {
+      const targetPath = await fs.readlink(entryPath);
+      const resolvedTargetPath = resolveSymlinkTarget(entryPath, targetPath);
+      const issue = {
+        path: entryPath,
+        target: targetPath,
+      };
+
+      if (path.isAbsolute(targetPath)) {
+        issues.push({
+          ...issue,
+          reason: 'absolute',
+        });
+        continue;
+      }
+
+      try {
+        await fs.access(resolvedTargetPath);
+      } catch (error) {
+        if (error?.code === 'ENOENT') {
+          issues.push({
+            ...issue,
+            reason: 'broken',
+          });
+          continue;
+        }
+        throw error;
+      }
+      continue;
+    }
+
+    if (stats.isDirectory()) {
+      await collectPackagedNodeModuleSymlinkIssues(entryPath, issues);
+    }
+  }
+
+  return issues;
+};
+
+const findPackagedNodeModulesDir = async (packagedAppPath) => {
+  const candidates = [
+    path.join(packagedAppPath, 'Contents', 'Resources', 'app', 'node_modules'),
+    path.join(packagedAppPath, 'resources', 'app', 'node_modules'),
+  ];
+
+  for (const candidatePath of candidates) {
+    try {
+      const stats = await fs.stat(candidatePath);
+      if (stats.isDirectory()) {
+        return candidatePath;
+      }
+    } catch (error) {
+      if (error?.code !== 'ENOENT') {
+        throw error;
+      }
+    }
+  }
+
+  return null;
+};
+
+const findPackagedAppPayloadDir = async (packagedAppPath) => {
+  const candidates = [
+    path.join(packagedAppPath, 'Contents', 'Resources', 'app'),
+    path.join(packagedAppPath, 'resources', 'app'),
+  ];
+
+  for (const candidatePath of candidates) {
+    try {
+      const stats = await fs.stat(candidatePath);
+      if (stats.isDirectory()) {
+        return candidatePath;
+      }
+    } catch (error) {
+      if (error?.code !== 'ENOENT') {
+        throw error;
+      }
+    }
+  }
+
+  return null;
+};
+
+const getSymlinkKind = (targetStats) =>
+  process.platform === 'win32' && targetStats.isDirectory()
+    ? 'junction'
+    : undefined;
+
+export const rewritePackagedNodeModuleSymlinks = async ({
+  packagedAppPath,
+  stageDir,
+}) => {
+  const packagedNodeModulesDir =
+    await findPackagedNodeModulesDir(packagedAppPath);
+  const packagedAppPayloadDir =
+    await findPackagedAppPayloadDir(packagedAppPath);
+
+  if (!packagedNodeModulesDir || !packagedAppPayloadDir) {
+    return [];
+  }
+
+  const normalizedStageDir = path.resolve(stageDir);
+  const rewrittenLinks = [];
+  const pendingDirs = [packagedNodeModulesDir];
+
+  while (pendingDirs.length > 0) {
+    const currentDir = pendingDirs.pop();
+    const entries = await fs.readdir(currentDir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const entryPath = path.join(currentDir, entry.name);
+      const stats = await fs.lstat(entryPath);
+
+      if (stats.isDirectory()) {
+        pendingDirs.push(entryPath);
+        continue;
+      }
+
+      if (!stats.isSymbolicLink()) {
+        continue;
+      }
+
+      const targetPath = await fs.readlink(entryPath);
+      if (!path.isAbsolute(targetPath)) {
+        continue;
+      }
+
+      const normalizedTargetPath = path.resolve(targetPath);
+      if (
+        normalizedTargetPath !== normalizedStageDir &&
+        !normalizedTargetPath.startsWith(`${normalizedStageDir}${path.sep}`)
+      ) {
+        continue;
+      }
+
+      const rewrittenTargetPath = path.join(
+        packagedAppPayloadDir,
+        path.relative(normalizedStageDir, normalizedTargetPath),
+      );
+      const rewrittenTargetStats = await fs.stat(rewrittenTargetPath);
+      const relativeTargetPath = path.relative(
+        path.dirname(entryPath),
+        rewrittenTargetPath,
+      );
+
+      await fs.unlink(entryPath);
+      await fs.symlink(
+        relativeTargetPath,
+        entryPath,
+        getSymlinkKind(rewrittenTargetStats),
+      );
+      rewrittenLinks.push(entryPath);
+    }
+  }
+
+  return rewrittenLinks;
+};
+
+export const assertPortablePackagedNodeModules = async (packagedAppPath) => {
+  const packagedNodeModulesDir =
+    await findPackagedNodeModulesDir(packagedAppPath);
+  if (!packagedNodeModulesDir) {
+    return;
+  }
+
+  const issues = await collectPackagedNodeModuleSymlinkIssues(
+    packagedNodeModulesDir,
+  );
+
+  if (issues.length === 0) {
+    return;
+  }
+
+  const formattedIssues = issues
+    .slice(0, 5)
+    .map(({ path: issuePath, target, reason }) => {
+      const relativeIssuePath = path.relative(packagedAppPath, issuePath);
+      return `${relativeIssuePath} -> ${target} (${reason})`;
+    })
+    .join('; ');
+
+  throw new Error(
+    `Packaged Midscene Studio app contains non-portable node_modules symlinks: ${formattedIssues}`,
+  );
 };
 
 const deployPackagedWorkspace = async (stageDir) => {
@@ -263,6 +472,12 @@ export const packageStudioElectronApp = async ({
 
   const packagedAppPath = packagedAppPaths[0];
   const artifactPath = path.join(artifactDir, `${baseName}.zip`);
+
+  await rewritePackagedNodeModuleSymlinks({
+    packagedAppPath,
+    stageDir,
+  });
+  await assertPortablePackagedNodeModules(packagedAppPath);
 
   await archivePackagedApp({
     hostPlatform: process.platform,
