@@ -6,6 +6,8 @@ interface RevealableWindow {
   show: () => void;
 }
 
+const windowRevealFallbackDelayMs = 2000;
+
 /**
  * Some packaged macOS builds never emit `ready-to-show` for the transparent
  * Studio shell, which leaves the app running without a visible window. Reveal
@@ -13,6 +15,7 @@ interface RevealableWindow {
  */
 export function registerWindowRevealHandlers(window: RevealableWindow): void {
   let revealed = false;
+  let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
 
   const reveal = () => {
     if (revealed) {
@@ -23,8 +26,14 @@ export function registerWindowRevealHandlers(window: RevealableWindow): void {
     }
 
     revealed = true;
+    if (fallbackTimer) {
+      clearTimeout(fallbackTimer);
+    }
     window.show();
   };
+
+  fallbackTimer = setTimeout(reveal, windowRevealFallbackDelayMs);
+  fallbackTimer.unref?.();
 
   window.onReadyToShow(reveal);
   window.onDidFinishLoad(reveal);

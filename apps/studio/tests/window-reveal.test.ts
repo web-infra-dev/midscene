@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { registerWindowRevealHandlers } from '../src/main/window-reveal';
 
 class FakeWindow extends EventEmitter {
@@ -27,6 +27,10 @@ function register(window: FakeWindow) {
     show: () => window.show(),
   });
 }
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('window reveal handlers', () => {
   it('shows the window when ready-to-show fires', () => {
@@ -74,6 +78,16 @@ describe('window reveal handlers', () => {
     window.webContents.emit('did-finish-load');
     window.emit('ready-to-show');
     window.webContents.emit('did-fail-load');
+
+    expect(window.showCalls).toBe(1);
+  });
+
+  it('falls back to a timeout when lifecycle events never arrive', () => {
+    vi.useFakeTimers();
+    const window = new FakeWindow();
+
+    register(window);
+    vi.advanceTimersByTime(2000);
 
     expect(window.showCalls).toBe(1);
   });

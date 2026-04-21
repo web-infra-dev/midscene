@@ -11,9 +11,8 @@ import {
   shell,
 } from 'electron';
 import type { TitleBarOverlay } from 'electron';
-import { runConnectivityTest } from './playground/connectivity-test';
-import { discoverAllDevices } from './playground/device-discovery';
-import { createMultiPlatformRuntimeService } from './playground/multi-platform-runtime';
+import { requestPlaygroundBootstrap } from './playground/bootstrap-request';
+import type { PlaygroundRuntimeService } from './playground/types';
 import { registerWindowRevealHandlers } from './window-reveal';
 
 /**
@@ -24,7 +23,7 @@ import { registerWindowRevealHandlers } from './window-reveal';
 
 let mainWindow: BrowserWindow | null = null;
 let cachedAppIcon: NativeImage | null = null;
-const playgroundRuntime = createMultiPlatformRuntimeService();
+let playgroundRuntimePromise: Promise<PlaygroundRuntimeService> | null = null;
 
 // Expose the Chromium DevTools Protocol on a fixed port in dev so external
 // profilers (e.g. chrome-devtools-mcp at http://localhost:9224) can attach to
@@ -88,8 +87,34 @@ const getTitleBarOverlay = (): TitleBarOverlay => ({
   symbolColor: '#17212b',
 });
 
+const getPlaygroundRuntime = async (): Promise<PlaygroundRuntimeService> => {
+  if (!playgroundRuntimePromise) {
+    playgroundRuntimePromise = import('./playground/multi-platform-runtime')
+      .then(({ createMultiPlatformRuntimeService }) =>
+        createMultiPlatformRuntimeService(),
+      )
+      .catch((error) => {
+        playgroundRuntimePromise = null;
+        throw error;
+      });
+  }
+
+  return playgroundRuntimePromise;
+};
+
+const closePlaygroundRuntime = async (): Promise<void> => {
+  if (!playgroundRuntimePromise) {
+    return;
+  }
+
+  const runtime = await playgroundRuntimePromise;
+  await runtime.close();
+};
+
 const createMainWindow = () => {
   const rendererDevUrl = process.env.MIDSCENE_STUDIO_RENDERER_URL;
+  const rendererEntryPath = getRendererEntryPath();
+  const preloadEntryPath = getPreloadEntryPath();
   const appIcon = getAppIcon();
   const window = new BrowserWindow({
     width: 1440,
@@ -112,7 +137,7 @@ const createMainWindow = () => {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      preload: getPreloadEntryPath(),
+      preload: preloadEntryPath,
       sandbox: false,
     },
   });
@@ -130,7 +155,9 @@ const createMainWindow = () => {
   if (rendererDevUrl) {
     window.loadURL(rendererDevUrl);
   } else {
-    window.loadFile(getRendererEntryPath());
+    void window.loadFile(rendererEntryPath).catch((error) => {
+      console.error('Failed to load Midscene Studio renderer:', error);
+    });
   }
 
   mainWindow = window;
@@ -158,18 +185,30 @@ const registerIpcHandlers = () => {
   // HarmonyOS, and Computer. Legacy channel names (getAndroidPlayground*)
   // are aliased to the same strings in IPC_CHANNELS, so the old
   // renderer code keeps working transparently.
-  ipcMain.handle(IPC_CHANNELS.getPlaygroundBootstrap, () =>
-    playgroundRuntime.getBootstrap(),
-  );
+  ipcMain.handle(IPC_CHANNELS.getPlaygroundBootstrap, async () => {
+    const runtime = await getPlaygroundRuntime();
+    return requestPlaygroundBootstrap(runtime, (error) => {
+      console.error(
+        'Failed to start Midscene Studio playground runtime:',
+        error,
+      );
+    });
+  });
   ipcMain.handle(IPC_CHANNELS.restartPlayground, async () =>
-    playgroundRuntime.restart(),
+    (await getPlaygroundRuntime()).restart(),
   );
-  ipcMain.handle(IPC_CHANNELS.discoverDevices, async () =>
-    discoverAllDevices(),
-  );
-  ipcMain.handle(IPC_CHANNELS.runConnectivityTest, async (_event, request) =>
-    runConnectivityTest(request),
-  );
+  ipcMain.handle(IPC_CHANNELS.discoverDevices, async () => {
+    const { discoverAllDevices } = await import(
+      './playground/device-discovery'
+    );
+    return discoverAllDevices();
+  });
+  ipcMain.handle(IPC_CHANNELS.runConnectivityTest, async (_event, request) => {
+    const { runConnectivityTest } = await import(
+      './playground/connectivity-test'
+    );
+    return runConnectivityTest(request);
+  });
 };
 
 app.whenReady().then(() => {
@@ -178,7 +217,6 @@ app.whenReady().then(() => {
   }
 
   registerIpcHandlers();
-  void playgroundRuntime.start();
   createMainWindow();
 
   app.on('activate', () => {
@@ -195,5 +233,5 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
-  void playgroundRuntime.close();
+  void closePlaygroundRuntime();
 });
