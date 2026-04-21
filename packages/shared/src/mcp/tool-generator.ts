@@ -153,10 +153,19 @@ function transformSchemaField(
 }
 
 /**
- * Extract and transform schema from action's paramSchema
+ * Extract and transform schema from action's paramSchema.
+ *
+ * CLI and MCP both expose parameters as named fields, so the only schema
+ * shapes we can surface are ZodObject (any number of fields) or undefined
+ * (the action takes no parameters). A primitive schema like `z.string()`
+ * silently degraded to leaking the ZodString instance's prototype methods
+ * as CLI flags — see https://github.com/web-infra-dev/midscene/issues/2313.
+ * Reject such schemas up front so the next author gets a loud error
+ * instead of a silent misconfiguration at runtime.
  */
 function extractActionSchema(
   paramSchema: z.ZodTypeAny | undefined,
+  actionName: string,
 ): Record<string, z.ZodTypeAny> {
   if (!paramSchema) {
     return {};
@@ -164,7 +173,12 @@ function extractActionSchema(
 
   const shape = getZodObjectShape(paramSchema);
   if (!shape) {
-    return paramSchema as unknown as Record<string, z.ZodTypeAny>;
+    const typeName =
+      (paramSchema as unknown as { _def?: { typeName?: string } })?._def
+        ?.typeName ?? 'unknown';
+    throw new Error(
+      `Action "${actionName}" declared a non-object paramSchema (${typeName}). CLI and MCP tool schemas must be a ZodObject (e.g. z.object({ uri: z.string() })) or undefined. Wrap primitive fields in an object schema.`,
+    );
   }
 
   return Object.fromEntries(
@@ -476,7 +490,7 @@ export function generateToolsFromActionSpace(
 ): ToolDefinition[] {
   return actionSpace.map((action) => {
     const schema = {
-      ...extractActionSchema(action.paramSchema as z.ZodTypeAny),
+      ...extractActionSchema(action.paramSchema as z.ZodTypeAny, action.name),
       ...initArgSchema,
     };
 
