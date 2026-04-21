@@ -1,19 +1,5 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import {
-  type ScrcpyServer as ScrcpyServerClass,
-  type androidPlaygroundPlatform as AndroidPlaygroundPlatform,
-} from '@midscene/android-playground';
-import type { computerPlaygroundPlatform as ComputerPlaygroundPlatform } from '@midscene/computer-playground';
-import type { harmonyPlaygroundPlatform as HarmonyPlaygroundPlatform } from '@midscene/harmony';
-import type { iosPlaygroundPlatform as IosPlaygroundPlatform } from '@midscene/ios';
-import type {
-  type LaunchPlaygroundResult,
-  type PreparedPlaygroundPlatform,
-  type RegisteredPlaygroundPlatform,
-  type launchPreparedPlaygroundPlatform as LaunchPreparedPlaygroundPlatform,
-  type prepareMultiPlatformPlayground as PrepareMultiPlatformPlayground,
-} from '@midscene/playground';
 import type { PlaygroundBootstrap } from '@shared/electron-contract';
 import { createStudioCorsOptions } from './cors';
 import type { PlaygroundRuntimeService } from './types';
@@ -27,13 +13,64 @@ function getErrorMessage(error: unknown): string {
 }
 
 interface MultiPlatformRuntimeModules {
-  ScrcpyServer: typeof ScrcpyServerClass;
-  androidPlaygroundPlatform: typeof AndroidPlaygroundPlatform;
-  computerPlaygroundPlatform: typeof ComputerPlaygroundPlatform;
-  harmonyPlaygroundPlatform: typeof HarmonyPlaygroundPlatform;
-  iosPlaygroundPlatform: typeof IosPlaygroundPlatform;
-  launchPreparedPlaygroundPlatform: typeof LaunchPreparedPlaygroundPlatform;
-  prepareMultiPlatformPlayground: typeof PrepareMultiPlatformPlayground;
+  ScrcpyServer: new () => unknown;
+  androidPlaygroundPlatform: {
+    prepare: (options: {
+      staticDir: string;
+      scrcpyServer: unknown;
+    }) => Promise<PreparedPlaygroundPlatform>;
+  };
+  computerPlaygroundPlatform: {
+    prepare: (options: {
+      staticDir: string;
+      getWindowController: () => null;
+    }) => Promise<PreparedPlaygroundPlatform>;
+  };
+  harmonyPlaygroundPlatform: {
+    prepare: (options: {
+      staticDir: string;
+    }) => Promise<PreparedPlaygroundPlatform>;
+  };
+  iosPlaygroundPlatform: {
+    prepare: (options: {
+      staticDir: string;
+    }) => Promise<PreparedPlaygroundPlatform>;
+  };
+  launchPreparedPlaygroundPlatform: (
+    prepared: unknown,
+    options: {
+      corsOptions: ReturnType<typeof createStudioCorsOptions>;
+      enableCors: boolean;
+      openBrowser: boolean;
+      verbose: boolean;
+    },
+  ) => Promise<LaunchPlaygroundResult>;
+  prepareMultiPlatformPlayground: (
+    platforms: RegisteredPlaygroundPlatform[],
+    options: {
+      title: string;
+      description: string;
+      selectorFieldKey: string;
+      selectorVariant: string;
+    },
+  ) => Promise<unknown>;
+}
+
+interface PreparedPlaygroundPlatform {
+  [key: string]: unknown;
+}
+
+interface RegisteredPlaygroundPlatform {
+  id: string;
+  label: string;
+  description: string;
+  prepare: () => Promise<PreparedPlaygroundPlatform>;
+}
+
+interface LaunchPlaygroundResult {
+  close: () => Promise<void>;
+  host: string;
+  port: number;
 }
 
 export async function loadMultiPlatformRuntimeModules(): Promise<MultiPlatformRuntimeModules> {
