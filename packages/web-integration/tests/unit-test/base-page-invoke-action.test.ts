@@ -276,6 +276,28 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
       expect(mockPage.waitForNetworkIdle).not.toHaveBeenCalled();
     });
 
+    it('should use the configured network idle timeout', async () => {
+      const mockPage = {
+        url: () => 'http://example.com',
+        mouse: { move: vi.fn() },
+        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
+        waitForSelector: vi.fn().mockResolvedValue(true),
+        waitForNetworkIdle: vi.fn().mockResolvedValue(true),
+        evaluate: vi.fn(),
+      } as any;
+
+      const page = new Page(mockPage, 'puppeteer', {
+        waitForNetworkIdleTimeout: 4321,
+      });
+      await page.afterInvokeAction('testAction', {});
+
+      expect(mockPage.waitForNetworkIdle).toHaveBeenCalledWith({
+        idleTime: 200,
+        concurrency: 2,
+        timeout: 4321,
+      });
+    });
+
     it('should handle navigation timeout gracefully', async () => {
       const consoleWarnSpy = vi
         .spyOn(console, 'warn')
