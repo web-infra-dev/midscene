@@ -135,13 +135,13 @@ export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
     if (!idForPage) {
       idForPage = uuid();
       (page as any)[midsceneAgentKeyId] = idForPage;
-      const { testId } = testInfo;
       const { file, title } = groupAndCaseForTest(testInfo);
       const cacheConfig = processTestCacheConfig(testInfo);
+      const reportTag = `playwright-${title}-${idForPage}`;
 
       const agent = new PlaywrightAgent(page, {
-        testId: `playwright-${testId}-${idForPage}`,
-        reportFileName: `playwright-${testId}-${idForPage}`,
+        testId: reportTag,
+        reportFileName: reportTag,
         forceSameTabNavigation,
         cache: cacheConfig,
         groupName: title,
