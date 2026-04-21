@@ -1,16 +1,21 @@
-import {
-  PlaygroundThemeProvider,
-  usePlaygroundController,
-} from '@midscene/playground-app';
-import type {
-  PlaygroundBootstrap,
-  StudioPlatformId,
-} from '@shared/electron-contract';
+import type { PlaygroundBootstrap } from '@shared/electron-contract';
 import type { PropsWithChildren } from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { bucketDiscoveredDevices } from './selectors';
 import type { DiscoveredDevicesByPlatform } from './types';
 import { StudioPlaygroundContext } from './useStudioPlayground';
+
+const ReadyStudioPlaygroundProvider = lazy(
+  () => import('./StudioPlaygroundReadyProvider'),
+);
 
 function getMissingBridgeError() {
   return 'Studio preload bridge is unavailable. Restart the Electron app.';
@@ -18,57 +23,6 @@ function getMissingBridgeError() {
 
 function normalizeBootstrapError(bootstrap: PlaygroundBootstrap): string {
   return bootstrap.error || 'Failed to start playground runtime.';
-}
-
-// Default platform for Studio — pre-selected so the first session-setup
-// poll already has a `platformId` and immediately returns Android
-// targets, instead of the generic "Choose a platform" setup.
-const DEFAULT_PLATFORM_ID: StudioPlatformId = 'android';
-
-function ReadyStudioPlaygroundProvider({
-  children,
-  discoveredDevices,
-  refreshDiscoveredDevices,
-  restartPlayground,
-  setDiscoveryPollingPaused,
-  serverUrl,
-}: PropsWithChildren<{
-  discoveredDevices?: DiscoveredDevicesByPlatform;
-  refreshDiscoveredDevices: () => Promise<void>;
-  restartPlayground: () => Promise<void>;
-  setDiscoveryPollingPaused: (paused: boolean) => void;
-  serverUrl: string;
-}>) {
-  const controller = usePlaygroundController({
-    serverUrl,
-    initialFormValues: { platformId: DEFAULT_PLATFORM_ID },
-  });
-
-  const contextValue = useMemo(
-    () => ({
-      phase: 'ready' as const,
-      serverUrl,
-      controller,
-      restartPlayground,
-      refreshDiscoveredDevices,
-      setDiscoveryPollingPaused,
-      discoveredDevices,
-    }),
-    [
-      controller,
-      discoveredDevices,
-      refreshDiscoveredDevices,
-      restartPlayground,
-      setDiscoveryPollingPaused,
-      serverUrl,
-    ],
-  );
-
-  return (
-    <StudioPlaygroundContext.Provider value={contextValue}>
-      {children}
-    </StudioPlaygroundContext.Provider>
-  );
 }
 
 const DISCOVERY_POLL_INTERVAL_MS = 5000;
@@ -248,23 +202,43 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
     setDiscoveryPollingPausedValue,
   ]);
 
-  return (
-    <PlaygroundThemeProvider>
-      {bootstrap.phase === 'ready' ? (
-        <ReadyStudioPlaygroundProvider
-          discoveredDevices={discoveredDevices}
-          refreshDiscoveredDevices={refreshDiscoveredDevices}
-          restartPlayground={restartPlayground}
-          setDiscoveryPollingPaused={setDiscoveryPollingPausedValue}
-          serverUrl={bootstrap.serverUrl}
-        >
-          {children}
-        </ReadyStudioPlaygroundProvider>
-      ) : (
-        <StudioPlaygroundContext.Provider value={contextValue}>
+  const bootingContextValue = useMemo(
+    () => ({
+      phase: 'booting' as const,
+      restartPlayground,
+      refreshDiscoveredDevices,
+      setDiscoveryPollingPaused: setDiscoveryPollingPausedValue,
+      discoveredDevices,
+    }),
+    [
+      discoveredDevices,
+      refreshDiscoveredDevices,
+      restartPlayground,
+      setDiscoveryPollingPausedValue,
+    ],
+  );
+
+  return bootstrap.phase === 'ready' ? (
+    <Suspense
+      fallback={
+        <StudioPlaygroundContext.Provider value={bootingContextValue}>
           {children}
         </StudioPlaygroundContext.Provider>
-      )}
-    </PlaygroundThemeProvider>
+      }
+    >
+      <ReadyStudioPlaygroundProvider
+        discoveredDevices={discoveredDevices}
+        refreshDiscoveredDevices={refreshDiscoveredDevices}
+        restartPlayground={restartPlayground}
+        setDiscoveryPollingPaused={setDiscoveryPollingPausedValue}
+        serverUrl={bootstrap.serverUrl}
+      >
+        {children}
+      </ReadyStudioPlaygroundProvider>
+    </Suspense>
+  ) : (
+    <StudioPlaygroundContext.Provider value={contextValue}>
+      {children}
+    </StudioPlaygroundContext.Provider>
   );
 }

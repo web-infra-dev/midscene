@@ -1,8 +1,12 @@
-import { PlaygroundConversationPanel } from '@midscene/playground-app';
+import { Suspense, lazy } from 'react';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
 import { PlaygroundShell } from '../PlaygroundShell';
 
 declare const __APP_VERSION__: string;
+
+const LazyPlaygroundConversationPanel = lazy(
+  () => import('./LazyPlaygroundConversationPanel'),
+);
 
 export default function Playground() {
   const studioPlayground = useStudioPlayground();
@@ -30,12 +34,20 @@ export default function Playground() {
             </button>
           </div>
         ) : (
-          <PlaygroundConversationPanel
-            appVersion={__APP_VERSION__}
-            className="h-full"
-            controller={studioPlayground.controller}
-            title="Playground"
-          />
+          <Suspense
+            fallback={
+              <div className="flex h-full items-center justify-center px-6 text-center text-[14px] leading-[22px] text-text-tertiary">
+                Loading Playground…
+              </div>
+            }
+          >
+            <LazyPlaygroundConversationPanel
+              appVersion={__APP_VERSION__}
+              className="h-full"
+              controller={studioPlayground.controller}
+              title="Playground"
+            />
+          </Suspense>
         )}
       </div>
     </PlaygroundShell>

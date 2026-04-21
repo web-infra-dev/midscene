@@ -595,9 +595,6 @@ importers:
       less:
         specifier: ^4.2.0
         version: 4.3.0
-      rsbuild-plugin-workspace-dev:
-        specifier: 0.0.1
-        version: 0.0.1(@rsbuild/core@1.6.15)
       tailwindcss:
         specifier: 4.1.11
         version: 4.1.11

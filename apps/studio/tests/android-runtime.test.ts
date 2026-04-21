@@ -64,4 +64,80 @@ describe('playground runtime bootstrap', () => {
       error: 'Synthetic dependency resolution failure',
     });
   });
+
+  it('defers platform module loading until a platform is actually prepared', async () => {
+    let androidLoadCount = 0;
+    let computerLoadCount = 0;
+    let harmonyLoadCount = 0;
+    let iosLoadCount = 0;
+    let capturedPlatforms:
+      | import('@midscene/playground').RegisteredPlaygroundPlatform[]
+      | undefined;
+
+    const runtime = createMultiPlatformRuntimeService({
+      loadPlaygroundCore: async () => ({
+        launchPreparedPlaygroundPlatform: async () => ({
+          close: async () => undefined,
+          host: '127.0.0.1',
+          port: 5800,
+          server: {
+            setPreparedPlatform: () => undefined,
+          },
+        }),
+        prepareMultiPlatformPlayground: async (platforms) => {
+          capturedPlatforms = platforms;
+          return {
+            platformId: 'multi-platform',
+            title: 'Midscene Studio',
+            description: 'Multi-platform playground',
+            metadata: {},
+            sessionManager: {
+              createSession: async () => {
+                throw new Error('not needed for bootstrap');
+              },
+            },
+          };
+        },
+      }),
+      loadAndroidModule: async () => {
+        androidLoadCount += 1;
+        throw new Error('android should stay lazy');
+      },
+      loadComputerModule: async () => {
+        computerLoadCount += 1;
+        throw new Error('computer should stay lazy');
+      },
+      loadHarmonyModule: async () => {
+        harmonyLoadCount += 1;
+        throw new Error('harmony should stay lazy');
+      },
+      loadIosModule: async () => {
+        iosLoadCount += 1;
+        throw new Error('ios should stay lazy');
+      },
+    });
+
+    await expect(runtime.start()).resolves.toEqual({
+      status: 'ready',
+      serverUrl: 'http://127.0.0.1:5800',
+      port: 5800,
+      error: null,
+    });
+
+    expect(capturedPlatforms?.map((platform) => platform.id)).toEqual([
+      'android',
+      'ios',
+      'harmony',
+      'computer',
+    ]);
+    expect(androidLoadCount).toBe(0);
+    expect(computerLoadCount).toBe(0);
+    expect(harmonyLoadCount).toBe(0);
+    expect(iosLoadCount).toBe(0);
+
+    await expect(capturedPlatforms?.[0]?.prepare()).rejects.toThrow(
+      'android should stay lazy',
+    );
+    expect(androidLoadCount).toBe(1);
+  });
 });

@@ -1,5 +1,4 @@
-import { PlaygroundPreview } from '@midscene/playground-app';
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { assetUrls } from '../../assets';
 import {
   type StudioPreviewConnectionState,
@@ -19,6 +18,8 @@ import ConnectionFailedPreview from '../ConnectionFailedPreview';
 import DisconnectedPreview from '../DisconnectedPreview';
 import type { ShellActiveView } from '../ShellLayout/types';
 import { DeviceList } from './DeviceList';
+
+const LazyPlaygroundPreview = lazy(() => import('./LazyPlaygroundPreview'));
 
 export interface MainContentProps {
   activeView: ShellActiveView;
@@ -405,8 +406,8 @@ export default function MainContent({
           </div>
         ) : studioPlayground.controller.state.sessionViewState.connected ? (
           <div className="h-full w-full">
-            <PlaygroundPreview
-              connectingOverlay={
+            <Suspense
+              fallback={
                 <ConnectingPreview
                   pcSrc={assetUrls.main.pc}
                   phoneSrc={assetUrls.main.phone}
@@ -415,25 +416,38 @@ export default function MainContent({
                   }
                 />
               }
-              onScrcpyStatusChange={(status, statusText) => {
-                setPreviewStatus(status);
-                setPreviewStatusText(statusText);
-              }}
-              renderErrorOverlay={({ retry }) => (
-                <ConnectionFailedPreview
-                  adbId={previewDeviceId}
-                  iconSrc={assetUrls.main.connectionFailed}
-                  onReconnect={retry}
-                />
-              )}
-              playgroundSDK={studioPlayground.controller.state.playgroundSDK}
-              runtimeInfo={studioPlayground.controller.state.runtimeInfo}
-              serverUrl={studioPlayground.serverUrl}
-              serverOnline={studioPlayground.controller.state.serverOnline}
-              isUserOperating={
-                studioPlayground.controller.state.isUserOperating
-              }
-            />
+            >
+              <LazyPlaygroundPreview
+                connectingOverlay={
+                  <ConnectingPreview
+                    pcSrc={assetUrls.main.pc}
+                    phoneSrc={assetUrls.main.phone}
+                    statusLabel={
+                      previewStatusText ||
+                      'Preparing Android device connection…'
+                    }
+                  />
+                }
+                onScrcpyStatusChange={(status, statusText) => {
+                  setPreviewStatus(status);
+                  setPreviewStatusText(statusText);
+                }}
+                renderErrorOverlay={({ retry }) => (
+                  <ConnectionFailedPreview
+                    adbId={previewDeviceId}
+                    iconSrc={assetUrls.main.connectionFailed}
+                    onReconnect={retry}
+                  />
+                )}
+                playgroundSDK={studioPlayground.controller.state.playgroundSDK}
+                runtimeInfo={studioPlayground.controller.state.runtimeInfo}
+                serverUrl={studioPlayground.serverUrl}
+                serverOnline={studioPlayground.controller.state.serverOnline}
+                isUserOperating={
+                  studioPlayground.controller.state.isUserOperating
+                }
+              />
+            </Suspense>
           </div>
         ) : (
           <DisconnectedPreview iconSrc={assetUrls.main.connectionClosed} />
