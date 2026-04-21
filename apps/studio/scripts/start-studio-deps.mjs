@@ -2,10 +2,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  initialBuildReadyPattern,
-  studioRendererDepsReadyFile,
-} from './wait-for-electron-build.mjs';
+import { studioRendererDepsReadyFile } from './wait-for-electron-build.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,30 +49,6 @@ const watchSpecs = [
   },
 ];
 
-const stripAnsi = (value) => {
-  let result = '';
-
-  for (let index = 0; index < value.length; index += 1) {
-    const char = value[index];
-    if (char !== '\u001b' || value[index + 1] !== '[') {
-      result += char;
-      continue;
-    }
-
-    index += 2;
-
-    while (index < value.length) {
-      const code = value.charCodeAt(index);
-      if (code >= 0x40 && code <= 0x7e) {
-        break;
-      }
-      index += 1;
-    }
-  }
-
-  return result;
-};
-
 const prefixLine = (name, line, stream) => {
   if (!line) {
     stream.write('\n');
@@ -85,7 +58,7 @@ const prefixLine = (name, line, stream) => {
   stream.write(`[${name}] ${line}\n`);
 };
 
-const pipeLines = (stream, name, output, onLine) => {
+const pipeLines = (stream, name, output) => {
   let buffer = '';
 
   stream.on('data', (chunk) => {
@@ -100,7 +73,6 @@ const pipeLines = (stream, name, output, onLine) => {
       const line = buffer.slice(0, newlineIndex).replace(/\r$/, '');
       buffer = buffer.slice(newlineIndex + 1);
       prefixLine(name, line, output);
-      onLine?.(stripAnsi(line));
     }
   });
 
@@ -111,7 +83,6 @@ const pipeLines = (stream, name, output, onLine) => {
 
     const line = buffer.replace(/\r$/, '');
     prefixLine(name, line, output);
-    onLine?.(stripAnsi(line));
     buffer = '';
   });
 };
@@ -159,20 +130,8 @@ for (const spec of prebuildSpecs) {
 
 console.log('Starting Midscene Studio dependency watchers...');
 
-const readyDeps = new Set();
 const children = [];
 let shuttingDown = false;
-let readyFileWritten = false;
-
-const maybeWriteReadyFile = async () => {
-  if (readyFileWritten || readyDeps.size < watchSpecs.length) {
-    return;
-  }
-
-  readyFileWritten = true;
-  await fs.writeFile(studioRendererDepsReadyFile, `${Date.now()}\n`, 'utf8');
-  console.log('Midscene Studio dependency watchers are ready.');
-};
 
 const shutdown = async (exitCode = 0) => {
   if (shuttingDown) {
@@ -203,12 +162,7 @@ for (const spec of watchSpecs) {
   const child = spawnPnpm(spec.name, spec.args);
   children.push(child);
 
-  pipeLines(child.stdout, spec.name, process.stdout, (line) => {
-    if (!readyDeps.has(spec.name) && initialBuildReadyPattern.test(line)) {
-      readyDeps.add(spec.name);
-      void maybeWriteReadyFile();
-    }
-  });
+  pipeLines(child.stdout, spec.name, process.stdout);
   pipeLines(child.stderr, spec.name, process.stderr);
 
   child.on('error', async (error) => {
@@ -229,6 +183,12 @@ for (const spec of watchSpecs) {
     await shutdown(code ?? 1);
   });
 }
+
+// `prebuild` has already produced the cold-start dist outputs. Once the
+// long-lived watchers are running, Studio can safely boot and rely on them for
+// subsequent incremental rebuilds.
+await fs.writeFile(studioRendererDepsReadyFile, `${Date.now()}\n`, 'utf8');
+console.log('Midscene Studio dependency watchers are running.');
 
 process.on('SIGINT', () => {
   void shutdown(0);

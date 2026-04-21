@@ -13,8 +13,6 @@ export const studioRendererDepsReadyFile = path.join(
   '.studio-dev',
   'renderer-deps.ready',
 );
-export const initialBuildReadyPattern =
-  /success\s+build complete,\s+watching for changes\.\.\./i;
 export const defaultRendererDependencyFiles = [studioRendererDepsReadyFile];
 export const defaultRequiredFiles = [
   studioRendererDepsReadyFile,
@@ -82,18 +80,19 @@ export const checkRendererReady = (url) =>
     });
   });
 
-export const waitForRequiredFiles = async ({
-  requiredFiles,
+export const waitForRendererDeps = async ({
+  requiredFiles = defaultRendererDependencyFiles,
   maxWaitMs = defaultMaxWaitMs,
   pollIntervalMs = defaultPollIntervalMs,
   readMtime = readMtimeMs,
   now = () => Date.now(),
   delay = sleep,
 } = {}) => {
+  const hasFreshReadySignal = createFreshBuildChecker(requiredFiles, readMtime);
   const startedAt = now();
 
   while (now() - startedAt < maxWaitMs) {
-    if (requiredFiles.every((file) => readMtime(file) !== null)) {
+    if (hasFreshReadySignal()) {
       return true;
     }
 
@@ -102,23 +101,6 @@ export const waitForRequiredFiles = async ({
 
   return false;
 };
-
-export const waitForRendererDeps = async ({
-  requiredFiles = defaultRendererDependencyFiles,
-  maxWaitMs = defaultMaxWaitMs,
-  pollIntervalMs = defaultPollIntervalMs,
-  readMtime = readMtimeMs,
-  now = () => Date.now(),
-  delay = sleep,
-} = {}) =>
-  waitForRequiredFiles({
-    requiredFiles,
-    maxWaitMs,
-    pollIntervalMs,
-    readMtime,
-    now,
-    delay,
-  });
 
 /**
  * Poll until the required build outputs are fresh AND the renderer dev

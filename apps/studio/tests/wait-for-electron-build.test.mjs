@@ -200,7 +200,7 @@ describe('waitForRendererDeps', () => {
     };
   };
 
-  it('resolves true once every renderer dependency file exists', async () => {
+  it('resolves true once every renderer dependency file is freshly written', async () => {
     const mtimes = new Map();
     const read = readerFrom(mtimes);
     const clock = makeVirtualClock();
@@ -216,6 +216,25 @@ describe('waitForRendererDeps', () => {
 
     mtimes.set(FILE_A, 100);
     mtimes.set(FILE_B, 200);
+
+    await expect(promise).resolves.toBe(true);
+  });
+
+  it('does not trust a stale renderer dependency marker from a previous run', async () => {
+    const mtimes = new Map([[FILE_A, 100]]);
+    const read = readerFrom(mtimes);
+    const clock = makeVirtualClock();
+
+    const promise = waitForRendererDeps({
+      requiredFiles: [FILE_A],
+      maxWaitMs: 1000,
+      pollIntervalMs: 250,
+      readMtime: read,
+      now: clock.now,
+      delay: clock.delay,
+    });
+
+    mtimes.set(FILE_A, 200);
 
     await expect(promise).resolves.toBe(true);
   });
