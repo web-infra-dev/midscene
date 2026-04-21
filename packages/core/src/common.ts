@@ -561,13 +561,11 @@ export const ifMidsceneLocatorField = (field: any): boolean => {
   return false;
 };
 
-const formatPromptWithImages = (promptObj: any): string => {
+const formatPromptWithImages = (
+  promptObj: Exclude<TUserPrompt, string>,
+): string => {
   let promptString = promptObj.prompt;
-  if (
-    promptObj.images &&
-    Array.isArray(promptObj.images) &&
-    promptObj.images.length > 0
-  ) {
+  if (Array.isArray(promptObj.images) && promptObj.images.length > 0) {
     const imageCount = promptObj.images.length;
     promptString += ` (with ${imageCount} image${imageCount > 1 ? 's' : ''})`;
   }

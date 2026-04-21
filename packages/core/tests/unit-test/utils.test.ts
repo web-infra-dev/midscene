@@ -758,6 +758,25 @@ describe('dumpActionParam', () => {
         "locator": "find the text (with 1 image)",
       }
     `);
+
+    const inputWithEmptyImages = {
+      locator: {
+        midscene_location_field_flag: true,
+        prompt: {
+          prompt: 'find the link',
+          images: [],
+        },
+        center: [100, 200],
+        rect: { left: 50, top: 100, width: 100, height: 50 },
+      },
+    };
+
+    const resultWithEmptyImages = dumpActionParam(inputWithEmptyImages, schema);
+    expect(resultWithEmptyImages).toMatchInlineSnapshot(`
+      {
+        "locator": "find the link",
+      }
+    `);
   });
 
   it('should handle edge cases and invalid inputs', () => {
