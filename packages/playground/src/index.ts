@@ -59,7 +59,6 @@ export type {
   PlaygroundSessionField,
   PlaygroundSessionFieldOption,
   PlaygroundSessionManager,
-  PlaygroundSessionNotice,
   PlaygroundSessionSetup,
   PlaygroundSessionState,
   PlaygroundSessionTarget,
