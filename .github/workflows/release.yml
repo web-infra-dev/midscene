@@ -166,7 +166,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        ref: ${{ github.event.inputs.branch }}
+        ref: refs/tags/${{ needs.release.outputs.version }}
     - name: Setup pnpm
       uses: pnpm/action-setup@v2
       with:
