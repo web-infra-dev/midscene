@@ -105,60 +105,6 @@ export function parseXMLPlanningResponse(
   };
 }
 
-export function recoverPlanningActionFromReasoningContent(
-  planFromAI: RawResponsePlanningAIResponse,
-  reasoningContent: string | undefined,
-  modelFamily: TModelFamily | undefined,
-): RawResponsePlanningAIResponse {
-  if (planFromAI.action || planFromAI.finalizeSuccess === false) {
-    return planFromAI;
-  }
-
-  if (!reasoningContent?.trim()) {
-    return planFromAI;
-  }
-
-  let reasoningPlan: RawResponsePlanningAIResponse;
-  try {
-    reasoningPlan = parseXMLPlanningResponse(reasoningContent, modelFamily);
-  } catch (error) {
-    warnLog(
-      'Planning reasoning_content could not be parsed for action recovery; ignoring reasoning_content action fallback.',
-      error,
-    );
-    return planFromAI;
-  }
-
-  if (!reasoningPlan.action) {
-    return planFromAI;
-  }
-
-  warnLog(
-    'Planning response content omitted an executable action while reasoning_content included one; recovering action from reasoning_content.',
-  );
-
-  const recoveredPlan: RawResponsePlanningAIResponse = {
-    ...planFromAI,
-    thought: reasoningPlan.thought ?? planFromAI.thought,
-    memory: reasoningPlan.memory ?? planFromAI.memory,
-    log: reasoningPlan.log || planFromAI.log,
-    error: reasoningPlan.error ?? planFromAI.error,
-    action: reasoningPlan.action,
-    finalizeMessage: undefined,
-    finalizeSuccess: undefined,
-  };
-
-  if (reasoningPlan.updateSubGoals?.length) {
-    recoveredPlan.updateSubGoals = reasoningPlan.updateSubGoals;
-  }
-
-  if (reasoningPlan.markFinishedIndexes?.length) {
-    recoveredPlan.markFinishedIndexes = reasoningPlan.markFinishedIndexes;
-  }
-
-  return recoveredPlan;
-}
-
 export async function plan(
   userInstruction: string,
   opts: {
@@ -309,12 +255,6 @@ export async function plan(
       reasoning_content = retry.reasoning_content;
       planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
     }
-
-    planFromAI = recoverPlanningActionFromReasoningContent(
-      planFromAI,
-      reasoning_content,
-      modelFamily,
-    );
 
     if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
       warnLog(
