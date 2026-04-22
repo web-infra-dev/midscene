@@ -604,7 +604,7 @@ function aiLongPress(
 
   - `locate: string | Object` - A natural language description of the element to long-press on, or [prompting with images](#prompting-with-images).
   - `opt?: Object` - Optional, a configuration object containing:
-    - `duration?: number` - How long the press is held, in milliseconds. Defaults vary by platform (Android / Web use `2000`, iOS uses `1000`).
+    - `duration?: number` - How long the press is held, in milliseconds. When omitted, each platform applies its own default (Android `2000`, iOS `1000`, Web `500`).
     - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). False by default.
     - `xpath?: string` - The xpath of the element to operate. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.

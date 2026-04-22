@@ -359,7 +359,6 @@ export const ActionLongPressParamSchema = z.object({
   ),
   duration: z
     .number()
-    .default(500)
     .optional()
     .describe('Long press duration in milliseconds'),
 });

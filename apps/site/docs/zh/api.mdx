@@ -597,7 +597,7 @@ function aiLongPress(
 
   - `locate: string | Object` - 要长按的元素的自然语言描述，或[通过图像提示](#通过图像提示)。
   - `opt?: Object` - 可选配置对象：
-    - `duration?: number` - 按住时长（毫秒），默认值随平台而异（Android / Web 默认 `2000`，iOS 默认 `1000`）。
+    - `duration?: number` - 按住时长（毫秒）。未传时各平台使用各自默认值：Android `2000`，iOS `1000`，Web `500`。
     - `deepLocate?: boolean` - 是否启用[深度定位](#深度定位deeplocate)，默认 `false`。
     - `xpath?: string` - 要操作元素的 xpath，默认空。
     - `cacheable?: boolean` - 启用[缓存功能](./caching.mdx)时是否缓存，默认 `true`。

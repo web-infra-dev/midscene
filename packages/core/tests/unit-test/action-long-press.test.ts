@@ -40,6 +40,14 @@ describe('LongPress Action', () => {
       );
       expect(parsed.duration).toBe(2000);
     });
+
+    it('should leave duration undefined when omitted so each device can apply its own default', () => {
+      const parsed = parseActionParam(
+        { locate: { prompt: 'the message bubble' } },
+        ActionLongPressParamSchema,
+      );
+      expect(parsed.duration).toBeUndefined();
+    });
   });
 
   describe('Agent.aiLongPress', () => {
