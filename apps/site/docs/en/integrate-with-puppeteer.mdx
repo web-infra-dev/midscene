@@ -203,6 +203,20 @@ Check [Integrate with any interface](./integrate-with-any-interface#define-a-cus
 
 ## FAQ
 
+### Puppeteer installation is slow or gets stuck
+
+Puppeteer downloads a browser binary during `postinstall`. If that download is slow or blocked, installation can appear to hang.
+
+```bash
+# Skip browser download first so dependency installation can finish
+PUPPETEER_SKIP_DOWNLOAD=true npm install
+
+# Then download Chrome from a mirror
+# This example uses https://registry.npmmirror.com
+# Different mirror providers may use different base-url rules
+npx puppeteer browsers install chrome --base-url="https://registry.npmmirror.com/-/binary/chrome-for-testing"
+```
+
 ### Cannot click the dropdown
 
 If the dropdown options do not appear in the report screenshot after you click the field, the page is usually using a native `select` element. In that case, the expanded dropdown is rendered by the operating system instead of inside the webpage.

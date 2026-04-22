@@ -203,6 +203,19 @@ await agent.aiAct('点击红色按钮五次');
 
 ## FAQ
 
+### 安装 Puppeteer 很慢，或安装时卡住
+
+Puppeteer 会在安装时通过 `postinstall` 自动下载浏览器镜像。下载慢或网络不通时，安装过程就会卡住。
+
+```bash
+# 先跳过浏览器下载，让依赖安装完成
+PUPPETEER_SKIP_DOWNLOAD=true npm install
+
+# 再单独从镜像站下载 Chrome
+# 下面以 https://registry.npmmirror.com 为例，不同镜像平台的 base-url 规则可能不同
+npx puppeteer browsers install chrome --base-url="https://registry.npmmirror.com/-/binary/chrome-for-testing"
+```
+
 ### 下拉框点击不到
 
 如果点击下拉框后，报告中的截图没有出现下拉选项，通常是页面使用了原生 `select` 标签，导致展开后的下拉面板由操作系统原生控件渲染，没有真正出现在浏览器页面里。
