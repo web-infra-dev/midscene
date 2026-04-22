@@ -203,6 +203,12 @@ await agent.aiAct('点击红色按钮五次');
 
 ## FAQ
 
+### 下拉框点击不到
+
+如果点击下拉框后，报告中的截图没有出现下拉选项，通常是页面使用了原生 `select` 标签，导致展开后的下拉面板由操作系统原生控件渲染，没有真正出现在浏览器页面里。
+
+这时可以开启 `forceChromeSelectRendering` 选项，强制由 Chrome 来渲染下拉框。详细原因、判断方式和效果说明，请参考 [Playwright FAQ — 下拉框点击不到](./integrate-with-playwright#下拉框点击不到)。
+
 ### 浏览器界面持续闪动
 
 通常是 viewport 的 `deviceScaleFactor` 与系统像素比不匹配所致。将 `deviceScaleFactor` 设为 `0` 可自动适配：

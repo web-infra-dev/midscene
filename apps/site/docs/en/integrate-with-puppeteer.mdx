@@ -203,6 +203,12 @@ Check [Integrate with any interface](./integrate-with-any-interface#define-a-cus
 
 ## FAQ
 
+### Cannot click the dropdown
+
+If the dropdown options do not appear in the report screenshot after you click the field, the page is usually using a native `select` element. In that case, the expanded dropdown is rendered by the operating system instead of inside the webpage.
+
+You can enable `forceChromeSelectRendering` to force Chrome to render the dropdown. For the detailed explanation and how to confirm the issue, see [Playwright FAQ — Cannot click the dropdown](./integrate-with-playwright#cannot-click-the-dropdown).
+
 ### The webpage continues to flash when running in headed mode
 
 This is caused by a mismatch between the viewport's `deviceScaleFactor` and the system pixel ratio. Set `deviceScaleFactor` to `0` to automatically use the device pixel ratio:
