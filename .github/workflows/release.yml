@@ -142,9 +142,9 @@ jobs:
         - os: windows-latest
           platform: win32
           arch: x64
-        - os: macos-15-intel
+        - os: macos-15
           platform: darwin
-          arch: x64
+          arch: arm64
     steps:
     - uses: actions/checkout@v2
       with:
