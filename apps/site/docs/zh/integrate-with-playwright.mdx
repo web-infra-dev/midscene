@@ -355,6 +355,24 @@ await agent.aiAct('点击红色按钮五次');
 
 ## FAQ
 
+### Playwright 下载浏览器耗时太久
+
+Playwright 在 `npm install` 时默认不会下载浏览器镜像，需要单独执行 `npx playwright install`。这个过程如果网络较慢，耗时会比较久。
+
+可以用下面两种方式优化：
+
+1. 使用代理镜像，例如 `npmmirror.com`
+
+```bash
+PLAYWRIGHT_DOWNLOAD_HOST="https://npmmirror.com/mirrors/playwright" npx playwright install
+```
+
+2. 只下载常用的 `chromium`
+
+```bash
+npx playwright install --with-deps chromium
+```
+
 ### 下拉框点击不到
 
 这通常是因为页面使用了原生 `select` 标签来实现下拉框。浏览器会调用操作系统的原生控件来渲染展开后的选项面板，因此下拉框实际上并没有渲染在浏览器页面里，也就无法被 Playwright 截图捕捉到。
