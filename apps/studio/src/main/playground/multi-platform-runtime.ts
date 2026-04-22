@@ -23,26 +23,20 @@ type PlaygroundCoreModules = Pick<
   'launchPreparedPlaygroundPlatform' | 'prepareMultiPlatformPlayground'
 >;
 
+type AndroidPlaygroundModule = typeof import('@midscene/android-playground');
+type ComputerPlaygroundModule = typeof import('@midscene/computer-playground');
+type HarmonyPlaygroundModule = typeof import('@midscene/harmony');
+type IosPlaygroundModule = typeof import('@midscene/ios');
+type PlaygroundModule = typeof import('@midscene/playground');
+
 type MultiPlatformRuntimeModules = {
-  ScrcpyServer: typeof import('@midscene/android-playground')['ScrcpyServer'];
-  androidPlaygroundPlatform: typeof import(
-    '@midscene/android-playground',
-  )['androidPlaygroundPlatform'];
-  computerPlaygroundPlatform: typeof import(
-    '@midscene/computer-playground',
-  )['computerPlaygroundPlatform'];
-  harmonyPlaygroundPlatform: typeof import(
-    '@midscene/harmony',
-  )['harmonyPlaygroundPlatform'];
-  iosPlaygroundPlatform: typeof import(
-    '@midscene/ios',
-  )['iosPlaygroundPlatform'];
-  launchPreparedPlaygroundPlatform: typeof import(
-    '@midscene/playground',
-  )['launchPreparedPlaygroundPlatform'];
-  prepareMultiPlatformPlayground: typeof import(
-    '@midscene/playground',
-  )['prepareMultiPlatformPlayground'];
+  ScrcpyServer: AndroidPlaygroundModule['ScrcpyServer'];
+  androidPlaygroundPlatform: AndroidPlaygroundModule['androidPlaygroundPlatform'];
+  computerPlaygroundPlatform: ComputerPlaygroundModule['computerPlaygroundPlatform'];
+  harmonyPlaygroundPlatform: HarmonyPlaygroundModule['harmonyPlaygroundPlatform'];
+  iosPlaygroundPlatform: IosPlaygroundModule['iosPlaygroundPlatform'];
+  launchPreparedPlaygroundPlatform: PlaygroundModule['launchPreparedPlaygroundPlatform'];
+  prepareMultiPlatformPlayground: PlaygroundModule['prepareMultiPlatformPlayground'];
 };
 
 const resolvePackageRootDir = (packageName: string): string =>
@@ -190,7 +184,10 @@ const createStudioPlatformSpecs = ({
     staticDirPackage: '@midscene/harmony',
     prepare: async (staticDir) => {
       const harmonyModule = await loadHarmonyModule();
-      return harmonyModule.harmonyPlaygroundPlatform.prepare({ staticDir });
+      return harmonyModule.harmonyPlaygroundPlatform.prepare({
+        staticDir,
+        deferConnection: true,
+      });
     },
   },
   {
@@ -323,6 +320,7 @@ export function createMultiPlatformRuntimeService({
                   prepare: (staticDir) =>
                     runtimeModules.harmonyPlaygroundPlatform.prepare({
                       staticDir,
+                      deferConnection: true,
                     }),
                 },
                 {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   createStudioCorsOptions,
   isAllowedStudioOrigin,
@@ -139,5 +139,71 @@ describe('playground runtime bootstrap', () => {
       'android should stay lazy',
     );
     expect(androidLoadCount).toBe(1);
+  });
+
+  it('prepares Harmony in deferred mode so Studio never exits on device selection', async () => {
+    const harmonyPrepare = vi.fn(async () => ({
+      platformId: 'harmony',
+      title: 'Midscene HarmonyOS Playground',
+      metadata: {
+        sessionConnected: false,
+        setupState: 'required',
+      },
+      sessionManager: {
+        createSession: async () => ({
+          displayName: 'unused',
+        }),
+      },
+    }));
+    let capturedPlatforms:
+      | import('@midscene/playground').RegisteredPlaygroundPlatform[]
+      | undefined;
+
+    const runtime = createMultiPlatformRuntimeService({
+      loadPlaygroundCore: async () => ({
+        launchPreparedPlaygroundPlatform: async () => ({
+          close: async () => undefined,
+          host: '127.0.0.1',
+          port: 5800,
+          server: {
+            setPreparedPlatform: () => undefined,
+          },
+        }),
+        prepareMultiPlatformPlayground: async (platforms) => {
+          capturedPlatforms = platforms;
+          return {
+            platformId: 'multi-platform',
+            title: 'Midscene Studio',
+            description: 'Multi-platform playground',
+            metadata: {},
+            sessionManager: {
+              createSession: async () => {
+                throw new Error('not needed for bootstrap');
+              },
+            },
+          };
+        },
+      }),
+      loadHarmonyModule: async () => ({
+        harmonyPlaygroundPlatform: {
+          prepare: harmonyPrepare,
+        },
+      }),
+      resolvePackageStaticDir: (packageName) => `/virtual/${packageName}`,
+    });
+
+    await expect(runtime.start()).resolves.toEqual({
+      status: 'ready',
+      serverUrl: 'http://127.0.0.1:5800',
+      port: 5800,
+      error: null,
+    });
+
+    await capturedPlatforms?.[2]?.prepare();
+
+    expect(harmonyPrepare).toHaveBeenCalledWith({
+      staticDir: '/virtual/@midscene/harmony',
+      deferConnection: true,
+    });
   });
 });
