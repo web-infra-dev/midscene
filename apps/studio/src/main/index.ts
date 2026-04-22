@@ -13,7 +13,16 @@ import {
 import type { TitleBarOverlay } from 'electron';
 import { requestPlaygroundBootstrap } from './playground/bootstrap-request';
 import type { PlaygroundRuntimeService } from './playground/types';
+import { hydrateLoginShellEnv } from './shell-env';
 import { registerWindowRevealHandlers } from './window-reveal';
+
+// macOS GUI launches (Finder, Dock) skip the user's login shell, so
+// `ANDROID_HOME`, `PATH` additions for adb/hdc/xcrun, etc. never reach
+// `process.env`. Pull them in before any device-discovery code runs.
+hydrateLoginShellEnv({
+  isPackaged: app.isPackaged,
+  log: (message, error) => console.warn(`[studio:shell-env] ${message}`, error),
+});
 
 /**
  * Main process owns native shell concerns only.
