@@ -24,23 +24,31 @@ export function injectReportHtmlFromCore(packageDir: string) {
     name: 'inject-report-html-from-core',
     setup(api: RslibPluginApi) {
       api.onAfterBuild(() => {
-        const coreUtilsPath = path.resolve(
-          packageDir,
-          '..',
-          'core',
-          'dist',
-          'lib',
-          'utils.js',
-        );
+        const coreTemplateCandidatePaths = [
+          path.resolve(
+            packageDir,
+            '..',
+            'core',
+            'dist',
+            'lib',
+            'report-template.js',
+          ),
+          path.resolve(packageDir, '..', 'core', 'dist', 'lib', 'utils.js'),
+        ];
 
-        if (!fs.existsSync(coreUtilsPath)) {
+        const coreTemplatePath =
+          coreTemplateCandidatePaths.find((candidatePath) =>
+            fs.existsSync(candidatePath),
+          ) ?? null;
+
+        if (!coreTemplatePath) {
           console.warn(
             '[inject-report-html] @midscene/core dist not found, skipping',
           );
           return;
         }
 
-        const coreContent = fs.readFileSync(coreUtilsPath, 'utf-8');
+        const coreContent = fs.readFileSync(coreTemplatePath, 'utf-8');
         if (!coreContent.includes(REPLACED_MARK)) {
           console.warn(
             '[inject-report-html] HTML not found in core dist. Ensure report builds first.',
