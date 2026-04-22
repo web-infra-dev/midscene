@@ -1,5 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
-import { hydrateLoginShellEnv } from '../src/main/shell-env';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  configureStudioShellEnvHydration,
+  ensureStudioShellEnvHydrated,
+  hydrateLoginShellEnv,
+  resetStudioShellEnvHydrationForTests,
+} from '../src/main/shell-env';
 
 const MARKER = '___MIDSCENE_SHELL_ENV___';
 
@@ -9,6 +14,10 @@ function fakeShellOutput(entries: Record<string, string>, noise = ''): string {
     .join('\n');
   return `${noise}${MARKER}\n${body}\n`;
 }
+
+afterEach(() => {
+  resetStudioShellEnvHydrationForTests();
+});
 
 describe('hydrateLoginShellEnv', () => {
   it('skips non-packaged runs (dev already inherits shell env)', () => {
@@ -144,5 +153,38 @@ describe('hydrateLoginShellEnv', () => {
     expect(env['']).toBeUndefined();
     expect(env['9FOO']).toBeUndefined();
     expect(env['BAD KEY']).toBeUndefined();
+  });
+});
+
+describe('ensureStudioShellEnvHydrated', () => {
+  it('throws until studio hydration is configured', () => {
+    expect(() => ensureStudioShellEnvHydrated()).toThrow(
+      'Studio shell env hydration was used before it was configured.',
+    );
+  });
+
+  it('hydrates at most once after configuration', () => {
+    const runShell = vi.fn(() =>
+      fakeShellOutput({
+        PATH: '/opt/homebrew/bin:/usr/bin:/bin',
+        ANDROID_HOME: '/sdk',
+      }),
+    );
+
+    configureStudioShellEnvHydration({
+      env: { PATH: '/usr/bin:/bin' },
+      isPackaged: true,
+      platform: 'darwin',
+      runShell,
+    });
+
+    const first = ensureStudioShellEnvHydrated();
+    const second = ensureStudioShellEnvHydrated();
+
+    expect(runShell).toHaveBeenCalledTimes(1);
+    expect(first).toEqual(second);
+    expect(first.mutatedKeys).toEqual(
+      expect.arrayContaining(['PATH', 'ANDROID_HOME']),
+    );
   });
 });

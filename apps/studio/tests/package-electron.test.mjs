@@ -20,6 +20,7 @@ import {
   pruneAntdUmdBundles,
   pruneSourceMapFiles,
   releaseWorkspaceDir,
+  resolvePackagerIconPath,
   shouldUseShellForCommand,
   slimStageNodeModules,
 } from '../scripts/package-electron.mjs';
@@ -94,6 +95,27 @@ describe('package-electron helpers', () => {
       platform: 'darwin',
       prune: false,
     });
+  });
+
+  it('points packager at the Midscene .icns on macOS', () => {
+    const iconPath = resolvePackagerIconPath('darwin');
+    expect(iconPath).toBeTruthy();
+    expect(iconPath).toMatch(/apps\/studio\/assets\/midscene-icon\.icns$/);
+  });
+
+  it('returns no icon for platforms without a prebuilt asset so packager uses its default', () => {
+    expect(resolvePackagerIconPath('linux')).toBeUndefined();
+    expect(resolvePackagerIconPath('win32')).toBeUndefined();
+  });
+
+  it('threads the resolved icon into the packager options', () => {
+    const opts = buildPackagerOptions({
+      arch: 'arm64',
+      outDir: '/tmp/out',
+      platform: 'darwin',
+      stageDir: '/tmp/stage',
+    });
+    expect(opts.icon).toMatch(/midscene-icon\.icns$/);
   });
 
   it('uses a shell for Windows .cmd package manager shims', () => {

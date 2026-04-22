@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -156,6 +156,21 @@ export const buildPackagedAppManifest = (
   dependencies,
 });
 
+export const resolvePackagerIconPath = (platform) => {
+  const assetsDir = path.join(studioRootDir, 'assets');
+  const macIcon = path.join(assetsDir, 'midscene-icon.icns');
+  const winIcon = path.join(assetsDir, 'midscene-icon.ico');
+  if (platform === 'darwin' && existsSync(macIcon)) {
+    return macIcon;
+  }
+  if (platform === 'win32' && existsSync(winIcon)) {
+    return winIcon;
+  }
+  // Packager accepts undefined and falls back to the default Electron icon.
+  // On Linux, packager ignores icon entirely for plain folder output.
+  return undefined;
+};
+
 export const buildPackagerOptions = ({ arch, outDir, platform, stageDir }) => ({
   arch,
   // Keep the app directory unpacked. The staging workspace installs vendored
@@ -166,6 +181,7 @@ export const buildPackagerOptions = ({ arch, outDir, platform, stageDir }) => ({
   derefSymlinks: false,
   dir: stageDir,
   electronVersion: getStudioElectronVersion(),
+  icon: resolvePackagerIconPath(platform),
   ignore: packagedIgnorePatterns,
   name: packagedProductName,
   out: outDir,

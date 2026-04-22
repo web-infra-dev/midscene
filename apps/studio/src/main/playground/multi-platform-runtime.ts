@@ -6,6 +6,7 @@ import type {
   RegisteredPlaygroundPlatform,
 } from '@midscene/playground';
 import type { PlaygroundBootstrap } from '@shared/electron-contract';
+import { ensureStudioShellEnvHydrated } from '../shell-env';
 import { createStudioCorsOptions } from './cors';
 import type { PlaygroundRuntimeService } from './types';
 
@@ -81,6 +82,7 @@ export async function loadAndroidPlaygroundModule(): Promise<
     'ScrcpyServer' | 'androidPlaygroundPlatform'
   >
 > {
+  ensureStudioShellEnvHydrated();
   return require('@midscene/android-playground');
 }
 
@@ -93,12 +95,14 @@ export async function loadComputerPlaygroundModule(): Promise<
 export async function loadHarmonyPlaygroundModule(): Promise<
   Pick<MultiPlatformRuntimeModules, 'harmonyPlaygroundPlatform'>
 > {
+  ensureStudioShellEnvHydrated();
   return require('@midscene/harmony');
 }
 
 export async function loadIosPlaygroundModule(): Promise<
   Pick<MultiPlatformRuntimeModules, 'iosPlaygroundPlatform'>
 > {
+  ensureStudioShellEnvHydrated();
   return require('@midscene/ios');
 }
 

@@ -1,6 +1,13 @@
 import { execFileSync } from 'node:child_process';
 
-const SHELL_TIMEOUT_MS = 5000;
+// Needs to out-wait a slow interactive login shell: real-world .zshrc
+// setups (pyenv, fnm, Oh My Zsh plugins, corp shims) routinely take
+// 8-12s on first run in a packaged app, where we can't benefit from
+// terminal warm-up caching. 5s used to time out before
+// ANDROID_HOME / PATH made it into process.env, which then surfaced as
+// "Android device discovery failed" on first click. Blocks the first
+// device-discovery call by at most this long, once per app launch.
+const SHELL_TIMEOUT_MS = 20000;
 const ENV_MARKER = '___MIDSCENE_SHELL_ENV___';
 
 const KEYS_FORCE_OVERRIDE = new Set(['PATH']);
@@ -18,6 +25,9 @@ interface HydrateResult {
   reason?: string;
   mutatedKeys: string[];
 }
+
+let configuredStudioHydrateOptions: HydrateOptions | null = null;
+let cachedStudioHydrateResult: HydrateResult | null = null;
 
 function resolveShell(env: NodeJS.ProcessEnv, platform: NodeJS.Platform) {
   if (env.SHELL) {
@@ -108,4 +118,31 @@ export function hydrateLoginShellEnv(
   }
 
   return { applied: true, mutatedKeys: mutated };
+}
+
+export function configureStudioShellEnvHydration(
+  options: HydrateOptions,
+): void {
+  configuredStudioHydrateOptions = options;
+  cachedStudioHydrateResult = null;
+}
+
+export function ensureStudioShellEnvHydrated(): HydrateResult {
+  if (cachedStudioHydrateResult) {
+    return cachedStudioHydrateResult;
+  }
+  if (!configuredStudioHydrateOptions) {
+    throw new Error(
+      'Studio shell env hydration was used before it was configured.',
+    );
+  }
+  cachedStudioHydrateResult = hydrateLoginShellEnv(
+    configuredStudioHydrateOptions,
+  );
+  return cachedStudioHydrateResult;
+}
+
+export function resetStudioShellEnvHydrationForTests(): void {
+  configuredStudioHydrateOptions = null;
+  cachedStudioHydrateResult = null;
 }

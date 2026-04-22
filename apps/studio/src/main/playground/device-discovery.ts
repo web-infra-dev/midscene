@@ -1,6 +1,7 @@
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
 import type { DiscoveredDevice } from '@shared/electron-contract';
+import { ensureStudioShellEnvHydrated } from '../shell-env';
 
 const debugLog = getDebug('studio:device-discovery', { console: true });
 const IOS_WDA_DISCOVERY_HOST = 'localhost';
@@ -72,6 +73,7 @@ export async function discoverAllDevices(): Promise<DiscoveredDevice[]> {
 
 async function scanAndroidDevices(): Promise<DiscoveredDevice[]> {
   try {
+    ensureStudioShellEnvHydrated();
     const { getConnectedDevicesWithDetails } = await import(
       '@midscene/android'
     );
@@ -143,6 +145,7 @@ async function scanIOSDevices(): Promise<DiscoveredDevice[]> {
 
 async function scanHarmonyDevices(): Promise<DiscoveredDevice[]> {
   try {
+    ensureStudioShellEnvHydrated();
     const { getConnectedDevices } = await import('@midscene/harmony');
     const devices = await getConnectedDevices();
     return devices.map((device) => ({

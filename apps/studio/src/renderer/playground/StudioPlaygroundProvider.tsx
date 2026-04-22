@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { scheduleDiscoveryPolling } from './discovery-polling';
 import { bucketDiscoveredDevices } from './selectors';
 import type { DiscoveredDevicesByPlatform } from './types';
 import { StudioPlaygroundContext } from './useStudioPlayground';
@@ -24,8 +25,6 @@ function getMissingBridgeError() {
 function normalizeBootstrapError(bootstrap: PlaygroundBootstrap): string {
   return bootstrap.error || 'Failed to start playground runtime.';
 }
-
-const DISCOVERY_POLL_INTERVAL_MS = 5000;
 
 export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
   const [bootstrap, setBootstrap] = useState<
@@ -81,13 +80,9 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
     if (!pollingActive) {
       return;
     }
-    void refreshDiscoveredDevices();
-    const id = window.setInterval(() => {
-      void refreshDiscoveredDevices();
-    }, DISCOVERY_POLL_INTERVAL_MS);
-    return () => {
-      window.clearInterval(id);
-    };
+    return scheduleDiscoveryPolling({
+      refresh: refreshDiscoveredDevices,
+    });
   }, [pollingActive, refreshDiscoveredDevices]);
 
   const readBootstrap = useCallback(async () => {
