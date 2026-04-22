@@ -713,6 +713,72 @@ describe('dumpActionParam', () => {
     `);
   });
 
+  it('should format locator fields that have image arrays', () => {
+    const schema = z.object({
+      locator: getMidsceneLocationSchema(),
+    });
+
+    const inputWithImages = {
+      locator: {
+        midscene_location_field_flag: true,
+        prompt: {
+          prompt: 'find the button',
+          images: [
+            { name: 'button1.png', url: 'data:image/png;base64,xyz' },
+            { name: 'button2.png', url: 'https://example.com/img.png' },
+          ],
+        },
+        center: [100, 200],
+        rect: { left: 50, top: 100, width: 100, height: 50 },
+      },
+    };
+
+    const resultWithImages = dumpActionParam(inputWithImages, schema);
+    expect(resultWithImages).toMatchInlineSnapshot(`
+      {
+        "locator": "find the button (with 2 images)",
+      }
+    `);
+
+    const inputWithOneImage = {
+      locator: {
+        midscene_location_field_flag: true,
+        prompt: {
+          prompt: 'find the text',
+          images: [{ name: 'text.png', url: 'data:image/png;base64,abc' }],
+        },
+        center: [100, 200],
+        rect: { left: 50, top: 100, width: 100, height: 50 },
+      },
+    };
+
+    const resultWithOneImage = dumpActionParam(inputWithOneImage, schema);
+    expect(resultWithOneImage).toMatchInlineSnapshot(`
+      {
+        "locator": "find the text (with 1 image)",
+      }
+    `);
+
+    const inputWithEmptyImages = {
+      locator: {
+        midscene_location_field_flag: true,
+        prompt: {
+          prompt: 'find the link',
+          images: [],
+        },
+        center: [100, 200],
+        rect: { left: 50, top: 100, width: 100, height: 50 },
+      },
+    };
+
+    const resultWithEmptyImages = dumpActionParam(inputWithEmptyImages, schema);
+    expect(resultWithEmptyImages).toMatchInlineSnapshot(`
+      {
+        "locator": "find the link",
+      }
+    `);
+  });
+
   it('should handle edge cases and invalid inputs', () => {
     const schema = z.object({
       foo: z.string(),
