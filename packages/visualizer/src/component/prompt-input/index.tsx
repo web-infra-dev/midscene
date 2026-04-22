@@ -2,7 +2,7 @@ import { BorderOutlined, SendOutlined } from '@ant-design/icons';
 import './index.less';
 import { DownOutlined } from '@ant-design/icons';
 import type { z } from '@midscene/core';
-import { Button, Dropdown, Form, Input, Radio, Tooltip } from 'antd';
+import { Button, Dropdown, Form, Input, Radio, Switch, Tooltip, message } from 'antd';
 import type { MenuProps } from 'antd';
 import React, {
   useCallback,
@@ -13,6 +13,7 @@ import React, {
 } from 'react';
 import type { HistoryItem } from '../../store/history';
 import { useHistoryStore } from '../../store/history';
+import { useEnvConfig } from '../../store/store';
 import type { DeviceType, RunType } from '../../types';
 import type { ServiceModeType } from '../../types';
 import {
@@ -26,12 +27,12 @@ import {
   unwrapZodType,
 } from '../../types';
 import { apiMetadata, defaultMainButtons } from '../../utils/constants';
-import { hasDeviceSpecificConfig } from '../../utils/device-capabilities';
 import {
   actionNameForType,
   isRunButtonEnabled as calculateIsRunButtonEnabled,
   getPlaceholderForType,
 } from '../../utils/playground-utils';
+import { deepThinkingTip } from '../../utils/constants';
 import { ConfigSelector } from '../config-selector';
 import {
   BooleanField,
@@ -45,6 +46,12 @@ import './index.less';
 import type { DeviceAction } from '@midscene/core';
 
 const { TextArea } = Input;
+
+interface DeepThinkingResponse {
+  page_line: string;
+  success: boolean;
+  message: string;
+}
 
 interface PromptInputProps {
   runButtonEnabled: boolean;
@@ -63,38 +70,44 @@ interface PromptInputProps {
 }
 
 export const PromptInput: React.FC<PromptInputProps> = ({
-  runButtonEnabled,
-  form,
-  serviceMode,
-  selectedType,
-  dryMode,
-  stoppable,
-  loading,
-  onRun,
-  onStop,
-  clearPromptAfterRun = true,
-  actionSpace,
-  hideDomAndScreenshotOptions = false,
-  deviceType,
-}) => {
+                                                          runButtonEnabled,
+                                                          form,
+                                                          serviceMode,
+                                                          selectedType,
+                                                          dryMode,
+                                                          stoppable,
+                                                          loading,
+                                                          onRun,
+                                                          onStop,
+                                                          clearPromptAfterRun = true,
+                                                          actionSpace,
+                                                          hideDomAndScreenshotOptions = false,
+                                                          deviceType,
+                                                        }) => {
   const [hoveringSettings, setHoveringSettings] = useState(false);
   const [promptValue, setPromptValue] = useState('');
+  const [deepThinkingLoading, setDeepThinkingLoading] = useState(false);
+  const [deepThinkingAbortController, setDeepThinkingAbortController] = useState<AbortController | null>(null);
   const placeholder = getPlaceholderForType(selectedType);
   const textAreaRef = useRef<any>(null); // Ant Design TextArea ref with internal structure
   const modeRadioGroupRef = useRef<HTMLDivElement>(null); // Ref for the mode-radio-group container
   const params = Form.useWatch('params', form);
   const lastHistoryRef = useRef<HistoryItem | null>(null);
 
+  // Get enableDeepThinking from store
+  const enableDeepThinking = useEnvConfig((state) => state.enableDeepThinking);
+  const setEnableDeepThinking = useEnvConfig((state) => state.setEnableDeepThinking);
+
   // Get history from store
   const history = useHistoryStore((state) => state.history);
   const lastSelectedType = useHistoryStore((state) => state.lastSelectedType);
   const addHistory = useHistoryStore((state) => state.addHistory);
   const setLastSelectedType = useHistoryStore(
-    (state) => state.setLastSelectedType,
+      (state) => state.setLastSelectedType,
   );
   const historyForSelectedType = useMemo(
-    () => history[selectedType] || [],
-    [history, selectedType],
+      () => history[selectedType] || [],
+      [history, selectedType],
   );
 
   // Check if current method needs structured parameters (dynamic based on actionSpace)
@@ -102,7 +115,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     if (actionSpace) {
       // Use actionSpace to determine if method needs structured params
       const action = actionSpace.find(
-        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
+          (a) => a.interfaceAlias === selectedType || a.name === selectedType,
       );
 
       if (!action?.paramSchema) return false;
@@ -126,7 +139,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     if (actionSpace && actionSpace.length > 0) {
       // Use actionSpace to determine if method needs any input
       const action = actionSpace.find(
-        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
+          (a) => a.interfaceAlias === selectedType || a.name === selectedType,
       );
 
       // If action exists in actionSpace, check if it has required parameters
@@ -180,7 +193,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     if (actionSpace) {
       // Use actionSpace to determine if method supports deep locate
       const action = actionSpace.find(
-        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
+          (a) => a.interfaceAlias === selectedType || a.name === selectedType,
       );
 
       if (action?.paramSchema && isZodObjectSchema(action.paramSchema)) {
@@ -211,14 +224,14 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     const hasDeepLocate = showDeepLocateOption;
     const hasDeepThink = showDeepThinkOption;
     const hasDataExtraction =
-      showDataExtractionOptions && !hideDomAndScreenshotOptions;
-    const hasDeviceOptions = hasDeviceSpecificConfig(deviceType);
+        showDataExtractionOptions && !hideDomAndScreenshotOptions;
+    const hasDeviceOptions = deviceType === 'android' || deviceType === 'ios';
     return (
-      hasTracking ||
-      hasDeepLocate ||
-      hasDeepThink ||
-      hasDataExtraction ||
-      hasDeviceOptions
+        hasTracking ||
+        hasDeepLocate ||
+        hasDeepThink ||
+        hasDataExtraction ||
+        hasDeviceOptions
     );
   }, [
     serviceMode,
@@ -240,7 +253,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
     // Extract available methods from actionSpace
     const availableMethods = actionSpace.map(
-      (action) => action.interfaceAlias || action.name,
+        (action) => action.interfaceAlias || action.name,
     );
 
     // Combine methods from two sources:
@@ -254,8 +267,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
       // Always include extraction and validation methods
       if (
-        methodInfo?.group === 'extraction' ||
-        methodInfo?.group === 'validation'
+          methodInfo?.group === 'extraction' ||
+          methodInfo?.group === 'validation'
       ) {
         finalMethods.add(method);
       } else {
@@ -280,7 +293,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       return {};
     }
     const action = actionSpace.find(
-      (a) => a.interfaceAlias === selectedType || a.name === selectedType,
+        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
     );
 
     if (action?.paramSchema && isZodObjectSchema(action.paramSchema)) {
@@ -293,11 +306,11 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         const defaultValue = extractDefaultValue(field);
         if (defaultValue !== undefined) {
           defaultParams[key] = defaultValue as
-            | string
-            | number
-            | boolean
-            | null
-            | undefined;
+              | string
+              | number
+              | boolean
+              | null
+              | undefined;
         }
       });
 
@@ -329,12 +342,12 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
     // Find the selected radio button
     const selectedRadioButton = container.querySelector(
-      '.ant-radio-button-wrapper-checked',
+        '.ant-radio-button-wrapper-checked',
     ) as HTMLElement;
 
     // Find the dropdown button if it's selected (showing a non-default item)
     const dropdownButton = container.querySelector(
-      '.more-apis-button.selected-from-dropdown',
+        '.more-apis-button.selected-from-dropdown',
     ) as HTMLElement;
 
     // Determine which element to scroll to
@@ -350,7 +363,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
       // Calculate the relative position of the target within the container
       const targetLeft =
-        targetRect.left - containerRect.left + container.scrollLeft;
+          targetRect.left - containerRect.left + container.scrollLeft;
       const targetWidth = targetRect.width;
       const containerWidth = containerRect.width;
 
@@ -371,9 +384,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
     // Skip auto-filling if this is the same history item we just added
     if (
-      lastHistory &&
-      lastHistoryRef.current &&
-      lastHistory.timestamp === lastHistoryRef.current.timestamp
+        lastHistory &&
+        lastHistoryRef.current &&
+        lastHistory.timestamp === lastHistoryRef.current.timestamp
     ) {
       return;
     }
@@ -420,32 +433,37 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   // Handle history selection internally
   const handleSelectHistory = useCallback(
-    (historyItem: HistoryItem) => {
-      form.setFieldsValue({
-        prompt: historyItem.prompt,
-        type: historyItem.type,
-        params: historyItem.params,
-      });
-      setPromptValue(historyItem.prompt);
-    },
-    [form],
+      (historyItem: HistoryItem) => {
+        form.setFieldsValue({
+          prompt: historyItem.prompt,
+          type: historyItem.type,
+          params: historyItem.params,
+        });
+        setPromptValue(historyItem.prompt);
+      },
+      [form],
   );
 
-  // Handle prompt input change
-  const handlePromptChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const value = e.target.value;
-      setPromptValue(value);
-    },
-    [],
-  );
+  // Handle cancel deep thinking
+  const handleCancelDeepThinking = useCallback(() => {
+    if (deepThinkingAbortController) {
+      deepThinkingAbortController.abort();
+      setDeepThinkingAbortController(null);
+      setDeepThinkingLoading(false);
+    }
+  }, [deepThinkingAbortController]);
+
+  // Clear deep thinking context
+  const clearDeepThinkingContext = useCallback(() => {
+    form.setFieldsValue({ deepThinkingContext: undefined });
+  }, [form]);
 
   const hasSingleStructuredParam = useMemo(() => {
     if (!needsStructuredParams || !actionSpace) {
       return false;
     }
     const action = actionSpace.find(
-      (a) => a.interfaceAlias === selectedType || a.name === selectedType,
+        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
     );
 
     if (action?.paramSchema && isZodObjectSchema(action.paramSchema)) {
@@ -458,38 +476,99 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   // Calculate if run button should be enabled
   const isRunButtonEnabled = useMemo(
-    (): boolean =>
-      calculateIsRunButtonEnabled(
+      (): boolean =>
+          calculateIsRunButtonEnabled(
+              runButtonEnabled,
+              !!needsStructuredParams,
+              params,
+              actionSpace,
+              selectedType,
+              promptValue,
+          ),
+      [
         runButtonEnabled,
-        !!needsStructuredParams,
-        params,
-        actionSpace,
+        needsStructuredParams,
         selectedType,
+        actionSpace,
         promptValue,
-      ),
-    [
-      runButtonEnabled,
-      needsStructuredParams,
-      selectedType,
-      actionSpace,
-      promptValue,
-      params,
-    ],
+        params,
+      ],
   );
 
   // Handle run with history addition
-  const handleRunWithHistory = useCallback(() => {
+  const handleRunWithHistory = useCallback(async () => {
     const values = form.getFieldsValue() as {
       type: string;
       prompt?: string;
       params?: Record<string, unknown>;
+      deepThinkingContext?: string;
     };
+
+    let finalValues = { ...values };
+
+    // Clear any stale deep thinking context when deep thinking is not active
+    if (!enableDeepThinking || !values.prompt) {
+      clearDeepThinkingContext();
+    }
+
+    // If deep thinking is enabled, process the input through the service first
+    if (enableDeepThinking && values.prompt) {
+      const abortController = new AbortController();
+      setDeepThinkingAbortController(abortController);
+
+      try {
+        setDeepThinkingLoading(true);
+
+        // Call the deep thinking service
+        const response = await fetch('https://api.example.com/deep-thinking', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            input: values.prompt,
+            type: values.type,
+            system_name: 'midscene',
+          }),
+          signal: abortController.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error('Deep thinking service failed');
+        }
+
+        const result = await response.json() as DeepThinkingResponse;
+
+        if (result.success) {
+          finalValues.deepThinkingContext = result.page_line || undefined;
+          form.setFieldsValue({ deepThinkingContext: finalValues.deepThinkingContext });
+        } else {
+          console.warn('Deep thinking failed:', result.message);
+          message.warning(result.message || '深度思考服务返回失败，使用原始输入');
+          clearDeepThinkingContext();
+        }
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          // Request was cancelled by user
+          console.log('Deep thinking cancelled by user');
+          message.info('深度思考已取消');
+        } else {
+          console.error('Deep thinking failed:', error);
+          // Continue with original input if service fails
+          message.warning('深度思考服务暂时不可用，使用原始输入');
+        }
+        clearDeepThinkingContext();
+      } finally {
+        setDeepThinkingLoading(false);
+        setDeepThinkingAbortController(null);
+      }
+    }
 
     // For structured params, create a display string for history - dynamically
     let historyPrompt = '';
-    if (needsStructuredParams && values.params && actionSpace) {
+    if (needsStructuredParams && finalValues.params && actionSpace) {
       const action = actionSpace.find(
-        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
+          (a) => a.interfaceAlias === selectedType || a.name === selectedType,
       );
 
       if (action?.paramSchema && isZodObjectSchema(action.paramSchema)) {
@@ -500,11 +579,11 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         const shape: Record<string, ZodType> = schema.shape || {};
 
         Object.keys(shape).forEach((key) => {
-          const paramValue = values.params?.[key];
+          const paramValue = finalValues.params?.[key];
           if (
-            paramValue !== undefined &&
-            paramValue !== null &&
-            paramValue !== ''
+              paramValue !== undefined &&
+              paramValue !== null &&
+              paramValue !== ''
           ) {
             const field = shape[key];
             const { actualField } = unwrapZodType(field);
@@ -533,9 +612,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     }
 
     const newHistoryItem = {
-      type: values.type,
+      type: finalValues.type,
       prompt: historyPrompt,
-      params: values.params,
+      params: finalValues.params,
       timestamp: Date.now(),
     };
 
@@ -567,48 +646,48 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   // Handle key events
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'Enter' && e.metaKey && isRunButtonEnabled) {
-        handleRunWithHistory();
-        e.preventDefault();
-        e.stopPropagation();
-      } else if (e.key === 'Enter') {
-        setTimeout(() => {
-          if (textAreaRef.current) {
-            // Access the internal textarea element (Ant Design specific structure)
-            const textarea = (textAreaRef.current as any).resizableTextArea
-              ?.textArea;
-            if (textarea) {
-              const selectionStart = textarea.selectionStart;
-              const value = textarea.value;
+      (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && e.metaKey && isRunButtonEnabled) {
+          handleRunWithHistory();
+          e.preventDefault();
+          e.stopPropagation();
+        } else if (e.key === 'Enter') {
+          setTimeout(() => {
+            if (textAreaRef.current) {
+              // Access the internal textarea element (Ant Design specific structure)
+              const textarea = (textAreaRef.current as any).resizableTextArea
+                  ?.textArea;
+              if (textarea) {
+                const selectionStart = textarea.selectionStart;
+                const value = textarea.value;
 
-              // check if cursor is at the end of the text
-              const lastNewlineIndex = value.lastIndexOf('\n');
-              const isAtLastLine =
-                lastNewlineIndex === -1 || selectionStart > lastNewlineIndex;
+                // check if cursor is at the end of the text
+                const lastNewlineIndex = value.lastIndexOf('\n');
+                const isAtLastLine =
+                    lastNewlineIndex === -1 || selectionStart > lastNewlineIndex;
 
-              // only scroll to bottom when cursor is at the end of the text
-              if (isAtLastLine) {
-                textarea.scrollTop = textarea.scrollHeight;
+                // only scroll to bottom when cursor is at the end of the text
+                if (isAtLastLine) {
+                  textarea.scrollTop = textarea.scrollHeight;
+                }
               }
             }
-          }
-        }, 0);
-      }
-    },
-    [handleRunWithHistory, isRunButtonEnabled],
+          }, 0);
+        }
+      },
+      [handleRunWithHistory, isRunButtonEnabled],
   );
 
   // Handle key events for structured params
   const handleStructuredKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'Enter' && e.metaKey && isRunButtonEnabled) {
-        handleRunWithHistory();
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    },
-    [handleRunWithHistory, isRunButtonEnabled],
+      (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && e.metaKey && isRunButtonEnabled) {
+          handleRunWithHistory();
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      },
+      [handleRunWithHistory, isRunButtonEnabled],
   );
 
   // Render structured parameter inputs dynamically based on paramSchema
@@ -618,7 +697,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     // Try to get action from actionSpace first
     if (actionSpace) {
       const action = actionSpace.find(
-        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
+          (a) => a.interfaceAlias === selectedType || a.name === selectedType,
       );
 
       if (action?.paramSchema && isZodObjectSchema(action.paramSchema)) {
@@ -652,17 +731,17 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             // Try to get from action's paramSchema directly
             if (actionSpace) {
               const action = actionSpace.find(
-                (a) =>
-                  a.interfaceAlias === selectedType || a.name === selectedType,
+                  (a) =>
+                      a.interfaceAlias === selectedType || a.name === selectedType,
               );
               if (
-                action?.paramSchema &&
-                typeof action.paramSchema === 'object' &&
-                'shape' in action.paramSchema
+                  action?.paramSchema &&
+                  typeof action.paramSchema === 'object' &&
+                  'shape' in action.paramSchema
               ) {
                 const shape: Record<string, ZodType> =
-                  (action.paramSchema as unknown as ZodObjectSchema).shape ||
-                  {};
+                    (action.paramSchema as unknown as ZodObjectSchema).shape ||
+                    {};
                 const fieldDef = shape[key];
                 if (fieldDef?._def?.description) {
                   return fieldDef._def.description;
@@ -684,15 +763,15 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           })();
 
           return (
-            <Form.Item name={['params', key]} style={{ margin: 0 }}>
-              <Input.TextArea
-                className="main-side-console-input-textarea"
-                rows={3}
-                placeholder={placeholderText}
-                autoFocus
-                onKeyDown={handleStructuredKeyDown}
-              />
-            </Form.Item>
+              <Form.Item name={['params', key]} style={{ margin: 0 }}>
+                <Input.TextArea
+                    className="main-side-console-input-textarea"
+                    rows={3}
+                    placeholder={placeholderText}
+                    autoFocus
+                    onKeyDown={handleStructuredKeyDown}
+                />
+              </Form.Item>
           );
         }
 
@@ -737,17 +816,17 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             // Try to get from action's paramSchema directly
             if (actionSpace) {
               const action = actionSpace.find(
-                (a) =>
-                  a.interfaceAlias === selectedType || a.name === selectedType,
+                  (a) =>
+                      a.interfaceAlias === selectedType || a.name === selectedType,
               );
               if (
-                action?.paramSchema &&
-                typeof action.paramSchema === 'object' &&
-                'shape' in action.paramSchema
+                  action?.paramSchema &&
+                  typeof action.paramSchema === 'object' &&
+                  'shape' in action.paramSchema
               ) {
                 const shape: Record<string, ZodType> =
-                  (action.paramSchema as { shape?: Record<string, ZodType> })
-                    .shape || {};
+                    (action.paramSchema as { shape?: Record<string, ZodType> })
+                        .shape || {};
                 const fieldDef = shape[key];
                 if (fieldDef?._def?.description) {
                   return fieldDef._def.description;
@@ -778,15 +857,15 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           if (isLocateFieldFlag) {
             fields.push(<LocateField key={key} {...fieldProps} />);
           } else if (
-            (actualField as ZodRuntimeAccess)._def?.typeName === 'ZodEnum'
+              (actualField as ZodRuntimeAccess)._def?.typeName === 'ZodEnum'
           ) {
             fields.push(<EnumField key={key} {...fieldProps} />);
           } else if (
-            (actualField as ZodRuntimeAccess)._def?.typeName === 'ZodNumber'
+              (actualField as ZodRuntimeAccess)._def?.typeName === 'ZodNumber'
           ) {
             fields.push(<NumberField key={key} {...fieldProps} />);
           } else if (
-            (actualField as ZodRuntimeAccess)._def?.typeName === 'ZodBoolean'
+              (actualField as ZodRuntimeAccess)._def?.typeName === 'ZodBoolean'
           ) {
             fields.push(<BooleanField key={key} {...fieldProps} />);
           } else {
@@ -797,29 +876,29 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         // Special layout handling for scroll action with direction and distance
         if (selectedType === 'aiScroll') {
           const directionField = fields.find(
-            (field) =>
-              React.isValidElement(field) && field.props.name === 'direction',
+              (field) =>
+                  React.isValidElement(field) && field.props.name === 'direction',
           );
           const distanceField = fields.find(
-            (field) =>
-              React.isValidElement(field) && field.props.name === 'distance',
+              (field) =>
+                  React.isValidElement(field) && field.props.name === 'distance',
           );
           const otherFields = fields.filter(
-            (field) =>
-              React.isValidElement(field) &&
-              field.props.name !== 'direction' &&
-              field.props.name !== 'distance',
+              (field) =>
+                  React.isValidElement(field) &&
+                  field.props.name !== 'direction' &&
+                  field.props.name !== 'distance',
           );
 
           if (directionField && distanceField) {
             return (
-              <div className="structured-params">
-                <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-                  {directionField}
-                  {distanceField}
+                <div className="structured-params">
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                    {directionField}
+                    {distanceField}
+                  </div>
+                  {otherFields}
                 </div>
-                {otherFields}
-              </div>
             );
           }
         }
@@ -848,38 +927,51 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   // Render action button based on current state
   const renderActionButton = useCallback(() => {
+    // If deep thinking is in progress, show cancel button
+    if (deepThinkingLoading) {
+      return (
+          <Button
+              type="default"
+              onClick={handleCancelDeepThinking}
+              style={{ borderRadius: 20, zIndex: 999 }}
+          >
+            取消思考
+          </Button>
+      );
+    }
+
     const runButton = (text: string) => (
-      <Button
-        type="primary"
-        icon={<SendOutlined />}
-        style={{ borderRadius: 20, zIndex: 999 }}
-        onClick={handleRunWithHistory}
-        disabled={!isRunButtonEnabled}
-        loading={loading}
-      >
-        {text}
-      </Button>
+        <Button
+            type="primary"
+            icon={<SendOutlined />}
+            style={{ borderRadius: 20, zIndex: 999 }}
+            onClick={handleRunWithHistory}
+            disabled={!isRunButtonEnabled}
+            loading={loading}
+        >
+          {text}
+        </Button>
     );
 
     if (dryMode) {
       return selectedType === 'aiAct' ? (
-        <Tooltip title="Start executing until some interaction actions need to be performed. You can see the process of planning and locating.">
-          {runButton('Dry Run')}
-        </Tooltip>
+          <Tooltip title="Start executing until some interaction actions need to be performed. You can see the process of planning and locating.">
+            {runButton('Dry Run')}
+          </Tooltip>
       ) : (
-        runButton('Run')
+          runButton('Run')
       );
     }
 
     if (stoppable) {
       return (
-        <Button
-          icon={<BorderOutlined />}
-          onClick={onStop}
-          style={{ borderRadius: 20, zIndex: 999 }}
-        >
-          Stop
-        </Button>
+          <Button
+              icon={<BorderOutlined />}
+              onClick={onStop}
+              style={{ borderRadius: 20, zIndex: 999 }}
+          >
+            Stop
+          </Button>
       );
     }
 
@@ -887,7 +979,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   }, [
     dryMode,
     loading,
+    deepThinkingLoading,
     handleRunWithHistory,
+    handleCancelDeepThinking,
     onStop,
     isRunButtonEnabled,
     selectedType,
@@ -895,216 +989,254 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   ]);
 
   return (
-    <div className="prompt-input-wrapper">
-      {/* top operation button area */}
-      <div className="mode-radio-group-wrapper">
-        <div className="mode-radio-group" ref={modeRadioGroupRef}>
-          <Form.Item name="type" style={{ margin: 0 }}>
-            <Radio.Group buttonStyle="solid" disabled={!runButtonEnabled}>
-              {defaultMainButtons.map((apiType) => (
-                <Tooltip
-                  key={apiType}
-                  title={
-                    apiMetadata[apiType as keyof typeof apiMetadata]?.title ||
-                    ''
+      <div className="prompt-input-wrapper">
+        {/* Hidden field for deep thinking context */}
+        <Form.Item name="deepThinkingContext" hidden>
+          <Input />
+        </Form.Item>
+        {/* top operation button area */}
+        <div className="mode-radio-group-wrapper">
+          <div className="mode-radio-group" ref={modeRadioGroupRef}>
+            <Form.Item name="type" style={{ margin: 0 }}>
+              <Radio.Group buttonStyle="solid" disabled={!runButtonEnabled}>
+                {defaultMainButtons.map((apiType) => (
+                    <Tooltip
+                        key={apiType}
+                        title={
+                            apiMetadata[apiType as keyof typeof apiMetadata]?.title ||
+                            ''
+                        }
+                    >
+                      <Radio.Button value={apiType}>
+                        {actionNameForType(apiType)}
+                      </Radio.Button>
+                    </Tooltip>
+                ))}
+              </Radio.Group>
+            </Form.Item>
+            <Dropdown
+                menu={(() => {
+                  // Get all APIs not currently shown in main buttons, filtered by actionSpace
+                  const hiddenAPIs = availableDropdownMethods.filter(
+                      (api) => !defaultMainButtons.includes(api),
+                  );
+
+                  // Group hidden APIs by category
+                  const groupedItems: any[] = [];
+
+                  const interactionAPIs = hiddenAPIs.filter(
+                      (api) =>
+                          apiMetadata[api as keyof typeof apiMetadata]?.group ===
+                          'interaction',
+                  );
+                  if (interactionAPIs.length > 0) {
+                    groupedItems.push({
+                      key: 'interaction-group',
+                      type: 'group',
+                      label: 'Interaction APIs',
+                      children: interactionAPIs.map((api) => ({
+                        key: api,
+                        label: actionNameForType(api),
+                        title:
+                            apiMetadata[api as keyof typeof apiMetadata]?.title || '',
+                        onClick: () => {
+                          form.setFieldValue('type', api);
+                        },
+                      })),
+                    });
                   }
-                >
-                  <Radio.Button value={apiType}>
-                    {actionNameForType(apiType)}
-                  </Radio.Button>
-                </Tooltip>
-              ))}
-            </Radio.Group>
-          </Form.Item>
-          <Dropdown
-            menu={(() => {
-              // Get all APIs not currently shown in main buttons, filtered by actionSpace
-              const hiddenAPIs = availableDropdownMethods.filter(
-                (api) => !defaultMainButtons.includes(api),
-              );
 
-              // Group hidden APIs by category
-              const groupedItems: any[] = [];
+                  const extractionAPIs = hiddenAPIs.filter(
+                      (api) =>
+                          apiMetadata[api as keyof typeof apiMetadata]?.group ===
+                          'extraction',
+                  );
+                  if (extractionAPIs.length > 0) {
+                    groupedItems.push({
+                      key: 'extraction-group',
+                      type: 'group',
+                      label: 'Data Extraction APIs',
+                      children: extractionAPIs.map((api) => ({
+                        key: api,
+                        label: actionNameForType(api),
+                        title:
+                            apiMetadata[api as keyof typeof apiMetadata]?.title || '',
+                        onClick: () => {
+                          form.setFieldValue('type', api);
+                        },
+                      })),
+                    });
+                  }
 
-              const interactionAPIs = hiddenAPIs.filter(
-                (api) =>
-                  apiMetadata[api as keyof typeof apiMetadata]?.group ===
-                  'interaction',
-              );
-              if (interactionAPIs.length > 0) {
-                groupedItems.push({
-                  key: 'interaction-group',
-                  type: 'group',
-                  label: 'Interaction APIs',
-                  children: interactionAPIs.map((api) => ({
-                    key: api,
-                    label: actionNameForType(api),
-                    title:
-                      apiMetadata[api as keyof typeof apiMetadata]?.title || '',
-                    onClick: () => {
-                      form.setFieldValue('type', api);
-                    },
-                  })),
-                });
-              }
+                  const validationAPIs = hiddenAPIs.filter(
+                      (api) =>
+                          apiMetadata[api as keyof typeof apiMetadata]?.group ===
+                          'validation',
+                  );
+                  if (validationAPIs.length > 0) {
+                    groupedItems.push({
+                      key: 'validation-group',
+                      type: 'group',
+                      label: 'Validation APIs',
+                      children: validationAPIs.map((api) => ({
+                        key: api,
+                        label: actionNameForType(api),
+                        title:
+                            apiMetadata[api as keyof typeof apiMetadata]?.title || '',
+                        onClick: () => {
+                          form.setFieldValue('type', api);
+                        },
+                      })),
+                    });
+                  }
 
-              const extractionAPIs = hiddenAPIs.filter(
-                (api) =>
-                  apiMetadata[api as keyof typeof apiMetadata]?.group ===
-                  'extraction',
-              );
-              if (extractionAPIs.length > 0) {
-                groupedItems.push({
-                  key: 'extraction-group',
-                  type: 'group',
-                  label: 'Data Extraction APIs',
-                  children: extractionAPIs.map((api) => ({
-                    key: api,
-                    label: actionNameForType(api),
-                    title:
-                      apiMetadata[api as keyof typeof apiMetadata]?.title || '',
-                    onClick: () => {
-                      form.setFieldValue('type', api);
-                    },
-                  })),
-                });
-              }
+                  // Add device-specific APIs (those not in apiMetadata)
+                  const deviceSpecificAPIs = hiddenAPIs.filter(
+                      (api) => !apiMetadata[api as keyof typeof apiMetadata],
+                  );
+                  if (deviceSpecificAPIs.length > 0) {
+                    groupedItems.push({
+                      key: 'device-specific-group',
+                      type: 'group',
+                      label: 'Device-Specific APIs',
+                      children: deviceSpecificAPIs.map((api) => ({
+                        key: api,
+                        label: actionNameForType(api),
+                        title: '',
+                        onClick: () => {
+                          form.setFieldValue('type', api);
+                        },
+                      })),
+                    });
+                  }
 
-              const validationAPIs = hiddenAPIs.filter(
-                (api) =>
-                  apiMetadata[api as keyof typeof apiMetadata]?.group ===
-                  'validation',
-              );
-              if (validationAPIs.length > 0) {
-                groupedItems.push({
-                  key: 'validation-group',
-                  type: 'group',
-                  label: 'Validation APIs',
-                  children: validationAPIs.map((api) => ({
-                    key: api,
-                    label: actionNameForType(api),
-                    title:
-                      apiMetadata[api as keyof typeof apiMetadata]?.title || '',
-                    onClick: () => {
-                      form.setFieldValue('type', api);
-                    },
-                  })),
-                });
-              }
-
-              // Add device-specific APIs (those not in apiMetadata)
-              const deviceSpecificAPIs = hiddenAPIs.filter(
-                (api) => !apiMetadata[api as keyof typeof apiMetadata],
-              );
-              if (deviceSpecificAPIs.length > 0) {
-                groupedItems.push({
-                  key: 'device-specific-group',
-                  type: 'group',
-                  label: 'Device-Specific APIs',
-                  children: deviceSpecificAPIs.map((api) => ({
-                    key: api,
-                    label: actionNameForType(api),
-                    title: '',
-                    onClick: () => {
-                      form.setFieldValue('type', api);
-                    },
-                  })),
-                });
-              }
-
-              return { items: groupedItems } as MenuProps;
-            })()}
-            placement="bottomLeft"
-            trigger={['click']}
-            disabled={!runButtonEnabled}
-            overlayClassName="more-apis-dropdown"
-          >
-            <Button
-              className={`more-apis-button ${!defaultMainButtons.includes(selectedType) ? 'selected-from-dropdown' : ''}`}
+                  return { items: groupedItems } as MenuProps;
+                })()}
+                placement="bottomLeft"
+                trigger={['click']}
+                disabled={!runButtonEnabled}
+                overlayClassName="more-apis-dropdown"
             >
-              {selectedType && !defaultMainButtons.includes(selectedType)
-                ? actionNameForType(selectedType)
-                : 'more'}
-              <DownOutlined style={{ fontSize: '10px', marginLeft: '2px' }} />
-            </Button>
-          </Dropdown>
-        </div>
-
-        <div className="action-icons">
-          {hasConfigOptions && (
-            <div
-              className={
-                hoveringSettings
-                  ? 'settings-wrapper settings-wrapper-hover'
-                  : 'settings-wrapper'
-              }
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-            >
-              <ConfigSelector
-                enableTracking={serviceMode === 'In-Browser-Extension'}
-                showDeepLocateOption={showDeepLocateOption}
-                showDeepThinkOption={showDeepThinkOption}
-                showDataExtractionOptions={showDataExtractionOptions}
-                hideDomAndScreenshotOptions={hideDomAndScreenshotOptions}
-                deviceType={deviceType}
+              <Button
+                  className={`more-apis-button ${!defaultMainButtons.includes(selectedType) ? 'selected-from-dropdown' : ''}`}
+              >
+                {selectedType && !defaultMainButtons.includes(selectedType)
+                    ? actionNameForType(selectedType)
+                    : 'more'}
+                <DownOutlined style={{ fontSize: '10px', marginLeft: '2px' }} />
+              </Button>
+            </Dropdown>
+            {/* Deep Thinking Switch */}
+            <div style={{ display: 'flex', alignItems: 'center', marginLeft: '8px' }}>
+              <Tooltip title={deepThinkingTip}>
+                <span style={{ fontSize: '12px', marginRight: '4px', color: '#666' }}>深度思考</span>
+              </Tooltip>
+              <Switch
+                  size="small"
+                  checked={enableDeepThinking}
+                  onChange={setEnableDeepThinking}
               />
             </div>
+          </div>
+
+          <div className="action-icons">
+            {hasConfigOptions && (
+                <div
+                    className={
+                      hoveringSettings
+                          ? 'settings-wrapper settings-wrapper-hover'
+                          : 'settings-wrapper'
+                    }
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
+                >
+                  <ConfigSelector
+                      enableTracking={serviceMode === 'In-Browser-Extension'}
+                      showDeepLocateOption={showDeepLocateOption}
+                      showDeepThinkOption={showDeepThinkOption}
+                      showDataExtractionOptions={showDataExtractionOptions}
+                      hideDomAndScreenshotOptions={hideDomAndScreenshotOptions}
+                      deviceType={deviceType}
+                  />
+                </div>
+            )}
+            <HistorySelector
+                onSelect={handleSelectHistory}
+                history={historyForSelectedType}
+                currentType={selectedType}
+            />
+          </div>
+        </div>
+
+        {/* input box area */}
+        <div
+            className={`main-side-console-input ${!runButtonEnabled ? 'disabled' : ''} ${loading ? 'loading' : ''}`}
+        >
+          {needsAnyInput ? (
+              needsStructuredParams ? (
+                  hasSingleStructuredParam ? (
+                      renderStructuredParams()
+                  ) : (
+                      // Render structured parameters for specific AI methods
+                      <div className="structured-params-container">
+                        {renderStructuredParams()}
+                      </div>
+                  )
+              ) : (
+                  // Render traditional prompt input for other methods
+                  <div style={{ position: 'relative' }}>
+                    <Form.Item name="prompt" style={{ margin: 0 }}>
+                      <TextArea
+                          className="main-side-console-input-textarea"
+                          disabled={!runButtonEnabled || deepThinkingLoading}
+                          rows={3}
+                          placeholder={deepThinkingLoading ? '正在深度思考中...' : placeholder}
+                          autoFocus
+                          onKeyDown={handleKeyDown}
+                          onChange={handlePromptChange}
+                          ref={textAreaRef}
+                      />
+                    </Form.Item>
+                    {deepThinkingLoading && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '8px',
+                          right: '8px',
+                          zIndex: 10
+                        }}>
+                          <Button
+                              size="small"
+                              type="text"
+                              onClick={handleCancelDeepThinking}
+                              style={{
+                                color: '#ff4d4f',
+                                fontSize: '12px',
+                                padding: '2px 8px'
+                              }}
+                          >
+                            取消思考
+                          </Button>
+                        </div>
+                    )}
+                  </div>
+              )
+          ) : (
+              // Methods that don't need any input - show a message or empty state
+              <div
+                  className="no-input-method"
+                  style={{
+                    padding: '20px',
+                    textAlign: 'center',
+                    color: '#666',
+                    fontSize: '14px',
+                  }}
+              >
+                Click "Run" to execute {actionNameForType(selectedType)}
+              </div>
           )}
-          <HistorySelector
-            onSelect={handleSelectHistory}
-            history={historyForSelectedType}
-            currentType={selectedType}
-          />
+
+          <div className="form-controller-wrapper">{renderActionButton()}</div>
         </div>
       </div>
-
-      {/* input box area */}
-      <div
-        className={`main-side-console-input ${!runButtonEnabled ? 'disabled' : ''} ${loading ? 'loading' : ''}`}
-      >
-        {needsAnyInput ? (
-          needsStructuredParams ? (
-            hasSingleStructuredParam ? (
-              renderStructuredParams()
-            ) : (
-              // Render structured parameters for specific AI methods
-              <div className="structured-params-container">
-                {renderStructuredParams()}
-              </div>
-            )
-          ) : (
-            // Render traditional prompt input for other methods
-            <Form.Item name="prompt" style={{ margin: 0 }}>
-              <TextArea
-                className="main-side-console-input-textarea"
-                disabled={!runButtonEnabled}
-                rows={3}
-                placeholder={placeholder}
-                autoFocus
-                onKeyDown={handleKeyDown}
-                onChange={handlePromptChange}
-                ref={textAreaRef}
-              />
-            </Form.Item>
-          )
-        ) : (
-          // Methods that don't need any input - show a message or empty state
-          <div
-            className="no-input-method"
-            style={{
-              padding: '20px',
-              textAlign: 'center',
-              color: '#666',
-              fontSize: '14px',
-            }}
-          >
-            Click "Run" to execute {actionNameForType(selectedType)}
-          </div>
-        )}
-
-        <div className="form-controller-wrapper">{renderActionButton()}</div>
-      </div>
-    </div>
   );
 };

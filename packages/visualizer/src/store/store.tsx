@@ -57,26 +57,26 @@ export const useGlobalPreference = create<{
 }>((set) => {
   const savedAutoZoom = localStorage.getItem(AUTO_ZOOM_KEY) !== 'false';
   const savedBackgroundVisible =
-    localStorage.getItem(BACKGROUND_VISIBLE_KEY) !== 'false';
+      localStorage.getItem(BACKGROUND_VISIBLE_KEY) !== 'false';
   const savedElementsVisible =
-    localStorage.getItem(ELEMENTS_VISIBLE_KEY) !== 'false';
+      localStorage.getItem(ELEMENTS_VISIBLE_KEY) !== 'false';
   const savedModelCallDetails =
-    localStorage.getItem(MODEL_CALL_DETAILS_KEY) === 'true';
+      localStorage.getItem(MODEL_CALL_DETAILS_KEY) === 'true';
   const savedDarkMode = localStorage.getItem(DARK_MODE_KEY) === 'true';
   const parsedPlaybackSpeed = Number.parseFloat(
-    localStorage.getItem(PLAYBACK_SPEED_KEY) || '1',
+      localStorage.getItem(PLAYBACK_SPEED_KEY) || '1',
   );
   // Handle NaN case and ensure valid speed value
   const savedPlaybackSpeed = (
-    Number.isNaN(parsedPlaybackSpeed) ? 1 : parsedPlaybackSpeed
+      Number.isNaN(parsedPlaybackSpeed) ? 1 : parsedPlaybackSpeed
   ) as PlaybackSpeedType;
   const savedSubtitleEnabled =
-    localStorage.getItem(SUBTITLE_ENABLED_KEY) !== 'false';
+      localStorage.getItem(SUBTITLE_ENABLED_KEY) !== 'false';
   const autoZoomFromQuery = getQueryPreference('focusOnCursor');
   const elementsVisibleFromQuery = getQueryPreference('showElementMarkers');
   const darkModeFromQuery = getQueryPreference('darkMode');
   const initialDarkMode =
-    darkModeFromQuery === undefined ? savedDarkMode : darkModeFromQuery;
+      darkModeFromQuery === undefined ? savedDarkMode : darkModeFromQuery;
 
   if (darkModeFromQuery !== undefined) {
     localStorage.setItem(DARK_MODE_KEY, initialDarkMode.toString());
@@ -84,16 +84,16 @@ export const useGlobalPreference = create<{
   return {
     backgroundVisible: savedBackgroundVisible,
     elementsVisible:
-      elementsVisibleFromQuery === undefined
-        ? savedElementsVisible
-        : elementsVisibleFromQuery,
+        elementsVisibleFromQuery === undefined
+            ? savedElementsVisible
+            : elementsVisibleFromQuery,
     autoZoom:
-      autoZoomFromQuery === undefined ? savedAutoZoom : autoZoomFromQuery,
+        autoZoomFromQuery === undefined ? savedAutoZoom : autoZoomFromQuery,
     modelCallDetailsEnabled: savedModelCallDetails,
     darkModeEnabled: initialDarkMode,
     playbackSpeed: [0.5, 1, 1.5, 2].includes(savedPlaybackSpeed)
-      ? savedPlaybackSpeed
-      : 1,
+        ? savedPlaybackSpeed
+        : 1,
     setBackgroundVisible: (visible: boolean) => {
       set({ backgroundVisible: visible });
       localStorage.setItem(BACKGROUND_VISIBLE_KEY, visible.toString());
@@ -131,8 +131,10 @@ const SERVICE_MODE_KEY = 'midscene-service-mode';
 const TRACKING_ACTIVE_TAB_KEY = 'midscene-tracking-active-tab';
 const DEEP_LOCATE_KEY = 'midscene-deep-locate';
 const DEEP_THINK_KEY = 'midscene-deep-think';
+const ENABLE_DEEP_THINKING_KEY = 'midscene-enable-deep-thinking';
 const SCREENSHOT_INCLUDED_KEY = 'midscene-screenshot-included';
 const DOM_INCLUDED_KEY = 'midscene-dom-included';
+const PLANNING_STEP_LIMIT_KEY = 'midscene-planning-step-limit';
 
 // Device-specific configuration keys
 const IME_STRATEGY_KEY = 'midscene-ime-strategy';
@@ -151,9 +153,9 @@ const parseConfig = (configString: string) => {
     if (trimmed.startsWith('#')) return;
 
     const cleanLine = trimmed
-      .replace(/^export\s+/i, '')
-      .replace(/;$/, '')
-      .trim();
+        .replace(/^export\s+/i, '')
+        .replace(/;$/, '')
+        .trim();
     const match = cleanLine.match(/^(\w+)=(.*)$/);
     if (match) {
       const [, key, value] = match;
@@ -161,8 +163,8 @@ const parseConfig = (configString: string) => {
 
       // Remove surrounding quotes if present
       if (
-        (parsedValue.startsWith("'") && parsedValue.endsWith("'")) ||
-        (parsedValue.startsWith('"') && parsedValue.endsWith('"'))
+          (parsedValue.startsWith("'") && parsedValue.endsWith("'")) ||
+          (parsedValue.startsWith('"') && parsedValue.endsWith('"'))
       ) {
         parsedValue = parsedValue.slice(1, -1);
       }
@@ -196,12 +198,16 @@ export const useEnvConfig = create<{
   setForceSameTabNavigation: (forceSameTabNavigation: boolean) => void;
   deepLocate: boolean;
   setDeepLocate: (deepLocate: boolean) => void;
-  deepThink: boolean | 'unset';
-  setDeepThink: (deepThink: boolean | 'unset') => void;
+  deepThink: boolean;
+  setDeepThink: (deepThink: boolean) => void;
+  enableDeepThinking: boolean;
+  setEnableDeepThinking: (enableDeepThinking: boolean) => void;
   screenshotIncluded: boolean;
   setScreenshotIncluded: (screenshotIncluded: boolean) => void;
   domIncluded: boolean | 'visible-only';
   setDomIncluded: (domIncluded: boolean | 'visible-only') => void;
+  planningStepLimit: number;
+  setPlanningStepLimit: (planningStepLimit: number) => void;
   popupTab: 'playground' | 'bridge' | 'recorder';
   setPopupTab: (tab: 'playground' | 'bridge' | 'recorder') => void;
   // Device-specific configuration options
@@ -211,7 +217,7 @@ export const useEnvConfig = create<{
   setAutoDismissKeyboard: (autoDismissKeyboard: boolean) => void;
   keyboardDismissStrategy: KeyboardDismissStrategyType;
   setKeyboardDismissStrategy: (
-    keyboardDismissStrategy: KeyboardDismissStrategyType,
+      keyboardDismissStrategy: KeyboardDismissStrategyType,
   ) => void;
   alwaysRefreshScreenInfo: boolean;
   setAlwaysRefreshScreenInfo: (alwaysRefreshScreenInfo: boolean) => void;
@@ -220,38 +226,37 @@ export const useEnvConfig = create<{
   const config = parseConfig(configString);
   const ifInExtension = window.location.href.startsWith('chrome-extension');
   const savedServiceMode = localStorage.getItem(
-    SERVICE_MODE_KEY,
+      SERVICE_MODE_KEY,
   ) as ServiceModeType | null;
   const savedForceSameTabNavigation =
-    localStorage.getItem(TRACKING_ACTIVE_TAB_KEY) !== 'false';
+      localStorage.getItem(TRACKING_ACTIVE_TAB_KEY) !== 'false';
   const savedDeepLocate = localStorage.getItem(DEEP_LOCATE_KEY) === 'true';
-  const savedDeepThinkRaw = localStorage.getItem(DEEP_THINK_KEY);
-  const savedDeepThink: boolean | 'unset' =
-    savedDeepThinkRaw === 'true'
-      ? true
-      : savedDeepThinkRaw === 'false'
-        ? false
-        : 'unset';
+  const savedDeepThink = localStorage.getItem(DEEP_THINK_KEY) === 'true';
+  const savedEnableDeepThinking = localStorage.getItem(ENABLE_DEEP_THINKING_KEY) === 'true';
   const savedScreenshotIncluded =
-    localStorage.getItem(SCREENSHOT_INCLUDED_KEY) !== 'false';
+      localStorage.getItem(SCREENSHOT_INCLUDED_KEY) !== 'false';
   const savedDomIncluded = localStorage.getItem(DOM_INCLUDED_KEY) || 'false';
+  const savedPlanningStepLimit = Number.parseInt(
+      localStorage.getItem(PLANNING_STEP_LIMIT_KEY) || '20',
+      10,
+  );
 
   // Load device-specific configuration from localStorage
   const savedImeStrategy =
-    (localStorage.getItem(IME_STRATEGY_KEY) as ImeStrategyType) ||
-    'yadb-for-non-ascii';
+      (localStorage.getItem(IME_STRATEGY_KEY) as ImeStrategyType) ||
+      'yadb-for-non-ascii';
   const savedAutoDismissKeyboard =
-    localStorage.getItem(AUTO_DISMISS_KEYBOARD_KEY) !== 'false'; // default true
+      localStorage.getItem(AUTO_DISMISS_KEYBOARD_KEY) !== 'false'; // default true
   const savedKeyboardDismissStrategy =
-    (localStorage.getItem(
-      KEYBOARD_DISMISS_STRATEGY_KEY,
-    ) as KeyboardDismissStrategyType) || 'esc-first';
+      (localStorage.getItem(
+          KEYBOARD_DISMISS_STRATEGY_KEY,
+      ) as KeyboardDismissStrategyType) || 'esc-first';
   const savedAlwaysRefreshScreenInfo =
-    localStorage.getItem(ALWAYS_REFRESH_SCREEN_INFO_KEY) === 'true'; // default false
+      localStorage.getItem(ALWAYS_REFRESH_SCREEN_INFO_KEY) === 'true'; // default false
   return {
     serviceMode: ifInExtension
-      ? 'In-Browser-Extension'
-      : savedServiceMode || 'Server',
+        ? 'In-Browser-Extension'
+        : savedServiceMode || 'Server',
     setServiceMode: (serviceMode: ServiceModeType) => {
       if (ifInExtension)
         throw new Error('serviceMode cannot be set in extension');
@@ -275,8 +280,8 @@ export const useEnvConfig = create<{
     setForceSameTabNavigation: (forceSameTabNavigation: boolean) => {
       set({ forceSameTabNavigation });
       localStorage.setItem(
-        TRACKING_ACTIVE_TAB_KEY,
-        forceSameTabNavigation.toString(),
+          TRACKING_ACTIVE_TAB_KEY,
+          forceSameTabNavigation.toString(),
       );
     },
     deepLocate: savedDeepLocate,
@@ -285,25 +290,35 @@ export const useEnvConfig = create<{
       localStorage.setItem(DEEP_LOCATE_KEY, deepLocate.toString());
     },
     deepThink: savedDeepThink,
-    setDeepThink: (deepThink: boolean | 'unset') => {
+    setDeepThink: (deepThink: boolean) => {
       set({ deepThink });
       localStorage.setItem(DEEP_THINK_KEY, deepThink.toString());
+    },
+    enableDeepThinking: savedEnableDeepThinking,
+    setEnableDeepThinking: (enableDeepThinking: boolean) => {
+      set({ enableDeepThinking });
+      localStorage.setItem(ENABLE_DEEP_THINKING_KEY, enableDeepThinking.toString());
     },
     screenshotIncluded: savedScreenshotIncluded,
     setScreenshotIncluded: (screenshotIncluded: boolean) => {
       set({ screenshotIncluded });
       localStorage.setItem(
-        SCREENSHOT_INCLUDED_KEY,
-        screenshotIncluded.toString(),
+          SCREENSHOT_INCLUDED_KEY,
+          screenshotIncluded.toString(),
       );
     },
     domIncluded:
-      savedDomIncluded === 'visible-only'
-        ? 'visible-only'
-        : savedDomIncluded === 'true',
+        savedDomIncluded === 'visible-only'
+            ? 'visible-only'
+            : savedDomIncluded === 'true',
     setDomIncluded: (domIncluded: boolean | 'visible-only') => {
       set({ domIncluded });
       localStorage.setItem(DOM_INCLUDED_KEY, domIncluded.toString());
+    },
+    planningStepLimit: Number.isNaN(savedPlanningStepLimit) ? 20 : savedPlanningStepLimit,
+    setPlanningStepLimit: (planningStepLimit: number) => {
+      set({ planningStepLimit });
+      localStorage.setItem(PLANNING_STEP_LIMIT_KEY, planningStepLimit.toString());
     },
     popupTab: 'playground',
     setPopupTab: (tab: 'playground' | 'bridge' | 'recorder') => {
@@ -319,26 +334,26 @@ export const useEnvConfig = create<{
     setAutoDismissKeyboard: (autoDismissKeyboard: boolean) => {
       set({ autoDismissKeyboard });
       localStorage.setItem(
-        AUTO_DISMISS_KEYBOARD_KEY,
-        autoDismissKeyboard.toString(),
+          AUTO_DISMISS_KEYBOARD_KEY,
+          autoDismissKeyboard.toString(),
       );
     },
     keyboardDismissStrategy: savedKeyboardDismissStrategy,
     setKeyboardDismissStrategy: (
-      keyboardDismissStrategy: KeyboardDismissStrategyType,
+        keyboardDismissStrategy: KeyboardDismissStrategyType,
     ) => {
       set({ keyboardDismissStrategy });
       localStorage.setItem(
-        KEYBOARD_DISMISS_STRATEGY_KEY,
-        keyboardDismissStrategy,
+          KEYBOARD_DISMISS_STRATEGY_KEY,
+          keyboardDismissStrategy,
       );
     },
     alwaysRefreshScreenInfo: savedAlwaysRefreshScreenInfo,
     setAlwaysRefreshScreenInfo: (alwaysRefreshScreenInfo: boolean) => {
       set({ alwaysRefreshScreenInfo });
       localStorage.setItem(
-        ALWAYS_REFRESH_SCREEN_INFO_KEY,
-        alwaysRefreshScreenInfo.toString(),
+          ALWAYS_REFRESH_SCREEN_INFO_KEY,
+          alwaysRefreshScreenInfo.toString(),
       );
     },
   };

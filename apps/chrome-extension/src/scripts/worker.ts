@@ -382,7 +382,7 @@ async function initBackgroundBridge(): Promise<void> {
 }
 
 // Initialize background bridge on startup (with delay to ensure chrome APIs are ready)
-setTimeout(() => initBackgroundBridge(), 0);
+// setTimeout(() => initBackgroundBridge(), 0);
 
 // ==================== Keepalive Mechanism ====================
 // Register alarm listener for keepalive pings

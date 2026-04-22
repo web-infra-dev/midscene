@@ -1,4 +1,10 @@
-import type { ChromeRecordedEvent } from '@midscene/recorder';
+import type { ChromeRecordedEvent, RecordedEvent } from '@midscene/recorder';
+import {
+  getStepCodeGenerator,
+  logStepCodeToConsole,
+  resetStepCodeGenerator,
+  saveStepCodesToFile,
+} from '@midscene/recorder';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -22,14 +28,14 @@ import {
  * Hook to manage recording controls and handle recording events
  */
 export const useRecordingControl = (
-  currentTab: chrome.tabs.Tab | null,
-  currentSessionId: string | null,
-  getCurrentSession: () => RecordingSession | null,
-  updateSession: (
-    sessionId: string,
-    updates: Partial<RecordingSession>,
-  ) => void,
-  createNewSession: (sessionName?: string) => RecordingSession,
+    currentTab: chrome.tabs.Tab | null,
+    currentSessionId: string | null,
+    getCurrentSession: () => RecordingSession | null,
+    updateSession: (
+        sessionId: string,
+        updates: Partial<RecordingSession>,
+    ) => void,
+    createNewSession: (sessionName?: string) => RecordingSession,
 ) => {
   const {
     isRecording,
@@ -44,17 +50,62 @@ export const useRecordingControl = (
 
   const isExtensionMode = isChromeExtension();
   const recordContainerRef = useRef<HTMLDivElement>(null);
+  const stepCodeGenerator = useRef(getStepCodeGenerator());
 
-  // Note: persistEventToSession was removed because addEvent already persists
-  // events to both the session and IndexedDB storage. The duplicate persistence
-  // was causing O(n²) memory/IO growth during recording.
+  // Real-time event persistence during recording
+  const persistEventToSession = useCallback(
+      async (event: RecordedEvent) => {
+        if (!currentSessionId || !isRecording) return;
+
+        try {
+          const session = getCurrentSession();
+          if (session) {
+            const updatedEvents = [...session.events, event];
+            updateSession(currentSessionId, {
+              events: updatedEvents,
+              updatedAt: Date.now(),
+            });
+          }
+        } catch (error) {
+          recordLogger.error(
+              'Failed to persist event to session',
+              undefined,
+              error,
+          );
+        }
+      },
+      [currentSessionId, isRecording, getCurrentSession, updateSession],
+  );
+
+  // Generate and log step code for each event during recording
+  const generateAndLogStepCode = useCallback(
+      (event: RecordedEvent) => {
+        if (!isRecording) return;
+
+        try {
+          const stepCode = stepCodeGenerator.current.generateStepCode(event);
+          if (stepCode) {
+            logStepCodeToConsole(stepCode);
+            recordLogger.info('Step code generated', {
+              stepNumber: stepCode.stepNumber,
+              eventType: stepCode.eventType,
+              code: JSON.stringify(stepCode),
+            });
+          }
+        } catch (error) {
+          recordLogger.error('Failed to generate step code', undefined, error);
+        }
+      },
+      [isRecording],
+  );
 
   // Define stopRecording early using useCallback
   const stopRecording = useCallback(async () => {
     recordLogger.info('Stopping recording', {
       sessionId: currentSessionId || undefined,
       tabId: currentTab?.id,
-      eventsCount: events.length,
+      events,
+      session: getCurrentSession(),
     });
 
     if (!isExtensionMode) {
@@ -70,13 +121,6 @@ export const useRecordingControl = (
 
     // Set isRecording to false immediately to prevent UI from showing recording state
     await setIsRecording(false);
-
-    // Notify service worker to stop tracking iframe loads
-    try {
-      chrome.runtime.sendMessage({ action: 'recordingStopped' });
-    } catch (_e) {
-      // Non-critical
-    }
 
     try {
       // Check if content script is still available before sending message
@@ -101,9 +145,19 @@ export const useRecordingControl = (
         const session = getCurrentSession();
         if (session) {
           const duration =
-            events.length > 0
-              ? events[events.length - 1].timestamp - events[0].timestamp
-              : 0;
+              events.length > 0
+                  ? events[events.length - 1].timestamp - events[0].timestamp
+                  : 0;
+
+          // Save all step codes to file when recording stops
+          const allStepCodes = stepCodeGenerator.current.getStepCodes();
+          if (allStepCodes.length > 0) {
+            const sessionName = session.name || 'recording';
+            saveStepCodesToFile(allStepCodes, `${sessionName}-steps.json`);
+            message.success(
+                `Saved ${allStepCodes.length} step codes to file`,
+            );
+          }
 
           // Generate title and description if we have events
           const updateData: Partial<RecordingSession> = {
@@ -119,13 +173,13 @@ export const useRecordingControl = (
               eventsCount: events.length,
             });
             const hideLoadingMessage = message.loading(
-              'Generating recording title and description...',
-              0,
+                'Generating recording title and description...',
+                0,
             );
             try {
               const { title, description } = await generateRecordTitle(
-                events,
-                globalModelConfigManager.getModelConfig('default'),
+                  events,
+                  globalModelConfigManager.getModelConfig('default'),
               );
 
               if (title) {
@@ -137,9 +191,9 @@ export const useRecordingControl = (
               }
             } catch (error) {
               recordLogger.error(
-                'Failed to generate title/description',
-                undefined,
-                error,
+                  'Failed to generate title/description',
+                  undefined,
+                  error,
               );
             } finally {
               hideLoadingMessage();
@@ -170,22 +224,22 @@ export const useRecordingControl = (
     if (!currentTab?.id || !isRecording) return;
 
     const handleTabUpdate = async (
-      tabId: number,
-      changeInfo: chrome.tabs.TabChangeInfo,
+        tabId: number,
+        changeInfo: chrome.tabs.TabChangeInfo,
     ) => {
       if (
-        currentTab?.id === tabId &&
-        changeInfo.status === 'loading' &&
-        isRecording
+          currentTab?.id === tabId &&
+          changeInfo.status === 'loading' &&
+          isRecording
       ) {
         // Page is starting to load - prepare for potential event loss
         recordLogger.info(
-          'Navigation loading detected, preparing event buffer',
-          {
-            tabId,
-            url: changeInfo.url,
-            currentEvents: events.length,
-          },
+            'Navigation loading detected, preparing event buffer',
+            {
+              tabId,
+              url: changeInfo.url,
+              currentEvents: events.length,
+            },
         );
 
         const session = getCurrentSession();
@@ -218,100 +272,91 @@ export const useRecordingControl = (
 
   // Start recording
   const startRecording = useCallback(
-    async (sessionId: string) => {
-      recordLogger.info('Starting recording', {
-        tabId: currentTab?.id,
-        sessionId,
-      });
-
-      if (!isExtensionMode) {
-        recordLogger.error('Not in extension environment');
-        message.error(
-          'Recording is only available in Chrome extension environment',
-        );
-        return;
-      }
-
-      // Check if there's a current session or use provided sessionId
-      let sessionToUse: RecordingSession | null = null;
-
-      // Use the specific session ID provided
-      const specificSession = await dbManager.getSession(sessionId);
-      if (specificSession) {
-        sessionToUse = specificSession;
-      } else {
-        recordLogger.error('Specified session not found', { sessionId });
-        message.error('Specified session not found');
-        return;
-      }
-
-      // Update session status to recording
-      updateSession(sessionToUse.id, {
-        status: 'recording',
-        url: currentTab?.url,
-        updatedAt: Date.now(),
-      });
-
-      if (!currentTab?.id) {
-        recordLogger.error('No active tab found for starting recording');
-        message.error('No active tab found');
-        return;
-      }
-
-      // Always ensure script is injected before starting
-      await ensureScriptInjected(currentTab);
-
-      try {
-        // Clean up any previous recording instances first
-        await cleanupPreviousRecordings();
-
-        // Clear the AI description cache to avoid using old descriptions
-        clearDescriptionCache();
-
-        // Send message to content script to start recording
-        await safeChromeAPI.tabs.sendMessage(currentTab.id, {
-          action: 'start',
-          sessionId: sessionToUse.id,
+      async (sessionId: string) => {
+        recordLogger.info('Starting recording', {
+          tabId: currentTab?.id,
+          sessionId,
         });
-        await setIsRecording(true);
 
-        // Notify service worker so it can inject scripts into dynamically loaded iframes
+        if (!isExtensionMode) {
+          recordLogger.error('Not in extension environment');
+          message.error(
+              'Recording is only available in Chrome extension environment',
+          );
+          return;
+        }
+
+        // Check if there's a current session or use provided sessionId
+        let sessionToUse: RecordingSession | null = null;
+
+        // Use the specific session ID provided
+        const specificSession = await dbManager.getSession(sessionId);
+        if (specificSession) {
+          sessionToUse = specificSession;
+        } else {
+          recordLogger.error('Specified session not found', { sessionId });
+          message.error('Specified session not found');
+          return;
+        }
+
+        // Update session status to recording
+        updateSession(sessionToUse.id, {
+          status: 'recording',
+          url: currentTab?.url,
+          updatedAt: Date.now(),
+        });
+
+        if (!currentTab?.id) {
+          recordLogger.error('No active tab found for starting recording');
+          message.error('No active tab found');
+          return;
+        }
+
+        // Always ensure script is injected before starting
+        await ensureScriptInjected(currentTab);
+
         try {
-          chrome.runtime.sendMessage({
-            action: 'recordingStarted',
-            tabId: currentTab.id,
+          // Clean up any previous recording instances first
+          await cleanupPreviousRecordings();
+
+          // Clear the AI description cache to avoid using old descriptions
+          clearDescriptionCache();
+          // Reset step code generator for new recording
+          resetStepCodeGenerator();
+
+          // Send message to content script to start recording
+          await safeChromeAPI.tabs.sendMessage(currentTab.id, {
+            action: 'start',
             sessionId: sessionToUse.id,
           });
-        } catch (_e) {
-          // Non-critical: iframe injection will still work for existing frames
-        }
+          await setIsRecording(true);
 
-        // Only clear events if this is a new session or if the session has no existing events
-        // This allows resuming recording on existing sessions without losing previous events
-        if (sessionToUse.events.length === 0) {
-          clearEvents(); // Clear previous events for new recording
-        } else {
-          // Load existing events for continuation
-          setEvents(sessionToUse.events);
+          // Only clear events if this is a new session or if the session has no existing events
+          // This allows resuming recording on existing sessions without losing previous events
+          if (sessionToUse.events.length === 0) {
+            clearEvents(); // Clear previous events for new recording
+          } else {
+            // Load existing events for continuation
+            setEvents(sessionToUse.events);
+          }
+          message.success('Recording started');
+        } catch (error) {
+          recordLogger.error('Failed to start recording', undefined, error);
+          message.error(
+              'Failed to start recording. Please ensure you are on a regular web page (not Chrome internal pages) and try again.',
+          );
         }
-        message.success('Recording started');
-      } catch (error) {
-        recordLogger.error('Failed to start recording', undefined, error);
-        message.error(
-          'Failed to start recording. Please ensure you are on a regular web page (not Chrome internal pages) and try again.',
-        );
-      }
-    },
-    [
-      isExtensionMode,
-      getCurrentSession,
-      createNewSession,
-      updateSession,
-      currentTab,
-      setIsRecording,
-      clearEvents,
-      setEvents,
-    ],
+      },
+      [
+        isExtensionMode,
+        getCurrentSession,
+        createNewSession,
+        updateSession,
+        currentTab,
+        setIsRecording,
+        clearEvents,
+        setEvents,
+      ],
   );
 
   // Export current events
@@ -323,8 +368,8 @@ export const useRecordingControl = (
 
     const currentSession = getCurrentSession();
     const sessionName = currentSession
-      ? currentSession.name
-      : 'current-recording';
+        ? currentSession.name
+        : 'current-recording';
 
     exportEventsToFile(events, sessionName);
   }, [events, getCurrentSession]);
@@ -363,7 +408,7 @@ export const useRecordingControl = (
   useEffect(() => {
     let port: chrome.runtime.Port | null = null;
     let reconnectTimer: NodeJS.Timeout | null = null;
-    let eventBuffer: ChromeRecordedEvent[] = [];
+    let eventBuffer: RecordedEvent[] = [];
     let isConnected = false;
 
     const connectToServiceWorker = () => {
@@ -375,17 +420,17 @@ export const useRecordingControl = (
         isConnected = true;
 
         if (
-          port &&
-          'onDisconnect' in port &&
-          typeof port.onDisconnect?.addListener === 'function'
+            port &&
+            'onDisconnect' in port &&
+            typeof port.onDisconnect?.addListener === 'function'
         ) {
           port.onDisconnect.addListener(() => {
             isConnected = false;
             if (chrome.runtime.lastError) {
               recordLogger.error(
-                'Port disconnect error',
-                undefined,
-                chrome.runtime.lastError,
+                  'Port disconnect error',
+                  undefined,
+                  chrome.runtime.lastError,
               );
             }
 
@@ -406,31 +451,31 @@ export const useRecordingControl = (
         const processEventData = async (eventData: any) => {
           const { element, ...cleanEventData } = eventData;
           return await optimizeEvent(
-            cleanEventData as ChromeRecordedEvent,
-            updateEvent,
+              cleanEventData as RecordedEvent,
+              updateEvent,
           );
         };
 
         const handleMessage = async (message: RecordMessage) => {
           // Validate session ID - only process events from current recording session
           if (
-            message.sessionId &&
-            currentSessionId &&
-            message.sessionId !== currentSessionId
+              message.sessionId &&
+              currentSessionId &&
+              message.sessionId !== currentSessionId
           ) {
             recordLogger.warn(
-              'Received event from different session, ignoring',
-              {
-                messageSessionId: message.sessionId,
-                currentSessionId,
-              },
+                'Received event from different session, ignoring',
+                {
+                  messageSessionId: message.sessionId,
+                  currentSessionId,
+                },
             );
             return;
           }
 
           if (message.action === 'events' && Array.isArray(message.data)) {
             const eventsData = await Promise.all(
-              message.data.map(processEventData),
+                message.data.map(processEventData),
             );
 
             // If we have buffered events, merge them
@@ -438,6 +483,7 @@ export const useRecordingControl = (
               recordLogger.info('Merging buffered events with new events', {
                 bufferedCount: eventBuffer.length,
                 newCount: eventsData.length,
+
               });
               const mergedEvents = [...eventBuffer, ...eventsData];
               setEvents(mergedEvents);
@@ -445,51 +491,29 @@ export const useRecordingControl = (
             } else {
               setEvents(eventsData);
             }
+
+            // Generate step codes for all events in batch
+            eventsData.forEach((event) => {
+              generateAndLogStepCode(event);
+            });
           } else if (
-            (message.action === 'event' || message.action === 'event-update') &&
-            message.data &&
-            !Array.isArray(message.data)
+              (message.action === 'event' || message.action === 'event-update') &&
+              message.data &&
+              !Array.isArray(message.data)
           ) {
             // Handle both legacy 'event' and new incremental 'event-update' messages
             const optimizedEvent = await processEventData(message.data);
 
             if (isConnected) {
               addEvent(optimizedEvent);
+              // Real-time persistence during recording
+              await persistEventToSession(optimizedEvent);
+              // Generate and log step code
+              generateAndLogStepCode(optimizedEvent);
             } else {
               // Buffer events if not connected
               recordLogger.info('Buffering event due to disconnected port');
               eventBuffer.push(optimizedEvent);
-            }
-          } else if (message.action === 'update-after-screenshot') {
-            // Navigation afterScreenshot merging:
-            // When an iframe navigation is triggered by a click/interaction event,
-            // the iframe bridge captures the post-navigation screenshot and sends it here.
-            // We find the most recent event (the triggering click) and update its
-            // afterScreenshot with the navigation's screenshot, so the click event
-            // shows the fully loaded page state after navigation completes.
-            const currentEvents = useRecordStore.getState().events;
-            if (currentEvents.length > 0) {
-              const lastEvent = currentEvents[currentEvents.length - 1];
-              const updatedEvent: ChromeRecordedEvent = {
-                ...lastEvent,
-                screenshotAfter:
-                  message.screenshotAfter || lastEvent.screenshotAfter,
-                afterTitle: message.afterTitle || lastEvent.afterTitle,
-              };
-              recordLogger.info(
-                'Merging navigation afterScreenshot into last event',
-                {
-                  eventType: lastEvent.type,
-                  hashId: lastEvent.hashId,
-                  hasScreenshot: !!message.screenshotAfter,
-                  hasAfterTitle: !!message.afterTitle,
-                },
-              );
-              await updateEvent(updatedEvent);
-            } else {
-              recordLogger.warn(
-                'No events to merge navigation afterScreenshot into',
-              );
             }
           } else {
             recordLogger.warn('Unhandled message format', {
@@ -504,9 +528,9 @@ export const useRecordingControl = (
         }
       } catch (error) {
         recordLogger.error(
-          'Failed to connect to service worker',
-          undefined,
-          error,
+            'Failed to connect to service worker',
+            undefined,
+            error,
         );
         isConnected = false;
 
@@ -534,10 +558,21 @@ export const useRecordingControl = (
         recordLogger.info('Saving buffered events on cleanup', {
           bufferedCount: eventBuffer.length,
         });
-        eventBuffer.forEach((event) => addEvent(event));
+        eventBuffer.forEach((event) => {
+          addEvent(event);
+          generateAndLogStepCode(event);
+        });
       }
     };
-  }, [addEvent, setEvents, updateEvent, currentSessionId, isRecording]);
+  }, [
+    addEvent,
+    setEvents,
+    updateEvent,
+    currentSessionId,
+    isRecording,
+    persistEventToSession,
+    generateAndLogStepCode,
+  ]);
 
   return {
     // State

@@ -1,18 +1,18 @@
-import type { DeviceAction, ModelBrief, UIContext } from '@midscene/core';
+import type { DeviceAction, UIContext } from '@midscene/core';
 import type { ComponentType } from 'react';
 
 // Zod schema related types - compatible with actual zod types
 export interface ZodType {
   _def?: {
     typeName:
-      | 'ZodOptional'
-      | 'ZodDefault'
-      | 'ZodNullable'
-      | 'ZodObject'
-      | 'ZodEnum'
-      | 'ZodNumber'
-      | 'ZodString'
-      | 'ZodBoolean';
+        | 'ZodOptional'
+        | 'ZodDefault'
+        | 'ZodNullable'
+        | 'ZodObject'
+        | 'ZodEnum'
+        | 'ZodNumber'
+        | 'ZodString'
+        | 'ZodBoolean';
     innerType?: ZodType;
     defaultValue?: () => unknown;
     shape?: () => Record<string, ZodType>;
@@ -56,7 +56,7 @@ export interface ZodRuntimeAccess extends ZodType {
 
 // ActionSpace related types - compatible with DeviceAction
 export interface ActionSpaceItem
-  extends Omit<DeviceAction<any>, 'paramSchema'> {
+    extends Omit<DeviceAction<any>, 'paramSchema'> {
   paramSchema?: ZodObjectSchema;
 }
 
@@ -89,12 +89,12 @@ export const VALIDATION_CONSTANTS = {
 
 // Type guards
 export const isZodObjectSchema = (
-  schema: unknown,
+    schema: unknown,
 ): schema is ZodObjectSchema => {
   return (
-    typeof schema === 'object' &&
-    schema !== null &&
-    ('shape' in schema || (schema as { type?: string }).type === 'ZodObject')
+      typeof schema === 'object' &&
+      schema !== null &&
+      ('shape' in schema || (schema as { type?: string }).type === 'ZodObject')
   );
 };
 
@@ -126,12 +126,12 @@ export const isLocateField = (field: ZodType): boolean => {
 
     // Check description contains location-related keywords
     const description =
-      (field._def as { description?: string })?.description ||
-      fieldWithRuntime.description ||
-      '';
+        (field._def as { description?: string })?.description ||
+        fieldWithRuntime.description ||
+        '';
     if (
-      typeof description === 'string' &&
-      description.toLowerCase().includes('input field')
+        typeof description === 'string' &&
+        description.toLowerCase().includes('input field')
     ) {
       return true;
     }
@@ -148,15 +148,15 @@ export const isLocateField = (field: ZodType): boolean => {
 
     // Check for description patterns
     const description =
-      fieldWithRuntime.description ||
-      (fieldWithRuntime._def as { description?: string })?.description ||
-      '';
+        fieldWithRuntime.description ||
+        (fieldWithRuntime._def as { description?: string })?.description ||
+        '';
     if (typeof description === 'string') {
       const desc = description.toLowerCase();
       if (
-        desc.includes('input field') ||
-        desc.includes('element') ||
-        desc.includes('locate')
+          desc.includes('input field') ||
+          desc.includes('element') ||
+          desc.includes('locate')
       ) {
         return true;
       }
@@ -164,13 +164,13 @@ export const isLocateField = (field: ZodType): boolean => {
 
     // Check for type patterns that suggest location fields
     if (
-      (fieldWithRuntime as { typeName?: string }).typeName === 'ZodObject' ||
-      (fieldWithRuntime as { type?: string }).type === 'ZodObject'
+        (fieldWithRuntime as { typeName?: string }).typeName === 'ZodObject' ||
+        (fieldWithRuntime as { type?: string }).type === 'ZodObject'
     ) {
       // For processed schemas, location fields are often described as input fields
       return (
-        typeof description === 'string' &&
-        description.toLowerCase().includes('input field')
+          typeof description === 'string' &&
+          description.toLowerCase().includes('input field')
       );
     }
   }
@@ -180,19 +180,19 @@ export const isLocateField = (field: ZodType): boolean => {
 
 // Helper function to unwrap nested Zod types
 export const unwrapZodType = (
-  field: ZodType,
+    field: ZodType,
 ): { actualField: ZodType; isOptional: boolean; hasDefault: boolean } => {
   let actualField = field;
   let isOptional = false;
   let hasDefault = false;
 
   while (
-    actualField._def?.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.OPTIONAL ||
-    actualField._def?.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.DEFAULT ||
-    actualField._def?.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.NULLABLE
-  ) {
+      actualField._def?.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.OPTIONAL ||
+      actualField._def?.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.DEFAULT ||
+      actualField._def?.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.NULLABLE
+      ) {
     if (
-      actualField._def?.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.OPTIONAL
+        actualField._def?.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.OPTIONAL
     ) {
       isOptional = true;
     }
@@ -211,8 +211,8 @@ export const extractDefaultValue = (field: ZodType): unknown => {
 
   while (currentField._def?.innerType) {
     if (
-      currentField._def.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.DEFAULT &&
-      currentField._def.defaultValue
+        currentField._def.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.DEFAULT &&
+        currentField._def.defaultValue
     ) {
       return currentField._def.defaultValue();
     }
@@ -223,12 +223,7 @@ export const extractDefaultValue = (field: ZodType): unknown => {
 };
 
 import type { ExecutionDump, IExecutionDump } from '@midscene/core';
-import type {
-  BeforeActionHook,
-  ExecutionOptions,
-  PlaygroundAgent,
-  PlaygroundRuntimeInfo,
-} from '@midscene/playground';
+import type { ExecutionOptions, PlaygroundAgent } from '@midscene/playground';
 
 // result type
 export interface PlaygroundResult {
@@ -255,28 +250,26 @@ export interface StaticPlaygroundProps {
 export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension';
 
 // device type
-export type DeviceType = 'web' | 'android' | 'ios' | 'harmony' | 'computer';
-
-export type ExecutionUxHint = 'countdown-before-run';
+export type DeviceType = 'web' | 'android' | 'ios';
 
 // run type
 export type RunType =
-  | 'aiAct'
-  | 'aiQuery'
-  | 'aiAssert'
-  | 'aiTap'
-  | 'aiDoubleClick'
-  | 'aiHover'
-  | 'aiInput'
-  | 'aiRightClick'
-  | 'aiKeyboardPress'
-  | 'aiScroll'
-  | 'aiLocate'
-  | 'aiBoolean'
-  | 'aiNumber'
-  | 'aiString'
-  | 'aiAsk'
-  | 'aiWaitFor';
+    | 'aiAct'
+    | 'aiQuery'
+    | 'aiAssert'
+    | 'aiTap'
+    | 'aiDoubleClick'
+    | 'aiHover'
+    | 'aiInput'
+    | 'aiRightClick'
+    | 'aiKeyboardPress'
+    | 'aiScroll'
+    | 'aiLocate'
+    | 'aiBoolean'
+    | 'aiNumber'
+    | 'aiString'
+    | 'aiAsk'
+    | 'aiWaitFor';
 
 // Define ReplayScriptsInfo to match the interface in replay-scripts.tsx
 export interface ReplayScriptsInfo {
@@ -284,7 +277,7 @@ export interface ReplayScriptsInfo {
   width?: number;
   height?: number;
   sdkVersion?: string;
-  modelBriefs: ModelBrief[];
+  modelBriefs: string[];
 }
 
 // form value type
@@ -292,6 +285,7 @@ export interface FormValue {
   type: string;
   prompt?: string;
   params?: Record<string, unknown>;
+  deepThinkingContext?: string;
 }
 
 // ExecutionOptions is imported from playground package to ensure consistency
@@ -299,21 +293,21 @@ export type { ExecutionOptions };
 
 // progress callback type
 export type ProgressCallback = (
-  step: string,
-  status?: 'loading' | 'completed' | 'error',
+    step: string,
+    status?: 'loading' | 'completed' | 'error',
 ) => void;
 
 // PlaygroundSDK interface (simplified version, for type definition)
 export interface PlaygroundSDKLike {
   executeAction(
-    actionType: string,
-    value: FormValue,
-    options: ExecutionOptions,
+      actionType: string,
+      value: FormValue,
+      options: ExecutionOptions,
   ): Promise<unknown>;
   getActionSpace(context?: any): Promise<DeviceAction<unknown>[]>;
   onProgressUpdate?: (callback: ProgressCallback) => void;
   onDumpUpdate?: (
-    callback: (dump: string, executionDump?: ExecutionDump) => void,
+      callback: (dump: string, executionDump?: ExecutionDump) => void,
   ) => void;
   cancelExecution?(requestId: string): Promise<{
     dump: ExecutionDump | null;
@@ -326,14 +320,7 @@ export interface PlaygroundSDKLike {
   overrideConfig?(config: any): Promise<void>;
   checkStatus?(): Promise<boolean>;
   getServiceMode?(): 'In-Browser-Extension' | 'Server';
-  getRuntimeInfo?(): Promise<PlaygroundRuntimeInfo | null>;
-  setBeforeActionHook?(hook?: BeforeActionHook): void;
   id?: string; // unique ID for SDK instances
-}
-
-export interface ExecutionUxConfig {
-  hints?: ExecutionUxHint[];
-  countdownSeconds?: number;
 }
 
 // storage provider interface
@@ -375,7 +362,6 @@ export interface UniversalPlaygroundConfig {
   serverMode?: boolean;
   showEnvConfigReminder?: boolean;
   deviceType?: DeviceType;
-  executionUx?: ExecutionUxConfig;
 }
 
 // branding interface

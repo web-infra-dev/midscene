@@ -9,6 +9,9 @@ export const deepLocateTip = 'Deep Locate';
 // deep think tip (for aiAct planning)
 export const deepThinkTip = 'Deep Think';
 
+// deep thinking tip (for input enhancement)
+export const deepThinkingTip = 'Enable deep thinking to enhance input with AI';
+
 // screenshot included tip
 export const screenshotIncludedTip = 'Include screenshot in request';
 
@@ -50,7 +53,7 @@ export const defaultMainButtons = ['aiAct', 'aiTap', 'aiQuery', 'aiAssert'];
 
 // welcome message template
 export const getWelcomeMessageTemplate = (
-  targetName = 'web page',
+    targetName = 'web page',
 ): Omit<InfoListItem, 'id' | 'timestamp'> => ({
   type: 'system',
   content: `
@@ -70,7 +73,7 @@ export const getWelcomeMessageTemplate = (
 
 // keep backward compatibility
 export const WELCOME_MESSAGE_TEMPLATE: Omit<InfoListItem, 'id' | 'timestamp'> =
-  getWelcomeMessageTemplate();
+    getWelcomeMessageTemplate();
 
 // blank result template
 export const BLANK_RESULT: PlaygroundResult = {
