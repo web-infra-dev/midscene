@@ -82,20 +82,22 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
       );
     }
 
-    const baseDescription =
-      'Select an available ADB device to create the current Android Agent';
-
     const sessionManager: PlaygroundSessionManager = {
       async getSetupSchema() {
         const { targets, error } = await getAdbTargetsSafe();
-        const description = error
-          ? `${baseDescription}\n\n⚠️ ${error}`
-          : baseDescription;
         return {
           title: 'Welcome to\nMidscene.js Playground!',
-          description,
+          description:
+            'Select an available ADB device to create the current Android Agent',
           primaryActionLabel: 'Create Agent',
           autoSubmitWhenReady: targets.length === 1,
+          notice: error
+            ? {
+                type: 'warning',
+                message: 'Android device discovery failed',
+                description: error,
+              }
+            : undefined,
           fields: [
             {
               key: 'deviceId',

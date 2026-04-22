@@ -86,8 +86,11 @@ describe('androidPlaygroundPlatform session manager', () => {
 
     const setup = await prepared.sessionManager?.getSetupSchema();
     expect(setup?.targets).toEqual([]);
-    expect(setup?.description).toContain('adb executable not found');
     expect(setup?.autoSubmitWhenReady).toBe(false);
+    expect(setup?.notice).toMatchObject({
+      type: 'warning',
+      description: expect.stringContaining('adb executable not found'),
+    });
 
     await expect(prepared.sessionManager?.listTargets?.()).resolves.toEqual([]);
   });
