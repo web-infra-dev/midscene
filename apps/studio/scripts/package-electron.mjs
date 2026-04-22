@@ -341,7 +341,50 @@ const collectLatestMtime = async (targetPath) => {
   return latestMtime;
 };
 
-const getBuildStatus = async ({ packageDir, sourceTargets }) => {
+const BUILD_META_FILENAME = '.release-build-meta.json';
+const BUILD_META_SCHEMA_VERSION = 1;
+
+const readBuildMeta = async (distDir) => {
+  try {
+    const raw = await fs.readFile(
+      path.join(distDir, BUILD_META_FILENAME),
+      'utf8',
+    );
+    const parsed = JSON.parse(raw);
+    if (
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      parsed.schemaVersion === BUILD_META_SCHEMA_VERSION &&
+      typeof parsed.nodeEnv === 'string'
+    ) {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+export const writeBuildMeta = async (packageDir, { nodeEnv }) => {
+  const distDir = path.join(packageDir, 'dist');
+  try {
+    await fs.mkdir(distDir, { recursive: true });
+  } catch {
+    // dist may not exist for packages that still bundle only into a sibling
+    // directory (e.g. preload/main split); skip marker in that case.
+    return;
+  }
+  await fs.writeFile(
+    path.join(distDir, BUILD_META_FILENAME),
+    `${JSON.stringify(
+      { schemaVersion: BUILD_META_SCHEMA_VERSION, nodeEnv },
+      null,
+      2,
+    )}\n`,
+  );
+};
+
+export const getBuildStatus = async ({ packageDir, sourceTargets }) => {
   const distDir = path.join(packageDir, 'dist');
   try {
     const distStats = await fs.stat(distDir);
@@ -359,6 +402,21 @@ const getBuildStatus = async ({ packageDir, sourceTargets }) => {
       };
     }
     throw error;
+  }
+
+  // Reject caches from `pnpm dev` runs: they bake `NODE_ENV=development`
+  // into rsbuild's `assetPrefix`, which produces absolute `/static/...`
+  // paths that 404 under `file://` inside the packaged app and leave the
+  // user with a white screen. Only a dist explicitly built in
+  // production mode is safe to reuse for `package:release`.
+  const meta = await readBuildMeta(distDir);
+  if (!meta || meta.nodeEnv !== 'production') {
+    return {
+      needsBuild: true,
+      reason: meta
+        ? `previous build used NODE_ENV=${meta.nodeEnv}`
+        : 'no production build marker',
+    };
   }
 
   const latestSourceMtime = await Promise.all(
@@ -381,8 +439,47 @@ const getBuildStatus = async ({ packageDir, sourceTargets }) => {
   };
 };
 
+const assertNoLiveDevBuilders = async () => {
+  try {
+    const { stdout } = await new Promise((resolve, reject) => {
+      const child = spawn('pgrep', ['-af', 'rsbuild dev'], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      let buffer = '';
+      child.stdout.on('data', (chunk) => {
+        buffer += chunk.toString();
+      });
+      child.on('close', () => resolve({ stdout: buffer }));
+      child.on('error', reject);
+    });
+    const matches = stdout
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (matches.length > 0) {
+      throw new Error(
+        [
+          'Detected live `rsbuild dev` processes while packaging:',
+          ...matches.map((line) => `  ${line}`),
+          'A concurrent dev server keeps overwriting `apps/studio/dist/` with',
+          'a development-mode renderer whose absolute asset URLs break under',
+          '`file://`. Stop `pnpm dev` first, then rerun `pnpm package:release`.',
+        ].join('\n'),
+      );
+    }
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return;
+    }
+    throw error;
+  }
+};
+
 const buildPackageDir = async (packageDir) => {
-  await run(packageManagerCommand, ['--dir', packageDir, 'build']);
+  await run(packageManagerCommand, ['--dir', packageDir, 'build'], {
+    env: { ...process.env, NODE_ENV: 'production' },
+  });
+  await writeBuildMeta(packageDir, { nodeEnv: 'production' });
 };
 
 const prepareStudioWorkspacePackages = async (workspacePackages) => {
@@ -615,6 +712,114 @@ export const pruneSourceMapFiles = async (rootDir) => {
       await fs.rm(entryPath, { force: true });
     }
   }
+};
+
+// Drops the antd UMD dist (antd*.js + maps + LICENSE.txt + reset.css).
+// Studio's renderer imports from `antd/es|lib`, so nothing references
+// `antd/dist/*` at packaged runtime. ~45 MB saved.
+export const pruneAntdUmdBundles = async (nodeModulesDir) => {
+  const distDir = path.join(nodeModulesDir, 'antd', 'dist');
+  await removeIfExists(distDir);
+};
+
+// The packaged Studio main process is CJS and resolves @midscene/* via
+// each package's `"main"` (./dist/lib/*). The ESM build at ./dist/es
+// is never loaded at runtime, so drop it. Renderer code is bundled by
+// rsbuild during the earlier build step, so it doesn't look at these
+// files either. ~65 MB saved across ~6 @midscene packages.
+export const dropMidsceneEsmBuilds = async (nodeModulesDir) => {
+  const midsceneDir = path.join(nodeModulesDir, '@midscene');
+  let entries;
+  try {
+    entries = await fs.readdir(midsceneDir, { withFileTypes: true });
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return;
+    }
+    throw error;
+  }
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const esDir = path.join(midsceneDir, entry.name, 'dist', 'es');
+    await removeIfExists(esDir);
+  }
+};
+
+// The packaged app never loads antd at runtime (renderer is bundled,
+// main.cjs never requires it). Dropping the ESM tree keeps the CJS
+// `lib/` available as a safety net for any transitive `require('antd')`
+// while reclaiming the second copy. ~8 MB saved.
+export const dropAntdEsmBuild = async (nodeModulesDir) => {
+  const esDir = path.join(nodeModulesDir, 'antd', 'es');
+  await removeIfExists(esDir);
+};
+
+// Hardlink every file from `sourceDir` into `destDir`, recreating
+// subdirectories. Same filesystem required — safe inside a single
+// node_modules tree.
+const hardlinkTreeInto = async (sourceDir, destDir) => {
+  await fs.mkdir(destDir, { recursive: true });
+  const entries = await fs.readdir(sourceDir, { withFileTypes: true });
+  for (const entry of entries) {
+    const src = path.join(sourceDir, entry.name);
+    const dest = path.join(destDir, entry.name);
+    if (entry.isDirectory()) {
+      await hardlinkTreeInto(src, dest);
+      continue;
+    }
+    await fs.link(src, dest);
+  }
+};
+
+// `@midscene/{playground,ios,harmony}` all ship the same bundled web
+// playground as their `static/` directory (verified byte-identical tree
+// hash). Keep playground's copy as canonical and hardlink the ios/harmony
+// trees into it. ~36 MB of on-disk duplication reclaimed in the final
+// .app. (ditto's pkzip output still serializes each hardlinked file
+// independently, so the .zip size is mostly unaffected.)
+export const PLAYGROUND_STATIC_DEDUPE_GROUPS = [
+  {
+    canonical: '@midscene/playground',
+    aliases: ['@midscene/ios', '@midscene/harmony'],
+  },
+];
+
+export const dedupePlaygroundStatic = async (nodeModulesDir) => {
+  for (const group of PLAYGROUND_STATIC_DEDUPE_GROUPS) {
+    const canonicalStatic = path.join(
+      nodeModulesDir,
+      group.canonical,
+      'static',
+    );
+    try {
+      await fs.access(canonicalStatic);
+    } catch {
+      continue;
+    }
+
+    for (const alias of group.aliases) {
+      const aliasStatic = path.join(nodeModulesDir, alias, 'static');
+      try {
+        await fs.access(aliasStatic);
+      } catch {
+        continue;
+      }
+      await fs.rm(aliasStatic, { recursive: true, force: true });
+      await hardlinkTreeInto(canonicalStatic, aliasStatic);
+    }
+  }
+};
+
+// Runs after `pnpm install --prod` populates the stage node_modules but
+// before `@electron/packager` copies it into the .app. Deletions here
+// propagate through the copy; hardlinks would be flattened into real
+// files, so the playground-static dedup has to wait until the .app exists.
+export const slimStageNodeModules = async (nodeModulesDir) => {
+  await pruneSourceMapFiles(nodeModulesDir);
+  await pruneAntdUmdBundles(nodeModulesDir);
+  await dropMidsceneEsmBuilds(nodeModulesDir);
+  await dropAntdEsmBuild(nodeModulesDir);
 };
 
 const vendorWorkspacePackages = async ({ workspacePackages, vendorDir }) => {
@@ -928,6 +1133,7 @@ const createPackagingWorkspace = async ({ stageDir, version }) => {
   );
 
   await installStageDependencies(stageDir);
+  await slimStageNodeModules(path.join(stageDir, 'node_modules'));
   await removeIfExists(vendorDir);
   await removeIfExists(path.join(stageDir, 'pnpm-lock.yaml'));
 
@@ -1005,6 +1211,7 @@ export const packageStudioElectronApp = async ({
   });
   const stageDir = path.join(packagingWorkspaceDir, baseName);
 
+  await assertNoLiveDevBuilders();
   await createPackagingWorkspace({ stageDir, version: normalizedVersion });
 
   await removeIfExists(packagedDir);
@@ -1029,6 +1236,10 @@ export const packageStudioElectronApp = async ({
   const artifactPath = path.join(artifactDir, `${baseName}.zip`);
 
   await assertPortablePackagedNodeModules(packagedAppPath);
+  const packagedPayloadDir = await findPackagedAppPayloadDir(packagedAppPath);
+  if (packagedPayloadDir) {
+    await dedupePlaygroundStatic(path.join(packagedPayloadDir, 'node_modules'));
+  }
 
   await archivePackagedApp({
     hostPlatform: process.platform,
