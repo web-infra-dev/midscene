@@ -18,6 +18,8 @@ import ConnectionFailedPreview from '../ConnectionFailedPreview';
 import DisconnectedPreview from '../DisconnectedPreview';
 import type { ShellActiveView } from '../ShellLayout/types';
 import { DeviceList } from './DeviceList';
+import { MobilePreviewFrame } from './MobilePreviewFrame';
+import { shouldEnableMobilePreviewFrame } from './preview-layout';
 
 const LazyPlaygroundPreview = lazy(() => import('./LazyPlaygroundPreview'));
 
@@ -141,6 +143,20 @@ export default function MainContent({
     ? resolveSelectedDeviceId(studioPlayground.controller.state.formValues)
     : undefined;
   const previewDeviceId = connectedDeviceId ?? selectedDeviceId;
+  const runtimeInfo =
+    studioPlayground.phase === 'ready'
+      ? studioPlayground.controller.state.runtimeInfo
+      : null;
+  const previewFormValues: Record<string, unknown> =
+    studioPlayground.phase === 'ready'
+      ? studioPlayground.controller.state.formValues
+      : {};
+  const shouldFrameMobilePreview = shouldEnableMobilePreviewFrame(
+    runtimeInfo,
+    previewFormValues,
+    isConnected,
+    previewStatus,
+  );
   const disconnectDisabled =
     !isReady || !studioPlayground.controller.state.sessionViewState.connected;
   const previewConnectionFailed =
@@ -160,10 +176,6 @@ export default function MainContent({
     }
   }, [isConnected]);
 
-  const runtimeInfo =
-    studioPlayground.phase === 'ready'
-      ? studioPlayground.controller.state.runtimeInfo
-      : null;
   const pauseDiscoveryPolling = shouldPauseDiscoveryPollingDuringPreview({
     previewStatus,
     runtimeInfo,
@@ -381,44 +393,34 @@ export default function MainContent({
       </div>
 
       <div className="relative min-h-0 flex-1 overflow-hidden bg-surface">
-        {studioPlayground.phase === 'booting' ? (
-          <div className="flex h-full items-center justify-center px-6 text-[14px] text-text-tertiary">
-            Playground starting...
-          </div>
-        ) : studioPlayground.phase === 'error' ? (
-          <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">
-            <div className="max-w-[420px] text-[14px] leading-[22px] text-text-secondary">
-              {studioPlayground.error}
+        <MobilePreviewFrame enabled={shouldFrameMobilePreview}>
+          {studioPlayground.phase === 'booting' ? (
+            <div className="flex h-full items-center justify-center px-6 text-[14px] text-text-tertiary">
+              Playground starting...
             </div>
-            <button
-              className="rounded-lg border border-border-subtle px-4 py-2 text-[13px] font-medium text-text-primary"
-              onClick={() => {
-                void studioPlayground.restartPlayground();
-              }}
-              type="button"
-            >
-              Retry runtime
-            </button>
-          </div>
-        ) : !studioPlayground.controller.state.serverOnline ? (
-          <div className="flex h-full items-center justify-center px-8 text-center text-[14px] leading-[22px] text-text-tertiary">
-            Playground server is offline.
-          </div>
-        ) : studioPlayground.controller.state.sessionViewState.connected ? (
-          <div className="h-full w-full">
-            <Suspense
-              fallback={
-                <ConnectingPreview
-                  pcSrc={assetUrls.main.pc}
-                  phoneSrc={assetUrls.main.phone}
-                  statusLabel={
-                    previewStatusText || 'Preparing Android device connection…'
-                  }
-                />
-              }
-            >
-              <LazyPlaygroundPreview
-                connectingOverlay={
+          ) : studioPlayground.phase === 'error' ? (
+            <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">
+              <div className="max-w-[420px] text-[14px] leading-[22px] text-text-secondary">
+                {studioPlayground.error}
+              </div>
+              <button
+                className="rounded-lg border border-border-subtle px-4 py-2 text-[13px] font-medium text-text-primary"
+                onClick={() => {
+                  void studioPlayground.restartPlayground();
+                }}
+                type="button"
+              >
+                Retry runtime
+              </button>
+            </div>
+          ) : !studioPlayground.controller.state.serverOnline ? (
+            <div className="flex h-full items-center justify-center px-8 text-center text-[14px] leading-[22px] text-text-tertiary">
+              Playground server is offline.
+            </div>
+          ) : studioPlayground.controller.state.sessionViewState.connected ? (
+            <div className="h-full w-full">
+              <Suspense
+                fallback={
                   <ConnectingPreview
                     pcSrc={assetUrls.main.pc}
                     phoneSrc={assetUrls.main.phone}
@@ -428,30 +430,56 @@ export default function MainContent({
                     }
                   />
                 }
-                onScrcpyStatusChange={(status, statusText) => {
-                  setPreviewStatus(status);
-                  setPreviewStatusText(statusText);
-                }}
-                renderErrorOverlay={({ retry }) => (
-                  <ConnectionFailedPreview
-                    adbId={previewDeviceId}
-                    iconSrc={assetUrls.main.connectionFailed}
-                    onReconnect={retry}
-                  />
-                )}
-                playgroundSDK={studioPlayground.controller.state.playgroundSDK}
-                runtimeInfo={studioPlayground.controller.state.runtimeInfo}
-                serverUrl={studioPlayground.serverUrl}
-                serverOnline={studioPlayground.controller.state.serverOnline}
-                isUserOperating={
-                  studioPlayground.controller.state.isUserOperating
-                }
-              />
-            </Suspense>
-          </div>
-        ) : (
-          <DisconnectedPreview iconSrc={assetUrls.main.connectionClosed} />
-        )}
+              >
+                <LazyPlaygroundPreview
+                  connectingOverlay={
+                    <ConnectingPreview
+                      pcSrc={assetUrls.main.pc}
+                      phoneSrc={assetUrls.main.phone}
+                      statusLabel={
+                        previewStatusText ||
+                        'Preparing Android device connection…'
+                      }
+                    />
+                  }
+                  onScrcpyStatusChange={(status, statusText) => {
+                    setPreviewStatus(status);
+                    setPreviewStatusText(statusText);
+                  }}
+                  renderErrorOverlay={({ retry }) => (
+                    <ConnectionFailedPreview
+                      adbId={previewDeviceId}
+                      iconSrc={assetUrls.main.connectionFailed}
+                      onReconnect={retry}
+                    />
+                  )}
+                  playgroundSDK={
+                    studioPlayground.controller.state.playgroundSDK
+                  }
+                  screenshotViewerMode={
+                    shouldFrameMobilePreview ? 'screen-only' : undefined
+                  }
+                  scrcpyViewportStyle={
+                    shouldFrameMobilePreview
+                      ? {
+                          background: 'transparent',
+                          borderRadius: 0,
+                        }
+                      : undefined
+                  }
+                  runtimeInfo={studioPlayground.controller.state.runtimeInfo}
+                  serverUrl={studioPlayground.serverUrl}
+                  serverOnline={studioPlayground.controller.state.serverOnline}
+                  isUserOperating={
+                    studioPlayground.controller.state.isUserOperating
+                  }
+                />
+              </Suspense>
+            </div>
+          ) : (
+            <DisconnectedPreview iconSrc={assetUrls.main.connectionClosed} />
+          )}
+        </MobilePreviewFrame>
       </div>
     </div>
   );

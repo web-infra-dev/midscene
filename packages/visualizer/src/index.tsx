@@ -36,6 +36,7 @@ export { PromptInput } from './component/prompt-input';
 export { Player } from './component/player';
 export { Blackboard } from './component/blackboard';
 export { default as ScreenshotViewer } from './component/screenshot-viewer';
+export type { ScreenshotViewerMode } from './component/screenshot-viewer';
 
 // Export playground utilities
 export {

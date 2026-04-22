@@ -11,6 +11,7 @@ import React, {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
 } from 'react';
 import type { Socket } from 'socket.io-client';
@@ -47,6 +48,7 @@ interface ScrcpyPanelProps {
   serverUrl?: string;
   metadataTimeoutMs?: number;
   reconnectInterval?: number;
+  viewportStyle?: CSSProperties;
 }
 
 interface VideoMetadata {
@@ -63,6 +65,7 @@ export function ScrcpyPanel({
   serverUrl,
   metadataTimeoutMs = SCRCPY_METADATA_TIMEOUT_MS,
   reconnectInterval = 3000,
+  viewportStyle,
 }: ScrcpyPanelProps) {
   const canvasStageRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -356,6 +359,7 @@ export function ScrcpyPanel({
           background: '#111827',
           borderRadius: 8,
           overflow: 'hidden',
+          ...viewportStyle,
         }}
       >
         <div
