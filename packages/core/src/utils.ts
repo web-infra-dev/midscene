@@ -84,6 +84,7 @@ declare const module: { require?: (id: string) => unknown } | undefined;
 
 let cachedReportTpl: string | null = null;
 let cachedRuntimeRequire: NodeRequire | null | undefined = undefined;
+let cachedCurrentModuleFilePath: string | null | undefined = undefined;
 
 // Resolve a Node `require` lazily at runtime without letting bundlers follow
 // the call. Node's CJS module wrapper injects a local `module` binding that
@@ -114,6 +115,94 @@ function getRuntimeRequire(): NodeRequire | null {
   return cachedRuntimeRequire;
 }
 
+function getCurrentModuleFilePath(): string | null {
+  if (cachedCurrentModuleFilePath !== undefined) {
+    return cachedCurrentModuleFilePath;
+  }
+
+  const originalPrepareStackTrace = Error.prepareStackTrace;
+  try {
+    Error.prepareStackTrace = (_, stack) => stack;
+    const stack = new Error().stack as unknown as NodeJS.CallSite[] | undefined;
+    const rawPath =
+      stack
+        ?.map((callSite) => callSite.getFileName())
+        .find(
+          (fileName): fileName is string =>
+            typeof fileName === 'string' &&
+            /[\\/]utils\.(?:mjs|js)$/.test(fileName),
+        ) ?? null;
+
+    if (!rawPath) {
+      cachedCurrentModuleFilePath = null;
+      return cachedCurrentModuleFilePath;
+    }
+
+    if (rawPath.startsWith('file://')) {
+      const fileUrl = new URL(rawPath);
+      const decodedPath = decodeURIComponent(fileUrl.pathname);
+      cachedCurrentModuleFilePath =
+        process.platform === 'win32' && decodedPath.startsWith('/')
+          ? decodedPath.slice(1)
+          : decodedPath;
+      return cachedCurrentModuleFilePath;
+    }
+
+    cachedCurrentModuleFilePath = rawPath;
+    return cachedCurrentModuleFilePath;
+  } finally {
+    Error.prepareStackTrace = originalPrepareStackTrace;
+  }
+}
+
+function loadInjectedReportTplFromSiblingFile(): string {
+  const currentModuleFilePath = getCurrentModuleFilePath();
+  if (!currentModuleFilePath) {
+    return '';
+  }
+
+  const siblingTemplatePath = path.join(
+    path.dirname(currentModuleFilePath),
+    path.extname(currentModuleFilePath) === '.mjs'
+      ? 'report-template.mjs'
+      : 'report-template.js',
+  );
+
+  try {
+    const moduleSource = fs.readFileSync(siblingTemplatePath, 'utf-8');
+    const marker = '/*REPORT_HTML_REPLACED*/';
+    const markerIndex = moduleSource.indexOf(marker);
+    if (markerIndex === -1) {
+      return '';
+    }
+
+    const jsonStringStart = markerIndex + marker.length;
+    if (moduleSource[jsonStringStart] !== '"') {
+      return '';
+    }
+
+    let cursor = jsonStringStart + 1;
+    let escaped = false;
+    while (cursor < moduleSource.length) {
+      const currentChar = moduleSource[cursor];
+      if (escaped) {
+        escaped = false;
+      } else if (currentChar === '\\') {
+        escaped = true;
+      } else if (currentChar === '"') {
+        return JSON.parse(
+          moduleSource.slice(jsonStringStart, cursor + 1),
+        ) as string;
+      }
+      cursor++;
+    }
+
+    return '';
+  } catch {
+    return '';
+  }
+}
+
 // The report HTML template lives in a sibling module (`./report-template`).
 // It is intentionally NOT imported with a static `import` here: the template
 // expands to the full HTML of `apps/report/dist/index.html` at build time
@@ -125,19 +214,19 @@ function getRuntimeRequire(): NodeRequire | null {
 // inlining the template into callers that never invoke `getReportTpl()`.
 function loadReportTplFromSiblingModule(): string {
   const nodeRequire = getRuntimeRequire();
-  if (!nodeRequire) {
-    return '';
+  if (nodeRequire) {
+    const reportTemplateModuleId = './report-template';
+    try {
+      const loaded = nodeRequire(reportTemplateModuleId) as {
+        REPORT_HTML_TEMPLATE?: string;
+      };
+      return loaded.REPORT_HTML_TEMPLATE ?? '';
+    } catch {
+      return '';
+    }
   }
 
-  const reportTemplateModuleId = './report-template';
-  try {
-    const loaded = nodeRequire(reportTemplateModuleId) as {
-      REPORT_HTML_TEMPLATE?: string;
-    };
-    return loaded.REPORT_HTML_TEMPLATE ?? '';
-  } catch {
-    return '';
-  }
+  return loadInjectedReportTplFromSiblingFile();
 }
 
 export function getReportTpl() {
