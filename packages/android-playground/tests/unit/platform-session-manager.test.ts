@@ -76,7 +76,7 @@ describe('androidPlaygroundPlatform session manager', () => {
     expect(connectMock).toHaveBeenCalled();
   });
 
-  test('surfaces adb discovery failures instead of returning empty targets', async () => {
+  test('keeps the setup schema usable when adb discovery fails', async () => {
     getConnectedDevicesWithDetailsMock
       .mockRejectedValueOnce(new Error('adb executable not found'))
       .mockRejectedValueOnce(new Error('adb executable not found'));
@@ -84,10 +84,23 @@ describe('androidPlaygroundPlatform session manager', () => {
     const { androidPlaygroundPlatform } = await import('../../src/platform');
     const prepared = await androidPlaygroundPlatform.prepare();
 
-    await expect(prepared.sessionManager?.getSetupSchema()).rejects.toThrow(
-      'adb executable not found',
+    const setup = await prepared.sessionManager?.getSetupSchema();
+    expect(setup?.targets).toEqual([]);
+    expect(setup?.description).toContain('adb executable not found');
+    expect(setup?.autoSubmitWhenReady).toBe(false);
+
+    await expect(prepared.sessionManager?.listTargets?.()).resolves.toEqual([]);
+  });
+
+  test('bubbles adb discovery failures out of createSession so the user sees the root cause', async () => {
+    getConnectedDevicesWithDetailsMock.mockRejectedValueOnce(
+      new Error('adb executable not found'),
     );
-    await expect(prepared.sessionManager?.listTargets?.()).rejects.toThrow(
+
+    const { androidPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await androidPlaygroundPlatform.prepare();
+
+    await expect(prepared.sessionManager?.createSession({})).rejects.toThrow(
       'adb executable not found',
     );
   });

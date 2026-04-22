@@ -38,6 +38,22 @@ async function getAdbTargets(): Promise<PlaygroundSessionTarget[]> {
     }));
 }
 
+interface AdbTargetsResult {
+  targets: PlaygroundSessionTarget[];
+  error?: string;
+}
+
+async function getAdbTargetsSafe(): Promise<AdbTargetsResult> {
+  try {
+    return { targets: await getAdbTargets() };
+  } catch (error) {
+    return {
+      targets: [],
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 export const androidPlaygroundPlatform = definePlaygroundPlatform<
   AndroidPlatformOptions | undefined
 >({
@@ -66,13 +82,18 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
       );
     }
 
+    const baseDescription =
+      'Select an available ADB device to create the current Android Agent';
+
     const sessionManager: PlaygroundSessionManager = {
       async getSetupSchema() {
-        const targets = await getAdbTargets();
+        const { targets, error } = await getAdbTargetsSafe();
+        const description = error
+          ? `${baseDescription}\n\n⚠️ ${error}`
+          : baseDescription;
         return {
           title: 'Welcome to\nMidscene.js Playground!',
-          description:
-            'Select an available ADB device to create the current Android Agent',
+          description,
           primaryActionLabel: 'Create Agent',
           autoSubmitWhenReady: targets.length === 1,
           fields: [
@@ -93,7 +114,7 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
           targets,
         };
       },
-      listTargets: getAdbTargets,
+      listTargets: async () => (await getAdbTargetsSafe()).targets,
       async createSession(input) {
         const targets = await getAdbTargets();
         const deviceId =
