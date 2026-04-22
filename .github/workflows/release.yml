@@ -24,6 +24,18 @@ jobs:
     strategy:
       matrix:
         node-version: [24.13.0]
+    # Force rspack/miette onto the narratable diagnostic path. The graphical
+    # handler in miette 7.6.0 panics on `terminal_size()` edge cases inside
+    # GitHub Actions (no tty + stream multiplexing), which surfaces as a
+    # "Formatting argument out of range" abort at
+    # miette-7.6.0/src/handlers/graphical.rs:1159. Same commit can flake
+    # pass/fail across reruns — setting these env vars makes the build
+    # deterministic until rspack rolls a newer miette.
+    env:
+      COLUMNS: '120'
+      TERM: dumb
+      FORCE_COLOR: '0'
+      NO_COLOR: '1'
     steps:
     - uses: actions/checkout@v2
       with:
@@ -145,6 +157,12 @@ jobs:
         - os: macos-15
           platform: darwin
           arch: arm64
+    # Same miette-graphical workaround as the `release` job above.
+    env:
+      COLUMNS: '120'
+      TERM: dumb
+      FORCE_COLOR: '0'
+      NO_COLOR: '1'
     steps:
     - uses: actions/checkout@v2
       with:
