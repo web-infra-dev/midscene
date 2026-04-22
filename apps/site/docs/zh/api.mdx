@@ -124,7 +124,7 @@ const agent = new PuppeteerAgent(page, {
 在 Midscene 中，你可以选择使用自动规划（Auto Planning）或即时操作（Instant Action）。
 
 - `agent.ai()` 是自动规划（Auto Planning）：Midscene 会自动规划操作步骤并执行。它更智能，更像流行的 AI Agent 风格，但可能较慢，且效果依赖于 AI 模型的质量。
-- `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()`, `agent.aiPinch()`, `agent.aiDoubleClick()`, `agent.aiRightClick()` 是即时操作（Instant Action）：Midscene 会直接执行指定的操作，而 AI 模型只负责底层任务，如定位元素等。这种接口形式更快、更可靠。当你完全确定自己想要执行的操作时，推荐使用这种接口形式。
+- `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiClearInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()`, `agent.aiPinch()`, `agent.aiLongPress()`, `agent.aiDoubleClick()`, `agent.aiRightClick()` 是即时操作（Instant Action）：Midscene 会直接执行指定的操作，而 AI 模型只负责底层任务，如定位元素等。这种接口形式更快、更可靠。当你完全确定自己想要执行的操作时，推荐使用这种接口形式。
 
 :::
 
@@ -339,6 +339,52 @@ await agent.aiInput('Hello World', '搜索框');
 
 :::
 
+### `agent.aiClearInput()`
+
+清空输入框内容。适合作为一个独立步骤使用：在输入前先清空，或只需删除现有文本而暂时不输入新内容。
+
+- 类型
+
+```typescript
+function aiClearInput(
+  locate: string | Object,
+  opt?: {
+    deepLocate?: boolean;
+    xpath?: string;
+    cacheable?: boolean;
+  },
+): Promise<void>;
+```
+
+- 参数：
+
+  - `locate: string | Object` - 要清空的输入框的自然语言描述，或[通过图像提示](#通过图像提示)。
+  - `opt?: Object` - 可选配置对象：
+    - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。默认 `false`。
+    - `xpath?: string` - 要操作元素的 xpath，默认空。
+    - `cacheable?: boolean` - 启用[缓存功能](./caching.mdx)时是否缓存，默认 `true`。
+
+- 返回值：
+
+  - 返回 `Promise<void>`
+
+- 示例：
+
+```typescript
+// 清空搜索框
+await agent.aiClearInput('搜索框');
+
+// 先清空再输入新值
+await agent.aiClearInput('邮箱输入框');
+await agent.aiInput('邮箱输入框', { value: 'user@example.com' });
+```
+
+:::tip `aiClearInput` 与 `aiInput` 的取舍
+
+`aiInput(locate, { value: '...' })` 默认会先清空输入框（`mode: 'replace'`）。只有在需要把清空当成独立一步时（例如测试空值校验，或想把清空和输入拆成两步分别控制）才使用 `aiClearInput`。
+
+:::
+
 ### `agent.aiKeyboardPress()`
 
 按下键盘上的某个键。
@@ -526,6 +572,53 @@ await agent.aiPinch('图片', { direction: 'out', distance: 300, duration: 1000 
 - **iOS** —— 通过 W3C Actions API 双触摸指针实现。
 - **Web** —— 通过 CDP 触摸事件实现。Puppeteer/Playwright 需设置 `enableTouchEventsInActionSpace: true`。Playwright 仅支持 Chromium 内核浏览器。
 - **HarmonyOS** —— 不支持。`uitest` 框架未提供多触点 API。
+
+:::
+
+### `agent.aiLongPress()`
+
+长按（按住不放）某个元素，常用于唤起右键/上下文菜单、触发选中模式或其他长按手势。
+
+- 类型
+
+```typescript
+function aiLongPress(
+  locate: string | Object,
+  opt?: {
+    duration?: number;
+    deepLocate?: boolean;
+    xpath?: string;
+    cacheable?: boolean;
+  },
+): Promise<void>;
+```
+
+- 参数：
+
+  - `locate: string | Object` - 要长按的元素的自然语言描述，或[通过图像提示](#通过图像提示)。
+  - `opt?: Object` - 可选配置对象：
+    - `duration?: number` - 按住时长（毫秒），默认值随平台而异（Android / Web 默认 `2000`，iOS 默认 `1000`）。
+    - `deepLocate?: boolean` - 是否启用[深度定位](#深度定位deeplocate)，默认 `false`。
+    - `xpath?: string` - 要操作元素的 xpath，默认空。
+    - `cacheable?: boolean` - 启用[缓存功能](./caching.mdx)时是否缓存，默认 `true`。
+
+- 返回值：
+
+  - 返回 `Promise<void>`
+
+- 示例：
+
+```typescript
+// 长按首页的第一篇文章以唤起菜单
+await agent.aiLongPress('首页的第一篇文章');
+
+// 自定义长按时长
+await agent.aiLongPress('消息气泡', { duration: 2000 });
+```
+
+:::info 平台支持
+
+- **Android**、**iOS**、**HarmonyOS**、**Web**（基于 Chromium 的浏览器，通过触摸事件实现）。HarmonyOS 会忽略 `duration` 选项，因为底层 `uitest` API 不支持自定义按住时长。
 
 :::
 

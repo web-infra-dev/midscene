@@ -374,6 +374,7 @@ export const defineActionLongPress = (
   return defineAction<typeof ActionLongPressParamSchema, ActionLongPressParam>({
     name: 'LongPress',
     description: 'Long press the element',
+    interfaceAlias: 'aiLongPress',
     paramSchema: ActionLongPressParamSchema,
     sample: {
       locate: { prompt: 'the message bubble' },
