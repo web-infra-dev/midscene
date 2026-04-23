@@ -524,4 +524,74 @@ describe('IOSDevice', () => {
       expect(screenshot).toContain('base64-screenshot');
     });
   });
+
+  // Regression for https://github.com/web-infra-dev/midscene/issues/2313:
+  // Launch/Terminate previously used a bare z.string() paramSchema, which
+  // could not be expressed as a CLI flag and forced the handler to invoke
+  // z.string().parse({}), failing with "Expected string, received object".
+  describe('Launch/Terminate paramSchema (issue #2313)', () => {
+    it('Launch action exposes a `uri` object field', () => {
+      const launchAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Launch');
+      expect(launchAction).toBeDefined();
+      const shape = (launchAction!.paramSchema as any)?._def?.typeName;
+      expect(shape).toBe('ZodObject');
+      const uriField = (launchAction!.paramSchema as any).shape?.uri;
+      expect(uriField?._def?.typeName).toBe('ZodString');
+    });
+
+    it('Terminate action exposes a `uri` object field', () => {
+      const terminateAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Terminate');
+      expect(terminateAction).toBeDefined();
+      const shape = (terminateAction!.paramSchema as any)?._def?.typeName;
+      expect(shape).toBe('ZodObject');
+      const uriField = (terminateAction!.paramSchema as any).shape?.uri;
+      expect(uriField?._def?.typeName).toBe('ZodString');
+    });
+
+    it('Launch.call delegates the uri to device.launch', async () => {
+      await device.connect();
+      const launchAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Launch');
+      await launchAction!.call({ uri: 'com.apple.Preferences' }, {} as any);
+      expect(mockWdaClient.launchApp).toHaveBeenCalledWith(
+        'com.apple.Preferences',
+      );
+    });
+
+    it('Launch.call rejects an empty uri', async () => {
+      await device.connect();
+      const launchAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Launch');
+      await expect(launchAction!.call({ uri: '' }, {} as any)).rejects.toThrow(
+        'Launch requires a non-empty uri parameter',
+      );
+    });
+
+    it('Terminate.call delegates the uri to device.terminate', async () => {
+      await device.connect();
+      const terminateAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Terminate');
+      await terminateAction!.call({ uri: 'com.apple.Preferences' }, {} as any);
+      expect(mockWdaClient.terminateApp).toHaveBeenCalledWith(
+        'com.apple.Preferences',
+      );
+    });
+
+    it('Terminate.call rejects an empty uri', async () => {
+      await device.connect();
+      const terminateAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Terminate');
+      await expect(
+        terminateAction!.call({ uri: '' }, {} as any),
+      ).rejects.toThrow('Terminate requires a non-empty uri parameter');
+    });
+  });
 });

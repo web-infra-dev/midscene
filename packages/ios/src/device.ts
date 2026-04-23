@@ -1037,11 +1037,13 @@ const runWdaRequestParamSchema = z.object({
 type RunWdaRequestParam = z.infer<typeof runWdaRequestParamSchema>;
 type RunWdaRequestReturn = Awaited<ReturnType<IOSDevice['runWdaRequest']>>;
 
-const launchParamSchema = z
-  .string()
-  .describe(
-    'App name, bundle ID, or URL to launch. Prioritize using the exact bundle ID or URL the user has provided. If none provided, use the accurate app name.',
-  );
+const launchParamSchema = z.object({
+  uri: z
+    .string()
+    .describe(
+      'App name, bundle ID, or URL to launch. Prioritize using the exact bundle ID or URL the user has provided. If none provided, use the accurate app name.',
+    ),
+});
 
 type LaunchParam = z.infer<typeof launchParamSchema>;
 
@@ -1051,11 +1053,13 @@ export type DeviceActionRunWdaRequest = DeviceAction<
 >;
 export type DeviceActionLaunch = DeviceAction<LaunchParam, void>;
 
-const terminateParamSchema = z
-  .string()
-  .describe(
-    'Bundle ID of the app to terminate (close). Use the exact bundle ID, e.g. com.apple.Preferences.',
-  );
+const terminateParamSchema = z.object({
+  uri: z
+    .string()
+    .describe(
+      'Bundle ID of the app to terminate (close). Use the exact bundle ID, e.g. com.apple.Preferences.',
+    ),
+});
 
 type TerminateParam = z.infer<typeof terminateParamSchema>;
 
@@ -1093,8 +1097,14 @@ const createPlatformActions = (device: IOSDevice) => {
       description: 'Launch an iOS app or URL',
       interfaceAlias: 'launch',
       paramSchema: launchParamSchema,
+      sample: {
+        uri: 'com.apple.Preferences',
+      },
       call: async (param) => {
-        await device.launch(param);
+        if (!param.uri || param.uri.trim() === '') {
+          throw new Error('Launch requires a non-empty uri parameter');
+        }
+        await device.launch(param.uri);
       },
     }),
     Terminate: defineAction<typeof terminateParamSchema, TerminateParam, void>({
@@ -1102,8 +1112,14 @@ const createPlatformActions = (device: IOSDevice) => {
       description: 'Terminate (close) an iOS app by its bundle ID',
       interfaceAlias: 'terminate',
       paramSchema: terminateParamSchema,
+      sample: {
+        uri: 'com.apple.Preferences',
+      },
       call: async (param) => {
-        await device.terminate(param);
+        if (!param.uri || param.uri.trim() === '') {
+          throw new Error('Terminate requires a non-empty uri parameter');
+        }
+        await device.terminate(param.uri);
       },
     }),
     IOSHomeButton: defineAction({
