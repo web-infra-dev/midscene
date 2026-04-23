@@ -20,6 +20,7 @@ jobs:
   release:
     outputs:
       version: ${{ steps.get_version.outputs.version }}
+      is_prerelease: ${{ steps.get_version.outputs.is_prerelease }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -79,7 +80,12 @@ jobs:
       id: get_version
       run: |
         VERSION=$(cat packages/core/package.json | jq -r '.version')
+        IS_PRERELEASE=false
+        if [[ "$VERSION" == *beta* || "$VERSION" == *alpha* || "$VERSION" == *rc* ]]; then
+          IS_PRERELEASE=true
+        fi
         echo "version=v${VERSION}" >> $GITHUB_OUTPUT
+        echo "is_prerelease=${IS_PRERELEASE}" >> $GITHUB_OUTPUT
         echo "Core package version: v${VERSION}"
         echo "## 🚀 Released v${VERSION}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
@@ -87,6 +93,12 @@ jobs:
         echo "- **Type**: \`${{ github.event.inputs.version }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **Branch**: \`${{ github.event.inputs.branch }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **NPM**: [\`@midscene/core@${VERSION}\`](https://www.npmjs.com/package/@midscene/core/v/${VERSION})" >> $GITHUB_STEP_SUMMARY
+        if [[ "$IS_PRERELEASE" == "true" ]]; then
+          echo "- **GitHub Release**: skipped for prerelease builds" >> $GITHUB_STEP_SUMMARY
+          echo "- **Artifacts**: download them from this workflow run" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- **GitHub Release**: https://github.com/${{ github.repository }}/releases/tag/v${VERSION}" >> $GITHUB_STEP_SUMMARY
+        fi
       
     - name: Upload output
       uses: actions/upload-artifact@v4
@@ -96,6 +108,7 @@ jobs:
         path: ${{ github.workspace }}/apps/chrome-extension/extension_output
         
     - name: Upload Release Assets
+      if: ${{ steps.get_version.outputs.is_prerelease != 'true' }}
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.get_version.outputs.version }}
@@ -166,8 +179,13 @@ jobs:
       NO_COLOR: '1'
     steps:
     - uses: actions/checkout@v2
+      if: ${{ needs.release.outputs.is_prerelease != 'true' }}
       with:
         ref: refs/tags/${{ needs.release.outputs.version }}
+    - uses: actions/checkout@v2
+      if: ${{ needs.release.outputs.is_prerelease == 'true' }}
+      with:
+        ref: ${{ github.event.inputs.branch }}
     - name: Setup pnpm
       uses: pnpm/action-setup@v2
       with:
@@ -196,6 +214,7 @@ jobs:
         path: ${{ github.workspace }}/.release/studio/artifacts/*.zip
 
     - name: Upload Studio asset to GitHub Release
+      if: ${{ needs.release.outputs.is_prerelease != 'true' }}
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ needs.release.outputs.version }}
