@@ -19,6 +19,7 @@ import {
   defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionKeyboardPress,
+  defineActionLongPress,
   defineActionScroll,
   defineActionSwipe,
   defineActionTap,
@@ -237,37 +238,12 @@ export class HarmonyDevice implements AbstractInterface {
           await sleep(100);
         }
       }),
-      defineAction<
-        z.ZodObject<{
-          duration: z.ZodOptional<z.ZodNumber>;
-          locate: ReturnType<typeof getMidsceneLocationSchema>;
-        }>,
-        {
-          duration?: number;
-          locate: LocateResultElement;
+      defineActionLongPress(async (param) => {
+        const element = param.locate;
+        if (!element) {
+          throw new Error('LongPress requires an element to be located');
         }
-      >({
-        name: 'LongPress',
-        description: 'Trigger a long press on the screen at specified element',
-        paramSchema: z.object({
-          duration: z
-            .number()
-            .optional()
-            .describe('The duration of the long press in milliseconds'),
-          locate: getMidsceneLocationSchema().describe(
-            'The element to be long pressed',
-          ),
-        }),
-        sample: {
-          locate: { prompt: 'the message bubble' },
-        },
-        call: async (param) => {
-          const element = param.locate;
-          if (!element) {
-            throw new Error('LongPress requires an element to be located');
-          }
-          await this.longPress(element.center[0], element.center[1]);
-        },
+        await this.longPress(element.center[0], element.center[1]);
       }),
       defineActionClearInput(async (param) => {
         await this.clearInput(param.locate as ElementInfo | undefined);

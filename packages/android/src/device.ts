@@ -23,6 +23,7 @@ import {
   defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionKeyboardPress,
+  defineActionLongPress,
   defineActionPinch,
   defineActionScroll,
   defineActionSwipe,
@@ -256,38 +257,13 @@ export class AndroidDevice implements AbstractInterface {
           await sleep(100);
         }
       }),
-      defineAction<
-        z.ZodObject<{
-          duration: z.ZodOptional<z.ZodNumber>;
-          locate: ReturnType<typeof getMidsceneLocationSchema>;
-        }>,
-        {
-          duration?: number;
-          locate: LocateResultElement;
+      defineActionLongPress(async (param) => {
+        const element = param.locate;
+        if (!element) {
+          throw new Error('LongPress requires an element to be located');
         }
-      >({
-        name: 'LongPress',
-        description: 'Trigger a long press on the screen at specified element',
-        paramSchema: z.object({
-          duration: z
-            .number()
-            .optional()
-            .describe('The duration of the long press in milliseconds'),
-          locate: getMidsceneLocationSchema().describe(
-            'The element to be long pressed',
-          ),
-        }),
-        sample: {
-          locate: { prompt: 'the message bubble' },
-        },
-        call: async (param) => {
-          const element = param.locate;
-          if (!element) {
-            throw new Error('LongPress requires an element to be located');
-          }
-          const [x, y] = element.center;
-          await this.longPress(x, y, param?.duration);
-        },
+        const [x, y] = element.center;
+        await this.longPress(x, y, param?.duration);
       }),
       defineAction<
         z.ZodObject<{

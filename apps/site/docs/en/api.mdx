@@ -122,7 +122,7 @@ Below are the main APIs available for the various Agents in Midscene.
 In Midscene, you can choose to use either auto planning or instant action.
 
 - `agent.ai()` is for Auto Planning: Midscene will automatically plan the steps and execute them. It's more smart and looks like more fashionable style for AI agents. But it may be slower and heavily rely on the quality of the AI model.
-- `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()`, `agent.aiPinch()`, `agent.aiDoubleClick()`, `agent.aiRightClick()` are for Instant Action: Midscene will directly perform the specified action, while the AI model is responsible for basic tasks such as locating elements. It's faster and more reliable if you are certain about the action you want to perform.
+- `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiClearInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()`, `agent.aiPinch()`, `agent.aiLongPress()`, `agent.aiDoubleClick()`, `agent.aiRightClick()` are for Instant Action: Midscene will directly perform the specified action, while the AI model is responsible for basic tasks such as locating elements. It's faster and more reliable if you are certain about the action you want to perform.
 
 :::
 
@@ -346,6 +346,52 @@ We recently updated the `aiInput` API signature to put the locate prompt as the 
 
 :::
 
+### `agent.aiClearInput()`
+
+Clear the content of an input field. Useful as a standalone step before typing, or when you need to remove existing text without immediately inputting a new value.
+
+- Type
+
+```typescript
+function aiClearInput(
+  locate: string | Object,
+  opt?: {
+    deepLocate?: boolean;
+    xpath?: string;
+    cacheable?: boolean;
+  },
+): Promise<void>;
+```
+
+- Parameters:
+
+  - `locate: string | Object` - A natural language description of the input field to clear, or [prompting with images](#prompting-with-images).
+  - `opt?: Object` - Optional, a configuration object containing:
+    - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). False by default.
+    - `xpath?: string` - The xpath of the element to operate. Empty by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+
+- Return Value:
+
+  - Returns a `Promise<void>`
+
+- Examples:
+
+```typescript
+// Clear the search box
+await agent.aiClearInput('the search input field');
+
+// Clear and then type a new value
+await agent.aiClearInput('the email input');
+await agent.aiInput('the email input', { value: 'user@example.com' });
+```
+
+:::tip When to use `aiClearInput` vs `aiInput`
+
+`aiInput(locate, { value: '...' })` already clears the field by default (via `mode: 'replace'`). Reach for `aiClearInput` when you need clearing as an independent step — for example, to test empty-state validation, or when you want to control clearing and typing as separate actions.
+
+:::
+
 ### `agent.aiKeyboardPress()`
 
 Press a keyboard key.
@@ -533,6 +579,53 @@ await agent.aiPinch('the image', { direction: 'out', distance: 300, duration: 10
 - **iOS** &mdash; Implemented via W3C Actions API with dual touch pointers.
 - **Web** &mdash; Implemented via CDP touch events. For Puppeteer/Playwright, requires `enableTouchEventsInActionSpace: true`. Playwright only supports Chromium-based browsers.
 - **HarmonyOS** &mdash; Not supported. The `uitest` framework does not provide multi-touch APIs.
+
+:::
+
+### `agent.aiLongPress()`
+
+Long-press (or click-and-hold) an element. Useful for opening context menus, selecting items, or triggering long-press gestures.
+
+- Type
+
+```typescript
+function aiLongPress(
+  locate: string | Object,
+  opt?: {
+    duration?: number;
+    deepLocate?: boolean;
+    xpath?: string;
+    cacheable?: boolean;
+  },
+): Promise<void>;
+```
+
+- Parameters:
+
+  - `locate: string | Object` - A natural language description of the element to long-press on, or [prompting with images](#prompting-with-images).
+  - `opt?: Object` - Optional, a configuration object containing:
+    - `duration?: number` - How long the press is held, in milliseconds. When omitted, each platform applies its own default (Android `2000`, iOS `1000`, Web `500`).
+    - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). False by default.
+    - `xpath?: string` - The xpath of the element to operate. Empty by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+
+- Return Value:
+
+  - Returns a `Promise<void>`
+
+- Examples:
+
+```typescript
+// Long-press an article to open the context menu
+await agent.aiLongPress('the first article on the homepage');
+
+// Long-press with a custom duration
+await agent.aiLongPress('the message bubble', { duration: 2000 });
+```
+
+:::info Platform Support
+
+- **Android**, **iOS**, **HarmonyOS**, **Web** (Chromium-based browsers via touch events). On HarmonyOS the `duration` option is ignored because the underlying `uitest` API does not expose a custom hold time.
 
 :::
 

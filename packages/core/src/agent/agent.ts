@@ -860,6 +860,30 @@ export class Agent<
     });
   }
 
+  async aiLongPress(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption & { duration?: number },
+  ) {
+    assert(locatePrompt, 'missing locate prompt for long press');
+
+    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+
+    return this.callActionInActionSpace('LongPress', {
+      ...(opt || {}),
+      locate: detailedLocateParam,
+    });
+  }
+
+  async aiClearInput(locatePrompt: TUserPrompt, opt?: LocateOption) {
+    assert(locatePrompt, 'missing locate prompt for clear input');
+
+    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+
+    return this.callActionInActionSpace('ClearInput', {
+      locate: detailedLocateParam,
+    });
+  }
+
   async aiAct(
     taskPrompt: string,
     opt?: AiActOptions,
