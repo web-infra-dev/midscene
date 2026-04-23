@@ -69,6 +69,8 @@ export type {
   ExecutionUxHint,
   ExecutionUxConfig,
   PromptInputChromeConfig,
+  ReportDownloadHandler,
+  ReportDownloadRequest,
 } from './types';
 
 // Export storage providers (both legacy and new)

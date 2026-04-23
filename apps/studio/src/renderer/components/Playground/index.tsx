@@ -1,4 +1,5 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useMemo } from 'react';
+import { downloadStudioReport } from '../../playground/report-download';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
 import { PlaygroundShell } from '../PlaygroundShell';
 
@@ -10,6 +11,12 @@ const LazyPlaygroundConversationPanel = lazy(
 
 export default function Playground() {
   const studioPlayground = useStudioPlayground();
+  const playgroundConfig = useMemo(
+    () => ({
+      onDownloadReport: downloadStudioReport,
+    }),
+    [],
+  );
 
   return (
     <PlaygroundShell>
@@ -45,6 +52,7 @@ export default function Playground() {
               appVersion={__APP_VERSION__}
               className="h-full"
               controller={studioPlayground.controller}
+              playgroundConfig={playgroundConfig}
               title="Playground"
             />
           </Suspense>

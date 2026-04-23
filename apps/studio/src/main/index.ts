@@ -1,11 +1,17 @@
 import { existsSync } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { IPC_CHANNELS } from '@shared/electron-contract';
+import {
+  type DiscoverDevicesRequest,
+  IPC_CHANNELS,
+  type WriteReportFileRequest,
+} from '@shared/electron-contract';
 import { resolveExternalUrl } from '@shared/external-links';
 import {
   BrowserWindow,
   type NativeImage,
   app,
+  dialog,
   ipcMain,
   nativeImage,
   shell,
@@ -34,6 +40,9 @@ configureStudioShellEnvHydration({
 let mainWindow: BrowserWindow | null = null;
 let cachedAppIcon: NativeImage | null = null;
 let playgroundRuntimePromise: Promise<PlaygroundRuntimeService> | null = null;
+let deviceDiscoveryServicePromise: Promise<
+  import('./playground/device-discovery').DeviceDiscoveryService
+> | null = null;
 
 // Expose the Chromium DevTools Protocol on a fixed port in dev so external
 // profilers (e.g. chrome-devtools-mcp at http://localhost:9224) can attach to
@@ -97,11 +106,25 @@ const getTitleBarOverlay = (): TitleBarOverlay => ({
   symbolColor: '#17212b',
 });
 
+const DEFAULT_REPORT_FILE_NAME = 'midscene_report.html';
+
+const ensureHtmlFileName = (value: string) =>
+  value.toLowerCase().endsWith('.html') ? value : `${value}.html`;
+
+const resolveDefaultReportSavePath = (defaultFileName?: string) => {
+  const safeFileName = path.basename(
+    ensureHtmlFileName(defaultFileName?.trim() || DEFAULT_REPORT_FILE_NAME),
+  );
+  return path.join(app.getPath('downloads'), safeFileName);
+};
+
 const getPlaygroundRuntime = async (): Promise<PlaygroundRuntimeService> => {
   if (!playgroundRuntimePromise) {
     playgroundRuntimePromise = import('./playground/multi-platform-runtime')
       .then(({ createMultiPlatformRuntimeService }) =>
-        createMultiPlatformRuntimeService(),
+        createMultiPlatformRuntimeService({
+          deviceDiscoveryService: getDeviceDiscoveryService(),
+        }),
       )
       .catch((error) => {
         playgroundRuntimePromise = null;
@@ -119,6 +142,21 @@ const closePlaygroundRuntime = async (): Promise<void> => {
 
   const runtime = await playgroundRuntimePromise;
   await runtime.close();
+};
+
+const getDeviceDiscoveryService = async () => {
+  if (!deviceDiscoveryServicePromise) {
+    deviceDiscoveryServicePromise = import('./playground/device-discovery')
+      .then(({ createDeviceDiscoveryService }) =>
+        createDeviceDiscoveryService(),
+      )
+      .catch((error) => {
+        deviceDiscoveryServicePromise = null;
+        throw error;
+      });
+  }
+
+  return deviceDiscoveryServicePromise;
 };
 
 const createMainWindow = () => {
@@ -180,6 +218,30 @@ const registerIpcHandlers = () => {
   ipcMain.handle(IPC_CHANNELS.openExternalUrl, async (_event, url: string) => {
     await shell.openExternal(resolveExternalUrl(url));
   });
+  ipcMain.handle(
+    IPC_CHANNELS.chooseReportSavePath,
+    async (_event, defaultFileName?: string) => {
+      const dialogOptions = {
+        title: 'Save Midscene Report',
+        defaultPath: resolveDefaultReportSavePath(defaultFileName),
+        filters: [
+          {
+            name: 'HTML Report',
+            extensions: ['html'],
+          },
+        ],
+      };
+      const result = mainWindow
+        ? await dialog.showSaveDialog(mainWindow, dialogOptions)
+        : await dialog.showSaveDialog(dialogOptions);
+
+      if (result.canceled || !result.filePath) {
+        return null;
+      }
+
+      return ensureHtmlFileName(result.filePath);
+    },
+  );
   ipcMain.handle(IPC_CHANNELS.toggleMaximizeWindow, () => {
     if (!mainWindow) return;
     if (mainWindow.isMaximized()) {
@@ -191,6 +253,20 @@ const registerIpcHandlers = () => {
   ipcMain.handle(IPC_CHANNELS.closeWindow, () => {
     mainWindow?.close();
   });
+  ipcMain.handle(
+    IPC_CHANNELS.writeReportFile,
+    async (_event, request: WriteReportFileRequest) => {
+      const targetPath = request?.path?.trim();
+      if (!targetPath) {
+        throw new Error('writeReportFile: path is required');
+      }
+      if (typeof request.content !== 'string') {
+        throw new Error('writeReportFile: content must be a string');
+      }
+
+      await writeFile(ensureHtmlFileName(targetPath), request.content, 'utf-8');
+    },
+  );
   // Multi-platform playground — a single server for Android, iOS,
   // HarmonyOS, and Computer. Legacy channel names (getAndroidPlayground*)
   // are aliased to the same strings in IPC_CHANNELS, so the old
@@ -207,12 +283,19 @@ const registerIpcHandlers = () => {
   ipcMain.handle(IPC_CHANNELS.restartPlayground, async () =>
     (await getPlaygroundRuntime()).restart(),
   );
-  ipcMain.handle(IPC_CHANNELS.discoverDevices, async () => {
-    const { discoverAllDevices } = await import(
-      './playground/device-discovery'
-    );
-    return discoverAllDevices();
-  });
+  ipcMain.handle(
+    IPC_CHANNELS.discoverDevices,
+    async (_event, request?: DiscoverDevicesRequest) =>
+      (await getDeviceDiscoveryService()).getSnapshot({
+        forceRefresh: request?.forceRefresh,
+      }),
+  );
+  ipcMain.handle(
+    IPC_CHANNELS.setDiscoveryPollingPaused,
+    async (_event, paused: boolean) => {
+      (await getDeviceDiscoveryService()).setPollingPaused(Boolean(paused));
+    },
+  );
   ipcMain.handle(IPC_CHANNELS.runConnectivityTest, async (_event, request) => {
     const { runConnectivityTest } = await import(
       './playground/connectivity-test'
@@ -225,6 +308,23 @@ app.whenReady().then(() => {
   if (process.platform === 'darwin' && app.dock) {
     app.dock.setIcon(getAppIcon());
   }
+
+  void getDeviceDiscoveryService()
+    .then((service) =>
+      service.subscribe((devices) => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+          return;
+        }
+
+        mainWindow.webContents.send(
+          IPC_CHANNELS.discoveredDevicesUpdated,
+          devices,
+        );
+      }),
+    )
+    .catch((error) => {
+      console.error('Failed to initialize device discovery service:', error);
+    });
 
   registerIpcHandlers();
   createMainWindow();
@@ -244,4 +344,11 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   void closePlaygroundRuntime();
+  void getDeviceDiscoveryService()
+    .then((service) => {
+      service.close();
+    })
+    .catch(() => {
+      // ignore cleanup failures during shutdown
+    });
 });

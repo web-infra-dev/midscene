@@ -1,4 +1,7 @@
-import type { PlaygroundBootstrap } from '@shared/electron-contract';
+import type {
+  DiscoverDevicesResult,
+  PlaygroundBootstrap,
+} from '@shared/electron-contract';
 import type { PropsWithChildren } from 'react';
 import {
   Suspense,
@@ -6,10 +9,8 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
-import { scheduleDiscoveryPolling } from './discovery-polling';
 import { bucketDiscoveredDevices } from './selectors';
 import type { DiscoveredDevicesByPlatform } from './types';
 import { StudioPlaygroundContext } from './useStudioPlayground';
@@ -41,11 +42,15 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
   const [discoveredDevices, setDiscoveredDevices] = useState<
     DiscoveredDevicesByPlatform | undefined
   >();
-  const [discoveryPollingPaused, setDiscoveryPollingPaused] = useState(false);
-  const refreshDiscoveredDevicesRef = useRef<Promise<void> | null>(null);
+  const applyDiscoveredDevices = useCallback(
+    (devices: DiscoverDevicesResult) => {
+      setDiscoveredDevices(bucketDiscoveredDevices(devices));
+    },
+    [],
+  );
 
   const setDiscoveryPollingPausedValue = useCallback((paused: boolean) => {
-    setDiscoveryPollingPaused(paused);
+    void window.studioRuntime?.setDiscoveryPollingPaused(paused);
   }, []);
 
   // Imperative scan — safe to call from anywhere (user-initiated refresh,
@@ -56,34 +61,50 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    if (refreshDiscoveredDevicesRef.current) {
-      return refreshDiscoveredDevicesRef.current;
+    try {
+      const devices = await studioRuntime.discoverDevices({
+        forceRefresh: true,
+      });
+      applyDiscoveredDevices(devices);
+    } catch (err) {
+      console.warn('[studio] device discovery failed:', err);
     }
+  }, [applyDiscoveredDevices]);
 
-    const pendingRefresh = (async () => {
-      try {
-        const devices = await studioRuntime.discoverDevices();
-        setDiscoveredDevices(bucketDiscoveredDevices(devices));
-      } catch (err) {
-        console.warn('[studio] device discovery failed:', err);
-      } finally {
-        refreshDiscoveredDevicesRef.current = null;
-      }
-    })();
-
-    refreshDiscoveredDevicesRef.current = pendingRefresh;
-    return pendingRefresh;
-  }, []);
-
-  const pollingActive = bootstrap.phase === 'ready' && !discoveryPollingPaused;
   useEffect(() => {
-    if (!pollingActive) {
+    if (bootstrap.phase !== 'ready') {
       return;
     }
-    return scheduleDiscoveryPolling({
-      refresh: refreshDiscoveredDevices,
+
+    const studioRuntime = window.studioRuntime;
+    if (!studioRuntime) {
+      return;
+    }
+
+    let cancelled = false;
+    const unsubscribe = studioRuntime.onDiscoveredDevicesChanged((devices) => {
+      if (cancelled) {
+        return;
+      }
+      applyDiscoveredDevices(devices);
     });
-  }, [pollingActive, refreshDiscoveredDevices]);
+
+    void studioRuntime
+      .discoverDevices()
+      .then((devices) => {
+        if (!cancelled) {
+          applyDiscoveredDevices(devices);
+        }
+      })
+      .catch((err) => {
+        console.warn('[studio] initial device discovery failed:', err);
+      });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [applyDiscoveredDevices, bootstrap.phase]);
 
   const readBootstrap = useCallback(async () => {
     if (!window.studioRuntime) {

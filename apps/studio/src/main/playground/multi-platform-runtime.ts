@@ -5,9 +5,11 @@ import type {
   PreparedPlaygroundPlatform,
   RegisteredPlaygroundPlatform,
 } from '@midscene/playground';
+import type { DiscoveredDevice } from '@shared/electron-contract';
 import type { PlaygroundBootstrap } from '@shared/electron-contract';
 import { ensureStudioShellEnvHydrated } from '../shell-env';
 import { createStudioCorsOptions } from './cors';
+import type { DeviceDiscoveryService } from './device-discovery';
 import type { PlaygroundRuntimeService } from './types';
 
 const require = createRequire(__filename);
@@ -38,6 +40,10 @@ type MultiPlatformRuntimeModules = {
   launchPreparedPlaygroundPlatform: PlaygroundModule['launchPreparedPlaygroundPlatform'];
   prepareMultiPlatformPlayground: PlaygroundModule['prepareMultiPlatformPlayground'];
 };
+
+type StudioDeviceDiscoveryService =
+  | DeviceDiscoveryService
+  | Promise<DeviceDiscoveryService>;
 
 const resolvePackageRootDir = (packageName: string): string =>
   path.resolve(path.dirname(require.resolve(packageName)), '..', '..');
@@ -143,14 +149,44 @@ interface StudioPlatformSpec {
   prepare: (staticDir: string) => Promise<PreparedPlaygroundPlatform>;
 }
 
+function toScrcpyDeviceList(devices: DiscoveredDevice[]) {
+  return devices
+    .filter((device) => device.platformId === 'android')
+    .map((device) => ({
+      id: device.id,
+      name: device.label,
+      status: device.status || 'device',
+    }));
+}
+
+async function createScrcpyDeviceListSource(
+  deviceDiscoveryService: StudioDeviceDiscoveryService,
+) {
+  const resolvedService = await deviceDiscoveryService;
+  return {
+    async getDevices() {
+      return toScrcpyDeviceList(await resolvedService.getSnapshot());
+    },
+    subscribe(
+      listener: (devices: ReturnType<typeof toScrcpyDeviceList>) => void,
+    ) {
+      return resolvedService.subscribe((devices) => {
+        listener(toScrcpyDeviceList(devices));
+      });
+    },
+  };
+}
+
 const createStudioPlatformSpecs = ({
   loadAndroidModule = loadAndroidPlaygroundModule,
   loadComputerModule = loadComputerPlaygroundModule,
+  deviceDiscoveryService,
   loadHarmonyModule = loadHarmonyPlaygroundModule,
   loadIosModule = loadIosPlaygroundModule,
 }: {
   loadAndroidModule?: typeof loadAndroidPlaygroundModule;
   loadComputerModule?: typeof loadComputerPlaygroundModule;
+  deviceDiscoveryService?: StudioDeviceDiscoveryService;
   loadHarmonyModule?: typeof loadHarmonyPlaygroundModule;
   loadIosModule?: typeof loadIosPlaygroundModule;
 } = {}): StudioPlatformSpec[] => [
@@ -163,7 +199,15 @@ const createStudioPlatformSpecs = ({
       const androidModule = await loadAndroidModule();
       return androidModule.androidPlaygroundPlatform.prepare({
         staticDir,
-        scrcpyServer: new androidModule.ScrcpyServer(),
+        scrcpyServer: new androidModule.ScrcpyServer(
+          deviceDiscoveryService
+            ? {
+                deviceListSource: await createScrcpyDeviceListSource(
+                  deviceDiscoveryService,
+                ),
+              }
+            : undefined,
+        ),
       });
     },
   },
@@ -233,6 +277,7 @@ function buildRegisteredPlatforms(
  * on the setup form routes to the correct backend.
  */
 export function createMultiPlatformRuntimeService({
+  deviceDiscoveryService,
   loadModules,
   loadPlaygroundCore = loadPlaygroundCoreModules,
   loadAndroidModule = loadAndroidPlaygroundModule,
@@ -241,6 +286,7 @@ export function createMultiPlatformRuntimeService({
   loadIosModule = loadIosPlaygroundModule,
   resolvePackageStaticDir = resolveStaticDir,
 }: {
+  deviceDiscoveryService?: StudioDeviceDiscoveryService;
   loadModules?: () => Promise<MultiPlatformRuntimeModules>;
   loadPlaygroundCore?: () => Promise<PlaygroundCoreModules>;
   loadAndroidModule?: typeof loadAndroidPlaygroundModule;
@@ -298,10 +344,19 @@ export function createMultiPlatformRuntimeService({
                   label: 'Android',
                   description: 'Connect to an Android device via ADB',
                   staticDirPackage: '@midscene/android-playground',
-                  prepare: (staticDir) =>
+                  prepare: async (staticDir) =>
                     runtimeModules.androidPlaygroundPlatform.prepare({
                       staticDir,
-                      scrcpyServer: new runtimeModules.ScrcpyServer(),
+                      scrcpyServer: new runtimeModules.ScrcpyServer(
+                        deviceDiscoveryService
+                          ? {
+                              deviceListSource:
+                                await createScrcpyDeviceListSource(
+                                  deviceDiscoveryService,
+                                ),
+                            }
+                          : undefined,
+                      ),
                     }),
                 },
                 {
@@ -336,6 +391,7 @@ export function createMultiPlatformRuntimeService({
                 },
               ]
             : createStudioPlatformSpecs({
+                deviceDiscoveryService,
                 loadAndroidModule,
                 loadComputerModule,
                 loadHarmonyModule,

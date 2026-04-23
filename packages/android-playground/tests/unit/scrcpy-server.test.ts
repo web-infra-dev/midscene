@@ -35,9 +35,13 @@ vi.mock('@yume-chan/scrcpy', () => ({
   DefaultServerPath: '/mocked/scrcpy-server.jar',
 }));
 
-vi.mock('node:fs', () => ({
-  createReadStream: mockCreateReadStream,
-}));
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    createReadStream: mockCreateReadStream,
+  };
+});
 
 describe('ScrcpyServer', () => {
   it('prefers the explicit device from the preview handshake', () => {
@@ -85,5 +89,53 @@ describe('ScrcpyServer', () => {
       'pushing-server',
       'starting-service',
     ]);
+  });
+
+  it('can consume device list updates from an external discovery source', async () => {
+    const unsubscribe = vi.fn();
+    const getDevices = vi.fn().mockResolvedValue([
+      {
+        id: 'device-1',
+        name: 'Pixel 9',
+        status: 'device',
+      },
+    ]);
+    const subscribe = vi.fn((listener: (devices: any[]) => void) => {
+      listener([
+        {
+          id: 'device-2',
+          name: 'Pixel 10',
+          status: 'device',
+        },
+      ]);
+      return unsubscribe;
+    });
+
+    const server = new ScrcpyServer({
+      deviceListSource: {
+        getDevices,
+        subscribe,
+      },
+    });
+    const emitSpy = vi.spyOn(server.io, 'emit');
+
+    (server as any).startDeviceMonitoring();
+    await Promise.resolve();
+
+    expect(subscribe).toHaveBeenCalledTimes(1);
+    expect(getDevices).toHaveBeenCalledTimes(1);
+    expect(emitSpy).toHaveBeenCalledWith('devices-list', {
+      devices: [
+        {
+          id: 'device-2',
+          name: 'Pixel 10',
+          status: 'device',
+        },
+      ],
+      currentDeviceId: 'device-2',
+    });
+
+    server.close();
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
   });
 });
