@@ -86,13 +86,14 @@ Once Playground runs successfully, you can switch to reusable JavaScript scripts
 
 ### Step 1: Install Dependencies
 
-<PackageManagerTabs command="install @midscene/harmony --save-dev" />
+<PackageManagerTabs command="install @midscene/harmony dotenv --save-dev" />
 
 ### Step 2: Write a Script
 
 The following example opens the Settings app on the device and performs scrolling operations.
 
 ```typescript title="./demo.ts"
+import 'dotenv/config'; // load Midscene environment variables from .env if present
 import {
   HarmonyAgent,
   HarmonyDevice,

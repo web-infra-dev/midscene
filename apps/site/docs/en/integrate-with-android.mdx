@@ -32,7 +32,7 @@ Integrate Vitest for testing: [https://github.com/web-infra-dev/midscene-example
 
 ### Step 1: Install dependencies
 
-<PackageManagerTabs command="install @midscene/android --save-dev" />
+<PackageManagerTabs command="install @midscene/android dotenv --save-dev" />
 
 ### Step 2: Write scripts
 
@@ -41,6 +41,7 @@ Let's take a simple example: search for headphones on eBay using the browser in 
 Write the following code, and save it as `./demo.ts`
 
 ```typescript title="./demo.ts"
+import 'dotenv/config'; // load Midscene environment variables from .env if present
 import {
   AndroidAgent,
   AndroidDevice,

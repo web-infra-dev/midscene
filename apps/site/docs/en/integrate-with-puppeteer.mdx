@@ -21,13 +21,14 @@ There is also a demo of Playwright with Vitest: [https://github.com/web-infra-de
 
 ### Step 1. Install dependencies
 
-<PackageManagerTabs command="install @midscene/web puppeteer tsx --save-dev" />
+<PackageManagerTabs command="install @midscene/web puppeteer tsx dotenv --save-dev" />
 
 ### Step 2. Write scripts
 
 Write and save the following code as `./demo.ts`.
 
 ```typescript title="./demo.ts"
+import 'dotenv/config'; // load Midscene environment variables from .env if present
 import puppeteer from "puppeteer";
 import { PuppeteerAgent } from "@midscene/web/puppeteer";
 

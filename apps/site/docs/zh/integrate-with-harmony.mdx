@@ -55,7 +55,7 @@ hdc list targets
 
 ### 第一步：安装依赖
 
-<PackageManagerTabs command="install @midscene/harmony --save-dev" />
+<PackageManagerTabs command="install @midscene/harmony dotenv --save-dev" />
 
 ### 第二步：编写脚本
 
@@ -64,6 +64,7 @@ hdc list targets
 编写下方代码，保存为 `./demo.ts`
 
 ```typescript title="./demo.ts"
+import 'dotenv/config'; // 通过 dotenv/config 自动加载 .env 文件中的环境变量
 import {
   HarmonyAgent,
   HarmonyDevice,
