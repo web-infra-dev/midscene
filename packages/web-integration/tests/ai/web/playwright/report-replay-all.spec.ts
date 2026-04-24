@@ -43,8 +43,22 @@ test.describe('report replay-all', () => {
       await sourceAgent.aiAct(
         'Type "Hello world" in the search box, then click the Search button.',
       );
-      await sourceAgent.aiAssert(
-        'The page is now showing search results about "Hello world".',
+
+      const resultsPage = page.locator('#results-page');
+      try {
+        await expect(resultsPage).toBeVisible({ timeout: 5_000 });
+      } catch {
+        // The first AI action occasionally types the query but misses the
+        // actual submit click. A focused follow-up keeps the source report
+        // AI-driven while making the state transition deterministic.
+        await sourceAgent.aiAct(
+          'Press Enter in the current search box to submit the existing "Hello world" query.',
+        );
+      }
+
+      await expect(resultsPage).toBeVisible({ timeout: 30_000 });
+      await expect(page.locator('#results-container')).toContainText(
+        'Hello world',
       );
 
       const reportFile = sourceAgent.reportFile;

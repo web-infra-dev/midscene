@@ -8,29 +8,63 @@
 
 `agentFromComputer(opts?): Promise<ComputerAgent>`
 
-创建用于桌面自动化的 agent。
+创建用于本机桌面自动化的 agent。
+
+`agentForRDPComputer(opts): Promise<ComputerAgent<RDPDevice>>`
+
+创建用于通过 RDP 控制远程 Windows 桌面的 agent。
 
 **参数：**
 
 ```typescript
-interface ComputerAgentOpt {
+interface BaseComputerAgentOpt {
   // Agent 选项（继承自 AgentOpt）
   aiActionContext?: string;
   cache?: boolean;
   // ... 其他 AgentOpt 属性
 
-  // 设备选项
-  displayId?: string;
   customActions?: DeviceAction<any>[];
+}
+
+interface LocalComputerAgentOpt extends BaseComputerAgentOpt {
+
+  // 本机桌面选项
+  displayId?: string;
   headless?: boolean;
   xvfbResolution?: string;
 }
+
+interface RDPComputerAgentOpt extends BaseComputerAgentOpt {
+  host: string;
+  port?: number;
+  username?: string;
+  password?: string;
+  domain?: string;
+  adminSession?: boolean;
+  ignoreCertificate?: boolean;
+  securityProtocol?: 'auto' | 'tls' | 'nla' | 'rdp';
+  desktopWidth?: number;
+  desktopHeight?: number;
+}
 ```
+
+### 本机桌面选项
 
 - `displayId`（可选）：指定要控制的显示器。使用 `ComputerDevice.listDisplays()` 获取可用显示器。
 - `customActions`（可选）：向设备添加自定义操作。
 - `headless`（可选，仅 Linux）：设为 `true` 时通过 [Xvfb](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml) 启动虚拟显示器，使桌面自动化能在无物理显示器的 Linux 服务器和 CI 环境中运行。也可通过环境变量 `MIDSCENE_COMPUTER_HEADLESS_LINUX=true` 设置。
 - `xvfbResolution`（可选）：Xvfb 虚拟显示器的分辨率，默认为 `'1920x1080x24'`。
+
+### RDP 选项
+
+- `host`：远程 Windows 主机名或 IP。
+- `port`：RDP 端口，默认是 `3389`。
+- `username` / `password`：远程会话凭据。
+- `domain`：可选的 Windows 域。
+- `adminSession`：当服务端允许时，请求远程管理员会话。
+- `ignoreCertificate`：用于跳过自签名证书校验。
+- `securityProtocol`：可选 `'auto'`、`'tls'`、`'nla'` 或 `'rdp'`。
+- `desktopWidth` / `desktopHeight`：请求指定远程桌面分辨率。
 
 :::tip 示例：在无头 Linux CI 中测试 Electron 应用
 使用 `@midscene/computer` 在无头 Linux CI 中测试 [Obsidian](https://obsidian.md/)（Electron 应用）的完整示例：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
@@ -52,6 +86,30 @@ const agent2 = await agentFromComputer({
   displayId: displays[1].id,
 });
 ```
+
+**示例：通过 RDP 连接远程 Windows 桌面**
+
+```typescript
+import { agentForRDPComputer } from '@midscene/computer';
+
+const agent = await agentForRDPComputer({
+  aiActionContext:
+    'You are controlling a remote Windows desktop over the RDP protocol.',
+  host: '10.75.166.249',
+  port: 3389,
+  username: 'Admin',
+  password: 'replace-with-your-password',
+  ignoreCertificate: true,
+});
+
+await agent.aiWaitFor('The remote Windows desktop is visible');
+await agent.aiAct('Click the Windows Start button');
+await agent.aiAct('Open Settings');
+```
+
+:::tip 示例：通过 RDP 控制远程 Windows 桌面
+一个可直接运行的 Demo：连接远程 Windows，打开「设置」并进入「Windows 更新」，最后输出一份结构化报告：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
+:::
 
 ## 设备管理
 
@@ -256,6 +314,8 @@ await agent.aiAct('滚动到底部');
 ```typescript
 const displays = await ComputerDevice.listDisplays();
 ```
+
+使用 RDP 时，`ListDisplays` 会把当前远程会话视为单个显示器返回。
 
 ## 示例
 
