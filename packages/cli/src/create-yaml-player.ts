@@ -341,8 +341,8 @@ export async function createYamlPlayer(
       // handle computer
       if (typeof clonedYamlScript.computer !== 'undefined') {
         const computerTarget = clonedYamlScript.computer;
-        const { agentFromComputer } = await import('@midscene/computer');
-        const agent = await agentFromComputer({
+        const { agentForComputer } = await import('@midscene/computer');
+        const agent = await agentForComputer({
           ...computerTarget,
           ...buildAgentOptions(
             clonedYamlScript.agent,

@@ -40,7 +40,7 @@ sudo apt-get install -y xvfb x11-xserver-utils imagemagick
 
 ```typescript
 // Option 1: Pass headless option
-const agent = await agentFromComputer({ headless: true });
+const agent = await agentForComputer({ headless: true });
 
 // Option 2: Set environment variable
 // MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
@@ -83,11 +83,11 @@ Once Playground works, move to a repeatable script with the JavaScript SDK.
 Create `example.ts`:
 
 ```typescript
-import { agentFromComputer } from '@midscene/computer';
+import { agentForComputer } from '@midscene/computer';
 
 (async () => {
   // Create an agent
-  const agent = await agentFromComputer({
+  const agent = await agentForComputer({
     aiActionContext: 'You are controlling a desktop computer.',
   });
 
@@ -160,14 +160,14 @@ RDP sessions are exposed to Midscene as a single remote display. You can still u
 If you have multiple displays, you can control a specific one:
 
 ```typescript
-import { ComputerDevice, agentFromComputer } from '@midscene/computer';
+import { ComputerDevice, agentForComputer } from '@midscene/computer';
 
 // List all displays
 const displays = await ComputerDevice.listDisplays();
 console.log('Available displays:', displays);
 
 // Connect to a specific display
-const agent = await agentFromComputer({
+const agent = await agentForComputer({
   displayId: displays[0].id,
 });
 ```
@@ -272,7 +272,7 @@ sudo apt-get install -y xvfb x11-xserver-utils imagemagick
 ```
 
 ```typescript
-const agent = await agentFromComputer({ headless: true });
+const agent = await agentForComputer({ headless: true });
 ```
 
 Or set the environment variable:

@@ -6,9 +6,11 @@
 
 ## Agent 创建
 
-`agentFromComputer(opts?): Promise<ComputerAgent>`
+`agentForComputer(opts?): Promise<ComputerAgent>`
 
 创建用于本机桌面自动化的 agent。
+
+> 向后兼容：`agentFromComputer` 仍可作为别名使用。
 
 `agentForRDPComputer(opts): Promise<ComputerAgent<RDPDevice>>`
 
@@ -73,16 +75,16 @@ interface RDPComputerAgentOpt extends BaseComputerAgentOpt {
 **示例：**
 
 ```typescript
-import { agentFromComputer } from '@midscene/computer';
+import { agentForComputer } from '@midscene/computer';
 
 // 连接到主显示器
-const agent = await agentFromComputer({
+const agent = await agentForComputer({
   aiActionContext: '你正在自动化一个桌面应用。',
 });
 
 // 连接到特定显示器
 const displays = await ComputerDevice.listDisplays();
-const agent2 = await agentFromComputer({
+const agent2 = await agentForComputer({
   displayId: displays[1].id,
 });
 ```
@@ -322,9 +324,9 @@ const displays = await ComputerDevice.listDisplays();
 ### 打开应用并导航
 
 ```typescript
-import { agentFromComputer } from '@midscene/computer';
+import { agentForComputer } from '@midscene/computer';
 
-const agent = await agentFromComputer();
+const agent = await agentForComputer();
 
 // 打开应用
 if (process.platform === 'darwin') {
@@ -351,21 +353,21 @@ if (process.platform === 'darwin') {
 ### 多显示器工作流
 
 ```typescript
-import { ComputerDevice, agentFromComputer } from '@midscene/computer';
+import { ComputerDevice, agentForComputer } from '@midscene/computer';
 
 // 列出显示器
 const displays = await ComputerDevice.listDisplays();
 console.log(`找到 ${displays.length} 个显示器`);
 
 // 控制主显示器
-const agent1 = await agentFromComputer({
+const agent1 = await agentForComputer({
   displayId: displays[0].id,
 });
 await agent1.aiAct('将鼠标移动到屏幕中心');
 
 // 控制副显示器
 if (displays.length > 1) {
-  const agent2 = await agentFromComputer({
+  const agent2 = await agentForComputer({
     displayId: displays[1].id,
   });
   await agent2.aiAct('将鼠标移动到屏幕中心');
@@ -375,9 +377,9 @@ if (displays.length > 1) {
 ### Web 浏览器自动化
 
 ```typescript
-import { agentFromComputer } from '@midscene/computer';
+import { agentForComputer } from '@midscene/computer';
 
-const agent = await agentFromComputer();
+const agent = await agentForComputer();
 
 // 打开浏览器
 if (process.platform === 'darwin') {

@@ -3,6 +3,7 @@ export type { ComputerDeviceOpt, DisplayInfo } from './device';
 
 export {
   ComputerAgent,
+  agentForComputer,
   agentForRDPComputer,
   agentFromComputer,
 } from './agent';
