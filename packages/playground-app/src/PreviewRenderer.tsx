@@ -2,10 +2,13 @@ import type {
   PlaygroundRuntimeInfo,
   PlaygroundSDK,
 } from '@midscene/playground';
-import { ScreenshotViewer } from '@midscene/visualizer';
+import {
+  ScreenshotViewer,
+  type ScreenshotViewerMode,
+} from '@midscene/visualizer';
 import { WebCodecsVideoDecoder } from '@yume-chan/scrcpy-decoder-webcodecs';
 import { Alert, Popover } from 'antd';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { type ScrcpyErrorOverlayRenderer, ScrcpyPanel } from './ScrcpyPanel';
 import { resolvePreviewConnectionInfo } from './runtime-info';
 import type { ScrcpyPreviewStatus } from './scrcpy-preview';
@@ -17,6 +20,8 @@ interface PreviewRendererProps {
     statusText: string,
   ) => void;
   renderErrorOverlay?: ScrcpyErrorOverlayRenderer;
+  scrcpyViewportStyle?: CSSProperties;
+  screenshotViewerMode?: ScreenshotViewerMode;
   playgroundSDK: PlaygroundSDK;
   runtimeInfo: PlaygroundRuntimeInfo | null;
   serverUrl: string;
@@ -40,6 +45,8 @@ export function PreviewRenderer({
   connectingOverlay,
   onScrcpyStatusChange,
   renderErrorOverlay,
+  scrcpyViewportStyle,
+  screenshotViewerMode,
   playgroundSDK,
   runtimeInfo,
   serverUrl,
@@ -148,6 +155,7 @@ export function PreviewRenderer({
           onStatusChange={onScrcpyStatusChange}
           renderErrorOverlay={renderErrorOverlay}
           serverUrl={previewConnection.scrcpyUrl}
+          viewportStyle={scrcpyViewportStyle}
         />
       ) : (
         <ScreenshotViewer
@@ -160,6 +168,7 @@ export function PreviewRenderer({
           serverOnline={serverOnline}
           isUserOperating={isUserOperating}
           mjpegUrl={previewConnection.mjpegUrl}
+          mode={screenshotViewerMode}
         />
       )}
     </div>

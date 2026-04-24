@@ -1,21 +1,15 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import {
-  ScrcpyServer,
-  androidPlaygroundPlatform,
-} from '@midscene/android-playground';
-import { computerPlaygroundPlatform } from '@midscene/computer-playground';
-import { harmonyPlaygroundPlatform } from '@midscene/harmony';
-import { iosPlaygroundPlatform } from '@midscene/ios';
-import {
-  type LaunchPlaygroundResult,
-  type PreparedPlaygroundPlatform,
-  type RegisteredPlaygroundPlatform,
-  launchPreparedPlaygroundPlatform,
-  prepareMultiPlatformPlayground,
+import type {
+  LaunchPlaygroundResult,
+  PreparedPlaygroundPlatform,
+  RegisteredPlaygroundPlatform,
 } from '@midscene/playground';
+import type { DiscoveredDevice } from '@shared/electron-contract';
 import type { PlaygroundBootstrap } from '@shared/electron-contract';
+import { ensureStudioShellEnvHydrated } from '../shell-env';
 import { createStudioCorsOptions } from './cors';
+import type { DeviceDiscoveryService } from './device-discovery';
 import type { PlaygroundRuntimeService } from './types';
 
 const require = createRequire(__filename);
@@ -26,9 +20,125 @@ function getErrorMessage(error: unknown): string {
     : 'Unknown playground runtime error';
 }
 
-function resolveStaticDir(packageName: string): string {
-  const packageJsonPath = require.resolve(`${packageName}/package.json`);
-  return path.join(path.dirname(packageJsonPath), 'static');
+type PlaygroundCoreModules = Pick<
+  MultiPlatformRuntimeModules,
+  'launchPreparedPlaygroundPlatform' | 'prepareMultiPlatformPlayground'
+>;
+
+type AndroidPlaygroundModule = typeof import('@midscene/android-playground');
+type ComputerPlaygroundModule = typeof import('@midscene/computer-playground');
+type HarmonyPlaygroundModule = typeof import('@midscene/harmony');
+type IosPlaygroundModule = typeof import('@midscene/ios');
+type PlaygroundModule = typeof import('@midscene/playground');
+
+type MultiPlatformRuntimeModules = {
+  ScrcpyServer: AndroidPlaygroundModule['ScrcpyServer'];
+  androidPlaygroundPlatform: AndroidPlaygroundModule['androidPlaygroundPlatform'];
+  computerPlaygroundPlatform: ComputerPlaygroundModule['computerPlaygroundPlatform'];
+  harmonyPlaygroundPlatform: HarmonyPlaygroundModule['harmonyPlaygroundPlatform'];
+  iosPlaygroundPlatform: IosPlaygroundModule['iosPlaygroundPlatform'];
+  launchPreparedPlaygroundPlatform: PlaygroundModule['launchPreparedPlaygroundPlatform'];
+  prepareMultiPlatformPlayground: PlaygroundModule['prepareMultiPlatformPlayground'];
+};
+
+type StudioDeviceDiscoveryService =
+  | DeviceDiscoveryService
+  | Promise<DeviceDiscoveryService>;
+
+const resolvePackageRootDir = (packageName: string): string =>
+  path.resolve(path.dirname(require.resolve(packageName)), '..', '..');
+
+const requirePackageModule = <ModuleType>(
+  packageName: string,
+  relativeModulePath: string,
+): ModuleType =>
+  require(path.join(resolvePackageRootDir(packageName), relativeModulePath));
+
+export async function loadPlaygroundCoreModules(): Promise<PlaygroundCoreModules> {
+  const multiPlatformModule = requirePackageModule<
+    Pick<
+      typeof import('@midscene/playground'),
+      'prepareMultiPlatformPlayground'
+    >
+  >('@midscene/playground', 'dist/lib/multi-platform.js');
+  const platformLauncherModule = requirePackageModule<
+    Pick<
+      typeof import('@midscene/playground'),
+      'launchPreparedPlaygroundPlatform'
+    >
+  >('@midscene/playground', 'dist/lib/platform-launcher.js');
+
+  return {
+    prepareMultiPlatformPlayground:
+      multiPlatformModule.prepareMultiPlatformPlayground,
+    launchPreparedPlaygroundPlatform:
+      platformLauncherModule.launchPreparedPlaygroundPlatform,
+  };
+}
+
+export async function loadAndroidPlaygroundModule(): Promise<
+  Pick<
+    MultiPlatformRuntimeModules,
+    'ScrcpyServer' | 'androidPlaygroundPlatform'
+  >
+> {
+  ensureStudioShellEnvHydrated();
+  return require('@midscene/android-playground');
+}
+
+export async function loadComputerPlaygroundModule(): Promise<
+  Pick<MultiPlatformRuntimeModules, 'computerPlaygroundPlatform'>
+> {
+  return require('@midscene/computer-playground');
+}
+
+export async function loadHarmonyPlaygroundModule(): Promise<
+  Pick<MultiPlatformRuntimeModules, 'harmonyPlaygroundPlatform'>
+> {
+  ensureStudioShellEnvHydrated();
+  return require('@midscene/harmony');
+}
+
+export async function loadIosPlaygroundModule(): Promise<
+  Pick<MultiPlatformRuntimeModules, 'iosPlaygroundPlatform'>
+> {
+  ensureStudioShellEnvHydrated();
+  return require('@midscene/ios');
+}
+
+export async function loadMultiPlatformRuntimeModules(): Promise<MultiPlatformRuntimeModules> {
+  const [
+    androidPlaygroundModule,
+    computerPlaygroundModule,
+    harmonyPlaygroundModule,
+    iosPlaygroundModule,
+    playgroundCoreModules,
+  ] = await Promise.all([
+    loadAndroidPlaygroundModule(),
+    loadComputerPlaygroundModule(),
+    loadHarmonyPlaygroundModule(),
+    loadIosPlaygroundModule(),
+    loadPlaygroundCoreModules(),
+  ]);
+
+  return {
+    ScrcpyServer: androidPlaygroundModule.ScrcpyServer,
+    androidPlaygroundPlatform:
+      androidPlaygroundModule.androidPlaygroundPlatform,
+    computerPlaygroundPlatform:
+      computerPlaygroundModule.computerPlaygroundPlatform,
+    harmonyPlaygroundPlatform:
+      harmonyPlaygroundModule.harmonyPlaygroundPlatform,
+    iosPlaygroundPlatform: iosPlaygroundModule.iosPlaygroundPlatform,
+    launchPreparedPlaygroundPlatform:
+      playgroundCoreModules.launchPreparedPlaygroundPlatform,
+    prepareMultiPlatformPlayground:
+      playgroundCoreModules.prepareMultiPlatformPlayground,
+  };
+}
+
+export function resolveStaticDir(packageName: string): string {
+  return path.join(resolvePackageRootDir(packageName), 'static');
 }
 
 interface StudioPlatformSpec {
@@ -39,31 +149,90 @@ interface StudioPlatformSpec {
   prepare: (staticDir: string) => Promise<PreparedPlaygroundPlatform>;
 }
 
-const studioPlatformSpecs: StudioPlatformSpec[] = [
+function toScrcpyDeviceList(devices: DiscoveredDevice[]) {
+  return devices
+    .filter((device) => device.platformId === 'android')
+    .map((device) => ({
+      id: device.id,
+      name: device.label,
+      status: device.status || 'device',
+    }));
+}
+
+async function createScrcpyDeviceListSource(
+  deviceDiscoveryService: StudioDeviceDiscoveryService,
+) {
+  const resolvedService = await deviceDiscoveryService;
+  return {
+    async getDevices() {
+      return toScrcpyDeviceList(await resolvedService.getSnapshot());
+    },
+    subscribe(
+      listener: (devices: ReturnType<typeof toScrcpyDeviceList>) => void,
+    ) {
+      return resolvedService.subscribe((devices) => {
+        listener(toScrcpyDeviceList(devices));
+      });
+    },
+  };
+}
+
+const createStudioPlatformSpecs = ({
+  loadAndroidModule = loadAndroidPlaygroundModule,
+  loadComputerModule = loadComputerPlaygroundModule,
+  deviceDiscoveryService,
+  loadHarmonyModule = loadHarmonyPlaygroundModule,
+  loadIosModule = loadIosPlaygroundModule,
+}: {
+  loadAndroidModule?: typeof loadAndroidPlaygroundModule;
+  loadComputerModule?: typeof loadComputerPlaygroundModule;
+  deviceDiscoveryService?: StudioDeviceDiscoveryService;
+  loadHarmonyModule?: typeof loadHarmonyPlaygroundModule;
+  loadIosModule?: typeof loadIosPlaygroundModule;
+} = {}): StudioPlatformSpec[] => [
   {
     id: 'android',
     label: 'Android',
     description: 'Connect to an Android device via ADB',
     staticDirPackage: '@midscene/android-playground',
-    prepare: (staticDir) =>
-      androidPlaygroundPlatform.prepare({
+    prepare: async (staticDir) => {
+      const androidModule = await loadAndroidModule();
+      return androidModule.androidPlaygroundPlatform.prepare({
         staticDir,
-        scrcpyServer: new ScrcpyServer(),
-      }),
+        scrcpyServer: new androidModule.ScrcpyServer(
+          deviceDiscoveryService
+            ? {
+                deviceListSource: await createScrcpyDeviceListSource(
+                  deviceDiscoveryService,
+                ),
+              }
+            : undefined,
+        ),
+      });
+    },
   },
   {
     id: 'ios',
     label: 'iOS',
     description: 'Connect to an iOS device via WebDriverAgent',
     staticDirPackage: '@midscene/ios',
-    prepare: (staticDir) => iosPlaygroundPlatform.prepare({ staticDir }),
+    prepare: async (staticDir) => {
+      const iosModule = await loadIosModule();
+      return iosModule.iosPlaygroundPlatform.prepare({ staticDir });
+    },
   },
   {
     id: 'harmony',
     label: 'HarmonyOS',
     description: 'Connect to a HarmonyOS device via HDC',
     staticDirPackage: '@midscene/harmony',
-    prepare: (staticDir) => harmonyPlaygroundPlatform.prepare({ staticDir }),
+    prepare: async (staticDir) => {
+      const harmonyModule = await loadHarmonyModule();
+      return harmonyModule.harmonyPlaygroundPlatform.prepare({
+        staticDir,
+        deferConnection: true,
+      });
+    },
   },
   {
     id: 'computer',
@@ -74,17 +243,22 @@ const studioPlatformSpecs: StudioPlatformSpec[] = [
     // without a window controller, it just won't auto-minimize Studio
     // during task execution. A follow-up can provide an Electron-native
     // adapter that calls mainWindow.minimize()/restore().
-    prepare: (staticDir) =>
-      computerPlaygroundPlatform.prepare({
+    prepare: async (staticDir) => {
+      const computerModule = await loadComputerModule();
+      return computerModule.computerPlaygroundPlatform.prepare({
         staticDir,
         getWindowController: () => null,
-      }),
+      });
+    },
   },
 ];
 
-function buildRegisteredPlatforms(): RegisteredPlaygroundPlatform[] {
+function buildRegisteredPlatforms(
+  studioPlatformSpecs: StudioPlatformSpec[],
+  resolvePackageStaticDir: (packageName: string) => string,
+): RegisteredPlaygroundPlatform[] {
   return studioPlatformSpecs.map((spec) => {
-    const staticDir = resolveStaticDir(spec.staticDirPackage);
+    const staticDir = resolvePackageStaticDir(spec.staticDirPackage);
     return {
       id: spec.id,
       label: spec.label,
@@ -102,7 +276,25 @@ function buildRegisteredPlatforms(): RegisteredPlaygroundPlatform[] {
  * server. The renderer talks to this one server; the platform selector
  * on the setup form routes to the correct backend.
  */
-export function createMultiPlatformRuntimeService(): PlaygroundRuntimeService {
+export function createMultiPlatformRuntimeService({
+  deviceDiscoveryService,
+  loadModules,
+  loadPlaygroundCore = loadPlaygroundCoreModules,
+  loadAndroidModule = loadAndroidPlaygroundModule,
+  loadComputerModule = loadComputerPlaygroundModule,
+  loadHarmonyModule = loadHarmonyPlaygroundModule,
+  loadIosModule = loadIosPlaygroundModule,
+  resolvePackageStaticDir = resolveStaticDir,
+}: {
+  deviceDiscoveryService?: StudioDeviceDiscoveryService;
+  loadModules?: () => Promise<MultiPlatformRuntimeModules>;
+  loadPlaygroundCore?: () => Promise<PlaygroundCoreModules>;
+  loadAndroidModule?: typeof loadAndroidPlaygroundModule;
+  loadComputerModule?: typeof loadComputerPlaygroundModule;
+  loadHarmonyModule?: typeof loadHarmonyPlaygroundModule;
+  loadIosModule?: typeof loadIosPlaygroundModule;
+  resolvePackageStaticDir?: (packageName: string) => string;
+} = {}): PlaygroundRuntimeService {
   let bootstrap: PlaygroundBootstrap = {
     status: 'starting',
     serverUrl: null,
@@ -138,23 +330,96 @@ export function createMultiPlatformRuntimeService(): PlaygroundRuntimeService {
 
     startPromise = (async () => {
       try {
-        const platforms = buildRegisteredPlatforms();
-        const prepared = await prepareMultiPlatformPlayground(platforms, {
-          title: 'Midscene Studio',
-          description: 'Multi-platform playground',
-          selectorFieldKey: 'platformId',
-          selectorVariant: 'cards',
-        });
-
-        const nextLaunchResult = await launchPreparedPlaygroundPlatform(
-          prepared,
-          {
-            corsOptions: createStudioCorsOptions(),
-            enableCors: true,
-            openBrowser: false,
-            verbose: false,
-          },
+        const runtimeModules = loadModules ? await loadModules() : null;
+        const playgroundCoreModules =
+          runtimeModules ??
+          ({
+            ...(await loadPlaygroundCore()),
+          } as PlaygroundCoreModules);
+        const platforms = buildRegisteredPlatforms(
+          runtimeModules
+            ? [
+                {
+                  id: 'android',
+                  label: 'Android',
+                  description: 'Connect to an Android device via ADB',
+                  staticDirPackage: '@midscene/android-playground',
+                  prepare: async (staticDir) =>
+                    runtimeModules.androidPlaygroundPlatform.prepare({
+                      staticDir,
+                      scrcpyServer: new runtimeModules.ScrcpyServer(
+                        deviceDiscoveryService
+                          ? {
+                              deviceListSource:
+                                await createScrcpyDeviceListSource(
+                                  deviceDiscoveryService,
+                                ),
+                            }
+                          : undefined,
+                      ),
+                    }),
+                },
+                {
+                  id: 'ios',
+                  label: 'iOS',
+                  description: 'Connect to an iOS device via WebDriverAgent',
+                  staticDirPackage: '@midscene/ios',
+                  prepare: (staticDir) =>
+                    runtimeModules.iosPlaygroundPlatform.prepare({ staticDir }),
+                },
+                {
+                  id: 'harmony',
+                  label: 'HarmonyOS',
+                  description: 'Connect to a HarmonyOS device via HDC',
+                  staticDirPackage: '@midscene/harmony',
+                  prepare: (staticDir) =>
+                    runtimeModules.harmonyPlaygroundPlatform.prepare({
+                      staticDir,
+                      deferConnection: true,
+                    }),
+                },
+                {
+                  id: 'computer',
+                  label: 'Computer',
+                  description: 'Control the local desktop',
+                  staticDirPackage: '@midscene/computer-playground',
+                  prepare: (staticDir) =>
+                    runtimeModules.computerPlaygroundPlatform.prepare({
+                      staticDir,
+                      getWindowController: () => null,
+                    }),
+                },
+              ]
+            : createStudioPlatformSpecs({
+                deviceDiscoveryService,
+                loadAndroidModule,
+                loadComputerModule,
+                loadHarmonyModule,
+                loadIosModule,
+              }),
+          resolvePackageStaticDir,
         );
+        const prepared =
+          await playgroundCoreModules.prepareMultiPlatformPlayground(
+            platforms,
+            {
+              title: 'Midscene Studio',
+              description: 'Multi-platform playground',
+              selectorFieldKey: 'platformId',
+              selectorVariant: 'cards',
+            },
+          );
+
+        const nextLaunchResult =
+          await playgroundCoreModules.launchPreparedPlaygroundPlatform(
+            prepared,
+            {
+              corsOptions: createStudioCorsOptions(),
+              enableCors: true,
+              openBrowser: false,
+              verbose: false,
+            },
+          );
 
         launchResult = nextLaunchResult;
         bootstrap = {
