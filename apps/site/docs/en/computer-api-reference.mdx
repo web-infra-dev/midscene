@@ -6,9 +6,11 @@ For common APIs that work across all platforms, see [Common API Reference](./api
 
 ## Agent Creation
 
-`agentFromComputer(opts?): Promise<ComputerAgent>`
+`agentForComputer(opts?): Promise<ComputerAgent>`
 
 Create an agent for local desktop automation.
+
+> Backward compatibility: `agentFromComputer` is still available as an alias.
 
 `agentForRDPComputer(opts): Promise<ComputerAgent<RDPDevice>>`
 
@@ -73,16 +75,16 @@ A complete demo of testing [Obsidian](https://obsidian.md/) (an Electron app) on
 **Example:**
 
 ```typescript
-import { agentFromComputer } from '@midscene/computer';
+import { agentForComputer } from '@midscene/computer';
 
 // Connect to primary display
-const agent = await agentFromComputer({
+const agent = await agentForComputer({
   aiActionContext: 'You are automating a desktop application.',
 });
 
 // Connect to specific display
 const displays = await ComputerDevice.listDisplays();
-const agent2 = await agentFromComputer({
+const agent2 = await agentForComputer({
   displayId: displays[1].id,
 });
 ```
@@ -322,9 +324,9 @@ When you use RDP, `ListDisplays` returns the current remote session as a single 
 ### Open Application and Navigate
 
 ```typescript
-import { agentFromComputer } from '@midscene/computer';
+import { agentForComputer } from '@midscene/computer';
 
-const agent = await agentFromComputer();
+const agent = await agentForComputer();
 
 // Open application
 if (process.platform === 'darwin') {
@@ -351,21 +353,21 @@ if (process.platform === 'darwin') {
 ### Multi-Display Workflow
 
 ```typescript
-import { ComputerDevice, agentFromComputer } from '@midscene/computer';
+import { ComputerDevice, agentForComputer } from '@midscene/computer';
 
 // List displays
 const displays = await ComputerDevice.listDisplays();
 console.log(`Found ${displays.length} displays`);
 
 // Control primary display
-const agent1 = await agentFromComputer({
+const agent1 = await agentForComputer({
   displayId: displays[0].id,
 });
 await agent1.aiAct('move mouse to center of screen');
 
 // Control secondary display
 if (displays.length > 1) {
-  const agent2 = await agentFromComputer({
+  const agent2 = await agentForComputer({
     displayId: displays[1].id,
   });
   await agent2.aiAct('move mouse to center of screen');
@@ -375,9 +377,9 @@ if (displays.length > 1) {
 ### Web Browser Automation
 
 ```typescript
-import { agentFromComputer } from '@midscene/computer';
+import { agentForComputer } from '@midscene/computer';
 
-const agent = await agentFromComputer();
+const agent = await agentForComputer();
 
 // Open browser
 if (process.platform === 'darwin') {

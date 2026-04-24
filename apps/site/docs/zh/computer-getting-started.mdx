@@ -40,7 +40,7 @@ sudo apt-get install -y xvfb x11-xserver-utils imagemagick
 
 ```typescript
 // 方式 1：传入 headless 选项
-const agent = await agentFromComputer({ headless: true });
+const agent = await agentForComputer({ headless: true });
 
 // 方式 2：设置环境变量
 // MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
@@ -83,11 +83,11 @@ npx --yes @midscene/computer-playground
 创建 `example.ts`：
 
 ```typescript
-import { agentFromComputer } from '@midscene/computer';
+import { agentForComputer } from '@midscene/computer';
 
 (async () => {
   // 创建 agent
-  const agent = await agentFromComputer({
+  const agent = await agentForComputer({
     aiActionContext: '你正在控制一台桌面计算机。',
   });
 
@@ -160,14 +160,14 @@ await agent.aiAssert('The Windows Settings window is visible');
 如果您有多个显示器，可以控制特定的显示器：
 
 ```typescript
-import { ComputerDevice, agentFromComputer } from '@midscene/computer';
+import { ComputerDevice, agentForComputer } from '@midscene/computer';
 
 // 列出所有显示器
 const displays = await ComputerDevice.listDisplays();
 console.log('可用显示器:', displays);
 
 // 连接到特定显示器
-const agent = await agentFromComputer({
+const agent = await agentForComputer({
   displayId: displays[0].id,
 });
 ```
@@ -272,7 +272,7 @@ sudo apt-get install -y xvfb x11-xserver-utils imagemagick
 ```
 
 ```typescript
-const agent = await agentFromComputer({ headless: true });
+const agent = await agentForComputer({ headless: true });
 ```
 
 或通过环境变量设置：
