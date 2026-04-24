@@ -1,10 +1,31 @@
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
-import type { DiscoveredDevice } from '@shared/electron-contract';
+import type {
+  DiscoverDevicesResult,
+  DiscoveredDevice,
+} from '@shared/electron-contract';
+import { ensureStudioShellEnvHydrated } from '../shell-env';
 
 const debugLog = getDebug('studio:device-discovery', { console: true });
 const IOS_WDA_DISCOVERY_HOST = 'localhost';
 const IOS_WDA_DISCOVERY_TIMEOUT_MS = 1000;
+export const DEVICE_DISCOVERY_POLL_INTERVAL_MS = 5000;
+
+export interface DeviceDiscoveryService {
+  close(): void;
+  getSnapshot(options?: {
+    forceRefresh?: boolean;
+  }): Promise<DiscoverDevicesResult>;
+  setPollingPaused(paused: boolean): void;
+  subscribe(listener: (devices: DiscoverDevicesResult) => void): () => void;
+}
+
+interface CreateDeviceDiscoveryServiceOptions {
+  clearIntervalFn?: typeof globalThis.clearInterval;
+  discoverDevices?: () => Promise<DiscoverDevicesResult>;
+  intervalMs?: number;
+  setIntervalFn?: typeof globalThis.setInterval;
+}
 
 interface WDAStatusResponse {
   value?: {
@@ -41,6 +62,126 @@ function buildIOSDiscoveryDescription(
   return details.join(' · ');
 }
 
+export function createDeviceDiscoveryService({
+  clearIntervalFn = globalThis.clearInterval,
+  discoverDevices = discoverAllDevices,
+  intervalMs = DEVICE_DISCOVERY_POLL_INTERVAL_MS,
+  setIntervalFn = globalThis.setInterval,
+}: CreateDeviceDiscoveryServiceOptions = {}): DeviceDiscoveryService {
+  let currentSnapshot: DiscoverDevicesResult = [];
+  let currentSignature = JSON.stringify(currentSnapshot);
+  let hasSnapshot = false;
+  let intervalId: ReturnType<typeof globalThis.setInterval> | null = null;
+  let paused = false;
+  let refreshPromise: Promise<DiscoverDevicesResult> | null = null;
+  let started = false;
+  const listeners = new Set<(devices: DiscoverDevicesResult) => void>();
+
+  const stopPolling = () => {
+    if (intervalId !== null) {
+      clearIntervalFn(intervalId);
+      intervalId = null;
+    }
+  };
+
+  const notifyListeners = (devices: DiscoverDevicesResult) => {
+    listeners.forEach((listener) => {
+      try {
+        listener(devices);
+      } catch (error) {
+        debugLog('device discovery listener failed:', error);
+      }
+    });
+  };
+
+  const refreshSnapshot = async (): Promise<DiscoverDevicesResult> => {
+    if (refreshPromise) {
+      return refreshPromise;
+    }
+
+    refreshPromise = (async () => {
+      const nextSnapshot = await discoverDevices();
+      const nextSignature = JSON.stringify(nextSnapshot);
+      currentSnapshot = nextSnapshot;
+      hasSnapshot = true;
+      if (nextSignature !== currentSignature) {
+        currentSignature = nextSignature;
+        notifyListeners(nextSnapshot);
+      }
+      return nextSnapshot;
+    })().finally(() => {
+      refreshPromise = null;
+    });
+
+    return refreshPromise;
+  };
+
+  const ensurePolling = () => {
+    if (paused || intervalId !== null) {
+      return;
+    }
+
+    intervalId = setIntervalFn(() => {
+      void refreshSnapshot().catch((error) => {
+        debugLog('device discovery refresh failed:', error);
+      });
+    }, intervalMs);
+  };
+
+  const ensureStarted = () => {
+    if (started) {
+      return;
+    }
+
+    started = true;
+    void refreshSnapshot().catch((error) => {
+      debugLog('initial device discovery refresh failed:', error);
+    });
+    ensurePolling();
+  };
+
+  return {
+    close() {
+      stopPolling();
+      listeners.clear();
+    },
+    async getSnapshot(options) {
+      ensureStarted();
+      if (options?.forceRefresh || !hasSnapshot) {
+        return refreshSnapshot();
+      }
+      return currentSnapshot;
+    },
+    setPollingPaused(nextPaused) {
+      ensureStarted();
+      if (paused === nextPaused) {
+        return;
+      }
+
+      paused = nextPaused;
+      if (paused) {
+        stopPolling();
+        return;
+      }
+
+      void refreshSnapshot().catch((error) => {
+        debugLog('device discovery resume refresh failed:', error);
+      });
+      ensurePolling();
+    },
+    subscribe(listener) {
+      listeners.add(listener);
+      ensureStarted();
+      if (hasSnapshot) {
+        listener(currentSnapshot);
+      }
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+  };
+}
+
 /**
  * Scan all platforms for connected devices. Each platform's scan is
  * independent — a failure on one platform (e.g. `hdc` not installed)
@@ -72,6 +213,7 @@ export async function discoverAllDevices(): Promise<DiscoveredDevice[]> {
 
 async function scanAndroidDevices(): Promise<DiscoveredDevice[]> {
   try {
+    ensureStudioShellEnvHydrated();
     const { getConnectedDevicesWithDetails } = await import(
       '@midscene/android'
     );
@@ -81,6 +223,7 @@ async function scanAndroidDevices(): Promise<DiscoveredDevice[]> {
       id: device.udid,
       label: (device as { label?: string }).label || device.udid,
       description: `ADB: ${device.udid}`,
+      status: device.state,
       sessionValues: {
         deviceId: device.udid,
       },
@@ -127,6 +270,7 @@ async function scanIOSDevices(): Promise<DiscoveredDevice[]> {
           DEFAULT_WDA_PORT,
           status,
         ),
+        status: 'device',
         sessionValues: {
           host: IOS_WDA_DISCOVERY_HOST,
           port: DEFAULT_WDA_PORT,
@@ -143,6 +287,7 @@ async function scanIOSDevices(): Promise<DiscoveredDevice[]> {
 
 async function scanHarmonyDevices(): Promise<DiscoveredDevice[]> {
   try {
+    ensureStudioShellEnvHydrated();
     const { getConnectedDevices } = await import('@midscene/harmony');
     const devices = await getConnectedDevices();
     return devices.map((device) => ({
@@ -150,6 +295,7 @@ async function scanHarmonyDevices(): Promise<DiscoveredDevice[]> {
       id: device.deviceId,
       label: device.deviceId,
       description: `HDC: ${device.deviceId}`,
+      status: 'device',
       sessionValues: {
         deviceId: device.deviceId,
       },
@@ -169,6 +315,7 @@ async function scanComputerDisplays(): Promise<DiscoveredDevice[]> {
       id: String(display.id),
       label: display.name || `Display ${display.id}`,
       description: display.primary ? 'Primary display' : undefined,
+      status: 'device',
       sessionValues: {
         displayId: String(display.id),
       },
