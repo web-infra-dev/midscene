@@ -29,7 +29,10 @@ const downloadReport = (content: string): void => {
   const a = document.createElement('a');
   a.href = url;
   a.download = 'midscene_report.html';
+  a.style.display = 'none';
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 0);
 };
 

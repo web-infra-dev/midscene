@@ -77,6 +77,7 @@ export function processCacheConfig(
 }
 
 const reportInitializedMap = new Map<string, boolean>();
+const reportGroupIdMap = new Map<string, string>();
 
 declare const __DEV_REPORT_PATH__: string;
 
@@ -87,6 +88,21 @@ export function getReportTpl() {
   const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';
 
   return reportTpl;
+}
+
+/**
+ * Insert content before </html> in an HTML string.
+ * Falls back to simple concatenation if </html> is not found.
+ */
+export function insertContentBeforeClosingHtml(
+  html: string,
+  content: string,
+): string {
+  const htmlEndIdx = html.lastIndexOf('</html>');
+  if (htmlEndIdx === -1) {
+    return html + content;
+  }
+  return `${html.slice(0, htmlEndIdx)}${content}\n${html.slice(htmlEndIdx)}`;
 }
 
 /**
@@ -142,18 +158,40 @@ export function reportHTMLContent(
   const writeToFile = reportPath && !ifInBrowser;
   let dumpContent = '';
 
+  const resolveAutoGroupId = (): string => {
+    if (!reportPath || !appendReport) {
+      return uuid();
+    }
+
+    const existingGroupId = reportGroupIdMap.get(reportPath);
+    if (existingGroupId) {
+      return existingGroupId;
+    }
+
+    const newGroupId = uuid();
+    reportGroupIdMap.set(reportPath, newGroupId);
+    return newGroupId;
+  };
+
   if (typeof dumpData === 'string') {
+    const groupId = resolveAutoGroupId();
     // do not use template string here, will cause bundle error
     dumpContent =
       // biome-ignore lint/style/useTemplate: <explanation>
-      '<script type="midscene_web_dump" type="application/json">\n' +
+      '<script type="midscene_web_dump" type="application/json" data-group-id="' +
+      encodeURIComponent(groupId) +
+      '">\n' +
       escapeScriptTag(dumpData) +
       '\n</script>';
   } else {
     const { dumpString, attributes } = dumpData;
-    const attributesArr = Object.keys(attributes || {}).map((key) => {
-      return `${key}="${encodeURIComponent(attributes![key])}"`;
-    });
+    const attributesArr = Object.entries(attributes || {})
+      .filter((entry): entry is [string, string | number | boolean] => {
+        return entry[1] !== undefined && entry[1] !== null;
+      })
+      .map(([key, value]) => {
+        return `${key}="${encodeURIComponent(value)}"`;
+      });
 
     dumpContent =
       // do not use template string here, will cause bundle error
@@ -167,7 +205,11 @@ export function reportHTMLContent(
 
   if (writeToFile) {
     if (!appendReport) {
-      writeFileSync(reportPath!, tpl + dumpContent, { flag: 'w' });
+      writeFileSync(
+        reportPath!,
+        insertContentBeforeClosingHtml(tpl, dumpContent),
+        { flag: 'w' },
+      );
       return reportPath!;
     }
 
@@ -180,7 +222,7 @@ export function reportHTMLContent(
     return reportPath!;
   }
 
-  return tpl + dumpContent;
+  return insertContentBeforeClosingHtml(tpl, dumpContent);
 }
 
 export function writeDumpReport(

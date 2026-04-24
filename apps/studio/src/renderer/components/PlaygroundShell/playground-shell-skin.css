@@ -1,0 +1,33 @@
+/*
+ * Scoped layout for the Studio Playground panel.
+ *
+ * The chat window visual treatment now lives in the shared playground
+ * packages so Studio and the standalone playground apps render the same
+ * conversation UI. This file only owns the outer shell chrome.
+ */
+
+.playground-shell {
+  position: relative;
+  display: flex;
+  height: 100%;
+  width: 400px;
+  flex-shrink: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+  background: var(--midscene-surface);
+}
+
+.playground-shell .playground-conversation-panel,
+.playground-shell .playground-conversation-body,
+.playground-shell .playground-container,
+.playground-shell .command-form,
+.playground-shell .middle-dialog-area {
+  min-height: 0;
+  height: 100%;
+}
+
+.playground-shell .playground-container {
+  background: var(--midscene-surface);
+}

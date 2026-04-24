@@ -6,22 +6,105 @@ import {
   readdirSync,
   rmSync,
   unlinkSync,
+  writeFileSync,
 } from 'node:fs';
 import * as path from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import { logMsg } from '@midscene/shared/utils';
+import { antiEscapeScriptTag, logMsg } from '@midscene/shared/utils';
 import { getReportFileName } from './agent';
 import {
+  extractAllDumpScriptsSync,
   extractLastDumpScriptSync,
   getBaseUrlFixScript,
+  streamDumpScriptsSync,
   streamImageScriptsToFile,
 } from './dump/html-utils';
+import {
+  normalizeScreenshotRef,
+  resolveScreenshotSource,
+} from './dump/screenshot-store';
+import {
+  type ExecutionDump,
+  type IExecutionDump,
+  ReportActionDump,
+} from './types';
 import type { ReportFileWithAttributes } from './types';
-import { getReportTpl, reportHTMLContent } from './utils';
+import { getReportTpl, getVersion, reportHTMLContent } from './utils';
+
+/**
+ * Check if a report is in directory mode (html-and-external-assets).
+ * Directory mode reports: {name}/index.html + {name}/screenshots/
+ */
+export function isDirectoryModeReport(reportFilePath: string): boolean {
+  const reportDir = path.dirname(reportFilePath);
+  return (
+    path.basename(reportFilePath) === 'index.html' &&
+    existsSync(path.join(reportDir, 'screenshots'))
+  );
+}
+
+/**
+ * Deduplicate executions by stable id, keeping only the last occurrence.
+ * Old-format executions without id are always preserved.
+ */
+export function dedupeExecutionsKeepLatest<T extends Pick<ExecutionDump, 'id'>>(
+  executions: T[],
+): T[] {
+  let noIdCounter = 0;
+  const deduped = new Map<string, T>();
+  for (const exec of executions) {
+    const key = exec.id || `__no_id_${noIdCounter++}`;
+    deduped.set(key, exec);
+  }
+  return Array.from(deduped.values());
+}
+/**
+ * Peek at the first `sdkVersion` field embedded in a midscene_web_dump
+ * script tag inside the given report file. Returns undefined if no
+ * recognizable tag or sdkVersion is present.
+ */
+function peekReportSdkVersion(reportFilePath: string): string | undefined {
+  try {
+    const dump = extractLastDumpScriptSync(reportFilePath);
+    if (!dump) return undefined;
+    const match = dump.match(/"sdkVersion"\s*:\s*"([^"]+)"/);
+    return match?.[1];
+  } catch {
+    return undefined;
+  }
+}
+
+const warnedMismatchedVersions = new Set<string>();
 
 export class ReportMergingTool {
   private reportInfos: ReportFileWithAttributes[] = [];
+
+  private createEmptyDumpString(groupName: string, groupDescription?: string) {
+    return new ReportActionDump({
+      sdkVersion: '',
+      groupName,
+      groupDescription,
+      modelBriefs: [],
+      executions: [],
+    }).serialize();
+  }
+
   public append(reportInfo: ReportFileWithAttributes) {
+    if (reportInfo.reportFilePath) {
+      const sourceVersion = peekReportSdkVersion(reportInfo.reportFilePath);
+      const currentVersion = getVersion();
+      if (
+        sourceVersion &&
+        currentVersion &&
+        sourceVersion !== currentVersion &&
+        !warnedMismatchedVersions.has(sourceVersion)
+      ) {
+        warnedMismatchedVersions.add(sourceVersion);
+        logMsg(
+          `[@midscene/core] ReportMergingTool version mismatch: source report was written by @midscene/core@${sourceVersion} but the merger is @midscene/core@${currentVersion}. This commonly means @midscene/core and the device package (e.g. @midscene/android) resolve to different versions in node_modules. Merged output may silently drop intermediate steps. Align the versions and reinstall (rm -rf node_modules package-lock.json && npm install).`,
+        );
+      }
+    }
     this.reportInfos.push(reportInfo);
   }
   public clear() {
@@ -29,15 +112,29 @@ export class ReportMergingTool {
   }
 
   /**
-   * Check if a report is in directory mode (html-and-external-assets).
-   * Directory mode reports: {name}/index.html + {name}/screenshots/
+   * Merge multiple dump script contents (from the same source report)
+   * into a single serialized ReportActionDump string.
+   * If there's only one dump, return it as-is. If multiple, merge
+   * all executions into the first dump's group structure.
    */
-  private isDirectoryModeReport(reportFilePath: string): boolean {
-    const reportDir = path.dirname(reportFilePath);
-    return (
-      path.basename(reportFilePath) === 'index.html' &&
-      existsSync(path.join(reportDir, 'screenshots'))
-    );
+  private mergeDumpScripts(contents: string[]): string {
+    const unescaped = contents
+      .map((c) => antiEscapeScriptTag(c))
+      .filter((c) => c.length > 0);
+    if (unescaped.length === 0) return '';
+    if (unescaped.length === 1) return unescaped[0];
+
+    // Parse all dumps and collect executions, deduplicating by id (keep last).
+    // Only executions with a stable id are deduped; old-format entries without
+    // id are always kept (they may be distinct despite sharing the same name).
+    const base = ReportActionDump.fromSerializedString(unescaped[0]);
+    const allExecutions = [...base.executions];
+    for (let i = 1; i < unescaped.length; i++) {
+      const other = ReportActionDump.fromSerializedString(unescaped[i]);
+      allExecutions.push(...other.executions);
+    }
+    base.executions = dedupeExecutionsKeepLatest(allExecutions);
+    return base.serialize();
   }
 
   public mergeReports(
@@ -47,18 +144,20 @@ export class ReportMergingTool {
       overwrite?: boolean;
     },
   ): string | null {
-    if (this.reportInfos.length <= 1) {
-      logMsg('Not enough reports to merge');
+    const { rmOriginalReports = false, overwrite = false } = opts ?? {};
+
+    if (this.reportInfos.length === 0) {
+      logMsg('No reports to merge');
       return null;
     }
 
-    const { rmOriginalReports = false, overwrite = false } = opts ?? {};
     const targetDir = getMidsceneRunSubDir('report');
 
     // Check if any source report is directory mode
-    const hasDirectoryModeReport = this.reportInfos.some((info) =>
-      this.isDirectoryModeReport(info.reportFilePath),
-    );
+    const hasDirectoryModeReport = this.reportInfos.some((info) => {
+      const reportFilePath = info.reportFilePath;
+      return Boolean(reportFilePath && isDirectoryModeReport(reportFilePath));
+    });
 
     const resolvedName =
       reportFileName === 'AUTO'
@@ -93,8 +192,14 @@ export class ReportMergingTool {
     );
 
     try {
-      // Write template
-      appendFileSync(outputFilePath, getReportTpl());
+      // Write template without closing </html> tag so we can append
+      // dump scripts before it. The closing tag is added at the end.
+      const htmlEndTag = '</html>';
+      const tpl = getReportTpl();
+      const htmlEndIdx = tpl.lastIndexOf(htmlEndTag);
+      const tplWithoutClose =
+        htmlEndIdx !== -1 ? tpl.slice(0, htmlEndIdx) : tpl;
+      appendFileSync(outputFilePath, tplWithoutClose);
 
       // For directory-mode output, inject base URL fix script
       if (hasDirectoryModeReport) {
@@ -106,37 +211,68 @@ export class ReportMergingTool {
         const reportInfo = this.reportInfos[i];
         logMsg(`Processing report ${i + 1}/${this.reportInfos.length}`);
 
-        if (this.isDirectoryModeReport(reportInfo.reportFilePath)) {
-          // Directory mode: copy external screenshot files
-          const reportDir = path.dirname(reportInfo.reportFilePath);
-          const screenshotsDir = path.join(reportDir, 'screenshots');
-          const mergedScreenshotsDir = path.join(
-            path.dirname(outputFilePath),
-            'screenshots',
-          );
-          mkdirSync(mergedScreenshotsDir, { recursive: true });
-          for (const file of readdirSync(screenshotsDir)) {
-            const src = path.join(screenshotsDir, file);
-            const dest = path.join(mergedScreenshotsDir, file);
-            copyFileSync(src, dest);
-          }
-        } else {
-          // Inline mode: stream image scripts to output file
-          streamImageScriptsToFile(reportInfo.reportFilePath, outputFilePath);
-        }
-
-        const dumpString = extractLastDumpScriptSync(reportInfo.reportFilePath);
         const { reportAttributes } = reportInfo;
+        let dumpString = this.createEmptyDumpString(
+          reportAttributes.testTitle,
+          reportAttributes.testDescription,
+        );
+        let mergedGroupId = `merged-group-${i}`;
+
+        if (reportInfo.reportFilePath) {
+          if (isDirectoryModeReport(reportInfo.reportFilePath)) {
+            // Directory mode: copy external screenshot files
+            const reportDir = path.dirname(reportInfo.reportFilePath);
+            const screenshotsDir = path.join(reportDir, 'screenshots');
+            const mergedScreenshotsDir = path.join(
+              path.dirname(outputFilePath),
+              'screenshots',
+            );
+            mkdirSync(mergedScreenshotsDir, { recursive: true });
+            for (const file of readdirSync(screenshotsDir)) {
+              const src = path.join(screenshotsDir, file);
+              const dest = path.join(mergedScreenshotsDir, file);
+              copyFileSync(src, dest);
+            }
+          } else {
+            // Inline mode: stream image scripts to output file
+            streamImageScriptsToFile(reportInfo.reportFilePath, outputFilePath);
+          }
+
+          // Extract all dump scripts from the source report.
+          // After the per-execution append refactor, a single source report
+          // may contain multiple <script type="midscene_web_dump"> tags
+          // (one per execution). We merge them into a single ReportActionDump.
+          // Filter by data-group-id to exclude false matches from the template's
+          // bundled JS code, which also references the midscene_web_dump type string.
+          const allDumps = extractAllDumpScriptsSync(
+            reportInfo.reportFilePath,
+          ).filter((d) => d.openTag.includes('data-group-id'));
+          const groupIdMatch = allDumps[0]?.openTag.match(
+            /data-group-id="([^"]+)"/,
+          );
+          if (groupIdMatch) {
+            mergedGroupId = decodeURIComponent(groupIdMatch[1]);
+          }
+          const extractedDumpString =
+            allDumps.length > 0
+              ? this.mergeDumpScripts(allDumps.map((d) => d.content))
+              : extractLastDumpScriptSync(reportInfo.reportFilePath);
+          if (extractedDumpString) {
+            dumpString = extractedDumpString;
+          }
+        }
 
         const reportHtmlStr = `${reportHTMLContent(
           {
             dumpString,
             attributes: {
+              'data-group-id': mergedGroupId,
               playwright_test_duration: reportAttributes.testDuration,
               playwright_test_status: reportAttributes.testStatus,
               playwright_test_title: reportAttributes.testTitle,
               playwright_test_id: reportAttributes.testId,
               playwright_test_description: reportAttributes.testDescription,
+              is_merged: true,
             },
           },
           undefined,
@@ -147,13 +283,17 @@ export class ReportMergingTool {
         appendFileSync(outputFilePath, reportHtmlStr);
       }
 
+      // Close the HTML document
+      appendFileSync(outputFilePath, `${htmlEndTag}\n`);
+
       logMsg(`Successfully merged new report: ${outputFilePath}`);
 
       // Remove original reports if needed
       if (rmOriginalReports) {
         for (const info of this.reportInfos) {
+          if (!info.reportFilePath) continue;
           try {
-            if (this.isDirectoryModeReport(info.reportFilePath)) {
+            if (isDirectoryModeReport(info.reportFilePath)) {
               // Directory mode: remove the entire report directory
               const reportDir = path.dirname(info.reportFilePath);
               rmSync(reportDir, { recursive: true, force: true });
@@ -172,4 +312,192 @@ export class ReportMergingTool {
       throw error;
     }
   }
+}
+
+export interface SplitReportHtmlOptions {
+  htmlPath: string;
+  outputDir: string;
+}
+
+export interface SplitReportHtmlResult {
+  executionJsonFiles: string[];
+  screenshotFiles: string[];
+}
+
+export interface CollectedReportExecutions {
+  baseDump: ReportActionDump;
+  executions: IExecutionDump[];
+}
+
+/**
+ * Collect executions from a report HTML, deduplicating by stable id while
+ * keeping only the latest occurrence. Old-format executions without id are
+ * always preserved.
+ */
+export function collectDedupedExecutions(
+  htmlPath: string,
+): CollectedReportExecutions {
+  let baseDump: ReportActionDump | null = null;
+  let executionSerial = 0;
+  const latestSerialByExecutionId = new Map<string, number>();
+
+  streamDumpScriptsSync(htmlPath, (dumpScript) => {
+    if (!dumpScript.openTag.includes('data-group-id')) {
+      return false;
+    }
+    const groupedDump = ReportActionDump.fromSerializedString(
+      antiEscapeScriptTag(dumpScript.content),
+    );
+    for (const execution of groupedDump.executions) {
+      executionSerial += 1;
+      if (execution.id) {
+        latestSerialByExecutionId.set(execution.id, executionSerial);
+      }
+    }
+    return false;
+  });
+
+  const executions: IExecutionDump[] = [];
+  executionSerial = 0;
+  streamDumpScriptsSync(htmlPath, (dumpScript) => {
+    if (!dumpScript.openTag.includes('data-group-id')) {
+      return false;
+    }
+
+    const groupedDump = ReportActionDump.fromSerializedString(
+      antiEscapeScriptTag(dumpScript.content),
+    );
+    if (!baseDump) {
+      baseDump = groupedDump;
+    }
+
+    for (const execution of groupedDump.executions) {
+      executionSerial += 1;
+      if (
+        execution.id &&
+        latestSerialByExecutionId.get(execution.id) !== executionSerial
+      ) {
+        continue;
+      }
+      executions.push(execution);
+    }
+
+    return false;
+  });
+
+  if (!baseDump) {
+    throw new Error(`No report dump scripts found in ${htmlPath}`);
+  }
+
+  return {
+    baseDump,
+    executions,
+  };
+}
+
+function extensionByMimeType(mimeType: string): 'png' | 'jpeg' {
+  if (mimeType === 'image/png') return 'png';
+  if (mimeType === 'image/jpeg') return 'jpeg';
+  throw new Error(`Unsupported screenshot mime type: ${mimeType}`);
+}
+
+function externalizeScreenshotsInExecution(
+  execution: IExecutionDump,
+  opts: {
+    htmlPath: string;
+    screenshotsDir: string;
+    writtenFiles: Set<string>;
+  },
+): void {
+  const visit = (node: unknown): void => {
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        visit(item);
+      }
+      return;
+    }
+
+    if (typeof node !== 'object' || node === null) return;
+
+    const ref = normalizeScreenshotRef(node);
+    if (ref) {
+      const ext = extensionByMimeType(ref.mimeType);
+      const fileName = `${ref.id}.${ext}`;
+      const relativePath = `./screenshots/${fileName}`;
+      const absolutePath = path.join(opts.screenshotsDir, fileName);
+
+      if (!opts.writtenFiles.has(fileName)) {
+        const resolved = resolveScreenshotSource(ref, {
+          reportPath: opts.htmlPath,
+        });
+        if (resolved.type === 'data-uri') {
+          const rawBase64 = resolved.dataUri.replace(
+            /^data:image\/[a-zA-Z+]+;base64,/,
+            '',
+          );
+          writeFileSync(absolutePath, Buffer.from(rawBase64, 'base64'));
+        } else {
+          copyFileSync(resolved.filePath, absolutePath);
+        }
+        opts.writtenFiles.add(fileName);
+      }
+
+      ref.storage = 'file';
+      ref.path = relativePath;
+      return;
+    }
+
+    for (const value of Object.values(node)) {
+      visit(value);
+    }
+  };
+
+  visit(execution);
+}
+
+/**
+ * Reverse parse a Midscene report HTML into per-execution JSON files and
+ * externalized screenshots.
+ */
+export function splitReportHtmlByExecution(
+  options: SplitReportHtmlOptions,
+): SplitReportHtmlResult {
+  const { htmlPath, outputDir } = options;
+  const screenshotsDir = path.join(outputDir, 'screenshots');
+
+  mkdirSync(outputDir, { recursive: true });
+  mkdirSync(screenshotsDir, { recursive: true });
+
+  const executionJsonFiles: string[] = [];
+  const writtenScreenshotFiles = new Set<string>();
+  const { baseDump, executions } = collectDedupedExecutions(htmlPath);
+
+  let fileIndex = 0;
+  for (const execution of executions) {
+    fileIndex += 1;
+    externalizeScreenshotsInExecution(execution, {
+      htmlPath,
+      screenshotsDir,
+      writtenFiles: writtenScreenshotFiles,
+    });
+    const singleExecutionDump = new ReportActionDump({
+      sdkVersion: baseDump.sdkVersion,
+      groupName: baseDump.groupName,
+      groupDescription: baseDump.groupDescription,
+      modelBriefs: baseDump.modelBriefs,
+      deviceType: baseDump.deviceType,
+      executions: [execution],
+    });
+
+    const jsonFilePath = path.join(outputDir, `${fileIndex}.execution.json`);
+    writeFileSync(jsonFilePath, singleExecutionDump.serialize(2), 'utf-8');
+    executionJsonFiles.push(jsonFilePath);
+  }
+
+  return {
+    executionJsonFiles,
+    screenshotFiles: Array.from(writtenScreenshotFiles)
+      .sort()
+      .map((fileName) => path.join(screenshotsDir, fileName)),
+  };
 }

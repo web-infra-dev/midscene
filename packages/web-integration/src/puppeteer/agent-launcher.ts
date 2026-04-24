@@ -344,10 +344,10 @@ export async function puppeteerAgentForTarget(
   } & Partial<
     Pick<
       AgentOpt,
-      | 'testId'
       | 'groupName'
       | 'groupDescription'
       | 'generateReport'
+      | 'persistExecutionDump'
       | 'autoPrintReportMsg'
       | 'reportFileName'
       | 'replanningCycleLimit'
@@ -372,6 +372,10 @@ export async function puppeteerAgentForTarget(
   const agent = new PuppeteerAgent(page, {
     ...preferenceToUse,
     aiActContext,
+    waitForNetworkIdleTimeout:
+      typeof target.waitForNetworkIdle?.timeout === 'number'
+        ? target.waitForNetworkIdle.timeout
+        : undefined,
     forceSameTabNavigation:
       typeof target.forceSameTabNavigation !== 'undefined'
         ? target.forceSameTabNavigation

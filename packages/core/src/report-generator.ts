@@ -1,60 +1,109 @@
+/*
+ * PERF INVARIANT — DO NOT reintroduce sync fs APIs (writeFileSync /
+ * appendFileSync) in this file's write paths. `ReportGenerator` runs on
+ * the Electron main event loop during agent execution, and a single
+ * progress tick appends a multi-MB ExecutionDump payload. Sync I/O here
+ * blocked the loop for 20+ seconds per run, freezing IPC, scrcpy and
+ * every renderer round-trip. Always use `fs/promises`. See commit
+ * 6a25e05c and `report-generator-async-contract.test.ts`.
+ */
+import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import {
-  existsSync,
-  mkdirSync,
-  statSync,
-  truncateSync,
-  writeFileSync,
-} from 'node:fs';
+  appendFile as appendFileAsync,
+  writeFile as writeFileAsync,
+} from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
   MIDSCENE_REPORT_QUIET,
   globalConfigManager,
 } from '@midscene/shared/env';
-import { ifInBrowser, logMsg } from '@midscene/shared/utils';
+import { ifInBrowser, logMsg, uuid } from '@midscene/shared/utils';
 import {
   generateDumpScriptTag,
   generateImageScriptTag,
   getBaseUrlFixScript,
 } from './dump/html-utils';
-import type { GroupedActionDump } from './types';
-import { appendFileSync, getReportTpl } from './utils';
+import { ScreenshotStore } from './dump/screenshot-store';
+import {
+  type ExecutionDump,
+  ReportActionDump,
+  type ReportAttributes,
+  type ReportMeta,
+} from './types';
+import { getReportTpl } from './utils';
 
 export interface IReportGenerator {
   /**
-   * Schedule a dump update. Writes are queued internally to guarantee serial execution.
-   * This method returns immediately (fire-and-forget).
-   * Screenshots are written and memory is released during this call.
+   * Write or update a single execution.
+   * Each call appends a new dump script tag. The frontend deduplicates
+   * executions with the same id/name, keeping only the last one.
+   *
+   * @param execution  Current execution's full data
+   * @param reportMeta  Report-level metadata (groupName, sdkVersion, etc.)
    */
-  onDumpUpdate(dump: GroupedActionDump): void;
+  onExecutionUpdate(
+    execution: ExecutionDump,
+    reportMeta: ReportMeta,
+    attributes?: ReportAttributes,
+  ): void;
+
+  /**
+   * @deprecated Use onExecutionUpdate instead. Kept for backward compatibility.
+   */
+  onDumpUpdate?(dump: ReportActionDump): void;
+
   /**
    * Wait for all queued write operations to complete.
    */
   flush(): Promise<void>;
+
   /**
    * Finalize the report. Calls flush() internally.
    */
-  finalize(dump: GroupedActionDump): Promise<string | undefined>;
+  finalize(): Promise<string | undefined>;
+
   getReportPath(): string | undefined;
 }
 
 export const nullReportGenerator: IReportGenerator = {
-  onDumpUpdate: () => {},
+  onExecutionUpdate: () => {},
   flush: async () => {},
   finalize: async () => undefined,
   getReportPath: () => undefined,
 };
 
+export function assertReportGenerationOptions(opts: {
+  generateReport?: boolean;
+  persistExecutionDump?: boolean;
+}): void {
+  if (opts.generateReport === false && opts.persistExecutionDump === true) {
+    throw new Error(
+      'persistExecutionDump cannot be true when generateReport is false',
+    );
+  }
+}
+
 export class ReportGenerator implements IReportGenerator {
   private reportPath: string;
   private screenshotMode: 'inline' | 'directory';
+  private shouldPersistExecutionDump: boolean;
   private autoPrint: boolean;
-  private writtenScreenshots = new Set<string>();
   private firstWriteDone = false;
+  private executionLogIndex = 0;
+  private executionLogFileIndexByExecutionKey = new Map<string, number>();
 
-  // inline mode state
-  private imageEndOffset = 0;
+  // Unique identifier for this report stream — used as data-group-id
+  private readonly reportStreamId: string;
+
+  // Tracks screenshots already written to disk (by id) to avoid duplicates
+  private screenshotStore: ScreenshotStore;
   private initialized = false;
+
+  // Tracks the last execution + groupMeta for re-writing on finalize
+  private lastExecution?: ExecutionDump;
+  private lastReportMeta?: ReportMeta;
+  private reportAttributes: Record<string, string> = {};
 
   // write queue for serial execution
   private writeQueue: Promise<void> = Promise.resolve();
@@ -63,11 +112,27 @@ export class ReportGenerator implements IReportGenerator {
   constructor(options: {
     reportPath: string;
     screenshotMode: 'inline' | 'directory';
+    persistExecutionDump?: boolean;
     autoPrint?: boolean;
   }) {
     this.reportPath = options.reportPath;
     this.screenshotMode = options.screenshotMode;
+    this.shouldPersistExecutionDump = options.persistExecutionDump ?? false;
     this.autoPrint = options.autoPrint ?? true;
+    this.reportStreamId = uuid();
+    this.screenshotStore = new ScreenshotStore({
+      mode: this.screenshotMode === 'inline' ? 'inline' : 'directory',
+      reportPath: this.reportPath,
+      screenshotsDir: join(dirname(this.reportPath), 'screenshots'),
+      writeInlineImage: async (id, base64) => {
+        await appendFileAsync(
+          this.reportPath,
+          `\n${generateImageScriptTag(id, base64)}`,
+        );
+      },
+      alsoWriteFileCopy: this.shouldPersistExecutionDump,
+    });
+    this.hydrateStateFromExistingReport();
     this.printReportPath('will be generated at');
   }
 
@@ -75,38 +140,46 @@ export class ReportGenerator implements IReportGenerator {
     reportFileName: string,
     opts: {
       generateReport?: boolean;
+      persistExecutionDump?: boolean;
       outputFormat?: 'single-html' | 'html-and-external-assets';
       autoPrintReportMsg?: boolean;
     },
   ): IReportGenerator {
+    assertReportGenerationOptions(opts);
     if (opts.generateReport === false) return nullReportGenerator;
 
     // In browser environment, file system is not available
     if (ifInBrowser) return nullReportGenerator;
+    validateReportFileName(reportFileName);
 
-    if (opts.outputFormat === 'html-and-external-assets') {
-      const outputDir = join(getMidsceneRunSubDir('report'), reportFileName);
-      return new ReportGenerator({
-        reportPath: join(outputDir, 'index.html'),
-        screenshotMode: 'directory',
-        autoPrint: opts.autoPrintReportMsg,
-      });
-    }
-
+    const reportRootDir = getMidsceneRunSubDir('report');
+    const outputDir = join(reportRootDir, reportFileName);
+    const reportPath =
+      opts.outputFormat === 'html-and-external-assets'
+        ? join(outputDir, 'index.html')
+        : join(reportRootDir, ensureHtmlFileName(reportFileName));
     return new ReportGenerator({
-      reportPath: join(
-        getMidsceneRunSubDir('report'),
-        `${reportFileName}.html`,
-      ),
-      screenshotMode: 'inline',
+      reportPath,
+      screenshotMode:
+        opts.outputFormat === 'html-and-external-assets'
+          ? 'directory'
+          : 'inline',
+      persistExecutionDump: opts.persistExecutionDump,
       autoPrint: opts.autoPrintReportMsg,
     });
   }
 
-  onDumpUpdate(dump: GroupedActionDump): void {
-    this.writeQueue = this.writeQueue.then(() => {
+  onExecutionUpdate(
+    execution: ExecutionDump,
+    reportMeta: ReportMeta,
+    attributes?: ReportAttributes,
+  ): void {
+    this.lastExecution = execution;
+    this.lastReportMeta = reportMeta;
+    this.mergeReportAttributes(attributes);
+    this.writeQueue = this.writeQueue.then(async () => {
       if (this.destroyed) return;
-      this.doWrite(dump);
+      await this.doWriteExecution(execution, reportMeta);
     });
   }
 
@@ -114,12 +187,20 @@ export class ReportGenerator implements IReportGenerator {
     await this.writeQueue;
   }
 
-  async finalize(dump: GroupedActionDump): Promise<string | undefined> {
-    this.onDumpUpdate(dump);
+  async finalize(): Promise<string | undefined> {
+    // Re-write the last execution to capture any final state changes
+    if (this.lastExecution && this.lastReportMeta) {
+      this.onExecutionUpdate(this.lastExecution, this.lastReportMeta);
+    }
     await this.flush();
     this.destroyed = true;
-    this.printReportPath('finalized');
 
+    if (!this.initialized) {
+      // No executions were ever written — no file exists
+      return undefined;
+    }
+
+    this.printReportPath('finalized');
     return this.reportPath;
   }
 
@@ -141,90 +222,213 @@ export class ReportGenerator implements IReportGenerator {
     }
   }
 
-  private doWrite(dump: GroupedActionDump): void {
+  private async doWriteExecution(
+    execution: ExecutionDump,
+    reportMeta: ReportMeta,
+  ): Promise<void> {
+    const singleDump = this.wrapAsReportDump(execution, reportMeta);
+
     if (this.screenshotMode === 'inline') {
-      this.writeInlineReport(dump);
+      await this.writeInlineExecution(execution, singleDump);
     } else {
-      this.writeDirectoryReport(dump);
+      await this.writeDirectoryExecution(execution, singleDump);
     }
+
+    if (this.shouldPersistExecutionDump) {
+      await this.persistExecutionDumpToFile(execution, singleDump);
+    }
+
     if (!this.firstWriteDone) {
       this.firstWriteDone = true;
       this.printReportPath('generated');
     }
   }
 
-  private writeInlineReport(dump: GroupedActionDump): void {
+  private mergeReportAttributes(attributes?: ReportAttributes): void {
+    if (!attributes) {
+      return;
+    }
+
+    for (const [key, value] of Object.entries(attributes)) {
+      if (value === undefined || value === null) {
+        continue;
+      }
+      if (key === 'data-group-id') {
+        continue;
+      }
+      this.reportAttributes[key] = String(value);
+    }
+  }
+
+  private hydrateStateFromExistingReport(): void {
+    if (!existsSync(this.reportPath)) {
+      return;
+    }
+
+    // Reuse existing report file and append new updates instead of rewriting.
+    this.initialized = true;
+
+    if (!this.shouldPersistExecutionDump) {
+      return;
+    }
+
+    const reportDir = dirname(this.reportPath);
+    const existingExecutionIndices = readdirSync(reportDir)
+      .map((name) => /^(\d+)\.execution\.json$/.exec(name)?.[1])
+      .filter((index): index is string => Boolean(index))
+      .map((index) => Number.parseInt(index, 10))
+      .filter((index) => Number.isFinite(index));
+
+    if (existingExecutionIndices.length > 0) {
+      this.executionLogIndex = Math.max(...existingExecutionIndices);
+    }
+  }
+
+  private getDumpScriptAttributes(): Record<string, string> {
+    return {
+      'data-group-id': this.reportStreamId,
+      ...this.reportAttributes,
+    };
+  }
+
+  /**
+   * Wrap an ExecutionDump + ReportMeta into a single-execution ReportActionDump.
+   */
+  private wrapAsReportDump(
+    execution: ExecutionDump,
+    reportMeta: ReportMeta,
+  ): ReportActionDump {
+    return new ReportActionDump({
+      sdkVersion: reportMeta.sdkVersion,
+      groupName: reportMeta.groupName,
+      groupDescription: reportMeta.groupDescription,
+      modelBriefs: reportMeta.modelBriefs,
+      deviceType: reportMeta.deviceType,
+      executions: [execution],
+    });
+  }
+
+  /**
+   * Append-only inline mode: write new screenshots and a dump tag on every call.
+   * The frontend deduplicates executions with the same id/name (keeps last).
+   * Duplicate dump JSON is acceptable; only screenshots are deduplicated.
+   *
+   * All writes go through `fs/promises` so they run on libuv's thread pool
+   * rather than blocking the Node event loop. A long agent run previously
+   * appended multi-MB dumps (screenshots + serialized tasks) per progress
+   * tick on the main thread, starving IPC and UI for >10s per stall.
+   */
+  private async writeInlineExecution(
+    execution: ExecutionDump,
+    singleDump: ReportActionDump,
+  ): Promise<void> {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
 
+    // Initialize: write HTML template once
     if (!this.initialized) {
-      writeFileSync(this.reportPath, getReportTpl());
-      this.imageEndOffset = statSync(this.reportPath).size;
+      await writeFileAsync(this.reportPath, getReportTpl());
       this.initialized = true;
     }
 
-    // 1. truncate: remove old dump JSON, keep template + existing image tags
-    truncateSync(this.reportPath, this.imageEndOffset);
-
-    // 2. append new image tags and release memory immediately after writing
-    // Screenshots can be recovered from HTML file via lazy loading
-    const screenshots = dump.collectAllScreenshots();
-    for (const screenshot of screenshots) {
-      if (!this.writtenScreenshots.has(screenshot.id)) {
-        appendFileSync(
-          this.reportPath,
-          `\n${generateImageScriptTag(screenshot.id, screenshot.base64)}`,
-        );
-        this.writtenScreenshots.add(screenshot.id);
-        // Release memory - screenshot can be recovered via extractImageByIdSync
-        screenshot.markPersistedInline(this.reportPath);
-      }
+    // Append new screenshots (skip already-written ones)
+    for (const screenshot of execution.collectScreenshots()) {
+      await this.screenshotStore.persist(screenshot);
     }
 
-    // 3. update image end offset
-    this.imageEndOffset = statSync(this.reportPath).size;
-
-    // 4. append new dump JSON (compact { $screenshot: id } format)
-    const serialized = dump.serialize();
-    appendFileSync(this.reportPath, `\n${generateDumpScriptTag(serialized)}`);
+    // Append dump tag (always — frontend keeps only last per execution id)
+    const serialized = singleDump.serialize();
+    await appendFileAsync(
+      this.reportPath,
+      `\n${generateDumpScriptTag(serialized, this.getDumpScriptAttributes())}`,
+    );
   }
 
-  private writeDirectoryReport(dump: GroupedActionDump): void {
+  private async writeDirectoryExecution(
+    execution: ExecutionDump,
+    singleDump: ReportActionDump,
+  ): Promise<void> {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
 
-    // create screenshots subdirectory
-    const screenshotsDir = join(dir, 'screenshots');
-    if (!existsSync(screenshotsDir)) {
-      mkdirSync(screenshotsDir, { recursive: true });
+    for (const screenshot of execution.collectScreenshots()) {
+      await this.screenshotStore.persist(screenshot);
     }
 
-    // 1. write new screenshots and release memory immediately
-    // Screenshots can be recovered from disk via lazy loading
-    const screenshots = dump.collectAllScreenshots();
-    for (const screenshot of screenshots) {
-      if (!this.writtenScreenshots.has(screenshot.id)) {
-        const ext = screenshot.extension;
-        const absolutePath = join(screenshotsDir, `${screenshot.id}.${ext}`);
-        const buffer = Buffer.from(screenshot.rawBase64, 'base64');
-        writeFileSync(absolutePath, buffer);
-        this.writtenScreenshots.add(screenshot.id);
-        screenshot.markPersistedToPath(
-          `./screenshots/${screenshot.id}.${ext}`,
-          absolutePath,
-        );
-      }
+    // 2. Append dump tag (always — frontend keeps only last per execution id)
+    const serialized = singleDump.serialize();
+
+    if (!this.initialized) {
+      await writeFileAsync(
+        this.reportPath,
+        `${getReportTpl()}${getBaseUrlFixScript()}`,
+      );
+      this.initialized = true;
     }
 
-    // 2. write HTML with dump JSON (toSerializable() returns { $screenshot: id } format)
-    const serialized = dump.serialize();
-    writeFileSync(
+    await appendFileAsync(
       this.reportPath,
-      `${getReportTpl()}${getBaseUrlFixScript()}${generateDumpScriptTag(serialized)}`,
+      `\n${generateDumpScriptTag(serialized, this.getDumpScriptAttributes())}`,
+    );
+  }
+
+  private getExecutionLogKey(execution: ExecutionDump): string {
+    if (!execution.id) {
+      throw new Error(
+        'ReportGenerator: execution.id is required for persisting execution dumps',
+      );
+    }
+    return `id:${execution.id}`;
+  }
+
+  private async persistExecutionDumpToFile(
+    execution: ExecutionDump,
+    singleDump: ReportActionDump,
+  ): Promise<void> {
+    const dir = dirname(this.reportPath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+
+    const executionLogKey = this.getExecutionLogKey(execution);
+    let fileIndex =
+      this.executionLogFileIndexByExecutionKey.get(executionLogKey);
+    if (!fileIndex) {
+      this.executionLogIndex += 1;
+      fileIndex = this.executionLogIndex;
+      this.executionLogFileIndexByExecutionKey.set(executionLogKey, fileIndex);
+    }
+
+    const fileName = `${fileIndex}.execution.json`;
+    const filePath = join(dirname(this.reportPath), fileName);
+    await writeFileAsync(filePath, singleDump.serialize(2), 'utf-8');
+  }
+}
+
+function ensureHtmlFileName(reportFileName: string): string {
+  return reportFileName.endsWith('.html')
+    ? reportFileName
+    : `${reportFileName}.html`;
+}
+
+function validateReportFileName(reportFileName: string): void {
+  if (!reportFileName?.trim()) {
+    throw new Error('reportFileName must be a non-empty string');
+  }
+
+  if (/[\\/]/.test(reportFileName)) {
+    throw new Error(
+      'reportFileName must not contain path separators (`/` or `\\\\`)',
+    );
+  }
+
+  if (/[:*?"<>|]/.test(reportFileName)) {
+    throw new Error(
+      'reportFileName contains illegal filename characters: : * ? " < > |',
     );
   }
 }

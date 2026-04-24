@@ -3,8 +3,9 @@ import {
   parseCliArgs,
   parseValue,
   removePrefix,
+  reportCLIError,
   runToolsCLI,
-} from '@/cli/cli-runner';
+} from '@/cli';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('parseValue', () => {
@@ -160,6 +161,35 @@ describe('parseCliArgs', () => {
       content: 'hello world',
     });
   });
+
+  it('preserves dotted keys as flat args', () => {
+    expect(
+      parseCliArgs([
+        '--android.deviceId',
+        '127.0.0.1:7555',
+        '--ios.wda-port',
+        '8100',
+      ]),
+    ).toEqual({
+      'android.deviceId': '127.0.0.1:7555',
+      'ios.wda-port': 8100,
+    });
+  });
+
+  it('treats namespace-like keys as independent flat args', () => {
+    expect(
+      parseCliArgs(['--android', 'foo', '--android.deviceId', 'bar']),
+    ).toEqual({
+      android: 'foo',
+      'android.deviceId': 'bar',
+    });
+  });
+
+  it('preserves dotted kebab-case keys as flat args', () => {
+    expect(parseCliArgs(['--android.device-id', '127.0.0.1:7555'])).toEqual({
+      'android.device-id': '127.0.0.1:7555',
+    });
+  });
 });
 
 describe('removePrefix', () => {
@@ -198,6 +228,23 @@ describe('CLIError', () => {
 
   it('is instanceof Error', () => {
     expect(new CLIError('test')).toBeInstanceOf(Error);
+  });
+});
+
+describe('reportCLIError', () => {
+  it('prints CLIError messages and returns their exit code', () => {
+    const log = vi.fn();
+
+    expect(reportCLIError(new CLIError('bad args', 2), log)).toBe(2);
+    expect(log).toHaveBeenCalledWith('bad args');
+  });
+
+  it('prints non-CLI errors and returns exit code 1', () => {
+    const log = vi.fn();
+    const error = new Error('boom');
+
+    expect(reportCLIError(error, log)).toBe(1);
+    expect(log).toHaveBeenCalledWith(error);
   });
 });
 
@@ -342,6 +389,85 @@ describe('runToolsCLI', () => {
 
     expect(lines.join('\n')).toMatchSnapshot();
     consoleSpy.mockRestore();
+  });
+
+  it('prefers CLI display metadata for command help output', async () => {
+    const tools = {
+      initTools: vi.fn().mockResolvedValue(undefined),
+      destroy: vi.fn().mockResolvedValue(undefined),
+      getToolDefinitions: vi.fn().mockReturnValue([
+        {
+          name: 'android_connect',
+          description: 'Connect to Android device',
+          schema: {
+            'android.deviceId': {
+              description: 'Android device ID (from adb devices)',
+            },
+          },
+          cli: {
+            options: {
+              'android.deviceId': {
+                preferredName: 'device-id',
+                aliases: ['deviceId'],
+              },
+            },
+          },
+          handler: vi.fn(),
+        },
+      ]),
+    } as any;
+    const lines: string[] = [];
+    const consoleSpy = vi
+      .spyOn(console, 'log')
+      .mockImplementation((...args: any[]) => {
+        lines.push(args.map(String).join(' '));
+      });
+
+    await runToolsCLI(tools, 'midscene-android', {
+      stripPrefix: 'android_',
+      argv: ['connect', '--help'],
+    });
+
+    expect(lines.join('\n')).toContain('--device-id');
+    expect(lines.join('\n')).toContain('(aliases: --deviceId)');
+    expect(lines.join('\n')).not.toContain('--android.device-id');
+    consoleSpy.mockRestore();
+  });
+
+  it('rejects disallowed dotted init-arg spellings via CLI schema', async () => {
+    const tools = {
+      initTools: vi.fn().mockResolvedValue(undefined),
+      destroy: vi.fn().mockResolvedValue(undefined),
+      getToolDefinitions: vi.fn().mockReturnValue([
+        {
+          name: 'android_connect',
+          description: 'Connect to Android device',
+          schema: {
+            'android.deviceId': {
+              description: 'Android device ID (from adb devices)',
+            },
+          },
+          cli: {
+            options: {
+              'android.deviceId': {
+                preferredName: 'device-id',
+                aliases: ['deviceId'],
+              },
+            },
+          },
+          handler: vi.fn(),
+        },
+      ]),
+    } as any;
+
+    await expect(
+      runToolsCLI(tools, 'midscene-android', {
+        stripPrefix: 'android_',
+        argv: ['connect', '--android.deviceId', 'emulator-5554'],
+      }),
+    ).rejects.toThrow(
+      'Unsupported option "--android.deviceId" for midscene-android connect.',
+    );
   });
 
   it('throws CLIError for unknown command', async () => {
@@ -493,6 +619,46 @@ describe('runToolsCLI', () => {
 
     expect(handler).not.toHaveBeenCalled();
     expect(consoleSpy).toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it('supports shared extra commands', async () => {
+    const tools = createMockTools([]);
+    const extraHandler = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'split done' }],
+      isError: false,
+    });
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: [
+        'report-tool',
+        '--action',
+        'split',
+        '--htmlPath',
+        './in.html',
+        '--outputDir',
+        './out',
+      ],
+      extraCommands: [
+        {
+          name: 'report-tool',
+          def: {
+            name: 'report-tool',
+            description: 'report tools',
+            schema: {},
+            handler: extraHandler,
+          },
+        },
+      ],
+    });
+
+    expect(extraHandler).toHaveBeenCalledWith({
+      htmlPath: './in.html',
+      outputDir: './out',
+      action: 'split',
+    });
+    expect(consoleSpy).toHaveBeenCalledWith('split done');
     consoleSpy.mockRestore();
   });
 });

@@ -1,6 +1,9 @@
 import type { DeviceAction } from '@midscene/core';
-import { ExecutionDump } from '@midscene/core';
-import { overrideAIConfig } from '@midscene/shared/env';
+import { ExecutionDump, runConnectivityTest } from '@midscene/core';
+import {
+  globalModelConfigManager,
+  overrideAIConfig,
+} from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LocalExecutionAdapter } from '../../src/adapters/local-execution';
 import * as common from '../../src/common';
@@ -11,6 +14,14 @@ import type {
 } from '../../src/types';
 
 // Mock dependencies
+vi.mock('@midscene/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@midscene/core')>();
+  return {
+    ...actual,
+    runConnectivityTest: vi.fn(),
+  };
+});
+
 vi.mock('@midscene/shared/env');
 
 // Import the real parseStructuredParams function for use in adapter
@@ -185,6 +196,46 @@ describe('LocalExecutionAdapter', () => {
       await adapter.overrideConfig(aiConfig);
 
       expect(overrideAIConfig).toHaveBeenCalledWith(aiConfig);
+    });
+  });
+
+  describe('runConnectivityTest', () => {
+    it('should use current default model config and delegate to core', async () => {
+      const modelConfig = { modelName: 'test-model' } as any;
+      const planningModelConfig = {
+        modelName: 'test-planning-model',
+        intent: 'planning',
+      } as any;
+      const insightModelConfig = {
+        modelName: 'test-insight-model',
+        intent: 'insight',
+      } as any;
+      const result = {
+        passed: true,
+        checks: [],
+      };
+
+      vi.mocked(globalModelConfigManager.getModelConfig)
+        .mockReturnValueOnce(modelConfig)
+        .mockReturnValueOnce(planningModelConfig)
+        .mockReturnValueOnce(insightModelConfig);
+      vi.mocked(runConnectivityTest).mockResolvedValue(result);
+
+      await expect(adapter.runConnectivityTest()).resolves.toEqual(result);
+      expect(globalModelConfigManager.getModelConfig).toHaveBeenCalledWith(
+        'default',
+      );
+      expect(globalModelConfigManager.getModelConfig).toHaveBeenCalledWith(
+        'planning',
+      );
+      expect(globalModelConfigManager.getModelConfig).toHaveBeenCalledWith(
+        'insight',
+      );
+      expect(runConnectivityTest).toHaveBeenCalledWith({
+        defaultModelConfig: modelConfig,
+        planningModelConfig,
+        insightModelConfig,
+      });
     });
   });
 

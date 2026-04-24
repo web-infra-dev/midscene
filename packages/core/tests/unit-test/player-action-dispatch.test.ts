@@ -1,3 +1,4 @@
+import { buildYamlFlowFromPlans } from '@/common';
 import { ScriptPlayer } from '@/yaml/player';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -7,6 +8,10 @@ const runAdbShellParamSchema = z.object({
 });
 
 const launchParamSchema = z.object({
+  uri: z.string(),
+});
+
+const terminateParamSchema = z.object({
   uri: z.string(),
 });
 
@@ -30,13 +35,14 @@ function createMockAgent(overrides: Record<string, any> = {}) {
   return {
     callActionInActionSpace: vi.fn().mockResolvedValue('action-result'),
     launch: vi.fn().mockResolvedValue('launch-result'),
+    terminate: vi.fn().mockResolvedValue('terminate-result'),
     runAdbShell: vi.fn().mockResolvedValue('adb-result'),
     ...overrides,
   } as any;
 }
 
 describe('player action dispatch ordering', () => {
-  it('should call agent.runAdbShell directly for RunAdbShell action', async () => {
+  it('should dispatch RunAdbShell string param via callActionInActionSpace', async () => {
     const actionSpace = [
       {
         name: 'RunAdbShell',
@@ -57,12 +63,13 @@ describe('player action dispatch ordering', () => {
 
     await player.playTask(taskStatus, agent);
 
-    // Should call agent.runAdbShell directly, NOT callActionInActionSpace
-    expect(agent.runAdbShell).toHaveBeenCalledWith('input tap 100 200');
-    expect(agent.callActionInActionSpace).not.toHaveBeenCalled();
+    expect(agent.callActionInActionSpace).toHaveBeenCalledWith('RunAdbShell', {
+      command: 'input tap 100 200',
+    });
+    expect(agent.runAdbShell).not.toHaveBeenCalled();
   });
 
-  it('should call agent.launch directly for Launch action', async () => {
+  it('should dispatch Launch string param via callActionInActionSpace', async () => {
     const actionSpace = [
       {
         name: 'Launch',
@@ -83,8 +90,37 @@ describe('player action dispatch ordering', () => {
 
     await player.playTask(taskStatus, agent);
 
-    expect(agent.launch).toHaveBeenCalledWith('com.example.app');
-    expect(agent.callActionInActionSpace).not.toHaveBeenCalled();
+    expect(agent.callActionInActionSpace).toHaveBeenCalledWith('Launch', {
+      uri: 'com.example.app',
+    });
+    expect(agent.launch).not.toHaveBeenCalled();
+  });
+
+  it('should dispatch Terminate string param via callActionInActionSpace', async () => {
+    const actionSpace = [
+      {
+        name: 'Terminate',
+        interfaceAlias: 'terminate',
+        paramSchema: terminateParamSchema,
+      },
+    ];
+    const player = createPlayerWithActionSpace(actionSpace);
+    const agent = createMockAgent();
+
+    const taskStatus = {
+      name: 'test',
+      flow: [{ terminate: 'com.example.app' }],
+      index: 0,
+      status: 'running' as const,
+      totalSteps: 1,
+    };
+
+    await player.playTask(taskStatus, agent);
+
+    expect(agent.callActionInActionSpace).toHaveBeenCalledWith('Terminate', {
+      uri: 'com.example.app',
+    });
+    expect(agent.terminate).not.toHaveBeenCalled();
   });
 
   it('should call callActionInActionSpace for generic string param action with paramSchema', async () => {
@@ -169,6 +205,36 @@ describe('player action dispatch ordering', () => {
     });
   });
 
+  it('should wrap Terminate string params when helper is unavailable', async () => {
+    const actionSpace = [
+      {
+        name: 'Terminate',
+        interfaceAlias: 'terminate',
+        paramSchema: terminateParamSchema,
+      },
+    ];
+    const player = createPlayerWithActionSpace(actionSpace);
+    const agent = {
+      callActionInActionSpace: vi
+        .fn()
+        .mockResolvedValue('terminate-via-action'),
+    } as any;
+
+    const taskStatus = {
+      name: 'test',
+      flow: [{ terminate: 'com.example.app' }],
+      index: 0,
+      status: 'running' as const,
+      totalSteps: 1,
+    };
+
+    await player.playTask(taskStatus, agent);
+
+    expect(agent.callActionInActionSpace).toHaveBeenCalledWith('Terminate', {
+      uri: 'com.example.app',
+    });
+  });
+
   it('should store result when action returns a value', async () => {
     const actionSpace = [
       {
@@ -179,7 +245,7 @@ describe('player action dispatch ordering', () => {
     ];
     const player = createPlayerWithActionSpace(actionSpace);
     const agent = createMockAgent({
-      runAdbShell: vi.fn().mockResolvedValue('shell output'),
+      callActionInActionSpace: vi.fn().mockResolvedValue('shell output'),
     });
 
     const taskStatus = {
@@ -221,5 +287,64 @@ describe('player action dispatch ordering', () => {
     expect(agent.callActionInActionSpace).toHaveBeenCalledWith('RunAdbShell', {
       command: 'ls /sdcard',
     });
+  });
+
+  it('round-trip: cached plan → buildYamlFlowFromPlans → player dispatches with correct param', async () => {
+    // Regression for the cache-replay bug: a Terminate plan was serialized as
+    // { terminate: '', uri: '...' }, then replayed as agent.terminate('').
+    const actionSpaceDefs = [
+      {
+        name: 'Terminate',
+        interfaceAlias: 'terminate',
+        paramSchema: terminateParamSchema,
+      },
+      {
+        name: 'Launch',
+        interfaceAlias: 'launch',
+        paramSchema: launchParamSchema,
+      },
+      {
+        name: 'RunAdbShell',
+        interfaceAlias: 'runAdbShell',
+        paramSchema: runAdbShellParamSchema,
+      },
+    ];
+
+    const flow = buildYamlFlowFromPlans(
+      [
+        { type: 'Terminate', param: { uri: 'com.mi.car.mobile' } },
+        { type: 'Launch', param: { uri: 'com.mi.car.mobile' } },
+        { type: 'RunAdbShell', param: { command: 'input keyevent 3' } },
+      ],
+      actionSpaceDefs.map((def) => ({ ...def, call: async () => {} })),
+    );
+
+    const player = createPlayerWithActionSpace(actionSpaceDefs);
+    const agent = createMockAgent();
+
+    await player.playTask(
+      {
+        name: 'test',
+        flow,
+        index: 0,
+        status: 'running' as const,
+        totalSteps: flow.length,
+      },
+      agent,
+    );
+
+    expect(agent.callActionInActionSpace).toHaveBeenNthCalledWith(
+      1,
+      'Terminate',
+      { uri: 'com.mi.car.mobile' },
+    );
+    expect(agent.callActionInActionSpace).toHaveBeenNthCalledWith(2, 'Launch', {
+      uri: 'com.mi.car.mobile',
+    });
+    expect(agent.callActionInActionSpace).toHaveBeenNthCalledWith(
+      3,
+      'RunAdbShell',
+      { command: 'input keyevent 3' },
+    );
   });
 });

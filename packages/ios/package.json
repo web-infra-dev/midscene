@@ -1,6 +1,6 @@
 {
   "name": "@midscene/ios",
-  "version": "1.5.7",
+  "version": "1.7.5",
   "description": "iOS automation library for Midscene",
   "keywords": [
     "iOS UI automation",
@@ -60,7 +60,7 @@
     "typescript": "^5.8.3",
     "tsx": "^4.19.2",
     "vitest": "3.0.5",
-    "zod": "3.24.3"
+    "zod": "^3.25.1"
   },
   "license": "MIT"
 }

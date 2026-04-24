@@ -18,7 +18,8 @@ import type {
 } from '@midscene/shared/types';
 import type { z } from 'zod';
 import type { TUserPrompt } from './common';
-import { restoreImageReferences } from './dump/image-restoration';
+import { restoreImageReferences } from './dump/screenshot-restoration';
+import { ScreenshotStore } from './dump/screenshot-store';
 import { ScreenshotItem } from './screenshot-item';
 import type {
   DetailedLocateParam,
@@ -171,9 +172,14 @@ export interface DumpMeta {
   logTime: number;
 }
 
+export type ReportAttributes = Record<
+  string,
+  string | number | boolean | null | undefined
+>;
+
 export interface ReportDumpWithAttributes {
   dumpString: string;
-  attributes?: Record<string, any>;
+  attributes?: ReportAttributes;
 }
 
 export interface ServiceDump extends DumpMeta {
@@ -436,6 +442,8 @@ export type ExecutionTask<
   };
 
 export interface IExecutionDump extends DumpMeta {
+  /** Stable unique identifier for this execution run */
+  id?: string;
   name: string;
   description?: string;
   tasks: ExecutionTask[];
@@ -460,12 +468,8 @@ function replacerForDumpSerialization(_key: string, value: any): any {
 }
 
 /**
- * Reviver function for JSON deserialization that handles ScreenshotItem formats.
- *
- * BEHAVIOR:
- * - For { $screenshot: "id" } format: Left as-is (plain object)
- *   Consumer must use imageMap to restore base64 data
- * - For { base64: "..." } format: Creates ScreenshotItem from base64 data
+ * Reviver function for JSON deserialization that keeps screenshot references
+ * as plain objects. Resolution is handled lazily by restoreImageReferences.
  *
  * @param key - JSON key being processed
  * @param value - JSON value being processed
@@ -477,14 +481,7 @@ function reviverForDumpDeserialization(key: string, value: any): any {
     return value;
   }
 
-  // Handle serialized format: { $screenshot: "id" }
-  // Leave as plain object — consumer uses imageMap to restore
   if (ScreenshotItem.isSerialized(value)) {
-    return value;
-  }
-
-  // Handle inline base64 format: { base64: "..." }
-  if ('base64' in value && typeof value.base64 === 'string') {
     return value;
   }
 
@@ -495,6 +492,7 @@ function reviverForDumpDeserialization(key: string, value: any): any {
  * ExecutionDump class for serializing and deserializing execution dumps
  */
 export class ExecutionDump implements IExecutionDump {
+  id?: string;
   logTime: number;
   name: string;
   description?: string;
@@ -502,6 +500,7 @@ export class ExecutionDump implements IExecutionDump {
   aiActContext?: string;
 
   constructor(data: IExecutionDump) {
+    this.id = data.id;
     this.logTime = data.logTime;
     this.name = data.name;
     this.description = data.description;
@@ -521,6 +520,7 @@ export class ExecutionDump implements IExecutionDump {
    */
   toJSON(): IExecutionDump {
     return {
+      id: this.id,
       logTime: this.logTime,
       name: this.name,
       description: this.description,
@@ -605,6 +605,7 @@ task - service-query
 */
 export interface ExecutionTaskInsightQueryParam {
   dataDemand: ServiceExtractParam;
+  domIncluded?: boolean | 'visible-only';
 }
 
 export interface ExecutionTaskInsightQueryOutput {
@@ -699,9 +700,23 @@ export type ExecutionTaskPlanningLocate =
   ExecutionTask<ExecutionTaskPlanningLocateApply>;
 
 /*
-Grouped dump
+Report metadata - extracted from ReportActionDump for per-execution writes
 */
-export interface IGroupedActionDump {
+export interface ReportMeta {
+  groupName: string;
+  groupDescription?: string;
+  sdkVersion: string;
+  modelBriefs: ModelBrief[];
+  deviceType?: string;
+}
+
+// Backward-compatible aliases for existing external consumers.
+export type GroupMeta = ReportMeta;
+
+/*
+Report dump
+*/
+export interface IReportActionDump {
   sdkVersion: string;
   groupName: string;
   groupDescription?: string;
@@ -709,6 +724,9 @@ export interface IGroupedActionDump {
   executions: IExecutionDump[];
   deviceType?: string;
 }
+
+// Backward-compatible aliases for existing external consumers.
+export type IGroupedActionDump = IReportActionDump;
 
 export interface ModelBrief {
   /**
@@ -728,9 +746,9 @@ export interface ModelBrief {
 }
 
 /**
- * GroupedActionDump class for serializing and deserializing grouped action dumps
+ * ReportActionDump class for serializing and deserializing report action dumps
  */
-export class GroupedActionDump implements IGroupedActionDump {
+export class ReportActionDump implements IReportActionDump {
   sdkVersion: string;
   groupName: string;
   groupDescription?: string;
@@ -738,7 +756,7 @@ export class GroupedActionDump implements IGroupedActionDump {
   executions: ExecutionDump[];
   deviceType?: string;
 
-  constructor(data: IGroupedActionDump) {
+  constructor(data: IReportActionDump) {
     this.sdkVersion = data.sdkVersion;
     this.groupName = data.groupName;
     this.groupDescription = data.groupDescription;
@@ -750,7 +768,7 @@ export class GroupedActionDump implements IGroupedActionDump {
   }
 
   /**
-   * Serialize the GroupedActionDump to a JSON string
+   * Serialize the ReportActionDump to a JSON string
    * Uses compact { $screenshot: id } format
    */
   serialize(indents?: number): string {
@@ -758,7 +776,7 @@ export class GroupedActionDump implements IGroupedActionDump {
   }
 
   /**
-   * Serialize the GroupedActionDump with inline screenshots to a JSON string.
+   * Serialize the ReportActionDump with inline screenshots to a JSON string.
    * Each ScreenshotItem is replaced with { base64: "...", capturedAt }.
    */
   serializeWithInlineScreenshots(indents?: number): string {
@@ -786,7 +804,7 @@ export class GroupedActionDump implements IGroupedActionDump {
   /**
    * Convert to a plain object for JSON serialization
    */
-  toJSON(): IGroupedActionDump {
+  toJSON(): IReportActionDump {
     return {
       sdkVersion: this.sdkVersion,
       groupName: this.groupName,
@@ -798,21 +816,21 @@ export class GroupedActionDump implements IGroupedActionDump {
   }
 
   /**
-   * Create a GroupedActionDump instance from a serialized JSON string
+   * Create a ReportActionDump instance from a serialized JSON string
    */
-  static fromSerializedString(serialized: string): GroupedActionDump {
+  static fromSerializedString(serialized: string): ReportActionDump {
     const parsed = JSON.parse(
       serialized,
       reviverForDumpDeserialization,
-    ) as IGroupedActionDump;
-    return new GroupedActionDump(parsed);
+    ) as IReportActionDump;
+    return new ReportActionDump(parsed);
   }
 
   /**
-   * Create a GroupedActionDump instance from a plain object
+   * Create a ReportActionDump instance from a plain object
    */
-  static fromJSON(data: IGroupedActionDump): GroupedActionDump {
-    return new GroupedActionDump(data);
+  static fromJSON(data: IReportActionDump): ReportActionDump {
+    return new ReportActionDump(data);
   }
 
   /**
@@ -833,7 +851,6 @@ export class GroupedActionDump implements IGroupedActionDump {
    * Creates:
    * - {basePath} - dump JSON with { $screenshot: id } references
    * - {basePath}.screenshots/ - PNG files
-   * - {basePath}.screenshots.json - ID to path mapping
    *
    * @param basePath - Base path for the dump file
    */
@@ -843,28 +860,20 @@ export class GroupedActionDump implements IGroupedActionDump {
       mkdirSync(screenshotsDir, { recursive: true });
     }
 
-    // Write screenshots to separate files
-    const screenshotMap: Record<string, string> = {};
     const screenshots = this.collectAllScreenshots();
 
     for (const screenshot of screenshots) {
-      if (screenshot.hasBase64()) {
-        const imagePath = join(
-          screenshotsDir,
-          `${screenshot.id}.${screenshot.extension}`,
-        );
-        const rawBase64 = screenshot.rawBase64;
-        writeFileSync(imagePath, Buffer.from(rawBase64, 'base64'));
-        screenshotMap[screenshot.id] = imagePath;
+      const imagePath = join(
+        screenshotsDir,
+        `${screenshot.id}.${screenshot.extension}`,
+      );
+      if (existsSync(imagePath)) {
+        continue;
       }
-    }
 
-    // Write screenshot map file
-    writeFileSync(
-      `${basePath}.screenshots.json`,
-      JSON.stringify(screenshotMap),
-      'utf-8',
-    );
+      const rawBase64 = screenshot.rawBase64;
+      writeFileSync(imagePath, Buffer.from(rawBase64, 'base64'));
+    }
 
     // Write dump JSON with references
     writeFileSync(basePath, this.serialize(), 'utf-8');
@@ -879,35 +888,38 @@ export class GroupedActionDump implements IGroupedActionDump {
    */
   static fromFilesAsInlineJson(basePath: string): string {
     const dumpString = readFileSync(basePath, 'utf-8');
-    const screenshotsMapPath = `${basePath}.screenshots.json`;
+    const screenshotsDir = `${basePath}.screenshots`;
 
-    if (!existsSync(screenshotsMapPath)) {
-      return dumpString;
-    }
-
-    // Read screenshot map and build imageMap from files
-    const screenshotMap: Record<string, string> = JSON.parse(
-      readFileSync(screenshotsMapPath, 'utf-8'),
-    );
-
-    const imageMap: Record<string, string> = {};
-    for (const [id, filePath] of Object.entries(screenshotMap)) {
-      if (existsSync(filePath)) {
-        const data = readFileSync(filePath);
-        const mime =
-          filePath.endsWith('.jpeg') || filePath.endsWith('.jpg')
-            ? 'jpeg'
-            : 'png';
-        imageMap[id] = `data:image/${mime};base64,${data.toString('base64')}`;
+    const loadFromExecutionScreenshotDir = (id: string, mimeType: string) => {
+      const ext = mimeType === 'image/jpeg' ? 'jpeg' : 'png';
+      const filePath = join(screenshotsDir, `${id}.${ext}`);
+      if (!existsSync(filePath)) {
+        return '';
       }
-    }
+      const data = readFileSync(filePath);
+      return `data:image/${ext};base64,${data.toString('base64')}`;
+    };
 
     // Restore image references
     const dumpData = JSON.parse(dumpString);
-    const processedData = restoreImageReferences(
-      dumpData,
-      (id) => imageMap[id] ?? '',
-    );
+    const store = new ScreenshotStore({
+      mode: 'directory',
+      reportPath: basePath,
+    });
+    const processedData = restoreImageReferences(dumpData, (ref) => {
+      const executionFileImage = loadFromExecutionScreenshotDir(
+        ref.id,
+        ref.mimeType,
+      );
+      if (executionFileImage) {
+        return executionFileImage;
+      }
+
+      if (ref.storage === 'inline') {
+        return '';
+      }
+      return store.loadBase64(ref);
+    });
     return JSON.stringify(processedData);
   }
 
@@ -917,11 +929,7 @@ export class GroupedActionDump implements IGroupedActionDump {
    * @param basePath - Base path for the dump file
    */
   static cleanupFiles(basePath: string): void {
-    const filesToClean = [
-      basePath,
-      `${basePath}.screenshots.json`,
-      `${basePath}.screenshots`,
-    ];
+    const filesToClean = [basePath, `${basePath}.screenshots`];
 
     for (const filePath of filesToClean) {
       try {
@@ -939,13 +947,13 @@ export class GroupedActionDump implements IGroupedActionDump {
    * @returns Array of all associated file paths
    */
   static getFilePaths(basePath: string): string[] {
-    return [
-      basePath,
-      `${basePath}.screenshots.json`,
-      `${basePath}.screenshots`,
-    ];
+    return [basePath, `${basePath}.screenshots`];
   }
 }
+
+// Backward-compatible aliases for existing external consumers.
+export type GroupedActionDump = ReportActionDump;
+export const GroupedActionDump = ReportActionDump;
 
 export type InterfaceType =
   | 'puppeteer'
@@ -1046,6 +1054,7 @@ export type Cache =
   | CacheConfig; // Object configuration (requires explicit id)
 
 export interface AgentOpt {
+  // @deprecated Use `reportFileName` and `cache.id` instead.
   testId?: string;
   // @deprecated
   cacheId?: string; // Keep backward compatibility, but marked as deprecated
@@ -1053,6 +1062,8 @@ export interface AgentOpt {
   groupDescription?: string;
   /* if auto generate report, default true */
   generateReport?: boolean;
+  /* if persist per-execution dump files next to the report, default false */
+  persistExecutionDump?: boolean;
   /* if auto print report msg, default true */
   autoPrintReportMsg?: boolean;
 
@@ -1156,13 +1167,20 @@ export type TestStatus =
   | 'skipped'
   | 'interrupted';
 
-export interface ReportFileWithAttributes {
-  reportFilePath: string;
-  reportAttributes: {
-    testDuration: number;
-    testStatus: TestStatus;
-    testTitle: string;
-    testId: string;
-    testDescription: string;
-  };
+export interface ReportFileAttributes {
+  testDuration: number;
+  testStatus: TestStatus;
+  testTitle: string;
+  testId: string;
+  testDescription: string;
 }
+
+export type ReportFileWithAttributes =
+  | {
+      reportFilePath: string;
+      reportAttributes: ReportFileAttributes;
+    }
+  | {
+      reportFilePath?: string;
+      reportAttributes: ReportFileAttributes & { testStatus: 'skipped' };
+    };

@@ -5,30 +5,66 @@ import type { Server as HttpServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { SCRCPY_SERVER_PORT } from '@midscene/shared/constants';
+import {
+  SCRCPY_ADB_CONNECT_TIMEOUT_MS,
+  SCRCPY_PREVIEW_METADATA_TIMEOUT_MS,
+  SCRCPY_PUSH_TIMEOUT_MS,
+  SCRCPY_SERVER_PORT,
+  SCRCPY_START_TIMEOUT_MS,
+  SCRCPY_VIDEO_STREAM_TIMEOUT_MS,
+} from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
 import type { Adb, AdbServerClient } from '@yume-chan/adb';
 import cors from 'cors';
 import express from 'express';
 import { Server } from 'socket.io';
+import {
+  type ScrcpyPreviewPhase,
+  buildScrcpyPreviewStatusEvent,
+} from './scrcpy-preview-status';
+import { withTimeout } from './timeout';
 
 export const debugPage = getDebug('android:playground');
-
 const promiseExec = promisify(exec);
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 
-function isLoopbackOrigin(origin?: string) {
+function isPrivateIP(hostname: string): boolean {
+  // 10.x.x.x, 172.16-31.x.x, 192.168.x.x
+  return (
+    LOOPBACK_HOSTS.has(hostname) ||
+    /^10\./.test(hostname) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
+    /^192\.168\./.test(hostname) ||
+    /^100\.(6[4-9]|[7-9]\d|1[0-2]\d)\./.test(hostname)
+  );
+}
+
+function isAllowedOrigin(origin?: string) {
   if (!origin) {
     return true;
   }
 
   try {
     const url = new URL(origin);
-    return LOOPBACK_HOSTS.has(url.hostname);
+    return isPrivateIP(url.hostname);
   } catch {
     return false;
   }
+}
+
+export interface ScrcpyConnectDeviceRequest {
+  deviceId?: string;
+  maxSize?: number;
+}
+
+export function resolveRequestedDeviceId(
+  options: ScrcpyConnectDeviceRequest | undefined,
+  currentDeviceId: string | null,
+): string | undefined {
+  const requestedDeviceId =
+    typeof options?.deviceId === 'string' ? options.deviceId.trim() : '';
+  return requestedDeviceId || currentDeviceId || undefined;
 }
 
 export default class ScrcpyServer {
@@ -48,7 +84,7 @@ export default class ScrcpyServer {
     this.io = new Server(this.httpServer, {
       cors: {
         origin(origin, callback) {
-          callback(null, isLoopbackOrigin(origin));
+          callback(null, isAllowedOrigin(origin));
         },
         methods: ['GET', 'POST'],
         credentials: true,
@@ -58,7 +94,7 @@ export default class ScrcpyServer {
     this.app.use(
       cors({
         origin(origin, callback) {
-          callback(null, isLoopbackOrigin(origin));
+          callback(null, isAllowedOrigin(origin));
         },
         credentials: true,
       }),
@@ -136,7 +172,11 @@ export default class ScrcpyServer {
     );
     try {
       if (!this.adbClient) {
-        await promiseExec('adb start-server'); // make sure adb server is running
+        await withTimeout(
+          promiseExec('adb start-server'),
+          SCRCPY_ADB_CONNECT_TIMEOUT_MS,
+          `Timed out starting adb server after ${Math.round(SCRCPY_ADB_CONNECT_TIMEOUT_MS / 1000)}s`,
+        );
         debugPage('adb server started');
         debugPage('initialize adb client');
         this.adbClient = new AdbServerClient(
@@ -162,7 +202,7 @@ export default class ScrcpyServer {
     try {
       const client = await this.getAdbClient();
       if (!client) {
-        return null;
+        throw new Error('Failed to initialize ADB client');
       }
 
       // determine which device to use
@@ -173,26 +213,44 @@ export default class ScrcpyServer {
         this.currentDeviceId = targetDeviceId;
         // use device id as DeviceSelector
         return new Adb(
-          await client.createTransport({ serial: targetDeviceId }),
+          await withTimeout(
+            client.createTransport({ serial: targetDeviceId }),
+            SCRCPY_ADB_CONNECT_TIMEOUT_MS,
+            `Timed out connecting to Android device ${targetDeviceId} via ADB after ${Math.round(SCRCPY_ADB_CONNECT_TIMEOUT_MS / 1000)}s`,
+          ),
         );
       }
 
       // otherwise, get devices list and use the first online device
-      const devices = await client.getDevices();
+      const devices = await withTimeout(
+        client.getDevices(),
+        SCRCPY_ADB_CONNECT_TIMEOUT_MS,
+        `Timed out listing Android devices via ADB after ${Math.round(SCRCPY_ADB_CONNECT_TIMEOUT_MS / 1000)}s`,
+      );
       if (devices.length === 0) {
         return null;
       }
 
       this.currentDeviceId = devices[0].serial;
-      return new Adb(await client.createTransport(devices[0]));
+      return new Adb(
+        await withTimeout(
+          client.createTransport(devices[0]),
+          SCRCPY_ADB_CONNECT_TIMEOUT_MS,
+          `Timed out connecting to Android device ${devices[0].serial} via ADB after ${Math.round(SCRCPY_ADB_CONNECT_TIMEOUT_MS / 1000)}s`,
+        ),
+      );
     } catch (error) {
       console.error('failed to get adb client:', error);
-      return null;
+      throw error;
     }
   }
 
   // start scrcpy
-  private async startScrcpy(adb: Adb, options = {}) {
+  private async startScrcpy(
+    adb: Adb,
+    options = {},
+    onProgress?: (phase: ScrcpyPreviewPhase) => void,
+  ) {
     const { AdbScrcpyClient, AdbScrcpyOptions3_3_3 } = await import(
       '@yume-chan/adb-scrcpy'
     );
@@ -207,9 +265,14 @@ export default class ScrcpyServer {
 
     try {
       // Push server - use file path directly for createReadStream
-      await AdbScrcpyClient.pushServer(
-        adb,
-        ReadableStream.from(createReadStream(serverBinPath)),
+      onProgress?.('pushing-server');
+      await withTimeout(
+        AdbScrcpyClient.pushServer(
+          adb,
+          ReadableStream.from(createReadStream(serverBinPath)),
+        ),
+        SCRCPY_PUSH_TIMEOUT_MS,
+        `Timed out pushing scrcpy server to device after ${Math.round(SCRCPY_PUSH_TIMEOUT_MS / 1000)}s`,
       );
 
       // Start scrcpy service
@@ -227,7 +290,30 @@ export default class ScrcpyServer {
         ...options,
       });
 
-      return await AdbScrcpyClient.start(adb, DefaultServerPath, scrcpyOptions);
+      onProgress?.('starting-service');
+      const startPromise = AdbScrcpyClient.start(
+        adb,
+        DefaultServerPath,
+        scrcpyOptions,
+      );
+
+      return await withTimeout(
+        startPromise,
+        SCRCPY_START_TIMEOUT_MS,
+        `Timed out starting scrcpy service after ${Math.round(SCRCPY_START_TIMEOUT_MS / 1000)}s`,
+        {
+          onSettledAfterTimeout: async (lateClient) => {
+            try {
+              await lateClient.close();
+            } catch (closeError) {
+              console.error(
+                'failed to close late scrcpy client after timeout:',
+                closeError,
+              );
+            }
+          },
+        },
+      );
     } catch (error) {
       console.error('failed to start scrcpy:', error);
       throw error;
@@ -246,6 +332,10 @@ export default class ScrcpyServer {
       let scrcpyClient: any = null;
       let adb = null;
 
+      const emitPreviewStatus = (phase: ScrcpyPreviewPhase) => {
+        socket.emit('preview-status', buildScrcpyPreviewStatusEvent(phase));
+      };
+
       // send devices list to client
       const sendDevicesList = async () => {
         try {
@@ -261,9 +351,6 @@ export default class ScrcpyServer {
           socket.emit('error', { message: 'failed to get devices list' });
         }
       };
-
-      // send devices list to client
-      await sendDevicesList();
 
       // listen to get devices list request
       socket.on('get-devices', async () => {
@@ -299,160 +386,195 @@ export default class ScrcpyServer {
       });
 
       // handle device connection request
-      socket.on('connect-device', async (options) => {
-        const { ScrcpyVideoCodecId } = await import('@yume-chan/scrcpy');
-        try {
-          debugPage(
-            'received device connection request, options: %s, client id: %s',
-            options,
-            socket.id,
-          );
-
-          // use current selected device id or default the first online device
-          adb = await this.getAdb(this.currentDeviceId || undefined);
-          if (!adb) {
-            console.error('no available device found');
-            socket.emit('error', { message: 'No device found' });
-            return;
-          }
-
-          debugPage(
-            'starting scrcpy service, device id: %s',
-            this.currentDeviceId,
-          );
-          scrcpyClient = await this.startScrcpy(adb, options);
-          debugPage('scrcpy service started successfully');
-
-          // check scrcpyClient object structure
-          debugPage(
-            'check scrcpyClient object structure: %s',
-            Object.getOwnPropertyNames(scrcpyClient).map((name) => {
-              const type = typeof scrcpyClient[name];
-              const isPromise =
-                type === 'object' &&
-                scrcpyClient[name] &&
-                typeof scrcpyClient[name].then === 'function';
-              return `${name}: ${type}${isPromise ? ' (Promise)' : ''}`;
-            }),
-          );
-
+      socket.on(
+        'connect-device',
+        async (options: ScrcpyConnectDeviceRequest = {}) => {
+          const { ScrcpyVideoCodecId } = await import('@yume-chan/scrcpy');
           try {
-            // check if videoStream is a Promise
-            if (scrcpyClient.videoStream) {
-              debugPage(
-                'videoStream exists, type: %s',
-                typeof scrcpyClient.videoStream,
-              );
+            debugPage(
+              'received device connection request, options: %s, client id: %s',
+              options,
+              socket.id,
+            );
 
-              // get video stream
-              let videoStream;
-              if (
-                typeof scrcpyClient.videoStream === 'object' &&
-                typeof scrcpyClient.videoStream.then === 'function'
-              ) {
+            emitPreviewStatus('connecting-device');
+
+            const requestedDeviceId = resolveRequestedDeviceId(
+              options,
+              this.currentDeviceId,
+            );
+            if (requestedDeviceId) {
+              this.currentDeviceId = requestedDeviceId;
+            }
+
+            // use current selected device id or default the first online device
+            adb = await this.getAdb(requestedDeviceId);
+            if (!adb) {
+              console.error('no available device found');
+              socket.emit('error', { message: 'No device found' });
+              return;
+            }
+
+            debugPage(
+              'starting scrcpy service, device id: %s',
+              this.currentDeviceId,
+            );
+            scrcpyClient = await this.startScrcpy(
+              adb,
+              options,
+              emitPreviewStatus,
+            );
+            debugPage('scrcpy service started successfully');
+
+            // check scrcpyClient object structure
+            debugPage(
+              'check scrcpyClient object structure: %s',
+              Object.getOwnPropertyNames(scrcpyClient).map((name) => {
+                const type = typeof scrcpyClient[name];
+                const isPromise =
+                  type === 'object' &&
+                  scrcpyClient[name] &&
+                  typeof scrcpyClient[name].then === 'function';
+                return `${name}: ${type}${isPromise ? ' (Promise)' : ''}`;
+              }),
+            );
+
+            try {
+              // check if videoStream is a Promise
+              if (scrcpyClient.videoStream) {
                 debugPage(
-                  'videoStream is a Promise, waiting for resolution...',
+                  'videoStream exists, type: %s',
+                  typeof scrcpyClient.videoStream,
                 );
-                videoStream = await scrcpyClient.videoStream;
-              } else {
-                debugPage('videoStream is not a Promise, directly use');
-                videoStream = scrcpyClient.videoStream;
-              }
 
-              debugPage(
-                'video stream fetched successfully, metadata: %s',
-                videoStream.metadata,
-              );
+                // get video stream
+                let videoStream;
+                if (
+                  typeof scrcpyClient.videoStream === 'object' &&
+                  typeof scrcpyClient.videoStream.then === 'function'
+                ) {
+                  debugPage(
+                    'videoStream is a Promise, waiting for resolution...',
+                  );
+                  emitPreviewStatus('waiting-for-video');
+                  videoStream = await withTimeout(
+                    scrcpyClient.videoStream,
+                    SCRCPY_VIDEO_STREAM_TIMEOUT_MS,
+                    `Timed out waiting for scrcpy video stream metadata after ${Math.round(SCRCPY_VIDEO_STREAM_TIMEOUT_MS / 1000)}s`,
+                  );
+                } else {
+                  debugPage('videoStream is not a Promise, directly use');
+                  emitPreviewStatus('waiting-for-video');
+                  videoStream = scrcpyClient.videoStream;
+                }
 
-              // ensure metadata exists
-              const metadata = videoStream.metadata || {};
-              debugPage('original metadata: %s', metadata);
-
-              // ensure metadata contains necessary fields
-              if (!metadata.codec) {
                 debugPage(
-                  'metadata does not have codec field, use H264 by default',
+                  'video stream fetched successfully, metadata: %s',
+                  videoStream.metadata,
                 );
-                metadata.codec = ScrcpyVideoCodecId.H264;
-              }
 
-              // make sure metadata contains size information
-              if (!metadata.width || !metadata.height) {
+                // ensure metadata exists
+                const metadata = videoStream.metadata || {};
+                debugPage('original metadata: %s', metadata);
+
+                // ensure metadata contains necessary fields
+                if (!metadata.codec) {
+                  debugPage(
+                    'metadata does not have codec field, use H264 by default',
+                  );
+                  metadata.codec = ScrcpyVideoCodecId.H264;
+                }
+
+                // make sure metadata contains size information
+                if (!metadata.width || !metadata.height) {
+                  debugPage(
+                    'metadata does not have width or height field, use default values',
+                  );
+                  metadata.width = metadata.width || 1080;
+                  metadata.height = metadata.height || 1920;
+                }
+
                 debugPage(
-                  'metadata does not have width or height field, use default values',
+                  'prepare to send video-metadata event to client, data: %s',
+                  JSON.stringify(metadata),
                 );
-                metadata.width = metadata.width || 1080;
-                metadata.height = metadata.height || 1920;
-              }
+                socket.emit('video-metadata', metadata);
+                debugPage(
+                  'video-metadata event sent to client, id: %s, timeout budget: %ss',
+                  socket.id,
+                  Math.round(SCRCPY_PREVIEW_METADATA_TIMEOUT_MS / 1000),
+                );
 
-              debugPage(
-                'prepare to send video-metadata event to client, data: %s',
-                JSON.stringify(metadata),
-              );
-              socket.emit('video-metadata', metadata);
-              debugPage(
-                'video-metadata event sent to client, id: %s',
-                socket.id,
-              );
+                const { stream } = videoStream;
 
-              const { stream } = videoStream;
+                // convert video stream
+                const reader = stream.getReader();
+                const processStream = async () => {
+                  try {
+                    while (true) {
+                      const { done, value } = await reader.read();
+                      if (done) break;
 
-              // convert video stream
-              const reader = stream.getReader();
-              const processStream = async () => {
-                try {
-                  while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
+                      // ensure type field is correctly set to 'configuration' or 'data'
+                      const frameType = value.type || 'data'; // default to 'data'
 
-                    // ensure type field is correctly set to 'configuration' or 'data'
-                    const frameType = value.type || 'data'; // default to 'data'
-
-                    // send video frame data to client
-                    socket.emit('video-data', {
-                      data: Array.from(value.data),
-                      type: frameType,
-                      timestamp: Date.now(),
-                      // fix keyframe access
-                      keyFrame: value.keyFrame,
+                      // send video frame data to client
+                      socket.emit('video-data', {
+                        data: Array.from(value.data),
+                        type: frameType,
+                        timestamp: Date.now(),
+                        // fix keyframe access
+                        keyFrame: value.keyFrame,
+                      });
+                    }
+                  } catch (error) {
+                    console.error('error processing video stream:', error);
+                    socket.emit('error', {
+                      message: 'video stream processing error',
                     });
                   }
-                } catch (error) {
-                  console.error('error processing video stream:', error);
-                  socket.emit('error', {
-                    message: 'video stream processing error',
-                  });
-                }
-              };
+                };
 
-              processStream();
-            } else {
-              console.error(
-                'scrcpyClient object does not have videoStream property',
-              );
+                processStream();
+              } else {
+                console.error(
+                  'scrcpyClient object does not have videoStream property',
+                );
+                socket.emit('error', {
+                  message: 'Video stream not available in scrcpy client',
+                });
+              }
+            } catch (error: any) {
+              console.error('error processing video stream:', error);
               socket.emit('error', {
-                message: 'Video stream not available in scrcpy client',
+                message: `Video stream processing error: ${error.message}`,
               });
             }
+
+            // set control ready
+            // fix control property access
+            if (scrcpyClient?.controller) {
+              socket.emit('control-ready');
+            }
           } catch (error: any) {
-            console.error('error processing video stream:', error);
+            console.error('failed to connect device:', error);
+            if (scrcpyClient) {
+              try {
+                await scrcpyClient.close();
+              } catch (closeError) {
+                console.error(
+                  'failed to close scrcpy client after error:',
+                  closeError,
+                );
+              }
+              scrcpyClient = null;
+            }
             socket.emit('error', {
-              message: `Video stream processing error: ${error.message}`,
+              message: `Failed to connect device: ${error?.message || 'Unknown error'}`,
             });
           }
-
-          // set control ready
-          // fix control property access
-          if (scrcpyClient?.controller) {
-            socket.emit('control-ready');
-          }
-        } catch (error: any) {
-          console.error('failed to connect device:', error);
-          socket.emit('error', {
-            message: `Failed to connect device: ${error?.message || 'Unknown error'}`,
-          });
-        }
-      });
+        },
+      );
 
       // handle disconnection
       socket.on('disconnect', async (reason) => {
@@ -469,6 +591,13 @@ export default class ScrcpyServer {
           scrcpyClient = null;
         }
       });
+
+      // Don't block listener registration on the initial device scan. On a
+      // cold start, the first `sendDevicesList()` call may spend over a second
+      // waking up adb, while the renderer emits `connect-device` immediately
+      // after the socket connects. If the listener hasn't been attached yet,
+      // that first event is lost and the preview stays stuck preparing.
+      void sendDevicesList();
     });
   }
 
@@ -476,8 +605,9 @@ export default class ScrcpyServer {
   async launch(port?: number) {
     this.port = port || this.defaultPort;
     return new Promise<this>((resolve) => {
-      this.httpServer.listen(this.port, () => {
-        console.log(`Scrcpy server running at: http://localhost:${this.port}`);
+      const listenPort = this.port ?? this.defaultPort;
+      this.httpServer.listen(listenPort, '0.0.0.0', () => {
+        console.log(`Scrcpy server running at: http://0.0.0.0:${this.port}`);
         // start device monitoring
         this.startDeviceMonitoring();
         resolve(this);

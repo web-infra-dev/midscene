@@ -4,15 +4,48 @@ import {
   WebCodecsVideoDecoder,
   WebGLVideoFrameRenderer,
 } from '@yume-chan/scrcpy-decoder-webcodecs';
-import { Alert, Button, Card, Space, Spin, Typography } from 'antd';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Spin, Typography } from 'antd';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
+import {
+  SCRCPY_METADATA_TIMEOUT_MS,
+  type ScrcpyPreviewStatus,
+  getDefaultScrcpyWaitingStatusText,
+  getScrcpyDecoderStatusText,
+  getScrcpyMetadataTimeoutMessage,
+  getScrcpyPreviewStatusText,
+  isScrcpyPreviewStatusEvent,
+} from './scrcpy-preview';
+import { createScrcpyVideoStream } from './scrcpy-stream';
 
 const { Text } = Typography;
 
+export interface ScrcpyErrorOverlayContext {
+  errorMessage: string | null;
+  retry: () => void;
+  status: ScrcpyPreviewStatus;
+  statusText: string;
+}
+
+export type ScrcpyErrorOverlayRenderer = (
+  context: ScrcpyErrorOverlayContext,
+) => ReactNode;
+
 interface ScrcpyPanelProps {
+  connectingOverlay?: ReactNode;
+  deviceId?: string;
+  onStatusChange?: (status: ScrcpyPreviewStatus, statusText: string) => void;
+  renderErrorOverlay?: ScrcpyErrorOverlayRenderer;
   serverUrl?: string;
+  metadataTimeoutMs?: number;
   reconnectInterval?: number;
 }
 
@@ -23,38 +56,47 @@ interface VideoMetadata {
 }
 
 export function ScrcpyPanel({
+  connectingOverlay,
+  deviceId,
+  onStatusChange,
+  renderErrorOverlay,
   serverUrl,
+  metadataTimeoutMs = SCRCPY_METADATA_TIMEOUT_MS,
   reconnectInterval = 3000,
 }: ScrcpyPanelProps) {
   const canvasStageRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const decoderRef = useRef<WebCodecsVideoDecoder | null>(null);
+  const metadataTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const connectRef = useRef<(() => void) | null>(null);
-  const disconnectRef = useRef<(() => void) | null>(null);
-  const manuallyDisconnectedRef = useRef(false);
-  const [status, setStatus] = useState<
-    'connecting' | 'connected' | 'disconnected' | 'error'
-  >('connecting');
+  const ignoreDisconnectRef = useRef(false);
+  const [status, setStatus] = useState<ScrcpyPreviewStatus>('connecting');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [screenInfo, setScreenInfo] = useState<{
-    width: number;
-    height: number;
-  } | null>(null);
+  const [waitingStatusMessage, setWaitingStatusMessage] = useState<string>(() =>
+    getDefaultScrcpyWaitingStatusText(),
+  );
   const [webCodecsSupported, setWebCodecsSupported] = useState(true);
+  const [retryNonce, setRetryNonce] = useState(0);
 
-  const statusText = useMemo(() => {
-    switch (status) {
-      case 'connected':
-        return 'Live scrcpy preview connected';
-      case 'error':
-        return 'Unable to start scrcpy preview';
-      case 'disconnected':
-        return 'scrcpy preview disconnected, retrying…';
-      default:
-        return 'Connecting to scrcpy preview…';
-    }
-  }, [status]);
+  const statusText = useMemo(
+    () => getScrcpyPreviewStatusText(status, waitingStatusMessage),
+    [status, waitingStatusMessage],
+  );
+  const showCustomErrorOverlay =
+    (status === 'error' || status === 'disconnected') &&
+    Boolean(renderErrorOverlay);
+  const renderResolvedErrorOverlay = renderErrorOverlay;
+
+  const requestRetry = useCallback(() => {
+    setStatus('connecting');
+    setErrorMessage(null);
+    setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
+    setRetryNonce((current) => current + 1);
+  }, []);
+
+  useEffect(() => {
+    onStatusChange?.(status, statusText);
+  }, [onStatusChange, status, statusText]);
 
   const clearCanvas = () => {
     const stage = canvasStageRef.current;
@@ -74,15 +116,12 @@ export function ScrcpyPanel({
     decoderRef.current = null;
   };
 
-  const handleConnect = useCallback(() => {
-    manuallyDisconnectedRef.current = false;
-    connectRef.current?.();
-  }, []);
-
-  const handleDisconnect = useCallback(() => {
-    manuallyDisconnectedRef.current = true;
-    disconnectRef.current?.();
-  }, []);
+  const clearMetadataTimeout = () => {
+    if (metadataTimeoutRef.current) {
+      clearTimeout(metadataTimeoutRef.current);
+      metadataTimeoutRef.current = null;
+    }
+  };
 
   useEffect(() => {
     if (!serverUrl) {
@@ -101,8 +140,14 @@ export function ScrcpyPanel({
     }
 
     let disposed = false;
+    let connectTimer: ReturnType<typeof setTimeout> | null = null;
 
     const cleanup = () => {
+      if (connectTimer) {
+        clearTimeout(connectTimer);
+        connectTimer = null;
+      }
+      clearMetadataTimeout();
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
@@ -118,11 +163,7 @@ export function ScrcpyPanel({
     };
 
     const scheduleReconnect = () => {
-      if (
-        disposed ||
-        reconnectTimerRef.current ||
-        manuallyDisconnectedRef.current
-      ) {
+      if (disposed || reconnectTimerRef.current) {
         return;
       }
 
@@ -149,80 +190,7 @@ export function ScrcpyPanel({
         codec: codecId,
         renderer,
       });
-      decoder.sizeChanged(
-        ({ width, height }: { width: number; height: number }) => {
-          setScreenInfo({ width, height });
-        },
-      );
       return decoder;
-    };
-
-    const setupVideoStream = () => {
-      const socket = socketRef.current;
-      let configurationPacketSent = false;
-      let pendingDataPackets: Array<{
-        type: string;
-        data: Uint8Array;
-        timestamp: number;
-      }> = [];
-
-      const transformStream = new TransformStream({
-        transform(chunk: any, controller: TransformStreamDefaultController) {
-          const packet = {
-            type: chunk.type,
-            data: new Uint8Array(chunk.data),
-            timestamp: chunk.timestamp,
-          };
-
-          if (packet.type === 'configuration') {
-            configurationPacketSent = true;
-            controller.enqueue(packet);
-            pendingDataPackets.forEach((queuedPacket) =>
-              controller.enqueue(queuedPacket),
-            );
-            pendingDataPackets = [];
-            return;
-          }
-
-          if (packet.type === 'data' && !configurationPacketSent) {
-            pendingDataPackets.push(packet);
-            return;
-          }
-
-          controller.enqueue(packet);
-        },
-      });
-
-      let cleanupListeners: (() => void) | undefined;
-      const readable = new ReadableStream({
-        start(controller) {
-          const handleVideoData = (data: any) => {
-            try {
-              controller.enqueue(data);
-            } catch (error) {
-              controller.error(error);
-            }
-          };
-
-          const handleDisconnect = () => controller.close();
-          const handleError = (error: Error) => controller.error(error);
-
-          cleanupListeners = () => {
-            socket?.off('video-data', handleVideoData);
-            socket?.off('disconnect', handleDisconnect);
-            socket?.off('error', handleError);
-          };
-
-          socket?.on('video-data', handleVideoData);
-          socket?.on('disconnect', handleDisconnect);
-          socket?.on('error', handleError);
-        },
-        cancel() {
-          cleanupListeners?.();
-        },
-      });
-
-      return readable.pipeThrough(transformStream);
     };
 
     const connect = () => {
@@ -230,50 +198,76 @@ export function ScrcpyPanel({
         return;
       }
 
-      manuallyDisconnectedRef.current = false;
+      ignoreDisconnectRef.current = false;
       setStatus('connecting');
       setErrorMessage(null);
-      setScreenInfo(null);
+      setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
 
       const socket = io(serverUrl, {
         withCredentials: true,
         reconnection: false,
         timeout: 10000,
+        transports: ['websocket'],
       });
       socketRef.current = socket;
+      const videoStream = createScrcpyVideoStream(socket);
 
       socket.on('connect', () => {
+        setStatus('waiting-for-stream');
+        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
+        clearMetadataTimeout();
+        metadataTimeoutRef.current = setTimeout(() => {
+          if (disposed) {
+            return;
+          }
+
+          ignoreDisconnectRef.current = true;
+          setStatus('error');
+          setErrorMessage(getScrcpyMetadataTimeoutMessage(metadataTimeoutMs));
+          setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
+          socket.disconnect();
+          socketRef.current = null;
+          scheduleReconnect();
+        }, metadataTimeoutMs);
+
         socket.emit('connect-device', {
+          ...(typeof deviceId === 'string' && deviceId.trim()
+            ? { deviceId: deviceId.trim() }
+            : {}),
           maxSize: 1024,
         });
       });
 
+      socket.on('preview-status', (event: unknown) => {
+        if (disposed || !isScrcpyPreviewStatusEvent(event)) {
+          return;
+        }
+
+        setStatus('waiting-for-stream');
+        setWaitingStatusMessage(event.message);
+      });
+
       socket.on('video-metadata', async (metadata: VideoMetadata) => {
         try {
+          clearMetadataTimeout();
           disposeDecoder();
+          setWaitingStatusMessage(getScrcpyDecoderStatusText());
           const codecId = metadata.codec
             ? (metadata.codec as unknown as ScrcpyVideoCodecId)
             : ScrcpyVideoCodecId.H264;
           const decoder = await createDecoder(codecId);
           decoderRef.current = decoder;
-          if (metadata.width && metadata.height) {
-            setScreenInfo({
-              width: metadata.width,
-              height: metadata.height,
-            });
-          }
 
-          setupVideoStream()
-            .pipeTo(decoder.writable)
-            .catch((error: Error) => {
-              if (disposed) {
-                return;
-              }
-              setStatus('error');
-              setErrorMessage(error.message);
-              scheduleReconnect();
-            });
+          videoStream.pipeTo(decoder.writable).catch((error: Error) => {
+            if (disposed) {
+              return;
+            }
+            setStatus('error');
+            setErrorMessage(error.message);
+            scheduleReconnect();
+          });
 
+          setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
           setStatus('connected');
         } catch (error) {
           if (disposed) {
@@ -283,95 +277,66 @@ export function ScrcpyPanel({
           setErrorMessage(
             error instanceof Error ? error.message : 'Failed to start decoder.',
           );
+          setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
           scheduleReconnect();
         }
       });
 
       socket.on('disconnect', () => {
+        clearMetadataTimeout();
         if (disposed) {
           return;
         }
+        if (ignoreDisconnectRef.current) {
+          ignoreDisconnectRef.current = false;
+          return;
+        }
         setStatus('disconnected');
+        setErrorMessage(null);
+        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
         scheduleReconnect();
       });
 
       socket.on('connect_error', (error: Error) => {
+        clearMetadataTimeout();
         if (disposed) {
           return;
         }
         setStatus('error');
         setErrorMessage(error.message);
+        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
         scheduleReconnect();
       });
 
       socket.on('error', (error: Error) => {
+        clearMetadataTimeout();
         if (disposed) {
           return;
         }
         setStatus('error');
         setErrorMessage(error.message);
+        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
         scheduleReconnect();
       });
     };
 
-    const disconnect = () => {
-      cleanup();
-      setStatus('disconnected');
-      setErrorMessage(null);
-      setScreenInfo(null);
-    };
-
-    connectRef.current = connect;
-    disconnectRef.current = disconnect;
-
-    connect();
+    // React StrictMode mounts, cleans up, and remounts effects in dev.
+    // Defer the real socket connection by a tick so the probe mount is
+    // cancelled before it can start a scrcpy session.
+    connectTimer = setTimeout(() => {
+      connectTimer = null;
+      connect();
+    }, 0);
 
     return () => {
       disposed = true;
-      connectRef.current = null;
-      disconnectRef.current = null;
       cleanup();
     };
-  }, [reconnectInterval, serverUrl]);
+  }, [deviceId, metadataTimeoutMs, reconnectInterval, retryNonce, serverUrl]);
 
   return (
-    <Card
-      size="small"
-      title="Live scrcpy preview"
-      style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-      styles={{
-        body: {
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 0,
-        },
-      }}
-      extra={
-        <Space size="small">
-          {screenInfo ? (
-            <Text type="secondary">
-              {screenInfo.width} × {screenInfo.height}
-            </Text>
-          ) : null}
-          {status === 'connected' ? (
-            <Button size="small" onClick={handleDisconnect}>
-              Disconnect
-            </Button>
-          ) : (
-            <Button
-              size="small"
-              type="primary"
-              loading={status === 'connecting'}
-              onClick={handleConnect}
-            >
-              Connect
-            </Button>
-          )}
-        </Space>
-      }
-    >
-      {errorMessage ? (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {errorMessage && !showCustomErrorOverlay ? (
         <Alert
           type="warning"
           showIcon
@@ -403,33 +368,67 @@ export function ScrcpyPanel({
             justifyContent: 'center',
           }}
         />
-        {status !== 'connected' && (
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 12,
-              color: '#fff',
-              background: 'rgba(17, 24, 39, 0.78)',
-              textAlign: 'center',
-              padding: 24,
-              zIndex: 1,
-            }}
-          >
-            <Spin spinning />
-            <Text style={{ color: '#fff' }}>{statusText}</Text>
-            {!webCodecsSupported && (
-              <Text style={{ color: '#d1d5db' }}>
-                Please use a modern Chromium browser to view the stream.
-              </Text>
-            )}
-          </div>
-        )}
+        {status !== 'connected' ? (
+          showCustomErrorOverlay && renderResolvedErrorOverlay ? (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 1,
+              }}
+            >
+              {renderResolvedErrorOverlay({
+                errorMessage,
+                retry: requestRetry,
+                status,
+                statusText,
+              })}
+            </div>
+          ) : status !== 'error' &&
+            status !== 'disconnected' &&
+            connectingOverlay ? (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 1,
+              }}
+            >
+              {connectingOverlay}
+            </div>
+          ) : (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 12,
+                color: '#fff',
+                background: 'rgba(17, 24, 39, 0.78)',
+                textAlign: 'center',
+                padding: 24,
+                zIndex: 1,
+              }}
+            >
+              {status === 'error' ? null : <Spin spinning />}
+              <Text style={{ color: '#fff' }}>{statusText}</Text>
+              {status === 'error' ? (
+                <Text style={{ color: '#d1d5db' }}>
+                  Scrcpy preview will retry automatically.
+                </Text>
+              ) : null}
+              {!webCodecsSupported && (
+                <Text style={{ color: '#d1d5db' }}>
+                  Please use a modern Chromium browser to view the stream.
+                </Text>
+              )}
+            </div>
+          )
+        ) : null}
       </div>
-    </Card>
+    </div>
   );
 }

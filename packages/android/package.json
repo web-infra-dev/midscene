@@ -1,6 +1,6 @@
 {
   "name": "@midscene/android",
-  "version": "1.5.7",
+  "version": "1.7.5",
   "description": "Android automation library for Midscene",
   "keywords": [
     "Android UI automation",
@@ -60,11 +60,11 @@
     "@rslib/core": "^0.18.3",
     "@types/node": "^18.0.0",
     "dotenv": "^16.4.5",
-    "gh-release-fetch": "^4.0.3",
     "typescript": "^5.8.3",
     "tsx": "^4.19.2",
+    "undici": "^6.0.0",
     "vitest": "3.0.5",
-    "zod": "3.24.3"
+    "zod": "^3.25.1"
   },
   "license": "MIT"
 }

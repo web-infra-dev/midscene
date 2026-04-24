@@ -1,4 +1,4 @@
-import type { DeviceAction } from '@midscene/core';
+import type { ConnectivityTestResult, DeviceAction } from '@midscene/core';
 import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
 import type { ExecutionOptions, FormValue, ValidationResult } from '../types';
 
@@ -17,6 +17,10 @@ export abstract class BasePlaygroundAdapter {
     value: FormValue,
     options: ExecutionOptions,
   ): Promise<unknown>;
+
+  abstract overrideConfig(aiConfig: Record<string, unknown>): Promise<void>;
+
+  abstract runConnectivityTest(): Promise<ConnectivityTestResult>;
 
   // Optional method for getting action space - default implementation returns empty array
   async getActionSpace(_context: any): Promise<DeviceAction<unknown>[]> {

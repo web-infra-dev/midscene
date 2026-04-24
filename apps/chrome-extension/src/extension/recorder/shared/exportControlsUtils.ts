@@ -45,46 +45,6 @@ export const getLatestEvents = (sessionId?: string): ChromeRecordedEvent[] => {
 };
 
 /**
- * Check if all elements have descriptions generated
- */
-export const checkElementDescriptions = (
-  events: ChromeRecordedEvent[],
-): boolean => {
-  const eventsNeedingDescriptions = events.filter(
-    (event: ChromeRecordedEvent) =>
-      event.type === 'click' ||
-      event.type === 'input' ||
-      event.type === 'scroll',
-  );
-
-  return eventsNeedingDescriptions.every(
-    (event: ChromeRecordedEvent) => !event.descriptionLoading,
-  );
-};
-
-/**
- * Wait for all element descriptions to be generated
- */
-export const waitForElementDescriptions = (
-  getEvents: () => ChromeRecordedEvent[],
-): Promise<void> => {
-  return new Promise((resolve) => {
-    const checkInterval = setInterval(() => {
-      if (checkElementDescriptions(getEvents())) {
-        clearInterval(checkInterval);
-        resolve();
-      }
-    }, 200); // Check every 200ms
-
-    // Timeout after 30 seconds
-    setTimeout(() => {
-      clearInterval(checkInterval);
-      resolve();
-    }, 30000);
-  });
-};
-
-/**
  * Stop recording if currently recording and wait for completion
  */
 export const stopRecordingIfActive = async (

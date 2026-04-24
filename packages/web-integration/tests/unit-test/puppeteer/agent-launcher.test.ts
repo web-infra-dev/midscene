@@ -2,6 +2,7 @@ import {
   defaultViewportHeight,
   defaultViewportWidth,
   launchPuppeteerPage,
+  puppeteerAgentForTarget,
 } from '@/puppeteer/agent-launcher';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -21,6 +22,8 @@ const createPageMock = () => ({
   setViewport: vi.fn().mockResolvedValue(undefined),
   goto: vi.fn().mockResolvedValue(undefined),
   waitForNetworkIdle: vi.fn().mockResolvedValue(undefined),
+  on: vi.fn(),
+  isClosed: vi.fn().mockReturnValue(false),
 });
 
 vi.mock('puppeteer', () => ({
@@ -66,5 +69,18 @@ describe('launchPuppeteerPage', () => {
     expect(mockLaunch).toHaveBeenCalledWith(
       expect.objectContaining({ defaultViewport: null }),
     );
+  });
+
+  it('passes yaml waitForNetworkIdle settings to the agent for later actions', async () => {
+    const { agent } = await puppeteerAgentForTarget({
+      url: 'https://example.com',
+      forceSameTabNavigation: false,
+      waitForNetworkIdle: {
+        timeout: 4321,
+        continueOnNetworkIdleError: false,
+      },
+    });
+
+    expect((agent.page as any).waitForNetworkIdleTimeout).toBe(4321);
   });
 });

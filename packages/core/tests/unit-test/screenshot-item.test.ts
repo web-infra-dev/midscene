@@ -29,15 +29,14 @@ describe('ScreenshotItem', () => {
   });
 
   describe('toSerializable', () => {
-    it('should return an object with $screenshot property', () => {
+    it('should return an object with ScreenshotRef fields', () => {
       const capturedAt = Date.now();
       const item = ScreenshotItem.create(testBase64, capturedAt);
       const serialized = item.toSerializable();
-      expect(serialized).toHaveProperty('$screenshot');
+      expect(serialized).toHaveProperty('type', 'midscene_screenshot_ref');
+      expect(serialized).toHaveProperty('id');
       expect(serialized).toHaveProperty('capturedAt', capturedAt);
-      expect(typeof (serialized as { $screenshot: string }).$screenshot).toBe(
-        'string',
-      );
+      expect(typeof serialized.id).toBe('string');
     });
 
     it('should produce JSON-serializable output', () => {
@@ -50,20 +49,23 @@ describe('ScreenshotItem', () => {
         return value;
       });
       const parsed = JSON.parse(serialized);
-      expect(parsed.screenshot).toHaveProperty('$screenshot');
-      expect(typeof parsed.screenshot.$screenshot).toBe('string');
+      expect(parsed.screenshot).toHaveProperty(
+        'type',
+        'midscene_screenshot_ref',
+      );
+      expect(typeof parsed.screenshot.id).toBe('string');
     });
   });
 
   describe('isSerialized', () => {
     it('should return true for inline mode format ($screenshot)', () => {
       expect(
-        ScreenshotItem.isSerialized({ $screenshot: 'test-id', capturedAt: 1 }),
-      ).toBe(true);
-      expect(
         ScreenshotItem.isSerialized({
-          $screenshot: 'another-id',
-          capturedAt: 2,
+          type: 'midscene_screenshot_ref',
+          id: 'test-id',
+          capturedAt: 1,
+          mimeType: 'image/png',
+          storage: 'inline',
         }),
       ).toBe(true);
     });
@@ -71,14 +73,12 @@ describe('ScreenshotItem', () => {
     it('should return true for directory mode format (base64 path)', () => {
       expect(
         ScreenshotItem.isSerialized({
-          base64: './screenshots/test.png',
+          type: 'midscene_screenshot_ref',
+          id: 'test-id',
           capturedAt: 1,
-        }),
-      ).toBe(true);
-      expect(
-        ScreenshotItem.isSerialized({
-          base64: 'data:image/png;base64,abc',
-          capturedAt: 2,
+          mimeType: 'image/png',
+          storage: 'file',
+          path: './screenshots/test.png',
         }),
       ).toBe(true);
     });
@@ -86,12 +86,9 @@ describe('ScreenshotItem', () => {
     it('should return false for invalid objects', () => {
       expect(ScreenshotItem.isSerialized({})).toBe(false);
       expect(ScreenshotItem.isSerialized({ screenshot: 'id' })).toBe(false);
-      expect(ScreenshotItem.isSerialized({ $screenshot: 123 })).toBe(false);
-      expect(ScreenshotItem.isSerialized({ base64: 123 })).toBe(false);
-      expect(ScreenshotItem.isSerialized({ $screenshot: 'id' })).toBe(false);
-      expect(ScreenshotItem.isSerialized({ base64: 'x' })).toBe(false);
+      expect(ScreenshotItem.isSerialized({ id: 123 })).toBe(false);
       expect(
-        ScreenshotItem.isSerialized({ $screenshot: 'id', capturedAt: 'wrong' }),
+        ScreenshotItem.isSerialized({ type: 'midscene_screenshot_ref' }),
       ).toBe(false);
     });
 
@@ -158,7 +155,7 @@ describe('ScreenshotItem', () => {
     it('should preserve base64 data through toSerializable', () => {
       const item = ScreenshotItem.create(testBase64, Date.now());
       const serialized = item.toSerializable();
-      expect((serialized as { $screenshot: string }).$screenshot).toBe(item.id);
+      expect(serialized.id).toBe(item.id);
       expect(item.base64).toBe(testBase64);
     });
 
@@ -166,7 +163,11 @@ describe('ScreenshotItem', () => {
       const capturedAt = Date.now();
       const item = ScreenshotItem.create(testBase64, capturedAt);
       const serialized = item.toSerializable();
-      expect(serialized).toEqual({ $screenshot: item.id, capturedAt });
+      expect(serialized).toMatchObject({
+        type: 'midscene_screenshot_ref',
+        id: item.id,
+        capturedAt,
+      });
     });
   });
 
@@ -207,7 +208,12 @@ describe('ScreenshotItem', () => {
       expect(item.hasBase64()).toBe(false);
       // Should recover from HTML file via lazy loading
       expect(item.base64).toBe(testBase64);
-      expect(item.toSerializable()).toEqual({ $screenshot: id, capturedAt });
+      expect(item.toSerializable()).toMatchObject({
+        type: 'midscene_screenshot_ref',
+        id,
+        capturedAt,
+        storage: 'inline',
+      });
     });
 
     it('markPersistedToPath should release memory and support lazy loading recovery', () => {
@@ -225,18 +231,50 @@ describe('ScreenshotItem', () => {
       expect(item.hasBase64()).toBe(false);
       // Should recover from PNG file via lazy loading
       expect(item.base64).toContain('data:image/png;base64,');
-      expect(item.toSerializable()).toEqual({
-        base64: relativePath,
+      expect(item.toSerializable()).toMatchObject({
+        type: 'midscene_screenshot_ref',
+        id: item.id,
         capturedAt,
+        storage: 'file',
+        path: relativePath,
       });
     });
 
-    it('toSerializable should return $screenshot format before persistence', () => {
+    it('should support file copy tracking without changing inline serialization mode', () => {
+      const capturedAt = Date.now();
+      const item = ScreenshotItem.create(testBase64, capturedAt);
+      const id = item.id;
+      const htmlPath = join(tmpDir, 'dual-path.html');
+      const filePath = join(tmpDir, 'dual-path.png');
+
+      writeFileSync(
+        htmlPath,
+        `<script type="midscene-image" data-id="${id}">${testBase64}</script>`,
+      );
+      const rawBase64 = testBase64.replace(/^data:image\/png;base64,/, '');
+      writeFileSync(filePath, Buffer.from(rawBase64, 'base64'));
+
+      item.registerPersistedFileCopy('./screenshots/dual-path.png', filePath);
+      item.markPersistedInline(htmlPath);
+
+      expect(item.hasBase64()).toBe(false);
+      expect(item.toSerializable()).toMatchObject({
+        type: 'midscene_screenshot_ref',
+        id,
+        capturedAt,
+        storage: 'inline',
+      });
+
+      rmSync(filePath, { force: true });
+      expect(item.base64).toBe(testBase64);
+    });
+
+    it('toSerializable should return ScreenshotRef format before persistence', () => {
       const item = ScreenshotItem.create(testBase64, Date.now());
       const serialized = item.toSerializable();
 
-      expect(serialized).toHaveProperty('$screenshot');
-      expect((serialized as { $screenshot: string }).$screenshot).toBe(item.id);
+      expect(serialized).toHaveProperty('type', 'midscene_screenshot_ref');
+      expect(serialized.id).toBe(item.id);
     });
 
     it('should throw when recovery path does not exist (directory mode)', () => {

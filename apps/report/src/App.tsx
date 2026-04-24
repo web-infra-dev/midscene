@@ -1,12 +1,13 @@
 import './App.less';
 
 import { Alert, ConfigProvider, Empty, theme } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import {
   GroupedActionDump,
   type ModelBrief,
+  dedupeExecutionsKeepLatest,
   restoreImageReferences,
 } from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
@@ -29,11 +30,18 @@ import type {
   PlaywrightTasks,
   VisualizerProps,
 } from './types';
+import {
+  getEmptyDumpDescription,
+  parseDumpAttributes,
+} from './utils/report-dump';
 
 // Shared image cache across all test cases — resolved images are cached by id
 const imageCache = new Map<string, string>();
 
-function resolveImageFromDom(id: string): string {
+function resolveImageFromDom(
+  refOrId: string | { id: string; storage?: 'inline' | 'file'; path?: string },
+): string {
+  const id = typeof refOrId === 'string' ? refOrId : refOrId.id;
   const cached = imageCache.get(id);
   if (cached) return cached;
 
@@ -44,6 +52,10 @@ function resolveImageFromDom(id: string): string {
     const data = antiEscapeScriptTag(el.textContent);
     imageCache.set(id, data);
     return data;
+  }
+
+  if (typeof refOrId === 'object' && refOrId?.storage === 'file') {
+    return refOrId.path || `./screenshots/${id}.png`;
   }
 
   // Fallback to directory path
@@ -82,6 +94,9 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
   const sdkVersion = useExecutionDump((store) => store.sdkVersion);
   const modelBriefs = useExecutionDump((store) => store.modelBriefs);
+  const playwrightAttributes = useExecutionDump(
+    (store) => store.playwrightAttributes,
+  );
   const modelBriefText = modelBriefs
     .map((brief) => formatModelBrief(brief, modelBriefs.length > 1))
     .join(', ');
@@ -108,8 +123,9 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   }, [isDarkMode]);
 
   useEffect(() => {
-    if (dumps?.[0]) {
-      setGroupedDump(dumps[0].get(), dumps[0].attributes);
+    if (dumps && dumps.length > 0) {
+      const first = dumps[0];
+      setGroupedDump(first.get(), first.attributes);
     }
     return () => {
       reset();
@@ -135,13 +151,62 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     };
   }, []);
 
+  const allSkipped = useMemo(
+    () =>
+      dumps &&
+      dumps.length > 0 &&
+      dumps.every((d) => d.attributes?.playwright_test_status === 'skipped'),
+    [dumps],
+  );
+
+  const renderContent = () => {
+    if (dump && dump.executions.length === 0) {
+      return (
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={getEmptyDumpDescription(
+            playwrightAttributes?.playwright_test_status,
+          )}
+        />
+      );
+    }
+    if (replayAllMode) {
+      return (
+        <div className="replay-all-mode-wrapper">
+          <Player
+            key={`${executionDumpLoadId}`}
+            replayScripts={replayAllScripts!}
+            imageWidth={insightWidth!}
+            imageHeight={insightHeight!}
+            onTaskChange={setPlayingTaskId}
+          />
+        </div>
+      );
+    }
+    return (
+      <PanelGroup autoSaveId="page-detail-layout-v2" direction="horizontal">
+        <Panel defaultSize={75} maxSize={95}>
+          <div className="main-content-container">
+            <DetailPanel />
+          </div>
+        </Panel>
+        <PanelResizeHandle className="resize-handle" />
+        <Panel maxSize={95}>
+          <div className="main-side">
+            <DetailSide />
+          </div>
+        </Panel>
+      </PanelGroup>
+    );
+  };
+
   let mainContent: JSX.Element;
-  if (dump && dump.executions.length === 0) {
+  if (allSkipped && (!dump || dump.executions.length === 0)) {
     mainContent = (
       <div className="main-right">
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="There is no task info in this dump file."
+          description="All test cases were skipped. No report data to display."
         />
       </div>
     );
@@ -163,31 +228,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       </div>
     );
   } else {
-    const content = replayAllMode ? (
-      <div className="replay-all-mode-wrapper">
-        <Player
-          key={`${executionDumpLoadId}`}
-          replayScripts={replayAllScripts!}
-          imageWidth={insightWidth!}
-          imageHeight={insightHeight!}
-          onTaskChange={setPlayingTaskId}
-        />
-      </div>
-    ) : (
-      <PanelGroup autoSaveId="page-detail-layout-v2" direction="horizontal">
-        <Panel defaultSize={75} maxSize={95}>
-          <div className="main-content-container">
-            <DetailPanel />
-          </div>
-        </Panel>
-        <PanelResizeHandle className="resize-handle" />
-        <Panel maxSize={95}>
-          <div className="main-side">
-            <DetailSide />
-          </div>
-        </Panel>
-      </PanelGroup>
-    );
+    const content = renderContent();
 
     mainContent = (
       <div className="main-layout">
@@ -321,78 +362,90 @@ function Visualizer(props: VisualizerProps): JSX.Element {
 }
 
 export function App() {
+  /**
+   * Parse attributes from a dump script element.
+   */
+  function parseAttributesFromElement(el: Element): PlaywrightTaskAttributes {
+    return parseDumpAttributes(
+      Array.from(el.attributes).map(({ name, value }) => ({ name, value })),
+    );
+  }
+
   function getDumpElements(): PlaywrightTasks[] {
     const dumpElements = document.querySelectorAll(
       'script[type="midscene_web_dump"]',
     );
-    const reportDump: PlaywrightTasks[] = [];
-    Array.from(dumpElements)
-      .filter((el) => {
-        const textContent = el.textContent;
-        if (!textContent) {
-          console.warn('empty content in script tag', el);
-        }
-        return !!textContent;
-      })
-      .forEach((el) => {
-        const attributes: Partial<PlaywrightTaskAttributes> &
-          Record<string, any> = {
-          playwright_test_description: '',
-          playwright_test_id: '',
-          playwright_test_title: '',
-          playwright_test_status: undefined,
-          playwright_test_duration: 0,
-        };
-        Array.from(el.attributes).forEach((attr) => {
-          const { name, value } = attr;
-          const valueDecoded = decodeURIComponent(value);
-          if (name.startsWith('playwright_')) {
-            if (name === 'playwright_test_duration') {
-              attributes[name] = Number(valueDecoded) || 0;
-            } else {
-              attributes[name] = valueDecoded;
-            }
-          }
-        });
+    const validElements = Array.from(dumpElements).filter((el) => {
+      const textContent = el.textContent;
+      if (!textContent) {
+        console.warn('empty content in script tag', el);
+      }
+      return !!textContent;
+    });
 
-        // Lazy loading: Store raw content and parse only when get() is called
-        let cachedJsonContent: GroupedActionDump | null = null;
-        let isParsed = false;
+    // Group elements by data-group-id.
+    // For backward compatibility with older reports that lack data-group-id,
+    // each element without the attribute is treated as its own group.
+    const groupMap = new Map<string, Element[]>();
+    let ungroupedCounter = 0;
 
-        reportDump.push({
-          get: () => {
-            if (!isParsed) {
-              try {
-                console.time('parse_dump');
-                const content = antiEscapeScriptTag(el.textContent || '');
+    for (const el of validElements) {
+      const groupId = el.getAttribute('data-group-id');
+      const decodedGroupId = groupId
+        ? decodeURIComponent(groupId)
+        : `__ungrouped_${ungroupedCounter++}`;
+      if (!groupMap.has(decodedGroupId)) {
+        groupMap.set(decodedGroupId, []);
+      }
+      groupMap.get(decodedGroupId)!.push(el);
+    }
 
-                const parsed = JSON.parse(content);
-                const restored = restoreImageReferences(
-                  parsed,
-                  resolveImageFromDom,
-                );
-                cachedJsonContent = GroupedActionDump.fromJSON(restored);
+    const result: PlaywrightTasks[] = [];
 
-                console.timeEnd('parse_dump');
-                (cachedJsonContent as any).attributes = attributes;
-                isParsed = true;
-              } catch (e) {
-                console.error(el);
-                console.error('failed to parse json content', e);
-                // Return a fallback object to prevent crashes
-                cachedJsonContent = {
-                  attributes,
-                  error: 'Failed to parse JSON content',
-                } as any;
-                isParsed = true;
+    // Process grouped dump tags — merge into one PlaywrightTasks per group
+    for (const [, elements] of groupMap) {
+      const attributes = parseAttributesFromElement(elements[0]);
+      let cachedJsonContent: GroupedActionDump | null = null;
+      let isParsed = false;
+
+      result.push({
+        get: () => {
+          if (!isParsed) {
+            console.time('parse_grouped_dump');
+            const allExecutions: any[] = [];
+            let baseDump: GroupedActionDump | null = null;
+
+            for (const el of elements) {
+              const content = antiEscapeScriptTag(el.textContent || '');
+              const parsed = JSON.parse(content);
+              const restored = restoreImageReferences(
+                parsed,
+                resolveImageFromDom,
+              );
+              const dump = GroupedActionDump.fromJSON(restored);
+              if (!baseDump) {
+                baseDump = dump;
               }
+              allExecutions.push(...dump.executions);
             }
-            return cachedJsonContent;
-          },
-          attributes: attributes as PlaywrightTaskAttributes,
-        });
+
+            // Deduplicate executions by id — keep only the last one.
+            // Only executions with a stable id are deduped; old-format entries
+            // without id are always kept (they may be distinct despite same name).
+            baseDump!.executions = dedupeExecutionsKeepLatest(allExecutions);
+            cachedJsonContent = baseDump!;
+
+            console.timeEnd('parse_grouped_dump');
+            (cachedJsonContent as any).attributes = attributes;
+            isParsed = true;
+          }
+          return cachedJsonContent!;
+        },
+        attributes,
       });
-    return reportDump;
+    }
+
+    return result;
   }
 
   const [reportDump, setReportDump] = useState<PlaywrightTasks[]>([]);

@@ -3,7 +3,7 @@
  */
 
 // Utilities
-export { restoreImageReferences } from './image-restoration';
+export { restoreImageReferences } from './screenshot-restoration';
 export {
   escapeContent,
   unescapeContent,

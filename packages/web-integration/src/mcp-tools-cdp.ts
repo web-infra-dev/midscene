@@ -1,16 +1,42 @@
 import { ScreenshotItem, z } from '@midscene/core';
-import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
+import { getDebug } from '@midscene/shared/logger';
+import { BaseMidsceneTools } from '@midscene/shared/mcp/base-tools';
+import type { ToolDefinition } from '@midscene/shared/mcp/types';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import puppeteer from 'puppeteer-core';
 import type { Browser, Page } from 'puppeteer-core';
+import { getProxyEndpoint } from './cdp-proxy-manager';
+import {
+  cleanupTargetIdFile,
+  readSavedTargetId,
+  saveTargetId,
+} from './cdp-target-store';
 import { PuppeteerAgent } from './puppeteer';
 import { StaticPage } from './static';
+
+const debug = getDebug('mcp:cdp');
+
+/** CDP target discovery may need a brief moment after WebSocket open. */
+const CDP_TARGET_DISCOVERY_DELAY_MS = 500;
+
+/**
+ * puppeteer-core does not expose a public method for the underlying CDP
+ * target id, so we reach into `_targetId`. Centralised here so a future
+ * puppeteer release exposing this properly only requires one change.
+ * Callers must treat the result as optional.
+ */
+function getTargetId(page: Page): string | undefined {
+  return (page.target() as unknown as { _targetId?: string })._targetId;
+}
 
 /**
  * Tools manager for Web CDP-mode MCP.
  * Connects to an existing Chrome browser via CDP (Chrome DevTools Protocol) endpoint.
  * Unlike WebPuppeteerMidsceneTools which launches its own Chrome, this connects
  * to a browser that is already running with remote debugging enabled.
+ *
+ * Uses a persistent WebSocket proxy to avoid repeated Chrome permission popups
+ * when Chrome's settings-based remote debugging is used.
  */
 export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
   private cdpEndpoint: string;
@@ -42,33 +68,95 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
 
     if (this.agent) return this.agent;
 
-    // Connect to the existing browser via CDP endpoint
+    // Connect via proxy to avoid repeated Chrome permission popups
     if (!this.activeBrowser) {
+      const endpoint = await getProxyEndpoint(this.cdpEndpoint);
       this.activeBrowser = await puppeteer.connect({
-        browserWSEndpoint: this.cdpEndpoint,
+        browserWSEndpoint: endpoint,
         defaultViewport: null,
       });
     }
 
     const browser = this.activeBrowser;
-    const pages = await browser.pages();
+    let pages = await browser.pages();
+
+    // If no pages discovered, wait briefly and retry — some CDP targets
+    // need a moment to appear after the WebSocket connection is established.
+    if (pages.length === 0) {
+      await new Promise((r) => setTimeout(r, CDP_TARGET_DISCOVERY_DELAY_MS));
+      pages = await browser.pages();
+    }
+
+    const webPages = pages.filter((p) => /^https?:\/\//.test(p.url()));
+    debug(
+      'Found %d page(s), %d web page(s): %o',
+      pages.length,
+      webPages.length,
+      pages.map((p) => p.url()),
+    );
     let page: Page;
 
     if (navigateToUrl) {
-      page = await browser.newPage();
-      await page.goto(navigateToUrl, {
-        timeout: 30000,
-        waitUntil: 'domcontentloaded',
-      });
+      if (webPages.length > 0) {
+        // Reuse an existing page and navigate it — avoids creating invisible
+        // tabs when Chrome uses settings-based remote debugging (no HTTP
+        // discovery endpoints, /devtools/page/* returns 403).
+        page = webPages[webPages.length - 1];
+        await page.bringToFront();
+        await page.goto(navigateToUrl, {
+          timeout: 30000,
+          waitUntil: 'domcontentloaded',
+        });
+      } else {
+        // No existing web pages — fall back to creating a new tab
+        page = await browser.newPage();
+        await page.goto(navigateToUrl, {
+          timeout: 30000,
+          waitUntil: 'domcontentloaded',
+        });
+      }
     } else {
-      // Reuse the last web page
-      const webPages = pages.filter((p) => /^https?:\/\//.test(p.url()));
-      page =
-        webPages.length > 0
-          ? webPages[webPages.length - 1]
-          : pages[pages.length - 1] || (await browser.newPage());
+      // Try to find the exact tab from a previous `connect` command via saved targetId.
+      const savedTargetId = readSavedTargetId();
+      let matchedPage: Page | undefined;
+
+      if (savedTargetId && pages.length > 0) {
+        matchedPage = pages.find((p) => getTargetId(p) === savedTargetId);
+        if (matchedPage) {
+          debug('Matched saved targetId %s', savedTargetId);
+        } else {
+          debug(
+            'Saved targetId %s not found among %d pages, falling back',
+            savedTargetId,
+            pages.length,
+          );
+        }
+      }
+
+      if (matchedPage) {
+        page = matchedPage;
+      } else if (webPages.length > 0) {
+        page = webPages[webPages.length - 1];
+      } else if (pages.length > 0) {
+        page = pages[pages.length - 1];
+      } else {
+        page = await browser.newPage();
+      }
 
       await page.bringToFront();
+    }
+
+    // Persist the targetId so subsequent CLI commands can find this exact tab
+    const targetId = getTargetId(page);
+    if (targetId) {
+      saveTargetId(targetId);
+    } else {
+      // If puppeteer ever drops the private _targetId field, this branch
+      // makes the regression visible instead of silently disabling the
+      // cross-command tab reuse path.
+      debug(
+        'No targetId on page.target(); cross-command tab reuse disabled until puppeteer integration is updated.',
+      );
     }
 
     this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage);
@@ -103,7 +191,9 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
           if (this.agent) {
             try {
               await this.agent.destroy?.();
-            } catch {}
+            } catch (e) {
+              console.debug('Failed to destroy agent during connect:', e);
+            }
             this.agent = undefined;
           }
 
@@ -129,13 +219,16 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
           if (this.agent) {
             try {
               await this.agent.destroy?.();
-            } catch {}
+            } catch (e) {
+              console.debug('Failed to destroy agent during disconnect:', e);
+            }
             this.agent = undefined;
           }
           if (this.activeBrowser) {
             this.activeBrowser.disconnect();
             this.activeBrowser = null;
           }
+          cleanupTargetIdFile();
           return this.buildTextResult(
             'Disconnected from web page (browser still running externally)',
           );

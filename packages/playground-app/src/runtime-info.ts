@@ -3,9 +3,14 @@ import type { DeviceType, ExecutionUxHint } from '@midscene/visualizer';
 
 export interface PreviewConnectionInfo {
   type: 'none' | 'screenshot' | 'mjpeg' | 'scrcpy';
+  deviceId?: string;
   mjpegUrl?: string;
   scrcpyUrl?: string;
   scrcpyPort?: number;
+}
+
+function isRemoteAndroidDeviceId(value: unknown): boolean {
+  return typeof value === 'string' && /^\d+\.\d+\.\d+\.\d+:\d+$/.test(value);
 }
 
 const VALID_DEVICE_TYPES: readonly DeviceType[] = [
@@ -97,6 +102,15 @@ export function resolvePreviewConnectionInfo(
   }
 
   if (preview.kind === 'scrcpy') {
+    const runtimeDeviceId =
+      typeof runtimeInfo?.metadata?.deviceId === 'string'
+        ? runtimeInfo.metadata.deviceId.trim()
+        : undefined;
+
+    if (isRemoteAndroidDeviceId(runtimeDeviceId)) {
+      return { type: 'screenshot' };
+    }
+
     const scrcpyPort = Number(preview.custom?.scrcpyPort);
     const resolvedScrcpyPort = Number.isFinite(scrcpyPort)
       ? scrcpyPort
@@ -113,6 +127,7 @@ export function resolvePreviewConnectionInfo(
           })()
         : undefined;
     return {
+      deviceId: runtimeDeviceId,
       type: 'scrcpy',
       scrcpyPort: resolvedScrcpyPort,
       scrcpyUrl,

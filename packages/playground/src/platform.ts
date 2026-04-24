@@ -24,15 +24,112 @@ export interface PlaygroundPreviewDescriptor {
   custom?: Record<string, unknown>;
 }
 
+export interface PlaygroundSessionTarget {
+  id: string;
+  label: string;
+  description?: string;
+  status?: string;
+  isDefault?: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PlaygroundSessionFieldOption {
+  label: string;
+  value: string | number | boolean;
+  description?: string;
+}
+
+export interface PlaygroundPlatformRegistration {
+  id: string;
+  label: string;
+  description?: string;
+  unavailableReason?: string;
+  supportsStandalone?: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PlaygroundPlatformSelectorConfig {
+  fieldKey: string;
+  variant?: 'cards' | 'select';
+}
+
+export interface PlaygroundSessionField {
+  key: string;
+  label: string;
+  type: 'text' | 'number' | 'select';
+  required?: boolean;
+  defaultValue?: string | number | boolean;
+  options?: PlaygroundSessionFieldOption[];
+  placeholder?: string;
+  description?: string;
+}
+
+export interface PlaygroundSessionSetup {
+  title?: string;
+  description?: string;
+  primaryActionLabel?: string;
+  autoSubmitWhenReady?: boolean;
+  fields: PlaygroundSessionField[];
+  targets?: PlaygroundSessionTarget[];
+  platformRegistry?: PlaygroundPlatformRegistration[];
+  platformSelector?: PlaygroundPlatformSelectorConfig;
+}
+
+export interface PlaygroundExecutionHooks {
+  beforeExecute?: () => void | Promise<void>;
+  afterExecute?: () => void | Promise<void>;
+}
+
+export interface PlaygroundSidecar {
+  id: string;
+  start(): void | Promise<void>;
+  stop?(): void | Promise<void>;
+}
+
+export interface PlaygroundSessionState {
+  connected: boolean;
+  displayName?: string;
+  metadata?: Record<string, unknown>;
+  setupState?: 'required' | 'ready' | 'blocked';
+  setupBlockingReason?: string;
+}
+
+export interface PlaygroundCreatedSession {
+  agent?: Agent;
+  agentFactory?: AgentFactory;
+  preview?: PlaygroundPreviewDescriptor;
+  metadata?: Record<string, unknown>;
+  displayName?: string;
+  platformId?: string;
+  title?: string;
+  platformDescription?: string;
+  executionHooks?: PlaygroundExecutionHooks;
+  sidecars?: PlaygroundSidecar[];
+}
+
+export interface PlaygroundSessionManager {
+  getSetupSchema?(
+    input?: Record<string, unknown>,
+  ): Promise<PlaygroundSessionSetup>;
+  listTargets?(): Promise<PlaygroundSessionTarget[]>;
+  createSession(
+    input?: Record<string, unknown>,
+  ): Promise<PlaygroundCreatedSession>;
+  destroySession?(session?: PlaygroundSessionState): Promise<void>;
+}
+
 export interface PreparedPlaygroundPlatform {
   platformId: string;
   title: string;
   description?: string;
   agent?: Agent;
   agentFactory?: AgentFactory;
+  sessionManager?: PlaygroundSessionManager;
+  executionHooks?: PlaygroundExecutionHooks;
   launchOptions?: LaunchPlaygroundOptions;
   preview?: PlaygroundPreviewDescriptor;
   metadata?: Record<string, unknown>;
+  sidecars?: PlaygroundSidecar[];
 }
 
 export interface PlaygroundPlatformDescriptor<TOptions = void> {

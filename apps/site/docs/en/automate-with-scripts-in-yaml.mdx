@@ -166,11 +166,14 @@ web:
   # Path to a JSON format browser cookie file, optional.
   cookie: <path-to-cookie-file>
 
-  # The strategy for waiting for network idle, optional.
+  # The strategy for waiting for network idle in Puppeteer mode, optional.
+  # `timeout` applies to the initial opening of `web.url` defined in YAML and to later actions such as `aiTap` and `aiInput`.
+  # `continueOnNetworkIdleError` only applies to the initial opening of `web.url` defined in YAML.
   waitForNetworkIdle:
-    # The timeout in milliseconds, optional, defaults to 2000ms.
+    # The timeout in milliseconds for each network idle wait, optional, defaults to 2000ms.
     timeout: <ms>
-    # Whether to continue on timeout, optional, defaults to true.
+    # Whether to continue if the initial opening of `web.url` defined in YAML times out while waiting for network idle, optional, defaults to true.
+    # Later action-time waits always continue even if they time out.
     continueOnNetworkIdleError: <boolean>
 
   # The path to the JSON file for outputting aiQuery/aiAssert results, optional.
@@ -181,6 +184,10 @@ web:
 
   # Whether to restrict page navigation to the current tab, optional, defaults to true.
   forceSameTabNavigation: <boolean>
+
+  # CDP endpoint, optional. Connects to an existing browser instance via CDP instead of launching a new one.
+  # Mutually exclusive with bridgeMode.
+  cdpEndpoint: ws://localhost:9222/devtools/browser
 
   # The bridge mode, optional, defaults to false. Can be 'newTabWithUrl' or 'currentTab'. See below for more details.
   bridgeMode: false | 'newTabWithUrl' | 'currentTab'
@@ -217,7 +224,7 @@ android:
   # All other options supported by the AndroidDevice constructor
   # For example: androidAdbPath, remoteAdbHost, remoteAdbPort,
   # imeStrategy, displayId, autoDismissKeyboard, keyboardDismissStrategy,
-  # screenshotResizeScale, alwaysRefreshScreenInfo, etc.
+  # alwaysRefreshScreenInfo, etc.
   # See the AndroidDevice constructor documentation for the complete list
 ```
 
@@ -270,6 +277,20 @@ tasks:
   - name: Open webpage
     flow:
       - launch: https://www.example.com
+```
+
+**`terminate` - Terminate App**
+
+Terminate (force-stop) a running Android app by package name.
+
+```yaml
+android:
+  deviceId: 'test-device'
+
+tasks:
+  - name: Terminate Settings app
+    flow:
+      - terminate: com.android.settings
 ```
 
 ### The `ios` part
@@ -450,6 +471,7 @@ tasks:
         deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
+        fileChooserAccept: <path> | [<path1>, <path2>] # Optional, file path(s) to upload when the tap triggers a file chooser; only available on web
 
       # Hover over an element described by a prompt.
       - aiHover: <prompt>
@@ -514,6 +536,43 @@ tasks:
     flow:
       # ...
 ```
+
+#### Upload Files With `aiTap`
+
+When clicking a button opens a file chooser, you can set `fileChooserAccept` directly on the `aiTap` step. It accepts either a single path or an array of paths.
+
+```yaml
+tasks:
+  - name: upload single file
+    flow:
+      - aiTap: Choose file button
+        fileChooserAccept: ./fixtures/document.pdf
+
+  - name: upload multiple files
+    flow:
+      - aiTap: Upload images button
+        fileChooserAccept:
+          - ./fixtures/image1.jpg
+          - ./fixtures/image2.png
+```
+
+If you are already using a `locate` object for `prompt`, `images`, or other locate options, keep `fileChooserAccept` at the same level as `locate`. Do not nest it inside `locate` or inside the `aiTap` object:
+
+```yaml
+tasks:
+  - name: upload file with locate
+    flow:
+      - aiTap:
+        locate:
+          prompt: Click the upload button
+        fileChooserAccept: ./fixtures/document.pdf
+```
+
+Notes:
+
+- `fileChooserAccept` is only available for web pages (Playwright, Puppeteer).
+- Relative paths are resolved from the current command working directory, not from the YAML file directory.
+- If a file does not exist, the script throws before the tap is executed.
 
 #### Prompting with images
 

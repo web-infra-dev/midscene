@@ -1,10 +1,15 @@
 {
   "extends": "../shared/tsconfig.base.json",
   "compilerOptions": {
+    "baseUrl": ".",
     "rootDir": "src",
     "module": "ES2020",
     "declarationDir": "dist/types",
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "@midscene/android": ["../android/src/index.ts"],
+      "@midscene/shared/constants": ["../shared/src/constants/index.ts"]
+    }
   },
   "include": ["src"],
   "references": [

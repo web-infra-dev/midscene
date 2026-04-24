@@ -1,0 +1,116 @@
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme {
+  --color-app-bg: var(--midscene-app-bg);
+  --color-surface: var(--midscene-surface);
+  --color-surface-elevated: var(--midscene-surface-elevated);
+  --color-surface-muted: var(--midscene-surface-muted);
+  --color-surface-hover: var(--midscene-surface-hover);
+  --color-surface-hover-strong: var(--midscene-surface-hover-strong);
+  --color-surface-active: var(--midscene-surface-active);
+  --color-border-subtle: var(--midscene-border-subtle);
+  --color-border-strong: var(--midscene-border-strong);
+  --color-divider: var(--midscene-divider);
+  --color-text-primary: var(--midscene-text-primary);
+  --color-text-secondary: var(--midscene-text-secondary);
+  --color-text-tertiary: var(--midscene-text-tertiary);
+  --color-text-placeholder: var(--midscene-text-placeholder);
+  --color-text-inverted: var(--midscene-text-inverted);
+  --color-icon-muted: var(--midscene-icon-muted);
+  --color-brand: var(--midscene-brand);
+  --color-status-success: var(--midscene-status-success);
+  --color-status-success-bg: var(--midscene-status-success-bg);
+  --color-status-success-fg: var(--midscene-status-success-fg);
+  --color-status-error: var(--midscene-status-error);
+  --color-status-error-bg: var(--midscene-status-error-bg);
+  --color-status-info: var(--midscene-status-info);
+  --color-status-info-bg: var(--midscene-status-info-bg);
+  --color-status-idle: var(--midscene-status-idle);
+}
+
+:root {
+  --midscene-app-bg: #f6f6f6;
+  --midscene-surface: #ffffff;
+  --midscene-surface-elevated: #ffffff;
+  --midscene-surface-muted: #f2f4f7;
+  --midscene-surface-hover: rgba(0, 0, 0, 0.05);
+  --midscene-surface-hover-strong: rgba(0, 0, 0, 0.08);
+  --midscene-surface-active: rgba(0, 0, 0, 0.1);
+  --midscene-border-subtle: #ececec;
+  --midscene-border-strong: #e9ecf3;
+  --midscene-divider: rgba(0, 0, 0, 0.08);
+  --midscene-text-primary: #0d0d0d;
+  --midscene-text-secondary: #474848;
+  --midscene-text-tertiary: #797a7a;
+  --midscene-text-placeholder: #9d9fa0;
+  --midscene-text-inverted: #f2f4f7;
+  --midscene-icon-muted: #b6b6b6;
+  --midscene-brand: #1979ff;
+  --midscene-status-success: #12b981;
+  --midscene-status-success-bg: #e5fff4;
+  --midscene-status-success-fg: #079669;
+  --midscene-status-error: #e13e37;
+  --midscene-status-error-bg: #f7eceb;
+  --midscene-status-info: #1979ff;
+  --midscene-status-info-bg: #e5f0ff;
+  --midscene-status-idle: #b6b6b6;
+}
+
+[data-theme="dark"] {
+  --midscene-app-bg: #171717;
+  --midscene-surface: #1e1e1e;
+  --midscene-surface-elevated: #2b2b2b;
+  --midscene-surface-muted: #2b2b2b;
+  --midscene-surface-hover: rgba(255, 255, 255, 0.05);
+  --midscene-surface-hover-strong: rgba(255, 255, 255, 0.1);
+  --midscene-surface-active: rgba(255, 255, 255, 0.15);
+  --midscene-border-subtle: #2e2e2e;
+  --midscene-border-strong: rgba(255, 255, 255, 0.08);
+  --midscene-divider: rgba(255, 255, 255, 0.08);
+  --midscene-text-primary: #ffffff;
+  --midscene-text-secondary: #d0d0d1;
+  --midscene-text-tertiary: #9da0a1;
+  --midscene-text-placeholder: #6f7173;
+  --midscene-text-inverted: #0d0d0d;
+  --midscene-icon-muted: #6f7173;
+  --midscene-brand: #1979ff;
+  --midscene-status-success: #12b981;
+  --midscene-status-success-bg: rgba(18, 185, 129, 0.15);
+  --midscene-status-success-fg: #34d399;
+  --midscene-status-error: #e13e37;
+  --midscene-status-error-bg: rgba(225, 62, 55, 0.15);
+  --midscene-status-info: #1979ff;
+  --midscene-status-info-bg: rgba(25, 121, 255, 0.15);
+  --midscene-status-idle: #6f7173;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: transparent;
+  }
+
+  body {
+    overscroll-behavior: none;
+    color: var(--midscene-text-primary);
+  }
+}
+
+@layer utilities {
+  .app-drag {
+    -webkit-app-region: drag;
+  }
+
+  .app-no-drag {
+    -webkit-app-region: no-drag;
+  }
+}

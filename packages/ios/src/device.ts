@@ -19,6 +19,7 @@ import {
   defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionKeyboardPress,
+  defineActionLongPress,
   defineActionPinch,
   defineActionScroll,
   defineActionSwipe,
@@ -217,36 +218,11 @@ export class IOSDevice implements AbstractInterface {
           await sleep(100);
         }
       }),
-      defineAction<
-        z.ZodObject<{
-          duration: z.ZodOptional<z.ZodNumber>;
-          locate: ReturnType<typeof getMidsceneLocationSchema>;
-        }>,
-        {
-          duration?: number;
-          locate: LocateResultElement;
-        }
-      >({
-        name: 'LongPress',
-        description: 'Trigger a long press on the screen at specified element',
-        paramSchema: z.object({
-          duration: z
-            .number()
-            .optional()
-            .describe('The duration of the long press in milliseconds'),
-          locate: getMidsceneLocationSchema().describe(
-            'The element to be long pressed',
-          ),
-        }),
-        sample: {
-          locate: { prompt: 'the message bubble' },
-        },
-        call: async (param) => {
-          const element = param.locate;
-          assert(element, 'LongPress requires an element to be located');
-          const [x, y] = element.center;
-          await this.longPress(x, y, param?.duration);
-        },
+      defineActionLongPress(async (param) => {
+        const element = param.locate;
+        assert(element, 'LongPress requires an element to be located');
+        const [x, y] = element.center;
+        await this.longPress(x, y, param?.duration);
       }),
       defineActionPinch(async (param) => {
         const { centerX, centerY, startDistance, endDistance, duration } =
@@ -1037,11 +1013,13 @@ const runWdaRequestParamSchema = z.object({
 type RunWdaRequestParam = z.infer<typeof runWdaRequestParamSchema>;
 type RunWdaRequestReturn = Awaited<ReturnType<IOSDevice['runWdaRequest']>>;
 
-const launchParamSchema = z
-  .string()
-  .describe(
-    'App name, bundle ID, or URL to launch. Prioritize using the exact bundle ID or URL the user has provided. If none provided, use the accurate app name.',
-  );
+const launchParamSchema = z.object({
+  uri: z
+    .string()
+    .describe(
+      'App name, bundle ID, or URL to launch. Prioritize using the exact bundle ID or URL the user has provided. If none provided, use the accurate app name.',
+    ),
+});
 
 type LaunchParam = z.infer<typeof launchParamSchema>;
 
@@ -1051,11 +1029,13 @@ export type DeviceActionRunWdaRequest = DeviceAction<
 >;
 export type DeviceActionLaunch = DeviceAction<LaunchParam, void>;
 
-const terminateParamSchema = z
-  .string()
-  .describe(
-    'Bundle ID of the app to terminate (close). Use the exact bundle ID, e.g. com.apple.Preferences.',
-  );
+const terminateParamSchema = z.object({
+  uri: z
+    .string()
+    .describe(
+      'Bundle ID of the app to terminate (close). Use the exact bundle ID, e.g. com.apple.Preferences.',
+    ),
+});
 
 type TerminateParam = z.infer<typeof terminateParamSchema>;
 
@@ -1093,8 +1073,14 @@ const createPlatformActions = (device: IOSDevice) => {
       description: 'Launch an iOS app or URL',
       interfaceAlias: 'launch',
       paramSchema: launchParamSchema,
+      sample: {
+        uri: 'com.apple.Preferences',
+      },
       call: async (param) => {
-        await device.launch(param);
+        if (!param.uri || param.uri.trim() === '') {
+          throw new Error('Launch requires a non-empty uri parameter');
+        }
+        await device.launch(param.uri);
       },
     }),
     Terminate: defineAction<typeof terminateParamSchema, TerminateParam, void>({
@@ -1102,8 +1088,14 @@ const createPlatformActions = (device: IOSDevice) => {
       description: 'Terminate (close) an iOS app by its bundle ID',
       interfaceAlias: 'terminate',
       paramSchema: terminateParamSchema,
+      sample: {
+        uri: 'com.apple.Preferences',
+      },
       call: async (param) => {
-        await device.terminate(param);
+        if (!param.uri || param.uri.trim() === '') {
+          throw new Error('Terminate requires a non-empty uri parameter');
+        }
+        await device.terminate(param.uri);
       },
     }),
     IOSHomeButton: defineAction({

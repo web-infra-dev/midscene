@@ -1,6 +1,13 @@
-import type { DeviceAction, ExecutionDump } from '@midscene/core';
-import { GroupedActionDump } from '@midscene/core';
-import { overrideAIConfig } from '@midscene/shared/env';
+import type {
+  ConnectivityTestResult,
+  DeviceAction,
+  ExecutionDump,
+} from '@midscene/core';
+import { ReportActionDump, runConnectivityTest } from '@midscene/core';
+import {
+  globalModelConfigManager,
+  overrideAIConfig,
+} from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import { executeAction, parseStructuredParams } from '../common';
 import {
@@ -126,6 +133,14 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     console.log('Config updated. Agent will be recreated on next execution.');
   }
 
+  async runConnectivityTest(): Promise<ConnectivityTestResult> {
+    return runConnectivityTest({
+      defaultModelConfig: globalModelConfigManager.getModelConfig('default'),
+      planningModelConfig: globalModelConfigManager.getModelConfig('planning'),
+      insightModelConfig: globalModelConfigManager.getModelConfig('insight'),
+    });
+  }
+
   /**
    * Safely detaches the Chrome debugger without destroying the agent.
    * This removes the "Debugger attached" banner from the browser window
@@ -241,7 +256,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
           const dumpString = agent.dumpDataString();
           if (dumpString) {
             const groupedDump =
-              GroupedActionDump.fromSerializedString(dumpString);
+              ReportActionDump.fromSerializedString(dumpString);
             response.dump = groupedDump.executions?.[0] || null;
           }
         }
@@ -321,10 +336,9 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       if (typeof this.agent.dumpDataString === 'function') {
         const dumpString = this.agent.dumpDataString();
         if (dumpString) {
-          // dumpDataString() returns GroupedActionDump: { executions: ExecutionDump[] }
+          // dumpDataString() returns ReportActionDump: { executions: ExecutionDump[] }
           // In Playground, each "Run" creates one execution, so we take executions[0]
-          const groupedDump =
-            GroupedActionDump.fromSerializedString(dumpString);
+          const groupedDump = ReportActionDump.fromSerializedString(dumpString);
           dump = groupedDump.executions?.[0] ?? null;
         }
       }
@@ -388,8 +402,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       if (this.agent?.dumpDataString) {
         const dumpString = this.agent.dumpDataString();
         if (dumpString) {
-          const groupedDump =
-            GroupedActionDump.fromSerializedString(dumpString);
+          const groupedDump = ReportActionDump.fromSerializedString(dumpString);
           response.dump = groupedDump.executions?.[0] || null;
         }
       }

@@ -6,8 +6,8 @@ import type { PageAgent } from '@/index';
 import { puppeteerAgentForTarget } from '@/puppeteer/agent-launcher';
 import type {
   DeviceAction,
-  GroupedActionDump,
   MidsceneYamlScriptWebEnv,
+  ReportActionDump,
 } from '@midscene/core';
 import { actionTapParamSchema } from '@midscene/core/device';
 import { ScriptPlayer, buildYaml, parseYamlScript } from '@midscene/core/yaml';
@@ -48,7 +48,7 @@ const getMockAgent = async () => {
   const dumpPath = path.join(__dirname, '../fixtures', 'dump.json');
   const dump = JSON.parse(
     readFileSync(dumpPath, 'utf-8'),
-  ) as unknown as GroupedActionDump;
+  ) as unknown as ReportActionDump;
 
   const actionSpace: DeviceAction[] = [
     {
@@ -854,6 +854,39 @@ tasks:
     expect(
       (mockAgent.agent.aiKeyboardPress as MockedFunction<any>).mock.calls,
     ).toHaveLength(0);
+  });
+
+  test('aiScroll without locate keeps global scroll semantics', async () => {
+    const yamlString = `
+android:
+
+tasks:
+  - name: scroll to bottom
+    flow:
+      - aiScroll:
+        scrollType: scrollToBottom
+        deepThink: true
+`;
+
+    const script = parseYamlScript(yamlString);
+    const mockAgent = await getMockAgent();
+    const player = new ScriptPlayer<any>(script, async () => mockAgent);
+
+    await player.run();
+
+    expect(player.errorInSetup).toBeUndefined();
+    expect(player.status).toBe('done');
+    expect(
+      (mockAgent.agent.aiScroll as MockedFunction<any>).mock.calls,
+    ).toEqual([
+      [
+        undefined,
+        {
+          scrollType: 'scrollToBottom',
+          deepThink: true,
+        },
+      ],
+    ]);
   });
 
   test('should handle errors in action space', async () => {

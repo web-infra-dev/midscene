@@ -1,10 +1,40 @@
 # 常见问题 FAQ
 
+## 各平台常见问题
+
+以下平台的常见问题已整合到各自的文档中：
+
+- [Web 浏览器 - Playwright](./integrate-with-playwright#faq)
+- [Web 浏览器 - Puppeteer](./integrate-with-puppeteer#faq)
+- [Web 浏览器 - Chrome 插件](./quick-experience#faq)
+- [Web 浏览器 - 桥接模式](./bridge-mode#faq)
+- [Android](./android-getting-started#常见问题)
+- [iOS](./ios-getting-started#常见问题)
+- [HarmonyOS](./harmony-getting-started#常见问题)
+- [PC 桌面](./computer-getting-started#常见问题)
+
 ## 会有哪些信息发送到 AI 模型？
 
 Midscene 会发送页面截图到 AI 模型。在某些场景下，例如调用 `aiAsk` 或 `aiQuery` 时传入 `domIncluded: true`，页面的 DOM 信息也会被发送。
 
 如果你担心数据隐私问题，请参阅 [数据隐私](./data-privacy)。
+
+## 我的模型服务商需要在请求中添加指定的 header
+
+你可以通过环境变量 `MIDSCENE_MODEL_INIT_CONFIG_JSON` 中的 `defaultHeaders` 来指定请求时附带的 header，例如：
+
+```bash
+# 在请求头中添加 key 为 "foo"，值为 "bar" 的 header
+MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"foo":"bar"}}'
+```
+
+如果你的模型服务商文档里把这个字段写成 `extra_headers` 或 `extraHeaders`，Midscene 也会兼容这两种别名，并自动归一化到 `defaultHeaders`。多个别名同时存在时，优先级为：`defaultHeaders` > `extra_headers` > `extraHeaders`。
+
+你可以通过 JSON 序列化来生成这个 JSON 的文本以避免手动拼接出错：
+
+```javascript
+JSON.stringify({ defaultHeaders: { foo: 'bar' } })
+```
 
 ## 如何配置 midscene_run 目录？
 
@@ -36,79 +66,9 @@ export MIDSCENE_RUN_DIR="/tmp/midscene_output"
 3. 更换更快的模型服务。
 4. 使用缓存来加速调试过程。更多详情请参阅 [缓存](./caching)。
 
-## 浏览器界面持续闪动
-
-在本地可视化界面中遇到持续闪烁，通常是因为 viewport 的 `deviceScaleFactor` 与系统/浏览器的像素比不匹配（常见于高分辨率或 Retina 屏幕）。
-
-该闪动不会影响 Midscene 的截图或自动化运行，但会影响本地预览体验。解决方法：将 `deviceScaleFactor` 设置为与浏览器的 `window.devicePixelRatio` 一致，或使用 Puppeteer 的自动适配功能。
-
-```typescript
-// Puppeteer：将 deviceScaleFactor 设为 0 可自动使用设备像素比
-await page.setViewport({
-  deviceScaleFactor: 0,
-});
-
-// Playwright：不支持像 Puppeteer 一样使用 0 表示自动适配
-const page = await browser.newPage({
-  deviceScaleFactor: 2, // 请把这里的数字 2 替换为你的 window.devicePixelRatio
-})
-
-```
-
-如果不确定浏览器的像素比，可在任意页面按下 F12 打开控制台，输入 `window.devicePixelRatio` 查看；或在 Chrome 地址栏粘贴下面内容并回车以弹窗显示当前值：
-
-```plain
-data:text/html,<script>alert(`deviceScaleFactor of your browser: ${devicePixelRatio}`)</script>
-```
-
 ## 如何通过链接控制报告中播放器的默认回放样式？
 
 在报告页面的链接后添加查询参数即可覆盖 **Focus on cursor** 和 **Show element markers** 开关的默认值，决定是否在报告中聚焦鼠标位置和元素标记。使用 `focusOnCursor` 和 `showElementMarkers`，参数值支持 `true`、`false`、`1` 或 `0`，例如：`...?focusOnCursor=false&showElementMarkers=true`。
-
-## 自定义网络超时
-
-当在网页上执行某个操作后，Midscene 会自动等待网络空闲。这是为了确保自动化过程的稳定性。如果等待超时，不会发生任何事情。
-
-默认的超时时间配置如下：
-
-1. 如果是页面跳转，则等待页面加载完成，默认超时时间为 5000ms
-2. 如果是点击、输入等操作，则等待网络空闲，默认超时时间为 2000ms
-
-当然，你可以通过配置参数修改默认超时时间，或者关闭这个功能：
-
-- 使用 [Agent](/zh/api#%E6%9E%84%E9%80%A0%E5%99%A8) 上的 `waitForNetworkIdleTimeout` 和 `waitForNavigationTimeout` 参数
-- 使用 [Yaml](/zh/automate-with-scripts-in-yaml#web-%E9%83%A8%E5%88%86) 脚本和 [PlaywrightAiFixture](/zh/integrate-with-playwright#%E7%AC%AC%E4%BA%8C%E6%AD%A5%E6%89%A9%E5%B1%95-test-%E5%AE%9E%E4%BE%8B) 中的 `waitForNetworkIdle` 参数
-
-## 截图时报 `waiting for fonts to load` 或 `page.screenshot: Timeout ... exceeded`
-
-如果你在 Playwright 环境里看到类似下面的报错：
-
-```plain
-page.screenshot: Timeout 10000ms exceeded.
-Call log:
-- taking page screenshot
-- waiting for fonts to load...
-```
-
-这通常不是 Midscene 自身逻辑的问题，而是 Playwright 在截图时默认会等待页面字体加载完成。在某些 CI、容器或网络环境中，字体资源可能加载很慢，甚至一直无法完成，最终导致截图超时。
-
-可以通过添加下面的环境变量来规避：
-
-```bash
-export PW_TEST_SCREENSHOT_NO_FONTS_READY=1
-```
-
-如果你是在一条命令里临时执行，也可以这样写：
-
-```bash
-PW_TEST_SCREENSHOT_NO_FONTS_READY=1 <你的命令>
-```
-
-更多背景可参考 Playwright 的 issue：[[BUG] Page.screenshot method hangs indefinitely](https://github.com/microsoft/playwright/issues/28995)。
-
-## 在 Chrome 插件中使用 Ollama 模型出现 403 错误
-
-需要设置环境变量 `OLLAMA_ORIGINS="*"`，以允许 Chrome 插件访问 Ollama 模型。
 
 ## 元素定位出现偏移
 

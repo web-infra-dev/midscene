@@ -40,3 +40,7 @@ import ShowcaseWeb from './showcases-web.mdx';
 1. 打开页面的调试器，找到被其他插件注入的 `<iframe />` 或 `<script />`，一般 URL 是 `chrome-extension://{这串就是ID}/...` 格式，复制其 ID。
 2. 打开 `chrome://extensions/`，用 cmd+f 找到相同 ID 的插件，禁用它。
 3. 刷新页面，再次尝试。
+
+### 在 Chrome 插件中使用 Ollama 模型出现 403 错误
+
+需要设置环境变量 `OLLAMA_ORIGINS="*"`，以允许 Chrome 插件访问 Ollama 模型。

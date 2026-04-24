@@ -4,6 +4,12 @@ export {
   callAIWithObjectResponse,
   callAI,
 } from './service-caller/index';
+export {
+  runConnectivityTest,
+  type ConnectivityCheckResultItem,
+  type ConnectivityTestConfig,
+  type ConnectivityTestResult,
+} from './connectivity';
 export { systemPromptToLocateElement } from './prompt/llm-locator';
 export {
   generatePlaywrightTest,
@@ -13,6 +19,7 @@ export {
   generateYamlTest,
   generateYamlTestStream,
 } from './prompt/yaml-generator';
+export type { YamlGenerationOptions } from './prompt/yaml-generator';
 
 export type { ChatCompletionMessageParam } from 'openai/resources/index';
 

@@ -67,6 +67,7 @@ export type {
   DeviceType,
   ExecutionUxHint,
   ExecutionUxConfig,
+  PromptInputChromeConfig,
 } from './types';
 
 // Export storage providers (both legacy and new)

@@ -1,11 +1,21 @@
 import { describe, expect, it, vi } from 'vitest';
-import ScrcpyServer from '../../src/scrcpy-server';
+import ScrcpyServer, {
+  resolveRequestedDeviceId,
+} from '../../src/scrcpy-server';
 
-const mockPushServer = vi.fn();
-const mockStart = vi.fn();
-const mockReadableFrom = vi.fn();
-const mockCreateReadStream = vi.fn();
-const mockOptionsCtor = vi.fn((options) => options);
+const {
+  mockPushServer,
+  mockStart,
+  mockReadableFrom,
+  mockCreateReadStream,
+  mockOptionsCtor,
+} = vi.hoisted(() => ({
+  mockPushServer: vi.fn(),
+  mockStart: vi.fn(),
+  mockReadableFrom: vi.fn(),
+  mockCreateReadStream: vi.fn(),
+  mockOptionsCtor: vi.fn((options) => options),
+}));
 
 vi.mock('@yume-chan/adb-scrcpy', () => ({
   AdbScrcpyClient: {
@@ -30,6 +40,19 @@ vi.mock('node:fs', () => ({
 }));
 
 describe('ScrcpyServer', () => {
+  it('prefers the explicit device from the preview handshake', () => {
+    expect(
+      resolveRequestedDeviceId(
+        { deviceId: 'SERIAL123', maxSize: 1024 },
+        'OLD_DEVICE',
+      ),
+    ).toBe('SERIAL123');
+    expect(resolveRequestedDeviceId({ deviceId: '  ' }, 'OLD_DEVICE')).toBe(
+      'OLD_DEVICE',
+    );
+    expect(resolveRequestedDeviceId({}, null)).toBeUndefined();
+  });
+
   it('enables frame metadata for the scrcpy web preview stream', async () => {
     mockCreateReadStream.mockReturnValue({ stream: true });
     mockReadableFrom.mockReturnValue({ readable: true });
@@ -37,8 +60,9 @@ describe('ScrcpyServer', () => {
 
     const server = new ScrcpyServer();
     const adb = { serial: 'device-1' };
+    const onProgress = vi.fn();
 
-    await (server as any).startScrcpy(adb, { maxSize: 720 });
+    await (server as any).startScrcpy(adb, { maxSize: 720 }, onProgress);
 
     expect(mockPushServer).toHaveBeenCalledOnce();
     expect(mockOptionsCtor).toHaveBeenCalledWith(
@@ -57,5 +81,9 @@ describe('ScrcpyServer', () => {
         sendFrameMeta: true,
       }),
     );
+    expect(onProgress.mock.calls.map(([phase]) => phase)).toEqual([
+      'pushing-server',
+      'starting-service',
+    ]);
   });
 });

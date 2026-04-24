@@ -65,14 +65,25 @@ describe('chrome extension settings and cross-mode tests', () => {
 
   // ── Combined: settings modal open/edit/close ──────────────────────────
   it('settings: open modal, verify content, and close', async () => {
+    const openEnvConfigModal = async () => {
+      await agent.aiAct(
+        `Click the settings icon in the top-right header area of ${SIDE_PANEL}, next to the GitHub and help icons. Do not click the run configuration icon inside the prompt composer.`,
+      );
+      await sleep(1500);
+    };
+
     // 1. Open settings
-    await agent.aiAct(
-      `Click the gear or settings icon in the top area of ${SIDE_PANEL}`,
-    );
-    await sleep(1000);
-    await agent.aiAssert(
-      'A modal or dialog is visible with title containing "Config" or "Env" and a text area for environment variable configuration',
-    );
+    await openEnvConfigModal();
+    try {
+      await agent.aiAssert(
+        'A modal titled "Model Env Config" is visible, and it contains a large text area for environment variable configuration.',
+      );
+    } catch {
+      await openEnvConfigModal();
+      await agent.aiAssert(
+        'A modal titled "Model Env Config" is visible, and it contains a large text area for environment variable configuration.',
+      );
+    }
 
     // 2. Verify the text area contains env config (injected earlier)
     await agent.aiAssert(
@@ -81,11 +92,11 @@ describe('chrome extension settings and cross-mode tests', () => {
 
     // 3. Close settings
     await agent.aiAct(
-      'Click the "Cancel" button or the close button (X) on the modal',
+      'Click the X close button in the top-right corner of the "Model Env Config" modal.',
     );
-    await sleep(1000);
+    await sleep(1500);
     await agent.aiAssert(
-      `The modal is closed and ${SIDE_PANEL} is visible with Playground UI`,
+      `The "Model Env Config" modal is closed, and ${SIDE_PANEL} is visible showing Playground UI without any modal overlay.`,
     );
   });
 
@@ -142,7 +153,7 @@ describe('chrome extension settings and cross-mode tests', () => {
     );
     await sleep(3000);
     await agent.aiAssert(
-      `${SIDE_PANEL} shows Playground UI with action type buttons like "aiAct" and "aiQuery"`,
+      `${SIDE_PANEL} shows Playground UI with action type buttons like "Act" and "Query"`,
     );
   });
 });

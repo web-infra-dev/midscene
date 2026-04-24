@@ -13,6 +13,8 @@ Control PC desktop with JavaScript: [https://github.com/web-infra-dev/midscene-e
 
 Integrate Vitest for testing: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo)
 
+Control a remote Windows desktop over RDP: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
+
 :::
 
 <SetupEnv />
@@ -110,6 +112,48 @@ import { agentFromComputer } from '@midscene/computer';
 ```bash
 npx tsx example.ts
 ```
+
+## Connect to a Remote Windows Desktop via RDP
+
+`@midscene/computer` can also drive a remote Windows desktop directly over the RDP protocol through the dedicated `agentForRDPComputer()` factory.
+
+### Prerequisites
+
+1. A reachable Windows machine with RDP enabled.
+2. [FreeRDP](https://www.freerdp.com/) installed on the machine running your script.
+
+### Example
+
+```typescript
+import { agentForRDPComputer } from '@midscene/computer';
+
+const agent = await agentForRDPComputer({
+  aiActionContext:
+    'You are controlling a remote Windows desktop over the RDP protocol.',
+  host: '10.75.166.249',
+  port: 3389,
+  username: 'Admin',
+  password: 'replace-with-your-password',
+  ignoreCertificate: true,
+});
+
+await agent.aiWaitFor('The remote Windows desktop is visible');
+await agent.aiAct('Click the Windows Start button');
+await agent.aiAct('Open Settings');
+await agent.aiAssert('The Windows Settings window is visible');
+```
+
+### Common RDP Options
+
+- `host`: Remote Windows host or IP.
+- `port`: RDP port. Defaults to `3389`.
+- `username` / `password`: Account credentials for the remote session.
+- `domain`: Optional Windows domain.
+- `ignoreCertificate`: Skip certificate validation for self-signed setups.
+- `desktopWidth` / `desktopHeight`: Request a specific remote desktop resolution.
+- `adminSession`: Request the remote admin session when the server allows it.
+
+RDP sessions are exposed to Midscene as a single remote display. You can still use the same `aiAct`, `aiQuery`, `aiAssert`, and report features as local desktop automation.
 
 ## Multi-Display Support
 
@@ -209,6 +253,32 @@ console.log('Displays:', env.displays);
 if (!env.available) {
   console.error('Environment not available:', env.error);
 }
+```
+
+## FAQ
+
+### macOS: Script cannot control mouse or keyboard
+
+macOS requires Accessibility permissions for keyboard and mouse control. Go to **System Settings > Privacy & Security > Accessibility** and enable the toggle for the application running your script (e.g., Terminal, iTerm2, VS Code, or WebStorm).
+
+If you have already granted permission but it still doesn't work, try removing the app from the Accessibility list and re-adding it — macOS sometimes caches stale permissions.
+
+### Linux: Screenshots or interactions fail on a headless server
+
+A headless Linux environment (e.g. CI) has no physical display. You need to install Xvfb and ImageMagick, and enable headless mode:
+
+```bash
+sudo apt-get install -y xvfb x11-xserver-utils imagemagick
+```
+
+```typescript
+const agent = await agentFromComputer({ headless: true });
+```
+
+Or set the environment variable:
+
+```bash
+MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 ```
 
 ## Next Steps

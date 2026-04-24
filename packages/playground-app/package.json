@@ -1,6 +1,6 @@
 {
   "name": "@midscene/playground-app",
-  "version": "1.5.7",
+  "version": "1.7.5",
   "description": "Reusable React shell for Midscene playground applications",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
@@ -18,7 +18,9 @@
   "scripts": {
     "dev": "npm run build:watch",
     "build": "rslib build",
-    "build:watch": "rslib build --watch --no-clean"
+    "build:watch": "rslib build --watch --no-clean",
+    "test": "vitest --run",
+    "test:watch": "vitest"
   },
   "peerDependencies": {
     "react": "^18.0.0",
@@ -26,6 +28,7 @@
   },
   "dependencies": {
     "@midscene/playground": "workspace:*",
+    "@midscene/shared": "workspace:*",
     "@midscene/visualizer": "workspace:*",
     "@yume-chan/scrcpy": "2.3.0",
     "@yume-chan/scrcpy-decoder-webcodecs": "2.5.0",
@@ -45,7 +48,8 @@
     "less": "^4.2.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "3.0.5"
   },
   "sideEffects": ["**/*.css", "**/*.less", "**/*.sass", "**/*.scss"],
   "publishConfig": {

@@ -39,7 +39,7 @@ Notes:
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_MODEL_TIMEOUT` | Timeout for AI API calls in milliseconds (default intent). Defaults to OpenAI SDK default (10 minutes) |
+| `MIDSCENE_MODEL_TIMEOUT` | Hard timeout for AI API calls in milliseconds (default intent). Defaults to `180000` (180s). Set to `0` to disable the hard timeout and let the request run indefinitely (only a caller-provided `AbortSignal` will cancel it). Note: Midscene controls the full request lifetime, not just the time until the first response header arrives, so stalled body reads can still be terminated cleanly |
 | `MIDSCENE_MODEL_TEMPERATURE` | Sampling temperature for model responses |
 | `MIDSCENE_MODEL_MAX_TOKENS` | `max_tokens` for responses, default 2048 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | Number of retries when AI call fails, default 1 (i.e., retry once after failure) |
@@ -49,7 +49,7 @@ Notes:
 | `MIDSCENE_MODEL_REASONING_BUDGET` | Thinking token budget (number). Passed through as `thinking_budget` for qwen. Unsupported families ignore this setting |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS proxy, e.g., `http://127.0.0.1:8080` or `https://proxy.example.com:8080`. Takes precedence over `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS proxy, e.g., `socks5://127.0.0.1:1080` |
-| `MIDSCENE_MODEL_INIT_CONFIG_JSON` | JSON blob that overrides the OpenAI SDK initialization config |
+| `MIDSCENE_MODEL_INIT_CONFIG_JSON` | JSON blob that overrides the OpenAI SDK initialization config. Use `defaultHeaders` for custom auth headers; `extra_headers` and `extraHeaders` are accepted as aliases |
 | `MIDSCENE_MODEL_EXTRA_BODY_JSON` | JSON blob merged into each chat completion request body. Unlike `MIDSCENE_MODEL_INIT_CONFIG_JSON` (which configures the SDK client), this is spread into every `completion.create()` call sent to the model, e.g. enabling thinking mode in vLLM: `'{"chat_template_kwargs":{"enable_thinking":true}}'` |
 | `MIDSCENE_RUN_DIR` | Run artifact directory, like report and logs. Defaults to `midscene_run` in the current working directory; accepts absolute or relative paths |
 | `MIDSCENE_PREFERRED_LANGUAGE` | Optional. Preferred response language. Defaults to `Chinese` if timezone is GMT+8, otherwise `English` |
@@ -65,6 +65,7 @@ Set the following if the Insight intent needs a different model:
 | `MIDSCENE_INSIGHT_MODEL_API_KEY` | API key |
 | `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API endpoint URL (omit the trailing `/chat/completion`) |
 | `MIDSCENE_INSIGHT_MODEL_NAME` | Model name |
+| `MIDSCENE_INSIGHT_MODEL_FAMILY` | Model family |
 | `MIDSCENE_INSIGHT_MODEL_TIMEOUT` | Optional; timeout for Insight intent AI API calls in milliseconds |
 | `MIDSCENE_INSIGHT_MODEL_TEMPERATURE` | Optional; sampling temperature for Insight intent responses |
 | `MIDSCENE_INSIGHT_MODEL_RETRY_COUNT` | Optional; same effect as `MIDSCENE_MODEL_RETRY_COUNT` |
@@ -83,6 +84,7 @@ Set the following if the Planning intent needs a different model:
 | `MIDSCENE_PLANNING_MODEL_API_KEY` | API key |
 | `MIDSCENE_PLANNING_MODEL_BASE_URL` | API endpoint URL (omit the trailing `/chat/completion`) |
 | `MIDSCENE_PLANNING_MODEL_NAME` | Model name |
+| `MIDSCENE_PLANNING_MODEL_FAMILY` | Model family |
 | `MIDSCENE_PLANNING_MODEL_TIMEOUT` | Optional; timeout for Planning intent AI API calls in milliseconds |
 | `MIDSCENE_PLANNING_MODEL_TEMPERATURE` | Optional; sampling temperature for Planning intent responses |
 | `MIDSCENE_PLANNING_MODEL_RETRY_COUNT` | Optional; same effect as `MIDSCENE_MODEL_RETRY_COUNT` |

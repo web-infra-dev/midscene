@@ -100,12 +100,16 @@ const isStringParamSchema = (schema?: ZodTypeAny): boolean => {
   }
 };
 
-const buildLaunchOrAdbShellParam = (
+const buildShortcutActionParam = (
   actionName: string,
   interfaceAlias: string | undefined,
   value: string,
 ) => {
   if (actionName === 'Launch' || interfaceAlias === 'launch') {
+    return { uri: value };
+  }
+
+  if (actionName === 'Terminate' || interfaceAlias === 'terminate') {
     return { uri: value };
   }
 
@@ -460,7 +464,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         // New format - 1: { aiScroll: TUserPrompt, direction, scrollType, distance? }
         // New format - 2: { aiScroll: undefined, locate: TUserPrompt, direction, scrollType, distance? }
         const { locate, ...scrollOptions } = scrollTask as any;
-        const locatePrompt: TUserPrompt | undefined = locate ?? aiScroll;
+        const locatePrompt: TUserPrompt | undefined =
+          locate ?? aiScroll ?? undefined;
 
         await agent.aiScroll(locatePrompt, scrollOptions);
       } else if ('aiTap' in flowItem) {
@@ -553,47 +558,13 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         let stringParamToCall: string | undefined;
         const specialActionParamToCall =
           typeof actionParamForMatchedAction === 'string'
-            ? buildLaunchOrAdbShellParam(
+            ? buildShortcutActionParam(
                 matchedAction.name,
                 matchedAction.interfaceAlias,
                 actionParamForMatchedAction,
               )
             : undefined;
-        if (
-          typeof actionParamForMatchedAction === 'string' &&
-          (matchedAction.name === 'Launch' ||
-            matchedAction.interfaceAlias === 'launch') &&
-          typeof (agent as any).launch === 'function'
-        ) {
-          // Call agent.launch directly for Launch action with string param
-          debug(`Calling agent.launch with: ${actionParamForMatchedAction}`);
-          const result = await (agent as any).launch(
-            actionParamForMatchedAction,
-          );
-
-          const resultName = (flowItem as any).name;
-          if (result !== undefined) {
-            this.setResult(resultName, result);
-          }
-        } else if (
-          typeof actionParamForMatchedAction === 'string' &&
-          (matchedAction.name === 'RunAdbShell' ||
-            matchedAction.interfaceAlias === 'runAdbShell') &&
-          typeof (agent as any).runAdbShell === 'function'
-        ) {
-          // Call agent.runAdbShell directly for RunAdbShell action with string param
-          debug(
-            `Calling agent.runAdbShell with: ${actionParamForMatchedAction}`,
-          );
-          const result = await (agent as any).runAdbShell(
-            actionParamForMatchedAction,
-          );
-
-          const resultName = (flowItem as any).name;
-          if (result !== undefined) {
-            this.setResult(resultName, result);
-          }
-        } else if (specialActionParamToCall) {
+        if (specialActionParamToCall) {
           debug(
             `matchedAction: ${matchedAction.name}`,
             `flowParams: ${JSON.stringify(specialActionParamToCall)}`,

@@ -195,7 +195,7 @@ AndroidDevice 的构造函数支持以下参数：
   - `remoteAdbPort?: number` - 可选参数，用于指定远程 adb 端口。
   - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` - 可选参数，控制 Midscene 何时调用 [yadb](https://github.com/ysbing/YADB) 来输入文本。`'yadb-for-non-ascii'`（默认）会自动对 Unicode 字符（包括 Latin Unicode 如 ö、é、ñ）、中文、日文以及格式化符号（如 %s、%d）使用 yadb，而纯 ASCII 文本则使用更快的原生 `adb input text`。`'always-yadb'` 会对所有文本输入都使用 yadb，提供最大兼容性，但对纯 ASCII 文本稍慢。默认值为 'yadb-for-non-ascii'。
   - `displayId?: number` - 可选参数，用于指定要使用的显示器 ID。默认值为 undefined，表示使用当前显示器。
-  - `screenshotResizeScale?: number` - 可选参数，控制发送给 AI 模型的截图尺寸。默认值为 `1 / devicePixelRatio`，因此对于分辨率 1200×800、设备像素比（DPR）为 3 的界面，发送到模型的图片约为 400×267。不建议手动修改该参数。
+  - `screenshotResizeScale?: number` - **已废弃。** 此选项已移除，不再生效。如需控制发送给 AI 模型的截图尺寸，请使用 `AgentOpt` 中的 `screenshotShrinkFactor`。
   - `alwaysRefreshScreenInfo?: boolean` - 可选参数，是否每次都重新获取屏幕尺寸和方向信息。默认为 false（使用缓存以提高性能）。如果设备可能会旋转或需要实时屏幕信息，设置为 true。
 
 <a id="androidagent"></a>
@@ -495,6 +495,11 @@ const device = new AndroidDevice('device-id', {
   autoDismissKeyboard: false,
 });
 ```
+
+关闭后键盘不会自动隐藏，可能导致键盘覆盖大量屏幕区域。你可以通过以下方式应对：
+
+- 使用 `aiAct` 指令手动隐藏键盘，例如 `await agent.aiAct('隐藏键盘')`
+- 安装并切换到 [ADBKeyBoard](https://github.com/senzhk/ADBKeyBoard)——这是一款极小面积的虚拟键盘，即使不隐藏也几乎不影响屏幕操作
 
 ### 如何使用自定义的 adb 路径、远程 adb 主机和端口？
 

@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { CLIError, runToolsCLI } from '@midscene/shared/cli';
+import { createReportCliCommands } from '@midscene/core';
+import { reportCLIError, runToolsCLI } from '@midscene/shared/cli';
 import dotenv from 'dotenv';
 import { WebMidsceneTools } from './mcp-tools';
 import { WebCdpMidsceneTools } from './mcp-tools-cdp';
@@ -71,7 +72,7 @@ runToolsCLI(tools, 'midscene-web', {
   stripPrefix: 'web_',
   argv,
   version: __VERSION__,
+  extraCommands: createReportCliCommands(),
 }).catch((e) => {
-  if (!(e instanceof CLIError)) console.error(e);
-  process.exit(e instanceof CLIError ? e.exitCode : 1);
+  process.exit(reportCLIError(e));
 });

@@ -31,13 +31,13 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 - 该模式下不需要 `MIDSCENE_MODEL_API_KEY`。
 - Midscene 会通过 stdio 调用 `codex app-server`。
 - 请确保 `codex` 在 PATH 中可用，并通过 `codex login status` 确认登录状态。
-- 使用该模式时，无法在发送图片时指定 `"detail": "original"`** 参数，因此无法获得最佳的定位效果。详情请参考 **[Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) 和 [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)。
+- 使用该模式时，无法在发送图片时指定 `"detail": "original"` 参数，因此无法获得最佳的定位效果。详情请参考 [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) 和 [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)。
 
 ## 高阶配置（可选）
 
 | 名称 | 描述 |
 |------|-------------|
-| `MIDSCENE_MODEL_TIMEOUT` | AI 接口调用超时时间（毫秒，默认意图），默认使用 OpenAI SDK 默认值（10 分钟）|
+| `MIDSCENE_MODEL_TIMEOUT` | AI 接口调用硬超时（毫秒，默认意图），默认 `180000`（180 秒）。设为 `0` 可禁用硬超时，只有调用方传入的 `AbortSignal` 能取消请求。说明：Midscene 控制的是完整请求生命周期，而不只是首个响应 header 返回的时间，因此即使响应体读取阶段卡住，也能被及时终止 |
 | `MIDSCENE_MODEL_TEMPERATURE` | 模型采样温度 |
 | `MIDSCENE_MODEL_MAX_TOKENS` | 模型响应的 max_tokens 数配置，默认是 2048 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | AI 调用失败时的重试次数，默认 1（即失败后重试 1 次）|
@@ -47,7 +47,7 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `MIDSCENE_MODEL_REASONING_BUDGET` | 思考 token 预算（数字）。透传为千问的 `thinking_budget`。不支持的模型系列会忽略此设置 |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS 代理配置，如 `http://127.0.0.1:8080` 或 `https://proxy.example.com:8080`，优先级高于 `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS 代理配置，如 `socks5://127.0.0.1:1080` |
-| `MIDSCENE_MODEL_INIT_CONFIG_JSON` | 覆盖 OpenAI SDK 初始化配置的 JSON |
+| `MIDSCENE_MODEL_INIT_CONFIG_JSON` | 覆盖 OpenAI SDK 初始化配置的 JSON。自定义鉴权 header 请使用 `defaultHeaders`；`extra_headers` 和 `extraHeaders` 也会作为别名兼容 |
 | `MIDSCENE_MODEL_EXTRA_BODY_JSON` | 合并到每次 chat completion 请求体中的 JSON。与 `MIDSCENE_MODEL_INIT_CONFIG_JSON`（配置 SDK 客户端）不同，此参数会展开到每次发送到模型的 `completion.create()` 调用体中，例如在 vLLM 中启用思考模式：`'{"chat_template_kwargs":{"enable_thinking":true}}'` |
 | `MIDSCENE_RUN_DIR` | 运行产物目录，默认值为当前工作目录下的 `midscene_run`，支持设置绝对路径或相对路径 |
 | `MIDSCENE_PREFERRED_LANGUAGE` | 可选，模型响应的语言；如果当前系统时区是 GMT+8 则默认是 `Chinese`，否则是 `English` |
@@ -63,6 +63,7 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `MIDSCENE_INSIGHT_MODEL_API_KEY` | API Key |
 | `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completion` 部分 |
 | `MIDSCENE_INSIGHT_MODEL_NAME` | 模型名称 |
+| `MIDSCENE_INSIGHT_MODEL_FAMILY` | 模型 family |
 | `MIDSCENE_INSIGHT_MODEL_TIMEOUT` | 可选，Insight 意图的 AI 接口调用超时时间（毫秒）|
 | `MIDSCENE_INSIGHT_MODEL_TEMPERATURE` | 可选，Insight 意图的模型采样温度 |
 | `MIDSCENE_INSIGHT_MODEL_RETRY_COUNT` | 可选，效果等同于 `MIDSCENE_MODEL_RETRY_COUNT` |
@@ -81,6 +82,7 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `MIDSCENE_PLANNING_MODEL_API_KEY` | API Key |
 | `MIDSCENE_PLANNING_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completion` 部分 |
 | `MIDSCENE_PLANNING_MODEL_NAME` | 模型名称 |
+| `MIDSCENE_PLANNING_MODEL_FAMILY` | 模型 family |
 | `MIDSCENE_PLANNING_MODEL_TIMEOUT` | 可选，Planning 意图的 AI 接口调用超时时间（毫秒）|
 | `MIDSCENE_PLANNING_MODEL_TEMPERATURE` | 可选，Planning 意图的模型采样温度 |
 | `MIDSCENE_PLANNING_MODEL_RETRY_COUNT` | 可选，效果等同于 `MIDSCENE_MODEL_RETRY_COUNT` |

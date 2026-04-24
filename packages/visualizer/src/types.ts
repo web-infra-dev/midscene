@@ -1,5 +1,10 @@
-import type { DeviceAction, ModelBrief, UIContext } from '@midscene/core';
-import type { ComponentType } from 'react';
+import type {
+  ConnectivityTestResult,
+  DeviceAction,
+  ModelBrief,
+  UIContext,
+} from '@midscene/core';
+import type { ComponentType, ReactNode } from 'react';
 
 // Zod schema related types - compatible with actual zod types
 export interface ZodType {
@@ -15,7 +20,8 @@ export interface ZodType {
       | 'ZodBoolean';
     innerType?: ZodType;
     defaultValue?: () => unknown;
-    shape?: () => Record<string, ZodType>;
+    _serializedDefaultValue?: unknown;
+    shape?: (() => Record<string, ZodType>) | Record<string, ZodType>;
     values?: string[];
     description?: string;
   };
@@ -210,11 +216,15 @@ export const extractDefaultValue = (field: ZodType): unknown => {
   let currentField = field;
 
   while (currentField._def?.innerType) {
-    if (
-      currentField._def.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.DEFAULT &&
-      currentField._def.defaultValue
-    ) {
-      return currentField._def.defaultValue();
+    if (currentField._def.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.DEFAULT) {
+      // Runtime Zod: defaultValue is a function
+      if (typeof currentField._def.defaultValue === 'function') {
+        return currentField._def.defaultValue();
+      }
+      // Serialized from server: defaultValue was dropped, use fallback
+      if (currentField._def._serializedDefaultValue !== undefined) {
+        return currentField._def._serializedDefaultValue;
+      }
     }
     currentField = currentField._def.innerType;
   }
@@ -324,6 +334,7 @@ export interface PlaygroundSDKLike {
     reportHTML: string | null;
   }>;
   overrideConfig?(config: any): Promise<void>;
+  runConnectivityTest?(): Promise<ConnectivityTestResult>;
   checkStatus?(): Promise<boolean>;
   getServiceMode?(): 'In-Browser-Extension' | 'Server';
   getRuntimeInfo?(): Promise<PlaygroundRuntimeInfo | null>;
@@ -363,6 +374,14 @@ export interface InfoListItem {
   loadingProgressText?: string;
   verticalMode?: boolean;
   actionType?: string; // Track which action type was executed
+  /**
+   * Identifier for the ExecutionTask that produced this progress item —
+   * `task.subType || task.type`, e.g. `'Planning'`, `'Locate'`, `'Tap'`,
+   * `'Input'`, `'Scroll'`, `'RunAdbShell'`. Hosts can use this with
+   * {@link PromptInputChromeConfig.resolveProgressActionIcon} to render
+   * a domain-specific icon in the progress pill.
+   */
+  actionKind?: string;
 }
 
 // main component config interface
@@ -376,6 +395,73 @@ export interface UniversalPlaygroundConfig {
   showEnvConfigReminder?: boolean;
   deviceType?: DeviceType;
   executionUx?: ExecutionUxConfig;
+  promptInputChrome?: PromptInputChromeConfig;
+  /**
+   * Whether to render the "clear conversation" button that appears above the
+   * message list once there is more than one item. Defaults to `true`.
+   * Embedding hosts whose own shell exposes a clear affordance can set this
+   * to `false`.
+   */
+  showClearButton?: boolean;
+  /**
+   * Whether each system message renders its header (branding icon + title).
+   * Defaults to `true`. Compact embeddings may set this to `false` to let the
+   * host shell own the branding.
+   */
+  showSystemMessageHeader?: boolean;
+  /**
+   * Opt-in controls for how consecutive progress items render in the
+   * conversation log. Defaults flatten every progress step inline (no
+   * grouping, no connector) so existing hosts keep their behaviour.
+   */
+  executionFlow?: ExecutionFlowConfig;
+}
+
+export interface ExecutionFlowConfig {
+  /**
+   * When `true`, consecutive progress items are wrapped under a single
+   * collapsible "Execution Flow" header. A "run" is bounded by the first
+   * non-progress item before and after it.
+   */
+  collapsible?: boolean;
+  /**
+   * Label shown on the collapsible header. Defaults to `'Execution Flow'`.
+   */
+  label?: string;
+  /**
+   * Resolve a domain-specific icon for each progress step. Called with
+   * `InfoListItem.actionKind` (e.g. `'Planning'`, `'Locate'`, `'Tap'`,
+   * `'Input'`, `'RunAdbShell'`). Returning a React node renders it to
+   * the left of the status glyph inside the pill; returning `undefined`
+   * falls back to the default mapping shipped by the visualiser, and
+   * returning `null` hides the icon slot entirely.
+   */
+  resolveActionIcon?: (kind: string) => ReactNode | null | undefined;
+}
+
+/**
+ * Optional visual chrome overrides for the embedded prompt input.
+ * - `default` renders the full-featured prompt input (type radio row,
+ *   history button, full send/stop controls).
+ * - `minimal` renders a compact toolbar with only inline params, an action
+ *   dropdown, send/stop — intended for embedded hosts (e.g. Studio) whose
+ *   outer shell already owns the type selection affordance.
+ */
+export interface PromptInputChromeConfig {
+  variant?: 'default' | 'minimal';
+  placeholder?: string;
+  /**
+   * Label shown on the primary action button. When provided, overrides the
+   * auto-derived label (`actionNameForType(type)`). If omitted, the action
+   * name derived from the current type is used, falling back to "Action".
+   */
+  primaryActionLabel?: string;
+  icons?: {
+    action?: string;
+    actionChevron?: string;
+    history?: string;
+    settings?: string;
+  };
 }
 
 // branding interface

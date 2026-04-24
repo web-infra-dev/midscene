@@ -281,3 +281,33 @@ describe('HarmonyOS Settings Test', () => {
 Merged reports are stored inside `midscene_run/report` by default. Override the directory with `MIDSCENE_RUN_DIR` when running in CI.
 
 :::
+
+## FAQ
+
+### Text input is cleared or lost after typing
+
+Midscene automatically dismisses the keyboard after entering text (by default it sends a BACK key event). If your input field listens for the BACK event and clears or closes in response, you can disable auto keyboard dismiss:
+
+```typescript
+const device = new HarmonyDevice('device-id', {
+  autoDismissKeyboard: false,
+});
+```
+
+With auto dismiss disabled, the keyboard will remain visible. You can use `aiAct` to manually dismiss it, e.g. `await agent.aiAct('dismiss the keyboard')`.
+
+### How to use a custom HDC path?
+
+Set the `HDC_HOME` environment variable to point to the HDC directory:
+
+```bash
+export HDC_HOME=/path/to/hdc/directory
+```
+
+Or pass it via the constructor:
+
+```typescript
+const device = new HarmonyDevice('0123456789ABCDEF', {
+  hdcPath: '/path/to/hdc',
+});
+```

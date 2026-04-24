@@ -34,6 +34,8 @@ The user will give you a screenshot, the contents of it (optional), and some dat
 
 If a key specifies a JSON data type (such as Number, String, Boolean, Object, Array), ensure the returned value strictly matches that data type.
 
+When DATA_DEMAND is a JSON object, the keys in your response must exactly match the keys in DATA_DEMAND. Do not rename, translate, or substitute any key.
+
 If the user provides multiple reference images, please carefully review the reference images with the screenshot and provide the correct answer for <DATA_DEMAND>.
 
 
@@ -97,7 +99,7 @@ If the DATA_DEMAND is:
 
 <DATA_DEMAND>
 {
-  "result": "Boolean, is it currently the SMS page?"
+  "StatementIsTruthy": "Boolean, is it currently the SMS page?"
 }
 </DATA_DEMAND>
 
@@ -105,7 +107,7 @@ By viewing the screenshot and page contents, you can extract the following data:
 
 <thought>According to the screenshot, i can see ...</thought>
 <data-json>
-{ "result": true }
+{ "StatementIsTruthy": true }
 </data-json>
 "
 `;
@@ -280,6 +282,16 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 - "click the login button" → Instruction fulfilled once clicked. Do NOT wait for page load or verify login success.
 - "type 'hello' in the search box" → Instruction fulfilled when 'hello' is typed. Do NOT press Enter or trigger search.
 - "select the first item" → Instruction fulfilled when selected. Do NOT proceed to checkout.
+
+**Special case - Text hidden by a narrow input field:**
+- CRITICAL PRIORITY OVERRIDE - Input verification after an input action:
+- This rule overrides the general requirement to verify the exact target text from the screenshot.
+- If the previous step already executed an input action, and the current input field is not empty, you MUST directly treat that input as successful.
+- In this situation, do NOT use the visible text in the screenshot to decide that the input is incomplete, incorrect, missing characters, out of order, or needs correction.
+- Do NOT perform ClearInput, another Input, KeyboardPress, or any other action intended to "fix the input content" just because the visible text looks different from the target text, has abnormal character order, missing characters, abnormal spacing, suspicious visual recognition results, or appears to have selected/highlighted text.
+- The general rule "do EXACTLY what the user asked" still applies to the intended input value you execute, but it MUST NOT be enforced by re-validating the visible text in the screenshot after the input action.
+- Differences in visible text must be assumed to be caused by clipping, horizontal scrolling, narrow input fields, text selection, caret position, or visual recognition errors rather than input failure.
+- Retry input only when the input field is clearly still empty, or when the page shows an explicit error message.
 
 **Special case - Assertion instructions:**
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark it as failed (success="false").
@@ -589,6 +601,16 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 - "type 'hello' in the search box" → Instruction fulfilled when 'hello' is typed. Do NOT press Enter or trigger search.
 - "select the first item" → Instruction fulfilled when selected. Do NOT proceed to checkout.
 
+**Special case - Text hidden by a narrow input field:**
+- CRITICAL PRIORITY OVERRIDE - Input verification after an input action:
+- This rule overrides the general requirement to verify the exact target text from the screenshot.
+- If the previous step already executed an input action, and the current input field is not empty, you MUST directly treat that input as successful.
+- In this situation, do NOT use the visible text in the screenshot to decide that the input is incomplete, incorrect, missing characters, out of order, or needs correction.
+- Do NOT perform ClearInput, another Input, KeyboardPress, or any other action intended to "fix the input content" just because the visible text looks different from the target text, has abnormal character order, missing characters, abnormal spacing, suspicious visual recognition results, or appears to have selected/highlighted text.
+- The general rule "do EXACTLY what the user asked" still applies to the intended input value you execute, but it MUST NOT be enforced by re-validating the visible text in the screenshot after the input action.
+- Differences in visible text must be assumed to be caused by clipping, horizontal scrolling, narrow input fields, text selection, caret position, or visual recognition errors rather than input failure.
+- Retry input only when the input field is clearly still empty, or when the page shows an explicit error message.
+
 **Special case - Assertion instructions:**
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark it as failed (success="false").
 - If the page is still loading (e.g., you see a loading spinner, skeleton screen, or progress bar), do NOT assert yet. Wait for the page to finish loading before evaluating the assertion.
@@ -869,6 +891,16 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 - "click the login button" → Instruction fulfilled once clicked. Do NOT wait for page load or verify login success.
 - "type 'hello' in the search box" → Instruction fulfilled when 'hello' is typed. Do NOT press Enter or trigger search.
 - "select the first item" → Instruction fulfilled when selected. Do NOT proceed to checkout.
+
+**Special case - Text hidden by a narrow input field:**
+- CRITICAL PRIORITY OVERRIDE - Input verification after an input action:
+- This rule overrides the general requirement to verify the exact target text from the screenshot.
+- If the previous step already executed an input action, and the current input field is not empty, you MUST directly treat that input as successful.
+- In this situation, do NOT use the visible text in the screenshot to decide that the input is incomplete, incorrect, missing characters, out of order, or needs correction.
+- Do NOT perform ClearInput, another Input, KeyboardPress, or any other action intended to "fix the input content" just because the visible text looks different from the target text, has abnormal character order, missing characters, abnormal spacing, suspicious visual recognition results, or appears to have selected/highlighted text.
+- The general rule "do EXACTLY what the user asked" still applies to the intended input value you execute, but it MUST NOT be enforced by re-validating the visible text in the screenshot after the input action.
+- Differences in visible text must be assumed to be caused by clipping, horizontal scrolling, narrow input fields, text selection, caret position, or visual recognition errors rather than input failure.
+- Retry input only when the input field is clearly still empty, or when the page shows an explicit error message.
 
 **Special case - Assertion instructions:**
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark it as failed (success="false").
@@ -1239,6 +1271,16 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 - "type 'hello' in the search box" → Goal accomplished when 'hello' is typed. Do NOT press Enter or trigger search.
 - "select the first item" → Goal accomplished when selected. Do NOT proceed to checkout.
 
+**Special case - Text hidden by a narrow input field:**
+- CRITICAL PRIORITY OVERRIDE - Input verification after an input action:
+- This rule overrides the general requirement to verify the exact target text from the screenshot.
+- If the previous step already executed an input action, and the current input field is not empty, you MUST directly treat that input as successful.
+- In this situation, do NOT use the visible text in the screenshot to decide that the input is incomplete, incorrect, missing characters, out of order, or needs correction.
+- Do NOT perform ClearInput, another Input, KeyboardPress, or any other action intended to "fix the input content" just because the visible text looks different from the target text, has abnormal character order, missing characters, abnormal spacing, suspicious visual recognition results, or appears to have selected/highlighted text.
+- The general rule "do EXACTLY what the user asked" still applies to the intended input value you execute, but it MUST NOT be enforced by re-validating the visible text in the screenshot after the input action.
+- Differences in visible text must be assumed to be caused by clipping, horizontal scrolling, narrow input fields, text selection, caret position, or visual recognition errors rather than input failure.
+- Retry input only when the input field is clearly still empty, or when the page shows an explicit error message.
+
 **Special case - Assertion instructions:**
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark the goal as failed (success="false").
 - If the page is still loading (e.g., you see a loading spinner, skeleton screen, or progress bar), do NOT assert yet. Wait for the page to finish loading before evaluating the assertion.
@@ -1573,6 +1615,16 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 - "type 'hello' in the search box" → Instruction fulfilled when 'hello' is typed. Do NOT press Enter or trigger search.
 - "select the first item" → Instruction fulfilled when selected. Do NOT proceed to checkout.
 
+**Special case - Text hidden by a narrow input field:**
+- CRITICAL PRIORITY OVERRIDE - Input verification after an input action:
+- This rule overrides the general requirement to verify the exact target text from the screenshot.
+- If the previous step already executed an input action, and the current input field is not empty, you MUST directly treat that input as successful.
+- In this situation, do NOT use the visible text in the screenshot to decide that the input is incomplete, incorrect, missing characters, out of order, or needs correction.
+- Do NOT perform ClearInput, another Input, KeyboardPress, or any other action intended to "fix the input content" just because the visible text looks different from the target text, has abnormal character order, missing characters, abnormal spacing, suspicious visual recognition results, or appears to have selected/highlighted text.
+- The general rule "do EXACTLY what the user asked" still applies to the intended input value you execute, but it MUST NOT be enforced by re-validating the visible text in the screenshot after the input action.
+- Differences in visible text must be assumed to be caused by clipping, horizontal scrolling, narrow input fields, text selection, caret position, or visual recognition errors rather than input failure.
+- Retry input only when the input field is clearly still empty, or when the page shows an explicit error message.
+
 **Special case - Assertion instructions:**
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark it as failed (success="false").
 - If the page is still loading (e.g., you see a loading spinner, skeleton screen, or progress bar), do NOT assert yet. Wait for the page to finish loading before evaluating the assertion.
@@ -1880,6 +1932,16 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 - "click the login button" → Instruction fulfilled once clicked. Do NOT wait for page load or verify login success.
 - "type 'hello' in the search box" → Instruction fulfilled when 'hello' is typed. Do NOT press Enter or trigger search.
 - "select the first item" → Instruction fulfilled when selected. Do NOT proceed to checkout.
+
+**Special case - Text hidden by a narrow input field:**
+- CRITICAL PRIORITY OVERRIDE - Input verification after an input action:
+- This rule overrides the general requirement to verify the exact target text from the screenshot.
+- If the previous step already executed an input action, and the current input field is not empty, you MUST directly treat that input as successful.
+- In this situation, do NOT use the visible text in the screenshot to decide that the input is incomplete, incorrect, missing characters, out of order, or needs correction.
+- Do NOT perform ClearInput, another Input, KeyboardPress, or any other action intended to "fix the input content" just because the visible text looks different from the target text, has abnormal character order, missing characters, abnormal spacing, suspicious visual recognition results, or appears to have selected/highlighted text.
+- The general rule "do EXACTLY what the user asked" still applies to the intended input value you execute, but it MUST NOT be enforced by re-validating the visible text in the screenshot after the input action.
+- Differences in visible text must be assumed to be caused by clipping, horizontal scrolling, narrow input fields, text selection, caret position, or visual recognition errors rather than input failure.
+- Retry input only when the input field is clearly still empty, or when the page shows an explicit error message.
 
 **Special case - Assertion instructions:**
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark it as failed (success="false").

@@ -1,8 +1,13 @@
-import type { DeviceAction } from '@midscene/core';
+import type { ConnectivityTestResult, DeviceAction } from '@midscene/core';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import type { BasePlaygroundAdapter } from '../adapters/base';
 import { LocalExecutionAdapter } from '../adapters/local-execution';
 import { RemoteExecutionAdapter } from '../adapters/remote-execution';
+import type {
+  PlaygroundSessionSetup,
+  PlaygroundSessionState,
+  PlaygroundSessionTarget,
+} from '../platform';
 import type { PlaygroundRuntimeInfo } from '../runtime-metadata';
 import type {
   AgentFactory,
@@ -134,10 +139,11 @@ export class PlaygroundSDK {
   }
 
   async overrideConfig(aiConfig: any): Promise<void> {
-    if (this.adapter instanceof RemoteExecutionAdapter) {
-      return this.adapter.overrideConfig(aiConfig);
-    }
-    // For local execution, this is a no-op
+    return this.adapter.overrideConfig(aiConfig);
+  }
+
+  async runConnectivityTest(): Promise<ConnectivityTestResult> {
+    return this.adapter.runConnectivityTest();
   }
 
   // Get task progress (for remote execution)
@@ -248,6 +254,55 @@ export class PlaygroundSDK {
 
     return adapter.getRuntimeInfo();
   }
+
+  async getSessionInfo(): Promise<PlaygroundSessionState | null> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.getSessionInfo();
+    }
+
+    return null;
+  }
+
+  async getSessionSetup(
+    input?: Record<string, unknown>,
+  ): Promise<PlaygroundSessionSetup | null> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.getSessionSetup(input);
+    }
+
+    return null;
+  }
+
+  async listSessionTargets(): Promise<PlaygroundSessionTarget[]> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.listSessionTargets();
+    }
+
+    return [];
+  }
+
+  async createSession(input?: Record<string, unknown>): Promise<{
+    session: PlaygroundSessionState;
+    runtimeInfo: PlaygroundRuntimeInfo;
+  }> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.createSession(input);
+    }
+
+    throw new Error('Session creation is only supported in server mode');
+  }
+
+  async destroySession(): Promise<{
+    session: PlaygroundSessionState;
+    runtimeInfo: PlaygroundRuntimeInfo;
+  }> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.destroySession();
+    }
+
+    throw new Error('Session destruction is only supported in server mode');
+  }
+
   // Get service mode based on adapter type
   getServiceMode(): 'In-Browser-Extension' | 'Server' {
     if (this.adapter instanceof LocalExecutionAdapter) {

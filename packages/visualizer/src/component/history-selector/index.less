@@ -6,11 +6,9 @@
 
 .history-modal-overlay {
   position: fixed;
-  top: auto;
-  right: 20px;
-  bottom: 20px;
   width: 320px;
   height: 400px;
+  max-width: min(320px, calc(100vw - 32px));
   background: white;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
@@ -141,39 +139,92 @@
 
 // Dark mode styles
 [data-theme='dark'] {
-  .history-selector {
-    .history-timestamp,
-    .history-path {
-      color: rgba(255, 255, 255, 0.45);
-    }
+  .history-modal-overlay {
+    background: #16181d !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
+  }
 
-    .history-description {
-      color: #f8fafd;
-    }
+  .history-modal-container {
+    background: #16181d !important;
 
-    .history-no-items {
-      color: rgba(255, 255, 255, 0.45);
-    }
-
-    .history-item {
-      &:hover {
-        background: rgba(255, 255, 255, 0.08);
+    .history-modal-header {
+      .ant-typography {
+        color: rgba(255, 255, 255, 0.92) !important;
       }
 
-      .history-clear-icon {
-        border-color: rgba(255, 255, 255, 0.12);
+      .close-button {
+        .anticon {
+          color: rgba(255, 255, 255, 0.48);
+        }
 
-        &:hover {
-          border-color: #40a9ff;
+        &:hover .anticon {
+          color: rgba(255, 255, 255, 0.78);
         }
       }
     }
 
-    .history-load-more {
-      color: #1890ff;
+    .history-search-section {
+      background: #16181d !important;
 
-      &:hover {
-        color: #40a9ff;
+      .search-input-wrapper {
+        color: rgba(255, 255, 255, 0.38);
+
+        .search-input,
+        .search-input.ant-input-affix-wrapper {
+          background: rgba(255, 255, 255, 0.08) !important;
+          border-color: rgba(255, 255, 255, 0.12) !important;
+          box-shadow: none !important;
+
+          .ant-input,
+          .ant-input-prefix,
+          .ant-input-clear-icon {
+            color: rgba(255, 255, 255, 0.72) !important;
+          }
+
+          .ant-input {
+            background: transparent !important;
+          }
+
+          .ant-input::placeholder {
+            color: rgba(255, 255, 255, 0.38) !important;
+          }
+
+          &:hover,
+          &:focus-within {
+            background: rgba(255, 255, 255, 0.12) !important;
+            border-color: rgba(255, 255, 255, 0.16) !important;
+          }
+        }
+
+        .clear-button {
+          color: #77b7ff !important;
+
+          &:hover {
+            color: #9cccff !important;
+          }
+        }
+      }
+    }
+
+    .history-content {
+      .history-group {
+        .history-group-title {
+          color: rgba(255, 255, 255, 0.45) !important;
+        }
+
+        .history-item {
+          color: rgba(255, 255, 255, 0.88) !important;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.08) !important;
+          }
+        }
+      }
+
+      .no-results,
+      .ant-typography.ant-typography-secondary {
+        color: rgba(255, 255, 255, 0.45) !important;
       }
     }
   }

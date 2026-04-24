@@ -136,6 +136,26 @@ const getModelDescription = (
   return '';
 };
 
+const normalizeOpenaiExtraConfig = (
+  config: unknown,
+): Record<string, unknown> | undefined => {
+  if (!config || typeof config !== 'object' || Array.isArray(config)) {
+    return undefined;
+  }
+
+  const { defaultHeaders, extra_headers, extraHeaders, ...rest } =
+    config as Record<string, unknown>;
+
+  // Priority: defaultHeaders > extra_headers > extraHeaders
+  const headers = defaultHeaders ?? extra_headers ?? extraHeaders;
+
+  if (headers !== undefined) {
+    return { ...rest, defaultHeaders: headers };
+  }
+
+  return rest;
+};
+
 /**
  * Parse OpenAI SDK config
  */
@@ -201,7 +221,7 @@ export const parseOpenaiSdkConfig = ({
     httpProxy,
     openaiBaseURL,
     openaiApiKey,
-    openaiExtraConfig,
+    openaiExtraConfig: normalizeOpenaiExtraConfig(openaiExtraConfig),
     extraBody,
     modelFamily,
     uiTarsModelVersion,

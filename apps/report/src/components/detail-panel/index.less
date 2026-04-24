@@ -21,6 +21,25 @@
     display: flex;
     justify-content: space-between;
     flex-direction: row;
+    align-items: center;
+  }
+
+  .view-switcher-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .download-zip-link {
+    font-size: 13px;
+    color: #1677ff;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+
+    &:hover {
+      color: #4096ff;
+    }
   }
 
   .detail-content {
@@ -35,6 +54,26 @@
 
   .blackboard {
     margin: 0 auto;
+  }
+
+  .markdown-view {
+    display: flex;
+    flex-direction: column;
+
+    .markdown-source {
+      flex: 1;
+      overflow: auto;
+      padding: 16px;
+      background: #f6f8fa;
+      border: 1px solid @heavy-border-color;
+      border-radius: 6px;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0;
+    }
   }
 
   .screenshot-item-wrapper {
@@ -52,8 +91,22 @@
       margin-bottom: 5px;
     }
 
-    img {
+    img:not(.blackboard-screenshot) {
       border: 1px solid @heavy-border-color;
+      max-width: 100%;
+      max-height: 720px;
+      box-sizing: border-box;
+    }
+
+    .blackboard {
+      width: fit-content;
+      max-width: 100%;
+    }
+
+    .blackboard-screenshot {
+      border: 1px solid @heavy-border-color;
+      display: block;
+      width: auto;
       max-width: 100%;
       max-height: 720px;
       box-sizing: border-box;
@@ -77,6 +130,20 @@
       img {
         border-color: rgba(255, 255, 255, 0.12);
       }
+    }
+  }
+
+  .markdown-view .markdown-source {
+    background: #2d2d2d;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #e8eaed;
+  }
+
+  .download-zip-link {
+    color: #4096ff;
+
+    &:hover {
+      color: #69b1ff;
     }
   }
 

@@ -1,18 +1,20 @@
 {
   "name": "@midscene/playground",
-  "version": "1.5.7",
+  "version": "1.7.5",
   "description": "Midscene playground utilities for web integration",
   "author": "midscene team",
   "license": "MIT",
+  "main": "./dist/lib/index.js",
+  "types": "./dist/types/index.d.ts",
+  "module": "./dist/es/index.mjs",
+  "browser": "./dist/es/index.browser.mjs",
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
-      "browser": {
-        "require": "./dist/lib/index.browser.js",
-        "import": "./dist/es/index.browser.mjs"
-      },
+      "browser": "./dist/es/index.browser.mjs",
       "require": "./dist/lib/index.js",
-      "import": "./dist/es/index.mjs"
+      "import": "./dist/es/index.mjs",
+      "default": "./dist/es/index.mjs"
     }
   },
   "files": ["dist", "static"],

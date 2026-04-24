@@ -47,6 +47,15 @@ export type ToolHandler<T = Record<string, unknown>> = (
  */
 export type ToolSchema = Record<string, z.ZodTypeAny>;
 
+export interface ToolCliOption {
+  preferredName?: string;
+  aliases?: string[];
+}
+
+export interface ToolCliMetadata {
+  options?: Record<string, ToolCliOption>;
+}
+
 /**
  * Tool definition for MCP server
  */
@@ -55,6 +64,7 @@ export interface ToolDefinition<T = Record<string, unknown>> {
   description: string;
   schema: ToolSchema;
   handler: ToolHandler<T>;
+  cli?: ToolCliMetadata;
 }
 
 /**
@@ -84,6 +94,10 @@ export interface BaseAgent {
   page?: {
     screenshotBase64(): Promise<string>;
   };
+  callActionInActionSpace?: (
+    actionName: string,
+    params?: unknown,
+  ) => Promise<unknown>;
   aiAction?: (
     description: string,
     params?: Record<string, unknown>,

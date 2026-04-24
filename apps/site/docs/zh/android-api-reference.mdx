@@ -8,7 +8,7 @@
 
 - `Tap` —— 点击元素。
 - `DoubleClick` —— 双击元素。
-- `Input` —— 输入文本，支持 `replace`/`append`/`clear` 模式，可选 `autoDismissKeyboard`。
+- `Input` —— 输入文本，支持 `replace`/`typeOnly`/`clear` 模式（`append` 是 `typeOnly` 的已废弃别名）。支持可选参数 `autoDismissKeyboard`。
 - `Scroll` —— 以元素为起点或从屏幕中央向上/下/左/右滚动，支持滚动到顶/底/左/右。
 - `DragAndDrop` —— 从一个元素拖拽到另一个元素。
 - `KeyboardPress` —— 按下指定键位。
@@ -17,6 +17,7 @@
 - `Pinch` —— 双指缩放手势。`scale > 1` 放大，`scale < 1` 缩小。
 - `ClearInput` —— 清空输入框内容。
 - `Launch` —— 打开网页或 `package/.Activity`。
+- `Terminate` —— 按包名强制停止应用。
 - `RunAdbShell` —— 执行原始 `adb shell` 命令。
 - `AndroidBackButton` —— 触发系统返回。
 - `AndroidHomeButton` —— 回到桌面。
@@ -51,7 +52,7 @@ const device = new AndroidDevice(deviceId, {
   - `'yadb-for-non-ascii'`（默认）—— 对 Unicode 字符（包括 Latin Unicode 如 ö、é、ñ）、中文、日文以及格式化符号（如 %s、%d）使用 yadb。纯 ASCII 文本使用更快的原生 `adb input text`。
   - `'always-yadb'` —— 对所有文本输入始终使用 yadb，提供最大兼容性，但对纯 ASCII 文本稍慢。
 - `displayId?: number` —— 在设备镜像多个屏幕时，选择特定虚拟屏幕。
-- `screenshotResizeScale?: number` —— 在发送给模型前对截图进行缩放，默认 `1 / devicePixelRatio`。
+- `screenshotResizeScale?: number` —— **已废弃。** 此选项已移除，不再生效。如需控制发送给 AI 模型的截图尺寸，请使用 `AgentOpt` 中的 `screenshotShrinkFactor`。
 - `alwaysRefreshScreenInfo?: boolean` —— 每一步都重新查询旋转角度与屏幕尺寸，默认 `false`。
 - `scrcpyConfig?: object` —— Scrcpy 高性能截图配置，默认关闭。详见下方 [Scrcpy 截图模式](#scrcpy)。
 
@@ -147,7 +148,7 @@ const agent = new AndroidAgent(device, {
 :::info
 
 - 一个设备连接对应一个 Agent。
-- `launch`、`runAdbShell` 等 Android 专属辅助函数也可在 YAML 脚本中使用，语法见 [Android 平台特定动作](./automate-with-scripts-in-yaml#the-android-part)。
+- `launch`、`terminate`、`runAdbShell` 等 Android 专属辅助函数也可在 YAML 脚本中使用，语法见 [Android 平台特定动作](./automate-with-scripts-in-yaml#the-android-part)。
 - 通用交互方法请查阅 [API 参考（通用）](./api#interaction-methods)。
 
 :::
@@ -177,6 +178,20 @@ function runAdbShell(command: string): Promise<string>;
 ```ts
 const result = await agent.runAdbShell('dumpsys battery');
 console.log(result);
+```
+
+#### `agent.terminate()`
+
+终止（强制停止）正在运行的 Android 应用。
+
+```ts
+function terminate(uri: string): Promise<void>;
+```
+
+- `uri: string` —— 应用包名、`appNameMapping` 中的应用名称，或 `package/.Activity`（仅使用包名部分）。
+
+```ts
+await agent.terminate('com.android.settings');
 ```
 
 #### 导航辅助

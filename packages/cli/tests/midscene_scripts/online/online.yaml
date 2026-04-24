@@ -12,6 +12,7 @@ tasks:
     flow:
       - aiAct: type 'standard_user' in user name input, type 'secret_sauce' in password, click 'Login'
         planningStrategy: fast
+      - aiWaitFor: there are products displayed on the page
 
   - name: extract items info
     flow:

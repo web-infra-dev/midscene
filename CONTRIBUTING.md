@@ -320,6 +320,15 @@ Here are the steps to publish (we generally use CI for releases and avoid publis
 1. [Run the release action](https://github.com/web-infra-dev/midscene/actions/workflows/release.yml).
 2. [Generate the release notes](https://github.com/web-infra-dev/midscene/releases).
 
+Stable releases also attempt to submit the packaged Chrome extension to the Chrome Web Store from CI. Configure these repository secrets before running a stable release:
+
+- `CHROME_WEB_STORE_PUBLISHER_ID`
+- `CHROME_WEB_STORE_CLIENT_ID`
+- `CHROME_WEB_STORE_CLIENT_SECRET`
+- `CHROME_WEB_STORE_REFRESH_TOKEN`
+
+If Chrome Web Store publishing fails, the GitHub Release and packaged extension zip are still generated. You can then download the zip from the release artifacts and upload it manually in the Chrome Web Store dashboard.
+
 ## Chrome Extension
 
 ### Directory Structure
@@ -341,7 +350,7 @@ midscene/
 │   ├── core/                # Core functionality
 │   ├── visualizer/          # Visualization components
 │   ├── web-integration/     # Web integration
-│   └── ...
+│   │   └── ...
 └── ...
 ```
 
@@ -381,6 +390,8 @@ The built `dist` directory can be directly installed as a Chrome extension. In C
 
 Alternatively, you can use the packaged extension:
 - Select the `apps/chrome-extension/extension_output/midscene-extension-v{version}.zip` file
+
+For stable releases, this packaged zip is also the artifact used by the Chrome Web Store publish job. If that job fails, you can still use the same zip for manual store upload.
 
 For more detailed information, please refer to [Chrome DevTools README](./apps/chrome-extension/README.md).
 

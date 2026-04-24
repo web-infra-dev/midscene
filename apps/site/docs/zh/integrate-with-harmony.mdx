@@ -127,7 +127,7 @@ HarmonyDevice 的构造函数支持以下参数：
 - `opts?: HarmonyDeviceOpt` - 可选参数，用于初始化 HarmonyDevice 的配置
   - `hdcPath?: string` - 可选参数，用于指定 HDC 可执行文件的路径
   - `autoDismissKeyboard?: boolean` - 可选参数，是否在输入文本后自动关闭键盘。默认值为 true
-  - `screenshotResizeScale?: number` - 可选参数，控制发送给 AI 模型的截图尺寸。不建议手动修改该参数
+  - `screenshotResizeScale?: number` - **已废弃。** 此选项已移除，不再生效。如需控制发送给 AI 模型的截图尺寸，请使用 `AgentOpt` 中的 `screenshotShrinkFactor`
   - `customActions?: DeviceAction[]` - 可选参数，自定义动作列表
 
 <a id="harmonyagent"></a>
@@ -370,6 +370,18 @@ await agent.aiAct('点击红色按钮五次');
 - 更多 Agent 上的 API 接口请参考 [API 参考](./api.mdx)。
 
 ## FAQ
+
+### 输入文本后，输入框内容被清空或消失
+
+Midscene 在输入文本后会自动隐藏键盘（默认发送 BACK 按键事件）。如果你的输入框监听了 BACK 事件并执行了清空或关闭操作，可以关闭自动隐藏键盘：
+
+```typescript
+const device = new HarmonyDevice('device-id', {
+  autoDismissKeyboard: false,
+});
+```
+
+关闭后键盘不会自动隐藏，你可以使用 `aiAct` 指令手动隐藏键盘，例如 `await agent.aiAct('隐藏键盘')`。
 
 ### 如何使用自定义的 HDC 路径？
 

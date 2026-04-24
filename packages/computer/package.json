@@ -1,6 +1,6 @@
 {
   "name": "@midscene/computer",
-  "version": "1.5.7",
+  "version": "1.7.5",
   "description": "Midscene.js Computer Desktop Automation",
   "license": "MIT",
   "repository": {
@@ -14,7 +14,7 @@
   "bin": {
     "midscene-computer": "./bin/midscene-computer"
   },
-  "files": ["bin", "dist", "README.md"],
+  "files": ["bin", "dist", "native", "scripts", "README.md"],
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
@@ -30,9 +30,12 @@
   },
   "scripts": {
     "build": "rslib build",
+    "build:native": "node ./scripts/build-native.mjs",
+    "prepublishOnly": "node ./scripts/prepublish-native.mjs",
     "dev": "rslib build --watch",
     "test": "vitest run",
-    "test:ai": "AI_TEST_TYPE=computer vitest run"
+    "test:ai": "AI_TEST_TYPE=computer vitest run",
+    "test:ai:rdp": "AI_TEST_TYPE=computer-rdp vitest run"
   },
   "dependencies": {
     "@computer-use/libnut": "^4.2.0",

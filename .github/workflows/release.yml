@@ -18,6 +18,8 @@ permissions:
 
 jobs:
   release:
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -90,3 +92,38 @@ jobs:
           ${{ github.workspace }}/apps/chrome-extension/extension_output/**/*.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish_chrome_web_store:
+    needs: release
+    if: ${{ needs.release.result == 'success' && !contains(needs.release.outputs.version, 'beta') && !contains(needs.release.outputs.version, 'alpha') && !contains(needs.release.outputs.version, 'rc') }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.inputs.branch }}
+    - name: Download packaged Chrome extension artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: chrome_extension
+        path: ${{ github.workspace }}/apps/chrome-extension/extension_output
+    - name: Publish Chrome extension to Chrome Web Store
+      id: publish_extension
+      continue-on-error: true
+      run: |
+        bash ./scripts/publish-chrome-extension.sh \
+          --zip-path "${{ github.workspace }}/apps/chrome-extension/extension_output/midscene-extension-${{ needs.release.outputs.version }}.zip"
+      env:
+        CHROME_WEB_STORE_PUBLISHER_ID: ${{ secrets.CHROME_WEB_STORE_PUBLISHER_ID }}
+        CHROME_WEB_STORE_CLIENT_ID: ${{ secrets.CHROME_WEB_STORE_CLIENT_ID }}
+        CHROME_WEB_STORE_CLIENT_SECRET: ${{ secrets.CHROME_WEB_STORE_CLIENT_SECRET }}
+        CHROME_WEB_STORE_REFRESH_TOKEN: ${{ secrets.CHROME_WEB_STORE_REFRESH_TOKEN }}
+    - name: Summarize manual fallback when Chrome Web Store publish fails
+      if: ${{ steps.publish_extension.outcome == 'failure' }}
+      run: |
+        echo "## Chrome Web Store publish fallback" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Chrome Web Store publishing failed, but the GitHub Release and packaged extension artifact were created successfully." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Download the packaged extension zip from the GitHub Release page and upload it manually:" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "https://github.com/${{ github.repository }}/releases/tag/${{ needs.release.outputs.version }}" >> $GITHUB_STEP_SUMMARY

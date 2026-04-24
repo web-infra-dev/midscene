@@ -7,6 +7,7 @@ tasks:
   - name: login
     flow:
       - aiAction: type 'standard_user' in user name input, type 'secret_sauce' in password, click 'Login'
+      - aiWaitFor: there are products displayed on the page
 
   - name: extract items info
     flow:
