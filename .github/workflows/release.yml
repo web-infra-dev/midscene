@@ -179,13 +179,8 @@ jobs:
       NO_COLOR: '1'
     steps:
     - uses: actions/checkout@v2
-      if: ${{ needs.release.outputs.is_prerelease != 'true' }}
       with:
         ref: refs/tags/${{ needs.release.outputs.version }}
-    - uses: actions/checkout@v2
-      if: ${{ needs.release.outputs.is_prerelease == 'true' }}
-      with:
-        ref: ${{ github.event.inputs.branch }}
     - name: Setup pnpm
       uses: pnpm/action-setup@v2
       with:
