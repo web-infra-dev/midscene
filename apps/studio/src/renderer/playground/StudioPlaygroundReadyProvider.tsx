@@ -2,10 +2,13 @@ import {
   PlaygroundThemeProvider,
   usePlaygroundController,
 } from '@midscene/playground-app';
+import type { StudioPlatformId } from '@shared/electron-contract';
 import type { PropsWithChildren } from 'react';
 import { useMemo } from 'react';
 import type { DiscoveredDevicesByPlatform } from './types';
 import { StudioPlaygroundContext } from './useStudioPlayground';
+
+const DEFAULT_PLATFORM_ID: StudioPlatformId = 'android';
 
 interface StudioPlaygroundReadyProviderProps {
   discoveredDevices?: DiscoveredDevicesByPlatform;
@@ -24,6 +27,7 @@ export default function StudioPlaygroundReadyProvider({
   serverUrl,
 }: PropsWithChildren<StudioPlaygroundReadyProviderProps>) {
   const controller = usePlaygroundController({
+    initialFormValues: { platformId: DEFAULT_PLATFORM_ID },
     serverUrl,
   });
 
