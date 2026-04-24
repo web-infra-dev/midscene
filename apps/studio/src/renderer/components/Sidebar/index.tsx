@@ -228,33 +228,6 @@ export default function Sidebar({
       return [];
     }
 
-    // iOS discovery needs WebDriverAgent running, which is a manual
-    // setup step; surface a hint row instead of an empty section so
-    // users know it isn't a bug.
-    if (platformKey === 'ios' && devices.length === 0) {
-      return [
-        {
-          id: 'ios-setup-hint',
-          label: 'Set up iOS via the playground form',
-          status: 'idle' as const,
-          isPlaceholder: true,
-          onClick: async () => {
-            if (studioPlayground.phase !== 'ready') {
-              return;
-            }
-            const { actions, state } = studioPlayground.controller;
-            const nextValues = {
-              ...state.form.getFieldsValue(true),
-              platformId: 'ios',
-            };
-            state.form.setFieldsValue(nextValues);
-            onSelectDevice();
-            await actions.refreshSessionSetup(nextValues);
-          },
-        },
-      ];
-    }
-
     return devices.map((item) => ({
       id: item.id,
       label: item.label,

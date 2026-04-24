@@ -2,7 +2,8 @@ import type {
   PlaygroundRuntimeInfo,
   PlaygroundSDK,
 } from '@midscene/playground';
-import type { ReactNode } from 'react';
+import type { ScreenshotViewerMode } from '@midscene/visualizer';
+import type { CSSProperties, ReactNode } from 'react';
 import { PreviewRenderer } from './PreviewRenderer';
 import type { ScrcpyErrorOverlayRenderer } from './ScrcpyPanel';
 import type { ScrcpyPreviewStatus } from './scrcpy-preview';
@@ -14,6 +15,8 @@ export interface PlaygroundPreviewProps {
     statusText: string,
   ) => void;
   renderErrorOverlay?: ScrcpyErrorOverlayRenderer;
+  scrcpyViewportStyle?: CSSProperties;
+  screenshotViewerMode?: ScreenshotViewerMode;
   playgroundSDK: PlaygroundSDK;
   runtimeInfo: PlaygroundRuntimeInfo | null;
   serverUrl: string;

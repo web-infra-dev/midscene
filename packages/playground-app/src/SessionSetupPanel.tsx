@@ -173,6 +173,15 @@ export function SessionSetupPanel({
             className="session-setup-alert"
           />
         ) : null}
+        {sessionSetup?.notice ? (
+          <Alert
+            type={sessionSetup.notice.type}
+            showIcon
+            message={sessionSetup.notice.message}
+            description={sessionSetup.notice.description}
+            className="session-setup-alert"
+          />
+        ) : null}
 
         <Form
           form={form}
