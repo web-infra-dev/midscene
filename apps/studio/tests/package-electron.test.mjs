@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   assertPortablePackagedNodeModules,
   buildArtifactBaseName,
@@ -15,8 +15,11 @@ import {
   dedupePlaygroundStatic,
   dropAntdEsmBuild,
   dropMidsceneEsmBuilds,
+  findLiveDevBuilderProcesses,
+  getLiveDevBuilderProcessQueries,
   getStudioElectronVersion,
   normalizeReleaseVersion,
+  parseLiveDevBuilderProcessMatches,
   pruneAntdUmdBundles,
   pruneSourceMapFiles,
   releaseWorkspaceDir,
@@ -121,6 +124,79 @@ describe('package-electron helpers', () => {
   it('uses a shell for Windows .cmd package manager shims', () => {
     expect(shouldUseShellForCommand('pnpm.cmd', 'win32')).toBe(true);
     expect(shouldUseShellForCommand('pnpm', 'linux')).toBe(false);
+  });
+
+  it('uses a PowerShell-based process query on Windows', () => {
+    expect(getLiveDevBuilderProcessQueries('win32')).toEqual([
+      expect.objectContaining({ command: 'powershell' }),
+      expect.objectContaining({ command: 'pwsh' }),
+    ]);
+  });
+
+  it('parses process-list output into individual matches', () => {
+    expect(
+      parseLiveDevBuilderProcessMatches(
+        '123 rsbuild dev\n456 pnpm rsbuild dev\n',
+      ),
+    ).toEqual(['123 rsbuild dev', '456 pnpm rsbuild dev']);
+  });
+
+  it('detects live dev builders on Windows without relying on pgrep', async () => {
+    const runCapture = vi.fn().mockResolvedValue({
+      code: 0,
+      stderr: '',
+      stdout:
+        '4321 C:\\\\Program Files\\\\nodejs\\\\pnpm.cmd rsbuild dev --host 0.0.0.0\n',
+    });
+
+    await expect(
+      findLiveDevBuilderProcesses({
+        platform: 'win32',
+        runCapture,
+      }),
+    ).resolves.toEqual([
+      '4321 C:\\\\Program Files\\\\nodejs\\\\pnpm.cmd rsbuild dev --host 0.0.0.0',
+    ]);
+    expect(runCapture).toHaveBeenCalledWith('powershell', expect.any(Array), {
+      platform: 'win32',
+    });
+  });
+
+  it('falls back to pwsh when powershell is unavailable on Windows', async () => {
+    const powershellMissing = Object.assign(new Error('missing'), {
+      code: 'ENOENT',
+    });
+    const runCapture = vi
+      .fn()
+      .mockRejectedValueOnce(powershellMissing)
+      .mockResolvedValueOnce({
+        code: 0,
+        stderr: '',
+        stdout: '6789 pwsh rsbuild dev\n',
+      });
+
+    await expect(
+      findLiveDevBuilderProcesses({
+        platform: 'win32',
+        runCapture,
+      }),
+    ).resolves.toEqual(['6789 pwsh rsbuild dev']);
+    expect(runCapture.mock.calls[1][0]).toBe('pwsh');
+  });
+
+  it('treats pgrep exit code 1 as no matches on POSIX hosts', async () => {
+    const runCapture = vi.fn().mockResolvedValue({
+      code: 1,
+      stderr: '',
+      stdout: '',
+    });
+
+    await expect(
+      findLiveDevBuilderProcesses({
+        platform: 'darwin',
+        runCapture,
+      }),
+    ).resolves.toEqual([]);
   });
 
   it('keeps release staging outside the studio package root', () => {

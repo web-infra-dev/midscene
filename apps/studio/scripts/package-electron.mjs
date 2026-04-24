@@ -455,39 +455,101 @@ export const getBuildStatus = async ({ packageDir, sourceTargets }) => {
   };
 };
 
-const assertNoLiveDevBuilders = async () => {
-  try {
-    const { stdout } = await new Promise((resolve, reject) => {
-      const child = spawn('pgrep', ['-af', 'rsbuild dev'], {
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
-      let buffer = '';
-      child.stdout.on('data', (chunk) => {
-        buffer += chunk.toString();
-      });
-      child.on('close', () => resolve({ stdout: buffer }));
-      child.on('error', reject);
+const captureCommandOutput = (
+  command,
+  args,
+  { platform = process.platform } = {},
+) =>
+  new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      shell: shouldUseShellForCommand(command, platform),
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
-    const matches = stdout
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean);
-    if (matches.length > 0) {
-      throw new Error(
-        [
-          'Detected live `rsbuild dev` processes while packaging:',
-          ...matches.map((line) => `  ${line}`),
-          'A concurrent dev server keeps overwriting `apps/studio/dist/` with',
-          'a development-mode renderer whose absolute asset URLs break under',
-          '`file://`. Stop `pnpm dev` first, then rerun `pnpm package:release`.',
-        ].join('\n'),
-      );
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.on('close', (code) => {
+      resolve({ code: code ?? 0, stderr, stdout });
+    });
+    child.on('error', reject);
+  });
+
+export const getLiveDevBuilderProcessQueries = (
+  platform = process.platform,
+) => {
+  if (platform === 'win32') {
+    const command =
+      '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; ' +
+      'Get-CimInstance Win32_Process | ' +
+      "Where-Object { $_.CommandLine -match 'rsbuild(?:\\\\.cmd)?\\\\s+dev' } | " +
+      "ForEach-Object { '{0} {1}' -f $_.ProcessId, $_.CommandLine }";
+    return [
+      {
+        command: 'powershell',
+        args: ['-NoProfile', '-Command', command],
+      },
+      {
+        command: 'pwsh',
+        args: ['-NoProfile', '-Command', command],
+      },
+    ];
+  }
+
+  return [
+    {
+      command: 'pgrep',
+      args: ['-af', 'rsbuild dev'],
+    },
+  ];
+};
+
+export const parseLiveDevBuilderProcessMatches = (stdout) =>
+  stdout
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+export const findLiveDevBuilderProcesses = async ({
+  platform = process.platform,
+  runCapture = captureCommandOutput,
+} = {}) => {
+  const queries = getLiveDevBuilderProcessQueries(platform);
+
+  for (const query of queries) {
+    try {
+      const result = await runCapture(query.command, query.args, { platform });
+      if (platform !== 'win32' && result.code === 1) {
+        return [];
+      }
+      return parseLiveDevBuilderProcessMatches(result.stdout);
+    } catch (error) {
+      if (error?.code === 'ENOENT') {
+        continue;
+      }
+      throw error;
     }
-  } catch (error) {
-    if (error?.code === 'ENOENT') {
-      return;
-    }
-    throw error;
+  }
+
+  return [];
+};
+
+const assertNoLiveDevBuilders = async () => {
+  const matches = await findLiveDevBuilderProcesses();
+  if (matches.length > 0) {
+    throw new Error(
+      [
+        'Detected live `rsbuild dev` processes while packaging:',
+        ...matches.map((line) => `  ${line}`),
+        'A concurrent dev server keeps overwriting `apps/studio/dist/` with',
+        'a development-mode renderer whose absolute asset URLs break under',
+        '`file://`. Stop `pnpm dev` first, then rerun `pnpm package:release`.',
+      ].join('\n'),
+    );
   }
 };
 
