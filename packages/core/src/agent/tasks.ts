@@ -580,19 +580,21 @@ export class TaskExecutor {
         const ifTypeRestricted = type !== 'Query';
         let demandInput = demand;
         let keyOfResult = 'result';
+        const currentScreenshotConstraint =
+          'based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images';
         if (ifTypeRestricted && (type === 'Assert' || type === 'WaitFor')) {
           keyOfResult = 'StatementIsTruthy';
           const booleanPrompt =
             type === 'Assert'
-              ? `Boolean, whether the following statement is true: ${demand}`
-              : `Boolean, the user wants to do some 'wait for' operation, please check whether the following statement is true: ${demand}`;
+              ? `Boolean, ${currentScreenshotConstraint}, whether the following statement is true: ${demand}`
+              : `Boolean, the user wants to do some 'wait for' operation. ${currentScreenshotConstraint}, please check whether the following statement is true: ${demand}`;
           demandInput = {
             [keyOfResult]: booleanPrompt,
           };
         } else if (ifTypeRestricted) {
           keyOfResult = type;
           demandInput = {
-            [keyOfResult]: `${type}, ${demand}`,
+            [keyOfResult]: `${type}, ${currentScreenshotConstraint}, ${demand}`,
           };
         }
 
