@@ -70,7 +70,11 @@ export class TaskCache {
     cacheId: string,
     isCacheResultUsed: boolean,
     cacheFilePath?: string,
-    options: { readOnly?: boolean; writeOnly?: boolean } = {},
+    options: {
+      readOnly?: boolean;
+      writeOnly?: boolean;
+      cacheDirectory?: string;
+    } = {},
   ) {
     assert(cacheId, 'cacheId is required');
     let safeCacheId = replaceIllegalPathCharsAndSpace(cacheId);
@@ -89,7 +93,10 @@ export class TaskCache {
       ifInBrowser || ifInWorker
         ? undefined
         : cacheFilePath ||
-          join(getMidsceneRunSubDir('cache'), `${this.cacheId}${cacheFileExt}`);
+          join(
+            options.cacheDirectory || getMidsceneRunSubDir('cache'),
+            `${this.cacheId}${cacheFileExt}`,
+          );
     const readOnlyMode = Boolean(options?.readOnly);
     const writeOnlyMode = Boolean(options?.writeOnly);
 
