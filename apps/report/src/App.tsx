@@ -340,7 +340,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
           </div>
           <div className="page-nav-right">
             <div className="page-nav-version">
-              v{sdkVersion}
+              {sdkVersion ? `v${sdkVersion}` : 'unknown version'}
               {modelBriefText ? ` | ${modelBriefText}` : ''}
             </div>
             <div className="theme-divider" />
