@@ -3,6 +3,7 @@ import type { AbstractInterface } from '@/device';
 import type Service from '@/service';
 import { setTimingFieldOnce } from '@/task-timing';
 import type {
+  AIUsageInfo,
   DetailedLocateParam,
   DeviceAction,
   ElementCacheFeature,
@@ -24,6 +25,7 @@ import { generateElementByRect } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TaskCache } from './task-cache';
+import { withSemanticUsageIntent } from './usage-intent';
 import {
   ifPlanLocateParamIsBbox,
   matchElementFromCache,
@@ -417,7 +419,7 @@ export class TaskBuilder {
             dump,
             rawResponse: dump.taskInfo?.rawResponse,
           };
-          task.usage = dump.taskInfo?.usage;
+          task.usage = withSemanticUsageIntent(dump.taskInfo?.usage, 'default');
           if (dump.taskInfo?.searchAreaUsage) {
             task.searchAreaUsage = dump.taskInfo.searchAreaUsage;
           }

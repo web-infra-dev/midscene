@@ -303,7 +303,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         }
 
         // Intent length
-        const intent = task.usage?.intent || '';
+        const intent = task.usage?.semantic_intent || '';
         maxIntentLength = Math.max(maxIntentLength, String(intent).length);
 
         // Model name length
@@ -541,7 +541,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
       case 'time':
         return getStatusText(task);
       case 'intent': {
-        const intent = task.usage?.intent || '-';
+        const intent = task.usage?.semantic_intent || '-';
         return <span title={intent}>{intent}</span>;
       }
       case 'model': {

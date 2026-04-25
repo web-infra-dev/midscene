@@ -1,4 +1,5 @@
 import { TaskExecutor } from '@/agent/tasks';
+import * as aiModel from '@/ai-model';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { ServiceDump } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -217,6 +218,193 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       expect(result.output).toBe(true);
       expect(result.thought).toBe('Condition is met');
+    });
+
+    it('should preserve semantic insight intent while recording resolved config intent', async () => {
+      const dump = {
+        ...createMockDump({ Boolean: true }, 'Condition is met'),
+        taskInfo: {
+          durationMs: 100,
+          rawResponse: '{"Boolean":true}',
+          usage: {
+            prompt_tokens: 12,
+            completion_tokens: 3,
+            total_tokens: 15,
+            model_name: 'mock-model',
+            resolved_intent: 'default',
+          },
+        },
+      } as ServiceDump;
+
+      const mockInsight = {
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
+        extract: vi.fn(async () => ({
+          data: {
+            Boolean: true,
+          },
+          usage: dump.taskInfo?.usage,
+          thought: 'Condition is met',
+          dump,
+        })),
+        onceDumpUpdatedFn: undefined,
+      } as any;
+
+      const mockModelConfig: IModelConfig = {
+        modelName: 'mock-model',
+        modelDescription: 'mock-model-description',
+        intent: 'default',
+      };
+
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
+
+      const queryTask = await (taskExecutor as any).createTypeQueryTask(
+        'Boolean',
+        'Element is visible',
+        mockModelConfig,
+        {},
+      );
+
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: await createEmptyUIContext(),
+      } as any);
+
+      expect(result.output).toBe(true);
+      expect(queryTask.usage).toMatchObject({
+        semantic_intent: 'insight',
+        resolved_intent: 'default',
+      });
+      expect(queryTask.log?.dump?.taskInfo?.usage).toMatchObject({
+        resolved_intent: 'default',
+      });
+      expect(
+        queryTask.log?.dump?.taskInfo?.usage?.semantic_intent,
+      ).toBeUndefined();
+    });
+
+    it('should preserve semantic planning intent while recording resolved config intent', async () => {
+      const planSpy = vi.spyOn(aiModel, 'plan').mockResolvedValue({
+        actions: [],
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 5,
+          total_tokens: 25,
+          model_name: 'mock-plan-model',
+          resolved_intent: 'default',
+        },
+        rawResponse: '{"actions":[]}',
+        shouldContinuePlanning: false,
+        output: 'done',
+      } as any);
+
+      const mockService = {
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
+        onceDumpUpdatedFn: undefined,
+      } as any;
+
+      const planningModelConfig: IModelConfig = {
+        modelName: 'mock-plan-model',
+        modelDescription: 'mock-plan-model-description',
+        intent: 'default',
+      };
+
+      const defaultModelConfig: IModelConfig = {
+        modelName: 'mock-default-model',
+        modelDescription: 'mock-default-model-description',
+        intent: 'default',
+      };
+
+      const taskExecutor = new TaskExecutor(
+        { interfaceType: 'web' } as any,
+        mockService,
+        {
+          actionSpace: [],
+          replanningCycleLimit: 1,
+        },
+      );
+
+      const result = await taskExecutor.action(
+        'complete the task',
+        planningModelConfig,
+        defaultModelConfig,
+        false,
+      );
+
+      const planningTask = result.runner.tasks[0];
+      expect(planningTask.type).toBe('Planning');
+      expect(planningTask.usage).toMatchObject({
+        semantic_intent: 'planning',
+        resolved_intent: 'default',
+      });
+
+      planSpy.mockRestore();
+    });
+
+    it('should preserve existing semantic intent and warn instead of overwriting it', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const dump = {
+        ...createMockDump({ Boolean: true }, 'Condition is met'),
+        taskInfo: {
+          durationMs: 100,
+          rawResponse: '{"Boolean":true}',
+          usage: {
+            prompt_tokens: 12,
+            completion_tokens: 3,
+            total_tokens: 15,
+            model_name: 'mock-model',
+            semantic_intent: 'preexisting',
+            resolved_intent: 'default',
+          },
+        },
+      } as ServiceDump;
+
+      const mockInsight = {
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
+        extract: vi.fn(async () => ({
+          data: {
+            Boolean: true,
+          },
+          usage: dump.taskInfo?.usage,
+          thought: 'Condition is met',
+          dump,
+        })),
+        onceDumpUpdatedFn: undefined,
+      } as any;
+
+      const mockModelConfig: IModelConfig = {
+        modelName: 'mock-model',
+        modelDescription: 'mock-model-description',
+        intent: 'default',
+      };
+
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
+
+      const queryTask = await (taskExecutor as any).createTypeQueryTask(
+        'Boolean',
+        'Element is visible',
+        mockModelConfig,
+        {},
+      );
+
+      await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: await createEmptyUIContext(),
+      } as any);
+
+      expect(queryTask.usage).toMatchObject({
+        semantic_intent: 'preexisting',
+        resolved_intent: 'default',
+      });
+      expect(warnSpy).toHaveBeenCalledWith(
+        'semantic_intent is already set to "preexisting", skipping overwrite to "insight"',
+      );
+
+      warnSpy.mockRestore();
     });
 
     it('should handle string data for WaitFor operation', async () => {

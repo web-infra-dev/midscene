@@ -235,9 +235,9 @@ const extractMetaFromNormalized = (
         }
       }
       if (task.usage) {
-        const { model_name, model_description, intent } = task.usage;
+        const { model_name, model_description, semantic_intent } = task.usage;
         const brief: ModelBrief = {
-          intent,
+          intent: semantic_intent,
           name: model_name,
           modelDescription: model_description,
         };

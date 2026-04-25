@@ -307,7 +307,8 @@ export async function callAI(
       time_cost: timeCost ?? 0,
       model_name: modelName,
       model_description: modelDescription,
-      intent: modelConfig.intent,
+      resolved_intent: modelConfig.intent,
+      semantic_intent: undefined,
       request_id: requestId ?? undefined,
     } satisfies AIUsageInfo;
   };
