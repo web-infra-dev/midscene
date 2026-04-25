@@ -14,6 +14,11 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<
   HarmonyAgent,
   string
 > {
+  protected getCliReportSessionName() {
+    return 'midscene-harmony';
+  }
+  private pendingReportFileName?: string;
+
   protected readonly initArgSpec: InitArgSpec<string> = {
     namespace: 'harmony',
     shape: {
@@ -47,8 +52,11 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<
     }
 
     debug('Creating Harmony agent with deviceId:', deviceId || 'auto-detect');
+    const reportFileName =
+      this.pendingReportFileName ?? this.readCliReportFileName();
     const agent = await agentFromHdcDevice(deviceId, {
       autoDismissKeyboard: false,
+      ...(reportFileName ? { reportFileName } : {}),
     });
     this.agent = agent;
     return agent;
@@ -64,7 +72,23 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<
         cli: this.getAgentInitArgCliMetadata(),
         handler: async (args: Record<string, unknown>) => {
           const deviceId = this.extractAgentInitParam(args);
-          const agent = await this.ensureAgent(deviceId);
+          const reportSession = this.createNewCliReportSession();
+          this.pendingReportFileName = reportSession?.reportFileName;
+          if (this.agent) {
+            try {
+              await this.agent.destroy?.();
+            } catch (error) {
+              debug('Failed to destroy agent during connect:', error);
+            }
+            this.agent = undefined;
+          }
+          let agent: HarmonyAgent;
+          try {
+            agent = await this.ensureAgent(deviceId);
+          } finally {
+            this.pendingReportFileName = undefined;
+          }
+          this.commitCliReportSession(reportSession);
           const screenshot = await agent.page.screenshotBase64();
 
           return {

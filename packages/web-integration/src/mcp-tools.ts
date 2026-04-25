@@ -8,6 +8,11 @@ import { StaticPage } from './static';
  * Tools manager for Web bridge-mode MCP
  */
 export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
+  protected getCliReportSessionName() {
+    return 'midscene-web';
+  }
+  private pendingReportFileName?: string;
+
   protected createTemporaryDevice() {
     // Use require to avoid type incompatibility with DeviceAction vs ActionSpaceItem
     // StaticPage.actionSpace() returns DeviceAction[] which is compatible at runtime
@@ -43,7 +48,12 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
   private async initBridgeModeAgent(
     url?: string,
   ): Promise<AgentOverChromeBridge> {
-    const agent = new AgentOverChromeBridge({ closeConflictServer: true });
+    const reportFileName =
+      this.pendingReportFileName ?? this.readCliReportFileName();
+    const agent = new AgentOverChromeBridge({
+      closeConflictServer: true,
+      ...(reportFileName ? { reportFileName } : {}),
+    });
 
     if (!url) {
       await agent.connectCurrentTab();
@@ -77,7 +87,14 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
             } catch {}
             this.agent = undefined;
           }
-          this.agent = await this.initBridgeModeAgent(url);
+          const reportSession = this.createNewCliReportSession();
+          this.pendingReportFileName = reportSession?.reportFileName;
+          try {
+            this.agent = await this.initBridgeModeAgent(url);
+          } finally {
+            this.pendingReportFileName = undefined;
+          }
+          this.commitCliReportSession(reportSession);
 
           const screenshot = await this.agent.page?.screenshotBase64();
           const label = url ?? 'current tab';

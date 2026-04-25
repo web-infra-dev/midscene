@@ -4,6 +4,12 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { z } from 'zod';
 import { camelToKebab, getKeyAliases } from '../key-alias-utils';
 import {
+  type CliReportSession,
+  generateCliReportSession,
+  readCliReportSession,
+  writeCliReportSession,
+} from './cli-report-session';
+import {
   createNamespacedInitArgSchema,
   extractNamespacedArgs,
   sanitizeNamespacedArgs,
@@ -188,6 +194,32 @@ export abstract class BaseMidsceneTools<
    */
   protected preparePlatformTools(): ToolDefinition[] {
     return [];
+  }
+
+  protected getCliReportSessionName(): string | undefined {
+    return undefined;
+  }
+
+  protected createNewCliReportSession(): CliReportSession | undefined {
+    const sessionName = this.getCliReportSessionName();
+    if (!sessionName) {
+      return undefined;
+    }
+    return generateCliReportSession(sessionName);
+  }
+
+  protected commitCliReportSession(session?: CliReportSession): void {
+    if (session) {
+      writeCliReportSession(session);
+    }
+  }
+
+  protected readCliReportFileName(): string | undefined {
+    const sessionName = this.getCliReportSessionName();
+    if (!sessionName) {
+      return undefined;
+    }
+    return readCliReportSession(sessionName)?.reportFileName;
   }
 
   /**
