@@ -98,13 +98,14 @@ Once Playground works, move to a repeatable script with the JavaScript SDK.
 
 ### Step 1. Install dependencies
 
-<PackageManagerTabs command="install @midscene/android --save-dev" />
+<PackageManagerTabs command="install @midscene/android dotenv --save-dev" />
 
 ### Step 2. Write scripts
 
 Save the following code as `./demo.ts`. It opens the browser on the device, searches eBay, and asserts the result list.
 
 ```typescript title="./demo.ts"
+import 'dotenv/config'; // load Midscene environment variables from .env if present
 import {
   AndroidAgent,
   AndroidDevice,
