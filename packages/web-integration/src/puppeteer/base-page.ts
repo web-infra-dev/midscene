@@ -535,52 +535,71 @@ export class Page<
     }
   }
 
-  async scrollUntilTop(startingPoint?: Point): Promise<void> {
+  /**
+   * Helper method to perform scroll action, using touch swipe when touch events are enabled
+   */
+  private async performScrollAction(
+    deltaX: number,
+    deltaY: number,
+    startingPoint?: Point
+  ): Promise<void> {
     await this.moveToPointBeforeScroll(startingPoint);
-    return this.mouse.wheel(0, -9999999);
+    
+    if (this.enableTouchEventsInActionSpace) {
+      const size = await this.size();
+      const startX = startingPoint?.left ?? size.width / 2;
+      const startY = startingPoint?.top ?? size.height / 2;
+      
+      // For touch swipe, we need to move in the opposite direction of scroll wheel delta
+      // Wheel delta Y negative = scroll up = swipe down
+      // Wheel delta X negative = scroll left = swipe right
+      return this.swipe(
+        { x: startX, y: startY },
+        { x: startX - deltaX, y: startY - deltaY }
+      );
+    }
+    
+    return this.mouse.wheel(deltaX, deltaY);
+  }
+
+  async scrollUntilTop(startingPoint?: Point): Promise<void> {
+    return this.performScrollAction(0, -9999999, startingPoint);
   }
 
   async scrollUntilBottom(startingPoint?: Point): Promise<void> {
-    await this.moveToPointBeforeScroll(startingPoint);
-    return this.mouse.wheel(0, 9999999);
+    return this.performScrollAction(0, 9999999, startingPoint);
   }
 
   async scrollUntilLeft(startingPoint?: Point): Promise<void> {
-    await this.moveToPointBeforeScroll(startingPoint);
-    return this.mouse.wheel(-9999999, 0);
+    return this.performScrollAction(-9999999, 0, startingPoint);
   }
 
   async scrollUntilRight(startingPoint?: Point): Promise<void> {
-    await this.moveToPointBeforeScroll(startingPoint);
-    return this.mouse.wheel(9999999, 0);
+    return this.performScrollAction(9999999, 0, startingPoint);
   }
 
   async scrollUp(distance?: number, startingPoint?: Point): Promise<void> {
     const innerHeight = await this.evaluate(() => window.innerHeight);
     const scrollDistance = distance || innerHeight * 0.7;
-    await this.moveToPointBeforeScroll(startingPoint);
-    return this.mouse.wheel(0, -scrollDistance);
+    return this.performScrollAction(0, -scrollDistance, startingPoint);
   }
 
   async scrollDown(distance?: number, startingPoint?: Point): Promise<void> {
     const innerHeight = await this.evaluate(() => window.innerHeight);
     const scrollDistance = distance || innerHeight * 0.7;
-    await this.moveToPointBeforeScroll(startingPoint);
-    return this.mouse.wheel(0, scrollDistance);
+    return this.performScrollAction(0, scrollDistance, startingPoint);
   }
 
   async scrollLeft(distance?: number, startingPoint?: Point): Promise<void> {
     const innerWidth = await this.evaluate(() => window.innerWidth);
     const scrollDistance = distance || innerWidth * 0.7;
-    await this.moveToPointBeforeScroll(startingPoint);
-    return this.mouse.wheel(-scrollDistance, 0);
+    return this.performScrollAction(-scrollDistance, 0, startingPoint);
   }
 
   async scrollRight(distance?: number, startingPoint?: Point): Promise<void> {
     const innerWidth = await this.evaluate(() => window.innerWidth);
     const scrollDistance = distance || innerWidth * 0.7;
-    await this.moveToPointBeforeScroll(startingPoint);
-    return this.mouse.wheel(scrollDistance, 0);
+    return this.performScrollAction(scrollDistance, 0, startingPoint);
   }
 
   async navigate(url: string): Promise<void> {
