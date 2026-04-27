@@ -1,6 +1,6 @@
 {
   "name": "@midscene/playground-app",
-  "version": "1.7.5",
+  "version": "1.7.6",
   "description": "Reusable React shell for Midscene playground applications",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
