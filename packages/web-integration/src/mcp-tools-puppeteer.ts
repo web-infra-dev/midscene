@@ -184,9 +184,9 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
       }
     }
 
-    const reportFileName = this.readCliReportFileName();
+    const reportOptions = this.readCliReportAgentOptions();
     this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage, {
-      ...(reportFileName ? { reportFileName } : {}),
+      ...(reportOptions ?? {}),
     });
     return this.agent;
   }

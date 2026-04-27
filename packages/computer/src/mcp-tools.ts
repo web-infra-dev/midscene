@@ -69,11 +69,11 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
     }
 
     debug('Creating Computer agent with displayId:', displayId || 'primary');
-    const reportFileName = this.readCliReportFileName();
+    const reportOptions = this.readCliReportAgentOptions();
     const agentOpts = {
       ...(displayId ? { displayId } : {}),
       ...(headless !== undefined ? { headless } : {}),
-      ...(reportFileName ? { reportFileName } : {}),
+      ...(reportOptions ?? {}),
     };
     const agent = await agentFromComputer(
       Object.keys(agentOpts).length > 0 ? agentOpts : undefined,

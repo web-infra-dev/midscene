@@ -278,10 +278,10 @@ describe('ReportGenerator — append-only model', () => {
       expect(firstAttrs.playwright_test_duration).toBe('123');
       expect(firstAttrs.ignored_null).toBeUndefined();
       expect(firstAttrs.ignored_undefined).toBeUndefined();
-      expect(firstAttrs['data-group-id']).not.toBe('external-group-id');
+      expect(firstAttrs['data-group-id']).toBe('external-group-id');
 
       const secondAttrs = parseScriptAttributes(dumpScripts[1].openTag);
-      expect(secondAttrs['data-group-id']).toBe(firstAttrs['data-group-id']);
+      expect(secondAttrs['data-group-id']).toBe('external-group-id');
       expect(secondAttrs.playwright_test_title).toBe('initial title');
       expect(secondAttrs.playwright_test_status).toBe('passed');
       expect(secondAttrs.playwright_test_duration).toBe('123');

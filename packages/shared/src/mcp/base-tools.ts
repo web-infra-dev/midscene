@@ -224,6 +224,24 @@ export abstract class BaseMidsceneTools<
     return readCliReportSession(sessionName)?.reportFileName;
   }
 
+  protected readCliReportAgentOptions():
+    | {
+        reportFileName: string;
+        reportAttributes: Record<string, string>;
+      }
+    | undefined {
+    const reportFileName = this.readCliReportFileName();
+    if (!reportFileName) {
+      return undefined;
+    }
+    return {
+      reportFileName,
+      reportAttributes: {
+        'data-group-id': reportFileName,
+      },
+    };
+  }
+
   /**
    * Must be implemented by subclasses to create a temporary device instance
    * This allows getting real actionSpace without connecting to device

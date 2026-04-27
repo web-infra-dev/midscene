@@ -1088,6 +1088,7 @@ export interface AgentOpt {
   aiActionContext?: string;
   /* custom report file name */
   reportFileName?: string;
+  reportAttributes?: ReportAttributes;
   modelConfig?: TModelConfig;
   cache?: Cache;
   /**

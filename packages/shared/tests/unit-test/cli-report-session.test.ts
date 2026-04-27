@@ -28,6 +28,7 @@ class FakeCliTools extends BaseMidsceneTools<BaseAgent> {
     return 'midscene-test';
   }
   public readonly createdReportFileNames: Array<string | undefined> = [];
+  public readonly createdReportGroupIds: Array<string | undefined> = [];
   public readonly aiAction = vi.fn().mockResolvedValue(undefined);
 
   protected createTemporaryDevice(): BaseDevice {
@@ -35,8 +36,11 @@ class FakeCliTools extends BaseMidsceneTools<BaseAgent> {
   }
 
   protected async ensureAgent(): Promise<BaseAgent> {
-    const reportFileName = this.readCliReportFileName();
-    this.createdReportFileNames.push(reportFileName);
+    const reportOptions = this.readCliReportAgentOptions();
+    this.createdReportFileNames.push(reportOptions?.reportFileName);
+    this.createdReportGroupIds.push(
+      reportOptions?.reportAttributes['data-group-id'],
+    );
     if (this.failEnsureAgent) {
       throw new Error('connect failed');
     }
@@ -119,6 +123,7 @@ describe('CLI report session', () => {
     await actTool!.handler({ prompt: 'click the button' });
 
     expect(actionTools.createdReportFileNames).toEqual([firstReportFileName]);
+    expect(actionTools.createdReportGroupIds).toEqual([firstReportFileName]);
     expect(actionTools.aiAction).toHaveBeenCalledWith('click the button', {
       deepThink: false,
     });
@@ -164,6 +169,9 @@ describe('CLI report session', () => {
     const session = JSON.parse(readFileSync(sessionPath, 'utf-8'));
     expect(session.reportFileName).toMatch(/^midscene-test-test-device-/);
     expect(failingTools.createdReportFileNames).toEqual([
+      session.reportFileName,
+    ]);
+    expect(failingTools.createdReportGroupIds).toEqual([
       session.reportFileName,
     ]);
   });

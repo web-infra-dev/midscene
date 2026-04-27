@@ -51,10 +51,10 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<
     }
 
     debug('Creating Harmony agent with deviceId:', deviceId || 'auto-detect');
-    const reportFileName = this.readCliReportFileName();
+    const reportOptions = this.readCliReportAgentOptions();
     const agent = await agentFromHdcDevice(deviceId, {
       autoDismissKeyboard: false,
-      ...(reportFileName ? { reportFileName } : {}),
+      ...(reportOptions ?? {}),
     });
     this.agent = agent;
     return agent;

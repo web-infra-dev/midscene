@@ -59,10 +59,10 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
     }
 
     debug('Creating Android agent with deviceId:', deviceId || 'auto-detect');
-    const reportFileName = this.readCliReportFileName();
+    const reportOptions = this.readCliReportAgentOptions();
     const agent = await agentFromAdbDevice(deviceId, {
       autoDismissKeyboard: false,
-      ...(reportFileName ? { reportFileName } : {}),
+      ...(reportOptions ?? {}),
     });
     this.agent = agent;
     return agent;

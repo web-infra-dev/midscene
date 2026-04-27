@@ -47,10 +47,10 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
   private async initBridgeModeAgent(
     url?: string,
   ): Promise<AgentOverChromeBridge> {
-    const reportFileName = this.readCliReportFileName();
+    const reportOptions = this.readCliReportAgentOptions();
     const agent = new AgentOverChromeBridge({
       closeConflictServer: true,
-      ...(reportFileName ? { reportFileName } : {}),
+      ...(reportOptions ?? {}),
     });
 
     if (!url) {

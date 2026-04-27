@@ -79,10 +79,10 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
     }
 
     debug('Creating iOS agent with WebDriverAgent options:', opts || {});
-    const reportFileName = this.readCliReportFileName();
+    const reportOptions = this.readCliReportAgentOptions();
     this.agent = await agentFromWebDriverAgent({
       autoDismissKeyboard: false,
-      ...(reportFileName ? { reportFileName } : {}),
+      ...(reportOptions ?? {}),
       ...(opts ?? {}),
     });
     this.lastOptsSignature = nextSignature;
