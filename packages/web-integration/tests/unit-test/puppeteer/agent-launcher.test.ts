@@ -71,6 +71,28 @@ describe('launchPuppeteerPage', () => {
     );
   });
 
+  it('preserves fractional deviceScaleFactor without truncating to integer', async () => {
+    await launchPuppeteerPage({
+      url: 'https://example.com',
+      deviceScaleFactor: 1.5,
+    });
+
+    expect(mockLaunch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        defaultViewport: expect.objectContaining({ deviceScaleFactor: 1.5 }),
+      }),
+    );
+  });
+
+  it('rejects deviceScaleFactor=0', async () => {
+    await expect(
+      launchPuppeteerPage({
+        url: 'https://example.com',
+        deviceScaleFactor: 0,
+      }),
+    ).rejects.toThrow(/deviceScaleFactor must be > 0/);
+  });
+
   it('passes yaml waitForNetworkIdle settings to the agent for later actions', async () => {
     const { agent } = await puppeteerAgentForTarget({
       url: 'https://example.com',

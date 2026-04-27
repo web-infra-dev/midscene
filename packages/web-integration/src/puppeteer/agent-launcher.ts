@@ -208,8 +208,8 @@ export async function launchPuppeteerPage(
       typeof target.deviceScaleFactor === 'number',
       'deviceScaleFactor must be a number',
     );
-    dpr = Number.parseInt(target.deviceScaleFactor as unknown as string, 10);
-    assert(dpr >= 0, `deviceScaleFactor must be >= 0, but got ${dpr}`);
+    dpr = target.deviceScaleFactor;
+    assert(dpr > 0, `deviceScaleFactor must be > 0, but got ${dpr}`);
   }
   const viewportConfig = {
     width,
