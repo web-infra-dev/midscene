@@ -319,6 +319,32 @@ describe('system prompts', () => {
     );
   });
 
+  it('planning should include dropdown scrolling guidance', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: undefined,
+      includeBbox: false,
+      includeSubGoals: false,
+    });
+
+    expect(prompt).toContain('Scrollable option lists and dropdowns');
+    expect(prompt).toContain(
+      'When choosing an item from a scrollable select, dropdown, listbox, menu, or similar option list',
+    );
+    expect(prompt).toContain(
+      'Once the list is open, interact with the list itself, not the page',
+    );
+    expect(prompt).toContain(
+      'If the list is open but the target option is not visible, try to find it by scrolling the open list/dropdown',
+    );
+    expect(prompt).toContain(
+      'prefer small incremental Scroll actions with an explicit distance',
+    );
+    expect(prompt).toContain(
+      'treat the current selection step as fulfilled and continue evaluating the remaining user instruction',
+    );
+  });
+
   it('planning - multi-turn example with includeSubGoals true should have sub-goal tags', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,

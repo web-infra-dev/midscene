@@ -393,6 +393,14 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 - "type 'hello' in the search box" → ${shouldIncludeSubGoals ? 'Goal accomplished' : 'Instruction fulfilled'} when 'hello' is typed. Do NOT press Enter or trigger search.
 - "select the first item" → ${shouldIncludeSubGoals ? 'Goal accomplished' : 'Instruction fulfilled'} when selected. Do NOT proceed to checkout.
 
+**Special case - Scrollable option lists and dropdowns:**
+- When choosing an item from a scrollable select, dropdown, listbox, menu, or similar option list, first open the control if it is closed. Once the list is open, interact with the list itself, not the page.
+- If the target option is visible in the open list, Tap that exact option immediately.
+- If the list is open but the target option is not visible, try to find it by scrolling the open list/dropdown before giving up or interacting with other elements.
+- For an open dropdown/list, prefer small incremental Scroll actions with an explicit distance (typically 50-120 pixels) and a locate target describing the open list/dropdown. Do NOT omit distance while searching within a list, because the default scroll distance can skip over relevant options and cause oscillation.
+- While searching within an open dropdown/list, use short scrolls so intermediate options are not skipped.
+- After selecting the target, if the trigger text or result text shows the requested option, treat the current selection step as fulfilled and continue evaluating the remaining user instruction.
+
 **Special case - Text hidden by a narrow input field:**
 - CRITICAL PRIORITY OVERRIDE - Input verification after an input action:
 - This rule overrides the general requirement to verify the exact target text from the screenshot.
