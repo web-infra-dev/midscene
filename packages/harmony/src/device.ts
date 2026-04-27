@@ -843,6 +843,8 @@ const createPlatformActions = (
         'Terminate (force-stop) a HarmonyOS app by bundle name or mapped app name',
       interfaceAlias: 'terminate',
       paramSchema: terminateParamSchema,
+      delayBeforeRunner: 0,
+      delayAfterRunner: 0,
       call: async (param) => {
         if (!param.uri || param.uri.trim() === '') {
           throw new Error('Terminate requires a non-empty uri parameter');
@@ -853,6 +855,8 @@ const createPlatformActions = (
     HarmonyBackButton: defineAction({
       name: 'HarmonyBackButton',
       description: 'Trigger the system "back" operation on HarmonyOS devices',
+      delayBeforeRunner: 0,
+      delayAfterRunner: 0,
       call: async () => {
         await device.back();
       },
@@ -860,6 +864,8 @@ const createPlatformActions = (
     HarmonyHomeButton: defineAction({
       name: 'HarmonyHomeButton',
       description: 'Trigger the system "home" operation on HarmonyOS devices',
+      delayBeforeRunner: 0,
+      delayAfterRunner: 0,
       call: async () => {
         await device.home();
       },

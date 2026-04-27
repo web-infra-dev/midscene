@@ -1,19 +1,35 @@
 import { existsSync } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { IPC_CHANNELS } from '@shared/electron-contract';
+import {
+  type DiscoverDevicesRequest,
+  IPC_CHANNELS,
+  type WriteReportFileRequest,
+} from '@shared/electron-contract';
 import { resolveExternalUrl } from '@shared/external-links';
 import {
   BrowserWindow,
   type NativeImage,
   app,
+  dialog,
   ipcMain,
   nativeImage,
   shell,
 } from 'electron';
 import type { TitleBarOverlay } from 'electron';
-import { runConnectivityTest } from './playground/connectivity-test';
-import { discoverAllDevices } from './playground/device-discovery';
-import { createMultiPlatformRuntimeService } from './playground/multi-platform-runtime';
+import { requestPlaygroundBootstrap } from './playground/bootstrap-request';
+import type { PlaygroundRuntimeService } from './playground/types';
+import { configureStudioShellEnvHydration } from './shell-env';
+import { registerWindowRevealHandlers } from './window-reveal';
+
+// macOS GUI launches (Finder, Dock) skip the user's login shell, so
+// `ANDROID_HOME`, `PATH` additions for adb/hdc/xcrun, etc. never reach
+// `process.env`. Configure the hydrator once here, but only run it lazily
+// from the device-specific paths that actually need those binaries.
+configureStudioShellEnvHydration({
+  isPackaged: app.isPackaged,
+  log: (message, error) => console.warn(`[studio:shell-env] ${message}`, error),
+});
 
 /**
  * Main process owns native shell concerns only.
@@ -23,7 +39,10 @@ import { createMultiPlatformRuntimeService } from './playground/multi-platform-r
 
 let mainWindow: BrowserWindow | null = null;
 let cachedAppIcon: NativeImage | null = null;
-const playgroundRuntime = createMultiPlatformRuntimeService();
+let playgroundRuntimePromise: Promise<PlaygroundRuntimeService> | null = null;
+let deviceDiscoveryServicePromise: Promise<
+  import('./playground/device-discovery').DeviceDiscoveryService
+> | null = null;
 
 // Expose the Chromium DevTools Protocol on a fixed port in dev so external
 // profilers (e.g. chrome-devtools-mcp at http://localhost:9224) can attach to
@@ -87,8 +106,63 @@ const getTitleBarOverlay = (): TitleBarOverlay => ({
   symbolColor: '#17212b',
 });
 
+const DEFAULT_REPORT_FILE_NAME = 'midscene_report.html';
+
+const ensureHtmlFileName = (value: string) =>
+  value.toLowerCase().endsWith('.html') ? value : `${value}.html`;
+
+const resolveDefaultReportSavePath = (defaultFileName?: string) => {
+  const safeFileName = path.basename(
+    ensureHtmlFileName(defaultFileName?.trim() || DEFAULT_REPORT_FILE_NAME),
+  );
+  return path.join(app.getPath('downloads'), safeFileName);
+};
+
+const getPlaygroundRuntime = async (): Promise<PlaygroundRuntimeService> => {
+  if (!playgroundRuntimePromise) {
+    playgroundRuntimePromise = import('./playground/multi-platform-runtime')
+      .then(({ createMultiPlatformRuntimeService }) =>
+        createMultiPlatformRuntimeService({
+          deviceDiscoveryService: getDeviceDiscoveryService(),
+        }),
+      )
+      .catch((error) => {
+        playgroundRuntimePromise = null;
+        throw error;
+      });
+  }
+
+  return playgroundRuntimePromise;
+};
+
+const closePlaygroundRuntime = async (): Promise<void> => {
+  if (!playgroundRuntimePromise) {
+    return;
+  }
+
+  const runtime = await playgroundRuntimePromise;
+  await runtime.close();
+};
+
+const getDeviceDiscoveryService = async () => {
+  if (!deviceDiscoveryServicePromise) {
+    deviceDiscoveryServicePromise = import('./playground/device-discovery')
+      .then(({ createDeviceDiscoveryService }) =>
+        createDeviceDiscoveryService(),
+      )
+      .catch((error) => {
+        deviceDiscoveryServicePromise = null;
+        throw error;
+      });
+  }
+
+  return deviceDiscoveryServicePromise;
+};
+
 const createMainWindow = () => {
   const rendererDevUrl = process.env.MIDSCENE_STUDIO_RENDERER_URL;
+  const rendererEntryPath = getRendererEntryPath();
+  const preloadEntryPath = getPreloadEntryPath();
   const appIcon = getAppIcon();
   const window = new BrowserWindow({
     width: 1440,
@@ -111,19 +185,27 @@ const createMainWindow = () => {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      preload: getPreloadEntryPath(),
+      preload: preloadEntryPath,
       sandbox: false,
     },
   });
 
-  window.once('ready-to-show', () => {
-    window.show();
+  registerWindowRevealHandlers({
+    isDestroyed: () => window.isDestroyed(),
+    onDidFailLoad: (listener) =>
+      window.webContents.once('did-fail-load', listener),
+    onDidFinishLoad: (listener) =>
+      window.webContents.once('did-finish-load', listener),
+    onReadyToShow: (listener) => window.once('ready-to-show', listener),
+    show: () => window.show(),
   });
 
   if (rendererDevUrl) {
     window.loadURL(rendererDevUrl);
   } else {
-    window.loadFile(getRendererEntryPath());
+    void window.loadFile(rendererEntryPath).catch((error) => {
+      console.error('Failed to load Midscene Studio renderer:', error);
+    });
   }
 
   mainWindow = window;
@@ -136,6 +218,30 @@ const registerIpcHandlers = () => {
   ipcMain.handle(IPC_CHANNELS.openExternalUrl, async (_event, url: string) => {
     await shell.openExternal(resolveExternalUrl(url));
   });
+  ipcMain.handle(
+    IPC_CHANNELS.chooseReportSavePath,
+    async (_event, defaultFileName?: string) => {
+      const dialogOptions = {
+        title: 'Save Midscene Report',
+        defaultPath: resolveDefaultReportSavePath(defaultFileName),
+        filters: [
+          {
+            name: 'HTML Report',
+            extensions: ['html'],
+          },
+        ],
+      };
+      const result = mainWindow
+        ? await dialog.showSaveDialog(mainWindow, dialogOptions)
+        : await dialog.showSaveDialog(dialogOptions);
+
+      if (result.canceled || !result.filePath) {
+        return null;
+      }
+
+      return ensureHtmlFileName(result.filePath);
+    },
+  );
   ipcMain.handle(IPC_CHANNELS.toggleMaximizeWindow, () => {
     if (!mainWindow) return;
     if (mainWindow.isMaximized()) {
@@ -147,22 +253,55 @@ const registerIpcHandlers = () => {
   ipcMain.handle(IPC_CHANNELS.closeWindow, () => {
     mainWindow?.close();
   });
+  ipcMain.handle(
+    IPC_CHANNELS.writeReportFile,
+    async (_event, request: WriteReportFileRequest) => {
+      const targetPath = request?.path?.trim();
+      if (!targetPath) {
+        throw new Error('writeReportFile: path is required');
+      }
+      if (typeof request.content !== 'string') {
+        throw new Error('writeReportFile: content must be a string');
+      }
+
+      await writeFile(ensureHtmlFileName(targetPath), request.content, 'utf-8');
+    },
+  );
   // Multi-platform playground — a single server for Android, iOS,
   // HarmonyOS, and Computer. Legacy channel names (getAndroidPlayground*)
   // are aliased to the same strings in IPC_CHANNELS, so the old
   // renderer code keeps working transparently.
-  ipcMain.handle(IPC_CHANNELS.getPlaygroundBootstrap, () =>
-    playgroundRuntime.getBootstrap(),
-  );
+  ipcMain.handle(IPC_CHANNELS.getPlaygroundBootstrap, async () => {
+    const runtime = await getPlaygroundRuntime();
+    return requestPlaygroundBootstrap(runtime, (error) => {
+      console.error(
+        'Failed to start Midscene Studio playground runtime:',
+        error,
+      );
+    });
+  });
   ipcMain.handle(IPC_CHANNELS.restartPlayground, async () =>
-    playgroundRuntime.restart(),
+    (await getPlaygroundRuntime()).restart(),
   );
-  ipcMain.handle(IPC_CHANNELS.discoverDevices, async () =>
-    discoverAllDevices(),
+  ipcMain.handle(
+    IPC_CHANNELS.discoverDevices,
+    async (_event, request?: DiscoverDevicesRequest) =>
+      (await getDeviceDiscoveryService()).getSnapshot({
+        forceRefresh: request?.forceRefresh,
+      }),
   );
-  ipcMain.handle(IPC_CHANNELS.runConnectivityTest, async (_event, request) =>
-    runConnectivityTest(request),
+  ipcMain.handle(
+    IPC_CHANNELS.setDiscoveryPollingPaused,
+    async (_event, paused: boolean) => {
+      (await getDeviceDiscoveryService()).setPollingPaused(Boolean(paused));
+    },
   );
+  ipcMain.handle(IPC_CHANNELS.runConnectivityTest, async (_event, request) => {
+    const { runConnectivityTest } = await import(
+      './playground/connectivity-test'
+    );
+    return runConnectivityTest(request);
+  });
 };
 
 app.whenReady().then(() => {
@@ -170,8 +309,24 @@ app.whenReady().then(() => {
     app.dock.setIcon(getAppIcon());
   }
 
+  void getDeviceDiscoveryService()
+    .then((service) =>
+      service.subscribe((devices) => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+          return;
+        }
+
+        mainWindow.webContents.send(
+          IPC_CHANNELS.discoveredDevicesUpdated,
+          devices,
+        );
+      }),
+    )
+    .catch((error) => {
+      console.error('Failed to initialize device discovery service:', error);
+    });
+
   registerIpcHandlers();
-  void playgroundRuntime.start();
   createMainWindow();
 
   app.on('activate', () => {
@@ -188,5 +343,12 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
-  void playgroundRuntime.close();
+  void closePlaygroundRuntime();
+  void getDeviceDiscoveryService()
+    .then((service) => {
+      service.close();
+    })
+    .catch(() => {
+      // ignore cleanup failures during shutdown
+    });
 });
