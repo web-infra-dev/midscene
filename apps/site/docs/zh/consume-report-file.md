@@ -81,6 +81,13 @@ const markdownResult = await reportFileToMarkdown({
 console.log(markdownResult.markdownFiles);
 ```
 
+`splitReportFile` 和 `reportFileToMarkdown` 的用途不同：
+
+- `splitReportFile` 会产出“原始对象”对应的 JSON 文件（每个 execution 一个 `*.execution.json`），内容是 `ReportActionDump` 的原始结构化数据，同时会导出截图文件。返回值中的 `executionJsonFiles` 和 `screenshotFiles` 都是生成后的文件路径列表。
+- `reportFileToMarkdown` 会把同一份报告转成更易读、便于给其他工具继续处理的 Markdown 文本，并导出 Markdown 里引用到的截图。返回值里的 `markdownFiles` 对应 Markdown 文件路径。
+
+如果你想保留最完整、可编程处理的数据，优先使用 `splitReportFile`；如果你想直接阅读、总结，或用于二次生成（例如生成视频脚本），优先使用 `reportFileToMarkdown`。
+
 ## 关于 JSON 和 Markdown 的内容字段
 
 解析得到的 JSON 和 Markdown 数据结构可能会随着 Midscene 版本演进而变化，请以实际转换结果为准。
