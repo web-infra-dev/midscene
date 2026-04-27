@@ -1,5 +1,6 @@
 import type { ActionParam, ActionReturn, DeviceAction } from '@midscene/core';
 import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
+import { MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { mergeAndNormalizeAppNameMapping } from '@midscene/shared/utils';
 import { defaultAppNameMapping } from './appNameMapping';
@@ -14,6 +15,7 @@ import {
 } from './device';
 
 const debugAgent = getDebug('ios:agent');
+type IOSDeviceClass = new (opts?: IOSDeviceOpt) => IOSDevice;
 
 export type IOSAgentOpt = AgentOpt & {
   /**
@@ -110,8 +112,38 @@ export async function agentFromWebDriverAgent(
 ) {
   debugAgent('Creating iOS agent with WebDriverAgent');
 
-  // Pass all device options to IOSDevice constructor, ensuring we pass an empty object if opts is undefined
-  const device = new IOSDevice(opts || {});
+  const overrideModule =
+    opts?.iosDeviceClassOverride?.trim() ||
+    process.env[MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE]?.trim();
+
+  let DeviceClass: IOSDeviceClass = IOSDevice;
+
+  if (overrideModule) {
+    try {
+      const overrideExports = await import(overrideModule);
+      const overrideDeviceClass = Object.prototype.hasOwnProperty.call(
+        overrideExports,
+        'IOSDevice',
+      )
+        ? overrideExports.IOSDevice
+        : overrideExports.default;
+
+      if (typeof overrideDeviceClass !== 'function') {
+        throw new Error(
+          `Module "${overrideModule}" does not export a valid iOS device class (expected "IOSDevice" or default export).`,
+        );
+      }
+
+      DeviceClass = overrideDeviceClass as IOSDeviceClass;
+    } catch (error) {
+      throw new Error(
+        `Failed to load iOS device class override from "${overrideModule}". Please make sure the package is installed and exports IOSDevice (or default) with Midscene-compatible methods. Original error: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  // Pass all device options to device constructor, ensuring we pass an empty object if opts is undefined
+  const device = new DeviceClass(opts || {});
 
   await device.connect();
 
