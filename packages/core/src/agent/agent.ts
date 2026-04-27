@@ -491,7 +491,11 @@ export class Agent<
     const exec = executionDump || this.lastExecutionDump;
     if (exec) {
       this.lastExecutionDump = exec;
-      this.reportGenerator.onExecutionUpdate(exec, this.getReportMeta());
+      this.reportGenerator.onExecutionUpdate(
+        exec,
+        this.getReportMeta(),
+        this.opts.reportAttributes,
+      );
     }
     this.reportFile = this.reportGenerator.getReportPath();
   }

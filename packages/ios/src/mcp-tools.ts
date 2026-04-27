@@ -40,6 +40,10 @@ type IOSInitArgs = Pick<
  * Extends BaseMidsceneTools to provide iOS WebDriverAgent connection tools
  */
 export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
+  protected getCliReportSessionName() {
+    return 'midscene-ios';
+  }
+
   protected readonly initArgSpec: InitArgSpec<IOSInitArgs> = {
     namespace: 'ios',
     shape: iosInitArgShape,
@@ -75,8 +79,10 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
     }
 
     debug('Creating iOS agent with WebDriverAgent options:', opts || {});
+    const reportOptions = this.readCliReportAgentOptions();
     this.agent = await agentFromWebDriverAgent({
       autoDismissKeyboard: false,
+      ...(reportOptions ?? {}),
       ...(opts ?? {}),
     });
     this.lastOptsSignature = nextSignature;
@@ -95,6 +101,21 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
         cli: this.getAgentInitArgCliMetadata(),
         handler: async (args: Record<string, unknown>) => {
           const initArgs = this.extractAgentInitParam(args);
+          const identity =
+            initArgs?.deviceId ??
+            (initArgs?.wdaHost || initArgs?.wdaPort
+              ? `wda-${initArgs.wdaHost ?? 'localhost'}-${initArgs.wdaPort ?? 'default'}`
+              : 'auto');
+          const reportSession = this.createNewCliReportSession(identity);
+          this.commitCliReportSession(reportSession);
+          if (this.agent) {
+            try {
+              await this.agent.destroy?.();
+            } catch (error) {
+              debug('Failed to destroy agent during connect:', error);
+            }
+            this.agent = undefined;
+          }
           const agent = await this.ensureAgent(initArgs);
           const screenshot = await agent.page.screenshotBase64();
 

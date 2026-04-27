@@ -136,6 +136,10 @@ const browserManager = {
  * Uses a persistent headless Chrome browser that survives across CLI calls.
  */
 export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
+  protected getCliReportSessionName() {
+    return 'midscene-web';
+  }
+
   protected createTemporaryDevice() {
     return new StaticPage({
       screenshot: ScreenshotItem.create('', Date.now()),
@@ -180,7 +184,10 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
       }
     }
 
-    this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage);
+    const reportOptions = this.readCliReportAgentOptions();
+    this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage, {
+      ...(reportOptions ?? {}),
+    });
     return this.agent;
   }
 
@@ -213,6 +220,10 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
             this.agent = undefined;
           }
 
+          const reportSession = this.createNewCliReportSession(
+            url ?? 'current-page',
+          );
+          this.commitCliReportSession(reportSession);
           this.agent = await this.ensureAgent(url);
 
           const screenshot = await this.agent.page?.screenshotBase64();

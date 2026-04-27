@@ -39,6 +39,9 @@ function getTargetId(page: Page): string | undefined {
  * when Chrome's settings-based remote debugging is used.
  */
 export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
+  protected getCliReportSessionName() {
+    return 'midscene-web';
+  }
   private cdpEndpoint: string;
   private activeBrowser: Browser | null = null;
 
@@ -159,7 +162,10 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
       );
     }
 
-    this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage);
+    const reportOptions = this.readCliReportAgentOptions();
+    this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage, {
+      ...(reportOptions ?? {}),
+    });
     return this.agent;
   }
 
@@ -197,6 +203,10 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
             this.agent = undefined;
           }
 
+          const reportSession = this.createNewCliReportSession(
+            url ?? 'current-page',
+          );
+          this.commitCliReportSession(reportSession);
           this.agent = await this.ensureAgent(url);
 
           const screenshot = await this.agent.page?.screenshotBase64();

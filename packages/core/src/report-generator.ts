@@ -253,9 +253,6 @@ export class ReportGenerator implements IReportGenerator {
       if (value === undefined || value === null) {
         continue;
       }
-      if (key === 'data-group-id') {
-        continue;
-      }
       this.reportAttributes[key] = String(value);
     }
   }

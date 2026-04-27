@@ -36,6 +36,34 @@ describe('Agent dump update screenshot serialization', () => {
     vi.clearAllMocks();
   });
 
+  it('passes report attributes to report generator updates', async () => {
+    const reportAttributes = { 'data-group-id': 'cli-session-report' };
+    const agent = new Agent(createMockInterface(), {
+      modelConfig,
+      generateReport: false,
+      reportAttributes,
+    });
+
+    const reportGeneratorStub = {
+      onExecutionUpdate: vi.fn(),
+      flush: vi.fn(async () => {}),
+      finalize: vi.fn(async () => undefined),
+      getReportPath: vi.fn(() => undefined),
+    };
+
+    (agent as any).reportGenerator = reportGeneratorStub;
+
+    await agent.recordToReport('snapshot', { content: 'check attributes' });
+
+    expect(reportGeneratorStub.onExecutionUpdate).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      reportAttributes,
+    );
+
+    await agent.destroy();
+  });
+
   it('serializes screenshots as references in dump update callbacks after report persistence', async () => {
     const agent = new Agent(createMockInterface(), {
       modelConfig,

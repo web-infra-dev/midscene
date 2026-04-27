@@ -31,6 +31,10 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
   ComputerAgent,
   ComputerInitArgs
 > {
+  protected getCliReportSessionName() {
+    return 'midscene-computer';
+  }
+
   protected readonly initArgSpec: InitArgSpec<ComputerInitArgs> = {
     namespace: 'computer',
     shape: computerInitArgShape,
@@ -65,9 +69,11 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
     }
 
     debug('Creating Computer agent with displayId:', displayId || 'primary');
+    const reportOptions = this.readCliReportAgentOptions();
     const agentOpts = {
       ...(displayId ? { displayId } : {}),
       ...(headless !== undefined ? { headless } : {}),
+      ...(reportOptions ?? {}),
     };
     const agent = await agentFromComputer(
       Object.keys(agentOpts).length > 0 ? agentOpts : undefined,
@@ -89,6 +95,18 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
         cli: this.getAgentInitArgCliMetadata(),
         handler: async (args: Record<string, unknown>) => {
           const initArgs = this.extractAgentInitParam(args);
+          const reportSession = this.createNewCliReportSession(
+            initArgs?.displayId ?? 'primary',
+          );
+          this.commitCliReportSession(reportSession);
+          if (this.agent) {
+            try {
+              await this.agent.destroy?.();
+            } catch (error) {
+              debug('Failed to destroy agent during connect:', error);
+            }
+            this.agent = undefined;
+          }
           const agent = await this.ensureAgent(initArgs);
           const screenshot = await agent.interface.screenshotBase64();
 
