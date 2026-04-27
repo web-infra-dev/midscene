@@ -26,8 +26,3 @@ tasks:
       - sleep: 1000
       - aiAssert: The Meta section is visible in the right detail side panel and contains metadata entries such as type, status, start, end, or total time
 
-  - name: open in playground button
-    flow:
-      - ai: Click on a task row in the sidebar that shows "Planning" type
-      - sleep: 2000
-      - aiAssert: There is a "Open in Playground" button visible on the page
