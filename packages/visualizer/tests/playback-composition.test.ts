@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { resolveExportCamera } from '../src/component/player/scenes/export-branded-video';
 import { calculateFrameMap } from '../src/component/player/scenes/frame-calculator';
 import { getPlaybackFrameState } from '../src/component/player/scenes/playback-frame';
 import { getPlaybackViewport } from '../src/component/player/scenes/playback-layout';
@@ -65,5 +66,27 @@ describe('playback composition sizing', () => {
     expect(viewport.contentWidth).toBeCloseTo(303.75, 5);
     expect(viewport.offsetX).toBeCloseTo(328.125, 5);
     expect(viewport.offsetY).toBe(0);
+  });
+
+  it('disables camera zoom for export when focus on cursor is off', () => {
+    const prevCamera = { left: 120, top: 80, width: 640 };
+    const camera = { left: 320, top: 200, width: 360 };
+    const progress = 0.5;
+
+    expect(
+      resolveExportCamera(prevCamera, camera, 1280, progress, false),
+    ).toEqual({
+      camLeft: 0,
+      camTop: 0,
+      camWidth: 1280,
+    });
+
+    expect(
+      resolveExportCamera(prevCamera, camera, 1280, progress, true),
+    ).toEqual({
+      camLeft: 220,
+      camTop: 140,
+      camWidth: 500,
+    });
   });
 });

@@ -20,6 +20,27 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
+export function resolveExportCamera(
+  prevCamera: { left: number; top: number; width: number },
+  camera: { left: number; top: number; width: number },
+  imageWidth: number,
+  progress: number,
+  autoZoom: boolean,
+) {
+  if (!autoZoom) {
+    return {
+      camLeft: 0,
+      camTop: 0,
+      camWidth: imageWidth,
+    };
+  }
+  return {
+    camLeft: lerp(prevCamera.left, camera.left, progress),
+    camTop: lerp(prevCamera.top, camera.top, progress),
+    camWidth: lerp(prevCamera.width, camera.width, progress),
+  };
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -123,6 +144,7 @@ function drawSteps(
   imgCache: Map<string, HTMLImageElement>,
   cursorImg: HTMLImageElement | null,
   spinnerImg: HTMLImageElement | null,
+  autoZoom: boolean,
 ) {
   const { scriptFrames, imageWidth: baseW, imageHeight: baseH, fps } = frameMap;
   const st = deriveFrameState(scriptFrames, stepsFrame, baseW, baseH, fps);
@@ -153,9 +175,11 @@ function drawSteps(
       : Math.min((rawProgress - POINTER_PHASE) / (1 - POINTER_PHASE), 1)
     : rawProgress;
 
-  const camL = lerp(prevCamera.left, camera.left, cT);
-  const camT2 = lerp(prevCamera.top, camera.top, cT);
-  const camW = lerp(prevCamera.width, camera.width, cT);
+  const {
+    camLeft: camL,
+    camTop: camT2,
+    camWidth: camW,
+  } = resolveExportCamera(prevCamera, camera, imgW, cT, autoZoom);
   const ptrX = lerp(prevCamera.pointerLeft, camera.pointerLeft, pT);
   const ptrY = lerp(prevCamera.pointerTop, camera.pointerTop, pT);
 
@@ -222,9 +246,13 @@ function drawSteps(
 
 export async function exportBrandedVideo(
   frameMap: FrameMap,
+  options?: {
+    autoZoom?: boolean;
+  },
   onProgress?: (pct: number) => void,
 ): Promise<void> {
   const { totalDurationInFrames: total, fps } = frameMap;
+  const autoZoom = options?.autoZoom ?? true;
 
   // 1. pre-load all images
   const imgSrcs = new Set<string>();
@@ -302,7 +330,15 @@ export async function exportBrandedVideo(
       if (targetFrame > lastFrame) {
         lastFrame = targetFrame;
         ctx.clearRect(0, 0, W, H);
-        drawSteps(ctx, targetFrame, frameMap, imgCache, cursorImg, spinnerImg);
+        drawSteps(
+          ctx,
+          targetFrame,
+          frameMap,
+          imgCache,
+          cursorImg,
+          spinnerImg,
+          autoZoom,
+        );
         onProgress?.((targetFrame + 1) / total);
       }
 
