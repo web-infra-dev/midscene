@@ -34,7 +34,6 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
   protected getCliReportSessionName() {
     return 'midscene-computer';
   }
-  private pendingReportFileName?: string;
 
   protected readonly initArgSpec: InitArgSpec<ComputerInitArgs> = {
     namespace: 'computer',
@@ -70,8 +69,7 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
     }
 
     debug('Creating Computer agent with displayId:', displayId || 'primary');
-    const reportFileName =
-      this.pendingReportFileName ?? this.readCliReportFileName();
+    const reportFileName = this.readCliReportFileName();
     const agentOpts = {
       ...(displayId ? { displayId } : {}),
       ...(headless !== undefined ? { headless } : {}),
@@ -97,8 +95,10 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
         cli: this.getAgentInitArgCliMetadata(),
         handler: async (args: Record<string, unknown>) => {
           const initArgs = this.extractAgentInitParam(args);
-          const reportSession = this.createNewCliReportSession();
-          this.pendingReportFileName = reportSession?.reportFileName;
+          const reportSession = this.createNewCliReportSession(
+            initArgs?.displayId ?? 'primary',
+          );
+          this.commitCliReportSession(reportSession);
           if (this.agent) {
             try {
               await this.agent.destroy?.();
@@ -107,13 +107,7 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
             }
             this.agent = undefined;
           }
-          let agent: ComputerAgent;
-          try {
-            agent = await this.ensureAgent(initArgs);
-          } finally {
-            this.pendingReportFileName = undefined;
-          }
-          this.commitCliReportSession(reportSession);
+          const agent = await this.ensureAgent(initArgs);
           const screenshot = await agent.interface.screenshotBase64();
 
           return {

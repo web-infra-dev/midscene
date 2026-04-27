@@ -11,7 +11,6 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
   protected getCliReportSessionName() {
     return 'midscene-web';
   }
-  private pendingReportFileName?: string;
 
   protected createTemporaryDevice() {
     // Use require to avoid type incompatibility with DeviceAction vs ActionSpaceItem
@@ -48,8 +47,7 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
   private async initBridgeModeAgent(
     url?: string,
   ): Promise<AgentOverChromeBridge> {
-    const reportFileName =
-      this.pendingReportFileName ?? this.readCliReportFileName();
+    const reportFileName = this.readCliReportFileName();
     const agent = new AgentOverChromeBridge({
       closeConflictServer: true,
       ...(reportFileName ? { reportFileName } : {}),
@@ -87,14 +85,11 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
             } catch {}
             this.agent = undefined;
           }
-          const reportSession = this.createNewCliReportSession();
-          this.pendingReportFileName = reportSession?.reportFileName;
-          try {
-            this.agent = await this.initBridgeModeAgent(url);
-          } finally {
-            this.pendingReportFileName = undefined;
-          }
+          const reportSession = this.createNewCliReportSession(
+            url ?? 'current-tab',
+          );
           this.commitCliReportSession(reportSession);
+          this.agent = await this.initBridgeModeAgent(url);
 
           const screenshot = await this.agent.page?.screenshotBase64();
           const label = url ?? 'current tab';

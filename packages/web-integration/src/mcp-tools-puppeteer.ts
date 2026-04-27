@@ -139,7 +139,6 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
   protected getCliReportSessionName() {
     return 'midscene-web';
   }
-  private pendingReportFileName?: string;
 
   protected createTemporaryDevice() {
     return new StaticPage({
@@ -185,8 +184,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
       }
     }
 
-    const reportFileName =
-      this.pendingReportFileName ?? this.readCliReportFileName();
+    const reportFileName = this.readCliReportFileName();
     this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage, {
       ...(reportFileName ? { reportFileName } : {}),
     });
@@ -222,14 +220,11 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
             this.agent = undefined;
           }
 
-          const reportSession = this.createNewCliReportSession();
-          this.pendingReportFileName = reportSession?.reportFileName;
-          try {
-            this.agent = await this.ensureAgent(url);
-          } finally {
-            this.pendingReportFileName = undefined;
-          }
+          const reportSession = this.createNewCliReportSession(
+            url ?? 'current-page',
+          );
           this.commitCliReportSession(reportSession);
+          this.agent = await this.ensureAgent(url);
 
           const screenshot = await this.agent.page?.screenshotBase64();
           const label = url ?? 'current page';

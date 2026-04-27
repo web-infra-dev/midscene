@@ -20,10 +20,13 @@ class FakeDevice implements BaseDevice {
 }
 
 class FakeCliTools extends BaseMidsceneTools<BaseAgent> {
+  constructor(private failEnsureAgent = false) {
+    super();
+  }
+
   protected getCliReportSessionName() {
     return 'midscene-test';
   }
-  private pendingReportFileName?: string;
   public readonly createdReportFileNames: Array<string | undefined> = [];
   public readonly aiAction = vi.fn().mockResolvedValue(undefined);
 
@@ -32,9 +35,11 @@ class FakeCliTools extends BaseMidsceneTools<BaseAgent> {
   }
 
   protected async ensureAgent(): Promise<BaseAgent> {
-    const reportFileName =
-      this.pendingReportFileName ?? this.readCliReportFileName();
+    const reportFileName = this.readCliReportFileName();
     this.createdReportFileNames.push(reportFileName);
+    if (this.failEnsureAgent) {
+      throw new Error('connect failed');
+    }
     return {
       getActionSpace: vi.fn().mockResolvedValue([]),
       aiAction: this.aiAction,
@@ -53,14 +58,9 @@ class FakeCliTools extends BaseMidsceneTools<BaseAgent> {
           url: z.string().optional(),
         },
         handler: async () => {
-          const reportSession = this.createNewCliReportSession();
-          this.pendingReportFileName = reportSession?.reportFileName;
-          try {
-            await this.ensureAgent();
-          } finally {
-            this.pendingReportFileName = undefined;
-          }
+          const reportSession = this.createNewCliReportSession('test-device');
           this.commitCliReportSession(reportSession);
+          await this.ensureAgent();
           return {
             content: [{ type: 'text' as const, text: 'connected' }],
           };
@@ -94,7 +94,7 @@ describe('CLI report session', () => {
     await connectTool!.handler({});
 
     const firstReportFileName = connectTools.createdReportFileNames[0];
-    expect(firstReportFileName).toMatch(/^midscene-test-/);
+    expect(firstReportFileName).toMatch(/^midscene-test-test-device-/);
 
     const sessionPath = join(
       tempDir,
@@ -144,5 +144,27 @@ describe('CLI report session', () => {
     expect(secondTools.createdReportFileNames[0]).not.toBe(
       firstTools.createdReportFileNames[0],
     );
+  });
+
+  it('refreshes the report file even when connect fails to create an agent', async () => {
+    const failingTools = new FakeCliTools(true);
+    await failingTools.initTools();
+    const connectTool = failingTools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'test_connect');
+
+    await expect(connectTool!.handler({})).rejects.toThrow('connect failed');
+
+    const sessionPath = join(
+      tempDir,
+      'midscene_run',
+      'cli-report-session',
+      'midscene-test.json',
+    );
+    const session = JSON.parse(readFileSync(sessionPath, 'utf-8'));
+    expect(session.reportFileName).toMatch(/^midscene-test-test-device-/);
+    expect(failingTools.createdReportFileNames).toEqual([
+      session.reportFileName,
+    ]);
   });
 });

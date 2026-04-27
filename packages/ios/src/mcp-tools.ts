@@ -43,7 +43,6 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
   protected getCliReportSessionName() {
     return 'midscene-ios';
   }
-  private pendingReportFileName?: string;
 
   protected readonly initArgSpec: InitArgSpec<IOSInitArgs> = {
     namespace: 'ios',
@@ -80,8 +79,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
     }
 
     debug('Creating iOS agent with WebDriverAgent options:', opts || {});
-    const reportFileName =
-      this.pendingReportFileName ?? this.readCliReportFileName();
+    const reportFileName = this.readCliReportFileName();
     this.agent = await agentFromWebDriverAgent({
       autoDismissKeyboard: false,
       ...(reportFileName ? { reportFileName } : {}),
@@ -103,8 +101,13 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
         cli: this.getAgentInitArgCliMetadata(),
         handler: async (args: Record<string, unknown>) => {
           const initArgs = this.extractAgentInitParam(args);
-          const reportSession = this.createNewCliReportSession();
-          this.pendingReportFileName = reportSession?.reportFileName;
+          const identity =
+            initArgs?.deviceId ??
+            (initArgs?.wdaHost || initArgs?.wdaPort
+              ? `wda-${initArgs.wdaHost ?? 'localhost'}-${initArgs.wdaPort ?? 'default'}`
+              : 'auto');
+          const reportSession = this.createNewCliReportSession(identity);
+          this.commitCliReportSession(reportSession);
           if (this.agent) {
             try {
               await this.agent.destroy?.();
@@ -113,13 +116,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
             }
             this.agent = undefined;
           }
-          let agent: IOSAgent;
-          try {
-            agent = await this.ensureAgent(initArgs);
-          } finally {
-            this.pendingReportFileName = undefined;
-          }
-          this.commitCliReportSession(reportSession);
+          const agent = await this.ensureAgent(initArgs);
           const screenshot = await agent.page.screenshotBase64();
 
           return {

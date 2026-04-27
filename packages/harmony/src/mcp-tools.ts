@@ -17,7 +17,6 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<
   protected getCliReportSessionName() {
     return 'midscene-harmony';
   }
-  private pendingReportFileName?: string;
 
   protected readonly initArgSpec: InitArgSpec<string> = {
     namespace: 'harmony',
@@ -52,8 +51,7 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<
     }
 
     debug('Creating Harmony agent with deviceId:', deviceId || 'auto-detect');
-    const reportFileName =
-      this.pendingReportFileName ?? this.readCliReportFileName();
+    const reportFileName = this.readCliReportFileName();
     const agent = await agentFromHdcDevice(deviceId, {
       autoDismissKeyboard: false,
       ...(reportFileName ? { reportFileName } : {}),
@@ -72,8 +70,10 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<
         cli: this.getAgentInitArgCliMetadata(),
         handler: async (args: Record<string, unknown>) => {
           const deviceId = this.extractAgentInitParam(args);
-          const reportSession = this.createNewCliReportSession();
-          this.pendingReportFileName = reportSession?.reportFileName;
+          const reportSession = this.createNewCliReportSession(
+            deviceId ?? 'auto',
+          );
+          this.commitCliReportSession(reportSession);
           if (this.agent) {
             try {
               await this.agent.destroy?.();
@@ -82,13 +82,7 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<
             }
             this.agent = undefined;
           }
-          let agent: HarmonyAgent;
-          try {
-            agent = await this.ensureAgent(deviceId);
-          } finally {
-            this.pendingReportFileName = undefined;
-          }
-          this.commitCliReportSession(reportSession);
+          const agent = await this.ensureAgent(deviceId);
           const screenshot = await agent.page.screenshotBase64();
 
           return {

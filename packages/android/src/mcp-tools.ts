@@ -21,7 +21,6 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
   protected getCliReportSessionName() {
     return 'midscene-android';
   }
-  private pendingReportFileName?: string;
 
   protected readonly initArgSpec: InitArgSpec<string> = {
     namespace: 'android',
@@ -60,8 +59,7 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
     }
 
     debug('Creating Android agent with deviceId:', deviceId || 'auto-detect');
-    const reportFileName =
-      this.pendingReportFileName ?? this.readCliReportFileName();
+    const reportFileName = this.readCliReportFileName();
     const agent = await agentFromAdbDevice(deviceId, {
       autoDismissKeyboard: false,
       ...(reportFileName ? { reportFileName } : {}),
@@ -83,8 +81,10 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
         cli: this.getAgentInitArgCliMetadata(),
         handler: async (args: Record<string, unknown>) => {
           const deviceId = this.extractAgentInitParam(args);
-          const reportSession = this.createNewCliReportSession();
-          this.pendingReportFileName = reportSession?.reportFileName;
+          const reportSession = this.createNewCliReportSession(
+            deviceId ?? 'auto',
+          );
+          this.commitCliReportSession(reportSession);
           if (this.agent) {
             try {
               await this.agent.destroy?.();
@@ -93,13 +93,7 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
             }
             this.agent = undefined;
           }
-          let agent: AndroidAgent;
-          try {
-            agent = await this.ensureAgent(deviceId);
-          } finally {
-            this.pendingReportFileName = undefined;
-          }
-          this.commitCliReportSession(reportSession);
+          const agent = await this.ensureAgent(deviceId);
           const screenshot = await agent.page.screenshotBase64();
 
           return {

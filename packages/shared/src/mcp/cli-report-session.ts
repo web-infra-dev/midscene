@@ -5,6 +5,7 @@ import { getMidsceneRunBaseDir, getMidsceneRunSubDir } from '../common';
 export interface CliReportSession {
   version: 1;
   sessionName: string;
+  targetIdentity?: string;
   reportFileName: string;
   reportPath: string;
   createdAt: number;
@@ -14,6 +15,11 @@ const sessionDirName = 'cli-report-session';
 
 function sanitizeSessionName(sessionName: string): string {
   return sessionName.replace(/[^a-zA-Z0-9._-]/g, '_') || 'default';
+}
+
+function sanitizeFileSegment(segment: string): string {
+  const sanitized = segment.replace(/[^a-zA-Z0-9._-]/g, '_') || 'unknown';
+  return sanitized.slice(0, 80);
 }
 
 function ensureHtmlFileName(reportFileName: string): string {
@@ -58,8 +64,12 @@ function getCliReportSessionPath(sessionName: string): string {
 
 export function generateCliReportSession(
   sessionName: string,
+  targetIdentity?: string,
 ): CliReportSession {
-  const reportFileName = `${sanitizeSessionName(sessionName)}-${formatDateForFileName(new Date())}-${randomId()}`;
+  const identitySegment = targetIdentity
+    ? `-${sanitizeFileSegment(targetIdentity)}`
+    : '';
+  const reportFileName = `${sanitizeSessionName(sessionName)}${identitySegment}-${formatDateForFileName(new Date())}-${randomId()}`;
   const reportPath = join(
     getMidsceneRunSubDir('report'),
     ensureHtmlFileName(reportFileName),
@@ -67,6 +77,7 @@ export function generateCliReportSession(
   const session: CliReportSession = {
     version: 1,
     sessionName,
+    ...(targetIdentity ? { targetIdentity } : {}),
     reportFileName,
     reportPath,
     createdAt: Date.now(),
@@ -82,8 +93,11 @@ export function writeCliReportSession(session: CliReportSession): void {
   );
 }
 
-export function createCliReportSession(sessionName: string): CliReportSession {
-  const session = generateCliReportSession(sessionName);
+export function createCliReportSession(
+  sessionName: string,
+  targetIdentity?: string,
+): CliReportSession {
+  const session = generateCliReportSession(sessionName, targetIdentity);
   writeCliReportSession(session);
   return session;
 }

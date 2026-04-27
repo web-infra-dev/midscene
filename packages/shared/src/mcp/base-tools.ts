@@ -200,12 +200,14 @@ export abstract class BaseMidsceneTools<
     return undefined;
   }
 
-  protected createNewCliReportSession(): CliReportSession | undefined {
+  protected createNewCliReportSession(
+    targetIdentity?: string,
+  ): CliReportSession | undefined {
     const sessionName = this.getCliReportSessionName();
     if (!sessionName) {
       return undefined;
     }
-    return generateCliReportSession(sessionName);
+    return generateCliReportSession(sessionName, targetIdentity);
   }
 
   protected commitCliReportSession(session?: CliReportSession): void {
