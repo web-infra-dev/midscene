@@ -486,10 +486,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           // User YAML: aiTap: 'search input box'
           locatePrompt = aiTap;
         } else if (typeof locateObj === 'object' && locateObj?.prompt) {
-          // buildYamlFlowFromPlans: { aiTap: '', locate: { prompt, deepLocate, cacheable } }
-          const { prompt: lp, ...locateOpts } = locateObj;
-          locatePrompt = lp;
-          opts = { ...locateOpts, ...tapOptions };
+          // buildYamlFlowFromPlans: { aiTap: { locate: { prompt, images, ... } } }    (locate nested in aiTap)
+          locatePrompt = locateObj;
         } else {
           // User YAML: aiTap: { prompt: '...' } or aiTap: null + prompt: '...'
           locatePrompt = aiTap?.prompt || prompt || locateObj;
