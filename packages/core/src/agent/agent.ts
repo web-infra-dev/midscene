@@ -362,6 +362,7 @@ export class Agent<
       persistExecutionDump: this.opts.persistExecutionDump,
       outputFormat: this.opts.outputFormat,
       autoPrintReportMsg: this.opts.autoPrintReportMsg,
+      appendToExistingReport: this.opts.appendToExistingReport,
     });
   }
 

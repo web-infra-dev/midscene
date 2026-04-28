@@ -29,6 +29,7 @@ class FakeCliTools extends BaseMidsceneTools<BaseAgent> {
   }
   public readonly createdReportFileNames: Array<string | undefined> = [];
   public readonly createdReportGroupIds: Array<string | undefined> = [];
+  public readonly createdAppendFlags: Array<boolean | undefined> = [];
   public readonly aiAction = vi.fn().mockResolvedValue(undefined);
 
   protected createTemporaryDevice(): BaseDevice {
@@ -41,6 +42,7 @@ class FakeCliTools extends BaseMidsceneTools<BaseAgent> {
     this.createdReportGroupIds.push(
       reportOptions?.reportAttributes['data-group-id'],
     );
+    this.createdAppendFlags.push(reportOptions?.appendToExistingReport);
     if (this.failEnsureAgent) {
       throw new Error('connect failed');
     }
@@ -124,6 +126,7 @@ describe('CLI report session', () => {
 
     expect(actionTools.createdReportFileNames).toEqual([firstReportFileName]);
     expect(actionTools.createdReportGroupIds).toEqual([firstReportFileName]);
+    expect(actionTools.createdAppendFlags).toEqual([true]);
     expect(actionTools.aiAction).toHaveBeenCalledWith('click the button', {
       deepThink: false,
     });
@@ -174,5 +177,6 @@ describe('CLI report session', () => {
     expect(failingTools.createdReportGroupIds).toEqual([
       session.reportFileName,
     ]);
+    expect(failingTools.createdAppendFlags).toEqual([true]);
   });
 });

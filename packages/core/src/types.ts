@@ -1089,6 +1089,11 @@ export interface AgentOpt {
   aiActionContext?: string;
   /* custom report file name */
   reportFileName?: string;
+  /**
+   * Reuse and append to an existing report file with the same reportFileName.
+   * Default false (overwrite behavior).
+   */
+  appendToExistingReport?: boolean;
   reportAttributes?: ReportAttributes;
   modelConfig?: TModelConfig;
   cache?: Cache;

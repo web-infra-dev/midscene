@@ -199,7 +199,7 @@ describe('ReportGenerator — append-only model', () => {
       expect(countGroupedDumpScripts(html)).toBe(3);
     });
 
-    it('should append to existing report file when a new generator uses the same path', async () => {
+    it('should overwrite existing report file by default when a new generator uses the same path', async () => {
       const reportPath = join(tmpDir, 'append-existing-report.html');
       const firstGenerator = new ReportGenerator({
         reportPath,
@@ -235,9 +235,9 @@ describe('ReportGenerator — append-only model', () => {
       await secondGenerator.finalize();
 
       const html = readFileSync(reportPath, 'utf-8');
-      // each finalize() re-writes last execution once, so total dump tags = 4
-      expect(countGroupedDumpScripts(html)).toBe(4);
-      expect(html).toContain(firstScreenshot.id);
+      // second finalize() re-writes last execution once, so total dump tags = 2
+      expect(countGroupedDumpScripts(html)).toBe(2);
+      expect(html).not.toContain(firstScreenshot.id);
       expect(html).toContain(secondScreenshot.id);
     });
 
@@ -324,13 +324,14 @@ describe('ReportGenerator — append-only model', () => {
       );
     });
 
-    it('should continue execution dump index when appending with the same report path', async () => {
+    it('should continue execution dump index when appending with reuseExistingReport enabled', async () => {
       const reportPath = join(tmpDir, 'append-existing-report-with-json.html');
       const firstGenerator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
         persistExecutionDump: true,
         autoPrint: false,
+        reuseExistingReport: true,
       });
       firstGenerator.onExecutionUpdate(
         createExecution(
@@ -347,6 +348,7 @@ describe('ReportGenerator — append-only model', () => {
         screenshotMode: 'inline',
         persistExecutionDump: true,
         autoPrint: false,
+        reuseExistingReport: true,
       });
       secondGenerator.onExecutionUpdate(
         createExecution(
