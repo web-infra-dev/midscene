@@ -44,7 +44,7 @@ Notes:
 | `MIDSCENE_MODEL_MAX_TOKENS` | `max_tokens` for responses, default 2048 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | Number of retries when AI call fails, default 1 (i.e., retry once after failure) |
 | `MIDSCENE_MODEL_RETRY_INTERVAL` | Interval between retries in milliseconds, default 2000 |
-| `MIDSCENE_MODEL_REASONING_ENABLED` | Enable or disable model reasoning/thinking. Set to `"true"` or `"false"`. Passed through as `enable_thinking` for qwen, `thinking.type` for doubao/glm-v. Unsupported families ignore this setting |
+| `MIDSCENE_MODEL_REASONING_ENABLED` | Enable or disable model reasoning/thinking. Set to `"true"` or `"false"` (also accepts `"1"` / `"0"`). This switch only controls reasoning mode and never changes model routing or model selection. Internally Midscene normalizes it to boolean, then maps it by `MIDSCENE_MODEL_FAMILY`: qwen → `enable_thinking: true/false`; doubao/glm-v → `thinking.type: "enabled"/"disabled"`. Unsupported families ignore this setting |
 | `MIDSCENE_MODEL_REASONING_EFFORT` | Reasoning effort level string. Passed through as `reasoning_effort` for doubao, `reasoning.effort` for gpt-5. Common values: `low`, `medium`, `high` |
 | `MIDSCENE_MODEL_REASONING_BUDGET` | Thinking token budget (number). Passed through as `thinking_budget` for qwen. Unsupported families ignore this setting |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS proxy, e.g., `http://127.0.0.1:8080` or `https://proxy.example.com:8080`. Takes precedence over `MIDSCENE_MODEL_SOCKS_PROXY` |
@@ -55,6 +55,22 @@ Notes:
 | `MIDSCENE_PREFERRED_LANGUAGE` | Optional. Preferred response language. Defaults to `Chinese` if timezone is GMT+8, otherwise `English` |
 
 > Note: Control replanning behavior with the agent option `replanningCycleLimit` (defaults to 20, or 40 for `vlm-ui-tars`), not with environment variables.
+
+### How `MIDSCENE_MODEL_REASONING_ENABLED` works internally
+
+To avoid confusion, this is the exact flow:
+
+1. **Parsing layer**: Midscene reads `MIDSCENE_MODEL_REASONING_ENABLED` and normalizes `"true"`/`"1"` to `true`, `"false"`/`"0"` to `false`.
+2. **Request-override layer**: If `aiAct(..., { deepThink: true/false })` is provided, that value overrides the env var for this request.
+3. **Provider mapping layer**: Midscene converts the unified boolean to provider-specific request fields based on `MIDSCENE_MODEL_FAMILY`.
+
+| `MIDSCENE_MODEL_FAMILY` | Sent request field when reasoning is enabled | Sent request field when reasoning is disabled |
+|---|---|---|
+| `qwen3-vl` / `qwen3.5` / `qwen3.6` | `enable_thinking: true` | `enable_thinking: false` |
+| `doubao-seed` / `doubao-vision` | `thinking: { type: "enabled" }` | `thinking: { type: "disabled" }` |
+| `glm-v` | `thinking: { type: "enabled" }` | `thinking: { type: "disabled" }` |
+
+So if you see `thinking.type` in Doubao requests, that is **the correct provider-level mapping** of the same `MIDSCENE_MODEL_REASONING_ENABLED` boolean switch, not an incorrect remapping.
 
 ### Configure a dedicated Insight model
 
