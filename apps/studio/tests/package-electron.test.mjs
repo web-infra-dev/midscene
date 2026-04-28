@@ -265,6 +265,26 @@ describe('package-electron helpers', () => {
       'Libraries',
       'libffmpeg.dylib',
     );
+    const crashpadHandlerPath = path.join(
+      appBundlePath,
+      'Contents',
+      'Frameworks',
+      'Electron Framework.framework',
+      'Versions',
+      'A',
+      'Helpers',
+      'chrome_crashpad_handler',
+    );
+    const shipItPath = path.join(
+      appBundlePath,
+      'Contents',
+      'Frameworks',
+      'Squirrel.framework',
+      'Versions',
+      'A',
+      'Resources',
+      'ShipIt',
+    );
     const helperAppPath = path.join(
       appBundlePath,
       'Contents',
@@ -277,18 +297,48 @@ describe('package-electron helpers', () => {
       'Resources',
       'native-addon.node',
     );
+    const barePath = path.join(
+      appBundlePath,
+      'Contents',
+      'Resources',
+      'app',
+      'node_modules',
+      'bare-url',
+      'prebuilds',
+      'darwin-arm64',
+      'bare-url.bare',
+    );
+    const scriptPath = path.join(
+      appBundlePath,
+      'Contents',
+      'Resources',
+      'node_modules',
+      '.bin',
+      'not-mach-o',
+    );
 
     try {
       await fs.mkdir(path.dirname(libffmpegPath), { recursive: true });
+      await fs.mkdir(path.dirname(crashpadHandlerPath), { recursive: true });
+      await fs.mkdir(path.dirname(shipItPath), { recursive: true });
       await fs.mkdir(helperAppPath, { recursive: true });
       await fs.mkdir(path.dirname(addonPath), { recursive: true });
+      await fs.mkdir(path.dirname(barePath), { recursive: true });
+      await fs.mkdir(path.dirname(scriptPath), { recursive: true });
       await fs.writeFile(libffmpegPath, '');
+      await fs.writeFile(crashpadHandlerPath, Buffer.from('cffaedfe', 'hex'));
+      await fs.writeFile(shipItPath, Buffer.from('cffaedfe', 'hex'));
       await fs.writeFile(addonPath, '');
+      await fs.writeFile(barePath, '');
+      await fs.writeFile(scriptPath, '#!/bin/sh\n');
 
       await expect(
         collectNestedMacCodeSignTargets(appBundlePath),
       ).resolves.toEqual([
+        barePath,
+        crashpadHandlerPath,
         libffmpegPath,
+        shipItPath,
         addonPath,
         path.join(
           appBundlePath,
@@ -297,6 +347,12 @@ describe('package-electron helpers', () => {
           'Electron Framework.framework',
         ),
         helperAppPath,
+        path.join(
+          appBundlePath,
+          'Contents',
+          'Frameworks',
+          'Squirrel.framework',
+        ),
       ]);
     } finally {
       await fs.rm(tempRootDir, { force: true, recursive: true });

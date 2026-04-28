@@ -108,7 +108,22 @@ const macNestedCodeBundleExtensions = new Set([
   '.framework',
   '.xpc',
 ]);
-const macStandaloneCodeFileExtensions = new Set(['.dylib', '.node', '.so']);
+const macStandaloneCodeFileExtensions = new Set([
+  '.bare',
+  '.dylib',
+  '.node',
+  '.so',
+]);
+const macMachOMagicHeaders = new Set([
+  'cafebabe',
+  'cafebabf',
+  'bebafeca',
+  'bfbafeca',
+  'cefaedfe',
+  'cffaedfe',
+  'feedface',
+  'feedfacf',
+]);
 
 export const shouldUseShellForCommand = (
   command,
@@ -1540,6 +1555,29 @@ export const resolveMacCodeSignEntitlementsPath = (targetPath) => {
   return defaultMacEntitlementsPath;
 };
 
+const isMacMachOFile = async (filePath) => {
+  const fileHandle = await fs.open(filePath, 'r');
+  try {
+    const buffer = Buffer.alloc(4);
+    const { bytesRead } = await fileHandle.read(buffer, 0, buffer.length, 0);
+    return (
+      bytesRead === buffer.length &&
+      macMachOMagicHeaders.has(buffer.toString('hex'))
+    );
+  } finally {
+    await fileHandle.close();
+  }
+};
+
+const isMacStandaloneCodeFile = async (filePath) => {
+  const entryExt = path.extname(filePath).toLowerCase();
+  if (macStandaloneCodeFileExtensions.has(entryExt)) {
+    return true;
+  }
+
+  return isMacMachOFile(filePath);
+};
+
 export const collectNestedMacCodeSignTargets = async (appPath) => {
   const nestedBundles = [];
   const standaloneFiles = [];
@@ -1563,10 +1601,7 @@ export const collectNestedMacCodeSignTargets = async (appPath) => {
         continue;
       }
 
-      if (
-        entry.isFile() &&
-        macStandaloneCodeFileExtensions.has(entryExt.toLowerCase())
-      ) {
+      if (entry.isFile() && (await isMacStandaloneCodeFile(entryPath))) {
         standaloneFiles.push(entryPath);
       }
     }
