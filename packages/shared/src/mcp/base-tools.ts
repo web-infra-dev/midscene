@@ -228,7 +228,6 @@ export abstract class BaseMidsceneTools<
     | {
         reportFileName: string;
         reportAttributes: Record<string, string>;
-        appendToExistingReport: true;
       }
     | undefined {
     const reportFileName = this.readCliReportFileName();
@@ -237,7 +236,6 @@ export abstract class BaseMidsceneTools<
     }
     return {
       reportFileName,
-      appendToExistingReport: true,
       reportAttributes: {
         'data-group-id': reportFileName,
       },

@@ -146,7 +146,7 @@ export class ReportGenerator implements IReportGenerator {
       persistExecutionDump?: boolean;
       outputFormat?: 'single-html' | 'html-and-external-assets';
       autoPrintReportMsg?: boolean;
-      appendToExistingReport?: boolean;
+      reuseExistingReport?: boolean;
     },
   ): IReportGenerator {
     assertReportGenerationOptions(opts);
@@ -170,7 +170,7 @@ export class ReportGenerator implements IReportGenerator {
           : 'inline',
       persistExecutionDump: opts.persistExecutionDump,
       autoPrint: opts.autoPrintReportMsg,
-      reuseExistingReport: opts.appendToExistingReport,
+      reuseExistingReport: opts.reuseExistingReport,
     });
   }
 
