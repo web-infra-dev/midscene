@@ -33,7 +33,7 @@ jobs:
       MIDSCENE_REQUIRE_MAC_CODESIGN: ${{ matrix.platform == 'darwin' }}
       MIDSCENE_REQUIRE_MAC_NOTARIZATION: ${{ matrix.platform == 'darwin' }}
       NO_COLOR: '1'
-      STUDIO_PACKAGE_VALIDATION_VERSION: v0.0.0-validation.${{ github.run_number }}.${{ github.run_attempt }}
+      STUDIO_PACKAGE_VALIDATION_VERSION: v0.0.${{ github.run_number }}
     steps:
       - uses: actions/checkout@v2
         with:
