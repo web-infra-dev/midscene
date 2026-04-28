@@ -204,11 +204,38 @@ describe('IOSAgent', () => {
       expect(connectSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('should load override device class from option', async () => {
+    it('should load override device class from documented option', async () => {
       const connectSpy = vi.fn().mockResolvedValue(undefined);
       const actionSpaceSpy = vi.fn().mockReturnValue([]);
       const setAppNameMappingSpy = vi.fn();
       const moduleName = 'test-ios-device-override';
+
+      vi.doMock(
+        moduleName,
+        () => ({
+          IOSDevice: class {
+            connect = connectSpy;
+            actionSpace = actionSpaceSpy;
+            setAppNameMapping = setAppNameMappingSpy;
+          },
+        }),
+        { virtual: true },
+      );
+
+      await agentFromWebDriverAgent({
+        modelConfig: mockedModelConfig,
+        iOSDeviceClassOverride: moduleName,
+      });
+
+      expect(connectSpy).toHaveBeenCalledTimes(1);
+      vi.doUnmock(moduleName);
+    });
+
+    it('should load override device class from lower-case option alias', async () => {
+      const connectSpy = vi.fn().mockResolvedValue(undefined);
+      const actionSpaceSpy = vi.fn().mockReturnValue([]);
+      const setAppNameMappingSpy = vi.fn();
+      const moduleName = 'test-ios-device-override-alias';
 
       vi.doMock(
         moduleName,

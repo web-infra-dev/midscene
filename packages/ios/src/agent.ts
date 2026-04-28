@@ -113,6 +113,7 @@ export async function agentFromWebDriverAgent(
   debugAgent('Creating iOS agent with WebDriverAgent');
 
   const overrideModule =
+    opts?.iOSDeviceClassOverride?.trim() ||
     opts?.iosDeviceClassOverride?.trim() ||
     process.env[MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE]?.trim();
 

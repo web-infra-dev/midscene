@@ -43,6 +43,7 @@ const device = new IOSDevice({
 
 - `wdaPort?: number` —— WebDriverAgent 端口，默认 `8100`。
 - `wdaHost?: string` —— WebDriverAgent host，默认 `'localhost'`。
+- `iOSDeviceClassOverride?: string` / `iosDeviceClassOverride?: string` —— 使用 `agentFromWebDriverAgent()` 或 iOS Playground 时替换默认 `IOSDevice` 的 npm module path。目标模块必须导出 `IOSDevice` class 或 default class。
 - `autoDismissKeyboard?: boolean` —— 文本输入后自动隐藏键盘，默认 `true`。
 - `customActions?: DeviceAction<any>[]` —— 向 Agent 暴露的额外设备动作。
 
@@ -192,6 +193,7 @@ function agentFromWebDriverAgent(
 ```
 
 - `opts?: PageAgentOpt & IOSDeviceOpt` —— 在一个对象中同时传入通用 Agent 选项与 [`IOSDevice`](#iosdevice) 的配置。
+- 设置 `MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE` 可通过环境变量应用同一个设备 class override。显式传入的选项优先级高于环境变量。
 
 ```ts
 import { agentFromWebDriverAgent } from '@midscene/ios';
@@ -199,6 +201,7 @@ import { agentFromWebDriverAgent } from '@midscene/ios';
 const agent = await agentFromWebDriverAgent({
   wdaHost: 'localhost',
   wdaPort: 8100,
+  iOSDeviceClassOverride: '@your-scope/ios-device',
   aiActionContext: 'Accept permission dialogs automatically.',
 });
 ```
