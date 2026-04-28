@@ -2147,8 +2147,6 @@ const createPlatformActions = (
       description: 'Terminate (force-stop) an Android app by package name',
       interfaceAlias: 'terminate',
       paramSchema: terminateParamSchema,
-      delayBeforeRunner: 0,
-      delayAfterRunner: 0,
       call: async (param) => {
         if (!param.uri || param.uri.trim() === '') {
           throw new Error('Terminate requires a non-empty uri parameter');
@@ -2159,8 +2157,6 @@ const createPlatformActions = (
     AndroidBackButton: defineAction({
       name: 'AndroidBackButton',
       description: 'Trigger the system "back" operation on Android devices',
-      delayBeforeRunner: 0,
-      delayAfterRunner: 0,
       call: async () => {
         await device.back();
       },
@@ -2168,8 +2164,6 @@ const createPlatformActions = (
     AndroidHomeButton: defineAction({
       name: 'AndroidHomeButton',
       description: 'Trigger the system "home" operation on Android devices',
-      delayBeforeRunner: 0,
-      delayAfterRunner: 0,
       call: async () => {
         await device.home();
       },
