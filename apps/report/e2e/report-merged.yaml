@@ -17,23 +17,19 @@ tasks:
       - aiAssert: There is a red colored number or failure indicator visible on the page, showing that some tests failed
 
   # --- Case selector ---
-  - name: case selector shows multiple test cases
+  - name: case selector is visible
     flow:
-      - ai: Click the case selector dropdown at the top of the sidebar
-      - sleep: 1000
-      - aiAssert: A dropdown list is visible showing at least 2 test case options
+      - aiAssert: Below the Total, Passed, and Failed summary cards in the left sidebar, there is a case selector control showing the current test case title and a small down arrow
 
   - name: switch between test cases
     flow:
-      - ai: Click on the second test case in the dropdown list
+      - ai: In the case selector control below the summary cards, open the popup and click the second visible test case option
       - sleep: 5000
       - aiAssert: The sidebar shows a task execution list
 
   - name: filter by status
     flow:
-      - ai: Click the case selector dropdown at the top of the sidebar
-      - sleep: 1000
-      - ai: Click the status filter dropdown and select 'Failed'
+      - ai: In the case selector control below the summary cards, open the popup. In that popup, click the status filter dropdown and select 'Failed'
       - sleep: 2000
       - aiAssert: The status filter control now shows 'Failed'
       - aiAssert: In the expanded case selector popup below the filter controls, exactly 1 test case option is visible. Ignore the task execution rows behind the popup.
