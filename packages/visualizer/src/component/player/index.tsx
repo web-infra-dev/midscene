@@ -11,7 +11,7 @@ import {
   PauseOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
-import { Dropdown, Spin, Switch, Tooltip, message } from 'antd';
+import { Button, Dropdown, Progress, Switch, Tooltip, message } from 'antd';
 import GlobalPerspectiveIcon from '../../icons/global-perspective.svg';
 import PlayerSettingIcon from '../../icons/player-setting.svg';
 import { type PlaybackSpeedType, useGlobalPreference } from '../../store/store';
@@ -127,19 +127,24 @@ export function Player(props?: {
     playbackRate: playbackSpeed,
   });
 
+  // The last frame that contains real content (skip the trailing End card).
+  // Used as the denominator for the seek bar so the knob can reach 100% when
+  // playback finishes — otherwise it parks at ~80–90% inside the End card.
+  const effectiveEndFrame = useMemo(() => {
+    if (!frameMap) return 0;
+    for (let i = frameMap.scriptFrames.length - 1; i >= 0; i--) {
+      const sf = frameMap.scriptFrames[i];
+      if (sf.taskId) return sf.startFrame + sf.durationInFrames - 1;
+    }
+    return Math.max(0, frameMap.totalDurationInFrames - 1);
+  }, [frameMap]);
+
   // When playback stops, seek to the last frame with a taskId (skip the End card)
   useEffect(() => {
     if (!frameMap || player.playing) return;
-    const { scriptFrames, totalDurationInFrames } = frameMap;
-    if (player.currentFrame < totalDurationInFrames - 1) return;
-    for (let i = scriptFrames.length - 1; i >= 0; i--) {
-      const sf = scriptFrames[i];
-      if (sf.taskId) {
-        player.seekTo(sf.startFrame + sf.durationInFrames - 1);
-        break;
-      }
-    }
-  }, [frameMap, player.playing]);
+    if (player.currentFrame < frameMap.totalDurationInFrames - 1) return;
+    if (effectiveEndFrame > 0) player.seekTo(effectiveEndFrame);
+  }, [frameMap, player.playing, effectiveEndFrame]);
 
   // Sync taskId to parent: report current task while playing, clear on stop
   useEffect(() => {
@@ -219,7 +224,7 @@ export function Player(props?: {
           0,
           Math.min(1, (clientX - rect.left) / rect.width),
         );
-        player.seekTo(Math.round(ratio * (frameMap.totalDurationInFrames - 1)));
+        player.seekTo(Math.round(ratio * effectiveEndFrame));
       };
 
       seek(e.clientX);
@@ -232,7 +237,7 @@ export function Player(props?: {
       bar.addEventListener('pointermove', onMove);
       bar.addEventListener('pointerup', onUp);
     },
-    [frameMap, player],
+    [frameMap, player, effectiveEndFrame],
   );
 
   // Fullscreen
@@ -281,19 +286,17 @@ export function Player(props?: {
 
   // Compute chapter markers
   const chapterMarkers = useMemo(() => {
-    if (!frameMap) return [];
-    const { scriptFrames, totalDurationInFrames } = frameMap;
-    if (totalDurationInFrames === 0) return [];
+    if (!frameMap || effectiveEndFrame <= 0) return [];
 
     const markers: { percent: number; title: string; frame: number }[] = [];
-    for (const sf of scriptFrames) {
+    for (const sf of frameMap.scriptFrames) {
       if (
         (sf.type !== 'img' && sf.type !== 'insight') ||
         sf.durationInFrames === 0
       )
         continue;
       const globalFrame = sf.startFrame;
-      const percent = (globalFrame / totalDurationInFrames) * 100;
+      const percent = (globalFrame / effectiveEndFrame) * 100;
       if (percent > 1 && percent < 99) {
         const parts = [sf.title, sf.subTitle].filter(Boolean);
         markers.push({
@@ -307,11 +310,28 @@ export function Player(props?: {
       }
     }
     return markers;
-  }, [frameMap]);
+  }, [frameMap, effectiveEndFrame]);
 
-  // If no scripts, show empty
+  // If no scripts, fall back to a Download-report empty state when a report is
+  // available (e.g. Stop was pressed before any task finished). Otherwise hide
+  // the Player entirely instead of rendering an empty bordered box.
   if (!scripts || scripts.length === 0 || !frameMap) {
-    return <div className="player-container" />;
+    if (props?.reportFileContent && props?.canDownloadReport !== false) {
+      return (
+        <div className="player-container player-container-empty">
+          <div className="player-empty-state">
+            <span className="player-empty-text">No replay available</span>
+            <Button
+              icon={<DownloadOutlined />}
+              onClick={() => downloadReport(props.reportFileContent!)}
+            >
+              Download report
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    return null;
   }
 
   const compositionWidth = currentFrameState?.imageWidth || frameMap.imageWidth;
@@ -319,9 +339,10 @@ export function Player(props?: {
     currentFrameState?.imageHeight || frameMap.imageHeight;
   const isPortraitCanvas = compositionHeight > compositionWidth;
 
-  const totalFrames = frameMap.totalDurationInFrames;
   const seekPercent =
-    totalFrames > 1 ? (player.currentFrame / (totalFrames - 1)) * 100 : 0;
+    effectiveEndFrame > 0
+      ? Math.min(100, (player.currentFrame / effectiveEndFrame) * 100)
+      : 0;
 
   return (
     <div className="player-container" data-fit-mode={props?.fitMode}>
@@ -415,8 +436,11 @@ export function Player(props?: {
           </div>
 
           <span className="time-display">
-            {formatTime(player.currentFrame, frameMap.fps)} /{' '}
-            {formatTime(totalFrames, frameMap.fps)}
+            {formatTime(
+              Math.min(player.currentFrame, effectiveEndFrame),
+              frameMap.fps,
+            )}{' '}
+            / {formatTime(effectiveEndFrame + 1, frameMap.fps)}
           </span>
 
           <div
@@ -484,13 +508,32 @@ export function Player(props?: {
                     }}
                     onClick={isExporting ? undefined : handleExportVideo}
                   >
-                    {isExporting ? (
-                      <Spin size="small" />
-                    ) : (
-                      <ExportOutlined
-                        style={{ width: '16px', height: '16px' }}
-                      />
-                    )}
+                    <span
+                      style={{
+                        width: 16,
+                        height: 16,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {isExporting ? (
+                        <Progress
+                          type="circle"
+                          percent={exportProgress}
+                          size={16}
+                          strokeWidth={14}
+                          showInfo={false}
+                          strokeColor="#1677ff"
+                          trailColor="rgba(0, 0, 0, 0.12)"
+                        />
+                      ) : (
+                        <ExportOutlined
+                          style={{ width: '16px', height: '16px' }}
+                        />
+                      )}
+                    </span>
                     <span style={{ fontSize: '14px' }}>
                       {isExporting
                         ? `Exporting ${exportProgress}%`
@@ -590,7 +633,7 @@ export function Player(props?: {
                       style={{
                         height: '32px',
                         lineHeight: '32px',
-                        padding: '0 8px 0 24px',
+                        padding: '0 8px 0 28px',
                         fontSize: '14px',
                         cursor: 'pointer',
                         borderRadius: '4px',

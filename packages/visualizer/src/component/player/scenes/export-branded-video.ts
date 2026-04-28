@@ -166,9 +166,15 @@ function drawSteps(
     insights,
   } = st;
 
-  const pT = pointerMoved
-    ? Math.min(rawProgress / POINTER_PHASE, 1)
-    : rawProgress;
+  // When focus on cursor is OFF, the camera does not zoom into the click point,
+  // so the cursor "slide-in" animation (interpolating from the previous default
+  // center to the new click target) is visually distracting and looks like the
+  // cursor is in the wrong place. Snap straight to the target instead.
+  const pT = !autoZoom
+    ? 1
+    : pointerMoved
+      ? Math.min(rawProgress / POINTER_PHASE, 1)
+      : rawProgress;
   const cT = pointerMoved
     ? rawProgress <= POINTER_PHASE
       ? 0

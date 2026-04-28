@@ -58,9 +58,14 @@ export const StepsTimeline: React.FC<{
   } = state;
 
   // ── Camera interpolation ──
-  const pT = pointerMoved
-    ? Math.min(rawProgress / POINTER_PHASE, 1)
-    : rawProgress;
+  // When focus on cursor is OFF, snap the cursor to its target instead of
+  // animating it from the previous default center; otherwise the cursor visibly
+  // slides across the un-zoomed frame and looks like it is in the wrong place.
+  const pT = !autoZoom
+    ? 1
+    : pointerMoved
+      ? Math.min(rawProgress / POINTER_PHASE, 1)
+      : rawProgress;
   const cT = pointerMoved
     ? rawProgress <= POINTER_PHASE
       ? 0
