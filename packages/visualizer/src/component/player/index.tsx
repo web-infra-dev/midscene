@@ -262,8 +262,12 @@ export function Player(props?: {
     setIsExporting(true);
     setExportProgress(0);
     try {
-      await exportBrandedVideo(frameMap, (pct) =>
-        setExportProgress(Math.round(pct * 100)),
+      await exportBrandedVideo(
+        frameMap,
+        {
+          autoZoom,
+        },
+        (pct) => setExportProgress(Math.round(pct * 100)),
       );
       message.success('Video exported');
     } catch (e) {
@@ -273,7 +277,7 @@ export function Player(props?: {
       setIsExporting(false);
       setExportProgress(0);
     }
-  }, [frameMap, isExporting]);
+  }, [autoZoom, frameMap, isExporting]);
 
   // Compute chapter markers
   const chapterMarkers = useMemo(() => {
