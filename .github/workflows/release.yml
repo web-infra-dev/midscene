@@ -200,13 +200,17 @@ jobs:
         cache: 'pnpm'
 
     - name: Prepare macOS codesigning keychain
-      if: ${{ matrix.platform == 'darwin' && secrets.APPLE_CERT_P12_BASE64 != '' && secrets.APPLE_CERT_PASSWORD != '' && secrets.APPLE_CODESIGN_IDENTITY != '' }}
+      if: ${{ matrix.platform == 'darwin' }}
       env:
         APPLE_CERT_P12_BASE64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
         APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
         APPLE_CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
         APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       run: |
+        : "${APPLE_CERT_P12_BASE64:?APPLE_CERT_P12_BASE64 is required for macOS release packaging}"
+        : "${APPLE_CERT_PASSWORD:?APPLE_CERT_PASSWORD is required for macOS release packaging}"
+        : "${APPLE_CODESIGN_IDENTITY:?APPLE_CODESIGN_IDENTITY is required for macOS release packaging}"
+
         CERT_PATH="$RUNNER_TEMP/midscene-codesign.p12"
         KEYCHAIN_PATH="$RUNNER_TEMP/midscene-signing.keychain-db"
         KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
@@ -229,12 +233,15 @@ jobs:
         fi
 
     - name: Prepare macOS notarization credentials
-      if: ${{ matrix.platform == 'darwin' && secrets.APPLE_API_KEY_P8_BASE64 != '' && secrets.APPLE_API_KEY_ID != '' }}
+      if: ${{ matrix.platform == 'darwin' }}
       env:
         APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
         APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
         APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
       run: |
+        : "${APPLE_API_KEY_P8_BASE64:?APPLE_API_KEY_P8_BASE64 is required for macOS release packaging}"
+        : "${APPLE_API_KEY_ID:?APPLE_API_KEY_ID is required for macOS release packaging}"
+
         API_KEY_PATH="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
         printf '%s' "$APPLE_API_KEY_P8_BASE64" | base64 -D > "$API_KEY_PATH"
 
