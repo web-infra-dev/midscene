@@ -573,8 +573,8 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: studio-startup-ai-report
-        path: midscene_run/report/studio-startup-ai-report.html
-        if-no-files-found: ignore
+        path: apps/studio/midscene_run/report/studio-startup-ai-report.html
+        if-no-files-found: error
 
     - name: Check Studio Midscene startup result
       if: steps.test-ai.outcome == 'failure'

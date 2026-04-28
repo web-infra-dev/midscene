@@ -8,7 +8,7 @@ const studioRootDir = path.resolve(path.dirname(__filename), '..');
 const repoRootDir = path.resolve(studioRootDir, '..', '..');
 const reportFileName = 'studio-startup-ai-report.html';
 const reportFilePath = path.join(
-  repoRootDir,
+  studioRootDir,
   'midscene_run',
   'report',
   reportFileName,
