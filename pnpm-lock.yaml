@@ -553,6 +553,9 @@ importers:
         specifier: 18.3.1
         version: 18.3.1(react@18.3.1)
     devDependencies:
+      '@electron/notarize':
+        specifier: 3.1.1
+        version: 3.1.1
       '@electron/packager':
         specifier: 19.1.0
         version: 19.1.0

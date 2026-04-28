@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import { notarize } from '@electron/notarize';
 import { packager } from '@electron/packager';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -82,6 +83,8 @@ const staticWorkspacePackageSourceConfigs = [
 }));
 
 const supportedPlatforms = new Set(['darwin', 'linux', 'win32']);
+const truthyBooleanTokens = new Set(['1', 'true', 'yes', 'on']);
+const falsyBooleanTokens = new Set(['0', 'false', 'no', 'off']);
 
 export const shouldUseShellForCommand = (
   command,
@@ -111,6 +114,154 @@ const run = (command, args, { cwd = workspaceRootDir, env } = {}) =>
       );
     });
   });
+
+const resolveConfiguredString = (values) => {
+  for (const value of values) {
+    if (typeof value !== 'string') {
+      continue;
+    }
+
+    const trimmed = value.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+
+  return undefined;
+};
+
+export const parseBooleanLike = (value, defaultValue = false) => {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value !== 'string') {
+    return defaultValue;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return defaultValue;
+  }
+
+  if (truthyBooleanTokens.has(normalized)) {
+    return true;
+  }
+
+  if (falsyBooleanTokens.has(normalized)) {
+    return false;
+  }
+
+  throw new Error(`Expected a boolean-like value, but received "${value}".`);
+};
+
+export const resolveMacPackagedAppSecurity = ({
+  cliOptions = {},
+  env = process.env,
+  platform = process.platform,
+} = {}) => {
+  const requireCodesign = parseBooleanLike(
+    cliOptions.requireMacCodesign ?? env.MIDSCENE_REQUIRE_MAC_CODESIGN,
+    false,
+  );
+  const requireNotarization = parseBooleanLike(
+    cliOptions.requireMacNotarization ?? env.MIDSCENE_REQUIRE_MAC_NOTARIZATION,
+    false,
+  );
+
+  if (platform !== 'darwin') {
+    return {
+      notarizeOptions: undefined,
+      requireCodesign,
+      requireNotarization,
+      shouldDeveloperIdSign: false,
+      shouldNotarize: false,
+      signIdentity: undefined,
+      signKeychain: undefined,
+      teamId: undefined,
+    };
+  }
+
+  const signIdentity = resolveConfiguredString([
+    cliOptions.macSignIdentity,
+    env.APPLE_CODESIGN_IDENTITY,
+  ]);
+  const signKeychain = resolveConfiguredString([
+    cliOptions.macSignKeychain,
+    env.APPLE_CODESIGN_KEYCHAIN,
+  ]);
+  const teamId = resolveConfiguredString([
+    cliOptions.macTeamId,
+    env.APPLE_TEAM_ID,
+  ]);
+  const appleApiKey = resolveConfiguredString([
+    cliOptions.macNotarizeApiKey,
+    env.APPLE_API_KEY_PATH,
+  ]);
+  const appleApiKeyId = resolveConfiguredString([
+    cliOptions.macNotarizeApiKeyId,
+    env.APPLE_API_KEY_ID,
+  ]);
+  const appleApiIssuer = resolveConfiguredString([
+    cliOptions.macNotarizeApiIssuer,
+    env.APPLE_API_ISSUER_ID,
+  ]);
+  const shouldDeveloperIdSign = Boolean(signIdentity);
+  const notarizeOptions =
+    appleApiKey && appleApiKeyId
+      ? {
+          appleApiKey,
+          appleApiKeyId,
+          ...(appleApiIssuer ? { appleApiIssuer } : {}),
+        }
+      : undefined;
+  const shouldNotarize = requireNotarization && Boolean(notarizeOptions);
+
+  if (requireCodesign && !shouldDeveloperIdSign) {
+    throw new Error(
+      [
+        'macOS release packaging requires a Developer ID signing identity.',
+        'Set APPLE_CODESIGN_IDENTITY or pass --mac-sign-identity=<identity>.',
+      ].join(' '),
+    );
+  }
+
+  if (teamId && signIdentity && !signIdentity.includes(`(${teamId})`)) {
+    throw new Error(
+      `Developer ID identity "${signIdentity}" does not match APPLE_TEAM_ID "${teamId}".`,
+    );
+  }
+
+  if (requireNotarization && !shouldDeveloperIdSign) {
+    throw new Error(
+      [
+        'macOS notarization requires a Developer ID signing identity.',
+        'Set APPLE_CODESIGN_IDENTITY or pass --mac-sign-identity=<identity>.',
+      ].join(' '),
+    );
+  }
+
+  if (requireNotarization && !notarizeOptions) {
+    throw new Error(
+      [
+        'macOS notarization is required, but notarization credentials are missing.',
+        'Set APPLE_API_KEY_PATH and APPLE_API_KEY_ID',
+        '(plus APPLE_API_ISSUER_ID for App Store Connect team keys).',
+      ].join(' '),
+    );
+  }
+
+  return {
+    notarizeOptions,
+    requireCodesign,
+    requireNotarization,
+    shouldDeveloperIdSign,
+    shouldNotarize,
+    signIdentity,
+    signKeychain,
+    teamId,
+  };
+};
 
 export const normalizeReleaseVersion = (version) => {
   const trimmed = version?.trim();
@@ -455,101 +606,39 @@ export const getBuildStatus = async ({ packageDir, sourceTargets }) => {
   };
 };
 
-const captureCommandOutput = (
-  command,
-  args,
-  { platform = process.platform } = {},
-) =>
-  new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      shell: shouldUseShellForCommand(command, platform),
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    let stdout = '';
-    let stderr = '';
-    child.stdout.on('data', (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on('data', (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on('close', (code) => {
-      resolve({ code: code ?? 0, stderr, stdout });
-    });
-    child.on('error', reject);
-  });
-
-export const getLiveDevBuilderProcessQueries = (
-  platform = process.platform,
-) => {
-  if (platform === 'win32') {
-    const command =
-      '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; ' +
-      'Get-CimInstance Win32_Process | ' +
-      "Where-Object { $_.CommandLine -match 'rsbuild(?:\\\\.cmd)?\\\\s+dev' } | " +
-      "ForEach-Object { '{0} {1}' -f $_.ProcessId, $_.CommandLine }";
-    return [
-      {
-        command: 'powershell',
-        args: ['-NoProfile', '-Command', command],
-      },
-      {
-        command: 'pwsh',
-        args: ['-NoProfile', '-Command', command],
-      },
-    ];
-  }
-
-  return [
-    {
-      command: 'pgrep',
-      args: ['-af', 'rsbuild dev'],
-    },
-  ];
-};
-
-export const parseLiveDevBuilderProcessMatches = (stdout) =>
-  stdout
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-export const findLiveDevBuilderProcesses = async ({
-  platform = process.platform,
-  runCapture = captureCommandOutput,
-} = {}) => {
-  const queries = getLiveDevBuilderProcessQueries(platform);
-
-  for (const query of queries) {
-    try {
-      const result = await runCapture(query.command, query.args, { platform });
-      if (platform !== 'win32' && result.code === 1) {
-        return [];
-      }
-      return parseLiveDevBuilderProcessMatches(result.stdout);
-    } catch (error) {
-      if (error?.code === 'ENOENT') {
-        continue;
-      }
-      throw error;
-    }
-  }
-
-  return [];
-};
-
 const assertNoLiveDevBuilders = async () => {
-  const matches = await findLiveDevBuilderProcesses();
-  if (matches.length > 0) {
-    throw new Error(
-      [
-        'Detected live `rsbuild dev` processes while packaging:',
-        ...matches.map((line) => `  ${line}`),
-        'A concurrent dev server keeps overwriting `apps/studio/dist/` with',
-        'a development-mode renderer whose absolute asset URLs break under',
-        '`file://`. Stop `pnpm dev` first, then rerun `pnpm package:release`.',
-      ].join('\n'),
-    );
+  try {
+    const { stdout } = await new Promise((resolve, reject) => {
+      const child = spawn('pgrep', ['-af', 'rsbuild dev'], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      let buffer = '';
+      child.stdout.on('data', (chunk) => {
+        buffer += chunk.toString();
+      });
+      child.on('close', () => resolve({ stdout: buffer }));
+      child.on('error', reject);
+    });
+    const matches = stdout
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (matches.length > 0) {
+      throw new Error(
+        [
+          'Detected live `rsbuild dev` processes while packaging:',
+          ...matches.map((line) => `  ${line}`),
+          'A concurrent dev server keeps overwriting `apps/studio/dist/` with',
+          'a development-mode renderer whose absolute asset URLs break under',
+          '`file://`. Stop `pnpm dev` first, then rerun `pnpm package:release`.',
+        ].join('\n'),
+      );
+    }
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return;
+    }
+    throw error;
   }
 };
 
@@ -833,6 +922,13 @@ export const dropAntdEsmBuild = async (nodeModulesDir) => {
   await removeIfExists(esDir);
 };
 
+// gifwrap ships PNG fixtures under test/ that are never used at runtime.
+// Leaving them in the app bundle makes Developer ID signing attempt to
+// timestamp-sign those images as nested resources, which fails.
+export const pruneGifwrapTestFixtures = async (nodeModulesDir) => {
+  await removeIfExists(path.join(nodeModulesDir, 'gifwrap', 'test'));
+};
+
 // Hardlink every file from `sourceDir` into `destDir`, recreating
 // subdirectories. Same filesystem required — safe inside a single
 // node_modules tree.
@@ -898,6 +994,7 @@ export const slimStageNodeModules = async (nodeModulesDir) => {
   await pruneAntdUmdBundles(nodeModulesDir);
   await dropMidsceneEsmBuilds(nodeModulesDir);
   await dropAntdEsmBuild(nodeModulesDir);
+  await pruneGifwrapTestFixtures(nodeModulesDir);
 };
 
 const vendorWorkspacePackages = async ({ workspacePackages, vendorDir }) => {
@@ -1083,6 +1180,48 @@ const buildPackagedAppPayloadCandidates = async (packagedAppPath) => {
   }
 
   return [...new Set(candidates)];
+};
+
+export const resolveMacPackagedAppBundlePath = async (packagedAppPath) => {
+  if (packagedAppPath.endsWith('.app')) {
+    return packagedAppPath;
+  }
+
+  let packagedOutputStats;
+  try {
+    packagedOutputStats = await fs.stat(packagedAppPath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      throw new Error(
+        `Packaged macOS output does not exist: ${packagedAppPath}`,
+      );
+    }
+    throw error;
+  }
+
+  if (!packagedOutputStats.isDirectory()) {
+    throw new Error(
+      `Expected a packaged macOS output directory, received ${packagedAppPath}.`,
+    );
+  }
+
+  const packagedOutputEntries = await fs.readdir(packagedAppPath, {
+    withFileTypes: true,
+  });
+  const appBundleEntries = packagedOutputEntries.filter(
+    (entry) => entry.isDirectory() && entry.name.endsWith('.app'),
+  );
+
+  if (appBundleEntries.length !== 1) {
+    throw new Error(
+      [
+        `Expected exactly one .app bundle inside ${packagedAppPath},`,
+        `received ${appBundleEntries.length}.`,
+      ].join(' '),
+    );
+  }
+
+  return path.join(packagedAppPath, appBundleEntries[0].name);
 };
 
 const findPackagedAppPayloadDir = async (packagedAppPath) => {
@@ -1276,10 +1415,96 @@ const archivePackagedApp = async ({
   return artifactPath;
 };
 
+export const signPackagedMacApp = async ({
+  appPath,
+  security = resolveMacPackagedAppSecurity({ platform: 'darwin' }),
+} = {}) => {
+  if (process.platform !== 'darwin') {
+    throw new Error('macOS app signing requires a macOS host runner.');
+  }
+
+  if (security.shouldDeveloperIdSign) {
+    console.log(
+      `Signing ${path.basename(appPath)} with ${security.signIdentity}.`,
+    );
+    const codesignArgs = [
+      '--force',
+      '--deep',
+      '--sign',
+      security.signIdentity,
+      '--options',
+      'runtime',
+      '--timestamp',
+    ];
+    if (security.signKeychain) {
+      codesignArgs.push('--keychain', security.signKeychain);
+    }
+    codesignArgs.push(appPath);
+
+    await run('codesign', codesignArgs);
+    await run('codesign', [
+      '--verify',
+      '--deep',
+      '--strict',
+      '--verbose=2',
+      appPath,
+    ]);
+    return 'developer-id';
+  }
+
+  console.log(
+    [
+      `No Developer ID identity configured for ${path.basename(appPath)}.`,
+      'Applying ad-hoc codesign so the Electron bundle remains runnable after packaging-time mutations.',
+    ].join(' '),
+  );
+  await run('codesign', [
+    '--force',
+    '--deep',
+    '--sign',
+    '-',
+    '--timestamp=none',
+    appPath,
+  ]);
+  await run('codesign', [
+    '--verify',
+    '--deep',
+    '--strict',
+    '--verbose=2',
+    appPath,
+  ]);
+  return 'adhoc';
+};
+
+export const notarizePackagedMacApp = async ({
+  appPath,
+  security = resolveMacPackagedAppSecurity({ platform: 'darwin' }),
+} = {}) => {
+  if (!security.shouldNotarize) {
+    return false;
+  }
+
+  console.log(`Submitting ${path.basename(appPath)} for notarization.`);
+  await notarize({
+    appPath,
+    ...security.notarizeOptions,
+  });
+  await run('xcrun', ['stapler', 'validate', appPath]);
+  return true;
+};
+
 export const packageStudioElectronApp = async ({
   version,
   platform = process.platform,
   arch = process.arch,
+  macNotarizeApiIssuer,
+  macNotarizeApiKey,
+  macNotarizeApiKeyId,
+  macSignIdentity,
+  macSignKeychain,
+  macTeamId,
+  requireMacCodesign,
+  requireMacNotarization,
 } = {}) => {
   const normalizedVersion = normalizeReleaseVersion(version);
   const baseName = buildArtifactBaseName({
@@ -1288,6 +1513,19 @@ export const packageStudioElectronApp = async ({
     arch,
   });
   const stageDir = path.join(packagingWorkspaceDir, baseName);
+  const macSecurity = resolveMacPackagedAppSecurity({
+    cliOptions: {
+      macNotarizeApiIssuer,
+      macNotarizeApiKey,
+      macNotarizeApiKeyId,
+      macSignIdentity,
+      macSignKeychain,
+      macTeamId,
+      requireMacCodesign,
+      requireMacNotarization,
+    },
+    platform,
+  });
 
   await assertNoLiveDevBuilders();
   await createPackagingWorkspace({ stageDir, version: normalizedVersion });
@@ -1319,6 +1557,19 @@ export const packageStudioElectronApp = async ({
     await dedupePlaygroundStatic(path.join(packagedPayloadDir, 'node_modules'));
   }
 
+  if (platform === 'darwin') {
+    const macAppBundlePath =
+      await resolveMacPackagedAppBundlePath(packagedAppPath);
+    await signPackagedMacApp({
+      appPath: macAppBundlePath,
+      security: macSecurity,
+    });
+    await notarizePackagedMacApp({
+      appPath: macAppBundlePath,
+      security: macSecurity,
+    });
+  }
+
   await archivePackagedApp({
     hostPlatform: process.platform,
     sourcePath: packagedAppPath,
@@ -1339,7 +1590,15 @@ if (isDirectInvocation) {
     allowPositionals: false,
     options: {
       arch: { type: 'string' },
+      'mac-notarize-api-issuer': { type: 'string' },
+      'mac-notarize-api-key': { type: 'string' },
+      'mac-notarize-api-key-id': { type: 'string' },
+      'mac-sign-identity': { type: 'string' },
+      'mac-sign-keychain': { type: 'string' },
+      'mac-team-id': { type: 'string' },
       platform: { type: 'string' },
+      'require-mac-codesign': { type: 'string' },
+      'require-mac-notarization': { type: 'string' },
       version: { type: 'string' },
     },
   });
@@ -1352,7 +1611,15 @@ if (isDirectInvocation) {
 
   await packageStudioElectronApp({
     arch: values.arch,
+    macNotarizeApiIssuer: values['mac-notarize-api-issuer'],
+    macNotarizeApiKey: values['mac-notarize-api-key'],
+    macNotarizeApiKeyId: values['mac-notarize-api-key-id'],
+    macSignIdentity: values['mac-sign-identity'],
+    macSignKeychain: values['mac-sign-keychain'],
+    macTeamId: values['mac-team-id'],
     platform: values.platform,
+    requireMacCodesign: values['require-mac-codesign'],
+    requireMacNotarization: values['require-mac-notarization'],
     version,
   });
 }
