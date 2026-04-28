@@ -11,6 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const studioRootDir = path.resolve(__dirname, '..');
 const workspaceRootDir = path.resolve(studioRootDir, '..', '..');
+const studioBuildDir = path.join(studioRootDir, 'build');
 
 // Keep release packaging state outside `apps/studio` so local build outputs do
 // not recurse back into the generated Electron payload.
@@ -25,6 +26,22 @@ const packagedDir = path.join(releaseWorkspaceDir, 'packaged');
 const packagedAppId = 'midscene-studio';
 const packagedProductName = 'Midscene Studio';
 const packagedIgnorePatterns = [/^\/pnpm-lock\.yaml$/, /^\/vendor($|\/)/];
+const defaultMacEntitlementsPath = path.join(
+  studioBuildDir,
+  'entitlements.mac.plist',
+);
+const gpuMacEntitlementsPath = path.join(
+  studioBuildDir,
+  'entitlements.mac.gpu.plist',
+);
+const pluginMacEntitlementsPath = path.join(
+  studioBuildDir,
+  'entitlements.mac.plugin.plist',
+);
+const rendererMacEntitlementsPath = path.join(
+  studioBuildDir,
+  'entitlements.mac.renderer.plist',
+);
 const packageBuildSourceTargets = [
   'src',
   'html',
@@ -85,6 +102,13 @@ const staticWorkspacePackageSourceConfigs = [
 const supportedPlatforms = new Set(['darwin', 'linux', 'win32']);
 const truthyBooleanTokens = new Set(['1', 'true', 'yes', 'on']);
 const falsyBooleanTokens = new Set(['0', 'false', 'no', 'off']);
+const macNestedCodeBundleExtensions = new Set([
+  '.app',
+  '.appex',
+  '.framework',
+  '.xpc',
+]);
+const macStandaloneCodeFileExtensions = new Set(['.dylib', '.node', '.so']);
 
 export const shouldUseShellForCommand = (
   command,
@@ -1427,21 +1451,24 @@ export const signPackagedMacApp = async ({
     console.log(
       `Signing ${path.basename(appPath)} with ${security.signIdentity}.`,
     );
-    const codesignArgs = [
-      '--force',
-      '--deep',
-      '--sign',
-      security.signIdentity,
-      '--options',
-      'runtime',
-      '--timestamp',
-    ];
-    if (security.signKeychain) {
-      codesignArgs.push('--keychain', security.signKeychain);
+    for (const target of await collectNestedMacCodeSignTargets(appPath)) {
+      await run(
+        'codesign',
+        buildDeveloperIdCodesignArgs({
+          entitlementsPath: resolveMacCodeSignEntitlementsPath(target),
+          security,
+          targetPath: target,
+        }),
+      );
     }
-    codesignArgs.push(appPath);
-
-    await run('codesign', codesignArgs);
+    await run(
+      'codesign',
+      buildDeveloperIdCodesignArgs({
+        entitlementsPath: resolveMacCodeSignEntitlementsPath(appPath),
+        security,
+        targetPath: appPath,
+      }),
+    );
     await run('codesign', [
       '--verify',
       '--deep',
@@ -1474,6 +1501,87 @@ export const signPackagedMacApp = async ({
     appPath,
   ]);
   return 'adhoc';
+};
+
+export const buildDeveloperIdCodesignArgs = ({
+  entitlementsPath,
+  security,
+  targetPath,
+  useRuntime = true,
+}) => {
+  const codesignArgs = ['--force', '--sign', security.signIdentity];
+  if (useRuntime) {
+    codesignArgs.push('--options', 'runtime');
+  }
+  codesignArgs.push('--timestamp');
+  if (security.signKeychain) {
+    codesignArgs.push('--keychain', security.signKeychain);
+  }
+  if (entitlementsPath) {
+    codesignArgs.push('--entitlements', entitlementsPath);
+  }
+  codesignArgs.push(targetPath);
+  return codesignArgs;
+};
+
+export const resolveMacCodeSignEntitlementsPath = (targetPath) => {
+  if (targetPath.includes('(Plugin).app')) {
+    return pluginMacEntitlementsPath;
+  }
+
+  if (targetPath.includes('(GPU).app')) {
+    return gpuMacEntitlementsPath;
+  }
+
+  if (targetPath.includes('(Renderer).app')) {
+    return rendererMacEntitlementsPath;
+  }
+
+  return defaultMacEntitlementsPath;
+};
+
+export const collectNestedMacCodeSignTargets = async (appPath) => {
+  const nestedBundles = [];
+  const standaloneFiles = [];
+
+  const visitDirectory = async (dirPath, isRoot = false) => {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isSymbolicLink()) {
+        continue;
+      }
+
+      const entryPath = path.join(dirPath, entry.name);
+      const entryExt = path.extname(entry.name);
+
+      if (entry.isDirectory()) {
+        const isNestedBundle = macNestedCodeBundleExtensions.has(entryExt);
+        if (isNestedBundle && !isRoot) {
+          nestedBundles.push(entryPath);
+        }
+        await visitDirectory(entryPath, false);
+        continue;
+      }
+
+      if (
+        entry.isFile() &&
+        macStandaloneCodeFileExtensions.has(entryExt.toLowerCase())
+      ) {
+        standaloneFiles.push(entryPath);
+      }
+    }
+  };
+
+  await visitDirectory(appPath, true);
+
+  const byDescendingDepth = (leftPath, rightPath) =>
+    rightPath.split(path.sep).length - leftPath.split(path.sep).length ||
+    leftPath.localeCompare(rightPath);
+
+  standaloneFiles.sort(byDescendingDepth);
+  nestedBundles.sort(byDescendingDepth);
+
+  return [...standaloneFiles, ...nestedBundles];
 };
 
 export const notarizePackagedMacApp = async ({

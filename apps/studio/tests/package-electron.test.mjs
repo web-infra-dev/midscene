@@ -10,6 +10,7 @@ import {
   buildPackagerOptions,
   buildVendoredWorkspaceDirName,
   buildVendoredWorkspaceManifest,
+  collectNestedMacCodeSignTargets,
   collectPackagedNodeModuleSymlinkIssues,
   collectWorkspaceDependencyClosure,
   dedupePlaygroundStatic,
@@ -22,6 +23,7 @@ import {
   pruneGifwrapTestFixtures,
   pruneSourceMapFiles,
   releaseWorkspaceDir,
+  resolveMacCodeSignEntitlementsPath,
   resolveMacPackagedAppBundlePath,
   resolveMacPackagedAppSecurity,
   resolvePackagerIconPath,
@@ -246,6 +248,82 @@ describe('package-electron helpers', () => {
     } finally {
       await fs.rm(tempRootDir, { force: true, recursive: true });
     }
+  });
+
+  it('collects nested macOS code-sign targets deepest-first before signing the root app bundle', async () => {
+    const tempRootDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'midscene-studio-codesign-targets-'),
+    );
+    const appBundlePath = path.join(tempRootDir, 'Midscene Studio.app');
+    const libffmpegPath = path.join(
+      appBundlePath,
+      'Contents',
+      'Frameworks',
+      'Electron Framework.framework',
+      'Versions',
+      'A',
+      'Libraries',
+      'libffmpeg.dylib',
+    );
+    const helperAppPath = path.join(
+      appBundlePath,
+      'Contents',
+      'Frameworks',
+      'Midscene Studio Helper.app',
+    );
+    const addonPath = path.join(
+      appBundlePath,
+      'Contents',
+      'Resources',
+      'native-addon.node',
+    );
+
+    try {
+      await fs.mkdir(path.dirname(libffmpegPath), { recursive: true });
+      await fs.mkdir(helperAppPath, { recursive: true });
+      await fs.mkdir(path.dirname(addonPath), { recursive: true });
+      await fs.writeFile(libffmpegPath, '');
+      await fs.writeFile(addonPath, '');
+
+      await expect(
+        collectNestedMacCodeSignTargets(appBundlePath),
+      ).resolves.toEqual([
+        libffmpegPath,
+        addonPath,
+        path.join(
+          appBundlePath,
+          'Contents',
+          'Frameworks',
+          'Electron Framework.framework',
+        ),
+        helperAppPath,
+      ]);
+    } finally {
+      await fs.rm(tempRootDir, { force: true, recursive: true });
+    }
+  });
+
+  it('selects Electron helper entitlements that match the osx-sign defaults', () => {
+    expect(
+      resolveMacCodeSignEntitlementsPath(
+        '/tmp/Midscene Studio.app/Contents/Frameworks/Midscene Studio Helper (Plugin).app',
+      ),
+    ).toMatch(/entitlements\.mac\.plugin\.plist$/);
+    expect(
+      resolveMacCodeSignEntitlementsPath(
+        '/tmp/Midscene Studio.app/Contents/Frameworks/Midscene Studio Helper (GPU).app',
+      ),
+    ).toMatch(/entitlements\.mac\.gpu\.plist$/);
+    expect(
+      resolveMacCodeSignEntitlementsPath(
+        '/tmp/Midscene Studio.app/Contents/Frameworks/Midscene Studio Helper (Renderer).app',
+      ),
+    ).toMatch(/entitlements\.mac\.renderer\.plist$/);
+    expect(
+      resolveMacCodeSignEntitlementsPath(
+        '/tmp/Midscene Studio.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libffmpeg.dylib',
+      ),
+    ).toMatch(/entitlements\.mac\.plist$/);
   });
 
   it('keeps release staging outside the studio package root', () => {
