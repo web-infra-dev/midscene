@@ -34,5 +34,7 @@ tasks:
       - ai: Click the case selector dropdown at the top of the sidebar
       - sleep: 1000
       - ai: Click the status filter dropdown and select 'Failed'
-      - sleep: 1000
-      - aiAssert: Only the failed test case is visible in the dropdown list
+      - sleep: 2000
+      - aiAssert: The status filter control now shows 'Failed'
+      - aiAssert: In the expanded case selector popup below the filter controls, exactly 1 test case option is visible. Ignore the task execution rows behind the popup.
+      - aiAssert: The single visible test case option in that popup shows a failed status indicator
