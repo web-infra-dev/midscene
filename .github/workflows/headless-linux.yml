@@ -13,12 +13,21 @@ on:
         required: false
         default: 'main'
         type: string
+      suite:
+        description: 'Workflow subset to run'
+        required: false
+        default: 'default'
+        type: choice
+        options:
+          - default
+          - studio
 
 permissions:
   contents: read
 
 jobs:
   headless-linux-ai-todo:
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.suite == 'default'
     runs-on: ubuntu-22.04
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -106,6 +115,7 @@ jobs:
       run: exit 1
 
   chrome-extension:
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.suite == 'default'
     runs-on: ubuntu-22.04
     env:
       # Env vars for computer agent (screenshot + AI actions)
@@ -183,6 +193,7 @@ jobs:
       run: exit 1
 
   chrome-extension-bridge:
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.suite == 'default'
     runs-on: ubuntu-22.04
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -257,6 +268,7 @@ jobs:
       run: exit 1
 
   chrome-extension-playground:
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.suite == 'default'
     runs-on: ubuntu-22.04
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -331,6 +343,7 @@ jobs:
       run: exit 1
 
   chrome-extension-recorder:
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.suite == 'default'
     runs-on: ubuntu-22.04
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -405,6 +418,7 @@ jobs:
       run: exit 1
 
   chrome-extension-settings:
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.suite == 'default'
     runs-on: ubuntu-22.04
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -477,3 +491,63 @@ jobs:
     - name: Check test result
       if: steps.test-settings.outcome == 'failure'
       run: exit 1
+
+  studio-startup:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.suite == 'studio'
+    runs-on: ubuntu-22.04
+    env:
+      CI: "1"
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.branch || github.ref }}
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 9.3.0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24.13.0'
+        cache: 'pnpm'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          xvfb \
+          libasound2 \
+          libatk-bridge2.0-0 \
+          libatk1.0-0 \
+          libcups2 \
+          libdrm2 \
+          libgbm1 \
+          libgtk-3-0 \
+          libnotify4 \
+          libnss3 \
+          libpango-1.0-0 \
+          libx11-xcb1 \
+          libxcomposite1 \
+          libxdamage1 \
+          libxfixes3 \
+          libxinerama1 \
+          libxkbcommon-x11-0 \
+          libxkbcommon0 \
+          libxrandr2 \
+          libxshmfence1 \
+          libxss1 \
+          libxtst6
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build Studio
+      run: npx nx build studio
+
+    - name: Run Studio startup smoke test
+      run: xvfb-run -a pnpm --dir apps/studio run test:smoke
+      env:
+        MIDSCENE_STUDIO_RUN_STARTUP_SMOKE: "1"

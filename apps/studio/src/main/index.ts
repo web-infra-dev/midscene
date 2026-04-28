@@ -43,6 +43,9 @@ let playgroundRuntimePromise: Promise<PlaygroundRuntimeService> | null = null;
 let deviceDiscoveryServicePromise: Promise<
   import('./playground/device-discovery').DeviceDiscoveryService
 > | null = null;
+const isStudioSmokeTest = process.env.MIDSCENE_STUDIO_SMOKE_TEST === '1';
+const STUDIO_SMOKE_READY_MARKER = 'MIDSCENE_STUDIO_SMOKE_READY';
+const STUDIO_SMOKE_FAILED_MARKER = 'MIDSCENE_STUDIO_SMOKE_FAILED';
 
 // Expose the Chromium DevTools Protocol on a fixed port in dev so external
 // profilers (e.g. chrome-devtools-mcp at http://localhost:9224) can attach to
@@ -199,6 +202,32 @@ const createMainWindow = () => {
     onReadyToShow: (listener) => window.once('ready-to-show', listener),
     show: () => window.show(),
   });
+
+  if (isStudioSmokeTest) {
+    window.webContents.once('did-finish-load', () => {
+      console.log(STUDIO_SMOKE_READY_MARKER);
+      setTimeout(() => {
+        app.exit(0);
+      }, 100);
+    });
+
+    window.webContents.once(
+      'did-fail-load',
+      (_event, errorCode, errorDescription, validatedURL) => {
+        console.error(
+          `${STUDIO_SMOKE_FAILED_MARKER}: did-fail-load ${errorCode} ${errorDescription} ${validatedURL}`,
+        );
+        app.exit(1);
+      },
+    );
+
+    window.webContents.once('render-process-gone', (_event, details) => {
+      console.error(
+        `${STUDIO_SMOKE_FAILED_MARKER}: render-process-gone ${details.reason}`,
+      );
+      app.exit(1);
+    });
+  }
 
   if (rendererDevUrl) {
     window.loadURL(rendererDevUrl);
