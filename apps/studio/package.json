@@ -10,7 +10,8 @@
     "preview": "rsbuild preview --environment renderer",
     "start": "node scripts/sync-static-assets.mjs && node scripts/launch-electron-prod.mjs",
     "test": "vitest run",
-    "test:smoke": "vitest run tests/startup-smoke.test.mjs"
+    "test:smoke": "vitest run tests/startup-smoke.test.mjs",
+    "test:smoke:ai": "vitest run tests/startup-smoke-ai.test.ts"
   },
   "dependencies": {
     "@midscene/android": "workspace:*",

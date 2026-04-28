@@ -497,6 +497,13 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       CI: "1"
+      MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
+      MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+      MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
+      MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
+      MIDSCENE_MODEL_RETRY_COUNT: "2"
+      MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
+      MIDSCENE_REPORT_QUIET: "true"
 
     steps:
     - uses: actions/checkout@v4
@@ -519,6 +526,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y \
           xvfb \
+          x11-xserver-utils \
           libasound2 \
           libatk-bridge2.0-0 \
           libatk1.0-0 \
@@ -551,3 +559,23 @@ jobs:
       run: xvfb-run -a pnpm --dir apps/studio run test:smoke
       env:
         MIDSCENE_STUDIO_RUN_STARTUP_SMOKE: "1"
+
+    - name: Run Studio Midscene startup test
+      run: xvfb-run -a pnpm --dir apps/studio run test:smoke:ai
+      timeout-minutes: 25
+      id: test-ai
+      continue-on-error: true
+      env:
+        MIDSCENE_STUDIO_RUN_STARTUP_SMOKE_AI: "1"
+
+    - name: Upload Studio Midscene report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: studio-startup-ai-report
+        path: midscene_run/report/studio-startup-ai-report.html
+        if-no-files-found: ignore
+
+    - name: Check Studio Midscene startup result
+      if: steps.test-ai.outcome == 'failure'
+      run: exit 1
