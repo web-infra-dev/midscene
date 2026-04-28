@@ -12,6 +12,14 @@ const __dirname = path.dirname(__filename);
 const studioRootDir = path.resolve(__dirname, '..');
 const workspaceRootDir = path.resolve(studioRootDir, '..', '..');
 const studioBuildDir = path.join(studioRootDir, 'build');
+const reportRootDir = path.join(workspaceRootDir, 'apps', 'report');
+const coreRootDir = path.join(workspaceRootDir, 'packages', 'core');
+const coreDistDir = path.join(coreRootDir, 'dist');
+const reportTemplatePath = path.join(reportRootDir, 'dist', 'index.html');
+const reportTemplatePlaceholder = 'REPLACE_ME_WITH_REPORT_HTML';
+const unresolvedReportTemplatePattern = new RegExp(
+  String.raw`(?:=|return)\s*(['"])${reportTemplatePlaceholder}\1`,
+);
 
 // Keep release packaging state outside `apps/studio` so local build outputs do
 // not recurse back into the generated Electron payload.
@@ -25,7 +33,19 @@ const packagingWorkspaceDir = path.join(releaseWorkspaceDir, 'workspace');
 const packagedDir = path.join(releaseWorkspaceDir, 'packaged');
 const packagedAppId = 'midscene-studio';
 const packagedProductName = 'Midscene Studio';
-const packagedIgnorePatterns = [/^\/pnpm-lock\.yaml$/, /^\/vendor($|\/)/];
+const packagedIgnorePatterns = [
+  /^\/pnpm-lock\.yaml$/,
+  /^\/vendor($|\/)/,
+  // Documentation / changelog noise from third-party packages.
+  /\/(README|CHANGELOG|HISTORY|CONTRIBUTING|AUTHORS)(\.[a-zA-Z]+)?$/i,
+  // Editor / repo metadata that shipped from upstream `files` globs.
+  /\/\.(github|vscode|idea|circleci|husky)(\/|$)/,
+  /\/(\.npmignore|\.editorconfig|\.gitignore|\.gitattributes|\.prettierrc[^/]*|\.eslintrc[^/]*|\.eslintignore|\.babelrc[^/]*)$/,
+  // TypeScript type definitions are not loaded by the packaged runtime.
+  /\.d\.ts(\.map)?$/,
+  // Source maps duplicate what `pruneSourceMapFiles` already removed.
+  /\.js\.map$/,
+];
 const defaultMacEntitlementsPath = path.join(
   studioBuildDir,
   'entitlements.mac.plist',
@@ -60,6 +80,13 @@ const studioBuildSourceTargets = [
   'project.json',
   'tsconfig.json',
   'postcss.config.mjs',
+  'rsbuild.config.ts',
+];
+const reportBuildSourceTargets = [
+  'src',
+  'template',
+  'package.json',
+  'tsconfig.json',
   'rsbuild.config.ts',
 ];
 const playgroundAppBuildSourceTargets = [
@@ -154,19 +181,12 @@ const run = (command, args, { cwd = workspaceRootDir, env } = {}) =>
     });
   });
 
-const resolveConfiguredString = (values) => {
-  for (const value of values) {
-    if (typeof value !== 'string') {
-      continue;
-    }
-
-    const trimmed = value.trim();
-    if (trimmed) {
-      return trimmed;
-    }
+const resolveTrimmedEnv = (value) => {
+  if (typeof value !== 'string') {
+    return undefined;
   }
-
-  return undefined;
+  const trimmed = value.trim();
+  return trimmed || undefined;
 };
 
 export const parseBooleanLike = (value, defaultValue = false) => {
@@ -195,16 +215,15 @@ export const parseBooleanLike = (value, defaultValue = false) => {
 };
 
 export const resolveMacPackagedAppSecurity = ({
-  cliOptions = {},
   env = process.env,
   platform = process.platform,
 } = {}) => {
   const requireCodesign = parseBooleanLike(
-    cliOptions.requireMacCodesign ?? env.MIDSCENE_REQUIRE_MAC_CODESIGN,
+    env.MIDSCENE_REQUIRE_MAC_CODESIGN,
     false,
   );
   const requireNotarization = parseBooleanLike(
-    cliOptions.requireMacNotarization ?? env.MIDSCENE_REQUIRE_MAC_NOTARIZATION,
+    env.MIDSCENE_REQUIRE_MAC_NOTARIZATION,
     false,
   );
 
@@ -221,30 +240,12 @@ export const resolveMacPackagedAppSecurity = ({
     };
   }
 
-  const signIdentity = resolveConfiguredString([
-    cliOptions.macSignIdentity,
-    env.APPLE_CODESIGN_IDENTITY,
-  ]);
-  const signKeychain = resolveConfiguredString([
-    cliOptions.macSignKeychain,
-    env.APPLE_CODESIGN_KEYCHAIN,
-  ]);
-  const teamId = resolveConfiguredString([
-    cliOptions.macTeamId,
-    env.APPLE_TEAM_ID,
-  ]);
-  const appleApiKey = resolveConfiguredString([
-    cliOptions.macNotarizeApiKey,
-    env.APPLE_API_KEY_PATH,
-  ]);
-  const appleApiKeyId = resolveConfiguredString([
-    cliOptions.macNotarizeApiKeyId,
-    env.APPLE_API_KEY_ID,
-  ]);
-  const appleApiIssuer = resolveConfiguredString([
-    cliOptions.macNotarizeApiIssuer,
-    env.APPLE_API_ISSUER_ID,
-  ]);
+  const signIdentity = resolveTrimmedEnv(env.APPLE_CODESIGN_IDENTITY);
+  const signKeychain = resolveTrimmedEnv(env.APPLE_CODESIGN_KEYCHAIN);
+  const teamId = resolveTrimmedEnv(env.APPLE_TEAM_ID);
+  const appleApiKey = resolveTrimmedEnv(env.APPLE_API_KEY_PATH);
+  const appleApiKeyId = resolveTrimmedEnv(env.APPLE_API_KEY_ID);
+  const appleApiIssuer = resolveTrimmedEnv(env.APPLE_API_ISSUER_ID);
   const shouldDeveloperIdSign = Boolean(signIdentity);
   const notarizeOptions =
     appleApiKey && appleApiKeyId
@@ -258,10 +259,7 @@ export const resolveMacPackagedAppSecurity = ({
 
   if (requireCodesign && !shouldDeveloperIdSign) {
     throw new Error(
-      [
-        'macOS release packaging requires a Developer ID signing identity.',
-        'Set APPLE_CODESIGN_IDENTITY or pass --mac-sign-identity=<identity>.',
-      ].join(' '),
+      'macOS release packaging requires a Developer ID signing identity. Set APPLE_CODESIGN_IDENTITY.',
     );
   }
 
@@ -273,10 +271,7 @@ export const resolveMacPackagedAppSecurity = ({
 
   if (requireNotarization && !shouldDeveloperIdSign) {
     throw new Error(
-      [
-        'macOS notarization requires a Developer ID signing identity.',
-        'Set APPLE_CODESIGN_IDENTITY or pass --mac-sign-identity=<identity>.',
-      ].join(' '),
+      'macOS notarization requires a Developer ID signing identity. Set APPLE_CODESIGN_IDENTITY.',
     );
   }
 
@@ -547,6 +542,44 @@ const collectLatestMtime = async (targetPath) => {
   return latestMtime;
 };
 
+const reportRuntimeOutputExtensions = new Set(['.cjs', '.html', '.js', '.mjs']);
+
+export const pathContainsReportTemplatePlaceholder = async (rootDir) => {
+  let entries;
+  try {
+    entries = await fs.readdir(rootDir, { withFileTypes: true });
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return false;
+    }
+    throw error;
+  }
+
+  for (const entry of entries) {
+    const entryPath = path.join(rootDir, entry.name);
+    if (entry.isDirectory()) {
+      if (await pathContainsReportTemplatePlaceholder(entryPath)) {
+        return true;
+      }
+      continue;
+    }
+
+    if (
+      !entry.isFile() ||
+      !reportRuntimeOutputExtensions.has(path.extname(entry.name))
+    ) {
+      continue;
+    }
+
+    const content = await fs.readFile(entryPath, 'utf8');
+    if (unresolvedReportTemplatePattern.test(content)) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 const BUILD_META_FILENAME = '.release-build-meta.json';
 const BUILD_META_SCHEMA_VERSION = 1;
 
@@ -590,7 +623,11 @@ export const writeBuildMeta = async (packageDir, { nodeEnv }) => {
   );
 };
 
-export const getBuildStatus = async ({ packageDir, sourceTargets }) => {
+export const getBuildStatus = async ({
+  packageDir,
+  sourceTargets,
+  additionalSourceTargets = [],
+}) => {
   const distDir = path.join(packageDir, 'dist');
   try {
     const distStats = await fs.stat(distDir);
@@ -625,10 +662,12 @@ export const getBuildStatus = async ({ packageDir, sourceTargets }) => {
     };
   }
 
+  const sourcePaths = [
+    ...sourceTargets.map((target) => path.join(packageDir, target)),
+    ...additionalSourceTargets,
+  ];
   const latestSourceMtime = await Promise.all(
-    sourceTargets.map((target) =>
-      collectLatestMtime(path.join(packageDir, target)),
-    ),
+    sourcePaths.map((targetPath) => collectLatestMtime(targetPath)),
   ).then((mtimes) => Math.max(0, ...mtimes));
   const latestDistMtime = await collectLatestMtime(distDir);
 
@@ -645,47 +684,99 @@ export const getBuildStatus = async ({ packageDir, sourceTargets }) => {
   };
 };
 
-const assertNoLiveDevBuilders = async () => {
-  try {
-    const { stdout } = await new Promise((resolve, reject) => {
-      const child = spawn('pgrep', ['-af', 'rsbuild dev'], {
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
-      let buffer = '';
-      child.stdout.on('data', (chunk) => {
-        buffer += chunk.toString();
-      });
-      child.on('close', () => resolve({ stdout: buffer }));
-      child.on('error', reject);
-    });
-    const matches = stdout
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean);
-    if (matches.length > 0) {
-      throw new Error(
-        [
-          'Detected live `rsbuild dev` processes while packaging:',
-          ...matches.map((line) => `  ${line}`),
-          'A concurrent dev server keeps overwriting `apps/studio/dist/` with',
-          'a development-mode renderer whose absolute asset URLs break under',
-          '`file://`. Stop `pnpm dev` first, then rerun `pnpm package:release`.',
-        ].join('\n'),
-      );
-    }
-  } catch (error) {
-    if (error?.code === 'ENOENT') {
-      return;
-    }
-    throw error;
-  }
-};
-
 const buildPackageDir = async (packageDir) => {
   await run(packageManagerCommand, ['--dir', packageDir, 'build'], {
     env: { ...process.env, NODE_ENV: 'production' },
   });
-  await writeBuildMeta(packageDir, { nodeEnv: 'production' });
+  await writeBuildMeta(
+    path.isAbsolute(packageDir)
+      ? packageDir
+      : path.join(workspaceRootDir, packageDir),
+    { nodeEnv: 'production' },
+  );
+};
+
+const ensureReportTemplateReady = async () => {
+  let content;
+  try {
+    content = await fs.readFile(reportTemplatePath, 'utf8');
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      throw new Error(
+        `Expected report template to exist after build: ${reportTemplatePath}`,
+      );
+    }
+    throw error;
+  }
+
+  if (!content.trim()) {
+    throw new Error(`Report template is empty: ${reportTemplatePath}`);
+  }
+};
+
+const prepareReportBuildOutput = async () => {
+  let status = await getBuildStatus({
+    packageDir: reportRootDir,
+    sourceTargets: reportBuildSourceTargets,
+  });
+
+  if (!status.needsBuild) {
+    try {
+      const templateStats = await fs.stat(reportTemplatePath);
+      if (!templateStats.isFile()) {
+        status = {
+          needsBuild: true,
+          reason: 'report template output is missing',
+        };
+      }
+    } catch (error) {
+      if (error?.code !== 'ENOENT') {
+        throw error;
+      }
+      status = {
+        needsBuild: true,
+        reason: 'report template output is missing',
+      };
+    }
+  }
+
+  if (status.needsBuild) {
+    console.log(`Building apps/report (${status.reason}).`);
+    await buildPackageDir(path.relative(workspaceRootDir, reportRootDir));
+  } else {
+    console.log(`Skipping apps/report build (${status.reason}).`);
+  }
+
+  await ensureReportTemplateReady();
+};
+
+const ensureCoreReportTemplateInjected = async () => {
+  let status = await getBuildStatus({
+    packageDir: coreRootDir,
+    sourceTargets: packageBuildSourceTargets,
+    additionalSourceTargets: [reportTemplatePath],
+  });
+
+  if (
+    !status.needsBuild &&
+    (await pathContainsReportTemplatePlaceholder(coreDistDir))
+  ) {
+    status = {
+      needsBuild: true,
+      reason: 'report template placeholder remains in build output',
+    };
+  }
+
+  if (status.needsBuild) {
+    console.log(`Building packages/core (${status.reason}).`);
+    await buildPackageDir(path.relative(workspaceRootDir, coreRootDir));
+  }
+
+  if (await pathContainsReportTemplatePlaceholder(coreDistDir)) {
+    throw new Error(
+      `packages/core build still contains ${reportTemplatePlaceholder}; rebuild apps/report before packaging.`,
+    );
+  }
 };
 
 const prepareStudioWorkspacePackages = async (workspacePackages) => {
@@ -707,19 +798,38 @@ const prepareStudioWorkspacePackages = async (workspacePackages) => {
   }
 };
 
-const prepareStudioBuildOutput = async () => {
-  const status = await getBuildStatus({
+const prepareStudioBuildOutput = async ({
+  additionalSourceTargets = [],
+} = {}) => {
+  let status = await getBuildStatus({
     packageDir: studioRootDir,
     sourceTargets: studioBuildSourceTargets,
+    additionalSourceTargets,
   });
 
-  if (!status.needsBuild) {
-    console.log(`Skipping apps/studio build (${status.reason}).`);
-    return;
+  const studioDistDir = path.join(studioRootDir, 'dist');
+  if (
+    !status.needsBuild &&
+    (await pathContainsReportTemplatePlaceholder(studioDistDir))
+  ) {
+    status = {
+      needsBuild: true,
+      reason: 'report template placeholder remains in build output',
+    };
   }
 
-  console.log(`Building apps/studio (${status.reason}).`);
-  await buildPackageDir(path.relative(workspaceRootDir, studioRootDir));
+  if (status.needsBuild) {
+    console.log(`Building apps/studio (${status.reason}).`);
+    await buildPackageDir(path.relative(workspaceRootDir, studioRootDir));
+  } else {
+    console.log(`Skipping apps/studio build (${status.reason}).`);
+  }
+
+  if (await pathContainsReportTemplatePlaceholder(studioDistDir)) {
+    throw new Error(
+      `apps/studio build still contains ${reportTemplatePlaceholder}; rebuild apps/report before packaging.`,
+    );
+  }
 };
 
 const getStaticWorkspacePackageSourceConfig = (packageName) =>
@@ -1368,7 +1478,11 @@ const createPackagingWorkspace = async ({ stageDir, version }) => {
 
   await prepareStaticWorkspacePackageSources(workspacePackages);
   await prepareStudioWorkspacePackages(workspacePackages);
-  await prepareStudioBuildOutput();
+  await prepareReportBuildOutput();
+  await ensureCoreReportTemplateInjected();
+  await prepareStudioBuildOutput({
+    additionalSourceTargets: [reportTemplatePath, coreDistDir],
+  });
   await removeIfExists(stageDir);
   await fs.mkdir(path.dirname(stageDir), { recursive: true });
   await copyStudioBuildOutputToStageDir(stageDir);
@@ -1640,14 +1754,6 @@ export const packageStudioElectronApp = async ({
   version,
   platform = process.platform,
   arch = process.arch,
-  macNotarizeApiIssuer,
-  macNotarizeApiKey,
-  macNotarizeApiKeyId,
-  macSignIdentity,
-  macSignKeychain,
-  macTeamId,
-  requireMacCodesign,
-  requireMacNotarization,
 } = {}) => {
   const normalizedVersion = normalizeReleaseVersion(version);
   const baseName = buildArtifactBaseName({
@@ -1656,21 +1762,8 @@ export const packageStudioElectronApp = async ({
     arch,
   });
   const stageDir = path.join(packagingWorkspaceDir, baseName);
-  const macSecurity = resolveMacPackagedAppSecurity({
-    cliOptions: {
-      macNotarizeApiIssuer,
-      macNotarizeApiKey,
-      macNotarizeApiKeyId,
-      macSignIdentity,
-      macSignKeychain,
-      macTeamId,
-      requireMacCodesign,
-      requireMacNotarization,
-    },
-    platform,
-  });
+  const macSecurity = resolveMacPackagedAppSecurity({ platform });
 
-  await assertNoLiveDevBuilders();
   await createPackagingWorkspace({ stageDir, version: normalizedVersion });
 
   await removeIfExists(packagedDir);
@@ -1733,15 +1826,7 @@ if (isDirectInvocation) {
     allowPositionals: false,
     options: {
       arch: { type: 'string' },
-      'mac-notarize-api-issuer': { type: 'string' },
-      'mac-notarize-api-key': { type: 'string' },
-      'mac-notarize-api-key-id': { type: 'string' },
-      'mac-sign-identity': { type: 'string' },
-      'mac-sign-keychain': { type: 'string' },
-      'mac-team-id': { type: 'string' },
       platform: { type: 'string' },
-      'require-mac-codesign': { type: 'string' },
-      'require-mac-notarization': { type: 'string' },
       version: { type: 'string' },
     },
   });
@@ -1754,15 +1839,7 @@ if (isDirectInvocation) {
 
   await packageStudioElectronApp({
     arch: values.arch,
-    macNotarizeApiIssuer: values['mac-notarize-api-issuer'],
-    macNotarizeApiKey: values['mac-notarize-api-key'],
-    macNotarizeApiKeyId: values['mac-notarize-api-key-id'],
-    macSignIdentity: values['mac-sign-identity'],
-    macSignKeychain: values['mac-sign-keychain'],
-    macTeamId: values['mac-team-id'],
     platform: values.platform,
-    requireMacCodesign: values['require-mac-codesign'],
-    requireMacNotarization: values['require-mac-notarization'],
     version,
   });
 }

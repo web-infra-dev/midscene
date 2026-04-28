@@ -19,6 +19,7 @@ import {
   getStudioElectronVersion,
   normalizeReleaseVersion,
   parseBooleanLike,
+  pathContainsReportTemplatePlaceholder,
   pruneAntdUmdBundles,
   pruneGifwrapTestFixtures,
   pruneSourceMapFiles,
@@ -829,6 +830,83 @@ describe('package-electron helpers', () => {
       expect(upToDate).toEqual({ needsBuild: false, reason: 'up to date' });
     } finally {
       await fs.rm(packageDir, { recursive: true, force: true });
+    }
+  });
+
+  it('getBuildStatus treats additional build inputs as source dependencies', async () => {
+    const { getBuildStatus, writeBuildMeta } = await import(
+      '../scripts/package-electron.mjs'
+    );
+    const packageDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'midscene-build-'),
+    );
+    const src = path.join(packageDir, 'src');
+    const dist = path.join(packageDir, 'dist');
+    const injectedTemplate = path.join(
+      packageDir,
+      '..',
+      `${path.basename(packageDir)}-report.html`,
+    );
+
+    try {
+      await fs.mkdir(src, { recursive: true });
+      await fs.mkdir(dist, { recursive: true });
+      await fs.writeFile(path.join(src, 'a.ts'), 'x');
+      await fs.writeFile(path.join(dist, 'out.js'), 'x');
+      await writeBuildMeta(packageDir, { nodeEnv: 'production' });
+
+      await expect(
+        getBuildStatus({
+          packageDir,
+          sourceTargets: ['src'],
+        }),
+      ).resolves.toEqual({ needsBuild: false, reason: 'up to date' });
+
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      await fs.writeFile(injectedTemplate, '<html></html>');
+
+      await expect(
+        getBuildStatus({
+          packageDir,
+          sourceTargets: ['src'],
+          additionalSourceTargets: [injectedTemplate],
+        }),
+      ).resolves.toEqual({
+        needsBuild: true,
+        reason: 'source files are newer than build output',
+      });
+    } finally {
+      await fs.rm(packageDir, { recursive: true, force: true });
+      await fs.rm(injectedTemplate, { force: true });
+    }
+  });
+
+  it('detects unresolved report template placeholders in runtime output only', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'midscene-report-'));
+    try {
+      await fs.writeFile(
+        path.join(root, 'guard.js'),
+        "if (html.includes('REPLACE_ME_WITH_REPORT_HTML')) reportHTML = null;",
+      );
+      await fs.writeFile(
+        path.join(root, 'bundle.js.map'),
+        '{"sourcesContent":["const reportTpl = \'REPLACE_ME_WITH_REPORT_HTML\';"]}',
+      );
+
+      await expect(pathContainsReportTemplatePlaceholder(root)).resolves.toBe(
+        false,
+      );
+
+      await fs.writeFile(
+        path.join(root, 'utils.js'),
+        "const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';",
+      );
+
+      await expect(pathContainsReportTemplatePlaceholder(root)).resolves.toBe(
+        true,
+      );
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
     }
   });
 
