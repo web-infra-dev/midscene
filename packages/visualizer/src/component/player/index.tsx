@@ -177,6 +177,13 @@ export function Player(props?: {
     };
   }, [currentFrameState]);
 
+  // Export video state (declared up here so the controls auto-hide logic can
+  // see it and keep the control bar visible while an export is in progress —
+  // otherwise the bar fades out, the settings dropdown trigger goes
+  // pointer-events:none, and the dropdown closes mid-export).
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+
   // Controls auto-hide
   const [controlsVisible, setControlsVisible] = useState(true);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -184,8 +191,9 @@ export function Player(props?: {
   const showControls = useCallback(() => {
     setControlsVisible(true);
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    if (isExporting) return;
     hideTimerRef.current = setTimeout(() => setControlsVisible(false), 3000);
-  }, []);
+  }, [isExporting]);
 
   const onMouseEnter = useCallback(() => {
     setControlsVisible(true);
@@ -194,8 +202,18 @@ export function Player(props?: {
 
   const onMouseLeave = useCallback(() => {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    if (isExporting) return;
     hideTimerRef.current = setTimeout(() => setControlsVisible(false), 1000);
-  }, []);
+  }, [isExporting]);
+
+  useEffect(() => {
+    if (!isExporting) return;
+    setControlsVisible(true);
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, [isExporting]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -259,9 +277,6 @@ export function Player(props?: {
   }, []);
 
   // Export video
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportProgress, setExportProgress] = useState(0);
-
   const handleExportVideo = useCallback(async () => {
     if (!frameMap || isExporting) return;
     setIsExporting(true);
