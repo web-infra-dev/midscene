@@ -21,6 +21,7 @@ import {
 import { getDebug } from '@midscene/shared/logger';
 import type { LocateResultElement } from '@midscene/shared/types';
 import { assert } from '@midscene/shared/utils';
+import OpenAI from 'openai';
 import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
@@ -61,6 +62,152 @@ export type AIArgs = [
 
 const debugInspect = getDebug('ai:inspect');
 const debugSection = getDebug('ai:section');
+
+type ComputerAction =
+  | {
+      type: 'click' | 'double_click' | 'move';
+      x?: number;
+      y?: number;
+      button?: string;
+    }
+  | {
+      type: 'drag';
+      path?: Array<{ x?: number; y?: number } | [number, number]>;
+      from?: { x?: number; y?: number };
+      to?: { x?: number; y?: number };
+    }
+  | {
+      type: string;
+      from?: { x?: number; y?: number };
+      to?: { x?: number; y?: number };
+      path?: Array<{ x?: number; y?: number } | [number, number]>;
+      [key: string]: unknown;
+    };
+
+type Gpt5LocateResult = {
+  x: number;
+  y: number;
+  actionType: string;
+  responseId: string | null;
+};
+
+function toDataUrlIfNeeded(imageBase64OrDataUrl: string): string {
+  return imageBase64OrDataUrl.startsWith('data:')
+    ? imageBase64OrDataUrl
+    : `data:image/png;base64,${imageBase64OrDataUrl}`;
+}
+
+function pointFromPathEntry(
+  entry: { x?: number; y?: number } | [number, number] | undefined,
+): { x: number; y: number } | null {
+  if (!entry) return null;
+
+  if (Array.isArray(entry) && entry.length === 2) {
+    const [x, y] = entry;
+    if (typeof x === 'number' && typeof y === 'number') {
+      return { x, y };
+    }
+    return null;
+  }
+
+  if (
+    typeof entry === 'object' &&
+    entry !== null &&
+    !Array.isArray(entry) &&
+    typeof entry.x === 'number' &&
+    typeof entry.y === 'number'
+  ) {
+    return { x: entry.x, y: entry.y };
+  }
+
+  return null;
+}
+
+function extractPointFromAction(
+  action: ComputerAction,
+): Gpt5LocateResult | null {
+  if (
+    (action.type === 'click' ||
+      action.type === 'double_click' ||
+      action.type === 'move') &&
+    typeof action.x === 'number' &&
+    typeof action.y === 'number'
+  ) {
+    return {
+      x: action.x,
+      y: action.y,
+      actionType: action.type,
+      responseId: null,
+    };
+  }
+
+  if (action.type === 'drag') {
+    const pathEntries = Array.isArray(action.path) ? action.path : [];
+    const toPoint = action.to as { x?: number; y?: number } | [number, number];
+    const fromPoint = action.from as
+      | { x?: number; y?: number }
+      | [number, number];
+    const pathPoint =
+      pointFromPathEntry(pathEntries[pathEntries.length - 1]) ??
+      pointFromPathEntry(toPoint) ??
+      pointFromPathEntry(fromPoint);
+
+    if (pathPoint) {
+      return {
+        x: pathPoint.x,
+        y: pathPoint.y,
+        actionType: action.type,
+        responseId: null,
+      };
+    }
+  }
+
+  return null;
+}
+
+function getField<T>(value: unknown, field: string): T | undefined {
+  if (typeof value === 'object' && value !== null && field in value) {
+    return (value as Record<string, T>)[field];
+  }
+  return undefined;
+}
+
+function extractLocatePointFromResponse(
+  response: OpenAI.Responses.Response,
+): Gpt5LocateResult {
+  for (const item of response.output ?? []) {
+    if (item.type !== 'computer_call') continue;
+
+    const rawActions =
+      getField<unknown[]>(item, 'actions') ??
+      (getField<unknown>(item, 'action') ? [getField(item, 'action')] : []);
+
+    for (const rawAction of rawActions) {
+      const action = rawAction as ComputerAction;
+      const point = extractPointFromAction(action);
+      if (point) {
+        point.responseId = response.id ?? null;
+        return point;
+      }
+    }
+  }
+
+  const outputText =
+    typeof response.output_text === 'string' && response.output_text
+      ? response.output_text
+      : '[empty output_text]';
+
+  throw new Error(
+    `Model did not return a clickable computer_call action.\noutput_text: ${outputText}`,
+  );
+}
+
+function clampPoint(x: number, y: number, width: number, height: number) {
+  return {
+    x: Math.max(0, Math.min(Math.round(x), width - 1)),
+    y: Math.max(0, Math.min(Math.round(y), height - 1)),
+  };
+}
 
 export async function buildSearchAreaConfig(options: {
   context: UIContext;
@@ -295,6 +442,121 @@ export async function AiLocateElement(options: {
       rawResponse: rawResponseContent,
       usage,
       reasoning_content: parsed.think,
+    };
+  }
+
+  if (modelFamily === 'gpt-5') {
+    const imageDataUrl = toDataUrlIfNeeded(imagePayload);
+
+    const locateInstructions = [
+      'You are given a single static screenshot.',
+      `The screenshot resolution is ${imageWidth}x${imageHeight}.`,
+      `Target: ${userInstructionPrompt}`,
+      'Use the computer tool exactly once to point at the target center.',
+      'Return a computer action with coordinates that land on the target.',
+      'Do not continue to a second step, do not ask follow-up questions, and do not describe the answer in prose.',
+    ].join('\n');
+
+    const client = new OpenAI({
+      apiKey: modelConfig.openaiApiKey,
+      baseURL: modelConfig.openaiBaseURL,
+      ...modelConfig.openaiExtraConfig,
+      maxRetries: 0,
+      dangerouslyAllowBrowser: true,
+    });
+
+    const response = await client.responses.create(
+      {
+        model: modelConfig.modelName,
+        instructions:
+          'You are a GUI grounding agent. Identify the target in the screenshot and emit a precise computer action with coordinates.',
+        input: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'input_text',
+                text: locateInstructions,
+              },
+              {
+                type: 'input_image',
+                image_url: imageDataUrl,
+                detail: 'high',
+              },
+            ],
+          },
+        ],
+        tools: [
+          {
+            type: 'computer_use_preview',
+            environment: 'browser',
+            display_width: imageWidth,
+            display_height: imageHeight,
+          },
+        ],
+        parallel_tool_calls: false,
+        truncation: 'auto',
+        reasoning: {
+          effort: 'high',
+          summary: 'concise',
+        },
+      },
+      {
+        signal: options.abortSignal,
+      },
+    );
+
+    const locatedPoint = extractLocatePointFromResponse(response);
+    const localPoint = clampPoint(
+      locatedPoint.x,
+      locatedPoint.y,
+      imageWidth,
+      imageHeight,
+    );
+
+    let finalX = localPoint.x;
+    let finalY = localPoint.y;
+
+    if (options.searchConfig?.rect) {
+      finalX += options.searchConfig.rect.left;
+      finalY += options.searchConfig.rect.top;
+    }
+
+    const clampedPoint = clampPoint(
+      finalX,
+      finalY,
+      context.shotSize.width,
+      context.shotSize.height,
+    );
+
+    const element: LocateResultElement = generateElementByPoint(
+      [clampedPoint.x, clampedPoint.y],
+      targetElementDescriptionText as string,
+    );
+
+    const usage = response.usage
+      ? {
+          prompt_tokens: response.usage.input_tokens ?? 0,
+          completion_tokens: response.usage.output_tokens ?? 0,
+          total_tokens: response.usage.total_tokens ?? 0,
+          cached_input: response.usage.input_tokens_details?.cached_tokens ?? 0,
+          time_cost: 0,
+          model_name: modelConfig.modelName,
+          model_description: modelConfig.modelDescription,
+          intent: modelConfig.intent,
+          request_id: response.id ?? undefined,
+        }
+      : undefined;
+
+    return {
+      rect: element.rect,
+      parseResult: {
+        elements: [element],
+        errors: [],
+      },
+      rawResponse: JSON.stringify(response.output ?? []),
+      usage,
+      reasoning_content: undefined,
     };
   }
 
