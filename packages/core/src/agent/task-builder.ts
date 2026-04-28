@@ -253,7 +253,6 @@ export class TaskBuilder {
         });
 
         setTimingFieldOnce(timing, 'beforeInvokeActionHookStart');
-        const delayBeforeRunner = action.delayBeforeRunner ?? 200;
         try {
           await Promise.all([
             (async () => {
@@ -267,9 +266,7 @@ export class TaskBuilder {
                 );
               }
             })(),
-            delayBeforeRunner > 0
-              ? sleep(delayBeforeRunner)
-              : Promise.resolve(),
+            sleep(200),
           ]);
         } catch (originalError: any) {
           const originalMessage =
