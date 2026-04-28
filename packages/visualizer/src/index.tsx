@@ -36,6 +36,7 @@ export { PromptInput } from './component/prompt-input';
 export { Player } from './component/player';
 export { Blackboard } from './component/blackboard';
 export { default as ScreenshotViewer } from './component/screenshot-viewer';
+export type { ScreenshotViewerMode } from './component/screenshot-viewer';
 
 // Export playground utilities
 export {
@@ -68,6 +69,8 @@ export type {
   ExecutionUxHint,
   ExecutionUxConfig,
   PromptInputChromeConfig,
+  ReportDownloadHandler,
+  ReportDownloadRequest,
 } from './types';
 
 // Export storage providers (both legacy and new)

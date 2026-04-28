@@ -1091,6 +1091,8 @@ const createPlatformActions = (device: IOSDevice) => {
       sample: {
         uri: 'com.apple.Preferences',
       },
+      delayBeforeRunner: 0,
+      delayAfterRunner: 0,
       call: async (param) => {
         if (!param.uri || param.uri.trim() === '') {
           throw new Error('Terminate requires a non-empty uri parameter');
@@ -1101,6 +1103,8 @@ const createPlatformActions = (device: IOSDevice) => {
     IOSHomeButton: defineAction({
       name: 'IOSHomeButton',
       description: 'Trigger the system "home" operation on iOS devices',
+      delayBeforeRunner: 0,
+      delayAfterRunner: 0,
       call: async () => {
         await device.home();
       },

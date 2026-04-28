@@ -384,6 +384,15 @@ export interface InfoListItem {
   actionKind?: string;
 }
 
+export interface ReportDownloadRequest {
+  content: string;
+  defaultFileName: string;
+}
+
+export type ReportDownloadHandler = (
+  request: ReportDownloadRequest,
+) => void | Promise<void>;
+
 // main component config interface
 export interface UniversalPlaygroundConfig {
   showContextPreview?: boolean;
@@ -415,6 +424,11 @@ export interface UniversalPlaygroundConfig {
    * grouping, no connector) so existing hosts keep their behaviour.
    */
   executionFlow?: ExecutionFlowConfig;
+  /**
+   * Optional host-provided report download hook.
+   * Defaults to the browser Blob download flow when omitted.
+   */
+  onDownloadReport?: ReportDownloadHandler;
 }
 
 export interface ExecutionFlowConfig {
