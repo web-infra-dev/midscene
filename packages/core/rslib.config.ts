@@ -3,11 +3,7 @@ import path from 'node:path';
 import { defineConfig } from '@rslib/core';
 import { version } from './package.json';
 
-// Inject report template into dist if available (self-injection as fallback).
-// The placeholder only lives in `src/report-template.ts` — we target that
-// single compiled file so we don't have to scan the whole `dist/` tree, and
-// we don't accidentally inline the multi-megabyte HTML into any other
-// module's output.
+// Inject report template into dist if available (self-injection as fallback)
 const injectReportTemplate = () => ({
   name: 'inject-report-template',
   setup: (api: { onAfterBuild: (fn: () => void) => void }) => {
@@ -34,32 +30,35 @@ const injectReportTemplate = () => ({
         .replaceAll(magicString, '');
       const finalContent = `${replacedMark}${JSON.stringify(tplFileContent)}`;
 
-      const candidateFiles = [
-        path.resolve(__dirname, 'dist/lib/report-template.js'),
-        path.resolve(__dirname, 'dist/es/report-template.mjs'),
-      ];
+      const distDir = path.resolve(__dirname, 'dist');
+      const files = fs.readdirSync(distDir, { recursive: true });
       let injectedCount = 0;
 
-      for (const filePath of candidateFiles) {
-        if (!fs.existsSync(filePath)) {
-          continue;
-        }
-        const content = fs.readFileSync(filePath, 'utf-8');
+      for (const file of files) {
+        if (
+          typeof file === 'string' &&
+          (file.endsWith('.js') || file.endsWith('.mjs'))
+        ) {
+          const filePath = path.join(distDir, file);
+          const content = fs.readFileSync(filePath, 'utf-8');
 
-        if (content.includes(replacedMark)) {
-          const updated = content.replace(regExpForReplace, () => finalContent);
-          fs.writeFileSync(filePath, updated);
-          injectedCount++;
-          continue;
-        }
-
-        if (content.includes(magicString)) {
-          const updated = content.replace(
-            `'${magicString}'`,
-            () => finalContent,
-          );
-          fs.writeFileSync(filePath, updated);
-          injectedCount++;
+          if (content.includes(replacedMark)) {
+            // Already injected, update it
+            const updated = content.replace(
+              regExpForReplace,
+              () => finalContent,
+            );
+            fs.writeFileSync(filePath, updated);
+            injectedCount++;
+          } else if (content.includes(magicString)) {
+            // First injection
+            const updated = content.replace(
+              `'${magicString}'`,
+              () => finalContent,
+            );
+            fs.writeFileSync(filePath, updated);
+            injectedCount++;
+          }
         }
       }
 
@@ -67,11 +66,11 @@ const injectReportTemplate = () => ({
         console.log(
           `[@midscene/core] Report template injected into ${injectedCount} file(s)`,
         );
-        return;
       }
 
+      // Warning to help users find the solution when they encounter build issues
       console.warn(
-        '[@midscene/core] Report template placeholder was not found in the expected files. If you see "REPLACE_ME_WITH_REPORT_HTML" at runtime, rebuild with "pnpm run build:skip-cache". Reference: https://github.com/web-infra-dev/midscene/blob/main/CONTRIBUTING.md#replace_me_with_report_html-error-in-the-report-file',
+        'If you see "REPLACE_ME_WITH_REPORT_HTML" error in the Midscene report file, please rebuild the entire project with "pnpm run build:skip-cache". Reference: https://github.com/web-infra-dev/midscene/blob/main/CONTRIBUTING.md#replace_me_with_report_html-error-in-the-report-file',
       );
     });
   },
