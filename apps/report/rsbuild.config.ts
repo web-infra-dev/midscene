@@ -57,49 +57,47 @@ const copyReportTemplate = () => ({
         corePkgJson.name === '@midscene/core',
         'core package name is not @midscene/core',
       );
-      const candidateFiles = [
-        path.join(corePkgDir, 'dist', 'lib', 'report-template.js'),
-        path.join(corePkgDir, 'dist', 'es', 'report-template.mjs'),
-      ];
+      const corePkgDistDir = path.join(corePkgDir, 'dist');
+
+      // traverse all .js files and inject (or update) the template
+      const jsFiles = fs.readdirSync(corePkgDistDir, { recursive: true });
       let replacedCount = 0;
+      for (const file of jsFiles) {
+        if (
+          typeof file === 'string' &&
+          (file.endsWith('.js') || file.endsWith('.mjs'))
+        ) {
+          const filePath = path.join(corePkgDistDir, file.toString());
+          const fileContent = fs.readFileSync(filePath, 'utf-8');
+          if (fileContent.includes(replacedMark)) {
+            assert(
+              regExpForReplace.test(fileContent),
+              'a replaced mark is found but cannot match',
+            );
 
-      for (const filePath of candidateFiles) {
-        if (!fs.existsSync(filePath)) {
-          continue;
-        }
-
-        const fileContent = fs.readFileSync(filePath, 'utf-8');
-        if (fileContent.includes(replacedMark)) {
-          assert(
-            regExpForReplace.test(fileContent),
-            'a replaced mark is found but cannot match',
-          );
-
-          const replacedContent = fileContent.replace(
-            regExpForReplace,
-            () => finalContent,
-          );
-          fs.writeFileSync(filePath, replacedContent);
-          replacedCount++;
-          console.log(`Template updated in file ${filePath}`);
-          continue;
-        }
-
-        if (fileContent.includes(magicString)) {
-          const magicStringCount = (
-            fileContent.match(new RegExp(magicString, 'g')) || []
-          ).length;
-          assert(
-            magicStringCount === 1,
-            'magic string shows more than once in the file, cannot process',
-          );
-          const replacedContent = fileContent.replace(
-            `'${magicString}'`,
-            () => finalContent, // there are some $- code in the tpl, so we have to use a function as the second argument
-          );
-          fs.writeFileSync(filePath, replacedContent);
-          replacedCount++;
-          console.log(`Template injected into ${filePath}`);
+            const replacedContent = fileContent.replace(
+              regExpForReplace,
+              () => finalContent,
+            );
+            fs.writeFileSync(filePath, replacedContent);
+            replacedCount++;
+            console.log(`Template updated in file ${filePath}`);
+          } else if (fileContent.includes(magicString)) {
+            const magicStringCount = (
+              fileContent.match(new RegExp(magicString, 'g')) || []
+            ).length;
+            assert(
+              magicStringCount === 1,
+              'magic string shows more than once in the file, cannot process',
+            );
+            const replacedContent = fileContent.replace(
+              `'${magicString}'`,
+              () => finalContent, // there are some $- code in the tpl, so we have to use a function as the second argument
+            );
+            fs.writeFileSync(filePath, replacedContent);
+            replacedCount++;
+            console.log(`Template injected into ${filePath}`);
+          }
         }
       }
       if (replacedCount === 0) {
