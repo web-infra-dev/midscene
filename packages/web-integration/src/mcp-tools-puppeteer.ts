@@ -17,6 +17,8 @@ import { StaticPage } from './static';
 const ENDPOINT_FILE = join(tmpdir(), 'midscene-puppeteer-endpoint');
 const USER_DATA_DIR = join(tmpdir(), 'midscene-puppeteer-profile');
 
+export const PUPPETEER_ENDPOINT_FILE = ENDPOINT_FILE;
+
 export function buildDetachedChromeArgs(options: {
   userDataDir: string;
   viewport: ViewportSize;
