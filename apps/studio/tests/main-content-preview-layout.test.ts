@@ -35,9 +35,9 @@ describe('resolveStudioPreviewPlatform', () => {
   });
 
   it('falls back to the selected form platform before connection starts', () => {
-    expect(
-      resolveStudioPreviewPlatform(null, { platformId: 'harmonyos' }),
-    ).toBe('harmony');
+    expect(resolveStudioPreviewPlatform(null, { platformId: 'harmony' })).toBe(
+      'harmony',
+    );
   });
 
   it('normalizes desktop aliases to computer', () => {

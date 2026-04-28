@@ -1,48 +1,20 @@
 import type { PlaygroundRuntimeInfo } from '@midscene/playground';
+import type { StudioPlatformId } from '@shared/electron-contract';
 import type { StudioPreviewConnectionState } from '../../playground/preview-discovery';
-
-type PreviewPlatform = 'android' | 'ios' | 'harmony' | 'computer' | 'web';
+import { normalizeStudioPlatformId } from '../../playground/selectors';
 
 const MOBILE_PREVIEW_ASPECT_RATIO = 9 / 19.5;
 const MOBILE_PREVIEW_HORIZONTAL_GUTTER_PX = 24;
 const MOBILE_PREVIEW_VERTICAL_GUTTER_PX = 56;
 
-function normalizePreviewPlatform(value: unknown): PreviewPlatform | undefined {
-  if (typeof value !== 'string' || value.trim().length === 0) {
-    return undefined;
-  }
-
-  switch (value.trim().toLowerCase()) {
-    case 'android':
-      return 'android';
-    case 'ios':
-      return 'ios';
-    case 'harmony':
-    case 'harmonyos':
-    case 'harmony-os':
-      return 'harmony';
-    case 'computer':
-    case 'desktop':
-    case 'macos':
-    case 'windows':
-    case 'linux':
-      return 'computer';
-    case 'web':
-    case 'browser':
-      return 'web';
-    default:
-      return undefined;
-  }
-}
-
 export function resolveStudioPreviewPlatform(
   runtimeInfo: PlaygroundRuntimeInfo | null,
   formValues: Record<string, unknown>,
-): PreviewPlatform | undefined {
+): StudioPlatformId | undefined {
   return (
-    normalizePreviewPlatform(runtimeInfo?.platformId) ||
-    normalizePreviewPlatform(runtimeInfo?.interface?.type) ||
-    normalizePreviewPlatform(formValues.platformId)
+    normalizeStudioPlatformId(runtimeInfo?.platformId) ||
+    normalizeStudioPlatformId(runtimeInfo?.interface?.type) ||
+    normalizeStudioPlatformId(formValues.platformId)
   );
 }
 

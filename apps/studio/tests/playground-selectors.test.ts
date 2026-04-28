@@ -152,9 +152,9 @@ describe('buildStudioSidebarDeviceBuckets', () => {
     const buckets = buildStudioSidebarDeviceBuckets({
       formValues: {},
       runtimeInfo: {
-        platformId: 'harmonyos',
+        platformId: 'harmony',
         title: 'Harmony Playground',
-        interface: { type: 'harmonyos' },
+        interface: { type: 'harmony' },
         preview: { kind: 'none', capabilities: [] },
         executionUxHints: [],
         metadata: {
