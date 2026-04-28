@@ -4,13 +4,14 @@ import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
-import { pluginWorkspaceDev } from 'rsbuild-plugin-workspace-dev';
 import { commonIgnoreWarnings } from '../../scripts/rsbuild-utils.ts';
 import { version as appVersion } from './package.json';
 import {
   rendererDevHost,
   rendererDevPort,
 } from './scripts/renderer-dev-config.mjs';
+
+const rendererAssetPrefix = process.env.NODE_ENV === 'development' ? '/' : './';
 
 export default defineConfig({
   tools: {
@@ -30,7 +31,6 @@ export default defineConfig({
     pluginLess(),
     pluginNodePolyfill(),
     pluginTypeCheck(),
-    pluginWorkspaceDev(),
   ],
   resolve: {
     alias: {
@@ -60,6 +60,7 @@ export default defineConfig({
         },
       },
       output: {
+        assetPrefix: rendererAssetPrefix,
         target: 'web',
         distPath: {
           root: 'dist/renderer',
