@@ -87,9 +87,7 @@ tasks:
             }
             failedOption.click();
             return {
-              selectedCase: failedOption.textContent
-                .replace(/\s+/g, ' ')
-                .trim(),
+              selectedCase: failedOption.textContent.replace(/\s+/g, ' ').trim(),
             };
           })()
         name: selectFailedCase
@@ -136,16 +134,38 @@ tasks:
       - sleep: 1000
       - javascript: |
           (function () {
-            const statusFilter = document.querySelector(
+            const nativeSelect = document.querySelector(
               '.modern-playwright-selector .selector-content .status-filter-select',
             );
-            if (!(statusFilter instanceof HTMLSelectElement)) {
-              throw new Error('Status filter select not found');
+            if (nativeSelect instanceof HTMLSelectElement) {
+              nativeSelect.value = 'failed';
+              nativeSelect.dispatchEvent(new Event('input', { bubbles: true }));
+              nativeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+              return { selectedStatus: nativeSelect.value };
             }
-            statusFilter.value = 'failed';
-            statusFilter.dispatchEvent(new Event('input', { bubbles: true }));
-            statusFilter.dispatchEvent(new Event('change', { bubbles: true }));
-            return { selectedStatus: statusFilter.value };
+
+            const antSelect = document.querySelector(
+              '.modern-playwright-selector .ant-select-selector',
+            );
+            if (!(antSelect instanceof HTMLElement)) {
+              throw new Error('Expected status filter select');
+            }
+            antSelect.click();
+            return new Promise((resolve, reject) => {
+              window.setTimeout(() => {
+                const failedOption = Array.from(
+                  document.querySelectorAll(
+                    '.ant-select-dropdown .ant-select-item-option',
+                  ),
+                ).find((option) => (option.textContent || '').trim() === 'Failed');
+                if (!(failedOption instanceof HTMLElement)) {
+                  reject(new Error('Expected Failed status option'));
+                  return;
+                }
+                failedOption.click();
+                resolve({ selectedStatus: 'failed' });
+              }, 300);
+            });
           })()
         name: setFailedStatusFilter
       - sleep: 1000
