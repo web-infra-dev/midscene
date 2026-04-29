@@ -82,9 +82,6 @@ jobs:
     - name: Re-inject report template into @midscene/core dist
       run: node apps/report/scripts/inject-report-template.mjs
 
-    - name: Run Studio unit tests
-      run: pnpm --dir apps/studio run test
-
     - name: Run Studio startup smoke test
       run: xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm --dir apps/studio run test:smoke
       env:

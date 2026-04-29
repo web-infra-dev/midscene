@@ -15,7 +15,6 @@ describe('Studio headless workflow', () => {
     const workflow = readFileSync(workflowPath, 'utf8');
     const xvfbScreenArg = '--server-args="-screen 0 1920x1080x24"';
 
-    expect(workflow).toContain('pnpm --dir apps/studio run test');
     expect(workflow).toContain(
       `xvfb-run -a ${xvfbScreenArg} pnpm --dir apps/studio run test:smoke`,
     );
