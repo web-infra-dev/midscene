@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { resolveExportCamera } from '../src/component/player/scenes/export-branded-video';
+import {
+  resolveExportCamera,
+  resolveExportPointerLayout,
+} from '../src/component/player/scenes/export-branded-video';
 import { calculateFrameMap } from '../src/component/player/scenes/frame-calculator';
 import { getPlaybackFrameState } from '../src/component/player/scenes/playback-frame';
 import { getPlaybackViewport } from '../src/component/player/scenes/playback-layout';
@@ -87,6 +90,26 @@ describe('playback composition sizing', () => {
       camLeft: 220,
       camTop: 140,
       camWidth: 500,
+    });
+  });
+
+  it('scales exported pointer to match live playback at the export viewport size', () => {
+    expect(resolveExportPointerLayout(1280, 960)).toEqual({
+      width: 33,
+      height: 42,
+      hotspotX: 4.5,
+      hotspotY: 3,
+      centerOffsetX: 16.5,
+      centerOffsetY: 21,
+    });
+
+    expect(resolveExportPointerLayout(1920, 960)).toEqual({
+      width: 22,
+      height: 28,
+      hotspotX: 3,
+      hotspotY: 2,
+      centerOffsetX: 11,
+      centerOffsetY: 14,
     });
   });
 });

@@ -9,6 +9,10 @@ const W = 960;
 const H = 540;
 const POINTER_PHASE = 0.375;
 const CROSSFADE_FRAMES = 10;
+const POINTER_WIDTH = 44;
+const POINTER_HEIGHT = 56;
+const POINTER_HOTSPOT_X = 6;
+const POINTER_HOTSPOT_Y = 4;
 
 // ── helpers ──
 
@@ -124,6 +128,7 @@ function drawSpinningPointer(
   img: HTMLImageElement,
   x: number,
   y: number,
+  scale: number,
   elapsedMs: number,
 ) {
   const progress = (Math.sin(elapsedMs / 500 - Math.PI / 2) + 1) / 2;
@@ -131,8 +136,31 @@ function drawSpinningPointer(
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(rotation);
-  ctx.drawImage(img, -11, -14, 22, 28);
+  ctx.drawImage(
+    img,
+    -(POINTER_WIDTH * scale) / 2,
+    -(POINTER_HEIGHT * scale) / 2,
+    POINTER_WIDTH * scale,
+    POINTER_HEIGHT * scale,
+  );
   ctx.restore();
+}
+
+export function resolveExportPointerLayout(
+  imageWidth: number,
+  contentWidth: number,
+) {
+  const resScale = Math.max(1, Math.sqrt(imageWidth / 1920));
+  const exportScale = (contentWidth / imageWidth) * resScale;
+
+  return {
+    width: POINTER_WIDTH * exportScale,
+    height: POINTER_HEIGHT * exportScale,
+    hotspotX: POINTER_HOTSPOT_X * exportScale,
+    hotspotY: POINTER_HOTSPOT_Y * exportScale,
+    centerOffsetX: (POINTER_WIDTH * exportScale) / 2,
+    centerOffsetY: (POINTER_HEIGHT * exportScale) / 2,
+  };
 }
 
 // ── Steps rendering ──
@@ -232,6 +260,7 @@ function drawSteps(
   const camH = camW * (imgH / imgW);
   const sX = offsetX + ((ptrX - camL) / camW) * contentWidth;
   const sY = offsetY + ((ptrY - camT2) / camH) * contentHeight;
+  const pointerLayout = resolveExportPointerLayout(imgW, contentWidth);
 
   const hasPtrData =
     Math.abs(camera.pointerLeft - Math.round(imgW / 2)) > 1 ||
@@ -240,11 +269,24 @@ function drawSteps(
     Math.abs(prevCamera.pointerTop - Math.round(imgH / 2)) > 1;
 
   if (spinning && spinnerImg) {
-    drawSpinningPointer(ctx, spinnerImg, sX, sY, spinningElapsedMs);
+    drawSpinningPointer(
+      ctx,
+      spinnerImg,
+      sX,
+      sY,
+      pointerLayout.width / POINTER_WIDTH,
+      spinningElapsedMs,
+    );
   }
 
   if (!spinning && hasPtrData && cursorImg) {
-    ctx.drawImage(cursorImg, sX - 3, sY - 2, 22, 28);
+    ctx.drawImage(
+      cursorImg,
+      sX - pointerLayout.hotspotX,
+      sY - pointerLayout.hotspotY,
+      pointerLayout.width,
+      pointerLayout.height,
+    );
   }
 }
 
