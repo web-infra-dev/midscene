@@ -1,7 +1,7 @@
 import { DownOutlined, SearchOutlined, UpOutlined } from '@ant-design/icons';
 import type { GroupedActionDump } from '@midscene/core';
 import { iconForStatus, timeCostStrElement } from '@midscene/visualizer';
-import { Input, Select } from 'antd';
+import { Input } from 'antd';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PlaywrightTaskAttributes, PlaywrightTasks } from '../../types';
@@ -203,16 +203,18 @@ export function PlaywrightCaseSelector({
             <div
               className={`search-container ${hasSearchText ? 'has-content' : ''}`}
             >
-              <Select
+              <select
+                aria-label="Filter test cases by status"
+                className="status-filter-select"
                 value={statusFilter}
-                onChange={handleStatusChange}
-                style={{ width: 120 }}
-                options={TEST_STATUS_OPTIONS}
-                size="small"
-                variant="borderless"
-                popupMatchSelectWidth={false}
-                getPopupContainer={() => document.body}
-              />
+                onChange={(event) => handleStatusChange(event.target.value)}
+              >
+                {TEST_STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
               <div className="search-input-container">
                 <Input
                   placeholder="Search by name"

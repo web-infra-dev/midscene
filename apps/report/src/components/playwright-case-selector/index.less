@@ -82,34 +82,22 @@
           opacity: 1;
         }
 
-        .ant-select {
+        .status-filter-select {
           border-right: 1px solid #e1e4e8;
+          border-left: none;
+          border-top: none;
+          border-bottom: none;
+          background: transparent;
+          color: #24292f;
           display: flex;
           align-items: center;
           height: 100%;
-
-          .ant-select-selector {
-            border: none;
-            border-radius: 0;
-            box-shadow: none;
-            background: transparent;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            padding: 0 8px;
-            min-height: auto;
-          }
-
-          .ant-select-selection-item {
-            color: #24292f;
-            font-size: 12px;
-            font-weight: 500;
-            line-height: 1;
-          }
-
-          .ant-select-arrow {
-            color: #656d76;
-          }
+          width: 120px;
+          padding: 0 8px;
+          font-size: 12px;
+          font-weight: 500;
+          line-height: 1;
+          outline: none;
         }
 
         .search-input-container {
@@ -260,20 +248,10 @@
           border-color: rgba(255, 255, 255, 0.12);
           background: rgba(255, 255, 255, 0.04);
 
-          .ant-select {
+          .status-filter-select {
             border-right-color: rgba(255, 255, 255, 0.12);
-
-            .ant-select-selector {
-              background: transparent;
-            }
-
-            .ant-select-selection-item {
-              color: #f8fafd;
-            }
-
-            .ant-select-arrow {
-              color: #f8fafd;
-            }
+            background: transparent;
+            color: #f8fafd;
           }
 
           .search-input-container {
