@@ -327,19 +327,22 @@ export function Player(props?: {
     return markers;
   }, [frameMap, effectiveEndFrame]);
 
+  const reportFileContent = props?.reportFileContent ?? null;
+  const canDownloadReport = props?.canDownloadReport !== false;
+  const handleDownloadReport = useCallback(() => {
+    if (reportFileContent) downloadReport(reportFileContent);
+  }, [reportFileContent]);
+
   // If no scripts, fall back to a Download-report empty state when a report is
   // available (e.g. Stop was pressed before any task finished). Otherwise hide
   // the Player entirely instead of rendering an empty bordered box.
   if (!scripts || scripts.length === 0 || !frameMap) {
-    if (props?.reportFileContent && props?.canDownloadReport !== false) {
+    if (reportFileContent && canDownloadReport) {
       return (
         <div className="player-container player-container-empty">
           <div className="player-empty-state">
             <span className="player-empty-text">No replay available</span>
-            <Button
-              icon={<DownloadOutlined />}
-              onClick={() => downloadReport(props.reportFileContent!)}
-            >
+            <Button icon={<DownloadOutlined />} onClick={handleDownloadReport}>
               Download report
             </Button>
           </div>
@@ -491,12 +494,9 @@ export function Player(props?: {
 
           {/* Custom controls */}
           <div className="player-custom-controls">
-            {props?.reportFileContent && props?.canDownloadReport !== false ? (
+            {reportFileContent && canDownloadReport ? (
               <Tooltip title="Download Report">
-                <div
-                  className="status-icon"
-                  onClick={() => downloadReport(props.reportFileContent!)}
-                >
+                <div className="status-icon" onClick={handleDownloadReport}>
                   <DownloadOutlined />
                 </div>
               </Tooltip>
