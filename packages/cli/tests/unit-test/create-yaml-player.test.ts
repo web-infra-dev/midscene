@@ -826,7 +826,7 @@ describe('create-yaml-player', () => {
           groupDescription: 'Custom description',
           generateReport: true,
           autoPrintReportMsg: false,
-          reportFileName: 'custom-report-mock-report',
+          reportFileName: 'custom-report',
           replanningCycleLimit: 25,
           aiActionContext: 'Test context',
           cache: { id: 'test-cache', strategy: 'read-write' },
@@ -921,7 +921,7 @@ describe('create-yaml-player', () => {
       const mockScript: MidsceneYamlScript = {
         ios: {},
         agent: {
-          reportFileName: 'ios-test-report-mock-report',
+          reportFileName: 'ios-test-report',
           autoPrintReportMsg: true,
         },
         tasks: [],
