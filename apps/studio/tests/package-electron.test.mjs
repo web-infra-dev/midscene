@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   assertPortablePackagedNodeModules,
   buildArtifactBaseName,
@@ -10,19 +10,23 @@ import {
   buildPackagerOptions,
   buildVendoredWorkspaceDirName,
   buildVendoredWorkspaceManifest,
+  collectNestedMacCodeSignTargets,
   collectPackagedNodeModuleSymlinkIssues,
   collectWorkspaceDependencyClosure,
   dedupePlaygroundStatic,
   dropAntdEsmBuild,
   dropMidsceneEsmBuilds,
-  findLiveDevBuilderProcesses,
-  getLiveDevBuilderProcessQueries,
   getStudioElectronVersion,
   normalizeReleaseVersion,
-  parseLiveDevBuilderProcessMatches,
+  parseBooleanLike,
+  pathContainsReportTemplatePlaceholder,
   pruneAntdUmdBundles,
+  pruneGifwrapTestFixtures,
   pruneSourceMapFiles,
   releaseWorkspaceDir,
+  resolveMacCodeSignEntitlementsPath,
+  resolveMacPackagedAppBundlePath,
+  resolveMacPackagedAppSecurity,
   resolvePackagerIconPath,
   shouldUseShellForCommand,
   slimStageNodeModules,
@@ -126,77 +130,257 @@ describe('package-electron helpers', () => {
     expect(shouldUseShellForCommand('pnpm', 'linux')).toBe(false);
   });
 
-  it('uses a PowerShell-based process query on Windows', () => {
-    expect(getLiveDevBuilderProcessQueries('win32')).toEqual([
-      expect.objectContaining({ command: 'powershell' }),
-      expect.objectContaining({ command: 'pwsh' }),
-    ]);
+  it('parses boolean-like configuration values used by mac packaging flags', () => {
+    expect(parseBooleanLike('true')).toBe(true);
+    expect(parseBooleanLike('1')).toBe(true);
+    expect(parseBooleanLike('false')).toBe(false);
+    expect(parseBooleanLike(undefined, true)).toBe(true);
+    expect(() => parseBooleanLike('definitely')).toThrow(
+      /Expected a boolean-like value/,
+    );
   });
 
-  it('parses process-list output into individual matches', () => {
+  it('resolves default mac packaging security to ad-hoc signing without notarization', () => {
     expect(
-      parseLiveDevBuilderProcessMatches(
-        '123 rsbuild dev\n456 pnpm rsbuild dev\n',
-      ),
-    ).toEqual(['123 rsbuild dev', '456 pnpm rsbuild dev']);
-  });
-
-  it('detects live dev builders on Windows without relying on pgrep', async () => {
-    const runCapture = vi.fn().mockResolvedValue({
-      code: 0,
-      stderr: '',
-      stdout:
-        '4321 C:\\\\Program Files\\\\nodejs\\\\pnpm.cmd rsbuild dev --host 0.0.0.0\n',
-    });
-
-    await expect(
-      findLiveDevBuilderProcesses({
-        platform: 'win32',
-        runCapture,
-      }),
-    ).resolves.toEqual([
-      '4321 C:\\\\Program Files\\\\nodejs\\\\pnpm.cmd rsbuild dev --host 0.0.0.0',
-    ]);
-    expect(runCapture).toHaveBeenCalledWith('powershell', expect.any(Array), {
-      platform: 'win32',
-    });
-  });
-
-  it('falls back to pwsh when powershell is unavailable on Windows', async () => {
-    const powershellMissing = Object.assign(new Error('missing'), {
-      code: 'ENOENT',
-    });
-    const runCapture = vi
-      .fn()
-      .mockRejectedValueOnce(powershellMissing)
-      .mockResolvedValueOnce({
-        code: 0,
-        stderr: '',
-        stdout: '6789 pwsh rsbuild dev\n',
-      });
-
-    await expect(
-      findLiveDevBuilderProcesses({
-        platform: 'win32',
-        runCapture,
-      }),
-    ).resolves.toEqual(['6789 pwsh rsbuild dev']);
-    expect(runCapture.mock.calls[1][0]).toBe('pwsh');
-  });
-
-  it('treats pgrep exit code 1 as no matches on POSIX hosts', async () => {
-    const runCapture = vi.fn().mockResolvedValue({
-      code: 1,
-      stderr: '',
-      stdout: '',
-    });
-
-    await expect(
-      findLiveDevBuilderProcesses({
+      resolveMacPackagedAppSecurity({
+        env: {},
         platform: 'darwin',
-        runCapture,
       }),
-    ).resolves.toEqual([]);
+    ).toEqual({
+      notarizeOptions: undefined,
+      requireCodesign: false,
+      requireNotarization: false,
+      shouldDeveloperIdSign: false,
+      shouldNotarize: false,
+      signIdentity: undefined,
+      signKeychain: undefined,
+      teamId: undefined,
+    });
+  });
+
+  it('resolves Developer ID signing and notarization credentials from env', () => {
+    expect(
+      resolveMacPackagedAppSecurity({
+        env: {
+          APPLE_API_KEY_ID: 'ABC123XYZ9',
+          APPLE_API_KEY_PATH: '/tmp/AuthKey_ABC123XYZ9.p8',
+          APPLE_API_ISSUER_ID: 'issuer-uuid',
+          APPLE_CODESIGN_IDENTITY:
+            'Developer ID Application: YIBING LIN (62S977T8M3)',
+          APPLE_CODESIGN_KEYCHAIN: '/tmp/midscene-signing.keychain-db',
+          APPLE_TEAM_ID: '62S977T8M3',
+          MIDSCENE_REQUIRE_MAC_CODESIGN: 'true',
+          MIDSCENE_REQUIRE_MAC_NOTARIZATION: 'true',
+        },
+        platform: 'darwin',
+      }),
+    ).toEqual({
+      notarizeOptions: {
+        appleApiIssuer: 'issuer-uuid',
+        appleApiKey: '/tmp/AuthKey_ABC123XYZ9.p8',
+        appleApiKeyId: 'ABC123XYZ9',
+      },
+      requireCodesign: true,
+      requireNotarization: true,
+      shouldDeveloperIdSign: true,
+      shouldNotarize: true,
+      signIdentity: 'Developer ID Application: YIBING LIN (62S977T8M3)',
+      signKeychain: '/tmp/midscene-signing.keychain-db',
+      teamId: '62S977T8M3',
+    });
+  });
+
+  it('rejects release mac packaging when codesign is required but no identity is configured', () => {
+    expect(() =>
+      resolveMacPackagedAppSecurity({
+        env: {
+          MIDSCENE_REQUIRE_MAC_CODESIGN: 'true',
+        },
+        platform: 'darwin',
+      }),
+    ).toThrow(/requires a Developer ID signing identity/);
+  });
+
+  it('rejects notarization when credentials are missing', () => {
+    expect(() =>
+      resolveMacPackagedAppSecurity({
+        env: {
+          APPLE_CODESIGN_IDENTITY:
+            'Developer ID Application: YIBING LIN (62S977T8M3)',
+          MIDSCENE_REQUIRE_MAC_NOTARIZATION: 'true',
+        },
+        platform: 'darwin',
+      }),
+    ).toThrow(/notarization credentials are missing/);
+  });
+
+  it('rejects team mismatches between the configured identity and team id', () => {
+    expect(() =>
+      resolveMacPackagedAppSecurity({
+        env: {
+          APPLE_CODESIGN_IDENTITY:
+            'Developer ID Application: YIBING LIN (62S977T8M3)',
+          APPLE_TEAM_ID: 'WRONGTEAM1',
+        },
+        platform: 'darwin',
+      }),
+    ).toThrow(/does not match APPLE_TEAM_ID/);
+  });
+
+  it('resolves the nested .app bundle from the macOS packaged output directory', async () => {
+    const tempRootDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'midscene-studio-mac-bundle-'),
+    );
+    const packagedOutputPath = path.join(
+      tempRootDir,
+      'Midscene Studio-darwin-arm64',
+    );
+    const appBundlePath = path.join(packagedOutputPath, 'Midscene Studio.app');
+
+    try {
+      await fs.mkdir(appBundlePath, { recursive: true });
+
+      await expect(
+        resolveMacPackagedAppBundlePath(packagedOutputPath),
+      ).resolves.toBe(appBundlePath);
+      await expect(
+        resolveMacPackagedAppBundlePath(appBundlePath),
+      ).resolves.toBe(appBundlePath);
+    } finally {
+      await fs.rm(tempRootDir, { force: true, recursive: true });
+    }
+  });
+
+  it('collects nested macOS code-sign targets deepest-first before signing the root app bundle', async () => {
+    const tempRootDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'midscene-studio-codesign-targets-'),
+    );
+    const appBundlePath = path.join(tempRootDir, 'Midscene Studio.app');
+    const libffmpegPath = path.join(
+      appBundlePath,
+      'Contents',
+      'Frameworks',
+      'Electron Framework.framework',
+      'Versions',
+      'A',
+      'Libraries',
+      'libffmpeg.dylib',
+    );
+    const crashpadHandlerPath = path.join(
+      appBundlePath,
+      'Contents',
+      'Frameworks',
+      'Electron Framework.framework',
+      'Versions',
+      'A',
+      'Helpers',
+      'chrome_crashpad_handler',
+    );
+    const shipItPath = path.join(
+      appBundlePath,
+      'Contents',
+      'Frameworks',
+      'Squirrel.framework',
+      'Versions',
+      'A',
+      'Resources',
+      'ShipIt',
+    );
+    const helperAppPath = path.join(
+      appBundlePath,
+      'Contents',
+      'Frameworks',
+      'Midscene Studio Helper.app',
+    );
+    const addonPath = path.join(
+      appBundlePath,
+      'Contents',
+      'Resources',
+      'native-addon.node',
+    );
+    const barePath = path.join(
+      appBundlePath,
+      'Contents',
+      'Resources',
+      'app',
+      'node_modules',
+      'bare-url',
+      'prebuilds',
+      'darwin-arm64',
+      'bare-url.bare',
+    );
+    const scriptPath = path.join(
+      appBundlePath,
+      'Contents',
+      'Resources',
+      'node_modules',
+      '.bin',
+      'not-mach-o',
+    );
+
+    try {
+      await fs.mkdir(path.dirname(libffmpegPath), { recursive: true });
+      await fs.mkdir(path.dirname(crashpadHandlerPath), { recursive: true });
+      await fs.mkdir(path.dirname(shipItPath), { recursive: true });
+      await fs.mkdir(helperAppPath, { recursive: true });
+      await fs.mkdir(path.dirname(addonPath), { recursive: true });
+      await fs.mkdir(path.dirname(barePath), { recursive: true });
+      await fs.mkdir(path.dirname(scriptPath), { recursive: true });
+      await fs.writeFile(libffmpegPath, '');
+      await fs.writeFile(crashpadHandlerPath, Buffer.from('cffaedfe', 'hex'));
+      await fs.writeFile(shipItPath, Buffer.from('cffaedfe', 'hex'));
+      await fs.writeFile(addonPath, '');
+      await fs.writeFile(barePath, '');
+      await fs.writeFile(scriptPath, '#!/bin/sh\n');
+
+      await expect(
+        collectNestedMacCodeSignTargets(appBundlePath),
+      ).resolves.toEqual([
+        barePath,
+        crashpadHandlerPath,
+        libffmpegPath,
+        shipItPath,
+        addonPath,
+        path.join(
+          appBundlePath,
+          'Contents',
+          'Frameworks',
+          'Electron Framework.framework',
+        ),
+        helperAppPath,
+        path.join(
+          appBundlePath,
+          'Contents',
+          'Frameworks',
+          'Squirrel.framework',
+        ),
+      ]);
+    } finally {
+      await fs.rm(tempRootDir, { force: true, recursive: true });
+    }
+  });
+
+  it('selects Electron helper entitlements that match the osx-sign defaults', () => {
+    expect(
+      resolveMacCodeSignEntitlementsPath(
+        '/tmp/Midscene Studio.app/Contents/Frameworks/Midscene Studio Helper (Plugin).app',
+      ),
+    ).toMatch(/entitlements\.mac\.plugin\.plist$/);
+    expect(
+      resolveMacCodeSignEntitlementsPath(
+        '/tmp/Midscene Studio.app/Contents/Frameworks/Midscene Studio Helper (GPU).app',
+      ),
+    ).toMatch(/entitlements\.mac\.gpu\.plist$/);
+    expect(
+      resolveMacCodeSignEntitlementsPath(
+        '/tmp/Midscene Studio.app/Contents/Frameworks/Midscene Studio Helper (Renderer).app',
+      ),
+    ).toMatch(/entitlements\.mac\.renderer\.plist$/);
+    expect(
+      resolveMacCodeSignEntitlementsPath(
+        '/tmp/Midscene Studio.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libffmpeg.dylib',
+      ),
+    ).toMatch(/entitlements\.mac\.plist$/);
   });
 
   it('keeps release staging outside the studio package root', () => {
@@ -489,6 +673,35 @@ describe('package-electron helpers', () => {
     }
   });
 
+  it('removes gifwrap test fixtures while preserving the runtime entry point', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'midscene-nm-'));
+    try {
+      const gifwrapDir = path.join(root, 'gifwrap');
+      await fs.mkdir(path.join(gifwrapDir, 'test', 'fixtures'), {
+        recursive: true,
+      });
+      await fs.writeFile(
+        path.join(gifwrapDir, 'index.js'),
+        'module.exports={}',
+      );
+      await fs.writeFile(
+        path.join(gifwrapDir, 'test', 'fixtures', 'fixture.png'),
+        'png',
+      );
+
+      await pruneGifwrapTestFixtures(root);
+
+      await expect(
+        fs.stat(path.join(gifwrapDir, 'test')),
+      ).rejects.toMatchObject({ code: 'ENOENT' });
+      await expect(
+        fs.stat(path.join(gifwrapDir, 'index.js')),
+      ).resolves.toBeTruthy();
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
   it('hardlinks the ios/harmony playground static trees onto the canonical copy', async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'midscene-nm-'));
     try {
@@ -620,7 +833,84 @@ describe('package-electron helpers', () => {
     }
   });
 
-  it('slimStageNodeModules chains all four stage-time prunes', async () => {
+  it('getBuildStatus treats additional build inputs as source dependencies', async () => {
+    const { getBuildStatus, writeBuildMeta } = await import(
+      '../scripts/package-electron.mjs'
+    );
+    const packageDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'midscene-build-'),
+    );
+    const src = path.join(packageDir, 'src');
+    const dist = path.join(packageDir, 'dist');
+    const injectedTemplate = path.join(
+      packageDir,
+      '..',
+      `${path.basename(packageDir)}-report.html`,
+    );
+
+    try {
+      await fs.mkdir(src, { recursive: true });
+      await fs.mkdir(dist, { recursive: true });
+      await fs.writeFile(path.join(src, 'a.ts'), 'x');
+      await fs.writeFile(path.join(dist, 'out.js'), 'x');
+      await writeBuildMeta(packageDir, { nodeEnv: 'production' });
+
+      await expect(
+        getBuildStatus({
+          packageDir,
+          sourceTargets: ['src'],
+        }),
+      ).resolves.toEqual({ needsBuild: false, reason: 'up to date' });
+
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      await fs.writeFile(injectedTemplate, '<html></html>');
+
+      await expect(
+        getBuildStatus({
+          packageDir,
+          sourceTargets: ['src'],
+          additionalSourceTargets: [injectedTemplate],
+        }),
+      ).resolves.toEqual({
+        needsBuild: true,
+        reason: 'source files are newer than build output',
+      });
+    } finally {
+      await fs.rm(packageDir, { recursive: true, force: true });
+      await fs.rm(injectedTemplate, { force: true });
+    }
+  });
+
+  it('detects unresolved report template placeholders in runtime output only', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'midscene-report-'));
+    try {
+      await fs.writeFile(
+        path.join(root, 'guard.js'),
+        "if (html.includes('REPLACE_ME_WITH_REPORT_HTML')) reportHTML = null;",
+      );
+      await fs.writeFile(
+        path.join(root, 'bundle.js.map'),
+        '{"sourcesContent":["const reportTpl = \'REPLACE_ME_WITH_REPORT_HTML\';"]}',
+      );
+
+      await expect(pathContainsReportTemplatePlaceholder(root)).resolves.toBe(
+        false,
+      );
+
+      await fs.writeFile(
+        path.join(root, 'utils.js'),
+        "const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';",
+      );
+
+      await expect(pathContainsReportTemplatePlaceholder(root)).resolves.toBe(
+        true,
+      );
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('slimStageNodeModules chains all five stage-time prunes', async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'midscene-nm-'));
     try {
       // sourcemap
@@ -636,6 +926,11 @@ describe('package-electron helpers', () => {
       await fs.writeFile(path.join(antdDist, 'antd.js'), 'x');
       await fs.writeFile(path.join(antdEs, 'index.js'), 'x');
       await fs.writeFile(path.join(antdLib, 'index.js'), 'x');
+      // gifwrap test fixtures
+      const gifwrapTestDir = path.join(root, 'gifwrap', 'test', 'fixtures');
+      await fs.mkdir(gifwrapTestDir, { recursive: true });
+      await fs.writeFile(path.join(root, 'gifwrap', 'index.js'), 'x');
+      await fs.writeFile(path.join(gifwrapTestDir, 'fixture.png'), 'png');
       // @midscene dual build
       const mcDist = path.join(root, '@midscene', 'core', 'dist');
       await fs.mkdir(path.join(mcDist, 'es'), { recursive: true });
@@ -652,6 +947,12 @@ describe('package-electron helpers', () => {
       await expect(fs.stat(antdEs)).rejects.toMatchObject({ code: 'ENOENT' });
       await expect(
         fs.stat(path.join(antdLib, 'index.js')),
+      ).resolves.toBeTruthy();
+      await expect(
+        fs.stat(path.join(root, 'gifwrap', 'test')),
+      ).rejects.toMatchObject({ code: 'ENOENT' });
+      await expect(
+        fs.stat(path.join(root, 'gifwrap', 'index.js')),
       ).resolves.toBeTruthy();
       await expect(fs.stat(path.join(mcDist, 'es'))).rejects.toMatchObject({
         code: 'ENOENT',
