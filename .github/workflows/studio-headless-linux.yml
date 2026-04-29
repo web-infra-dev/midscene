@@ -83,12 +83,12 @@ jobs:
       run: node apps/report/scripts/inject-report-template.mjs
 
     - name: Run Studio startup smoke test
-      run: xvfb-run -a pnpm --dir apps/studio run test:smoke
+      run: xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm --dir apps/studio run test:smoke
       env:
         MIDSCENE_STUDIO_RUN_STARTUP_SMOKE: '1'
 
     - name: Run Studio Midscene startup test
-      run: xvfb-run -a pnpm --dir apps/studio run test:smoke:ai
+      run: xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm --dir apps/studio run test:smoke:ai
       timeout-minutes: 25
       id: test-ai
       continue-on-error: true

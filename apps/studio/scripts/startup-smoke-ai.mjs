@@ -227,6 +227,10 @@ async function main() {
       'A Midscene Studio desktop window is visible. It has a left sidebar with platform labels such as Android, iOS, Computer, HarmonyOS, or Web, and a right-side panel titled Playground.',
     );
 
+    await agent.aiAssert(
+      'The right-side Playground setup panel is fully visible and is not clipped by the screenshot edge. The welcome title, platform cards, ADB device field, and Create Agent button should all be readable without being cut off on the right.',
+    );
+
     await agent.recordToReport('Studio shell became visible', {
       content:
         'Verified that the packaged Studio shell rendered the sidebar and Playground panel.',
