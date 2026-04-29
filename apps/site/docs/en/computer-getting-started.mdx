@@ -48,9 +48,13 @@ const agent = await agentFromComputer({ headless: true });
 
 Xvfb creates a virtual display so that mouse, keyboard, and screenshot operations work without a physical monitor. See [API Reference](./computer-api-reference) for details.
 
-:::tip Example: Testing Electron Apps on Headless Linux CI
-A complete demo of testing [Obsidian](https://obsidian.md/) (an Electron app) on headless Linux CI with `@midscene/computer`: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
-:::
+### Linux example: test Electron apps on headless CI
+
+If you want to run desktop app automation directly in CI (for example, Electron apps like Obsidian), use this end-to-end demo project:
+
+- [computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
+
+This demo shows how to start a virtual display with Xvfb on Linux CI and execute `@midscene/computer` automation scripts.
 
 ## Try Playground (no code)
 
