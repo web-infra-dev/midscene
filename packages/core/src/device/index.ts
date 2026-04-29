@@ -60,6 +60,13 @@ export abstract class AbstractInterface {
    */
   getTimestamp?(): Promise<number>;
 
+  /**
+   * Get the current device-local time as a formatted string.
+   * Prefer this for user-visible time because timestamps alone do not preserve
+   * the target device's timezone when formatted on the host machine.
+   */
+  getDeviceLocalTimeString?(format?: string): Promise<string>;
+
   /** URL of native MJPEG stream for real-time screen preview (e.g. WDA MJPEG server) */
   mjpegStreamUrl?: string;
 }

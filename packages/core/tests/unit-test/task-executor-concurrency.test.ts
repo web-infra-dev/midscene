@@ -108,4 +108,65 @@ describe('TaskExecutor concurrency isolation', () => {
     releasePlans.resolve();
     await Promise.all([actionPromiseA, actionPromiseB]);
   });
+
+  it('should use device-local formatted time for replanning feedback', async () => {
+    const seenPendingFeedback: string[] = [];
+    mockInterface.getDeviceLocalTimeString = vi
+      .fn()
+      .mockResolvedValue('2023-10-15 15:37:00 (YYYY-MM-DD HH:mm:ss)');
+    taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      replanningCycleLimit: 1,
+      actionSpace: [],
+      useDeviceTimestamp: true,
+    });
+    vi.spyOn(taskExecutor, 'convertPlanToExecutable').mockResolvedValue({
+      tasks: [],
+      yamlFlow: [],
+    } as any);
+
+    vi.mocked(plan)
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: true,
+          log: 'first plan',
+          rawResponse: '',
+        };
+      })
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: false,
+          log: '',
+          rawResponse: '',
+          finalizeSuccess: true,
+          finalizeMessage: 'done',
+        };
+      });
+
+    await taskExecutor.action(
+      'prompt',
+      { modelName: 'planning-model' } as any,
+      { modelName: 'default-model' } as any,
+      true,
+    );
+
+    expect(mockInterface.getDeviceLocalTimeString).toHaveBeenCalledWith(
+      undefined,
+    );
+    expect(seenPendingFeedback).toEqual([
+      '',
+      'Current time: 2023-10-15 15:37:00 (YYYY-MM-DD HH:mm:ss)',
+    ]);
+  });
 });

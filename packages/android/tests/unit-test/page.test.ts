@@ -2400,4 +2400,31 @@ describe('AndroidDevice', () => {
       expect(result).toBe(1893456000000);
     });
   });
+
+  describe('getDeviceLocalTimeString', () => {
+    it('should return device-local time with the default format', async () => {
+      mockAdb.shell.mockResolvedValueOnce('2023-10-15T15:37:02\n');
+
+      const result = await device.getDeviceLocalTimeString();
+
+      expect(mockAdb.shell).toHaveBeenCalledWith('date +%Y-%m-%dT%H:%M:%S');
+      expect(result).toBe('2023-10-15 15:37:02 (YYYY-MM-DD HH:mm:ss)');
+    });
+
+    it('should apply custom format tokens to device-local time', async () => {
+      mockAdb.shell.mockResolvedValueOnce('2023-10-15T15:37:02');
+
+      const result = await device.getDeviceLocalTimeString('HH:mm');
+
+      expect(result).toBe('15:37 (HH:mm)');
+    });
+
+    it('should throw error for invalid device-local time format', async () => {
+      mockAdb.shell.mockResolvedValueOnce('invalid-time');
+
+      await expect(device.getDeviceLocalTimeString()).rejects.toThrow(
+        'Invalid device time format',
+      );
+    });
+  });
 });

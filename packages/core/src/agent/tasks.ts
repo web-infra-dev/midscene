@@ -145,6 +145,16 @@ export class TaskExecutor {
    * @returns A formatted time string
    */
   private async getTimeString(format?: string): Promise<string> {
+    if (this.useDeviceTimestamp && this.interface.getDeviceLocalTimeString) {
+      try {
+        return await this.interface.getDeviceLocalTimeString(format);
+      } catch (error) {
+        console.warn(
+          `Failed to get device time string, falling back to timestamp formatting: ${error}`,
+        );
+      }
+    }
+
     const timestamp = await getCurrentTime(
       this.interface,
       this.useDeviceTimestamp,

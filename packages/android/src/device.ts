@@ -1868,6 +1868,42 @@ ${Object.keys(size)
     }
   }
 
+  /**
+   * Get the current device-local time as a formatted string.
+   * This avoids formatting an Android epoch timestamp in the host machine's
+   * timezone, which can disagree with the device status bar.
+   */
+  async getDeviceLocalTimeString(
+    format = 'YYYY-MM-DD HH:mm:ss',
+  ): Promise<string> {
+    const adb = await this.getAdb();
+    try {
+      const stdout = await adb.shell('date +%Y-%m-%dT%H:%M:%S');
+      const match = stdout
+        .trim()
+        .match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})$/);
+
+      if (!match) {
+        throw new Error(`Invalid device time format: ${stdout}`);
+      }
+
+      const [, year, month, day, hours, minutes, seconds] = match;
+      const timeString = format
+        .replace('YYYY', year)
+        .replace('MM', month)
+        .replace('DD', day)
+        .replace('HH', hours)
+        .replace('mm', minutes)
+        .replace('ss', seconds);
+
+      debugDevice(`Got device local time: ${timeString}`);
+      return `${timeString} (${format})`;
+    } catch (error) {
+      debugDevice(`Failed to get device local time: ${error}`);
+      throw new Error(`Failed to get device local time: ${error}`);
+    }
+  }
+
   async back(): Promise<void> {
     const adb = await this.getAdb();
     await adb.shell(`input${this.getDisplayArg()} keyevent 4`);
