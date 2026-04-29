@@ -190,6 +190,49 @@ describe('package-electron helpers', () => {
     });
   });
 
+  it('notarizes prerelease builds whenever Developer ID + notary credentials are present', () => {
+    // Prereleases set MIDSCENE_REQUIRE_MAC_NOTARIZATION=false so missing
+    // credentials don't fail the build, but when credentials ARE present
+    // we must still notarize. Otherwise the .app gets Developer-ID
+    // signed but stays unnotarized, and Gatekeeper rejects it on
+    // download with "Apple cannot verify...".
+    expect(
+      resolveMacPackagedAppSecurity({
+        env: {
+          APPLE_API_KEY_ID: 'ABC123XYZ9',
+          APPLE_API_KEY_PATH: '/tmp/AuthKey_ABC123XYZ9.p8',
+          APPLE_API_ISSUER_ID: 'issuer-uuid',
+          APPLE_CODESIGN_IDENTITY:
+            'Developer ID Application: YIBING LIN (62S977T8M3)',
+          APPLE_TEAM_ID: '62S977T8M3',
+          MIDSCENE_REQUIRE_MAC_CODESIGN: 'false',
+          MIDSCENE_REQUIRE_MAC_NOTARIZATION: 'false',
+        },
+        platform: 'darwin',
+      }),
+    ).toMatchObject({
+      shouldDeveloperIdSign: true,
+      shouldNotarize: true,
+      requireNotarization: false,
+    });
+  });
+
+  it('skips notarization when notary credentials are absent even with a Developer ID identity', () => {
+    expect(
+      resolveMacPackagedAppSecurity({
+        env: {
+          APPLE_CODESIGN_IDENTITY:
+            'Developer ID Application: YIBING LIN (62S977T8M3)',
+          APPLE_TEAM_ID: '62S977T8M3',
+        },
+        platform: 'darwin',
+      }),
+    ).toMatchObject({
+      shouldDeveloperIdSign: true,
+      shouldNotarize: false,
+    });
+  });
+
   it('rejects release mac packaging when codesign is required but no identity is configured', () => {
     expect(() =>
       resolveMacPackagedAppSecurity({

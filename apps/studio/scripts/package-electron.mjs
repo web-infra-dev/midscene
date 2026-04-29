@@ -255,7 +255,13 @@ export const resolveMacPackagedAppSecurity = ({
           ...(appleApiIssuer ? { appleApiIssuer } : {}),
         }
       : undefined;
-  const shouldNotarize = requireNotarization && Boolean(notarizeOptions);
+  // Always notarize when both Developer ID signing and notarization
+  // credentials are available, regardless of the require flag. Otherwise
+  // a prerelease ends up Developer-ID signed but unnotarized, which
+  // Gatekeeper rejects on download with "Apple cannot verify..." even
+  // though the signature itself is valid. The require flag only governs
+  // whether missing credentials should fail the build (handled below).
+  const shouldNotarize = shouldDeveloperIdSign && Boolean(notarizeOptions);
 
   if (requireCodesign && !shouldDeveloperIdSign) {
     throw new Error(
