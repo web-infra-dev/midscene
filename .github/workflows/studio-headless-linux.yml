@@ -79,6 +79,9 @@ jobs:
     - name: Build Studio
       run: npx nx run-many --target=build --projects=studio,@midscene/report
 
+    - name: Re-inject report template into @midscene/core dist
+      run: node apps/report/scripts/inject-report-template.mjs
+
     - name: Run Studio startup smoke test
       run: xvfb-run -a pnpm --dir apps/studio run test:smoke
       env:
