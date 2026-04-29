@@ -26,6 +26,11 @@ vi.mock('@midscene/core/yaml', () => ({
   parseYamlScript: vi.fn(),
 }));
 
+vi.mock('@midscene/core/agent', () => ({
+  createAgent: vi.fn(),
+  getReportFileName: vi.fn((tag: string) => `${tag}-mock-report`),
+}));
+
 vi.mock('@midscene/android', () => ({
   agentFromAdbDevice: vi.fn(),
 }));
@@ -54,6 +59,7 @@ vi.mock('puppeteer', () => ({
 }));
 
 import { agentFromAdbDevice } from '@midscene/android';
+import { getReportFileName } from '@midscene/core/agent';
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { agentFromWebDriverAgent } from '@midscene/ios';
 import { globalConfigManager } from '@midscene/shared/env';
@@ -721,9 +727,10 @@ describe('create-yaml-player', () => {
       // and aiActionContext is not present (undefined fields are not spread)
       const callArgs = getMockCallArg(vi.mocked(agentFromAdbDevice), 0, 1);
       expect(callArgs).toMatchObject({
-        reportFileName: 'script',
+        reportFileName: 'script-mock-report',
         deviceId: 'test-device',
       });
+      expect(vi.mocked(getReportFileName)).toHaveBeenCalledWith('script');
       expect(callArgs).not.toHaveProperty('aiActionContext');
     });
 
@@ -758,9 +765,52 @@ describe('create-yaml-player', () => {
       // and aiActionContext is not present (undefined fields are not spread)
       const callArgs = getMockCallArg(vi.mocked(agentFromWebDriverAgent), 0, 0);
       expect(callArgs).toMatchObject({
-        reportFileName: 'script',
+        reportFileName: 'script-mock-report',
       });
+      expect(vi.mocked(getReportFileName)).toHaveBeenCalledWith('script');
       expect(callArgs).not.toHaveProperty('aiActionContext');
+    });
+
+    test('should generate a fresh report file name for repeated CLI runs of the same yaml file', async () => {
+      const mockScript: MidsceneYamlScript = {
+        ios: {},
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      const setupFnCallbacks: Array<() => Promise<any>> = [];
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
+      vi.mocked(getReportFileName)
+        .mockReturnValueOnce('script-run-1')
+        .mockReturnValueOnce('script-run-2');
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallbacks.push(setupFn as () => Promise<any>);
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      for (const setupFn of setupFnCallbacks) {
+        await setupFn();
+      }
+
+      expect(vi.mocked(agentFromWebDriverAgent).mock.calls).toHaveLength(2);
+      expect(
+        getMockCallArg(vi.mocked(agentFromWebDriverAgent), 0, 0),
+      ).toMatchObject({
+        reportFileName: 'script-run-1',
+      });
+      expect(
+        getMockCallArg(vi.mocked(agentFromWebDriverAgent), 1, 0),
+      ).toMatchObject({
+        reportFileName: 'script-run-2',
+      });
     });
   });
 

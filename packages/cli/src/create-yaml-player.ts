@@ -11,7 +11,7 @@ import type {
   MidsceneYamlScriptAgentOpt,
   MidsceneYamlScriptEnv,
 } from '@midscene/core';
-import { createAgent } from '@midscene/core/agent';
+import { createAgent, getReportFileName } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
 import { processCacheConfig } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
@@ -52,7 +52,9 @@ function resolveReportFileName(
   yamlTestId: string | undefined,
   fileName: string,
 ): string {
-  return yamlReportFileName ?? cliTestId ?? yamlTestId ?? fileName;
+  return (
+    yamlReportFileName ?? cliTestId ?? yamlTestId ?? getReportFileName(fileName)
+  );
 }
 
 /**
