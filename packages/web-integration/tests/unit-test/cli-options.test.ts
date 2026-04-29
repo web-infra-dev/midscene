@@ -34,6 +34,26 @@ describe('parseWebCliOptions', () => {
     expect(parsed.viewport).toEqual({ width: 1600, height: 900 });
   });
 
+  it('does not treat camelCase viewport flags as global CLI options', () => {
+    const parsed = parseWebCliOptions([
+      'connect',
+      '--viewportWidth',
+      '1600',
+      '--viewportHeight=900',
+    ]);
+
+    expect(parsed.argv).toEqual([
+      'connect',
+      '--viewportWidth',
+      '1600',
+      '--viewportHeight=900',
+    ]);
+    expect(parsed.viewport).toEqual({
+      width: defaultViewportWidth,
+      height: defaultViewportHeight,
+    });
+  });
+
   it('uses env fallback for CDP without consuming the command name', () => {
     const parsed = parseWebCliOptions(
       ['--cdp', 'connect', '--url', 'https://example.com'],

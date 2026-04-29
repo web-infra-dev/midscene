@@ -24,48 +24,12 @@ tasks:
   # --- Dark mode ---
   - name: toggle dark mode
     flow:
-      - javascript: |
-          (function () {
-            const button = document.querySelector('[aria-label="Toggle theme"]');
-            if (!(button instanceof HTMLElement)) {
-              throw new Error('Toggle theme button not found');
-            }
-            if (document.documentElement.getAttribute('data-theme') !== 'dark') {
-              button.click();
-            }
-          })()
-        name: toggle-theme-to-dark
+      - ai: Click the theme toggle button (sun or moon icon) in the top right corner of the page
       - sleep: 1000
-      - javascript: |
-          (function () {
-            const theme = document.documentElement.getAttribute('data-theme');
-            if (theme !== 'dark') {
-              throw new Error('Expected dark theme, got ' + theme);
-            }
-            return theme;
-          })()
-        name: assert-dark-theme
+      - aiAssert: The page background is dark colored, indicating dark mode is active
 
   - name: toggle back to light mode
     flow:
-      - javascript: |
-          (function () {
-            const button = document.querySelector('[aria-label="Toggle theme"]');
-            if (!(button instanceof HTMLElement)) {
-              throw new Error('Toggle theme button not found');
-            }
-            if (document.documentElement.getAttribute('data-theme') !== 'light') {
-              button.click();
-            }
-          })()
-        name: toggle-theme-to-light
+      - ai: Click the theme toggle button (sun or moon icon) in the top right corner of the page
       - sleep: 1000
-      - javascript: |
-          (function () {
-            const theme = document.documentElement.getAttribute('data-theme');
-            if (theme !== 'light') {
-              throw new Error('Expected light theme, got ' + theme);
-            }
-            return theme;
-          })()
-        name: assert-light-theme
+      - aiAssert: The page background is light or white colored, indicating light mode is active

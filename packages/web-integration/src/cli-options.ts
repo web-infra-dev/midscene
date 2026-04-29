@@ -5,8 +5,8 @@ import {
   resolveViewportSize,
 } from './common/viewport';
 
-const viewportWidthFlags = ['--viewport-width', '--viewportWidth'];
-const viewportHeightFlags = ['--viewport-height', '--viewportHeight'];
+const viewportWidthFlag = '--viewport-width';
+const viewportHeightFlag = '--viewport-height';
 
 export interface ParsedWebCliOptions {
   argv: string[];
@@ -106,10 +106,7 @@ export function parseWebCliOptions(
       continue;
     }
 
-    const viewportWidthFlag = viewportWidthFlags.find(
-      (flag) => arg === flag || arg.startsWith(`${flag}=`),
-    );
-    if (viewportWidthFlag) {
+    if (arg === viewportWidthFlag || arg.startsWith(`${viewportWidthFlag}=`)) {
       const parsed = readRequiredOptionValue(rawArgs, index, viewportWidthFlag);
       viewportWidth = parsePositiveIntegerOption(
         viewportWidthFlag,
@@ -119,10 +116,10 @@ export function parseWebCliOptions(
       continue;
     }
 
-    const viewportHeightFlag = viewportHeightFlags.find(
-      (flag) => arg === flag || arg.startsWith(`${flag}=`),
-    );
-    if (viewportHeightFlag) {
+    if (
+      arg === viewportHeightFlag ||
+      arg.startsWith(`${viewportHeightFlag}=`)
+    ) {
       const parsed = readRequiredOptionValue(
         rawArgs,
         index,

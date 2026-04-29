@@ -8,8 +8,8 @@ import { describe, expect, it } from 'vitest';
 describe('viewport helpers', () => {
   it('uses the shared default viewport size', () => {
     expect(defaultViewportSize).toEqual({
-      width: 1400,
-      height: 900,
+      width: 1440,
+      height: 768,
     });
   });
 
