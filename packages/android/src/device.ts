@@ -1844,27 +1844,38 @@ ${Object.keys(size)
   }
 
   /**
-   * Get the current time from the Android device.
-   * Returns the device's current timestamp in milliseconds.
-   * This is useful when the system time and device time are not synchronized.
+   * Get the current device-local time as a formatted string.
+   * This avoids formatting an Android epoch timestamp in the host machine's
+   * timezone, which can disagree with the device status bar.
    */
-  async getTimestamp(): Promise<number> {
+  async getDeviceLocalTimeString(
+    format = 'YYYY-MM-DD HH:mm:ss',
+  ): Promise<string> {
     const adb = await this.getAdb();
     try {
-      // Get time in milliseconds using date command
-      // %s gives seconds since epoch, %3N gives milliseconds
-      const stdout = await adb.shell('date +%s%3N');
-      const timestamp = Number.parseInt(stdout.trim(), 10);
+      const stdout = await adb.shell('date +%Y-%m-%dT%H:%M:%S');
+      const match = stdout
+        .trim()
+        .match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})$/);
 
-      if (Number.isNaN(timestamp)) {
-        throw new Error(`Invalid timestamp format: ${stdout}`);
+      if (!match) {
+        throw new Error(`Invalid device time format: ${stdout}`);
       }
 
-      debugDevice(`Got device time: ${timestamp}`);
-      return timestamp;
+      const [, year, month, day, hours, minutes, seconds] = match;
+      const timeString = format
+        .replace('YYYY', year)
+        .replace('MM', month)
+        .replace('DD', day)
+        .replace('HH', hours)
+        .replace('mm', minutes)
+        .replace('ss', seconds);
+
+      debugDevice(`Got device local time: ${timeString}`);
+      return `${timeString} (${format})`;
     } catch (error) {
-      debugDevice(`Failed to get device time: ${error}`);
-      throw new Error(`Failed to get device time: ${error}`);
+      debugDevice(`Failed to get device local time: ${error}`);
+      throw new Error(`Failed to get device local time: ${error}`);
     }
   }
 

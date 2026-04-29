@@ -32,7 +32,7 @@ import type {
   ServiceExtractParam,
 } from '@/types';
 import { ServiceError } from '@/types';
-import { type IModelConfig, getCurrentTime } from '@midscene/shared/env';
+import type { IModelConfig } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ExecutionSession } from './execution-session';
@@ -58,6 +58,7 @@ interface TaskExecutorHooks {
 }
 
 const debug = getDebug('device-task-executor');
+const warnLog = getDebug('device-task-executor', { console: true });
 const maxErrorCountAllowedInOnePlanningLoop = 5;
 
 export { TaskExecutionError };
@@ -81,7 +82,7 @@ export class TaskExecutor {
 
   waitAfterAction?: number;
 
-  useDeviceTimestamp?: boolean;
+  useDeviceTime?: boolean;
 
   // @deprecated use .interface instead
   get page() {
@@ -96,7 +97,7 @@ export class TaskExecutor {
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
       replanningCycleLimit?: number;
       waitAfterAction?: number;
-      useDeviceTimestamp?: boolean;
+      useDeviceTime?: boolean;
       hooks?: TaskExecutorHooks;
       actionSpace: DeviceAction[];
     },
@@ -107,7 +108,7 @@ export class TaskExecutor {
     this.onTaskStartCallback = opts?.onTaskStart;
     this.replanningCycleLimit = opts.replanningCycleLimit;
     this.waitAfterAction = opts.waitAfterAction;
-    this.useDeviceTimestamp = opts.useDeviceTimestamp;
+    this.useDeviceTime = opts.useDeviceTime;
     this.hooks = opts.hooks;
     this.providedActionSpace = opts.actionSpace;
     this.taskBuilder = new TaskBuilder({
@@ -139,17 +140,30 @@ export class TaskExecutor {
   }
 
   /**
-   * Get a readable time string using device time when configured.
-   * This method respects the useDeviceTimestamp configuration.
+   * Get a readable time string. When device time is enabled, use the
+   * device-formatted wall-clock time directly so host timezone formatting does
+   * not reinterpret a device timestamp.
    * @param format - Optional format string
    * @returns A formatted time string
    */
   private async getTimeString(format?: string): Promise<string> {
-    const timestamp = await getCurrentTime(
-      this.interface,
-      this.useDeviceTimestamp,
-    );
-    return getReadableTimeString(format, timestamp);
+    if (this.useDeviceTime) {
+      if (this.interface.getDeviceLocalTimeString) {
+        try {
+          return await this.interface.getDeviceLocalTimeString(format);
+        } catch (error) {
+          warnLog(
+            `Failed to get device time string, falling back to runtime time: ${error}`,
+          );
+        }
+      } else {
+        warnLog(
+          'useDeviceTime is enabled but getDeviceLocalTimeString is not implemented, falling back to runtime time.',
+        );
+      }
+    }
+
+    return getReadableTimeString(format);
   }
 
   public async convertPlanToExecutable(

@@ -54,11 +54,11 @@ export abstract class AbstractInterface {
   abstract evaluateJavaScript?<T = any>(script: string): Promise<T>;
 
   /**
-   * Get the current time from the device.
-   * Returns the device's current timestamp in milliseconds.
-   * This is useful when the system time and device time are not synchronized.
+   * Get the current device-local time as a formatted string.
+   * Prefer this for user-visible time because timestamps alone do not preserve
+   * the target device's timezone when formatted on the host machine.
    */
-  getTimestamp?(): Promise<number>;
+  getDeviceLocalTimeString?(format?: string): Promise<string>;
 
   /** URL of native MJPEG stream for real-time screen preview (e.g. WDA MJPEG server) */
   mjpegStreamUrl?: string;
