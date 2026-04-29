@@ -17,9 +17,12 @@ function parseViewportDimension(
   name: 'viewportWidth' | 'viewportHeight',
 ): number {
   const parsedValue =
-    typeof rawValue === 'number' ? rawValue : Number.parseInt(rawValue, 10);
+    typeof rawValue === 'number' ? rawValue : Number(rawValue);
 
-  assert(Number.isFinite(parsedValue), `${name} must be a number`);
+  assert(
+    Number.isInteger(parsedValue),
+    `${name} must be a positive integer, but got ${rawValue}`,
+  );
   assert(
     parsedValue > 0,
     `${name} must be greater than 0, but got ${rawValue}`,
