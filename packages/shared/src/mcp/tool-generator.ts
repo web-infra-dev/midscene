@@ -621,5 +621,38 @@ export function generateCommonTools(
         }
       },
     },
+    {
+      name: 'assert',
+      description:
+        'Assert a natural language statement against the current page/screen.',
+      schema: {
+        prompt: z
+          .string()
+          .describe(
+            'Natural language assertion to verify, e.g. "there is a login button visible"',
+          ),
+        ...initArgSchema,
+      },
+      cli: mergeToolCliMetadata(undefined, initArgCliMetadata),
+      handler: async (
+        args: Record<string, unknown> = {},
+      ): Promise<ToolResult> => {
+        const prompt = args.prompt as string;
+        try {
+          const agent = await getAgent(args);
+          if (!agent.aiAssert) {
+            return createErrorResult('assert is not supported by this agent');
+          }
+          await agent.aiAssert(prompt);
+          return {
+            content: [{ type: 'text', text: 'Assertion passed.' }],
+          };
+        } catch (error: unknown) {
+          const errorMessage = getErrorMessage(error);
+          console.error('Error executing assert:', errorMessage);
+          return createErrorResult(`Failed to execute assert: ${errorMessage}`);
+        }
+      },
+    },
   ];
 }

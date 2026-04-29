@@ -30,6 +30,7 @@ class FakeCliTools extends BaseMidsceneTools<BaseAgent> {
   public readonly createdReportFileNames: Array<string | undefined> = [];
   public readonly createdReportGroupIds: Array<string | undefined> = [];
   public readonly aiAction = vi.fn().mockResolvedValue(undefined);
+  public readonly aiAssert = vi.fn().mockResolvedValue(undefined);
 
   protected createTemporaryDevice(): BaseDevice {
     return new FakeDevice();
@@ -47,6 +48,7 @@ class FakeCliTools extends BaseMidsceneTools<BaseAgent> {
     return {
       getActionSpace: vi.fn().mockResolvedValue([]),
       aiAction: this.aiAction,
+      aiAssert: this.aiAssert,
       page: {
         screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
       },
@@ -127,6 +129,34 @@ describe('CLI report session', () => {
     expect(actionTools.aiAction).toHaveBeenCalledWith('click the button', {
       deepThink: false,
     });
+  });
+
+  it('reuses report session for assert with a realistic UI verification prompt', async () => {
+    const connectTools = new FakeCliTools();
+    await connectTools.initTools();
+    await connectTools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'test_connect')!
+      .handler({});
+
+    const firstReportFileName = connectTools.createdReportFileNames[0];
+
+    const assertTools = new FakeCliTools();
+    await assertTools.initTools();
+    const assertTool = assertTools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'assert');
+    expect(assertTool).toBeDefined();
+
+    await assertTool!.handler({
+      prompt: 'The login page shows both email and password input fields',
+    });
+
+    expect(assertTools.createdReportFileNames).toEqual([firstReportFileName]);
+    expect(assertTools.createdReportGroupIds).toEqual([firstReportFileName]);
+    expect(assertTools.aiAssert).toHaveBeenCalledWith(
+      'The login page shows both email and password input fields',
+    );
   });
 
   it('creates a different report file for each connect call', async () => {

@@ -258,6 +258,16 @@ describe('generateToolsFromActionSpace', () => {
     expect(commonTools.find((tool) => tool.name === 'act')?.cli).toEqual(
       initArgCliMetadata,
     );
+
+    expect(commonTools.find((tool) => tool.name === 'assert')?.schema).toEqual(
+      expect.objectContaining({
+        prompt: expect.anything(),
+        'android.deviceId': expect.anything(),
+      }),
+    );
+    expect(commonTools.find((tool) => tool.name === 'assert')?.cli).toEqual(
+      initArgCliMetadata,
+    );
   });
 
   // Guardrail for https://github.com/web-infra-dev/midscene/issues/2313:
