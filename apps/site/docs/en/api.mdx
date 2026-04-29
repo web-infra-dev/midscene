@@ -21,7 +21,12 @@ All agents share these base options:
   - `single-html` (default): treated as a file name. Midscene writes `<reportFileName>.html` under `midscene_run/report/` (keeps `.html` if already provided).
   - `html-and-external-assets`: treated as a directory name. Midscene writes `index.html` and related assets under `midscene_run/report/<reportFileName>/`.
 - `autoPrintReportMsg: boolean`: If true, report messages will be printed. (Default: true)
-- `cacheId: string | undefined`: If provided, this cacheId will be used to save or match the cache. (Default: undefined, means cache feature is disabled)
+- `cache?: false | { id: string; strategy?: 'read-only' | 'read-write' | 'write-only'; dir?: string }`:
+  - `false`: disable cache completely.
+  - `id`: required cache ID.
+  - `strategy`: optional cache strategy. Default is `'read-write'`.
+  - `dir`: optional cache directory path. When set, cache files are written to this directory instead of `<MIDSCENE_RUN_DIR>/cache`. This lets you split cache and logs/report directories.
+- `cacheId: string | undefined` (deprecated): legacy cache ID for backward compatibility. Prefer `cache.id`.
 - `aiActContext: string`: Some background knowledge that should be sent to the AI model when calling `agent.aiAct()`, like 'close the cookie consent dialog first if it exists' (Default: undefined). Previously exposed as `aiActionContext`; the legacy name is still accepted for backward compatibility.
 - `replanningCycleLimit: number`: The maximum number of `aiAct` replanning cycles. Default is 20 (40 for UI-TARS models). Prefer setting this via the agent option; reading `MIDSCENE_REPLANNING_CYCLE_LIMIT` is only for backward compatibility.
 - `waitAfterAction: number`: Wait time in milliseconds after each action execution. This allows the UI to settle and stabilize before the next action. Default is 300ms.

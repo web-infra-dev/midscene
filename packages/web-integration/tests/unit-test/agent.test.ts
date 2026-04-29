@@ -469,6 +469,43 @@ describe('PageAgent cache configuration', () => {
       expect(agent.taskCache?.cacheId).toBe('custom-writeonly-cache');
     });
 
+    it('should support custom cache dir without changing log/report dirs', () => {
+      const cacheDir = path.join(
+        process.cwd(),
+        'tmp-custom-cache-dir',
+        `${Date.now()}`,
+      );
+      const agent = new PageAgent(mockPage, {
+        cache: {
+          id: 'custom-cache-dir-id',
+          dir: cacheDir,
+        },
+        modelConfig: mockedModelConfig,
+      });
+
+      expect(agent.taskCache).toBeDefined();
+      expect(agent.taskCache?.cacheFilePath).toContain(cacheDir);
+      expect(agent.taskCache?.cacheFilePath).toContain(
+        'custom-cache-dir-id.cache.yaml',
+      );
+
+      if (fs.existsSync(cacheDir)) {
+        fs.rmSync(cacheDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should throw error for empty cache dir', () => {
+      expect(() => {
+        new PageAgent(mockPage, {
+          cache: {
+            id: 'custom-cache-id',
+            dir: '  ',
+          },
+          modelConfig: mockedModelConfig,
+        });
+      }).toThrow('cache.dir must be a non-empty string when provided');
+    });
+
     it('should throw error for cache: true even with testId', () => {
       expect(() => {
         new PageAgent(mockPage, {

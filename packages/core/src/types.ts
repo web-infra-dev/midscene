@@ -1047,6 +1047,12 @@ export interface WebElementInfo extends BaseElement {
 export type CacheConfig = {
   strategy?: 'read-only' | 'read-write' | 'write-only';
   id: string;
+  /**
+   * Optional cache directory path.
+   * When set, cache files are written to this directory instead of
+   * `<MIDSCENE_RUN_DIR>/cache`.
+   */
+  dir?: string;
 };
 
 export type Cache =
