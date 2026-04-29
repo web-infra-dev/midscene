@@ -11,6 +11,7 @@
 @control-gap: 8px;
 @status-icon-size: 28px;
 @status-icon-glyph-size: 16px;
+@seek-knob-width: 8px;
 @right-control-gap: 2px;
 
 .player-container {
@@ -156,7 +157,7 @@
     .seek-bar-knob {
       position: absolute;
       top: 50%;
-      width: 8px;
+      width: @seek-knob-width;
       height: 16px;
       background: #fff;
       border-radius: 10px;
@@ -216,6 +217,7 @@
     align-items: center;
     justify-content: center;
     gap: @right-control-gap;
+    margin-left: (@seek-knob-width / 2);
     min-width: (@status-icon-size * 2 + @right-control-gap);
 
     .ant-spin {
