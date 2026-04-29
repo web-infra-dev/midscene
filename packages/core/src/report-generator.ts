@@ -114,6 +114,7 @@ export class ReportGenerator implements IReportGenerator {
     screenshotMode: 'inline' | 'directory';
     persistExecutionDump?: boolean;
     autoPrint?: boolean;
+    reuseExistingReport?: boolean;
   }) {
     this.reportPath = options.reportPath;
     this.screenshotMode = options.screenshotMode;
@@ -132,7 +133,9 @@ export class ReportGenerator implements IReportGenerator {
       },
       alsoWriteFileCopy: this.shouldPersistExecutionDump,
     });
-    this.hydrateStateFromExistingReport();
+    if (options.reuseExistingReport) {
+      this.hydrateStateFromExistingReport();
+    }
     this.printReportPath('will be generated at');
   }
 
@@ -143,6 +146,7 @@ export class ReportGenerator implements IReportGenerator {
       persistExecutionDump?: boolean;
       outputFormat?: 'single-html' | 'html-and-external-assets';
       autoPrintReportMsg?: boolean;
+      reuseExistingReport?: boolean;
     },
   ): IReportGenerator {
     assertReportGenerationOptions(opts);
@@ -166,6 +170,7 @@ export class ReportGenerator implements IReportGenerator {
           : 'inline',
       persistExecutionDump: opts.persistExecutionDump,
       autoPrint: opts.autoPrintReportMsg,
+      reuseExistingReport: opts.reuseExistingReport,
     });
   }
 
