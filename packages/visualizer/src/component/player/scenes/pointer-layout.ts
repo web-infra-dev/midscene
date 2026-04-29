@@ -15,6 +15,11 @@ export interface PointerLayout {
   centerOffsetY: number;
 }
 
+export interface SpinnerLayout {
+  size: number;
+  centerOffset: number;
+}
+
 function assertPositiveFinite(value: number, name: string): void {
   if (!Number.isFinite(value) || value <= 0) {
     throw new Error(`${name} must be a positive finite number`);
@@ -49,4 +54,14 @@ export function resolveExportPointerLayout(
 
   const liveLayout = resolvePointerLayout(imageWidth);
   return buildPointerLayout(liveLayout.scale * (contentWidth / imageWidth));
+}
+
+export function resolveSpinnerLayout(
+  pointerLayout: PointerLayout,
+): SpinnerLayout {
+  const size = pointerLayout.height;
+  return {
+    size,
+    centerOffset: size / 2,
+  };
 }

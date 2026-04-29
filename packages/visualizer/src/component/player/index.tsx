@@ -17,6 +17,7 @@ import PlayerSettingIcon from '../../icons/player-setting.svg';
 import { type PlaybackSpeedType, useGlobalPreference } from '../../store/store';
 import type { ReportDownloadHandler } from '../../types';
 import type { AnimationScript } from '../../utils/replay-scripts';
+import { shouldRestartPlaybackFromBeginning } from './playback-controls';
 import { triggerReportDownload } from './report-download';
 import { StepsTimeline } from './scenes/StepScene';
 import { exportBrandedVideo } from './scenes/export-branded-video';
@@ -129,12 +130,39 @@ export function Player(props?: {
     return Math.max(0, frameMap.totalDurationInFrames - 1);
   }, [frameMap]);
 
+  const handlePlaybackToggle = useCallback(() => {
+    if (player.playing) {
+      player.pause();
+      return;
+    }
+
+    if (
+      shouldRestartPlaybackFromBeginning(player.currentFrame, effectiveEndFrame)
+    ) {
+      player.seekTo(0);
+    }
+    player.play();
+  }, [
+    effectiveEndFrame,
+    player.currentFrame,
+    player.pause,
+    player.play,
+    player.playing,
+    player.seekTo,
+  ]);
+
   // When playback stops, seek to the last frame with a taskId (skip the End card)
   useEffect(() => {
     if (!frameMap || player.playing) return;
     if (player.currentFrame < frameMap.totalDurationInFrames - 1) return;
     if (effectiveEndFrame > 0) player.seekTo(effectiveEndFrame);
-  }, [frameMap, player.playing, effectiveEndFrame]);
+  }, [
+    effectiveEndFrame,
+    frameMap,
+    player.currentFrame,
+    player.playing,
+    player.seekTo,
+  ]);
 
   // Sync taskId to parent: report current task while playing, clear on stop
   useEffect(() => {
@@ -228,12 +256,12 @@ export function Player(props?: {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.code === 'Space') {
         e.preventDefault();
-        player.toggle();
+        handlePlaybackToggle();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [player]);
+  }, [handlePlaybackToggle]);
 
   // Seek bar drag
   const seekBarRef = useRef<HTMLDivElement>(null);
@@ -398,7 +426,7 @@ export function Player(props?: {
               height: '100%',
               overflow: 'hidden',
             }}
-            onClick={player.toggle}
+            onClick={handlePlaybackToggle}
           >
             {(() => {
               const scale =
@@ -458,7 +486,7 @@ export function Player(props?: {
           className={`control-bar ${controlsVisible ? '' : 'hidden'}`}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="status-icon" onClick={player.toggle}>
+          <div className="status-icon" onClick={handlePlaybackToggle}>
             {player.playing ? <PauseOutlined /> : <CaretRightOutlined />}
           </div>
 

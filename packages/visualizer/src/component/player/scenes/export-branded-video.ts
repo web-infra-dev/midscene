@@ -1,3 +1,4 @@
+import type { Rect } from '@midscene/core';
 import { mouseLoading, mousePointer } from '../../../utils';
 import { getCenterHighlightBox } from '../../../utils/highlight-element';
 import { deriveFrameState } from './derive-frame-state';
@@ -7,12 +8,22 @@ import { getPlaybackViewport } from './playback-layout';
 import {
   type PointerLayout,
   resolveExportPointerLayout,
+  resolveSpinnerLayout,
 } from './pointer-layout';
 
 const W = 960;
 const H = 540;
 const POINTER_PHASE = 0.375;
 const CROSSFADE_FRAMES = 10;
+
+interface ExportOverlayViewport {
+  offsetX: number;
+  offsetY: number;
+  contentWidth: number;
+  contentHeight: number;
+  imageWidth: number;
+  imageHeight: number;
+}
 
 // ── helpers ──
 
@@ -57,13 +68,42 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 // ── Insight overlay drawing ──
 
+export function projectNativeRectToExportViewport(
+  rect: Rect,
+  cameraTransform: { zoom: number; tx: number; ty: number },
+  viewport: ExportOverlayViewport,
+): Rect {
+  const scaleX = viewport.contentWidth / viewport.imageWidth;
+  const scaleY = viewport.contentHeight / viewport.imageHeight;
+
+  return {
+    left:
+      viewport.offsetX +
+      (rect.left * scaleX + cameraTransform.tx) * cameraTransform.zoom,
+    top:
+      viewport.offsetY +
+      (rect.top * scaleY + cameraTransform.ty) * cameraTransform.zoom,
+    width: rect.width * scaleX * cameraTransform.zoom,
+    height: rect.height * scaleY * cameraTransform.zoom,
+  };
+}
+
 function drawInsightOverlays(
   ctx: CanvasRenderingContext2D,
   insights: InsightOverlay[],
   cameraTransform: { zoom: number; tx: number; ty: number },
-  bx: number,
-  contentY: number,
+  viewport: ExportOverlayViewport,
 ) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(
+    viewport.offsetX,
+    viewport.offsetY,
+    viewport.contentWidth,
+    viewport.contentHeight,
+  );
+  ctx.clip();
+
   for (const insight of insights) {
     if (insight.alpha <= 0) continue;
     ctx.save();
@@ -71,54 +111,70 @@ function drawInsightOverlays(
 
     if (insight.highlightElement) {
       const highlightBox = getCenterHighlightBox(insight.highlightElement);
-      const rx =
-        bx +
-        (highlightBox.left * cameraTransform.zoom +
-          cameraTransform.tx * cameraTransform.zoom);
-      const ry =
-        contentY +
-        (highlightBox.top * cameraTransform.zoom +
-          cameraTransform.ty * cameraTransform.zoom);
-      const highlightWidth = highlightBox.width * cameraTransform.zoom;
-      const highlightHeight = highlightBox.height * cameraTransform.zoom;
+      const projected = projectNativeRectToExportViewport(
+        highlightBox,
+        cameraTransform,
+        viewport,
+      );
 
       ctx.fillStyle = 'rgba(253, 89, 7, 0.4)';
-      ctx.fillRect(rx, ry, highlightWidth, highlightHeight);
+      ctx.fillRect(
+        projected.left,
+        projected.top,
+        projected.width,
+        projected.height,
+      );
       ctx.strokeStyle = '#fd5907';
       ctx.lineWidth = 1;
-      ctx.strokeRect(rx, ry, highlightWidth, highlightHeight);
+      ctx.strokeRect(
+        projected.left,
+        projected.top,
+        projected.width,
+        projected.height,
+      );
       ctx.shadowColor = 'rgba(51, 51, 51, 0.4)';
       ctx.shadowBlur = 2;
       ctx.shadowOffsetX = 4;
       ctx.shadowOffsetY = 4;
-      ctx.strokeRect(rx, ry, highlightWidth, highlightHeight);
+      ctx.strokeRect(
+        projected.left,
+        projected.top,
+        projected.width,
+        projected.height,
+      );
       ctx.shadowBlur = 0;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
     }
 
     if (insight.searchArea) {
-      const r = insight.searchArea;
-      const rx =
-        bx +
-        (r.left * cameraTransform.zoom +
-          cameraTransform.tx * cameraTransform.zoom);
-      const ry =
-        contentY +
-        (r.top * cameraTransform.zoom +
-          cameraTransform.ty * cameraTransform.zoom);
-      const rw = r.width * cameraTransform.zoom;
-      const rh = r.height * cameraTransform.zoom;
+      const projected = projectNativeRectToExportViewport(
+        insight.searchArea,
+        cameraTransform,
+        viewport,
+      );
 
       ctx.fillStyle = 'rgba(2, 131, 145, 0.4)';
-      ctx.fillRect(rx, ry, rw, rh);
+      ctx.fillRect(
+        projected.left,
+        projected.top,
+        projected.width,
+        projected.height,
+      );
       ctx.strokeStyle = '#028391';
       ctx.lineWidth = 1;
-      ctx.strokeRect(rx, ry, rw, rh);
+      ctx.strokeRect(
+        projected.left,
+        projected.top,
+        projected.width,
+        projected.height,
+      );
     }
 
     ctx.restore();
   }
+
+  ctx.restore();
 }
 
 // ── Spinning pointer Canvas drawing ──
@@ -237,13 +293,26 @@ function drawSteps(
   drawImg(img, imageChanged ? crossAlpha : 1);
 
   if (insights.length > 0) {
-    drawInsightOverlays(ctx, insights, { zoom, tx, ty }, offsetX, offsetY);
+    drawInsightOverlays(
+      ctx,
+      insights,
+      { zoom, tx, ty },
+      {
+        offsetX,
+        offsetY,
+        contentWidth,
+        contentHeight,
+        imageWidth: imgW,
+        imageHeight: imgH,
+      },
+    );
   }
 
   const camH = camW * (imgH / imgW);
   const sX = offsetX + ((ptrX - camL) / camW) * contentWidth;
   const sY = offsetY + ((ptrY - camT2) / camH) * contentHeight;
   const pointerLayout = resolveExportPointerLayout(imgW, contentWidth);
+  const spinnerLayout = resolveSpinnerLayout(pointerLayout);
 
   const hasPtrData =
     Math.abs(camera.pointerLeft - Math.round(imgW / 2)) > 1 ||
@@ -257,7 +326,13 @@ function drawSteps(
       spinnerImg,
       sX,
       sY,
-      pointerLayout,
+      {
+        ...pointerLayout,
+        width: spinnerLayout.size,
+        height: spinnerLayout.size,
+        centerOffsetX: spinnerLayout.centerOffset,
+        centerOffsetY: spinnerLayout.centerOffset,
+      },
       spinningElapsedMs,
     );
   }

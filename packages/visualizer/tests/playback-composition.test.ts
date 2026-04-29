@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { resolveExportCamera } from '../src/component/player/scenes/export-branded-video';
+import { shouldRestartPlaybackFromBeginning } from '../src/component/player/playback-controls';
+import {
+  projectNativeRectToExportViewport,
+  resolveExportCamera,
+} from '../src/component/player/scenes/export-branded-video';
 import { calculateFrameMap } from '../src/component/player/scenes/frame-calculator';
 import { getPlaybackFrameState } from '../src/component/player/scenes/playback-frame';
 import { getPlaybackViewport } from '../src/component/player/scenes/playback-layout';
 import {
   resolveExportPointerLayout,
   resolvePointerLayout,
+  resolveSpinnerLayout,
 } from '../src/component/player/scenes/pointer-layout';
 import type { AnimationScript } from '../src/utils/replay-scripts';
 
@@ -125,5 +130,60 @@ describe('playback composition sizing', () => {
       liveLayout.scale * (contentWidth / imageWidth),
       5,
     );
+  });
+
+  it('projects native screenshot overlays into the export viewport', () => {
+    const projected = projectNativeRectToExportViewport(
+      { left: 256, top: 108, width: 768, height: 28 },
+      { zoom: 1, tx: 0, ty: 0 },
+      {
+        offsetX: 0,
+        offsetY: 0,
+        contentWidth: 960,
+        contentHeight: 540,
+        imageWidth: 1280,
+        imageHeight: 720,
+      },
+    );
+
+    expect(projected.left).toBeCloseTo(192, 5);
+    expect(projected.top).toBeCloseTo(81, 5);
+    expect(projected.width).toBeCloseTo(576, 5);
+    expect(projected.height).toBeCloseTo(21, 5);
+  });
+
+  it('keeps native overlays aligned while export camera zooms', () => {
+    const projected = projectNativeRectToExportViewport(
+      { left: 256, top: 108, width: 768, height: 28 },
+      { zoom: 2, tx: -96, ty: -54 },
+      {
+        offsetX: 0,
+        offsetY: 0,
+        contentWidth: 960,
+        contentHeight: 540,
+        imageWidth: 1280,
+        imageHeight: 720,
+      },
+    );
+
+    expect(projected.left).toBeCloseTo(192, 5);
+    expect(projected.top).toBeCloseTo(54, 5);
+    expect(projected.width).toBeCloseTo(1152, 5);
+    expect(projected.height).toBeCloseTo(42, 5);
+  });
+
+  it('draws the loading pointer with a square box so it stays circular', () => {
+    const pointerLayout = resolveExportPointerLayout(1280, 960);
+    const spinnerLayout = resolveSpinnerLayout(pointerLayout);
+
+    expect(spinnerLayout.size).toBeCloseTo(pointerLayout.height, 5);
+    expect(spinnerLayout.size).toBeGreaterThan(pointerLayout.width);
+    expect(spinnerLayout.centerOffset).toBeCloseTo(spinnerLayout.size / 2, 5);
+  });
+
+  it('restarts from the beginning at the effective end frame', () => {
+    expect(shouldRestartPlaybackFromBeginning(120, 120)).toBe(true);
+    expect(shouldRestartPlaybackFromBeginning(121, 120)).toBe(true);
+    expect(shouldRestartPlaybackFromBeginning(119, 120)).toBe(false);
   });
 });

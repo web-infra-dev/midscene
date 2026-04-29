@@ -4,7 +4,7 @@ import { getCenterHighlightBox } from '../../../utils/highlight-element';
 import { deriveFrameState } from './derive-frame-state';
 import type { FrameMap } from './frame-calculator';
 import { getPlaybackViewport } from './playback-layout';
-import { resolvePointerLayout } from './pointer-layout';
+import { resolvePointerLayout, resolveSpinnerLayout } from './pointer-layout';
 
 const POINTER_PHASE = 0.375;
 const CROSSFADE_FRAMES = 10;
@@ -112,6 +112,7 @@ export const StepsTimeline: React.FC<{
 
   // Scale overlays proportionally so they stay visible at any resolution.
   const pointerLayout = resolvePointerLayout(imgW);
+  const spinnerLayout = resolveSpinnerLayout(pointerLayout);
   const resScale = pointerLayout.scale;
 
   const crossfadeAlpha = imageChanged
@@ -248,10 +249,10 @@ export const StepsTimeline: React.FC<{
           src={mouseLoading}
           style={{
             position: 'absolute',
-            left: ptrX - pointerLayout.centerOffsetX,
-            top: ptrY - pointerLayout.centerOffsetY,
-            width: pointerLayout.width,
-            height: pointerLayout.height,
+            left: ptrX - spinnerLayout.centerOffset,
+            top: ptrY - spinnerLayout.centerOffset,
+            width: spinnerLayout.size,
+            height: spinnerLayout.size,
             transform: `rotate(${spinRotation}rad)`,
             transformOrigin: 'center center',
             filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
