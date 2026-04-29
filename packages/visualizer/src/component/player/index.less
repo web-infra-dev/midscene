@@ -8,6 +8,9 @@
 @timeline-height: 4px;
 @tools-height: 42px;
 @tools-margin: 15px;
+@control-gap: 8px;
+@status-icon-size: 28px;
+@status-icon-glyph-size: 16px;
 
 .player-container {
   width: 100%;
@@ -110,7 +113,7 @@
     right: 0;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: @control-gap;
     padding: 8px 12px;
     background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
     transition: opacity 0.3s;
@@ -184,8 +187,8 @@
 
   .status-icon {
     transition: 0.2s;
-    width: 28px;
-    height: 28px;
+    width: @status-icon-size;
+    height: @status-icon-size;
     border-radius: 4px;
     display: flex;
     align-items: center;
@@ -197,7 +200,7 @@
 
     svg {
       color: #fff;
-      font-size: 16px;
+      font-size: @status-icon-glyph-size;
     }
 
     &:hover {
@@ -211,8 +214,8 @@
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    min-width: 64px;
+    gap: @control-gap;
+    min-width: (@status-icon-size * 2 + @control-gap);
 
     .ant-spin {
       color: #fff;
