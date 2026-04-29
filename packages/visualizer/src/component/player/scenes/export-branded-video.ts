@@ -1,7 +1,7 @@
 import type { Rect } from '@midscene/core';
 import { mouseLoading, mousePointer } from '../../../utils';
 import { getCenterHighlightBox } from '../../../utils/highlight-element';
-import { deriveFrameState } from './derive-frame-state';
+import { deriveFrameState, shouldRenderCursor } from './derive-frame-state';
 import type { InsightOverlay } from './derive-frame-state';
 import type { FrameMap } from './frame-calculator';
 import { getPlaybackViewport } from './playback-layout';
@@ -15,6 +15,10 @@ const W = 960;
 const H = 540;
 const POINTER_PHASE = 0.375;
 const CROSSFADE_FRAMES = 10;
+const EXPORT_STALL_GRACE_MS = 2000;
+const EXPORT_STALL_GRACE_FRAMES = 10;
+
+let activeExport = false;
 
 interface ExportOverlayViewport {
   offsetX: number;
@@ -33,6 +37,16 @@ function clamp(v: number, lo: number, hi: number): number {
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
+}
+
+export function isExportRenderStalled(
+  elapsedSinceLastFrameMs: number,
+  frameDurationMs: number,
+): boolean {
+  return (
+    elapsedSinceLastFrameMs >
+    Math.max(EXPORT_STALL_GRACE_MS, frameDurationMs * EXPORT_STALL_GRACE_FRAMES)
+  );
 }
 
 export function resolveExportCamera(
@@ -209,7 +223,7 @@ function drawSteps(
   stepsFrame: number,
   frameMap: FrameMap,
   imgCache: Map<string, HTMLImageElement>,
-  cursorImg: HTMLImageElement | null,
+  pointerCache: Map<string, HTMLImageElement>,
   spinnerImg: HTMLImageElement | null,
   autoZoom: boolean,
 ) {
@@ -230,6 +244,8 @@ function drawSteps(
     frameInScript: fInScript,
     spinning,
     spinningElapsedMs,
+    currentPointerImg,
+    pointerVisible,
     insights,
   } = st;
 
@@ -313,12 +329,15 @@ function drawSteps(
   const sY = offsetY + ((ptrY - camT2) / camH) * contentHeight;
   const pointerLayout = resolveExportPointerLayout(imgW, contentWidth);
   const spinnerLayout = resolveSpinnerLayout(pointerLayout);
-
-  const hasPtrData =
-    Math.abs(camera.pointerLeft - Math.round(imgW / 2)) > 1 ||
-    Math.abs(camera.pointerTop - Math.round(imgH / 2)) > 1 ||
-    Math.abs(prevCamera.pointerLeft - Math.round(imgW / 2)) > 1 ||
-    Math.abs(prevCamera.pointerTop - Math.round(imgH / 2)) > 1;
+  const cursorImg =
+    pointerCache.get(currentPointerImg) ?? pointerCache.get(mousePointer);
+  const showCursor = shouldRenderCursor(
+    pointerVisible,
+    camera,
+    prevCamera,
+    imgW,
+    imgH,
+  );
 
   if (spinning && spinnerImg) {
     drawSpinningPointer(
@@ -337,7 +356,7 @@ function drawSteps(
     );
   }
 
-  if (!spinning && hasPtrData && cursorImg) {
+  if (!spinning && showCursor && cursorImg) {
     ctx.drawImage(
       cursorImg,
       sX - pointerLayout.hotspotX,
@@ -351,6 +370,24 @@ function drawSteps(
 // ── main export function ──
 
 export async function exportBrandedVideo(
+  frameMap: FrameMap,
+  options?: {
+    autoZoom?: boolean;
+  },
+  onProgress?: (pct: number) => void,
+): Promise<void> {
+  if (activeExport) {
+    throw new Error('Video export is already in progress');
+  }
+  activeExport = true;
+  try {
+    await runExportBrandedVideo(frameMap, options, onProgress);
+  } finally {
+    activeExport = false;
+  }
+}
+
+async function runExportBrandedVideo(
   frameMap: FrameMap,
   options?: {
     autoZoom?: boolean;
@@ -376,13 +413,23 @@ export async function exportBrandedVideo(
     }),
   );
 
-  let cursorImg: HTMLImageElement | null = null;
-  let spinnerImg: HTMLImageElement | null = null;
-  try {
-    cursorImg = await loadImage(mousePointer);
-  } catch {
-    /* optional */
+  const pointerSrcs = new Set<string>([mousePointer]);
+  for (const sf of frameMap.scriptFrames) {
+    if (sf.pointerImg) pointerSrcs.add(sf.pointerImg);
   }
+
+  const pointerCache = new Map<string, HTMLImageElement>();
+  await Promise.all(
+    [...pointerSrcs].map(async (src) => {
+      try {
+        pointerCache.set(src, await loadImage(src));
+      } catch {
+        /* optional */
+      }
+    }),
+  );
+
+  let spinnerImg: HTMLImageElement | null = null;
   try {
     spinnerImg = await loadImage(mouseLoading);
   } catch {
@@ -404,8 +451,55 @@ export async function exportBrandedVideo(
 
   // 3. render loop
   return new Promise<void>((resolve, reject) => {
-    recorder.onerror = () => reject(new Error('MediaRecorder error'));
+    let stoppedByError: Error | null = null;
+    let settled = false;
+    let nextFrame = 0;
+    let nextFrameDueAt = performance.now();
+    let lastFrameAt = nextFrameDueAt;
+    let stopTimer: ReturnType<typeof setTimeout> | null = null;
+    let renderTimer: ReturnType<typeof setTimeout> | null = null;
+    const frameDuration = 1000 / fps;
+
+    const cleanup = () => {
+      if (stopTimer) clearTimeout(stopTimer);
+      if (renderTimer) clearTimeout(renderTimer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      stream.getTracks().forEach((track) => track.stop());
+    };
+
+    const finishWithError = (error: Error) => {
+      if (settled || stoppedByError) return;
+      stoppedByError = error;
+      if (recorder.state !== 'inactive') {
+        recorder.stop();
+      } else {
+        cleanup();
+        settled = true;
+        reject(error);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        finishWithError(
+          new Error(
+            'Video export was interrupted because the report tab was hidden',
+          ),
+        );
+      }
+    };
+
+    recorder.onerror = () => {
+      finishWithError(new Error('MediaRecorder error'));
+    };
     recorder.onstop = () => {
+      cleanup();
+      if (settled) return;
+      settled = true;
+      if (stoppedByError) {
+        reject(stoppedByError);
+        return;
+      }
       if (chunks.length === 0) {
         reject(new Error('No video data'));
         return;
@@ -416,45 +510,60 @@ export async function exportBrandedVideo(
       a.href = url;
       a.download = 'midscene_replay.webm';
       a.click();
-      stream.getTracks().forEach((track) => track.stop());
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       resolve();
     };
 
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     recorder.start();
-    const frameDuration = 1000 / fps;
-    const startTime = performance.now();
-    let lastFrame = -1;
 
-    const tick = () => {
-      const elapsed = performance.now() - startTime;
-      const targetFrame = Math.min(
-        Math.floor(elapsed / frameDuration),
-        total - 1,
-      );
+    const scheduleNextFrame = () => {
+      const delay = Math.max(0, nextFrameDueAt - performance.now());
+      renderTimer = setTimeout(() => {
+        requestAnimationFrame(renderFrame);
+      }, delay);
+    };
 
-      if (targetFrame > lastFrame) {
-        lastFrame = targetFrame;
-        ctx.clearRect(0, 0, W, H);
-        drawSteps(
-          ctx,
-          targetFrame,
-          frameMap,
-          imgCache,
-          cursorImg,
-          spinnerImg,
-          autoZoom,
+    const renderFrame = (timestamp: number) => {
+      if (settled || recorder.state === 'inactive') return;
+      if (
+        nextFrame > 0 &&
+        isExportRenderStalled(timestamp - lastFrameAt, frameDuration)
+      ) {
+        finishWithError(
+          new Error('Video export was interrupted because rendering stalled'),
         );
-        onProgress?.((targetFrame + 1) / total);
+        return;
       }
 
-      if (targetFrame < total - 1) {
-        requestAnimationFrame(tick);
+      lastFrameAt = timestamp;
+      ctx.clearRect(0, 0, W, H);
+      drawSteps(
+        ctx,
+        nextFrame,
+        frameMap,
+        imgCache,
+        pointerCache,
+        spinnerImg,
+        autoZoom,
+      );
+      onProgress?.((nextFrame + 1) / total);
+
+      nextFrame += 1;
+      if (nextFrame < total) {
+        nextFrameDueAt += frameDuration;
+        scheduleNextFrame();
       } else {
-        setTimeout(() => recorder.stop(), frameDuration * 2);
+        stopTimer = setTimeout(() => {
+          if (recorder.state !== 'inactive') recorder.stop();
+        }, frameDuration * 2);
       }
     };
 
-    requestAnimationFrame(tick);
+    requestAnimationFrame((timestamp) => {
+      lastFrameAt = timestamp;
+      nextFrameDueAt = timestamp;
+      renderFrame(timestamp);
+    });
   });
 }

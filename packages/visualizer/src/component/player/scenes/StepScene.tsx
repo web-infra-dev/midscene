@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { mouseLoading } from '../../../utils';
 import { getCenterHighlightBox } from '../../../utils/highlight-element';
-import { deriveFrameState } from './derive-frame-state';
+import { deriveFrameState, shouldRenderCursor } from './derive-frame-state';
 import type { FrameMap } from './frame-calculator';
 import { getPlaybackViewport } from './playback-layout';
 import { resolvePointerLayout, resolveSpinnerLayout } from './pointer-layout';
@@ -50,6 +50,7 @@ export const StepsTimeline: React.FC<{
     spinning: spinningPointer,
     spinningElapsedMs,
     currentPointerImg,
+    pointerVisible,
     title,
     subTitle,
     frameInScript,
@@ -104,11 +105,13 @@ export const StepsTimeline: React.FC<{
   const camH = cameraWidth * (imgH / imgW);
   const ptrX = ((pointerLeft - cameraLeft) / cameraWidth) * contentWidth;
   const ptrY = ((pointerTop - cameraTop) / camH) * contentHeight;
-  const showCursor =
-    camera.pointerLeft !== Math.round(imgW / 2) ||
-    camera.pointerTop !== Math.round(imgH / 2) ||
-    prevCamera.pointerLeft !== Math.round(imgW / 2) ||
-    prevCamera.pointerTop !== Math.round(imgH / 2);
+  const showCursor = shouldRenderCursor(
+    pointerVisible,
+    camera,
+    prevCamera,
+    imgW,
+    imgH,
+  );
 
   // Scale overlays proportionally so they stay visible at any resolution.
   const pointerLayout = resolvePointerLayout(imgW);

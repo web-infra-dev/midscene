@@ -218,6 +218,7 @@ export function Player(props?: {
   // pointer-events:none, and the dropdown closes mid-export).
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
+  const exportInFlightRef = useRef(false);
 
   // Controls auto-hide
   const [controlsVisible, setControlsVisible] = useState(true);
@@ -313,7 +314,8 @@ export function Player(props?: {
 
   // Export video
   const handleExportVideo = useCallback(async () => {
-    if (!frameMap || isExporting) return;
+    if (!frameMap || exportInFlightRef.current) return;
+    exportInFlightRef.current = true;
     setIsExporting(true);
     setExportProgress(0);
     try {
@@ -327,12 +329,14 @@ export function Player(props?: {
       message.success('Video exported');
     } catch (e) {
       console.error('Export failed:', e);
-      message.error('Export failed');
+      const errorMessage = e instanceof Error ? e.message : 'Export failed';
+      message.error(errorMessage);
     } finally {
+      exportInFlightRef.current = false;
       setIsExporting(false);
       setExportProgress(0);
     }
-  }, [autoZoom, frameMap, isExporting]);
+  }, [autoZoom, frameMap]);
 
   // Compute chapter markers
   const chapterMarkers = useMemo(() => {

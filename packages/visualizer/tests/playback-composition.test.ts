@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { shouldRestartPlaybackFromBeginning } from '../src/component/player/playback-controls';
 import {
+  deriveFrameState,
+  shouldRenderCursor,
+} from '../src/component/player/scenes/derive-frame-state';
+import {
+  isExportRenderStalled,
   projectNativeRectToExportViewport,
   resolveExportCamera,
 } from '../src/component/player/scenes/export-branded-video';
@@ -185,5 +190,71 @@ describe('playback composition sizing', () => {
     expect(shouldRestartPlaybackFromBeginning(120, 120)).toBe(true);
     expect(shouldRestartPlaybackFromBeginning(121, 120)).toBe(true);
     expect(shouldRestartPlaybackFromBeginning(119, 120)).toBe(false);
+  });
+
+  it('keeps the cursor visible after an explicit pointer frame', () => {
+    const frameMap = calculateFrameMap([
+      {
+        type: 'img',
+        img: 'frame',
+        duration: 500,
+        imageWidth: 1280,
+        imageHeight: 720,
+      },
+      {
+        type: 'pointer',
+        img: 'cursor',
+        duration: 0,
+      },
+      {
+        type: 'img',
+        img: 'frame-after-action',
+        duration: 500,
+        imageWidth: 1280,
+        imageHeight: 720,
+      },
+    ]);
+
+    const beforePointer = deriveFrameState(
+      frameMap.scriptFrames,
+      0,
+      frameMap.imageWidth,
+      frameMap.imageHeight,
+      frameMap.fps,
+    );
+    const afterPointer = deriveFrameState(
+      frameMap.scriptFrames,
+      16,
+      frameMap.imageWidth,
+      frameMap.imageHeight,
+      frameMap.fps,
+    );
+
+    expect(
+      shouldRenderCursor(
+        beforePointer.pointerVisible,
+        beforePointer.camera,
+        beforePointer.prevCamera,
+        beforePointer.imageWidth,
+        beforePointer.imageHeight,
+      ),
+    ).toBe(false);
+    expect(afterPointer.currentPointerImg).toBe('cursor');
+    expect(
+      shouldRenderCursor(
+        afterPointer.pointerVisible,
+        afterPointer.camera,
+        afterPointer.prevCamera,
+        afterPointer.imageWidth,
+        afterPointer.imageHeight,
+      ),
+    ).toBe(true);
+  });
+
+  it('treats long export render gaps as stalled recordings', () => {
+    const frameDuration = 1000 / 30;
+
+    expect(isExportRenderStalled(500, frameDuration)).toBe(false);
+    expect(isExportRenderStalled(2500, frameDuration)).toBe(true);
   });
 });
