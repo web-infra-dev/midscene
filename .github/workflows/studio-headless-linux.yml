@@ -1,0 +1,108 @@
+name: Studio Headless Linux
+
+on:
+  pull_request:
+    paths:
+      - 'apps/studio/**'
+      - '.github/workflows/studio-headless-linux.yml'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to checkout'
+        required: false
+        default: 'main'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  studio-startup:
+    runs-on: ubuntu-22.04
+    env:
+      CI: '1'
+      MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
+      MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+      MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
+      MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
+      MIDSCENE_MODEL_RETRY_COUNT: '2'
+      MIDSCENE_MODEL_RETRY_INTERVAL: '60000'
+      MIDSCENE_REPORT_QUIET: 'true'
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.branch || github.ref }}
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 9.3.0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24.13.0'
+        cache: 'pnpm'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          xvfb \
+          x11-xserver-utils \
+          libasound2 \
+          libatk-bridge2.0-0 \
+          libatk1.0-0 \
+          libcups2 \
+          libdrm2 \
+          libgbm1 \
+          libgtk-3-0 \
+          libnotify4 \
+          libnss3 \
+          libpango-1.0-0 \
+          libx11-xcb1 \
+          libxcomposite1 \
+          libxdamage1 \
+          libxfixes3 \
+          libxinerama1 \
+          libxkbcommon-x11-0 \
+          libxkbcommon0 \
+          libxrandr2 \
+          libxshmfence1 \
+          libxss1 \
+          libxtst6
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build Studio
+      run: npx nx run-many --target=build --projects=studio,@midscene/report
+
+    - name: Re-inject report template into @midscene/core dist
+      run: node apps/report/scripts/inject-report-template.mjs
+
+    - name: Run Studio startup smoke test
+      run: xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm --dir apps/studio run test:smoke
+      env:
+        MIDSCENE_STUDIO_RUN_STARTUP_SMOKE: '1'
+
+    - name: Run Studio Midscene startup test
+      run: xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm --dir apps/studio run test:smoke:ai
+      timeout-minutes: 25
+      id: test-ai
+      continue-on-error: true
+      env:
+        MIDSCENE_STUDIO_RUN_STARTUP_SMOKE_AI: '1'
+
+    - name: Upload Studio Midscene report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: studio-startup-ai-report
+        path: apps/studio/midscene_run/report/studio-startup-ai-report.html
+        if-no-files-found: error
+
+    - name: Check Studio Midscene startup result
+      if: steps.test-ai.outcome == 'failure'
+      run: exit 1
