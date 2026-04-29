@@ -4,12 +4,22 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import { notarize } from '@electron/notarize';
 import { packager } from '@electron/packager';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const studioRootDir = path.resolve(__dirname, '..');
 const workspaceRootDir = path.resolve(studioRootDir, '..', '..');
+const studioBuildDir = path.join(studioRootDir, 'build');
+const reportRootDir = path.join(workspaceRootDir, 'apps', 'report');
+const coreRootDir = path.join(workspaceRootDir, 'packages', 'core');
+const coreDistDir = path.join(coreRootDir, 'dist');
+const reportTemplatePath = path.join(reportRootDir, 'dist', 'index.html');
+const reportTemplatePlaceholder = 'REPLACE_ME_WITH_REPORT_HTML';
+const unresolvedReportTemplatePattern = new RegExp(
+  String.raw`(?:=|return)\s*(['"])${reportTemplatePlaceholder}\1`,
+);
 
 // Keep release packaging state outside `apps/studio` so local build outputs do
 // not recurse back into the generated Electron payload.
@@ -23,7 +33,35 @@ const packagingWorkspaceDir = path.join(releaseWorkspaceDir, 'workspace');
 const packagedDir = path.join(releaseWorkspaceDir, 'packaged');
 const packagedAppId = 'midscene-studio';
 const packagedProductName = 'Midscene Studio';
-const packagedIgnorePatterns = [/^\/pnpm-lock\.yaml$/, /^\/vendor($|\/)/];
+const packagedIgnorePatterns = [
+  /^\/pnpm-lock\.yaml$/,
+  /^\/vendor($|\/)/,
+  // Documentation / changelog noise from third-party packages.
+  /\/(README|CHANGELOG|HISTORY|CONTRIBUTING|AUTHORS)(\.[a-zA-Z]+)?$/i,
+  // Editor / repo metadata that shipped from upstream `files` globs.
+  /\/\.(github|vscode|idea|circleci|husky)(\/|$)/,
+  /\/(\.npmignore|\.editorconfig|\.gitignore|\.gitattributes|\.prettierrc[^/]*|\.eslintrc[^/]*|\.eslintignore|\.babelrc[^/]*)$/,
+  // TypeScript type definitions are not loaded by the packaged runtime.
+  /\.d\.ts(\.map)?$/,
+  // Source maps duplicate what `pruneSourceMapFiles` already removed.
+  /\.js\.map$/,
+];
+const defaultMacEntitlementsPath = path.join(
+  studioBuildDir,
+  'entitlements.mac.plist',
+);
+const gpuMacEntitlementsPath = path.join(
+  studioBuildDir,
+  'entitlements.mac.gpu.plist',
+);
+const pluginMacEntitlementsPath = path.join(
+  studioBuildDir,
+  'entitlements.mac.plugin.plist',
+);
+const rendererMacEntitlementsPath = path.join(
+  studioBuildDir,
+  'entitlements.mac.renderer.plist',
+);
 const packageBuildSourceTargets = [
   'src',
   'html',
@@ -42,6 +80,13 @@ const studioBuildSourceTargets = [
   'project.json',
   'tsconfig.json',
   'postcss.config.mjs',
+  'rsbuild.config.ts',
+];
+const reportBuildSourceTargets = [
+  'src',
+  'template',
+  'package.json',
+  'tsconfig.json',
   'rsbuild.config.ts',
 ];
 const playgroundAppBuildSourceTargets = [
@@ -82,6 +127,30 @@ const staticWorkspacePackageSourceConfigs = [
 }));
 
 const supportedPlatforms = new Set(['darwin', 'linux', 'win32']);
+const truthyBooleanTokens = new Set(['1', 'true', 'yes', 'on']);
+const falsyBooleanTokens = new Set(['0', 'false', 'no', 'off']);
+const macNestedCodeBundleExtensions = new Set([
+  '.app',
+  '.appex',
+  '.framework',
+  '.xpc',
+]);
+const macStandaloneCodeFileExtensions = new Set([
+  '.bare',
+  '.dylib',
+  '.node',
+  '.so',
+]);
+const macMachOMagicHeaders = new Set([
+  'cafebabe',
+  'cafebabf',
+  'bebafeca',
+  'bfbafeca',
+  'cefaedfe',
+  'cffaedfe',
+  'feedface',
+  'feedfacf',
+]);
 
 export const shouldUseShellForCommand = (
   command,
@@ -111,6 +180,122 @@ const run = (command, args, { cwd = workspaceRootDir, env } = {}) =>
       );
     });
   });
+
+const resolveTrimmedEnv = (value) => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed || undefined;
+};
+
+export const parseBooleanLike = (value, defaultValue = false) => {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value !== 'string') {
+    return defaultValue;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return defaultValue;
+  }
+
+  if (truthyBooleanTokens.has(normalized)) {
+    return true;
+  }
+
+  if (falsyBooleanTokens.has(normalized)) {
+    return false;
+  }
+
+  throw new Error(`Expected a boolean-like value, but received "${value}".`);
+};
+
+export const resolveMacPackagedAppSecurity = ({
+  env = process.env,
+  platform = process.platform,
+} = {}) => {
+  const requireCodesign = parseBooleanLike(
+    env.MIDSCENE_REQUIRE_MAC_CODESIGN,
+    false,
+  );
+  const requireNotarization = parseBooleanLike(
+    env.MIDSCENE_REQUIRE_MAC_NOTARIZATION,
+    false,
+  );
+
+  if (platform !== 'darwin') {
+    return {
+      notarizeOptions: undefined,
+      requireCodesign,
+      requireNotarization,
+      shouldDeveloperIdSign: false,
+      shouldNotarize: false,
+      signIdentity: undefined,
+      signKeychain: undefined,
+      teamId: undefined,
+    };
+  }
+
+  const signIdentity = resolveTrimmedEnv(env.APPLE_CODESIGN_IDENTITY);
+  const signKeychain = resolveTrimmedEnv(env.APPLE_CODESIGN_KEYCHAIN);
+  const teamId = resolveTrimmedEnv(env.APPLE_TEAM_ID);
+  const appleApiKey = resolveTrimmedEnv(env.APPLE_API_KEY_PATH);
+  const appleApiKeyId = resolveTrimmedEnv(env.APPLE_API_KEY_ID);
+  const appleApiIssuer = resolveTrimmedEnv(env.APPLE_API_ISSUER_ID);
+  const shouldDeveloperIdSign = Boolean(signIdentity);
+  const notarizeOptions =
+    appleApiKey && appleApiKeyId
+      ? {
+          appleApiKey,
+          appleApiKeyId,
+          ...(appleApiIssuer ? { appleApiIssuer } : {}),
+        }
+      : undefined;
+  const shouldNotarize = requireNotarization && Boolean(notarizeOptions);
+
+  if (requireCodesign && !shouldDeveloperIdSign) {
+    throw new Error(
+      'macOS release packaging requires a Developer ID signing identity. Set APPLE_CODESIGN_IDENTITY.',
+    );
+  }
+
+  if (teamId && signIdentity && !signIdentity.includes(`(${teamId})`)) {
+    throw new Error(
+      `Developer ID identity "${signIdentity}" does not match APPLE_TEAM_ID "${teamId}".`,
+    );
+  }
+
+  if (requireNotarization && !shouldDeveloperIdSign) {
+    throw new Error(
+      'macOS notarization requires a Developer ID signing identity. Set APPLE_CODESIGN_IDENTITY.',
+    );
+  }
+
+  if (requireNotarization && !notarizeOptions) {
+    throw new Error(
+      [
+        'macOS notarization is required, but notarization credentials are missing.',
+        'Set APPLE_API_KEY_PATH and APPLE_API_KEY_ID',
+        '(plus APPLE_API_ISSUER_ID for App Store Connect team keys).',
+      ].join(' '),
+    );
+  }
+
+  return {
+    notarizeOptions,
+    requireCodesign,
+    requireNotarization,
+    shouldDeveloperIdSign,
+    shouldNotarize,
+    signIdentity,
+    signKeychain,
+    teamId,
+  };
+};
 
 export const normalizeReleaseVersion = (version) => {
   const trimmed = version?.trim();
@@ -357,6 +542,44 @@ const collectLatestMtime = async (targetPath) => {
   return latestMtime;
 };
 
+const reportRuntimeOutputExtensions = new Set(['.cjs', '.html', '.js', '.mjs']);
+
+export const pathContainsReportTemplatePlaceholder = async (rootDir) => {
+  let entries;
+  try {
+    entries = await fs.readdir(rootDir, { withFileTypes: true });
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return false;
+    }
+    throw error;
+  }
+
+  for (const entry of entries) {
+    const entryPath = path.join(rootDir, entry.name);
+    if (entry.isDirectory()) {
+      if (await pathContainsReportTemplatePlaceholder(entryPath)) {
+        return true;
+      }
+      continue;
+    }
+
+    if (
+      !entry.isFile() ||
+      !reportRuntimeOutputExtensions.has(path.extname(entry.name))
+    ) {
+      continue;
+    }
+
+    const content = await fs.readFile(entryPath, 'utf8');
+    if (unresolvedReportTemplatePattern.test(content)) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 const BUILD_META_FILENAME = '.release-build-meta.json';
 const BUILD_META_SCHEMA_VERSION = 1;
 
@@ -400,7 +623,11 @@ export const writeBuildMeta = async (packageDir, { nodeEnv }) => {
   );
 };
 
-export const getBuildStatus = async ({ packageDir, sourceTargets }) => {
+export const getBuildStatus = async ({
+  packageDir,
+  sourceTargets,
+  additionalSourceTargets = [],
+}) => {
   const distDir = path.join(packageDir, 'dist');
   try {
     const distStats = await fs.stat(distDir);
@@ -435,10 +662,12 @@ export const getBuildStatus = async ({ packageDir, sourceTargets }) => {
     };
   }
 
+  const sourcePaths = [
+    ...sourceTargets.map((target) => path.join(packageDir, target)),
+    ...additionalSourceTargets,
+  ];
   const latestSourceMtime = await Promise.all(
-    sourceTargets.map((target) =>
-      collectLatestMtime(path.join(packageDir, target)),
-    ),
+    sourcePaths.map((targetPath) => collectLatestMtime(targetPath)),
   ).then((mtimes) => Math.max(0, ...mtimes));
   const latestDistMtime = await collectLatestMtime(distDir);
 
@@ -455,109 +684,99 @@ export const getBuildStatus = async ({ packageDir, sourceTargets }) => {
   };
 };
 
-const captureCommandOutput = (
-  command,
-  args,
-  { platform = process.platform } = {},
-) =>
-  new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      shell: shouldUseShellForCommand(command, platform),
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    let stdout = '';
-    let stderr = '';
-    child.stdout.on('data', (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on('data', (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on('close', (code) => {
-      resolve({ code: code ?? 0, stderr, stdout });
-    });
-    child.on('error', reject);
-  });
-
-export const getLiveDevBuilderProcessQueries = (
-  platform = process.platform,
-) => {
-  if (platform === 'win32') {
-    const command =
-      '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; ' +
-      'Get-CimInstance Win32_Process | ' +
-      "Where-Object { $_.CommandLine -match 'rsbuild(?:\\\\.cmd)?\\\\s+dev' } | " +
-      "ForEach-Object { '{0} {1}' -f $_.ProcessId, $_.CommandLine }";
-    return [
-      {
-        command: 'powershell',
-        args: ['-NoProfile', '-Command', command],
-      },
-      {
-        command: 'pwsh',
-        args: ['-NoProfile', '-Command', command],
-      },
-    ];
-  }
-
-  return [
-    {
-      command: 'pgrep',
-      args: ['-af', 'rsbuild dev'],
-    },
-  ];
-};
-
-export const parseLiveDevBuilderProcessMatches = (stdout) =>
-  stdout
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-export const findLiveDevBuilderProcesses = async ({
-  platform = process.platform,
-  runCapture = captureCommandOutput,
-} = {}) => {
-  const queries = getLiveDevBuilderProcessQueries(platform);
-
-  for (const query of queries) {
-    try {
-      const result = await runCapture(query.command, query.args, { platform });
-      if (platform !== 'win32' && result.code === 1) {
-        return [];
-      }
-      return parseLiveDevBuilderProcessMatches(result.stdout);
-    } catch (error) {
-      if (error?.code === 'ENOENT') {
-        continue;
-      }
-      throw error;
-    }
-  }
-
-  return [];
-};
-
-const assertNoLiveDevBuilders = async () => {
-  const matches = await findLiveDevBuilderProcesses();
-  if (matches.length > 0) {
-    throw new Error(
-      [
-        'Detected live `rsbuild dev` processes while packaging:',
-        ...matches.map((line) => `  ${line}`),
-        'A concurrent dev server keeps overwriting `apps/studio/dist/` with',
-        'a development-mode renderer whose absolute asset URLs break under',
-        '`file://`. Stop `pnpm dev` first, then rerun `pnpm package:release`.',
-      ].join('\n'),
-    );
-  }
-};
-
 const buildPackageDir = async (packageDir) => {
   await run(packageManagerCommand, ['--dir', packageDir, 'build'], {
     env: { ...process.env, NODE_ENV: 'production' },
   });
-  await writeBuildMeta(packageDir, { nodeEnv: 'production' });
+  await writeBuildMeta(
+    path.isAbsolute(packageDir)
+      ? packageDir
+      : path.join(workspaceRootDir, packageDir),
+    { nodeEnv: 'production' },
+  );
+};
+
+const ensureReportTemplateReady = async () => {
+  let content;
+  try {
+    content = await fs.readFile(reportTemplatePath, 'utf8');
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      throw new Error(
+        `Expected report template to exist after build: ${reportTemplatePath}`,
+      );
+    }
+    throw error;
+  }
+
+  if (!content.trim()) {
+    throw new Error(`Report template is empty: ${reportTemplatePath}`);
+  }
+};
+
+const prepareReportBuildOutput = async () => {
+  let status = await getBuildStatus({
+    packageDir: reportRootDir,
+    sourceTargets: reportBuildSourceTargets,
+  });
+
+  if (!status.needsBuild) {
+    try {
+      const templateStats = await fs.stat(reportTemplatePath);
+      if (!templateStats.isFile()) {
+        status = {
+          needsBuild: true,
+          reason: 'report template output is missing',
+        };
+      }
+    } catch (error) {
+      if (error?.code !== 'ENOENT') {
+        throw error;
+      }
+      status = {
+        needsBuild: true,
+        reason: 'report template output is missing',
+      };
+    }
+  }
+
+  if (status.needsBuild) {
+    console.log(`Building apps/report (${status.reason}).`);
+    await buildPackageDir(path.relative(workspaceRootDir, reportRootDir));
+  } else {
+    console.log(`Skipping apps/report build (${status.reason}).`);
+  }
+
+  await ensureReportTemplateReady();
+};
+
+const ensureCoreReportTemplateInjected = async () => {
+  let status = await getBuildStatus({
+    packageDir: coreRootDir,
+    sourceTargets: packageBuildSourceTargets,
+    additionalSourceTargets: [reportTemplatePath],
+  });
+
+  if (
+    !status.needsBuild &&
+    (await pathContainsReportTemplatePlaceholder(coreDistDir))
+  ) {
+    status = {
+      needsBuild: true,
+      reason: 'report template placeholder remains in build output',
+    };
+  }
+
+  if (status.needsBuild) {
+    console.log(`Building packages/core (${status.reason}).`);
+    await buildPackageDir(path.relative(workspaceRootDir, coreRootDir));
+  }
+
+  if (await pathContainsReportTemplatePlaceholder(coreDistDir)) {
+    throw new Error(
+      `packages/core build still contains ${reportTemplatePlaceholder}; rebuild apps/report before packaging.`,
+    );
+  }
 };
 
 const prepareStudioWorkspacePackages = async (workspacePackages) => {
@@ -579,19 +798,38 @@ const prepareStudioWorkspacePackages = async (workspacePackages) => {
   }
 };
 
-const prepareStudioBuildOutput = async () => {
-  const status = await getBuildStatus({
+const prepareStudioBuildOutput = async ({
+  additionalSourceTargets = [],
+} = {}) => {
+  let status = await getBuildStatus({
     packageDir: studioRootDir,
     sourceTargets: studioBuildSourceTargets,
+    additionalSourceTargets,
   });
 
-  if (!status.needsBuild) {
-    console.log(`Skipping apps/studio build (${status.reason}).`);
-    return;
+  const studioDistDir = path.join(studioRootDir, 'dist');
+  if (
+    !status.needsBuild &&
+    (await pathContainsReportTemplatePlaceholder(studioDistDir))
+  ) {
+    status = {
+      needsBuild: true,
+      reason: 'report template placeholder remains in build output',
+    };
   }
 
-  console.log(`Building apps/studio (${status.reason}).`);
-  await buildPackageDir(path.relative(workspaceRootDir, studioRootDir));
+  if (status.needsBuild) {
+    console.log(`Building apps/studio (${status.reason}).`);
+    await buildPackageDir(path.relative(workspaceRootDir, studioRootDir));
+  } else {
+    console.log(`Skipping apps/studio build (${status.reason}).`);
+  }
+
+  if (await pathContainsReportTemplatePlaceholder(studioDistDir)) {
+    throw new Error(
+      `apps/studio build still contains ${reportTemplatePlaceholder}; rebuild apps/report before packaging.`,
+    );
+  }
 };
 
 const getStaticWorkspacePackageSourceConfig = (packageName) =>
@@ -833,6 +1071,13 @@ export const dropAntdEsmBuild = async (nodeModulesDir) => {
   await removeIfExists(esDir);
 };
 
+// gifwrap ships PNG fixtures under test/ that are never used at runtime.
+// Leaving them in the app bundle makes Developer ID signing attempt to
+// timestamp-sign those images as nested resources, which fails.
+export const pruneGifwrapTestFixtures = async (nodeModulesDir) => {
+  await removeIfExists(path.join(nodeModulesDir, 'gifwrap', 'test'));
+};
+
 // Hardlink every file from `sourceDir` into `destDir`, recreating
 // subdirectories. Same filesystem required — safe inside a single
 // node_modules tree.
@@ -898,6 +1143,7 @@ export const slimStageNodeModules = async (nodeModulesDir) => {
   await pruneAntdUmdBundles(nodeModulesDir);
   await dropMidsceneEsmBuilds(nodeModulesDir);
   await dropAntdEsmBuild(nodeModulesDir);
+  await pruneGifwrapTestFixtures(nodeModulesDir);
 };
 
 const vendorWorkspacePackages = async ({ workspacePackages, vendorDir }) => {
@@ -1085,6 +1331,48 @@ const buildPackagedAppPayloadCandidates = async (packagedAppPath) => {
   return [...new Set(candidates)];
 };
 
+export const resolveMacPackagedAppBundlePath = async (packagedAppPath) => {
+  if (packagedAppPath.endsWith('.app')) {
+    return packagedAppPath;
+  }
+
+  let packagedOutputStats;
+  try {
+    packagedOutputStats = await fs.stat(packagedAppPath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      throw new Error(
+        `Packaged macOS output does not exist: ${packagedAppPath}`,
+      );
+    }
+    throw error;
+  }
+
+  if (!packagedOutputStats.isDirectory()) {
+    throw new Error(
+      `Expected a packaged macOS output directory, received ${packagedAppPath}.`,
+    );
+  }
+
+  const packagedOutputEntries = await fs.readdir(packagedAppPath, {
+    withFileTypes: true,
+  });
+  const appBundleEntries = packagedOutputEntries.filter(
+    (entry) => entry.isDirectory() && entry.name.endsWith('.app'),
+  );
+
+  if (appBundleEntries.length !== 1) {
+    throw new Error(
+      [
+        `Expected exactly one .app bundle inside ${packagedAppPath},`,
+        `received ${appBundleEntries.length}.`,
+      ].join(' '),
+    );
+  }
+
+  return path.join(packagedAppPath, appBundleEntries[0].name);
+};
+
 const findPackagedAppPayloadDir = async (packagedAppPath) => {
   const candidates = await buildPackagedAppPayloadCandidates(packagedAppPath);
 
@@ -1190,7 +1478,11 @@ const createPackagingWorkspace = async ({ stageDir, version }) => {
 
   await prepareStaticWorkspacePackageSources(workspacePackages);
   await prepareStudioWorkspacePackages(workspacePackages);
-  await prepareStudioBuildOutput();
+  await prepareReportBuildOutput();
+  await ensureCoreReportTemplateInjected();
+  await prepareStudioBuildOutput({
+    additionalSourceTargets: [reportTemplatePath, coreDistDir],
+  });
   await removeIfExists(stageDir);
   await fs.mkdir(path.dirname(stageDir), { recursive: true });
   await copyStudioBuildOutputToStageDir(stageDir);
@@ -1276,6 +1568,188 @@ const archivePackagedApp = async ({
   return artifactPath;
 };
 
+export const signPackagedMacApp = async ({
+  appPath,
+  security = resolveMacPackagedAppSecurity({ platform: 'darwin' }),
+} = {}) => {
+  if (process.platform !== 'darwin') {
+    throw new Error('macOS app signing requires a macOS host runner.');
+  }
+
+  if (security.shouldDeveloperIdSign) {
+    console.log(
+      `Signing ${path.basename(appPath)} with ${security.signIdentity}.`,
+    );
+    for (const target of await collectNestedMacCodeSignTargets(appPath)) {
+      await run(
+        'codesign',
+        buildDeveloperIdCodesignArgs({
+          entitlementsPath: resolveMacCodeSignEntitlementsPath(target),
+          security,
+          targetPath: target,
+        }),
+      );
+    }
+    await run(
+      'codesign',
+      buildDeveloperIdCodesignArgs({
+        entitlementsPath: resolveMacCodeSignEntitlementsPath(appPath),
+        security,
+        targetPath: appPath,
+      }),
+    );
+    await run('codesign', [
+      '--verify',
+      '--deep',
+      '--strict',
+      '--verbose=2',
+      appPath,
+    ]);
+    return 'developer-id';
+  }
+
+  console.log(
+    [
+      `No Developer ID identity configured for ${path.basename(appPath)}.`,
+      'Applying ad-hoc codesign so the Electron bundle remains runnable after packaging-time mutations.',
+    ].join(' '),
+  );
+  await run('codesign', [
+    '--force',
+    '--deep',
+    '--sign',
+    '-',
+    '--timestamp=none',
+    appPath,
+  ]);
+  await run('codesign', [
+    '--verify',
+    '--deep',
+    '--strict',
+    '--verbose=2',
+    appPath,
+  ]);
+  return 'adhoc';
+};
+
+export const buildDeveloperIdCodesignArgs = ({
+  entitlementsPath,
+  security,
+  targetPath,
+  useRuntime = true,
+}) => {
+  const codesignArgs = ['--force', '--sign', security.signIdentity];
+  if (useRuntime) {
+    codesignArgs.push('--options', 'runtime');
+  }
+  codesignArgs.push('--timestamp');
+  if (security.signKeychain) {
+    codesignArgs.push('--keychain', security.signKeychain);
+  }
+  if (entitlementsPath) {
+    codesignArgs.push('--entitlements', entitlementsPath);
+  }
+  codesignArgs.push(targetPath);
+  return codesignArgs;
+};
+
+export const resolveMacCodeSignEntitlementsPath = (targetPath) => {
+  if (targetPath.includes('(Plugin).app')) {
+    return pluginMacEntitlementsPath;
+  }
+
+  if (targetPath.includes('(GPU).app')) {
+    return gpuMacEntitlementsPath;
+  }
+
+  if (targetPath.includes('(Renderer).app')) {
+    return rendererMacEntitlementsPath;
+  }
+
+  return defaultMacEntitlementsPath;
+};
+
+const isMacMachOFile = async (filePath) => {
+  const fileHandle = await fs.open(filePath, 'r');
+  try {
+    const buffer = Buffer.alloc(4);
+    const { bytesRead } = await fileHandle.read(buffer, 0, buffer.length, 0);
+    return (
+      bytesRead === buffer.length &&
+      macMachOMagicHeaders.has(buffer.toString('hex'))
+    );
+  } finally {
+    await fileHandle.close();
+  }
+};
+
+const isMacStandaloneCodeFile = async (filePath) => {
+  const entryExt = path.extname(filePath).toLowerCase();
+  if (macStandaloneCodeFileExtensions.has(entryExt)) {
+    return true;
+  }
+
+  return isMacMachOFile(filePath);
+};
+
+export const collectNestedMacCodeSignTargets = async (appPath) => {
+  const nestedBundles = [];
+  const standaloneFiles = [];
+
+  const visitDirectory = async (dirPath, isRoot = false) => {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isSymbolicLink()) {
+        continue;
+      }
+
+      const entryPath = path.join(dirPath, entry.name);
+      const entryExt = path.extname(entry.name);
+
+      if (entry.isDirectory()) {
+        const isNestedBundle = macNestedCodeBundleExtensions.has(entryExt);
+        if (isNestedBundle && !isRoot) {
+          nestedBundles.push(entryPath);
+        }
+        await visitDirectory(entryPath, false);
+        continue;
+      }
+
+      if (entry.isFile() && (await isMacStandaloneCodeFile(entryPath))) {
+        standaloneFiles.push(entryPath);
+      }
+    }
+  };
+
+  await visitDirectory(appPath, true);
+
+  const byDescendingDepth = (leftPath, rightPath) =>
+    rightPath.split(path.sep).length - leftPath.split(path.sep).length ||
+    leftPath.localeCompare(rightPath);
+
+  standaloneFiles.sort(byDescendingDepth);
+  nestedBundles.sort(byDescendingDepth);
+
+  return [...standaloneFiles, ...nestedBundles];
+};
+
+export const notarizePackagedMacApp = async ({
+  appPath,
+  security = resolveMacPackagedAppSecurity({ platform: 'darwin' }),
+} = {}) => {
+  if (!security.shouldNotarize) {
+    return false;
+  }
+
+  console.log(`Submitting ${path.basename(appPath)} for notarization.`);
+  await notarize({
+    appPath,
+    ...security.notarizeOptions,
+  });
+  await run('xcrun', ['stapler', 'validate', appPath]);
+  return true;
+};
+
 export const packageStudioElectronApp = async ({
   version,
   platform = process.platform,
@@ -1288,8 +1762,8 @@ export const packageStudioElectronApp = async ({
     arch,
   });
   const stageDir = path.join(packagingWorkspaceDir, baseName);
+  const macSecurity = resolveMacPackagedAppSecurity({ platform });
 
-  await assertNoLiveDevBuilders();
   await createPackagingWorkspace({ stageDir, version: normalizedVersion });
 
   await removeIfExists(packagedDir);
@@ -1317,6 +1791,19 @@ export const packageStudioElectronApp = async ({
   const packagedPayloadDir = await findPackagedAppPayloadDir(packagedAppPath);
   if (packagedPayloadDir) {
     await dedupePlaygroundStatic(path.join(packagedPayloadDir, 'node_modules'));
+  }
+
+  if (platform === 'darwin') {
+    const macAppBundlePath =
+      await resolveMacPackagedAppBundlePath(packagedAppPath);
+    await signPackagedMacApp({
+      appPath: macAppBundlePath,
+      security: macSecurity,
+    });
+    await notarizePackagedMacApp({
+      appPath: macAppBundlePath,
+      security: macSecurity,
+    });
   }
 
   await archivePackagedApp({

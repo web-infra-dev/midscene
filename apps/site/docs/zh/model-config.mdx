@@ -42,7 +42,7 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `MIDSCENE_MODEL_MAX_TOKENS` | 模型响应的 max_tokens 数配置，默认是 2048 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | AI 调用失败时的重试次数，默认 1（即失败后重试 1 次）|
 | `MIDSCENE_MODEL_RETRY_INTERVAL` | AI 调用重试间隔毫秒数，默认 2000 |
-| `MIDSCENE_MODEL_REASONING_ENABLED` | 开启或关闭模型推理/思考。设为 `"true"` 或 `"false"`。透传为千问的 `enable_thinking`、豆包/智谱的 `thinking.type`。不支持的模型系列会忽略此设置 |
+| `MIDSCENE_MODEL_REASONING_ENABLED` | 开启或关闭模型推理/思考。设为 `"true"` 或 `"false"`。该开关只控制推理模式，不会改变模型路由或模型选择。Midscene 会先统一解析成布尔值，再按 `MIDSCENE_MODEL_FAMILY` 做映射：千问 → `enable_thinking: true/false`；豆包/智谱 → `thinking.type: "enabled"/"disabled"`。不支持的模型系列会忽略此设置 |
 | `MIDSCENE_MODEL_REASONING_EFFORT` | 推理力度字符串。透传为豆包的 `reasoning_effort`、GPT-5 的 `reasoning.effort`。常用值：`low`、`medium`、`high` |
 | `MIDSCENE_MODEL_REASONING_BUDGET` | 思考 token 预算（数字）。透传为千问的 `thinking_budget`。不支持的模型系列会忽略此设置 |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS 代理配置，如 `http://127.0.0.1:8080` 或 `https://proxy.example.com:8080`，优先级高于 `MIDSCENE_MODEL_SOCKS_PROXY` |

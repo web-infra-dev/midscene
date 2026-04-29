@@ -45,7 +45,12 @@ function buildHostPortId(host: string, port: number): string {
   return `${host}:${port}`;
 }
 
-function normalizeSidebarPlatformKey(
+/**
+ * Map any incoming platform string (runtime metadata, form values, desktop
+ * OS aliases like `macos`) to the canonical `StudioPlatformId`. Exported so
+ * other studio renderer modules don't need to keep their own alias tables.
+ */
+export function normalizeStudioPlatformId(
   value: unknown,
 ): StudioSidebarPlatformKey | undefined {
   if (!isString(value)) {
@@ -64,8 +69,6 @@ function normalizeSidebarPlatformKey(
     case 'linux':
       return 'computer';
     case 'harmony':
-    case 'harmonyos':
-    case 'harmony-os':
       return 'harmony';
     case 'web':
     case 'browser':
@@ -206,7 +209,7 @@ export function resolveSelectedAndroidDeviceId(
 export function resolveSelectedDeviceId(
   formValues: Record<string, unknown>,
 ): string | undefined {
-  const selectedPlatform = normalizeSidebarPlatformKey(formValues.platformId);
+  const selectedPlatform = normalizeStudioPlatformId(formValues.platformId);
 
   if (selectedPlatform === 'ios') {
     const host = isString(formValues['ios.host'])
@@ -341,7 +344,7 @@ export function buildStudioSidebarDeviceBuckets({
   targets: PlaygroundSessionTarget[];
 }): StudioSidebarDeviceBuckets {
   const deviceBuckets = createEmptySidebarDeviceBuckets();
-  const runtimePlatformKey = normalizeSidebarPlatformKey(
+  const runtimePlatformKey = normalizeStudioPlatformId(
     runtimeInfo?.platformId ?? runtimeInfo?.interface?.type,
   );
 

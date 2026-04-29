@@ -264,6 +264,7 @@ export async function prepareMultiPlatformPlayground(
           fieldKey: selectorFieldKey,
           variant: options.selectorVariant || 'cards',
         },
+        notice: childSetup?.notice,
       };
     },
     async createSession(input?: Record<string, unknown>) {

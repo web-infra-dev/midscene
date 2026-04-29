@@ -15,26 +15,15 @@ import { Button, Dropdown, Progress, Switch, Tooltip, message } from 'antd';
 import GlobalPerspectiveIcon from '../../icons/global-perspective.svg';
 import PlayerSettingIcon from '../../icons/player-setting.svg';
 import { type PlaybackSpeedType, useGlobalPreference } from '../../store/store';
+import type { ReportDownloadHandler } from '../../types';
 import type { AnimationScript } from '../../utils/replay-scripts';
+import { triggerReportDownload } from './report-download';
 import { StepsTimeline } from './scenes/StepScene';
 import { exportBrandedVideo } from './scenes/export-branded-video';
 import { calculateFrameMap } from './scenes/frame-calculator';
 import type { FrameMap, ScriptFrame } from './scenes/frame-calculator';
 import { getPlaybackFrameState } from './scenes/playback-frame';
 import { useFramePlayer } from './use-frame-player';
-
-const downloadReport = (content: string): void => {
-  const blob = new Blob([content], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'midscene_report.html';
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 0);
-};
 
 function deriveTaskId(
   scriptFrames: ScriptFrame[],
@@ -70,6 +59,7 @@ export function Player(props?: {
   fitMode?: 'width' | 'height';
   autoZoom?: boolean;
   canDownloadReport?: boolean;
+  onDownloadReport?: ReportDownloadHandler;
   onTaskChange?: (taskId: string | null) => void;
 }) {
   const {
@@ -167,6 +157,23 @@ export function Player(props?: {
     if (!frameMap) return null;
     return getPlaybackFrameState(frameMap, player.currentFrame);
   }, [frameMap, player.currentFrame]);
+
+  const handleDownloadReport = useCallback(async () => {
+    if (!props?.reportFileContent) {
+      return;
+    }
+
+    try {
+      await triggerReportDownload({
+        content: props.reportFileContent,
+        onDownloadReport: props.onDownloadReport,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      message.error(`Failed to download report: ${errorMessage}`);
+    }
+  }, [props?.onDownloadReport, props?.reportFileContent]);
 
   const subtitle = useMemo(() => {
     if (!currentFrameState) return null;
@@ -329,9 +336,6 @@ export function Player(props?: {
 
   const reportFileContent = props?.reportFileContent ?? null;
   const canDownloadReport = props?.canDownloadReport !== false;
-  const handleDownloadReport = useCallback(() => {
-    if (reportFileContent) downloadReport(reportFileContent);
-  }, [reportFileContent]);
 
   // If no scripts, fall back to a Download-report empty state when a report is
   // available (e.g. Stop was pressed before any task finished). Otherwise hide
@@ -342,7 +346,12 @@ export function Player(props?: {
         <div className="player-container player-container-empty">
           <div className="player-empty-state">
             <span className="player-empty-text">No replay available</span>
-            <Button icon={<DownloadOutlined />} onClick={handleDownloadReport}>
+            <Button
+              icon={<DownloadOutlined />}
+              onClick={() => {
+                void handleDownloadReport();
+              }}
+            >
               Download report
             </Button>
           </div>
@@ -496,7 +505,12 @@ export function Player(props?: {
           <div className="player-custom-controls">
             {reportFileContent && canDownloadReport ? (
               <Tooltip title="Download Report">
-                <div className="status-icon" onClick={handleDownloadReport}>
+                <div
+                  className="status-icon"
+                  onClick={() => {
+                    void handleDownloadReport();
+                  }}
+                >
                   <DownloadOutlined />
                 </div>
               </Tooltip>
