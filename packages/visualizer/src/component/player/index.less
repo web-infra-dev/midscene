@@ -11,6 +11,7 @@
 @control-gap: 8px;
 @status-icon-size: 28px;
 @status-icon-glyph-size: 16px;
+@right-control-gap: 2px;
 
 .player-container {
   width: 100%;
@@ -214,8 +215,8 @@
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: @control-gap;
-    min-width: (@status-icon-size * 2 + @control-gap);
+    gap: @right-control-gap;
+    min-width: (@status-icon-size * 2 + @right-control-gap);
 
     .ant-spin {
       color: #fff;
