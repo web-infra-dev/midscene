@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import {
-  resolveExportCamera,
-  resolveExportPointerLayout,
-} from '../src/component/player/scenes/export-branded-video';
+import { resolveExportCamera } from '../src/component/player/scenes/export-branded-video';
 import { calculateFrameMap } from '../src/component/player/scenes/frame-calculator';
 import { getPlaybackFrameState } from '../src/component/player/scenes/playback-frame';
 import { getPlaybackViewport } from '../src/component/player/scenes/playback-layout';
+import {
+  resolveExportPointerLayout,
+  resolvePointerLayout,
+} from '../src/component/player/scenes/pointer-layout';
 import type { AnimationScript } from '../src/utils/replay-scripts';
 
 describe('playback composition sizing', () => {
@@ -93,23 +94,36 @@ describe('playback composition sizing', () => {
     });
   });
 
-  it('scales exported pointer to match live playback at the export viewport size', () => {
-    expect(resolveExportPointerLayout(1280, 960)).toEqual({
-      width: 33,
-      height: 42,
-      hotspotX: 4.5,
-      hotspotY: 3,
-      centerOffsetX: 16.5,
-      centerOffsetY: 21,
-    });
+  it('projects the live pointer layout into the export viewport', () => {
+    const imageWidth = 1400;
+    const contentWidth = 960;
+    const liveLayout = resolvePointerLayout(imageWidth);
+    const exportLayout = resolveExportPointerLayout(imageWidth, contentWidth);
+    const exportScale = contentWidth / imageWidth;
 
-    expect(resolveExportPointerLayout(1920, 960)).toEqual({
-      width: 22,
-      height: 28,
-      hotspotX: 3,
-      hotspotY: 2,
-      centerOffsetX: 11,
-      centerOffsetY: 14,
-    });
+    expect(exportLayout.scale).toBeCloseTo(liveLayout.scale * exportScale, 5);
+    expect(exportLayout.width).toBeCloseTo(liveLayout.width * exportScale, 5);
+    expect(exportLayout.height).toBeCloseTo(liveLayout.height * exportScale, 5);
+    expect(exportLayout.hotspotX).toBeCloseTo(
+      liveLayout.hotspotX * exportScale,
+      5,
+    );
+    expect(exportLayout.hotspotY).toBeCloseTo(
+      liveLayout.hotspotY * exportScale,
+      5,
+    );
+  });
+
+  it('uses the same resolution scale for live and exported high-res pointers', () => {
+    const imageWidth = 2560;
+    const contentWidth = 960;
+    const liveLayout = resolvePointerLayout(imageWidth);
+    const exportLayout = resolveExportPointerLayout(imageWidth, contentWidth);
+
+    expect(liveLayout.scale).toBeGreaterThan(1);
+    expect(exportLayout.scale).toBeCloseTo(
+      liveLayout.scale * (contentWidth / imageWidth),
+      5,
+    );
   });
 });

@@ -4,6 +4,7 @@ import { getCenterHighlightBox } from '../../../utils/highlight-element';
 import { deriveFrameState } from './derive-frame-state';
 import type { FrameMap } from './frame-calculator';
 import { getPlaybackViewport } from './playback-layout';
+import { resolvePointerLayout } from './pointer-layout';
 
 const POINTER_PHASE = 0.375;
 const CROSSFADE_FRAMES = 10;
@@ -109,8 +110,9 @@ export const StepsTimeline: React.FC<{
     prevCamera.pointerLeft !== Math.round(imgW / 2) ||
     prevCamera.pointerTop !== Math.round(imgH / 2);
 
-  // Scale overlays proportionally so they stay visible at any resolution
-  const resScale = Math.max(1, Math.sqrt(imgW / 1920));
+  // Scale overlays proportionally so they stay visible at any resolution.
+  const pointerLayout = resolvePointerLayout(imgW);
+  const resScale = pointerLayout.scale;
 
   const crossfadeAlpha = imageChanged
     ? Math.min(frameInScript / CROSSFADE_FRAMES, 1)
@@ -246,10 +248,10 @@ export const StepsTimeline: React.FC<{
           src={mouseLoading}
           style={{
             position: 'absolute',
-            left: ptrX - 22 * resScale,
-            top: ptrY - 28 * resScale,
-            width: 44 * resScale,
-            height: 56 * resScale,
+            left: ptrX - pointerLayout.centerOffsetX,
+            top: ptrY - pointerLayout.centerOffsetY,
+            width: pointerLayout.width,
+            height: pointerLayout.height,
             transform: `rotate(${spinRotation}rad)`,
             transformOrigin: 'center center',
             filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
@@ -263,10 +265,10 @@ export const StepsTimeline: React.FC<{
           src={currentPointerImg}
           style={{
             position: 'absolute',
-            left: ptrX - 6 * resScale,
-            top: ptrY - 4 * resScale,
-            width: 44 * resScale,
-            height: 56 * resScale,
+            left: ptrX - pointerLayout.hotspotX,
+            top: ptrY - pointerLayout.hotspotY,
+            width: pointerLayout.width,
+            height: pointerLayout.height,
             filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
           }}
         />

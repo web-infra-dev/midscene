@@ -4,15 +4,15 @@ import { deriveFrameState } from './derive-frame-state';
 import type { InsightOverlay } from './derive-frame-state';
 import type { FrameMap } from './frame-calculator';
 import { getPlaybackViewport } from './playback-layout';
+import {
+  type PointerLayout,
+  resolveExportPointerLayout,
+} from './pointer-layout';
 
 const W = 960;
 const H = 540;
 const POINTER_PHASE = 0.375;
 const CROSSFADE_FRAMES = 10;
-const POINTER_WIDTH = 44;
-const POINTER_HEIGHT = 56;
-const POINTER_HOTSPOT_X = 6;
-const POINTER_HOTSPOT_Y = 4;
 
 // ── helpers ──
 
@@ -128,7 +128,7 @@ function drawSpinningPointer(
   img: HTMLImageElement,
   x: number,
   y: number,
-  scale: number,
+  layout: PointerLayout,
   elapsedMs: number,
 ) {
   const progress = (Math.sin(elapsedMs / 500 - Math.PI / 2) + 1) / 2;
@@ -138,29 +138,12 @@ function drawSpinningPointer(
   ctx.rotate(rotation);
   ctx.drawImage(
     img,
-    -(POINTER_WIDTH * scale) / 2,
-    -(POINTER_HEIGHT * scale) / 2,
-    POINTER_WIDTH * scale,
-    POINTER_HEIGHT * scale,
+    -layout.centerOffsetX,
+    -layout.centerOffsetY,
+    layout.width,
+    layout.height,
   );
   ctx.restore();
-}
-
-export function resolveExportPointerLayout(
-  imageWidth: number,
-  contentWidth: number,
-) {
-  const resScale = Math.max(1, Math.sqrt(imageWidth / 1920));
-  const exportScale = (contentWidth / imageWidth) * resScale;
-
-  return {
-    width: POINTER_WIDTH * exportScale,
-    height: POINTER_HEIGHT * exportScale,
-    hotspotX: POINTER_HOTSPOT_X * exportScale,
-    hotspotY: POINTER_HOTSPOT_Y * exportScale,
-    centerOffsetX: (POINTER_WIDTH * exportScale) / 2,
-    centerOffsetY: (POINTER_HEIGHT * exportScale) / 2,
-  };
 }
 
 // ── Steps rendering ──
@@ -274,7 +257,7 @@ function drawSteps(
       spinnerImg,
       sX,
       sY,
-      pointerLayout.width / POINTER_WIDTH,
+      pointerLayout,
       spinningElapsedMs,
     );
   }
