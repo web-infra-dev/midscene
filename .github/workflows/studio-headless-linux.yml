@@ -77,7 +77,7 @@ jobs:
       run: pnpm install --frozen-lockfile
 
     - name: Build Studio
-      run: npx nx build studio
+      run: npx nx run-many --target=build --projects=studio,@midscene/report
 
     - name: Run Studio startup smoke test
       run: xvfb-run -a pnpm --dir apps/studio run test:smoke
