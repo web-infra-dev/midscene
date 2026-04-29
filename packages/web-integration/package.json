@@ -120,6 +120,7 @@
     "dotenv": "^16.4.5",
     "http-server": "14.1.1",
     "puppeteer-core": "24.6.0",
+    "semver": "7.5.2",
     "socket.io": "^4.8.1",
     "socket.io-client": "4.8.1",
     "ws": "^8.18.1"
