@@ -826,7 +826,7 @@ describe('create-yaml-player', () => {
           groupDescription: 'Custom description',
           generateReport: true,
           autoPrintReportMsg: false,
-          reportFileName: 'custom-report',
+          reportFileName: 'custom-report-mock-report',
           replanningCycleLimit: 25,
           aiActionContext: 'Test context',
           cache: { id: 'test-cache', strategy: 'read-write' },
@@ -866,7 +866,7 @@ describe('create-yaml-player', () => {
           groupDescription: 'Custom description',
           generateReport: true,
           autoPrintReportMsg: false,
-          reportFileName: 'custom-report',
+          reportFileName: 'custom-report-mock-report',
           replanningCycleLimit: 25,
           aiActionContext: 'Test context',
         }),
@@ -921,7 +921,7 @@ describe('create-yaml-player', () => {
       const mockScript: MidsceneYamlScript = {
         ios: {},
         agent: {
-          reportFileName: 'ios-test-report',
+          reportFileName: 'ios-test-report-mock-report',
           autoPrintReportMsg: true,
         },
         tasks: [],
@@ -948,7 +948,7 @@ describe('create-yaml-player', () => {
 
       expect(agentFromWebDriverAgent).toHaveBeenCalledWith(
         expect.objectContaining({
-          reportFileName: 'ios-test-report',
+          reportFileName: 'ios-test-report-mock-report',
           autoPrintReportMsg: true,
         }),
       );
@@ -1039,7 +1039,7 @@ describe('create-yaml-player', () => {
       expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
         expect.any(Object),
         expect.objectContaining({
-          reportFileName: 'cli-test-id',
+          reportFileName: 'cli-test-id-mock-report',
         }),
         undefined, // browser
         undefined, // page
@@ -1084,7 +1084,7 @@ describe('create-yaml-player', () => {
       expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
         expect.any(Object),
         expect.objectContaining({
-          reportFileName: 'yaml-test-id',
+          reportFileName: 'yaml-test-id-mock-report',
         }),
         undefined, // browser
         undefined, // page
@@ -1230,7 +1230,7 @@ describe('create-yaml-player', () => {
       expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
         expect.any(Object),
         expect.objectContaining({
-          reportFileName: 'cdp-test',
+          reportFileName: 'cdp-test-mock-report',
           groupName: 'CDP Tests',
         }),
         expect.any(Object),

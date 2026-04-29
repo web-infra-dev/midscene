@@ -45,6 +45,7 @@ export const launchServer = async (
 /**
  * Resolves reportFileName with proper priority handling.
  * Priority: YAML reportFileName > CLI testId (legacy) > YAML testId (legacy) > fileName
+ * The final name always includes a unique suffix to avoid overwriting.
  */
 function resolveReportFileName(
   yamlReportFileName: string | undefined,
@@ -52,9 +53,8 @@ function resolveReportFileName(
   yamlTestId: string | undefined,
   fileName: string,
 ): string {
-  return (
-    yamlReportFileName ?? cliTestId ?? yamlTestId ?? getReportFileName(fileName)
-  );
+  const baseName = yamlReportFileName ?? cliTestId ?? yamlTestId ?? fileName;
+  return getReportFileName(baseName);
 }
 
 /**
