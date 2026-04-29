@@ -15,6 +15,8 @@ import { PackageManagerTabs } from '@theme';
 
 通过 RDP 控制远程 Windows 桌面：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
 
+Linux CI（Xvfb）Electron 自动化示例：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
+
 :::
 
 <SetupEnv />
@@ -47,14 +49,6 @@ const agent = await agentFromComputer({ headless: true });
 ```
 
 Xvfb 会创建一个虚拟显示器，使鼠标、键盘和截图操作在没有物理显示器的情况下正常工作。详见 [API 参考](./computer-api-reference)。
-
-### Linux 示例：在无头 CI 中测试 Electron 应用
-
-如果你想在 CI 里直接跑桌面应用自动化（例如 Obsidian 这类 Electron 应用），可以参考以下完整示例仓库：
-
-- [computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
-
-该示例演示了如何在 Linux CI 中配合 Xvfb 启动虚拟显示，并运行 `@midscene/computer` 自动化脚本。
 
 ## 试用 Playground（零代码）
 
