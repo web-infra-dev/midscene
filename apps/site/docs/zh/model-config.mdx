@@ -42,7 +42,7 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `MIDSCENE_MODEL_MAX_TOKENS` | 模型响应的 max_tokens 数配置，默认是 2048 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | AI 调用失败时的重试次数，默认 1（即失败后重试 1 次）|
 | `MIDSCENE_MODEL_RETRY_INTERVAL` | AI 调用重试间隔毫秒数，默认 2000 |
-| `MIDSCENE_MODEL_REASONING_ENABLED` | 开启或关闭模型推理/思考。设为 `"true"` 或 `"false"`（也支持 `"1"` / `"0"`）。该开关只控制推理模式，不会改变模型路由或模型选择。Midscene 会先统一解析成布尔值，再按 `MIDSCENE_MODEL_FAMILY` 做映射：千问 → `enable_thinking: true/false`；豆包/智谱 → `thinking.type: "enabled"/"disabled"`。不支持的模型系列会忽略此设置 |
+| `MIDSCENE_MODEL_REASONING_ENABLED` | 开启或关闭模型推理/思考。设为 `"true"` 或 `"false"`。该开关只控制推理模式，不会改变模型路由或模型选择。Midscene 会先统一解析成布尔值，再按 `MIDSCENE_MODEL_FAMILY` 做映射：千问 → `enable_thinking: true/false`；豆包/智谱 → `thinking.type: "enabled"/"disabled"`。不支持的模型系列会忽略此设置 |
 | `MIDSCENE_MODEL_REASONING_EFFORT` | 推理力度字符串。透传为豆包的 `reasoning_effort`、GPT-5 的 `reasoning.effort`。常用值：`low`、`medium`、`high` |
 | `MIDSCENE_MODEL_REASONING_BUDGET` | 思考 token 预算（数字）。透传为千问的 `thinking_budget`。不支持的模型系列会忽略此设置 |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS 代理配置，如 `http://127.0.0.1:8080` 或 `https://proxy.example.com:8080`，优先级高于 `MIDSCENE_MODEL_SOCKS_PROXY` |
@@ -53,22 +53,6 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `MIDSCENE_PREFERRED_LANGUAGE` | 可选，模型响应的语言；如果当前系统时区是 GMT+8 则默认是 `Chinese`，否则是 `English` |
 
 > 提示：通过 Agent 的 `replanningCycleLimit` 入参控制重规划次数（默认 20，`vlm-ui-tars` 为 40），不再使用环境变量。
-
-### `MIDSCENE_MODEL_REASONING_ENABLED` 的内部实现原理
-
-为避免误解，下面是准确流程：
-
-1. **解析层**：Midscene 读取 `MIDSCENE_MODEL_REASONING_ENABLED`，并将 `"true"`/`"1"` 归一化为 `true`，将 `"false"`/`"0"` 归一化为 `false`。
-2. **请求级覆盖层**：如果调用 `aiAct(..., { deepThink: true/false })`，该值会覆盖当前请求的环境变量值。
-3. **服务商映射层**：Midscene 再根据 `MIDSCENE_MODEL_FAMILY`，将统一布尔开关转换为各服务商字段。
-
-| `MIDSCENE_MODEL_FAMILY` | 开启推理时的请求字段 | 关闭推理时的请求字段 |
-|---|---|---|
-| `qwen3-vl` / `qwen3.5` / `qwen3.6` | `enable_thinking: true` | `enable_thinking: false` |
-| `doubao-seed` / `doubao-vision` | `thinking: { type: "enabled" }` | `thinking: { type: "disabled" }` |
-| `glm-v` | `thinking: { type: "enabled" }` | `thinking: { type: "disabled" }` |
-
-因此，在 Doubao 请求里看到 `thinking.type` 是同一个 `MIDSCENE_MODEL_REASONING_ENABLED` 布尔开关的**正确服务商映射**，并不是错误地把 `true/false` 映射成模型本身。
 
 ### 为 Insight 意图单独配置模型
 
