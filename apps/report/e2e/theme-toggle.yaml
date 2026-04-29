@@ -5,51 +5,15 @@ tasks:
   - name: toggle to dark mode
     flow:
       - sleep: 2000
-      - javascript: |
-          (function () {
-            const button = document.querySelector('[aria-label="Toggle theme"]');
-            if (!(button instanceof HTMLElement)) {
-              throw new Error('Toggle theme button not found');
-            }
-            if (document.documentElement.getAttribute('data-theme') !== 'dark') {
-              button.click();
-            }
-          })()
-        name: toggle-theme-to-dark
+      - ai: Click the "Toggle theme" button in the top right header area
       - sleep: 2000
-      - javascript: |
-          (function () {
-            const theme = document.documentElement.getAttribute('data-theme');
-            if (theme !== 'dark') {
-              throw new Error('Expected dark theme, got ' + theme);
-            }
-            return theme;
-          })()
-        name: assert-dark-theme
+      - aiAssert: The report UI (header, sidebar, and surrounding chrome) has a dark background color
 
   - name: toggle back to light mode
     flow:
-      - javascript: |
-          (function () {
-            const button = document.querySelector('[aria-label="Toggle theme"]');
-            if (!(button instanceof HTMLElement)) {
-              throw new Error('Toggle theme button not found');
-            }
-            if (document.documentElement.getAttribute('data-theme') !== 'light') {
-              button.click();
-            }
-          })()
-        name: toggle-theme-to-light
+      - ai: Click the "Toggle theme" button in the top right header area
       - sleep: 2000
-      - javascript: |
-          (function () {
-            const theme = document.documentElement.getAttribute('data-theme');
-            if (theme !== 'light') {
-              throw new Error('Expected light theme, got ' + theme);
-            }
-            return theme;
-          })()
-        name: assert-light-theme
+      - aiAssert: The report UI (header, sidebar, and surrounding chrome) has a light/white background color
 
   - name: version info displayed
     flow:

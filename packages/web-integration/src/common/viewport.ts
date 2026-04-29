@@ -5,8 +5,8 @@ export interface ViewportSize {
   height: number;
 }
 
-export const defaultViewportWidth = 1400;
-export const defaultViewportHeight = 900;
+export const defaultViewportWidth = 1440;
+export const defaultViewportHeight = 768;
 export const defaultViewportSize: ViewportSize = {
   width: defaultViewportWidth,
   height: defaultViewportHeight,
