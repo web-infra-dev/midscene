@@ -8,6 +8,11 @@
 @timeline-height: 4px;
 @tools-height: 42px;
 @tools-margin: 15px;
+@control-gap: 8px;
+@status-icon-size: 28px;
+@status-icon-glyph-size: 16px;
+@seek-knob-width: 8px;
+@right-control-gap: 2px;
 
 .player-container {
   width: 100%;
@@ -110,7 +115,7 @@
     right: 0;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: @control-gap;
     padding: 8px 12px;
     background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
     transition: opacity 0.3s;
@@ -152,7 +157,7 @@
     .seek-bar-knob {
       position: absolute;
       top: 50%;
-      width: 8px;
+      width: @seek-knob-width;
       height: 16px;
       background: #fff;
       border-radius: 10px;
@@ -184,8 +189,8 @@
 
   .status-icon {
     transition: 0.2s;
-    width: 28px;
-    height: 28px;
+    width: @status-icon-size;
+    height: @status-icon-size;
     border-radius: 4px;
     display: flex;
     align-items: center;
@@ -197,7 +202,7 @@
 
     svg {
       color: #fff;
-      font-size: 16px;
+      font-size: @status-icon-glyph-size;
     }
 
     &:hover {
@@ -210,11 +215,30 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 8px;
-    margin-right: 8px;
+    justify-content: center;
+    gap: @right-control-gap;
+    margin-left: (@seek-knob-width / 2);
+    min-width: (@status-icon-size * 2 + @right-control-gap);
 
     .ant-spin {
       color: #fff;
+    }
+  }
+
+  &.player-container-empty {
+    align-items: center;
+    justify-content: center;
+
+    .player-empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: #6b7280;
+
+      .player-empty-text {
+        font-size: 14px;
+      }
     }
   }
 }
@@ -268,6 +292,12 @@
   height: 1px;
   background: rgba(0, 0, 0, 0.06);
   margin: 4px 0;
+}
+
+.player-export-label {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
 }
 
 .player-speed-option:hover,
