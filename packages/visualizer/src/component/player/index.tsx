@@ -595,7 +595,7 @@ export function Player(props?: {
                         />
                       )}
                     </span>
-                    <span style={{ fontSize: '14px' }}>
+                    <span className="player-export-label">
                       {isExporting
                         ? `Exporting ${exportProgress}%`
                         : 'Export video'}
