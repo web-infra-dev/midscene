@@ -170,7 +170,14 @@ export async function AiLocateElement(options: {
   const targetElementDescriptionText = extraTextFromUserPrompt(
     targetElementDescription,
   );
-  const userInstructionPrompt = findElementPrompt(targetElementDescriptionText);
+  const referenceImageNames =
+    typeof targetElementDescription !== 'string'
+      ? targetElementDescription.images?.map((img) => img.name)
+      : undefined;
+  const userInstructionPrompt = findElementPrompt(
+    targetElementDescriptionText,
+    referenceImageNames,
+  );
   const systemPrompt = isAutoGLM(modelFamily)
     ? getAutoGLMLocatePrompt(modelFamily)
     : systemPromptToLocateElement(modelFamily);
