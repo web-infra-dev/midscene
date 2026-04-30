@@ -1,10 +1,15 @@
 import { Tooltip } from 'antd';
 import { useMemo } from 'react';
-import type { PlaywrightTasks } from '../../types';
+import type { PlaywrightTaskAttributes, PlaywrightTasks } from '../../types';
 import { PlaywrightCaseSelector } from '../playwright-case-selector';
 
 import './index.less';
 import { iconForStatus } from '@midscene/visualizer';
+
+type OtherTestEntry = {
+  name: string;
+  status: PlaywrightTaskAttributes['playwright_test_status'];
+};
 
 const ReportOverview = (props: {
   title: string;
@@ -13,31 +18,19 @@ const ReportOverview = (props: {
   dumps?: PlaywrightTasks[];
 }): JSX.Element => {
   const testStats = useMemo(() => {
-    if (!props.dumps || props.dumps.length === 0) {
-      return {
-        total: 0,
-        passed: 0,
-        failed: 0,
-        skipped: 0,
-        timedOut: 0,
-        passedTests: [],
-        failedTests: [],
-        skippedTests: [],
-        timedOutTests: [],
-      };
-    }
-
     const stats = {
       total: 0,
       passed: 0,
       failed: 0,
-      skipped: 0,
-      timedOut: 0,
+      other: 0,
       passedTests: [] as string[],
       failedTests: [] as string[],
-      skippedTests: [] as string[],
-      timedOutTests: [] as string[],
+      otherTests: [] as OtherTestEntry[],
     };
+
+    if (!props.dumps || props.dumps.length === 0) {
+      return stats;
+    }
 
     props.dumps.forEach((dump) => {
       stats.total++;
@@ -53,12 +46,9 @@ const ReportOverview = (props: {
       } else if (status === 'failed') {
         stats.failed++;
         stats.failedTests.push(testName);
-      } else if (status === 'skipped') {
-        stats.skipped++;
-        stats.skippedTests.push(testName);
-      } else if (status === 'timedOut' || status === 'interrupted') {
-        stats.timedOut++;
-        stats.timedOutTests.push(testName);
+      } else {
+        stats.other++;
+        stats.otherTests.push({ name: testName, status });
       }
     });
 
@@ -112,11 +102,11 @@ const ReportOverview = (props: {
         </Tooltip>
         <Tooltip
           title={
-            testStats.timedOutTests.length > 0 ? (
+            testStats.otherTests.length > 0 ? (
               <div>
-                {testStats.timedOutTests.map((testName, index) => (
+                {testStats.otherTests.map((entry, index) => (
                   <div key={index}>
-                    {iconForStatus('timedOut')} {testName}
+                    {iconForStatus(entry.status)} {entry.name}
                   </div>
                 ))}
               </div>
@@ -124,10 +114,8 @@ const ReportOverview = (props: {
           }
         >
           <div className="stats-card">
-            <div className="stats-value stats-timedout">
-              {testStats.timedOut}
-            </div>
-            <div className="stats-label">Timeout</div>
+            <div className="stats-value stats-other">{testStats.other}</div>
+            <div className="stats-label">Other</div>
           </div>
         </Tooltip>
       </div>
