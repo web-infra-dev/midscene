@@ -53,6 +53,7 @@ describe('Device Options Type Definitions', () => {
     test('should include all required iOS device options', () => {
       const options: IOSDeviceOpt = {
         deviceId: '00008110-000123456789ABCD',
+        iosDeviceClassOverride: '@private-package/ios',
         wdaPort: 8100,
         wdaHost: 'localhost',
         useWDA: true,
@@ -66,6 +67,14 @@ describe('Device Options Type Definitions', () => {
     test('should work with partial options', () => {
       const options: Partial<IOSDeviceOpt> = {
         wdaPort: 8100,
+      };
+
+      expect(options).toBeDefined();
+    });
+
+    test('should allow documented iOS device override option name', () => {
+      const options: IOSDeviceOpt = {
+        iOSDeviceClassOverride: '@private-package/ios',
       };
 
       expect(options).toBeDefined();
@@ -118,6 +127,7 @@ describe('Device Options Type Definitions', () => {
       const yamlConfig: MidsceneYamlScriptIOSEnv = {
         // From IOSDeviceOpt
         deviceId: '00008110-000123456789ABCD',
+        iosDeviceClassOverride: '@private-package/ios',
         wdaPort: 8100,
         wdaHost: 'localhost',
         useWDA: true,

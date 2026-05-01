@@ -43,6 +43,7 @@ const device = new IOSDevice({
 
 - `wdaPort?: number` &mdash; WebDriverAgent port. Default `8100`.
 - `wdaHost?: string` &mdash; WebDriverAgent host. Default `'localhost'`.
+- `iOSDeviceClassOverride?: string` / `iosDeviceClassOverride?: string` &mdash; Optional npm module path that replaces the default `IOSDevice` when using `agentFromWebDriverAgent()` or iOS Playground. The module must export an `IOSDevice` class or a default class.
 - `autoDismissKeyboard?: boolean` &mdash; Hide the keyboard after text input. Default `true`.
 - `customActions?: DeviceAction<any>[]` &mdash; Additional device actions exposed to the agent.
 
@@ -191,6 +192,7 @@ function agentFromWebDriverAgent(
 ```
 
 - `opts?: PageAgentOpt & IOSDeviceOpt` &mdash; Combine common agent options with [`IOSDevice`](#iosdevice) settings.
+- Set `MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE` to apply the same device class override through the environment. An explicit option takes precedence over the environment variable.
 
 ```ts
 import { agentFromWebDriverAgent } from '@midscene/ios';
@@ -198,6 +200,7 @@ import { agentFromWebDriverAgent } from '@midscene/ios';
 const agent = await agentFromWebDriverAgent({
   wdaHost: 'localhost',
   wdaPort: 8100,
+  iOSDeviceClassOverride: '@your-scope/ios-device',
   aiActionContext: 'Accept permission dialogs automatically.',
 });
 ```
