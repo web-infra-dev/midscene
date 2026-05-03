@@ -539,6 +539,26 @@ tasks:
       # ...
 ```
 
+#### Reuse Step Results
+
+Steps that write a result with `name` can be referenced by later steps in the same YAML run. Use `$name` when the whole field should be replaced by the stored value.
+
+```yaml
+tasks:
+  - name: Search by extracted data
+    flow:
+      - aiString: Get the product id shown on the page
+        name: product_id
+
+      - aiInput: Search box
+        value: $product_id
+
+      - aiQuery: Get the search result after submitting the product id
+        name: search_result
+```
+
+`$name` keeps the original result type when the referenced value is used as the whole field. Runtime interpolation with `${name}` is also supported inside longer strings; non-string values are serialized as JSON before interpolation. Referencing an undefined variable throws an error.
+
 #### Upload Files With `aiTap`
 
 When clicking a button opens a file chooser, you can set `fileChooserAccept` directly on the `aiTap` step. It accepts either a single path or an array of paths.

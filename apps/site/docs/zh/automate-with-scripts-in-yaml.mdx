@@ -546,6 +546,26 @@ tasks:
       # ...
 ```
 
+#### 复用步骤结果
+
+带有 `name` 的步骤会把结果写入当前 YAML 运行的结果中，后续步骤可以引用这些结果。整个字段都需要替换成结果值时，使用 `$name`。
+
+```yaml
+tasks:
+  - name: 使用提取结果搜索
+    flow:
+      - aiString: 读取页面中的商品 id
+        name: product_id
+
+      - aiInput: 搜索框
+        value: $product_id
+
+      - aiQuery: 提交商品 id 后，获取搜索结果
+        name: search_result
+```
+
+当 `$name` 作为整个字段使用时，会保留原始结果类型。运行时也支持在更长的字符串中使用 `${name}` 插值；如果结果不是字符串，会先序列化为 JSON 再插入。引用未定义的变量会抛出错误。
+
 #### 使用 `aiTap` 上传文件
 
 当点击某个按钮会弹出文件选择器时，可以在 `aiTap` 步骤上直接设置 `fileChooserAccept`。它支持单个路径，也支持路径数组。
