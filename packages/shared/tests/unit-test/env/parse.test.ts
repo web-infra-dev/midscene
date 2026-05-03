@@ -8,6 +8,7 @@ import { UITarsModelVersion } from '../../../src/env/types';
 import {
   MIDSCENE_USE_DOUBAO_VISION,
   MIDSCENE_USE_GEMINI,
+  MIDSCENE_USE_MOONSHOT,
   MIDSCENE_USE_QWEN3_VL,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_VLM_UI_TARS,
@@ -32,6 +33,7 @@ describe('getUITarsModelVersion', () => {
     expect(getUITarsModelVersion('qwen3-vl')).toBeUndefined();
     expect(getUITarsModelVersion('doubao-vision')).toBeUndefined();
     expect(getUITarsModelVersion('gemini')).toBeUndefined();
+    expect(getUITarsModelVersion('moonshot')).toBeUndefined();
     expect(getUITarsModelVersion('glm-v')).toBeUndefined();
     expect(getUITarsModelVersion('gpt-5')).toBeUndefined();
   });
@@ -43,6 +45,7 @@ describe('validateModelFamily', () => {
     expect(() => validateModelFamily('qwen3.6')).not.toThrow();
     expect(() => validateModelFamily('doubao-vision')).not.toThrow();
     expect(() => validateModelFamily('gemini')).not.toThrow();
+    expect(() => validateModelFamily('moonshot')).not.toThrow();
     expect(() => validateModelFamily('glm-v')).not.toThrow();
     expect(() => validateModelFamily('gpt-5')).not.toThrow();
     expect(() => validateModelFamily('vlm-ui-tars')).not.toThrow();
@@ -73,6 +76,9 @@ describe('legacyConfigToModelFamily', () => {
     ).toBe('doubao-vision');
     expect(legacyConfigToModelFamily({ [MIDSCENE_USE_GEMINI]: '1' })).toBe(
       'gemini',
+    );
+    expect(legacyConfigToModelFamily({ [MIDSCENE_USE_MOONSHOT]: '1' })).toBe(
+      'moonshot',
     );
   });
 
