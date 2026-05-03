@@ -76,6 +76,7 @@ export const MIDSCENE_USE_QWEN_VL = 'MIDSCENE_USE_QWEN_VL';
 export const MIDSCENE_USE_QWEN3_VL = 'MIDSCENE_USE_QWEN3_VL';
 export const MIDSCENE_USE_DOUBAO_VISION = 'MIDSCENE_USE_DOUBAO_VISION';
 export const MIDSCENE_USE_GEMINI = 'MIDSCENE_USE_GEMINI';
+export const MIDSCENE_USE_MOONSHOT = 'MIDSCENE_USE_MOONSHOT';
 export const MIDSCENE_USE_VL_MODEL = 'MIDSCENE_USE_VL_MODEL';
 export const MATCH_BY_POSITION = 'MATCH_BY_POSITION';
 export const MIDSCENE_REPORT_TAG_NAME = 'MIDSCENE_REPORT_TAG_NAME';
@@ -234,6 +235,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_USE_QWEN3_VL,
   MIDSCENE_USE_DOUBAO_VISION,
   MIDSCENE_USE_GEMINI,
+  MIDSCENE_USE_MOONSHOT,
   MIDSCENE_USE_VL_MODEL,
   // model default legacy
   OPENAI_API_KEY,
@@ -297,6 +299,7 @@ export type TModelFamily =
   | 'doubao-vision'
   | 'doubao-seed'
   | 'gemini'
+  | 'moonshot'
   | 'vlm-ui-tars'
   | 'vlm-ui-tars-doubao'
   | 'vlm-ui-tars-doubao-1.5'
@@ -309,6 +312,7 @@ export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'doubao-vision',
   'doubao-seed',
   'gemini',
+  'moonshot',
   'qwen2.5-vl',
   'qwen3-vl',
   'qwen3.5',
