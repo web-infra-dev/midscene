@@ -289,6 +289,114 @@ describe('player action dispatch ordering', () => {
     });
   });
 
+  describe('player variable interpolation', () => {
+    it('should replace $var with stored result value', async () => {
+      const player = createPlayerWithActionSpace([]);
+      const agent = createMockAgent();
+      player.result.product_id = '110';
+
+      const taskStatus = {
+        name: 'test',
+        flow: [{ aiInput: 'search box', value: '$product_id' }],
+        index: 0,
+        status: 'running' as const,
+        totalSteps: 1,
+      };
+
+      await player.playTask(taskStatus, agent);
+
+      expect(agent.callActionInActionSpace).toHaveBeenCalledWith(
+        'Input',
+        expect.objectContaining({ value: '110' }),
+      );
+    });
+
+    it('should preserve non-string types for $var replacement', async () => {
+      const player = createPlayerWithActionSpace([]);
+      const agent = createMockAgent();
+      player.result.count = 42;
+
+      const taskStatus = {
+        name: 'test',
+        flow: [{ aiInput: 'qty field', value: '$count' }],
+        index: 0,
+        status: 'running' as const,
+        totalSteps: 1,
+      };
+
+      await player.playTask(taskStatus, agent);
+
+      expect(agent.callActionInActionSpace).toHaveBeenCalledWith(
+        'Input',
+        expect.objectContaining({ value: '42' }),
+      );
+    });
+
+    it('should interpolate ${var} inside strings', async () => {
+      const player = createPlayerWithActionSpace([]);
+      const agent = createMockAgent({
+        aiQuery: vi.fn().mockResolvedValue('query-result'),
+      });
+      player.result.product_id = '110';
+
+      const taskStatus = {
+        name: 'test',
+        flow: [{ aiQuery: 'search for product-${product_id}', name: 'result' }],
+        index: 0,
+        status: 'running' as const,
+        totalSteps: 1,
+      };
+
+      await player.playTask(taskStatus, agent);
+
+      expect(agent.aiQuery).toHaveBeenCalledWith(
+        'search for product-110',
+        expect.anything(),
+      );
+    });
+
+    it('should throw when referencing undefined variable', async () => {
+      const player = createPlayerWithActionSpace([]);
+      const agent = createMockAgent();
+
+      const taskStatus = {
+        name: 'test',
+        flow: [{ aiInput: 'search box', value: '$undefined_var' }],
+        index: 0,
+        status: 'running' as const,
+        totalSteps: 1,
+      };
+
+      await expect(player.playTask(taskStatus, agent)).rejects.toThrow(
+        'Variable "undefined_var" is not defined',
+      );
+    });
+
+    it('should replace variables in nested objects', async () => {
+      const player = createPlayerWithActionSpace([]);
+      const agent = createMockAgent({
+        aiTap: vi.fn().mockResolvedValue('tap-result'),
+      });
+      player.result.prompt_text = 'search box';
+
+      const taskStatus = {
+        name: 'test',
+        flow: [
+          {
+            aiTap: { prompt: '$prompt_text' },
+          },
+        ],
+        index: 0,
+        status: 'running' as const,
+        totalSteps: 1,
+      };
+
+      await player.playTask(taskStatus, agent);
+
+      expect(agent.aiTap).toHaveBeenCalledWith('search box', expect.anything());
+    });
+  });
+
   it('round-trip: cached plan → buildYamlFlowFromPlans → player dispatches with correct param', async () => {
     // Regression for the cache-replay bug: a Terminate plan was serialized as
     // { terminate: '', uri: '...' }, then replayed as agent.terminate('').

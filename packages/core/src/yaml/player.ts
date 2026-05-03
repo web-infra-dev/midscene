@@ -53,6 +53,29 @@ import {
 } from './utils';
 
 const debug = getDebug('yaml-player');
+
+const VARIABLE_FULL_MATCH_RE = /^\$([a-zA-Z_][a-zA-Z0-9_]*)$/;
+const VARIABLE_EMBEDDED_RE = /\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g;
+
+function deepTransform(
+  value: unknown,
+  transform: (val: unknown) => unknown,
+): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => deepTransform(item, transform));
+  }
+
+  if (value !== null && typeof value === 'object') {
+    const result: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(value)) {
+      result[key] = deepTransform(val, transform);
+    }
+    return result;
+  }
+
+  return transform(value);
+}
+
 const aiTaskHandlerMap = {
   aiQuery: 'aiQuery',
   aiNumber: 'aiNumber',
@@ -277,6 +300,33 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     }
   }
 
+  private resolveVariables(value: unknown): unknown {
+    return deepTransform(value, (val) => {
+      if (typeof val !== 'string') {
+        return val;
+      }
+
+      const fullMatch = val.match(VARIABLE_FULL_MATCH_RE);
+      if (fullMatch) {
+        const varName = fullMatch[1];
+        if (!(varName in this.result)) {
+          throw new Error(`Variable "${varName}" is not defined`);
+        }
+        return this.result[varName];
+      }
+
+      return val.replace(VARIABLE_EMBEDDED_RE, (_, varName) => {
+        if (!(varName in this.result)) {
+          throw new Error(`Variable "${varName}" is not defined`);
+        }
+        const replacement = this.result[varName];
+        return typeof replacement === 'string'
+          ? replacement
+          : JSON.stringify(replacement);
+      });
+    });
+  }
+
   async playTask(taskStatus: ScriptPlayerTaskStatus, agent: Agent) {
     const { flow } = taskStatus;
     assert(flow, 'missing flow in task');
@@ -284,7 +334,10 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     for (const flowItemIndex in flow) {
       const currentStep = Number.parseInt(flowItemIndex, 10);
       taskStatus.currentStep = currentStep;
-      const flowItem = flow[flowItemIndex];
+      const flowItem = this.resolveVariables(flow[flowItemIndex]) as Record<
+        string,
+        unknown
+      >;
 
       // Skip Finalize action from cache - it's a planning-only marker
       if ('Finalize' in flowItem) {
