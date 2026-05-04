@@ -12,6 +12,7 @@ import {
   resolveConnectedDeviceLabel,
   resolveSelectedDeviceId,
 } from '../../playground/selectors';
+import { normalizeStudioPlatformId } from '../../playground/selectors';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
 import ConnectingPreview from '../ConnectingPreview';
 import ConnectionFailedPreview from '../ConnectionFailedPreview';
@@ -19,6 +20,7 @@ import DisconnectedPreview from '../DisconnectedPreview';
 import type { ShellActiveView } from '../ShellLayout/types';
 import { DeviceList } from './DeviceList';
 import { MobilePreviewFrame } from './MobilePreviewFrame';
+import { WebPreviewSlot } from './WebPreviewSlot';
 import { shouldEnableMobilePreviewFrame } from './preview-layout';
 
 const LazyPlaygroundPreview = lazy(() => import('./LazyPlaygroundPreview'));
@@ -175,6 +177,23 @@ export default function MainContent({
       setPreviewStatusText(null);
     }
   }, [isConnected]);
+
+  // Force-hide the embedded web view whenever the device-detail view is not
+  // active or the session is disconnected. Without this the native
+  // WebContentsView remains pinned where the slot last sat.
+  useEffect(() => {
+    const studioRuntime = window.studioRuntime;
+    if (!studioRuntime) {
+      return;
+    }
+    const platformIsWeb =
+      normalizeStudioPlatformId(runtimeInfo?.platformId) === 'web';
+    const shouldShowWebPreview =
+      activeView === 'device' && isConnected && platformIsWeb;
+    if (!shouldShowWebPreview) {
+      void studioRuntime.hideWebPreview();
+    }
+  }, [activeView, isConnected, runtimeInfo?.platformId]);
 
   const pauseDiscoveryPolling = shouldPauseDiscoveryPollingDuringPreview({
     previewStatus,
@@ -418,21 +437,12 @@ export default function MainContent({
               Playground server is offline.
             </div>
           ) : studioPlayground.controller.state.sessionViewState.connected ? (
-            <div className="h-full w-full">
-              <Suspense
-                fallback={
-                  <ConnectingPreview
-                    pcSrc={assetUrls.main.pc}
-                    phoneSrc={assetUrls.main.phone}
-                    statusLabel={
-                      previewStatusText ||
-                      'Preparing Android device connection…'
-                    }
-                  />
-                }
-              >
-                <LazyPlaygroundPreview
-                  connectingOverlay={
+            normalizeStudioPlatformId(runtimeInfo?.platformId) === 'web' ? (
+              <WebPreviewSlot />
+            ) : (
+              <div className="h-full w-full">
+                <Suspense
+                  fallback={
                     <ConnectingPreview
                       pcSrc={assetUrls.main.pc}
                       phoneSrc={assetUrls.main.phone}
@@ -442,40 +452,55 @@ export default function MainContent({
                       }
                     />
                   }
-                  onScrcpyStatusChange={(status, statusText) => {
-                    setPreviewStatus(status);
-                    setPreviewStatusText(statusText);
-                  }}
-                  renderErrorOverlay={({ retry }) => (
-                    <ConnectionFailedPreview
-                      adbId={previewDeviceId}
-                      iconSrc={assetUrls.main.connectionFailed}
-                      onReconnect={retry}
-                    />
-                  )}
-                  playgroundSDK={
-                    studioPlayground.controller.state.playgroundSDK
-                  }
-                  screenshotViewerMode={
-                    shouldFrameMobilePreview ? 'screen-only' : undefined
-                  }
-                  scrcpyViewportStyle={
-                    shouldFrameMobilePreview
-                      ? {
-                          background: 'transparent',
-                          borderRadius: 0,
+                >
+                  <LazyPlaygroundPreview
+                    connectingOverlay={
+                      <ConnectingPreview
+                        pcSrc={assetUrls.main.pc}
+                        phoneSrc={assetUrls.main.phone}
+                        statusLabel={
+                          previewStatusText ||
+                          'Preparing Android device connection…'
                         }
-                      : undefined
-                  }
-                  runtimeInfo={studioPlayground.controller.state.runtimeInfo}
-                  serverUrl={studioPlayground.serverUrl}
-                  serverOnline={studioPlayground.controller.state.serverOnline}
-                  isUserOperating={
-                    studioPlayground.controller.state.isUserOperating
-                  }
-                />
-              </Suspense>
-            </div>
+                      />
+                    }
+                    onScrcpyStatusChange={(status, statusText) => {
+                      setPreviewStatus(status);
+                      setPreviewStatusText(statusText);
+                    }}
+                    renderErrorOverlay={({ retry }) => (
+                      <ConnectionFailedPreview
+                        adbId={previewDeviceId}
+                        iconSrc={assetUrls.main.connectionFailed}
+                        onReconnect={retry}
+                      />
+                    )}
+                    playgroundSDK={
+                      studioPlayground.controller.state.playgroundSDK
+                    }
+                    screenshotViewerMode={
+                      shouldFrameMobilePreview ? 'screen-only' : undefined
+                    }
+                    scrcpyViewportStyle={
+                      shouldFrameMobilePreview
+                        ? {
+                            background: 'transparent',
+                            borderRadius: 0,
+                          }
+                        : undefined
+                    }
+                    runtimeInfo={studioPlayground.controller.state.runtimeInfo}
+                    serverUrl={studioPlayground.serverUrl}
+                    serverOnline={
+                      studioPlayground.controller.state.serverOnline
+                    }
+                    isUserOperating={
+                      studioPlayground.controller.state.isUserOperating
+                    }
+                  />
+                </Suspense>
+              </div>
+            )
           ) : (
             <DisconnectedPreview iconSrc={assetUrls.main.connectionClosed} />
           )}

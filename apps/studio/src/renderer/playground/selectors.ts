@@ -100,6 +100,9 @@ export function resolveConnectedDeviceId(
       return buildHostPortId(metadata.wdaHost, wdaPort);
     }
   }
+  if (isString(metadata.sessionId)) {
+    return metadata.sessionId;
+  }
   return undefined;
 }
 
@@ -132,6 +135,8 @@ function resolveConnectedSessionValues(
           }
         : undefined;
     }
+    case 'web':
+      return isString(metadata.url) ? { url: metadata.url } : undefined;
     default:
       return undefined;
   }

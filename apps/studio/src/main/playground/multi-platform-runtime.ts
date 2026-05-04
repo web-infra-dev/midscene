@@ -11,6 +11,8 @@ import { ensureStudioShellEnvHydrated } from '../shell-env';
 import { createStudioCorsOptions } from './cors';
 import type { DeviceDiscoveryService } from './device-discovery';
 import type { PlaygroundRuntimeService } from './types';
+import { buildWebPlaygroundPlatform } from './web-platform';
+import type { WebViewManager } from './web-view-manager';
 
 const require = createRequire(__filename);
 
@@ -44,6 +46,10 @@ type MultiPlatformRuntimeModules = {
 type StudioDeviceDiscoveryService =
   | DeviceDiscoveryService
   | Promise<DeviceDiscoveryService>;
+
+const WEB_PLATFORM_ID = 'web';
+const WEB_PLATFORM_LABEL = 'Web';
+const WEB_PLATFORM_DESCRIPTION = 'Browse and automate web pages inside Studio';
 
 const resolvePackageRootDir = (packageName: string): string =>
   path.resolve(path.dirname(require.resolve(packageName)), '..', '..');
@@ -285,6 +291,8 @@ export function createMultiPlatformRuntimeService({
   loadHarmonyModule = loadHarmonyPlaygroundModule,
   loadIosModule = loadIosPlaygroundModule,
   resolvePackageStaticDir = resolveStaticDir,
+  webViewManager,
+  webCdpPort,
 }: {
   deviceDiscoveryService?: StudioDeviceDiscoveryService;
   loadModules?: () => Promise<MultiPlatformRuntimeModules>;
@@ -294,6 +302,8 @@ export function createMultiPlatformRuntimeService({
   loadHarmonyModule?: typeof loadHarmonyPlaygroundModule;
   loadIosModule?: typeof loadIosPlaygroundModule;
   resolvePackageStaticDir?: (packageName: string) => string;
+  webViewManager?: WebViewManager;
+  webCdpPort?: number;
 } = {}): PlaygroundRuntimeService {
   let bootstrap: PlaygroundBootstrap = {
     status: 'starting',
@@ -336,7 +346,26 @@ export function createMultiPlatformRuntimeService({
           ({
             ...(await loadPlaygroundCore()),
           } as PlaygroundCoreModules);
-        const platforms = buildRegisteredPlatforms(
+        const buildWebRegistered = (): RegisteredPlaygroundPlatform[] => {
+          if (!webViewManager || webCdpPort === undefined) {
+            return [];
+          }
+          const cdpPort = webCdpPort;
+          const manager = webViewManager;
+          return [
+            {
+              id: WEB_PLATFORM_ID,
+              label: WEB_PLATFORM_LABEL,
+              description: WEB_PLATFORM_DESCRIPTION,
+              prepare: async () =>
+                buildWebPlaygroundPlatform({
+                  webViewManager: manager,
+                  cdpPort,
+                }),
+            },
+          ];
+        };
+        const baseSpecs = buildRegisteredPlatforms(
           runtimeModules
             ? [
                 {
@@ -399,6 +428,10 @@ export function createMultiPlatformRuntimeService({
               }),
           resolvePackageStaticDir,
         );
+        const platforms: RegisteredPlaygroundPlatform[] = [
+          ...baseSpecs,
+          ...buildWebRegistered(),
+        ];
         const prepared =
           await playgroundCoreModules.prepareMultiPlatformPlayground(
             platforms,

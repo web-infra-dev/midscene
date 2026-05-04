@@ -543,9 +543,15 @@ importers:
       '@midscene/visualizer':
         specifier: workspace:*
         version: link:../../packages/visualizer
+      '@midscene/web':
+        specifier: workspace:*
+        version: link:../../packages/web-integration
       antd:
         specifier: ^5.21.6
         version: 5.21.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      puppeteer-core:
+        specifier: 24.6.0
+        version: 24.6.0(bufferutil@4.0.9)(utf-8-validate@6.0.5)
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -21267,7 +21273,7 @@ snapshots:
 
   openai@6.3.0(ws@8.20.0)(zod@3.25.76):
     optionalDependencies:
-      ws: 8.20.0
+      ws: 8.20.0(bufferutil@4.0.9)(utf-8-validate@6.0.5)
       zod: 3.25.76
 
   opener@1.5.2: {}
@@ -21783,7 +21789,7 @@ snapshots:
       debug: 4.4.0
       devtools-protocol: 0.0.1425554
       typed-query-selector: 2.12.0
-      ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5)
+      ws: 8.20.0(bufferutil@4.0.9)(utf-8-validate@6.0.5)
     transitivePeerDependencies:
       - bare-abort-controller
       - bare-buffer
@@ -24653,8 +24659,10 @@ snapshots:
       bufferutil: 4.0.9
       utf-8-validate: 6.0.5
 
-  ws@8.20.0:
-    optional: true
+  ws@8.20.0(bufferutil@4.0.9)(utf-8-validate@6.0.5):
+    optionalDependencies:
+      bufferutil: 4.0.9
+      utf-8-validate: 6.0.5
 
   wsl-utils@0.1.0:
     dependencies:

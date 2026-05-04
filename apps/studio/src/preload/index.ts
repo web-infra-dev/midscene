@@ -45,6 +45,9 @@ const studioRuntimeApi: StudioRuntimeApi = {
     ipcRenderer.invoke(IPC_CHANNELS.setDiscoveryPollingPaused, paused),
   runConnectivityTest: (request) =>
     ipcRenderer.invoke(IPC_CHANNELS.runConnectivityTest, request),
+  setWebPreviewBounds: (request) =>
+    ipcRenderer.invoke(IPC_CHANNELS.setWebPreviewBounds, request),
+  hideWebPreview: () => ipcRenderer.invoke(IPC_CHANNELS.hideWebPreview),
 };
 
 contextBridge.exposeInMainWorld('electronShell', electronShellApi);
