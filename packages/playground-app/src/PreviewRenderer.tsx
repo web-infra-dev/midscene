@@ -7,8 +7,18 @@ import {
   type ScreenshotViewerMode,
 } from '@midscene/visualizer';
 import { WebCodecsVideoDecoder } from '@yume-chan/scrcpy-decoder-webcodecs';
-import { Alert, Popover } from 'antd';
-import type { CSSProperties, ReactNode } from 'react';
+import { Alert, Popover, message } from 'antd';
+import {
+  type CSSProperties,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
+import {
+  DeviceInteractionLayer,
+  type DeviceSize,
+} from './DeviceInteractionLayer';
 import { type ScrcpyErrorOverlayRenderer, ScrcpyPanel } from './ScrcpyPanel';
 import { resolvePreviewConnectionInfo } from './runtime-info';
 import type { ScrcpyPreviewStatus } from './scrcpy-preview';
@@ -27,6 +37,12 @@ interface PreviewRendererProps {
   serverUrl: string;
   serverOnline: boolean;
   isUserOperating: boolean;
+  /**
+   * When true, the preview accepts mouse/touch input and forwards it to the
+   * connected device (Android tap/swipe via ADB, iOS via WDA). Currently
+   * supported for Android and iOS only.
+   */
+  manualControlEnabled?: boolean;
 }
 
 function isNonLocalhostHttp(): boolean {
@@ -52,10 +68,81 @@ export function PreviewRenderer({
   serverUrl,
   serverOnline,
   isUserOperating,
+  manualControlEnabled = false,
 }: PreviewRendererProps) {
   const previewConnection = resolvePreviewConnectionInfo(
     runtimeInfo,
     serverUrl,
+  );
+
+  const [deviceSize, setDeviceSize] = useState<DeviceSize | null>(null);
+
+  // Pull device size from /screenshot once a session is online so the
+  // interaction layer can map display coords to device pixels. Refresh
+  // periodically (orientation changes, hot-swapped devices).
+  useEffect(() => {
+    if (!manualControlEnabled || !serverOnline) {
+      setDeviceSize(null);
+      return;
+    }
+    let cancelled = false;
+    const fetchSize = async () => {
+      const result = await playgroundSDK.getScreenshot();
+      if (cancelled) return;
+      if (result?.size?.width && result.size.height) {
+        setDeviceSize((current) => {
+          if (
+            current &&
+            current.width === result.size!.width &&
+            current.height === result.size!.height
+          ) {
+            return current;
+          }
+          return { width: result.size!.width, height: result.size!.height };
+        });
+      }
+    };
+    fetchSize();
+    const timer = setInterval(fetchSize, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [manualControlEnabled, playgroundSDK, serverOnline]);
+
+  const handleTap = useCallback(
+    async (point: { x: number; y: number }) => {
+      const res = await playgroundSDK.interact({
+        actionType: 'Tap',
+        x: point.x,
+        y: point.y,
+      });
+      if (!res.ok) {
+        message.error(res.error || 'Tap failed');
+      }
+    },
+    [playgroundSDK],
+  );
+
+  const handleSwipe = useCallback(
+    async (
+      start: { x: number; y: number },
+      end: { x: number; y: number },
+      duration: number,
+    ) => {
+      const res = await playgroundSDK.interact({
+        actionType: 'Swipe',
+        x: start.x,
+        y: start.y,
+        endX: end.x,
+        endY: end.y,
+        duration,
+      });
+      if (!res.ok) {
+        message.error(res.error || 'Swipe failed');
+      }
+    },
+    [playgroundSDK],
   );
 
   // Fall back to screenshot polling when WebCodecs is unavailable
@@ -171,6 +258,16 @@ export function PreviewRenderer({
           mode={screenshotViewerMode}
         />
       )}
+      <DeviceInteractionLayer
+        enabled={
+          manualControlEnabled &&
+          serverOnline &&
+          previewConnection.type !== 'none'
+        }
+        deviceSize={deviceSize}
+        onTap={handleTap}
+        onSwipe={handleSwipe}
+      />
     </div>
   );
 }
