@@ -642,4 +642,58 @@ describe('RemoteExecutionAdapter', () => {
       consoleWarnSpy.mockRestore();
     });
   });
+
+  describe('interact', () => {
+    it('POSTs JSON to /interact and returns ok', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true }),
+      });
+
+      const result = await adapter.interact({
+        actionType: 'Tap',
+        x: 100,
+        y: 200,
+      });
+
+      expect(result).toEqual({ ok: true });
+      expect(mockFetch).toHaveBeenCalledWith(`${mockServerUrl}/interact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actionType: 'Tap', x: 100, y: 200 }),
+      });
+    });
+
+    it('surfaces server-provided error message on non-ok responses', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: async () => ({
+          ok: false,
+          error: 'Action "Foo" is not available',
+        }),
+      });
+
+      const result = await adapter.interact({ actionType: 'Foo' });
+      expect(result.ok).toBe(false);
+      expect(result.error).toContain('not available');
+    });
+
+    it('returns ok:false with a generic error when fetch rejects', async () => {
+      mockFetch.mockRejectedValueOnce(new Error('network down'));
+      const result = await adapter.interact({ actionType: 'Tap', x: 0, y: 0 });
+      expect(result.ok).toBe(false);
+      expect(result.error).toBe('network down');
+    });
+
+    it('refuses without serverUrl', async () => {
+      const noUrlAdapter = new RemoteExecutionAdapter();
+      // @ts-expect-error – simulate the fallback resolution returning empty
+      noUrlAdapter.serverUrl = undefined;
+      const result = await noUrlAdapter.interact({ actionType: 'Tap' });
+      expect(result.ok).toBe(false);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+  });
 });

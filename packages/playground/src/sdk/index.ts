@@ -226,11 +226,22 @@ export class PlaygroundSDK {
   async getScreenshot(): Promise<{
     screenshot: string;
     timestamp: number;
+    size?: { width: number; height: number };
   } | null> {
     if (this.adapter instanceof RemoteExecutionAdapter) {
       return this.adapter.getScreenshot();
     }
     return null; // For local execution, not supported yet
+  }
+
+  // Direct device manipulation – mouse/keyboard input from UI overlays.
+  async interact(
+    payload: { actionType: string } & Record<string, unknown>,
+  ): Promise<{ ok: boolean; error?: string }> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.interact(payload);
+    }
+    return { ok: false, error: 'Direct interaction requires remote execution' };
   }
 
   // Get interface information (type and description)

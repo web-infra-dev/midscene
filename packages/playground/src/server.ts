@@ -12,6 +12,7 @@ import {
   globalModelConfigManager,
   overrideAIConfig,
 } from '@midscene/shared/env';
+import type { LocateResultElement } from '@midscene/shared/types';
 import { uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
@@ -113,6 +114,91 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const STATIC_PATH = join(__dirname, '..', '..', 'static');
 
+export function pointToLocateResult(
+  x: unknown,
+  y: unknown,
+  description: string,
+): LocateResultElement {
+  if (typeof x !== 'number' || typeof y !== 'number') {
+    throw new Error('x and y must be numbers');
+  }
+  const cx = Math.round(x);
+  const cy = Math.round(y);
+  return {
+    description,
+    center: [cx, cy] as [number, number],
+    rect: {
+      left: Math.max(cx - 4, 0),
+      top: Math.max(cy - 4, 0),
+      width: 8,
+      height: 8,
+    },
+  };
+}
+
+export function buildInteractParams(
+  actionType: string,
+  body: Record<string, unknown>,
+): Record<string, unknown> {
+  switch (actionType) {
+    case 'Tap':
+    case 'DoubleClick':
+    case 'RightClick':
+    case 'Hover':
+    case 'LongPress': {
+      const params: Record<string, unknown> = {
+        locate: pointToLocateResult(body.x, body.y, `manual ${actionType}`),
+      };
+      if (typeof body.duration === 'number') {
+        params.duration = body.duration;
+      }
+      return params;
+    }
+    case 'Swipe': {
+      const start = pointToLocateResult(body.x, body.y, 'manual swipe start');
+      const end = pointToLocateResult(body.endX, body.endY, 'manual swipe end');
+      const params: Record<string, unknown> = { start, end };
+      if (typeof body.duration === 'number') params.duration = body.duration;
+      if (typeof body.repeat === 'number') params.repeat = body.repeat;
+      return params;
+    }
+    case 'DragAndDrop': {
+      return {
+        from: pointToLocateResult(body.x, body.y, 'manual drag from'),
+        to: pointToLocateResult(body.endX, body.endY, 'manual drag to'),
+      };
+    }
+    case 'KeyboardPress': {
+      if (typeof body.keyName !== 'string') {
+        throw new Error('keyName is required for KeyboardPress');
+      }
+      return { keyName: body.keyName };
+    }
+    case 'Input': {
+      if (typeof body.value !== 'string') {
+        throw new Error('value is required for Input');
+      }
+      const params: Record<string, unknown> = { value: body.value };
+      if (typeof body.x === 'number' && typeof body.y === 'number') {
+        params.locate = pointToLocateResult(body.x, body.y, 'manual input');
+      }
+      if (typeof body.mode === 'string') params.mode = body.mode;
+      if (typeof body.autoDismissKeyboard === 'boolean') {
+        params.autoDismissKeyboard = body.autoDismissKeyboard;
+      }
+      return params;
+    }
+    default: {
+      // Fallback: pass-through any caller-provided params for less common actions.
+      const { actionType: _omit, ...passthrough } = body as Record<
+        string,
+        unknown
+      >;
+      return passthrough;
+    }
+  }
+}
+
 const errorHandler = (
   err: unknown,
   req: Request,
@@ -161,8 +247,12 @@ class PlaygroundServer {
 
   private _initialized = false;
 
-  // Native MJPEG stream probe: null = not tested, true/false = result
+  // Native MJPEG stream probe: null = not tested, true/false = result.
+  // The negative cache expires after MJPEG_NEGATIVE_CACHE_MS so the server
+  // recovers automatically when WDA / iproxy comes online after startup.
   private _nativeMjpegAvailable: boolean | null = null;
+  private _nativeMjpegFailedAt: number | null = null;
+  private static readonly MJPEG_NEGATIVE_CACHE_MS = 10_000;
 
   private sessionManager?: PlaygroundSessionManager;
   private sessionSetupState: 'required' | 'ready' | 'blocked' = 'ready';
@@ -1162,10 +1252,19 @@ class PlaygroundServer {
         }
 
         const base64Screenshot = await agent.interface.screenshotBase64();
+        let size: { width: number; height: number } | undefined;
+        if (typeof agent.interface.size === 'function') {
+          try {
+            size = await agent.interface.size();
+          } catch {
+            size = undefined;
+          }
+        }
 
         res.json({
           screenshot: base64Screenshot,
           timestamp: Date.now(),
+          ...(size ? { size } : {}),
         });
       } catch (error: unknown) {
         const errorMessage =
@@ -1193,7 +1292,12 @@ class PlaygroundServer {
 
       const nativeUrl = agent.interface?.mjpegStreamUrl;
 
-      if (nativeUrl && this._nativeMjpegAvailable !== false) {
+      const recentlyFailed =
+        this._nativeMjpegAvailable === false &&
+        this._nativeMjpegFailedAt !== null &&
+        Date.now() - this._nativeMjpegFailedAt <
+          PlaygroundServer.MJPEG_NEGATIVE_CACHE_MS;
+      if (nativeUrl && !recentlyFailed) {
         const proxyOk = await this.probeAndProxyNativeMjpeg(
           nativeUrl,
           req,
@@ -1227,6 +1331,60 @@ class PlaygroundServer {
         res.status(500).json({
           error: `Failed to get interface info: ${errorMessage}`,
         });
+      }
+    });
+
+    // Direct manipulation API – invokes a named action immediately, bypassing
+    // AI planning, the task lock, and dump bookkeeping. Designed for UI-driven
+    // pointer/keyboard input on Android/iOS device previews.
+    this._app.post('/interact', async (req: Request, res: Response) => {
+      let agent: PageAgent;
+      try {
+        agent = this.getActiveAgentOrThrow();
+      } catch (error) {
+        return res.status(409).json({
+          ok: false,
+          error: error instanceof Error ? error.message : 'No active session',
+        });
+      }
+
+      const { actionType } = req.body ?? {};
+      if (typeof actionType !== 'string' || !actionType) {
+        return res.status(400).json({
+          ok: false,
+          error: 'actionType is required',
+        });
+      }
+
+      const action = agent.interface
+        .actionSpace()
+        .find((entry: { name: string }) => entry.name === actionType);
+      if (!action || typeof action.call !== 'function') {
+        return res.status(404).json({
+          ok: false,
+          error: `Action "${actionType}" is not available on the current device`,
+        });
+      }
+
+      try {
+        const params = buildInteractParams(actionType, req.body ?? {});
+        const actionFn = (
+          action.call as unknown as (
+            param: unknown,
+            context: unknown,
+          ) => Promise<unknown> | unknown
+        ).bind(agent.interface);
+        // ExecutorContext shape is required by the type but every device
+        // action used here ignores it; pass a minimal stub.
+        await actionFn(params, { task: { type: 'Action' } });
+        res.json({ ok: true });
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.error(
+          `Failed to run interact action "${actionType}": ${errorMessage}`,
+        );
+        res.status(500).json({ ok: false, error: errorMessage });
       }
     });
 
@@ -1342,6 +1500,7 @@ class PlaygroundServer {
       console.log(`MJPEG: trying native stream from ${nativeUrl}`);
       const proxyReq = http.get(nativeUrl, (proxyRes) => {
         this._nativeMjpegAvailable = true;
+        this._nativeMjpegFailedAt = null;
         console.log('MJPEG: streaming via native WDA MJPEG server');
         const contentType = proxyRes.headers['content-type'];
         if (contentType) {
@@ -1355,11 +1514,32 @@ class PlaygroundServer {
       });
       proxyReq.on('error', (err) => {
         this._nativeMjpegAvailable = false;
+        this._nativeMjpegFailedAt = Date.now();
         console.warn(
           `MJPEG: native stream unavailable (${err.message}), using polling mode`,
         );
         resolve(false);
       });
+    });
+  }
+
+  /**
+   * Quick liveness check for the native MJPEG endpoint without consuming a
+   * full streaming response. Used while we are in polling fallback so we can
+   * upgrade back to the native stream as soon as WDA / iproxy comes online.
+   */
+  private probeNativeMjpegLiveness(nativeUrl: string): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      const probe = http.get(nativeUrl, (probeRes) => {
+        const reachable = (probeRes.statusCode ?? 0) < 500;
+        probeRes.destroy();
+        resolve(reachable);
+      });
+      probe.setTimeout(1000, () => {
+        probe.destroy();
+        resolve(false);
+      });
+      probe.on('error', () => resolve(false));
     });
   }
 
@@ -1374,6 +1554,7 @@ class PlaygroundServer {
     const maxMjpegFps = 30;
     const maxErrorBackoffMs = 3000;
     const errorLogThreshold = 3;
+    const nativeProbeIntervalMs = 3000;
 
     const parsedFps = Number(req.query.fps);
     const fps = Math.min(
@@ -1395,6 +1576,37 @@ class PlaygroundServer {
     let consecutiveErrors = 0;
     req.on('close', () => {
       stopped = true;
+    });
+
+    // While we are in polling mode, periodically probe the native MJPEG URL.
+    // As soon as it becomes reachable, end this response so the client's
+    // <img> MJPEG connection retries and lands on the native stream.
+    const nativeUrl = this._activeConnection.agent?.interface?.mjpegStreamUrl;
+    let probeTimer: ReturnType<typeof setInterval> | undefined;
+    if (nativeUrl) {
+      probeTimer = setInterval(async () => {
+        if (stopped) return;
+        const reachable = await this.probeNativeMjpegLiveness(nativeUrl);
+        if (reachable && !stopped) {
+          console.log(
+            'MJPEG: native stream came online, ending polling so client reconnects',
+          );
+          this._nativeMjpegAvailable = true;
+          this._nativeMjpegFailedAt = null;
+          stopped = true;
+          // Destroy the socket so the client's <img> fires onError and
+          // reconnects; res.end() leaves multipart streams visually frozen
+          // on the last frame in some browsers.
+          try {
+            res.destroy();
+          } catch {
+            /* socket already closed */
+          }
+        }
+      }, nativeProbeIntervalMs);
+    }
+    req.on('close', () => {
+      if (probeTimer) clearInterval(probeTimer);
     });
 
     while (!stopped) {
@@ -1440,6 +1652,7 @@ class PlaygroundServer {
         await new Promise((r) => setTimeout(r, remaining));
       }
     }
+    if (probeTimer) clearInterval(probeTimer);
   }
 
   /**

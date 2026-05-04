@@ -437,6 +437,7 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
   async getScreenshot(): Promise<{
     screenshot: string;
     timestamp: number;
+    size?: { width: number; height: number };
   } | null> {
     if (!this.serverUrl) {
       return null;
@@ -456,6 +457,43 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     } catch (error) {
       console.error('Failed to get screenshot:', error);
       return null;
+    }
+  }
+
+  // Direct device manipulation – invokes a named action on the connected
+  // device without going through AI planning.
+  async interact(
+    payload: { actionType: string } & Record<string, unknown>,
+  ): Promise<{ ok: boolean; error?: string }> {
+    if (!this.serverUrl) {
+      return { ok: false, error: 'No server URL configured' };
+    }
+
+    try {
+      const response = await fetch(`${this.serverUrl}/interact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+      } | null;
+
+      if (!response.ok || !data?.ok) {
+        return {
+          ok: false,
+          error: data?.error || `Interact request failed (${response.status})`,
+        };
+      }
+
+      return { ok: true };
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   }
 
