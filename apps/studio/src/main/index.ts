@@ -73,6 +73,9 @@ const getAppIconPath = () => {
     path.resolve(process.resourcesPath, 'assets/midscene-icon.png'),
     path.resolve(app.getAppPath(), 'assets/midscene-icon.png'),
     path.resolve(__dirname, '../assets/midscene-icon.png'),
+    // Dev mode: rsbuild dev does not run sync-static-assets, so fall back to
+    // the source assets directory next to the package.json.
+    path.resolve(__dirname, '../../assets/midscene-icon.png'),
   ];
 
   const iconPath = candidatePaths.find((candidatePath) =>

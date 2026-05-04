@@ -19,7 +19,10 @@ import DisconnectedPreview from '../DisconnectedPreview';
 import type { ShellActiveView } from '../ShellLayout/types';
 import { DeviceList } from './DeviceList';
 import { MobilePreviewFrame } from './MobilePreviewFrame';
-import { shouldEnableMobilePreviewFrame } from './preview-layout';
+import {
+  resolveStudioPreviewPlatform,
+  shouldEnableMobilePreviewFrame,
+} from './preview-layout';
 
 const LazyPlaygroundPreview = lazy(() => import('./LazyPlaygroundPreview'));
 
@@ -157,6 +160,15 @@ export default function MainContent({
     isConnected,
     previewStatus,
   );
+  const previewPlatform = resolveStudioPreviewPlatform(
+    runtimeInfo,
+    previewFormValues,
+  );
+  const manualControlEnabled =
+    isConnected &&
+    (previewPlatform === 'android' ||
+      previewPlatform === 'ios' ||
+      previewPlatform === 'harmony');
   const disconnectDisabled =
     !isReady || !studioPlayground.controller.state.sessionViewState.connected;
   const previewConnectionFailed =
@@ -473,6 +485,7 @@ export default function MainContent({
                   isUserOperating={
                     studioPlayground.controller.state.isUserOperating
                   }
+                  manualControlEnabled={manualControlEnabled}
                 />
               </Suspense>
             </div>
