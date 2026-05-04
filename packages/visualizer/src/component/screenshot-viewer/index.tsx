@@ -36,6 +36,10 @@ export default function ScreenshotViewer({
     type: string;
     description?: string;
   } | null>(null);
+  // Bumping mjpegEpoch forces the <img> to remount so the multipart connection
+  // is reopened. Used both for natural retries on stream errors and for the
+  // server-driven upgrade from polling fallback to native MJPEG.
+  const [mjpegEpoch, setMjpegEpoch] = useState(0);
   const isMjpeg = Boolean(mjpegUrl && serverOnline);
   const showChrome = mode !== 'screen-only';
   const rootClassName = [
@@ -247,9 +251,21 @@ export default function ScreenshotViewer({
     <div className="screenshot-content">
       {isMjpeg ? (
         <img
-          src={mjpegUrl}
+          key={mjpegEpoch}
+          src={
+            mjpegEpoch === 0
+              ? mjpegUrl
+              : `${mjpegUrl}${mjpegUrl?.includes('?') ? '&' : '?'}t=${mjpegEpoch}`
+          }
           alt="Device Live Stream"
           className="screenshot-image"
+          onError={() => {
+            // Server may have closed the polling fallback because the native
+            // MJPEG stream just came online; reconnect so the next /mjpeg
+            // request lands on the native (faster) path. Also covers
+            // transient network blips.
+            window.setTimeout(() => setMjpegEpoch((epoch) => epoch + 1), 500);
+          }}
         />
       ) : screenshot ? (
         <img
