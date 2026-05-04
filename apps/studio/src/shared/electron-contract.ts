@@ -20,12 +20,24 @@ export const IPC_CHANNELS = {
   discoveredDevicesUpdated: 'studio:discovered-devices-updated',
   setDiscoveryPollingPaused: 'studio:set-discovery-polling-paused',
   runConnectivityTest: 'studio:run-connectivity-test',
+  // Web platform — Studio embeds a single WebContentsView the renderer can
+  // pin to its preview slot. The renderer pushes bounds; the main process
+  // moves the native view.
+  setWebPreviewBounds: 'studio:set-web-preview-bounds',
+  hideWebPreview: 'studio:hide-web-preview',
 } as const;
 
 export interface ConnectivityTestRequest {
   apiKey: string;
   baseUrl: string;
   model: string;
+}
+
+export interface WebPreviewBoundsRequest {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 export interface WriteReportFileRequest {
@@ -123,4 +135,12 @@ export interface StudioRuntimeApi {
   runConnectivityTest: (
     request: ConnectivityTestRequest,
   ) => Promise<ConnectivityTestResult>;
+  /**
+   * Push the renderer's preview-slot bounding rect to the main process so the
+   * embedded WebContentsView visually tracks it. Coordinates are in the main
+   * window's content-area space.
+   */
+  setWebPreviewBounds: (request: WebPreviewBoundsRequest) => Promise<void>;
+  /** Collapse the web preview (e.g. when the slot unmounts or settings open). */
+  hideWebPreview: () => Promise<void>;
 }

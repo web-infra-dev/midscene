@@ -4,6 +4,7 @@ import path from 'node:path';
 import {
   type DiscoverDevicesRequest,
   IPC_CHANNELS,
+  type WebPreviewBoundsRequest,
   type WriteReportFileRequest,
 } from '@shared/electron-contract';
 import { resolveExternalUrl } from '@shared/external-links';
@@ -19,6 +20,10 @@ import {
 import type { TitleBarOverlay } from 'electron';
 import { requestPlaygroundBootstrap } from './playground/bootstrap-request';
 import type { PlaygroundRuntimeService } from './playground/types';
+import {
+  type WebViewManager,
+  createWebViewManager,
+} from './playground/web-view-manager';
 import { configureStudioShellEnvHydration } from './shell-env';
 import { registerWindowRevealHandlers } from './window-reveal';
 
@@ -43,18 +48,22 @@ let playgroundRuntimePromise: Promise<PlaygroundRuntimeService> | null = null;
 let deviceDiscoveryServicePromise: Promise<
   import('./playground/device-discovery').DeviceDiscoveryService
 > | null = null;
+let webViewManager: WebViewManager | null = null;
+const getWebViewManager = (): WebViewManager => {
+  if (!webViewManager) {
+    webViewManager = createWebViewManager({ getMainWindow: () => mainWindow });
+  }
+  return webViewManager;
+};
 
-// Expose the Chromium DevTools Protocol on a fixed port in dev so external
-// profilers (e.g. chrome-devtools-mcp at http://localhost:9224) can attach to
-// the renderer without the user keeping DevTools open. Production builds never
-// set this — it would be a liability. The port can be overridden with the
-// MIDSCENE_STUDIO_CDP_PORT env var when multiple dev instances are running.
-if (!app.isPackaged) {
-  const cdpPort = process.env.MIDSCENE_STUDIO_CDP_PORT ?? '9224';
-  app.commandLine.appendSwitch('remote-debugging-port', cdpPort);
-  // Bind to loopback so the debug endpoint isn't reachable from the network.
-  app.commandLine.appendSwitch('remote-debugging-address', '127.0.0.1');
-}
+// Expose the Chromium DevTools Protocol on a loopback-bound port so the web
+// platform can connect to its own WebContentsView via puppeteer-core. The
+// endpoint is reachable only from 127.0.0.1, which is the same trust boundary
+// as any other in-process API. The port can be overridden with the
+// MIDSCENE_STUDIO_CDP_PORT env var when multiple instances are running.
+const STUDIO_CDP_PORT = process.env.MIDSCENE_STUDIO_CDP_PORT ?? '9224';
+app.commandLine.appendSwitch('remote-debugging-port', STUDIO_CDP_PORT);
+app.commandLine.appendSwitch('remote-debugging-address', '127.0.0.1');
 
 const getRendererEntryPath = () =>
   path.join(__dirname, '../renderer/index.html');
@@ -124,6 +133,8 @@ const getPlaygroundRuntime = async (): Promise<PlaygroundRuntimeService> => {
       .then(({ createMultiPlatformRuntimeService }) =>
         createMultiPlatformRuntimeService({
           deviceDiscoveryService: getDeviceDiscoveryService(),
+          webViewManager: getWebViewManager(),
+          webCdpPort: Number.parseInt(STUDIO_CDP_PORT, 10),
         }),
       )
       .catch((error) => {
@@ -302,6 +313,15 @@ const registerIpcHandlers = () => {
     );
     return runConnectivityTest(request);
   });
+  ipcMain.handle(
+    IPC_CHANNELS.setWebPreviewBounds,
+    (_event, request: WebPreviewBoundsRequest) => {
+      getWebViewManager().setPreviewBounds(request);
+    },
+  );
+  ipcMain.handle(IPC_CHANNELS.hideWebPreview, () => {
+    getWebViewManager().hidePreview();
+  });
 };
 
 app.whenReady().then(() => {
@@ -351,4 +371,9 @@ app.on('before-quit', () => {
     .catch(() => {
       // ignore cleanup failures during shutdown
     });
+  if (webViewManager) {
+    void webViewManager.closeSession().catch(() => {
+      // ignore cleanup failures during shutdown
+    });
+  }
 });

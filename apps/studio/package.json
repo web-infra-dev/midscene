@@ -9,7 +9,8 @@
     "package:release": "node scripts/package-electron.mjs",
     "preview": "rsbuild preview --environment renderer",
     "start": "node scripts/sync-static-assets.mjs && node scripts/launch-electron-prod.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "STUDIO_E2E=1 vitest run --config vitest.e2e.config.ts"
   },
   "dependencies": {
     "@midscene/android": "workspace:*",
@@ -23,7 +24,9 @@
     "@midscene/playground-app": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/visualizer": "workspace:*",
+    "@midscene/web": "workspace:*",
     "antd": "^5.21.6",
+    "puppeteer-core": "24.6.0",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },

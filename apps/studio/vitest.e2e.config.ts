@@ -12,10 +12,11 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    environmentMatchGlobs: [['tests/theme-provider.test.ts', 'jsdom']],
-    include: ['tests/**/*.test.mjs', 'tests/**/*.test.ts'],
-    // E2E tests spawn Electron and take ~30s. Keep them off the default
-    // unit-test run; opt in via `pnpm e2e` (see vitest.e2e.config.ts).
-    exclude: ['tests/e2e/**'],
+    include: ['tests/e2e/**/*.test.ts'],
+    // Each e2e test spawns Electron — they must not fight over CDP ports
+    // or the playground HTTP server.
+    fileParallelism: false,
+    testTimeout: 120_000,
+    hookTimeout: 120_000,
   },
 });

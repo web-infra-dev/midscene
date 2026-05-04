@@ -5,6 +5,7 @@ on:
     paths:
       - 'packages/computer/**'
       - 'apps/chrome-extension/**'
+      - 'apps/studio/**'
       - '.github/workflows/headless-linux.yml'
   workflow_dispatch:
     inputs:
@@ -476,4 +477,66 @@ jobs:
 
     - name: Check test result
       if: steps.test-settings.outcome == 'failure'
+      run: exit 1
+
+  studio-web-e2e:
+    runs-on: ubuntu-22.04
+    env:
+      CI: "1"
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.branch || github.ref }}
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 9.3.0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24.13.0'
+        cache: 'pnpm'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          xvfb \
+          x11-xserver-utils \
+          libxtst6 \
+          libxinerama1 \
+          libx11-6 \
+          libxkbcommon-x11-0 \
+          libpng16-16 \
+          libnss3 \
+          libatk-bridge2.0-0 \
+          libdrm2 \
+          libgbm1 \
+          libasound2
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build Studio
+      run: npx nx run studio:build
+
+    - name: Run Studio web platform e2e under Xvfb
+      run: xvfb-run --auto-servernum --server-args="-screen 0 1280x900x24" pnpm --filter studio e2e
+      timeout-minutes: 10
+      id: studio-e2e
+      continue-on-error: true
+
+    - name: Upload e2e report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: studio-web-e2e-report
+        path: apps/studio/midscene_run/report
+        if-no-files-found: ignore
+
+    - name: Check test result
+      if: steps.studio-e2e.outcome == 'failure'
       run: exit 1
