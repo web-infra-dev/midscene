@@ -100,7 +100,14 @@ export function resolveConnectedDeviceId(
       return buildHostPortId(metadata.wdaHost, wdaPort);
     }
   }
-  if (isString(metadata.sessionId)) {
+  // Web platform stores its session id under `metadata.sessionId` (the
+  // WebContents id wrapped as `web:<id>`). Gate on `previewKind` so an
+  // unrelated platform that grows a `sessionId` field later does not
+  // accidentally hijack this fallback.
+  if (
+    metadata.previewKind === 'electron-web-view' &&
+    isString(metadata.sessionId)
+  ) {
     return metadata.sessionId;
   }
   return undefined;

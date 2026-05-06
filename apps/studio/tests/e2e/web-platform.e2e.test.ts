@@ -1,6 +1,8 @@
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
+import fs from 'node:fs';
 import http from 'node:http';
 import { createRequire } from 'node:module';
+import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -70,9 +72,14 @@ interface FixtureServer {
 }
 
 async function startFixtureServer(): Promise<FixtureServer> {
-  const server = http.createServer((_req, res) => {
-    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-    res.end(FIXTURE_HTML);
+  const server = http.createServer((req, res) => {
+    if (req.url === '/fixture') {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      res.end(FIXTURE_HTML);
+      return;
+    }
+    res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
+    res.end('not found');
   });
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject);
@@ -92,8 +99,30 @@ async function startFixtureServer(): Promise<FixtureServer> {
   };
 }
 
-function pickRandomPort(min: number, max: number): number {
-  return Math.floor(min + Math.random() * (max - min));
+/**
+ * Bind a TCP server to an OS-picked port on loopback, then release it. The
+ * returned port is free at the moment of release; a tiny race window remains
+ * but is vastly safer than picking a random number out of a range that may
+ * already be in use by another local process.
+ */
+async function acquireFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.unref();
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      if (!address || typeof address === 'string') {
+        server.close();
+        reject(new Error('failed to acquire a free TCP port'));
+        return;
+      }
+      const port = address.port;
+      server.close((closeError) =>
+        closeError ? reject(closeError) : resolve(port),
+      );
+    });
+  });
 }
 
 const ENABLE_E2E =
@@ -106,8 +135,14 @@ describe.skipIf(!ENABLE_E2E)('Studio web platform e2e', () => {
   let studioRendererTarget: CdpTarget | null = null;
 
   beforeAll(async () => {
+    if (!fs.existsSync(MAIN_ENTRY)) {
+      throw new Error(
+        `Studio main bundle missing at ${MAIN_ENTRY}. Run \`pnpm --filter studio build\` before running the e2e suite.`,
+      );
+    }
+
     fixture = await startFixtureServer();
-    cdpPort = pickRandomPort(19224, 20224);
+    cdpPort = await acquireFreePort();
 
     electronProcess = spawn(electronBinary, [MAIN_ENTRY], {
       env: {
@@ -149,11 +184,28 @@ describe.skipIf(!ENABLE_E2E)('Studio web platform e2e', () => {
   }, 90_000);
 
   afterAll(async () => {
-    if (electronProcess && !electronProcess.killed) {
-      electronProcess.kill('SIGTERM');
-      await new Promise((resolve) => setTimeout(resolve, 750));
-      if (!electronProcess.killed) {
-        electronProcess.kill('SIGKILL');
+    if (
+      electronProcess &&
+      electronProcess.exitCode === null &&
+      electronProcess.signalCode === null
+    ) {
+      const child = electronProcess;
+      const waitExit = new Promise<void>((resolve) => {
+        child.once('exit', () => resolve());
+      });
+      child.kill('SIGTERM');
+      const result = await Promise.race([
+        waitExit.then(() => 'exited' as const),
+        new Promise<'timeout'>((resolve) =>
+          setTimeout(() => resolve('timeout'), 1500),
+        ),
+      ]);
+      if (result === 'timeout' && child.exitCode === null) {
+        // SIGTERM did not land — fall back to SIGKILL and wait for the OS to
+        // reap the process. `child.killed` flips true on signal delivery
+        // (not on exit), so we cannot rely on it for this branch.
+        child.kill('SIGKILL');
+        await waitExit;
       }
     }
     if (fixture) {

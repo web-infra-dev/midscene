@@ -179,8 +179,11 @@ export default function MainContent({
   }, [isConnected]);
 
   // Force-hide the embedded web view whenever the device-detail view is not
-  // active or the session is disconnected. Without this the native
-  // WebContentsView remains pinned where the slot last sat.
+  // active or the session is disconnected. WebPreviewSlot's own unmount
+  // cleanup covers the case where the slot was rendered; this effect covers
+  // the case where the slot was never rendered (e.g. platform = web but
+  // disconnected, or activeView = overview), so the native WebContentsView
+  // does not stay pinned where the slot last sat.
   useEffect(() => {
     const studioRuntime = window.studioRuntime;
     if (!studioRuntime) {

@@ -1,4 +1,4 @@
-import { type BrowserWindow, WebContentsView } from 'electron';
+import { type BrowserWindow, WebContentsView, nativeTheme } from 'electron';
 
 export interface WebPreviewBounds {
   x: number;
@@ -92,7 +92,9 @@ export function createWebViewManager(options: {
             sandbox: true,
           },
         });
-        view.setBackgroundColor('#ffffff');
+        view.setBackgroundColor(
+          nativeTheme.shouldUseDarkColors ? '#1c1c1c' : '#ffffff',
+        );
         mainWindow.contentView.addChildView(view);
         // Start hidden — renderer pushes real bounds once the slot mounts.
         view.setBounds(HIDDEN_BOUNDS);
@@ -142,6 +144,9 @@ export function createWebViewManager(options: {
     },
 
     async closeSession() {
+      // Safe to call after the puppeteer agent already destroyed the page —
+      // detachView guards on `isDestroyed` before touching webContents, so
+      // double-close from the agent + sessionManager teardown is harmless.
       detachView();
       session = null;
     },

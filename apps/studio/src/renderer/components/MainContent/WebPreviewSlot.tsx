@@ -17,13 +17,21 @@ export function WebPreviewSlot() {
       return;
     }
 
+    // Coalesce bursts of resize/scroll events into a single bounds push
+    // per frame. Without this, dragging the window border can fire dozens
+    // of synchronous IPC roundtrips per second.
+    let rafId = 0;
     const pushBounds = () => {
-      const rect = node.getBoundingClientRect();
-      void studioRuntime.setWebPreviewBounds({
-        x: rect.left,
-        y: rect.top,
-        width: rect.width,
-        height: rect.height,
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        const rect = node.getBoundingClientRect();
+        void studioRuntime.setWebPreviewBounds({
+          x: rect.left,
+          y: rect.top,
+          width: rect.width,
+          height: rect.height,
+        });
       });
     };
 
@@ -35,6 +43,7 @@ export function WebPreviewSlot() {
     window.addEventListener('scroll', pushBounds, true);
 
     return () => {
+      if (rafId) cancelAnimationFrame(rafId);
       resizeObserver.disconnect();
       window.removeEventListener('resize', pushBounds);
       window.removeEventListener('scroll', pushBounds, true);

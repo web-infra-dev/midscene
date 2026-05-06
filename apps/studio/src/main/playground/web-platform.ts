@@ -10,11 +10,22 @@ import type { WebViewManager, WebViewSession } from './web-view-manager';
 
 const require = createRequire(__filename);
 
-// Inlined to keep this module's static deps to types only — pulling
-// `createScreenshotPreviewDescriptor` from `@midscene/playground` would
-// transitively load `@midscene/shared`'s image pipeline, which fails to
-// pre-bundle under vitest's vite resolution.
-function buildScreenshotPreview(title: string): PlaygroundPreviewDescriptor {
+/**
+ * Stub preview descriptor for the web platform.
+ *
+ * The renderer detects `metadata.previewKind === 'electron-web-view'` and
+ * mounts {@link WebPreviewSlot}, which positions the native WebContentsView
+ * on top of the React tree — `/screenshot` is never actually fetched. We
+ * still emit `kind: 'screenshot'` because {@link PlaygroundPreviewDescriptor}
+ * does not yet have a `'native-view'` variant. When the upstream union
+ * grows one, switch this over and drop the renderer's metadata-based
+ * branching.
+ *
+ * Inlined here (rather than imported from `@midscene/playground`) because
+ * importing that package transitively loads `@midscene/shared`'s image
+ * pipeline, which fails to pre-bundle under vitest's vite resolution.
+ */
+function buildWebPreviewStub(title: string): PlaygroundPreviewDescriptor {
   return {
     kind: 'screenshot',
     title,
@@ -38,6 +49,9 @@ const PLATFORM_DESCRIPTION = 'Browse and automate web pages inside Studio';
 
 type PuppeteerCoreModule = typeof import('puppeteer-core');
 type WebPuppeteerModule = typeof import('@midscene/web/puppeteer');
+type PuppeteerAgentPage = ConstructorParameters<
+  WebPuppeteerModule['PuppeteerAgent']
+>[0];
 
 async function defaultConnectBrowser(browserURL: string): Promise<Browser> {
   const puppeteer: PuppeteerCoreModule = require('puppeteer-core');
@@ -89,9 +103,11 @@ async function buildAgentFactory(
   // platform modules.
   const webPuppeteer: WebPuppeteerModule = require('@midscene/web/puppeteer');
   const { PuppeteerAgent } = webPuppeteer;
-  // PuppeteerAgent expects puppeteer's Page; puppeteer-core's Page is
-  // structurally identical at runtime, hence the cast.
-  return new PuppeteerAgent(page as unknown as never, {
+  // PuppeteerAgent's first parameter is typed as the `Page` from
+  // `puppeteer`, while we hold a structurally identical `Page` from
+  // `puppeteer-core`. The cast routes through the constructor's declared
+  // type so it still tracks signature changes (unlike `as unknown as never`).
+  return new PuppeteerAgent(page as unknown as PuppeteerAgentPage, {
     forceSameTabNavigation: true,
   });
 }
@@ -163,7 +179,7 @@ export function buildWebPlaygroundPlatform(
         // doesn't need to draw screenshots — but we still expose the
         // descriptor so the runtime treats this as a screenshot-capable
         // session for any feature that relies on it.
-        preview: buildScreenshotPreview('Web preview'),
+        preview: buildWebPreviewStub('Web preview'),
         metadata: {
           sessionId: session.id,
           url: session.url,
@@ -188,6 +204,6 @@ export function buildWebPlaygroundPlatform(
       setupState: 'required',
       previewKind: 'electron-web-view',
     },
-    preview: buildScreenshotPreview('Web preview'),
+    preview: buildWebPreviewStub('Web preview'),
   };
 }
