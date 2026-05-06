@@ -5,6 +5,9 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme {
+  --font-sans: "Inter", "PingFang SC", system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji";
   --color-app-bg: var(--midscene-app-bg);
   --color-surface: var(--midscene-surface);
   --color-surface-elevated: var(--midscene-surface-elevated);
@@ -102,6 +105,19 @@
   body {
     overscroll-behavior: none;
     color: var(--midscene-text-primary);
+    font-family: var(--font-sans);
+  }
+
+  button,
+  input,
+  optgroup,
+  select,
+  textarea {
+    font-family: inherit;
+    font-size: 100%;
+    font-weight: inherit;
+    line-height: inherit;
+    color: inherit;
   }
 }
 

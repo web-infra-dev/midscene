@@ -6,11 +6,7 @@ import Playground from '../Playground';
 import SettingsPanel from '../SettingsPanel';
 import Sidebar, { SidebarFooter } from '../Sidebar';
 import { ModelEnvConfigModal } from './ModelEnvConfigModal';
-import {
-  isModelEnvConfigured,
-  loadModelEnvText,
-  saveModelEnvText,
-} from './model-env-storage';
+import { loadModelEnvText, saveModelEnvText } from './model-env-storage';
 import type { ShellActiveView } from './types';
 
 export type { ShellActiveView };
@@ -57,14 +53,12 @@ export default function ShellLayout() {
     loadModelEnvText(),
   );
   const settingsAnchorRef = useRef<HTMLDivElement | null>(null);
-  const modelEnvConfigured = isModelEnvConfigured(modelEnvText);
   const isMacLike =
     typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
   const collapsedToggleOffsetClass = isMacLike ? 'left-[86px]' : 'left-[12px]';
   const collapsedHeaderOffsetClass = isMacLike ? 'pl-[104px]' : 'pl-[36px]';
 
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
-  const openSettings = useCallback(() => setSettingsOpen(true), []);
   const openEnvModal = useCallback(() => {
     setSettingsOpen(false);
     setModelModalOpen(true);
@@ -105,7 +99,8 @@ export default function ShellLayout() {
     <div className="relative h-full w-full overflow-hidden bg-app-bg font-sans">
       {!collapsed && (
         <div className="absolute left-0 top-0 h-full w-[240px]">
-          <div className="absolute right-[12px] top-[18px]">
+          <div className="app-drag absolute left-0 right-0 top-0 h-[52px]" />
+          <div className="app-no-drag absolute right-[12px] top-[18px]">
             <SidebarToggleButton
               collapsed={false}
               onToggle={() => setCollapsed(true)}
@@ -147,11 +142,17 @@ export default function ShellLayout() {
       )}
 
       {collapsed && (
-        <div
-          className={`absolute top-[18px] z-40 ${collapsedToggleOffsetClass}`}
-        >
-          <SidebarToggleButton collapsed onToggle={() => setCollapsed(false)} />
-        </div>
+        <>
+          <div className="app-drag absolute left-0 right-0 top-0 h-[52px]" />
+          <div
+            className={`app-no-drag absolute top-[18px] z-40 ${collapsedToggleOffsetClass}`}
+          >
+            <SidebarToggleButton
+              collapsed
+              onToggle={() => setCollapsed(false)}
+            />
+          </div>
+        </>
       )}
 
       <div
@@ -161,10 +162,7 @@ export default function ShellLayout() {
       >
         <MainContent
           activeView={activeView}
-          envConfigured={modelEnvConfigured}
           headerOffsetClass={collapsed ? collapsedHeaderOffsetClass : undefined}
-          onOpenModelConfig={openEnvModal}
-          onOpenSettings={openSettings}
           onSelectDeviceView={() => setActiveView('device')}
         />
         <Playground />

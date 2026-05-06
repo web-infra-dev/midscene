@@ -97,7 +97,7 @@ function StatusBadge({ status }: { status: DeviceConnectionState }) {
         }`}
       />
       <span
-        className={`font-['Inter'] text-[11px] font-medium leading-[12px] ${
+        className={`font-sans text-[11px] font-medium leading-[12px] ${
           isLive ? 'text-status-success-fg' : 'text-status-info'
         }`}
       >
@@ -150,12 +150,12 @@ function DeviceCard({
 
       <div className="flex min-w-0 flex-1 flex-col justify-center">
         <div className="flex items-center gap-[8px]">
-          <span className="overflow-hidden truncate font-['PingFang_SC'] text-[14px] font-medium leading-[22px] text-text-primary">
+          <span className="overflow-hidden truncate font-sans text-[14px] font-medium leading-[22px] text-text-primary">
             {device.label}
           </span>
           <StatusBadge status={status} />
         </div>
-        <span className="overflow-hidden truncate font-['Inter'] text-[12px] leading-[20px] text-text-secondary">
+        <span className="overflow-hidden truncate font-sans text-[12px] leading-[20px] text-text-secondary">
           {device.description ?? device.id}
         </span>
       </div>
@@ -189,11 +189,11 @@ export function DeviceList({
     <div className="flex h-full w-full flex-col gap-[32px] overflow-y-auto px-[118px] pb-[40px] pt-[59px]">
       {sections.map((section) => (
         <div className="flex w-[800px] flex-col gap-[16px]" key={section.key}>
-          <span className="font-['Inter'] text-[13px] font-medium leading-[22px] text-text-secondary">
+          <span className="font-sans text-[13px] font-medium leading-[22px] text-text-secondary">
             {section.label}
           </span>
           {section.devices.length === 0 ? (
-            <div className="flex h-[66px] w-[394px] items-center justify-center rounded-[16px] border border-dashed border-border-subtle font-['PingFang_SC'] text-[12px] text-text-tertiary">
+            <div className="flex h-[66px] w-[394px] items-center justify-center rounded-[16px] border border-dashed border-border-subtle font-sans text-[12px] text-text-tertiary">
               No devices
             </div>
           ) : (

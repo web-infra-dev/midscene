@@ -10,7 +10,12 @@
     ".": {
       "types": "./dist/types/index.d.ts",
       "import": "./dist/es/index.mjs",
-      "require": "./dist/es/index.js"
+      "require": "./dist/lib/index.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      ".": ["./dist/types/index.d.ts"]
     }
   },
   "files": ["dist", "html", "README.md"],

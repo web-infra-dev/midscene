@@ -23,7 +23,6 @@ export function buildConversationConfig(
     showSystemMessageHeader: false,
     promptInputChrome: {
       variant: 'minimal',
-      placeholder: 'Type a message',
       primaryActionLabel: 'Action',
     },
     executionFlow: {

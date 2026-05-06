@@ -308,7 +308,7 @@ export default function Sidebar({
         <span className="absolute left-[40px] top-[5px] overflow-hidden whitespace-nowrap text-[13px] leading-[22px] font-medium text-text-secondary">
           Device overview
         </span>
-        <span className="absolute right-[12px] top-[6px] font-['PingFang_SC'] text-[11px] font-normal leading-[20px] text-text-tertiary">
+        <span className="absolute right-[12px] top-[6px] font-sans text-[11px] font-normal leading-[20px] text-text-tertiary">
           {totalDeviceCount}
         </span>
       </button>

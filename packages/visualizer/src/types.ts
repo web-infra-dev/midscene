@@ -419,6 +419,12 @@ export interface UniversalPlaygroundConfig {
    */
   showSystemMessageHeader?: boolean;
   /**
+   * Optional host-provided content rendered when the conversation has no
+   * user-visible chat messages yet. The internal welcome message stays in
+   * state, but compact hosts can replace its default text block visually.
+   */
+  emptyState?: ReactNode;
+  /**
    * Opt-in controls for how consecutive progress items render in the
    * conversation log. Defaults flatten every progress step inline (no
    * grouping, no connector) so existing hosts keep their behaviour.

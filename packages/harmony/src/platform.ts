@@ -43,10 +43,7 @@ interface HdcTargetsResult {
 async function getHdcTargetsSafe(): Promise<HdcTargetsResult> {
   try {
     const targets = await getHdcTargets();
-    return {
-      targets,
-      ...(targets.length === 0 ? { error: HARMONY_NO_DEVICE_MESSAGE } : {}),
-    };
+    return { targets };
   } catch (error) {
     return {
       targets: [],

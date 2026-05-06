@@ -1,5 +1,4 @@
 import { useEnvConfig } from '@midscene/visualizer';
-import { parseEnvText, resolveModelConnection } from './connectivity-env';
 
 const STORAGE_KEY = 'studio:model-env-text';
 
@@ -43,12 +42,4 @@ export function hydrateModelEnvStores(): void {
     return;
   }
   mirrorToVisualizerStore(text);
-}
-
-export function isModelEnvConfigured(text: string): boolean {
-  if (!text.trim()) {
-    return false;
-  }
-  const resolved = resolveModelConnection(parseEnvText(text));
-  return !('error' in resolved);
 }

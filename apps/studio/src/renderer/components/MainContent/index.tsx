@@ -19,16 +19,16 @@ import DisconnectedPreview from '../DisconnectedPreview';
 import type { ShellActiveView } from '../ShellLayout/types';
 import { DeviceList } from './DeviceList';
 import { MobilePreviewFrame } from './MobilePreviewFrame';
-import { shouldEnableMobilePreviewFrame } from './preview-layout';
+import {
+  shouldEnableMobilePreviewFrame,
+  shouldUseComputerPreviewPadding,
+} from './preview-layout';
 
 const LazyPlaygroundPreview = lazy(() => import('./LazyPlaygroundPreview'));
 
 export interface MainContentProps {
   activeView: ShellActiveView;
-  envConfigured: boolean;
   headerOffsetClass?: string;
-  onOpenModelConfig?: () => void;
-  onOpenSettings?: () => void;
   onSelectDeviceView?: () => void;
 }
 
@@ -81,39 +81,9 @@ function OverviewToolbar({
   );
 }
 
-function OverviewEmptyState({ onAction }: { onAction?: () => void }) {
-  return (
-    <div className="flex w-[360px] flex-col items-center gap-[12px]">
-      <img
-        alt=""
-        aria-hidden="true"
-        className="h-[95px] w-[120px] object-contain"
-        src={assetUrls.main.devices}
-      />
-
-      <div className="w-[260px] overflow-hidden text-center font-['PingFang_SC'] text-[13px] font-medium leading-[24px] text-black">
-        Finish environment setup to browse and connect devices
-      </div>
-
-      <button
-        className="flex h-[32px] w-[117px] cursor-pointer items-center justify-center rounded-[8px] border-0 bg-surface-muted p-0 transition-colors hover:bg-surface-hover-strong active:bg-surface-active"
-        onClick={onAction}
-        type="button"
-      >
-        <span className="block overflow-hidden text-center text-[13px] font-medium leading-[22px] text-black">
-          Configuration
-        </span>
-      </button>
-    </div>
-  );
-}
-
 export default function MainContent({
   activeView,
-  envConfigured,
   headerOffsetClass,
-  onOpenModelConfig,
-  onOpenSettings,
   onSelectDeviceView,
 }: MainContentProps) {
   const studioPlayground = useStudioPlayground();
@@ -156,6 +126,10 @@ export default function MainContent({
     previewFormValues,
     isConnected,
     previewStatus,
+  );
+  const shouldPadComputerPreview = shouldUseComputerPreviewPadding(
+    runtimeInfo,
+    previewFormValues,
   );
   const disconnectDisabled =
     !isReady || !studioPlayground.controller.state.sessionViewState.connected;
@@ -221,18 +195,6 @@ export default function MainContent({
   }, [previewStatus, refreshSessionSetup]);
 
   if (activeView === 'overview') {
-    if (!envConfigured) {
-      return (
-        <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-l-[12px] border-r border-border-subtle bg-surface">
-          <div className="flex h-full w-full items-center justify-center">
-            <OverviewEmptyState
-              onAction={onOpenModelConfig ?? onOpenSettings}
-            />
-          </div>
-        </div>
-      );
-    }
-
     const overviewSessionBuckets = isReady
       ? buildStudioSidebarDeviceBuckets({
           formValues: studioPlayground.controller.state.formValues,
@@ -252,6 +214,7 @@ export default function MainContent({
 
     return (
       <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-l-[12px] border-r border-border-subtle bg-surface">
+        <div className="app-drag absolute left-0 right-0 top-0 z-0 h-[52px]" />
         <OverviewToolbar
           onRefresh={async () => {
             if (!isReady || overviewRefreshing) {
@@ -309,7 +272,7 @@ export default function MainContent({
   return (
     <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-l-[12px] border-r border-border-subtle bg-surface">
       <div
-        className={`flex h-[52px] items-center pr-4 ${
+        className={`app-drag flex h-[52px] items-center pr-4 ${
           headerOffsetClass || 'pl-[8px]'
         }`}
       >
@@ -317,7 +280,7 @@ export default function MainContent({
           <div className="ml-[8px] flex h-6 w-6 items-center justify-center rounded-[3.6px] bg-surface">
             <img alt="" className="h-[21.6px]" src={assetUrls.main.device} />
           </div>
-          <span className="ml-[8px] w-[134px] overflow-hidden whitespace-nowrap text-[13px] leading-[22.1px] font-medium text-text-primary">
+          <span className="ml-[8px] max-w-[134px] truncate text-[13px] leading-[22.1px] font-medium text-text-primary">
             {deviceLabel}
           </span>
           <div
@@ -354,7 +317,7 @@ export default function MainContent({
 
         <div className="flex flex-1 justify-end gap-[8.04px]">
           <button
-            className={`flex h-8 items-center rounded-lg border border-border-subtle px-3 ${
+            className={`app-no-drag flex h-8 items-center rounded-lg border border-border-subtle px-3 ${
               isConnected
                 ? 'bg-surface shadow-[0_1px_2px_rgba(15,23,42,0.06)]'
                 : 'bg-transparent'
@@ -379,7 +342,7 @@ export default function MainContent({
             </span>
           </button>
           <button
-            className="flex h-8 items-center gap-[4.02px] rounded-lg border border-border-subtle bg-surface-muted px-3"
+            className="app-drag flex h-8 items-center gap-[4.02px] rounded-lg border border-border-subtle bg-surface px-3 shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
             type="button"
           >
             <div className="flex h-4 w-4 items-center">
@@ -418,7 +381,11 @@ export default function MainContent({
               Playground server is offline.
             </div>
           ) : studioPlayground.controller.state.sessionViewState.connected ? (
-            <div className="h-full w-full">
+            <div
+              className={`h-full w-full ${
+                shouldPadComputerPreview ? 'px-4' : ''
+              }`}
+            >
               <Suspense
                 fallback={
                   <ConnectingPreview
@@ -456,9 +423,7 @@ export default function MainContent({
                   playgroundSDK={
                     studioPlayground.controller.state.playgroundSDK
                   }
-                  screenshotViewerMode={
-                    shouldFrameMobilePreview ? 'screen-only' : undefined
-                  }
+                  screenshotViewerMode="screen-only"
                   scrcpyViewportStyle={
                     shouldFrameMobilePreview
                       ? {

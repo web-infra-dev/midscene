@@ -13,7 +13,7 @@ export function PlaygroundShell({
 }: PlaygroundShellProps) {
   return (
     <div className="playground-shell">
-      <div className="pointer-events-none absolute left-0 top-0 z-10 flex h-[56px] w-full items-center border-b border-border-subtle bg-surface px-[22px]">
+      <div className="app-drag absolute left-0 top-0 z-10 flex h-[56px] w-full items-center border-b border-border-subtle bg-surface px-[22px]">
         <span className="text-[13px] leading-[22.1px] font-medium text-text-primary">
           {title}
         </span>

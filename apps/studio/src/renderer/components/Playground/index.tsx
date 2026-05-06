@@ -2,6 +2,7 @@ import { Suspense, lazy, useMemo } from 'react';
 import { downloadStudioReport } from '../../playground/report-download';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
 import { PlaygroundShell } from '../PlaygroundShell';
+import { StudioPlaygroundEmptyState } from './StudioPlaygroundEmptyState';
 
 declare const __APP_VERSION__: string;
 
@@ -13,6 +14,7 @@ export default function Playground() {
   const studioPlayground = useStudioPlayground();
   const playgroundConfig = useMemo(
     () => ({
+      emptyState: <StudioPlaygroundEmptyState />,
       onDownloadReport: downloadStudioReport,
     }),
     [],
