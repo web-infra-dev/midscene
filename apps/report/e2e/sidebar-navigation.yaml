@@ -5,19 +5,79 @@ tasks:
   - name: sidebar task list is rendered
     flow:
       - sleep: 3000
-      - aiAssert: The left sidebar shows a list of task execution rows
+      - javascript: |
+          (function () {
+            const rows = document.querySelectorAll('.task-row');
+            if (rows.length === 0) {
+              throw new Error('Expected sidebar task rows to be rendered');
+            }
+            return rows.length;
+          })()
+        name: assert-sidebar-task-rows
 
   - name: click a task row to view details
     flow:
-      - ai: Click on the first task row in the left sidebar execution list
+      - javascript: |
+          (function () {
+            const firstRow = document.querySelector('.task-row');
+            if (!(firstRow instanceof HTMLElement)) {
+              throw new Error('Expected first sidebar task row');
+            }
+            firstRow.click();
+            return firstRow.getAttribute('data-task-id');
+          })()
+        name: click-first-task-row
       - sleep: 3000
-      - aiAssert: The right detail panel shows task-related content such as Param, Output, or Meta sections
+      - javascript: |
+          (function () {
+            const selectedRow = document.querySelector('.task-row.selected');
+            if (!selectedRow) {
+              throw new Error('Expected a selected task row');
+            }
+            const detailSide = document.querySelector('.detail-side');
+            if (!detailSide) {
+              throw new Error('Expected detail side panel to be rendered');
+            }
+            const summaryTexts = Array.from(
+              detailSide.querySelectorAll('.summary-text'),
+            ).map((element) => element.textContent || '');
+            if (!summaryTexts.includes('Param') || !summaryTexts.includes('Meta')) {
+              throw new Error(
+                'Expected detail side panel to show Param and Meta sections',
+              );
+            }
+            return summaryTexts;
+          })()
+        name: assert-detail-side-sections
 
   - name: navigate between tasks
     flow:
-      - ai: Click on the second task row in the left sidebar
+      - javascript: |
+          (function () {
+            const rows = Array.from(document.querySelectorAll('.task-row'));
+            if (rows.length < 2 || !(rows[1] instanceof HTMLElement)) {
+              throw new Error('Expected at least two sidebar task rows');
+            }
+            rows[1].click();
+            return rows[1].getAttribute('data-task-id');
+          })()
+        name: click-second-task-row
       - sleep: 2000
-      - aiAssert: The right detail panel is visible and shows task-related content
+      - javascript: |
+          (function () {
+            const rows = Array.from(document.querySelectorAll('.task-row'));
+            const selectedIndex = rows.findIndex((row) =>
+              row.classList.contains('selected'),
+            );
+            if (selectedIndex !== 1) {
+              throw new Error('Expected second task row to be selected');
+            }
+            if (!document.querySelector('.detail-side .summary-text')) {
+              throw new Error('Expected detail side panel content');
+            }
+            return selectedIndex;
+          })()
+        name: assert-second-task-selected
 
   - name: toggle model call details
     flow:
