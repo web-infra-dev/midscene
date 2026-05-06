@@ -24,6 +24,14 @@ interface PlaywrightCaseSelectorProps {
   onSelect?: (dump: GroupedActionDump) => void;
 }
 
+const STATUS_DISPLAY_LABEL: Partial<
+  Record<PlaywrightTaskAttributes['playwright_test_status'], string>
+> = {
+  timedOut: 'timed out',
+  interrupted: 'interrupted',
+  skipped: 'skipped',
+};
+
 function PlaywrightCaseTitle(props: {
   attributes: Pick<
     PlaywrightTaskAttributes,
@@ -36,10 +44,13 @@ function PlaywrightCaseTitle(props: {
   const { attributes } = props;
   const status = iconForStatus(attributes.playwright_test_status);
   const costStr = attributes.playwright_test_duration;
+  const extraStatusLabel =
+    STATUS_DISPLAY_LABEL[attributes.playwright_test_status];
   const cost = costStr ? (
     <span className="cost-str">
       {' '}
-      ({timeCostStrElement(Number(costStr) || 0)})
+      ({timeCostStrElement(Number(costStr) || 0)}
+      {extraStatusLabel ? `, ${extraStatusLabel}` : ''})
     </span>
   ) : null;
 

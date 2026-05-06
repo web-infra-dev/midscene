@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [22.11.0]
+        node-version: [24.13.0]
     # Force rspack/miette onto the narratable diagnostic path. The graphical
     # handler in miette 7.6.0 panics on `terminal_size()` edge cases inside
     # GitHub Actions (no tty + stream multiplexing), which surfaces as a
@@ -54,7 +54,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '22.11.0'
+        node-version: '24.13.0'
         cache: 'pnpm'
 
     - name: Cache Puppeteer

@@ -1,14 +1,33 @@
+import type { Rect } from '@midscene/core';
 import { mouseLoading, mousePointer } from '../../../utils';
 import { getCenterHighlightBox } from '../../../utils/highlight-element';
-import { deriveFrameState } from './derive-frame-state';
+import { deriveFrameState, shouldRenderCursor } from './derive-frame-state';
 import type { InsightOverlay } from './derive-frame-state';
 import type { FrameMap } from './frame-calculator';
 import { getPlaybackViewport } from './playback-layout';
+import {
+  type PointerLayout,
+  resolveExportPointerLayout,
+  resolveSpinnerLayout,
+} from './pointer-layout';
 
 const W = 960;
 const H = 540;
 const POINTER_PHASE = 0.375;
 const CROSSFADE_FRAMES = 10;
+const EXPORT_STALL_GRACE_MS = 2000;
+const EXPORT_STALL_GRACE_FRAMES = 10;
+
+let activeExport = false;
+
+interface ExportOverlayViewport {
+  offsetX: number;
+  offsetY: number;
+  contentWidth: number;
+  contentHeight: number;
+  imageWidth: number;
+  imageHeight: number;
+}
 
 // ── helpers ──
 
@@ -18,6 +37,16 @@ function clamp(v: number, lo: number, hi: number): number {
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
+}
+
+export function isExportRenderStalled(
+  elapsedSinceLastFrameMs: number,
+  frameDurationMs: number,
+): boolean {
+  return (
+    elapsedSinceLastFrameMs >
+    Math.max(EXPORT_STALL_GRACE_MS, frameDurationMs * EXPORT_STALL_GRACE_FRAMES)
+  );
 }
 
 export function resolveExportCamera(
@@ -53,13 +82,42 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 // ── Insight overlay drawing ──
 
+export function projectNativeRectToExportViewport(
+  rect: Rect,
+  cameraTransform: { zoom: number; tx: number; ty: number },
+  viewport: ExportOverlayViewport,
+): Rect {
+  const scaleX = viewport.contentWidth / viewport.imageWidth;
+  const scaleY = viewport.contentHeight / viewport.imageHeight;
+
+  return {
+    left:
+      viewport.offsetX +
+      (rect.left * scaleX + cameraTransform.tx) * cameraTransform.zoom,
+    top:
+      viewport.offsetY +
+      (rect.top * scaleY + cameraTransform.ty) * cameraTransform.zoom,
+    width: rect.width * scaleX * cameraTransform.zoom,
+    height: rect.height * scaleY * cameraTransform.zoom,
+  };
+}
+
 function drawInsightOverlays(
   ctx: CanvasRenderingContext2D,
   insights: InsightOverlay[],
   cameraTransform: { zoom: number; tx: number; ty: number },
-  bx: number,
-  contentY: number,
+  viewport: ExportOverlayViewport,
 ) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(
+    viewport.offsetX,
+    viewport.offsetY,
+    viewport.contentWidth,
+    viewport.contentHeight,
+  );
+  ctx.clip();
+
   for (const insight of insights) {
     if (insight.alpha <= 0) continue;
     ctx.save();
@@ -67,54 +125,70 @@ function drawInsightOverlays(
 
     if (insight.highlightElement) {
       const highlightBox = getCenterHighlightBox(insight.highlightElement);
-      const rx =
-        bx +
-        (highlightBox.left * cameraTransform.zoom +
-          cameraTransform.tx * cameraTransform.zoom);
-      const ry =
-        contentY +
-        (highlightBox.top * cameraTransform.zoom +
-          cameraTransform.ty * cameraTransform.zoom);
-      const highlightWidth = highlightBox.width * cameraTransform.zoom;
-      const highlightHeight = highlightBox.height * cameraTransform.zoom;
+      const projected = projectNativeRectToExportViewport(
+        highlightBox,
+        cameraTransform,
+        viewport,
+      );
 
       ctx.fillStyle = 'rgba(253, 89, 7, 0.4)';
-      ctx.fillRect(rx, ry, highlightWidth, highlightHeight);
+      ctx.fillRect(
+        projected.left,
+        projected.top,
+        projected.width,
+        projected.height,
+      );
       ctx.strokeStyle = '#fd5907';
       ctx.lineWidth = 1;
-      ctx.strokeRect(rx, ry, highlightWidth, highlightHeight);
+      ctx.strokeRect(
+        projected.left,
+        projected.top,
+        projected.width,
+        projected.height,
+      );
       ctx.shadowColor = 'rgba(51, 51, 51, 0.4)';
       ctx.shadowBlur = 2;
       ctx.shadowOffsetX = 4;
       ctx.shadowOffsetY = 4;
-      ctx.strokeRect(rx, ry, highlightWidth, highlightHeight);
+      ctx.strokeRect(
+        projected.left,
+        projected.top,
+        projected.width,
+        projected.height,
+      );
       ctx.shadowBlur = 0;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
     }
 
     if (insight.searchArea) {
-      const r = insight.searchArea;
-      const rx =
-        bx +
-        (r.left * cameraTransform.zoom +
-          cameraTransform.tx * cameraTransform.zoom);
-      const ry =
-        contentY +
-        (r.top * cameraTransform.zoom +
-          cameraTransform.ty * cameraTransform.zoom);
-      const rw = r.width * cameraTransform.zoom;
-      const rh = r.height * cameraTransform.zoom;
+      const projected = projectNativeRectToExportViewport(
+        insight.searchArea,
+        cameraTransform,
+        viewport,
+      );
 
       ctx.fillStyle = 'rgba(2, 131, 145, 0.4)';
-      ctx.fillRect(rx, ry, rw, rh);
+      ctx.fillRect(
+        projected.left,
+        projected.top,
+        projected.width,
+        projected.height,
+      );
       ctx.strokeStyle = '#028391';
       ctx.lineWidth = 1;
-      ctx.strokeRect(rx, ry, rw, rh);
+      ctx.strokeRect(
+        projected.left,
+        projected.top,
+        projected.width,
+        projected.height,
+      );
     }
 
     ctx.restore();
   }
+
+  ctx.restore();
 }
 
 // ── Spinning pointer Canvas drawing ──
@@ -124,6 +198,7 @@ function drawSpinningPointer(
   img: HTMLImageElement,
   x: number,
   y: number,
+  layout: PointerLayout,
   elapsedMs: number,
 ) {
   const progress = (Math.sin(elapsedMs / 500 - Math.PI / 2) + 1) / 2;
@@ -131,7 +206,13 @@ function drawSpinningPointer(
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(rotation);
-  ctx.drawImage(img, -11, -14, 22, 28);
+  ctx.drawImage(
+    img,
+    -layout.centerOffsetX,
+    -layout.centerOffsetY,
+    layout.width,
+    layout.height,
+  );
   ctx.restore();
 }
 
@@ -142,7 +223,7 @@ function drawSteps(
   stepsFrame: number,
   frameMap: FrameMap,
   imgCache: Map<string, HTMLImageElement>,
-  cursorImg: HTMLImageElement | null,
+  pointerCache: Map<string, HTMLImageElement>,
   spinnerImg: HTMLImageElement | null,
   autoZoom: boolean,
 ) {
@@ -163,12 +244,20 @@ function drawSteps(
     frameInScript: fInScript,
     spinning,
     spinningElapsedMs,
+    currentPointerImg,
+    pointerVisible,
     insights,
   } = st;
 
-  const pT = pointerMoved
-    ? Math.min(rawProgress / POINTER_PHASE, 1)
-    : rawProgress;
+  // When focus on cursor is OFF, the camera does not zoom into the click point,
+  // so the cursor "slide-in" animation (interpolating from the previous default
+  // center to the new click target) is visually distracting and looks like the
+  // cursor is in the wrong place. Snap straight to the target instead.
+  const pT = !autoZoom
+    ? 1
+    : pointerMoved
+      ? Math.min(rawProgress / POINTER_PHASE, 1)
+      : rawProgress;
   const cT = pointerMoved
     ? rawProgress <= POINTER_PHASE
       ? 0
@@ -220,31 +309,85 @@ function drawSteps(
   drawImg(img, imageChanged ? crossAlpha : 1);
 
   if (insights.length > 0) {
-    drawInsightOverlays(ctx, insights, { zoom, tx, ty }, offsetX, offsetY);
+    drawInsightOverlays(
+      ctx,
+      insights,
+      { zoom, tx, ty },
+      {
+        offsetX,
+        offsetY,
+        contentWidth,
+        contentHeight,
+        imageWidth: imgW,
+        imageHeight: imgH,
+      },
+    );
   }
 
   const camH = camW * (imgH / imgW);
   const sX = offsetX + ((ptrX - camL) / camW) * contentWidth;
   const sY = offsetY + ((ptrY - camT2) / camH) * contentHeight;
-
-  const hasPtrData =
-    Math.abs(camera.pointerLeft - Math.round(imgW / 2)) > 1 ||
-    Math.abs(camera.pointerTop - Math.round(imgH / 2)) > 1 ||
-    Math.abs(prevCamera.pointerLeft - Math.round(imgW / 2)) > 1 ||
-    Math.abs(prevCamera.pointerTop - Math.round(imgH / 2)) > 1;
+  const pointerLayout = resolveExportPointerLayout(imgW, contentWidth);
+  const spinnerLayout = resolveSpinnerLayout(pointerLayout);
+  const cursorImg =
+    pointerCache.get(currentPointerImg) ?? pointerCache.get(mousePointer);
+  const showCursor = shouldRenderCursor(
+    pointerVisible,
+    camera,
+    prevCamera,
+    imgW,
+    imgH,
+  );
 
   if (spinning && spinnerImg) {
-    drawSpinningPointer(ctx, spinnerImg, sX, sY, spinningElapsedMs);
+    drawSpinningPointer(
+      ctx,
+      spinnerImg,
+      sX,
+      sY,
+      {
+        ...pointerLayout,
+        width: spinnerLayout.size,
+        height: spinnerLayout.size,
+        centerOffsetX: spinnerLayout.centerOffset,
+        centerOffsetY: spinnerLayout.centerOffset,
+      },
+      spinningElapsedMs,
+    );
   }
 
-  if (!spinning && hasPtrData && cursorImg) {
-    ctx.drawImage(cursorImg, sX - 3, sY - 2, 22, 28);
+  if (!spinning && showCursor && cursorImg) {
+    ctx.drawImage(
+      cursorImg,
+      sX - pointerLayout.hotspotX,
+      sY - pointerLayout.hotspotY,
+      pointerLayout.width,
+      pointerLayout.height,
+    );
   }
 }
 
 // ── main export function ──
 
 export async function exportBrandedVideo(
+  frameMap: FrameMap,
+  options?: {
+    autoZoom?: boolean;
+  },
+  onProgress?: (pct: number) => void,
+): Promise<void> {
+  if (activeExport) {
+    throw new Error('Video export is already in progress');
+  }
+  activeExport = true;
+  try {
+    await runExportBrandedVideo(frameMap, options, onProgress);
+  } finally {
+    activeExport = false;
+  }
+}
+
+async function runExportBrandedVideo(
   frameMap: FrameMap,
   options?: {
     autoZoom?: boolean;
@@ -270,13 +413,23 @@ export async function exportBrandedVideo(
     }),
   );
 
-  let cursorImg: HTMLImageElement | null = null;
-  let spinnerImg: HTMLImageElement | null = null;
-  try {
-    cursorImg = await loadImage(mousePointer);
-  } catch {
-    /* optional */
+  const pointerSrcs = new Set<string>([mousePointer]);
+  for (const sf of frameMap.scriptFrames) {
+    if (sf.pointerImg) pointerSrcs.add(sf.pointerImg);
   }
+
+  const pointerCache = new Map<string, HTMLImageElement>();
+  await Promise.all(
+    [...pointerSrcs].map(async (src) => {
+      try {
+        pointerCache.set(src, await loadImage(src));
+      } catch {
+        /* optional */
+      }
+    }),
+  );
+
+  let spinnerImg: HTMLImageElement | null = null;
   try {
     spinnerImg = await loadImage(mouseLoading);
   } catch {
@@ -298,8 +451,55 @@ export async function exportBrandedVideo(
 
   // 3. render loop
   return new Promise<void>((resolve, reject) => {
-    recorder.onerror = () => reject(new Error('MediaRecorder error'));
+    let stoppedByError: Error | null = null;
+    let settled = false;
+    let nextFrame = 0;
+    let nextFrameDueAt = performance.now();
+    let lastFrameAt = nextFrameDueAt;
+    let stopTimer: ReturnType<typeof setTimeout> | null = null;
+    let renderTimer: ReturnType<typeof setTimeout> | null = null;
+    const frameDuration = 1000 / fps;
+
+    const cleanup = () => {
+      if (stopTimer) clearTimeout(stopTimer);
+      if (renderTimer) clearTimeout(renderTimer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      stream.getTracks().forEach((track) => track.stop());
+    };
+
+    const finishWithError = (error: Error) => {
+      if (settled || stoppedByError) return;
+      stoppedByError = error;
+      if (recorder.state !== 'inactive') {
+        recorder.stop();
+      } else {
+        cleanup();
+        settled = true;
+        reject(error);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        finishWithError(
+          new Error(
+            'Video export was interrupted because the report tab was hidden',
+          ),
+        );
+      }
+    };
+
+    recorder.onerror = () => {
+      finishWithError(new Error('MediaRecorder error'));
+    };
     recorder.onstop = () => {
+      cleanup();
+      if (settled) return;
+      settled = true;
+      if (stoppedByError) {
+        reject(stoppedByError);
+        return;
+      }
       if (chunks.length === 0) {
         reject(new Error('No video data'));
         return;
@@ -310,45 +510,60 @@ export async function exportBrandedVideo(
       a.href = url;
       a.download = 'midscene_replay.webm';
       a.click();
-      stream.getTracks().forEach((track) => track.stop());
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       resolve();
     };
 
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     recorder.start();
-    const frameDuration = 1000 / fps;
-    const startTime = performance.now();
-    let lastFrame = -1;
 
-    const tick = () => {
-      const elapsed = performance.now() - startTime;
-      const targetFrame = Math.min(
-        Math.floor(elapsed / frameDuration),
-        total - 1,
-      );
+    const scheduleNextFrame = () => {
+      const delay = Math.max(0, nextFrameDueAt - performance.now());
+      renderTimer = setTimeout(() => {
+        requestAnimationFrame(renderFrame);
+      }, delay);
+    };
 
-      if (targetFrame > lastFrame) {
-        lastFrame = targetFrame;
-        ctx.clearRect(0, 0, W, H);
-        drawSteps(
-          ctx,
-          targetFrame,
-          frameMap,
-          imgCache,
-          cursorImg,
-          spinnerImg,
-          autoZoom,
+    const renderFrame = (timestamp: number) => {
+      if (settled || recorder.state === 'inactive') return;
+      if (
+        nextFrame > 0 &&
+        isExportRenderStalled(timestamp - lastFrameAt, frameDuration)
+      ) {
+        finishWithError(
+          new Error('Video export was interrupted because rendering stalled'),
         );
-        onProgress?.((targetFrame + 1) / total);
+        return;
       }
 
-      if (targetFrame < total - 1) {
-        requestAnimationFrame(tick);
+      lastFrameAt = timestamp;
+      ctx.clearRect(0, 0, W, H);
+      drawSteps(
+        ctx,
+        nextFrame,
+        frameMap,
+        imgCache,
+        pointerCache,
+        spinnerImg,
+        autoZoom,
+      );
+      onProgress?.((nextFrame + 1) / total);
+
+      nextFrame += 1;
+      if (nextFrame < total) {
+        nextFrameDueAt += frameDuration;
+        scheduleNextFrame();
       } else {
-        setTimeout(() => recorder.stop(), frameDuration * 2);
+        stopTimer = setTimeout(() => {
+          if (recorder.state !== 'inactive') recorder.stop();
+        }, frameDuration * 2);
       }
     };
 
-    requestAnimationFrame(tick);
+    requestAnimationFrame((timestamp) => {
+      lastFrameAt = timestamp;
+      nextFrameDueAt = timestamp;
+      renderFrame(timestamp);
+    });
   });
 }
