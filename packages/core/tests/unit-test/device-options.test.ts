@@ -53,7 +53,7 @@ describe('Device Options Type Definitions', () => {
     test('should include all required iOS device options', () => {
       const options: IOSDeviceOpt = {
         deviceId: '00008110-000123456789ABCD',
-        iosDeviceClassOverride: '@private-package/ios',
+        iOSDeviceClassOverride: '@private-package/ios',
         wdaPort: 8100,
         wdaHost: 'localhost',
         useWDA: true,
@@ -127,7 +127,7 @@ describe('Device Options Type Definitions', () => {
       const yamlConfig: MidsceneYamlScriptIOSEnv = {
         // From IOSDeviceOpt
         deviceId: '00008110-000123456789ABCD',
-        iosDeviceClassOverride: '@private-package/ios',
+        iOSDeviceClassOverride: '@private-package/ios',
         wdaPort: 8100,
         wdaHost: 'localhost',
         useWDA: true,

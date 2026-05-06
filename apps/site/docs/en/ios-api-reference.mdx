@@ -43,7 +43,7 @@ const device = new IOSDevice({
 
 - `wdaPort?: number` &mdash; WebDriverAgent port. Default `8100`.
 - `wdaHost?: string` &mdash; WebDriverAgent host. Default `'localhost'`.
-- `iOSDeviceClassOverride?: string` / `iosDeviceClassOverride?: string` &mdash; Optional npm module path that replaces the default `IOSDevice` when using `agentFromWebDriverAgent()` or iOS Playground. The module must export an `IOSDevice` class or a default class.
+- `iOSDeviceClassOverride?: string` &mdash; Optional npm module path that replaces the default `IOSDevice` when using `agentFromWebDriverAgent()` or iOS Playground. The module must export an `IOSDevice` class or a default class.
 - `autoDismissKeyboard?: boolean` &mdash; Hide the keyboard after text input. Default `true`.
 - `customActions?: DeviceAction<any>[]` &mdash; Additional device actions exposed to the agent.
 

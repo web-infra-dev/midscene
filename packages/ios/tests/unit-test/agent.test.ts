@@ -231,33 +231,6 @@ describe('IOSAgent', () => {
       vi.doUnmock(moduleName);
     });
 
-    it('should load override device class from lower-case option alias', async () => {
-      const connectSpy = vi.fn().mockResolvedValue(undefined);
-      const actionSpaceSpy = vi.fn().mockReturnValue([]);
-      const setAppNameMappingSpy = vi.fn();
-      const moduleName = 'test-ios-device-override-alias';
-
-      vi.doMock(
-        moduleName,
-        () => ({
-          IOSDevice: class {
-            connect = connectSpy;
-            actionSpace = actionSpaceSpy;
-            setAppNameMapping = setAppNameMappingSpy;
-          },
-        }),
-        { virtual: true },
-      );
-
-      await agentFromWebDriverAgent({
-        modelConfig: mockedModelConfig,
-        iosDeviceClassOverride: moduleName,
-      });
-
-      expect(connectSpy).toHaveBeenCalledTimes(1);
-      vi.doUnmock(moduleName);
-    });
-
     it('should load override device class from env', async () => {
       const connectSpy = vi.fn().mockResolvedValue(undefined);
       const actionSpaceSpy = vi.fn().mockReturnValue([]);
@@ -287,7 +260,7 @@ describe('IOSAgent', () => {
       await expect(
         agentFromWebDriverAgent({
           modelConfig: mockedModelConfig,
-          iosDeviceClassOverride: 'missing-ios-device-override-package',
+          iOSDeviceClassOverride: 'missing-ios-device-override-package',
         }),
       ).rejects.toThrow('Failed to load iOS device class override');
     });

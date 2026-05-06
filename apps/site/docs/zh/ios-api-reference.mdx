@@ -43,7 +43,7 @@ const device = new IOSDevice({
 
 - `wdaPort?: number` —— WebDriverAgent 端口，默认 `8100`。
 - `wdaHost?: string` —— WebDriverAgent host，默认 `'localhost'`。
-- `iOSDeviceClassOverride?: string` / `iosDeviceClassOverride?: string` —— 使用 `agentFromWebDriverAgent()` 或 iOS Playground 时替换默认 `IOSDevice` 的 npm module path。目标模块必须导出 `IOSDevice` class 或 default class。
+- `iOSDeviceClassOverride?: string` —— 使用 `agentFromWebDriverAgent()` 或 iOS Playground 时替换默认 `IOSDevice` 的 npm module path。目标模块必须导出 `IOSDevice` class 或 default class。
 - `autoDismissKeyboard?: boolean` —— 文本输入后自动隐藏键盘，默认 `true`。
 - `customActions?: DeviceAction<any>[]` —— 向 Agent 暴露的额外设备动作。
 
