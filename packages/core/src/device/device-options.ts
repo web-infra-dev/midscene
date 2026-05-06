@@ -120,8 +120,6 @@ export type IOSDeviceOpt = {
    * The target module must export an `IOSDevice` class (or default export) compatible with Midscene's iOS device interface.
    */
   iOSDeviceClassOverride?: string;
-  /** Alias of `iOSDeviceClassOverride` for lower-case acronym style. */
-  iosDeviceClassOverride?: string;
   /** Custom device actions to register */
   customActions?: DeviceAction<any>[];
   /** WebDriverAgent port (default: 8100) */

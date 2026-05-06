@@ -114,7 +114,6 @@ export async function agentFromWebDriverAgent(
 
   const overrideModule =
     opts?.iOSDeviceClassOverride?.trim() ||
-    opts?.iosDeviceClassOverride?.trim() ||
     process.env[MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE]?.trim();
 
   let DeviceClass: IOSDeviceClass = IOSDevice;
