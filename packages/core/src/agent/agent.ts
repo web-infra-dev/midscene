@@ -326,7 +326,7 @@ export class Agent<
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
       waitAfterAction: this.opts.waitAfterAction,
-      useDeviceTimestamp: this.opts.useDeviceTimestamp,
+      useDeviceTime: this.opts.useDeviceTime,
       actionSpace: this.fullActionSpace,
       hooks: {
         onTaskUpdate: async (runner) => {

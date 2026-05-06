@@ -614,29 +614,33 @@ describe('HarmonyDevice', () => {
     });
   });
 
-  describe('getTimestamp', () => {
+  describe('getDeviceLocalTimeString', () => {
     beforeEach(async () => {
       await device.connect();
     });
 
-    it('should parse timestamp from device', async () => {
-      mockHdc.shell.mockResolvedValueOnce('1709078400000\n');
-      const ts = await device.getTimestamp();
-      expect(ts).toBe(1709078400000);
-      expect(mockHdc.shell).toHaveBeenCalledWith('date +%s%3N');
+    it('should return device-local time with the default format', async () => {
+      mockHdc.shell.mockResolvedValueOnce('2023-10-15T15:37:02\n');
+
+      const result = await device.getDeviceLocalTimeString();
+
+      expect(mockHdc.shell).toHaveBeenCalledWith('date +%Y-%m-%dT%H:%M:%S');
+      expect(result).toBe('2023-10-15 15:37:02 (YYYY-MM-DD HH:mm:ss)');
     });
 
-    it('should throw on invalid timestamp', async () => {
-      mockHdc.shell.mockResolvedValueOnce('not-a-number\n');
-      await expect(device.getTimestamp()).rejects.toThrow(
-        'Failed to get device time',
-      );
+    it('should apply custom format tokens to device-local time', async () => {
+      mockHdc.shell.mockResolvedValueOnce('2023-10-15T15:37:02');
+
+      const result = await device.getDeviceLocalTimeString('HH:mm');
+
+      expect(result).toBe('15:37 (HH:mm)');
     });
 
-    it('should throw on shell error', async () => {
-      mockHdc.shell.mockRejectedValueOnce(new Error('device offline'));
-      await expect(device.getTimestamp()).rejects.toThrow(
-        'Failed to get device time',
+    it('should throw on invalid device-local time format', async () => {
+      mockHdc.shell.mockResolvedValueOnce('not-a-time\n');
+
+      await expect(device.getDeviceLocalTimeString()).rejects.toThrow(
+        'Failed to get device local time',
       );
     });
   });
