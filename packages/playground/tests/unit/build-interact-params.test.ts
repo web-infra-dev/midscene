@@ -127,4 +127,9 @@ describe('buildInteractParams', () => {
     expect(params).toEqual({ foo: 1, bar: 'baz' });
     expect(params).not.toHaveProperty('actionType');
   });
+
+  it('does not dispatch prototype property names as builders', () => {
+    expect(buildInteractParams('constructor', { foo: 1 })).toEqual({ foo: 1 });
+    expect(buildInteractParams('__proto__', { foo: 1 })).toEqual({ foo: 1 });
+  });
 });

@@ -175,60 +175,79 @@ const buildLocateActionParams: InteractParamBuilder = (body, actionType) => {
   return params;
 };
 
-const manualInteractParamBuilders: Record<string, InteractParamBuilder> = {
-  Tap: buildLocateActionParams,
-  DoubleClick: buildLocateActionParams,
-  RightClick: buildLocateActionParams,
-  Hover: buildLocateActionParams,
-  LongPress: buildLocateActionParams,
-  Swipe: (body) => {
-    const params: Record<string, unknown> = {
-      start: locateFromPoint(body.x, body.y, 'x', 'y', 'manual swipe start'),
-      end: locateFromPoint(
-        body.endX,
-        body.endY,
-        'endX',
-        'endY',
-        'manual swipe end',
-      ),
-    };
-    if (typeof body.duration === 'number') params.duration = body.duration;
-    if (typeof body.repeat === 'number') params.repeat = body.repeat;
-    return params;
-  },
-  DragAndDrop: (body) => ({
-    from: locateFromPoint(body.x, body.y, 'x', 'y', 'manual drag from'),
-    to: locateFromPoint(body.endX, body.endY, 'endX', 'endY', 'manual drag to'),
-  }),
-  KeyboardPress: (body) => {
-    if (typeof body.keyName !== 'string') {
-      throw new InteractParamsValidationError(
-        'keyName is required for KeyboardPress',
-      );
-    }
-    return { keyName: body.keyName };
-  },
-  Input: (body) => {
-    if (typeof body.value !== 'string') {
-      throw new InteractParamsValidationError('value is required for Input');
-    }
-    const params: Record<string, unknown> = { value: body.value };
-    if (typeof body.x === 'number' && typeof body.y === 'number') {
-      params.locate = locateFromPoint(body.x, body.y, 'x', 'y', 'manual input');
-    }
-    if (typeof body.mode === 'string') params.mode = body.mode;
-    if (typeof body.autoDismissKeyboard === 'boolean') {
-      params.autoDismissKeyboard = body.autoDismissKeyboard;
-    }
-    return params;
-  },
+const buildSwipeParams: InteractParamBuilder = (body) => {
+  const params: Record<string, unknown> = {
+    start: locateFromPoint(body.x, body.y, 'x', 'y', 'manual swipe start'),
+    end: locateFromPoint(
+      body.endX,
+      body.endY,
+      'endX',
+      'endY',
+      'manual swipe end',
+    ),
+  };
+  if (typeof body.duration === 'number') params.duration = body.duration;
+  if (typeof body.repeat === 'number') params.repeat = body.repeat;
+  return params;
 };
+
+const buildDragAndDropParams: InteractParamBuilder = (body) => ({
+  from: locateFromPoint(body.x, body.y, 'x', 'y', 'manual drag from'),
+  to: locateFromPoint(body.endX, body.endY, 'endX', 'endY', 'manual drag to'),
+});
+
+const buildKeyboardPressParams: InteractParamBuilder = (body) => {
+  if (typeof body.keyName !== 'string') {
+    throw new InteractParamsValidationError(
+      'keyName is required for KeyboardPress',
+    );
+  }
+  return { keyName: body.keyName };
+};
+
+const buildInputParams: InteractParamBuilder = (body) => {
+  if (typeof body.value !== 'string') {
+    throw new InteractParamsValidationError('value is required for Input');
+  }
+  const params: Record<string, unknown> = { value: body.value };
+  if (typeof body.x === 'number' && typeof body.y === 'number') {
+    params.locate = locateFromPoint(body.x, body.y, 'x', 'y', 'manual input');
+  }
+  if (typeof body.mode === 'string') params.mode = body.mode;
+  if (typeof body.autoDismissKeyboard === 'boolean') {
+    params.autoDismissKeyboard = body.autoDismissKeyboard;
+  }
+  return params;
+};
+
+function getManualInteractParamBuilder(
+  actionType: string,
+): InteractParamBuilder | undefined {
+  switch (actionType) {
+    case 'Tap':
+    case 'DoubleClick':
+    case 'RightClick':
+    case 'Hover':
+    case 'LongPress':
+      return buildLocateActionParams;
+    case 'Swipe':
+      return buildSwipeParams;
+    case 'DragAndDrop':
+      return buildDragAndDropParams;
+    case 'KeyboardPress':
+      return buildKeyboardPressParams;
+    case 'Input':
+      return buildInputParams;
+    default:
+      return undefined;
+  }
+}
 
 export function buildInteractParams(
   actionType: string,
   body: Record<string, unknown>,
 ): Record<string, unknown> {
-  const builder = manualInteractParamBuilders[actionType];
+  const builder = getManualInteractParamBuilder(actionType);
   if (builder) {
     return builder(body, actionType);
   }
@@ -251,7 +270,6 @@ export function createManualExecutorContext(
   };
   return { task };
 }
-
 const errorHandler = (
   err: unknown,
   req: Request,
