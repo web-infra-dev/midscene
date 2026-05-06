@@ -402,7 +402,10 @@ export function resolveDiscoveredDeviceSelectionFormValues({
     );
   }
 
-  if (shouldClearMissingDiscoveredDevice(selectedPlatform)) {
+  if (
+    selectedDeviceId &&
+    shouldClearMissingDiscoveredDevice(selectedPlatform)
+  ) {
     return buildDeviceDeselectionFormValues(selectedPlatform);
   }
 

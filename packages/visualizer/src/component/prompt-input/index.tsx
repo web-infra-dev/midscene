@@ -344,8 +344,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   }, [apiGroupDefinitions, hiddenDropdownAPIs, buildApiMenuItem]);
 
   const actionDropdownMenu = useMemo<MenuProps>(() => {
-    const primaryActions = defaultMainButtons.filter(
-      (api) => api === 'aiAct' || availableDropdownMethods.includes(api),
+    const primaryActions = defaultMainButtons.filter((api) =>
+      availableDropdownMethods.includes(api),
     );
     const items: NonNullable<MenuProps['items']> = [];
     if (primaryActions.length > 0) {

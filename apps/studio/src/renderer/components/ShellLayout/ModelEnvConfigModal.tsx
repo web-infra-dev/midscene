@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ModelEnvConfigFormFields } from './ModelEnvConfigFormFields';
 import { ModelEnvConfigStatus } from './ModelEnvConfigStatus';
 import {
@@ -183,6 +183,17 @@ export function ModelEnvConfigModal({
   const [testStatus, setTestStatus] = useState<TestStatus>({ kind: 'idle' });
   const testRunIdRef = useRef(0);
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    testRunIdRef.current += 1;
+    setTab(initialTab);
+    setText(initialTextValue ?? '');
+    setTestStatus({ kind: 'idle' });
+  }, [initialTab, initialTextValue, open]);
+
   const formEntries = useMemo<EnvEntry[]>(() => parseEnvEntries(text), [text]);
   const resolvedConnection = useMemo(
     () => resolveModelConnection(parseEnvText(text)),
@@ -249,12 +260,19 @@ export function ModelEnvConfigModal({
     const testRunId = testRunIdRef.current + 1;
     testRunIdRef.current = testRunId;
     setTestStatus({ kind: 'running' });
-    const result =
-      await window.studioRuntime.runConnectivityTest(resolvedConnection);
-    if (testRunIdRef.current !== testRunId) {
-      return;
+    try {
+      const result =
+        await window.studioRuntime.runConnectivityTest(resolvedConnection);
+      if (testRunIdRef.current !== testRunId) {
+        return;
+      }
+      setTestStatus({ kind: result.ok ? 'success' : 'error' });
+    } catch {
+      if (testRunIdRef.current !== testRunId) {
+        return;
+      }
+      setTestStatus({ kind: 'error' });
     }
-    setTestStatus({ kind: result.ok ? 'success' : 'error' });
   };
 
   return (

@@ -649,6 +649,23 @@ describe('resolveDiscoveredDeviceSelectionFormValues', () => {
     });
   });
 
+  it('does not rewrite the form when no discovered device and no selected device exist', () => {
+    expect(
+      resolveDiscoveredDeviceSelectionFormValues({
+        formValues: {
+          platformId: 'android',
+        },
+        discoveredDevices: {
+          android: [],
+          ios: [],
+          computer: [],
+          harmony: [],
+          web: [],
+        },
+      }),
+    ).toBeNull();
+  });
+
   it('uses Android as the default platform when clearing a stale selected device', () => {
     expect(
       resolveDiscoveredDeviceSelectionFormValues({

@@ -214,6 +214,69 @@ describe('ModelEnvConfigModal', () => {
     await unmountModal(root);
   });
 
+  it('shows failure status when connectivity test rejects', async () => {
+    const { container, root } = await renderModal(VALID_ENV_TEXT);
+    vi.stubGlobal('studioRuntime', {
+      runConnectivityTest: vi.fn().mockRejectedValue(new Error('Network down')),
+    });
+
+    await act(async () => {
+      getConnectivityButton(container).click();
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain('Test failed. Please try again.');
+    expect(getConnectivityButton(container).disabled).toBe(false);
+
+    await unmountModal(root);
+  });
+
+  it('discards unsaved edits when the modal is reopened', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(
+        createElement(ModelEnvConfigModal, {
+          onClose: () => undefined,
+          open: true,
+          textValue: VALID_ENV_TEXT,
+        }),
+      );
+    });
+
+    await act(async () => {
+      setTextareaValue(container, `${VALID_ENV_TEXT}\nMIDSCENE_DEBUG=true`);
+      await Promise.resolve();
+    });
+    expect(container.querySelector('textarea')?.value).toContain(
+      'MIDSCENE_DEBUG=true',
+    );
+
+    await act(async () => {
+      root.render(
+        createElement(ModelEnvConfigModal, {
+          onClose: () => undefined,
+          open: false,
+          textValue: VALID_ENV_TEXT,
+        }),
+      );
+    });
+    await act(async () => {
+      root.render(
+        createElement(ModelEnvConfigModal, {
+          onClose: () => undefined,
+          open: true,
+          textValue: VALID_ENV_TEXT,
+        }),
+      );
+    });
+
+    expect(container.querySelector('textarea')?.value).toBe(VALID_ENV_TEXT);
+
+    await unmountModal(root);
+  });
+
   it('restores default connectivity button style after a successful test', async () => {
     const { container, root } = await renderModal(VALID_ENV_TEXT);
     vi.stubGlobal('studioRuntime', {

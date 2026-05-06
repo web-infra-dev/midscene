@@ -15,6 +15,19 @@ describe('calculateEmptyStatePromptScrollTop', () => {
     ).toBe(85);
   });
 
+  test('keeps the same target when adjustment runs again after scrolling', () => {
+    expect(
+      calculateEmptyStatePromptScrollTop({
+        currentScrollTop: 85,
+        maxScrollTop: 245,
+        containerTop: 60,
+        containerBottom: 479,
+        contentStartTop: 159,
+        contentEndBottom: 455,
+      }),
+    ).toBe(85);
+  });
+
   test('does not scroll past the empty-state start anchor', () => {
     expect(
       calculateEmptyStatePromptScrollTop({
