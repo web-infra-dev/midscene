@@ -2,7 +2,7 @@ import { ScreenshotItem, z } from '@midscene/core';
 import { BaseMidsceneTools } from '@midscene/shared/mcp/base-tools';
 import type { ToolDefinition } from '@midscene/shared/mcp/types';
 import { AgentOverChromeBridge } from './bridge-mode';
-import { defaultViewportSize } from './common/viewport';
+import { defaultStaticPageViewportSize } from './common/viewport';
 import { StaticPage } from './static';
 
 /**
@@ -19,7 +19,7 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
     // Use screenshotBase64 field to avoid async ScreenshotItem.create()
     return new StaticPage({
       screenshot: ScreenshotItem.create('', Date.now()),
-      shotSize: defaultViewportSize,
+      shotSize: defaultStaticPageViewportSize,
       shrunkShotToLogicalRatio: 1,
     });
   }

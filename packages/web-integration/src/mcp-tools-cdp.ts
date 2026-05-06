@@ -11,7 +11,7 @@ import {
   readSavedTargetId,
   saveTargetId,
 } from './cdp-target-store';
-import { defaultViewportSize } from './common/viewport';
+import { defaultStaticPageViewportSize } from './common/viewport';
 import { PuppeteerAgent } from './puppeteer';
 import { StaticPage } from './static';
 
@@ -54,7 +54,7 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
   protected createTemporaryDevice() {
     return new StaticPage({
       screenshot: ScreenshotItem.create('', Date.now()),
-      shotSize: defaultViewportSize,
+      shotSize: defaultStaticPageViewportSize,
       shrunkShotToLogicalRatio: 1,
     });
   }

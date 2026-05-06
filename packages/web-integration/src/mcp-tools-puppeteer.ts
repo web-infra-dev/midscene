@@ -10,7 +10,11 @@ import type { ToolDefinition } from '@midscene/shared/mcp/types';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import puppeteer from 'puppeteer-core';
 import type { Browser, Page } from 'puppeteer-core';
-import { type ViewportSize, defaultViewportSize } from './common/viewport';
+import {
+  type ViewportSize,
+  defaultPuppeteerWindowViewportSize,
+  defaultStaticPageViewportSize,
+} from './common/viewport';
 import { PuppeteerAgent } from './puppeteer';
 import { StaticPage } from './static';
 
@@ -21,8 +25,10 @@ export const PUPPETEER_ENDPOINT_FILE = ENDPOINT_FILE;
 
 export function buildDetachedChromeArgs(options: {
   userDataDir: string;
-  viewport: ViewportSize;
+  viewport?: ViewportSize;
 }): string[] {
+  const viewport = options.viewport ?? defaultPuppeteerWindowViewportSize;
+
   return [
     '--headless=new',
     `--user-data-dir=${options.userDataDir}`,
@@ -35,7 +41,7 @@ export function buildDetachedChromeArgs(options: {
     '--disable-background-networking',
     '--password-store=basic',
     '--use-mock-keychain',
-    `--window-size=${options.viewport.width},${options.viewport.height}`,
+    `--window-size=${viewport.width},${viewport.height}`,
     '--force-color-profile=srgb',
   ];
 }
@@ -48,7 +54,7 @@ const browserManager = {
   activeBrowser: null as Browser | null,
 
   async getOrLaunch(
-    viewport: ViewportSize,
+    viewport?: ViewportSize,
   ): Promise<{ browser: Browser; reused: boolean }> {
     if (existsSync(ENDPOINT_FILE)) {
       try {
@@ -96,7 +102,7 @@ const browserManager = {
     }
   },
 
-  async launchDetachedChrome(viewport: ViewportSize): Promise<string> {
+  async launchDetachedChrome(viewport?: ViewportSize): Promise<string> {
     const chromePath = resolveChromePath();
 
     await mkdir(USER_DATA_DIR, { recursive: true });
@@ -151,11 +157,11 @@ const browserManager = {
  * Uses a persistent headless Chrome browser that survives across CLI calls.
  */
 export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
-  private readonly viewport: ViewportSize;
+  private readonly viewport?: ViewportSize;
 
-  constructor(viewport: ViewportSize = defaultViewportSize) {
+  constructor(viewport?: ViewportSize) {
     super();
-    this.viewport = { ...viewport };
+    this.viewport = viewport ? { ...viewport } : undefined;
   }
 
   protected getCliReportSessionName() {
@@ -165,7 +171,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
   protected createTemporaryDevice() {
     return new StaticPage({
       screenshot: ScreenshotItem.create('', Date.now()),
-      shotSize: this.viewport,
+      shotSize: this.viewport ?? defaultStaticPageViewportSize,
       shrunkShotToLogicalRatio: 1,
     });
   }
@@ -189,7 +195,9 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
 
     if (navigateToUrl) {
       page = await browser.newPage();
-      await page.setViewport(this.viewport);
+      if (this.viewport) {
+        await page.setViewport(this.viewport);
+      }
       await page.goto(navigateToUrl, {
         timeout: 30000,
         waitUntil: 'domcontentloaded',
@@ -205,7 +213,9 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
       if (reused) {
         await page.bringToFront();
       }
-      await page.setViewport(this.viewport);
+      if (this.viewport) {
+        await page.setViewport(this.viewport);
+      }
     }
 
     const reportOptions = this.readCliReportAgentOptions();

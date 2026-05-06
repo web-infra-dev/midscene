@@ -1,4 +1,7 @@
-import { defaultViewportHeight, defaultViewportWidth } from '@/common/viewport';
+import {
+  defaultPuppeteerWindowViewportSize,
+  defaultStaticPageViewportSize,
+} from '@/common/viewport';
 import {
   WebPuppeteerMidsceneTools,
   buildDetachedChromeArgs,
@@ -16,6 +19,16 @@ describe('WebPuppeteerMidsceneTools', () => {
     expect(args).toContain('--headless=new');
   });
 
+  it('keeps the main branch detached Chrome window default', () => {
+    const args = buildDetachedChromeArgs({
+      userDataDir: '/tmp/midscene-profile',
+    });
+
+    expect(args).toContain(
+      `--window-size=${defaultPuppeteerWindowViewportSize.width},${defaultPuppeteerWindowViewportSize.height}`,
+    );
+  });
+
   it('uses the configured viewport for the temporary device placeholder', async () => {
     const tools = new WebPuppeteerMidsceneTools({ width: 1680, height: 1050 });
 
@@ -26,13 +39,10 @@ describe('WebPuppeteerMidsceneTools', () => {
     });
   });
 
-  it('keeps the shared default viewport for the default constructor', async () => {
+  it('keeps the main branch static device default for the default constructor', async () => {
     const tools = new WebPuppeteerMidsceneTools();
 
     const device = (tools as any).createTemporaryDevice();
-    await expect(device.size()).resolves.toEqual({
-      width: defaultViewportWidth,
-      height: defaultViewportHeight,
-    });
+    await expect(device.size()).resolves.toEqual(defaultStaticPageViewportSize);
   });
 });

@@ -1,10 +1,10 @@
 import { parseWebCliOptions } from '@/cli-options';
-import { defaultViewportHeight, defaultViewportWidth } from '@/common/viewport';
+import { defaultPuppeteerWindowViewportSize } from '@/common/viewport';
 import { CLIError } from '@midscene/shared/cli';
 import { describe, expect, it } from 'vitest';
 
 describe('parseWebCliOptions', () => {
-  it('uses Puppeteer mode and default viewport when no global flags are provided', () => {
+  it('uses Puppeteer mode without forcing viewport when no global flags are provided', () => {
     const parsed = parseWebCliOptions([
       'connect',
       '--url',
@@ -13,10 +13,7 @@ describe('parseWebCliOptions', () => {
 
     expect(parsed.mode).toBe('puppeteer');
     expect(parsed.argv).toEqual(['connect', '--url', 'https://example.com']);
-    expect(parsed.viewport).toEqual({
-      width: defaultViewportWidth,
-      height: defaultViewportHeight,
-    });
+    expect(parsed.viewport).toBeUndefined();
   });
 
   it('parses viewport overrides anywhere in argv for Puppeteer mode', () => {
@@ -34,6 +31,15 @@ describe('parseWebCliOptions', () => {
     expect(parsed.viewport).toEqual({ width: 1600, height: 900 });
   });
 
+  it('uses the main branch Puppeteer window default for missing viewport dimensions', () => {
+    const parsed = parseWebCliOptions(['connect', '--viewport-width', '1600']);
+
+    expect(parsed.viewport).toEqual({
+      width: 1600,
+      height: defaultPuppeteerWindowViewportSize.height,
+    });
+  });
+
   it('does not treat camelCase viewport flags as global CLI options', () => {
     const parsed = parseWebCliOptions([
       'connect',
@@ -48,10 +54,7 @@ describe('parseWebCliOptions', () => {
       '1600',
       '--viewportHeight=900',
     ]);
-    expect(parsed.viewport).toEqual({
-      width: defaultViewportWidth,
-      height: defaultViewportHeight,
-    });
+    expect(parsed.viewport).toBeUndefined();
   });
 
   it('uses env fallback for CDP without consuming the command name', () => {

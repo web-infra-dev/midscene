@@ -6,8 +6,16 @@ export interface ViewportSize {
 }
 
 export const defaultViewportWidth = 1440;
-export const defaultViewportHeight = 768;
+export const defaultViewportHeight = 800;
 export const defaultViewportSize: ViewportSize = {
+  width: defaultViewportWidth,
+  height: defaultViewportHeight,
+};
+export const defaultPuppeteerWindowViewportSize: ViewportSize = {
+  width: defaultViewportWidth,
+  height: defaultViewportHeight,
+};
+export const defaultStaticPageViewportSize: ViewportSize = {
   width: defaultViewportWidth,
   height: defaultViewportHeight,
 };

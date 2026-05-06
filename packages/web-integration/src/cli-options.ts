@@ -1,7 +1,7 @@
 import { CLIError } from '@midscene/shared/cli';
 import {
   type ViewportSize,
-  defaultViewportSize,
+  defaultPuppeteerWindowViewportSize,
   resolveViewportSize,
 } from './common/viewport';
 
@@ -12,7 +12,7 @@ export interface ParsedWebCliOptions {
   argv: string[];
   mode: 'bridge' | 'cdp' | 'puppeteer';
   cdpEndpoint?: string;
-  viewport: ViewportSize;
+  viewport?: ViewportSize;
 }
 
 function isLikelyCdpEndpoint(value: string | undefined): boolean {
@@ -161,16 +161,21 @@ export function parseWebCliOptions(
     }
   }
 
+  const hasViewportOverride =
+    viewportWidth !== undefined || viewportHeight !== undefined;
+
   return {
     argv,
     mode,
     cdpEndpoint,
-    viewport: resolveViewportSize(
-      {
-        width: viewportWidth,
-        height: viewportHeight,
-      },
-      defaultViewportSize,
-    ),
+    viewport: hasViewportOverride
+      ? resolveViewportSize(
+          {
+            width: viewportWidth,
+            height: viewportHeight,
+          },
+          defaultPuppeteerWindowViewportSize,
+        )
+      : undefined,
   };
 }

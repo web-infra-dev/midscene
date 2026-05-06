@@ -1,4 +1,6 @@
 import {
+  defaultPuppeteerWindowViewportSize,
+  defaultStaticPageViewportSize,
   defaultViewportSize,
   resolveViewportSize,
   resolveWebViewportSize,
@@ -9,7 +11,15 @@ describe('viewport helpers', () => {
   it('uses the shared default viewport size', () => {
     expect(defaultViewportSize).toEqual({
       width: 1440,
-      height: 768,
+      height: 800,
+    });
+    expect(defaultPuppeteerWindowViewportSize).toEqual({
+      width: 1440,
+      height: 800,
+    });
+    expect(defaultStaticPageViewportSize).toEqual({
+      width: 1440,
+      height: 800,
     });
   });
 
