@@ -13,6 +13,7 @@ interface ScreenshotViewerProps {
   getInterfaceInfo?: () => Promise<{
     type: string;
     description?: string;
+    size?: { width: number; height: number };
   } | null>;
   serverOnline: boolean;
   isUserOperating?: boolean; // Whether user is currently operating
@@ -35,11 +36,12 @@ export default function ScreenshotViewer({
   const [interfaceInfo, setInterfaceInfo] = useState<{
     type: string;
     description?: string;
+    size?: { width: number; height: number };
   } | null>(null);
-  // Bumping mjpegEpoch forces the <img> to remount so the multipart connection
+  // Changing mjpegRetryToken forces the <img> to remount so the multipart connection
   // is reopened. Used both for natural retries on stream errors and for the
   // server-driven upgrade from polling fallback to native MJPEG.
-  const [mjpegEpoch, setMjpegEpoch] = useState(0);
+  const [mjpegRetryToken, setMjpegRetryToken] = useState('');
   const isMjpeg = Boolean(mjpegUrl && serverOnline);
   const showChrome = mode !== 'screen-only';
   const rootClassName = [
@@ -251,11 +253,11 @@ export default function ScreenshotViewer({
     <div className="screenshot-content">
       {isMjpeg ? (
         <img
-          key={mjpegEpoch}
+          key={mjpegRetryToken || 'initial'}
           src={
-            mjpegEpoch === 0
+            !mjpegRetryToken
               ? mjpegUrl
-              : `${mjpegUrl}${mjpegUrl?.includes('?') ? '&' : '?'}t=${mjpegEpoch}`
+              : `${mjpegUrl}${mjpegUrl?.includes('?') ? '&' : '?'}_mjpegRetry=${encodeURIComponent(mjpegRetryToken)}`
           }
           alt="Device Live Stream"
           className="screenshot-image"
@@ -264,7 +266,10 @@ export default function ScreenshotViewer({
             // MJPEG stream just came online; reconnect so the next /mjpeg
             // request lands on the native (faster) path. Also covers
             // transient network blips.
-            window.setTimeout(() => setMjpegEpoch((epoch) => epoch + 1), 500);
+            window.setTimeout(
+              () => setMjpegRetryToken(String(Date.now())),
+              500,
+            );
           }}
         />
       ) : screenshot ? (

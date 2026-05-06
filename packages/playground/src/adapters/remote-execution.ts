@@ -437,7 +437,6 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
   async getScreenshot(): Promise<{
     screenshot: string;
     timestamp: number;
-    size?: { width: number; height: number };
   } | null> {
     if (!this.serverUrl) {
       return null;
@@ -477,11 +476,10 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       });
 
       const data = (await response.json().catch(() => null)) as {
-        ok?: boolean;
         error?: string;
       } | null;
 
-      if (!response.ok || !data?.ok) {
+      if (!response.ok) {
         return {
           ok: false,
           error: data?.error || `Interact request failed (${response.status})`,
@@ -501,6 +499,7 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
   async getInterfaceInfo(): Promise<{
     type: string;
     description?: string;
+    size?: { width: number; height: number };
   } | null> {
     if (!this.serverUrl) {
       return null;

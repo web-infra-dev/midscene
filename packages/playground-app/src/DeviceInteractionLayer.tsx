@@ -28,8 +28,6 @@ interface ActivePointer {
   startX: number;
   startY: number;
   startTime: number;
-  lastX: number;
-  lastY: number;
   contentRect: { left: number; top: number; width: number; height: number };
 }
 
@@ -110,23 +108,11 @@ export function DeviceInteractionLayer({
         startX: event.clientX,
         startY: event.clientY,
         startTime: performance.now(),
-        lastX: event.clientX,
-        lastY: event.clientY,
         contentRect,
       };
       event.preventDefault();
     },
     [enabled, deviceSize],
-  );
-
-  const handlePointerMove = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      const active = activePointer.current;
-      if (!active) return;
-      active.lastX = event.clientX;
-      active.lastY = event.clientY;
-    },
-    [],
   );
 
   const finishPointer = useCallback(
@@ -190,7 +176,6 @@ export function DeviceInteractionLayer({
     <div
       ref={overlayRef}
       onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
       onContextMenu={(e) => e.preventDefault()}

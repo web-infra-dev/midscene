@@ -39,8 +39,7 @@ interface PreviewRendererProps {
   isUserOperating: boolean;
   /**
    * When true, the preview accepts mouse/touch input and forwards it to the
-   * connected device (Android tap/swipe via ADB, iOS via WDA). Currently
-   * supported for Android and iOS only.
+   * connected device (Android via ADB, iOS via WDA, Harmony via HDC).
    */
   manualControlEnabled?: boolean;
 }
@@ -77,9 +76,9 @@ export function PreviewRenderer({
 
   const [deviceSize, setDeviceSize] = useState<DeviceSize | null>(null);
 
-  // Pull device size from /screenshot once a session is online so the
-  // interaction layer can map display coords to device pixels. Refresh
-  // periodically (orientation changes, hot-swapped devices).
+  // Pull device size from lightweight interface metadata so the interaction
+  // layer can map display coords to device pixels. Refresh periodically
+  // (orientation changes, hot-swapped devices).
   useEffect(() => {
     if (!manualControlEnabled || !serverOnline) {
       setDeviceSize(null);
@@ -87,18 +86,19 @@ export function PreviewRenderer({
     }
     let cancelled = false;
     const fetchSize = async () => {
-      const result = await playgroundSDK.getScreenshot();
+      const result = await playgroundSDK.getInterfaceInfo();
       if (cancelled) return;
       if (result?.size?.width && result.size.height) {
+        const { size } = result;
         setDeviceSize((current) => {
           if (
             current &&
-            current.width === result.size!.width &&
-            current.height === result.size!.height
+            current.width === size.width &&
+            current.height === size.height
           ) {
             return current;
           }
-          return { width: result.size!.width, height: result.size!.height };
+          return { width: size.width, height: size.height };
         });
       }
     };
@@ -110,6 +110,17 @@ export function PreviewRenderer({
     };
   }, [manualControlEnabled, playgroundSDK, serverOnline]);
 
+  const showManualControlError = useCallback(
+    (fallback: string, error?: string) => {
+      message.open({
+        type: 'error',
+        content: error || fallback,
+        key: 'manual-control-error',
+      });
+    },
+    [],
+  );
+
   const handleTap = useCallback(
     async (point: { x: number; y: number }) => {
       const res = await playgroundSDK.interact({
@@ -118,10 +129,10 @@ export function PreviewRenderer({
         y: point.y,
       });
       if (!res.ok) {
-        message.error(res.error || 'Tap failed');
+        showManualControlError('Tap failed', res.error);
       }
     },
-    [playgroundSDK],
+    [playgroundSDK, showManualControlError],
   );
 
   const handleSwipe = useCallback(
@@ -139,10 +150,10 @@ export function PreviewRenderer({
         duration,
       });
       if (!res.ok) {
-        message.error(res.error || 'Swipe failed');
+        showManualControlError('Swipe failed', res.error);
       }
     },
-    [playgroundSDK],
+    [playgroundSDK, showManualControlError],
   );
 
   // Fall back to screenshot polling when WebCodecs is unavailable

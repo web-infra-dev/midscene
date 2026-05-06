@@ -226,7 +226,6 @@ export class PlaygroundSDK {
   async getScreenshot(): Promise<{
     screenshot: string;
     timestamp: number;
-    size?: { width: number; height: number };
   } | null> {
     if (this.adapter instanceof RemoteExecutionAdapter) {
       return this.adapter.getScreenshot();
@@ -248,6 +247,7 @@ export class PlaygroundSDK {
   async getInterfaceInfo(): Promise<{
     type: string;
     description?: string;
+    size?: { width: number; height: number };
   } | null> {
     const adapter = this.runtimeMetadataAdapter();
     if (!adapter) {

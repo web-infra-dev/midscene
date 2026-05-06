@@ -648,7 +648,7 @@ describe('RemoteExecutionAdapter', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: async () => ({ ok: true }),
+        json: async () => ({}),
       });
 
       const result = await adapter.interact({
@@ -670,7 +670,6 @@ describe('RemoteExecutionAdapter', () => {
         ok: false,
         status: 404,
         json: async () => ({
-          ok: false,
           error: 'Action "Foo" is not available',
         }),
       });
@@ -688,9 +687,7 @@ describe('RemoteExecutionAdapter', () => {
     });
 
     it('refuses without serverUrl', async () => {
-      const noUrlAdapter = new RemoteExecutionAdapter();
-      // @ts-expect-error – simulate the fallback resolution returning empty
-      noUrlAdapter.serverUrl = undefined;
+      const noUrlAdapter = new RemoteExecutionAdapter('');
       const result = await noUrlAdapter.interact({ actionType: 'Tap' });
       expect(result.ok).toBe(false);
       expect(mockFetch).not.toHaveBeenCalled();

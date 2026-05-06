@@ -1,11 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { buildInteractParams, pointToLocateResult } from '../../src/server';
+import {
+  InteractParamsValidationError,
+  buildInteractParams,
+} from '../../src/server';
 
-describe('pointToLocateResult', () => {
+describe('manual interaction locate params', () => {
   it('rounds and clamps coordinates and produces a small rect', () => {
-    const result = pointToLocateResult(123.4, 456.6, 'manual');
+    const params = buildInteractParams('Tap', { x: 123.4, y: 456.6 });
+    const result = params.locate as {
+      center: [number, number];
+      description: string;
+      rect: { left: number; top: number; width: number; height: number };
+    };
     expect(result.center).toEqual([123, 457]);
-    expect(result.description).toBe('manual');
+    expect(result.description).toBe('manual Tap');
     expect(result.rect.width).toBe(8);
     expect(result.rect.height).toBe(8);
     expect(result.rect.left).toBeGreaterThanOrEqual(0);
@@ -13,15 +21,27 @@ describe('pointToLocateResult', () => {
   });
 
   it('clamps a near-zero point to a non-negative rect origin', () => {
-    const result = pointToLocateResult(2, 1, 'edge');
+    const params = buildInteractParams('Tap', { x: 2, y: 1 });
+    const result = params.locate as {
+      rect: { left: number; top: number };
+    };
     expect(result.rect.left).toBe(0);
     expect(result.rect.top).toBe(0);
   });
 
   it('throws when x or y is missing or non-numeric', () => {
-    expect(() => pointToLocateResult(undefined, 5, 'x')).toThrow();
-    expect(() => pointToLocateResult(5, undefined, 'x')).toThrow();
-    expect(() => pointToLocateResult('5', 5, 'x' as string)).toThrow();
+    expect(() => buildInteractParams('Tap', { y: 5 })).toThrow(
+      InteractParamsValidationError,
+    );
+    expect(() => buildInteractParams('Tap', { x: 5 })).toThrow(
+      InteractParamsValidationError,
+    );
+    expect(() => buildInteractParams('Tap', { x: '5', y: 5 })).toThrow(
+      InteractParamsValidationError,
+    );
+    expect(() => buildInteractParams('Tap', { x: Number.NaN, y: 5 })).toThrow(
+      InteractParamsValidationError,
+    );
   });
 });
 

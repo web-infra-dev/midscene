@@ -3,7 +3,12 @@ import http from 'node:http';
 import type { Server } from 'node:http';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { ExecutionDump } from '@midscene/core';
+import type {
+  DeviceAction,
+  ExecutionDump,
+  ExecutionTask,
+  ExecutorContext,
+} from '@midscene/core';
 import { ReportActionDump, runConnectivityTest } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
 import { getTmpDir } from '@midscene/core/utils';
@@ -12,7 +17,8 @@ import {
   globalModelConfigManager,
   overrideAIConfig,
 } from '@midscene/shared/env';
-import type { LocateResultElement } from '@midscene/shared/types';
+import { generateElementByPoint } from '@midscene/shared/extractor';
+import { getDebug } from '@midscene/shared/logger';
 import { uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
@@ -114,89 +120,136 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const STATIC_PATH = join(__dirname, '..', '..', 'static');
 
-export function pointToLocateResult(
+const debugScreenshot = getDebug('playground:screenshot', { console: true });
+const debugMjpeg = getDebug('playground:mjpeg', { console: true });
+
+/**
+ * Thrown when a caller supplies an /interact body that fails validation
+ * (missing x/y, missing keyName for KeyboardPress, etc.). Distinct from a
+ * downstream device failure so the route handler can map this to HTTP 400.
+ */
+export class InteractParamsValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InteractParamsValidationError';
+  }
+}
+
+function requireNumber(value: unknown, field: string): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    throw new InteractParamsValidationError(
+      `${field} must be a number for this action`,
+    );
+  }
+  return value;
+}
+
+function locateFromPoint(
   x: unknown,
   y: unknown,
+  fieldX: string,
+  fieldY: string,
   description: string,
-): LocateResultElement {
-  if (typeof x !== 'number' || typeof y !== 'number') {
-    throw new Error('x and y must be numbers');
-  }
-  const cx = Math.round(x);
-  const cy = Math.round(y);
-  return {
+) {
+  return generateElementByPoint(
+    [
+      Math.round(requireNumber(x, fieldX)),
+      Math.round(requireNumber(y, fieldY)),
+    ],
     description,
-    center: [cx, cy] as [number, number],
-    rect: {
-      left: Math.max(cx - 4, 0),
-      top: Math.max(cy - 4, 0),
-      width: 8,
-      height: 8,
-    },
-  };
+  );
 }
+
+type InteractParamBuilder = (
+  body: Record<string, unknown>,
+  actionType: string,
+) => Record<string, unknown>;
+
+const buildLocateActionParams: InteractParamBuilder = (body, actionType) => {
+  const params: Record<string, unknown> = {
+    locate: locateFromPoint(body.x, body.y, 'x', 'y', `manual ${actionType}`),
+  };
+  if (typeof body.duration === 'number') {
+    params.duration = body.duration;
+  }
+  return params;
+};
+
+const manualInteractParamBuilders: Record<string, InteractParamBuilder> = {
+  Tap: buildLocateActionParams,
+  DoubleClick: buildLocateActionParams,
+  RightClick: buildLocateActionParams,
+  Hover: buildLocateActionParams,
+  LongPress: buildLocateActionParams,
+  Swipe: (body) => {
+    const params: Record<string, unknown> = {
+      start: locateFromPoint(body.x, body.y, 'x', 'y', 'manual swipe start'),
+      end: locateFromPoint(
+        body.endX,
+        body.endY,
+        'endX',
+        'endY',
+        'manual swipe end',
+      ),
+    };
+    if (typeof body.duration === 'number') params.duration = body.duration;
+    if (typeof body.repeat === 'number') params.repeat = body.repeat;
+    return params;
+  },
+  DragAndDrop: (body) => ({
+    from: locateFromPoint(body.x, body.y, 'x', 'y', 'manual drag from'),
+    to: locateFromPoint(body.endX, body.endY, 'endX', 'endY', 'manual drag to'),
+  }),
+  KeyboardPress: (body) => {
+    if (typeof body.keyName !== 'string') {
+      throw new InteractParamsValidationError(
+        'keyName is required for KeyboardPress',
+      );
+    }
+    return { keyName: body.keyName };
+  },
+  Input: (body) => {
+    if (typeof body.value !== 'string') {
+      throw new InteractParamsValidationError('value is required for Input');
+    }
+    const params: Record<string, unknown> = { value: body.value };
+    if (typeof body.x === 'number' && typeof body.y === 'number') {
+      params.locate = locateFromPoint(body.x, body.y, 'x', 'y', 'manual input');
+    }
+    if (typeof body.mode === 'string') params.mode = body.mode;
+    if (typeof body.autoDismissKeyboard === 'boolean') {
+      params.autoDismissKeyboard = body.autoDismissKeyboard;
+    }
+    return params;
+  },
+};
 
 export function buildInteractParams(
   actionType: string,
   body: Record<string, unknown>,
 ): Record<string, unknown> {
-  switch (actionType) {
-    case 'Tap':
-    case 'DoubleClick':
-    case 'RightClick':
-    case 'Hover':
-    case 'LongPress': {
-      const params: Record<string, unknown> = {
-        locate: pointToLocateResult(body.x, body.y, `manual ${actionType}`),
-      };
-      if (typeof body.duration === 'number') {
-        params.duration = body.duration;
-      }
-      return params;
-    }
-    case 'Swipe': {
-      const start = pointToLocateResult(body.x, body.y, 'manual swipe start');
-      const end = pointToLocateResult(body.endX, body.endY, 'manual swipe end');
-      const params: Record<string, unknown> = { start, end };
-      if (typeof body.duration === 'number') params.duration = body.duration;
-      if (typeof body.repeat === 'number') params.repeat = body.repeat;
-      return params;
-    }
-    case 'DragAndDrop': {
-      return {
-        from: pointToLocateResult(body.x, body.y, 'manual drag from'),
-        to: pointToLocateResult(body.endX, body.endY, 'manual drag to'),
-      };
-    }
-    case 'KeyboardPress': {
-      if (typeof body.keyName !== 'string') {
-        throw new Error('keyName is required for KeyboardPress');
-      }
-      return { keyName: body.keyName };
-    }
-    case 'Input': {
-      if (typeof body.value !== 'string') {
-        throw new Error('value is required for Input');
-      }
-      const params: Record<string, unknown> = { value: body.value };
-      if (typeof body.x === 'number' && typeof body.y === 'number') {
-        params.locate = pointToLocateResult(body.x, body.y, 'manual input');
-      }
-      if (typeof body.mode === 'string') params.mode = body.mode;
-      if (typeof body.autoDismissKeyboard === 'boolean') {
-        params.autoDismissKeyboard = body.autoDismissKeyboard;
-      }
-      return params;
-    }
-    default: {
-      // Fallback: pass-through any caller-provided params for less common actions.
-      const { actionType: _omit, ...passthrough } = body as Record<
-        string,
-        unknown
-      >;
-      return passthrough;
-    }
+  const builder = manualInteractParamBuilders[actionType];
+  if (builder) {
+    return builder(body, actionType);
   }
+  // Fallback: pass-through any caller-provided params for less common actions.
+  const { actionType: _omit, ...passthrough } = body as Record<string, unknown>;
+  return passthrough;
+}
+
+export function createManualExecutorContext(
+  actionType: string,
+  param: unknown,
+): ExecutorContext {
+  const task: ExecutionTask = {
+    type: 'Action Space',
+    subType: actionType,
+    param,
+    executor: async () => undefined,
+    taskId: `manual-${uuid()}`,
+    status: 'running',
+  };
+  return { task };
 }
 
 const errorHandler = (
@@ -1251,20 +1304,9 @@ class PlaygroundServer {
           });
         }
 
-        const base64Screenshot = await agent.interface.screenshotBase64();
-        let size: { width: number; height: number } | undefined;
-        if (typeof agent.interface.size === 'function') {
-          try {
-            size = await agent.interface.size();
-          } catch {
-            size = undefined;
-          }
-        }
-
         res.json({
-          screenshot: base64Screenshot,
+          screenshot: await agent.interface.screenshotBase64(),
           timestamp: Date.now(),
-          ...(size ? { size } : {}),
         });
       } catch (error: unknown) {
         const errorMessage =
@@ -1319,10 +1361,20 @@ class PlaygroundServer {
     this._app.get('/interface-info', async (_req: Request, res: Response) => {
       try {
         const runtimeInfo = this.getRuntimeInfo();
+        const agent = this._activeConnection.agent;
+        let size: { width: number; height: number } | undefined;
+        if (typeof agent?.interface?.size === 'function') {
+          try {
+            size = await agent.interface.size();
+          } catch (error) {
+            debugScreenshot('interface size() failed:', error);
+          }
+        }
 
         res.json({
           type: runtimeInfo.interface.type,
           description: runtimeInfo.interface.description,
+          ...(size ? { size } : {}),
         });
       } catch (error: unknown) {
         const errorMessage =
@@ -1336,14 +1388,13 @@ class PlaygroundServer {
 
     // Direct manipulation API – invokes a named action immediately, bypassing
     // AI planning, the task lock, and dump bookkeeping. Designed for UI-driven
-    // pointer/keyboard input on Android/iOS device previews.
+    // pointer/keyboard input on Android/iOS/Harmony device previews.
     this._app.post('/interact', async (req: Request, res: Response) => {
       let agent: PageAgent;
       try {
         agent = this.getActiveAgentOrThrow();
       } catch (error) {
         return res.status(409).json({
-          ok: false,
           error: error instanceof Error ? error.message : 'No active session',
         });
       }
@@ -1351,40 +1402,47 @@ class PlaygroundServer {
       const { actionType } = req.body ?? {};
       if (typeof actionType !== 'string' || !actionType) {
         return res.status(400).json({
-          ok: false,
           error: 'actionType is required',
         });
       }
 
-      const action = agent.interface
-        .actionSpace()
-        .find((entry: { name: string }) => entry.name === actionType);
+      const action = (
+        agent.interface.actionSpace() as DeviceAction<unknown>[]
+      ).find((entry) => entry.name === actionType);
       if (!action || typeof action.call !== 'function') {
         return res.status(404).json({
-          ok: false,
           error: `Action "${actionType}" is not available on the current device`,
         });
       }
 
+      let params: Record<string, unknown>;
       try {
-        const params = buildInteractParams(actionType, req.body ?? {});
-        const actionFn = (
-          action.call as unknown as (
-            param: unknown,
-            context: unknown,
-          ) => Promise<unknown> | unknown
-        ).bind(agent.interface);
-        // ExecutorContext shape is required by the type but every device
-        // action used here ignores it; pass a minimal stub.
-        await actionFn(params, { task: { type: 'Action' } });
-        res.json({ ok: true });
+        params = buildInteractParams(actionType, req.body ?? {});
+      } catch (error: unknown) {
+        if (error instanceof InteractParamsValidationError) {
+          return res.status(400).json({ error: error.message });
+        }
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.error(
+          `Failed to build interact params for "${actionType}": ${errorMessage}`,
+        );
+        return res.status(500).json({ error: errorMessage });
+      }
+
+      try {
+        await action.call(
+          params,
+          createManualExecutorContext(actionType, params),
+        );
+        res.json({});
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
         console.error(
           `Failed to run interact action "${actionType}": ${errorMessage}`,
         );
-        res.status(500).json({ ok: false, error: errorMessage });
+        res.status(500).json({ error: errorMessage });
       }
     });
 
@@ -1489,7 +1547,7 @@ class PlaygroundServer {
 
   /**
    * Probe and proxy a native MJPEG stream (e.g. WDA MJPEG server).
-   * Result is cached so we only probe once per server lifetime.
+   * Failed probes are cached briefly so WDA / iproxy can come online later.
    */
   private probeAndProxyNativeMjpeg(
     nativeUrl: string,
@@ -1499,6 +1557,17 @@ class PlaygroundServer {
     return new Promise<boolean>((resolve) => {
       console.log(`MJPEG: trying native stream from ${nativeUrl}`);
       const proxyReq = http.get(nativeUrl, (proxyRes) => {
+        const statusCode = proxyRes.statusCode ?? 0;
+        if (statusCode >= 400) {
+          this._nativeMjpegAvailable = false;
+          this._nativeMjpegFailedAt = Date.now();
+          proxyRes.resume();
+          debugMjpeg(
+            `native stream returned HTTP ${statusCode}, using polling mode`,
+          );
+          resolve(false);
+          return;
+        }
         this._nativeMjpegAvailable = true;
         this._nativeMjpegFailedAt = null;
         console.log('MJPEG: streaming via native WDA MJPEG server');
@@ -1515,7 +1584,7 @@ class PlaygroundServer {
       proxyReq.on('error', (err) => {
         this._nativeMjpegAvailable = false;
         this._nativeMjpegFailedAt = Date.now();
-        console.warn(
+        debugMjpeg(
           `MJPEG: native stream unavailable (${err.message}), using polling mode`,
         );
         resolve(false);
@@ -1531,7 +1600,8 @@ class PlaygroundServer {
   private probeNativeMjpegLiveness(nativeUrl: string): Promise<boolean> {
     return new Promise<boolean>((resolve) => {
       const probe = http.get(nativeUrl, (probeRes) => {
-        const reachable = (probeRes.statusCode ?? 0) < 500;
+        const statusCode = probeRes.statusCode ?? 0;
+        const reachable = statusCode >= 200 && statusCode < 400;
         probeRes.destroy();
         resolve(reachable);
       });
@@ -1574,9 +1644,6 @@ class PlaygroundServer {
 
     let stopped = false;
     let consecutiveErrors = 0;
-    req.on('close', () => {
-      stopped = true;
-    });
 
     // While we are in polling mode, periodically probe the native MJPEG URL.
     // As soon as it becomes reachable, end this response so the client's
@@ -1606,6 +1673,7 @@ class PlaygroundServer {
       }, nativeProbeIntervalMs);
     }
     req.on('close', () => {
+      stopped = true;
       if (probeTimer) clearInterval(probeTimer);
     });
 
