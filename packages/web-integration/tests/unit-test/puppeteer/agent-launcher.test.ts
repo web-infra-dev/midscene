@@ -11,6 +11,7 @@ const { mockLaunch } = vi.hoisted(() => ({
 }));
 
 const mockNewPage = vi.fn();
+let pageMock: ReturnType<typeof createPageMock>;
 const browserMock = {
   newPage: mockNewPage,
   setCookie: vi.fn(),
@@ -36,8 +37,8 @@ describe('launchPuppeteerPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockLaunch.mockResolvedValue(browserMock);
-    const page = createPageMock();
-    mockNewPage.mockResolvedValue(page as any);
+    pageMock = createPageMock();
+    mockNewPage.mockResolvedValue(pageMock as any);
   });
 
   it('uses default viewport window size for headed runs', async () => {
@@ -51,6 +52,11 @@ describe('launchPuppeteerPage', () => {
     expect(mockLaunch).toHaveBeenCalledWith(
       expect.objectContaining({ defaultViewport: null }),
     );
+    expect(pageMock.setViewport).toHaveBeenCalledWith({
+      width: defaultViewportWidth,
+      height: defaultViewportHeight,
+      deviceScaleFactor: 0,
+    });
   });
 
   it('respects provided viewport dimensions for headed runs', async () => {
@@ -69,6 +75,11 @@ describe('launchPuppeteerPage', () => {
     expect(mockLaunch).toHaveBeenCalledWith(
       expect.objectContaining({ defaultViewport: null }),
     );
+    expect(pageMock.setViewport).toHaveBeenCalledWith({
+      width: 1000,
+      height: 700,
+      deviceScaleFactor: 0,
+    });
   });
 
   it('preserves fractional deviceScaleFactor without truncating to integer', async () => {
