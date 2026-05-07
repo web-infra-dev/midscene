@@ -1,3 +1,4 @@
+import { getDebug } from '@midscene/shared/logger';
 import {
   type ReactNode,
   Suspense,
@@ -31,6 +32,8 @@ import {
   shouldEnableMobilePreviewFrame,
   shouldUseDesktopPreviewPadding,
 } from './preview-layout';
+
+const debugWebNavigation = getDebug('studio:web-navigation', { console: true });
 
 const LazyPlaygroundPreview = lazy(() => import('./LazyPlaygroundPreview'));
 
@@ -304,35 +307,38 @@ export default function MainContent({
     }
   }, [isConnected]);
 
+  // Web navigation toolbar polls /interface-info for `isLoading` so the
+  // reload/stop button reflects the current page state. Depend on the few
+  // primitives we actually read instead of the whole `studioPlayground`
+  // controller object — that object's identity changes on every render and
+  // would tear down/rebuild the interval each frame.
+  const webNavigationServerOnline =
+    studioPlayground.phase === 'ready'
+      ? studioPlayground.controller.state.serverOnline
+      : false;
+  const webNavigationSDK =
+    studioPlayground.phase === 'ready'
+      ? studioPlayground.controller.state.playgroundSDK
+      : null;
+
   useEffect(() => {
-    if (
-      !showWebNavigation ||
-      studioPlayground.phase !== 'ready' ||
-      !studioPlayground.controller.state.serverOnline
-    ) {
+    if (!showWebNavigation || !webNavigationServerOnline || !webNavigationSDK) {
       setWebIsLoading(false);
       return;
     }
 
     let cancelled = false;
     const refreshWebLoadingState = async () => {
-      let info: Awaited<
-        ReturnType<
-          typeof studioPlayground.controller.state.playgroundSDK.getInterfaceInfo
-        >
-      >;
       try {
-        info =
-          await studioPlayground.controller.state.playgroundSDK.getInterfaceInfo();
+        const info = await webNavigationSDK.getInterfaceInfo();
+        if (cancelled) return;
+        setWebIsLoading(Boolean(info?.navigationState?.isLoading));
       } catch (error) {
         if (!cancelled) {
-          console.warn('Failed to refresh web loading state:', error);
+          debugWebNavigation('failed to refresh web loading state: %s', error);
           setWebIsLoading(false);
         }
-        return;
       }
-      if (cancelled) return;
-      setWebIsLoading(Boolean(info?.navigationState?.isLoading));
     };
 
     void refreshWebLoadingState();
@@ -341,7 +347,7 @@ export default function MainContent({
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [showWebNavigation, studioPlayground]);
+  }, [showWebNavigation, webNavigationServerOnline, webNavigationSDK]);
 
   const runWebNavigationAction = async (
     actionType: 'GoBack' | 'GoForward' | 'Stop' | 'Reload',
@@ -363,10 +369,10 @@ export default function MainContent({
           actionType,
         });
       if (!result.ok) {
-        console.error(
-          `Failed to run web navigation action "${actionType}": ${
-            result.error || 'Unknown error'
-          }`,
+        debugWebNavigation(
+          'failed to run web navigation action "%s": %s',
+          actionType,
+          result.error || 'Unknown error',
         );
       } else {
         setWebIsLoading(false);

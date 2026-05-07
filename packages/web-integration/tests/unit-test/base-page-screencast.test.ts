@@ -149,8 +149,9 @@ describe('Page startMjpegStream', () => {
       quality: 90,
       encoding: 'base64',
     });
+    // Hub contract: MjpegStreamFrame.data is bare base64, never a data URL.
     expect(onFrame).toHaveBeenCalledWith({
-      data: 'data:image/jpeg;base64,cmVmcmVzaA==',
+      data: 'cmVmcmVzaA==',
       contentType: 'image/jpeg',
     });
 

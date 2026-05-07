@@ -49,6 +49,12 @@ export const BROWSER_NAVIGATION_ERROR_PATTERN =
   /execution context was destroyed|frame was detached|target closed|page has been closed|context was destroyed|net::ERR_ABORTED/i;
 
 const CDP_SCREENCAST_QUALITY = 70;
+const CDP_SCREENCAST_EVERY_NTH_FRAME = 1;
+// Upper bound for the "wait for browser repaint" promise inside
+// flushPendingVisualUpdate so the call does not hang forever if the page
+// stops scheduling animation frames (e.g. backgrounded tab).
+const FLUSH_VISUAL_UPDATE_TIMEOUT_MS = 50;
+const DATA_URL_BASE64_PREFIX = /^data:image\/\w+;base64,/;
 
 type ScreencastFrameEvent = {
   data: string;
@@ -103,6 +109,7 @@ export class Page<
   private activeMjpegStream?: {
     token: symbol;
     onFrame: MjpegStreamOptions['onFrame'];
+    onError?: MjpegStreamOptions['onError'];
   };
   interfaceType: AgentType;
 
@@ -434,7 +441,7 @@ export class Page<
 
     try {
       await this.evaluate(
-        () =>
+        (timeoutMs: number) =>
           new Promise<void>((resolve) => {
             let done = false;
             const finish = () => {
@@ -442,18 +449,22 @@ export class Page<
               done = true;
               resolve();
             };
-            setTimeout(finish, 50);
+            setTimeout(finish, timeoutMs);
             requestAnimationFrame(() => requestAnimationFrame(finish));
           }),
+        FLUSH_VISUAL_UPDATE_TIMEOUT_MS,
       );
-      const data = await this.screenshotBase64();
+      const dataUrl = await this.screenshotBase64();
       if (this.activeMjpegStream?.token !== activeStream.token) return;
+      // MjpegStreamFrame.data is contractually bare base64; screenshotBase64()
+      // returns a `data:image/...;base64,...` URL, so strip the prefix here.
       activeStream.onFrame({
-        data,
+        data: dataUrl.replace(DATA_URL_BASE64_PREFIX, ''),
         contentType: 'image/jpeg',
       });
     } catch (error) {
       debugPage('screencast visual refresh failed: %s', error);
+      activeStream.onError?.(error);
     }
   }
 
@@ -468,6 +479,14 @@ export class Page<
     let stopped = false;
     const streamToken = Symbol('mjpeg-stream');
 
+    const reportStreamError = (error: unknown) => {
+      try {
+        onError?.(error);
+      } catch (callbackError) {
+        debugPage('mjpeg onError callback threw: %s', callbackError);
+      }
+    };
+
     const handleFrame = (event: ScreencastFrameEvent) => {
       void (async () => {
         if (stopped) return;
@@ -477,7 +496,7 @@ export class Page<
             contentType: 'image/jpeg',
           });
         } catch (error) {
-          onError?.(error);
+          reportStreamError(error);
         }
 
         try {
@@ -486,7 +505,7 @@ export class Page<
           });
         } catch (error) {
           if (!stopped) {
-            onError?.(error);
+            reportStreamError(error);
           }
         }
       })();
@@ -525,6 +544,7 @@ export class Page<
       this.activeMjpegStream = {
         token: streamToken,
         onFrame,
+        onError,
       };
       signal?.addEventListener('abort', abortHandler, { once: true });
 
@@ -543,7 +563,7 @@ export class Page<
       await client.send('Page.startScreencast', {
         format: 'jpeg',
         quality: CDP_SCREENCAST_QUALITY,
-        everyNthFrame: 1,
+        everyNthFrame: CDP_SCREENCAST_EVERY_NTH_FRAME,
       });
 
       return { stop };

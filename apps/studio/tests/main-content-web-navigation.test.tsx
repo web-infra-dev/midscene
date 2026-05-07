@@ -92,36 +92,36 @@ function createConnectedWebContextValue(): StudioPlaygroundContextValue {
 describe('MainContent web navigation', () => {
   it('handles transient loading-state polling failures without throwing', async () => {
     const context = createConnectedWebContextValue();
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
 
+    let renderError: unknown = null;
     await act(async () => {
-      root.render(
-        createElement(
-          StudioPlaygroundContext.Provider,
-          { value: context },
-          createElement(MainContent, {
-            activeView: 'device',
-          }),
-        ),
-      );
+      try {
+        root.render(
+          createElement(
+            StudioPlaygroundContext.Provider,
+            { value: context },
+            createElement(MainContent, {
+              activeView: 'device',
+            }),
+          ),
+        );
+      } catch (error) {
+        renderError = error;
+      }
     });
     await flushPromises();
 
+    expect(renderError).toBeNull();
     expect(
       context.controller.state.playgroundSDK.getInterfaceInfo,
     ).toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledWith(
-      'Failed to refresh web loading state:',
-      expect.any(Error),
-    );
 
     await act(async () => {
       root.unmount();
     });
     container.remove();
-    warnSpy.mockRestore();
   });
 });

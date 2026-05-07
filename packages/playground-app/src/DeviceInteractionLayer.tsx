@@ -72,6 +72,54 @@ function isHostCopyShortcut(
   );
 }
 
+/**
+ * Keys / shortcut combinations that should always reach the surrounding
+ * Electron / browser host instead of being forwarded to the remote device.
+ * The remote device already exposes its own reload / forward / stop buttons
+ * in the navigation toolbar, so we err on the side of letting the host take
+ * the standard window-level shortcuts.
+ */
+function isHostReservedShortcut(
+  event: Pick<
+    KeyboardEvent,
+    'altKey' | 'ctrlKey' | 'key' | 'metaKey' | 'shiftKey'
+  >,
+): boolean {
+  // Host-managed function keys.
+  if (event.key === 'F5' || event.key === 'F11' || event.key === 'F12') {
+    return true;
+  }
+
+  const hasPrimaryModifier = event.metaKey || event.ctrlKey;
+  if (!hasPrimaryModifier) return false;
+
+  const lowerKey = event.key.toLowerCase();
+
+  // DevTools / Inspect: Cmd+Opt+I, Ctrl+Shift+I, Ctrl+Shift+J.
+  if (event.altKey && lowerKey === 'i') return true;
+  if (event.shiftKey && (lowerKey === 'i' || lowerKey === 'j')) {
+    return true;
+  }
+
+  // Window / app-level shortcuts that users expect to control Studio itself,
+  // even while a device is armed for keyboard input.
+  const hostReservedKeys = new Set([
+    'r', // reload (also Shift+R = force reload)
+    'q', // quit
+    'w', // close window/tab
+    'm', // minimize
+    'h', // hide (macOS)
+    'n', // new window
+    't', // new tab (rarely used in Studio but standard)
+    '+',
+    '=',
+    '-',
+    '_',
+    '0', // zoom controls
+  ]);
+  return hostReservedKeys.has(lowerKey);
+}
+
 function hasHostSelectionOutsideOverlay(overlay: HTMLElement | null): boolean {
   const selection = window.getSelection();
   if (!selection || selection.isCollapsed || !overlay) return false;
@@ -280,6 +328,11 @@ export function DeviceInteractionLayer({
         return;
       }
       if (composingRef.current || event.isComposing) {
+        return;
+      }
+      // Let Electron / browser-level shortcuts reach the host so users keep
+      // standard reload / devtools / window-management behavior.
+      if (isHostReservedShortcut(event)) {
         return;
       }
 

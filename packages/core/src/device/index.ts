@@ -16,6 +16,7 @@ export interface FileChooserHandler {
 }
 
 export interface MjpegStreamFrame {
+  /** Raw base64-encoded image bytes WITHOUT a `data:image/...;base64,` prefix. */
   data: string;
   contentType?: string;
 }
@@ -86,6 +87,20 @@ export abstract class AbstractInterface {
   startMjpegStream?(
     options: MjpegStreamOptions,
   ): MjpegStreamHandle | undefined | Promise<MjpegStreamHandle | undefined>;
+
+  /**
+   * Optional hook used after keyboard-only actions to force a fresh frame on
+   * the active MJPEG stream. Implementations should be a no-op when no stream
+   * is active.
+   */
+  flushPendingVisualUpdate?(): Promise<void>;
+
+  /**
+   * Optional navigation state probe for browser-like interfaces, used to drive
+   * loading indicators in playground UIs. Returning `undefined` means the
+   * interface does not expose this concept.
+   */
+  navigationState?(): Promise<{ isLoading: boolean }>;
 }
 
 // Generic function to define actions with proper type inference
