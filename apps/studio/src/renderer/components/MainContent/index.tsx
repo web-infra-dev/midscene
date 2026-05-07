@@ -20,6 +20,7 @@ import type { ShellActiveView } from '../ShellLayout/types';
 import { DeviceList } from './DeviceList';
 import { MobilePreviewFrame } from './MobilePreviewFrame';
 import {
+  resolveStudioPreviewPlatform,
   shouldEnableMobilePreviewFrame,
   shouldUseComputerPreviewPadding,
 } from './preview-layout';
@@ -131,6 +132,15 @@ export default function MainContent({
     runtimeInfo,
     previewFormValues,
   );
+  const previewPlatform = resolveStudioPreviewPlatform(
+    runtimeInfo,
+    previewFormValues,
+  );
+  const manualControlEnabled =
+    isConnected &&
+    (previewPlatform === 'android' ||
+      previewPlatform === 'ios' ||
+      previewPlatform === 'harmony');
   const disconnectDisabled =
     !isReady || !studioPlayground.controller.state.sessionViewState.connected;
   const previewConnectionFailed =
@@ -438,6 +448,7 @@ export default function MainContent({
                   isUserOperating={
                     studioPlayground.controller.state.isUserOperating
                   }
+                  manualControlEnabled={manualControlEnabled}
                 />
               </Suspense>
             </div>

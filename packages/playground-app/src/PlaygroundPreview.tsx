@@ -22,6 +22,7 @@ export interface PlaygroundPreviewProps {
   serverUrl: string;
   serverOnline: boolean;
   isUserOperating: boolean;
+  manualControlEnabled?: boolean;
 }
 
 export function PlaygroundPreview(props: PlaygroundPreviewProps) {

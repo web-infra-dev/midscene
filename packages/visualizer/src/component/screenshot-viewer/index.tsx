@@ -13,6 +13,7 @@ interface ScreenshotViewerProps {
   getInterfaceInfo?: () => Promise<{
     type: string;
     description?: string;
+    size?: { width: number; height: number };
   } | null>;
   serverOnline: boolean;
   isUserOperating?: boolean; // Whether user is currently operating
@@ -35,7 +36,12 @@ export default function ScreenshotViewer({
   const [interfaceInfo, setInterfaceInfo] = useState<{
     type: string;
     description?: string;
+    size?: { width: number; height: number };
   } | null>(null);
+  // Changing mjpegRetryToken forces the <img> to remount so the multipart connection
+  // is reopened. Used both for natural retries on stream errors and for the
+  // server-driven upgrade from polling fallback to native MJPEG.
+  const [mjpegRetryToken, setMjpegRetryToken] = useState('');
   const isMjpeg = Boolean(mjpegUrl && serverOnline);
   const showChrome = mode !== 'screen-only';
   const rootClassName = [
@@ -247,9 +253,24 @@ export default function ScreenshotViewer({
     <div className="screenshot-content">
       {isMjpeg ? (
         <img
-          src={mjpegUrl}
+          key={mjpegRetryToken || 'initial'}
+          src={
+            !mjpegRetryToken
+              ? mjpegUrl
+              : `${mjpegUrl}${mjpegUrl?.includes('?') ? '&' : '?'}_mjpegRetry=${encodeURIComponent(mjpegRetryToken)}`
+          }
           alt="Device Live Stream"
           className="screenshot-image"
+          onError={() => {
+            // Server may have closed the polling fallback because the native
+            // MJPEG stream just came online; reconnect so the next /mjpeg
+            // request lands on the native (faster) path. Also covers
+            // transient network blips.
+            window.setTimeout(
+              () => setMjpegRetryToken(String(Date.now())),
+              500,
+            );
+          }}
         />
       ) : screenshot ? (
         <img

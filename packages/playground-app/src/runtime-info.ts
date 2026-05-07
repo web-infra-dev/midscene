@@ -64,6 +64,7 @@ export function buildFallbackRuntimeInfo(
 export interface RuntimeInterfaceInfo {
   type: string;
   description?: string;
+  size?: { width: number; height: number };
 }
 
 export function filterValidExecutionUxHints(

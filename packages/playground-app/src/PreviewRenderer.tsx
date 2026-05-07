@@ -7,8 +7,18 @@ import {
   type ScreenshotViewerMode,
 } from '@midscene/visualizer';
 import { WebCodecsVideoDecoder } from '@yume-chan/scrcpy-decoder-webcodecs';
-import { Alert, Popover } from 'antd';
-import type { CSSProperties, ReactNode } from 'react';
+import { Alert, Popover, message } from 'antd';
+import {
+  type CSSProperties,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
+import {
+  DeviceInteractionLayer,
+  type DeviceSize,
+} from './DeviceInteractionLayer';
 import { type ScrcpyErrorOverlayRenderer, ScrcpyPanel } from './ScrcpyPanel';
 import { resolvePreviewConnectionInfo } from './runtime-info';
 import type { ScrcpyPreviewStatus } from './scrcpy-preview';
@@ -27,6 +37,11 @@ interface PreviewRendererProps {
   serverUrl: string;
   serverOnline: boolean;
   isUserOperating: boolean;
+  /**
+   * When true, the preview accepts mouse/touch input and forwards it to the
+   * connected device (Android via ADB, iOS via WDA, Harmony via HDC).
+   */
+  manualControlEnabled?: boolean;
 }
 
 function isNonLocalhostHttp(): boolean {
@@ -52,10 +67,93 @@ export function PreviewRenderer({
   serverUrl,
   serverOnline,
   isUserOperating,
+  manualControlEnabled = false,
 }: PreviewRendererProps) {
   const previewConnection = resolvePreviewConnectionInfo(
     runtimeInfo,
     serverUrl,
+  );
+
+  const [deviceSize, setDeviceSize] = useState<DeviceSize | null>(null);
+
+  // Pull device size from lightweight interface metadata so the interaction
+  // layer can map display coords to device pixels. Refresh periodically
+  // (orientation changes, hot-swapped devices).
+  useEffect(() => {
+    if (!manualControlEnabled || !serverOnline) {
+      setDeviceSize(null);
+      return;
+    }
+    let cancelled = false;
+    const fetchSize = async () => {
+      const result = await playgroundSDK.getInterfaceInfo();
+      if (cancelled) return;
+      if (result?.size?.width && result.size.height) {
+        const { size } = result;
+        setDeviceSize((current) => {
+          if (
+            current &&
+            current.width === size.width &&
+            current.height === size.height
+          ) {
+            return current;
+          }
+          return { width: size.width, height: size.height };
+        });
+      }
+    };
+    fetchSize();
+    const timer = setInterval(fetchSize, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [manualControlEnabled, playgroundSDK, serverOnline]);
+
+  const showManualControlError = useCallback(
+    (fallback: string, error?: string) => {
+      message.open({
+        type: 'error',
+        content: error || fallback,
+        key: 'manual-control-error',
+      });
+    },
+    [],
+  );
+
+  const handleTap = useCallback(
+    async (point: { x: number; y: number }) => {
+      const res = await playgroundSDK.interact({
+        actionType: 'Tap',
+        x: point.x,
+        y: point.y,
+      });
+      if (!res.ok) {
+        showManualControlError('Tap failed', res.error);
+      }
+    },
+    [playgroundSDK, showManualControlError],
+  );
+
+  const handleSwipe = useCallback(
+    async (
+      start: { x: number; y: number },
+      end: { x: number; y: number },
+      duration: number,
+    ) => {
+      const res = await playgroundSDK.interact({
+        actionType: 'Swipe',
+        x: start.x,
+        y: start.y,
+        endX: end.x,
+        endY: end.y,
+        duration,
+      });
+      if (!res.ok) {
+        showManualControlError('Swipe failed', res.error);
+      }
+    },
+    [playgroundSDK, showManualControlError],
   );
 
   // Fall back to screenshot polling when WebCodecs is unavailable
@@ -171,6 +269,16 @@ export function PreviewRenderer({
           mode={screenshotViewerMode}
         />
       )}
+      <DeviceInteractionLayer
+        enabled={
+          manualControlEnabled &&
+          serverOnline &&
+          previewConnection.type !== 'none'
+        }
+        deviceSize={deviceSize}
+        onTap={handleTap}
+        onSwipe={handleSwipe}
+      />
     </div>
   );
 }
