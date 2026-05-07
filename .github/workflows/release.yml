@@ -71,6 +71,16 @@ jobs:
     - name: Install Puppeteer browser
       run: cd packages/web-integration && npx puppeteer browsers install chrome
 
+    - name: Install @midscene/computer native build deps (linux/x64)
+      # The prepublishOnly hook of @midscene/computer compiles
+      # bin/linux/rdp-helper on the publishing runner so the linux helper
+      # ships in the published tarball. The build needs cmake, pkg-config
+      # and FreeRDP 3 development headers. cmake/pkg-config are usually
+      # preinstalled on ubuntu-latest, but we install them defensively.
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake pkg-config libfreerdp3-dev
+
     - name: release
       run: node ./scripts/release.js --version=${{ github.event.inputs.version }}
       env:
