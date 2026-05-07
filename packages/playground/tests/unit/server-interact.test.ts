@@ -1,5 +1,27 @@
+import { z } from '@midscene/core';
 import { describe, expect, test, vi } from 'vitest';
 import { PlaygroundServer } from '../../src/server';
+
+// Lightweight DeviceAction stand-ins. We build the minimal `manualInput`
+// descriptor inline so server tests don't depend on the @midscene/core build
+// state — the real translation is exercised by core's manual-input tests.
+function tapActionStub(call = vi.fn()) {
+  return {
+    name: 'Tap',
+    description: 'tap',
+    call,
+    manualInput: {
+      schema: z.object({ x: z.number(), y: z.number() }),
+      toParam: ({ x, y }: { x: number; y: number }) => ({
+        locate: {
+          center: [x, y] as [number, number],
+          rect: { left: x - 4, top: y - 4, width: 8, height: 8 },
+          description: 'manual Tap',
+        },
+      }),
+    },
+  };
+}
 
 function createMockResponse() {
   return {
@@ -36,7 +58,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       interface: {
         interfaceType: 'android',
         describe: () => 'Android device',
-        actionSpace: () => [{ name: 'Tap', description: 'tap', call: tapCall }],
+        actionSpace: () => [tapActionStub(tapCall)],
         screenshotBase64: async () => 'base64-image',
         size: async () => ({ width: 1080, height: 1920 }),
       },
@@ -74,7 +96,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     const server = new PlaygroundServer({
       interface: {
         interfaceType: 'android',
-        actionSpace: () => [{ name: 'Tap', description: 'tap', call: vi.fn() }],
+        actionSpace: () => [tapActionStub()],
       },
     } as any);
 
@@ -84,9 +106,9 @@ describe('PlaygroundServer manual interaction APIs', () => {
     await interactHandler({ body: { actionType: 'Tap', y: 20 } }, response);
 
     expect(response.statusCode).toBe(400);
-    expect(response.body).toMatchObject({
-      error: 'x must be a number for this action',
-    });
+    // Zod surfaces the missing field path; exact wording differs across zod
+    // versions, so just assert the path is mentioned.
+    expect((response.body as { error: string }).error).toMatch(/^x[:.]/);
   });
 
   test('POST /interact returns 404 when the current device lacks the action', async () => {
@@ -108,6 +130,28 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(response.statusCode).toBe(404);
     expect(response.body).toMatchObject({
       error: 'Action "Tap" is not available on the current device',
+    });
+  });
+
+  test('POST /interact returns 404 when the action lacks manualInput support', async () => {
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'android',
+        // Real "Scroll" action shape, but without a manualInput descriptor.
+        actionSpace: () => [
+          { name: 'Scroll', description: 'scroll', call: vi.fn() },
+        ],
+      },
+    } as any);
+
+    await server.launch(6114);
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    const response = createMockResponse();
+    await interactHandler({ body: { actionType: 'Scroll' } }, response);
+
+    expect(response.statusCode).toBe(404);
+    expect(response.body).toMatchObject({
+      error: 'Action "Scroll" does not support manual input',
     });
   });
 

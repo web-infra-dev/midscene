@@ -1,14 +1,8 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import http from 'node:http';
 import type { Server } from 'node:http';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type {
-  DeviceAction,
-  ExecutionDump,
-  ExecutionTask,
-  ExecutorContext,
-} from '@midscene/core';
+import type { DeviceAction, ExecutionDump } from '@midscene/core';
 import { ReportActionDump, runConnectivityTest } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
 import { getTmpDir } from '@midscene/core/utils';
@@ -17,11 +11,12 @@ import {
   globalModelConfigManager,
   overrideAIConfig,
 } from '@midscene/shared/env';
-import { generateElementByPoint } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
+import { createManualExecutorContext } from './interact-context';
+import { MjpegStreamHandler } from './mjpeg-stream-handler';
 import type {
   PlaygroundCreatedSession,
   PlaygroundExecutionHooks,
@@ -121,155 +116,7 @@ const __dirname = dirname(__filename);
 const STATIC_PATH = join(__dirname, '..', '..', 'static');
 
 const debugScreenshot = getDebug('playground:screenshot', { console: true });
-const debugMjpeg = getDebug('playground:mjpeg', { console: true });
 
-/**
- * Thrown when a caller supplies an /interact body that fails validation
- * (missing x/y, missing keyName for KeyboardPress, etc.). Distinct from a
- * downstream device failure so the route handler can map this to HTTP 400.
- */
-export class InteractParamsValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'InteractParamsValidationError';
-  }
-}
-
-function requireNumber(value: unknown, field: string): number {
-  if (typeof value !== 'number' || Number.isNaN(value)) {
-    throw new InteractParamsValidationError(
-      `${field} must be a number for this action`,
-    );
-  }
-  return value;
-}
-
-function locateFromPoint(
-  x: unknown,
-  y: unknown,
-  fieldX: string,
-  fieldY: string,
-  description: string,
-) {
-  return generateElementByPoint(
-    [
-      Math.round(requireNumber(x, fieldX)),
-      Math.round(requireNumber(y, fieldY)),
-    ],
-    description,
-  );
-}
-
-type InteractParamBuilder = (
-  body: Record<string, unknown>,
-  actionType: string,
-) => Record<string, unknown>;
-
-const buildLocateActionParams: InteractParamBuilder = (body, actionType) => {
-  const params: Record<string, unknown> = {
-    locate: locateFromPoint(body.x, body.y, 'x', 'y', `manual ${actionType}`),
-  };
-  if (typeof body.duration === 'number') {
-    params.duration = body.duration;
-  }
-  return params;
-};
-
-const buildSwipeParams: InteractParamBuilder = (body) => {
-  const params: Record<string, unknown> = {
-    start: locateFromPoint(body.x, body.y, 'x', 'y', 'manual swipe start'),
-    end: locateFromPoint(
-      body.endX,
-      body.endY,
-      'endX',
-      'endY',
-      'manual swipe end',
-    ),
-  };
-  if (typeof body.duration === 'number') params.duration = body.duration;
-  if (typeof body.repeat === 'number') params.repeat = body.repeat;
-  return params;
-};
-
-const buildDragAndDropParams: InteractParamBuilder = (body) => ({
-  from: locateFromPoint(body.x, body.y, 'x', 'y', 'manual drag from'),
-  to: locateFromPoint(body.endX, body.endY, 'endX', 'endY', 'manual drag to'),
-});
-
-const buildKeyboardPressParams: InteractParamBuilder = (body) => {
-  if (typeof body.keyName !== 'string') {
-    throw new InteractParamsValidationError(
-      'keyName is required for KeyboardPress',
-    );
-  }
-  return { keyName: body.keyName };
-};
-
-const buildInputParams: InteractParamBuilder = (body) => {
-  if (typeof body.value !== 'string') {
-    throw new InteractParamsValidationError('value is required for Input');
-  }
-  const params: Record<string, unknown> = { value: body.value };
-  if (typeof body.x === 'number' && typeof body.y === 'number') {
-    params.locate = locateFromPoint(body.x, body.y, 'x', 'y', 'manual input');
-  }
-  if (typeof body.mode === 'string') params.mode = body.mode;
-  if (typeof body.autoDismissKeyboard === 'boolean') {
-    params.autoDismissKeyboard = body.autoDismissKeyboard;
-  }
-  return params;
-};
-
-function getManualInteractParamBuilder(
-  actionType: string,
-): InteractParamBuilder | undefined {
-  switch (actionType) {
-    case 'Tap':
-    case 'DoubleClick':
-    case 'RightClick':
-    case 'Hover':
-    case 'LongPress':
-      return buildLocateActionParams;
-    case 'Swipe':
-      return buildSwipeParams;
-    case 'DragAndDrop':
-      return buildDragAndDropParams;
-    case 'KeyboardPress':
-      return buildKeyboardPressParams;
-    case 'Input':
-      return buildInputParams;
-    default:
-      return undefined;
-  }
-}
-
-export function buildInteractParams(
-  actionType: string,
-  body: Record<string, unknown>,
-): Record<string, unknown> {
-  const builder = getManualInteractParamBuilder(actionType);
-  if (builder) {
-    return builder(body, actionType);
-  }
-  // Fallback: pass-through any caller-provided params for less common actions.
-  const { actionType: _omit, ...passthrough } = body as Record<string, unknown>;
-  return passthrough;
-}
-
-export function createManualExecutorContext(
-  actionType: string,
-  param: unknown,
-): ExecutorContext {
-  const task: ExecutionTask = {
-    type: 'Action Space',
-    subType: actionType,
-    param,
-    executor: async () => undefined,
-    taskId: `manual-${uuid()}`,
-    status: 'running',
-  };
-  return { task };
-}
 const errorHandler = (
   err: unknown,
   req: Request,
@@ -318,12 +165,12 @@ class PlaygroundServer {
 
   private _initialized = false;
 
-  // Native MJPEG stream probe: null = not tested, true/false = result.
-  // The negative cache expires after MJPEG_NEGATIVE_CACHE_MS so the server
-  // recovers automatically when WDA / iproxy comes online after startup.
-  private _nativeMjpegAvailable: boolean | null = null;
-  private _nativeMjpegFailedAt: number | null = null;
-  private static readonly MJPEG_NEGATIVE_CACHE_MS = 10_000;
+  private readonly _mjpegHandler = new MjpegStreamHandler({
+    getNativeUrl: () => this._activeConnection.agent?.interface?.mjpegStreamUrl,
+    takeScreenshot: () =>
+      this.getActiveAgentOrThrow().interface.screenshotBase64(),
+    isAgentReady: () => this._agentReady,
+  });
 
   private sessionManager?: PlaygroundSessionManager;
   private sessionSetupState: 'required' | 'ready' | 'blocked' = 'ready';
@@ -351,6 +198,17 @@ class PlaygroundServer {
     sidecars: undefined,
   };
 
+  /**
+   * Single setter for the active agent. Funnels every connect / reconnect /
+   * disconnect through here so we can fan out side effects (right now: drop
+   * the cached MJPEG native-probe state, which is per-device and otherwise
+   * leaks across reconnects to a different device).
+   */
+  private setActiveAgent(agent: PageAgent | null): void {
+    this._activeConnection.agent = agent;
+    this._mjpegHandler.reset();
+  }
+
   constructor(
     agent?: PageAgent | (() => PageAgent) | (() => Promise<PageAgent>),
     staticPath = STATIC_PATH,
@@ -367,7 +225,7 @@ class PlaygroundServer {
     if (typeof agent === 'function') {
       this._activeConnection.agentFactory = agent;
     } else {
-      this._activeConnection.agent = agent || null;
+      this.setActiveAgent(agent || null);
     }
   }
 
@@ -600,7 +458,7 @@ class PlaygroundServer {
     } catch (error) {
       console.warn('Failed to destroy old agent:', error);
     } finally {
-      this._activeConnection.agent = null;
+      this.setActiveAgent(null);
       // Once the stale agent is gone there is nothing left to recreate.
       this._configDirty = false;
     }
@@ -786,8 +644,7 @@ class PlaygroundServer {
     // Create new agent instance if factory is available
     if (this._activeConnection.agentFactory) {
       try {
-        this._activeConnection.agent =
-          await this._activeConnection.agentFactory();
+        this.setActiveAgent(await this._activeConnection.agentFactory());
         this._agentReady = true;
         console.log('Agent recreated successfully');
       } catch (error) {
@@ -883,8 +740,7 @@ class PlaygroundServer {
           !this._activeConnection.agent &&
           this._activeConnection.agentFactory
         ) {
-          this._activeConnection.agent =
-            await this._activeConnection.agentFactory();
+          this.setActiveAgent(await this._activeConnection.agentFactory());
         }
 
         if (this._configDirty && this._activeConnection.agentFactory) {
@@ -1097,8 +953,7 @@ class PlaygroundServer {
         console.log('AI config changed, recreating agent...');
         try {
           await this.destroyCurrentAgent();
-          this._activeConnection.agent =
-            await this._activeConnection.agentFactory();
+          this.setActiveAgent(await this._activeConnection.agentFactory());
           agent = this.getActiveAgentOrThrow();
           this._agentReady = true;
           console.log('Agent recreated with new config');
@@ -1339,40 +1194,20 @@ class PlaygroundServer {
       }
     });
 
-    // MJPEG streaming endpoint for real-time screen preview
-    // Proxies native MJPEG stream (e.g. WDA MJPEG server) when available,
-    // falls back to polling screenshotBase64() otherwise.
+    // MJPEG streaming endpoint for real-time screen preview. The actual
+    // probe / proxy / polling logic lives in MjpegStreamHandler so this route
+    // is just plumbing.
     this._app.get('/mjpeg', async (req: Request, res: Response) => {
       const agent = this._activeConnection.agent;
       if (!agent) {
-        return res.status(409).json({
-          error: 'No active session',
-        });
+        return res.status(409).json({ error: 'No active session' });
       }
-
-      const nativeUrl = agent.interface?.mjpegStreamUrl;
-
-      const recentlyFailed =
-        this._nativeMjpegAvailable === false &&
-        this._nativeMjpegFailedAt !== null &&
-        Date.now() - this._nativeMjpegFailedAt <
-          PlaygroundServer.MJPEG_NEGATIVE_CACHE_MS;
-      if (nativeUrl && !recentlyFailed) {
-        const proxyOk = await this.probeAndProxyNativeMjpeg(
-          nativeUrl,
-          req,
-          res,
-        );
-        if (proxyOk) return;
-      }
-
       if (typeof agent.interface?.screenshotBase64 !== 'function') {
         return res.status(500).json({
           error: 'Screenshot method not available on current interface',
         });
       }
-
-      await this.startPollingMjpegStream(req, res);
+      await this._mjpegHandler.serve(req, res);
     });
 
     // Interface info API for getting interface type and description
@@ -1407,6 +1242,10 @@ class PlaygroundServer {
     // Direct manipulation API – invokes a named action immediately, bypassing
     // AI planning, the task lock, and dump bookkeeping. Designed for UI-driven
     // pointer/keyboard input on Android/iOS/Harmony device previews.
+    //
+    // The per-action translation table lives next to each `defineActionXxx`
+    // factory (see `manualInput` on DeviceAction). This handler is dumb HTTP
+    // plumbing: parse → look up the action → validate → invoke.
     this._app.post('/interact', async (req: Request, res: Response) => {
       let agent: PageAgent;
       try {
@@ -1417,7 +1256,7 @@ class PlaygroundServer {
         });
       }
 
-      const { actionType } = req.body ?? {};
+      const { actionType, ...rawInput } = req.body ?? {};
       if (typeof actionType !== 'string' || !actionType) {
         return res.status(400).json({
           error: 'actionType is required',
@@ -1432,20 +1271,34 @@ class PlaygroundServer {
           error: `Action "${actionType}" is not available on the current device`,
         });
       }
+      if (!action.manualInput) {
+        return res.status(404).json({
+          error: `Action "${actionType}" does not support manual input`,
+        });
+      }
 
-      let params: Record<string, unknown>;
+      const parsed = action.manualInput.schema.safeParse(rawInput);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: parsed.error.issues
+            .map((issue) => {
+              const path = issue.path.join('.');
+              return path ? `${path}: ${issue.message}` : issue.message;
+            })
+            .join('; '),
+        });
+      }
+
+      let params: unknown;
       try {
-        params = buildInteractParams(actionType, req.body ?? {});
+        params = action.manualInput.toParam(parsed.data);
       } catch (error: unknown) {
-        if (error instanceof InteractParamsValidationError) {
-          return res.status(400).json({ error: error.message });
-        }
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
         console.error(
           `Failed to build interact params for "${actionType}": ${errorMessage}`,
         );
-        return res.status(500).json({ error: errorMessage });
+        return res.status(400).json({ error: errorMessage });
       }
 
       try {
@@ -1564,184 +1417,6 @@ class PlaygroundServer {
   }
 
   /**
-   * Probe and proxy a native MJPEG stream (e.g. WDA MJPEG server).
-   * Failed probes are cached briefly so WDA / iproxy can come online later.
-   */
-  private probeAndProxyNativeMjpeg(
-    nativeUrl: string,
-    req: Request,
-    res: Response,
-  ): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
-      console.log(`MJPEG: trying native stream from ${nativeUrl}`);
-      const proxyReq = http.get(nativeUrl, (proxyRes) => {
-        const statusCode = proxyRes.statusCode ?? 0;
-        if (statusCode >= 400) {
-          this._nativeMjpegAvailable = false;
-          this._nativeMjpegFailedAt = Date.now();
-          proxyRes.resume();
-          debugMjpeg(
-            `native stream returned HTTP ${statusCode}, using polling mode`,
-          );
-          resolve(false);
-          return;
-        }
-        this._nativeMjpegAvailable = true;
-        this._nativeMjpegFailedAt = null;
-        console.log('MJPEG: streaming via native WDA MJPEG server');
-        const contentType = proxyRes.headers['content-type'];
-        if (contentType) {
-          res.setHeader('Content-Type', contentType);
-        }
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Connection', 'keep-alive');
-        proxyRes.pipe(res);
-        req.on('close', () => proxyReq.destroy());
-        resolve(true);
-      });
-      proxyReq.on('error', (err) => {
-        this._nativeMjpegAvailable = false;
-        this._nativeMjpegFailedAt = Date.now();
-        debugMjpeg(
-          `MJPEG: native stream unavailable (${err.message}), using polling mode`,
-        );
-        resolve(false);
-      });
-    });
-  }
-
-  /**
-   * Quick liveness check for the native MJPEG endpoint without consuming a
-   * full streaming response. Used while we are in polling fallback so we can
-   * upgrade back to the native stream as soon as WDA / iproxy comes online.
-   */
-  private probeNativeMjpegLiveness(nativeUrl: string): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
-      const probe = http.get(nativeUrl, (probeRes) => {
-        const statusCode = probeRes.statusCode ?? 0;
-        const reachable = statusCode >= 200 && statusCode < 400;
-        probeRes.destroy();
-        resolve(reachable);
-      });
-      probe.setTimeout(1000, () => {
-        probe.destroy();
-        resolve(false);
-      });
-      probe.on('error', () => resolve(false));
-    });
-  }
-
-  /**
-   * Stream screenshots as MJPEG by polling screenshotBase64().
-   */
-  private async startPollingMjpegStream(
-    req: Request,
-    res: Response,
-  ): Promise<void> {
-    const defaultMjpegFps = 10;
-    const maxMjpegFps = 30;
-    const maxErrorBackoffMs = 3000;
-    const errorLogThreshold = 3;
-    const nativeProbeIntervalMs = 3000;
-
-    const parsedFps = Number(req.query.fps);
-    const fps = Math.min(
-      Math.max(Number.isNaN(parsedFps) ? defaultMjpegFps : parsedFps, 1),
-      maxMjpegFps,
-    );
-    const interval = Math.round(1000 / fps);
-    const boundary = 'mjpeg-boundary';
-    console.log(`MJPEG: streaming via polling mode (${fps}fps)`);
-
-    res.setHeader(
-      'Content-Type',
-      `multipart/x-mixed-replace; boundary=${boundary}`,
-    );
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Connection', 'keep-alive');
-
-    let stopped = false;
-    let consecutiveErrors = 0;
-
-    // While we are in polling mode, periodically probe the native MJPEG URL.
-    // As soon as it becomes reachable, end this response so the client's
-    // <img> MJPEG connection retries and lands on the native stream.
-    const nativeUrl = this._activeConnection.agent?.interface?.mjpegStreamUrl;
-    let probeTimer: ReturnType<typeof setInterval> | undefined;
-    if (nativeUrl) {
-      probeTimer = setInterval(async () => {
-        if (stopped) return;
-        const reachable = await this.probeNativeMjpegLiveness(nativeUrl);
-        if (reachable && !stopped) {
-          console.log(
-            'MJPEG: native stream came online, ending polling so client reconnects',
-          );
-          this._nativeMjpegAvailable = true;
-          this._nativeMjpegFailedAt = null;
-          stopped = true;
-          // Destroy the socket so the client's <img> fires onError and
-          // reconnects; res.end() leaves multipart streams visually frozen
-          // on the last frame in some browsers.
-          try {
-            res.destroy();
-          } catch {
-            /* socket already closed */
-          }
-        }
-      }, nativeProbeIntervalMs);
-    }
-    req.on('close', () => {
-      stopped = true;
-      if (probeTimer) clearInterval(probeTimer);
-    });
-
-    while (!stopped) {
-      // Skip frame while agent is being recreated
-      if (!this._agentReady) {
-        await new Promise((r) => setTimeout(r, 200));
-        continue;
-      }
-
-      const frameStart = Date.now();
-      try {
-        const agent = this.getActiveAgentOrThrow();
-        const base64 = await agent.interface.screenshotBase64();
-        if (stopped) break;
-        consecutiveErrors = 0;
-
-        const raw = base64.replace(/^data:image\/\w+;base64,/, '');
-        const buf = Buffer.from(raw, 'base64');
-
-        res.write(`--${boundary}\r\n`);
-        res.write('Content-Type: image/jpeg\r\n');
-        res.write(`Content-Length: ${buf.length}\r\n\r\n`);
-        res.write(buf);
-        res.write('\r\n');
-      } catch (err) {
-        if (stopped) break;
-        consecutiveErrors++;
-        if (consecutiveErrors <= errorLogThreshold) {
-          console.error('MJPEG frame error:', err);
-        } else if (consecutiveErrors === errorLogThreshold + 1) {
-          console.error(
-            'MJPEG: suppressing further errors, retrying silently...',
-          );
-        }
-        const backoff = Math.min(1000 * consecutiveErrors, maxErrorBackoffMs);
-        await new Promise((r) => setTimeout(r, backoff));
-        continue;
-      }
-
-      const elapsed = Date.now() - frameStart;
-      const remaining = interval - elapsed;
-      if (remaining > 0) {
-        await new Promise((r) => setTimeout(r, remaining));
-      }
-    }
-    if (probeTimer) clearInterval(probeTimer);
-  }
-
-  /**
    * Setup static file serving routes
    */
   private setupStaticRoutes(): void {
@@ -1798,8 +1473,7 @@ class PlaygroundServer {
     // If using factory mode, initialize agent
     if (this._activeConnection.agentFactory && !this.sessionManager) {
       console.log('Initializing agent from factory function...');
-      this._activeConnection.agent =
-        await this._activeConnection.agentFactory();
+      this.setActiveAgent(await this._activeConnection.agentFactory());
       this._activeConnection.session = {
         connected: true,
         metadata: {},
