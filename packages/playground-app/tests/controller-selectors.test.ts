@@ -24,7 +24,6 @@ describe('buildConversationConfig', () => {
       deviceType: 'android',
       promptInputChrome: {
         variant: 'minimal',
-        primaryActionLabel: 'Action',
       },
       executionFlow: {
         collapsible: true,
@@ -42,6 +41,13 @@ describe('buildConversationConfig', () => {
         countdownSeconds: 3,
       }).promptInputChrome,
     ).not.toHaveProperty('placeholder');
+    expect(
+      buildConversationConfig({
+        deviceType: 'android',
+        executionUxHints: [],
+        countdownSeconds: 3,
+      }).promptInputChrome,
+    ).not.toHaveProperty('primaryActionLabel');
   });
 
   it('preserves shared execution flow defaults when hosts add partial overrides', () => {
