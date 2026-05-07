@@ -13,6 +13,7 @@ import {
   type AbstractInterface,
   type ActionTapParam,
   type HarmonyDeviceOpt,
+  type PointerCapability,
   defineAction,
   defineActionClearInput,
   defineActionCursorMove,
@@ -121,6 +122,58 @@ export class HarmonyDevice implements AbstractInterface {
   interfaceType: InterfaceType = 'harmony';
   uri: string | undefined;
   options?: HarmonyDeviceOpt;
+
+  /**
+   * Native input surface for direct manual control. Wraps the same low-level
+   * HDC gesture methods (`tap`, `doubleTap`, `longPress`, `hdc.swipe`,
+   * `hdc.drag`, `keyboardPress`, `inputText`) that the `actionSpace()`
+   * callbacks call.
+   *
+   * Pinch is intentionally not implemented — HDC does not support a
+   * reliable two-finger gesture injection on HarmonyOS NEXT today.
+   */
+  readonly pointer: PointerCapability = {
+    tap: ({ x, y }) => this.tap(x, y),
+    doubleClick: ({ x, y }) => this.doubleTap(x, y),
+    longPress: ({ x, y }) => this.longPress(x, y),
+    swipe: async (start, end, opts) => {
+      const duration = opts?.duration;
+      const repeatCount = opts?.repeat ?? 1;
+      const hdc = await this.getHdc();
+      for (let i = 0; i < repeatCount; i++) {
+        await hdc.swipe(
+          start.x,
+          start.y,
+          end.x,
+          end.y,
+          duration ? Math.round(duration) : undefined,
+        );
+      }
+    },
+    dragAndDrop: async (from, to) => {
+      const hdc = await this.getHdc();
+      await hdc.drag(from.x, from.y, to.x, to.y);
+    },
+    keyboardPress: (key) => this.keyboardPress(key),
+    input: async (value, opts) => {
+      if (opts?.mode === 'clear') {
+        await this.clearInput();
+        return;
+      }
+      if (!value) return;
+      const shouldReplace = opts?.mode !== 'typeOnly';
+      // Pass the optional locate point through inputText so it can focus the
+      // field before typing if the device requires it.
+      const focusElement: LocateResultElement | undefined = opts?.at
+        ? {
+            center: [opts.at.x, opts.at.y],
+            rect: { left: opts.at.x, top: opts.at.y, width: 1, height: 1 },
+            description: 'manual input target',
+          }
+        : undefined;
+      await this.inputText(value, focusElement, shouldReplace);
+    },
+  };
 
   actionSpace(): DeviceAction<any>[] {
     const defaultActions = [
