@@ -12,7 +12,10 @@ import {
   rendererDevPort,
 } from './scripts/renderer-dev-config.mjs';
 
-const rendererAssetPrefix = process.env.NODE_ENV === 'development' ? '/' : './';
+// Studio is loaded by Electron through both the dev server and built
+// `file://` HTML. A relative prefix works in both places; an absolute
+// `/static/...` prefix leaves packaged/build smoke runs with a blank renderer.
+const rendererAssetPrefix = './';
 
 export default defineConfig({
   tools: {
