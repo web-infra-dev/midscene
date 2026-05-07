@@ -116,3 +116,28 @@ export const getInlineStructuredFieldConfig = (
     placeholder,
   };
 };
+
+export const shouldOffsetEmptyStateForPromptInput = (
+  actionSpace: DeviceAction<any>[] | undefined,
+  selectedType: string,
+): boolean => {
+  if (!actionSpace?.length || !selectedType) {
+    return false;
+  }
+
+  if (getInlineStructuredFieldConfig(actionSpace, selectedType)) {
+    return false;
+  }
+
+  const action = actionSpace.find(
+    (item) =>
+      item.interfaceAlias === selectedType || item.name === selectedType,
+  );
+
+  if (!action?.paramSchema || !isZodObjectSchema(action.paramSchema)) {
+    return false;
+  }
+
+  const schema = action.paramSchema as ZodObjectSchema;
+  return Object.keys(schema.shape || {}).length > 1;
+};

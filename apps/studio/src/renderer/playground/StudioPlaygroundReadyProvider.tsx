@@ -4,7 +4,8 @@ import {
 } from '@midscene/playground-app';
 import type { StudioPlatformId } from '@shared/electron-contract';
 import type { PropsWithChildren } from 'react';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
+import { resolveDiscoveredDeviceSelectionFormValues } from './selectors';
 import type { DiscoveredDevicesByPlatform } from './types';
 import { StudioPlaygroundContext } from './useStudioPlayground';
 
@@ -30,6 +31,18 @@ export default function StudioPlaygroundReadyProvider({
     initialFormValues: { platformId: DEFAULT_PLATFORM_ID },
     serverUrl,
   });
+
+  useEffect(() => {
+    const selectionPatch = resolveDiscoveredDeviceSelectionFormValues({
+      discoveredDevices,
+      formValues: controller.state.formValues,
+    });
+    if (!selectionPatch) {
+      return;
+    }
+
+    controller.state.form.setFieldsValue(selectionPatch);
+  }, [controller.state.form, controller.state.formValues, discoveredDevices]);
 
   const contextValue = useMemo(
     () => ({

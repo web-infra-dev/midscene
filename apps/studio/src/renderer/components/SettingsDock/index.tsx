@@ -32,7 +32,7 @@ function ActionChip({ label, onClick }: ActionChipProps) {
       onClick={onClick}
       type="button"
     >
-      <span className="overflow-hidden whitespace-nowrap text-center font-['PingFang_SC'] text-[11px] leading-[12px] text-text-secondary">
+      <span className="overflow-hidden whitespace-nowrap text-center font-sans text-[11px] leading-[12px] text-text-secondary">
         {label}
       </span>
       <ChevronRight />
@@ -68,7 +68,7 @@ export default function SettingsDock({
           className="h-4 w-4 shrink-0"
           src={assetUrls.sidebar.settings}
         />
-        <span className="ml-[6px] overflow-hidden whitespace-nowrap font-['PingFang_SC'] text-[13px] leading-[22px] text-text-secondary">
+        <span className="ml-[6px] overflow-hidden whitespace-nowrap font-sans text-[13px] leading-[22px] text-text-secondary">
           Settings
         </span>
       </button>

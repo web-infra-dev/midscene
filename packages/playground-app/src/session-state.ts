@@ -1,5 +1,6 @@
 import type {
   PlaygroundRuntimeInfo,
+  PlaygroundSessionField,
   PlaygroundSessionSetup,
 } from '@midscene/playground';
 
@@ -47,7 +48,26 @@ export function buildSessionInitialValues(
   return Object.fromEntries(
     setup.fields.map((field) => [
       field.key,
-      existingValues[field.key] ?? field.defaultValue ?? '',
+      resolveSessionFieldValue(field, existingValues[field.key]),
     ]),
   );
+}
+
+function hasSessionFieldValue(value: unknown): boolean {
+  return value !== undefined && value !== null && value !== '';
+}
+
+function resolveSessionFieldValue(
+  field: PlaygroundSessionField,
+  existingValue: unknown,
+): unknown {
+  if (hasSessionFieldValue(existingValue)) {
+    return existingValue;
+  }
+
+  if (field.type === 'select') {
+    return field.defaultValue ?? field.options?.[0]?.value ?? '';
+  }
+
+  return existingValue ?? field.defaultValue ?? '';
 }

@@ -270,6 +270,43 @@ function prefixSessionValues(
   );
 }
 
+function resolveSelectedSessionValues(
+  platform: StudioSidebarPlatformKey,
+  formValues: Record<string, unknown>,
+): Record<string, StudioSessionValue> | undefined {
+  switch (platform) {
+    case 'android':
+      return isString(formValues['android.deviceId'])
+        ? { deviceId: formValues['android.deviceId'] }
+        : isString(formValues.deviceId)
+          ? { deviceId: formValues.deviceId }
+          : undefined;
+    case 'computer':
+      return isString(formValues['computer.displayId'])
+        ? { displayId: formValues['computer.displayId'] }
+        : isString(formValues.displayId)
+          ? { displayId: formValues.displayId }
+          : undefined;
+    case 'harmony':
+      return isString(formValues['harmony.deviceId'])
+        ? { deviceId: formValues['harmony.deviceId'] }
+        : isString(formValues.deviceId)
+          ? { deviceId: formValues.deviceId }
+          : undefined;
+    case 'ios': {
+      const host = isString(formValues['ios.host'])
+        ? formValues['ios.host']
+        : isString(formValues.host)
+          ? formValues.host
+          : undefined;
+      const port = normalizePort(formValues['ios.port'] ?? formValues.port);
+      return host && port !== undefined ? { host, port } : undefined;
+    }
+    default:
+      return undefined;
+  }
+}
+
 export function buildDeviceSelectionFormValues(
   platform: StudioSidebarPlatformKey,
   device: Pick<StudioAndroidDeviceItem, 'id' | 'sessionValues'>,
@@ -294,6 +331,87 @@ export function buildDeviceSelectionFormValues(
   };
 }
 
+function buildDeviceDeselectionFormValues(
+  platform: StudioSidebarPlatformKey,
+): Record<string, StudioSessionValue | null> {
+  switch (platform) {
+    case 'android':
+      return {
+        platformId: platform,
+        deviceId: null,
+        'android.deviceId': null,
+      };
+    case 'computer':
+      return {
+        platformId: platform,
+        displayId: null,
+        'computer.displayId': null,
+      };
+    case 'harmony':
+      return {
+        platformId: platform,
+        deviceId: null,
+        'harmony.deviceId': null,
+      };
+    default:
+      return {
+        platformId: platform,
+      };
+  }
+}
+
+function shouldClearMissingDiscoveredDevice(
+  platform: StudioSidebarPlatformKey,
+): boolean {
+  return (
+    platform === 'android' || platform === 'harmony' || platform === 'computer'
+  );
+}
+
+export function resolveDiscoveredDeviceSelectionFormValues({
+  formValues,
+  discoveredDevices,
+}: {
+  formValues: Record<string, unknown>;
+  discoveredDevices: DiscoveredDevicesByPlatform | undefined;
+}): Record<string, StudioSessionValue | null | undefined> | null {
+  if (!discoveredDevices) {
+    return null;
+  }
+
+  const selectedPlatform =
+    normalizeStudioPlatformId(formValues.platformId) || 'android';
+  if (!selectedPlatform || selectedPlatform === 'web') {
+    return null;
+  }
+
+  const discoveredBucket = discoveredDevices[selectedPlatform] || [];
+  const selectedDeviceId = resolveSelectedDeviceId(formValues);
+  if (
+    selectedDeviceId &&
+    discoveredBucket.some((device) => device.id === selectedDeviceId)
+  ) {
+    return null;
+  }
+
+  const firstDiscoveredDevice = discoveredBucket[0];
+  if (firstDiscoveredDevice) {
+    return buildDeviceSelectionFormValues(
+      selectedPlatform,
+      firstDiscoveredDevice,
+    );
+  }
+
+  if (
+    selectedDeviceId &&
+    shouldClearMissingDiscoveredDevice(selectedPlatform)
+  ) {
+    return buildDeviceDeselectionFormValues(selectedPlatform);
+  }
+
+  return null;
+}
+
 export function buildAndroidDeviceItems({
   formValues,
   runtimeInfo,
@@ -316,6 +434,20 @@ export function buildAndroidDeviceItems({
         selected: true,
         status: 'active',
         sessionValues: resolveConnectedSessionValues(runtimeInfo, 'android'),
+      },
+    ];
+  }
+
+  if (targets.length === 0 && selectedDeviceId) {
+    return [
+      {
+        id: selectedDeviceId,
+        label: selectedDeviceId,
+        selected: true,
+        status: 'idle',
+        sessionValues: {
+          deviceId: selectedDeviceId,
+        },
       },
     ];
   }
@@ -351,7 +483,9 @@ export function buildStudioSidebarDeviceBuckets({
   if (
     runtimePlatformKey === 'android' ||
     (runtimePlatformKey === undefined &&
-      (targets.length > 0 || resolveConnectedAndroidDeviceId(runtimeInfo)))
+      (targets.length > 0 ||
+        resolveConnectedAndroidDeviceId(runtimeInfo) ||
+        normalizeStudioPlatformId(formValues.platformId) === 'android'))
   ) {
     deviceBuckets.android = buildAndroidDeviceItems({
       formValues,
@@ -370,6 +504,27 @@ export function buildStudioSidebarDeviceBuckets({
     if (connectedItem) {
       deviceBuckets[runtimePlatformKey] = [connectedItem];
     }
+  }
+
+  const selectedPlatformKey = normalizeStudioPlatformId(formValues.platformId);
+  const selectedDeviceId = resolveSelectedDeviceId(formValues);
+  if (
+    selectedPlatformKey &&
+    selectedDeviceId &&
+    deviceBuckets[selectedPlatformKey].length === 0
+  ) {
+    deviceBuckets[selectedPlatformKey] = [
+      {
+        id: selectedDeviceId,
+        label: selectedDeviceId,
+        selected: true,
+        status: 'idle',
+        sessionValues: resolveSelectedSessionValues(
+          selectedPlatformKey,
+          formValues,
+        ),
+      },
+    ];
   }
 
   return deviceBuckets;

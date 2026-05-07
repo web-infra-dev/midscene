@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import {
   getAvailablePromptActionTypes,
   getInlineStructuredFieldConfig,
+  shouldOffsetEmptyStateForPromptInput,
 } from '../src/utils/prompt-input-utils';
 
 function makeStringField(description?: string) {
@@ -159,6 +160,45 @@ describe('getInlineStructuredFieldConfig', () => {
         '',
       ),
     ).toBeNull();
+  });
+});
+
+describe('shouldOffsetEmptyStateForPromptInput', () => {
+  test('offsets empty state for multi-field structured actions', () => {
+    const actionSpace = [
+      {
+        name: 'Scroll',
+        interfaceAlias: 'aiScroll',
+        paramSchema: {
+          shape: {
+            direction: makeStringField(),
+            distance: makeNumberField(),
+          },
+        },
+      },
+    ] as any;
+
+    expect(shouldOffsetEmptyStateForPromptInput(actionSpace, 'aiScroll')).toBe(
+      true,
+    );
+  });
+
+  test('does not offset empty state for inline structured actions', () => {
+    const actionSpace = [
+      {
+        name: 'Tap',
+        interfaceAlias: 'aiTap',
+        paramSchema: {
+          shape: {
+            locate: makeLocateField(),
+          },
+        },
+      },
+    ] as any;
+
+    expect(shouldOffsetEmptyStateForPromptInput(actionSpace, 'aiTap')).toBe(
+      false,
+    );
   });
 });
 

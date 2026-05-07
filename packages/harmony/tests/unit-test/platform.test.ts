@@ -111,14 +111,30 @@ describe('harmonyPlaygroundPlatform', () => {
 
     expect(setup?.targets).toEqual([]);
     expect(setup?.autoSubmitWhenReady).toBe(false);
-    expect(setup?.notice).toMatchObject({
-      type: 'warning',
-      description: expect.stringContaining('No HarmonyOS devices found'),
-    });
+    expect(setup?.notice).toBeUndefined();
     await expect(prepared.sessionManager?.listTargets?.()).resolves.toEqual([]);
     await expect(prepared.sessionManager?.createSession({})).rejects.toThrow(
       'No HarmonyOS devices found',
     );
+  });
+
+  test('shows deferred setup warning when HarmonyOS device discovery fails', async () => {
+    getConnectedDevicesMock.mockRejectedValue(new Error('hdc not found'));
+
+    const { harmonyPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await harmonyPlaygroundPlatform.prepare({
+      deferConnection: true,
+    });
+
+    const setup = await prepared.sessionManager?.getSetupSchema();
+
+    expect(setup?.targets).toEqual([]);
+    expect(setup?.autoSubmitWhenReady).toBe(false);
+    expect(setup?.notice).toMatchObject({
+      type: 'warning',
+      message: 'HarmonyOS device discovery failed',
+      description: 'hdc not found',
+    });
   });
 
   test('throws a normal error instead of exiting when direct mode has no devices', async () => {
