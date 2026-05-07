@@ -17,6 +17,7 @@ export interface LocateOption extends Partial<TMultimodalPrompt> {
 export interface ServiceExtractOption {
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
+  searchArea?: Rect;
   [key: string]: unknown;
 }
 
@@ -222,6 +223,7 @@ export interface MidsceneYamlFlowItemAIAssert extends ServiceExtractOption {
   aiAssert: string;
   errorMessage?: string;
   name?: string;
+  locatePrompt?: string;
 }
 
 export interface MidsceneYamlFlowItemAIWaitFor extends ServiceExtractOption {

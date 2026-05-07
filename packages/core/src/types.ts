@@ -256,6 +256,7 @@ export interface AgentWaitForOpt extends ServiceExtractOption {
 
 export interface AgentAssertOpt {
   keepRawResponse?: boolean;
+  locatePrompt?: string;
 }
 
 /**
