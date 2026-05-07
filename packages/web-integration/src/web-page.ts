@@ -387,6 +387,10 @@ export abstract class AbstractWebPage extends AbstractInterface {
   navigate?(url: string): Promise<void>;
   reload?(): Promise<void>;
   goBack?(): Promise<void>;
+  goForward?(): Promise<void>;
+  stopLoading?(): Promise<void>;
+  navigationState?(): Promise<{ isLoading: boolean }>;
+  flushPendingVisualUpdate?(): Promise<void>;
 
   get mouse(): MouseAction {
     return {
@@ -496,6 +500,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
 
     // Note: there is another implementation in AndroidDevicePage, which is more complex
     await page.keyboard.type(param.value);
+    await page.flushPendingVisualUpdate?.();
   }),
   defineActionKeyboardPress(async (param) => {
     const element = param.locate;
@@ -507,6 +512,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
 
     const keys = getKeyCommands(param.keyName);
     await page.keyboard.press(keys as any); // TODO: fix this type error
+    await page.flushPendingVisualUpdate?.();
   }),
   defineActionCursorMove(async (param) => {
     const arrowKey = param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
@@ -701,6 +707,28 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
         throw new Error('GoBack operation is not supported on this page type');
       }
       await page.goBack();
+    },
+  }),
+  defineAction({
+    name: 'GoForward',
+    description: 'Navigate forward in browser history',
+    call: async () => {
+      if (!page.goForward) {
+        throw new Error(
+          'GoForward operation is not supported on this page type',
+        );
+      }
+      await page.goForward();
+    },
+  }),
+  defineAction({
+    name: 'Stop',
+    description: 'Stop loading the current page',
+    call: async () => {
+      if (!page.stopLoading) {
+        throw new Error('Stop operation is not supported on this page type');
+      }
+      await page.stopLoading();
     },
   }),
 ];

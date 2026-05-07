@@ -26,11 +26,12 @@ export function shouldUseMobilePreviewFrame(
   return platform === 'android' || platform === 'ios' || platform === 'harmony';
 }
 
-export function shouldUseComputerPreviewPadding(
+export function shouldUseDesktopPreviewPadding(
   runtimeInfo: PlaygroundRuntimeInfo | null,
   formValues: Record<string, unknown>,
 ): boolean {
-  return resolveStudioPreviewPlatform(runtimeInfo, formValues) === 'computer';
+  const platform = resolveStudioPreviewPlatform(runtimeInfo, formValues);
+  return platform === 'computer' || platform === 'web';
 }
 
 export function shouldEnableMobilePreviewFrame(

@@ -15,6 +15,21 @@ export interface FileChooserHandler {
   accept(files: string[]): Promise<void>;
 }
 
+export interface MjpegStreamFrame {
+  data: string;
+  contentType?: string;
+}
+
+export interface MjpegStreamHandle {
+  stop(): void | Promise<void>;
+}
+
+export interface MjpegStreamOptions {
+  signal?: AbortSignal;
+  onFrame(frame: MjpegStreamFrame): void;
+  onError?(error: unknown): void;
+}
+
 export abstract class AbstractInterface {
   abstract interfaceType: string;
 
@@ -62,6 +77,15 @@ export abstract class AbstractInterface {
 
   /** URL of native MJPEG stream for real-time screen preview (e.g. WDA MJPEG server) */
   mjpegStreamUrl?: string;
+
+  /**
+   * Optional in-process MJPEG frame producer. Implementations can push raw
+   * base64 frames here when there is no standalone native MJPEG URL, e.g.
+   * Chromium CDP Page.startScreencast for web previews.
+   */
+  startMjpegStream?(
+    options: MjpegStreamOptions,
+  ): MjpegStreamHandle | undefined | Promise<MjpegStreamHandle | undefined>;
 }
 
 // Generic function to define actions with proper type inference

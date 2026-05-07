@@ -4,7 +4,7 @@ import {
   fitMobilePreviewViewport,
   resolveStudioPreviewPlatform,
   shouldEnableMobilePreviewFrame,
-  shouldUseComputerPreviewPadding,
+  shouldUseDesktopPreviewPadding,
   shouldUseMobilePreviewFrame,
 } from '../src/renderer/components/MainContent/preview-layout';
 
@@ -73,16 +73,19 @@ describe('shouldUseMobilePreviewFrame', () => {
   });
 });
 
-describe('shouldUseComputerPreviewPadding', () => {
-  it('adds horizontal preview padding only for computer sessions', () => {
+describe('shouldUseDesktopPreviewPadding', () => {
+  it('adds horizontal preview padding for computer and web sessions', () => {
     expect(
-      shouldUseComputerPreviewPadding(createRuntimeInfo('computer'), {}),
+      shouldUseDesktopPreviewPadding(createRuntimeInfo('computer'), {}),
     ).toBe(true);
-    expect(shouldUseComputerPreviewPadding(null, { platformId: 'macos' })).toBe(
+    expect(shouldUseDesktopPreviewPadding(null, { platformId: 'macos' })).toBe(
+      true,
+    );
+    expect(shouldUseDesktopPreviewPadding(createRuntimeInfo('web'), {})).toBe(
       true,
     );
     expect(
-      shouldUseComputerPreviewPadding(createRuntimeInfo('android'), {}),
+      shouldUseDesktopPreviewPadding(createRuntimeInfo('android'), {}),
     ).toBe(false);
   });
 });

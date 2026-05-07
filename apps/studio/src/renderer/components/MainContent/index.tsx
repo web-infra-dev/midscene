@@ -1,4 +1,11 @@
-import { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  Suspense,
+  lazy,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { assetUrls } from '../../assets';
 import {
   type StudioPreviewConnectionState,
@@ -22,7 +29,7 @@ import { MobilePreviewFrame } from './MobilePreviewFrame';
 import {
   resolveStudioPreviewPlatform,
   shouldEnableMobilePreviewFrame,
-  shouldUseComputerPreviewPadding,
+  shouldUseDesktopPreviewPadding,
 } from './preview-layout';
 
 const LazyPlaygroundPreview = lazy(() => import('./LazyPlaygroundPreview'));
@@ -60,6 +67,127 @@ function RefreshIcon({ spinning }: { spinning?: boolean }) {
   );
 }
 
+function BackIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="15"
+      viewBox="0 0 16 16"
+      width="15"
+    >
+      <path
+        d="M9.8 3.2 5 8l4.8 4.8"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+}
+
+function ForwardIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="15"
+      viewBox="0 0 16 16"
+      width="15"
+    >
+      <path
+        d="M6.2 3.2 11 8l-4.8 4.8"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+}
+
+function StopIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="13"
+      viewBox="0 0 16 16"
+      width="13"
+    >
+      <rect
+        height="8.5"
+        rx="1"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        width="8.5"
+        x="3.75"
+        y="3.75"
+      />
+    </svg>
+  );
+}
+
+function getPreviewConnectingLabel(platform?: string): string {
+  switch (platform) {
+    case 'web':
+      return 'Opening Web page…';
+    case 'computer':
+      return 'Preparing computer connection…';
+    case 'ios':
+      return 'Preparing iOS device connection…';
+    case 'harmony':
+      return 'Preparing HarmonyOS device connection…';
+    case 'android':
+      return 'Preparing Android device connection…';
+    default:
+      return 'Preparing device connection…';
+  }
+}
+
+function getDisconnectedPreviewTitle(platform?: string): string {
+  switch (platform) {
+    case 'web':
+      return 'Open Web Page';
+    case 'computer':
+      return 'Connect Computer';
+    case 'ios':
+      return 'Connect iOS Device';
+    case 'harmony':
+      return 'Connect HarmonyOS Device';
+    case 'android':
+      return 'Connect Android Device';
+    default:
+      return 'Connect Device';
+  }
+}
+
+function WebNavigationButton({
+  'aria-label': ariaLabel,
+  disabled,
+  onClick,
+  children,
+}: {
+  'aria-label': string;
+  disabled?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      aria-label={ariaLabel}
+      className="app-no-drag flex h-[28px] w-[28px] cursor-pointer appearance-none items-center justify-center rounded-[7px] border-0 bg-transparent p-0 text-text-secondary shadow-none transition-colors hover:bg-surface-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+      disabled={disabled}
+      onClick={onClick}
+      title={ariaLabel}
+      type="button"
+    >
+      {children}
+    </button>
+  );
+}
+
 function OverviewToolbar({
   onRefresh,
   refreshing,
@@ -94,6 +222,10 @@ export default function MainContent({
     null,
   );
   const [overviewRefreshing, setOverviewRefreshing] = useState(false);
+  const [webNavigationBusyAction, setWebNavigationBusyAction] = useState<
+    'GoBack' | 'GoForward' | 'Stop' | 'Reload' | null
+  >(null);
+  const [webIsLoading, setWebIsLoading] = useState(false);
   const isReady = studioPlayground.phase === 'ready';
   const deviceLabel =
     studioPlayground.phase === 'error'
@@ -128,7 +260,7 @@ export default function MainContent({
     isConnected,
     previewStatus,
   );
-  const shouldPadComputerPreview = shouldUseComputerPreviewPadding(
+  const shouldPadDesktopPreview = shouldUseDesktopPreviewPadding(
     runtimeInfo,
     previewFormValues,
   );
@@ -140,7 +272,17 @@ export default function MainContent({
     isConnected &&
     (previewPlatform === 'android' ||
       previewPlatform === 'ios' ||
-      previewPlatform === 'harmony');
+      previewPlatform === 'harmony' ||
+      previewPlatform === 'web');
+  const manualDragActionType =
+    previewPlatform === 'web' ? 'DragAndDrop' : 'Swipe';
+  const showWebNavigation = isConnected && previewPlatform === 'web';
+  const previewConnectingLabel = getPreviewConnectingLabel(previewPlatform);
+  const disconnectedPreviewTitle = getDisconnectedPreviewTitle(previewPlatform);
+  const isOpeningSession =
+    isReady &&
+    !isConnected &&
+    studioPlayground.controller.state.sessionMutating;
   const disconnectDisabled =
     !isReady || !studioPlayground.controller.state.sessionViewState.connected;
   const previewConnectionFailed =
@@ -157,8 +299,82 @@ export default function MainContent({
     if (!isConnected) {
       setPreviewStatus(null);
       setPreviewStatusText(null);
+      setWebNavigationBusyAction(null);
+      setWebIsLoading(false);
     }
   }, [isConnected]);
+
+  useEffect(() => {
+    if (
+      !showWebNavigation ||
+      studioPlayground.phase !== 'ready' ||
+      !studioPlayground.controller.state.serverOnline
+    ) {
+      setWebIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const refreshWebLoadingState = async () => {
+      let info: Awaited<
+        ReturnType<
+          typeof studioPlayground.controller.state.playgroundSDK.getInterfaceInfo
+        >
+      >;
+      try {
+        info =
+          await studioPlayground.controller.state.playgroundSDK.getInterfaceInfo();
+      } catch (error) {
+        if (!cancelled) {
+          console.warn('Failed to refresh web loading state:', error);
+          setWebIsLoading(false);
+        }
+        return;
+      }
+      if (cancelled) return;
+      setWebIsLoading(Boolean(info?.navigationState?.isLoading));
+    };
+
+    void refreshWebLoadingState();
+    const timer = window.setInterval(refreshWebLoadingState, 1000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [showWebNavigation, studioPlayground]);
+
+  const runWebNavigationAction = async (
+    actionType: 'GoBack' | 'GoForward' | 'Stop' | 'Reload',
+  ) => {
+    if (
+      studioPlayground.phase !== 'ready' ||
+      webNavigationBusyAction !== null ||
+      previewPlatform !== 'web'
+    ) {
+      return;
+    }
+    setWebNavigationBusyAction(actionType);
+    try {
+      if (actionType !== 'Stop') {
+        setWebIsLoading(true);
+      }
+      const result =
+        await studioPlayground.controller.state.playgroundSDK.interact({
+          actionType,
+        });
+      if (!result.ok) {
+        console.error(
+          `Failed to run web navigation action "${actionType}": ${
+            result.error || 'Unknown error'
+          }`,
+        );
+      } else {
+        setWebIsLoading(false);
+      }
+    } finally {
+      setWebNavigationBusyAction(null);
+    }
+  };
 
   const pauseDiscoveryPolling = shouldPauseDiscoveryPollingDuringPreview({
     previewStatus,
@@ -260,11 +476,14 @@ export default function MainContent({
               platform,
               device,
             );
-            state.form.setFieldsValue(selectionValues);
             onSelectDeviceView?.();
-            if (connectedDeviceId === device.id) {
+            if (
+              connectedDeviceId === device.id ||
+              (device.selected && device.status === 'active')
+            ) {
               return;
             }
+            state.form.setFieldsValue(selectionValues);
             if (state.sessionViewState.connected) {
               await actions.destroySession();
             }
@@ -323,6 +542,54 @@ export default function MainContent({
               {connectionStatusLabel}
             </span>
           </div>
+          {showWebNavigation ? (
+            <div
+              aria-label="Web navigation"
+              className="app-no-drag ml-[10px] flex h-[32px] items-center gap-[2px] rounded-[8px] bg-transparent px-[2px]"
+            >
+              <WebNavigationButton
+                aria-label="Go back"
+                disabled={webNavigationBusyAction !== null}
+                onClick={() => {
+                  void runWebNavigationAction('GoBack');
+                }}
+              >
+                <BackIcon />
+              </WebNavigationButton>
+              <WebNavigationButton
+                aria-label="Go forward"
+                disabled={webNavigationBusyAction !== null}
+                onClick={() => {
+                  void runWebNavigationAction('GoForward');
+                }}
+              >
+                <ForwardIcon />
+              </WebNavigationButton>
+              {webIsLoading ? (
+                <WebNavigationButton
+                  aria-label="Stop loading"
+                  disabled={webNavigationBusyAction !== null}
+                  onClick={() => {
+                    void runWebNavigationAction('Stop');
+                  }}
+                >
+                  <StopIcon />
+                </WebNavigationButton>
+              ) : (
+                <WebNavigationButton
+                  aria-label="Reload page"
+                  disabled={webNavigationBusyAction !== null}
+                  onClick={() => {
+                    void runWebNavigationAction('Reload');
+                  }}
+                >
+                  <RefreshIcon
+                    spinning={webNavigationBusyAction === 'Reload'}
+                  />
+                </WebNavigationButton>
+              )}
+            </div>
+          ) : null}
         </div>
 
         <div className="flex flex-1 justify-end gap-[8.04px]">
@@ -392,8 +659,8 @@ export default function MainContent({
             </div>
           ) : studioPlayground.controller.state.sessionViewState.connected ? (
             <div
-              className={`h-full w-full ${
-                shouldPadComputerPreview ? 'px-4' : ''
+              className={`box-border h-full w-full ${
+                shouldPadDesktopPreview ? 'px-6' : ''
               }`}
             >
               <Suspense
@@ -401,10 +668,7 @@ export default function MainContent({
                   <ConnectingPreview
                     pcSrc={assetUrls.main.pc}
                     phoneSrc={assetUrls.main.phone}
-                    statusLabel={
-                      previewStatusText ||
-                      'Preparing Android device connection…'
-                    }
+                    statusLabel={previewStatusText || previewConnectingLabel}
                   />
                 }
               >
@@ -413,10 +677,7 @@ export default function MainContent({
                     <ConnectingPreview
                       pcSrc={assetUrls.main.pc}
                       phoneSrc={assetUrls.main.phone}
-                      statusLabel={
-                        previewStatusText ||
-                        'Preparing Android device connection…'
-                      }
+                      statusLabel={previewStatusText || previewConnectingLabel}
                     />
                   }
                   onScrcpyStatusChange={(status, statusText) => {
@@ -449,11 +710,22 @@ export default function MainContent({
                     studioPlayground.controller.state.isUserOperating
                   }
                   manualControlEnabled={manualControlEnabled}
+                  manualDragActionType={manualDragActionType}
+                  manualKeyboardEnabled={previewPlatform === 'web'}
                 />
               </Suspense>
             </div>
+          ) : isOpeningSession ? (
+            <ConnectingPreview
+              pcSrc={assetUrls.main.pc}
+              phoneSrc={assetUrls.main.phone}
+              statusLabel={previewConnectingLabel}
+            />
           ) : (
-            <DisconnectedPreview iconSrc={assetUrls.main.connectionClosed} />
+            <DisconnectedPreview
+              iconSrc={assetUrls.main.connectionClosed}
+              title={disconnectedPreviewTitle}
+            />
           )}
         </MobilePreviewFrame>
       </div>

@@ -42,6 +42,7 @@ export default function ScreenshotViewer({
   // is reopened. Used both for natural retries on stream errors and for the
   // server-driven upgrade from polling fallback to native MJPEG.
   const [mjpegRetryToken, setMjpegRetryToken] = useState('');
+  const mjpegImageRef = useRef<HTMLImageElement | null>(null);
   const isMjpeg = Boolean(mjpegUrl && serverOnline);
   const showChrome = mode !== 'screen-only';
   const rootClassName = [
@@ -54,6 +55,18 @@ export default function ScreenshotViewer({
   // Refs for managing polling
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isPollingPausedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isMjpeg) return;
+    const timer = window.setTimeout(() => {
+      const image = mjpegImageRef.current;
+      if (!image || image.naturalWidth > 0 || image.naturalHeight > 0) {
+        return;
+      }
+      setMjpegRetryToken(String(Date.now()));
+    }, 2500);
+    return () => window.clearTimeout(timer);
+  }, [isMjpeg, mjpegRetryToken, mjpegUrl]);
 
   // Core function to fetch screenshot
   const fetchScreenshot = useCallback(
@@ -183,7 +196,7 @@ export default function ScreenshotViewer({
 
   // Manage user operation status changes
   useEffect(() => {
-    if (!serverOnline) return;
+    if (!serverOnline || isMjpeg) return;
 
     if (isUserOperating) {
       // When user starts operating, pause polling
@@ -199,6 +212,7 @@ export default function ScreenshotViewer({
     resumePolling,
     fetchScreenshot,
     serverOnline,
+    isMjpeg,
   ]);
 
   // Cleanup function
@@ -254,6 +268,7 @@ export default function ScreenshotViewer({
       {isMjpeg ? (
         <img
           key={mjpegRetryToken || 'initial'}
+          ref={mjpegImageRef}
           src={
             !mjpegRetryToken
               ? mjpegUrl

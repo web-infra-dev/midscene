@@ -519,6 +519,23 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     await this.waitUntilNetworkIdle();
   }
 
+  async goForward(): Promise<void> {
+    const tabId = await this.getTabIdOrConnectToCurrentTab();
+    await chrome.tabs.goForward(tabId);
+    // Wait for navigation to complete
+    await this.waitUntilNetworkIdle();
+  }
+
+  async stopLoading(): Promise<void> {
+    await this.sendCommandToDebugger('Page.stopLoading', {});
+  }
+
+  async navigationState(): Promise<{ isLoading: boolean }> {
+    const tabId = await this.getTabIdOrConnectToCurrentTab();
+    const tab = await chrome.tabs.get(tabId);
+    return { isLoading: tab.status === 'loading' };
+  }
+
   async scrollUntilTop(startingPoint?: Point) {
     if (startingPoint) {
       await this.mouse.move(startingPoint.left, startingPoint.top);

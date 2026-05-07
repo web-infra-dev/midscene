@@ -98,6 +98,12 @@ describe('buildInteractParams', () => {
     expect(buildInteractParams('KeyboardPress', { keyName: 'Enter' })).toEqual({
       keyName: 'Enter',
     });
+    expect(
+      buildInteractParams('KeyboardPress', { keyName: 'Enter', x: 50, y: 60 }),
+    ).toMatchObject({
+      keyName: 'Enter',
+      locate: { center: [50, 60] },
+    });
     expect(() => buildInteractParams('KeyboardPress', {})).toThrow();
   });
 

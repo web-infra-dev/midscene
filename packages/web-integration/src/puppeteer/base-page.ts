@@ -7,7 +7,11 @@ import type {
   Rect,
   Size,
 } from '@midscene/core';
-import type { AbstractInterface } from '@midscene/core/device';
+import type {
+  AbstractInterface,
+  MjpegStreamHandle,
+  MjpegStreamOptions,
+} from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import {
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
@@ -44,6 +48,30 @@ const warnPage = getDebug('web:page', { console: true });
 export const BROWSER_NAVIGATION_ERROR_PATTERN =
   /execution context was destroyed|frame was detached|target closed|page has been closed|context was destroyed|net::ERR_ABORTED/i;
 
+const CDP_SCREENCAST_QUALITY = 70;
+
+type ScreencastFrameEvent = {
+  data: string;
+  sessionId: number;
+};
+
+type ScreencastCdpSession = {
+  send(method: string, params?: Record<string, unknown>): Promise<unknown>;
+  detach(): Promise<void>;
+  on(
+    event: 'Page.screencastFrame',
+    handler: (event: ScreencastFrameEvent) => void,
+  ): void;
+  off?(
+    event: 'Page.screencastFrame',
+    handler: (event: ScreencastFrameEvent) => void,
+  ): void;
+  removeListener?(
+    event: 'Page.screencastFrame',
+    handler: (event: ScreencastFrameEvent) => void,
+  ): void;
+};
+
 function isClosedPageError(error: unknown) {
   if (!(error instanceof Error)) {
     return false;
@@ -72,6 +100,10 @@ export class Page<
     event: Protocol.Page.FileChooserOpenedEvent,
   ) => Promise<void>;
   private playwrightNetworkIdleWarningShown = false;
+  private activeMjpegStream?: {
+    token: symbol;
+    onFrame: MjpegStreamOptions['onFrame'];
+  };
   interfaceType: AgentType;
 
   actionSpace(): DeviceAction[] {
@@ -380,6 +412,147 @@ export class Page<
     }
   }
 
+  private async createScreencastCdpSession(): Promise<ScreencastCdpSession> {
+    if (this.interfaceType === 'puppeteer') {
+      const page = this.underlyingPage as PuppeteerPage;
+      return (await page.target().createCDPSession()) as ScreencastCdpSession;
+    }
+
+    const page = this.underlyingPage as PlaywrightPage;
+    const browserName = page.context().browser()?.browserType().name();
+    if (browserName && browserName !== 'chromium') {
+      throw new Error(
+        `CDP screencast requires Chromium-based browser, but current browser is "${browserName}".`,
+      );
+    }
+    return (await page.context().newCDPSession(page)) as ScreencastCdpSession;
+  }
+
+  async flushPendingVisualUpdate(): Promise<void> {
+    const activeStream = this.activeMjpegStream;
+    if (!activeStream) return;
+
+    try {
+      await this.evaluate(
+        () =>
+          new Promise<void>((resolve) => {
+            let done = false;
+            const finish = () => {
+              if (done) return;
+              done = true;
+              resolve();
+            };
+            setTimeout(finish, 50);
+            requestAnimationFrame(() => requestAnimationFrame(finish));
+          }),
+      );
+      const data = await this.screenshotBase64();
+      if (this.activeMjpegStream?.token !== activeStream.token) return;
+      activeStream.onFrame({
+        data,
+        contentType: 'image/jpeg',
+      });
+    } catch (error) {
+      debugPage('screencast visual refresh failed: %s', error);
+    }
+  }
+
+  async startMjpegStream(
+    options: MjpegStreamOptions,
+  ): Promise<MjpegStreamHandle> {
+    const { signal, onFrame, onError } = options;
+    if (typeof this.underlyingPage.bringToFront === 'function') {
+      await this.underlyingPage.bringToFront();
+    }
+    const client = await this.createScreencastCdpSession();
+    let stopped = false;
+    const streamToken = Symbol('mjpeg-stream');
+
+    const handleFrame = (event: ScreencastFrameEvent) => {
+      void (async () => {
+        if (stopped) return;
+        try {
+          onFrame({
+            data: event.data,
+            contentType: 'image/jpeg',
+          });
+        } catch (error) {
+          onError?.(error);
+        }
+
+        try {
+          await client.send('Page.screencastFrameAck', {
+            sessionId: event.sessionId,
+          });
+        } catch (error) {
+          if (!stopped) {
+            onError?.(error);
+          }
+        }
+      })();
+    };
+
+    const removeFrameListener = () => {
+      if (client.off) {
+        client.off('Page.screencastFrame', handleFrame);
+      } else if (client.removeListener) {
+        client.removeListener('Page.screencastFrame', handleFrame);
+      }
+    };
+
+    const stop = async () => {
+      if (stopped) return;
+      stopped = true;
+      if (this.activeMjpegStream?.token === streamToken) {
+        this.activeMjpegStream = undefined;
+      }
+      signal?.removeEventListener('abort', abortHandler);
+      removeFrameListener();
+      await client.send('Page.stopScreencast').catch((error) => {
+        debugPage('Page.stopScreencast failed: %s', error);
+      });
+      await client.detach().catch((error) => {
+        debugPage('CDP screencast session detach failed: %s', error);
+      });
+    };
+
+    const abortHandler = () => {
+      void stop();
+    };
+
+    try {
+      client.on('Page.screencastFrame', handleFrame);
+      this.activeMjpegStream = {
+        token: streamToken,
+        onFrame,
+      };
+      signal?.addEventListener('abort', abortHandler, { once: true });
+
+      if (signal?.aborted) {
+        await stop();
+        return { stop };
+      }
+
+      await client.send('Page.enable');
+      try {
+        const { width, height } = await this.size();
+        await client.send('Emulation.setVisibleSize', { width, height });
+      } catch (error) {
+        debugPage('CDP screencast visible size sync failed: %s', error);
+      }
+      await client.send('Page.startScreencast', {
+        format: 'jpeg',
+        quality: CDP_SCREENCAST_QUALITY,
+        everyNthFrame: 1,
+      });
+
+      return { stop };
+    } catch (error) {
+      await stop();
+      throw error;
+    }
+  }
+
   async url(): Promise<string> {
     return this.underlyingPage.url();
   }
@@ -620,6 +793,47 @@ export class Page<
       await (this.underlyingPage as PlaywrightPage).goBack();
     } else {
       throw new Error('Unsupported page type for go back');
+    }
+  }
+
+  async goForward(): Promise<void> {
+    debugPage('go forward');
+    if (this.interfaceType === 'puppeteer') {
+      await (this.underlyingPage as PuppeteerPage).goForward();
+    } else if (this.interfaceType === 'playwright') {
+      await (this.underlyingPage as PlaywrightPage).goForward();
+    } else {
+      throw new Error('Unsupported page type for go forward');
+    }
+  }
+
+  async stopLoading(): Promise<void> {
+    debugPage('stop loading');
+    if (this.interfaceType === 'puppeteer') {
+      const client = await (this.underlyingPage as PuppeteerPage)
+        .target()
+        .createCDPSession();
+      try {
+        await client.send('Page.stopLoading');
+      } finally {
+        await client.detach();
+      }
+    } else if (this.interfaceType === 'playwright') {
+      await (this.underlyingPage as PlaywrightPage).evaluate(() =>
+        window.stop(),
+      );
+    } else {
+      throw new Error('Unsupported page type for stop loading');
+    }
+  }
+
+  async navigationState(): Promise<{ isLoading: boolean }> {
+    try {
+      const readyState = await this.evaluate(() => document.readyState);
+      return { isLoading: readyState !== 'complete' };
+    } catch (error) {
+      debugPage('failed to query navigation state: %s', error);
+      return { isLoading: false };
     }
   }
 

@@ -11,6 +11,10 @@ import type {
 } from '@midscene/core';
 import { ReportActionDump, runConnectivityTest } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
+import type {
+  MjpegStreamFrame,
+  MjpegStreamHandle,
+} from '@midscene/core/device';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import {
@@ -202,7 +206,17 @@ const buildKeyboardPressParams: InteractParamBuilder = (body) => {
       'keyName is required for KeyboardPress',
     );
   }
-  return { keyName: body.keyName };
+  const params: Record<string, unknown> = { keyName: body.keyName };
+  if (typeof body.x === 'number' && typeof body.y === 'number') {
+    params.locate = locateFromPoint(
+      body.x,
+      body.y,
+      'x',
+      'y',
+      'manual keyboard press',
+    );
+  }
+  return params;
 };
 
 const buildInputParams: InteractParamBuilder = (body) => {
@@ -301,6 +315,27 @@ interface PlaygroundActiveConnection {
   sidecars?: PlaygroundSidecar[];
 }
 
+type InterfaceMjpegSubscriber = (frame: MjpegStreamFrame) => void;
+
+interface InterfaceMjpegProducer {
+  source: unknown;
+  controller: AbortController;
+  handle?: MjpegStreamHandle;
+  lastFrame?: MjpegStreamFrame;
+  startupError?: unknown;
+  firstFrameReady: Promise<boolean>;
+  subscribers: Set<InterfaceMjpegSubscriber>;
+  stopTimer?: ReturnType<typeof setTimeout>;
+}
+
+const RECOVERABLE_PAGE_SESSION_ERROR_PATTERN =
+  /Session closed|page has been closed|target closed|browser has been closed|Target page, context or browser has been closed/i;
+
+function isRecoverablePageSessionError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return RECOVERABLE_PAGE_SESSION_ERROR_PATTERN.test(message);
+}
+
 class PlaygroundServer {
   private _app: express.Application;
   tmpDir: string;
@@ -324,6 +359,9 @@ class PlaygroundServer {
   private _nativeMjpegAvailable: boolean | null = null;
   private _nativeMjpegFailedAt: number | null = null;
   private static readonly MJPEG_NEGATIVE_CACHE_MS = 10_000;
+  private static readonly INTERFACE_MJPEG_INITIAL_FRAME_TIMEOUT_MS = 1500;
+  private static readonly INTERFACE_MJPEG_IDLE_STOP_MS = 2000;
+  private _interfaceMjpegProducer?: InterfaceMjpegProducer;
 
   private sessionManager?: PlaygroundSessionManager;
   private sessionSetupState: 'required' | 'ready' | 'blocked' = 'ready';
@@ -801,6 +839,54 @@ class PlaygroundServer {
         'Agent destroyed but cannot recreate: no factory function provided. Next /execute call will fail.',
       );
     }
+  }
+
+  private async recoverActiveAgentAfterPreviewError(
+    error: unknown,
+    reason: string,
+  ): Promise<PageAgent | null> {
+    if (
+      !this._activeConnection.agentFactory ||
+      !isRecoverablePageSessionError(error)
+    ) {
+      return null;
+    }
+
+    debugMjpeg(`Recovering active agent after ${reason}:`, error);
+    try {
+      this.stopInterfaceMjpegProducer(this._interfaceMjpegProducer);
+      await this.recreateAgent();
+      return this._activeConnection.agent;
+    } catch (recreateError) {
+      debugMjpeg(
+        `Failed to recover active agent after ${reason}:`,
+        recreateError,
+      );
+      return null;
+    }
+  }
+
+  private findInteractAction(
+    agent: PageAgent,
+    actionType: string,
+  ): DeviceAction<unknown> | undefined {
+    return (agent.interface.actionSpace() as DeviceAction<unknown>[]).find(
+      (entry) => entry.name === actionType,
+    );
+  }
+
+  private async runInteractAction(
+    agent: PageAgent,
+    actionType: string,
+    params: Record<string, unknown>,
+  ): Promise<'missing-action' | 'ok'> {
+    const action = this.findInteractAction(agent, actionType);
+    if (!action || typeof action.call !== 'function') {
+      return 'missing-action';
+    }
+
+    await action.call(params, createManualExecutorContext(actionType, params));
+    return 'ok';
   }
 
   /**
@@ -1314,7 +1400,7 @@ class PlaygroundServer {
     // Screenshot API for real-time screenshot polling
     this._app.get('/screenshot', async (_req: Request, res: Response) => {
       try {
-        const agent = this.getActiveAgentOrThrow();
+        let agent = this.getActiveAgentOrThrow();
         // Check if page has screenshotBase64 method
         if (typeof agent.interface.screenshotBase64 !== 'function') {
           return res.status(500).json({
@@ -1322,8 +1408,26 @@ class PlaygroundServer {
           });
         }
 
+        let screenshot: string;
+        try {
+          screenshot = await agent.interface.screenshotBase64();
+        } catch (error) {
+          const recoveredAgent = await this.recoverActiveAgentAfterPreviewError(
+            error,
+            'screenshot capture',
+          );
+          if (
+            !recoveredAgent ||
+            typeof recoveredAgent.interface.screenshotBase64 !== 'function'
+          ) {
+            throw error;
+          }
+          agent = recoveredAgent;
+          screenshot = await agent.interface.screenshotBase64();
+        }
+
         res.json({
-          screenshot: await agent.interface.screenshotBase64(),
+          screenshot,
           timestamp: Date.now(),
         });
       } catch (error: unknown) {
@@ -1366,7 +1470,12 @@ class PlaygroundServer {
         if (proxyOk) return;
       }
 
-      if (typeof agent.interface?.screenshotBase64 !== 'function') {
+      if (await this.startInterfaceMjpegStream(req, res)) {
+        return;
+      }
+
+      const fallbackAgent = this._activeConnection.agent;
+      if (typeof fallbackAgent?.interface?.screenshotBase64 !== 'function') {
         return res.status(500).json({
           error: 'Screenshot method not available on current interface',
         });
@@ -1381,6 +1490,7 @@ class PlaygroundServer {
         const runtimeInfo = this.getRuntimeInfo();
         const agent = this._activeConnection.agent;
         let size: { width: number; height: number } | undefined;
+        let navigationState: { isLoading: boolean } | undefined;
         if (typeof agent?.interface?.size === 'function') {
           try {
             size = await agent.interface.size();
@@ -1388,11 +1498,25 @@ class PlaygroundServer {
             debugScreenshot('interface size() failed:', error);
           }
         }
+        const interfaceWithNavigationState = agent?.interface as unknown as {
+          navigationState?: () => Promise<{ isLoading: boolean }>;
+        };
+        if (
+          typeof interfaceWithNavigationState?.navigationState === 'function'
+        ) {
+          try {
+            navigationState =
+              await interfaceWithNavigationState.navigationState();
+          } catch (error) {
+            debugScreenshot('interface navigationState() failed:', error);
+          }
+        }
 
         res.json({
           type: runtimeInfo.interface.type,
           description: runtimeInfo.interface.description,
           ...(size ? { size } : {}),
+          ...(navigationState ? { navigationState } : {}),
         });
       } catch (error: unknown) {
         const errorMessage =
@@ -1424,10 +1548,7 @@ class PlaygroundServer {
         });
       }
 
-      const action = (
-        agent.interface.actionSpace() as DeviceAction<unknown>[]
-      ).find((entry) => entry.name === actionType);
-      if (!action || typeof action.call !== 'function') {
+      if (!this.findInteractAction(agent, actionType)) {
         return res.status(404).json({
           error: `Action "${actionType}" is not available on the current device`,
         });
@@ -1449,12 +1570,20 @@ class PlaygroundServer {
       }
 
       try {
-        await action.call(
-          params,
-          createManualExecutorContext(actionType, params),
-        );
+        await this.runInteractAction(agent, actionType, params);
         res.json({});
       } catch (error: unknown) {
+        const recoveredAgent = await this.recoverActiveAgentAfterPreviewError(
+          error,
+          `manual interact action "${actionType}"`,
+        );
+        if (recoveredAgent) {
+          return res.status(409).json({
+            error:
+              'The page session was closed and has been recreated. Please retry the action.',
+          });
+        }
+
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
         console.error(
@@ -1631,6 +1760,209 @@ class PlaygroundServer {
     });
   }
 
+  private writeMjpegFrame(
+    res: Response,
+    boundary: string,
+    frame: MjpegStreamFrame,
+  ): void {
+    const raw = frame.data.replace(/^data:image\/\w+;base64,/, '');
+    const buf = Buffer.from(raw, 'base64');
+
+    res.write(`--${boundary}\r\n`);
+    res.write(`Content-Type: ${frame.contentType || 'image/jpeg'}\r\n`);
+    res.write(`Content-Length: ${buf.length}\r\n\r\n`);
+    res.write(buf);
+    res.write('\r\n');
+  }
+
+  /**
+   * Starts (or reuses) one in-process frame producer for the active interface.
+   * CDP Page.startScreencast is page-scoped, so multiple concurrent producers
+   * can steal frames from each other. Keep a single producer and fan frames out
+   * to every HTTP MJPEG client instead.
+   */
+  private getOrCreateInterfaceMjpegProducer(
+    activeInterface: PageAgent['interface'],
+  ): InterfaceMjpegProducer | null {
+    const startMjpegStream = activeInterface.startMjpegStream;
+    if (typeof startMjpegStream !== 'function') return null;
+
+    if (this._interfaceMjpegProducer?.source === activeInterface) {
+      if (this._interfaceMjpegProducer.stopTimer) {
+        clearTimeout(this._interfaceMjpegProducer.stopTimer);
+        this._interfaceMjpegProducer.stopTimer = undefined;
+      }
+      return this._interfaceMjpegProducer;
+    }
+
+    this.stopInterfaceMjpegProducer(this._interfaceMjpegProducer);
+
+    const controller = new AbortController();
+    let resolveInitialFrame: ((hasFrame: boolean) => void) | undefined;
+    let initialFrameTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const resolveInitialFrameOnce = (hasFrame: boolean) => {
+      if (!resolveInitialFrame) return;
+      if (initialFrameTimer) {
+        clearTimeout(initialFrameTimer);
+        initialFrameTimer = undefined;
+      }
+      resolveInitialFrame(hasFrame);
+      resolveInitialFrame = undefined;
+    };
+
+    const initialFrameReady = new Promise<boolean>((resolve) => {
+      resolveInitialFrame = resolve;
+      initialFrameTimer = setTimeout(() => {
+        resolveInitialFrameOnce(false);
+      }, PlaygroundServer.INTERFACE_MJPEG_INITIAL_FRAME_TIMEOUT_MS);
+    });
+
+    const producer: InterfaceMjpegProducer = {
+      source: activeInterface,
+      controller,
+      firstFrameReady: initialFrameReady,
+      subscribers: new Set(),
+    };
+    this._interfaceMjpegProducer = producer;
+
+    void (async () => {
+      try {
+        producer.handle =
+          (await startMjpegStream.call(activeInterface, {
+            signal: controller.signal,
+            onFrame: (frame) => {
+              if (controller.signal.aborted) return;
+              producer.lastFrame = frame;
+              resolveInitialFrameOnce(true);
+              for (const subscriber of producer.subscribers) {
+                subscriber(frame);
+              }
+            },
+            onError: (error) => {
+              debugMjpeg('MJPEG interface stream producer error:', error);
+            },
+          })) ?? undefined;
+      } catch (error) {
+        debugMjpeg('MJPEG: interface frame producer unavailable:', error);
+        producer.startupError = error;
+        resolveInitialFrameOnce(false);
+        this.stopInterfaceMjpegProducer(producer);
+      }
+    })();
+
+    return producer;
+  }
+
+  private stopInterfaceMjpegProducer(producer?: InterfaceMjpegProducer): void {
+    if (!producer) return;
+    if (producer.stopTimer) {
+      clearTimeout(producer.stopTimer);
+      producer.stopTimer = undefined;
+    }
+    producer.subscribers.clear();
+    producer.controller.abort();
+    Promise.resolve(producer.handle?.stop?.()).catch((error) => {
+      debugMjpeg('MJPEG interface stream stop failed:', error);
+    });
+    if (this._interfaceMjpegProducer === producer) {
+      this._interfaceMjpegProducer = undefined;
+    }
+  }
+
+  private releaseInterfaceMjpegSubscriber(
+    producer: InterfaceMjpegProducer,
+    subscriber: InterfaceMjpegSubscriber,
+  ): void {
+    producer.subscribers.delete(subscriber);
+    if (producer.subscribers.size > 0 || producer.stopTimer) return;
+    producer.stopTimer = setTimeout(() => {
+      producer.stopTimer = undefined;
+      if (producer.subscribers.size === 0) {
+        this.stopInterfaceMjpegProducer(producer);
+      }
+    }, PlaygroundServer.INTERFACE_MJPEG_IDLE_STOP_MS);
+  }
+
+  /**
+   * Stream MJPEG frames produced in-process by the active interface, e.g.
+   * Chromium CDP Page.startScreencast for Web previews.
+   */
+  private async startInterfaceMjpegStream(
+    req: Request,
+    res: Response,
+    allowRecovery = true,
+  ): Promise<boolean> {
+    const agent = this._activeConnection.agent;
+    if (!agent) return false;
+
+    const producer = this.getOrCreateInterfaceMjpegProducer(agent.interface);
+    if (!producer) return false;
+
+    const hasInitialFrame = await producer.firstFrameReady;
+    if (!hasInitialFrame || !producer.lastFrame) {
+      debugMjpeg(
+        'MJPEG: interface frame producer did not emit an initial frame, using polling mode',
+      );
+      const startupError = producer.startupError;
+      this.stopInterfaceMjpegProducer(producer);
+      if (allowRecovery && startupError) {
+        const recoveredAgent = await this.recoverActiveAgentAfterPreviewError(
+          startupError,
+          'interface MJPEG startup',
+        );
+        if (recoveredAgent) {
+          return this.startInterfaceMjpegStream(req, res, false);
+        }
+      }
+      return false;
+    }
+
+    const boundary = 'mjpeg-boundary';
+    let closed = false;
+    let subscriber: InterfaceMjpegSubscriber = () => undefined;
+
+    const closeResponse = () => {
+      if (closed) return;
+      closed = true;
+      this.releaseInterfaceMjpegSubscriber(producer, subscriber);
+    };
+
+    const writeFrame = (frame: MjpegStreamFrame) => {
+      if (closed) return;
+      try {
+        this.writeMjpegFrame(res, boundary, frame);
+      } catch (error) {
+        debugMjpeg('MJPEG interface frame write failed:', error);
+        closeResponse();
+        try {
+          res.destroy();
+        } catch {
+          /* socket already closed */
+        }
+      }
+    };
+
+    subscriber = writeFrame;
+    producer.subscribers.add(subscriber);
+    if (producer.stopTimer) {
+      clearTimeout(producer.stopTimer);
+      producer.stopTimer = undefined;
+    }
+    req.on('close', closeResponse);
+
+    res.setHeader(
+      'Content-Type',
+      `multipart/x-mixed-replace; boundary=${boundary}`,
+    );
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Connection', 'keep-alive');
+    writeFrame(producer.lastFrame);
+
+    debugMjpeg('MJPEG: streaming via shared interface frame producer');
+    return true;
+  }
+
   /**
    * Stream screenshots as MJPEG by polling screenshotBase64().
    */
@@ -1709,16 +2041,20 @@ class PlaygroundServer {
         if (stopped) break;
         consecutiveErrors = 0;
 
-        const raw = base64.replace(/^data:image\/\w+;base64,/, '');
-        const buf = Buffer.from(raw, 'base64');
-
-        res.write(`--${boundary}\r\n`);
-        res.write('Content-Type: image/jpeg\r\n');
-        res.write(`Content-Length: ${buf.length}\r\n\r\n`);
-        res.write(buf);
-        res.write('\r\n');
+        this.writeMjpegFrame(res, boundary, {
+          data: base64,
+          contentType: 'image/jpeg',
+        });
       } catch (err) {
         if (stopped) break;
+        const recoveredAgent = await this.recoverActiveAgentAfterPreviewError(
+          err,
+          'polling MJPEG frame capture',
+        );
+        if (recoveredAgent) {
+          consecutiveErrors = 0;
+          continue;
+        }
         consecutiveErrors++;
         if (consecutiveErrors <= errorLogThreshold) {
           console.error('MJPEG frame error:', err);
