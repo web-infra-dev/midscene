@@ -240,8 +240,18 @@ export class AndroidDevice implements AbstractInterface {
         );
       }),
       defineActionSwipe(async (param) => {
+        const viewportSize = await this.size();
         const { startPoint, endPoint, duration, repeatCount } =
-          normalizeMobileSwipeParam(param, await this.size());
+          normalizeMobileSwipeParam(param, viewportSize);
+        warnDevice(
+          `[mobile-swipe] normalized: ${JSON.stringify({
+            deviceId: this.deviceId,
+            uri: this.uri,
+            raw: param,
+            normalized: { startPoint, endPoint, duration, repeatCount },
+            viewportSize,
+          })}`,
+        );
         for (let i = 0; i < repeatCount; i++) {
           await this.mouseDrag(startPoint, endPoint, duration);
         }
@@ -978,6 +988,111 @@ ${Object.keys(size)
     };
   }
 
+  private async getCoordinateDebugSnapshot(): Promise<{
+    logicalSize: Size;
+    physicalSize: { width: number; height: number };
+    adjustScale: { x: number; y: number };
+    devicePixelRatio: number;
+    densityFromDpr: number;
+    displayId: number | undefined;
+    displayArg: string;
+    deviceId: string;
+    uri: string | undefined;
+  }> {
+    const physicalSize = await this.getOrientedPhysicalSize();
+    const logicalSize = await this.size();
+    const adjustScale = await this.getAdjustScale();
+
+    return {
+      logicalSize,
+      physicalSize,
+      adjustScale,
+      devicePixelRatio: this.devicePixelRatio,
+      densityFromDpr: Math.round(this.devicePixelRatio * 160),
+      displayId: this.options?.displayId,
+      displayArg: this.getDisplayArg(),
+      deviceId: this.deviceId,
+      uri: this.uri,
+    };
+  }
+
+  private async logInputCommandDebug(
+    action: string,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    const snapshot = await this.getCoordinateDebugSnapshot();
+    warnDevice(
+      `[input-command] ${action}: ${JSON.stringify({
+        ...snapshot,
+        ...payload,
+      })}`,
+    );
+  }
+
+  private logInputCommandResult(
+    action: string,
+    payload: Record<string, unknown>,
+  ): void {
+    warnDevice(`[input-command-result] ${action}: ${JSON.stringify(payload)}`);
+  }
+
+  private async runLoggedInputCommand(
+    adb: ADB,
+    action: string,
+    command: string,
+  ): Promise<void> {
+    const startedAt = Date.now();
+    try {
+      const output = await adb.shell(command);
+      this.logInputCommandResult(action, {
+        command,
+        status: 'success',
+        elapsedMs: Date.now() - startedAt,
+        output: this.formatCommandOutput(output),
+      });
+    } catch (error) {
+      this.logInputCommandResult(action, {
+        command,
+        status: 'error',
+        elapsedMs: Date.now() - startedAt,
+        error: this.serializeError(error),
+      });
+      throw error;
+    }
+  }
+
+  private formatCommandOutput(output: unknown): unknown {
+    if (typeof output !== 'string') {
+      return output;
+    }
+    const trimmedOutput = output.trim();
+    if (trimmedOutput.length <= 1000) {
+      return trimmedOutput;
+    }
+
+    return {
+      truncated: true,
+      length: trimmedOutput.length,
+      preview: trimmedOutput.slice(0, 1000),
+    };
+  }
+
+  private serializeError(error: unknown): {
+    name?: string;
+    message: string;
+    stack?: string;
+  } {
+    if (error instanceof Error) {
+      return {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      };
+    }
+
+    return { message: String(error) };
+  }
+
   /**
    * Calculate the end point for scroll operations based on start point, scroll delta, and screen boundaries.
    * This method ensures that scroll operations stay within screen bounds and maintain a minimum scroll distance
@@ -1659,9 +1774,13 @@ ${Object.keys(size)
 
     // Use adjusted coordinates
     const { x: adjustedX, y: adjustedY } = await this.adjustCoordinates(x, y);
-    await adb.shell(
-      `input${this.getDisplayArg()} swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} 150`,
-    );
+    const command = `input${this.getDisplayArg()} swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} 150`;
+    await this.logInputCommandDebug('mouseClick', {
+      raw: { x, y },
+      adjusted: { x: adjustedX, y: adjustedY },
+      command,
+    });
+    await this.runLoggedInputCommand(adb, 'mouseClick', command);
   }
 
   async mouseDoubleClick(x: number, y: number): Promise<void> {
@@ -1696,10 +1815,20 @@ ${Object.keys(size)
 
     // Ensure duration has a default value
     const swipeDuration = duration ?? defaultNormalScrollDuration;
+    const command = `input${this.getDisplayArg()} swipe ${fromX} ${fromY} ${toX} ${toY} ${swipeDuration}`;
 
-    await adb.shell(
-      `input${this.getDisplayArg()} swipe ${fromX} ${fromY} ${toX} ${toY} ${swipeDuration}`,
-    );
+    await this.logInputCommandDebug('mouseDrag', {
+      raw: { from, to },
+      adjusted: {
+        from: { x: fromX, y: fromY },
+        to: { x: toX, y: toY },
+      },
+      duration,
+      swipeDuration,
+      usedDefaultDuration: duration === undefined,
+      command,
+    });
+    await this.runLoggedInputCommand(adb, 'mouseDrag', command);
   }
 
   async scroll(
