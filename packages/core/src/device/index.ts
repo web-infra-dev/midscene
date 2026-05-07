@@ -31,6 +31,66 @@ export interface MjpegStreamOptions {
   onError?(error: unknown): void;
 }
 
+/** A point in device-pixel coordinates on the screen. */
+export interface PointerPoint {
+  x: number;
+  y: number;
+}
+
+/**
+ * The native input surface of a touch device.
+ *
+ * Manual-control consumers (e.g. the Studio device preview's pointer overlay)
+ * drive this directly with raw display coordinates. It is intentionally
+ * separate from `actionSpace()` — the action space is the AI's vocabulary,
+ * extensible by custom actions; the pointer is the device's low-level input
+ * surface, fixed by what the underlying transport (WDA / ADB / HDC) can do.
+ *
+ * Methods left without `?` are required for any touch device that exposes
+ * `pointer`. Optional members reflect real platform limitations (Pinch is
+ * not available on every transport).
+ */
+export interface PointerCapability {
+  /** Single tap at the given point. `duration` is honored when supported. */
+  tap(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
+  /** Double tap at the given point. */
+  doubleClick(p: PointerPoint): Promise<void>;
+  /** Long press. `duration` may be ignored if the transport hard-codes it. */
+  longPress(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
+  /** Continuous swipe from `start` to `end`. */
+  swipe(
+    start: PointerPoint,
+    end: PointerPoint,
+    opts?: { duration?: number; repeat?: number },
+  ): Promise<void>;
+  /** Drag-and-drop a UI element from `from` to `to`. */
+  dragAndDrop(from: PointerPoint, to: PointerPoint): Promise<void>;
+  /** Press a key or key combination, e.g. `"Enter"`, `"Control+A"`. */
+  keyboardPress(keyName: string): Promise<void>;
+  /**
+   * Type text into the focused / addressed input field.
+   * `at` taps the input field first; omit to type into whatever has focus.
+   * `mode` mirrors `ActionInputParam.mode` semantics.
+   */
+  input(
+    value: string,
+    opts?: {
+      at?: PointerPoint;
+      mode?: 'replace' | 'clear' | 'typeOnly';
+      autoDismissKeyboard?: boolean;
+    },
+  ): Promise<void>;
+
+  /**
+   * Two-finger pinch. Optional — not all transports can synthesize a
+   * multi-finger gesture (e.g. HDC on HarmonyOS does not).
+   */
+  pinch?(
+    center: PointerPoint,
+    opts: { direction: 'in' | 'out'; distance?: number; duration?: number },
+  ): Promise<void>;
+}
+
 export abstract class AbstractInterface {
   abstract interfaceType: string;
 
@@ -101,6 +161,13 @@ export abstract class AbstractInterface {
    * interface does not expose this concept.
    */
   navigationState?(): Promise<{ isLoading: boolean }>;
+
+  /**
+   * Native input surface for direct manual control (Studio device preview's
+   * pointer overlay). Optional — non-touch devices (headless web) leave it
+   * undefined and `/interact` returns 404.
+   */
+  pointer?: PointerCapability;
 }
 
 // Generic function to define actions with proper type inference
