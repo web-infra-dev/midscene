@@ -38,10 +38,6 @@ const getCurrentVersion = (): string => {
     return __VERSION__;
   }
 
-  if (typeof process !== 'undefined' && process.env?.npm_package_version) {
-    return process.env.npm_package_version;
-  }
-
   return 'unknown';
 };
 
