@@ -1,5 +1,4 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import http from 'node:http';
 import type { Server } from 'node:http';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,11 +21,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
-import {
-  type InterfaceMjpegHub,
-  createInterfaceMjpegHub,
-  writeMjpegFrame,
-} from './mjpeg-hub';
+import { MjpegStreamHandler } from './mjpeg-stream-handler';
 import type {
   PlaygroundCreatedSession,
   PlaygroundExecutionHooks,
@@ -38,6 +33,7 @@ import type {
   PlaygroundSidecar,
   PreparedPlaygroundPlatform,
 } from './platform';
+import { PointerInputError, dispatchPointer } from './pointer-dispatch';
 import {
   type PlaygroundRuntimeInfo,
   buildRuntimeInfo,
@@ -175,6 +171,21 @@ type BrowserChromeInteractAction = 'Stop';
 type BrowserChromeInterface = {
   stopLoading?: () => Promise<void>;
 };
+
+const POINTER_INTERACT_ACTIONS = new Set([
+  'Tap',
+  'DoubleClick',
+  'LongPress',
+  'Swipe',
+  'DragAndDrop',
+  'KeyboardPress',
+  'Input',
+  'Pinch',
+]);
+
+function isPointerInteractActionType(actionType: string): boolean {
+  return POINTER_INTERACT_ACTIONS.has(actionType);
+}
 
 const buildLocateActionParams: InteractParamBuilder = (body, actionType) => {
   const params: Record<string, unknown> = {
@@ -347,21 +358,19 @@ class PlaygroundServer {
 
   private _initialized = false;
 
-  // Native MJPEG stream probe: null = not tested, true/false = result.
-  // The negative cache expires after MJPEG_NEGATIVE_CACHE_MS so the server
-  // recovers automatically when WDA / iproxy comes online after startup.
-  private _nativeMjpegAvailable: boolean | null = null;
-  private _nativeMjpegFailedAt: number | null = null;
-  private static readonly MJPEG_NEGATIVE_CACHE_MS = 10_000;
-  private static readonly INTERFACE_MJPEG_INITIAL_FRAME_TIMEOUT_MS = 1500;
-  private static readonly INTERFACE_MJPEG_IDLE_STOP_MS = 2000;
-  private readonly _interfaceMjpegHub: InterfaceMjpegHub =
-    createInterfaceMjpegHub({
-      initialFrameTimeoutMs:
-        PlaygroundServer.INTERFACE_MJPEG_INITIAL_FRAME_TIMEOUT_MS,
-      idleStopMs: PlaygroundServer.INTERFACE_MJPEG_IDLE_STOP_MS,
-      debug: debugMjpeg,
-    });
+  private readonly _mjpegHandler = new MjpegStreamHandler({
+    getNativeUrl: () => this._activeConnection.agent?.interface?.mjpegStreamUrl,
+    getActiveInterface: () => this._activeConnection.agent?.interface ?? null,
+    takeScreenshot: () =>
+      this.getActiveAgentOrThrow().interface.screenshotBase64(),
+    canTakeScreenshot: () =>
+      typeof this._activeConnection.agent?.interface?.screenshotBase64 ===
+      'function',
+    isAgentReady: () => this._agentReady,
+    recoverFromPreviewError: async (error, reason) =>
+      (await this.recoverActiveAgentAfterPreviewError(error, reason))
+        ?.interface ?? null,
+  });
 
   private sessionManager?: PlaygroundSessionManager;
   private sessionSetupState: 'required' | 'ready' | 'blocked' = 'ready';
@@ -389,6 +398,11 @@ class PlaygroundServer {
     sidecars: undefined,
   };
 
+  private setActiveAgent(agent: PageAgent | null): void {
+    this._activeConnection.agent = agent;
+    this._mjpegHandler.reset();
+  }
+
   constructor(
     agent?: PageAgent | (() => PageAgent) | (() => Promise<PageAgent>),
     staticPath = STATIC_PATH,
@@ -405,7 +419,7 @@ class PlaygroundServer {
     if (typeof agent === 'function') {
       this._activeConnection.agentFactory = agent;
     } else {
-      this._activeConnection.agent = agent || null;
+      this.setActiveAgent(agent || null);
     }
   }
 
@@ -478,6 +492,7 @@ class PlaygroundServer {
       executionHooks: this._baseExecutionHooks,
       sidecars: this._baseSidecars,
     };
+    this._mjpegHandler.reset();
     this.syncRuntimeState();
   }
 
@@ -638,7 +653,7 @@ class PlaygroundServer {
     } catch (error) {
       console.warn('Failed to destroy old agent:', error);
     } finally {
-      this._activeConnection.agent = null;
+      this.setActiveAgent(null);
       // Once the stale agent is gone there is nothing left to recreate.
       this._configDirty = false;
     }
@@ -689,6 +704,7 @@ class PlaygroundServer {
         executionHooks: session.executionHooks || this._baseExecutionHooks,
         sidecars: sessionSidecars,
       };
+      this._mjpegHandler.reset();
       this.sessionSetupState = 'ready';
       this.sessionSetupBlockingReason = undefined;
       this.syncRuntimeState();
@@ -824,8 +840,7 @@ class PlaygroundServer {
     // Create new agent instance if factory is available
     if (this._activeConnection.agentFactory) {
       try {
-        this._activeConnection.agent =
-          await this._activeConnection.agentFactory();
+        this.setActiveAgent(await this._activeConnection.agentFactory());
         this._agentReady = true;
         console.log('Agent recreated successfully');
       } catch (error) {
@@ -854,7 +869,7 @@ class PlaygroundServer {
 
     debugMjpeg(`Recovering active agent after ${reason}:`, error);
     try {
-      this._interfaceMjpegHub.stopProducer();
+      this._mjpegHandler.reset();
       await this.recreateAgent();
       return this._activeConnection.agent;
     } catch (recreateError) {
@@ -997,8 +1012,7 @@ class PlaygroundServer {
           !this._activeConnection.agent &&
           this._activeConnection.agentFactory
         ) {
-          this._activeConnection.agent =
-            await this._activeConnection.agentFactory();
+          this.setActiveAgent(await this._activeConnection.agentFactory());
         }
 
         if (this._configDirty && this._activeConnection.agentFactory) {
@@ -1211,8 +1225,7 @@ class PlaygroundServer {
         console.log('AI config changed, recreating agent...');
         try {
           await this.destroyCurrentAgent();
-          this._activeConnection.agent =
-            await this._activeConnection.agentFactory();
+          this.setActiveAgent(await this._activeConnection.agentFactory());
           agent = this.getActiveAgentOrThrow();
           this._agentReady = true;
           console.log('Agent recreated with new config');
@@ -1471,58 +1484,15 @@ class PlaygroundServer {
       }
     });
 
-    // MJPEG streaming endpoint for real-time screen preview
-    // Proxies native MJPEG stream (e.g. WDA MJPEG server) when available,
-    // falls back to polling screenshotBase64() otherwise.
+    // MJPEG streaming endpoint for real-time screen preview. The actual
+    // probe / proxy / in-process producer / polling logic lives in
+    // MjpegStreamHandler so this route is just HTTP plumbing.
     this._app.get('/mjpeg', async (req: Request, res: Response) => {
       const agent = this._activeConnection.agent;
       if (!agent) {
-        return res.status(409).json({
-          error: 'No active session',
-        });
+        return res.status(409).json({ error: 'No active session' });
       }
-
-      const nativeUrl = agent.interface?.mjpegStreamUrl;
-
-      const recentlyFailed =
-        this._nativeMjpegAvailable === false &&
-        this._nativeMjpegFailedAt !== null &&
-        Date.now() - this._nativeMjpegFailedAt <
-          PlaygroundServer.MJPEG_NEGATIVE_CACHE_MS;
-      if (nativeUrl && !recentlyFailed) {
-        const proxyOk = await this.probeAndProxyNativeMjpeg(
-          nativeUrl,
-          req,
-          res,
-        );
-        if (proxyOk) return;
-      }
-
-      const interfaceStreamStarted =
-        await this._interfaceMjpegHub.streamRequest(
-          req,
-          res,
-          agent.interface,
-          async (startupError) =>
-            (
-              await this.recoverActiveAgentAfterPreviewError(
-                startupError,
-                'interface MJPEG startup',
-              )
-            )?.interface ?? null,
-        );
-      if (interfaceStreamStarted) {
-        return;
-      }
-
-      const fallbackAgent = this._activeConnection.agent;
-      if (typeof fallbackAgent?.interface?.screenshotBase64 !== 'function') {
-        return res.status(500).json({
-          error: 'Screenshot method not available on current interface',
-        });
-      }
-
-      await this.startPollingMjpegStream(req, res);
+      await this._mjpegHandler.serve(req, res);
     });
 
     // Interface info API for getting interface type and description
@@ -1564,8 +1534,9 @@ class PlaygroundServer {
     });
 
     // Direct manipulation API – invokes a named action immediately, bypassing
-    // AI planning, the task lock, and dump bookkeeping. Designed for UI-driven
-    // pointer/keyboard input on Android/iOS/Harmony device previews.
+    // AI planning, the task lock, and dump bookkeeping. Pointer-capable device
+    // previews use the typed pointer surface; browser navigation falls back to
+    // explicit actionSpace/browser-chrome actions.
     this._app.post('/interact', async (req: Request, res: Response) => {
       let agent: PageAgent;
       try {
@@ -1583,34 +1554,36 @@ class PlaygroundServer {
         });
       }
 
-      if (
-        !this.findInteractAction(agent, actionType) &&
-        !this.canRunBrowserChromeInteractAction(agent, actionType)
-      ) {
-        return res.status(404).json({
-          error: `Action "${actionType}" is not available on the current device`,
-        });
-      }
-
-      let params: Record<string, unknown>;
       try {
-        params = buildInteractParams(actionType, req.body ?? {});
-      } catch (error: unknown) {
-        if (error instanceof InteractParamsValidationError) {
-          return res.status(400).json({ error: error.message });
+        const pointer = agent.interface.pointer;
+        if (pointer) {
+          await dispatchPointer(pointer, req.body ?? {});
+          res.json({});
+          return;
         }
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
-        console.error(
-          `Failed to build interact params for "${actionType}": ${errorMessage}`,
-        );
-        return res.status(500).json({ error: errorMessage });
-      }
 
-      try {
+        if (
+          !this.findInteractAction(agent, actionType) &&
+          !this.canRunBrowserChromeInteractAction(agent, actionType)
+        ) {
+          return res.status(404).json({
+            error: isPointerInteractActionType(actionType)
+              ? 'Manual control is not supported on this device'
+              : `Action "${actionType}" is not available on the current device`,
+          });
+        }
+
+        const params = buildInteractParams(actionType, req.body ?? {});
         await this.runInteractAction(agent, actionType, params);
         res.json({});
       } catch (error: unknown) {
+        if (error instanceof PointerInputError) {
+          return res.status(error.statusCode).json({ error: error.message });
+        }
+        if (error instanceof InteractParamsValidationError) {
+          return res.status(400).json({ error: error.message });
+        }
+
         const recoveredAgent = await this.recoverActiveAgentAfterPreviewError(
           error,
           `manual interact action "${actionType}"`,
@@ -1731,188 +1704,6 @@ class PlaygroundServer {
   }
 
   /**
-   * Probe and proxy a native MJPEG stream (e.g. WDA MJPEG server).
-   * Failed probes are cached briefly so WDA / iproxy can come online later.
-   */
-  private probeAndProxyNativeMjpeg(
-    nativeUrl: string,
-    req: Request,
-    res: Response,
-  ): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
-      console.log(`MJPEG: trying native stream from ${nativeUrl}`);
-      const proxyReq = http.get(nativeUrl, (proxyRes) => {
-        const statusCode = proxyRes.statusCode ?? 0;
-        if (statusCode >= 400) {
-          this._nativeMjpegAvailable = false;
-          this._nativeMjpegFailedAt = Date.now();
-          proxyRes.resume();
-          debugMjpeg(
-            `native stream returned HTTP ${statusCode}, using polling mode`,
-          );
-          resolve(false);
-          return;
-        }
-        this._nativeMjpegAvailable = true;
-        this._nativeMjpegFailedAt = null;
-        console.log('MJPEG: streaming via native WDA MJPEG server');
-        const contentType = proxyRes.headers['content-type'];
-        if (contentType) {
-          res.setHeader('Content-Type', contentType);
-        }
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Connection', 'keep-alive');
-        proxyRes.pipe(res);
-        req.on('close', () => proxyReq.destroy());
-        resolve(true);
-      });
-      proxyReq.on('error', (err) => {
-        this._nativeMjpegAvailable = false;
-        this._nativeMjpegFailedAt = Date.now();
-        debugMjpeg(
-          `MJPEG: native stream unavailable (${err.message}), using polling mode`,
-        );
-        resolve(false);
-      });
-    });
-  }
-
-  /**
-   * Quick liveness check for the native MJPEG endpoint without consuming a
-   * full streaming response. Used while we are in polling fallback so we can
-   * upgrade back to the native stream as soon as WDA / iproxy comes online.
-   */
-  private probeNativeMjpegLiveness(nativeUrl: string): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
-      const probe = http.get(nativeUrl, (probeRes) => {
-        const statusCode = probeRes.statusCode ?? 0;
-        const reachable = statusCode >= 200 && statusCode < 400;
-        probeRes.destroy();
-        resolve(reachable);
-      });
-      probe.setTimeout(1000, () => {
-        probe.destroy();
-        resolve(false);
-      });
-      probe.on('error', () => resolve(false));
-    });
-  }
-
-  /**
-   * Stream screenshots as MJPEG by polling screenshotBase64().
-   */
-  private async startPollingMjpegStream(
-    req: Request,
-    res: Response,
-  ): Promise<void> {
-    const defaultMjpegFps = 10;
-    const maxMjpegFps = 30;
-    const maxErrorBackoffMs = 3000;
-    const errorLogThreshold = 3;
-    const nativeProbeIntervalMs = 3000;
-
-    const parsedFps = Number(req.query.fps);
-    const fps = Math.min(
-      Math.max(Number.isNaN(parsedFps) ? defaultMjpegFps : parsedFps, 1),
-      maxMjpegFps,
-    );
-    const interval = Math.round(1000 / fps);
-    const boundary = 'mjpeg-boundary';
-    console.log(`MJPEG: streaming via polling mode (${fps}fps)`);
-
-    res.setHeader(
-      'Content-Type',
-      `multipart/x-mixed-replace; boundary=${boundary}`,
-    );
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Connection', 'keep-alive');
-
-    let stopped = false;
-    let consecutiveErrors = 0;
-
-    // While we are in polling mode, periodically probe the native MJPEG URL.
-    // As soon as it becomes reachable, end this response so the client's
-    // <img> MJPEG connection retries and lands on the native stream.
-    const nativeUrl = this._activeConnection.agent?.interface?.mjpegStreamUrl;
-    let probeTimer: ReturnType<typeof setInterval> | undefined;
-    if (nativeUrl) {
-      probeTimer = setInterval(async () => {
-        if (stopped) return;
-        const reachable = await this.probeNativeMjpegLiveness(nativeUrl);
-        if (reachable && !stopped) {
-          console.log(
-            'MJPEG: native stream came online, ending polling so client reconnects',
-          );
-          this._nativeMjpegAvailable = true;
-          this._nativeMjpegFailedAt = null;
-          stopped = true;
-          // Destroy the socket so the client's <img> fires onError and
-          // reconnects; res.end() leaves multipart streams visually frozen
-          // on the last frame in some browsers.
-          try {
-            res.destroy();
-          } catch {
-            /* socket already closed */
-          }
-        }
-      }, nativeProbeIntervalMs);
-    }
-    req.on('close', () => {
-      stopped = true;
-      if (probeTimer) clearInterval(probeTimer);
-    });
-
-    while (!stopped) {
-      // Skip frame while agent is being recreated
-      if (!this._agentReady) {
-        await new Promise((r) => setTimeout(r, 200));
-        continue;
-      }
-
-      const frameStart = Date.now();
-      try {
-        const agent = this.getActiveAgentOrThrow();
-        const base64 = await agent.interface.screenshotBase64();
-        if (stopped) break;
-        consecutiveErrors = 0;
-
-        writeMjpegFrame(res, boundary, {
-          data: base64,
-          contentType: 'image/jpeg',
-        });
-      } catch (err) {
-        if (stopped) break;
-        const recoveredAgent = await this.recoverActiveAgentAfterPreviewError(
-          err,
-          'polling MJPEG frame capture',
-        );
-        if (recoveredAgent) {
-          consecutiveErrors = 0;
-          continue;
-        }
-        consecutiveErrors++;
-        if (consecutiveErrors <= errorLogThreshold) {
-          console.error('MJPEG frame error:', err);
-        } else if (consecutiveErrors === errorLogThreshold + 1) {
-          console.error(
-            'MJPEG: suppressing further errors, retrying silently...',
-          );
-        }
-        const backoff = Math.min(1000 * consecutiveErrors, maxErrorBackoffMs);
-        await new Promise((r) => setTimeout(r, backoff));
-        continue;
-      }
-
-      const elapsed = Date.now() - frameStart;
-      const remaining = interval - elapsed;
-      if (remaining > 0) {
-        await new Promise((r) => setTimeout(r, remaining));
-      }
-    }
-    if (probeTimer) clearInterval(probeTimer);
-  }
-
-  /**
    * Setup static file serving routes
    */
   private setupStaticRoutes(): void {
@@ -1969,8 +1760,7 @@ class PlaygroundServer {
     // If using factory mode, initialize agent
     if (this._activeConnection.agentFactory && !this.sessionManager) {
       console.log('Initializing agent from factory function...');
-      this._activeConnection.agent =
-        await this._activeConnection.agentFactory();
+      this.setActiveAgent(await this._activeConnection.agentFactory());
       this._activeConnection.session = {
         connected: true,
         metadata: {},
@@ -2000,6 +1790,7 @@ class PlaygroundServer {
     await this.destroyCurrentSession().catch((error) => {
       console.warn('Failed to destroy current session during shutdown:', error);
     });
+    this._mjpegHandler.shutdown();
 
     return new Promise((resolve, reject) => {
       if (this.server) {

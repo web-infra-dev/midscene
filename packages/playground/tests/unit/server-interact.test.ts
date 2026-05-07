@@ -1,3 +1,4 @@
+import type { PointerCapability } from '@midscene/core/device';
 import { describe, expect, test, vi } from 'vitest';
 import { PlaygroundServer } from '../../src/server';
 
@@ -29,7 +30,115 @@ function getRouteHandler(
   return calls.find(([registeredRoute]) => registeredRoute === route)?.[1];
 }
 
+function makePointerStub(
+  overrides: Partial<PointerCapability> = {},
+): PointerCapability {
+  return {
+    tap: vi.fn(async () => {}),
+    doubleClick: vi.fn(async () => {}),
+    longPress: vi.fn(async () => {}),
+    swipe: vi.fn(async () => {}),
+    dragAndDrop: vi.fn(async () => {}),
+    keyboardPress: vi.fn(async () => {}),
+    input: vi.fn(async () => {}),
+    ...overrides,
+  };
+}
+
 describe('PlaygroundServer manual interaction APIs', () => {
+  test('POST /interact routes pointer events to PointerCapability', async () => {
+    const pointer = makePointerStub();
+    const actionCall = vi.fn();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'android',
+        describe: () => 'Android device',
+        actionSpace: () => [
+          { name: 'Tap', description: 'tap', call: actionCall },
+        ],
+        pointer,
+        screenshotBase64: async () => 'base64-image',
+        size: async () => ({ width: 1080, height: 1920 }),
+      },
+    } as any);
+
+    await server.launch(6110);
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    expect(interactHandler).toBeTypeOf('function');
+
+    const response = createMockResponse();
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 10, y: 20 } },
+      response,
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toEqual({});
+    expect(pointer.tap).toHaveBeenCalledWith(
+      { x: 10, y: 20 },
+      { duration: undefined },
+    );
+    expect(actionCall).not.toHaveBeenCalled();
+  });
+
+  test('POST /interact forwards Swipe with start, end, and options', async () => {
+    const pointer = makePointerStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'android',
+        actionSpace: () => [],
+        pointer,
+      },
+    } as any);
+
+    await server.launch(6111);
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    const response = createMockResponse();
+    await interactHandler(
+      {
+        body: {
+          actionType: 'Swipe',
+          x: 10,
+          y: 20,
+          endX: 110,
+          endY: 220,
+          duration: 500,
+          repeat: 2,
+        },
+      },
+      response,
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(pointer.swipe).toHaveBeenCalledWith(
+      { x: 10, y: 20 },
+      { x: 110, y: 220 },
+      { duration: 500, repeat: 2 },
+    );
+  });
+
+  test('POST /interact returns 400 when a required pointer field is missing', async () => {
+    const pointer = makePointerStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'android',
+        actionSpace: () => [],
+        pointer,
+      },
+    } as any);
+
+    await server.launch(6112);
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    const response = createMockResponse();
+    await interactHandler({ body: { actionType: 'Tap', y: 20 } }, response);
+
+    expect(response.statusCode).toBe(400);
+    expect((response.body as { error: string }).error).toBe(
+      'x must be a number',
+    );
+    expect(pointer.tap).not.toHaveBeenCalled();
+  });
+
   test('POST /interact invokes the selected action with manual params', async () => {
     const tapCall = vi.fn();
     const server = new PlaygroundServer({
@@ -107,8 +216,56 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
     expect(response.statusCode).toBe(404);
     expect(response.body).toMatchObject({
-      error: 'Action "Tap" is not available on the current device',
+      error: 'Manual control is not supported on this device',
     });
+  });
+
+  test('POST /interact returns 404 when the requested pointer capability is not implemented', async () => {
+    const pointer = makePointerStub({ pinch: undefined });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'harmony',
+        actionSpace: () => [],
+        pointer,
+      },
+    } as any);
+
+    await server.launch(6112);
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    const response = createMockResponse();
+    await interactHandler(
+      { body: { actionType: 'Pinch', x: 100, y: 200, direction: 'out' } },
+      response,
+    );
+
+    expect(response.statusCode).toBe(404);
+    expect((response.body as { error: string }).error).toBe(
+      'Pinch is not supported on this device',
+    );
+  });
+
+  test('POST /interact returns 404 for unknown pointer actionType', async () => {
+    const pointer = makePointerStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'android',
+        actionSpace: () => [],
+        pointer,
+      },
+    } as any);
+
+    await server.launch(6112);
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    const response = createMockResponse();
+    await interactHandler(
+      { body: { actionType: 'NotARealThing', x: 1, y: 2 } },
+      response,
+    );
+
+    expect(response.statusCode).toBe(404);
+    expect((response.body as { error: string }).error).toBe(
+      'Unknown actionType "NotARealThing"',
+    );
   });
 
   test('POST /interact runs web Stop through browser chrome instead of actionSpace', async () => {
