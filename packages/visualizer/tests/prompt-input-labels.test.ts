@@ -8,7 +8,7 @@ describe('getPromptInputActionLabel', () => {
   });
 
   test('derives the label from the selected type when no override is given', () => {
-    expect(getPromptInputActionLabel('aiAct')).toBe('Act');
+    expect(getPromptInputActionLabel('aiAct')).toBe('Action');
     expect(getPromptInputActionLabel('aiTap')).toBe('Tap');
   });
 

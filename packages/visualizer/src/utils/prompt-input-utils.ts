@@ -15,10 +15,9 @@ export interface InlineStructuredFieldConfig {
  * Inclusion rules:
  *   - If `actionSpace` is empty/undefined, fall back to the full metadata set
  *     so dry-mode / offline renderers still show something to pick from.
- *   - `aiAct` is included **only when the current `actionSpace` exposes it**.
- *     It is the universal "natural-language" action and usually lives in every
- *     device's action space, but we intentionally do not force-inject it —
- *     devices that truly cannot run `aiAct` should not see a broken entry.
+ *   - `aiAct` is always included. It is an Agent-level API and is executed via
+ *     Playground's fallback path, so it does not need to appear in the device
+ *     interface's low-level `actionSpace`.
  *   - `extraction` and `validation` APIs are kept even when not in the device's
  *     `actionSpace`: they are executed against the captured UI context rather
  *     than being dispatched to the device, so they apply universally.
@@ -37,14 +36,13 @@ export const getAvailablePromptActionTypes = (
   const availableMethods = actionSpace.map(
     (action) => action.interfaceAlias || action.name,
   );
-  const supportsAiAct = availableMethods.includes('aiAct');
   const finalMethods = new Set<string>();
 
   metadataMethods.forEach((method) => {
     const methodInfo = apiMetadata[method as keyof typeof apiMetadata];
 
     if (method === 'aiAct') {
-      if (supportsAiAct) finalMethods.add(method);
+      finalMethods.add(method);
       return;
     }
 
