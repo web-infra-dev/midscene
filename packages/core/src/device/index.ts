@@ -3,13 +3,75 @@ import type {
   ActionScrollParam,
   DeviceAction,
   LocateResultElement,
+  ManualInputDescriptor,
 } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import type { ElementNode } from '@midscene/shared/extractor';
+import { generateElementByPoint } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { z } from 'zod';
 import type { ElementCacheFeature, Rect, Size, UIContext } from '../types';
+
+/**
+ * Helper that lets each `defineActionXxx` factory declare its `manualInput`
+ * with full type inference: the `toParam` callback's `rawInput` is typed as
+ * `z.infer<typeof schema>`, so no `as unknown as` casts are needed.
+ */
+function defineManualInput<TInput, TParam>(
+  schema: z.ZodType<TInput>,
+  toParam: (rawInput: TInput) => TParam,
+): ManualInputDescriptor<TParam, TInput> {
+  return { schema, toParam };
+}
+
+/**
+ * Shared schema/builder pieces for actions that consume UI pointer events.
+ * `manualPointInputSchema` is the wire format the playground server validates;
+ * `manualPointToLocate` rounds raw display coordinates into a 1×1-rect
+ * `LocateResultElement` so each action can keep its existing `locate` field.
+ */
+const manualPointInputSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+});
+
+/** Long-press is the only point-style action whose typed param accepts duration. */
+const manualLongPressInputSchema = manualPointInputSchema.extend({
+  duration: z.number().optional(),
+});
+
+const manualSwipeInputSchema = manualPointInputSchema.extend({
+  endX: z.number(),
+  endY: z.number(),
+  duration: z.number().optional(),
+  repeat: z.number().optional(),
+});
+
+const manualDragInputSchema = manualPointInputSchema.extend({
+  endX: z.number(),
+  endY: z.number(),
+});
+
+const manualKeyboardPressInputSchema = z.object({
+  keyName: z.string(),
+});
+
+const manualTextInputSchema = z.object({
+  value: z.string(),
+  x: z.number().optional(),
+  y: z.number().optional(),
+  mode: z.string().optional(),
+  autoDismissKeyboard: z.boolean().optional(),
+});
+
+function manualPointToLocate(
+  x: number,
+  y: number,
+  description: string,
+): LocateResultElement {
+  return generateElementByPoint([Math.round(x), Math.round(y)], description);
+}
 
 export interface FileChooserHandler {
   accept(files: string[]): Promise<void>;
@@ -108,6 +170,9 @@ export const defineActionTap = (
       locate: { prompt: 'the "Submit" button' },
     },
     call,
+    manualInput: defineManualInput(manualPointInputSchema, ({ x, y }) => ({
+      locate: manualPointToLocate(x, y, 'manual Tap'),
+    })),
   });
 };
 
@@ -136,6 +201,9 @@ export const defineActionRightClick = (
       locate: { prompt: 'the file icon on the desktop' },
     },
     call,
+    manualInput: defineManualInput(manualPointInputSchema, ({ x, y }) => ({
+      locate: manualPointToLocate(x, y, 'manual RightClick'),
+    })),
   });
 };
 
@@ -164,6 +232,9 @@ export const defineActionDoubleClick = (
       locate: { prompt: 'the folder icon' },
     },
     call,
+    manualInput: defineManualInput(manualPointInputSchema, ({ x, y }) => ({
+      locate: manualPointToLocate(x, y, 'manual DoubleClick'),
+    })),
   });
 };
 
@@ -187,6 +258,9 @@ export const defineActionHover = (
       locate: { prompt: 'the navigation menu item "Products"' },
     },
     call,
+    manualInput: defineManualInput(manualPointInputSchema, ({ x, y }) => ({
+      locate: manualPointToLocate(x, y, 'manual Hover'),
+    })),
   });
 };
 
@@ -235,6 +309,24 @@ export const defineActionInput = (
       }
       return call(param);
     },
+    manualInput: defineManualInput(
+      manualTextInputSchema,
+      ({ x, y, value, mode, autoDismissKeyboard }) => {
+        const param: ActionInputParam & { autoDismissKeyboard?: boolean } = {
+          value,
+        };
+        if (typeof x === 'number' && typeof y === 'number') {
+          param.locate = manualPointToLocate(x, y, 'manual Input');
+        }
+        if (mode) {
+          param.mode = mode as ActionInputParam['mode'];
+        }
+        if (typeof autoDismissKeyboard === 'boolean') {
+          param.autoDismissKeyboard = autoDismissKeyboard;
+        }
+        return param;
+      },
+    ),
   });
 };
 
@@ -270,6 +362,10 @@ export const defineActionKeyboardPress = (
       keyName: 'Enter',
     },
     call,
+    manualInput: defineManualInput(
+      manualKeyboardPressInputSchema,
+      ({ keyName }) => ({ keyName }),
+    ),
   });
 };
 
@@ -350,6 +446,13 @@ export const defineActionDragAndDrop = (
       to: { prompt: 'the upload drop zone' },
     },
     call,
+    manualInput: defineManualInput(
+      manualDragInputSchema,
+      ({ x, y, endX, endY }) => ({
+        from: manualPointToLocate(x, y, 'manual drag from'),
+        to: manualPointToLocate(endX, endY, 'manual drag to'),
+      }),
+    ),
   });
 };
 
@@ -379,6 +482,16 @@ export const defineActionLongPress = (
       locate: { prompt: 'the message bubble' },
     },
     call,
+    manualInput: defineManualInput(
+      manualLongPressInputSchema,
+      ({ x, y, duration }) => {
+        const param: ActionLongPressParam = {
+          locate: manualPointToLocate(x, y, 'manual LongPress'),
+        };
+        if (duration != null) param.duration = duration;
+        return param;
+      },
+    ),
   });
 };
 
@@ -497,6 +610,18 @@ export const defineActionSwipe = (
       end: { prompt: 'upper edge of the screen' },
     },
     call,
+    manualInput: defineManualInput(
+      manualSwipeInputSchema,
+      ({ x, y, endX, endY, duration, repeat }) => {
+        const param: ActionSwipeParam = {
+          start: manualPointToLocate(x, y, 'manual swipe start'),
+          end: manualPointToLocate(endX, endY, 'manual swipe end'),
+        };
+        if (duration != null) param.duration = duration;
+        if (repeat != null) param.repeat = repeat;
+        return param;
+      },
+    ),
   });
 };
 

@@ -998,6 +998,28 @@ export interface StreamingAIResponse {
   isStreamed: boolean;
 }
 
+/**
+ * Optional descriptor that lets a UI overlay (e.g. Studio's device preview)
+ * drive the action without going through AI planning. Each action declares
+ * its own input shape (raw pointer / keyboard data) and how to turn that
+ * into the action's typed param. Actions without a `manualInput` are not
+ * exposed for direct manipulation.
+ *
+ * `TInput` is the schema's parsed output and the input to `toParam`. Construct
+ * via the `defineManualInput` helper in `@midscene/core/device` so `TInput`
+ * is inferred from the schema and the callback gets real types instead of
+ * `any`. The `DeviceAction.manualInput` storage slot widens `TInput` to `any`
+ * so heterogeneous descriptors can live on the same `actionSpace()` array;
+ * consumers should drive descriptors through `schema.safeParse` + `toParam`,
+ * not by inspecting the input type directly.
+ */
+export interface ManualInputDescriptor<TParam = any, TInput = any> {
+  /** Zod schema describing the raw input the UI sends (e.g. {x, y, duration?}). */
+  schema: z.ZodType<TInput>;
+  /** Translate validated raw input into the action's typed param. */
+  toParam: (rawInput: TInput) => TParam;
+}
+
 export interface DeviceAction<TParam = any, TReturn = any> {
   name: string;
   description?: string;
@@ -1011,6 +1033,8 @@ export interface DeviceAction<TParam = any, TReturn = any> {
    * Locate fields with { prompt } will automatically get bbox injected when needed.
    */
   sample?: { [K in keyof TParam]?: any };
+  /** How to drive this action from raw UI pointer/keyboard input. */
+  manualInput?: ManualInputDescriptor<TParam>;
 }
 
 /**
