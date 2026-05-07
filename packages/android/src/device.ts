@@ -17,6 +17,7 @@ import {
   type ActionTapParam,
   type AndroidDeviceInputOpt,
   type AndroidDeviceOpt,
+  type PointerCapability,
   defineAction,
   defineActionClearInput,
   defineActionCursorMove,
@@ -110,6 +111,64 @@ export class AndroidDevice implements AbstractInterface {
   interfaceType: InterfaceType = 'android';
   uri: string | undefined;
   options?: AndroidDeviceOpt;
+
+  /**
+   * Native input surface for direct manual control. Wraps the same low-level
+   * gesture methods (`mouseClick`, `mouseDoubleClick`, `mouseDrag`, etc.)
+   * that the `actionSpace()` callbacks call, so AI-driven and manual paths
+   * converge onto the same ADB / yadb primitives. Coordinate adjustment
+   * (logical → physical) happens inside `mouseClick` and friends.
+   */
+  readonly pointer: PointerCapability = {
+    tap: ({ x, y }) => this.mouseClick(x, y),
+    doubleClick: ({ x, y }) => this.mouseDoubleClick(x, y),
+    longPress: ({ x, y }, opts) => this.longPress(x, y, opts?.duration),
+    swipe: async (start, end, opts) => {
+      const duration = opts?.duration ?? 300;
+      const repeatCount = opts?.repeat ?? 1;
+      for (let i = 0; i < repeatCount; i++) {
+        await this.mouseDrag(start, end, duration);
+      }
+    },
+    dragAndDrop: (from, to) => this.mouseDrag(from, to),
+    keyboardPress: (key) => this.keyboardPress(key),
+    input: async (value, opts) => {
+      if (opts?.mode !== 'typeOnly' && opts?.at) {
+        await this.mouseClick(opts.at.x, opts.at.y);
+        await this.clearInput();
+      }
+      if (opts?.mode === 'clear') return;
+      if (!value) return;
+      const autoDismissKeyboard =
+        opts?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
+      await this.keyboardType(value, { autoDismissKeyboard });
+    },
+    pinch: async (center, opts) => {
+      const screenSize = await this.size();
+      const baseDistance = Math.round(
+        Math.min(screenSize.width, screenSize.height) / 4,
+      );
+      const fingerDistance = opts.distance ?? baseDistance;
+      const startDistance = baseDistance;
+      const endDistance =
+        opts.direction === 'out'
+          ? baseDistance + fingerDistance
+          : Math.max(10, baseDistance - fingerDistance);
+      const { x: adjCenterX, y: adjCenterY } = await this.adjustCoordinates(
+        Math.round(center.x),
+        Math.round(center.y),
+      );
+      const ratio =
+        adjCenterX !== 0 && center.x !== 0 ? adjCenterX / center.x : 1;
+      const adjStartDist = Math.round(startDistance * ratio);
+      const adjEndDist = Math.round(endDistance * ratio);
+      await this.ensureYadb();
+      const adb = await this.getAdb();
+      await adb.shell(
+        `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${opts.duration ?? 500}`,
+      );
+    },
+  };
 
   actionSpace(): DeviceAction<any>[] {
     const defaultActions = [
