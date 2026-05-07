@@ -72,7 +72,7 @@ function createConnectedWebContextValue() {
       title: 'Midscene Web Playground',
       interface: {
         type: 'puppeteer',
-        description: 'https://example.com',
+        description: 'Example Web Session',
       },
       preview: {
         kind: 'mjpeg',
@@ -83,9 +83,9 @@ function createConnectedWebContextValue() {
       executionUxHints: [],
       metadata: {
         sessionConnected: true,
-        sessionDisplayName: 'https://example.com',
+        sessionDisplayName: 'Example Web Session',
         setupState: 'ready',
-        url: 'https://example.com',
+        url: 'Example Web Session',
       },
     },
     sessionViewState: {
@@ -147,7 +147,7 @@ describe('Sidebar device list', () => {
     });
 
     const webButton = Array.from(container.querySelectorAll('button')).find(
-      (button) => button.textContent?.includes('https://example.com'),
+      (button) => button.textContent?.includes('Example Web Session'),
     );
     expect(webButton).toBeTruthy();
 
