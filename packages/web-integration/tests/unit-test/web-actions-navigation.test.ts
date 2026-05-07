@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { commonWebActionsForWebPage } from '../../src/web-page';
 
 describe('commonWebActionsForWebPage navigation actions', () => {
-  it('exposes forward and stop actions for manual browser chrome controls', async () => {
+  it('exposes forward without exposing stop as an action-space entry', async () => {
     const page = {
       goForward: vi.fn(async () => undefined),
       stopLoading: vi.fn(async () => undefined),
@@ -12,10 +12,10 @@ describe('commonWebActionsForWebPage navigation actions', () => {
     await actions
       .find((action) => action.name === 'GoForward')
       ?.call(undefined);
-    await actions.find((action) => action.name === 'Stop')?.call(undefined);
 
     expect(page.goForward).toHaveBeenCalledTimes(1);
-    expect(page.stopLoading).toHaveBeenCalledTimes(1);
+    expect(actions.find((action) => action.name === 'Stop')).toBeUndefined();
+    expect(page.stopLoading).not.toHaveBeenCalled();
   });
 });
 

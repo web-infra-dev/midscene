@@ -170,6 +170,12 @@ type InteractParamBuilder = (
   actionType: string,
 ) => Record<string, unknown>;
 
+type BrowserChromeInteractAction = 'Stop';
+
+type BrowserChromeInterface = {
+  stopLoading?: () => Promise<void>;
+};
+
 const buildLocateActionParams: InteractParamBuilder = (body, actionType) => {
   const params: Record<string, unknown> = {
     locate: locateFromPoint(body.x, body.y, 'x', 'y', `manual ${actionType}`),
@@ -869,11 +875,38 @@ class PlaygroundServer {
     );
   }
 
+  private canRunBrowserChromeInteractAction(
+    agent: PageAgent,
+    actionType: string,
+  ): actionType is BrowserChromeInteractAction {
+    return (
+      actionType === 'Stop' &&
+      typeof (agent.interface as BrowserChromeInterface).stopLoading ===
+        'function'
+    );
+  }
+
+  private async runBrowserChromeInteractAction(
+    agent: PageAgent,
+    actionType: BrowserChromeInteractAction,
+  ): Promise<void> {
+    switch (actionType) {
+      case 'Stop':
+        await (agent.interface as BrowserChromeInterface).stopLoading?.();
+        return;
+    }
+  }
+
   private async runInteractAction(
     agent: PageAgent,
     actionType: string,
     params: Record<string, unknown>,
   ): Promise<void> {
+    if (this.canRunBrowserChromeInteractAction(agent, actionType)) {
+      await this.runBrowserChromeInteractAction(agent, actionType);
+      return;
+    }
+
     const action = this.findInteractAction(agent, actionType);
     if (!action || typeof action.call !== 'function') {
       throw new Error(
@@ -1550,7 +1583,10 @@ class PlaygroundServer {
         });
       }
 
-      if (!this.findInteractAction(agent, actionType)) {
+      if (
+        !this.findInteractAction(agent, actionType) &&
+        !this.canRunBrowserChromeInteractAction(agent, actionType)
+      ) {
         return res.status(404).json({
           error: `Action "${actionType}" is not available on the current device`,
         });

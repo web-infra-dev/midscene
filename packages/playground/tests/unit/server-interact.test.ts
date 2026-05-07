@@ -111,6 +111,26 @@ describe('PlaygroundServer manual interaction APIs', () => {
     });
   });
 
+  test('POST /interact runs web Stop through browser chrome instead of actionSpace', async () => {
+    const stopLoading = vi.fn(async () => undefined);
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'web',
+        actionSpace: () => [],
+        stopLoading,
+      },
+    } as any);
+
+    await server.launch(6115);
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    const response = createMockResponse();
+    await interactHandler({ body: { actionType: 'Stop' } }, response);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toEqual({});
+    expect(stopLoading).toHaveBeenCalledTimes(1);
+  });
+
   test('POST /interact recreates a factory-backed agent without replaying the failed action', async () => {
     const firstDestroy = vi.fn();
     const firstTapCall = vi.fn(async () => {

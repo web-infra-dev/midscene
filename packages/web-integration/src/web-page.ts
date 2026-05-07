@@ -721,14 +721,4 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
       await page.goForward();
     },
   }),
-  defineAction({
-    name: 'Stop',
-    description: 'Stop loading the current page',
-    call: async () => {
-      if (!page.stopLoading) {
-        throw new Error('Stop operation is not supported on this page type');
-      }
-      await page.stopLoading();
-    },
-  }),
 ];
