@@ -13,6 +13,7 @@ import {
   type ActionTapParam,
   type IOSDeviceInputOpt,
   type IOSDeviceOpt,
+  type PointerCapability,
   defineAction,
   defineActionClearInput,
   defineActionCursorMove,
@@ -98,6 +99,57 @@ export class IOSDevice implements AbstractInterface {
   interfaceType: InterfaceType = 'ios';
   uri: string | undefined;
   options?: IOSDeviceOpt;
+
+  /**
+   * Native input surface for direct manual control. Wraps the same low-level
+   * gesture methods (`mouseClick`, `doubleTap`, `swipe`, etc.) that the
+   * `actionSpace()` callbacks call, so AI-driven and manual paths converge
+   * onto a single set of WDA primitives.
+   */
+  readonly pointer: PointerCapability = {
+    tap: ({ x, y }) => this.mouseClick(x, y),
+    doubleClick: ({ x, y }) => this.doubleTap(x, y),
+    longPress: ({ x, y }, opts) => this.longPress(x, y, opts?.duration),
+    swipe: async (start, end, opts) => {
+      const duration = opts?.duration ?? 300;
+      const repeat = opts?.repeat ?? 1;
+      for (let i = 0; i < repeat; i++) {
+        await this.swipe(start.x, start.y, end.x, end.y, duration);
+      }
+    },
+    dragAndDrop: (from, to) => this.swipe(from.x, from.y, to.x, to.y, 1000),
+    keyboardPress: (key) => this.pressKey(key),
+    input: async (value, opts) => {
+      if (opts?.mode !== 'typeOnly' && opts?.at) {
+        await this.mouseClick(opts.at.x, opts.at.y);
+        await this.clearInput();
+      }
+      if (opts?.mode === 'clear') return;
+      if (!value) return;
+      const autoDismissKeyboard =
+        opts?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
+      await this.typeText(value, { autoDismissKeyboard });
+    },
+    pinch: async (center, opts) => {
+      const screenSize = await this.size();
+      const baseDistance = Math.round(
+        Math.min(screenSize.width, screenSize.height) / 4,
+      );
+      const fingerDistance = opts.distance ?? baseDistance;
+      const startDistance = baseDistance;
+      const endDistance =
+        opts.direction === 'out'
+          ? baseDistance + fingerDistance
+          : Math.max(10, baseDistance - fingerDistance);
+      await this.wdaBackend.pinch(
+        Math.round(center.x),
+        Math.round(center.y),
+        startDistance,
+        endDistance,
+        opts.duration ?? 500,
+      );
+    },
+  };
 
   actionSpace(): DeviceAction<any>[] {
     const defaultActions = [
