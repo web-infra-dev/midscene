@@ -24,9 +24,29 @@ import {
 } from './types';
 
 import { getDebug } from '../logger';
+
 import { assert } from '../utils';
 import { maskConfig, parseJson } from './helper';
 import { initDebugConfig } from './init-debug';
+
+declare const __VERSION__: string | undefined;
+
+const MODEL_CONFIG_DOC_URL = 'https://midscenejs.com/model-common-config.html';
+
+const getCurrentVersion = (): string => {
+  if (typeof __VERSION__ !== 'undefined' && __VERSION__) {
+    return __VERSION__;
+  }
+
+  if (typeof process !== 'undefined' && process.env?.npm_package_version) {
+    return process.env.npm_package_version;
+  }
+
+  return 'unknown';
+};
+
+const getInvalidModelFamilyMessage = (modelFamily: TModelFamily): string =>
+  `Invalid MIDSCENE_MODEL_FAMILY value: ${modelFamily}. Current version v${getCurrentVersion()} accepts the following model families: ${MODEL_FAMILY_VALUES.join(', ')}. You can also visit ${MODEL_CONFIG_DOC_URL} for the latest configuration information.`;
 
 type TModelConfigKeys =
   | typeof INSIGHT_MODEL_CONFIG_KEYS
@@ -70,7 +90,7 @@ export const getUITarsModelVersion = (
  */
 export const validateModelFamily = (modelFamily?: TModelFamily): void => {
   if (modelFamily && !MODEL_FAMILY_VALUES.includes(modelFamily as any)) {
-    throw new Error(`Invalid MIDSCENE_MODEL_FAMILY value: ${modelFamily}`);
+    throw new Error(getInvalidModelFamilyMessage(modelFamily));
   }
 };
 
