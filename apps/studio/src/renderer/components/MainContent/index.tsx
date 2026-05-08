@@ -29,6 +29,9 @@ import type { ShellActiveView } from '../ShellLayout/types';
 import { DeviceList } from './DeviceList';
 import { MobilePreviewFrame } from './MobilePreviewFrame';
 import {
+  isManualPreviewControlSupported,
+  isManualPreviewKeyboardSupported,
+  resolveManualDragActionType,
   resolveStudioPreviewPlatform,
   shouldEnableMobilePreviewFrame,
   shouldUseDesktopPreviewPadding,
@@ -287,13 +290,10 @@ export default function MainContent({
     previewFormValues,
   );
   const manualControlEnabled =
-    isConnected &&
-    (previewPlatform === 'android' ||
-      previewPlatform === 'ios' ||
-      previewPlatform === 'harmony' ||
-      previewPlatform === 'web');
-  const manualDragActionType =
-    previewPlatform === 'web' ? 'DragAndDrop' : 'Swipe';
+    isConnected && isManualPreviewControlSupported(previewPlatform);
+  const manualDragActionType = resolveManualDragActionType(previewPlatform);
+  const manualKeyboardEnabled =
+    isManualPreviewKeyboardSupported(previewPlatform);
   const showWebNavigation = isConnected && previewPlatform === 'web';
   const previewConnectingLabel = getPreviewConnectingLabel(previewPlatform);
   const disconnectedPreviewTitle = getDisconnectedPreviewTitle(previewPlatform);
@@ -737,7 +737,7 @@ export default function MainContent({
                   }
                   manualControlEnabled={manualControlEnabled}
                   manualDragActionType={manualDragActionType}
-                  manualKeyboardEnabled={previewPlatform === 'web'}
+                  manualKeyboardEnabled={manualKeyboardEnabled}
                 />
               </Suspense>
             </div>

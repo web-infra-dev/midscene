@@ -2,6 +2,9 @@ import type { PlaygroundRuntimeInfo } from '@midscene/playground';
 import { describe, expect, it } from 'vitest';
 import {
   fitMobilePreviewViewport,
+  isManualPreviewControlSupported,
+  isManualPreviewKeyboardSupported,
+  resolveManualDragActionType,
   resolveStudioPreviewPlatform,
   shouldEnableMobilePreviewFrame,
   shouldUseDesktopPreviewPadding,
@@ -149,6 +152,48 @@ describe('shouldEnableMobilePreviewFrame', () => {
         null,
       ),
     ).toBe(false);
+  });
+});
+
+describe('isManualPreviewControlSupported', () => {
+  it('enables pointer control on every supported preview platform', () => {
+    expect(isManualPreviewControlSupported('android')).toBe(true);
+    expect(isManualPreviewControlSupported('ios')).toBe(true);
+    expect(isManualPreviewControlSupported('harmony')).toBe(true);
+    expect(isManualPreviewControlSupported('computer')).toBe(true);
+    expect(isManualPreviewControlSupported('web')).toBe(true);
+  });
+
+  it('returns false when no preview platform has been resolved', () => {
+    expect(isManualPreviewControlSupported(undefined)).toBe(false);
+  });
+});
+
+describe('resolveManualDragActionType', () => {
+  it('routes Computer and Web drags through DragAndDrop', () => {
+    expect(resolveManualDragActionType('computer')).toBe('DragAndDrop');
+    expect(resolveManualDragActionType('web')).toBe('DragAndDrop');
+  });
+
+  it('keeps mobile platforms on Swipe', () => {
+    expect(resolveManualDragActionType('android')).toBe('Swipe');
+    expect(resolveManualDragActionType('ios')).toBe('Swipe');
+    expect(resolveManualDragActionType('harmony')).toBe('Swipe');
+    expect(resolveManualDragActionType(undefined)).toBe('Swipe');
+  });
+});
+
+describe('isManualPreviewKeyboardSupported', () => {
+  it('enables keyboard injection for Computer and Web previews', () => {
+    expect(isManualPreviewKeyboardSupported('computer')).toBe(true);
+    expect(isManualPreviewKeyboardSupported('web')).toBe(true);
+  });
+
+  it('leaves keyboard disabled for mobile previews and unknown platforms', () => {
+    expect(isManualPreviewKeyboardSupported('android')).toBe(false);
+    expect(isManualPreviewKeyboardSupported('ios')).toBe(false);
+    expect(isManualPreviewKeyboardSupported('harmony')).toBe(false);
+    expect(isManualPreviewKeyboardSupported(undefined)).toBe(false);
   });
 });
 
