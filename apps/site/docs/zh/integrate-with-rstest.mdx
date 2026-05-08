@@ -1,0 +1,265 @@
+import SetupEnv from './common/setup-env.mdx';
+import { PackageManagerTabs } from '@theme';
+
+# 集成到 Rstest
+
+[Rstest](https://github.com/web-infra-dev/rstest) 是基于 Rspack 的高性能测试框架。`@midscene/rstest` 让你以熟悉的 `describe / it` 风格编写 AI 驱动的端到端测试 —— 浏览器启动、Agent 创建、HTML 报告生成都由 Midscene 自动处理。
+
+```ts
+import { describe, expect, it } from '@rstest/core';
+import { createWebTest } from '@midscene/rstest/playwright';
+
+describe('Todo list', () => {
+  const ctx = createWebTest('http://localhost:5173/');
+
+  it('adds a todo', async () => {
+    const { agent } = ctx;
+    await agent.aiAct("type 'Study AI' in the input and press Enter");
+    await agent.aiAssert('the list contains exactly one item: "Study AI"');
+  });
+});
+```
+
+开箱即用的能力：
+
+- 每个 `it` 块都拿到一份全新的 `agent`，可以直接调用 [Agent API](./api#interaction-methods) 中的任意方法（`aiAct`、`aiAssert`、`aiQuery`、`aiTap`、`aiInput`、`aiHover` 等）。
+- 自动管理浏览器生命周期 —— 每个测试文件启动一次浏览器，每个 test 之前打开干净的页面，结束后自动销毁。
+- 每个测试文件结束时输出一份合并后的 Midscene HTML 报告，路径会打印到控制台。
+- 直接 pass-through 到 Playwright / Puppeteer 自身的 options 类型；默认 lifecycle 无法满足时，可用 `setup` 钩子自定义。
+
+包内自带 Playwright 与 Puppeteer 两套 provider，通过 subpath export 区分：
+
+- `@midscene/rstest/playwright` —— 基于 `chromium.launch()`。
+- `@midscene/rstest/puppeteer` —— 基于 `puppeteer.launch()`。
+
+<SetupEnv />
+
+:::info 样例项目
+
+可运行的样例：[https://github.com/web-infra-dev/midscene-example/tree/main/rstest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/rstest-demo)。
+
+:::
+
+## 第一步：安装依赖
+
+按需选择 Playwright 或 Puppeteer，与 `@midscene/web`、`@rstest/core`、`@midscene/rstest` 一起安装。
+
+使用 Playwright：
+
+<PackageManagerTabs command="install @midscene/web @midscene/rstest @rstest/core playwright --save-dev" />
+
+或者使用 Puppeteer：
+
+<PackageManagerTabs command="install @midscene/web @midscene/rstest @rstest/core puppeteer --save-dev" />
+
+## 第二步：配置 Rstest
+
+在测试项目根目录新建 `rstest.config.ts`：
+
+```ts title="rstest.config.ts"
+import 'dotenv/config'; // 从 .env 加载模型相关环境变量
+import { defineConfig } from '@rstest/core';
+import MidsceneReporter from '@midscene/rstest/reporter';
+
+export default defineConfig({
+  include: ['e2e/**/*.test.ts'],
+  // AI 调用较慢，testTimeout 与 hookTimeout 都留足。
+  testTimeout: 1_800_000,
+  hookTimeout: 60_000,
+  reporters: ['default', new MidsceneReporter()],
+});
+```
+
+`MidsceneReporter` 会在每个测试文件结束时打印形如 `Midscene report: midscene_run/report/<file>.html` 的一行。在浏览器中打开这个 HTML，即可逐步回放每个 AI 步骤与对应截图。
+
+## 第三步：编写测试
+
+```ts title="e2e/todo-list.test.ts"
+import { describe, expect, it } from '@rstest/core';
+import { createWebTest } from '@midscene/rstest/playwright';
+
+describe('Todo list', () => {
+  const ctx = createWebTest('http://localhost:5173/');
+
+  it('adds and completes a todo', async () => {
+    const { agent } = ctx;
+
+    await agent.aiAct("type 'Study AI' in the input and press Enter");
+    await agent.aiAct('click the checkbox of the first item');
+
+    const list = await agent.aiQuery<string[]>(
+      'string[], the complete task list',
+    );
+    expect(list).toHaveLength(1);
+
+    await agent.aiAssert('the only item is marked as done');
+  });
+});
+```
+
+`createWebTest(url, options)` 会在内部注册 Rstest 的 `beforeAll` / `beforeEach` / `afterEach` / `afterAll` 钩子。在每个 `describe` 块里调用一次即可，里面的每个 `it` 都会拿到一份重新导航过的全新页面。
+
+:::warning `agent` 仅在 `it(...)` 内可用
+agent 会在 `beforeEach` 中创建、`afterEach` 中销毁。在 `describe` 作用域、其他钩子、或 test 结束之后访问 `ctx.agent` 都会抛错。
+:::
+
+如果想换成 Puppeteer，只需改一行 import：
+
+```ts
+import { createWebTest } from '@midscene/rstest/puppeteer';
+```
+
+`agent` 的 API 完全一致。
+
+## 第四步：运行测试
+
+```bash
+npx rstest run
+
+# 调试时也可以用 watch 模式：
+npx rstest watch
+```
+
+每个文件运行完后会输出：
+
+```text
+Midscene report: midscene_run/report/<file>.html
+```
+
+报告默认输出到 `midscene_run/report/`。详见[消费报告文件](./consume-report-file)。
+
+## 项目级默认配置（可选）
+
+如果希望所有 `createWebTest` 调用共享同一份配置，把它们写到一个 setup 文件里，并通过 `setupFiles` 注册：
+
+```ts title="midscene.setup.ts"
+import { defineMidsceneDefaults } from '@midscene/rstest/playwright';
+
+defineMidsceneDefaults({
+  viewport: { width: 1280, height: 720 },
+  contextOptions: { locale: 'zh-CN' },
+});
+```
+
+```ts title="rstest.config.ts"
+export default defineConfig({
+  // ...
+  setupFiles: ['./midscene.setup.ts'],
+});
+```
+
+调用 `createWebTest(url, options)` 时传入的 options 会按顶层 key 浅合并到这里的默认值上 —— `launchOptions` 这种嵌套字段是**整体替换**，不是深度合并。需要组合可以用 resolver 的函数形式。Puppeteer provider 在 `@midscene/rstest/puppeteer` 提供同名 `defineMidsceneDefaults`。
+
+## 选项
+
+### Playwright (`@midscene/rstest/playwright`)
+
+| 选项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `headless` | `boolean` | CI 中 `true`，本地 `false` | `launchOptions.headless` 的便捷写法。 |
+| `viewport` | `{ width, height }` | `1920×1080` | `contextOptions.viewport` 的便捷写法。 |
+| `launchOptions` | `LaunchOptions \| (defaults) => LaunchOptions` | — | 透传到 `chromium.launch(...)`。 |
+| `contextOptions` | `BrowserContextOptions \| (defaults) => BrowserContextOptions` | — | 透传到 `browser.newContext(...)`。 |
+| `gotoOptions` | `Parameters<Page['goto']>[1]` | — | 透传到 `page.goto(url, ...)`。 |
+| `agentOptions` | `WebPageAgentOpt` | — | 透传给 `PlaywrightAgent`（如 `aiActionContext`、`modelConfig`）。`groupName` 与 `reportFileName` 由 lifecycle 管理。 |
+| `setup` | `(api) => Promise<PageBundle>` | — | 详见下方 [自定义 page 设置](#自定义-page-设置)。 |
+
+### Puppeteer (`@midscene/rstest/puppeteer`)
+
+| 选项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `headless` | `boolean` | CI 中 `true`，本地 `false` | `launchOptions.headless` 的便捷写法。 |
+| `viewport` | `{ width, height }` | `1920×1080` | `launchOptions.defaultViewport` 的便捷写法。 |
+| `launchOptions` | `LaunchOptions \| (defaults) => LaunchOptions` | — | 透传到 `puppeteer.launch(...)`。 |
+| `gotoOptions` | `GoToOptions` | — | 透传到 `page.goto(url, ...)`。 |
+| `agentOptions` | `WebPageAgentOpt` | — | 透传给 `PuppeteerAgent`。 |
+| `setup` | `(api) => Promise<PageBundle>` | — | 详见下方 [自定义 page 设置](#自定义-page-设置)。 |
+
+`launchOptions`、`contextOptions` 这类 resolver 字段同时接受两种形式：传对象会和 midscene 的默认值浅合并；传函数 `(defaults) => options` 则完全接管。
+
+### 示例
+
+只覆盖一个 launch 字段，保留 midscene 的其它默认（`--no-sandbox` 等）：
+
+```ts
+const ctx = createWebTest(url, {
+  launchOptions: { proxy: { server: 'http://corp-proxy:8080' } },
+});
+```
+
+用函数形式做组合：
+
+```ts
+const ctx = createWebTest(url, {
+  launchOptions: (defaults) => ({
+    ...defaults,
+    args: [...(defaults.args ?? []), '--disable-gpu'],
+  }),
+});
+```
+
+配置 context（Playwright）：
+
+```ts
+const ctx = createWebTest(url, {
+  contextOptions: {
+    locale: 'zh-CN',
+    storageState: 'auth.json',
+    recordVideo: { dir: 'midscene_run/video' },
+  },
+});
+```
+
+### 自定义 page 设置
+
+默认 lifecycle 无法满足的场景 —— persistent context、CDP connect、自定义 trace 编排、复用现有 fixture —— 用 `setup`。它接收 `beforeAll` 启动好的共享浏览器，返回 midscene 要附着 agent 的 page。传了 `setup` 之后，`headless`、`viewport`、`launchOptions`、`contextOptions`、`gotoOptions` 全部被忽略，只有 `agentOptions` 仍然生效。
+
+```ts
+import { createWebTest } from '@midscene/rstest/playwright';
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+
+const ctx = createWebTest('https://example.com', {
+  async setup({ browser, url }) {
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 720 },
+    });
+    await context.tracing.start({ screenshots: true, snapshots: true });
+    const page = await context.newPage();
+    await page.goto(url);
+
+    return {
+      page,
+      async teardown(testCtx) {
+        const passed = testCtx.task.result?.status === 'pass';
+        if (passed) {
+          await context.tracing.stop();
+        } else {
+          mkdirSync('midscene_run/trace', { recursive: true });
+          await context.tracing.stop({
+            path: join('midscene_run/trace', `${testCtx.task.name}.zip`),
+          });
+        }
+        await context.close();
+      },
+    };
+  },
+});
+```
+
+`teardown` 在 `agent.destroy()` **之前**触发，page 还是活的 —— 这正是停 trace、保存录屏、dump cookies 等操作的窗口期。不需要的话直接返回 `{ page }`。
+
+## 进阶：自定义 provider
+
+如果需要驱动其他浏览器栈（远程浏览器、Electron 应用、自建 grid 等），可以使用底层原语：
+
+```ts
+import { registerLifecycle } from '@midscene/rstest';
+```
+
+它接受一个 `LifecycleProvider`，描述如何启动浏览器、构造 Agent、销毁资源。包内的 Playwright / Puppeteer provider 都是它的薄封装。
+
+## 更多
+
+- 所有 Agent 方法：[API Reference](./api#interaction-methods)。
+- 样例项目：[https://github.com/web-infra-dev/midscene-example/tree/main/rstest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/rstest-demo)。
