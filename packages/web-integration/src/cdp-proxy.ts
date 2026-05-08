@@ -179,7 +179,9 @@ function createUpstream(endpoint: string): WebSocket {
   const ws = new WebSocket(endpoint);
 
   ws.on('error', (err) => {
-    if (!reconnecting) shutdown(`upstream error: ${err.message}`);
+    // A failed reconnect must not leave the flag stuck on.
+    reconnecting = false;
+    shutdown(`upstream error: ${err.message}`);
   });
 
   ws.on('close', (code, reasonBuf) => {
@@ -201,8 +203,8 @@ function createUpstream(endpoint: string): WebSocket {
     }
   });
 
-  // Flush any messages that were buffered while upstream was reconnecting
   ws.on('open', () => {
+    reconnecting = false;
     for (const msg of pendingUpstreamMessages) {
       ws.send(msg.data, { binary: msg.isBinary });
     }
@@ -221,13 +223,15 @@ let upstream = createUpstream(chromeEndpoint);
  * protocol state on Chrome's side — critically, the Target.setDiscoverTargets
  * subscription — so the next client that connects gets a fresh session and
  * receives all targetCreated events.
+ *
+ * `reconnecting` is cleared by the new upstream's `open` (or `error`) handler,
+ * not here — the new socket is still CONNECTING when this returns.
  */
 function reconnectUpstream() {
   reconnecting = true;
   upstream.removeAllListeners();
   upstream.close();
   upstream = createUpstream(chromeEndpoint);
-  reconnecting = false;
   resetIdleTimer();
 }
 
