@@ -10,7 +10,7 @@
   position: relative;
   display: flex;
   height: 100%;
-  width: 400px;
+  width: var(--studio-playground-width, 400px);
   flex-shrink: 0;
   flex-direction: column;
   overflow: hidden;

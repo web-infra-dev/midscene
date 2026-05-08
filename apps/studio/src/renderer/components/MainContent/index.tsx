@@ -24,6 +24,7 @@ import { useStudioPlayground } from '../../playground/useStudioPlayground';
 import ConnectingPreview from '../ConnectingPreview';
 import ConnectionFailedPreview from '../ConnectionFailedPreview';
 import DisconnectedPreview from '../DisconnectedPreview';
+import { MaskedIcon } from '../MaskedIcon';
 import type { ShellActiveView } from '../ShellLayout/types';
 import { DeviceList } from './DeviceList';
 import { MobilePreviewFrame } from './MobilePreviewFrame';
@@ -130,6 +131,20 @@ function StopIcon() {
       />
     </svg>
   );
+}
+
+function resolvePlatformLogo(platform?: string): string {
+  switch (platform) {
+    case 'computer':
+    case 'web':
+      return assetUrls.main.platformPc;
+    case 'android':
+    case 'ios':
+    case 'harmony':
+      return assetUrls.main.platformPhone;
+    default:
+      return assetUrls.main.platformPhone;
+  }
 }
 
 function getPreviewConnectingLabel(platform?: string): string {
@@ -445,7 +460,7 @@ export default function MainContent({
         : undefined;
 
     return (
-      <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-l-[12px] border-r border-border-subtle bg-surface">
+      <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[12px] bg-surface">
         <div className="app-drag absolute left-0 right-0 top-0 z-0 h-[52px]" />
         <OverviewToolbar
           onRefresh={async () => {
@@ -473,6 +488,7 @@ export default function MainContent({
         <DeviceList
           buckets={overviewBuckets}
           connectingDeviceId={overviewSelectedDeviceId}
+          errors={studioPlayground.discoveryErrors}
           onConnect={async (platform, device) => {
             if (!isReady) {
               return;
@@ -499,6 +515,15 @@ export default function MainContent({
             };
             await actions.createSession(sessionValues);
           }}
+          onDisconnect={async () => {
+            if (!isReady) {
+              return;
+            }
+            const { actions, state } = studioPlayground.controller;
+            if (state.sessionViewState.connected) {
+              await actions.destroySession();
+            }
+          }}
         />
       </div>
     );
@@ -512,9 +537,12 @@ export default function MainContent({
         }`}
       >
         <div className="flex items-center">
-          <div className="ml-[8px] flex h-6 w-6 items-center justify-center rounded-[3.6px] bg-surface">
-            <img alt="" className="h-[21.6px]" src={assetUrls.main.device} />
-          </div>
+          <img
+            alt=""
+            className="ml-[8px] h-6 w-6 shrink-0"
+            src={resolvePlatformLogo(previewPlatform)}
+          />
+
           <span className="ml-[8px] max-w-[134px] truncate text-[13px] leading-[22.1px] font-medium text-text-primary">
             {deviceLabel}
           </span>
@@ -600,11 +628,15 @@ export default function MainContent({
 
         <div className="flex flex-1 justify-end gap-[8.04px]">
           <button
-            className={`app-no-drag flex h-8 items-center rounded-lg border border-border-subtle px-3 ${
+            className={`app-no-drag flex h-8 items-center rounded-lg border border-border-subtle px-3 transition-colors ${
               isConnected
                 ? 'bg-surface shadow-[0_1px_2px_rgba(15,23,42,0.06)]'
                 : 'bg-transparent'
-            } ${disconnectDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
+            } ${
+              disconnectDisabled
+                ? 'cursor-not-allowed opacity-50'
+                : 'cursor-pointer hover:bg-surface-hover'
+            }`}
             disabled={disconnectDisabled}
             onClick={() => {
               if (studioPlayground.phase !== 'ready') {
@@ -615,24 +647,12 @@ export default function MainContent({
             }}
             type="button"
           >
-            <img
-              alt=""
-              className="mr-[5px] h-3.5 w-3.5"
+            <MaskedIcon
+              className="mr-[5px] h-3.5 w-3.5 text-text-primary"
               src={assetUrls.main.disconnect}
             />
             <span className="whitespace-nowrap px-[3px] text-[13px] leading-[20px] font-medium text-text-primary">
               Disconnect
-            </span>
-          </button>
-          <button
-            className="app-drag flex h-8 items-center gap-[4.02px] rounded-lg border border-border-subtle bg-surface px-3 shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
-            type="button"
-          >
-            <div className="flex h-4 w-4 items-center">
-              <img alt="" className="h-4 w-4" src={assetUrls.main.chat} />
-            </div>
-            <span className="overflow-hidden whitespace-nowrap text-[13px] leading-[20px] font-medium text-text-primary">
-              Chat
             </span>
           </button>
         </div>
@@ -650,7 +670,7 @@ export default function MainContent({
                 {studioPlayground.error}
               </div>
               <button
-                className="rounded-lg border border-border-subtle px-4 py-2 text-[13px] font-medium text-text-primary"
+                className="cursor-pointer rounded-lg border border-border-subtle px-4 py-2 text-[13px] font-medium text-text-primary transition-colors hover:bg-surface-hover"
                 onClick={() => {
                   void studioPlayground.restartPlayground();
                 }}

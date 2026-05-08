@@ -6,13 +6,17 @@ import type { StudioPlatformId } from '@shared/electron-contract';
 import type { PropsWithChildren } from 'react';
 import { useEffect, useMemo } from 'react';
 import { resolveDiscoveredDeviceSelectionFormValues } from './selectors';
-import type { DiscoveredDevicesByPlatform } from './types';
+import type {
+  DiscoveredDevicesByPlatform,
+  DiscoveryErrorsByPlatform,
+} from './types';
 import { StudioPlaygroundContext } from './useStudioPlayground';
 
 const DEFAULT_PLATFORM_ID: StudioPlatformId = 'android';
 
 interface StudioPlaygroundReadyProviderProps {
   discoveredDevices?: DiscoveredDevicesByPlatform;
+  discoveryErrors?: DiscoveryErrorsByPlatform;
   refreshDiscoveredDevices: () => Promise<void>;
   restartPlayground: () => Promise<void>;
   setDiscoveryPollingPaused: (paused: boolean) => void;
@@ -22,6 +26,7 @@ interface StudioPlaygroundReadyProviderProps {
 export default function StudioPlaygroundReadyProvider({
   children,
   discoveredDevices,
+  discoveryErrors,
   refreshDiscoveredDevices,
   restartPlayground,
   setDiscoveryPollingPaused,
@@ -53,10 +58,12 @@ export default function StudioPlaygroundReadyProvider({
       refreshDiscoveredDevices,
       setDiscoveryPollingPaused,
       discoveredDevices,
+      discoveryErrors,
     }),
     [
       controller,
       discoveredDevices,
+      discoveryErrors,
       refreshDiscoveredDevices,
       restartPlayground,
       setDiscoveryPollingPaused,

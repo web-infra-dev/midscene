@@ -162,9 +162,35 @@ describe('MainContent overview', () => {
     expect(html).toContain('DELL U2720Q');
     expect(html).toContain('No devices');
     expect(html).not.toContain('Finish environment setup');
+    expect(html).not.toContain('未检测到 adb');
   });
 
-  it('keeps the chat control in the window drag region', () => {
+  it('replaces the Android empty state with an adb-missing hint when discovery reports a toolchain error', () => {
+    const baseContext = createReadyContextValue();
+    if (baseContext.phase !== 'ready') {
+      throw new Error('expected ready context');
+    }
+    const context: StudioPlaygroundContextValue = {
+      ...baseContext,
+      discoveryErrors: {
+        android: { platformId: 'android', kind: 'toolchain-missing' },
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      createElement(
+        StudioPlaygroundContext.Provider,
+        { value: context },
+        createElement(MainContent, {
+          activeView: 'overview',
+        }),
+      ),
+    );
+
+    expect(html).toContain('未检测到 adb');
+  });
+
+  it('keeps the disconnect control out of the window drag region', () => {
     const html = renderToStaticMarkup(
       createElement(
         StudioPlaygroundContext.Provider,
@@ -176,10 +202,7 @@ describe('MainContent overview', () => {
     );
 
     expect(html).toContain('app-no-drag flex h-8 items-center rounded-lg');
-    expect(html).toContain(
-      'app-drag flex h-8 items-center gap-[4.02px] rounded-lg',
-    );
-    expect(html).toContain('Chat');
+    expect(html).toContain('Disconnect');
   });
 
   it('renders browser navigation controls for connected Web sessions', () => {

@@ -4,11 +4,13 @@ import type {
 } from '@midscene/playground';
 import type {
   DiscoveredDevice,
+  PlatformDiscoveryError,
   StudioSessionValue,
 } from '@shared/electron-contract';
 import { STUDIO_PLATFORM_IDS } from '@shared/electron-contract';
 import type {
   DiscoveredDevicesByPlatform,
+  DiscoveryErrorsByPlatform,
   StudioAndroidDeviceItem,
   StudioSidebarDeviceBuckets,
   StudioSidebarPlatformKey,
@@ -559,6 +561,20 @@ export function bucketDiscoveredDevices(
     }
   }
   return buckets;
+}
+
+/**
+ * Index discovery errors by platform id so renderers can look up an
+ * error for the platform section they are about to render.
+ */
+export function bucketDiscoveryErrors(
+  errors: PlatformDiscoveryError[],
+): DiscoveryErrorsByPlatform {
+  const indexed: DiscoveryErrorsByPlatform = {};
+  for (const error of errors) {
+    indexed[error.platformId] = error;
+  }
+  return indexed;
 }
 
 /**

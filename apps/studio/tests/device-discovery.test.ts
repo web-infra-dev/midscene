@@ -68,59 +68,62 @@ describe('discoverAllDevices', () => {
       }),
     } as Response);
 
-    await expect(discoverAllDevices()).resolves.toEqual([
-      {
-        platformId: 'android',
-        id: 'emulator-5554',
-        label: 'Pixel 8',
-        description: 'ADB: emulator-5554',
-        status: 'device',
-        sessionValues: {
-          deviceId: 'emulator-5554',
+    await expect(discoverAllDevices()).resolves.toEqual({
+      devices: [
+        {
+          platformId: 'android',
+          id: 'emulator-5554',
+          label: 'Pixel 8',
+          description: 'ADB: emulator-5554',
+          status: 'device',
+          sessionValues: {
+            deviceId: 'emulator-5554',
+          },
         },
-      },
-      {
-        platformId: 'ios',
-        id: `localhost:${DEFAULT_WDA_PORT}`,
-        label: 'iOS (iPhone 15)',
-        description: `WebDriverAgent: localhost:${DEFAULT_WDA_PORT} · iOS 17.5`,
-        status: 'device',
-        sessionValues: {
-          host: 'localhost',
-          port: DEFAULT_WDA_PORT,
+        {
+          platformId: 'ios',
+          id: `localhost:${DEFAULT_WDA_PORT}`,
+          label: 'iOS (iPhone 15)',
+          description: `WebDriverAgent: localhost:${DEFAULT_WDA_PORT} · iOS 17.5`,
+          status: 'device',
+          sessionValues: {
+            host: 'localhost',
+            port: DEFAULT_WDA_PORT,
+          },
         },
-      },
-      {
-        platformId: 'harmony',
-        id: 'harmony-001',
-        label: 'harmony-001',
-        description: 'HDC: harmony-001',
-        status: 'device',
-        sessionValues: {
-          deviceId: 'harmony-001',
+        {
+          platformId: 'harmony',
+          id: 'harmony-001',
+          label: 'harmony-001',
+          description: 'HDC: harmony-001',
+          status: 'device',
+          sessionValues: {
+            deviceId: 'harmony-001',
+          },
         },
-      },
-      {
-        platformId: 'computer',
-        id: '1',
-        label: 'Studio Display',
-        description: 'Primary display',
-        status: 'device',
-        sessionValues: {
-          displayId: '1',
+        {
+          platformId: 'computer',
+          id: '1',
+          label: 'Studio Display',
+          description: 'Primary display',
+          status: 'device',
+          sessionValues: {
+            displayId: '1',
+          },
         },
-      },
-      {
-        platformId: 'computer',
-        id: '2',
-        label: 'Display 2',
-        description: undefined,
-        status: 'device',
-        sessionValues: {
-          displayId: '2',
+        {
+          platformId: 'computer',
+          id: '2',
+          label: 'Display 2',
+          description: undefined,
+          status: 'device',
+          sessionValues: {
+            displayId: '2',
+          },
         },
-      },
-    ]);
+      ],
+      errors: [],
+    });
 
     expect(fetch).toHaveBeenCalledWith(
       `http://localhost:${DEFAULT_WDA_PORT}/status`,
@@ -146,7 +149,10 @@ describe('discoverAllDevices', () => {
       }),
     } as Response);
 
-    await expect(discoverAllDevices()).resolves.toEqual([]);
+    await expect(discoverAllDevices()).resolves.toEqual({
+      devices: [],
+      errors: [],
+    });
   });
 
   it('keeps successful platform scans when other discovery probes fail', async () => {
@@ -161,28 +167,31 @@ describe('discoverAllDevices', () => {
     ]);
     vi.mocked(fetch).mockRejectedValue(new Error('connect ECONNREFUSED'));
 
-    await expect(discoverAllDevices()).resolves.toEqual([
-      {
-        platformId: 'harmony',
-        id: 'harmony-001',
-        label: 'harmony-001',
-        description: 'HDC: harmony-001',
-        status: 'device',
-        sessionValues: {
-          deviceId: 'harmony-001',
+    await expect(discoverAllDevices()).resolves.toEqual({
+      devices: [
+        {
+          platformId: 'harmony',
+          id: 'harmony-001',
+          label: 'harmony-001',
+          description: 'HDC: harmony-001',
+          status: 'device',
+          sessionValues: {
+            deviceId: 'harmony-001',
+          },
         },
-      },
-      {
-        platformId: 'computer',
-        id: '9',
-        label: 'External Monitor',
-        description: undefined,
-        status: 'device',
-        sessionValues: {
-          displayId: '9',
+        {
+          platformId: 'computer',
+          id: '9',
+          label: 'External Monitor',
+          description: undefined,
+          status: 'device',
+          sessionValues: {
+            displayId: '9',
+          },
         },
-      },
-    ]);
+      ],
+      errors: [{ platformId: 'android', kind: 'toolchain-missing' }],
+    });
 
     expect(mocks.debugLog).toHaveBeenCalledWith(
       'android scan failed:',

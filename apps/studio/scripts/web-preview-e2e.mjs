@@ -163,7 +163,7 @@ async function connectStudioRenderer() {
   await page.waitForFunction(
     () =>
       Boolean(window.studioRuntime) &&
-      document.body.innerText.includes('Device overview'),
+      document.body.innerText.includes('Overview'),
     { timeout: 30_000 },
   );
 

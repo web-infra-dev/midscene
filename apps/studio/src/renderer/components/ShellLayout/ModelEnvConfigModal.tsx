@@ -53,12 +53,12 @@ function ConnectivityPlayIcon() {
 function EnvModalHeader({ onClose }: { onClose: () => void }) {
   return (
     <div className="relative z-10 box-border flex w-full items-center justify-between px-[20px] pt-[20.8px]">
-      <h2 className="m-0 w-[136px] overflow-hidden whitespace-nowrap font-['Inter'] text-[16px] font-semibold leading-[24px] text-black">
+      <h2 className="m-0 font-['Inter'] text-[16px] font-semibold leading-[24px] tracking-normal text-black">
         Model Env Config
       </h2>
       <button
         aria-label="Close"
-        className="flex h-4 w-4 cursor-pointer items-center justify-center border-0 bg-transparent p-0"
+        className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 transition-colors hover:bg-black/5"
         onClick={onClose}
         type="button"
       >
@@ -80,7 +80,7 @@ function EnvModalTabs({
       <button
         className={`flex h-[32px] flex-1 cursor-pointer items-center justify-center rounded-[40px] border-0 p-0 font-['Inter'] text-[14px] leading-[16.9px] transition-all duration-200 ${
           tab === 'text'
-            ? 'bg-white font-medium text-black shadow-sm'
+            ? 'bg-white font-medium text-black shadow-[0_2px_4px_0_rgba(0,0,0,0.08)]'
             : 'bg-transparent font-normal text-black/70'
         }`}
         onClick={() => onTabChange('text')}
@@ -91,7 +91,7 @@ function EnvModalTabs({
       <button
         className={`flex h-[32px] flex-1 cursor-pointer items-center justify-center rounded-[40px] border-0 p-0 font-['Inter'] text-[14px] leading-[16.9px] transition-all duration-200 ${
           tab === 'form'
-            ? 'bg-white font-medium text-black shadow-sm'
+            ? 'bg-white font-medium text-black shadow-[0_2px_4px_0_rgba(0,0,0,0.08)]'
             : 'bg-transparent font-normal text-black/70'
         }`}
         onClick={() => onTabChange('form')}
@@ -193,6 +193,22 @@ export function ModelEnvConfigModal({
     setText(initialTextValue ?? '');
     setTestStatus({ kind: 'idle' });
   }, [initialTab, initialTextValue, open]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose]);
 
   const formEntries = useMemo<EnvEntry[]>(() => parseEnvEntries(text), [text]);
   const resolvedConnection = useMemo(

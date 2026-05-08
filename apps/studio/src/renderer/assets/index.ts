@@ -17,6 +17,8 @@ export const assetUrls = {
       import.meta.url,
     ).href,
     device: new URL('./main-device.png', import.meta.url).href,
+    platformPc: new URL('./main-platform-pc.svg', import.meta.url).href,
+    platformPhone: new URL('./main-platform-phone.svg', import.meta.url).href,
     devices: new URL('../../../assets/devices.svg', import.meta.url).href,
     disconnect: new URL('./main-disconnect.png', import.meta.url).href,
     pc: new URL('../../../assets/pc.svg', import.meta.url).href,
