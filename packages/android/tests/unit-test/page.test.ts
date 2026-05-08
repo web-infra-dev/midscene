@@ -389,6 +389,58 @@ describe('AndroidDevice', () => {
       expect(result).toContain(mockBuffer.toString('base64'));
       // rm is now executed via execFile (fire-and-forget), not adb.shell
     });
+
+    it('should accept valid fallback screenshots smaller than 10KB by default', async () => {
+      const defaultDevice = new AndroidDevice('test-device', {
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(defaultDevice, 'getAdb').mockResolvedValue(mockAdb);
+      mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
+      const smallValidPng = Buffer.concat([
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        Buffer.alloc(7 * 1024 - 8),
+      ]);
+      vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/small.png');
+      (fs.promises.readFile as Mock).mockResolvedValue(smallValidPng);
+
+      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+        `data:image/png;base64,${smallValidPng.toString('base64')}`,
+      );
+
+      const result = await defaultDevice.screenshotBase64();
+
+      expect(result).toContain(smallValidPng.toString('base64'));
+      expect(mockAdb.pull).toHaveBeenCalled();
+    });
+
+    it('should reject empty fallback screenshots', async () => {
+      mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
+      vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/empty.png');
+      (fs.promises.readFile as Mock).mockResolvedValue(Buffer.alloc(0));
+
+      await expect(device.screenshotBase64()).rejects.toThrow(
+        'Fallback screenshot validation failed: buffer size 0 bytes',
+      );
+    });
+
+    it('should enforce minScreenshotBufferSize when explicitly configured', async () => {
+      const minSizeDevice = new AndroidDevice('test-device', {
+        minScreenshotBufferSize: 10 * 1024,
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(minSizeDevice, 'getAdb').mockResolvedValue(mockAdb);
+      mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
+      const smallValidPng = Buffer.concat([
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        Buffer.alloc(7 * 1024 - 8),
+      ]);
+      vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/small.png');
+      (fs.promises.readFile as Mock).mockResolvedValue(smallValidPng);
+
+      await expect(minSizeDevice.screenshotBase64()).rejects.toThrow(
+        'Fallback screenshot validation failed: buffer size 7168 bytes (minimum: 10240)',
+      );
+    });
   });
 
   describe('mouse', () => {

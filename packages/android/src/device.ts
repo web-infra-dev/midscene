@@ -354,6 +354,33 @@ export class AndroidDevice implements AbstractInterface {
     this.customActions = options?.customActions;
   }
 
+  private validateScreenshotBuffer(
+    screenshotBuffer: Buffer | undefined,
+    label: string,
+  ): asserts screenshotBuffer is Buffer {
+    const bufferSize = screenshotBuffer?.length ?? 0;
+    if (!screenshotBuffer || bufferSize === 0) {
+      throw new Error(
+        `${label} validation failed: buffer size ${bufferSize} bytes`,
+      );
+    }
+
+    if (!isValidImageBuffer(screenshotBuffer)) {
+      throw new Error(`${label} buffer has invalid image format`);
+    }
+
+    const validScreenshotBufferSize =
+      this.options?.minScreenshotBufferSize ?? 0;
+    if (
+      validScreenshotBufferSize > 0 &&
+      bufferSize < validScreenshotBufferSize
+    ) {
+      throw new Error(
+        `${label} validation failed: buffer size ${bufferSize} bytes (minimum: ${validScreenshotBufferSize})`,
+      );
+    }
+  }
+
   describe(): string {
     return this.description || `DeviceId: ${this.deviceId}`;
   }
@@ -1110,23 +1137,17 @@ ${Object.keys(size)
         screenshotBuffer = await adb.takeScreenshot(null);
         debugDevice('adb.takeScreenshot completed');
 
-        // make sure screenshotBuffer is not null
-        if (!screenshotBuffer) {
-          this.takeScreenshotFailCount++;
-          throw new Error(
-            'Failed to capture screenshot: screenshotBuffer is null',
-          );
-        }
-
-        // check if the buffer is a valid PNG image, it might be a error string
-        if (!isValidImageBuffer(screenshotBuffer)) {
+        try {
+          this.validateScreenshotBuffer(screenshotBuffer, 'Screenshot');
+        } catch (validationError) {
           debugDevice(
-            'Invalid image buffer detected: not a valid image format',
+            'Invalid screenshot buffer detected: %s',
+            validationError instanceof Error
+              ? validationError.message
+              : String(validationError),
           );
           this.takeScreenshotFailCount++;
-          throw new Error(
-            'Screenshot buffer has invalid format: could not find valid image signature',
-          );
+          throw validationError;
         }
 
         // Reset fail count on success
@@ -1142,23 +1163,6 @@ ${Object.keys(size)
           );
         }
         throw new Error('Using shell screencap directly');
-      }
-
-      // Additional validation: check buffer size
-      // Real device screenshots are typically 100KB+, so 10KB is a safe threshold
-      // to catch corrupted/invalid buffers while allowing even very small test images
-      const validScreenshotBufferSize =
-        this.options?.minScreenshotBufferSize ?? 10 * 1024; // Default 10KB
-      if (
-        validScreenshotBufferSize > 0 &&
-        screenshotBuffer.length < validScreenshotBufferSize
-      ) {
-        debugDevice(
-          `Screenshot buffer too small: ${screenshotBuffer.length} bytes (minimum: ${validScreenshotBufferSize})`,
-        );
-        throw new Error(
-          `Screenshot buffer too small: ${screenshotBuffer.length} bytes (minimum: ${validScreenshotBufferSize})`,
-        );
       }
     } catch (error) {
       debugDevice(
@@ -1190,22 +1194,7 @@ ${Object.keys(size)
         debugDevice(`adb.pull completed, local path: ${screenshotPath}`);
         screenshotBuffer = await fs.promises.readFile(screenshotPath);
 
-        // Validate the fallback screenshot buffer as well
-        const validScreenshotBufferSize =
-          this.options?.minScreenshotBufferSize ?? 10 * 1024; // Default 10KB
-        if (
-          !screenshotBuffer ||
-          (validScreenshotBufferSize > 0 &&
-            screenshotBuffer.length < validScreenshotBufferSize)
-        ) {
-          throw new Error(
-            `Fallback screenshot validation failed: buffer size ${screenshotBuffer?.length || 0} bytes (minimum: ${validScreenshotBufferSize})`,
-          );
-        }
-
-        if (!isValidImageBuffer(screenshotBuffer)) {
-          throw new Error('Fallback screenshot buffer has invalid PNG format');
-        }
+        this.validateScreenshotBuffer(screenshotBuffer, 'Fallback screenshot');
 
         debugDevice(
           `Fallback screenshot validated successfully: ${screenshotBuffer.length} bytes`,
