@@ -53,7 +53,7 @@ const device = new AndroidDevice(deviceId, {
   - `'always-yadb'` &mdash; Always uses yadb for all text input, providing maximum compatibility but slightly slower for pure ASCII text.
 - `displayId?: number` &mdash; Target a specific virtual display if the device mirrors multiple displays.
 - `screenshotResizeScale?: number` &mdash; **Deprecated.** This option has been removed and no longer has any effect. Use `screenshotShrinkFactor` in `AgentOpt` instead to control screenshot size sent to the AI model.
-- `minScreenshotBufferSize?: number` &mdash; Optional lower bound for screenshot buffers in bytes. Default `0` disables size-based validation; Midscene still rejects empty buffers and invalid image formats.
+- `minScreenshotBufferSize?: number` &mdash; Optional lower bound for screenshot buffers in bytes. Default `1024` (1KB). Set to `0` to disable size-based validation; Midscene still rejects empty buffers and invalid image formats.
 - `alwaysRefreshScreenInfo?: boolean` &mdash; Re-query rotation and screen size every step. Default `false`.
 - `scrcpyConfig?: object` &mdash; Scrcpy high-performance screenshot configuration, disabled by default. See [Scrcpy Screenshot Mode](#scrcpy) below.
 

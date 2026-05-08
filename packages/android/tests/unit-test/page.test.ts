@@ -390,7 +390,7 @@ describe('AndroidDevice', () => {
       // rm is now executed via execFile (fire-and-forget), not adb.shell
     });
 
-    it('should accept valid fallback screenshots smaller than 10KB by default', async () => {
+    it('should accept valid fallback screenshots larger than 1KB by default', async () => {
       const defaultDevice = new AndroidDevice('test-device', {
         scrcpyConfig: { enabled: false },
       });
@@ -411,6 +411,24 @@ describe('AndroidDevice', () => {
 
       expect(result).toContain(smallValidPng.toString('base64'));
       expect(mockAdb.pull).toHaveBeenCalled();
+    });
+
+    it('should reject valid fallback screenshots smaller than 1KB by default', async () => {
+      const defaultDevice = new AndroidDevice('test-device', {
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(defaultDevice, 'getAdb').mockResolvedValue(mockAdb);
+      mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
+      const tinyValidPng = Buffer.concat([
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        Buffer.alloc(512 - 8),
+      ]);
+      vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/tiny.png');
+      (fs.promises.readFile as Mock).mockResolvedValue(tinyValidPng);
+
+      await expect(defaultDevice.screenshotBase64()).rejects.toThrow(
+        'Fallback screenshot validation failed: buffer size 512 bytes (minimum: 1024)',
+      );
     });
 
     it('should reject empty fallback screenshots', async () => {

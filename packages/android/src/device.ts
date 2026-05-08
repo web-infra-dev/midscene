@@ -106,6 +106,7 @@ export class AndroidDevice implements AbstractInterface {
   private cachedAdjustScale: { x: number; y: number } | null = null;
   private takeScreenshotFailCount = 0;
   private static readonly TAKE_SCREENSHOT_FAIL_THRESHOLD = 3;
+  private static readonly DEFAULT_MIN_SCREENSHOT_BUFFER_SIZE = 1024;
   interfaceType: InterfaceType = 'android';
   uri: string | undefined;
   options?: AndroidDeviceOpt;
@@ -370,7 +371,8 @@ export class AndroidDevice implements AbstractInterface {
     }
 
     const validScreenshotBufferSize =
-      this.options?.minScreenshotBufferSize ?? 0;
+      this.options?.minScreenshotBufferSize ??
+      AndroidDevice.DEFAULT_MIN_SCREENSHOT_BUFFER_SIZE;
     if (
       validScreenshotBufferSize > 0 &&
       bufferSize < validScreenshotBufferSize
