@@ -37,7 +37,12 @@ export type AndroidDeviceOpt = {
   screenshotResizeScale?: number;
   /** Always fetch screen info on each call; if false, cache the first result */
   alwaysRefreshScreenInfo?: boolean;
-  /** Optional minimum screenshot buffer size in bytes. Defaults to 1024 (1KB). Set to 0 to disable size-based validation while empty-buffer and image-format validation still run. */
+  /**
+   * Screenshot buffer size validation threshold in bytes. Buffers below this
+   * value are treated as failed or corrupted captures. Defaults to 1024 (1KB).
+   * Set to 0 to skip only this size check; empty-buffer and image-format
+   * validation still run.
+   */
   minScreenshotBufferSize?: number;
   /**
    * Scrcpy screenshot configuration for high-performance screen capture.
