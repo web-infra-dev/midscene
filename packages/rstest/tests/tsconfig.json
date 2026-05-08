@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "../",
+    "rootDir": "../"
+  },
+  "include": ["**/*", "../src", "../rslib.config.ts", "../rstest.config.ts"],
+  "exclude": ["**/node_modules"]
+}
