@@ -26,7 +26,11 @@ if(WIN32)
   set(FREERDP_LIBRARIES ${FREERDP_CLIENT_LIBRARY} ${FREERDP_LIBRARY} ${WINPR_LIBRARY})
 else()
   find_package(PkgConfig REQUIRED)
-  pkg_check_modules(FREERDP REQUIRED IMPORTED_TARGET freerdp3 freerdp-client3)
+  # winpr3 is listed in Requires.private of freerdp3.pc, so on linux with
+  # the default --as-needed linker behavior pkg-config won't emit -lwinpr3
+  # unless we ask for it explicitly. session.cpp directly references WinPR
+  # symbols (e.g. WaitForMultipleObjects), so request it as a public dep.
+  pkg_check_modules(FREERDP REQUIRED IMPORTED_TARGET freerdp3 freerdp-client3 winpr3)
   set(FREERDP_INCLUDE_DIRS "")
   set(FREERDP_LIBRARIES PkgConfig::FREERDP)
 endif()
