@@ -33,6 +33,12 @@ const createMockAdb = () => ({
 
 let mockAdbInstance: ReturnType<typeof createMockAdb>;
 
+const createValidPngBuffer = (size = 64) =>
+  Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    Buffer.alloc(Math.max(size - 8, 0)),
+  ]);
+
 vi.mock('appium-adb', () => {
   return {
     ADB: vi.fn(() => {
@@ -45,7 +51,40 @@ vi.mock('appium-adb', () => {
 });
 
 vi.mock('@midscene/core/utils');
-vi.mock('@midscene/shared/img');
+vi.mock('@midscene/shared/img', async (importOriginal) => {
+  const original =
+    await importOriginal<typeof import('@midscene/shared/img')>();
+  const validateScreenshotBuffer =
+    original.validateScreenshotBuffer ??
+    ((
+      screenshotBuffer: Buffer | undefined,
+      options: {
+        label: string;
+        minBufferSize?: number;
+      },
+    ) => {
+      const bufferSize = screenshotBuffer?.length ?? 0;
+      if (!screenshotBuffer || bufferSize === 0) {
+        throw new Error(
+          `${options.label} validation failed: buffer size ${bufferSize} bytes`,
+        );
+      }
+      if (!original.isValidImageBuffer(screenshotBuffer)) {
+        throw new Error(`${options.label} buffer has invalid image format`);
+      }
+      if (options.minBufferSize && bufferSize < options.minBufferSize) {
+        throw new Error(
+          `${options.label} validation failed: buffer size ${bufferSize} bytes (minimum: ${options.minBufferSize})`,
+        );
+      }
+    });
+  return {
+    ...original,
+    createImgBase64ByFormat: vi.fn(),
+    resizeAndConvertImgBuffer: vi.fn(),
+    validateScreenshotBuffer,
+  };
+});
 vi.mock('node:fs', async (importOriginal) => {
   const original = (await importOriginal()) as {
     default: Record<string, unknown>;
@@ -345,7 +384,6 @@ describe('AndroidDevice', () => {
         width: 1080,
         height: 1920,
       });
-      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       vi.spyOn(ImgUtils, 'resizeAndConvertImgBuffer').mockImplementation(
         async (format, buffer) => ({
           buffer,
@@ -355,7 +393,7 @@ describe('AndroidDevice', () => {
     });
 
     it('should take screenshot successfully with takeScreenshot', async () => {
-      const mockBuffer = Buffer.from('test-screenshot');
+      const mockBuffer = createValidPngBuffer();
       mockAdb.takeScreenshot.mockResolvedValue(mockBuffer);
 
       // Mock createImgBase64ByFormat
@@ -370,7 +408,7 @@ describe('AndroidDevice', () => {
 
     it('should fall back to screencap and pull if takeScreenshot fails', async () => {
       mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
-      const mockBuffer = Buffer.from('fallback-screenshot');
+      const mockBuffer = createValidPngBuffer();
       vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/test.png');
       (fs.promises.readFile as Mock).mockResolvedValue(mockBuffer);
 
@@ -396,10 +434,7 @@ describe('AndroidDevice', () => {
       });
       vi.spyOn(defaultDevice, 'getAdb').mockResolvedValue(mockAdb);
       mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
-      const smallValidPng = Buffer.concat([
-        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-        Buffer.alloc(7 * 1024 - 8),
-      ]);
+      const smallValidPng = createValidPngBuffer(7 * 1024);
       vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/small.png');
       (fs.promises.readFile as Mock).mockResolvedValue(smallValidPng);
 
@@ -419,10 +454,7 @@ describe('AndroidDevice', () => {
       });
       vi.spyOn(defaultDevice, 'getAdb').mockResolvedValue(mockAdb);
       mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
-      const tinyValidPng = Buffer.concat([
-        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-        Buffer.alloc(512 - 8),
-      ]);
+      const tinyValidPng = createValidPngBuffer(512);
       vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/tiny.png');
       (fs.promises.readFile as Mock).mockResolvedValue(tinyValidPng);
 
@@ -448,10 +480,7 @@ describe('AndroidDevice', () => {
       });
       vi.spyOn(minSizeDevice, 'getAdb').mockResolvedValue(mockAdb);
       mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
-      const smallValidPng = Buffer.concat([
-        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-        Buffer.alloc(7 * 1024 - 8),
-      ]);
+      const smallValidPng = createValidPngBuffer(7 * 1024);
       vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/small.png');
       (fs.promises.readFile as Mock).mockResolvedValue(smallValidPng);
 
@@ -2154,11 +2183,10 @@ describe('AndroidDevice', () => {
       await deviceWithDisplay.getAdb();
 
       // Mock fs.promises.readFile to return a valid PNG buffer
-      const mockBuffer = Buffer.from('fake-png-data');
+      const mockBuffer = createValidPngBuffer();
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
         buffer: mockBuffer,
         format: 'png' as const,
@@ -2196,11 +2224,10 @@ describe('AndroidDevice', () => {
       await deviceWithDisplay.getAdb();
 
       // Mock fs.promises.readFile to return a valid PNG buffer
-      const mockBuffer = Buffer.from('fake-png-data');
+      const mockBuffer = createValidPngBuffer();
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
         buffer: mockBuffer,
         format: 'png' as const,
@@ -2238,11 +2265,10 @@ describe('AndroidDevice', () => {
         Promise.resolve(mockAdbInstance);
 
       // Mock fs.promises.readFile to return a valid PNG buffer
-      const mockBuffer = Buffer.from('fake-png-data');
+      const mockBuffer = createValidPngBuffer();
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
         buffer: mockBuffer,
         format: 'png' as const,
@@ -2378,11 +2404,10 @@ describe('AndroidDevice', () => {
         Promise.resolve(mockAdbInstance);
 
       // Mock fs.promises.readFile to return a valid PNG buffer
-      const mockBuffer = Buffer.from('fake-png-data');
+      const mockBuffer = createValidPngBuffer();
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
         buffer: mockBuffer,
         format: 'png' as const,

@@ -42,7 +42,7 @@ import {
 import type { ElementInfo } from '@midscene/shared/extractor';
 import {
   createImgBase64ByFormat,
-  isValidImageBuffer,
+  validateScreenshotBuffer,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison, repeat } from '@midscene/shared/utils';
@@ -353,34 +353,6 @@ export class AndroidDevice implements AbstractInterface {
     this.deviceId = deviceId;
     this.options = options;
     this.customActions = options?.customActions;
-  }
-
-  private validateScreenshotBuffer(
-    screenshotBuffer: Buffer | undefined,
-    label: string,
-  ): asserts screenshotBuffer is Buffer {
-    const bufferSize = screenshotBuffer?.length ?? 0;
-    if (!screenshotBuffer || bufferSize === 0) {
-      throw new Error(
-        `${label} validation failed: buffer size ${bufferSize} bytes`,
-      );
-    }
-
-    if (!isValidImageBuffer(screenshotBuffer)) {
-      throw new Error(`${label} buffer has invalid image format`);
-    }
-
-    const validScreenshotBufferSize =
-      this.options?.minScreenshotBufferSize ??
-      AndroidDevice.DEFAULT_MIN_SCREENSHOT_BUFFER_SIZE;
-    if (
-      validScreenshotBufferSize > 0 &&
-      bufferSize < validScreenshotBufferSize
-    ) {
-      throw new Error(
-        `${label} validation failed: buffer size ${bufferSize} bytes (minimum: ${validScreenshotBufferSize})`,
-      );
-    }
   }
 
   describe(): string {
@@ -1140,7 +1112,12 @@ ${Object.keys(size)
         debugDevice('adb.takeScreenshot completed');
 
         try {
-          this.validateScreenshotBuffer(screenshotBuffer, 'Screenshot');
+          validateScreenshotBuffer(screenshotBuffer, {
+            label: 'Screenshot',
+            minBufferSize:
+              this.options?.minScreenshotBufferSize ??
+              AndroidDevice.DEFAULT_MIN_SCREENSHOT_BUFFER_SIZE,
+          });
         } catch (validationError) {
           debugDevice(
             'Invalid screenshot buffer detected: %s',
@@ -1196,7 +1173,12 @@ ${Object.keys(size)
         debugDevice(`adb.pull completed, local path: ${screenshotPath}`);
         screenshotBuffer = await fs.promises.readFile(screenshotPath);
 
-        this.validateScreenshotBuffer(screenshotBuffer, 'Fallback screenshot');
+        validateScreenshotBuffer(screenshotBuffer, {
+          label: 'Fallback screenshot',
+          minBufferSize:
+            this.options?.minScreenshotBufferSize ??
+            AndroidDevice.DEFAULT_MIN_SCREENSHOT_BUFFER_SIZE,
+        });
 
         debugDevice(
           `Fallback screenshot validated successfully: ${screenshotBuffer.length} bytes`,
