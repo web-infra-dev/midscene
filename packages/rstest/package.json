@@ -1,0 +1,89 @@
+{
+  "name": "@midscene/rstest",
+  "description": "Run Midscene AI browser agents as Rstest tests. Provides Playwright and Puppeteer providers plus a Rstest reporter that surfaces Midscene reports.",
+  "keywords": [
+    "rstest",
+    "midscene",
+    "AI testing",
+    "AI UI automation",
+    "Browser use",
+    "playwright",
+    "puppeteer"
+  ],
+  "version": "1.7.9",
+  "repository": "https://github.com/web-infra-dev/midscene",
+  "homepage": "https://midscenejs.com/",
+  "type": "module",
+  "sideEffects": false,
+  "files": ["dist", "README.md"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./reporter": {
+      "types": "./dist/reporter.d.ts",
+      "import": "./dist/reporter.js"
+    },
+    "./playwright": {
+      "types": "./dist/playwright.d.ts",
+      "import": "./dist/playwright.js"
+    },
+    "./puppeteer": {
+      "types": "./dist/puppeteer.d.ts",
+      "import": "./dist/puppeteer.js"
+    }
+  },
+  "scripts": {
+    "dev": "npm run build:watch",
+    "build": "rslib build",
+    "build:watch": "rslib build --watch --no-clean",
+    "test": "rstest run",
+    "test:demo": "rstest run --config rstest.config.ts --root demo",
+    "test:watch": "rstest watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@midscene/shared": "workspace:*",
+    "std-env": "^4.1.0"
+  },
+  "peerDependencies": {
+    "@midscene/core": "workspace:*",
+    "@midscene/web": "workspace:*",
+    "@playwright/test": "^1.45.0",
+    "@rstest/core": ">=0.9.0",
+    "playwright": "^1.45.0",
+    "puppeteer": ">=20.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@playwright/test": {
+      "optional": true
+    },
+    "playwright": {
+      "optional": true
+    },
+    "puppeteer": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@midscene/core": "workspace:*",
+    "@midscene/web": "workspace:*",
+    "@playwright/test": "^1.45.0",
+    "@rslib/core": "^0.18.3",
+    "@rstest/core": "^0.9.9",
+    "@types/node": "^18.0.0",
+    "dotenv": "^16.4.5",
+    "playwright": "^1.45.0",
+    "puppeteer": "24.6.0",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=18.19.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "MIT"
+}

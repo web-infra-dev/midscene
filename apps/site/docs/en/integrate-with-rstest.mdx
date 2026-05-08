@@ -1,0 +1,265 @@
+import SetupEnv from './common/setup-env.mdx';
+import { PackageManagerTabs } from '@theme';
+
+# Integrate with Rstest
+
+[Rstest](https://github.com/web-infra-dev/rstest) is a fast Rspack-based testing framework. With `@midscene/rstest` you can write AI-driven end-to-end tests in the same `describe / it` style you already use — Midscene takes care of launching the browser, creating an Agent for each test, and producing an HTML report at the end of every test file.
+
+```ts
+import { describe, expect, it } from '@rstest/core';
+import { createWebTest } from '@midscene/rstest/playwright';
+
+describe('Todo list', () => {
+  const ctx = createWebTest('http://localhost:5173/');
+
+  it('adds a todo', async () => {
+    const { agent } = ctx;
+    await agent.aiAct("type 'Study AI' in the input and press Enter");
+    await agent.aiAssert('the list contains exactly one item: "Study AI"');
+  });
+});
+```
+
+What you get out of the box:
+
+- A fresh `agent` per `it` block, ready to call any [Agent API](./api#interaction-methods) (`aiAct`, `aiAssert`, `aiQuery`, `aiTap`, `aiInput`, `aiHover`, …).
+- Automatic browser lifecycle — the browser launches once per test file, and a clean page is set up and torn down around every test.
+- A merged Midscene HTML report per test file, with the path printed to the console after the file finishes.
+- Direct pass-through to the underlying Playwright / Puppeteer option types, plus a `setup` hook for lifecycles the defaults don't cover.
+
+Two browser providers ship in the package, behind separate subpath exports:
+
+- `@midscene/rstest/playwright` — backed by `chromium.launch()`.
+- `@midscene/rstest/puppeteer` — backed by `puppeteer.launch()`.
+
+<SetupEnv />
+
+:::info Example Project
+
+A runnable example lives at [https://github.com/web-infra-dev/midscene-example/tree/main/rstest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/rstest-demo).
+
+:::
+
+## Step 1: Install dependencies
+
+Pick the provider you want to use and install it together with `@midscene/web`, `@rstest/core`, and `@midscene/rstest`.
+
+With Playwright:
+
+<PackageManagerTabs command="install @midscene/web @midscene/rstest @rstest/core playwright --save-dev" />
+
+Or with Puppeteer:
+
+<PackageManagerTabs command="install @midscene/web @midscene/rstest @rstest/core puppeteer --save-dev" />
+
+## Step 2: Configure Rstest
+
+Create `rstest.config.ts` in the root of your test project:
+
+```ts title="rstest.config.ts"
+import 'dotenv/config'; // load model env vars from .env
+import { defineConfig } from '@rstest/core';
+import MidsceneReporter from '@midscene/rstest/reporter';
+
+export default defineConfig({
+  include: ['e2e/**/*.test.ts'],
+  // AI calls are slow — leave plenty of headroom for both tests and hooks.
+  testTimeout: 1_800_000,
+  hookTimeout: 60_000,
+  reporters: ['default', new MidsceneReporter()],
+});
+```
+
+`MidsceneReporter` prints a line like `Midscene report: midscene_run/report/<file>.html` after each test file. Open it in your browser to replay every AI step with screenshots.
+
+## Step 3: Write a test
+
+```ts title="e2e/todo-list.test.ts"
+import { describe, expect, it } from '@rstest/core';
+import { createWebTest } from '@midscene/rstest/playwright';
+
+describe('Todo list', () => {
+  const ctx = createWebTest('http://localhost:5173/');
+
+  it('adds and completes a todo', async () => {
+    const { agent } = ctx;
+
+    await agent.aiAct("type 'Study AI' in the input and press Enter");
+    await agent.aiAct('click the checkbox of the first item');
+
+    const list = await agent.aiQuery<string[]>(
+      'string[], the complete task list',
+    );
+    expect(list).toHaveLength(1);
+
+    await agent.aiAssert('the only item is marked as done');
+  });
+});
+```
+
+`createWebTest(url, options)` registers Rstest's `beforeAll` / `beforeEach` / `afterEach` / `afterAll` hooks under the hood. Call it once per `describe` block — every `it` inside it gets its own freshly-navigated page.
+
+:::warning `agent` is only valid inside `it(...)`
+The agent is created in `beforeEach` and destroyed in `afterEach`. Reading `ctx.agent` from `describe` scope, a hook, or after the test finishes throws.
+:::
+
+To use Puppeteer instead, change a single import:
+
+```ts
+import { createWebTest } from '@midscene/rstest/puppeteer';
+```
+
+The `agent` API is identical.
+
+## Step 4: Run the tests
+
+```bash
+npx rstest run
+
+# or, while iterating:
+npx rstest watch
+```
+
+After each file finishes you'll see something like:
+
+```text
+Midscene report: midscene_run/report/<file>.html
+```
+
+Reports are written to `midscene_run/report/`. See [Consume report files](./consume-report-file) for programmatic access.
+
+## Project-wide defaults (optional)
+
+If every `createWebTest` call should share the same options, put them in a setup file and reference it from `setupFiles`:
+
+```ts title="midscene.setup.ts"
+import { defineMidsceneDefaults } from '@midscene/rstest/playwright';
+
+defineMidsceneDefaults({
+  viewport: { width: 1280, height: 720 },
+  contextOptions: { locale: 'en-US' },
+});
+```
+
+```ts title="rstest.config.ts"
+export default defineConfig({
+  // ...
+  setupFiles: ['./midscene.setup.ts'],
+});
+```
+
+Options passed to `createWebTest(url, options)` shallow-merge over these defaults at the top level — nested fields like `launchOptions` are *replaced*, not deep-merged. Use the function form of a resolver if you need to compose. The Puppeteer provider exposes the same `defineMidsceneDefaults` from `@midscene/rstest/puppeteer`.
+
+## Options
+
+### Playwright (`@midscene/rstest/playwright`)
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `headless` | `boolean` | `true` in CI, `false` locally | Convenience for `launchOptions.headless`. |
+| `viewport` | `{ width, height }` | `1920×1080` | Convenience for `contextOptions.viewport`. |
+| `launchOptions` | `LaunchOptions \| (defaults) => LaunchOptions` | — | Forwarded to `chromium.launch(...)`. |
+| `contextOptions` | `BrowserContextOptions \| (defaults) => BrowserContextOptions` | — | Forwarded to `browser.newContext(...)`. |
+| `gotoOptions` | `Parameters<Page['goto']>[1]` | — | Forwarded to `page.goto(url, ...)`. |
+| `agentOptions` | `WebPageAgentOpt` | — | Forwarded to `PlaywrightAgent` (e.g. `aiActionContext`, `modelConfig`). `groupName` and `reportFileName` are managed by the lifecycle. |
+| `setup` | `(api) => Promise<PageBundle>` | — | See [Custom page setup](#custom-page-setup) below. |
+
+### Puppeteer (`@midscene/rstest/puppeteer`)
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `headless` | `boolean` | `true` in CI, `false` locally | Convenience for `launchOptions.headless`. |
+| `viewport` | `{ width, height }` | `1920×1080` | Convenience for `launchOptions.defaultViewport`. |
+| `launchOptions` | `LaunchOptions \| (defaults) => LaunchOptions` | — | Forwarded to `puppeteer.launch(...)`. |
+| `gotoOptions` | `GoToOptions` | — | Forwarded to `page.goto(url, ...)`. |
+| `agentOptions` | `WebPageAgentOpt` | — | Forwarded to `PuppeteerAgent`. |
+| `setup` | `(api) => Promise<PageBundle>` | — | See [Custom page setup](#custom-page-setup) below. |
+
+Resolver fields (`launchOptions`, `contextOptions`) accept either an object — shallow-merged over midscene's defaults — or a function `(defaults) => options` that takes full control.
+
+### Examples
+
+Override one launch field while keeping midscene's defaults (`--no-sandbox`, etc.):
+
+```ts
+const ctx = createWebTest(url, {
+  launchOptions: { proxy: { server: 'http://corp-proxy:8080' } },
+});
+```
+
+Compose with the function form:
+
+```ts
+const ctx = createWebTest(url, {
+  launchOptions: (defaults) => ({
+    ...defaults,
+    args: [...(defaults.args ?? []), '--disable-gpu'],
+  }),
+});
+```
+
+Configure the context (Playwright):
+
+```ts
+const ctx = createWebTest(url, {
+  contextOptions: {
+    locale: 'zh-CN',
+    storageState: 'auth.json',
+    recordVideo: { dir: 'midscene_run/video' },
+  },
+});
+```
+
+### Custom page setup
+
+For lifecycles the defaults don't cover — persistent context, CDP connect, custom trace orchestration, reusing existing fixtures — pass `setup`. It receives the shared browser launched in `beforeAll` and must return the page midscene should attach the agent to. When `setup` is provided, `headless`, `viewport`, `launchOptions`, `contextOptions`, and `gotoOptions` are all ignored; only `agentOptions` still applies.
+
+```ts
+import { createWebTest } from '@midscene/rstest/playwright';
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+
+const ctx = createWebTest('https://example.com', {
+  async setup({ browser, url }) {
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 720 },
+    });
+    await context.tracing.start({ screenshots: true, snapshots: true });
+    const page = await context.newPage();
+    await page.goto(url);
+
+    return {
+      page,
+      async teardown(testCtx) {
+        const passed = testCtx.task.result?.status === 'pass';
+        if (passed) {
+          await context.tracing.stop();
+        } else {
+          mkdirSync('midscene_run/trace', { recursive: true });
+          await context.tracing.stop({
+            path: join('midscene_run/trace', `${testCtx.task.name}.zip`),
+          });
+        }
+        await context.close();
+      },
+    };
+  },
+});
+```
+
+The `teardown` callback runs **before** `agent.destroy()`, so the page is still alive — exactly the right window to stop traces, save videos, dump cookies, etc. If you don't need it, return `{ page }`.
+
+## Advanced: custom providers
+
+Need to drive a different browser stack — a remote browser, an Electron app, or your own grid? The lifecycle primitive both providers are built on is exported:
+
+```ts
+import { registerLifecycle } from '@midscene/rstest';
+```
+
+It accepts a `LifecycleProvider` describing how to launch a browser, build an Agent, and tear it down. The Playwright and Puppeteer providers are thin wrappers on top of it.
+
+## More
+
+- All Agent methods: [API Reference](./api#interaction-methods).
+- Working example: [https://github.com/web-infra-dev/midscene-example/tree/main/rstest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/rstest-demo).
