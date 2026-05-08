@@ -20,13 +20,29 @@ function createFakeChrome(): Promise<{
   port: number;
   endpoint: string;
   clients: Set<WebSocket>;
+  receivedMessages: Record<string, unknown>[];
+  releaseDelayedConnections: () => void;
 }> {
   return new Promise((resolve) => {
     const server = createServer((_req, res) => {
       res.writeHead(404);
       res.end();
     });
-    const wss = new WebSocketServer({ server });
+    const receivedMessages: Record<string, unknown>[] = [];
+    const delayedConnectionCallbacks: ((result: boolean) => void)[] = [];
+    let connectionAttempts = 0;
+    let delayConnectionsAfter = Number.POSITIVE_INFINITY;
+    const wss = new WebSocketServer({
+      server,
+      verifyClient: (_info, done) => {
+        connectionAttempts += 1;
+        if (connectionAttempts > delayConnectionsAfter) {
+          delayedConnectionCallbacks.push(done);
+          return;
+        }
+        done(true);
+      },
+    });
     const clients = new Set<WebSocket>();
 
     wss.on('connection', (ws) => {
@@ -34,6 +50,7 @@ function createFakeChrome(): Promise<{
       ws.on('message', (data) => {
         // Echo back with a fake CDP response
         const msg = JSON.parse(data.toString());
+        receivedMessages.push(msg);
         ws.send(
           JSON.stringify({
             id: msg.id,
@@ -58,7 +75,20 @@ function createFakeChrome(): Promise<{
       if (!addr || typeof addr === 'string') throw new Error('bad addr');
       const port = addr.port;
       const endpoint = `ws://127.0.0.1:${port}`;
-      resolve({ server, wss, port, endpoint, clients });
+      resolve({
+        server,
+        wss,
+        port,
+        endpoint,
+        clients,
+        receivedMessages,
+        releaseDelayedConnections: () => {
+          delayConnectionsAfter = 1;
+          while (delayedConnectionCallbacks.length > 0) {
+            delayedConnectionCallbacks.shift()?.(true);
+          }
+        },
+      });
     });
   });
 }
@@ -299,6 +329,37 @@ describe('CDP WebSocket Proxy', () => {
 
     expect(res).toHaveProperty('id', 42);
     client2.close();
+  });
+
+  it('buffers client messages until the replacement upstream opens', async () => {
+    const delayedChrome = await createFakeChrome();
+    const { proc, proxyEndpoint } = await startProxy(delayedChrome.endpoint);
+    proxyProc = proc;
+
+    const client1 = new WebSocket(proxyEndpoint);
+    await new Promise<void>((r) => client1.on('open', r));
+    client1.close();
+    await new Promise((r) => setTimeout(r, 100));
+
+    delayedChrome.releaseDelayedConnections();
+    const client2 = new WebSocket(proxyEndpoint);
+    await new Promise<void>((r) => client2.on('open', r));
+
+    const responsePromise = new Promise<Record<string, unknown>>((resolve) => {
+      client2.on('message', (d) => resolve(JSON.parse(d.toString())));
+    });
+    client2.send(JSON.stringify({ id: 43, method: 'buffered.until.open' }));
+
+    await new Promise((r) => setTimeout(r, 100));
+    expect(delayedChrome.receivedMessages).toHaveLength(0);
+
+    delayedChrome.releaseDelayedConnections();
+    const res = await responsePromise;
+    expect(res).toHaveProperty('id', 43);
+
+    client2.close();
+    delayedChrome.wss.close();
+    delayedChrome.server.close();
   });
 
   it('shuts down when upstream closes', async () => {
