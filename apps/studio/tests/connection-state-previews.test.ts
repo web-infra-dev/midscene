@@ -16,6 +16,19 @@ describe('connection state previews', () => {
     expect(html).toContain('Connect Android Device');
   });
 
+  it('renders custom disconnected copy for non-Android platforms', () => {
+    const html = renderToStaticMarkup(
+      createElement(DisconnectedPreview, {
+        iconSrc: 'connection-closed.svg',
+        title: 'Open Web Page',
+      }),
+    );
+
+    expect(html).toContain('connection-closed.svg');
+    expect(html).toContain('Open Web Page');
+    expect(html).not.toContain('Connect Android Device');
+  });
+
   it('renders the failed preview with the local icon and english copy', () => {
     const html = renderToStaticMarkup(
       createElement(ConnectionFailedPreview, {

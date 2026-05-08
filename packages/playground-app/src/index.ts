@@ -1,5 +1,6 @@
 export { PlaygroundApp } from './PlaygroundApp';
 export { PlaygroundPreview } from './PlaygroundPreview';
+export type { ManualDragActionType } from './manual-interaction';
 export { PlaygroundThemeProvider } from './PlaygroundThemeProvider';
 export { DeviceInteractionLayer } from './DeviceInteractionLayer';
 export type {

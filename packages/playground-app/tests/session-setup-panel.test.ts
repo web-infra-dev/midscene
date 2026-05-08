@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import type {
   PlaygroundSessionField,
   PlaygroundSessionSetup,
@@ -71,5 +72,20 @@ describe('SessionSetupPanel', () => {
     expect(getPlatformSelectorOptions(adbDeviceField, setup)).toEqual(
       adbDeviceField.options,
     );
+  });
+
+  it('keeps long setup forms reachable inside constrained sidebars', () => {
+    const styles = readFileSync(
+      new URL('../src/SessionSetupPanel.less', import.meta.url),
+      'utf8',
+    );
+    const panelRule =
+      styles.match(/\.session-setup-panel\s*{[^}]+}/)?.[0] ?? '';
+    const cardRule = styles.match(/\.session-setup-card\s*{[^}]+}/)?.[0] ?? '';
+
+    expect(panelRule).toContain('min-height: 0;');
+    expect(panelRule).toContain('overflow-y: auto;');
+    expect(cardRule).toContain('flex-shrink: 0;');
+    expect(cardRule).toContain('padding-bottom: 32px;');
   });
 });

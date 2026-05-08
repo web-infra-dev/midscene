@@ -111,6 +111,75 @@ describe('PlaygroundServer manual interaction APIs', () => {
     });
   });
 
+  test('POST /interact runs web Stop through browser chrome instead of actionSpace', async () => {
+    const stopLoading = vi.fn(async () => undefined);
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'web',
+        actionSpace: () => [],
+        stopLoading,
+      },
+    } as any);
+
+    await server.launch(6115);
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    const response = createMockResponse();
+    await interactHandler({ body: { actionType: 'Stop' } }, response);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toEqual({});
+    expect(stopLoading).toHaveBeenCalledTimes(1);
+  });
+
+  test('POST /interact recreates a factory-backed agent without replaying the failed action', async () => {
+    const firstDestroy = vi.fn();
+    const firstTapCall = vi.fn(async () => {
+      throw new Error(
+        'Protocol error (Input.dispatchMouseEvent): Session closed. Most likely the page has been closed.',
+      );
+    });
+    const secondTapCall = vi.fn();
+    const agentFactory = vi
+      .fn()
+      .mockResolvedValueOnce({
+        destroy: firstDestroy,
+        interface: {
+          interfaceType: 'web',
+          actionSpace: () => [
+            { name: 'Tap', description: 'tap', call: firstTapCall },
+          ],
+        },
+      })
+      .mockResolvedValueOnce({
+        interface: {
+          interfaceType: 'web',
+          actionSpace: () => [
+            { name: 'Tap', description: 'tap', call: secondTapCall },
+          ],
+        },
+      });
+
+    const server = new PlaygroundServer(agentFactory as any);
+    await server.launch(6114);
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    const response = createMockResponse();
+
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 10, y: 20 } },
+      response,
+    );
+
+    expect(response.statusCode).toBe(409);
+    expect(response.body).toEqual({
+      error:
+        'The page session was closed and has been recreated. Please retry the action.',
+    });
+    expect(agentFactory).toHaveBeenCalledTimes(2);
+    expect(firstDestroy).toHaveBeenCalledTimes(1);
+    expect(firstTapCall).toHaveBeenCalledTimes(1);
+    expect(secondTapCall).not.toHaveBeenCalled();
+  });
+
   test('GET /interface-info includes device size without fetching a screenshot', async () => {
     const screenshotBase64 = vi.fn(async () => 'base64-image');
     const server = new PlaygroundServer({

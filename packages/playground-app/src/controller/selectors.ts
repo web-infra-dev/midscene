@@ -23,7 +23,6 @@ export function buildConversationConfig(
     showSystemMessageHeader: false,
     promptInputChrome: {
       variant: 'minimal',
-      primaryActionLabel: 'Action',
     },
     executionFlow: {
       collapsible: true,

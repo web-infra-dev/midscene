@@ -1,4 +1,14 @@
-import { type CSSProperties, useCallback, useEffect, useRef } from 'react';
+import React, {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useRef,
+} from 'react';
+
+// The package-local Vitest setup still uses the classic JSX runtime for this
+// source file, so keep a runtime React binding even though the component code
+// only references React types explicitly.
+void React;
 
 export interface DeviceSize {
   width: number;
@@ -14,6 +24,9 @@ export interface DeviceInteractionLayerProps {
     end: { x: number; y: number },
     duration: number,
   ) => void;
+  keyboardEnabled?: boolean;
+  onTextInput?: (text: string, point?: { x: number; y: number }) => void;
+  onKeyboardPress?: (keyName: string, point?: { x: number; y: number }) => void;
   /**
    * Tap classification thresholds. Pointer movement below this distance and
    * total duration below this delay is reported as a Tap; anything else is a
@@ -29,6 +42,108 @@ interface ActivePointer {
   startY: number;
   startTime: number;
   contentRect: { left: number; top: number; width: number; height: number };
+}
+
+const keyboardControlKeys = new Set([
+  'Backspace',
+  'Delete',
+  'Enter',
+  'Tab',
+  'Escape',
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowUp',
+  'ArrowDown',
+  'Home',
+  'End',
+  'PageUp',
+  'PageDown',
+]);
+
+const pureModifierKeys = new Set(['Alt', 'Control', 'Meta', 'Shift']);
+
+function isHostCopyShortcut(
+  event: Pick<KeyboardEvent, 'altKey' | 'ctrlKey' | 'key' | 'metaKey'>,
+): boolean {
+  return (
+    !event.altKey &&
+    (event.metaKey || event.ctrlKey) &&
+    event.key.toLowerCase() === 'c'
+  );
+}
+
+/**
+ * Keys / shortcut combinations that should always reach the surrounding
+ * Electron / browser host instead of being forwarded to the remote device.
+ * The remote device already exposes its own reload / forward / stop buttons
+ * in the navigation toolbar, so we err on the side of letting the host take
+ * the standard window-level shortcuts.
+ */
+function isHostReservedShortcut(
+  event: Pick<
+    KeyboardEvent,
+    'altKey' | 'ctrlKey' | 'key' | 'metaKey' | 'shiftKey'
+  >,
+): boolean {
+  // Host-managed function keys.
+  if (event.key === 'F5' || event.key === 'F11' || event.key === 'F12') {
+    return true;
+  }
+
+  const hasPrimaryModifier = event.metaKey || event.ctrlKey;
+  if (!hasPrimaryModifier) return false;
+
+  const lowerKey = event.key.toLowerCase();
+
+  // DevTools / Inspect: Cmd+Opt+I, Ctrl+Shift+I, Ctrl+Shift+J.
+  if (event.altKey && lowerKey === 'i') return true;
+  if (event.shiftKey && (lowerKey === 'i' || lowerKey === 'j')) {
+    return true;
+  }
+
+  // Window / app-level shortcuts that users expect to control Studio itself,
+  // even while a device is armed for keyboard input.
+  const hostReservedKeys = new Set([
+    'r', // reload (also Shift+R = force reload)
+    'q', // quit
+    'w', // close window/tab
+    'm', // minimize
+    'h', // hide (macOS)
+    'n', // new window
+    't', // new tab (rarely used in Studio but standard)
+    '+',
+    '=',
+    '-',
+    '_',
+    '0', // zoom controls
+  ]);
+  return hostReservedKeys.has(lowerKey);
+}
+
+function hasHostSelectionOutsideOverlay(overlay: HTMLElement | null): boolean {
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed || !overlay) return false;
+  const { anchorNode, focusNode } = selection;
+  if (!anchorNode || !focusNode) return false;
+  return !overlay.contains(anchorNode) && !overlay.contains(focusNode);
+}
+
+export function keyNameForKeyboardEvent(
+  event: Pick<
+    React.KeyboardEvent,
+    'altKey' | 'ctrlKey' | 'key' | 'metaKey' | 'shiftKey'
+  >,
+): string | null {
+  if (pureModifierKeys.has(event.key)) return null;
+
+  const parts: string[] = [];
+  if (event.ctrlKey) parts.push('Control');
+  if (event.metaKey) parts.push('Meta');
+  if (event.altKey) parts.push('Alt');
+  if (event.shiftKey && event.key !== 'Shift') parts.push('Shift');
+
+  parts.push(event.key === ' ' ? 'Space' : event.key);
+  return parts.join('+');
 }
 
 export function inscribedContentRect(
@@ -60,12 +175,38 @@ export function DeviceInteractionLayer({
   deviceSize,
   onTap,
   onSwipe,
+  keyboardEnabled = false,
+  onTextInput,
+  onKeyboardPress,
   tapMaxDistance = 8,
   tapMaxDurationMs = 250,
   style,
 }: DeviceInteractionLayerProps) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
+  const keyboardSinkRef = useRef<HTMLTextAreaElement | null>(null);
   const activePointer = useRef<ActivePointer | null>(null);
+  const composingRef = useRef(false);
+  const keyboardArmedRef = useRef(false);
+  const lastKeyboardPointRef = useRef<{ x: number; y: number } | null>(null);
+
+  const focusKeyboardSink = useCallback(() => {
+    if (keyboardEnabled) {
+      keyboardArmedRef.current = true;
+      keyboardSinkRef.current?.focus({ preventScroll: true });
+    }
+  }, [keyboardEnabled]);
+
+  const positionKeyboardSink = useCallback(
+    (clientX: number, clientY: number) => {
+      const overlay = overlayRef.current;
+      const sink = keyboardSinkRef.current;
+      if (!overlay || !sink) return;
+      const rect = overlay.getBoundingClientRect();
+      sink.style.left = `${Math.max(0, clientX - rect.left)}px`;
+      sink.style.top = `${Math.max(0, clientY - rect.top)}px`;
+    },
+    [],
+  );
 
   const projectToDevice = useCallback(
     (
@@ -101,9 +242,16 @@ export function DeviceInteractionLayer({
         event.clientY < contentRect.top ||
         event.clientY > contentRect.top + contentRect.height
       ) {
+        keyboardArmedRef.current = false;
         return;
       }
-      overlayRef.current.setPointerCapture(event.pointerId);
+      positionKeyboardSink(event.clientX, event.clientY);
+      focusKeyboardSink();
+      try {
+        overlayRef.current.setPointerCapture(event.pointerId);
+      } catch {
+        /* synthetic/devtools pointer events may not have an active pointer */
+      }
       activePointer.current = {
         startX: event.clientX,
         startY: event.clientY,
@@ -112,7 +260,7 @@ export function DeviceInteractionLayer({
       };
       event.preventDefault();
     },
-    [enabled, deviceSize],
+    [enabled, deviceSize, focusKeyboardSink, positionKeyboardSink],
   );
 
   const finishPointer = useCallback(
@@ -143,6 +291,7 @@ export function DeviceInteractionLayer({
         active.contentRect,
       );
       if (!startPoint || !endPoint) return;
+      lastKeyboardPointRef.current = endPoint;
 
       if (distance <= tapMaxDistance && duration <= tapMaxDurationMs) {
         onTap?.(startPoint);
@@ -162,11 +311,143 @@ export function DeviceInteractionLayer({
     [finishPointer],
   );
 
+  const clearLocalEditableText = useCallback(() => {
+    if (keyboardSinkRef.current?.value) {
+      keyboardSinkRef.current.value = '';
+    }
+  }, []);
+
+  const handleKeyboardEvent = useCallback(
+    (event: KeyboardEvent) => {
+      if (!keyboardEnabled || !keyboardArmedRef.current) return;
+      if (
+        isHostCopyShortcut(event) &&
+        hasHostSelectionOutsideOverlay(overlayRef.current)
+      ) {
+        keyboardArmedRef.current = false;
+        return;
+      }
+      if (composingRef.current || event.isComposing) {
+        return;
+      }
+      // Let Electron / browser-level shortcuts reach the host so users keep
+      // standard reload / devtools / window-management behavior.
+      if (isHostReservedShortcut(event)) {
+        return;
+      }
+
+      if (
+        keyboardControlKeys.has(event.key) ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey
+      ) {
+        const keyName = keyNameForKeyboardEvent(event);
+        if (!keyName) return;
+        event.preventDefault();
+        event.stopPropagation();
+        onKeyboardPress?.(keyName, lastKeyboardPointRef.current ?? undefined);
+      }
+    },
+    [keyboardEnabled, onKeyboardPress],
+  );
+
+  const handlePaste = useCallback(
+    (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      if (!keyboardEnabled || !keyboardArmedRef.current) return;
+      const text = event.clipboardData.getData('text');
+      if (!text) return;
+      event.preventDefault();
+      event.stopPropagation();
+      onTextInput?.(text, lastKeyboardPointRef.current ?? undefined);
+    },
+    [keyboardEnabled, onTextInput],
+  );
+
+  const handleEditableInput = useCallback(
+    (event: React.FormEvent<HTMLTextAreaElement>) => {
+      if (!keyboardEnabled || !keyboardArmedRef.current) {
+        if (!composingRef.current) {
+          clearLocalEditableText();
+        }
+        return;
+      }
+      if (composingRef.current) {
+        return;
+      }
+      const nativeEvent = event.nativeEvent as InputEvent;
+      if (nativeEvent.inputType === 'insertLineBreak') {
+        clearLocalEditableText();
+        event.preventDefault();
+        event.stopPropagation();
+        onKeyboardPress?.('Enter', lastKeyboardPointRef.current ?? undefined);
+        return;
+      }
+      if (nativeEvent.inputType === 'deleteContentBackward') {
+        clearLocalEditableText();
+        event.preventDefault();
+        event.stopPropagation();
+        onKeyboardPress?.(
+          'Backspace',
+          lastKeyboardPointRef.current ?? undefined,
+        );
+        return;
+      }
+      if (nativeEvent.inputType === 'deleteContentForward') {
+        clearLocalEditableText();
+        event.preventDefault();
+        event.stopPropagation();
+        onKeyboardPress?.('Delete', lastKeyboardPointRef.current ?? undefined);
+        return;
+      }
+      const text = nativeEvent.data || keyboardSinkRef.current?.value || '';
+      clearLocalEditableText();
+      if (!text) return;
+      event.preventDefault();
+      event.stopPropagation();
+      onTextInput?.(text, lastKeyboardPointRef.current ?? undefined);
+    },
+    [clearLocalEditableText, keyboardEnabled, onKeyboardPress, onTextInput],
+  );
+
   useEffect(() => {
     if (!enabled) {
       activePointer.current = null;
+      composingRef.current = false;
+      keyboardArmedRef.current = false;
+      lastKeyboardPointRef.current = null;
     }
   }, [enabled]);
+
+  useEffect(() => {
+    if (!enabled || !keyboardEnabled) {
+      keyboardArmedRef.current = false;
+      return;
+    }
+
+    const handleDocumentPointerDown = (event: PointerEvent) => {
+      const overlay = overlayRef.current;
+      if (
+        overlay &&
+        event.target instanceof Node &&
+        overlay.contains(event.target)
+      ) {
+        return;
+      }
+      keyboardArmedRef.current = false;
+    };
+
+    window.addEventListener('keydown', handleKeyboardEvent, true);
+    window.addEventListener('pointerdown', handleDocumentPointerDown, true);
+    return () => {
+      window.removeEventListener('keydown', handleKeyboardEvent, true);
+      window.removeEventListener(
+        'pointerdown',
+        handleDocumentPointerDown,
+        true,
+      );
+    };
+  }, [enabled, handleKeyboardEvent, keyboardEnabled]);
 
   if (!enabled || !deviceSize) {
     return null;
@@ -179,15 +460,62 @@ export function DeviceInteractionLayer({
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
       onContextMenu={(e) => e.preventDefault()}
+      data-midscene-device-interaction-layer="true"
       style={{
         position: 'absolute',
         inset: 0,
         zIndex: 5,
-        cursor: 'crosshair',
+        cursor: keyboardEnabled ? 'default' : 'crosshair',
+        outline: 'none',
+        color: 'transparent',
+        caretColor: 'transparent',
         touchAction: 'none',
         userSelect: 'none',
         ...style,
       }}
-    />
+    >
+      {keyboardEnabled ? (
+        <textarea
+          ref={keyboardSinkRef}
+          data-midscene-keyboard-sink="true"
+          tabIndex={-1}
+          onPaste={handlePaste}
+          onCompositionStart={() => {
+            keyboardArmedRef.current = true;
+            composingRef.current = true;
+          }}
+          onCompositionEnd={(event) => {
+            if (!keyboardEnabled || !keyboardArmedRef.current) return;
+            composingRef.current = false;
+            const text = event.data || keyboardSinkRef.current?.value || '';
+            clearLocalEditableText();
+            if (text) {
+              onTextInput?.(text, lastKeyboardPointRef.current ?? undefined);
+            }
+          }}
+          onInput={handleEditableInput}
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            width: 32,
+            height: 24,
+            opacity: 0.01,
+            pointerEvents: 'none',
+            resize: 'none',
+            border: 0,
+            padding: 0,
+            margin: 0,
+            outline: 'none',
+            background: 'transparent',
+            color: 'transparent',
+            caretColor: 'transparent',
+            fontSize: 16,
+            lineHeight: '20px',
+            transform: 'translate(-50%, -50%)',
+          }}
+        />
+      ) : null}
+    </div>
   );
 }

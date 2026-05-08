@@ -1,10 +1,13 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import type { Agent } from '@midscene/core/agent';
 import type {
   LaunchPlaygroundResult,
+  PlaygroundPreviewDescriptor,
   PreparedPlaygroundPlatform,
   RegisteredPlaygroundPlatform,
 } from '@midscene/playground';
+import { getDebug } from '@midscene/shared/logger';
 import type { DiscoveredDevice } from '@shared/electron-contract';
 import type { PlaygroundBootstrap } from '@shared/electron-contract';
 import { ensureStudioShellEnvHydrated } from '../shell-env';
@@ -13,6 +16,7 @@ import type { DeviceDiscoveryService } from './device-discovery';
 import type { PlaygroundRuntimeService } from './types';
 
 const require = createRequire(__filename);
+const debugWebRuntime = getDebug('studio:web-runtime', { console: true });
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error
@@ -31,6 +35,25 @@ type HarmonyPlaygroundModule = typeof import('@midscene/harmony');
 type IosPlaygroundModule = typeof import('@midscene/ios');
 type PlaygroundModule = typeof import('@midscene/playground');
 
+type StudioPuppeteerAgentConstructor = new (
+  page: unknown,
+  opts?: { cacheId?: string },
+) => Agent;
+
+type StudioLaunchPuppeteerPage = (
+  target: {
+    url: string;
+    viewportWidth: number;
+    viewportHeight: number;
+  },
+  preference?: {
+    headed?: boolean;
+  },
+) => Promise<{
+  page: unknown;
+  freeFn: StudioWebCleanup[];
+}>;
+
 type MultiPlatformRuntimeModules = {
   ScrcpyServer: AndroidPlaygroundModule['ScrcpyServer'];
   androidPlaygroundPlatform: AndroidPlaygroundModule['androidPlaygroundPlatform'];
@@ -39,6 +62,13 @@ type MultiPlatformRuntimeModules = {
   iosPlaygroundPlatform: IosPlaygroundModule['iosPlaygroundPlatform'];
   launchPreparedPlaygroundPlatform: PlaygroundModule['launchPreparedPlaygroundPlatform'];
   prepareMultiPlatformPlayground: PlaygroundModule['prepareMultiPlatformPlayground'];
+  PuppeteerAgent: StudioPuppeteerAgentConstructor;
+  launchPuppeteerPage: StudioLaunchPuppeteerPage;
+};
+
+type StudioWebCleanup = {
+  name: string;
+  fn: () => void | Promise<void>;
 };
 
 type StudioDeviceDiscoveryService =
@@ -106,6 +136,23 @@ export async function loadIosPlaygroundModule(): Promise<
   return require('@midscene/ios');
 }
 
+export async function loadWebPlaygroundModule(): Promise<
+  Pick<MultiPlatformRuntimeModules, 'PuppeteerAgent' | 'launchPuppeteerPage'>
+> {
+  ensureStudioShellEnvHydrated();
+  const webModule = require('@midscene/web/puppeteer') as {
+    PuppeteerAgent: StudioPuppeteerAgentConstructor;
+  };
+  const launcherModule = require('@midscene/web/puppeteer-agent-launcher') as {
+    launchPuppeteerPage: StudioLaunchPuppeteerPage;
+  };
+
+  return {
+    PuppeteerAgent: webModule.PuppeteerAgent,
+    launchPuppeteerPage: launcherModule.launchPuppeteerPage,
+  };
+}
+
 export async function loadMultiPlatformRuntimeModules(): Promise<MultiPlatformRuntimeModules> {
   const [
     androidPlaygroundModule,
@@ -113,12 +160,14 @@ export async function loadMultiPlatformRuntimeModules(): Promise<MultiPlatformRu
     harmonyPlaygroundModule,
     iosPlaygroundModule,
     playgroundCoreModules,
+    webPlaygroundModule,
   ] = await Promise.all([
     loadAndroidPlaygroundModule(),
     loadComputerPlaygroundModule(),
     loadHarmonyPlaygroundModule(),
     loadIosPlaygroundModule(),
     loadPlaygroundCoreModules(),
+    loadWebPlaygroundModule(),
   ]);
 
   return {
@@ -134,6 +183,8 @@ export async function loadMultiPlatformRuntimeModules(): Promise<MultiPlatformRu
       playgroundCoreModules.launchPreparedPlaygroundPlatform,
     prepareMultiPlatformPlayground:
       playgroundCoreModules.prepareMultiPlatformPlayground,
+    PuppeteerAgent: webPlaygroundModule.PuppeteerAgent,
+    launchPuppeteerPage: webPlaygroundModule.launchPuppeteerPage,
   };
 }
 
@@ -177,19 +228,214 @@ async function createScrcpyDeviceListSource(
   };
 }
 
+const DEFAULT_STUDIO_WEB_URL = 'https://todomvc.com/examples/react/dist/';
+
+function normalizeWebUrl(value: unknown): string {
+  const raw = typeof value === 'string' ? value.trim() : '';
+  if (!raw) {
+    return DEFAULT_STUDIO_WEB_URL;
+  }
+  if (/^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(raw)) {
+    return raw;
+  }
+  if (
+    /^(localhost|127(?:\.\d{1,3}){3}|0\.0\.0\.0|\[::1\])(?::|\/|$)/i.test(raw)
+  ) {
+    return `http://${raw}`;
+  }
+  return `https://${raw}`;
+}
+
+function normalizeViewportDimension(value: unknown, fallback: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return fallback;
+  }
+  return Math.max(Math.round(value), 100);
+}
+
+async function runWebCleanup(cleanupFns: StudioWebCleanup[] | null) {
+  for (const cleanup of cleanupFns || []) {
+    try {
+      await cleanup.fn();
+    } catch (error) {
+      debugWebRuntime(
+        `cleanup "${cleanup.name}" failed: ${getErrorMessage(error)}`,
+      );
+    }
+  }
+}
+
+function createStudioWebPreviewDescriptor(): PlaygroundPreviewDescriptor {
+  return {
+    kind: 'mjpeg',
+    title: 'Web page preview',
+    screenshotPath: '/screenshot',
+    mjpegPath: '/mjpeg',
+    capabilities: [
+      {
+        kind: 'mjpeg',
+        label: 'MJPEG streaming',
+        live: true,
+      },
+      {
+        kind: 'screenshot',
+        label: 'Screenshot fallback',
+        live: false,
+      },
+    ],
+  };
+}
+
+async function prepareStudioWebPlatform({
+  loadWebModule,
+}: {
+  loadWebModule: typeof loadWebPlaygroundModule;
+}): Promise<PreparedPlaygroundPlatform> {
+  const webModule = await loadWebModule();
+  let currentCleanup: StudioWebCleanup[] | null = null;
+
+  return {
+    platformId: 'web',
+    title: 'Midscene Web Playground',
+    description: 'Open and control a Chromium page',
+    preview: createStudioWebPreviewDescriptor(),
+    metadata: {
+      interfaceType: 'web',
+    },
+    sessionManager: {
+      async getSetupSchema() {
+        return {
+          title: 'Open a web page',
+          description: 'Start a Chromium page and stream it into Studio.',
+          primaryActionLabel: 'Open Page',
+          fields: [
+            {
+              key: 'url',
+              label: 'URL',
+              type: 'text',
+              required: true,
+              defaultValue: DEFAULT_STUDIO_WEB_URL,
+              placeholder: DEFAULT_STUDIO_WEB_URL,
+            },
+            {
+              key: 'viewportWidth',
+              label: 'Viewport width',
+              type: 'number',
+              defaultValue: 1280,
+            },
+            {
+              key: 'viewportHeight',
+              label: 'Viewport height',
+              type: 'number',
+              defaultValue: 768,
+            },
+            {
+              key: 'headed',
+              label: 'Browser window',
+              type: 'select',
+              defaultValue: false,
+              options: [
+                {
+                  label: 'Headless',
+                  value: false,
+                },
+                {
+                  label: 'Visible Chrome window',
+                  value: true,
+                },
+              ],
+            },
+          ],
+        };
+      },
+      async createSession(input) {
+        await runWebCleanup(currentCleanup);
+        currentCleanup = null;
+
+        const url = normalizeWebUrl(input?.url);
+        const viewportWidth = normalizeViewportDimension(
+          input?.viewportWidth,
+          1280,
+        );
+        const viewportHeight = normalizeViewportDimension(
+          input?.viewportHeight,
+          768,
+        );
+        const headed = input?.headed === true;
+
+        const agentFactory = async () => {
+          await runWebCleanup(currentCleanup);
+          currentCleanup = null;
+
+          const { page, freeFn } = await webModule.launchPuppeteerPage(
+            {
+              url,
+              viewportWidth,
+              viewportHeight,
+            },
+            {
+              headed,
+            },
+          );
+          const agent = new webModule.PuppeteerAgent(page, {
+            cacheId: 'studio-web',
+          });
+          currentCleanup = [
+            {
+              name: 'studio_web_agent',
+              fn: () => agent.destroy(),
+            },
+            ...freeFn,
+          ];
+          return agent;
+        };
+
+        return {
+          agentFactory,
+          displayName: url,
+          metadata: {
+            interfaceType: 'web',
+            sessionDisplayName: url,
+            url,
+          },
+          platformId: 'web',
+          preview: createStudioWebPreviewDescriptor(),
+          title: 'Midscene Web Playground',
+        };
+      },
+      async destroySession() {
+        await runWebCleanup(currentCleanup);
+        currentCleanup = null;
+      },
+    },
+  };
+}
+
 const createStudioPlatformSpecs = ({
   loadAndroidModule = loadAndroidPlaygroundModule,
   loadComputerModule = loadComputerPlaygroundModule,
   deviceDiscoveryService,
   loadHarmonyModule = loadHarmonyPlaygroundModule,
   loadIosModule = loadIosPlaygroundModule,
+  loadWebModule = loadWebPlaygroundModule,
 }: {
   loadAndroidModule?: typeof loadAndroidPlaygroundModule;
   loadComputerModule?: typeof loadComputerPlaygroundModule;
   deviceDiscoveryService?: StudioDeviceDiscoveryService;
   loadHarmonyModule?: typeof loadHarmonyPlaygroundModule;
   loadIosModule?: typeof loadIosPlaygroundModule;
+  loadWebModule?: typeof loadWebPlaygroundModule;
 } = {}): StudioPlatformSpec[] => [
+  {
+    id: 'web',
+    label: 'Web',
+    description: 'Open and control a Chromium page',
+    staticDirPackage: '@midscene/web',
+    prepare: async () =>
+      prepareStudioWebPlatform({
+        loadWebModule,
+      }),
+  },
   {
     id: 'android',
     label: 'Android',
@@ -271,7 +517,7 @@ function buildRegisteredPlatforms(
 /**
  * Creates a multi-platform playground runtime service for the Studio
  * Electron main process. On `start()`, it registers all platforms
- * (Android, iOS, HarmonyOS, Computer) with
+ * (Web, Android, iOS, HarmonyOS, Computer) with
  * `prepareMultiPlatformPlayground` and launches a SINGLE unified HTTP
  * server. The renderer talks to this one server; the platform selector
  * on the setup form routes to the correct backend.
@@ -284,6 +530,7 @@ export function createMultiPlatformRuntimeService({
   loadComputerModule = loadComputerPlaygroundModule,
   loadHarmonyModule = loadHarmonyPlaygroundModule,
   loadIosModule = loadIosPlaygroundModule,
+  loadWebModule = loadWebPlaygroundModule,
   resolvePackageStaticDir = resolveStaticDir,
 }: {
   deviceDiscoveryService?: StudioDeviceDiscoveryService;
@@ -293,6 +540,7 @@ export function createMultiPlatformRuntimeService({
   loadComputerModule?: typeof loadComputerPlaygroundModule;
   loadHarmonyModule?: typeof loadHarmonyPlaygroundModule;
   loadIosModule?: typeof loadIosPlaygroundModule;
+  loadWebModule?: typeof loadWebPlaygroundModule;
   resolvePackageStaticDir?: (packageName: string) => string;
 } = {}): PlaygroundRuntimeService {
   let bootstrap: PlaygroundBootstrap = {
@@ -339,6 +587,19 @@ export function createMultiPlatformRuntimeService({
         const platforms = buildRegisteredPlatforms(
           runtimeModules
             ? [
+                {
+                  id: 'web',
+                  label: 'Web',
+                  description: 'Open and control a Chromium page',
+                  staticDirPackage: '@midscene/web',
+                  prepare: async () =>
+                    prepareStudioWebPlatform({
+                      loadWebModule: async () => ({
+                        PuppeteerAgent: runtimeModules.PuppeteerAgent,
+                        launchPuppeteerPage: runtimeModules.launchPuppeteerPage,
+                      }),
+                    }),
+                },
                 {
                   id: 'android',
                   label: 'Android',
@@ -396,6 +657,7 @@ export function createMultiPlatformRuntimeService({
                 loadComputerModule,
                 loadHarmonyModule,
                 loadIosModule,
+                loadWebModule,
               }),
           resolvePackageStaticDir,
         );

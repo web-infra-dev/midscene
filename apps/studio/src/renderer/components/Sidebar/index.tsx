@@ -238,6 +238,11 @@ export default function Sidebar({
         }
         const { actions, state } = studioPlayground.controller;
 
+        if (item.selected && item.status === 'active') {
+          onSelectDevice();
+          return;
+        }
+
         // Tell the multi-platform session manager which platform +
         // device to target. Field keys follow the `{platformId}.fieldKey`
         // convention from `prepareMultiPlatformPlayground`.

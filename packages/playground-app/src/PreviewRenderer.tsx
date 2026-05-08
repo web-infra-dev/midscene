@@ -8,11 +8,12 @@ import {
 } from '@midscene/visualizer';
 import { WebCodecsVideoDecoder } from '@yume-chan/scrcpy-decoder-webcodecs';
 import { Alert, Popover, message } from 'antd';
-import {
+import React, {
   type CSSProperties,
   type ReactNode,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -20,6 +21,10 @@ import {
   type DeviceSize,
 } from './DeviceInteractionLayer';
 import { type ScrcpyErrorOverlayRenderer, ScrcpyPanel } from './ScrcpyPanel';
+import {
+  type ManualDragActionType,
+  buildManualDragInteractPayload,
+} from './manual-interaction';
 import { resolvePreviewConnectionInfo } from './runtime-info';
 import type { ScrcpyPreviewStatus } from './scrcpy-preview';
 
@@ -42,6 +47,8 @@ interface PreviewRendererProps {
    * connected device (Android via ADB, iOS via WDA, Harmony via HDC).
    */
   manualControlEnabled?: boolean;
+  manualDragActionType?: ManualDragActionType;
+  manualKeyboardEnabled?: boolean;
 }
 
 function isNonLocalhostHttp(): boolean {
@@ -68,6 +75,8 @@ export function PreviewRenderer({
   serverOnline,
   isUserOperating,
   manualControlEnabled = false,
+  manualDragActionType = 'Swipe',
+  manualKeyboardEnabled = false,
 }: PreviewRendererProps) {
   const previewConnection = resolvePreviewConnectionInfo(
     runtimeInfo,
@@ -75,6 +84,16 @@ export function PreviewRenderer({
   );
 
   const [deviceSize, setDeviceSize] = useState<DeviceSize | null>(null);
+  const manualControlQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+
+  const enqueueManualControl = useCallback(
+    <TResult,>(task: () => Promise<TResult>): Promise<TResult> => {
+      const nextTask = manualControlQueueRef.current.then(task, task);
+      manualControlQueueRef.current = nextTask.catch(() => undefined);
+      return nextTask;
+    },
+    [],
+  );
 
   // Pull device size from lightweight interface metadata so the interaction
   // layer can map display coords to device pixels. Refresh periodically
@@ -86,7 +105,12 @@ export function PreviewRenderer({
     }
     let cancelled = false;
     const fetchSize = async () => {
-      const result = await playgroundSDK.getInterfaceInfo();
+      let result: Awaited<ReturnType<typeof playgroundSDK.getInterfaceInfo>>;
+      try {
+        result = await playgroundSDK.getInterfaceInfo();
+      } catch {
+        return;
+      }
       if (cancelled) return;
       if (result?.size?.width && result.size.height) {
         const { size } = result;
@@ -123,16 +147,18 @@ export function PreviewRenderer({
 
   const handleTap = useCallback(
     async (point: { x: number; y: number }) => {
-      const res = await playgroundSDK.interact({
-        actionType: 'Tap',
-        x: point.x,
-        y: point.y,
-      });
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact({
+          actionType: 'Tap',
+          x: point.x,
+          y: point.y,
+        }),
+      );
       if (!res.ok) {
         showManualControlError('Tap failed', res.error);
       }
     },
-    [playgroundSDK, showManualControlError],
+    [enqueueManualControl, playgroundSDK, showManualControlError],
   );
 
   const handleSwipe = useCallback(
@@ -141,19 +167,59 @@ export function PreviewRenderer({
       end: { x: number; y: number },
       duration: number,
     ) => {
-      const res = await playgroundSDK.interact({
-        actionType: 'Swipe',
-        x: start.x,
-        y: start.y,
-        endX: end.x,
-        endY: end.y,
-        duration,
-      });
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact(
+          buildManualDragInteractPayload(
+            manualDragActionType,
+            start,
+            end,
+            duration,
+          ),
+        ),
+      );
       if (!res.ok) {
-        showManualControlError('Swipe failed', res.error);
+        showManualControlError(`${manualDragActionType} failed`, res.error);
       }
     },
-    [playgroundSDK, showManualControlError],
+    [
+      enqueueManualControl,
+      manualDragActionType,
+      playgroundSDK,
+      showManualControlError,
+    ],
+  );
+
+  const handleTextInput = useCallback(
+    async (text: string) => {
+      if (!text) return;
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact({
+          actionType: 'Input',
+          value: text,
+          mode: 'typeOnly',
+        }),
+      );
+      if (!res.ok) {
+        showManualControlError('Input failed', res.error);
+      }
+    },
+    [enqueueManualControl, playgroundSDK, showManualControlError],
+  );
+
+  const handleKeyboardPress = useCallback(
+    async (keyName: string) => {
+      if (!keyName) return;
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact({
+          actionType: 'KeyboardPress',
+          keyName,
+        }),
+      );
+      if (!res.ok) {
+        showManualControlError('Keyboard press failed', res.error);
+      }
+    },
+    [enqueueManualControl, playgroundSDK, showManualControlError],
   );
 
   // Fall back to screenshot polling when WebCodecs is unavailable
@@ -278,6 +344,9 @@ export function PreviewRenderer({
         deviceSize={deviceSize}
         onTap={handleTap}
         onSwipe={handleSwipe}
+        keyboardEnabled={manualKeyboardEnabled}
+        onTextInput={handleTextInput}
+        onKeyboardPress={handleKeyboardPress}
       />
     </div>
   );

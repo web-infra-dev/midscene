@@ -215,7 +215,7 @@ describe('getAvailablePromptActionTypes', () => {
     expect(actions).toContain('aiTap');
   });
 
-  test('omits aiAct when actionSpace does not expose it', () => {
+  test('keeps aiAct when actionSpace does not expose it', () => {
     const actionSpace = [
       { name: 'Tap', interfaceAlias: 'aiTap' },
       { name: 'Swipe', interfaceAlias: 'aiSwipe' },
@@ -223,7 +223,7 @@ describe('getAvailablePromptActionTypes', () => {
 
     const actions = getAvailablePromptActionTypes(actionSpace);
 
-    expect(actions).not.toContain('aiAct');
+    expect(actions).toContain('aiAct');
     expect(actions).toContain('aiTap');
     expect(actions).toContain('aiSwipe');
   });

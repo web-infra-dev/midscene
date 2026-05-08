@@ -21,5 +21,15 @@ describe('Studio headless workflow', () => {
     expect(workflow).toContain(
       `xvfb-run -a ${xvfbScreenArg} pnpm --dir apps/studio run test:smoke:ai`,
     );
+    expect(workflow).toContain(
+      `xvfb-run -a ${xvfbScreenArg} pnpm --dir apps/studio run test:smoke:web-preview`,
+    );
+  });
+
+  it('runs the Web preview e2e test in the Studio headless workflow', () => {
+    const workflow = readFileSync(workflowPath, 'utf8');
+
+    expect(workflow).toContain('Run Studio Web preview e2e test');
+    expect(workflow).toContain('MIDSCENE_STUDIO_RUN_WEB_PREVIEW_E2E');
   });
 });

@@ -87,6 +87,12 @@ jobs:
       env:
         MIDSCENE_STUDIO_RUN_STARTUP_SMOKE: '1'
 
+    - name: Run Studio Web preview e2e test
+      run: xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm --dir apps/studio run test:smoke:web-preview
+      timeout-minutes: 10
+      env:
+        MIDSCENE_STUDIO_RUN_WEB_PREVIEW_E2E: '1'
+
     - name: Run Studio Midscene startup test
       run: xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm --dir apps/studio run test:smoke:ai
       timeout-minutes: 25

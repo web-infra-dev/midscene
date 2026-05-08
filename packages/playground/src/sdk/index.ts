@@ -248,6 +248,7 @@ export class PlaygroundSDK {
     type: string;
     description?: string;
     size?: { width: number; height: number };
+    navigationState?: { isLoading: boolean };
   } | null> {
     const adapter = this.runtimeMetadataAdapter();
     if (!adapter) {

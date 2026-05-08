@@ -500,6 +500,7 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     type: string;
     description?: string;
     size?: { width: number; height: number };
+    navigationState?: { isLoading: boolean };
   } | null> {
     if (!this.serverUrl) {
       return null;
