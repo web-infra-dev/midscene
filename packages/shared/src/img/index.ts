@@ -3,6 +3,8 @@ export {
   isValidPNGImageBuffer,
   isValidJPEGImageBuffer,
   isValidImageBuffer,
+  validateScreenshotBuffer,
+  type ValidateScreenshotBufferOptions,
 } from './info';
 export {
   resizeAndConvertImgBuffer,
