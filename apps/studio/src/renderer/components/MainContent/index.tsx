@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import { assetUrls } from '../../assets';
+import { type TranslationKey, useT } from '../../i18n';
 import {
   type StudioPreviewConnectionState,
   shouldPauseDiscoveryPollingDuringPreview,
@@ -147,37 +148,37 @@ function resolvePlatformLogo(platform?: string): string {
   }
 }
 
-function getPreviewConnectingLabel(platform?: string): string {
+function getPreviewConnectingLabelKey(platform?: string): TranslationKey {
   switch (platform) {
     case 'web':
-      return 'Opening Web page…';
+      return 'mainContent.preparing.web';
     case 'computer':
-      return 'Preparing computer connection…';
+      return 'mainContent.preparing.computer';
     case 'ios':
-      return 'Preparing iOS device connection…';
+      return 'mainContent.preparing.ios';
     case 'harmony':
-      return 'Preparing HarmonyOS device connection…';
+      return 'mainContent.preparing.harmonyos';
     case 'android':
-      return 'Preparing Android device connection…';
+      return 'mainContent.preparing.android';
     default:
-      return 'Preparing device connection…';
+      return 'mainContent.preparing.generic';
   }
 }
 
-function getDisconnectedPreviewTitle(platform?: string): string {
+function getDisconnectedPreviewTitleKey(platform?: string): TranslationKey {
   switch (platform) {
     case 'web':
-      return 'Open Web Page';
+      return 'mainContent.connect.web';
     case 'computer':
-      return 'Connect Computer';
+      return 'mainContent.connect.computer';
     case 'ios':
-      return 'Connect iOS Device';
+      return 'mainContent.connect.ios';
     case 'harmony':
-      return 'Connect HarmonyOS Device';
+      return 'mainContent.connect.harmonyos';
     case 'android':
-      return 'Connect Android Device';
+      return 'mainContent.connect.android';
     default:
-      return 'Connect Device';
+      return 'mainContent.connect.generic';
   }
 }
 
@@ -213,10 +214,11 @@ function OverviewToolbar({
   onRefresh: () => void;
   refreshing: boolean;
 }) {
+  const t = useT();
   return (
     <div className="absolute right-[16px] top-[12px] z-10 flex items-center gap-[8px]">
       <button
-        aria-label="Refresh devices"
+        aria-label={t('mainContent.aria.refreshDevices')}
         className="flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border border-border-subtle bg-surface text-text-secondary transition-colors hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60"
         disabled={refreshing}
         onClick={onRefresh}
@@ -233,6 +235,7 @@ export default function MainContent({
   headerOffsetClass,
   onSelectDeviceView,
 }: MainContentProps) {
+  const t = useT();
   const studioPlayground = useStudioPlayground();
   const [previewStatus, setPreviewStatus] =
     useState<StudioPreviewConnectionState>(null);
@@ -247,13 +250,13 @@ export default function MainContent({
   const isReady = studioPlayground.phase === 'ready';
   const deviceLabel =
     studioPlayground.phase === 'error'
-      ? 'Runtime Error'
+      ? t('mainContent.runtimeError')
       : isReady
         ? resolveConnectedDeviceLabel(
             studioPlayground.controller.state.runtimeInfo,
-            { emptyLabel: 'No device selected' },
+            { emptyLabel: t('mainContent.noDeviceSelected') },
           )
-        : 'Playground starting';
+        : t('mainContent.playgroundStarting');
   const isConnected = isReady
     ? studioPlayground.controller.state.sessionViewState.connected
     : false;
@@ -295,8 +298,12 @@ export default function MainContent({
   const manualDragActionType =
     previewPlatform === 'web' ? 'DragAndDrop' : 'Swipe';
   const showWebNavigation = isConnected && previewPlatform === 'web';
-  const previewConnectingLabel = getPreviewConnectingLabel(previewPlatform);
-  const disconnectedPreviewTitle = getDisconnectedPreviewTitle(previewPlatform);
+  const previewConnectingLabel = t(
+    getPreviewConnectingLabelKey(previewPlatform),
+  );
+  const disconnectedPreviewTitle = t(
+    getDisconnectedPreviewTitleKey(previewPlatform),
+  );
   const isOpeningSession =
     isReady &&
     !isConnected &&
@@ -306,12 +313,12 @@ export default function MainContent({
   const previewConnectionFailed =
     previewStatus === 'error' || previewStatus === 'disconnected';
   const connectionStatusLabel = !isReady
-    ? 'Setup'
+    ? t('mainContent.setup')
     : previewConnectionFailed
-      ? 'Connection failed'
+      ? t('device.status.connectionFailed')
       : isConnected
-        ? 'Live'
-        : 'Not connected';
+        ? t('device.status.live')
+        : t('device.status.notConnected');
 
   useEffect(() => {
     if (!isConnected) {
@@ -578,11 +585,11 @@ export default function MainContent({
           </div>
           {showWebNavigation ? (
             <div
-              aria-label="Web navigation"
+              aria-label={t('mainContent.aria.webNavigation')}
               className="app-no-drag ml-[10px] flex h-[32px] items-center gap-[2px] rounded-[8px] bg-transparent px-[2px]"
             >
               <WebNavigationButton
-                aria-label="Go back"
+                aria-label={t('mainContent.aria.goBack')}
                 disabled={webNavigationBusyAction !== null}
                 onClick={() => {
                   void runWebNavigationAction('GoBack');
@@ -591,7 +598,7 @@ export default function MainContent({
                 <BackIcon />
               </WebNavigationButton>
               <WebNavigationButton
-                aria-label="Go forward"
+                aria-label={t('mainContent.aria.goForward')}
                 disabled={webNavigationBusyAction !== null}
                 onClick={() => {
                   void runWebNavigationAction('GoForward');
@@ -601,7 +608,7 @@ export default function MainContent({
               </WebNavigationButton>
               {webIsLoading ? (
                 <WebNavigationButton
-                  aria-label="Stop loading"
+                  aria-label={t('mainContent.aria.stopLoading')}
                   disabled={webNavigationBusyAction !== null}
                   onClick={() => {
                     void runWebNavigationAction('Stop');
@@ -611,7 +618,7 @@ export default function MainContent({
                 </WebNavigationButton>
               ) : (
                 <WebNavigationButton
-                  aria-label="Reload page"
+                  aria-label={t('mainContent.aria.reloadPage')}
                   disabled={webNavigationBusyAction !== null}
                   onClick={() => {
                     void runWebNavigationAction('Reload');
@@ -652,7 +659,7 @@ export default function MainContent({
               src={assetUrls.main.disconnect}
             />
             <span className="whitespace-nowrap px-[3px] text-[13px] leading-[20px] font-medium text-text-primary">
-              Disconnect
+              {t('mainContent.disconnect')}
             </span>
           </button>
         </div>
@@ -662,7 +669,7 @@ export default function MainContent({
         <MobilePreviewFrame enabled={shouldFrameMobilePreview}>
           {studioPlayground.phase === 'booting' ? (
             <div className="flex h-full items-center justify-center px-6 text-[14px] text-text-tertiary">
-              Playground starting...
+              {t('mainContent.playgroundStartingEllipsis')}
             </div>
           ) : studioPlayground.phase === 'error' ? (
             <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">
@@ -676,12 +683,12 @@ export default function MainContent({
                 }}
                 type="button"
               >
-                Retry runtime
+                {t('mainContent.retryRuntime')}
               </button>
             </div>
           ) : !studioPlayground.controller.state.serverOnline ? (
             <div className="flex h-full items-center justify-center px-8 text-center text-[14px] leading-[22px] text-text-tertiary">
-              Playground server is offline.
+              {t('mainContent.playgroundOffline')}
             </div>
           ) : studioPlayground.controller.state.sessionViewState.connected ? (
             <div

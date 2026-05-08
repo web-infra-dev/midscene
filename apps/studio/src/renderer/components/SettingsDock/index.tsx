@@ -1,4 +1,5 @@
 import { assetUrls } from '../../assets';
+import { useT } from '../../i18n';
 import { MaskedIcon } from '../MaskedIcon';
 
 function EnvIcon() {
@@ -65,9 +66,14 @@ export default function SettingsDock({
   onToggleSettings,
   settingsOpen,
 }: SettingsDockProps) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-[2px]">
-      <DockRow icon={<EnvIcon />} label="Env" onClick={onEnvClick} />
+      <DockRow
+        icon={<EnvIcon />}
+        label={t('settings.env')}
+        onClick={onEnvClick}
+      />
       <DockRow
         active={settingsOpen}
         ariaExpanded={settingsOpen}
@@ -77,7 +83,7 @@ export default function SettingsDock({
             src={assetUrls.sidebar.settings}
           />
         }
-        label="Settings"
+        label={t('settings.settings')}
         onClick={onToggleSettings}
       />
     </div>

@@ -1,5 +1,8 @@
 import { ConfigProvider, theme as antdTheme } from 'antd';
+import enUS from 'antd/locale/en_US';
+import zhCN from 'antd/locale/zh_CN';
 import type { PropsWithChildren } from 'react';
+import { useLocale } from '../i18n';
 import { useStudioTheme } from './ThemeProvider';
 
 /*
@@ -51,10 +54,12 @@ const DARK_TOKENS = {
 
 export function StudioAntdProvider({ children }: PropsWithChildren) {
   const { resolved } = useStudioTheme();
+  const { locale } = useLocale();
   const isDark = resolved === 'dark';
 
   return (
     <ConfigProvider
+      locale={locale === 'zh' ? zhCN : enUS}
       theme={{
         algorithm: isDark
           ? antdTheme.darkAlgorithm

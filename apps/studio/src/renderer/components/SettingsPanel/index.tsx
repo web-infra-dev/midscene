@@ -1,26 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
+import { type StudioLocale, useLocale } from '../../i18n';
 import {
   type StudioThemeMode,
   useStudioTheme,
 } from '../../theme/ThemeProvider';
 import SettingItem from './SettingItem';
 
-const LANGUAGE_STORAGE_KEY = 'studio.language';
-const LANGUAGE_OPTIONS: { value: string; label: string }[] = [
+const LANGUAGE_OPTIONS: { value: StudioLocale; label: string }[] = [
   { value: 'en', label: 'English' },
   { value: 'zh', label: '中文' },
 ];
-const THEME_OPTIONS: { value: StudioThemeMode; label: string }[] = [
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'system', label: 'System' },
-];
-
-const THEME_LABELS: Record<StudioThemeMode, string> = {
-  light: 'Light',
-  dark: 'Dark',
-  system: 'System',
-};
 
 function ChevronIcon() {
   return (
@@ -130,16 +119,6 @@ function OptionList<T extends string>({
   );
 }
 
-function readStoredLanguage(): string {
-  if (typeof window === 'undefined') {
-    return LANGUAGE_OPTIONS[0].value;
-  }
-  const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
-  return LANGUAGE_OPTIONS.some((option) => option.value === stored)
-    ? (stored as string)
-    : LANGUAGE_OPTIONS[0].value;
-}
-
 export interface SettingsPanelProps {
   className?: string;
   onGithubClick?: () => void;
@@ -152,18 +131,17 @@ export default function SettingsPanel({
   onWebsiteClick,
 }: SettingsPanelProps) {
   const { mode, setMode } = useStudioTheme();
-  const [language, setLanguage] = useState<string>(() => readStoredLanguage());
+  const { t, locale, setLocale, localeLabel } = useLocale();
+  const themeOptions: { value: StudioThemeMode; label: string }[] = [
+    { value: 'light', label: t('settings.themes.light') },
+    { value: 'dark', label: t('settings.themes.dark') },
+    { value: 'system', label: t('settings.themes.system') },
+  ];
+  const themeLabel = t(`settings.themes.${mode}` as const);
   const [openPopover, setOpenPopover] = useState<'language' | 'theme' | null>(
     null,
   );
   const popoverWrapperRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
-  }, [language]);
 
   useEffect(() => {
     if (!openPopover) {
@@ -185,31 +163,28 @@ export default function SettingsPanel({
   }, [openPopover]);
 
   const wrapperClassName = ['relative', className].filter(Boolean).join(' ');
-  const languageLabel =
-    LANGUAGE_OPTIONS.find((option) => option.value === language)?.label ??
-    LANGUAGE_OPTIONS[0].label;
 
   return (
     <div className={wrapperClassName} ref={popoverWrapperRef}>
       <div className="flex w-[244px] flex-col rounded-[12px] border border-border-subtle bg-surface-elevated p-[6px] shadow-lg">
         <div className="flex flex-col">
           <SettingItem
-            label="Language"
+            label={t('settings.language')}
             onClick={() =>
               setOpenPopover((prev) =>
                 prev === 'language' ? null : 'language',
               )
             }
             trailingIcon={<ChevronIcon />}
-            value={languageLabel}
+            value={localeLabel}
           />
           <SettingItem
-            label="Theme"
+            label={t('settings.theme')}
             onClick={() =>
               setOpenPopover((prev) => (prev === 'theme' ? null : 'theme'))
             }
             trailingIcon={<ChevronIcon />}
-            value={THEME_LABELS[mode]}
+            value={themeLabel}
           />
         </div>
 
@@ -217,12 +192,12 @@ export default function SettingsPanel({
 
         <div className="flex flex-col">
           <SettingItem
-            label="GitHub"
+            label={t('common.github')}
             onClick={onGithubClick}
             trailingIcon={<ExternalLinkIcon />}
           />
           <SettingItem
-            label="Website"
+            label={t('common.website')}
             onClick={onWebsiteClick}
             trailingIcon={<ExternalLinkIcon />}
           />
@@ -233,11 +208,11 @@ export default function SettingsPanel({
         <div className="absolute bottom-0 left-[calc(100%+4px)] z-50">
           <OptionList
             onSelect={(value) => {
-              setLanguage(value);
+              setLocale(value);
               setOpenPopover(null);
             }}
             options={LANGUAGE_OPTIONS}
-            selected={language}
+            selected={locale}
           />
         </div>
       ) : null}
@@ -249,7 +224,7 @@ export default function SettingsPanel({
               setMode(value);
               setOpenPopover(null);
             }}
-            options={THEME_OPTIONS}
+            options={themeOptions}
             selected={mode}
           />
         </div>

@@ -7,6 +7,7 @@ import {
 } from 'react';
 import { STUDIO_EXTERNAL_LINKS } from '../../../shared/external-links';
 import { assetUrls } from '../../assets';
+import { useT } from '../../i18n';
 import MainContent from '../MainContent';
 import { MaskedIcon } from '../MaskedIcon';
 import Playground from '../Playground';
@@ -60,9 +61,14 @@ function SidebarToggleButton({
   collapsed: boolean;
   onToggle: () => void;
 }) {
+  const t = useT();
   return (
     <button
-      aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      aria-label={
+        collapsed
+          ? t('shell.aria.expandSidebar')
+          : t('shell.aria.collapseSidebar')
+      }
       className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-text-secondary hover:bg-surface-hover"
       onClick={onToggle}
       type="button"

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { STUDIO_EXTERNAL_LINKS } from '../../../shared/external-links';
 import { assetUrls } from '../../assets';
+import { type TranslationKey, useT } from '../../i18n';
 import type {
   DiscoveryErrorsByPlatform,
   StudioAndroidDeviceItem,
@@ -13,7 +14,7 @@ type DeviceConnectionState = 'idle' | 'live' | 'connecting';
 interface PlatformConfig {
   iconSrc?: string;
   key: StudioSidebarPlatformKey;
-  label: string;
+  labelKey: TranslationKey;
 }
 
 // Header (MainContent) shows two platform glyphs: a phone for
@@ -21,15 +22,31 @@ interface PlatformConfig {
 // the overview cards stay visually aligned with the connected-device chip
 // at the top of the shell.
 const PLATFORM_CONFIGS: PlatformConfig[] = [
-  { iconSrc: assetUrls.main.platformPhone, key: 'android', label: 'Android' },
-  { iconSrc: assetUrls.main.platformPhone, key: 'ios', label: 'iOS' },
-  { iconSrc: assetUrls.main.platformPc, key: 'computer', label: 'Computer' },
+  {
+    iconSrc: assetUrls.main.platformPhone,
+    key: 'android',
+    labelKey: 'device.platforms.android',
+  },
+  {
+    iconSrc: assetUrls.main.platformPhone,
+    key: 'ios',
+    labelKey: 'device.platforms.ios',
+  },
+  {
+    iconSrc: assetUrls.main.platformPc,
+    key: 'computer',
+    labelKey: 'device.platforms.computer',
+  },
   {
     iconSrc: assetUrls.main.platformPhone,
     key: 'harmony',
-    label: 'HarmonyOS',
+    labelKey: 'device.platforms.harmonyos',
   },
-  { iconSrc: assetUrls.main.platformPc, key: 'web', label: 'Web' },
+  {
+    iconSrc: assetUrls.main.platformPc,
+    key: 'web',
+    labelKey: 'device.platforms.web',
+  },
 ];
 
 function LinkIcon() {
@@ -92,6 +109,7 @@ function SpinnerIcon() {
 }
 
 function StatusBadge({ status }: { status: DeviceConnectionState }) {
+  const t = useT();
   if (status === 'idle') {
     return null;
   }
@@ -112,7 +130,7 @@ function StatusBadge({ status }: { status: DeviceConnectionState }) {
           isLive ? 'text-status-success-fg' : 'text-status-info'
         }`}
       >
-        {isLive ? 'Live' : 'Connecting'}
+        {isLive ? t('device.status.live') : t('device.status.connecting')}
       </span>
     </div>
   );
@@ -285,8 +303,10 @@ export function DeviceList({
   onConnect,
   onDisconnect,
 }: DeviceListProps) {
+  const t = useT();
   const sections = PLATFORM_CONFIGS.map((config) => ({
     ...config,
+    label: t(config.labelKey),
     devices: buckets[config.key],
     toolchainHint:
       errors?.[config.key]?.kind === 'toolchain-missing'
@@ -309,7 +329,7 @@ export function DeviceList({
               />
             ) : (
               <div className="flex h-[66px] w-[394px] items-center justify-center rounded-[8px] border border-dashed border-border-subtle font-sans text-[12px] text-text-tertiary">
-                No devices
+                {t('sidebar.noDevices')}
               </div>
             )
           ) : (

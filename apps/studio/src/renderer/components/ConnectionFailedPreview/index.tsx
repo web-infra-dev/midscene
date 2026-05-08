@@ -1,3 +1,5 @@
+import { useT } from '../../i18n';
+
 export interface ConnectionFailedPreviewProps {
   adbId?: string;
   className?: string;
@@ -11,6 +13,7 @@ export default function ConnectionFailedPreview({
   iconSrc,
   onReconnect,
 }: ConnectionFailedPreviewProps) {
+  const t = useT();
   const rootClassName = [
     'flex h-full w-full items-center justify-center bg-surface',
     className,
@@ -31,13 +34,11 @@ export default function ConnectionFailedPreview({
         </div>
 
         <div className="mt-[4px] w-[130px] overflow-hidden whitespace-nowrap text-center text-[13px] font-medium leading-[24px] text-text-primary">
-          Connection failed
+          {t('preview.connectionFailed.title')}
         </div>
 
         <div className="mt-[4px] w-[190px] text-center text-[12px] leading-[20px] text-text-secondary">
-          {adbId
-            ? `ADB Device: ${adbId}`
-            : 'Unable to reconnect to this device.'}
+          {adbId ? `ADB Device: ${adbId}` : t('preview.connectionFailed.body')}
         </div>
 
         <button
@@ -45,7 +46,7 @@ export default function ConnectionFailedPreview({
           onClick={onReconnect}
           type="button"
         >
-          Reconnect
+          {t('preview.connectionFailed.reconnect')}
         </button>
       </div>
     </div>

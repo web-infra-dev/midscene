@@ -1,3 +1,5 @@
+import { useT } from '../../i18n';
+
 export interface DisconnectedPreviewProps {
   iconSrc: string;
   title?: string;
@@ -5,8 +7,10 @@ export interface DisconnectedPreviewProps {
 
 export default function DisconnectedPreview({
   iconSrc,
-  title = 'Connect Android Device',
+  title,
 }: DisconnectedPreviewProps) {
+  const t = useT();
+  const resolvedTitle = title ?? t('mainContent.connect.android');
   return (
     <div className="flex h-full w-full items-center justify-center bg-surface">
       <div className="flex flex-col items-center gap-[4px]">
@@ -17,7 +21,7 @@ export default function DisconnectedPreview({
           src={iconSrc}
         />
         <h2 className="whitespace-nowrap text-center text-[13px] font-normal leading-[24px] text-text-primary">
-          {title}
+          {resolvedTitle}
         </h2>
       </div>
     </div>

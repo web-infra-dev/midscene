@@ -1,4 +1,5 @@
 import { Suspense, lazy, useMemo } from 'react';
+import { useT } from '../../i18n';
 import { downloadStudioReport } from '../../playground/report-download';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
 import { type ConnectionStatus, PlaygroundShell } from '../PlaygroundShell';
@@ -11,6 +12,7 @@ const LazyPlaygroundConversationPanel = lazy(
 );
 
 export default function Playground() {
+  const t = useT();
   const studioPlayground = useStudioPlayground();
   const playgroundConfig = useMemo(
     () => ({
@@ -36,7 +38,7 @@ export default function Playground() {
       <div className="min-h-0 h-full flex-1 overflow-hidden">
         {studioPlayground.phase === 'booting' ? (
           <div className="flex h-full items-center justify-center px-6 text-center text-[14px] leading-[22px] text-text-tertiary">
-            Playground starting...
+            {t('playground.starting')}
           </div>
         ) : studioPlayground.phase === 'error' ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
@@ -50,14 +52,14 @@ export default function Playground() {
               }}
               type="button"
             >
-              Retry runtime
+              {t('playground.retryRuntime')}
             </button>
           </div>
         ) : (
           <Suspense
             fallback={
               <div className="flex h-full items-center justify-center px-6 text-center text-[14px] leading-[22px] text-text-tertiary">
-                Loading Playground…
+                {t('playground.loading')}
               </div>
             }
           >
@@ -66,7 +68,7 @@ export default function Playground() {
               className="h-full"
               controller={studioPlayground.controller}
               playgroundConfig={playgroundConfig}
-              title="Playground"
+              title={t('playground.title')}
             />
           </Suspense>
         )}

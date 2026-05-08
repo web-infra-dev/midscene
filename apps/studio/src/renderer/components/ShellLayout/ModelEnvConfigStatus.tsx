@@ -1,3 +1,5 @@
+import { useT } from '../../i18n';
+
 type ModelEnvConfigStatusKind = 'success' | 'error';
 
 interface ModelEnvConfigStatusProps {
@@ -63,11 +65,14 @@ function SuccessStatusIcon() {
 }
 
 export function ModelEnvConfigStatus({ kind }: ModelEnvConfigStatusProps) {
+  const t = useT();
   const isSuccess = kind === 'success';
   const statusClasses = isSuccess
     ? 'bg-status-success-bg text-status-success-fg'
     : 'bg-[#E13E37]/11 text-[#E13E37]';
-  const message = isSuccess ? 'Test passed.' : 'Test failed. Please try again.';
+  const message = isSuccess
+    ? t('envConfig.testPassed')
+    : t('envConfig.testFailed');
 
   return (
     <div className="relative z-10 mt-[12px] px-[21px]">

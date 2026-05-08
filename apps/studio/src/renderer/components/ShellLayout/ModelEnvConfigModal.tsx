@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useT } from '../../i18n';
 import { ModelEnvConfigFormFields } from './ModelEnvConfigFormFields';
 import { ModelEnvConfigStatus } from './ModelEnvConfigStatus';
 import {
@@ -25,7 +26,6 @@ export interface ModelEnvConfigModalProps {
   onSave?: (payload: { text: string }) => void;
 }
 
-const TEXT_PLACEHOLDER = 'OPENAI_API_KEY=sk-...\nMIDSCENE_MODEL=';
 const closeIconSrc = new URL('./model-env-close.svg', import.meta.url).href;
 const connectivityIconSrc = new URL(
   './model-env-connectivity.svg',
@@ -51,13 +51,14 @@ function ConnectivityPlayIcon() {
 }
 
 function EnvModalHeader({ onClose }: { onClose: () => void }) {
+  const t = useT();
   return (
     <div className="relative z-10 box-border flex w-full items-center justify-between px-[20px] pt-[20.8px]">
       <h2 className="m-0 font-['Inter'] text-[16px] font-semibold leading-[24px] tracking-normal text-black">
-        Model Env Config
+        {t('envConfig.title')}
       </h2>
       <button
-        aria-label="Close"
+        aria-label={t('common.close')}
         className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 transition-colors hover:bg-black/5"
         onClick={onClose}
         type="button"
@@ -75,6 +76,7 @@ function EnvModalTabs({
   tab: TabKey;
   onTabChange: (tab: TabKey) => void;
 }) {
+  const t = useT();
   return (
     <div className="relative z-10 box-border flex h-[36px] w-[146px] items-center rounded-[42px] bg-[#F2F4F7] p-[2px]">
       <button
@@ -86,7 +88,7 @@ function EnvModalTabs({
         onClick={() => onTabChange('text')}
         type="button"
       >
-        Text
+        {t('envConfig.tabText')}
       </button>
       <button
         className={`flex h-[32px] flex-1 cursor-pointer items-center justify-center rounded-[40px] border-0 p-0 font-['Inter'] text-[14px] leading-[16.9px] transition-all duration-200 ${
@@ -97,7 +99,7 @@ function EnvModalTabs({
         onClick={() => onTabChange('form')}
         type="button"
       >
-        Form
+        {t('envConfig.tabForm')}
       </button>
     </div>
   );
@@ -116,8 +118,11 @@ function EnvModalFooter({
   canRunConnectivityTest: boolean;
   testStatus: TestStatus;
 }) {
+  const t = useT();
   const isTesting = testStatus.kind === 'running';
-  const connectivityLabel = isTesting ? 'Testing...' : 'Connectivity test';
+  const connectivityLabel = isTesting
+    ? t('envConfig.testing')
+    : t('envConfig.connectivityTest');
 
   return (
     <div className="relative z-10 mt-auto box-border flex w-full items-center justify-between px-[20px] pb-[24px]">
@@ -154,7 +159,7 @@ function EnvModalFooter({
           type="button"
         >
           <span className="w-[47px] overflow-hidden whitespace-nowrap text-center font-['Inter'] text-[14px] font-medium leading-[16px] text-black/70">
-            Cancel
+            {t('common.cancel')}
           </span>
         </button>
         <button
@@ -163,7 +168,7 @@ function EnvModalFooter({
           type="button"
         >
           <span className="w-[33px] overflow-hidden whitespace-nowrap text-center font-['Inter'] text-[14px] font-medium leading-[16px] text-white">
-            Save
+            {t('common.save')}
           </span>
         </button>
       </div>
@@ -178,6 +183,7 @@ export function ModelEnvConfigModal({
   onClose,
   onSave,
 }: ModelEnvConfigModalProps) {
+  const t = useT();
   const [tab, setTab] = useState<TabKey>(initialTab);
   const [text, setText] = useState(initialTextValue ?? '');
   const [testStatus, setTestStatus] = useState<TestStatus>({ kind: 'idle' });
@@ -313,7 +319,7 @@ export function ModelEnvConfigModal({
             <textarea
               className="box-border h-[162px] w-[360px] resize-none overflow-hidden rounded-[12px] border border-[#EFEFEE] bg-white p-[12px] font-['Inter'] text-[14px] font-normal leading-[16.9px] text-black placeholder:text-black/35 outline-none"
               onChange={(event) => handleTextChange(event.target.value)}
-              placeholder={TEXT_PLACEHOLDER}
+              placeholder={t('envConfig.placeholder')}
               value={text}
               wrap="off"
             />
@@ -321,7 +327,7 @@ export function ModelEnvConfigModal({
         ) : formEntries.length === 0 ? (
           <div className="relative z-10 mt-[16px] flex w-full justify-center">
             <div className="box-border flex h-[162px] w-[360px] items-center justify-center rounded-[12px] border border-[#EFEFEE] bg-white px-[16px] text-center font-['Inter'] text-[13px] leading-[18px] text-black/45">
-              Add KEY=VALUE lines in the Text tab to populate fields here.
+              {t('envConfig.emptyForm')}
             </div>
           </div>
         ) : (
@@ -333,10 +339,9 @@ export function ModelEnvConfigModal({
 
         <div className={`relative z-10 ${descriptionMarginClass} px-[21px]`}>
           <p className="m-0 font-['Inter'] text-[12px] font-normal leading-[14.5px] text-black/65">
-            The format is KEY=VALUE and separated by new lines. These data will
-            be saved{' '}
+            {t('envConfig.formatHint')}{' '}
             <span className="font-bold text-black">
-              locally in your browser
+              {t('envConfig.locallyInBrowser')}
             </span>
             .
           </p>

@@ -1,7 +1,9 @@
 import { assetUrls } from '../../assets';
+import { useT } from '../../i18n';
 import './StudioPlaygroundEmptyState.css';
 
 export function StudioPlaygroundEmptyState() {
+  const t = useT();
   return (
     <div className="studio-playground-empty-state">
       <img
@@ -12,23 +14,17 @@ export function StudioPlaygroundEmptyState() {
         src={assetUrls.playground.midsceneIcon}
       />
       <h2 className="studio-playground-empty-state-title">
-        Welcome to <br /> Midscene.js Playground!
+        {t('playground.welcome.titleLine1')}
+        <br />
+        {t('playground.welcome.titleLine2')}
       </h2>
       <ul
         className="studio-playground-empty-state-list"
         data-playground-empty-state-content-end=""
       >
-        <li>
-          This is a panel for experimenting and testing Midscene.js features.
-        </li>
-        <li>
-          You can use natural language instructions to operate the web page,
-          such as clicking buttons, filling in forms, querying information, etc.
-        </li>
-        <li>
-          Please enter your instructions in the input box below to start
-          experiencing.
-        </li>
+        <li>{t('playground.welcome.intro')}</li>
+        <li>{t('playground.welcome.usage')}</li>
+        <li>{t('playground.welcome.start')}</li>
       </ul>
     </div>
   );

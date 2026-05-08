@@ -1,3 +1,5 @@
+import { useT } from '../../i18n';
+
 export interface ConnectingPreviewProps {
   className?: string;
   pcSrc: string;
@@ -9,8 +11,10 @@ export default function ConnectingPreview({
   className,
   pcSrc,
   phoneSrc,
-  statusLabel = 'Preparing device connection...',
+  statusLabel,
 }: ConnectingPreviewProps) {
+  const t = useT();
+  const resolvedStatusLabel = statusLabel ?? t('preview.connecting');
   const rootClassName = [
     'flex h-full w-full items-center justify-center bg-surface',
     className,
@@ -43,7 +47,7 @@ export default function ConnectingPreview({
           </div>
 
           <span className="mt-[16px] whitespace-nowrap text-center text-[13px] font-medium leading-[12px] text-text-primary">
-            {statusLabel}
+            {resolvedStatusLabel}
           </span>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { assetUrls } from '../../assets';
+import { type TranslationKey, useT } from '../../i18n';
 import {
   buildDeviceSelectionFormValues,
   buildStudioSidebarDeviceBuckets,
@@ -26,15 +27,35 @@ interface DeviceItem {
 interface SectionDefinition {
   iconSrc?: string;
   key: StudioSidebarPlatformKey;
-  label: string;
+  labelKey: TranslationKey;
 }
 
 const sectionDefinitions: SectionDefinition[] = [
-  { iconSrc: assetUrls.sidebar.android, key: 'android', label: 'Android' },
-  { iconSrc: assetUrls.sidebar.ios, key: 'ios', label: 'iOS' },
-  { iconSrc: assetUrls.sidebar.computer, key: 'computer', label: 'Computer' },
-  { iconSrc: assetUrls.sidebar.harmony, key: 'harmony', label: 'HarmonyOS' },
-  { iconSrc: assetUrls.sidebar.web, key: 'web', label: 'Web' },
+  {
+    iconSrc: assetUrls.sidebar.android,
+    key: 'android',
+    labelKey: 'device.platforms.android',
+  },
+  {
+    iconSrc: assetUrls.sidebar.ios,
+    key: 'ios',
+    labelKey: 'device.platforms.ios',
+  },
+  {
+    iconSrc: assetUrls.sidebar.computer,
+    key: 'computer',
+    labelKey: 'device.platforms.computer',
+  },
+  {
+    iconSrc: assetUrls.sidebar.harmony,
+    key: 'harmony',
+    labelKey: 'device.platforms.harmonyos',
+  },
+  {
+    iconSrc: assetUrls.sidebar.web,
+    key: 'web',
+    labelKey: 'device.platforms.web',
+  },
 ];
 
 const EMPTY_DEVICE_ID_PREFIX = '__empty__';
@@ -131,10 +152,11 @@ function DeviceRow({
 }
 
 function EmptyDeviceRow() {
+  const t = useT();
   return (
     <div className="relative h-8 w-full rounded-lg">
       <span className="absolute left-[44px] top-[9.5px] overflow-hidden whitespace-nowrap font-['Inter'] text-[13px] font-normal leading-[13px] text-text-tertiary">
-        No devices
+        {t('sidebar.noDevices')}
       </span>
     </div>
   );
@@ -151,6 +173,7 @@ export default function Sidebar({
   onSelectOverview,
   onSelectDevice,
 }: SidebarProps) {
+  const t = useT();
   const studioPlayground = useStudioPlayground();
   const [expandedSections, setExpandedSections] = useState<
     Record<StudioSidebarPlatformKey, boolean>
@@ -216,8 +239,8 @@ export default function Sidebar({
             id: `${platformKey}-placeholder`,
             label:
               studioPlayground.phase === 'booting'
-                ? 'Playground starting'
-                : 'Runtime failed to start',
+                ? t('sidebar.playgroundStarting')
+                : t('sidebar.runtimeFailedToStart'),
             status: 'idle' as const,
             isPlaceholder: true,
           },
@@ -284,6 +307,7 @@ export default function Sidebar({
 
   const resolvedSections = sectionDefinitions.map((section) => ({
     ...section,
+    label: t(section.labelKey),
     devices: buildDeviceItemsForPlatform(
       section.key,
       deviceBuckets[section.key],
@@ -308,7 +332,7 @@ export default function Sidebar({
           src={assetUrls.sidebar.overview}
         />
         <span className="absolute left-[44px] top-[5px] overflow-hidden whitespace-nowrap font-['Inter'] text-[13px] font-medium leading-[22px] text-text-secondary">
-          Overview
+          {t('sidebar.deviceOverview')}
         </span>
         <span className="absolute right-[12px] top-[6px] font-sans text-[11px] font-normal leading-[20px] text-text-tertiary">
           {totalDeviceCount}
@@ -318,7 +342,7 @@ export default function Sidebar({
       <div className="mt-1 flex flex-col">
         <div className="relative h-8 w-full">
           <span className="absolute left-[14px] top-[5px] overflow-hidden whitespace-nowrap font-['Inter'] text-[13px] font-medium leading-[22px] text-text-tertiary">
-            Platform
+            {t('sidebar.platform')}
           </span>
         </div>
 
