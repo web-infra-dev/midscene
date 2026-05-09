@@ -10,6 +10,7 @@ export const IPC_CHANNELS = {
   chooseReportSavePath: 'shell:choose-report-save-path',
   toggleMaximizeWindow: 'shell:toggle-maximize-window',
   writeReportFile: 'shell:write-report-file',
+  setNativeTheme: 'shell:set-native-theme',
   // Multi-platform playground runtime (Android, iOS, HarmonyOS, Computer).
   getPlaygroundBootstrap: 'studio:get-playground-bootstrap',
   restartPlayground: 'studio:restart-playground',
@@ -77,8 +78,29 @@ export interface DiscoveredDevice {
   sessionValues?: Record<string, StudioSessionValue>;
 }
 
+/**
+ * Per-platform error from the cross-platform device discovery scan.
+ *
+ * Platforms (Android, Harmony) require an external CLI (`adb`, `hdc`) to be
+ * installed and reachable on PATH. When that prerequisite is missing the
+ * scan throws — the renderer needs to know so it can prompt the user to
+ * install the toolchain instead of just rendering "No devices".
+ */
+export interface PlatformDiscoveryError {
+  platformId: StudioPlatformId;
+  /**
+   * `toolchain-missing` covers any failure of the platform's discovery
+   * probe — in practice this is dominated by the CLI binary not being on
+   * PATH, which is the actionable case for the user.
+   */
+  kind: 'toolchain-missing';
+}
+
 /** Result of the cross-platform device discovery scan. */
-export type DiscoverDevicesResult = DiscoveredDevice[];
+export interface DiscoverDevicesResult {
+  devices: DiscoveredDevice[];
+  errors: PlatformDiscoveryError[];
+}
 
 export interface DiscoverDevicesRequest {
   forceRefresh?: boolean;
@@ -107,7 +129,14 @@ export interface ElectronShellApi {
   toggleMaximizeWindow: () => Promise<void>;
   /** Persist a report HTML file using the native shell process. */
   writeReportFile: (request: WriteReportFileRequest) => Promise<void>;
+  /**
+   * Sync the app's resolved theme to the OS so window chrome (border,
+   * traffic lights) and `vibrancy` use the matching light/dark variant.
+   */
+  setNativeTheme: (mode: NativeThemeMode) => Promise<void>;
 }
+
+export type NativeThemeMode = 'light' | 'dark' | 'system';
 
 export interface StudioRuntimeApi {
   getPlaygroundBootstrap: () => Promise<PlaygroundBootstrap>;

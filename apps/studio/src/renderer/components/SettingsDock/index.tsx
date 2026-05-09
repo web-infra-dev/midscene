@@ -1,41 +1,55 @@
 import { assetUrls } from '../../assets';
+import { MaskedIcon } from '../MaskedIcon';
 
-function ChevronRight() {
+function EnvIcon() {
   return (
     <svg
       aria-hidden="true"
-      className="shrink-0 text-text-tertiary"
+      className="h-4 w-4 shrink-0 text-text-secondary"
       fill="none"
-      height="7"
-      viewBox="0 0 4 7"
-      width="4"
+      viewBox="0 0 16 16"
     >
+      <rect
+        height="10"
+        rx="1.5"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        width="11"
+        x="2.5"
+        y="3"
+      />
       <path
-        d="M0.5 0.5L3.5 3.5L0.5 6.5"
+        d="M5 6.5h6M5 9h4"
         stroke="currentColor"
         strokeLinecap="round"
-        strokeLinejoin="round"
+        strokeWidth="1.2"
       />
     </svg>
   );
 }
 
-interface ActionChipProps {
+interface DockRowProps {
+  active?: boolean;
+  ariaExpanded?: boolean;
+  icon: React.ReactNode;
   label: string;
   onClick?: () => void;
 }
 
-function ActionChip({ label, onClick }: ActionChipProps) {
+function DockRow({ active, ariaExpanded, icon, label, onClick }: DockRowProps) {
   return (
     <button
-      className="flex h-[24px] cursor-pointer items-center gap-[4px] rounded-lg border border-border-strong bg-surface-elevated px-[6px] hover:bg-surface-hover"
+      aria-expanded={ariaExpanded}
+      className={`relative flex h-[32px] w-full items-center rounded-lg border-0 px-[8px] text-left ${
+        active ? 'bg-surface-hover' : 'bg-transparent hover:bg-surface-hover'
+      }`}
       onClick={onClick}
       type="button"
     >
-      <span className="overflow-hidden whitespace-nowrap text-center font-sans text-[11px] leading-[12px] text-text-secondary">
+      {icon}
+      <span className="ml-[6px] overflow-hidden whitespace-nowrap font-sans text-[13px] leading-[22px] text-text-secondary">
         {label}
       </span>
-      <ChevronRight />
     </button>
   );
 }
@@ -52,30 +66,20 @@ export default function SettingsDock({
   settingsOpen,
 }: SettingsDockProps) {
   return (
-    <div className="flex h-[32px] items-center justify-between gap-[6px]">
-      <button
-        aria-expanded={settingsOpen}
-        className={`relative flex h-[30px] w-[139px] items-center rounded-lg border-0 px-[8px] text-left ${
-          settingsOpen
-            ? 'bg-surface-hover'
-            : 'bg-transparent hover:bg-surface-hover'
-        }`}
+    <div className="flex flex-col gap-[2px]">
+      <DockRow icon={<EnvIcon />} label="Env" onClick={onEnvClick} />
+      <DockRow
+        active={settingsOpen}
+        ariaExpanded={settingsOpen}
+        icon={
+          <MaskedIcon
+            className="h-4 w-4 shrink-0 text-text-secondary"
+            src={assetUrls.sidebar.settings}
+          />
+        }
+        label="Settings"
         onClick={onToggleSettings}
-        type="button"
-      >
-        <img
-          alt=""
-          className="h-4 w-4 shrink-0"
-          src={assetUrls.sidebar.settings}
-        />
-        <span className="ml-[6px] overflow-hidden whitespace-nowrap font-sans text-[13px] leading-[22px] text-text-secondary">
-          Settings
-        </span>
-      </button>
-
-      <div className="flex items-center gap-[4px]">
-        <ActionChip label="Env" onClick={onEnvClick} />
-      </div>
+      />
     </div>
   );
 }

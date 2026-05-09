@@ -8,7 +8,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <StudioAntdProvider>
-        <div className="h-full w-full overflow-hidden bg-app-bg text-text-primary">
+        <div className="h-full w-full overflow-hidden text-text-primary">
           <StudioPlaygroundProvider>
             <ShellLayout />
           </StudioPlaygroundProvider>

@@ -584,9 +584,35 @@ export default class ScrcpyServer {
                     }
                   } catch (error) {
                     console.error('error processing video stream:', error);
+                    if (socket.connected) {
+                      socket.emit('error', {
+                        message: 'video stream processing error',
+                      });
+                    }
+                    return;
+                  }
+
+                  // Reader returned `done` without throwing — the underlying
+                  // scrcpy stream closed (device sleep, scrcpy-server exit,
+                  // ADB jitter, etc.). Without this branch the socket stays
+                  // "connected" but no frames flow, so the renderer's decoder
+                  // never tears down and the preview freezes on the last
+                  // frame until the user manually disconnects.
+                  if (socket.connected) {
                     socket.emit('error', {
-                      message: 'video stream processing error',
+                      message: 'video stream ended',
                     });
+                  }
+                  if (scrcpyClient) {
+                    try {
+                      await scrcpyClient.close();
+                    } catch (closeError) {
+                      console.error(
+                        'failed to close scrcpy client after stream ended:',
+                        closeError,
+                      );
+                    }
+                    scrcpyClient = null;
                   }
                 };
 

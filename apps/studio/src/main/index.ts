@@ -6,6 +6,7 @@ import {
   IPC_CHANNELS,
   type WriteReportFileRequest,
 } from '@shared/electron-contract';
+import type { NativeThemeMode } from '@shared/electron-contract';
 import { resolveExternalUrl } from '@shared/external-links';
 import {
   BrowserWindow,
@@ -14,6 +15,7 @@ import {
   dialog,
   ipcMain,
   nativeImage,
+  nativeTheme,
   shell,
 } from 'electron';
 import type { TitleBarOverlay } from 'electron';
@@ -107,7 +109,7 @@ const getAppIcon = () => {
 };
 
 const getBackgroundColor = () =>
-  process.platform === 'darwin' ? '#00000000' : '#eef1f5';
+  process.platform === 'darwin' ? '#f6f6f6' : '#eef1f5';
 
 const getTitleBarOverlay = (): TitleBarOverlay => ({
   color: '#00000000',
@@ -186,10 +188,9 @@ const createMainWindow = () => {
       process.platform === 'darwin' ? undefined : getTitleBarOverlay(),
     trafficLightPosition:
       process.platform === 'darwin' ? { x: 18, y: 18 } : undefined,
-    transparent: process.platform === 'darwin',
-    vibrancy: process.platform === 'darwin' ? 'under-window' : undefined,
+    vibrancy: process.platform === 'darwin' ? 'sidebar' : undefined,
     visualEffectState: process.platform === 'darwin' ? 'active' : undefined,
-    backgroundMaterial: process.platform === 'win32' ? 'mica' : undefined,
+    backgroundMaterial: process.platform === 'win32' ? 'acrylic' : undefined,
     icon: appIcon,
     webPreferences: {
       contextIsolation: true,
@@ -297,6 +298,29 @@ const registerIpcHandlers = () => {
   ipcMain.handle(IPC_CHANNELS.closeWindow, () => {
     mainWindow?.close();
   });
+  ipcMain.handle(
+    IPC_CHANNELS.setNativeTheme,
+    (_event, mode: NativeThemeMode) => {
+      if (mode !== 'light' && mode !== 'dark' && mode !== 'system') {
+        throw new Error(`setNativeTheme: invalid mode ${String(mode)}`);
+      }
+      nativeTheme.themeSource = mode;
+      // macOS doesn't auto-refresh NSVisualEffectView's appearance when
+      // `themeSource` flips, so the sidebar vibrancy keeps the old (light)
+      // variant. Re-applying vibrancy + backgroundColor forces a redraw with
+      // the current appearance. Also keeps the BrowserWindow's solid
+      // backgroundColor fallback in sync so non-vibrancy platforms
+      // (Linux, or vibrancy-failed states) match the theme.
+      if (!mainWindow || mainWindow.isDestroyed()) {
+        return;
+      }
+      const isDark = nativeTheme.shouldUseDarkColors;
+      mainWindow.setBackgroundColor(isDark ? '#171717' : '#f6f6f6');
+      if (process.platform === 'darwin') {
+        mainWindow.setVibrancy('sidebar');
+      }
+    },
+  );
   ipcMain.handle(
     IPC_CHANNELS.writeReportFile,
     async (_event, request: WriteReportFileRequest) => {

@@ -3,8 +3,25 @@ import { getDebug } from '@midscene/shared/logger';
 import type {
   DiscoverDevicesResult,
   DiscoveredDevice,
+  PlatformDiscoveryError,
+  StudioPlatformId,
 } from '@shared/electron-contract';
 import { ensureStudioShellEnvHydrated } from '../shell-env';
+
+interface PlatformScanResult {
+  devices: DiscoveredDevice[];
+  error?: PlatformDiscoveryError;
+}
+
+function emptyDiscoveryResult(): DiscoverDevicesResult {
+  return { devices: [], errors: [] };
+}
+
+function toolchainMissing(
+  platformId: StudioPlatformId,
+): PlatformDiscoveryError {
+  return { platformId, kind: 'toolchain-missing' };
+}
 
 const debugLog = getDebug('studio:device-discovery', { console: true });
 const IOS_WDA_DISCOVERY_HOST = 'localhost';
@@ -68,7 +85,7 @@ export function createDeviceDiscoveryService({
   intervalMs = DEVICE_DISCOVERY_POLL_INTERVAL_MS,
   setIntervalFn = globalThis.setInterval,
 }: CreateDeviceDiscoveryServiceOptions = {}): DeviceDiscoveryService {
-  let currentSnapshot: DiscoverDevicesResult = [];
+  let currentSnapshot: DiscoverDevicesResult = emptyDiscoveryResult();
   let currentSignature = JSON.stringify(currentSnapshot);
   let hasSnapshot = false;
   let intervalId: ReturnType<typeof globalThis.setInterval> | null = null;
@@ -191,7 +208,7 @@ export function createDeviceDiscoveryService({
  * already reachable on the default loopback endpoint, surface it as a
  * clickable target so Studio can prefill the iOS setup form.
  */
-export async function discoverAllDevices(): Promise<DiscoveredDevice[]> {
+export async function discoverAllDevices(): Promise<DiscoverDevicesResult> {
   const scans = await Promise.allSettled([
     scanAndroidDevices(),
     scanIOSDevices(),
@@ -199,42 +216,48 @@ export async function discoverAllDevices(): Promise<DiscoveredDevice[]> {
     scanComputerDisplays(),
   ]);
 
-  const results: DiscoveredDevice[] = [];
+  const devices: DiscoveredDevice[] = [];
+  const errors: PlatformDiscoveryError[] = [];
   for (const scan of scans) {
     if (scan.status === 'fulfilled') {
-      results.push(...scan.value);
+      devices.push(...scan.value.devices);
+      if (scan.value.error) {
+        errors.push(scan.value.error);
+      }
     } else {
       debugLog('platform scan rejected:', scan.reason);
     }
   }
 
-  return results;
+  return { devices, errors };
 }
 
-async function scanAndroidDevices(): Promise<DiscoveredDevice[]> {
+async function scanAndroidDevices(): Promise<PlatformScanResult> {
   try {
     ensureStudioShellEnvHydrated();
     const { getConnectedDevicesWithDetails } = await import(
       '@midscene/android'
     );
     const devices = await getConnectedDevicesWithDetails();
-    return devices.map((device) => ({
-      platformId: 'android',
-      id: device.udid,
-      label: (device as { label?: string }).label || device.udid,
-      description: `ADB: ${device.udid}`,
-      status: device.state,
-      sessionValues: {
-        deviceId: device.udid,
-      },
-    }));
+    return {
+      devices: devices.map((device) => ({
+        platformId: 'android',
+        id: device.udid,
+        label: (device as { label?: string }).label || device.udid,
+        description: `ADB: ${device.udid}`,
+        status: device.state,
+        sessionValues: {
+          deviceId: device.udid,
+        },
+      })),
+    };
   } catch (err) {
     debugLog('android scan failed:', err);
-    return [];
+    return { devices: [], error: toolchainMissing('android') };
   }
 }
 
-async function scanIOSDevices(): Promise<DiscoveredDevice[]> {
+async function scanIOSDevices(): Promise<PlatformScanResult> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
     controller.abort();
@@ -252,76 +275,85 @@ async function scanIOSDevices(): Promise<DiscoveredDevice[]> {
     );
 
     if (!response.ok) {
-      return [];
+      return { devices: [] };
     }
 
     const status = (await response.json()) as WDAStatusResponse;
     if (status.value?.ready !== true) {
-      return [];
+      return { devices: [] };
     }
 
-    return [
-      {
-        platformId: 'ios',
-        id: `${IOS_WDA_DISCOVERY_HOST}:${DEFAULT_WDA_PORT}`,
-        label: buildIOSDiscoveryLabel(status),
-        description: buildIOSDiscoveryDescription(
-          IOS_WDA_DISCOVERY_HOST,
-          DEFAULT_WDA_PORT,
-          status,
-        ),
-        status: 'device',
-        sessionValues: {
-          host: IOS_WDA_DISCOVERY_HOST,
-          port: DEFAULT_WDA_PORT,
+    return {
+      devices: [
+        {
+          platformId: 'ios',
+          id: `${IOS_WDA_DISCOVERY_HOST}:${DEFAULT_WDA_PORT}`,
+          label: buildIOSDiscoveryLabel(status),
+          description: buildIOSDiscoveryDescription(
+            IOS_WDA_DISCOVERY_HOST,
+            DEFAULT_WDA_PORT,
+            status,
+          ),
+          status: 'device',
+          sessionValues: {
+            host: IOS_WDA_DISCOVERY_HOST,
+            port: DEFAULT_WDA_PORT,
+          },
         },
-      },
-    ];
+      ],
+    };
   } catch (err) {
+    // iOS WDA probe failing just means no local WDA is running. That is
+    // the dominant case (no developer has WDA up by default), not a
+    // toolchain problem — do not surface it as an error to the UI.
     debugLog('ios scan failed:', err);
-    return [];
+    return { devices: [] };
   } finally {
     clearTimeout(timeoutId);
   }
 }
 
-async function scanHarmonyDevices(): Promise<DiscoveredDevice[]> {
+async function scanHarmonyDevices(): Promise<PlatformScanResult> {
   try {
     ensureStudioShellEnvHydrated();
     const { getConnectedDevices } = await import('@midscene/harmony');
     const devices = await getConnectedDevices();
-    return devices.map((device) => ({
-      platformId: 'harmony',
-      id: device.deviceId,
-      label: device.deviceId,
-      description: `HDC: ${device.deviceId}`,
-      status: 'device',
-      sessionValues: {
-        deviceId: device.deviceId,
-      },
-    }));
+    return {
+      devices: devices.map((device) => ({
+        platformId: 'harmony',
+        id: device.deviceId,
+        label: device.deviceId,
+        description: `HDC: ${device.deviceId}`,
+        status: 'device',
+        sessionValues: {
+          deviceId: device.deviceId,
+        },
+      })),
+    };
   } catch (err) {
     debugLog('harmony scan failed:', err);
-    return [];
+    return { devices: [], error: toolchainMissing('harmony') };
   }
 }
 
-async function scanComputerDisplays(): Promise<DiscoveredDevice[]> {
+async function scanComputerDisplays(): Promise<PlatformScanResult> {
   try {
     const { getConnectedDisplays } = await import('@midscene/computer');
     const displays = await getConnectedDisplays();
-    return displays.map((display) => ({
-      platformId: 'computer',
-      id: String(display.id),
-      label: display.name || `Display ${display.id}`,
-      description: display.primary ? 'Primary display' : undefined,
-      status: 'device',
-      sessionValues: {
-        displayId: String(display.id),
-      },
-    }));
+    return {
+      devices: displays.map((display) => ({
+        platformId: 'computer',
+        id: String(display.id),
+        label: display.name || `Display ${display.id}`,
+        description: display.primary ? 'Primary display' : undefined,
+        status: 'device',
+        sessionValues: {
+          displayId: String(display.id),
+        },
+      })),
+    };
   } catch (err) {
     debugLog('computer scan failed:', err);
-    return [];
+    return { devices: [] };
   }
 }

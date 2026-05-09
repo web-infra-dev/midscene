@@ -75,6 +75,10 @@ export function ThemeProvider({ children }: PropsWithChildren) {
     const next = resolveMode(mode);
     setResolved(next);
     writeThemeAttribute(next);
+    // Tell the main process so the OS picks the matching window-chrome
+    // (border, traffic lights) and vibrancy variant. Pass `mode` rather
+    // than `next` so 'system' stays 'system' on the OS side too.
+    void window.electronShell?.setNativeTheme(mode);
   }, [mode]);
 
   useEffect(() => {

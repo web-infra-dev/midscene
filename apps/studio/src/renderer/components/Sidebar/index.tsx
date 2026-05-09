@@ -8,6 +8,7 @@ import {
 } from '../../playground/selectors';
 import type { StudioSidebarPlatformKey } from '../../playground/types';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
+import { MaskedIcon } from '../MaskedIcon';
 import SettingsDock from '../SettingsDock';
 import type { ShellActiveView } from '../ShellLayout/types';
 
@@ -76,15 +77,14 @@ function SectionHeader({
       type="button"
     >
       {iconSrc ? (
-        <img
-          alt=""
-          className="absolute left-[15px] top-[8px] h-4 w-4"
+        <MaskedIcon
+          className="absolute left-[14px] top-[8px] h-4 w-4 text-text-secondary"
           src={iconSrc}
         />
       ) : (
-        <div className="absolute left-[15px] top-[8px] h-4 w-4" />
+        <div className="absolute left-[14px] top-[8px] h-4 w-4" />
       )}
-      <span className="absolute left-[40px] top-[5px] text-[13px] leading-[22px] font-medium text-text-secondary">
+      <span className="absolute left-[44px] top-[5px] font-['Inter'] text-[13px] font-medium leading-[22px] text-text-secondary">
         {label}
       </span>
       <div className="absolute left-[204px] top-0 flex h-full w-4 items-center justify-center">
@@ -113,10 +113,8 @@ function DeviceRow({
       type="button"
     >
       <span
-        className={`absolute left-[40px] w-[158px] overflow-hidden whitespace-nowrap text-[13px] ${
-          selected
-            ? 'top-[4.5px] font-medium leading-[22.1px] text-text-primary'
-            : 'top-[8px] font-normal leading-[15.7px] text-text-secondary'
+        className={`absolute left-[44px] top-[9.5px] w-[154px] overflow-hidden whitespace-nowrap font-['Inter'] text-[13px] font-normal leading-[13px] ${
+          selected ? 'text-text-primary' : 'text-text-secondary'
         }`}
       >
         {label}
@@ -135,7 +133,7 @@ function DeviceRow({
 function EmptyDeviceRow() {
   return (
     <div className="relative h-8 w-full rounded-lg">
-      <span className="absolute left-[40px] top-[8px] overflow-hidden whitespace-nowrap text-[12px] font-normal leading-[15.7px] text-text-tertiary">
+      <span className="absolute left-[44px] top-[9.5px] overflow-hidden whitespace-nowrap font-['Inter'] text-[13px] font-normal leading-[13px] text-text-tertiary">
         No devices
       </span>
     </div>
@@ -305,13 +303,12 @@ export default function Sidebar({
         onClick={onSelectOverview}
         type="button"
       >
-        <img
-          alt=""
-          className="absolute left-[12px] top-[8px] h-4 w-4"
+        <MaskedIcon
+          className="absolute left-[14px] top-[8px] h-4 w-4 text-text-secondary"
           src={assetUrls.sidebar.overview}
         />
-        <span className="absolute left-[40px] top-[5px] overflow-hidden whitespace-nowrap text-[13px] leading-[22px] font-medium text-text-secondary">
-          Device overview
+        <span className="absolute left-[44px] top-[5px] overflow-hidden whitespace-nowrap font-['Inter'] text-[13px] font-medium leading-[22px] text-text-secondary">
+          Overview
         </span>
         <span className="absolute right-[12px] top-[6px] font-sans text-[11px] font-normal leading-[20px] text-text-tertiary">
           {totalDeviceCount}
@@ -320,7 +317,7 @@ export default function Sidebar({
 
       <div className="mt-1 flex flex-col">
         <div className="relative h-8 w-full">
-          <span className="absolute left-[12px] top-[5px] overflow-hidden whitespace-nowrap text-[13px] font-medium leading-[22px] text-text-tertiary">
+          <span className="absolute left-[14px] top-[5px] overflow-hidden whitespace-nowrap font-['Inter'] text-[13px] font-medium leading-[22px] text-text-tertiary">
             Platform
           </span>
         </div>

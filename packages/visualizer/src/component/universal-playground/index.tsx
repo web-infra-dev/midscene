@@ -251,7 +251,9 @@ export function UniversalPlayground({
     const firstIds = new Set<string>();
     const visible: typeof infoList = [];
     let currentGroupFirstId: string | null = null;
+    const hideWelcome = infoList.length > 1;
     for (const item of infoList) {
+      if (hideWelcome && item.id === 'welcome') continue;
       if (item.type === 'progress') {
         if (currentGroupFirstId === null) {
           currentGroupFirstId = item.id;
@@ -400,157 +402,170 @@ export function UniversalPlayground({
               <List
                 itemLayout="vertical"
                 dataSource={visibleInfoList}
-                renderItem={(item) => (
-                  <List.Item key={item.id} className="list-item">
-                    {collapsibleProgressGroup &&
-                    firstInProgressGroup.has(item.id) ? (
-                      <button
-                        type="button"
-                        className={`progress-group-toggle ${
-                          collapsedProgressGroups.has(item.id)
-                            ? 'is-collapsed'
-                            : 'is-expanded'
-                        }`}
-                        aria-expanded={!collapsedProgressGroups.has(item.id)}
-                        onClick={() => toggleProgressGroup(item.id)}
-                      >
-                        <span className="progress-group-toggle-label">
-                          {progressGroupLabel}
-                        </span>
-                        <UpOutlined className="progress-group-toggle-chevron" />
-                      </button>
-                    ) : null}
-                    {/* User Message */}
-                    {item.type === 'user' ? (
-                      <div className="user-message-container">
-                        <div className="user-message-bubble">
-                          {item.content}
-                        </div>
-                      </div>
-                    ) : item.type === 'progress' ? (
-                      /* Progress Message */
-                      <div>
-                        {(() => {
-                          const parts = item.content.split(' - ');
-                          const action = parts[0]?.trim();
-                          const description = parts.slice(1).join(' - ').trim();
-
-                          const isLatestProgress = item.id === latestProgressId;
-                          const shouldShowLoading = loading && isLatestProgress;
-
-                          const state: 'loading' | 'error' | 'completed' =
-                            shouldShowLoading
-                              ? 'loading'
-                              : item.result?.error
-                                ? 'error'
-                                : 'completed';
-                          const domainIcon =
-                            state === 'completed'
-                              ? resolveProgressActionIcon(
-                                  item.actionKind,
-                                  executionFlowConfig.resolveActionIcon,
-                                )
-                              : null;
-                          return (
-                            <>
-                              {action && (
-                                <span className="progress-action-item">
-                                  {action}
-                                  <span
-                                    className={`progress-status-icon ${state}`}
-                                  >
-                                    {state === 'loading' ? (
-                                      <LoadingOutlined spin />
-                                    ) : state === 'error' ? (
-                                      '✗'
-                                    ) : domainIcon !== null ? (
-                                      domainIcon
-                                    ) : (
-                                      '✓'
-                                    )}
-                                  </span>
-                                </span>
-                              )}
-                              {description && (
-                                <div>
-                                  <ShinyText
-                                    text={description}
-                                    className="progress-description"
-                                    disabled={!shouldShowLoading}
-                                  />
-                                </div>
-                              )}
-                              {item.result?.error && (
-                                <ErrorMessage error={item.result.error} />
-                              )}
-                            </>
-                          );
-                        })()}
-                      </div>
-                    ) : item.type === 'separator' ? (
-                      /* Separator Message */
-                      <div className="new-conversation-separator">
-                        <div className="separator-line" />
-                        <div className="separator-text-container">
-                          <Text type="secondary" className="separator-text">
+                renderItem={(item) => {
+                  const isFirstInProgressGroup =
+                    collapsibleProgressGroup &&
+                    firstInProgressGroup.has(item.id);
+                  const isCollapsedHeader =
+                    isFirstInProgressGroup &&
+                    collapsedProgressGroups.has(item.id);
+                  return (
+                    <List.Item key={item.id} className="list-item">
+                      {isFirstInProgressGroup ? (
+                        <button
+                          type="button"
+                          className={`progress-group-toggle ${
+                            collapsedProgressGroups.has(item.id)
+                              ? 'is-collapsed'
+                              : 'is-expanded'
+                          }`}
+                          aria-expanded={!collapsedProgressGroups.has(item.id)}
+                          onClick={() => toggleProgressGroup(item.id)}
+                        >
+                          <span className="progress-group-toggle-label">
+                            {progressGroupLabel}
+                          </span>
+                          <UpOutlined className="progress-group-toggle-chevron" />
+                        </button>
+                      ) : null}
+                      {isCollapsedHeader ? null : /* User Message */
+                      item.type === 'user' ? (
+                        <div className="user-message-container">
+                          <div className="user-message-bubble">
                             {item.content}
-                          </Text>
-                        </div>
-                      </div>
-                    ) : (
-                      /* System Message */
-                      <div className="system-message-container">
-                        {componentConfig.showSystemMessageHeader !== false && (
-                          <div className="system-message-header">
-                            <Icon
-                              component={branding.icon || PlaygroundIcon}
-                              style={{ fontSize: 20 }}
-                            />
-                            <span className="system-message-title">
-                              {branding.title || 'Playground'}
-                            </span>
                           </div>
-                        )}
-                        {(item.content || item.result) && (
-                          <div className="system-message-content">
-                            {item.type === 'result' ? (
-                              <PlaygroundResultView
-                                result={item.result || null}
-                                loading={item.loading || false}
-                                serverValid={true}
-                                serviceMode={serviceMode}
-                                replayScriptsInfo={
-                                  item.replayScriptsInfo || null
-                                }
-                                replayCounter={item.replayCounter || 0}
-                                loadingProgressText={
-                                  item.loadingProgressText || ''
-                                }
-                                verticalMode={item.verticalMode || false}
-                                fitMode="width"
-                                actionType={item.actionType}
-                                onDownloadReport={
-                                  componentConfig.onDownloadReport
-                                }
-                              />
-                            ) : (
+                        </div>
+                      ) : item.type === 'progress' ? (
+                        /* Progress Message */
+                        <div>
+                          {(() => {
+                            const parts = item.content.split(' - ');
+                            const action = parts[0]?.trim();
+                            const description = parts
+                              .slice(1)
+                              .join(' - ')
+                              .trim();
+
+                            const isLatestProgress =
+                              item.id === latestProgressId;
+                            const shouldShowLoading =
+                              loading && isLatestProgress;
+
+                            const state: 'loading' | 'error' | 'completed' =
+                              shouldShowLoading
+                                ? 'loading'
+                                : item.result?.error
+                                  ? 'error'
+                                  : 'completed';
+                            const domainIcon =
+                              state === 'completed'
+                                ? resolveProgressActionIcon(
+                                    item.actionKind,
+                                    executionFlowConfig.resolveActionIcon,
+                                  )
+                                : null;
+                            return (
                               <>
-                                <div className="system-message-text">
-                                  {item.content}
-                                </div>
-                                {item.loading && item.loadingProgressText && (
-                                  <div className="loading-progress-text">
-                                    <span>{item.loadingProgressText}</span>
+                                {action && (
+                                  <span className="progress-action-item">
+                                    {action}
+                                    <span
+                                      className={`progress-status-icon ${state}`}
+                                    >
+                                      {state === 'loading' ? (
+                                        <LoadingOutlined spin />
+                                      ) : state === 'error' ? (
+                                        '✗'
+                                      ) : domainIcon !== null ? (
+                                        domainIcon
+                                      ) : (
+                                        '✓'
+                                      )}
+                                    </span>
+                                  </span>
+                                )}
+                                {description && (
+                                  <div>
+                                    <ShinyText
+                                      text={description}
+                                      className="progress-description"
+                                      disabled={!shouldShowLoading}
+                                    />
                                   </div>
                                 )}
+                                {item.result?.error && (
+                                  <ErrorMessage error={item.result.error} />
+                                )}
                               </>
-                            )}
+                            );
+                          })()}
+                        </div>
+                      ) : item.type === 'separator' ? (
+                        /* Separator Message */
+                        <div className="new-conversation-separator">
+                          <div className="separator-line" />
+                          <div className="separator-text-container">
+                            <Text type="secondary" className="separator-text">
+                              {item.content}
+                            </Text>
                           </div>
-                        )}
-                      </div>
-                    )}
-                  </List.Item>
-                )}
+                        </div>
+                      ) : (
+                        /* System Message */
+                        <div className="system-message-container">
+                          {componentConfig.showSystemMessageHeader !==
+                            false && (
+                            <div className="system-message-header">
+                              <Icon
+                                component={branding.icon || PlaygroundIcon}
+                                style={{ fontSize: 20 }}
+                              />
+                              <span className="system-message-title">
+                                {branding.title || 'Playground'}
+                              </span>
+                            </div>
+                          )}
+                          {(item.content || item.result) && (
+                            <div className="system-message-content">
+                              {item.type === 'result' ? (
+                                <PlaygroundResultView
+                                  result={item.result || null}
+                                  loading={item.loading || false}
+                                  serverValid={true}
+                                  serviceMode={serviceMode}
+                                  replayScriptsInfo={
+                                    item.replayScriptsInfo || null
+                                  }
+                                  replayCounter={item.replayCounter || 0}
+                                  loadingProgressText={
+                                    item.loadingProgressText || ''
+                                  }
+                                  verticalMode={item.verticalMode || false}
+                                  fitMode="width"
+                                  actionType={item.actionType}
+                                  onDownloadReport={
+                                    componentConfig.onDownloadReport
+                                  }
+                                />
+                              ) : (
+                                <>
+                                  <div className="system-message-text">
+                                    {item.content}
+                                  </div>
+                                  {item.loading && item.loadingProgressText && (
+                                    <div className="loading-progress-text">
+                                      <span>{item.loadingProgressText}</span>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </List.Item>
+                  );
+                }}
               />
             )}
           </div>

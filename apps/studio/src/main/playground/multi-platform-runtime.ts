@@ -216,13 +216,14 @@ async function createScrcpyDeviceListSource(
   const resolvedService = await deviceDiscoveryService;
   return {
     async getDevices() {
-      return toScrcpyDeviceList(await resolvedService.getSnapshot());
+      const snapshot = await resolvedService.getSnapshot();
+      return toScrcpyDeviceList(snapshot.devices);
     },
     subscribe(
       listener: (devices: ReturnType<typeof toScrcpyDeviceList>) => void,
     ) {
-      return resolvedService.subscribe((devices) => {
-        listener(toScrcpyDeviceList(devices));
+      return resolvedService.subscribe((snapshot) => {
+        listener(toScrcpyDeviceList(snapshot.devices));
       });
     },
   };

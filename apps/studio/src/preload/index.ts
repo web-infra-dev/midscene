@@ -21,6 +21,8 @@ const electronShellApi: ElectronShellApi = {
     ipcRenderer.invoke(IPC_CHANNELS.toggleMaximizeWindow),
   writeReportFile: (request) =>
     ipcRenderer.invoke(IPC_CHANNELS.writeReportFile, request),
+  setNativeTheme: (mode) =>
+    ipcRenderer.invoke(IPC_CHANNELS.setNativeTheme, mode),
 };
 
 const studioRuntimeApi: StudioRuntimeApi = {

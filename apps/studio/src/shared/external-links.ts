@@ -1,6 +1,8 @@
 export const STUDIO_EXTERNAL_LINKS = {
   github: 'https://github.com/web-infra-dev/midscene',
   website: 'https://midscenejs.com',
+  androidIntegrationFaq:
+    'https://midscenejs.com/integrate-with-android.html#faq',
 } as const;
 
 export function resolveExternalUrl(url: string) {

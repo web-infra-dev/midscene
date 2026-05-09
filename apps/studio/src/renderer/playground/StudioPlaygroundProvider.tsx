@@ -11,8 +11,11 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { bucketDiscoveredDevices } from './selectors';
-import type { DiscoveredDevicesByPlatform } from './types';
+import { bucketDiscoveredDevices, bucketDiscoveryErrors } from './selectors';
+import type {
+  DiscoveredDevicesByPlatform,
+  DiscoveryErrorsByPlatform,
+} from './types';
 import { StudioPlaygroundContext } from './useStudioPlayground';
 
 const ReadyStudioPlaygroundProvider = lazy(
@@ -42,9 +45,13 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
   const [discoveredDevices, setDiscoveredDevices] = useState<
     DiscoveredDevicesByPlatform | undefined
   >();
+  const [discoveryErrors, setDiscoveryErrors] = useState<
+    DiscoveryErrorsByPlatform | undefined
+  >();
   const applyDiscoveredDevices = useCallback(
-    (devices: DiscoverDevicesResult) => {
-      setDiscoveredDevices(bucketDiscoveredDevices(devices));
+    (result: DiscoverDevicesResult) => {
+      setDiscoveredDevices(bucketDiscoveredDevices(result.devices));
+      setDiscoveryErrors(bucketDiscoveryErrors(result.errors));
     },
     [],
   );
@@ -200,6 +207,7 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
         refreshDiscoveredDevices,
         setDiscoveryPollingPaused: setDiscoveryPollingPausedValue,
         discoveredDevices,
+        discoveryErrors,
       };
     }
 
@@ -209,10 +217,12 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
       refreshDiscoveredDevices,
       setDiscoveryPollingPaused: setDiscoveryPollingPausedValue,
       discoveredDevices,
+      discoveryErrors,
     };
   }, [
     bootstrap,
     discoveredDevices,
+    discoveryErrors,
     refreshDiscoveredDevices,
     restartPlayground,
     setDiscoveryPollingPausedValue,
@@ -225,9 +235,11 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
       refreshDiscoveredDevices,
       setDiscoveryPollingPaused: setDiscoveryPollingPausedValue,
       discoveredDevices,
+      discoveryErrors,
     }),
     [
       discoveredDevices,
+      discoveryErrors,
       refreshDiscoveredDevices,
       restartPlayground,
       setDiscoveryPollingPausedValue,
@@ -244,6 +256,7 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
     >
       <ReadyStudioPlaygroundProvider
         discoveredDevices={discoveredDevices}
+        discoveryErrors={discoveryErrors}
         refreshDiscoveredDevices={refreshDiscoveredDevices}
         restartPlayground={restartPlayground}
         setDiscoveryPollingPaused={setDiscoveryPollingPausedValue}

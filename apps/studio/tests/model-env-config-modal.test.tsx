@@ -378,6 +378,51 @@ describe('ModelEnvConfigModal', () => {
     await unmountModal(root);
   });
 
+  it('closes via Escape key while open', async () => {
+    const onClose = vi.fn();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(
+        createElement(ModelEnvConfigModal, {
+          onClose,
+          open: true,
+          textValue: VALID_ENV_TEXT,
+        }),
+      );
+    });
+
+    await act(async () => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' }),
+      );
+      await Promise.resolve();
+    });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    onClose.mockClear();
+    await act(async () => {
+      root.render(
+        createElement(ModelEnvConfigModal, {
+          onClose,
+          open: false,
+          textValue: VALID_ENV_TEXT,
+        }),
+      );
+    });
+    await act(async () => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' }),
+      );
+      await Promise.resolve();
+    });
+    expect(onClose).not.toHaveBeenCalled();
+
+    await unmountModal(root);
+  });
+
   it('matches the imported form tab visual scale', () => {
     const html = renderToStaticMarkup(
       createElement(ModelEnvConfigModal, {
