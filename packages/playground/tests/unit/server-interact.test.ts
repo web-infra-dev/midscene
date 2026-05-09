@@ -208,4 +208,35 @@ describe('PlaygroundServer manual interaction APIs', () => {
     });
     expect(screenshotBase64).not.toHaveBeenCalled();
   });
+
+  test('GET /interface-info exposes the device actionSpace as actionTypes', async () => {
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'computer',
+        describe: () => 'Desktop',
+        actionSpace: () => [
+          { name: 'Tap', description: '', call: vi.fn() },
+          { name: 'DragAndDrop', description: '', call: vi.fn() },
+          { name: 'KeyboardPress', description: '', call: vi.fn() },
+          { name: 'Input', description: '', call: vi.fn() },
+        ],
+        screenshotBase64: async () => 'base64-image',
+        size: async () => ({ width: 1920, height: 1080 }),
+      },
+    } as any);
+
+    await server.launch(6114);
+    const interfaceInfoHandler = getRouteHandler(
+      server,
+      'get',
+      '/interface-info',
+    );
+    const response = createMockResponse();
+    await interfaceInfoHandler({}, response);
+
+    expect(response.body).toMatchObject({
+      type: 'computer',
+      actionTypes: ['Tap', 'DragAndDrop', 'KeyboardPress', 'Input'],
+    });
+  });
 });

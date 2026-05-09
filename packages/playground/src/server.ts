@@ -1532,6 +1532,7 @@ class PlaygroundServer {
         const agent = this._activeConnection.agent;
         let size: { width: number; height: number } | undefined;
         let navigationState: { isLoading: boolean } | undefined;
+        let actionTypes: string[] | undefined;
         if (typeof agent?.interface?.size === 'function') {
           try {
             size = await agent.interface.size();
@@ -1546,12 +1547,25 @@ class PlaygroundServer {
             debugScreenshot('interface navigationState() failed:', error);
           }
         }
+        if (typeof agent?.interface?.actionSpace === 'function') {
+          try {
+            const actions = agent.interface.actionSpace();
+            actionTypes = Array.isArray(actions)
+              ? actions
+                  .map((action) => action?.name)
+                  .filter((name): name is string => typeof name === 'string')
+              : undefined;
+          } catch (error) {
+            debugScreenshot('interface actionSpace() failed:', error);
+          }
+        }
 
         res.json({
           type: runtimeInfo.interface.type,
           description: runtimeInfo.interface.description,
           ...(size ? { size } : {}),
           ...(navigationState ? { navigationState } : {}),
+          ...(actionTypes ? { actionTypes } : {}),
         });
       } catch (error: unknown) {
         const errorMessage =

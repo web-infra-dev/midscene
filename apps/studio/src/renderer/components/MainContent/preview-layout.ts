@@ -1,5 +1,4 @@
 import type { PlaygroundRuntimeInfo } from '@midscene/playground';
-import type { ManualDragActionType } from '@midscene/playground-app';
 import type { StudioPlatformId } from '@shared/electron-contract';
 import type { StudioPreviewConnectionState } from '../../playground/preview-discovery';
 import { normalizeStudioPlatformId } from '../../playground/selectors';
@@ -33,50 +32,6 @@ export function shouldUseDesktopPreviewPadding(
 ): boolean {
   const platform = resolveStudioPreviewPlatform(runtimeInfo, formValues);
   return platform === 'computer' || platform === 'web';
-}
-
-const MANUAL_CONTROL_PLATFORMS: ReadonlySet<StudioPlatformId> = new Set([
-  'android',
-  'ios',
-  'harmony',
-  'computer',
-  'web',
-]);
-
-// Computer's actionSpace exposes DragAndDrop but not Swipe (see
-// packages/computer/src/device.ts). Web likewise prefers DragAndDrop. Mobile
-// platforms keep Swipe.
-const DRAG_AND_DROP_PLATFORMS: ReadonlySet<StudioPlatformId> = new Set([
-  'computer',
-  'web',
-]);
-
-// Platforms whose physical input pipeline accepts free-form text + key events
-// (KeyboardPress / Input). Mobile platforms route keyboard differently and
-// are deliberately left disabled.
-const KEYBOARD_PLATFORMS: ReadonlySet<StudioPlatformId> = new Set([
-  'computer',
-  'web',
-]);
-
-export function isManualPreviewControlSupported(
-  platform: StudioPlatformId | undefined,
-): boolean {
-  return platform !== undefined && MANUAL_CONTROL_PLATFORMS.has(platform);
-}
-
-export function resolveManualDragActionType(
-  platform: StudioPlatformId | undefined,
-): ManualDragActionType {
-  return platform !== undefined && DRAG_AND_DROP_PLATFORMS.has(platform)
-    ? 'DragAndDrop'
-    : 'Swipe';
-}
-
-export function isManualPreviewKeyboardSupported(
-  platform: StudioPlatformId | undefined,
-): boolean {
-  return platform !== undefined && KEYBOARD_PLATFORMS.has(platform);
 }
 
 export function shouldEnableMobilePreviewFrame(

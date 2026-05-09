@@ -29,9 +29,6 @@ import type { ShellActiveView } from '../ShellLayout/types';
 import { DeviceList } from './DeviceList';
 import { MobilePreviewFrame } from './MobilePreviewFrame';
 import {
-  isManualPreviewControlSupported,
-  isManualPreviewKeyboardSupported,
-  resolveManualDragActionType,
   resolveStudioPreviewPlatform,
   shouldEnableMobilePreviewFrame,
   shouldUseDesktopPreviewPadding,
@@ -289,11 +286,6 @@ export default function MainContent({
     runtimeInfo,
     previewFormValues,
   );
-  const manualControlEnabled =
-    isConnected && isManualPreviewControlSupported(previewPlatform);
-  const manualDragActionType = resolveManualDragActionType(previewPlatform);
-  const manualKeyboardEnabled =
-    isManualPreviewKeyboardSupported(previewPlatform);
   const showWebNavigation = isConnected && previewPlatform === 'web';
   const previewConnectingLabel = getPreviewConnectingLabel(previewPlatform);
   const disconnectedPreviewTitle = getDisconnectedPreviewTitle(previewPlatform);
@@ -735,9 +727,6 @@ export default function MainContent({
                   isUserOperating={
                     studioPlayground.controller.state.isUserOperating
                   }
-                  manualControlEnabled={manualControlEnabled}
-                  manualDragActionType={manualDragActionType}
-                  manualKeyboardEnabled={manualKeyboardEnabled}
                 />
               </Suspense>
             </div>
