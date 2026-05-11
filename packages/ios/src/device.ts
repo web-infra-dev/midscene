@@ -14,6 +14,7 @@ import {
   type IOSDeviceInputOpt,
   type IOSDeviceOpt,
   type PointerCapability,
+  type PointerPoint,
   defineAction,
   defineActionClearInput,
   defineActionCursorMove,
@@ -76,6 +77,12 @@ type IOSInputParam = {
   locate?: LocateResultElement;
 };
 
+type IOSPointerInputOptions = {
+  at?: PointerPoint;
+  mode?: 'replace' | 'clear' | 'typeOnly';
+  autoDismissKeyboard?: boolean;
+};
+
 /**
  * HTTP methods supported by WebDriverAgent API
  */
@@ -101,67 +108,169 @@ export class IOSDevice implements AbstractInterface {
   options?: IOSDeviceOpt;
 
   /**
-   * Native input surface for direct manual control. Wraps the same low-level
-   * gesture methods (`mouseClick`, `doubleTap`, `swipe`, etc.) that the
-   * `actionSpace()` callbacks call, so AI-driven and manual paths converge
-   * onto a single set of WDA primitives.
+   * Native input surface for direct manual control. Both this surface and
+   * `actionSpace()` call the same point-level helpers below, so AI-driven and
+   * manual paths share the WDA primitive implementation instead of duplicating
+   * gesture logic.
    */
   readonly pointer: PointerCapability = {
-    tap: ({ x, y }) => this.mouseClick(x, y),
-    doubleClick: ({ x, y }) => this.doubleTap(x, y),
-    longPress: ({ x, y }, opts) => this.longPress(x, y, opts?.duration),
-    swipe: async (start, end, opts) => {
-      const duration = opts?.duration ?? 300;
-      const repeat = opts?.repeat ?? 1;
-      for (let i = 0; i < repeat; i++) {
-        await this.swipe(start.x, start.y, end.x, end.y, duration);
-      }
-    },
-    dragAndDrop: (from, to) => this.swipe(from.x, from.y, to.x, to.y, 1000),
+    tap: (point) => this.tapPoint(point),
+    doubleClick: (point) => this.doubleTapPoint(point),
+    longPress: (point, opts) => this.longPressPoint(point, opts?.duration),
+    swipe: (start, end, opts) => this.swipePoints(start, end, opts),
+    dragAndDrop: (from, to) => this.dragAndDropPoints(from, to),
     keyboardPress: (key) => this.pressKey(key),
-    input: async (value, opts) => {
-      if (opts?.mode !== 'typeOnly' && opts?.at) {
-        await this.mouseClick(opts.at.x, opts.at.y);
-        await this.clearInput();
-      }
-      if (opts?.mode === 'clear') return;
-      if (!value) return;
-      const autoDismissKeyboard =
-        opts?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
-      await this.typeText(value, { autoDismissKeyboard });
-    },
-    pinch: async (center, opts) => {
-      const screenSize = await this.size();
-      const baseDistance = Math.round(
-        Math.min(screenSize.width, screenSize.height) / 4,
-      );
-      const fingerDistance = opts.distance ?? baseDistance;
-      const startDistance = baseDistance;
-      const endDistance =
-        opts.direction === 'out'
-          ? baseDistance + fingerDistance
-          : Math.max(10, baseDistance - fingerDistance);
-      await this.wdaBackend.pinch(
-        Math.round(center.x),
-        Math.round(center.y),
-        startDistance,
-        endDistance,
-        opts.duration ?? 500,
-      );
-    },
+    input: (value, opts) => this.inputText(value, opts),
+    pinch: (center, opts) => this.pinchByDirection(center, opts),
   };
+
+  private locatePoint(
+    element: LocateResultElement | undefined,
+    message: string,
+  ): PointerPoint {
+    assert(element, message);
+    return { x: element.center[0], y: element.center[1] };
+  }
+
+  private async tapPoint(point: PointerPoint): Promise<void> {
+    debugDevice(`tap at coordinates (${point.x}, ${point.y})`);
+    await this.wdaBackend.tap(Math.round(point.x), Math.round(point.y));
+  }
+
+  private async doubleTapPoint(point: PointerPoint): Promise<void> {
+    await this.wdaBackend.doubleTap(Math.round(point.x), Math.round(point.y));
+  }
+
+  private async tripleTapPoint(point: PointerPoint): Promise<void> {
+    await this.wdaBackend.tripleTap(Math.round(point.x), Math.round(point.y));
+  }
+
+  private async longPressPoint(
+    point: PointerPoint,
+    duration = 1000,
+  ): Promise<void> {
+    await this.wdaBackend.longPress(
+      Math.round(point.x),
+      Math.round(point.y),
+      duration,
+    );
+  }
+
+  private async swipeOnce(
+    start: PointerPoint,
+    end: PointerPoint,
+    duration = 500,
+  ): Promise<void> {
+    await this.wdaBackend.swipe(
+      Math.round(start.x),
+      Math.round(start.y),
+      Math.round(end.x),
+      Math.round(end.y),
+      duration,
+    );
+  }
+
+  private async swipePoints(
+    start: PointerPoint,
+    end: PointerPoint,
+    opts?: { duration?: number; repeat?: number },
+  ): Promise<void> {
+    const duration = opts?.duration ?? 300;
+    const repeat = opts?.repeat ?? 1;
+    for (let i = 0; i < repeat; i++) {
+      await this.swipeOnce(start, end, duration);
+    }
+  }
+
+  private async dragAndDropPoints(
+    from: PointerPoint,
+    to: PointerPoint,
+  ): Promise<void> {
+    await this.swipeOnce(from, to, 1000);
+  }
+
+  private async clearInputAt(point?: PointerPoint): Promise<void> {
+    if (point) {
+      await this.tapPoint(point);
+      await sleep(100);
+    }
+
+    debugDevice('Attempting to clear input with WebDriver Clear API');
+    const cleared = await this.wdaBackend.clearActiveElement();
+    if (cleared) {
+      debugDevice('Successfully cleared input with WebDriver Clear API');
+    } else {
+      debugDevice(
+        'WebDriver Clear API returned false (no active element or clear failed)',
+      );
+    }
+  }
+
+  private async inputText(
+    value: string,
+    opts?: IOSPointerInputOptions,
+  ): Promise<void> {
+    const mode = opts?.mode ?? 'replace';
+    if (mode !== 'typeOnly') {
+      await this.clearInputAt(opts?.at);
+    }
+    if (mode === 'clear' || !value) return;
+
+    const autoDismissKeyboard =
+      opts?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
+    await this.typeText(value, { autoDismissKeyboard });
+  }
+
+  private async pinchByDistances(
+    center: PointerPoint,
+    startDistance: number,
+    endDistance: number,
+    duration: number,
+  ): Promise<void> {
+    await this.wdaBackend.pinch(
+      Math.round(center.x),
+      Math.round(center.y),
+      startDistance,
+      endDistance,
+      duration,
+    );
+  }
+
+  private async pinchByDirection(
+    center: PointerPoint,
+    opts: { direction: 'in' | 'out'; distance?: number; duration?: number },
+  ): Promise<void> {
+    const screenSize = await this.size();
+    const baseDistance = Math.round(
+      Math.min(screenSize.width, screenSize.height) / 4,
+    );
+    const fingerDistance = opts.distance ?? baseDistance;
+    const endDistance =
+      opts.direction === 'out'
+        ? baseDistance + fingerDistance
+        : Math.max(10, baseDistance - fingerDistance);
+    await this.pinchByDistances(
+      center,
+      baseDistance,
+      endDistance,
+      opts.duration ?? 500,
+    );
+  }
 
   actionSpace(): DeviceAction<any>[] {
     const defaultActions = [
       defineActionTap(async (param: ActionTapParam) => {
-        const element = param.locate;
-        assert(element, 'Element not found, cannot tap');
-        await this.mouseClick(element.center[0], element.center[1]);
+        await this.tapPoint(
+          this.locatePoint(param.locate, 'Element not found, cannot tap'),
+        );
       }),
       defineActionDoubleClick(async (param) => {
-        const element = param.locate;
-        assert(element, 'Element not found, cannot double click');
-        await this.doubleTap(element.center[0], element.center[1]);
+        await this.doubleTapPoint(
+          this.locatePoint(
+            param.locate,
+            'Element not found, cannot double click',
+          ),
+        );
       }),
       defineAction<typeof iosInputParamSchema, IOSInputParam>({
         name: 'Input',
@@ -173,24 +282,15 @@ export class IOSDevice implements AbstractInterface {
           locate: { prompt: 'the email input field' },
         },
         call: async (param) => {
-          const element = param.locate;
-          if (param.mode !== 'typeOnly') {
-            await this.clearInput(element as unknown as ElementInfo);
-          }
-
-          if (param.mode === 'clear') {
-            // Clear mode removes existing text without entering new characters
-            return;
-          }
-
-          if (!param || !param.value) {
-            return;
-          }
-
-          const autoDismissKeyboard =
-            param.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
-          await this.typeText(param.value, {
-            autoDismissKeyboard,
+          await this.inputText(param.value, {
+            at: param.locate
+              ? this.locatePoint(
+                  param.locate,
+                  'Element not found, cannot input',
+                )
+              : undefined,
+            mode: param.mode,
+            autoDismissKeyboard: param.autoDismissKeyboard,
           });
         },
       }),
@@ -237,26 +337,18 @@ export class IOSDevice implements AbstractInterface {
         const to = param.to;
         assert(from, 'missing "from" param for drag and drop');
         assert(to, 'missing "to" param for drag and drop');
-        await this.swipe(
-          from.center[0],
-          from.center[1],
-          to.center[0],
-          to.center[1],
-          1000,
+        await this.dragAndDropPoints(
+          { x: from.center[0], y: from.center[1] },
+          { x: to.center[0], y: to.center[1] },
         );
       }),
       defineActionSwipe(async (param) => {
         const { startPoint, endPoint, duration, repeatCount } =
           normalizeMobileSwipeParam(param, await this.size());
-        for (let i = 0; i < repeatCount; i++) {
-          await this.swipe(
-            startPoint.x,
-            startPoint.y,
-            endPoint.x,
-            endPoint.y,
-            duration,
-          );
-        }
+        await this.swipePoints(startPoint, endPoint, {
+          duration,
+          repeat: repeatCount,
+        });
       }),
       defineActionKeyboardPress(async (param) => {
         await this.pressKey(param.keyName);
@@ -271,18 +363,20 @@ export class IOSDevice implements AbstractInterface {
         }
       }),
       defineActionLongPress(async (param) => {
-        const element = param.locate;
-        assert(element, 'LongPress requires an element to be located');
-        const [x, y] = element.center;
-        await this.longPress(x, y, param?.duration);
+        await this.longPressPoint(
+          this.locatePoint(
+            param.locate,
+            'LongPress requires an element to be located',
+          ),
+          param?.duration,
+        );
       }),
       defineActionPinch(async (param) => {
         const { centerX, centerY, startDistance, endDistance, duration } =
           normalizePinchParam(param, await this.size());
 
-        await this.wdaBackend.pinch(
-          centerX,
-          centerY,
+        await this.pinchByDistances(
+          { x: centerX, y: centerY },
           startDistance,
           endDistance,
           duration,
@@ -503,24 +597,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   async clearInput(element?: ElementInfo): Promise<void> {
-    if (element) {
-      // Tap on the input field to focus it
-      await this.tap(element.center[0], element.center[1]);
-      await sleep(100);
-    }
-
-    // For iOS, use WebDriver's standard clear API
-    // This gets the currently focused element and clears it using the /element/{id}/clear endpoint
-    // Works reliably with dynamic input fields and doesn't trigger unwanted events
-    debugDevice('Attempting to clear input with WebDriver Clear API');
-    const cleared = await this.wdaBackend.clearActiveElement();
-    if (cleared) {
-      debugDevice('Successfully cleared input with WebDriver Clear API');
-    } else {
-      debugDevice(
-        'WebDriver Clear API returned false (no active element or clear failed)',
-      );
-    }
+    await this.clearInputAt(
+      element ? { x: element.center[0], y: element.center[1] } : undefined,
+    );
   }
 
   async url(): Promise<string> {
@@ -529,25 +608,24 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   // Core interaction methods
   async tap(x: number, y: number): Promise<void> {
-    await this.wdaBackend.tap(Math.round(x), Math.round(y));
+    await this.tapPoint({ x, y });
   }
 
   // Android-compatible method name
   async mouseClick(x: number, y: number): Promise<void> {
-    debugDevice(`mouseClick at coordinates (${x}, ${y})`);
-    await this.tap(x, y);
+    await this.tapPoint({ x, y });
   }
 
   async doubleTap(x: number, y: number): Promise<void> {
-    await this.wdaBackend.doubleTap(Math.round(x), Math.round(y));
+    await this.doubleTapPoint({ x, y });
   }
 
   async tripleTap(x: number, y: number): Promise<void> {
-    await this.wdaBackend.tripleTap(Math.round(x), Math.round(y));
+    await this.tripleTapPoint({ x, y });
   }
 
   async longPress(x: number, y: number, duration = 1000): Promise<void> {
-    await this.wdaBackend.longPress(Math.round(x), Math.round(y), duration);
+    await this.longPressPoint({ x, y }, duration);
   }
 
   async swipe(
@@ -557,13 +635,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     toY: number,
     duration = 500,
   ): Promise<void> {
-    await this.wdaBackend.swipe(
-      Math.round(fromX),
-      Math.round(fromY),
-      Math.round(toX),
-      Math.round(toY),
-      duration,
-    );
+    await this.swipeOnce({ x: fromX, y: fromY }, { x: toX, y: toY }, duration);
   }
 
   async typeText(text: string, options?: IOSDeviceInputOpt): Promise<void> {
