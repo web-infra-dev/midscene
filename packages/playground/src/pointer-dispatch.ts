@@ -1,4 +1,8 @@
-import type { PointerCapability, PointerPoint } from '@midscene/core/device';
+import type {
+  DeviceInputPrimitives,
+  PointerPoint,
+} from '@midscene/core/device';
+import { normalizePinchParam } from '@midscene/core/device';
 
 /**
  * Thrown when an /interact request is malformed (missing field, wrong type)
@@ -59,17 +63,16 @@ function ensureCapability<T>(
 }
 
 /**
- * Translate an `/interact` request body into a PointerCapability call.
+ * Translate an `/interact` request body into device input primitive calls.
  *
  * The dispatcher is deliberately a flat switch: each case is HTTP-protocol
- * adaptation (parse + range-check fields, hand them to the typed pointer
- * method), not business logic. Adding a new pointer method to
- * PointerCapability adds one case here and one method on each supporting
- * device — no AI-vocabulary coupling.
+ * adaptation (parse + range-check fields, hand them to the typed primitive),
+ * not platform business logic.
  */
 export async function dispatchPointer(
-  pointer: PointerCapability,
+  input: DeviceInputPrimitives,
   body: Record<string, unknown>,
+  getScreenSize: () => Promise<{ width: number; height: number }>,
 ): Promise<void> {
   const { actionType } = body;
   if (typeof actionType !== 'string' || !actionType) {
@@ -78,20 +81,20 @@ export async function dispatchPointer(
 
   switch (actionType) {
     case 'Tap':
-      return pointer.tap(requirePoint(body), {
+      return input.tap(requirePoint(body), {
         duration: optionalNumber(body.duration, 'duration'),
       });
 
     case 'DoubleClick':
-      return pointer.doubleClick(requirePoint(body));
+      return input.doubleClick(requirePoint(body));
 
     case 'LongPress':
-      return pointer.longPress(requirePoint(body), {
+      return input.longPress(requirePoint(body), {
         duration: optionalNumber(body.duration, 'duration'),
       });
 
     case 'Swipe':
-      return pointer.swipe(
+      return input.swipe(
         requirePoint(body),
         requirePoint(body, 'endX', 'endY'),
         {
@@ -101,13 +104,13 @@ export async function dispatchPointer(
       );
 
     case 'DragAndDrop':
-      return pointer.dragAndDrop(
+      return input.dragAndDrop(
         requirePoint(body),
         requirePoint(body, 'endX', 'endY'),
       );
 
     case 'KeyboardPress':
-      return pointer.keyboardPress(requireString(body.keyName, 'keyName'));
+      return input.keyboardPress(requireString(body.keyName, 'keyName'));
 
     case 'Input': {
       const value = requireString(body.value, 'value');
@@ -123,21 +126,54 @@ export async function dispatchPointer(
         typeof body.autoDismissKeyboard === 'boolean'
           ? body.autoDismissKeyboard
           : undefined;
-      return pointer.input(value, { at, mode, autoDismissKeyboard });
+      const target = at
+        ? {
+            center: [at.x, at.y] as [number, number],
+            rect: { left: at.x, top: at.y, width: 1, height: 1 },
+            description: 'manual input target',
+          }
+        : undefined;
+      if (mode !== 'typeOnly' && at) {
+        await input.tap(at);
+        await input.clearInput(target);
+      }
+      if (mode === 'clear') return;
+      if (!value) return;
+      return input.typeText(value, {
+        autoDismissKeyboard,
+        target,
+        replace: mode !== 'typeOnly',
+      });
     }
 
-    case 'Pinch':
-      return ensureCapability(pointer.pinch, 'Pinch')(requirePoint(body), {
-        direction: ((): 'in' | 'out' => {
-          const d = body.direction;
-          if (d !== 'in' && d !== 'out') {
-            throw new PointerInputError('direction must be "in" or "out"', 400);
-          }
-          return d;
-        })(),
-        distance: optionalNumber(body.distance, 'distance'),
-        duration: optionalNumber(body.duration, 'duration'),
+    case 'Pinch': {
+      const center = requirePoint(body);
+      const direction = ((): 'in' | 'out' => {
+        const d = body.direction;
+        if (d !== 'in' && d !== 'out') {
+          throw new PointerInputError('direction must be "in" or "out"', 400);
+        }
+        return d;
+      })();
+      const { startDistance, endDistance, duration } = normalizePinchParam(
+        {
+          locate: {
+            center: [center.x, center.y],
+            rect: { left: center.x, top: center.y, width: 1, height: 1 },
+            description: 'manual pinch target',
+          },
+          direction,
+          distance: optionalNumber(body.distance, 'distance'),
+          duration: optionalNumber(body.duration, 'duration'),
+        },
+        await getScreenSize(),
+      );
+      return ensureCapability(input.pinch, 'Pinch')(center, {
+        startDistance,
+        endDistance,
+        duration,
       });
+    }
 
     default:
       throw new PointerInputError(`Unknown actionType "${actionType}"`, 404);

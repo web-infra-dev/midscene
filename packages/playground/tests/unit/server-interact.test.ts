@@ -1,4 +1,4 @@
-import type { PointerCapability } from '@midscene/core/device';
+import type { DeviceInputPrimitives } from '@midscene/core/device';
 import { describe, expect, test, vi } from 'vitest';
 import { PlaygroundServer } from '../../src/server';
 
@@ -30,9 +30,9 @@ function getRouteHandler(
   return calls.find(([registeredRoute]) => registeredRoute === route)?.[1];
 }
 
-function makePointerStub(
-  overrides: Partial<PointerCapability> = {},
-): PointerCapability {
+function makeInputPrimitiveStub(
+  overrides: Partial<DeviceInputPrimitives> = {},
+): DeviceInputPrimitives {
   return {
     tap: vi.fn(async () => {}),
     doubleClick: vi.fn(async () => {}),
@@ -40,14 +40,15 @@ function makePointerStub(
     swipe: vi.fn(async () => {}),
     dragAndDrop: vi.fn(async () => {}),
     keyboardPress: vi.fn(async () => {}),
-    input: vi.fn(async () => {}),
+    typeText: vi.fn(async () => {}),
+    clearInput: vi.fn(async () => {}),
     ...overrides,
   };
 }
 
 describe('PlaygroundServer manual interaction APIs', () => {
-  test('POST /interact routes pointer events to PointerCapability', async () => {
-    const pointer = makePointerStub();
+  test('POST /interact routes pointer events to input primitives', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
     const actionCall = vi.fn();
     const server = new PlaygroundServer({
       interface: {
@@ -56,7 +57,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         actionSpace: () => [
           { name: 'Tap', description: 'tap', call: actionCall },
         ],
-        pointer,
+        inputPrimitives,
         screenshotBase64: async () => 'base64-image',
         size: async () => ({ width: 1080, height: 1920 }),
       },
@@ -74,7 +75,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.body).toEqual({});
-    expect(pointer.tap).toHaveBeenCalledWith(
+    expect(inputPrimitives.tap).toHaveBeenCalledWith(
       { x: 10, y: 20 },
       { duration: undefined },
     );
@@ -82,12 +83,12 @@ describe('PlaygroundServer manual interaction APIs', () => {
   });
 
   test('POST /interact forwards Swipe with start, end, and options', async () => {
-    const pointer = makePointerStub();
+    const inputPrimitives = makeInputPrimitiveStub();
     const server = new PlaygroundServer({
       interface: {
         interfaceType: 'android',
         actionSpace: () => [],
-        pointer,
+        inputPrimitives,
       },
     } as any);
 
@@ -110,7 +111,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     );
 
     expect(response.statusCode).toBe(200);
-    expect(pointer.swipe).toHaveBeenCalledWith(
+    expect(inputPrimitives.swipe).toHaveBeenCalledWith(
       { x: 10, y: 20 },
       { x: 110, y: 220 },
       { duration: 500, repeat: 2 },
@@ -118,12 +119,12 @@ describe('PlaygroundServer manual interaction APIs', () => {
   });
 
   test('POST /interact returns 400 when a required pointer field is missing', async () => {
-    const pointer = makePointerStub();
+    const inputPrimitives = makeInputPrimitiveStub();
     const server = new PlaygroundServer({
       interface: {
         interfaceType: 'android',
         actionSpace: () => [],
-        pointer,
+        inputPrimitives,
       },
     } as any);
 
@@ -136,7 +137,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect((response.body as { error: string }).error).toBe(
       'x must be a number',
     );
-    expect(pointer.tap).not.toHaveBeenCalled();
+    expect(inputPrimitives.tap).not.toHaveBeenCalled();
   });
 
   test('POST /interact invokes the selected action with manual params', async () => {
@@ -220,13 +221,14 @@ describe('PlaygroundServer manual interaction APIs', () => {
     });
   });
 
-  test('POST /interact returns 404 when the requested pointer capability is not implemented', async () => {
-    const pointer = makePointerStub({ pinch: undefined });
+  test('POST /interact returns 404 when the requested primitive is not implemented', async () => {
+    const inputPrimitives = makeInputPrimitiveStub({ pinch: undefined });
     const server = new PlaygroundServer({
       interface: {
         interfaceType: 'harmony',
         actionSpace: () => [],
-        pointer,
+        inputPrimitives,
+        size: async () => ({ width: 1080, height: 1920 }),
       },
     } as any);
 
@@ -245,12 +247,12 @@ describe('PlaygroundServer manual interaction APIs', () => {
   });
 
   test('POST /interact returns 404 for unknown pointer actionType', async () => {
-    const pointer = makePointerStub();
+    const inputPrimitives = makeInputPrimitiveStub();
     const server = new PlaygroundServer({
       interface: {
         interfaceType: 'android',
         actionSpace: () => [],
-        pointer,
+        inputPrimitives,
       },
     } as any);
 

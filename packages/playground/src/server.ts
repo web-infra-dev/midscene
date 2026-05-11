@@ -1534,9 +1534,9 @@ class PlaygroundServer {
     });
 
     // Direct manipulation API – invokes a named action immediately, bypassing
-    // AI planning, the task lock, and dump bookkeeping. Pointer-capable device
-    // previews use the typed pointer surface; browser navigation falls back to
-    // explicit actionSpace/browser-chrome actions.
+    // AI planning, the task lock, and dump bookkeeping. Primitive-capable
+    // device previews use the typed input surface; browser navigation falls
+    // back to explicit actionSpace/browser-chrome actions.
     this._app.post('/interact', async (req: Request, res: Response) => {
       let agent: PageAgent;
       try {
@@ -1555,9 +1555,11 @@ class PlaygroundServer {
       }
 
       try {
-        const pointer = agent.interface.pointer;
-        if (pointer) {
-          await dispatchPointer(pointer, req.body ?? {});
+        const inputPrimitives = agent.interface.inputPrimitives;
+        if (inputPrimitives) {
+          await dispatchPointer(inputPrimitives, req.body ?? {}, () =>
+            agent.interface.size(),
+          );
           res.json({});
           return;
         }

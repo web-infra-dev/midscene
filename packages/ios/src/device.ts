@@ -11,9 +11,9 @@ import {
 import {
   type AbstractInterface,
   type ActionTapParam,
+  type DeviceInputPrimitives,
   type IOSDeviceInputOpt,
   type IOSDeviceOpt,
-  type PointerCapability,
   type PointerPoint,
   defineAction,
   defineActionClearInput,
@@ -77,12 +77,6 @@ type IOSInputParam = {
   locate?: LocateResultElement;
 };
 
-type IOSPointerInputOptions = {
-  at?: PointerPoint;
-  mode?: 'replace' | 'clear' | 'typeOnly';
-  autoDismissKeyboard?: boolean;
-};
-
 /**
  * HTTP methods supported by WebDriverAgent API
  */
@@ -107,30 +101,31 @@ export class IOSDevice implements AbstractInterface {
   uri: string | undefined;
   options?: IOSDeviceOpt;
 
-  /**
-   * Native input surface for direct manual control. Both this surface and
-   * `actionSpace()` call the same point-level helpers below, so AI-driven and
-   * manual paths share the WDA primitive implementation instead of duplicating
-   * gesture logic.
-   */
-  readonly pointer: PointerCapability = {
-    tap: (point) => this.tapPoint(point),
-    doubleClick: (point) => this.doubleTapPoint(point),
-    longPress: (point, opts) => this.longPressPoint(point, opts?.duration),
-    swipe: (start, end, opts) => this.swipePoints(start, end, opts),
-    dragAndDrop: (from, to) => this.dragAndDropPoints(from, to),
+  readonly inputPrimitives: DeviceInputPrimitives = {
+    tap: ({ x, y }) => this.mouseClick(x, y),
+    doubleClick: ({ x, y }) => this.doubleTap(x, y),
+    longPress: ({ x, y }, opts) => this.longPress(x, y, opts?.duration),
+    swipe: async (start, end, opts) => {
+      const duration = opts?.duration ?? 300;
+      const repeat = opts?.repeat ?? 1;
+      for (let i = 0; i < repeat; i++) {
+        await this.swipe(start.x, start.y, end.x, end.y, duration);
+      }
+    },
+    dragAndDrop: (from, to) => this.swipe(from.x, from.y, to.x, to.y, 1000),
     keyboardPress: (key) => this.pressKey(key),
-    input: (value, opts) => this.inputText(value, opts),
-    pinch: (center, opts) => this.pinchByDirection(center, opts),
+    typeText: (value, opts) => this.typeText(value, opts),
+    clearInput: (target) => this.clearInput(target as ElementInfo | undefined),
+    pinch: async (center, opts) => {
+      await this.wdaBackend.pinch(
+        Math.round(center.x),
+        Math.round(center.y),
+        opts.startDistance,
+        opts.endDistance,
+        opts.duration,
+      );
+    },
   };
-
-  private locatePoint(
-    element: LocateResultElement | undefined,
-    message: string,
-  ): PointerPoint {
-    assert(element, message);
-    return { x: element.center[0], y: element.center[1] };
-  }
 
   private async tapPoint(point: PointerPoint): Promise<void> {
     debugDevice(`tap at coordinates (${point.x}, ${point.y})`);
@@ -170,25 +165,6 @@ export class IOSDevice implements AbstractInterface {
     );
   }
 
-  private async swipePoints(
-    start: PointerPoint,
-    end: PointerPoint,
-    opts?: { duration?: number; repeat?: number },
-  ): Promise<void> {
-    const duration = opts?.duration ?? 300;
-    const repeat = opts?.repeat ?? 1;
-    for (let i = 0; i < repeat; i++) {
-      await this.swipeOnce(start, end, duration);
-    }
-  }
-
-  private async dragAndDropPoints(
-    from: PointerPoint,
-    to: PointerPoint,
-  ): Promise<void> {
-    await this.swipeOnce(from, to, 1000);
-  }
-
   private async clearInputAt(point?: PointerPoint): Promise<void> {
     if (point) {
       await this.tapPoint(point);
@@ -206,71 +182,23 @@ export class IOSDevice implements AbstractInterface {
     }
   }
 
-  private async inputText(
-    value: string,
-    opts?: IOSPointerInputOptions,
-  ): Promise<void> {
-    const mode = opts?.mode ?? 'replace';
-    if (mode !== 'typeOnly') {
-      await this.clearInputAt(opts?.at);
-    }
-    if (mode === 'clear' || !value) return;
-
-    const autoDismissKeyboard =
-      opts?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
-    await this.typeText(value, { autoDismissKeyboard });
-  }
-
-  private async pinchByDistances(
-    center: PointerPoint,
-    startDistance: number,
-    endDistance: number,
-    duration: number,
-  ): Promise<void> {
-    await this.wdaBackend.pinch(
-      Math.round(center.x),
-      Math.round(center.y),
-      startDistance,
-      endDistance,
-      duration,
-    );
-  }
-
-  private async pinchByDirection(
-    center: PointerPoint,
-    opts: { direction: 'in' | 'out'; distance?: number; duration?: number },
-  ): Promise<void> {
-    const screenSize = await this.size();
-    const baseDistance = Math.round(
-      Math.min(screenSize.width, screenSize.height) / 4,
-    );
-    const fingerDistance = opts.distance ?? baseDistance;
-    const endDistance =
-      opts.direction === 'out'
-        ? baseDistance + fingerDistance
-        : Math.max(10, baseDistance - fingerDistance);
-    await this.pinchByDistances(
-      center,
-      baseDistance,
-      endDistance,
-      opts.duration ?? 500,
-    );
-  }
-
   actionSpace(): DeviceAction<any>[] {
     const defaultActions = [
       defineActionTap(async (param: ActionTapParam) => {
-        await this.tapPoint(
-          this.locatePoint(param.locate, 'Element not found, cannot tap'),
-        );
+        const element = param.locate;
+        assert(element, 'Element not found, cannot tap');
+        await this.inputPrimitives.tap({
+          x: element.center[0],
+          y: element.center[1],
+        });
       }),
       defineActionDoubleClick(async (param) => {
-        await this.doubleTapPoint(
-          this.locatePoint(
-            param.locate,
-            'Element not found, cannot double click',
-          ),
-        );
+        const element = param.locate;
+        assert(element, 'Element not found, cannot double click');
+        await this.inputPrimitives.doubleClick({
+          x: element.center[0],
+          y: element.center[1],
+        });
       }),
       defineAction<typeof iosInputParamSchema, IOSInputParam>({
         name: 'Input',
@@ -282,15 +210,26 @@ export class IOSDevice implements AbstractInterface {
           locate: { prompt: 'the email input field' },
         },
         call: async (param) => {
-          await this.inputText(param.value, {
-            at: param.locate
-              ? this.locatePoint(
-                  param.locate,
-                  'Element not found, cannot input',
-                )
-              : undefined,
-            mode: param.mode,
-            autoDismissKeyboard: param.autoDismissKeyboard,
+          const element = param.locate;
+          if (param.mode !== 'typeOnly') {
+            await this.inputPrimitives.clearInput(
+              element as unknown as ElementInfo,
+            );
+          }
+
+          if (param.mode === 'clear') {
+            // Clear mode removes existing text without entering new characters
+            return;
+          }
+
+          if (!param || !param.value) {
+            return;
+          }
+
+          const autoDismissKeyboard =
+            param.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
+          await this.inputPrimitives.typeText(param.value, {
+            autoDismissKeyboard,
           });
         },
       }),
@@ -337,7 +276,7 @@ export class IOSDevice implements AbstractInterface {
         const to = param.to;
         assert(from, 'missing "from" param for drag and drop');
         assert(to, 'missing "to" param for drag and drop');
-        await this.dragAndDropPoints(
+        await this.inputPrimitives.dragAndDrop(
           { x: from.center[0], y: from.center[1] },
           { x: to.center[0], y: to.center[1] },
         );
@@ -345,45 +284,44 @@ export class IOSDevice implements AbstractInterface {
       defineActionSwipe(async (param) => {
         const { startPoint, endPoint, duration, repeatCount } =
           normalizeMobileSwipeParam(param, await this.size());
-        await this.swipePoints(startPoint, endPoint, {
-          duration,
-          repeat: repeatCount,
-        });
+        for (let i = 0; i < repeatCount; i++) {
+          await this.inputPrimitives.swipe(startPoint, endPoint, { duration });
+        }
       }),
       defineActionKeyboardPress(async (param) => {
-        await this.pressKey(param.keyName);
+        await this.inputPrimitives.keyboardPress(param.keyName);
       }),
       defineActionCursorMove(async (param) => {
         const arrowKey =
           param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
         const times = param.times ?? 1;
         for (let i = 0; i < times; i++) {
-          await this.pressKey(arrowKey);
+          await this.inputPrimitives.keyboardPress(arrowKey);
           await sleep(100);
         }
       }),
       defineActionLongPress(async (param) => {
-        await this.longPressPoint(
-          this.locatePoint(
-            param.locate,
-            'LongPress requires an element to be located',
-          ),
-          param?.duration,
+        const element = param.locate;
+        assert(element, 'LongPress requires an element to be located');
+        const [x, y] = element.center;
+        await this.inputPrimitives.longPress(
+          { x, y },
+          { duration: param?.duration },
         );
       }),
       defineActionPinch(async (param) => {
         const { centerX, centerY, startDistance, endDistance, duration } =
           normalizePinchParam(param, await this.size());
 
-        await this.pinchByDistances(
+        await this.inputPrimitives.pinch!(
           { x: centerX, y: centerY },
-          startDistance,
-          endDistance,
-          duration,
+          { startDistance, endDistance, duration },
         );
       }),
       defineActionClearInput(async (param) => {
-        await this.clearInput(param.locate as ElementInfo | undefined);
+        await this.inputPrimitives.clearInput(
+          param.locate as ElementInfo | undefined,
+        );
       }),
     ];
 

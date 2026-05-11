@@ -37,57 +37,29 @@ export interface PointerPoint {
   y: number;
 }
 
-/**
- * The native input surface of a touch device.
- *
- * Manual-control consumers (e.g. the Studio device preview's pointer overlay)
- * drive this directly with raw display coordinates. It is intentionally
- * separate from `actionSpace()` — the action space is the AI's vocabulary,
- * extensible by custom actions; the pointer is the device's low-level input
- * surface, fixed by what the underlying transport (WDA / ADB / HDC) can do.
- *
- * Methods left without `?` are required for any touch device that exposes
- * `pointer`. Optional members reflect real platform limitations (Pinch is
- * not available on every transport).
- */
-export interface PointerCapability {
-  /** Single tap at the given point. `duration` is honored when supported. */
+export interface DeviceInputPrimitives {
   tap(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
-  /** Double tap at the given point. */
   doubleClick(p: PointerPoint): Promise<void>;
-  /** Long press. `duration` may be ignored if the transport hard-codes it. */
   longPress(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
-  /** Continuous swipe from `start` to `end`. */
   swipe(
     start: PointerPoint,
     end: PointerPoint,
     opts?: { duration?: number; repeat?: number },
   ): Promise<void>;
-  /** Drag-and-drop a UI element from `from` to `to`. */
   dragAndDrop(from: PointerPoint, to: PointerPoint): Promise<void>;
-  /** Press a key or key combination, e.g. `"Enter"`, `"Control+A"`. */
   keyboardPress(keyName: string): Promise<void>;
-  /**
-   * Type text into the focused / addressed input field.
-   * `at` taps the input field first; omit to type into whatever has focus.
-   * `mode` mirrors `ActionInputParam.mode` semantics.
-   */
-  input(
+  typeText(
     value: string,
     opts?: {
-      at?: PointerPoint;
-      mode?: 'replace' | 'clear' | 'typeOnly';
       autoDismissKeyboard?: boolean;
+      target?: unknown;
+      replace?: boolean;
     },
   ): Promise<void>;
-
-  /**
-   * Two-finger pinch. Optional — not all transports can synthesize a
-   * multi-finger gesture (e.g. HDC on HarmonyOS does not).
-   */
+  clearInput(target?: unknown): Promise<void>;
   pinch?(
     center: PointerPoint,
-    opts: { direction: 'in' | 'out'; distance?: number; duration?: number },
+    opts: { startDistance: number; endDistance: number; duration: number },
   ): Promise<void>;
 }
 
@@ -163,11 +135,11 @@ export abstract class AbstractInterface {
   navigationState?(): Promise<{ isLoading: boolean }>;
 
   /**
-   * Native input surface for direct manual control (Studio device preview's
-   * pointer overlay). Optional — non-touch devices (headless web) leave it
-   * undefined and `/interact` returns 404.
+   * Low-level device input surface. Platform implementations expose transport
+   * primitives here; higher-level AI actions and manual pointer dispatch should
+   * adapt to this instead of duplicating platform gesture logic.
    */
-  pointer?: PointerCapability;
+  inputPrimitives?: DeviceInputPrimitives;
 }
 
 // Generic function to define actions with proper type inference
@@ -753,6 +725,168 @@ export function normalizePinchParam(
       : Math.max(10, baseDistance - fingerDistance);
 
   return { centerX, centerY, startDistance, endDistance, duration };
+}
+
+export interface MobileInputActionContext {
+  input: DeviceInputPrimitives;
+  size(): Promise<Size>;
+  sleep?(timeMs: number): Promise<void>;
+  getDefaultAutoDismissKeyboard?(): boolean | undefined;
+}
+
+export function createMobileInputActions(
+  context: MobileInputActionContext,
+): DeviceAction<any>[] {
+  const wait =
+    context.sleep ??
+    ((timeMs: number) =>
+      new Promise<void>((resolve) => setTimeout(resolve, timeMs)));
+
+  const actions: DeviceAction<any>[] = [
+    defineActionTap(async (param) => {
+      const element = param.locate;
+      if (!element) {
+        throw new Error('Element not found, cannot tap');
+      }
+      await context.input.tap({
+        x: element.center[0],
+        y: element.center[1],
+      });
+    }),
+    defineActionDoubleClick(async (param) => {
+      const element = param.locate;
+      if (!element) {
+        throw new Error('Element not found, cannot double click');
+      }
+      await context.input.doubleClick({
+        x: element.center[0],
+        y: element.center[1],
+      });
+    }),
+    defineAction({
+      name: 'Input',
+      description: 'Input text into the input field',
+      interfaceAlias: 'aiInput',
+      paramSchema: z.object({
+        value: z
+          .string()
+          .describe(
+            'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
+          ),
+        autoDismissKeyboard: z
+          .boolean()
+          .optional()
+          .describe(
+            'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
+          ),
+        mode: z.preprocess(
+          (val) => (val === 'append' ? 'typeOnly' : val),
+          z
+            .enum(['replace', 'clear', 'typeOnly'])
+            .default('replace')
+            .optional()
+            .describe(
+              'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
+            ),
+        ),
+        locate: getMidsceneLocationSchema()
+          .describe('The input field to be filled')
+          .optional(),
+      }),
+      sample: {
+        value: 'test@example.com',
+        locate: { prompt: 'the email input field' },
+      },
+      call: async (param: {
+        value: string;
+        autoDismissKeyboard?: boolean;
+        mode?: 'replace' | 'clear' | 'typeOnly';
+        locate?: LocateResultElement;
+      }) => {
+        const element = param.locate;
+        if (param.mode !== 'typeOnly') {
+          await context.input.clearInput(element);
+        }
+
+        if (param.mode === 'clear') {
+          return;
+        }
+
+        if (!param || !param.value) {
+          return;
+        }
+
+        await context.input.typeText(param.value, {
+          autoDismissKeyboard:
+            param.autoDismissKeyboard ??
+            context.getDefaultAutoDismissKeyboard?.(),
+          target: element,
+          replace: param.mode !== 'typeOnly',
+        });
+      },
+    }),
+    defineActionDragAndDrop(async (param) => {
+      const from = param.from;
+      const to = param.to;
+      if (!from) {
+        throw new Error('missing "from" param for drag and drop');
+      }
+      if (!to) {
+        throw new Error('missing "to" param for drag and drop');
+      }
+      await context.input.dragAndDrop(
+        { x: from.center[0], y: from.center[1] },
+        { x: to.center[0], y: to.center[1] },
+      );
+    }),
+    defineActionSwipe(async (param) => {
+      const { startPoint, endPoint, duration, repeatCount } =
+        normalizeMobileSwipeParam(param, await context.size());
+      for (let i = 0; i < repeatCount; i++) {
+        await context.input.swipe(startPoint, endPoint, { duration });
+      }
+    }),
+    defineActionKeyboardPress(async (param) => {
+      await context.input.keyboardPress(param.keyName);
+    }),
+    defineActionCursorMove(async (param) => {
+      const arrowKey = param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
+      const times = param.times ?? 1;
+      for (let i = 0; i < times; i++) {
+        await context.input.keyboardPress(arrowKey);
+        await wait(100);
+      }
+    }),
+    defineActionLongPress(async (param) => {
+      const element = param.locate;
+      if (!element) {
+        throw new Error('LongPress requires an element to be located');
+      }
+      const [x, y] = element.center;
+      await context.input.longPress({ x, y }, { duration: param?.duration });
+    }),
+  ];
+
+  if (context.input.pinch) {
+    actions.push(
+      defineActionPinch(async (param) => {
+        const { centerX, centerY, startDistance, endDistance, duration } =
+          normalizePinchParam(param, await context.size());
+        await context.input.pinch?.(
+          { x: centerX, y: centerY },
+          { startDistance, endDistance, duration },
+        );
+      }),
+    );
+  }
+
+  actions.push(
+    defineActionClearInput(async (param) => {
+      await context.input.clearInput(param.locate);
+    }),
+  );
+
+  return actions;
 }
 
 // Sleep

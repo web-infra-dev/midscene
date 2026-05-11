@@ -14,23 +14,12 @@ import {
 } from '@midscene/core';
 import {
   type AbstractInterface,
-  type ActionTapParam,
   type AndroidDeviceInputOpt,
   type AndroidDeviceOpt,
-  type PointerCapability,
+  type DeviceInputPrimitives,
+  createMobileInputActions,
   defineAction,
-  defineActionClearInput,
-  defineActionCursorMove,
-  defineActionDoubleClick,
-  defineActionDragAndDrop,
-  defineActionKeyboardPress,
-  defineActionLongPress,
-  defineActionPinch,
   defineActionScroll,
-  defineActionSwipe,
-  defineActionTap,
-  normalizeMobileSwipeParam,
-  normalizePinchParam,
 } from '@midscene/core/device';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import {
@@ -112,14 +101,7 @@ export class AndroidDevice implements AbstractInterface {
   uri: string | undefined;
   options?: AndroidDeviceOpt;
 
-  /**
-   * Native input surface for direct manual control. Wraps the same low-level
-   * gesture methods (`mouseClick`, `mouseDoubleClick`, `mouseDrag`, etc.)
-   * that the `actionSpace()` callbacks call, so AI-driven and manual paths
-   * converge onto the same ADB / yadb primitives. Coordinate adjustment
-   * (logical → physical) happens inside `mouseClick` and friends.
-   */
-  readonly pointer: PointerCapability = {
+  readonly inputPrimitives: DeviceInputPrimitives = {
     tap: ({ x, y }) => this.mouseClick(x, y),
     doubleClick: ({ x, y }) => this.mouseDoubleClick(x, y),
     longPress: ({ x, y }, opts) => this.longPress(x, y, opts?.duration),
@@ -132,116 +114,34 @@ export class AndroidDevice implements AbstractInterface {
     },
     dragAndDrop: (from, to) => this.mouseDrag(from, to),
     keyboardPress: (key) => this.keyboardPress(key),
-    input: async (value, opts) => {
-      if (opts?.mode !== 'typeOnly' && opts?.at) {
-        await this.mouseClick(opts.at.x, opts.at.y);
-        await this.clearInput();
-      }
-      if (opts?.mode === 'clear') return;
-      if (!value) return;
-      const autoDismissKeyboard =
-        opts?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
-      await this.keyboardType(value, { autoDismissKeyboard });
-    },
+    typeText: (value, opts) => this.keyboardType(value, opts),
+    clearInput: (target) => this.clearInput(target as ElementInfo | undefined),
     pinch: async (center, opts) => {
-      const screenSize = await this.size();
-      const baseDistance = Math.round(
-        Math.min(screenSize.width, screenSize.height) / 4,
-      );
-      const fingerDistance = opts.distance ?? baseDistance;
-      const startDistance = baseDistance;
-      const endDistance =
-        opts.direction === 'out'
-          ? baseDistance + fingerDistance
-          : Math.max(10, baseDistance - fingerDistance);
       const { x: adjCenterX, y: adjCenterY } = await this.adjustCoordinates(
         Math.round(center.x),
         Math.round(center.y),
       );
       const ratio =
         adjCenterX !== 0 && center.x !== 0 ? adjCenterX / center.x : 1;
-      const adjStartDist = Math.round(startDistance * ratio);
-      const adjEndDist = Math.round(endDistance * ratio);
+      const adjStartDist = Math.round(opts.startDistance * ratio);
+      const adjEndDist = Math.round(opts.endDistance * ratio);
       await this.ensureYadb();
       const adb = await this.getAdb();
       await adb.shell(
-        `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${opts.duration ?? 500}`,
+        `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${opts.duration}`,
       );
     },
   };
 
   actionSpace(): DeviceAction<any>[] {
     const defaultActions = [
-      defineActionTap(async (param: ActionTapParam) => {
-        const element = param.locate;
-        assert(element, 'Element not found, cannot tap');
-        await this.mouseClick(element.center[0], element.center[1]);
-      }),
-      defineActionDoubleClick(async (param) => {
-        const element = param.locate;
-        assert(element, 'Element not found, cannot double click');
-        await this.mouseDoubleClick(element.center[0], element.center[1]);
-      }),
-      defineAction({
-        name: 'Input',
-        description: 'Input text into the input field',
-        interfaceAlias: 'aiInput',
-        paramSchema: z.object({
-          value: z
-            .string()
-            .describe(
-              'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
-            ),
-          autoDismissKeyboard: z
-            .boolean()
-            .optional()
-            .describe(
-              'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
-            ),
-          mode: z.preprocess(
-            (val) => (val === 'append' ? 'typeOnly' : val),
-            z
-              .enum(['replace', 'clear', 'typeOnly'])
-              .default('replace')
-              .optional()
-              .describe(
-                'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
-              ),
-          ),
-          locate: getMidsceneLocationSchema()
-            .describe('The input field to be filled')
-            .optional(),
-        }),
-        sample: {
-          value: 'test@example.com',
-          locate: { prompt: 'the email input field' },
+      ...createMobileInputActions({
+        input: this.inputPrimitives,
+        size: () => this.size(),
+        sleep: async (timeMs) => {
+          await sleep(timeMs);
         },
-        call: async (param: {
-          value: string;
-          autoDismissKeyboard?: boolean;
-          mode?: 'replace' | 'clear' | 'typeOnly';
-          locate?: LocateResultElement;
-        }) => {
-          const element = param.locate;
-          if (param.mode !== 'typeOnly') {
-            await this.clearInput(element as unknown as ElementInfo);
-          }
-
-          if (param.mode === 'clear') {
-            // Clear mode removes existing text without entering new characters
-            return;
-          }
-
-          if (!param || !param.value) {
-            return;
-          }
-
-          const autoDismissKeyboard =
-            param.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
-          await this.keyboardType(param.value, {
-            autoDismissKeyboard,
-          });
-        },
+        getDefaultAutoDismissKeyboard: () => this.options?.autoDismissKeyboard,
       }),
       defineActionScroll(async (param) => {
         const element = param.locate;
@@ -281,49 +181,6 @@ export class AndroidDevice implements AbstractInterface {
             )}`,
           );
         }
-      }),
-      defineActionDragAndDrop(async (param) => {
-        const from = param.from;
-        const to = param.to;
-        assert(from, 'missing "from" param for drag and drop');
-        assert(to, 'missing "to" param for drag and drop');
-        await this.mouseDrag(
-          {
-            x: from.center[0],
-            y: from.center[1],
-          },
-          {
-            x: to.center[0],
-            y: to.center[1],
-          },
-        );
-      }),
-      defineActionSwipe(async (param) => {
-        const { startPoint, endPoint, duration, repeatCount } =
-          normalizeMobileSwipeParam(param, await this.size());
-        for (let i = 0; i < repeatCount; i++) {
-          await this.mouseDrag(startPoint, endPoint, duration);
-        }
-      }),
-      defineActionKeyboardPress(async (param) => {
-        await this.keyboardPress(param.keyName);
-      }),
-      defineActionCursorMove(async (param) => {
-        const arrowKey =
-          param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
-        const times = param.times ?? 1;
-        for (let i = 0; i < times; i++) {
-          await this.keyboardPress(arrowKey);
-          await sleep(100);
-        }
-      }),
-      defineActionLongPress(async (param) => {
-        const element = param.locate;
-        if (!element) {
-          throw new Error('LongPress requires an element to be located');
-        }
-        const [x, y] = element.center;
-        await this.longPress(x, y, param?.duration);
       }),
       defineAction<
         z.ZodObject<{
@@ -375,28 +232,6 @@ export class AndroidDevice implements AbstractInterface {
             throw new Error(`Unknown pull direction: ${param.direction}`);
           }
         },
-      }),
-      defineActionPinch(async (param) => {
-        const { centerX, centerY, startDistance, endDistance, duration } =
-          normalizePinchParam(param, await this.size());
-
-        const { x: adjCenterX, y: adjCenterY } = await this.adjustCoordinates(
-          centerX,
-          centerY,
-        );
-        const ratio =
-          adjCenterX !== 0 && centerX !== 0 ? adjCenterX / centerX : 1;
-        const adjStartDist = Math.round(startDistance * ratio);
-        const adjEndDist = Math.round(endDistance * ratio);
-
-        await this.ensureYadb();
-        const adb = await this.getAdb();
-        await adb.shell(
-          `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${duration}`,
-        );
-      }),
-      defineActionClearInput(async (param) => {
-        await this.clearInput(param.locate as ElementInfo | undefined);
       }),
     ];
 
