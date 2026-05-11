@@ -20,6 +20,11 @@ export interface AgentLike {
   destroy(): Promise<void>;
 }
 
+export interface ReportMeta {
+  groupName: string;
+  reportFileName: string;
+}
+
 const STATUS_MAP: Record<string, TestStatus> = {
   pass: 'passed',
   fail: 'failed',
@@ -35,11 +40,6 @@ function deriveStatus(result: RstestTestContext['task']['result']): TestStatus {
 export class ReportHelper {
   private reportTool = new ReportMergingTool();
   private firstReport: string | null = null;
-
-  reset(): void {
-    this.reportTool = new ReportMergingTool();
-    this.firstReport = null;
-  }
 
   async collectReport(
     agent: AgentLike | undefined,
@@ -93,7 +93,7 @@ export class ReportHelper {
 export function buildReportMeta(
   testCtx: RstestTestContext,
   filepath: string,
-): { groupName: string; reportFileName: string } {
+): ReportMeta {
   const base = basename(filepath, extname(filepath)) || 'UnnamedGroup';
   const taskName = testCtx.task.name;
   return {

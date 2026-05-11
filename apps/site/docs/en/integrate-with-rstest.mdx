@@ -3,29 +3,26 @@ import { PackageManagerTabs } from '@theme';
 
 # Integrate with Rstest
 
-[Rstest](https://github.com/web-infra-dev/rstest) is a fast Rspack-based testing framework. With `@midscene/rstest` you can write AI-driven end-to-end tests in the same `describe / it` style you already use — Midscene takes care of launching the browser, creating an Agent for each test, and producing an HTML report at the end of every test file.
+[Rstest](https://github.com/web-infra-dev/rstest) is a fast Rspack-based testing framework. With `@midscene/rstest` you can write AI-driven end-to-end tests as plain rstest fixtures — Midscene takes care of launching the browser, creating an Agent per test, and producing an HTML report at the end of every test file.
 
 ```ts
-import { describe, expect, it } from '@rstest/core';
-import { createWebTest } from '@midscene/rstest/playwright';
+import { test as base } from '@midscene/rstest/playwright';
+import { expect } from '@rstest/core';
 
-describe('Todo list', () => {
-  const ctx = createWebTest('http://localhost:5173/');
+const test = base.extend({ url: 'http://localhost:5173/' });
 
-  it('adds a todo', async () => {
-    const { agent } = ctx;
-    await agent.aiAct("type 'Study AI' in the input and press Enter");
-    await agent.aiAssert('the list contains exactly one item: "Study AI"');
-  });
+test('adds a todo', async ({ agent }) => {
+  await agent.aiAct("type 'Study AI' in the input and press Enter");
+  await agent.aiAssert('the list contains exactly one item: "Study AI"');
 });
 ```
 
 What you get out of the box:
 
-- A fresh `agent` per `it` block, ready to call any [Agent API](./api#interaction-methods) (`aiAct`, `aiAssert`, `aiQuery`, `aiTap`, `aiInput`, `aiHover`, …).
-- Automatic browser lifecycle — the browser launches once per test file, and a clean page is set up and torn down around every test.
+- Typed fixtures — destructure `agent`, `page`, `browser`, `agentForPage` directly from the test context. No `ctx.` indirection, no "only valid inside `it(...)`" runtime errors.
+- Lazy browser lifecycle — if no test in a file destructures anything that depends on `browser`, no browser is launched. Files mixing AI tests and pure unit tests pay the AI cost only for the AI tests.
+- Composable — `test.extend({ ... })` to override the URL, options, or any individual fixture (e.g. a `page` that injects routes, or a second `adminAgent` persona).
 - A merged Midscene HTML report per test file, with the path printed to the console after the file finishes.
-- Direct pass-through to the underlying Playwright / Puppeteer option types, plus a `setup` hook for lifecycles the defaults don't cover.
 
 Two browser providers ship in the package, behind separate subpath exports:
 
@@ -75,56 +72,48 @@ export default defineConfig({
 ## Step 3: Write a test
 
 ```ts title="e2e/todo-list.test.ts"
-import { describe, expect, it } from '@rstest/core';
-import { createWebTest } from '@midscene/rstest/playwright';
+import { test as base } from '@midscene/rstest/playwright';
+import { expect } from '@rstest/core';
 
-describe('Todo list', () => {
-  const ctx = createWebTest('http://localhost:5173/');
+const test = base.extend({ url: 'http://localhost:5173/' });
 
-  it('adds and completes a todo', async () => {
-    const { agent } = ctx;
+test('adds and completes a todo', async ({ agent }) => {
+  await agent.aiAct("type 'Study AI' in the input and press Enter");
+  await agent.aiAct('click the checkbox of the first item');
 
-    await agent.aiAct("type 'Study AI' in the input and press Enter");
-    await agent.aiAct('click the checkbox of the first item');
+  const list = await agent.aiQuery<string[]>(
+    'string[], the complete task list',
+  );
+  expect(list).toHaveLength(1);
 
-    const list = await agent.aiQuery<string[]>(
-      'string[], the complete task list',
-    );
-    expect(list).toHaveLength(1);
-
-    await agent.aiAssert('the only item is marked as done');
-  });
+  await agent.aiAssert('the only item is marked as done');
 });
 ```
 
-`createWebTest(url, options)` registers Rstest's `beforeAll` / `beforeEach` / `afterEach` / `afterAll` hooks under the hood. Call it once per `describe` block — every `it` inside it gets its own freshly-navigated page.
+The `test` exported from `@midscene/rstest/playwright` is an rstest test pre-wired with midscene fixtures. Destructure what you need from the test context — the fixture engine resolves dependencies and runs setup/teardown around each test.
 
-:::warning Lifecycle of `ctx`
-- `ctx.agent` and `ctx.page` are created in `beforeEach` and torn down in `afterEach`. Reading them from `describe` scope, a hook, or after the test finishes throws.
-- `ctx.browser` is launched in `beforeAll` and closed in `afterAll`. Read it inside any hook or `it(...)`.
-:::
+The available fixtures are:
 
-The context exposes four surfaces, in order of how often you'll reach for them:
-
-- **`ctx.agent`** — the midscene `PlaywrightAgent` (or `PuppeteerAgent`) bound to the primary page. Default tool for AI actions and assertions.
-- **`ctx.page`** — raw Playwright / Puppeteer `Page`. Escape hatch for things `agent` can't or shouldn't do: `page.route(...)` network mocking, `page.evaluate(...)`, `page.context().cookies()`, etc.
-- **`ctx.browser`** — the file-scoped `Browser`. Use it to spin up extra contexts or pages mid-test (multi-user, cross-session scenarios).
-- **`ctx.agentForPage(page, opts?)`** — build a midscene agent for another page (popup, manually-created page). Its report is merged with the primary's; destroy is automatic.
+- **`agent`** — the midscene `PlaywrightAgent` (or `PuppeteerAgent`) bound to the primary page. Default tool for AI actions and assertions.
+- **`page`** — raw Playwright / Puppeteer `Page`. Escape hatch for things `agent` can't or shouldn't do: `page.route(...)` network mocking, `page.evaluate(...)`, `page.context().cookies()`, etc.
+- **`browser`** — the file-scoped `Browser`. Use it to spin up extra contexts or pages mid-test (multi-user, cross-session scenarios).
+- **`context`** _(Playwright only)_ — the test-scoped `BrowserContext` the primary `page` is created from. Override via `test.extend` if you need a custom context per test.
+- **`agentForPage(page, opts?)`** — build a midscene agent for another page (popup, manually-created page). Its report is merged with the primary's; destroy is automatic.
+- **`url`** / **`midsceneOptions`** — configuration fixtures. See [Project-wide defaults](#project-wide-defaults-optional) and [Custom page setup](#custom-page-setup).
 
 ```ts
-it('mocks the API and verifies the UI', async () => {
-  const { agent, page } = ctx;
-
+test('mocks the API and verifies the UI', async ({ agent, page }) => {
   await page.route('**/api/contacts', (route) =>
     route.fulfill({ json: [{ name: 'Fake Alice' }] }),
   );
-
   await agent.aiAssert('the contact list shows "Fake Alice"');
 });
 
-it('drives a popup with a second agent', async () => {
-  const { agent, page, agentForPage } = ctx;
-
+test('drives a popup with a second agent', async ({
+  agent,
+  page,
+  agentForPage,
+}) => {
   await agent.aiTap("the 'View details' button");
   const popup = await page.waitForEvent('popup');
 
@@ -132,9 +121,10 @@ it('drives a popup with a second agent', async () => {
   await popupAgent.aiAssert('the popup shows order details');
 });
 
-it('runs two isolated user sessions in one test', async () => {
-  const { browser, agentForPage } = ctx;
-
+test('runs two isolated user sessions in one test', async ({
+  browser,
+  agentForPage,
+}) => {
   const sessionB = await browser.newContext({ storageState: 'user-b.json' });
   const pageB = await sessionB.newPage();
   await pageB.goto('http://localhost:5173/');
@@ -147,10 +137,10 @@ it('runs two isolated user sessions in one test', async () => {
 To use Puppeteer instead, change a single import:
 
 ```ts
-import { createWebTest } from '@midscene/rstest/puppeteer';
+import { test as base } from '@midscene/rstest/puppeteer';
 ```
 
-The `agent` API is identical.
+The `agent` API is identical. The Puppeteer provider exposes the same fixtures except `context` (Puppeteer doesn't use a context-as-class — override the `page` fixture if you need one via `browser.createBrowserContext()`).
 
 ## Step 4: Run the tests
 
@@ -171,7 +161,7 @@ Reports are written to `midscene_run/report/`. See [Consume report files](./cons
 
 ## Project-wide defaults (optional)
 
-If every `createWebTest` call should share the same options, put them in a setup file and reference it from `setupFiles`:
+For options that should apply to every file, put them in a setup file and reference it from `setupFiles`:
 
 ```ts title="midscene.setup.ts"
 import { defineMidsceneDefaults } from '@midscene/rstest/playwright';
@@ -189,7 +179,20 @@ export default defineConfig({
 });
 ```
 
-Options passed to `createWebTest(url, options)` shallow-merge over these defaults at the top level — nested fields like `launchOptions` are *replaced*, not deep-merged. Use the function form of a resolver if you need to compose. The Puppeteer provider exposes the same `defineMidsceneDefaults` from `@midscene/rstest/puppeteer`.
+`defineMidsceneDefaults` is read by the `midsceneOptions` fixture at test time. To override per file, extend the test:
+
+```ts
+const test = base.extend({
+  url: 'http://localhost:5173/',
+  midsceneOptions: {
+    headless: false,
+    viewport: { width: 375, height: 667 },
+    agentOptions: { cache: { strategy: 'read-write' } },
+  },
+});
+```
+
+Nested fields like `launchOptions` are *replaced*, not deep-merged. Use the function form of a resolver if you need to compose. The Puppeteer provider exposes the same `defineMidsceneDefaults` from `@midscene/rstest/puppeteer`.
 
 ## Configure midscene
 
@@ -205,14 +208,17 @@ Midscene reads configuration from four channels — pick the one that matches th
    MIDSCENE_RUN_DIR=./midscene_run   # where reports + cache live
    ```
 
-2. **`agentOptions`** on each `createWebTest` call — for anything you set per agent. Accepts the full `AgentOpt` surface (`modelConfig`, `aiActionContext`, `cache`, `replanningCycleLimit`, `waitAfterAction`, `screenshotShrinkFactor`, `onTaskStartTip`, `onOpenAIClientCreated`, …). `groupName` and `reportFileName` are reserved by the lifecycle.
+2. **`midsceneOptions.agentOptions`** — for anything you set per agent. Accepts the full `AgentOpt` surface (`modelConfig`, `aiActionContext`, `cache`, `replanningCycleLimit`, `waitAfterAction`, `screenshotShrinkFactor`, `onTaskStartTip`, `onOpenAIClientCreated`, …). `groupName` and `reportFileName` are reserved by the lifecycle.
 
    ```ts
-   const ctx = createWebTest(url, {
-     agentOptions: {
-       aiActionContext: 'You are testing a multilingual checkout flow.',
-       cache: { strategy: 'read-write' },
-       waitAfterAction: 500,
+   const test = base.extend({
+     url: 'http://localhost:5173/',
+     midsceneOptions: {
+       agentOptions: {
+         aiActionContext: 'You are testing a multilingual checkout flow.',
+         cache: { strategy: 'read-write' },
+         waitAfterAction: 500,
+       },
      },
    });
    ```
@@ -235,9 +241,11 @@ Midscene reads configuration from four channels — pick the one that matches th
 
 ## Options
 
+`midsceneOptions` carries every per-file knob. Set it via `defineMidsceneDefaults` for repo-wide defaults, or via `test.extend({ midsceneOptions: {...} })` for per-file overrides.
+
 ### Playwright (`@midscene/rstest/playwright`)
 
-| Option | Type | Default | Description |
+| Field | Type | Default | Description |
 | --- | --- | --- | --- |
 | `headless` | `boolean` | `true` in CI, `false` locally | Convenience for `launchOptions.headless`. |
 | `viewport` | `{ width, height }` | `1920×1080` | Convenience for `contextOptions.viewport`. |
@@ -245,18 +253,16 @@ Midscene reads configuration from four channels — pick the one that matches th
 | `contextOptions` | `BrowserContextOptions \| (defaults) => BrowserContextOptions` | — | Forwarded to `browser.newContext(...)`. |
 | `gotoOptions` | `Parameters<Page['goto']>[1]` | — | Forwarded to `page.goto(url, ...)`. |
 | `agentOptions` | `WebPageAgentOpt` | — | Forwarded to `PlaywrightAgent` (e.g. `aiActionContext`, `modelConfig`). `groupName` and `reportFileName` are managed by the lifecycle. |
-| `setup` | `(api) => Promise<{ page; teardown? }>` | — | See [Custom page setup](#custom-page-setup) below. |
 
 ### Puppeteer (`@midscene/rstest/puppeteer`)
 
-| Option | Type | Default | Description |
+| Field | Type | Default | Description |
 | --- | --- | --- | --- |
 | `headless` | `boolean` | `true` in CI, `false` locally | Convenience for `launchOptions.headless`. |
 | `viewport` | `{ width, height }` | `1920×1080` | Convenience for `launchOptions.defaultViewport`. |
 | `launchOptions` | `LaunchOptions \| (defaults) => LaunchOptions` | — | Forwarded to `puppeteer.launch(...)`. |
 | `gotoOptions` | `GoToOptions` | — | Forwarded to `page.goto(url, ...)`. |
 | `agentOptions` | `WebPageAgentOpt` | — | Forwarded to `PuppeteerAgent`. |
-| `setup` | `(api) => Promise<{ page; teardown? }>` | — | See [Custom page setup](#custom-page-setup) below. |
 
 Resolver fields (`launchOptions`, `contextOptions`) accept either an object — shallow-merged over midscene's defaults — or a function `(defaults) => options` that takes full control.
 
@@ -265,82 +271,105 @@ Resolver fields (`launchOptions`, `contextOptions`) accept either an object — 
 Override one launch field while keeping midscene's defaults (`--no-sandbox`, etc.):
 
 ```ts
-const ctx = createWebTest(url, {
-  launchOptions: { proxy: { server: 'http://corp-proxy:8080' } },
+const test = base.extend({
+  url: 'http://localhost:5173/',
+  midsceneOptions: {
+    launchOptions: { proxy: { server: 'http://corp-proxy:8080' } },
+  },
 });
 ```
 
 Compose with the function form:
 
 ```ts
-const ctx = createWebTest(url, {
-  launchOptions: (defaults) => ({
-    ...defaults,
-    args: [...(defaults.args ?? []), '--disable-gpu'],
-  }),
+const test = base.extend({
+  url: 'http://localhost:5173/',
+  midsceneOptions: {
+    launchOptions: (defaults) => ({
+      ...defaults,
+      args: [...(defaults.args ?? []), '--disable-gpu'],
+    }),
+  },
 });
 ```
 
 Configure the context (Playwright):
 
 ```ts
-const ctx = createWebTest(url, {
-  contextOptions: {
-    locale: 'zh-CN',
-    storageState: 'auth.json',
-    recordVideo: { dir: 'midscene_run/video' },
+const test = base.extend({
+  url: 'http://localhost:5173/',
+  midsceneOptions: {
+    contextOptions: {
+      locale: 'zh-CN',
+      storageState: 'auth.json',
+      recordVideo: { dir: 'midscene_run/video' },
+    },
   },
 });
 ```
 
-### Custom page setup
+## Custom page setup
 
-For lifecycles the defaults don't cover — persistent context, CDP connect, custom trace orchestration, reusing existing fixtures — pass `setup`. It receives the shared browser launched in `beforeAll` and must return the page midscene should attach the agent to. When `setup` is provided, `headless`, `viewport`, `launchOptions`, `contextOptions`, and `gotoOptions` are all ignored; only `agentOptions` still applies.
+For lifecycles the defaults don't cover — persistent context, CDP connect, custom trace orchestration, per-test storage state — override the `page` fixture. Code before `await use(page)` is setup; code after is teardown.
 
 ```ts
-import { createWebTest } from '@midscene/rstest/playwright';
+import { test as base } from '@midscene/rstest/playwright';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-const ctx = createWebTest('https://example.com', {
-  async setup({ browser, url }) {
-    const context = await browser.newContext({
-      viewport: { width: 1280, height: 720 },
-    });
+const test = base.extend({
+  url: 'https://example.com',
+  page: async ({ context, url, task }, use) => {
     await context.tracing.start({ screenshots: true, snapshots: true });
     const page = await context.newPage();
     await page.goto(url);
 
-    return {
-      page,
-      async teardown(testCtx) {
-        const passed = testCtx.task.result?.status === 'pass';
-        if (passed) {
-          await context.tracing.stop();
-        } else {
-          mkdirSync('midscene_run/trace', { recursive: true });
-          await context.tracing.stop({
-            path: join('midscene_run/trace', `${testCtx.task.name}.zip`),
-          });
-        }
-        await context.close();
-      },
-    };
+    await use(page);
+
+    const passed = task.result?.status === 'pass';
+    if (passed) {
+      await context.tracing.stop();
+    } else {
+      mkdirSync('midscene_run/trace', { recursive: true });
+      await context.tracing.stop({
+        path: join('midscene_run/trace', `${task.name}.zip`),
+      });
+    }
   },
 });
 ```
 
-The `teardown` callback runs **before** `agent.destroy()`, so the page is still alive — exactly the right window to stop traces, save videos, dump cookies, etc. If you don't need it, return `{ page }`.
+Teardown of the `page` fixture runs **after** `agent.destroy()` — the page is still alive at that point, exactly the window you want for stopping traces, saving videos, or dumping cookies. The shared `browser` and the default-built `context` are still open; only your custom teardown decides when to close anything you opened yourself.
 
-## Advanced: custom providers
+For deeper customization (e.g. a persistent context from scratch), override `context` instead — it depends only on `browser` and `midsceneOptions`, and the default `page` will pick up whatever context you produce.
 
-Need to drive a different browser stack — a remote browser, an Electron app, or your own grid? The lifecycle primitive both providers are built on is exported:
+## Personas and composed fixtures
+
+`test.extend` composes — you can layer fixtures the same way you'd layer options:
 
 ```ts
-import { registerLifecycle } from '@midscene/rstest';
+const test = base.extend<{
+  adminAgent: PlaywrightAgent;
+}>({
+  url: 'http://localhost:5173/',
+  adminAgent: async ({ browser }, use) => {
+    const context = await browser.newContext({ storageState: 'admin.json' });
+    const page = await context.newPage();
+    await page.goto('http://localhost:5173/');
+    const agent = new PlaywrightAgent(page);
+    await use(agent);
+    await agent.destroy();
+    await context.close();
+  },
+});
+
+test('only admin can delete', async ({ agent, adminAgent }) => {
+  await agent.aiAssert('no Delete button is visible');
+  await adminAgent.aiAssert('a Delete button is visible');
+});
 ```
 
-It accepts a `LifecycleProvider` describing how to launch a browser, build an Agent, and tear it down. The Playwright and Puppeteer providers are thin wrappers on top of it.
+This is the recommended pattern for multi-persona tests, mock-server fixtures, database seeding, and anything else you'd otherwise reach for `beforeEach` to do — fixtures compose by dependency graph and tear down in reverse, so ordering is explicit and correct.
 
 ## More
 

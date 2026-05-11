@@ -1,180 +1,199 @@
+import { getDebug } from '@midscene/shared/logger';
 import {
   PlaywrightAgent,
   type WebPageAgentOpt,
   overrideAIConfig,
 } from '@midscene/web/playwright';
+import { afterAll, test as baseTest, beforeAll } from '@rstest/core';
 import {
   type Browser,
+  type BrowserContext,
   type BrowserContextOptions,
   type LaunchOptions,
   type Page,
   chromium,
 } from 'playwright';
-import * as playwrightNs from 'playwright';
 import { isCI } from 'std-env';
-import { registerLifecycle } from './lifecycle';
 import {
   DEFAULT_BROWSER_ARGS,
   DEFAULT_VIEWPORT,
   createDefaultsStore,
 } from './provider-shared';
-import type { RstestTestContext } from './report-helper';
+import {
+  ReportHelper,
+  type ReportMeta,
+  buildReportMeta,
+} from './report-helper';
 import { type Resolver, applyResolver } from './resolve';
+import type { TestApi } from './test-api-types';
+
+type GoToOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
 export type { Resolver };
 export { overrideAIConfig };
 export type { WebPageAgentOpt };
 
-type GoToOptions = NonNullable<Parameters<Page['goto']>[1]>;
+const debug = getDebug('rstest:playwright', { console: true });
 
-export interface SetupApi {
-  url: string;
-  browser: Browser;
-  playwright: typeof playwrightNs;
-}
-
-export interface CreateWebTestOptions {
+export interface MidsceneOptions {
   /** Default: `true` in CI, `false` locally. */
   headless?: boolean;
   /** Default: 1920×1080. Routed into the default `contextOptions.viewport`. */
   viewport?: { width: number; height: number };
-
   launchOptions?: Resolver<LaunchOptions>;
   contextOptions?: Resolver<BrowserContextOptions>;
   gotoOptions?: GoToOptions;
-
   agentOptions?: Omit<WebPageAgentOpt, 'groupName' | 'reportFileName'>;
-
-  /**
-   * Take over the per-test page lifecycle. Return the page midscene should
-   * drive, plus an optional `teardown` that runs while the page is still
-   * alive (before `agent.destroy()`). When provided, midscene skips its
-   * default page setup; `headless`, `viewport`, `launchOptions`,
-   * `contextOptions`, and `gotoOptions` are all ignored. Only `agentOptions`
-   * still applies.
-   */
-  setup?: (api: SetupApi) => Promise<{
-    page: Page;
-    teardown?: (testCtx: RstestTestContext) => Promise<void>;
-  }>;
 }
 
-export interface WebTestContext {
-  readonly agent: PlaywrightAgent;
+export type AgentForPage = (
+  page: Page,
+  opts?: Omit<WebPageAgentOpt, 'groupName' | 'reportFileName'>,
+) => Promise<PlaywrightAgent>;
+
+export interface MidsceneFixtures {
+  midsceneOptions: MidsceneOptions;
   /**
-   * Raw Playwright `Page` for advanced scenarios — `page.route`,
-   * `page.evaluate`, `page.context().cookies()`, etc. Prefer `agent` for AI
-   * actions and assertions; reach for `page` only when you need
-   * browser-primitive control.
+   * Target URL the default `page` fixture navigates to. Empty string disables
+   * auto-navigation (page stays on `about:blank`).
    */
-  readonly page: Page;
+  url: string;
   /**
-   * The file-scoped Playwright `Browser`. Use it to spin up extra contexts or
-   * pages mid-test (e.g. a second user session). Valid between `beforeAll`
-   * and `afterAll`.
+   * File-scoped Playwright `Browser`. Launched lazily — if no test in the file
+   * destructures anything that depends on `browser`, no browser is started.
    */
-  readonly browser: Browser;
+  browser: Browser;
+  context: BrowserContext;
+  page: Page;
+  agent: PlaywrightAgent;
   /**
-   * Build a midscene agent for another page (popup, new tab, manually-created
-   * page from `browser.newContext()`). The agent's report is merged alongside
-   * the primary's. Destroy is automatic in `afterEach`.
+   * Factory for secondary agents bound to popups / extra contexts. Reports are
+   * merged alongside the primary's. Destroy is automatic in fixture teardown.
    */
-  agentForPage(
-    page: Page,
-    opts?: Omit<WebPageAgentOpt, 'groupName' | 'reportFileName'>,
-  ): Promise<PlaywrightAgent>;
+  agentForPage: AgentForPage;
 }
 
-const defaultsStore = createDefaultsStore<CreateWebTestOptions>();
+// Private fixture — shared meta + startTime so primary and secondaries get
+// the same timestamp in their reportFileName. Hidden from the public type via
+// the cast at the bottom.
+interface InternalFixtures extends MidsceneFixtures {
+  __reportMeta: { meta: ReportMeta; startTime: number };
+}
 
-/**
- * Project-wide defaults for `createWebTest`. Call from a `setupFiles` entry.
- * Per-call options shallow-merge over these at the top-level key; nested
- * fields like `launchOptions` are replaced, not deep-merged. Use the function
- * form of a resolver to compose with defaults.
- */
+const defaultsStore = createDefaultsStore<MidsceneOptions>();
 export const defineMidsceneDefaults = defaultsStore.define;
 
-async function defaultSetup(api: SetupApi, opts: CreateWebTestOptions) {
-  const contextOptions = await applyResolver(opts.contextOptions, {
-    viewport: opts.viewport ?? DEFAULT_VIEWPORT,
-  });
-  const context = await api.browser.newContext(contextOptions);
-  const page = await context.newPage();
-  await page.goto(api.url, opts.gotoOptions);
+// rstest's default `isolate: true` gives each test file a fresh module graph,
+// so these vars start clean per file.
+let _filepath = '';
+let _browserPromise: Promise<Browser> | null = null;
+const _reportHelper = new ReportHelper();
 
-  return {
-    page,
-    async teardown() {
+beforeAll(async (suite: { filepath: string }) => {
+  _filepath = suite.filepath;
+});
+
+afterAll(async () => {
+  _reportHelper.mergeReports(_filepath);
+  if (_browserPromise) {
+    try {
+      await (await _browserPromise).close();
+    } catch (err) {
+      debug('browser close failed:', err);
+    }
+    _browserPromise = null;
+  }
+});
+
+function acquireBrowser(opts: MidsceneOptions): Promise<Browser> {
+  if (!_browserPromise) {
+    _browserPromise = applyResolver(opts.launchOptions, {
+      headless: opts.headless ?? isCI,
+      args: DEFAULT_BROWSER_ARGS,
+    }).then((launchOptions) => chromium.launch(launchOptions));
+  }
+  return _browserPromise;
+}
+
+// rstest 0.9.9 doesn't export the type of `extend`'s return value; cast via the
+// hand-rolled `TestApi` (see `test-api-types.ts`).
+export const test = baseTest.extend<InternalFixtures>({
+  midsceneOptions: async (_ctx, use) => {
+    await use(defaultsStore.get());
+  },
+
+  url: '',
+
+  __reportMeta: async ({ task }, use) => {
+    await use({
+      meta: buildReportMeta({ task }, _filepath),
+      startTime: performance.now(),
+    });
+  },
+
+  browser: async ({ midsceneOptions }, use) => {
+    await use(await acquireBrowser(midsceneOptions));
+  },
+
+  context: async ({ browser, midsceneOptions }, use) => {
+    const contextOptions = await applyResolver(midsceneOptions.contextOptions, {
+      viewport: midsceneOptions.viewport ?? DEFAULT_VIEWPORT,
+    });
+    const context = await browser.newContext(contextOptions);
+    await use(context);
+    try {
+      await context.close();
+    } catch (err) {
+      debug('context close failed:', err);
+    }
+  },
+
+  page: async ({ context, url, midsceneOptions }, use) => {
+    const page = await context.newPage();
+    if (url) {
+      await page.goto(url, midsceneOptions.gotoOptions);
+    }
+    await use(page);
+  },
+
+  agent: async ({ page, midsceneOptions, __reportMeta, task }, use) => {
+    const agent = new PlaywrightAgent(page, {
+      ...midsceneOptions.agentOptions,
+      groupName: __reportMeta.meta.groupName,
+      reportFileName: __reportMeta.meta.reportFileName,
+    });
+    await use(agent);
+    await _reportHelper.collectReport(agent, __reportMeta.startTime, { task });
+  },
+
+  // Depends on `agent` so its teardown runs BEFORE the primary's — secondaries
+  // are collected while their pages are still alive.
+  agentForPage: async ({ agent, midsceneOptions, __reportMeta, task }, use) => {
+    const secondaries: PlaywrightAgent[] = [];
+    let counter = 0;
+
+    const helper: AgentForPage = async (secondaryPage, opts) => {
+      counter += 1;
+      const secondary = new PlaywrightAgent(secondaryPage, {
+        ...midsceneOptions.agentOptions,
+        ...opts,
+        groupName: __reportMeta.meta.groupName,
+        reportFileName: `${__reportMeta.meta.reportFileName}-page${counter}`,
+      });
+      secondaries.push(secondary);
+      return secondary;
+    };
+    await use(helper);
+
+    for (const secondary of secondaries) {
       try {
-        await context.close();
-      } catch {
-        // The user's setup teardown may have already closed the context.
+        await _reportHelper.collectReport(secondary, __reportMeta.startTime, {
+          task,
+        });
+      } catch (err) {
+        debug('secondary agent report failed:', err);
       }
-    },
-  };
-}
-
-export function createWebTest(
-  url: string,
-  options: CreateWebTestOptions = {},
-): WebTestContext {
-  const merged: CreateWebTestOptions = { ...defaultsStore.get(), ...options };
-
-  const inner = registerLifecycle<
-    PlaywrightAgent,
-    Page,
-    Browser,
-    CreateWebTestOptions
-  >(url, merged, {
-    async launchBrowser(opts) {
-      const launchOptions = await applyResolver(opts.launchOptions, {
-        headless: opts.headless ?? isCI,
-        args: DEFAULT_BROWSER_ARGS,
-      });
-      return chromium.launch(launchOptions);
-    },
-    async closeBrowser(browser) {
-      await browser.close();
-    },
-    async createAgent(browser, targetUrl, opts, meta) {
-      const setup = opts.setup ?? ((api) => defaultSetup(api, opts));
-      const { page, teardown } = await setup({
-        url: targetUrl,
-        browser,
-        playwright: playwrightNs,
-      });
-
-      const agent = new PlaywrightAgent(page, {
-        ...opts.agentOptions,
-        groupName: meta.groupName,
-        reportFileName: meta.reportFileName,
-      });
-
-      return { agent, page, teardown };
-    },
-  });
-
-  return {
-    get agent() {
-      return inner.agent;
-    },
-    get page() {
-      return inner.page;
-    },
-    get browser() {
-      return inner.browser;
-    },
-    async agentForPage(page, opts) {
-      return inner.spawnSecondaryAgent(
-        (meta) =>
-          new PlaywrightAgent(page, {
-            ...merged.agentOptions,
-            ...opts,
-            groupName: meta.groupName,
-            reportFileName: meta.reportFileName,
-          }),
-      );
-    },
-  };
-}
+    }
+    void agent;
+  },
+}) as unknown as TestApi<MidsceneFixtures>;
