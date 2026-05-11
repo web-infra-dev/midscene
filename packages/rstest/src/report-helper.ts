@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
 import type { TestStatus } from '@midscene/core';
 import { ReportMergingTool } from '@midscene/core/report';
+import { replaceIllegalPathCharsAndSpace } from '@midscene/shared/utils';
 import { MANIFEST_DIR, generateTimestamp, manifestKey } from './utils';
 
 export interface RstestTestContext {
@@ -20,6 +21,17 @@ export interface AgentLike {
   destroy(): Promise<void>;
 }
 
+export interface ReportMeta {
+  groupName: string;
+  reportFileName: string;
+  /**
+   * Stable cache id derived from `${file}(${task.name})`. Unlike
+   * `reportFileName` this carries no timestamp, so retries and re-runs of the
+   * same test reuse the same cache namespace.
+   */
+  cacheId: string;
+}
+
 const STATUS_MAP: Record<string, TestStatus> = {
   pass: 'passed',
   fail: 'failed',
@@ -35,11 +47,6 @@ function deriveStatus(result: RstestTestContext['task']['result']): TestStatus {
 export class ReportHelper {
   private reportTool = new ReportMergingTool();
   private firstReport: string | null = null;
-
-  reset(): void {
-    this.reportTool = new ReportMergingTool();
-    this.firstReport = null;
-  }
 
   async collectReport(
     agent: AgentLike | undefined,
@@ -93,12 +100,13 @@ export class ReportHelper {
 export function buildReportMeta(
   testCtx: RstestTestContext,
   filepath: string,
-): { groupName: string; reportFileName: string } {
+): ReportMeta {
   const base = basename(filepath, extname(filepath)) || 'UnnamedGroup';
   const taskName = testCtx.task.name;
   return {
     groupName: `E2E: ${base}`,
     reportFileName: `E2E-${base}-${taskName}-${generateTimestamp()}`,
+    cacheId: replaceIllegalPathCharsAndSpace(`${base}(${taskName})`),
   };
 }
 

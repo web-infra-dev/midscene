@@ -1,8 +1,12 @@
+import type { Cache } from '@midscene/core';
+import { processCacheConfig } from '@midscene/core/utils';
+import { getDebug } from '@midscene/shared/logger';
 import {
   PuppeteerAgent,
   type WebPageAgentOpt,
   overrideAIConfig,
 } from '@midscene/web/puppeteer';
+import { afterAll, test as baseTest, beforeAll } from '@rstest/core';
 import puppeteer, {
   type Browser,
   type GoToOptions,
@@ -10,160 +14,225 @@ import puppeteer, {
   type Page,
 } from 'puppeteer';
 import { isCI } from 'std-env';
-import { registerLifecycle } from './lifecycle';
 import {
   DEFAULT_BROWSER_ARGS,
   DEFAULT_VIEWPORT,
   createDefaultsStore,
 } from './provider-shared';
-import type { RstestTestContext } from './report-helper';
+import {
+  ReportHelper,
+  type ReportMeta,
+  buildReportMeta,
+} from './report-helper';
 import { type Resolver, applyResolver } from './resolve';
+import type { TestApi } from './test-api-types';
+
+/**
+ * Cache configuration shape exposed to rstest users. `id` is optional — when
+ * omitted (or when `cache: true`), the package fills in a stable id derived
+ * from the test's file basename and name, so re-runs of the same test reuse
+ * the same cache namespace without the user having to manage id strings.
+ */
+export type RstestCache =
+  | false
+  | true
+  | { strategy?: 'read-only' | 'read-write' | 'write-only'; id?: string };
+
+type AgentOptions = Omit<
+  WebPageAgentOpt,
+  'groupName' | 'reportFileName' | 'cache'
+> & {
+  cache?: RstestCache;
+};
 
 export type { Resolver };
 export { overrideAIConfig };
 export type { WebPageAgentOpt };
 
-export interface SetupApi {
-  url: string;
-  browser: Browser;
-  puppeteer: typeof puppeteer;
-}
+const debug = getDebug('rstest:puppeteer', { console: true });
 
-export interface CreateWebTestOptions {
+export interface MidsceneOptions {
   /** Default: `true` in CI, `false` locally. */
   headless?: boolean;
-  /** Default: 1920×1080. Routed into the default `launchOptions.defaultViewport`. */
+  /**
+   * Default: 1920×1080. Routed into the default `launchOptions.defaultViewport`.
+   * Nested fields in `launchOptions.defaultViewport` override this — e.g.
+   * passing `viewport: { width: 1440, height: 900 }` together with
+   * `launchOptions: { defaultViewport: { width: 1920 } }` yields a final
+   * default viewport of `{ width: 1920, height: 900 }`.
+   */
   viewport?: { width: number; height: number };
-
   launchOptions?: Resolver<LaunchOptions>;
   gotoOptions?: GoToOptions;
-
-  agentOptions?: Omit<WebPageAgentOpt, 'groupName' | 'reportFileName'>;
-
-  /**
-   * Take over the per-test page lifecycle. Return the page midscene should
-   * drive, plus an optional `teardown` that runs while the page is still
-   * alive (before `agent.destroy()`). When provided, midscene skips its
-   * default page setup; `headless`, `viewport`, `launchOptions`, and
-   * `gotoOptions` are all ignored. Only `agentOptions` still applies.
-   */
-  setup?: (api: SetupApi) => Promise<{
-    page: Page;
-    teardown?: (testCtx: RstestTestContext) => Promise<void>;
-  }>;
+  agentOptions?: AgentOptions;
 }
 
-export interface WebTestContext {
-  readonly agent: PuppeteerAgent;
+export type AgentForPage = (
+  page: Page,
+  opts?: AgentOptions,
+) => Promise<PuppeteerAgent>;
+
+export interface MidsceneFixtures {
+  midsceneOptions: MidsceneOptions;
   /**
-   * Raw Puppeteer `Page` for advanced scenarios — `page.setRequestInterception`,
-   * `page.evaluate`, etc. Prefer `agent` for AI actions and assertions; reach
-   * for `page` only when you need browser-primitive control.
+   * Target URL the default `page` fixture navigates to. Empty string disables
+   * auto-navigation.
    */
-  readonly page: Page;
+  url: string;
   /**
-   * The file-scoped Puppeteer `Browser`. Use it to open extra pages mid-test
-   * (e.g. a second user session via `browser.createBrowserContext()` +
-   * `context.newPage()`). Valid between `beforeAll` and `afterAll`.
+   * File-scoped Puppeteer `Browser`. Launched lazily — if no test in the file
+   * destructures anything that depends on `browser`, no browser is started.
    */
-  readonly browser: Browser;
+  browser: Browser;
+  page: Page;
+  agent: PuppeteerAgent;
   /**
-   * Build a midscene agent for another page (popup, manually-created page).
-   * The agent's report is merged alongside the primary's. Destroy is automatic
-   * in `afterEach`.
+   * Factory for secondary agents bound to popups / extra pages. Reports are
+   * merged alongside the primary's. Destroy is automatic in fixture teardown.
    */
-  agentForPage(
-    page: Page,
-    opts?: Omit<WebPageAgentOpt, 'groupName' | 'reportFileName'>,
-  ): Promise<PuppeteerAgent>;
+  agentForPage: AgentForPage;
 }
 
-const defaultsStore = createDefaultsStore<CreateWebTestOptions>();
+// Private fixture (see playwright.ts).
+interface InternalFixtures extends MidsceneFixtures {
+  __reportMeta: { meta: ReportMeta; startTime: number };
+}
+
+const defaultsStore = createDefaultsStore<MidsceneOptions>();
 
 /**
- * Project-wide defaults for `createWebTest`. Call from a `setupFiles` entry.
- * Per-call options shallow-merge over these at the top-level key; nested
- * fields like `launchOptions` are replaced, not deep-merged. Use the function
- * form of a resolver to compose with defaults.
+ * Set repo-wide `midsceneOptions` defaults that every test file picks up via
+ * the `midsceneOptions` fixture.
+ *
+ * **Must be called from a file referenced in rstest's `setupFiles` config** —
+ * each test file runs in its own isolated module graph, so the store is
+ * populated per file at setup time. Calling this inside a single test file
+ * only affects that file.
+ *
+ * Multiple calls shallow-merge: later calls overwrite previously-set top-level
+ * keys but keep untouched ones. Per-file overrides go via
+ * `test.extend({ midsceneOptions: { ... } })`.
  */
 export const defineMidsceneDefaults = defaultsStore.define;
 
-async function defaultSetup(api: SetupApi, opts: CreateWebTestOptions) {
-  const page = await api.browser.newPage();
-  await page.goto(api.url, opts.gotoOptions);
-  return {
-    page,
-    async teardown() {
-      try {
-        await page.close();
-      } catch {
-        // The user's setup teardown may have already closed the page.
-      }
-    },
-  };
+let _filepath = '';
+let _browserPromise: Promise<Browser> | null = null;
+const _reportHelper = new ReportHelper();
+
+beforeAll(async (suite: { filepath: string }) => {
+  if (_filepath && _filepath !== suite.filepath) {
+    throw new Error(
+      `@midscene/rstest requires test isolation but detected module-graph reuse across files (${_filepath} -> ${suite.filepath}). Remove \`isolate: false\` from your rstest config.`,
+    );
+  }
+  _filepath = suite.filepath;
+});
+
+afterAll(async () => {
+  _reportHelper.mergeReports(_filepath);
+  if (_browserPromise) {
+    try {
+      await (await _browserPromise).close();
+    } catch (err) {
+      debug('browser close failed:', err);
+    }
+    _browserPromise = null;
+  }
+});
+
+function acquireBrowser(opts: MidsceneOptions): Promise<Browser> {
+  if (!_browserPromise) {
+    _browserPromise = applyResolver(opts.launchOptions, {
+      headless: opts.headless ?? isCI,
+      args: DEFAULT_BROWSER_ARGS,
+      defaultViewport: opts.viewport ?? DEFAULT_VIEWPORT,
+    }).then((launchOptions) => puppeteer.launch(launchOptions));
+  }
+  return _browserPromise;
 }
 
-export function createWebTest(
-  url: string,
-  options: CreateWebTestOptions = {},
-): WebTestContext {
-  const merged: CreateWebTestOptions = { ...defaultsStore.get(), ...options };
+export const test = baseTest.extend<InternalFixtures>({
+  midsceneOptions: async (_ctx, use) => {
+    await use(defaultsStore.get());
+  },
 
-  const inner = registerLifecycle<
-    PuppeteerAgent,
-    Page,
-    Browser,
-    CreateWebTestOptions
-  >(url, merged, {
-    async launchBrowser(opts) {
-      const launchOptions = await applyResolver(opts.launchOptions, {
-        headless: opts.headless ?? isCI,
-        args: DEFAULT_BROWSER_ARGS,
-        defaultViewport: opts.viewport ?? DEFAULT_VIEWPORT,
-      });
-      return puppeteer.launch(launchOptions);
-    },
-    async closeBrowser(browser) {
-      await browser.close();
-    },
-    async createAgent(browser, targetUrl, opts, meta) {
-      const setup = opts.setup ?? ((api) => defaultSetup(api, opts));
-      const { page, teardown } = await setup({
-        url: targetUrl,
-        browser,
-        puppeteer,
-      });
+  url: '',
 
-      const agent = new PuppeteerAgent(page, {
-        ...opts.agentOptions,
-        groupName: meta.groupName,
-        reportFileName: meta.reportFileName,
-      });
+  __reportMeta: async ({ task }, use) => {
+    await use({
+      meta: buildReportMeta({ task }, _filepath),
+      startTime: performance.now(),
+    });
+  },
 
-      return { agent, page, teardown };
-    },
-  });
+  browser: async ({ midsceneOptions }, use) => {
+    await use(await acquireBrowser(midsceneOptions));
+  },
 
-  return {
-    get agent() {
-      return inner.agent;
-    },
-    get page() {
-      return inner.page;
-    },
-    get browser() {
-      return inner.browser;
-    },
-    async agentForPage(page, opts) {
-      return inner.spawnSecondaryAgent(
-        (meta) =>
-          new PuppeteerAgent(page, {
-            ...merged.agentOptions,
-            ...opts,
-            groupName: meta.groupName,
-            reportFileName: meta.reportFileName,
-          }),
+  page: async ({ browser, url, midsceneOptions }, use) => {
+    const page = await browser.newPage();
+    if (url) {
+      await page.goto(url, midsceneOptions.gotoOptions);
+    }
+    await use(page);
+    try {
+      await page.close();
+    } catch (err) {
+      debug('page close failed:', err);
+    }
+  },
+
+  agent: async ({ page, midsceneOptions, __reportMeta, task }, use) => {
+    const { cache: rawCache, ...rest } = midsceneOptions.agentOptions ?? {};
+    const cache = processCacheConfig(
+      rawCache as Cache | undefined,
+      __reportMeta.meta.cacheId,
+    );
+    const agent = new PuppeteerAgent(page, {
+      ...rest,
+      cache,
+      groupName: __reportMeta.meta.groupName,
+      reportFileName: __reportMeta.meta.reportFileName,
+    });
+    await use(agent);
+    await _reportHelper.collectReport(agent, __reportMeta.startTime, { task });
+  },
+
+  // Depends on `agent` so its teardown runs BEFORE the primary's.
+  agentForPage: async ({ agent, midsceneOptions, __reportMeta, task }, use) => {
+    const secondaries: PuppeteerAgent[] = [];
+    let counter = 0;
+
+    const helper: AgentForPage = async (secondaryPage, opts) => {
+      counter += 1;
+      const { cache: optsCache, ...optsRest } = opts ?? {};
+      const { cache: fixtureCache, ...fixtureRest } =
+        midsceneOptions.agentOptions ?? {};
+      const cache = processCacheConfig(
+        (optsCache ?? fixtureCache) as Cache | undefined,
+        __reportMeta.meta.cacheId,
       );
-    },
-  };
-}
+      const secondary = new PuppeteerAgent(secondaryPage, {
+        ...fixtureRest,
+        ...optsRest,
+        cache,
+        groupName: __reportMeta.meta.groupName,
+        reportFileName: `${__reportMeta.meta.reportFileName}-page${counter}`,
+      });
+      secondaries.push(secondary);
+      return secondary;
+    };
+    await use(helper);
+
+    for (const secondary of secondaries) {
+      try {
+        await _reportHelper.collectReport(secondary, __reportMeta.startTime, {
+          task,
+        });
+      } catch (err) {
+        debug('secondary agent report failed:', err);
+      }
+    }
+    void agent;
+  },
+}) as unknown as TestApi<MidsceneFixtures>;
