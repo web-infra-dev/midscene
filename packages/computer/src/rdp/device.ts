@@ -8,7 +8,7 @@ import type {
 import {
   type AbstractInterface,
   type ActionTapParam,
-  type InputPrimitives,
+  type ComputerInputPrimitives,
   actionTapParamSchema,
   defineAction,
   defineActionsFromInputPrimitives,
@@ -58,7 +58,7 @@ export class RDPDevice implements AbstractInterface {
   private cursorPosition?: [number, number];
   uri?: string;
 
-  readonly inputPrimitives: InputPrimitives = {
+  readonly inputPrimitives: ComputerInputPrimitives = {
     pointer: {
       tap: async ({ x, y }) => {
         await this.movePointer(Math.round(x), Math.round(y), {

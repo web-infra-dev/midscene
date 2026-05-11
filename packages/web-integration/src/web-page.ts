@@ -2,8 +2,8 @@ import type { Point } from '@midscene/core';
 import { z } from '@midscene/core';
 import {
   AbstractInterface,
+  type BrowserInputPrimitives,
   type DeviceAction,
-  type InputPrimitives,
   defineAction,
   defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
@@ -430,7 +430,7 @@ export abstract class AbstractWebPage extends AbstractInterface {
 
 export function createWebInputPrimitives(
   page: AbstractWebPage,
-): InputPrimitives {
+): BrowserInputPrimitives {
   return {
     pointer: {
       tap: async ({ x, y }) => {

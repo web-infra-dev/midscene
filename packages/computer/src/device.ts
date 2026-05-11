@@ -12,7 +12,7 @@ import type {
 } from '@midscene/core';
 import {
   type AbstractInterface,
-  type InputPrimitives,
+  type ComputerInputPrimitives,
   defineAction,
   defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
@@ -430,7 +430,7 @@ export class ComputerDevice implements AbstractInterface {
   private useAppleScript: boolean;
   uri?: string;
 
-  readonly inputPrimitives: InputPrimitives = {
+  readonly inputPrimitives: ComputerInputPrimitives = {
     pointer: {
       tap: async ({ x, y }) => {
         assert(libnut, 'libnut not initialized');

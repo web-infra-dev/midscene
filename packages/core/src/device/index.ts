@@ -94,6 +94,30 @@ export interface MobileInputPrimitives extends InputPrimitives {
   touch: TouchInputPrimitives;
 }
 
+export interface BrowserInputPrimitives extends InputPrimitives {
+  pointer: PointerInputPrimitives & {
+    doubleClick(p: PointerPoint): Promise<void>;
+    rightClick(p: PointerPoint): Promise<void>;
+    hover(p: PointerPoint): Promise<void>;
+    dragAndDrop(from: PointerPoint, to: PointerPoint): Promise<void>;
+    longPress(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
+  };
+  keyboard: KeyboardInputPrimitives;
+  scroll: ScrollInputPrimitives;
+  touch: TouchInputPrimitives;
+}
+
+export interface ComputerInputPrimitives extends InputPrimitives {
+  pointer: PointerInputPrimitives & {
+    doubleClick(p: PointerPoint): Promise<void>;
+    rightClick(p: PointerPoint): Promise<void>;
+    hover(p: PointerPoint): Promise<void>;
+    dragAndDrop(from: PointerPoint, to: PointerPoint): Promise<void>;
+  };
+  keyboard: KeyboardInputPrimitives;
+  scroll: ScrollInputPrimitives;
+}
+
 export abstract class AbstractInterface {
   abstract interfaceType: string;
 
