@@ -466,7 +466,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@25.5.2)(jsdom@29.0.2)(less@4.2.2)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@25.6.0)(jsdom@29.0.2)(less@4.2.2)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.2)
 
   apps/site:
     dependencies:
@@ -1560,9 +1560,6 @@ importers:
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
-      std-env:
-        specifier: ^4.1.0
-        version: 4.1.0
     devDependencies:
       '@midscene/core':
         specifier: workspace:*
@@ -1582,6 +1579,9 @@ importers:
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.130
+      deepmerge:
+        specifier: ^4.3.1
+        version: 4.3.1
       dotenv:
         specifier: ^16.4.5
         version: 16.4.7
@@ -1591,6 +1591,12 @@ importers:
       puppeteer:
         specifier: 24.6.0
         version: 24.6.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@6.0.5)
+      reduce-configs:
+        specifier: ^1.1.2
+        version: 1.1.2
+      std-env:
+        specifier: ^4.1.0
+        version: 4.1.0
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -2340,19 +2346,16 @@ packages:
   '@computer-use/libnut-darwin@2.7.1':
     resolution: {integrity: sha512-7B/aPcIYS4a4S7D3IYIHSpZ4B4m8Z3CjlYq0efTr+/JYmEu+LlO67ZhPvisLKifhagxf7goqEfnphg1F4jq5jw==}
     engines: {node: '>=10.15.3'}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut-linux@2.7.1':
     resolution: {integrity: sha512-QJD5URTFJ/2+JwBwRyajRF2BB+3eXpd4+t5btGeRVeiRQLKQ4lgorbMHySo6IrfAbSfnU1OVOrxAUygGxj0cFg==}
     engines: {node: '>=10.15.3'}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut-win32@2.7.1':
     resolution: {integrity: sha512-nDvH5kP1zoO2cBtFYWV0om9xtTu523cc1LIk8r/wizqPrIAm0wCizTU+odF3Fi42zcKJWT6J+Pguy8fKrZyIuA==}
     engines: {node: '>=10.15.3'}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut@4.2.0':
@@ -10508,8 +10511,8 @@ packages:
     resolution: {integrity: sha512-6tDA8g98We0zd0GvVeMT9arEOnTw9qM03L9cJXaCjrip1OO764RDBLBfrB4cwzNGDj5OA5ioymC9GkizgWJDUg==}
     engines: {node: '>=8'}
 
-  reduce-configs@1.1.1:
-    resolution: {integrity: sha512-EYtsVGAQarE8daT54cnaY1PIknF2VB78ug6Zre2rs36EsJfC40EG6hmTU2A2P1ZuXnKAt2KI0fzOGHcX7wzdPw==}
+  reduce-configs@1.1.2:
+    resolution: {integrity: sha512-AgBP55V8FC7NaqoOP2RCbTpu6LE+YuX3LUZkNAoitcfyS3/PIC8Obg/TJrBzTkJ+lDvZv0TTAeDpLkzjTtYlbw==}
 
   reflect.getprototypeof@1.0.10:
     resolution: {integrity: sha512-00o4I+DVrefhv+nX0ulyi3biSHCPDe+yLv5o/p6d/UVlirijB8E16FtfwSAi4g3tcqrQ4lRAqQSoFEZJehYEcw==}
@@ -15421,13 +15424,13 @@ snapshots:
     dependencies:
       '@rsbuild/core': 1.6.15
       deepmerge: 4.3.1
-      reduce-configs: 1.1.1
+      reduce-configs: 1.1.2
 
   '@rsbuild/plugin-less@1.5.0(@rsbuild/core@2.0.3(core-js@3.47.0))':
     dependencies:
       '@rsbuild/core': 2.0.3(core-js@3.47.0)
       deepmerge: 4.3.1
-      reduce-configs: 1.1.1
+      reduce-configs: 1.1.2
 
   '@rsbuild/plugin-node-polyfill@1.4.2(@rsbuild/core@1.6.15)':
     dependencies:
@@ -15567,7 +15570,7 @@ snapshots:
     dependencies:
       deepmerge: 4.3.1
       json5: 2.2.3
-      reduce-configs: 1.1.1
+      reduce-configs: 1.1.2
       ts-checker-rspack-plugin: 1.2.2(@rspack/core@1.6.8(@swc/helpers@0.5.21))(typescript@5.8.3)
     optionalDependencies:
       '@rsbuild/core': 1.6.15
@@ -15579,7 +15582,7 @@ snapshots:
     dependencies:
       deepmerge: 4.3.1
       json5: 2.2.3
-      reduce-configs: 1.1.1
+      reduce-configs: 1.1.2
       ts-checker-rspack-plugin: 1.2.2(@rspack/core@2.0.1(@swc/helpers@0.5.21))(typescript@5.8.3)
     optionalDependencies:
       '@rsbuild/core': 1.6.15
@@ -23031,7 +23034,7 @@ snapshots:
       indent-string: 4.0.0
       strip-indent: 3.0.0
 
-  reduce-configs@1.1.1: {}
+  reduce-configs@1.1.2: {}
 
   reflect.getprototypeof@1.0.10:
     dependencies:

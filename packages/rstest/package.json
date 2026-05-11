@@ -44,8 +44,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@midscene/shared": "workspace:*",
-    "std-env": "^4.1.0"
+    "@midscene/shared": "workspace:*"
   },
   "peerDependencies": {
     "@midscene/core": "workspace:*",
@@ -73,9 +72,12 @@
     "@rslib/core": "^0.18.3",
     "@rstest/core": "^0.9.9",
     "@types/node": "^18.0.0",
+    "deepmerge": "^4.3.1",
     "dotenv": "^16.4.5",
     "playwright": "^1.45.0",
     "puppeteer": "24.6.0",
+    "reduce-configs": "^1.1.2",
+    "std-env": "^4.1.0",
     "typescript": "^5.8.3"
   },
   "engines": {
