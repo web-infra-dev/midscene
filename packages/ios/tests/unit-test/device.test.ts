@@ -173,8 +173,8 @@ describe('IOSDevice', () => {
 
   describe('Pointer capability', () => {
     it('should route pointer gestures through WDA primitives', async () => {
-      await device.pointer.tap({ x: 10.4, y: 20.6 });
-      await device.pointer.swipe(
+      await device.inputPrimitives.pointer.tap({ x: 10.4, y: 20.6 });
+      await device.inputPrimitives.touch.swipe(
         { x: 1, y: 2 },
         { x: 3, y: 4 },
         { duration: 123, repeat: 2 },
@@ -193,7 +193,7 @@ describe('IOSDevice', () => {
       await tapAction?.call({
         locate: { center: [11.2, 22.8] },
       } as any);
-      await device.pointer.tap({ x: 33.2, y: 44.8 });
+      await device.inputPrimitives.pointer.tap({ x: 33.2, y: 44.8 });
 
       expect(mockWdaClient.tap).toHaveBeenNthCalledWith(1, 11, 23);
       expect(mockWdaClient.tap).toHaveBeenNthCalledWith(2, 33, 45);
@@ -210,11 +210,13 @@ describe('IOSDevice', () => {
         mode: 'replace',
         autoDismissKeyboard: false,
       } as any);
-      await device.pointer.input('from pointer', {
-        at: { x: 30, y: 40 },
-        mode: 'replace',
+      await device.inputPrimitives.keyboard.typeText('from pointer', {
+        target: {
+          center: [30, 40],
+        },
+        replace: true,
         autoDismissKeyboard: false,
-      });
+      } as any);
 
       expect(mockWdaClient.tap).toHaveBeenNthCalledWith(1, 10, 20);
       expect(mockWdaClient.tap).toHaveBeenNthCalledWith(2, 30, 40);

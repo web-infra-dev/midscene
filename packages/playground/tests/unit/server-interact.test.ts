@@ -89,6 +89,72 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(actionCall).not.toHaveBeenCalled();
   });
 
+  test('POST /interact can run pointer actions without touch primitives', async () => {
+    const inputPrimitives = makeInputPrimitiveStub({
+      touch: undefined,
+    });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'computer',
+        actionSpace: () => [],
+        inputPrimitives,
+      },
+    } as any);
+
+    await server.launch(6110);
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    const response = createMockResponse();
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 10, y: 20 } },
+      response,
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(inputPrimitives.pointer?.tap).toHaveBeenCalledWith(
+      { x: 10, y: 20 },
+      { duration: undefined },
+    );
+  });
+
+  test('POST /interact delegates replace input clearing to typeText', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'android',
+        actionSpace: () => [],
+        inputPrimitives,
+      },
+    } as any);
+
+    await server.launch(6110);
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    const response = createMockResponse();
+    await interactHandler(
+      {
+        body: {
+          actionType: 'Input',
+          x: 10,
+          y: 20,
+          value: 'hello',
+          mode: 'replace',
+        },
+      },
+      response,
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(inputPrimitives.keyboard?.clearInput).not.toHaveBeenCalled();
+    expect(inputPrimitives.keyboard?.typeText).toHaveBeenCalledWith(
+      'hello',
+      expect.objectContaining({
+        replace: true,
+        target: expect.objectContaining({
+          center: [10, 20],
+        }),
+      }),
+    );
+  });
+
   test('POST /interact forwards Swipe with start, end, and options', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const server = new PlaygroundServer({

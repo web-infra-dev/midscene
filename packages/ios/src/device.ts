@@ -429,6 +429,20 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     return '';
   }
 
+  async tap(x: number, y: number): Promise<void> {
+    await this.tapPoint({ x, y });
+  }
+
+  async swipe(
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number,
+    duration = 500,
+  ): Promise<void> {
+    await this.swipeCoordinates(fromX, fromY, toX, toY, duration);
+  }
+
   private async swipeCoordinates(
     fromX: number,
     fromY: number,

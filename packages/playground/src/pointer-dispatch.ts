@@ -112,31 +112,34 @@ export async function dispatchPointer(
     throw new PointerInputError('actionType is required', 400);
   }
 
-  const pointer = getPointerInput(input);
-  const keyboard = getKeyboardInput(input);
-  const touch = getTouchInput(input);
-
   switch (actionType) {
-    case 'Tap':
+    case 'Tap': {
+      const pointer = getPointerInput(input);
       return ensureCapability(pointer.tap, 'Tap')(requirePoint(body), {
         duration: optionalNumber(body.duration, 'duration'),
       });
+    }
 
-    case 'DoubleClick':
+    case 'DoubleClick': {
+      const pointer = getPointerInput(input);
       return ensureCapability(
         pointer.doubleClick,
         'DoubleClick',
       )(requirePoint(body));
+    }
 
-    case 'LongPress':
+    case 'LongPress': {
+      const pointer = getPointerInput(input);
       return ensureCapability(pointer.longPress, 'LongPress')(
         requirePoint(body),
         {
           duration: optionalNumber(body.duration, 'duration'),
         },
       );
+    }
 
-    case 'Swipe':
+    case 'Swipe': {
+      const touch = getTouchInput(input);
       return ensureCapability(touch.swipe, 'Swipe')(
         requirePoint(body),
         requirePoint(body, 'endX', 'endY'),
@@ -145,20 +148,26 @@ export async function dispatchPointer(
           repeat: optionalNumber(body.repeat, 'repeat'),
         },
       );
+    }
 
-    case 'DragAndDrop':
+    case 'DragAndDrop': {
+      const pointer = getPointerInput(input);
       return ensureCapability(pointer.dragAndDrop, 'DragAndDrop')(
         requirePoint(body),
         requirePoint(body, 'endX', 'endY'),
       );
+    }
 
-    case 'KeyboardPress':
+    case 'KeyboardPress': {
+      const keyboard = getKeyboardInput(input);
       return ensureCapability(
         keyboard.keyboardPress,
         'KeyboardPress',
       )(requireString(body.keyName, 'keyName'));
+    }
 
     case 'Input': {
+      const keyboard = getKeyboardInput(input);
       const value = requireString(body.value, 'value');
       const at =
         typeof body.x === 'number' && typeof body.y === 'number'
@@ -179,11 +188,10 @@ export async function dispatchPointer(
             description: 'manual input target',
           }
         : undefined;
-      if (mode !== 'typeOnly' && at) {
-        await ensureCapability(pointer.tap, 'Tap')(at);
+      if (mode === 'clear') {
         await ensureCapability(keyboard.clearInput, 'ClearInput')(target);
+        return;
       }
-      if (mode === 'clear') return;
       if (!value) return;
       return ensureCapability(keyboard.typeText, 'Input')(value, {
         autoDismissKeyboard,
@@ -201,6 +209,7 @@ export async function dispatchPointer(
         }
         return d;
       })();
+      const touch = getTouchInput(input);
       const { startDistance, endDistance, duration } = normalizePinchParam(
         {
           locate: {
