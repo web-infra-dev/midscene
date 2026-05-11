@@ -307,11 +307,13 @@ export async function AiLocateElement(options: {
     >
   >;
   try {
+    debugInspect('AiLocateElement: reasoningEnabled forced false');
     res = await callAIWithObjectResponse<AIElementResponse | [number, number]>(
       msgs,
       modelConfig,
       {
-        reasoningEnabled: resolveReasoningEnabled({ modelConfig }),
+        // Model reasoning is unnecessary for locate requests.
+        reasoningEnabled: false,
         abortSignal: options.abortSignal,
       },
     );
@@ -450,11 +452,13 @@ export async function AiLocateSection(options: {
     ReturnType<typeof callAIWithObjectResponse<AISectionLocatorResponse>>
   >;
   try {
+    debugSection('AiLocateSection: reasoningEnabled forced false');
     result = await callAIWithObjectResponse<AISectionLocatorResponse>(
       msgs,
       modelConfig,
       {
-        reasoningEnabled: resolveReasoningEnabled({ modelConfig }),
+        // Model reasoning is unnecessary for locate requests.
+        reasoningEnabled: false,
         abortSignal: options.abortSignal,
       },
     );

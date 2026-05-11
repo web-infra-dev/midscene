@@ -927,7 +927,7 @@ export class Agent<
           defaultIntentModelConfig.openaiBaseURL;
 
       const includeBboxInPlanning =
-        !planningModeDeepThink && noIndividualLocateModel;
+        !modelReasoningEnabled && noIndividualLocateModel;
 
       debug('setting includeBboxInPlanning to', includeBboxInPlanning, {
         planningModeDeepThink,
