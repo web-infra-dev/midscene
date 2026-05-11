@@ -237,10 +237,10 @@ Use `--files` to specify execution order:
 midscene --files ./login.yaml ./buy/*.yaml ./checkout.yaml
 ```
 
-Run all scripts with a concurrency of 4 and continue when errors occur:
+Run multiple independent search scripts with a concurrency of 4 and continue when errors occur:
 
 ```bash
-midscene --files './scripts/**/*.yaml' --concurrent 4 --continue-on-error
+midscene --files './scripts/search-*.yaml' --concurrent 4 --continue-on-error
 ```
 
 ### Write command-line arguments in a file
@@ -249,13 +249,13 @@ You can place arguments in a YAML config file and reference it with `--config`. 
 
 ```yaml
 files:
-  - './scripts/login.yaml'
-  - './scripts/search.yaml'
-  - './scripts/**/*.yaml'
+  - './scripts/search-iphone.yaml'
+  - './scripts/search-laptop.yaml'
+  - './scripts/search-headphones.yaml'
+  - './scripts/search-camera.yaml'
 
 concurrent: 4
 continueOnError: true
-shareBrowserContext: true
 ```
 
 Run with:

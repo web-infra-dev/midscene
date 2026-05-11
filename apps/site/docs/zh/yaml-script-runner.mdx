@@ -241,10 +241,10 @@ web:
 midscene --files ./login.yaml ./buy/*.yaml ./checkout.yaml
 ```
 
-以 4 个并发执行所有脚本，并在出错时继续运行：
+以 4 个并发执行多个互不依赖的搜索脚本，并在出错时继续运行：
 
 ```bash
-midscene --files './scripts/**/*.yaml' --concurrent 4 --continue-on-error
+midscene --files './scripts/search-*.yaml' --concurrent 4 --continue-on-error
 ```
 
 ### 通过文件编写命令行参数
@@ -253,13 +253,13 @@ midscene --files './scripts/**/*.yaml' --concurrent 4 --continue-on-error
 
 ```yaml
 files:
-  - './scripts/login.yaml'
-  - './scripts/search.yaml'
-  - './scripts/**/*.yaml'
+  - './scripts/search-iphone.yaml'
+  - './scripts/search-laptop.yaml'
+  - './scripts/search-headphones.yaml'
+  - './scripts/search-camera.yaml'
 
 concurrent: 4
 continueOnError: true
-shareBrowserContext: true
 ```
 
 运行方式：
