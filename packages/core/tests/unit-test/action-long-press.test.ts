@@ -12,12 +12,7 @@ const createAgentStub = () => {
 describe('LongPress Action', () => {
   describe('defineActionLongPress', () => {
     it('should create an action with correct name and alias', () => {
-      const action = defineActionLongPress({
-        pointer: {
-          tap: async () => {},
-          longPress: async () => {},
-        },
-      });
+      const action = defineActionLongPress(async () => {});
 
       expect(action.name).toBe('LongPress');
       expect(action.interfaceAlias).toBe('aiLongPress');

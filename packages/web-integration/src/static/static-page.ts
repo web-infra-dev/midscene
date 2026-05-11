@@ -2,17 +2,9 @@ import type { DeviceAction, Point, UIContext } from '@midscene/core';
 import type { AbstractInterface } from '@midscene/core/device';
 import {
   type InputPrimitives,
-  defineActionDragAndDrop,
-  defineActionHover,
-  defineActionInput,
-  defineActionKeyboardPress,
-  defineActionRightClick,
-  defineActionScroll,
-  defineActionSwipe,
-  defineActionTap,
+  defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
 import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@midscene/shared/common';
-
 
 const ThrowNotImplemented = (methodName: string) => {
   throw new Error(
@@ -53,19 +45,9 @@ export default class StaticPage implements AbstractInterface {
   actionSpace(): DeviceAction[] {
     // Return available actions for static page - they will throw "not implemented" errors when executed
     // but need to be available for planning phase
-    return [
-      defineActionTap(this.inputPrimitives),
-      defineActionRightClick(this.inputPrimitives),
-      defineActionHover(this.inputPrimitives),
-      defineActionInput(this.inputPrimitives),
-      defineActionKeyboardPress(this.inputPrimitives),
-      defineActionScroll(this.inputPrimitives),
-      defineActionDragAndDrop(this.inputPrimitives),
-      defineActionSwipe({
-        input: this.inputPrimitives,
-        size: () => this.size(),
-      }),
-    ];
+    return defineActionsFromInputPrimitives(this.inputPrimitives, {
+      size: () => this.size(),
+    });
   }
 
   async evaluateJavaScript<T = unknown>(script: string): Promise<T> {

@@ -100,12 +100,7 @@ describe('Pinch Action Parameter Validation', () => {
   describe('defineActionPinch', () => {
     it('should create an action with correct name and alias', () => {
       const action = defineActionPinch({
-        input: {
-          touch: {
-            swipe: async () => {},
-            pinch: async () => {},
-          },
-        },
+        pinch: async () => {},
         size: async () => ({ width: 400, height: 800 }),
       });
 
@@ -122,12 +117,7 @@ describe('Pinch Action Parameter Validation', () => {
     it('should invoke the pinch primitive with normalized params', async () => {
       const pinchFn = vi.fn();
       const action = defineActionPinch({
-        input: {
-          touch: {
-            swipe: async () => {},
-            pinch: pinchFn,
-          },
-        },
+        pinch: pinchFn,
         size: async () => ({ width: 400, height: 800 }),
       });
 

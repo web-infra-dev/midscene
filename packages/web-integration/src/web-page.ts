@@ -5,19 +5,7 @@ import {
   type DeviceAction,
   type InputPrimitives,
   defineAction,
-  defineActionClearInput,
-  defineActionCursorMove,
-  defineActionDoubleClick,
-  defineActionDragAndDrop,
-  defineActionHover,
-  defineActionInput,
-  defineActionKeyboardPress,
-  defineActionLongPress,
-  defineActionPinch,
-  defineActionRightClick,
-  defineActionScroll,
-  defineActionSwipe,
-  defineActionTap,
+  defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
 
 import { sleep } from '@midscene/core/utils';
@@ -571,25 +559,11 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
   includeTouchEvents = false,
 ): DeviceAction<any>[] => {
   const input = createWebInputPrimitives(page);
-  const pinchAction = defineActionPinch({ input, size: () => page.size() });
   return [
-    defineActionTap(input),
-    defineActionRightClick(input),
-    defineActionDoubleClick(input),
-    defineActionHover(input),
-    defineActionInput(input),
-    defineActionKeyboardPress(input),
-    defineActionCursorMove({ input }),
-    defineActionScroll(input),
-    defineActionDragAndDrop(input),
-    defineActionLongPress(input),
-    ...(pinchAction ? [pinchAction] : []),
-
-    ...(includeTouchEvents
-      ? [defineActionSwipe({ input, size: () => page.size() })]
-      : []),
-
-    defineActionClearInput(input),
+    ...defineActionsFromInputPrimitives(input, {
+      size: () => page.size(),
+      includeSwipe: includeTouchEvents,
+    }),
 
     defineAction<typeof navigateParamSchema, { url: string }>({
       name: 'Navigate',

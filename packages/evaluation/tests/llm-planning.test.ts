@@ -3,9 +3,7 @@ import { type PlanningAIResponse, type Rect, plan } from '@midscene/core';
 import { adaptBboxToRect } from '@midscene/core/ai-model';
 import {
   type DeviceAction,
-  defineActionInput,
-  defineActionKeyboardPress,
-  defineActionTap,
+  defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
@@ -35,19 +33,10 @@ beforeAll(async () => {
   expect(globalModelFamily).toBeTruthy();
 
   actionSpace = [
-    defineActionTap({
+    ...defineActionsFromInputPrimitives({
       pointer: {
         tap: async () => {},
       },
-    }),
-    defineActionInput({
-      keyboard: {
-        typeText: async () => {},
-        keyboardPress: async () => {},
-        clearInput: async () => {},
-      },
-    }),
-    defineActionKeyboardPress({
       keyboard: {
         typeText: async () => {},
         keyboardPress: async () => {},

@@ -12,13 +12,7 @@ const createAgentStub = () => {
 describe('ClearInput Action', () => {
   describe('defineActionClearInput', () => {
     it('should create an action with correct name and alias', () => {
-      const action = defineActionClearInput({
-        keyboard: {
-          typeText: async () => {},
-          keyboardPress: async () => {},
-          clearInput: async () => {},
-        },
-      });
+      const action = defineActionClearInput(async () => {});
 
       expect(action.name).toBe('ClearInput');
       expect(action.interfaceAlias).toBe('aiClearInput');

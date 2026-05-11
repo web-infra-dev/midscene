@@ -14,12 +14,12 @@ import {
   type AbstractInterface,
   type InputPrimitives,
   defineAction,
+  defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import screenshot from 'screenshot-desktop';
-import { createDefaultComputerActions } from './input-actions';
 import type { XvfbInstance } from './xvfb';
 import { checkXvfbInstalled, needsXvfb, startXvfb } from './xvfb';
 
@@ -955,7 +955,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   actionSpace(): DeviceAction<any>[] {
     const defaultActions: DeviceAction<any>[] = [
-      ...createDefaultComputerActions({ input: this.inputPrimitives }),
+      ...defineActionsFromInputPrimitives(this.inputPrimitives),
     ];
 
     const platformActions = Object.values(createPlatformActions());

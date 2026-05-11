@@ -11,15 +11,7 @@ import {
   type InputPrimitives,
   actionTapParamSchema,
   defineAction,
-  defineActionClearInput,
-  defineActionDoubleClick,
-  defineActionDragAndDrop,
-  defineActionHover,
-  defineActionInput,
-  defineActionKeyboardPress,
-  defineActionRightClick,
-  defineActionScroll,
-  defineActionTap,
+  defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
@@ -249,15 +241,7 @@ export class RDPDevice implements AbstractInterface {
 
   actionSpace(): DeviceAction<any>[] {
     const defaultActions: DeviceAction<any>[] = [
-      defineActionTap(this.inputPrimitives),
-      defineActionDoubleClick(this.inputPrimitives),
-      defineActionRightClick(this.inputPrimitives),
-      defineActionHover(this.inputPrimitives),
-      defineActionInput(this.inputPrimitives),
-      defineActionClearInput(this.inputPrimitives),
-      defineActionKeyboardPress(this.inputPrimitives),
-      defineActionScroll(this.inputPrimitives),
-      defineActionDragAndDrop(this.inputPrimitives),
+      ...defineActionsFromInputPrimitives(this.inputPrimitives),
       defineAction<typeof actionTapParamSchema, ActionTapParam>({
         name: 'MiddleClick',
         description: 'Middle click the element',

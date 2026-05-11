@@ -1,5 +1,6 @@
 import assert from 'node:assert';
 import {
+  type ActionScrollParam,
   type DeviceAction,
   type InterfaceType,
   type Point,
@@ -14,7 +15,6 @@ import {
   type PointerPoint,
   createDefaultMobileActions,
   defineAction,
-  defineActionScroll,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
@@ -104,6 +104,9 @@ export class IOSDevice implements AbstractInterface {
         );
       },
     },
+    scroll: {
+      scroll: (param) => this.performActionScroll(param),
+    },
   };
 
   private async tapPoint(point: PointerPoint): Promise<void> {
@@ -166,68 +169,51 @@ export class IOSDevice implements AbstractInterface {
       },
       getDefaultAutoDismissKeyboard: () => this.options?.autoDismissKeyboard,
     };
-    const defaultActions = [
-      ...createDefaultMobileActions(mobileActionContext),
-      defineActionScroll({
-        scroll: {
-          scroll: async (param) => {
-            const element = param.locate;
-            const startingPoint = element
-              ? {
-                  left: element.center[0],
-                  top: element.center[1],
-                }
-              : undefined;
-            const scrollToEventName = param?.scrollType;
-            if (scrollToEventName === 'scrollToTop') {
-              await this.scrollUntilTop(startingPoint);
-            } else if (scrollToEventName === 'scrollToBottom') {
-              await this.scrollUntilBottom(startingPoint);
-            } else if (scrollToEventName === 'scrollToRight') {
-              await this.scrollUntilRight(startingPoint);
-            } else if (scrollToEventName === 'scrollToLeft') {
-              await this.scrollUntilLeft(startingPoint);
-            } else if (
-              scrollToEventName === 'singleAction' ||
-              !scrollToEventName
-            ) {
-              if (param?.direction === 'down' || !param || !param.direction) {
-                await this.scrollDown(
-                  param?.distance || undefined,
-                  startingPoint,
-                );
-              } else if (param.direction === 'up') {
-                await this.scrollUp(param.distance || undefined, startingPoint);
-              } else if (param.direction === 'left') {
-                await this.scrollLeft(
-                  param.distance || undefined,
-                  startingPoint,
-                );
-              } else if (param.direction === 'right') {
-                await this.scrollRight(
-                  param.distance || undefined,
-                  startingPoint,
-                );
-              } else {
-                throw new Error(`Unknown scroll direction: ${param.direction}`);
-              }
-              await sleep(500);
-            } else {
-              throw new Error(
-                `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
-                  param,
-                )}`,
-              );
-            }
-          },
-        },
-      }),
-    ];
+    const defaultActions = [...createDefaultMobileActions(mobileActionContext)];
 
     const platformSpecificActions = Object.values(createPlatformActions(this));
 
     const customActions = this.customActions || [];
     return [...defaultActions, ...platformSpecificActions, ...customActions];
+  }
+
+  private async performActionScroll(param: ActionScrollParam): Promise<void> {
+    const element = param.locate;
+    const startingPoint = element
+      ? {
+          left: element.center[0],
+          top: element.center[1],
+        }
+      : undefined;
+    const scrollToEventName = param?.scrollType;
+    if (scrollToEventName === 'scrollToTop') {
+      await this.scrollUntilTop(startingPoint);
+    } else if (scrollToEventName === 'scrollToBottom') {
+      await this.scrollUntilBottom(startingPoint);
+    } else if (scrollToEventName === 'scrollToRight') {
+      await this.scrollUntilRight(startingPoint);
+    } else if (scrollToEventName === 'scrollToLeft') {
+      await this.scrollUntilLeft(startingPoint);
+    } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
+      if (param?.direction === 'down' || !param || !param.direction) {
+        await this.scrollDown(param?.distance || undefined, startingPoint);
+      } else if (param.direction === 'up') {
+        await this.scrollUp(param.distance || undefined, startingPoint);
+      } else if (param.direction === 'left') {
+        await this.scrollLeft(param.distance || undefined, startingPoint);
+      } else if (param.direction === 'right') {
+        await this.scrollRight(param.distance || undefined, startingPoint);
+      } else {
+        throw new Error(`Unknown scroll direction: ${param.direction}`);
+      }
+      await sleep(500);
+    } else {
+      throw new Error(
+        `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
+          param,
+        )}`,
+      );
+    }
   }
 
   constructor(options?: IOSDeviceOpt) {

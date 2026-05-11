@@ -9,15 +9,13 @@ describe('Input action with mode option', () => {
     typeTextMock: ReturnType<typeof vi.fn>,
   ) =>
     defineActionInput({
-      keyboard: {
-        clearInput: async (target) => {
-          clearInputMock(target);
-        },
-        typeText: async (value, opts) => {
-          typeTextMock(value, opts);
-        },
-        keyboardPress: async () => {},
+      clearInput: async (target) => {
+        clearInputMock(target);
       },
+      typeText: async (value, opts) => {
+        typeTextMock(value, opts);
+      },
+      keyboardPress: async () => {},
     });
 
   it('should request replace when mode is replace', async () => {
@@ -110,11 +108,9 @@ describe('Input action with mode option', () => {
 
   it('should validate the mode option is in the schema', () => {
     const inputAction = defineActionInput({
-      keyboard: {
-        clearInput: async () => {},
-        typeText: async () => {},
-        keyboardPress: async () => {},
-      },
+      clearInput: async () => {},
+      typeText: async () => {},
+      keyboardPress: async () => {},
     });
 
     // Check that the schema includes the mode field
