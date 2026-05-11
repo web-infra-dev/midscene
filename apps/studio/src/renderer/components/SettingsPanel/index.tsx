@@ -230,7 +230,7 @@ export default function SettingsPanel({
       </div>
 
       {openPopover === 'language' ? (
-        <div className="absolute bottom-0 left-[calc(100%+4px)] z-50">
+        <div className="absolute left-[calc(100%+4px)] top-[6px] z-50">
           <OptionList
             onSelect={(value) => {
               setLanguage(value);
@@ -243,7 +243,7 @@ export default function SettingsPanel({
       ) : null}
 
       {openPopover === 'theme' ? (
-        <div className="absolute bottom-0 left-[calc(100%+4px)] z-50">
+        <div className="absolute left-[calc(100%+4px)] top-[38px] z-50">
           <OptionList
             onSelect={(value) => {
               setMode(value);
