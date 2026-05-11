@@ -643,10 +643,12 @@ export async function callAIWithStringResponse(
   msgs: AIArgs,
   modelConfig: IModelConfig,
   options?: {
+    deepThink?: DeepThinkOption;
     abortSignal?: AbortSignal;
   },
 ): Promise<{ content: string; usage?: AIUsageInfo }> {
   const { content, usage } = await callAI(msgs, modelConfig, {
+    deepThink: options?.deepThink,
     abortSignal: options?.abortSignal,
   });
   return { content, usage };

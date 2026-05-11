@@ -237,6 +237,7 @@ export async function AiLocateElement(options: {
     const { content: rawResponseContent, usage } =
       await callAIWithStringResponse(msgs, modelConfig, {
         abortSignal: options.abortSignal,
+        deepThink: false,
       });
 
     debugInspect('auto-glm rawResponse:', rawResponseContent);
@@ -307,7 +308,7 @@ export async function AiLocateElement(options: {
     res = await callAIWithObjectResponse<AIElementResponse | [number, number]>(
       msgs,
       modelConfig,
-      { abortSignal: options.abortSignal },
+      { abortSignal: options.abortSignal, deepThink: false },
     );
   } catch (callError) {
     // Return error with usage and rawResponse if available
@@ -447,7 +448,7 @@ export async function AiLocateSection(options: {
     result = await callAIWithObjectResponse<AISectionLocatorResponse>(
       msgs,
       modelConfig,
-      { abortSignal: options.abortSignal },
+      { abortSignal: options.abortSignal, deepThink: false },
     );
   } catch (callError) {
     // Return error with usage and rawResponse if available
