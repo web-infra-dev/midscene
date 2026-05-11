@@ -1,15 +1,15 @@
-import { createWebTest } from '@midscene/rstest/playwright';
-import { describe, expect, it } from '@rstest/core';
+import { test as base } from '@midscene/rstest/playwright';
+import { describe, expect } from '@rstest/core';
 
 const PAGE_URL =
   'https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/contacts3.html';
 
-describe('Contacts page', () => {
-  const ctx = createWebTest(PAGE_URL);
+// Per-file URL override. The `page` fixture navigates here for every test.
+const test = base.extend({ url: PAGE_URL });
 
+describe('Contacts page', () => {
   // Pattern: semantic UI check via `aiAssert`.
-  it('renders the smart contacts header and grid', async () => {
-    const { agent } = ctx;
+  test('renders the smart contacts header and grid', async ({ agent }) => {
     await agent.aiAssert(
       'the page header reads "Smart Contacts" with a grid of contact cards below it, each card showing an avatar, name, position, and contact details',
     );
@@ -17,8 +17,7 @@ describe('Contacts page', () => {
 
   // Pattern: structured data extraction via `aiQuery<T>` + deterministic
   // comparison via rstest `expect`.
-  it('lists every contact with the expected fields', async () => {
-    const { agent } = ctx;
+  test('lists every contact with the expected fields', async ({ agent }) => {
     const contacts = await agent.aiQuery<
       { name: string; position: string; email: string }[]
     >(
@@ -36,8 +35,7 @@ describe('Contacts page', () => {
 
   // Pattern: AI interaction (`aiRightClick`) + AI synchronization (`aiWaitFor`)
   // + AI extraction (`aiQuery`) chained together.
-  it('opens the custom context menu on right-click', async () => {
-    const { agent } = ctx;
+  test('opens the custom context menu on right-click', async ({ agent }) => {
     await agent.aiRightClick("Alice Johnson's contact card");
     await agent.aiWaitFor(
       'a context menu is visible with the items "Call Contact", "Send Email", "Send Message", "Edit Contact", "Copy Info" and "Delete Contact"',
@@ -58,10 +56,11 @@ describe('Contacts page', () => {
   });
 
   // Escape hatch: raw Playwright `Page` for browser-primitive checks that
-  // don't need the AI.
-  it('inspects raw page state via the Playwright page escape hatch', async () => {
-    const { page } = ctx;
-
+  // don't need the AI. Destructure only `page` — the `agent` fixture is not
+  // created, but `page` still pulls in `browser`/`context`/auto-navigation.
+  test('inspects raw page state via the Playwright page escape hatch', async ({
+    page,
+  }) => {
     expect(page.url()).toBe(PAGE_URL);
 
     const viewport = page.viewportSize();
@@ -74,11 +73,12 @@ describe('Contacts page', () => {
 
   // Multi-session: open a second isolated browser context (think "another
   // user") and drive it with a separate midscene agent via `agentForPage`.
-  // The secondary's report is merged alongside the primary's at afterEach;
-  // destroy is automatic.
-  it('drives a second isolated session via browser + agentForPage', async () => {
-    const { browser, agentForPage } = ctx;
-
+  // The secondary's report is merged alongside the primary's at fixture
+  // teardown; destroy is automatic.
+  test('drives a second isolated session via browser + agentForPage', async ({
+    browser,
+    agentForPage,
+  }) => {
     const sessionB = await browser.newContext();
     const pageB = await sessionB.newPage();
     await pageB.goto(PAGE_URL);
