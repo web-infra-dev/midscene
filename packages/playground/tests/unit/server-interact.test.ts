@@ -33,7 +33,7 @@ function getRouteHandler(
 function makeInputPrimitiveStub(
   overrides: Partial<DeviceInputPrimitives> = {},
 ): DeviceInputPrimitives {
-  return {
+  const primitives = {
     tap: vi.fn(async () => {}),
     doubleClick: vi.fn(async () => {}),
     longPress: vi.fn(async () => {}),
@@ -43,7 +43,23 @@ function makeInputPrimitiveStub(
     typeText: vi.fn(async () => {}),
     clearInput: vi.fn(async () => {}),
     ...overrides,
+  } as DeviceInputPrimitives;
+  primitives.pointer = {
+    tap: primitives.tap,
+    doubleClick: primitives.doubleClick,
+    longPress: primitives.longPress,
+    dragAndDrop: primitives.dragAndDrop,
   };
+  primitives.keyboard = {
+    keyboardPress: primitives.keyboardPress,
+    typeText: primitives.typeText,
+    clearInput: primitives.clearInput,
+  };
+  primitives.touch = {
+    swipe: primitives.swipe,
+    pinch: primitives.pinch,
+  };
+  return primitives;
 }
 
 describe('PlaygroundServer manual interaction APIs', () => {

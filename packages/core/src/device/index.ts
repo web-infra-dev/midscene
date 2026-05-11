@@ -37,7 +37,61 @@ export interface PointerPoint {
   y: number;
 }
 
-export interface DeviceInputPrimitives {
+export interface PointerInputPrimitives {
+  tap(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
+  doubleClick?(p: PointerPoint): Promise<void>;
+  rightClick?(p: PointerPoint): Promise<void>;
+  hover?(p: PointerPoint): Promise<void>;
+  longPress?(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
+  dragAndDrop?(from: PointerPoint, to: PointerPoint): Promise<void>;
+}
+
+export interface TouchInputPrimitives {
+  swipe(
+    start: PointerPoint,
+    end: PointerPoint,
+    opts?: { duration?: number; repeat?: number },
+  ): Promise<void>;
+  pinch?(
+    center: PointerPoint,
+    opts: { startDistance: number; endDistance: number; duration: number },
+  ): Promise<void>;
+}
+
+export interface KeyboardInputPrimitives {
+  keyboardPress(keyName: string, opts?: { target?: unknown }): Promise<void>;
+  cursorMove?(direction: 'left' | 'right', times?: number): Promise<void>;
+  typeText(
+    value: string,
+    opts?: {
+      autoDismissKeyboard?: boolean;
+      target?: unknown;
+      replace?: boolean;
+      focusOnly?: boolean;
+    },
+  ): Promise<void>;
+  clearInput(target?: unknown): Promise<void>;
+}
+
+export interface ScrollInputPrimitives {
+  scroll(param: ActionScrollParam): Promise<void>;
+}
+
+export interface InputPrimitives {
+  pointer?: PointerInputPrimitives;
+  keyboard?: KeyboardInputPrimitives;
+  touch?: TouchInputPrimitives;
+  scroll?: ScrollInputPrimitives;
+}
+
+export interface DeviceInputPrimitives extends InputPrimitives {
+  pointer: PointerInputPrimitives & {
+    doubleClick(p: PointerPoint): Promise<void>;
+    longPress(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
+    dragAndDrop(from: PointerPoint, to: PointerPoint): Promise<void>;
+  };
+  keyboard: KeyboardInputPrimitives;
+  touch: TouchInputPrimitives;
   tap(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
   doubleClick(p: PointerPoint): Promise<void>;
   longPress(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
@@ -54,6 +108,7 @@ export interface DeviceInputPrimitives {
       autoDismissKeyboard?: boolean;
       target?: unknown;
       replace?: boolean;
+      focusOnly?: boolean;
     },
   ): Promise<void>;
   clearInput(target?: unknown): Promise<void>;
@@ -139,7 +194,7 @@ export abstract class AbstractInterface {
    * primitives here; higher-level AI actions and manual pointer dispatch should
    * adapt to this instead of duplicating platform gesture logic.
    */
-  inputPrimitives?: DeviceInputPrimitives;
+  inputPrimitives?: InputPrimitives;
 }
 
 // Generic function to define actions with proper type inference
@@ -750,7 +805,7 @@ export function createMobileTapAction(
     if (!element) {
       throw new Error('Element not found, cannot tap');
     }
-    await context.input.tap({
+    await context.input.pointer.tap({
       x: element.center[0],
       y: element.center[1],
     });
@@ -765,7 +820,7 @@ export function createMobileDoubleClickAction(
     if (!element) {
       throw new Error('Element not found, cannot double click');
     }
-    await context.input.doubleClick({
+    await context.input.pointer.doubleClick({
       x: element.center[0],
       y: element.center[1],
     });
@@ -815,7 +870,7 @@ export function createMobileInputAction(context: MobileInputActionContext) {
     }) => {
       const element = param.locate;
       if (param.mode !== 'typeOnly') {
-        await context.input.clearInput(element);
+        await context.input.keyboard.clearInput(element);
       }
 
       if (param.mode === 'clear') {
@@ -826,7 +881,7 @@ export function createMobileInputAction(context: MobileInputActionContext) {
         return;
       }
 
-      await context.input.typeText(param.value, {
+      await context.input.keyboard.typeText(param.value, {
         autoDismissKeyboard:
           param.autoDismissKeyboard ??
           context.getDefaultAutoDismissKeyboard?.(),
@@ -849,7 +904,7 @@ export function createMobileDragAndDropAction(
     if (!to) {
       throw new Error('missing "to" param for drag and drop');
     }
-    await context.input.dragAndDrop(
+    await context.input.pointer.dragAndDrop(
       { x: from.center[0], y: from.center[1] },
       { x: to.center[0], y: to.center[1] },
     );
@@ -861,7 +916,7 @@ export function createMobileSwipeAction(context: MobileInputActionContext) {
     const { startPoint, endPoint, duration, repeatCount } =
       normalizeMobileSwipeParam(param, await context.size());
     for (let i = 0; i < repeatCount; i++) {
-      await context.input.swipe(startPoint, endPoint, { duration });
+      await context.input.touch.swipe(startPoint, endPoint, { duration });
     }
   });
 }
@@ -870,7 +925,7 @@ export function createMobileKeyboardPressAction(
   context: MobileInputActionContext,
 ) {
   return defineActionKeyboardPress(async (param) => {
-    await context.input.keyboardPress(param.keyName);
+    await context.input.keyboard.keyboardPress(param.keyName);
   });
 }
 
@@ -882,7 +937,7 @@ export function createMobileCursorMoveAction(
     const arrowKey = param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
     const times = param.times ?? 1;
     for (let i = 0; i < times; i++) {
-      await context.input.keyboardPress(arrowKey);
+      await context.input.keyboard.keyboardPress(arrowKey);
       await wait(100);
     }
   });
@@ -895,19 +950,22 @@ export function createMobileLongPressAction(context: MobileInputActionContext) {
       throw new Error('LongPress requires an element to be located');
     }
     const [x, y] = element.center;
-    await context.input.longPress({ x, y }, { duration: param?.duration });
+    await context.input.pointer.longPress(
+      { x, y },
+      { duration: param?.duration },
+    );
   });
 }
 
 export function createMobilePinchAction(context: MobileInputActionContext) {
-  if (!context.input.pinch) {
+  if (!context.input.touch.pinch) {
     return undefined;
   }
 
   return defineActionPinch(async (param) => {
     const { centerX, centerY, startDistance, endDistance, duration } =
       normalizePinchParam(param, await context.size());
-    await context.input.pinch?.(
+    await context.input.touch.pinch?.(
       { x: centerX, y: centerY },
       { startDistance, endDistance, duration },
     );
@@ -918,7 +976,7 @@ export function createMobileClearInputAction(
   context: MobileInputActionContext,
 ) {
   return defineActionClearInput(async (param) => {
-    await context.input.clearInput(param.locate);
+    await context.input.keyboard.clearInput(param.locate);
   });
 }
 

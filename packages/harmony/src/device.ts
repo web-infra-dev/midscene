@@ -124,6 +124,26 @@ export class HarmonyDevice implements AbstractInterface {
         opts?.replace ?? true,
       ),
     clearInput: (target) => this.clearInput(target as ElementInfo | undefined),
+    pointer: {
+      tap: (p, opts) => this.inputPrimitives.tap(p, opts),
+      doubleClick: (p) => this.inputPrimitives.doubleClick(p),
+      longPress: (p, opts) => this.inputPrimitives.longPress(p, opts),
+      dragAndDrop: (from, to) => this.inputPrimitives.dragAndDrop(from, to),
+    },
+    keyboard: {
+      keyboardPress: (keyName) => this.inputPrimitives.keyboardPress(keyName),
+      typeText: (value, opts) => this.inputPrimitives.typeText(value, opts),
+      clearInput: (target) => this.inputPrimitives.clearInput(target),
+      cursorMove: async (direction, times = 1) => {
+        const arrowKey = direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
+        for (let i = 0; i < times; i++) {
+          await this.inputPrimitives.keyboardPress(arrowKey);
+        }
+      },
+    },
+    touch: {
+      swipe: (start, end, opts) => this.inputPrimitives.swipe(start, end, opts),
+    },
   };
 
   actionSpace(): DeviceAction<any>[] {

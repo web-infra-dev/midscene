@@ -1,6 +1,10 @@
 import type {
   DeviceInputPrimitives,
+  InputPrimitives,
+  KeyboardInputPrimitives,
+  PointerInputPrimitives,
   PointerPoint,
+  TouchInputPrimitives,
 } from '@midscene/core/device';
 import { normalizePinchParam } from '@midscene/core/device';
 
@@ -62,6 +66,45 @@ function ensureCapability<T>(
   return fn as NonNullable<T>;
 }
 
+function getPointerInput(
+  input: InputPrimitives | DeviceInputPrimitives,
+): PointerInputPrimitives {
+  const flat = input as DeviceInputPrimitives;
+  return (
+    input.pointer ?? {
+      tap: flat.tap?.bind(input),
+      doubleClick: flat.doubleClick?.bind(input),
+      longPress: flat.longPress?.bind(input),
+      dragAndDrop: flat.dragAndDrop?.bind(input),
+    }
+  );
+}
+
+function getKeyboardInput(
+  input: InputPrimitives | DeviceInputPrimitives,
+): KeyboardInputPrimitives {
+  const flat = input as DeviceInputPrimitives;
+  return (
+    input.keyboard ?? {
+      keyboardPress: flat.keyboardPress?.bind(input),
+      typeText: flat.typeText?.bind(input),
+      clearInput: flat.clearInput?.bind(input),
+    }
+  );
+}
+
+function getTouchInput(
+  input: InputPrimitives | DeviceInputPrimitives,
+): TouchInputPrimitives {
+  const flat = input as DeviceInputPrimitives;
+  return (
+    input.touch ?? {
+      swipe: flat.swipe?.bind(input),
+      pinch: flat.pinch?.bind(input),
+    }
+  );
+}
+
 /**
  * Translate an `/interact` request body into device input primitive calls.
  *
@@ -70,7 +113,7 @@ function ensureCapability<T>(
  * not platform business logic.
  */
 export async function dispatchPointer(
-  input: DeviceInputPrimitives,
+  input: InputPrimitives | DeviceInputPrimitives,
   body: Record<string, unknown>,
   getScreenSize: () => Promise<{ width: number; height: number }>,
 ): Promise<void> {
@@ -79,22 +122,32 @@ export async function dispatchPointer(
     throw new PointerInputError('actionType is required', 400);
   }
 
+  const pointer = getPointerInput(input);
+  const keyboard = getKeyboardInput(input);
+  const touch = getTouchInput(input);
+
   switch (actionType) {
     case 'Tap':
-      return input.tap(requirePoint(body), {
+      return ensureCapability(pointer.tap, 'Tap')(requirePoint(body), {
         duration: optionalNumber(body.duration, 'duration'),
       });
 
     case 'DoubleClick':
-      return input.doubleClick(requirePoint(body));
+      return ensureCapability(
+        pointer.doubleClick,
+        'DoubleClick',
+      )(requirePoint(body));
 
     case 'LongPress':
-      return input.longPress(requirePoint(body), {
-        duration: optionalNumber(body.duration, 'duration'),
-      });
+      return ensureCapability(pointer.longPress, 'LongPress')(
+        requirePoint(body),
+        {
+          duration: optionalNumber(body.duration, 'duration'),
+        },
+      );
 
     case 'Swipe':
-      return input.swipe(
+      return ensureCapability(touch.swipe, 'Swipe')(
         requirePoint(body),
         requirePoint(body, 'endX', 'endY'),
         {
@@ -104,13 +157,16 @@ export async function dispatchPointer(
       );
 
     case 'DragAndDrop':
-      return input.dragAndDrop(
+      return ensureCapability(pointer.dragAndDrop, 'DragAndDrop')(
         requirePoint(body),
         requirePoint(body, 'endX', 'endY'),
       );
 
     case 'KeyboardPress':
-      return input.keyboardPress(requireString(body.keyName, 'keyName'));
+      return ensureCapability(
+        keyboard.keyboardPress,
+        'KeyboardPress',
+      )(requireString(body.keyName, 'keyName'));
 
     case 'Input': {
       const value = requireString(body.value, 'value');
@@ -134,12 +190,12 @@ export async function dispatchPointer(
           }
         : undefined;
       if (mode !== 'typeOnly' && at) {
-        await input.tap(at);
-        await input.clearInput(target);
+        await ensureCapability(pointer.tap, 'Tap')(at);
+        await ensureCapability(keyboard.clearInput, 'ClearInput')(target);
       }
       if (mode === 'clear') return;
       if (!value) return;
-      return input.typeText(value, {
+      return ensureCapability(keyboard.typeText, 'Input')(value, {
         autoDismissKeyboard,
         target,
         replace: mode !== 'typeOnly',
@@ -168,7 +224,7 @@ export async function dispatchPointer(
         },
         await getScreenSize(),
       );
-      return ensureCapability(input.pinch, 'Pinch')(center, {
+      return ensureCapability(touch.pinch, 'Pinch')(center, {
         startDistance,
         endDistance,
         duration,
