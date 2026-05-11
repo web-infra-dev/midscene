@@ -1,2 +1,6 @@
 export { PlaygroundShell } from './PlaygroundShell';
-export type { ConnectionStatus } from './ConnectionStatusDot';
+export {
+  ConnectionStatusDot,
+  type ConnectionStatus,
+  type ConnectionStatusDotProps,
+} from './ConnectionStatusDot';

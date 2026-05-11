@@ -3,11 +3,19 @@ import { fitMobilePreviewViewport } from './preview-layout';
 
 interface MobilePreviewFrameProps extends PropsWithChildren {
   enabled: boolean;
+  /**
+   * Width-over-height ratio of the connected device's actual screen.
+   * Passed in by MainContent once the playground reports the device
+   * size, so the viewport tracks reality instead of a hardcoded
+   * 9:19.5 assumption. Falls back to the default when undefined.
+   */
+  aspectRatio?: number;
 }
 
 export function MobilePreviewFrame({
   children,
   enabled,
+  aspectRatio,
 }: MobilePreviewFrameProps) {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
@@ -25,7 +33,11 @@ export function MobilePreviewFrame({
 
     const updateViewportSize = () => {
       setViewportSize(
-        fitMobilePreviewViewport(stage.clientWidth, stage.clientHeight),
+        fitMobilePreviewViewport(
+          stage.clientWidth,
+          stage.clientHeight,
+          aspectRatio,
+        ),
       );
     };
 
@@ -46,7 +58,7 @@ export function MobilePreviewFrame({
     return () => {
       observer.disconnect();
     };
-  }, [enabled]);
+  }, [aspectRatio, enabled]);
 
   const rootClassName = [
     'h-full w-full min-h-0',
@@ -68,7 +80,7 @@ export function MobilePreviewFrame({
     .filter(Boolean)
     .join(' ');
   const viewportClassName = enabled
-    ? 'shrink-0 translate-y-[-26px] overflow-hidden'
+    ? 'shrink-0 translate-y-[-26px] overflow-hidden rounded-[8px] border border-border-subtle'
     : 'h-full w-full min-h-0 overflow-hidden';
   const viewportStyle = enabled
     ? viewportSize.width > 0 && viewportSize.height > 0

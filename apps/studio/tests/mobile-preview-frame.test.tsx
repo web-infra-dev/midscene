@@ -14,6 +14,8 @@ describe('MobilePreviewFrame', () => {
     );
 
     expect(html).toContain('translate-y-[-26px]');
+    expect(html).toContain('rounded-[8px]');
+    expect(html).toContain('border-border-subtle');
     expect(html).not.toContain('rounded-[34px]');
   });
 

@@ -1,7 +1,7 @@
 import { Suspense, lazy, useMemo } from 'react';
 import { downloadStudioReport } from '../../playground/report-download';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
-import { type ConnectionStatus, PlaygroundShell } from '../PlaygroundShell';
+import { PlaygroundShell } from '../PlaygroundShell';
 import { StudioPlaygroundEmptyState } from './StudioPlaygroundEmptyState';
 
 declare const __APP_VERSION__: string;
@@ -20,19 +20,8 @@ export default function Playground() {
     [],
   );
 
-  const connectionStatus: ConnectionStatus =
-    studioPlayground.phase === 'error'
-      ? 'failed'
-      : studioPlayground.phase === 'ready'
-        ? studioPlayground.controller.state.sessionSetupError
-          ? 'failed'
-          : studioPlayground.controller.state.sessionViewState.connected
-            ? 'connected'
-            : 'disconnected'
-        : 'disconnected';
-
   return (
-    <PlaygroundShell connectionStatus={connectionStatus}>
+    <PlaygroundShell>
       <div className="min-h-0 h-full flex-1 overflow-hidden">
         {studioPlayground.phase === 'booting' ? (
           <div className="flex h-full items-center justify-center px-6 text-center text-[14px] leading-[22px] text-text-tertiary">

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   type StudioThemeMode,
   useStudioTheme,
@@ -152,11 +152,33 @@ export default function SettingsPanel({
   onWebsiteClick,
 }: SettingsPanelProps) {
   const { mode, setMode } = useStudioTheme();
-  const [language, setLanguage] = useState<string>(() => readStoredLanguage());
-  const [openPopover, setOpenPopover] = useState<'language' | 'theme' | null>(
-    null,
-  );
+  // Language preference is persisted but not surfaced yet; the row is
+  // hidden until i18n actually ships. Keep the storage hook so a stored
+  // value survives the round-trip when the row returns.
+  const [language] = useState<string>(() => readStoredLanguage());
+  const [openPopover, setOpenPopover] = useState<'theme' | null>(null);
   const popoverWrapperRef = useRef<HTMLDivElement | null>(null);
+  // The Theme popover is hover-driven now. A 4px gap separates the trigger
+  // row from the floating option list, so we use a short grace period
+  // before closing — letting the cursor cross the gap without flicker.
+  const closeTimerRef = useRef<number | null>(null);
+
+  const cancelScheduledClose = useCallback(() => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleClose = useCallback(() => {
+    cancelScheduledClose();
+    closeTimerRef.current = window.setTimeout(() => {
+      setOpenPopover(null);
+      closeTimerRef.current = null;
+    }, 120);
+  }, [cancelScheduledClose]);
+
+  useEffect(() => () => cancelScheduledClose(), [cancelScheduledClose]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -185,29 +207,18 @@ export default function SettingsPanel({
   }, [openPopover]);
 
   const wrapperClassName = ['relative', className].filter(Boolean).join(' ');
-  const languageLabel =
-    LANGUAGE_OPTIONS.find((option) => option.value === language)?.label ??
-    LANGUAGE_OPTIONS[0].label;
 
   return (
     <div className={wrapperClassName} ref={popoverWrapperRef}>
       <div className="flex w-[244px] flex-col rounded-[12px] border border-border-subtle bg-surface-elevated p-[6px] shadow-lg">
         <div className="flex flex-col">
           <SettingItem
-            label="Language"
-            onClick={() =>
-              setOpenPopover((prev) =>
-                prev === 'language' ? null : 'language',
-              )
-            }
-            trailingIcon={<ChevronIcon />}
-            value={languageLabel}
-          />
-          <SettingItem
             label="Theme"
-            onClick={() =>
-              setOpenPopover((prev) => (prev === 'theme' ? null : 'theme'))
-            }
+            onMouseEnter={() => {
+              cancelScheduledClose();
+              setOpenPopover('theme');
+            }}
+            onMouseLeave={scheduleClose}
             trailingIcon={<ChevronIcon />}
             value={THEME_LABELS[mode]}
           />
@@ -229,21 +240,12 @@ export default function SettingsPanel({
         </div>
       </div>
 
-      {openPopover === 'language' ? (
-        <div className="absolute bottom-0 left-[calc(100%+4px)] z-50">
-          <OptionList
-            onSelect={(value) => {
-              setLanguage(value);
-              setOpenPopover(null);
-            }}
-            options={LANGUAGE_OPTIONS}
-            selected={language}
-          />
-        </div>
-      ) : null}
-
       {openPopover === 'theme' ? (
-        <div className="absolute bottom-0 left-[calc(100%+4px)] z-50">
+        <div
+          className="absolute left-[calc(100%+4px)] top-[6px] z-50"
+          onMouseEnter={cancelScheduledClose}
+          onMouseLeave={scheduleClose}
+        >
           <OptionList
             onSelect={(value) => {
               setMode(value);

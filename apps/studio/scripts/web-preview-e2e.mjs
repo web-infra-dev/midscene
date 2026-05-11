@@ -192,10 +192,14 @@ async function createDefaultWebAgent(page) {
 
 async function assertWebPreview(page) {
   console.log('Waiting for Web preview stream...');
+  // The device header dropped the "Live" / "Not connected" chip in favour
+  // of the ConnectionStatusDot icon — connected state is now signalled by
+  // the dot's aria-label ("Device connected"). Disconnect button text is
+  // still rendered.
   await page.waitForFunction(
     () =>
       document.body.innerText.includes('Web') &&
-      document.body.innerText.includes('Live') &&
+      document.querySelector('[aria-label="Device connected"]') !== null &&
       document.body.innerText.includes('Disconnect'),
     { timeout: 60_000 },
   );
