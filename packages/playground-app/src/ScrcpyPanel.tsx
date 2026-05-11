@@ -1,3 +1,4 @@
+import { useT } from '@midscene/i18n';
 import { ScrcpyVideoCodecId } from '@yume-chan/scrcpy';
 import {
   BitmapVideoFrameRenderer,
@@ -67,6 +68,7 @@ export function ScrcpyPanel({
   reconnectInterval = 3000,
   viewportStyle,
 }: ScrcpyPanelProps) {
+  const t = useT();
   const canvasStageRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const decoderRef = useRef<WebCodecsVideoDecoder | null>(null);
@@ -76,14 +78,14 @@ export function ScrcpyPanel({
   const [status, setStatus] = useState<ScrcpyPreviewStatus>('connecting');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [waitingStatusMessage, setWaitingStatusMessage] = useState<string>(() =>
-    getDefaultScrcpyWaitingStatusText(),
+    getDefaultScrcpyWaitingStatusText(t),
   );
   const [webCodecsSupported, setWebCodecsSupported] = useState(true);
   const [retryNonce, setRetryNonce] = useState(0);
 
   const statusText = useMemo(
-    () => getScrcpyPreviewStatusText(status, waitingStatusMessage),
-    [status, waitingStatusMessage],
+    () => getScrcpyPreviewStatusText(status, waitingStatusMessage, t),
+    [status, waitingStatusMessage, t],
   );
   const showCustomErrorOverlay =
     (status === 'error' || status === 'disconnected') &&
@@ -93,7 +95,7 @@ export function ScrcpyPanel({
   const requestRetry = useCallback(() => {
     setStatus('connecting');
     setErrorMessage(null);
-    setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
+    setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText(t));
     setRetryNonce((current) => current + 1);
   }, []);
 
@@ -129,16 +131,14 @@ export function ScrcpyPanel({
   useEffect(() => {
     if (!serverUrl) {
       setStatus('error');
-      setErrorMessage('scrcpy preview metadata is missing a server URL.');
+      setErrorMessage(t('scrcpy.missingServerUrl'));
       return;
     }
 
     if (!WebCodecsVideoDecoder.isSupported) {
       setWebCodecsSupported(false);
       setStatus('error');
-      setErrorMessage(
-        'Current browser does not support WebCodecs, so live scrcpy preview is unavailable.',
-      );
+      setErrorMessage(t('scrcpy.webCodecsUnsupported'));
       return;
     }
 
@@ -204,7 +204,7 @@ export function ScrcpyPanel({
       ignoreDisconnectRef.current = false;
       setStatus('connecting');
       setErrorMessage(null);
-      setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
+      setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText(t));
 
       const socket = io(serverUrl, {
         withCredentials: true,
@@ -217,7 +217,7 @@ export function ScrcpyPanel({
 
       socket.on('connect', () => {
         setStatus('waiting-for-stream');
-        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
+        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText(t));
         clearMetadataTimeout();
         metadataTimeoutRef.current = setTimeout(() => {
           if (disposed) {
@@ -226,8 +226,10 @@ export function ScrcpyPanel({
 
           ignoreDisconnectRef.current = true;
           setStatus('error');
-          setErrorMessage(getScrcpyMetadataTimeoutMessage(metadataTimeoutMs));
-          setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
+          setErrorMessage(
+            getScrcpyMetadataTimeoutMessage(metadataTimeoutMs, t),
+          );
+          setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText(t));
           socket.disconnect();
           socketRef.current = null;
           scheduleReconnect();
@@ -270,7 +272,7 @@ export function ScrcpyPanel({
             scheduleReconnect();
           });
 
-          setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
+          setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText(t));
           setStatus('connected');
         } catch (error) {
           if (disposed) {
@@ -278,9 +280,11 @@ export function ScrcpyPanel({
           }
           setStatus('error');
           setErrorMessage(
-            error instanceof Error ? error.message : 'Failed to start decoder.',
+            error instanceof Error
+              ? error.message
+              : t('scrcpy.failedToStartDecoder'),
           );
-          setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
+          setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText(t));
           scheduleReconnect();
         }
       });
@@ -296,7 +300,7 @@ export function ScrcpyPanel({
         }
         setStatus('disconnected');
         setErrorMessage(null);
-        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
+        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText(t));
         scheduleReconnect();
       });
 
@@ -307,7 +311,7 @@ export function ScrcpyPanel({
         }
         setStatus('error');
         setErrorMessage(error.message);
-        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
+        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText(t));
         scheduleReconnect();
       });
 
@@ -318,7 +322,7 @@ export function ScrcpyPanel({
         }
         setStatus('error');
         setErrorMessage(error.message);
-        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText());
+        setWaitingStatusMessage(getDefaultScrcpyWaitingStatusText(t));
         scheduleReconnect();
       });
     };
@@ -421,12 +425,12 @@ export function ScrcpyPanel({
               <Text style={{ color: '#fff' }}>{statusText}</Text>
               {status === 'error' ? (
                 <Text style={{ color: '#d1d5db' }}>
-                  Scrcpy preview will retry automatically.
+                  {t('scrcpy.willRetry')}
                 </Text>
               ) : null}
               {!webCodecsSupported && (
                 <Text style={{ color: '#d1d5db' }}>
-                  Please use a modern Chromium browser to view the stream.
+                  {t('scrcpy.chromiumHint')}
                 </Text>
               )}
             </div>

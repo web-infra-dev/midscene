@@ -27,6 +27,7 @@
     "react-dom": "^18.0.0"
   },
   "dependencies": {
+    "@midscene/i18n": "workspace:*",
     "@midscene/playground": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/visualizer": "workspace:*",

@@ -1,4 +1,5 @@
 import { ExclamationCircleFilled } from '@ant-design/icons';
+import { useT } from '@midscene/i18n';
 import { useEnvConfig } from '../../store/store';
 import { EnvConfig } from '../env-config';
 
@@ -11,6 +12,7 @@ interface EnvConfigReminderProps {
 export const EnvConfigReminder: React.FC<EnvConfigReminderProps> = ({
   className = '',
 }) => {
+  const t = useT();
   const { config } = useEnvConfig();
   const configAlreadySet = Object.keys(config || {}).length >= 1;
 
@@ -22,7 +24,7 @@ export const EnvConfigReminder: React.FC<EnvConfigReminderProps> = ({
     <div className={`env-config-reminder ${className}`}>
       <ExclamationCircleFilled className="reminder-icon" />
       <span className="reminder-text">
-        Please set up your environment variables before using.
+        {t('envConfigReminder.setupReminder')}
       </span>
       <EnvConfig mode="text" showTooltipWhenEmpty={false} />
     </div>

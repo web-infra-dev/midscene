@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react';
 import { assetUrls } from '../../assets';
-import { type TranslationKey, useT } from '../../i18n';
+import { useT } from '../../i18n';
 import {
   type StudioPreviewConnectionState,
   shouldPauseDiscoveryPollingDuringPreview,
@@ -148,7 +148,7 @@ function resolvePlatformLogo(platform?: string): string {
   }
 }
 
-function getPreviewConnectingLabelKey(platform?: string): TranslationKey {
+function getPreviewConnectingLabelKey(platform?: string): string {
   switch (platform) {
     case 'web':
       return 'mainContent.preparing.web';
@@ -165,7 +165,7 @@ function getPreviewConnectingLabelKey(platform?: string): TranslationKey {
   }
 }
 
-function getDisconnectedPreviewTitleKey(platform?: string): TranslationKey {
+function getDisconnectedPreviewTitleKey(platform?: string): string {
   switch (platform) {
     case 'web':
       return 'mainContent.connect.web';

@@ -1,3 +1,4 @@
+export { visualizerEn, visualizerZh } from './i18n';
 export {
   type AnimationScript,
   type DumpMetaInfo,

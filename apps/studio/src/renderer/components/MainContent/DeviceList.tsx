@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { STUDIO_EXTERNAL_LINKS } from '../../../shared/external-links';
 import { assetUrls } from '../../assets';
-import { type TranslationKey, useT } from '../../i18n';
+import { useT } from '../../i18n';
 import type {
   DiscoveryErrorsByPlatform,
   StudioAndroidDeviceItem,
@@ -14,7 +14,7 @@ type DeviceConnectionState = 'idle' | 'live' | 'connecting';
 interface PlatformConfig {
   iconSrc?: string;
   key: StudioSidebarPlatformKey;
-  labelKey: TranslationKey;
+  labelKey: string;
 }
 
 // Header (MainContent) shows two platform glyphs: a phone for

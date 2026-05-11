@@ -1,3 +1,4 @@
+import { useT } from '@midscene/i18n';
 import {
   type PlaygroundBranding,
   UniversalPlayground,
@@ -38,7 +39,7 @@ export interface PlaygroundConversationPanelProps {
 export function PlaygroundConversationPanel({
   controller,
   appVersion,
-  title = 'Playground',
+  title,
   branding,
   playgroundConfig,
   header,
@@ -46,11 +47,13 @@ export function PlaygroundConversationPanel({
   playgroundClassName,
   notConnectedFallback,
 }: PlaygroundConversationPanelProps) {
+  const t = useT();
+  const resolvedTitle = title ?? t('conversation.title');
   const { state, actions } = controller;
   const mergedConfig = buildConversationConfig(state, playgroundConfig);
   const mergedBranding = buildConversationBranding(
     state.runtimeInfo,
-    title,
+    resolvedTitle,
     appVersion,
     state.deviceType,
     branding,
@@ -66,7 +69,7 @@ export function PlaygroundConversationPanel({
         open={state.countdown !== null}
         footer={
           <Button onClick={actions.finishCountdown} type="default">
-            Skip countdown
+            {t('conversation.skipCountdown')}
           </Button>
         }
         closable
@@ -103,7 +106,7 @@ export function PlaygroundConversationPanel({
               marginBottom: '12px',
             }}
           >
-            Automation Starting Soon
+            {t('conversation.automationStartingSoon')}
           </div>
           <div
             style={{
@@ -111,9 +114,9 @@ export function PlaygroundConversationPanel({
               color: 'rgba(0, 0, 0, 0.65)',
             }}
           >
-            The selected session requested a countdown before execution.
+            {t('conversation.countdownRequested')}
             <br />
-            Please wait until the run starts.
+            {t('conversation.pleaseWait')}
           </div>
         </div>
       </Modal>
@@ -124,8 +127,8 @@ export function PlaygroundConversationPanel({
             <Alert
               type="warning"
               showIcon
-              message="Playground server offline"
-              description="Reconnect the runtime to continue using the Android playground."
+              message={t('conversation.serverOffline')}
+              description={t('conversation.reconnectRuntime')}
             />
           </div>
         ) : state.sessionViewState.connected ? (

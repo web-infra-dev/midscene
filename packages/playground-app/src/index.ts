@@ -18,3 +18,4 @@ export type {
   PlaygroundControllerState,
 } from './controller/types';
 export { usePlaygroundController } from './controller/usePlaygroundController';
+export { playgroundAppEn, playgroundAppZh } from './i18n';

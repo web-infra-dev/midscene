@@ -1,3 +1,4 @@
+import { useT } from '@midscene/i18n';
 import type {
   PlaygroundRuntimeInfo,
   PlaygroundSDK,
@@ -78,6 +79,7 @@ export function PreviewRenderer({
   manualDragActionType = 'Swipe',
   manualKeyboardEnabled = false,
 }: PreviewRendererProps) {
+  const t = useT();
   const previewConnection = resolvePreviewConnectionInfo(
     runtimeInfo,
     serverUrl,
@@ -155,7 +157,7 @@ export function PreviewRenderer({
         }),
       );
       if (!res.ok) {
-        showManualControlError('Tap failed', res.error);
+        showManualControlError(t('preview.tapFailed'), res.error);
       }
     },
     [enqueueManualControl, playgroundSDK, showManualControlError],
@@ -200,7 +202,7 @@ export function PreviewRenderer({
         }),
       );
       if (!res.ok) {
-        showManualControlError('Input failed', res.error);
+        showManualControlError(t('preview.inputFailed'), res.error);
       }
     },
     [enqueueManualControl, playgroundSDK, showManualControlError],
@@ -216,7 +218,7 @@ export function PreviewRenderer({
         }),
       );
       if (!res.ok) {
-        showManualControlError('Keyboard press failed', res.error);
+        showManualControlError(t('preview.keyboardPressFailed'), res.error);
       }
     },
     [enqueueManualControl, playgroundSDK, showManualControlError],
@@ -245,31 +247,31 @@ export function PreviewRenderer({
           content={
             <div style={{ maxWidth: 360 }}>
               <p style={{ margin: '0 0 8px' }}>
-                Live scrcpy streaming is unavailable because WebCodecs API is
-                disabled in non-secure (HTTP) contexts with non-localhost
-                addresses.
+                {t('preview.webCodecsHttpDisabled')}
               </p>
               <p style={{ margin: '0 0 8px' }}>
-                Currently using screenshot polling as fallback. To enable scrcpy
-                streaming:
+                {t('preview.pollingFallback')}
               </p>
               <ol style={{ margin: 0, paddingLeft: 18 }}>
                 <li>
-                  Open{' '}
+                  {t('preview.instructionOpen')}{' '}
                   <code>
                     chrome://flags/#unsafely-treat-insecure-origin-as-secure
                   </code>
                 </li>
                 <li>
-                  Add <code>{window.location.origin}</code>
+                  {t('preview.instructionAdd')}{' '}
+                  <code>{window.location.origin}</code>
                 </li>
                 <li>
-                  Set to <b>Enabled</b> and relaunch Chrome
+                  {t('preview.instructionSetTo')}{' '}
+                  <b>{t('preview.instructionEnabled')}</b>{' '}
+                  {t('preview.instructionRelaunch')}
                 </li>
               </ol>
             </div>
           }
-          title="Screenshot polling mode"
+          title={t('preview.pollingTitle')}
           trigger="click"
           placement="bottomRight"
         >
@@ -309,8 +311,8 @@ export function PreviewRenderer({
         <Alert
           type="warning"
           showIcon
-          message="Preview unavailable"
-          description="This session did not expose a preview capability in runtime metadata."
+          message={t('preview.unavailableTitle')}
+          description={t('preview.unavailableDescription')}
         />
       ) : scrcpyAvailable ? (
         <ScrcpyPanel

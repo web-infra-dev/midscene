@@ -4,4 +4,4 @@ export {
   useLocale,
   useT,
 } from './LocaleProvider';
-export type { StudioLocale, TranslationKey } from './LocaleProvider';
+export type { StudioLocale } from './LocaleProvider';

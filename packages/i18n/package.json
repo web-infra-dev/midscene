@@ -1,0 +1,42 @@
+{
+  "name": "@midscene/i18n",
+  "version": "1.7.9",
+  "description": "Shared i18n infrastructure for Midscene packages",
+  "repository": "https://github.com/web-infra-dev/midscene",
+  "homepage": "https://midscenejs.com/",
+  "types": "./dist/types/index.d.ts",
+  "main": "./dist/lib/index.js",
+  "module": "./dist/es/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js"
+    },
+    "./common": {
+      "types": "./dist/types/common/index.d.ts",
+      "import": "./dist/es/common/index.mjs",
+      "require": "./dist/lib/common/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "dev": "npm run build:watch",
+    "build": "rslib build",
+    "build:watch": "rslib build --watch --no-clean"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0"
+  },
+  "devDependencies": {
+    "@rsbuild/plugin-react": "^1.4.1",
+    "@rslib/core": "^0.18.3",
+    "@types/react": "^18.3.1",
+    "react": "18.3.1",
+    "typescript": "^5.8.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT"
+}

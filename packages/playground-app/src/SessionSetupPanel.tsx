@@ -1,3 +1,4 @@
+import { useT } from '@midscene/i18n';
 import type {
   PlaygroundPlatformRegistration,
   PlaygroundSessionField,
@@ -130,9 +131,6 @@ export interface SessionSetupPanelProps {
   onCreateSession: () => void | Promise<void>;
 }
 
-const DEFAULT_TITLE = 'Create Agent';
-const DEFAULT_DESCRIPTION = 'Create a platform session before running actions.';
-
 export function SessionSetupPanel({
   form,
   sessionSetup,
@@ -142,13 +140,16 @@ export function SessionSetupPanel({
   sessionMutating,
   onCreateSession,
 }: SessionSetupPanelProps) {
+  const t = useT();
+  const defaultTitle = t('sessionSetup.defaultTitle');
+  const defaultDescription = t('sessionSetup.defaultDescription');
   const submitDisabled =
     sessionMutating ||
     sessionLoading ||
     sessionViewState.setupState === 'blocked';
-  const primaryLabel = sessionSetup?.primaryActionLabel ?? DEFAULT_TITLE;
-  const title = sessionSetup?.title ?? DEFAULT_TITLE;
-  const description = sessionSetup?.description ?? DEFAULT_DESCRIPTION;
+  const primaryLabel = sessionSetup?.primaryActionLabel ?? defaultTitle;
+  const title = sessionSetup?.title ?? defaultTitle;
+  const description = sessionSetup?.description ?? defaultDescription;
 
   return (
     <div className="session-setup-panel">
@@ -162,7 +163,7 @@ export function SessionSetupPanel({
             <Alert
               type="error"
               showIcon
-              message="Setup blocked"
+              message={t('sessionSetup.setupBlocked')}
               description={sessionViewState.setupBlockingReason}
               className="session-setup-alert"
             />
@@ -171,7 +172,7 @@ export function SessionSetupPanel({
           <Alert
             type="error"
             showIcon
-            message="Failed to load setup"
+            message={t('sessionSetup.failedToLoadSetup')}
             description={sessionSetupError}
             className="session-setup-alert"
           />
@@ -208,7 +209,10 @@ export function SessionSetupPanel({
                   ? [
                       {
                         required: true,
-                        message: `${field.label} is required`,
+                        message: t('sessionSetup.fieldRequired').replace(
+                          '{label}',
+                          field.label,
+                        ),
                       },
                     ]
                   : undefined
@@ -223,7 +227,7 @@ export function SessionSetupPanel({
             className="session-setup-submit"
             disabled={submitDisabled}
           >
-            {sessionMutating ? 'Creating...' : primaryLabel}
+            {sessionMutating ? t('sessionSetup.creating') : primaryLabel}
           </button>
         </Form>
       </div>

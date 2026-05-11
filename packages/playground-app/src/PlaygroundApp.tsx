@@ -1,3 +1,4 @@
+import { useT } from '@midscene/i18n';
 import {
   type DeviceType,
   Logo,
@@ -33,14 +34,19 @@ export interface PlaygroundAppProps {
 export function PlaygroundApp({
   serverUrl,
   appVersion,
-  title = 'Playground',
+  title,
   defaultDeviceType = 'web',
   branding,
   playgroundConfig,
-  offlineTitle = 'Midscene Playground',
-  offlineStatusText = 'Server offline...',
+  offlineTitle,
+  offlineStatusText,
   pollIntervalMs = 5000,
 }: PlaygroundAppProps) {
+  const t = useT();
+  const resolvedTitle = title ?? t('app.title');
+  const resolvedOfflineTitle = offlineTitle ?? t('app.offlineTitle');
+  const resolvedOfflineStatusText =
+    offlineStatusText ?? t('app.offlineStatusText');
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const controller = usePlaygroundController({
     serverUrl,
@@ -70,8 +76,8 @@ export function PlaygroundApp({
                 <ServerOfflineBackground className="icon-background" />
                 <ServerOfflineForeground className="icon-foreground" />
               </div>
-              <h1>{offlineTitle}</h1>
-              <p className="connection-status">{offlineStatusText}</p>
+              <h1>{resolvedOfflineTitle}</h1>
+              <p className="connection-status">{resolvedOfflineStatusText}</p>
             </div>
           </div>
         </div>
@@ -111,7 +117,7 @@ export function PlaygroundApp({
                     appVersion={appVersion}
                     branding={branding}
                     playgroundConfig={playgroundConfig}
-                    title={title}
+                    title={resolvedTitle}
                   />
                 </div>
               </div>

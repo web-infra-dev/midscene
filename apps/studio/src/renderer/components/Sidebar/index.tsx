@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { assetUrls } from '../../assets';
-import { type TranslationKey, useT } from '../../i18n';
+import { useT } from '../../i18n';
 import {
   buildDeviceSelectionFormValues,
   buildStudioSidebarDeviceBuckets,
@@ -27,7 +27,7 @@ interface DeviceItem {
 interface SectionDefinition {
   iconSrc?: string;
   key: StudioSidebarPlatformKey;
-  labelKey: TranslationKey;
+  labelKey: string;
 }
 
 const sectionDefinitions: SectionDefinition[] = [

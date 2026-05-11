@@ -528,6 +528,9 @@ importers:
       '@midscene/harmony':
         specifier: workspace:*
         version: link:../../packages/harmony
+      '@midscene/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@midscene/ios':
         specifier: workspace:*
         version: link:../../packages/ios
@@ -1251,6 +1254,24 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
+  packages/i18n:
+    devDependencies:
+      '@rsbuild/plugin-react':
+        specifier: ^1.4.1
+        version: 1.4.6(@rsbuild/core@2.0.0-beta.11)
+      '@rslib/core':
+        specifier: ^0.18.3
+        version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@25.5.2))(typescript@5.8.3)
+      '@types/react':
+        specifier: ^18.3.1
+        version: 18.3.23
+      react:
+        specifier: 18.3.1
+        version: 18.3.1
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+
   packages/ios:
     dependencies:
       '@inquirer/prompts':
@@ -1446,6 +1467,9 @@ importers:
 
   packages/playground-app:
     dependencies:
+      '@midscene/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@midscene/playground':
         specifier: workspace:*
         version: link:../playground
@@ -1614,6 +1638,9 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../core
+      '@midscene/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@midscene/playground':
         specifier: workspace:*
         version: link:../playground
@@ -15165,7 +15192,7 @@ snapshots:
     transitivePeerDependencies:
       - webpack-hot-middleware
 
-  '@rsbuild/plugin-react@1.4.6(@rsbuild/core@2.0.0-beta.11(core-js@3.47.0))':
+  '@rsbuild/plugin-react@1.4.6(@rsbuild/core@2.0.0-beta.11)':
     dependencies:
       '@rspack/plugin-react-refresh': 1.6.2(react-refresh@0.18.0)
       react-refresh: 0.18.0
@@ -15560,7 +15587,7 @@ snapshots:
       '@mdx-js/mdx': 3.1.1
       '@mdx-js/react': 3.1.1(@types/react@19.1.5)(react@19.2.4)
       '@rsbuild/core': 2.0.0-beta.11(core-js@3.47.0)
-      '@rsbuild/plugin-react': 1.4.6(@rsbuild/core@2.0.0-beta.11(core-js@3.47.0))
+      '@rsbuild/plugin-react': 1.4.6(@rsbuild/core@2.0.0-beta.11)
       '@rspress/shared': 2.0.8(core-js@3.47.0)
       '@shikijs/rehype': 4.0.2
       '@types/unist': 3.0.3

@@ -1,11 +1,4 @@
 const en = {
-  common: {
-    cancel: 'Cancel',
-    close: 'Close',
-    github: 'GitHub',
-    save: 'Save',
-    website: 'Website',
-  },
   device: {
     platforms: {
       android: 'Android',
