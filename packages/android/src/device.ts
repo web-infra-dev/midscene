@@ -17,7 +17,16 @@ import {
   type AndroidDeviceInputOpt,
   type AndroidDeviceOpt,
   type DeviceInputPrimitives,
-  createMobileInputActions,
+  createMobileClearInputAction,
+  createMobileCursorMoveAction,
+  createMobileDoubleClickAction,
+  createMobileDragAndDropAction,
+  createMobileInputAction,
+  createMobileKeyboardPressAction,
+  createMobileLongPressAction,
+  createMobilePinchAction,
+  createMobileSwipeAction,
+  createMobileTapAction,
   defineAction,
   defineActionScroll,
 } from '@midscene/core/device';
@@ -134,15 +143,26 @@ export class AndroidDevice implements AbstractInterface {
   };
 
   actionSpace(): DeviceAction<any>[] {
+    const mobileActionContext = {
+      input: this.inputPrimitives,
+      size: () => this.size(),
+      sleep: async (timeMs: number) => {
+        await sleep(timeMs);
+      },
+      getDefaultAutoDismissKeyboard: () => this.options?.autoDismissKeyboard,
+    };
+    const pinchAction = createMobilePinchAction(mobileActionContext);
     const defaultActions = [
-      ...createMobileInputActions({
-        input: this.inputPrimitives,
-        size: () => this.size(),
-        sleep: async (timeMs) => {
-          await sleep(timeMs);
-        },
-        getDefaultAutoDismissKeyboard: () => this.options?.autoDismissKeyboard,
-      }),
+      createMobileTapAction(mobileActionContext),
+      createMobileDoubleClickAction(mobileActionContext),
+      createMobileInputAction(mobileActionContext),
+      createMobileDragAndDropAction(mobileActionContext),
+      createMobileSwipeAction(mobileActionContext),
+      createMobileKeyboardPressAction(mobileActionContext),
+      createMobileCursorMoveAction(mobileActionContext),
+      createMobileLongPressAction(mobileActionContext),
+      ...(pinchAction ? [pinchAction] : []),
+      createMobileClearInputAction(mobileActionContext),
       defineActionScroll(async (param) => {
         const element = param.locate;
         const startingPoint = element

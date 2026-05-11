@@ -6,25 +6,23 @@ import {
   type LocateResultElement,
   type Point,
   type Size,
-  getMidsceneLocationSchema,
   z,
 } from '@midscene/core';
 import {
   type AbstractInterface,
-  type ActionTapParam,
   type DeviceInputPrimitives,
   type HarmonyDeviceOpt,
+  createMobileClearInputAction,
+  createMobileCursorMoveAction,
+  createMobileDoubleClickAction,
+  createMobileDragAndDropAction,
+  createMobileInputAction,
+  createMobileKeyboardPressAction,
+  createMobileLongPressAction,
+  createMobileSwipeAction,
+  createMobileTapAction,
   defineAction,
-  defineActionClearInput,
-  defineActionCursorMove,
-  defineActionDoubleClick,
-  defineActionDragAndDrop,
-  defineActionKeyboardPress,
-  defineActionLongPress,
   defineActionScroll,
-  defineActionSwipe,
-  defineActionTap,
-  normalizeMobileSwipeParam,
 } from '@midscene/core/device';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
@@ -34,33 +32,6 @@ import { normalizeForComparison, repeat } from '@midscene/shared/utils';
 import { HdcClient } from './hdc';
 
 export type { HarmonyDeviceOpt } from '@midscene/core/device';
-
-// Input action schema for Harmony
-const harmonyInputParamSchema = z.object({
-  value: z
-    .string()
-    .describe(
-      'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
-    ),
-  mode: z.preprocess(
-    (val) => (val === 'append' ? 'typeOnly' : val),
-    z
-      .enum(['replace', 'clear', 'typeOnly'])
-      .default('replace')
-      .optional()
-      .describe(
-        'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - attempt to clear the field (limited support on HarmonyOS).',
-      ),
-  ),
-  locate: getMidsceneLocationSchema()
-    .describe('The input field to be filled')
-    .optional(),
-});
-type HarmonyInputParam = {
-  value: string;
-  mode?: 'replace' | 'clear' | 'typeOnly';
-  locate?: LocateResultElement;
-};
 
 const defaultScrollUntilTimes = 10;
 const defaultFastSwipeSpeed = 2000;
@@ -156,53 +127,23 @@ export class HarmonyDevice implements AbstractInterface {
   };
 
   actionSpace(): DeviceAction<any>[] {
+    const mobileActionContext = {
+      input: this.inputPrimitives,
+      size: () => this.size(),
+      sleep: async (timeMs: number) => {
+        await sleep(timeMs);
+      },
+    };
     const defaultActions = [
-      defineActionTap(async (param: ActionTapParam) => {
-        const element = param.locate;
-        assert(element, 'Element not found, cannot tap');
-        await this.inputPrimitives.tap({
-          x: element.center[0],
-          y: element.center[1],
-        });
-      }),
-      defineActionDoubleClick(async (param) => {
-        const element = param.locate;
-        assert(element, 'Element not found, cannot double click');
-        await this.inputPrimitives.doubleClick({
-          x: element.center[0],
-          y: element.center[1],
-        });
-      }),
-      defineAction<typeof harmonyInputParamSchema, HarmonyInputParam>({
-        name: 'Input',
-        description: 'Input text into the input field',
-        interfaceAlias: 'aiInput',
-        paramSchema: harmonyInputParamSchema,
-        sample: {
-          value: 'test@example.com',
-          locate: { prompt: 'the email input field' },
-        },
-        call: async (param) => {
-          const element = param.locate;
-
-          if (param.mode === 'clear') {
-            await this.inputPrimitives.clearInput(
-              element as unknown as ElementInfo,
-            );
-            return;
-          }
-
-          if (!param || !param.value) {
-            return;
-          }
-
-          const shouldReplace = param.mode !== 'typeOnly';
-          await this.inputPrimitives.typeText(param.value, {
-            target: element as unknown as LocateResultElement | undefined,
-            replace: shouldReplace,
-          });
-        },
-      }),
+      createMobileTapAction(mobileActionContext),
+      createMobileDoubleClickAction(mobileActionContext),
+      createMobileInputAction(mobileActionContext),
+      createMobileDragAndDropAction(mobileActionContext),
+      createMobileSwipeAction(mobileActionContext),
+      createMobileKeyboardPressAction(mobileActionContext),
+      createMobileCursorMoveAction(mobileActionContext),
+      createMobileLongPressAction(mobileActionContext),
+      createMobileClearInputAction(mobileActionContext),
       defineActionScroll(async (param) => {
         const element = param.locate;
         const startingPoint = element
@@ -238,50 +179,6 @@ export class HarmonyDevice implements AbstractInterface {
             `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(param)}`,
           );
         }
-      }),
-      defineActionDragAndDrop(async (param) => {
-        const from = param.from;
-        const to = param.to;
-        assert(from, 'missing "from" param for drag and drop');
-        assert(to, 'missing "to" param for drag and drop');
-        await this.inputPrimitives.dragAndDrop(
-          { x: from.center[0], y: from.center[1] },
-          { x: to.center[0], y: to.center[1] },
-        );
-      }),
-      defineActionSwipe(async (param) => {
-        const { startPoint, endPoint, duration, repeatCount } =
-          normalizeMobileSwipeParam(param, await this.size());
-        for (let i = 0; i < repeatCount; i++) {
-          await this.inputPrimitives.swipe(startPoint, endPoint, { duration });
-        }
-      }),
-      defineActionKeyboardPress(async (param) => {
-        await this.inputPrimitives.keyboardPress(param.keyName);
-      }),
-      defineActionCursorMove(async (param) => {
-        const arrowKey =
-          param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
-        const times = param.times ?? 1;
-        for (let i = 0; i < times; i++) {
-          await this.inputPrimitives.keyboardPress(arrowKey);
-          await sleep(100);
-        }
-      }),
-      defineActionLongPress(async (param) => {
-        const element = param.locate;
-        if (!element) {
-          throw new Error('LongPress requires an element to be located');
-        }
-        await this.inputPrimitives.longPress({
-          x: element.center[0],
-          y: element.center[1],
-        });
-      }),
-      defineActionClearInput(async (param) => {
-        await this.inputPrimitives.clearInput(
-          param.locate as ElementInfo | undefined,
-        );
       }),
     ];
 

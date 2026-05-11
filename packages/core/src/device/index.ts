@@ -734,159 +734,209 @@ export interface MobileInputActionContext {
   getDefaultAutoDismissKeyboard?(): boolean | undefined;
 }
 
-export function createMobileInputActions(
-  context: MobileInputActionContext,
-): DeviceAction<any>[] {
-  const wait =
+function getMobileActionSleep(context: MobileInputActionContext) {
+  return (
     context.sleep ??
     ((timeMs: number) =>
-      new Promise<void>((resolve) => setTimeout(resolve, timeMs)));
+      new Promise<void>((resolve) => setTimeout(resolve, timeMs)))
+  );
+}
 
-  const actions: DeviceAction<any>[] = [
-    defineActionTap(async (param) => {
-      const element = param.locate;
-      if (!element) {
-        throw new Error('Element not found, cannot tap');
-      }
-      await context.input.tap({
-        x: element.center[0],
-        y: element.center[1],
-      });
-    }),
-    defineActionDoubleClick(async (param) => {
-      const element = param.locate;
-      if (!element) {
-        throw new Error('Element not found, cannot double click');
-      }
-      await context.input.doubleClick({
-        x: element.center[0],
-        y: element.center[1],
-      });
-    }),
-    defineAction({
-      name: 'Input',
-      description: 'Input text into the input field',
-      interfaceAlias: 'aiInput',
-      paramSchema: z.object({
-        value: z
-          .string()
-          .describe(
-            'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
-          ),
-        autoDismissKeyboard: z
-          .boolean()
+export function createMobileTapAction(
+  context: MobileInputActionContext,
+): DeviceAction<ActionTapParam> {
+  return defineActionTap(async (param) => {
+    const element = param.locate;
+    if (!element) {
+      throw new Error('Element not found, cannot tap');
+    }
+    await context.input.tap({
+      x: element.center[0],
+      y: element.center[1],
+    });
+  });
+}
+
+export function createMobileDoubleClickAction(
+  context: MobileInputActionContext,
+) {
+  return defineActionDoubleClick(async (param) => {
+    const element = param.locate;
+    if (!element) {
+      throw new Error('Element not found, cannot double click');
+    }
+    await context.input.doubleClick({
+      x: element.center[0],
+      y: element.center[1],
+    });
+  });
+}
+
+export function createMobileInputAction(context: MobileInputActionContext) {
+  return defineAction({
+    name: 'Input',
+    description: 'Input text into the input field',
+    interfaceAlias: 'aiInput',
+    paramSchema: z.object({
+      value: z
+        .string()
+        .describe(
+          'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
+        ),
+      autoDismissKeyboard: z
+        .boolean()
+        .optional()
+        .describe(
+          'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
+        ),
+      mode: z.preprocess(
+        (val) => (val === 'append' ? 'typeOnly' : val),
+        z
+          .enum(['replace', 'clear', 'typeOnly'])
+          .default('replace')
           .optional()
           .describe(
-            'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
+            'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
           ),
-        mode: z.preprocess(
-          (val) => (val === 'append' ? 'typeOnly' : val),
-          z
-            .enum(['replace', 'clear', 'typeOnly'])
-            .default('replace')
-            .optional()
-            .describe(
-              'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
-            ),
-        ),
-        locate: getMidsceneLocationSchema()
-          .describe('The input field to be filled')
-          .optional(),
-      }),
-      sample: {
-        value: 'test@example.com',
-        locate: { prompt: 'the email input field' },
-      },
-      call: async (param: {
-        value: string;
-        autoDismissKeyboard?: boolean;
-        mode?: 'replace' | 'clear' | 'typeOnly';
-        locate?: LocateResultElement;
-      }) => {
-        const element = param.locate;
-        if (param.mode !== 'typeOnly') {
-          await context.input.clearInput(element);
-        }
-
-        if (param.mode === 'clear') {
-          return;
-        }
-
-        if (!param || !param.value) {
-          return;
-        }
-
-        await context.input.typeText(param.value, {
-          autoDismissKeyboard:
-            param.autoDismissKeyboard ??
-            context.getDefaultAutoDismissKeyboard?.(),
-          target: element,
-          replace: param.mode !== 'typeOnly',
-        });
-      },
+      ),
+      locate: getMidsceneLocationSchema()
+        .describe('The input field to be filled')
+        .optional(),
     }),
-    defineActionDragAndDrop(async (param) => {
-      const from = param.from;
-      const to = param.to;
-      if (!from) {
-        throw new Error('missing "from" param for drag and drop');
-      }
-      if (!to) {
-        throw new Error('missing "to" param for drag and drop');
-      }
-      await context.input.dragAndDrop(
-        { x: from.center[0], y: from.center[1] },
-        { x: to.center[0], y: to.center[1] },
-      );
-    }),
-    defineActionSwipe(async (param) => {
-      const { startPoint, endPoint, duration, repeatCount } =
-        normalizeMobileSwipeParam(param, await context.size());
-      for (let i = 0; i < repeatCount; i++) {
-        await context.input.swipe(startPoint, endPoint, { duration });
-      }
-    }),
-    defineActionKeyboardPress(async (param) => {
-      await context.input.keyboardPress(param.keyName);
-    }),
-    defineActionCursorMove(async (param) => {
-      const arrowKey = param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
-      const times = param.times ?? 1;
-      for (let i = 0; i < times; i++) {
-        await context.input.keyboardPress(arrowKey);
-        await wait(100);
-      }
-    }),
-    defineActionLongPress(async (param) => {
+    sample: {
+      value: 'test@example.com',
+      locate: { prompt: 'the email input field' },
+    },
+    call: async (param: {
+      value: string;
+      autoDismissKeyboard?: boolean;
+      mode?: 'replace' | 'clear' | 'typeOnly';
+      locate?: LocateResultElement;
+    }) => {
       const element = param.locate;
-      if (!element) {
-        throw new Error('LongPress requires an element to be located');
+      if (param.mode !== 'typeOnly') {
+        await context.input.clearInput(element);
       }
-      const [x, y] = element.center;
-      await context.input.longPress({ x, y }, { duration: param?.duration });
-    }),
-  ];
 
-  if (context.input.pinch) {
-    actions.push(
-      defineActionPinch(async (param) => {
-        const { centerX, centerY, startDistance, endDistance, duration } =
-          normalizePinchParam(param, await context.size());
-        await context.input.pinch?.(
-          { x: centerX, y: centerY },
-          { startDistance, endDistance, duration },
-        );
-      }),
+      if (param.mode === 'clear') {
+        return;
+      }
+
+      if (!param || !param.value) {
+        return;
+      }
+
+      await context.input.typeText(param.value, {
+        autoDismissKeyboard:
+          param.autoDismissKeyboard ??
+          context.getDefaultAutoDismissKeyboard?.(),
+        target: element,
+        replace: param.mode !== 'typeOnly',
+      });
+    },
+  });
+}
+
+export function createMobileDragAndDropAction(
+  context: MobileInputActionContext,
+) {
+  return defineActionDragAndDrop(async (param) => {
+    const from = param.from;
+    const to = param.to;
+    if (!from) {
+      throw new Error('missing "from" param for drag and drop');
+    }
+    if (!to) {
+      throw new Error('missing "to" param for drag and drop');
+    }
+    await context.input.dragAndDrop(
+      { x: from.center[0], y: from.center[1] },
+      { x: to.center[0], y: to.center[1] },
     );
+  });
+}
+
+export function createMobileSwipeAction(context: MobileInputActionContext) {
+  return defineActionSwipe(async (param) => {
+    const { startPoint, endPoint, duration, repeatCount } =
+      normalizeMobileSwipeParam(param, await context.size());
+    for (let i = 0; i < repeatCount; i++) {
+      await context.input.swipe(startPoint, endPoint, { duration });
+    }
+  });
+}
+
+export function createMobileKeyboardPressAction(
+  context: MobileInputActionContext,
+) {
+  return defineActionKeyboardPress(async (param) => {
+    await context.input.keyboardPress(param.keyName);
+  });
+}
+
+export function createMobileCursorMoveAction(
+  context: MobileInputActionContext,
+) {
+  const wait = getMobileActionSleep(context);
+  return defineActionCursorMove(async (param) => {
+    const arrowKey = param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
+    const times = param.times ?? 1;
+    for (let i = 0; i < times; i++) {
+      await context.input.keyboardPress(arrowKey);
+      await wait(100);
+    }
+  });
+}
+
+export function createMobileLongPressAction(context: MobileInputActionContext) {
+  return defineActionLongPress(async (param) => {
+    const element = param.locate;
+    if (!element) {
+      throw new Error('LongPress requires an element to be located');
+    }
+    const [x, y] = element.center;
+    await context.input.longPress({ x, y }, { duration: param?.duration });
+  });
+}
+
+export function createMobilePinchAction(context: MobileInputActionContext) {
+  if (!context.input.pinch) {
+    return undefined;
   }
 
-  actions.push(
-    defineActionClearInput(async (param) => {
-      await context.input.clearInput(param.locate);
-    }),
-  );
+  return defineActionPinch(async (param) => {
+    const { centerX, centerY, startDistance, endDistance, duration } =
+      normalizePinchParam(param, await context.size());
+    await context.input.pinch?.(
+      { x: centerX, y: centerY },
+      { startDistance, endDistance, duration },
+    );
+  });
+}
 
-  return actions;
+export function createMobileClearInputAction(
+  context: MobileInputActionContext,
+) {
+  return defineActionClearInput(async (param) => {
+    await context.input.clearInput(param.locate);
+  });
+}
+
+export function createDefaultMobileActions(
+  context: MobileInputActionContext,
+): DeviceAction<any>[] {
+  return [
+    createMobileTapAction(context),
+    createMobileDoubleClickAction(context),
+    createMobileInputAction(context),
+    createMobileDragAndDropAction(context),
+    createMobileSwipeAction(context),
+    createMobileKeyboardPressAction(context),
+    createMobileCursorMoveAction(context),
+    createMobileLongPressAction(context),
+    createMobilePinchAction(context),
+    createMobileClearInputAction(context),
+  ].filter((action): action is DeviceAction<any> => Boolean(action));
 }
 
 // Sleep

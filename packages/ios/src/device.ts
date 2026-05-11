@@ -2,32 +2,28 @@ import assert from 'node:assert';
 import {
   type DeviceAction,
   type InterfaceType,
-  type LocateResultElement,
   type Point,
   type Size,
-  getMidsceneLocationSchema,
   z,
 } from '@midscene/core';
 import {
   type AbstractInterface,
-  type ActionTapParam,
   type DeviceInputPrimitives,
   type IOSDeviceInputOpt,
   type IOSDeviceOpt,
   type PointerPoint,
+  createMobileClearInputAction,
+  createMobileCursorMoveAction,
+  createMobileDoubleClickAction,
+  createMobileDragAndDropAction,
+  createMobileInputAction,
+  createMobileKeyboardPressAction,
+  createMobileLongPressAction,
+  createMobilePinchAction,
+  createMobileSwipeAction,
+  createMobileTapAction,
   defineAction,
-  defineActionClearInput,
-  defineActionCursorMove,
-  defineActionDoubleClick,
-  defineActionDragAndDrop,
-  defineActionKeyboardPress,
-  defineActionLongPress,
-  defineActionPinch,
   defineActionScroll,
-  defineActionSwipe,
-  defineActionTap,
-  normalizeMobileSwipeParam,
-  normalizePinchParam,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
@@ -42,40 +38,6 @@ import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-cli
 export type { IOSDeviceOpt, IOSDeviceInputOpt } from '@midscene/core/device';
 
 const debugDevice = getDebug('ios:device');
-
-// Input action schema for iOS
-const iosInputParamSchema = z.object({
-  value: z
-    .string()
-    .describe(
-      'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
-    ),
-  autoDismissKeyboard: z
-    .boolean()
-    .optional()
-    .describe(
-      'Whether to dismiss the keyboard after input. Defaults to true if not specified. Set to false to keep the keyboard visible after input.',
-    ),
-  mode: z.preprocess(
-    (val) => (val === 'append' ? 'typeOnly' : val),
-    z
-      .enum(['replace', 'clear', 'typeOnly'])
-      .default('replace')
-      .optional()
-      .describe(
-        'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
-      ),
-  ),
-  locate: getMidsceneLocationSchema()
-    .describe('The input field to be filled')
-    .optional(),
-});
-type IOSInputParam = {
-  value: string;
-  autoDismissKeyboard?: boolean;
-  mode?: 'replace' | 'clear' | 'typeOnly';
-  locate?: LocateResultElement;
-};
 
 /**
  * HTTP methods supported by WebDriverAgent API
@@ -183,56 +145,26 @@ export class IOSDevice implements AbstractInterface {
   }
 
   actionSpace(): DeviceAction<any>[] {
+    const mobileActionContext = {
+      input: this.inputPrimitives,
+      size: () => this.size(),
+      sleep: async (timeMs: number) => {
+        await sleep(timeMs);
+      },
+      getDefaultAutoDismissKeyboard: () => this.options?.autoDismissKeyboard,
+    };
+    const pinchAction = createMobilePinchAction(mobileActionContext);
     const defaultActions = [
-      defineActionTap(async (param: ActionTapParam) => {
-        const element = param.locate;
-        assert(element, 'Element not found, cannot tap');
-        await this.inputPrimitives.tap({
-          x: element.center[0],
-          y: element.center[1],
-        });
-      }),
-      defineActionDoubleClick(async (param) => {
-        const element = param.locate;
-        assert(element, 'Element not found, cannot double click');
-        await this.inputPrimitives.doubleClick({
-          x: element.center[0],
-          y: element.center[1],
-        });
-      }),
-      defineAction<typeof iosInputParamSchema, IOSInputParam>({
-        name: 'Input',
-        description: 'Input text into the input field',
-        interfaceAlias: 'aiInput',
-        paramSchema: iosInputParamSchema,
-        sample: {
-          value: 'test@example.com',
-          locate: { prompt: 'the email input field' },
-        },
-        call: async (param) => {
-          const element = param.locate;
-          if (param.mode !== 'typeOnly') {
-            await this.inputPrimitives.clearInput(
-              element as unknown as ElementInfo,
-            );
-          }
-
-          if (param.mode === 'clear') {
-            // Clear mode removes existing text without entering new characters
-            return;
-          }
-
-          if (!param || !param.value) {
-            return;
-          }
-
-          const autoDismissKeyboard =
-            param.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
-          await this.inputPrimitives.typeText(param.value, {
-            autoDismissKeyboard,
-          });
-        },
-      }),
+      createMobileTapAction(mobileActionContext),
+      createMobileDoubleClickAction(mobileActionContext),
+      createMobileInputAction(mobileActionContext),
+      createMobileDragAndDropAction(mobileActionContext),
+      createMobileSwipeAction(mobileActionContext),
+      createMobileKeyboardPressAction(mobileActionContext),
+      createMobileCursorMoveAction(mobileActionContext),
+      createMobileLongPressAction(mobileActionContext),
+      ...(pinchAction ? [pinchAction] : []),
+      createMobileClearInputAction(mobileActionContext),
       defineActionScroll(async (param) => {
         const element = param.locate;
         const startingPoint = element
@@ -270,58 +202,6 @@ export class IOSDevice implements AbstractInterface {
             )}`,
           );
         }
-      }),
-      defineActionDragAndDrop(async (param) => {
-        const from = param.from;
-        const to = param.to;
-        assert(from, 'missing "from" param for drag and drop');
-        assert(to, 'missing "to" param for drag and drop');
-        await this.inputPrimitives.dragAndDrop(
-          { x: from.center[0], y: from.center[1] },
-          { x: to.center[0], y: to.center[1] },
-        );
-      }),
-      defineActionSwipe(async (param) => {
-        const { startPoint, endPoint, duration, repeatCount } =
-          normalizeMobileSwipeParam(param, await this.size());
-        for (let i = 0; i < repeatCount; i++) {
-          await this.inputPrimitives.swipe(startPoint, endPoint, { duration });
-        }
-      }),
-      defineActionKeyboardPress(async (param) => {
-        await this.inputPrimitives.keyboardPress(param.keyName);
-      }),
-      defineActionCursorMove(async (param) => {
-        const arrowKey =
-          param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
-        const times = param.times ?? 1;
-        for (let i = 0; i < times; i++) {
-          await this.inputPrimitives.keyboardPress(arrowKey);
-          await sleep(100);
-        }
-      }),
-      defineActionLongPress(async (param) => {
-        const element = param.locate;
-        assert(element, 'LongPress requires an element to be located');
-        const [x, y] = element.center;
-        await this.inputPrimitives.longPress(
-          { x, y },
-          { duration: param?.duration },
-        );
-      }),
-      defineActionPinch(async (param) => {
-        const { centerX, centerY, startDistance, endDistance, duration } =
-          normalizePinchParam(param, await this.size());
-
-        await this.inputPrimitives.pinch!(
-          { x: centerX, y: centerY },
-          { startDistance, endDistance, duration },
-        );
-      }),
-      defineActionClearInput(async (param) => {
-        await this.inputPrimitives.clearInput(
-          param.locate as ElementInfo | undefined,
-        );
       }),
     ];
 
