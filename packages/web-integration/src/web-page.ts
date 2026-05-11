@@ -1,4 +1,3 @@
-import assert from 'node:assert';
 import type { Point } from '@midscene/core';
 import { z } from '@midscene/core';
 import {
@@ -19,15 +18,11 @@ import {
   defineActionScroll,
   defineActionSwipe,
   defineActionTap,
-  normalizePinchParam,
 } from '@midscene/core/device';
 
 import { sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { getDebug } from '@midscene/shared/logger';
 import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
-
-const debug = getDebug('web:page');
 
 const navigateParamSchema = z.object({
   url: z
@@ -528,6 +523,46 @@ export function createWebInputPrimitives(
         await page.swipe(from, to, opts?.duration);
       },
     },
+    scroll: {
+      scroll: async (param) => {
+        const element = param.locate;
+        const startingPoint = element
+          ? {
+              left: element.center[0],
+              top: element.center[1],
+            }
+          : undefined;
+        const scrollToEventName = param?.scrollType;
+        if (scrollToEventName === 'scrollToTop') {
+          await page.scrollUntilTop(startingPoint);
+        } else if (scrollToEventName === 'scrollToBottom') {
+          await page.scrollUntilBottom(startingPoint);
+        } else if (scrollToEventName === 'scrollToRight') {
+          await page.scrollUntilRight(startingPoint);
+        } else if (scrollToEventName === 'scrollToLeft') {
+          await page.scrollUntilLeft(startingPoint);
+        } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
+          if (param?.direction === 'down' || !param || !param.direction) {
+            await page.scrollDown(param?.distance || undefined, startingPoint);
+          } else if (param.direction === 'up') {
+            await page.scrollUp(param.distance || undefined, startingPoint);
+          } else if (param.direction === 'left') {
+            await page.scrollLeft(param.distance || undefined, startingPoint);
+          } else if (param.direction === 'right') {
+            await page.scrollRight(param.distance || undefined, startingPoint);
+          } else {
+            throw new Error(`Unknown scroll direction: ${param.direction}`);
+          }
+          await sleep(500);
+        } else {
+          throw new Error(
+            `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
+              param,
+            )}`,
+          );
+        }
+      },
+    },
   };
 }
 
@@ -536,216 +571,25 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
   includeTouchEvents = false,
 ): DeviceAction<any>[] => {
   const input = createWebInputPrimitives(page);
+  const pinchAction = defineActionPinch({ input, size: () => page.size() });
   return [
-    defineActionTap(async (param) => {
-      const element = param.locate;
-      assert(element, 'Element not found, cannot tap');
-
-      await input.pointer!.tap({ x: element.center[0], y: element.center[1] });
-    }),
-    defineActionRightClick(async (param) => {
-      const element = param.locate;
-      assert(element, 'Element not found, cannot right click');
-      await input.pointer!.rightClick?.({
-        x: element.center[0],
-        y: element.center[1],
-      });
-    }),
-    defineActionDoubleClick(async (param) => {
-      const element = param.locate;
-      assert(element, 'Element not found, cannot double click');
-
-      await input.pointer!.doubleClick?.({
-        x: element.center[0],
-        y: element.center[1],
-      });
-    }),
-    defineActionHover(async (param) => {
-      const element = param.locate;
-      assert(element, 'Element not found, cannot hover');
-      await input.pointer!.hover?.({
-        x: element.center[0],
-        y: element.center[1],
-      });
-    }),
-    defineActionInput(async (param) => {
-      const element = param.locate;
-      if (element && param.mode !== 'typeOnly') {
-        await input.keyboard!.clearInput(element as unknown as ElementInfo);
-      } else if (element && param.mode === 'typeOnly') {
-        // typeOnly mode: click to focus and move cursor to end, but don't clear
-        await input.keyboard!.typeText('', {
-          target: element as unknown as ElementInfo,
-          replace: false,
-          focusOnly: true,
-        });
-      }
-
-      if (param.mode === 'clear') {
-        return;
-      }
-
-      if (!param || !param.value) {
-        return;
-      }
-
-      await input.keyboard!.typeText(param.value);
-    }),
-    defineActionKeyboardPress(async (param) => {
-      await input.keyboard!.keyboardPress(param.keyName, {
-        target: param.locate,
-      });
-    }),
-    defineActionCursorMove(async (param) => {
-      await input.keyboard!.cursorMove?.(param.direction, param.times);
-    }),
-    defineActionScroll(async (param) => {
-      const element = param.locate;
-      const startingPoint = element
-        ? {
-            left: element.center[0],
-            top: element.center[1],
-          }
-        : undefined;
-      const scrollToEventName = param?.scrollType;
-      if (scrollToEventName === 'scrollToTop') {
-        await page.scrollUntilTop(startingPoint);
-      } else if (scrollToEventName === 'scrollToBottom') {
-        await page.scrollUntilBottom(startingPoint);
-      } else if (scrollToEventName === 'scrollToRight') {
-        await page.scrollUntilRight(startingPoint);
-      } else if (scrollToEventName === 'scrollToLeft') {
-        await page.scrollUntilLeft(startingPoint);
-      } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
-        if (param?.direction === 'down' || !param || !param.direction) {
-          await page.scrollDown(param?.distance || undefined, startingPoint);
-        } else if (param.direction === 'up') {
-          await page.scrollUp(param.distance || undefined, startingPoint);
-        } else if (param.direction === 'left') {
-          await page.scrollLeft(param.distance || undefined, startingPoint);
-        } else if (param.direction === 'right') {
-          await page.scrollRight(param.distance || undefined, startingPoint);
-        } else {
-          throw new Error(`Unknown scroll direction: ${param.direction}`);
-        }
-        // until mouse event is done
-        await sleep(500);
-      } else {
-        throw new Error(
-          `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
-            param,
-          )}`,
-        );
-      }
-    }),
-    defineActionDragAndDrop(async (param) => {
-      const from = param.from;
-      const to = param.to;
-      assert(from, 'missing "from" param for drag and drop');
-      assert(to, 'missing "to" param for drag and drop');
-      await input.pointer!.dragAndDrop?.(
-        { x: from.center[0], y: from.center[1] },
-        { x: to.center[0], y: to.center[1] },
-      );
-    }),
-
-    defineActionLongPress(async (param) => {
-      const element = param.locate;
-      assert(element, 'Element not found, cannot long press');
-      const duration = param?.duration;
-      await input.pointer!.longPress?.(
-        { x: element.center[0], y: element.center[1] },
-        { duration },
-      );
-    }),
-
-    defineActionPinch(async (param) => {
-      const { centerX, centerY, startDistance, endDistance, duration } =
-        normalizePinchParam(param, await page.size());
-
-      await input.touch!.pinch?.(
-        { x: centerX, y: centerY },
-        { startDistance, endDistance, duration },
-      );
-    }),
+    defineActionTap(input),
+    defineActionRightClick(input),
+    defineActionDoubleClick(input),
+    defineActionHover(input),
+    defineActionInput(input),
+    defineActionKeyboardPress(input),
+    defineActionCursorMove({ input }),
+    defineActionScroll(input),
+    defineActionDragAndDrop(input),
+    defineActionLongPress(input),
+    ...(pinchAction ? [pinchAction] : []),
 
     ...(includeTouchEvents
-      ? [
-          defineActionSwipe(async (param) => {
-            const { width, height } = await page.size();
-            const { start, end } = param;
-
-            const startPoint = start
-              ? {
-                  x: start.center[0],
-                  y: start.center[1],
-                }
-              : {
-                  x: width / 2,
-                  y: height / 2,
-                };
-
-            let endPoint: {
-              x: number;
-              y: number;
-            };
-
-            if (end) {
-              endPoint = {
-                x: end.center[0],
-                y: end.center[1],
-              };
-            } else if (param.distance) {
-              const direction = param.direction;
-              if (!direction) {
-                throw new Error('direction is required for swipe gesture');
-              }
-
-              endPoint = {
-                x:
-                  startPoint.x +
-                  (direction === 'right'
-                    ? param.distance
-                    : direction === 'left'
-                      ? -param.distance
-                      : 0),
-                y:
-                  startPoint.y +
-                  (direction === 'down'
-                    ? param.distance
-                    : direction === 'up'
-                      ? -param.distance
-                      : 0),
-              };
-            } else {
-              throw new Error(
-                'Either end or distance must be specified for swipe gesture',
-              );
-            }
-
-            // Ensure end coordinates are within bounds
-            endPoint.x = Math.max(0, Math.min(endPoint.x, width));
-            endPoint.y = Math.max(0, Math.min(endPoint.y, height));
-
-            const duration = param.duration;
-
-            debug(
-              `swipe from ${startPoint.x}, ${startPoint.y} to ${endPoint.x}, ${endPoint.y} with duration ${duration}ms, repeat is set to ${param.repeat}`,
-            );
-            let repeat = typeof param.repeat === 'number' ? param.repeat : 1;
-            if (repeat === 0) {
-              repeat = 10; // 10 times is enough for infinite swipe
-            }
-            for (let i = 0; i < repeat; i++) {
-              await input.touch!.swipe(startPoint, endPoint, { duration });
-            }
-          }),
-        ]
+      ? [defineActionSwipe({ input, size: () => page.size() })]
       : []),
 
-    defineActionClearInput(async (param) => {
-      await input.keyboard!.clearInput(param.locate as ElementInfo | undefined);
-    }),
+    defineActionClearInput(input),
 
     defineAction<typeof navigateParamSchema, { url: string }>({
       name: 'Navigate',

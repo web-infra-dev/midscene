@@ -7,9 +7,8 @@ import type {
 } from '@midscene/core';
 import {
   type AbstractInterface,
-  type ActionInputParam,
-  type ActionKeyboardPressParam,
   type ActionTapParam,
+  type InputPrimitives,
   actionTapParamSchema,
   defineAction,
   defineActionClearInput,
@@ -66,6 +65,132 @@ export class RDPDevice implements AbstractInterface {
   private destroyed = false;
   private cursorPosition?: [number, number];
   uri?: string;
+
+  readonly inputPrimitives: InputPrimitives = {
+    pointer: {
+      tap: async ({ x, y }) => {
+        await this.movePointer(Math.round(x), Math.round(y), {
+          steps: SMOOTH_MOVE_STEPS_TAP,
+          stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
+        });
+        await this.backend.mouseButton('left', 'down');
+        await sleep(CLICK_HOLD_DURATION);
+        await this.backend.mouseButton('left', 'up');
+      },
+      doubleClick: async ({ x, y }) => {
+        await this.movePointer(Math.round(x), Math.round(y), {
+          steps: SMOOTH_MOVE_STEPS_TAP,
+          stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
+        });
+        await this.backend.mouseButton('left', 'doubleClick');
+      },
+      rightClick: async ({ x, y }) => {
+        await this.movePointer(Math.round(x), Math.round(y), {
+          steps: SMOOTH_MOVE_STEPS_TAP,
+          stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
+        });
+        await this.backend.mouseButton('right', 'click');
+      },
+      hover: async ({ x, y }) => {
+        await this.movePointer(Math.round(x), Math.round(y), {
+          steps: SMOOTH_MOVE_STEPS_MOUSE_MOVE,
+          stepDelayMs: SMOOTH_MOVE_DELAY_MOUSE_MOVE,
+          settleDelayMs: MOUSE_MOVE_EFFECT_WAIT,
+        });
+      },
+      dragAndDrop: async (from, to) => {
+        await this.movePointer(Math.round(from.x), Math.round(from.y), {
+          steps: SMOOTH_MOVE_STEPS_TAP,
+          stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
+        });
+        await this.backend.mouseButton('left', 'down');
+        await sleep(DRAG_HOLD_DURATION);
+        await this.movePointer(Math.round(to.x), Math.round(to.y), {
+          steps: SMOOTH_MOVE_STEPS_DRAG,
+          stepDelayMs: SMOOTH_MOVE_DELAY_DRAG,
+        });
+        await sleep(DRAG_HOLD_DURATION);
+        await this.backend.mouseButton('left', 'up');
+      },
+    },
+    keyboard: {
+      typeText: async (value, opts) => {
+        this.assertConnected();
+        const target = opts?.target as LocateResultElement | undefined;
+        if (target) {
+          await this.inputPrimitives.pointer!.tap({
+            x: target.center[0],
+            y: target.center[1],
+          });
+          await sleep(INPUT_FOCUS_DELAY);
+        }
+        if (opts?.replace !== false) {
+          await this.clearInput();
+          await sleep(INPUT_CLEAR_DELAY);
+        }
+        if (opts?.focusOnly || !value) {
+          return;
+        }
+        await this.backend.typeText(value);
+      },
+      clearInput: async (target) => {
+        this.assertConnected();
+        const element = target as LocateResultElement | undefined;
+        if (element) {
+          await this.inputPrimitives.pointer!.tap({
+            x: element.center[0],
+            y: element.center[1],
+          });
+          await sleep(INPUT_FOCUS_DELAY);
+        }
+        await this.clearInput();
+        await sleep(INPUT_CLEAR_DELAY);
+      },
+      keyboardPress: async (keyName, opts) => {
+        this.assertConnected();
+        const target = opts?.target as LocateResultElement | undefined;
+        if (target) {
+          await this.inputPrimitives.pointer!.tap({
+            x: target.center[0],
+            y: target.center[1],
+          });
+        }
+        await this.backend.keyPress(keyName);
+      },
+    },
+    scroll: {
+      scroll: async (param) => {
+        this.assertConnected();
+        const target = param.locate;
+        if (target) {
+          await this.moveToElement(target, {
+            steps: SMOOTH_MOVE_STEPS_MOUSE_MOVE,
+            stepDelayMs: SMOOTH_MOVE_DELAY_MOUSE_MOVE,
+          });
+        }
+        if (param.scrollType && param.scrollType !== 'singleAction') {
+          const direction = this.edgeScrollDirection(param.scrollType);
+          for (let i = 0; i < EDGE_SCROLL_STEPS; i++) {
+            await this.performWheel(
+              direction,
+              DEFAULT_SCROLL_DISTANCE,
+              target?.center[0],
+              target?.center[1],
+            );
+          }
+          await sleep(SCROLL_COMPLETE_DELAY);
+          return;
+        }
+        await this.performWheel(
+          param.direction || 'down',
+          param.distance || DEFAULT_SCROLL_DISTANCE,
+          target?.center[0],
+          target?.center[1],
+        );
+        await sleep(SCROLL_COMPLETE_DELAY);
+      },
+    },
+  };
 
   constructor(options: RDPDeviceOpt) {
     this.options = {
@@ -124,134 +249,15 @@ export class RDPDevice implements AbstractInterface {
 
   actionSpace(): DeviceAction<any>[] {
     const defaultActions: DeviceAction<any>[] = [
-      defineActionTap(async ({ locate }) => {
-        const element = this.requireLocate(locate, 'tap');
-        await this.moveToElement(element, {
-          steps: SMOOTH_MOVE_STEPS_TAP,
-          stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
-        });
-        await this.backend.mouseButton('left', 'down');
-        await sleep(CLICK_HOLD_DURATION);
-        await this.backend.mouseButton('left', 'up');
-      }),
-      defineActionDoubleClick(async ({ locate }) => {
-        const element = this.requireLocate(locate, 'double click');
-        await this.moveToElement(element, {
-          steps: SMOOTH_MOVE_STEPS_TAP,
-          stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
-        });
-        await this.backend.mouseButton('left', 'doubleClick');
-      }),
-      defineActionRightClick(async ({ locate }) => {
-        const element = this.requireLocate(locate, 'right click');
-        await this.moveToElement(element, {
-          steps: SMOOTH_MOVE_STEPS_TAP,
-          stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
-        });
-        await this.backend.mouseButton('right', 'click');
-      }),
-      defineActionHover(async ({ locate }) => {
-        const element = this.requireLocate(locate, 'hover');
-        await this.moveToElement(element, {
-          steps: SMOOTH_MOVE_STEPS_MOUSE_MOVE,
-          stepDelayMs: SMOOTH_MOVE_DELAY_MOUSE_MOVE,
-          settleDelayMs: MOUSE_MOVE_EFFECT_WAIT,
-        });
-      }),
-      defineActionInput(async (param: ActionInputParam) => {
-        this.assertConnected();
-        if (param.locate) {
-          await this.moveToElement(param.locate, {
-            steps: SMOOTH_MOVE_STEPS_TAP,
-            stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
-          });
-          await this.backend.mouseButton('left', 'click');
-          await sleep(INPUT_FOCUS_DELAY);
-        }
-        if (param.mode !== 'typeOnly') {
-          await this.clearInput();
-          await sleep(INPUT_CLEAR_DELAY);
-        }
-        if (param.mode === 'clear') {
-          return;
-        }
-        if (param.value) {
-          await this.backend.typeText(param.value);
-        }
-      }),
-      defineActionClearInput(async ({ locate }) => {
-        this.assertConnected();
-        if (locate) {
-          await this.moveToElement(locate, {
-            steps: SMOOTH_MOVE_STEPS_TAP,
-            stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
-          });
-          await this.backend.mouseButton('left', 'click');
-          await sleep(INPUT_FOCUS_DELAY);
-        }
-        await this.clearInput();
-        await sleep(INPUT_CLEAR_DELAY);
-      }),
-      defineActionKeyboardPress(
-        async ({ locate, keyName }: ActionKeyboardPressParam) => {
-          this.assertConnected();
-          if (locate) {
-            await this.moveToElement(locate, {
-              steps: SMOOTH_MOVE_STEPS_TAP,
-              stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
-            });
-            await this.backend.mouseButton('left', 'click');
-          }
-          await this.backend.keyPress(keyName);
-        },
-      ),
-      defineActionScroll(async (param: ActionScrollParam) => {
-        this.assertConnected();
-        const target = param.locate;
-        if (target) {
-          await this.moveToElement(target, {
-            steps: SMOOTH_MOVE_STEPS_MOUSE_MOVE,
-            stepDelayMs: SMOOTH_MOVE_DELAY_MOUSE_MOVE,
-          });
-        }
-        if (param.scrollType && param.scrollType !== 'singleAction') {
-          const direction = this.edgeScrollDirection(param.scrollType);
-          for (let i = 0; i < EDGE_SCROLL_STEPS; i++) {
-            await this.performWheel(
-              direction,
-              DEFAULT_SCROLL_DISTANCE,
-              target?.center[0],
-              target?.center[1],
-            );
-          }
-          await sleep(SCROLL_COMPLETE_DELAY);
-          return;
-        }
-        await this.performWheel(
-          param.direction || 'down',
-          param.distance || DEFAULT_SCROLL_DISTANCE,
-          target?.center[0],
-          target?.center[1],
-        );
-        await sleep(SCROLL_COMPLETE_DELAY);
-      }),
-      defineActionDragAndDrop(async ({ from, to }) => {
-        this.assertConnected();
-        const source = this.requireLocate(from, 'drag source');
-        const target = this.requireLocate(to, 'drag target');
-        await this.moveToElement(source, {
-          steps: SMOOTH_MOVE_STEPS_TAP,
-          stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
-        });
-        await this.backend.mouseButton('left', 'down');
-        await sleep(DRAG_HOLD_DURATION);
-        await this.moveToElement(target, {
-          steps: SMOOTH_MOVE_STEPS_DRAG,
-          stepDelayMs: SMOOTH_MOVE_DELAY_DRAG,
-        });
-        await sleep(DRAG_HOLD_DURATION);
-        await this.backend.mouseButton('left', 'up');
-      }),
+      defineActionTap(this.inputPrimitives),
+      defineActionDoubleClick(this.inputPrimitives),
+      defineActionRightClick(this.inputPrimitives),
+      defineActionHover(this.inputPrimitives),
+      defineActionInput(this.inputPrimitives),
+      defineActionClearInput(this.inputPrimitives),
+      defineActionKeyboardPress(this.inputPrimitives),
+      defineActionScroll(this.inputPrimitives),
+      defineActionDragAndDrop(this.inputPrimitives),
       defineAction<typeof actionTapParamSchema, ActionTapParam>({
         name: 'MiddleClick',
         description: 'Middle click the element',

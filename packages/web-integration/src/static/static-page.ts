@@ -1,6 +1,7 @@
 import type { DeviceAction, Point, UIContext } from '@midscene/core';
 import type { AbstractInterface } from '@midscene/core/device';
 import {
+  type InputPrimitives,
   defineActionDragAndDrop,
   defineActionHover,
   defineActionInput,
@@ -25,6 +26,25 @@ export default class StaticPage implements AbstractInterface {
   interfaceType = 'static';
 
   private uiContext: StaticPageUIContext;
+  readonly inputPrimitives: InputPrimitives = {
+    pointer: {
+      tap: async () => ThrowNotImplemented('Tap'),
+      rightClick: async () => ThrowNotImplemented('RightClick'),
+      hover: async () => ThrowNotImplemented('Hover'),
+      dragAndDrop: async () => ThrowNotImplemented('DragAndDrop'),
+    },
+    keyboard: {
+      typeText: async () => ThrowNotImplemented('Input'),
+      keyboardPress: async () => ThrowNotImplemented('KeyboardPress'),
+      clearInput: async () => ThrowNotImplemented('ClearInput'),
+    },
+    touch: {
+      swipe: async () => ThrowNotImplemented('Swipe'),
+    },
+    scroll: {
+      scroll: async () => ThrowNotImplemented('Scroll'),
+    },
+  };
 
   constructor(uiContext: StaticPageUIContext) {
     this.uiContext = uiContext;
@@ -34,29 +54,16 @@ export default class StaticPage implements AbstractInterface {
     // Return available actions for static page - they will throw "not implemented" errors when executed
     // but need to be available for planning phase
     return [
-      defineActionTap(async (param) => {
-        ThrowNotImplemented('Tap');
-      }),
-      defineActionRightClick(async (param) => {
-        ThrowNotImplemented('RightClick');
-      }),
-      defineActionHover(async (param) => {
-        ThrowNotImplemented('Hover');
-      }),
-      defineActionInput(async (param) => {
-        ThrowNotImplemented('Input');
-      }),
-      defineActionKeyboardPress(async (param) => {
-        ThrowNotImplemented('KeyboardPress');
-      }),
-      defineActionScroll(async (param) => {
-        ThrowNotImplemented('Scroll');
-      }),
-      defineActionDragAndDrop(async (param) => {
-        ThrowNotImplemented('DragAndDrop');
-      }),
-      defineActionSwipe(async (param) => {
-        ThrowNotImplemented('Swipe');
+      defineActionTap(this.inputPrimitives),
+      defineActionRightClick(this.inputPrimitives),
+      defineActionHover(this.inputPrimitives),
+      defineActionInput(this.inputPrimitives),
+      defineActionKeyboardPress(this.inputPrimitives),
+      defineActionScroll(this.inputPrimitives),
+      defineActionDragAndDrop(this.inputPrimitives),
+      defineActionSwipe({
+        input: this.inputPrimitives,
+        size: () => this.size(),
       }),
     ];
   }
@@ -84,7 +91,7 @@ export default class StaticPage implements AbstractInterface {
 
   async size() {
     return {
-      ...this.uiContext.shotSize
+      ...this.uiContext.shotSize,
     };
   }
 

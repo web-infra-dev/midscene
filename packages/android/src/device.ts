@@ -18,16 +18,7 @@ import {
   type AndroidDeviceOpt,
   type MobileInputPrimitives,
   type PointerPoint,
-  createMobileClearInputAction,
-  createMobileCursorMoveAction,
-  createMobileDoubleClickAction,
-  createMobileDragAndDropAction,
-  createMobileInputAction,
-  createMobileKeyboardPressAction,
-  createMobileLongPressAction,
-  createMobilePinchAction,
-  createMobileSwipeAction,
-  createMobileTapAction,
+  createDefaultMobileActions,
   defineAction,
   defineActionScroll,
 } from '@midscene/core/device';
@@ -120,7 +111,20 @@ export class AndroidDevice implements AbstractInterface {
     },
     keyboard: {
       keyboardPress: (keyName) => this.pressKey(keyName),
-      typeText: (value, opts) => this.typeText(value, opts),
+      typeText: async (value, opts) => {
+        const target = opts?.target as ElementInfo | undefined;
+        if (target && opts?.replace !== false) {
+          await this.clearInput(target);
+        } else if (target) {
+          await this.tapPoint({ x: target.center[0], y: target.center[1] });
+        }
+
+        if (opts?.focusOnly) {
+          return;
+        }
+
+        await this.typeText(value, opts);
+      },
       clearInput: (target) =>
         this.clearInput(target as ElementInfo | undefined),
       cursorMove: async (direction, times = 1) => {
@@ -165,56 +169,61 @@ export class AndroidDevice implements AbstractInterface {
       },
       getDefaultAutoDismissKeyboard: () => this.options?.autoDismissKeyboard,
     };
-    const pinchAction = createMobilePinchAction(mobileActionContext);
     const defaultActions = [
-      createMobileTapAction(mobileActionContext),
-      createMobileDoubleClickAction(mobileActionContext),
-      createMobileInputAction(mobileActionContext),
-      createMobileDragAndDropAction(mobileActionContext),
-      createMobileSwipeAction(mobileActionContext),
-      createMobileKeyboardPressAction(mobileActionContext),
-      createMobileCursorMoveAction(mobileActionContext),
-      createMobileLongPressAction(mobileActionContext),
-      ...(pinchAction ? [pinchAction] : []),
-      createMobileClearInputAction(mobileActionContext),
-      defineActionScroll(async (param) => {
-        const element = param.locate;
-        const startingPoint = element
-          ? {
-              left: element.center[0],
-              top: element.center[1],
+      ...createDefaultMobileActions(mobileActionContext),
+      defineActionScroll({
+        scroll: {
+          scroll: async (param) => {
+            const element = param.locate;
+            const startingPoint = element
+              ? {
+                  left: element.center[0],
+                  top: element.center[1],
+                }
+              : undefined;
+            const scrollToEventName = param?.scrollType;
+            if (scrollToEventName === 'scrollToTop') {
+              await this.scrollUntilTop(startingPoint);
+            } else if (scrollToEventName === 'scrollToBottom') {
+              await this.scrollUntilBottom(startingPoint);
+            } else if (scrollToEventName === 'scrollToRight') {
+              await this.scrollUntilRight(startingPoint);
+            } else if (scrollToEventName === 'scrollToLeft') {
+              await this.scrollUntilLeft(startingPoint);
+            } else if (
+              scrollToEventName === 'singleAction' ||
+              !scrollToEventName
+            ) {
+              if (param?.direction === 'down' || !param || !param.direction) {
+                await this.scrollDown(
+                  param?.distance || undefined,
+                  startingPoint,
+                );
+              } else if (param.direction === 'up') {
+                await this.scrollUp(param.distance || undefined, startingPoint);
+              } else if (param.direction === 'left') {
+                await this.scrollLeft(
+                  param.distance || undefined,
+                  startingPoint,
+                );
+              } else if (param.direction === 'right') {
+                await this.scrollRight(
+                  param.distance || undefined,
+                  startingPoint,
+                );
+              } else {
+                throw new Error(`Unknown scroll direction: ${param.direction}`);
+              }
+              await sleep(500);
+            } else {
+              throw new Error(
+                `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
+                  param,
+                )}`,
+              );
             }
-          : undefined;
-        const scrollToEventName = param?.scrollType;
-        if (scrollToEventName === 'scrollToTop') {
-          await this.scrollUntilTop(startingPoint);
-        } else if (scrollToEventName === 'scrollToBottom') {
-          await this.scrollUntilBottom(startingPoint);
-        } else if (scrollToEventName === 'scrollToRight') {
-          await this.scrollUntilRight(startingPoint);
-        } else if (scrollToEventName === 'scrollToLeft') {
-          await this.scrollUntilLeft(startingPoint);
-        } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
-          if (param?.direction === 'down' || !param || !param.direction) {
-            await this.scrollDown(param?.distance || undefined, startingPoint);
-          } else if (param.direction === 'up') {
-            await this.scrollUp(param.distance || undefined, startingPoint);
-          } else if (param.direction === 'left') {
-            await this.scrollLeft(param.distance || undefined, startingPoint);
-          } else if (param.direction === 'right') {
-            await this.scrollRight(param.distance || undefined, startingPoint);
-          } else {
-            throw new Error(`Unknown scroll direction: ${param.direction}`);
-          }
-          // until mouse event is done
-          await sleep(500);
-        } else {
-          throw new Error(
-            `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
-              param,
-            )}`,
-          );
-        }
+          },
+        },
       }),
       defineAction<
         z.ZodObject<{

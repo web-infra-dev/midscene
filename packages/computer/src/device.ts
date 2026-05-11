@@ -511,13 +511,15 @@ export class ComputerDevice implements AbstractInterface {
       },
       clearInput: async (target) => {
         assert(libnut, 'libnut not initialized');
-        assert(target, 'Element not found, cannot clear input');
 
-        const element = target as LocateResultElement;
-        const [x, y] = element.center;
-        libnut.moveMouse(Math.round(x), Math.round(y));
-        libnut.mouseClick('left');
-        await sleep(100);
+        if (target) {
+          const element = target as LocateResultElement;
+          const [x, y] = element.center;
+          libnut.moveMouse(Math.round(x), Math.round(y));
+          libnut.mouseClick('left');
+          await sleep(100);
+        }
+
         await this.selectAllAndDelete();
         await sleep(50);
       },

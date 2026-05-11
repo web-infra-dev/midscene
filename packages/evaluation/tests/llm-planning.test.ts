@@ -35,9 +35,25 @@ beforeAll(async () => {
   expect(globalModelFamily).toBeTruthy();
 
   actionSpace = [
-    defineActionTap(async () => {}),
-    defineActionInput(async () => {}),
-    defineActionKeyboardPress(async () => {}),
+    defineActionTap({
+      pointer: {
+        tap: async () => {},
+      },
+    }),
+    defineActionInput({
+      keyboard: {
+        typeText: async () => {},
+        keyboardPress: async () => {},
+        clearInput: async () => {},
+      },
+    }),
+    defineActionKeyboardPress({
+      keyboard: {
+        typeText: async () => {},
+        keyboardPress: async () => {},
+        clearInput: async () => {},
+      },
+    }),
   ];
 });
 
