@@ -242,7 +242,7 @@ async function main() {
     await sleep(1_500);
 
     await agent.aiAssert(
-      'A settings popup panel is visible and contains the items Language, Theme, GitHub, and Website.',
+      'A settings popup panel is visible and contains the items Theme, GitHub, and Website.',
     );
 
     await agent.destroy();
