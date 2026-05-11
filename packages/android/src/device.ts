@@ -17,6 +17,7 @@ import {
   type AndroidDeviceInputOpt,
   type AndroidDeviceOpt,
   type DeviceInputPrimitives,
+  type PointerPoint,
   createMobileClearInputAction,
   createMobileCursorMoveAction,
   createMobileDoubleClickAction,
@@ -111,19 +112,19 @@ export class AndroidDevice implements AbstractInterface {
   options?: AndroidDeviceOpt;
 
   readonly inputPrimitives: DeviceInputPrimitives = {
-    tap: ({ x, y }) => this.mouseClick(x, y),
-    doubleClick: ({ x, y }) => this.mouseDoubleClick(x, y),
-    longPress: ({ x, y }, opts) => this.longPress(x, y, opts?.duration),
+    tap: (point) => this.tapPoint(point),
+    doubleClick: (point) => this.doubleTapPoint(point),
+    longPress: (point, opts) => this.longPressPoint(point, opts?.duration),
     swipe: async (start, end, opts) => {
       const duration = opts?.duration ?? 300;
       const repeatCount = opts?.repeat ?? 1;
       for (let i = 0; i < repeatCount; i++) {
-        await this.mouseDrag(start, end, duration);
+        await this.dragPoint(start, end, duration);
       }
     },
-    dragAndDrop: (from, to) => this.mouseDrag(from, to),
-    keyboardPress: (key) => this.keyboardPress(key),
-    typeText: (value, opts) => this.keyboardType(value, opts),
+    dragAndDrop: (from, to) => this.dragPoint(from, to),
+    keyboardPress: (key) => this.pressKey(key),
+    typeText: (value, opts) => this.typeText(value, opts),
     clearInput: (target) => this.clearInput(target as ElementInfo | undefined),
     pinch: async (center, opts) => {
       const { x: adjCenterX, y: adjCenterY } = await this.adjustCoordinates(
@@ -1162,7 +1163,7 @@ ${Object.keys(size)
 
   async clearInput(element?: ElementInfo): Promise<void> {
     if (element) {
-      await this.mouseClick(element.center[0], element.center[1]);
+      await this.tapPoint({ x: element.center[0], y: element.center[1] });
     }
 
     await this.ensureYadb();
@@ -1189,7 +1190,7 @@ ${Object.keys(size)
     }
 
     if (element) {
-      await this.mouseClick(element.center[0], element.center[1]);
+      await this.tapPoint({ x: element.center[0], y: element.center[1] });
     }
   }
 
@@ -1218,7 +1219,7 @@ ${Object.keys(size)
       const end = { x: start.x, y: Math.round(height) };
 
       await repeat(defaultScrollUntilTimes, () =>
-        this.mouseDrag(start, end, defaultFastScrollDuration),
+        this.dragPoint(start, end, defaultFastScrollDuration),
       );
       await sleep(1000);
       return;
@@ -1239,7 +1240,7 @@ ${Object.keys(size)
       const end = { x: start.x, y: 0 };
 
       await repeat(defaultScrollUntilTimes, () =>
-        this.mouseDrag(start, end, defaultFastScrollDuration),
+        this.dragPoint(start, end, defaultFastScrollDuration),
       );
       await sleep(1000);
       return;
@@ -1261,7 +1262,7 @@ ${Object.keys(size)
       const end = { x: Math.round(width), y: start.y };
 
       await repeat(defaultScrollUntilTimes, () =>
-        this.mouseDrag(start, end, defaultFastScrollDuration),
+        this.dragPoint(start, end, defaultFastScrollDuration),
       );
       await sleep(1000);
       return;
@@ -1282,7 +1283,7 @@ ${Object.keys(size)
       const end = { x: 0, y: start.y };
 
       await repeat(defaultScrollUntilTimes, () =>
-        this.mouseDrag(start, end, defaultFastScrollDuration),
+        this.dragPoint(start, end, defaultFastScrollDuration),
       );
       await sleep(1000);
       return;
@@ -1318,7 +1319,7 @@ ${Object.keys(size)
           Math.abs(end.y - start.y),
         );
       }
-      await this.mouseDrag(start, end);
+      await this.dragPoint(start, end);
       return;
     }
 
@@ -1349,7 +1350,7 @@ ${Object.keys(size)
           Math.abs(end.y - start.y),
         );
       }
-      await this.mouseDrag(start, end);
+      await this.dragPoint(start, end);
       return;
     }
 
@@ -1386,7 +1387,7 @@ ${Object.keys(size)
           Math.abs(end.x - start.x),
         );
       }
-      await this.mouseDrag(start, end);
+      await this.dragPoint(start, end);
       return;
     }
 
@@ -1423,7 +1424,7 @@ ${Object.keys(size)
           Math.abs(end.x - start.x),
         );
       }
-      await this.mouseDrag(start, end);
+      await this.dragPoint(start, end);
       return;
     }
 
@@ -1487,7 +1488,7 @@ ${Object.keys(size)
     );
   }
 
-  async keyboardType(
+  private async typeText(
     text: string,
     options?: AndroidDeviceInputOpt,
   ): Promise<void> {
@@ -1555,7 +1556,7 @@ ${Object.keys(size)
     return keyMap[lowerKey] || key; // Return original key if no mapping found
   }
 
-  async keyboardPress(key: string): Promise<void> {
+  private async pressKey(key: string): Promise<void> {
     // Map web keys to Android key codes (numbers)
     const keyCodeMap: Record<string, number> = {
       Enter: 66,
@@ -1589,19 +1590,25 @@ ${Object.keys(size)
     }
   }
 
-  async mouseClick(x: number, y: number): Promise<void> {
+  private async tapPoint(point: PointerPoint): Promise<void> {
     const adb = await this.getAdb();
 
     // Use adjusted coordinates
-    const { x: adjustedX, y: adjustedY } = await this.adjustCoordinates(x, y);
+    const { x: adjustedX, y: adjustedY } = await this.adjustCoordinates(
+      point.x,
+      point.y,
+    );
     await adb.shell(
       `input${this.getDisplayArg()} swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} 150`,
     );
   }
 
-  async mouseDoubleClick(x: number, y: number): Promise<void> {
+  private async doubleTapPoint(point: PointerPoint): Promise<void> {
     const adb = await this.getAdb();
-    const { x: adjustedX, y: adjustedY } = await this.adjustCoordinates(x, y);
+    const { x: adjustedX, y: adjustedY } = await this.adjustCoordinates(
+      point.x,
+      point.y,
+    );
 
     // Use input tap for double-click as it generates proper touch events
     // that Android can recognize as a double-click gesture
@@ -1618,9 +1625,9 @@ ${Object.keys(size)
     return Promise.resolve();
   }
 
-  async mouseDrag(
-    from: { x: number; y: number },
-    to: { x: number; y: number },
+  private async dragPoint(
+    from: PointerPoint,
+    to: PointerPoint,
     duration?: number,
   ): Promise<void> {
     const adb = await this.getAdb();
@@ -1802,11 +1809,17 @@ ${Object.keys(size)
     await adb.shell(`input${this.getDisplayArg()} keyevent 187`);
   }
 
-  async longPress(x: number, y: number, duration = 2000): Promise<void> {
+  private async longPressPoint(
+    point: PointerPoint,
+    duration = 2000,
+  ): Promise<void> {
     const adb = await this.getAdb();
 
     // Use adjusted coordinates
-    const { x: adjustedX, y: adjustedY } = await this.adjustCoordinates(x, y);
+    const { x: adjustedX, y: adjustedY } = await this.adjustCoordinates(
+      point.x,
+      point.y,
+    );
     await adb.shell(
       `input${this.getDisplayArg()} swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} ${duration}`,
     );

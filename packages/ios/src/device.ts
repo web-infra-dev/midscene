@@ -64,17 +64,17 @@ export class IOSDevice implements AbstractInterface {
   options?: IOSDeviceOpt;
 
   readonly inputPrimitives: DeviceInputPrimitives = {
-    tap: ({ x, y }) => this.mouseClick(x, y),
-    doubleClick: ({ x, y }) => this.doubleTap(x, y),
-    longPress: ({ x, y }, opts) => this.longPress(x, y, opts?.duration),
+    tap: (point) => this.tapPoint(point),
+    doubleClick: (point) => this.doubleTapPoint(point),
+    longPress: (point, opts) => this.longPressPoint(point, opts?.duration),
     swipe: async (start, end, opts) => {
       const duration = opts?.duration ?? 300;
       const repeat = opts?.repeat ?? 1;
       for (let i = 0; i < repeat; i++) {
-        await this.swipe(start.x, start.y, end.x, end.y, duration);
+        await this.swipePoint(start, end, duration);
       }
     },
-    dragAndDrop: (from, to) => this.swipe(from.x, from.y, to.x, to.y, 1000),
+    dragAndDrop: (from, to) => this.swipePoint(from, to, 1000),
     keyboardPress: (key) => this.pressKey(key),
     typeText: (value, opts) => this.typeText(value, opts),
     clearInput: (target) => this.clearInput(target as ElementInfo | undefined),
@@ -119,10 +119,6 @@ export class IOSDevice implements AbstractInterface {
     await this.wdaBackend.doubleTap(Math.round(point.x), Math.round(point.y));
   }
 
-  private async tripleTapPoint(point: PointerPoint): Promise<void> {
-    await this.wdaBackend.tripleTap(Math.round(point.x), Math.round(point.y));
-  }
-
   private async longPressPoint(
     point: PointerPoint,
     duration = 1000,
@@ -134,7 +130,7 @@ export class IOSDevice implements AbstractInterface {
     );
   }
 
-  private async swipeOnce(
+  private async swipePoint(
     start: PointerPoint,
     end: PointerPoint,
     duration = 500,
@@ -445,39 +441,20 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     return '';
   }
 
-  // Core interaction methods
-  async tap(x: number, y: number): Promise<void> {
-    await this.tapPoint({ x, y });
-  }
-
-  // Android-compatible method name
-  async mouseClick(x: number, y: number): Promise<void> {
-    await this.tapPoint({ x, y });
-  }
-
-  async doubleTap(x: number, y: number): Promise<void> {
-    await this.doubleTapPoint({ x, y });
-  }
-
-  async tripleTap(x: number, y: number): Promise<void> {
-    await this.tripleTapPoint({ x, y });
-  }
-
-  async longPress(x: number, y: number, duration = 1000): Promise<void> {
-    await this.longPressPoint({ x, y }, duration);
-  }
-
-  async swipe(
+  private async swipeCoordinates(
     fromX: number,
     fromY: number,
     toX: number,
     toY: number,
     duration = 500,
   ): Promise<void> {
-    await this.swipeOnce({ x: fromX, y: fromY }, { x: toX, y: toY }, duration);
+    await this.swipePoint({ x: fromX, y: fromY }, { x: toX, y: toY }, duration);
   }
 
-  async typeText(text: string, options?: IOSDeviceInputOpt): Promise<void> {
+  private async typeText(
+    text: string,
+    options?: IOSDeviceInputOpt,
+  ): Promise<void> {
     if (!text) return;
 
     const shouldAutoDismissKeyboard =
@@ -500,7 +477,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     }
   }
 
-  async pressKey(key: string): Promise<void> {
+  private async pressKey(key: string): Promise<void> {
     await this.wdaBackend.pressKey(key);
   }
 
@@ -512,7 +489,12 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       : { x: Math.round(width / 2), y: Math.round(height / 2) };
     const scrollDistance = Math.round(distance || height / 3);
 
-    await this.swipe(start.x, start.y, start.x, start.y + scrollDistance);
+    await this.swipeCoordinates(
+      start.x,
+      start.y,
+      start.x,
+      start.y + scrollDistance,
+    );
   }
 
   async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
@@ -522,7 +504,12 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       : { x: Math.round(width / 2), y: Math.round(height / 2) };
     const scrollDistance = Math.round(distance || height / 3);
 
-    await this.swipe(start.x, start.y, start.x, start.y - scrollDistance);
+    await this.swipeCoordinates(
+      start.x,
+      start.y,
+      start.x,
+      start.y - scrollDistance,
+    );
   }
 
   async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
@@ -533,7 +520,12 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       : { x: Math.round(width / 2), y: Math.round(height / 2) };
     const scrollDistance = Math.round(distance || width * 0.7); // Use 70% of width for sufficient scroll
 
-    await this.swipe(start.x, start.y, start.x + scrollDistance, start.y);
+    await this.swipeCoordinates(
+      start.x,
+      start.y,
+      start.x + scrollDistance,
+      start.y,
+    );
   }
 
   async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
@@ -544,7 +536,12 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       : { x: Math.round(width / 2), y: Math.round(height / 2) };
     const scrollDistance = Math.round(distance || width * 0.7); // Use 70% of width for sufficient scroll
 
-    await this.swipe(start.x, start.y, start.x - scrollDistance, start.y);
+    await this.swipeCoordinates(
+      start.x,
+      start.y,
+      start.x - scrollDistance,
+      start.y,
+    );
   }
 
   async scrollUntilTop(startPoint?: Point): Promise<void> {
@@ -709,7 +706,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
         switch (direction) {
           case 'up':
-            await this.swipe(
+            await this.swipeCoordinates(
               start.x,
               start.y,
               start.x,
@@ -718,7 +715,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
             );
             break;
           case 'down':
-            await this.swipe(
+            await this.swipeCoordinates(
               start.x,
               start.y,
               start.x,
@@ -727,7 +724,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
             );
             break;
           case 'left':
-            await this.swipe(
+            await this.swipeCoordinates(
               start.x,
               start.y,
               start.x + scrollDistance,
@@ -736,7 +733,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
             );
             break;
           case 'right':
-            await this.swipe(
+            await this.swipeCoordinates(
               start.x,
               start.y,
               start.x - scrollDistance,
@@ -827,7 +824,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       const endY = Math.round(windowSize.height * 0.5); // Swipe up to middle
 
       // Perform swipe up gesture to dismiss keyboard
-      await this.swipe(centerX, startY, centerX, endY, 300);
+      await this.swipeCoordinates(centerX, startY, centerX, endY, 300);
       debugDevice(
         'Dismissed keyboard with swipe up gesture from bottom of screen',
       );

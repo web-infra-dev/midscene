@@ -12,6 +12,7 @@ import {
   type AbstractInterface,
   type DeviceInputPrimitives,
   type HarmonyDeviceOpt,
+  type PointerPoint,
   createMobileClearInputAction,
   createMobileCursorMoveAction,
   createMobileDoubleClickAction,
@@ -95,9 +96,9 @@ export class HarmonyDevice implements AbstractInterface {
   options?: HarmonyDeviceOpt;
 
   readonly inputPrimitives: DeviceInputPrimitives = {
-    tap: ({ x, y }) => this.tap(x, y),
-    doubleClick: ({ x, y }) => this.doubleTap(x, y),
-    longPress: ({ x, y }) => this.longPress(x, y),
+    tap: (point) => this.tapPoint(point),
+    doubleClick: (point) => this.doubleTapPoint(point),
+    longPress: (point) => this.longPressPoint(point),
     swipe: async (start, end, opts) => {
       const duration = opts?.duration;
       const repeatCount = opts?.repeat ?? 1;
@@ -116,9 +117,9 @@ export class HarmonyDevice implements AbstractInterface {
       const hdc = await this.getHdc();
       await hdc.drag(from.x, from.y, to.x, to.y);
     },
-    keyboardPress: (key) => this.keyboardPress(key),
+    keyboardPress: (key) => this.pressKey(key),
     typeText: (value, opts) =>
-      this.inputText(
+      this.typeText(
         value,
         opts?.target as LocateResultElement | undefined,
         opts?.replace ?? true,
@@ -436,23 +437,23 @@ export class HarmonyDevice implements AbstractInterface {
     throw new Error('Screenshot buffer is empty after retries');
   }
 
-  async tap(x: number, y: number): Promise<void> {
-    this.lastTapPosition = { x, y };
+  private async tapPoint(point: PointerPoint): Promise<void> {
+    this.lastTapPosition = { x: point.x, y: point.y };
     const hdc = await this.getHdc();
-    await hdc.click(x, y);
+    await hdc.click(point.x, point.y);
   }
 
-  async doubleTap(x: number, y: number): Promise<void> {
+  private async doubleTapPoint(point: PointerPoint): Promise<void> {
     const hdc = await this.getHdc();
-    await hdc.doubleClick(x, y);
+    await hdc.doubleClick(point.x, point.y);
   }
 
-  async longPress(x: number, y: number): Promise<void> {
+  private async longPressPoint(point: PointerPoint): Promise<void> {
     const hdc = await this.getHdc();
-    await hdc.longClick(x, y);
+    await hdc.longClick(point.x, point.y);
   }
 
-  async inputText(
+  private async typeText(
     text: string,
     element?: LocateResultElement,
     shouldReplace?: boolean,
@@ -503,7 +504,7 @@ export class HarmonyDevice implements AbstractInterface {
     await hdc.clearTextField(100);
   }
 
-  async keyboardPress(key: string): Promise<void> {
+  private async pressKey(key: string): Promise<void> {
     const normalizedKey = keyNameAliasMap[key.toLowerCase()] ?? key;
     const harmonyKey =
       harmonyKeyCodeMap[normalizedKey as keyof typeof harmonyKeyCodeMap] ?? key;
