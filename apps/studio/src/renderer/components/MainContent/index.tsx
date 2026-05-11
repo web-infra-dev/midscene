@@ -25,6 +25,7 @@ import ConnectingPreview from '../ConnectingPreview';
 import ConnectionFailedPreview from '../ConnectionFailedPreview';
 import DisconnectedPreview from '../DisconnectedPreview';
 import { MaskedIcon } from '../MaskedIcon';
+import { type ConnectionStatus, ConnectionStatusDot } from '../PlaygroundShell';
 import type { ShellActiveView } from '../ShellLayout/types';
 import { DeviceList } from './DeviceList';
 import { MobilePreviewFrame } from './MobilePreviewFrame';
@@ -213,11 +214,16 @@ function OverviewToolbar({
   onRefresh: () => void;
   refreshing: boolean;
 }) {
+  // Vertically centered in the 52px drag header strip so the button lines
+  // up with the sidebar collapse toggle on the opposite side. The
+  // surrounding header is `-webkit-app-region: drag`, so the button must
+  // explicitly opt back out via `app-no-drag` or the OS swallows hover
+  // and click events.
   return (
-    <div className="absolute right-[16px] top-[12px] z-10 flex items-center gap-[8px]">
+    <div className="app-no-drag absolute right-[16px] top-[10px] z-10 flex items-center gap-[8px]">
       <button
         aria-label="Refresh devices"
-        className="flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border border-border-subtle bg-surface text-text-secondary transition-colors hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60"
+        className="app-no-drag flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border-0 bg-transparent text-text-secondary transition-colors hover:bg-surface-hover-strong hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
         disabled={refreshing}
         onClick={onRefresh}
         type="button"
@@ -297,13 +303,11 @@ export default function MainContent({
     !isReady || !studioPlayground.controller.state.sessionViewState.connected;
   const previewConnectionFailed =
     previewStatus === 'error' || previewStatus === 'disconnected';
-  const connectionStatusLabel = !isReady
-    ? 'Setup'
-    : previewConnectionFailed
-      ? 'Connection failed'
-      : isConnected
-        ? 'Live'
-        : 'Not connected';
+  const connectionStatus: ConnectionStatus = previewConnectionFailed
+    ? 'failed'
+    : isConnected
+      ? 'connected'
+      : 'disconnected';
 
   useEffect(() => {
     if (!isConnected) {
@@ -538,36 +542,9 @@ export default function MainContent({
           <span className="ml-[8px] max-w-[134px] truncate text-[13px] leading-[22.1px] font-medium text-text-primary">
             {deviceLabel}
           </span>
-          <div
-            className={`ml-[8px] flex h-[28px] items-center gap-[8.04px] rounded-[16.07px] px-[10px] ${
-              previewConnectionFailed
-                ? 'bg-status-error-bg'
-                : isConnected
-                  ? 'bg-status-success-bg'
-                  : 'bg-surface-muted'
-            }`}
-          >
-            <div
-              className={`h-2 w-2 rounded-full border-2 border-transparent ${
-                previewConnectionFailed
-                  ? 'bg-status-error'
-                  : isConnected
-                    ? 'bg-status-success'
-                    : 'bg-status-idle'
-              }`}
-            />
-            <span
-              className={`text-[12.1px] leading-[12.1px] font-medium ${
-                previewConnectionFailed
-                  ? 'text-status-error'
-                  : isConnected
-                    ? 'text-status-success-fg'
-                    : 'text-text-tertiary'
-              }`}
-            >
-              {connectionStatusLabel}
-            </span>
-          </div>
+          <span className="ml-[8px] inline-flex shrink-0 items-center">
+            <ConnectionStatusDot status={connectionStatus} />
+          </span>
           {showWebNavigation ? (
             <div
               aria-label="Web navigation"

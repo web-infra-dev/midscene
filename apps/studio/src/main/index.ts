@@ -108,8 +108,13 @@ const getAppIcon = () => {
   return icon;
 };
 
+// macOS `vibrancy` and Windows `backgroundMaterial: 'acrylic'` only show
+// through when the BrowserWindow's own backgroundColor is fully transparent
+// — any opaque fill paints over the OS material. Linux has no native
+// material, so keep the solid fallback there to avoid flashing the
+// desktop wallpaper before the renderer mounts.
 const getBackgroundColor = () =>
-  process.platform === 'darwin' ? '#f6f6f6' : '#eef1f5';
+  process.platform === 'linux' ? '#eef1f5' : '#00000000';
 
 const getTitleBarOverlay = (): TitleBarOverlay => ({
   color: '#00000000',
@@ -186,8 +191,10 @@ const createMainWindow = () => {
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
     titleBarOverlay:
       process.platform === 'darwin' ? undefined : getTitleBarOverlay(),
+    // Vertical centers of the 12px traffic lights line up with the sidebar
+    // collapse toggle (24px) at window y=30: (24 + 12/2 = 30).
     trafficLightPosition:
-      process.platform === 'darwin' ? { x: 18, y: 18 } : undefined,
+      process.platform === 'darwin' ? { x: 18, y: 24 } : undefined,
     vibrancy: process.platform === 'darwin' ? 'sidebar' : undefined,
     visualEffectState: process.platform === 'darwin' ? 'active' : undefined,
     backgroundMaterial: process.platform === 'win32' ? 'acrylic' : undefined,
@@ -315,7 +322,14 @@ const registerIpcHandlers = () => {
         return;
       }
       const isDark = nativeTheme.shouldUseDarkColors;
-      mainWindow.setBackgroundColor(isDark ? '#171717' : '#f6f6f6');
+      // Keep the window backgroundColor transparent on platforms that rely
+      // on OS material (macOS vibrancy / Windows acrylic); only Linux needs
+      // a solid theme-tinted fallback.
+      if (process.platform === 'linux') {
+        mainWindow.setBackgroundColor(isDark ? '#171717' : '#eef1f5');
+      } else {
+        mainWindow.setBackgroundColor('#00000000');
+      }
       if (process.platform === 'darwin') {
         mainWindow.setVibrancy('sidebar');
       }
