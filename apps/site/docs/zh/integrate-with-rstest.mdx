@@ -99,9 +99,50 @@ describe('Todo list', () => {
 
 `createWebTest(url, options)` 会在内部注册 Rstest 的 `beforeAll` / `beforeEach` / `afterEach` / `afterAll` 钩子。在每个 `describe` 块里调用一次即可，里面的每个 `it` 都会拿到一份重新导航过的全新页面。
 
-:::warning `agent` 仅在 `it(...)` 内可用
-agent 会在 `beforeEach` 中创建、`afterEach` 中销毁。在 `describe` 作用域、其他钩子、或 test 结束之后访问 `ctx.agent` 都会抛错。
+:::warning `ctx` 的生命周期
+- `ctx.agent` 与 `ctx.page` 在 `beforeEach` 中创建、`afterEach` 中销毁。在 `describe` 作用域、其他钩子、或 test 结束之后访问会抛错。
+- `ctx.browser` 在 `beforeAll` 启动、`afterAll` 关闭。任意 hook 或 `it(...)` 内都可读。
 :::
+
+`ctx` 暴露四个 surface，按使用频率排序：
+
+- **`ctx.agent`** —— 绑在主 page 上的 midscene `PlaywrightAgent`（或 `PuppeteerAgent`）。AI action 和 assertion 的默认入口。
+- **`ctx.page`** —— 底层的 Playwright / Puppeteer `Page`。`agent` 做不到或不该做的事的 escape hatch：`page.route(...)` network mock、`page.evaluate(...)`、`page.context().cookies()` 等。
+- **`ctx.browser`** —— file-scoped 的 `Browser`。在测试中开新 context / 新 page（多用户、跨会话场景）用。
+- **`ctx.agentForPage(page, opts?)`** —— 为另一个 page（popup、手动开的 page）构造一个 midscene agent，报告会和主 agent 合并，销毁自动完成。
+
+```ts
+it('mocks the API and verifies the UI', async () => {
+  const { agent, page } = ctx;
+
+  await page.route('**/api/contacts', (route) =>
+    route.fulfill({ json: [{ name: 'Fake Alice' }] }),
+  );
+
+  await agent.aiAssert('the contact list shows "Fake Alice"');
+});
+
+it('drives a popup with a second agent', async () => {
+  const { agent, page, agentForPage } = ctx;
+
+  await agent.aiTap("the 'View details' button");
+  const popup = await page.waitForEvent('popup');
+
+  const popupAgent = await agentForPage(popup);
+  await popupAgent.aiAssert('the popup shows order details');
+});
+
+it('runs two isolated user sessions in one test', async () => {
+  const { browser, agentForPage } = ctx;
+
+  const sessionB = await browser.newContext({ storageState: 'user-b.json' });
+  const pageB = await sessionB.newPage();
+  await pageB.goto('http://localhost:5173/');
+  const agentB = await agentForPage(pageB);
+
+  await agentB.aiAct('send a message to user A');
+});
+```
 
 如果想换成 Puppeteer，只需改一行 import：
 
@@ -150,6 +191,48 @@ export default defineConfig({
 
 调用 `createWebTest(url, options)` 时传入的 options 会按顶层 key 浅合并到这里的默认值上 —— `launchOptions` 这种嵌套字段是**整体替换**，不是深度合并。需要组合可以用 resolver 的函数形式。Puppeteer provider 在 `@midscene/rstest/puppeteer` 提供同名 `defineMidsceneDefaults`。
 
+## 配置 midscene
+
+midscene 从四个渠道读取配置，按你想影响的作用域选一个。
+
+1. **环境变量**（模型端点、API key、vision-family 开关、cache 目录、report 目录、debug 开关）：用你平时设环境变量的方式即可（`.env`、CI secret、shell export）。midscene runtime 会自动读取，不用额外接线。完整列表见 [model 配置参考](./model-and-provider)。示例：
+
+   ```bash
+   MIDSCENE_MODEL_BASE_URL=https://api.openai.com/v1
+   MIDSCENE_MODEL_API_KEY=sk-...
+   MIDSCENE_MODEL_NAME=gpt-4o
+   MIDSCENE_DEBUG_MODEL_RESPONSE=1   # 把模型原始响应 dump 到磁盘
+   MIDSCENE_RUN_DIR=./midscene_run   # 报告 + 缓存的根目录
+   ```
+
+2. **`agentOptions`** —— 每次 `createWebTest` 都可以传，针对 per-agent 配置。接收完整 `AgentOpt`（`modelConfig`、`aiActionContext`、`cache`、`replanningCycleLimit`、`waitAfterAction`、`screenshotShrinkFactor`、`onTaskStartTip`、`onOpenAIClientCreated` 等）。`groupName` 和 `reportFileName` 由 lifecycle 保留。
+
+   ```ts
+   const ctx = createWebTest(url, {
+     agentOptions: {
+       aiActionContext: 'You are testing a multilingual checkout flow.',
+       cache: { strategy: 'read-write' },
+       waitAfterAction: 500,
+     },
+   });
+   ```
+
+3. **`overrideAIConfig(...)`** —— 在 setup file 里用，做环境变量表达不了的运行时全局覆盖（比如根据是否 CI 切模型）。两个 provider 入口都 re-export 了。
+
+   ```ts title="midscene.setup.ts"
+   import { overrideAIConfig } from '@midscene/rstest/playwright';
+
+   overrideAIConfig({
+     MIDSCENE_MODEL_NAME: process.env.CI ? 'gpt-4o' : 'gpt-4o-mini',
+   });
+   ```
+
+4. **Debug 日志** —— `@midscene/rstest` 用 `debug` 包，按需通过 `DEBUG` 环境变量打开 topic：
+
+   ```bash
+   DEBUG=midscene:*,rstest:* npx rstest run
+   ```
+
 ## 选项
 
 ### Playwright (`@midscene/rstest/playwright`)
@@ -162,7 +245,7 @@ export default defineConfig({
 | `contextOptions` | `BrowserContextOptions \| (defaults) => BrowserContextOptions` | — | 透传到 `browser.newContext(...)`。 |
 | `gotoOptions` | `Parameters<Page['goto']>[1]` | — | 透传到 `page.goto(url, ...)`。 |
 | `agentOptions` | `WebPageAgentOpt` | — | 透传给 `PlaywrightAgent`（如 `aiActionContext`、`modelConfig`）。`groupName` 与 `reportFileName` 由 lifecycle 管理。 |
-| `setup` | `(api) => Promise<PageBundle>` | — | 详见下方 [自定义 page 设置](#自定义-page-设置)。 |
+| `setup` | `(api) => Promise<{ page; teardown? }>` | — | 详见下方 [自定义 page 设置](#自定义-page-设置)。 |
 
 ### Puppeteer (`@midscene/rstest/puppeteer`)
 
@@ -173,7 +256,7 @@ export default defineConfig({
 | `launchOptions` | `LaunchOptions \| (defaults) => LaunchOptions` | — | 透传到 `puppeteer.launch(...)`。 |
 | `gotoOptions` | `GoToOptions` | — | 透传到 `page.goto(url, ...)`。 |
 | `agentOptions` | `WebPageAgentOpt` | — | 透传给 `PuppeteerAgent`。 |
-| `setup` | `(api) => Promise<PageBundle>` | — | 详见下方 [自定义 page 设置](#自定义-page-设置)。 |
+| `setup` | `(api) => Promise<{ page; teardown? }>` | — | 详见下方 [自定义 page 设置](#自定义-page-设置)。 |
 
 `launchOptions`、`contextOptions` 这类 resolver 字段同时接受两种形式：传对象会和 midscene 的默认值浅合并；传函数 `(defaults) => options` 则完全接管。
 

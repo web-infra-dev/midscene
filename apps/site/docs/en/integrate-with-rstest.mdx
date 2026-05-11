@@ -99,9 +99,50 @@ describe('Todo list', () => {
 
 `createWebTest(url, options)` registers Rstest's `beforeAll` / `beforeEach` / `afterEach` / `afterAll` hooks under the hood. Call it once per `describe` block — every `it` inside it gets its own freshly-navigated page.
 
-:::warning `agent` is only valid inside `it(...)`
-The agent is created in `beforeEach` and destroyed in `afterEach`. Reading `ctx.agent` from `describe` scope, a hook, or after the test finishes throws.
+:::warning Lifecycle of `ctx`
+- `ctx.agent` and `ctx.page` are created in `beforeEach` and torn down in `afterEach`. Reading them from `describe` scope, a hook, or after the test finishes throws.
+- `ctx.browser` is launched in `beforeAll` and closed in `afterAll`. Read it inside any hook or `it(...)`.
 :::
+
+The context exposes four surfaces, in order of how often you'll reach for them:
+
+- **`ctx.agent`** — the midscene `PlaywrightAgent` (or `PuppeteerAgent`) bound to the primary page. Default tool for AI actions and assertions.
+- **`ctx.page`** — raw Playwright / Puppeteer `Page`. Escape hatch for things `agent` can't or shouldn't do: `page.route(...)` network mocking, `page.evaluate(...)`, `page.context().cookies()`, etc.
+- **`ctx.browser`** — the file-scoped `Browser`. Use it to spin up extra contexts or pages mid-test (multi-user, cross-session scenarios).
+- **`ctx.agentForPage(page, opts?)`** — build a midscene agent for another page (popup, manually-created page). Its report is merged with the primary's; destroy is automatic.
+
+```ts
+it('mocks the API and verifies the UI', async () => {
+  const { agent, page } = ctx;
+
+  await page.route('**/api/contacts', (route) =>
+    route.fulfill({ json: [{ name: 'Fake Alice' }] }),
+  );
+
+  await agent.aiAssert('the contact list shows "Fake Alice"');
+});
+
+it('drives a popup with a second agent', async () => {
+  const { agent, page, agentForPage } = ctx;
+
+  await agent.aiTap("the 'View details' button");
+  const popup = await page.waitForEvent('popup');
+
+  const popupAgent = await agentForPage(popup);
+  await popupAgent.aiAssert('the popup shows order details');
+});
+
+it('runs two isolated user sessions in one test', async () => {
+  const { browser, agentForPage } = ctx;
+
+  const sessionB = await browser.newContext({ storageState: 'user-b.json' });
+  const pageB = await sessionB.newPage();
+  await pageB.goto('http://localhost:5173/');
+  const agentB = await agentForPage(pageB);
+
+  await agentB.aiAct('send a message to user A');
+});
+```
 
 To use Puppeteer instead, change a single import:
 
@@ -150,6 +191,48 @@ export default defineConfig({
 
 Options passed to `createWebTest(url, options)` shallow-merge over these defaults at the top level — nested fields like `launchOptions` are *replaced*, not deep-merged. Use the function form of a resolver if you need to compose. The Puppeteer provider exposes the same `defineMidsceneDefaults` from `@midscene/rstest/puppeteer`.
 
+## Configure midscene
+
+Midscene reads configuration from four channels — pick the one that matches the scope you want.
+
+1. **Environment variables** (model endpoint, API key, vision-family flags, cache dir, report dir, debug toggles): set them however you usually set env vars (`.env`, CI secrets, shell exports). They flow into the midscene runtime automatically — nothing extra to wire up. The full list lives in the [model configuration reference](./model-and-provider). Quick sample:
+
+   ```bash
+   MIDSCENE_MODEL_BASE_URL=https://api.openai.com/v1
+   MIDSCENE_MODEL_API_KEY=sk-...
+   MIDSCENE_MODEL_NAME=gpt-4o
+   MIDSCENE_DEBUG_MODEL_RESPONSE=1   # dump raw model responses to disk
+   MIDSCENE_RUN_DIR=./midscene_run   # where reports + cache live
+   ```
+
+2. **`agentOptions`** on each `createWebTest` call — for anything you set per agent. Accepts the full `AgentOpt` surface (`modelConfig`, `aiActionContext`, `cache`, `replanningCycleLimit`, `waitAfterAction`, `screenshotShrinkFactor`, `onTaskStartTip`, `onOpenAIClientCreated`, …). `groupName` and `reportFileName` are reserved by the lifecycle.
+
+   ```ts
+   const ctx = createWebTest(url, {
+     agentOptions: {
+       aiActionContext: 'You are testing a multilingual checkout flow.',
+       cache: { strategy: 'read-write' },
+       waitAfterAction: 500,
+     },
+   });
+   ```
+
+3. **`overrideAIConfig(...)`** in a setup file — for programmatic global overrides that env vars can't express, or for swapping config between test runs. Re-exported from both provider entry points.
+
+   ```ts title="midscene.setup.ts"
+   import { overrideAIConfig } from '@midscene/rstest/playwright';
+
+   overrideAIConfig({
+     MIDSCENE_MODEL_NAME: process.env.CI ? 'gpt-4o' : 'gpt-4o-mini',
+   });
+   ```
+
+4. **Debug logs** — `@midscene/rstest` uses the `debug` package; turn on what you want via the `DEBUG` env var.
+
+   ```bash
+   DEBUG=midscene:*,rstest:* npx rstest run
+   ```
+
 ## Options
 
 ### Playwright (`@midscene/rstest/playwright`)
@@ -162,7 +245,7 @@ Options passed to `createWebTest(url, options)` shallow-merge over these default
 | `contextOptions` | `BrowserContextOptions \| (defaults) => BrowserContextOptions` | — | Forwarded to `browser.newContext(...)`. |
 | `gotoOptions` | `Parameters<Page['goto']>[1]` | — | Forwarded to `page.goto(url, ...)`. |
 | `agentOptions` | `WebPageAgentOpt` | — | Forwarded to `PlaywrightAgent` (e.g. `aiActionContext`, `modelConfig`). `groupName` and `reportFileName` are managed by the lifecycle. |
-| `setup` | `(api) => Promise<PageBundle>` | — | See [Custom page setup](#custom-page-setup) below. |
+| `setup` | `(api) => Promise<{ page; teardown? }>` | — | See [Custom page setup](#custom-page-setup) below. |
 
 ### Puppeteer (`@midscene/rstest/puppeteer`)
 
@@ -173,7 +256,7 @@ Options passed to `createWebTest(url, options)` shallow-merge over these default
 | `launchOptions` | `LaunchOptions \| (defaults) => LaunchOptions` | — | Forwarded to `puppeteer.launch(...)`. |
 | `gotoOptions` | `GoToOptions` | — | Forwarded to `page.goto(url, ...)`. |
 | `agentOptions` | `WebPageAgentOpt` | — | Forwarded to `PuppeteerAgent`. |
-| `setup` | `(api) => Promise<PageBundle>` | — | See [Custom page setup](#custom-page-setup) below. |
+| `setup` | `(api) => Promise<{ page; teardown? }>` | — | See [Custom page setup](#custom-page-setup) below. |
 
 Resolver fields (`launchOptions`, `contextOptions`) accept either an object — shallow-merged over midscene's defaults — or a function `(defaults) => options` that takes full control.
 
