@@ -4,7 +4,7 @@ import { createScrcpyVideoStream } from '../src/scrcpy-stream';
 
 interface RawVideoPayload {
   type?: string;
-  data: ArrayLike<number>;
+  data: ArrayBuffer | ArrayLike<number> | Uint8Array;
   keyFrame?: boolean;
 }
 
@@ -138,6 +138,31 @@ describe('createScrcpyVideoStream', () => {
     expect(dataPackets).toHaveLength(2);
     expect(dataPackets[0].keyframe).toBe(true);
     expect(dataPackets[1].keyframe).toBe(false);
+  });
+
+  test('accepts Uint8Array and ArrayBuffer payloads from binary transport', async () => {
+    const socket = new MockScrcpySocket();
+    const stream = createScrcpyVideoStream(socket);
+    const collected = collectStream(stream);
+
+    const configBytes = new Uint8Array([10, 20, 30]);
+    const dataBuffer = new Uint8Array([40, 50, 60]).buffer;
+
+    socket.dispatchVideoData({ type: 'configuration', data: configBytes });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: dataBuffer,
+      keyFrame: true,
+    });
+    socket.dispatchDisconnect();
+
+    const packets = await collected;
+
+    expect(packets).toHaveLength(2);
+    expect(packets[0].type).toBe('configuration');
+    expect(Array.from(packets[0].data)).toEqual([10, 20, 30]);
+    expect(packets[1].type).toBe('data');
+    expect(Array.from(packets[1].data)).toEqual([40, 50, 60]);
   });
 
   test('does not populate pts (no device timestamp available from socket)', async () => {

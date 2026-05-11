@@ -1,9 +1,21 @@
 import type { ScrcpyMediaStreamPacket } from '@yume-chan/scrcpy';
 
+type RawScrcpyVideoData = ArrayBuffer | ArrayLike<number> | Uint8Array;
+
 interface RawScrcpyVideoPacket {
   type?: string;
-  data: ArrayLike<number>;
+  data: RawScrcpyVideoData;
   keyFrame?: boolean;
+}
+
+function toUint8Array(data: RawScrcpyVideoData): Uint8Array {
+  if (data instanceof Uint8Array) {
+    return data;
+  }
+  if (data instanceof ArrayBuffer) {
+    return new Uint8Array(data);
+  }
+  return new Uint8Array(data);
 }
 
 interface ScrcpyVideoSocketLike {
@@ -50,7 +62,7 @@ export function createScrcpyVideoStream(
     start(controller) {
       const handleVideoData = (data: RawScrcpyVideoPacket) => {
         try {
-          const payload = new Uint8Array(data.data);
+          const payload = toUint8Array(data.data);
           if (data.type === 'configuration') {
             controller.enqueue({
               type: 'configuration',

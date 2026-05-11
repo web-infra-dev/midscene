@@ -573,9 +573,13 @@ export default class ScrcpyServer {
                       // ensure type field is correctly set to 'configuration' or 'data'
                       const frameType = value.type || 'data'; // default to 'data'
 
-                      // send video frame data to client
+                      // Forward the raw Uint8Array — socket.io transports it as
+                      // a binary frame. Converting via Array.from inflates each
+                      // byte to a boxed JS Number, blowing the V8 old space on
+                      // low-memory hosts (e.g. 8GB Windows) after a few seconds
+                      // of a 2 Mbps stream.
                       socket.emit('video-data', {
-                        data: Array.from(value.data),
+                        data: value.data,
                         type: frameType,
                         timestamp: Date.now(),
                         // fix keyframe access
