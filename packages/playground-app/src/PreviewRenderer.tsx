@@ -30,6 +30,7 @@ import type { ScrcpyPreviewStatus } from './scrcpy-preview';
 
 interface PreviewRendererProps {
   connectingOverlay?: ReactNode;
+  onDeviceSizeChange?: (size: { width: number; height: number } | null) => void;
   onScrcpyStatusChange?: (
     status: ScrcpyPreviewStatus,
     statusText: string,
@@ -58,6 +59,7 @@ function isNonLocalhostHttp(): boolean {
 
 export function PreviewRenderer({
   connectingOverlay,
+  onDeviceSizeChange,
   onScrcpyStatusChange,
   renderErrorOverlay,
   scrcpyViewportStyle,
@@ -74,6 +76,11 @@ export function PreviewRenderer({
   );
 
   const [deviceSize, setDeviceSize] = useState<DeviceSize | null>(null);
+  // Pixel dimensions reported by the scrcpy video-metadata event. This is
+  // the canvas's actual pixel buffer size — the authoritative source for
+  // any aspect-ratio calculation, since `/interface-info` can drift from
+  // the real stream resolution by a few pixels.
+  const [streamSize, setStreamSize] = useState<DeviceSize | null>(null);
   const [actionTypes, setActionTypes] = useState<string[] | null>(null);
   const manualControlQueueRef = useRef<Promise<unknown>>(Promise.resolve());
 
@@ -158,6 +165,20 @@ export function PreviewRenderer({
       clearInterval(timer);
     };
   }, [playgroundSDK, serverOnline]);
+
+  // Notify consumers when the connected device's intrinsic size changes —
+  // they can use it to size the surrounding chrome to the actual screen
+  // aspect (instead of a hardcoded 9:19.5 assumption that leaves
+  // letterboxing on most modern phones).
+  //
+  // Prefer the scrcpy stream's own pixel buffer dimensions over
+  // `/interface-info.size` when both are available. The canvas inside
+  // ScrcpyPanel sizes itself to the stream buffer, so any aspect-ratio
+  // derived from `/interface-info` can be off by a handful of pixels
+  // (the visible "white edge" inside the rounded device border).
+  useEffect(() => {
+    onDeviceSizeChange?.(streamSize ?? deviceSize);
+  }, [deviceSize, onDeviceSizeChange, streamSize]);
 
   const showManualControlError = useCallback(
     (fallback: string, error?: string) => {
@@ -341,6 +362,7 @@ export function PreviewRenderer({
         <ScrcpyPanel
           connectingOverlay={connectingOverlay}
           deviceId={previewConnection.deviceId}
+          onIntrinsicSize={setStreamSize}
           onStatusChange={onScrcpyStatusChange}
           renderErrorOverlay={renderErrorOverlay}
           serverUrl={previewConnection.scrcpyUrl}

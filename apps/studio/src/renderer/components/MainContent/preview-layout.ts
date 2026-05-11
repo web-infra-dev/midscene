@@ -3,7 +3,7 @@ import type { StudioPlatformId } from '@shared/electron-contract';
 import type { StudioPreviewConnectionState } from '../../playground/preview-discovery';
 import { normalizeStudioPlatformId } from '../../playground/selectors';
 
-const MOBILE_PREVIEW_ASPECT_RATIO = 9 / 19.5;
+const MOBILE_PREVIEW_DEFAULT_ASPECT_RATIO = 9 / 19.5;
 const MOBILE_PREVIEW_HORIZONTAL_GUTTER_PX = 24;
 const MOBILE_PREVIEW_VERTICAL_GUTTER_PX = 56;
 
@@ -58,6 +58,7 @@ export function shouldEnableMobilePreviewFrame(
 export function fitMobilePreviewViewport(
   stageWidth: number,
   stageHeight: number,
+  aspectRatio: number = MOBILE_PREVIEW_DEFAULT_ASPECT_RATIO,
 ): {
   width: number;
   height: number;
@@ -78,11 +79,16 @@ export function fitMobilePreviewViewport(
     };
   }
 
-  const heightLimitedWidth = availableHeight * MOBILE_PREVIEW_ASPECT_RATIO;
+  const safeAspectRatio =
+    Number.isFinite(aspectRatio) && aspectRatio > 0
+      ? aspectRatio
+      : MOBILE_PREVIEW_DEFAULT_ASPECT_RATIO;
+
+  const heightLimitedWidth = availableHeight * safeAspectRatio;
   const width = Math.min(availableWidth, heightLimitedWidth);
 
   return {
     width,
-    height: width / MOBILE_PREVIEW_ASPECT_RATIO,
+    height: width / safeAspectRatio,
   };
 }

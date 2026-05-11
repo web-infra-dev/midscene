@@ -244,6 +244,20 @@ export default function MainContent({
   const studioPlayground = useStudioPlayground();
   const [previewStatus, setPreviewStatus] =
     useState<StudioPreviewConnectionState>(null);
+  // Connected device's intrinsic screen size, reported by PreviewRenderer
+  // once `/interface-info` lands. We feed its aspect ratio into the
+  // mobile preview frame so the rounded border tightly hugs the canvas
+  // instead of letterboxing with a hardcoded 9:19.5 assumption.
+  const [previewDeviceSize, setPreviewDeviceSize] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
+  const previewAspectRatio =
+    previewDeviceSize &&
+    previewDeviceSize.width > 0 &&
+    previewDeviceSize.height > 0
+      ? previewDeviceSize.width / previewDeviceSize.height
+      : undefined;
   const [previewStatusText, setPreviewStatusText] = useState<string | null>(
     null,
   );
@@ -315,6 +329,7 @@ export default function MainContent({
     if (!isConnected) {
       setPreviewStatus(null);
       setPreviewStatusText(null);
+      setPreviewDeviceSize(null);
       setWebNavigationBusyAction(null);
       setWebIsLoading(false);
     }
@@ -634,7 +649,10 @@ export default function MainContent({
       </div>
 
       <div className="relative min-h-0 flex-1 overflow-hidden bg-surface">
-        <MobilePreviewFrame enabled={shouldFrameMobilePreview}>
+        <MobilePreviewFrame
+          aspectRatio={previewAspectRatio}
+          enabled={shouldFrameMobilePreview}
+        >
           {studioPlayground.phase === 'booting' ? (
             <div className="flex h-full items-center justify-center px-6 text-[14px] text-text-tertiary">
               Playground starting...
@@ -681,6 +699,7 @@ export default function MainContent({
                       statusLabel={previewStatusText || previewConnectingLabel}
                     />
                   }
+                  onDeviceSizeChange={setPreviewDeviceSize}
                   onScrcpyStatusChange={(status, statusText) => {
                     setPreviewStatus(status);
                     setPreviewStatusText(statusText);
