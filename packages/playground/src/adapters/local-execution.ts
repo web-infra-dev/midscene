@@ -423,6 +423,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     type: string;
     description?: string;
     size?: { width: number; height: number };
+    actionTypes?: string[];
   } | null> {
     if (!this.agent?.interface) {
       return null;
@@ -435,11 +436,19 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
         typeof this.agent.interface.size === 'function'
           ? await this.agent.interface.size()
           : undefined;
+      const actionTypes =
+        typeof this.agent.interface.actionSpace === 'function'
+          ? this.agent.interface
+              .actionSpace()
+              .map((action) => action?.name)
+              .filter((name): name is string => typeof name === 'string')
+          : undefined;
 
       return {
         type,
         description,
         ...(size ? { size } : {}),
+        ...(actionTypes ? { actionTypes } : {}),
       };
     } catch (error: unknown) {
       console.error('Failed to get interface info:', error);

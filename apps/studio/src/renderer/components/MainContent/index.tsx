@@ -286,14 +286,6 @@ export default function MainContent({
     runtimeInfo,
     previewFormValues,
   );
-  const manualControlEnabled =
-    isConnected &&
-    (previewPlatform === 'android' ||
-      previewPlatform === 'ios' ||
-      previewPlatform === 'harmony' ||
-      previewPlatform === 'web');
-  const manualDragActionType =
-    previewPlatform === 'web' ? 'DragAndDrop' : 'Swipe';
   const showWebNavigation = isConnected && previewPlatform === 'web';
   const previewConnectingLabel = getPreviewConnectingLabel(previewPlatform);
   const disconnectedPreviewTitle = getDisconnectedPreviewTitle(previewPlatform);
@@ -735,9 +727,6 @@ export default function MainContent({
                   isUserOperating={
                     studioPlayground.controller.state.isUserOperating
                   }
-                  manualControlEnabled={manualControlEnabled}
-                  manualDragActionType={manualDragActionType}
-                  manualKeyboardEnabled={previewPlatform === 'web'}
                 />
               </Suspense>
             </div>

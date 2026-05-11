@@ -50,9 +50,6 @@ describe('PreviewRenderer manual web input', () => {
           serverOnline: true,
           serverUrl: 'http://127.0.0.1:5800',
           isUserOperating: false,
-          manualControlEnabled: true,
-          manualDragActionType: 'DragAndDrop',
-          manualKeyboardEnabled: true,
           screenshotViewerMode: 'screen-only',
         } as any),
       );
@@ -78,6 +75,7 @@ describe('PreviewRenderer manual web input', () => {
       getInterfaceInfo: vi.fn(async () => ({
         type: 'puppeteer',
         size: { width: 100, height: 100 },
+        actionTypes: ['Tap', 'DragAndDrop', 'KeyboardPress', 'Input'],
       })),
       getScreenshot: vi.fn(async () => null),
       interact,
@@ -101,9 +99,6 @@ describe('PreviewRenderer manual web input', () => {
           serverOnline: true,
           serverUrl: 'http://127.0.0.1:5800',
           isUserOperating: false,
-          manualControlEnabled: true,
-          manualDragActionType: 'DragAndDrop',
-          manualKeyboardEnabled: true,
           screenshotViewerMode: 'screen-only',
         } as any),
       );
