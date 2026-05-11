@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   type StudioThemeMode,
   useStudioTheme,
@@ -158,6 +158,27 @@ export default function SettingsPanel({
   const [language] = useState<string>(() => readStoredLanguage());
   const [openPopover, setOpenPopover] = useState<'theme' | null>(null);
   const popoverWrapperRef = useRef<HTMLDivElement | null>(null);
+  // The Theme popover is hover-driven now. A 4px gap separates the trigger
+  // row from the floating option list, so we use a short grace period
+  // before closing — letting the cursor cross the gap without flicker.
+  const closeTimerRef = useRef<number | null>(null);
+
+  const cancelScheduledClose = useCallback(() => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleClose = useCallback(() => {
+    cancelScheduledClose();
+    closeTimerRef.current = window.setTimeout(() => {
+      setOpenPopover(null);
+      closeTimerRef.current = null;
+    }, 120);
+  }, [cancelScheduledClose]);
+
+  useEffect(() => () => cancelScheduledClose(), [cancelScheduledClose]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -193,9 +214,11 @@ export default function SettingsPanel({
         <div className="flex flex-col">
           <SettingItem
             label="Theme"
-            onClick={() =>
-              setOpenPopover((prev) => (prev === 'theme' ? null : 'theme'))
-            }
+            onMouseEnter={() => {
+              cancelScheduledClose();
+              setOpenPopover('theme');
+            }}
+            onMouseLeave={scheduleClose}
             trailingIcon={<ChevronIcon />}
             value={THEME_LABELS[mode]}
           />
@@ -218,7 +241,11 @@ export default function SettingsPanel({
       </div>
 
       {openPopover === 'theme' ? (
-        <div className="absolute left-[calc(100%+4px)] top-[6px] z-50">
+        <div
+          className="absolute left-[calc(100%+4px)] top-[6px] z-50"
+          onMouseEnter={cancelScheduledClose}
+          onMouseLeave={scheduleClose}
+        >
           <OptionList
             onSelect={(value) => {
               setMode(value);

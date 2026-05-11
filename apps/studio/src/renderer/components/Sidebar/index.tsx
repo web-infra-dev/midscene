@@ -75,7 +75,7 @@ function SectionHeader({
 }) {
   return (
     <button
-      className="flex h-8 w-full appearance-none items-center gap-[6px] rounded-lg border-0 bg-transparent pl-[12px] pr-[16px] text-left hover:bg-surface-hover"
+      className="flex h-8 w-full appearance-none items-center gap-[6px] rounded-lg border-0 bg-transparent pl-[12px] pr-[14px] text-left hover:bg-surface-hover"
       onClick={onClick}
       type="button"
     >
@@ -105,7 +105,7 @@ function DeviceRow({
 }) {
   return (
     <button
-      className={`flex h-8 w-full cursor-pointer appearance-none items-center gap-[6px] rounded-[10px] border-0 pl-[12px] pr-[16px] text-left transition-colors ${
+      className={`flex h-8 w-full cursor-pointer appearance-none items-center gap-[6px] rounded-[10px] border-0 pl-[12px] pr-[14px] text-left transition-colors ${
         selected
           ? 'bg-surface-hover hover:bg-surface-hover'
           : 'bg-transparent hover:bg-surface-hover active:bg-surface-active'
@@ -115,25 +115,27 @@ function DeviceRow({
     >
       <div className="h-4 w-4 shrink-0" />
       <span
-        className={`flex-1 overflow-hidden whitespace-nowrap font-sans text-[13px] leading-[13px] ${
+        className={`flex-1 overflow-hidden whitespace-nowrap font-sans text-[13px] ${
           selected
-            ? 'font-medium text-text-primary'
-            : 'font-normal text-text-secondary'
+            ? 'font-medium leading-[22.11px] text-text-primary'
+            : 'font-normal leading-[13px] text-text-secondary'
         }`}
       >
         {label}
       </span>
-      <ConnectionStatusDot
-        size={6}
-        status={status === 'active' ? 'connected' : 'disconnected'}
-      />
+      <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+        <ConnectionStatusDot
+          size={6}
+          status={status === 'active' ? 'connected' : 'disconnected'}
+        />
+      </span>
     </button>
   );
 }
 
 function EmptyDeviceRow() {
   return (
-    <div className="flex h-8 w-full items-center gap-[6px] rounded-lg pl-[12px] pr-[16px]">
+    <div className="flex h-8 w-full items-center gap-[6px] rounded-lg pl-[12px] pr-[14px]">
       <div className="h-4 w-4 shrink-0" />
       <span className="flex-1 overflow-hidden whitespace-nowrap font-sans text-[13px] font-normal leading-[13px] text-text-tertiary">
         No devices
@@ -346,7 +348,7 @@ export default function Sidebar({
   return (
     <div className="flex flex-col">
       <button
-        className={`flex h-8 w-full appearance-none items-center gap-[6px] border-0 pl-[12px] pr-[16px] text-left ${
+        className={`flex h-8 w-full appearance-none items-center gap-[6px] border-0 pl-[12px] pr-[14px] text-left ${
           overviewActive
             ? 'rounded-[10px] bg-black/5'
             : 'rounded-lg bg-transparent hover:bg-surface-hover'
@@ -361,14 +363,14 @@ export default function Sidebar({
         <span className="flex-1 overflow-hidden whitespace-nowrap font-sans text-[13px] font-medium leading-[22px] text-text-secondary">
           Overview
         </span>
-        <span className="shrink-0 font-sans text-[11px] font-normal leading-[20px] text-text-tertiary">
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center font-sans text-[11px] font-normal leading-none text-text-tertiary">
           {totalDeviceCount}
         </span>
       </button>
 
       <div className="mt-1 flex flex-col">
         <div className="flex h-8 w-full items-center pl-[12px]">
-          <span className="overflow-hidden whitespace-nowrap font-sans text-[13px] font-medium leading-[22px] text-text-tertiary">
+          <span className="overflow-hidden whitespace-nowrap font-sans text-[13px] font-medium leading-[22px] text-text-placeholder">
             Platform
           </span>
         </div>

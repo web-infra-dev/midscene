@@ -43,6 +43,7 @@ export interface MainContentProps {
   activeView: ShellActiveView;
   headerOffsetClass?: string;
   onSelectDeviceView?: () => void;
+  onSelectOverview?: () => void;
 }
 
 function RefreshIcon({ spinning }: { spinning?: boolean }) {
@@ -238,6 +239,7 @@ export default function MainContent({
   activeView,
   headerOffsetClass,
   onSelectDeviceView,
+  onSelectOverview,
 }: MainContentProps) {
   const studioPlayground = useStudioPlayground();
   const [previewStatus, setPreviewStatus] =
@@ -613,6 +615,10 @@ export default function MainContent({
               }
 
               void studioPlayground.controller.actions.destroySession();
+              // After tearing down the session, jump back to the
+              // Overview page so the user lands on a meaningful screen
+              // instead of an empty device pane.
+              onSelectOverview?.();
             }}
             type="button"
           >
