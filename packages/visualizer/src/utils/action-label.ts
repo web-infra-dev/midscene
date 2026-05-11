@@ -1,5 +1,7 @@
 export const actionNameForType = (type: string) => {
   if (!type) return '';
+  if (type === 'aiAct') return 'Action';
+
   // Remove 'ai' prefix and convert camelCase to space-separated words
   const typeWithoutAi = type.startsWith('ai') ? type.slice(2) : type;
 

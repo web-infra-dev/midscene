@@ -464,7 +464,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         // New format - 1: { aiScroll: TUserPrompt, direction, scrollType, distance? }
         // New format - 2: { aiScroll: undefined, locate: TUserPrompt, direction, scrollType, distance? }
         const { locate, ...scrollOptions } = scrollTask as any;
-        const locatePrompt: TUserPrompt | undefined = locate ?? aiScroll;
+        const locatePrompt: TUserPrompt | undefined =
+          locate ?? aiScroll ?? undefined;
 
         await agent.aiScroll(locatePrompt, scrollOptions);
       } else if ('aiTap' in flowItem) {

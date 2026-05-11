@@ -19,4 +19,19 @@ describe('ScrcpyPanel', () => {
     expect(html).toContain('custom-connecting-overlay');
     expect(html).not.toContain('Connecting to scrcpy preview server');
   });
+
+  it('applies custom viewport styles when provided', () => {
+    const html = renderToStaticMarkup(
+      createElement(ScrcpyPanel, {
+        serverUrl: 'http://127.0.0.1:9234',
+        viewportStyle: {
+          background: 'transparent',
+          borderRadius: 0,
+        },
+      }),
+    );
+
+    expect(html).toContain('background:transparent');
+    expect(html).toContain('border-radius:0');
+  });
 });

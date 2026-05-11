@@ -2,23 +2,53 @@ import type {
   PlaygroundRuntimeInfo,
   PlaygroundSDK,
 } from '@midscene/playground';
-import { ScreenshotViewer } from '@midscene/visualizer';
+import {
+  ScreenshotViewer,
+  type ScreenshotViewerMode,
+} from '@midscene/visualizer';
 import { WebCodecsVideoDecoder } from '@yume-chan/scrcpy-decoder-webcodecs';
-import { Alert, Popover } from 'antd';
-import type { ReactNode } from 'react';
+import { Alert, Popover, message } from 'antd';
+import React, {
+  type CSSProperties,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import {
+  DeviceInteractionLayer,
+  type DeviceSize,
+} from './DeviceInteractionLayer';
 import { type ScrcpyErrorOverlayRenderer, ScrcpyPanel } from './ScrcpyPanel';
+import {
+  type ManualDragActionType,
+  buildManualDragInteractPayload,
+} from './manual-interaction';
 import { resolvePreviewConnectionInfo } from './runtime-info';
 import type { ScrcpyPreviewStatus } from './scrcpy-preview';
 
 interface PreviewRendererProps {
   connectingOverlay?: ReactNode;
-  onScrcpyStatusChange?: (status: ScrcpyPreviewStatus) => void;
+  onScrcpyStatusChange?: (
+    status: ScrcpyPreviewStatus,
+    statusText: string,
+  ) => void;
   renderErrorOverlay?: ScrcpyErrorOverlayRenderer;
+  scrcpyViewportStyle?: CSSProperties;
+  screenshotViewerMode?: ScreenshotViewerMode;
   playgroundSDK: PlaygroundSDK;
   runtimeInfo: PlaygroundRuntimeInfo | null;
   serverUrl: string;
   serverOnline: boolean;
   isUserOperating: boolean;
+  /**
+   * When true, the preview accepts mouse/touch input and forwards it to the
+   * connected device (Android via ADB, iOS via WDA, Harmony via HDC).
+   */
+  manualControlEnabled?: boolean;
+  manualDragActionType?: ManualDragActionType;
+  manualKeyboardEnabled?: boolean;
 }
 
 function isNonLocalhostHttp(): boolean {
@@ -37,15 +67,159 @@ export function PreviewRenderer({
   connectingOverlay,
   onScrcpyStatusChange,
   renderErrorOverlay,
+  scrcpyViewportStyle,
+  screenshotViewerMode,
   playgroundSDK,
   runtimeInfo,
   serverUrl,
   serverOnline,
   isUserOperating,
+  manualControlEnabled = false,
+  manualDragActionType = 'Swipe',
+  manualKeyboardEnabled = false,
 }: PreviewRendererProps) {
   const previewConnection = resolvePreviewConnectionInfo(
     runtimeInfo,
     serverUrl,
+  );
+
+  const [deviceSize, setDeviceSize] = useState<DeviceSize | null>(null);
+  const manualControlQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+
+  const enqueueManualControl = useCallback(
+    <TResult,>(task: () => Promise<TResult>): Promise<TResult> => {
+      const nextTask = manualControlQueueRef.current.then(task, task);
+      manualControlQueueRef.current = nextTask.catch(() => undefined);
+      return nextTask;
+    },
+    [],
+  );
+
+  // Pull device size from lightweight interface metadata so the interaction
+  // layer can map display coords to device pixels. Refresh periodically
+  // (orientation changes, hot-swapped devices).
+  useEffect(() => {
+    if (!manualControlEnabled || !serverOnline) {
+      setDeviceSize(null);
+      return;
+    }
+    let cancelled = false;
+    const fetchSize = async () => {
+      let result: Awaited<ReturnType<typeof playgroundSDK.getInterfaceInfo>>;
+      try {
+        result = await playgroundSDK.getInterfaceInfo();
+      } catch {
+        return;
+      }
+      if (cancelled) return;
+      if (result?.size?.width && result.size.height) {
+        const { size } = result;
+        setDeviceSize((current) => {
+          if (
+            current &&
+            current.width === size.width &&
+            current.height === size.height
+          ) {
+            return current;
+          }
+          return { width: size.width, height: size.height };
+        });
+      }
+    };
+    fetchSize();
+    const timer = setInterval(fetchSize, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [manualControlEnabled, playgroundSDK, serverOnline]);
+
+  const showManualControlError = useCallback(
+    (fallback: string, error?: string) => {
+      message.open({
+        type: 'error',
+        content: error || fallback,
+        key: 'manual-control-error',
+      });
+    },
+    [],
+  );
+
+  const handleTap = useCallback(
+    async (point: { x: number; y: number }) => {
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact({
+          actionType: 'Tap',
+          x: point.x,
+          y: point.y,
+        }),
+      );
+      if (!res.ok) {
+        showManualControlError('Tap failed', res.error);
+      }
+    },
+    [enqueueManualControl, playgroundSDK, showManualControlError],
+  );
+
+  const handleSwipe = useCallback(
+    async (
+      start: { x: number; y: number },
+      end: { x: number; y: number },
+      duration: number,
+    ) => {
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact(
+          buildManualDragInteractPayload(
+            manualDragActionType,
+            start,
+            end,
+            duration,
+          ),
+        ),
+      );
+      if (!res.ok) {
+        showManualControlError(`${manualDragActionType} failed`, res.error);
+      }
+    },
+    [
+      enqueueManualControl,
+      manualDragActionType,
+      playgroundSDK,
+      showManualControlError,
+    ],
+  );
+
+  const handleTextInput = useCallback(
+    async (text: string) => {
+      if (!text) return;
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact({
+          actionType: 'Input',
+          value: text,
+          mode: 'typeOnly',
+        }),
+      );
+      if (!res.ok) {
+        showManualControlError('Input failed', res.error);
+      }
+    },
+    [enqueueManualControl, playgroundSDK, showManualControlError],
+  );
+
+  const handleKeyboardPress = useCallback(
+    async (keyName: string) => {
+      if (!keyName) return;
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact({
+          actionType: 'KeyboardPress',
+          keyName,
+        }),
+      );
+      if (!res.ok) {
+        showManualControlError('Keyboard press failed', res.error);
+      }
+    },
+    [enqueueManualControl, playgroundSDK, showManualControlError],
   );
 
   // Fall back to screenshot polling when WebCodecs is unavailable
@@ -141,9 +315,11 @@ export function PreviewRenderer({
       ) : scrcpyAvailable ? (
         <ScrcpyPanel
           connectingOverlay={connectingOverlay}
+          deviceId={previewConnection.deviceId}
           onStatusChange={onScrcpyStatusChange}
           renderErrorOverlay={renderErrorOverlay}
           serverUrl={previewConnection.scrcpyUrl}
+          viewportStyle={scrcpyViewportStyle}
         />
       ) : (
         <ScreenshotViewer
@@ -156,8 +332,22 @@ export function PreviewRenderer({
           serverOnline={serverOnline}
           isUserOperating={isUserOperating}
           mjpegUrl={previewConnection.mjpegUrl}
+          mode={screenshotViewerMode}
         />
       )}
+      <DeviceInteractionLayer
+        enabled={
+          manualControlEnabled &&
+          serverOnline &&
+          previewConnection.type !== 'none'
+        }
+        deviceSize={deviceSize}
+        onTap={handleTap}
+        onSwipe={handleSwipe}
+        keyboardEnabled={manualKeyboardEnabled}
+        onTextInput={handleTextInput}
+        onKeyboardPress={handleKeyboardPress}
+      />
     </div>
   );
 }

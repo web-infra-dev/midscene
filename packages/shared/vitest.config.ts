@@ -1,6 +1,7 @@
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { defineConfig } from 'vitest/config';
+import { version } from './package.json';
 
 /**
  * Read environment variables from file.
@@ -21,6 +22,9 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, 'src'),
     },
+  },
+  define: {
+    __VERSION__: JSON.stringify(version),
   },
   ssr: {
     external: ['@silvia-odwyer/photon'],

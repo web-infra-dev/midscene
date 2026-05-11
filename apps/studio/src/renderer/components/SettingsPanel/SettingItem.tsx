@@ -19,12 +19,12 @@ export default function SettingItem({
       onClick={onClick}
       type="button"
     >
-      <span className="overflow-hidden whitespace-nowrap font-['PingFang_SC'] text-[13px] leading-[22px] text-text-secondary">
+      <span className="overflow-hidden whitespace-nowrap font-sans text-[13px] leading-[22px] text-text-secondary">
         {label}
       </span>
       <div className="flex items-center gap-[12px]">
         {value ? (
-          <span className="overflow-hidden whitespace-nowrap font-['PingFang_SC'] text-[13px] leading-[22px] text-text-secondary">
+          <span className="overflow-hidden whitespace-nowrap font-sans text-[13px] leading-[22px] text-text-secondary">
             {value}
           </span>
         ) : null}

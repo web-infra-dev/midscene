@@ -153,10 +153,19 @@ function transformSchemaField(
 }
 
 /**
- * Extract and transform schema from action's paramSchema
+ * Extract and transform schema from action's paramSchema.
+ *
+ * CLI and MCP both expose parameters as named fields, so the only schema
+ * shapes we can surface are ZodObject (any number of fields) or undefined
+ * (the action takes no parameters). A primitive schema like `z.string()`
+ * silently degraded to leaking the ZodString instance's prototype methods
+ * as CLI flags — see https://github.com/web-infra-dev/midscene/issues/2313.
+ * Reject such schemas up front so the next author gets a loud error
+ * instead of a silent misconfiguration at runtime.
  */
 function extractActionSchema(
   paramSchema: z.ZodTypeAny | undefined,
+  actionName: string,
 ): Record<string, z.ZodTypeAny> {
   if (!paramSchema) {
     return {};
@@ -164,7 +173,12 @@ function extractActionSchema(
 
   const shape = getZodObjectShape(paramSchema);
   if (!shape) {
-    return paramSchema as unknown as Record<string, z.ZodTypeAny>;
+    const typeName =
+      (paramSchema as unknown as { _def?: { typeName?: string } })?._def
+        ?.typeName ?? 'unknown';
+    throw new Error(
+      `Action "${actionName}" declared a non-object paramSchema (${typeName}). CLI and MCP tool schemas must be a ZodObject (e.g. z.object({ uri: z.string() })) or undefined. Wrap primitive fields in an object schema.`,
+    );
   }
 
   return Object.fromEntries(
@@ -476,7 +490,7 @@ export function generateToolsFromActionSpace(
 ): ToolDefinition[] {
   return actionSpace.map((action) => {
     const schema = {
-      ...extractActionSchema(action.paramSchema as z.ZodTypeAny),
+      ...extractActionSchema(action.paramSchema as z.ZodTypeAny, action.name),
       ...initArgSchema,
     };
 
@@ -604,6 +618,39 @@ export function generateCommonTools(
           const errorMessage = getErrorMessage(error);
           console.error('Error executing act:', errorMessage);
           return createErrorResult(`Failed to execute act: ${errorMessage}`);
+        }
+      },
+    },
+    {
+      name: 'assert',
+      description:
+        'Assert a natural language statement against the current page/screen.',
+      schema: {
+        prompt: z
+          .string()
+          .describe(
+            'Natural language assertion to verify, e.g. "there is a login button visible"',
+          ),
+        ...initArgSchema,
+      },
+      cli: mergeToolCliMetadata(undefined, initArgCliMetadata),
+      handler: async (
+        args: Record<string, unknown> = {},
+      ): Promise<ToolResult> => {
+        const prompt = args.prompt as string;
+        try {
+          const agent = await getAgent(args);
+          if (!agent.aiAssert) {
+            return createErrorResult('assert is not supported by this agent');
+          }
+          await agent.aiAssert(prompt);
+          return {
+            content: [{ type: 'text', text: 'Assertion passed.' }],
+          };
+        } catch (error: unknown) {
+          const errorMessage = getErrorMessage(error);
+          console.error('Error executing assert:', errorMessage);
+          return createErrorResult(`Failed to execute assert: ${errorMessage}`);
         }
       },
     },

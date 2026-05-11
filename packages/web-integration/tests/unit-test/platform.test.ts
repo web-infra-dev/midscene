@@ -12,8 +12,9 @@ describe('webPlaygroundPlatform', () => {
     expect(prepared.agentFactory).toBeTypeOf('function');
     expect(createdAgent).toBeInstanceOf(StaticPageAgent);
     expect(prepared.preview).toMatchObject({
-      kind: 'screenshot',
+      kind: 'mjpeg',
       screenshotPath: '/screenshot',
+      mjpegPath: '/mjpeg',
     });
   });
 

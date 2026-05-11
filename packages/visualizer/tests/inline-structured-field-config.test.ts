@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import {
   getAvailablePromptActionTypes,
   getInlineStructuredFieldConfig,
+  shouldOffsetEmptyStateForPromptInput,
 } from '../src/utils/prompt-input-utils';
 
 function makeStringField(description?: string) {
@@ -162,6 +163,45 @@ describe('getInlineStructuredFieldConfig', () => {
   });
 });
 
+describe('shouldOffsetEmptyStateForPromptInput', () => {
+  test('offsets empty state for multi-field structured actions', () => {
+    const actionSpace = [
+      {
+        name: 'Scroll',
+        interfaceAlias: 'aiScroll',
+        paramSchema: {
+          shape: {
+            direction: makeStringField(),
+            distance: makeNumberField(),
+          },
+        },
+      },
+    ] as any;
+
+    expect(shouldOffsetEmptyStateForPromptInput(actionSpace, 'aiScroll')).toBe(
+      true,
+    );
+  });
+
+  test('does not offset empty state for inline structured actions', () => {
+    const actionSpace = [
+      {
+        name: 'Tap',
+        interfaceAlias: 'aiTap',
+        paramSchema: {
+          shape: {
+            locate: makeLocateField(),
+          },
+        },
+      },
+    ] as any;
+
+    expect(shouldOffsetEmptyStateForPromptInput(actionSpace, 'aiTap')).toBe(
+      false,
+    );
+  });
+});
+
 describe('getAvailablePromptActionTypes', () => {
   test('includes aiAct when actionSpace exposes it', () => {
     const actionSpace = [
@@ -175,7 +215,7 @@ describe('getAvailablePromptActionTypes', () => {
     expect(actions).toContain('aiTap');
   });
 
-  test('omits aiAct when actionSpace does not expose it', () => {
+  test('keeps aiAct when actionSpace does not expose it', () => {
     const actionSpace = [
       { name: 'Tap', interfaceAlias: 'aiTap' },
       { name: 'Swipe', interfaceAlias: 'aiSwipe' },
@@ -183,7 +223,7 @@ describe('getAvailablePromptActionTypes', () => {
 
     const actions = getAvailablePromptActionTypes(actionSpace);
 
-    expect(actions).not.toContain('aiAct');
+    expect(actions).toContain('aiAct');
     expect(actions).toContain('aiTap');
     expect(actions).toContain('aiSwipe');
   });

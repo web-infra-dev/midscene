@@ -13,6 +13,8 @@ import {
 import type { PlaygroundControllerResult } from '../controller/types';
 import './PlaygroundConversationPanel.less';
 
+const PLAYGROUND_CONVERSATION_SKIN_CLASS = 'playground-conversation-skin';
+
 export interface PlaygroundConversationPanelProps {
   controller: PlaygroundControllerResult;
   appVersion: string;
@@ -21,6 +23,10 @@ export interface PlaygroundConversationPanelProps {
   playgroundConfig?: Partial<UniversalPlaygroundConfig>;
   header?: ReactNode;
   className?: string;
+  /**
+   * Extra class appended to the inner `UniversalPlayground` root.
+   */
+  playgroundClassName?: string;
   /**
    * Custom content shown while the session is not yet connected.
    * When supplied, replaces the built-in `SessionSetupPanel`, letting hosts
@@ -37,6 +43,7 @@ export function PlaygroundConversationPanel({
   playgroundConfig,
   header,
   className,
+  playgroundClassName,
   notConnectedFallback,
 }: PlaygroundConversationPanelProps) {
   const { state, actions } = controller;
@@ -126,7 +133,13 @@ export function PlaygroundConversationPanel({
             playgroundSDK={state.playgroundSDK}
             config={mergedConfig}
             branding={mergedBranding}
-            className="playground-container"
+            className={[
+              'playground-container',
+              PLAYGROUND_CONVERSATION_SKIN_CLASS,
+              playgroundClassName,
+            ]
+              .filter(Boolean)
+              .join(' ')}
           />
         ) : notConnectedFallback !== undefined ? (
           <>{notConnectedFallback}</>

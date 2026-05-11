@@ -1004,6 +1004,7 @@ export interface DeviceAction<TParam = any, TReturn = any> {
   interfaceAlias?: string;
   paramSchema?: z.ZodType<TParam>;
   call: (param: TParam, context: ExecutorContext) => Promise<TReturn> | TReturn;
+  delayBeforeRunner?: number;
   delayAfterRunner?: number;
   /**
    * An example param object for this action.
@@ -1088,6 +1089,7 @@ export interface AgentOpt {
   aiActionContext?: string;
   /* custom report file name */
   reportFileName?: string;
+  reportAttributes?: ReportAttributes;
   modelConfig?: TModelConfig;
   cache?: Cache;
   /**
@@ -1105,11 +1107,12 @@ export interface AgentOpt {
   waitAfterAction?: number;
 
   /**
-   * When set to true, Midscene will use the target device's time (Android/iOS)
-   * instead of the system time. Useful when the device time differs from the
-   * host machine. Default: false
+   * When set to true, Midscene will use the target device's formatted local
+   * time instead of the runtime system time. The target interface must implement
+   * getDeviceLocalTimeString to provide device-local wall-clock time.
+   * Default: false
    */
-  useDeviceTimestamp?: boolean;
+  useDeviceTime?: boolean;
 
   /**
    * Custom screenshot shrink factor to reduce AI token usage.

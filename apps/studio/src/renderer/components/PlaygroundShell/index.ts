@@ -1,2 +1,2 @@
-export { playgroundShellAssets } from './assets';
 export { PlaygroundShell } from './PlaygroundShell';
+export type { ConnectionStatus } from './ConnectionStatusDot';

@@ -81,6 +81,13 @@ const markdownResult = await reportFileToMarkdown({
 console.log(markdownResult.markdownFiles);
 ```
 
+`splitReportFile` and `reportFileToMarkdown` serve different outputs:
+
+- `splitReportFile` generates JSON files for the original structured objects (one `*.execution.json` per execution). The JSON keeps the raw `ReportActionDump`-style data and exports screenshots alongside it. The returned `executionJsonFiles` and `screenshotFiles` are lists of generated file paths.
+- `reportFileToMarkdown` converts the same report into human-readable Markdown and exports the screenshots referenced by that Markdown. The returned `markdownFiles` contains the generated Markdown file paths.
+
+Use `splitReportFile` when you want the most complete, programmatic raw data. Use `reportFileToMarkdown` when you want readable content for summarization or downstream content generation.
+
 ## About Fields In JSON And Markdown
 
 The parsed JSON and Markdown structures may change as Midscene evolves. Use the actual conversion result as the source of truth.

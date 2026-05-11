@@ -2,19 +2,24 @@ import { ScreenshotItem, z } from '@midscene/core';
 import { BaseMidsceneTools } from '@midscene/shared/mcp/base-tools';
 import type { ToolDefinition } from '@midscene/shared/mcp/types';
 import { AgentOverChromeBridge } from './bridge-mode';
+import { defaultStaticPageViewportSize } from './common/viewport';
 import { StaticPage } from './static';
 
 /**
  * Tools manager for Web bridge-mode MCP
  */
 export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
+  protected getCliReportSessionName() {
+    return 'midscene-web';
+  }
+
   protected createTemporaryDevice() {
     // Use require to avoid type incompatibility with DeviceAction vs ActionSpaceItem
     // StaticPage.actionSpace() returns DeviceAction[] which is compatible at runtime
     // Use screenshotBase64 field to avoid async ScreenshotItem.create()
     return new StaticPage({
       screenshot: ScreenshotItem.create('', Date.now()),
-      shotSize: { width: 1920, height: 1080 },
+      shotSize: defaultStaticPageViewportSize,
       shrunkShotToLogicalRatio: 1,
     });
   }
@@ -43,7 +48,11 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
   private async initBridgeModeAgent(
     url?: string,
   ): Promise<AgentOverChromeBridge> {
-    const agent = new AgentOverChromeBridge({ closeConflictServer: true });
+    const reportOptions = this.readCliReportAgentOptions();
+    const agent = new AgentOverChromeBridge({
+      closeConflictServer: true,
+      ...(reportOptions ?? {}),
+    });
 
     if (!url) {
       await agent.connectCurrentTab();
@@ -77,6 +86,10 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
             } catch {}
             this.agent = undefined;
           }
+          const reportSession = this.createNewCliReportSession(
+            url ?? 'current-tab',
+          );
+          this.commitCliReportSession(reportSession);
           this.agent = await this.initBridgeModeAgent(url);
 
           const screenshot = await this.agent.page?.screenshotBase64();

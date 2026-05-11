@@ -70,8 +70,4 @@ export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
       applyChromeSelectRendering(page);
     }
   }
-
-  async waitForNetworkIdle(timeout = 1000) {
-    await this.page.underlyingPage.waitForLoadState('networkidle', { timeout });
-  }
 }

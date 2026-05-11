@@ -15,6 +15,22 @@ export interface FileChooserHandler {
   accept(files: string[]): Promise<void>;
 }
 
+export interface MjpegStreamFrame {
+  /** Raw base64-encoded image bytes WITHOUT a `data:image/...;base64,` prefix. */
+  data: string;
+  contentType?: string;
+}
+
+export interface MjpegStreamHandle {
+  stop(): void | Promise<void>;
+}
+
+export interface MjpegStreamOptions {
+  signal?: AbortSignal;
+  onFrame(frame: MjpegStreamFrame): void;
+  onError?(error: unknown): void;
+}
+
 export abstract class AbstractInterface {
   abstract interfaceType: string;
 
@@ -54,14 +70,37 @@ export abstract class AbstractInterface {
   abstract evaluateJavaScript?<T = any>(script: string): Promise<T>;
 
   /**
-   * Get the current time from the device.
-   * Returns the device's current timestamp in milliseconds.
-   * This is useful when the system time and device time are not synchronized.
+   * Get the current device-local time as a formatted string.
+   * Prefer this for user-visible time because timestamps alone do not preserve
+   * the target device's timezone when formatted on the host machine.
    */
-  getTimestamp?(): Promise<number>;
+  getDeviceLocalTimeString?(format?: string): Promise<string>;
 
   /** URL of native MJPEG stream for real-time screen preview (e.g. WDA MJPEG server) */
   mjpegStreamUrl?: string;
+
+  /**
+   * Optional in-process MJPEG frame producer. Implementations can push raw
+   * base64 frames here when there is no standalone native MJPEG URL, e.g.
+   * Chromium CDP Page.startScreencast for web previews.
+   */
+  startMjpegStream?(
+    options: MjpegStreamOptions,
+  ): MjpegStreamHandle | undefined | Promise<MjpegStreamHandle | undefined>;
+
+  /**
+   * Optional hook used after keyboard-only actions to force a fresh frame on
+   * the active MJPEG stream. Implementations should be a no-op when no stream
+   * is active.
+   */
+  flushPendingVisualUpdate?(): Promise<void>;
+
+  /**
+   * Optional navigation state probe for browser-like interfaces, used to drive
+   * loading indicators in playground UIs. Returning `undefined` means the
+   * interface does not expose this concept.
+   */
+  navigationState?(): Promise<{ isLoading: boolean }>;
 }
 
 // Generic function to define actions with proper type inference
@@ -359,7 +398,6 @@ export const ActionLongPressParamSchema = z.object({
   ),
   duration: z
     .number()
-    .default(500)
     .optional()
     .describe('Long press duration in milliseconds'),
 });
@@ -374,6 +412,7 @@ export const defineActionLongPress = (
   return defineAction<typeof ActionLongPressParamSchema, ActionLongPressParam>({
     name: 'LongPress',
     description: 'Long press the element',
+    interfaceAlias: 'aiLongPress',
     paramSchema: ActionLongPressParamSchema,
     sample: {
       locate: { prompt: 'the message bubble' },

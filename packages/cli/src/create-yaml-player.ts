@@ -11,7 +11,7 @@ import type {
   MidsceneYamlScriptAgentOpt,
   MidsceneYamlScriptEnv,
 } from '@midscene/core';
-import { createAgent } from '@midscene/core/agent';
+import { createAgent, getReportFileName } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
 import { processCacheConfig } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
@@ -45,6 +45,7 @@ export const launchServer = async (
 /**
  * Resolves reportFileName with proper priority handling.
  * Priority: YAML reportFileName > CLI testId (legacy) > YAML testId (legacy) > fileName
+ * The final name always includes a unique suffix to avoid overwriting.
  */
 function resolveReportFileName(
   yamlReportFileName: string | undefined,
@@ -52,7 +53,8 @@ function resolveReportFileName(
   yamlTestId: string | undefined,
   fileName: string,
 ): string {
-  return yamlReportFileName ?? cliTestId ?? yamlTestId ?? fileName;
+  const baseName = yamlReportFileName ?? cliTestId ?? yamlTestId ?? fileName;
+  return getReportFileName(baseName);
 }
 
 /**

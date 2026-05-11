@@ -86,13 +86,14 @@ npx --yes @midscene/harmony-playground
 
 ### 第 1 步：安装依赖
 
-<PackageManagerTabs command="install @midscene/harmony --save-dev" />
+<PackageManagerTabs command="install @midscene/harmony dotenv --save-dev" />
 
 ### 第 2 步：编写脚本
 
 下面的示例会在设备上打开设置应用，并执行滚动操作。
 
 ```typescript title="./demo.ts"
+import 'dotenv/config'; // 通过 dotenv/config 自动加载 .env 文件中的环境变量
 import {
   HarmonyAgent,
   HarmonyDevice,

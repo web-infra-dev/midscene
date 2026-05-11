@@ -422,6 +422,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   async getInterfaceInfo(): Promise<{
     type: string;
     description?: string;
+    size?: { width: number; height: number };
   } | null> {
     if (!this.agent?.interface) {
       return null;
@@ -430,10 +431,15 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     try {
       const type = this.agent.interface.interfaceType || 'Unknown';
       const description = this.agent.interface.describe?.() || undefined;
+      const size =
+        typeof this.agent.interface.size === 'function'
+          ? await this.agent.interface.size()
+          : undefined;
 
       return {
         type,
         description,
+        ...(size ? { size } : {}),
       };
     } catch (error: unknown) {
       console.error('Failed to get interface info:', error);

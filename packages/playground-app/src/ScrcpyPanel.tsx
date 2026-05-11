@@ -11,6 +11,7 @@ import React, {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
 } from 'react';
 import type { Socket } from 'socket.io-client';
@@ -41,11 +42,13 @@ export type ScrcpyErrorOverlayRenderer = (
 
 interface ScrcpyPanelProps {
   connectingOverlay?: ReactNode;
-  onStatusChange?: (status: ScrcpyPreviewStatus) => void;
+  deviceId?: string;
+  onStatusChange?: (status: ScrcpyPreviewStatus, statusText: string) => void;
   renderErrorOverlay?: ScrcpyErrorOverlayRenderer;
   serverUrl?: string;
   metadataTimeoutMs?: number;
   reconnectInterval?: number;
+  viewportStyle?: CSSProperties;
 }
 
 interface VideoMetadata {
@@ -56,11 +59,13 @@ interface VideoMetadata {
 
 export function ScrcpyPanel({
   connectingOverlay,
+  deviceId,
   onStatusChange,
   renderErrorOverlay,
   serverUrl,
   metadataTimeoutMs = SCRCPY_METADATA_TIMEOUT_MS,
   reconnectInterval = 3000,
+  viewportStyle,
 }: ScrcpyPanelProps) {
   const canvasStageRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -93,8 +98,8 @@ export function ScrcpyPanel({
   }, []);
 
   useEffect(() => {
-    onStatusChange?.(status);
-  }, [onStatusChange, status]);
+    onStatusChange?.(status, statusText);
+  }, [onStatusChange, status, statusText]);
 
   const clearCanvas = () => {
     const stage = canvasStageRef.current;
@@ -138,8 +143,13 @@ export function ScrcpyPanel({
     }
 
     let disposed = false;
+    let connectTimer: ReturnType<typeof setTimeout> | null = null;
 
     const cleanup = () => {
+      if (connectTimer) {
+        clearTimeout(connectTimer);
+        connectTimer = null;
+      }
       clearMetadataTimeout();
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
@@ -200,6 +210,7 @@ export function ScrcpyPanel({
         withCredentials: true,
         reconnection: false,
         timeout: 10000,
+        transports: ['websocket'],
       });
       socketRef.current = socket;
       const videoStream = createScrcpyVideoStream(socket);
@@ -223,6 +234,9 @@ export function ScrcpyPanel({
         }, metadataTimeoutMs);
 
         socket.emit('connect-device', {
+          ...(typeof deviceId === 'string' && deviceId.trim()
+            ? { deviceId: deviceId.trim() }
+            : {}),
           maxSize: 1024,
         });
       });
@@ -309,13 +323,19 @@ export function ScrcpyPanel({
       });
     };
 
-    connect();
+    // React StrictMode mounts, cleans up, and remounts effects in dev.
+    // Defer the real socket connection by a tick so the probe mount is
+    // cancelled before it can start a scrcpy session.
+    connectTimer = setTimeout(() => {
+      connectTimer = null;
+      connect();
+    }, 0);
 
     return () => {
       disposed = true;
       cleanup();
     };
-  }, [metadataTimeoutMs, reconnectInterval, retryNonce, serverUrl]);
+  }, [deviceId, metadataTimeoutMs, reconnectInterval, retryNonce, serverUrl]);
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -339,6 +359,7 @@ export function ScrcpyPanel({
           background: '#111827',
           borderRadius: 8,
           overflow: 'hidden',
+          ...viewportStyle,
         }}
       >
         <div

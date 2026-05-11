@@ -10,11 +10,41 @@ import type { ToolDefinition } from '@midscene/shared/mcp/types';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import puppeteer from 'puppeteer-core';
 import type { Browser, Page } from 'puppeteer-core';
+import {
+  type ViewportSize,
+  defaultPuppeteerWindowViewportSize,
+  defaultStaticPageViewportSize,
+} from './common/viewport';
 import { PuppeteerAgent } from './puppeteer';
 import { StaticPage } from './static';
 
 const ENDPOINT_FILE = join(tmpdir(), 'midscene-puppeteer-endpoint');
 const USER_DATA_DIR = join(tmpdir(), 'midscene-puppeteer-profile');
+
+export const PUPPETEER_ENDPOINT_FILE = ENDPOINT_FILE;
+
+export function buildDetachedChromeArgs(options: {
+  userDataDir: string;
+  viewport?: ViewportSize;
+}): string[] {
+  const viewport = options.viewport ?? defaultPuppeteerWindowViewportSize;
+
+  return [
+    '--headless=new',
+    `--user-data-dir=${options.userDataDir}`,
+    '--remote-debugging-port=0',
+    '--no-first-run',
+    '--no-default-browser-check',
+    '--disable-extensions',
+    '--disable-default-apps',
+    '--disable-sync',
+    '--disable-background-networking',
+    '--password-store=basic',
+    '--use-mock-keychain',
+    `--window-size=${viewport.width},${viewport.height}`,
+    '--force-color-profile=srgb',
+  ];
+}
 
 /**
  * Persistent Puppeteer browser manager.
@@ -23,7 +53,9 @@ const USER_DATA_DIR = join(tmpdir(), 'midscene-puppeteer-profile');
 const browserManager = {
   activeBrowser: null as Browser | null,
 
-  async getOrLaunch(): Promise<{ browser: Browser; reused: boolean }> {
+  async getOrLaunch(
+    viewport?: ViewportSize,
+  ): Promise<{ browser: Browser; reused: boolean }> {
     if (existsSync(ENDPOINT_FILE)) {
       try {
         const endpoint = (await readFile(ENDPOINT_FILE, 'utf-8')).trim();
@@ -39,7 +71,7 @@ const browserManager = {
       }
     }
 
-    const wsEndpoint = await this.launchDetachedChrome();
+    const wsEndpoint = await this.launchDetachedChrome(viewport);
     await writeFile(ENDPOINT_FILE, wsEndpoint);
 
     const browser = await puppeteer.connect({
@@ -70,26 +102,15 @@ const browserManager = {
     }
   },
 
-  async launchDetachedChrome(): Promise<string> {
+  async launchDetachedChrome(viewport?: ViewportSize): Promise<string> {
     const chromePath = resolveChromePath();
 
     await mkdir(USER_DATA_DIR, { recursive: true });
 
-    const args = [
-      '--headless=new',
-      `--user-data-dir=${USER_DATA_DIR}`,
-      '--remote-debugging-port=0',
-      '--no-first-run',
-      '--no-default-browser-check',
-      '--disable-extensions',
-      '--disable-default-apps',
-      '--disable-sync',
-      '--disable-background-networking',
-      '--password-store=basic',
-      '--use-mock-keychain',
-      '--window-size=1280,800',
-      '--force-color-profile=srgb',
-    ];
+    const args = buildDetachedChromeArgs({
+      userDataDir: USER_DATA_DIR,
+      viewport,
+    });
 
     const proc = spawn(chromePath, args, {
       detached: true,
@@ -136,10 +157,21 @@ const browserManager = {
  * Uses a persistent headless Chrome browser that survives across CLI calls.
  */
 export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
+  private readonly viewport?: ViewportSize;
+
+  constructor(viewport?: ViewportSize) {
+    super();
+    this.viewport = viewport ? { ...viewport } : undefined;
+  }
+
+  protected getCliReportSessionName() {
+    return 'midscene-web';
+  }
+
   protected createTemporaryDevice() {
     return new StaticPage({
       screenshot: ScreenshotItem.create('', Date.now()),
-      shotSize: { width: 1920, height: 1080 },
+      shotSize: this.viewport ?? defaultStaticPageViewportSize,
       shrunkShotToLogicalRatio: 1,
     });
   }
@@ -155,7 +187,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
 
     if (this.agent) return this.agent;
 
-    const { browser, reused } = await browserManager.getOrLaunch();
+    const { browser, reused } = await browserManager.getOrLaunch(this.viewport);
     browserManager.activeBrowser = browser;
 
     const pages = await browser.pages();
@@ -163,6 +195,9 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
 
     if (navigateToUrl) {
       page = await browser.newPage();
+      if (this.viewport) {
+        await page.setViewport(this.viewport);
+      }
       await page.goto(navigateToUrl, {
         timeout: 30000,
         waitUntil: 'domcontentloaded',
@@ -178,9 +213,15 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
       if (reused) {
         await page.bringToFront();
       }
+      if (this.viewport) {
+        await page.setViewport(this.viewport);
+      }
     }
 
-    this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage);
+    const reportOptions = this.readCliReportAgentOptions();
+    this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage, {
+      ...(reportOptions ?? {}),
+    });
     return this.agent;
   }
 
@@ -213,6 +254,10 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
             this.agent = undefined;
           }
 
+          const reportSession = this.createNewCliReportSession(
+            url ?? 'current-page',
+          );
+          this.commitCliReportSession(reportSession);
           this.agent = await this.ensureAgent(url);
 
           const screenshot = await this.agent.page?.screenshotBase64();

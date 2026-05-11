@@ -18,6 +18,10 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
   AndroidAgent,
   string
 > {
+  protected getCliReportSessionName() {
+    return 'midscene-android';
+  }
+
   protected readonly initArgSpec: InitArgSpec<string> = {
     namespace: 'android',
     shape: {
@@ -55,8 +59,10 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
     }
 
     debug('Creating Android agent with deviceId:', deviceId || 'auto-detect');
+    const reportOptions = this.readCliReportAgentOptions();
     const agent = await agentFromAdbDevice(deviceId, {
       autoDismissKeyboard: false,
+      ...(reportOptions ?? {}),
     });
     this.agent = agent;
     return agent;
@@ -75,6 +81,18 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
         cli: this.getAgentInitArgCliMetadata(),
         handler: async (args: Record<string, unknown>) => {
           const deviceId = this.extractAgentInitParam(args);
+          const reportSession = this.createNewCliReportSession(
+            deviceId ?? 'auto',
+          );
+          this.commitCliReportSession(reportSession);
+          if (this.agent) {
+            try {
+              await this.agent.destroy?.();
+            } catch (error) {
+              debug('Failed to destroy agent during connect:', error);
+            }
+            this.agent = undefined;
+          }
           const agent = await this.ensureAgent(deviceId);
           const screenshot = await agent.page.screenshotBase64();
 

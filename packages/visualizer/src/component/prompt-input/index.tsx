@@ -1,7 +1,10 @@
-import { BorderOutlined, SendOutlined } from '@ant-design/icons';
-import './index.less';
-import { DownOutlined } from '@ant-design/icons';
-import type { z } from '@midscene/core';
+import {
+  ArrowUpOutlined,
+  BorderOutlined,
+  DownOutlined,
+  SendOutlined,
+} from '@ant-design/icons';
+import type { DeviceAction, z } from '@midscene/core';
 import { Button, Dropdown, Form, Input, Radio, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import React, {
@@ -11,6 +14,9 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useMinimalTypeGate } from '../../hooks/useMinimalTypeGate';
+import ActionChevronIcon from '../../icons/action-chevron.svg';
+import PromptHistoryIcon from '../../icons/prompt-history.svg';
 import type { HistoryItem } from '../../store/history';
 import { useHistoryStore } from '../../store/history';
 import type { DeviceType, RunType } from '../../types';
@@ -31,12 +37,12 @@ import { hasDeviceSpecificConfig } from '../../utils/device-capabilities';
 import {
   actionNameForType,
   isRunButtonEnabled as calculateIsRunButtonEnabled,
-  getPlaceholderForType,
 } from '../../utils/playground-utils';
 import {
   getAvailablePromptActionTypes,
   getInlineStructuredFieldConfig,
 } from '../../utils/prompt-input-utils';
+import { getPlaceholderForType } from '../../utils/prompt-placeholder';
 import { ConfigSelector } from '../config-selector';
 import {
   BooleanField,
@@ -47,11 +53,17 @@ import {
 } from '../form-field';
 import { HistorySelector } from '../history-selector';
 import './index.less';
-import type { DeviceAction } from '@midscene/core';
-import HistoryOutlined from '../../icons/history.svg';
-import SettingOutlined from '../../icons/setting.svg';
 
 const { TextArea } = Input;
+
+const STUDIO_MINIMAL_PROMPT_ICONS = {
+  action:
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAASdJREFUeAHtlt3NgjAUhg8/CVx+G8gGX5xAnUDdQMcgkIgJBLbQEXQD3MAR6gZewgXgOUn9iRp6vAC96JM07YG36Zv+nBZAwySO4ymWgUoXRdEfaYGJyRElSbKyLGuHJVdpHcc5khb7RMCAZcA0TU82PYZ8IPsoZ4ttoEu0ga8bMB6DNE1X8H6jTUBuLmQL7SxkLbDkzz/ruhZBEKxfDGRZNm2aZgc9UFXVLAzDPbVvS1AUxQGrE3SPwHK8BganBy7NBuTU+r5vKLSNbG5RuwQF+hRoA9rA76RifMl4+JjI4Z5yu0KUZTnE8c4U3GbAdd3/HgYnPNu2R9eg98uIvmOGfL2M2tCpWBv4BQPiqW7j9IGWZ4CODT7X5pRAVFrUjEn7eNQ0bVwAyWpjMDlJKpAAAAAASUVORK5CYII=',
+  actionChevron:
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAUxJREFUeAHtUztOw0AQ3V1SuLCldP4VuEyHuQE34Aqho0tugHKCwBFyApwTYEoqyAlwCsufKkgu3NjmjfkoCDu7KSP5SaNZ774Zv9nZYWzAgH2MAdu2z4+J4apEy7I8uBDWlGV5uQNU4gRTBOd8CUfqPU3THlXjzlRIUH8HdwuLYB8wX9d1XhRFKIuVXpHjONd1XQdN0+yEED48h72iojGOr9I0fT4ULyTKPSR/aJVwPk+SZIuEET6n33uBrOmyHoTs694XSLz62cyybI3k96iEqgjodbFjAWVLVNDAnvo4dEYc4vZxOiswTXMGdXMsIyidsn7cwLbExU9mXQTeocqDe28POffo3tkBuK57UVXVG63RLz/P8w3rq2BvmH6byiSI43hD3DaZEP/68WcODMOg9z5BySs0dcEUgXl4wVzQ0h+NRhN8r9mAAaeDT7K0eaMcqhtVAAAAAElFTkSuQmCC',
+  settings:
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAAaFJREFUeAHtlt9tgzAQxi8EJa/pBMkIHYENygalG7RvSQQKlfjz2I5ANkg3oBukG6QbtI9IIPq5ihHQOBXmFImqPwnZBvtsf9ydTfQPA77vz4IguCENDGJgOp3ux+PxLgxDnzrCsgAw/zZmGPOO48iUFci4wE42xITKXlEUO9d1X34s4NjZISZU9qCSjeKqastKWZYpMaKyNxqNto02MRDHcXmsJqvV6q7LWBYnxK4+SBOTeHDw2HAwn4aGlg9EUfQE2e+xYwchtaUeaPmAmFyUyH4W9aThA9jZ7alOiN39crl8O/FpoRpzjrq96hcgj2/wwVcNQlxb6/X6VdRrYaeNtGfUVvXbgE9iRNprOCHktPF/Z+3OeZ4fPM9LZbumgHjX2Qnr9rSioE/ma6MVBZDvWWQ/cbLR0GE5jEQoQhFLpGIkpvcuY1nOAkyeiBKJSRSXPw37UCkgbrWmaSZwsBkxoLInHBgJ6EG2KwUgn801+Tl78hyRVApkWfaIexxp4rRfqOzBUdN6+29cyYAMvQN1hCUMIbc1mUyu4VzDz4wX5wvRfah9kIOcwwAAAABJRU5ErkJggg==',
+} as const;
 
 interface PromptInputProps {
   runButtonEnabled: boolean;
@@ -88,8 +100,6 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 }) => {
   const [hoveringSettings, setHoveringSettings] = useState(false);
   const [promptValue, setPromptValue] = useState('');
-  const [minimalHasExplicitTypeSelection, setMinimalHasExplicitTypeSelection] =
-    useState(false);
   const placeholder = getPlaceholderForType(selectedType);
   const isMinimalChrome = chrome?.variant === 'minimal';
   const resolvedPlaceholder = chrome?.placeholder || placeholder;
@@ -113,10 +123,18 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     () => history[selectedType] || [],
     [history, selectedType],
   );
-  // Guard: when a history selection changes the type, suppress the
-  // "history restore" effect one tick so it does not overwrite the freshly
-  // picked history item.
-  const skipMinimalSyncRef = useRef(false);
+
+  const handleMinimalTypeGateReset = useCallback(() => {
+    lastHistoryRef.current = null;
+    setPromptValue('');
+  }, []);
+  const { markExplicitSelection, skipNextRestore, shouldSkipRestoreOnce } =
+    useMinimalTypeGate({
+      enabled: isMinimalChrome,
+      form,
+      selectedType,
+      onAfterReset: handleMinimalTypeGateReset,
+    });
 
   // Check if current method needs structured parameters (dynamic based on actionSpace)
   const needsStructuredParams = useMemo(() => {
@@ -265,12 +283,10 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   const handleTypeSelect = useCallback(
     (api: string) => {
-      if (isMinimalChrome) {
-        setMinimalHasExplicitTypeSelection(true);
-      }
+      markExplicitSelection();
       form.setFieldValue('type', api);
     },
-    [form, isMinimalChrome],
+    [form, markExplicitSelection],
   );
 
   const apiGroupDefinitions = useMemo(
@@ -328,8 +344,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   }, [apiGroupDefinitions, hiddenDropdownAPIs, buildApiMenuItem]);
 
   const actionDropdownMenu = useMemo<MenuProps>(() => {
-    const primaryActions = defaultMainButtons.filter(
-      (api) => api === 'aiAct' || availableDropdownMethods.includes(api),
+    const primaryActions = defaultMainButtons.filter((api) =>
+      availableDropdownMethods.includes(api),
     );
     const items: NonNullable<MenuProps['items']> = [];
     if (primaryActions.length > 0) {
@@ -349,30 +365,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     [hiddenApiGroupItems],
   );
 
-  // Minimal chrome hides the type radio row and uses `aiAct` as the implicit
-  // default. If another pathway (e.g. restored `lastSelectedType` from local
-  // storage) lands a non-`aiAct` type in the form while the user has not
-  // explicitly selected anything from the action dropdown, snap it back to
-  // `aiAct` and clear the stale prompt/params so the UI matches expectations.
-  useEffect(() => {
-    if (
-      !isMinimalChrome ||
-      minimalHasExplicitTypeSelection ||
-      !selectedType ||
-      selectedType === 'aiAct'
-    ) {
-      return;
-    }
-
-    skipMinimalSyncRef.current = false;
-    lastHistoryRef.current = null;
-    form.setFieldsValue({
-      type: 'aiAct',
-      prompt: '',
-      params: {},
-    });
-    setPromptValue('');
-  }, [form, minimalHasExplicitTypeSelection, isMinimalChrome, selectedType]);
+  // Minimal chrome's snap-back-to-aiAct behaviour is owned by
+  // `useMinimalTypeGate` above. No local effect needed here any more.
 
   // Get default values for fields with defaults
   const getDefaultParams = useCallback((): FormParams => {
@@ -467,8 +461,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   // When the selectedType changes, populate the form with the last item from that type's history.
   useEffect(() => {
-    if (skipMinimalSyncRef.current) {
-      skipMinimalSyncRef.current = false;
+    if (shouldSkipRestoreOnce()) {
       return;
     }
 
@@ -518,6 +511,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     form,
     getDefaultParams,
     isMinimalChrome,
+    shouldSkipRestoreOnce,
   ]);
 
   // Scroll to selected item when selectedType changes
@@ -543,10 +537,10 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   // Handle history selection internally
   const handleSelectHistory = useCallback(
     (historyItem: HistoryItem) => {
-      if (isMinimalChrome) {
-        setMinimalHasExplicitTypeSelection(true);
+      markExplicitSelection();
+      if (historyItem.type !== selectedType) {
+        skipNextRestore();
       }
-      skipMinimalSyncRef.current = historyItem.type !== selectedType;
       form.setFieldsValue({
         prompt: historyItem.prompt,
         type: historyItem.type,
@@ -554,7 +548,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       });
       setPromptValue(historyItem.prompt);
     },
-    [form, isMinimalChrome, selectedType],
+    [form, markExplicitSelection, selectedType, skipNextRestore],
   );
 
   // Handle prompt input change
@@ -1028,6 +1022,51 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     stoppable,
   ]);
 
+  const renderMinimalActionButton = useCallback(() => {
+    const runButton = (ariaLabel: string) => (
+      <Button
+        aria-label={ariaLabel}
+        className="minimal-run-trigger"
+        type="primary"
+        icon={<ArrowUpOutlined />}
+        onClick={handleRunWithHistory}
+        disabled={!isRunButtonEnabled}
+        loading={loading}
+      />
+    );
+
+    if (dryMode) {
+      return selectedType === 'aiAct' ? (
+        <Tooltip title="Start executing until some interaction actions need to be performed. You can see the process of planning and locating.">
+          {runButton('Dry run')}
+        </Tooltip>
+      ) : (
+        runButton('Run')
+      );
+    }
+
+    if (stoppable) {
+      return (
+        <Button
+          aria-label="Stop running"
+          className="minimal-run-trigger minimal-run-trigger-stop"
+          icon={<BorderOutlined />}
+          onClick={onStop}
+        />
+      );
+    }
+
+    return runButton('Run');
+  }, [
+    dryMode,
+    loading,
+    handleRunWithHistory,
+    isRunButtonEnabled,
+    onStop,
+    selectedType,
+    stoppable,
+  ]);
+
   const inputContent = needsAnyInput ? (
     needsStructuredParams ? (
       minimalInlineFieldConfig ? (
@@ -1074,6 +1113,12 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       Click "Run" to execute {actionNameForType(selectedType)}
     </div>
   );
+  const minimalActionIconSrc =
+    chrome?.icons?.action ?? STUDIO_MINIMAL_PROMPT_ICONS.action;
+  const minimalActionChevronSrc = chrome?.icons?.actionChevron;
+  const minimalSettingsIconSrc =
+    chrome?.icons?.settings ?? STUDIO_MINIMAL_PROMPT_ICONS.settings;
+  const minimalHistoryIconSrc = chrome?.icons?.history;
 
   if (isMinimalChrome) {
     return (
@@ -1103,54 +1148,29 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                   disabled={!runButtonEnabled}
                   type="button"
                 >
-                  {chrome?.icons?.action ? (
-                    <img
-                      alt=""
-                      className="minimal-action-icon"
-                      src={chrome.icons.action}
-                    />
-                  ) : null}
+                  <img
+                    alt=""
+                    className="minimal-action-icon"
+                    src={minimalActionIconSrc}
+                  />
                   <span className="minimal-action-label">
                     {actionButtonLabel}
                   </span>
-                  {chrome?.icons?.actionChevron ? (
+                  {minimalActionChevronSrc ? (
                     <img
                       alt=""
                       className="minimal-action-chevron"
-                      src={chrome.icons.actionChevron}
+                      src={minimalActionChevronSrc}
                     />
                   ) : (
-                    <DownOutlined className="minimal-action-chevron-fallback" />
+                    <ActionChevronIcon
+                      aria-hidden="true"
+                      className="minimal-action-chevron"
+                      focusable="false"
+                    />
                   )}
                 </button>
               </Dropdown>
-
-              <HistorySelector
-                onSelect={handleSelectHistory}
-                history={historyForSelectedType}
-                currentType={selectedType}
-                trigger={
-                  <button
-                    aria-label="Open prompt history"
-                    className="minimal-icon-trigger"
-                    type="button"
-                  >
-                    {chrome?.icons?.history ? (
-                      <img
-                        alt=""
-                        className="minimal-toolbar-icon"
-                        src={chrome.icons.history}
-                      />
-                    ) : (
-                      <HistoryOutlined
-                        className="minimal-toolbar-icon minimal-toolbar-icon-history minimal-toolbar-icon-fallback"
-                        width={18}
-                        height={18}
-                      />
-                    )}
-                  </button>
-                }
-              />
 
               {hasConfigOptions ? (
                 <div
@@ -1169,34 +1189,55 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                     showDataExtractionOptions={showDataExtractionOptions}
                     hideDomAndScreenshotOptions={hideDomAndScreenshotOptions}
                     deviceType={deviceType}
+                    popupPlacement="topRight"
                     trigger={
                       <button
                         aria-label="Open run configuration"
                         className="minimal-icon-trigger"
                         type="button"
                       >
-                        {chrome?.icons?.settings ? (
-                          <img
-                            alt=""
-                            className="minimal-toolbar-icon"
-                            src={chrome.icons.settings}
-                          />
-                        ) : (
-                          <SettingOutlined
-                            className="minimal-toolbar-icon minimal-toolbar-icon-fallback"
-                            width={16}
-                            height={16}
-                          />
-                        )}
+                        <img
+                          alt=""
+                          className="minimal-toolbar-icon"
+                          src={minimalSettingsIconSrc}
+                        />
                       </button>
                     }
                   />
                 </div>
               ) : null}
+
+              <HistorySelector
+                onSelect={handleSelectHistory}
+                history={historyForSelectedType}
+                currentType={selectedType}
+                popupPlacement="top"
+                trigger={
+                  <button
+                    aria-label="Open prompt history"
+                    className="minimal-icon-trigger"
+                    type="button"
+                  >
+                    {minimalHistoryIconSrc ? (
+                      <img
+                        alt=""
+                        className="minimal-toolbar-icon minimal-toolbar-icon-history"
+                        src={minimalHistoryIconSrc}
+                      />
+                    ) : (
+                      <PromptHistoryIcon
+                        aria-hidden="true"
+                        className="minimal-toolbar-icon minimal-toolbar-icon-history"
+                        focusable="false"
+                      />
+                    )}
+                  </button>
+                }
+              />
             </div>
 
             <div className="form-controller-wrapper">
-              {renderActionButton()}
+              {renderMinimalActionButton()}
             </div>
           </div>
         </div>

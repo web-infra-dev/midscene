@@ -18,7 +18,7 @@
       height: 100%;
       flex: 1;
       min-width: 0;
-      overflow-x: auto; /* 只有这个容器可以滚动 */
+      overflow-x: auto; /* Only this container should scroll horizontally. */
       overflow-y: hidden;
       scrollbar-width: thin; /* Show thin scrollbar for Firefox */
       gap: 8px; /* Space between Form.Item and Dropdown */
@@ -519,7 +519,7 @@
       display: flex;
       min-width: 0;
       align-items: center;
-      gap: 4px;
+      gap: 2px;
     }
 
     .minimal-action-trigger,
@@ -537,11 +537,12 @@
       height: 32px;
       gap: 4px;
       border-radius: 32px;
-      padding: 4px 8px;
+      padding: 4px 0;
+      margin-right: 16px;
       color: #878787;
 
       &:hover {
-        background: rgba(0, 0, 0, 0.03);
+        color: #5f6368;
       }
 
       &:disabled {
@@ -556,6 +557,14 @@
       object-fit: contain;
     }
 
+    .minimal-action-icon-fallback {
+      color: #878787;
+      display: block;
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
     .minimal-action-label {
       font-size: 12px;
       font-weight: 500;
@@ -565,12 +574,12 @@
     }
 
     .minimal-action-chevron {
-      width: 5.3px;
-      height: 9.3px;
-      margin-left: -2px;
-      transform: rotate(-90deg);
+      display: block;
+      width: 6px;
+      height: 10px;
+      margin-left: 0;
       object-fit: contain;
-      opacity: 0.25;
+      opacity: 1;
     }
 
     .minimal-action-chevron-fallback {
@@ -594,7 +603,7 @@
       border-radius: 32px;
 
       &:hover {
-        background: rgba(0, 0, 0, 0.03);
+        background: rgba(0, 0, 0, 0.04);
       }
     }
 
@@ -605,8 +614,8 @@
     }
 
     .minimal-toolbar-icon-history {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
     }
 
     .minimal-toolbar-icon-fallback {
@@ -619,6 +628,47 @@
       height: auto;
       padding: 0;
       line-height: normal;
+    }
+
+    .minimal-run-trigger {
+      display: inline-flex;
+      width: 32px;
+      min-width: 32px;
+      height: 32px;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      border-radius: 50%;
+      background: #1979ff;
+      box-shadow: none;
+      color: #fff;
+      padding: 0;
+
+      &:hover,
+      &:focus-visible {
+        background: #0f6ff0;
+        color: #fff;
+      }
+
+      &:disabled {
+        background: #f0f0f0;
+        color: #bfbfbf;
+      }
+
+      .anticon {
+        font-size: 16px;
+      }
+    }
+
+    .minimal-run-trigger-stop {
+      background: #f0f0f0;
+      color: #666;
+
+      &:hover,
+      &:focus-visible {
+        background: #e6e6e6;
+        color: #333;
+      }
     }
   }
 }
@@ -806,6 +856,10 @@
         }
 
         .minimal-toolbar-icon-fallback {
+          color: rgba(255, 255, 255, 0.72) !important;
+        }
+
+        .minimal-action-icon-fallback {
           color: rgba(255, 255, 255, 0.72) !important;
         }
       }

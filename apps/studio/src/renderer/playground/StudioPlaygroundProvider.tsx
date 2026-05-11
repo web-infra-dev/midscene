@@ -1,16 +1,26 @@
-import {
-  PlaygroundThemeProvider,
-  usePlaygroundController,
-} from '@midscene/playground-app';
 import type {
+  DiscoverDevicesResult,
   PlaygroundBootstrap,
-  StudioPlatformId,
 } from '@shared/electron-contract';
 import type { PropsWithChildren } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { bucketDiscoveredDevices } from './selectors';
-import type { DiscoveredDevicesByPlatform } from './types';
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { bucketDiscoveredDevices, bucketDiscoveryErrors } from './selectors';
+import type {
+  DiscoveredDevicesByPlatform,
+  DiscoveryErrorsByPlatform,
+} from './types';
 import { StudioPlaygroundContext } from './useStudioPlayground';
+
+const ReadyStudioPlaygroundProvider = lazy(
+  () => import('./StudioPlaygroundReadyProvider'),
+);
 
 function getMissingBridgeError() {
   return 'Studio preload bridge is unavailable. Restart the Electron app.';
@@ -19,55 +29,6 @@ function getMissingBridgeError() {
 function normalizeBootstrapError(bootstrap: PlaygroundBootstrap): string {
   return bootstrap.error || 'Failed to start playground runtime.';
 }
-
-// Default platform for Studio — pre-selected so the first session-setup
-// poll already has a `platformId` and immediately returns Android
-// targets, instead of the generic "Choose a platform" setup.
-const DEFAULT_PLATFORM_ID: StudioPlatformId = 'android';
-
-function ReadyStudioPlaygroundProvider({
-  children,
-  discoveredDevices,
-  refreshDiscoveredDevices,
-  restartPlayground,
-  serverUrl,
-}: PropsWithChildren<{
-  discoveredDevices?: DiscoveredDevicesByPlatform;
-  refreshDiscoveredDevices: () => Promise<void>;
-  restartPlayground: () => Promise<void>;
-  serverUrl: string;
-}>) {
-  const controller = usePlaygroundController({
-    serverUrl,
-    initialFormValues: { platformId: DEFAULT_PLATFORM_ID },
-  });
-
-  const contextValue = useMemo(
-    () => ({
-      phase: 'ready' as const,
-      serverUrl,
-      controller,
-      restartPlayground,
-      refreshDiscoveredDevices,
-      discoveredDevices,
-    }),
-    [
-      controller,
-      discoveredDevices,
-      refreshDiscoveredDevices,
-      restartPlayground,
-      serverUrl,
-    ],
-  );
-
-  return (
-    <StudioPlaygroundContext.Provider value={contextValue}>
-      {children}
-    </StudioPlaygroundContext.Provider>
-  );
-}
-
-const DISCOVERY_POLL_INTERVAL_MS = 5000;
 
 export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
   const [bootstrap, setBootstrap] = useState<
@@ -84,34 +45,73 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
   const [discoveredDevices, setDiscoveredDevices] = useState<
     DiscoveredDevicesByPlatform | undefined
   >();
+  const [discoveryErrors, setDiscoveryErrors] = useState<
+    DiscoveryErrorsByPlatform | undefined
+  >();
+  const applyDiscoveredDevices = useCallback(
+    (result: DiscoverDevicesResult) => {
+      setDiscoveredDevices(bucketDiscoveredDevices(result.devices));
+      setDiscoveryErrors(bucketDiscoveryErrors(result.errors));
+    },
+    [],
+  );
+
+  const setDiscoveryPollingPausedValue = useCallback((paused: boolean) => {
+    void window.studioRuntime?.setDiscoveryPollingPaused(paused);
+  }, []);
 
   // Imperative scan — safe to call from anywhere (user-initiated refresh,
   // post-destroy session cleanup, etc). Resolves after state is updated.
   const refreshDiscoveredDevices = useCallback(async () => {
-    if (!window.studioRuntime?.discoverDevices) {
+    const studioRuntime = window.studioRuntime;
+    if (!studioRuntime?.discoverDevices) {
       return;
     }
+
     try {
-      const devices = await window.studioRuntime.discoverDevices();
-      setDiscoveredDevices(bucketDiscoveredDevices(devices));
+      const devices = await studioRuntime.discoverDevices({
+        forceRefresh: true,
+      });
+      applyDiscoveredDevices(devices);
     } catch (err) {
       console.warn('[studio] device discovery failed:', err);
     }
-  }, []);
+  }, [applyDiscoveredDevices]);
 
-  const pollingActive = bootstrap.phase === 'ready';
   useEffect(() => {
-    if (!pollingActive) {
+    if (bootstrap.phase !== 'ready') {
       return;
     }
-    void refreshDiscoveredDevices();
-    const id = window.setInterval(() => {
-      void refreshDiscoveredDevices();
-    }, DISCOVERY_POLL_INTERVAL_MS);
+
+    const studioRuntime = window.studioRuntime;
+    if (!studioRuntime) {
+      return;
+    }
+
+    let cancelled = false;
+    const unsubscribe = studioRuntime.onDiscoveredDevicesChanged((devices) => {
+      if (cancelled) {
+        return;
+      }
+      applyDiscoveredDevices(devices);
+    });
+
+    void studioRuntime
+      .discoverDevices()
+      .then((devices) => {
+        if (!cancelled) {
+          applyDiscoveredDevices(devices);
+        }
+      })
+      .catch((err) => {
+        console.warn('[studio] initial device discovery failed:', err);
+      });
+
     return () => {
-      window.clearInterval(id);
+      cancelled = true;
+      unsubscribe();
     };
-  }, [pollingActive, refreshDiscoveredDevices]);
+  }, [applyDiscoveredDevices, bootstrap.phase]);
 
   const readBootstrap = useCallback(async () => {
     if (!window.studioRuntime) {
@@ -205,7 +205,9 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
         error: bootstrap.error,
         restartPlayground,
         refreshDiscoveredDevices,
+        setDiscoveryPollingPaused: setDiscoveryPollingPausedValue,
         discoveredDevices,
+        discoveryErrors,
       };
     }
 
@@ -213,31 +215,59 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
       phase: 'booting' as const,
       restartPlayground,
       refreshDiscoveredDevices,
+      setDiscoveryPollingPaused: setDiscoveryPollingPausedValue,
       discoveredDevices,
+      discoveryErrors,
     };
   }, [
     bootstrap,
     discoveredDevices,
+    discoveryErrors,
     refreshDiscoveredDevices,
     restartPlayground,
+    setDiscoveryPollingPausedValue,
   ]);
 
-  return (
-    <PlaygroundThemeProvider>
-      {bootstrap.phase === 'ready' ? (
-        <ReadyStudioPlaygroundProvider
-          discoveredDevices={discoveredDevices}
-          refreshDiscoveredDevices={refreshDiscoveredDevices}
-          restartPlayground={restartPlayground}
-          serverUrl={bootstrap.serverUrl}
-        >
-          {children}
-        </ReadyStudioPlaygroundProvider>
-      ) : (
-        <StudioPlaygroundContext.Provider value={contextValue}>
+  const bootingContextValue = useMemo(
+    () => ({
+      phase: 'booting' as const,
+      restartPlayground,
+      refreshDiscoveredDevices,
+      setDiscoveryPollingPaused: setDiscoveryPollingPausedValue,
+      discoveredDevices,
+      discoveryErrors,
+    }),
+    [
+      discoveredDevices,
+      discoveryErrors,
+      refreshDiscoveredDevices,
+      restartPlayground,
+      setDiscoveryPollingPausedValue,
+    ],
+  );
+
+  return bootstrap.phase === 'ready' ? (
+    <Suspense
+      fallback={
+        <StudioPlaygroundContext.Provider value={bootingContextValue}>
           {children}
         </StudioPlaygroundContext.Provider>
-      )}
-    </PlaygroundThemeProvider>
+      }
+    >
+      <ReadyStudioPlaygroundProvider
+        discoveredDevices={discoveredDevices}
+        discoveryErrors={discoveryErrors}
+        refreshDiscoveredDevices={refreshDiscoveredDevices}
+        restartPlayground={restartPlayground}
+        setDiscoveryPollingPaused={setDiscoveryPollingPausedValue}
+        serverUrl={bootstrap.serverUrl}
+      >
+        {children}
+      </ReadyStudioPlaygroundProvider>
+    </Suspense>
+  ) : (
+    <StudioPlaygroundContext.Provider value={contextValue}>
+      {children}
+    </StudioPlaygroundContext.Provider>
   );
 }

@@ -22,7 +22,54 @@ tasks:
   - name: toggle model call details
     flow:
       - ai: Click the "Model Call Details" checkbox or toggle in the sidebar
-      - sleep: 1000
-      - aiAssert: The sidebar table header now includes an "Intent" column that was not visible before
+      - sleep: 2000
+      - javascript: |
+          (function () {
+            const checkbox = document.querySelector(
+              '.token-usage-checkbox input[type="checkbox"]',
+            );
+            if (!checkbox) {
+              throw new Error('Model Call Details checkbox not found in DOM');
+            }
+            if (!checkbox.checked) {
+              throw new Error(
+                'Model Call Details checkbox is not checked after the click action',
+              );
+            }
+            const intentHeader = document.querySelector(
+              '.tasks-table .table-header .header-cell.column-intent',
+            );
+            if (!intentHeader) {
+              throw new Error(
+                'Intent column header should be rendered when Model Call Details is enabled',
+              );
+            }
+            return { proModeEnabled: true, intentHeaderRendered: true };
+          })()
+        name: assertProModeOn
       - ai: Click the "Model Call Details" checkbox again to turn it off
-      - sleep: 1000
+      - sleep: 2000
+      - javascript: |
+          (function () {
+            const checkbox = document.querySelector(
+              '.token-usage-checkbox input[type="checkbox"]',
+            );
+            if (!checkbox) {
+              throw new Error('Model Call Details checkbox not found in DOM');
+            }
+            if (checkbox.checked) {
+              throw new Error(
+                'Model Call Details checkbox should be unchecked after the second click',
+              );
+            }
+            const intentHeader = document.querySelector(
+              '.tasks-table .table-header .header-cell.column-intent',
+            );
+            if (intentHeader) {
+              throw new Error(
+                'Intent column header should be hidden when Model Call Details is disabled',
+              );
+            }
+            return { proModeEnabled: false };
+          })()
+        name: assertProModeOff

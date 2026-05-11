@@ -123,6 +123,8 @@ packages/ios-playground/static/
 packages/ios/static/
 packages/computer-playground/static/
 packages/playground/static/
+/apps/studio/.release/
+/.release/
 .cursor
 .claude
 **/.claude

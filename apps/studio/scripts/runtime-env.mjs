@@ -10,11 +10,27 @@ export const buildStudioRuntimeEnv = ({
   overrides = {},
   studioRootDir,
 } = {}) => {
+  const { NODE_PATH: _ignoredNodePath, ...baseEnvWithoutNodePath } = baseEnv;
   const env = {
-    ...baseEnv,
+    ...baseEnvWithoutNodePath,
     ...overrides,
   };
 
+  // Studio should resolve workspace packages from the repo, not from global
+  // wrapper environments that inject unrelated module search paths.
+  if ('NODE_PATH' in env) {
+    const { NODE_PATH: _ignoredOverrideNodePath, ...envWithoutNodePath } = env;
+    return finalizeStudioRuntimeEnv(
+      envWithoutNodePath,
+      envPathExists,
+      studioRootDir,
+    );
+  }
+
+  return finalizeStudioRuntimeEnv(env, envPathExists, studioRootDir);
+};
+
+function finalizeStudioRuntimeEnv(env, envPathExists, studioRootDir) {
   if (!env.DOTENV_CONFIG_PATH && studioRootDir) {
     const repoEnvPath = resolveRepoEnvPath(studioRootDir);
     if (envPathExists(repoEnvPath)) {
@@ -23,4 +39,4 @@ export const buildStudioRuntimeEnv = ({
   }
 
   return env;
-};
+}

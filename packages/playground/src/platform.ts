@@ -64,6 +64,12 @@ export interface PlaygroundSessionField {
   description?: string;
 }
 
+export interface PlaygroundSessionNotice {
+  type: 'info' | 'warning' | 'error';
+  message: string;
+  description?: string;
+}
+
 export interface PlaygroundSessionSetup {
   title?: string;
   description?: string;
@@ -73,6 +79,7 @@ export interface PlaygroundSessionSetup {
   targets?: PlaygroundSessionTarget[];
   platformRegistry?: PlaygroundPlatformRegistration[];
   platformSelector?: PlaygroundPlatformSelectorConfig;
+  notice?: PlaygroundSessionNotice;
 }
 
 export interface PlaygroundExecutionHooks {

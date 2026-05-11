@@ -8,6 +8,7 @@ import {
 } from '../../playground/selectors';
 import type { StudioSidebarPlatformKey } from '../../playground/types';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
+import { MaskedIcon } from '../MaskedIcon';
 import SettingsDock from '../SettingsDock';
 import type { ShellActiveView } from '../ShellLayout/types';
 
@@ -76,15 +77,14 @@ function SectionHeader({
       type="button"
     >
       {iconSrc ? (
-        <img
-          alt=""
-          className="absolute left-[15px] top-[8px] h-4 w-4"
+        <MaskedIcon
+          className="absolute left-[14px] top-[8px] h-4 w-4 text-text-secondary"
           src={iconSrc}
         />
       ) : (
-        <div className="absolute left-[15px] top-[8px] h-4 w-4" />
+        <div className="absolute left-[14px] top-[8px] h-4 w-4" />
       )}
-      <span className="absolute left-[40px] top-[5px] text-[13px] leading-[22px] font-medium text-text-secondary">
+      <span className="absolute left-[44px] top-[5px] font-['Inter'] text-[13px] font-medium leading-[22px] text-text-secondary">
         {label}
       </span>
       <div className="absolute left-[204px] top-0 flex h-full w-4 items-center justify-center">
@@ -113,10 +113,8 @@ function DeviceRow({
       type="button"
     >
       <span
-        className={`absolute left-[40px] w-[158px] overflow-hidden whitespace-nowrap text-[13px] ${
-          selected
-            ? 'top-[4.5px] font-medium leading-[22.1px] text-text-primary'
-            : 'top-[8px] font-normal leading-[15.7px] text-text-secondary'
+        className={`absolute left-[44px] top-[9.5px] w-[154px] overflow-hidden whitespace-nowrap font-['Inter'] text-[13px] font-normal leading-[13px] ${
+          selected ? 'text-text-primary' : 'text-text-secondary'
         }`}
       >
         {label}
@@ -135,7 +133,7 @@ function DeviceRow({
 function EmptyDeviceRow() {
   return (
     <div className="relative h-8 w-full rounded-lg">
-      <span className="absolute left-[40px] top-[8px] overflow-hidden whitespace-nowrap text-[12px] font-normal leading-[15.7px] text-text-tertiary">
+      <span className="absolute left-[44px] top-[9.5px] overflow-hidden whitespace-nowrap font-['Inter'] text-[13px] font-normal leading-[13px] text-text-tertiary">
         No devices
       </span>
     </div>
@@ -228,33 +226,6 @@ export default function Sidebar({
       return [];
     }
 
-    // iOS discovery needs WebDriverAgent running, which is a manual
-    // setup step; surface a hint row instead of an empty section so
-    // users know it isn't a bug.
-    if (platformKey === 'ios' && devices.length === 0) {
-      return [
-        {
-          id: 'ios-setup-hint',
-          label: 'Set up iOS via the playground form',
-          status: 'idle' as const,
-          isPlaceholder: true,
-          onClick: async () => {
-            if (studioPlayground.phase !== 'ready') {
-              return;
-            }
-            const { actions, state } = studioPlayground.controller;
-            const nextValues = {
-              ...state.form.getFieldsValue(true),
-              platformId: 'ios',
-            };
-            state.form.setFieldsValue(nextValues);
-            onSelectDevice();
-            await actions.refreshSessionSetup(nextValues);
-          },
-        },
-      ];
-    }
-
     return devices.map((item) => ({
       id: item.id,
       label: item.label,
@@ -264,6 +235,11 @@ export default function Sidebar({
           return;
         }
         const { actions, state } = studioPlayground.controller;
+
+        if (item.selected && item.status === 'active') {
+          onSelectDevice();
+          return;
+        }
 
         // Tell the multi-platform session manager which platform +
         // device to target. Field keys follow the `{platformId}.fieldKey`
@@ -327,22 +303,21 @@ export default function Sidebar({
         onClick={onSelectOverview}
         type="button"
       >
-        <img
-          alt=""
-          className="absolute left-[12px] top-[8px] h-4 w-4"
+        <MaskedIcon
+          className="absolute left-[14px] top-[8px] h-4 w-4 text-text-secondary"
           src={assetUrls.sidebar.overview}
         />
-        <span className="absolute left-[40px] top-[5px] overflow-hidden whitespace-nowrap text-[13px] leading-[22px] font-medium text-text-secondary">
-          Device overview
+        <span className="absolute left-[44px] top-[5px] overflow-hidden whitespace-nowrap font-['Inter'] text-[13px] font-medium leading-[22px] text-text-secondary">
+          Overview
         </span>
-        <span className="absolute right-[12px] top-[6px] font-['PingFang_SC'] text-[11px] font-normal leading-[20px] text-text-tertiary">
+        <span className="absolute right-[12px] top-[6px] font-sans text-[11px] font-normal leading-[20px] text-text-tertiary">
           {totalDeviceCount}
         </span>
       </button>
 
       <div className="mt-1 flex flex-col">
         <div className="relative h-8 w-full">
-          <span className="absolute left-[12px] top-[5px] overflow-hidden whitespace-nowrap text-[13px] font-medium leading-[22px] text-text-tertiary">
+          <span className="absolute left-[14px] top-[5px] overflow-hidden whitespace-nowrap font-['Inter'] text-[13px] font-medium leading-[22px] text-text-tertiary">
             Platform
           </span>
         </div>

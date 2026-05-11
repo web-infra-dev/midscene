@@ -43,6 +43,6 @@ export {
   getElementXpath,
 } from './locator';
 
-export { generateElementByRect } from './dom-util';
+export { generateElementByPoint, generateElementByRect } from './dom-util';
 
 export { isNotContainerElement } from './dom-util';

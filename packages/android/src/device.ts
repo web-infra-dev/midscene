@@ -23,6 +23,7 @@ import {
   defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionKeyboardPress,
+  defineActionLongPress,
   defineActionPinch,
   defineActionScroll,
   defineActionSwipe,
@@ -41,7 +42,7 @@ import {
 import type { ElementInfo } from '@midscene/shared/extractor';
 import {
   createImgBase64ByFormat,
-  isValidImageBuffer,
+  validateScreenshotBuffer,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison, repeat } from '@midscene/shared/utils';
@@ -105,6 +106,7 @@ export class AndroidDevice implements AbstractInterface {
   private cachedAdjustScale: { x: number; y: number } | null = null;
   private takeScreenshotFailCount = 0;
   private static readonly TAKE_SCREENSHOT_FAIL_THRESHOLD = 3;
+  private static readonly DEFAULT_MIN_SCREENSHOT_BUFFER_SIZE = 1024;
   interfaceType: InterfaceType = 'android';
   uri: string | undefined;
   options?: AndroidDeviceOpt;
@@ -256,38 +258,13 @@ export class AndroidDevice implements AbstractInterface {
           await sleep(100);
         }
       }),
-      defineAction<
-        z.ZodObject<{
-          duration: z.ZodOptional<z.ZodNumber>;
-          locate: ReturnType<typeof getMidsceneLocationSchema>;
-        }>,
-        {
-          duration?: number;
-          locate: LocateResultElement;
+      defineActionLongPress(async (param) => {
+        const element = param.locate;
+        if (!element) {
+          throw new Error('LongPress requires an element to be located');
         }
-      >({
-        name: 'LongPress',
-        description: 'Trigger a long press on the screen at specified element',
-        paramSchema: z.object({
-          duration: z
-            .number()
-            .optional()
-            .describe('The duration of the long press in milliseconds'),
-          locate: getMidsceneLocationSchema().describe(
-            'The element to be long pressed',
-          ),
-        }),
-        sample: {
-          locate: { prompt: 'the message bubble' },
-        },
-        call: async (param) => {
-          const element = param.locate;
-          if (!element) {
-            throw new Error('LongPress requires an element to be located');
-          }
-          const [x, y] = element.center;
-          await this.longPress(x, y, param?.duration);
-        },
+        const [x, y] = element.center;
+        await this.longPress(x, y, param?.duration);
       }),
       defineAction<
         z.ZodObject<{
@@ -1134,23 +1111,22 @@ ${Object.keys(size)
         screenshotBuffer = await adb.takeScreenshot(null);
         debugDevice('adb.takeScreenshot completed');
 
-        // make sure screenshotBuffer is not null
-        if (!screenshotBuffer) {
-          this.takeScreenshotFailCount++;
-          throw new Error(
-            'Failed to capture screenshot: screenshotBuffer is null',
-          );
-        }
-
-        // check if the buffer is a valid PNG image, it might be a error string
-        if (!isValidImageBuffer(screenshotBuffer)) {
+        try {
+          validateScreenshotBuffer(screenshotBuffer, {
+            label: 'Screenshot',
+            minBufferSize:
+              this.options?.minScreenshotBufferSize ??
+              AndroidDevice.DEFAULT_MIN_SCREENSHOT_BUFFER_SIZE,
+          });
+        } catch (validationError) {
           debugDevice(
-            'Invalid image buffer detected: not a valid image format',
+            'Invalid screenshot buffer detected: %s',
+            validationError instanceof Error
+              ? validationError.message
+              : String(validationError),
           );
           this.takeScreenshotFailCount++;
-          throw new Error(
-            'Screenshot buffer has invalid format: could not find valid image signature',
-          );
+          throw validationError;
         }
 
         // Reset fail count on success
@@ -1166,23 +1142,6 @@ ${Object.keys(size)
           );
         }
         throw new Error('Using shell screencap directly');
-      }
-
-      // Additional validation: check buffer size
-      // Real device screenshots are typically 100KB+, so 10KB is a safe threshold
-      // to catch corrupted/invalid buffers while allowing even very small test images
-      const validScreenshotBufferSize =
-        this.options?.minScreenshotBufferSize ?? 10 * 1024; // Default 10KB
-      if (
-        validScreenshotBufferSize > 0 &&
-        screenshotBuffer.length < validScreenshotBufferSize
-      ) {
-        debugDevice(
-          `Screenshot buffer too small: ${screenshotBuffer.length} bytes (minimum: ${validScreenshotBufferSize})`,
-        );
-        throw new Error(
-          `Screenshot buffer too small: ${screenshotBuffer.length} bytes (minimum: ${validScreenshotBufferSize})`,
-        );
       }
     } catch (error) {
       debugDevice(
@@ -1214,22 +1173,12 @@ ${Object.keys(size)
         debugDevice(`adb.pull completed, local path: ${screenshotPath}`);
         screenshotBuffer = await fs.promises.readFile(screenshotPath);
 
-        // Validate the fallback screenshot buffer as well
-        const validScreenshotBufferSize =
-          this.options?.minScreenshotBufferSize ?? 10 * 1024; // Default 10KB
-        if (
-          !screenshotBuffer ||
-          (validScreenshotBufferSize > 0 &&
-            screenshotBuffer.length < validScreenshotBufferSize)
-        ) {
-          throw new Error(
-            `Fallback screenshot validation failed: buffer size ${screenshotBuffer?.length || 0} bytes (minimum: ${validScreenshotBufferSize})`,
-          );
-        }
-
-        if (!isValidImageBuffer(screenshotBuffer)) {
-          throw new Error('Fallback screenshot buffer has invalid PNG format');
-        }
+        validateScreenshotBuffer(screenshotBuffer, {
+          label: 'Fallback screenshot',
+          minBufferSize:
+            this.options?.minScreenshotBufferSize ??
+            AndroidDevice.DEFAULT_MIN_SCREENSHOT_BUFFER_SIZE,
+        });
 
         debugDevice(
           `Fallback screenshot validated successfully: ${screenshotBuffer.length} bytes`,
@@ -1868,27 +1817,38 @@ ${Object.keys(size)
   }
 
   /**
-   * Get the current time from the Android device.
-   * Returns the device's current timestamp in milliseconds.
-   * This is useful when the system time and device time are not synchronized.
+   * Get the current device-local time as a formatted string.
+   * This avoids formatting an Android epoch timestamp in the host machine's
+   * timezone, which can disagree with the device status bar.
    */
-  async getTimestamp(): Promise<number> {
+  async getDeviceLocalTimeString(
+    format = 'YYYY-MM-DD HH:mm:ss',
+  ): Promise<string> {
     const adb = await this.getAdb();
     try {
-      // Get time in milliseconds using date command
-      // %s gives seconds since epoch, %3N gives milliseconds
-      const stdout = await adb.shell('date +%s%3N');
-      const timestamp = Number.parseInt(stdout.trim(), 10);
+      const stdout = await adb.shell('date +%Y-%m-%dT%H:%M:%S');
+      const match = stdout
+        .trim()
+        .match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})$/);
 
-      if (Number.isNaN(timestamp)) {
-        throw new Error(`Invalid timestamp format: ${stdout}`);
+      if (!match) {
+        throw new Error(`Invalid device time format: ${stdout}`);
       }
 
-      debugDevice(`Got device time: ${timestamp}`);
-      return timestamp;
+      const [, year, month, day, hours, minutes, seconds] = match;
+      const timeString = format
+        .replace('YYYY', year)
+        .replace('MM', month)
+        .replace('DD', day)
+        .replace('HH', hours)
+        .replace('mm', minutes)
+        .replace('ss', seconds);
+
+      debugDevice(`Got device local time: ${timeString}`);
+      return `${timeString} (${format})`;
     } catch (error) {
-      debugDevice(`Failed to get device time: ${error}`);
-      throw new Error(`Failed to get device time: ${error}`);
+      debugDevice(`Failed to get device local time: ${error}`);
+      throw new Error(`Failed to get device local time: ${error}`);
     }
   }
 
@@ -2171,6 +2131,8 @@ const createPlatformActions = (
       description: 'Terminate (force-stop) an Android app by package name',
       interfaceAlias: 'terminate',
       paramSchema: terminateParamSchema,
+      delayBeforeRunner: 0,
+      delayAfterRunner: 0,
       call: async (param) => {
         if (!param.uri || param.uri.trim() === '') {
           throw new Error('Terminate requires a non-empty uri parameter');
@@ -2181,6 +2143,8 @@ const createPlatformActions = (
     AndroidBackButton: defineAction({
       name: 'AndroidBackButton',
       description: 'Trigger the system "back" operation on Android devices',
+      delayBeforeRunner: 0,
+      delayAfterRunner: 0,
       call: async () => {
         await device.back();
       },
@@ -2188,6 +2152,8 @@ const createPlatformActions = (
     AndroidHomeButton: defineAction({
       name: 'AndroidHomeButton',
       description: 'Trigger the system "home" operation on Android devices',
+      delayBeforeRunner: 0,
+      delayAfterRunner: 0,
       call: async () => {
         await device.home();
       },

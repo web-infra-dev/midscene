@@ -7,7 +7,10 @@ export const IPC_CHANNELS = {
   closeWindow: 'shell:close-window',
   minimizeWindow: 'shell:minimize-window',
   openExternalUrl: 'shell:open-external-url',
+  chooseReportSavePath: 'shell:choose-report-save-path',
   toggleMaximizeWindow: 'shell:toggle-maximize-window',
+  writeReportFile: 'shell:write-report-file',
+  setNativeTheme: 'shell:set-native-theme',
   // Multi-platform playground runtime (Android, iOS, HarmonyOS, Computer).
   getPlaygroundBootstrap: 'studio:get-playground-bootstrap',
   restartPlayground: 'studio:restart-playground',
@@ -15,6 +18,8 @@ export const IPC_CHANNELS = {
   // at once (Android via ADB, Harmony via HDC, Computer via display
   // enumeration). Independent of session manager.
   discoverDevices: 'studio:discover-devices',
+  discoveredDevicesUpdated: 'studio:discovered-devices-updated',
+  setDiscoveryPollingPaused: 'studio:set-discovery-polling-paused',
   runConnectivityTest: 'studio:run-connectivity-test',
 } as const;
 
@@ -22,6 +27,11 @@ export interface ConnectivityTestRequest {
   apiKey: string;
   baseUrl: string;
   model: string;
+}
+
+export interface WriteReportFileRequest {
+  path: string;
+  content: string;
 }
 
 export type ConnectivityTestResult =
@@ -59,6 +69,8 @@ export interface DiscoveredDevice {
   id: string;
   label: string;
   description?: string;
+  /** Optional platform-native availability state, e.g. `device` or `offline`. */
+  status?: string;
   /**
    * Session-setup field values for this discovered target, before Studio
    * prefixes them with `{platformId}.`.
@@ -66,8 +78,33 @@ export interface DiscoveredDevice {
   sessionValues?: Record<string, StudioSessionValue>;
 }
 
+/**
+ * Per-platform error from the cross-platform device discovery scan.
+ *
+ * Platforms (Android, Harmony) require an external CLI (`adb`, `hdc`) to be
+ * installed and reachable on PATH. When that prerequisite is missing the
+ * scan throws — the renderer needs to know so it can prompt the user to
+ * install the toolchain instead of just rendering "No devices".
+ */
+export interface PlatformDiscoveryError {
+  platformId: StudioPlatformId;
+  /**
+   * `toolchain-missing` covers any failure of the platform's discovery
+   * probe — in practice this is dominated by the CLI binary not being on
+   * PATH, which is the actionable case for the user.
+   */
+  kind: 'toolchain-missing';
+}
+
 /** Result of the cross-platform device discovery scan. */
-export type DiscoverDevicesResult = DiscoveredDevice[];
+export interface DiscoverDevicesResult {
+  devices: DiscoveredDevice[];
+  errors: PlatformDiscoveryError[];
+}
+
+export interface DiscoverDevicesRequest {
+  forceRefresh?: boolean;
+}
 
 /**
  * Public API exposed on `window.electronShell` by the preload bridge.
@@ -83,18 +120,35 @@ export interface ElectronShellApi {
   minimizeWindow: () => Promise<void>;
   /** Open an external HTTP(S) link in the system browser. */
   openExternalUrl: (url: string) => Promise<void>;
+  /** Ask the main process for a target path for a report HTML export. */
+  chooseReportSavePath: (defaultFileName?: string) => Promise<string | null>;
   /**
    * Toggle maximize/unmaximize on the current shell window. No-op if the
    * window is not available (e.g. during teardown).
    */
   toggleMaximizeWindow: () => Promise<void>;
+  /** Persist a report HTML file using the native shell process. */
+  writeReportFile: (request: WriteReportFileRequest) => Promise<void>;
+  /**
+   * Sync the app's resolved theme to the OS so window chrome (border,
+   * traffic lights) and `vibrancy` use the matching light/dark variant.
+   */
+  setNativeTheme: (mode: NativeThemeMode) => Promise<void>;
 }
+
+export type NativeThemeMode = 'light' | 'dark' | 'system';
 
 export interface StudioRuntimeApi {
   getPlaygroundBootstrap: () => Promise<PlaygroundBootstrap>;
   restartPlayground: () => Promise<PlaygroundBootstrap>;
   /** Scan ALL platforms for connected devices (ADB, HDC, displays). */
-  discoverDevices: () => Promise<DiscoverDevicesResult>;
+  discoverDevices: (
+    request?: DiscoverDevicesRequest,
+  ) => Promise<DiscoverDevicesResult>;
+  onDiscoveredDevicesChanged: (
+    listener: (devices: DiscoverDevicesResult) => void,
+  ) => () => void;
+  setDiscoveryPollingPaused: (paused: boolean) => Promise<void>;
   runConnectivityTest: (
     request: ConnectivityTestRequest,
   ) => Promise<ConnectivityTestResult>;

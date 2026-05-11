@@ -1,6 +1,17 @@
-import { PlaygroundPreview } from '@midscene/playground-app';
-import { useEffect, useRef, useState } from 'react';
+import { getDebug } from '@midscene/shared/logger';
+import {
+  type ReactNode,
+  Suspense,
+  lazy,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { assetUrls } from '../../assets';
+import {
+  type StudioPreviewConnectionState,
+  shouldPauseDiscoveryPollingDuringPreview,
+} from '../../playground/preview-discovery';
 import {
   buildDeviceSelectionFormValues,
   buildStudioSidebarDeviceBuckets,
@@ -13,25 +24,25 @@ import { useStudioPlayground } from '../../playground/useStudioPlayground';
 import ConnectingPreview from '../ConnectingPreview';
 import ConnectionFailedPreview from '../ConnectionFailedPreview';
 import DisconnectedPreview from '../DisconnectedPreview';
+import { MaskedIcon } from '../MaskedIcon';
 import type { ShellActiveView } from '../ShellLayout/types';
 import { DeviceList } from './DeviceList';
+import { MobilePreviewFrame } from './MobilePreviewFrame';
+import {
+  resolveStudioPreviewPlatform,
+  shouldEnableMobilePreviewFrame,
+  shouldUseDesktopPreviewPadding,
+} from './preview-layout';
+
+const debugWebNavigation = getDebug('studio:web-navigation', { console: true });
+
+const LazyPlaygroundPreview = lazy(() => import('./LazyPlaygroundPreview'));
 
 export interface MainContentProps {
   activeView: ShellActiveView;
-  envConfigured: boolean;
   headerOffsetClass?: string;
-  onOpenModelConfig?: () => void;
-  onOpenSettings?: () => void;
   onSelectDeviceView?: () => void;
 }
-
-type PreviewConnectionState =
-  | 'connecting'
-  | 'waiting-for-stream'
-  | 'connected'
-  | 'disconnected'
-  | 'error'
-  | null;
 
 function RefreshIcon({ spinning }: { spinning?: boolean }) {
   return (
@@ -60,6 +71,141 @@ function RefreshIcon({ spinning }: { spinning?: boolean }) {
   );
 }
 
+function BackIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="15"
+      viewBox="0 0 16 16"
+      width="15"
+    >
+      <path
+        d="M9.8 3.2 5 8l4.8 4.8"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+}
+
+function ForwardIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="15"
+      viewBox="0 0 16 16"
+      width="15"
+    >
+      <path
+        d="M6.2 3.2 11 8l-4.8 4.8"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+}
+
+function StopIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="13"
+      viewBox="0 0 16 16"
+      width="13"
+    >
+      <rect
+        height="8.5"
+        rx="1"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        width="8.5"
+        x="3.75"
+        y="3.75"
+      />
+    </svg>
+  );
+}
+
+function resolvePlatformLogo(platform?: string): string {
+  switch (platform) {
+    case 'computer':
+    case 'web':
+      return assetUrls.main.platformPc;
+    case 'android':
+    case 'ios':
+    case 'harmony':
+      return assetUrls.main.platformPhone;
+    default:
+      return assetUrls.main.platformPhone;
+  }
+}
+
+function getPreviewConnectingLabel(platform?: string): string {
+  switch (platform) {
+    case 'web':
+      return 'Opening Web page…';
+    case 'computer':
+      return 'Preparing computer connection…';
+    case 'ios':
+      return 'Preparing iOS device connection…';
+    case 'harmony':
+      return 'Preparing HarmonyOS device connection…';
+    case 'android':
+      return 'Preparing Android device connection…';
+    default:
+      return 'Preparing device connection…';
+  }
+}
+
+function getDisconnectedPreviewTitle(platform?: string): string {
+  switch (platform) {
+    case 'web':
+      return 'Open Web Page';
+    case 'computer':
+      return 'Connect Computer';
+    case 'ios':
+      return 'Connect iOS Device';
+    case 'harmony':
+      return 'Connect HarmonyOS Device';
+    case 'android':
+      return 'Connect Android Device';
+    default:
+      return 'Connect Device';
+  }
+}
+
+function WebNavigationButton({
+  'aria-label': ariaLabel,
+  disabled,
+  onClick,
+  children,
+}: {
+  'aria-label': string;
+  disabled?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      aria-label={ariaLabel}
+      className="app-no-drag flex h-[28px] w-[28px] cursor-pointer appearance-none items-center justify-center rounded-[7px] border-0 bg-transparent p-0 text-text-secondary shadow-none transition-colors hover:bg-surface-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+      disabled={disabled}
+      onClick={onClick}
+      title={ariaLabel}
+      type="button"
+    >
+      {children}
+    </button>
+  );
+}
+
 function OverviewToolbar({
   onRefresh,
   refreshing,
@@ -82,45 +228,22 @@ function OverviewToolbar({
   );
 }
 
-function OverviewEmptyState({ onAction }: { onAction?: () => void }) {
-  return (
-    <div className="flex w-[360px] flex-col items-center gap-[12px]">
-      <img
-        alt=""
-        aria-hidden="true"
-        className="h-[95px] w-[120px] object-contain"
-        src={assetUrls.main.devices}
-      />
-
-      <div className="w-[260px] overflow-hidden text-center font-['PingFang_SC'] text-[13px] font-medium leading-[24px] text-black">
-        Finish environment setup to browse and connect devices
-      </div>
-
-      <button
-        className="flex h-[32px] w-[117px] cursor-pointer items-center justify-center rounded-[8px] border-0 bg-surface-muted p-0 transition-colors hover:bg-surface-hover-strong active:bg-surface-active"
-        onClick={onAction}
-        type="button"
-      >
-        <span className="block overflow-hidden text-center text-[13px] font-medium leading-[22px] text-black">
-          Configuration
-        </span>
-      </button>
-    </div>
-  );
-}
-
 export default function MainContent({
   activeView,
-  envConfigured,
   headerOffsetClass,
-  onOpenModelConfig,
-  onOpenSettings,
   onSelectDeviceView,
 }: MainContentProps) {
   const studioPlayground = useStudioPlayground();
   const [previewStatus, setPreviewStatus] =
-    useState<PreviewConnectionState>(null);
+    useState<StudioPreviewConnectionState>(null);
+  const [previewStatusText, setPreviewStatusText] = useState<string | null>(
+    null,
+  );
   const [overviewRefreshing, setOverviewRefreshing] = useState(false);
+  const [webNavigationBusyAction, setWebNavigationBusyAction] = useState<
+    'GoBack' | 'GoForward' | 'Stop' | 'Reload' | null
+  >(null);
+  const [webIsLoading, setWebIsLoading] = useState(false);
   const isReady = studioPlayground.phase === 'ready';
   const deviceLabel =
     studioPlayground.phase === 'error'
@@ -141,6 +264,43 @@ export default function MainContent({
     ? resolveSelectedDeviceId(studioPlayground.controller.state.formValues)
     : undefined;
   const previewDeviceId = connectedDeviceId ?? selectedDeviceId;
+  const runtimeInfo =
+    studioPlayground.phase === 'ready'
+      ? studioPlayground.controller.state.runtimeInfo
+      : null;
+  const previewFormValues: Record<string, unknown> =
+    studioPlayground.phase === 'ready'
+      ? studioPlayground.controller.state.formValues
+      : {};
+  const shouldFrameMobilePreview = shouldEnableMobilePreviewFrame(
+    runtimeInfo,
+    previewFormValues,
+    isConnected,
+    previewStatus,
+  );
+  const shouldPadDesktopPreview = shouldUseDesktopPreviewPadding(
+    runtimeInfo,
+    previewFormValues,
+  );
+  const previewPlatform = resolveStudioPreviewPlatform(
+    runtimeInfo,
+    previewFormValues,
+  );
+  const manualControlEnabled =
+    isConnected &&
+    (previewPlatform === 'android' ||
+      previewPlatform === 'ios' ||
+      previewPlatform === 'harmony' ||
+      previewPlatform === 'web');
+  const manualDragActionType =
+    previewPlatform === 'web' ? 'DragAndDrop' : 'Swipe';
+  const showWebNavigation = isConnected && previewPlatform === 'web';
+  const previewConnectingLabel = getPreviewConnectingLabel(previewPlatform);
+  const disconnectedPreviewTitle = getDisconnectedPreviewTitle(previewPlatform);
+  const isOpeningSession =
+    isReady &&
+    !isConnected &&
+    studioPlayground.controller.state.sessionMutating;
   const disconnectDisabled =
     !isReady || !studioPlayground.controller.state.sessionViewState.connected;
   const previewConnectionFailed =
@@ -156,8 +316,103 @@ export default function MainContent({
   useEffect(() => {
     if (!isConnected) {
       setPreviewStatus(null);
+      setPreviewStatusText(null);
+      setWebNavigationBusyAction(null);
+      setWebIsLoading(false);
     }
   }, [isConnected]);
+
+  // Web navigation toolbar polls /interface-info for `isLoading` so the
+  // reload/stop button reflects the current page state. Depend on the few
+  // primitives we actually read instead of the whole `studioPlayground`
+  // controller object — that object's identity changes on every render and
+  // would tear down/rebuild the interval each frame.
+  const webNavigationServerOnline =
+    studioPlayground.phase === 'ready'
+      ? studioPlayground.controller.state.serverOnline
+      : false;
+  const webNavigationSDK =
+    studioPlayground.phase === 'ready'
+      ? studioPlayground.controller.state.playgroundSDK
+      : null;
+
+  useEffect(() => {
+    if (!showWebNavigation || !webNavigationServerOnline || !webNavigationSDK) {
+      setWebIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const refreshWebLoadingState = async () => {
+      try {
+        const info = await webNavigationSDK.getInterfaceInfo();
+        if (cancelled) return;
+        setWebIsLoading(Boolean(info?.navigationState?.isLoading));
+      } catch (error) {
+        if (!cancelled) {
+          debugWebNavigation('failed to refresh web loading state: %s', error);
+          setWebIsLoading(false);
+        }
+      }
+    };
+
+    void refreshWebLoadingState();
+    const timer = window.setInterval(refreshWebLoadingState, 1000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [showWebNavigation, webNavigationServerOnline, webNavigationSDK]);
+
+  const runWebNavigationAction = async (
+    actionType: 'GoBack' | 'GoForward' | 'Stop' | 'Reload',
+  ) => {
+    if (
+      studioPlayground.phase !== 'ready' ||
+      webNavigationBusyAction !== null ||
+      previewPlatform !== 'web'
+    ) {
+      return;
+    }
+    setWebNavigationBusyAction(actionType);
+    try {
+      if (actionType !== 'Stop') {
+        setWebIsLoading(true);
+      }
+      const result =
+        await studioPlayground.controller.state.playgroundSDK.interact({
+          actionType,
+        });
+      if (!result.ok) {
+        debugWebNavigation(
+          'failed to run web navigation action "%s": %s',
+          actionType,
+          result.error || 'Unknown error',
+        );
+      } else {
+        setWebIsLoading(false);
+      }
+    } finally {
+      setWebNavigationBusyAction(null);
+    }
+  };
+
+  const pauseDiscoveryPolling = shouldPauseDiscoveryPollingDuringPreview({
+    previewStatus,
+    runtimeInfo,
+    sessionConnected: isConnected,
+    sessionMutating:
+      studioPlayground.phase === 'ready'
+        ? studioPlayground.controller.state.sessionMutating
+        : false,
+  });
+
+  useEffect(() => {
+    studioPlayground.setDiscoveryPollingPaused(pauseDiscoveryPolling);
+    return () => {
+      studioPlayground.setDiscoveryPollingPaused(false);
+    };
+  }, [pauseDiscoveryPolling, studioPlayground]);
 
   // When the scrcpy preview reports an error (most common cause: the physical
   // device was unplugged after the sidebar rendered), refresh the session
@@ -173,7 +428,7 @@ export default function MainContent({
     studioPlayground.phase === 'ready'
       ? studioPlayground.controller.state.formValues
       : null;
-  const previewStatusRef = useRef<PreviewConnectionState>(null);
+  const previewStatusRef = useRef<StudioPreviewConnectionState>(null);
   useEffect(() => {
     const previous = previewStatusRef.current;
     previewStatusRef.current = previewStatus;
@@ -187,18 +442,6 @@ export default function MainContent({
   }, [previewStatus, refreshSessionSetup]);
 
   if (activeView === 'overview') {
-    if (!envConfigured) {
-      return (
-        <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-l-[12px] border-r border-border-subtle bg-surface">
-          <div className="flex h-full w-full items-center justify-center">
-            <OverviewEmptyState
-              onAction={onOpenModelConfig ?? onOpenSettings}
-            />
-          </div>
-        </div>
-      );
-    }
-
     const overviewSessionBuckets = isReady
       ? buildStudioSidebarDeviceBuckets({
           formValues: studioPlayground.controller.state.formValues,
@@ -217,7 +460,8 @@ export default function MainContent({
         : undefined;
 
     return (
-      <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-l-[12px] border-r border-border-subtle bg-surface">
+      <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[12px] bg-surface">
+        <div className="app-drag absolute left-0 right-0 top-0 z-0 h-[52px]" />
         <OverviewToolbar
           onRefresh={async () => {
             if (!isReady || overviewRefreshing) {
@@ -244,6 +488,7 @@ export default function MainContent({
         <DeviceList
           buckets={overviewBuckets}
           connectingDeviceId={overviewSelectedDeviceId}
+          errors={studioPlayground.discoveryErrors}
           onConnect={async (platform, device) => {
             if (!isReady) {
               return;
@@ -253,11 +498,14 @@ export default function MainContent({
               platform,
               device,
             );
-            state.form.setFieldsValue(selectionValues);
             onSelectDeviceView?.();
-            if (connectedDeviceId === device.id) {
+            if (
+              connectedDeviceId === device.id ||
+              (device.selected && device.status === 'active')
+            ) {
               return;
             }
+            state.form.setFieldsValue(selectionValues);
             if (state.sessionViewState.connected) {
               await actions.destroySession();
             }
@@ -267,6 +515,15 @@ export default function MainContent({
             };
             await actions.createSession(sessionValues);
           }}
+          onDisconnect={async () => {
+            if (!isReady) {
+              return;
+            }
+            const { actions, state } = studioPlayground.controller;
+            if (state.sessionViewState.connected) {
+              await actions.destroySession();
+            }
+          }}
         />
       </div>
     );
@@ -275,15 +532,18 @@ export default function MainContent({
   return (
     <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-l-[12px] border-r border-border-subtle bg-surface">
       <div
-        className={`flex h-[52px] items-center pr-4 ${
+        className={`app-drag flex h-[52px] items-center pr-4 ${
           headerOffsetClass || 'pl-[8px]'
         }`}
       >
         <div className="flex items-center">
-          <div className="ml-[8px] flex h-6 w-6 items-center justify-center rounded-[3.6px] bg-surface">
-            <img alt="" className="h-[21.6px]" src={assetUrls.main.device} />
-          </div>
-          <span className="ml-[8px] w-[134px] overflow-hidden whitespace-nowrap text-[13px] leading-[22.1px] font-medium text-text-primary">
+          <img
+            alt=""
+            className="ml-[8px] h-6 w-6 shrink-0"
+            src={resolvePlatformLogo(previewPlatform)}
+          />
+
+          <span className="ml-[8px] max-w-[134px] truncate text-[13px] leading-[22.1px] font-medium text-text-primary">
             {deviceLabel}
           </span>
           <div
@@ -316,15 +576,67 @@ export default function MainContent({
               {connectionStatusLabel}
             </span>
           </div>
+          {showWebNavigation ? (
+            <div
+              aria-label="Web navigation"
+              className="app-no-drag ml-[10px] flex h-[32px] items-center gap-[2px] rounded-[8px] bg-transparent px-[2px]"
+            >
+              <WebNavigationButton
+                aria-label="Go back"
+                disabled={webNavigationBusyAction !== null}
+                onClick={() => {
+                  void runWebNavigationAction('GoBack');
+                }}
+              >
+                <BackIcon />
+              </WebNavigationButton>
+              <WebNavigationButton
+                aria-label="Go forward"
+                disabled={webNavigationBusyAction !== null}
+                onClick={() => {
+                  void runWebNavigationAction('GoForward');
+                }}
+              >
+                <ForwardIcon />
+              </WebNavigationButton>
+              {webIsLoading ? (
+                <WebNavigationButton
+                  aria-label="Stop loading"
+                  disabled={webNavigationBusyAction !== null}
+                  onClick={() => {
+                    void runWebNavigationAction('Stop');
+                  }}
+                >
+                  <StopIcon />
+                </WebNavigationButton>
+              ) : (
+                <WebNavigationButton
+                  aria-label="Reload page"
+                  disabled={webNavigationBusyAction !== null}
+                  onClick={() => {
+                    void runWebNavigationAction('Reload');
+                  }}
+                >
+                  <RefreshIcon
+                    spinning={webNavigationBusyAction === 'Reload'}
+                  />
+                </WebNavigationButton>
+              )}
+            </div>
+          ) : null}
         </div>
 
         <div className="flex flex-1 justify-end gap-[8.04px]">
           <button
-            className={`flex h-8 items-center rounded-lg border border-border-subtle px-3 ${
+            className={`app-no-drag flex h-8 items-center rounded-lg border border-border-subtle px-3 transition-colors ${
               isConnected
                 ? 'bg-surface shadow-[0_1px_2px_rgba(15,23,42,0.06)]'
                 : 'bg-transparent'
-            } ${disconnectDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
+            } ${
+              disconnectDisabled
+                ? 'cursor-not-allowed opacity-50'
+                : 'cursor-pointer hover:bg-surface-hover'
+            }`}
             disabled={disconnectDisabled}
             onClick={() => {
               if (studioPlayground.phase !== 'ready') {
@@ -335,82 +647,113 @@ export default function MainContent({
             }}
             type="button"
           >
-            <img
-              alt=""
-              className="mr-[5px] h-3.5 w-3.5"
+            <MaskedIcon
+              className="mr-[5px] h-3.5 w-3.5 text-text-primary"
               src={assetUrls.main.disconnect}
             />
             <span className="whitespace-nowrap px-[3px] text-[13px] leading-[20px] font-medium text-text-primary">
               Disconnect
             </span>
           </button>
-          <button
-            className="flex h-8 items-center gap-[4.02px] rounded-lg border border-border-subtle bg-surface-muted px-3"
-            type="button"
-          >
-            <div className="flex h-4 w-4 items-center">
-              <img alt="" className="h-4 w-4" src={assetUrls.main.chat} />
-            </div>
-            <span className="overflow-hidden whitespace-nowrap text-[13px] leading-[20px] font-medium text-text-primary">
-              Chat
-            </span>
-          </button>
         </div>
       </div>
 
       <div className="relative min-h-0 flex-1 overflow-hidden bg-surface">
-        {studioPlayground.phase === 'booting' ? (
-          <div className="flex h-full items-center justify-center px-6 text-[14px] text-text-tertiary">
-            Playground starting...
-          </div>
-        ) : studioPlayground.phase === 'error' ? (
-          <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">
-            <div className="max-w-[420px] text-[14px] leading-[22px] text-text-secondary">
-              {studioPlayground.error}
+        <MobilePreviewFrame enabled={shouldFrameMobilePreview}>
+          {studioPlayground.phase === 'booting' ? (
+            <div className="flex h-full items-center justify-center px-6 text-[14px] text-text-tertiary">
+              Playground starting...
             </div>
-            <button
-              className="rounded-lg border border-border-subtle px-4 py-2 text-[13px] font-medium text-text-primary"
-              onClick={() => {
-                void studioPlayground.restartPlayground();
-              }}
-              type="button"
+          ) : studioPlayground.phase === 'error' ? (
+            <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">
+              <div className="max-w-[420px] text-[14px] leading-[22px] text-text-secondary">
+                {studioPlayground.error}
+              </div>
+              <button
+                className="cursor-pointer rounded-lg border border-border-subtle px-4 py-2 text-[13px] font-medium text-text-primary transition-colors hover:bg-surface-hover"
+                onClick={() => {
+                  void studioPlayground.restartPlayground();
+                }}
+                type="button"
+              >
+                Retry runtime
+              </button>
+            </div>
+          ) : !studioPlayground.controller.state.serverOnline ? (
+            <div className="flex h-full items-center justify-center px-8 text-center text-[14px] leading-[22px] text-text-tertiary">
+              Playground server is offline.
+            </div>
+          ) : studioPlayground.controller.state.sessionViewState.connected ? (
+            <div
+              className={`box-border h-full w-full ${
+                shouldPadDesktopPreview ? 'px-6' : ''
+              }`}
             >
-              Retry runtime
-            </button>
-          </div>
-        ) : !studioPlayground.controller.state.serverOnline ? (
-          <div className="flex h-full items-center justify-center px-8 text-center text-[14px] leading-[22px] text-text-tertiary">
-            Playground server is offline.
-          </div>
-        ) : studioPlayground.controller.state.sessionViewState.connected ? (
-          <div className="h-full w-full">
-            <PlaygroundPreview
-              connectingOverlay={
-                <ConnectingPreview
-                  pcSrc={assetUrls.main.pc}
-                  phoneSrc={assetUrls.main.phone}
+              <Suspense
+                fallback={
+                  <ConnectingPreview
+                    pcSrc={assetUrls.main.pc}
+                    phoneSrc={assetUrls.main.phone}
+                    statusLabel={previewStatusText || previewConnectingLabel}
+                  />
+                }
+              >
+                <LazyPlaygroundPreview
+                  connectingOverlay={
+                    <ConnectingPreview
+                      pcSrc={assetUrls.main.pc}
+                      phoneSrc={assetUrls.main.phone}
+                      statusLabel={previewStatusText || previewConnectingLabel}
+                    />
+                  }
+                  onScrcpyStatusChange={(status, statusText) => {
+                    setPreviewStatus(status);
+                    setPreviewStatusText(statusText);
+                  }}
+                  renderErrorOverlay={({ retry }) => (
+                    <ConnectionFailedPreview
+                      adbId={previewDeviceId}
+                      iconSrc={assetUrls.main.connectionFailed}
+                      onReconnect={retry}
+                    />
+                  )}
+                  playgroundSDK={
+                    studioPlayground.controller.state.playgroundSDK
+                  }
+                  screenshotViewerMode="screen-only"
+                  scrcpyViewportStyle={
+                    shouldFrameMobilePreview
+                      ? {
+                          background: 'transparent',
+                          borderRadius: 0,
+                        }
+                      : undefined
+                  }
+                  runtimeInfo={studioPlayground.controller.state.runtimeInfo}
+                  serverUrl={studioPlayground.serverUrl}
+                  serverOnline={studioPlayground.controller.state.serverOnline}
+                  isUserOperating={
+                    studioPlayground.controller.state.isUserOperating
+                  }
+                  manualControlEnabled={manualControlEnabled}
+                  manualDragActionType={manualDragActionType}
+                  manualKeyboardEnabled={previewPlatform === 'web'}
                 />
-              }
-              onScrcpyStatusChange={setPreviewStatus}
-              renderErrorOverlay={({ retry }) => (
-                <ConnectionFailedPreview
-                  adbId={previewDeviceId}
-                  iconSrc={assetUrls.main.connectionFailed}
-                  onReconnect={retry}
-                />
-              )}
-              playgroundSDK={studioPlayground.controller.state.playgroundSDK}
-              runtimeInfo={studioPlayground.controller.state.runtimeInfo}
-              serverUrl={studioPlayground.serverUrl}
-              serverOnline={studioPlayground.controller.state.serverOnline}
-              isUserOperating={
-                studioPlayground.controller.state.isUserOperating
-              }
+              </Suspense>
+            </div>
+          ) : isOpeningSession ? (
+            <ConnectingPreview
+              pcSrc={assetUrls.main.pc}
+              phoneSrc={assetUrls.main.phone}
+              statusLabel={previewConnectingLabel}
             />
-          </div>
-        ) : (
-          <DisconnectedPreview iconSrc={assetUrls.main.connectionClosed} />
-        )}
+          ) : (
+            <DisconnectedPreview
+              iconSrc={assetUrls.main.connectionClosed}
+              title={disconnectedPreviewTitle}
+            />
+          )}
+        </MobilePreviewFrame>
       </div>
     </div>
   );

@@ -7,7 +7,6 @@ import { rendererDevUrl } from './renderer-dev-config.mjs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
-
 export const defaultRequiredFiles = [
   path.join(rootDir, 'dist/main/main.cjs'),
   path.join(rootDir, 'dist/preload/preload.cjs'),

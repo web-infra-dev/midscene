@@ -258,5 +258,60 @@ describe('generateToolsFromActionSpace', () => {
     expect(commonTools.find((tool) => tool.name === 'act')?.cli).toEqual(
       initArgCliMetadata,
     );
+
+    expect(commonTools.find((tool) => tool.name === 'assert')?.schema).toEqual(
+      expect.objectContaining({
+        prompt: expect.anything(),
+        'android.deviceId': expect.anything(),
+      }),
+    );
+    expect(commonTools.find((tool) => tool.name === 'assert')?.cli).toEqual(
+      initArgCliMetadata,
+    );
+  });
+
+  // Guardrail for https://github.com/web-infra-dev/midscene/issues/2313:
+  // A primitive Zod paramSchema (e.g. z.string()) used to silently fall
+  // through extractActionSchema and leak the Zod instance's prototype
+  // methods (parse / safeParse / _def) as CLI flags. Reject such schemas
+  // loudly at tool-definition time so platform-specific actions stay
+  // aligned across iOS / Android / Harmony.
+  it('rejects non-object paramSchema with a clear error naming the action', () => {
+    const badActionSpace = [
+      {
+        name: 'BadLaunch',
+        description: 'Launch something',
+        paramSchema: z.string(),
+      },
+    ];
+
+    expect(() =>
+      generateToolsFromActionSpace(
+        badActionSpace as any,
+        async () => ({}) as any,
+      ),
+    ).toThrow(/Action "BadLaunch" declared a non-object paramSchema/);
+  });
+
+  it('accepts undefined paramSchema and ZodObject paramSchema', () => {
+    const okActionSpace = [
+      {
+        name: 'NoParamAction',
+        description: 'takes no args',
+        paramSchema: undefined,
+      },
+      {
+        name: 'ObjectAction',
+        description: 'takes object args',
+        paramSchema: z.object({ uri: z.string() }),
+      },
+    ];
+
+    expect(() =>
+      generateToolsFromActionSpace(
+        okActionSpace as any,
+        async () => ({}) as any,
+      ),
+    ).not.toThrow();
   });
 });

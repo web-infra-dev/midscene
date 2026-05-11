@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   applyPlaygroundAiConfig,
   hasPlaygroundAiConfig,
+  serializePlaygroundAiConfig,
 } from '../src/controller/ai-config';
 
 describe('playground ai config helpers', () => {
@@ -32,5 +33,18 @@ describe('playground ai config helpers', () => {
 
     expect(applied).toBe(true);
     expect(overrideConfig).toHaveBeenCalledWith(config);
+  });
+
+  it('serializes ai config with stable key ordering', () => {
+    const left = serializePlaygroundAiConfig({
+      MIDSCENE_MODEL_NAME: 'gpt-4o-mini',
+      MIDSCENE_MODEL_BASE_URL: 'https://example.com/v1',
+    });
+    const right = serializePlaygroundAiConfig({
+      MIDSCENE_MODEL_BASE_URL: 'https://example.com/v1',
+      MIDSCENE_MODEL_NAME: 'gpt-4o-mini',
+    });
+
+    expect(left).toBe(right);
   });
 });

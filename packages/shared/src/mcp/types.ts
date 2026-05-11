@@ -106,6 +106,11 @@ export interface BaseAgent {
     assertion: string,
     options: Record<string, unknown>,
   ) => Promise<unknown>;
+  aiAssert?: (
+    assertion: string,
+    msg?: string,
+    options?: Record<string, unknown>,
+  ) => Promise<unknown>;
 }
 
 /**

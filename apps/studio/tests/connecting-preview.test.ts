@@ -16,4 +16,16 @@ describe('ConnectingPreview', () => {
     expect(html).toContain('phone.svg');
     expect(html).toContain('Preparing device connection...');
   });
+
+  it('renders a custom status label when one is provided', () => {
+    const html = renderToStaticMarkup(
+      createElement(ConnectingPreview, {
+        pcSrc: 'pc.svg',
+        phoneSrc: 'phone.svg',
+        statusLabel: 'Waiting for first video frame…',
+      }),
+    );
+
+    expect(html).toContain('Waiting for first video frame…');
+  });
 });

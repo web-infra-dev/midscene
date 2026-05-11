@@ -7,6 +7,7 @@ import {
   resolveAndroidDeviceLabel,
   resolveConnectedDeviceId,
   resolveConnectedDeviceLabel,
+  resolveDiscoveredDeviceSelectionFormValues,
   resolveSelectedDeviceId,
   resolveVisibleSidebarPlatforms,
 } from '../src/renderer/playground/selectors';
@@ -152,9 +153,9 @@ describe('buildStudioSidebarDeviceBuckets', () => {
     const buckets = buildStudioSidebarDeviceBuckets({
       formValues: {},
       runtimeInfo: {
-        platformId: 'harmonyos',
+        platformId: 'harmony',
         title: 'Harmony Playground',
-        interface: { type: 'harmonyos' },
+        interface: { type: 'harmony' },
         preview: { kind: 'none', capabilities: [] },
         executionUxHints: [],
         metadata: {
@@ -199,6 +200,77 @@ describe('buildStudioSidebarDeviceBuckets', () => {
       harmony: [],
       web: [],
     });
+  });
+
+  it('marks the form-selected Android device when setup targets are temporarily empty', () => {
+    const buckets = buildStudioSidebarDeviceBuckets({
+      formValues: {
+        platformId: 'android',
+        'android.deviceId': 'device-2',
+      },
+      runtimeInfo: null,
+      targets: [],
+    });
+
+    expect(buckets.android).toEqual([
+      {
+        id: 'device-2',
+        label: 'device-2',
+        selected: true,
+        status: 'idle',
+        sessionValues: {
+          deviceId: 'device-2',
+        },
+      },
+    ]);
+  });
+
+  it('keeps selected form values for non-Android platforms while runtime info catches up', () => {
+    expect(
+      buildStudioSidebarDeviceBuckets({
+        formValues: {
+          platformId: 'ios',
+          'ios.host': 'localhost',
+          'ios.port': 8100,
+        },
+        runtimeInfo: null,
+        targets: [],
+      }).ios,
+    ).toEqual([
+      {
+        id: 'localhost:8100',
+        label: 'localhost:8100',
+        selected: true,
+        status: 'idle',
+        sessionValues: {
+          host: 'localhost',
+          port: 8100,
+        },
+      },
+    ]);
+  });
+
+  it('keeps legacy selected form values as session values while runtime info catches up', () => {
+    expect(
+      buildStudioSidebarDeviceBuckets({
+        formValues: {
+          platformId: 'computer',
+          displayId: '1',
+        },
+        runtimeInfo: null,
+        targets: [],
+      }).computer,
+    ).toEqual([
+      {
+        id: '1',
+        label: '1',
+        selected: true,
+        status: 'idle',
+        sessionValues: {
+          displayId: '1',
+        },
+      },
+    ]);
   });
 });
 
@@ -513,6 +585,105 @@ describe('buildDeviceSelectionFormValues', () => {
       platformId: 'ios',
       'ios.host': 'localhost',
       'ios.port': 8100,
+    });
+  });
+});
+
+describe('resolveDiscoveredDeviceSelectionFormValues', () => {
+  it('selects the first discovered device when the current platform has no selected device', () => {
+    expect(
+      resolveDiscoveredDeviceSelectionFormValues({
+        formValues: {
+          platformId: 'android',
+        },
+        discoveredDevices: {
+          android: [
+            {
+              platformId: 'android',
+              id: 'device-1',
+              label: 'Pixel 8',
+              sessionValues: {
+                deviceId: 'device-1',
+              },
+            },
+            {
+              platformId: 'android',
+              id: 'device-2',
+              label: 'Pixel 9',
+              sessionValues: {
+                deviceId: 'device-2',
+              },
+            },
+          ],
+          ios: [],
+          computer: [],
+          harmony: [],
+          web: [],
+        },
+      }),
+    ).toEqual({
+      platformId: 'android',
+      'android.deviceId': 'device-1',
+    });
+  });
+
+  it('clears a stale selected device when it is no longer discovered', () => {
+    expect(
+      resolveDiscoveredDeviceSelectionFormValues({
+        formValues: {
+          platformId: 'android',
+          'android.deviceId': 'device-1',
+        },
+        discoveredDevices: {
+          android: [],
+          ios: [],
+          computer: [],
+          harmony: [],
+          web: [],
+        },
+      }),
+    ).toEqual({
+      platformId: 'android',
+      deviceId: null,
+      'android.deviceId': null,
+    });
+  });
+
+  it('does not rewrite the form when no discovered device and no selected device exist', () => {
+    expect(
+      resolveDiscoveredDeviceSelectionFormValues({
+        formValues: {
+          platformId: 'android',
+        },
+        discoveredDevices: {
+          android: [],
+          ios: [],
+          computer: [],
+          harmony: [],
+          web: [],
+        },
+      }),
+    ).toBeNull();
+  });
+
+  it('uses Android as the default platform when clearing a stale selected device', () => {
+    expect(
+      resolveDiscoveredDeviceSelectionFormValues({
+        formValues: {
+          'android.deviceId': 'device-1',
+        },
+        discoveredDevices: {
+          android: [],
+          ios: [],
+          computer: [],
+          harmony: [],
+          web: [],
+        },
+      }),
+    ).toEqual({
+      platformId: 'android',
+      deviceId: null,
+      'android.deviceId': null,
     });
   });
 });

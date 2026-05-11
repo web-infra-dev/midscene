@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scrollable Select Test</title>
+  <style>
+    :root {
+      --border: #d9d9d9;
+      --border-active: #1677ff;
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #1f1f1f;
+      --muted: #6b7280;
+      --hover: #f0f7ff;
+      --selected: #e6f4ff;
+      --shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(22, 119, 255, 0.12), transparent 28%),
+        linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+      padding: 48px 24px;
+    }
+
+    .page {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .fixture-card {
+      background: var(--card);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 32px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 32px;
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin: 0 0 24px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .field-label {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .custom-select {
+      position: relative;
+      width: 100%;
+    }
+
+    .select-trigger {
+      width: 100%;
+      min-height: 48px;
+      padding: 12px 44px 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--text);
+      text-align: left;
+      font-size: 15px;
+      cursor: pointer;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      position: relative;
+    }
+
+    .select-trigger:hover,
+    .select-trigger[aria-expanded="true"] {
+      border-color: var(--border-active);
+      box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.12);
+    }
+
+    .trigger-placeholder {
+      color: var(--muted);
+    }
+
+    .select-arrow {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      width: 10px;
+      height: 10px;
+      border-right: 2px solid #8c8c8c;
+      border-bottom: 2px solid #8c8c8c;
+      transform: translateY(-60%) rotate(45deg);
+      transition: transform 0.2s ease;
+    }
+
+    .select-trigger[aria-expanded="true"] .select-arrow {
+      transform: translateY(-35%) rotate(-135deg);
+    }
+
+    .select-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      z-index: 10;
+    }
+
+    .select-dropdown.open {
+      display: block;
+    }
+
+    .options {
+      max-height: 220px;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .option {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      border-radius: 10px;
+      padding: 11px 12px;
+      text-align: left;
+      font-size: 14px;
+      cursor: pointer;
+      margin-bottom: 4px;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .option:hover {
+      background: var(--hover);
+    }
+
+    .option.selected {
+      background: var(--selected);
+      color: #0958d9;
+      font-weight: 700;
+    }
+
+    .selection-banner {
+      margin-top: 22px;
+      padding: 16px 18px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #ecfeff 0%, #f0f9ff 100%);
+      border: 1px solid rgba(34, 197, 94, 0.16);
+    }
+
+    .selection-banner strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <section class="fixture-card">
+      <h1>Scrollable Select Fixture</h1>
+      <p class="subtitle">
+        This page contains one custom Select component with a long dropdown list.
+      </p>
+
+      <label class="field-label" for="delivery-zone-trigger">Choose a delivery zone</label>
+
+      <div class="custom-select" id="delivery-zone-select">
+        <button
+          id="delivery-zone-trigger"
+          class="select-trigger"
+          type="button"
+          aria-expanded="false"
+          aria-controls="delivery-zone-dropdown"
+        >
+          <span id="trigger-text" class="trigger-placeholder">Please select a delivery zone</span>
+          <span class="select-arrow" aria-hidden="true"></span>
+        </button>
+
+        <div id="delivery-zone-dropdown" class="select-dropdown" role="listbox">
+          <div id="options-panel" class="options" aria-label="Delivery zone options"></div>
+        </div>
+      </div>
+
+      <div class="selection-banner">
+        <strong>Selection result</strong>
+        <div id="selection-result">Current selection: none</div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const options = [
+      'Zone 01 - North Harbor',
+      'Zone 02 - East Harbor',
+      'Zone 03 - South Harbor',
+      'Zone 04 - West Harbor',
+      'Zone 05 - Maple Avenue',
+      'Zone 06 - Cedar Avenue',
+      'Zone 07 - Willow Avenue',
+      'Zone 08 - Pine Avenue',
+      'Zone 09 - Granite Hill',
+      'Zone 10 - Silver Hill',
+      'Zone 11 - Amber Hill',
+      'Zone 12 - Quartz Hill',
+      'Zone 13 - River Gate',
+      'Zone 14 - River Plaza',
+      'Zone 15 - River Market',
+      'Zone 16 - River Station',
+      'Zone 17 - Aurora Point',
+      'Zone 18 - Aurora Park',
+      'Zone 19 - Aurora Bay',
+      'Zone 20 - Aurora Ridge',
+      'Zone 21 - Skyline North',
+      'Zone 22 - Skyline East',
+      'Zone 23 - Skyline South',
+      'Zone 24 - Skyline West',
+      'Zone 25 - Garden Court',
+      'Zone 26 - Garden Walk',
+      'Zone 27 - Garden Square',
+      'Zone 28 - Garden Terrace',
+      'Zone 29 - Ocean Terminal',
+      'Zone 30 - Ocean Exchange',
+      'Zone 31 - Ocean Customs',
+      'Zone 32 - Ocean Depot',
+      'Zone 33 - Summit Base',
+      'Zone 34 - Summit Camp',
+      'Zone 35 - Summit Peak',
+      'Zone 36 - Summit Relay',
+      'Zone 37 - Polar Research Base'
+    ];
+
+    const trigger = document.getElementById('delivery-zone-trigger');
+    const dropdown = document.getElementById('delivery-zone-dropdown');
+    const optionsPanel = document.getElementById('options-panel');
+    const triggerText = document.getElementById('trigger-text');
+    const selectionResult = document.getElementById('selection-result');
+
+    let currentSelection = '';
+
+    function renderOptions() {
+      optionsPanel.innerHTML = '';
+
+      for (const optionText of options) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `option${currentSelection === optionText ? ' selected' : ''}`;
+        button.textContent = optionText;
+        button.dataset.value = optionText;
+        button.addEventListener('click', () => selectOption(optionText));
+        optionsPanel.appendChild(button);
+      }
+    }
+
+    function selectOption(value) {
+      currentSelection = value;
+      triggerText.textContent = value;
+      triggerText.className = '';
+      selectionResult.textContent = `Current selection: ${value}`;
+      closeDropdown();
+      renderOptions();
+    }
+
+    function openDropdown() {
+      dropdown.classList.add('open');
+      trigger.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeDropdown() {
+      dropdown.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    trigger.addEventListener('click', () => {
+      const isOpen = dropdown.classList.contains('open');
+      if (isOpen) {
+        closeDropdown();
+      } else {
+        openDropdown();
+      }
+    });
+
+    document.addEventListener('click', (event) => {
+      const selectRoot = document.getElementById('delivery-zone-select');
+      if (!selectRoot.contains(event.target)) {
+        closeDropdown();
+      }
+    });
+
+    renderOptions();
+  </script>
+</body>
+
+</html>

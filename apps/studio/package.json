@@ -5,10 +5,15 @@
   "type": "module",
   "scripts": {
     "build": "rsbuild build && node scripts/sync-static-assets.mjs",
-    "dev": "concurrently -k -n deps,build,app \"nx run-many --target=dev --projects=@midscene/visualizer,@midscene/playground-app,@midscene/android-playground,@midscene/playground --parallel\" \"rsbuild dev\" \"node scripts/wait-for-electron-build.mjs && node scripts/launch-electron-dev.mjs\"",
+    "dev": "pnpm run dev:deps && concurrently -k -n deps,build,app \"nx run-many --target=dev --projects=@midscene/visualizer,@midscene/playground-app,@midscene/android-playground,@midscene/playground,@midscene/web --parallel --exclude-task-dependencies\" \"rsbuild dev\" \"node scripts/wait-for-electron-build.mjs && node scripts/launch-electron-dev.mjs\"",
+    "dev:deps": "nx run @midscene/visualizer:build --outputStyle=stream && nx run-many --target=build --projects=@midscene/playground-app,@midscene/android-playground,@midscene/playground,@midscene/web --parallel --outputStyle=stream",
+    "package:release": "node scripts/package-electron.mjs",
     "preview": "rsbuild preview --environment renderer",
     "start": "node scripts/sync-static-assets.mjs && node scripts/launch-electron-prod.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:smoke": "vitest run tests/startup-smoke.test.mjs",
+    "test:smoke:ai": "vitest run tests/startup-smoke-ai.test.mjs",
+    "test:smoke:web-preview": "vitest run tests/web-preview-e2e.test.mjs"
   },
   "dependencies": {
     "@midscene/android": "workspace:*",
@@ -22,14 +27,20 @@
     "@midscene/playground-app": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/visualizer": "workspace:*",
+    "@midscene/web": "workspace:*",
     "antd": "^5.21.6",
+    "puppeteer": "24.6.0",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "@electron/notarize": "3.1.1",
+    "@electron/packager": "19.1.0",
     "@rsbuild/core": "^1.6.15",
     "@rsbuild/plugin-less": "^1.5.0",
+    "@rsbuild/plugin-node-polyfill": "1.4.2",
     "@rsbuild/plugin-react": "^1.4.1",
+    "@rsbuild/plugin-svgr": "^1.2.2",
     "@rsbuild/plugin-type-check": "^1.3.2",
     "@tailwindcss/postcss": "4.1.11",
     "@types/node": "^18.0.0",

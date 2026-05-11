@@ -1,19 +1,33 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { STUDIO_EXTERNAL_LINKS } from '../../../shared/external-links';
 import { assetUrls } from '../../assets';
 import MainContent from '../MainContent';
+import { MaskedIcon } from '../MaskedIcon';
 import Playground from '../Playground';
 import SettingsPanel from '../SettingsPanel';
 import Sidebar, { SidebarFooter } from '../Sidebar';
 import { ModelEnvConfigModal } from './ModelEnvConfigModal';
-import {
-  isModelEnvConfigured,
-  loadModelEnvText,
-  saveModelEnvText,
-} from './model-env-storage';
+import { loadModelEnvText, saveModelEnvText } from './model-env-storage';
 import type { ShellActiveView } from './types';
 
 export type { ShellActiveView };
+
+const SIDEBAR_WIDTH_STORAGE_KEY = 'studio.sidebarWidth';
+const PLAYGROUND_WIDTH_STORAGE_KEY = 'studio.playgroundWidth';
+
+const SIDEBAR_DEFAULT_WIDTH = 240;
+const SIDEBAR_MIN_WIDTH = 200;
+const SIDEBAR_MAX_WIDTH = 400;
+
+const PLAYGROUND_DEFAULT_WIDTH = 400;
+const PLAYGROUND_MIN_WIDTH = 320;
+const PLAYGROUND_MAX_WIDTH = 720;
 
 const requireElectronShell = () => {
   if (!window.electronShell) {
@@ -22,6 +36,22 @@ const requireElectronShell = () => {
 
   return window.electronShell;
 };
+
+function readPersistedWidth(
+  key: string,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
+  if (typeof window === 'undefined') {
+    return fallback;
+  }
+  const raw = window.localStorage.getItem(key);
+  if (!raw) return fallback;
+  const num = Number(raw);
+  if (!Number.isFinite(num)) return fallback;
+  return Math.min(max, Math.max(min, num));
+}
 
 function SidebarToggleButton({
   collapsed,
@@ -37,11 +67,8 @@ function SidebarToggleButton({
       onClick={onToggle}
       type="button"
     >
-      <img
-        alt=""
-        className={`h-[14px] w-4 object-contain ${
-          collapsed ? 'scale-x-[-1]' : ''
-        }`}
+      <MaskedIcon
+        className={`h-[14px] w-4 ${collapsed ? 'scale-x-[-1]' : ''}`}
         src={assetUrls.sidebar.leftSidebar}
       />
     </button>
@@ -56,15 +83,45 @@ export default function ShellLayout() {
   const [modelEnvText, setModelEnvText] = useState<string>(() =>
     loadModelEnvText(),
   );
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() =>
+    readPersistedWidth(
+      SIDEBAR_WIDTH_STORAGE_KEY,
+      SIDEBAR_DEFAULT_WIDTH,
+      SIDEBAR_MIN_WIDTH,
+      SIDEBAR_MAX_WIDTH,
+    ),
+  );
+  const [playgroundWidth, setPlaygroundWidth] = useState<number>(() =>
+    readPersistedWidth(
+      PLAYGROUND_WIDTH_STORAGE_KEY,
+      PLAYGROUND_DEFAULT_WIDTH,
+      PLAYGROUND_MIN_WIDTH,
+      PLAYGROUND_MAX_WIDTH,
+    ),
+  );
   const settingsAnchorRef = useRef<HTMLDivElement | null>(null);
-  const modelEnvConfigured = isModelEnvConfigured(modelEnvText);
   const isMacLike =
     typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
-  const collapsedToggleOffsetClass = isMacLike ? 'left-[86px]' : 'left-[12px]';
+  const collapsedToggleButtonLeft = isMacLike ? 86 : 12;
   const collapsedHeaderOffsetClass = isMacLike ? 'pl-[104px]' : 'pl-[36px]';
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(
+      SIDEBAR_WIDTH_STORAGE_KEY,
+      String(sidebarWidth),
+    );
+  }, [sidebarWidth]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(
+      PLAYGROUND_WIDTH_STORAGE_KEY,
+      String(playgroundWidth),
+    );
+  }, [playgroundWidth]);
+
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
-  const openSettings = useCallback(() => setSettingsOpen(true), []);
   const openEnvModal = useCallback(() => {
     setSettingsOpen(false);
     setModelModalOpen(true);
@@ -101,18 +158,64 @@ export default function ShellLayout() {
     return () => document.removeEventListener('mousedown', handlePointerDown);
   }, [settingsOpen, closeSettings]);
 
-  return (
-    <div className="relative h-full w-full overflow-hidden bg-app-bg font-sans">
-      {!collapsed && (
-        <div className="absolute left-0 top-0 h-full w-[240px]">
-          <div className="absolute right-[12px] top-[18px]">
-            <SidebarToggleButton
-              collapsed={false}
-              onToggle={() => setCollapsed(true)}
-            />
-          </div>
+  const startResize = useCallback(
+    (kind: 'sidebar' | 'playground', event: React.MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
 
-          <div className="absolute left-[4px] top-[52px] w-[232px] overflow-hidden">
+      const startX = event.clientX;
+      const startWidth = kind === 'sidebar' ? sidebarWidth : playgroundWidth;
+      const min = kind === 'sidebar' ? SIDEBAR_MIN_WIDTH : PLAYGROUND_MIN_WIDTH;
+      const max = kind === 'sidebar' ? SIDEBAR_MAX_WIDTH : PLAYGROUND_MAX_WIDTH;
+
+      const handleMove = (e: MouseEvent) => {
+        const delta =
+          kind === 'sidebar' ? e.clientX - startX : startX - e.clientX;
+        const next = Math.min(max, Math.max(min, startWidth + delta));
+        if (kind === 'sidebar') {
+          setSidebarWidth(next);
+        } else {
+          setPlaygroundWidth(next);
+        }
+      };
+      const handleUp = () => {
+        document.removeEventListener('mousemove', handleMove);
+        document.removeEventListener('mouseup', handleUp);
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+      };
+
+      document.addEventListener('mousemove', handleMove);
+      document.addEventListener('mouseup', handleUp);
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'col-resize';
+    },
+    [sidebarWidth, playgroundWidth],
+  );
+
+  // Button is 24x24 wrapping a 16x14 icon. The design spec positions the icon
+  // at top:23 left:206 inside a 240px sidebar — translating back to the
+  // button's origin gives top:18 left:202 (which scales with sidebarWidth).
+  const toggleButtonTop = 18;
+  const toggleButtonLeft = collapsed
+    ? collapsedToggleButtonLeft
+    : sidebarWidth - 38;
+
+  const mainAreaStyle: CSSProperties = {
+    ...(collapsed ? {} : { left: sidebarWidth }),
+    ['--studio-playground-width' as string]: `${playgroundWidth}px`,
+  };
+
+  return (
+    <div className="relative h-full w-full overflow-hidden font-sans">
+      <div className="app-drag absolute left-0 right-0 top-0 z-10 h-[52px]" />
+
+      {!collapsed && (
+        <div
+          className="absolute left-0 top-0 h-full"
+          style={{ width: sidebarWidth }}
+        >
+          <div className="absolute left-[4px] right-[4px] top-[52px] overflow-hidden">
             <Sidebar
               activeView={activeView}
               onSelectDevice={() => setActiveView('device')}
@@ -121,13 +224,12 @@ export default function ShellLayout() {
           </div>
 
           <div
-            className="absolute bottom-[6px] left-[4px] w-[232px]"
+            className="absolute bottom-[6px] left-[4px] right-[4px]"
             ref={settingsAnchorRef}
           >
             {settingsOpen && (
-              <div className="absolute bottom-[46px] left-0 z-50">
+              <div className="absolute bottom-[78px] left-0 z-50">
                 <SettingsPanel
-                  onEnvConfigClick={openEnvModal}
                   onGithubClick={() =>
                     openExternalUrl(STUDIO_EXTERNAL_LINKS.github)
                   }
@@ -143,31 +245,48 @@ export default function ShellLayout() {
               settingsOpen={settingsOpen}
             />
           </div>
-        </div>
-      )}
 
-      {collapsed && (
-        <div
-          className={`absolute top-[18px] z-40 ${collapsedToggleOffsetClass}`}
-        >
-          <SidebarToggleButton collapsed onToggle={() => setCollapsed(false)} />
+          <div
+            aria-hidden
+            className="app-no-drag absolute right-0 top-0 z-30 h-full w-[4px] cursor-col-resize hover:bg-border-subtle"
+            onMouseDown={(event) => startResize('sidebar', event)}
+            style={{ touchAction: 'none' }}
+          />
         </div>
       )}
 
       <div
-        className={`absolute bottom-[4px] right-[4px] top-[4px] flex rounded-[12px] bg-surface ${
-          collapsed ? 'left-[4px]' : 'left-[240px]'
+        className={`absolute bottom-[4px] right-[4px] top-[4px] z-20 flex rounded-[12px] bg-surface ${
+          collapsed ? 'left-[4px]' : ''
         }`}
+        style={mainAreaStyle}
       >
         <MainContent
           activeView={activeView}
-          envConfigured={modelEnvConfigured}
           headerOffsetClass={collapsed ? collapsedHeaderOffsetClass : undefined}
-          onOpenModelConfig={openEnvModal}
-          onOpenSettings={openSettings}
           onSelectDeviceView={() => setActiveView('device')}
         />
-        <Playground />
+        {activeView !== 'overview' && (
+          <>
+            <div
+              aria-hidden
+              className="app-no-drag absolute top-0 z-30 h-full w-[4px] cursor-col-resize hover:bg-border-subtle"
+              onMouseDown={(event) => startResize('playground', event)}
+              style={{ right: playgroundWidth - 2, touchAction: 'none' }}
+            />
+            <Playground />
+          </>
+        )}
+      </div>
+
+      <div
+        className="app-no-drag absolute z-50"
+        style={{ top: toggleButtonTop, left: toggleButtonLeft }}
+      >
+        <SidebarToggleButton
+          collapsed={collapsed}
+          onToggle={() => setCollapsed((prev) => !prev)}
+        />
       </div>
 
       <ModelEnvConfigModal

@@ -1,15 +1,38 @@
-import { PlaygroundConversationPanel } from '@midscene/playground-app';
+import { Suspense, lazy, useMemo } from 'react';
+import { downloadStudioReport } from '../../playground/report-download';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
-import { PlaygroundShell, playgroundShellAssets } from '../PlaygroundShell';
+import { type ConnectionStatus, PlaygroundShell } from '../PlaygroundShell';
+import { StudioPlaygroundEmptyState } from './StudioPlaygroundEmptyState';
 
 declare const __APP_VERSION__: string;
 
+const LazyPlaygroundConversationPanel = lazy(
+  () => import('./LazyPlaygroundConversationPanel'),
+);
+
 export default function Playground() {
   const studioPlayground = useStudioPlayground();
-  const { promptInputIcons } = playgroundShellAssets;
+  const playgroundConfig = useMemo(
+    () => ({
+      emptyState: <StudioPlaygroundEmptyState />,
+      onDownloadReport: downloadStudioReport,
+    }),
+    [],
+  );
+
+  const connectionStatus: ConnectionStatus =
+    studioPlayground.phase === 'error'
+      ? 'failed'
+      : studioPlayground.phase === 'ready'
+        ? studioPlayground.controller.state.sessionSetupError
+          ? 'failed'
+          : studioPlayground.controller.state.sessionViewState.connected
+            ? 'connected'
+            : 'disconnected'
+        : 'disconnected';
 
   return (
-    <PlaygroundShell>
+    <PlaygroundShell connectionStatus={connectionStatus}>
       <div className="min-h-0 h-full flex-1 overflow-hidden">
         {studioPlayground.phase === 'booting' ? (
           <div className="flex h-full items-center justify-center px-6 text-center text-[14px] leading-[22px] text-text-tertiary">
@@ -31,30 +54,21 @@ export default function Playground() {
             </button>
           </div>
         ) : (
-          <PlaygroundConversationPanel
-            appVersion={__APP_VERSION__}
-            className="h-full"
-            controller={studioPlayground.controller}
-            playgroundConfig={{
-              promptInputChrome: {
-                variant: 'minimal',
-                placeholder: 'Type a message',
-                primaryActionLabel: 'Action',
-                icons: {
-                  action: promptInputIcons.action,
-                  actionChevron: promptInputIcons.actionChevron,
-                  settings: promptInputIcons.tool,
-                },
-              },
-              showClearButton: false,
-              showSystemMessageHeader: false,
-              enableScrollToBottom: false,
-              showEnvConfigReminder: false,
-              showVersionInfo: false,
-              collapsibleProgressGroup: true,
-            }}
-            title="Playground"
-          />
+          <Suspense
+            fallback={
+              <div className="flex h-full items-center justify-center px-6 text-center text-[14px] leading-[22px] text-text-tertiary">
+                Loading Playground…
+              </div>
+            }
+          >
+            <LazyPlaygroundConversationPanel
+              appVersion={__APP_VERSION__}
+              className="h-full"
+              controller={studioPlayground.controller}
+              playgroundConfig={playgroundConfig}
+              title="Playground"
+            />
+          </Suspense>
         )}
       </div>
     </PlaygroundShell>

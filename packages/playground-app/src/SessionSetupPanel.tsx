@@ -17,11 +17,14 @@ function getPlatformSelectorFieldKey(
   return setup?.platformSelector?.fieldKey;
 }
 
-function getPlatformSelectorOptions(
+export function getPlatformSelectorOptions(
   field: PlaygroundSessionField,
   setup: PlaygroundSessionSetup | null,
 ): PlaygroundSessionField['options'] {
-  if (!setup?.platformRegistry?.length) {
+  if (
+    getPlatformSelectorFieldKey(setup) !== field.key ||
+    !setup?.platformRegistry?.length
+  ) {
     return field.options;
   }
 
@@ -170,6 +173,15 @@ export function SessionSetupPanel({
             showIcon
             message="Failed to load setup"
             description={sessionSetupError}
+            className="session-setup-alert"
+          />
+        ) : null}
+        {sessionSetup?.notice ? (
+          <Alert
+            type={sessionSetup.notice.type}
+            showIcon
+            message={sessionSetup.notice.message}
+            description={sessionSetup.notice.description}
             className="session-setup-alert"
           />
         ) : null}

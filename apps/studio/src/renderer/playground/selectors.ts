@@ -4,11 +4,13 @@ import type {
 } from '@midscene/playground';
 import type {
   DiscoveredDevice,
+  PlatformDiscoveryError,
   StudioSessionValue,
 } from '@shared/electron-contract';
 import { STUDIO_PLATFORM_IDS } from '@shared/electron-contract';
 import type {
   DiscoveredDevicesByPlatform,
+  DiscoveryErrorsByPlatform,
   StudioAndroidDeviceItem,
   StudioSidebarDeviceBuckets,
   StudioSidebarPlatformKey,
@@ -45,7 +47,12 @@ function buildHostPortId(host: string, port: number): string {
   return `${host}:${port}`;
 }
 
-function normalizeSidebarPlatformKey(
+/**
+ * Map any incoming platform string (runtime metadata, form values, desktop
+ * OS aliases like `macos`) to the canonical `StudioPlatformId`. Exported so
+ * other studio renderer modules don't need to keep their own alias tables.
+ */
+export function normalizeStudioPlatformId(
   value: unknown,
 ): StudioSidebarPlatformKey | undefined {
   if (!isString(value)) {
@@ -64,8 +71,6 @@ function normalizeSidebarPlatformKey(
     case 'linux':
       return 'computer';
     case 'harmony':
-    case 'harmonyos':
-    case 'harmony-os':
       return 'harmony';
     case 'web':
     case 'browser':
@@ -206,7 +211,7 @@ export function resolveSelectedAndroidDeviceId(
 export function resolveSelectedDeviceId(
   formValues: Record<string, unknown>,
 ): string | undefined {
-  const selectedPlatform = normalizeSidebarPlatformKey(formValues.platformId);
+  const selectedPlatform = normalizeStudioPlatformId(formValues.platformId);
 
   if (selectedPlatform === 'ios') {
     const host = isString(formValues['ios.host'])
@@ -267,6 +272,43 @@ function prefixSessionValues(
   );
 }
 
+function resolveSelectedSessionValues(
+  platform: StudioSidebarPlatformKey,
+  formValues: Record<string, unknown>,
+): Record<string, StudioSessionValue> | undefined {
+  switch (platform) {
+    case 'android':
+      return isString(formValues['android.deviceId'])
+        ? { deviceId: formValues['android.deviceId'] }
+        : isString(formValues.deviceId)
+          ? { deviceId: formValues.deviceId }
+          : undefined;
+    case 'computer':
+      return isString(formValues['computer.displayId'])
+        ? { displayId: formValues['computer.displayId'] }
+        : isString(formValues.displayId)
+          ? { displayId: formValues.displayId }
+          : undefined;
+    case 'harmony':
+      return isString(formValues['harmony.deviceId'])
+        ? { deviceId: formValues['harmony.deviceId'] }
+        : isString(formValues.deviceId)
+          ? { deviceId: formValues.deviceId }
+          : undefined;
+    case 'ios': {
+      const host = isString(formValues['ios.host'])
+        ? formValues['ios.host']
+        : isString(formValues.host)
+          ? formValues.host
+          : undefined;
+      const port = normalizePort(formValues['ios.port'] ?? formValues.port);
+      return host && port !== undefined ? { host, port } : undefined;
+    }
+    default:
+      return undefined;
+  }
+}
+
 export function buildDeviceSelectionFormValues(
   platform: StudioSidebarPlatformKey,
   device: Pick<StudioAndroidDeviceItem, 'id' | 'sessionValues'>,
@@ -289,6 +331,87 @@ export function buildDeviceSelectionFormValues(
     platformId: platform,
     [`${platform}.deviceId`]: device.id,
   };
+}
+
+function buildDeviceDeselectionFormValues(
+  platform: StudioSidebarPlatformKey,
+): Record<string, StudioSessionValue | null> {
+  switch (platform) {
+    case 'android':
+      return {
+        platformId: platform,
+        deviceId: null,
+        'android.deviceId': null,
+      };
+    case 'computer':
+      return {
+        platformId: platform,
+        displayId: null,
+        'computer.displayId': null,
+      };
+    case 'harmony':
+      return {
+        platformId: platform,
+        deviceId: null,
+        'harmony.deviceId': null,
+      };
+    default:
+      return {
+        platformId: platform,
+      };
+  }
+}
+
+function shouldClearMissingDiscoveredDevice(
+  platform: StudioSidebarPlatformKey,
+): boolean {
+  return (
+    platform === 'android' || platform === 'harmony' || platform === 'computer'
+  );
+}
+
+export function resolveDiscoveredDeviceSelectionFormValues({
+  formValues,
+  discoveredDevices,
+}: {
+  formValues: Record<string, unknown>;
+  discoveredDevices: DiscoveredDevicesByPlatform | undefined;
+}): Record<string, StudioSessionValue | null | undefined> | null {
+  if (!discoveredDevices) {
+    return null;
+  }
+
+  const selectedPlatform =
+    normalizeStudioPlatformId(formValues.platformId) || 'android';
+  if (!selectedPlatform || selectedPlatform === 'web') {
+    return null;
+  }
+
+  const discoveredBucket = discoveredDevices[selectedPlatform] || [];
+  const selectedDeviceId = resolveSelectedDeviceId(formValues);
+  if (
+    selectedDeviceId &&
+    discoveredBucket.some((device) => device.id === selectedDeviceId)
+  ) {
+    return null;
+  }
+
+  const firstDiscoveredDevice = discoveredBucket[0];
+  if (firstDiscoveredDevice) {
+    return buildDeviceSelectionFormValues(
+      selectedPlatform,
+      firstDiscoveredDevice,
+    );
+  }
+
+  if (
+    selectedDeviceId &&
+    shouldClearMissingDiscoveredDevice(selectedPlatform)
+  ) {
+    return buildDeviceDeselectionFormValues(selectedPlatform);
+  }
+
+  return null;
 }
 
 export function buildAndroidDeviceItems({
@@ -317,6 +440,20 @@ export function buildAndroidDeviceItems({
     ];
   }
 
+  if (targets.length === 0 && selectedDeviceId) {
+    return [
+      {
+        id: selectedDeviceId,
+        label: selectedDeviceId,
+        selected: true,
+        status: 'idle',
+        sessionValues: {
+          deviceId: selectedDeviceId,
+        },
+      },
+    ];
+  }
+
   return targets.map((target) => ({
     id: target.id,
     label: target.label,
@@ -341,14 +478,16 @@ export function buildStudioSidebarDeviceBuckets({
   targets: PlaygroundSessionTarget[];
 }): StudioSidebarDeviceBuckets {
   const deviceBuckets = createEmptySidebarDeviceBuckets();
-  const runtimePlatformKey = normalizeSidebarPlatformKey(
+  const runtimePlatformKey = normalizeStudioPlatformId(
     runtimeInfo?.platformId ?? runtimeInfo?.interface?.type,
   );
 
   if (
     runtimePlatformKey === 'android' ||
     (runtimePlatformKey === undefined &&
-      (targets.length > 0 || resolveConnectedAndroidDeviceId(runtimeInfo)))
+      (targets.length > 0 ||
+        resolveConnectedAndroidDeviceId(runtimeInfo) ||
+        normalizeStudioPlatformId(formValues.platformId) === 'android'))
   ) {
     deviceBuckets.android = buildAndroidDeviceItems({
       formValues,
@@ -367,6 +506,27 @@ export function buildStudioSidebarDeviceBuckets({
     if (connectedItem) {
       deviceBuckets[runtimePlatformKey] = [connectedItem];
     }
+  }
+
+  const selectedPlatformKey = normalizeStudioPlatformId(formValues.platformId);
+  const selectedDeviceId = resolveSelectedDeviceId(formValues);
+  if (
+    selectedPlatformKey &&
+    selectedDeviceId &&
+    deviceBuckets[selectedPlatformKey].length === 0
+  ) {
+    deviceBuckets[selectedPlatformKey] = [
+      {
+        id: selectedDeviceId,
+        label: selectedDeviceId,
+        selected: true,
+        status: 'idle',
+        sessionValues: resolveSelectedSessionValues(
+          selectedPlatformKey,
+          formValues,
+        ),
+      },
+    ];
   }
 
   return deviceBuckets;
@@ -401,6 +561,20 @@ export function bucketDiscoveredDevices(
     }
   }
   return buckets;
+}
+
+/**
+ * Index discovery errors by platform id so renderers can look up an
+ * error for the platform section they are about to render.
+ */
+export function bucketDiscoveryErrors(
+  errors: PlatformDiscoveryError[],
+): DiscoveryErrorsByPlatform {
+  const indexed: DiscoveryErrorsByPlatform = {};
+  for (const error of errors) {
+    indexed[error.platformId] = error;
+  }
+  return indexed;
 }
 
 /**
