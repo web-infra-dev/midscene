@@ -1,5 +1,4 @@
 import type {
-  DeviceInputPrimitives,
   InputPrimitives,
   KeyboardInputPrimitives,
   PointerInputPrimitives,
@@ -66,43 +65,34 @@ function ensureCapability<T>(
   return fn as NonNullable<T>;
 }
 
-function getPointerInput(
-  input: InputPrimitives | DeviceInputPrimitives,
-): PointerInputPrimitives {
-  const flat = input as DeviceInputPrimitives;
-  return (
-    input.pointer ?? {
-      tap: flat.tap?.bind(input),
-      doubleClick: flat.doubleClick?.bind(input),
-      longPress: flat.longPress?.bind(input),
-      dragAndDrop: flat.dragAndDrop?.bind(input),
-    }
-  );
+function getPointerInput(input: InputPrimitives): PointerInputPrimitives {
+  if (!input.pointer) {
+    throw new PointerInputError(
+      'Pointer input is not supported on this device',
+      404,
+    );
+  }
+  return input.pointer;
 }
 
-function getKeyboardInput(
-  input: InputPrimitives | DeviceInputPrimitives,
-): KeyboardInputPrimitives {
-  const flat = input as DeviceInputPrimitives;
-  return (
-    input.keyboard ?? {
-      keyboardPress: flat.keyboardPress?.bind(input),
-      typeText: flat.typeText?.bind(input),
-      clearInput: flat.clearInput?.bind(input),
-    }
-  );
+function getKeyboardInput(input: InputPrimitives): KeyboardInputPrimitives {
+  if (!input.keyboard) {
+    throw new PointerInputError(
+      'Keyboard input is not supported on this device',
+      404,
+    );
+  }
+  return input.keyboard;
 }
 
-function getTouchInput(
-  input: InputPrimitives | DeviceInputPrimitives,
-): TouchInputPrimitives {
-  const flat = input as DeviceInputPrimitives;
-  return (
-    input.touch ?? {
-      swipe: flat.swipe?.bind(input),
-      pinch: flat.pinch?.bind(input),
-    }
-  );
+function getTouchInput(input: InputPrimitives): TouchInputPrimitives {
+  if (!input.touch) {
+    throw new PointerInputError(
+      'Touch input is not supported on this device',
+      404,
+    );
+  }
+  return input.touch;
 }
 
 /**
@@ -113,7 +103,7 @@ function getTouchInput(
  * not platform business logic.
  */
 export async function dispatchPointer(
-  input: InputPrimitives | DeviceInputPrimitives,
+  input: InputPrimitives,
   body: Record<string, unknown>,
   getScreenSize: () => Promise<{ width: number; height: number }>,
 ): Promise<void> {

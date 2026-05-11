@@ -1,4 +1,4 @@
-import type { DeviceInputPrimitives } from '@midscene/core/device';
+import type { InputPrimitives } from '@midscene/core/device';
 import { describe, expect, test, vi } from 'vitest';
 import { PlaygroundServer } from '../../src/server';
 
@@ -31,35 +31,26 @@ function getRouteHandler(
 }
 
 function makeInputPrimitiveStub(
-  overrides: Partial<DeviceInputPrimitives> = {},
-): DeviceInputPrimitives {
-  const primitives = {
-    tap: vi.fn(async () => {}),
-    doubleClick: vi.fn(async () => {}),
-    longPress: vi.fn(async () => {}),
-    swipe: vi.fn(async () => {}),
-    dragAndDrop: vi.fn(async () => {}),
-    keyboardPress: vi.fn(async () => {}),
-    typeText: vi.fn(async () => {}),
-    clearInput: vi.fn(async () => {}),
+  overrides: Partial<InputPrimitives> = {},
+): InputPrimitives {
+  return {
+    pointer: {
+      tap: vi.fn(async () => {}),
+      doubleClick: vi.fn(async () => {}),
+      longPress: vi.fn(async () => {}),
+      dragAndDrop: vi.fn(async () => {}),
+    },
+    keyboard: {
+      keyboardPress: vi.fn(async () => {}),
+      typeText: vi.fn(async () => {}),
+      clearInput: vi.fn(async () => {}),
+    },
+    touch: {
+      swipe: vi.fn(async () => {}),
+      pinch: vi.fn(async () => {}),
+    },
     ...overrides,
-  } as DeviceInputPrimitives;
-  primitives.pointer = {
-    tap: primitives.tap,
-    doubleClick: primitives.doubleClick,
-    longPress: primitives.longPress,
-    dragAndDrop: primitives.dragAndDrop,
   };
-  primitives.keyboard = {
-    keyboardPress: primitives.keyboardPress,
-    typeText: primitives.typeText,
-    clearInput: primitives.clearInput,
-  };
-  primitives.touch = {
-    swipe: primitives.swipe,
-    pinch: primitives.pinch,
-  };
-  return primitives;
 }
 
 describe('PlaygroundServer manual interaction APIs', () => {
@@ -91,7 +82,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.body).toEqual({});
-    expect(inputPrimitives.tap).toHaveBeenCalledWith(
+    expect(inputPrimitives.pointer?.tap).toHaveBeenCalledWith(
       { x: 10, y: 20 },
       { duration: undefined },
     );
@@ -127,7 +118,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     );
 
     expect(response.statusCode).toBe(200);
-    expect(inputPrimitives.swipe).toHaveBeenCalledWith(
+    expect(inputPrimitives.touch?.swipe).toHaveBeenCalledWith(
       { x: 10, y: 20 },
       { x: 110, y: 220 },
       { duration: 500, repeat: 2 },
@@ -153,7 +144,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect((response.body as { error: string }).error).toBe(
       'x must be a number',
     );
-    expect(inputPrimitives.tap).not.toHaveBeenCalled();
+    expect(inputPrimitives.pointer?.tap).not.toHaveBeenCalled();
   });
 
   test('POST /interact invokes the selected action with manual params', async () => {
@@ -238,7 +229,11 @@ describe('PlaygroundServer manual interaction APIs', () => {
   });
 
   test('POST /interact returns 404 when the requested primitive is not implemented', async () => {
-    const inputPrimitives = makeInputPrimitiveStub({ pinch: undefined });
+    const inputPrimitives = makeInputPrimitiveStub({
+      touch: {
+        swipe: vi.fn(async () => {}),
+      },
+    });
     const server = new PlaygroundServer({
       interface: {
         interfaceType: 'harmony',

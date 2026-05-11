@@ -16,7 +16,7 @@ import {
   type AbstractInterface,
   type AndroidDeviceInputOpt,
   type AndroidDeviceOpt,
-  type DeviceInputPrimitives,
+  type MobileInputPrimitives,
   type PointerPoint,
   createMobileClearInputAction,
   createMobileCursorMoveAction,
@@ -111,56 +111,48 @@ export class AndroidDevice implements AbstractInterface {
   uri: string | undefined;
   options?: AndroidDeviceOpt;
 
-  readonly inputPrimitives: DeviceInputPrimitives = {
-    tap: (point) => this.tapPoint(point),
-    doubleClick: (point) => this.doubleTapPoint(point),
-    longPress: (point, opts) => this.longPressPoint(point, opts?.duration),
-    swipe: async (start, end, opts) => {
-      const duration = opts?.duration ?? 300;
-      const repeatCount = opts?.repeat ?? 1;
-      for (let i = 0; i < repeatCount; i++) {
-        await this.dragPoint(start, end, duration);
-      }
-    },
-    dragAndDrop: (from, to) => this.dragPoint(from, to),
-    keyboardPress: (key) => this.pressKey(key),
-    typeText: (value, opts) => this.typeText(value, opts),
-    clearInput: (target) => this.clearInput(target as ElementInfo | undefined),
-    pinch: async (center, opts) => {
-      const { x: adjCenterX, y: adjCenterY } = await this.adjustCoordinates(
-        Math.round(center.x),
-        Math.round(center.y),
-      );
-      const ratio =
-        adjCenterX !== 0 && center.x !== 0 ? adjCenterX / center.x : 1;
-      const adjStartDist = Math.round(opts.startDistance * ratio);
-      const adjEndDist = Math.round(opts.endDistance * ratio);
-      await this.ensureYadb();
-      const adb = await this.getAdb();
-      await adb.shell(
-        `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${opts.duration}`,
-      );
-    },
+  readonly inputPrimitives: MobileInputPrimitives = {
     pointer: {
-      tap: (p, opts) => this.inputPrimitives.tap(p, opts),
-      doubleClick: (p) => this.inputPrimitives.doubleClick(p),
-      longPress: (p, opts) => this.inputPrimitives.longPress(p, opts),
-      dragAndDrop: (from, to) => this.inputPrimitives.dragAndDrop(from, to),
+      tap: (point) => this.tapPoint(point),
+      doubleClick: (point) => this.doubleTapPoint(point),
+      longPress: (point, opts) => this.longPressPoint(point, opts?.duration),
+      dragAndDrop: (from, to) => this.dragPoint(from, to),
     },
     keyboard: {
-      keyboardPress: (keyName) => this.inputPrimitives.keyboardPress(keyName),
-      typeText: (value, opts) => this.inputPrimitives.typeText(value, opts),
-      clearInput: (target) => this.inputPrimitives.clearInput(target),
+      keyboardPress: (keyName) => this.pressKey(keyName),
+      typeText: (value, opts) => this.typeText(value, opts),
+      clearInput: (target) =>
+        this.clearInput(target as ElementInfo | undefined),
       cursorMove: async (direction, times = 1) => {
         const arrowKey = direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
         for (let i = 0; i < times; i++) {
-          await this.inputPrimitives.keyboardPress(arrowKey);
+          await this.pressKey(arrowKey);
         }
       },
     },
     touch: {
-      swipe: (start, end, opts) => this.inputPrimitives.swipe(start, end, opts),
-      pinch: (center, opts) => this.inputPrimitives.pinch!(center, opts),
+      swipe: async (start, end, opts) => {
+        const duration = opts?.duration ?? 300;
+        const repeatCount = opts?.repeat ?? 1;
+        for (let i = 0; i < repeatCount; i++) {
+          await this.dragPoint(start, end, duration);
+        }
+      },
+      pinch: async (center, opts) => {
+        const { x: adjCenterX, y: adjCenterY } = await this.adjustCoordinates(
+          Math.round(center.x),
+          Math.round(center.y),
+        );
+        const ratio =
+          adjCenterX !== 0 && center.x !== 0 ? adjCenterX / center.x : 1;
+        const adjStartDist = Math.round(opts.startDistance * ratio);
+        const adjEndDist = Math.round(opts.endDistance * ratio);
+        await this.ensureYadb();
+        const adb = await this.getAdb();
+        await adb.shell(
+          `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${opts.duration}`,
+        );
+      },
     },
   };
 

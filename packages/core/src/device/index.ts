@@ -84,7 +84,7 @@ export interface InputPrimitives {
   scroll?: ScrollInputPrimitives;
 }
 
-export interface DeviceInputPrimitives extends InputPrimitives {
+export interface MobileInputPrimitives extends InputPrimitives {
   pointer: PointerInputPrimitives & {
     doubleClick(p: PointerPoint): Promise<void>;
     longPress(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
@@ -92,30 +92,6 @@ export interface DeviceInputPrimitives extends InputPrimitives {
   };
   keyboard: KeyboardInputPrimitives;
   touch: TouchInputPrimitives;
-  tap(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
-  doubleClick(p: PointerPoint): Promise<void>;
-  longPress(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
-  swipe(
-    start: PointerPoint,
-    end: PointerPoint,
-    opts?: { duration?: number; repeat?: number },
-  ): Promise<void>;
-  dragAndDrop(from: PointerPoint, to: PointerPoint): Promise<void>;
-  keyboardPress(keyName: string): Promise<void>;
-  typeText(
-    value: string,
-    opts?: {
-      autoDismissKeyboard?: boolean;
-      target?: unknown;
-      replace?: boolean;
-      focusOnly?: boolean;
-    },
-  ): Promise<void>;
-  clearInput(target?: unknown): Promise<void>;
-  pinch?(
-    center: PointerPoint,
-    opts: { startDistance: number; endDistance: number; duration: number },
-  ): Promise<void>;
 }
 
 export abstract class AbstractInterface {
@@ -783,7 +759,7 @@ export function normalizePinchParam(
 }
 
 export interface MobileInputActionContext {
-  input: DeviceInputPrimitives;
+  input: MobileInputPrimitives;
   size(): Promise<Size>;
   sleep?(timeMs: number): Promise<void>;
   getDefaultAutoDismissKeyboard?(): boolean | undefined;

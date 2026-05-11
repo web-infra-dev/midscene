@@ -10,8 +10,8 @@ import {
 } from '@midscene/core';
 import {
   type AbstractInterface,
-  type DeviceInputPrimitives,
   type HarmonyDeviceOpt,
+  type MobileInputPrimitives,
   type PointerPoint,
   createMobileClearInputAction,
   createMobileCursorMoveAction,
@@ -95,55 +95,48 @@ export class HarmonyDevice implements AbstractInterface {
   uri: string | undefined;
   options?: HarmonyDeviceOpt;
 
-  readonly inputPrimitives: DeviceInputPrimitives = {
-    tap: (point) => this.tapPoint(point),
-    doubleClick: (point) => this.doubleTapPoint(point),
-    longPress: (point) => this.longPressPoint(point),
-    swipe: async (start, end, opts) => {
-      const duration = opts?.duration;
-      const repeatCount = opts?.repeat ?? 1;
-      const hdc = await this.getHdc();
-      for (let i = 0; i < repeatCount; i++) {
-        await hdc.swipe(
-          start.x,
-          start.y,
-          end.x,
-          end.y,
-          duration ? Math.round(duration) : undefined,
-        );
-      }
-    },
-    dragAndDrop: async (from, to) => {
-      const hdc = await this.getHdc();
-      await hdc.drag(from.x, from.y, to.x, to.y);
-    },
-    keyboardPress: (key) => this.pressKey(key),
-    typeText: (value, opts) =>
-      this.typeText(
-        value,
-        opts?.target as LocateResultElement | undefined,
-        opts?.replace ?? true,
-      ),
-    clearInput: (target) => this.clearInput(target as ElementInfo | undefined),
+  readonly inputPrimitives: MobileInputPrimitives = {
     pointer: {
-      tap: (p, opts) => this.inputPrimitives.tap(p, opts),
-      doubleClick: (p) => this.inputPrimitives.doubleClick(p),
-      longPress: (p, opts) => this.inputPrimitives.longPress(p, opts),
-      dragAndDrop: (from, to) => this.inputPrimitives.dragAndDrop(from, to),
+      tap: (point) => this.tapPoint(point),
+      doubleClick: (point) => this.doubleTapPoint(point),
+      longPress: (point) => this.longPressPoint(point),
+      dragAndDrop: async (from, to) => {
+        const hdc = await this.getHdc();
+        await hdc.drag(from.x, from.y, to.x, to.y);
+      },
     },
     keyboard: {
-      keyboardPress: (keyName) => this.inputPrimitives.keyboardPress(keyName),
-      typeText: (value, opts) => this.inputPrimitives.typeText(value, opts),
-      clearInput: (target) => this.inputPrimitives.clearInput(target),
+      keyboardPress: (keyName) => this.pressKey(keyName),
+      typeText: (value, opts) =>
+        this.typeText(
+          value,
+          opts?.target as LocateResultElement | undefined,
+          opts?.replace ?? true,
+        ),
+      clearInput: (target) =>
+        this.clearInput(target as ElementInfo | undefined),
       cursorMove: async (direction, times = 1) => {
         const arrowKey = direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
         for (let i = 0; i < times; i++) {
-          await this.inputPrimitives.keyboardPress(arrowKey);
+          await this.pressKey(arrowKey);
         }
       },
     },
     touch: {
-      swipe: (start, end, opts) => this.inputPrimitives.swipe(start, end, opts),
+      swipe: async (start, end, opts) => {
+        const duration = opts?.duration;
+        const repeatCount = opts?.repeat ?? 1;
+        const hdc = await this.getHdc();
+        for (let i = 0; i < repeatCount; i++) {
+          await hdc.swipe(
+            start.x,
+            start.y,
+            end.x,
+            end.y,
+            duration ? Math.round(duration) : undefined,
+          );
+        }
+      },
     },
   };
 

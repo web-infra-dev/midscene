@@ -8,9 +8,9 @@ import {
 } from '@midscene/core';
 import {
   type AbstractInterface,
-  type DeviceInputPrimitives,
   type IOSDeviceInputOpt,
   type IOSDeviceOpt,
+  type MobileInputPrimitives,
   type PointerPoint,
   createMobileClearInputAction,
   createMobileCursorMoveAction,
@@ -63,50 +63,42 @@ export class IOSDevice implements AbstractInterface {
   uri: string | undefined;
   options?: IOSDeviceOpt;
 
-  readonly inputPrimitives: DeviceInputPrimitives = {
-    tap: (point) => this.tapPoint(point),
-    doubleClick: (point) => this.doubleTapPoint(point),
-    longPress: (point, opts) => this.longPressPoint(point, opts?.duration),
-    swipe: async (start, end, opts) => {
-      const duration = opts?.duration ?? 300;
-      const repeat = opts?.repeat ?? 1;
-      for (let i = 0; i < repeat; i++) {
-        await this.swipePoint(start, end, duration);
-      }
-    },
-    dragAndDrop: (from, to) => this.swipePoint(from, to, 1000),
-    keyboardPress: (key) => this.pressKey(key),
-    typeText: (value, opts) => this.typeText(value, opts),
-    clearInput: (target) => this.clearInput(target as ElementInfo | undefined),
-    pinch: async (center, opts) => {
-      await this.wdaBackend.pinch(
-        Math.round(center.x),
-        Math.round(center.y),
-        opts.startDistance,
-        opts.endDistance,
-        opts.duration,
-      );
-    },
+  readonly inputPrimitives: MobileInputPrimitives = {
     pointer: {
-      tap: (p, opts) => this.inputPrimitives.tap(p, opts),
-      doubleClick: (p) => this.inputPrimitives.doubleClick(p),
-      longPress: (p, opts) => this.inputPrimitives.longPress(p, opts),
-      dragAndDrop: (from, to) => this.inputPrimitives.dragAndDrop(from, to),
+      tap: (point) => this.tapPoint(point),
+      doubleClick: (point) => this.doubleTapPoint(point),
+      longPress: (point, opts) => this.longPressPoint(point, opts?.duration),
+      dragAndDrop: (from, to) => this.swipePoint(from, to, 1000),
     },
     keyboard: {
-      keyboardPress: (keyName) => this.inputPrimitives.keyboardPress(keyName),
-      typeText: (value, opts) => this.inputPrimitives.typeText(value, opts),
-      clearInput: (target) => this.inputPrimitives.clearInput(target),
+      keyboardPress: (keyName) => this.pressKey(keyName),
+      typeText: (value, opts) => this.typeText(value, opts),
+      clearInput: (target) =>
+        this.clearInput(target as ElementInfo | undefined),
       cursorMove: async (direction, times = 1) => {
         const arrowKey = direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
         for (let i = 0; i < times; i++) {
-          await this.inputPrimitives.keyboardPress(arrowKey);
+          await this.pressKey(arrowKey);
         }
       },
     },
     touch: {
-      swipe: (start, end, opts) => this.inputPrimitives.swipe(start, end, opts),
-      pinch: (center, opts) => this.inputPrimitives.pinch!(center, opts),
+      swipe: async (start, end, opts) => {
+        const duration = opts?.duration ?? 300;
+        const repeat = opts?.repeat ?? 1;
+        for (let i = 0; i < repeat; i++) {
+          await this.swipePoint(start, end, duration);
+        }
+      },
+      pinch: async (center, opts) => {
+        await this.wdaBackend.pinch(
+          Math.round(center.x),
+          Math.round(center.y),
+          opts.startDistance,
+          opts.endDistance,
+          opts.duration,
+        );
+      },
     },
   };
 
