@@ -29,6 +29,7 @@ import { assert, ifInBrowser } from '@midscene/shared/utils';
 import { jsonrepair } from 'jsonrepair';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
+
 import type { Stream } from 'openai/streaming';
 import type { AIArgs } from '../../common';
 import { isAutoGLM, isUITars } from '../auto-glm/util';
@@ -42,6 +43,13 @@ import {
   isHardTimeoutError,
   resolveEffectiveTimeoutMs,
 } from './request-timeout';
+
+export interface CallAIOptions {
+  stream?: boolean;
+  onChunk?: StreamingCallback;
+  deepThink?: DeepThinkOption;
+  abortSignal?: AbortSignal;
+}
 
 async function createChatClient({
   modelConfig,
@@ -231,12 +239,7 @@ async function createChatClient({
 export async function callAI(
   messages: ChatCompletionMessageParam[],
   modelConfig: IModelConfig,
-  options?: {
-    stream?: boolean;
-    onChunk?: StreamingCallback;
-    deepThink?: DeepThinkOption;
-    abortSignal?: AbortSignal;
-  },
+  options?: CallAIOptions,
 ): Promise<{
   content: string;
   reasoning_content?: string;
@@ -607,20 +610,14 @@ export async function callAI(
 export async function callAIWithObjectResponse<T>(
   messages: ChatCompletionMessageParam[],
   modelConfig: IModelConfig,
-  options?: {
-    deepThink?: DeepThinkOption;
-    abortSignal?: AbortSignal;
-  },
+  options?: CallAIOptions,
 ): Promise<{
   content: T;
   contentString: string;
   usage?: AIUsageInfo;
   reasoning_content?: string;
 }> {
-  const response = await callAI(messages, modelConfig, {
-    deepThink: options?.deepThink,
-    abortSignal: options?.abortSignal,
-  });
+  const response = await callAI(messages, modelConfig, options);
   assert(response, 'empty response');
   const modelFamily = modelConfig.modelFamily;
   const jsonContent = safeParseJson(response.content, modelFamily);
@@ -642,15 +639,9 @@ export async function callAIWithObjectResponse<T>(
 export async function callAIWithStringResponse(
   msgs: AIArgs,
   modelConfig: IModelConfig,
-  options?: {
-    deepThink?: DeepThinkOption;
-    abortSignal?: AbortSignal;
-  },
+  options?: CallAIOptions,
 ): Promise<{ content: string; usage?: AIUsageInfo }> {
-  const { content, usage } = await callAI(msgs, modelConfig, {
-    deepThink: options?.deepThink,
-    abortSignal: options?.abortSignal,
-  });
+  const { content, usage } = await callAI(msgs, modelConfig, options);
   return { content, usage };
 }
 
