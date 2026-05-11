@@ -13,14 +13,21 @@ interface SuiteContext {
   filepath: string;
 }
 
-export interface AgentBundle<TAgent extends AgentLike> {
+export interface ReportMeta {
+  groupName: string;
+  reportFileName: string;
+}
+
+interface TestFixture<TAgent extends AgentLike, TPage> {
   agent: TAgent;
+  page: TPage;
   /** Runs before `agent.destroy()` — use for tasks that need the page alive (e.g. stop trace). */
   teardown?: (testCtx: RstestTestContext) => Promise<void>;
 }
 
 export interface LifecycleProvider<
   TAgent extends AgentLike,
+  TPage,
   TBrowser,
   TOptions,
 > {
@@ -30,20 +37,44 @@ export interface LifecycleProvider<
     browser: TBrowser,
     url: string,
     options: TOptions,
-    meta: { groupName: string; reportFileName: string },
-  ): Promise<AgentBundle<TAgent>>;
+    meta: ReportMeta,
+  ): Promise<TestFixture<TAgent, TPage>>;
 }
 
-/** Returned `.agent` is only valid inside `it(...)` — it's created in `beforeEach`. */
-export function registerLifecycle<TAgent extends AgentLike, TBrowser, TOptions>(
+export interface LifecycleContext<TAgent extends AgentLike, TPage, TBrowser> {
+  readonly agent: TAgent;
+  readonly page: TPage;
+  readonly browser: TBrowser;
+  /**
+   * Build and track a secondary agent for the current test (e.g. for a popup
+   * or a second tab). The factory receives a unique `ReportMeta` so the
+   * secondary's report is merged alongside the primary's. Destroy + report
+   * collection happen automatically in `afterEach`.
+   */
+  spawnSecondaryAgent<T extends AgentLike>(build: (meta: ReportMeta) => T): T;
+}
+
+/**
+ * Registers the per-suite lifecycle. `.agent` / `.page` are only valid inside
+ * `it(...)`; `.browser` is valid between `beforeAll` and `afterAll`.
+ */
+export function registerLifecycle<
+  TAgent extends AgentLike,
+  TPage,
+  TBrowser,
+  TOptions,
+>(
   url: string,
   options: TOptions,
-  provider: LifecycleProvider<TAgent, TBrowser, TOptions>,
-): { readonly agent: TAgent } {
+  provider: LifecycleProvider<TAgent, TPage, TBrowser, TOptions>,
+): LifecycleContext<TAgent, TPage, TBrowser> {
   const reportHelper = new ReportHelper();
   let browser: TBrowser | null = null;
   let filepath = '';
-  let currentBundle: AgentBundle<TAgent> | null = null;
+  let currentFixture: TestFixture<TAgent, TPage> | null = null;
+  let currentMeta: ReportMeta | null = null;
+  const secondaryAgents: AgentLike[] = [];
+  let secondaryCounter = 0;
   let startTime = 0;
 
   beforeAll(async (suite: SuiteContext) => {
@@ -54,26 +85,50 @@ export function registerLifecycle<TAgent extends AgentLike, TBrowser, TOptions>(
 
   beforeEach(async (testCtx) => {
     if (!browser) throw new Error('[@midscene/rstest] browser not initialized');
-    const meta = buildReportMeta(testCtx as RstestTestContext, filepath);
-    currentBundle = await provider.createAgent(browser, url, options, meta);
+    currentMeta = buildReportMeta(testCtx as RstestTestContext, filepath);
+    secondaryCounter = 0;
+    currentFixture = await provider.createAgent(
+      browser,
+      url,
+      options,
+      currentMeta,
+    );
     startTime = performance.now();
   });
 
   afterEach(async (testCtx) => {
-    const bundle = currentBundle;
-    currentBundle = null;
+    const fixture = currentFixture;
+    const secondaries = secondaryAgents.slice();
+    currentFixture = null;
+    currentMeta = null;
+    secondaryAgents.length = 0;
+    secondaryCounter = 0;
 
-    if (bundle?.teardown) {
+    // Collect secondaries first so their pages are still alive when destroy()
+    // writes their report file.
+    for (const secondary of secondaries) {
       try {
-        await bundle.teardown(testCtx as RstestTestContext);
+        await reportHelper.collectReport(
+          secondary,
+          startTime,
+          testCtx as RstestTestContext,
+        );
+      } catch (err) {
+        debug('secondary agent report failed:', err);
+      }
+    }
+
+    if (fixture?.teardown) {
+      try {
+        await fixture.teardown(testCtx as RstestTestContext);
       } catch (err) {
         debug('provider teardown failed:', err);
       }
     }
 
     await reportHelper.collectReport(
-      bundle?.agent,
-      bundle ? startTime : undefined,
+      fixture?.agent,
+      fixture ? startTime : undefined,
       testCtx as RstestTestContext,
     );
   });
@@ -86,14 +141,47 @@ export function registerLifecycle<TAgent extends AgentLike, TBrowser, TOptions>(
     }
   });
 
+  function requireFixture<K extends 'agent' | 'page'>(
+    field: K,
+  ): TestFixture<TAgent, TPage>[K] {
+    if (!currentFixture) {
+      throw new Error(
+        `[@midscene/rstest] ${field} is only available inside \`it(...)\` blocks`,
+      );
+    }
+    return currentFixture[field];
+  }
+
   return {
-    get agent(): TAgent {
-      if (!currentBundle) {
+    get agent() {
+      return requireFixture('agent');
+    },
+    get page() {
+      return requireFixture('page');
+    },
+    get browser(): TBrowser {
+      if (!browser) {
         throw new Error(
-          '[@midscene/rstest] agent is only available inside `it(...)` blocks',
+          '[@midscene/rstest] browser is only available between `beforeAll` and `afterAll`',
         );
       }
-      return currentBundle.agent;
+      return browser;
+    },
+    spawnSecondaryAgent<T extends AgentLike>(
+      build: (meta: ReportMeta) => T,
+    ): T {
+      if (!currentMeta) {
+        throw new Error(
+          '[@midscene/rstest] secondary agents can only be spawned inside `it(...)` blocks',
+        );
+      }
+      const idx = ++secondaryCounter;
+      const agent = build({
+        groupName: currentMeta.groupName,
+        reportFileName: `${currentMeta.reportFileName}-page${idx}`,
+      });
+      secondaryAgents.push(agent);
+      return agent;
     },
   };
 }

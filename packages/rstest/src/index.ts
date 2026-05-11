@@ -1,6 +1,7 @@
 export {
   registerLifecycle,
-  type AgentBundle,
+  type LifecycleContext,
   type LifecycleProvider,
+  type ReportMeta,
 } from './lifecycle';
 export type { RstestTestContext } from './report-helper';
