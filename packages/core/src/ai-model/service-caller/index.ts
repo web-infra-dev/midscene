@@ -234,7 +234,7 @@ export async function callAI(
   options?: {
     stream?: boolean;
     onChunk?: StreamingCallback;
-    deepThink?: DeepThinkOption;
+    reasoningEnabled?: boolean;
     abortSignal?: AbortSignal;
   },
 ): Promise<{
@@ -328,22 +328,12 @@ export async function callAI(
     (commonConfig as unknown as Record<string, number>).frequency_penalty = 0.2;
   }
 
-  // Merge deepThink (per-request boolean) with reasoning config (model-level)
-  // deepThink takes priority as a per-request override for reasoningEnabled
-  const mergedEnableReasoning = (() => {
-    const normalizedDeepThink =
-      options?.deepThink === 'unset' ? undefined : options?.deepThink;
-    if (normalizedDeepThink === true) return true;
-    if (normalizedDeepThink === false) return false;
-    return modelConfig.reasoningEnabled;
-  })();
-
   const {
     config: reasoningEffortConfig,
     debugMessage: reasoningEffortDebugMessage,
     warningMessage,
   } = resolveReasoningConfig({
-    reasoningEnabled: mergedEnableReasoning,
+    reasoningEnabled: options?.reasoningEnabled,
     reasoningEffort: modelConfig.reasoningEffort,
     reasoningBudget: modelConfig.reasoningBudget,
     modelFamily,
@@ -608,7 +598,7 @@ export async function callAIWithObjectResponse<T>(
   messages: ChatCompletionMessageParam[],
   modelConfig: IModelConfig,
   options?: {
-    deepThink?: DeepThinkOption;
+    reasoningEnabled?: boolean;
     abortSignal?: AbortSignal;
   },
 ): Promise<{
@@ -618,7 +608,7 @@ export async function callAIWithObjectResponse<T>(
   reasoning_content?: string;
 }> {
   const response = await callAI(messages, modelConfig, {
-    deepThink: options?.deepThink,
+    reasoningEnabled: options?.reasoningEnabled,
     abortSignal: options?.abortSignal,
   });
   assert(response, 'empty response');
@@ -643,13 +633,26 @@ export async function callAIWithStringResponse(
   msgs: AIArgs,
   modelConfig: IModelConfig,
   options?: {
+    reasoningEnabled?: boolean;
     abortSignal?: AbortSignal;
   },
 ): Promise<{ content: string; usage?: AIUsageInfo }> {
   const { content, usage } = await callAI(msgs, modelConfig, {
+    reasoningEnabled: options?.reasoningEnabled,
     abortSignal: options?.abortSignal,
   });
   return { content, usage };
+}
+
+export function resolveReasoningEnabled({
+  deepThink,
+  modelConfig,
+}: {
+  deepThink?: DeepThinkOption;
+  modelConfig: IModelConfig;
+}): boolean | undefined {
+  const explicitDeepThink = deepThink === 'unset' ? undefined : deepThink;
+  return explicitDeepThink ?? modelConfig.reasoningEnabled;
 }
 
 export function extractJSONFromCodeBlock(response: string) {

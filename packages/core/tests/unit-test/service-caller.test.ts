@@ -1,5 +1,6 @@
 import {
   resolveReasoningConfig,
+  resolveReasoningEnabled,
   safeParseJson,
 } from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -493,6 +494,52 @@ describe('service-caller', () => {
         modelFamily: 'gemini' as any,
       });
       expect(result.config).toEqual({ reasoning_effort: 'high' });
+    });
+  });
+
+  describe('resolveReasoningEnabled', () => {
+    const modelConfig: IModelConfig = {
+      modelName: 'test-model',
+      modelDescription: 'test',
+      intent: 'planning',
+      reasoningEnabled: true,
+    };
+
+    it('lets explicit deepThink override model reasoning config', () => {
+      expect(
+        resolveReasoningEnabled({
+          deepThink: false,
+          modelConfig,
+        }),
+      ).toBe(false);
+
+      expect(
+        resolveReasoningEnabled({
+          deepThink: true,
+          modelConfig: {
+            ...modelConfig,
+            reasoningEnabled: false,
+          },
+        }),
+      ).toBe(true);
+    });
+
+    it('falls back to model reasoning config when deepThink is unset', () => {
+      expect(
+        resolveReasoningEnabled({
+          deepThink: 'unset',
+          modelConfig,
+        }),
+      ).toBe(true);
+
+      expect(
+        resolveReasoningEnabled({
+          modelConfig: {
+            ...modelConfig,
+            reasoningEnabled: undefined,
+          },
+        }),
+      ).toBeUndefined();
     });
   });
 });

@@ -60,7 +60,8 @@ describe('plan XML parse retry', () => {
       modelConfig,
       conversationHistory: new ConversationHistory(),
       includeBbox: false,
-      deepThink: false,
+      planningModeDeepThink: false,
+      modelReasoningEnabled: false,
     });
 
     expect(callAI).toHaveBeenCalledTimes(2);

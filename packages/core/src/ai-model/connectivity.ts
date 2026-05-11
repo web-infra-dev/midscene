@@ -119,6 +119,10 @@ export async function runConnectivityTest(
           },
         ],
         config.planningModelConfig,
+        {
+          // Model reasoning is unnecessary here.
+          reasoningEnabled: false,
+        },
       );
       const content = result.content.trim();
       const passed = content.includes(TEXT_EXPECTED_TOKEN);
@@ -163,6 +167,10 @@ export async function runConnectivityTest(
           },
         ],
         config.insightModelConfig,
+        {
+          // Model reasoning is unnecessary here.
+          reasoningEnabled: false,
+        },
       );
       const normalized = normalizeText(result.content);
       checks.push(

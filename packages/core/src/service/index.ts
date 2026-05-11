@@ -398,6 +398,10 @@ export default class Service {
     const res = await callAIWithObjectResponse<AIDescribeElementResponse>(
       msgs,
       modelConfig,
+      {
+        // Model reasoning is unnecessary here.
+        reasoningEnabled: false,
+      },
     );
 
     const { content } = res;

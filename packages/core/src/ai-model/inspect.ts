@@ -52,6 +52,7 @@ import {
   callAI,
   callAIWithObjectResponse,
   callAIWithStringResponse,
+  resolveReasoningEnabled,
 } from './service-caller/index';
 
 export type AIArgs = [
@@ -236,6 +237,8 @@ export async function AiLocateElement(options: {
   if (isAutoGLM(modelFamily)) {
     const { content: rawResponseContent, usage } =
       await callAIWithStringResponse(msgs, modelConfig, {
+        // Model reasoning is unnecessary here.
+        reasoningEnabled: false,
         abortSignal: options.abortSignal,
       });
 
@@ -307,7 +310,10 @@ export async function AiLocateElement(options: {
     res = await callAIWithObjectResponse<AIElementResponse | [number, number]>(
       msgs,
       modelConfig,
-      { abortSignal: options.abortSignal },
+      {
+        reasoningEnabled: resolveReasoningEnabled({ modelConfig }),
+        abortSignal: options.abortSignal,
+      },
     );
   } catch (callError) {
     // Return error with usage and rawResponse if available
@@ -447,7 +453,10 @@ export async function AiLocateSection(options: {
     result = await callAIWithObjectResponse<AISectionLocatorResponse>(
       msgs,
       modelConfig,
-      { abortSignal: options.abortSignal },
+      {
+        reasoningEnabled: resolveReasoningEnabled({ modelConfig }),
+        abortSignal: options.abortSignal,
+      },
     );
   } catch (callError) {
     // Return error with usage and rawResponse if available
@@ -594,7 +603,9 @@ export async function AiExtractElementInfo<T>(options: {
     content: rawResponse,
     usage,
     reasoning_content,
-  } = await callAI(msgs, modelConfig);
+  } = await callAI(msgs, modelConfig, {
+    reasoningEnabled: resolveReasoningEnabled({ modelConfig }),
+  });
 
   // Parse XML response to JSON object
   let parseResult: AIDataExtractionResponse<T>;
@@ -639,12 +650,13 @@ export async function AiJudgeOrderSensitive(
   ];
 
   debugInspect(
-    'AiJudgeOrderSensitive: deepThink=false, description=%s',
+    'AiJudgeOrderSensitive: reasoningEnabled=false, description=%s',
     description,
   );
 
   const result = await callAIFn(msgs, modelConfig, {
-    deepThink: false,
+    // Model reasoning is unnecessary here.
+    reasoningEnabled: false,
   });
 
   return {

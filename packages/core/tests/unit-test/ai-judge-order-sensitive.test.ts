@@ -3,7 +3,7 @@ import type { IModelConfig } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('AiJudgeOrderSensitive', () => {
-  it('forces deepThink to false when judging order sensitivity', async () => {
+  it('forces reasoning to false when judging order sensitivity', async () => {
     const callAIFn = vi.fn().mockResolvedValue({
       content: { isOrderSensitive: true },
       usage: { total_tokens: 12 },
@@ -31,7 +31,7 @@ describe('AiJudgeOrderSensitive', () => {
         }),
       ],
       modelConfig,
-      { deepThink: false },
+      { reasoningEnabled: false },
     );
 
     expect(result).toEqual({

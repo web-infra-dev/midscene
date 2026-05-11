@@ -1,5 +1,4 @@
 import type {
-  DeepThinkOption,
   DeviceAction,
   InterfaceType,
   PlanningAIResponse,
@@ -116,7 +115,10 @@ export async function plan(
     conversationHistory: ConversationHistory;
     includeBbox: boolean;
     imagesIncludeCount?: number;
-    deepThink?: DeepThinkOption;
+    // Controls aiAct planning prompt shape and state updates, such as sub-goals.
+    planningModeDeepThink?: boolean;
+    // Controls provider-specific model reasoning parameters for the LLM request.
+    modelReasoningEnabled?: boolean;
     abortSignal?: AbortSignal;
   },
 ): Promise<PlanningAIResponse> {
@@ -126,8 +128,8 @@ export async function plan(
 
   const { modelFamily } = modelConfig;
 
-  // Only enable sub-goals when deepThink is true
-  const includeSubGoals = opts.deepThink === true;
+  // Only enable sub-goals when aiAct is in deep-thinking planning mode.
+  const includeSubGoals = opts.planningModeDeepThink === true;
 
   const systemPrompt = await systemPromptToTaskPlanning({
     actionSpace: opts.actionSpace,
@@ -170,8 +172,8 @@ export async function plan(
   let latestFeedbackMessage: ChatCompletionMessageParam;
 
   // Build sub-goal status text to include in the message
-  // In deepThink mode: show full sub-goals with logs
-  // In non-deepThink mode: show historical execution logs
+  // In planning deep-think mode: show full sub-goals with logs
+  // Otherwise: show historical execution logs
   const subGoalsText = includeSubGoals
     ? conversationHistory.subGoalsToText()
     : conversationHistory.historicalLogsToText();
@@ -236,7 +238,7 @@ export async function plan(
     usage,
     reasoning_content,
   } = await callAI(msgs, modelConfig, {
-    deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
+    reasoningEnabled: opts.modelReasoningEnabled,
     abortSignal: opts.abortSignal,
   });
 
@@ -247,7 +249,7 @@ export async function plan(
       planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
     } catch {
       const retry = await callAI(msgs, modelConfig, {
-        deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
+        reasoningEnabled: opts.modelReasoningEnabled,
         abortSignal: opts.abortSignal,
       });
       rawResponse = retry.content;
@@ -271,7 +273,7 @@ export async function plan(
     if (planFromAI.finalizeSuccess !== undefined) {
       debug('task completed via <complete> tag, stop planning');
       shouldContinuePlanning = false;
-      // Mark all sub-goals as finished when goal is completed (only when deepThink is enabled)
+      // Mark all sub-goals as finished when goal is completed in planning deep-think mode.
       if (includeSubGoals) {
         conversationHistory.markAllSubGoalsFinished();
       }
@@ -316,7 +318,7 @@ export async function plan(
       });
     });
 
-    // Update sub-goals in conversation history based on response (only when deepThink is enabled)
+    // Update sub-goals in conversation history only in planning deep-think mode.
     if (includeSubGoals) {
       if (planFromAI.updateSubGoals?.length) {
         conversationHistory.mergeSubGoals(planFromAI.updateSubGoals);
@@ -331,7 +333,7 @@ export async function plan(
         conversationHistory.appendSubGoalLog(planFromAI.log);
       }
     } else {
-      // In non-deepThink mode, accumulate logs as historical execution steps
+      // Without planning deep-think mode, accumulate logs as historical execution steps.
       if (planFromAI.log) {
         conversationHistory.appendHistoricalLog(planFromAI.log);
       }

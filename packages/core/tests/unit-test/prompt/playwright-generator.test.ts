@@ -298,6 +298,9 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
           }),
         ]),
         mockedModelConfig,
+        {
+          reasoningEnabled: false,
+        },
       );
     });
 

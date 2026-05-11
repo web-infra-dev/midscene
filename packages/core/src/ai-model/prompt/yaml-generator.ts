@@ -371,7 +371,10 @@ export const generateYamlTest = async (
       language: options.language,
     });
 
-    const response = await callAIWithStringResponse(prompt, modelConfig);
+    const response = await callAIWithStringResponse(prompt, modelConfig, {
+      // Model reasoning is unnecessary here.
+      reasoningEnabled: false,
+    });
 
     if (response?.content && typeof response.content === 'string') {
       return response.content;
@@ -424,10 +427,15 @@ export const generateYamlTestStream = async (
       return await callAI(prompt, modelConfig, {
         stream: true,
         onChunk: options.onChunk,
+        // Model reasoning is unnecessary here.
+        reasoningEnabled: false,
       });
     } else {
       // Fallback to non-streaming
-      const response = await callAIWithStringResponse(prompt, modelConfig);
+      const response = await callAIWithStringResponse(prompt, modelConfig, {
+        // Model reasoning is unnecessary here.
+        reasoningEnabled: false,
+      });
 
       if (response?.content && typeof response.content === 'string') {
         return {

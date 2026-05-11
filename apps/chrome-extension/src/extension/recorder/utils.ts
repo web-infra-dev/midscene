@@ -320,7 +320,10 @@ export const generateRecordTitle = async (
       const response = await callAIWithObjectResponse<{
         title: string;
         description: string;
-      }>([prompt[0], prompt[1]], modelConfig);
+      }>([prompt[0], prompt[1]], modelConfig, {
+        // Model reasoning is unnecessary here.
+        reasoningEnabled: false,
+      });
       if (response?.content) {
         return {
           title: response.content.title as string,
@@ -623,7 +626,10 @@ const generateAIMindmap = async (
       },
     ];
 
-    const response = await callAIWithStringResponse(prompt, modelConfig);
+    const response = await callAIWithStringResponse(prompt, modelConfig, {
+      // Model reasoning is unnecessary here.
+      reasoningEnabled: false,
+    });
 
     if (response?.content && typeof response.content === 'string') {
       return response.content as string;

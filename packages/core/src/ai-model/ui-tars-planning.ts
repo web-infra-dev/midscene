@@ -86,7 +86,11 @@ export async function uiTarsPlanning(
       ...conversationHistory.snapshot(),
     ],
     modelConfig,
-    { abortSignal: options.abortSignal },
+    {
+      // Model reasoning is unnecessary here.
+      reasoningEnabled: false,
+      abortSignal: options.abortSignal,
+    },
   );
 
   let convertedText: string;
