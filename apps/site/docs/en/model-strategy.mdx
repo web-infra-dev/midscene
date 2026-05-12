@@ -138,7 +138,7 @@ See [Model configuration](./model-config).
 The `deepThink` option controls how strongly Midscene guides the model to think during planning.
 
 - By default, `aiAct` asks the model to plan the next step and locate the target element in the same planning request.
-- When `deepThink` is enabled, the planning stage focuses on planning only and does not return element location results. Midscene guides the model to break down sub-goals and reason through the task structure to improve planning quality.
+- When `deepThink` is enabled, the planning stage focuses on planning only and does not locate the target element during planning. Midscene guides the model to break down sub-goals and reason through the task structure to improve planning quality.
 
 In earlier versions, `deepThink` also controlled whether model-native deep reasoning was enabled during planning. This is now controlled by [Model-Native Thinking Mode](#model-native-thinking-mode).
 
