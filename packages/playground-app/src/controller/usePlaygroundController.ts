@@ -47,6 +47,13 @@ export interface UsePlaygroundControllerOptions {
    * returning a generic "Choose a platform" setup.
    */
   initialFormValues?: Record<string, unknown>;
+  /**
+   * Invoked when an active countdown dismisses — either reaching its natural
+   * end or being skipped by the user. Lets hosts step out of the way before
+   * automation begins (Studio minimises so the controlled desktop is in
+   * view). Not fired during unmount cleanup.
+   */
+  onCountdownFinish?: () => void;
 }
 
 export function usePlaygroundController({
@@ -55,6 +62,7 @@ export function usePlaygroundController({
   pollIntervalMs = 5000,
   countdownSeconds = 3,
   initialFormValues,
+  onCountdownFinish,
 }: UsePlaygroundControllerOptions): PlaygroundControllerResult {
   const [form] = Form.useForm<PlaygroundFormValues>();
   const initialFormValuesRef = useRef(initialFormValues);
@@ -171,6 +179,7 @@ export function usePlaygroundController({
   }, [aiConfig, aiConfigSignature, playgroundSDK]);
 
   const finishCountdown = useCallback(() => {
+    const wasActive = countdownTimerRef.current !== null;
     if (countdownTimerRef.current !== null) {
       window.clearInterval(countdownTimerRef.current);
       countdownTimerRef.current = null;
@@ -184,7 +193,14 @@ export function usePlaygroundController({
     }
 
     resolve?.();
-  }, []);
+
+    // Skip the host callback during unmount cleanup so we never minimise the
+    // window just because the playground panel re-rendered. The countdown has
+    // to have actually been running for "finish" to be meaningful.
+    if (wasActive && mountedRef.current) {
+      onCountdownFinish?.();
+    }
+  }, [onCountdownFinish]);
 
   const showCountdownModal = useCallback(async () => {
     if (countdownSeconds <= 0) {

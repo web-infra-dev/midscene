@@ -74,7 +74,6 @@ export function PlaygroundConversationPanel({
         onCancel={actions.finishCountdown}
         centered
         width={400}
-        style={{ top: '30%' }}
         styles={{
           mask: { backgroundColor: 'rgba(0, 0, 0, 0.75)' },
         }}
@@ -87,7 +86,7 @@ export function PlaygroundConversationPanel({
         >
           <div
             style={{
-              fontSize: '72px',
+              fontSize: '120px',
               fontWeight: 'bold',
               color: state.countdown === 'GO!' ? '#52c41a' : '#1890ff',
               marginBottom: '24px',
