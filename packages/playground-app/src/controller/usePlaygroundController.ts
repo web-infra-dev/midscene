@@ -1,6 +1,10 @@
 import type { PlaygroundSessionSetup } from '@midscene/playground';
 import { PlaygroundSDK } from '@midscene/playground';
-import { type DeviceType, useEnvConfig } from '@midscene/visualizer';
+import {
+  type DeviceType,
+  notifyError,
+  useEnvConfig,
+} from '@midscene/visualizer';
 import { Form, message } from 'antd';
 import {
   useCallback,
@@ -160,11 +164,7 @@ export function usePlaygroundController({
         appliedAiConfigSignatureRef.current = aiConfigSignature;
         return true;
       } catch (error) {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : 'Failed to apply AI configuration';
-        message.error(errorMessage);
+        notifyError(error, { title: 'Failed to apply AI configuration' });
         return false;
       } finally {
         if (pendingAiConfigApplicationRef.current === pendingApplicationState) {
@@ -328,10 +328,7 @@ export function usePlaygroundController({
           if ((error as { errorFields?: unknown }).errorFields) {
             return false;
           }
-
-          const errorMessage =
-            error instanceof Error ? error.message : 'Failed to create Agent';
-          message.error(errorMessage);
+          notifyError(error, { title: 'Failed to create Agent' });
           return false;
         } finally {
           sessionMutatingRef.current = false;
@@ -353,9 +350,7 @@ export function usePlaygroundController({
       await refreshServerState();
       await refreshSessionSetup();
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Failed to disconnect session';
-      message.error(errorMessage);
+      notifyError(error, { title: 'Failed to disconnect session' });
     } finally {
       sessionMutatingRef.current = false;
       setSessionMutating(false);
