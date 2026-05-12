@@ -14,6 +14,6 @@ describe('Input Strategy', () => {
     const inputAction = actions.find((a) => a.name === 'Input');
     expect(inputAction).toBeDefined();
     expect(inputAction?.name).toBe('Input');
-    expect(inputAction?.description).toBe('Input text into the input field');
+    expect(inputAction?.description).toBe('Input the value into the element');
   });
 });
