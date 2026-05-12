@@ -109,17 +109,6 @@ describe.skipIf(!shouldRunRealRdpTest)(
       );
     });
 
-    it('middle-clicks the Edge taskbar icon to open a new Edge window', async () => {
-      await runScenario(
-        'middle-click-edge',
-        'You are controlling a remote Windows desktop via the RDP protocol. Prefer the MiddleClick action (mouse middle button) over left or right click when the user explicitly asks for middle-click behavior.',
-        (agent) =>
-          agent.aiAct(
-            'On the remote Windows taskbar, middle-click the Microsoft Edge icon using the MiddleClick action. Stop only once a new Edge browser window is clearly open on the remote desktop.',
-          ),
-      );
-    });
-
     it('hovers the taskbar clock and keeps the pointer settled', async () => {
       await runScenario(
         'hover-clock',
@@ -131,10 +120,10 @@ describe.skipIf(!shouldRunRealRdpTest)(
       );
     });
 
-    it('walks through tap, scroll, keyboard, hover, and middle click in one session', async () => {
+    it('walks through tap, scroll, keyboard, and hover in one session', async () => {
       await runScenario(
         'walkthrough',
-        'You are controlling a remote Windows desktop via the RDP protocol. This walkthrough exercises several action types — Tap, Scroll, KeyboardPress, Hover, and MiddleClick — in a single session so the generated report shows them together. Use the action that matches each sub-step literally; do not substitute one for another.',
+        'You are controlling a remote Windows desktop via the RDP protocol. This walkthrough exercises several action types — Tap, Scroll, KeyboardPress, and Hover — in a single session so the generated report shows them together. Use the action that matches each sub-step literally; do not substitute one for another.',
         async (agent) => {
           await agent.aiAct(
             'Tap the Windows Start button on the remote desktop taskbar to open the Start menu.',
@@ -150,9 +139,6 @@ describe.skipIf(!shouldRunRealRdpTest)(
           );
           await agent.aiAct(
             'Hover the system clock area at the bottom-right of the taskbar using the Hover action. Do not click.',
-          );
-          await agent.aiAct(
-            'Middle-click the Microsoft Edge icon on the taskbar using the MiddleClick action so a new Edge browser window opens on the remote desktop. Stop once the new Edge window is clearly visible.',
           );
           return 'walkthrough-complete';
         },

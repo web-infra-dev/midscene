@@ -7,9 +7,7 @@ import type {
 } from '@midscene/core';
 import {
   type AbstractInterface,
-  type ActionTapParam,
   type ComputerInputPrimitives,
-  actionTapParamSchema,
   defineAction,
   defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
@@ -242,22 +240,6 @@ export class RDPDevice implements AbstractInterface {
   actionSpace(): DeviceAction<any>[] {
     const defaultActions: DeviceAction<any>[] = [
       ...defineActionsFromInputPrimitives(this.inputPrimitives),
-      defineAction<typeof actionTapParamSchema, ActionTapParam>({
-        name: 'MiddleClick',
-        description: 'Middle click the element',
-        sample: {
-          locate: { prompt: 'the browser tab close target' },
-        },
-        paramSchema: actionTapParamSchema,
-        call: async ({ locate }) => {
-          const element = this.requireLocate(locate, 'middle click');
-          await this.moveToElement(element, {
-            steps: SMOOTH_MOVE_STEPS_TAP,
-            stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
-          });
-          await this.backend.mouseButton('middle', 'click');
-        },
-      }),
       defineAction({
         name: 'ListDisplays',
         description: 'List all available displays/monitors',
@@ -289,16 +271,6 @@ export class RDPDevice implements AbstractInterface {
     if (this.destroyed) {
       throw new Error('RDPDevice has been destroyed');
     }
-  }
-
-  private requireLocate(
-    locate: LocateResultElement | undefined,
-    actionName: string,
-  ): LocateResultElement {
-    if (!locate) {
-      throw new Error(`Missing target element for ${actionName}`);
-    }
-    return locate;
   }
 
   private async moveToElement(
