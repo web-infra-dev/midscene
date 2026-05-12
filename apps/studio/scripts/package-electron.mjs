@@ -46,6 +46,19 @@ const packagedIgnorePatterns = [
   // Source maps duplicate what `pruneSourceMapFiles` already removed.
   /\.js\.map$/,
 ];
+const packagedAsarUnpackDirs = [
+  'node_modules/@computer-use/libnut',
+  'node_modules/@ffmpeg-installer',
+  'node_modules/@img',
+  'node_modules/@midscene/android/bin',
+  'node_modules/@midscene/computer/bin',
+  'node_modules/@midscene/computer/native',
+  'node_modules/sharp',
+].map((relativePath) => relativePath.split('/').join(path.sep));
+export const packagedAsarOptions = {
+  unpack: '**/{.**,**}/**/*.{node,dll,dylib,so,exe}',
+  unpackDir: `{${packagedAsarUnpackDirs.join(',')}}`,
+};
 const defaultMacEntitlementsPath = path.join(
   studioBuildDir,
   'entitlements.mac.plist',
@@ -329,6 +342,17 @@ export const buildArtifactBaseName = ({ version, platform, arch }) => {
   return `${packagedAppId}-v${normalizeReleaseVersion(version)}-${platform}-${arch}`;
 };
 
+export const resolveDefaultPackageArch = (
+  platform = process.platform,
+  hostArch = process.arch,
+) => {
+  if (platform === 'win32') {
+    return 'x64';
+  }
+
+  return hostArch;
+};
+
 export const buildPackagedAppManifest = (
   packageJson,
   version,
@@ -364,11 +388,11 @@ export const resolvePackagerIconPath = (platform) => {
 
 export const buildPackagerOptions = ({ arch, outDir, platform, stageDir }) => ({
   arch,
-  // Keep the app directory unpacked. The staging workspace installs vendored
-  // local packages into a hoisted node_modules layout with portable relative
-  // links. Preserve that layout during packaging so helper symlinks do not get
-  // expanded into duplicated dependency trees.
-  asar: false,
+  // Store the JS payload in app.asar so release artifacts do not have to
+  // compress/extract tens of thousands of tiny node_modules files. Native
+  // modules and helper binaries stay unpacked because the OS dynamic loader and
+  // spawned processes need real filesystem paths.
+  asar: packagedAsarOptions,
   derefSymlinks: false,
   dir: stageDir,
   electronVersion: getStudioElectronVersion(),
@@ -1208,10 +1232,28 @@ const vendorWorkspacePackages = async ({ workspacePackages, vendorDir }) => {
   return vendoredWorkspacePackages;
 };
 
+// `pnpm.supportedArchitectures` tells pnpm which platform/arch slices of
+// optional dependencies to materialize. Without it, cross-platform packaging
+// (e.g. building the Windows artifact on a macOS host) silently drops the
+// target's native binaries — most importantly `@img/sharp-win32-x64`, which
+// makes `import('sharp')` throw inside the packaged Windows Studio and forces
+// every image transform onto the WASM fallback.
+export const buildPnpmSupportedArchitectures = (platform, arch) => {
+  if (!platform || !arch) {
+    return undefined;
+  }
+  return {
+    os: [platform],
+    cpu: [arch],
+  };
+};
+
 export const buildInstallWorkspaceManifest = ({
   packageJson,
   version,
   vendoredWorkspacePackages,
+  targetPlatform,
+  targetArch,
 }) => {
   const dependencies = buildResolvedWorkspaceDependencyVersions({
     dependencies: packageJson.dependencies,
@@ -1224,10 +1266,16 @@ export const buildInstallWorkspaceManifest = ({
     ]),
   );
 
+  const supportedArchitectures = buildPnpmSupportedArchitectures(
+    targetPlatform,
+    targetArch,
+  );
+
   return {
     ...buildPackagedAppManifest(packageJson, version, dependencies),
     pnpm: {
       overrides,
+      ...(supportedArchitectures ? { supportedArchitectures } : {}),
     },
   };
 };
@@ -1475,7 +1523,12 @@ const installStageDependencies = async (stageDir) => {
   );
 };
 
-const createPackagingWorkspace = async ({ stageDir, version }) => {
+const createPackagingWorkspace = async ({
+  stageDir,
+  version,
+  targetPlatform,
+  targetArch,
+}) => {
   const studioPackageJson = getStudioPackageJson();
   const workspacePackages = collectWorkspaceDependencyClosure(
     getStudioRuntimeWorkspaceDependencyNames(studioPackageJson),
@@ -1501,6 +1554,8 @@ const createPackagingWorkspace = async ({ stageDir, version }) => {
     packageJson: studioPackageJson,
     version,
     vendoredWorkspacePackages,
+    targetPlatform,
+    targetArch,
   });
 
   await fs.writeFile(
@@ -1759,7 +1814,8 @@ export const notarizePackagedMacApp = async ({
 export const packageStudioElectronApp = async ({
   version,
   platform = process.platform,
-  arch = process.arch,
+  arch = resolveDefaultPackageArch(platform, process.arch),
+  skipArchive = false,
 } = {}) => {
   const normalizedVersion = normalizeReleaseVersion(version);
   const baseName = buildArtifactBaseName({
@@ -1770,7 +1826,12 @@ export const packageStudioElectronApp = async ({
   const stageDir = path.join(packagingWorkspaceDir, baseName);
   const macSecurity = resolveMacPackagedAppSecurity({ platform });
 
-  await createPackagingWorkspace({ stageDir, version: normalizedVersion });
+  await createPackagingWorkspace({
+    stageDir,
+    version: normalizedVersion,
+    targetPlatform: platform,
+    targetArch: arch,
+  });
 
   await removeIfExists(packagedDir);
   await fs.mkdir(packagedDir, { recursive: true });
@@ -1812,6 +1873,13 @@ export const packageStudioElectronApp = async ({
     });
   }
 
+  if (skipArchive) {
+    console.log(
+      `Skipping Midscene Studio archive creation. Packaged app: ${packagedAppPath}`,
+    );
+    return packagedAppPath;
+  }
+
   await archivePackagedApp({
     hostPlatform: process.platform,
     sourcePath: packagedAppPath,
@@ -1833,6 +1901,7 @@ if (isDirectInvocation) {
     options: {
       arch: { type: 'string' },
       platform: { type: 'string' },
+      'skip-archive': { type: 'boolean' },
       version: { type: 'string' },
     },
   });
@@ -1846,6 +1915,7 @@ if (isDirectInvocation) {
   await packageStudioElectronApp({
     arch: values.arch,
     platform: values.platform,
+    skipArchive: values['skip-archive'],
     version,
   });
 }

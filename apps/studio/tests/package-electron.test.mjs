@@ -8,6 +8,7 @@ import {
   buildInstallWorkspaceManifest,
   buildPackagedAppManifest,
   buildPackagerOptions,
+  buildPnpmSupportedArchitectures,
   buildVendoredWorkspaceDirName,
   buildVendoredWorkspaceManifest,
   collectNestedMacCodeSignTargets,
@@ -18,12 +19,14 @@ import {
   dropMidsceneEsmBuilds,
   getStudioElectronVersion,
   normalizeReleaseVersion,
+  packagedAsarOptions,
   parseBooleanLike,
   pathContainsReportTemplatePlaceholder,
   pruneAntdUmdBundles,
   pruneGifwrapTestFixtures,
   pruneSourceMapFiles,
   releaseWorkspaceDir,
+  resolveDefaultPackageArch,
   resolveMacCodeSignEntitlementsPath,
   resolveMacPackagedAppBundlePath,
   resolveMacPackagedAppSecurity,
@@ -46,6 +49,16 @@ describe('package-electron helpers', () => {
         arch: 'x64',
       }),
     ).toBe('midscene-studio-v1.7.4-darwin-x64');
+  });
+
+  it('defaults Windows packaging to x64 regardless of host arch', () => {
+    expect(resolveDefaultPackageArch('win32', 'arm64')).toBe('x64');
+    expect(resolveDefaultPackageArch('win32', 'x64')).toBe('x64');
+  });
+
+  it('keeps the host arch as the default for non-Windows packaging', () => {
+    expect(resolveDefaultPackageArch('darwin', 'arm64')).toBe('arm64');
+    expect(resolveDefaultPackageArch('linux', 'x64')).toBe('x64');
   });
 
   it('creates a packaged manifest that points Electron at the built main entry', () => {
@@ -84,7 +97,7 @@ describe('package-electron helpers', () => {
     ).toThrow(/Unsupported Electron platform/);
   });
 
-  it('ships the app unpacked and preserves the portable pnpm symlink graph', () => {
+  it('packages the app payload as asar while preserving portable pnpm links', () => {
     expect(
       buildPackagerOptions({
         arch: 'x64',
@@ -94,7 +107,7 @@ describe('package-electron helpers', () => {
       }),
     ).toMatchObject({
       arch: 'x64',
-      asar: false,
+      asar: packagedAsarOptions,
       derefSymlinks: false,
       dir: '/tmp/stage',
       electronVersion: getStudioElectronVersion(),
@@ -104,15 +117,35 @@ describe('package-electron helpers', () => {
     });
   });
 
+  it('keeps native modules and helper binaries outside app.asar', () => {
+    expect(packagedAsarOptions.unpack).toContain('*.{node,dll,dylib,so,exe}');
+    expect(packagedAsarOptions.unpackDir).toContain('node_modules/sharp');
+    expect(packagedAsarOptions.unpackDir).toContain('node_modules/@img');
+    expect(packagedAsarOptions.unpackDir).toContain(
+      path.join('node_modules', '@computer-use', 'libnut'),
+    );
+    expect(packagedAsarOptions.unpackDir).toContain(
+      path.join('node_modules', '@ffmpeg-installer'),
+    );
+    expect(packagedAsarOptions.unpackDir).toContain(
+      path.join('node_modules', '@midscene', 'computer', 'bin'),
+    );
+  });
+
   it('points packager at the Midscene .icns on macOS', () => {
     const iconPath = resolvePackagerIconPath('darwin');
     expect(iconPath).toBeTruthy();
     expect(iconPath).toMatch(/apps\/studio\/assets\/midscene-icon\.icns$/);
   });
 
-  it('returns no icon for platforms without a prebuilt asset so packager uses its default', () => {
+  it('returns no icon for Linux so packager uses its default', () => {
     expect(resolvePackagerIconPath('linux')).toBeUndefined();
-    expect(resolvePackagerIconPath('win32')).toBeUndefined();
+  });
+
+  it('points packager at the Midscene .ico on Windows', () => {
+    const iconPath = resolvePackagerIconPath('win32');
+    expect(iconPath).toBeTruthy();
+    expect(iconPath).toMatch(/apps\/studio\/assets\/midscene-icon\.ico$/);
   });
 
   it('threads the resolved icon into the packager options', () => {
@@ -123,6 +156,16 @@ describe('package-electron helpers', () => {
       stageDir: '/tmp/stage',
     });
     expect(opts.icon).toMatch(/midscene-icon\.icns$/);
+  });
+
+  it('threads the Windows .ico into the packager options', () => {
+    const opts = buildPackagerOptions({
+      arch: 'x64',
+      outDir: '/tmp/out',
+      platform: 'win32',
+      stageDir: '/tmp/stage',
+    });
+    expect(opts.icon).toMatch(/midscene-icon\.ico$/);
   });
 
   it('uses a shell for Windows .cmd package manager shims', () => {
@@ -598,6 +641,47 @@ describe('package-electron helpers', () => {
       },
       productName: 'Midscene Studio',
       version: '1.7.4',
+    });
+    expect(installManifest.pnpm).not.toHaveProperty('supportedArchitectures');
+  });
+
+  it('writes pnpm.supportedArchitectures into the install manifest when a target platform/arch is provided', () => {
+    const installManifest = buildInstallWorkspaceManifest({
+      packageJson: {
+        dependencies: {
+          '@midscene/shared': 'workspace:*',
+        },
+        type: 'module',
+      },
+      version: 'v1.7.4',
+      vendoredWorkspacePackages: [
+        {
+          name: '@midscene/shared',
+          packageJson: { version: '1.7.4' },
+          vendorDirName: 'midscene-shared',
+        },
+      ],
+      targetPlatform: 'win32',
+      targetArch: 'x64',
+    });
+
+    expect(installManifest.pnpm).toMatchObject({
+      overrides: {
+        '@midscene/shared': 'file:vendor/midscene-shared',
+      },
+      supportedArchitectures: {
+        os: ['win32'],
+        cpu: ['x64'],
+      },
+    });
+  });
+
+  it('omits pnpm.supportedArchitectures when the target platform or arch is missing', () => {
+    expect(buildPnpmSupportedArchitectures(undefined, 'x64')).toBeUndefined();
+    expect(buildPnpmSupportedArchitectures('win32', undefined)).toBeUndefined();
+    expect(buildPnpmSupportedArchitectures('win32', 'x64')).toEqual({
+      os: ['win32'],
+      cpu: ['x64'],
     });
   });
 
