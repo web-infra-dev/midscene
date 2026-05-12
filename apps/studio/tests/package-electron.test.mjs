@@ -141,6 +141,16 @@ describe('package-electron helpers', () => {
     expect(opts.icon).toMatch(/midscene-icon\.icns$/);
   });
 
+  it('threads the Windows .ico into the packager options', () => {
+    const opts = buildPackagerOptions({
+      arch: 'x64',
+      outDir: '/tmp/out',
+      platform: 'win32',
+      stageDir: '/tmp/stage',
+    });
+    expect(opts.icon).toMatch(/midscene-icon\.ico$/);
+  });
+
   it('uses a shell for Windows .cmd package manager shims', () => {
     expect(shouldUseShellForCommand('pnpm.cmd', 'win32')).toBe(true);
     expect(shouldUseShellForCommand('pnpm', 'linux')).toBe(false);
