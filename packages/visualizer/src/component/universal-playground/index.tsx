@@ -4,12 +4,13 @@ import Icon, {
   ArrowDownOutlined,
   UpOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Form, List, Typography, message } from 'antd';
+import { Alert, Button, Form, List, Typography } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePlaygroundExecution } from '../../hooks/usePlaygroundExecution';
 import { usePlaygroundState } from '../../hooks/usePlaygroundState';
 import { useEnvConfig } from '../../store/store';
 import type { FormValue, UniversalPlaygroundProps } from '../../types';
+import { notifyError } from '../../utils';
 import { ContextPreview } from '../context-preview';
 import { EnvConfigReminder } from '../env-config-reminder';
 import { PlaygroundResultView } from '../playground-result';
@@ -176,8 +177,7 @@ export function UniversalPlayground({
     if (playgroundSDK?.overrideConfig && config) {
       playgroundSDK.overrideConfig(config).catch((error) => {
         console.error('Failed to override SDK config:', error);
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        message.error(`Failed to apply AI configuration: ${errorMsg}`);
+        notifyError(error, { title: 'Failed to apply AI configuration' });
       });
     }
   }, [playgroundSDK, config]);
@@ -187,8 +187,8 @@ export function UniversalPlayground({
     try {
       const value = form.getFieldsValue() as FormValue;
       await executeAction(value);
-    } catch (error: any) {
-      message.error(error?.message || 'Execution failed');
+    } catch (error) {
+      notifyError(error, { title: 'Execution failed' });
     }
   }, [form, executeAction]);
 
