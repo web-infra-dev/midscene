@@ -1771,6 +1771,7 @@ export const packageStudioElectronApp = async ({
   version,
   platform = process.platform,
   arch = resolveDefaultPackageArch(platform, process.arch),
+  skipArchive = false,
 } = {}) => {
   const normalizedVersion = normalizeReleaseVersion(version);
   const baseName = buildArtifactBaseName({
@@ -1823,6 +1824,13 @@ export const packageStudioElectronApp = async ({
     });
   }
 
+  if (skipArchive) {
+    console.log(
+      `Skipping Midscene Studio archive creation. Packaged app: ${packagedAppPath}`,
+    );
+    return packagedAppPath;
+  }
+
   await archivePackagedApp({
     hostPlatform: process.platform,
     sourcePath: packagedAppPath,
@@ -1844,6 +1852,7 @@ if (isDirectInvocation) {
     options: {
       arch: { type: 'string' },
       platform: { type: 'string' },
+      'skip-archive': { type: 'boolean' },
       version: { type: 'string' },
     },
   });
@@ -1857,6 +1866,7 @@ if (isDirectInvocation) {
   await packageStudioElectronApp({
     arch: values.arch,
     platform: values.platform,
+    skipArchive: values['skip-archive'],
     version,
   });
 }
