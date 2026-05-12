@@ -31,9 +31,8 @@ describe(
           cacheId: 'test-ai-number-weather-temperature',
         });
 
-        await ctx.agent.aiAct(
-          'type "weather today" in search box, click search button',
-        );
+        await ctx.agent.aiInput('search box', { value: 'weather today' });
+        await ctx.agent.aiTap('search button');
         await ctx.agent.aiWaitFor(
           'there is a weather card showing the current temperature',
         );
