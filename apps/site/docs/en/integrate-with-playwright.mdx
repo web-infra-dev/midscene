@@ -170,11 +170,12 @@ import { PlaywrightAiFixture } from '@midscene/web/playwright';
 export const test = base.extend<PlayWrightAiFixtureType>(
   PlaywrightAiFixture({
     waitForNetworkIdleTimeout: 2000, // optional, the timeout for waiting for network idle between each action, default is 2000ms
+    replanningCycleLimit: 30, // optional, override the default aiAct replanning cycle limit
   }),
 );
 ```
 
-`PlaywrightAiFixture()` accepts all `PlaywrightAgent` options, so you can configure shared agent behavior directly at fixture creation time. Fixture-managed metadata like `testId`, `reportFileName`, `groupName`, and `groupDescription` are still generated automatically.
+`PlaywrightAiFixture()` accepts all shared `PlaywrightAgent` options, so you can configure agent behavior like `replanningCycleLimit`, `waitAfterAction`, and `modelConfig` directly at fixture creation time. Fixture-managed metadata like `testId`, `reportFileName`, `groupName`, and `groupDescription` is still generated automatically.
 
 ### Step 3: Write test cases
 

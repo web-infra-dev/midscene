@@ -48,7 +48,10 @@ describe('PlaywrightAiFixture option forwarding', () => {
     const fixture = PlaywrightAiFixture({
       autoPrintReportMsg: false,
       outputFormat: 'html-and-external-assets',
+      replanningCycleLimit: 9,
       waitAfterAction: 120,
+      aiActContext: 'fixture-level-context',
+      useDeviceTimestamp: true,
       enableTouchEventsInActionSpace: true,
       forceChromeSelectRendering: true,
     });
@@ -59,7 +62,10 @@ describe('PlaywrightAiFixture option forwarding', () => {
     expect(mockState.ctorOpts[0]).toMatchObject({
       autoPrintReportMsg: false,
       outputFormat: 'html-and-external-assets',
+      replanningCycleLimit: 9,
       waitAfterAction: 120,
+      aiActContext: 'fixture-level-context',
+      useDeviceTimestamp: true,
       enableTouchEventsInActionSpace: true,
       forceChromeSelectRendering: true,
       generateReport: true,
@@ -69,6 +75,7 @@ describe('PlaywrightAiFixture option forwarding', () => {
   it('should allow the first agentForPage call to override fixture defaults', async () => {
     const fixture = PlaywrightAiFixture({
       autoPrintReportMsg: true,
+      replanningCycleLimit: 9,
       waitAfterAction: 300,
       enableTouchEventsInActionSpace: true,
     });
@@ -84,6 +91,7 @@ describe('PlaywrightAiFixture option forwarding', () => {
 
     await getAgentForPage(createPage(), {
       autoPrintReportMsg: false,
+      replanningCycleLimit: 3,
       waitAfterAction: 50,
       enableTouchEventsInActionSpace: false,
     });
@@ -91,6 +99,7 @@ describe('PlaywrightAiFixture option forwarding', () => {
     expect(mockState.ctorOpts).toHaveLength(1);
     expect(mockState.ctorOpts[0]).toMatchObject({
       autoPrintReportMsg: false,
+      replanningCycleLimit: 3,
       waitAfterAction: 50,
       enableTouchEventsInActionSpace: false,
     });

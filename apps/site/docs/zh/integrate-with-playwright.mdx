@@ -170,11 +170,12 @@ import { PlaywrightAiFixture } from '@midscene/web/playwright';
 export const test = base.extend<PlayWrightAiFixtureType>(
   PlaywrightAiFixture({
     waitForNetworkIdleTimeout: 2000, // 可选, 交互过程中等待网络空闲的超时时间, 默认值为 2000ms, 设置为 0 则禁用超时
+    replanningCycleLimit: 30, // 可选，覆盖 aiAct 默认的重规划次数上限
   }),
 );
 ```
 
-`PlaywrightAiFixture()` 也支持传入 `PlaywrightAgent` 的全部配置，因此你可以在创建 fixture 时统一配置共享的 Agent 行为。`testId`、`reportFileName`、`groupName`、`groupDescription` 这类由 fixture 管理的元信息仍会自动生成。
+`PlaywrightAiFixture()` 也支持传入共享的 `PlaywrightAgent` 配置，因此你可以在创建 fixture 时统一配置 `replanningCycleLimit`、`waitAfterAction`、`modelConfig` 等 Agent 行为。`testId`、`reportFileName`、`groupName`、`groupDescription` 这类由 fixture 管理的元信息仍会自动生成。
 
 ### 第三步：编写测试用例
 
