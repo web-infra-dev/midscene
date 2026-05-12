@@ -2,6 +2,7 @@ import { TaskBuilder } from '@/agent/task-builder';
 import { getMidsceneLocationSchema } from '@/ai-model';
 import { AbstractInterface, defineActionSleep } from '@/device';
 import type Service from '@/insight';
+import { ScreenshotItem } from '@/screenshot-item';
 import type { DeviceAction, PlanningAction } from '@/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -180,5 +181,141 @@ describe('TaskBuilder', () => {
     expect(fastBeforeHook).toHaveBeenCalledTimes(1);
     expect(fastActionCall).toHaveBeenCalledTimes(1);
     expect(fastAfterHook).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses experimental web pinch zoom flow for deepLocate and restores after action', async () => {
+    vi.useFakeTimers();
+
+    const actionSchema = z.object({
+      locate: getMidsceneLocationSchema().describe('element to locate'),
+    });
+
+    const tapActionCall = vi.fn(async () => undefined);
+    const tapAction: DeviceAction = {
+      name: 'Tap',
+      description: 'mock tap action',
+      paramSchema: actionSchema,
+      call: tapActionCall,
+    };
+
+    const screenshot = ScreenshotItem.create(
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      Date.now(),
+    );
+    const context = {
+      screenshot,
+      shotSize: { width: 390, height: 844 },
+      shrunkShotToLogicalRatio: 1,
+    };
+
+    const webInterface = new MockInterface([tapAction]) as MockInterface & {
+      pinch: ReturnType<typeof vi.fn>;
+    };
+    webInterface.interfaceType = 'puppeteer';
+    webInterface.size = vi.fn().mockResolvedValue({ width: 390, height: 844 });
+    webInterface.beforeInvokeAction = vi.fn(async () => undefined);
+    webInterface.afterInvokeAction = vi.fn(async () => undefined);
+    webInterface.evaluateJavaScript = vi.fn(async () => 2);
+    webInterface.pinch = vi.fn(async () => undefined);
+
+    const locateMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        element: {
+          center: [180, 420],
+          rect: { left: 150, top: 380, width: 60, height: 80 },
+          attributes: {},
+        },
+        dump: {},
+      })
+      .mockResolvedValueOnce({
+        element: {
+          center: [230, 556],
+          rect: { left: 159, top: 520, width: 72, height: 72 },
+          attributes: {},
+        },
+        dump: {},
+      });
+
+    const insightService = {
+      contextRetrieverFn: vi.fn().mockResolvedValue(context),
+      locate: locateMock,
+    } as unknown as Service;
+
+    const taskBuilder = new TaskBuilder({
+      interfaceInstance: webInterface,
+      service: insightService,
+      actionSpace: webInterface.actionSpace(),
+    });
+
+    const { tasks } = await taskBuilder.build(
+      [
+        {
+          type: 'Tap',
+          thought: 'tap target',
+          param: { locate: { prompt: 'target', deepLocate: true } },
+        },
+      ],
+      {} as any,
+      {} as any,
+    );
+
+    const locateTask = tasks[0];
+    const actionTask = tasks[1];
+
+    const locatePromise = locateTask.executor(locateTask.param, {
+      task: { timing: {}, uiContext: context } as any,
+      uiContext: context as any,
+    });
+    await vi.advanceTimersByTimeAsync(400);
+    const locateResult = await locatePromise;
+
+    expect(locateMock).toHaveBeenCalledTimes(2);
+    expect(locateMock.mock.calls[0][0]).toMatchObject({
+      prompt: 'target',
+      deepLocate: false,
+    });
+    expect(webInterface.pinch).toHaveBeenNthCalledWith(
+      1,
+      180,
+      420,
+      98,
+      392,
+      500,
+    );
+    expect(locateResult).toEqual({
+      output: {
+        element: expect.objectContaining({
+          center: [115, 278],
+        }),
+      },
+      hitBy: undefined,
+    });
+
+    const actionPromise = actionTask.executor(actionTask.param, {
+      task: { timing: {} } as any,
+      uiContext: context as any,
+    });
+    await vi.advanceTimersByTimeAsync(500);
+    await expect(actionPromise).resolves.toEqual({ output: undefined });
+
+    expect(tapActionCall).toHaveBeenCalledTimes(1);
+    expect(tapActionCall).toHaveBeenCalledWith(
+      {
+        locate: expect.objectContaining({
+          center: [115, 278],
+        }),
+      },
+      expect.anything(),
+    );
+    expect(webInterface.afterInvokeAction).toHaveBeenCalledTimes(1);
+    expect(webInterface.pinch).toHaveBeenNthCalledWith(
+      2,
+      180,
+      420,
+      392,
+      98,
+      500,
+    );
   });
 });

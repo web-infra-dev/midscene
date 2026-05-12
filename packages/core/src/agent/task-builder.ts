@@ -33,6 +33,9 @@ import {
 } from './utils';
 
 const debug = getDebug('agent:task-builder');
+const EXPERIMENTAL_DEEP_LOCATE_ZOOM_RATIO = 4;
+const EXPERIMENTAL_DEEP_LOCATE_ZOOM_DURATION_MS = 500;
+const UI_CONTEXT_CACHE_TTL_BYPASS_MS = 350;
 
 /**
  * Check if a cache object is non-empty
@@ -44,6 +47,30 @@ function hasNonEmptyCache(cache: unknown): boolean {
     typeof cache === 'object' &&
     Object.keys(cache).length > 0
   );
+}
+
+function transformZoomedScreenshotElementToScreenshot(
+  element: LocateResultElement,
+  scale: number,
+): LocateResultElement {
+  if (scale === 1) {
+    return element;
+  }
+
+  return {
+    ...element,
+    center: [
+      Math.round(element.center[0] / scale),
+      Math.round(element.center[1] / scale),
+    ],
+    rect: {
+      ...element.rect,
+      left: Math.round(element.rect.left / scale),
+      top: Math.round(element.rect.top / scale),
+      width: Math.round(element.rect.width / scale),
+      height: Math.round(element.rect.height / scale),
+    },
+  };
 }
 
 export function locatePlanForLocate(param: string | DetailedLocateParam) {
@@ -79,6 +106,14 @@ interface PlanBuildContext {
   abortSignal?: AbortSignal;
 }
 
+interface WebDeepLocateZoomState {
+  centerX: number;
+  centerY: number;
+  startDistance: number;
+  endDistance: number;
+  duration: number;
+}
+
 export class TaskBuilder {
   private readonly interface: AbstractInterface;
 
@@ -89,6 +124,8 @@ export class TaskBuilder {
   private readonly actionSpace: DeviceAction[];
 
   private readonly waitAfterAction?: number;
+
+  private activeWebDeepLocateZoom?: WebDeepLocateZoomState;
 
   constructor({
     interfaceInstance,
@@ -102,6 +139,95 @@ export class TaskBuilder {
     this.taskCache = taskCache;
     this.actionSpace = actionSpace;
     this.waitAfterAction = waitAfterAction;
+  }
+
+  private getWebPinchApi():
+    | ((
+        centerX: number,
+        centerY: number,
+        startDistance: number,
+        endDistance: number,
+        duration?: number,
+      ) => Promise<void>)
+    | undefined {
+    const pinch = (this.interface as any).pinch;
+    if (typeof pinch !== 'function') {
+      return undefined;
+    }
+    return pinch.bind(this.interface);
+  }
+
+  private async activateWebDeepLocateZoom(
+    element: LocateResultElement,
+    shrunkShotToLogicalRatio: number,
+  ): Promise<void> {
+    const pinch = this.getWebPinchApi();
+    if (!pinch || this.activeWebDeepLocateZoom) {
+      return;
+    }
+
+    const { width, height } = await this.interface.size();
+    const baseDistance = Math.round(Math.min(width, height) / 4);
+    const logicalCenterX = Math.round(
+      element.center[0] / shrunkShotToLogicalRatio,
+    );
+    const logicalCenterY = Math.round(
+      element.center[1] / shrunkShotToLogicalRatio,
+    );
+    const zoomState: WebDeepLocateZoomState = {
+      centerX: logicalCenterX,
+      centerY: logicalCenterY,
+      startDistance: baseDistance,
+      endDistance: Math.round(
+        baseDistance * EXPERIMENTAL_DEEP_LOCATE_ZOOM_RATIO,
+      ),
+      duration: EXPERIMENTAL_DEEP_LOCATE_ZOOM_DURATION_MS,
+    };
+
+    debug('activate experimental web deepLocate pinch zoom', zoomState);
+    await pinch(
+      zoomState.centerX,
+      zoomState.centerY,
+      zoomState.startDistance,
+      zoomState.endDistance,
+      zoomState.duration,
+    );
+    this.activeWebDeepLocateZoom = zoomState;
+  }
+
+  private async restoreWebDeepLocateZoom(): Promise<void> {
+    const pinch = this.getWebPinchApi();
+    const zoomState = this.activeWebDeepLocateZoom;
+    this.activeWebDeepLocateZoom = undefined;
+    if (!pinch || !zoomState) {
+      return;
+    }
+
+    debug('restore experimental web deepLocate pinch zoom', zoomState);
+    await pinch(
+      zoomState.centerX,
+      zoomState.centerY,
+      zoomState.endDistance,
+      zoomState.startDistance,
+      zoomState.duration,
+    );
+  }
+
+  private async getVisualViewportScale(): Promise<number> {
+    const evaluateJavaScript = this.interface.evaluateJavaScript;
+    if (
+      !this.activeWebDeepLocateZoom ||
+      typeof evaluateJavaScript !== 'function'
+    ) {
+      return 1;
+    }
+
+    const scale = (await evaluateJavaScript.call(
+      this.interface,
+      'window.visualViewport?.scale ?? 1',
+    )) as unknown;
+
+    return typeof scale === 'number' && Number.isFinite(scale) ? scale : 1;
   }
 
   public async build(
@@ -301,42 +427,72 @@ export class TaskBuilder {
           }
         }
 
-        setTimingFieldOnce(timing, 'callActionStart');
-
-        debug('calling action', action.name);
-        const actionFn = action.call.bind(this.interface);
-        const actionResult = await actionFn(param, taskContext);
-        setTimingFieldOnce(timing, 'callActionEnd');
-        debug('called action', action.name, 'result:', actionResult);
-
-        setTimingFieldOnce(timing, 'afterInvokeActionHookStart');
-
-        const delayAfterRunner =
-          action.delayAfterRunner ?? this.waitAfterAction ?? 300;
-        if (delayAfterRunner > 0) {
-          await sleep(delayAfterRunner);
-        }
+        let actionResult;
+        let pendingError: unknown;
+        let restoreError: unknown;
 
         try {
-          if (this.interface.afterInvokeAction) {
-            debug(
-              `will call "afterInvokeAction" for interface with action name ${action.name}`,
-            );
-            await this.interface.afterInvokeAction(action.name, param);
-            debug(
-              `called "afterInvokeAction" for interface with action name ${action.name}`,
+          setTimingFieldOnce(timing, 'callActionStart');
+
+          debug('calling action', action.name);
+          const actionFn = action.call.bind(this.interface);
+          actionResult = await actionFn(param, taskContext);
+          setTimingFieldOnce(timing, 'callActionEnd');
+          debug('called action', action.name, 'result:', actionResult);
+
+          setTimingFieldOnce(timing, 'afterInvokeActionHookStart');
+
+          const delayAfterRunner =
+            action.delayAfterRunner ?? this.waitAfterAction ?? 300;
+          if (delayAfterRunner > 0) {
+            await sleep(delayAfterRunner);
+          }
+
+          try {
+            if (this.interface.afterInvokeAction) {
+              debug(
+                `will call "afterInvokeAction" for interface with action name ${action.name}`,
+              );
+              await this.interface.afterInvokeAction(action.name, param);
+              debug(
+                `called "afterInvokeAction" for interface with action name ${action.name}`,
+              );
+            }
+          } catch (originalError: any) {
+            const originalMessage =
+              originalError?.message || String(originalError);
+            throw new Error(
+              `error in running afterInvokeAction for ${action.name}: ${originalMessage}`,
+              { cause: originalError },
             );
           }
-        } catch (originalError: any) {
-          const originalMessage =
-            originalError?.message || String(originalError);
-          throw new Error(
-            `error in running afterInvokeAction for ${action.name}: ${originalMessage}`,
-            { cause: originalError },
-          );
+
+          setTimingFieldOnce(timing, 'afterInvokeActionHookEnd');
+        } catch (error) {
+          pendingError = error;
+        } finally {
+          if (this.activeWebDeepLocateZoom) {
+            try {
+              await this.restoreWebDeepLocateZoom();
+            } catch (error) {
+              restoreError = error;
+              if (pendingError) {
+                console.warn(
+                  '[Midscene] failed to restore experimental deepLocate zoom:',
+                  error,
+                );
+              }
+            }
+          }
         }
 
-        setTimingFieldOnce(timing, 'afterInvokeActionHookEnd');
+        if (pendingError) {
+          throw pendingError;
+        }
+
+        if (restoreError) {
+          throw restoreError;
+        }
 
         return {
           output: actionResult,
@@ -504,8 +660,17 @@ export class TaskBuilder {
         if (!isXpathHit && !isCacheHit && !isPlanHit) {
           try {
             setTimingFieldOnce(timing, 'callAiStart');
+            const experimentalPinchDeepLocate =
+              !!param.deepLocate && !!this.getWebPinchApi();
+            const locateParamForAi = experimentalPinchDeepLocate
+              ? {
+                  ...param,
+                  deepLocate: false,
+                }
+              : param;
+
             locateResult = await this.service.locate(
-              param,
+              locateParamForAi,
               {
                 context: uiContext,
                 planLocatedElement,
@@ -515,6 +680,37 @@ export class TaskBuilder {
             );
             applyDump(locateResult.dump);
             elementFromAiLocate = locateResult.element;
+
+            if (
+              experimentalPinchDeepLocate &&
+              elementFromAiLocate &&
+              !this.activeWebDeepLocateZoom
+            ) {
+              await this.activateWebDeepLocateZoom(
+                elementFromAiLocate,
+                shrunkShotToLogicalRatio,
+              );
+              await sleep(UI_CONTEXT_CACHE_TTL_BYPASS_MS);
+              uiContext = await this.service.contextRetrieverFn();
+              locateResult = await this.service.locate(
+                locateParamForAi,
+                {
+                  context: uiContext,
+                },
+                modelConfigForDefaultIntent,
+                abortSignal,
+              );
+              applyDump(locateResult.dump);
+              elementFromAiLocate = locateResult.element;
+              if (elementFromAiLocate) {
+                const zoomScale = await this.getVisualViewportScale();
+                elementFromAiLocate =
+                  transformZoomedScreenshotElementToScreenshot(
+                    elementFromAiLocate,
+                    zoomScale,
+                  );
+              }
+            }
           } catch (error) {
             if (error instanceof ServiceError) {
               applyDump(error.dump);

@@ -959,23 +959,18 @@ export class Page<
     endDistance: number,
     duration = 500,
   ): Promise<void> {
-    const steps = 30;
-    const delay = duration / steps;
-    const halfStart = startDistance / 2;
-    const halfEnd = endDistance / 2;
-
-    type TouchClient = {
+    type PinchClient = {
       send(
-        method: 'Input.dispatchTouchEvent',
-        params?: Protocol.Input.DispatchTouchEventRequest,
+        method: 'Input.synthesizePinchGesture',
+        params?: Protocol.Input.SynthesizePinchGestureRequest,
       ): Promise<unknown>;
       detach(): Promise<void>;
     };
 
-    let client: TouchClient;
+    let client: PinchClient;
     if (this.interfaceType === 'puppeteer') {
       const page = this.underlyingPage as PuppeteerPage;
-      client = (await page.target().createCDPSession()) as TouchClient;
+      client = (await page.target().createCDPSession()) as PinchClient;
     } else if (this.interfaceType === 'playwright') {
       const page = this.underlyingPage as PlaywrightPage;
       // CDP is Chromium-only; Firefox/WebKit do not support it
@@ -985,43 +980,18 @@ export class Page<
           `Pinch gesture requires Chromium-based browser, but current browser is "${browserName}". CDP touch events are not supported in Firefox/WebKit.`,
         );
       }
-      client = (await page.context().newCDPSession(page)) as TouchClient;
+      client = (await page.context().newCDPSession(page)) as PinchClient;
     } else {
       return;
     }
 
     try {
-      await client.send('Input.dispatchTouchEvent', {
-        type: 'touchStart',
-        touchPoints: [
-          { x: Math.round(centerX), y: Math.round(centerY - halfStart), id: 0 },
-          { x: Math.round(centerX), y: Math.round(centerY + halfStart), id: 1 },
-        ],
-      });
-
-      for (let i = 1; i <= steps; i++) {
-        const currentHalf = halfStart + (halfEnd - halfStart) * (i / steps);
-        await client.send('Input.dispatchTouchEvent', {
-          type: 'touchMove',
-          touchPoints: [
-            {
-              x: Math.round(centerX),
-              y: Math.round(centerY - currentHalf),
-              id: 0,
-            },
-            {
-              x: Math.round(centerX),
-              y: Math.round(centerY + currentHalf),
-              id: 1,
-            },
-          ],
-        });
-        await new Promise((res) => setTimeout(res, delay));
-      }
-
-      await client.send('Input.dispatchTouchEvent', {
-        type: 'touchEnd',
-        touchPoints: [],
+      await client.send('Input.synthesizePinchGesture', {
+        x: Math.round(centerX),
+        y: Math.round(centerY),
+        scaleFactor: endDistance / startDistance,
+        relativeSpeed: Math.max(1, Math.round((endDistance * 1000) / duration)),
+        gestureSourceType: 'default',
       });
     } finally {
       await client.detach();
