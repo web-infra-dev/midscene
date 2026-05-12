@@ -862,6 +862,29 @@
         .minimal-action-icon-fallback {
           color: rgba(255, 255, 255, 0.72) !important;
         }
+
+        .minimal-run-trigger {
+          &:disabled {
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.35);
+          }
+        }
+
+        .minimal-run-trigger-stop {
+          background: rgba(255, 255, 255, 0.12);
+          color: #f8fafd;
+
+          &:hover,
+          &:focus-visible {
+            background: rgba(255, 255, 255, 0.18);
+            color: #fff;
+          }
+
+          &:disabled {
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.35);
+          }
+        }
       }
     }
   }
