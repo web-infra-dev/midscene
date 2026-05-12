@@ -23,6 +23,17 @@ const electronShellApi: ElectronShellApi = {
     ipcRenderer.invoke(IPC_CHANNELS.writeReportFile, request),
   setNativeTheme: (mode) =>
     ipcRenderer.invoke(IPC_CHANNELS.setNativeTheme, mode),
+  onSystemThemeChanged: (listener) => {
+    const handler = (_event: unknown, resolved: unknown) => {
+      if (resolved === 'light' || resolved === 'dark') {
+        listener(resolved);
+      }
+    };
+    ipcRenderer.on(IPC_CHANNELS.systemThemeChanged, handler);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.systemThemeChanged, handler);
+    };
+  },
 };
 
 const studioRuntimeApi: StudioRuntimeApi = {

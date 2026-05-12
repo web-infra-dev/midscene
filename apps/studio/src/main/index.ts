@@ -262,6 +262,25 @@ const createMainWindow = () => {
   }
 
   mainWindow = window;
+
+  // Push every OS appearance change to the renderer so system-follow keeps
+  // working even after `themeSource` has been toggled. The renderer
+  // matchMedia listener silently stops firing across some Electron versions
+  // once themeSource is explicitly set, so we keep nativeTheme as the
+  // authoritative signal here.
+  const handleNativeThemeUpdated = () => {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      return;
+    }
+    mainWindow.webContents.send(
+      IPC_CHANNELS.systemThemeChanged,
+      nativeTheme.shouldUseDarkColors ? 'dark' : 'light',
+    );
+  };
+  nativeTheme.on('updated', handleNativeThemeUpdated);
+  window.once('closed', () => {
+    nativeTheme.off('updated', handleNativeThemeUpdated);
+  });
 };
 
 const registerIpcHandlers = () => {

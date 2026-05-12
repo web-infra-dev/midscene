@@ -11,6 +11,7 @@ export const IPC_CHANNELS = {
   toggleMaximizeWindow: 'shell:toggle-maximize-window',
   writeReportFile: 'shell:write-report-file',
   setNativeTheme: 'shell:set-native-theme',
+  systemThemeChanged: 'shell:system-theme-changed',
   // Multi-platform playground runtime (Android, iOS, HarmonyOS, Computer).
   getPlaygroundBootstrap: 'studio:get-playground-bootstrap',
   restartPlayground: 'studio:restart-playground',
@@ -134,6 +135,15 @@ export interface ElectronShellApi {
    * traffic lights) and `vibrancy` use the matching light/dark variant.
    */
   setNativeTheme: (mode: NativeThemeMode) => Promise<void>;
+  /**
+   * Subscribe to OS appearance changes pushed by `nativeTheme.on('updated')`
+   * in the main process. Renderer relies on this instead of `matchMedia`
+   * because Electron's renderer media query can stop firing after the
+   * `themeSource` toggles, breaking system-follow.
+   */
+  onSystemThemeChanged: (
+    listener: (resolved: 'light' | 'dark') => void,
+  ) => () => void;
 }
 
 export type NativeThemeMode = 'light' | 'dark' | 'system';
