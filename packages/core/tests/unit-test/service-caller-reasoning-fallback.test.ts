@@ -89,4 +89,57 @@ describe('service-caller reasoning fallback', () => {
       '{"type":"Tap","param":{"locate":{"prompt":"POI RichInfo tab"}}}',
     );
   });
+
+  it('uses modelConfig reasoningEnabled by default in callAI', async () => {
+    mockCreate.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: 'ok',
+          },
+        },
+      ],
+    });
+
+    await callAI([{ role: 'user', content: 'hello' }], {
+      ...baseModelConfig,
+      modelFamily: 'doubao-seed',
+      reasoningEnabled: true,
+    });
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        thinking: {
+          type: 'enabled',
+        },
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it('defaults model reasoning to disabled for supported model families', async () => {
+    mockCreate.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: 'ok',
+          },
+        },
+      ],
+    });
+
+    await callAI([{ role: 'user', content: 'hello' }], {
+      ...baseModelConfig,
+      modelFamily: 'doubao-seed',
+    });
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        thinking: {
+          type: 'disabled',
+        },
+      }),
+      expect.any(Object),
+    );
+  });
 });

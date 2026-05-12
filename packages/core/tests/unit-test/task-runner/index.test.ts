@@ -14,11 +14,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Mock AI service caller
 vi.mock('@/ai-model/service-caller/index', () => ({
   callAIWithObjectResponse: vi.fn(),
-  resolveReasoningEnabled: vi.fn(
-    ({ deepThink, modelConfig }) =>
-      (deepThink === 'unset' ? undefined : deepThink) ??
-      modelConfig.reasoningEnabled,
-  ),
   AIResponseParseError: class AIResponseParseError extends Error {},
 }));
 

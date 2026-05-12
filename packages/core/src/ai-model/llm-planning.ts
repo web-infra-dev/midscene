@@ -117,8 +117,6 @@ export async function plan(
     imagesIncludeCount?: number;
     // Controls aiAct planning prompt shape and state updates, such as sub-goals.
     planningModeDeepThink?: boolean;
-    // Controls provider-specific model reasoning parameters for the LLM request.
-    modelReasoningEnabled?: boolean;
     abortSignal?: AbortSignal;
   },
 ): Promise<PlanningAIResponse> {
@@ -238,7 +236,6 @@ export async function plan(
     usage,
     reasoning_content,
   } = await callAI(msgs, modelConfig, {
-    reasoningEnabled: opts.modelReasoningEnabled,
     abortSignal: opts.abortSignal,
   });
 
@@ -249,7 +246,6 @@ export async function plan(
       planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
     } catch {
       const retry = await callAI(msgs, modelConfig, {
-        reasoningEnabled: opts.modelReasoningEnabled,
         abortSignal: opts.abortSignal,
       });
       rawResponse = retry.content;

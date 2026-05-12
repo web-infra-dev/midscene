@@ -52,7 +52,6 @@ import {
   callAI,
   callAIWithObjectResponse,
   callAIWithStringResponse,
-  resolveReasoningEnabled,
 } from './service-caller/index';
 
 export type AIArgs = [
@@ -237,8 +236,6 @@ export async function AiLocateElement(options: {
   if (isAutoGLM(modelFamily)) {
     const { content: rawResponseContent, usage } =
       await callAIWithStringResponse(msgs, modelConfig, {
-        // Model reasoning is unnecessary here.
-        reasoningEnabled: false,
         abortSignal: options.abortSignal,
       });
 
@@ -311,7 +308,6 @@ export async function AiLocateElement(options: {
       msgs,
       modelConfig,
       {
-        reasoningEnabled: resolveReasoningEnabled({ modelConfig }),
         abortSignal: options.abortSignal,
       },
     );
@@ -454,7 +450,6 @@ export async function AiLocateSection(options: {
       msgs,
       modelConfig,
       {
-        reasoningEnabled: resolveReasoningEnabled({ modelConfig }),
         abortSignal: options.abortSignal,
       },
     );
@@ -603,9 +598,7 @@ export async function AiExtractElementInfo<T>(options: {
     content: rawResponse,
     usage,
     reasoning_content,
-  } = await callAI(msgs, modelConfig, {
-    reasoningEnabled: resolveReasoningEnabled({ modelConfig }),
-  });
+  } = await callAI(msgs, modelConfig);
 
   // Parse XML response to JSON object
   let parseResult: AIDataExtractionResponse<T>;
@@ -649,15 +642,9 @@ export async function AiJudgeOrderSensitive(
     },
   ];
 
-  debugInspect(
-    'AiJudgeOrderSensitive: reasoningEnabled=false, description=%s',
-    description,
-  );
+  debugInspect('AiJudgeOrderSensitive: description=%s', description);
 
-  const result = await callAIFn(msgs, modelConfig, {
-    // Model reasoning is unnecessary here.
-    reasoningEnabled: false,
-  });
+  const result = await callAIFn(msgs, modelConfig);
 
   return {
     isOrderSensitive: result.content.isOrderSensitive ?? false,

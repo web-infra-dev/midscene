@@ -135,22 +135,24 @@ See [Model configuration](./model-config).
 
 ### About the `deepThink` option in `aiAct`
 
-The `deepThink` option controls whether models use deep reasoning during planning. Currently supported for `qwen3-vl`, `qwen3.5`, `doubao-seed-1.6`, `doubao-seed-2.0` and `glm-v` model families.
+The `deepThink` option controls how strongly Midscene guides the model to think during planning.
 
-When enabled, you'll see a `Reasoning` section in the report. Planning takes longer but produces more accurate results.
+- By default, `aiAct` asks the model to plan the next step and locate the target element in the same planning request.
+- When `deepThink` is enabled, the planning stage focuses on planning only and does not return element location results. Midscene guides the model to break down sub-goals and reason through the task structure to improve planning quality.
 
-**Default behavior varies by provider:**
-- `qwen3.5` on Alibaba Cloud: enabled by default (slower, more accurate)
-- `qwen3-vl` on Alibaba Cloud: disabled by default (faster, less accurate)
-- `doubao-seed-1.6` on Volcano Engine: enabled by default (slower, more accurate)
-- `doubao-seed-2.0` on Volcano Engine: enabled by default (slower, more accurate)
-- `glm-v` on Z.AI: enabled by default (slower, more accurate)
+In earlier versions, `deepThink` also controlled whether model-native deep reasoning was enabled during planning. This is now controlled by [Model-Native Thinking Mode](#model-native-thinking-mode).
 
-You can explicitly set `deepThink: true` or `deepThink: false` to override the provider's default.
+`deepThink` accepts `'unset' | true | false`. For compatibility, `'unset'` is still accepted and is treated the same as `false`.
 
-`deepThink` accepts `'unset' | true | false`. The default is `'unset'` (same as omitting the option, following the model provider's default strategy).
+Note: The implementation behind `deepThink` may change in the future as Midscene evolves.
 
-Note: The implementation details behind `deepThink` may evolve in the future as model providers change.
+### Model-Native Thinking Mode
+
+Some model providers enable model-native thinking by default. In Midscene UI automation, we found that model-native thinking often significantly increases task latency while providing limited improvement for execution quality. For the model families that Midscene knows how to control, Midscene disables model-native thinking by default to get the best execution speed and stability.
+
+If you need model-native thinking, set `MIDSCENE_MODEL_REASONING_ENABLED="true"` explicitly. Some model families also support extra controls such as `MIDSCENE_MODEL_REASONING_BUDGET` or `MIDSCENE_MODEL_REASONING_EFFORT`; see [Common Model Configuration](./model-common-config) for model-specific examples and [Advanced settings](./model-config#advanced-settings-optional) for the full environment variable reference.
+
+Explicit reasoning configuration requires a supported `MIDSCENE_MODEL_FAMILY`. If the model family is missing or unsupported, Midscene will throw an error instead of guessing provider-specific reasoning parameters.
 
 ### API style for model service provider
 

@@ -87,8 +87,6 @@ export async function uiTarsPlanning(
     ],
     modelConfig,
     {
-      // Model reasoning is unnecessary here.
-      reasoningEnabled: false,
       abortSignal: options.abortSignal,
     },
   );

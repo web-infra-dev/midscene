@@ -84,7 +84,13 @@ describe('codex app-server provider helper', () => {
           reasoningEffort: 'invalid-effort',
         },
       }),
-    ).toBeUndefined();
+    ).toBe('none');
+
+    expect(
+      resolveCodexReasoningEffort({
+        modelConfig: baseModelConfig,
+      }),
+    ).toBe('none');
 
     expect(
       resolveCodexReasoningEffort({

@@ -126,10 +126,7 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
     },
   ];
 
-  const response = await callAIWithStringResponse(prompt, modelConfig, {
-    // Model reasoning is unnecessary here.
-    reasoningEnabled: false,
-  });
+  const response = await callAIWithStringResponse(prompt, modelConfig);
 
   if (response?.content && typeof response.content === 'string') {
     return response.content;
@@ -214,15 +211,10 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
     return await callAI(prompt, modelConfig, {
       stream: true,
       onChunk: options.onChunk,
-      // Model reasoning is unnecessary here.
-      reasoningEnabled: false,
     });
   } else {
     // Fallback to non-streaming
-    const response = await callAIWithStringResponse(prompt, modelConfig, {
-      // Model reasoning is unnecessary here.
-      reasoningEnabled: false,
-    });
+    const response = await callAIWithStringResponse(prompt, modelConfig);
 
     if (response?.content && typeof response.content === 'string') {
       return {

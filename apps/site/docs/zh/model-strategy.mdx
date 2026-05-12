@@ -134,22 +134,24 @@ Midscene 提供了基于页面理解的数据处理接口，如 AI 断言（`aiA
 
 ### 关于 `aiAct` 方法的 `deepThink` 参数
 
-`deepThink` 参数用于控制模型在规划时是否启用深度思考。目前支持 `qwen3-vl`、`qwen3.5`、`doubao-seed-1.6`、`doubao-seed-2.0`、`glm-v` 等系列模型。
+`deepThink` 参数用于控制 Midscene 在规划时引导模型思考的力度。
 
-启用后，你可以在报告中看到 `Reasoning` 栏目。开启后，规划耗时会增加，但结果会更准确。
+- 默认情况下，`aiAct` 会让模型在同一次规划请求里同时完成下一步规划和目标元素定位。
+- 开启 `deepThink` 后，`aiAct` 的规划阶段会专注于规划，不再返回元素定位结果，并通过引导模型拆解子任务、梳理任务结构等方式获得更好的规划结果。
 
-**不同服务商的默认行为：**
-- `qwen3.5` 在阿里云：默认开启（更慢，但更准确）
-- `qwen3-vl` 在阿里云：默认关闭（更快，但准确性差）
-- `doubao-seed-1.6` 在火山引擎：默认开启（更慢，但更准确）
-- `doubao-seed-2.0` 在火山引擎：默认开启（更慢，但更准确）
-- `glm-v` 在 Z.AI：默认开启（更慢，但更准确）
+在之前的版本中，`deepThink` 也会用于控制模型在规划时是否启用模型原生的深度思考。现在这部分由[模型原生的思考模式](#模型原生的思考模式)控制。
 
-你可以通过显式设置 `deepThink: true` 或 `deepThink: false` 来覆盖服务商的默认配置。
+`deepThink` 支持 `'unset' | true | false`。为了兼容旧写法，`'unset'` 仍然可以传入，并会被按 `false` 处理。
 
-`deepThink` 支持 `'unset' | true | false`，默认值为 `'unset'`（等同于省略该参数，跟随模型服务商的默认策略）。
+提示：`deepThink` 参数背后的实现可能在未来随着 Midscene 的迭代而调整。
 
-提示：`deepThink` 参数背后的实现方式可能会在未来随着模型提供商的变化而调整。
+### 模型原生的思考模式
+
+一些模型服务商会默认开启模型原生思考。在 Midscene 的 UI 自动化场景中，我们注意到模型原生思考通常会明显增加任务耗时，而对执行质量的提升有限。对于 Midscene 已经适配控制方式的模型系列，Midscene 会默认关闭模型原生思考，以获得更好的执行速度和稳定性。
+
+如果你需要模型原生思考，请显式设置 `MIDSCENE_MODEL_REASONING_ENABLED="true"`。部分模型系列还支持 `MIDSCENE_MODEL_REASONING_BUDGET` 或 `MIDSCENE_MODEL_REASONING_EFFORT` 等额外控制项，具体示例请参考[常用模型配置](./model-common-config)，完整环境变量说明请参考[高阶配置](./model-config#高阶配置可选)。
+
+显式配置 reasoning 时必须使用已支持的 `MIDSCENE_MODEL_FAMILY`。如果没有配置模型系列，或者模型系列不支持 reasoning 配置，Midscene 会直接抛出错误，而不会猜测服务商的私有参数。
 
 ### 模型接口风格
 

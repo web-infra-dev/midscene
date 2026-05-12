@@ -255,7 +255,6 @@ export class TaskExecutor {
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
     planningModeDeepThink?: boolean,
-    modelReasoningEnabled?: boolean,
     fileChooserAccept?: string[],
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
@@ -279,7 +278,6 @@ export class TaskExecutor {
         replanningCycleLimitOverride,
         imagesIncludeCount,
         planningModeDeepThink,
-        modelReasoningEnabled,
         deepLocate,
         abortSignal,
       );
@@ -296,7 +294,6 @@ export class TaskExecutor {
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
     planningModeDeepThink?: boolean,
-    modelReasoningEnabled?: boolean,
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
   ): Promise<
@@ -351,7 +348,6 @@ export class TaskExecutor {
             aiActContext,
             imagesIncludeCount,
             planningModeDeepThink,
-            modelReasoningEnabled,
             ...(subGoalStatus ? { subGoalStatus } : {}),
             ...(memoriesStatus ? { memoriesStatus } : {}),
           },
@@ -392,7 +388,6 @@ export class TaskExecutor {
                 includeBbox: includeBboxInPlanning,
                 imagesIncludeCount,
                 planningModeDeepThink,
-                modelReasoningEnabled,
                 abortSignal,
               });
             } catch (planError) {

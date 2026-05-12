@@ -277,7 +277,7 @@ export const resolveCodexReasoningEffort = ({
     return normalized;
   }
 
-  return undefined;
+  return 'none';
 };
 
 export const buildCodexTurnPayloadFromMessages = (

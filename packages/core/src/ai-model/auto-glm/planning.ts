@@ -53,8 +53,6 @@ export async function autoGLMPlanning(
     msgs,
     modelConfig,
     {
-      // Model reasoning is unnecessary here.
-      reasoningEnabled: false,
       abortSignal: options.abortSignal,
     },
   );

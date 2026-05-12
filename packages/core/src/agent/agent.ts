@@ -1,6 +1,6 @@
 import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import yaml from 'js-yaml';
-import { type TUserPrompt, resolveReasoningEnabled } from '../ai-model/index';
+import type { TUserPrompt } from '../ai-model/index';
 import { ScreenshotItem } from '../screenshot-item';
 import Service from '../service/index';
 // Import types and values directly from their source files to avoid circular dependency
@@ -910,11 +910,6 @@ export class Agent<
         this.modelConfigManager.getModelConfig('planning');
       const defaultIntentModelConfig =
         this.modelConfigManager.getModelConfig('default');
-      // Controls whether the model request should enable provider-specific reasoning.
-      const modelReasoningEnabled = resolveReasoningEnabled({
-        deepThink: opt?.deepThink,
-        modelConfig: modelConfigForPlanning,
-      });
       // Controls the aiAct planning mode, such as sub-goal prompts and bbox strategy.
       const planningModeDeepThink = opt?.deepThink === true;
 
@@ -931,7 +926,6 @@ export class Agent<
 
       debug('setting includeBboxInPlanning to', includeBboxInPlanning, {
         planningModeDeepThink,
-        modelReasoningEnabled,
         noIndividualLocateModel,
       });
 
@@ -964,7 +958,7 @@ export class Agent<
       }
 
       // If cache matched but is not executable, fall through to normal execution
-      const imagesIncludeCount: number = opt?.deepThink ? 2 : 1;
+      const imagesIncludeCount: number = planningModeDeepThink ? 2 : 1;
       const { output: actionOutput } = await this.taskExecutor.action(
         taskPrompt,
         modelConfigForPlanning,
@@ -975,7 +969,6 @@ export class Agent<
         replanningCycleLimit,
         imagesIncludeCount,
         planningModeDeepThink,
-        modelReasoningEnabled,
         fileChooserAccept,
         deepLocate,
         abortSignal,
