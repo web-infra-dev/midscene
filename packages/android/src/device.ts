@@ -180,14 +180,10 @@ export class AndroidDevice implements AbstractInterface {
         backButton: {
           name: 'AndroidBackButton',
           description: 'Trigger the system "back" operation on Android devices',
-          delayBeforeRunner: 0,
-          delayAfterRunner: 0,
         },
         homeButton: {
           name: 'AndroidHomeButton',
           description: 'Trigger the system "home" operation on Android devices',
-          delayBeforeRunner: 0,
-          delayAfterRunner: 0,
         },
         recentAppsButton: {
           name: 'AndroidRecentAppsButton',
@@ -1643,17 +1639,20 @@ ${Object.keys(size)
     to: PointerPoint,
     duration?: number,
   ): Promise<void> {
-    const adb = await this.getAdb();
+    await this.swipePoint(from, to, duration ?? defaultNormalScrollDuration);
+  }
 
-    // Use adjusted coordinates
+  private async swipePoint(
+    from: PointerPoint,
+    to: PointerPoint,
+    duration: number,
+  ): Promise<void> {
+    const adb = await this.getAdb();
     const { x: fromX, y: fromY } = await this.adjustCoordinates(from.x, from.y);
     const { x: toX, y: toY } = await this.adjustCoordinates(to.x, to.y);
 
-    // Ensure duration has a default value
-    const swipeDuration = duration ?? defaultNormalScrollDuration;
-
     await adb.shell(
-      `input${this.getDisplayArg()} swipe ${fromX} ${fromY} ${toX} ${toY} ${swipeDuration}`,
+      `input${this.getDisplayArg()} swipe ${fromX} ${fromY} ${toX} ${toY} ${duration}`,
     );
   }
 
@@ -1723,20 +1722,12 @@ ${Object.keys(size)
     const endX = Math.round(startX - deltaX);
     const endY = Math.round(startY - deltaY);
 
-    // Adjust coordinates to fit device ratio
-    const { x: adjustedStartX, y: adjustedStartY } =
-      await this.adjustCoordinates(startX, startY);
-    const { x: adjustedEndX, y: adjustedEndY } = await this.adjustCoordinates(
-      endX,
-      endY,
-    );
-
-    const adb = await this.getAdb();
     const swipeDuration = duration ?? defaultNormalScrollDuration;
 
-    // Execute the swipe operation
-    await adb.shell(
-      `input${this.getDisplayArg()} swipe ${adjustedStartX} ${adjustedStartY} ${adjustedEndX} ${adjustedEndY} ${swipeDuration}`,
+    await this.swipePoint(
+      { x: startX, y: startY },
+      { x: endX, y: endY },
+      swipeDuration,
     );
   }
 
@@ -1864,16 +1855,7 @@ ${Object.keys(size)
     to: { x: number; y: number },
     duration: number,
   ): Promise<void> {
-    const adb = await this.getAdb();
-
-    // Use adjusted coordinates
-    const { x: fromX, y: fromY } = await this.adjustCoordinates(from.x, from.y);
-    const { x: toX, y: toY } = await this.adjustCoordinates(to.x, to.y);
-
-    // Use the specified duration for better pull gesture recognition
-    await adb.shell(
-      `input${this.getDisplayArg()} swipe ${fromX} ${fromY} ${toX} ${toY} ${duration}`,
-    );
+    await this.swipePoint(from, to, duration);
   }
 
   async pullUp(
@@ -2089,8 +2071,6 @@ const createPlatformActions = (
       description: 'Terminate (force-stop) an Android app by package name',
       interfaceAlias: 'terminate',
       paramSchema: terminateParamSchema,
-      delayBeforeRunner: 0,
-      delayAfterRunner: 0,
       call: async (param) => {
         if (!param.uri || param.uri.trim() === '') {
           throw new Error('Terminate requires a non-empty uri parameter');
