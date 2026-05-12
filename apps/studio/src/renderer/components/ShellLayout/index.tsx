@@ -2,6 +2,7 @@ import {
   type CSSProperties,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -13,6 +14,7 @@ import Playground from '../Playground';
 import SettingsPanel from '../SettingsPanel';
 import Sidebar, { SidebarFooter } from '../Sidebar';
 import { ModelEnvConfigModal } from './ModelEnvConfigModal';
+import { hasCompleteModelEnvConfig } from './connectivity-env';
 import { loadModelEnvText, saveModelEnvText } from './model-env-storage';
 import type { ShellActiveView } from './types';
 
@@ -103,6 +105,10 @@ export default function ShellLayout() {
     ),
   );
   const settingsAnchorRef = useRef<HTMLDivElement | null>(null);
+  const modelConfigComplete = useMemo(
+    () => hasCompleteModelEnvConfig(modelEnvText),
+    [modelEnvText],
+  );
   const isMacLike =
     typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
   const collapsedToggleButtonLeft = isMacLike ? 86 : 12;
@@ -261,6 +267,7 @@ export default function ShellLayout() {
               </div>
             )}
             <SidebarFooter
+              envAlert={!modelConfigComplete}
               onEnvClick={openEnvModal}
               onToggleSettings={() => setSettingsOpen((prev) => !prev)}
               settingsOpen={settingsOpen}
@@ -285,6 +292,8 @@ export default function ShellLayout() {
         <MainContent
           activeView={activeView}
           headerOffsetClass={collapsed ? collapsedHeaderOffsetClass : undefined}
+          modelConfigComplete={modelConfigComplete}
+          onOpenEnvModal={openEnvModal}
           onSelectDeviceView={() => setActiveView('device')}
           onSelectOverview={() => setActiveView('overview')}
         />

@@ -10,6 +10,73 @@ export interface EnvEntry {
   value: string;
 }
 
+export interface ModelEnvField {
+  key: string;
+  placeholder: string;
+}
+
+/**
+ * The canonical fields the Studio env modal asks for. Everything the agent
+ * needs to talk to a remote VL model is covered here; arbitrary user-defined
+ * variables are still preserved through the Text tab but no longer surface
+ * as editable rows in the Form tab.
+ */
+export const FIXED_MODEL_ENV_FIELDS: readonly ModelEnvField[] = [
+  {
+    key: 'MIDSCENE_MODEL_BASE_URL',
+    placeholder: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  },
+  {
+    key: 'MIDSCENE_MODEL_API_KEY',
+    placeholder: 'sk-...',
+  },
+  {
+    key: 'MIDSCENE_MODEL_NAME',
+    placeholder: 'qwen3-vl-plus',
+  },
+  {
+    key: 'MIDSCENE_MODEL_FAMILY',
+    placeholder: 'qwen3-vl',
+  },
+] as const;
+
+/**
+ * Returns true only when every required model env field has a non-empty value
+ * in the parsed env text. Used by Overview/sidebar callers to warn the user
+ * that the agent cannot be reached yet.
+ */
+export function hasCompleteModelEnvConfig(text: string): boolean {
+  const env = parseEnvText(text);
+  return FIXED_MODEL_ENV_FIELDS.every(
+    (field) => (env[field.key] ?? '').trim().length > 0,
+  );
+}
+
+/**
+ * Patch a single env field's value while preserving the order and any other
+ * keys the user typed in the Text tab. Empty values clear the entry rather
+ * than serialising as `KEY=` so the resulting text stays clean.
+ */
+export function setEnvFieldValue(
+  text: string,
+  key: string,
+  value: string,
+): string {
+  const entries = parseEnvEntries(text);
+  const index = entries.findIndex((entry) => entry.key === key);
+  const trimmed = value;
+  if (trimmed === '') {
+    if (index >= 0) {
+      entries.splice(index, 1);
+    }
+  } else if (index >= 0) {
+    entries[index] = { key, value: trimmed };
+  } else {
+    entries.push({ key, value: trimmed });
+  }
+  return serializeEnvEntries(entries);
+}
+
 export function parseEnvEntries(text: string): EnvEntry[] {
   const entries: EnvEntry[] = [];
   for (const rawLine of text.split(/\r?\n/)) {

@@ -2,11 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ModelEnvConfigFormFields } from './ModelEnvConfigFormFields';
 import { ModelEnvConfigStatus } from './ModelEnvConfigStatus';
 import {
-  type EnvEntry,
-  parseEnvEntries,
   parseEnvText,
   resolveModelConnection,
-  serializeEnvEntries,
+  setEnvFieldValue,
 } from './connectivity-env';
 
 type TabKey = 'text' | 'form';
@@ -25,7 +23,8 @@ export interface ModelEnvConfigModalProps {
   onSave?: (payload: { text: string }) => void;
 }
 
-const TEXT_PLACEHOLDER = 'OPENAI_API_KEY=sk-...\nMIDSCENE_MODEL=';
+const TEXT_PLACEHOLDER =
+  'MIDSCENE_MODEL_BASE_URL=...\nMIDSCENE_MODEL_API_KEY=...\nMIDSCENE_MODEL_NAME=...\nMIDSCENE_MODEL_FAMILY=...';
 const closeIconSrc = new URL('./model-env-close.svg', import.meta.url).href;
 const connectivityIconSrc = new URL(
   './model-env-connectivity.svg',
@@ -210,13 +209,13 @@ export function ModelEnvConfigModal({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [open, onClose]);
 
-  const formEntries = useMemo<EnvEntry[]>(() => parseEnvEntries(text), [text]);
+  const envValues = useMemo(() => parseEnvText(text), [text]);
   const resolvedConnection = useMemo(
-    () => resolveModelConnection(parseEnvText(text)),
-    [text],
+    () => resolveModelConnection(envValues),
+    [envValues],
   );
   const canRunConnectivityTest = !('error' in resolvedConnection);
-  const isExpandedForm = tab === 'form' && formEntries.length > 0;
+  const isExpandedForm = tab === 'form';
   const hasTestStatus =
     testStatus.kind === 'success' || testStatus.kind === 'error';
   const modalHeightClass =
@@ -253,14 +252,8 @@ export function ModelEnvConfigModal({
     );
   };
 
-  const updateFormEntry = (
-    index: number,
-    patch: { key?: string; value?: string },
-  ) => {
-    const next = formEntries.map((entry, entryIndex) =>
-      entryIndex === index ? { ...entry, ...patch } : entry,
-    );
-    handleTextChange(serializeEnvEntries(next));
+  const handleFieldChange = (key: string, value: string) => {
+    handleTextChange(setEnvFieldValue(text, key, value));
   };
 
   const handleConnectivityTest = async () => {
@@ -318,16 +311,10 @@ export function ModelEnvConfigModal({
               wrap="off"
             />
           </div>
-        ) : formEntries.length === 0 ? (
-          <div className="relative z-10 mt-[16px] flex w-full justify-center">
-            <div className="box-border flex h-[162px] w-[360px] items-center justify-center rounded-[12px] border border-[#EFEFEE] bg-white px-[16px] text-center font-['Inter'] text-[13px] leading-[18px] text-black/45">
-              Add KEY=VALUE lines in the Text tab to populate fields here.
-            </div>
-          </div>
         ) : (
           <ModelEnvConfigFormFields
-            entries={formEntries}
-            onEntryChange={updateFormEntry}
+            onFieldChange={handleFieldChange}
+            values={envValues}
           />
         )}
 

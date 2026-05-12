@@ -422,15 +422,19 @@ export interface SidebarFooterProps {
   settingsOpen: boolean;
   onToggleSettings: () => void;
   onEnvClick?: () => void;
+  /** Surface a "missing config" red badge on the env dock row. */
+  envAlert?: boolean;
 }
 
 export function SidebarFooter({
+  envAlert,
   settingsOpen,
   onToggleSettings,
   onEnvClick,
 }: SidebarFooterProps) {
   return (
     <SettingsDock
+      envAlert={envAlert}
       onEnvClick={onEnvClick}
       onToggleSettings={onToggleSettings}
       settingsOpen={settingsOpen}
