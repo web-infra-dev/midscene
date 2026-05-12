@@ -265,6 +265,7 @@ export default function ShellLayout() {
           activeView={activeView}
           headerOffsetClass={collapsed ? collapsedHeaderOffsetClass : undefined}
           onSelectDeviceView={() => setActiveView('device')}
+          onSelectOverview={() => setActiveView('overview')}
         />
         {activeView !== 'overview' && (
           <>

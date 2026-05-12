@@ -512,14 +512,21 @@
   // Vertical connector — drawn for every progress step so the line covers
   // the whole run, including the final step. Sits 4px to the right of the
   // "Execution Flow" header text (which starts at the toggle button's 4px
-  // left padding). Default span: top 0 to bottom -16px so adjacent segments
-  // bridge the list-item gap.
+  // left padding).
+  //
+  // Each segment extends `bottom: -8px` to bridge the visual gap between
+  // adjacent items. The gap is 8px because subsequent items carry a
+  // `margin-top: -8px` that collapses Ant List's natural 16px row gap
+  // down to 8px. Extending further (e.g. -16px) would overlap with the
+  // next item's segment and visibly thicken the line in the overlap zone
+  // — translucent rgba additions stack, which shows up as alternating
+  // bright bands in dark mode.
   .list-item:has(.progress-action-item)::after {
     content: '';
     position: absolute;
     left: 8px;
     top: 0;
-    bottom: -16px;
+    bottom: -8px;
     width: 1px;
     background: rgba(0, 0, 0, 0.08);
     pointer-events: none;

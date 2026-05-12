@@ -616,31 +616,28 @@ export function mergeSidebarDeviceBucketsWithDiscovery(
 
   for (const key of AUTHORITATIVE_DISCOVERY_PLATFORMS) {
     const discoveredBucket = discovered[key];
-    const discoveredIds = new Set(discoveredBucket.map((d) => d.id));
 
-    // Drop any session items whose id is not physically present anymore.
-    const survivingSessionItems = sessionBuckets[key].filter((item) =>
-      discoveredIds.has(item.id),
+    // Discovery is the source of truth for order — preserve it across
+    // selection changes so the sidebar doesn't reshuffle when the user
+    // clicks an item. For each discovered device, reuse the matching
+    // session entry (it already carries label/selected/active metadata),
+    // otherwise emit a fresh idle entry. Session items not present in
+    // discovery are dropped (catches unplug while connected).
+    const sessionItemsById = new Map(
+      sessionBuckets[key].map((item) => [item.id, item]),
     );
-    const survivingIds = new Set(survivingSessionItems.map((item) => item.id));
 
-    // Append discovered devices that aren't already covered by the
-    // session bucket (those already carry label/selected/active metadata).
-    const additions: StudioAndroidDeviceItem[] = [];
-    for (const dev of discoveredBucket) {
-      if (!survivingIds.has(dev.id)) {
-        additions.push({
+    merged[key] = discoveredBucket.map(
+      (dev) =>
+        sessionItemsById.get(dev.id) ?? {
           id: dev.id,
           label: dev.label,
           description: dev.description,
           selected: false,
           status: 'idle',
           sessionValues: dev.sessionValues,
-        });
-      }
-    }
-
-    merged[key] = [...survivingSessionItems, ...additions];
+        },
+    );
   }
 
   for (const key of ADDITIVE_DISCOVERY_PLATFORMS) {

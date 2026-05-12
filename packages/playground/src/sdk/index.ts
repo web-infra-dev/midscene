@@ -249,6 +249,8 @@ export class PlaygroundSDK {
     description?: string;
     size?: { width: number; height: number };
     navigationState?: { isLoading: boolean };
+    /** Action names exposed by the connected device's actionSpace. */
+    actionTypes?: string[];
   } | null> {
     const adapter = this.runtimeMetadataAdapter();
     if (!adapter) {

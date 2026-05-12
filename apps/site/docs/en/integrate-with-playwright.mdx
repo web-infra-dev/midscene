@@ -357,6 +357,32 @@ Check [Integrate with any interface](./integrate-with-any-interface#define-a-cus
 
 ## FAQ
 
+### Playwright browser download takes too long
+
+Playwright does not download browser binaries during `npm install` by default. You need to run `npx playwright install` separately, and that step can be slow on limited networks.
+
+You can speed it up in two ways:
+
+1. Use a mirror, for example `npmmirror.com`
+
+```bash
+PLAYWRIGHT_DOWNLOAD_HOST="https://npmmirror.com/mirrors/playwright" npx playwright install
+```
+
+2. Download only the commonly used `chromium`
+
+```bash
+npx playwright install --with-deps chromium
+```
+
+### Cannot click the dropdown
+
+This usually happens when the page uses a native `select` element for the dropdown. In that case, the browser asks the operating system to render the expanded option list with a native control, so the dropdown is not actually rendered inside the webpage and cannot be captured by Playwright screenshots.
+
+First, check the screenshot in the report. If the dropdown options do not appear in the report screenshot after the click, this is very likely the cause.
+
+You can enable `forceChromeSelectRendering` to force Chrome to render the `select` dropdown instead. Once enabled, the dropdown will appear in screenshots and can be recognized by Playwright. The dropdown style will also look noticeably different from the operating system's default style.
+
 ### The webpage continues to flash when running in headed mode
 
 In the local visualization interface, continuous flashing is usually caused by a mismatch between the viewport's `deviceScaleFactor` and the system/browser's pixel ratio (common on high-resolution or Retina screens).

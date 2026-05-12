@@ -338,6 +338,47 @@ describe('mergeSidebarDeviceBucketsWithDiscovery', () => {
     ).toEqual([]);
   });
 
+  it('preserves discovery order across selection changes', () => {
+    // Regression: previously, the selected/active session item was prepended
+    // and other discovered devices appended, so clicking a later item moved
+    // it to the top and visually reshuffled the sidebar on every click.
+    const discovered = {
+      ...emptyBuckets,
+      computer: [
+        {
+          platformId: 'computer' as const,
+          id: 'studio-display',
+          label: 'StudioDisplay',
+          description: 'Primary display',
+        },
+        {
+          platformId: 'computer' as const,
+          id: 'color-lcd',
+          label: 'Color LCD',
+          description: '1',
+        },
+      ],
+    };
+    const sessionWithSecondSelected = {
+      ...emptyBuckets,
+      computer: [
+        {
+          id: 'color-lcd',
+          label: 'Color LCD',
+          selected: true,
+          status: 'idle' as const,
+        },
+      ],
+    };
+
+    expect(
+      mergeSidebarDeviceBucketsWithDiscovery(
+        sessionWithSecondSelected,
+        discovered,
+      ).computer.map((item) => item.id),
+    ).toEqual(['studio-display', 'color-lcd']);
+  });
+
   it('appends discovered devices that session setup has not surfaced', () => {
     const session = emptyBuckets;
     const discovered = {

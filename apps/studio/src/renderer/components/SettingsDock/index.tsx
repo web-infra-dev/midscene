@@ -67,7 +67,7 @@ export default function SettingsDock({
 }: SettingsDockProps) {
   return (
     <div className="flex flex-col gap-[2px]">
-      <DockRow icon={<EnvIcon />} label="Env" onClick={onEnvClick} />
+      <DockRow icon={<EnvIcon />} label="Model Config" onClick={onEnvClick} />
       <DockRow
         active={settingsOpen}
         ariaExpanded={settingsOpen}

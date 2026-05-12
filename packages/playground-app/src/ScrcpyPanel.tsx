@@ -43,6 +43,15 @@ export type ScrcpyErrorOverlayRenderer = (
 interface ScrcpyPanelProps {
   connectingOverlay?: ReactNode;
   deviceId?: string;
+  /**
+   * Fires when the underlying video stream's intrinsic resolution is
+   * known (scrcpy `video-metadata` event), and again with `null` when
+   * the stream tears down. Use this as the source of truth for any
+   * surrounding aspect-ratio calculations — it always matches the
+   * canvas's pixel buffer, unlike `/interface-info.size` which can
+   * drift from the actual stream dimensions by a few pixels.
+   */
+  onIntrinsicSize?: (size: { width: number; height: number } | null) => void;
   onStatusChange?: (status: ScrcpyPreviewStatus, statusText: string) => void;
   renderErrorOverlay?: ScrcpyErrorOverlayRenderer;
   serverUrl?: string;
@@ -60,6 +69,7 @@ interface VideoMetadata {
 export function ScrcpyPanel({
   connectingOverlay,
   deviceId,
+  onIntrinsicSize,
   onStatusChange,
   renderErrorOverlay,
   serverUrl,
@@ -163,6 +173,7 @@ export function ScrcpyPanel({
 
       disposeDecoder();
       clearCanvas();
+      onIntrinsicSize?.(null);
     };
 
     const scheduleReconnect = () => {
@@ -255,6 +266,17 @@ export function ScrcpyPanel({
           clearMetadataTimeout();
           disposeDecoder();
           setWaitingStatusMessage(getScrcpyDecoderStatusText());
+          if (
+            typeof metadata.width === 'number' &&
+            metadata.width > 0 &&
+            typeof metadata.height === 'number' &&
+            metadata.height > 0
+          ) {
+            onIntrinsicSize?.({
+              width: metadata.width,
+              height: metadata.height,
+            });
+          }
           const codecId = metadata.codec
             ? (metadata.codec as unknown as ScrcpyVideoCodecId)
             : ScrcpyVideoCodecId.H264;

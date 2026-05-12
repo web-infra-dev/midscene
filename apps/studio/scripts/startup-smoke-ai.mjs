@@ -228,7 +228,7 @@ async function main() {
     );
 
     await agent.aiAssert(
-      'The right-side Playground setup panel is fully visible and is not clipped by the screenshot edge. The welcome title, platform cards, ADB device field, and Create Agent button should all be readable without being cut off on the right.',
+      'The right-side Playground panel is fully visible and is not clipped by the screenshot edge. The welcome empty state with the heading "Welcome to Midscene.js Playground!" should be readable without being cut off on the right.',
     );
 
     await agent.recordToReport('Studio shell became visible', {
@@ -242,7 +242,7 @@ async function main() {
     await sleep(1_500);
 
     await agent.aiAssert(
-      'A settings popup panel is visible and contains the items Language, Theme, GitHub, Website, and Environment.',
+      'A settings popup panel is visible and contains the items Theme, GitHub, and Website.',
     );
 
     await agent.destroy();

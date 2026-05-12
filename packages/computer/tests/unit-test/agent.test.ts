@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { ComputerAgent, ComputerDevice } from '../../src';
+import {
+  ComputerAgent,
+  ComputerDevice,
+  agentForComputer,
+  agentFromComputer,
+} from '../../src';
 
 describe('ComputerAgent', () => {
   it('should create agent instance', () => {
@@ -31,4 +36,8 @@ describe('ComputerAgent', () => {
 
   // Note: Tests that require actual libnut functionality (like agentFromComputer with connect)
   // should be run as AI tests or integration tests where native modules are available
+
+  it('keeps agentFromComputer as backward-compatible alias of agentForComputer', () => {
+    expect(agentFromComputer).toBe(agentForComputer);
+  });
 });

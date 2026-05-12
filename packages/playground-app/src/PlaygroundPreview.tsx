@@ -6,11 +6,17 @@ import type { ScreenshotViewerMode } from '@midscene/visualizer';
 import type { CSSProperties, ReactNode } from 'react';
 import { PreviewRenderer } from './PreviewRenderer';
 import type { ScrcpyErrorOverlayRenderer } from './ScrcpyPanel';
-import type { ManualDragActionType } from './manual-interaction';
 import type { ScrcpyPreviewStatus } from './scrcpy-preview';
 
 export interface PlaygroundPreviewProps {
   connectingOverlay?: ReactNode;
+  /**
+   * Fires whenever the connected device's intrinsic screen size becomes
+   * available (initial mount) or changes (orientation flip / device
+   * swap). Consumers can use it to drive their own viewport sizing so
+   * the preview chrome tightly hugs the canvas without letterboxing.
+   */
+  onDeviceSizeChange?: (size: { width: number; height: number } | null) => void;
   onScrcpyStatusChange?: (
     status: ScrcpyPreviewStatus,
     statusText: string,
@@ -23,9 +29,6 @@ export interface PlaygroundPreviewProps {
   serverUrl: string;
   serverOnline: boolean;
   isUserOperating: boolean;
-  manualControlEnabled?: boolean;
-  manualDragActionType?: ManualDragActionType;
-  manualKeyboardEnabled?: boolean;
 }
 
 export function PlaygroundPreview(props: PlaygroundPreviewProps) {

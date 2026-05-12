@@ -30,6 +30,7 @@ import type { ScrcpyPreviewStatus } from './scrcpy-preview';
 
 interface PreviewRendererProps {
   connectingOverlay?: ReactNode;
+  onDeviceSizeChange?: (size: { width: number; height: number } | null) => void;
   onScrcpyStatusChange?: (
     status: ScrcpyPreviewStatus,
     statusText: string,
@@ -42,13 +43,6 @@ interface PreviewRendererProps {
   serverUrl: string;
   serverOnline: boolean;
   isUserOperating: boolean;
-  /**
-   * When true, the preview accepts mouse/touch input and forwards it to the
-   * connected device (Android via ADB, iOS via WDA, Harmony via HDC).
-   */
-  manualControlEnabled?: boolean;
-  manualDragActionType?: ManualDragActionType;
-  manualKeyboardEnabled?: boolean;
 }
 
 function isNonLocalhostHttp(): boolean {
@@ -65,6 +59,7 @@ function isNonLocalhostHttp(): boolean {
 
 export function PreviewRenderer({
   connectingOverlay,
+  onDeviceSizeChange,
   onScrcpyStatusChange,
   renderErrorOverlay,
   scrcpyViewportStyle,
@@ -74,9 +69,6 @@ export function PreviewRenderer({
   serverUrl,
   serverOnline,
   isUserOperating,
-  manualControlEnabled = false,
-  manualDragActionType = 'Swipe',
-  manualKeyboardEnabled = false,
 }: PreviewRendererProps) {
   const previewConnection = resolvePreviewConnectionInfo(
     runtimeInfo,
@@ -84,7 +76,30 @@ export function PreviewRenderer({
   );
 
   const [deviceSize, setDeviceSize] = useState<DeviceSize | null>(null);
+  // Pixel dimensions reported by the scrcpy video-metadata event. This is
+  // the canvas's actual pixel buffer size — the authoritative source for
+  // any aspect-ratio calculation, since `/interface-info` can drift from
+  // the real stream resolution by a few pixels.
+  const [streamSize, setStreamSize] = useState<DeviceSize | null>(null);
+  const [actionTypes, setActionTypes] = useState<string[] | null>(null);
   const manualControlQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+
+  // Self-derive interaction capabilities from the connected device's
+  // actionSpace. Tap is the gate for any pointer interaction; the drag
+  // flavor follows whichever name the device exposes (mobile devices ship
+  // both, Computer/Web only ship DragAndDrop). Keyboard injection rides on
+  // KeyboardPress / Input. If any device omits Tap, the interaction layer
+  // stays disabled — defense in depth, since /interact would 404 anyway.
+  const manualControlEnabled = actionTypes?.includes('Tap') ?? false;
+  const manualDragActionType: ManualDragActionType = actionTypes?.includes(
+    'Swipe',
+  )
+    ? 'Swipe'
+    : 'DragAndDrop';
+  const manualKeyboardEnabled =
+    actionTypes?.includes('KeyboardPress') ||
+    actionTypes?.includes('Input') ||
+    false;
 
   const enqueueManualControl = useCallback(
     <TResult,>(task: () => Promise<TResult>): Promise<TResult> => {
@@ -95,16 +110,18 @@ export function PreviewRenderer({
     [],
   );
 
-  // Pull device size from lightweight interface metadata so the interaction
-  // layer can map display coords to device pixels. Refresh periodically
-  // (orientation changes, hot-swapped devices).
+  // Pull device size and actionSpace from /interface-info so the interaction
+  // layer can map display coords to device pixels and decide which
+  // pointer/keyboard actions to forward. Refresh periodically (orientation
+  // changes, hot-swapped devices, dynamically reconfigured action sets).
   useEffect(() => {
-    if (!manualControlEnabled || !serverOnline) {
+    if (!serverOnline) {
       setDeviceSize(null);
+      setActionTypes(null);
       return;
     }
     let cancelled = false;
-    const fetchSize = async () => {
+    const fetchInterfaceInfo = async () => {
       let result: Awaited<ReturnType<typeof playgroundSDK.getInterfaceInfo>>;
       try {
         result = await playgroundSDK.getInterfaceInfo();
@@ -125,14 +142,43 @@ export function PreviewRenderer({
           return { width: size.width, height: size.height };
         });
       }
+      const nextActionTypes = Array.isArray(result?.actionTypes)
+        ? result.actionTypes
+        : null;
+      setActionTypes((current) => {
+        if (current === null && nextActionTypes === null) return current;
+        if (
+          current &&
+          nextActionTypes &&
+          current.length === nextActionTypes.length &&
+          current.every((name, idx) => name === nextActionTypes[idx])
+        ) {
+          return current;
+        }
+        return nextActionTypes;
+      });
     };
-    fetchSize();
-    const timer = setInterval(fetchSize, 5000);
+    fetchInterfaceInfo();
+    const timer = setInterval(fetchInterfaceInfo, 5000);
     return () => {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [manualControlEnabled, playgroundSDK, serverOnline]);
+  }, [playgroundSDK, serverOnline]);
+
+  // Notify consumers when the connected device's intrinsic size changes —
+  // they can use it to size the surrounding chrome to the actual screen
+  // aspect (instead of a hardcoded 9:19.5 assumption that leaves
+  // letterboxing on most modern phones).
+  //
+  // Prefer the scrcpy stream's own pixel buffer dimensions over
+  // `/interface-info.size` when both are available. The canvas inside
+  // ScrcpyPanel sizes itself to the stream buffer, so any aspect-ratio
+  // derived from `/interface-info` can be off by a handful of pixels
+  // (the visible "white edge" inside the rounded device border).
+  useEffect(() => {
+    onDeviceSizeChange?.(streamSize ?? deviceSize);
+  }, [deviceSize, onDeviceSizeChange, streamSize]);
 
   const showManualControlError = useCallback(
     (fallback: string, error?: string) => {
@@ -316,6 +362,7 @@ export function PreviewRenderer({
         <ScrcpyPanel
           connectingOverlay={connectingOverlay}
           deviceId={previewConnection.deviceId}
+          onIntrinsicSize={setStreamSize}
           onStatusChange={onScrcpyStatusChange}
           renderErrorOverlay={renderErrorOverlay}
           serverUrl={previewConnection.scrcpyUrl}

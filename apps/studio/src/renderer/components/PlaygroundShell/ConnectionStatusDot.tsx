@@ -1,7 +1,8 @@
 export type ConnectionStatus = 'connected' | 'disconnected' | 'failed';
 
-// Visible footprint = 8px solid disc + 2px translucent border on each side
-// of the same hue, so the SVG canvas is 12×12.
+// Outer translucent halo + solid inner disc of the same hue. Default
+// sizing is 12px outer / 8px inner; callers can pass a smaller `size`
+// (e.g. the 6px sidebar dot) and the inner scales proportionally.
 const PALETTE: Record<ConnectionStatus, { inner: string; border: string }> = {
   connected: {
     inner: 'rgba(18, 185, 129, 1)',
@@ -25,10 +26,16 @@ const LABEL: Record<ConnectionStatus, string> = {
 
 export interface ConnectionStatusDotProps {
   status: ConnectionStatus;
+  /** Outer halo diameter in px. Defaults to 12. */
+  size?: number;
 }
 
-export function ConnectionStatusDot({ status }: ConnectionStatusDotProps) {
+export function ConnectionStatusDot({
+  status,
+  size = 12,
+}: ConnectionStatusDotProps) {
   const { inner, border } = PALETTE[status];
+  const innerSize = Math.max(2, Math.round((size * 2) / 3));
   return (
     <span
       role="img"
@@ -36,8 +43,8 @@ export function ConnectionStatusDot({ status }: ConnectionStatusDotProps) {
       style={{
         display: 'inline-flex',
         flexShrink: 0,
-        width: 12,
-        height: 12,
+        width: size,
+        height: size,
         borderRadius: '50%',
         background: border,
         alignItems: 'center',
@@ -47,8 +54,8 @@ export function ConnectionStatusDot({ status }: ConnectionStatusDotProps) {
       <span
         style={{
           display: 'block',
-          width: 8,
-          height: 8,
+          width: innerSize,
+          height: innerSize,
           borderRadius: '50%',
           background: inner,
         }}
