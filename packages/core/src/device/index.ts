@@ -77,11 +77,18 @@ export interface ScrollInputPrimitives {
   scroll(param: ActionScrollParam): Promise<void>;
 }
 
+export interface SystemInputPrimitives {
+  backButton?(): Promise<void>;
+  homeButton?(): Promise<void>;
+  recentAppsButton?(): Promise<void>;
+}
+
 export interface InputPrimitives {
   pointer?: PointerInputPrimitives;
   keyboard?: KeyboardInputPrimitives;
   touch?: TouchInputPrimitives;
   scroll?: ScrollInputPrimitives;
+  system?: SystemInputPrimitives;
 }
 
 export interface MobileInputPrimitives extends InputPrimitives {
@@ -923,6 +930,21 @@ export interface MobileInputActionContext {
   size(): Promise<Size>;
   sleep?(timeMs: number): Promise<void>;
   getDefaultAutoDismissKeyboard?(): boolean | undefined;
+  systemActions?: SystemInputActionOptions;
+}
+
+export interface SystemInputActionConfig {
+  name: string;
+  description: string;
+  interfaceAlias?: string;
+  delayBeforeRunner?: number;
+  delayAfterRunner?: number;
+}
+
+export interface SystemInputActionOptions {
+  backButton?: SystemInputActionConfig;
+  homeButton?: SystemInputActionConfig;
+  recentAppsButton?: SystemInputActionConfig;
 }
 
 export interface InputPrimitiveActionOptions {
@@ -930,6 +952,21 @@ export interface InputPrimitiveActionOptions {
   sleep?: (timeMs: number) => Promise<void>;
   includeSwipe?: boolean;
   includePinch?: boolean;
+  systemActions?: SystemInputActionOptions;
+}
+
+function defineSystemInputAction(
+  config: SystemInputActionConfig,
+  call: () => Promise<void>,
+): DeviceAction<undefined, void> {
+  return defineAction<undefined, undefined, void>({
+    name: config.name,
+    description: config.description,
+    interfaceAlias: config.interfaceAlias,
+    delayBeforeRunner: config.delayBeforeRunner,
+    delayAfterRunner: config.delayAfterRunner,
+    call,
+  });
 }
 
 export function defineActionsFromInputPrimitives(
@@ -937,7 +974,7 @@ export function defineActionsFromInputPrimitives(
   options: InputPrimitiveActionOptions = {},
 ): DeviceAction<any>[] {
   const actions: Array<DeviceAction<any> | undefined> = [];
-  const { pointer, keyboard, scroll, touch } = input;
+  const { pointer, keyboard, scroll, touch, system } = input;
 
   if (pointer) {
     actions.push(defineActionTap(pointer.tap));
@@ -979,6 +1016,28 @@ export function defineActionsFromInputPrimitives(
     actions.push(defineActionPinch({ pinch: touch.pinch, size: options.size }));
   }
 
+  if (system && options.systemActions) {
+    const { systemActions } = options;
+    if (system.backButton && systemActions.backButton) {
+      actions.push(
+        defineSystemInputAction(systemActions.backButton, system.backButton),
+      );
+    }
+    if (system.homeButton && systemActions.homeButton) {
+      actions.push(
+        defineSystemInputAction(systemActions.homeButton, system.homeButton),
+      );
+    }
+    if (system.recentAppsButton && systemActions.recentAppsButton) {
+      actions.push(
+        defineSystemInputAction(
+          systemActions.recentAppsButton,
+          system.recentAppsButton,
+        ),
+      );
+    }
+  }
+
   return actions.filter((action): action is DeviceAction<any> =>
     Boolean(action),
   );
@@ -990,6 +1049,7 @@ export function createDefaultMobileActions(
   return defineActionsFromInputPrimitives(context.input, {
     size: context.size,
     sleep: context.sleep,
+    systemActions: context.systemActions,
   });
 }
 

@@ -161,6 +161,11 @@ export class AndroidDevice implements AbstractInterface {
     scroll: {
       scroll: (param) => this.performActionScroll(param),
     },
+    system: {
+      backButton: () => this.back(),
+      homeButton: () => this.home(),
+      recentAppsButton: () => this.recentApps(),
+    },
   };
 
   actionSpace(): DeviceAction<any>[] {
@@ -171,6 +176,25 @@ export class AndroidDevice implements AbstractInterface {
         await sleep(timeMs);
       },
       getDefaultAutoDismissKeyboard: () => this.options?.autoDismissKeyboard,
+      systemActions: {
+        backButton: {
+          name: 'AndroidBackButton',
+          description: 'Trigger the system "back" operation on Android devices',
+          delayBeforeRunner: 0,
+          delayAfterRunner: 0,
+        },
+        homeButton: {
+          name: 'AndroidHomeButton',
+          description: 'Trigger the system "home" operation on Android devices',
+          delayBeforeRunner: 0,
+          delayAfterRunner: 0,
+        },
+        recentAppsButton: {
+          name: 'AndroidRecentAppsButton',
+          description:
+            'Trigger the system "recent apps" operation on Android devices',
+        },
+      },
     };
     const defaultActions = [
       ...createDefaultMobileActions(mobileActionContext),
@@ -2023,9 +2047,6 @@ const createPlatformActions = (
   RunAdbShell: DeviceActionRunAdbShell;
   Launch: DeviceActionLaunch;
   Terminate: DeviceActionTerminate;
-  AndroidBackButton: DeviceActionAndroidBackButton;
-  AndroidHomeButton: DeviceActionAndroidHomeButton;
-  AndroidRecentAppsButton: DeviceActionAndroidRecentAppsButton;
 } => {
   return {
     RunAdbShell: defineAction<
@@ -2075,32 +2096,6 @@ const createPlatformActions = (
           throw new Error('Terminate requires a non-empty uri parameter');
         }
         await device.terminate(param.uri);
-      },
-    }),
-    AndroidBackButton: defineAction({
-      name: 'AndroidBackButton',
-      description: 'Trigger the system "back" operation on Android devices',
-      delayBeforeRunner: 0,
-      delayAfterRunner: 0,
-      call: async () => {
-        await device.back();
-      },
-    }),
-    AndroidHomeButton: defineAction({
-      name: 'AndroidHomeButton',
-      description: 'Trigger the system "home" operation on Android devices',
-      delayBeforeRunner: 0,
-      delayAfterRunner: 0,
-      call: async () => {
-        await device.home();
-      },
-    }),
-    AndroidRecentAppsButton: defineAction({
-      name: 'AndroidRecentAppsButton',
-      description:
-        'Trigger the system "recent apps" operation on Android devices',
-      call: async () => {
-        await device.recentApps();
       },
     }),
   } as const;
