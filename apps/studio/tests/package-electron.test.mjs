@@ -6,6 +6,7 @@ import {
   assertPortablePackagedNodeModules,
   buildArtifactBaseName,
   buildInstallWorkspaceManifest,
+  buildMacDittoArchiveArgs,
   buildPackagedAppManifest,
   buildPackagerOptions,
   buildPnpmSupportedArchitectures,
@@ -30,6 +31,7 @@ import {
   resolveMacCodeSignEntitlementsPath,
   resolveMacPackagedAppBundlePath,
   resolveMacPackagedAppSecurity,
+  resolvePackagedAppArchiver,
   resolvePackagerIconPath,
   shouldUseShellForCommand,
   slimStageNodeModules,
@@ -1090,5 +1092,46 @@ describe('package-electron helpers', () => {
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }
+  });
+
+  // Regression guards for macOS signing/notarization survival. Skipping any of
+  // these allows the packaged `.app` to lose its stapler ticket through the
+  // GitHub artifact zip round-trip, producing the
+  // "Apple cannot verify Midscene Studio.app" Gatekeeper rejection.
+  it('keeps `--sequesterRsrc` and `--keepParent` in the macOS ditto archive args', () => {
+    const args = buildMacDittoArchiveArgs({
+      sourcePath: '/tmp/Midscene Studio.app',
+      artifactPath: '/tmp/Midscene Studio.zip',
+    });
+    expect(args).toContain('--sequesterRsrc');
+    expect(args).toContain('--keepParent');
+    expect(args).toContain('-c');
+    expect(args).toContain('-k');
+    expect(args[args.length - 2]).toBe('/tmp/Midscene Studio.app');
+    expect(args[args.length - 1]).toBe('/tmp/Midscene Studio.zip');
+  });
+
+  it('always routes macOS archiving through ditto', () => {
+    expect(resolvePackagedAppArchiver('darwin')).toBe('ditto');
+    expect(resolvePackagedAppArchiver('win32')).toBe('powershell');
+    expect(resolvePackagedAppArchiver('linux')).toBe('zip');
+  });
+
+  it('release workflow always archives the Studio app and never skips it', async () => {
+    const workflowPath = path.join(
+      releaseWorkspaceDir,
+      '..',
+      '..',
+      '.github',
+      'workflows',
+      'release.yml',
+    );
+    const workflow = await fs.readFile(workflowPath, 'utf8');
+    // `--skip-archive` would bypass `archivePackagedApp` and let
+    // `actions/upload-artifact` re-zip the raw `.app`, dropping xattrs and
+    // breaking the notarization stapler ticket on macOS.
+    expect(workflow).not.toMatch(/--skip-archive/);
+    expect(workflow).toMatch(/Package Midscene Studio/);
+    expect(workflow).toMatch(/\.release\/studio\/artifacts\/\*\.zip/);
   });
 });

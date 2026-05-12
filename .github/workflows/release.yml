@@ -269,24 +269,10 @@ jobs:
     - name: Build Studio and Nx dependencies
       run: npx nx build studio
 
-    - name: Package prerelease Midscene Studio
-      if: ${{ needs.release.outputs.is_prerelease == 'true' }}
-      run: pnpm --dir apps/studio run package:release -- --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --version=${{ needs.release.outputs.version }} --skip-archive
-
-    - name: Package release Midscene Studio
-      if: ${{ needs.release.outputs.is_prerelease != 'true' }}
+    - name: Package Midscene Studio
       run: pnpm --dir apps/studio run package:release -- --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --version=${{ needs.release.outputs.version }}
 
-    - name: Upload prerelease packaged Studio artifact
-      if: ${{ needs.release.outputs.is_prerelease == 'true' }}
-      uses: actions/upload-artifact@v4
-      with:
-        if-no-files-found: error
-        name: studio_${{ matrix.platform }}_${{ matrix.arch }}
-        path: ${{ github.workspace }}/.release/studio/packaged/*
-
-    - name: Upload release packaged Studio archive
-      if: ${{ needs.release.outputs.is_prerelease != 'true' }}
+    - name: Upload packaged Studio artifact
       uses: actions/upload-artifact@v4
       with:
         if-no-files-found: error

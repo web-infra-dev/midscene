@@ -1582,15 +1582,22 @@ const createPackagingWorkspace = async ({
   );
 };
 
+// `--sequesterRsrc` and `--keepParent` are load-bearing for macOS: they keep
+// extended attributes (where the notarization stapler ticket lives) and the
+// Electron `.app` framework symlinks intact through the zip round-trip.
+// Without them, Gatekeeper rejects the unzipped bundle with
+// "Apple cannot verify Midscene Studio.app".
+export const buildMacDittoArchiveArgs = ({ sourcePath, artifactPath }) => [
+  '-c',
+  '-k',
+  '--sequesterRsrc',
+  '--keepParent',
+  sourcePath,
+  artifactPath,
+];
+
 const archiveWithDitto = async ({ sourcePath, artifactPath }) => {
-  await run('ditto', [
-    '-c',
-    '-k',
-    '--sequesterRsrc',
-    '--keepParent',
-    sourcePath,
-    artifactPath,
-  ]);
+  await run('ditto', buildMacDittoArchiveArgs({ sourcePath, artifactPath }));
 };
 
 const archiveWithZip = async ({ sourcePath, artifactPath }) => {
@@ -1607,6 +1614,20 @@ const archiveWithPowerShell = async ({ sourcePath, artifactPath }) => {
   ]);
 };
 
+// Returns the archiver name selected for a given host platform. Exported so
+// regression tests can assert macOS always routes through `ditto` — anything
+// else (the generic zip used by `actions/upload-artifact`, `zip`, etc.) drops
+// xattrs and breaks the signed/notarized bundle.
+export const resolvePackagedAppArchiver = (hostPlatform) => {
+  if (hostPlatform === 'darwin') {
+    return 'ditto';
+  }
+  if (hostPlatform === 'win32') {
+    return 'powershell';
+  }
+  return 'zip';
+};
+
 const archivePackagedApp = async ({
   hostPlatform,
   sourcePath,
@@ -1615,6 +1636,10 @@ const archivePackagedApp = async ({
   await removeIfExists(artifactPath);
   await fs.mkdir(path.dirname(artifactPath), { recursive: true });
 
+  // macOS MUST go through ditto. Skipping archive (or substituting a generic
+  // zip step like `actions/upload-artifact`'s internal compressor) strips the
+  // stapled notarization ticket and breaks `_CodeSignature/CodeResources`,
+  // causing Gatekeeper to refuse to launch the bundle after download.
   if (hostPlatform === 'darwin') {
     await archiveWithDitto({ sourcePath, artifactPath });
     return artifactPath;
@@ -1815,7 +1840,6 @@ export const packageStudioElectronApp = async ({
   version,
   platform = process.platform,
   arch = resolveDefaultPackageArch(platform, process.arch),
-  skipArchive = false,
 } = {}) => {
   const normalizedVersion = normalizeReleaseVersion(version);
   const baseName = buildArtifactBaseName({
@@ -1873,13 +1897,6 @@ export const packageStudioElectronApp = async ({
     });
   }
 
-  if (skipArchive) {
-    console.log(
-      `Skipping Midscene Studio archive creation. Packaged app: ${packagedAppPath}`,
-    );
-    return packagedAppPath;
-  }
-
   await archivePackagedApp({
     hostPlatform: process.platform,
     sourcePath: packagedAppPath,
@@ -1901,7 +1918,6 @@ if (isDirectInvocation) {
     options: {
       arch: { type: 'string' },
       platform: { type: 'string' },
-      'skip-archive': { type: 'boolean' },
       version: { type: 'string' },
     },
   });
@@ -1915,7 +1931,6 @@ if (isDirectInvocation) {
   await packageStudioElectronApp({
     arch: values.arch,
     platform: values.platform,
-    skipArchive: values['skip-archive'],
     version,
   });
 }
