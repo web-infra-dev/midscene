@@ -35,6 +35,12 @@ export default function StudioPlaygroundReadyProvider({
   const controller = usePlaygroundController({
     initialFormValues: { platformId: DEFAULT_PLATFORM_ID },
     serverUrl,
+    // Computer mode hands control of the desktop to the agent right after the
+    // countdown; minimise Studio so the controlled apps are in view instead
+    // of the Studio chrome.
+    onCountdownFinish: () => {
+      void window.electronShell?.minimizeWindow();
+    },
   });
 
   useEffect(() => {
