@@ -1219,10 +1219,28 @@ const vendorWorkspacePackages = async ({ workspacePackages, vendorDir }) => {
   return vendoredWorkspacePackages;
 };
 
+// `pnpm.supportedArchitectures` tells pnpm which platform/arch slices of
+// optional dependencies to materialize. Without it, cross-platform packaging
+// (e.g. building the Windows artifact on a macOS host) silently drops the
+// target's native binaries — most importantly `@img/sharp-win32-x64`, which
+// makes `import('sharp')` throw inside the packaged Windows Studio and forces
+// every image transform onto the WASM fallback.
+export const buildPnpmSupportedArchitectures = (platform, arch) => {
+  if (!platform || !arch) {
+    return undefined;
+  }
+  return {
+    os: [platform],
+    cpu: [arch],
+  };
+};
+
 export const buildInstallWorkspaceManifest = ({
   packageJson,
   version,
   vendoredWorkspacePackages,
+  targetPlatform,
+  targetArch,
 }) => {
   const dependencies = buildResolvedWorkspaceDependencyVersions({
     dependencies: packageJson.dependencies,
@@ -1235,10 +1253,16 @@ export const buildInstallWorkspaceManifest = ({
     ]),
   );
 
+  const supportedArchitectures = buildPnpmSupportedArchitectures(
+    targetPlatform,
+    targetArch,
+  );
+
   return {
     ...buildPackagedAppManifest(packageJson, version, dependencies),
     pnpm: {
       overrides,
+      ...(supportedArchitectures ? { supportedArchitectures } : {}),
     },
   };
 };
@@ -1486,7 +1510,12 @@ const installStageDependencies = async (stageDir) => {
   );
 };
 
-const createPackagingWorkspace = async ({ stageDir, version }) => {
+const createPackagingWorkspace = async ({
+  stageDir,
+  version,
+  targetPlatform,
+  targetArch,
+}) => {
   const studioPackageJson = getStudioPackageJson();
   const workspacePackages = collectWorkspaceDependencyClosure(
     getStudioRuntimeWorkspaceDependencyNames(studioPackageJson),
@@ -1512,6 +1541,8 @@ const createPackagingWorkspace = async ({ stageDir, version }) => {
     packageJson: studioPackageJson,
     version,
     vendoredWorkspacePackages,
+    targetPlatform,
+    targetArch,
   });
 
   await fs.writeFile(
@@ -1782,7 +1813,12 @@ export const packageStudioElectronApp = async ({
   const stageDir = path.join(packagingWorkspaceDir, baseName);
   const macSecurity = resolveMacPackagedAppSecurity({ platform });
 
-  await createPackagingWorkspace({ stageDir, version: normalizedVersion });
+  await createPackagingWorkspace({
+    stageDir,
+    version: normalizedVersion,
+    targetPlatform: platform,
+    targetArch: arch,
+  });
 
   await removeIfExists(packagedDir);
   await fs.mkdir(packagedDir, { recursive: true });

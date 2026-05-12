@@ -8,6 +8,7 @@ import {
   buildInstallWorkspaceManifest,
   buildPackagedAppManifest,
   buildPackagerOptions,
+  buildPnpmSupportedArchitectures,
   buildVendoredWorkspaceDirName,
   buildVendoredWorkspaceManifest,
   collectNestedMacCodeSignTargets,
@@ -624,6 +625,47 @@ describe('package-electron helpers', () => {
       },
       productName: 'Midscene Studio',
       version: '1.7.4',
+    });
+    expect(installManifest.pnpm).not.toHaveProperty('supportedArchitectures');
+  });
+
+  it('writes pnpm.supportedArchitectures into the install manifest when a target platform/arch is provided', () => {
+    const installManifest = buildInstallWorkspaceManifest({
+      packageJson: {
+        dependencies: {
+          '@midscene/shared': 'workspace:*',
+        },
+        type: 'module',
+      },
+      version: 'v1.7.4',
+      vendoredWorkspacePackages: [
+        {
+          name: '@midscene/shared',
+          packageJson: { version: '1.7.4' },
+          vendorDirName: 'midscene-shared',
+        },
+      ],
+      targetPlatform: 'win32',
+      targetArch: 'x64',
+    });
+
+    expect(installManifest.pnpm).toMatchObject({
+      overrides: {
+        '@midscene/shared': 'file:vendor/midscene-shared',
+      },
+      supportedArchitectures: {
+        os: ['win32'],
+        cpu: ['x64'],
+      },
+    });
+  });
+
+  it('omits pnpm.supportedArchitectures when the target platform or arch is missing', () => {
+    expect(buildPnpmSupportedArchitectures(undefined, 'x64')).toBeUndefined();
+    expect(buildPnpmSupportedArchitectures('win32', undefined)).toBeUndefined();
+    expect(buildPnpmSupportedArchitectures('win32', 'x64')).toEqual({
+      os: ['win32'],
+      cpu: ['x64'],
     });
   });
 
