@@ -174,11 +174,12 @@
     white-space: normal;
     border-radius: 14px;
     border-inline-start-width: 1px;
+    border-color: var(--midscene-border-strong, #e9ecf3);
     padding: 14px 16px;
     display: flex;
     align-items: flex-start;
     justify-content: flex-start;
-    background: #fff;
+    background: var(--midscene-surface-elevated, #fff);
     transition:
       border-color 0.2s ease,
       box-shadow 0.2s ease,
@@ -189,13 +190,13 @@
     }
 
     &:hover {
-      border-color: #1677ff;
+      border-color: var(--midscene-brand, #1677ff);
       transform: translateY(-1px);
     }
   }
 
   .ant-radio-button-wrapper-checked {
-    border-color: #1677ff;
+    border-color: var(--midscene-brand, #1677ff);
     box-shadow: 0 10px 24px rgba(22, 119, 255, 0.12);
   }
 }
@@ -204,7 +205,7 @@
   .platform-selector-title {
     font-size: 15px;
     font-weight: 600;
-    color: rgba(0, 0, 0, 0.88);
+    color: var(--midscene-text-primary, rgba(0, 0, 0, 0.88));
     line-height: 1.4;
   }
 
@@ -212,7 +213,7 @@
     margin-top: 6px;
     font-size: 12px;
     line-height: 1.5;
-    color: rgba(0, 0, 0, 0.5);
+    color: var(--midscene-text-tertiary, rgba(0, 0, 0, 0.5));
   }
 }
 
@@ -224,11 +225,11 @@
 }
 
 .session-select-option-label {
-  color: rgba(0, 0, 0, 0.88);
+  color: var(--midscene-text-primary, rgba(0, 0, 0, 0.88));
 }
 
 .session-select-option-description {
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--midscene-text-tertiary, rgba(0, 0, 0, 0.45));
   font-size: 12px;
 }
 
