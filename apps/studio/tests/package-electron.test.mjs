@@ -19,6 +19,7 @@ import {
   dropMidsceneEsmBuilds,
   getStudioElectronVersion,
   normalizeReleaseVersion,
+  packagedAsarOptions,
   parseBooleanLike,
   pathContainsReportTemplatePlaceholder,
   pruneAntdUmdBundles,
@@ -96,7 +97,7 @@ describe('package-electron helpers', () => {
     ).toThrow(/Unsupported Electron platform/);
   });
 
-  it('ships the app unpacked and preserves the portable pnpm symlink graph', () => {
+  it('packages the app payload as asar while preserving portable pnpm links', () => {
     expect(
       buildPackagerOptions({
         arch: 'x64',
@@ -106,7 +107,7 @@ describe('package-electron helpers', () => {
       }),
     ).toMatchObject({
       arch: 'x64',
-      asar: false,
+      asar: packagedAsarOptions,
       derefSymlinks: false,
       dir: '/tmp/stage',
       electronVersion: getStudioElectronVersion(),
@@ -114,6 +115,21 @@ describe('package-electron helpers', () => {
       platform: 'darwin',
       prune: false,
     });
+  });
+
+  it('keeps native modules and helper binaries outside app.asar', () => {
+    expect(packagedAsarOptions.unpack).toContain('*.{node,dll,dylib,so,exe}');
+    expect(packagedAsarOptions.unpackDir).toContain('node_modules/sharp');
+    expect(packagedAsarOptions.unpackDir).toContain('node_modules/@img');
+    expect(packagedAsarOptions.unpackDir).toContain(
+      path.join('node_modules', '@computer-use', 'libnut'),
+    );
+    expect(packagedAsarOptions.unpackDir).toContain(
+      path.join('node_modules', '@ffmpeg-installer'),
+    );
+    expect(packagedAsarOptions.unpackDir).toContain(
+      path.join('node_modules', '@midscene', 'computer', 'bin'),
+    );
   });
 
   it('points packager at the Midscene .icns on macOS', () => {

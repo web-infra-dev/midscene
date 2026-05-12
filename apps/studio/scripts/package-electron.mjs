@@ -46,6 +46,19 @@ const packagedIgnorePatterns = [
   // Source maps duplicate what `pruneSourceMapFiles` already removed.
   /\.js\.map$/,
 ];
+const packagedAsarUnpackDirs = [
+  'node_modules/@computer-use/libnut',
+  'node_modules/@ffmpeg-installer',
+  'node_modules/@img',
+  'node_modules/@midscene/android/bin',
+  'node_modules/@midscene/computer/bin',
+  'node_modules/@midscene/computer/native',
+  'node_modules/sharp',
+].map((relativePath) => relativePath.split('/').join(path.sep));
+export const packagedAsarOptions = {
+  unpack: '**/{.**,**}/**/*.{node,dll,dylib,so,exe}',
+  unpackDir: `{${packagedAsarUnpackDirs.join(',')}}`,
+};
 const defaultMacEntitlementsPath = path.join(
   studioBuildDir,
   'entitlements.mac.plist',
@@ -375,11 +388,11 @@ export const resolvePackagerIconPath = (platform) => {
 
 export const buildPackagerOptions = ({ arch, outDir, platform, stageDir }) => ({
   arch,
-  // Keep the app directory unpacked. The staging workspace installs vendored
-  // local packages into a hoisted node_modules layout with portable relative
-  // links. Preserve that layout during packaging so helper symlinks do not get
-  // expanded into duplicated dependency trees.
-  asar: false,
+  // Store the JS payload in app.asar so release artifacts do not have to
+  // compress/extract tens of thousands of tiny node_modules files. Native
+  // modules and helper binaries stay unpacked because the OS dynamic loader and
+  // spawned processes need real filesystem paths.
+  asar: packagedAsarOptions,
   derefSymlinks: false,
   dir: stageDir,
   electronVersion: getStudioElectronVersion(),
