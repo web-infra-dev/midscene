@@ -24,6 +24,7 @@ import {
   pruneGifwrapTestFixtures,
   pruneSourceMapFiles,
   releaseWorkspaceDir,
+  resolveDefaultPackageArch,
   resolveMacCodeSignEntitlementsPath,
   resolveMacPackagedAppBundlePath,
   resolveMacPackagedAppSecurity,
@@ -46,6 +47,16 @@ describe('package-electron helpers', () => {
         arch: 'x64',
       }),
     ).toBe('midscene-studio-v1.7.4-darwin-x64');
+  });
+
+  it('defaults Windows packaging to x64 regardless of host arch', () => {
+    expect(resolveDefaultPackageArch('win32', 'arm64')).toBe('x64');
+    expect(resolveDefaultPackageArch('win32', 'x64')).toBe('x64');
+  });
+
+  it('keeps the host arch as the default for non-Windows packaging', () => {
+    expect(resolveDefaultPackageArch('darwin', 'arm64')).toBe('arm64');
+    expect(resolveDefaultPackageArch('linux', 'x64')).toBe('x64');
   });
 
   it('creates a packaged manifest that points Electron at the built main entry', () => {
@@ -110,9 +121,14 @@ describe('package-electron helpers', () => {
     expect(iconPath).toMatch(/apps\/studio\/assets\/midscene-icon\.icns$/);
   });
 
-  it('returns no icon for platforms without a prebuilt asset so packager uses its default', () => {
+  it('returns no icon for Linux so packager uses its default', () => {
     expect(resolvePackagerIconPath('linux')).toBeUndefined();
-    expect(resolvePackagerIconPath('win32')).toBeUndefined();
+  });
+
+  it('points packager at the Midscene .ico on Windows', () => {
+    const iconPath = resolvePackagerIconPath('win32');
+    expect(iconPath).toBeTruthy();
+    expect(iconPath).toMatch(/apps\/studio\/assets\/midscene-icon\.ico$/);
   });
 
   it('threads the resolved icon into the packager options', () => {

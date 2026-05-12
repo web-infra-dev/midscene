@@ -329,6 +329,17 @@ export const buildArtifactBaseName = ({ version, platform, arch }) => {
   return `${packagedAppId}-v${normalizeReleaseVersion(version)}-${platform}-${arch}`;
 };
 
+export const resolveDefaultPackageArch = (
+  platform = process.platform,
+  hostArch = process.arch,
+) => {
+  if (platform === 'win32') {
+    return 'x64';
+  }
+
+  return hostArch;
+};
+
 export const buildPackagedAppManifest = (
   packageJson,
   version,
@@ -1759,7 +1770,7 @@ export const notarizePackagedMacApp = async ({
 export const packageStudioElectronApp = async ({
   version,
   platform = process.platform,
-  arch = process.arch,
+  arch = resolveDefaultPackageArch(platform, process.arch),
 } = {}) => {
   const normalizedVersion = normalizeReleaseVersion(version);
   const baseName = buildArtifactBaseName({
