@@ -42,40 +42,18 @@ const sectionDefinitions: SectionDefinition[] = [
 
 const EMPTY_DEVICE_ID_PREFIX = '__empty__';
 
-function SectionChevron({ expanded }: { expanded: boolean }) {
-  return (
-    <svg
-      aria-hidden="true"
-      className={`text-text-tertiary transition-transform ${expanded ? 'rotate-180' : ''}`}
-      fill="none"
-      height="16"
-      viewBox="0 0 16 16"
-      width="16"
-    >
-      <path
-        d="M12 10L8 6L4 10"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 function SectionHeader({
-  expanded,
   iconSrc,
   label,
   onClick,
 }: {
-  expanded: boolean;
   iconSrc?: string;
   label: string;
   onClick: () => void;
 }) {
   return (
     <button
-      className="flex h-8 w-full appearance-none items-center gap-[6px] rounded-lg border-0 bg-transparent pl-[12px] pr-[14px] text-left hover:bg-surface-hover"
+      className="mb-[2px] flex h-8 w-full appearance-none items-center gap-[6px] rounded-lg border-0 bg-transparent px-[12px] text-left hover:bg-surface-hover"
       onClick={onClick}
       type="button"
     >
@@ -90,7 +68,6 @@ function SectionHeader({
       <span className="flex-1 overflow-hidden whitespace-nowrap font-sans text-[13px] font-medium leading-[22px] text-text-secondary">
         {label}
       </span>
-      <SectionChevron expanded={expanded} />
     </button>
   );
 }
@@ -105,7 +82,7 @@ function DeviceRow({
 }) {
   return (
     <button
-      className={`flex h-8 w-full cursor-pointer appearance-none items-center gap-[6px] rounded-[10px] border-0 pl-[12px] pr-[14px] text-left transition-colors ${
+      className={`flex h-8 w-full cursor-pointer appearance-none items-center gap-[6px] rounded-[10px] border-0 px-[12px] text-left transition-colors ${
         selected
           ? 'bg-surface-hover hover:bg-surface-hover'
           : 'bg-transparent hover:bg-surface-hover active:bg-surface-active'
@@ -135,7 +112,7 @@ function DeviceRow({
 
 function EmptyDeviceRow() {
   return (
-    <div className="flex h-8 w-full items-center gap-[6px] rounded-lg pl-[12px] pr-[14px]">
+    <div className="flex h-8 w-full items-center gap-[6px] rounded-lg px-[12px]">
       <div className="h-4 w-4 shrink-0" />
       <span className="flex-1 overflow-hidden whitespace-nowrap font-sans text-[13px] font-normal leading-[13px] text-text-tertiary">
         No devices
@@ -348,7 +325,7 @@ export default function Sidebar({
   return (
     <div className="flex flex-col">
       <button
-        className={`flex h-8 w-full appearance-none items-center gap-[6px] border-0 pl-[12px] pr-[14px] text-left ${
+        className={`flex h-8 w-full appearance-none items-center gap-[6px] border-0 px-[12px] text-left ${
           overviewActive
             ? 'rounded-[10px] bg-black/5'
             : 'rounded-lg bg-transparent hover:bg-surface-hover'
@@ -382,7 +359,6 @@ export default function Sidebar({
             return (
               <div className="flex flex-col" key={section.key}>
                 <SectionHeader
-                  expanded={isExpanded}
                   iconSrc={section.iconSrc}
                   label={section.label}
                   onClick={() => toggleSection(section.key)}

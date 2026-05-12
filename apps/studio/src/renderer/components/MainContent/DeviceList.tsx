@@ -136,7 +136,7 @@ const PLATFORM_TOOLCHAIN_HINTS: Partial<
   Record<StudioSidebarPlatformKey, { label: string; href: string }>
 > = {
   android: {
-    label: '⚠️ 未检测到 adb',
+    label: '⚠️ ADB not detected',
     href: STUDIO_EXTERNAL_LINKS.androidIntegrationFaq,
   },
 };

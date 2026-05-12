@@ -10,19 +10,19 @@ function EnvIcon() {
       viewBox="0 0 16 16"
     >
       <rect
-        height="10"
+        height="11"
         rx="1.5"
         stroke="currentColor"
-        strokeWidth="1.2"
-        width="11"
-        x="2.5"
-        y="3"
+        strokeWidth="1.4"
+        width="13"
+        x="1.5"
+        y="2.5"
       />
       <path
-        d="M5 6.5h6M5 9h4"
+        d="M4 6.5h8M4 9.5h5"
         stroke="currentColor"
         strokeLinecap="round"
-        strokeWidth="1.2"
+        strokeWidth="1.4"
       />
     </svg>
   );
