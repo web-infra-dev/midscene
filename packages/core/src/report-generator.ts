@@ -1,4 +1,17 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+/*
+ * PERF INVARIANT — DO NOT reintroduce sync fs APIs (writeFileSync /
+ * appendFileSync) in this file's write paths. `ReportGenerator` runs on
+ * the Electron main event loop during agent execution, and a single
+ * progress tick appends a multi-MB ExecutionDump payload. Sync I/O here
+ * blocked the loop for 20+ seconds per run, freezing IPC, scrcpy and
+ * every renderer round-trip. Always use `fs/promises`. See commit
+ * 6a25e05c and `report-generator-async-contract.test.ts`.
+ */
+import { existsSync, mkdirSync, readdirSync } from 'node:fs';
+import {
+  appendFile as appendFileAsync,
+  writeFile as writeFileAsync,
+} from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
@@ -18,7 +31,7 @@ import {
   type ReportAttributes,
   type ReportMeta,
 } from './types';
-import { appendFileSync, getReportTpl } from './utils';
+import { getReportTpl } from './utils';
 
 export interface IReportGenerator {
   /**
@@ -101,6 +114,7 @@ export class ReportGenerator implements IReportGenerator {
     screenshotMode: 'inline' | 'directory';
     persistExecutionDump?: boolean;
     autoPrint?: boolean;
+    reuseExistingReport?: boolean;
   }) {
     this.reportPath = options.reportPath;
     this.screenshotMode = options.screenshotMode;
@@ -111,14 +125,17 @@ export class ReportGenerator implements IReportGenerator {
       mode: this.screenshotMode === 'inline' ? 'inline' : 'directory',
       reportPath: this.reportPath,
       screenshotsDir: join(dirname(this.reportPath), 'screenshots'),
-      writeInlineImage: (id, base64) => {
-        appendFileSync(
+      writeInlineImage: async (id, base64) => {
+        await appendFileAsync(
           this.reportPath,
           `\n${generateImageScriptTag(id, base64)}`,
         );
       },
       alsoWriteFileCopy: this.shouldPersistExecutionDump,
     });
+    if (options.reuseExistingReport) {
+      this.hydrateStateFromExistingReport();
+    }
     this.printReportPath('will be generated at');
   }
 
@@ -129,6 +146,7 @@ export class ReportGenerator implements IReportGenerator {
       persistExecutionDump?: boolean;
       outputFormat?: 'single-html' | 'html-and-external-assets';
       autoPrintReportMsg?: boolean;
+      reuseExistingReport?: boolean;
     },
   ): IReportGenerator {
     assertReportGenerationOptions(opts);
@@ -138,15 +156,21 @@ export class ReportGenerator implements IReportGenerator {
     if (ifInBrowser) return nullReportGenerator;
     validateReportFileName(reportFileName);
 
-    const outputDir = join(getMidsceneRunSubDir('report'), reportFileName);
+    const reportRootDir = getMidsceneRunSubDir('report');
+    const outputDir = join(reportRootDir, reportFileName);
+    const reportPath =
+      opts.outputFormat === 'html-and-external-assets'
+        ? join(outputDir, 'index.html')
+        : join(reportRootDir, ensureHtmlFileName(reportFileName));
     return new ReportGenerator({
-      reportPath: join(outputDir, 'index.html'),
+      reportPath,
       screenshotMode:
         opts.outputFormat === 'html-and-external-assets'
           ? 'directory'
           : 'inline',
       persistExecutionDump: opts.persistExecutionDump,
       autoPrint: opts.autoPrintReportMsg,
+      reuseExistingReport: opts.reuseExistingReport,
     });
   }
 
@@ -158,9 +182,9 @@ export class ReportGenerator implements IReportGenerator {
     this.lastExecution = execution;
     this.lastReportMeta = reportMeta;
     this.mergeReportAttributes(attributes);
-    this.writeQueue = this.writeQueue.then(() => {
+    this.writeQueue = this.writeQueue.then(async () => {
       if (this.destroyed) return;
-      this.doWriteExecution(execution, reportMeta);
+      await this.doWriteExecution(execution, reportMeta);
     });
   }
 
@@ -203,20 +227,20 @@ export class ReportGenerator implements IReportGenerator {
     }
   }
 
-  private doWriteExecution(
+  private async doWriteExecution(
     execution: ExecutionDump,
     reportMeta: ReportMeta,
-  ): void {
+  ): Promise<void> {
     const singleDump = this.wrapAsReportDump(execution, reportMeta);
 
     if (this.screenshotMode === 'inline') {
-      this.writeInlineExecution(execution, singleDump);
+      await this.writeInlineExecution(execution, singleDump);
     } else {
-      this.writeDirectoryExecution(execution, singleDump);
+      await this.writeDirectoryExecution(execution, singleDump);
     }
 
     if (this.shouldPersistExecutionDump) {
-      this.persistExecutionDumpToFile(execution, singleDump);
+      await this.persistExecutionDumpToFile(execution, singleDump);
     }
 
     if (!this.firstWriteDone) {
@@ -234,10 +258,31 @@ export class ReportGenerator implements IReportGenerator {
       if (value === undefined || value === null) {
         continue;
       }
-      if (key === 'data-group-id') {
-        continue;
-      }
       this.reportAttributes[key] = String(value);
+    }
+  }
+
+  private hydrateStateFromExistingReport(): void {
+    if (!existsSync(this.reportPath)) {
+      return;
+    }
+
+    // Reuse existing report file and append new updates instead of rewriting.
+    this.initialized = true;
+
+    if (!this.shouldPersistExecutionDump) {
+      return;
+    }
+
+    const reportDir = dirname(this.reportPath);
+    const existingExecutionIndices = readdirSync(reportDir)
+      .map((name) => /^(\d+)\.execution\.json$/.exec(name)?.[1])
+      .filter((index): index is string => Boolean(index))
+      .map((index) => Number.parseInt(index, 10))
+      .filter((index) => Number.isFinite(index));
+
+    if (existingExecutionIndices.length > 0) {
+      this.executionLogIndex = Math.max(...existingExecutionIndices);
     }
   }
 
@@ -269,11 +314,16 @@ export class ReportGenerator implements IReportGenerator {
    * Append-only inline mode: write new screenshots and a dump tag on every call.
    * The frontend deduplicates executions with the same id/name (keeps last).
    * Duplicate dump JSON is acceptable; only screenshots are deduplicated.
+   *
+   * All writes go through `fs/promises` so they run on libuv's thread pool
+   * rather than blocking the Node event loop. A long agent run previously
+   * appended multi-MB dumps (screenshots + serialized tasks) per progress
+   * tick on the main thread, starving IPC and UI for >10s per stall.
    */
-  private writeInlineExecution(
+  private async writeInlineExecution(
     execution: ExecutionDump,
     singleDump: ReportActionDump,
-  ): void {
+  ): Promise<void> {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
@@ -281,48 +331,48 @@ export class ReportGenerator implements IReportGenerator {
 
     // Initialize: write HTML template once
     if (!this.initialized) {
-      writeFileSync(this.reportPath, getReportTpl());
+      await writeFileAsync(this.reportPath, getReportTpl());
       this.initialized = true;
     }
 
     // Append new screenshots (skip already-written ones)
     for (const screenshot of execution.collectScreenshots()) {
-      this.screenshotStore.persist(screenshot);
+      await this.screenshotStore.persist(screenshot);
     }
 
     // Append dump tag (always — frontend keeps only last per execution id)
     const serialized = singleDump.serialize();
-    appendFileSync(
+    await appendFileAsync(
       this.reportPath,
       `\n${generateDumpScriptTag(serialized, this.getDumpScriptAttributes())}`,
     );
   }
 
-  private writeDirectoryExecution(
+  private async writeDirectoryExecution(
     execution: ExecutionDump,
     singleDump: ReportActionDump,
-  ): void {
+  ): Promise<void> {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
 
     for (const screenshot of execution.collectScreenshots()) {
-      this.screenshotStore.persist(screenshot);
+      await this.screenshotStore.persist(screenshot);
     }
 
     // 2. Append dump tag (always — frontend keeps only last per execution id)
     const serialized = singleDump.serialize();
 
     if (!this.initialized) {
-      writeFileSync(
+      await writeFileAsync(
         this.reportPath,
         `${getReportTpl()}${getBaseUrlFixScript()}`,
       );
       this.initialized = true;
     }
 
-    appendFileSync(
+    await appendFileAsync(
       this.reportPath,
       `\n${generateDumpScriptTag(serialized, this.getDumpScriptAttributes())}`,
     );
@@ -337,10 +387,10 @@ export class ReportGenerator implements IReportGenerator {
     return `id:${execution.id}`;
   }
 
-  private persistExecutionDumpToFile(
+  private async persistExecutionDumpToFile(
     execution: ExecutionDump,
     singleDump: ReportActionDump,
-  ): void {
+  ): Promise<void> {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
@@ -357,8 +407,14 @@ export class ReportGenerator implements IReportGenerator {
 
     const fileName = `${fileIndex}.execution.json`;
     const filePath = join(dirname(this.reportPath), fileName);
-    writeFileSync(filePath, singleDump.serialize(2), 'utf-8');
+    await writeFileAsync(filePath, singleDump.serialize(2), 'utf-8');
   }
+}
+
+function ensureHtmlFileName(reportFileName: string): string {
+  return reportFileName.endsWith('.html')
+    ? reportFileName
+    : `${reportFileName}.html`;
 }
 
 function validateReportFileName(reportFileName: string): void {

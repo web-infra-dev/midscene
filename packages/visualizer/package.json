@@ -1,6 +1,6 @@
 {
   "name": "@midscene/visualizer",
-  "version": "1.7.0",
+  "version": "1.7.10",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./dist/types/index.d.ts",
@@ -10,7 +10,12 @@
     ".": {
       "types": "./dist/types/index.d.ts",
       "import": "./dist/es/index.mjs",
-      "require": "./dist/es/index.js"
+      "require": "./dist/lib/index.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      ".": ["./dist/types/index.d.ts"]
     }
   },
   "files": ["dist", "html", "README.md"],

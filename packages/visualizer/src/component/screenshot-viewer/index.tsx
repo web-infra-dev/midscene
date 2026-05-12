@@ -1,7 +1,9 @@
 import { InfoCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import { Button, Spin, Tooltip } from 'antd';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './index.less';
+
+export type ScreenshotViewerMode = 'default' | 'screen-only';
 
 interface ScreenshotViewerProps {
   getScreenshot: () => Promise<{
@@ -11,10 +13,12 @@ interface ScreenshotViewerProps {
   getInterfaceInfo?: () => Promise<{
     type: string;
     description?: string;
+    size?: { width: number; height: number };
   } | null>;
   serverOnline: boolean;
   isUserOperating?: boolean; // Whether user is currently operating
   mjpegUrl?: string; // When provided, use MJPEG live stream instead of polling
+  mode?: ScreenshotViewerMode;
 }
 
 export default function ScreenshotViewer({
@@ -23,6 +27,7 @@ export default function ScreenshotViewer({
   serverOnline,
   isUserOperating = false,
   mjpegUrl,
+  mode = 'default',
 }: ScreenshotViewerProps) {
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -31,12 +36,37 @@ export default function ScreenshotViewer({
   const [interfaceInfo, setInterfaceInfo] = useState<{
     type: string;
     description?: string;
+    size?: { width: number; height: number };
   } | null>(null);
+  // Changing mjpegRetryToken forces the <img> to remount so the multipart connection
+  // is reopened. Used both for natural retries on stream errors and for the
+  // server-driven upgrade from polling fallback to native MJPEG.
+  const [mjpegRetryToken, setMjpegRetryToken] = useState('');
+  const mjpegImageRef = useRef<HTMLImageElement | null>(null);
   const isMjpeg = Boolean(mjpegUrl && serverOnline);
+  const showChrome = mode !== 'screen-only';
+  const rootClassName = [
+    'screenshot-viewer',
+    mode === 'screen-only' && 'screen-only',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   // Refs for managing polling
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isPollingPausedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isMjpeg) return;
+    const timer = window.setTimeout(() => {
+      const image = mjpegImageRef.current;
+      if (!image || image.naturalWidth > 0 || image.naturalHeight > 0) {
+        return;
+      }
+      setMjpegRetryToken(String(Date.now()));
+    }, 2500);
+    return () => window.clearTimeout(timer);
+  }, [isMjpeg, mjpegRetryToken, mjpegUrl]);
 
   // Core function to fetch screenshot
   const fetchScreenshot = useCallback(
@@ -166,7 +196,7 @@ export default function ScreenshotViewer({
 
   // Manage user operation status changes
   useEffect(() => {
-    if (!serverOnline) return;
+    if (!serverOnline || isMjpeg) return;
 
     if (isUserOperating) {
       // When user starts operating, pause polling
@@ -182,6 +212,7 @@ export default function ScreenshotViewer({
     resumePolling,
     fetchScreenshot,
     serverOnline,
+    isMjpeg,
   ]);
 
   // Cleanup function
@@ -193,7 +224,7 @@ export default function ScreenshotViewer({
 
   if (!serverOnline) {
     return (
-      <div className="screenshot-viewer offline">
+      <div className={`${rootClassName} offline`}>
         <div className="screenshot-placeholder">
           <h3>📱 Screen Preview</h3>
           <p>Start the playground server to see real-time screenshots</p>
@@ -204,7 +235,7 @@ export default function ScreenshotViewer({
 
   if (!isMjpeg && loading && !screenshot) {
     return (
-      <div className="screenshot-viewer loading">
+      <div className={`${rootClassName} loading`}>
         <Spin size="large" />
         <p>Loading screenshot...</p>
       </div>
@@ -213,7 +244,7 @@ export default function ScreenshotViewer({
 
   if (!isMjpeg && error && !screenshot) {
     return (
-      <div className="screenshot-viewer error">
+      <div className={`${rootClassName} error`}>
         <div className="screenshot-placeholder">
           <h3>📱 Screen Preview</h3>
           <p className="error-message">{error}</p>
@@ -232,8 +263,63 @@ export default function ScreenshotViewer({
     return new Date(timestamp).toLocaleTimeString();
   };
 
+  const screenshotContent = (
+    <div className="screenshot-content">
+      {isMjpeg ? (
+        <img
+          key={mjpegRetryToken || 'initial'}
+          ref={mjpegImageRef}
+          src={
+            !mjpegRetryToken
+              ? mjpegUrl
+              : `${mjpegUrl}${mjpegUrl?.includes('?') ? '&' : '?'}_mjpegRetry=${encodeURIComponent(mjpegRetryToken)}`
+          }
+          alt="Device Live Stream"
+          className="screenshot-image"
+          onError={() => {
+            // Server may have closed the polling fallback because the native
+            // MJPEG stream just came online; reconnect so the next /mjpeg
+            // request lands on the native (faster) path. Also covers
+            // transient network blips.
+            window.setTimeout(
+              () => setMjpegRetryToken(String(Date.now())),
+              500,
+            );
+          }}
+        />
+      ) : screenshot ? (
+        <img
+          src={
+            screenshot.startsWith('data:image/')
+              ? screenshot
+              : `data:image/png;base64,${screenshot}`
+          }
+          alt="Device Screenshot"
+          className="screenshot-image"
+          onLoad={() => console.log('Screenshot image loaded successfully')}
+          onError={(e) => {
+            console.error('Screenshot image load error:', e);
+            console.error(
+              'Screenshot data preview:',
+              screenshot.substring(0, 100),
+            );
+            setError('Failed to load screenshot image');
+          }}
+        />
+      ) : (
+        <div className="screenshot-placeholder">
+          <p>No screenshot available</p>
+        </div>
+      )}
+    </div>
+  );
+
+  if (!showChrome) {
+    return <div className={rootClassName}>{screenshotContent}</div>;
+  }
+
   return (
-    <div className="screenshot-viewer">
+    <div className={rootClassName}>
       <div className="screenshot-header">
         <div className="screenshot-title">
           <h3>{interfaceInfo?.type ? interfaceInfo.type : 'Device Name'}</h3>
@@ -270,38 +356,7 @@ export default function ScreenshotViewer({
             </div>
           )}
         </div>
-        <div className="screenshot-content">
-          {isMjpeg ? (
-            <img
-              src={mjpegUrl}
-              alt="Device Live Stream"
-              className="screenshot-image"
-            />
-          ) : screenshot ? (
-            <img
-              src={
-                screenshot.startsWith('data:image/')
-                  ? screenshot
-                  : `data:image/png;base64,${screenshot}`
-              }
-              alt="Device Screenshot"
-              className="screenshot-image"
-              onLoad={() => console.log('Screenshot image loaded successfully')}
-              onError={(e) => {
-                console.error('Screenshot image load error:', e);
-                console.error(
-                  'Screenshot data preview:',
-                  screenshot.substring(0, 100),
-                );
-                setError('Failed to load screenshot image');
-              }}
-            />
-          ) : (
-            <div className="screenshot-placeholder">
-              <p>No screenshot available</p>
-            </div>
-          )}
-        </div>
+        {screenshotContent}
       </div>
     </div>
   );

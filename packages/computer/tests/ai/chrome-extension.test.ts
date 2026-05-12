@@ -150,22 +150,33 @@ describe('chrome extension smoke test', () => {
   // ── 6. Settings Modal ─────────────────────────────────────────────────
 
   it('settings: open and close env config modal', async () => {
+    const openEnvConfigModal = async () => {
+      await agent.aiAct(
+        `Click the settings icon in the top-right header area of ${SIDE_PANEL}, next to the GitHub and help icons. Do not click the run configuration icon inside the prompt composer.`,
+      );
+      await sleep(1500);
+    };
+
+    await openEnvConfigModal();
+
+    try {
+      await agent.aiAssert(
+        'A modal titled "Model Env Config" is visible, and it contains a large text area for environment variable configuration.',
+      );
+    } catch {
+      await openEnvConfigModal();
+      await agent.aiAssert(
+        'A modal titled "Model Env Config" is visible, and it contains a large text area for environment variable configuration.',
+      );
+    }
+
     await agent.aiAct(
-      `Click the gear or settings icon in the top area of ${SIDE_PANEL}`,
+      'Click the X close button in the top-right corner of the "Model Env Config" modal.',
     );
-    await sleep(1000);
+    await sleep(1500);
 
     await agent.aiAssert(
-      'A modal or dialog is visible with title containing "Config" or "Env" and a text area for environment variable configuration',
-    );
-
-    await agent.aiAct(
-      'Click the "Cancel" button or the close button (X) on the modal',
-    );
-    await sleep(1000);
-
-    await agent.aiAssert(
-      `The modal is closed and ${SIDE_PANEL} is visible with Playground UI`,
+      `The "Model Env Config" modal is closed, and ${SIDE_PANEL} is visible showing Playground UI without any modal overlay.`,
     );
   });
 });

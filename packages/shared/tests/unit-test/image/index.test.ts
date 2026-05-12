@@ -8,6 +8,7 @@ import {
   localImg2Base64,
   resizeAndConvertImgBuffer,
   resizeImgBase64,
+  validateScreenshotBuffer,
 } from 'src/img';
 import {
   createImgBase64ByFormat,
@@ -193,6 +194,50 @@ describe('image utils', () => {
       ),
     );
     expect(isValid).toBe(false);
+  });
+
+  it('validateScreenshotBuffer accepts valid screenshots above the minimum size', () => {
+    const buffer = readFileSync(getFixture('icon.png'));
+
+    expect(() =>
+      validateScreenshotBuffer(buffer, {
+        label: 'Screenshot',
+        minBufferSize: 8,
+      }),
+    ).not.toThrow();
+  });
+
+  it('validateScreenshotBuffer rejects empty screenshots', () => {
+    expect(() =>
+      validateScreenshotBuffer(Buffer.alloc(0), {
+        label: 'Screenshot',
+        minBufferSize: 0,
+      }),
+    ).toThrow('Screenshot validation failed: buffer size 0 bytes');
+  });
+
+  it('validateScreenshotBuffer rejects invalid image buffers', () => {
+    expect(() =>
+      validateScreenshotBuffer(Buffer.from('not-an-image'), {
+        label: 'Screenshot',
+        minBufferSize: 0,
+      }),
+    ).toThrow('Screenshot buffer has invalid image format');
+  });
+
+  it('validateScreenshotBuffer rejects screenshots below the configured size threshold', () => {
+    const buffer = readFileSync(getFixture('icon.png'));
+
+    expect(() =>
+      validateScreenshotBuffer(buffer, {
+        label: 'Screenshot',
+        minBufferSize: buffer.length + 1,
+      }),
+    ).toThrow(
+      `Screenshot validation failed: buffer size ${buffer.length} bytes (minimum: ${
+        buffer.length + 1
+      })`,
+    );
   });
 
   it('httpImg2Base64', async () => {

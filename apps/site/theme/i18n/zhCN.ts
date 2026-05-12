@@ -69,8 +69,9 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Feature Cards
   featureRichAPIs: '丰富的 API',
   featureRichAPIsDesc: '同时支持智能执行流程与原子化精确控制。',
-  featureMCPServer: 'MCP Server',
-  featureMCPServerDesc: '将设备操作暴露为 MCP Server，并可与多种模型协作使用。',
+  featureSkillsMcp: 'Skills 与 MCP',
+  featureSkillsMcpDesc:
+    '为 AI 编程工具提供开箱即用的 Agent Skills，同时支持将设备操作暴露为 MCP Server。',
   featureReportsPlayground: '报告与 Playground',
   featureReportsPlaygroundDesc:
     '提供直观的可视化报告，帮助开发者回溯自动化流程',
@@ -78,7 +79,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   featureFlexibleIntegrationDesc:
     '支持使用 Yaml 编写自动化流程，支持自定义 Agent 执行策略',
   featureRichAPIsLink: '/api',
-  featureMCPServerLink: '/mcp',
+  featureSkillsMcpLink: '/skills',
   featureReportsPlaygroundLink: '/quick-experience',
   featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
 

@@ -45,6 +45,35 @@ describe('playground session state helpers', () => {
     });
   });
 
+  test('selects the default device after a previously empty select receives options', () => {
+    expect(
+      buildSessionInitialValues(
+        {
+          fields: [
+            {
+              key: 'android.deviceId',
+              label: 'ADB device',
+              type: 'select',
+              required: true,
+              defaultValue: 'SERIAL123',
+              options: [
+                {
+                  label: 'SERIAL123',
+                  value: 'SERIAL123',
+                },
+              ],
+            },
+          ],
+        },
+        {
+          'android.deviceId': '',
+        },
+      ),
+    ).toEqual({
+      'android.deviceId': 'SERIAL123',
+    });
+  });
+
   test('resolves auto-create input from setup defaults', () => {
     expect(
       resolveAutoCreateSessionInput({

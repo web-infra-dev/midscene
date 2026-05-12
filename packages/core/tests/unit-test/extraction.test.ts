@@ -194,6 +194,32 @@ describe('parseXMLExtractionResponse', () => {
     );
   });
 
+  it('should throw error when data-json is markdown text instead of JSON', () => {
+    const xml = `
+<thought>根据蓝色框选中的模块，提取到两个子页面：工具入口对比页、协商工具展示页，按照要求整理每个页面的信息如下。</thought>
+<data-json>
+# 页面名：工具入口（BEFORE/AFTER对比）
+# 页面描述：展示订单协商工具入口改造前后的界面对比，呈现不同阶段的订单列表页面样式，体现设计优化方向
+# 页面操作动线：1. 进入订单列表页 查看原无协商入口界面（BEFORE区） 查看优化后带协商入口界面（AFTER区）
+# 复用组件：列表卡片、操作按钮、表头导航
+# 交互规则：列表滚动展示、入口按钮点击跳转至协商页面
+
+---
+
+# 页面名：协商工具
+# 页面描述：展示订单协商工具展开后的完整侧边弹窗界面，呈现协商内容的完整布局
+# 页面操作动线：点击订单入口唤起协商工具侧边栏 查看完整协商订单信息与操作选项
+# 复用组件：侧边弹窗、列表卡片、操作按钮、内容区块
+# 交互规则：侧边弹窗展开/收起、内容区域滚动、操作按钮跳转对应协商流程
+</data-json>
+<errors>[]</errors>
+    `.trim();
+
+    expect(() => parseXMLExtractionResponse(xml)).toThrow(
+      'Failed to parse data-json',
+    );
+  });
+
   it('should ignore invalid errors field', () => {
     const xml = `
 <data-json>

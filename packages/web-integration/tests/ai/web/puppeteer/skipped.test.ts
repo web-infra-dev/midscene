@@ -44,6 +44,27 @@ describe(
     );
 
     it.skip(
+      'search Video of Midscene',
+      async () => {
+        const { originPage, reset } = await launchPage(
+          'https://www.bilibili.com/',
+          {
+            headless: false,
+          },
+        );
+        ctx.resetFn = reset;
+        ctx.agent = new PuppeteerAgent(originPage, {
+          persistExecutionDump: true,
+        });
+
+        await sleep(10 * 1000);
+
+        await ctx.agent.aiAct('Search and play the video of Midscene');
+      },
+      LONG_TEST_TIMEOUT,
+    );
+
+    it.skip(
       'drag and drop',
       async () => {
         const { originPage, reset } = await launchPage(

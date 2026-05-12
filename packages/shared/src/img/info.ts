@@ -73,3 +73,30 @@ export function isValidJPEGImageBuffer(buffer: Buffer): boolean {
 export function isValidImageBuffer(buffer: Buffer): boolean {
   return isValidPNGImageBuffer(buffer) || isValidJPEGImageBuffer(buffer);
 }
+
+export interface ValidateScreenshotBufferOptions {
+  label: string;
+  minBufferSize?: number;
+}
+
+export function validateScreenshotBuffer(
+  screenshotBuffer: Buffer | undefined,
+  { label, minBufferSize = 0 }: ValidateScreenshotBufferOptions,
+): asserts screenshotBuffer is Buffer {
+  const bufferSize = screenshotBuffer?.length ?? 0;
+  if (!screenshotBuffer || bufferSize === 0) {
+    throw new Error(
+      `${label} validation failed: buffer size ${bufferSize} bytes`,
+    );
+  }
+
+  if (!isValidImageBuffer(screenshotBuffer)) {
+    throw new Error(`${label} buffer has invalid image format`);
+  }
+
+  if (minBufferSize > 0 && bufferSize < minBufferSize) {
+    throw new Error(
+      `${label} validation failed: buffer size ${bufferSize} bytes (minimum: ${minBufferSize})`,
+    );
+  }
+}

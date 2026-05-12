@@ -13,12 +13,15 @@ dotenv.config({
 
 const aiTestType = process.env.AI_TEST_TYPE;
 const unitTests = ['tests/unit-test/**/*.test.ts'];
-const aiComputerTests = ['tests/ai/**/*.test.ts'];
+const aiComputerTests = ['tests/ai/*.test.ts'];
+const aiComputerRdpTests = ['tests/ai/rdp/**/*.test.ts'];
 
 const testFiles = (() => {
   switch (aiTestType) {
     case 'computer':
       return [...aiComputerTests];
+    case 'computer-rdp':
+      return [...aiComputerRdpTests];
     default:
       return unitTests;
   }

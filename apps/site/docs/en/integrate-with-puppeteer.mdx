@@ -21,13 +21,14 @@ There is also a demo of Playwright with Vitest: [https://github.com/web-infra-de
 
 ### Step 1. Install dependencies
 
-<PackageManagerTabs command="install @midscene/web puppeteer tsx --save-dev" />
+<PackageManagerTabs command="install @midscene/web puppeteer tsx dotenv --save-dev" />
 
 ### Step 2. Write scripts
 
 Write and save the following code as `./demo.ts`.
 
 ```typescript title="./demo.ts"
+import 'dotenv/config'; // load Midscene environment variables from .env if present
 import puppeteer from "puppeteer";
 import { PuppeteerAgent } from "@midscene/web/puppeteer";
 
@@ -200,6 +201,44 @@ await agent.aiAct('click the red button five times');
 ```
 
 Check [Integrate with any interface](./integrate-with-any-interface#define-a-custom-action) for more details about defining custom actions.
+
+## FAQ
+
+### Puppeteer installation is slow or gets stuck
+
+Puppeteer downloads a browser binary during `postinstall`. If that download is slow or blocked, installation can appear to hang.
+
+```bash
+# Skip browser download first so dependency installation can finish
+PUPPETEER_SKIP_DOWNLOAD=true npm install
+
+# Then download Chrome from a mirror
+# This example uses https://registry.npmmirror.com
+# Different mirror providers may use different base-url rules
+npx puppeteer browsers install chrome --base-url="https://registry.npmmirror.com/-/binary/chrome-for-testing"
+```
+
+### Cannot click the dropdown
+
+If the dropdown options do not appear in the report screenshot after you click the field, the page is usually using a native `select` element. In that case, the expanded dropdown is rendered by the operating system instead of inside the webpage.
+
+You can enable `forceChromeSelectRendering` to force Chrome to render the dropdown. For the detailed explanation and how to confirm the issue, see [Playwright FAQ — Cannot click the dropdown](./integrate-with-playwright#cannot-click-the-dropdown).
+
+### The webpage continues to flash when running in headed mode
+
+This is caused by a mismatch between the viewport's `deviceScaleFactor` and the system pixel ratio. Set `deviceScaleFactor` to `0` to automatically use the device pixel ratio:
+
+```typescript
+await page.setViewport({
+  deviceScaleFactor: 0,
+});
+```
+
+For more details, see [Playwright FAQ — The webpage continues to flash](./integrate-with-playwright#the-webpage-continues-to-flash-when-running-in-headed-mode).
+
+### Customize the network timeout
+
+Midscene automatically waits for the network to be idle after interactions. You can customize or disable the timeout — see [Playwright FAQ — Customize the network timeout](./integrate-with-playwright#customize-the-network-timeout) for details.
 
 ## More
 

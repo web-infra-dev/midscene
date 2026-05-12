@@ -6,7 +6,8 @@
   flex-direction: column;
   height: 100vh;
   width: 100%;
-  background: #fff;
+  background: var(--midscene-surface, #fff);
+  color: var(--midscene-text-primary, inherit);
   position: relative;
 
   .command-form {
@@ -92,6 +93,14 @@
         border: none;
         background: none;
       }
+
+      .playground-empty-state-wrapper {
+        min-height: 100%;
+      }
+
+      .playground-empty-state-wrapper-offset-for-prompt {
+        padding-bottom: 128px;
+      }
     }
 
     .scroll-to-bottom-button {
@@ -99,8 +108,8 @@
       bottom: 10px;
       right: 0;
       z-index: 10;
-      background: #fff;
-      border: 1px solid rgba(0, 0, 0, 0.08);
+      background: var(--midscene-surface-elevated, #fff);
+      border: 1px solid var(--midscene-border-strong, rgba(0, 0, 0, 0.08));
 
       &:hover {
         background: #1890ff;
@@ -125,10 +134,10 @@
     margin: 20px 0 30px;
 
     .user-message-bubble {
-      background: rgba(242, 244, 247, 1);
+      background: var(--midscene-surface-muted, rgba(242, 244, 247, 1));
       border-radius: 12px;
       padding: 12px 16px;
-      color: rgba(0, 0, 0, 0.85);
+      color: var(--midscene-text-primary, rgba(0, 0, 0, 0.85));
       display: inline-block;
       max-width: 80%;
       text-align: left;
@@ -139,8 +148,8 @@
 
   // Progress Message Styles
   .progress-action-item {
-    background: #f2f4f7;
-    color: #000;
+    background: var(--midscene-surface-muted, #f2f4f7);
+    color: var(--midscene-text-primary, #000);
     font-size: 14px;
     height: 36px;
     line-height: 36px;
@@ -194,13 +203,13 @@
     }
 
     .system-message-content {
-      color: rgba(0, 0, 0, 0.85);
+      color: var(--midscene-text-primary, rgba(0, 0, 0, 0.85));
       font-size: 14px;
 
       .system-message-text {
         font-size: 14px;
         line-height: 25px;
-        color: rgba(0, 0, 0, 0.85);
+        color: var(--midscene-text-primary, rgba(0, 0, 0, 0.85));
       }
 
       .error-message {
@@ -252,27 +261,58 @@
       left: 0;
       right: 0;
       height: 1px;
-      background-color: #e8e8e8;
+      background-color: var(--midscene-divider, #e8e8e8);
     }
 
     .separator-text-container {
-      background-color: #fff;
+      background-color: var(--midscene-surface, #fff);
       padding: 0 16px;
       position: relative;
       z-index: 1;
 
       .separator-text {
         font-size: 12px;
-        color: #999;
-        background-color: #fff;
+        color: var(--midscene-text-tertiary, #999);
+        background-color: var(--midscene-surface, #fff);
       }
+    }
+  }
+
+  // Collapsible progress group header (only shown when
+  // `UniversalPlaygroundConfig.collapsibleProgressGroup` is enabled).
+  .progress-group-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    color: var(--midscene-text-tertiary, rgba(0, 0, 0, 0.5));
+    padding: 0 4px;
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 15px;
+    user-select: none;
+
+    &:hover {
+      color: var(--midscene-text-secondary, rgba(0, 0, 0, 0.7));
+    }
+
+    .progress-group-toggle-chevron {
+      font-size: 10px;
+      transition: transform 0.15s ease-out;
+    }
+
+    &.is-collapsed .progress-group-toggle-chevron {
+      transform: rotate(180deg);
     }
   }
 
   // Bottom Input Section
   .bottom-input-section {
     flex-shrink: 0;
-    background-color: #fff;
+    background-color: var(--midscene-surface, #fff);
     padding: 16px 0 0 0;
   }
 
@@ -351,6 +391,185 @@
         text-decoration: underline;
       }
     }
+  }
+}
+
+/*
+ * --- Conversation skin ---
+ *
+ * Shared skin used by `PlaygroundConversationPanel` across Studio and the
+ * standalone playground apps. Renders consecutive progress steps as a
+ * stair-stepped column, tightens message spacing, and adopts the compact
+ * bubble/input treatment previously unique to the Studio shell.
+ */
+.playground-container.playground-conversation-skin {
+  .middle-dialog-area .info-list-container {
+    padding: 20px 16px 32px;
+  }
+
+  .middle-dialog-area .info-list-container .ant-list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .middle-dialog-area .info-list-container .list-item {
+    padding: 0;
+  }
+
+  .user-message-container {
+    margin: 0;
+  }
+
+  .user-message-container .user-message-bubble {
+    max-width: min(80%, 280px);
+    border-radius: 12px;
+    padding: 8px 16px;
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  .bottom-input-section {
+    flex-shrink: 0;
+    background: var(--midscene-surface);
+    padding: 12px;
+  }
+
+  .list-item:has(.progress-action-item) {
+    position: relative;
+    padding-left: 0;
+  }
+
+  // Pill + description stack as plain blocks; vertical spacing is set via
+  // explicit `margin-top: 8px` on the description below so it matches the
+  // 8px we get between consecutive list-items (16px list gap minus the
+  // -8px margin-top below).
+  .list-item > div:has(> .progress-action-item) {
+    display: block;
+  }
+
+  .progress-action-item {
+    display: flex;
+    width: fit-content;
+    max-width: 100%;
+    height: 28px;
+    align-items: center;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 4px;
+    padding: 2px 12px 2px 4px;
+    margin: 0 0 0 24px;
+    border-radius: 38px;
+    background: rgba(0, 0, 0, 0.08);
+    color: rgba(0, 0, 0, 0.7);
+    font-family: Inter, sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 22px;
+    letter-spacing: 0;
+  }
+
+  .progress-action-item .progress-status-icon {
+    display: inline-flex;
+    width: 16px;
+    height: 28px;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0;
+    font-size: 16px;
+  }
+
+  // Description wrapper: the visualiser renders descriptions inside an
+  // unclassed `<div>` right after the pill span. The `margin-top: 8px`
+  // here gives the pill exactly 8px of breathing room below it — the same
+  // distance we use above the pill (between consecutive list-items).
+  .progress-action-item + div {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+    width: 100%;
+  }
+
+  .progress-description {
+    padding: 0;
+    margin: 0;
+    color: rgba(0, 0, 0, 0.85);
+  }
+
+  .system-message-content,
+  .system-message-content .system-message-text {
+    font-size: 14px;
+    line-height: 22px;
+    color: rgba(0, 0, 0, 0.85);
+  }
+
+  // Ant-list's 16px row gap would visibly outpace the 8px intra-step
+  // gap; pull each subsequent progress item up by 8px to equalise.
+  .list-item:has(.progress-action-item)
+    + .list-item:has(.progress-action-item) {
+    margin-top: -8px;
+  }
+
+  // Vertical connector — drawn for every progress step so the line covers
+  // the whole run, including the final step. Sits 4px to the right of the
+  // "Execution Flow" header text (which starts at the toggle button's 4px
+  // left padding).
+  //
+  // Each segment extends `bottom: -8px` to bridge the visual gap between
+  // adjacent items. The gap is 8px because subsequent items carry a
+  // `margin-top: -8px` that collapses Ant List's natural 16px row gap
+  // down to 8px. Extending further (e.g. -16px) would overlap with the
+  // next item's segment and visibly thicken the line in the overlap zone
+  // — translucent rgba additions stack, which shows up as alternating
+  // bright bands in dark mode.
+  .list-item:has(.progress-action-item)::after {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: -8px;
+    width: 1px;
+    background: rgba(0, 0, 0, 0.08);
+    pointer-events: none;
+  }
+
+  // First step in a run: nudge the line down so it clears the
+  // "Execution Flow" toggle header above the pill.
+  .list-item:not(.list-item:has(.progress-action-item) + .list-item):has(
+      .progress-action-item
+    )::after {
+    top: 23px;
+  }
+
+  // Last step in a run: stop the line at the pill's bottom instead of
+  // extending into the gap that follows.
+  .list-item:has(.progress-action-item):not(
+      :has(+ .list-item .progress-action-item)
+    )::after {
+    bottom: 0;
+  }
+
+  .progress-group-toggle {
+    padding-left: 4px;
+    margin: 0 0 8px;
+  }
+}
+
+// Dark mode palette for the conversation skin — rgba(0,0,0,0.08) on a dark
+// surface is invisible, flip every channel.
+[data-theme='dark'] .playground-container.playground-conversation-skin {
+  .progress-action-item {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .list-item:has(.progress-action-item)::after {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .system-message-content,
+  .system-message-content .system-message-text,
+  .progress-description {
+    color: var(--midscene-text-primary);
   }
 }
 

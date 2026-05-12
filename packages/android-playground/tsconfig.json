@@ -7,7 +7,8 @@
     "declarationDir": "dist/types",
     "types": ["node"],
     "paths": {
-      "@midscene/android": ["../android/src/index.ts"]
+      "@midscene/android": ["../android/src/index.ts"],
+      "@midscene/shared/constants": ["../shared/src/constants/index.ts"]
     }
   },
   "include": ["src"],

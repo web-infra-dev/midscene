@@ -10,7 +10,9 @@ import { sleep } from '@midscene/core/utils';
 import { beforeAll, describe, it, vi } from 'vitest';
 import { type ComputerAgent, agentFromComputer } from '../../src';
 import {
+  bringPageToFront,
   findExtensionPageTarget,
+  findPageTargetByUrlPrefix,
   injectExtensionConfig,
   launchChromeWithExtension,
   readExtensionId,
@@ -21,6 +23,7 @@ vi.setConfig({ testTimeout: 600 * 1000 });
 
 const SIDE_PANEL =
   'the Midscene side panel on the right side of the browser window';
+const TODO_MVC_URL_PREFIX = 'https://todomvc.com/examples/react/dist/';
 
 describe('chrome extension playground advanced tests', () => {
   let agent: ComputerAgent;
@@ -42,6 +45,15 @@ describe('chrome extension playground advanced tests', () => {
     extId = await readExtensionId();
     console.log('Extension ID:', extId);
   });
+
+  async function focusTodoMvcPage(): Promise<void> {
+    const target = await findPageTargetByUrlPrefix(TODO_MVC_URL_PREFIX);
+    if (!target?.webSocketDebuggerUrl) {
+      throw new Error('TodoMVC page target not found');
+    }
+    await bringPageToFront(target.webSocketDebuggerUrl);
+    await sleep(1500);
+  }
 
   it('open side panel and configure', async () => {
     await agent.aiAct(
@@ -69,6 +81,7 @@ describe('chrome extension playground advanced tests', () => {
       `In ${SIDE_PANEL}, click the text input area and type: What is the title text shown at the top of the TodoMVC page?`,
     );
     await sleep(500);
+    await focusTodoMvcPage();
     await agent.aiAct(`Click the "Run" button in ${SIDE_PANEL}`);
     await sleep(30000);
     await agent.aiWaitFor(
@@ -84,8 +97,10 @@ describe('chrome extension playground advanced tests', () => {
       `In ${SIDE_PANEL}, click the text input area and type: Enter "Buy groceries" in the todo input box, then press Enter`,
     );
     await sleep(500);
+    await focusTodoMvcPage();
     await agent.aiAct(`Click the "Run" button in ${SIDE_PANEL}`);
     await sleep(30000);
+    await focusTodoMvcPage();
     await agent.aiWaitFor(
       'The TodoMVC page on the left shows a todo item containing "Buy groceries"',
       { timeoutMs: 180000, checkIntervalMs: 10000 },

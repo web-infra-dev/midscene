@@ -4,7 +4,8 @@
     "baseUrl": ".",
     "sourceMap": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@midscene/shared/constants": ["../shared/src/constants/index.ts"]
     },
     "rootDir": "src",
     "target": "ES2022",
@@ -18,6 +19,9 @@
     },
     {
       "path": "../visualizer"
+    },
+    {
+      "path": "../shared"
     }
   ]
 }

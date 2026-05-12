@@ -3,86 +3,18 @@ import { StaticPage, StaticPageAgent } from '@midscene/web/static';
 import type { ZodObjectSchema } from '../types';
 import { isZodObjectSchema, unwrapZodType } from '../types';
 
-// Get action name based on type
-export const actionNameForType = (type: string) => {
-  if (!type) return '';
-  // Remove 'ai' prefix and convert camelCase to space-separated words
-  const typeWithoutAi = type.startsWith('ai') ? type.slice(2) : type;
-
-  // Special handling for iOS-specific actions to preserve their full names
-  if (typeWithoutAi.startsWith('IOS')) {
-    // For IOS actions, keep IOS as a unit and add spaces before remaining capital letters
-    return typeWithoutAi
-      .substring(3)
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/^/, 'IOS')
-      .trim();
-  }
-
-  const fullName = typeWithoutAi.replace(/([A-Z])/g, ' $1').trim();
-
-  // For long names, keep the last 3 words to make them shorter
-  const words = fullName.split(' ');
-  const result = words.length > 3 ? words.slice(-3).join(' ') : fullName;
-
-  // Capitalize the first letter of each word for consistent display
-  return result.replace(/\b\w/g, (c) => c.toUpperCase());
-};
+/**
+ * @deprecated Import `actionNameForType` from `./action-label` directly.
+ * This re-export exists only to keep older import paths working and may be
+ * removed once all call sites are migrated.
+ */
+export { actionNameForType } from './action-label';
+export { getPlaceholderForType } from './prompt-placeholder';
 
 // Create static agent from context
 export const staticAgentFromContext = (context: UIContext) => {
   const page = new StaticPage(context);
   return new StaticPageAgent(page);
-};
-
-// Get placeholder text based on run type
-export const getPlaceholderForType = (type: string): string => {
-  if (type === 'aiQuery') {
-    return 'What do you want to query?';
-  }
-  if (type === 'aiAssert') {
-    return 'What do you want to assert?';
-  }
-  if (type === 'aiTap') {
-    return 'What element do you want to tap?';
-  }
-  if (type === 'aiDoubleClick') {
-    return 'What element do you want to double-click?';
-  }
-  if (type === 'aiHover') {
-    return 'What element do you want to hover over?';
-  }
-  if (type === 'aiInput') {
-    return 'Format: <value> | <element>\nExample: hello world | search box';
-  }
-  if (type === 'aiRightClick') {
-    return 'What element do you want to right-click?';
-  }
-  if (type === 'aiKeyboardPress') {
-    return 'Format: <key> | <element (optional)>\nExample: Enter | text field';
-  }
-  if (type === 'aiScroll') {
-    return 'Format: <direction> <amount> | <element (optional)>\nExample: down 500 | main content';
-  }
-  if (type === 'aiLocate') {
-    return 'What element do you want to locate?';
-  }
-  if (type === 'aiBoolean') {
-    return 'What do you want to check (returns true/false)?';
-  }
-  if (type === 'aiNumber') {
-    return 'What number do you want to extract?';
-  }
-  if (type === 'aiString') {
-    return 'What text do you want to extract?';
-  }
-  if (type === 'aiAsk') {
-    return 'What do you want to ask?';
-  }
-  if (type === 'aiWaitFor') {
-    return 'What condition do you want to wait for?';
-  }
-  return 'What do you want to do?';
 };
 
 export const isRunButtonEnabled = (

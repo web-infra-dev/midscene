@@ -19,6 +19,7 @@ import {
   defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionKeyboardPress,
+  defineActionLongPress,
   defineActionScroll,
   defineActionSwipe,
   defineActionTap,
@@ -237,37 +238,12 @@ export class HarmonyDevice implements AbstractInterface {
           await sleep(100);
         }
       }),
-      defineAction<
-        z.ZodObject<{
-          duration: z.ZodOptional<z.ZodNumber>;
-          locate: ReturnType<typeof getMidsceneLocationSchema>;
-        }>,
-        {
-          duration?: number;
-          locate: LocateResultElement;
+      defineActionLongPress(async (param) => {
+        const element = param.locate;
+        if (!element) {
+          throw new Error('LongPress requires an element to be located');
         }
-      >({
-        name: 'LongPress',
-        description: 'Trigger a long press on the screen at specified element',
-        paramSchema: z.object({
-          duration: z
-            .number()
-            .optional()
-            .describe('The duration of the long press in milliseconds'),
-          locate: getMidsceneLocationSchema().describe(
-            'The element to be long pressed',
-          ),
-        }),
-        sample: {
-          locate: { prompt: 'the message bubble' },
-        },
-        call: async (param) => {
-          const element = param.locate;
-          if (!element) {
-            throw new Error('LongPress requires an element to be located');
-          }
-          await this.longPress(element.center[0], element.center[1]);
-        },
+        await this.longPress(element.center[0], element.center[1]);
       }),
       defineActionClearInput(async (param) => {
         await this.clearInput(param.locate as ElementInfo | undefined);
@@ -757,21 +733,38 @@ export class HarmonyDevice implements AbstractInterface {
     await hdc.keyEvent('Back');
   }
 
-  async getTimestamp(): Promise<number> {
+  /**
+   * Get the current device-local time as a formatted string.
+   * This avoids formatting a device timestamp in the host machine's timezone.
+   */
+  async getDeviceLocalTimeString(
+    format = 'YYYY-MM-DD HH:mm:ss',
+  ): Promise<string> {
     const hdc = await this.getHdc();
     try {
-      const stdout = await hdc.shell('date +%s%3N');
-      const timestamp = Number.parseInt(stdout.trim(), 10);
+      const stdout = await hdc.shell('date +%Y-%m-%dT%H:%M:%S');
+      const match = stdout
+        .trim()
+        .match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})$/);
 
-      if (Number.isNaN(timestamp)) {
-        throw new Error(`Invalid timestamp format: ${stdout}`);
+      if (!match) {
+        throw new Error(`Invalid device time format: ${stdout}`);
       }
 
-      debugDevice(`Got device time: ${timestamp}`);
-      return timestamp;
+      const [, year, month, day, hours, minutes, seconds] = match;
+      const timeString = format
+        .replace('YYYY', year)
+        .replace('MM', month)
+        .replace('DD', day)
+        .replace('HH', hours)
+        .replace('mm', minutes)
+        .replace('ss', seconds);
+
+      debugDevice(`Got device local time: ${timeString}`);
+      return `${timeString} (${format})`;
     } catch (error) {
-      debugDevice(`Failed to get device time: ${error}`);
-      throw new Error(`Failed to get device time: ${error}`);
+      debugDevice(`Failed to get device local time: ${error}`);
+      throw new Error(`Failed to get device local time: ${error}`);
     }
   }
 
@@ -867,6 +860,8 @@ const createPlatformActions = (
         'Terminate (force-stop) a HarmonyOS app by bundle name or mapped app name',
       interfaceAlias: 'terminate',
       paramSchema: terminateParamSchema,
+      delayBeforeRunner: 0,
+      delayAfterRunner: 0,
       call: async (param) => {
         if (!param.uri || param.uri.trim() === '') {
           throw new Error('Terminate requires a non-empty uri parameter');
@@ -877,6 +872,8 @@ const createPlatformActions = (
     HarmonyBackButton: defineAction({
       name: 'HarmonyBackButton',
       description: 'Trigger the system "back" operation on HarmonyOS devices',
+      delayBeforeRunner: 0,
+      delayAfterRunner: 0,
       call: async () => {
         await device.back();
       },
@@ -884,6 +881,8 @@ const createPlatformActions = (
     HarmonyHomeButton: defineAction({
       name: 'HarmonyHomeButton',
       description: 'Trigger the system "home" operation on HarmonyOS devices',
+      delayBeforeRunner: 0,
+      delayAfterRunner: 0,
       call: async () => {
         await device.home();
       },

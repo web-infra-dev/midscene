@@ -1,3 +1,4 @@
+import { overrideAIConfig } from '@midscene/shared/env';
 import { describe, expect, test, vi } from 'vitest';
 import { PlaygroundServer } from '../../src/server';
 
@@ -22,7 +23,7 @@ function createMockResponse() {
 
 function getRouteHandler(
   server: PlaygroundServer,
-  method: 'post' | 'delete',
+  method: 'get' | 'post' | 'delete',
   route: string,
 ) {
   const calls = (server.app[method] as any).mock.calls as Array<[string, any]>;
@@ -165,6 +166,48 @@ describe('PlaygroundServer session manager APIs', () => {
     expect(sidecar.stop).toHaveBeenCalledTimes(1);
   });
 
+  test('returns 409 without logging an error when screenshot is requested without a session', async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    const server = new PlaygroundServer();
+    server.setPreparedPlatform({
+      platformId: 'computer',
+      title: 'Midscene Computer Playground',
+      description: 'Computer playground platform descriptor',
+      preview: {
+        kind: 'screenshot',
+        title: 'Desktop preview',
+        screenshotPath: '/screenshot',
+        capabilities: [],
+      },
+      metadata: {
+        sessionConnected: false,
+        setupState: 'required',
+      },
+      sessionManager: {
+        async createSession() {
+          throw new Error('not needed');
+        },
+      },
+    });
+
+    await server.launch(6105);
+    const screenshotHandler = getRouteHandler(server, 'get', '/screenshot');
+    expect(screenshotHandler).toBeTypeOf('function');
+
+    const response = createMockResponse();
+    await screenshotHandler({}, response);
+
+    expect(response.statusCode).toBe(409);
+    expect(response.body).toMatchObject({
+      error: 'Failed to take screenshot: No active session',
+    });
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
+  });
+
   test('stops started sidecars and restores base runtime when session creation fails after apply', async () => {
     const sidecar = {
       id: 'session-sidecar',
@@ -302,5 +345,85 @@ describe('PlaygroundServer session manager APIs', () => {
     expect(sidecar.start).toHaveBeenCalledTimes(1);
     expect(sidecar.stop).toHaveBeenCalledTimes(1);
     expect(server.getSessionInfo().connected).toBe(false);
+  });
+
+  test('applies config without marking it dirty when no active agent exists', async () => {
+    const server = new PlaygroundServer();
+
+    await server.launch(6106);
+    const configHandler = getRouteHandler(server, 'post', '/config');
+    expect(configHandler).toBeTypeOf('function');
+
+    const response = createMockResponse();
+    await configHandler(
+      {
+        body: {
+          aiConfig: {
+            MIDSCENE_MODEL_NAME: 'gpt-4o-mini',
+          },
+        },
+      },
+      response,
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toMatchObject({
+      status: 'ok',
+      message: 'AI config updated. New sessions will use it immediately.',
+    });
+    expect(vi.mocked(overrideAIConfig)).toHaveBeenCalledWith({
+      MIDSCENE_MODEL_NAME: 'gpt-4o-mini',
+    });
+    expect((server as any)._configDirty).toBe(false);
+  });
+
+  test('skips dirty recreation for identical config payloads', async () => {
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'android',
+        describe: () => 'Mock Android device',
+      },
+      destroy: vi.fn(async () => {}),
+    } as any);
+
+    await server.launch(6107);
+    const configHandler = getRouteHandler(server, 'post', '/config');
+    expect(configHandler).toBeTypeOf('function');
+
+    const firstResponse = createMockResponse();
+    await configHandler(
+      {
+        body: {
+          aiConfig: {
+            MIDSCENE_MODEL_NAME: 'gpt-4o-mini',
+          },
+        },
+      },
+      firstResponse,
+    );
+    expect(firstResponse.statusCode).toBe(200);
+    expect((server as any)._configDirty).toBe(true);
+
+    (server as any)._configDirty = false;
+
+    const secondResponse = createMockResponse();
+    await configHandler(
+      {
+        body: {
+          aiConfig: {
+            MIDSCENE_MODEL_NAME: 'gpt-4o-mini',
+          },
+        },
+      },
+      secondResponse,
+    );
+
+    expect(secondResponse.statusCode).toBe(200);
+    expect(secondResponse.body).toMatchObject({
+      status: 'ok',
+      message: 'AI config not changed because it is identical to current',
+    });
+    expect(vi.mocked(overrideAIConfig)).toHaveBeenCalledTimes(1);
+    expect((server as any)._configDirty).toBe(false);
   });
 });

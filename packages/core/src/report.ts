@@ -29,7 +29,7 @@ import {
   ReportActionDump,
 } from './types';
 import type { ReportFileWithAttributes } from './types';
-import { getReportTpl, reportHTMLContent } from './utils';
+import { getReportTpl, getVersion, reportHTMLContent } from './utils';
 
 /**
  * Check if a report is in directory mode (html-and-external-assets).
@@ -58,6 +58,24 @@ export function dedupeExecutionsKeepLatest<T extends Pick<ExecutionDump, 'id'>>(
   }
   return Array.from(deduped.values());
 }
+/**
+ * Peek at the first `sdkVersion` field embedded in a midscene_web_dump
+ * script tag inside the given report file. Returns undefined if no
+ * recognizable tag or sdkVersion is present.
+ */
+function peekReportSdkVersion(reportFilePath: string): string | undefined {
+  try {
+    const dump = extractLastDumpScriptSync(reportFilePath);
+    if (!dump) return undefined;
+    const match = dump.match(/"sdkVersion"\s*:\s*"([^"]+)"/);
+    return match?.[1];
+  } catch {
+    return undefined;
+  }
+}
+
+const warnedMismatchedVersions = new Set<string>();
+
 export class ReportMergingTool {
   private reportInfos: ReportFileWithAttributes[] = [];
 
@@ -72,6 +90,21 @@ export class ReportMergingTool {
   }
 
   public append(reportInfo: ReportFileWithAttributes) {
+    if (reportInfo.reportFilePath) {
+      const sourceVersion = peekReportSdkVersion(reportInfo.reportFilePath);
+      const currentVersion = getVersion();
+      if (
+        sourceVersion &&
+        currentVersion &&
+        sourceVersion !== currentVersion &&
+        !warnedMismatchedVersions.has(sourceVersion)
+      ) {
+        warnedMismatchedVersions.add(sourceVersion);
+        logMsg(
+          `[@midscene/core] ReportMergingTool version mismatch: source report was written by @midscene/core@${sourceVersion} but the merger is @midscene/core@${currentVersion}. This commonly means @midscene/core and the device package (e.g. @midscene/android) resolve to different versions in node_modules. Merged output may silently drop intermediate steps. Align the versions and reinstall (rm -rf node_modules package-lock.json && npm install).`,
+        );
+      }
+    }
     this.reportInfos.push(reportInfo);
   }
   public clear() {

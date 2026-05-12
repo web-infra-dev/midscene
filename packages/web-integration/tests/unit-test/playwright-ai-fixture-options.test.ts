@@ -1,21 +1,21 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const agentInstances: Array<{ opts: any }> = [];
+const mockState = vi.hoisted(() => ({
+  ctorOpts: [] as any[],
+  instances: [] as any[],
+}));
 
 vi.mock('@/playwright/index', () => {
   class MockPlaywrightAgent {
-    opts: any;
-
     reportFile?: string;
 
     constructor(_page: any, opts: any) {
-      this.opts = opts;
-      agentInstances.push(this);
+      mockState.ctorOpts.push(opts);
+      mockState.instances.push(this);
+      this.reportFile = opts?.generateReport ? 'mock-report.html' : undefined;
     }
 
-    waitForNetworkIdle = vi.fn();
-
-    destroy = vi.fn(async () => undefined);
+    async destroy() {}
   }
 
   return {
@@ -25,65 +25,112 @@ vi.mock('@/playwright/index', () => {
 
 import { PlaywrightAiFixture } from '@/playwright/ai-fixture';
 
-const createMockPage = () => ({
-  on: vi.fn(),
-});
-
-const createTestInfo = () =>
-  ({
-    testId: 'playwright-fixture-test-id',
-    titlePath: ['fixture.spec.ts', 'forwards options'],
-    retry: 0,
-    annotations: [],
-  }) as any;
-
 describe('PlaywrightAiFixture option forwarding', () => {
-  it('forwards agent options configured at fixture level', async () => {
-    agentInstances.length = 0;
+  beforeEach(() => {
+    mockState.ctorOpts.length = 0;
+    mockState.instances.length = 0;
+  });
+
+  const createPage = () =>
+    ({
+      on: vi.fn(),
+    }) as any;
+
+  const createTestInfo = () =>
+    ({
+      testId: 'test-id',
+      titlePath: ['fixture.spec.ts', 'forwards options'],
+      annotations: [],
+      retry: 0,
+    }) as any;
+
+  it('should forward fixture-level AgentOpt and WebPageOpt to the first agent creation', async () => {
     const fixture = PlaywrightAiFixture({
+      autoPrintReportMsg: false,
+      outputFormat: 'html-and-external-assets',
       replanningCycleLimit: 9,
       waitAfterAction: 120,
       aiActContext: 'fixture-level-context',
       useDeviceTimestamp: true,
+      enableTouchEventsInActionSpace: true,
+      forceChromeSelectRendering: true,
     });
 
-    const page = createMockPage();
-    await fixture.agentForPage(
-      { page } as any,
-      async (getAgent: any) => {
-        await getAgent();
-      },
-      createTestInfo(),
-    );
+    await fixture.ai({ page: createPage() }, async () => {}, createTestInfo());
 
-    expect(agentInstances).toHaveLength(1);
-    expect(agentInstances[0].opts.replanningCycleLimit).toBe(9);
-    expect(agentInstances[0].opts.waitAfterAction).toBe(120);
-    expect(agentInstances[0].opts.aiActContext).toBe('fixture-level-context');
-    expect(agentInstances[0].opts.useDeviceTimestamp).toBe(true);
-  });
-
-  it('allows per-call options to override fixture-level options', async () => {
-    agentInstances.length = 0;
-    const fixture = PlaywrightAiFixture({
+    expect(mockState.ctorOpts).toHaveLength(1);
+    expect(mockState.ctorOpts[0]).toMatchObject({
+      autoPrintReportMsg: false,
+      outputFormat: 'html-and-external-assets',
       replanningCycleLimit: 9,
       waitAfterAction: 120,
+      aiActContext: 'fixture-level-context',
+      useDeviceTimestamp: true,
+      enableTouchEventsInActionSpace: true,
+      forceChromeSelectRendering: true,
+      generateReport: true,
+    });
+  });
+
+  it('should allow the first agentForPage call to override fixture defaults', async () => {
+    const fixture = PlaywrightAiFixture({
+      autoPrintReportMsg: true,
+      replanningCycleLimit: 9,
+      waitAfterAction: 300,
+      enableTouchEventsInActionSpace: true,
     });
 
-    const page = createMockPage();
+    let getAgentForPage: any;
     await fixture.agentForPage(
-      { page } as any,
-      async (getAgent: any) => {
-        await getAgent(undefined, {
-          replanningCycleLimit: 3,
-          waitAfterAction: 60,
-        });
+      { page: createPage() },
+      async (agentForPage: any) => {
+        getAgentForPage = agentForPage;
       },
       createTestInfo(),
     );
 
-    expect(agentInstances).toHaveLength(1);
-    expect(agentInstances[0].opts.replanningCycleLimit).toBe(3);
-    expect(agentInstances[0].opts.waitAfterAction).toBe(60);
+    await getAgentForPage(createPage(), {
+      autoPrintReportMsg: false,
+      replanningCycleLimit: 3,
+      waitAfterAction: 50,
+      enableTouchEventsInActionSpace: false,
+    });
+
+    expect(mockState.ctorOpts).toHaveLength(1);
+    expect(mockState.ctorOpts[0]).toMatchObject({
+      autoPrintReportMsg: false,
+      replanningCycleLimit: 3,
+      waitAfterAction: 50,
+      enableTouchEventsInActionSpace: false,
+    });
+  });
+
+  it('should reuse the existing agent instead of recreating it with later overrides', async () => {
+    const page = createPage();
+    const fixture = PlaywrightAiFixture({
+      autoPrintReportMsg: true,
+    });
+
+    let getAgentForPage: any;
+    await fixture.agentForPage(
+      { page },
+      async (agentForPage: any) => {
+        getAgentForPage = agentForPage;
+      },
+      createTestInfo(),
+    );
+
+    const firstAgent = await getAgentForPage(page, {
+      autoPrintReportMsg: false,
+    });
+    const secondAgent = await getAgentForPage(page, {
+      autoPrintReportMsg: true,
+    });
+
+    expect(firstAgent).toBe(secondAgent);
+    expect(mockState.ctorOpts).toHaveLength(1);
+    expect(mockState.ctorOpts[0]).toMatchObject({
+      autoPrintReportMsg: false,
+    });
   });
 });

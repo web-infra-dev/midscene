@@ -6,12 +6,11 @@ import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connect
 
 If you want to try Midscene right away, pick a model and follow its configuration guide:
 * [Doubao Seed Model](./model-common-config#doubao-seed-model)
-* Qwen Models: [Qwen3.6](./model-common-config#qwen36), [Qwen3.5](./model-common-config#qwen35), [Qwen3-VL](./model-common-config#qwen3-vl)
+* [Qwen3.X Series](./model-common-config#qwen3x), [Qwen3-VL](./model-common-config#qwen3-vl)
 * [Zhipu GLM-V](./model-common-config#glm-v)
 * [Zhipu AutoGLM](./model-common-config#auto-glm)
-* [Gemini-3-Pro / Gemini-3-Flash](./model-common-config#gemini-3-pro)
+* [Gemini-3-Flash](./model-common-config#gemini-3-pro)
 * [GPT-5.4](./model-common-config#gpt-5-4)
-* [UI-TARS](./model-common-config#ui-tars)
 
 :::
 
@@ -44,7 +43,7 @@ Given these advantages, **Midscene 1.0 and later only support the pure-vision ap
 
 ## Recommended vision models
 
-Based on extensive real-world usage, we recommend these defaults for Midscene: Doubao Seed, Qwen VL, Gemini-3 (Pro/Flash), and UI-TARS.
+Based on extensive real-world usage, we recommend these defaults for Midscene: Doubao Seed, Qwen3.x, Zhipu GLM-V, Zhipu AutoGLM, and Gemini-3-Flash.
 
 They offer strong element-localization skills and solid performance in planning and screen understanding.
 
@@ -53,10 +52,12 @@ If you are unsure where to start, pick whichever model is easiest to access toda
 | Model family | Deployment | Midscene notes |
 | --- | --- | --- |
 | Doubao Seed Model<br />[Quick setup](./model-common-config#doubao-seed-model) | Volcano Engine:<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)<br />[Doubao-Seed-2.0-Lite](https://www.volcengine.com/docs/82379/1799865) | ⭐⭐⭐⭐<br />Strong at UI planning and targeting<br />Slightly slower |
-| Qwen3.5<br />[Quick setup](./model-common-config#qwen35) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen) | ⭐⭐⭐⭐<br />Stronger than Qwen3-VL and Qwen2.5-VL |
+| Qwen3.x<br />[Quick setup](./model-common-config#qwen3x) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen) | ⭐⭐⭐⭐<br />Stronger than Qwen3-VL and Qwen2.5-VL |
 | Zhipu GLM-4.6V<br />[Quick setup](./model-common-config#glm-v) | [Z.AI (Global)](https://docs.z.ai/guides/vlm/glm-4.6v)<br/>[BigModel (CN)](https://docs.bigmodel.cn/cn/guide/models/vlm/glm-4.6v) | Newly integrated, welcome to try it out<br />Weights open-sourced on [HuggingFace](https://huggingface.co/zai-org/GLM-4.6V) |
-| Gemini-3-Pro / Gemini-3-Flash<br />[Quick setup](./model-common-config#gemini-3-pro) | [Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini) | ⭐⭐⭐<br />Gemini-3-Flash is supported<br />Price is higher than Doubao and Qwen |
-| UI-TARS<br />[Quick setup](./model-common-config#ui-tars) | [Volcano Engine](https://www.volcengine.com/docs/82379/1536429) | ⭐⭐<br />Strong exploratory ability but results vary by scenario<br />Open-source versions available ([HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT) / [GitHub](https://github.com/bytedance/ui-tars)) |
+| Zhipu AutoGLM<br />[Quick setup](./model-common-config#auto-glm) | [Z.AI (Global)](https://z.ai/model-api/AutoGLM/AutoGLM-Phone-9B)<br/>[BigModel (CN)](https://docs.bigmodel.cn/cn/guide/models/autoglm) | Designed for mobile app operations<br />For `aiAssert`, `aiQuery`, and other page-understanding tasks, pair it with a separate Insight model |
+| Gemini-3-Flash<br />[Quick setup](./model-common-config#gemini-3-pro) | [Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini) | ⭐⭐⭐<br />Price is higher than Doubao and Qwen |
+
+Midscene is also compatible with the following model configurations, but we do not recommend them as default choices: [UI-TARS](./model-common-config#ui-tars).
 
 :::info Why not use multimodal models like gpt-5 as the default?
 
@@ -92,13 +93,13 @@ By default, the system follows these rules (unset intents fall back to the defau
 
 In short: **Planning goes to the Planning model, localization stays on the default model, and extraction/assertion goes to Insight** when configured.
 
-For a ready-to-use environment snippet, including an Insight model, see the [multi-model example](./model-common-config#gpt51-planning-insight-qwen3).
+For a ready-to-use environment snippet, including an Insight model, see the [multi-model example](./model-common-config#gpt54-planning-insight-qwen35).
 
 ### *Planning* intent
 
 For `aiAct` or `ai` planning tasks, add settings with the `MIDSCENE_PLANNING_MODEL_` prefix to use a dedicated model for the Planning intent.
 
-We recommend `gpt-5.1` or other multimodal models that understand UI workflows.
+We recommend `gpt-5.4` or other multimodal models that understand UI workflows.
 
 ### *Insight* intent
 
@@ -106,7 +107,7 @@ Midscene provides page-understanding APIs such as AI assertions (`aiAssert`) and
 
 Add settings with the `MIDSCENE_INSIGHT_MODEL_` prefix to use a dedicated model for Insight workloads.
 
-We recommend `gpt-5.1` or other models with strong VQA capability.
+We recommend `gpt-5.4` or other models with strong VQA capability.
 
 ## How do I tune execution results?
 

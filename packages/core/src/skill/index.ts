@@ -1,6 +1,6 @@
-import { CLIError, runToolsCLI } from '@midscene/shared/cli';
-import { BaseMidsceneTools } from '@midscene/shared/mcp';
-import type { BaseAgent, BaseDevice } from '@midscene/shared/mcp';
+import { reportCLIError, runToolsCLI } from '@midscene/shared/cli';
+import { BaseMidsceneTools } from '@midscene/shared/mcp/base-tools';
+import type { BaseAgent, BaseDevice } from '@midscene/shared/mcp/types';
 import { Agent } from '../agent/agent';
 import type { AbstractInterface } from '../device';
 
@@ -53,7 +53,6 @@ export interface SkillCLIOptions {
 export function runSkillCLI(options: SkillCLIOptions): Promise<void> {
   const tools = new SkillMidsceneTools(options.DeviceClass);
   return runToolsCLI(tools, options.scriptName).catch((e) => {
-    if (!(e instanceof CLIError)) console.error(e);
-    process.exit(e instanceof CLIError ? e.exitCode : 1);
+    process.exit(reportCLIError(e));
   });
 }

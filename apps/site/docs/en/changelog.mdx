@@ -1,5 +1,75 @@
 # Changelog
 
+## v1.7 - Flexible Report File Consumption, with Qwen 3.6 Support
+
+### Flexible Report File Consumption
+
+Starting in v1.7.0, you can extract raw screenshots and JSON data from report files, or convert reports into Markdown so other tools can continue consuming that content.
+
+## Example
+
+You can parse a report file into a Markdown file like this:
+
+```md
+# Act - Search for and play videos related to Midscene
+
+- Execution start: 2026-04-08T02:13:04.795Z
+- Task count: 21
+
+## 1. Plan - Click the top search box to activate input
+- Status: finished
+- Start: 2026-04-08T02:13:04.845Z
+- End: 2026-04-08T02:13:15.296Z
+- Cost(ms): 10451
+- Screen size: 2880 x 1536
+
+![task-1](./screenshots/execution-1-task-1-f9fc3bf9-bdf6-48dd-abea-f8f29874d8c1.jpeg)
+
+.....
+```
+
+You can then use the [Remotion Skill](https://www.remotion.dev/docs/ai/skills?utm_source=midscenejs) to parse that Markdown file and generate a customized replay video.
+
+The generated video looks like this:
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/midscene-replay.mp4" height="300" controls></video>
+
+Midscene supports parsing report files through either the CLI or the JavaScript SDK. See: [Consume Report Files](./consume-report-file)
+
+### Qwen 3.6 Model Support
+
+Added support for the Qwen 3.6 model, so you can use the latest Qwen model in Midscene. See: [Model Config](./model-config)
+
+### Chrome Extension Recording Language Setting
+
+A new YAML output language option is available in the Chrome extension's recording settings, supporting English, Chinese, Japanese, and more. You can also set it to Auto to follow the system language.
+
+### Android / HarmonyOS Improvements
+
+- Added `terminate` action on Android and HarmonyOS to force-stop apps, useful for resetting app state during testing. See: [Android API](./android-api-reference), [HarmonyOS API](./harmony-api-reference)
+- Fixed placeholder text unexpectedly retained when typing on X/Twitter on Android
+- Fixed Android Playground LAN access issues
+
+### Debugging Improvements
+
+- Execution logs can now be saved to disk for post-hoc troubleshooting
+- Playground config page now supports running a connectivity test when saving model config, catching configuration errors early
+- Skill CLI `run` command now supports passing images as prompts via the `--image` flag
+
+### Bug Fixes
+
+- Fixed unclear error messages when file chooser encounters missing files
+- Fixed incomplete error collection in CLI batch runner summary
+- Fixed `aiScroll` indentation formatting errors in YAML scripts
+- Fixed inaccurate `aiLocate` element bounding box
+- Fixed missing fallback when screenshot capture fails
+- Fixed incorrect handling of empty model responses in some cases
+- Fixed tab reuse issues in CDP connection mode
+- Fixed `aiQuery` result missing under certain data structures
+- Fixed AutoGLM app launch parameter format issue
+- Fixed dropdown display issues in Playground
+- Fixed custom request header aliases not working in model config
+
 ## v1.6 - CDP Connection, Pinch/Zoom & Multi-Model Enhancements
 
 v1.6 adds CDP browser connection mode, cross-platform pinch/zoom gestures, GPT-5/GPT-5.4 model support, along with improvements to element locating, report system, Chrome extension, and more.

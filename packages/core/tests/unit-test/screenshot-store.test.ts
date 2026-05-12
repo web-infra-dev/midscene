@@ -27,7 +27,7 @@ describe('ScreenshotStore', () => {
     rmSync(tmpRoot, { recursive: true, force: true });
   });
 
-  it('releases memory after persist and supports recovery in directory mode', () => {
+  it('releases memory after persist and supports recovery in directory mode', async () => {
     const reportPath = join(tmpRoot, 'index.html');
     const screenshotsDir = join(tmpRoot, 'screenshots');
     const item = ScreenshotItem.create(pngBase64, 100);
@@ -37,14 +37,14 @@ describe('ScreenshotStore', () => {
       screenshotsDir,
     });
 
-    const ref = store.persist(item);
+    const ref = await store.persist(item);
     expect(item.hasBase64()).toBe(false);
     expect(ref.storage).toBe('file');
     expect(existsSync(join(screenshotsDir, `${item.id}.png`))).toBe(true);
     expect(store.loadBase64(ref)).toContain('data:image/png;base64,');
   });
 
-  it('deduplicates same screenshot persistence by id', () => {
+  it('deduplicates same screenshot persistence by id', async () => {
     const reportPath = join(tmpRoot, 'index.html');
     const screenshotsDir = join(tmpRoot, 'screenshots');
     const item = ScreenshotItem.create(pngBase64, 100);
@@ -54,9 +54,9 @@ describe('ScreenshotStore', () => {
       screenshotsDir,
     });
 
-    const first = store.persist(item);
+    const first = await store.persist(item);
     writeFileSync(join(screenshotsDir, `${item.id}.png`), 'marker');
-    const second = store.persist(item);
+    const second = await store.persist(item);
 
     expect(first.id).toBe(second.id);
     expect(readFileSync(join(screenshotsDir, `${item.id}.png`), 'utf-8')).toBe(
@@ -64,7 +64,7 @@ describe('ScreenshotStore', () => {
     );
   });
 
-  it('supports inline mode persistence + lazy restore', () => {
+  it('supports inline mode persistence + lazy restore', async () => {
     const reportPath = join(tmpRoot, 'inline.html');
     const appendInline = vi.fn((id: string, base64: string) => {
       writeFileSync(
@@ -79,13 +79,13 @@ describe('ScreenshotStore', () => {
     });
     const item = ScreenshotItem.create(pngBase64, 100);
 
-    const ref = store.persist(item);
+    const ref = await store.persist(item);
     expect(item.hasBase64()).toBe(false);
     expect(appendInline).toHaveBeenCalledTimes(1);
     expect(store.loadBase64(ref)).toBe(pngBase64);
   });
 
-  it('can ensure shared file copy while preserving inline mode semantics', () => {
+  it('can ensure shared file copy while preserving inline mode semantics', async () => {
     const reportPath = join(tmpRoot, 'inline-with-file-copy.html');
     const screenshotsDir = join(tmpRoot, 'screenshots');
     const appendInline = vi.fn((id: string, base64: string) => {
@@ -103,7 +103,7 @@ describe('ScreenshotStore', () => {
     });
     const item = ScreenshotItem.create(pngBase64, 100);
 
-    const ref = store.persist(item);
+    const ref = await store.persist(item);
     expect(ref.storage).toBe('inline');
     expect(item.toSerializable().storage).toBe('inline');
     expect(appendInline).toHaveBeenCalledTimes(1);
@@ -113,7 +113,7 @@ describe('ScreenshotStore', () => {
     expect(store.loadBase64(ref)).toBe(pngBase64);
   });
 
-  it('keeps supporting ensureFileCopy as a deprecated alias', () => {
+  it('keeps supporting ensureFileCopy as a deprecated alias', async () => {
     const reportPath = join(tmpRoot, 'inline-with-deprecated-file-copy.html');
     const screenshotsDir = join(tmpRoot, 'screenshots');
     const appendInline = vi.fn((id: string, base64: string) => {
@@ -131,7 +131,7 @@ describe('ScreenshotStore', () => {
     });
     const item = ScreenshotItem.create(pngBase64, 100);
 
-    const ref = store.persist(item);
+    const ref = await store.persist(item);
     expect(ref.storage).toBe('inline');
     expect(existsSync(join(screenshotsDir, `${item.id}.png`))).toBe(true);
   });

@@ -614,29 +614,33 @@ describe('HarmonyDevice', () => {
     });
   });
 
-  describe('getTimestamp', () => {
+  describe('getDeviceLocalTimeString', () => {
     beforeEach(async () => {
       await device.connect();
     });
 
-    it('should parse timestamp from device', async () => {
-      mockHdc.shell.mockResolvedValueOnce('1709078400000\n');
-      const ts = await device.getTimestamp();
-      expect(ts).toBe(1709078400000);
-      expect(mockHdc.shell).toHaveBeenCalledWith('date +%s%3N');
+    it('should return device-local time with the default format', async () => {
+      mockHdc.shell.mockResolvedValueOnce('2023-10-15T15:37:02\n');
+
+      const result = await device.getDeviceLocalTimeString();
+
+      expect(mockHdc.shell).toHaveBeenCalledWith('date +%Y-%m-%dT%H:%M:%S');
+      expect(result).toBe('2023-10-15 15:37:02 (YYYY-MM-DD HH:mm:ss)');
     });
 
-    it('should throw on invalid timestamp', async () => {
-      mockHdc.shell.mockResolvedValueOnce('not-a-number\n');
-      await expect(device.getTimestamp()).rejects.toThrow(
-        'Failed to get device time',
-      );
+    it('should apply custom format tokens to device-local time', async () => {
+      mockHdc.shell.mockResolvedValueOnce('2023-10-15T15:37:02');
+
+      const result = await device.getDeviceLocalTimeString('HH:mm');
+
+      expect(result).toBe('15:37 (HH:mm)');
     });
 
-    it('should throw on shell error', async () => {
-      mockHdc.shell.mockRejectedValueOnce(new Error('device offline'));
-      await expect(device.getTimestamp()).rejects.toThrow(
-        'Failed to get device time',
+    it('should throw on invalid device-local time format', async () => {
+      mockHdc.shell.mockResolvedValueOnce('not-a-time\n');
+
+      await expect(device.getDeviceLocalTimeString()).rejects.toThrow(
+        'Failed to get device local time',
       );
     });
   });
@@ -723,6 +727,36 @@ describe('HarmonyDevice', () => {
       expect(size2).toEqual({ width: 1216, height: 2688 });
       // Only called once during connect
       expect(mockHdc.getScreenInfo).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // Cross-platform contract for https://github.com/web-infra-dev/midscene/issues/2313:
+  // Launch/Terminate on every mobile platform must expose the SAME `uri` field.
+  describe('Launch/Terminate action schema contract', () => {
+    it('Launch paramSchema is a ZodObject with a `uri: ZodString` field', () => {
+      const launchAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Launch');
+      expect(launchAction).toBeDefined();
+      expect((launchAction!.paramSchema as any)?._def?.typeName).toBe(
+        'ZodObject',
+      );
+      expect(
+        (launchAction!.paramSchema as any).shape?.uri?._def?.typeName,
+      ).toBe('ZodString');
+    });
+
+    it('Terminate paramSchema is a ZodObject with a `uri: ZodString` field', () => {
+      const terminateAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Terminate');
+      expect(terminateAction).toBeDefined();
+      expect((terminateAction!.paramSchema as any)?._def?.typeName).toBe(
+        'ZodObject',
+      );
+      expect(
+        (terminateAction!.paramSchema as any).shape?.uri?._def?.typeName,
+      ).toBe('ZodString');
     });
   });
 });

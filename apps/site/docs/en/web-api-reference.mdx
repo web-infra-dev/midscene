@@ -194,6 +194,8 @@ test('search flow', async ({ agentForPage, page }) => {
 });
 ```
 
+The fixture accepts all `PlaywrightAgent` options, so you can configure shared agent behavior once at fixture creation time. Per-test metadata such as `testId`, `reportFileName`, `groupName`, and `groupDescription` remain fixture-managed.
+
 ### See also
 
 - [Integrate with Playwright](./integrate-with-playwright) for setup, fixtures, and advanced configuration.

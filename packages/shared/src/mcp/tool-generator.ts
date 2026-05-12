@@ -6,19 +6,15 @@ import {
   isMidsceneLocatorField,
   unwrapZodField,
 } from '../zod-schema-utils';
+import { getErrorMessage } from './error-formatter';
 import type {
   ActionSpaceItem,
   BaseAgent,
+  ToolCliMetadata,
   ToolDefinition,
   ToolResult,
+  ToolSchema,
 } from './types';
-
-/**
- * Extract error message from unknown error type
- */
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 /**
  * Generate MCP tool description from ActionSpaceItem
@@ -157,10 +153,19 @@ function transformSchemaField(
 }
 
 /**
- * Extract and transform schema from action's paramSchema
+ * Extract and transform schema from action's paramSchema.
+ *
+ * CLI and MCP both expose parameters as named fields, so the only schema
+ * shapes we can surface are ZodObject (any number of fields) or undefined
+ * (the action takes no parameters). A primitive schema like `z.string()`
+ * silently degraded to leaking the ZodString instance's prototype methods
+ * as CLI flags — see https://github.com/web-infra-dev/midscene/issues/2313.
+ * Reject such schemas up front so the next author gets a loud error
+ * instead of a silent misconfiguration at runtime.
  */
 function extractActionSchema(
   paramSchema: z.ZodTypeAny | undefined,
+  actionName: string,
 ): Record<string, z.ZodTypeAny> {
   if (!paramSchema) {
     return {};
@@ -168,7 +173,12 @@ function extractActionSchema(
 
   const shape = getZodObjectShape(paramSchema);
   if (!shape) {
-    return paramSchema as unknown as Record<string, z.ZodTypeAny>;
+    const typeName =
+      (paramSchema as unknown as { _def?: { typeName?: string } })?._def
+        ?.typeName ?? 'unknown';
+    throw new Error(
+      `Action "${actionName}" declared a non-object paramSchema (${typeName}). CLI and MCP tool schemas must be a ZodObject (e.g. z.object({ uri: z.string() })) or undefined. Wrap primitive fields in an object schema.`,
+    );
   }
 
   return Object.fromEntries(
@@ -453,25 +463,49 @@ async function captureFailureResult(
   }
 }
 
+function mergeToolCliMetadata(
+  base?: ToolCliMetadata,
+  extra?: ToolCliMetadata,
+): ToolCliMetadata | undefined {
+  const options = {
+    ...(base?.options ?? {}),
+    ...(extra?.options ?? {}),
+  };
+
+  return Object.keys(options).length > 0 ? { options } : undefined;
+}
+
 /**
  * Converts DeviceAction from actionSpace into MCP ToolDefinition
  * This is the core logic that removes need for hardcoded tool definitions
  */
 export function generateToolsFromActionSpace(
   actionSpace: ActionSpaceItem[],
-  getAgent: () => Promise<BaseAgent>,
+  getAgent: (args?: Record<string, unknown>) => Promise<BaseAgent>,
+  sanitizeArgs: (args: Record<string, unknown>) => Record<string, unknown> = (
+    args,
+  ) => args,
+  initArgSchema: ToolSchema = {},
+  initArgCliMetadata?: ToolCliMetadata,
 ): ToolDefinition[] {
   return actionSpace.map((action) => {
-    const schema = extractActionSchema(action.paramSchema as z.ZodTypeAny);
+    const schema = {
+      ...extractActionSchema(action.paramSchema as z.ZodTypeAny, action.name),
+      ...initArgSchema,
+    };
 
     return {
       name: action.name,
       description: describeActionForMCP(action),
       schema,
+      cli: initArgCliMetadata,
       handler: async (args: Record<string, unknown>) => {
         try {
-          const agent = await getAgent();
-          const normalizedArgs = normalizeActionArgs(args, action.paramSchema);
+          const agent = await getAgent(args);
+          const normalizedArgs = normalizeActionArgs(
+            sanitizeArgs(args),
+            action.paramSchema,
+          );
           let actionResult: unknown;
 
           try {
@@ -513,16 +547,23 @@ export function generateToolsFromActionSpace(
  * Generate common tools (screenshot, act)
  */
 export function generateCommonTools(
-  getAgent: () => Promise<BaseAgent>,
+  getAgent: (args?: Record<string, unknown>) => Promise<BaseAgent>,
+  initArgSchema: ToolSchema = {},
+  initArgCliMetadata?: ToolCliMetadata,
 ): ToolDefinition[] {
   return [
     {
       name: 'take_screenshot',
       description: 'Capture screenshot of current page/screen',
-      schema: {},
-      handler: async (): Promise<ToolResult> => {
+      schema: {
+        ...initArgSchema,
+      },
+      cli: initArgCliMetadata,
+      handler: async (
+        args: Record<string, unknown> = {},
+      ): Promise<ToolResult> => {
         try {
-          const agent = await getAgent();
+          const agent = await getAgent(args);
           const screenshot = await agent.page?.screenshotBase64();
           if (!screenshot) {
             return createErrorResult('Screenshot not available');
@@ -550,11 +591,15 @@ export function generateCommonTools(
           .describe(
             'Natural language description of the action to perform, e.g. "press Command+Space, type Safari, press Enter"',
           ),
+        ...initArgSchema,
       },
-      handler: async (args: Record<string, unknown>): Promise<ToolResult> => {
+      cli: mergeToolCliMetadata(undefined, initArgCliMetadata),
+      handler: async (
+        args: Record<string, unknown> = {},
+      ): Promise<ToolResult> => {
         const prompt = args.prompt as string;
         try {
-          const agent = await getAgent();
+          const agent = await getAgent(args);
           if (!agent.aiAction) {
             return createErrorResult('act is not supported by this agent');
           }
@@ -573,6 +618,39 @@ export function generateCommonTools(
           const errorMessage = getErrorMessage(error);
           console.error('Error executing act:', errorMessage);
           return createErrorResult(`Failed to execute act: ${errorMessage}`);
+        }
+      },
+    },
+    {
+      name: 'assert',
+      description:
+        'Assert a natural language statement against the current page/screen.',
+      schema: {
+        prompt: z
+          .string()
+          .describe(
+            'Natural language assertion to verify, e.g. "there is a login button visible"',
+          ),
+        ...initArgSchema,
+      },
+      cli: mergeToolCliMetadata(undefined, initArgCliMetadata),
+      handler: async (
+        args: Record<string, unknown> = {},
+      ): Promise<ToolResult> => {
+        const prompt = args.prompt as string;
+        try {
+          const agent = await getAgent(args);
+          if (!agent.aiAssert) {
+            return createErrorResult('assert is not supported by this agent');
+          }
+          await agent.aiAssert(prompt);
+          return {
+            content: [{ type: 'text', text: 'Assertion passed.' }],
+          };
+        } catch (error: unknown) {
+          const errorMessage = getErrorMessage(error);
+          console.error('Error executing assert:', errorMessage);
+          return createErrorResult(`Failed to execute assert: ${errorMessage}`);
         }
       },
     },

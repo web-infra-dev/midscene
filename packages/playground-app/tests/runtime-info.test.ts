@@ -82,11 +82,12 @@ describe('playground app runtime info helpers', () => {
             custom: { scrcpyPort: 6501 },
           },
           executionUxHints: [],
-          metadata: {},
+          metadata: { deviceId: 'SERIAL123' },
         },
         'http://localhost:5800',
       ),
     ).toMatchObject({
+      deviceId: 'SERIAL123',
       type: 'scrcpy',
       scrcpyPort: 6501,
       scrcpyUrl: 'http://localhost:6501/',

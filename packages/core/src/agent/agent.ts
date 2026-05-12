@@ -326,7 +326,7 @@ export class Agent<
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
       waitAfterAction: this.opts.waitAfterAction,
-      useDeviceTimestamp: this.opts.useDeviceTimestamp,
+      useDeviceTime: this.opts.useDeviceTime,
       actionSpace: this.fullActionSpace,
       hooks: {
         onTaskUpdate: async (runner) => {
@@ -362,6 +362,8 @@ export class Agent<
       persistExecutionDump: this.opts.persistExecutionDump,
       outputFormat: this.opts.outputFormat,
       autoPrintReportMsg: this.opts.autoPrintReportMsg,
+      reuseExistingReport:
+        this.opts.reportAttributes?.['data-group-id'] === this.reportFileName,
     });
   }
 
@@ -491,7 +493,11 @@ export class Agent<
     const exec = executionDump || this.lastExecutionDump;
     if (exec) {
       this.lastExecutionDump = exec;
-      this.reportGenerator.onExecutionUpdate(exec, this.getReportMeta());
+      this.reportGenerator.onExecutionUpdate(
+        exec,
+        this.getReportMeta(),
+        this.opts.reportAttributes,
+      );
     }
     this.reportFile = this.reportGenerator.getReportPath();
   }
@@ -784,7 +790,11 @@ export class Agent<
     let opt: LocateOption | undefined;
 
     const isLocatePromptLike = (value: unknown): value is TUserPrompt => {
-      if (typeof value === 'string' || typeof value === 'undefined') {
+      if (
+        typeof value === 'string' ||
+        typeof value === 'undefined' ||
+        value === null
+      ) {
         return true;
       }
 
@@ -852,6 +862,30 @@ export class Agent<
 
     return this.callActionInActionSpace('Pinch', {
       ...opt,
+      locate: detailedLocateParam,
+    });
+  }
+
+  async aiLongPress(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption & { duration?: number },
+  ) {
+    assert(locatePrompt, 'missing locate prompt for long press');
+
+    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+
+    return this.callActionInActionSpace('LongPress', {
+      ...(opt || {}),
+      locate: detailedLocateParam,
+    });
+  }
+
+  async aiClearInput(locatePrompt: TUserPrompt, opt?: LocateOption) {
+    assert(locatePrompt, 'missing locate prompt for clear input');
+
+    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+
+    return this.callActionInActionSpace('ClearInput', {
       locate: detailedLocateParam,
     });
   }

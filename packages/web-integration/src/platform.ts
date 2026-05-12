@@ -4,7 +4,7 @@ import {
   type AgentFactory,
   type LaunchPlaygroundOptions,
   type PlaygroundPreviewDescriptor,
-  createScreenshotPreviewDescriptor,
+  createMjpegPreviewDescriptor,
   definePlaygroundPlatform,
 } from '@midscene/playground';
 import { StaticPage, StaticPageAgent } from './static';
@@ -49,7 +49,7 @@ export const webPlaygroundPlatform = definePlaygroundPlatform<
       launchOptions: options?.launchOptions,
       preview:
         options?.preview ||
-        createScreenshotPreviewDescriptor({
+        createMjpegPreviewDescriptor({
           title: 'Web page preview',
         }),
       metadata: {

@@ -3,6 +3,7 @@ import type { DeviceType, ExecutionUxHint } from '@midscene/visualizer';
 
 export interface PreviewConnectionInfo {
   type: 'none' | 'screenshot' | 'mjpeg' | 'scrcpy';
+  deviceId?: string;
   mjpegUrl?: string;
   scrcpyUrl?: string;
   scrcpyPort?: number;
@@ -63,6 +64,7 @@ export function buildFallbackRuntimeInfo(
 export interface RuntimeInterfaceInfo {
   type: string;
   description?: string;
+  size?: { width: number; height: number };
 }
 
 export function filterValidExecutionUxHints(
@@ -101,7 +103,12 @@ export function resolvePreviewConnectionInfo(
   }
 
   if (preview.kind === 'scrcpy') {
-    if (isRemoteAndroidDeviceId(runtimeInfo?.metadata?.deviceId)) {
+    const runtimeDeviceId =
+      typeof runtimeInfo?.metadata?.deviceId === 'string'
+        ? runtimeInfo.metadata.deviceId.trim()
+        : undefined;
+
+    if (isRemoteAndroidDeviceId(runtimeDeviceId)) {
       return { type: 'screenshot' };
     }
 
@@ -121,6 +128,7 @@ export function resolvePreviewConnectionInfo(
           })()
         : undefined;
     return {
+      deviceId: runtimeDeviceId,
       type: 'scrcpy',
       scrcpyPort: resolvedScrcpyPort,
       scrcpyUrl,

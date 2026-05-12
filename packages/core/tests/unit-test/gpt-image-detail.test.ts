@@ -101,7 +101,7 @@ describe('GPT image detail handling', () => {
           },
         ],
       }),
-      undefined,
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
 
@@ -132,7 +132,7 @@ describe('GPT image detail handling', () => {
           },
         ],
       }),
-      undefined,
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
 });

@@ -233,10 +233,24 @@ export class PlaygroundSDK {
     return null; // For local execution, not supported yet
   }
 
+  // Direct device manipulation – mouse/keyboard input from UI overlays.
+  async interact(
+    payload: { actionType: string } & Record<string, unknown>,
+  ): Promise<{ ok: boolean; error?: string }> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.interact(payload);
+    }
+    return { ok: false, error: 'Direct interaction requires remote execution' };
+  }
+
   // Get interface information (type and description)
   async getInterfaceInfo(): Promise<{
     type: string;
     description?: string;
+    size?: { width: number; height: number };
+    navigationState?: { isLoading: boolean };
+    /** Action names exposed by the connected device's actionSpace. */
+    actionTypes?: string[];
   } | null> {
     const adapter = this.runtimeMetadataAdapter();
     if (!adapter) {

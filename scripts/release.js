@@ -108,6 +108,14 @@ async function main() {
       console.log('No changes to commit.');
     }
 
+    if (!actionPublishCanary && selectVersion) {
+      // Push version bump commit and tag before npm publish.
+      // If push fails (e.g. remote has new commits), nothing is published
+      // yet, so the release can be safely retried.
+      step('\nPushing to GitHub...');
+      await pushToGithub(selectVersion);
+    }
+
     if (selectVersion) {
       step('\nPublishing...');
       await publish(selectVersion.newVersion);
@@ -116,11 +124,6 @@ async function main() {
       await createVersionMarkerFile(selectVersion.newVersion);
     } else {
       console.log('No new version:', selectVersion);
-    }
-
-    if (!actionPublishCanary) {
-      step('\nPushing to GitHub...');
-      await pushToGithub(selectVersion);
     }
   } catch (error) {
     console.error(

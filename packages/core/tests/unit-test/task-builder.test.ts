@@ -3,7 +3,7 @@ import { getMidsceneLocationSchema } from '@/ai-model';
 import { AbstractInterface, defineActionSleep } from '@/device';
 import type Service from '@/insight';
 import type { DeviceAction, PlanningAction } from '@/types';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 class MockInterface extends AbstractInterface {
@@ -27,6 +27,10 @@ class MockInterface extends AbstractInterface {
 }
 
 describe('TaskBuilder', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('dispatches plans using handler registry', async () => {
     const actionSchema = z.object({
       locate: getMidsceneLocationSchema().describe('element to locate'),
@@ -85,5 +89,96 @@ describe('TaskBuilder', () => {
       ['Planning', 'Locate'],
       ['Action Space', 'Tap'],
     ]);
+  });
+
+  it('supports fast-path action delays for system actions', async () => {
+    vi.useFakeTimers();
+
+    const defaultBeforeHook = vi.fn(async () => undefined);
+    const defaultAfterHook = vi.fn(async () => undefined);
+    const defaultActionCall = vi.fn(async () => undefined);
+    const defaultAction: DeviceAction = {
+      name: 'DefaultExit',
+      description: 'default exit action',
+      call: defaultActionCall,
+    };
+
+    const defaultInterface = new MockInterface([defaultAction]);
+    defaultInterface.beforeInvokeAction = defaultBeforeHook;
+    defaultInterface.afterInvokeAction = defaultAfterHook;
+
+    const fastBeforeHook = vi.fn(async () => undefined);
+    const fastAfterHook = vi.fn(async () => undefined);
+    const fastActionCall = vi.fn(async () => undefined);
+    const fastAction: DeviceAction = {
+      name: 'FastExit',
+      description: 'fast exit action',
+      delayBeforeRunner: 0,
+      delayAfterRunner: 0,
+      call: fastActionCall,
+    };
+
+    const fastInterface = new MockInterface([fastAction]);
+    fastInterface.beforeInvokeAction = fastBeforeHook;
+    fastInterface.afterInvokeAction = fastAfterHook;
+
+    const insightService = {
+      contextRetrieverFn: vi.fn(),
+      locate: vi.fn(),
+    } as unknown as Service;
+
+    const defaultTaskBuilder = new TaskBuilder({
+      interfaceInstance: defaultInterface,
+      service: insightService,
+      actionSpace: defaultInterface.actionSpace(),
+    });
+
+    const fastTaskBuilder = new TaskBuilder({
+      interfaceInstance: fastInterface,
+      service: insightService,
+      actionSpace: fastInterface.actionSpace(),
+    });
+
+    const { tasks: defaultTasks } = await defaultTaskBuilder.build(
+      [{ type: 'DefaultExit', thought: '', param: {} }],
+      {} as any,
+      {} as any,
+    );
+    const { tasks: fastTasks } = await fastTaskBuilder.build(
+      [{ type: 'FastExit', thought: '', param: {} }],
+      {} as any,
+      {} as any,
+    );
+
+    const defaultTask = defaultTasks[0];
+    const fastTask = fastTasks[0];
+    const taskContext = {
+      task: { timing: {} },
+      uiContext: { shrunkShotToLogicalRatio: 1 },
+    } as any;
+
+    const defaultPromise = defaultTask.executor(defaultTask.param, taskContext);
+
+    await vi.advanceTimersByTimeAsync(199);
+    expect(defaultBeforeHook).toHaveBeenCalledTimes(1);
+    expect(defaultActionCall).not.toHaveBeenCalled();
+    expect(defaultAfterHook).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(defaultActionCall).toHaveBeenCalledTimes(1);
+    expect(defaultAfterHook).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(299);
+    expect(defaultAfterHook).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(defaultPromise).resolves.toEqual({ output: undefined });
+    expect(defaultAfterHook).toHaveBeenCalledTimes(1);
+
+    const fastPromise = fastTask.executor(fastTask.param, taskContext);
+    await expect(fastPromise).resolves.toEqual({ output: undefined });
+    expect(fastBeforeHook).toHaveBeenCalledTimes(1);
+    expect(fastActionCall).toHaveBeenCalledTimes(1);
+    expect(fastAfterHook).toHaveBeenCalledTimes(1);
   });
 });

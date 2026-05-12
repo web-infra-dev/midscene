@@ -456,10 +456,30 @@ export function buildYamlFlowFromPlans(
       ? dumpActionParam(plan.param || {}, action.paramSchema)
       : {};
 
-    const flowItem: MidsceneYamlFlowItem = {
-      [flowKey]: '',
-      ...flowParam,
-    };
+    // For actions whose param is a single string field (e.g. Launch/Terminate's
+    // `uri`, RunAdbShell's `command`), inline the value on the flowKey. Writing
+    // `{ terminate: '', uri: '...' }` makes the YAML player treat the empty
+    // string as the param and drop the sibling `uri`, so cache replay would
+    // call the action with an empty argument.
+    const shortcutField =
+      action.name === 'Launch' || action.interfaceAlias === 'launch'
+        ? 'uri'
+        : action.name === 'Terminate' || action.interfaceAlias === 'terminate'
+          ? 'uri'
+          : action.name === 'RunAdbShell' ||
+              action.interfaceAlias === 'runAdbShell'
+            ? 'command'
+            : undefined;
+    const shortcutKeys = shortcutField ? Object.keys(flowParam) : [];
+    const canInlineShortcut =
+      shortcutField &&
+      shortcutKeys.length === 1 &&
+      shortcutKeys[0] === shortcutField &&
+      typeof flowParam[shortcutField] === 'string';
+
+    const flowItem: MidsceneYamlFlowItem = canInlineShortcut
+      ? { [flowKey]: flowParam[shortcutField as string] }
+      : { [flowKey]: '', ...flowParam };
 
     flow.push(flowItem);
   }
@@ -561,6 +581,17 @@ export const ifMidsceneLocatorField = (field: any): boolean => {
   return false;
 };
 
+const formatPromptWithImages = (
+  promptObj: Exclude<TUserPrompt, string>,
+): string => {
+  let promptString = promptObj.prompt;
+  if (Array.isArray(promptObj.images) && promptObj.images.length > 0) {
+    const imageCount = promptObj.images.length;
+    promptString += ` (with ${imageCount} image${imageCount > 1 ? 's' : ''})`;
+  }
+  return promptString;
+};
+
 export const dumpMidsceneLocatorField = (field: any): string => {
   assert(
     ifMidsceneLocatorField(field),
@@ -580,7 +611,7 @@ export const dumpMidsceneLocatorField = (field: any): string => {
     }
     // If prompt is a TUserPrompt object, extract the prompt string
     if (typeof field.prompt === 'object' && field.prompt.prompt) {
-      return field.prompt.prompt; // TODO: dump images if necessary
+      return formatPromptWithImages(field.prompt);
     }
   }
 
@@ -648,7 +679,7 @@ export const dumpActionParam = (
             fieldValue.prompt.prompt
           ) {
             // If prompt is a TUserPrompt object, extract the prompt string
-            result[fieldName] = fieldValue.prompt.prompt;
+            result[fieldName] = formatPromptWithImages(fieldValue.prompt);
           }
         }
       }

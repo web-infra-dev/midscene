@@ -1,8 +1,9 @@
 #!/usr/bin/env node
+import { Buffer } from 'node:buffer';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { fetchVersion } from 'gh-release-fetch';
+import { createLoggedProxyDispatcher } from './proxy-dispatcher.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(scriptPath);
@@ -59,6 +60,31 @@ export async function installDownloadedScrcpyServer({
     }
     throw error;
   }
+}
+
+export function getScrcpyServerDownloadUrl(version = SCRCPY_VERSION) {
+  return `https://github.com/Genymobile/scrcpy/releases/download/${version}/scrcpy-server-${version}`;
+}
+
+export async function downloadScrcpyServerReleaseAsset({
+  destinationPath,
+  fetchImpl = fetch,
+  fsApi = fs,
+  version = SCRCPY_VERSION,
+  dispatcher,
+}) {
+  const response = await fetchImpl(getScrcpyServerDownloadUrl(version), {
+    ...(dispatcher ? { dispatcher } : {}),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Response code ${response.status} (${response.statusText})`,
+    );
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  await fsApi.writeFile(destinationPath, Buffer.from(arrayBuffer));
 }
 
 export async function main() {
@@ -120,15 +146,16 @@ export async function main() {
   const maxRetries = 3;
   const downloadedFile = path.join(binDir, `scrcpy-server-${SCRCPY_VERSION}`);
   await fs.rm(downloadedFile, { force: true });
+  const dispatcher = createLoggedProxyDispatcher({
+    logPrefix: 'scrcpy',
+  });
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      await fetchVersion({
-        repository: 'Genymobile/scrcpy',
+      await downloadScrcpyServerReleaseAsset({
+        destinationPath: downloadedFile,
+        dispatcher,
         version: SCRCPY_VERSION,
-        package: `scrcpy-server-${SCRCPY_VERSION}`,
-        destination: binDir,
-        extract: false,
       });
       break;
     } catch (err) {

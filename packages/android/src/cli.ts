@@ -1,5 +1,5 @@
 import { createReportCliCommands } from '@midscene/core';
-import { CLIError, runToolsCLI } from '@midscene/shared/cli';
+import { reportCLIError, runToolsCLI } from '@midscene/shared/cli';
 import { AndroidMidsceneTools } from './mcp-tools';
 
 declare const __VERSION__: string;
@@ -10,6 +10,5 @@ runToolsCLI(tools, 'midscene-android', {
   version: __VERSION__,
   extraCommands: createReportCliCommands(),
 }).catch((e) => {
-  if (!(e instanceof CLIError)) console.error(e);
-  process.exit(e instanceof CLIError ? e.exitCode : 1);
+  process.exit(reportCLIError(e));
 });

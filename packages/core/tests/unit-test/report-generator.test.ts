@@ -199,6 +199,48 @@ describe('ReportGenerator — append-only model', () => {
       expect(countGroupedDumpScripts(html)).toBe(3);
     });
 
+    it('should overwrite existing report file by default when a new generator uses the same path', async () => {
+      const reportPath = join(tmpDir, 'append-existing-report.html');
+      const firstGenerator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        persistExecutionDump: true,
+        autoPrint: false,
+      });
+
+      const firstScreenshot = ScreenshotItem.create(
+        fakeBase64(100),
+        Date.now(),
+      );
+      firstGenerator.onExecutionUpdate(
+        createExecution([firstScreenshot], 'first-execution', 'exec-1'),
+        defaultReportMeta,
+      );
+      await firstGenerator.finalize();
+
+      const secondGenerator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        persistExecutionDump: true,
+        autoPrint: false,
+      });
+      const secondScreenshot = ScreenshotItem.create(
+        fakeBase64(120),
+        Date.now(),
+      );
+      secondGenerator.onExecutionUpdate(
+        createExecution([secondScreenshot], 'second-execution', 'exec-2'),
+        defaultReportMeta,
+      );
+      await secondGenerator.finalize();
+
+      const html = readFileSync(reportPath, 'utf-8');
+      // second finalize() re-writes last execution once, so total dump tags = 2
+      expect(countGroupedDumpScripts(html)).toBe(2);
+      expect(html).not.toContain(firstScreenshot.id);
+      expect(html).toContain(secondScreenshot.id);
+    });
+
     it('should append and override report attributes across updates', async () => {
       const reportPath = join(tmpDir, 'attribute-merge-inline.html');
       const generator = new ReportGenerator({
@@ -236,10 +278,10 @@ describe('ReportGenerator — append-only model', () => {
       expect(firstAttrs.playwright_test_duration).toBe('123');
       expect(firstAttrs.ignored_null).toBeUndefined();
       expect(firstAttrs.ignored_undefined).toBeUndefined();
-      expect(firstAttrs['data-group-id']).not.toBe('external-group-id');
+      expect(firstAttrs['data-group-id']).toBe('external-group-id');
 
       const secondAttrs = parseScriptAttributes(dumpScripts[1].openTag);
-      expect(secondAttrs['data-group-id']).toBe(firstAttrs['data-group-id']);
+      expect(secondAttrs['data-group-id']).toBe('external-group-id');
       expect(secondAttrs.playwright_test_title).toBe('initial title');
       expect(secondAttrs.playwright_test_status).toBe('passed');
       expect(secondAttrs.playwright_test_duration).toBe('123');
@@ -280,6 +322,48 @@ describe('ReportGenerator — append-only model', () => {
       expect(firstDump.executions[0].tasks[0].uiContext.screenshot.id).toBe(
         screenshot.id,
       );
+    });
+
+    it('should continue execution dump index when appending with reuseExistingReport enabled', async () => {
+      const reportPath = join(tmpDir, 'append-existing-report-with-json.html');
+      const firstGenerator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        persistExecutionDump: true,
+        autoPrint: false,
+        reuseExistingReport: true,
+      });
+      firstGenerator.onExecutionUpdate(
+        createExecution(
+          [ScreenshotItem.create(fakeBase64(90), Date.now())],
+          'first-execution',
+          'first-id',
+        ),
+        defaultReportMeta,
+      );
+      await firstGenerator.finalize();
+
+      const secondGenerator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        persistExecutionDump: true,
+        autoPrint: false,
+        reuseExistingReport: true,
+      });
+      secondGenerator.onExecutionUpdate(
+        createExecution(
+          [ScreenshotItem.create(fakeBase64(110), Date.now())],
+          'second-execution',
+          'second-id',
+        ),
+        defaultReportMeta,
+      );
+      await secondGenerator.finalize();
+
+      const jsonFiles = readdirSync(tmpDir)
+        .filter((name) => /^\d+\.execution\.json$/.test(name))
+        .sort();
+      expect(jsonFiles).toEqual(['1.execution.json', '2.execution.json']);
     });
 
     it('should persist execution dump files with pretty-printed JSON', async () => {
@@ -865,8 +949,16 @@ describe('ReportGenerator — append-only model', () => {
       const gen = ReportGenerator.create('test-inline', {});
       expect(gen).toBeInstanceOf(ReportGenerator);
       const reportPath = gen.getReportPath();
-      expect(reportPath).toContain('test-inline');
-      expect(reportPath).toContain('index.html');
+      expect(reportPath).toContain('test-inline.html');
+      expect(reportPath).not.toContain('index.html');
+    });
+
+    it('should preserve .html extension for inline mode generator', () => {
+      const gen = ReportGenerator.create('already-html.html', {});
+      expect(gen).toBeInstanceOf(ReportGenerator);
+      const reportPath = gen.getReportPath();
+      expect(reportPath).toContain('already-html.html');
+      expect(reportPath).not.toContain('already-html.html.html');
     });
 
     it('should create directory mode generator when outputFormat is html-and-external-assets', () => {

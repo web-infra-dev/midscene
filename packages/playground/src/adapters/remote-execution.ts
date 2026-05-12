@@ -446,7 +446,9 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       const response = await fetch(`${this.serverUrl}/screenshot`);
 
       if (!response.ok) {
-        console.warn(`Screenshot request failed: ${response.statusText}`);
+        if (response.status !== 409) {
+          console.warn(`Screenshot request failed: ${response.statusText}`);
+        }
         return null;
       }
 
@@ -457,10 +459,49 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     }
   }
 
+  // Direct device manipulation – invokes a named action on the connected
+  // device without going through AI planning.
+  async interact(
+    payload: { actionType: string } & Record<string, unknown>,
+  ): Promise<{ ok: boolean; error?: string }> {
+    if (!this.serverUrl) {
+      return { ok: false, error: 'No server URL configured' };
+    }
+
+    try {
+      const response = await fetch(`${this.serverUrl}/interact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+
+      if (!response.ok) {
+        return {
+          ok: false,
+          error: data?.error || `Interact request failed (${response.status})`,
+        };
+      }
+
+      return { ok: true };
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
   // Get interface information from server
   async getInterfaceInfo(): Promise<{
     type: string;
     description?: string;
+    size?: { width: number; height: number };
+    navigationState?: { isLoading: boolean };
+    actionTypes?: string[];
   } | null> {
     if (!this.serverUrl) {
       return null;

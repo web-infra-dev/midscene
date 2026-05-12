@@ -2,13 +2,42 @@ import type {
   PlaygroundRuntimeInfo,
   PlaygroundSDK,
 } from '@midscene/playground';
-import { ScreenshotViewer } from '@midscene/visualizer';
+import {
+  ScreenshotViewer,
+  type ScreenshotViewerMode,
+} from '@midscene/visualizer';
 import { WebCodecsVideoDecoder } from '@yume-chan/scrcpy-decoder-webcodecs';
-import { Alert, Popover } from 'antd';
-import { ScrcpyPanel } from './ScrcpyPanel';
+import { Alert, Popover, message } from 'antd';
+import React, {
+  type CSSProperties,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import {
+  DeviceInteractionLayer,
+  type DeviceSize,
+} from './DeviceInteractionLayer';
+import { type ScrcpyErrorOverlayRenderer, ScrcpyPanel } from './ScrcpyPanel';
+import {
+  type ManualDragActionType,
+  buildManualDragInteractPayload,
+} from './manual-interaction';
 import { resolvePreviewConnectionInfo } from './runtime-info';
+import type { ScrcpyPreviewStatus } from './scrcpy-preview';
 
 interface PreviewRendererProps {
+  connectingOverlay?: ReactNode;
+  onDeviceSizeChange?: (size: { width: number; height: number } | null) => void;
+  onScrcpyStatusChange?: (
+    status: ScrcpyPreviewStatus,
+    statusText: string,
+  ) => void;
+  renderErrorOverlay?: ScrcpyErrorOverlayRenderer;
+  scrcpyViewportStyle?: CSSProperties;
+  screenshotViewerMode?: ScreenshotViewerMode;
   playgroundSDK: PlaygroundSDK;
   runtimeInfo: PlaygroundRuntimeInfo | null;
   serverUrl: string;
@@ -29,6 +58,12 @@ function isNonLocalhostHttp(): boolean {
 }
 
 export function PreviewRenderer({
+  connectingOverlay,
+  onDeviceSizeChange,
+  onScrcpyStatusChange,
+  renderErrorOverlay,
+  scrcpyViewportStyle,
+  screenshotViewerMode,
   playgroundSDK,
   runtimeInfo,
   serverUrl,
@@ -38,6 +73,199 @@ export function PreviewRenderer({
   const previewConnection = resolvePreviewConnectionInfo(
     runtimeInfo,
     serverUrl,
+  );
+
+  const [deviceSize, setDeviceSize] = useState<DeviceSize | null>(null);
+  // Pixel dimensions reported by the scrcpy video-metadata event. This is
+  // the canvas's actual pixel buffer size — the authoritative source for
+  // any aspect-ratio calculation, since `/interface-info` can drift from
+  // the real stream resolution by a few pixels.
+  const [streamSize, setStreamSize] = useState<DeviceSize | null>(null);
+  const [actionTypes, setActionTypes] = useState<string[] | null>(null);
+  const manualControlQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+
+  // Self-derive interaction capabilities from the connected device's
+  // actionSpace. Tap is the gate for any pointer interaction; the drag
+  // flavor follows whichever name the device exposes (mobile devices ship
+  // both, Computer/Web only ship DragAndDrop). Keyboard injection rides on
+  // KeyboardPress / Input. If any device omits Tap, the interaction layer
+  // stays disabled — defense in depth, since /interact would 404 anyway.
+  const manualControlEnabled = actionTypes?.includes('Tap') ?? false;
+  const manualDragActionType: ManualDragActionType = actionTypes?.includes(
+    'Swipe',
+  )
+    ? 'Swipe'
+    : 'DragAndDrop';
+  const manualKeyboardEnabled =
+    actionTypes?.includes('KeyboardPress') ||
+    actionTypes?.includes('Input') ||
+    false;
+
+  const enqueueManualControl = useCallback(
+    <TResult,>(task: () => Promise<TResult>): Promise<TResult> => {
+      const nextTask = manualControlQueueRef.current.then(task, task);
+      manualControlQueueRef.current = nextTask.catch(() => undefined);
+      return nextTask;
+    },
+    [],
+  );
+
+  // Pull device size and actionSpace from /interface-info so the interaction
+  // layer can map display coords to device pixels and decide which
+  // pointer/keyboard actions to forward. Refresh periodically (orientation
+  // changes, hot-swapped devices, dynamically reconfigured action sets).
+  useEffect(() => {
+    if (!serverOnline) {
+      setDeviceSize(null);
+      setActionTypes(null);
+      return;
+    }
+    let cancelled = false;
+    const fetchInterfaceInfo = async () => {
+      let result: Awaited<ReturnType<typeof playgroundSDK.getInterfaceInfo>>;
+      try {
+        result = await playgroundSDK.getInterfaceInfo();
+      } catch {
+        return;
+      }
+      if (cancelled) return;
+      if (result?.size?.width && result.size.height) {
+        const { size } = result;
+        setDeviceSize((current) => {
+          if (
+            current &&
+            current.width === size.width &&
+            current.height === size.height
+          ) {
+            return current;
+          }
+          return { width: size.width, height: size.height };
+        });
+      }
+      const nextActionTypes = Array.isArray(result?.actionTypes)
+        ? result.actionTypes
+        : null;
+      setActionTypes((current) => {
+        if (current === null && nextActionTypes === null) return current;
+        if (
+          current &&
+          nextActionTypes &&
+          current.length === nextActionTypes.length &&
+          current.every((name, idx) => name === nextActionTypes[idx])
+        ) {
+          return current;
+        }
+        return nextActionTypes;
+      });
+    };
+    fetchInterfaceInfo();
+    const timer = setInterval(fetchInterfaceInfo, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [playgroundSDK, serverOnline]);
+
+  // Notify consumers when the connected device's intrinsic size changes —
+  // they can use it to size the surrounding chrome to the actual screen
+  // aspect (instead of a hardcoded 9:19.5 assumption that leaves
+  // letterboxing on most modern phones).
+  //
+  // Prefer the scrcpy stream's own pixel buffer dimensions over
+  // `/interface-info.size` when both are available. The canvas inside
+  // ScrcpyPanel sizes itself to the stream buffer, so any aspect-ratio
+  // derived from `/interface-info` can be off by a handful of pixels
+  // (the visible "white edge" inside the rounded device border).
+  useEffect(() => {
+    onDeviceSizeChange?.(streamSize ?? deviceSize);
+  }, [deviceSize, onDeviceSizeChange, streamSize]);
+
+  const showManualControlError = useCallback(
+    (fallback: string, error?: string) => {
+      message.open({
+        type: 'error',
+        content: error || fallback,
+        key: 'manual-control-error',
+      });
+    },
+    [],
+  );
+
+  const handleTap = useCallback(
+    async (point: { x: number; y: number }) => {
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact({
+          actionType: 'Tap',
+          x: point.x,
+          y: point.y,
+        }),
+      );
+      if (!res.ok) {
+        showManualControlError('Tap failed', res.error);
+      }
+    },
+    [enqueueManualControl, playgroundSDK, showManualControlError],
+  );
+
+  const handleSwipe = useCallback(
+    async (
+      start: { x: number; y: number },
+      end: { x: number; y: number },
+      duration: number,
+    ) => {
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact(
+          buildManualDragInteractPayload(
+            manualDragActionType,
+            start,
+            end,
+            duration,
+          ),
+        ),
+      );
+      if (!res.ok) {
+        showManualControlError(`${manualDragActionType} failed`, res.error);
+      }
+    },
+    [
+      enqueueManualControl,
+      manualDragActionType,
+      playgroundSDK,
+      showManualControlError,
+    ],
+  );
+
+  const handleTextInput = useCallback(
+    async (text: string) => {
+      if (!text) return;
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact({
+          actionType: 'Input',
+          value: text,
+          mode: 'typeOnly',
+        }),
+      );
+      if (!res.ok) {
+        showManualControlError('Input failed', res.error);
+      }
+    },
+    [enqueueManualControl, playgroundSDK, showManualControlError],
+  );
+
+  const handleKeyboardPress = useCallback(
+    async (keyName: string) => {
+      if (!keyName) return;
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact({
+          actionType: 'KeyboardPress',
+          keyName,
+        }),
+      );
+      if (!res.ok) {
+        showManualControlError('Keyboard press failed', res.error);
+      }
+    },
+    [enqueueManualControl, playgroundSDK, showManualControlError],
   );
 
   // Fall back to screenshot polling when WebCodecs is unavailable
@@ -131,7 +359,15 @@ export function PreviewRenderer({
           description="This session did not expose a preview capability in runtime metadata."
         />
       ) : scrcpyAvailable ? (
-        <ScrcpyPanel serverUrl={previewConnection.scrcpyUrl} />
+        <ScrcpyPanel
+          connectingOverlay={connectingOverlay}
+          deviceId={previewConnection.deviceId}
+          onIntrinsicSize={setStreamSize}
+          onStatusChange={onScrcpyStatusChange}
+          renderErrorOverlay={renderErrorOverlay}
+          serverUrl={previewConnection.scrcpyUrl}
+          viewportStyle={scrcpyViewportStyle}
+        />
       ) : (
         <ScreenshotViewer
           getScreenshot={() =>
@@ -143,8 +379,22 @@ export function PreviewRenderer({
           serverOnline={serverOnline}
           isUserOperating={isUserOperating}
           mjpegUrl={previewConnection.mjpegUrl}
+          mode={screenshotViewerMode}
         />
       )}
+      <DeviceInteractionLayer
+        enabled={
+          manualControlEnabled &&
+          serverOnline &&
+          previewConnection.type !== 'none'
+        }
+        deviceSize={deviceSize}
+        onTap={handleTap}
+        onSwipe={handleSwipe}
+        keyboardEnabled={manualKeyboardEnabled}
+        onTextInput={handleTextInput}
+        onKeyboardPress={handleKeyboardPress}
+      />
     </div>
   );
 }

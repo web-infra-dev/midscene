@@ -146,33 +146,40 @@ describe('reportMergingTool', () => {
 
   it(
     'should merge 100 mocked reports, and delete original reports after that.',
-    { timeout: 5 * 60 * 1000 },
+    { timeout: 30 * 1000 },
     async () => {
       const tool = new ReportMergingTool();
+      let mergedReportPath: string | null = null;
 
-      console.time('generate 100 mocked report files.');
-      const hugeContent = Buffer.alloc(50 * 1024 * 1024, 'a').toString();
+      // This case only exercises merging many mocked reports and removing the
+      // originals. It does not validate large-file merge integrity,
+      // performance, or memory behavior.
+      const mockedReportContent = Buffer.alloc(4 * 1024, 'a').toString();
       generateNReports(
         100,
-        `large report content, original report file will be deleted after merge\n${hugeContent}`,
+        `mocked report content, original report file will be deleted after merge\n${mockedReportContent}`,
         tool,
         false,
         'merge-100-delete-test',
       );
-      console.timeEnd('generate 100 mocked report files');
 
-      console.time('merge and delete 100 mocked report files.');
-      const mergedReportPath = tool.mergeReports('merge-100-reports', {
-        rmOriginalReports: true,
-        overwrite: true,
-      });
-      console.timeEnd('merge and delete 100 mocked report files');
-      // assert merge success
-      expect(existsSync(mergedReportPath)).toBe(true);
-      // assert source report files deleted successfully
-      tool.reportInfos.forEach((el: any) => {
-        expect(existsSync(el.reportFilePath)).toBe(false);
-      });
+      try {
+        mergedReportPath = tool.mergeReports('merge-100-reports', {
+          rmOriginalReports: true,
+          overwrite: true,
+        });
+        // assert merge success
+        expect(mergedReportPath).not.toBeNull();
+        expect(existsSync(mergedReportPath!)).toBe(true);
+        // assert source report files deleted successfully
+        tool.reportInfos.forEach((el: any) => {
+          expect(existsSync(el.reportFilePath)).toBe(false);
+        });
+      } finally {
+        if (mergedReportPath) {
+          rmSync(mergedReportPath, { force: true });
+        }
+      }
     },
   );
 

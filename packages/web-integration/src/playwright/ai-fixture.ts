@@ -1,7 +1,7 @@
 import { PlaywrightAgent, type PlaywrightWebPage } from '@/playwright/index';
 import type { WebPageAgentOpt } from '@/web-element';
 import type { Cache } from '@midscene/core';
-import type { AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
+import type { Agent as PageAgent } from '@midscene/core/agent';
 import { processCacheConfig } from '@midscene/core/utils';
 import {
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
@@ -56,7 +56,15 @@ type PlaywrightCacheConfig = {
 };
 type PlaywrightCache = false | true | PlaywrightCacheConfig;
 
-type PlaywrightAiFixtureOptions = Omit<WebPageAgentOpt, 'cache'> & {
+export type PlaywrightAiFixtureOptions = Omit<
+  WebPageAgentOpt,
+  | 'testId'
+  | 'cacheId'
+  | 'groupName'
+  | 'groupDescription'
+  | 'reportFileName'
+  | 'cache'
+> & {
   cache?: PlaywrightCache;
 };
 
@@ -66,7 +74,7 @@ export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
     waitForNetworkIdleTimeout = DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
     waitForNavigationTimeout = DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
     cache,
-    ...fixtureAgentOptions
+    ...sharedAgentOptions
   } = options ?? {};
 
   // Helper function to process cache configuration and auto-generate ID from test info
@@ -127,18 +135,23 @@ export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
     if (!idForPage) {
       idForPage = uuid();
       (page as any)[midsceneAgentKeyId] = idForPage;
-      const { testId } = testInfo;
       const { file, title } = groupAndCaseForTest(testInfo);
       const cacheConfig = processTestCacheConfig(testInfo);
+      // `replaceIllegalPathCharsAndSpace` intentionally preserves `/` and `\`
+      // so groupName/groupDescription can still carry hierarchy. But
+      // ReportGenerator rejects path separators in the file name, so strip
+      // them here for the report tag only.
+      const reportTag = `playwright-${title.replace(/[\\/]/g, '-')}-${idForPage}`;
 
       const agent = new PlaywrightAgent(page, {
-        testId: `playwright-${testId}-${idForPage}`,
-        reportFileName: `playwright-${testId}-${idForPage}`,
+        testId: reportTag,
+        reportFileName: reportTag,
         forceSameTabNavigation,
         cache: cacheConfig,
         groupName: title,
         groupDescription: file,
         generateReport: true,
+        ...sharedAgentOptions,
         ...opts,
       });
       pageAgentMap[idForPage] = agent;
@@ -192,7 +205,6 @@ export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
   }) {
     const { page, testInfo, use, aiActionType } = options;
     const agent = createOrReuseAgentForPage(page, testInfo, {
-      ...fixtureAgentOptions,
       waitForNavigationTimeout,
       waitForNetworkIdleTimeout,
     }) as PlaywrightAgent;
@@ -200,16 +212,6 @@ export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
     await use(async (taskPrompt: string, ...args: any[]) => {
       return new Promise((resolve, reject) => {
         test.step(`ai-${aiActionType} - ${JSON.stringify(taskPrompt)}`, async () => {
-          try {
-            debugPage(
-              `waitForNetworkIdle timeout: ${waitForNetworkIdleTimeout}`,
-            );
-            await agent.waitForNetworkIdle(waitForNetworkIdleTimeout);
-          } catch (error) {
-            console.warn(
-              '[midscene:warning] Waiting for network idle has timed out, but Midscene will continue execution. Please check https://midscenejs.com/faq.html#customize-the-network-timeout for more information on customizing the network timeout',
-            );
-          }
           try {
             type AgentMethod = (
               prompt: string,
@@ -262,7 +264,7 @@ export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
       await use(
         async (
           propsPage?: OriginPlaywrightPage | undefined,
-          opts?: AgentOpt,
+          opts?: WebPageAgentOpt,
         ) => {
           const cacheConfig = processTestCacheConfig(testInfo);
 
@@ -290,7 +292,6 @@ export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
           }
 
           const agent = createOrReuseAgentForPage(propsPage || page, testInfo, {
-            ...fixtureAgentOptions,
             waitForNavigationTimeout,
             waitForNetworkIdleTimeout,
             cache: finalCacheConfig,
@@ -608,8 +609,8 @@ export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
 
 export type PlayWrightAiFixtureType = {
   agentForPage: (
-    page?: any,
-    opts?: any,
+    page?: OriginPlaywrightPage,
+    opts?: WebPageAgentOpt,
   ) => Promise<PageAgent<PlaywrightWebPage>>;
   ai: <T = any>(...args: Parameters<PageAgent['ai']>) => Promise<T>;
   aiAct: (

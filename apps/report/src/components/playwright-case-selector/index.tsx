@@ -1,10 +1,10 @@
 import { DownOutlined, SearchOutlined, UpOutlined } from '@ant-design/icons';
 import type { GroupedActionDump } from '@midscene/core';
 import { iconForStatus, timeCostStrElement } from '@midscene/visualizer';
-import { Input, Select } from 'antd';
+import { Input } from 'antd';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { PlaywrightTasks } from '../../types';
+import type { PlaywrightTaskAttributes, PlaywrightTasks } from '../../types';
 import './index.less';
 import { type DumpStoreType, useExecutionDump } from '../store';
 
@@ -24,13 +24,55 @@ interface PlaywrightCaseSelectorProps {
   onSelect?: (dump: GroupedActionDump) => void;
 }
 
+const STATUS_DISPLAY_LABEL: Partial<
+  Record<PlaywrightTaskAttributes['playwright_test_status'], string>
+> = {
+  timedOut: 'timed out',
+  interrupted: 'interrupted',
+  skipped: 'skipped',
+};
+
+function PlaywrightCaseTitle(props: {
+  attributes: Pick<
+    PlaywrightTaskAttributes,
+    | 'playwright_test_title'
+    | 'playwright_test_description'
+    | 'playwright_test_duration'
+    | 'playwright_test_status'
+  >;
+}): JSX.Element {
+  const { attributes } = props;
+  const status = iconForStatus(attributes.playwright_test_status);
+  const costStr = attributes.playwright_test_duration;
+  const extraStatusLabel =
+    STATUS_DISPLAY_LABEL[attributes.playwright_test_status];
+  const cost = costStr ? (
+    <span className="cost-str">
+      {' '}
+      ({timeCostStrElement(Number(costStr) || 0)}
+      {extraStatusLabel ? `, ${extraStatusLabel}` : ''})
+    </span>
+  ) : null;
+
+  return (
+    <span>
+      {status}
+      {'  '}
+      {attributes.playwright_test_title || 'unnamed'}
+      {attributes.playwright_test_description
+        ? ` - ${attributes.playwright_test_description}`
+        : ''}
+      {cost}
+    </span>
+  );
+}
+
 export function PlaywrightCaseSelector({
   dumps,
 }: PlaywrightCaseSelectorProps): JSX.Element | null {
   if (!dumps || dumps.length === 0) return null;
   if (dumps.length === 1 && !dumps[0].attributes?.is_merged) return null;
 
-  const selected = useExecutionDump((store: DumpStoreType) => store.dump);
   const playwrightAttributes = useExecutionDump(
     (store) => store.playwrightAttributes,
   );
@@ -82,28 +124,10 @@ export function PlaywrightCaseSelector({
     };
   }, [isExpanded]);
 
-  const titleForDump = (dump: PlaywrightTasks, key: React.Key) => {
-    const status = iconForStatus(dump.attributes?.playwright_test_status);
-    const costStr = dump.attributes?.playwright_test_duration;
-    const cost = costStr ? (
-      <span key={key} className="cost-str">
-        {' '}
-        ({timeCostStrElement(Number(costStr) || 0)})
-      </span>
-    ) : null;
-    const rowContent = (
-      <span key={key}>
-        {status}
-        {'  '}
-        {dump.attributes.playwright_test_title || 'unnamed'}
-        {dump.attributes.playwright_test_description
-          ? ` - ${dump.attributes.playwright_test_description}`
-          : ''}
-        {cost}
-      </span>
-    );
-    return rowContent;
-  };
+  const titleForDump = (
+    dump: Pick<PlaywrightTasks, 'attributes'>,
+    key: React.Key,
+  ) => <PlaywrightCaseTitle key={key} attributes={dump.attributes} />;
 
   const filteredDumps = useMemo(() => {
     let result = dumps || [];
@@ -157,9 +181,11 @@ export function PlaywrightCaseSelector({
     setIsExpanded(false);
   };
 
-  const displayText = selected
-    ? `${selected.groupName}${playwrightAttributes?.playwright_test_title ? ` - ${playwrightAttributes.playwright_test_title}` : ''} (${(playwrightAttributes?.playwright_test_duration || 0) / 1000}s)`
-    : 'Select a case';
+  const displayHeader = playwrightAttributes ? (
+    <PlaywrightCaseTitle attributes={playwrightAttributes} />
+  ) : (
+    'Select a case'
+  );
 
   return (
     <div
@@ -168,12 +194,7 @@ export function PlaywrightCaseSelector({
     >
       {/* Header */}
       <div className="selector-header" onClick={toggleExpanded}>
-        <div className="header-content">
-          <span className="check-icon">
-            {iconForStatus(playwrightAttributes?.playwright_test_status || '')}
-          </span>
-          <span className="header-text">{displayText}</span>
-        </div>
+        <div className="header-content">{displayHeader}</div>
         <div className="arrow-icon">
           {isExpanded ? <UpOutlined /> : <DownOutlined />}
         </div>
@@ -193,16 +214,18 @@ export function PlaywrightCaseSelector({
             <div
               className={`search-container ${hasSearchText ? 'has-content' : ''}`}
             >
-              <Select
+              <select
+                aria-label="Filter test cases by status"
+                className="status-filter-select"
                 value={statusFilter}
-                onChange={handleStatusChange}
-                style={{ width: 120 }}
-                options={TEST_STATUS_OPTIONS}
-                size="small"
-                variant="borderless"
-                popupMatchSelectWidth={false}
-                getPopupContainer={() => document.body}
-              />
+                onChange={(event) => handleStatusChange(event.target.value)}
+              >
+                {TEST_STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
               <div className="search-input-container">
                 <Input
                   placeholder="Search by name"

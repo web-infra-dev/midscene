@@ -9,6 +9,12 @@ import type {
   ToolResult,
   ToolResultContent,
 } from '../mcp/types';
+import {
+  formatCliValidationError,
+  getCliOptionDisplay,
+  parseCliArgs,
+} from './cli-args';
+import { CLIError } from './cli-error';
 
 const debug = getDebug('cli-runner');
 
@@ -32,58 +38,8 @@ export interface CLIRunnerOptions {
   extraCommands?: CLIExtraCommand[];
 }
 
-export class CLIError extends Error {
-  constructor(
-    message: string,
-    public exitCode = 1,
-  ) {
-    super(message);
-  }
-}
-
-export function parseValue(raw: string): unknown {
-  // JSON objects/arrays
-  if (raw.startsWith('{') || raw.startsWith('[')) {
-    try {
-      return JSON.parse(raw);
-    } catch {
-      // Not valid JSON, treat as string below
-    }
-  }
-
-  // Numbers
-  if (/^-?\d+(\.\d+)?$/.test(raw)) {
-    return Number(raw);
-  }
-
-  return raw;
-}
-
-export function parseCliArgs(args: string[]): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-    if (!arg.startsWith('--')) continue;
-
-    const body = arg.slice(2);
-    const eqIdx = body.indexOf('=');
-
-    if (eqIdx >= 0) {
-      // --key=value
-      result[body.slice(0, eqIdx)] = parseValue(body.slice(eqIdx + 1));
-    } else if (args[i + 1] && !args[i + 1].startsWith('--')) {
-      // --key value
-      i++;
-      result[body] = parseValue(args[i]);
-    } else {
-      // --flag (boolean)
-      result[body] = true;
-    }
-  }
-
-  return result;
-}
+export { parseCliArgs, parseValue } from './cli-args';
+export { CLIError, reportCLIError } from './cli-error';
 
 function outputContentItem(item: ToolResultContent, isError: boolean): void {
   switch (item.type) {
@@ -128,10 +84,23 @@ function printCommandHelp(scriptName: string, cmd: CLICommand): void {
 
   const schemaEntries = Object.entries(def.schema);
   if (schemaEntries.length > 0) {
+    const optionWidth = Math.max(
+      22,
+      ...schemaEntries.map(
+        ([key]) =>
+          getCliOptionDisplay(key, def.cli?.options?.[key]).label.length,
+      ),
+    );
     console.log('\nOptions:');
     for (const [key, zodType] of schemaEntries) {
+      const { label, aliases } = getCliOptionDisplay(
+        key,
+        def.cli?.options?.[key],
+      );
       const desc = zodType.description ?? '';
-      console.log(`  --${key.padEnd(20)} ${desc}`);
+      const aliasText =
+        aliases.length > 0 ? ` (aliases: ${aliases.join(', ')})` : '';
+      console.log(`  ${label.padEnd(optionWidth)} ${desc}${aliasText}`);
     }
   }
 }
@@ -158,8 +127,10 @@ function printHelp(
   console.log(`\nRun "${scriptName} <command> --help" for more info.`);
 }
 
+type AnyMidsceneTools = BaseMidsceneTools<any, any>;
+
 export async function runToolsCLI(
-  tools: BaseMidsceneTools,
+  tools: AnyMidsceneTools,
   scriptName: string,
   options?: CLIRunnerOptions,
 ): Promise<void> {
@@ -227,13 +198,23 @@ export async function runToolsCLI(
   }
 
   const parsedArgs = parseCliArgs(restArgs);
-  debug('command: %s, args: %s', match.name, JSON.stringify(parsedArgs));
-
   if (parsedArgs.help === true) {
     debug('showing command help for: %s', match.name);
     printCommandHelp(scriptName, match);
     return;
   }
+
+  const cliValidationError = formatCliValidationError(
+    scriptName,
+    match.name,
+    match.def,
+    parsedArgs,
+  );
+  if (cliValidationError) {
+    throw new CLIError(cliValidationError);
+  }
+
+  debug('command: %s, args: %s', match.name, JSON.stringify(parsedArgs));
 
   const result = await match.def.handler(parsedArgs);
   debug(

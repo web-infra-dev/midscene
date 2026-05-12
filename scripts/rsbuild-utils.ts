@@ -21,6 +21,8 @@ export const createCopyStaticPlugin = (options: CopyStaticOptions) => ({
       const stat = await fs.promises.lstat(destDir).catch(() => null);
       if (stat?.isSymbolicLink()) {
         await fs.promises.unlink(destDir);
+      } else if (stat) {
+        await fs.promises.rm(destDir, { recursive: true, force: true });
       }
 
       await fs.promises.mkdir(destDir, { recursive: true });

@@ -33,6 +33,12 @@ const createMockAdb = () => ({
 
 let mockAdbInstance: ReturnType<typeof createMockAdb>;
 
+const createValidPngBuffer = (size = 64) =>
+  Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    Buffer.alloc(Math.max(size - 8, 0)),
+  ]);
+
 vi.mock('appium-adb', () => {
   return {
     ADB: vi.fn(() => {
@@ -45,7 +51,40 @@ vi.mock('appium-adb', () => {
 });
 
 vi.mock('@midscene/core/utils');
-vi.mock('@midscene/shared/img');
+vi.mock('@midscene/shared/img', async (importOriginal) => {
+  const original =
+    await importOriginal<typeof import('@midscene/shared/img')>();
+  const validateScreenshotBuffer =
+    original.validateScreenshotBuffer ??
+    ((
+      screenshotBuffer: Buffer | undefined,
+      options: {
+        label: string;
+        minBufferSize?: number;
+      },
+    ) => {
+      const bufferSize = screenshotBuffer?.length ?? 0;
+      if (!screenshotBuffer || bufferSize === 0) {
+        throw new Error(
+          `${options.label} validation failed: buffer size ${bufferSize} bytes`,
+        );
+      }
+      if (!original.isValidImageBuffer(screenshotBuffer)) {
+        throw new Error(`${options.label} buffer has invalid image format`);
+      }
+      if (options.minBufferSize && bufferSize < options.minBufferSize) {
+        throw new Error(
+          `${options.label} validation failed: buffer size ${bufferSize} bytes (minimum: ${options.minBufferSize})`,
+        );
+      }
+    });
+  return {
+    ...original,
+    createImgBase64ByFormat: vi.fn(),
+    resizeAndConvertImgBuffer: vi.fn(),
+    validateScreenshotBuffer,
+  };
+});
 vi.mock('node:fs', async (importOriginal) => {
   const original = (await importOriginal()) as {
     default: Record<string, unknown>;
@@ -141,6 +180,38 @@ describe('AndroidDevice', () => {
       await expect(device.terminate('com.bad.app')).rejects.toThrow(
         'Failed to terminate com.bad.app',
       );
+    });
+  });
+
+  // Cross-platform contract for https://github.com/web-infra-dev/midscene/issues/2313:
+  // Launch/Terminate on every mobile platform must expose the SAME `uri` field.
+  // The shared tool-generator already rejects non-object schemas, but a future
+  // author could still rename the field and silently break CLI ergonomics.
+  describe('Launch/Terminate action schema contract', () => {
+    it('Launch paramSchema is a ZodObject with a `uri: ZodString` field', () => {
+      const launchAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Launch');
+      expect(launchAction).toBeDefined();
+      expect((launchAction!.paramSchema as any)?._def?.typeName).toBe(
+        'ZodObject',
+      );
+      expect(
+        (launchAction!.paramSchema as any).shape?.uri?._def?.typeName,
+      ).toBe('ZodString');
+    });
+
+    it('Terminate paramSchema is a ZodObject with a `uri: ZodString` field', () => {
+      const terminateAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Terminate');
+      expect(terminateAction).toBeDefined();
+      expect((terminateAction!.paramSchema as any)?._def?.typeName).toBe(
+        'ZodObject',
+      );
+      expect(
+        (terminateAction!.paramSchema as any).shape?.uri?._def?.typeName,
+      ).toBe('ZodString');
     });
   });
 
@@ -313,7 +384,6 @@ describe('AndroidDevice', () => {
         width: 1080,
         height: 1920,
       });
-      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       vi.spyOn(ImgUtils, 'resizeAndConvertImgBuffer').mockImplementation(
         async (format, buffer) => ({
           buffer,
@@ -323,7 +393,7 @@ describe('AndroidDevice', () => {
     });
 
     it('should take screenshot successfully with takeScreenshot', async () => {
-      const mockBuffer = Buffer.from('test-screenshot');
+      const mockBuffer = createValidPngBuffer();
       mockAdb.takeScreenshot.mockResolvedValue(mockBuffer);
 
       // Mock createImgBase64ByFormat
@@ -338,7 +408,7 @@ describe('AndroidDevice', () => {
 
     it('should fall back to screencap and pull if takeScreenshot fails', async () => {
       mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
-      const mockBuffer = Buffer.from('fallback-screenshot');
+      const mockBuffer = createValidPngBuffer();
       vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/test.png');
       (fs.promises.readFile as Mock).mockResolvedValue(mockBuffer);
 
@@ -356,6 +426,67 @@ describe('AndroidDevice', () => {
       expect(fs.promises.readFile).toHaveBeenCalled();
       expect(result).toContain(mockBuffer.toString('base64'));
       // rm is now executed via execFile (fire-and-forget), not adb.shell
+    });
+
+    it('should accept valid fallback screenshots larger than 1KB by default', async () => {
+      const defaultDevice = new AndroidDevice('test-device', {
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(defaultDevice, 'getAdb').mockResolvedValue(mockAdb);
+      mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
+      const smallValidPng = createValidPngBuffer(7 * 1024);
+      vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/small.png');
+      (fs.promises.readFile as Mock).mockResolvedValue(smallValidPng);
+
+      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+        `data:image/png;base64,${smallValidPng.toString('base64')}`,
+      );
+
+      const result = await defaultDevice.screenshotBase64();
+
+      expect(result).toContain(smallValidPng.toString('base64'));
+      expect(mockAdb.pull).toHaveBeenCalled();
+    });
+
+    it('should reject valid fallback screenshots smaller than 1KB by default', async () => {
+      const defaultDevice = new AndroidDevice('test-device', {
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(defaultDevice, 'getAdb').mockResolvedValue(mockAdb);
+      mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
+      const tinyValidPng = createValidPngBuffer(512);
+      vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/tiny.png');
+      (fs.promises.readFile as Mock).mockResolvedValue(tinyValidPng);
+
+      await expect(defaultDevice.screenshotBase64()).rejects.toThrow(
+        'Fallback screenshot validation failed: buffer size 512 bytes (minimum: 1024)',
+      );
+    });
+
+    it('should reject empty fallback screenshots', async () => {
+      mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
+      vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/empty.png');
+      (fs.promises.readFile as Mock).mockResolvedValue(Buffer.alloc(0));
+
+      await expect(device.screenshotBase64()).rejects.toThrow(
+        'Fallback screenshot validation failed: buffer size 0 bytes',
+      );
+    });
+
+    it('should enforce minScreenshotBufferSize when explicitly configured', async () => {
+      const minSizeDevice = new AndroidDevice('test-device', {
+        minScreenshotBufferSize: 10 * 1024,
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(minSizeDevice, 'getAdb').mockResolvedValue(mockAdb);
+      mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
+      const smallValidPng = createValidPngBuffer(7 * 1024);
+      vi.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/small.png');
+      (fs.promises.readFile as Mock).mockResolvedValue(smallValidPng);
+
+      await expect(minSizeDevice.screenshotBase64()).rejects.toThrow(
+        'Fallback screenshot validation failed: buffer size 7168 bytes (minimum: 10240)',
+      );
     });
   });
 
@@ -639,28 +770,19 @@ describe('AndroidDevice', () => {
         describe('characters routed to yadb with escapeForShell applied', () => {
           it('\\ → execYadb unchanged (no escaping needed in single quotes)', async () => {
             await device.keyboardType('a\\b');
-            expect((device as any).execYadb).toHaveBeenCalledWith(
-              'a\\b',
-              expect.anything(),
-            );
+            expect((device as any).execYadb).toHaveBeenCalledWith('a\\b');
             expect(mockAdb.inputText).not.toHaveBeenCalled();
           });
 
           it('` → execYadb unchanged', async () => {
             await device.keyboardType('a`b');
-            expect((device as any).execYadb).toHaveBeenCalledWith(
-              'a`b',
-              expect.anything(),
-            );
+            expect((device as any).execYadb).toHaveBeenCalledWith('a`b');
             expect(mockAdb.inputText).not.toHaveBeenCalled();
           });
 
           it('$ → execYadb unchanged', async () => {
             await device.keyboardType('$HOME');
-            expect((device as any).execYadb).toHaveBeenCalledWith(
-              '$HOME',
-              expect.anything(),
-            );
+            expect((device as any).execYadb).toHaveBeenCalledWith('$HOME');
             expect(mockAdb.inputText).not.toHaveBeenCalled();
           });
 
@@ -668,7 +790,6 @@ describe('AndroidDevice', () => {
             await device.keyboardType('it\'s a "test"');
             expect((device as any).execYadb).toHaveBeenCalledWith(
               "it'\\''s a \"test\"",
-              expect.anything(),
             );
             expect(mockAdb.inputText).not.toHaveBeenCalled();
           });
@@ -677,7 +798,6 @@ describe('AndroidDevice', () => {
             await device.keyboardType('price: $100\\each');
             expect((device as any).execYadb).toHaveBeenCalledWith(
               'price: $100\\each',
-              expect.anything(),
             );
           });
         });
@@ -686,41 +806,30 @@ describe('AndroidDevice', () => {
         describe('characters NOT needing escapeForShell (pass through unchanged)', () => {
           it('non-ASCII: Chinese', async () => {
             await device.keyboardType('你好');
-            expect((device as any).execYadb).toHaveBeenCalledWith(
-              '你好',
-              expect.anything(),
-            );
+            expect((device as any).execYadb).toHaveBeenCalledWith('你好');
           });
 
           it('non-ASCII: Latin Unicode (ö)', async () => {
             await device.keyboardType('Schönberg,Liechtenstein');
             expect((device as any).execYadb).toHaveBeenCalledWith(
               'Schönberg,Liechtenstein',
-              expect.anything(),
             );
           });
 
           it('non-ASCII: emoji', async () => {
             await device.keyboardType('hello 😀');
-            expect((device as any).execYadb).toHaveBeenCalledWith(
-              'hello 😀',
-              expect.anything(),
-            );
+            expect((device as any).execYadb).toHaveBeenCalledWith('hello 😀');
           });
 
           it('non-ASCII: Japanese', async () => {
             await device.keyboardType('こんにちは');
-            expect((device as any).execYadb).toHaveBeenCalledWith(
-              'こんにちは',
-              expect.anything(),
-            );
+            expect((device as any).execYadb).toHaveBeenCalledWith('こんにちは');
           });
 
           it('format specifier: %s (yadb does not interpret %)', async () => {
             await device.keyboardType('Test%sString');
             expect((device as any).execYadb).toHaveBeenCalledWith(
               'Test%sString',
-              expect.anything(),
             );
           });
 
@@ -729,7 +838,6 @@ describe('AndroidDevice', () => {
             // Non-ASCII triggers yadb; ' is escaped, everything else passes through
             expect((device as any).execYadb).toHaveBeenCalledWith(
               "café'\\''s menu! @#&|;(){}[]<>~^*?=+,./:-_",
-              expect.anything(),
             );
           });
         });
@@ -804,7 +912,6 @@ describe('AndroidDevice', () => {
             expect((device as any).execYadb).toHaveBeenCalledTimes(1);
             expect((device as any).execYadb).toHaveBeenCalledWith(
               '你好\\nworld',
-              expect.anything(),
             );
             expect(mockAdb.inputText).not.toHaveBeenCalled();
             expect(mockAdb.keyevent).not.toHaveBeenCalled();
@@ -815,7 +922,6 @@ describe('AndroidDevice', () => {
             expect((device as any).execYadb).toHaveBeenCalledTimes(1);
             expect((device as any).execYadb).toHaveBeenCalledWith(
               'price: $10\\nplain text',
-              expect.anything(),
             );
             expect(mockAdb.inputText).not.toHaveBeenCalled();
             expect(mockAdb.keyevent).not.toHaveBeenCalled();
@@ -824,10 +930,7 @@ describe('AndroidDevice', () => {
           it('non-ASCII trailing newline: 你好\\n', async () => {
             await device.keyboardType('你好\n');
             expect((device as any).execYadb).toHaveBeenCalledTimes(1);
-            expect((device as any).execYadb).toHaveBeenCalledWith(
-              '你好\\n',
-              expect.anything(),
-            );
+            expect((device as any).execYadb).toHaveBeenCalledWith('你好\\n');
             expect(mockAdb.keyevent).not.toHaveBeenCalled();
           });
 
@@ -837,10 +940,7 @@ describe('AndroidDevice', () => {
               autoDismissKeyboard: false,
             };
             await device.keyboardType('hello\n');
-            expect((device as any).execYadb).toHaveBeenCalledWith(
-              'hello\\n',
-              expect.anything(),
-            );
+            expect((device as any).execYadb).toHaveBeenCalledWith('hello\\n');
             expect(mockAdb.keyevent).not.toHaveBeenCalled();
           });
 
@@ -850,10 +950,7 @@ describe('AndroidDevice', () => {
               autoDismissKeyboard: false,
             };
             await device.keyboardType('\nhello');
-            expect((device as any).execYadb).toHaveBeenCalledWith(
-              '\\nhello',
-              expect.anything(),
-            );
+            expect((device as any).execYadb).toHaveBeenCalledWith('\\nhello');
           });
 
           it('always-yadb consecutive newlines: a\\n\\nb', async () => {
@@ -862,10 +959,7 @@ describe('AndroidDevice', () => {
               autoDismissKeyboard: false,
             };
             await device.keyboardType('a\n\nb');
-            expect((device as any).execYadb).toHaveBeenCalledWith(
-              'a\\n\\nb',
-              expect.anything(),
-            );
+            expect((device as any).execYadb).toHaveBeenCalledWith('a\\n\\nb');
           });
 
           it('always-yadb just a newline: \\n', async () => {
@@ -874,10 +968,7 @@ describe('AndroidDevice', () => {
               autoDismissKeyboard: false,
             };
             await device.keyboardType('\n');
-            expect((device as any).execYadb).toHaveBeenCalledWith(
-              '\\n',
-              expect.anything(),
-            );
+            expect((device as any).execYadb).toHaveBeenCalledWith('\\n');
             expect(mockAdb.keyevent).not.toHaveBeenCalled();
           });
         });
@@ -893,10 +984,7 @@ describe('AndroidDevice', () => {
             autoDismissKeyboard: false,
           };
           await device.keyboardType('hello world');
-          expect((device as any).execYadb).toHaveBeenCalledWith(
-            'hello world',
-            expect.anything(),
-          );
+          expect((device as any).execYadb).toHaveBeenCalledWith('hello world');
           expect(mockAdb.inputText).not.toHaveBeenCalled();
         });
 
@@ -908,7 +996,6 @@ describe('AndroidDevice', () => {
           await device.keyboardType('Schönberg,%sLiechtenstein');
           expect((device as any).execYadb).toHaveBeenCalledWith(
             'Schönberg,%sLiechtenstein',
-            expect.anything(),
           );
         });
 
@@ -922,7 +1009,6 @@ describe('AndroidDevice', () => {
           await device.keyboardType('你好,Schönberg');
           expect((device as any).execYadb).toHaveBeenCalledWith(
             '你好,Schönberg',
-            expect.anything(),
           );
           expect(mockAdb.inputText).not.toHaveBeenCalled();
         });
@@ -1307,6 +1393,7 @@ describe('AndroidDevice', () => {
 
         // Verify warning was logged
         expect(warnSpy).toHaveBeenCalledWith(
+          '[Midscene]',
           'Warning: Failed to hide the software keyboard after trying both ESC and BACK keys',
         );
 
@@ -1344,7 +1431,7 @@ describe('AndroidDevice', () => {
         .spyOn(device as any, 'scroll')
         .mockResolvedValue(undefined);
       await device.scrollUp(100);
-      expect(wheelSpy).toHaveBeenCalledWith(0, -100);
+      expect(wheelSpy).toHaveBeenCalledWith(0, -100, undefined, true, 'up');
     });
 
     it('scrollDown should call scroll with positive Y delta', async () => {
@@ -1352,10 +1439,14 @@ describe('AndroidDevice', () => {
         .spyOn(device as any, 'scroll')
         .mockResolvedValue(undefined);
       await device.scrollDown(100);
-      expect(wheelSpy).toHaveBeenCalledWith(0, 100);
+      expect(wheelSpy).toHaveBeenCalledWith(0, 100, undefined, true, 'down');
     });
 
     describe('scroll input validation', () => {
+      beforeEach(() => {
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+      });
+
       it('should throw error when both deltaX and deltaY are zero', async () => {
         await expect((device as any).scroll(0, 0)).rejects.toThrow(
           'Scroll distance cannot be zero in both directions',
@@ -1372,6 +1463,7 @@ describe('AndroidDevice', () => {
         expect(mockAdb.shell).toHaveBeenCalledWith(
           expect.stringContaining('input swipe'),
         );
+        expect(console.warn).not.toHaveBeenCalled();
       });
 
       it('should allow scrolling with zero deltaX and non-zero deltaY', async () => {
@@ -1384,12 +1476,16 @@ describe('AndroidDevice', () => {
         expect(mockAdb.shell).toHaveBeenCalledWith(
           expect.stringContaining('input swipe'),
         );
+        expect(console.warn).not.toHaveBeenCalled();
       });
 
       it('should allow symmetric horizontal range from the same start position', async () => {
         const adjustCoordinatesSpy = vi
           .spyOn(device as any, 'adjustCoordinates')
-          .mockImplementation(async (x: number, y: number) => ({ x, y }));
+          .mockImplementation(async (...args: unknown[]) => {
+            const [x, y] = args as [number, number];
+            return { x, y };
+          });
 
         await (device as any).scroll(9999999, 0);
         const rightSwipeCmd = (mockAdb.shell as Mock).mock.calls.at(
@@ -1403,6 +1499,7 @@ describe('AndroidDevice', () => {
 
         expect(rightSwipeCmd).toBe('input swipe 270 480 0 480 1000');
         expect(leftSwipeCmd).toBe('input swipe 810 480 1080 480 1000');
+        expect(console.warn).not.toHaveBeenCalled();
 
         adjustCoordinatesSpy.mockRestore();
       });
@@ -1416,6 +1513,36 @@ describe('AndroidDevice', () => {
         expect(mockAdb.shell).toHaveBeenCalledWith(
           expect.stringContaining('input swipe'),
         );
+        expect(console.warn).not.toHaveBeenCalled();
+      });
+
+      it('should warn when explicit scrollDown distance exceeds the swipe boundary', async () => {
+        vi.spyOn(device as any, 'adjustCoordinates').mockImplementation(
+          async (...args: unknown[]) => {
+            const [x, y] = args as [number, number];
+            return { x, y };
+          },
+        );
+
+        await device.scrollDown(9999999);
+
+        expect(console.warn).toHaveBeenCalledWith(
+          '[Midscene]',
+          '[midscene] Android ADB swipe coordinates must stay within the screen bounds. The requested scroll distance (9999999px) exceeds the maximum single swipe distance (480px) from the current start point, so it will be clamped. If you want to scroll to the bottom, use scrollToBottom instead.',
+        );
+      });
+
+      it('should not warn for internal scrollToBottom clamp behavior', async () => {
+        vi.spyOn(device as any, 'adjustCoordinates').mockImplementation(
+          async (...args: unknown[]) => {
+            const [x, y] = args as [number, number];
+            return { x, y };
+          },
+        );
+
+        await device.scrollUntilBottom();
+
+        expect(console.warn).not.toHaveBeenCalled();
       });
     });
 
@@ -1662,6 +1789,7 @@ describe('AndroidDevice', () => {
     describe('scroll methods with calculateScrollEndPoint integration', () => {
       beforeEach(() => {
         vi.spyOn(device as any, 'mouseDrag').mockResolvedValue(undefined);
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
       });
 
       it('scrollDown with startPoint should use calculateScrollEndPoint', async () => {
@@ -1830,6 +1958,25 @@ describe('AndroidDevice', () => {
           0,
           1920,
         );
+      });
+
+      it('scrollDown with startPoint should warn when explicit distance is clamped', async () => {
+        const startPoint = { left: 100, top: 100 };
+
+        await device.scrollDown(500, startPoint);
+
+        expect(console.warn).toHaveBeenCalledWith(
+          '[Midscene]',
+          '[midscene] Android ADB swipe coordinates must stay within the screen bounds. The requested scroll distance (500px) exceeds the maximum single swipe distance (100px) from the current start point, so it will be clamped. If you want to scroll to the bottom, use scrollToBottom instead.',
+        );
+      });
+
+      it('scrollDown with startPoint should not warn for default distance clamp', async () => {
+        const startPoint = { left: 100, top: 100 };
+
+        await device.scrollDown(undefined, startPoint);
+
+        expect(console.warn).not.toHaveBeenCalled();
       });
     });
   });
@@ -2036,11 +2183,10 @@ describe('AndroidDevice', () => {
       await deviceWithDisplay.getAdb();
 
       // Mock fs.promises.readFile to return a valid PNG buffer
-      const mockBuffer = Buffer.from('fake-png-data');
+      const mockBuffer = createValidPngBuffer();
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
         buffer: mockBuffer,
         format: 'png' as const,
@@ -2078,11 +2224,10 @@ describe('AndroidDevice', () => {
       await deviceWithDisplay.getAdb();
 
       // Mock fs.promises.readFile to return a valid PNG buffer
-      const mockBuffer = Buffer.from('fake-png-data');
+      const mockBuffer = createValidPngBuffer();
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
         buffer: mockBuffer,
         format: 'png' as const,
@@ -2120,11 +2265,10 @@ describe('AndroidDevice', () => {
         Promise.resolve(mockAdbInstance);
 
       // Mock fs.promises.readFile to return a valid PNG buffer
-      const mockBuffer = Buffer.from('fake-png-data');
+      const mockBuffer = createValidPngBuffer();
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
         buffer: mockBuffer,
         format: 'png' as const,
@@ -2229,7 +2373,10 @@ describe('AndroidDevice', () => {
       vi.spyOn(
         deviceWithDisplay as any,
         'adjustCoordinates',
-      ).mockImplementation(async (x: number, y: number) => ({ x, y }));
+      ).mockImplementation(async (...args: unknown[]) => {
+        const [x, y] = args as [number, number];
+        return { x, y };
+      });
 
       await deviceWithDisplay.longPress(100, 200, 1500);
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
@@ -2257,11 +2404,10 @@ describe('AndroidDevice', () => {
         Promise.resolve(mockAdbInstance);
 
       // Mock fs.promises.readFile to return a valid PNG buffer
-      const mockBuffer = Buffer.from('fake-png-data');
+      const mockBuffer = createValidPngBuffer();
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
         buffer: mockBuffer,
         format: 'png' as const,
@@ -2296,57 +2442,30 @@ describe('AndroidDevice', () => {
     });
   });
 
-  describe('getTimestamp', () => {
-    it('should return device timestamp in milliseconds', async () => {
-      const mockTimestamp = '1706262645123';
-      mockAdb.shell.mockResolvedValueOnce(mockTimestamp);
+  describe('getDeviceLocalTimeString', () => {
+    it('should return device-local time with the default format', async () => {
+      mockAdb.shell.mockResolvedValueOnce('2023-10-15T15:37:02\n');
 
-      const result = await device.getTimestamp();
+      const result = await device.getDeviceLocalTimeString();
 
-      expect(mockAdb.shell).toHaveBeenCalledWith('date +%s%3N');
-      expect(result).toBe(1706262645123);
+      expect(mockAdb.shell).toHaveBeenCalledWith('date +%Y-%m-%dT%H:%M:%S');
+      expect(result).toBe('2023-10-15 15:37:02 (YYYY-MM-DD HH:mm:ss)');
     });
 
-    it('should handle timestamp with whitespace', async () => {
-      const mockTimestamp = '  1706262645123  \n';
-      mockAdb.shell.mockResolvedValueOnce(mockTimestamp);
+    it('should apply custom format tokens to device-local time', async () => {
+      mockAdb.shell.mockResolvedValueOnce('2023-10-15T15:37:02');
 
-      const result = await device.getTimestamp();
+      const result = await device.getDeviceLocalTimeString('HH:mm');
 
-      expect(result).toBe(1706262645123);
+      expect(result).toBe('15:37 (HH:mm)');
     });
 
-    it('should throw error for invalid timestamp format', async () => {
-      mockAdb.shell.mockResolvedValueOnce('invalid-timestamp');
+    it('should throw error for invalid device-local time format', async () => {
+      mockAdb.shell.mockResolvedValueOnce('invalid-time');
 
-      await expect(device.getTimestamp()).rejects.toThrow(
-        'Invalid timestamp format',
+      await expect(device.getDeviceLocalTimeString()).rejects.toThrow(
+        'Invalid device time format',
       );
-    });
-
-    it('should throw error when shell command fails', async () => {
-      mockAdb.shell.mockRejectedValueOnce(new Error('Shell command failed'));
-
-      await expect(device.getTimestamp()).rejects.toThrow(
-        'Failed to get device time',
-      );
-    });
-
-    it('should throw error for empty response', async () => {
-      mockAdb.shell.mockResolvedValueOnce('');
-
-      await expect(device.getTimestamp()).rejects.toThrow(
-        'Invalid timestamp format',
-      );
-    });
-
-    it('should handle large timestamp values', async () => {
-      const mockTimestamp = '1893456000000'; // Year 2030
-      mockAdb.shell.mockResolvedValueOnce(mockTimestamp);
-
-      const result = await device.getTimestamp();
-
-      expect(result).toBe(1893456000000);
     });
   });
 });

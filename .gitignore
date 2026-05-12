@@ -123,6 +123,8 @@ packages/ios-playground/static/
 packages/ios/static/
 packages/computer-playground/static/
 packages/playground/static/
+/apps/studio/.release/
+/.release/
 .cursor
 .claude
 **/.claude
@@ -144,3 +146,8 @@ packages/all-in-one-playground/static/*
 # rslib
 .rslib
 **/.rslib
+**/.native-build/
+/docs/
+
+# jetbrains
+.idea/

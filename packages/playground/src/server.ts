@@ -3,7 +3,12 @@ import http from 'node:http';
 import type { Server } from 'node:http';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { ExecutionDump } from '@midscene/core';
+import type {
+  DeviceAction,
+  ExecutionDump,
+  ExecutionTask,
+  ExecutorContext,
+} from '@midscene/core';
 import { ReportActionDump, runConnectivityTest } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
 import { getTmpDir } from '@midscene/core/utils';
@@ -12,9 +17,16 @@ import {
   globalModelConfigManager,
   overrideAIConfig,
 } from '@midscene/shared/env';
+import { generateElementByPoint } from '@midscene/shared/extractor';
+import { getDebug } from '@midscene/shared/logger';
 import { uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
+import {
+  type InterfaceMjpegHub,
+  createInterfaceMjpegHub,
+  writeMjpegFrame,
+} from './mjpeg-hub';
 import type {
   PlaygroundCreatedSession,
   PlaygroundExecutionHooks,
@@ -35,6 +47,14 @@ import type { AgentFactory } from './types';
 import 'dotenv/config';
 
 const defaultPort = PLAYGROUND_SERVER_PORT;
+
+function serializeAiConfigSignature(aiConfig: Record<string, unknown>): string {
+  return JSON.stringify(
+    Object.entries(aiConfig).sort(([leftKey], [rightKey]) =>
+      leftKey.localeCompare(rightKey),
+    ),
+  );
+}
 
 /**
  * Recursively serialize a Zod field into a plain object that preserves
@@ -105,6 +125,172 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const STATIC_PATH = join(__dirname, '..', '..', 'static');
 
+const debugScreenshot = getDebug('playground:screenshot', { console: true });
+const debugMjpeg = getDebug('playground:mjpeg', { console: true });
+
+/**
+ * Thrown when a caller supplies an /interact body that fails validation
+ * (missing x/y, missing keyName for KeyboardPress, etc.). Distinct from a
+ * downstream device failure so the route handler can map this to HTTP 400.
+ */
+export class InteractParamsValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InteractParamsValidationError';
+  }
+}
+
+function requireNumber(value: unknown, field: string): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    throw new InteractParamsValidationError(
+      `${field} must be a number for this action`,
+    );
+  }
+  return value;
+}
+
+function locateFromPoint(
+  x: unknown,
+  y: unknown,
+  fieldX: string,
+  fieldY: string,
+  description: string,
+) {
+  return generateElementByPoint(
+    [
+      Math.round(requireNumber(x, fieldX)),
+      Math.round(requireNumber(y, fieldY)),
+    ],
+    description,
+  );
+}
+
+type InteractParamBuilder = (
+  body: Record<string, unknown>,
+  actionType: string,
+) => Record<string, unknown>;
+
+type BrowserChromeInteractAction = 'Stop';
+
+type BrowserChromeInterface = {
+  stopLoading?: () => Promise<void>;
+};
+
+const buildLocateActionParams: InteractParamBuilder = (body, actionType) => {
+  const params: Record<string, unknown> = {
+    locate: locateFromPoint(body.x, body.y, 'x', 'y', `manual ${actionType}`),
+  };
+  if (typeof body.duration === 'number') {
+    params.duration = body.duration;
+  }
+  return params;
+};
+
+const buildSwipeParams: InteractParamBuilder = (body) => {
+  const params: Record<string, unknown> = {
+    start: locateFromPoint(body.x, body.y, 'x', 'y', 'manual swipe start'),
+    end: locateFromPoint(
+      body.endX,
+      body.endY,
+      'endX',
+      'endY',
+      'manual swipe end',
+    ),
+  };
+  if (typeof body.duration === 'number') params.duration = body.duration;
+  if (typeof body.repeat === 'number') params.repeat = body.repeat;
+  return params;
+};
+
+const buildDragAndDropParams: InteractParamBuilder = (body) => ({
+  from: locateFromPoint(body.x, body.y, 'x', 'y', 'manual drag from'),
+  to: locateFromPoint(body.endX, body.endY, 'endX', 'endY', 'manual drag to'),
+});
+
+const buildKeyboardPressParams: InteractParamBuilder = (body) => {
+  if (typeof body.keyName !== 'string') {
+    throw new InteractParamsValidationError(
+      'keyName is required for KeyboardPress',
+    );
+  }
+  const params: Record<string, unknown> = { keyName: body.keyName };
+  if (typeof body.x === 'number' && typeof body.y === 'number') {
+    params.locate = locateFromPoint(
+      body.x,
+      body.y,
+      'x',
+      'y',
+      'manual keyboard press',
+    );
+  }
+  return params;
+};
+
+const buildInputParams: InteractParamBuilder = (body) => {
+  if (typeof body.value !== 'string') {
+    throw new InteractParamsValidationError('value is required for Input');
+  }
+  const params: Record<string, unknown> = { value: body.value };
+  if (typeof body.x === 'number' && typeof body.y === 'number') {
+    params.locate = locateFromPoint(body.x, body.y, 'x', 'y', 'manual input');
+  }
+  if (typeof body.mode === 'string') params.mode = body.mode;
+  if (typeof body.autoDismissKeyboard === 'boolean') {
+    params.autoDismissKeyboard = body.autoDismissKeyboard;
+  }
+  return params;
+};
+
+function getManualInteractParamBuilder(
+  actionType: string,
+): InteractParamBuilder | undefined {
+  switch (actionType) {
+    case 'Tap':
+    case 'DoubleClick':
+    case 'RightClick':
+    case 'Hover':
+    case 'LongPress':
+      return buildLocateActionParams;
+    case 'Swipe':
+      return buildSwipeParams;
+    case 'DragAndDrop':
+      return buildDragAndDropParams;
+    case 'KeyboardPress':
+      return buildKeyboardPressParams;
+    case 'Input':
+      return buildInputParams;
+    default:
+      return undefined;
+  }
+}
+
+export function buildInteractParams(
+  actionType: string,
+  body: Record<string, unknown>,
+): Record<string, unknown> {
+  const builder = getManualInteractParamBuilder(actionType);
+  if (builder) {
+    return builder(body, actionType);
+  }
+  // Fallback: pass-through any caller-provided params for less common actions.
+  const { actionType: _omit, ...passthrough } = body as Record<string, unknown>;
+  return passthrough;
+}
+
+export function createManualExecutorContext(
+  actionType: string,
+  param: unknown,
+): ExecutorContext {
+  const task: ExecutionTask = {
+    type: 'Action Space',
+    subType: actionType,
+    param,
+    executor: async () => undefined,
+    taskId: `manual-${uuid()}`,
+    status: 'running',
+  };
+  return { task };
+}
 const errorHandler = (
   err: unknown,
   req: Request,
@@ -136,6 +322,14 @@ interface PlaygroundActiveConnection {
   sidecars?: PlaygroundSidecar[];
 }
 
+const RECOVERABLE_PAGE_SESSION_ERROR_PATTERN =
+  /Session closed|page has been closed|target closed|browser has been closed|Target page, context or browser has been closed/i;
+
+function isRecoverablePageSessionError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return RECOVERABLE_PAGE_SESSION_ERROR_PATTERN.test(message);
+}
+
 class PlaygroundServer {
   private _app: express.Application;
   tmpDir: string;
@@ -153,8 +347,21 @@ class PlaygroundServer {
 
   private _initialized = false;
 
-  // Native MJPEG stream probe: null = not tested, true/false = result
+  // Native MJPEG stream probe: null = not tested, true/false = result.
+  // The negative cache expires after MJPEG_NEGATIVE_CACHE_MS so the server
+  // recovers automatically when WDA / iproxy comes online after startup.
   private _nativeMjpegAvailable: boolean | null = null;
+  private _nativeMjpegFailedAt: number | null = null;
+  private static readonly MJPEG_NEGATIVE_CACHE_MS = 10_000;
+  private static readonly INTERFACE_MJPEG_INITIAL_FRAME_TIMEOUT_MS = 1500;
+  private static readonly INTERFACE_MJPEG_IDLE_STOP_MS = 2000;
+  private readonly _interfaceMjpegHub: InterfaceMjpegHub =
+    createInterfaceMjpegHub({
+      initialFrameTimeoutMs:
+        PlaygroundServer.INTERFACE_MJPEG_INITIAL_FRAME_TIMEOUT_MS,
+      idleStopMs: PlaygroundServer.INTERFACE_MJPEG_IDLE_STOP_MS,
+      debug: debugMjpeg,
+    });
 
   private sessionManager?: PlaygroundSessionManager;
   private sessionSetupState: 'required' | 'ready' | 'blocked' = 'ready';
@@ -168,6 +375,7 @@ class PlaygroundServer {
 
   // Flag to track if AI config has changed and agent needs recreation
   private _configDirty = false;
+  private _lastAiConfigSignature: string | null = null;
   private _baseRuntimeState?: PlaygroundRuntimeState;
   private _basePreparedMetadata?: Record<string, unknown>;
   private _baseExecutionHooks?: PlaygroundExecutionHooks;
@@ -431,6 +639,8 @@ class PlaygroundServer {
       console.warn('Failed to destroy old agent:', error);
     } finally {
       this._activeConnection.agent = null;
+      // Once the stale agent is gone there is nothing left to recreate.
+      this._configDirty = false;
     }
   }
 
@@ -629,6 +839,82 @@ class PlaygroundServer {
         'Agent destroyed but cannot recreate: no factory function provided. Next /execute call will fail.',
       );
     }
+  }
+
+  private async recoverActiveAgentAfterPreviewError(
+    error: unknown,
+    reason: string,
+  ): Promise<PageAgent | null> {
+    if (
+      !this._activeConnection.agentFactory ||
+      !isRecoverablePageSessionError(error)
+    ) {
+      return null;
+    }
+
+    debugMjpeg(`Recovering active agent after ${reason}:`, error);
+    try {
+      this._interfaceMjpegHub.stopProducer();
+      await this.recreateAgent();
+      return this._activeConnection.agent;
+    } catch (recreateError) {
+      debugMjpeg(
+        `Failed to recover active agent after ${reason}:`,
+        recreateError,
+      );
+      return null;
+    }
+  }
+
+  private findInteractAction(
+    agent: PageAgent,
+    actionType: string,
+  ): DeviceAction<unknown> | undefined {
+    return (agent.interface.actionSpace() as DeviceAction<unknown>[]).find(
+      (entry) => entry.name === actionType,
+    );
+  }
+
+  private canRunBrowserChromeInteractAction(
+    agent: PageAgent,
+    actionType: string,
+  ): actionType is BrowserChromeInteractAction {
+    return (
+      actionType === 'Stop' &&
+      typeof (agent.interface as BrowserChromeInterface).stopLoading ===
+        'function'
+    );
+  }
+
+  private async runBrowserChromeInteractAction(
+    agent: PageAgent,
+    actionType: BrowserChromeInteractAction,
+  ): Promise<void> {
+    switch (actionType) {
+      case 'Stop':
+        await (agent.interface as BrowserChromeInterface).stopLoading?.();
+        return;
+    }
+  }
+
+  private async runInteractAction(
+    agent: PageAgent,
+    actionType: string,
+    params: Record<string, unknown>,
+  ): Promise<void> {
+    if (this.canRunBrowserChromeInteractAction(agent, actionType)) {
+      await this.runBrowserChromeInteractAction(agent, actionType);
+      return;
+    }
+
+    const action = this.findInteractAction(agent, actionType);
+    if (!action || typeof action.call !== 'function') {
+      throw new Error(
+        `Action "${actionType}" is not available on the current device`,
+      );
+    }
+
+    await action.call(params, createManualExecutorContext(actionType, params));
   }
 
   /**
@@ -1142,7 +1428,7 @@ class PlaygroundServer {
     // Screenshot API for real-time screenshot polling
     this._app.get('/screenshot', async (_req: Request, res: Response) => {
       try {
-        const agent = this.getActiveAgentOrThrow();
+        let agent = this.getActiveAgentOrThrow();
         // Check if page has screenshotBase64 method
         if (typeof agent.interface.screenshotBase64 !== 'function') {
           return res.status(500).json({
@@ -1150,17 +1436,36 @@ class PlaygroundServer {
           });
         }
 
-        const base64Screenshot = await agent.interface.screenshotBase64();
+        let screenshot: string;
+        try {
+          screenshot = await agent.interface.screenshotBase64();
+        } catch (error) {
+          const recoveredAgent = await this.recoverActiveAgentAfterPreviewError(
+            error,
+            'screenshot capture',
+          );
+          if (
+            !recoveredAgent ||
+            typeof recoveredAgent.interface.screenshotBase64 !== 'function'
+          ) {
+            throw error;
+          }
+          agent = recoveredAgent;
+          screenshot = await agent.interface.screenshotBase64();
+        }
 
         res.json({
-          screenshot: base64Screenshot,
+          screenshot,
           timestamp: Date.now(),
         });
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
-        console.error(`Failed to take screenshot: ${errorMessage}`);
-        res.status(errorMessage === 'No active session' ? 409 : 500).json({
+        const statusCode = errorMessage === 'No active session' ? 409 : 500;
+        if (statusCode !== 409) {
+          console.error(`Failed to take screenshot: ${errorMessage}`);
+        }
+        res.status(statusCode).json({
           error: `Failed to take screenshot: ${errorMessage}`,
         });
       }
@@ -1179,7 +1484,12 @@ class PlaygroundServer {
 
       const nativeUrl = agent.interface?.mjpegStreamUrl;
 
-      if (nativeUrl && this._nativeMjpegAvailable !== false) {
+      const recentlyFailed =
+        this._nativeMjpegAvailable === false &&
+        this._nativeMjpegFailedAt !== null &&
+        Date.now() - this._nativeMjpegFailedAt <
+          PlaygroundServer.MJPEG_NEGATIVE_CACHE_MS;
+      if (nativeUrl && !recentlyFailed) {
         const proxyOk = await this.probeAndProxyNativeMjpeg(
           nativeUrl,
           req,
@@ -1188,7 +1498,25 @@ class PlaygroundServer {
         if (proxyOk) return;
       }
 
-      if (typeof agent.interface?.screenshotBase64 !== 'function') {
+      const interfaceStreamStarted =
+        await this._interfaceMjpegHub.streamRequest(
+          req,
+          res,
+          agent.interface,
+          async (startupError) =>
+            (
+              await this.recoverActiveAgentAfterPreviewError(
+                startupError,
+                'interface MJPEG startup',
+              )
+            )?.interface ?? null,
+        );
+      if (interfaceStreamStarted) {
+        return;
+      }
+
+      const fallbackAgent = this._activeConnection.agent;
+      if (typeof fallbackAgent?.interface?.screenshotBase64 !== 'function') {
         return res.status(500).json({
           error: 'Screenshot method not available on current interface',
         });
@@ -1201,10 +1529,43 @@ class PlaygroundServer {
     this._app.get('/interface-info', async (_req: Request, res: Response) => {
       try {
         const runtimeInfo = this.getRuntimeInfo();
+        const agent = this._activeConnection.agent;
+        let size: { width: number; height: number } | undefined;
+        let navigationState: { isLoading: boolean } | undefined;
+        let actionTypes: string[] | undefined;
+        if (typeof agent?.interface?.size === 'function') {
+          try {
+            size = await agent.interface.size();
+          } catch (error) {
+            debugScreenshot('interface size() failed:', error);
+          }
+        }
+        if (typeof agent?.interface?.navigationState === 'function') {
+          try {
+            navigationState = await agent.interface.navigationState();
+          } catch (error) {
+            debugScreenshot('interface navigationState() failed:', error);
+          }
+        }
+        if (typeof agent?.interface?.actionSpace === 'function') {
+          try {
+            const actions = agent.interface.actionSpace();
+            actionTypes = Array.isArray(actions)
+              ? actions
+                  .map((action) => action?.name)
+                  .filter((name): name is string => typeof name === 'string')
+              : undefined;
+          } catch (error) {
+            debugScreenshot('interface actionSpace() failed:', error);
+          }
+        }
 
         res.json({
           type: runtimeInfo.interface.type,
           description: runtimeInfo.interface.description,
+          ...(size ? { size } : {}),
+          ...(navigationState ? { navigationState } : {}),
+          ...(actionTypes ? { actionTypes } : {}),
         });
       } catch (error: unknown) {
         const errorMessage =
@@ -1213,6 +1574,74 @@ class PlaygroundServer {
         res.status(500).json({
           error: `Failed to get interface info: ${errorMessage}`,
         });
+      }
+    });
+
+    // Direct manipulation API – invokes a named action immediately, bypassing
+    // AI planning, the task lock, and dump bookkeeping. Designed for UI-driven
+    // pointer/keyboard input on Android/iOS/Harmony device previews.
+    this._app.post('/interact', async (req: Request, res: Response) => {
+      let agent: PageAgent;
+      try {
+        agent = this.getActiveAgentOrThrow();
+      } catch (error) {
+        return res.status(409).json({
+          error: error instanceof Error ? error.message : 'No active session',
+        });
+      }
+
+      const { actionType } = req.body ?? {};
+      if (typeof actionType !== 'string' || !actionType) {
+        return res.status(400).json({
+          error: 'actionType is required',
+        });
+      }
+
+      if (
+        !this.findInteractAction(agent, actionType) &&
+        !this.canRunBrowserChromeInteractAction(agent, actionType)
+      ) {
+        return res.status(404).json({
+          error: `Action "${actionType}" is not available on the current device`,
+        });
+      }
+
+      let params: Record<string, unknown>;
+      try {
+        params = buildInteractParams(actionType, req.body ?? {});
+      } catch (error: unknown) {
+        if (error instanceof InteractParamsValidationError) {
+          return res.status(400).json({ error: error.message });
+        }
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.error(
+          `Failed to build interact params for "${actionType}": ${errorMessage}`,
+        );
+        return res.status(500).json({ error: errorMessage });
+      }
+
+      try {
+        await this.runInteractAction(agent, actionType, params);
+        res.json({});
+      } catch (error: unknown) {
+        const recoveredAgent = await this.recoverActiveAgentAfterPreviewError(
+          error,
+          `manual interact action "${actionType}"`,
+        );
+        if (recoveredAgent) {
+          return res.status(409).json({
+            error:
+              'The page session was closed and has been recreated. Please retry the action.',
+          });
+        }
+
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.error(
+          `Failed to run interact action "${actionType}": ${errorMessage}`,
+        );
+        res.status(500).json({ error: errorMessage });
       }
     });
 
@@ -1245,15 +1674,28 @@ class PlaygroundServer {
         });
       }
 
+      const nextConfigSignature = serializeAiConfigSignature(aiConfig);
+      const configChanged = nextConfigSignature !== this._lastAiConfigSignature;
+
       try {
-        overrideAIConfig(aiConfig);
-        this._configDirty = true;
+        if (configChanged) {
+          overrideAIConfig(aiConfig);
+          this._lastAiConfigSignature = nextConfigSignature;
+          this._configDirty = Boolean(this._activeConnection.agent);
+        }
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
         console.error(`Failed to update AI config: ${errorMessage}`);
         return res.status(500).json({
           error: `Failed to update AI config: ${errorMessage}`,
+        });
+      }
+
+      if (!configChanged) {
+        return res.json({
+          status: 'ok',
+          message: 'AI config not changed because it is identical to current',
         });
       }
 
@@ -1269,11 +1711,11 @@ class PlaygroundServer {
         });
       }
 
-      // Note: Agent will be recreated on next execution to apply new config
       return res.json({
         status: 'ok',
-        message:
-          'AI config updated. Agent will be recreated on next execution.',
+        message: this._configDirty
+          ? 'AI config updated. Agent will be recreated on next execution.'
+          : 'AI config updated. New sessions will use it immediately.',
       });
     });
 
@@ -1304,7 +1746,7 @@ class PlaygroundServer {
 
   /**
    * Probe and proxy a native MJPEG stream (e.g. WDA MJPEG server).
-   * Result is cached so we only probe once per server lifetime.
+   * Failed probes are cached briefly so WDA / iproxy can come online later.
    */
   private probeAndProxyNativeMjpeg(
     nativeUrl: string,
@@ -1314,7 +1756,19 @@ class PlaygroundServer {
     return new Promise<boolean>((resolve) => {
       console.log(`MJPEG: trying native stream from ${nativeUrl}`);
       const proxyReq = http.get(nativeUrl, (proxyRes) => {
+        const statusCode = proxyRes.statusCode ?? 0;
+        if (statusCode >= 400) {
+          this._nativeMjpegAvailable = false;
+          this._nativeMjpegFailedAt = Date.now();
+          proxyRes.resume();
+          debugMjpeg(
+            `native stream returned HTTP ${statusCode}, using polling mode`,
+          );
+          resolve(false);
+          return;
+        }
         this._nativeMjpegAvailable = true;
+        this._nativeMjpegFailedAt = null;
         console.log('MJPEG: streaming via native WDA MJPEG server');
         const contentType = proxyRes.headers['content-type'];
         if (contentType) {
@@ -1328,11 +1782,33 @@ class PlaygroundServer {
       });
       proxyReq.on('error', (err) => {
         this._nativeMjpegAvailable = false;
-        console.warn(
+        this._nativeMjpegFailedAt = Date.now();
+        debugMjpeg(
           `MJPEG: native stream unavailable (${err.message}), using polling mode`,
         );
         resolve(false);
       });
+    });
+  }
+
+  /**
+   * Quick liveness check for the native MJPEG endpoint without consuming a
+   * full streaming response. Used while we are in polling fallback so we can
+   * upgrade back to the native stream as soon as WDA / iproxy comes online.
+   */
+  private probeNativeMjpegLiveness(nativeUrl: string): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      const probe = http.get(nativeUrl, (probeRes) => {
+        const statusCode = probeRes.statusCode ?? 0;
+        const reachable = statusCode >= 200 && statusCode < 400;
+        probeRes.destroy();
+        resolve(reachable);
+      });
+      probe.setTimeout(1000, () => {
+        probe.destroy();
+        resolve(false);
+      });
+      probe.on('error', () => resolve(false));
     });
   }
 
@@ -1347,6 +1823,7 @@ class PlaygroundServer {
     const maxMjpegFps = 30;
     const maxErrorBackoffMs = 3000;
     const errorLogThreshold = 3;
+    const nativeProbeIntervalMs = 3000;
 
     const parsedFps = Number(req.query.fps);
     const fps = Math.min(
@@ -1366,8 +1843,37 @@ class PlaygroundServer {
 
     let stopped = false;
     let consecutiveErrors = 0;
+
+    // While we are in polling mode, periodically probe the native MJPEG URL.
+    // As soon as it becomes reachable, end this response so the client's
+    // <img> MJPEG connection retries and lands on the native stream.
+    const nativeUrl = this._activeConnection.agent?.interface?.mjpegStreamUrl;
+    let probeTimer: ReturnType<typeof setInterval> | undefined;
+    if (nativeUrl) {
+      probeTimer = setInterval(async () => {
+        if (stopped) return;
+        const reachable = await this.probeNativeMjpegLiveness(nativeUrl);
+        if (reachable && !stopped) {
+          console.log(
+            'MJPEG: native stream came online, ending polling so client reconnects',
+          );
+          this._nativeMjpegAvailable = true;
+          this._nativeMjpegFailedAt = null;
+          stopped = true;
+          // Destroy the socket so the client's <img> fires onError and
+          // reconnects; res.end() leaves multipart streams visually frozen
+          // on the last frame in some browsers.
+          try {
+            res.destroy();
+          } catch {
+            /* socket already closed */
+          }
+        }
+      }, nativeProbeIntervalMs);
+    }
     req.on('close', () => {
       stopped = true;
+      if (probeTimer) clearInterval(probeTimer);
     });
 
     while (!stopped) {
@@ -1384,16 +1890,20 @@ class PlaygroundServer {
         if (stopped) break;
         consecutiveErrors = 0;
 
-        const raw = base64.replace(/^data:image\/\w+;base64,/, '');
-        const buf = Buffer.from(raw, 'base64');
-
-        res.write(`--${boundary}\r\n`);
-        res.write('Content-Type: image/jpeg\r\n');
-        res.write(`Content-Length: ${buf.length}\r\n\r\n`);
-        res.write(buf);
-        res.write('\r\n');
+        writeMjpegFrame(res, boundary, {
+          data: base64,
+          contentType: 'image/jpeg',
+        });
       } catch (err) {
         if (stopped) break;
+        const recoveredAgent = await this.recoverActiveAgentAfterPreviewError(
+          err,
+          'polling MJPEG frame capture',
+        );
+        if (recoveredAgent) {
+          consecutiveErrors = 0;
+          continue;
+        }
         consecutiveErrors++;
         if (consecutiveErrors <= errorLogThreshold) {
           console.error('MJPEG frame error:', err);
@@ -1413,6 +1923,7 @@ class PlaygroundServer {
         await new Promise((r) => setTimeout(r, remaining));
       }
     }
+    if (probeTimer) clearInterval(probeTimer);
   }
 
   /**

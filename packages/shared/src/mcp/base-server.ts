@@ -9,6 +9,7 @@ import express, {
   type Request,
   type Response,
 } from 'express';
+import { getErrorMessage } from './error-formatter';
 import type { IMidsceneTools } from './types';
 
 export interface BaseMCPServerConfig {
@@ -119,7 +120,7 @@ export abstract class BaseMCPServer {
     try {
       await this.toolsManager.initTools();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = getErrorMessage(error);
       console.error(`Failed to initialize tools: ${message}`);
       console.error('Tools will be initialized on first use');
     }
@@ -160,7 +161,7 @@ export abstract class BaseMCPServer {
     try {
       await this.mcpServer.connect(transport);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = getErrorMessage(error);
       console.error(`Failed to connect MCP stdio transport: ${message}`);
       throw new Error(`Failed to initialize MCP stdio transport: ${message}`);
     }
@@ -282,7 +283,7 @@ export abstract class BaseMCPServer {
             .json({ error: 'Invalid session or GET without session' });
         }
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         const duration = Date.now() - startTime;
         console.error(
           `[${new Date().toISOString()}] [${requestId}] MCP request error after ${duration}ms: ${message}`,
@@ -336,8 +337,7 @@ export abstract class BaseMCPServer {
           try {
             await session.transport.close();
           } catch (error: unknown) {
-            const message =
-              error instanceof Error ? error.message : String(error);
+            const message = getErrorMessage(error);
             console.error(
               `Failed to close session ${session.transport.sessionId}: ${message}`,
             );
@@ -390,7 +390,7 @@ export abstract class BaseMCPServer {
     try {
       await this.mcpServer.connect(transport);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = getErrorMessage(error);
       console.error(
         `[${new Date().toISOString()}] Failed to connect MCP transport: ${message}`,
       );
@@ -425,8 +425,7 @@ export abstract class BaseMCPServer {
               `[${new Date().toISOString()}] Session ${sid} cleaned up due to inactivity (remaining: ${sessions.size})`,
             );
           } catch (error: unknown) {
-            const message =
-              error instanceof Error ? error.message : String(error);
+            const message = getErrorMessage(error);
             console.error(
               `[${new Date().toISOString()}] Failed to close session ${sid} during cleanup: ${message}`,
             );
@@ -455,8 +454,7 @@ export abstract class BaseMCPServer {
         try {
           session.transport.close();
         } catch (error: unknown) {
-          const message =
-            error instanceof Error ? error.message : String(error);
+          const message = getErrorMessage(error);
           console.error(`Error closing session during shutdown: ${message}`);
         }
       }
@@ -475,7 +473,7 @@ export abstract class BaseMCPServer {
           this.performCleanup().finally(() => process.exit(1));
         }, 5000);
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         console.error(`Error closing HTTP server: ${message}`);
         this.performCleanup().finally(() => process.exit(1));
       }
