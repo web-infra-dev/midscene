@@ -307,7 +307,9 @@ export async function AiLocateElement(options: {
     res = await callAIWithObjectResponse<AIElementResponse | [number, number]>(
       msgs,
       modelConfig,
-      { abortSignal: options.abortSignal },
+      {
+        abortSignal: options.abortSignal,
+      },
     );
   } catch (callError) {
     // Return error with usage and rawResponse if available
@@ -447,7 +449,9 @@ export async function AiLocateSection(options: {
     result = await callAIWithObjectResponse<AISectionLocatorResponse>(
       msgs,
       modelConfig,
-      { abortSignal: options.abortSignal },
+      {
+        abortSignal: options.abortSignal,
+      },
     );
   } catch (callError) {
     // Return error with usage and rawResponse if available
@@ -638,14 +642,9 @@ export async function AiJudgeOrderSensitive(
     },
   ];
 
-  debugInspect(
-    'AiJudgeOrderSensitive: deepThink=false, description=%s',
-    description,
-  );
+  debugInspect('AiJudgeOrderSensitive: description=%s', description);
 
-  const result = await callAIFn(msgs, modelConfig, {
-    deepThink: false,
-  });
+  const result = await callAIFn(msgs, modelConfig);
 
   return {
     isOrderSensitive: result.content.isOrderSensitive ?? false,

@@ -16,7 +16,6 @@ import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
 import type {
-  DeepThinkOption,
   DeviceAction,
   ExecutionTaskApply,
   ExecutionTaskInsightQueryApply,
@@ -255,7 +254,7 @@ export class TaskExecutor {
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
-    deepThink?: DeepThinkOption,
+    planningModeDeepThink?: boolean,
     fileChooserAccept?: string[],
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
@@ -278,7 +277,7 @@ export class TaskExecutor {
         cacheable,
         replanningCycleLimitOverride,
         imagesIncludeCount,
-        deepThink,
+        planningModeDeepThink,
         deepLocate,
         abortSignal,
       );
@@ -294,7 +293,7 @@ export class TaskExecutor {
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
-    deepThink?: DeepThinkOption,
+    planningModeDeepThink?: boolean,
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
   ): Promise<
@@ -348,7 +347,7 @@ export class TaskExecutor {
             userInstruction: userPrompt,
             aiActContext,
             imagesIncludeCount,
-            deepThink,
+            planningModeDeepThink,
             ...(subGoalStatus ? { subGoalStatus } : {}),
             ...(memoriesStatus ? { memoriesStatus } : {}),
           },
@@ -388,7 +387,7 @@ export class TaskExecutor {
                 conversationHistory,
                 includeBbox: includeBboxInPlanning,
                 imagesIncludeCount,
-                deepThink,
+                planningModeDeepThink,
                 abortSignal,
               });
             } catch (planError) {

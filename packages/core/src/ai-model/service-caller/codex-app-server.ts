@@ -1,7 +1,6 @@
 import type {
   AIUsageInfo,
   CodeGenerationChunk,
-  DeepThinkOption,
   StreamingCallback,
 } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -18,7 +17,13 @@ const CODEX_TEXT_INPUT_MAX_LENGTH = 256 * 1024;
 const debugCodex = getDebug('ai:call:codex');
 const warnCodex = getDebug('ai:call:codex', { console: true });
 
-type CodexReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh';
+type CodexReasoningEffort =
+  | 'none'
+  | 'minimal'
+  | 'low'
+  | 'medium'
+  | 'high'
+  | 'xhigh';
 
 type JsonRpcRequest = {
   id: string | number;
@@ -251,17 +256,19 @@ const extractImageInputs = (
 };
 
 export const resolveCodexReasoningEffort = ({
-  deepThink,
+  reasoningEnabled,
   modelConfig,
 }: {
-  deepThink?: DeepThinkOption;
+  reasoningEnabled?: boolean;
   modelConfig: IModelConfig;
 }): CodexReasoningEffort | undefined => {
-  if (deepThink === true) return 'high';
-  if (deepThink === false) return 'low';
+  if (reasoningEnabled === true) return 'high';
+  if (reasoningEnabled === false) return 'none';
 
   const normalized = modelConfig.reasoningEffort?.trim().toLowerCase();
   if (
+    normalized === 'none' ||
+    normalized === 'minimal' ||
     normalized === 'low' ||
     normalized === 'medium' ||
     normalized === 'high' ||
@@ -270,10 +277,7 @@ export const resolveCodexReasoningEffort = ({
     return normalized;
   }
 
-  if (modelConfig.reasoningEnabled === true) return 'high';
-  if (modelConfig.reasoningEnabled === false) return 'low';
-
-  return undefined;
+  return 'none';
 };
 
 export const buildCodexTurnPayloadFromMessages = (
@@ -389,14 +393,14 @@ class CodexAppServerConnection {
     modelConfig,
     stream,
     onChunk,
-    deepThink,
+    reasoningEnabled,
     abortSignal,
   }: {
     messages: ChatCompletionMessageParam[];
     modelConfig: IModelConfig;
     stream?: boolean;
     onChunk?: StreamingCallback;
-    deepThink?: DeepThinkOption;
+    reasoningEnabled?: boolean;
     abortSignal?: AbortSignal;
   }): Promise<CodexTurnResult> {
     const startTime = Date.now();
@@ -406,7 +410,10 @@ class CodexAppServerConnection {
 
     const { developerInstructions, input } =
       buildCodexTurnPayloadFromMessages(messages);
-    const effort = resolveCodexReasoningEffort({ deepThink, modelConfig });
+    const effort = resolveCodexReasoningEffort({
+      reasoningEnabled,
+      modelConfig,
+    });
 
     let threadId: string | undefined;
     let turnId: string | undefined;
@@ -918,14 +925,14 @@ class CodexAppServerConnectionManager {
     modelConfig,
     stream,
     onChunk,
-    deepThink,
+    reasoningEnabled,
     abortSignal,
   }: {
     messages: ChatCompletionMessageParam[];
     modelConfig: IModelConfig;
     stream?: boolean;
     onChunk?: StreamingCallback;
-    deepThink?: DeepThinkOption;
+    reasoningEnabled?: boolean;
     abortSignal?: AbortSignal;
   }): Promise<CodexTurnResult> {
     return this.runner.run(async () => {
@@ -936,7 +943,7 @@ class CodexAppServerConnectionManager {
           modelConfig,
           stream,
           onChunk,
-          deepThink,
+          reasoningEnabled,
           abortSignal,
         });
       } catch (error) {
@@ -977,7 +984,7 @@ export async function callAIWithCodexAppServer(
   options?: {
     stream?: boolean;
     onChunk?: StreamingCallback;
-    deepThink?: DeepThinkOption;
+    reasoningEnabled?: boolean;
     abortSignal?: AbortSignal;
   },
 ): Promise<CodexTurnResult> {
@@ -992,7 +999,7 @@ export async function callAIWithCodexAppServer(
     modelConfig,
     stream: options?.stream,
     onChunk: options?.onChunk,
-    deepThink: options?.deepThink,
+    reasoningEnabled: options?.reasoningEnabled,
     abortSignal: options?.abortSignal,
   });
 }

@@ -52,7 +52,9 @@ export async function autoGLMPlanning(
   const { content: rawResponse, usage } = await callAIWithStringResponse(
     msgs,
     modelConfig,
-    { abortSignal: options.abortSignal },
+    {
+      abortSignal: options.abortSignal,
+    },
   );
 
   debug('autoGLMPlanning rawResponse:', rawResponse);

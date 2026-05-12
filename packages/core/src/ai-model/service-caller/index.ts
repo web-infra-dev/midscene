@@ -1,4 +1,4 @@
-import type { AIUsageInfo, DeepThinkOption } from '@/types';
+import type { AIUsageInfo } from '@/types';
 import type { CodeGenerationChunk, StreamingCallback } from '@/types';
 
 // Error class that preserves usage and rawResponse when AI call parsing fails
@@ -234,7 +234,6 @@ export async function callAI(
   options?: {
     stream?: boolean;
     onChunk?: StreamingCallback;
-    deepThink?: DeepThinkOption;
     abortSignal?: AbortSignal;
   },
 ): Promise<{
@@ -244,7 +243,25 @@ export async function callAI(
   isStreamed: boolean;
 }> {
   if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
-    return callAIWithCodexAppServer(messages, modelConfig, options);
+    if (
+      !modelConfig.modelFamily &&
+      hasExplicitReasoningConfig({
+        reasoningEnabled: modelConfig.reasoningEnabled,
+        reasoningEffort: modelConfig.reasoningEffort,
+        reasoningBudget: modelConfig.reasoningBudget,
+      })
+    ) {
+      throw new Error(
+        'Reasoning config requires MIDSCENE_MODEL_FAMILY. Set MIDSCENE_MODEL_FAMILY when using MIDSCENE_MODEL_REASONING_ENABLED / MIDSCENE_MODEL_REASONING_EFFORT / MIDSCENE_MODEL_REASONING_BUDGET.',
+      );
+    }
+
+    return callAIWithCodexAppServer(messages, modelConfig, {
+      stream: options?.stream,
+      onChunk: options?.onChunk,
+      reasoningEnabled: modelConfig.reasoningEnabled,
+      abortSignal: options?.abortSignal,
+    });
   }
 
   const {
@@ -328,31 +345,17 @@ export async function callAI(
     (commonConfig as unknown as Record<string, number>).frequency_penalty = 0.2;
   }
 
-  // Merge deepThink (per-request boolean) with reasoning config (model-level)
-  // deepThink takes priority as a per-request override for reasoningEnabled
-  const mergedEnableReasoning = (() => {
-    const normalizedDeepThink =
-      options?.deepThink === 'unset' ? undefined : options?.deepThink;
-    if (normalizedDeepThink === true) return true;
-    if (normalizedDeepThink === false) return false;
-    return modelConfig.reasoningEnabled;
-  })();
-
   const {
     config: reasoningEffortConfig,
     debugMessage: reasoningEffortDebugMessage,
-    warningMessage,
   } = resolveReasoningConfig({
-    reasoningEnabled: mergedEnableReasoning,
+    reasoningEnabled: modelConfig.reasoningEnabled,
     reasoningEffort: modelConfig.reasoningEffort,
     reasoningBudget: modelConfig.reasoningBudget,
     modelFamily,
   });
   if (reasoningEffortDebugMessage) {
     debugCall(reasoningEffortDebugMessage);
-  }
-  if (warningMessage) {
-    warnCall(warningMessage);
   }
 
   const shouldUseOriginalImageDetail =
@@ -608,7 +611,6 @@ export async function callAIWithObjectResponse<T>(
   messages: ChatCompletionMessageParam[],
   modelConfig: IModelConfig,
   options?: {
-    deepThink?: DeepThinkOption;
     abortSignal?: AbortSignal;
   },
 ): Promise<{
@@ -618,7 +620,6 @@ export async function callAIWithObjectResponse<T>(
   reasoning_content?: string;
 }> {
   const response = await callAI(messages, modelConfig, {
-    deepThink: options?.deepThink,
     abortSignal: options?.abortSignal,
   });
   assert(response, 'empty response');
@@ -688,6 +689,46 @@ export function preprocessDoubaoBboxJson(input: string) {
   return input;
 }
 
+function hasExplicitReasoningConfig({
+  reasoningEnabled,
+  reasoningEffort,
+  reasoningBudget,
+}: {
+  reasoningEnabled?: boolean;
+  reasoningEffort?: string;
+  reasoningBudget?: number;
+}): boolean {
+  return (
+    reasoningEnabled !== undefined ||
+    !!reasoningEffort ||
+    reasoningBudget !== undefined
+  );
+}
+
+const SUPPORTED_REASONING_FAMILIES = [
+  'qwen3-vl',
+  'qwen3.5',
+  'qwen3.6',
+  'doubao-vision',
+  'doubao-seed',
+  'glm-v',
+] as const satisfies readonly TModelFamily[];
+
+type SupportedReasoningFamily = (typeof SUPPORTED_REASONING_FAMILIES)[number];
+
+function isSupportedReasoningFamily(
+  family: TModelFamily | undefined,
+): family is SupportedReasoningFamily {
+  return (
+    !!family &&
+    (SUPPORTED_REASONING_FAMILIES as readonly TModelFamily[]).includes(family)
+  );
+}
+
+function supportedReasoningFamilyNames(): string {
+  return SUPPORTED_REASONING_FAMILIES.join(', ');
+}
+
 export function resolveReasoningConfig({
   reasoningEnabled,
   reasoningEffort,
@@ -701,16 +742,32 @@ export function resolveReasoningConfig({
 }): {
   config: Record<string, unknown>;
   debugMessage?: string;
-  warningMessage?: string;
 } {
-  // No reasoning params set at all
-  if (
-    reasoningEnabled === undefined &&
-    !reasoningEffort &&
-    reasoningBudget === undefined
-  ) {
+  const hasExplicitConfig = hasExplicitReasoningConfig({
+    reasoningEnabled,
+    reasoningEffort,
+    reasoningBudget,
+  });
+
+  if (hasExplicitConfig) {
+    if (!modelFamily) {
+      throw new Error(
+        `Reasoning config requires MIDSCENE_MODEL_FAMILY. Set MIDSCENE_MODEL_FAMILY to a supported family such as ${supportedReasoningFamilyNames()}, or remove MIDSCENE_MODEL_REASONING_ENABLED / MIDSCENE_MODEL_REASONING_EFFORT / MIDSCENE_MODEL_REASONING_BUDGET.`,
+      );
+    }
+
+    // GPT-5 over Chat Completions is intentionally unsupported here because
+    // its reasoning effort compatibility varies by model version.
+    if (!isSupportedReasoningFamily(modelFamily)) {
+      throw new Error(
+        `Reasoning config is not supported for model family "${modelFamily}". Use a supported family such as ${supportedReasoningFamilyNames()}, or remove MIDSCENE_MODEL_REASONING_ENABLED / MIDSCENE_MODEL_REASONING_EFFORT / MIDSCENE_MODEL_REASONING_BUDGET.`,
+      );
+    }
+  } else if (!isSupportedReasoningFamily(modelFamily)) {
     return { config: {} };
   }
+
+  const effectiveReasoningEnabled = reasoningEnabled ?? false;
 
   const debugMessages: string[] = [];
   const config: Record<string, unknown> = {};
@@ -721,10 +778,8 @@ export function resolveReasoningConfig({
     modelFamily === 'qwen3.6'
   ) {
     // reasoningEnabled → enable_thinking
-    if (reasoningEnabled !== undefined) {
-      config.enable_thinking = reasoningEnabled;
-      debugMessages.push(`enable_thinking=${reasoningEnabled}`);
-    }
+    config.enable_thinking = effectiveReasoningEnabled;
+    debugMessages.push(`enable_thinking=${effectiveReasoningEnabled}`);
     // reasoningBudget → thinking_budget
     if (reasoningBudget !== undefined) {
       config.thinking_budget = reasoningBudget;
@@ -733,14 +788,12 @@ export function resolveReasoningConfig({
     // reasoningEffort is ignored for qwen
   } else if (modelFamily === 'doubao-vision' || modelFamily === 'doubao-seed') {
     // reasoningEnabled → thinking.type
-    if (reasoningEnabled !== undefined) {
-      config.thinking = {
-        type: reasoningEnabled ? 'enabled' : 'disabled',
-      };
-      debugMessages.push(
-        `thinking.type=${reasoningEnabled ? 'enabled' : 'disabled'}`,
-      );
-    }
+    config.thinking = {
+      type: effectiveReasoningEnabled ? 'enabled' : 'disabled',
+    };
+    debugMessages.push(
+      `thinking.type=${effectiveReasoningEnabled ? 'enabled' : 'disabled'}`,
+    );
     // reasoningEffort → reasoning_effort
     if (reasoningEffort) {
       config.reasoning_effort = reasoningEffort;
@@ -749,43 +802,13 @@ export function resolveReasoningConfig({
     // reasoningBudget is ignored for doubao
   } else if (modelFamily === 'glm-v') {
     // reasoningEnabled → thinking.type
-    if (reasoningEnabled !== undefined) {
-      config.thinking = {
-        type: reasoningEnabled ? 'enabled' : 'disabled',
-      };
-      debugMessages.push(
-        `thinking.type=${reasoningEnabled ? 'enabled' : 'disabled'}`,
-      );
-    }
-    // reasoningEffort and reasoningBudget are ignored for glm-v
-  } else if (modelFamily === 'gpt-5') {
-    // reasoningEffort → reasoning.effort
-    config.reasoning = undefined;
-    debugMessages.push('reasoning config is ignored for gpt-5');
-    // if (reasoningEffort) {
-    //   config.reasoning = { effort: reasoningEffort };
-    //   debugMessages.push(`reasoning.effort="${reasoningEffort}"`);
-    // } else if (reasoningEnabled === true) {
-    //   config.reasoning = { effort: 'high' };
-    //   debugMessages.push('reasoning.effort="high" (from reasoningEnabled)');
-    // } else if (reasoningEnabled === false) {
-    //   config.reasoning = { effort: 'low' };
-    //   debugMessages.push('reasoning.effort="low" (from reasoningEnabled)');
-    // }
-    // reasoningBudget is ignored for gpt-5
-  } else if (!modelFamily) {
-    return {
-      config: {},
-      debugMessage: 'reasoning config ignored: no model_family configured',
-      warningMessage:
-        'Reasoning config is set but no model_family is configured. Set MIDSCENE_MODEL_FAMILY to enable reasoning config pass-through.',
+    config.thinking = {
+      type: effectiveReasoningEnabled ? 'enabled' : 'disabled',
     };
-  } else {
-    // For unknown model families, pass reasoning_effort directly as a best-effort default
-    if (reasoningEffort) {
-      config.reasoning_effort = reasoningEffort;
-      debugMessages.push(`reasoning_effort="${reasoningEffort}"`);
-    }
+    debugMessages.push(
+      `thinking.type=${effectiveReasoningEnabled ? 'enabled' : 'disabled'}`,
+    );
+    // reasoningEffort and reasoningBudget are ignored for glm-v
   }
 
   return {

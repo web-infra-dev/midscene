@@ -86,7 +86,9 @@ export async function uiTarsPlanning(
       ...conversationHistory.snapshot(),
     ],
     modelConfig,
-    { abortSignal: options.abortSignal },
+    {
+      abortSignal: options.abortSignal,
+    },
   );
 
   let convertedText: string;

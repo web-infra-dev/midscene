@@ -71,30 +71,30 @@ MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
 MIDSCENE_MODEL_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-..." # Inference endpoint ID or model name from Volcano Engine
 MIDSCENE_MODEL_FAMILY="doubao-seed" # "doubao-vision" is also supported
-# Optional: control reasoning effort (low, medium, high)
-# MIDSCENE_MODEL_REASONING_EFFORT="medium"
 ```
+
+Midscene disables model-native thinking by default to get the best execution speed and quality. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode). To enable model-native thinking, set `MIDSCENE_MODEL_REASONING_ENABLED="true"`. You can also set `MIDSCENE_MODEL_REASONING_EFFORT="medium"` to control reasoning effort.
+
 ### Qwen3.X Series {#qwen3x}
 
 Qwen3.5 and Qwen3.6 are currently supported in the Qwen3.X series.
 
-Using Alibaba Cloud's `qwen3.5-plus` as an example. It is recommended to disable the platform's default thinking mode to improve execution speed:
+Using Alibaba Cloud's `qwen3.5-plus` as an example:
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen3.5-plus" # For Qwen3.6, use "qwen3.6-plus"
 MIDSCENE_MODEL_FAMILY="qwen3.5" # For Qwen3.6, use "qwen3.6"
-MIDSCENE_MODEL_REASONING_ENABLED="false"
 ```
 
-To enable thinking mode, set `MIDSCENE_MODEL_REASONING_ENABLED="true"` and add `MIDSCENE_MODEL_REASONING_BUDGET="500"` to control thinking cost.
+Midscene disables model-native thinking by default to get the best execution speed and quality. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode). To enable model-native thinking, set `MIDSCENE_MODEL_REASONING_ENABLED="true"`. You can also set `MIDSCENE_MODEL_REASONING_BUDGET="500"` to control thinking cost.
 
 ### Zhipu GLM-V Series {#glm-v}
 
 Zhipu GLM-V is a vision understanding model from Zhipu AI. The latest versions include `GLM-4.6V` (open-source) and `GLM-5V-Turbo`.
 
-It is recommended to disable the platform's default thinking mode to improve execution speed. Using `GLM-4.6V` as an example:
+Using `GLM-4.6V` as an example:
 
 Obtain an API key from [Z.AI (Global)](https://z.ai/manage-apikey/apikey-list) or [BigModel (CN)](https://bigmodel.cn/usercenter/proj-mgmt/apikeys), and set:
 
@@ -103,8 +103,9 @@ MIDSCENE_MODEL_BASE_URL="https://open.bigmodel.cn/api/paas/v4" # Or https://api.
 MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="glm-4.6v" # For GLM-5V-Turbo, use "glm-5v-turbo"
 MIDSCENE_MODEL_FAMILY="glm-v"
-MIDSCENE_MODEL_REASONING_ENABLED="false"
 ```
+
+Midscene disables model-native thinking by default to get the best execution speed and quality. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode). To enable model-native thinking, set `MIDSCENE_MODEL_REASONING_ENABLED="true"`.
 
 **Learn more about the open-source Zhipu GLM-V model**
 
@@ -184,6 +185,8 @@ MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen3-vl-plus"
 MIDSCENE_MODEL_FAMILY="qwen3-vl"
 ```
+
+Midscene disables model-native thinking by default to get the best execution speed and quality. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode). To enable model-native thinking, set `MIDSCENE_MODEL_REASONING_ENABLED="true"`. You can also set `MIDSCENE_MODEL_REASONING_BUDGET="500"` to control thinking cost.
 
 You can also use Qwen3-VL from [OpenRouter](https://openrouter.ai/qwen).
 
