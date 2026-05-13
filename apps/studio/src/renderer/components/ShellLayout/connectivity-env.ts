@@ -41,15 +41,13 @@ export const FIXED_MODEL_ENV_FIELDS: readonly ModelEnvField[] = [
 ] as const;
 
 /**
- * Returns true only when every required model env field has a non-empty value
- * in the parsed env text. Used by Overview/sidebar callers to warn the user
- * that the agent cannot be reached yet.
+ * Returns true when the parsed env text can resolve the required connection
+ * params. The Form tab still exposes the preferred MIDSCENE_MODEL_* keys, but
+ * saved env text may use compatible aliases such as OPENAI_API_KEY.
  */
 export function hasCompleteModelEnvConfig(text: string): boolean {
   const env = parseEnvText(text);
-  return FIXED_MODEL_ENV_FIELDS.every(
-    (field) => (env[field.key] ?? '').trim().length > 0,
-  );
+  return !('error' in resolveModelConnection(env));
 }
 
 /**

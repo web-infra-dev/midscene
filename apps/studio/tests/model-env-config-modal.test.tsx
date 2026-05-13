@@ -437,13 +437,18 @@ describe('ModelEnvConfigModal', () => {
     expect(html).toContain('translate-y-[79.5px]');
     expect(html).toContain('flex flex-col gap-[24px]');
     expect(html).toContain('h-[61px]');
-    expect(html).toContain('text-[14px] text-black/90');
     expect(html).toContain('h-[36px] px-[12px]');
     expect(html).toContain('mt-[20px]');
-    expect(html).toContain('OPENAI_API_KEY');
+    expect(html).toContain('MIDSCENE_MODEL_API_KEY');
 
     const wrapper = document.createElement('div');
     wrapper.innerHTML = html;
+    const baseUrlLabel = Array.from(
+      wrapper.querySelectorAll('div[aria-hidden="true"]'),
+    ).find((element) => element.textContent === 'MIDSCENE_MODEL_BASE_URL');
+    expect(baseUrlLabel?.className).toContain('text-[14px]');
+    expect(baseUrlLabel?.className).toContain('text-black/90');
+
     const formTab = Array.from(wrapper.querySelectorAll('button')).find(
       (button) => button.textContent === 'Form',
     );

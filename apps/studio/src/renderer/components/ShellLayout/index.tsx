@@ -122,10 +122,6 @@ export default function ShellLayout() {
     );
   }, [sidebarWidth]);
 
-  // Sidebar pane piggy-backs on the OS vibrancy/acrylic material; when the
-  // window loses focus the OS dims the material and the sidebar reads as
-  // see-through. Stamp an opaque background while unfocused so it keeps a
-  // solid surface like the rest of the app shell.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const handleFocus = () => setWindowFocused(true);
@@ -232,13 +228,17 @@ export default function ShellLayout() {
   };
 
   return (
-    <div className="relative h-full w-full overflow-hidden font-sans">
+    <div
+      className={`relative h-full w-full overflow-hidden font-sans ${
+        windowFocused ? '' : 'bg-app-bg'
+      }`}
+    >
       <div className="app-drag absolute left-0 right-0 top-0 z-10 h-[52px]" />
 
       {!collapsed && (
         <div
           className={`absolute left-0 top-0 h-full ${
-            windowFocused ? '' : 'bg-surface'
+            windowFocused ? '' : 'bg-app-bg'
           }`}
           style={{ width: sidebarWidth }}
         >

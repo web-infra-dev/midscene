@@ -187,7 +187,7 @@ describe('MainContent overview', () => {
       ),
     );
 
-    expect(html).toContain('未检测到 adb');
+    expect(html).toContain('ADB not detected');
   });
 
   it('keeps the disconnect control out of the window drag region', () => {

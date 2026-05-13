@@ -45,8 +45,8 @@ export interface MainContentProps {
   onSelectDeviceView?: () => void;
   onSelectOverview?: () => void;
   /**
-   * False when the required MIDSCENE_MODEL_* env fields are not all set;
-   * the Overview surfaces a banner pointing to the env modal in that case.
+   * False when the required model connection env cannot be resolved; the
+   * Overview surfaces a banner pointing to the env modal in that case.
    */
   modelConfigComplete?: boolean;
   /** Opens the model env config modal anchored in the shell. */
@@ -493,8 +493,8 @@ export default function MainContent({
             <span className="flex items-center gap-[8px] font-sans text-[13px] leading-[20px]">
               <span aria-hidden="true">⚠️</span>
               <span>
-                Model env not configured — set MIDSCENE_MODEL_BASE_URL / API_KEY
-                / NAME / FAMILY to enable automation.
+                Model env not configured — set base URL / API key / model name
+                to enable automation.
               </span>
             </span>
             <span className="ml-[12px] font-sans text-[13px] font-medium text-[#1979ff]">

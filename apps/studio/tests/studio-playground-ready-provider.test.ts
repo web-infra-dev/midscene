@@ -38,6 +38,7 @@ vi.mock('@midscene/playground-app', () => ({
 describe('StudioPlaygroundReadyProvider', () => {
   afterEach(() => {
     vi.clearAllMocks();
+    (window as { electronShell?: unknown }).electronShell = undefined;
     document.body.replaceChildren();
   });
 
@@ -55,10 +56,38 @@ describe('StudioPlaygroundReadyProvider', () => {
       ),
     );
 
-    expect(usePlaygroundControllerMock).toHaveBeenCalledWith({
-      initialFormValues: { platformId: 'android' },
-      serverUrl: 'http://127.0.0.1:5800',
-    });
+    expect(usePlaygroundControllerMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialFormValues: { platformId: 'android' },
+        serverUrl: 'http://127.0.0.1:5800',
+        onCountdownFinish: expect.any(Function),
+      }),
+    );
+  });
+
+  it('minimizes Studio when the controller countdown finishes', () => {
+    const minimizeWindow = vi.fn(async () => undefined);
+    window.electronShell = {
+      minimizeWindow,
+    } as unknown as typeof window.electronShell;
+
+    renderToStaticMarkup(
+      createElement(
+        StudioPlaygroundReadyProvider,
+        {
+          refreshDiscoveredDevices: async () => undefined,
+          restartPlayground: async () => undefined,
+          setDiscoveryPollingPaused: () => undefined,
+          serverUrl: 'http://127.0.0.1:5800',
+        },
+        createElement('div', null, 'child'),
+      ),
+    );
+
+    const options = usePlaygroundControllerMock.mock.calls.at(-1)?.[0];
+    options.onCountdownFinish();
+
+    expect(minimizeWindow).toHaveBeenCalledTimes(1);
   });
 
   it('writes the first discovered Android device into the create agent form', async () => {

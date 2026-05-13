@@ -8,6 +8,6 @@ declare global {
     electronShell?: ElectronShellApi;
     studioRuntime?: StudioRuntimeApi;
   }
-}
 
-declare const __APP_VERSION__: string;
+  const __APP_VERSION__: string;
+}

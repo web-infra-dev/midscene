@@ -5,6 +5,8 @@ import SettingsDock from '../src/renderer/components/SettingsDock';
 import SettingsPanel from '../src/renderer/components/SettingsPanel';
 import { ThemeProvider } from '../src/renderer/theme/ThemeProvider';
 
+(globalThis as { __APP_VERSION__?: string }).__APP_VERSION__ = 'test-version';
+
 describe('studio sidebar settings entrypoints', () => {
   it('renders Settings and Model Config as stacked rows in the bottom dock', () => {
     const html = renderToStaticMarkup(

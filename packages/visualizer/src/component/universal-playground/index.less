@@ -440,13 +440,12 @@
     padding-left: 0;
   }
 
-  // Pill + description sit on the same row; description shares the pill's
-  // vertical midpoint and absorbs remaining width so longer text wraps
-  // inside the description block instead of pushing onto its own line.
+  // Pill + description stack as plain blocks; vertical spacing is set via
+  // explicit `margin-top: 8px` on the description below so it matches the
+  // 8px we get between consecutive list-items (16px list gap minus the
+  // -8px margin-top below).
   .list-item > div:has(> .progress-action-item) {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: block;
   }
 
   .progress-action-item {
@@ -480,13 +479,14 @@
     font-size: 16px;
   }
 
-  // Description wrapper sits to the right of the pill on the same row and
-  // takes the remaining width so long text wraps in place.
+  // Description wrapper: the visualiser renders descriptions inside an
+  // unclassed `<div>` right after the pill span. The `margin-top: 8px`
+  // here gives the pill exactly 8px of breathing room below it — the same
+  // distance we use above the pill (between consecutive list-items).
   .progress-action-item + div {
-    margin: 0;
-    padding: 0;
-    flex: 1;
-    min-width: 0;
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+    width: 100%;
   }
 
   .progress-description {
