@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=10.0, user-scalable=yes"
+  >
+  <title>Browser Pinch Zoom Click Test</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 2400px;
+      font-family: Arial, sans-serif;
+      background:
+        linear-gradient(180deg, #f8fbff 0%, #eef5ff 35%, #fdfdfd 100%);
+    }
+
+    .spacer {
+      height: 520px;
+    }
+
+    .target-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 0 24px;
+    }
+
+    #target {
+      width: 72px;
+      height: 72px;
+      border: 0;
+      border-radius: 999px;
+      background: #0a67ff;
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 0 10px 30px rgba(10, 103, 255, 0.25);
+    }
+
+    #status {
+      position: fixed;
+      left: 12px;
+      top: 12px;
+      z-index: 1;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(17, 24, 39, 0.82);
+      color: white;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="status">ready</div>
+  <div class="spacer"></div>
+  <div class="target-wrap">
+    <button id="target" type="button">target</button>
+  </div>
+  <div class="spacer"></div>
+
+  <script>
+    const target = document.getElementById('target');
+    const status = document.getElementById('status');
+
+    window.__eventLog = [];
+
+    function snapshotViewport() {
+      return {
+        scale: window.visualViewport?.scale ?? 1,
+        offsetLeft: window.visualViewport?.offsetLeft ?? 0,
+        offsetTop: window.visualViewport?.offsetTop ?? 0,
+        width: window.visualViewport?.width ?? window.innerWidth,
+        height: window.visualViewport?.height ?? window.innerHeight,
+        pageLeft: window.visualViewport?.pageLeft ?? window.scrollX,
+        pageTop: window.visualViewport?.pageTop ?? window.scrollY,
+      };
+    }
+
+    function updateStatus() {
+      const info = snapshotViewport();
+      status.textContent =
+        `scale=${info.scale.toFixed(2)}\n` +
+        `offset=(${info.offsetLeft.toFixed(1)}, ${info.offsetTop.toFixed(1)})\n` +
+        `page=(${info.pageLeft.toFixed(1)}, ${info.pageTop.toFixed(1)})`;
+    }
+
+    function recordEvent(type, event) {
+      const rect = target.getBoundingClientRect();
+      window.__eventLog.push({
+        type,
+        currentTargetId: event.currentTarget?.id ?? null,
+        targetId: event.target?.id ?? null,
+        clientX: 'clientX' in event ? event.clientX : null,
+        clientY: 'clientY' in event ? event.clientY : null,
+        touches:
+          'touches' in event
+            ? Array.from(event.touches).map((touch) => ({
+                clientX: touch.clientX,
+                clientY: touch.clientY,
+              }))
+            : [],
+        rect: {
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+        },
+        viewport: snapshotViewport(),
+      });
+      updateStatus();
+    }
+
+    ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'click']
+      .forEach((type) => {
+        target.addEventListener(type, (event) => recordEvent(type, event));
+      });
+
+    window.addEventListener('load', () => {
+      target.scrollIntoView({ block: 'center', inline: 'center' });
+      updateStatus();
+    });
+
+    window.visualViewport?.addEventListener('resize', updateStatus);
+    window.visualViewport?.addEventListener('scroll', updateStatus);
+  </script>
+</body>
+
+</html>

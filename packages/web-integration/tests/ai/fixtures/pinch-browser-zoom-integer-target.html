@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=10.0, user-scalable=yes"
+  >
+  <title>Browser Pinch Zoom Integer Target</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      width: 1200px;
+      min-height: 1400px;
+      font-family: Arial, sans-serif;
+      background:
+        linear-gradient(90deg, rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+        #f7fafc;
+      background-size: 50px 50px;
+    }
+
+    #target {
+      position: absolute;
+      left: 80px;
+      top: 180px;
+      width: 40px;
+      height: 40px;
+      border: 0;
+      border-radius: 4px;
+      background: #0a67ff;
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+
+<body>
+  <button id="target" type="button">100,200</button>
+</body>
+
+</html>

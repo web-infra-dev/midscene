@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=10.0, user-scalable=yes"
+    />
+    <title>Pinch Click Coordinate Demo</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        background: #f6f8fb;
+      }
+
+      #target {
+        position: absolute;
+        left: 100px;
+        top: 200px;
+        width: 8px;
+        height: 8px;
+        border: 0;
+        border-radius: 50%;
+        background: #ff0000;
+      }
+
+      #debug {
+        position: absolute;
+        left: 20px;
+        top: 260px;
+        width: 340px;
+        padding: 12px;
+        border: 1px solid #9aa4b2;
+        border-radius: 6px;
+        background: white;
+        color: #18202f;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target" aria-label="tiny red target"></div>
+    <pre id="debug">no click yet</pre>
+    <script>
+      const target = document.getElementById('target');
+      const debug = document.getElementById('debug');
+
+      function viewportText() {
+        const vv = window.visualViewport;
+        return `vv.scale=${vv?.scale ?? 1}, vv.offset=${Math.round(vv?.offsetLeft ?? 0)},${Math.round(vv?.offsetTop ?? 0)}`;
+      }
+
+      target.addEventListener('click', () => {
+        target.style.background = '#00b050';
+      });
+
+      document.addEventListener(
+        'click',
+        (event) => {
+          debug.textContent = [
+            `client=${Math.round(event.clientX)},${Math.round(event.clientY)}`,
+            `page=${Math.round(event.pageX)},${Math.round(event.pageY)}`,
+            `target=${event.target.id || event.target.tagName}`,
+            viewportText(),
+          ].join('\n');
+        },
+        true,
+      );
+    </script>
+  </body>
+</html>
