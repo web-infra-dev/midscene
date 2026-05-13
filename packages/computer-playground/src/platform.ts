@@ -2,6 +2,7 @@ import path from 'node:path';
 import {
   agentFromComputer,
   checkAccessibilityPermission,
+  checkScreenRecordingPermission,
   getConnectedDisplays,
 } from '@midscene/computer';
 import {
@@ -25,7 +26,29 @@ export const computerPlaygroundPlatform = definePlaygroundPlatform<
   title: 'Midscene Computer Playground',
   description: 'Computer playground platform descriptor',
   async prepare(options) {
-    const accessibilityCheck = checkAccessibilityPermission(true);
+    // Probe permissions once at prepare time only to decide whether to
+    // open the system prompt. The authoritative check happens inside
+    // each request so users granting permission later don't get blocked
+    // by a stale snapshot (the playground core caches the `prepare`
+    // result for the lifetime of the service).
+    const initialAccessibility = checkAccessibilityPermission(true);
+    const initialScreenRecording = checkScreenRecordingPermission(true);
+    const evaluatePermissions = () => {
+      const accessibilityCheck = checkAccessibilityPermission(false);
+      const screenRecordingCheck = checkScreenRecordingPermission(false);
+      const permissionError =
+        (!accessibilityCheck.hasPermission && accessibilityCheck.error) ||
+        (!screenRecordingCheck.hasPermission && screenRecordingCheck.error) ||
+        undefined;
+      return {
+        accessibilityCheck,
+        screenRecordingCheck,
+        permissionError,
+        allPermissionsGranted:
+          accessibilityCheck.hasPermission &&
+          screenRecordingCheck.hasPermission,
+      };
+    };
     const staticDir =
       options?.staticDir || path.join(__dirname, '../../static');
     const availablePort = await findAvailablePort(PLAYGROUND_SERVER_PORT);
@@ -38,15 +61,17 @@ export const computerPlaygroundPlatform = definePlaygroundPlatform<
 
     const sessionManager: PlaygroundSessionManager = {
       async getSetupSchema() {
+        const { allPermissionsGranted, permissionError } =
+          evaluatePermissions();
         const displays = await getConnectedDisplays();
         const defaultDisplay =
           displays.find((display) => display.primary) || displays[0];
 
         return {
           title: 'Connect Computer Agent',
-          description: accessibilityCheck.hasPermission
+          description: allPermissionsGranted
             ? 'Create a Computer Agent for the selected display.'
-            : accessibilityCheck.error,
+            : permissionError,
           primaryActionLabel: 'Create Agent',
           fields: [
             {
@@ -81,9 +106,12 @@ export const computerPlaygroundPlatform = definePlaygroundPlatform<
         }));
       },
       async createSession(input) {
-        if (!accessibilityCheck.hasPermission) {
+        const { allPermissionsGranted, permissionError } =
+          evaluatePermissions();
+        if (!allPermissionsGranted) {
           throw new Error(
-            accessibilityCheck.error || 'Accessibility permission is required',
+            permissionError ||
+              'Accessibility and Screen Recording permissions are required',
           );
         }
 
@@ -156,8 +184,16 @@ export const computerPlaygroundPlatform = definePlaygroundPlatform<
       metadata: {
         executionUx: 'countdown-before-run',
         sessionConnected: false,
-        setupState: accessibilityCheck.hasPermission ? 'required' : 'blocked',
-        setupBlockingReason: accessibilityCheck.error,
+        setupState:
+          initialAccessibility.hasPermission &&
+          initialScreenRecording.hasPermission
+            ? 'required'
+            : 'blocked',
+        setupBlockingReason:
+          (!initialAccessibility.hasPermission && initialAccessibility.error) ||
+          (!initialScreenRecording.hasPermission &&
+            initialScreenRecording.error) ||
+          undefined,
       },
     };
   },
