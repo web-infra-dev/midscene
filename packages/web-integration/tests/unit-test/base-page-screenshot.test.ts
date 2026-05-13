@@ -86,4 +86,97 @@ describe('Page screenshotBase64', () => {
     });
     expect(detach).toHaveBeenCalledTimes(1);
   });
+
+  it('times out when the CDP screenshot fallback does not return in time', async () => {
+    vi.useFakeTimers();
+
+    const screenshot = vi
+      .fn()
+      .mockRejectedValue(
+        new Error('page.screenshot: Timeout 10000ms exceeded.'),
+      );
+    const detach = vi.fn().mockResolvedValue(undefined);
+    const send = vi.fn(() => new Promise(() => {}));
+    const newCDPSession = vi.fn().mockResolvedValue({
+      send,
+      detach,
+    });
+    const mockPage = {
+      url: () => 'http://example.com',
+      isClosed: () => false,
+      screenshot,
+      context: () => ({
+        browser: () => ({
+          browserType: () => ({
+            name: () => 'chromium',
+          }),
+        }),
+        newCDPSession,
+      }),
+    } as any;
+
+    const page = new Page(mockPage, 'playwright');
+    const resultPromise = page.screenshotBase64().then(
+      () => undefined,
+      (error) => error,
+    );
+
+    await vi.advanceTimersByTimeAsync(10 * 1000);
+
+    await expect(resultPromise).resolves.toMatchObject({
+      message: 'CDP screenshot timeout after 10000ms.',
+    });
+    expect(newCDPSession).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledWith('Page.captureScreenshot', {
+      format: 'jpeg',
+      quality: 90,
+    });
+    expect(detach).toHaveBeenCalledTimes(1);
+
+    vi.useRealTimers();
+  });
+
+  it('does not wait for CDP session detach after the screenshot timeout', async () => {
+    vi.useFakeTimers();
+
+    const screenshot = vi
+      .fn()
+      .mockRejectedValue(
+        new Error('page.screenshot: Timeout 10000ms exceeded.'),
+      );
+    const detach = vi.fn(() => new Promise(() => {}));
+    const send = vi.fn(() => new Promise(() => {}));
+    const newCDPSession = vi.fn().mockResolvedValue({
+      send,
+      detach,
+    });
+    const mockPage = {
+      url: () => 'http://example.com',
+      isClosed: () => false,
+      screenshot,
+      context: () => ({
+        browser: () => ({
+          browserType: () => ({
+            name: () => 'chromium',
+          }),
+        }),
+        newCDPSession,
+      }),
+    } as any;
+
+    const page = new Page(mockPage, 'playwright');
+    const resultPromise = page.screenshotBase64().then(
+      () => undefined,
+      (error) => error,
+    );
+
+    await vi.advanceTimersByTimeAsync(10 * 1000);
+
+    await expect(resultPromise).resolves.toMatchObject({
+      message: 'CDP screenshot timeout after 10000ms.',
+    });
+    expect(detach).toHaveBeenCalledTimes(1);
+
+    vi.useRealTimers();
+  });
 });

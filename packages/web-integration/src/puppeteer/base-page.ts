@@ -407,15 +407,36 @@ export class Page<
 
     const client = await page.context().newCDPSession(page);
     try {
-      const result = (await client.send('Page.captureScreenshot', {
-        format: imgType,
-        ...(quality ? { quality } : {}),
+      const result = (await new Promise<{
+        data: string;
+      }>((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error('CDP screenshot timeout after 10000ms.'));
+        }, 10 * 1000);
+
+        client
+          .send('Page.captureScreenshot', {
+            format: imgType,
+            ...(quality ? { quality } : {}),
+          })
+          .then(
+            (value) => {
+              clearTimeout(timeoutId);
+              resolve(value as { data: string });
+            },
+            (error) => {
+              clearTimeout(timeoutId);
+              reject(error);
+            },
+          );
       })) as {
         data: string;
       };
       return createImgBase64ByFormat(imgType, result.data);
     } finally {
-      await client.detach().catch(() => {});
+      void client.detach().catch((error) => {
+        debugPage('failed to detach CDP screenshot session: %s', error);
+      });
     }
   }
 
