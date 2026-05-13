@@ -160,6 +160,34 @@ describe('ComputerMidsceneTools', () => {
     expect(agentFromComputer).not.toHaveBeenCalled();
   });
 
+  it('routes action tools with namespaced host to agentForRDPComputer', async () => {
+    const tools = new ComputerMidsceneTools();
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+
+    expect(takeScreenshotTool).toBeDefined();
+
+    await takeScreenshotTool?.handler({
+      computer: {
+        host: 'remote.example.com',
+        port: 3389,
+        username: 'admin',
+      },
+    });
+
+    expect(agentForRDPComputer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        host: 'remote.example.com',
+        port: 3389,
+        username: 'admin',
+      }),
+    );
+    expect(agentFromComputer).not.toHaveBeenCalled();
+  });
+
   it('keeps local connect path when host is omitted', async () => {
     const tools = new ComputerMidsceneTools();
     await tools.initTools();
