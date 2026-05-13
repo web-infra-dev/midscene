@@ -1,3 +1,4 @@
+import type { UniversalPlaygroundConfig } from '@midscene/visualizer';
 import { Suspense, lazy, useMemo } from 'react';
 import { downloadStudioReport } from '../../playground/report-download';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
@@ -10,15 +11,19 @@ const LazyPlaygroundConversationPanel = lazy(
   () => import('./LazyPlaygroundConversationPanel'),
 );
 
+export function createStudioPlaygroundConfig(): Partial<UniversalPlaygroundConfig> {
+  return {
+    emptyState: <StudioPlaygroundEmptyState />,
+    onDownloadReport: downloadStudioReport,
+    promptInputChrome: {
+      variant: 'default',
+    },
+  };
+}
+
 export default function Playground() {
   const studioPlayground = useStudioPlayground();
-  const playgroundConfig = useMemo(
-    () => ({
-      emptyState: <StudioPlaygroundEmptyState />,
-      onDownloadReport: downloadStudioReport,
-    }),
-    [],
-  );
+  const playgroundConfig = useMemo(() => createStudioPlaygroundConfig(), []);
 
   return (
     <PlaygroundShell>

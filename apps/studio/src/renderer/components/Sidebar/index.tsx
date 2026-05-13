@@ -357,7 +357,10 @@ export default function Sidebar({
             const isExpanded = expandedSections[section.key];
             const hasDevices = section.devices.length > 0;
             return (
-              <div className="flex flex-col" key={section.key}>
+              <div
+                className="flex flex-col pb-[2px] last:pb-0"
+                key={section.key}
+              >
                 <SectionHeader
                   iconSrc={section.iconSrc}
                   label={section.label}
