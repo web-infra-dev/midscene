@@ -76,6 +76,12 @@ MIDSCENE_MODEL_NAME="ep-..." # 来自火山引擎的推理接入点 ID 或模型
 MIDSCENE_MODEL_FAMILY="doubao-seed" # 也兼容 "doubao-vision"
 ```
 
+如果你的火山引擎账号已开通 fast tier quota，可以追加以下请求体参数来使用该能力。通常可将模型响应速度提升约 30%-50%。
+
+```bash
+MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
+```
+
 Midscene 会默认关闭模型原生思考以获得最佳的执行速度和执行效果，见[模型原生的思考模式](./model-strategy#模型原生的思考模式)。如果需要开启原生的思考模式，可以配置 `MIDSCENE_MODEL_REASONING_ENABLED="true"`，并通过 `MIDSCENE_MODEL_REASONING_EFFORT="medium"` 控制推理力度。
 
 ### 千问 Qwen3.X 系列 {#qwen3x}

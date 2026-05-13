@@ -143,7 +143,7 @@ const getConfigStringFromLocalStorage = () => {
   const configString = localStorage.getItem(CONFIG_KEY);
   return configString || '';
 };
-const parseConfig = (configString: string) => {
+export const parseConfig = (configString: string) => {
   const lines = configString.split('\n');
   const config: Record<string, string> = {};
   lines.forEach((line) => {
@@ -154,7 +154,7 @@ const parseConfig = (configString: string) => {
       .replace(/^export\s+/i, '')
       .replace(/;$/, '')
       .trim();
-    const match = cleanLine.match(/^(\w+)=(.*)$/);
+    const match = cleanLine.match(/^(\w+)\s*=\s*(.*)$/);
     if (match) {
       const [, key, value] = match;
       let parsedValue = value.trim();

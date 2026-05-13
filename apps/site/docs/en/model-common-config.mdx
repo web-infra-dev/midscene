@@ -73,6 +73,12 @@ MIDSCENE_MODEL_NAME="ep-..." # Inference endpoint ID or model name from Volcano 
 MIDSCENE_MODEL_FAMILY="doubao-seed" # "doubao-vision" is also supported
 ```
 
+If your Volcano Engine account has fast tier quota enabled, add the extra request body below to use it. This usually improves model response speed by about 30%-50%.
+
+```bash
+MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
+```
+
 Midscene disables model-native thinking by default to get the best execution speed and quality. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode). To enable model-native thinking, set `MIDSCENE_MODEL_REASONING_ENABLED="true"`. You can also set `MIDSCENE_MODEL_REASONING_EFFORT="medium"` to control reasoning effort.
 
 ### Qwen3.X Series {#qwen3x}
