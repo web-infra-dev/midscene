@@ -87,6 +87,13 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   apiMoreLink: '查看所有 API',
   apiMoreDesc: '探索完整的 API 文档以获取更多自动化能力。',
 
+  // Who is Using
+  whoIsUsingTitle: '谁在使用 Midscene',
+  userVolcengine: '火山引擎',
+  userDouyin: '抖音',
+  userAlibaba: '阿里巴巴',
+  userXiaomi: '小米',
+
   // Links
   multiModelStrategyLink: '/model-strategy#高阶特性多模型配合',
   platformWebLink: '/quick-experience.html',

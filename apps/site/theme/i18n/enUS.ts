@@ -92,6 +92,13 @@ and more`,
   apiMoreDesc:
     'Explore the complete API documentation for more automation capabilities.',
 
+  // Who is Using
+  whoIsUsingTitle: 'Who is using Midscene',
+  userVolcengine: 'Volcengine',
+  userDouyin: 'Douyin',
+  userAlibaba: 'Alibaba',
+  userXiaomi: 'Xiaomi',
+
   // Links
   multiModelStrategyLink: '/model-strategy#advanced-combining-multiple-models',
   platformWebLink: '/quick-experience.html',

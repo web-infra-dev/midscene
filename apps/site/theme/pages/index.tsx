@@ -2,6 +2,7 @@ import { HomeBackground } from '@rspress/core/theme-original';
 import { Banner } from '../components/Banner';
 import { CTAButtons } from '../components/CTAButtons';
 import { FeatureSections } from '../components/FeatureSections';
+import { WhoIsUsing } from '../components/WhoIsUsing';
 
 const CopyRight = () => {
   return (
@@ -45,6 +46,9 @@ export function HomeLayout() {
 
       {/* Feature Sections */}
       <FeatureSections />
+
+      {/* Who is Using */}
+      <WhoIsUsing />
 
       {/* Bottom CTA Section */}
       <div className="w-full bg-white dark:bg-[#121212] py-12 md:py-20">
