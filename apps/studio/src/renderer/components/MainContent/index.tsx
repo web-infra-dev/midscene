@@ -1,12 +1,6 @@
+import { PlaygroundPreview } from '@midscene/playground-app';
 import { getDebug } from '@midscene/shared/logger';
-import {
-  type ReactNode,
-  Suspense,
-  lazy,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { assetUrls } from '../../assets';
 import {
   type StudioPreviewConnectionState,
@@ -36,8 +30,6 @@ import {
 } from './preview-layout';
 
 const debugWebNavigation = getDebug('studio:web-navigation', { console: true });
-
-const LazyPlaygroundPreview = lazy(() => import('./LazyPlaygroundPreview'));
 
 export interface MainContentProps {
   activeView: ShellActiveView;
@@ -709,55 +701,43 @@ export default function MainContent({
                 shouldPadDesktopPreview ? 'px-6' : ''
               }`}
             >
-              <Suspense
-                fallback={
+              <PlaygroundPreview
+                connectingOverlay={
                   <ConnectingPreview
                     pcSrc={assetUrls.main.pc}
                     phoneSrc={assetUrls.main.phone}
                     statusLabel={previewStatusText || previewConnectingLabel}
                   />
                 }
-              >
-                <LazyPlaygroundPreview
-                  connectingOverlay={
-                    <ConnectingPreview
-                      pcSrc={assetUrls.main.pc}
-                      phoneSrc={assetUrls.main.phone}
-                      statusLabel={previewStatusText || previewConnectingLabel}
-                    />
-                  }
-                  onDeviceSizeChange={setPreviewDeviceSize}
-                  onScrcpyStatusChange={(status, statusText) => {
-                    setPreviewStatus(status);
-                    setPreviewStatusText(statusText);
-                  }}
-                  renderErrorOverlay={({ retry }) => (
-                    <ConnectionFailedPreview
-                      adbId={previewDeviceId}
-                      iconSrc={assetUrls.main.connectionFailed}
-                      onReconnect={retry}
-                    />
-                  )}
-                  playgroundSDK={
-                    studioPlayground.controller.state.playgroundSDK
-                  }
-                  screenshotViewerMode="screen-only"
-                  scrcpyViewportStyle={
-                    shouldFrameMobilePreview
-                      ? {
-                          background: 'transparent',
-                          borderRadius: 0,
-                        }
-                      : undefined
-                  }
-                  runtimeInfo={studioPlayground.controller.state.runtimeInfo}
-                  serverUrl={studioPlayground.serverUrl}
-                  serverOnline={studioPlayground.controller.state.serverOnline}
-                  isUserOperating={
-                    studioPlayground.controller.state.isUserOperating
-                  }
-                />
-              </Suspense>
+                onDeviceSizeChange={setPreviewDeviceSize}
+                onScrcpyStatusChange={(status, statusText) => {
+                  setPreviewStatus(status);
+                  setPreviewStatusText(statusText);
+                }}
+                renderErrorOverlay={({ retry }) => (
+                  <ConnectionFailedPreview
+                    adbId={previewDeviceId}
+                    iconSrc={assetUrls.main.connectionFailed}
+                    onReconnect={retry}
+                  />
+                )}
+                playgroundSDK={studioPlayground.controller.state.playgroundSDK}
+                screenshotViewerMode="screen-only"
+                scrcpyViewportStyle={
+                  shouldFrameMobilePreview
+                    ? {
+                        background: 'transparent',
+                        borderRadius: 0,
+                      }
+                    : undefined
+                }
+                runtimeInfo={studioPlayground.controller.state.runtimeInfo}
+                serverUrl={studioPlayground.serverUrl}
+                serverOnline={studioPlayground.controller.state.serverOnline}
+                isUserOperating={
+                  studioPlayground.controller.state.isUserOperating
+                }
+              />
             </div>
           ) : isOpeningSession ? (
             <ConnectingPreview

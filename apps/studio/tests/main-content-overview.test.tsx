@@ -6,6 +6,14 @@ import { describe, expect, it, vi } from 'vitest';
 import MainContent from '../src/renderer/components/MainContent';
 import { StudioPlaygroundContext } from '../src/renderer/playground/useStudioPlayground';
 
+vi.mock('@midscene/playground-app', () => ({
+  // Real PlaygroundPreview pulls in a WASM helper through visualizer; the
+  // tests only care that MainContent threads the connecting overlay
+  // through, so stub it down to that overlay.
+  PlaygroundPreview: ({ connectingOverlay }: { connectingOverlay?: unknown }) =>
+    connectingOverlay ?? null,
+}));
+
 function createReadyContextValue(): StudioPlaygroundContextValue {
   return {
     phase: 'ready',

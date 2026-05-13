@@ -22,8 +22,6 @@ interface DeviceItem {
   label: string;
   status: DeviceStatus;
   onClick?: () => void | Promise<void>;
-  /** Purely informational rows that should never appear "selected". */
-  isPlaceholder?: boolean;
 }
 
 interface SectionDefinition {
@@ -201,19 +199,9 @@ export default function Sidebar({
     devices: typeof deviceBuckets.android,
   ): DeviceItem[] => {
     if (studioPlayground.phase !== 'ready') {
-      if (platformKey === 'android') {
-        return [
-          {
-            id: `${platformKey}-placeholder`,
-            label:
-              studioPlayground.phase === 'booting'
-                ? 'Playground starting'
-                : 'Runtime failed to start',
-            status: 'idle' as const,
-            isPlaceholder: true,
-          },
-        ];
-      }
+      // Boot / error state has its own indicator in MainContent — leave every
+      // sidebar section empty rather than spamming a placeholder row per
+      // platform.
       return [];
     }
 
@@ -399,8 +387,7 @@ export default function Sidebar({
                         <DeviceRow
                           key={device.id}
                           selected={
-                            !device.isPlaceholder &&
-                            (matchesConnected || matchesForm || matchesSticky)
+                            matchesConnected || matchesForm || matchesSticky
                           }
                           {...device}
                         />
