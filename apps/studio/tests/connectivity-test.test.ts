@@ -43,6 +43,7 @@ describe('runConnectivityTest', () => {
         openaiBaseURL: 'https://api.example.com/v1',
         modelName: 'gpt-4o',
         intent: 'default',
+        slot: 'default',
         timeout: 30_000,
       }),
       expect.objectContaining({

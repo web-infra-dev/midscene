@@ -14,6 +14,7 @@ const baseModelConfig: IModelConfig = {
   modelName: 'gpt-5.4',
   modelDescription: 'codex',
   intent: 'default',
+  slot: 'default',
 };
 
 describe('codex app-server provider helper', () => {

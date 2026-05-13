@@ -20,6 +20,7 @@ const baseModelConfig: IModelConfig = {
   openaiApiKey: 'test-key',
   openaiBaseURL: 'https://example.com/v1',
   intent: 'planning',
+  slot: 'planning',
 };
 
 describe('service-caller reasoning fallback', () => {

@@ -13,6 +13,7 @@ describe('AiJudgeOrderSensitive', () => {
       modelName: 'test-model',
       modelDescription: 'test model',
       intent: 'default',
+      slot: 'default',
     };
 
     const result = await AiJudgeOrderSensitive(

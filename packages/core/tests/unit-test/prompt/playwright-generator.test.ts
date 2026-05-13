@@ -272,7 +272,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
       modelName: 'mock',
       modelDescription: 'mock',
       intent: 'default',
-      from: 'modelConfig',
+      slot: 'default',
     } as const satisfies IModelConfig;
 
     test('should generate Playwright test successfully', async () => {

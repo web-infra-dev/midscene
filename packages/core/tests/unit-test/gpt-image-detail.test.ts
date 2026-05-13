@@ -22,6 +22,7 @@ const baseModelConfig: IModelConfig = {
   openaiBaseURL: 'https://api.openai.com/v1',
   modelFamily: 'gpt-5',
   intent: 'default',
+  slot: 'default',
 };
 
 const imageMessage = [
@@ -109,6 +110,7 @@ describe('GPT image detail handling', () => {
     await callAI(imageMessage, {
       ...baseModelConfig,
       intent: 'planning',
+      slot: 'planning',
     });
 
     expect(mockCreate).toHaveBeenCalledWith(

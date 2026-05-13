@@ -60,6 +60,34 @@ describe('ModelConfigManager', () => {
     expect(defaultConfig.modelName).toBe('gpt-4');
     expect(insightConfig.modelName).toBe('gpt-4-vision');
     expect(planningConfig.modelName).toBe('qwen-vl-plus');
+    expect(defaultConfig.intent).toBe('default');
+    expect(defaultConfig.slot).toBe('default');
+    expect(insightConfig.intent).toBe('insight');
+    expect(insightConfig.slot).toBe('insight');
+    expect(planningConfig.intent).toBe('planning');
+    expect(planningConfig.slot).toBe('planning');
+  });
+
+  it('records intent and slot when intent config falls back to default', () => {
+    const {
+      [MIDSCENE_INSIGHT_MODEL_NAME]: _insightName,
+      [MIDSCENE_INSIGHT_MODEL_API_KEY]: _insightApiKey,
+      [MIDSCENE_INSIGHT_MODEL_BASE_URL]: _insightBaseUrl,
+      [MIDSCENE_PLANNING_MODEL_NAME]: _planningName,
+      [MIDSCENE_PLANNING_MODEL_API_KEY]: _planningApiKey,
+      [MIDSCENE_PLANNING_MODEL_BASE_URL]: _planningBaseUrl,
+      ...configWithoutIntentModels
+    } = baseMap;
+    const manager = new ModelConfigManager(configWithoutIntentModels);
+
+    const insightConfig = manager.getModelConfig('insight');
+    const planningConfig = manager.getModelConfig('planning');
+    expect(insightConfig.intent).toBe('insight');
+    expect(insightConfig.slot).toBe('default');
+    expect(insightConfig.modelName).toBe('gpt-4');
+    expect(planningConfig.intent).toBe('planning');
+    expect(planningConfig.slot).toBe('default');
+    expect(planningConfig.modelName).toBe('gpt-4');
   });
 
   it('prefer MIDSCENE_MODEL', () => {
@@ -78,6 +106,7 @@ describe('ModelConfigManager', () => {
     expect(config.openaiApiKey).toBe('env-key');
     expect(config.openaiBaseURL).toBe('https://env.example.com');
     expect(config.intent).toBe('default');
+    expect(config.slot).toBe('default');
   });
 
   it('reads from environment when no config function provided', () => {
@@ -94,6 +123,7 @@ describe('ModelConfigManager', () => {
     expect(config.openaiApiKey).toBe('env-key');
     expect(config.openaiBaseURL).toBe('https://env.example.com');
     expect(config.intent).toBe('default');
+    expect(config.slot).toBe('default');
   });
 
   it('provides upload server URL from openaiExtraConfig', () => {

@@ -68,14 +68,17 @@ export class ModelConfigManager {
     this.modelConfigMap = {
       default: {
         ...defaultConfig,
+        intent: 'default',
         createOpenAIClient: this.createOpenAIClientFn,
       },
       insight: {
         ...(insightConfig || defaultConfig),
+        intent: 'insight',
         createOpenAIClient: this.createOpenAIClientFn,
       },
       planning: {
         ...(planningConfig || defaultConfig),
+        intent: 'planning',
         createOpenAIClient: this.createOpenAIClientFn,
       },
     };

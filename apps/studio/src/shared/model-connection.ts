@@ -67,10 +67,8 @@ export function resolveModelConnectionWithConfig(
   const modelConfigManager = new ModelConfigManager(
     normalizedProvider as TModelConfig,
   );
-  const modelConfig: IModelConfig = {
-    ...modelConfigManager.getModelConfig('default'),
-    intent: 'default',
-  };
+  const modelConfig: IModelConfig =
+    modelConfigManager.getModelConfig('default');
 
   return {
     apiKey,

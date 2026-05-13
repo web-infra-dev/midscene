@@ -61,6 +61,7 @@ describe('Proxy Configuration', () => {
         httpProxy: httpProxy,
         modelDescription: 'test',
         intent: 'default',
+        slot: 'default',
         timeout: 1000,
       };
 
@@ -84,6 +85,7 @@ describe('Proxy Configuration', () => {
         httpProxy: httpProxy,
         modelDescription: 'test',
         intent: 'default',
+        slot: 'default',
         timeout: 500,
       };
 
@@ -107,6 +109,7 @@ describe('Proxy Configuration', () => {
         httpProxy: httpProxy,
         modelDescription: 'test',
         intent: 'default',
+        slot: 'default',
         timeout: 500,
       };
 
@@ -132,6 +135,7 @@ describe('Proxy Configuration', () => {
         socksProxy: socksProxy,
         modelDescription: 'test',
         intent: 'default',
+        slot: 'default',
         timeout: 1000,
       };
 
@@ -157,6 +161,7 @@ describe('Proxy Configuration', () => {
         socksProxy: socksProxy,
         modelDescription: 'test',
         intent: 'default',
+        slot: 'default',
         timeout: 500,
       };
 
@@ -182,6 +187,7 @@ describe('Proxy Configuration', () => {
         socksProxy: socksProxy,
         modelDescription: 'test',
         intent: 'default',
+        slot: 'default',
         timeout: 500,
       };
 
@@ -209,6 +215,7 @@ describe('Proxy Configuration', () => {
         socksProxy: socksProxy,
         modelDescription: 'test',
         intent: 'default',
+        slot: 'default',
         timeout: 500,
       };
 
@@ -229,6 +236,7 @@ describe('Proxy Configuration', () => {
         socksProxy: socksProxy,
         modelDescription: 'test',
         intent: 'default',
+        slot: 'default',
         timeout: 500,
       };
 
@@ -250,6 +258,7 @@ describe('Proxy Configuration', () => {
         socksProxy: socksProxy,
         modelDescription: 'test',
         intent: 'default',
+        slot: 'default',
         timeout: 500,
       };
 
@@ -271,6 +280,7 @@ describe('Proxy Configuration', () => {
         socksProxy: socksProxy,
         modelDescription: 'test',
         intent: 'default',
+        slot: 'default',
         timeout: 500,
       };
 
@@ -296,6 +306,7 @@ describe('Proxy Configuration', () => {
         socksProxy: socksProxy,
         modelDescription: 'test',
         intent: 'default',
+        slot: 'default',
         timeout: 1000,
       };
 
@@ -321,6 +332,7 @@ describe('Proxy Configuration', () => {
         openaiApiKey: 'test-key',
         modelDescription: 'test',
         intent: 'default',
+        slot: 'default',
         timeout: 5000,
       };
 

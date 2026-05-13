@@ -33,7 +33,7 @@ const mockedModelConfig = {
   modelName: 'mock',
   modelDescription: 'mock',
   intent: 'default',
-  from: 'modelConfig',
+  slot: 'default',
 } as const satisfies IModelConfig;
 
 describe('yaml-generator', () => {

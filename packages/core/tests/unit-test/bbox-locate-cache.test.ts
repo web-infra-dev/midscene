@@ -66,6 +66,7 @@ describe('bbox locate cache fix', () => {
     modelName: 'test-model',
     modelDescription: 'test model for unit tests',
     intent: 'default',
+    slot: 'default',
   };
 
   beforeEach(() => {
@@ -373,6 +374,76 @@ describe('bbox locate cache fix', () => {
       // Verify cacheFeatureForPoint was NOT called (cache already exists)
       expect(mockInterface.cacheFeatureForPoint).not.toHaveBeenCalled();
     });
+  });
+
+  it('should annotate AI locate usage with default intent while preserving raw slot', async () => {
+    vi.mocked(mockInterface.rectMatchesCacheFeature).mockResolvedValue(
+      undefined,
+    );
+    vi.mocked(mockService.locate).mockResolvedValueOnce({
+      element: {
+        id: 'element-id',
+        center: [500, 300],
+        rect: { left: 450, top: 280, width: 100, height: 40 },
+        xpaths: ['/html/body/input[1]'],
+        attributes: {},
+      },
+      dump: {
+        taskInfo: {
+          rawResponse: '{"bbox":[450,280,550,320]}',
+          usage: {
+            prompt_tokens: 10,
+            completion_tokens: 2,
+            total_tokens: 12,
+            model_name: 'test-model',
+            slot: 'default',
+          },
+        },
+      },
+    } as any);
+
+    const { tasks } = await taskBuilder.build(
+      [
+        {
+          type: 'Tap',
+          param: {
+            locate: {
+              prompt: 'search input box',
+            },
+          },
+          thought: 'tap the search box',
+        },
+      ],
+      mockModelConfig,
+      mockModelConfig,
+      { cacheable: false },
+    );
+
+    const locateTask = tasks.find((task) => task.subType === 'Locate');
+    expect(locateTask).toBeDefined();
+
+    const runtimeTask = {
+      type: 'Planning',
+      subType: 'Locate',
+      param: locateTask!.param,
+      status: 'running',
+      timing: { start: Date.now(), end: 0, cost: 0 },
+      executor: locateTask!.executor,
+    } as any;
+
+    await locateTask!.executor(locateTask!.param, {
+      task: runtimeTask,
+      uiContext: await createMockUIContext(validBase64Image),
+    });
+
+    expect(runtimeTask.usage).toMatchObject({
+      intent: 'default',
+      slot: 'default',
+    });
+    expect(runtimeTask.log?.dump?.taskInfo?.usage).toMatchObject({
+      slot: 'default',
+    });
+    expect(runtimeTask.log?.dump?.taskInfo?.usage?.intent).toBeUndefined();
   });
 
   describe('cache hit on second execution', () => {

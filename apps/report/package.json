@@ -8,6 +8,8 @@
     "dev:rsdoctor": "RSDOCTOR=true rsbuild dev",
     "build:rsdoctor": "RSDOCTOR=true rsbuild build",
     "preview": "rsbuild preview",
+    "test": "vitest --run",
+    "test:watch": "vitest",
     "generate-demo": "node scripts/generate-demo-report.mjs",
     "e2e": "node scripts/generate-demo-report.mjs && node ../../packages/cli/bin/midscene ./e2e/"
   },
@@ -38,6 +40,7 @@
     "@types/react-dom": "^18.3.1",
     "less": "^4.2.0",
     "rsbuild-plugin-workspace-dev": "0.0.1",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "3.0.5"
   }
 }
