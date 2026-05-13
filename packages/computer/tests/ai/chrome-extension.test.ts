@@ -64,7 +64,7 @@ describe('chrome extension smoke test', () => {
 
   it('playground: UI elements are rendered correctly', async () => {
     await agent.aiAssert(
-      `${SIDE_PANEL} shows: (1) action type buttons like "aiAct" and "aiQuery", (2) a text input area with a "Run" button, (3) a gear/settings icon`,
+      `${SIDE_PANEL} shows: (1) action type buttons like "Action" and "Query", (2) a text input area with a "Run" button, (3) a gear/settings icon`,
     );
   });
 
