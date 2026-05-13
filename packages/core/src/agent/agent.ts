@@ -908,18 +908,12 @@ export class Agent<
     const runAiAct = async () => {
       const modelConfigForPlanning =
         this.modelConfigManager.getModelConfig('planning');
-      const defaultIntentModelConfig =
-        this.modelConfigManager.getModelConfig('default');
       // Controls the aiAct planning mode, such as sub-goal prompts and bbox strategy.
       const planningModeDeepThink = opt?.deepThink === true;
 
       const deepLocate = opt?.deepLocate;
 
-      const noIndividualLocateModel =
-        modelConfigForPlanning.modelName ===
-          defaultIntentModelConfig.modelName &&
-        modelConfigForPlanning.openaiBaseURL ===
-          defaultIntentModelConfig.openaiBaseURL;
+      const noIndividualLocateModel = modelConfigForPlanning.slot === 'default';
 
       const includeBboxInPlanning =
         !planningModeDeepThink && noIndividualLocateModel;
@@ -962,7 +956,7 @@ export class Agent<
       const { output: actionOutput } = await this.taskExecutor.action(
         taskPrompt,
         modelConfigForPlanning,
-        defaultIntentModelConfig,
+        this.modelConfigManager.getModelConfig('default'),
         includeBboxInPlanning,
         this.aiActContext,
         cacheable,
