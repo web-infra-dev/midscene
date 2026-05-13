@@ -434,7 +434,9 @@ export class Page<
       };
       return createImgBase64ByFormat(imgType, result.data);
     } finally {
-      await client.detach().catch(() => {});
+      void client.detach().catch((error) => {
+        debugPage('failed to detach CDP screenshot session: %s', error);
+      });
     }
   }
 
