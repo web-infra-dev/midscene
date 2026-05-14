@@ -8,10 +8,7 @@ import {
   FileTextOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
-import type {
-  ExecutionTaskPlanning,
-  ExecutionTaskPlanningLocate,
-} from '@midscene/core';
+import type { ExecutionTaskPlanningLocate } from '@midscene/core';
 import type { MarkdownAttachment } from '@midscene/core';
 import { executionToMarkdown } from '@midscene/core';
 import { filterBase64Value } from '@midscene/visualizer';
@@ -19,7 +16,6 @@ import { Blackboard, Player } from '@midscene/visualizer';
 import { Segmented } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { fullTimeStrWithMilliseconds } from '../../../../../packages/visualizer/src/utils';
-import OpenInPlayground from '../open-in-playground';
 import { getExecutionMarkdownView } from './markdown-view';
 
 const ScreenshotDisplay = (props: {
@@ -378,9 +374,6 @@ const DetailPanel = (): JSX.Element => {
               <DownloadOutlined /> Download ZIP
             </a>
           )}
-          <OpenInPlayground
-            context={(activeTask as ExecutionTaskPlanning)?.uiContext}
-          />
         </div>
       </div>
       <div className="detail-content">{content}</div>
