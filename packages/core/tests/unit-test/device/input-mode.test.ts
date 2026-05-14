@@ -8,23 +8,17 @@ describe('Input action with mode option', () => {
     clearInputMock: ReturnType<typeof vi.fn>,
     typeTextMock: ReturnType<typeof vi.fn>,
   ) =>
-    defineActionInput(async (param) => {
-      if (param.locate && param.mode !== 'typeOnly') {
-        clearInputMock();
-      }
-
-      if (param.mode === 'clear') {
-        return;
-      }
-
-      if (!param || !param.value) {
-        return;
-      }
-
-      typeTextMock(param.value);
+    defineActionInput({
+      clearInput: async (target) => {
+        clearInputMock(target);
+      },
+      typeText: async (value, opts) => {
+        typeTextMock(value, opts);
+      },
+      keyboardPress: async () => {},
     });
 
-  it('should clear input when mode is replace', async () => {
+  it('should request replace when mode is replace', async () => {
     const clearInputMock = vi.fn();
     const typeTextMock = vi.fn();
 
@@ -40,8 +34,11 @@ describe('Input action with mode option', () => {
       mockContext,
     );
 
-    expect(clearInputMock).toHaveBeenCalledTimes(1);
-    expect(typeTextMock).toHaveBeenCalledWith('test value');
+    expect(clearInputMock).not.toHaveBeenCalled();
+    expect(typeTextMock).toHaveBeenCalledWith(
+      'test value',
+      expect.objectContaining({ replace: true }),
+    );
   });
 
   it('should only clear input when mode is clear', async () => {
@@ -81,10 +78,13 @@ describe('Input action with mode option', () => {
     );
 
     expect(clearInputMock).not.toHaveBeenCalled();
-    expect(typeTextMock).toHaveBeenCalledWith('typed text');
+    expect(typeTextMock).toHaveBeenCalledWith(
+      'typed text',
+      expect.objectContaining({ replace: false }),
+    );
   });
 
-  it('should clear input by default when mode is not specified (defaults to replace)', async () => {
+  it('should request replace by default when mode is not specified', async () => {
     const clearInputMock = vi.fn();
     const typeTextMock = vi.fn();
 
@@ -99,12 +99,19 @@ describe('Input action with mode option', () => {
       mockContext,
     );
 
-    expect(clearInputMock).toHaveBeenCalledTimes(1);
-    expect(typeTextMock).toHaveBeenCalledWith('test value');
+    expect(clearInputMock).not.toHaveBeenCalled();
+    expect(typeTextMock).toHaveBeenCalledWith(
+      'test value',
+      expect.objectContaining({ replace: true }),
+    );
   });
 
   it('should validate the mode option is in the schema', () => {
-    const inputAction = defineActionInput(async () => {});
+    const inputAction = defineActionInput({
+      clearInput: async () => {},
+      typeText: async () => {},
+      keyboardPress: async () => {},
+    });
 
     // Check that the schema includes the mode field
     const schema = inputAction.paramSchema;

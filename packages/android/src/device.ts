@@ -4,6 +4,7 @@ import fs, { unlink } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import {
+  type ActionScrollParam,
   type DeviceAction,
   type InterfaceType,
   type LocateResultElement,
@@ -14,22 +15,12 @@ import {
 } from '@midscene/core';
 import {
   type AbstractInterface,
-  type ActionTapParam,
   type AndroidDeviceInputOpt,
   type AndroidDeviceOpt,
+  type MobileInputPrimitives,
+  type PointerPoint,
+  createDefaultMobileActions,
   defineAction,
-  defineActionClearInput,
-  defineActionCursorMove,
-  defineActionDoubleClick,
-  defineActionDragAndDrop,
-  defineActionKeyboardPress,
-  defineActionLongPress,
-  defineActionPinch,
-  defineActionScroll,
-  defineActionSwipe,
-  defineActionTap,
-  normalizeMobileSwipeParam,
-  normalizePinchParam,
 } from '@midscene/core/device';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import {
@@ -111,161 +102,98 @@ export class AndroidDevice implements AbstractInterface {
   uri: string | undefined;
   options?: AndroidDeviceOpt;
 
-  actionSpace(): DeviceAction<any>[] {
-    const defaultActions = [
-      defineActionTap(async (param: ActionTapParam) => {
-        const element = param.locate;
-        assert(element, 'Element not found, cannot tap');
-        await this.mouseClick(element.center[0], element.center[1]);
-      }),
-      defineActionDoubleClick(async (param) => {
-        const element = param.locate;
-        assert(element, 'Element not found, cannot double click');
-        await this.mouseDoubleClick(element.center[0], element.center[1]);
-      }),
-      defineAction({
-        name: 'Input',
-        description: 'Input text into the input field',
-        interfaceAlias: 'aiInput',
-        paramSchema: z.object({
-          value: z
-            .string()
-            .describe(
-              'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
-            ),
-          autoDismissKeyboard: z
-            .boolean()
-            .optional()
-            .describe(
-              'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
-            ),
-          mode: z.preprocess(
-            (val) => (val === 'append' ? 'typeOnly' : val),
-            z
-              .enum(['replace', 'clear', 'typeOnly'])
-              .default('replace')
-              .optional()
-              .describe(
-                'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
-              ),
-          ),
-          locate: getMidsceneLocationSchema()
-            .describe('The input field to be filled')
-            .optional(),
-        }),
-        sample: {
-          value: 'test@example.com',
-          locate: { prompt: 'the email input field' },
-        },
-        call: async (param: {
-          value: string;
-          autoDismissKeyboard?: boolean;
-          mode?: 'replace' | 'clear' | 'typeOnly';
-          locate?: LocateResultElement;
-        }) => {
-          const element = param.locate;
-          if (param.mode !== 'typeOnly') {
-            await this.clearInput(element as unknown as ElementInfo);
-          }
-
-          if (param.mode === 'clear') {
-            // Clear mode removes existing text without entering new characters
-            return;
-          }
-
-          if (!param || !param.value) {
-            return;
-          }
-
-          const autoDismissKeyboard =
-            param.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
-          await this.keyboardType(param.value, {
-            autoDismissKeyboard,
-          });
-        },
-      }),
-      defineActionScroll(async (param) => {
-        const element = param.locate;
-        const startingPoint = element
-          ? {
-              left: element.center[0],
-              top: element.center[1],
-            }
-          : undefined;
-        const scrollToEventName = param?.scrollType;
-        if (scrollToEventName === 'scrollToTop') {
-          await this.scrollUntilTop(startingPoint);
-        } else if (scrollToEventName === 'scrollToBottom') {
-          await this.scrollUntilBottom(startingPoint);
-        } else if (scrollToEventName === 'scrollToRight') {
-          await this.scrollUntilRight(startingPoint);
-        } else if (scrollToEventName === 'scrollToLeft') {
-          await this.scrollUntilLeft(startingPoint);
-        } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
-          if (param?.direction === 'down' || !param || !param.direction) {
-            await this.scrollDown(param?.distance || undefined, startingPoint);
-          } else if (param.direction === 'up') {
-            await this.scrollUp(param.distance || undefined, startingPoint);
-          } else if (param.direction === 'left') {
-            await this.scrollLeft(param.distance || undefined, startingPoint);
-          } else if (param.direction === 'right') {
-            await this.scrollRight(param.distance || undefined, startingPoint);
-          } else {
-            throw new Error(`Unknown scroll direction: ${param.direction}`);
-          }
-          // until mouse event is done
-          await sleep(500);
-        } else {
-          throw new Error(
-            `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
-              param,
-            )}`,
-          );
+  readonly inputPrimitives: MobileInputPrimitives = {
+    pointer: {
+      tap: (point) => this.tapPoint(point),
+      doubleClick: (point) => this.doubleTapPoint(point),
+      longPress: (point, opts) => this.longPressPoint(point, opts?.duration),
+      dragAndDrop: (from, to) => this.dragPoint(from, to),
+    },
+    keyboard: {
+      keyboardPress: (keyName) => this.pressKey(keyName),
+      typeText: async (value, opts) => {
+        const target = opts?.target as ElementInfo | undefined;
+        if (target && opts?.replace !== false) {
+          await this.clearInput(target);
+        } else if (target) {
+          await this.tapPoint({ x: target.center[0], y: target.center[1] });
         }
-      }),
-      defineActionDragAndDrop(async (param) => {
-        const from = param.from;
-        const to = param.to;
-        assert(from, 'missing "from" param for drag and drop');
-        assert(to, 'missing "to" param for drag and drop');
-        await this.mouseDrag(
-          {
-            x: from.center[0],
-            y: from.center[1],
-          },
-          {
-            x: to.center[0],
-            y: to.center[1],
-          },
-        );
-      }),
-      defineActionSwipe(async (param) => {
-        const { startPoint, endPoint, duration, repeatCount } =
-          normalizeMobileSwipeParam(param, await this.size());
-        for (let i = 0; i < repeatCount; i++) {
-          await this.mouseDrag(startPoint, endPoint, duration);
+
+        if (opts?.focusOnly) {
+          return;
         }
-      }),
-      defineActionKeyboardPress(async (param) => {
-        await this.keyboardPress(param.keyName);
-      }),
-      defineActionCursorMove(async (param) => {
-        const arrowKey =
-          param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
-        const times = param.times ?? 1;
+
+        await this.typeText(value, opts);
+      },
+      clearInput: (target) =>
+        this.clearInput(target as ElementInfo | undefined),
+      cursorMove: async (direction, times = 1) => {
+        const arrowKey = direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
         for (let i = 0; i < times; i++) {
-          await this.keyboardPress(arrowKey);
-          await sleep(100);
+          await this.pressKey(arrowKey);
         }
-      }),
-      defineActionLongPress(async (param) => {
-        const element = param.locate;
-        if (!element) {
-          throw new Error('LongPress requires an element to be located');
+      },
+    },
+    touch: {
+      swipe: async (start, end, opts) => {
+        const duration = opts?.duration ?? 300;
+        const repeatCount = opts?.repeat ?? 1;
+        for (let i = 0; i < repeatCount; i++) {
+          await this.dragPoint(start, end, duration);
         }
-        const [x, y] = element.center;
-        await this.longPress(x, y, param?.duration);
-      }),
+      },
+      pinch: async (center, opts) => {
+        const { x: adjCenterX, y: adjCenterY } = await this.adjustCoordinates(
+          Math.round(center.x),
+          Math.round(center.y),
+        );
+        const ratio =
+          adjCenterX !== 0 && center.x !== 0 ? adjCenterX / center.x : 1;
+        const adjStartDist = Math.round(opts.startDistance * ratio);
+        const adjEndDist = Math.round(opts.endDistance * ratio);
+        await this.ensureYadb();
+        const adb = await this.getAdb();
+        await adb.shell(
+          `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${opts.duration}`,
+        );
+      },
+    },
+    scroll: {
+      scroll: (param) => this.performActionScroll(param),
+    },
+    system: {
+      backButton: () => this.back(),
+      homeButton: () => this.home(),
+      recentAppsButton: () => this.recentApps(),
+    },
+  };
+
+  actionSpace(): DeviceAction<any>[] {
+    const mobileActionContext = {
+      input: this.inputPrimitives,
+      size: () => this.size(),
+      sleep: async (timeMs: number) => {
+        await sleep(timeMs);
+      },
+      getDefaultAutoDismissKeyboard: () => this.options?.autoDismissKeyboard,
+      systemActions: {
+        backButton: {
+          name: 'AndroidBackButton',
+          description: 'Trigger the system "back" operation on Android devices',
+        },
+        homeButton: {
+          name: 'AndroidHomeButton',
+          description: 'Trigger the system "home" operation on Android devices',
+        },
+        recentAppsButton: {
+          name: 'AndroidRecentAppsButton',
+          description:
+            'Trigger the system "recent apps" operation on Android devices',
+        },
+      },
+    };
+    const defaultActions = [
+      ...createDefaultMobileActions(mobileActionContext),
       defineAction<
         z.ZodObject<{
           direction: z.ZodEnum<['up', 'down']>;
@@ -317,34 +245,51 @@ export class AndroidDevice implements AbstractInterface {
           }
         },
       }),
-      defineActionPinch(async (param) => {
-        const { centerX, centerY, startDistance, endDistance, duration } =
-          normalizePinchParam(param, await this.size());
-
-        const { x: adjCenterX, y: adjCenterY } = await this.adjustCoordinates(
-          centerX,
-          centerY,
-        );
-        const ratio =
-          adjCenterX !== 0 && centerX !== 0 ? adjCenterX / centerX : 1;
-        const adjStartDist = Math.round(startDistance * ratio);
-        const adjEndDist = Math.round(endDistance * ratio);
-
-        await this.ensureYadb();
-        const adb = await this.getAdb();
-        await adb.shell(
-          `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${duration}`,
-        );
-      }),
-      defineActionClearInput(async (param) => {
-        await this.clearInput(param.locate as ElementInfo | undefined);
-      }),
     ];
 
     const platformSpecificActions = Object.values(createPlatformActions(this));
 
     const customActions = this.customActions || [];
     return [...defaultActions, ...platformSpecificActions, ...customActions];
+  }
+
+  private async performActionScroll(param: ActionScrollParam): Promise<void> {
+    const element = param.locate;
+    const startingPoint = element
+      ? {
+          left: element.center[0],
+          top: element.center[1],
+        }
+      : undefined;
+    const scrollToEventName = param?.scrollType;
+    if (scrollToEventName === 'scrollToTop') {
+      await this.scrollUntilTop(startingPoint);
+    } else if (scrollToEventName === 'scrollToBottom') {
+      await this.scrollUntilBottom(startingPoint);
+    } else if (scrollToEventName === 'scrollToRight') {
+      await this.scrollUntilRight(startingPoint);
+    } else if (scrollToEventName === 'scrollToLeft') {
+      await this.scrollUntilLeft(startingPoint);
+    } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
+      if (param?.direction === 'down' || !param || !param.direction) {
+        await this.scrollDown(param?.distance || undefined, startingPoint);
+      } else if (param.direction === 'up') {
+        await this.scrollUp(param.distance || undefined, startingPoint);
+      } else if (param.direction === 'left') {
+        await this.scrollLeft(param.distance || undefined, startingPoint);
+      } else if (param.direction === 'right') {
+        await this.scrollRight(param.distance || undefined, startingPoint);
+      } else {
+        throw new Error(`Unknown scroll direction: ${param.direction}`);
+      }
+      await sleep(500);
+    } else {
+      throw new Error(
+        `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
+          param,
+        )}`,
+      );
+    }
   }
 
   constructor(deviceId: string, options?: AndroidDeviceOpt) {
@@ -1227,7 +1172,7 @@ ${Object.keys(size)
 
   async clearInput(element?: ElementInfo): Promise<void> {
     if (element) {
-      await this.mouseClick(element.center[0], element.center[1]);
+      await this.tapPoint({ x: element.center[0], y: element.center[1] });
     }
 
     await this.ensureYadb();
@@ -1254,7 +1199,7 @@ ${Object.keys(size)
     }
 
     if (element) {
-      await this.mouseClick(element.center[0], element.center[1]);
+      await this.tapPoint({ x: element.center[0], y: element.center[1] });
     }
   }
 
@@ -1283,7 +1228,7 @@ ${Object.keys(size)
       const end = { x: start.x, y: Math.round(height) };
 
       await repeat(defaultScrollUntilTimes, () =>
-        this.mouseDrag(start, end, defaultFastScrollDuration),
+        this.dragPoint(start, end, defaultFastScrollDuration),
       );
       await sleep(1000);
       return;
@@ -1304,7 +1249,7 @@ ${Object.keys(size)
       const end = { x: start.x, y: 0 };
 
       await repeat(defaultScrollUntilTimes, () =>
-        this.mouseDrag(start, end, defaultFastScrollDuration),
+        this.dragPoint(start, end, defaultFastScrollDuration),
       );
       await sleep(1000);
       return;
@@ -1326,7 +1271,7 @@ ${Object.keys(size)
       const end = { x: Math.round(width), y: start.y };
 
       await repeat(defaultScrollUntilTimes, () =>
-        this.mouseDrag(start, end, defaultFastScrollDuration),
+        this.dragPoint(start, end, defaultFastScrollDuration),
       );
       await sleep(1000);
       return;
@@ -1347,7 +1292,7 @@ ${Object.keys(size)
       const end = { x: 0, y: start.y };
 
       await repeat(defaultScrollUntilTimes, () =>
-        this.mouseDrag(start, end, defaultFastScrollDuration),
+        this.dragPoint(start, end, defaultFastScrollDuration),
       );
       await sleep(1000);
       return;
@@ -1383,7 +1328,7 @@ ${Object.keys(size)
           Math.abs(end.y - start.y),
         );
       }
-      await this.mouseDrag(start, end);
+      await this.dragPoint(start, end);
       return;
     }
 
@@ -1414,7 +1359,7 @@ ${Object.keys(size)
           Math.abs(end.y - start.y),
         );
       }
-      await this.mouseDrag(start, end);
+      await this.dragPoint(start, end);
       return;
     }
 
@@ -1451,7 +1396,7 @@ ${Object.keys(size)
           Math.abs(end.x - start.x),
         );
       }
-      await this.mouseDrag(start, end);
+      await this.dragPoint(start, end);
       return;
     }
 
@@ -1488,7 +1433,7 @@ ${Object.keys(size)
           Math.abs(end.x - start.x),
         );
       }
-      await this.mouseDrag(start, end);
+      await this.dragPoint(start, end);
       return;
     }
 
@@ -1552,7 +1497,7 @@ ${Object.keys(size)
     );
   }
 
-  async keyboardType(
+  private async typeText(
     text: string,
     options?: AndroidDeviceInputOpt,
   ): Promise<void> {
@@ -1620,7 +1565,7 @@ ${Object.keys(size)
     return keyMap[lowerKey] || key; // Return original key if no mapping found
   }
 
-  async keyboardPress(key: string): Promise<void> {
+  private async pressKey(key: string): Promise<void> {
     // Map web keys to Android key codes (numbers)
     const keyCodeMap: Record<string, number> = {
       Enter: 66,
@@ -1654,19 +1599,25 @@ ${Object.keys(size)
     }
   }
 
-  async mouseClick(x: number, y: number): Promise<void> {
+  private async tapPoint(point: PointerPoint): Promise<void> {
     const adb = await this.getAdb();
 
     // Use adjusted coordinates
-    const { x: adjustedX, y: adjustedY } = await this.adjustCoordinates(x, y);
+    const { x: adjustedX, y: adjustedY } = await this.adjustCoordinates(
+      point.x,
+      point.y,
+    );
     await adb.shell(
       `input${this.getDisplayArg()} swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} 150`,
     );
   }
 
-  async mouseDoubleClick(x: number, y: number): Promise<void> {
+  private async doubleTapPoint(point: PointerPoint): Promise<void> {
     const adb = await this.getAdb();
-    const { x: adjustedX, y: adjustedY } = await this.adjustCoordinates(x, y);
+    const { x: adjustedX, y: adjustedY } = await this.adjustCoordinates(
+      point.x,
+      point.y,
+    );
 
     // Use input tap for double-click as it generates proper touch events
     // that Android can recognize as a double-click gesture
@@ -1683,22 +1634,25 @@ ${Object.keys(size)
     return Promise.resolve();
   }
 
-  async mouseDrag(
-    from: { x: number; y: number },
-    to: { x: number; y: number },
+  private async dragPoint(
+    from: PointerPoint,
+    to: PointerPoint,
     duration?: number,
   ): Promise<void> {
-    const adb = await this.getAdb();
+    await this.swipePoint(from, to, duration ?? defaultNormalScrollDuration);
+  }
 
-    // Use adjusted coordinates
+  private async swipePoint(
+    from: PointerPoint,
+    to: PointerPoint,
+    duration: number,
+  ): Promise<void> {
+    const adb = await this.getAdb();
     const { x: fromX, y: fromY } = await this.adjustCoordinates(from.x, from.y);
     const { x: toX, y: toY } = await this.adjustCoordinates(to.x, to.y);
 
-    // Ensure duration has a default value
-    const swipeDuration = duration ?? defaultNormalScrollDuration;
-
     await adb.shell(
-      `input${this.getDisplayArg()} swipe ${fromX} ${fromY} ${toX} ${toY} ${swipeDuration}`,
+      `input${this.getDisplayArg()} swipe ${fromX} ${fromY} ${toX} ${toY} ${duration}`,
     );
   }
 
@@ -1768,20 +1722,12 @@ ${Object.keys(size)
     const endX = Math.round(startX - deltaX);
     const endY = Math.round(startY - deltaY);
 
-    // Adjust coordinates to fit device ratio
-    const { x: adjustedStartX, y: adjustedStartY } =
-      await this.adjustCoordinates(startX, startY);
-    const { x: adjustedEndX, y: adjustedEndY } = await this.adjustCoordinates(
-      endX,
-      endY,
-    );
-
-    const adb = await this.getAdb();
     const swipeDuration = duration ?? defaultNormalScrollDuration;
 
-    // Execute the swipe operation
-    await adb.shell(
-      `input${this.getDisplayArg()} swipe ${adjustedStartX} ${adjustedStartY} ${adjustedEndX} ${adjustedEndY} ${swipeDuration}`,
+    await this.swipePoint(
+      { x: startX, y: startY },
+      { x: endX, y: endY },
+      swipeDuration,
     );
   }
 
@@ -1867,11 +1813,17 @@ ${Object.keys(size)
     await adb.shell(`input${this.getDisplayArg()} keyevent 187`);
   }
 
-  async longPress(x: number, y: number, duration = 2000): Promise<void> {
+  private async longPressPoint(
+    point: PointerPoint,
+    duration = 2000,
+  ): Promise<void> {
     const adb = await this.getAdb();
 
     // Use adjusted coordinates
-    const { x: adjustedX, y: adjustedY } = await this.adjustCoordinates(x, y);
+    const { x: adjustedX, y: adjustedY } = await this.adjustCoordinates(
+      point.x,
+      point.y,
+    );
     await adb.shell(
       `input${this.getDisplayArg()} swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} ${duration}`,
     );
@@ -1903,16 +1855,7 @@ ${Object.keys(size)
     to: { x: number; y: number },
     duration: number,
   ): Promise<void> {
-    const adb = await this.getAdb();
-
-    // Use adjusted coordinates
-    const { x: fromX, y: fromY } = await this.adjustCoordinates(from.x, from.y);
-    const { x: toX, y: toY } = await this.adjustCoordinates(to.x, to.y);
-
-    // Use the specified duration for better pull gesture recognition
-    await adb.shell(
-      `input${this.getDisplayArg()} swipe ${fromX} ${fromY} ${toX} ${toY} ${duration}`,
-    );
+    await this.swipePoint(from, to, duration);
   }
 
   async pullUp(
@@ -2086,9 +2029,6 @@ const createPlatformActions = (
   RunAdbShell: DeviceActionRunAdbShell;
   Launch: DeviceActionLaunch;
   Terminate: DeviceActionTerminate;
-  AndroidBackButton: DeviceActionAndroidBackButton;
-  AndroidHomeButton: DeviceActionAndroidHomeButton;
-  AndroidRecentAppsButton: DeviceActionAndroidRecentAppsButton;
 } => {
   return {
     RunAdbShell: defineAction<
@@ -2131,39 +2071,11 @@ const createPlatformActions = (
       description: 'Terminate (force-stop) an Android app by package name',
       interfaceAlias: 'terminate',
       paramSchema: terminateParamSchema,
-      delayBeforeRunner: 0,
-      delayAfterRunner: 0,
       call: async (param) => {
         if (!param.uri || param.uri.trim() === '') {
           throw new Error('Terminate requires a non-empty uri parameter');
         }
         await device.terminate(param.uri);
-      },
-    }),
-    AndroidBackButton: defineAction({
-      name: 'AndroidBackButton',
-      description: 'Trigger the system "back" operation on Android devices',
-      delayBeforeRunner: 0,
-      delayAfterRunner: 0,
-      call: async () => {
-        await device.back();
-      },
-    }),
-    AndroidHomeButton: defineAction({
-      name: 'AndroidHomeButton',
-      description: 'Trigger the system "home" operation on Android devices',
-      delayBeforeRunner: 0,
-      delayAfterRunner: 0,
-      call: async () => {
-        await device.home();
-      },
-    }),
-    AndroidRecentAppsButton: defineAction({
-      name: 'AndroidRecentAppsButton',
-      description:
-        'Trigger the system "recent apps" operation on Android devices',
-      call: async () => {
-        await device.recentApps();
       },
     }),
   } as const;

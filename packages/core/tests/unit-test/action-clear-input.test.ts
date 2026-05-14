@@ -12,8 +12,7 @@ const createAgentStub = () => {
 describe('ClearInput Action', () => {
   describe('defineActionClearInput', () => {
     it('should create an action with correct name and alias', () => {
-      const callFn = vi.fn();
-      const action = defineActionClearInput(callFn);
+      const action = defineActionClearInput(async () => {});
 
       expect(action.name).toBe('ClearInput');
       expect(action.interfaceAlias).toBe('aiClearInput');

@@ -26,8 +26,13 @@ describe('IOSDevice', () => {
       getWindowSize: vi.fn().mockResolvedValue({ width: 375, height: 812 }),
       takeScreenshot: vi.fn().mockResolvedValue('base64-screenshot'),
       tap: vi.fn().mockResolvedValue(undefined),
+      doubleTap: vi.fn().mockResolvedValue(undefined),
+      tripleTap: vi.fn().mockResolvedValue(undefined),
+      longPress: vi.fn().mockResolvedValue(undefined),
       swipe: vi.fn().mockResolvedValue(undefined),
+      pinch: vi.fn().mockResolvedValue(undefined),
       typeText: vi.fn().mockResolvedValue(undefined),
+      clearActiveElement: vi.fn().mockResolvedValue(true),
       pressKey: vi.fn().mockResolvedValue(undefined),
       pressHomeButton: vi.fn().mockResolvedValue(undefined),
       launchApp: vi.fn().mockResolvedValue(undefined),
@@ -163,6 +168,61 @@ describe('IOSDevice', () => {
       const actions = deviceWithCustomActions.actionSpace();
       const actionNames = actions.map((action) => action.name);
       expect(actionNames).toContain('CustomAction');
+    });
+  });
+
+  describe('Pointer capability', () => {
+    it('should route pointer gestures through WDA primitives', async () => {
+      await device.inputPrimitives.pointer.tap({ x: 10.4, y: 20.6 });
+      await device.inputPrimitives.touch.swipe(
+        { x: 1, y: 2 },
+        { x: 3, y: 4 },
+        { duration: 123, repeat: 2 },
+      );
+
+      expect(mockWdaClient.tap).toHaveBeenCalledWith(10, 21);
+      expect(mockWdaClient.swipe).toHaveBeenNthCalledWith(1, 1, 2, 3, 4, 123);
+      expect(mockWdaClient.swipe).toHaveBeenNthCalledWith(2, 1, 2, 3, 4, 123);
+    });
+
+    it('should share tap implementation between actionSpace and pointer', async () => {
+      const tapAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Tap');
+
+      await tapAction?.call({
+        locate: { center: [11.2, 22.8] },
+      } as any);
+      await device.inputPrimitives.pointer.tap({ x: 33.2, y: 44.8 });
+
+      expect(mockWdaClient.tap).toHaveBeenNthCalledWith(1, 11, 23);
+      expect(mockWdaClient.tap).toHaveBeenNthCalledWith(2, 33, 45);
+    });
+
+    it('should share input implementation between actionSpace and pointer', async () => {
+      const inputAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Input');
+
+      await inputAction?.call({
+        value: 'from action',
+        locate: { center: [10, 20] },
+        mode: 'replace',
+        autoDismissKeyboard: false,
+      } as any);
+      await device.inputPrimitives.keyboard.typeText('from pointer', {
+        target: {
+          center: [30, 40],
+        },
+        replace: true,
+        autoDismissKeyboard: false,
+      } as any);
+
+      expect(mockWdaClient.tap).toHaveBeenNthCalledWith(1, 10, 20);
+      expect(mockWdaClient.tap).toHaveBeenNthCalledWith(2, 30, 40);
+      expect(mockWdaClient.clearActiveElement).toHaveBeenCalledTimes(2);
+      expect(mockWdaClient.typeText).toHaveBeenNthCalledWith(1, 'from action');
+      expect(mockWdaClient.typeText).toHaveBeenNthCalledWith(2, 'from pointer');
     });
   });
 

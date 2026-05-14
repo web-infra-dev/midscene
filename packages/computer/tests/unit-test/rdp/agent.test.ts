@@ -166,7 +166,8 @@ describe('@midscene/computer RDP device', () => {
     expect(backend.calls).toEqual(
       expect.arrayContaining([
         { name: 'mouseMove', args: [5, 5] },
-        { name: 'mouseButton', args: ['left', 'click'] },
+        { name: 'mouseButton', args: ['left', 'down'] },
+        { name: 'mouseButton', args: ['left', 'up'] },
         { name: 'clearInput', args: [] },
         { name: 'typeText', args: ['hello'] },
       ]),
@@ -193,29 +194,6 @@ describe('@midscene/computer RDP device', () => {
         primary: true,
       },
     ]);
-  });
-
-  it('supports middle click through the RDP backend', async () => {
-    const backend = new FakeRDPBackend();
-    const device = new RDPDevice({
-      host: '10.0.0.1',
-      backend,
-    });
-    await device.connect();
-
-    const middleClick = device
-      .actionSpace()
-      .find((action) => action.name === 'MiddleClick');
-    expect(middleClick).toBeDefined();
-
-    await middleClick!.call({
-      locate: createLocate([120, 240], 'middle-target'),
-    });
-
-    expect(backend.calls.at(-1)).toEqual({
-      name: 'mouseButton',
-      args: ['middle', 'click'],
-    });
   });
 
   it('moves smoothly for hover and keeps the final pointer position', async () => {

@@ -1,31 +1,20 @@
 import assert from 'node:assert';
 import {
+  type ActionScrollParam,
   type DeviceAction,
   type InterfaceType,
-  type LocateResultElement,
   type Point,
   type Size,
-  getMidsceneLocationSchema,
   z,
 } from '@midscene/core';
 import {
   type AbstractInterface,
-  type ActionTapParam,
   type IOSDeviceInputOpt,
   type IOSDeviceOpt,
+  type MobileInputPrimitives,
+  type PointerPoint,
+  createDefaultMobileActions,
   defineAction,
-  defineActionClearInput,
-  defineActionCursorMove,
-  defineActionDoubleClick,
-  defineActionDragAndDrop,
-  defineActionKeyboardPress,
-  defineActionLongPress,
-  defineActionPinch,
-  defineActionScroll,
-  defineActionSwipe,
-  defineActionTap,
-  normalizeMobileSwipeParam,
-  normalizePinchParam,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
@@ -40,40 +29,6 @@ import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-cli
 export type { IOSDeviceOpt, IOSDeviceInputOpt } from '@midscene/core/device';
 
 const debugDevice = getDebug('ios:device');
-
-// Input action schema for iOS
-const iosInputParamSchema = z.object({
-  value: z
-    .string()
-    .describe(
-      'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
-    ),
-  autoDismissKeyboard: z
-    .boolean()
-    .optional()
-    .describe(
-      'Whether to dismiss the keyboard after input. Defaults to true if not specified. Set to false to keep the keyboard visible after input.',
-    ),
-  mode: z.preprocess(
-    (val) => (val === 'append' ? 'typeOnly' : val),
-    z
-      .enum(['replace', 'clear', 'typeOnly'])
-      .default('replace')
-      .optional()
-      .describe(
-        'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
-      ),
-  ),
-  locate: getMidsceneLocationSchema()
-    .describe('The input field to be filled')
-    .optional(),
-});
-type IOSInputParam = {
-  value: string;
-  autoDismissKeyboard?: boolean;
-  mode?: 'replace' | 'clear' | 'typeOnly';
-  locate?: LocateResultElement;
-};
 
 /**
  * HTTP methods supported by WebDriverAgent API
@@ -99,152 +54,166 @@ export class IOSDevice implements AbstractInterface {
   uri: string | undefined;
   options?: IOSDeviceOpt;
 
-  actionSpace(): DeviceAction<any>[] {
-    const defaultActions = [
-      defineActionTap(async (param: ActionTapParam) => {
-        const element = param.locate;
-        assert(element, 'Element not found, cannot tap');
-        await this.mouseClick(element.center[0], element.center[1]);
-      }),
-      defineActionDoubleClick(async (param) => {
-        const element = param.locate;
-        assert(element, 'Element not found, cannot double click');
-        await this.doubleTap(element.center[0], element.center[1]);
-      }),
-      defineAction<typeof iosInputParamSchema, IOSInputParam>({
-        name: 'Input',
-        description: 'Input text into the input field',
-        interfaceAlias: 'aiInput',
-        paramSchema: iosInputParamSchema,
-        sample: {
-          value: 'test@example.com',
-          locate: { prompt: 'the email input field' },
-        },
-        call: async (param) => {
-          const element = param.locate;
-          if (param.mode !== 'typeOnly') {
-            await this.clearInput(element as unknown as ElementInfo);
-          }
-
-          if (param.mode === 'clear') {
-            // Clear mode removes existing text without entering new characters
-            return;
-          }
-
-          if (!param || !param.value) {
-            return;
-          }
-
-          const autoDismissKeyboard =
-            param.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
-          await this.typeText(param.value, {
-            autoDismissKeyboard,
-          });
-        },
-      }),
-      defineActionScroll(async (param) => {
-        const element = param.locate;
-        const startingPoint = element
-          ? {
-              left: element.center[0],
-              top: element.center[1],
-            }
-          : undefined;
-        const scrollToEventName = param?.scrollType;
-        if (scrollToEventName === 'scrollToTop') {
-          await this.scrollUntilTop(startingPoint);
-        } else if (scrollToEventName === 'scrollToBottom') {
-          await this.scrollUntilBottom(startingPoint);
-        } else if (scrollToEventName === 'scrollToRight') {
-          await this.scrollUntilRight(startingPoint);
-        } else if (scrollToEventName === 'scrollToLeft') {
-          await this.scrollUntilLeft(startingPoint);
-        } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
-          if (param?.direction === 'down' || !param || !param.direction) {
-            await this.scrollDown(param?.distance || undefined, startingPoint);
-          } else if (param.direction === 'up') {
-            await this.scrollUp(param.distance || undefined, startingPoint);
-          } else if (param.direction === 'left') {
-            await this.scrollLeft(param.distance || undefined, startingPoint);
-          } else if (param.direction === 'right') {
-            await this.scrollRight(param.distance || undefined, startingPoint);
-          } else {
-            throw new Error(`Unknown scroll direction: ${param.direction}`);
-          }
-          await sleep(500);
-        } else {
-          throw new Error(
-            `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
-              param,
-            )}`,
-          );
+  readonly inputPrimitives: MobileInputPrimitives = {
+    pointer: {
+      tap: (point) => this.tapPoint(point),
+      doubleClick: (point) => this.doubleTapPoint(point),
+      longPress: (point, opts) => this.longPressPoint(point, opts?.duration),
+      dragAndDrop: (from, to) => this.swipePoint(from, to, 1000),
+    },
+    keyboard: {
+      keyboardPress: (keyName) => this.pressKey(keyName),
+      typeText: async (value, opts) => {
+        const target = opts?.target as ElementInfo | undefined;
+        if (target && opts?.replace !== false) {
+          await this.clearInput(target);
+        } else if (target) {
+          await this.tapPoint({ x: target.center[0], y: target.center[1] });
         }
-      }),
-      defineActionDragAndDrop(async (param) => {
-        const from = param.from;
-        const to = param.to;
-        assert(from, 'missing "from" param for drag and drop');
-        assert(to, 'missing "to" param for drag and drop');
-        await this.swipe(
-          from.center[0],
-          from.center[1],
-          to.center[0],
-          to.center[1],
-          1000,
-        );
-      }),
-      defineActionSwipe(async (param) => {
-        const { startPoint, endPoint, duration, repeatCount } =
-          normalizeMobileSwipeParam(param, await this.size());
-        for (let i = 0; i < repeatCount; i++) {
-          await this.swipe(
-            startPoint.x,
-            startPoint.y,
-            endPoint.x,
-            endPoint.y,
-            duration,
-          );
+
+        if (opts?.focusOnly) {
+          return;
         }
-      }),
-      defineActionKeyboardPress(async (param) => {
-        await this.pressKey(param.keyName);
-      }),
-      defineActionCursorMove(async (param) => {
-        const arrowKey =
-          param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
-        const times = param.times ?? 1;
+
+        await this.typeText(value, opts);
+      },
+      clearInput: (target) =>
+        this.clearInput(target as ElementInfo | undefined),
+      cursorMove: async (direction, times = 1) => {
+        const arrowKey = direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
         for (let i = 0; i < times; i++) {
           await this.pressKey(arrowKey);
-          await sleep(100);
         }
-      }),
-      defineActionLongPress(async (param) => {
-        const element = param.locate;
-        assert(element, 'LongPress requires an element to be located');
-        const [x, y] = element.center;
-        await this.longPress(x, y, param?.duration);
-      }),
-      defineActionPinch(async (param) => {
-        const { centerX, centerY, startDistance, endDistance, duration } =
-          normalizePinchParam(param, await this.size());
-
+      },
+    },
+    touch: {
+      swipe: async (start, end, opts) => {
+        const duration = opts?.duration ?? 300;
+        const repeat = opts?.repeat ?? 1;
+        for (let i = 0; i < repeat; i++) {
+          await this.swipePoint(start, end, duration);
+        }
+      },
+      pinch: async (center, opts) => {
         await this.wdaBackend.pinch(
-          centerX,
-          centerY,
-          startDistance,
-          endDistance,
-          duration,
+          Math.round(center.x),
+          Math.round(center.y),
+          opts.startDistance,
+          opts.endDistance,
+          opts.duration,
         );
-      }),
-      defineActionClearInput(async (param) => {
-        await this.clearInput(param.locate as ElementInfo | undefined);
-      }),
-    ];
+      },
+    },
+    scroll: {
+      scroll: (param) => this.performActionScroll(param),
+    },
+  };
+
+  private async tapPoint(point: PointerPoint): Promise<void> {
+    debugDevice(`tap at coordinates (${point.x}, ${point.y})`);
+    await this.wdaBackend.tap(Math.round(point.x), Math.round(point.y));
+  }
+
+  private async doubleTapPoint(point: PointerPoint): Promise<void> {
+    await this.wdaBackend.doubleTap(Math.round(point.x), Math.round(point.y));
+  }
+
+  private async longPressPoint(
+    point: PointerPoint,
+    duration = 1000,
+  ): Promise<void> {
+    await this.wdaBackend.longPress(
+      Math.round(point.x),
+      Math.round(point.y),
+      duration,
+    );
+  }
+
+  private async swipePoint(
+    start: PointerPoint,
+    end: PointerPoint,
+    duration = 500,
+  ): Promise<void> {
+    await this.wdaBackend.swipe(
+      Math.round(start.x),
+      Math.round(start.y),
+      Math.round(end.x),
+      Math.round(end.y),
+      duration,
+    );
+  }
+
+  private async clearInputAt(point?: PointerPoint): Promise<void> {
+    if (point) {
+      await this.tapPoint(point);
+      await sleep(100);
+    }
+
+    debugDevice('Attempting to clear input with WebDriver Clear API');
+    const cleared = await this.wdaBackend.clearActiveElement();
+    if (cleared) {
+      debugDevice('Successfully cleared input with WebDriver Clear API');
+    } else {
+      debugDevice(
+        'WebDriver Clear API returned false (no active element or clear failed)',
+      );
+    }
+  }
+
+  actionSpace(): DeviceAction<any>[] {
+    const mobileActionContext = {
+      input: this.inputPrimitives,
+      size: () => this.size(),
+      sleep: async (timeMs: number) => {
+        await sleep(timeMs);
+      },
+      getDefaultAutoDismissKeyboard: () => this.options?.autoDismissKeyboard,
+    };
+    const defaultActions = [...createDefaultMobileActions(mobileActionContext)];
 
     const platformSpecificActions = Object.values(createPlatformActions(this));
 
     const customActions = this.customActions || [];
     return [...defaultActions, ...platformSpecificActions, ...customActions];
+  }
+
+  private async performActionScroll(param: ActionScrollParam): Promise<void> {
+    const element = param.locate;
+    const startingPoint = element
+      ? {
+          left: element.center[0],
+          top: element.center[1],
+        }
+      : undefined;
+    const scrollToEventName = param?.scrollType;
+    if (scrollToEventName === 'scrollToTop') {
+      await this.scrollUntilTop(startingPoint);
+    } else if (scrollToEventName === 'scrollToBottom') {
+      await this.scrollUntilBottom(startingPoint);
+    } else if (scrollToEventName === 'scrollToRight') {
+      await this.scrollUntilRight(startingPoint);
+    } else if (scrollToEventName === 'scrollToLeft') {
+      await this.scrollUntilLeft(startingPoint);
+    } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
+      if (param?.direction === 'down' || !param || !param.direction) {
+        await this.scrollDown(param?.distance || undefined, startingPoint);
+      } else if (param.direction === 'up') {
+        await this.scrollUp(param.distance || undefined, startingPoint);
+      } else if (param.direction === 'left') {
+        await this.scrollLeft(param.distance || undefined, startingPoint);
+      } else if (param.direction === 'right') {
+        await this.scrollRight(param.distance || undefined, startingPoint);
+      } else {
+        throw new Error(`Unknown scroll direction: ${param.direction}`);
+      }
+      await sleep(500);
+    } else {
+      throw new Error(
+        `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
+          param,
+        )}`,
+      );
+    }
   }
 
   constructor(options?: IOSDeviceOpt) {
@@ -451,51 +420,17 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   async clearInput(element?: ElementInfo): Promise<void> {
-    if (element) {
-      // Tap on the input field to focus it
-      await this.tap(element.center[0], element.center[1]);
-      await sleep(100);
-    }
-
-    // For iOS, use WebDriver's standard clear API
-    // This gets the currently focused element and clears it using the /element/{id}/clear endpoint
-    // Works reliably with dynamic input fields and doesn't trigger unwanted events
-    debugDevice('Attempting to clear input with WebDriver Clear API');
-    const cleared = await this.wdaBackend.clearActiveElement();
-    if (cleared) {
-      debugDevice('Successfully cleared input with WebDriver Clear API');
-    } else {
-      debugDevice(
-        'WebDriver Clear API returned false (no active element or clear failed)',
-      );
-    }
+    await this.clearInputAt(
+      element ? { x: element.center[0], y: element.center[1] } : undefined,
+    );
   }
 
   async url(): Promise<string> {
     return '';
   }
 
-  // Core interaction methods
   async tap(x: number, y: number): Promise<void> {
-    await this.wdaBackend.tap(Math.round(x), Math.round(y));
-  }
-
-  // Android-compatible method name
-  async mouseClick(x: number, y: number): Promise<void> {
-    debugDevice(`mouseClick at coordinates (${x}, ${y})`);
-    await this.tap(x, y);
-  }
-
-  async doubleTap(x: number, y: number): Promise<void> {
-    await this.wdaBackend.doubleTap(Math.round(x), Math.round(y));
-  }
-
-  async tripleTap(x: number, y: number): Promise<void> {
-    await this.wdaBackend.tripleTap(Math.round(x), Math.round(y));
-  }
-
-  async longPress(x: number, y: number, duration = 1000): Promise<void> {
-    await this.wdaBackend.longPress(Math.round(x), Math.round(y), duration);
+    await this.tapPoint({ x, y });
   }
 
   async swipe(
@@ -505,16 +440,23 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     toY: number,
     duration = 500,
   ): Promise<void> {
-    await this.wdaBackend.swipe(
-      Math.round(fromX),
-      Math.round(fromY),
-      Math.round(toX),
-      Math.round(toY),
-      duration,
-    );
+    await this.swipeCoordinates(fromX, fromY, toX, toY, duration);
   }
 
-  async typeText(text: string, options?: IOSDeviceInputOpt): Promise<void> {
+  private async swipeCoordinates(
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number,
+    duration = 500,
+  ): Promise<void> {
+    await this.swipePoint({ x: fromX, y: fromY }, { x: toX, y: toY }, duration);
+  }
+
+  private async typeText(
+    text: string,
+    options?: IOSDeviceInputOpt,
+  ): Promise<void> {
     if (!text) return;
 
     const shouldAutoDismissKeyboard =
@@ -537,7 +479,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     }
   }
 
-  async pressKey(key: string): Promise<void> {
+  private async pressKey(key: string): Promise<void> {
     await this.wdaBackend.pressKey(key);
   }
 
@@ -549,7 +491,12 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       : { x: Math.round(width / 2), y: Math.round(height / 2) };
     const scrollDistance = Math.round(distance || height / 3);
 
-    await this.swipe(start.x, start.y, start.x, start.y + scrollDistance);
+    await this.swipeCoordinates(
+      start.x,
+      start.y,
+      start.x,
+      start.y + scrollDistance,
+    );
   }
 
   async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
@@ -559,7 +506,12 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       : { x: Math.round(width / 2), y: Math.round(height / 2) };
     const scrollDistance = Math.round(distance || height / 3);
 
-    await this.swipe(start.x, start.y, start.x, start.y - scrollDistance);
+    await this.swipeCoordinates(
+      start.x,
+      start.y,
+      start.x,
+      start.y - scrollDistance,
+    );
   }
 
   async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
@@ -570,7 +522,12 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       : { x: Math.round(width / 2), y: Math.round(height / 2) };
     const scrollDistance = Math.round(distance || width * 0.7); // Use 70% of width for sufficient scroll
 
-    await this.swipe(start.x, start.y, start.x + scrollDistance, start.y);
+    await this.swipeCoordinates(
+      start.x,
+      start.y,
+      start.x + scrollDistance,
+      start.y,
+    );
   }
 
   async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
@@ -581,7 +538,12 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       : { x: Math.round(width / 2), y: Math.round(height / 2) };
     const scrollDistance = Math.round(distance || width * 0.7); // Use 70% of width for sufficient scroll
 
-    await this.swipe(start.x, start.y, start.x - scrollDistance, start.y);
+    await this.swipeCoordinates(
+      start.x,
+      start.y,
+      start.x - scrollDistance,
+      start.y,
+    );
   }
 
   async scrollUntilTop(startPoint?: Point): Promise<void> {
@@ -746,7 +708,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
         switch (direction) {
           case 'up':
-            await this.swipe(
+            await this.swipeCoordinates(
               start.x,
               start.y,
               start.x,
@@ -755,7 +717,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
             );
             break;
           case 'down':
-            await this.swipe(
+            await this.swipeCoordinates(
               start.x,
               start.y,
               start.x,
@@ -764,7 +726,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
             );
             break;
           case 'left':
-            await this.swipe(
+            await this.swipeCoordinates(
               start.x,
               start.y,
               start.x + scrollDistance,
@@ -773,7 +735,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
             );
             break;
           case 'right':
-            await this.swipe(
+            await this.swipeCoordinates(
               start.x,
               start.y,
               start.x - scrollDistance,
@@ -864,7 +826,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       const endY = Math.round(windowSize.height * 0.5); // Swipe up to middle
 
       // Perform swipe up gesture to dismiss keyboard
-      await this.swipe(centerX, startY, centerX, endY, 300);
+      await this.swipeCoordinates(centerX, startY, centerX, endY, 300);
       debugDevice(
         'Dismissed keyboard with swipe up gesture from bottom of screen',
       );
