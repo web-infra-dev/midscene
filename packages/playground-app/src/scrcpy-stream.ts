@@ -1,6 +1,6 @@
 import type { ScrcpyMediaStreamPacket } from '@yume-chan/scrcpy';
 
-type RawScrcpyVideoData = ArrayBuffer | ArrayLike<number> | Uint8Array;
+type RawScrcpyVideoData = ArrayBuffer | ArrayBufferView;
 
 interface RawScrcpyVideoPacket {
   type?: string;
@@ -15,7 +15,7 @@ function toUint8Array(data: RawScrcpyVideoData): Uint8Array {
   if (data instanceof ArrayBuffer) {
     return new Uint8Array(data);
   }
-  return new Uint8Array(data);
+  return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
 }
 
 interface ScrcpyVideoSocketLike {
