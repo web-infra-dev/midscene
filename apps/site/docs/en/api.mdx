@@ -292,6 +292,7 @@ function aiInput(
     cacheable?: boolean;
     autoDismissKeyboard?: boolean;
     mode?: 'replace' | 'clear' | 'typeOnly';
+    caret?: 'start' | 'end';
   },
 ): Promise<void>;
 
@@ -320,6 +321,23 @@ function aiInput(
       - `'replace'`: Clear the input field first, then input the text.
       - `'typeOnly'`: Type the value directly without clearing the field first.
       - `'clear'`: Clear the input field without entering new text.
+    - `caret?: 'start' | 'end'` - Web only. When `mode` is `'typeOnly'`, Midscene will try to move the caret before typing. Omit this option to keep Midscene's default focus-and-type behavior without controlling the caret position.
+
+  :::note Web caret behavior
+
+  `mode: 'append'` is kept only as a backward-compatible alias for `typeOnly`; it does not mean the text will be appended at the end. To explicitly request append-at-end behavior on Web, use:
+
+  ```typescript
+  await agent.aiInput('The search input box', {
+    value: 'Hello World',
+    mode: 'typeOnly',
+    caret: 'end',
+  });
+  ```
+
+  Due to the complexity of input types on Web pages, such as rich-text editors, iframe, and shadow DOM, caret movement and input clearing cannot work with 100% reliability for every input field.
+
+  :::
 
   **Backward compatible usage (deprecated but still supported):**
   - `value: string | number` - The text content to input.
