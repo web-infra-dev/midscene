@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type {
-  UpdateChannel,
-  UpdateStatus,
-} from '../../../shared/updater-contract';
+import type { UpdateStatus } from '../../../shared/updater-contract';
 import {
   type StudioThemeMode,
   useStudioTheme,
@@ -152,14 +149,9 @@ export interface SettingsPanelProps {
   updater?: {
     status: UpdateStatus;
     appVersion: string | null;
-    channel?: UpdateChannel;
-    autoDownload?: boolean;
-    onCheck: () => void;
     onDownload: () => void;
     onInstall: () => void;
     onOpenDownloadPage?: () => void;
-    onChangeChannel?: (channel: UpdateChannel) => void;
-    onChangeAutoDownload?: (enabled: boolean) => void;
   };
 }
 
@@ -262,7 +254,6 @@ export default function SettingsPanel({
             <div className="my-[4px] h-px w-full bg-divider" />
             <UpdaterSection
               appVersion={updater.appVersion}
-              onCheck={updater.onCheck}
               onDownload={updater.onDownload}
               onInstall={updater.onInstall}
               onOpenDownloadPage={updater.onOpenDownloadPage}

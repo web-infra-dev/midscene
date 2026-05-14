@@ -20,7 +20,58 @@ const platformBetaYmlName = {
   win32: 'beta.yml',
 };
 
+// We hand-roll the YAML because the manifest schema is fixed and tiny.
+// To keep that safe, we reject any string scalar that contains characters
+// requiring escaping in unquoted YAML — versions, sha512 base64, and file
+// names all stay inside `[A-Za-z0-9._\-/+=]` in practice, so a surprise
+// character means an upstream caller is passing untrusted input and the
+// manifest would silently parse wrong.
+const SAFE_YAML_SCALAR = /^[A-Za-z0-9._\-/+=]+$/;
+
+const assertSafeYamlScalar = (value, field) => {
+  if (typeof value !== 'string') {
+    throw new Error(
+      `Updater metadata field ${field} must be a string (got ${typeof value})`,
+    );
+  }
+  if (!SAFE_YAML_SCALAR.test(value)) {
+    throw new Error(
+      `Updater metadata field ${field} contains unsafe YAML characters: ${JSON.stringify(value)}`,
+    );
+  }
+};
+
+const assertSafeReleaseDate = (value) => {
+  if (typeof value !== 'string') {
+    throw new Error(
+      `Updater metadata field releaseDate must be a string (got ${typeof value})`,
+    );
+  }
+  // releaseDate is wrapped in single quotes; reject only the two
+  // characters that would break that quoting.
+  if (value.includes("'") || /[\r\n]/.test(value)) {
+    throw new Error(
+      `Updater metadata field releaseDate contains unsafe characters: ${JSON.stringify(value)}`,
+    );
+  }
+};
+
 const stringifyYml = (data) => {
+  assertSafeYamlScalar(data.version, 'version');
+  assertSafeYamlScalar(data.path, 'path');
+  assertSafeYamlScalar(data.sha512, 'sha512');
+  assertSafeReleaseDate(data.releaseDate);
+  for (let i = 0; i < data.files.length; i += 1) {
+    const file = data.files[i];
+    assertSafeYamlScalar(file.url, `files[${i}].url`);
+    assertSafeYamlScalar(file.sha512, `files[${i}].sha512`);
+    if (!Number.isInteger(file.size) || file.size < 0) {
+      throw new Error(
+        `Updater metadata field files[${i}].size must be a non-negative integer (got ${file.size})`,
+      );
+    }
+  }
+
   const lines = [`version: ${data.version}`];
   lines.push('files:');
   for (const file of data.files) {

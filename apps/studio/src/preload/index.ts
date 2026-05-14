@@ -3,11 +3,7 @@ import {
   IPC_CHANNELS,
   type StudioRuntimeApi,
 } from '@shared/electron-contract';
-import type {
-  UpdateChannel,
-  UpdateStatus,
-  UpdaterApi,
-} from '@shared/updater-contract';
+import type { UpdateStatus, UpdaterApi } from '@shared/updater-contract';
 import { contextBridge, ipcRenderer } from 'electron';
 
 /**
@@ -71,10 +67,6 @@ const updaterApi: UpdaterApi = {
   install: () => ipcRenderer.invoke(IPC_CHANNELS.updaterInstall),
   getVersion: () => ipcRenderer.invoke(IPC_CHANNELS.updaterGetVersion),
   getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.updaterGetStatus),
-  setAutoDownload: (enabled: boolean) =>
-    ipcRenderer.invoke(IPC_CHANNELS.updaterSetAutoDownload, enabled),
-  setChannel: (channel: UpdateChannel) =>
-    ipcRenderer.invoke(IPC_CHANNELS.updaterSetChannel, channel),
   onStatus: (callback: (status: UpdateStatus) => void) => {
     const handler = (_event: unknown, status: UpdateStatus) => callback(status);
     ipcRenderer.on(IPC_CHANNELS.updaterStatus, handler);

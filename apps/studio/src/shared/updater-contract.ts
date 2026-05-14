@@ -1,5 +1,3 @@
-export type UpdateChannel = 'stable' | 'beta';
-
 export type UpdateStatus =
   | { state: 'idle' }
   | { state: 'checking' }
@@ -20,7 +18,5 @@ export interface UpdaterApi {
   install: () => Promise<void>;
   getVersion: () => Promise<string>;
   getStatus: () => Promise<UpdateStatus>;
-  setAutoDownload: (enabled: boolean) => Promise<{ success: boolean }>;
-  setChannel: (channel: UpdateChannel) => Promise<UpdateChannel>;
   onStatus: (callback: (status: UpdateStatus) => void) => () => void;
 }

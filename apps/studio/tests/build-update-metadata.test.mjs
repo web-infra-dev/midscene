@@ -60,6 +60,53 @@ describe('buildLatestYmlForPlatform', () => {
       }),
     ).toThrow(/Unsupported platform/);
   });
+
+  it('rejects unsafe characters in scalars so a bad caller cannot inject YAML', () => {
+    expect(() =>
+      buildLatestYmlForPlatform({
+        version: '0.30.0\n# malicious: true',
+        platform: 'darwin',
+        artifactName: 'midscene.zip',
+        sha512: 'AAAA',
+        size: 1,
+      }),
+    ).toThrow(/version contains unsafe YAML characters/);
+
+    expect(() =>
+      buildLatestYmlForPlatform({
+        version: '0.30.0',
+        platform: 'darwin',
+        artifactName: 'a: b.zip',
+        sha512: 'AAAA',
+        size: 1,
+      }),
+    ).toThrow(/path contains unsafe YAML characters/);
+  });
+
+  it('rejects single quotes and newlines in releaseDate (which is single-quoted)', () => {
+    expect(() =>
+      buildLatestYmlForPlatform({
+        version: '0.30.0',
+        platform: 'darwin',
+        artifactName: 'midscene.zip',
+        sha512: 'AAAA',
+        size: 1,
+        releaseDate: "2026-05-12'injected",
+      }),
+    ).toThrow(/releaseDate contains unsafe characters/);
+  });
+
+  it('rejects non-integer or negative size', () => {
+    expect(() =>
+      buildLatestYmlForPlatform({
+        version: '0.30.0',
+        platform: 'darwin',
+        artifactName: 'midscene.zip',
+        sha512: 'AAAA',
+        size: -1,
+      }),
+    ).toThrow(/files\[0\]\.size must be a non-negative integer/);
+  });
 });
 
 describe('buildAppUpdateYml', () => {

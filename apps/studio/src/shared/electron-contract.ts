@@ -29,8 +29,6 @@ export const IPC_CHANNELS = {
   updaterInstall: 'updater:install',
   updaterGetVersion: 'updater:getVersion',
   updaterGetStatus: 'updater:getStatus',
-  updaterSetAutoDownload: 'updater:setAutoDownload',
-  updaterSetChannel: 'updater:setChannel',
   updaterStatus: 'updater:status',
 } as const;
 

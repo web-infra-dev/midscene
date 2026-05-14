@@ -78,8 +78,6 @@ describe('preload bridge', () => {
     await updaterApi.install();
     await updaterApi.getVersion();
     await updaterApi.getStatus();
-    await updaterApi.setAutoDownload(true);
-    await updaterApi.setChannel('beta');
     const stopStatus = updaterApi.onStatus(() => undefined);
     stopStatus();
 
@@ -113,8 +111,6 @@ describe('preload bridge', () => {
       [IPC_CHANNELS.updaterInstall],
       [IPC_CHANNELS.updaterGetVersion],
       [IPC_CHANNELS.updaterGetStatus],
-      [IPC_CHANNELS.updaterSetAutoDownload, true],
-      [IPC_CHANNELS.updaterSetChannel, 'beta'],
     ]);
     expect(mocks.on).toHaveBeenCalledWith(
       IPC_CHANNELS.discoveredDevicesUpdated,

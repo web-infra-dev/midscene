@@ -5,18 +5,13 @@ import { getDebug } from '@midscene/shared/logger';
 import { IPC_CHANNELS } from '@shared/electron-contract';
 import { app, ipcMain } from 'electron';
 import type { UpdateStatus } from '../shared/updater-contract';
-import {
-  autoUpdater,
-  getDownloadedFilePath,
-  getUpdateStatus,
-  setAutoDownload,
-  setUpdateChannel,
-  setUserInitiatedCheck,
-} from './updater';
+import { type StudioUpdater, autoUpdater } from './updater';
 
 const debugUpdaterHandlers = getDebug('studio:updater-handlers', {
   console: true,
 });
+
+const UPDATER_CACHE_DIR_NAME = 'midscene-studio-updater';
 
 interface MacUpdateScriptOptions {
   appPath: string;
@@ -79,7 +74,7 @@ echo "Extracting zip..."
 /usr/bin/ditto -x -k "$ZIP_PATH" "$TEMP_DIR"
 echo "Extract exit code: $?"
 
-APP_BUNDLE=$(/usr/bin/find "$TEMP_DIR" -maxdepth 1 -name "*.app" -print -quit)
+APP_BUNDLE=$(/usr/bin/find "$TEMP_DIR" -maxdepth 2 -name "*.app" -print -quit)
 echo "Found app bundle: $APP_BUNDLE"
 
 if [ -z "$APP_BUNDLE" ]; then
@@ -134,10 +129,10 @@ echo "Update complete at $(date)"
 `;
 }
 
-async function findDownloadedUpdateFile(
-  extension: '.zip' | '.exe',
+export async function findDownloadedMacUpdateZip(
+  updater: StudioUpdater,
 ): Promise<string | null> {
-  const downloaded = getDownloadedFilePath();
+  const downloaded = updater.getDownloadedFilePath();
   if (downloaded) {
     try {
       await fs.promises.access(downloaded, fs.constants.R_OK);
@@ -149,27 +144,22 @@ async function findDownloadedUpdateFile(
 
   const appName = app.getName();
   const home = app.getPath('home');
-  const cacheDirs =
-    process.platform === 'darwin'
-      ? [
-          path.join(home, 'Library', 'Caches', `${appName}-updater`),
-          path.join(home, 'Library', 'Caches', appName),
-        ]
-      : [
-          path.join(app.getPath('userData'), '__update__'),
-          path.join(app.getPath('userData'), 'pending'),
-        ];
+  const cacheDirs = [
+    path.join(home, 'Library', 'Caches', UPDATER_CACHE_DIR_NAME),
+    path.join(home, 'Library', 'Caches', `${appName}-updater`),
+    path.join(home, 'Library', 'Caches', appName),
+  ];
 
   for (const cacheDir of cacheDirs) {
     const pendingDir = path.join(cacheDir, 'pending');
     try {
       const files = await fs.promises.readdir(pendingDir);
-      const match = files.find((f) => f.endsWith(extension));
+      const match = files.find((f) => f.endsWith('.zip'));
       if (match) return path.join(pendingDir, match);
     } catch {
       /* ignore */
     }
-    const candidate = path.join(cacheDir, `update${extension}`);
+    const candidate = path.join(cacheDir, 'update.zip');
     try {
       await fs.promises.access(candidate, fs.constants.R_OK);
       return candidate;
@@ -181,15 +171,17 @@ async function findDownloadedUpdateFile(
   return null;
 }
 
-async function installMacUpdate(): Promise<void> {
-  const zipPath = await findDownloadedUpdateFile('.zip');
+async function installMacUpdate(updater: StudioUpdater): Promise<void> {
+  if (!app.isPackaged) return;
+  const zipPath = await findDownloadedMacUpdateZip(updater);
   if (!zipPath) {
     console.error('[updater:install] No downloaded zip found');
     return;
   }
 
-  // app.getAppPath() => .../Midscene Studio.app/Contents/Resources/app
-  // Step up to the .app bundle so the script can replace it atomically.
+  // process.resourcesPath => .../Midscene Studio.app/Contents/Resources
+  // Step up two levels to reach the .app bundle root so the script can
+  // replace it atomically.
   const appPath = path.resolve(process.resourcesPath, '..', '..');
   const execName = path.basename(process.execPath);
   const tempDir = path.join(app.getPath('temp'), 'midscene-studio-update');
@@ -249,19 +241,13 @@ export function resolveUpdaterCheckStatus(
   return { state: 'not-available' };
 }
 
-export function registerUpdaterHandlers(): void {
+export function registerUpdaterHandlers(updater: StudioUpdater): void {
   ipcMain.handle(IPC_CHANNELS.updaterCheck, async () => {
     if (!app.isPackaged) return { state: 'not-available' };
     try {
-      setUserInitiatedCheck(true);
-      const result = await autoUpdater.checkForUpdates();
-      const status = resolveUpdaterCheckStatus(result, getUpdateStatus());
-      if (status.state === 'not-available') {
-        setUserInitiatedCheck(false);
-      }
-      return status;
+      const result = await updater.checkUserInitiated();
+      return resolveUpdaterCheckStatus(result, updater.getStatus());
     } catch (err) {
-      setUserInitiatedCheck(false);
       const error = err instanceof Error ? err : new Error(String(err));
       const code = (error as { code?: string }).code;
       debugUpdaterHandlers(
@@ -278,7 +264,7 @@ export function registerUpdaterHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.updaterDownload, async () => {
     if (!app.isPackaged) return { success: false };
     try {
-      await autoUpdater.downloadUpdate();
+      await updater.downloadUpdate();
       return { success: true };
     } catch (err) {
       return { success: false, error: String(err) };
@@ -288,7 +274,7 @@ export function registerUpdaterHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.updaterInstall, async () => {
     if (process.platform === 'darwin') {
       try {
-        await installMacUpdate();
+        await installMacUpdate(updater);
       } catch (err) {
         console.error('[updater:install] Manual update failed:', err);
         // Last-resort fallback if the manual script path blows up before
@@ -305,17 +291,5 @@ export function registerUpdaterHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.updaterGetVersion, async () => app.getVersion());
 
-  ipcMain.handle(IPC_CHANNELS.updaterGetStatus, () => getUpdateStatus());
-
-  ipcMain.handle(
-    IPC_CHANNELS.updaterSetAutoDownload,
-    (_event, enabled: boolean) => {
-      setAutoDownload(Boolean(enabled));
-      return { success: true };
-    },
-  );
-
-  ipcMain.handle(IPC_CHANNELS.updaterSetChannel, (_event, channel: string) => {
-    return setUpdateChannel(channel);
-  });
+  ipcMain.handle(IPC_CHANNELS.updaterGetStatus, () => updater.getStatus());
 }

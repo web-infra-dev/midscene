@@ -22,7 +22,7 @@ import type { TitleBarOverlay } from 'electron';
 import { requestPlaygroundBootstrap } from './playground/bootstrap-request';
 import type { PlaygroundRuntimeService } from './playground/types';
 import { configureStudioShellEnvHydration } from './shell-env';
-import { initUpdater } from './updater';
+import { studioUpdater } from './updater';
 import { registerUpdaterHandlers } from './updater-handlers';
 import { registerWindowRevealHandlers } from './window-reveal';
 
@@ -431,14 +431,14 @@ app.whenReady().then(() => {
     });
 
   registerIpcHandlers();
-  registerUpdaterHandlers();
+  registerUpdaterHandlers(studioUpdater);
   createMainWindow();
 
-  // initUpdater no-ops when !app.isPackaged, and skips polling when this
-  // process is running under the smoke/e2e harness so test runs do not
-  // hit the GitHub Releases API.
+  // studioUpdater.init() no-ops when !app.isPackaged, and we skip the
+  // call entirely when running under the smoke/e2e harness so test runs
+  // do not hit the GitHub Releases API.
   if (!isStudioSmokeTest && !isStudioE2ETest) {
-    initUpdater(() => mainWindow);
+    studioUpdater.init(() => mainWindow);
   }
 
   app.on('activate', () => {

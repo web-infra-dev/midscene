@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type {
-  UpdateChannel,
-  UpdateStatus,
-} from '../../shared/updater-contract';
+import type { UpdateStatus } from '../../shared/updater-contract';
 
 const isUpdateStatus = (value: unknown): value is UpdateStatus => {
   return (
@@ -22,8 +19,6 @@ export interface UseStudioUpdaterResult {
   check: () => Promise<void>;
   download: () => Promise<void>;
   install: () => Promise<void>;
-  setAutoDownload: (enabled: boolean) => Promise<void>;
-  setChannel: (channel: UpdateChannel) => Promise<void>;
 }
 
 export function useStudioUpdater(): UseStudioUpdaterResult {
@@ -78,18 +73,6 @@ export function useStudioUpdater(): UseStudioUpdaterResult {
     await api.install();
   }, []);
 
-  const setAutoDownload = useCallback(async (enabled: boolean) => {
-    const api = getUpdaterApi();
-    if (!api) return;
-    await api.setAutoDownload(enabled);
-  }, []);
-
-  const setChannel = useCallback(async (channel: UpdateChannel) => {
-    const api = getUpdaterApi();
-    if (!api) return;
-    await api.setChannel(channel);
-  }, []);
-
   const hasUpdateReady =
     status.state === 'available' || status.state === 'downloaded';
 
@@ -100,7 +83,5 @@ export function useStudioUpdater(): UseStudioUpdaterResult {
     check,
     download,
     install,
-    setAutoDownload,
-    setChannel,
   };
 }

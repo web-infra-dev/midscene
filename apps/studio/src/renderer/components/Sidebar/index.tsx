@@ -414,6 +414,10 @@ export interface SidebarFooterProps {
   onEnvClick?: () => void;
   /** Surface a "missing config" red badge on the env dock row. */
   envAlert?: boolean;
+  /**
+   * Surface a red badge on the settings dock row when an update is
+   * available to download or already downloaded and waiting to install.
+   */
   hasUpdateReady?: boolean;
 }
 

@@ -267,9 +267,6 @@ export default function ShellLayout() {
                   }
                   updater={{
                     appVersion: updater.appVersion,
-                    onCheck: () => {
-                      void updater.check();
-                    },
                     onDownload: () => {
                       void updater.download();
                     },
