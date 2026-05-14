@@ -6,6 +6,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { notarize } from '@electron/notarize';
 import { packager } from '@electron/packager';
+import {
+  writeAppUpdateYmlIntoResources,
+  writeUpdateMetadataForArtifact,
+} from './build-update-metadata.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1884,6 +1888,16 @@ export const packageStudioElectronApp = async ({
     await dedupePlaygroundStatic(path.join(packagedPayloadDir, 'node_modules'));
   }
 
+  // app-update.yml lives next to the `app` payload (NOT inside it).
+  // electron-updater reads it from `process.resourcesPath/app-update.yml`
+  // at runtime to learn which provider / repo / cache dir to use. Must be
+  // written before signing on macOS so it ends up inside the signed
+  // bundle.
+  if (packagedPayloadDir) {
+    const resourcesDir = path.dirname(packagedPayloadDir);
+    await writeAppUpdateYmlIntoResources(resourcesDir);
+  }
+
   if (platform === 'darwin') {
     const macAppBundlePath =
       await resolveMacPackagedAppBundlePath(packagedAppPath);
@@ -1903,7 +1917,20 @@ export const packageStudioElectronApp = async ({
     artifactPath,
   });
 
+  // Emit the electron-updater channel manifest (latest-*.yml + beta-*.yml
+  // when the version is prerelease) so the GitHub Release surfaces the
+  // sha512/size the autoUpdater needs to verify the zip.
+  const updateMetadata = await writeUpdateMetadataForArtifact({
+    artifactPath,
+    artifactDir,
+    platform,
+    version: normalizedVersion,
+  });
+
   console.log(`Packaged Midscene Studio archive: ${artifactPath}`);
+  for (const ymlPath of updateMetadata.writtenPaths) {
+    console.log(`Wrote updater manifest: ${ymlPath}`);
+  }
   return artifactPath;
 };
 

@@ -29,6 +29,7 @@
     "@midscene/visualizer": "workspace:*",
     "@midscene/web": "workspace:*",
     "antd": "^5.21.6",
+    "electron-updater": "6.8.3",
     "puppeteer": "24.6.0",
     "react": "18.3.1",
     "react-dom": "18.3.1"

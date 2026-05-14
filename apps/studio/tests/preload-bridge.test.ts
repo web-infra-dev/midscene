@@ -30,10 +30,10 @@ describe('preload bridge', () => {
     mocks.invoke.mockResolvedValue(undefined);
   });
 
-  it('exposes shell and studio runtime APIs that proxy over IPC', async () => {
+  it('exposes shell, studio runtime, and updater APIs that proxy over IPC', async () => {
     await loadModule();
 
-    expect(mocks.exposeInMainWorld).toHaveBeenCalledTimes(2);
+    expect(mocks.exposeInMainWorld).toHaveBeenCalledTimes(3);
 
     const shellApi = mocks.exposeInMainWorld.mock.calls.find(
       ([name]) => name === 'electronShell',
@@ -41,9 +41,13 @@ describe('preload bridge', () => {
     const studioRuntimeApi = mocks.exposeInMainWorld.mock.calls.find(
       ([name]) => name === 'studioRuntime',
     )?.[1];
+    const updaterApi = mocks.exposeInMainWorld.mock.calls.find(
+      ([name]) => name === 'studioUpdater',
+    )?.[1];
 
     expect(shellApi).toBeDefined();
     expect(studioRuntimeApi).toBeDefined();
+    expect(updaterApi).toBeDefined();
 
     await shellApi.closeWindow();
     await shellApi.minimizeWindow();
@@ -68,6 +72,16 @@ describe('preload bridge', () => {
       model: 'gpt-4o',
     });
     stopListening();
+
+    await updaterApi.check();
+    await updaterApi.download();
+    await updaterApi.install();
+    await updaterApi.getVersion();
+    await updaterApi.getStatus();
+    await updaterApi.setAutoDownload(true);
+    await updaterApi.setChannel('beta');
+    const stopStatus = updaterApi.onStatus(() => undefined);
+    stopStatus();
 
     expect(mocks.invoke.mock.calls).toEqual([
       [IPC_CHANNELS.closeWindow],
@@ -94,13 +108,28 @@ describe('preload bridge', () => {
           model: 'gpt-4o',
         },
       ],
+      [IPC_CHANNELS.updaterCheck],
+      [IPC_CHANNELS.updaterDownload],
+      [IPC_CHANNELS.updaterInstall],
+      [IPC_CHANNELS.updaterGetVersion],
+      [IPC_CHANNELS.updaterGetStatus],
+      [IPC_CHANNELS.updaterSetAutoDownload, true],
+      [IPC_CHANNELS.updaterSetChannel, 'beta'],
     ]);
     expect(mocks.on).toHaveBeenCalledWith(
       IPC_CHANNELS.discoveredDevicesUpdated,
       expect.any(Function),
     );
+    expect(mocks.on).toHaveBeenCalledWith(
+      IPC_CHANNELS.updaterStatus,
+      expect.any(Function),
+    );
     expect(mocks.removeListener).toHaveBeenCalledWith(
       IPC_CHANNELS.discoveredDevicesUpdated,
+      expect.any(Function),
+    );
+    expect(mocks.removeListener).toHaveBeenCalledWith(
+      IPC_CHANNELS.updaterStatus,
       expect.any(Function),
     );
   });
