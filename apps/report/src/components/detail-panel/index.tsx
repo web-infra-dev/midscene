@@ -45,6 +45,25 @@ const VIEW_TYPE_MARKDOWN = 'markdown';
 const VIEW_TYPE_SCREENSHOT = 'screenshot';
 const VIEW_TYPE_JSON = 'json';
 
+async function screenshotBytes(src: string): Promise<Uint8Array | null> {
+  // Screenshot attachments may be either base64 data URLs (file-stored
+  // screenshots) or blob: URLs (inline screenshots converted by
+  // BlobUrlCache). Handle both.
+  if (src.startsWith('blob:')) {
+    const response = await fetch(src);
+    const buffer = await response.arrayBuffer();
+    return new Uint8Array(buffer);
+  }
+  const match = /^data:image\/[a-zA-Z+]+;base64,(.*)$/.exec(src);
+  if (!match) return null;
+  const binary = atob(match[1]);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
 async function downloadMarkdownZip(
   markdown: string,
   attachments: MarkdownAttachment[],
@@ -57,13 +76,10 @@ async function downloadMarkdownZip(
 
   for (const att of attachments) {
     if (!att.base64Data) continue;
-    const raw = att.base64Data.replace(/^data:image\/[a-zA-Z+]+;base64,/, '');
-    const binary = atob(raw);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
+    const bytes = await screenshotBytes(att.base64Data);
+    if (bytes) {
+      files[`screenshots/${att.suggestedFileName}`] = bytes;
     }
-    files[`screenshots/${att.suggestedFileName}`] = bytes;
   }
 
   const zipped = zipSync(files);

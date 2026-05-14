@@ -30,14 +30,18 @@ import type {
   PlaywrightTasks,
   VisualizerProps,
 } from './types';
+import { BlobUrlCache } from './utils/image-blob-cache';
 import { formatModelBriefText } from './utils/model-brief';
 import {
   getEmptyDumpDescription,
   parseDumpAttributes,
 } from './utils/report-dump';
 
-// Shared image cache across all test cases — resolved images are cached by id
-const imageCache = new Map<string, string>();
+// Shared image cache. Each entry is a short blob: URL — the underlying bytes
+// live in Chromium's Blob storage rather than V8 string heap. The cache is
+// size-bounded; evicted blobs are released via URL.revokeObjectURL so a long
+// browsing session of a big report cannot accumulate unbounded memory.
+const imageCache = new BlobUrlCache();
 
 function resolveImageFromDom(
   refOrId: string | { id: string; storage?: 'inline' | 'file'; path?: string },
@@ -51,8 +55,7 @@ function resolveImageFromDom(
   );
   if (el?.textContent) {
     const data = antiEscapeScriptTag(el.textContent);
-    imageCache.set(id, data);
-    return data;
+    return imageCache.putDataUrl(id, data);
   }
 
   if (typeof refOrId === 'object' && refOrId?.storage === 'file') {
