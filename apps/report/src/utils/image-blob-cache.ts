@@ -9,17 +9,20 @@
  * `Crashpad_NotConnectedToHandle`.
  *
  * This cache:
- *   1. Decodes each base64 payload to a `Blob` exactly once.
+ *   1. Decodes each base64 payload to a `Blob` exactly once per screenshot id.
  *   2. Returns a `blob:` URL that lives in Chromium's Blob storage rather than
  *      V8 string heap.
- *   3. Caps the number of live Blob URLs and calls `URL.revokeObjectURL` on
- *      eviction so blobs can be reclaimed.
+ *   3. Holds the URL for the lifetime of the report tab.
+ *
+ * Why no LRU eviction: the set of unique screenshot ids in a report is bounded
+ * by the dump itself; it does not grow over time. Evicting entries while
+ * downstream consumers (Player's `cachedImg` closure, Timeline's prebuilt
+ * `entries[].img` array, Markdown ZIP's `MarkdownAttachment.base64Data`) still
+ * hold the returned URL string would invalidate their copies via
+ * `URL.revokeObjectURL` and break image rendering / ZIP export.
  */
 
-const DEFAULT_MAX_ENTRIES = 32;
-
 export interface BlobUrlCacheOptions {
-  maxEntries?: number;
   /** Injectable for tests. */
   createObjectURL?: (blob: Blob) => string;
   /** Injectable for tests. */
@@ -27,13 +30,11 @@ export interface BlobUrlCacheOptions {
 }
 
 export class BlobUrlCache {
-  private readonly maxEntries: number;
   private readonly create: (blob: Blob) => string;
   private readonly revoke: (url: string) => void;
   private readonly entries = new Map<string, string>();
 
   constructor(options: BlobUrlCacheOptions = {}) {
-    this.maxEntries = options.maxEntries ?? DEFAULT_MAX_ENTRIES;
     this.create = options.createObjectURL ?? URL.createObjectURL.bind(URL);
     this.revoke = options.revokeObjectURL ?? URL.revokeObjectURL.bind(URL);
   }
@@ -46,16 +47,8 @@ export class BlobUrlCache {
     return this.entries.has(id);
   }
 
-  /**
-   * Resolve a cached URL by id, refreshing its LRU position. Returns `null` if
-   * the entry was evicted (callers should re-create via {@link put}).
-   */
   get(id: string): string | null {
-    const url = this.entries.get(id);
-    if (!url) return null;
-    this.entries.delete(id);
-    this.entries.set(id, url);
-    return url;
+    return this.entries.get(id) ?? null;
   }
 
   /**
@@ -64,6 +57,9 @@ export class BlobUrlCache {
    * cache — file-based screenshots already live outside JS heap.
    */
   putDataUrl(id: string, dataUrl: string): string {
+    const existing = this.entries.get(id);
+    if (existing) return existing;
+
     if (!dataUrl.startsWith('data:')) return dataUrl;
     const commaIdx = dataUrl.indexOf(',');
     if (commaIdx === -1) return dataUrl;
@@ -74,31 +70,15 @@ export class BlobUrlCache {
 
     const blob = base64ToBlob(payload, mimeType);
     const url = this.create(blob);
-    this.put(id, url);
+    this.entries.set(id, url);
     return url;
   }
 
-  /** Insert a pre-built URL and evict the oldest entries beyond the cap. */
-  put(id: string, url: string): void {
-    const existing = this.entries.get(id);
-    if (existing) {
-      this.entries.delete(id);
-      if (existing !== url && existing.startsWith('blob:')) {
-        this.revoke(existing);
-      }
-    }
-    this.entries.set(id, url);
-    while (this.entries.size > this.maxEntries) {
-      const oldestKey = this.entries.keys().next().value as string | undefined;
-      if (!oldestKey) break;
-      const oldUrl = this.entries.get(oldestKey)!;
-      this.entries.delete(oldestKey);
-      if (oldUrl.startsWith('blob:')) {
-        this.revoke(oldUrl);
-      }
-    }
-  }
-
+  /**
+   * Release every cached blob URL. Call only when the cache will no longer be
+   * read by anyone (e.g. tab unload). Not called automatically — see the
+   * module-level comment for why eviction is unsafe.
+   */
   clear(): void {
     for (const url of this.entries.values()) {
       if (url.startsWith('blob:')) this.revoke(url);

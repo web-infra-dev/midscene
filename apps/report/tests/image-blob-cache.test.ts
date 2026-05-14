@@ -8,15 +8,11 @@ describe('BlobUrlCache', () => {
   let nextId = 0;
   let createObjectURL: ReturnType<typeof vi.fn>;
   let revokeObjectURL: ReturnType<typeof vi.fn>;
-  let revoked: string[];
 
   beforeEach(() => {
     nextId = 0;
-    revoked = [];
     createObjectURL = vi.fn(() => `blob:test/${++nextId}`);
-    revokeObjectURL = vi.fn((url: string) => {
-      revoked.push(url);
-    });
+    revokeObjectURL = vi.fn();
   });
 
   it('converts a base64 data URL to a blob URL and caches it', () => {
@@ -24,6 +20,14 @@ describe('BlobUrlCache', () => {
     const url = cache.putDataUrl('a', tinyPng);
     expect(url).toMatch(/^blob:/);
     expect(cache.get('a')).toBe(url);
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the same blob URL when the same id is converted twice', () => {
+    const cache = new BlobUrlCache({ createObjectURL, revokeObjectURL });
+    const first = cache.putDataUrl('a', tinyPng);
+    const second = cache.putDataUrl('a', tinyPng);
+    expect(second).toBe(first);
     expect(createObjectURL).toHaveBeenCalledTimes(1);
   });
 
@@ -35,22 +39,22 @@ describe('BlobUrlCache', () => {
     expect(cache.has('a')).toBe(false);
   });
 
-  it('evicts the least-recently-used entry and revokes its blob URL', () => {
-    const cache = new BlobUrlCache({
-      maxEntries: 2,
-      createObjectURL,
-      revokeObjectURL,
-    });
-    const a = cache.putDataUrl('a', tinyPng);
-    const b = cache.putDataUrl('b', tinyPng);
-    // touch 'a' so 'b' becomes the LRU victim
-    cache.get('a');
-    cache.putDataUrl('c', tinyPng);
-    expect(cache.has('a')).toBe(true);
-    expect(cache.has('b')).toBe(false);
-    expect(cache.has('c')).toBe(true);
-    expect(revoked).toEqual([b]);
-    expect(a).not.toBe(b);
+  it('does not revoke URLs while resolving many distinct ids', () => {
+    // Regression: an earlier LRU bound revoked early entries while Player /
+    // Timeline / ZIP still referenced them. The bounded set of screenshot ids
+    // in any single report makes that eviction unnecessary, and the consumers
+    // cache the returned URL string so revocation breaks rendering.
+    const cache = new BlobUrlCache({ createObjectURL, revokeObjectURL });
+    const urls: string[] = [];
+    for (let i = 0; i < 200; i++) {
+      urls.push(cache.putDataUrl(`id-${i}`, tinyPng));
+    }
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+    expect(cache.size()).toBe(200);
+    // Every URL returned earlier is still cached for that id.
+    for (let i = 0; i < 200; i++) {
+      expect(cache.get(`id-${i}`)).toBe(urls[i]);
+    }
   });
 
   it('clear() releases every cached blob URL', () => {
