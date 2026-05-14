@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const checkAccessibilityPermissionMock = vi.fn();
+const checkScreenRecordingPermissionMock = vi.fn();
 const getConnectedDisplaysMock = vi.fn();
 const agentFromComputerMock = vi.fn();
 const findAvailablePortMock = vi.fn(async (port: number) => port);
@@ -8,6 +9,7 @@ const findAvailablePortMock = vi.fn(async (port: number) => port);
 vi.mock('@midscene/computer', () => ({
   agentFromComputer: agentFromComputerMock,
   checkAccessibilityPermission: checkAccessibilityPermissionMock,
+  checkScreenRecordingPermission: checkScreenRecordingPermissionMock,
   getConnectedDisplays: getConnectedDisplaysMock,
 }));
 
@@ -29,6 +31,9 @@ vi.mock('@midscene/playground', () => ({
 describe('computerPlaygroundPlatform session manager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    checkScreenRecordingPermissionMock.mockReturnValue({
+      hasPermission: true,
+    });
     getConnectedDisplaysMock.mockResolvedValue([
       {
         id: 1,
@@ -53,6 +58,28 @@ describe('computerPlaygroundPlatform session manager', () => {
       setupState: 'blocked',
       setupBlockingReason: 'Accessibility permission is required',
     });
+  });
+
+  test('reports blocked setup state when screen recording permission is missing', async () => {
+    checkAccessibilityPermissionMock.mockReturnValue({
+      hasPermission: true,
+    });
+    checkScreenRecordingPermissionMock.mockReturnValue({
+      hasPermission: false,
+      error: 'Screen Recording permission is required',
+    });
+
+    const { computerPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await computerPlaygroundPlatform.prepare();
+
+    expect(prepared.metadata).toMatchObject({
+      setupState: 'blocked',
+      setupBlockingReason: 'Screen Recording permission is required',
+    });
+
+    await expect(
+      prepared.sessionManager?.createSession({ displayId: '1' }),
+    ).rejects.toThrow(/Screen Recording permission is required/);
   });
 
   test('creates a display-backed session when permission is available', async () => {

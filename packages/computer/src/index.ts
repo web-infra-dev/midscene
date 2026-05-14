@@ -43,6 +43,7 @@ export {
   checkComputerEnvironment,
   getConnectedDisplays,
   checkAccessibilityPermission,
+  checkScreenRecordingPermission,
   version,
 } from './utils';
 

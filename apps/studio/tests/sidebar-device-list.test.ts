@@ -125,6 +125,22 @@ describe('Sidebar device list', () => {
     expect(html.match(/No devices/g)).toHaveLength(5);
   });
 
+  it('keeps visual separation between adjacent platform hover and selected states', () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        StudioPlaygroundContext.Provider,
+        { value: createReadyContextValue() },
+        createElement(Sidebar, {
+          activeView: 'device',
+          onSelectDevice: () => undefined,
+          onSelectOverview: () => undefined,
+        }),
+      ),
+    );
+
+    expect(html.match(/pb-\[2px\] last:pb-0/g)).toHaveLength(5);
+  });
+
   it('does not disconnect when clicking the active Web session in the sidebar', async () => {
     const { context, createSession, destroySession, setFieldsValue } =
       createConnectedWebContextValue();

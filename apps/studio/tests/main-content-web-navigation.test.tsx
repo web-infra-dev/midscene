@@ -7,8 +7,8 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import MainContent from '../src/renderer/components/MainContent';
 import { StudioPlaygroundContext } from '../src/renderer/playground/useStudioPlayground';
 
-vi.mock('../src/renderer/components/MainContent/LazyPlaygroundPreview', () => ({
-  default: () => null,
+vi.mock('@midscene/playground-app', () => ({
+  PlaygroundPreview: () => null,
 }));
 
 beforeAll(() => {

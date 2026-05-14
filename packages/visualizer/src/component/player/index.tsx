@@ -16,6 +16,7 @@ import GlobalPerspectiveIcon from '../../icons/global-perspective.svg';
 import PlayerSettingIcon from '../../icons/player-setting.svg';
 import { type PlaybackSpeedType, useGlobalPreference } from '../../store/store';
 import type { ReportDownloadHandler } from '../../types';
+import { notifyError } from '../../utils';
 import type { AnimationScript } from '../../utils/replay-scripts';
 import { shouldRestartPlaybackFromBeginning } from './playback-controls';
 import { triggerReportDownload } from './report-download';
@@ -197,9 +198,7 @@ export function Player(props?: {
         onDownloadReport: props.onDownloadReport,
       });
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      message.error(`Failed to download report: ${errorMessage}`);
+      notifyError(error, { title: 'Failed to download report' });
     }
   }, [props?.onDownloadReport, props?.reportFileContent]);
 
@@ -329,8 +328,7 @@ export function Player(props?: {
       message.success('Video exported');
     } catch (e) {
       console.error('Export failed:', e);
-      const errorMessage = e instanceof Error ? e.message : 'Export failed';
-      message.error(errorMessage);
+      notifyError(e, { title: 'Video export failed' });
     } finally {
       exportInFlightRef.current = false;
       setIsExporting(false);

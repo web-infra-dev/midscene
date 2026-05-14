@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  hasCompleteModelEnvConfig,
   parseEnvEntries,
   parseEnvText,
   resolveModelConnection,
@@ -114,5 +115,17 @@ describe('resolveModelConnection', () => {
     expect(result).toEqual({
       error: expect.stringContaining('OPENAI_BASE_URL'),
     });
+  });
+
+  it('treats OpenAI-compatible env aliases as a complete Studio model config', () => {
+    const source = [
+      'OPENAI_BASE_URL="https://ark-cn-beijing.bytedance.net/api/v3"',
+      'OPENAI_API_KEY="test-key"',
+      "MIDSCENE_MODEL_NAME='ep-20260106114946-bvnpl'",
+      'MIDSCENE_USE_DOUBAO_VISION=1',
+      'MIDSCENE_OPENAI_INIT_CONFIG_JSON=\'{ "REPORT_SERVER_URL":"https://cloudapi.bytedance.net/faas/services/tt9i74/invoke/midscene-log"}\'',
+    ].join('\n');
+
+    expect(hasCompleteModelEnvConfig(source)).toBe(true);
   });
 });

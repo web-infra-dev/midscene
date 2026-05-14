@@ -82,17 +82,36 @@ export function ThemeProvider({ children }: PropsWithChildren) {
   }, [mode]);
 
   useEffect(() => {
-    if (mode !== 'system' || !window.matchMedia) {
+    if (mode !== 'system') {
       return;
     }
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = () => {
-      const next = systemPrefersDark() ? 'dark' : 'light';
+
+    // Subscribe to main-process nativeTheme updates first; they remain
+    // authoritative even after `themeSource` has been flipped. Renderer
+    // matchMedia is kept as a fallback for non-Electron contexts (dev server
+    // in a browser, tests).
+    const applyResolved = (next: StudioResolvedTheme) => {
       setResolved(next);
       writeThemeAttribute(next);
     };
-    media.addEventListener('change', handler);
-    return () => media.removeEventListener('change', handler);
+
+    const unsubscribeNative = window.electronShell?.onSystemThemeChanged(
+      (next) => applyResolved(next),
+    );
+
+    let media: MediaQueryList | undefined;
+    const mediaHandler = () => {
+      applyResolved(systemPrefersDark() ? 'dark' : 'light');
+    };
+    if (window.matchMedia) {
+      media = window.matchMedia('(prefers-color-scheme: dark)');
+      media.addEventListener('change', mediaHandler);
+    }
+
+    return () => {
+      unsubscribeNative?.();
+      media?.removeEventListener('change', mediaHandler);
+    };
   }, [mode]);
 
   const setMode = useCallback((next: StudioThemeMode) => {

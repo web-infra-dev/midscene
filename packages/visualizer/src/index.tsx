@@ -45,7 +45,8 @@ export {
   getPlaceholderForType,
 } from './utils/playground-utils';
 
-export { timeStr, filterBase64Value } from './utils';
+export { timeStr, filterBase64Value, notifyError } from './utils';
+export type { NotifyErrorOptions } from './utils';
 
 export { default as ShinyText } from './component/shiny-text';
 

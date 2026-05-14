@@ -13,7 +13,6 @@ export interface StudioAndroidDeviceItem {
   description?: string;
   selected: boolean;
   status: 'active' | 'idle';
-  isPlaceholder?: boolean;
   sessionValues?: DiscoveredDevice['sessionValues'];
 }
 

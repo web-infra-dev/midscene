@@ -236,27 +236,64 @@ async function assertWebPreview(page) {
 
 async function assertPromptApiMenu(page) {
   console.log('Checking prompt API menu...');
-  await page.waitForSelector('.minimal-action-trigger', { timeout: 20_000 });
-  await page.click('.minimal-action-trigger');
+  await page.waitForFunction(
+    () =>
+      document.querySelector('.minimal-action-trigger') !== null ||
+      document.querySelector('.mode-radio-group') !== null,
+    { timeout: 20_000 },
+  );
+
+  const hasMinimalActionTrigger = await page.$('.minimal-action-trigger');
+  if (hasMinimalActionTrigger) {
+    await page.click('.minimal-action-trigger');
+
+    await page.waitForFunction(
+      () =>
+        Array.from(document.querySelectorAll('.ant-dropdown-menu-item')).some(
+          (item) => item.textContent?.trim() === 'Action',
+        ),
+      { timeout: 10_000 },
+    );
+
+    const menuLabels = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('.ant-dropdown-menu-item'))
+        .map((item) => item.textContent?.trim())
+        .filter(Boolean),
+    );
+
+    if (!menuLabels.includes('Action')) {
+      throw new Error(`Expected API menu to contain Action, got ${menuLabels}`);
+    }
+    console.log(`Prompt API menu labels: ${menuLabels.join(', ')}`);
+    return;
+  }
 
   await page.waitForFunction(
     () =>
-      Array.from(document.querySelectorAll('.ant-dropdown-menu-item')).some(
-        (item) => item.textContent?.trim() === 'Action',
-      ),
+      Array.from(
+        document.querySelectorAll(
+          '.mode-radio-group .ant-radio-button-wrapper, .mode-radio-group .more-apis-button',
+        ),
+      ).some((item) => item.textContent?.trim() === 'Action'),
     { timeout: 10_000 },
   );
 
-  const menuLabels = await page.evaluate(() =>
-    Array.from(document.querySelectorAll('.ant-dropdown-menu-item'))
+  const controlLabels = await page.evaluate(() =>
+    Array.from(
+      document.querySelectorAll(
+        '.mode-radio-group .ant-radio-button-wrapper, .mode-radio-group .more-apis-button',
+      ),
+    )
       .map((item) => item.textContent?.trim())
       .filter(Boolean),
   );
 
-  if (!menuLabels.includes('Action')) {
-    throw new Error(`Expected API menu to contain Action, got ${menuLabels}`);
+  if (!controlLabels.includes('Action')) {
+    throw new Error(
+      `Expected API controls to contain Action, got ${controlLabels}`,
+    );
   }
-  console.log(`Prompt API menu labels: ${menuLabels.join(', ')}`);
+  console.log(`Prompt API control labels: ${controlLabels.join(', ')}`);
 }
 
 async function main() {

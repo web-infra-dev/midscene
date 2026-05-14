@@ -228,7 +228,7 @@ async function main() {
     );
 
     await agent.aiAssert(
-      'The right-side Playground panel is fully visible and is not clipped by the screenshot edge. The welcome empty state with the heading "Welcome to Midscene.js Playground!" should be readable without being cut off on the right.',
+      'The right-side Playground panel is visible and readable. It may show the session setup form with the heading "Welcome to Midscene.js Playground!", platform choices, and a Create Agent button. Ignore the operating-system window controls and scrollbar at the far right; only check that the Studio panel content itself is not cut off.',
     );
 
     await agent.recordToReport('Studio shell became visible', {

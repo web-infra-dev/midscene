@@ -2,6 +2,7 @@ import {
   type CSSProperties,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -13,6 +14,7 @@ import Playground from '../Playground';
 import SettingsPanel from '../SettingsPanel';
 import Sidebar, { SidebarFooter } from '../Sidebar';
 import { ModelEnvConfigModal } from './ModelEnvConfigModal';
+import { hasCompleteModelEnvConfig } from './connectivity-env';
 import { loadModelEnvText, saveModelEnvText } from './model-env-storage';
 import type { ShellActiveView } from './types';
 
@@ -80,6 +82,9 @@ export default function ShellLayout() {
   const [activeView, setActiveView] = useState<ShellActiveView>('device');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modelModalOpen, setModelModalOpen] = useState(false);
+  const [windowFocused, setWindowFocused] = useState(
+    typeof document === 'undefined' ? true : document.hasFocus(),
+  );
   const [modelEnvText, setModelEnvText] = useState<string>(() =>
     loadModelEnvText(),
   );
@@ -100,6 +105,10 @@ export default function ShellLayout() {
     ),
   );
   const settingsAnchorRef = useRef<HTMLDivElement | null>(null);
+  const modelConfigComplete = useMemo(
+    () => hasCompleteModelEnvConfig(modelEnvText),
+    [modelEnvText],
+  );
   const isMacLike =
     typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
   const collapsedToggleButtonLeft = isMacLike ? 86 : 12;
@@ -112,6 +121,18 @@ export default function ShellLayout() {
       String(sidebarWidth),
     );
   }, [sidebarWidth]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleFocus = () => setWindowFocused(true);
+    const handleBlur = () => setWindowFocused(false);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -193,10 +214,10 @@ export default function ShellLayout() {
     [sidebarWidth, playgroundWidth],
   );
 
-  // Button is 24x24 wrapping a 16x14 icon. The design spec positions the icon
-  // at top:23 left:206 inside a 240px sidebar — translating back to the
-  // button's origin gives top:18 left:202 (which scales with sidebarWidth).
-  const toggleButtonTop = 18;
+  // Button is 24x24. Its vertical center (top + 12) must match the traffic
+  // lights' vertical center (y + 6) so the two icons sit on the same row.
+  // Traffic lights at y=14 → center 20 → button top = 20 − 12 = 8.
+  const toggleButtonTop = 8;
   const toggleButtonLeft = collapsed
     ? collapsedToggleButtonLeft
     : sidebarWidth - 38;
@@ -207,12 +228,18 @@ export default function ShellLayout() {
   };
 
   return (
-    <div className="relative h-full w-full overflow-hidden font-sans">
+    <div
+      className={`relative h-full w-full overflow-hidden font-sans ${
+        windowFocused ? '' : 'bg-app-bg'
+      }`}
+    >
       <div className="app-drag absolute left-0 right-0 top-0 z-10 h-[52px]" />
 
       {!collapsed && (
         <div
-          className="absolute left-0 top-0 h-full"
+          className={`absolute left-0 top-0 h-full ${
+            windowFocused ? '' : 'bg-app-bg'
+          }`}
           style={{ width: sidebarWidth }}
         >
           <div className="absolute left-[4px] right-[4px] top-[52px] overflow-hidden">
@@ -240,6 +267,7 @@ export default function ShellLayout() {
               </div>
             )}
             <SidebarFooter
+              envAlert={!modelConfigComplete}
               onEnvClick={openEnvModal}
               onToggleSettings={() => setSettingsOpen((prev) => !prev)}
               settingsOpen={settingsOpen}
@@ -264,6 +292,8 @@ export default function ShellLayout() {
         <MainContent
           activeView={activeView}
           headerOffsetClass={collapsed ? collapsedHeaderOffsetClass : undefined}
+          modelConfigComplete={modelConfigComplete}
+          onOpenEnvModal={openEnvModal}
           onSelectDeviceView={() => setActiveView('device')}
           onSelectOverview={() => setActiveView('overview')}
         />

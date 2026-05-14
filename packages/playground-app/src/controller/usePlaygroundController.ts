@@ -1,6 +1,10 @@
 import type { PlaygroundSessionSetup } from '@midscene/playground';
 import { PlaygroundSDK } from '@midscene/playground';
-import { type DeviceType, useEnvConfig } from '@midscene/visualizer';
+import {
+  type DeviceType,
+  notifyError,
+  useEnvConfig,
+} from '@midscene/visualizer';
 import { Form, message } from 'antd';
 import {
   useCallback,
@@ -47,6 +51,13 @@ export interface UsePlaygroundControllerOptions {
    * returning a generic "Choose a platform" setup.
    */
   initialFormValues?: Record<string, unknown>;
+  /**
+   * Invoked when an active countdown dismisses — either reaching its natural
+   * end or being skipped by the user. Lets hosts step out of the way before
+   * automation begins (Studio minimises so the controlled desktop is in
+   * view). Not fired during unmount cleanup.
+   */
+  onCountdownFinish?: () => void;
 }
 
 export function usePlaygroundController({
@@ -55,6 +66,7 @@ export function usePlaygroundController({
   pollIntervalMs = 5000,
   countdownSeconds = 3,
   initialFormValues,
+  onCountdownFinish,
 }: UsePlaygroundControllerOptions): PlaygroundControllerResult {
   const [form] = Form.useForm<PlaygroundFormValues>();
   const initialFormValuesRef = useRef(initialFormValues);
@@ -152,11 +164,7 @@ export function usePlaygroundController({
         appliedAiConfigSignatureRef.current = aiConfigSignature;
         return true;
       } catch (error) {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : 'Failed to apply AI configuration';
-        message.error(errorMessage);
+        notifyError(error, { title: 'Failed to apply AI configuration' });
         return false;
       } finally {
         if (pendingAiConfigApplicationRef.current === pendingApplicationState) {
@@ -171,6 +179,7 @@ export function usePlaygroundController({
   }, [aiConfig, aiConfigSignature, playgroundSDK]);
 
   const finishCountdown = useCallback(() => {
+    const wasActive = countdownTimerRef.current !== null;
     if (countdownTimerRef.current !== null) {
       window.clearInterval(countdownTimerRef.current);
       countdownTimerRef.current = null;
@@ -184,7 +193,14 @@ export function usePlaygroundController({
     }
 
     resolve?.();
-  }, []);
+
+    // Skip the host callback during unmount cleanup so we never minimise the
+    // window just because the playground panel re-rendered. The countdown has
+    // to have actually been running for "finish" to be meaningful.
+    if (wasActive && mountedRef.current) {
+      onCountdownFinish?.();
+    }
+  }, [onCountdownFinish]);
 
   const showCountdownModal = useCallback(async () => {
     if (countdownSeconds <= 0) {
@@ -312,10 +328,7 @@ export function usePlaygroundController({
           if ((error as { errorFields?: unknown }).errorFields) {
             return false;
           }
-
-          const errorMessage =
-            error instanceof Error ? error.message : 'Failed to create Agent';
-          message.error(errorMessage);
+          notifyError(error, { title: 'Failed to create Agent' });
           return false;
         } finally {
           sessionMutatingRef.current = false;
@@ -337,9 +350,7 @@ export function usePlaygroundController({
       await refreshServerState();
       await refreshSessionSetup();
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Failed to disconnect session';
-      message.error(errorMessage);
+      notifyError(error, { title: 'Failed to disconnect session' });
     } finally {
       sessionMutatingRef.current = false;
       setSessionMutating(false);

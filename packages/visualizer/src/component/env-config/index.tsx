@@ -4,6 +4,7 @@ import { Alert, Button, Input, Modal, Tooltip, message } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { useEnvConfig } from '../../store/store';
 import type { PlaygroundSDKLike } from '../../types';
+import { notifyError } from '../../utils';
 
 export function EnvConfig({
   showTooltipWhenEmpty = true,
@@ -81,7 +82,7 @@ export function EnvConfig({
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      message.error(`Model verification failed: ${errorMessage}`);
+      notifyError(error, { title: 'Model verification failed' });
       setConnectivityResult({
         passed: false,
         checks: [

@@ -1,30 +1,39 @@
 import { assetUrls } from '../../assets';
 import { MaskedIcon } from '../MaskedIcon';
 
-function EnvIcon() {
+function EnvIcon({ alert }: { alert?: boolean }) {
   return (
-    <svg
-      aria-hidden="true"
-      className="h-4 w-4 shrink-0 text-text-secondary"
-      fill="none"
-      viewBox="0 0 16 16"
-    >
-      <rect
-        height="10"
-        rx="1.5"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        width="11"
-        x="2.5"
-        y="3"
-      />
-      <path
-        d="M5 6.5h6M5 9h4"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="1.2"
-      />
-    </svg>
+    <span className="relative inline-flex h-4 w-4 shrink-0 items-center justify-center">
+      <svg
+        aria-hidden="true"
+        className="h-4 w-4 text-text-secondary"
+        fill="none"
+        viewBox="0 0 16 16"
+      >
+        <rect
+          height="11"
+          rx="1.5"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          width="13"
+          x="1.5"
+          y="2.5"
+        />
+        <path
+          d="M4 6.5h8M4 9.5h5"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeWidth="1.4"
+        />
+      </svg>
+      {alert ? (
+        <span
+          aria-label="Model config incomplete"
+          className="pointer-events-none absolute -right-[2px] -top-[2px] flex h-[8px] w-[8px] items-center justify-center rounded-full border border-surface-elevated bg-[#e13e37]"
+          role="img"
+        />
+      ) : null}
+    </span>
   );
 }
 
@@ -55,19 +64,25 @@ function DockRow({ active, ariaExpanded, icon, label, onClick }: DockRowProps) {
 }
 
 export interface SettingsDockProps {
+  envAlert?: boolean;
   onEnvClick?: () => void;
   onToggleSettings: () => void;
   settingsOpen: boolean;
 }
 
 export default function SettingsDock({
+  envAlert,
   onEnvClick,
   onToggleSettings,
   settingsOpen,
 }: SettingsDockProps) {
   return (
     <div className="flex flex-col gap-[2px]">
-      <DockRow icon={<EnvIcon />} label="Model Config" onClick={onEnvClick} />
+      <DockRow
+        icon={<EnvIcon alert={envAlert} />}
+        label="Model Config"
+        onClick={onEnvClick}
+      />
       <DockRow
         active={settingsOpen}
         ariaExpanded={settingsOpen}

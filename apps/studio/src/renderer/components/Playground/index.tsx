@@ -1,4 +1,6 @@
-import { Suspense, lazy, useMemo } from 'react';
+import { PlaygroundConversationPanel } from '@midscene/playground-app';
+import type { UniversalPlaygroundConfig } from '@midscene/visualizer';
+import { useMemo } from 'react';
 import { downloadStudioReport } from '../../playground/report-download';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
 import { PlaygroundShell } from '../PlaygroundShell';
@@ -6,19 +8,19 @@ import { StudioPlaygroundEmptyState } from './StudioPlaygroundEmptyState';
 
 declare const __APP_VERSION__: string;
 
-const LazyPlaygroundConversationPanel = lazy(
-  () => import('./LazyPlaygroundConversationPanel'),
-);
+export function createStudioPlaygroundConfig(): Partial<UniversalPlaygroundConfig> {
+  return {
+    emptyState: <StudioPlaygroundEmptyState />,
+    onDownloadReport: downloadStudioReport,
+    promptInputChrome: {
+      variant: 'default',
+    },
+  };
+}
 
 export default function Playground() {
   const studioPlayground = useStudioPlayground();
-  const playgroundConfig = useMemo(
-    () => ({
-      emptyState: <StudioPlaygroundEmptyState />,
-      onDownloadReport: downloadStudioReport,
-    }),
-    [],
-  );
+  const playgroundConfig = useMemo(() => createStudioPlaygroundConfig(), []);
 
   return (
     <PlaygroundShell>
@@ -43,21 +45,13 @@ export default function Playground() {
             </button>
           </div>
         ) : (
-          <Suspense
-            fallback={
-              <div className="flex h-full items-center justify-center px-6 text-center text-[14px] leading-[22px] text-text-tertiary">
-                Loading Playground…
-              </div>
-            }
-          >
-            <LazyPlaygroundConversationPanel
-              appVersion={__APP_VERSION__}
-              className="h-full"
-              controller={studioPlayground.controller}
-              playgroundConfig={playgroundConfig}
-              title="Playground"
-            />
-          </Suspense>
+          <PlaygroundConversationPanel
+            appVersion={__APP_VERSION__}
+            className="h-full"
+            controller={studioPlayground.controller}
+            playgroundConfig={playgroundConfig}
+            title="Playground"
+          />
         )}
       </div>
     </PlaygroundShell>

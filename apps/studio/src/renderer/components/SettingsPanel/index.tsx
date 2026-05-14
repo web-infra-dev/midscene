@@ -238,6 +238,14 @@ export default function SettingsPanel({
             trailingIcon={<ExternalLinkIcon />}
           />
         </div>
+
+        <div className="my-[4px] h-px w-full bg-divider" />
+
+        <div className="flex h-[24px] items-center justify-center px-[8px]">
+          <span className="font-sans text-[11px] leading-none text-text-tertiary">
+            Version {__APP_VERSION__}
+          </span>
+        </div>
       </div>
 
       {openPopover === 'theme' ? (

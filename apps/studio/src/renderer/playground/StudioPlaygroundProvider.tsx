@@ -3,24 +3,14 @@ import type {
   PlaygroundBootstrap,
 } from '@shared/electron-contract';
 import type { PropsWithChildren } from 'react';
-import {
-  Suspense,
-  lazy,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import StudioPlaygroundReadyProvider from './StudioPlaygroundReadyProvider';
 import { bucketDiscoveredDevices, bucketDiscoveryErrors } from './selectors';
 import type {
   DiscoveredDevicesByPlatform,
   DiscoveryErrorsByPlatform,
 } from './types';
 import { StudioPlaygroundContext } from './useStudioPlayground';
-
-const ReadyStudioPlaygroundProvider = lazy(
-  () => import('./StudioPlaygroundReadyProvider'),
-);
 
 function getMissingBridgeError() {
   return 'Studio preload bridge is unavailable. Restart the Electron app.';
@@ -228,43 +218,17 @@ export function StudioPlaygroundProvider({ children }: PropsWithChildren) {
     setDiscoveryPollingPausedValue,
   ]);
 
-  const bootingContextValue = useMemo(
-    () => ({
-      phase: 'booting' as const,
-      restartPlayground,
-      refreshDiscoveredDevices,
-      setDiscoveryPollingPaused: setDiscoveryPollingPausedValue,
-      discoveredDevices,
-      discoveryErrors,
-    }),
-    [
-      discoveredDevices,
-      discoveryErrors,
-      refreshDiscoveredDevices,
-      restartPlayground,
-      setDiscoveryPollingPausedValue,
-    ],
-  );
-
   return bootstrap.phase === 'ready' ? (
-    <Suspense
-      fallback={
-        <StudioPlaygroundContext.Provider value={bootingContextValue}>
-          {children}
-        </StudioPlaygroundContext.Provider>
-      }
+    <StudioPlaygroundReadyProvider
+      discoveredDevices={discoveredDevices}
+      discoveryErrors={discoveryErrors}
+      refreshDiscoveredDevices={refreshDiscoveredDevices}
+      restartPlayground={restartPlayground}
+      setDiscoveryPollingPaused={setDiscoveryPollingPausedValue}
+      serverUrl={bootstrap.serverUrl}
     >
-      <ReadyStudioPlaygroundProvider
-        discoveredDevices={discoveredDevices}
-        discoveryErrors={discoveryErrors}
-        refreshDiscoveredDevices={refreshDiscoveredDevices}
-        restartPlayground={restartPlayground}
-        setDiscoveryPollingPaused={setDiscoveryPollingPausedValue}
-        serverUrl={bootstrap.serverUrl}
-      >
-        {children}
-      </ReadyStudioPlaygroundProvider>
-    </Suspense>
+      {children}
+    </StudioPlaygroundReadyProvider>
   ) : (
     <StudioPlaygroundContext.Provider value={contextValue}>
       {children}

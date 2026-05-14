@@ -655,30 +655,72 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     }
     debugDevice('Taking screenshot', { displayId: this.displayId });
 
-    try {
-      const options: ScreenshotOptions = { format: 'png' };
-      if (this.displayId !== undefined) {
-        // On macOS: displayId is numeric (CGDirectDisplayID)
-        // On Windows: displayId is string like "\\.\DISPLAY1"
-        // On Linux: displayId is string like ":0.0"
-        if (process.platform === 'darwin') {
-          const screenIndex = Number(this.displayId);
-          if (!Number.isNaN(screenIndex)) {
-            options.screen = screenIndex;
-          }
-        } else {
-          // Windows and Linux use string IDs directly
-          options.screen = this.displayId;
+    const options: ScreenshotOptions = { format: 'png' };
+    if (this.displayId !== undefined) {
+      // On macOS: displayId is numeric (CGDirectDisplayID)
+      // On Windows: displayId is string like "\\.\DISPLAY1"
+      // On Linux: displayId is string like ":0.0"
+      if (process.platform === 'darwin') {
+        const screenIndex = Number(this.displayId);
+        if (!Number.isNaN(screenIndex)) {
+          options.screen = screenIndex;
         }
+      } else {
+        // Windows and Linux use string IDs directly
+        options.screen = this.displayId;
       }
-
-      debugDevice('Screenshot options', options);
-      const buffer: Buffer = await screenshot(options);
-      return createImgBase64ByFormat('png', buffer.toString('base64'));
-    } catch (error) {
-      debugDevice(`Screenshot failed: ${error}`);
-      throw new Error(`Failed to take screenshot: ${error}`);
     }
+    debugDevice('Screenshot options', options);
+
+    // macOS `screencapture` returns "could not create image from display"
+    // both for missing TCC Screen Recording permission AND for transient
+    // CGDisplay states (display sleep/wake, Space switch, fullscreen
+    // transition, secure input briefly held by System Settings, etc.).
+    // Real permission failures stay broken across retries, so a short
+    // retry burst recovers from the transient case without papering over
+    // genuine misconfiguration.
+    const MAX_ATTEMPTS = 3;
+    const RETRY_DELAY_MS = 300;
+    let lastRawMessage = '';
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const buffer: Buffer = await screenshot(options);
+        if (attempt > 1) {
+          debugDevice(`Screenshot succeeded on attempt ${attempt}`);
+        }
+        return createImgBase64ByFormat('png', buffer.toString('base64'));
+      } catch (error) {
+        lastRawMessage = error instanceof Error ? error.message : String(error);
+        const isMacTransient =
+          process.platform === 'darwin' &&
+          /could not create image from display/i.test(lastRawMessage);
+        const willRetry = isMacTransient && attempt < MAX_ATTEMPTS;
+        debugDevice(
+          `Screenshot attempt ${attempt} failed: ${lastRawMessage}${willRetry ? ' — retrying' : ''}`,
+        );
+        if (!willRetry) {
+          break;
+        }
+        await sleep(RETRY_DELAY_MS);
+      }
+    }
+
+    if (
+      process.platform === 'darwin' &&
+      /could not create image from display/i.test(lastRawMessage)
+    ) {
+      throw new Error(
+        `Failed to take screenshot on macOS: the host process is missing Screen Recording permission, or the target display is locked/sleeping.
+
+Please follow these steps:
+1. Open System Settings > Privacy & Security > Screen Recording
+2. Enable the application running this script (e.g., Terminal, iTerm2, VS Code, WebStorm, or Midscene Studio)
+3. Fully quit and relaunch that application after granting permission — macOS only re-reads this permission on process launch.
+
+Original error: ${lastRawMessage}`,
+      );
+    }
+    throw new Error(`Failed to take screenshot: ${lastRawMessage}`);
   }
 
   async size(): Promise<Size> {

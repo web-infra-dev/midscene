@@ -192,9 +192,10 @@ const createMainWindow = () => {
     titleBarOverlay:
       process.platform === 'darwin' ? undefined : getTitleBarOverlay(),
     // Vertical centers of the 12px traffic lights line up with the sidebar
-    // collapse toggle (24px) at window y=30: (24 + 12/2 = 30).
+    // collapse toggle (24px) at window y=20: (8 + 24/2 = 20 = 14 + 12/2).
+    // y=14 hugs the inset titlebar like native macOS apps.
     trafficLightPosition:
-      process.platform === 'darwin' ? { x: 18, y: 24 } : undefined,
+      process.platform === 'darwin' ? { x: 18, y: 14 } : undefined,
     vibrancy: process.platform === 'darwin' ? 'sidebar' : undefined,
     visualEffectState: process.platform === 'darwin' ? 'active' : undefined,
     backgroundMaterial: process.platform === 'win32' ? 'acrylic' : undefined,
@@ -261,6 +262,25 @@ const createMainWindow = () => {
   }
 
   mainWindow = window;
+
+  // Push every OS appearance change to the renderer so system-follow keeps
+  // working even after `themeSource` has been toggled. The renderer
+  // matchMedia listener silently stops firing across some Electron versions
+  // once themeSource is explicitly set, so we keep nativeTheme as the
+  // authoritative signal here.
+  const handleNativeThemeUpdated = () => {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      return;
+    }
+    mainWindow.webContents.send(
+      IPC_CHANNELS.systemThemeChanged,
+      nativeTheme.shouldUseDarkColors ? 'dark' : 'light',
+    );
+  };
+  nativeTheme.on('updated', handleNativeThemeUpdated);
+  window.once('closed', () => {
+    nativeTheme.off('updated', handleNativeThemeUpdated);
+  });
 };
 
 const registerIpcHandlers = () => {
