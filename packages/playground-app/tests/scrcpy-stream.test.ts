@@ -4,7 +4,7 @@ import { createScrcpyVideoStream } from '../src/scrcpy-stream';
 
 interface RawVideoPayload {
   type?: string;
-  data: ArrayBuffer | ArrayLike<number> | Uint8Array;
+  data: ArrayBuffer | ArrayBufferView;
   keyFrame?: boolean;
 }
 
@@ -100,9 +100,12 @@ describe('createScrcpyVideoStream', () => {
     const stream = createScrcpyVideoStream(socket);
     const collected = collectStream(stream);
 
-    socket.dispatchVideoData({ type: 'data', data: [1, 2, 3] });
-    socket.dispatchVideoData({ type: 'configuration', data: [9] });
-    socket.dispatchVideoData({ type: 'data', data: [4, 5, 6] });
+    socket.dispatchVideoData({ type: 'data', data: new Uint8Array([1, 2, 3]) });
+    socket.dispatchVideoData({
+      type: 'configuration',
+      data: new Uint8Array([9]),
+    });
+    socket.dispatchVideoData({ type: 'data', data: new Uint8Array([4, 5, 6]) });
     socket.dispatchDisconnect();
 
     const packets = await collected;
@@ -124,9 +127,20 @@ describe('createScrcpyVideoStream', () => {
     const stream = createScrcpyVideoStream(socket);
     const collected = collectStream(stream);
 
-    socket.dispatchVideoData({ type: 'configuration', data: [0] });
-    socket.dispatchVideoData({ type: 'data', data: [1], keyFrame: true });
-    socket.dispatchVideoData({ type: 'data', data: [2], keyFrame: false });
+    socket.dispatchVideoData({
+      type: 'configuration',
+      data: new Uint8Array([0]),
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([1]),
+      keyFrame: true,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([2]),
+      keyFrame: false,
+    });
     socket.dispatchDisconnect();
 
     const packets = await collected;
@@ -140,12 +154,13 @@ describe('createScrcpyVideoStream', () => {
     expect(dataPackets[1].keyframe).toBe(false);
   });
 
-  test('accepts Uint8Array and ArrayBuffer payloads from binary transport', async () => {
+  test('accepts ArrayBufferView and ArrayBuffer payloads from binary transport', async () => {
     const socket = new MockScrcpySocket();
     const stream = createScrcpyVideoStream(socket);
     const collected = collectStream(stream);
 
-    const configBytes = new Uint8Array([10, 20, 30]);
+    const sourceBytes = new Uint8Array([99, 10, 20, 30, 88]);
+    const configBytes = new DataView(sourceBytes.buffer, 1, 3);
     const dataBuffer = new Uint8Array([40, 50, 60]).buffer;
 
     socket.dispatchVideoData({ type: 'configuration', data: configBytes });
@@ -170,8 +185,11 @@ describe('createScrcpyVideoStream', () => {
     const stream = createScrcpyVideoStream(socket);
     const collected = collectStream(stream);
 
-    socket.dispatchVideoData({ type: 'configuration', data: [0] });
-    socket.dispatchVideoData({ type: 'data', data: [1] });
+    socket.dispatchVideoData({
+      type: 'configuration',
+      data: new Uint8Array([0]),
+    });
+    socket.dispatchVideoData({ type: 'data', data: new Uint8Array([1]) });
     socket.dispatchDisconnect();
 
     const packets = await collected;
