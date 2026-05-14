@@ -554,7 +554,19 @@ export async function AiExtractElementInfo<T>(options: {
   const { dataQuery, context, extractOption, multimodalPrompt, modelConfig } =
     options;
   const systemPrompt = systemPromptToExtract();
-  const screenshotBase64 = context.screenshot.base64;
+  let screenshotBase64 = context.screenshot.base64;
+
+  if (
+    extractOption?.screenshotIncluded !== false &&
+    extractOption?.searchArea
+  ) {
+    const cropped = await cropByRect(
+      screenshotBase64,
+      extractOption.searchArea,
+      false,
+    );
+    screenshotBase64 = cropped.imageBase64;
+  }
 
   const extractDataPromptText = extractDataQueryPrompt(
     options.pageDescription || '',

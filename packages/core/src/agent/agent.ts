@@ -1222,6 +1222,17 @@ export class Agent<
         defaultServiceExtractOption.screenshotIncluded,
     };
 
+    if (serviceOpt.screenshotIncluded !== false) {
+      if (opt?.searchArea) {
+        serviceOpt.searchArea = opt.searchArea;
+      } else if (opt?.locatePrompt) {
+        const located = await this.aiLocate(opt.locatePrompt);
+        if (located?.rect) {
+          serviceOpt.searchArea = located.rect;
+        }
+      }
+    }
+
     const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
     const assertionText =
       typeof assertion === 'string' ? assertion : assertion.prompt;
