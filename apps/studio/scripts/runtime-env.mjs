@@ -1,8 +1,12 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 export const resolveRepoEnvPath = (studioRootDir) =>
   path.resolve(studioRootDir, '..', '..', '.env');
+
+export const resolveDefaultStudioRunDir = () =>
+  path.join(os.tmpdir(), 'midscene-studio');
 
 export const buildStudioRuntimeEnv = ({
   baseEnv = process.env,
@@ -36,6 +40,10 @@ function finalizeStudioRuntimeEnv(env, envPathExists, studioRootDir) {
     if (envPathExists(repoEnvPath)) {
       env.DOTENV_CONFIG_PATH = repoEnvPath;
     }
+  }
+
+  if (!env.MIDSCENE_RUN_DIR) {
+    env.MIDSCENE_RUN_DIR = resolveDefaultStudioRunDir();
   }
 
   return env;

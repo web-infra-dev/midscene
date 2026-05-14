@@ -2,6 +2,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   buildStudioRuntimeEnv,
+  resolveDefaultStudioRunDir,
   resolveRepoEnvPath,
 } from '../scripts/runtime-env.mjs';
 
@@ -34,6 +35,24 @@ describe('runtime-env', () => {
     });
 
     expect(env.DOTENV_CONFIG_PATH).toBe('/custom/.env');
+  });
+
+  it('defaults the Studio run directory to a system temp directory', () => {
+    const env = buildStudioRuntimeEnv({
+      baseEnv: {},
+      studioRootDir,
+    });
+
+    expect(env.MIDSCENE_RUN_DIR).toBe(resolveDefaultStudioRunDir());
+  });
+
+  it('preserves an existing MIDSCENE_RUN_DIR override', () => {
+    const env = buildStudioRuntimeEnv({
+      baseEnv: { MIDSCENE_RUN_DIR: '/custom/studio-run' },
+      studioRootDir,
+    });
+
+    expect(env.MIDSCENE_RUN_DIR).toBe('/custom/studio-run');
   });
 
   it('strips NODE_PATH so Electron resolves workspace packages deterministically', () => {
