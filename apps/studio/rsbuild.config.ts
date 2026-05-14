@@ -136,6 +136,7 @@ export default defineConfig({
         },
         externals: [
           'electron',
+          'electron-updater',
           '@midscene/android',
           '@midscene/android-playground',
           '@midscene/computer',

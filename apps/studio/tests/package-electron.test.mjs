@@ -8,6 +8,7 @@ import {
   buildInstallWorkspaceManifest,
   buildMacDittoArchiveArgs,
   buildPackagedAppManifest,
+  buildPackagedResourcesCandidates,
   buildPackagerOptions,
   buildPnpmSupportedArchitectures,
   buildVendoredWorkspaceDirName,
@@ -168,6 +169,31 @@ describe('package-electron helpers', () => {
       stageDir: '/tmp/stage',
     });
     expect(opts.icon).toMatch(/midscene-icon\.ico$/);
+  });
+
+  it('resolves the resources directory when the app payload is packed as asar', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'midscene-app-'));
+    try {
+      const resourcesDir = path.join(
+        root,
+        'Midscene Studio.app',
+        'Contents',
+        'Resources',
+      );
+      await fs.mkdir(resourcesDir, { recursive: true });
+      await fs.writeFile(path.join(resourcesDir, 'app.asar'), 'asar payload');
+
+      const candidates = await buildPackagedResourcesCandidates(
+        path.join(root, 'Midscene Studio.app'),
+      );
+
+      expect(candidates[0]).toBe(resourcesDir);
+      await expect(
+        fs.stat(path.join(resourcesDir, 'app.asar')),
+      ).resolves.toBeTruthy();
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
   });
 
   it('uses a shell for Windows .cmd package manager shims', () => {
