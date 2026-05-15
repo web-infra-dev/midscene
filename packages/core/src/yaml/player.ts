@@ -408,8 +408,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           ...(timeout !== undefined ? { timeout, timeoutMs: timeout } : {}),
         };
         await agent.aiWaitFor(prompt, waitForOptions);
-      } else if ('sleep' in (flowItem as MidsceneYamlFlowItemSleep)) {
-        const sleepTask = flowItem as MidsceneYamlFlowItemSleep;
+      } else if ('sleep' in flowItem) {
+        const sleepTask = flowItem as unknown as MidsceneYamlFlowItemSleep;
         const ms = sleepTask.sleep;
         let msNumber = ms;
         if (typeof ms === 'string') {
@@ -420,11 +420,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           `ms for sleep must be greater than 0, but got ${ms}`,
         );
         await new Promise((resolve) => setTimeout(resolve, msNumber));
-      } else if (
-        'javascript' in (flowItem as MidsceneYamlFlowItemEvaluateJavaScript)
-      ) {
+      } else if ('javascript' in flowItem) {
         const evaluateJavaScriptTask =
-          flowItem as MidsceneYamlFlowItemEvaluateJavaScript;
+          flowItem as unknown as MidsceneYamlFlowItemEvaluateJavaScript;
 
         const result = await agent.evaluateJavaScript(
           evaluateJavaScriptTask.javascript,
@@ -439,13 +437,13 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           recordTask.recordToReport ?? recordTask.logScreenshot ?? 'untitled';
         const content = recordTask.content || '';
         await agent.recordToReport(title, { content });
-      } else if ('aiInput' in (flowItem as MidsceneYamlFlowItemAIInput)) {
+      } else if ('aiInput' in flowItem) {
         // may be input empty string ''
         const {
           aiInput,
           value: rawValue,
           ...inputTask
-        } = flowItem as MidsceneYamlFlowItemAIInput;
+        } = flowItem as unknown as MidsceneYamlFlowItemAIInput;
 
         // Compatibility with previous version:
         // Old format: { aiInput: string (value), locate: TUserPrompt }
@@ -472,11 +470,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
             ? { locate: buildDetailedLocateParam(locatePrompt, inputTask) }
             : {}),
         });
-      } else if (
-        'aiKeyboardPress' in (flowItem as MidsceneYamlFlowItemAIKeyboardPress)
-      ) {
+      } else if ('aiKeyboardPress' in flowItem) {
         const { aiKeyboardPress, ...keyboardPressTask } =
-          flowItem as MidsceneYamlFlowItemAIKeyboardPress;
+          flowItem as unknown as MidsceneYamlFlowItemAIKeyboardPress;
 
         // Compatibility with previous version:
         // Old format: { aiKeyboardPress: string (key), locate?: TUserPrompt }
@@ -508,9 +504,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
               }
             : {}),
         });
-      } else if ('aiScroll' in (flowItem as MidsceneYamlFlowItemAIScroll)) {
+      } else if ('aiScroll' in flowItem) {
         const { aiScroll, ...scrollTask } =
-          flowItem as MidsceneYamlFlowItemAIScroll;
+          flowItem as unknown as MidsceneYamlFlowItemAIScroll;
 
         // Compatibility with previous version:
         // Old format: { aiScroll: null, locate?: TUserPrompt, direction, scrollType, distance? }
