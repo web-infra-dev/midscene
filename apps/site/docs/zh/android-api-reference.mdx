@@ -178,7 +178,7 @@ function runAdbShell(command: string, opt?: { timeout?: number }): Promise<strin
 - `opt.timeout?: number` —— 可选的命令执行超时时间，单位为毫秒。
 
 ```ts
-const result = await agent.runAdbShell('dumpsys battery', { timeout: 60_000 });
+const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
 console.log(result);
 ```
 

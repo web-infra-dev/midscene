@@ -198,7 +198,7 @@ const device = new AndroidDevice('s4ey59');
 const agent = new AndroidAgent(device);
 await device.connect();
 
-const result = await agent.runAdbShell('dumpsys battery', { timeout: 60_000 });
+const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
 // Equivalent to running `adb shell dumpsys battery` with a 60s timeout
 console.log(result);
 ```

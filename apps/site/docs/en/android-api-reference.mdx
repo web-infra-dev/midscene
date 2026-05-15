@@ -179,7 +179,7 @@ function runAdbShell(command: string, opt?: { timeout?: number }): Promise<strin
 - `opt.timeout?: number` &mdash; Optional command execution timeout in milliseconds.
 
 ```ts
-const result = await agent.runAdbShell('dumpsys battery', { timeout: 60_000 });
+const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
 console.log(result);
 ```
 
