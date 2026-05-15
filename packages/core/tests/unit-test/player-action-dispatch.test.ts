@@ -69,6 +69,41 @@ describe('player action dispatch ordering', () => {
     expect(agent.runAdbShell).not.toHaveBeenCalled();
   });
 
+  it('should dispatch RunAdbShell timeout as a shallow sibling option', async () => {
+    const actionSpace = [
+      {
+        name: 'RunAdbShell',
+        interfaceAlias: 'runAdbShell',
+        paramSchema: runAdbShellParamSchema,
+      },
+    ];
+    const player = createPlayerWithActionSpace(actionSpace);
+    const agent = createMockAgent();
+
+    const taskStatus = {
+      name: 'test',
+      flow: [
+        {
+          runAdbShell: 'dumpsys activity services',
+          timeout: 60_000,
+          name: 'services',
+        },
+      ],
+      index: 0,
+      status: 'running' as const,
+      totalSteps: 1,
+    };
+
+    await player.playTask(taskStatus, agent);
+
+    expect(agent.runAdbShell).toHaveBeenCalledWith(
+      'dumpsys activity services',
+      { timeout: 60_000 },
+    );
+    expect(agent.callActionInActionSpace).not.toHaveBeenCalled();
+    expect(player.result.services).toBe('adb-result');
+  });
+
   it('should dispatch Launch string param via callActionInActionSpace', async () => {
     const actionSpace = [
       {

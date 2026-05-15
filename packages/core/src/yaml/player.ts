@@ -567,6 +567,23 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
               )
             : undefined;
         if (specialActionParamToCall) {
+          const resultName = (flowItem as any).name;
+          if (
+            (matchedAction.name === 'RunAdbShell' ||
+              matchedAction.interfaceAlias === 'runAdbShell') &&
+            typeof (flowItem as any).timeout === 'number' &&
+            typeof (agent as any).runAdbShell === 'function'
+          ) {
+            const result = await (agent as any).runAdbShell(
+              actionParamForMatchedAction,
+              { timeout: (flowItem as any).timeout },
+            );
+            if (result !== undefined) {
+              this.setResult(resultName, result);
+            }
+            continue;
+          }
+
           debug(
             `matchedAction: ${matchedAction.name}`,
             `flowParams: ${JSON.stringify(specialActionParamToCall)}`,
@@ -576,7 +593,6 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
             specialActionParamToCall,
           );
 
-          const resultName = (flowItem as any).name;
           if (result !== undefined) {
             this.setResult(resultName, result);
           }
