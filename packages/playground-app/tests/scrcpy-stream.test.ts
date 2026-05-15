@@ -201,4 +201,84 @@ describe('createScrcpyVideoStream', () => {
     expect(dataPackets).toHaveLength(1);
     expect(dataPackets[0].pts).toBeUndefined();
   });
+
+  test('drops non-keyframe data packets when consumer stalls past bufferLimit', async () => {
+    const socket = new MockScrcpySocket();
+    const stream = createScrcpyVideoStream(socket, { bufferLimit: 2 });
+
+    socket.dispatchVideoData({
+      type: 'configuration',
+      data: new Uint8Array([0]),
+    });
+    // Slam more frames into the queue than the buffer can hold. Without
+    // backpressure the queue would grow to `frameCount`; with the fix only
+    // keyframes survive the overflow window.
+    const frameCount = 50;
+    const dataByte = (idx: number) => idx & 0xff;
+    for (let i = 0; i < frameCount; i++) {
+      socket.dispatchVideoData({
+        type: 'data',
+        data: new Uint8Array([dataByte(i)]),
+        keyFrame: i === 0 || i === 25,
+      });
+    }
+    socket.dispatchDisconnect();
+
+    const packets = await collectStream(stream);
+    const dataPackets = packets.filter(
+      (packet): packet is Extract<ScrcpyMediaStreamPacket, { type: 'data' }> =>
+        packet.type === 'data',
+    );
+
+    // Keyframes must survive so the decoder can resync after the drop.
+    const keyframeBytes = dataPackets
+      .filter((p) => p.keyframe === true)
+      .map((p) => p.data[0]);
+    expect(keyframeBytes).toEqual([dataByte(0), dataByte(25)]);
+
+    // Total delivered packets must be bounded, not proportional to input.
+    expect(dataPackets.length).toBeLessThan(frameCount);
+  });
+
+  test('bounds the pre-configuration buffer and preserves keyframes', async () => {
+    const socket = new MockScrcpySocket();
+    const stream = createScrcpyVideoStream(socket, { bufferLimit: 3 });
+    const collected = collectStream(stream);
+
+    // Send many data packets BEFORE configuration. Only one is a keyframe,
+    // and the buffer must keep at least that one once configuration drains.
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([1]),
+      keyFrame: false,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([2]),
+      keyFrame: true,
+    });
+    for (let i = 3; i < 30; i++) {
+      socket.dispatchVideoData({
+        type: 'data',
+        data: new Uint8Array([i]),
+        keyFrame: false,
+      });
+    }
+    socket.dispatchVideoData({
+      type: 'configuration',
+      data: new Uint8Array([99]),
+    });
+    socket.dispatchDisconnect();
+
+    const packets = await collected;
+    const dataPackets = packets.filter(
+      (packet): packet is Extract<ScrcpyMediaStreamPacket, { type: 'data' }> =>
+        packet.type === 'data',
+    );
+    const keyframeBytes = dataPackets
+      .filter((p) => p.keyframe === true)
+      .map((p) => p.data[0]);
+    expect(keyframeBytes).toEqual([2]);
+    expect(dataPackets.length).toBeLessThanOrEqual(3);
+  });
 });
