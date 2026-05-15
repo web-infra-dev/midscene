@@ -558,6 +558,29 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           matchedAction.paramSchema,
         );
         let stringParamToCall: string | undefined;
+        const resultName = (flowItem as any).name;
+        const timeout = (flowItem as any).timeout;
+        const hasRunAdbShellAlias = Object.prototype.hasOwnProperty.call(
+          flowItem,
+          'runAdbShell',
+        );
+
+        if (
+          hasRunAdbShellAlias &&
+          typeof actionParamForMatchedAction === 'string' &&
+          typeof timeout === 'number' &&
+          typeof (agent as any).runAdbShell === 'function'
+        ) {
+          const result = await (agent as any).runAdbShell(
+            actionParamForMatchedAction,
+            { timeout },
+          );
+          if (result !== undefined) {
+            this.setResult(resultName, result);
+          }
+          continue;
+        }
+
         const specialActionParamToCall =
           typeof actionParamForMatchedAction === 'string'
             ? buildShortcutActionParam(
@@ -567,23 +590,6 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
               )
             : undefined;
         if (specialActionParamToCall) {
-          const resultName = (flowItem as any).name;
-          if (
-            (matchedAction.name === 'RunAdbShell' ||
-              matchedAction.interfaceAlias === 'runAdbShell') &&
-            typeof (flowItem as any).timeout === 'number' &&
-            typeof (agent as any).runAdbShell === 'function'
-          ) {
-            const result = await (agent as any).runAdbShell(
-              actionParamForMatchedAction,
-              { timeout: (flowItem as any).timeout },
-            );
-            if (result !== undefined) {
-              this.setResult(resultName, result);
-            }
-            continue;
-          }
-
           debug(
             `matchedAction: ${matchedAction.name}`,
             `flowParams: ${JSON.stringify(specialActionParamToCall)}`,
