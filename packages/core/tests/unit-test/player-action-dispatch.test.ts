@@ -5,7 +5,6 @@ import { z } from 'zod';
 
 const runAdbShellParamSchema = z.object({
   command: z.string(),
-  timeout: z.number().optional(),
 });
 
 const launchParamSchema = z.object({
@@ -68,40 +67,6 @@ describe('player action dispatch ordering', () => {
       command: 'input tap 100 200',
     });
     expect(agent.runAdbShell).not.toHaveBeenCalled();
-  });
-
-  it('should dispatch RunAdbShell object params with timeout', async () => {
-    const actionSpace = [
-      {
-        name: 'RunAdbShell',
-        interfaceAlias: 'runAdbShell',
-        paramSchema: runAdbShellParamSchema,
-      },
-    ];
-    const player = createPlayerWithActionSpace(actionSpace);
-    const agent = createMockAgent();
-
-    const taskStatus = {
-      name: 'test',
-      flow: [
-        {
-          runAdbShell: {
-            command: 'dumpsys activity services',
-            timeout: 60_000,
-          },
-        },
-      ],
-      index: 0,
-      status: 'running' as const,
-      totalSteps: 1,
-    };
-
-    await player.playTask(taskStatus, agent);
-
-    expect(agent.callActionInActionSpace).toHaveBeenCalledWith('RunAdbShell', {
-      command: 'dumpsys activity services',
-      timeout: 60_000,
-    });
   });
 
   it('should dispatch Launch string param via callActionInActionSpace', async () => {
@@ -381,52 +346,5 @@ describe('player action dispatch ordering', () => {
       'RunAdbShell',
       { command: 'input keyevent 3' },
     );
-  });
-
-  it('round-trip: RunAdbShell with timeout keeps structured params', async () => {
-    const actionSpaceDefs = [
-      {
-        name: 'RunAdbShell',
-        interfaceAlias: 'runAdbShell',
-        paramSchema: runAdbShellParamSchema,
-      },
-    ];
-    const flow = buildYamlFlowFromPlans(
-      [
-        {
-          type: 'RunAdbShell',
-          param: { command: 'dumpsys activity services', timeout: 60_000 },
-        },
-      ],
-      actionSpaceDefs.map((def) => ({ ...def, call: async () => {} })),
-    );
-
-    expect(flow).toEqual([
-      {
-        runAdbShell: {
-          command: 'dumpsys activity services',
-          timeout: 60_000,
-        },
-      },
-    ]);
-
-    const player = createPlayerWithActionSpace(actionSpaceDefs);
-    const agent = createMockAgent();
-
-    await player.playTask(
-      {
-        name: 'test',
-        flow,
-        index: 0,
-        status: 'running' as const,
-        totalSteps: flow.length,
-      },
-      agent,
-    );
-
-    expect(agent.callActionInActionSpace).toHaveBeenCalledWith('RunAdbShell', {
-      command: 'dumpsys activity services',
-      timeout: 60_000,
-    });
   });
 });

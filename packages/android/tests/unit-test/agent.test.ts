@@ -154,25 +154,10 @@ describe('AndroidAgent', () => {
   });
 
   describe('runAdbShell', () => {
-    it('should pass timeout options to RunAdbShell action', async () => {
+    it('should pass timeout options to adb.shell without changing action schema', async () => {
       const mockPage = new AndroidDevice('test-device');
-      vi.spyOn(mockPage, 'screenshotBase64').mockResolvedValue(
-        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      );
-      vi.spyOn(mockPage, 'size').mockResolvedValue({ width: 375, height: 812 });
-      vi.spyOn(mockPage, 'getElementsInfo').mockResolvedValue([]);
-      vi.spyOn(mockPage, 'url').mockResolvedValue('https://example.com');
-
-      const runAdbShellSpy = vi.fn().mockResolvedValue('adb-result');
-      vi.spyOn(mockPage, 'actionSpace').mockReturnValue([
-        { name: 'Launch', paramSchema: undefined, call: async () => {} },
-        { name: 'Terminate', paramSchema: undefined, call: async () => {} },
-        {
-          name: 'RunAdbShell',
-          paramSchema: undefined,
-          call: runAdbShellSpy,
-        },
-      ] as any);
+      const shell = vi.fn().mockResolvedValue('adb-result');
+      (mockPage as any).getAdb = vi.fn().mockResolvedValue({ shell });
 
       const agent = new AndroidAgent(mockPage, {
         modelConfig: mockedModelConfig,
@@ -181,10 +166,7 @@ describe('AndroidAgent', () => {
       await expect(
         agent.runAdbShell('sleep 2', { timeout: 2_000 }),
       ).resolves.toBe('adb-result');
-      expect(runAdbShellSpy.mock.calls[0][0]).toEqual({
-        command: 'sleep 2',
-        timeout: 2_000,
-      });
+      expect(shell).toHaveBeenCalledWith('sleep 2', { timeout: 2_000 });
     });
   });
 

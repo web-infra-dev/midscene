@@ -479,9 +479,7 @@ export function buildYamlFlowFromPlans(
 
     const flowItem: MidsceneYamlFlowItem = canInlineShortcut
       ? { [flowKey]: flowParam[shortcutField as string] }
-      : shortcutField
-        ? { [flowKey]: flowParam }
-        : { [flowKey]: '', ...flowParam };
+      : { [flowKey]: '', ...flowParam };
 
     flow.push(flowItem);
   }
