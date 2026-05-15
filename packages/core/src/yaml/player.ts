@@ -27,12 +27,19 @@ interface MidsceneYamlFlowItemAIScroll extends LocateOption, ScrollParam {
   aiScroll: TUserPrompt | undefined; // which area to scroll
 }
 
+type RuntimeYamlFlowItem =
+  | MidsceneYamlFlowItem
+  | MidsceneYamlFlowItemAIInput
+  | MidsceneYamlFlowItemAIKeyboardPress
+  | MidsceneYamlFlowItemAIScroll;
+
 import type { Agent } from '@/agent/agent';
 import type { TUserPrompt } from '@/common';
 import type {
   DeviceAction,
   FreeFn,
   LocateOption,
+  MidsceneYamlFlowItem,
   MidsceneYamlFlowItemAIAction,
   MidsceneYamlFlowItemAIAssert,
   MidsceneYamlFlowItemAIWaitFor,
@@ -334,13 +341,13 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     for (const flowItemIndex in flow) {
       const currentStep = Number.parseInt(flowItemIndex, 10);
       taskStatus.currentStep = currentStep;
-      const flowItem = this.resolveVariables(flow[flowItemIndex]) as Record<
-        string,
-        unknown
-      >;
+      const flowItem = this.resolveVariables(
+        flow[flowItemIndex],
+      ) as RuntimeYamlFlowItem;
+      const flowItemRecord = flowItem as Record<string, unknown>;
 
       // Skip Finalize action from cache - it's a planning-only marker
-      if ('Finalize' in flowItem) {
+      if ('Finalize' in flowItemRecord) {
         continue;
       }
 
@@ -349,7 +356,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       );
       const simpleAIKey = (
         Object.keys(aiTaskHandlerMap) as AISimpleTaskKey[]
-      ).find((key) => Object.prototype.hasOwnProperty.call(flowItem, key));
+      ).find((key) =>
+        Object.prototype.hasOwnProperty.call(flowItemRecord, key),
+      );
       if (
         'aiAct' in (flowItem as MidsceneYamlFlowItemAIAction) ||
         'aiAction' in (flowItem as MidsceneYamlFlowItemAIAction) ||
