@@ -246,12 +246,13 @@ await agent.launch('com.android.settings/.Settings'); // 打开系统设置 app(
 - 类型
 
 ```typescript
-function runAdbShell(command: string): Promise<string>;
+function runAdbShell(command: string, opt?: { timeout?: number }): Promise<string>;
 ```
 
 - 参数：
 
   - `command: string` - 要执行的 adb shell 命令
+  - `opt.timeout?: number` - 可选的命令执行超时时间，单位为毫秒。
 
 - 返回值:
 
@@ -266,8 +267,8 @@ const page = new AndroidDevice('s4ey59');
 const agent = new AndroidAgent(page);
 await page.connect();
 
-const result = await agent.runAdbShell('dumpsys battery');
-// 等同于执行 `adb shell dumpsys battery`
+const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
+// 等同于执行 `adb shell dumpsys battery`，并设置 60 秒超时
 console.log(result);
 ```
 

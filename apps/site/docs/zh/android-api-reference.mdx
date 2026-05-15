@@ -171,13 +171,14 @@ function launch(target: string): Promise<void>;
 通过连接的设备运行原始的 `adb shell` 命令。
 
 ```ts
-function runAdbShell(command: string): Promise<string>;
+function runAdbShell(command: string, opt?: { timeout?: number }): Promise<string>;
 ```
 
 - `command: string` —— 原样传递给 `adb shell` 的命令。
+- `opt.timeout?: number` —— 可选的命令执行超时时间，单位为毫秒。
 
 ```ts
-const result = await agent.runAdbShell('dumpsys battery');
+const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
 console.log(result);
 ```
 

@@ -177,12 +177,13 @@ Execute a command through `adb shell` on the connected device.
 - Type
 
 ```typescript
-function runAdbShell(command: string): Promise<string>;
+function runAdbShell(command: string, opt?: { timeout?: number }): Promise<string>;
 ```
 
 - Parameters:
 
   - `command: string` - The adb shell command to execute.
+  - `opt.timeout?: number` - Optional command execution timeout in milliseconds.
 
 - Return Value:
 
@@ -197,8 +198,8 @@ const device = new AndroidDevice('s4ey59');
 const agent = new AndroidAgent(device);
 await device.connect();
 
-const result = await agent.runAdbShell('dumpsys battery');
-// Equivalent to running `adb shell dumpsys battery`
+const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
+// Equivalent to running `adb shell dumpsys battery` with a 60s timeout
 console.log(result);
 ```
 

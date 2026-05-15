@@ -153,6 +153,23 @@ describe('AndroidAgent', () => {
     });
   });
 
+  describe('runAdbShell', () => {
+    it('should pass timeout options to adb.shell without changing action schema', async () => {
+      const mockPage = new AndroidDevice('test-device');
+      const shell = vi.fn().mockResolvedValue('adb-result');
+      (mockPage as any).getAdb = vi.fn().mockResolvedValue({ shell });
+
+      const agent = new AndroidAgent(mockPage, {
+        modelConfig: mockedModelConfig,
+      });
+
+      await expect(
+        agent.runAdbShell('sleep 2', { timeout: 2_000 }),
+      ).resolves.toBe('adb-result');
+      expect(shell).toHaveBeenCalledWith('sleep 2', { timeout: 2_000 });
+    });
+  });
+
   describe('agentFromAdbDevice', () => {
     beforeEach(() => {
       vi.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');

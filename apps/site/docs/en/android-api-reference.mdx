@@ -172,13 +172,14 @@ function launch(target: string): Promise<void>;
 Run a raw `adb shell` command through the connected device.
 
 ```ts
-function runAdbShell(command: string): Promise<string>;
+function runAdbShell(command: string, opt?: { timeout?: number }): Promise<string>;
 ```
 
 - `command: string` &mdash; Command passed verbatim to `adb shell`.
+- `opt.timeout?: number` &mdash; Optional command execution timeout in milliseconds.
 
 ```ts
-const result = await agent.runAdbShell('dumpsys battery');
+const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
 console.log(result);
 ```
 
