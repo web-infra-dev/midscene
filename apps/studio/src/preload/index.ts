@@ -3,6 +3,7 @@ import {
   IPC_CHANNELS,
   type StudioRuntimeApi,
 } from '@shared/electron-contract';
+import type { UpdateStatus, UpdaterApi } from '@shared/updater-contract';
 import { contextBridge, ipcRenderer } from 'electron';
 
 /**
@@ -60,5 +61,20 @@ const studioRuntimeApi: StudioRuntimeApi = {
     ipcRenderer.invoke(IPC_CHANNELS.runConnectivityTest, request),
 };
 
+const updaterApi: UpdaterApi = {
+  check: () => ipcRenderer.invoke(IPC_CHANNELS.updaterCheck),
+  download: () => ipcRenderer.invoke(IPC_CHANNELS.updaterDownload),
+  install: () => ipcRenderer.invoke(IPC_CHANNELS.updaterInstall),
+  getVersion: () => ipcRenderer.invoke(IPC_CHANNELS.updaterGetVersion),
+  getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.updaterGetStatus),
+  onStatus: (callback: (status: UpdateStatus) => void) => {
+    const handler = (_event: unknown, status: UpdateStatus) => callback(status);
+    ipcRenderer.on(IPC_CHANNELS.updaterStatus, handler);
+    return () =>
+      ipcRenderer.removeListener(IPC_CHANNELS.updaterStatus, handler);
+  },
+};
+
 contextBridge.exposeInMainWorld('electronShell', electronShellApi);
 contextBridge.exposeInMainWorld('studioRuntime', studioRuntimeApi);
+contextBridge.exposeInMainWorld('studioUpdater', updaterApi);

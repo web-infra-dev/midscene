@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { STUDIO_EXTERNAL_LINKS } from '../../../shared/external-links';
 import { assetUrls } from '../../assets';
+import { useStudioUpdater } from '../../hooks/useStudioUpdater';
 import MainContent from '../MainContent';
 import { MaskedIcon } from '../MaskedIcon';
 import Playground from '../Playground';
@@ -105,6 +106,7 @@ export default function ShellLayout() {
     ),
   );
   const settingsAnchorRef = useRef<HTMLDivElement | null>(null);
+  const updater = useStudioUpdater();
   const modelConfigComplete = useMemo(
     () => hasCompleteModelEnvConfig(modelEnvText),
     [modelEnvText],
@@ -263,11 +265,24 @@ export default function ShellLayout() {
                   onWebsiteClick={() =>
                     openExternalUrl(STUDIO_EXTERNAL_LINKS.website)
                   }
+                  updater={{
+                    appVersion: updater.appVersion,
+                    onDownload: () => {
+                      void updater.download();
+                    },
+                    onInstall: () => {
+                      void updater.install();
+                    },
+                    onOpenDownloadPage: () =>
+                      openExternalUrl(STUDIO_EXTERNAL_LINKS.studioReleases),
+                    status: updater.status,
+                  }}
                 />
               </div>
             )}
             <SidebarFooter
               envAlert={!modelConfigComplete}
+              hasUpdateReady={updater.hasUpdateReady}
               onEnvClick={openEnvModal}
               onToggleSettings={() => setSettingsOpen((prev) => !prev)}
               settingsOpen={settingsOpen}

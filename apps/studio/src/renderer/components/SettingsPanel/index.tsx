@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { UpdateStatus } from '../../../shared/updater-contract';
 import {
   type StudioThemeMode,
   useStudioTheme,
 } from '../../theme/ThemeProvider';
 import SettingItem from './SettingItem';
+import UpdaterSection from './UpdaterSection';
 
 const LANGUAGE_STORAGE_KEY = 'studio.language';
 const LANGUAGE_OPTIONS: { value: string; label: string }[] = [
@@ -144,12 +146,20 @@ export interface SettingsPanelProps {
   className?: string;
   onGithubClick?: () => void;
   onWebsiteClick?: () => void;
+  updater?: {
+    status: UpdateStatus;
+    appVersion: string | null;
+    onDownload: () => void;
+    onInstall: () => void;
+    onOpenDownloadPage?: () => void;
+  };
 }
 
 export default function SettingsPanel({
   className,
   onGithubClick,
   onWebsiteClick,
+  updater,
 }: SettingsPanelProps) {
   const { mode, setMode } = useStudioTheme();
   // Language preference is persisted but not surfaced yet; the row is
@@ -239,13 +249,18 @@ export default function SettingsPanel({
           />
         </div>
 
-        <div className="my-[4px] h-px w-full bg-divider" />
-
-        <div className="flex h-[24px] items-center justify-center px-[8px]">
-          <span className="font-sans text-[11px] leading-none text-text-tertiary">
-            Version {__APP_VERSION__}
-          </span>
-        </div>
+        {updater ? (
+          <>
+            <div className="my-[4px] h-px w-full bg-divider" />
+            <UpdaterSection
+              appVersion={updater.appVersion}
+              onDownload={updater.onDownload}
+              onInstall={updater.onInstall}
+              onOpenDownloadPage={updater.onOpenDownloadPage}
+              status={updater.status}
+            />
+          </>
+        ) : null}
       </div>
 
       {openPopover === 'theme' ? (

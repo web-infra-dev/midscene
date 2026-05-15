@@ -6,6 +6,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { notarize } from '@electron/notarize';
 import { packager } from '@electron/packager';
+import {
+  writeAppUpdateYmlIntoResources,
+  writeUpdateMetadataForArtifact,
+} from './build-update-metadata.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1385,6 +1389,45 @@ const buildPackagedAppPayloadCandidates = async (packagedAppPath) => {
   return [...new Set(candidates)];
 };
 
+export const buildPackagedResourcesCandidates = async (packagedAppPath) => {
+  const candidates = [
+    path.join(packagedAppPath, 'Contents', 'Resources'),
+    path.join(packagedAppPath, 'resources'),
+  ];
+
+  let packagedOutputStats;
+  try {
+    packagedOutputStats = await fs.stat(packagedAppPath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return candidates;
+    }
+    throw error;
+  }
+
+  if (!packagedOutputStats.isDirectory()) {
+    return candidates;
+  }
+
+  const packagedOutputEntries = await fs.readdir(packagedAppPath, {
+    withFileTypes: true,
+  });
+
+  for (const entry of packagedOutputEntries) {
+    if (!entry.isDirectory() || !entry.name.endsWith('.app')) {
+      continue;
+    }
+
+    const nestedBundleRoot = path.join(packagedAppPath, entry.name);
+    candidates.push(
+      path.join(nestedBundleRoot, 'Contents', 'Resources'),
+      path.join(nestedBundleRoot, 'resources'),
+    );
+  }
+
+  return [...new Set(candidates)];
+};
+
 export const resolveMacPackagedAppBundlePath = async (packagedAppPath) => {
   if (packagedAppPath.endsWith('.app')) {
     return packagedAppPath;
@@ -1429,6 +1472,25 @@ export const resolveMacPackagedAppBundlePath = async (packagedAppPath) => {
 
 const findPackagedAppPayloadDir = async (packagedAppPath) => {
   const candidates = await buildPackagedAppPayloadCandidates(packagedAppPath);
+
+  for (const candidatePath of candidates) {
+    try {
+      const stats = await fs.stat(candidatePath);
+      if (stats.isDirectory()) {
+        return candidatePath;
+      }
+    } catch (error) {
+      if (error?.code !== 'ENOENT') {
+        throw error;
+      }
+    }
+  }
+
+  return null;
+};
+
+const findPackagedResourcesDir = async (packagedAppPath) => {
+  const candidates = await buildPackagedResourcesCandidates(packagedAppPath);
 
   for (const candidatePath of candidates) {
     try {
@@ -1884,6 +1946,16 @@ export const packageStudioElectronApp = async ({
     await dedupePlaygroundStatic(path.join(packagedPayloadDir, 'node_modules'));
   }
 
+  // app-update.yml lives next to the `app` payload (NOT inside it).
+  // electron-updater reads it from `process.resourcesPath/app-update.yml`
+  // at runtime to learn which provider / repo / cache dir to use. Must be
+  // written before signing on macOS so it ends up inside the signed
+  // bundle.
+  const resourcesDir = await findPackagedResourcesDir(packagedAppPath);
+  if (resourcesDir) {
+    await writeAppUpdateYmlIntoResources(resourcesDir);
+  }
+
   if (platform === 'darwin') {
     const macAppBundlePath =
       await resolveMacPackagedAppBundlePath(packagedAppPath);
@@ -1903,7 +1975,20 @@ export const packageStudioElectronApp = async ({
     artifactPath,
   });
 
+  // Emit the electron-updater channel manifest (latest-*.yml + beta-*.yml
+  // when the version is prerelease) so the GitHub Release surfaces the
+  // sha512/size the autoUpdater needs to verify the zip.
+  const updateMetadata = await writeUpdateMetadataForArtifact({
+    artifactPath,
+    artifactDir,
+    platform,
+    version: normalizedVersion,
+  });
+
   console.log(`Packaged Midscene Studio archive: ${artifactPath}`);
+  for (const ymlPath of updateMetadata.writtenPaths) {
+    console.log(`Wrote updater manifest: ${ymlPath}`);
+  }
   return artifactPath;
 };
 

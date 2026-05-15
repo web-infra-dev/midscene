@@ -43,9 +43,19 @@ interface DockRowProps {
   icon: React.ReactNode;
   label: string;
   onClick?: () => void;
+  showDot?: boolean;
+  title?: string;
 }
 
-function DockRow({ active, ariaExpanded, icon, label, onClick }: DockRowProps) {
+function DockRow({
+  active,
+  ariaExpanded,
+  icon,
+  label,
+  onClick,
+  showDot,
+  title,
+}: DockRowProps) {
   return (
     <button
       aria-expanded={ariaExpanded}
@@ -53,9 +63,15 @@ function DockRow({ active, ariaExpanded, icon, label, onClick }: DockRowProps) {
         active ? 'bg-surface-hover' : 'bg-transparent hover:bg-surface-hover'
       }`}
       onClick={onClick}
+      title={title}
       type="button"
     >
-      {icon}
+      <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
+        {icon}
+        {showDot ? (
+          <span className="absolute -right-[1px] -top-[1px] h-[6px] w-[6px] rounded-full bg-red-500 ring-2 ring-surface" />
+        ) : null}
+      </span>
       <span className="ml-[6px] overflow-hidden whitespace-nowrap font-sans text-[13px] leading-[22px] text-text-secondary">
         {label}
       </span>
@@ -68,6 +84,7 @@ export interface SettingsDockProps {
   onEnvClick?: () => void;
   onToggleSettings: () => void;
   settingsOpen: boolean;
+  hasUpdateReady?: boolean;
 }
 
 export default function SettingsDock({
@@ -75,6 +92,7 @@ export default function SettingsDock({
   onEnvClick,
   onToggleSettings,
   settingsOpen,
+  hasUpdateReady,
 }: SettingsDockProps) {
   return (
     <div className="flex flex-col gap-[2px]">
@@ -94,6 +112,8 @@ export default function SettingsDock({
         }
         label="Settings"
         onClick={onToggleSettings}
+        showDot={hasUpdateReady}
+        title={hasUpdateReady ? 'Update available' : 'Settings'}
       />
     </div>
   );

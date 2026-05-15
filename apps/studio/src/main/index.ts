@@ -22,6 +22,8 @@ import type { TitleBarOverlay } from 'electron';
 import { requestPlaygroundBootstrap } from './playground/bootstrap-request';
 import type { PlaygroundRuntimeService } from './playground/types';
 import { configureStudioShellEnvHydration } from './shell-env';
+import { studioUpdater } from './updater';
+import { registerUpdaterHandlers } from './updater-handlers';
 import { registerWindowRevealHandlers } from './window-reveal';
 
 // macOS GUI launches (Finder, Dock) skip the user's login shell, so
@@ -429,7 +431,15 @@ app.whenReady().then(() => {
     });
 
   registerIpcHandlers();
+  registerUpdaterHandlers(studioUpdater);
   createMainWindow();
+
+  // studioUpdater.init() no-ops when !app.isPackaged, and we skip the
+  // call entirely when running under the smoke/e2e harness so test runs
+  // do not hit the GitHub Releases API.
+  if (!isStudioSmokeTest && !isStudioE2ETest) {
+    studioUpdater.init(() => mainWindow);
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

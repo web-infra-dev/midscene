@@ -5,24 +5,102 @@ tasks:
   - name: sidebar task list is rendered
     flow:
       - sleep: 3000
-      - aiAssert: The left sidebar shows a list of task execution rows
+      - javascript: |
+          (function () {
+            const rows = document.querySelectorAll('.tasks-table .task-row');
+            if (rows.length < 2) {
+              throw new Error(
+                'Expected at least two sidebar task rows, found ' + rows.length,
+              );
+            }
+            return { taskRows: rows.length };
+          })()
+        name: assertSidebarRows
 
   - name: click a task row to view details
     flow:
-      - ai: Click on the first task row in the left sidebar execution list
-      - sleep: 3000
-      - aiAssert: The right detail panel shows task-related content such as Param, Output, or Meta sections
+      - javascript: |
+          (function () {
+            const firstRow = document.querySelector('.tasks-table .task-row');
+            if (!(firstRow instanceof HTMLElement)) {
+              throw new Error('First sidebar task row not found');
+            }
+            firstRow.click();
+            return { clickedTaskId: firstRow.getAttribute('data-task-id') };
+          })()
+        name: clickFirstTaskRow
+      - sleep: 1000
+      - javascript: |
+          (function () {
+            const labels = Array.from(
+              document.querySelectorAll('.detail-side .summary-text'),
+            ).map((element) => element.textContent?.trim());
+            const hasParam = labels.includes('Param');
+            const hasOutput = labels.includes('Output') || labels.includes('Element');
+            const hasMeta = labels.includes('Meta');
+            if (!hasParam || !hasOutput || !hasMeta) {
+              throw new Error(
+                'Expected detail side sections Param, Output/Element, and Meta; found ' +
+                  labels.join(', '),
+              );
+            }
+            return { labels };
+          })()
+        name: assertDetailSideSections
 
   - name: navigate between tasks
     flow:
-      - ai: Click on the second task row in the left sidebar
-      - sleep: 2000
-      - aiAssert: The right detail panel is visible and shows task-related content
+      - javascript: |
+          (function () {
+            const rows = Array.from(
+              document.querySelectorAll('.tasks-table .task-row'),
+            );
+            const secondRow = rows[1];
+            if (!(secondRow instanceof HTMLElement)) {
+              throw new Error('Second sidebar task row not found');
+            }
+            secondRow.click();
+            return { clickedTaskId: secondRow.getAttribute('data-task-id') };
+          })()
+        name: clickSecondTaskRow
+      - sleep: 1000
+      - javascript: |
+          (function () {
+            const selectedRow = document.querySelector('.tasks-table .task-row.selected');
+            if (!(selectedRow instanceof HTMLElement)) {
+              throw new Error('No selected sidebar task row after navigation');
+            }
+            const labels = Array.from(
+              document.querySelectorAll('.detail-side .summary-text'),
+            ).map((element) => element.textContent?.trim());
+            if (!labels.includes('Param') || !labels.includes('Meta')) {
+              throw new Error(
+                'Expected detail side to stay visible after task navigation; found ' +
+                  labels.join(', '),
+              );
+            }
+            return {
+              selectedTaskId: selectedRow.getAttribute('data-task-id'),
+              labels,
+            };
+          })()
+        name: assertSecondTaskSelected
 
   - name: toggle model call details
     flow:
-      - ai: Click the "Model Call Details" checkbox or toggle in the sidebar
-      - sleep: 2000
+      - javascript: |
+          (function () {
+            const checkbox = document.querySelector(
+              '.token-usage-checkbox input[type="checkbox"]',
+            );
+            if (!(checkbox instanceof HTMLElement)) {
+              throw new Error('Model Call Details checkbox not found in DOM');
+            }
+            checkbox.click();
+            return { clicked: true };
+          })()
+        name: clickProModeOn
+      - sleep: 1000
       - javascript: |
           (function () {
             const checkbox = document.querySelector(
@@ -47,8 +125,19 @@ tasks:
             return { proModeEnabled: true, intentHeaderRendered: true };
           })()
         name: assertProModeOn
-      - ai: Click the "Model Call Details" checkbox again to turn it off
-      - sleep: 2000
+      - javascript: |
+          (function () {
+            const checkbox = document.querySelector(
+              '.token-usage-checkbox input[type="checkbox"]',
+            );
+            if (!(checkbox instanceof HTMLElement)) {
+              throw new Error('Model Call Details checkbox not found in DOM');
+            }
+            checkbox.click();
+            return { clicked: true };
+          })()
+        name: clickProModeOff
+      - sleep: 1000
       - javascript: |
           (function () {
             const checkbox = document.querySelector(

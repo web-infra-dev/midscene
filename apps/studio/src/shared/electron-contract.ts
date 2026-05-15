@@ -22,6 +22,14 @@ export const IPC_CHANNELS = {
   discoveredDevicesUpdated: 'studio:discovered-devices-updated',
   setDiscoveryPollingPaused: 'studio:set-discovery-polling-paused',
   runConnectivityTest: 'studio:run-connectivity-test',
+  // Auto-updater bridge — main owns the electron-updater state machine,
+  // the renderer just renders it.
+  updaterCheck: 'updater:check',
+  updaterDownload: 'updater:download',
+  updaterInstall: 'updater:install',
+  updaterGetVersion: 'updater:getVersion',
+  updaterGetStatus: 'updater:getStatus',
+  updaterStatus: 'updater:status',
 } as const;
 
 export interface ConnectivityTestRequest {
