@@ -153,6 +153,41 @@ describe('AndroidAgent', () => {
     });
   });
 
+  describe('runAdbShell', () => {
+    it('should pass timeout options to RunAdbShell action', async () => {
+      const mockPage = new AndroidDevice('test-device');
+      vi.spyOn(mockPage, 'screenshotBase64').mockResolvedValue(
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      );
+      vi.spyOn(mockPage, 'size').mockResolvedValue({ width: 375, height: 812 });
+      vi.spyOn(mockPage, 'getElementsInfo').mockResolvedValue([]);
+      vi.spyOn(mockPage, 'url').mockResolvedValue('https://example.com');
+
+      const runAdbShellSpy = vi.fn().mockResolvedValue('adb-result');
+      vi.spyOn(mockPage, 'actionSpace').mockReturnValue([
+        { name: 'Launch', paramSchema: undefined, call: async () => {} },
+        { name: 'Terminate', paramSchema: undefined, call: async () => {} },
+        {
+          name: 'RunAdbShell',
+          paramSchema: undefined,
+          call: runAdbShellSpy,
+        },
+      ] as any);
+
+      const agent = new AndroidAgent(mockPage, {
+        modelConfig: mockedModelConfig,
+      });
+
+      await expect(
+        agent.runAdbShell('sleep 2', { timeout: 2_000 }),
+      ).resolves.toBe('adb-result');
+      expect(runAdbShellSpy.mock.calls[0][0]).toEqual({
+        command: 'sleep 2',
+        timeout: 2_000,
+      });
+    });
+  });
+
   describe('agentFromAdbDevice', () => {
     beforeEach(() => {
       vi.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');

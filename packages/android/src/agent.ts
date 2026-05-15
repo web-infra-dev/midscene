@@ -17,6 +17,13 @@ import { getConnectedDevices } from './utils';
 
 const debugAgent = getDebug('android:agent');
 
+export type RunAdbShellOpt = {
+  /**
+   * ADB shell command execution timeout in milliseconds.
+   */
+  timeout?: number;
+};
+
 export type AndroidAgentOpt = AgentOpt & {
   /**
    * Custom mapping of app names to package names
@@ -106,11 +113,12 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
   /**
    * Execute ADB shell command on Android device
    * @param command - ADB shell command to execute
+   * @param opt - Optional ADB shell execution settings
    */
-  async runAdbShell(command: string): Promise<string> {
+  async runAdbShell(command: string, opt?: RunAdbShellOpt): Promise<string> {
     const action =
       this.wrapActionInActionSpace<DeviceActionRunAdbShell>('RunAdbShell');
-    return action({ command });
+    return action({ command, ...opt });
   }
 
   private createActionWrapper<T extends DeviceAction>(

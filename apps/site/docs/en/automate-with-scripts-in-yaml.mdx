@@ -238,7 +238,7 @@ YAML scripts now support all configuration options from the `AndroidDevice` cons
 
 **`runAdbShell` - Execute ADB Shell Commands**
 
-Execute ADB shell commands on Android devices.
+Execute ADB shell commands on Android devices. Use the object form when you need to set `timeout` in milliseconds.
 
 ```yaml
 android:
@@ -252,6 +252,12 @@ tasks:
   - name: Get battery info
     flow:
       - runAdbShell: 'dumpsys battery'
+
+  - name: Run command with timeout
+    flow:
+      - runAdbShell:
+          command: 'dumpsys activity services'
+          timeout: 60000
 ```
 
 **Common ADB Shell Commands:**

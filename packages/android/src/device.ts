@@ -1997,6 +1997,12 @@ ${Object.keys(size)
  */
 const runAdbShellParamSchema = z.object({
   command: z.string().describe('ADB shell command to execute'),
+  timeout: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('ADB shell command execution timeout in milliseconds'),
 });
 
 const launchParamSchema = z.object({
@@ -2042,13 +2048,16 @@ const createPlatformActions = (
       paramSchema: runAdbShellParamSchema,
       sample: {
         command: 'dumpsys window displays | grep -E "mCurrentFocus"',
+        timeout: 60_000,
       },
       call: async (param) => {
         if (!param.command || param.command.trim() === '') {
           throw new Error('RunAdbShell requires a non-empty command parameter');
         }
         const adb = await device.getAdb();
-        return await adb.shell(param.command);
+        return param.timeout !== undefined
+          ? await adb.shell(param.command, { timeout: param.timeout })
+          : await adb.shell(param.command);
       },
     }),
     Launch: defineAction<typeof launchParamSchema, LaunchParam, void>({

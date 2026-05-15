@@ -640,10 +640,12 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
               ],
             );
 
-          const flowParams = {
-            ...restParams,
-            locate: locateParam,
-          };
+          const flowParams = locateParam
+            ? {
+                ...restParams,
+                locate: locateParam,
+              }
+            : restParams;
 
           debug(
             `matchedAction: ${matchedAction.name}`,
