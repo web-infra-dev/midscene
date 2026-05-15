@@ -459,6 +459,40 @@ describe('extract element', () => {
     expect(prompt).toMatchSnapshot();
   });
 
+  it('systemPromptToExtract without screenshot', () => {
+    const prompt = systemPromptToExtract({ screenshotIncluded: false });
+    expect(prompt).toContain('The user will not provide a current screenshot.');
+    expect(prompt).not.toContain(
+      'Reference images are supporting context only',
+    );
+  });
+
+  it('systemPromptToExtract with screenshot and reference images', () => {
+    const prompt = systemPromptToExtract({
+      screenshotIncluded: true,
+      referenceImagesIncluded: true,
+    });
+    expect(prompt).toContain(
+      'The user will provide a current screenshot to evaluate',
+    );
+    expect(prompt).toContain('Reference images are supporting context only');
+    expect(prompt).toContain(
+      'when they conflict, trust the current screenshot and its contents',
+    );
+  });
+
+  it('systemPromptToExtract with reference images and without screenshot', () => {
+    const prompt = systemPromptToExtract({
+      screenshotIncluded: false,
+      referenceImagesIncluded: true,
+    });
+    expect(prompt).toContain('The user will not provide a current screenshot.');
+    expect(prompt).toContain('Reference images are supporting context only');
+    expect(prompt).toContain(
+      'Do not treat reference images as direct evidence of the current state',
+    );
+  });
+
   it('extract element by extractDataPrompt', () => {
     const prompt = extractDataQueryPrompt(
       'todo title, string',

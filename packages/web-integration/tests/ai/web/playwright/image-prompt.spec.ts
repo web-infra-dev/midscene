@@ -3,13 +3,10 @@ import { sleep } from '@midscene/core/utils';
 import { expect } from '@playwright/test';
 import { test } from './fixture';
 
-test.beforeEach(async ({ page }) => {
-  await page.goto('https://github.com/web-infra-dev/midscene');
-});
-
 const CACHE_TIME_OUT = process.env.MIDSCENE_CACHE;
 
 test('prompting with images', async ({
+  page,
   aiBoolean,
   aiAction,
   aiAssert,
@@ -18,6 +15,8 @@ test('prompting with images', async ({
   if (CACHE_TIME_OUT) {
     test.setTimeout(200 * 1000);
   }
+
+  await page.goto('https://github.com/web-infra-dev/midscene');
 
   const positiveCheck = await aiBoolean({
     prompt: 'Please determine whether there is logo1 on the page.',
@@ -69,4 +68,38 @@ test('prompting with images', async ({
 
   // After click the left top github logo, page will jump to github home
   await aiAssert('The is no text "midscene" in current page.');
+});
+
+test('does not treat reference image content as current screenshot content', async ({
+  page,
+  aiAssert,
+  aiBoolean,
+}) => {
+  if (CACHE_TIME_OUT) {
+    test.setTimeout(200 * 1000);
+  }
+
+  await page.goto('about:blank');
+
+  const negativeCheck = await aiBoolean({
+    prompt: 'There is a github logo.',
+    images: [
+      {
+        name: 'github-logo',
+        url: path.resolve(__dirname, '__fixtures__/github-logo.png'),
+      },
+    ],
+  });
+
+  expect(negativeCheck).toBe(false);
+
+  await aiAssert({
+    prompt: 'There is no github logo.',
+    images: [
+      {
+        name: 'github-logo',
+        url: path.resolve(__dirname, '__fixtures__/github-logo.png'),
+      },
+    ],
+  });
 });
