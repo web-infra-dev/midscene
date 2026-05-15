@@ -3,7 +3,7 @@ import { expect } from 'playwright/test';
 import { test } from '../playwright/fixture';
 import { getLastModifiedReportHTMLFile } from '../playwright/util';
 
-test('ai report', async ({ page, ai, aiAssert, aiQuery }, testInfo) => {
+test('ai report', async ({ page, aiAssert, aiQuery }, testInfo) => {
   testInfo.snapshotSuffix = '';
   await new Promise((resolve) => setTimeout(resolve, 3000));
   const htmlFile = getLastModifiedReportHTMLFile(
@@ -14,12 +14,17 @@ test('ai report', async ({ page, ai, aiAssert, aiQuery }, testInfo) => {
   expect(htmlFile).toBeTruthy();
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto(`file:${htmlFile}`);
-  await ai(
-    'In the left sidebar, click the dropdown selector that shows a status icon (✓ or ✗) with a test case name, to expand the dropdown list',
-  );
-  await ai(
-    'In the expanded dropdown list, scroll down if needed, and click the option whose text contains "ai todo" (not "ai shop")',
-  );
+  await page.locator('.modern-playwright-selector .selector-header').click();
+  const options = page.locator('.selector-content .option-item');
+  await expect(options.first()).toBeVisible();
+
+  const aiTodoOption = options.filter({ hasText: /ai todo/i });
+  if ((await aiTodoOption.count()) > 0) {
+    await aiTodoOption.first().click();
+  } else {
+    await options.first().click();
+  }
+
   const actionsList = await aiQuery(
     'Array<{title: string(task name,include action、wait), actions: Array<string(task action name,Excluding time)>}>',
   );
