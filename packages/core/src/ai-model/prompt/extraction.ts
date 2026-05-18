@@ -81,7 +81,7 @@ export function systemPromptToExtract(options?: {
     );
   } else {
     contextPrompts.push(
-      'The user will not provide a current screenshot. Base your answer on the provided contents and other inputs, and do not assume visual facts that are not supported by them.',
+      'The user will not provide a current screenshot. Use only the supplied page contents and other inputs, and do not infer unsupported visual details.',
     );
   }
 

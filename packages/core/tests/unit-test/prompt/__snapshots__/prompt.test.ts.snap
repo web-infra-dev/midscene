@@ -118,7 +118,7 @@ You are a versatile professional in software UI design and testing. Your outstan
 
 The user will give you data requirements in <DATA_DEMAND>. You need to understand the user's requirements and extract the data satisfying the <DATA_DEMAND>.
 
-The user will not provide a current screenshot. Base your answer on the provided contents and other inputs, and do not assume visual facts that are not supported by them.
+The user will not provide a current screenshot. Use only the supplied page contents and other inputs, and do not infer unsupported visual details.
 
 Reference images are supporting context only unless <DATA_DEMAND> explicitly asks for comparison, matching, or reasoning about them. Do not treat reference images as direct evidence of the current state unless the demand explicitly asks you to use them that way.
 
@@ -294,7 +294,7 @@ You are a versatile professional in software UI design and testing. Your outstan
 
 The user will give you data requirements in <DATA_DEMAND>. You need to understand the user's requirements and extract the data satisfying the <DATA_DEMAND>.
 
-The user will not provide a current screenshot. Base your answer on the provided contents and other inputs, and do not assume visual facts that are not supported by them.
+The user will not provide a current screenshot. Use only the supplied page contents and other inputs, and do not infer unsupported visual details.
 
 If a key specifies a JSON data type (such as Number, String, Boolean, Object, Array), ensure the returned value strictly matches that data type.
 
