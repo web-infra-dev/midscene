@@ -16,6 +16,12 @@ export type WebPageOpt = {
   forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
   enableTouchEventsInActionSpace?: boolean;
   /**
+   * Per-character delay (ms) used when typing text via the underlying
+   * Puppeteer/Playwright `keyboard.type` API. Defaults to
+   * `DEFAULT_KEYBOARD_TYPE_DELAY` (80ms). Set to 0 to disable the delay.
+   */
+  keyboardTypeDelay?: number;
+  /**
    * Force Chrome to render select elements using base-select appearance instead of OS-native rendering.
    * This makes select elements visible in screenshots captured by Playwright/Puppeteer.
    *
