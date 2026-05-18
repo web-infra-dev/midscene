@@ -15,7 +15,6 @@ import {
 import {
   cropByRect,
   paddingToMatchBlockByBase64,
-  preProcessImageUrl,
   scaleImage,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -26,7 +25,14 @@ import type {
   ChatCompletionUserMessageParam,
 } from 'openai/resources/index';
 import type { TMultimodalPrompt, TUserPrompt } from '../common';
-import { adaptBboxToRect, expandSearchArea, mergeRects } from '../common';
+import {
+  adaptBboxToRect,
+  expandSearchArea,
+  mergeRects,
+  multimodalPromptToChatMessages,
+  userPromptToMultimodalPrompt,
+  userPromptToString,
+} from '../common';
 import { parseAutoGLMLocateResponse } from './auto-glm/parser';
 import { getAutoGLMLocatePrompt } from './auto-glm/prompt';
 import { isAutoGLM } from './auto-glm/util';
@@ -87,62 +93,6 @@ export async function buildSearchAreaConfig(options: {
   };
 }
 
-const extraTextFromUserPrompt = (prompt: TUserPrompt): string => {
-  if (typeof prompt === 'string') {
-    return prompt;
-  } else {
-    return prompt.prompt;
-  }
-};
-
-const promptsToChatParam = async (
-  multimodalPrompt: TMultimodalPrompt,
-): Promise<ChatCompletionUserMessageParam[]> => {
-  const msgs: ChatCompletionUserMessageParam[] = [];
-  if (multimodalPrompt?.images?.length) {
-    msgs.push({
-      role: 'user',
-      content: [
-        {
-          type: 'text',
-          text: 'Next, I will provide all the reference images. These reference images are supporting context only, not the current screenshot being evaluated, unless the task explicitly asks for comparison or matching.',
-        },
-      ],
-    });
-
-    for (const item of multimodalPrompt.images) {
-      const base64 = await preProcessImageUrl(
-        item.url,
-        !!multimodalPrompt.convertHttpImage2Base64,
-      );
-
-      msgs.push({
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: `this is the reference image named '${item.name}'. It is a reference image, not the current screenshot:`,
-          },
-        ],
-      });
-
-      msgs.push({
-        role: 'user',
-        content: [
-          {
-            type: 'image_url',
-            image_url: {
-              url: base64,
-              detail: 'high',
-            },
-          },
-        ],
-      });
-    }
-  }
-  return msgs;
-};
-
 export async function AiLocateElement(options: {
   context: UIContext;
   targetElementDescription: TUserPrompt;
@@ -167,7 +117,7 @@ export async function AiLocateElement(options: {
     targetElementDescription,
     'cannot find the target element description',
   );
-  const targetElementDescriptionText = extraTextFromUserPrompt(
+  const targetElementDescriptionText = userPromptToString(
     targetElementDescription,
   );
   const userInstructionPrompt = findElementPrompt(targetElementDescriptionText);
@@ -226,10 +176,9 @@ export async function AiLocateElement(options: {
   ];
 
   if (typeof targetElementDescription !== 'string') {
-    const addOns = await promptsToChatParam({
-      images: targetElementDescription.images,
-      convertHttpImage2Base64: targetElementDescription.convertHttpImage2Base64,
-    });
+    const addOns = await multimodalPromptToChatMessages(
+      userPromptToMultimodalPrompt(targetElementDescription),
+    );
     msgs.push(...addOns);
   }
 
@@ -412,7 +361,7 @@ export async function AiLocateSection(options: {
 
   const systemPrompt = systemPromptToLocateSection(modelFamily);
   const sectionLocatorInstructionText = sectionLocatorInstruction(
-    extraTextFromUserPrompt(sectionDescription),
+    userPromptToString(sectionDescription),
   );
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
@@ -435,10 +384,9 @@ export async function AiLocateSection(options: {
   ];
 
   if (typeof sectionDescription !== 'string') {
-    const addOns = await promptsToChatParam({
-      images: sectionDescription.images,
-      convertHttpImage2Base64: sectionDescription.convertHttpImage2Base64,
-    });
+    const addOns = await multimodalPromptToChatMessages(
+      userPromptToMultimodalPrompt(sectionDescription),
+    );
     msgs.push(...addOns);
   }
 
@@ -595,10 +543,7 @@ export async function AiExtractElementInfo<T>(options: {
   ];
 
   if (multimodalPrompt) {
-    const addOns = await promptsToChatParam({
-      images: multimodalPrompt.images,
-      convertHttpImage2Base64: multimodalPrompt.convertHttpImage2Base64,
-    });
+    const addOns = await multimodalPromptToChatMessages(multimodalPrompt);
     msgs.push(...addOns);
   }
 

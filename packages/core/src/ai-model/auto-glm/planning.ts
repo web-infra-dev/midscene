@@ -1,8 +1,12 @@
+import { type TUserPrompt, userPromptToString } from '@/common';
 import type { DeviceAction } from '@/device';
 import type { PlanningAIResponse, UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
+import type {
+  ChatCompletionMessageParam,
+  ChatCompletionUserMessageParam,
+} from 'openai/resources/index';
 import type { ConversationHistory } from '../conversation-history';
 import {
   AIResponseParseError,
@@ -15,13 +19,14 @@ import { getAutoGLMPlanPrompt } from './prompt';
 const debug = getDebug('auto-glm-planning');
 
 export async function autoGLMPlanning(
-  userInstruction: string,
+  userInstruction: TUserPrompt,
   options: {
     conversationHistory: ConversationHistory;
     context: UIContext;
     modelConfig: IModelConfig;
     actionContext?: string;
     actionSpace?: DeviceAction[];
+    referenceImageMessages?: ChatCompletionUserMessageParam[];
     abortSignal?: AbortSignal;
   },
 ): Promise<PlanningAIResponse> {
@@ -34,11 +39,13 @@ export async function autoGLMPlanning(
       : '');
 
   const imagePayloadBase64 = context.screenshot.base64;
+  const userInstructionText = userPromptToString(userInstruction);
+  const referenceImageMessages = options.referenceImageMessages ?? [];
 
-  conversationHistory.append({
+  const userInstructionMessage: ChatCompletionMessageParam = {
     role: 'user',
-    content: [{ type: 'text', text: userInstruction }],
-  });
+    content: [{ type: 'text', text: userInstructionText }],
+  };
   conversationHistory.append({
     role: 'user',
     content: [{ type: 'image_url', image_url: { url: imagePayloadBase64 } }],
@@ -46,6 +53,8 @@ export async function autoGLMPlanning(
 
   const msgs: ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
+    userInstructionMessage,
+    ...referenceImageMessages,
     ...conversationHistory.snapshot(1),
   ];
 

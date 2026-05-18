@@ -142,7 +142,7 @@ const agent = new PuppeteerAgent(page, {
 
 ```typescript
 function aiAct(
-  prompt: string,
+  prompt: string | Object,
   options?: {
     cacheable?: boolean;
     deepThink?: 'unset' | true | false;
@@ -151,12 +151,12 @@ function aiAct(
     abortSignal?: AbortSignal;
   },
 ): Promise<string | undefined>;
-function ai(prompt: string): Promise<string | undefined>; // 简写形式
+function ai(prompt: string | Object): Promise<string | undefined>; // 简写形式
 ```
 
 - 参数：
 
-  - `prompt: string` - 用自然语言描述的操作内容
+  - `prompt: string | Object` - 用自然语言描述的操作内容，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
     - `deepThink?: 'unset' | true | false` - 控制 Midscene 在 `aiAct` 规划时引导模型思考的力度。开启后，`aiAct` 会更注重任务拆解，并将任务 Planning 和 UI 元素定位拆解为不同的模型调用。为了兼容旧写法，`'unset'` 仍然可以传入，并会被按 `false` 处理。[详情参阅 deepThink 说明](./model-strategy#关于-aiact-方法的-deepthink-参数)。
@@ -1281,7 +1281,7 @@ await agent.aiTap('右上角购物车图标', { deepLocate: true });
   images?: {
     // 图片名称，需要和提示词文本中提到的图片名称对应
     name: string,
-    // 图片 url，可以是本地图片路径、Base64 字符串，或者图片的 http 链接
+    // 图片 url，可以是本地图片路径、Base64 data URL，或者图片的 http 链接
     url: string
   }[]
   // 开启该选项后，http 格式的图片链接会被转化为 Base64 编码发送给大模型，适用于图片链接不是公开可访问的情况。
@@ -1311,6 +1311,20 @@ await agent.aiAssert({
   images: [
     {
       name: '指定 logo',
+      url: 'https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png',
+    },
+  ],
+});
+```
+
+- 示例三：在自动规划中使用图片
+
+```javascript
+await agent.aiAct({
+  prompt: '使用与目标 logo 匹配的按钮完成流程。',
+  images: [
+    {
+      name: '目标 logo',
       url: 'https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png',
     },
   ],

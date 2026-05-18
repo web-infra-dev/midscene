@@ -1,3 +1,4 @@
+import { type TUserPrompt, userPromptToString } from '@/common';
 import type {
   PlanningAIResponse,
   PlanningAction,
@@ -9,6 +10,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
 import { assert } from '@midscene/shared/utils';
 import { actionParser } from '@ui-tars/action-parser';
+import type { ChatCompletionUserMessageParam } from 'openai/resources/index';
 import type { ConversationHistory } from './conversation-history';
 import { getSummary, getUiTarsPlanningPrompt } from './prompt/ui-tars-planning';
 import {
@@ -44,26 +46,29 @@ const pointToBbox = (
 };
 
 export async function uiTarsPlanning(
-  userInstruction: string,
+  userInstruction: TUserPrompt,
   options: {
     conversationHistory: ConversationHistory;
     context: UIContext;
     modelConfig: IModelConfig;
     actionContext?: string;
+    referenceImageMessages?: ChatCompletionUserMessageParam[];
     abortSignal?: AbortSignal;
   },
 ): Promise<PlanningAIResponse> {
   const { conversationHistory, context, modelConfig, actionContext } = options;
   const { uiTarsModelVersion } = modelConfig;
 
-  let instruction = userInstruction;
+  const userInstructionText = userPromptToString(userInstruction);
+  let instruction = userInstructionText;
   if (actionContext) {
-    instruction = `<high_priority_knowledge>${actionContext}</high_priority_knowledge>\n<user_instruction>${userInstruction}</user_instruction>`;
+    instruction = `<high_priority_knowledge>${actionContext}</high_priority_knowledge>\n<user_instruction>${userInstructionText}</user_instruction>`;
   }
 
   const systemPrompt = getUiTarsPlanningPrompt() + instruction;
 
   const screenshotBase64 = context.screenshot.base64;
+  const referenceImageMessages = options.referenceImageMessages ?? [];
 
   conversationHistory.append({
     role: 'user',
@@ -83,6 +88,7 @@ export async function uiTarsPlanning(
         role: 'user',
         content: systemPrompt,
       },
+      ...referenceImageMessages,
       ...conversationHistory.snapshot(),
     ],
     modelConfig,

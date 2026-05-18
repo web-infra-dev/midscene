@@ -210,9 +210,10 @@ export type MidsceneYamlScriptEnv =
 
 export interface MidsceneYamlFlowItemAIAction {
   // defined as aiAction for backward compatibility
-  aiAction?: string;
-  ai?: string; // this is the shortcut for aiAct
-  aiAct?: string;
+  aiAction?: string | null;
+  ai?: string | null; // this is the shortcut for aiAct
+  aiAct?: string | null;
+  instruction?: TUserPrompt;
   aiActionProgressTips?: string[];
   cacheable?: boolean;
   [key: string]: unknown;
