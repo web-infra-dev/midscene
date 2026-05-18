@@ -229,14 +229,14 @@ async function createChatClient({
 }
 
 /**
- * Apply custom system prompt from MIDSCENE_CUSTOM_SYSTEM_PROMPT env var.
- * When set, prepends the custom prompt to all system messages.
+ * Apply extra system prompt from MIDSCENE_SYSTEM_PROMPT_EXTRA env var.
+ * When set, prepends the extra prompt to all system messages.
  * This allows private/self-hosted models to receive model-specific instructions.
  */
 export function applyCustomSystemPrompt(
   messages: ChatCompletionMessageParam[],
 ): ChatCompletionMessageParam[] {
-  const customPrompt = process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT;
+  const customPrompt = process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA;
   if (!customPrompt || !customPrompt.trim()) {
     return messages;
   }

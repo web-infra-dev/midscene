@@ -2,24 +2,24 @@ import { applyCustomSystemPrompt } from '@/ai-model/service-caller';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-describe('MIDSCENE_CUSTOM_SYSTEM_PROMPT', () => {
+describe('MIDSCENE_SYSTEM_PROMPT_EXTRA', () => {
   let savedValue: string | undefined;
 
   beforeEach(() => {
-    savedValue = process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT;
+    savedValue = process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA;
   });
 
   afterEach(() => {
     if (savedValue === undefined) {
       // biome-ignore lint/performance/noDelete: restoring env state in test teardown
-      delete process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT;
+      delete process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA;
     } else {
-      process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT = savedValue;
+      process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA = savedValue;
     }
   });
 
   it('should prepend custom system prompt to system messages when env var is set', () => {
-    process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT =
+    process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA =
       'You are a specialized assistant for our internal tool.';
 
     const messages: ChatCompletionMessageParam[] = [
@@ -42,7 +42,7 @@ describe('MIDSCENE_CUSTOM_SYSTEM_PROMPT', () => {
 
   it('should not modify messages when env var is not set', () => {
     // biome-ignore lint/performance/noDelete: testing absent env var behavior
-    delete process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT;
+    delete process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA;
 
     const messages: ChatCompletionMessageParam[] = [
       { role: 'system', content: 'Original system prompt.' },
@@ -55,7 +55,7 @@ describe('MIDSCENE_CUSTOM_SYSTEM_PROMPT', () => {
   });
 
   it('should not modify messages when env var is empty string', () => {
-    process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT = '';
+    process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA = '';
 
     const messages: ChatCompletionMessageParam[] = [
       { role: 'system', content: 'Original system prompt.' },
@@ -68,7 +68,7 @@ describe('MIDSCENE_CUSTOM_SYSTEM_PROMPT', () => {
   });
 
   it('should not modify messages when env var is whitespace only', () => {
-    process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT = '   \n  ';
+    process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA = '   \n  ';
 
     const messages: ChatCompletionMessageParam[] = [
       { role: 'system', content: 'Original system prompt.' },
@@ -81,7 +81,7 @@ describe('MIDSCENE_CUSTOM_SYSTEM_PROMPT', () => {
   });
 
   it('should prepend to all system messages when multiple exist', () => {
-    process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT = 'Custom prefix.';
+    process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA = 'Custom prefix.';
 
     const messages: ChatCompletionMessageParam[] = [
       { role: 'system', content: 'First system message.' },
@@ -97,7 +97,7 @@ describe('MIDSCENE_CUSTOM_SYSTEM_PROMPT', () => {
   });
 
   it('should not mutate the original messages array', () => {
-    process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT = 'Custom prefix.';
+    process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA = 'Custom prefix.';
 
     const messages: ChatCompletionMessageParam[] = [
       { role: 'system', content: 'Original.' },
@@ -112,7 +112,7 @@ describe('MIDSCENE_CUSTOM_SYSTEM_PROMPT', () => {
   });
 
   it('should handle messages with no system role', () => {
-    process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT = 'Custom prefix.';
+    process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA = 'Custom prefix.';
 
     const messages: ChatCompletionMessageParam[] = [
       { role: 'user', content: 'Hello' },
@@ -126,7 +126,7 @@ describe('MIDSCENE_CUSTOM_SYSTEM_PROMPT', () => {
   });
 
   it('should handle multiline custom system prompt', () => {
-    process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT =
+    process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA =
       'Line 1: You must respond in JSON.\nLine 2: Always include reasoning.';
 
     const messages: ChatCompletionMessageParam[] = [

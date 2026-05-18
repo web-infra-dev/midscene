@@ -1,5 +1,5 @@
 /**
- * Integration test for MIDSCENE_CUSTOM_SYSTEM_PROMPT.
+ * Integration test for MIDSCENE_SYSTEM_PROMPT_EXTRA.
  *
  * Mocks the OpenAI client and verifies that when the env var is set,
  * the custom system prompt is actually prepended to system messages
@@ -30,11 +30,11 @@ const baseModelConfig: IModelConfig = {
   slot: 'default',
 };
 
-describe('MIDSCENE_CUSTOM_SYSTEM_PROMPT integration', () => {
+describe('MIDSCENE_SYSTEM_PROMPT_EXTRA integration', () => {
   let savedValue: string | undefined;
 
   beforeEach(() => {
-    savedValue = process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT;
+    savedValue = process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA;
     mockCreate.mockReset();
     mockCreate.mockResolvedValue({
       choices: [{ message: { content: '{"type":"Locate","result":[]}' } }],
@@ -49,14 +49,14 @@ describe('MIDSCENE_CUSTOM_SYSTEM_PROMPT integration', () => {
   afterEach(() => {
     if (savedValue === undefined) {
       // biome-ignore lint/performance/noDelete: restoring env state in test teardown
-      delete process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT;
+      delete process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA;
     } else {
-      process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT = savedValue;
+      process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA = savedValue;
     }
   });
 
   it('prepends custom system prompt in the actual API call', async () => {
-    process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT =
+    process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA =
       'You are a UI automation assistant for our private app. Always respond in valid JSON.';
 
     const messages = [
@@ -90,7 +90,7 @@ describe('MIDSCENE_CUSTOM_SYSTEM_PROMPT integration', () => {
 
   it('does not modify messages when env var is absent', async () => {
     // biome-ignore lint/performance/noDelete: testing absent env var behavior
-    delete process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT;
+    delete process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA;
 
     const messages = [
       {
@@ -119,7 +119,7 @@ describe('MIDSCENE_CUSTOM_SYSTEM_PROMPT integration', () => {
   });
 
   it('works with multimodal messages (image + text)', async () => {
-    process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT =
+    process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA =
       'Model-specific: use bbox coordinates for element location.';
 
     const messages = [
@@ -163,7 +163,7 @@ describe('MIDSCENE_CUSTOM_SYSTEM_PROMPT integration', () => {
   });
 
   it('prepends to system messages across different intent configs', async () => {
-    process.env.MIDSCENE_CUSTOM_SYSTEM_PROMPT = 'Private model prefix.';
+    process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA = 'Private model prefix.';
 
     const planningConfig: IModelConfig = {
       ...baseModelConfig,
