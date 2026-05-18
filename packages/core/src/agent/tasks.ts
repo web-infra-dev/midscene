@@ -6,6 +6,7 @@ import {
   uiTarsPlanning,
 } from '@/ai-model';
 import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
+import { buildTypeQueryDemandValue } from '@/ai-model/prompt/extraction';
 import {
   type TMultimodalPrompt,
   type TUserPrompt,
@@ -599,17 +600,13 @@ export class TaskExecutor {
         let keyOfResult = 'result';
         if (ifTypeRestricted && (type === 'Assert' || type === 'WaitFor')) {
           keyOfResult = 'StatementIsTruthy';
-          const booleanPrompt =
-            type === 'Assert'
-              ? `Boolean, whether the following statement is true: ${demand}`
-              : `Boolean, the user wants to do some 'wait for' operation, please check whether the following statement is true: ${demand}`;
           demandInput = {
-            [keyOfResult]: booleanPrompt,
+            [keyOfResult]: buildTypeQueryDemandValue(type, demand),
           };
         } else if (ifTypeRestricted) {
           keyOfResult = type;
           demandInput = {
-            [keyOfResult]: `${type}, ${demand}`,
+            [keyOfResult]: buildTypeQueryDemandValue(type, demand),
           };
         }
 

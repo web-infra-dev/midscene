@@ -459,6 +459,27 @@ describe('extract element', () => {
     expect(prompt).toMatchSnapshot();
   });
 
+  it('systemPromptToExtract without screenshot', () => {
+    const prompt = systemPromptToExtract({ screenshotIncluded: false });
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('systemPromptToExtract with screenshot and reference images', () => {
+    const prompt = systemPromptToExtract({
+      screenshotIncluded: true,
+      referenceImagesIncluded: true,
+    });
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('systemPromptToExtract with reference images and without screenshot', () => {
+    const prompt = systemPromptToExtract({
+      screenshotIncluded: false,
+      referenceImagesIncluded: true,
+    });
+    expect(prompt).toMatchSnapshot();
+  });
+
   it('extract element by extractDataPrompt', () => {
     const prompt = extractDataQueryPrompt(
       'todo title, string',

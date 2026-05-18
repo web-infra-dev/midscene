@@ -1,8 +1,25 @@
-import type { AIDataExtractionResponse } from '@/types';
+import type { AIDataExtractionResponse, ServiceExtractParam } from '@/types';
 import { getPreferredLanguage } from '@midscene/shared/env';
-import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 import { safeParseJson } from '../service-caller/index';
 import { extractXMLTag } from './util';
+
+export function buildTypeQueryDemandValue(
+  type: 'Boolean' | 'Number' | 'String' | 'Assert' | 'WaitFor',
+  demand: ServiceExtractParam,
+) {
+  const currentScreenshotConstraint =
+    'based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images';
+
+  if (type === 'Assert') {
+    return `Boolean, ${currentScreenshotConstraint}, whether the following statement is true: ${demand}`;
+  }
+
+  if (type === 'WaitFor') {
+    return `Boolean, the user wants to do some 'wait for' operation. ${currentScreenshotConstraint}, please check whether the following statement is true: ${demand}`;
+  }
+
+  return `${type}, ${currentScreenshotConstraint}, ${demand}`;
+}
 
 /**
  * Parse XML response from LLM and convert to AIDataExtractionResponse
@@ -46,19 +63,47 @@ export function parseXMLExtractionResponse<T>(
   };
 }
 
-export function systemPromptToExtract() {
+export function systemPromptToExtract(options?: {
+  screenshotIncluded?: boolean;
+  referenceImagesIncluded?: boolean;
+}) {
   const preferredLanguage = getPreferredLanguage();
+  const screenshotIncluded = options?.screenshotIncluded ?? true;
+  const referenceImagesIncluded = options?.referenceImagesIncluded ?? false;
+
+  const contextPrompts = [
+    "The user will give you data requirements in <DATA_DEMAND>. You need to understand the user's requirements and extract the data satisfying the <DATA_DEMAND>.",
+  ];
+
+  if (screenshotIncluded) {
+    contextPrompts.push(
+      'The user will provide a current screenshot to evaluate, and may provide its contents. Base your answer on the current screenshot and its contents when provided. Treat them as the primary source of truth for what is currently visible or true.',
+    );
+  } else {
+    contextPrompts.push(
+      'The user will not provide a current screenshot. Use only the supplied page contents and other inputs, and do not infer unsupported visual details.',
+    );
+  }
+
+  if (referenceImagesIncluded) {
+    const referenceImagesPrompt =
+      'Reference images are supporting context only unless <DATA_DEMAND> explicitly asks for comparison, matching, or reasoning about them.';
+    contextPrompts.push(
+      screenshotIncluded
+        ? `${referenceImagesPrompt} Do not conclude that something exists in the current screenshot solely because it appears in a reference image; when they conflict, trust the current screenshot and its contents.`
+        : `${referenceImagesPrompt} Do not treat reference images as direct evidence of the current state unless the demand explicitly asks you to use them that way.`,
+    );
+  }
+  const contextPrompt = contextPrompts.join('\n\n');
 
   return `
 You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.
 
-The user will give you a screenshot, the contents of it (optional), and some data requirements in <DATA_DEMAND>. You need to understand the user's requirements and extract the data satisfying the <DATA_DEMAND>.
+${contextPrompt}
 
 If a key specifies a JSON data type (such as Number, String, Boolean, Object, Array), ensure the returned value strictly matches that data type.
 
 When DATA_DEMAND is a JSON object, the keys in your response must exactly match the keys in DATA_DEMAND. Do not rename, translate, or substitute any key.
-
-If the user provides multiple reference images, please carefully review the reference images with the screenshot and provide the correct answer for <DATA_DEMAND>.
 
 
 Return in the following XML format:
