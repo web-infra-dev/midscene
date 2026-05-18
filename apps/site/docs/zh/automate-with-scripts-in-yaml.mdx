@@ -616,7 +616,7 @@ tasks:
 - `images`（可选）：提示词引用的参考图像，每一项需要提供 `name` 和 `url`。
 - `convertHttpImage2Base64`（可选）：在图片链接无法公开访问时，将 HTTP 链接转换为 Base64 再发送给模型。
 
-图片 URL 可以是本地路径、Base64 字符串或远程链接。如果图片链接无法被模型访问，请设置 `convertHttpImage2Base64: true`，Midscene 会将图像下载后以 Base64 字符串的形式发送给模型。
+图片 URL 可以是本地路径、Base64 data URL 或远程链接。Base64 data URL 必须包含 `data:image/...;base64,` 前缀。如果图片链接无法被模型访问，请设置 `convertHttpImage2Base64: true`，Midscene 会下载图像并以 Base64 data URL 的形式发送给模型。
 
 对于 `aiTap`、`aiHover`、`aiDoubleClick`、`aiRightClick` 等交互操作，请把文本和图像配置写在 `locate` 字段中，`locate` 与操作指令同级。
 

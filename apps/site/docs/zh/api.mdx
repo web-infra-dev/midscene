@@ -1274,7 +1274,7 @@ await agent.aiTap('右上角购物车图标', { deepLocate: true });
   images?: {
     // 图片名称，需要和提示词文本中提到的图片名称对应
     name: string,
-    // 图片 url，可以是本地图片路径、Base64 字符串，或者图片的 http 链接
+    // 图片 url，可以是本地图片路径、Base64 data URL，或者图片的 http 链接
     url: string
   }[]
   // 开启该选项后，http 格式的图片链接会被转化为 Base64 编码发送给大模型，适用于图片链接不是公开可访问的情况。
