@@ -107,7 +107,9 @@ export function PlaygroundConversationPanel({
           <div
             style={{
               fontSize: '14px',
-              color: 'rgba(0, 0, 0, 0.65)',
+              // Theme-aware so the text stays legible against the dark
+              // Modal surface in dark mode (was hard-coded rgba black).
+              color: 'var(--midscene-text-secondary)',
             }}
           >
             The selected session requested a countdown before execution.
