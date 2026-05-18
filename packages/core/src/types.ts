@@ -533,12 +533,18 @@ export type ExecutionTaskLog = ExecutionTask<ExecutionTaskLogApply>;
 task - planning
 */
 
+export interface ExecutionTaskPlanningParam {
+  userInstruction: string;
+  aiActContext?: string;
+  imagesIncludeCount?: number;
+  deepThink?: DeepThinkOption;
+  subGoalStatus?: string;
+  memoriesStatus?: string;
+}
+
 export type ExecutionTaskPlanningApply = ExecutionTaskApply<
   'Planning',
-  {
-    userInstruction: string;
-    aiActContext?: string;
-  },
+  ExecutionTaskPlanningParam,
   PlanningAIResponse
 >;
 

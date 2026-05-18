@@ -116,7 +116,7 @@ export async function plan(
     includeBbox: boolean;
     imagesIncludeCount?: number;
     // Controls aiAct planning prompt shape and state updates, such as sub-goals.
-    planningModeDeepThink?: boolean;
+    deepThink?: boolean;
     abortSignal?: AbortSignal;
   },
 ): Promise<PlanningAIResponse> {
@@ -127,7 +127,7 @@ export async function plan(
   const { modelFamily } = modelConfig;
 
   // Only enable sub-goals when aiAct is in deep-thinking planning mode.
-  const includeSubGoals = opts.planningModeDeepThink === true;
+  const includeSubGoals = opts.deepThink === true;
 
   const systemPrompt = await systemPromptToTaskPlanning({
     actionSpace: opts.actionSpace,
