@@ -43,6 +43,86 @@ import {
   resolveEffectiveTimeoutMs,
 } from './request-timeout';
 
+const HIGH_PRIORITY_KNOWLEDGE_OPEN_TAG = '<high_priority_knowledge>';
+const HIGH_PRIORITY_KNOWLEDGE_CLOSE_TAG = '</high_priority_knowledge>';
+
+const extractTextPartsFromMessage = (
+  message: ChatCompletionMessageParam,
+): string[] => {
+  const content = (message as any).content;
+  if (typeof content === 'string') {
+    return [content];
+  }
+
+  if (!Array.isArray(content)) {
+    return [];
+  }
+
+  return content.flatMap((part) => {
+    if (!part || typeof part !== 'object') {
+      return [];
+    }
+
+    if (part.type === 'text' && typeof part.text === 'string') {
+      return [part.text];
+    }
+
+    if (part.type === 'input_text' && typeof part.text === 'string') {
+      return [part.text];
+    }
+
+    return [];
+  });
+};
+
+export const extractAiActContextFromRequestMessages = (
+  messages: ChatCompletionMessageParam[],
+): string | undefined => {
+  const contexts: string[] = [];
+
+  for (const text of messages.flatMap(extractTextPartsFromMessage)) {
+    let searchStart = 0;
+    while (searchStart < text.length) {
+      const openIndex = text.indexOf(
+        HIGH_PRIORITY_KNOWLEDGE_OPEN_TAG,
+        searchStart,
+      );
+      if (openIndex === -1) {
+        break;
+      }
+
+      const contentStart = openIndex + HIGH_PRIORITY_KNOWLEDGE_OPEN_TAG.length;
+      const closeIndex = text.indexOf(
+        HIGH_PRIORITY_KNOWLEDGE_CLOSE_TAG,
+        contentStart,
+      );
+      if (closeIndex === -1) {
+        break;
+      }
+
+      const context = text.slice(contentStart, closeIndex);
+      if (context.trim()) {
+        contexts.push(context);
+      }
+      searchStart = closeIndex + HIGH_PRIORITY_KNOWLEDGE_CLOSE_TAG.length;
+    }
+  }
+
+  return contexts.length > 0 ? contexts.join('\n\n---\n\n') : undefined;
+};
+
+const logRequestAiActContext = (
+  messages: ChatCompletionMessageParam[],
+  debugCall: (...args: unknown[]) => void,
+): void => {
+  const aiActContext = extractAiActContextFromRequestMessages(messages);
+  if (!aiActContext) {
+    return;
+  }
+
+  debugCall('request aiActContext/actionContext: %s', aiActContext);
+};
+
 async function createChatClient({
   modelConfig,
 }: {
@@ -242,6 +322,9 @@ export async function callAI(
   usage?: AIUsageInfo;
   isStreamed: boolean;
 }> {
+  const debugCall = getDebug('ai:call');
+  logRequestAiActContext(messages, debugCall);
+
   if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
     if (
       !modelConfig.modelFamily &&
@@ -280,7 +363,6 @@ export async function callAI(
   const maxTokens =
     globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS) ??
     globalConfigManager.getEnvConfigValueAsNumber(OPENAI_MAX_TOKENS);
-  const debugCall = getDebug('ai:call');
   const warnCall = getDebug('ai:call', { console: true });
   const debugProfileStats = getDebug('ai:profile:stats');
   const debugProfileDetail = getDebug('ai:profile:detail');

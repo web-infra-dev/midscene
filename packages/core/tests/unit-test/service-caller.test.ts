@@ -1,11 +1,60 @@
 import {
+  extractAiActContextFromRequestMessages,
   resolveReasoningConfig,
   safeParseJson,
 } from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
+import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('service-caller', () => {
+  describe('request aiActContext logging helper', () => {
+    it('extracts high priority knowledge from request text content', () => {
+      const messages: ChatCompletionMessageParam[] = [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: [
+                '<high_priority_knowledge>',
+                'base prompt',
+                '<PageElementsTree>',
+                '<SeekBar text="Display brightness" />',
+                '</PageElementsTree>',
+                '</high_priority_knowledge>',
+                '<user_instruction>Set brightness to max</user_instruction>',
+              ].join('\n'),
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: 'data:image/png;base64,large-screenshot',
+              },
+            },
+          ],
+        },
+      ];
+
+      const context = extractAiActContextFromRequestMessages(messages);
+
+      expect(context).toContain('Display brightness');
+      expect(context).not.toContain('user_instruction');
+      expect(context).not.toContain('large-screenshot');
+    });
+
+    it('returns undefined when request has no high priority knowledge', () => {
+      expect(
+        extractAiActContextFromRequestMessages([
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Set brightness to max' }],
+          },
+        ]),
+      ).toBeUndefined();
+    });
+  });
+
   describe('code block cleaning logic', () => {
     it('should clean markdown code blocks for TEXT action type', () => {
       // Test the cleaning logic directly

@@ -18,6 +18,7 @@ import {
 import { Tag, Tooltip } from 'antd';
 import { fullTimeStrWithMilliseconds } from '../../../../../packages/visualizer/src/utils';
 import { isElementField, useExecutionDump } from '../store';
+import { buildDisplayedActContext } from './act-context';
 
 const noop = () => {};
 
@@ -242,8 +243,11 @@ const DetailSide = (): JSX.Element => {
   const { matchedElement: elements } = dump || {};
   const reasoningContent = task?.reasoning_content;
 
-  const aiActContextValue = (task as ExecutionTaskPlanningApply)?.param
-    ?.aiActContext;
+  const planningApplyParam = (task as ExecutionTaskPlanningApply)?.param;
+  const aiActContextValue = buildDisplayedActContext(
+    planningApplyParam?.aiActContext,
+    planningApplyParam?.extraPlanningContext,
+  );
 
   const formatStageCostLine = (
     label: string,
