@@ -469,7 +469,7 @@ describe('PageAgent cache configuration', () => {
       const agent = new PageAgent(mockPage, {
         cache: {
           id: 'custom-cache-dir-id',
-          dir: cacheDir,
+          cacheDir: ` ${cacheDir} `,
         },
         modelConfig: mockedModelConfig,
       });
@@ -490,11 +490,11 @@ describe('PageAgent cache configuration', () => {
         new PageAgent(mockPage, {
           cache: {
             id: 'custom-cache-id',
-            dir: '  ',
+            cacheDir: '  ',
           },
           modelConfig: mockedModelConfig,
         });
-      }).toThrow('cache.dir must be a non-empty string when provided');
+      }).toThrow('cache.cacheDir must be a non-empty string when provided');
     });
 
     it('should throw error for cache: true even with testId', () => {

@@ -73,10 +73,17 @@ export class TaskCache {
     options: {
       readOnly?: boolean;
       writeOnly?: boolean;
-      cacheDirectory?: string;
+      cacheDir?: string;
     } = {},
   ) {
     assert(cacheId, 'cacheId is required');
+    if (
+      options.cacheDir !== undefined &&
+      (typeof options.cacheDir !== 'string' || !options.cacheDir.trim())
+    ) {
+      throw new Error('cacheDir must be a non-empty string when provided');
+    }
+    const cacheDir = options.cacheDir?.trim();
     let safeCacheId = replaceIllegalPathCharsAndSpace(cacheId);
     const cacheMaxFilenameLength =
       globalConfigManager.getEnvConfigValueAsNumber(
@@ -94,7 +101,7 @@ export class TaskCache {
         ? undefined
         : cacheFilePath ||
           join(
-            options.cacheDirectory || getMidsceneRunSubDir('cache'),
+            cacheDir || getMidsceneRunSubDir('cache'),
             `${this.cacheId}${cacheFileExt}`,
           );
     const readOnlyMode = Boolean(options?.readOnly);

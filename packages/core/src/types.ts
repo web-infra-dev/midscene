@@ -1070,7 +1070,7 @@ export type CacheConfig = {
    * When set, cache files are written to this directory instead of
    * `<MIDSCENE_RUN_DIR>/cache`.
    */
-  dir?: string;
+  cacheDir?: string;
 };
 
 export type Cache =
