@@ -26,9 +26,7 @@ function extractAttr(tag: string, attrName: string): string {
 /**
  * Dump the raw UIAutomator XML from the device.
  */
-export async function dumpAccessibilityTreeXml(
-  adb: ADB,
-): Promise<string> {
+export async function dumpAccessibilityTreeXml(adb: ADB): Promise<string> {
   debug('dumping accessibility tree via uiautomator');
 
   const dumpCmd = `uiautomator dump ${DUMP_PATH}`;
@@ -47,18 +45,19 @@ export async function dumpAccessibilityTreeXml(
 
 // =====================================================
 // Formatting pipeline: parse → collapse → format
-// Produces clean XML without bounds for AI context
+// Produces clean XML with semantic and geometry skeleton attributes for AI context
 // =====================================================
 
 /**
  * Lightweight node for the formatting pipeline.
- * Only carries semantic attributes — no bounds/rect.
+ * Carries semantic attributes plus bounds as lightweight geometry skeleton.
  */
 interface FormatNode {
   className: string;
   text: string;
   resourceId: string;
   contentDesc: string;
+  bounds?: string;
   clickable: boolean;
   selected: boolean;
   checked: boolean;
@@ -75,6 +74,7 @@ function createEmptyFormatNode(): FormatNode {
     text: '',
     resourceId: '',
     contentDesc: '',
+    bounds: '',
     clickable: false,
     selected: false,
     checked: false,
@@ -85,7 +85,7 @@ function createEmptyFormatNode(): FormatNode {
 
 /**
  * Parse UIAutomator XML into a lightweight tree for formatting.
- * Does not retain bounds/rect — only semantic attributes.
+ * Retains semantic attributes and bounds.
  */
 function parseXmlToFormatTree(xml: string): FormatNode {
   const root = createEmptyFormatNode();
@@ -95,9 +95,9 @@ function parseXmlToFormatTree(xml: string): FormatNode {
   //        <node ...>   (opening, capture group 2)
   //        </node>      (closing, no capture)
   const tagRegex = /<node\s+([^>]*?)\/\s*>|<node\s+([^>]*?)>|<\/node>/g;
-  let match: RegExpExecArray | null;
+  let match = tagRegex.exec(xml);
 
-  while ((match = tagRegex.exec(xml)) !== null) {
+  while (match !== null) {
     const fullMatch = match[0];
 
     if (fullMatch.startsWith('</node')) {
@@ -112,6 +112,7 @@ function parseXmlToFormatTree(xml: string): FormatNode {
     const resourceId = extractAttr(attrString, 'resource-id');
     const className = extractAttr(attrString, 'class');
     const contentDesc = extractAttr(attrString, 'content-desc');
+    const bounds = extractAttr(attrString, 'bounds');
     const clickable = extractAttr(attrString, 'clickable') === 'true';
     const selected = extractAttr(attrString, 'selected') === 'true';
     const checked = extractAttr(attrString, 'checked') === 'true';
@@ -128,6 +129,7 @@ function parseXmlToFormatTree(xml: string): FormatNode {
       text,
       resourceId,
       contentDesc,
+      bounds,
       clickable,
       selected,
       checked,
@@ -141,6 +143,8 @@ function parseXmlToFormatTree(xml: string): FormatNode {
     if (!isSelfClosing) {
       stack.push(node);
     }
+
+    match = tagRegex.exec(xml);
   }
 
   return root;
@@ -206,6 +210,7 @@ function formatNodeToXml(node: FormatNode, indent: number): string {
     attrs.push(
       `content-desc="${escapeXmlAttr(truncateText(node.contentDesc, MAX_TEXT_LENGTH))}"`,
     );
+  if (node.bounds) attrs.push(`bounds="${escapeXmlAttr(node.bounds)}"`);
   if (node.clickable) attrs.push('clickable="true"');
   if (node.selected) attrs.push('selected="true"');
   if (node.checked) attrs.push('checked="true"');
@@ -227,14 +232,12 @@ function formatNodeToXml(node: FormatNode, indent: number): string {
 /** Format the full tree to XML string, skipping the virtual root node */
 function formatTreeToXml(root: FormatNode): string {
   if (root.children.length === 0) return '';
-  return root.children
-    .map((child) => formatNodeToXml(child, 0))
-    .join('\n');
+  return root.children.map((child) => formatNodeToXml(child, 0)).join('\n');
 }
 
 /**
  * Dump the Android accessibility tree, parse, collapse wrappers,
- * and format as clean XML without bounds for AI planning context.
+ * and format as clean XML for AI planning context.
  */
 export async function dumpAndFormatAccessibilityTree(
   adb: ADB,

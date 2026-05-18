@@ -1,32 +1,49 @@
 import { describe, expect, it } from 'vitest';
 import {
-  parseXmlToFormatTree,
+  type FormatNode,
   collapseWrappers,
   formatTreeToXml,
-  type FormatNode,
+  parseXmlToFormatTree,
 } from '../../src/ui-hierarchy';
 
 /** Helper to build a full UIAutomator node string */
-function n(attrs: {
-  text?: string;
-  'resource-id'?: string;
-  class?: string;
-  'content-desc'?: string;
-  clickable?: string;
-  selected?: string;
-  checked?: string;
-  scrollable?: string;
-  bounds?: string;
-}, children?: string): string {
+function n(
+  attrs: {
+    text?: string;
+    'resource-id'?: string;
+    class?: string;
+    'content-desc'?: string;
+    clickable?: string;
+    selected?: string;
+    checked?: string;
+    scrollable?: string;
+    bounds?: string;
+  },
+  children?: string,
+): string {
   const defaults: Record<string, string> = {
-    index: '0', text: '', 'resource-id': '', class: 'android.view.View',
-    package: 'com.example', 'content-desc': '', checkable: 'false',
-    checked: 'false', clickable: 'false', enabled: 'true', focusable: 'false',
-    focused: 'false', scrollable: 'false', 'long-clickable': 'false',
-    password: 'false', selected: 'false', bounds: '[0,0][1080,1920]',
+    index: '0',
+    text: '',
+    'resource-id': '',
+    class: 'android.view.View',
+    package: 'com.example',
+    'content-desc': '',
+    checkable: 'false',
+    checked: 'false',
+    clickable: 'false',
+    enabled: 'true',
+    focusable: 'false',
+    focused: 'false',
+    scrollable: 'false',
+    'long-clickable': 'false',
+    password: 'false',
+    selected: 'false',
+    bounds: '[0,0][1080,1920]',
   };
   const merged = { ...defaults, ...attrs };
-  const attrStr = Object.entries(merged).map(([k, v]) => `${k}="${v}"`).join(' ');
+  const attrStr = Object.entries(merged)
+    .map(([k, v]) => `${k}="${v}"`)
+    .join(' ');
   if (children === undefined) {
     return `<node ${attrStr} />`;
   }
@@ -43,16 +60,19 @@ function wrap(inner: string): string {
 
 describe('parseXmlToFormatTree', () => {
   it('should parse basic attributes', () => {
-    const xml = wrap(n({
-      text: 'Hello',
-      'resource-id': 'com.example:id/title',
-      class: 'android.widget.TextView',
-      'content-desc': 'Greeting',
-      clickable: 'true',
-      selected: 'true',
-      checked: 'true',
-      scrollable: 'true',
-    }));
+    const xml = wrap(
+      n({
+        text: 'Hello',
+        'resource-id': 'com.example:id/title',
+        class: 'android.widget.TextView',
+        'content-desc': 'Greeting',
+        clickable: 'true',
+        selected: 'true',
+        checked: 'true',
+        scrollable: 'true',
+        bounds: '[10,20][110,220]',
+      }),
+    );
 
     const root = parseXmlToFormatTree(xml);
     expect(root.children).toHaveLength(1);
@@ -66,6 +86,7 @@ describe('parseXmlToFormatTree', () => {
     expect(node.selected).toBe(true);
     expect(node.checked).toBe(true);
     expect(node.scrollable).toBe(true);
+    expect(node.bounds).toBe('[10,20][110,220]');
   });
 
   it('should use short class name', () => {
@@ -76,10 +97,11 @@ describe('parseXmlToFormatTree', () => {
 
   it('should build correct tree hierarchy', () => {
     const xml = wrap(
-      n({ class: 'android.widget.FrameLayout', 'content-desc': 'root' },
+      n(
+        { class: 'android.widget.FrameLayout', 'content-desc': 'root' },
         n({ text: 'A', class: 'android.widget.TextView' }) +
-        n({ text: 'B', class: 'android.widget.TextView' })
-      )
+          n({ text: 'B', class: 'android.widget.TextView' }),
+      ),
     );
     const root = parseXmlToFormatTree(xml);
     expect(root.children).toHaveLength(1);
@@ -90,18 +112,19 @@ describe('parseXmlToFormatTree', () => {
 
   it('should filter self-closing leaves with no semantic info', () => {
     const xml = wrap(
-      n({ class: 'android.widget.FrameLayout', 'content-desc': 'container' },
+      n(
+        { class: 'android.widget.FrameLayout', 'content-desc': 'container' },
         // kept: has text
         n({ text: 'Visible', class: 'android.widget.TextView' }) +
-        // filtered: no text, no content-desc, not clickable, not scrollable
-        n({ class: 'android.view.View' }) +
-        // kept: has content-desc
-        n({ 'content-desc': 'icon', class: 'android.widget.ImageView' }) +
-        // kept: clickable
-        n({ clickable: 'true', class: 'android.widget.Button' }) +
-        // kept: scrollable
-        n({ scrollable: 'true', class: 'android.view.View' })
-      )
+          // filtered: no text, no content-desc, not clickable, not scrollable
+          n({ class: 'android.view.View' }) +
+          // kept: has content-desc
+          n({ 'content-desc': 'icon', class: 'android.widget.ImageView' }) +
+          // kept: clickable
+          n({ clickable: 'true', class: 'android.widget.Button' }) +
+          // kept: scrollable
+          n({ scrollable: 'true', class: 'android.view.View' }),
+      ),
     );
     const root = parseXmlToFormatTree(xml);
     expect(root.children[0].children).toHaveLength(4);
@@ -144,17 +167,39 @@ describe('collapseWrappers', () => {
   it('should collapse pure wrapper containers (no text, no desc, not interactive)', () => {
     // wrapper(no info) → child(text="Hello") → should become just child
     const root: FormatNode = {
-      className: '', text: '', resourceId: '', contentDesc: '',
-      clickable: false, selected: false, checked: false, scrollable: false,
-      children: [{
-        className: 'FrameLayout', text: '', resourceId: '', contentDesc: '',
-        clickable: false, selected: false, checked: false, scrollable: false,
-        children: [{
-          className: 'TextView', text: 'Hello', resourceId: '', contentDesc: '',
-          clickable: false, selected: false, checked: false, scrollable: false,
-          children: [],
-        }],
-      }],
+      className: '',
+      text: '',
+      resourceId: '',
+      contentDesc: '',
+      clickable: false,
+      selected: false,
+      checked: false,
+      scrollable: false,
+      children: [
+        {
+          className: 'FrameLayout',
+          text: '',
+          resourceId: '',
+          contentDesc: '',
+          clickable: false,
+          selected: false,
+          checked: false,
+          scrollable: false,
+          children: [
+            {
+              className: 'TextView',
+              text: 'Hello',
+              resourceId: '',
+              contentDesc: '',
+              clickable: false,
+              selected: false,
+              checked: false,
+              scrollable: false,
+              children: [],
+            },
+          ],
+        },
+      ],
     };
 
     collapseWrappers(root);
@@ -165,17 +210,39 @@ describe('collapseWrappers', () => {
 
   it('should keep containers with content-desc', () => {
     const root: FormatNode = {
-      className: '', text: '', resourceId: '', contentDesc: '',
-      clickable: false, selected: false, checked: false, scrollable: false,
-      children: [{
-        className: 'FrameLayout', text: '', resourceId: '', contentDesc: 'Tab',
-        clickable: false, selected: false, checked: false, scrollable: false,
-        children: [{
-          className: 'TextView', text: 'Label', resourceId: '', contentDesc: '',
-          clickable: false, selected: false, checked: false, scrollable: false,
-          children: [],
-        }],
-      }],
+      className: '',
+      text: '',
+      resourceId: '',
+      contentDesc: '',
+      clickable: false,
+      selected: false,
+      checked: false,
+      scrollable: false,
+      children: [
+        {
+          className: 'FrameLayout',
+          text: '',
+          resourceId: '',
+          contentDesc: 'Tab',
+          clickable: false,
+          selected: false,
+          checked: false,
+          scrollable: false,
+          children: [
+            {
+              className: 'TextView',
+              text: 'Label',
+              resourceId: '',
+              contentDesc: '',
+              clickable: false,
+              selected: false,
+              checked: false,
+              scrollable: false,
+              children: [],
+            },
+          ],
+        },
+      ],
     };
 
     collapseWrappers(root);
@@ -186,13 +253,27 @@ describe('collapseWrappers', () => {
 
   it('should keep clickable containers', () => {
     const root: FormatNode = {
-      className: '', text: '', resourceId: '', contentDesc: '',
-      clickable: false, selected: false, checked: false, scrollable: false,
-      children: [{
-        className: 'Button', text: '', resourceId: '', contentDesc: '',
-        clickable: true, selected: false, checked: false, scrollable: false,
-        children: [],
-      }],
+      className: '',
+      text: '',
+      resourceId: '',
+      contentDesc: '',
+      clickable: false,
+      selected: false,
+      checked: false,
+      scrollable: false,
+      children: [
+        {
+          className: 'Button',
+          text: '',
+          resourceId: '',
+          contentDesc: '',
+          clickable: true,
+          selected: false,
+          checked: false,
+          scrollable: false,
+          children: [],
+        },
+      ],
     };
 
     collapseWrappers(root);
@@ -202,13 +283,27 @@ describe('collapseWrappers', () => {
 
   it('should keep scrollable containers', () => {
     const root: FormatNode = {
-      className: '', text: '', resourceId: '', contentDesc: '',
-      clickable: false, selected: false, checked: false, scrollable: false,
-      children: [{
-        className: 'RecyclerView', text: '', resourceId: '', contentDesc: '',
-        clickable: false, selected: false, checked: false, scrollable: true,
-        children: [],
-      }],
+      className: '',
+      text: '',
+      resourceId: '',
+      contentDesc: '',
+      clickable: false,
+      selected: false,
+      checked: false,
+      scrollable: false,
+      children: [
+        {
+          className: 'RecyclerView',
+          text: '',
+          resourceId: '',
+          contentDesc: '',
+          clickable: false,
+          selected: false,
+          checked: false,
+          scrollable: true,
+          children: [],
+        },
+      ],
     };
 
     collapseWrappers(root);
@@ -218,18 +313,50 @@ describe('collapseWrappers', () => {
 
   it('should keep containers with resource-id that group ≥2 children', () => {
     const root: FormatNode = {
-      className: '', text: '', resourceId: '', contentDesc: '',
-      clickable: false, selected: false, checked: false, scrollable: false,
-      children: [{
-        className: 'ViewGroup', text: '', resourceId: 'id/toolbar', contentDesc: '',
-        clickable: false, selected: false, checked: false, scrollable: false,
-        children: [
-          { className: 'TextView', text: 'Title', resourceId: '', contentDesc: '',
-            clickable: false, selected: false, checked: false, scrollable: false, children: [] },
-          { className: 'ImageView', text: '', resourceId: '', contentDesc: 'Menu',
-            clickable: false, selected: false, checked: false, scrollable: false, children: [] },
-        ],
-      }],
+      className: '',
+      text: '',
+      resourceId: '',
+      contentDesc: '',
+      clickable: false,
+      selected: false,
+      checked: false,
+      scrollable: false,
+      children: [
+        {
+          className: 'ViewGroup',
+          text: '',
+          resourceId: 'id/toolbar',
+          contentDesc: '',
+          clickable: false,
+          selected: false,
+          checked: false,
+          scrollable: false,
+          children: [
+            {
+              className: 'TextView',
+              text: 'Title',
+              resourceId: '',
+              contentDesc: '',
+              clickable: false,
+              selected: false,
+              checked: false,
+              scrollable: false,
+              children: [],
+            },
+            {
+              className: 'ImageView',
+              text: '',
+              resourceId: '',
+              contentDesc: 'Menu',
+              clickable: false,
+              selected: false,
+              checked: false,
+              scrollable: false,
+              children: [],
+            },
+          ],
+        },
+      ],
     };
 
     collapseWrappers(root);
@@ -240,17 +367,39 @@ describe('collapseWrappers', () => {
 
   it('should collapse containers with resource-id that have <2 children (pass-through)', () => {
     const root: FormatNode = {
-      className: '', text: '', resourceId: '', contentDesc: '',
-      clickable: false, selected: false, checked: false, scrollable: false,
-      children: [{
-        className: 'FrameLayout', text: '', resourceId: 'id/wrapper', contentDesc: '',
-        clickable: false, selected: false, checked: false, scrollable: false,
-        children: [{
-          className: 'TextView', text: 'Inner', resourceId: '', contentDesc: '',
-          clickable: false, selected: false, checked: false, scrollable: false,
-          children: [],
-        }],
-      }],
+      className: '',
+      text: '',
+      resourceId: '',
+      contentDesc: '',
+      clickable: false,
+      selected: false,
+      checked: false,
+      scrollable: false,
+      children: [
+        {
+          className: 'FrameLayout',
+          text: '',
+          resourceId: 'id/wrapper',
+          contentDesc: '',
+          clickable: false,
+          selected: false,
+          checked: false,
+          scrollable: false,
+          children: [
+            {
+              className: 'TextView',
+              text: 'Inner',
+              resourceId: '',
+              contentDesc: '',
+              clickable: false,
+              selected: false,
+              checked: false,
+              scrollable: false,
+              children: [],
+            },
+          ],
+        },
+      ],
     };
 
     collapseWrappers(root);
@@ -261,25 +410,63 @@ describe('collapseWrappers', () => {
 
   it('should collapse multiple layers of wrappers', () => {
     const root: FormatNode = {
-      className: '', text: '', resourceId: '', contentDesc: '',
-      clickable: false, selected: false, checked: false, scrollable: false,
-      children: [{
-        className: 'FrameLayout', text: '', resourceId: '', contentDesc: '',
-        clickable: false, selected: false, checked: false, scrollable: false,
-        children: [{
-          className: 'LinearLayout', text: '', resourceId: '', contentDesc: '',
-          clickable: false, selected: false, checked: false, scrollable: false,
-          children: [{
-            className: 'ViewGroup', text: '', resourceId: '', contentDesc: '',
-            clickable: false, selected: false, checked: false, scrollable: false,
-            children: [{
-              className: 'TextView', text: 'Deep', resourceId: '', contentDesc: '',
-              clickable: false, selected: false, checked: false, scrollable: false,
-              children: [],
-            }],
-          }],
-        }],
-      }],
+      className: '',
+      text: '',
+      resourceId: '',
+      contentDesc: '',
+      clickable: false,
+      selected: false,
+      checked: false,
+      scrollable: false,
+      children: [
+        {
+          className: 'FrameLayout',
+          text: '',
+          resourceId: '',
+          contentDesc: '',
+          clickable: false,
+          selected: false,
+          checked: false,
+          scrollable: false,
+          children: [
+            {
+              className: 'LinearLayout',
+              text: '',
+              resourceId: '',
+              contentDesc: '',
+              clickable: false,
+              selected: false,
+              checked: false,
+              scrollable: false,
+              children: [
+                {
+                  className: 'ViewGroup',
+                  text: '',
+                  resourceId: '',
+                  contentDesc: '',
+                  clickable: false,
+                  selected: false,
+                  checked: false,
+                  scrollable: false,
+                  children: [
+                    {
+                      className: 'TextView',
+                      text: 'Deep',
+                      resourceId: '',
+                      contentDesc: '',
+                      clickable: false,
+                      selected: false,
+                      checked: false,
+                      scrollable: false,
+                      children: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
     };
 
     collapseWrappers(root);
@@ -291,17 +478,39 @@ describe('collapseWrappers', () => {
   it('should not use selected/checked as retention signals', () => {
     // A container with selected=true but no text/desc/clickable/scrollable should still collapse
     const root: FormatNode = {
-      className: '', text: '', resourceId: '', contentDesc: '',
-      clickable: false, selected: false, checked: false, scrollable: false,
-      children: [{
-        className: 'FrameLayout', text: '', resourceId: '', contentDesc: '',
-        clickable: false, selected: true, checked: true, scrollable: false,
-        children: [{
-          className: 'TextView', text: 'Label', resourceId: '', contentDesc: '',
-          clickable: false, selected: false, checked: false, scrollable: false,
-          children: [],
-        }],
-      }],
+      className: '',
+      text: '',
+      resourceId: '',
+      contentDesc: '',
+      clickable: false,
+      selected: false,
+      checked: false,
+      scrollable: false,
+      children: [
+        {
+          className: 'FrameLayout',
+          text: '',
+          resourceId: '',
+          contentDesc: '',
+          clickable: false,
+          selected: true,
+          checked: true,
+          scrollable: false,
+          children: [
+            {
+              className: 'TextView',
+              text: 'Label',
+              resourceId: '',
+              contentDesc: '',
+              clickable: false,
+              selected: false,
+              checked: false,
+              scrollable: false,
+              children: [],
+            },
+          ],
+        },
+      ],
     };
 
     collapseWrappers(root);
@@ -317,13 +526,27 @@ describe('collapseWrappers', () => {
 describe('formatTreeToXml', () => {
   it('should use className as XML tag name', () => {
     const root: FormatNode = {
-      className: '', text: '', resourceId: '', contentDesc: '',
-      clickable: false, selected: false, checked: false, scrollable: false,
-      children: [{
-        className: 'Button', text: 'OK', resourceId: '', contentDesc: '',
-        clickable: true, selected: false, checked: false, scrollable: false,
-        children: [],
-      }],
+      className: '',
+      text: '',
+      resourceId: '',
+      contentDesc: '',
+      clickable: false,
+      selected: false,
+      checked: false,
+      scrollable: false,
+      children: [
+        {
+          className: 'Button',
+          text: 'OK',
+          resourceId: '',
+          contentDesc: '',
+          clickable: true,
+          selected: false,
+          checked: false,
+          scrollable: false,
+          children: [],
+        },
+      ],
     };
 
     const xml = formatTreeToXml(root);
@@ -332,19 +555,35 @@ describe('formatTreeToXml', () => {
 
   it('should include only non-empty/true attributes', () => {
     const root: FormatNode = {
-      className: '', text: '', resourceId: '', contentDesc: '',
-      clickable: false, selected: false, checked: false, scrollable: false,
-      children: [{
-        className: 'TextView', text: 'Hi', resourceId: 'id/x', contentDesc: 'desc',
-        clickable: false, selected: true, checked: false, scrollable: false,
-        children: [],
-      }],
+      className: '',
+      text: '',
+      resourceId: '',
+      contentDesc: '',
+      clickable: false,
+      selected: false,
+      checked: false,
+      scrollable: false,
+      children: [
+        {
+          className: 'TextView',
+          text: 'Hi',
+          resourceId: 'id/x',
+          contentDesc: 'desc',
+          bounds: '[1,2][3,4]',
+          clickable: false,
+          selected: true,
+          checked: false,
+          scrollable: false,
+          children: [],
+        },
+      ],
     };
 
     const xml = formatTreeToXml(root);
     expect(xml).toContain('text="Hi"');
     expect(xml).toContain('resource-id="id/x"');
     expect(xml).toContain('content-desc="desc"');
+    expect(xml).toContain('bounds="[1,2][3,4]"');
     expect(xml).toContain('selected="true"');
     expect(xml).not.toContain('clickable');
     expect(xml).not.toContain('checked');
@@ -353,17 +592,39 @@ describe('formatTreeToXml', () => {
 
   it('should render nested children with indentation', () => {
     const root: FormatNode = {
-      className: '', text: '', resourceId: '', contentDesc: '',
-      clickable: false, selected: false, checked: false, scrollable: false,
-      children: [{
-        className: 'ViewGroup', text: '', resourceId: '', contentDesc: 'parent',
-        clickable: false, selected: false, checked: false, scrollable: false,
-        children: [{
-          className: 'TextView', text: 'child', resourceId: '', contentDesc: '',
-          clickable: false, selected: false, checked: false, scrollable: false,
-          children: [],
-        }],
-      }],
+      className: '',
+      text: '',
+      resourceId: '',
+      contentDesc: '',
+      clickable: false,
+      selected: false,
+      checked: false,
+      scrollable: false,
+      children: [
+        {
+          className: 'ViewGroup',
+          text: '',
+          resourceId: '',
+          contentDesc: 'parent',
+          clickable: false,
+          selected: false,
+          checked: false,
+          scrollable: false,
+          children: [
+            {
+              className: 'TextView',
+              text: 'child',
+              resourceId: '',
+              contentDesc: '',
+              clickable: false,
+              selected: false,
+              checked: false,
+              scrollable: false,
+              children: [],
+            },
+          ],
+        },
+      ],
     };
 
     const xml = formatTreeToXml(root);
@@ -375,8 +636,14 @@ describe('formatTreeToXml', () => {
 
   it('should return empty string for empty tree', () => {
     const root: FormatNode = {
-      className: '', text: '', resourceId: '', contentDesc: '',
-      clickable: false, selected: false, checked: false, scrollable: false,
+      className: '',
+      text: '',
+      resourceId: '',
+      contentDesc: '',
+      clickable: false,
+      selected: false,
+      checked: false,
+      scrollable: false,
       children: [],
     };
     expect(formatTreeToXml(root)).toBe('');
@@ -384,13 +651,27 @@ describe('formatTreeToXml', () => {
 
   it('should escape special XML characters in attributes', () => {
     const root: FormatNode = {
-      className: '', text: '', resourceId: '', contentDesc: '',
-      clickable: false, selected: false, checked: false, scrollable: false,
-      children: [{
-        className: 'TextView', text: 'A & B <C> "D"', resourceId: '', contentDesc: '',
-        clickable: false, selected: false, checked: false, scrollable: false,
-        children: [],
-      }],
+      className: '',
+      text: '',
+      resourceId: '',
+      contentDesc: '',
+      clickable: false,
+      selected: false,
+      checked: false,
+      scrollable: false,
+      children: [
+        {
+          className: 'TextView',
+          text: 'A & B <C> "D"',
+          resourceId: '',
+          contentDesc: '',
+          clickable: false,
+          selected: false,
+          checked: false,
+          scrollable: false,
+          children: [],
+        },
+      ],
     };
 
     const xml = formatTreeToXml(root);
@@ -400,18 +681,32 @@ describe('formatTreeToXml', () => {
   it('should truncate long text to MAX_TEXT_LENGTH', () => {
     const longText = 'A'.repeat(300);
     const root: FormatNode = {
-      className: '', text: '', resourceId: '', contentDesc: '',
-      clickable: false, selected: false, checked: false, scrollable: false,
-      children: [{
-        className: 'TextView', text: longText, resourceId: '', contentDesc: '',
-        clickable: false, selected: false, checked: false, scrollable: false,
-        children: [],
-      }],
+      className: '',
+      text: '',
+      resourceId: '',
+      contentDesc: '',
+      clickable: false,
+      selected: false,
+      checked: false,
+      scrollable: false,
+      children: [
+        {
+          className: 'TextView',
+          text: longText,
+          resourceId: '',
+          contentDesc: '',
+          clickable: false,
+          selected: false,
+          checked: false,
+          scrollable: false,
+          children: [],
+        },
+      ],
     };
 
     const xml = formatTreeToXml(root);
     // 200 chars + "..."
-    expect(xml).toContain('A'.repeat(200) + '...');
+    expect(xml).toContain(`${'A'.repeat(200)}...`);
     expect(xml).not.toContain('A'.repeat(201));
   });
 });
@@ -439,7 +734,9 @@ describe('full pipeline: parse → collapse → format', () => {
     const xml = formatTreeToXml(root);
 
     // toolbar kept (has resource-id + 2 children)
-    expect(xml).toContain('<ViewGroup resource-id="com.example:id/toolbar">');
+    expect(xml).toContain(
+      '<ViewGroup resource-id="com.example:id/toolbar" bounds="[0,0][1080,200]">',
+    );
     // Title and Menu are direct children of toolbar
     expect(xml).toContain('text="Title"');
     expect(xml).toContain('content-desc="Menu"');
@@ -449,12 +746,14 @@ describe('full pipeline: parse → collapse → format', () => {
     expect(xml).not.toContain('LinearLayout');
   });
 
-  it('should not include bounds in output', () => {
+  it('should include bounds in output', () => {
     const root = parseXmlToFormatTree(clockXml);
     collapseWrappers(root);
     const xml = formatTreeToXml(root);
 
-    expect(xml).not.toContain('bounds');
+    expect(xml).toContain('bounds="[0,0][1080,200]"');
+    expect(xml).toContain('bounds="[0,0][200,50]"');
+    expect(xml).toContain('bounds="[900,0][1080,50]"');
     expect(xml).not.toContain('left=');
     expect(xml).not.toContain('top=');
     expect(xml).not.toContain('width=');
@@ -463,22 +762,39 @@ describe('full pipeline: parse → collapse → format', () => {
 
   it('should preserve selected state on tabs', () => {
     const xml = wrap(
-      n({ 'resource-id': 'id/nav', class: 'android.widget.FrameLayout' },
-        n({ 'content-desc': 'Home', clickable: 'true', class: 'android.widget.FrameLayout' },
-          n({ text: 'Home', class: 'android.widget.TextView' })
+      n(
+        { 'resource-id': 'id/nav', class: 'android.widget.FrameLayout' },
+        n(
+          {
+            'content-desc': 'Home',
+            clickable: 'true',
+            class: 'android.widget.FrameLayout',
+          },
+          n({ text: 'Home', class: 'android.widget.TextView' }),
         ) +
-        n({ 'content-desc': 'Settings', selected: 'true', class: 'android.widget.FrameLayout' },
-          n({ text: 'Settings', selected: 'true', class: 'android.widget.TextView' })
-        )
-      )
+          n(
+            {
+              'content-desc': 'Settings',
+              selected: 'true',
+              class: 'android.widget.FrameLayout',
+            },
+            n({
+              text: 'Settings',
+              selected: 'true',
+              class: 'android.widget.TextView',
+            }),
+          ),
+      ),
     );
 
     const root = parseXmlToFormatTree(xml);
     collapseWrappers(root);
     const output = formatTreeToXml(root);
 
-    expect(output).toContain('content-desc="Home" clickable="true"');
-    expect(output).toContain('content-desc="Settings" selected="true"');
-    expect(output).toContain('text="Settings" selected="true"');
+    expect(output).toContain('content-desc="Home"');
+    expect(output).toContain('clickable="true"');
+    expect(output).toContain('content-desc="Settings"');
+    expect(output).toContain('selected="true"');
+    expect(output).toContain('text="Settings"');
   });
 });
