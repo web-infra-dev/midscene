@@ -11,7 +11,6 @@ import {
   type AgentDescribeElementAtPointResult,
   type AgentOpt,
   type AgentWaitForOpt,
-  type CacheConfig,
   type DeepThinkOption,
   type DeviceAction,
   ExecutionDump,
@@ -66,6 +65,7 @@ import {
 import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
+import { validateAgentCacheInput } from './cache-config';
 import { TaskCache } from './task-cache';
 import {
   TaskExecutionError,
@@ -94,21 +94,6 @@ const defaultServiceExtractOption: ServiceExtractOption = {
   domIncluded: false,
   screenshotIncluded: true,
 };
-
-type CacheStrategy = NonNullable<CacheConfig['strategy']>;
-
-const CACHE_STRATEGIES: readonly CacheStrategy[] = [
-  'read-only',
-  'read-write',
-  'write-only',
-];
-
-const isValidCacheStrategy = (strategy: string): strategy is CacheStrategy =>
-  CACHE_STRATEGIES.some((value) => value === strategy);
-
-const CACHE_STRATEGY_VALUES = CACHE_STRATEGIES.map(
-  (value) => `"${value}"`,
-).join(', ');
 
 const legacyScrollTypeMap = {
   once: 'singleAction',
@@ -1467,40 +1452,7 @@ export class Agent<
     writeOnly: boolean;
     cacheDir?: string;
   } | null {
-    // Validate original cache config before processing
-    // Agent requires explicit IDs - don't allow auto-generation
-    if (opts.cache === true) {
-      throw new Error(
-        'cache: true requires an explicit cache ID. Please provide:\n' +
-          'Example: cache: { id: "my-cache-id" }',
-      );
-    }
-
-    // Check if cache config object is missing ID
-    if (
-      opts.cache &&
-      typeof opts.cache === 'object' &&
-      opts.cache !== null &&
-      !opts.cache.id
-    ) {
-      throw new Error(
-        'cache configuration requires an explicit id.\n' +
-          'Example: cache: { id: "my-cache-id" }',
-      );
-    }
-
-    if (
-      opts.cache &&
-      typeof opts.cache === 'object' &&
-      opts.cache !== null &&
-      opts.cache.cacheDir !== undefined &&
-      (typeof opts.cache.cacheDir !== 'string' || !opts.cache.cacheDir.trim())
-    ) {
-      throw new Error(
-        'cache.cacheDir must be a non-empty string when provided.\n' +
-          'Example: cache: { id: "my-cache-id", cacheDir: "./my-cache-dir" }',
-      );
-    }
+    validateAgentCacheInput(opts.cache);
 
     // Use the unified utils function to process cache configuration
     const cacheConfig = processCacheConfig(
@@ -1515,25 +1467,7 @@ export class Agent<
     // Handle cache configuration object
     if (typeof cacheConfig === 'object' && cacheConfig !== null) {
       const id = cacheConfig.id;
-      const rawStrategy = cacheConfig.strategy as unknown;
-      let strategyValue: string;
-
-      if (rawStrategy === undefined) {
-        strategyValue = 'read-write';
-      } else if (typeof rawStrategy === 'string') {
-        strategyValue = rawStrategy;
-      } else {
-        throw new Error(
-          `cache.strategy must be a string when provided, but received type ${typeof rawStrategy}`,
-        );
-      }
-
-      if (!isValidCacheStrategy(strategyValue)) {
-        throw new Error(
-          `cache.strategy must be one of ${CACHE_STRATEGY_VALUES}, but received "${strategyValue}"`,
-        );
-      }
-
+      const strategyValue = cacheConfig.strategy ?? 'read-write';
       const isReadOnly = strategyValue === 'read-only';
       const isWriteOnly = strategyValue === 'write-only';
 
