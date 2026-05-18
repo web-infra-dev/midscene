@@ -20,6 +20,7 @@ import { getMidsceneVersion } from './utils';
 const DEFAULT_CACHE_MAX_FILENAME_LENGTH = 200;
 
 export const debug = getDebug('cache');
+const warn = getDebug('cache', { console: true });
 
 export interface PlanningCache {
   type: 'plan';
@@ -387,10 +388,8 @@ export class TaskCache {
       writeFileSync(this.cacheFilePath, yamlData);
       debug('cache flushed to file: %s', this.cacheFilePath);
     } catch (err) {
-      debug(
-        'write cache to file failed, path: %s, error: %s',
-        this.cacheFilePath,
-        err,
+      warn(
+        `write cache to file failed, path: ${this.cacheFilePath}, error: ${err}`,
       );
     }
   }

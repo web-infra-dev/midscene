@@ -22,7 +22,7 @@ All agents share these base options:
   - `false`: disable cache completely.
   - `id`: required cache ID.
   - `strategy`: optional cache strategy. Default is `'read-write'`.
-  - `dir`: optional cache directory path. When set, cache files are written to this directory instead of `<MIDSCENE_RUN_DIR>/cache`. This lets you split cache and logs/report directories.
+  - `dir`: optional cache directory path. When set, cache files are written to this directory instead of `<MIDSCENE_RUN_DIR>/cache`. Relative paths are resolved from the current working directory, not from `MIDSCENE_RUN_DIR`. This lets you split cache and logs/report directories.
 - `cacheId: string | undefined` (deprecated): legacy cache ID for backward compatibility. Prefer `cache.id`.
 - `aiActContext: string`: Some background knowledge that should be sent to the AI model when calling `agent.aiAct()`, like 'close the cookie consent dialog first if it exists' (Default: undefined). Previously exposed as `aiActionContext`; the legacy name is still accepted for backward compatibility.
 - `replanningCycleLimit: number`: The maximum number of `aiAct` replanning cycles. Default is 20 (40 for UI-TARS models). Prefer setting this via the agent option; reading `MIDSCENE_REPLANNING_CYCLE_LIMIT` is only for backward compatibility.
