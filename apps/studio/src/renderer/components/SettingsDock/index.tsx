@@ -2,30 +2,14 @@ import { assetUrls } from '../../assets';
 import { MaskedIcon } from '../MaskedIcon';
 
 function EnvIcon({ alert }: { alert?: boolean }) {
+  // Use the same env.svg asset that the ModelConfigCard header in the
+  // middle area renders, so both surfaces speak the same visual language.
   return (
     <span className="relative inline-flex h-4 w-4 shrink-0 items-center justify-center">
-      <svg
-        aria-hidden="true"
-        className="h-4 w-4 text-text-secondary"
-        fill="none"
-        viewBox="0 0 16 16"
-      >
-        <rect
-          height="11"
-          rx="1.5"
-          stroke="currentColor"
-          strokeWidth="1.4"
-          width="13"
-          x="1.5"
-          y="2.5"
-        />
-        <path
-          d="M4 6.5h8M4 9.5h5"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeWidth="1.4"
-        />
-      </svg>
+      <MaskedIcon
+        className="h-4 w-4 shrink-0 text-text-secondary"
+        src={assetUrls.main.env}
+      />
       {alert ? (
         <span
           aria-label="Model config incomplete"
