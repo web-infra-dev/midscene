@@ -147,6 +147,7 @@ export async function AiLocateElement(options: {
   context: UIContext;
   targetElementDescription: TUserPrompt;
   searchConfig?: Awaited<ReturnType<typeof AiLocateSection>>;
+  extraLocateContext?: string;
   modelConfig: IModelConfig;
   abortSignal?: AbortSignal;
 }): Promise<{
@@ -170,7 +171,10 @@ export async function AiLocateElement(options: {
   const targetElementDescriptionText = extraTextFromUserPrompt(
     targetElementDescription,
   );
-  const userInstructionPrompt = findElementPrompt(targetElementDescriptionText);
+  const userInstructionPrompt = findElementPrompt(
+    targetElementDescriptionText,
+    options.extraLocateContext,
+  );
   const systemPrompt = isAutoGLM(modelFamily)
     ? getAutoGLMLocatePrompt(modelFamily)
     : systemPromptToLocateElement(modelFamily);

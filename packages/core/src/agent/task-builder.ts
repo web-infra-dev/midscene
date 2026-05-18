@@ -402,6 +402,22 @@ export class TaskBuilder {
 
         assert(uiContext, 'uiContext is required for Service task');
 
+        if (this.interface.getExtraPlanningContext) {
+          try {
+            const extraLocateContext =
+              await this.interface.getExtraPlanningContext();
+            if (extraLocateContext) {
+              param.extraLocateContext = extraLocateContext;
+              task.param = {
+                ...param,
+                extraLocateContext,
+              };
+            }
+          } catch (e) {
+            debug('getExtraPlanningContext failed for locate:', e);
+          }
+        }
+
         const { shrunkShotToLogicalRatio } = uiContext;
 
         if (shrunkShotToLogicalRatio === undefined) {
@@ -511,6 +527,7 @@ export class TaskBuilder {
               {
                 context: uiContext,
                 planLocatedElement,
+                extraLocateContext: param.extraLocateContext,
               },
               modelConfigForDefaultIntent,
               abortSignal,

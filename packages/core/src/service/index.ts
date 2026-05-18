@@ -34,6 +34,7 @@ import { createServiceDump } from './utils';
 export interface LocateOpts {
   context?: UIContext;
   planLocatedElement?: LocateResultElement;
+  extraLocateContext?: string;
 }
 
 export type AnyValue<T> = {
@@ -99,6 +100,8 @@ export default class Service {
     }
 
     const context = opt?.context || (await this.contextRetrieverFn());
+    const extraLocateContext =
+      opt?.extraLocateContext || query.extraLocateContext;
 
     let searchArea: Rect | undefined = undefined;
     let searchAreaRawResponse: string | undefined = undefined;
@@ -148,6 +151,7 @@ export default class Service {
         context,
         targetElementDescription: queryPrompt,
         searchConfig: searchAreaResponse,
+        extraLocateContext,
         modelConfig,
         abortSignal,
       });
@@ -162,6 +166,7 @@ export default class Service {
       searchArea,
       searchAreaRawResponse,
       searchAreaUsage,
+      extraLocateContext,
       reasoning_content,
     };
 
@@ -174,6 +179,7 @@ export default class Service {
       type: 'locate',
       userQuery: {
         element: queryPrompt,
+        locateContext: extraLocateContext,
       },
       matchedElement: [],
       matchedRect: rect,

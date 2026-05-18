@@ -170,6 +170,7 @@ export interface ServiceTaskInfo {
   searchArea?: Rect;
   searchAreaRawResponse?: string;
   searchAreaUsage?: AIUsageInfo;
+  extraLocateContext?: string;
   reasoning_content?: string;
 }
 
@@ -192,6 +193,7 @@ export interface ServiceDump extends DumpMeta {
   logId: string;
   userQuery: {
     element?: TUserPrompt;
+    locateContext?: string;
     dataDemand?: ServiceExtractParam;
     assertion?: TUserPrompt;
   };
@@ -260,6 +262,7 @@ export interface AgentAssertOpt {
 
 export interface PlanningLocateParam extends DetailedLocateParam {
   bbox?: [number, number, number, number];
+  extraLocateContext?: string;
 }
 
 export interface PlanningAction<ParamType = any> {
