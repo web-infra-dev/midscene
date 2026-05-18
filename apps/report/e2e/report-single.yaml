@@ -17,7 +17,7 @@ tasks:
   # --- Settings popup ---
   - name: settings popup opens and shows options
     flow:
-      - ai: Click the settings gear icon on the player controls bar
+      - ai: Hover over the video player area to reveal the playback controls, then click the settings icon at the bottom right of the player controls. The icon looks like a hexagon with a small circle in the center.
       - sleep: 1000
       - aiAssert: A settings popup is visible showing playback speed options or toggle switches
 
