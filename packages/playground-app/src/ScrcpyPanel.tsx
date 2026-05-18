@@ -6,14 +6,20 @@ import {
 } from '@yume-chan/scrcpy-decoder-webcodecs';
 import { Alert, Spin, Typography } from 'antd';
 import React, {
+  type CSSProperties,
+  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
-  type ReactNode,
 } from 'react';
+
+// Esbuild leaves `.tsx` on the classic JSX transform here (tsconfig sets
+// `jsx: preserve`), so JSX in this file compiles to `React.createElement`.
+// Keep a runtime reference to React or biome will strip the import as
+// type-only, breaking SSR/test renders.
+void React;
 import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
 import {
@@ -58,6 +64,10 @@ interface ScrcpyPanelProps {
   metadataTimeoutMs?: number;
   reconnectInterval?: number;
   viewportStyle?: CSSProperties;
+  // Receives the canvas-area wrapper so the device-interaction layer can
+  // project pointer coords against the actual stream box, ignoring any
+  // surrounding Alert / status chrome.
+  contentRef?: React.Ref<HTMLDivElement | null>;
 }
 
 interface VideoMetadata {
@@ -76,6 +86,7 @@ export function ScrcpyPanel({
   metadataTimeoutMs = SCRCPY_METADATA_TIMEOUT_MS,
   reconnectInterval = 3000,
   viewportStyle,
+  contentRef,
 }: ScrcpyPanelProps) {
   const canvasStageRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -371,6 +382,7 @@ export function ScrcpyPanel({
         />
       ) : null}
       <div
+        ref={contentRef}
         style={{
           position: 'relative',
           flex: 1,
