@@ -9,8 +9,14 @@ import {
 } from './util';
 import { collectElementInfo } from './web-extractor';
 
-/** Separator for compound XPath across iframes (e.g. "iframePath|>>|/html/body/div") */
-const SUB_XPATH_SEPARATOR = '|>>|';
+import { SUB_XPATH_SEPARATOR } from '../constants/index';
+
+/** Returned by getXpathsByPoint when it hits a cross-origin iframe boundary */
+export interface CrossOriginIframeSignal {
+  __crossOriginIframe: true;
+  iframeXpath: string;
+  translatedPoint: { left: number; top: number };
+}
 
 /** Parse the non-standard `zoom` CSS property (Chromium-only) with fallback to 1 */
 function parseCSSZoom(style: CSSStyleDeclaration): number {
@@ -318,6 +324,25 @@ export function getXpathsByPoint(
 
     const tag = element.tagName.toLowerCase();
     if (tag === 'iframe' || tag === 'frame') {
+      const buildCrossOriginSignal = (): CrossOriginIframeSignal => {
+        const localPoint = translatePointToIframeCoordinates(
+          { left, top },
+          element,
+          currentWindow,
+        );
+        const currentIframeXpath = getElementXpath(
+          element,
+          isOrderSensitive,
+          false,
+          true,
+        );
+        return {
+          __crossOriginIframe: true,
+          iframeXpath: xpathPrefix + currentIframeXpath,
+          translatedPoint: { left: localPoint.left, top: localPoint.top },
+        };
+      };
+
       try {
         const contentWindow = (element as HTMLIFrameElement).contentWindow;
         const contentDocument = (element as HTMLIFrameElement).contentDocument;
@@ -341,11 +366,15 @@ export function getXpathsByPoint(
           top = localPoint.top;
           continue;
         }
+
+        // contentDocument is null — cross-origin iframe (browser returns null instead of throwing)
+        return buildCrossOriginSignal() as any;
       } catch (error) {
         logger(
           '[midscene:locator] iframe penetration failed (cross-origin?):',
           error,
         );
+        return buildCrossOriginSignal() as any;
       }
     }
 
@@ -466,4 +495,89 @@ export function getElementInfoByXpath(xpath: string): ElementInfo | null {
   }
 
   return collectElementInfo(node, targetWin, targetDoc, 1, iframeOffset, true);
+}
+
+export function getElementInfoByXpathInCurrentFrame(
+  xpath: string,
+  iframeOffset: { left: number; top: number },
+): ElementInfo | null {
+  const currentDocument: Document =
+    typeof document !== 'undefined' ? document : (undefined as any);
+  const currentWindow: Window =
+    typeof window !== 'undefined' ? window : (undefined as any);
+
+  const xpathResult = currentDocument.evaluate(
+    xpath,
+    currentDocument,
+    null,
+    XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+    null,
+  );
+
+  if (xpathResult.snapshotLength !== 1) {
+    logger(
+      `[midscene:locator] XPath "${xpath}" matched ${xpathResult.snapshotLength} elements in current frame (expected 1), discarding.`,
+    );
+    return null;
+  }
+
+  const node = xpathResult.snapshotItem(0);
+  if (!node) return null;
+
+  const targetWin = currentWindow as typeof globalThis.window;
+  const targetDoc = currentDocument as typeof globalThis.document;
+  if (node instanceof (targetWin as any).HTMLElement) {
+    const rect = getRect(node, 1, targetWin);
+    const isVisible = isElementPartiallyInViewport(
+      rect,
+      targetWin,
+      targetDoc,
+      1,
+    );
+    if (!isVisible) {
+      (node as HTMLElement).scrollIntoView({
+        behavior: 'instant',
+        block: 'center',
+      });
+    }
+  }
+
+  return collectElementInfo(node, targetWin, targetDoc, 1, iframeOffset, true);
+}
+
+export function getIframeRectByXpath(xpath: string): {
+  left: number;
+  top: number;
+  borderLeft: number;
+  borderTop: number;
+  zoom: number;
+} | null {
+  const currentDocument: Document =
+    typeof document !== 'undefined' ? document : (undefined as any);
+  const currentWindow: Window =
+    typeof window !== 'undefined' ? window : (undefined as any);
+
+  const xpathResult = currentDocument.evaluate(
+    xpath,
+    currentDocument,
+    null,
+    XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+    null,
+  );
+
+  if (xpathResult.snapshotLength !== 1) return null;
+  const el = xpathResult.snapshotItem(0);
+  if (!el || !(el as Element).getBoundingClientRect) return null;
+
+  const rect = (el as Element).getBoundingClientRect();
+  const style = currentWindow.getComputedStyle(el as Element);
+  const zoom = parseCSSZoom(style);
+
+  return {
+    left: rect.left,
+    top: rect.top,
+    borderLeft: Number.parseFloat(style.borderLeftWidth) || 0,
+    borderTop: Number.parseFloat(style.borderTopWidth) || 0,
+    zoom,
+  };
 }
