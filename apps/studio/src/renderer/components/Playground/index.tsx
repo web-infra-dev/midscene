@@ -6,6 +6,22 @@ import { useStudioPlayground } from '../../playground/useStudioPlayground';
 import { PlaygroundShell } from '../PlaygroundShell';
 import { StudioPlaygroundEmptyState } from './StudioPlaygroundEmptyState';
 
+// Studio drives device selection from the Overview page (middle area), so the
+// right column never hosts the SessionSetupPanel. This fallback replaces it
+// with a calm "go to Overview" hint when no session is connected.
+function NotConnectedFallback() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-[8px] px-[24px] text-center">
+      <div className="text-[14px] font-medium text-text-primary">
+        No agent connected
+      </div>
+      <div className="text-[12px] leading-[20px] text-text-secondary">
+        Create or pick a device from the Overview page to start a session.
+      </div>
+    </div>
+  );
+}
+
 declare const __APP_VERSION__: string;
 
 export function createStudioPlaygroundConfig(): Partial<UniversalPlaygroundConfig> {
@@ -49,6 +65,7 @@ export default function Playground() {
             appVersion={__APP_VERSION__}
             className="h-full"
             controller={studioPlayground.controller}
+            notConnectedFallback={<NotConnectedFallback />}
             playgroundConfig={playgroundConfig}
             title="Playground"
           />

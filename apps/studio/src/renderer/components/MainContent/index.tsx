@@ -1,5 +1,6 @@
 import { PlaygroundPreview } from '@midscene/playground-app';
 import { getDebug } from '@midscene/shared/logger';
+import type { StudioPlatformId } from '@shared/electron-contract';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { assetUrls } from '../../assets';
 import {
@@ -18,8 +19,7 @@ import { useStudioPlayground } from '../../playground/useStudioPlayground';
 import ConnectingPreview from '../ConnectingPreview';
 import ConnectionFailedPreview from '../ConnectionFailedPreview';
 import DisconnectedPreview from '../DisconnectedPreview';
-import { MaskedIcon } from '../MaskedIcon';
-import { type ConnectionStatus, ConnectionStatusDot } from '../PlaygroundShell';
+import type { ConnectionStatus } from '../PlaygroundShell';
 import type { ShellActiveView } from '../ShellLayout/types';
 import { DeviceList } from './DeviceList';
 import { MobilePreviewFrame } from './MobilePreviewFrame';
@@ -41,6 +41,8 @@ export interface MainContentProps {
    * Overview surfaces a banner pointing to the env modal in that case.
    */
   modelConfigComplete?: boolean;
+  /** Raw env text — previewed inline in the Model Config card. */
+  modelEnvText?: string;
   /** Opens the model env config modal anchored in the shell. */
   onOpenEnvModal?: () => void;
 }
@@ -137,14 +139,17 @@ function StopIcon() {
 function resolvePlatformLogo(platform?: string): string {
   switch (platform) {
     case 'computer':
-    case 'web':
       return assetUrls.main.platformPc;
-    case 'android':
+    case 'web':
+      return assetUrls.main.platformWeb;
     case 'ios':
+      return assetUrls.main.platformIos;
     case 'harmony':
-      return assetUrls.main.platformPhone;
+      return assetUrls.main.platformHarmony;
+    case 'android':
+      return assetUrls.main.platformAndroid;
     default:
-      return assetUrls.main.platformPhone;
+      return assetUrls.main.platformAndroid;
   }
 }
 
@@ -240,6 +245,7 @@ export default function MainContent({
   onSelectDeviceView,
   onSelectOverview,
   modelConfigComplete = true,
+  modelEnvText,
   onOpenEnvModal,
 }: MainContentProps) {
   const studioPlayground = useStudioPlayground();
@@ -267,6 +273,14 @@ export default function MainContent({
     'GoBack' | 'GoForward' | 'Stop' | 'Reload' | null
   >(null);
   const [webIsLoading, setWebIsLoading] = useState(false);
+  // Holds the platform a user just picked from Overview while
+  // antd's Form.useWatch propagation catches up. Without this, the
+  // ConnectingPreview briefly resolves `previewPlatform` as undefined
+  // and falls back to the Android phone icon for a frame before the
+  // form value lands and switches to PC.
+  const [pendingCreatePlatform, setPendingCreatePlatform] = useState<
+    StudioPlatformId | undefined
+  >();
   const isReady = studioPlayground.phase === 'ready';
   const deviceLabel =
     studioPlayground.phase === 'error'
@@ -305,10 +319,15 @@ export default function MainContent({
     runtimeInfo,
     previewFormValues,
   );
-  const previewPlatform = resolveStudioPreviewPlatform(
+  const resolvedPreviewPlatform = resolveStudioPreviewPlatform(
     runtimeInfo,
     previewFormValues,
   );
+  // Prefer the platform whichever path has already settled. When we
+  // just kicked off a session from Overview, antd's form-watch update
+  // hasn't propagated yet — fall back to `pendingCreatePlatform` so the
+  // connecting overlay locks onto the correct icon immediately.
+  const previewPlatform = resolvedPreviewPlatform ?? pendingCreatePlatform;
   const showWebNavigation = isConnected && previewPlatform === 'web';
   const previewConnectingLabel = getPreviewConnectingLabel(previewPlatform);
   const disconnectedPreviewTitle = getDisconnectedPreviewTitle(previewPlatform);
@@ -326,6 +345,42 @@ export default function MainContent({
       ? 'connected'
       : 'disconnected';
 
+  const previewHeaderSubInfo: { key: string; text: string }[] = [];
+  if (isConnected && previewDeviceId) {
+    const idLabel =
+      previewPlatform === 'android' || previewPlatform === 'harmony'
+        ? `ADB Device: ${previewDeviceId}`
+        : previewPlatform === 'computer'
+          ? `Display: ${previewDeviceId}`
+          : previewPlatform === 'ios'
+            ? `WDA: ${previewDeviceId}`
+            : previewDeviceId;
+    previewHeaderSubInfo.push({ key: 'device-id', text: idLabel });
+  }
+  if (previewDeviceSize) {
+    previewHeaderSubInfo.push({
+      key: 'viewport',
+      text: `Viewport: ${previewDeviceSize.width} x ${previewDeviceSize.height}`,
+    });
+  }
+  const pillStatusLabel: Record<ConnectionStatus, string> = {
+    connected: 'Live',
+    disconnected: 'Idle',
+    failed: 'Failed',
+  };
+  // Pill chrome — adopts the imported "Live" tag visual (rounded background,
+  // status dot + label) and doubles as the disconnect control. Hover reveals
+  // a black tooltip ported from the FloatingLayer mock.
+  const pillPalette: Record<
+    ConnectionStatus,
+    { bg: string; fg: string; dot: string }
+  > = {
+    connected: { bg: '#DEEBEC', fg: '#42B56C', dot: '#42B56C' },
+    disconnected: { bg: '#ECECEC', fg: '#818283', dot: '#B6B6B6' },
+    failed: { bg: '#FDE7E7', fg: '#C0392B', dot: '#E53935' },
+  };
+  const pillColors = pillPalette[connectionStatus];
+
   useEffect(() => {
     if (!isConnected) {
       setPreviewStatus(null);
@@ -335,6 +390,15 @@ export default function MainContent({
       setWebIsLoading(false);
     }
   }, [isConnected]);
+
+  // Drop the pending-platform override once antd's form watch (or
+  // runtimeInfo) catches up — from then on `resolvedPreviewPlatform`
+  // is the source of truth.
+  useEffect(() => {
+    if (resolvedPreviewPlatform && pendingCreatePlatform) {
+      setPendingCreatePlatform(undefined);
+    }
+  }, [resolvedPreviewPlatform, pendingCreatePlatform]);
 
   // Web navigation toolbar polls /interface-info for `isLoading` so the
   // reload/stop button reflects the current page state. Depend on the few
@@ -476,24 +540,6 @@ export default function MainContent({
     return (
       <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[12px] bg-surface">
         <div className="app-drag absolute left-0 right-0 top-0 z-0 h-[52px]" />
-        {!modelConfigComplete && (
-          <button
-            className="app-no-drag absolute left-[20px] right-[68px] top-[10px] z-10 flex h-[32px] cursor-pointer items-center justify-between rounded-[8px] border-0 bg-[#fff7e6] px-[12px] text-left text-text-primary shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:bg-[#ffefcc]"
-            onClick={onOpenEnvModal}
-            type="button"
-          >
-            <span className="flex items-center gap-[8px] font-sans text-[13px] leading-[20px]">
-              <span aria-hidden="true">⚠️</span>
-              <span>
-                Model env not configured — set base URL / API key / model name
-                to enable automation.
-              </span>
-            </span>
-            <span className="ml-[12px] font-sans text-[13px] font-medium text-[#1979ff]">
-              Configure
-            </span>
-          </button>
-        )}
         <OverviewToolbar
           onRefresh={async () => {
             if (!isReady || overviewRefreshing) {
@@ -521,6 +567,80 @@ export default function MainContent({
           buckets={overviewBuckets}
           connectingDeviceId={overviewSelectedDeviceId}
           errors={studioPlayground.discoveryErrors}
+          modelConfigComplete={modelConfigComplete}
+          modelEnvText={modelEnvText}
+          onOpenEnvModal={onOpenEnvModal}
+          sessionMutating={
+            isReady ? studioPlayground.controller.state.sessionMutating : false
+          }
+          onCreateWebSession={async ({
+            headed,
+            url,
+            viewportHeight,
+            viewportWidth,
+          }) => {
+            if (!isReady) return;
+            const { actions, state } = studioPlayground.controller;
+            const selectionValues = {
+              platformId: 'web' as const,
+              'web.url': url,
+              'web.viewportWidth': viewportWidth,
+              'web.viewportHeight': viewportHeight,
+              'web.headed': headed,
+            };
+            setPendingCreatePlatform('web');
+            state.form.setFieldsValue(selectionValues);
+            onSelectDeviceView?.();
+            if (state.sessionViewState.connected) {
+              await actions.destroySession();
+            }
+            await actions.createSession({
+              ...state.form.getFieldsValue(true),
+              ...selectionValues,
+            });
+            // The page is settled into waitForNetworkIdle by the time
+            // createSession resolves, but the MJPEG <img> doesn't mount
+            // until React commits the new "connected" state and the
+            // browser opens the /mjpeg HTTP request. If we fire Reload
+            // immediately, page.reload() generates frames *before* any
+            // subscriber is attached — by the time the <img> connects,
+            // the page is idle again and CDP screencast emits nothing
+            // new, so the user sees a blank canvas. Wait long enough for
+            // the React commit + browser MJPEG handshake to complete
+            // (~1.5s in practice) before triggering the reload that
+            // actually pushes a frame to the now-attached subscriber.
+            window.setTimeout(() => {
+              if (studioPlayground.phase !== 'ready') return;
+              const sdk = studioPlayground.controller.state.playgroundSDK;
+              void sdk
+                .interact({ actionType: 'Reload' })
+                .catch((error: unknown) => {
+                  debugWebNavigation(
+                    'post-create web reload failed: %s',
+                    error,
+                  );
+                });
+            }, 1500);
+          }}
+          onCreateIOSSession={async ({ host, port }) => {
+            if (!isReady) return;
+            const { actions, state } = studioPlayground.controller;
+            const selectionValues = {
+              platformId: 'ios' as const,
+              'ios.host': host,
+              'ios.port': port,
+            };
+            setPendingCreatePlatform('ios');
+            state.form.setFieldsValue(selectionValues);
+            onSelectDeviceView?.();
+            if (state.sessionViewState.connected) {
+              await actions.destroySession();
+            }
+            await actions.createSession({
+              ...state.form.getFieldsValue(true),
+              ...selectionValues,
+            });
+          }}
           onConnect={async (platform, device) => {
             if (!isReady) {
               return;
@@ -530,6 +650,7 @@ export default function MainContent({
               platform,
               device,
             );
+            setPendingCreatePlatform(platform);
             onSelectDeviceView?.();
             if (
               connectedDeviceId === device.id ||
@@ -563,24 +684,57 @@ export default function MainContent({
 
   return (
     <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-l-[12px] border-r border-border-subtle bg-surface">
+      {/*
+       * Device-preview top bar: icon + device name with ADB / Viewport meta
+       * on the left, and a pill-shaped status/disconnect control on the
+       * right that reveals a "Disconnect" tooltip on hover.
+       */}
       <div
-        className={`app-drag flex h-[52px] items-center pr-4 ${
+        className={`app-drag relative flex h-[52px] items-center justify-between pr-4 pt-[4px] ${
           headerOffsetClass || 'pl-[8px]'
         }`}
       >
-        <div className="flex items-center">
-          <img
-            alt=""
-            className="ml-[8px] h-6 w-6 shrink-0"
-            src={resolvePlatformLogo(previewPlatform)}
-          />
-
-          <span className="ml-[8px] max-w-[134px] truncate text-[13px] leading-[22.1px] font-medium text-text-primary">
-            {deviceLabel}
-          </span>
-          <span className="ml-[8px] inline-flex shrink-0 items-center">
-            <ConnectionStatusDot status={connectionStatus} />
-          </span>
+        <div className="flex min-w-0 flex-1 items-center gap-[8px] pt-[2px]">
+          <div className="ml-[8px] flex h-[40px] w-[40px] shrink-0 items-center justify-center overflow-hidden rounded-[6px] border border-border-subtle bg-surface-muted">
+            <img
+              alt=""
+              aria-hidden="true"
+              className="h-[36px] w-[36px] object-contain"
+              src={resolvePlatformLogo(previewPlatform)}
+            />
+          </div>
+          <div className="flex min-w-0 flex-col">
+            <span
+              className="max-w-[220px] truncate text-[14px] leading-[22px] font-medium text-text-primary"
+              title={deviceLabel}
+            >
+              {deviceLabel}
+            </span>
+            {previewHeaderSubInfo.length > 0 ? (
+              <span
+                className="flex items-center gap-[8px] text-[10px] leading-[12px] font-normal"
+                style={{ color: 'rgba(13, 13, 13, 0.5)' }}
+              >
+                {previewHeaderSubInfo.map((item, index) => (
+                  <span
+                    key={item.key}
+                    className="flex items-center gap-[8px] min-w-0"
+                  >
+                    {index > 0 ? (
+                      <span
+                        aria-hidden="true"
+                        className="h-[12px] w-px shrink-0"
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.08)' }}
+                      />
+                    ) : null}
+                    <span className="max-w-[220px] truncate" title={item.text}>
+                      {item.text}
+                    </span>
+                  </span>
+                ))}
+              </span>
+            ) : null}
+          </div>
           {showWebNavigation ? (
             <div
               aria-label="Web navigation"
@@ -631,17 +785,10 @@ export default function MainContent({
           ) : null}
         </div>
 
-        <div className="flex flex-1 justify-end gap-[8.04px]">
+        <div className="app-no-drag group/disconnect-pill relative flex shrink-0 items-center">
           <button
-            className={`app-no-drag flex h-8 items-center rounded-lg border border-border-subtle px-3 transition-colors ${
-              isConnected
-                ? 'bg-surface shadow-[0_1px_2px_rgba(15,23,42,0.06)]'
-                : 'bg-transparent'
-            } ${
-              disconnectDisabled
-                ? 'cursor-not-allowed opacity-50'
-                : 'cursor-pointer hover:bg-surface-hover'
-            }`}
+            aria-label="Disconnect"
+            className="inline-flex h-[24px] items-center gap-[6px] rounded-[12px] border-0 px-[10px] text-[11px] font-medium leading-none transition-[filter,opacity] duration-150 disabled:cursor-not-allowed disabled:opacity-60 hover:[&:not(:disabled)]:brightness-95"
             disabled={disconnectDisabled}
             onClick={() => {
               if (studioPlayground.phase !== 'ready') {
@@ -654,16 +801,45 @@ export default function MainContent({
               // instead of an empty device pane.
               onSelectOverview?.();
             }}
+            style={{
+              background: pillColors.bg,
+              color: pillColors.fg,
+              cursor: disconnectDisabled ? undefined : 'pointer',
+            }}
             type="button"
           >
-            <MaskedIcon
-              className="mr-[5px] h-3.5 w-3.5 text-text-primary"
-              src={assetUrls.main.disconnect}
+            <span
+              aria-hidden="true"
+              className="h-[6px] w-[6px] rounded-full"
+              style={{
+                background: pillColors.dot,
+                outline: `1.4px solid ${pillColors.dot}40`,
+              }}
             />
-            <span className="whitespace-nowrap px-[3px] text-[13px] leading-[20px] font-medium text-text-primary">
-              Disconnect
+            <span className="whitespace-nowrap">
+              {pillStatusLabel[connectionStatus]}
             </span>
           </button>
+          {!disconnectDisabled ? (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute right-0 top-full z-20 flex flex-col items-end pt-[4px] opacity-0 transition-opacity duration-150 group-hover/disconnect-pill:opacity-100"
+            >
+              <span
+                className="mr-[14px] -mb-[1px] h-[6.7px] w-[10px]"
+                style={{
+                  backgroundColor: '#090909',
+                  clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+                }}
+              />
+              <span
+                className="whitespace-nowrap rounded-[4px] px-[12px] py-[8px] text-[12px] leading-[20px] font-medium text-white"
+                style={{ backgroundColor: '#000000' }}
+              >
+                Disconnect
+              </span>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -704,8 +880,14 @@ export default function MainContent({
               <PlaygroundPreview
                 connectingOverlay={
                   <ConnectingPreview
-                    pcSrc={assetUrls.main.pc}
-                    phoneSrc={assetUrls.main.phone}
+                    iconSrc={resolvePlatformLogo(previewPlatform)}
+                    iconVariant={
+                      previewPlatform === 'ios' ||
+                      previewPlatform === 'android' ||
+                      previewPlatform === 'harmony'
+                        ? 'phone'
+                        : 'desktop'
+                    }
                     statusLabel={previewStatusText || previewConnectingLabel}
                   />
                 }
@@ -741,8 +923,14 @@ export default function MainContent({
             </div>
           ) : isOpeningSession ? (
             <ConnectingPreview
-              pcSrc={assetUrls.main.pc}
-              phoneSrc={assetUrls.main.phone}
+              iconSrc={resolvePlatformLogo(previewPlatform)}
+              iconVariant={
+                previewPlatform === 'ios' ||
+                previewPlatform === 'android' ||
+                previewPlatform === 'harmony'
+                  ? 'phone'
+                  : 'desktop'
+              }
               statusLabel={previewConnectingLabel}
             />
           ) : (

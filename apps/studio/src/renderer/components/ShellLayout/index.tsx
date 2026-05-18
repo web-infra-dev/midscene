@@ -80,7 +80,7 @@ function SidebarToggleButton({
 
 export default function ShellLayout() {
   const [collapsed, setCollapsed] = useState(false);
-  const [activeView, setActiveView] = useState<ShellActiveView>('device');
+  const [activeView, setActiveView] = useState<ShellActiveView>('overview');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modelModalOpen, setModelModalOpen] = useState(false);
   const [windowFocused, setWindowFocused] = useState(
@@ -308,6 +308,7 @@ export default function ShellLayout() {
           activeView={activeView}
           headerOffsetClass={collapsed ? collapsedHeaderOffsetClass : undefined}
           modelConfigComplete={modelConfigComplete}
+          modelEnvText={modelEnvText}
           onOpenEnvModal={openEnvModal}
           onSelectDeviceView={() => setActiveView('device')}
           onSelectOverview={() => setActiveView('overview')}
