@@ -1,4 +1,4 @@
-import { getSummary } from '@/ai-model/prompt/ui-tars-planning';
+import { getSummary } from '@/ai-model/models/ui-tars/prompt';
 import { actionParser } from '@ui-tars/action-parser';
 import { describe, expect, it } from 'vitest';
 

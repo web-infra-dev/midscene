@@ -13,7 +13,7 @@ import {
   prepareEventSummary,
   processEventsForLLM,
   validateEvents,
-} from '../../../src/ai-model/prompt/playwright-generator';
+} from '../../../src/ai-model/workflows/generation/playwright';
 
 // Mock the callAi function
 vi.mock('../../../src/ai-model', () => ({

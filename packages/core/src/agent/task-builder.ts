@@ -1,5 +1,6 @@
 import { findAllMidsceneLocatorField, parseActionParam } from '@/ai-model';
 import type { AbstractInterface } from '@/device';
+import { createLocateResultElementFromRect } from '@/locate-result-element';
 import type Service from '@/service';
 import { setTimingFieldOnce } from '@/task-timing';
 import type {
@@ -21,7 +22,6 @@ import type {
 import { ServiceError } from '@/types';
 import { sleep } from '@/utils';
 import type { IModelConfig } from '@midscene/shared/env';
-import { generateElementByRect } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TaskCache } from './task-cache';
@@ -460,7 +460,7 @@ export class TaskBuilder {
         }
 
         const elementFromXpath = rectFromXpath
-          ? generateElementByRect(
+          ? createLocateResultElementFromRect(
               // rectFromXpath is in logical coordinates, which should be transformed to screenshot coordinates;
               transformLogicalRectToScreenshotRect(
                 rectFromXpath,

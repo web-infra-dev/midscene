@@ -8,7 +8,11 @@ import type {
   ExecutionTask,
   ExecutorContext,
 } from '@midscene/core';
-import { ReportActionDump, runConnectivityTest } from '@midscene/core';
+import {
+  ReportActionDump,
+  createLocateResultElementFromPoint,
+  runConnectivityTest,
+} from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
@@ -16,7 +20,6 @@ import {
   globalModelConfigManager,
   overrideAIConfig,
 } from '@midscene/shared/env';
-import { generateElementByPoint } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
@@ -152,7 +155,7 @@ function locateFromPoint(
   fieldY: string,
   description: string,
 ) {
-  return generateElementByPoint(
+  return createLocateResultElementFromPoint(
     [
       Math.round(requireNumber(x, fieldX)),
       Math.round(requireNumber(y, fieldY)),

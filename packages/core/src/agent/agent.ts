@@ -1,4 +1,4 @@
-import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
+import { getModelAdapter } from '@/ai-model/models';
 import yaml from 'js-yaml';
 import type { TUserPrompt } from '../ai-model/index';
 import { ScreenshotItem } from '../screenshot-item';
@@ -132,10 +132,6 @@ const normalizeScrollType = (
   return scrollType as ScrollParam['scrollType'];
 };
 
-const defaultReplanningCycleLimit = 20;
-const defaultVlmUiTarsReplanningCycleLimit = 40;
-const defaultAutoGlmReplanningCycleLimit = 100;
-
 export type AiActOptions = {
   cacheable?: boolean;
   fileChooserAccept?: string | string[];
@@ -244,11 +240,8 @@ export class Agent<
       return this.opts.replanningCycleLimit;
     }
 
-    return isUITars(modelConfigForPlanning.modelFamily)
-      ? defaultVlmUiTarsReplanningCycleLimit
-      : isAutoGLM(modelConfigForPlanning.modelFamily)
-        ? defaultAutoGlmReplanningCycleLimit
-        : defaultReplanningCycleLimit;
+    return getModelAdapter(modelConfigForPlanning.modelFamily).planning
+      .defaultReplanningCycleLimit;
   }
 
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
@@ -927,11 +920,11 @@ export class Agent<
       const replanningCycleLimit = this.resolveReplanningCycleLimit(
         modelConfigForPlanning,
       );
-      // if vlm-ui-tars or auto-glm, plan cache is not used
-      const isVlmUiTars = isUITars(modelConfigForPlanning.modelFamily);
-      const isAutoGlm = isAutoGLM(modelConfigForPlanning.modelFamily);
+      const planCacheEnabled = getModelAdapter(
+        modelConfigForPlanning.modelFamily,
+      ).planning.cacheEnabled;
       const matchedCache =
-        isVlmUiTars || isAutoGlm || cacheable === false
+        !planCacheEnabled || cacheable === false
           ? undefined
           : this.taskCache?.matchPlanCache(taskPrompt);
       if (
@@ -1121,8 +1114,9 @@ export class Agent<
       // Don't pass deepLocate to verification locate — the description was generated
       // from a cropped view (deepLocate describe), but verification should use regular
       // locate on the full screenshot to confirm the description works universally.
-      // Passing deepLocate here would trigger AiLocateSection with an element-level
-      // description as a section prompt, which is semantically incorrect.
+      // Passing deepLocate here would add another first-pass locate and search-area
+      // crop around an already element-level description, which is not the intent of
+      // verification.
       verifyResult = await this.verifyLocator(
         resultPrompt,
         undefined,

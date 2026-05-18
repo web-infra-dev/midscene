@@ -5,7 +5,7 @@ import {
   type ChromeRecordedEvent,
   generateYamlTest,
   generateYamlTestStream,
-} from '../../../src/ai-model/prompt/yaml-generator';
+} from '../../../src/ai-model/workflows/generation/yaml';
 
 vi.mock('../../../src/ai-model', () => ({
   callAI: vi.fn(),

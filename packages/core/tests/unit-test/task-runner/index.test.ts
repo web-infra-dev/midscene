@@ -42,6 +42,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
         {},
         {
           modelName: 'mock-model',
+          modelFamily: 'qwen2.5-vl',
           modelDescription: 'mock-model-description',
           intent: 'default',
           slot: 'default',

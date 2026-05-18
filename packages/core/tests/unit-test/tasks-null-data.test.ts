@@ -1,9 +1,18 @@
 import { TaskExecutor } from '@/agent/tasks';
-import * as aiModel from '@/ai-model';
+import { genericXmlPlan } from '@/ai-model/workflows/planning';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { ServiceDump } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@/ai-model/workflows/planning', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/ai-model/workflows/planning')>();
+  return {
+    ...actual,
+    genericXmlPlan: vi.fn(),
+  };
+});
 
 // Helper function to create mock UIContext with ScreenshotItem
 const createMockUIContext = async (screenshotData = 'mock-screenshot') => {
@@ -33,7 +42,6 @@ const createMockDump = (
   type: 'extract',
   logId: 'mock-log-id',
   userQuery: {},
-  matchedElement: [],
   data,
   taskInfo: {
     durationMs: 100,
@@ -288,7 +296,7 @@ describe('TaskExecutor - Null Data Handling', () => {
     });
 
     it('should preserve planning intent while recording resolved config slot', async () => {
-      const planSpy = vi.spyOn(aiModel, 'plan').mockResolvedValue({
+      const planSpy = vi.mocked(genericXmlPlan).mockResolvedValue({
         actions: [],
         usage: {
           prompt_tokens: 20,
@@ -344,7 +352,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         slot: 'default',
       });
 
-      planSpy.mockRestore();
+      planSpy.mockReset();
     });
 
     it('should preserve existing intent and warn instead of overwriting it', async () => {

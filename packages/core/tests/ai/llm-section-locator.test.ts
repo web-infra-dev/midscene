@@ -1,4 +1,4 @@
-import { AiLocateSection } from '@/ai-model/inspect';
+import { AiLocateSection } from '@/ai-model/workflows/inspect';
 import { getTmpFile } from '@/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';

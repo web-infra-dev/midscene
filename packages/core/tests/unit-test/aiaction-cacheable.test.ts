@@ -7,7 +7,7 @@ import type Service from '../../src';
 import { getMidsceneLocationSchema, z } from '../../src';
 
 // Mock AI planning to avoid real AI calls
-vi.mock('@/ai-model/llm-planning', () => ({
+vi.mock('@/ai-model/workflows/planning/generic', () => ({
   plan: vi.fn().mockResolvedValue({
     actions: [
       {

@@ -1,231 +1,49 @@
-import type { AIUsageInfo } from '@/types';
+import type { AIUsageInfo, DeepThinkOption } from '@/types';
 import type { CodeGenerationChunk, StreamingCallback } from '@/types';
-
-// Error class that preserves usage and rawResponse when AI call parsing fails
-export class AIResponseParseError extends Error {
-  usage?: AIUsageInfo;
-  rawResponse: string;
-
-  constructor(message: string, rawResponse: string, usage?: AIUsageInfo) {
-    super(message);
-    this.name = 'AIResponseParseError';
-    this.rawResponse = rawResponse;
-    this.usage = usage;
-  }
-}
 import {
   type IModelConfig,
-  MIDSCENE_LANGFUSE_DEBUG,
-  MIDSCENE_LANGSMITH_DEBUG,
   MIDSCENE_MODEL_MAX_TOKENS,
   OPENAI_MAX_TOKENS,
-  type TModelFamily,
-  type UITarsModelVersion,
   globalConfigManager,
 } from '@midscene/shared/env';
 
 import { getDebug } from '@midscene/shared/logger';
-import { assert, ifInBrowser } from '@midscene/shared/utils';
-import { jsonrepair } from 'jsonrepair';
-import OpenAI from 'openai';
+import { assert } from '@midscene/shared/utils';
+import type OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
-import type { AIArgs } from '../../common';
-import { isAutoGLM, isUITars } from '../auto-glm/util';
+import { getModelAdapter } from '../models';
+import type { AIArgs } from '../types';
+import { createChatClient } from './client';
 import {
   callAIWithCodexAppServer,
   isCodexAppServerProvider,
 } from './codex-app-server';
-import { shouldForceOriginalImageDetail } from './image-detail';
+import { AIResponseParseError } from './error';
+import { resolveReasoningConfig } from './reasoning';
 import {
   buildRequestAbortSignal,
   isHardTimeoutError,
   resolveEffectiveTimeoutMs,
 } from './request-timeout';
 
-async function createChatClient({
-  modelConfig,
+export { AIResponseParseError } from './error';
+export { resolveReasoningConfig } from './reasoning';
+
+function hasExplicitReasoningConfig({
+  reasoningEnabled,
+  reasoningEffort,
+  reasoningBudget,
 }: {
-  modelConfig: IModelConfig;
-}): Promise<{
-  completion: OpenAI.Chat.Completions;
-  modelName: string;
-  modelDescription: string;
-  uiTarsModelVersion?: UITarsModelVersion;
-  modelFamily: TModelFamily | undefined;
-}> {
-  const {
-    socksProxy,
-    httpProxy,
-    modelName,
-    openaiBaseURL,
-    openaiApiKey,
-    openaiExtraConfig,
-    modelDescription,
-    uiTarsModelVersion,
-    modelFamily,
-    createOpenAIClient,
-    timeout,
-  } = modelConfig;
-
-  let proxyAgent: any = undefined;
-  const warnClient = getDebug('ai:call', { console: true });
-  const debugProxy = getDebug('ai:call:proxy');
-  const warnProxy = getDebug('ai:call:proxy', { console: true });
-
-  // Helper function to sanitize proxy URL for logging (remove credentials)
-  // Uses URL API instead of regex to avoid ReDoS vulnerabilities
-  const sanitizeProxyUrl = (url: string): string => {
-    try {
-      const parsed = new URL(url);
-      if (parsed.username) {
-        // Keep username for debugging, hide password for security
-        parsed.password = '****';
-        return parsed.href;
-      }
-      return url;
-    } catch {
-      // If URL parsing fails, return original URL (will be caught later)
-      return url;
-    }
-  };
-
-  if (httpProxy) {
-    debugProxy('using http proxy', sanitizeProxyUrl(httpProxy));
-    if (ifInBrowser) {
-      warnProxy(
-        'HTTP proxy is configured but not supported in browser environment',
-      );
-    } else {
-      // Dynamic import with variable to avoid bundler static analysis
-      const moduleName = 'undici';
-      const { ProxyAgent } = await import(moduleName);
-      proxyAgent = new ProxyAgent({
-        uri: httpProxy,
-        // Note: authentication is handled via the URI (e.g., http://user:pass@proxy.com:8080)
-      });
-    }
-  } else if (socksProxy) {
-    debugProxy('using socks proxy', sanitizeProxyUrl(socksProxy));
-    if (ifInBrowser) {
-      warnProxy(
-        'SOCKS proxy is configured but not supported in browser environment',
-      );
-    } else {
-      try {
-        // Dynamic import with variable to avoid bundler static analysis
-        const moduleName = 'fetch-socks';
-        const { socksDispatcher } = await import(moduleName);
-        // Parse SOCKS proxy URL (e.g., socks5://127.0.0.1:1080)
-        const proxyUrl = new URL(socksProxy);
-
-        // Validate hostname
-        if (!proxyUrl.hostname) {
-          throw new Error('SOCKS proxy URL must include a valid hostname');
-        }
-
-        // Validate and parse port
-        const port = Number.parseInt(proxyUrl.port, 10);
-        if (!proxyUrl.port || Number.isNaN(port)) {
-          throw new Error('SOCKS proxy URL must include a valid port');
-        }
-
-        // Parse SOCKS version from protocol
-        const protocol = proxyUrl.protocol.replace(':', '');
-        const socksType =
-          protocol === 'socks4' ? 4 : protocol === 'socks5' ? 5 : 5;
-
-        proxyAgent = socksDispatcher({
-          type: socksType,
-          host: proxyUrl.hostname,
-          port,
-          ...(proxyUrl.username
-            ? {
-                userId: decodeURIComponent(proxyUrl.username),
-                password: decodeURIComponent(proxyUrl.password || ''),
-              }
-            : {}),
-        });
-        debugProxy('socks proxy configured successfully', {
-          type: socksType,
-          host: proxyUrl.hostname,
-          port: port,
-        });
-      } catch (error) {
-        warnProxy('Failed to configure SOCKS proxy:', error);
-        throw new Error(
-          `Invalid SOCKS proxy URL: ${socksProxy}. Expected format: socks4://host:port, socks5://host:port, or with authentication: socks5://user:pass@host:port`,
-        );
-      }
-    }
-  }
-
-  const effectiveTimeoutMs = resolveEffectiveTimeoutMs({ timeout });
-  const openAIOptions = {
-    baseURL: openaiBaseURL,
-    apiKey: openaiApiKey,
-    // Use fetchOptions.dispatcher for fetch-based SDK instead of httpAgent
-    // Note: Type assertion needed due to undici version mismatch between dependencies
-    ...(proxyAgent ? { fetchOptions: { dispatcher: proxyAgent as any } } : {}),
-    ...openaiExtraConfig,
-    // Midscene already handles retries in callAI(), so disable SDK-level retries
-    // to avoid duplicate attempts and duplicated backoff latency.
-    maxRetries: 0,
-    // When disabled (timeoutMs === null) fall through to the SDK default so
-    // only the caller-provided abortSignal can cancel the request.
-    ...(effectiveTimeoutMs !== null ? { timeout: effectiveTimeoutMs } : {}),
-    dangerouslyAllowBrowser: true,
-  };
-
-  const baseOpenAI = new OpenAI(openAIOptions);
-
-  let openai: OpenAI = baseOpenAI;
-
-  // LangSmith wrapper
-  if (
-    openai &&
-    globalConfigManager.getEnvConfigInBoolean(MIDSCENE_LANGSMITH_DEBUG)
-  ) {
-    if (ifInBrowser) {
-      throw new Error('langsmith is not supported in browser');
-    }
-    warnClient('DEBUGGING MODE: langsmith wrapper enabled');
-    // Use variable to prevent static analysis by bundlers
-    const langsmithModule = 'langsmith/wrappers';
-    const { wrapOpenAI } = await import(langsmithModule);
-    openai = wrapOpenAI(openai);
-  }
-
-  // Langfuse wrapper
-  if (
-    openai &&
-    globalConfigManager.getEnvConfigInBoolean(MIDSCENE_LANGFUSE_DEBUG)
-  ) {
-    if (ifInBrowser) {
-      throw new Error('langfuse is not supported in browser');
-    }
-    warnClient('DEBUGGING MODE: langfuse wrapper enabled');
-    // Use variable to prevent static analysis by bundlers
-    const langfuseModule = '@langfuse/openai';
-    const { observeOpenAI } = await import(langfuseModule);
-    openai = observeOpenAI(openai);
-  }
-
-  if (createOpenAIClient) {
-    const wrappedClient = await createOpenAIClient(baseOpenAI, openAIOptions);
-
-    if (wrappedClient) {
-      openai = wrappedClient as OpenAI;
-    }
-  }
-
-  return {
-    completion: openai.chat.completions,
-    modelName,
-    modelDescription,
-    uiTarsModelVersion,
-    modelFamily,
-  };
+  reasoningEnabled?: boolean;
+  reasoningEffort?: string;
+  reasoningBudget?: number;
+}): boolean {
+  return (
+    reasoningEnabled !== undefined ||
+    !!reasoningEffort ||
+    reasoningBudget !== undefined
+  );
 }
 
 export async function callAI(
@@ -234,6 +52,7 @@ export async function callAI(
   options?: {
     stream?: boolean;
     onChunk?: StreamingCallback;
+    deepThink?: DeepThinkOption;
     abortSignal?: AbortSignal;
   },
 ): Promise<{
@@ -242,6 +61,14 @@ export async function callAI(
   usage?: AIUsageInfo;
   isStreamed: boolean;
 }> {
+  const mergedEnableReasoning = (() => {
+    const normalizedDeepThink =
+      options?.deepThink === 'unset' ? undefined : options?.deepThink;
+    if (normalizedDeepThink === true) return true;
+    if (normalizedDeepThink === false) return false;
+    return modelConfig.reasoningEnabled;
+  })();
+
   if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
     if (
       !modelConfig.modelFamily &&
@@ -259,20 +86,16 @@ export async function callAI(
     return callAIWithCodexAppServer(messages, modelConfig, {
       stream: options?.stream,
       onChunk: options?.onChunk,
-      reasoningEnabled: modelConfig.reasoningEnabled,
+      reasoningEnabled: mergedEnableReasoning,
       abortSignal: options?.abortSignal,
     });
   }
 
-  const {
-    completion,
-    modelName,
-    modelDescription,
-    uiTarsModelVersion,
-    modelFamily,
-  } = await createChatClient({
-    modelConfig,
-  });
+  const { completion, modelName, modelDescription, modelFamily } =
+    await createChatClient({
+      modelConfig,
+    });
+  const adapter = getModelAdapter(modelFamily);
   const effectiveTimeoutMs = resolveEffectiveTimeoutMs(modelConfig);
 
   const extraBody = modelConfig.extraBody;
@@ -287,15 +110,30 @@ export async function callAI(
 
   const startTime = Date.now();
 
-  const temperature = (() => {
-    if (modelFamily === 'gpt-5') {
-      debugCall('temperature is ignored for gpt-5');
-      return undefined;
-    }
-    return modelConfig.temperature ?? 0;
-  })();
-
   const isStreaming = options?.stream && options?.onChunk;
+  const {
+    config: adapterChatCompletionParams,
+    lockedParams: adapterLockedParams,
+  } = adapter.chatCompletion.buildChatCompletionParams({
+    intent: modelConfig.intent,
+    temperature: modelConfig.temperature ?? 0,
+  });
+  const lockedParamSet = new Set(adapterLockedParams ?? []);
+  const ignoredLockedParams = new Set<string>();
+  const filterLockedParams = <T extends Record<string, unknown>>(
+    params: T,
+  ): T => {
+    const filtered = Object.fromEntries(
+      Object.entries(params).filter(([key, value]) => {
+        if (lockedParamSet.has(key) && value !== undefined) {
+          ignoredLockedParams.add(key);
+          return false;
+        }
+        return true;
+      }),
+    ) as T;
+    return filtered;
+  };
   let content: string | undefined;
   let accumulated = '';
   let accumulatedReasoning = '';
@@ -325,32 +163,29 @@ export async function callAI(
       model_name: modelName,
       model_description: modelDescription,
       slot: modelConfig.slot,
-      intent: undefined,
+      intent: modelConfig.intent,
       request_id: requestId ?? undefined,
     } satisfies AIUsageInfo;
   };
 
-  const commonConfig = {
-    temperature,
+  const envCommonConfig = filterLockedParams({
     stream: !!isStreaming,
     max_tokens: maxTokens,
-    ...(modelFamily === 'qwen2.5-vl' // qwen vl v2 specific config
-      ? {
-          vl_high_resolution_images: true,
-        }
-      : {}),
+    temperature: modelConfig.temperature ?? 0,
+  });
+  const safeExtraBody = filterLockedParams(extraBody ?? {});
+  const commonConfig = {
+    ...envCommonConfig,
+    ...adapterChatCompletionParams,
   };
-
-  if (isAutoGLM(modelFamily)) {
-    (commonConfig as unknown as Record<string, number>).top_p = 0.85;
-    (commonConfig as unknown as Record<string, number>).frequency_penalty = 0.2;
-  }
+  const temperature = commonConfig.temperature;
 
   const {
     config: reasoningEffortConfig,
     debugMessage: reasoningEffortDebugMessage,
+    warningMessage,
   } = resolveReasoningConfig({
-    reasoningEnabled: modelConfig.reasoningEnabled,
+    reasoningEnabled: mergedEnableReasoning,
     reasoningEffort: modelConfig.reasoningEffort,
     reasoningBudget: modelConfig.reasoningBudget,
     modelFamily,
@@ -358,14 +193,24 @@ export async function callAI(
   if (reasoningEffortDebugMessage) {
     debugCall(reasoningEffortDebugMessage);
   }
+  if (warningMessage) {
+    warnCall(warningMessage);
+  }
+  const safeReasoningEffortConfig = filterLockedParams(reasoningEffortConfig);
+  if (ignoredLockedParams.size > 0) {
+    warnCall(
+      `model adapter ${modelFamily || 'default'} locked request params: ${[...ignoredLockedParams].join(', ')}`,
+    );
+  }
 
-  const shouldUseOriginalImageDetail =
-    shouldForceOriginalImageDetail(modelConfig);
+  const imageDetail = adapter.chatCompletion.resolveImageDetail({
+    intent: modelConfig.intent,
+  });
 
   // For default-intent GPT-5 calls, request original image detail to preserve
   // screenshot resolution for localization-sensitive tasks.
   const messagesWithImageDetail: ChatCompletionMessageParam[] = (() => {
-    if (!shouldUseOriginalImageDetail) {
+    if (!imageDetail) {
       return messages;
     }
 
@@ -380,7 +225,7 @@ export async function callAI(
             ...part,
             image_url: {
               ...part.image_url,
-              detail: 'original',
+              detail: imageDetail,
             },
           };
         }
@@ -408,8 +253,9 @@ export async function callAI(
             model: modelName,
             messages: messagesWithImageDetail,
             ...commonConfig,
-            ...reasoningEffortConfig,
-            ...extraBody,
+            ...safeReasoningEffortConfig,
+            ...safeExtraBody,
+            stream: true,
           },
           {
             stream: true,
@@ -498,8 +344,9 @@ export async function callAI(
               model: modelName,
               messages: messagesWithImageDetail,
               ...commonConfig,
-              ...reasoningEffortConfig,
-              ...extraBody,
+              ...safeReasoningEffortConfig,
+              ...safeExtraBody,
+              stream: false,
             } as any,
             { signal: attemptSignal },
           );
@@ -507,7 +354,7 @@ export async function callAI(
           timeCost = Date.now() - startTime;
 
           debugProfileStats(
-            `model, ${modelName}, mode, ${modelFamily || 'default'}, ui-tars-version, ${uiTarsModelVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}, temperature, ${temperature ?? ''}`,
+            `model, ${modelName}, mode, ${modelFamily || 'default'}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}, temperature, ${temperature ?? ''}`,
           );
 
           debugProfileDetail(
@@ -612,6 +459,7 @@ export async function callAIWithObjectResponse<T>(
   messages: ChatCompletionMessageParam[],
   modelConfig: IModelConfig,
   options?: {
+    deepThink?: DeepThinkOption;
     abortSignal?: AbortSignal;
   },
 ): Promise<{
@@ -621,11 +469,12 @@ export async function callAIWithObjectResponse<T>(
   reasoning_content?: string;
 }> {
   const response = await callAI(messages, modelConfig, {
+    deepThink: options?.deepThink,
     abortSignal: options?.abortSignal,
   });
   assert(response, 'empty response');
   const modelFamily = modelConfig.modelFamily;
-  const jsonContent = safeParseJson(response.content, modelFamily);
+  const jsonContent = getModelAdapter(modelFamily).jsonParser(response.content);
   if (typeof jsonContent !== 'object') {
     throw new AIResponseParseError(
       `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,
@@ -634,7 +483,7 @@ export async function callAIWithObjectResponse<T>(
     );
   }
   return {
-    content: jsonContent,
+    content: jsonContent as T,
     contentString: response.content,
     usage: response.usage,
     reasoning_content: response.reasoning_content,
@@ -652,266 +501,4 @@ export async function callAIWithStringResponse(
     abortSignal: options?.abortSignal,
   });
   return { content, usage };
-}
-
-export function extractJSONFromCodeBlock(response: string) {
-  try {
-    // First, try to match a JSON object directly in the response
-    const jsonMatch = response.match(/^\s*(\{[\s\S]*\})\s*$/);
-    if (jsonMatch) {
-      return jsonMatch[1];
-    }
-
-    // If no direct JSON object is found, try to extract JSON from a code block
-    const codeBlockMatch = response.match(
-      /```(?:json)?\s*(\{[\s\S]*?\})\s*```/,
-    );
-    if (codeBlockMatch) {
-      return codeBlockMatch[1];
-    }
-
-    // If no code block is found, try to find a JSON-like structure in the text
-    const jsonLikeMatch = response.match(/\{[\s\S]*\}/);
-    if (jsonLikeMatch) {
-      return jsonLikeMatch[0];
-    }
-  } catch {}
-  // If no JSON-like structure is found, return the original response
-  return response;
-}
-
-export function preprocessDoubaoBboxJson(input: string) {
-  if (input.includes('bbox')) {
-    // when its values like 940 445 969 490, replace all /\d+\s+\d+/g with /$1,$2/g
-    while (/\d+\s+\d+/.test(input)) {
-      input = input.replace(/(\d+)\s+(\d+)/g, '$1,$2');
-    }
-  }
-  return input;
-}
-
-function hasExplicitReasoningConfig({
-  reasoningEnabled,
-  reasoningEffort,
-  reasoningBudget,
-}: {
-  reasoningEnabled?: boolean;
-  reasoningEffort?: string;
-  reasoningBudget?: number;
-}): boolean {
-  return (
-    reasoningEnabled !== undefined ||
-    !!reasoningEffort ||
-    reasoningBudget !== undefined
-  );
-}
-
-const SUPPORTED_REASONING_FAMILIES = [
-  'qwen3-vl',
-  'qwen3.5',
-  'qwen3.6',
-  'doubao-vision',
-  'doubao-seed',
-  'glm-v',
-] as const satisfies readonly TModelFamily[];
-
-type SupportedReasoningFamily = (typeof SUPPORTED_REASONING_FAMILIES)[number];
-
-function isSupportedReasoningFamily(
-  family: TModelFamily | undefined,
-): family is SupportedReasoningFamily {
-  return (
-    !!family &&
-    (SUPPORTED_REASONING_FAMILIES as readonly TModelFamily[]).includes(family)
-  );
-}
-
-function supportedReasoningFamilyNames(): string {
-  return SUPPORTED_REASONING_FAMILIES.join(', ');
-}
-
-export function resolveReasoningConfig({
-  reasoningEnabled,
-  reasoningEffort,
-  reasoningBudget,
-  modelFamily,
-}: {
-  reasoningEnabled?: boolean;
-  reasoningEffort?: string;
-  reasoningBudget?: number;
-  modelFamily?: TModelFamily;
-}): {
-  config: Record<string, unknown>;
-  debugMessage?: string;
-} {
-  const hasExplicitConfig = hasExplicitReasoningConfig({
-    reasoningEnabled,
-    reasoningEffort,
-    reasoningBudget,
-  });
-
-  if (hasExplicitConfig) {
-    if (!modelFamily) {
-      throw new Error(
-        `Reasoning config requires MIDSCENE_MODEL_FAMILY. Set MIDSCENE_MODEL_FAMILY to a supported family such as ${supportedReasoningFamilyNames()}, or remove MIDSCENE_MODEL_REASONING_ENABLED / MIDSCENE_MODEL_REASONING_EFFORT / MIDSCENE_MODEL_REASONING_BUDGET.`,
-      );
-    }
-
-    // GPT-5 over Chat Completions is intentionally unsupported here because
-    // its reasoning effort compatibility varies by model version.
-    if (!isSupportedReasoningFamily(modelFamily)) {
-      throw new Error(
-        `Reasoning config is not supported for model family "${modelFamily}". Use a supported family such as ${supportedReasoningFamilyNames()}, or remove MIDSCENE_MODEL_REASONING_ENABLED / MIDSCENE_MODEL_REASONING_EFFORT / MIDSCENE_MODEL_REASONING_BUDGET.`,
-      );
-    }
-  } else if (!isSupportedReasoningFamily(modelFamily)) {
-    return { config: {} };
-  }
-
-  const effectiveReasoningEnabled = reasoningEnabled ?? false;
-
-  const debugMessages: string[] = [];
-  const config: Record<string, unknown> = {};
-
-  if (
-    modelFamily === 'qwen3-vl' ||
-    modelFamily === 'qwen3.5' ||
-    modelFamily === 'qwen3.6'
-  ) {
-    // reasoningEnabled → enable_thinking
-    config.enable_thinking = effectiveReasoningEnabled;
-    debugMessages.push(`enable_thinking=${effectiveReasoningEnabled}`);
-    // reasoningBudget → thinking_budget
-    if (reasoningBudget !== undefined) {
-      config.thinking_budget = reasoningBudget;
-      debugMessages.push(`thinking_budget=${reasoningBudget}`);
-    }
-    // reasoningEffort is ignored for qwen
-  } else if (modelFamily === 'doubao-vision' || modelFamily === 'doubao-seed') {
-    // reasoningEnabled → thinking.type
-    config.thinking = {
-      type: effectiveReasoningEnabled ? 'enabled' : 'disabled',
-    };
-    debugMessages.push(
-      `thinking.type=${effectiveReasoningEnabled ? 'enabled' : 'disabled'}`,
-    );
-    // reasoningEffort → reasoning_effort
-    if (reasoningEffort) {
-      config.reasoning_effort = reasoningEffort;
-      debugMessages.push(`reasoning_effort="${reasoningEffort}"`);
-    }
-    // reasoningBudget is ignored for doubao
-  } else if (modelFamily === 'glm-v') {
-    // reasoningEnabled → thinking.type
-    config.thinking = {
-      type: effectiveReasoningEnabled ? 'enabled' : 'disabled',
-    };
-    debugMessages.push(
-      `thinking.type=${effectiveReasoningEnabled ? 'enabled' : 'disabled'}`,
-    );
-    // reasoningEffort and reasoningBudget are ignored for glm-v
-  }
-
-  return {
-    config,
-    debugMessage: debugMessages.length
-      ? `reasoning config for ${modelFamily}: ${debugMessages.join(', ')}`
-      : undefined,
-  };
-}
-
-/**
- * Normalize a parsed JSON object by trimming whitespace from:
- * 1. All object keys (e.g., " prompt " -> "prompt")
- * 2. All string values (e.g., " Tap " -> "Tap")
- * This handles LLM output that may include leading/trailing spaces.
- */
-function normalizeJsonObject(obj: any): any {
-  // Handle null and undefined
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-
-  // Handle arrays - recursively normalize each element
-  if (Array.isArray(obj)) {
-    return obj.map((item) => normalizeJsonObject(item));
-  }
-
-  // Handle objects
-  if (typeof obj === 'object') {
-    const normalized: any = {};
-
-    for (const [key, value] of Object.entries(obj)) {
-      // Trim the key to remove leading/trailing spaces
-      const trimmedKey = key.trim();
-
-      // Recursively normalize the value
-      let normalizedValue = normalizeJsonObject(value);
-
-      // Trim all string values
-      if (typeof normalizedValue === 'string') {
-        normalizedValue = normalizedValue.trim();
-      }
-
-      normalized[trimmedKey] = normalizedValue;
-    }
-
-    return normalized;
-  }
-
-  // Handle primitive strings
-  if (typeof obj === 'string') {
-    return obj.trim();
-  }
-
-  // Return other primitives as-is
-  return obj;
-}
-
-export function safeParseJson(
-  input: string,
-  modelFamily: TModelFamily | undefined,
-) {
-  const cleanJsonString = extractJSONFromCodeBlock(input);
-  // match the point
-  if (cleanJsonString?.match(/\((\d+),(\d+)\)/)) {
-    return cleanJsonString
-      .match(/\((\d+),(\d+)\)/)
-      ?.slice(1)
-      .map(Number);
-  }
-
-  let parsed: any;
-  let lastError: unknown;
-  try {
-    parsed = JSON.parse(cleanJsonString);
-    return normalizeJsonObject(parsed);
-  } catch (error) {
-    lastError = error;
-  }
-  try {
-    parsed = JSON.parse(jsonrepair(cleanJsonString));
-    return normalizeJsonObject(parsed);
-  } catch (error) {
-    lastError = error;
-  }
-
-  if (
-    modelFamily === 'doubao-vision' ||
-    modelFamily === 'doubao-seed' ||
-    isUITars(modelFamily)
-  ) {
-    const jsonString = preprocessDoubaoBboxJson(cleanJsonString);
-    try {
-      parsed = JSON.parse(jsonrepair(jsonString));
-      return normalizeJsonObject(parsed);
-    } catch (error) {
-      lastError = error;
-    }
-  }
-  throw Error(
-    `failed to parse LLM response into JSON. Error - ${String(
-      lastError ?? 'unknown error',
-    )}. Response - \n ${input}`,
-  );
 }

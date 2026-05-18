@@ -4,11 +4,11 @@ import { ScreenshotItem } from '@/screenshot-item';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type Service from '../../src';
 
-vi.mock('@/ai-model/llm-planning', () => ({
+vi.mock('@/ai-model/workflows/planning/generic', () => ({
   plan: vi.fn(),
 }));
 
-import { plan } from '@/ai-model/llm-planning';
+import { plan } from '@/ai-model/workflows/planning/generic';
 
 const validBase64Image =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';

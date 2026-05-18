@@ -1,7 +1,9 @@
 import {
-  getAutoGLMLocatePrompt,
-  getAutoGLMPlanPrompt,
-} from '@/ai-model/auto-glm/prompt';
+  getAutoGLMChineseLocatePrompt,
+  getAutoGLMChinesePlanPrompt,
+  getAutoGLMMultilingualLocatePrompt,
+  getAutoGLMMultilingualPlanPrompt,
+} from '@/ai-model/models/auto-glm/prompt';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('auto-glm prompts', () => {
@@ -17,43 +19,25 @@ describe('auto-glm prompts', () => {
 
   describe('planning prompts', () => {
     it('auto-glm plan prompt - multilingual', () => {
-      const prompt = getAutoGLMPlanPrompt('auto-glm-multilingual');
+      const prompt = getAutoGLMMultilingualPlanPrompt();
       expect(prompt).toMatchSnapshot();
     });
 
     it('auto-glm plan prompt - chinese', () => {
-      const prompt = getAutoGLMPlanPrompt('auto-glm');
+      const prompt = getAutoGLMChinesePlanPrompt();
       expect(prompt).toMatchSnapshot();
-    });
-
-    it('auto-glm plan prompt - should throw error for unsupported modelFamily', () => {
-      expect(() => {
-        // @ts-expect-error Testing invalid input
-        getAutoGLMPlanPrompt('invalid-mode');
-      }).toThrow(
-        'Unsupported modelFamily for Auto-GLM plan prompt: invalid-mode',
-      );
     });
   });
 
   describe('locate prompts', () => {
     it('auto-glm locate prompt - multilingual', () => {
-      const prompt = getAutoGLMLocatePrompt('auto-glm-multilingual');
+      const prompt = getAutoGLMMultilingualLocatePrompt();
       expect(prompt).toMatchSnapshot();
     });
 
     it('auto-glm locate prompt - chinese', () => {
-      const prompt = getAutoGLMLocatePrompt('auto-glm');
+      const prompt = getAutoGLMChineseLocatePrompt();
       expect(prompt).toMatchSnapshot();
-    });
-
-    it('auto-glm locate prompt - should throw error for unsupported modelFamily', () => {
-      expect(() => {
-        // @ts-expect-error Testing invalid input
-        getAutoGLMLocatePrompt('invalid-mode');
-      }).toThrow(
-        'Unsupported modelFamily for Auto-GLM locate prompt: invalid-mode',
-      );
     });
   });
 });

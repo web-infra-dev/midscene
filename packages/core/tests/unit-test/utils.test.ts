@@ -3,12 +3,12 @@ import * as fs from 'node:fs';
 import {
   extractJSONFromCodeBlock,
   safeParseJson,
-} from '@/ai-model/service-caller';
+} from '@/ai-model/shared/json';
+import { expandNormalized01000PointToBbox } from '@/ai-model/shared/model-locate-result';
 import {
   type MidsceneLocationResultType,
   dumpActionParam,
   findAllMidsceneLocatorField,
-  pointToBbox,
 } from '@/common';
 import { type DeviceAction, getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
@@ -322,31 +322,31 @@ describe('extractJSONFromCodeBlock', () => {
 
   it('should handle JSON with point coordinates', () => {
     const input = '(123,456)';
-    const result = safeParseJson(input, undefined);
+    const result = safeParseJson(input);
     expect(result).toEqual([123, 456]);
   });
 
   it('should parse valid JSON string using JSON.parse', () => {
     const input = '{"key": "value"}';
-    const result = safeParseJson(input, undefined);
+    const result = safeParseJson(input);
     expect(result).toEqual({ key: 'value' });
   });
 
   it('should parse dirty JSON using dirty-json parser', () => {
     const input = "{key: 'value'}"; // Invalid JSON but valid dirty-json
-    const result = safeParseJson(input, undefined);
+    const result = safeParseJson(input);
     expect(result).toEqual({ key: 'value' });
   });
 
   it('should throw error for unparseable content', () => {
     const input = 'not a json at all';
-    const result = safeParseJson(input, undefined);
+    const result = safeParseJson(input);
     expect(result).toEqual(input);
   });
 
   it('should parse JSON from code block', () => {
     const input = '```json\n{"key": "value"}\n```';
-    const result = safeParseJson(input, undefined);
+    const result = safeParseJson(input);
     expect(result).toEqual({ key: 'value' });
   });
 
@@ -360,7 +360,7 @@ describe('extractJSONFromCodeBlock', () => {
         "nested": "value"
       }
     }`;
-    const result = safeParseJson(input, undefined);
+    const result = safeParseJson(input);
     expect(result).toEqual({
       string: 'value',
       number: 123,
@@ -448,19 +448,19 @@ describe('buildDetailedLocateParamAndRestParams', () => {
   });
 });
 
-describe('pointToBbox', () => {
+describe('expandNormalized01000PointToBbox', () => {
   it('should convert point to bbox in [0, 1000] space with default size (20)', () => {
-    const bbox = pointToBbox(500, 500);
+    const bbox = expandNormalized01000PointToBbox(500, 500);
     expect(bbox).toEqual([490, 490, 510, 510]);
   });
 
   it('should convert point to bbox with custom size', () => {
-    const bbox = pointToBbox(500, 500, 10);
+    const bbox = expandNormalized01000PointToBbox(500, 500, 10);
     expect(bbox).toEqual([495, 495, 505, 505]);
   });
 
   it('should handle boundary at origin (0, 0)', () => {
-    const bbox = pointToBbox(0, 0);
+    const bbox = expandNormalized01000PointToBbox(0, 0);
     expect(bbox[0]).toBe(0);
     expect(bbox[1]).toBe(0);
     expect(bbox[2]).toBe(10);
@@ -468,7 +468,7 @@ describe('pointToBbox', () => {
   });
 
   it('should handle boundary at max (1000, 1000)', () => {
-    const bbox = pointToBbox(1000, 1000);
+    const bbox = expandNormalized01000PointToBbox(1000, 1000);
     expect(bbox[0]).toBe(990);
     expect(bbox[1]).toBe(990);
     expect(bbox[2]).toBe(1000);
@@ -476,7 +476,7 @@ describe('pointToBbox', () => {
   });
 
   it('should clamp to [0, 1000] range', () => {
-    const bbox = pointToBbox(5, 995);
+    const bbox = expandNormalized01000PointToBbox(5, 995);
     expect(bbox[0]).toBe(0);
     expect(bbox[1]).toBe(985);
     expect(bbox[2]).toBe(15);

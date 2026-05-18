@@ -112,50 +112,6 @@ By viewing the screenshot and page contents, you can extract the following data:
 "
 `;
 
-exports[`system prompts > locator - 4o 1`] = `
-"
-## Role:
-You are an AI assistant that helps identify UI elements.
-
-## Objective:
-- Identify elements in screenshots that match the user's description.
-- Provide the coordinates of the element that matches the user's description.
-
-## Important Notes for Locating Elements:
-- When the user describes an element that contains text (such as buttons, input fields, dropdown options, radio buttons, etc.), you should locate ONLY the text region of that element, not the entire element boundary.
-- For example: If an input field is large (both wide and tall) with a placeholder text "Please enter your comment", you should locate only the area where the placeholder text appears, not the entire input field.
-- This principle applies to all text-containing elements: focus on the visible text region rather than the full element container.
-
-## Output Format:
-\`\`\`json
-{
-  "bbox": [number, number, number, number],  // 2d bounding box as [xmin, ymin, xmax, ymax]
-  "errors"?: string[]
-}
-\`\`\`
-
-Fields:
-* \`bbox\` is the bounding box of the element that matches the user's description
-* \`errors\` is an optional array of error messages (if any)
-
-For example, when an element is found:
-\`\`\`json
-{
-  "bbox": [100, 100, 200, 200],
-  "errors": []
-}
-\`\`\`
-
-When no element is found:
-\`\`\`json
-{
-  "bbox": [],
-  "errors": ["I can see ..., but {some element} is not found. Use English."]
-}
-\`\`\`
-"
-`;
-
 exports[`system prompts > locator - gemini 1`] = `
 "
 ## Role:
@@ -173,7 +129,7 @@ You are an AI assistant that helps identify UI elements.
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],  // box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000.
+  "bbox": [number, number, number, number],  // box_2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000.
   "errors"?: string[]
 }
 \`\`\`
@@ -217,7 +173,7 @@ You are an AI assistant that helps identify UI elements.
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],  // 2d bounding box as [xmin, ymin, xmax, ymax]
+  "bbox": [number, number, number, number],  // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates.
   "errors"?: string[]
 }
 \`\`\`
@@ -333,7 +289,7 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Tap, Tap the element
   - type: "Tap"
   - param:
-    - locate: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The element to be tapped
+    - locate: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates. // The element to be tapped
 - Sleep, Sleep for a period of time
   - type: "Sleep"
   - param:
@@ -342,7 +298,7 @@ ONLY if the task is not complete: Think what the next action is according to the
   - type: "Input"
   - param:
     - value: string // The value to be input
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The input field to target
+    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates. // The input field to target
   - sample:
     <action-type>Input</action-type>
     <action-param-json>
@@ -363,12 +319,12 @@ ONLY if the task is not complete: Think what the next action is according to the
   - type: "KeyboardPress"
   - param:
     - value: string // The key to be pressed
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The element to target for key press
+    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates. // The element to target for key press
 - Scroll, Scroll the page
   - type: "Scroll"
   - param:
     - value: string // The scroll direction or amount
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The element to scroll
+    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates. // The element to scroll
   - sample:
     <action-type>Scroll</action-type>
     <action-param-json>
@@ -388,8 +344,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 - DragAndDrop, Drag an element to another position
   - type: "DragAndDrop"
   - param:
-    - from: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The element to drag
-    - to: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The drop target
+    - from: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates. // The element to drag
+    - to: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates. // The drop target
   - sample:
     <action-type>DragAndDrop</action-type>
     <action-param-json>
@@ -958,7 +914,7 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Tap, Tap the element
   - type: "Tap"
   - param:
-    - locate: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The element to be tapped
+    - locate: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The element to be tapped
 - Sleep, Sleep for a period of time
   - type: "Sleep"
   - param:
@@ -967,7 +923,7 @@ ONLY if the task is not complete: Think what the next action is according to the
   - type: "Input"
   - param:
     - value: string // The value to be input
-    - locate?: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The input field to target
+    - locate?: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The input field to target
   - sample:
     <action-type>Input</action-type>
     <action-param-json>
@@ -988,12 +944,12 @@ ONLY if the task is not complete: Think what the next action is according to the
   - type: "KeyboardPress"
   - param:
     - value: string // The key to be pressed
-    - locate?: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The element to target for key press
+    - locate?: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The element to target for key press
 - Scroll, Scroll the page
   - type: "Scroll"
   - param:
     - value: string // The scroll direction or amount
-    - locate?: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The element to scroll
+    - locate?: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The element to scroll
   - sample:
     <action-type>Scroll</action-type>
     <action-param-json>
@@ -1013,8 +969,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 - DragAndDrop, Drag an element to another position
   - type: "DragAndDrop"
   - param:
-    - from: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The element to drag
-    - to: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The drop target
+    - from: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The element to drag
+    - to: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The drop target
   - sample:
     <action-type>DragAndDrop</action-type>
     <action-param-json>
@@ -1697,7 +1653,7 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Tap, Tap the element
   - type: "Tap"
   - param:
-    - locate: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The element to be tapped
+    - locate: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates. // The element to be tapped
 - Sleep, Sleep for a period of time
   - type: "Sleep"
   - param:
@@ -1706,7 +1662,7 @@ ONLY if the task is not complete: Think what the next action is according to the
   - type: "Input"
   - param:
     - value: string // The value to be input
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The input field to target
+    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates. // The input field to target
   - sample:
     <action-type>Input</action-type>
     <action-param-json>
@@ -1727,12 +1683,12 @@ ONLY if the task is not complete: Think what the next action is according to the
   - type: "KeyboardPress"
   - param:
     - value: string // The key to be pressed
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The element to target for key press
+    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates. // The element to target for key press
 - Scroll, Scroll the page
   - type: "Scroll"
   - param:
     - value: string // The scroll direction or amount
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The element to scroll
+    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates. // The element to scroll
   - sample:
     <action-type>Scroll</action-type>
     <action-param-json>
@@ -1752,8 +1708,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 - DragAndDrop, Drag an element to another position
   - type: "DragAndDrop"
   - param:
-    - from: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The element to drag
-    - to: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The drop target
+    - from: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates. // The element to drag
+    - to: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates. // The drop target
   - sample:
     <action-type>DragAndDrop</action-type>
     <action-param-json>
@@ -2245,7 +2201,7 @@ You are an AI assistant that helps identify UI elements.
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],  // box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000.
+  "bbox": [number, number, number, number],  // box_2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000.
   "references_bbox"?: [
     [number, number, number, number],
     ...
@@ -2255,8 +2211,8 @@ You are an AI assistant that helps identify UI elements.
 \`\`\`
 
 Fields:
-* \`bbox\` - Bounding box of the section containing the target element
-* \`references_bbox\` - Optional array of bounding boxes for reference elements
+* \`bbox\` - bounding box of the section containing the target element
+* \`references_bbox\` - Optional array of bounding boxes of reference elements
 * \`error\` - Optional error message if the section cannot be found. Use English.
 
 Example:
@@ -2282,7 +2238,7 @@ You are an AI assistant that helps identify UI elements.
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],  // 2d bounding box as [xmin, ymin, xmax, ymax]
+  "bbox": [number, number, number, number],  // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates.
   "references_bbox"?: [
     [number, number, number, number],
     ...
@@ -2292,8 +2248,8 @@ You are an AI assistant that helps identify UI elements.
 \`\`\`
 
 Fields:
-* \`bbox\` - Bounding box of the section containing the target element
-* \`references_bbox\` - Optional array of bounding boxes for reference elements
+* \`bbox\` - bounding box of the section containing the target element
+* \`references_bbox\` - Optional array of bounding boxes of reference elements
 * \`error\` - Optional error message if the section cannot be found. Use English.
 
 Example:

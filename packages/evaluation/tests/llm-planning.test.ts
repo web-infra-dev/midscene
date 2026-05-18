@@ -1,6 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { type PlanningAIResponse, type Rect, plan } from '@midscene/core';
-import { adaptBboxToRect } from '@midscene/core/ai-model';
+import { adaptModelLocateResultToRect } from '@midscene/core/ai-model';
 import {
   type DeviceAction,
   defineActionsFromInputPrimitives,
@@ -167,13 +167,13 @@ describe.skipIf(!globalModelFamily)('ai planning - by coordinates', () => {
               testCase.response_planning = res;
               if (res.action?.locate?.bbox) {
                 const indexId = index + 1;
-                testCase.response_rect = adaptBboxToRect(
+                testCase.response_rect = adaptModelLocateResultToRect(
                   res.action.locate.bbox,
-                  context.shotSize.width,
-                  context.shotSize.height,
-                  0,
-                  0,
-                  modelConfig.modelFamily,
+                  {
+                    width: context.shotSize.width,
+                    height: context.shotSize.height,
+                    modelFamily: modelConfig.modelFamily,
+                  },
                 );
                 testCase.annotation_index_id = indexId;
                 annotations.push({

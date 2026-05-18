@@ -1,5 +1,5 @@
+import { getModelAdapter } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller';
-import { shouldForceOriginalImageDetail } from '@/ai-model/service-caller/image-detail';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -59,23 +59,20 @@ describe('GPT image detail handling', () => {
 
   it('forces original detail only for gpt-5 default intent', () => {
     expect(
-      shouldForceOriginalImageDetail({
-        modelFamily: 'gpt-5',
+      getModelAdapter('gpt-5').chatCompletion.resolveImageDetail({
         intent: 'default',
       }),
-    ).toBe(true);
+    ).toBe('original');
     expect(
-      shouldForceOriginalImageDetail({
-        modelFamily: 'gpt-5',
+      getModelAdapter('gpt-5').chatCompletion.resolveImageDetail({
         intent: 'planning',
       }),
-    ).toBe(false);
+    ).toBeUndefined();
     expect(
-      shouldForceOriginalImageDetail({
-        modelFamily: 'qwen3-vl',
+      getModelAdapter('qwen3-vl').chatCompletion.resolveImageDetail({
         intent: 'default',
       }),
-    ).toBe(false);
+    ).toBeUndefined();
   });
 
   it('overrides image detail to original for gpt-5 default intent requests', async () => {
@@ -136,5 +133,16 @@ describe('GPT image detail handling', () => {
       }),
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
+  });
+
+  it('does not let extraBody override gpt-5 locked temperature policy', async () => {
+    await callAI(imageMessage, {
+      ...baseModelConfig,
+      extraBody: {
+        temperature: 0.7,
+      },
+    });
+
+    expect(mockCreate.mock.calls[0][0]).not.toHaveProperty('temperature');
   });
 });

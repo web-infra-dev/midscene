@@ -59,7 +59,7 @@ describe('service-caller empty content handling', () => {
         slot: 'default',
         request_id: 'req_test_123',
       });
-      expect(typedError.usage?.intent).toBeUndefined();
+      expect(typedError.usage?.intent).toBe('default');
       expect(typedError.rawResponse).toContain('"choices"');
     }
   });

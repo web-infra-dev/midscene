@@ -11,14 +11,13 @@ import {
   type TypeAction,
   type WaitAction,
   transformAutoGLMAction,
-} from '@/ai-model/auto-glm/actions';
+} from '@/ai-model/models/auto-glm/actions';
 import {
   extractValueAfter,
   parseAction,
   parseAutoGLMLocateResponse,
   parseAutoGLMResponse,
-} from '@/ai-model/auto-glm/parser';
-import { isAutoGLM } from '@/ai-model/auto-glm/util';
+} from '@/ai-model/models/auto-glm/parser';
 import { describe, expect, it } from 'vitest';
 
 const defaultSize = { width: 1080, height: 1920 };
@@ -547,26 +546,7 @@ describe('auto-glm actions transformation', () => {
   });
 });
 
-describe('auto-glm util functions', () => {
-  describe('isAutoGLM', () => {
-    it('should return true for auto-glm', () => {
-      expect(isAutoGLM('auto-glm')).toBe(true);
-    });
-
-    it('should return true for auto-glm-multilingual', () => {
-      expect(isAutoGLM('auto-glm-multilingual')).toBe(true);
-    });
-
-    it('should return false for other modelFamily', () => {
-      expect(isAutoGLM('qwen2.5-vl')).toBe(false);
-      expect(isAutoGLM('gemini')).toBe(false);
-    });
-
-    it('should return false for undefined', () => {
-      expect(isAutoGLM(undefined)).toBe(false);
-    });
-  });
-
+describe('auto-glm action helpers', () => {
   describe('swipe direction calculation', () => {
     it('should calculate left direction for swipe', () => {
       const swipeAction: SwipeAction = {

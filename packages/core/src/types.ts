@@ -195,7 +195,7 @@ export interface ServiceDump extends DumpMeta {
     dataDemand?: ServiceExtractParam;
     assertion?: TUserPrompt;
   };
-  matchedElement: LocateResultElement[];
+  matchedElement?: LocateResultElement;
   matchedRect?: Rect;
   deepLocate?: boolean;
   data: any;
@@ -750,7 +750,8 @@ export interface AgentOpt {
   cache?: Cache;
   /**
    * Maximum number of replanning cycles for aiAct.
-   * Defaults to 20 (40 for `vlm-ui-tars`) when not provided.
+   * Defaults are resolved by the active model adapter: 20 for standard planning,
+   * 40 for UI-TARS, and 100 for Auto-GLM.
    * If omitted, the agent will also read `MIDSCENE_REPLANNING_CYCLE_LIMIT` for backward compatibility.
    */
   replanningCycleLimit?: number;

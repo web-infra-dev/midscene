@@ -1,10 +1,10 @@
 import { systemPromptToLocateElement } from '@/ai-model';
+import { getUiTarsPlanningPrompt } from '@/ai-model/models/ui-tars/prompt';
 import {
   descriptionForAction,
   systemPromptToTaskPlanning,
-} from '@/ai-model/prompt/llm-planning';
-import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
-import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
+} from '@/ai-model/prompts/llm-planning';
+import { systemPromptToLocateSection } from '@/ai-model/prompts/llm-section-locator';
 import { getMidsceneLocationSchema } from '@/index';
 import { mockActionSpace } from 'tests/common';
 import { describe, expect, it, vi } from 'vitest';
@@ -12,13 +12,17 @@ import { z } from 'zod';
 import {
   extractDataQueryPrompt,
   systemPromptToExtract,
-} from '../../../src/ai-model/prompt/extraction';
+} from '../../../src/ai-model/prompts/extraction';
 import { mockNonChinaTimeZone, restoreIntl } from '../mocks/intl-mock';
 
 // Mock getPreferredLanguage to ensure consistent test output
-vi.mock('@midscene/shared/env', () => ({
-  getPreferredLanguage: vi.fn().mockReturnValue('English'),
-}));
+vi.mock('@midscene/shared/env', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@midscene/shared/env')>();
+  return {
+    ...actual,
+    getPreferredLanguage: vi.fn().mockReturnValue('English'),
+  };
+});
 
 const mockLocatorScheme =
   '{"bbox": [number, number, number, number], "prompt": string}';
@@ -164,16 +168,14 @@ describe('system prompts', () => {
     expect(prompt).toMatchSnapshot();
   });
 
-  it('planning - should throw error when includeBbox is true but modelFamily is undefined', async () => {
+  it('planning - includeBbox requires modelFamily', async () => {
     await expect(
       systemPromptToTaskPlanning({
         actionSpace: mockActionSpace,
         modelFamily: undefined,
         includeBbox: true,
       }),
-    ).rejects.toThrow(
-      'modelFamily cannot be undefined when includeBbox is true. A valid modelFamily is required for bbox-based location.',
-    );
+    ).rejects.toThrow(/Model family is required for locate/);
   });
 
   it('planning - qwen - cot', async () => {
@@ -391,7 +393,7 @@ describe('system prompts', () => {
   it('planning - multi-turn example with includeBbox true should have bbox in locate', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: 'gpt-4o',
+      modelFamily: 'qwen3-vl',
       includeBbox: true,
       includeSubGoals: false,
     });
@@ -426,9 +428,10 @@ describe('system prompts', () => {
     expect(prompt).toMatchSnapshot();
   });
 
-  it('locator - 4o', () => {
-    const prompt = systemPromptToLocateElement(undefined);
-    expect(prompt).toMatchSnapshot();
+  it('locator requires modelFamily', () => {
+    expect(() => systemPromptToLocateElement(undefined)).toThrow(
+      /Model family is required for locate/,
+    );
   });
 
   it('locator - qwen', () => {

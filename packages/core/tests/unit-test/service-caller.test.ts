@@ -1,11 +1,18 @@
-import {
-  resolveReasoningConfig,
-  safeParseJson,
-} from '@/ai-model/service-caller';
+import { getModelAdapter } from '@/ai-model/models';
+import { resolveReasoningConfig } from '@/ai-model/service-caller';
+import { safeParseJson } from '@/ai-model/shared/json';
 import type { IModelConfig } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('service-caller', () => {
+  const parseJson = (
+    input: string,
+    modelFamily: Parameters<typeof getModelAdapter>[0],
+  ) =>
+    modelFamily === undefined
+      ? safeParseJson(input)
+      : getModelAdapter(modelFamily).jsonParser(input);
+
   describe('code block cleaning logic', () => {
     it('should clean markdown code blocks for TEXT action type', () => {
       // Test the cleaning logic directly
@@ -175,11 +182,11 @@ describe('service-caller', () => {
     });
   });
 
-  describe('safeParseJson - JSON normalization', () => {
+  describe('adapter JSON parser - JSON normalization', () => {
     it('should trim leading and trailing spaces from object keys', () => {
       const input =
         '{"  type  ": "Tap", "param": {"  prompt  ": "Login button"}}';
-      const result = safeParseJson(input, undefined);
+      const result = parseJson(input, undefined);
 
       expect(result).toEqual({
         type: 'Tap',
@@ -193,14 +200,14 @@ describe('service-caller', () => {
 
     it('should trim leading and trailing spaces from type field values', () => {
       const input = '{"type": "  Tap  ", "param": {}}';
-      const result = safeParseJson(input, undefined);
+      const result = parseJson(input, undefined);
 
       expect(result.type).toBe('Tap');
     });
 
     it('should trim leading and trailing spaces from prompt field values', () => {
       const input = '{"param": {"prompt": "  Click the button  "}}';
-      const result = safeParseJson(input, undefined);
+      const result = parseJson(input, undefined);
 
       expect(result.param.prompt).toBe('Click the button');
     });
@@ -210,7 +217,7 @@ describe('service-caller', () => {
       // Note: extractJSONFromCodeBlock extracts the first object from an array string
       const input =
         '[{"type":" Tap","param":{"locate":{"bbox":[574,308,865,352]," prompt ":"The \'Login\' button"}}}]';
-      const result = safeParseJson(input, undefined);
+      const result = parseJson(input, undefined);
 
       // The result is the first object (array wrapper is removed by extractJSONFromCodeBlock)
       expect(result).toEqual({
@@ -229,7 +236,7 @@ describe('service-caller', () => {
         ' type ': '  Tap  ',
         ' items ': [{ '  name  ': '  item1  ' }, { '  name  ': '  item2  ' }],
       });
-      const result = safeParseJson(input, undefined);
+      const result = parseJson(input, undefined);
 
       expect(result).toEqual({
         type: 'Tap',
@@ -243,7 +250,7 @@ describe('service-caller', () => {
     it('should trim all string values including descriptions', () => {
       const input =
         '{"type": "  Tap  ", "description": "  Some text with spaces  "}';
-      const result = safeParseJson(input, undefined);
+      const result = parseJson(input, undefined);
 
       expect(result.type).toBe('Tap');
       expect(result.description).toBe('Some text with spaces'); // All strings are trimmed
@@ -251,7 +258,7 @@ describe('service-caller', () => {
 
     it('should handle null and undefined values', () => {
       const input = '{"type": "Tap", "value": null, "param": {}}';
-      const result = safeParseJson(input, undefined);
+      const result = parseJson(input, undefined);
 
       expect(result.type).toBe('Tap');
       expect(result.value).toBeNull();
@@ -260,7 +267,7 @@ describe('service-caller', () => {
     it('should work with malformed JSON that jsonrepair can fix', () => {
       // jsonrepair can fix missing quotes, trailing commas, etc.
       const input = '{type: " Tap ", param: {" prompt ": "Login"}}';
-      const result = safeParseJson(input, undefined);
+      const result = parseJson(input, undefined);
 
       expect(result.type).toBe('Tap');
       expect(result.param.prompt).toBe('Login');
@@ -277,7 +284,7 @@ describe('service-caller', () => {
           },
         },
       });
-      const result = safeParseJson(input, undefined);
+      const result = parseJson(input, undefined);
 
       expect(result.type).toBe('Action');
       expect(result.nested.level1.level2.prompt).toBe('deep value');
@@ -285,7 +292,7 @@ describe('service-caller', () => {
 
     it('should trim id field values', () => {
       const input = '{"id": "  element-123  ", "type": "  Tap  "}';
-      const result = safeParseJson(input, undefined);
+      const result = parseJson(input, undefined);
 
       expect(result.id).toBe('element-123');
       expect(result.type).toBe('Tap');
@@ -293,14 +300,14 @@ describe('service-caller', () => {
 
     it('should handle arrays of actions with spaces', () => {
       const input = '[{"  type  ": "  Tap  "}, {"  type  ": "  Hover  "}]';
-      const result = safeParseJson(input, undefined);
+      const result = parseJson(input, undefined);
 
       expect(result).toEqual([{ type: 'Tap' }, { type: 'Hover' }]);
     });
 
     it('should handle coordinate tuples without breaking them', () => {
       const input = '(100,200)';
-      const result = safeParseJson(input, undefined);
+      const result = parseJson(input, undefined);
 
       // This should match coordinates pattern and return array
       expect(result).toEqual([100, 200]);
@@ -309,7 +316,7 @@ describe('service-caller', () => {
     it('should work with doubao-vision mode and trim spaces', () => {
       // Test that normalization works correctly even when modelFamily is set
       const input = '{"  type  ": "  Tap  ", "param": {"  prompt  ": "Click"}}';
-      const result = safeParseJson(input, 'doubao-vision');
+      const result = parseJson(input, 'doubao-vision');
 
       expect(result.type).toBe('Tap');
       expect(result.param.prompt).toBe('Click');
@@ -317,11 +324,30 @@ describe('service-caller', () => {
   });
 
   describe('resolveReasoningConfig', () => {
-    it('defaults reasoning to disabled for supported model families', () => {
+    it('does not add reasoning params when supported model family has no explicit reasoning config', () => {
       const result = resolveReasoningConfig({
         modelFamily: 'doubao-seed',
       });
-      expect(result.config).toEqual({ thinking: { type: 'disabled' } });
+      expect(result.config).toEqual({});
+    });
+
+    it('keeps qwen2.5-vl high-resolution image request flag without reasoning params', () => {
+      const result = resolveReasoningConfig({
+        modelFamily: 'qwen2.5-vl',
+      });
+      expect(result.config).toEqual({
+        vl_high_resolution_images: true,
+      });
+    });
+
+    it('keeps Auto-GLM request penalties without reasoning params', () => {
+      const result = resolveReasoningConfig({
+        modelFamily: 'auto-glm',
+      });
+      expect(result.config).toEqual({
+        top_p: 0.85,
+        frequency_penalty: 0.2,
+      });
     });
 
     // qwen3-vl / qwen3.5 / qwen3.6: reasoningEnabled → enable_thinking, reasoningBudget → thinking_budget
@@ -372,7 +398,7 @@ describe('service-caller', () => {
         reasoningEffort: 'high',
         modelFamily: 'qwen3-vl',
       });
-      expect(result.config).toEqual({ enable_thinking: false });
+      expect(result.config).toEqual({});
     });
 
     it('maps reasoningBudget alone without reasoningEnabled for qwen3-vl', () => {
@@ -381,7 +407,6 @@ describe('service-caller', () => {
         modelFamily: 'qwen3-vl',
       });
       expect(result.config).toEqual({
-        enable_thinking: false,
         thinking_budget: 16384,
       });
     });
@@ -444,7 +469,7 @@ describe('service-caller', () => {
       expect(result.config).toEqual({ thinking: { type: 'disabled' } });
     });
 
-    // gpt-5 over OpenAI-compatible HTTP is not a supported reasoning family.
+    // gpt-5 over OpenAI-compatible HTTP ignores reasoning config.
     it('returns empty config for gpt-5 when reasoning config is unset', () => {
       const result = resolveReasoningConfig({
         modelFamily: 'gpt-5',
@@ -452,22 +477,22 @@ describe('service-caller', () => {
       expect(result.config).toEqual({});
     });
 
-    it('throws when reasoningEffort is set for unsupported gpt-5 HTTP family', () => {
-      expect(() =>
-        resolveReasoningConfig({
-          reasoningEffort: 'low',
-          modelFamily: 'gpt-5',
-        }),
-      ).toThrow(/Reasoning config is not supported/);
+    it('ignores reasoningEffort for gpt-5 HTTP family', () => {
+      const result = resolveReasoningConfig({
+        reasoningEffort: 'low',
+        modelFamily: 'gpt-5',
+      });
+      expect(result.config).toEqual({ reasoning: undefined });
+      expect(result.debugMessage).toContain('reasoning config is ignored');
     });
 
-    it('throws when reasoningEnabled is set for unsupported gpt-5 HTTP family', () => {
-      expect(() =>
-        resolveReasoningConfig({
-          reasoningEnabled: true,
-          modelFamily: 'gpt-5',
-        }),
-      ).toThrow(/Reasoning config is not supported/);
+    it('ignores reasoningEnabled for gpt-5 HTTP family', () => {
+      const result = resolveReasoningConfig({
+        reasoningEnabled: true,
+        modelFamily: 'gpt-5',
+      });
+      expect(result.config).toEqual({ reasoning: undefined });
+      expect(result.debugMessage).toContain('reasoning config is ignored');
     });
 
     // no model family
@@ -478,30 +503,29 @@ describe('service-caller', () => {
       expect(result.config).toEqual({});
     });
 
-    it('throws when reasoning is explicitly configured without model family', () => {
-      expect(() =>
-        resolveReasoningConfig({
-          reasoningEnabled: true,
-          modelFamily: undefined,
-        }),
-      ).toThrow(/Reasoning config requires MIDSCENE_MODEL_FAMILY/);
+    it('warns and ignores reasoning when explicitly configured without model family', () => {
+      const result = resolveReasoningConfig({
+        reasoningEnabled: true,
+        modelFamily: undefined,
+      });
+      expect(result.config).toEqual({});
+      expect(result.warningMessage).toMatch(/Set MIDSCENE_MODEL_FAMILY/);
     });
 
-    // unknown model family
-    it('returns empty config for unrecognized model family when reasoning is unset', () => {
+    // model family with only best-effort reasoning effort passthrough
+    it('returns empty config for gemini when reasoning is unset', () => {
       const result = resolveReasoningConfig({
         modelFamily: 'gemini' as any,
       });
       expect(result.config).toEqual({});
     });
 
-    it('throws when reasoning is explicitly configured for unrecognized model family', () => {
-      expect(() =>
-        resolveReasoningConfig({
-          reasoningEffort: 'high',
-          modelFamily: 'gemini' as any,
-        }),
-      ).toThrow(/Reasoning config is not supported/);
+    it('passes reasoning effort through for gemini', () => {
+      const result = resolveReasoningConfig({
+        reasoningEffort: 'high',
+        modelFamily: 'gemini' as any,
+      });
+      expect(result.config).toEqual({ reasoning_effort: 'high' });
     });
   });
 });
