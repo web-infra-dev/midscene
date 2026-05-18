@@ -243,7 +243,7 @@ function DeviceCardBody({
           {status === 'connecting' ? <ConnectingBadge /> : null}
         </div>
         {showIdLine ? (
-          <span className="flex items-center gap-[8px] font-sans text-[10px] leading-[12px] text-text-tertiary">
+          <span className="flex items-center gap-[8px] font-sans text-[10px] leading-[12px] text-[#000000] dark:text-white">
             <span className="overflow-hidden truncate">
               {idLabel ? `${idLabel}：${idText}` : idText}
             </span>
@@ -439,7 +439,7 @@ export function DeviceList({
                     label={section.toolchainHint.label}
                   />
                 ) : (
-                  <div className="flex h-[66px] w-[704px] items-center justify-center rounded-[8px] border border-dashed border-border-subtle font-sans text-[12px] text-text-tertiary">
+                  <div className="flex h-[66px] w-[704px] items-center justify-center font-sans text-[12px] text-text-tertiary">
                     No Device，Please plug in the device and check.
                   </div>
                 )}

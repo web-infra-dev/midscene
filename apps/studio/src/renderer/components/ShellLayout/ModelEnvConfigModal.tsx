@@ -35,13 +35,13 @@ function ConnectivityPlayIcon() {
   return (
     <svg
       aria-hidden="true"
-      className="h-4 w-4 shrink-0"
+      className="h-4 w-4 shrink-0 text-text-primary"
       fill="none"
       viewBox="0 0 16 16"
     >
       <path
         d="M5 8.00002V3.95856L8.5 5.97929L12 8.00002L8.5 10.0208L5 12.0415V8.00002Z"
-        stroke="#333333"
+        stroke="currentColor"
         strokeLinejoin="round"
         strokeWidth="1.33333"
       />
@@ -52,16 +52,21 @@ function ConnectivityPlayIcon() {
 function EnvModalHeader({ onClose }: { onClose: () => void }) {
   return (
     <div className="relative z-10 box-border flex w-full items-center justify-between px-[20px] pt-[20.8px]">
-      <h2 className="m-0 font-['Inter'] text-[16px] font-semibold leading-[24px] tracking-normal text-black">
+      <h2 className="m-0 font-['Inter'] text-[16px] font-semibold leading-[24px] tracking-normal text-text-primary">
         Model Env Config
       </h2>
       <button
         aria-label="Close"
-        className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 transition-colors hover:bg-black/5"
+        className="flex h-[16px] w-[16px] cursor-pointer items-center justify-center border-0 bg-transparent p-0"
         onClick={onClose}
         type="button"
       >
-        <img alt="" aria-hidden="true" className="h-4 w-4" src={closeIconSrc} />
+        <img
+          alt=""
+          aria-hidden="true"
+          className="h-[16px] w-[16px]"
+          src={closeIconSrc}
+        />
       </button>
     </div>
   );
@@ -75,12 +80,18 @@ function EnvModalTabs({
   onTabChange: (tab: TabKey) => void;
 }) {
   return (
-    <div className="relative z-10 box-border flex h-[36px] w-[146px] items-center rounded-[42px] bg-[#F2F4F7] p-[2px]">
+    <div className="relative z-10 box-border flex h-[36px] w-[146px] items-center rounded-[32px] bg-surface-muted p-[2px]">
+      {/*
+        Active tab fills with `bg-surface-elevated` for the white pill on
+        light mode. In dark mode `surface-elevated` and `surface-muted`
+        collapse to the same `#2b2b2b`, so the pill disappears — fall
+        back to the translucent `bg-surface-active` overlay only in dark.
+      */}
       <button
-        className={`flex h-[32px] flex-1 cursor-pointer items-center justify-center rounded-[40px] border-0 p-0 font-['Inter'] text-[14px] leading-[16.9px] transition-all duration-200 ${
+        className={`flex h-[32px] w-[70px] cursor-pointer items-center justify-center border-0 p-0 font-['Inter'] text-[14px] leading-[16.9px] transition-colors duration-200 ${
           tab === 'text'
-            ? 'bg-white font-medium text-black shadow-[0_2px_4px_0_rgba(0,0,0,0.08)]'
-            : 'bg-transparent font-normal text-black/70'
+            ? 'rounded-[30px] bg-surface-elevated font-medium text-text-primary dark:bg-surface-active'
+            : 'rounded-[10px] bg-transparent font-normal text-text-secondary'
         }`}
         onClick={() => onTabChange('text')}
         type="button"
@@ -88,10 +99,10 @@ function EnvModalTabs({
         Text
       </button>
       <button
-        className={`flex h-[32px] flex-1 cursor-pointer items-center justify-center rounded-[40px] border-0 p-0 font-['Inter'] text-[14px] leading-[16.9px] transition-all duration-200 ${
+        className={`flex h-[32px] w-[70px] cursor-pointer items-center justify-center border-0 p-0 font-['Inter'] text-[14px] leading-[16.9px] transition-colors duration-200 ${
           tab === 'form'
-            ? 'bg-white font-medium text-black shadow-[0_2px_4px_0_rgba(0,0,0,0.08)]'
-            : 'bg-transparent font-normal text-black/70'
+            ? 'rounded-[30px] bg-surface-elevated font-medium text-text-primary dark:bg-surface-active'
+            : 'rounded-[10px] bg-transparent font-normal text-text-secondary'
         }`}
         onClick={() => onTabChange('form')}
         type="button"
@@ -121,11 +132,11 @@ function EnvModalFooter({
   return (
     <div className="relative z-10 mt-auto box-border flex w-full items-center justify-between px-[20px] pb-[24px]">
       <button
-        className={`flex h-[32px] w-[159px] items-center gap-[4px] rounded-[8px] border border-black/12 bg-white px-[12px] py-0 ${
+        className={`flex h-[32px] w-[159px] items-center gap-[4px] rounded-[8px] border border-border-subtle bg-surface-elevated px-[12px] py-0 ${
           isTesting
             ? 'cursor-not-allowed opacity-60'
             : canRunConnectivityTest
-              ? 'cursor-pointer hover:bg-gray-50'
+              ? 'cursor-pointer hover:bg-surface-hover'
               : 'cursor-not-allowed'
         }`}
         disabled={!canRunConnectivityTest || isTesting}
@@ -141,23 +152,23 @@ function EnvModalFooter({
         ) : (
           <ConnectivityPlayIcon />
         )}
-        <span className="w-[115px] overflow-hidden whitespace-nowrap text-left font-['Inter'] text-[14px] font-medium text-black leading-[16px]">
+        <span className="w-[115px] overflow-hidden whitespace-nowrap text-left font-['Inter'] text-[14px] font-medium text-text-primary leading-[16px]">
           {connectivityLabel}
         </span>
       </button>
 
       <div className="flex items-center gap-[8px]">
         <button
-          className="flex h-[32px] w-[76px] cursor-pointer items-center justify-center rounded-[8px] border-0 bg-[#F0F2F5] p-0 hover:bg-gray-200"
+          className="flex h-[32px] w-[76px] cursor-pointer items-center justify-center rounded-[8px] border-0 bg-surface-muted p-0 hover:bg-surface-hover-strong"
           onClick={onCancel}
           type="button"
         >
-          <span className="w-[47px] overflow-hidden whitespace-nowrap text-center font-['Inter'] text-[14px] font-medium leading-[16px] text-black/70">
+          <span className="w-[47px] overflow-hidden whitespace-nowrap text-center font-['Inter'] text-[14px] font-medium leading-[16px] text-text-secondary">
             Cancel
           </span>
         </button>
         <button
-          className="flex h-[32px] w-[76px] cursor-pointer items-center justify-center rounded-[8px] border border-[#2B84FF] bg-[#2B84FF] p-0 hover:opacity-90"
+          className="flex h-[32px] w-[76px] cursor-pointer items-center justify-center rounded-[8px] border border-brand bg-brand p-0 hover:opacity-90"
           onClick={onSave}
           type="button"
         >
@@ -293,7 +304,7 @@ export function ModelEnvConfigModal({
       role="dialog"
     >
       <div
-        className={`relative box-border flex ${modalHeightClass} w-[400px] ${modalVerticalOffsetClass} flex-col overflow-hidden rounded-[16px] bg-white shadow-lg`}
+        className={`relative box-border flex ${modalHeightClass} w-[400px] ${modalVerticalOffsetClass} flex-col overflow-hidden rounded-[16px] bg-surface-elevated shadow-[0px_4px_20px_rgba(0,0,0,0.05)]`}
         onClick={(event) => event.stopPropagation()}
       >
         <EnvModalHeader onClose={onClose} />
@@ -304,7 +315,7 @@ export function ModelEnvConfigModal({
         {tab === 'text' ? (
           <div className="relative z-10 mt-[16px] flex w-full justify-center">
             <textarea
-              className="box-border h-[162px] w-[360px] resize-none overflow-hidden rounded-[12px] border border-[#EFEFEE] bg-white p-[12px] font-['Inter'] text-[14px] font-normal leading-[16.9px] text-black placeholder:text-black/35 outline-none"
+              className="box-border h-[162px] w-[360px] resize-none overflow-hidden rounded-[12px] border border-border-subtle bg-surface-elevated p-[12px] font-['Inter'] text-[14px] font-normal leading-[16.9px] text-text-primary placeholder:text-text-placeholder outline-none"
               onChange={(event) => handleTextChange(event.target.value)}
               placeholder={TEXT_PLACEHOLDER}
               value={text}
@@ -319,10 +330,10 @@ export function ModelEnvConfigModal({
         )}
 
         <div className={`relative z-10 ${descriptionMarginClass} px-[21px]`}>
-          <p className="m-0 font-['Inter'] text-[12px] font-normal leading-[14.5px] text-black/65">
+          <p className="m-0 font-['Inter'] text-[12px] font-normal leading-[14.5px] text-text-secondary">
             The format is KEY=VALUE and separated by new lines. These data will
             be saved{' '}
-            <span className="font-bold text-black">
+            <span className="font-bold text-text-primary">
               locally in your browser
             </span>
             .

@@ -143,12 +143,16 @@ function readStoredLanguage(): string {
 export interface SettingsPanelProps {
   className?: string;
   onGithubClick?: () => void;
+  /** Fires after the user picks a theme so the parent can dismiss the
+   * popover — the new theme is hidden behind the popover otherwise. */
+  onThemeChange?: () => void;
   onWebsiteClick?: () => void;
 }
 
 export default function SettingsPanel({
   className,
   onGithubClick,
+  onThemeChange,
   onWebsiteClick,
 }: SettingsPanelProps) {
   const { mode, setMode } = useStudioTheme();
@@ -258,6 +262,7 @@ export default function SettingsPanel({
             onSelect={(value) => {
               setMode(value);
               setOpenPopover(null);
+              onThemeChange?.();
             }}
             options={THEME_OPTIONS}
             selected={mode}
