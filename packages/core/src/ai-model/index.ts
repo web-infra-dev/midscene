@@ -10,16 +10,16 @@ export {
   type ConnectivityTestConfig,
   type ConnectivityTestResult,
 } from './connectivity';
-export { systemPromptToLocateElement } from './prompt/llm-locator';
+export { systemPromptToLocateElement } from './prompts/llm-locator';
 export {
   generatePlaywrightTest,
   generatePlaywrightTestStream,
-} from './prompt/playwright-generator';
+} from './workflows/generation/playwright';
 export {
   generateYamlTest,
   generateYamlTestStream,
-} from './prompt/yaml-generator';
-export type { YamlGenerationOptions } from './prompt/yaml-generator';
+} from './workflows/generation/yaml';
+export type { YamlGenerationOptions } from './workflows/generation/yaml';
 
 export type { ChatCompletionMessageParam } from 'openai/resources/index';
 
@@ -28,19 +28,17 @@ export {
   AiExtractElementInfo,
   AiLocateSection,
   AiJudgeOrderSensitive,
-} from './inspect';
+} from './workflows/inspect';
 
-export { plan } from './llm-planning';
-export { autoGLMPlanning } from './auto-glm/planning';
-export { adaptBboxToRect } from '../common';
-export { uiTarsPlanning } from './ui-tars-planning';
+export { plan } from './workflows/planning/generic';
+export { adaptModelLocateResultToRect } from './workflows/inspect/locate-result-rect';
 export {
   ConversationHistory,
   type ConversationHistoryOptions,
 } from './conversation-history';
 export type { SubGoal, SubGoalStatus } from '@/types';
 
-export type { AIArgs } from '../common';
+export type { AIArgs } from './types';
 
 export {
   getMidsceneLocationSchema,

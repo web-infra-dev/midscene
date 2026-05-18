@@ -1,5 +1,6 @@
 import type { TMultimodalPrompt, TUserPrompt } from '@/common';
 import type { AbstractInterface } from '@/device';
+import { createLocateResultElementFromRect } from '@/locate-result-element';
 import { ScreenshotItem } from '@/screenshot-item';
 import type {
   ElementCacheFeature,
@@ -15,7 +16,6 @@ import {
   MIDSCENE_REPORT_TAG_NAME,
   globalConfigManager,
 } from '@midscene/shared/env';
-import { generateElementByRect } from '@midscene/shared/extractor';
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
@@ -201,7 +201,7 @@ export function matchElementFromPlan(
       height: planLocateParam.bbox[3] - planLocateParam.bbox[1] + 1,
     };
 
-    const element = generateElementByRect(
+    const element = createLocateResultElementFromRect(
       rect,
       typeof planLocateParam.prompt === 'string'
         ? planLocateParam.prompt

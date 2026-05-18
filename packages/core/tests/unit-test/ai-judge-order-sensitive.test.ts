@@ -1,4 +1,4 @@
-import { AiJudgeOrderSensitive } from '@/ai-model/inspect';
+import { AiJudgeOrderSensitive } from '@/ai-model/workflows/inspect';
 import type { IModelConfig } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -32,6 +32,7 @@ describe('AiJudgeOrderSensitive', () => {
         }),
       ],
       modelConfig,
+      { deepThink: false },
     );
 
     expect(result).toEqual({

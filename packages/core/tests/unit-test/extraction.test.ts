@@ -1,4 +1,4 @@
-import { parseXMLExtractionResponse } from '@/ai-model/prompt/extraction';
+import { parseXMLExtractionResponse } from '@/ai-model/prompts/extraction';
 import { describe, expect, it } from 'vitest';
 
 describe('parseXMLExtractionResponse', () => {

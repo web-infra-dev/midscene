@@ -22,7 +22,7 @@ test(
       targetElementDescription: 'input 输入框',
       modelConfig: defaultModelConfig,
     });
-    expect(parseResult.elements.length).toBe(1);
+    expect(parseResult.element).toBeDefined();
   },
 );
 

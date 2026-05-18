@@ -1,6 +1,6 @@
 import { ConversationHistory } from '@/ai-model/conversation-history';
-import { plan } from '@/ai-model/llm-planning';
 import { callAI } from '@/ai-model/service-caller/index';
+import { plan } from '@/ai-model/workflows/planning/generic';
 import type { DeviceAction, UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

@@ -1,4 +1,4 @@
-import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
+import { elementDescriberInstruction } from '@/ai-model/prompts/describe';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('elementDescriberInstruction', () => {

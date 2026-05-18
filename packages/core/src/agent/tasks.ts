@@ -1,11 +1,6 @@
-import {
-  AIResponseParseError,
-  ConversationHistory,
-  autoGLMPlanning,
-  plan,
-  uiTarsPlanning,
-} from '@/ai-model';
-import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
+import { AIResponseParseError, ConversationHistory } from '@/ai-model';
+import { getModelAdapter } from '@/ai-model/models';
+import { genericXmlPlan } from '@/ai-model/workflows/planning';
 import {
   type TMultimodalPrompt,
   type TUserPrompt,
@@ -21,7 +16,6 @@ import type {
   ExecutionTaskInsightQueryApply,
   ExecutionTaskPlanningApply,
   ExecutionTaskProgressOptions,
-  InterfaceType,
   MidsceneYamlFlowItem,
   PlanningAIResponse,
   PlanningAction,
@@ -370,11 +364,11 @@ export class TaskExecutor {
               );
             }
 
-            const planImpl = isUITars(modelFamily)
-              ? uiTarsPlanning
-              : isAutoGLM(modelFamily)
-                ? autoGLMPlanning
-                : plan;
+            const adapter = getModelAdapter(modelFamily);
+            const planImpl =
+              adapter.planning.kind === 'custom'
+                ? adapter.planning.planFn
+                : genericXmlPlan;
 
             let planResult: Awaited<ReturnType<typeof planImpl>>;
             try {
@@ -382,7 +376,6 @@ export class TaskExecutor {
               planResult = await planImpl(param.userInstruction, {
                 context: uiContext,
                 actionContext: param.aiActContext,
-                interfaceType: this.interface.interfaceType as InterfaceType,
                 actionSpace,
                 modelConfig: modelConfigForPlanning,
                 conversationHistory,

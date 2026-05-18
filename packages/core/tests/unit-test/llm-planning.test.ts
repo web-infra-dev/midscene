@@ -1,14 +1,12 @@
-import { parseXMLPlanningResponse } from '@/ai-model/llm-planning';
-import { descriptionForAction } from '@/ai-model/prompt/llm-planning';
+import { getModelAdapter } from '@/ai-model/models';
+import { descriptionForAction } from '@/ai-model/prompts/llm-planning';
 import {
   parseMarkFinishedIndexes,
   parseSubGoalsFromXML,
-} from '@/ai-model/prompt/util';
-import {
-  adaptQwen2_5Bbox as adaptQwenBbox,
-  fillBboxParam,
-  getMidsceneLocationSchema,
-} from '@/common';
+} from '@/ai-model/prompts/util';
+import { normalizePlanningLocateParam } from '@/ai-model/workflows/planning/locate-param';
+import { parseXMLPlanningResponse } from '@/ai-model/workflows/planning/xml-parser';
+import { getMidsceneLocationSchema } from '@/common';
 import { buildYamlFlowFromPlans } from '@/common';
 import {
   MIDSCENE_USE_DOUBAO_VISION,
@@ -20,7 +18,14 @@ import { z } from 'zod';
 
 describe('llm planning - qwen', () => {
   it('adapt qwen bbox', () => {
-    const result = adaptQwenBbox([100, 100]);
+    const locateAdapter = getModelAdapter('qwen2.5-vl').locate;
+    if (locateAdapter.kind !== 'standard') {
+      throw new Error('qwen2.5-vl should use standard locate adapter');
+    }
+    const result = locateAdapter.resultAdapter.normalizeResultToPixelBbox(
+      locateAdapter.resultAdapter.resolveLocateResult([100, 100]),
+      { width: 0, height: 0 },
+    );
     expect(result).toMatchInlineSnapshot(`
       [
         100,
@@ -32,7 +37,14 @@ describe('llm planning - qwen', () => {
   });
 
   it('adapt qwen bbox', () => {
-    const result = adaptQwenBbox([100, 100]);
+    const locateAdapter = getModelAdapter('qwen2.5-vl').locate;
+    if (locateAdapter.kind !== 'standard') {
+      throw new Error('qwen2.5-vl should use standard locate adapter');
+    }
+    const result = locateAdapter.resultAdapter.normalizeResultToPixelBbox(
+      locateAdapter.resultAdapter.resolveLocateResult([100, 100]),
+      { width: 0, height: 0 },
+    );
     expect(result).toMatchInlineSnapshot(`
       [
         100,
@@ -55,25 +67,61 @@ describe('llm planning - doubao', () => {
     vi.unstubAllEnvs();
   });
 
-  it('fill locate param', () => {
+  it('normalize locate param', () => {
     const locate = {
       id: 'test',
       prompt: 'test',
       bbox_2d: [923, 123, 123, 123] as [number, number, number, number],
     };
 
-    const filledLocate = fillBboxParam(
-      locate,
-      1000,
-      1000,
-      1000,
-      1000,
-      'doubao-vision',
-    );
+    const filledLocate = normalizePlanningLocateParam(locate, {
+      width: 1000,
+      height: 1000,
+      modelFamily: 'doubao-vision',
+    });
     expect(filledLocate).toEqual({
       id: 'test',
       prompt: 'test',
+      bbox_2d: [923, 123, 123, 123],
       bbox: [923, 123, 123, 123],
+    });
+  });
+
+  it('throws when normalizing locate param without modelFamily', () => {
+    const locate = {
+      id: 'test',
+      prompt: 'test',
+      bbox: [100, 200, 300, 400] as [number, number, number, number],
+    };
+
+    expect(() =>
+      normalizePlanningLocateParam(locate, {
+        width: 1000,
+        height: 2000,
+      }),
+    ).toThrow(/Model family is required for locate/);
+  });
+
+  it('clamps normalized planning locate bbox to content bounds', () => {
+    const locate = {
+      id: 'test',
+      prompt: 'test',
+      bbox: [100, 200, 1000, 1000] as [number, number, number, number],
+    };
+
+    const filledLocate = normalizePlanningLocateParam(locate, {
+      width: 1200,
+      height: 1400,
+      modelFamily: 'glm-v',
+      bounds: {
+        width: 1000,
+        height: 1000,
+      },
+    });
+    expect(filledLocate).toEqual({
+      id: 'test',
+      prompt: 'test',
+      bbox: [120, 280, 1000, 1000],
     });
   });
 });

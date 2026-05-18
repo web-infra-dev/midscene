@@ -297,7 +297,6 @@ export async function paddingToMatchBlockByBase64(
 export async function cropByRect(
   imageBase64: string,
   rect: Rect,
-  paddingImage: boolean,
 ): Promise<{
   width: number;
   height: number;
@@ -312,18 +311,6 @@ export async function cropByRect(
   photonImage.free();
 
   try {
-    if (paddingImage) {
-      const paddedResult = await paddingToMatchBlock(cropped);
-      const result = {
-        width: paddedResult.width,
-        height: paddedResult.height,
-        imageBase64: await photonToBase64(paddedResult.image),
-      };
-      if (paddedResult.image !== cropped) {
-        paddedResult.image.free();
-      }
-      return result;
-    }
     return {
       width: cropped.get_width(),
       height: cropped.get_height(),

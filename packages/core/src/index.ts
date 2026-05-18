@@ -42,6 +42,10 @@ export { z };
 
 export default Service;
 export { TaskRunner, Service, getVersion };
+export {
+  createLocateResultElementFromPoint,
+  createLocateResultElementFromRect,
+} from './locate-result-element';
 
 export type {
   MidsceneYamlScript,

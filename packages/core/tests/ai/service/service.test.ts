@@ -1,4 +1,4 @@
-import { distance } from '@/ai-model/prompt/util';
+import { distance } from '@/ai-model/prompts/util';
 import Service from '@/service';
 import { sleep } from '@/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';

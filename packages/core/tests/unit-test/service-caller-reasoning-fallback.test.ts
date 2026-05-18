@@ -118,7 +118,7 @@ describe('service-caller reasoning fallback', () => {
     );
   });
 
-  it('defaults model reasoning to disabled for supported model families', async () => {
+  it('does not add reasoning params by default for supported model families', async () => {
     mockCreate.mockResolvedValue({
       choices: [
         {
@@ -135,10 +135,8 @@ describe('service-caller reasoning fallback', () => {
     });
 
     expect(mockCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        thinking: {
-          type: 'disabled',
-        },
+      expect.not.objectContaining({
+        thinking: expect.anything(),
       }),
       expect.any(Object),
     );
