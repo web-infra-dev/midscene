@@ -74,7 +74,14 @@ export function writeMjpegFrame(
     writable;
   writable = res.write(`Content-Length: ${buf.length}\r\n\r\n`) && writable;
   writable = res.write(buf) && writable;
-  writable = res.write('\r\n') && writable;
+  // Trailing boundary delimiter so Chromium <img> commits this part to the
+  // display *immediately* instead of waiting for the next frame to confirm.
+  // Without this, an idle page (CDP screencast emits no further frames)
+  // leaves the just-attached subscriber with `<img>.naturalWidth === 0` and
+  // a blank canvas — that's the "white preview after Overview → Device
+  // re-entry" symptom. The price is each frame ships a tiny duplicate
+  // boundary line; Chromium folds the resulting empty parts away.
+  writable = res.write(`\r\n--${boundary}\r\n`) && writable;
   return writable;
 }
 
@@ -224,6 +231,27 @@ export class InterfaceMjpegHub {
       }
     };
 
+    // Chromium's <img> with multipart/x-mixed-replace keeps the underlying
+    // TCP connection alive even after the element is unmounted from the DOM —
+    // there's no FIN until something else cleans up. Each subsequent mount
+    // (Overview ↔ Device re-entry, React StrictMode double-mount, retry
+    // timer) opens a new socket without releasing the old one. Studio only
+    // ever has a single visible preview, so before attaching the new
+    // subscriber we destroy any stale ones — this both releases server-side
+    // resources and unblocks Chromium's per-origin connection slot quota
+    // (6 for HTTP/1.1). Without this, after a handful of re-mounts the
+    // browser cannot open any further /mjpeg request and shows a permanent
+    // blank canvas.
+    for (const [oldSubscriber, oldRes] of producer.responses) {
+      producer.subscribers.delete(oldSubscriber);
+      producer.responses.delete(oldSubscriber);
+      try {
+        oldRes.destroy();
+      } catch {
+        /* socket already closed */
+      }
+    }
+
     producer.subscribers.add(subscriber);
     producer.responses.set(subscriber, res);
     if (producer.stopTimer) {
@@ -304,6 +332,13 @@ export class InterfaceMjpegHub {
             },
             onError: (error) => {
               this.debug('interface stream producer error: %s', error);
+              // Tear down the dead producer so the next /mjpeg request
+              // (triggered by the <img> onError → retry) constructs a
+              // fresh one. Without this, the dead producer is reused
+              // forever — explaining why even page.reload() can't
+              // recover the preview after an in-flight CDP screencast
+              // dies during a task run.
+              this.stopProducerInternal(producer);
             },
           })) ?? undefined;
       } catch (error) {
