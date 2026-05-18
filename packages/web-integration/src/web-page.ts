@@ -2,6 +2,7 @@ import type { Point } from '@midscene/core';
 import { z } from '@midscene/core';
 import {
   AbstractInterface,
+  type ActionInputCaret,
   type BrowserInputPrimitives,
   type DeviceAction,
   defineAction,
@@ -363,6 +364,23 @@ export interface KeyboardAction {
   ) => Promise<void>;
 }
 
+export type FocusedInputCapabilityKind =
+  | 'native-input'
+  | 'native-textarea'
+  | 'contenteditable'
+  | 'non-input'
+  | 'unknown-frame'
+  | 'unknown-frame-out-of-recursion-limit'
+  | 'unknown-shadow-root'
+  | 'no-active-element'
+  | 'unknown';
+
+export type FocusedInputCapability = {
+  kind: FocusedInputCapabilityKind;
+  supportsClear: boolean | 'unknown';
+  supportsCaret: boolean;
+};
+
 export interface ChromePageDestroyOptions {
   closeTab?: boolean; // should close the tab when the page object is destroyed
 }
@@ -403,7 +421,21 @@ export abstract class AbstractWebPage extends AbstractInterface {
     };
   }
 
-  async clearInput(element?: ElementInfo): Promise<void> {}
+  async getFocusedInputCapability(): Promise<
+    FocusedInputCapability | undefined
+  > {
+    return undefined;
+  }
+
+  async setFocusedInputCaret(
+    _caret: ActionInputCaret,
+    _capability?: FocusedInputCapability,
+  ): Promise<void> {}
+
+  async clearInput(
+    _element?: ElementInfo,
+    _capability?: FocusedInputCapability,
+  ): Promise<void> {}
 
   abstract scrollUntilTop(startingPoint?: Point): Promise<void>;
   abstract scrollUntilBottom(startingPoint?: Point): Promise<void>;
@@ -455,14 +487,20 @@ export function createWebInputPrimitives(
     keyboard: {
       typeText: async (value, opts) => {
         const element = opts?.target;
-        if (element && opts?.replace !== false) {
-          await page.clearInput(element as ElementInfo);
-        } else if (element) {
-          const target = element as ElementInfo;
+        let target: ElementInfo | undefined;
+        if (element) {
+          target = element as ElementInfo;
           await page.mouse.click(target.center[0], target.center[1], {
             button: 'left',
           });
-          await page.keyboard.press([{ key: 'End' }]);
+        }
+
+        if (opts?.replace !== false) {
+          const capability = await page.getFocusedInputCapability();
+          await page.clearInput(target, capability);
+        } else if (opts?.caret) {
+          const capability = await page.getFocusedInputCapability();
+          await page.setFocusedInputCaret(opts.caret, capability);
         }
 
         if (opts?.focusOnly) {
@@ -494,7 +532,8 @@ export function createWebInputPrimitives(
         }
       },
       clearInput: async (target) => {
-        await page.clearInput(target as ElementInfo | undefined);
+        const element = target as ElementInfo | undefined;
+        await page.clearInput(element);
       },
     },
     touch: {
@@ -563,6 +602,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     ...defineActionsFromInputPrimitives(input, {
       size: () => page.size(),
       includeSwipe: includeTouchEvents,
+      inputCaret: true,
     }),
 
     defineAction<typeof navigateParamSchema, { url: string }>({

@@ -856,6 +856,69 @@ tasks:
     ).toHaveLength(0);
   });
 
+  test('aiInput should pass caret through to Input action', async () => {
+    const yamlString = `
+target:
+  url: "https://example.com"
+tasks:
+  - name: input_with_caret
+    flow:
+      - aiInput: 'append input'
+        value: ' tail'
+        mode: 'typeOnly'
+        caret: 'end'
+      - aiInput: 'prefix'
+        locate: 'legacy input'
+        mode: 'typeOnly'
+        caret: 'start'
+`;
+
+    const script = parseYamlScript(yamlString);
+    const mockAgent = await getMockAgent();
+    const player = new ScriptPlayer<MidsceneYamlScriptWebEnv>(
+      script,
+      async () => mockAgent,
+    );
+
+    await player.run();
+
+    expect(player.errorInSetup).toBeUndefined();
+    expect(player.status).toBe('done');
+    expect(
+      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
+        .calls,
+    ).toEqual([
+      [
+        'Input',
+        {
+          locate: {
+            cacheable: true,
+            deepLocate: false,
+            prompt: 'append input',
+            xpath: undefined,
+          },
+          value: ' tail',
+          mode: 'typeOnly',
+          caret: 'end',
+        },
+      ],
+      [
+        'Input',
+        {
+          locate: {
+            cacheable: true,
+            deepLocate: false,
+            prompt: 'legacy input',
+            xpath: undefined,
+          },
+          value: 'prefix',
+          mode: 'typeOnly',
+          caret: 'start',
+        },
+      ],
+    ]);
+  });
+
   test('aiScroll without locate keeps global scroll semantics', async () => {
     const yamlString = `
 android:

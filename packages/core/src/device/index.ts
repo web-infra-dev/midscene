@@ -68,6 +68,7 @@ export interface KeyboardInputPrimitives {
       target?: unknown;
       replace?: boolean;
       focusOnly?: boolean;
+      caret?: ActionInputCaret;
     },
   ): Promise<void>;
   clearInput(target?: unknown): Promise<void>;
@@ -408,21 +409,41 @@ export const actionInputParamSchema = z.object({
       'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
     ),
 });
+const actionInputCaretParamSchema = z
+  .enum(['start', 'end'])
+  .optional()
+  .describe(
+    'Web only. In typeOnly mode, best-effort move the caret before typing. Use only when the user explicitly asks to insert at the start or append at the end.',
+  );
+const webActionInputParamSchema = actionInputParamSchema.extend({
+  caret: actionInputCaretParamSchema,
+});
+export type ActionInputCaret = 'start' | 'end';
 export type ActionInputParam = {
   value: string;
   locate?: LocateResultElement;
   mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
   autoDismissKeyboard?: boolean;
+  caret?: ActionInputCaret;
+};
+
+export type DefineActionInputOptions = {
+  caret?: boolean;
 };
 
 export const defineActionInput = (
   keyboard: KeyboardInputPrimitives,
+  options: DefineActionInputOptions = {},
 ): DeviceAction<ActionInputParam> => {
-  return defineAction<typeof actionInputParamSchema, ActionInputParam>({
+  const paramSchema = options.caret
+    ? webActionInputParamSchema
+    : actionInputParamSchema;
+
+  return defineAction<typeof paramSchema, ActionInputParam>({
     name: 'Input',
     description: 'Input the value into the element',
     interfaceAlias: 'aiInput',
-    paramSchema: actionInputParamSchema,
+    paramSchema,
     sample: {
       value: 'test@example.com',
       locate: { prompt: 'the email input field' },
@@ -446,6 +467,7 @@ export const defineActionInput = (
         target: param.locate,
         replace: param.mode !== 'typeOnly',
         autoDismissKeyboard: param.autoDismissKeyboard,
+        caret: param.caret,
       });
     },
   });
@@ -952,6 +974,7 @@ export interface InputPrimitiveActionOptions {
   sleep?: (timeMs: number) => Promise<void>;
   includeSwipe?: boolean;
   includePinch?: boolean;
+  inputCaret?: boolean;
   systemActions?: SystemInputActionOptions;
 }
 
@@ -997,7 +1020,7 @@ export function defineActionsFromInputPrimitives(
 
   if (keyboard) {
     actions.push(
-      defineActionInput(keyboard),
+      defineActionInput(keyboard, { caret: options.inputCaret }),
       defineActionClearInput(keyboard.clearInput),
       defineActionKeyboardPress(keyboard.keyboardPress),
       defineActionCursorMove({ keyboard, sleep: options.sleep }),

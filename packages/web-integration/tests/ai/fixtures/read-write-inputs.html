@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>:read-write editable fixture</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 24px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 12px;
+        max-width: 720px;
+      }
+
+      label,
+      .field {
+        display: grid;
+        gap: 4px;
+      }
+
+      input,
+      textarea,
+      select,
+      button,
+      iframe,
+      [contenteditable],
+      [role='textbox'],
+      .fake-input {
+        min-height: 32px;
+        border: 1px solid #999;
+        padding: 6px 8px;
+      }
+
+      .fake-input {
+        background: #fff;
+      }
+
+      #shadow-host {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="grid">
+      <label>
+        input text
+        <input id="text-input" type="text" value="text value" />
+      </label>
+
+      <label>
+        textarea
+        <textarea id="textarea-input">textarea value</textarea>
+      </label>
+
+      <div class="field">
+        div contenteditable
+        <div id="editable-div" contenteditable="true">editable div value</div>
+      </div>
+
+      <div class="field">
+        p contenteditable
+        <p id="editable-paragraph" contenteditable="true">
+          editable paragraph value
+        </p>
+      </div>
+
+      <label>
+        readonly input
+        <input
+          id="readonly-input"
+          type="text"
+          value="readonly value"
+          readonly
+        />
+      </label>
+
+      <label>
+        disabled input
+        <input
+          id="disabled-input"
+          type="text"
+          value="disabled value"
+          disabled
+        />
+      </label>
+
+      <label>
+        checkbox
+        <input id="checkbox-input" type="checkbox" checked />
+      </label>
+
+      <label>
+        select
+        <select id="select-input">
+          <option>option one</option>
+        </select>
+      </label>
+
+      <button id="button-like-input" type="button">button text</button>
+
+      <div id="role-textbox-only" role="textbox" tabindex="0">
+        role textbox without contenteditable
+      </div>
+
+      <div id="fake-input" class="fake-input" tabindex="0">
+        visually input-like but not editable
+      </div>
+
+      <div id="shadow-host" tabindex="0"></div>
+
+      <iframe
+        id="editable-iframe"
+        title="editable iframe"
+        srcdoc='<!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8" />
+              <style>
+                body {
+                  display: grid;
+                  gap: 8px;
+                  font-family: sans-serif;
+                  margin: 0;
+                  padding: 8px;
+                }
+
+                input,
+                [contenteditable] {
+                  min-height: 28px;
+                  border: 1px solid #999;
+                  padding: 4px 6px;
+                }
+              </style>
+            </head>
+            <body>
+              <label>
+                iframe input
+                <input
+                  id="iframe-text-input"
+                  type="text"
+                  value="iframe text value"
+                />
+              </label>
+              <div id="iframe-editable-div" contenteditable="true">
+                iframe editable div value
+              </div>
+            </body>
+          </html>'
+      ></iframe>
+    </main>
+
+    <script>
+      window.clearInputProbe = {
+        backspaceCount: 0,
+      };
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Backspace') {
+          window.clearInputProbe.backspaceCount += 1;
+        }
+      });
+
+      const shadowRoot = document
+        .querySelector('#shadow-host')
+        .attachShadow({ mode: 'open' });
+      shadowRoot.innerHTML = `
+        <style>
+          input {
+            min-height: 32px;
+            border: 1px solid #999;
+            padding: 6px 8px;
+          }
+        </style>
+        <label>
+          shadow input
+          <input id="shadow-text-input" type="text" value="shadow value" />
+        </label>
+      `;
+    </script>
+  </body>
+</html>
