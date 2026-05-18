@@ -22,7 +22,6 @@ import { ReportGenerator } from '../../src/report-generator';
 
 // Derive the AsyncFunction constructor reliably at runtime. Core compiles to
 // ES2018, which preserves `async` natively — no downleveling.
-// biome-ignore lint/suspicious/noEmptyBlockStatements: intentional noop to access ctor
 const AsyncFunction = (async () => {}).constructor;
 
 function assertAsync(method: unknown, label: string): void {
