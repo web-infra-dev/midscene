@@ -74,14 +74,7 @@ export function writeMjpegFrame(
     writable;
   writable = res.write(`Content-Length: ${buf.length}\r\n\r\n`) && writable;
   writable = res.write(buf) && writable;
-  // Trailing boundary delimiter so Chromium <img> commits this part to the
-  // display *immediately* instead of waiting for the next frame to confirm.
-  // Without this, an idle page (CDP screencast emits no further frames)
-  // leaves the just-attached subscriber with `<img>.naturalWidth === 0` and
-  // a blank canvas — that's the "white preview after Overview → Device
-  // re-entry" symptom. The price is each frame ships a tiny duplicate
-  // boundary line; Chromium folds the resulting empty parts away.
-  writable = res.write(`\r\n--${boundary}\r\n`) && writable;
+  writable = res.write('\r\n') && writable;
   return writable;
 }
 
@@ -237,18 +230,24 @@ export class InterfaceMjpegHub {
     // (Overview ↔ Device re-entry, React StrictMode double-mount, retry
     // timer) opens a new socket without releasing the old one. Studio only
     // ever has a single visible preview, so before attaching the new
-    // subscriber we destroy any stale ones — this both releases server-side
+    // subscriber we end any stale ones — this both releases server-side
     // resources and unblocks Chromium's per-origin connection slot quota
     // (6 for HTTP/1.1). Without this, after a handful of re-mounts the
     // browser cannot open any further /mjpeg request and shows a permanent
     // blank canvas.
+    //
+    // Use `res.end()` (not `res.destroy()`) so the chunked-transfer
+    // terminator (`0\r\n\r\n`) is flushed before close. With `destroy()`
+    // Chromium reports ERR_INCOMPLETE_CHUNKED_ENCODING on the previous
+    // request *and on the next* — apparently because the connection-pool
+    // entry is poisoned — leaving the new <img>.naturalWidth at 0.
     for (const [oldSubscriber, oldRes] of producer.responses) {
       producer.subscribers.delete(oldSubscriber);
       producer.responses.delete(oldSubscriber);
       try {
-        oldRes.destroy();
+        oldRes.end();
       } catch {
-        /* socket already closed */
+        /* response already closed */
       }
     }
 
@@ -266,9 +265,39 @@ export class InterfaceMjpegHub {
     );
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Connection', 'keep-alive');
-    subscriber(producer.lastFrame as MjpegStreamFrame);
+    this.flushInitialFrame(subscriber, producer.lastFrame as MjpegStreamFrame);
 
     this.debug('streaming via shared interface frame producer');
+  }
+
+  /**
+   * Push the producer's cached frame to a freshly-attached subscriber.
+   *
+   * Why two writes:
+   *
+   * Chromium's `<img>` with `multipart/x-mixed-replace` only commits a part
+   * to display once it sees the *next* part's boundary delimiter — the
+   * boundary is what tells the decoder that the previous part's body is
+   * complete. When the CDP screencast is idle (page is past
+   * `waitForNetworkIdle`, no animation) the producer only ever pushes one
+   * frame: the cached `lastFrame`. With a single write, the browser holds
+   * onto the bytes but never paints them (`<img>.naturalWidth === 0`) — a
+   * permanent blank canvas while waiting for a frame that never arrives.
+   *
+   * The duplicate write below is a sentinel: the second part's leading
+   * boundary is exactly what unblocks the first part's commit. The second
+   * part itself never gets displayed (multipart only ever shows the latest
+   * committed part, and any subsequent real CDP frame overrides it), so
+   * the cost is one extra frame on the wire per subscriber attach. Without
+   * this, Overview → Device re-entry consistently leaves the user staring
+   * at white.
+   */
+  private flushInitialFrame(
+    subscriber: Subscriber,
+    lastFrame: MjpegStreamFrame,
+  ): void {
+    subscriber(lastFrame);
+    subscriber(lastFrame);
   }
 
   private getOrCreateProducer(

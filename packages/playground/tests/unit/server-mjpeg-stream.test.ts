@@ -8,6 +8,7 @@ function createMockStreamResponse() {
   return {
     headersSent: false,
     destroyed: false,
+    ended: false,
     headers,
     chunks,
     setHeader(key: string, value: string) {
@@ -21,6 +22,10 @@ function createMockStreamResponse() {
     },
     destroy() {
       this.destroyed = true;
+      return this;
+    },
+    end() {
+      this.ended = true;
       return this;
     },
     status(code: number) {
@@ -268,7 +273,7 @@ describe('PlaygroundServer MJPEG streaming', () => {
       // Chromium connection-pool slot.
       await mjpegHandler(requestTwo, responseTwo);
       expect(startMjpegStream).toHaveBeenCalledTimes(1);
-      expect(responseOne.destroyed).toBe(true);
+      expect(responseOne.ended).toBe(true);
       expect(
         responseTwo.chunks.some((chunk) => chunk.toString() === 'frame-one'),
       ).toBe(true);
