@@ -347,6 +347,71 @@ describe('TaskExecutor - Null Data Handling', () => {
       planSpy.mockRestore();
     });
 
+    it('should record extra planning context in planning task params for reports', async () => {
+      const planSpy = vi.spyOn(aiModel, 'plan').mockResolvedValue({
+        actions: [],
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 5,
+          total_tokens: 25,
+          model_name: 'mock-plan-model',
+          slot: 'default',
+        },
+        rawResponse: '{"actions":[]}',
+        shouldContinuePlanning: false,
+        output: 'done',
+      } as any);
+
+      const mockService = {
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
+        onceDumpUpdatedFn: undefined,
+      } as any;
+      const extraPlanningContext =
+        '\n<PageElementsTree><SeekBar bounds="[42,357][1038,483]" /></PageElementsTree>';
+      const staticAiActContext = 'static guidelines';
+
+      const modelConfig: IModelConfig = {
+        modelName: 'mock-plan-model',
+        modelDescription: 'mock-plan-model-description',
+        intent: 'default',
+        slot: 'default',
+      };
+
+      const taskExecutor = new TaskExecutor(
+        {
+          interfaceType: 'android',
+          getExtraPlanningContext: vi.fn(async () => extraPlanningContext),
+        } as any,
+        mockService,
+        {
+          actionSpace: [],
+          replanningCycleLimit: 1,
+        },
+      );
+
+      const result = await taskExecutor.action(
+        'complete the task',
+        modelConfig,
+        modelConfig,
+        false,
+        staticAiActContext,
+      );
+
+      const planningTask = result.runner.tasks[0];
+      expect(planningTask.param).toMatchObject({
+        aiActContext: staticAiActContext,
+        extraPlanningContext,
+      });
+      expect(planSpy).toHaveBeenCalledWith(
+        'complete the task',
+        expect.objectContaining({
+          actionContext: `${staticAiActContext}${extraPlanningContext}`,
+        }),
+      );
+
+      planSpy.mockRestore();
+    });
+
     it('should preserve existing intent and warn instead of overwriting it', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 

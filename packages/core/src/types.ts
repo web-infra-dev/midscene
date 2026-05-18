@@ -538,6 +538,7 @@ export type ExecutionTaskPlanningApply = ExecutionTaskApply<
   {
     userInstruction: string;
     aiActContext?: string;
+    extraPlanningContext?: string;
   },
   PlanningAIResponse
 >;

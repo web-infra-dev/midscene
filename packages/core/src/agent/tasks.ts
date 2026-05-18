@@ -377,6 +377,10 @@ export class TaskExecutor {
                 const extra = await this.interface.getExtraPlanningContext();
                 if (extra) {
                   actionContext = (actionContext || '') + extra;
+                  executorContext.task.param = {
+                    ...executorContext.task.param,
+                    extraPlanningContext: extra,
+                  };
                 }
               } catch (e) {
                 debug('getExtraPlanningContext failed:', e);
