@@ -123,12 +123,17 @@ export interface SidebarProps {
   activeView: ShellActiveView;
   onSelectOverview: () => void;
   onSelectDevice: () => void;
+  /** Fires the instant the user clicks a device row so the device preview
+   * header can render the correct platform icon without waiting for
+   * antd's Form.useWatch to settle. */
+  onPendingCreatePlatform?: (platform: StudioSidebarPlatformKey) => void;
 }
 
 export default function Sidebar({
   activeView,
   onSelectOverview,
   onSelectDevice,
+  onPendingCreatePlatform,
 }: SidebarProps) {
   const studioPlayground = useStudioPlayground();
   const [expandedSections, setExpandedSections] = useState<
@@ -218,6 +223,9 @@ export default function Sidebar({
         // Stamp the highlight synchronously so the row stays selected
         // even before the form state propagates through useWatch.
         setStickySelection({ platformKey, deviceId: item.id });
+        // Same idea for the device-preview header: surface the platform
+        // immediately so its icon doesn't flash the default Android phone.
+        onPendingCreatePlatform?.(platformKey);
 
         if (item.selected && item.status === 'active') {
           onSelectDevice();
@@ -270,14 +278,15 @@ export default function Sidebar({
     ? resolveSelectedDeviceId(formValues)
     : undefined;
 
-  // Keep stickySelection in lockstep with the form whenever the form
-  // actually identifies a device. This way, if some downstream effect
-  // (e.g. refreshSessionSetup, discovery auto-select) updates the form,
-  // the sticky highlight follows instead of pointing at the previous
-  // click. We only clear sticky when the form has no selection AND no
-  // recent click — never let an empty form wipe a fresh click.
+  // Keep stickySelection in lockstep with the form. If a downstream
+  // effect (refreshSessionSetup, discovery auto-select, switching to a
+  // different platform's session) updates the form, the sticky highlight
+  // follows — including clearing it when the form is fully empty so a
+  // stale Computer/Android row doesn't stay highlighted after the user
+  // opens a Web session or returns to Overview.
   useEffect(() => {
     if (!formSelectedPlatformKey || !formSelectedDeviceId) {
+      setStickySelection((prev) => (prev ? undefined : prev));
       return;
     }
     setStickySelection((prev) => {
@@ -371,24 +380,37 @@ export default function Sidebar({
                       // hand-off where `connectedDeviceId` has just
                       // landed but the matching bucket entry hasn't
                       // re-rendered with the same id yet.
-                      const matchesConnected =
-                        !!connectedDeviceId &&
-                        section.key === connectedPlatformKey &&
-                        device.id === connectedDeviceId;
-                      const matchesForm =
-                        !!formSelectedDeviceId &&
-                        section.key === formSelectedPlatformKey &&
-                        device.id === formSelectedDeviceId;
-                      const matchesSticky =
-                        !!stickySelection &&
-                        stickySelection.platformKey === section.key &&
-                        stickySelection.deviceId === device.id;
+                      // Single-source-of-truth selection: only one row
+                      // may ever be highlighted, even while sticky / form /
+                      // connected diverge during a fast re-click. Sticky
+                      // wins (matches the user's intent the instant they
+                      // click), with form / connected as fallbacks.
+                      // On Overview we suppress every highlight because
+                      // the page is meant to be a "no device picked yet"
+                      // state.
+                      let selected = false;
+                      if (activeView !== 'overview') {
+                        if (stickySelection) {
+                          selected =
+                            stickySelection.platformKey === section.key &&
+                            stickySelection.deviceId === device.id;
+                        } else if (
+                          formSelectedDeviceId &&
+                          formSelectedPlatformKey
+                        ) {
+                          selected =
+                            formSelectedPlatformKey === section.key &&
+                            formSelectedDeviceId === device.id;
+                        } else if (connectedDeviceId && connectedPlatformKey) {
+                          selected =
+                            connectedPlatformKey === section.key &&
+                            connectedDeviceId === device.id;
+                        }
+                      }
                       return (
                         <DeviceRow
                           key={device.id}
-                          selected={
-                            matchesConnected || matchesForm || matchesSticky
-                          }
+                          selected={selected}
                           {...device}
                         />
                       );

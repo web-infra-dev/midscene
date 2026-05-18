@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { assetUrls } from '../../assets';
+import { MaskedIcon } from '../MaskedIcon';
 
 export interface WebCreateInput {
   url: string;
@@ -51,10 +52,8 @@ function ChevronDown({ flipped }: { flipped: boolean }) {
 
 function SphereIcon() {
   return (
-    <img
-      alt=""
-      aria-hidden="true"
-      className="h-[14px] w-[14px]"
+    <MaskedIcon
+      className="h-[14px] w-[14px] text-text-primary"
       src={assetUrls.main.sphere}
     />
   );
@@ -64,21 +63,20 @@ function PhoneIcon() {
   return (
     <svg
       aria-hidden="true"
+      className="h-[14px] w-[14px] text-text-primary"
       fill="none"
-      height="14"
       viewBox="0 0 14 14"
-      width="14"
     >
       <rect
         height="11.5"
         rx="1.6"
-        stroke="#333"
+        stroke="currentColor"
         strokeWidth="1.2"
         width="7.6"
         x="3.2"
         y="1.25"
       />
-      <path d="M5.8 11.4h2.4" stroke="#333" strokeWidth="1.2" />
+      <path d="M5.8 11.4h2.4" stroke="currentColor" strokeWidth="1.2" />
     </svg>
   );
 }
@@ -95,7 +93,7 @@ function CardShell({
 
   return (
     <div
-      className="w-[704px] shrink-0 overflow-hidden rounded-[12px] bg-[#f5f5f5]"
+      className="w-[704px] shrink-0 overflow-hidden rounded-[12px] bg-surface-muted"
       style={{ backgroundImage: CARD_BG_GRADIENT }}
     >
       <button
@@ -104,7 +102,7 @@ function CardShell({
         type="button"
       >
         <span className="flex items-center gap-[8px]">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#e0e0e0]">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-active">
             {title === 'Open a web page' ? <SphereIcon /> : <PhoneIcon />}
           </span>
           <span className="text-[14px] font-medium leading-[16px] text-text-primary">
@@ -116,11 +114,11 @@ function CardShell({
         </span>
       </button>
       {expanded ? (
-        <div className="border-t border-[rgba(234,234,235,1)]">
+        <div className="border-t border-border-subtle">
           <div className="px-[20px] py-[16px]">{children}</div>
           <div className="flex justify-end px-[20px] pb-[16px]">
             <button
-              className="h-[32px] cursor-pointer appearance-none rounded-[8px] border border-brand bg-brand px-[16px] text-[14px] font-medium text-text-inverted hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-[32px] cursor-pointer appearance-none rounded-[8px] border border-brand bg-brand px-[16px] text-[14px] font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={busy}
               onClick={onSubmit}
               type="button"
@@ -150,7 +148,7 @@ function FieldLabel({
 }
 
 const inputBaseClass =
-  'box-border h-[36px] w-full rounded-[8px] border border-[#efefee] bg-surface px-[12px] text-[14px] leading-[17px] text-text-primary placeholder:text-text-placeholder focus:border-brand focus:outline-none';
+  'box-border h-[36px] w-full rounded-[8px] border border-border-subtle bg-surface px-[12px] text-[14px] leading-[17px] text-text-primary placeholder:text-text-placeholder focus:border-brand focus:outline-none';
 
 function NumberInput({
   ariaLabel,
@@ -164,7 +162,7 @@ function NumberInput({
   value: number;
 }) {
   return (
-    <div className="box-border flex h-[36px] min-w-0 flex-1 items-center rounded-[8px] border border-[#efefee] bg-surface px-[12px]">
+    <div className="box-border flex h-[36px] min-w-0 flex-1 items-center rounded-[8px] border border-border-subtle bg-surface px-[12px]">
       <span className="mr-[8px] shrink-0 text-[14px] leading-[17px] text-text-placeholder">
         {prefix}
       </span>

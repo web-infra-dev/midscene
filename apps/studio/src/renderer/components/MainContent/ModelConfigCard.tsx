@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { assetUrls } from '../../assets';
+import { MaskedIcon } from '../MaskedIcon';
 
 interface ModelConfigCardProps {
   /** Whether MIDSCENE_MODEL_* env values are complete enough to run. */
@@ -110,7 +111,7 @@ export function ModelConfigCard({
 
   return (
     <div
-      className="w-[720px] shrink-0 overflow-hidden rounded-[12px] bg-[#f5f5f5]"
+      className="w-[720px] shrink-0 overflow-hidden rounded-[12px] bg-surface-muted"
       style={{ backgroundImage: CARD_BG_GRADIENT }}
     >
       <button
@@ -119,11 +120,9 @@ export function ModelConfigCard({
         type="button"
       >
         <span className="flex items-center gap-[8px]">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#e0e0e0]">
-            <img
-              alt=""
-              aria-hidden="true"
-              className="h-[14px] w-[14px]"
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-active">
+            <MaskedIcon
+              className="h-[14px] w-[14px] text-text-primary"
               src={assetUrls.main.env}
             />
           </span>
@@ -137,7 +136,7 @@ export function ModelConfigCard({
         </span>
       </button>
       {expanded ? (
-        <div className="border-t border-[rgba(234,234,235,1)] px-[16px] py-[16px]">
+        <div className="border-t border-border-subtle px-[16px] py-[16px]">
           <EnvTextPreview text={envText ?? ''} />
           {onOpen ? (
             <button

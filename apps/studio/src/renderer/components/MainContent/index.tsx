@@ -33,7 +33,16 @@ const debugWebNavigation = getDebug('studio:web-navigation', { console: true });
 
 export interface MainContentProps {
   activeView: ShellActiveView;
-  headerOffsetClass?: string;
+  /** Shell-level "user just clicked this platform" hint. Bridges the gap
+   * between a click in Sidebar (or Overview cards) and antd Form.useWatch
+   * actually propagating the new platformId — without it, ConnectingPreview
+   * renders the Android phone icon for one frame on PC/Web. */
+  pendingCreatePlatform?: StudioPlatformId;
+  /** Lets MainContent push the same hint back to the shell when it owns
+   * the click path (Overview Open Page / iOS form / Computer card). */
+  onPendingCreatePlatformChange?: (
+    platform: StudioPlatformId | undefined,
+  ) => void;
   onSelectDeviceView?: () => void;
   onSelectOverview?: () => void;
   /**
@@ -241,7 +250,8 @@ function OverviewToolbar({
 
 export default function MainContent({
   activeView,
-  headerOffsetClass,
+  pendingCreatePlatform,
+  onPendingCreatePlatformChange,
   onSelectDeviceView,
   onSelectOverview,
   modelConfigComplete = true,
@@ -273,14 +283,7 @@ export default function MainContent({
     'GoBack' | 'GoForward' | 'Stop' | 'Reload' | null
   >(null);
   const [webIsLoading, setWebIsLoading] = useState(false);
-  // Holds the platform a user just picked from Overview while
-  // antd's Form.useWatch propagation catches up. Without this, the
-  // ConnectingPreview briefly resolves `previewPlatform` as undefined
-  // and falls back to the Android phone icon for a frame before the
-  // form value lands and switches to PC.
-  const [pendingCreatePlatform, setPendingCreatePlatform] = useState<
-    StudioPlatformId | undefined
-  >();
+  const setPendingCreatePlatform = onPendingCreatePlatformChange;
   const isReady = studioPlayground.phase === 'ready';
   const deviceLabel =
     studioPlayground.phase === 'error'
@@ -396,9 +399,13 @@ export default function MainContent({
   // is the source of truth.
   useEffect(() => {
     if (resolvedPreviewPlatform && pendingCreatePlatform) {
-      setPendingCreatePlatform(undefined);
+      setPendingCreatePlatform?.(undefined);
     }
-  }, [resolvedPreviewPlatform, pendingCreatePlatform]);
+  }, [
+    resolvedPreviewPlatform,
+    pendingCreatePlatform,
+    setPendingCreatePlatform,
+  ]);
 
   // Web navigation toolbar polls /interface-info for `isLoading` so the
   // reload/stop button reflects the current page state. Depend on the few
@@ -588,7 +595,7 @@ export default function MainContent({
               'web.viewportHeight': viewportHeight,
               'web.headed': headed,
             };
-            setPendingCreatePlatform('web');
+            setPendingCreatePlatform?.('web');
             state.form.setFieldsValue(selectionValues);
             onSelectDeviceView?.();
             if (state.sessionViewState.connected) {
@@ -630,7 +637,7 @@ export default function MainContent({
               'ios.host': host,
               'ios.port': port,
             };
-            setPendingCreatePlatform('ios');
+            setPendingCreatePlatform?.('ios');
             state.form.setFieldsValue(selectionValues);
             onSelectDeviceView?.();
             if (state.sessionViewState.connected) {
@@ -650,7 +657,7 @@ export default function MainContent({
               platform,
               device,
             );
-            setPendingCreatePlatform(platform);
+            setPendingCreatePlatform?.(platform);
             onSelectDeviceView?.();
             if (
               connectedDeviceId === device.id ||
@@ -689,11 +696,7 @@ export default function MainContent({
        * on the left, and a pill-shaped status/disconnect control on the
        * right that reveals a "Disconnect" tooltip on hover.
        */}
-      <div
-        className={`app-drag relative flex h-[52px] items-center justify-between pr-4 pt-[4px] ${
-          headerOffsetClass || 'pl-[8px]'
-        }`}
-      >
+      <div className="app-drag relative flex h-[52px] items-center justify-between pl-[8px] pr-4 pt-[4px]">
         <div className="flex min-w-0 flex-1 items-center gap-[8px] pt-[2px]">
           <div className="ml-[8px] flex h-[40px] w-[40px] shrink-0 items-center justify-center overflow-hidden rounded-[6px] border border-border-subtle bg-surface-muted">
             <img

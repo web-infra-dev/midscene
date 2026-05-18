@@ -6,11 +6,11 @@ import {
   useRef,
   useState,
 } from 'react';
+import type { StudioPlatformId } from '../../../shared/electron-contract';
 import { STUDIO_EXTERNAL_LINKS } from '../../../shared/external-links';
-import { assetUrls } from '../../assets';
 import { useStudioUpdater } from '../../hooks/useStudioUpdater';
+import { useStudioPlayground } from '../../playground/useStudioPlayground';
 import MainContent from '../MainContent';
-import { MaskedIcon } from '../MaskedIcon';
 import Playground from '../Playground';
 import SettingsPanel from '../SettingsPanel';
 import Sidebar, { SidebarFooter } from '../Sidebar';
@@ -56,33 +56,18 @@ function readPersistedWidth(
   return Math.min(max, Math.max(min, num));
 }
 
-function SidebarToggleButton({
-  collapsed,
-  onToggle,
-}: {
-  collapsed: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <button
-      aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-text-secondary hover:bg-surface-hover"
-      onClick={onToggle}
-      type="button"
-    >
-      <MaskedIcon
-        className={`h-[14px] w-4 ${collapsed ? 'scale-x-[-1]' : ''}`}
-        src={assetUrls.sidebar.leftSidebar}
-      />
-    </button>
-  );
-}
-
 export default function ShellLayout() {
-  const [collapsed, setCollapsed] = useState(false);
   const [activeView, setActiveView] = useState<ShellActiveView>('overview');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modelModalOpen, setModelModalOpen] = useState(false);
+  // Bridges the gap between any device-click path (Sidebar row, Overview
+  // card, Overview-form Submit) and antd Form.useWatch propagating the
+  // chosen platform to MainContent. Without this hint the connecting
+  // header would render the default Android phone icon for one frame
+  // even when the user picked PC/Web.
+  const [pendingCreatePlatform, setPendingCreatePlatform] = useState<
+    StudioPlatformId | undefined
+  >();
   const [windowFocused, setWindowFocused] = useState(
     typeof document === 'undefined' ? true : document.hasFocus(),
   );
@@ -111,11 +96,6 @@ export default function ShellLayout() {
     () => hasCompleteModelEnvConfig(modelEnvText),
     [modelEnvText],
   );
-  const isMacLike =
-    typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
-  const collapsedToggleButtonLeft = isMacLike ? 86 : 12;
-  const collapsedHeaderOffsetClass = isMacLike ? 'pl-[104px]' : 'pl-[36px]';
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(
@@ -144,12 +124,34 @@ export default function ShellLayout() {
     );
   }, [playgroundWidth]);
 
+  const studioPlayground = useStudioPlayground();
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const openEnvModal = useCallback(() => {
     setSettingsOpen(false);
     setModelModalOpen(true);
   }, []);
   const closeModelModal = useCallback(() => setModelModalOpen(false), []);
+  // Going back to Overview tears down the live session and clears every
+  // selection-shaped form field so the sidebar / device cards stop
+  // showing a "still selected" row that no longer corresponds to
+  // anything running on the playground server.
+  const selectOverview = useCallback(() => {
+    setActiveView('overview');
+    setPendingCreatePlatform(undefined);
+    if (studioPlayground.phase !== 'ready') return;
+    const { actions, state } = studioPlayground.controller;
+    state.form.setFieldsValue({
+      platformId: undefined,
+      'web.url': undefined,
+      'ios.host': undefined,
+      'ios.port': undefined,
+      'computer.displayId': undefined,
+      'android.deviceId': undefined,
+      'harmony.deviceId': undefined,
+    });
+    if (!state.sessionViewState.connected) return;
+    void actions.destroySession();
+  }, [studioPlayground]);
 
   const openExternalUrl = useCallback(
     (url: string) => {
@@ -216,18 +218,18 @@ export default function ShellLayout() {
     [sidebarWidth, playgroundWidth],
   );
 
-  // Button is 24x24. Its vertical center (top + 12) must match the traffic
-  // lights' vertical center (y + 6) so the two icons sit on the same row.
-  // Traffic lights at y=14 → center 20 → button top = 20 − 12 = 8.
-  const toggleButtonTop = 8;
-  const toggleButtonLeft = collapsed
-    ? collapsedToggleButtonLeft
-    : sidebarWidth - 38;
-
   const mainAreaStyle: CSSProperties = {
-    ...(collapsed ? {} : { left: sidebarWidth }),
+    left: sidebarWidth,
     ['--studio-playground-width' as string]: `${playgroundWidth}px`,
   };
+
+  // When the OS window loses focus, replace the translucent vibrancy
+  // background with a flat solid panel — matching macOS's own inactive
+  // window treatment. Light mode wants a near-white panel (#F4F5F6),
+  // dark mode wants a flat dark gray (#292929).
+  const sidebarBgClassName = windowFocused
+    ? ''
+    : 'bg-[#F4F5F6] dark:bg-[#292929]';
 
   return (
     <div
@@ -237,81 +239,78 @@ export default function ShellLayout() {
     >
       <div className="app-drag absolute left-0 right-0 top-0 z-10 h-[52px]" />
 
-      {!collapsed && (
-        <div
-          className={`absolute left-0 top-0 h-full ${
-            windowFocused ? '' : 'bg-app-bg'
-          }`}
-          style={{ width: sidebarWidth }}
-        >
-          <div className="absolute left-[4px] right-[4px] top-[52px] overflow-hidden">
-            <Sidebar
-              activeView={activeView}
-              onSelectDevice={() => setActiveView('device')}
-              onSelectOverview={() => setActiveView('overview')}
-            />
-          </div>
-
-          <div
-            className="absolute bottom-[6px] left-[4px] right-[4px]"
-            ref={settingsAnchorRef}
-          >
-            {settingsOpen && (
-              <div className="absolute bottom-[78px] left-0 z-50">
-                <SettingsPanel
-                  onGithubClick={() =>
-                    openExternalUrl(STUDIO_EXTERNAL_LINKS.github)
-                  }
-                  onWebsiteClick={() =>
-                    openExternalUrl(STUDIO_EXTERNAL_LINKS.website)
-                  }
-                  updater={{
-                    appVersion: updater.appVersion,
-                    onDownload: () => {
-                      void updater.download();
-                    },
-                    onInstall: () => {
-                      void updater.install();
-                    },
-                    onOpenDownloadPage: () =>
-                      openExternalUrl(STUDIO_EXTERNAL_LINKS.studioReleases),
-                    status: updater.status,
-                  }}
-                />
-              </div>
-            )}
-            <SidebarFooter
-              envAlert={!modelConfigComplete}
-              hasUpdateReady={updater.hasUpdateReady}
-              onEnvClick={openEnvModal}
-              onToggleSettings={() => setSettingsOpen((prev) => !prev)}
-              settingsOpen={settingsOpen}
-            />
-          </div>
-
-          <div
-            aria-hidden
-            className="app-no-drag absolute right-0 top-0 z-30 h-full w-[4px] cursor-col-resize hover:bg-border-subtle"
-            onMouseDown={(event) => startResize('sidebar', event)}
-            style={{ touchAction: 'none' }}
+      <div
+        className={`absolute left-0 top-0 h-full ${sidebarBgClassName}`}
+        style={{ width: sidebarWidth }}
+      >
+        <div className="absolute left-[4px] right-[4px] top-[52px] overflow-hidden">
+          <Sidebar
+            activeView={activeView}
+            onPendingCreatePlatform={setPendingCreatePlatform}
+            onSelectDevice={() => setActiveView('device')}
+            onSelectOverview={selectOverview}
           />
         </div>
-      )}
+
+        <div
+          className="absolute bottom-[6px] left-[4px] right-[4px]"
+          ref={settingsAnchorRef}
+        >
+          {settingsOpen && (
+            <div className="absolute bottom-[78px] left-0 z-50">
+              <SettingsPanel
+                onGithubClick={() =>
+                  openExternalUrl(STUDIO_EXTERNAL_LINKS.github)
+                }
+                onThemeChange={closeSettings}
+                onWebsiteClick={() =>
+                  openExternalUrl(STUDIO_EXTERNAL_LINKS.website)
+                }
+                updater={{
+                  appVersion: updater.appVersion,
+                  onDownload: () => {
+                    void updater.download();
+                  },
+                  onInstall: () => {
+                    void updater.install();
+                  },
+                  onOpenDownloadPage: () =>
+                    openExternalUrl(STUDIO_EXTERNAL_LINKS.studioReleases),
+                  status: updater.status,
+                }}
+              />
+            </div>
+          )}
+          <SidebarFooter
+            envAlert={!modelConfigComplete}
+            hasUpdateReady={updater.hasUpdateReady}
+            onEnvClick={openEnvModal}
+            onToggleSettings={() => setSettingsOpen((prev) => !prev)}
+            settingsOpen={settingsOpen}
+          />
+        </div>
+
+        <div
+          aria-hidden
+          className="app-no-drag absolute right-0 top-0 z-30 h-full w-[4px] cursor-col-resize hover:bg-border-subtle"
+          onMouseDown={(event) => startResize('sidebar', event)}
+          style={{ touchAction: 'none' }}
+        />
+      </div>
 
       <div
-        className={`absolute bottom-[4px] right-[4px] top-[4px] z-20 flex rounded-[12px] bg-surface ${
-          collapsed ? 'left-[4px]' : ''
-        }`}
+        className="absolute bottom-[4px] right-[4px] top-[4px] z-20 flex rounded-[12px] bg-surface"
         style={mainAreaStyle}
       >
         <MainContent
           activeView={activeView}
-          headerOffsetClass={collapsed ? collapsedHeaderOffsetClass : undefined}
           modelConfigComplete={modelConfigComplete}
           modelEnvText={modelEnvText}
           onOpenEnvModal={openEnvModal}
+          onPendingCreatePlatformChange={setPendingCreatePlatform}
           onSelectDeviceView={() => setActiveView('device')}
-          onSelectOverview={() => setActiveView('overview')}
+          onSelectOverview={selectOverview}
+          pendingCreatePlatform={pendingCreatePlatform}
         />
         {activeView !== 'overview' && (
           <>
@@ -324,16 +323,6 @@ export default function ShellLayout() {
             <Playground />
           </>
         )}
-      </div>
-
-      <div
-        className="app-no-drag absolute z-50"
-        style={{ top: toggleButtonTop, left: toggleButtonLeft }}
-      >
-        <SidebarToggleButton
-          collapsed={collapsed}
-          onToggle={() => setCollapsed((prev) => !prev)}
-        />
       </div>
 
       <ModelEnvConfigModal
