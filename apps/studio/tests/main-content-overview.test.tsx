@@ -209,7 +209,10 @@ describe('MainContent overview', () => {
       ),
     );
 
-    expect(html).toContain('app-no-drag flex h-8 items-center rounded-lg');
+    expect(html).toContain(
+      'app-no-drag group/disconnect-pill relative flex shrink-0 items-center',
+    );
+    expect(html).toContain('aria-label="Disconnect"');
     expect(html).toContain('Disconnect');
   });
 
