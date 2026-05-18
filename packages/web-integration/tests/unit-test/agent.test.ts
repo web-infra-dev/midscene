@@ -509,6 +509,18 @@ describe('PageAgent cache configuration', () => {
       }).toThrow('cache.cacheDir must be a non-empty string when provided');
     });
 
+    it('should throw error for non-string cache dir', () => {
+      expect(() => {
+        new PageAgent(mockPage, {
+          cache: {
+            id: 'custom-cache-id',
+            cacheDir: 123 as any,
+          },
+          modelConfig: mockedModelConfig,
+        });
+      }).toThrow('cache.cacheDir must be a non-empty string when provided');
+    });
+
     it('should throw error for cache: true even with testId', () => {
       expect(() => {
         new PageAgent(mockPage, {
