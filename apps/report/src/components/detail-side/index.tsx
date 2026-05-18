@@ -169,6 +169,14 @@ const renderMetaContent = (
 const extractTaskImages = (
   param: any,
 ): Array<{ name: string; url: string }> | undefined => {
+  // For aiAct planning tasks
+  if (
+    param?.userInstruction?.images &&
+    Array.isArray(param.userInstruction.images)
+  ) {
+    return param.userInstruction.images;
+  }
+
   // For locate params (Planning and Action Space tasks)
   if (param?.prompt?.images && Array.isArray(param.prompt.images)) {
     return param.prompt.images;
@@ -479,11 +487,10 @@ const DetailSide = (): JSX.Element => {
     const memoriesStatus = (planningTask.param as any)?.memoriesStatus;
 
     if (planningTask.param?.userInstruction) {
-      // Ensure userInstruction is a string
       const instructionContent =
         typeof planningTask.param.userInstruction === 'string'
           ? planningTask.param.userInstruction
-          : JSON.stringify(planningTask.param.userInstruction);
+          : planningTask.param.userInstruction.prompt;
 
       taskInput = MetaKV({
         data: [

@@ -1,3 +1,4 @@
+import { type TUserPrompt, userPromptToString } from '@/common';
 import type {
   DeviceAction,
   InterfaceType,
@@ -9,7 +10,10 @@ import type { IModelConfig, TModelFamily } from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
+import type {
+  ChatCompletionMessageParam,
+  ChatCompletionUserMessageParam,
+} from 'openai/resources/index';
 import {
   buildYamlFlowFromPlans,
   fillBboxParam,
@@ -108,7 +112,7 @@ export function parseXMLPlanningResponse(
 }
 
 export async function plan(
-  userInstruction: string,
+  userInstruction: TUserPrompt,
   opts: {
     context: UIContext;
     interfaceType: InterfaceType;
@@ -120,6 +124,7 @@ export async function plan(
     imagesIncludeCount?: number;
     // Controls aiAct planning prompt shape and state updates, such as sub-goals.
     deepThink?: boolean;
+    referenceImageMessages?: ChatCompletionUserMessageParam[];
     abortSignal?: AbortSignal;
   },
 ): Promise<PlanningAIResponse> {
@@ -154,20 +159,23 @@ export async function plan(
     imagePayload = paddedResult.imageBase64;
   }
 
+  const userInstructionText = userPromptToString(userInstruction);
   const actionContext = opts.actionContext
     ? `<high_priority_knowledge>${opts.actionContext}</high_priority_knowledge>\n`
     : '';
 
+  const referenceImageMessages = opts.referenceImageMessages ?? [];
   const instruction: ChatCompletionMessageParam[] = [
     {
       role: 'user',
       content: [
         {
           type: 'text',
-          text: `${actionContext}<user_instruction>${userInstruction}</user_instruction>`,
+          text: `${actionContext}<user_instruction>${userInstructionText}</user_instruction>`,
         },
       ],
     },
+    ...referenceImageMessages,
   ];
 
   let latestFeedbackMessage: ChatCompletionMessageParam;

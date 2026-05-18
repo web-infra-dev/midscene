@@ -23,7 +23,7 @@ export const debug = getDebug('cache');
 
 export interface PlanningCache {
   type: 'plan';
-  prompt: string;
+  prompt: TUserPrompt;
   yamlWorkflow: string;
 }
 
@@ -186,7 +186,9 @@ export class TaskCache {
     return undefined;
   }
 
-  matchPlanCache(prompt: string): MatchCacheResult<PlanningCache> | undefined {
+  matchPlanCache(
+    prompt: TUserPrompt,
+  ): MatchCacheResult<PlanningCache> | undefined {
     const result = this.matchCache(prompt, 'plan') as
       | MatchCacheResult<PlanningCache>
       | undefined;

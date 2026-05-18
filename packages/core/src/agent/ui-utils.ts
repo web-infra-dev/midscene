@@ -1,3 +1,5 @@
+import type { TUserPrompt } from '@/common';
+import { userPromptToString } from '@/common';
 import type {
   DetailedLocateParam,
   ExecutionTask,
@@ -168,7 +170,11 @@ export function paramStr(task: ExecutionTask) {
     } else {
       // Prefer AI-generated output.log over user input
       const planTask = task as ExecutionTaskPlanning;
-      value = planTask.output?.log || planTask.param?.userInstruction;
+      value =
+        planTask.output?.log ||
+        (planTask.param?.userInstruction
+          ? userPromptToString(planTask.param.userInstruction as TUserPrompt)
+          : undefined);
     }
   }
 

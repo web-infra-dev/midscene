@@ -209,14 +209,11 @@ export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
       waitForNetworkIdleTimeout,
     }) as PlaywrightAgent;
 
-    await use(async (taskPrompt: string, ...args: any[]) => {
+    await use(async (taskPrompt: unknown, ...args: any[]) => {
       return new Promise((resolve, reject) => {
         test.step(`ai-${aiActionType} - ${JSON.stringify(taskPrompt)}`, async () => {
           try {
-            type AgentMethod = (
-              prompt: string,
-              ...restArgs: any[]
-            ) => Promise<any>;
+            type AgentMethod = (...methodArgs: any[]) => Promise<any>;
             const result = await (agent[aiActionType] as AgentMethod).bind(
               agent,
             )(taskPrompt, ...args);

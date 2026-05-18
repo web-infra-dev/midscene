@@ -34,7 +34,7 @@ describe('PlaywrightAiFixture this binding', () => {
 
   it('should maintain this context when calling methods with .bind()', async () => {
     const aiActionType = 'aiTap';
-    type AgentMethod = (prompt: string, ...restArgs: any[]) => Promise<any>;
+    type AgentMethod = (...methodArgs: any[]) => Promise<any>;
 
     // This is the pattern used in ai-fixture.ts:183 (with .bind)
     const result = await (agent[aiActionType] as AgentMethod).bind(agent)(
@@ -47,7 +47,7 @@ describe('PlaywrightAiFixture this binding', () => {
 
   it('should lose this context when calling methods without .bind()', async () => {
     const aiActionType = 'aiTap';
-    type AgentMethod = (prompt: string, ...restArgs: any[]) => Promise<any>;
+    type AgentMethod = (...methodArgs: any[]) => Promise<any>;
 
     // This is the WRONG pattern (without .bind)
     const unboundMethod = agent[aiActionType] as AgentMethod;
@@ -58,7 +58,7 @@ describe('PlaywrightAiFixture this binding', () => {
 
   it('should work with different agent methods using .bind()', async () => {
     const methods = ['aiTap', 'aiQuery'] as const;
-    type AgentMethod = (prompt: string, ...restArgs: any[]) => Promise<any>;
+    type AgentMethod = (...methodArgs: any[]) => Promise<any>;
 
     for (const method of methods) {
       const result = await (agent[method] as AgentMethod).bind(agent)(
@@ -71,7 +71,7 @@ describe('PlaywrightAiFixture this binding', () => {
 
   it('should preserve this when passing additional arguments', async () => {
     const aiActionType = 'aiTap';
-    type AgentMethod = (prompt: string, ...restArgs: any[]) => Promise<any>;
+    type AgentMethod = (...methodArgs: any[]) => Promise<any>;
 
     const args = [{ timeout: 5000 }];
     const result = await (agent[aiActionType] as AgentMethod).bind(agent)(
@@ -101,7 +101,7 @@ describe('PlaywrightAiFixture this binding', () => {
     const taskPrompt = 'click submit button';
     const args: any[] = [];
 
-    type AgentMethod = (prompt: string, ...restArgs: any[]) => Promise<any>;
+    type AgentMethod = (...methodArgs: any[]) => Promise<any>;
 
     // The CORRECT pattern with .bind(agent)
     const result = await (agent[aiActionType] as AgentMethod).bind(agent)(

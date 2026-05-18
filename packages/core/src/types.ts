@@ -534,7 +534,7 @@ task - planning
 */
 
 export interface ExecutionTaskPlanningParam {
-  userInstruction: string;
+  userInstruction: TUserPrompt;
   aiActContext?: string;
   imagesIncludeCount?: number;
   deepThink?: DeepThinkOption;
