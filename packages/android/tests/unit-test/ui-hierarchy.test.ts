@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   type FormatNode,
@@ -53,6 +54,14 @@ function n(
 function wrap(inner: string): string {
   return `<hierarchy rotation="0">${inner}</hierarchy>`;
 }
+
+const androidWorldClockStopwatchRunningXml = readFileSync(
+  new URL(
+    './fixtures/android-world-clock-stopwatch-running.xml',
+    import.meta.url,
+  ),
+  'utf8',
+);
 
 // =====================================================
 // parseXmlToFormatTree
@@ -128,6 +137,19 @@ describe('parseXmlToFormatTree', () => {
     );
     const root = parseXmlToFormatTree(xml);
     expect(root.children[0].children).toHaveLength(4);
+  });
+
+  it('should parse AndroidWorld ClockStopWatchRunning XML from the benchmark device', () => {
+    const root = parseXmlToFormatTree(androidWorldClockStopwatchRunningXml);
+    const output = formatTreeToXml(root);
+
+    expect(root.children).toHaveLength(2);
+    expect(output).toContain(
+      'resource-id="com.google.android.apps.nexuslauncher:id/workspace"',
+    );
+    expect(output).toContain('text="Sun, Oct 15"');
+    expect(output).toContain('content-desc="Search"');
+    expect(output).toContain('content-desc="Battery 100 percent."');
   });
 
   it('should return empty tree for empty XML', () => {

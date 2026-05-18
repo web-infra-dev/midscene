@@ -95,9 +95,11 @@ function parseXmlToFormatTree(xml: string): FormatNode {
   //        <node ...>   (opening, capture group 2)
   //        </node>      (closing, no capture)
   const tagRegex = /<node\s+([^>]*?)\/\s*>|<node\s+([^>]*?)>|<\/node>/g;
-  let match = tagRegex.exec(xml);
 
-  while (match !== null) {
+  while (true) {
+    const match = tagRegex.exec(xml);
+    if (match === null) break;
+
     const fullMatch = match[0];
 
     if (fullMatch.startsWith('</node')) {
@@ -143,8 +145,6 @@ function parseXmlToFormatTree(xml: string): FormatNode {
     if (!isSelfClosing) {
       stack.push(node);
     }
-
-    match = tagRegex.exec(xml);
   }
 
   return root;
