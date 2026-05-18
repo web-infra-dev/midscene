@@ -28,6 +28,14 @@ export interface DeviceInteractionLayerProps {
   onTextInput?: (text: string, point?: { x: number; y: number }) => void;
   onKeyboardPress?: (keyName: string, point?: { x: number; y: number }) => void;
   /**
+   * Element whose bounding box represents the actual screen-mirror area
+   * (the `<img>`/canvas container). When provided, pointer coordinates are
+   * projected against this element instead of the overlay itself — so any
+   * chrome wrapping the preview (toolbars, headers, padding) does not shift
+   * taps downward.
+   */
+  contentRef?: React.RefObject<HTMLElement | null>;
+  /**
    * Tap classification thresholds. Pointer movement below this distance and
    * total duration below this delay is reported as a Tap; anything else is a
    * Swipe.
@@ -178,6 +186,7 @@ export function DeviceInteractionLayer({
   keyboardEnabled = false,
   onTextInput,
   onKeyboardPress,
+  contentRef,
   tapMaxDistance = 8,
   tapMaxDurationMs = 250,
   style,
@@ -234,7 +243,8 @@ export function DeviceInteractionLayer({
     (event: React.PointerEvent<HTMLDivElement>) => {
       if (!enabled || !deviceSize || !overlayRef.current) return;
       if (event.button !== 0 && event.pointerType === 'mouse') return;
-      const panelRect = overlayRef.current.getBoundingClientRect();
+      const measurementSource = contentRef?.current ?? overlayRef.current;
+      const panelRect = measurementSource.getBoundingClientRect();
       const contentRect = inscribedContentRect(panelRect, deviceSize);
       if (
         event.clientX < contentRect.left ||
@@ -260,7 +270,7 @@ export function DeviceInteractionLayer({
       };
       event.preventDefault();
     },
-    [enabled, deviceSize, focusKeyboardSink, positionKeyboardSink],
+    [contentRef, enabled, deviceSize, focusKeyboardSink, positionKeyboardSink],
   );
 
   const finishPointer = useCallback(
