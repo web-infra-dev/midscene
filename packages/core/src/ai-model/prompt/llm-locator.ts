@@ -6,6 +6,10 @@ export function systemPromptToLocateElement(
 ) {
   const preferredLanguage = getPreferredLanguage();
   const bboxComment = bboxDescription(modelFamily);
+  const xmlBoundsNote =
+    modelFamily === 'gemini'
+      ? '- For Gemini, XML bounds must be converted from raw screen pixels to normalized [ymin, xmin, ymax, xmax] on a 0-1000 scale before output. Do NOT return raw XML bounds directly.'
+      : '- XML bounds must be converted to the required bbox format before output. Do NOT return raw XML bounds directly.';
   return `
 ## Role:
 You are an AI assistant that helps identify UI elements.
@@ -19,6 +23,8 @@ You are an AI assistant that helps identify UI elements.
 - For example: If an input field is large (both wide and tall) with a placeholder text "Please enter your comment", you should locate only the area where the placeholder text appears, not the entire input field.
 - This principle applies to all text-containing elements: focus on the visible text region rather than the full element container.
 - If page structure XML is provided, use it as structured evidence for exact text, resource-id, class, state annotations, and bounds. Prefer XML bounds over screenshot-only estimates when the XML element matches the visible target.
+- XML bounds are raw screen pixel coordinates formatted as [left,top][right,bottom]. They are evidence, not the final answer format.
+${xmlBoundsNote}
 
 ## Output Format:
 \`\`\`json
