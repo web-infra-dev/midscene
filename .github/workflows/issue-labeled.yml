@@ -4,14 +4,13 @@ on:
   issues:
     types: [labeled]
 
-permissions:
-  issues: write
-
 jobs:
   reply-labeled:
     name: Reply need reproduction
     runs-on: ubuntu-latest
     if: github.repository == 'web-infra-dev/midscene'
+    permissions:
+      issues: write
     steps:
       - name: need reproduction
         if: github.event.label.name == 'need reproduction'

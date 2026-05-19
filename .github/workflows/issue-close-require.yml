@@ -4,13 +4,12 @@ on:
   schedule:
     - cron: '0 0 * * *'
 
-permissions:
-  issues: write
-
 jobs:
   issue-close-require:
     runs-on: ubuntu-latest
     if: github.repository == 'web-infra-dev/midscene'
+    permissions:
+      issues: write
     steps:
       - name: Close inactive need reproduction issues
         uses: actions/stale@b5d41d4e1d5dceea10e7104786b73624c18a190f # v10.2.0
