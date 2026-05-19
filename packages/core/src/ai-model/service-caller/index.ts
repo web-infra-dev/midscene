@@ -228,6 +228,27 @@ async function createChatClient({
   };
 }
 
+/**
+ * Apply extra system prompt from MIDSCENE_SYSTEM_PROMPT_EXTRA env var.
+ * When set, prepends the extra prompt to all system messages.
+ * This allows private/self-hosted models to receive model-specific instructions.
+ */
+export function applyCustomSystemPrompt(
+  messages: ChatCompletionMessageParam[],
+): ChatCompletionMessageParam[] {
+  const customPrompt = process.env.MIDSCENE_SYSTEM_PROMPT_EXTRA;
+  if (!customPrompt || !customPrompt.trim()) {
+    return messages;
+  }
+
+  return messages.map((msg) => {
+    if (msg.role === 'system' && typeof msg.content === 'string') {
+      return { ...msg, content: `${customPrompt}\n\n${msg.content}` };
+    }
+    return msg;
+  });
+}
+
 export async function callAI(
   messages: ChatCompletionMessageParam[],
   modelConfig: IModelConfig,
@@ -242,6 +263,9 @@ export async function callAI(
   usage?: AIUsageInfo;
   isStreamed: boolean;
 }> {
+  // Apply custom system prompt if configured via env var
+  const effectiveMessages = applyCustomSystemPrompt(messages);
+
   if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
     if (
       !modelConfig.modelFamily &&
@@ -256,7 +280,7 @@ export async function callAI(
       );
     }
 
-    return callAIWithCodexAppServer(messages, modelConfig, {
+    return callAIWithCodexAppServer(effectiveMessages, modelConfig, {
       stream: options?.stream,
       onChunk: options?.onChunk,
       reasoningEnabled: modelConfig.reasoningEnabled,
@@ -366,10 +390,10 @@ export async function callAI(
   // screenshot resolution for localization-sensitive tasks.
   const messagesWithImageDetail: ChatCompletionMessageParam[] = (() => {
     if (!shouldUseOriginalImageDetail) {
-      return messages;
+      return effectiveMessages;
     }
 
-    return messages.map((msg) => {
+    return effectiveMessages.map((msg) => {
       if (!Array.isArray(msg.content)) {
         return msg;
       }
