@@ -84,6 +84,22 @@ export interface ActionSpaceItem {
 }
 
 /**
+ * Structural shape compatible with @midscene/core `TUserPrompt`.
+ * Declared locally to avoid a circular dep on `@midscene/core` from `@midscene/shared`.
+ *
+ * Used for agent methods that accept reference images (`aiAssert`, `aiWaitFor`).
+ * `aiAction` deliberately stays string-only because the underlying core
+ * implementation does not yet parse multimodal prompts for that path.
+ */
+export type UserPromptLike =
+  | string
+  | {
+      prompt: string;
+      images?: Array<{ name: string; url: string }>;
+      convertHttpImage2Base64?: boolean;
+    };
+
+/**
  * Base agent interface
  * Represents a platform-specific agent (Android, iOS, Web)
  * Note: Return types use `unknown` for compatibility with platform-specific implementations
@@ -103,11 +119,11 @@ export interface BaseAgent {
     params?: Record<string, unknown>,
   ) => Promise<unknown>;
   aiWaitFor?: (
-    assertion: string,
+    assertion: UserPromptLike,
     options: Record<string, unknown>,
   ) => Promise<unknown>;
   aiAssert?: (
-    assertion: string,
+    assertion: UserPromptLike,
     msg?: string,
     options?: Record<string, unknown>,
   ) => Promise<unknown>;
