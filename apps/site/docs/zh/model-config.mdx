@@ -35,6 +35,8 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 
 ## 高阶配置（可选）
 
+如果你为 Insight 或 Planning 配置了独立模型，那么本节中的模型相关 `MIDSCENE_MODEL_*` 配置需要使用对应的 `MIDSCENE_INSIGHT_MODEL_*` 或 `MIDSCENE_PLANNING_MODEL_*` 配置才能在 Insight 或 Planning 意图时生效。
+
 | 名称 | 描述 |
 |------|-------------|
 | `MIDSCENE_MODEL_TIMEOUT` | AI 接口调用硬超时（毫秒，默认意图），默认 `180000`（180 秒）。设为 `0` 可禁用硬超时，只有调用方传入的 `AbortSignal` 能取消请求。说明：Midscene 控制的是完整请求生命周期，而不只是首个响应 header 返回的时间，因此即使响应体读取阶段卡住，也能被及时终止 |
@@ -64,6 +66,7 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completion` 部分 |
 | `MIDSCENE_INSIGHT_MODEL_NAME` | 模型名称 |
 | `MIDSCENE_INSIGHT_MODEL_FAMILY` | 模型 family |
+| `MIDSCENE_INSIGHT_MODEL_MAX_TOKENS` | 可选，Insight 意图模型响应的 max_tokens 数配置 |
 | `MIDSCENE_INSIGHT_MODEL_TIMEOUT` | 可选，Insight 意图的 AI 接口调用超时时间（毫秒）|
 | `MIDSCENE_INSIGHT_MODEL_TEMPERATURE` | 可选，Insight 意图的模型采样温度 |
 | `MIDSCENE_INSIGHT_MODEL_RETRY_COUNT` | 可选，效果等同于 `MIDSCENE_MODEL_RETRY_COUNT` |
@@ -83,6 +86,7 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `MIDSCENE_PLANNING_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completion` 部分 |
 | `MIDSCENE_PLANNING_MODEL_NAME` | 模型名称 |
 | `MIDSCENE_PLANNING_MODEL_FAMILY` | 模型 family |
+| `MIDSCENE_PLANNING_MODEL_MAX_TOKENS` | 可选，Planning 意图模型响应的 max_tokens 数配置 |
 | `MIDSCENE_PLANNING_MODEL_TIMEOUT` | 可选，Planning 意图的 AI 接口调用超时时间（毫秒）|
 | `MIDSCENE_PLANNING_MODEL_TEMPERATURE` | 可选，Planning 意图的模型采样温度 |
 | `MIDSCENE_PLANNING_MODEL_RETRY_COUNT` | 可选，效果等同于 `MIDSCENE_MODEL_RETRY_COUNT` |
