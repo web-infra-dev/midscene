@@ -1,6 +1,6 @@
-import { getBasicEnvValue } from 'src/env/basic';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MIDSCENE_RUN_DIR } from '../../../src/env';
+import { getBasicEnvValue } from '../../../src/env/basic';
 
 describe('getBasicEnvValue', () => {
   afterEach(() => {

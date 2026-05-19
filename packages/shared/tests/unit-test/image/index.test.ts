@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   httpImg2Base64,
   imageInfoOfBase64,
@@ -9,16 +10,15 @@ import {
   resizeAndConvertImgBuffer,
   resizeImgBase64,
   validateScreenshotBuffer,
-} from 'src/img';
+} from '../../../src/img';
 import {
   createImgBase64ByFormat,
   cropByRect,
   paddingToMatchBlockByBase64,
   parseBase64,
   saveBase64Image,
-} from 'src/img/transform';
-import { getFixture } from 'tests/utils';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+} from '../../../src/img/transform';
+import { getFixture } from '../../utils';
 
 describe('imageInfoOfBase64', () => {
   it('returns correct dimensions for PNG image', async () => {

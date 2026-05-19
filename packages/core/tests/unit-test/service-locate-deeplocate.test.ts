@@ -1,7 +1,7 @@
 import Service from '@/service';
 import type { IModelConfig } from '@midscene/shared/env';
-import { createFakeContext } from 'tests/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createFakeContext } from '../utils';
 
 vi.mock('@/ai-model/index', () => ({
   AIResponseParseError: class AIResponseParseError extends Error {},

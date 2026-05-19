@@ -3,9 +3,9 @@ import {
   globalConfigManager,
   globalModelConfigManager,
 } from '@midscene/shared/env';
-import { mockActionSpace } from 'tests/common';
-import { getContextFromFixture } from 'tests/evaluation';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { mockActionSpace } from '../../common';
+import { getContextFromFixture } from '../../evaluation';
 
 vi.setConfig({
   testTimeout: 180 * 1000,

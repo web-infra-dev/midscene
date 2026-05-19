@@ -1,7 +1,7 @@
 import { AiExtractElementInfo } from '@/ai-model';
 import { globalModelConfigManager } from '@midscene/shared/env';
-import { getContextFromFixture } from 'tests/evaluation';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { getContextFromFixture } from '../../evaluation';
 
 vi.setConfig({
   testTimeout: 240 * 1000,

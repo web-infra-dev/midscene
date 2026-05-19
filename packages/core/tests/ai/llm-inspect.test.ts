@@ -1,7 +1,7 @@
 import { AiLocateElement, AiLocateSection } from '@/ai-model';
 import { globalModelConfigManager } from '@midscene/shared/env';
-import { getContextFromFixture } from 'tests/evaluation';
 import { beforeAll, expect, test, vi } from 'vitest';
+import { getContextFromFixture } from '../evaluation';
 
 vi.setConfig({
   testTimeout: 120 * 1000,
