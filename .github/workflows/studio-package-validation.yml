@@ -105,6 +105,24 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      - name: Build appdmg native bindings
+        if: ${{ matrix.platform == 'darwin' }}
+        # appdmg pulls in darwin-only native deps (`macos-alias`,
+        # `fs-xattr`) whose `node-gyp rebuild` install scripts were
+        # skipped by the workspace install (`--ignore-scripts`). Rebuild
+        # each directly from its pnpm store directory.
+        run: |
+          set -euo pipefail
+          for pkg in macos-alias fs-xattr; do
+            PKG_DIR=$(ls -d "node_modules/.pnpm/${pkg}@"*"/node_modules/${pkg}" 2>/dev/null | head -n 1)
+            if [ -z "$PKG_DIR" ]; then
+              echo "${pkg} package directory not found under node_modules/.pnpm" >&2
+              exit 1
+            fi
+            echo "Rebuilding ${pkg} in ${PKG_DIR}"
+            (cd "$PKG_DIR" && npm rebuild)
+          done
+
       - name: Build Studio and Nx dependencies
         run: npx nx build studio
 
@@ -116,4 +134,6 @@ jobs:
         with:
           if-no-files-found: error
           name: studio_validation_${{ matrix.platform }}_${{ matrix.arch }}
-          path: ${{ github.workspace }}/.release/studio/artifacts/*.zip
+          path: |
+            ${{ github.workspace }}/.release/studio/artifacts/*.zip
+            ${{ github.workspace }}/.release/studio/artifacts/*.dmg
