@@ -67,7 +67,7 @@ interface ScrcpyPanelProps {
   // Receives the canvas-area wrapper so the device-interaction layer can
   // project pointer coords against the actual stream box, ignoring any
   // surrounding Alert / status chrome.
-  contentRef?: React.Ref<HTMLDivElement | null>;
+  contentRef?: React.Ref<HTMLDivElement>;
 }
 
 interface VideoMetadata {

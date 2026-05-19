@@ -34,7 +34,7 @@ export interface DeviceInteractionLayerProps {
    * chrome wrapping the preview (toolbars, headers, padding) does not shift
    * taps downward.
    */
-  contentRef?: React.RefObject<HTMLElement | null>;
+  contentRef?: React.RefObject<HTMLElement>;
   /**
    * Tap classification thresholds. Pointer movement below this distance and
    * total duration below this delay is reported as a Tap; anything else is a

@@ -425,7 +425,7 @@ describe('DeviceInteractionLayer contentRef projection', () => {
       configurable: true,
       value: () => contentRect,
     });
-    const ref = createRef<HTMLDivElement | null>();
+    const ref = createRef<HTMLDivElement>();
     (ref as { current: HTMLDivElement | null }).current = contentElement;
 
     await act(async () => {

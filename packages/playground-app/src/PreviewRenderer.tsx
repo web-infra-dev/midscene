@@ -86,7 +86,7 @@ export function PreviewRenderer({
   // Shared with the active preview component (ScrcpyPanel / ScreenshotViewer)
   // and the interaction layer so pointer coords always project against the
   // real screen-mirror box, not the outer panel that may include chrome.
-  const previewContentRef = useRef<HTMLDivElement | null>(null);
+  const previewContentRef = useRef<HTMLDivElement>(null);
   // Default to `screen-only` so the playground does not render chrome
   // (header / Refresh / timestamp) inside the same relative-positioned panel
   // that DeviceInteractionLayer overlays — embedding hosts (Studio) can opt
