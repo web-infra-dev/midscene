@@ -292,6 +292,23 @@ describe('HarmonyDevice', () => {
       await device.inputText('hi', element);
       expect(mockHdc.keyEvent).not.toHaveBeenCalled();
     });
+
+    it('should respect autoDismissKeyboard passed to Input action', async () => {
+      const d = new HarmonyDevice('dev', { autoDismissKeyboard: true });
+      const inputAction = d
+        .actionSpace()
+        .find((action) => action.name === 'Input') as any;
+      const param = inputAction.paramSchema.parse({
+        value: 'hi',
+        autoDismissKeyboard: false,
+      });
+
+      await inputAction.call(param);
+
+      expect(mockHdc.inputText).toHaveBeenCalledWith(608, 1344, 'hi');
+      expect(mockHdc.keyEvent).not.toHaveBeenCalled();
+      await d.destroy();
+    });
   });
 
   describe('clearInput', () => {
