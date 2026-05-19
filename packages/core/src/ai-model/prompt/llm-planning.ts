@@ -414,6 +414,16 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 **Special case - Assertion instructions:**
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark ${shouldIncludeSubGoals ? 'the goal' : 'it'} as failed (success="false").
 - If the page is still loading (e.g., you see a loading spinner, skeleton screen, or progress bar), do NOT assert yet. Wait for the page to finish loading before evaluating the assertion.
+
+### Completion Criteria for Process-required Instructions
+
+If the user's instruction includes explicit operation steps, ordering requirements, or action requirements, it is a process-required instruction.
+
+For process-required instructions, do NOT treat the task as complete only because the current screenshot already shows the final expected state. Do NOT infer that earlier steps were executed from the final UI state.
+
+You may output <complete success="true"> only when the current execution history, previous logs, or the screenshot after the most recent action proves that every explicit step required by the user has been completed, and the final check condition is also satisfied.
+
+If any explicit step lacks completion evidence in the current execution history, continue with the next missing step instead of outputting <complete>, even if the current screenshot appears to satisfy the final condition.
 ${
   !shouldIncludeSubGoals
     ? `
@@ -428,7 +438,7 @@ ${
 
 - If the task is NOT complete, skip this section and continue to Step ${actionStepNumber}.
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
-  - the 'success' attribute is required. ${shouldIncludeSubGoals ? 'It means whether the expected goal is accomplished based on what you observe in the current screenshot. ' : ''}No matter what actions were executed or what errors occurred during execution, if the ${shouldIncludeSubGoals ? 'expected goal is accomplished' : 'instruction is fulfilled'}, set success="true". If the ${shouldIncludeSubGoals ? 'expected goal is not accomplished and cannot be accomplished' : 'instruction is not fulfilled and cannot be fulfilled'}, set success="false".
+  - the 'success' attribute is required. ${shouldIncludeSubGoals ? 'It means whether the expected goal is accomplished based on what you observe in the current screenshot and the current execution history. ' : ''}No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the ${shouldIncludeSubGoals ? 'expected goal is not accomplished and cannot be accomplished' : 'instruction is not fulfilled and cannot be fulfilled'}, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
 
