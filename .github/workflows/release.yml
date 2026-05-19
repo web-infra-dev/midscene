@@ -38,27 +38,27 @@ jobs:
       FORCE_COLOR: '0'
       NO_COLOR: '1'
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
       with:
         ref: ${{ github.event.inputs.branch }}
     - name: Pushing to the protected branch 'protected'
-      uses: zhoushaw/push-protected@v2
+      uses: zhoushaw/push-protected@f36ef70ae5f2e6bbd4f7b04da4f1fa3c11bc5a01 # v2
       with:
         token: ${{ secrets.PUSH_TO_PROTECTED_BRANCH }}
         branch: ${{ github.event.inputs.branch }}
     - name: Setup pnpm
-      uses: pnpm/action-setup@v2
+      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
       with:
         version: 9.3.0
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: '24.13.0'
         cache: 'pnpm'
 
     - name: Cache Puppeteer
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: ~/.cache/puppeteer
         key: ${{ runner.os }}-puppeteer-${{ hashFiles('**/package-lock.json') }}
@@ -113,7 +113,7 @@ jobs:
         fi
       
     - name: Upload output
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         if-no-files-found: error
         name: chrome_extension
@@ -121,7 +121,7 @@ jobs:
         
     - name: Upload Release Assets
       if: ${{ steps.get_version.outputs.is_prerelease != 'true' }}
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
       with:
         tag_name: ${{ steps.get_version.outputs.version }}
         target_commitish: ${{ github.event.inputs.branch }}
@@ -136,11 +136,11 @@ jobs:
     if: ${{ needs.release.result == 'success' && !contains(needs.release.outputs.version, 'beta') && !contains(needs.release.outputs.version, 'alpha') && !contains(needs.release.outputs.version, 'rc') }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
       with:
         ref: ${{ github.event.inputs.branch }}
     - name: Download packaged Chrome extension artifact
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
         name: chrome_extension
         path: ${{ github.workspace }}/apps/chrome-extension/extension_output
@@ -192,21 +192,21 @@ jobs:
       MIDSCENE_REQUIRE_MAC_NOTARIZATION: ${{ needs.release.outputs.is_prerelease != 'true' }}
       NO_COLOR: '1'
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
       if: ${{ needs.release.outputs.is_prerelease != 'true' }}
       with:
         ref: refs/tags/${{ needs.release.outputs.version }}
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
       if: ${{ needs.release.outputs.is_prerelease == 'true' }}
       with:
         ref: ${{ github.event.inputs.branch }}
     - name: Setup pnpm
-      uses: pnpm/action-setup@v2
+      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
       with:
         version: 9.3.0
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: '22.11.0'
         cache: 'pnpm'
@@ -273,7 +273,7 @@ jobs:
       run: pnpm --dir apps/studio run package:release -- --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --version=${{ needs.release.outputs.version }}
 
     - name: Upload packaged Studio artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         if-no-files-found: error
         name: studio_${{ matrix.platform }}_${{ matrix.arch }}
@@ -285,7 +285,7 @@ jobs:
 
     - name: Upload Studio asset to GitHub Release
       if: ${{ needs.release.outputs.is_prerelease != 'true' }}
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
       with:
         tag_name: ${{ needs.release.outputs.version }}
         target_commitish: ${{ github.event.inputs.branch }}

@@ -35,17 +35,17 @@ jobs:
       NO_COLOR: '1'
       STUDIO_PACKAGE_VALIDATION_VERSION: v0.0.${{ github.run_number }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
         with:
           ref: ${{ github.event.inputs.branch }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
         with:
           version: 9.3.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22.11.0'
           cache: 'pnpm'
@@ -112,7 +112,7 @@ jobs:
         run: pnpm --dir apps/studio run package:release -- --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --version=${{ env.STUDIO_PACKAGE_VALIDATION_VERSION }}
 
       - name: Upload packaged Studio artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           if-no-files-found: error
           name: studio_validation_${{ matrix.platform }}_${{ matrix.arch }}
