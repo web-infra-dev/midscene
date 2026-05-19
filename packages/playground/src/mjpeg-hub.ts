@@ -138,11 +138,7 @@ export class InterfaceMjpegHub {
     if (!producer) return;
     for (const [subscriber, res] of producer.responses) {
       producer.subscribers.delete(subscriber);
-      try {
-        res.destroy();
-      } catch {
-        /* socket already closed */
-      }
+      this.closeSubscriberResponse(res);
     }
     producer.responses.clear();
     this.stopProducerInternal(producer);
@@ -244,11 +240,7 @@ export class InterfaceMjpegHub {
     for (const [oldSubscriber, oldRes] of producer.responses) {
       producer.subscribers.delete(oldSubscriber);
       producer.responses.delete(oldSubscriber);
-      try {
-        oldRes.end();
-      } catch {
-        /* response already closed */
-      }
+      this.closeSubscriberResponse(oldRes);
     }
 
     producer.subscribers.add(subscriber);
@@ -387,14 +379,12 @@ export class InterfaceMjpegHub {
       clearTimeout(producer.stopTimer);
       producer.stopTimer = undefined;
     }
-    // Hard-close any subscriber sockets we still own so the browser <img>
-    // does not hang on a half-open multipart response.
+    // Close subscriber responses cleanly so Chromium sees the chunked
+    // transfer terminator before the socket goes away. Using destroy() here
+    // leaves the connection in the same poisoned state as the stale-subscriber
+    // path this hub already fixed.
     for (const [, res] of producer.responses) {
-      try {
-        res.destroy();
-      } catch {
-        /* socket already closed */
-      }
+      this.closeSubscriberResponse(res);
     }
     producer.responses.clear();
     producer.subscribers.clear();
@@ -404,6 +394,14 @@ export class InterfaceMjpegHub {
     });
     if (this.producer === producer) {
       this.producer = undefined;
+    }
+  }
+
+  private closeSubscriberResponse(res: Response): void {
+    try {
+      res.end();
+    } catch {
+      /* response already closed */
     }
   }
 

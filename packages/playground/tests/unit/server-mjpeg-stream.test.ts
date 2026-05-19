@@ -269,8 +269,8 @@ describe('PlaygroundServer MJPEG streaming', () => {
 
       // Second mount on the same producer (e.g. user navigates back to the
       // device view, React StrictMode double-mount, retry timer) — the old
-      // subscriber's response is destroyed so its socket releases the
-      // Chromium connection-pool slot.
+      // subscriber's response is ended so its socket releases the Chromium
+      // connection-pool slot without poisoning keep-alive reuse.
       await mjpegHandler(requestTwo, responseTwo);
       expect(startMjpegStream).toHaveBeenCalledTimes(1);
       expect(responseOne.ended).toBe(true);
@@ -293,6 +293,71 @@ describe('PlaygroundServer MJPEG streaming', () => {
       requestTwo.listeners.get('close')?.();
       await vi.advanceTimersByTimeAsync(2000);
       expect(stop).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test('GET /mjpeg ends existing subscribers when producer teardown follows stream errors', async () => {
+    const stop = vi.fn();
+    let emitError: ((error: unknown) => void) | undefined;
+    const startMjpegStream = vi
+      .fn()
+      .mockImplementationOnce(async ({ onFrame, onError }) => {
+        emitError = onError;
+        onFrame({
+          data: Buffer.from('frame-one').toString('base64'),
+          contentType: 'image/jpeg',
+        });
+        return { stop };
+      })
+      .mockImplementationOnce(async ({ onFrame }) => {
+        onFrame({
+          data: Buffer.from('frame-two').toString('base64'),
+          contentType: 'image/jpeg',
+        });
+        return { stop };
+      });
+
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'web',
+        actionSpace: () => [],
+        screenshotBase64: async () => {
+          throw new Error('polling should not be used');
+        },
+        size: async () => ({ width: 800, height: 600 }),
+        startMjpegStream,
+      },
+    } as any);
+
+    await server.launch(6126);
+    vi.useFakeTimers();
+    try {
+      const mjpegHandler = getRouteHandler(server, 'get', '/mjpeg');
+      const requestOne = createMockRequest();
+      const requestTwo = createMockRequest();
+      const responseOne = createMockStreamResponse();
+      const responseTwo = createMockStreamResponse();
+
+      await mjpegHandler(requestOne, responseOne);
+      expect(
+        responseOne.chunks.some((chunk) => chunk.toString() === 'frame-one'),
+      ).toBe(true);
+
+      emitError?.(new Error('CDP screencast closed'));
+      await Promise.resolve();
+
+      expect(stop).toHaveBeenCalledTimes(1);
+      expect(responseOne.ended).toBe(true);
+      expect(responseOne.destroyed).toBe(false);
+
+      await mjpegHandler(requestTwo, responseTwo);
+
+      expect(startMjpegStream).toHaveBeenCalledTimes(2);
+      expect(
+        responseTwo.chunks.some((chunk) => chunk.toString() === 'frame-two'),
+      ).toBe(true);
     } finally {
       vi.useRealTimers();
     }
