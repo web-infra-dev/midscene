@@ -12,6 +12,7 @@ import { generateDumpScriptTag, generateImageScriptTag } from '../../src/dump';
 import type { ScreenshotRef } from '../../src/dump/screenshot-store';
 import {
   createReportCliCommands,
+  mergeReportFiles,
   reportFileToMarkdown,
   splitReportFile,
 } from '../../src/report-cli';
@@ -462,5 +463,129 @@ describe('createReportCliCommands', () => {
     expect(readFileSync(exportedScreenshot)).toEqual(
       readFileSync(sourceScreenshotPath),
     );
+  });
+
+  function writeFakeReport(
+    dirName: string,
+    groupName: string,
+    executionId: string,
+  ): string {
+    const reportPath = join(tmpDir, dirName, 'index.html');
+    mkdirSync(join(tmpDir, dirName), { recursive: true });
+
+    const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
+    const dump = new ReportActionDump({
+      groupName,
+      groupDescription: `${groupName}-desc`,
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [createExecution(executionId, screenshot)],
+    });
+
+    const html = [
+      generateImageScriptTag(screenshot.id, screenshot.base64),
+      generateDumpScriptTag(dump.serialize(), {
+        'data-group-id': `group-${executionId}`,
+      }),
+    ].join('\n');
+    writeFileSync(reportPath, html, 'utf-8');
+    return reportPath;
+  }
+
+  it('merges multiple reports via the JS SDK API', () => {
+    const reportA = writeFakeReport('merge-input-a', 'group-A', 'exec-A');
+    const reportB = writeFakeReport('merge-input-b', 'group-B', 'exec-B');
+
+    const outputDir = join(tmpDir, 'merge-output-sdk');
+    const result = mergeReportFiles({
+      htmlPaths: [reportA, reportB],
+      outputDir,
+      outputName: 'merged-sdk',
+    });
+
+    expect(result.mergedReportPath.startsWith(outputDir)).toBe(true);
+    expect(existsSync(result.mergedReportPath)).toBe(true);
+
+    const merged = readFileSync(result.mergedReportPath, 'utf-8');
+    const idMatches = merged.match(/playwright_test_id="[^"]+"/g) ?? [];
+    expect(idMatches.length).toBe(2);
+    expect(merged).toContain('group-A');
+    expect(merged).toContain('group-B');
+  });
+
+  it('runs the merge action through the generic report command', async () => {
+    const reportA = writeFakeReport('merge-cli-a', 'cli-group-A', 'exec-cli-A');
+    const reportB = writeFakeReport('merge-cli-b', 'cli-group-B', 'exec-cli-B');
+
+    const outputDir = join(tmpDir, 'merge-output-cli');
+    const [command] = createReportCliCommands();
+    const result = await command.def.handler({
+      action: 'merge',
+      htmlPaths: JSON.stringify([reportA, reportB]),
+      outputDir,
+      outputName: 'merged-cli',
+    });
+
+    expect(result.isError).toBe(false);
+    expect(result.content[0].text).toContain('Merged 2 report(s) into');
+
+    const mergedPath = join(outputDir, 'merged-cli.html');
+    expect(existsSync(mergedPath)).toBe(true);
+  });
+
+  it('accepts comma-separated htmlPaths for the merge action', async () => {
+    const reportA = writeFakeReport('merge-csv-a', 'csv-group-A', 'exec-csv-A');
+    const reportB = writeFakeReport('merge-csv-b', 'csv-group-B', 'exec-csv-B');
+
+    const outputDir = join(tmpDir, 'merge-output-csv');
+    const [command] = createReportCliCommands();
+    const result = await command.def.handler({
+      action: 'merge',
+      htmlPaths: `${reportA},${reportB}`,
+      outputDir,
+      outputName: 'merged-csv',
+    });
+
+    expect(result.isError).toBe(false);
+    const mergedPath = join(outputDir, 'merged-csv.html');
+    expect(existsSync(mergedPath)).toBe(true);
+  });
+
+  it('throws when --htmlPaths is missing for the merge action', async () => {
+    const [command] = createReportCliCommands();
+
+    await expect(
+      command.def.handler({
+        action: 'merge',
+        outputDir: join(tmpDir, 'merge-missing'),
+      }),
+    ).rejects.toThrow('report-tool: --htmlPaths is required');
+  });
+
+  it('throws when merge target already exists without --overwrite', async () => {
+    const reportA = writeFakeReport('merge-ow-a', 'ow-A', 'exec-ow-A');
+    const outputDir = join(tmpDir, 'merge-output-overwrite');
+
+    mergeReportFiles({
+      htmlPaths: [reportA],
+      outputDir,
+      outputName: 'merged-ow',
+    });
+
+    expect(() =>
+      mergeReportFiles({
+        htmlPaths: [reportA],
+        outputDir,
+        outputName: 'merged-ow',
+      }),
+    ).toThrow('Report file already exists');
+
+    const second = mergeReportFiles({
+      htmlPaths: [reportA],
+      outputDir,
+      outputName: 'merged-ow',
+      overwrite: true,
+    });
+    expect(existsSync(second.mergedReportPath)).toBe(true);
   });
 });
