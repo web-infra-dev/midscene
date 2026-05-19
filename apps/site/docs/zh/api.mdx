@@ -1314,6 +1314,32 @@ await agent.aiAssert({
 
 在提示词中使用图片时，可能需要关注模型提供商对图片体积和尺寸的要求，过大（比如超过 10M）或过小（比如小于 10 像素）的图片都有可能导致模型调用时出现报错，具体的限制请以你所使用模型提供商的文档为准。
 
+### 在命令行中使用图片提示词
+
+各平台命令行工具（`@midscene/android`、`@midscene/web`、`@midscene/ios`、`@midscene/harmony` 等）的 `assert` 子命令新增了三个参数，用于支持图片提示词：
+
+- `--images`：JSON 数组形式的 `{ "name", "url" }` 列表。`url` 支持 http(s) 链接或 `data:` URI。
+- `--imageFiles`：本地图片路径，可用英文逗号分隔，也可以传 JSON 数组。命令行会自动读取文件并 base64 编码成 `data:` URI 后传给模型。
+- `--convertHttpImage2Base64`：传 `true` 时把 http(s) 图片链接转成 base64 后再发送。当模型提供商无法直接访问图片链接时使用。
+
+示例 — 引用一张外部图片：
+
+```shell
+npx @midscene/android assert \
+  --prompt "页面上的徽章与给定的参考图一致" \
+  --images '[{"name":"badge","url":"https://example.com/badge.png"}]'
+```
+
+示例 — 引用一张本地截图：
+
+```shell
+npx @midscene/android assert \
+  --prompt "页面上的徽章与本地截图一致" \
+  --imageFiles ./fixtures/badge.png
+```
+
+> `act` 子命令目前只支持纯文本提示词；需要引用图片的场景请改用 `assert`。
+
 ## 报告合并工具
 
 在运行多个自动化工作流时，每个 agent 都会生成独立的报告文件。`ReportMergingTool` 提供了将多个自动化报告合并为单个报告的能力，便于统一查看和管理自动化结果。
