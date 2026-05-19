@@ -174,9 +174,27 @@ async function createDefaultWebAgent(page) {
   console.log('Creating default Web agent through the Studio UI...');
   // Studio now drives session creation from the Overview's
   // WebCreateAgentCard ("Open a web page" tile) instead of the right-column
-  // SessionSetupPanel. Wait for the tile, then click its "Open Page" submit
-  // button — that fires onCreateWebSession with default example.com values
-  // and switches the shell into Device view.
+  // SessionSetupPanel. The tile is rendered eagerly (regardless of
+  // bootstrap phase), but `onCreateWebSession` bails out with `if
+  // (!isReady) return;` until `studioRuntime.getPlaygroundBootstrap()`
+  // reports `status === 'ready'`. Wait for that signal before clicking,
+  // otherwise the click is silently a no-op and `assertWebPreview` will
+  // time out on a device that was never asked to come up.
+  console.log('Waiting for Studio playground bootstrap...');
+  await page.waitForFunction(
+    async () => {
+      const runtime = window.studioRuntime;
+      if (!runtime?.getPlaygroundBootstrap) return false;
+      try {
+        const bootstrap = await runtime.getPlaygroundBootstrap();
+        return bootstrap?.status === 'ready' && Boolean(bootstrap.serverUrl);
+      } catch {
+        return false;
+      }
+    },
+    { timeout: 30_000, polling: 250 },
+  );
+
   await page.waitForFunction(
     () => document.body.innerText.includes('Open a web page'),
     { timeout: 30_000 },
