@@ -224,6 +224,33 @@ export class InterfaceMjpegHub {
       }
     };
 
+    // Chromium's <img> with multipart/x-mixed-replace keeps the underlying
+    // TCP connection alive even after the element is unmounted from the DOM —
+    // there's no FIN until something else cleans up. Each subsequent mount
+    // (Overview ↔ Device re-entry, React StrictMode double-mount, retry
+    // timer) opens a new socket without releasing the old one. Studio only
+    // ever has a single visible preview, so before attaching the new
+    // subscriber we end any stale ones — this both releases server-side
+    // resources and unblocks Chromium's per-origin connection slot quota
+    // (6 for HTTP/1.1). Without this, after a handful of re-mounts the
+    // browser cannot open any further /mjpeg request and shows a permanent
+    // blank canvas.
+    //
+    // Use `res.end()` (not `res.destroy()`) so the chunked-transfer
+    // terminator (`0\r\n\r\n`) is flushed before close. With `destroy()`
+    // Chromium reports ERR_INCOMPLETE_CHUNKED_ENCODING on the previous
+    // request *and on the next* — apparently because the connection-pool
+    // entry is poisoned — leaving the new <img>.naturalWidth at 0.
+    for (const [oldSubscriber, oldRes] of producer.responses) {
+      producer.subscribers.delete(oldSubscriber);
+      producer.responses.delete(oldSubscriber);
+      try {
+        oldRes.end();
+      } catch {
+        /* response already closed */
+      }
+    }
+
     producer.subscribers.add(subscriber);
     producer.responses.set(subscriber, res);
     if (producer.stopTimer) {
@@ -238,9 +265,39 @@ export class InterfaceMjpegHub {
     );
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Connection', 'keep-alive');
-    subscriber(producer.lastFrame as MjpegStreamFrame);
+    this.flushInitialFrame(subscriber, producer.lastFrame as MjpegStreamFrame);
 
     this.debug('streaming via shared interface frame producer');
+  }
+
+  /**
+   * Push the producer's cached frame to a freshly-attached subscriber.
+   *
+   * Why two writes:
+   *
+   * Chromium's `<img>` with `multipart/x-mixed-replace` only commits a part
+   * to display once it sees the *next* part's boundary delimiter — the
+   * boundary is what tells the decoder that the previous part's body is
+   * complete. When the CDP screencast is idle (page is past
+   * `waitForNetworkIdle`, no animation) the producer only ever pushes one
+   * frame: the cached `lastFrame`. With a single write, the browser holds
+   * onto the bytes but never paints them (`<img>.naturalWidth === 0`) — a
+   * permanent blank canvas while waiting for a frame that never arrives.
+   *
+   * The duplicate write below is a sentinel: the second part's leading
+   * boundary is exactly what unblocks the first part's commit. The second
+   * part itself never gets displayed (multipart only ever shows the latest
+   * committed part, and any subsequent real CDP frame overrides it), so
+   * the cost is one extra frame on the wire per subscriber attach. Without
+   * this, Overview → Device re-entry consistently leaves the user staring
+   * at white.
+   */
+  private flushInitialFrame(
+    subscriber: Subscriber,
+    lastFrame: MjpegStreamFrame,
+  ): void {
+    subscriber(lastFrame);
+    subscriber(lastFrame);
   }
 
   private getOrCreateProducer(
@@ -304,6 +361,13 @@ export class InterfaceMjpegHub {
             },
             onError: (error) => {
               this.debug('interface stream producer error: %s', error);
+              // Tear down the dead producer so the next /mjpeg request
+              // (triggered by the <img> onError → retry) constructs a
+              // fresh one. Without this, the dead producer is reused
+              // forever — explaining why even page.reload() can't
+              // recover the preview after an in-flight CDP screencast
+              // dies during a task run.
+              this.stopProducerInternal(producer);
             },
           })) ?? undefined;
       } catch (error) {

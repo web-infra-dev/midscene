@@ -293,7 +293,17 @@ async function prepareStudioWebPlatform({
   loadWebModule: typeof loadWebPlaygroundModule;
 }): Promise<PreparedPlaygroundPlatform> {
   const webModule = await loadWebModule();
-  let currentCleanup: StudioWebCleanup[] | null = null;
+  // The two cleanup baskets are kept separate so the playground server's
+  // `recreateAgent` (the cancel path) can dispose just the in-flight
+  // PuppeteerAgent without closing the browser/page underneath it. The
+  // next factory call then attaches a fresh agent to the same page, so
+  // the user does not see the MJPEG preview blink off and back on every
+  // time they hit Stop in the right panel.
+  let pageCleanup: StudioWebCleanup[] | null = null;
+  let agentCleanup: StudioWebCleanup[] | null = null;
+  let currentPage:
+    | Awaited<ReturnType<typeof webModule.launchPuppeteerPage>>['page']
+    | null = null;
 
   return {
     platformId: 'web',
@@ -350,8 +360,11 @@ async function prepareStudioWebPlatform({
         };
       },
       async createSession(input) {
-        await runWebCleanup(currentCleanup);
-        currentCleanup = null;
+        await runWebCleanup(agentCleanup);
+        agentCleanup = null;
+        await runWebCleanup(pageCleanup);
+        pageCleanup = null;
+        currentPage = null;
 
         const url = normalizeWebUrl(input?.url);
         const viewportWidth = normalizeViewportDimension(
@@ -365,28 +378,46 @@ async function prepareStudioWebPlatform({
         const headed = input?.headed === true;
 
         const agentFactory = async () => {
-          await runWebCleanup(currentCleanup);
-          currentCleanup = null;
+          // Tear down only the previous agent. The page/browser stays
+          // alive across recreate-on-cancel so the MJPEG stream does not
+          // blink and the user does not lose their navigation history.
+          await runWebCleanup(agentCleanup);
+          agentCleanup = null;
 
-          const { page, freeFn } = await webModule.launchPuppeteerPage(
-            {
-              url,
-              viewportWidth,
-              viewportHeight,
-            },
-            {
-              headed,
-            },
-          );
-          const agent = new webModule.PuppeteerAgent(page, {
+          // If the user closed the Chrome window (or it crashed) the
+          // cached page object reports `isClosed()`; in that case we
+          // drop the stale cleanup and launch fresh instead of handing
+          // the new agent a dead page.
+          const pageIsClosed =
+            typeof (currentPage as { isClosed?: () => boolean })?.isClosed ===
+              'function' &&
+            (currentPage as { isClosed: () => boolean }).isClosed();
+          if (!currentPage || pageIsClosed) {
+            await runWebCleanup(pageCleanup);
+            pageCleanup = null;
+            currentPage = null;
+            const { page, freeFn } = await webModule.launchPuppeteerPage(
+              {
+                url,
+                viewportWidth,
+                viewportHeight,
+              },
+              {
+                headed,
+              },
+            );
+            currentPage = page;
+            pageCleanup = freeFn;
+          }
+
+          const agent = new webModule.PuppeteerAgent(currentPage, {
             cacheId: 'studio-web',
           });
-          currentCleanup = [
+          agentCleanup = [
             {
               name: 'studio_web_agent',
               fn: () => agent.destroy(),
             },
-            ...freeFn,
           ];
           return agent;
         };
@@ -405,8 +436,12 @@ async function prepareStudioWebPlatform({
         };
       },
       async destroySession() {
-        await runWebCleanup(currentCleanup);
-        currentCleanup = null;
+        // Full session destroy releases everything.
+        await runWebCleanup(agentCleanup);
+        agentCleanup = null;
+        await runWebCleanup(pageCleanup);
+        pageCleanup = null;
+        currentPage = null;
       },
     },
   };

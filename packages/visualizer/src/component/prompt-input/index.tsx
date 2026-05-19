@@ -1172,6 +1172,34 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                 </button>
               </Dropdown>
 
+              <HistorySelector
+                onSelect={handleSelectHistory}
+                history={historyForSelectedType}
+                currentType={selectedType}
+                popupPlacement="top"
+                trigger={
+                  <button
+                    aria-label="Open prompt history"
+                    className="minimal-icon-trigger"
+                    type="button"
+                  >
+                    {minimalHistoryIconSrc ? (
+                      <img
+                        alt=""
+                        className="minimal-toolbar-icon minimal-toolbar-icon-history"
+                        src={minimalHistoryIconSrc}
+                      />
+                    ) : (
+                      <PromptHistoryIcon
+                        aria-hidden="true"
+                        className="minimal-toolbar-icon minimal-toolbar-icon-history"
+                        focusable="false"
+                      />
+                    )}
+                  </button>
+                }
+              />
+
               {hasConfigOptions ? (
                 <div
                   className={
@@ -1206,34 +1234,6 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                   />
                 </div>
               ) : null}
-
-              <HistorySelector
-                onSelect={handleSelectHistory}
-                history={historyForSelectedType}
-                currentType={selectedType}
-                popupPlacement="top"
-                trigger={
-                  <button
-                    aria-label="Open prompt history"
-                    className="minimal-icon-trigger"
-                    type="button"
-                  >
-                    {minimalHistoryIconSrc ? (
-                      <img
-                        alt=""
-                        className="minimal-toolbar-icon minimal-toolbar-icon-history"
-                        src={minimalHistoryIconSrc}
-                      />
-                    ) : (
-                      <PromptHistoryIcon
-                        aria-hidden="true"
-                        className="minimal-toolbar-icon minimal-toolbar-icon-history"
-                        focusable="false"
-                      />
-                    )}
-                  </button>
-                }
-              />
             </div>
 
             <div className="form-controller-wrapper">
@@ -1286,6 +1286,11 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         </div>
 
         <div className="action-icons">
+          <HistorySelector
+            onSelect={handleSelectHistory}
+            history={historyForSelectedType}
+            currentType={selectedType}
+          />
           {hasConfigOptions && (
             <div
               className={
@@ -1306,11 +1311,6 @@ export const PromptInput: React.FC<PromptInputProps> = ({
               />
             </div>
           )}
-          <HistorySelector
-            onSelect={handleSelectHistory}
-            history={historyForSelectedType}
-            currentType={selectedType}
-          />
         </div>
       </div>
 

@@ -67,7 +67,11 @@ describe('ScreenshotViewer', () => {
     const initialImage = container.querySelector(
       'img[alt="Device Live Stream"]',
     ) as HTMLImageElement | null;
-    expect(initialImage?.src).toBe('http://127.0.0.1:9234/mjpeg');
+    // Every mount now seeds a per-mount cache-buster so the Electron
+    // renderer can't reuse a dead multipart connection for the same URL.
+    expect(initialImage?.src).toContain('http://127.0.0.1:9234/mjpeg');
+    expect(initialImage?.src).toContain('_mjpegRetry=');
+    const initialSrc = initialImage?.src;
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2500);
@@ -77,6 +81,7 @@ describe('ScreenshotViewer', () => {
       'img[alt="Device Live Stream"]',
     ) as HTMLImageElement | null;
     expect(retriedImage?.src).toContain('_mjpegRetry=');
+    expect(retriedImage?.src).not.toBe(initialSrc);
 
     await act(async () => {
       root.unmount();

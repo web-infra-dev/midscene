@@ -168,7 +168,8 @@ describe('MainContent overview', () => {
     );
 
     expect(html).toContain('DELL U2720Q');
-    expect(html).toContain('No devices');
+    expect(html).toContain('No Device');
+    expect(html).toContain('Please plug in the device and check.');
     expect(html).not.toContain('Finish environment setup');
     expect(html).not.toContain('未检测到 adb');
   });
@@ -209,7 +210,10 @@ describe('MainContent overview', () => {
       ),
     );
 
-    expect(html).toContain('app-no-drag flex h-8 items-center rounded-lg');
+    expect(html).toContain(
+      'app-no-drag group/disconnect-pill relative flex shrink-0 items-center',
+    );
+    expect(html).toContain('aria-label="Disconnect"');
     expect(html).toContain('Disconnect');
   });
 

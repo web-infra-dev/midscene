@@ -8,6 +8,7 @@ function createMockStreamResponse() {
   return {
     headersSent: false,
     destroyed: false,
+    ended: false,
     headers,
     chunks,
     setHeader(key: string, value: string) {
@@ -21,6 +22,10 @@ function createMockStreamResponse() {
     },
     destroy() {
       this.destroyed = true;
+      return this;
+    },
+    end() {
+      this.ended = true;
       return this;
     },
     status(code: number) {
@@ -217,7 +222,12 @@ describe('PlaygroundServer MJPEG streaming', () => {
     }
   });
 
-  test('GET /mjpeg shares one interface producer across concurrent clients', async () => {
+  test('GET /mjpeg evicts stale subscribers when a new one attaches', async () => {
+    // Chromium's <img> with multipart/x-mixed-replace keeps the underlying
+    // TCP connection alive even after the element is unmounted, never
+    // sending FIN. To stop those zombie sockets from eating the per-origin
+    // connection pool, a new /mjpeg request destroys any existing
+    // subscriber responses for the same producer.
     const stop = vi.fn();
     let emitFrame:
       | ((frame: { data: string; contentType: string }) => void)
@@ -253,39 +263,31 @@ describe('PlaygroundServer MJPEG streaming', () => {
       const responseTwo = createMockStreamResponse();
 
       await mjpegHandler(requestOne, responseOne);
-      await mjpegHandler(requestTwo, responseTwo);
-
-      expect(startMjpegStream).toHaveBeenCalledTimes(1);
       expect(
         responseOne.chunks.some((chunk) => chunk.toString() === 'frame-one'),
       ).toBe(true);
+
+      // Second mount on the same producer (e.g. user navigates back to the
+      // device view, React StrictMode double-mount, retry timer) — the old
+      // subscriber's response is destroyed so its socket releases the
+      // Chromium connection-pool slot.
+      await mjpegHandler(requestTwo, responseTwo);
+      expect(startMjpegStream).toHaveBeenCalledTimes(1);
+      expect(responseOne.ended).toBe(true);
       expect(
         responseTwo.chunks.some((chunk) => chunk.toString() === 'frame-one'),
       ).toBe(true);
 
+      // New frames only reach the surviving subscriber.
       emitFrame?.({
         data: Buffer.from('frame-two').toString('base64'),
         contentType: 'image/jpeg',
       });
-
       expect(
         responseOne.chunks.some((chunk) => chunk.toString() === 'frame-two'),
-      ).toBe(true);
-      expect(
-        responseTwo.chunks.some((chunk) => chunk.toString() === 'frame-two'),
-      ).toBe(true);
-
-      requestOne.listeners.get('close')?.();
-      emitFrame?.({
-        data: Buffer.from('frame-three').toString('base64'),
-        contentType: 'image/jpeg',
-      });
-
-      expect(
-        responseOne.chunks.some((chunk) => chunk.toString() === 'frame-three'),
       ).toBe(false);
       expect(
-        responseTwo.chunks.some((chunk) => chunk.toString() === 'frame-three'),
+        responseTwo.chunks.some((chunk) => chunk.toString() === 'frame-two'),
       ).toBe(true);
 
       requestTwo.listeners.get('close')?.();

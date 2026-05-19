@@ -172,22 +172,25 @@ async function connectStudioRenderer() {
 
 async function createDefaultWebAgent(page) {
   console.log('Creating default Web agent through the Studio UI...');
-  await page.waitForSelector('input[value="web"]', { timeout: 30_000 });
-  await page.evaluate(() => {
-    const webInput = document.querySelector('input[value="web"]');
-    if (webInput instanceof HTMLInputElement && !webInput.checked) {
-      webInput.click();
-    }
-  });
-
+  // Studio now drives session creation from the Overview's
+  // WebCreateAgentCard ("Open a web page" tile) instead of the right-column
+  // SessionSetupPanel. Wait for the tile, then click its "Open Page" submit
+  // button — that fires onCreateWebSession with default example.com values
+  // and switches the shell into Device view.
   await page.waitForFunction(
-    () =>
-      document.body.innerText.includes('Open Web Page') &&
-      document.body.innerText.includes('Open Page'),
+    () => document.body.innerText.includes('Open a web page'),
     { timeout: 30_000 },
   );
 
-  await page.click('button.session-setup-submit');
+  await page.evaluate(() => {
+    const openPage = Array.from(document.querySelectorAll('button')).find(
+      (button) => button.textContent?.trim() === 'Open Page',
+    );
+    if (!(openPage instanceof HTMLButtonElement)) {
+      throw new Error('Open Page button not found in Overview');
+    }
+    openPage.click();
+  });
 }
 
 async function assertWebPreview(page) {

@@ -41,7 +41,15 @@ export default function ScreenshotViewer({
   // Changing mjpegRetryToken forces the <img> to remount so the multipart connection
   // is reopened. Used both for natural retries on stream errors and for the
   // server-driven upgrade from polling fallback to native MJPEG.
-  const [mjpegRetryToken, setMjpegRetryToken] = useState('');
+  //
+  // Initialize to a per-mount token (not '') so that each ScreenshotViewer
+  // remount gets a unique URL — otherwise the Electron/Chromium renderer
+  // reuses the previous (dead) multipart connection for the same /mjpeg URL
+  // and stays stuck on a blank canvas. The server happily ignores any extra
+  // query params.
+  const [mjpegRetryToken, setMjpegRetryToken] = useState(() =>
+    String(Date.now()),
+  );
   const mjpegImageRef = useRef<HTMLImageElement | null>(null);
   const isMjpeg = Boolean(mjpegUrl && serverOnline);
   const showChrome = mode !== 'screen-only';
