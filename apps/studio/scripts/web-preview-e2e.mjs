@@ -174,41 +174,56 @@ async function createDefaultWebAgent(page) {
   console.log('Creating default Web agent through the Studio UI...');
   // Studio now drives session creation from the Overview's
   // WebCreateAgentCard ("Open a web page" tile) instead of the right-column
-  // SessionSetupPanel. The tile is rendered eagerly (regardless of
-  // bootstrap phase), but `onCreateWebSession` bails out with `if
-  // (!isReady) return;` until `studioRuntime.getPlaygroundBootstrap()`
-  // reports `status === 'ready'`. Wait for that signal before clicking,
-  // otherwise the click is silently a no-op and `assertWebPreview` will
-  // time out on a device that was never asked to come up.
-  console.log('Waiting for Studio playground bootstrap...');
-  await page.waitForFunction(
-    async () => {
-      const runtime = window.studioRuntime;
-      if (!runtime?.getPlaygroundBootstrap) return false;
-      try {
-        const bootstrap = await runtime.getPlaygroundBootstrap();
-        return bootstrap?.status === 'ready' && Boolean(bootstrap.serverUrl);
-      } catch {
-        return false;
-      }
-    },
-    { timeout: 30_000, polling: 250 },
-  );
-
+  // SessionSetupPanel. The tile renders eagerly, but the click handler
+  // bails out with `if (!isReady) return;` until StudioPlaygroundProvider
+  // catches up to a 'ready' bootstrap (it polls every 1s, so the renderer
+  // can lag the main-process state). Retry-click until the Overview
+  // unmounts, which is the visible signal that `onCreateWebSession`
+  // actually ran.
   await page.waitForFunction(
     () => document.body.innerText.includes('Open a web page'),
     { timeout: 30_000 },
   );
 
-  await page.evaluate(() => {
-    const openPage = Array.from(document.querySelectorAll('button')).find(
-      (button) => button.textContent?.trim() === 'Open Page',
-    );
-    if (!(openPage instanceof HTMLButtonElement)) {
-      throw new Error('Open Page button not found in Overview');
+  const clickStartedAt = Date.now();
+  // Total budget covers the StudioPlaygroundProvider's worst-case 1s
+  // bootstrap poll plus a few React commits.
+  const clickBudgetMs = 30_000;
+  while (Date.now() - clickStartedAt < clickBudgetMs) {
+    const clicked = await page.evaluate(() => {
+      const openPage = Array.from(document.querySelectorAll('button')).find(
+        (button) => button.textContent?.trim() === 'Open Page',
+      );
+      if (!(openPage instanceof HTMLButtonElement) || openPage.disabled) {
+        return false;
+      }
+      openPage.click();
+      return true;
+    });
+    if (!clicked) {
+      await sleep(500);
+      continue;
     }
-    openPage.click();
-  });
+    // Settled state: Overview unmounted (activeView switched to 'device'
+    // via onSelectDeviceView) OR the button flipped to its `busy`
+    // ("Opening…") label because sessionMutating is now true.
+    const settled = await page
+      .waitForFunction(
+        () =>
+          !document.body.innerText.includes('Open a web page') ||
+          document.body.innerText.includes('Opening…'),
+        { timeout: 1500 },
+      )
+      .then(() => true)
+      .catch(() => false);
+    if (settled) {
+      return;
+    }
+  }
+
+  throw new Error(
+    'Clicked the Open Page button but Overview never transitioned — onCreateWebSession likely bailed on !isReady',
+  );
 }
 
 async function assertWebPreview(page) {
