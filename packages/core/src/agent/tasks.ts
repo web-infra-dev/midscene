@@ -256,7 +256,7 @@ export class TaskExecutor {
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
-    planningModeDeepThink?: boolean,
+    deepThink?: boolean,
     fileChooserAccept?: string[],
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
@@ -279,7 +279,7 @@ export class TaskExecutor {
         cacheable,
         replanningCycleLimitOverride,
         imagesIncludeCount,
-        planningModeDeepThink,
+        deepThink,
         deepLocate,
         abortSignal,
       );
@@ -295,7 +295,7 @@ export class TaskExecutor {
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
-    planningModeDeepThink?: boolean,
+    deepThink?: boolean,
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
   ): Promise<
@@ -349,7 +349,7 @@ export class TaskExecutor {
             userInstruction: userPrompt,
             aiActContext,
             imagesIncludeCount,
-            planningModeDeepThink,
+            deepThink,
             ...(subGoalStatus ? { subGoalStatus } : {}),
             ...(memoriesStatus ? { memoriesStatus } : {}),
           },
@@ -389,7 +389,7 @@ export class TaskExecutor {
                 conversationHistory,
                 includeBbox: includeBboxInPlanning,
                 imagesIncludeCount,
-                planningModeDeepThink,
+                deepThink,
                 abortSignal,
               });
             } catch (planError) {

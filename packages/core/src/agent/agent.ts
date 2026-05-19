@@ -909,17 +909,16 @@ export class Agent<
       const modelConfigForPlanning =
         this.modelConfigManager.getModelConfig('planning');
       // Controls the aiAct planning mode, such as sub-goal prompts and bbox strategy.
-      const planningModeDeepThink = opt?.deepThink === true;
+      const deepThink = opt?.deepThink === true;
 
       const deepLocate = opt?.deepLocate;
 
       const noIndividualLocateModel = modelConfigForPlanning.slot === 'default';
 
-      const includeBboxInPlanning =
-        !planningModeDeepThink && noIndividualLocateModel;
+      const includeBboxInPlanning = !deepThink && noIndividualLocateModel;
 
       debug('setting includeBboxInPlanning to', includeBboxInPlanning, {
-        planningModeDeepThink,
+        deepThink,
         noIndividualLocateModel,
       });
 
@@ -952,7 +951,7 @@ export class Agent<
       }
 
       // If cache matched but is not executable, fall through to normal execution
-      const imagesIncludeCount: number = planningModeDeepThink ? 2 : 1;
+      const imagesIncludeCount: number = deepThink ? 2 : 1;
       const { output: actionOutput } = await this.taskExecutor.action(
         taskPrompt,
         modelConfigForPlanning,
@@ -962,7 +961,7 @@ export class Agent<
         cacheable,
         replanningCycleLimit,
         imagesIncludeCount,
-        planningModeDeepThink,
+        deepThink,
         fileChooserAccept,
         deepLocate,
         abortSignal,
