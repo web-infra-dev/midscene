@@ -274,9 +274,7 @@ async function writeNpmrc() {
   if (process.env.CI) {
     try {
       const npmRcPath = `${process.env.HOME}/.npmrc`;
-      console.info(
-        `Current .npmrc file path is ${npmRcPath}, npm token is ${process.env.NPM_TOKEN}`,
-      );
+      console.info(`Current .npmrc file path is ${npmRcPath}`);
       if (fs.existsSync(npmRcPath)) {
         console.info('Found existing .npmrc file');
       } else {
