@@ -84,11 +84,14 @@ export {
   createReportCliCommands,
   reportFileToMarkdown,
   splitReportFile,
+  mergeReportFiles,
   type ConsumeReportFileAction,
   type ReportFileToMarkdownOptions,
   type ReportCliCommandDefinition,
   type ReportCliCommandEntry,
   type SplitReportFileOptions,
+  type MergeReportFilesOptions,
+  type MergeReportFilesResult,
 } from './report-cli';
 
 // ScreenshotItem
