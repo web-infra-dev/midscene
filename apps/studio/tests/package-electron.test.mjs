@@ -11,6 +11,7 @@ import {
   buildPackagedResourcesCandidates,
   buildPackagerOptions,
   buildPnpmSupportedArchitectures,
+  buildStudioDmgSpecification,
   buildVendoredWorkspaceDirName,
   buildVendoredWorkspaceManifest,
   collectNestedMacCodeSignTargets,
@@ -42,6 +43,23 @@ describe('package-electron helpers', () => {
   it('normalizes Git tag versions for archive naming', () => {
     expect(normalizeReleaseVersion('v1.7.4')).toBe('1.7.4');
     expect(normalizeReleaseVersion('1.7.4')).toBe('1.7.4');
+  });
+
+  it('lays out the dmg with the .app on the left and /Applications on the right', () => {
+    const spec = buildStudioDmgSpecification({
+      appBundlePath: '/tmp/Midscene Studio.app',
+      iconPath: '/tmp/midscene-icon.icns',
+    });
+    expect(spec.title).toBe('Midscene Studio');
+    expect(spec.icon).toBe('/tmp/midscene-icon.icns');
+    expect(spec.window).toEqual({ size: { width: 540, height: 380 } });
+    expect(spec.format).toBe('ULFO');
+    const linkEntry = spec.contents.find((entry) => entry.type === 'link');
+    const fileEntry = spec.contents.find((entry) => entry.type === 'file');
+    expect(linkEntry?.path).toBe('/Applications');
+    expect(linkEntry?.x).toBeGreaterThan(fileEntry?.x);
+    expect(fileEntry?.path).toBe('/tmp/Midscene Studio.app');
+    expect(fileEntry?.name).toBe('Midscene Studio.app');
   });
 
   it('builds a deterministic artifact basename', () => {

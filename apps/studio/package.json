@@ -54,5 +54,8 @@
     "tailwindcss": "4.1.11",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"
+  },
+  "optionalDependencies": {
+    "appdmg": "0.6.6"
   }
 }
