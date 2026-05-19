@@ -27,7 +27,7 @@ interface ScreenshotViewerProps {
   // Receives the wrapper that holds the image. Consumers (e.g. the playground
   // device-interaction layer) project pointer coords against this rect so any
   // surrounding chrome — header, padding, toolbar — never shifts the mapping.
-  contentRef?: React.Ref<HTMLDivElement | null>;
+  contentRef?: React.Ref<HTMLDivElement>;
 }
 
 export default function ScreenshotViewer({
