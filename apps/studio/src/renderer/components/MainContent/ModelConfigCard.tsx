@@ -11,11 +11,6 @@ interface ModelConfigCardProps {
   onOpen?: () => void;
 }
 
-const CARD_BG_GRADIENT =
-  'radial-gradient(circle at 97% 0%, rgba(26,121,255,0.04) 0%, rgba(26,121,255,0) 97%), ' +
-  'radial-gradient(circle at 73% 0%, rgba(153,95,245,0.04) 0%, rgba(153,95,245,0) 100%), ' +
-  'radial-gradient(circle at 60% 0%, rgba(255,142,0,0.04) 0%, rgba(255,142,0,0) 100%)';
-
 function CheckIcon() {
   return (
     <svg
@@ -110,10 +105,7 @@ export function ModelConfigCard({
   const [expanded, setExpanded] = useState(!complete);
 
   return (
-    <div
-      className="w-[704px] shrink-0 overflow-hidden rounded-[12px] bg-surface-muted"
-      style={{ backgroundImage: CARD_BG_GRADIENT }}
-    >
+    <div className="w-[704px] shrink-0 overflow-hidden rounded-[12px] bg-surface-muted">
       <button
         className="flex h-[48px] w-full cursor-pointer appearance-none items-center justify-between border-0 bg-transparent px-[16px] text-left"
         onClick={() => setExpanded((prev) => !prev)}

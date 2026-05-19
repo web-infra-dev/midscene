@@ -237,7 +237,7 @@ function OverviewToolbar({
     <div className="app-no-drag absolute right-[16px] top-[10px] z-10 flex items-center gap-[8px]">
       <button
         aria-label="Refresh devices"
-        className="app-no-drag flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border-0 bg-transparent text-text-secondary transition-colors hover:bg-surface-hover-strong hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
+        className="app-no-drag flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border border-border-subtle bg-transparent text-text-secondary transition-colors hover:bg-surface-hover-strong hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
         disabled={refreshing}
         onClick={onRefresh}
         type="button"

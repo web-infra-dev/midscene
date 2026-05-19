@@ -185,7 +185,7 @@ describe('MainContent overview', () => {
     );
 
     expect(html).toContain('DELL U2720Q');
-    expect(html).toContain('No Device');
+    expect(html).toContain('No device');
     expect(html).toContain('Please plug in the device and check.');
     expect(html).not.toContain('Finish environment setup');
     expect(html).not.toContain('未检测到 adb');
@@ -209,6 +209,23 @@ describe('MainContent overview', () => {
     expect(html).not.toContain(
       'border border-border-subtle bg-surface-elevated',
     );
+  });
+
+  it('renders iOS and Web create cards collapsed by default', () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        StudioPlaygroundContext.Provider,
+        { value: createReadyContextValue() },
+        createElement(MainContent, {
+          activeView: 'overview',
+        }),
+      ),
+    );
+
+    expect(html).toContain('Connect WebDriverAgent');
+    expect(html).toContain('Open a web page');
+    expect(html).not.toContain('WebDriverAgent host');
+    expect(html).not.toContain('https://example.com');
   });
 
   it('replaces the Android empty state with an adb-missing hint when discovery reports a toolchain error', () => {

@@ -440,7 +440,7 @@ export function DeviceList({
                   />
                 ) : (
                   <div className="flex h-[66px] w-[704px] items-center justify-center font-sans text-[12px] text-text-tertiary">
-                    No Device，Please plug in the device and check.
+                    No device. Please plug in the device and check.
                   </div>
                 )}
               </div>
