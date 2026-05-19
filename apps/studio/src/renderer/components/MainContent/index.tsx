@@ -326,18 +326,21 @@ export default function MainContent({
     runtimeInfo,
     previewFormValues,
   );
+  const isSessionMutating =
+    isReady && studioPlayground.controller.state.sessionMutating;
   // Prefer the platform whichever path has already settled. When we
   // just kicked off a session from Overview, antd's form-watch update
-  // hasn't propagated yet — fall back to `pendingCreatePlatform` so the
-  // connecting overlay locks onto the correct icon immediately.
-  const previewPlatform = resolvedPreviewPlatform ?? pendingCreatePlatform;
+  // hasn't propagated yet — keep the click-time pending platform ahead
+  // of stale form/runtime state so the connecting overlay locks onto the
+  // correct icon immediately.
+  const previewPlatform =
+    pendingCreatePlatform && (!isConnected || isSessionMutating)
+      ? pendingCreatePlatform
+      : (resolvedPreviewPlatform ?? pendingCreatePlatform);
   const showWebNavigation = isConnected && previewPlatform === 'web';
   const previewConnectingLabel = getPreviewConnectingLabel(previewPlatform);
   const disconnectedPreviewTitle = getDisconnectedPreviewTitle(previewPlatform);
-  const isOpeningSession =
-    isReady &&
-    !isConnected &&
-    studioPlayground.controller.state.sessionMutating;
+  const isOpeningSession = isReady && !isConnected && isSessionMutating;
   const disconnectDisabled =
     !isReady || !studioPlayground.controller.state.sessionViewState.connected;
   const previewConnectionFailed =
@@ -398,7 +401,11 @@ export default function MainContent({
   // runtimeInfo) catches up — from then on `resolvedPreviewPlatform`
   // is the source of truth.
   useEffect(() => {
-    if (resolvedPreviewPlatform && pendingCreatePlatform) {
+    if (
+      resolvedPreviewPlatform &&
+      pendingCreatePlatform &&
+      resolvedPreviewPlatform === pendingCreatePlatform
+    ) {
       setPendingCreatePlatform?.(undefined);
     }
   }, [

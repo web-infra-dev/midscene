@@ -52,7 +52,7 @@ function ConnectivityPlayIcon() {
 function EnvModalHeader({ onClose }: { onClose: () => void }) {
   return (
     <div className="relative z-10 box-border flex w-full items-center justify-between px-[20px] pt-[20.8px]">
-      <h2 className="m-0 font-['Inter'] text-[16px] font-semibold leading-[24px] tracking-normal text-text-primary">
+      <h2 className="m-0 font-sans text-[16px] font-semibold leading-[24px] tracking-normal text-text-primary">
         Model Env Config
       </h2>
       <button
@@ -80,7 +80,7 @@ function EnvModalTabs({
   onTabChange: (tab: TabKey) => void;
 }) {
   return (
-    <div className="relative z-10 box-border flex h-[36px] w-[146px] items-center rounded-[32px] bg-surface-muted p-[2px]">
+    <div className="relative z-10 box-border flex h-[36px] w-[210px] items-center rounded-[32px] bg-surface-muted p-[2px]">
       {/*
         Active tab fills with `bg-surface-elevated` for the white pill on
         light mode. In dark mode `surface-elevated` and `surface-muted`
@@ -88,7 +88,7 @@ function EnvModalTabs({
         back to the translucent `bg-surface-active` overlay only in dark.
       */}
       <button
-        className={`flex h-[32px] w-[70px] cursor-pointer items-center justify-center border-0 p-0 font-['Inter'] text-[14px] leading-[16.9px] transition-colors duration-200 ${
+        className={`flex h-[32px] w-[103px] cursor-pointer items-center justify-center border-0 p-0 font-sans text-[14px] leading-[16.9px] transition-colors duration-200 ${
           tab === 'text'
             ? 'rounded-[30px] bg-surface-elevated font-medium text-text-primary dark:bg-surface-active'
             : 'rounded-[10px] bg-transparent font-normal text-text-secondary'
@@ -96,10 +96,10 @@ function EnvModalTabs({
         onClick={() => onTabChange('text')}
         type="button"
       >
-        Text
+        .env Style
       </button>
       <button
-        className={`flex h-[32px] w-[70px] cursor-pointer items-center justify-center border-0 p-0 font-['Inter'] text-[14px] leading-[16.9px] transition-colors duration-200 ${
+        className={`flex h-[32px] w-[103px] cursor-pointer items-center justify-center border-0 p-0 font-sans text-[14px] leading-[16.9px] transition-colors duration-200 ${
           tab === 'form'
             ? 'rounded-[30px] bg-surface-elevated font-medium text-text-primary dark:bg-surface-active'
             : 'rounded-[10px] bg-transparent font-normal text-text-secondary'
@@ -107,7 +107,7 @@ function EnvModalTabs({
         onClick={() => onTabChange('form')}
         type="button"
       >
-        Form
+        Form Style
       </button>
     </div>
   );
@@ -152,7 +152,7 @@ function EnvModalFooter({
         ) : (
           <ConnectivityPlayIcon />
         )}
-        <span className="w-[115px] overflow-hidden whitespace-nowrap text-left font-['Inter'] text-[14px] font-medium text-text-primary leading-[16px]">
+        <span className="w-[115px] overflow-hidden whitespace-nowrap text-left font-sans text-[14px] font-medium text-text-primary leading-[16px]">
           {connectivityLabel}
         </span>
       </button>
@@ -163,7 +163,7 @@ function EnvModalFooter({
           onClick={onCancel}
           type="button"
         >
-          <span className="w-[47px] overflow-hidden whitespace-nowrap text-center font-['Inter'] text-[14px] font-medium leading-[16px] text-text-secondary">
+          <span className="w-[47px] overflow-hidden whitespace-nowrap text-center font-sans text-[14px] font-medium leading-[16px] text-text-secondary">
             Cancel
           </span>
         </button>
@@ -172,7 +172,7 @@ function EnvModalFooter({
           onClick={onSave}
           type="button"
         >
-          <span className="w-[33px] overflow-hidden whitespace-nowrap text-center font-['Inter'] text-[14px] font-medium leading-[16px] text-white">
+          <span className="w-[33px] overflow-hidden whitespace-nowrap text-center font-sans text-[14px] font-medium leading-[16px] text-white">
             Save
           </span>
         </button>
@@ -245,11 +245,7 @@ export function ModelEnvConfigModal({
         : hasTestStatus
           ? 'translate-y-[20px]'
           : '';
-  const descriptionMarginClass = isExpandedForm
-    ? 'mt-[20px]'
-    : hasTestStatus
-      ? 'mt-[12px]'
-      : 'mt-[16px]';
+  const descriptionMarginClass = hasTestStatus ? 'mt-[12px]' : 'mt-[16px]';
 
   if (!open) {
     return null;
@@ -298,7 +294,7 @@ export function ModelEnvConfigModal({
   return (
     <div
       aria-modal="true"
-      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/35"
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/35 font-sans"
       onClick={onClose}
       // biome-ignore lint/a11y/useSemanticElements: overlay wrapper styled as backdrop; card below carries the dialog semantics
       role="dialog"
@@ -315,7 +311,7 @@ export function ModelEnvConfigModal({
         {tab === 'text' ? (
           <div className="relative z-10 mt-[16px] flex w-full justify-center">
             <textarea
-              className="box-border h-[162px] w-[360px] resize-none overflow-hidden rounded-[12px] border border-border-subtle bg-surface-elevated p-[12px] font-['Inter'] text-[14px] font-normal leading-[16.9px] text-text-primary placeholder:text-text-placeholder outline-none"
+              className="box-border h-[162px] w-[360px] resize-none overflow-hidden rounded-[12px] border border-border-subtle bg-surface-elevated p-[12px] font-sans text-[14px] font-normal leading-[16.9px] text-text-primary placeholder:text-text-placeholder outline-none"
               onChange={(event) => handleTextChange(event.target.value)}
               placeholder={TEXT_PLACEHOLDER}
               value={text}
@@ -329,16 +325,18 @@ export function ModelEnvConfigModal({
           />
         )}
 
-        <div className={`relative z-10 ${descriptionMarginClass} px-[21px]`}>
-          <p className="m-0 font-['Inter'] text-[12px] font-normal leading-[14.5px] text-text-secondary">
-            The format is KEY=VALUE and separated by new lines. These data will
-            be saved{' '}
-            <span className="font-bold text-text-primary">
-              locally in your browser
-            </span>
-            .
-          </p>
-        </div>
+        {tab === 'text' ? (
+          <div className={`relative z-10 ${descriptionMarginClass} px-[21px]`}>
+            <p className="m-0 font-sans text-[12px] font-normal leading-[14.5px] text-text-secondary">
+              The format is KEY=VALUE and separated by new lines. These data
+              will be saved{' '}
+              <span className="font-bold text-text-primary">
+                locally in your browser
+              </span>
+              .
+            </p>
+          </div>
+        ) : null}
 
         {hasTestStatus ? <ModelEnvConfigStatus kind={testStatus.kind} /> : null}
 

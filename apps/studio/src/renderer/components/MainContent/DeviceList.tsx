@@ -280,9 +280,9 @@ function DeviceCard({
   // active view to 'device'.
   const interactionClassName = isConnecting
     ? 'cursor-not-allowed opacity-70'
-    : 'cursor-pointer hover:border-border-strong';
+    : 'cursor-pointer hover:bg-surface-hover';
   const cardClassName =
-    `box-border flex h-[66px] w-[704px] shrink-0 items-center gap-[12px] rounded-[8px] border border-border-subtle bg-surface-elevated px-[12px] py-[12px] text-left ${interactionClassName}`.trim();
+    `box-border flex h-[66px] w-[704px] shrink-0 items-center gap-[12px] rounded-[8px] bg-transparent px-[12px] py-[12px] text-left outline-none focus-visible:bg-surface-hover ${interactionClassName}`.trim();
 
   const handleCardClick = () => {
     if (isConnecting) return;
@@ -386,7 +386,7 @@ export function DeviceList({
 
   return (
     <div className="flex h-full w-full flex-col items-center overflow-y-auto px-[16px] pb-[40px] pt-[59px]">
-      <div className="flex w-[720px] flex-col gap-[32px]">
+      <div className="flex w-[704px] flex-col gap-[32px]">
         {showModelConfigCard ? (
           <ModelConfigCard
             complete={Boolean(modelConfigComplete)}
@@ -398,14 +398,14 @@ export function DeviceList({
           const createForm = renderSectionCreateForm(section.key);
           const hasDevices = section.devices.length > 0;
           return (
-            <div className="flex w-[720px] flex-col" key={section.key}>
+            <div className="flex w-[704px] flex-col" key={section.key}>
               <div className="flex h-[22px] items-center">
                 <span className="font-sans text-[14px] font-medium leading-[22px] text-text-secondary">
                   {section.label}
                 </span>
               </div>
               <div className="mt-[8px] h-[1px] w-full bg-divider" />
-              <div className="mt-[16px] flex flex-col gap-[8px] px-[8px]">
+              <div className="mt-[16px] flex flex-col gap-[8px]">
                 {createForm}
                 {hasDevices ? (
                   section.devices.map((device) => {

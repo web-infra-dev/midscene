@@ -111,7 +111,7 @@ export function ModelConfigCard({
 
   return (
     <div
-      className="w-[720px] shrink-0 overflow-hidden rounded-[12px] bg-surface-muted"
+      className="w-[704px] shrink-0 overflow-hidden rounded-[12px] bg-surface-muted"
       style={{ backgroundImage: CARD_BG_GRADIENT }}
     >
       <button

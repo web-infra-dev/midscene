@@ -105,14 +105,20 @@ describe('ModelEnvConfigModal', () => {
 
     expect(html).toContain('box-border flex h-[404px] w-[400px]');
     expect(html).toContain('text-[16px] font-semibold leading-[24px]');
-    expect(html).toContain('rounded-[32px] bg-surface-muted');
+    expect(html).toContain(
+      'w-[210px] items-center rounded-[32px] bg-surface-muted',
+    );
     expect(html).toContain('border-border-subtle bg-surface-elevated');
     expect(html).toContain('text-[12px] font-normal leading-[14.5px]');
     expect(html).toContain('bg-brand');
     expect(html).toContain('shadow-[0px_4px_20px_rgba(0,0,0,0.05)]');
-    expect(html).toContain('Text');
-    expect(html).toContain('Form');
+    expect(html).toContain('.env Style');
+    expect(html).toContain('Form Style');
+    expect(html).toContain('The format is KEY=VALUE');
     expect(html).toContain('Connectivity test');
+    expect(html).toContain('bg-black/35 font-sans');
+    expect(html).toContain('m-0 font-sans text-[16px]');
+    expect(html).not.toContain("font-['Inter']");
     expect(html).not.toContain('model-env-connectivity.svg');
     expect(html).toContain(
       'M5 8.00002V3.95856L8.5 5.97929L12 8.00002L8.5 10.0208L5 12.0415V8.00002Z',
@@ -321,11 +327,11 @@ describe('ModelEnvConfigModal', () => {
     const { container, root } = await renderModal(VALID_ENV_TEXT);
 
     await act(async () => {
-      getButtonByText(container, 'Form').click();
+      getButtonByText(container, 'Form Style').click();
       await Promise.resolve();
     });
     await act(async () => {
-      getButtonByText(container, 'Text').click();
+      getButtonByText(container, '.env Style').click();
       await Promise.resolve();
     });
     await act(async () => {
@@ -439,8 +445,8 @@ describe('ModelEnvConfigModal', () => {
     expect(html).toContain('flex flex-col gap-[24px]');
     expect(html).toContain('h-[61px]');
     expect(html).toContain('h-[36px] px-[12px]');
-    expect(html).toContain('mt-[20px]');
     expect(html).toContain('MIDSCENE_MODEL_API_KEY');
+    expect(html).not.toContain('The format is KEY=VALUE');
 
     const wrapper = document.createElement('div');
     wrapper.innerHTML = html;
@@ -451,7 +457,7 @@ describe('ModelEnvConfigModal', () => {
     expect(baseUrlLabel?.className).toContain('text-text-primary');
 
     const formTab = Array.from(wrapper.querySelectorAll('button')).find(
-      (button) => button.textContent === 'Form',
+      (button) => button.textContent === 'Form Style',
     );
     expect(formTab?.className).toContain('rounded-[30px]');
     expect(formTab?.className).not.toContain('rounded-[10px]');
