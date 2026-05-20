@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import { Buffer } from 'node:buffer';
 import { execFile } from 'node:child_process';
 import fs, { unlink } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -72,6 +73,10 @@ export function escapeForShell(text: string): string {
   return text
     .replace(/'/g, "'\\''") // End quote, escaped quote, start quote: ' → '\''
     .replace(/\n/g, '\\n'); // 0x0A → literal \n (yadb interprets back to newline)
+}
+
+function prepareYadbKeyboardText(text: string): string {
+  return text.replace(/\n/g, '\\n');
 }
 
 export class AndroidDevice implements AbstractInterface {
@@ -555,9 +560,13 @@ ${Object.keys(size)
     await this.ensureYadb();
 
     const adb = await this.getAdb();
+    const encodedKeyboardContent = Buffer.from(
+      keyboardContent,
+      'utf8',
+    ).toString('base64');
 
     await adb.shell(
-      `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard '${keyboardContent}'`,
+      `YADB_INPUT=$(printf '%s' '${encodedKeyboardContent}' | base64 -d); app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "$YADB_INPUT"`,
     );
   }
 
@@ -1517,10 +1526,10 @@ ${Object.keys(size)
         this.shouldUseYadbForText(text));
 
     if (useYadb) {
-      // yadb handles newlines natively: escapeForShell converts \n (0x0A)
-      // to literal \n (two chars), which yadb interprets back as newline.
+      // yadb handles newlines natively: prepareYadbKeyboardText converts
+      // \n (0x0A) to literal \n (two chars), which yadb interprets back.
       // Single adb call for the entire text.
-      await this.execYadb(escapeForShell(text));
+      await this.execYadb(prepareYadbKeyboardText(text));
     } else {
       // inputText cannot handle newlines, so split by \n and press Enter between segments.
       const segments = text.split('\n');

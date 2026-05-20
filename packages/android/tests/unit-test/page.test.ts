@@ -652,6 +652,33 @@ describe('AndroidDevice', () => {
       });
     });
 
+    describe('execYadb', () => {
+      it('passes keyboard text through an ASCII-only base64 shell wrapper', async () => {
+        vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+
+        await (device as any).execYadb('测速');
+
+        expect(mockAdb.shell).toHaveBeenCalledTimes(1);
+        const command = mockAdb.shell.mock.calls[0][0] as string;
+        expect(command).toContain(
+          "YADB_INPUT=$(printf '%s' '5rWL6YCf' | base64 -d)",
+        );
+        expect(command).toContain('-keyboard "$YADB_INPUT"');
+        expect(command).not.toContain('测速');
+      });
+
+      it('keeps yadb newline markers before base64 encoding', async () => {
+        vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+
+        await (device as any).execYadb('你好\\nworld');
+
+        const command = mockAdb.shell.mock.calls[0][0] as string;
+        expect(command).toContain(
+          "YADB_INPUT=$(printf '%s' '5L2g5aW9XG53b3JsZA==' | base64 -d)",
+        );
+      });
+    });
+
     // =========================================================================
     // 3. keyboardType — integration tests
     // =========================================================================
@@ -762,13 +789,12 @@ describe('AndroidDevice', () => {
       });
 
       // ---------------------------------------------------------------
-      // 3b. yadb path — characters incompatible with appium-adb (routed to yadb + escapeForShell)
+      // 3b. yadb path — characters incompatible with appium-adb
       // ---------------------------------------------------------------
       describe('yadb path — appium-adb incompatible characters', () => {
-        // 3b-1. Routing trigger + escapeForShell escaping
-        // In single-quote context, only ' needs escaping; \, ", `, $ pass through
-        describe('characters routed to yadb with escapeForShell applied', () => {
-          it('\\ → execYadb unchanged (no escaping needed in single quotes)', async () => {
+        // 3b-1. Routing trigger + yadb keyboard payload preparation
+        describe('characters routed to yadb', () => {
+          it('\\ → execYadb unchanged', async () => {
             await device.inputPrimitives.keyboard.typeText('a\\b');
             expect((device as any).execYadb).toHaveBeenCalledWith('a\\b');
             expect(mockAdb.inputText).not.toHaveBeenCalled();
@@ -786,10 +812,10 @@ describe('AndroidDevice', () => {
             expect(mockAdb.inputText).not.toHaveBeenCalled();
           });
 
-          it("both quotes → execYadb with ' escaped", async () => {
+          it('both quotes → execYadb unchanged', async () => {
             await device.inputPrimitives.keyboard.typeText('it\'s a "test"');
             expect((device as any).execYadb).toHaveBeenCalledWith(
-              "it'\\''s a \"test\"",
+              'it\'s a "test"',
             );
             expect(mockAdb.inputText).not.toHaveBeenCalled();
           });
@@ -835,13 +861,12 @@ describe('AndroidDevice', () => {
             );
           });
 
-          it('non-ASCII text preserves space, punctuation; single quote is escaped', async () => {
+          it('non-ASCII text preserves space, punctuation, and single quote', async () => {
             await device.inputPrimitives.keyboard.typeText(
               "café's menu! @#&|;(){}[]<>~^*?=+,./:-_",
             );
-            // Non-ASCII triggers yadb; ' is escaped, everything else passes through
             expect((device as any).execYadb).toHaveBeenCalledWith(
-              "café'\\''s menu! @#&|;(){}[]<>~^*?=+,./:-_",
+              "café's menu! @#&|;(){}[]<>~^*?=+,./:-_",
             );
           });
         });
