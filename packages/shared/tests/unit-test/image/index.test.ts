@@ -53,11 +53,23 @@ describe('imageInfoOfBase64', () => {
   it('throws error for invalid base64 data', async () => {
     const invalidBase64 = 'data:image/png;base64,notvalidbase64data';
 
-    await expect(imageInfoOfBase64(invalidBase64)).rejects.toThrow();
+    await expect(imageInfoOfBase64(invalidBase64)).rejects.toThrow(
+      'Invalid image',
+    );
+  });
+
+  it('throws clear error for valid base64 that is not an image', async () => {
+    const nonImageBase64 = 'data:image/png;base64,Zm9v';
+
+    await expect(imageInfoOfBase64(nonImageBase64)).rejects.toThrow(
+      'Invalid image: unsupported format',
+    );
   });
 
   it('throws error for empty string', async () => {
-    await expect(imageInfoOfBase64('')).rejects.toThrow();
+    await expect(imageInfoOfBase64('')).rejects.toThrow(
+      'Invalid image: empty base64 data',
+    );
   });
 });
 
