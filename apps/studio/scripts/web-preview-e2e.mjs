@@ -174,15 +174,39 @@ async function createDefaultWebAgent(page) {
   console.log('Creating default Web agent through the Studio UI...');
   // Studio now drives session creation from the Overview's
   // WebCreateAgentCard ("Open a web page" tile) instead of the right-column
-  // SessionSetupPanel. The tile renders eagerly, but the click handler
-  // bails out with `if (!isReady) return;` until StudioPlaygroundProvider
-  // catches up to a 'ready' bootstrap (it polls every 1s, so the renderer
-  // can lag the main-process state). Retry-click until the Overview
-  // unmounts, which is the visible signal that `onCreateWebSession`
-  // actually ran.
+  // SessionSetupPanel. The CardShell starts COLLAPSED (`useState(false)`
+  // after the design polish in 78c38d4aa) so the "Open Page" submit
+  // button is not in the DOM until the user clicks the header. Click the
+  // header to expand, then retry-click submit until the Overview unmounts
+  // — that's the visible signal that `onCreateWebSession` actually ran
+  // instead of bailing on `!isReady`.
   await page.waitForFunction(
     () => document.body.innerText.includes('Open a web page'),
     { timeout: 30_000 },
+  );
+
+  // Expand the "Open a web page" CardShell. The header is a <button> whose
+  // text content includes the title; clicking toggles `expanded`. We poll
+  // because the React commit that paints the header runs slightly after
+  // the playground bootstrap.
+  await page.waitForFunction(
+    () => {
+      const header = Array.from(document.querySelectorAll('button')).find(
+        (button) => button.textContent?.includes('Open a web page'),
+      );
+      if (!(header instanceof HTMLButtonElement)) return false;
+      // If the submit button isn't visible yet, the card is collapsed —
+      // click the header to expand it.
+      const submit = Array.from(document.querySelectorAll('button')).find(
+        (button) => button.textContent?.trim() === 'Open Page',
+      );
+      if (!submit) {
+        header.click();
+        return false;
+      }
+      return true;
+    },
+    { timeout: 30_000, polling: 500 },
   );
 
   const clickStartedAt = Date.now();
