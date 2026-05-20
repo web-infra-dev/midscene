@@ -175,52 +175,47 @@ async function createDefaultWebAgent(page) {
   // Studio now drives session creation from the Overview's
   // WebCreateAgentCard ("Open a web page" tile) instead of the right-column
   // SessionSetupPanel. The CardShell starts COLLAPSED (`useState(false)`
-  // after the design polish in 78c38d4aa) so the "Open Page" submit
-  // button is not in the DOM until the user clicks the header. Click the
-  // header to expand, then retry-click submit until the Overview unmounts
-  // — that's the visible signal that `onCreateWebSession` actually ran
-  // instead of bailing on `!isReady`.
+  // after the design polish in 78c38d4aa), and a successful click on the
+  // submit button triggers a re-render that — observed in CI — collapses
+  // the card again before our click loop can run a second iteration. So
+  // we ensure the card is expanded *every* iteration and retry until the
+  // Overview transitions, which is the visible signal that
+  // `onCreateWebSession` actually ran instead of bailing on `!isReady`.
   await page.waitForFunction(
     () => document.body.innerText.includes('Open a web page'),
     { timeout: 30_000 },
   );
 
-  const isSubmitVisible = () =>
-    Array.from(document.querySelectorAll('button')).some(
-      (button) => button.textContent?.trim() === 'Open Page',
-    );
-
-  // Expand the card. Each header click toggles `expanded`; polling and
-  // re-clicking on every miss raced React's commit cycle and could leave
-  // us toggling indefinitely. Click → wait → check, up to a few attempts.
-  let expanded = false;
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    expanded = await page.evaluate(isSubmitVisible);
-    if (expanded) break;
-    await page.evaluate(() => {
-      const header = Array.from(document.querySelectorAll('button')).find(
-        (button) => button.textContent?.includes('Open a web page'),
+  const ensureCardExpanded = async () => {
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const expanded = await page.evaluate(() =>
+        Array.from(document.querySelectorAll('button')).some(
+          (button) => button.textContent?.trim() === 'Open Page',
+        ),
       );
-      if (header instanceof HTMLButtonElement) header.click();
-    });
-    try {
-      await page.waitForFunction(isSubmitVisible, {
-        timeout: 3_000,
-        polling: 200,
+      if (expanded) return true;
+      await page.evaluate(() => {
+        const header = Array.from(document.querySelectorAll('button')).find(
+          (button) => button.textContent?.includes('Open a web page'),
+        );
+        if (header instanceof HTMLButtonElement) header.click();
       });
-      expanded = true;
-      break;
-    } catch {
-      // Previous click may have toggled the card back to collapsed (race
-      // with a still-pending commit). Next iteration flips it the other
-      // way.
+      try {
+        await page.waitForFunction(
+          () =>
+            Array.from(document.querySelectorAll('button')).some(
+              (button) => button.textContent?.trim() === 'Open Page',
+            ),
+          { timeout: 1500, polling: 150 },
+        );
+        return true;
+      } catch {
+        // Click may have collapsed the card again (race with a still-
+        // pending commit). Next iteration toggles it back.
+      }
     }
-  }
-  if (!expanded) {
-    throw new Error(
-      'Could not expand the "Open a web page" card after four header clicks',
-    );
-  }
+    return false;
+  };
 
   // Click the Open Page submit. The handler bails on `!isReady` until
   // StudioPlaygroundProvider catches up to a "ready" bootstrap (it polls
@@ -229,11 +224,18 @@ async function createDefaultWebAgent(page) {
   // ran) or the submit label flips to "Opening…" (`sessionMutating`
   // became true).
   const clickStartedAt = Date.now();
-  const clickBudgetMs = 30_000;
-  let clickAttempts = 0;
-  let successfulClicks = 0;
+  const clickBudgetMs = 60_000;
+  let iterations = 0;
+  let submitClicks = 0;
+  let expansionsLost = 0;
   while (Date.now() - clickStartedAt < clickBudgetMs) {
-    clickAttempts += 1;
+    iterations += 1;
+    const expanded = await ensureCardExpanded();
+    if (!expanded) {
+      // Card stays collapsed even after toggling — leave the click loop
+      // and dump diagnostics below.
+      break;
+    }
     const clicked = await page.evaluate(() => {
       const openPage = Array.from(document.querySelectorAll('button')).find(
         (button) => button.textContent?.trim() === 'Open Page',
@@ -244,9 +246,12 @@ async function createDefaultWebAgent(page) {
       openPage.click();
       return true;
     });
-    if (clicked) successfulClicks += 1;
+    if (clicked) submitClicks += 1;
     if (!clicked) {
-      await sleep(500);
+      // Submit slipped between our expand and click — probably the
+      // collapse-after-click race. Loop and re-expand.
+      expansionsLost += 1;
+      await sleep(300);
       continue;
     }
     const settled = await page
@@ -254,19 +259,21 @@ async function createDefaultWebAgent(page) {
         () =>
           !document.body.innerText.includes('Open a web page') ||
           document.body.innerText.includes('Opening…'),
-        { timeout: 1500 },
+        { timeout: 2_000 },
       )
       .then(() => true)
       .catch(() => false);
     if (settled) {
       console.log(
-        `Open Page click landed after ${clickAttempts} attempt(s), ${successfulClicks} reached the submit button.`,
+        `Open Page click landed after ${iterations} iteration(s), ${submitClicks} submit click(s), ${expansionsLost} re-expand(s).`,
       );
       return;
     }
+    // No transition — the click was a no-op (likely !isReady). Wait a
+    // beat for the bootstrap to flip, then retry.
+    await sleep(300);
   }
 
-  // Snapshot for the post-mortem instead of guessing what was on screen.
   const snapshot = await page.evaluate(() => {
     const buttons = Array.from(document.querySelectorAll('button'));
     return {
@@ -280,7 +287,7 @@ async function createDefaultWebAgent(page) {
     };
   });
   throw new Error(
-    `Open Page click never transitioned the Overview after ${clickAttempts} attempts (${successfulClicks} successful clicks). Snapshot:\n${JSON.stringify(snapshot, null, 2)}`,
+    `Open Page click never transitioned the Overview (iterations=${iterations}, submitClicks=${submitClicks}, expansionsLost=${expansionsLost}). Snapshot:\n${JSON.stringify(snapshot, null, 2)}`,
   );
 }
 
