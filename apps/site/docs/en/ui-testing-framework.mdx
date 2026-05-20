@@ -58,6 +58,16 @@ Here, `setup.js` means the pre-run setup script for the test project. It runs be
 
 `midscene.config.yaml` manages model settings, runtime options, report output, and selected cases. `setup.js` manages project-specific preparation. `e2e/*.yaml` only describes the business path. A small number of cases that cannot be expressed cleanly in YAML can be written directly as `case.test.ts`.
 
+The content of `setup.js` should focus on getting the test to an executable starting point. It usually covers these responsibilities:
+
+- Read environment variables, test accounts, target environment, and device IDs.
+- Complete login, or convert an existing login state into browser cookies.
+- Connect to a remote device platform and select the device for the current case.
+- Prepare backend test data, such as creating an order, clearing a cart, or enabling a staging flag.
+- Register project-level hooks, such as adding logs, screenshots, or business trace IDs when a case fails.
+
+It should not carry the user path itself. Business actions like “search for a product”, “open order details”, or “verify the invoice entry is visible” should still stay in the YAML case.
+
 YAML still describes the business path:
 
 ```yaml
