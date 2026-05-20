@@ -21,7 +21,7 @@ That is why Midscene's UI Testing Framework is designed around three layers:
 | --- | --- | --- |
 | Intuitive cases | Verify a key business path quickly | YAML + case. Write `target`, steps, and assertions in YAML, then run it from the CLI and inspect the replay report |
 | Refined, maintainable project | Tests need login state, cookies, accounts, remote devices, or a small amount of environment preparation | YAML + `setup.ts`. Keep the business path in YAML and put project configuration plus pre-run preparation in `setup.ts` |
-| Refined, maintainable project | Individual cases need complex branches, internal SDKs, API checks, or existing test utilities | `case.test.ts`. Use it only for special cases and keep it in the same project as regular YAML cases |
+|  | Individual cases need complex branches, internal SDKs, API checks, or existing test utilities | `case.test.ts`. Use it only for special cases and keep it in the same project as regular YAML cases |
 | Complete test project | The project needs CI, internal tools, fixtures, data checks, or custom flows | Use `midscene emit` to export an independent Rstest project, then maintain it like a standard test project |
 
 ### 1. Intuitive cases: YAML + case
