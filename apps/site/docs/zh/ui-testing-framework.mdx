@@ -14,13 +14,13 @@ UI Test 的用例表达不应该复杂。大多数业务的起点也不是完整
 
 - 用 YAML 写直觉化用例：业务同学或测试同学可以直接描述入口、动作和断言，让 AI 完成 UI 操作和视觉判断。
 - 用 `setup.js` 和少量代码控制工程复杂度：登录、Cookie、账号、测试数据和设备准备有自己的位置；少数特殊 case 也可以写成 `case.test.ts`。
-- 长期项目可以 `emit` 成 Rstest 工程模板：当项目膨胀到需要 fixture、CI、内部工具和更多确定性校验时，团队可以接管一个标准测试工程。
+- 完备的测试工程可以由 `emit` 生成：当项目需要 fixture、CI、内部工具和更多确定性校验时，团队可以接管一个标准测试工程。
 
 | 层级 | 适合场景 | 推荐形态 |
 | --- | --- | --- |
 | 直觉化用例 | 快速验证一个关键业务路径是否可用 | YAML + case。用 YAML 写入口、任务步骤和断言，直接通过 CLI 运行并查看回放报告 |
 | 精致可维护的项目 | 测试需要登录态、Cookie、账号、设备或少量环境准备 | YAML + `setup.js`，必要时为个别特殊 case 增加 `case.test.ts` |
-| 长期工程化 | 项目开始接入 CI、内部工具、fixture、数据校验或自定义流程 | `midscene emit` 导出独立 Rstest 工程，再按标准测试项目维护 |
+| 完备的测试工程 | 项目开始接入 CI、内部工具、fixture、数据校验或自定义流程 | `midscene emit` 导出独立 Rstest 工程，再按标准测试项目维护 |
 
 ### 1. 直觉化用例：YAML + case
 
@@ -88,9 +88,9 @@ export default async function setup({ browser, context, device }) {
 
 如果某个 case 需要复杂分支、调用内部 SDK、混合接口校验或复用现有测试工具，可以把它写成 `case.test.ts`。这不是主路径，而是给少数特殊场景留出的逃生口，避免为了保持 YAML 纯度反而让项目变得别扭。
 
-### 3. 长期工程化：emit 为 Rstest 项目模板
+### 3. 完备的测试工程：emit 为 Rstest 项目模板
 
-测试项目长期运行后一定会膨胀：case 会变多，fixture 会变复杂，CI 会有并发和分组策略，失败分析也需要接入团队自己的系统。Midscene 不应该把这些需求都压进固定 YAML runner。对应这类长期项目，核心能力是 `emit`：把轻量 Midscene 项目导出成一个独立的 Rstest 工程模板。
+当测试项目需要完整工程能力时，case 会变多，fixture 会变复杂，CI 会有并发和分组策略，失败分析也需要接入团队自己的系统。Midscene 不应该把这些需求都压进固定 YAML runner。对应这类完备测试工程，核心能力是 `emit`：把轻量 Midscene 项目导出成一个独立的 Rstest 工程模板。
 
 ```bash
 midscene emit ./project-folder

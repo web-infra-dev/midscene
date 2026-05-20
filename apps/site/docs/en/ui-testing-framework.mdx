@@ -14,13 +14,13 @@ That is why Midscene's UI Testing Framework is designed around three layers:
 
 - Write intuitive cases with YAML: business and QA users can describe the entry point, actions, and assertions, then let AI handle UI interaction and visual judgment.
 - Control project complexity with `setup.js` and a small amount of code: login, cookies, accounts, test data, and device preparation have their own place; individual special cases can use `case.test.ts`.
-- Emit long-running projects into an Rstest template: when the project grows to need fixtures, CI, internal tools, and deterministic checks, the team can own a standard test project.
+- Emit a complete test project from an Rstest template: when the project needs fixtures, CI, internal tools, and deterministic checks, the team can own a standard test project.
 
 | Layer | Best for | Recommended shape |
 | --- | --- | --- |
 | Intuitive cases | Verify a key business path quickly | YAML + case. Write the entry point, steps, and assertions in YAML, then run it from the CLI and inspect the replay report |
 | Refined, maintainable project | Tests need login state, cookies, accounts, devices, or a small amount of environment preparation | YAML + `setup.js`, with `case.test.ts` available for individual special cases |
-| Long-running engineering | The project needs CI, internal tools, fixtures, data checks, or custom flows | Use `midscene emit` to export an independent Rstest project, then maintain it like a standard test project |
+| Complete test project | The project needs CI, internal tools, fixtures, data checks, or custom flows | Use `midscene emit` to export an independent Rstest project, then maintain it like a standard test project |
 
 ### 1. Intuitive cases: YAML + case
 
@@ -88,9 +88,9 @@ The code above shows the boundary: login, accounts, data, and devices belong in 
 
 If a case needs complex branches, internal SDK calls, mixed API checks, or existing test utilities, it can be written as `case.test.ts`. This is not the main path. It is an escape hatch for special cases, so the project does not become awkward just to keep everything in YAML.
 
-### 3. Long-running engineering: emit an Rstest project template
+### 3. Complete test project: emit an Rstest project template
 
-Long-running test projects inevitably grow: there are more cases, fixtures become more complex, CI needs parallelism and grouping, and failure analysis needs to connect with team systems. Midscene should not force all of that into a fixed YAML runner. For this stage, the core capability is `emit`: export a lightweight Midscene project into an independent Rstest project template.
+When a test project needs complete engineering capabilities, there are more cases, fixtures become more complex, CI needs parallelism and grouping, and failure analysis needs to connect with team systems. Midscene should not force all of that into a fixed YAML runner. For this stage, the core capability is `emit`: export a lightweight Midscene project into an independent Rstest project template.
 
 ```bash
 midscene emit ./project-folder
@@ -115,7 +115,7 @@ project-folder/
 
 At this stage, YAML is no longer the boundary of what the framework can do. It is the migration entry point. Teams can keep the business expression from YAML cases, or move complex logic into Rstest test files, fixtures, and internal tools. Midscene handles UI actions and visual assertions, while your own code handles environment orchestration, API checks, database checks, and failure analysis.
 
-Rstest is the underlying choice because it is fast, reliable, and a good foundation for a long-running test project. On top of that base, Midscene provides AI UI actions, visual assertions, screenshots, replay reports, and debugging information, so the project can scale without giving up a good developer experience.
+Rstest is the underlying choice because it is fast, reliable, and a good foundation for a complete test project. On top of that base, Midscene provides AI UI actions, visual assertions, screenshots, replay reports, and debugging information, so the project can scale without giving up a good developer experience.
 
 ## Next steps
 
