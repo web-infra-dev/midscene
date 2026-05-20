@@ -1887,20 +1887,27 @@ export const collectNestedMacCodeSignTargets = async (appPath) => {
  * right inside a 540×380 window — the standard "drag to install"
  * affordance that .zip downloads don't offer.
  */
+export const dmgBackgroundPath = path.join(
+  studioBuildDir,
+  'dmg-background.png',
+);
+
 export const buildStudioDmgSpecification = ({
   appBundlePath,
   iconPath,
+  backgroundPath = dmgBackgroundPath,
   productName = packagedProductName,
 }) => ({
   title: productName,
   ...(iconPath ? { icon: iconPath } : {}),
+  ...(backgroundPath ? { background: backgroundPath } : {}),
   'icon-size': 96,
   window: { size: { width: 540, height: 380 } },
   contents: [
-    { x: 410, y: 200, type: 'link', path: '/Applications' },
+    { x: 410, y: 160, type: 'link', path: '/Applications' },
     {
       x: 130,
-      y: 200,
+      y: 160,
       type: 'file',
       path: appBundlePath,
       name: path.basename(appBundlePath),

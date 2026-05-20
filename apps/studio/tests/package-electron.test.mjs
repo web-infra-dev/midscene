@@ -49,15 +49,22 @@ describe('package-electron helpers', () => {
     const spec = buildStudioDmgSpecification({
       appBundlePath: '/tmp/Midscene Studio.app',
       iconPath: '/tmp/midscene-icon.icns',
+      backgroundPath: '/tmp/dmg-background.png',
     });
     expect(spec.title).toBe('Midscene Studio');
     expect(spec.icon).toBe('/tmp/midscene-icon.icns');
+    expect(spec.background).toBe('/tmp/dmg-background.png');
     expect(spec.window).toEqual({ size: { width: 540, height: 380 } });
     expect(spec.format).toBe('ULFO');
     const linkEntry = spec.contents.find((entry) => entry.type === 'link');
     const fileEntry = spec.contents.find((entry) => entry.type === 'file');
     expect(linkEntry?.path).toBe('/Applications');
     expect(linkEntry?.x).toBeGreaterThan(fileEntry?.x);
+    // Both icons sit on the same y, vertically centered against
+    // the Finder content area so the "Drag to" hint baked into
+    // the background image lines up with them.
+    expect(linkEntry?.y).toBe(fileEntry?.y);
+    expect(linkEntry?.y).toBe(160);
     expect(fileEntry?.path).toBe('/tmp/Midscene Studio.app');
     expect(fileEntry?.name).toBe('Midscene Studio.app');
   });
