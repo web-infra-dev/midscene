@@ -1,6 +1,11 @@
 {
   "name": "@midscene/harmony-mcp",
   "version": "1.8.3",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/harmony-mcp"
+  },
   "description": "Midscene MCP Server for HarmonyOS automation",
   "bin": "dist/index.js",
   "files": ["dist"],

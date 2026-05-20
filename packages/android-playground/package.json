@@ -1,6 +1,11 @@
 {
   "name": "@midscene/android-playground",
   "version": "1.8.3",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/android-playground"
+  },
   "description": "Android playground for Midscene",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
