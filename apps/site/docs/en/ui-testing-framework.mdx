@@ -13,13 +13,15 @@ But a test project cannot stay as “a few loose cases” forever. Once tests be
 That is why Midscene's UI Testing Framework is designed around three layers:
 
 - Write intuitive cases with YAML: business and QA users can describe the entry point, actions, and assertions, then let AI handle UI interaction and visual judgment.
-- Control project complexity with `setup.ts` and a small amount of code: project configuration, login, cookies, accounts, test data, remote device connections, and device preparation have their own place; individual special cases can use `case.test.ts`.
+- Control project complexity with `setup.ts` and a small amount of code: project configuration, login, cookies, accounts, test data, remote device connections, and device preparation have their own place.
+- Use `case.test.ts` for individual special cases: when a case needs complex branches, internal SDKs, or deterministic checks, test code covers the parts that YAML should not express.
 - Emit a complete test project from an Rstest template: when the project needs fixtures, CI, internal tools, and deterministic checks, the team can own a standard test project.
 
 | Layer | Best for | Recommended shape |
 | --- | --- | --- |
 | Intuitive cases | Verify a key business path quickly | YAML + case. Write `target`, steps, and assertions in YAML, then run it from the CLI and inspect the replay report |
-| Refined, maintainable project | Tests need login state, cookies, accounts, remote devices, or a small amount of environment preparation | YAML + `setup.ts`, with `case.test.ts` available for individual special cases |
+| Refined, maintainable project | Tests need login state, cookies, accounts, remote devices, or a small amount of environment preparation | YAML + `setup.ts`. Keep the business path in YAML and put project configuration plus pre-run preparation in `setup.ts` |
+| Refined, maintainable project | Individual cases need complex branches, internal SDKs, API checks, or existing test utilities | `case.test.ts`. Use it only for special cases and keep it in the same project as regular YAML cases |
 | Complete test project | The project needs CI, internal tools, fixtures, data checks, or custom flows | Use `midscene emit` to export an independent Rstest project, then maintain it like a standard test project |
 
 ### 1. Intuitive cases: YAML + case
