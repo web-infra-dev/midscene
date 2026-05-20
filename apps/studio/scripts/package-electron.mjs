@@ -1881,6 +1881,115 @@ export const collectNestedMacCodeSignTargets = async (appPath) => {
   return [...standaloneFiles, ...nestedBundles];
 };
 
+/**
+ * Build the appdmg specification for the Mac DMG. The layout drops the
+ * signed `.app` on the left and a symlink to `/Applications` on the
+ * right inside a 540×380 window — the standard "drag to install"
+ * affordance that .zip downloads don't offer.
+ */
+export const dmgBackgroundPath = path.join(
+  studioBuildDir,
+  'dmg-background.png',
+);
+
+export const buildStudioDmgSpecification = ({
+  appBundlePath,
+  iconPath,
+  backgroundPath = dmgBackgroundPath,
+  productName = packagedProductName,
+}) => ({
+  title: productName,
+  ...(iconPath ? { icon: iconPath } : {}),
+  ...(backgroundPath ? { background: backgroundPath } : {}),
+  'icon-size': 96,
+  window: { size: { width: 540, height: 380 } },
+  contents: [
+    { x: 410, y: 160, type: 'link', path: '/Applications' },
+    {
+      x: 130,
+      y: 160,
+      type: 'file',
+      path: appBundlePath,
+      name: path.basename(appBundlePath),
+    },
+  ],
+  format: 'ULFO',
+});
+
+const runAppDmg = async ({ source, target }) => {
+  // `appdmg` (via `macos-alias`) loads a darwin-only native binding at
+  // require time, so keep the import dynamic and gated to the darwin
+  // packaging path.
+  const { default: appdmg } = await import('appdmg');
+  return new Promise((resolve, reject) => {
+    const ee = appdmg({ source, target });
+    ee.on('progress', (info) => {
+      if (info?.type === 'step-begin') {
+        console.log(`dmg: ${info.title}`);
+      }
+    });
+    ee.on('error', reject);
+    ee.on('finish', resolve);
+  });
+};
+
+export const buildStudioDmgArtifact = async ({
+  appBundlePath,
+  baseName,
+  iconPath,
+  security = resolveMacPackagedAppSecurity({ platform: 'darwin' }),
+}) => {
+  const dmgArtifactPath = path.join(artifactDir, `${baseName}.dmg`);
+  await removeIfExists(dmgArtifactPath);
+  await fs.mkdir(path.dirname(dmgArtifactPath), { recursive: true });
+
+  // appdmg 0.6.x only consumes a spec JSON from disk (it uses
+  // `path.dirname(source)` to resolve any relative paths within the
+  // spec). Drop the runtime-built specification into a sibling file —
+  // we already use absolute paths so basepath resolution doesn't kick
+  // in, but appdmg still requires `source` to exist.
+  const specPath = path.join(artifactDir, `${baseName}.dmg.spec.json`);
+  await fs.writeFile(
+    specPath,
+    `${JSON.stringify(
+      buildStudioDmgSpecification({ appBundlePath, iconPath }),
+      null,
+      2,
+    )}\n`,
+  );
+  try {
+    await runAppDmg({ source: specPath, target: dmgArtifactPath });
+  } finally {
+    await removeIfExists(specPath);
+  }
+
+  // Sign + (optionally) staple the DMG so Gatekeeper can verify the
+  // notarization ticket offline. The wrapped .app inside is already
+  // signed/notarized; signing the wrapper DMG just gives the disk
+  // image its own Developer ID identity. Skip signing in ad-hoc mode.
+  if (security.shouldDeveloperIdSign) {
+    await run(
+      'codesign',
+      buildDeveloperIdCodesignArgs({
+        entitlementsPath: undefined,
+        security,
+        targetPath: dmgArtifactPath,
+        useRuntime: false,
+      }),
+    );
+  }
+  if (security.shouldNotarize) {
+    console.log(
+      `Submitting ${path.basename(dmgArtifactPath)} for notarization.`,
+    );
+    await notarize({ appPath: dmgArtifactPath, ...security.notarizeOptions });
+    await run('xcrun', ['stapler', 'staple', dmgArtifactPath]);
+    await run('xcrun', ['stapler', 'validate', dmgArtifactPath]);
+  }
+
+  return dmgArtifactPath;
+};
+
 export const notarizePackagedMacApp = async ({
   appPath,
   security = resolveMacPackagedAppSecurity({ platform: 'darwin' }),
@@ -1956,6 +2065,7 @@ export const packageStudioElectronApp = async ({
     await writeAppUpdateYmlIntoResources(resourcesDir);
   }
 
+  let dmgArtifactPath;
   if (platform === 'darwin') {
     const macAppBundlePath =
       await resolveMacPackagedAppBundlePath(packagedAppPath);
@@ -1965,6 +2075,15 @@ export const packageStudioElectronApp = async ({
     });
     await notarizePackagedMacApp({
       appPath: macAppBundlePath,
+      security: macSecurity,
+    });
+    // Wrap the signed/notarized .app in a DMG that ships a
+    // drag-to-Applications layout. The .zip artifact below stays so
+    // electron-updater can keep streaming the unwrapped bundle.
+    dmgArtifactPath = await buildStudioDmgArtifact({
+      appBundlePath: macAppBundlePath,
+      baseName,
+      iconPath: resolvePackagerIconPath(platform),
       security: macSecurity,
     });
   }
@@ -1986,6 +2105,9 @@ export const packageStudioElectronApp = async ({
   });
 
   console.log(`Packaged Midscene Studio archive: ${artifactPath}`);
+  if (dmgArtifactPath) {
+    console.log(`Packaged Midscene Studio dmg: ${dmgArtifactPath}`);
+  }
   for (const ymlPath of updateMetadata.writtenPaths) {
     console.log(`Wrote updater manifest: ${ymlPath}`);
   }

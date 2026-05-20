@@ -266,6 +266,24 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile --ignore-scripts
 
+    - name: Build appdmg native bindings
+      if: ${{ matrix.platform == 'darwin' }}
+      # appdmg pulls in darwin-only native deps (`macos-alias`,
+      # `fs-xattr`) whose `node-gyp rebuild` install scripts were
+      # skipped by the workspace install (`--ignore-scripts`). Rebuild
+      # each directly from its pnpm store directory.
+      run: |
+        set -euo pipefail
+        for pkg in macos-alias fs-xattr; do
+          PKG_DIR=$(ls -d "node_modules/.pnpm/${pkg}@"*"/node_modules/${pkg}" 2>/dev/null | head -n 1)
+          if [ -z "$PKG_DIR" ]; then
+            echo "${pkg} package directory not found under node_modules/.pnpm" >&2
+            exit 1
+          fi
+          echo "Rebuilding ${pkg} in ${PKG_DIR}"
+          (cd "$PKG_DIR" && npm rebuild)
+        done
+
     - name: Build Studio and Nx dependencies
       run: npx nx build studio
 
@@ -281,6 +299,7 @@ jobs:
         # download the same set the GitHub Release will publish.
         path: |
           ${{ github.workspace }}/.release/studio/artifacts/*.zip
+          ${{ github.workspace }}/.release/studio/artifacts/*.dmg
           ${{ github.workspace }}/.release/studio/artifacts/*.yml
 
     - name: Upload Studio asset to GitHub Release
@@ -292,9 +311,12 @@ jobs:
         prerelease: ${{ contains(needs.release.outputs.version, 'beta') || contains(needs.release.outputs.version, 'alpha') || contains(needs.release.outputs.version, 'rc') }}
         # The zip is the artifact users download; latest-*.yml (and
         # beta-*.yml on prereleases) is what electron-updater fetches to
-        # learn the version + sha512 of the matching zip.
+        # learn the version + sha512 of the matching zip. The dmg ships
+        # the same .app behind a drag-to-Applications installer for
+        # macOS users who want a regular GUI install.
         files: |
           ${{ github.workspace }}/.release/studio/artifacts/*.zip
+          ${{ github.workspace }}/.release/studio/artifacts/*.dmg
           ${{ github.workspace }}/.release/studio/artifacts/*.yml
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
