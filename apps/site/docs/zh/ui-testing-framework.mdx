@@ -13,13 +13,13 @@ UI Test 的用例表达不应该复杂。大多数业务的起点也不是完整
 所以 Midscene 的 UI Testing Framework 沿着三层形态展开：
 
 - 用 YAML 写直觉化用例：业务同学或测试同学可以直接描述入口、动作和断言，让 AI 完成 UI 操作和视觉判断。
-- 用 `setup.js` 和少量代码控制工程复杂度：登录、Cookie、账号、测试数据和设备准备有自己的位置；少数特殊 case 也可以写成 `case.test.ts`。
+- 用 `setup.js` 和少量代码控制工程复杂度：登录、Cookie、账号、测试数据、远程设备连接和设备准备有自己的位置；少数特殊 case 也可以写成 `case.test.ts`。
 - 完备的测试工程可以由 `emit` 生成：当项目需要 fixture、CI、内部工具和更多确定性校验时，团队可以接管一个标准测试工程。
 
 | 层级 | 适合场景 | 推荐形态 |
 | --- | --- | --- |
 | 直觉化用例 | 快速验证一个关键业务路径是否可用 | YAML + case。用 YAML 写入口、任务步骤和断言，直接通过 CLI 运行并查看回放报告 |
-| 精致可维护的项目 | 测试需要登录态、Cookie、账号、设备或少量环境准备 | YAML + `setup.js`，必要时为个别特殊 case 增加 `case.test.ts` |
+| 精致可维护的项目 | 测试需要登录态、Cookie、账号、远程设备或少量环境准备 | YAML + `setup.js`，必要时为个别特殊 case 增加 `case.test.ts` |
 | 完备的测试工程 | 项目开始接入 CI、内部工具、fixture、数据校验或自定义流程 | `midscene emit` 导出独立 Rstest 工程，再按标准测试项目维护 |
 
 ### 1. 直觉化用例：YAML + case
@@ -42,9 +42,9 @@ YAML 的价值不是把测试能力做小，而是把“一个用户路径应该
 
 ### 2. 精致可维护的项目：YAML + setup.js
 
-当测试开始进入日常使用，通常会遇到登录态、测试账号、Cookie、设备准备、灰度环境等问题。这些内容不应该写进自然语言步骤里，也不应该复制到每个 YAML case 中。它们应该进入项目级配置和 `setup.js`。
+当测试开始进入日常使用，通常会遇到登录态、测试账号、Cookie、远程设备连接、设备准备、灰度环境等问题。这些内容不应该写进自然语言步骤里，也不应该复制到每个 YAML case 中。它们应该进入项目级配置和 `setup.js`。
 
-这里的 `setup.js` 指的是测试项目的运行前准备脚本。它在 YAML case 执行前运行，负责把浏览器、设备、账号或后端数据准备到正确状态。一个精致但不重的项目可以长这样：
+这里的 `setup.js` 指的是测试项目的运行前准备脚本。它在 YAML case 执行前运行，负责把浏览器、远程设备、账号或后端数据准备到正确状态。一个精致但不重的项目可以长这样：
 
 ```text
 .
@@ -70,12 +70,19 @@ tasks:
       - aiAssert: The dashboard is loaded and user information is visible
 ```
 
-`setup.js` 负责把测试带到正确的起点，例如登录、注入 Cookie、准备测试数据或连接设备。它的价值是给“确定性准备逻辑”一个明确位置，让 YAML case 仍然保持轻量：
+`setup.js` 负责把测试带到正确的起点，例如登录、注入 Cookie、准备测试数据、连接远程设备或选择目标设备。它的价值是给“确定性准备逻辑”一个明确位置，让 YAML case 仍然保持轻量：
 
 ```js
-export default async function setup({ browser, context, device }) {
+import { connectRemoteDevice } from './remote-device';
+
+export default async function setup({ context }) {
   const cookies = await loginByTestAccount(process.env.TEST_ACCOUNT);
   await context.addCookies(cookies);
+
+  await connectRemoteDevice({
+    provider: 'remote-device-lab',
+    deviceId: process.env.REMOTE_DEVICE_ID,
+  });
 
   await prepareTestData({
     user: process.env.TEST_ACCOUNT,
@@ -84,7 +91,7 @@ export default async function setup({ browser, context, device }) {
 }
 ```
 
-上面的代码展示的是职责边界：登录、账号、数据、设备这类工程逻辑放进 setup；“用户进入页面后要完成什么”继续留在 YAML。这样项目可以处理真实工程问题，但用例本身仍然接近业务直觉。
+上面的代码展示的是职责边界：登录、账号、数据、远程设备连接这类工程逻辑放进 setup；“用户进入页面后要完成什么”继续留在 YAML。这样项目可以处理真实工程问题，但用例本身仍然接近业务直觉。
 
 如果某个 case 需要复杂分支、调用内部 SDK、混合接口校验或复用现有测试工具，可以把它写成 `case.test.ts`。这不是主路径，而是给少数特殊场景留出的逃生口，避免为了保持 YAML 纯度反而让项目变得别扭。
 
