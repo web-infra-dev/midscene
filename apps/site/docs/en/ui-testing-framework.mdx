@@ -13,13 +13,13 @@ But a test project cannot stay as “a few loose cases” forever. Once tests be
 That is why Midscene's UI Testing Framework is designed around three layers:
 
 - Write intuitive cases with YAML: business and QA users can describe the entry point, actions, and assertions, then let AI handle UI interaction and visual judgment.
-- Control project complexity with `setup.js` and a small amount of code: login, cookies, accounts, test data, remote device connections, and device preparation have their own place; individual special cases can use `case.test.ts`.
+- Control project complexity with `setup.ts` and a small amount of code: project configuration, login, cookies, accounts, test data, remote device connections, and device preparation have their own place; individual special cases can use `case.test.ts`.
 - Emit a complete test project from an Rstest template: when the project needs fixtures, CI, internal tools, and deterministic checks, the team can own a standard test project.
 
 | Layer | Best for | Recommended shape |
 | --- | --- | --- |
-| Intuitive cases | Verify a key business path quickly | YAML + case. Write the entry point, steps, and assertions in YAML, then run it from the CLI and inspect the replay report |
-| Refined, maintainable project | Tests need login state, cookies, accounts, remote devices, or a small amount of environment preparation | YAML + `setup.js`, with `case.test.ts` available for individual special cases |
+| Intuitive cases | Verify a key business path quickly | YAML + case. Write `target`, steps, and assertions in YAML, then run it from the CLI and inspect the replay report |
+| Refined, maintainable project | Tests need login state, cookies, accounts, remote devices, or a small amount of environment preparation | YAML + `setup.ts`, with `case.test.ts` available for individual special cases |
 | Complete test project | The project needs CI, internal tools, fixtures, data checks, or custom flows | Use `midscene emit` to export an independent Rstest project, then maintain it like a standard test project |
 
 ### 1. Intuitive cases: YAML + case
@@ -27,81 +27,103 @@ That is why Midscene's UI Testing Framework is designed around three layers:
 This stage is about one thing: make the core path natural to express, quick to run, and easy to review. The test author writes YAML for the entry point, actions, and expected result. Midscene uses AI to perform UI actions, evaluate visual assertions, capture screenshots, and generate a replayable report.
 
 ```yaml
-web:
+target:
+  type: web
   url: https://shop.example.com
 
-tasks:
-  - name: Guest checkout smoke test
-    flow:
-      - aiAct: Search for "running shoes"
-      - aiAct: Open the first product
-      - aiAssert: The cart page shows one product and the checkout button
+name: Guest checkout smoke test
+flow:
+  - aiAct: Search for "running shoes"
+  - aiAct: Open the first product
+  - aiAssert: The cart page shows one product and the checkout button
 ```
 
 The value of YAML is not making the framework smaller. Its value is making “what this user path should do” clear enough for review, business confirmation, and team collaboration. It also keeps simple cases from being wrapped in test framework boilerplate on day one.
 
-### 2. Refined, maintainable project: YAML + setup.js
+### 2. Refined, maintainable project: YAML + setup.ts
 
-Once tests become part of daily work, they usually need login state, test accounts, cookies, remote device connections, device preparation, staging lanes, or other environment details. Those concerns should not be squeezed into natural-language steps, and they should not be copied into every YAML case. They belong in project-level configuration and `setup.js`.
+Once tests become part of daily work, they usually need login state, test accounts, cookies, remote device connections, device preparation, staging lanes, or other environment details. Those concerns should not be squeezed into natural-language steps, and they should not be copied into every YAML case. They belong in project-level configuration and `setup.ts`.
 
-Here, `setup.js` means the pre-run setup script for the test project. It runs before YAML cases and prepares the browser, remote device, account, or backend data for the test. A refined but lightweight project can look like this:
+Here, `setup.ts` is the engineering entry point of the test project. It absorbs the project configuration previously carried by `midscene.config.yaml`, and it also defines the preparation logic that runs before each YAML case. The runner passes the current case `target` into setup, and setup returns the `agent` or other runtime resources used to execute the following `flow`. A refined but lightweight project can look like this:
 
 ```text
 .
-  setup.js
-  midscene.config.yaml
+  setup.ts
   e2e/
     dashboard.yaml
     checkout.yaml
     checkout-edge-case.test.ts
 ```
 
-`midscene.config.yaml` manages model settings, runtime options, report output, and selected cases. `setup.js` manages project-specific preparation. `e2e/*.yaml` only describes the business path. A small number of cases that cannot be expressed cleanly in YAML can be written directly as `case.test.ts`.
+`setup.ts` exports project-level configuration such as model settings, runtime options, report output, and selected cases. Its default export manages project-specific preparation. `e2e/*.yaml` only describes the business path. A small number of cases that cannot be expressed cleanly in YAML can be written directly as `case.test.ts`.
 
-The content of `setup.js` should focus on getting the test to an executable starting point. It usually covers these responsibilities:
+The content of `setup.ts` should focus on getting the test to an executable starting point. It usually covers these responsibilities:
 
 - Read environment variables, test accounts, target environment, and device IDs.
 - Complete login, or convert an existing login state into browser cookies.
 - Connect to a remote device platform and select the device for the current case.
 - Prepare backend test data, such as creating an order, clearing a cart, or enabling a staging flag.
 - Register project-level hooks, such as adding logs, screenshots, or business trace IDs when a case fails.
+- Return the `agent` for the current case, so the runner can execute the YAML `flow`.
 
-It should not carry the user path itself. Business actions like “search for a product”, “open order details”, or “verify the invoice entry is visible” should still stay in the YAML case.
+It should not carry the user path itself. Business actions like “search for a product”, “open order details”, or “verify the invoice entry is visible” should still stay in the YAML case. YAML declares where the case should run through `target`, including the environment and account; `setup.ts` turns that declaration into a real browser, remote device, or Agent.
 
 YAML still describes the business path:
 
 ```yaml
-web:
+target:
+  type: web
   url: https://internal.example.com/dashboard
+  env: staging
+  account: smoke-user
 
-tasks:
-  - name: Check dashboard
-    flow:
-      - aiAssert: The dashboard is loaded and user information is visible
+name: Check dashboard
+flow:
+  - aiAssert: The dashboard is loaded and user information is visible
 ```
 
-`setup.js` gets the test to the right starting point, such as logging in, injecting cookies, preparing data, connecting a remote device, or selecting the target device. Its value is giving deterministic preparation logic a clear home while the YAML case stays lightweight:
+`setup.ts` gets the test to the right starting point, such as logging in, injecting cookies, preparing data, connecting a remote device, or selecting the target device. Its value is giving deterministic preparation logic a clear home while the YAML case stays lightweight:
 
-```js
+```ts
+import { createMidsceneAgent } from './agent';
+import { createBrowserRuntime } from './browser-runtime';
 import { connectRemoteDevice } from './remote-device';
 
-export default async function setup({ context }) {
-  const cookies = await loginByTestAccount(process.env.TEST_ACCOUNT);
-  await context.addCookies(cookies);
+export const config = {
+  cases: ['e2e/**/*.yaml', 'e2e/**/*.test.ts'],
+  report: {
+    outputDir: 'reports/midscene',
+    replay: true,
+  },
+};
 
-  await connectRemoteDevice({
-    provider: 'remote-device-lab',
-    deviceId: process.env.REMOTE_DEVICE_ID,
-  });
+export default async function setup({ target }) {
+  const account = target.account ?? process.env.TEST_ACCOUNT;
+  const cookies = await loginByTestAccount(account, target.env);
+
+  const runtime =
+    target.type === 'remote-device'
+      ? await connectRemoteDevice({
+          provider: 'remote-device-lab',
+          deviceId: target.deviceId,
+        })
+      : await createBrowserRuntime({
+          url: target.url,
+          cookies,
+        });
 
   await prepareTestData({
-    user: process.env.TEST_ACCOUNT,
+    user: account,
     scenario: 'dashboard-smoke',
   });
+
+  return {
+    agent: createMidsceneAgent(runtime),
+  };
 }
 ```
 
-The code above shows the boundary: login, accounts, data, and remote device connection belong in setup. What the user should accomplish after the page opens stays in YAML. The project can handle real engineering constraints, while the case itself stays close to business intuition.
+The code above shows the boundary: configuration, login, accounts, data, and remote device connection belong in `setup.ts`. What the user should accomplish after the page opens stays in YAML. The project can handle real engineering constraints, while the case itself stays close to business intuition.
 
 If a case needs complex branches, internal SDK calls, mixed API checks, or existing test utilities, it can be written as `case.test.ts`. This is not the main path. It is an escape hatch for special cases, so the project does not become awkward just to keep everything in YAML.
 

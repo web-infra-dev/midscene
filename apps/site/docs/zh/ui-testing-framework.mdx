@@ -13,13 +13,13 @@ UI Test 的用例表达不应该复杂。大多数业务的起点也不是完整
 所以 Midscene 的 UI Testing Framework 沿着三层形态展开：
 
 - 用 YAML 写直觉化用例：业务同学或测试同学可以直接描述入口、动作和断言，让 AI 完成 UI 操作和视觉判断。
-- 用 `setup.js` 和少量代码控制工程复杂度：登录、Cookie、账号、测试数据、远程设备连接和设备准备有自己的位置；少数特殊 case 也可以写成 `case.test.ts`。
+- 用 `setup.ts` 和少量代码控制工程复杂度：项目配置、登录、Cookie、账号、测试数据、远程设备连接和设备准备有自己的位置；少数特殊 case 也可以写成 `case.test.ts`。
 - 完备的测试工程可以由 `emit` 生成：当项目需要 fixture、CI、内部工具和更多确定性校验时，团队可以接管一个标准测试工程。
 
 | 层级 | 适合场景 | 推荐形态 |
 | --- | --- | --- |
-| 直觉化用例 | 快速验证一个关键业务路径是否可用 | YAML + case。用 YAML 写入口、任务步骤和断言，直接通过 CLI 运行并查看回放报告 |
-| 精致可维护的项目 | 测试需要登录态、Cookie、账号、远程设备或少量环境准备 | YAML + `setup.js`，必要时为个别特殊 case 增加 `case.test.ts` |
+| 直觉化用例 | 快速验证一个关键业务路径是否可用 | YAML + case。用 YAML 写 `target`、任务步骤和断言，直接通过 CLI 运行并查看回放报告 |
+| 精致可维护的项目 | 测试需要登录态、Cookie、账号、远程设备或少量环境准备 | YAML + `setup.ts`，必要时为个别特殊 case 增加 `case.test.ts` |
 | 完备的测试工程 | 项目开始接入 CI、内部工具、fixture、数据校验或自定义流程 | `midscene emit` 导出独立 Rstest 工程，再按标准测试项目维护 |
 
 ### 1. 直觉化用例：YAML + case
@@ -27,81 +27,103 @@ UI Test 的用例表达不应该复杂。大多数业务的起点也不是完整
 这个阶段只关心一件事：核心路径能不能被自然表达、快速运行和复盘。测试作者写 YAML，描述入口、操作和期望结果。Midscene 负责用 AI 执行 UI 操作、完成视觉断言、截图并生成可回放报告。
 
 ```yaml
-web:
+target:
+  type: web
   url: https://shop.example.com
 
-tasks:
-  - name: Guest checkout smoke test
-    flow:
-      - aiAct: Search for "running shoes"
-      - aiAct: Open the first product
-      - aiAssert: The cart page shows one product and the checkout button
+name: Guest checkout smoke test
+flow:
+  - aiAct: Search for "running shoes"
+  - aiAct: Open the first product
+  - aiAssert: The cart page shows one product and the checkout button
 ```
 
 YAML 的价值不是把测试能力做小，而是把“一个用户路径应该是什么样”组织得足够清楚。它天然适合 code review、业务确认和团队协作，也能避免简单用例一开始就被测试框架样板代码包住。
 
-### 2. 精致可维护的项目：YAML + setup.js
+### 2. 精致可维护的项目：YAML + setup.ts
 
-当测试开始进入日常使用，通常会遇到登录态、测试账号、Cookie、远程设备连接、设备准备、灰度环境等问题。这些内容不应该写进自然语言步骤里，也不应该复制到每个 YAML case 中。它们应该进入项目级配置和 `setup.js`。
+当测试开始进入日常使用，通常会遇到登录态、测试账号、Cookie、远程设备连接、设备准备、灰度环境等问题。这些内容不应该写进自然语言步骤里，也不应该复制到每个 YAML case 中。它们应该进入项目级配置和 `setup.ts`。
 
-这里的 `setup.js` 指的是测试项目的运行前准备脚本。它在 YAML case 执行前运行，负责把浏览器、远程设备、账号或后端数据准备到正确状态。一个精致但不重的项目可以长这样：
+这里的 `setup.ts` 是测试项目的工程入口。它合并了承载在 `midscene.config.yaml` 里的项目配置，也定义了每个 YAML case 执行前的准备逻辑。runner 会把当前 case 的 `target` 传给 setup，setup 再返回后续执行 `flow` 所需的 `agent` 或其他运行时资源。一个精致但不重的项目可以长这样：
 
 ```text
 .
-  setup.js
-  midscene.config.yaml
+  setup.ts
   e2e/
     dashboard.yaml
     checkout.yaml
     checkout-edge-case.test.ts
 ```
 
-`midscene.config.yaml` 管理模型、运行参数、报告输出和需要执行的 case；`setup.js` 管理项目自己的准备逻辑；`e2e/*.yaml` 只描述业务路径；少数无法优雅表达成 YAML 的特殊场景，可以用 `case.test.ts` 直接写成测试代码。
+`setup.ts` 负责 export 项目级配置，例如模型、运行参数、报告输出和需要执行的 case；它的默认导出负责项目自己的准备逻辑；`e2e/*.yaml` 只描述业务路径；少数无法优雅表达成 YAML 的特殊场景，可以用 `case.test.ts` 直接写成测试代码。
 
-`setup.js` 的内容应该围绕“把测试带到可执行的起点”展开。它通常包含这些职责：
+`setup.ts` 的内容应该围绕“把测试带到可执行的起点”展开。它通常包含这些职责：
 
 - 读取环境变量、测试账号、目标环境和设备 ID。
 - 完成登录，或者把已有登录态转换成浏览器 Cookie。
 - 连接远程设备平台，选择本次 case 要运行的设备。
 - 准备后端测试数据，例如创建订单、清理购物车、打开灰度开关。
 - 注册项目级 hook，例如失败时补充日志、截图或业务侧 trace id。
+- 返回当前 case 的 `agent`，让 runner 用它继续执行 YAML 里的 `flow`。
 
-它不适合承载用户路径本身。比如“搜索商品”“打开订单详情”“确认页面展示了发票入口”这类业务动作，仍然应该留在 YAML case 里。
+它不适合承载用户路径本身。比如“搜索商品”“打开订单详情”“确认页面展示了发票入口”这类业务动作，仍然应该留在 YAML case 里。YAML 通过 `target` 声明“跑在哪里、用什么环境和账号”，`setup.ts` 把这份声明落地成真实的浏览器、远程设备或 Agent。
 
 YAML 仍然描述业务路径：
 
 ```yaml
-web:
+target:
+  type: web
   url: https://internal.example.com/dashboard
+  env: staging
+  account: smoke-user
 
-tasks:
-  - name: Check dashboard
-    flow:
-      - aiAssert: The dashboard is loaded and user information is visible
+name: Check dashboard
+flow:
+  - aiAssert: The dashboard is loaded and user information is visible
 ```
 
-`setup.js` 负责把测试带到正确的起点，例如登录、注入 Cookie、准备测试数据、连接远程设备或选择目标设备。它的价值是给“确定性准备逻辑”一个明确位置，让 YAML case 仍然保持轻量：
+`setup.ts` 负责把测试带到正确的起点，例如登录、注入 Cookie、准备测试数据、连接远程设备或选择目标设备。它的价值是给“确定性准备逻辑”一个明确位置，让 YAML case 仍然保持轻量：
 
-```js
+```ts
+import { createMidsceneAgent } from './agent';
+import { createBrowserRuntime } from './browser-runtime';
 import { connectRemoteDevice } from './remote-device';
 
-export default async function setup({ context }) {
-  const cookies = await loginByTestAccount(process.env.TEST_ACCOUNT);
-  await context.addCookies(cookies);
+export const config = {
+  cases: ['e2e/**/*.yaml', 'e2e/**/*.test.ts'],
+  report: {
+    outputDir: 'reports/midscene',
+    replay: true,
+  },
+};
 
-  await connectRemoteDevice({
-    provider: 'remote-device-lab',
-    deviceId: process.env.REMOTE_DEVICE_ID,
-  });
+export default async function setup({ target }) {
+  const account = target.account ?? process.env.TEST_ACCOUNT;
+  const cookies = await loginByTestAccount(account, target.env);
+
+  const runtime =
+    target.type === 'remote-device'
+      ? await connectRemoteDevice({
+          provider: 'remote-device-lab',
+          deviceId: target.deviceId,
+        })
+      : await createBrowserRuntime({
+          url: target.url,
+          cookies,
+        });
 
   await prepareTestData({
-    user: process.env.TEST_ACCOUNT,
+    user: account,
     scenario: 'dashboard-smoke',
   });
+
+  return {
+    agent: createMidsceneAgent(runtime),
+  };
 }
 ```
 
-上面的代码展示的是职责边界：登录、账号、数据、远程设备连接这类工程逻辑放进 setup；“用户进入页面后要完成什么”继续留在 YAML。这样项目可以处理真实工程问题，但用例本身仍然接近业务直觉。
+上面的代码展示的是职责边界：配置、登录、账号、数据、远程设备连接这类工程逻辑放进 `setup.ts`；“用户进入页面后要完成什么”继续留在 YAML。这样项目可以处理真实工程问题，但用例本身仍然接近业务直觉。
 
 如果某个 case 需要复杂分支、调用内部 SDK、混合接口校验或复用现有测试工具，可以把它写成 `case.test.ts`。这不是主路径，而是给少数特殊场景留出的逃生口，避免为了保持 YAML 纯度反而让项目变得别扭。
 
