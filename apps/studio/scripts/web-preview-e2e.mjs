@@ -185,35 +185,55 @@ async function createDefaultWebAgent(page) {
     { timeout: 30_000 },
   );
 
-  // Expand the "Open a web page" CardShell. The header is a <button> whose
-  // text content includes the title; clicking toggles `expanded`. We poll
-  // because the React commit that paints the header runs slightly after
-  // the playground bootstrap.
-  await page.waitForFunction(
-    () => {
+  const isSubmitVisible = () =>
+    Array.from(document.querySelectorAll('button')).some(
+      (button) => button.textContent?.trim() === 'Open Page',
+    );
+
+  // Expand the card. Each header click toggles `expanded`; polling and
+  // re-clicking on every miss raced React's commit cycle and could leave
+  // us toggling indefinitely. Click → wait → check, up to a few attempts.
+  let expanded = false;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    expanded = await page.evaluate(isSubmitVisible);
+    if (expanded) break;
+    await page.evaluate(() => {
       const header = Array.from(document.querySelectorAll('button')).find(
         (button) => button.textContent?.includes('Open a web page'),
       );
-      if (!(header instanceof HTMLButtonElement)) return false;
-      // If the submit button isn't visible yet, the card is collapsed —
-      // click the header to expand it.
-      const submit = Array.from(document.querySelectorAll('button')).find(
-        (button) => button.textContent?.trim() === 'Open Page',
-      );
-      if (!submit) {
-        header.click();
-        return false;
-      }
-      return true;
-    },
-    { timeout: 30_000, polling: 500 },
-  );
+      if (header instanceof HTMLButtonElement) header.click();
+    });
+    try {
+      await page.waitForFunction(isSubmitVisible, {
+        timeout: 3_000,
+        polling: 200,
+      });
+      expanded = true;
+      break;
+    } catch {
+      // Previous click may have toggled the card back to collapsed (race
+      // with a still-pending commit). Next iteration flips it the other
+      // way.
+    }
+  }
+  if (!expanded) {
+    throw new Error(
+      'Could not expand the "Open a web page" card after four header clicks',
+    );
+  }
 
+  // Click the Open Page submit. The handler bails on `!isReady` until
+  // StudioPlaygroundProvider catches up to a "ready" bootstrap (it polls
+  // every 1s, so the renderer can lag main-process state). Retry until we
+  // see the Overview transition: text disappears (`onSelectDeviceView`
+  // ran) or the submit label flips to "Opening…" (`sessionMutating`
+  // became true).
   const clickStartedAt = Date.now();
-  // Total budget covers the StudioPlaygroundProvider's worst-case 1s
-  // bootstrap poll plus a few React commits.
   const clickBudgetMs = 30_000;
+  let clickAttempts = 0;
+  let successfulClicks = 0;
   while (Date.now() - clickStartedAt < clickBudgetMs) {
+    clickAttempts += 1;
     const clicked = await page.evaluate(() => {
       const openPage = Array.from(document.querySelectorAll('button')).find(
         (button) => button.textContent?.trim() === 'Open Page',
@@ -224,13 +244,11 @@ async function createDefaultWebAgent(page) {
       openPage.click();
       return true;
     });
+    if (clicked) successfulClicks += 1;
     if (!clicked) {
       await sleep(500);
       continue;
     }
-    // Settled state: Overview unmounted (activeView switched to 'device'
-    // via onSelectDeviceView) OR the button flipped to its `busy`
-    // ("Opening…") label because sessionMutating is now true.
     const settled = await page
       .waitForFunction(
         () =>
@@ -241,12 +259,28 @@ async function createDefaultWebAgent(page) {
       .then(() => true)
       .catch(() => false);
     if (settled) {
+      console.log(
+        `Open Page click landed after ${clickAttempts} attempt(s), ${successfulClicks} reached the submit button.`,
+      );
       return;
     }
   }
 
+  // Snapshot for the post-mortem instead of guessing what was on screen.
+  const snapshot = await page.evaluate(() => {
+    const buttons = Array.from(document.querySelectorAll('button'));
+    return {
+      bodyText: (document.body.innerText || '').slice(0, 1500),
+      headerVisible: buttons.some((b) =>
+        b.textContent?.includes('Open a web page'),
+      ),
+      submitVisible: buttons.some((b) => b.textContent?.trim() === 'Open Page'),
+      openingVisible: document.body.innerText.includes('Opening…'),
+      hasOverview: document.body.innerText.includes('Overview'),
+    };
+  });
   throw new Error(
-    'Clicked the Open Page button but Overview never transitioned — onCreateWebSession likely bailed on !isReady',
+    `Open Page click never transitioned the Overview after ${clickAttempts} attempts (${successfulClicks} successful clicks). Snapshot:\n${JSON.stringify(snapshot, null, 2)}`,
   );
 }
 
