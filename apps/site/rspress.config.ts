@@ -94,14 +94,6 @@ export default defineConfig({
           link: '/ui-testing-framework',
         },
         {
-          text: 'Write tests with YAML',
-          link: '/ui-testing-yaml-quick-start',
-        },
-        {
-          text: 'Engineering guide',
-          link: '/ui-testing-engineering',
-        },
-        {
           sectionHeaderText: 'Web browser',
         },
         {
@@ -287,14 +279,6 @@ export default defineConfig({
         {
           text: '专题总览',
           link: '/zh/ui-testing-framework',
-        },
-        {
-          text: '使用 YAML 编写 UI 测试',
-          link: '/zh/ui-testing-yaml-quick-start',
-        },
-        {
-          text: '工程化指南',
-          link: '/zh/ui-testing-engineering',
         },
         {
           sectionHeaderText: 'Web 浏览器',
