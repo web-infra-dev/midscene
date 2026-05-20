@@ -398,9 +398,23 @@ class PlaygroundServer {
     sidecars: undefined,
   };
 
-  private setActiveAgent(agent: PageAgent | null): void {
+  private setActiveAgent(
+    agent: PageAgent | null,
+    options: { preserveActiveStream?: boolean } = {},
+  ): void {
     this._activeConnection.agent = agent;
-    this._mjpegHandler.reset();
+    // The MJPEG hub keys its producer by `activeInterface`. A bare
+    // recreateAgent swaps to a new agent instance — even when the
+    // underlying device/page is identical — so without a reset the next
+    // /mjpeg request finds a stale producer keyed to the previous
+    // interface object. `reset()` tears down the producer so the next
+    // request rebuilds one. The cancel path opts out: it preserves the
+    // browser page across recreates and we want the existing CDP
+    // screencast subscribers to keep receiving frames without a
+    // disconnect.
+    if (!options.preserveActiveStream) {
+      this._mjpegHandler.reset();
+    }
   }
 
   constructor(
@@ -641,7 +655,9 @@ class PlaygroundServer {
     return this._activeConnection.agent;
   }
 
-  private async destroyCurrentAgent(): Promise<void> {
+  private async destroyCurrentAgent({
+    preserveActiveStream = false,
+  }: { preserveActiveStream?: boolean } = {}): Promise<void> {
     if (!this._activeConnection.agent) {
       return;
     }
@@ -653,7 +669,10 @@ class PlaygroundServer {
     } catch (error) {
       console.warn('Failed to destroy old agent:', error);
     } finally {
-      this.setActiveAgent(null);
+      // Forward `preserveActiveStream` so the cancel path doesn't blow
+      // away the MJPEG hub on the implicit `setActiveAgent(null)` that
+      // happens before `recreateAgent` plugs in the replacement agent.
+      this.setActiveAgent(null, { preserveActiveStream });
       // Once the stale agent is gone there is nothing left to recreate.
       this._configDirty = false;
     }
@@ -829,18 +848,28 @@ class PlaygroundServer {
   }
 
   /**
-   * Recreate agent instance (for cancellation)
+   * Recreate agent instance (for cancellation).
+   *
+   * `preserveActiveStream`: skip the MJPEG hub reset so the existing
+   * preview stream stays connected across the swap. Safe when the
+   * agent factory reuses the same underlying page/browser (Studio Web
+   * does this on cancel) — otherwise the producer would point at a
+   * dead source.
    */
-  private async recreateAgent(): Promise<void> {
+  private async recreateAgent({
+    preserveActiveStream = false,
+  }: { preserveActiveStream?: boolean } = {}): Promise<void> {
     this._agentReady = false;
     console.log('Recreating agent to cancel current task...');
 
-    await this.destroyCurrentAgent();
+    await this.destroyCurrentAgent({ preserveActiveStream });
 
     // Create new agent instance if factory is available
     if (this._activeConnection.agentFactory) {
       try {
-        this.setActiveAgent(await this._activeConnection.agentFactory());
+        this.setActiveAgent(await this._activeConnection.agentFactory(), {
+          preserveActiveStream,
+        });
         this._agentReady = true;
         console.log('Agent recreated successfully');
       } catch (error) {
@@ -1410,9 +1439,13 @@ class PlaygroundServer {
             console.warn('Failed to get execution data before cancel:', error);
           }
 
-          // Destroy and recreate agent to cancel the current task
+          // Destroy and recreate agent to cancel the current task,
+          // while keeping the live preview stream alive so the user
+          // doesn't see a 3–5s blackout / page reload when they hit
+          // Stop. Platform factories that reuse the same device or
+          // page across recreates (e.g. Studio Web) honor this hint.
           try {
-            await this.recreateAgent();
+            await this.recreateAgent({ preserveActiveStream: true });
           } catch (error) {
             console.warn('Failed to recreate agent during cancel:', error);
           }

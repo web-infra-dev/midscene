@@ -587,6 +587,14 @@ export class Page<
         everyNthFrame: CDP_SCREENCAST_EVERY_NTH_FRAME,
       });
 
+      // CDP screencast only emits a frame when the page's compositor
+      // produces one — for an idle page (no animation, post
+      // waitForNetworkIdle) that may never happen, leaving freshly
+      // attached subscribers staring at a blank canvas. Force-push one
+      // manual screenshot so producer.lastFrame is populated before any
+      // /mjpeg subscriber connects.
+      void this.flushPendingVisualUpdate();
+
       return { stop };
     } catch (error) {
       await stop();

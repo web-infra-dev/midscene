@@ -141,6 +141,40 @@ describe('Sidebar device list', () => {
     expect(html.match(/pb-\[2px\] last:pb-0/g)).toHaveLength(5);
   });
 
+  it('renders platform headers as static labels instead of collapsible buttons', async () => {
+    const container = document.createElement('div');
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        createElement(
+          StudioPlaygroundContext.Provider,
+          { value: createReadyContextValue() },
+          createElement(Sidebar, {
+            activeView: 'overview',
+            onSelectDevice: () => undefined,
+            onSelectOverview: () => undefined,
+          }),
+        ),
+      );
+    });
+
+    const platformButtons = Array.from(
+      container.querySelectorAll('button'),
+    ).filter((button) =>
+      ['Android', 'iOS', 'Computer', 'HarmonyOS', 'Web'].some((label) =>
+        button.textContent?.includes(label),
+      ),
+    );
+    expect(platformButtons).toHaveLength(0);
+    expect(container.textContent).toContain('Android');
+    expect(container.textContent).toContain('No devices');
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
   it('does not disconnect when clicking the active Web session in the sidebar', async () => {
     const { context, createSession, destroySession, setFieldsValue } =
       createConnectedWebContextValue();
@@ -166,6 +200,7 @@ describe('Sidebar device list', () => {
       (button) => button.textContent?.includes('Example Web Session'),
     );
     expect(webButton).toBeTruthy();
+    expect(webButton?.className).toContain('outline-none');
 
     await act(async () => {
       webButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));

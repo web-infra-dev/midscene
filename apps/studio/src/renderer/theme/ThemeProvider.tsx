@@ -12,6 +12,7 @@ export type StudioThemeMode = 'light' | 'dark' | 'system';
 export type StudioResolvedTheme = 'light' | 'dark';
 
 const STORAGE_KEY = 'studio.theme-mode';
+const EXPLICIT_STORAGE_KEY = 'studio.theme-mode-explicit';
 const VALID_MODES: readonly StudioThemeMode[] = [
   'light',
   'dark',
@@ -29,12 +30,18 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function readStoredMode(): StudioThemeMode {
   if (typeof window === 'undefined') {
-    return 'system';
+    return 'light';
   }
   const stored = window.localStorage.getItem(STORAGE_KEY);
+  if (
+    stored === 'system' &&
+    window.localStorage.getItem(EXPLICIT_STORAGE_KEY) !== 'true'
+  ) {
+    return 'light';
+  }
   return (VALID_MODES as readonly string[]).includes(stored ?? '')
     ? (stored as StudioThemeMode)
-    : 'system';
+    : 'light';
 }
 
 function systemPrefersDark(): boolean {
@@ -72,6 +79,7 @@ export function ThemeProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, mode);
+    window.localStorage.setItem(EXPLICIT_STORAGE_KEY, 'true');
     const next = resolveMode(mode);
     setResolved(next);
     writeThemeAttribute(next);

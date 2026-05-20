@@ -224,16 +224,21 @@ async function main() {
     });
 
     await agent.aiAssert(
-      'A Midscene Studio desktop window is visible. It has a left sidebar with platform labels such as Android, iOS, Computer, HarmonyOS, or Web, and a right-side panel titled Playground.',
+      'A Midscene Studio desktop window is visible. It has a left sidebar with platform labels such as Android, iOS, Computer, HarmonyOS, or Web.',
     );
 
+    // Studio now boots into the Overview page (DeviceList) instead of a
+    // right-column SessionSetupPanel. Validate that the Overview content
+    // is readable — platform sections, an inline "Open a web page" or
+    // similar create-agent tile, or device cards — rather than the old
+    // "Welcome to Midscene.js Playground!" copy.
     await agent.aiAssert(
-      'The right-side Playground panel is visible and readable. It may show the session setup form with the heading "Welcome to Midscene.js Playground!", platform choices, and a Create Agent button. Ignore the operating-system window controls and scrollbar at the far right; only check that the Studio panel content itself is not cut off.',
+      'The main content area of the Midscene Studio window is visible and readable. It surfaces device or session controls — for example platform section headings (Android / iOS / Computer / HarmonyOS / Web), inline create-agent tiles such as "Open a web page", or device cards. Ignore the operating-system window controls and scrollbar at the far right; only check that the Studio content itself is not cut off.',
     );
 
     await agent.recordToReport('Studio shell became visible', {
       content:
-        'Verified that the packaged Studio shell rendered the sidebar and Playground panel.',
+        'Verified that the packaged Studio shell rendered the sidebar and Overview content.',
     });
 
     await agent.aiAct(

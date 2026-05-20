@@ -43,18 +43,12 @@ const EMPTY_DEVICE_ID_PREFIX = '__empty__';
 function SectionHeader({
   iconSrc,
   label,
-  onClick,
 }: {
   iconSrc?: string;
   label: string;
-  onClick: () => void;
 }) {
   return (
-    <button
-      className="mb-[2px] flex h-8 w-full appearance-none items-center gap-[6px] rounded-lg border-0 bg-transparent px-[12px] text-left hover:bg-surface-hover"
-      onClick={onClick}
-      type="button"
-    >
+    <div className="mb-[2px] flex h-8 w-full items-center gap-[6px] px-[12px] text-left">
       {iconSrc ? (
         <MaskedIcon
           className="h-4 w-4 shrink-0 text-text-secondary"
@@ -66,7 +60,7 @@ function SectionHeader({
       <span className="flex-1 overflow-hidden whitespace-nowrap font-sans text-[13px] font-medium leading-[22px] text-text-secondary">
         {label}
       </span>
-    </button>
+    </div>
   );
 }
 
@@ -80,7 +74,7 @@ function DeviceRow({
 }) {
   return (
     <button
-      className={`flex h-8 w-full cursor-pointer appearance-none items-center gap-[6px] rounded-[10px] border-0 px-[12px] text-left transition-colors ${
+      className={`flex h-8 w-full cursor-pointer appearance-none items-center gap-[6px] rounded-[10px] border-0 px-[12px] text-left outline-none transition-colors focus-visible:bg-surface-hover-strong ${
         selected
           ? 'bg-surface-hover hover:bg-surface-hover'
           : 'bg-transparent hover:bg-surface-hover active:bg-surface-active'
@@ -123,36 +117,25 @@ export interface SidebarProps {
   activeView: ShellActiveView;
   onSelectOverview: () => void;
   onSelectDevice: () => void;
+  /** Fires the instant the user clicks a device row so the device preview
+   * header can render the correct platform icon without waiting for
+   * antd's Form.useWatch to settle. */
+  onPendingCreatePlatform?: (platform: StudioSidebarPlatformKey) => void;
 }
 
 export default function Sidebar({
   activeView,
   onSelectOverview,
   onSelectDevice,
+  onPendingCreatePlatform,
 }: SidebarProps) {
   const studioPlayground = useStudioPlayground();
-  const [expandedSections, setExpandedSections] = useState<
-    Record<StudioSidebarPlatformKey, boolean>
-  >({
-    android: true,
-    computer: true,
-    harmony: true,
-    ios: true,
-    web: true,
-  });
   // Sticky record of the user's most recent click. Kept locally so the
   // highlight survives any transient form-state churn during the
   // destroy → refreshSessionSetup → createSession round-trip.
   const [stickySelection, setStickySelection] = useState<
     { platformKey: StudioSidebarPlatformKey; deviceId: string } | undefined
   >(undefined);
-
-  const toggleSection = (sectionKey: StudioSidebarPlatformKey) => {
-    setExpandedSections((current) => ({
-      ...current,
-      [sectionKey]: !current[sectionKey],
-    }));
-  };
 
   // Device buckets: merge session-setup targets (from the currently
   // selected platform) with cross-platform discovered devices. Discovery
@@ -218,6 +201,9 @@ export default function Sidebar({
         // Stamp the highlight synchronously so the row stays selected
         // even before the form state propagates through useWatch.
         setStickySelection({ platformKey, deviceId: item.id });
+        // Same idea for the device-preview header: surface the platform
+        // immediately so its icon doesn't flash the default Android phone.
+        onPendingCreatePlatform?.(platformKey);
 
         if (item.selected && item.status === 'active') {
           onSelectDevice();
@@ -270,14 +256,15 @@ export default function Sidebar({
     ? resolveSelectedDeviceId(formValues)
     : undefined;
 
-  // Keep stickySelection in lockstep with the form whenever the form
-  // actually identifies a device. This way, if some downstream effect
-  // (e.g. refreshSessionSetup, discovery auto-select) updates the form,
-  // the sticky highlight follows instead of pointing at the previous
-  // click. We only clear sticky when the form has no selection AND no
-  // recent click — never let an empty form wipe a fresh click.
+  // Keep stickySelection in lockstep with the form. If a downstream
+  // effect (refreshSessionSetup, discovery auto-select, switching to a
+  // different platform's session) updates the form, the sticky highlight
+  // follows — including clearing it when the form is fully empty so a
+  // stale Computer/Android row doesn't stay highlighted after the user
+  // opens a Web session or returns to Overview.
   useEffect(() => {
     if (!formSelectedPlatformKey || !formSelectedDeviceId) {
+      setStickySelection((prev) => (prev ? undefined : prev));
       return;
     }
     setStickySelection((prev) => {
@@ -313,7 +300,7 @@ export default function Sidebar({
   return (
     <div className="flex flex-col">
       <button
-        className={`flex h-8 w-full appearance-none items-center gap-[6px] border-0 px-[12px] text-left ${
+        className={`flex h-8 w-full appearance-none items-center gap-[6px] border-0 px-[12px] text-left outline-none focus-visible:bg-surface-hover-strong ${
           overviewActive
             ? 'rounded-[10px] bg-black/5'
             : 'rounded-lg bg-transparent hover:bg-surface-hover'
@@ -342,7 +329,6 @@ export default function Sidebar({
 
         <div className="flex flex-col">
           {resolvedSections.map((section) => {
-            const isExpanded = expandedSections[section.key];
             const hasDevices = section.devices.length > 0;
             return (
               <div
@@ -352,53 +338,50 @@ export default function Sidebar({
                 <SectionHeader
                   iconSrc={section.iconSrc}
                   label={section.label}
-                  onClick={() => toggleSection(section.key)}
                 />
 
-                {isExpanded ? (
-                  hasDevices ? (
-                    section.devices.map((device) => {
-                      // Three independent signals can light up a row:
-                      //   - matchesConnected: this device is the one
-                      //     currently powering the middle preview area.
-                      //   - matchesForm: form's selectedDeviceId points
-                      //     here (the source of truth for "what the user
-                      //     picked" once it settles).
-                      //   - matchesSticky: synchronous record of the
-                      //     last click, kept locally so the highlight is
-                      //     instant.
-                      // OR-ing them avoids a single-frame gap during the
-                      // hand-off where `connectedDeviceId` has just
-                      // landed but the matching bucket entry hasn't
-                      // re-rendered with the same id yet.
-                      const matchesConnected =
-                        !!connectedDeviceId &&
-                        section.key === connectedPlatformKey &&
-                        device.id === connectedDeviceId;
-                      const matchesForm =
-                        !!formSelectedDeviceId &&
-                        section.key === formSelectedPlatformKey &&
-                        device.id === formSelectedDeviceId;
-                      const matchesSticky =
-                        !!stickySelection &&
-                        stickySelection.platformKey === section.key &&
-                        stickySelection.deviceId === device.id;
-                      return (
-                        <DeviceRow
-                          key={device.id}
-                          selected={
-                            matchesConnected || matchesForm || matchesSticky
-                          }
-                          {...device}
-                        />
-                      );
-                    })
-                  ) : (
-                    <EmptyDeviceRow
-                      key={`${EMPTY_DEVICE_ID_PREFIX}${section.key}`}
-                    />
-                  )
-                ) : null}
+                {hasDevices ? (
+                  section.devices.map((device) => {
+                    // Single-source-of-truth selection: only one row
+                    // may ever be highlighted, even while sticky / form /
+                    // connected diverge during a fast re-click. Sticky
+                    // wins (matches the user's intent the instant they
+                    // click), with form / connected as fallbacks.
+                    // On Overview we suppress every highlight because
+                    // the page is meant to be a "no device picked yet"
+                    // state.
+                    let selected = false;
+                    if (activeView !== 'overview') {
+                      if (stickySelection) {
+                        selected =
+                          stickySelection.platformKey === section.key &&
+                          stickySelection.deviceId === device.id;
+                      } else if (
+                        formSelectedDeviceId &&
+                        formSelectedPlatformKey
+                      ) {
+                        selected =
+                          formSelectedPlatformKey === section.key &&
+                          formSelectedDeviceId === device.id;
+                      } else if (connectedDeviceId && connectedPlatformKey) {
+                        selected =
+                          connectedPlatformKey === section.key &&
+                          connectedDeviceId === device.id;
+                      }
+                    }
+                    return (
+                      <DeviceRow
+                        key={device.id}
+                        selected={selected}
+                        {...device}
+                      />
+                    );
+                  })
+                ) : (
+                  <EmptyDeviceRow
+                    key={`${EMPTY_DEVICE_ID_PREFIX}${section.key}`}
+                  />
+                )}
               </div>
             );
           })}

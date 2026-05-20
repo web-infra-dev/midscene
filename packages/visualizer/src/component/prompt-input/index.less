@@ -56,14 +56,16 @@
       }
 
       .ant-radio-button-wrapper {
-        height: 24px;
-        padding: 0 8px;
-        line-height: 24px;
-        border-radius: 11px;
+        height: 32px;
+        padding: 0 12px;
+        line-height: 32px;
+        border-radius: 12px;
         margin-right: 0; /* Remove margin, use gap instead */
         box-shadow: none;
         border: none;
-        background-color: #f7f7f7;
+        background-color: #f1f2f3;
+        color: #1c1f23;
+        font-family: Inter, system-ui, sans-serif;
         font-size: 12px;
         flex-shrink: 0; /* Prevent buttons from shrinking */
         white-space: nowrap; /* Prevent text wrapping */
@@ -77,12 +79,13 @@
         }
 
         &.ant-radio-button-wrapper-checked {
-          background-color: #2b83ff;
-          border-color: #2b83ff;
-          color: white;
+          background-color: rgba(43, 131, 255, 0.16);
+          border-color: transparent;
+          color: #000;
 
           &:hover {
-            color: #fff;
+            color: #000;
+            background-color: rgba(43, 131, 255, 0.24);
           }
         }
       }
@@ -93,16 +96,18 @@
       }
 
       .more-apis-button {
-        height: 24px;
-        padding: 0 8px;
-        border-radius: 11px;
+        height: 32px;
+        padding: 0 12px;
+        border-radius: 12px;
         box-shadow: none;
         border: none;
-        background-color: #f7f7f7;
+        background-color: #f1f2f3;
+        color: #1c1f23;
+        font-family: Inter, system-ui, sans-serif;
         font-size: 12px;
         display: inline-flex;
         align-items: center;
-        gap: 2px;
+        gap: 6px;
         max-width: 160px;
         flex-shrink: 0; /* Prevent button from shrinking */
         white-space: nowrap; /* Prevent text wrapping */
@@ -114,16 +119,16 @@
         }
 
         &:hover {
-          background-color: #e6e6e6;
+          background-color: #e6e7e9;
         }
 
         &.selected-from-dropdown {
-          background-color: #2b83ff;
-          color: #fff;
+          background-color: rgba(43, 131, 255, 0.16);
+          color: #000;
           font-weight: 500;
 
           &:hover {
-            background-color: #2b83ff;
+            background-color: rgba(43, 131, 255, 0.24);
           }
         }
       }
@@ -316,6 +321,28 @@
 
     > * {
       pointer-events: auto;
+    }
+
+    // Send/Run action button — align with the design's brand blue
+    // (#2b83ff) instead of antd's default primary.
+    .ant-btn-primary {
+      background-color: #2b83ff;
+      border-color: #2b83ff;
+      color: #fff;
+
+      &:not(:disabled):hover,
+      &:not(:disabled):focus {
+        background-color: #1a6fe6;
+        border-color: #1a6fe6;
+        color: #fff;
+      }
+
+      &:disabled,
+      &.ant-btn-loading {
+        background-color: rgba(43, 131, 255, 0.5);
+        border-color: transparent;
+        color: #fff;
+      }
     }
   }
 
@@ -710,9 +737,9 @@
           color: #f8fafd !important;
 
           &.ant-radio-button-wrapper-checked {
-            background-color: #2b83ff !important;
-            border-color: #2b83ff !important;
-            color: white !important;
+            background-color: rgba(43, 131, 255, 0.32) !important;
+            border-color: transparent !important;
+            color: #fff !important;
           }
         }
 
@@ -725,7 +752,7 @@
           }
 
           &.selected-from-dropdown {
-            background-color: #2b83ff !important;
+            background-color: rgba(43, 131, 255, 0.32) !important;
             color: #fff !important;
           }
         }

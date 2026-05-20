@@ -1,10 +1,24 @@
+// Shared device-icon URLs. Android and Harmony share the same Android glyph
+// (Harmony's form factor maps closer to Android than to iPhone), and Web
+// shares the desktop PC glyph since Web sessions run inside a desktop
+// browser. See apps/studio/assets/{android,iphone,pc}.png for the source
+// art.
+const androidDeviceIcon = new URL(
+  '../../../assets/android.png',
+  import.meta.url,
+).href;
+const iosDeviceIcon = new URL('../../../assets/iphone.png', import.meta.url)
+  .href;
+const computerDeviceIcon = new URL('../../../assets/pc.png', import.meta.url)
+  .href;
+
 export const assetUrls = {
   device: {
-    android: new URL('../../../assets/android.svg', import.meta.url).href,
-    computer: new URL('../../../assets/computer.svg', import.meta.url).href,
-    harmony: new URL('../../../assets/harmony.svg', import.meta.url).href,
-    ios: new URL('../../../assets/iphone.svg', import.meta.url).href,
-    web: new URL('./sidebar-web.png', import.meta.url).href,
+    android: androidDeviceIcon,
+    computer: computerDeviceIcon,
+    harmony: androidDeviceIcon,
+    ios: iosDeviceIcon,
+    web: computerDeviceIcon,
   },
   main: {
     chat: new URL('./main-chat.png', import.meta.url).href,
@@ -17,12 +31,17 @@ export const assetUrls = {
       import.meta.url,
     ).href,
     device: new URL('./main-device.png', import.meta.url).href,
-    platformPc: new URL('./main-platform-pc.svg', import.meta.url).href,
-    platformPhone: new URL('./main-platform-phone.svg', import.meta.url).href,
+    platformAndroid: androidDeviceIcon,
+    platformIos: iosDeviceIcon,
+    platformHarmony: androidDeviceIcon,
+    platformPc: computerDeviceIcon,
+    platformWeb: computerDeviceIcon,
     devices: new URL('../../../assets/devices.svg', import.meta.url).href,
     disconnect: new URL('./main-disconnect.png', import.meta.url).href,
-    pc: new URL('../../../assets/pc.svg', import.meta.url).href,
-    phone: new URL('../../../assets/phone.svg', import.meta.url).href,
+    env: new URL('../../../assets/env.svg', import.meta.url).href,
+    sphere: new URL('../../../assets/sphere.svg', import.meta.url).href,
+    pc: computerDeviceIcon,
+    phone: androidDeviceIcon,
     phoneScreen: new URL('./main-phone-screen.png', import.meta.url).href,
   },
   playground: {

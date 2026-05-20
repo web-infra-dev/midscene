@@ -243,6 +243,10 @@ export function resolveSelectedDeviceId(
     return resolveSelectedAndroidDeviceId(formValues);
   }
 
+  if (selectedPlatform === 'web') {
+    return isString(formValues['web.url']) ? formValues['web.url'] : undefined;
+  }
+
   return (
     resolveSelectedAndroidDeviceId(formValues) ||
     (isString(formValues['computer.displayId'])

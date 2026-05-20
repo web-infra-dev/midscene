@@ -105,23 +105,30 @@ describe('ModelEnvConfigModal', () => {
 
     expect(html).toContain('box-border flex h-[404px] w-[400px]');
     expect(html).toContain('text-[16px] font-semibold leading-[24px]');
-    expect(html).toContain('rounded-[42px] bg-[#F2F4F7]');
-    expect(html).toContain('border-[#EFEFEE] bg-white');
+    expect(html).toContain(
+      'w-[210px] items-center rounded-[32px] bg-surface-muted',
+    );
+    expect(html).toContain('border-border-subtle bg-surface-elevated');
     expect(html).toContain('text-[12px] font-normal leading-[14.5px]');
-    expect(html).toContain('bg-[#2B84FF]');
-    expect(html).toContain('Text');
-    expect(html).toContain('Form');
+    expect(html).toContain('bg-brand');
+    expect(html).toContain('shadow-[0px_4px_20px_rgba(0,0,0,0.05)]');
+    expect(html).toContain('.env Style');
+    expect(html).toContain('Form Style');
+    expect(html).toContain('The format is KEY=VALUE');
     expect(html).toContain('Connectivity test');
+    expect(html).toContain('bg-black/35 font-sans');
+    expect(html).toContain('m-0 font-sans text-[16px]');
+    expect(html).not.toContain("font-['Inter']");
     expect(html).not.toContain('model-env-connectivity.svg');
     expect(html).toContain(
       'M5 8.00002V3.95856L8.5 5.97929L12 8.00002L8.5 10.0208L5 12.0415V8.00002Z',
     );
     expect(html).toContain('model-env-close.svg');
-    expect(html).toContain('class="h-4 w-4"');
+    expect(html).toContain('class="h-[16px] w-[16px]"');
     expect(html).toContain(
-      'flex h-[32px] w-[159px] items-center gap-[4px] rounded-[8px] border border-black/12 bg-white px-[12px]',
+      'flex h-[32px] w-[159px] items-center gap-[4px] rounded-[8px] border border-border-subtle bg-surface-elevated px-[12px]',
     );
-    expect(html).toContain('text-black leading-[16px]');
+    expect(html).toContain('text-text-primary leading-[16px]');
     expect(html).not.toMatch(/[\u4e00-\u9fff]/);
   });
 
@@ -150,7 +157,7 @@ describe('ModelEnvConfigModal', () => {
     const button = getConnectivityButton(container);
     expect(button.querySelector('img')).toBeNull();
     expect(button.querySelector('svg')?.getAttribute('class')).toBe(
-      'h-4 w-4 shrink-0',
+      'h-4 w-4 shrink-0 text-text-primary',
     );
 
     await act(async () => {
@@ -297,13 +304,13 @@ describe('ModelEnvConfigModal', () => {
     expect(container.innerHTML).toContain('text-status-success-fg');
     expect(button.textContent).toContain('Connectivity test');
     expect(button.textContent).not.toContain('Test passed');
-    expect(button.innerHTML).toContain('text-black leading-[16px]');
+    expect(button.innerHTML).toContain('text-text-primary leading-[16px]');
     expect(button.innerHTML).not.toContain('model-env-connectivity.svg');
     expect(button.innerHTML).toContain(
       'M5 8.00002V3.95856L8.5 5.97929L12 8.00002L8.5 10.0208L5 12.0415V8.00002Z',
     );
     expect(button.querySelector('svg')?.getAttribute('class')).toBe(
-      'h-4 w-4 shrink-0',
+      'h-4 w-4 shrink-0 text-text-primary',
     );
 
     await unmountModal(root);
@@ -320,11 +327,11 @@ describe('ModelEnvConfigModal', () => {
     const { container, root } = await renderModal(VALID_ENV_TEXT);
 
     await act(async () => {
-      getButtonByText(container, 'Form').click();
+      getButtonByText(container, 'Form Style').click();
       await Promise.resolve();
     });
     await act(async () => {
-      getButtonByText(container, 'Text').click();
+      getButtonByText(container, '.env Style').click();
       await Promise.resolve();
     });
     await act(async () => {
@@ -366,7 +373,7 @@ describe('ModelEnvConfigModal', () => {
       'Test failed',
     );
     expect(getConnectivityButton(container).innerHTML).toContain(
-      'text-black leading-[16px]',
+      'text-text-primary leading-[16px]',
     );
     expect(getConnectivityButton(container).innerHTML).not.toContain(
       'model-env-connectivity.svg',
@@ -438,8 +445,8 @@ describe('ModelEnvConfigModal', () => {
     expect(html).toContain('flex flex-col gap-[24px]');
     expect(html).toContain('h-[61px]');
     expect(html).toContain('h-[36px] px-[12px]');
-    expect(html).toContain('mt-[20px]');
     expect(html).toContain('MIDSCENE_MODEL_API_KEY');
+    expect(html).not.toContain('The format is KEY=VALUE');
 
     const wrapper = document.createElement('div');
     wrapper.innerHTML = html;
@@ -447,12 +454,12 @@ describe('ModelEnvConfigModal', () => {
       wrapper.querySelectorAll('div[aria-hidden="true"]'),
     ).find((element) => element.textContent === 'MIDSCENE_MODEL_BASE_URL');
     expect(baseUrlLabel?.className).toContain('text-[14px]');
-    expect(baseUrlLabel?.className).toContain('text-black/90');
+    expect(baseUrlLabel?.className).toContain('text-text-primary');
 
     const formTab = Array.from(wrapper.querySelectorAll('button')).find(
-      (button) => button.textContent === 'Form',
+      (button) => button.textContent === 'Form Style',
     );
-    expect(formTab?.className).toContain('rounded-[40px]');
+    expect(formTab?.className).toContain('rounded-[30px]');
     expect(formTab?.className).not.toContain('rounded-[10px]');
   });
 });
