@@ -42,6 +42,7 @@ export class IOSDevice implements AbstractInterface {
   private deviceId: string;
   private devicePixelRatio = 1;
   private devicePixelRatioInitialized = false;
+  private cachedScreenSize: Size | null = null;
   private destroyed = false;
   private description: string | undefined;
   private customActions?: DeviceAction<any>[];
@@ -394,7 +395,19 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     // Ensure device pixel ratio is initialized
     await this.initializeDevicePixelRatio();
 
-    const windowSize = await this.wdaBackend.getWindowSize();
+    let windowSize: Size;
+    try {
+      windowSize = await this.wdaBackend.getWindowSize();
+      this.cachedScreenSize = windowSize;
+    } catch (error) {
+      if (!this.cachedScreenSize) {
+        throw error;
+      }
+      debugDevice(
+        `Failed to get iOS window size from WDA, using cached size: ${error}`,
+      );
+      windowSize = this.cachedScreenSize;
+    }
 
     return {
       width: windowSize.width,
