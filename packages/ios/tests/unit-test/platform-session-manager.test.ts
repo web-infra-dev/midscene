@@ -43,21 +43,25 @@ describe('iosPlaygroundPlatform session manager', () => {
     expect(setup?.fields).toMatchObject([
       { key: 'host', defaultValue: 'localhost' },
       { key: 'port', defaultValue: 8100 },
+      { key: 'sessionId', required: false },
     ]);
 
     const created = await prepared.sessionManager?.createSession({
       host: 'localhost',
       port: 8100,
+      sessionId: 'external-session-id',
     });
 
     expect(created?.displayName).toBe('iPhone 16 (Simulator)');
     expect(created?.metadata).toMatchObject({
       wdaHost: 'localhost',
       wdaPort: 8100,
+      sessionId: 'external-session-id',
     });
     expect(agentFromWebDriverAgentMock).toHaveBeenCalledWith({
       wdaHost: 'localhost',
       wdaPort: 8100,
+      sessionId: 'external-session-id',
     });
   });
 

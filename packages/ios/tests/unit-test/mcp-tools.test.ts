@@ -48,13 +48,18 @@ describe('IOSMidsceneTools', () => {
     expect(takeScreenshotTool).toBeDefined();
 
     await takeScreenshotTool?.handler({
-      ios: { deviceId: 'ios-target', 'wda-port': 8100 },
+      ios: {
+        deviceId: 'ios-target',
+        'wda-port': 8100,
+        sessionId: 'external-session-id',
+      },
     });
 
     expect(agentFromWebDriverAgent).toHaveBeenCalledWith({
       autoDismissKeyboard: false,
       deviceId: 'ios-target',
       wdaPort: 8100,
+      sessionId: 'external-session-id',
     });
   });
 
@@ -102,12 +107,14 @@ describe('IOSMidsceneTools', () => {
       expect.objectContaining({
         'ios.deviceId': expect.anything(),
         'ios.wdaPort': expect.anything(),
+        'ios.sessionId': expect.anything(),
       }),
     );
     expect(actTool?.schema).toEqual(
       expect.objectContaining({
         'ios.deviceId': expect.anything(),
         'ios.wdaPort': expect.anything(),
+        'ios.sessionId': expect.anything(),
       }),
     );
   });

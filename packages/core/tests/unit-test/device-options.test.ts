@@ -57,6 +57,7 @@ describe('Device Options Type Definitions', () => {
         iOSDeviceClassOverride: '@private-package/ios',
         wdaPort: 8100,
         wdaHost: 'localhost',
+        sessionId: 'external-session-id',
         useWDA: true,
         autoDismissKeyboard: true,
       };
@@ -132,6 +133,7 @@ describe('Device Options Type Definitions', () => {
         iOSDeviceClassOverride: '@private-package/ios',
         wdaPort: 8100,
         wdaHost: 'localhost',
+        sessionId: 'external-session-id',
         useWDA: true,
         autoDismissKeyboard: true,
 

@@ -20,6 +20,10 @@ const iosInitArgShape = {
     .optional()
     .describe('WebDriverAgent host, defaults to localhost'),
   wdaPort: z.number().optional().describe('WebDriverAgent port'),
+  sessionId: z
+    .string()
+    .optional()
+    .describe('Existing WebDriverAgent session ID to reuse'),
   useWDA: z
     .boolean()
     .optional()
@@ -32,7 +36,7 @@ const iosInitArgShape = {
 
 type IOSInitArgs = Pick<
   IOSDeviceOpt,
-  'deviceId' | 'wdaHost' | 'wdaPort' | 'useWDA' | 'wdaMjpegPort'
+  'deviceId' | 'wdaHost' | 'wdaPort' | 'sessionId' | 'useWDA' | 'wdaMjpegPort'
 >;
 
 /**
