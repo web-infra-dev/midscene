@@ -1301,10 +1301,9 @@ When prompting with images, it is necessary to pay attention to the requirements
 
 ### CLI usage
 
-The platform CLIs (`@midscene/android`, `@midscene/web`, `@midscene/ios`, `@midscene/harmony`, …) expose the same multimodal prompt on the `assert` subcommand through three additional flags:
+The platform CLIs (`@midscene/android`, `@midscene/web`, `@midscene/ios`, `@midscene/harmony`, …) accept the same multimodal payload on the `assert` subcommand. The flag names mirror the JS SDK fields one-to-one:
 
-- `--images` — JSON array of `{ "name", "url" }` objects. `url` can be an http(s) URL or a `data:` URI.
-- `--imageFiles` — Comma-separated list (or JSON array) of local image paths. The CLI reads each file and base64-encodes it as a `data:` URI before sending.
+- `--images` — JSON array of `{ "name", "url" }`. Each `url` may be an http(s) URL, a `data:` URI, or a local file path. `@midscene/core` resolves all three forms.
 - `--convertHttpImage2Base64` — Pass `true` to convert http(s) image URLs to base64 before sending to the model. Useful when the URL is not publicly reachable from the model provider.
 
 Example — pass an external reference image:
@@ -1315,12 +1314,12 @@ npx @midscene/android assert \
   --images '[{"name":"badge","url":"https://example.com/badge.png"}]'
 ```
 
-Example — read a local screenshot from disk:
+Example — reference a local screenshot:
 
 ```shell
 npx @midscene/android assert \
   --prompt "the visible badge matches the local screenshot" \
-  --imageFiles ./fixtures/badge.png
+  --images '[{"name":"badge","url":"./fixtures/badge.png"}]'
 ```
 
 > The `act` subcommand is currently text-only. Use `assert` when you need to reference images.

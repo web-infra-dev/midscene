@@ -1,5 +1,3 @@
-import { existsSync, readFileSync } from 'node:fs';
-import * as path from 'node:path';
 import { parseBase64 } from '@midscene/shared/img';
 import { z } from 'zod';
 import {
@@ -548,15 +546,6 @@ export function generateToolsFromActionSpace(
 
 type PromptReferenceImage = { name: string; url: string };
 
-const IMAGE_MIME_BY_EXT: Record<string, string> = {
-  png: 'image/png',
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  webp: 'image/webp',
-  gif: 'image/gif',
-  bmp: 'image/bmp',
-};
-
 function isReferenceImage(value: unknown): value is PromptReferenceImage {
   return (
     isRecord(value) &&
@@ -591,63 +580,6 @@ function parseImagesValue(raw: unknown): PromptReferenceImage[] {
   return [];
 }
 
-function parseImageFilesValue(raw: unknown): string[] {
-  if (raw === undefined || raw === null) return [];
-
-  if (Array.isArray(raw)) {
-    return raw.filter(
-      (p): p is string => typeof p === 'string' && p.length > 0,
-    );
-  }
-
-  if (typeof raw === 'string') {
-    const trimmed = raw.trim();
-    if (!trimmed) return [];
-    if (trimmed.startsWith('[')) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        if (Array.isArray(parsed)) {
-          return parsed.filter(
-            (p): p is string => typeof p === 'string' && p.length > 0,
-          );
-        }
-      } catch {
-        // fall through to comma split
-      }
-    }
-    return trimmed
-      .split(',')
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0);
-  }
-
-  return [];
-}
-
-function readLocalImageAsReference(filePath: string): PromptReferenceImage {
-  const absolute = path.isAbsolute(filePath)
-    ? filePath
-    : path.resolve(process.cwd(), filePath);
-
-  if (!existsSync(absolute)) {
-    throw new Error(`imageFiles: file not found: ${filePath}`);
-  }
-
-  const ext = path.extname(absolute).slice(1).toLowerCase();
-  const mimeType = IMAGE_MIME_BY_EXT[ext];
-  if (!mimeType) {
-    throw new Error(
-      `imageFiles: unsupported image extension ".${ext}" for ${filePath}. Supported: ${Object.keys(IMAGE_MIME_BY_EXT).join(', ')}`,
-    );
-  }
-
-  const buf = readFileSync(absolute);
-  return {
-    name: path.basename(absolute),
-    url: `data:${mimeType};base64,${buf.toString('base64')}`,
-  };
-}
-
 function coerceBoolean(value: unknown): boolean | undefined {
   if (value === undefined || value === null) return undefined;
   if (typeof value === 'boolean') return value;
@@ -660,31 +592,32 @@ function coerceBoolean(value: unknown): boolean | undefined {
 }
 
 /**
- * Build a TUserPrompt-compatible value from CLI/MCP-style fields.
+ * Build a TUserPrompt-compatible value from the CLI/MCP `assert` input.
  *
- * Returns the plain prompt string when no images are supplied so existing
- * callers see no behavior change; otherwise returns an object that the
- * underlying agent's `aiAction` / `aiAssert` will accept verbatim.
+ * Field names mirror the JS SDK (`prompt`, `images`, `convertHttpImage2Base64`)
+ * so calls stay one-to-one with `agent.aiAssert({ prompt, images, ... })`. Each
+ * image's `url` may be an http(s) URL, a `data:` URI, or a local file path —
+ * `@midscene/core` resolves all three via `preProcessImageUrl`, so the CLI
+ * does not need a separate local-file flag.
+ *
+ * Returns the bare prompt string when no images are supplied, preserving
+ * existing behavior for plain text assertions.
  */
 export function composeUserPrompt(input: {
   prompt: string;
   images?: unknown;
-  imageFiles?: unknown;
   convertHttpImage2Base64?: unknown;
 }): UserPromptLike {
-  const directImages = parseImagesValue(input.images);
-  const localFiles = parseImageFilesValue(input.imageFiles);
-  const fileImages = localFiles.map(readLocalImageAsReference);
-  const allImages = [...directImages, ...fileImages];
+  const images = parseImagesValue(input.images);
   const convertFlag = coerceBoolean(input.convertHttpImage2Base64);
 
-  if (allImages.length === 0 && convertFlag === undefined) {
+  if (images.length === 0 && convertFlag === undefined) {
     return input.prompt;
   }
 
   const payload: Exclude<UserPromptLike, string> = { prompt: input.prompt };
-  if (allImages.length > 0) {
-    payload.images = allImages;
+  if (images.length > 0) {
+    payload.images = images;
   }
   if (convertFlag !== undefined) {
     payload.convertHttpImage2Base64 = convertFlag;
@@ -700,13 +633,7 @@ const promptInputExtraSchema = {
     ])
     .optional()
     .describe(
-      'Reference images. JSON array of { "name", "url" }, where url is an http(s) URL or a data: URI.',
-    ),
-  imageFiles: z
-    .union([z.string(), z.array(z.string())])
-    .optional()
-    .describe(
-      'Local image file paths. JSON array or comma-separated list. CLI reads and base64-encodes each file before sending.',
+      'Reference images. JSON array of { "name", "url" }. Each url may be an http(s) URL, a data: URI, or a local file path (resolved by @midscene/core).',
     ),
   convertHttpImage2Base64: z
     .union([z.boolean(), z.string()])
@@ -820,7 +747,6 @@ export function generateCommonTools(
           const userPrompt = composeUserPrompt({
             prompt,
             images: args.images,
-            imageFiles: args.imageFiles,
             convertHttpImage2Base64: args.convertHttpImage2Base64,
           });
           await agent.aiAssert(userPrompt);

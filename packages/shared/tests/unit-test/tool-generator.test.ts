@@ -1,12 +1,9 @@
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import {
   composeUserPrompt,
   generateCommonTools,
   generateToolsFromActionSpace,
 } from '@/mcp/tool-generator';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 const multimodalPromptSchema = z.object({
@@ -321,18 +318,7 @@ describe('generateToolsFromActionSpace', () => {
 });
 
 describe('composeUserPrompt', () => {
-  let tmpDir: string;
-
-  beforeEach(() => {
-    tmpDir = join(tmpdir(), `mcp-compose-prompt-${Date.now()}`);
-    mkdirSync(tmpDir, { recursive: true });
-  });
-
-  afterEach(() => {
-    rmSync(tmpDir, { recursive: true, force: true });
-  });
-
-  it('returns the bare string when no image inputs are provided', () => {
+  it('returns the bare string when no images are supplied', () => {
     expect(composeUserPrompt({ prompt: 'just text' })).toBe('just text');
   });
 
@@ -347,7 +333,7 @@ describe('composeUserPrompt', () => {
     });
   });
 
-  it('accepts a native images array', () => {
+  it('accepts a native images array with convertHttpImage2Base64', () => {
     const result = composeUserPrompt({
       prompt: 'p',
       images: [{ name: 'a', url: 'https://x/a.png' }],
@@ -360,62 +346,28 @@ describe('composeUserPrompt', () => {
     });
   });
 
-  it('reads imageFiles from disk and inlines them as data URIs', () => {
-    const filePath = join(tmpDir, 'red.png');
-    writeFileSync(filePath, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
-
+  it('passes a local file path through verbatim (core resolves it)', () => {
+    // SDK contract: each image url may be http(s), data: URI, or a local path.
+    // The CLI does not pre-resolve local files; @midscene/core does that via
+    // preProcessImageUrl during the actual model call.
     const result = composeUserPrompt({
       prompt: 'find the red marker',
-      imageFiles: filePath,
+      images: '[{"name":"marker","url":"./fixtures/red.png"}]',
     });
 
-    expect(result).toMatchObject({
+    expect(result).toEqual({
       prompt: 'find the red marker',
-      images: [
-        {
-          name: 'red.png',
-          url: expect.stringMatching(/^data:image\/png;base64,/),
-        },
-      ],
+      images: [{ name: 'marker', url: './fixtures/red.png' }],
     });
   });
 
-  it('parses comma-separated imageFiles', () => {
-    const a = join(tmpDir, 'a.jpg');
-    const b = join(tmpDir, 'b.jpeg');
-    writeFileSync(a, Buffer.from([0xff, 0xd8]));
-    writeFileSync(b, Buffer.from([0xff, 0xd8]));
-
+  it('coerces stringified booleans for convertHttpImage2Base64', () => {
     const result = composeUserPrompt({
-      prompt: 'merge a and b',
-      imageFiles: `${a},${b}`,
-    }) as { images: { name: string; url: string }[] };
-
-    expect(result.images.map((image) => image.name)).toEqual([
-      'a.jpg',
-      'b.jpeg',
-    ]);
-    for (const image of result.images) {
-      expect(image.url).toMatch(/^data:image\/jpeg;base64,/);
-    }
-  });
-
-  it('throws a clear error when an imageFile is missing', () => {
-    expect(() =>
-      composeUserPrompt({
-        prompt: 'p',
-        imageFiles: join(tmpDir, 'does-not-exist.png'),
-      }),
-    ).toThrow(/imageFiles: file not found/);
-  });
-
-  it('throws for unsupported imageFile extensions', () => {
-    const filePath = join(tmpDir, 'note.txt');
-    writeFileSync(filePath, 'hello');
-
-    expect(() =>
-      composeUserPrompt({ prompt: 'p', imageFiles: filePath }),
-    ).toThrow(/imageFiles: unsupported image extension/);
+      prompt: 'p',
+      images: [{ name: 'a', url: 'https://x/a.png' }],
+      convertHttpImage2Base64: 'true',
+    });
+    expect(result).toMatchObject({ convertHttpImage2Base64: true });
   });
 
   it('throws when images is a non-JSON string', () => {
@@ -462,7 +414,7 @@ describe('generateCommonTools — assert image prompts', () => {
     });
   });
 
-  it('forwards imageFiles to aiAssert encoded as data URIs', async () => {
+  it('forwards a local-path url verbatim so core can resolve it', async () => {
     const aiAssert = vi.fn().mockResolvedValue(undefined);
     const tools = generateCommonTools(async () => ({
       aiAssert,
@@ -470,35 +422,19 @@ describe('generateCommonTools — assert image prompts', () => {
       page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
     }));
 
-    const dir = join(tmpdir(), `assert-imgfiles-${Date.now()}`);
-    mkdirSync(dir, { recursive: true });
-    const filePath = join(dir, 'badge.png');
-    writeFileSync(filePath, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+    const assert = tools.find((t) => t.name === 'assert')!;
+    await assert.handler({
+      prompt: 'the visible badge matches the supplied image',
+      images: '[{"name":"badge","url":"./fixtures/badge.png"}]',
+    });
 
-    try {
-      const assert = tools.find((t) => t.name === 'assert')!;
-      await assert.handler({
-        prompt: 'the visible badge matches the supplied image',
-        imageFiles: filePath,
-      });
-
-      expect(aiAssert).toHaveBeenCalledTimes(1);
-      const [arg] = aiAssert.mock.calls[0];
-      expect(arg).toMatchObject({
-        prompt: 'the visible badge matches the supplied image',
-        images: [
-          {
-            name: 'badge.png',
-            url: expect.stringMatching(/^data:image\/png;base64,/),
-          },
-        ],
-      });
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
+    expect(aiAssert).toHaveBeenCalledWith({
+      prompt: 'the visible badge matches the supplied image',
+      images: [{ name: 'badge', url: './fixtures/badge.png' }],
+    });
   });
 
-  it('exposes images, imageFiles, and convertHttpImage2Base64 on the assert schema', () => {
+  it('exposes images and convertHttpImage2Base64 on the assert schema (no imageFiles flag)', () => {
     const tools = generateCommonTools(async () => ({
       getActionSpace: vi.fn().mockResolvedValue([]),
       page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
@@ -507,8 +443,8 @@ describe('generateCommonTools — assert image prompts', () => {
     const assertSchema = tools.find((t) => t.name === 'assert')!.schema;
     expect(assertSchema).toHaveProperty('prompt');
     expect(assertSchema).toHaveProperty('images');
-    expect(assertSchema).toHaveProperty('imageFiles');
     expect(assertSchema).toHaveProperty('convertHttpImage2Base64');
+    expect(assertSchema).not.toHaveProperty('imageFiles');
 
     // act schema stays string-only because the underlying core aiAct
     // does not yet parse multimodal prompts.
