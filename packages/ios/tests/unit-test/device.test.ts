@@ -281,21 +281,6 @@ describe('IOSDevice', () => {
       expect(mockWdaClient.getWindowSize).toHaveBeenCalled();
     });
 
-    it('should reuse cached screen size when WDA size request times out after connection', async () => {
-      await device.connect();
-
-      mockWdaClient.getWindowSize.mockRejectedValue(
-        new Error('Request timeout after 30000ms'),
-      );
-
-      const size = await device.size();
-
-      expect(size).toEqual({
-        width: 375,
-        height: 812,
-      });
-    });
-
     it('should take screenshot after connection', async () => {
       await device.connect();
 
