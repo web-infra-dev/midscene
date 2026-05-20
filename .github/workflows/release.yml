@@ -11,10 +11,13 @@ on:
         required: true
         default: 'main'
 
-# Add permissions for creating releases
+# Add permissions for creating releases.
+# `id-token: write` is required for npm Trusted Publishers (OIDC) and for
+# Sigstore provenance signing on `npm publish --provenance`.
 permissions:
   contents: write
   packages: write
+  id-token: write
 
 jobs:
   release:
@@ -49,13 +52,17 @@ jobs:
     - name: Setup pnpm
       uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
       with:
-        version: 9.3.0
+        # 9.5+ understands `--provenance`; pnpm forwards the actual publish
+        # to the bundled npm CLI so Trusted Publisher OIDC exchange (npm 11.x)
+        # works without an NPM_TOKEN.
+        version: 9.15.9
 
     - name: Setup Node.js
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: '24.13.0'
         cache: 'pnpm'
+        registry-url: 'https://registry.npmjs.org'
 
     - name: Cache Puppeteer
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
@@ -84,10 +91,12 @@ jobs:
         sudo apt-get install -y cmake pkg-config freerdp3-dev
 
     - name: release
+      # Auth to npm uses npm Trusted Publishers via the OIDC token from
+      # `id-token: write`. No NPM_TOKEN is needed; the npm CLI bundled with
+      # Node 24.x exchanges the GitHub OIDC token for a short-lived publish
+      # token at request time.
       run: node ./scripts/release.js --version=${{ github.event.inputs.version }}
-      env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-    
+
     - name: Get version from core package
       id: get_version
       run: |
