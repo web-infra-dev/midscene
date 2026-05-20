@@ -8,7 +8,7 @@ import { launchPage } from './utils';
 
 const GITHUB_LOGO_FIXTURE = path.resolve(
   __dirname,
-  '../playwright/__fixtures__/github-logo.png',
+  '../../fixtures/github-logo.png',
 );
 
 /**

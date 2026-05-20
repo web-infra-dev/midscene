@@ -1,8 +1,8 @@
 import {
-  composeUserPrompt,
   generateCommonTools,
   generateToolsFromActionSpace,
 } from '@/mcp/tool-generator';
+import { composeUserPrompt } from '@/mcp/user-prompt';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -370,10 +370,67 @@ describe('composeUserPrompt', () => {
     expect(result).toMatchObject({ convertHttpImage2Base64: true });
   });
 
+  it('throws when convertHttpImage2Base64 is an unrecognized string', () => {
+    expect(() =>
+      composeUserPrompt({
+        prompt: 'p',
+        images: [{ name: 'a', url: 'https://x/a.png' }],
+        convertHttpImage2Base64: 'maybe',
+      }),
+    ).toThrow(/convertHttpImage2Base64/);
+  });
+
   it('throws when images is a non-JSON string', () => {
     expect(() =>
       composeUserPrompt({ prompt: 'p', images: 'not-json' }),
-    ).toThrow(/images: expected a JSON array/);
+    ).toThrow(/images:/);
+  });
+
+  it('throws when an images array entry is missing name or url', () => {
+    expect(() =>
+      composeUserPrompt({
+        prompt: 'p',
+        images: '[{"name":"x"}]',
+      }),
+    ).toThrow(/images\[0\]/);
+  });
+
+  it('throws when an images array entry contains a non-reference item', () => {
+    expect(() =>
+      composeUserPrompt({
+        prompt: 'p',
+        images: [{ name: 'a', url: 'https://x/a.png' }, 'junk'],
+      }),
+    ).toThrow(/images\[1\]/);
+  });
+
+  it('strips unknown fields from image entries before forwarding', () => {
+    const result = composeUserPrompt({
+      prompt: 'p',
+      images: [
+        {
+          name: 'a',
+          url: 'https://x/a.png',
+          secret: 'should-not-propagate',
+        } as unknown as { name: string; url: string },
+      ],
+    });
+    expect(result).toEqual({
+      prompt: 'p',
+      images: [{ name: 'a', url: 'https://x/a.png' }],
+    });
+  });
+
+  it('throws when images JSON is not an array', () => {
+    expect(() =>
+      composeUserPrompt({ prompt: 'p', images: '{"name":"x","url":"y"}' }),
+    ).toThrow(/non-array JSON/);
+  });
+
+  it('throws when images is neither a string nor an array', () => {
+    expect(() =>
+      composeUserPrompt({ prompt: 'p', images: 42 as unknown as string }),
+    ).toThrow(/got number/);
   });
 });
 

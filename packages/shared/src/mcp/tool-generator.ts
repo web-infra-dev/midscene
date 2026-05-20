@@ -14,8 +14,10 @@ import type {
   ToolDefinition,
   ToolResult,
   ToolSchema,
-  UserPromptLike,
 } from './types';
+import { composeUserPrompt, promptInputExtraSchema } from './user-prompt';
+
+export { composeUserPrompt };
 
 /**
  * Generate MCP tool description from ActionSpaceItem
@@ -543,105 +545,6 @@ export function generateToolsFromActionSpace(
     };
   });
 }
-
-type PromptReferenceImage = { name: string; url: string };
-
-function isReferenceImage(value: unknown): value is PromptReferenceImage {
-  return (
-    isRecord(value) &&
-    typeof value.name === 'string' &&
-    typeof value.url === 'string'
-  );
-}
-
-function parseImagesValue(raw: unknown): PromptReferenceImage[] {
-  if (raw === undefined || raw === null) return [];
-
-  if (Array.isArray(raw)) {
-    return raw.filter(isReferenceImage);
-  }
-
-  if (typeof raw === 'string') {
-    const trimmed = raw.trim();
-    if (!trimmed) return [];
-    try {
-      const parsed = JSON.parse(trimmed);
-      if (Array.isArray(parsed)) {
-        return parsed.filter(isReferenceImage);
-      }
-    } catch {
-      // not JSON
-    }
-    throw new Error(
-      'images: expected a JSON array of { name, url } objects (got a non-array string).',
-    );
-  }
-
-  return [];
-}
-
-function coerceBoolean(value: unknown): boolean | undefined {
-  if (value === undefined || value === null) return undefined;
-  if (typeof value === 'boolean') return value;
-  if (typeof value === 'string') {
-    const v = value.trim().toLowerCase();
-    if (v === 'true' || v === '1') return true;
-    if (v === 'false' || v === '0') return false;
-  }
-  return undefined;
-}
-
-/**
- * Build a TUserPrompt-compatible value from the CLI/MCP `assert` input.
- *
- * Field names mirror the JS SDK (`prompt`, `images`, `convertHttpImage2Base64`)
- * so calls stay one-to-one with `agent.aiAssert({ prompt, images, ... })`. Each
- * image's `url` may be an http(s) URL, a `data:` URI, or a local file path —
- * `@midscene/core` resolves all three via `preProcessImageUrl`, so the CLI
- * does not need a separate local-file flag.
- *
- * Returns the bare prompt string when no images are supplied, preserving
- * existing behavior for plain text assertions.
- */
-export function composeUserPrompt(input: {
-  prompt: string;
-  images?: unknown;
-  convertHttpImage2Base64?: unknown;
-}): UserPromptLike {
-  const images = parseImagesValue(input.images);
-  const convertFlag = coerceBoolean(input.convertHttpImage2Base64);
-
-  if (images.length === 0 && convertFlag === undefined) {
-    return input.prompt;
-  }
-
-  const payload: Exclude<UserPromptLike, string> = { prompt: input.prompt };
-  if (images.length > 0) {
-    payload.images = images;
-  }
-  if (convertFlag !== undefined) {
-    payload.convertHttpImage2Base64 = convertFlag;
-  }
-  return payload;
-}
-
-const promptInputExtraSchema = {
-  images: z
-    .union([
-      z.string(),
-      z.array(z.object({ name: z.string(), url: z.string() })),
-    ])
-    .optional()
-    .describe(
-      'Reference images. JSON array of { "name", "url" }. Each url may be an http(s) URL, a data: URI, or a local file path (resolved by @midscene/core).',
-    ),
-  convertHttpImage2Base64: z
-    .union([z.boolean(), z.string()])
-    .optional()
-    .describe(
-      'If true, convert http(s) image URLs to base64 before sending to the model.',
-    ),
-};
 
 /**
  * Generate common tools (screenshot, act)

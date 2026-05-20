@@ -49,7 +49,7 @@ test('prompting with images', async ({
     images: [
       {
         name: 'logo1',
-        url: path.resolve(__dirname, '__fixtures__/github-logo.png'),
+        url: path.resolve(__dirname, '../../fixtures/github-logo.png'),
       },
     ],
   });
@@ -59,7 +59,7 @@ test('prompting with images', async ({
     images: [
       {
         name: 'logo1',
-        url: path.resolve(__dirname, '__fixtures__/github-logo.png'),
+        url: path.resolve(__dirname, '../../fixtures/github-logo.png'),
       },
     ],
   });
@@ -86,7 +86,7 @@ test('does not treat reference image content as current screenshot content', asy
     images: [
       {
         name: 'github-logo',
-        url: path.resolve(__dirname, '__fixtures__/github-logo.png'),
+        url: path.resolve(__dirname, '../../fixtures/github-logo.png'),
       },
     ],
   });
@@ -98,7 +98,7 @@ test('does not treat reference image content as current screenshot content', asy
     images: [
       {
         name: 'github-logo',
-        url: path.resolve(__dirname, '__fixtures__/github-logo.png'),
+        url: path.resolve(__dirname, '../../fixtures/github-logo.png'),
       },
     ],
   });
