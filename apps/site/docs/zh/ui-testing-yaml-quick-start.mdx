@@ -1,0 +1,149 @@
+import SetupEnv from './common/setup-env.mdx';
+
+# 使用 YAML 编写 UI 测试
+
+YAML 是把用户路径变成可运行 Midscene 测试的最快方式。你描述 target 和 flow，Midscene 负责 UI 理解、执行、截图和报告。
+
+这篇文档只讲最短路径。完整 YAML schema 请查看 [YAML 格式的工作流](./automate-with-scripts-in-yaml)。
+
+<SetupEnv />
+
+## 创建第一个 Web 测试
+
+创建 `bing-search.yaml`：
+
+```yaml
+web:
+  url: https://www.bing.com
+
+tasks:
+  - name: 搜索天气
+    flow:
+      - aiAct: 搜索 "今日天气"
+      - aiAssert: 结果页展示了天气信息
+```
+
+运行：
+
+```bash
+midscene ./bing-search.yaml
+```
+
+Midscene 会打印执行进度，并在运行结束后生成可视化报告。报告是主要调试入口：它记录截图、任务状态、AI 动作和失败断言。
+
+## YAML 结构
+
+一个 YAML 测试主要包含三部分：
+
+```yaml
+web:
+  url: https://www.bing.com
+
+agent:
+  aiActContext: 如果出现 Cookie 弹窗，点击接受。
+
+tasks:
+  - name: 搜索天气
+    flow:
+      - aiAct: 搜索 "今日天气"
+      - aiWaitFor: 结果页加载完成
+      - aiAssert: 结果页展示了天气信息
+```
+
+- `web`、`android`、`ios` 或 `computer` 选择 target。
+- `agent` 配置 Midscene Agent 行为、报告和缓存选项。
+- `tasks` 包含命名流程。
+- `flow` 包含实际 UI 步骤。
+
+## 常用步骤
+
+| 步骤 | 适用场景 |
+| --- | --- |
+| `aiAct` | 用自然语言让 Midscene 执行 UI 动作 |
+| `aiAssert` | 检查 UI 是否满足自然语言条件 |
+| `aiWaitFor` | 等待某个 UI 条件成立 |
+| `aiQuery` | 从 UI 中提取结构化信息 |
+| `sleep` | 固定等待一段毫秒数 |
+| `javascript` | 在 Web 页面上下文中运行 JavaScript |
+
+步骤应描述用户意图，而不是实现细节。优先写“打开第一个商品”，不要写“点击第三个 `.card` 元素”。
+
+## Android 示例
+
+```yaml
+android:
+  deviceId: ${ANDROID_DEVICE_ID}
+  launch: com.example.app
+
+tasks:
+  - name: 验证首页
+    flow:
+      - aiAct: 如果出现权限弹窗就关闭
+      - aiAssert: 首页主内容区域可见
+```
+
+Android flow 也可以使用平台专属动作：
+
+```yaml
+tasks:
+  - name: 重置应用
+    flow:
+      - runAdbShell: pm clear com.example.app
+      - launch: com.example.app
+      - aiAssert: 新手引导页可见
+```
+
+## iOS 示例
+
+```yaml
+ios:
+  wdaPort: 8100
+  launch: com.apple.mobilesafari
+
+tasks:
+  - name: 打开网站
+    flow:
+      - aiAct: 聚焦地址栏并打开 https://www.bing.com
+      - aiAssert: Bing 搜索页可见
+```
+
+## Computer 示例
+
+```yaml
+computer: {}
+
+tasks:
+  - name: 从桌面浏览器搜索
+    flow:
+      - aiAct: 按下 Cmd+Space
+      - aiAct: 输入 "Safari" 并按回车
+      - aiAct: 聚焦地址栏并打开 https://www.bing.com
+      - aiAct: 搜索 "今日天气"
+      - aiAssert: 结果页展示了天气信息
+```
+
+如果驱动 Windows 或 Linux，请调整对应键盘快捷键。
+
+## 运行多个测试
+
+```bash
+midscene --files ./login.yaml './smoke/**/*.yaml'
+```
+
+并发运行互不依赖的文件，并在失败后继续：
+
+```bash
+midscene --files './smoke/**/*.yaml' --concurrent 4 --continue-on-error
+```
+
+完整 CLI 行为，包括 `.env`、headed 模式、CDP、Chrome bridge 模式、summary 文件和 config 文件，请查看 [YAML 脚本运行器](./yaml-script-runner)。
+
+## 什么时候超出 YAML
+
+YAML 应该描述 UI 旅程。当逻辑比视觉判断更确定时，把它移出 YAML：
+
+- 登录、SSO、Cookie、账号和设备放到 setup 脚本或 fixture。
+- 接口、数据库、埋点和金额校验放到代码断言。
+- CI、报告留存和批量执行放到 CLI 或 CI 配置。
+
+项目级工作流请继续阅读[用 Midscene 工程化 UI 测试](./ui-testing-engineering)。

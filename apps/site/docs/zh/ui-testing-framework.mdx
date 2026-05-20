@@ -1,0 +1,120 @@
+# AI 原生 UI Testing Framework
+
+Midscene 帮助团队围绕用户意图构建 UI 测试，而不是围绕脆弱的选择器构建测试。自然语言步骤描述用户想完成什么，脚本、setup、CLI 和报告则把这套流程支撑成可维护的测试工程。
+
+这篇文档介绍框架视角。如果你想直接跑第一个测试，可以从[使用 YAML 编写 UI 测试](./ui-testing-yaml-quick-start)开始。
+
+## 从 Smoke Test 到测试工程
+
+大多数业务不会一开始就建设完整测试工程。更常见的起点是 Smoke Test：先用最小成本验证关键路径是否可用，快速跑通比完整抽象更重要。只有当这些 case 开始反复运行、进入日常回归，登录态、账号、Cookie、设备、环境变量和报告配置才会自然浮现出来。
+
+所以 Midscene 的 UI Testing Framework 应该沿着三步展开：
+
+- 先让 Smoke Test 足够轻：业务同学或测试同学可以直接写 YAML case，把核心路径跑起来，并拿到可回放报告。
+- 再提供适当的配置能力：测试项目需要能处理模型配置、运行参数、登录态、测试数据、设备和报告输出，而不是把这些工程细节塞进自然语言步骤。
+- 最后支持灵活定制的测试项目：当团队要接 CI、内部工具、fixture、接口校验和数据库校验时，可以导出并接管一个标准测试工程。
+
+这条路径的关键不是把所有能力一次性暴露出来，而是让用户在每个阶段都有刚好够用的形态。
+
+| 阶段 | 适合场景 | 推荐形态 |
+| --- | --- | --- |
+| Smoke Test | 快速验证一个关键业务路径是否可用 | YAML + case。用 YAML 写出页面入口、任务步骤和断言，直接通过 CLI 运行并查看报告 |
+| 简单定制 | 测试需要登录态、账号、Cookie、设备或少量环境准备 | YAML + `setup.js`。业务路径继续留在 YAML，运行前准备放到 setup |
+| 完全自定义 | 团队要接入现有测试工程、CI、内部工具、数据校验或自定义 runner | `midscene emit` 导出独立 Rstest 工程，再按标准测试项目维护 |
+
+### 1. Smoke Test：YAML + case
+
+这个阶段只关心一件事：核心路径能不能被快速表达、运行和复盘。测试作者写 YAML，描述入口、操作和期望结果。Midscene 负责执行、截图和生成报告。
+
+```yaml
+web:
+  url: https://shop.example.com
+
+tasks:
+  - name: Guest checkout smoke test
+    flow:
+      - aiAct: Search for "running shoes"
+      - aiAct: Open the first product
+      - aiAssert: The cart page shows one product and the checkout button
+```
+
+### 2. 简单定制：YAML + setup.js
+
+当测试开始进入日常使用，通常会遇到登录态、测试账号、Cookie、设备准备、灰度环境等问题。这些内容不应该写进自然语言步骤里，而应该放在 `setup.js` 中完成。
+
+这里的 `setup.js` 指的是测试项目的运行前准备脚本。它在 YAML case 执行前运行，负责把浏览器、设备、账号或后端数据准备到正确状态。一个简单定制项目可以长这样：
+
+```text
+.
+  setup.js
+  midscene.config.yaml
+  e2e/
+    dashboard.yaml
+    checkout.yaml
+```
+
+`midscene.config.yaml` 管理模型、运行参数、报告输出和需要执行的 case；`setup.js` 管理项目自己的准备逻辑；`e2e/*.yaml` 只描述业务路径。
+
+YAML 仍然描述业务路径：
+
+```yaml
+web:
+  url: https://internal.example.com/dashboard
+
+tasks:
+  - name: Check dashboard
+    flow:
+      - aiAssert: The dashboard is loaded and user information is visible
+```
+
+`setup.js` 负责把测试带到正确的起点，例如登录、注入 Cookie、准备测试数据或连接设备。它的价值是给“确定性准备逻辑”一个明确位置，让 YAML case 仍然保持轻量：
+
+```js
+export default async function setup({ browser, context, device }) {
+  const cookies = await loginByTestAccount(process.env.TEST_ACCOUNT);
+  await context.addCookies(cookies);
+
+  await prepareTestData({
+    user: process.env.TEST_ACCOUNT,
+    scenario: 'dashboard-smoke',
+  });
+}
+```
+
+上面的代码展示的是职责边界：登录、账号、数据、设备这类工程逻辑放进 setup；“用户进入页面后要完成什么”继续留在 YAML。
+
+### 3. 完全自定义：emit 为独立 Rstest 工程
+
+当团队已经有测试平台、CI 规范、内部 fixture、数据校验和报告系统时，Midscene 不应该强迫你停留在固定 YAML runner 里。完全自定义场景的核心能力是 `emit`：把轻量 Midscene 项目导出成一个独立的 Rstest 工程。
+
+```bash
+midscene emit ./project-folder
+```
+
+导出后的项目形态类似：
+
+```text
+project-folder/
+  package.json
+  rstest.config.ts
+  setup.ts
+  e2e/
+    dashboard.test.ts
+    checkout.test.ts
+  fixtures/
+    account.ts
+    device.ts
+  reports/
+    midscene-report/
+```
+
+在这个阶段，YAML 不再是能力边界，而是迁移入口。团队可以继续保留 YAML case 的业务表达，也可以把复杂逻辑拆进 Rstest 测试文件、fixture 和内部工具里。UI 操作和视觉断言交给 Midscene，环境编排、接口校验、数据库校验和失败归因交给团队自己的代码。
+
+这个阶段的重点不是“把所有东西都写成 YAML”，而是让 Midscene 生成一个能被团队完全接管的标准测试工程。
+
+## 下一步
+
+- 跑第一个测试：[使用 YAML 编写 UI 测试](./ui-testing-yaml-quick-start)
+- 加入 setup、CI、报告和确定性校验：[用 Midscene 工程化 UI 测试](./ui-testing-engineering)
+- 查询完整 YAML 字段：[YAML 格式的工作流](./automate-with-scripts-in-yaml)
+- 查询完整 CLI 参数：[YAML 脚本运行器](./yaml-script-runner)

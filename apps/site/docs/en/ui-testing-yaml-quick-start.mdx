@@ -1,0 +1,149 @@
+import SetupEnv from './common/setup-env.mdx';
+
+# Write UI Tests with YAML
+
+YAML is the fastest way to turn a user journey into a runnable Midscene test. You describe the target and the flow. Midscene handles UI understanding, execution, screenshots, and the report.
+
+This page focuses on the shortest path. For the complete YAML schema, see [Workflow in YAML format](./automate-with-scripts-in-yaml).
+
+<SetupEnv />
+
+## Create your first Web test
+
+Create `bing-search.yaml`:
+
+```yaml
+web:
+  url: https://www.bing.com
+
+tasks:
+  - name: Search weather
+    flow:
+      - aiAct: Search for "today's weather"
+      - aiAssert: The result page shows weather information
+```
+
+Run it:
+
+```bash
+midscene ./bing-search.yaml
+```
+
+Midscene prints execution progress and generates a visual report after the run. The report is the main debugging surface: it records screenshots, task status, AI actions, and failed assertions.
+
+## YAML structure
+
+A YAML test has three main parts:
+
+```yaml
+web:
+  url: https://www.bing.com
+
+agent:
+  aiActContext: If a cookie banner appears, accept it.
+
+tasks:
+  - name: Search weather
+    flow:
+      - aiAct: Search for "today's weather"
+      - aiWaitFor: The result page is loaded
+      - aiAssert: The result page shows weather information
+```
+
+- `web`, `android`, `ios`, or `computer` selects the target.
+- `agent` configures Midscene Agent behavior, reports, and cache options.
+- `tasks` contains named flows.
+- `flow` contains the actual UI steps.
+
+## Common steps
+
+| Step | Use it for |
+| --- | --- |
+| `aiAct` | Ask Midscene to perform a UI action from natural language |
+| `aiAssert` | Check that the UI satisfies a natural-language condition |
+| `aiWaitFor` | Wait until a UI condition becomes true |
+| `aiQuery` | Extract structured information from the UI |
+| `sleep` | Wait for a fixed number of milliseconds |
+| `javascript` | Run JavaScript in a Web page context |
+
+Write steps as user intent, not implementation details. Prefer "open the first product" over "click the third `.card` element".
+
+## Android example
+
+```yaml
+android:
+  deviceId: ${ANDROID_DEVICE_ID}
+  launch: com.example.app
+
+tasks:
+  - name: Verify home page
+    flow:
+      - aiAct: Close any permission popup if it appears
+      - aiAssert: The home page main content is visible
+```
+
+Android flows can also use Android-specific actions:
+
+```yaml
+tasks:
+  - name: Reset app
+    flow:
+      - runAdbShell: pm clear com.example.app
+      - launch: com.example.app
+      - aiAssert: The onboarding page is visible
+```
+
+## iOS example
+
+```yaml
+ios:
+  wdaPort: 8100
+  launch: com.apple.mobilesafari
+
+tasks:
+  - name: Open a website
+    flow:
+      - aiAct: Focus the address bar and open https://www.bing.com
+      - aiAssert: The Bing search page is visible
+```
+
+## Computer example
+
+```yaml
+computer: {}
+
+tasks:
+  - name: Search from desktop browser
+    flow:
+      - aiAct: Press Cmd+Space
+      - aiAct: Type "Safari" and press Enter
+      - aiAct: Focus the address bar and open https://www.bing.com
+      - aiAct: Search for "today's weather"
+      - aiAssert: The result page shows weather information
+```
+
+Adjust keyboard shortcuts for Windows or Linux when driving those systems.
+
+## Run multiple tests
+
+```bash
+midscene --files ./login.yaml './smoke/**/*.yaml'
+```
+
+Run independent files concurrently and continue after failures:
+
+```bash
+midscene --files './smoke/**/*.yaml' --concurrent 4 --continue-on-error
+```
+
+For full CLI behavior, including `.env`, headed mode, CDP, Chrome bridge mode, summary files, and config files, see [YAML script runner](./yaml-script-runner).
+
+## When to move beyond YAML
+
+YAML should describe the UI journey. Move other logic out when it becomes more deterministic than visual:
+
+- Login, SSO, cookies, accounts, and devices belong in setup scripts or fixtures.
+- API, database, analytics, and amount checks belong in code assertions.
+- CI, report retention, and batch execution belong in CLI or CI configuration.
+
+See [Engineering UI tests with Midscene](./ui-testing-engineering) for the project-level workflow.

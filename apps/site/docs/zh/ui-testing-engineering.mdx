@@ -1,0 +1,149 @@
+# 用 Midscene 工程化 UI 测试
+
+YAML 能让 UI 测试快速跑起来。工程化实践负责在测试套件增长后继续保持可靠。核心规则很简单：用户可见的 UI 意图留在 YAML；确定性的环境准备和业务逻辑放到代码里。
+
+## 推荐项目形态
+
+```text
+.
+  .env
+  midscene.config.yaml
+  setup.ts
+  e2e/
+    login.yaml
+    checkout.yaml
+    mobile-smoke.yaml
+  fixtures/
+    account.ts
+    device.ts
+  reports/
+```
+
+这只是推荐形态，不是强制结构。小项目可以从一个 YAML 文件开始；更大的项目通常需要独立的 setup、fixture 和 CI 配置。
+
+## 保持边界清晰
+
+| 关注点 | 放在哪里 | 原因 |
+| --- | --- | --- |
+| 用户路径、视觉状态、弹窗处理、导航 | YAML | 自然语言简洁，并且更能适应 UI 变化 |
+| 登录、Cookie、SSO、账号、环境准备 | setup 脚本或 fixture | 这些逻辑和项目强相关，通常需要密钥或内部工具 |
+| 接口响应、数据库记录、埋点、金额计算 | JavaScript/TypeScript 断言 | 这些检查需要确定数据和精确失败信息 |
+| 批量执行、并发、summary、报告产物 | CLI 和 CI 配置 | 这是执行层关注点，不是测试意图 |
+
+## 环境配置
+
+Midscene CLI 会从命令执行目录加载 `.env`。典型文件包含模型配置：
+
+```ini filename=.env
+MIDSCENE_MODEL_BASE_URL="https://your-model-service.example.com/v1"
+MIDSCENE_MODEL_API_KEY="your API Key"
+MIDSCENE_MODEL_NAME="your model name"
+MIDSCENE_MODEL_FAMILY="your model family"
+```
+
+在 CI 中，应把敏感值放进 CI secret manager，再暴露成环境变量。需要排查本地变量加载逻辑时使用 `--dotenv-debug`；只有当 `.env` 应该覆盖已有进程环境变量时才使用 `--dotenv-override`。
+
+## 登录和 setup
+
+大多数真实测试不应该每次都手动完成登录。应在 YAML flow 开始前准备状态：
+
+- 创建或选择测试账号；
+- 完成 SSO 并注入 Cookie；
+- 安装或启动被测 App；
+- 选择 Android 或 iOS 设备；
+- 配置泳道、功能开关或内部环境；
+- 准备测试所需的后端数据。
+
+setup 完成后，让 YAML 专注于业务行为：
+
+```yaml
+web:
+  url: https://internal.example.com/dashboard
+
+tasks:
+  - name: 检查首页
+    flow:
+      - aiAssert: Dashboard 已加载，用户信息可见
+```
+
+## 批量运行和 CI
+
+使用 CLI 执行测试套件：
+
+```bash
+midscene --files './e2e/**/*.yaml' --concurrent 4 --continue-on-error --summary index.json
+```
+
+推荐保留的 CI 产物：
+
+- summary JSON 文件；
+- 每个 YAML 的运行结果；
+- 可视化报告 HTML；
+- 可用时保留应用或设备日志。
+
+即使定时任务成功，也建议保留报告。后续排查 UI 漂移和偶发失败时会更容易。
+
+## 浏览器会话
+
+Web 测试应根据所需状态选择连接模式：
+
+| 模式 | 适合场景 |
+| --- | --- |
+| 默认启动浏览器 | 干净、可重复的测试 |
+| Headed 模式 | 本地调试 |
+| CDP 连接 | 远程浏览器或托管浏览器服务 |
+| Chrome bridge 模式 | 复用桌面 Chrome 会话、Cookie、插件或内部登录态 |
+
+具体配置见 [YAML 脚本运行器](./yaml-script-runner) 和 [桥接到桌面 Chrome](./bridge-mode)。
+
+## 移动端设备
+
+移动端测试通常比 Web 测试需要更多 setup。尽量把设备管理放在 YAML 旅程之外：
+
+- 从设备池预定设备；
+- 安装目标构建产物；
+- 清理或注入 App 状态；
+- 配置网络、地区或账号数据；
+- 失败后收集设备日志。
+
+小的本地动作可以使用平台专属 YAML helper，例如 `runAdbShell`、`runWdaRequest`、`launch` 和 `terminate`。更大的设备编排应放到 setup 脚本里。
+
+## 确定性校验
+
+AI 断言适合 UI 状态：可见文本、布局含义、流程完成和视觉条件。正确性依赖精确值时，使用代码：
+
+```ts
+expect(createOrderResponse.status).toBe(200);
+expect(order.total).toBe(expectedTotal);
+expect(analyticsEvents).toContainEqual({
+  name: 'checkout_submit',
+  source: 'recommendation',
+});
+```
+
+这样失败信息会更可行动。视觉断言解释用户看到什么；代码断言解释哪个业务不变量失败。
+
+## 报告和调试
+
+测试失败时，先看报告，再改 prompt。重点检查：
+
+- 失败步骤前的截图；
+- AI 动作和断言文本；
+- 页面或 App 是否仍在加载；
+- 登录或 setup 状态是否缺失；
+- 当前检查是否应该改用代码表达精确业务规则。
+
+Prompt 修改应该澄清意图，不应该编码脆弱的布局细节，除非布局本身就是测试目标。
+
+## Agent 编排
+
+有些内部流程超过固定 runner 的边界：设备池、SSO、日志、网络工具、后端查询和报告分析。此时可以把 YAML 作为稳定测试资产，让 coding agent 或内部 runner 编排周边工具。
+
+Midscene 继续负责 UI 理解、动作执行、截图和报告。编排层负责准备环境、调用测试、收集外部证据并总结失败。
+
+## 参考文档
+
+- [使用 YAML 编写 UI 测试](./ui-testing-yaml-quick-start)
+- [YAML 格式的工作流](./automate-with-scripts-in-yaml)
+- [YAML 脚本运行器](./yaml-script-runner)
+- [将 Midscene 集成到任意界面](./integrate-with-any-interface)
