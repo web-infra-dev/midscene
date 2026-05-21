@@ -73,11 +73,13 @@ describe.skipIf(!shouldRunRealRdpTest)(
             reportFileName: makeRealReportFileName(attempt),
           });
 
-          const result = await agent.aiAct(
+          await agent.aiAct(
             'Click the Windows Start button on the remote desktop, open the Settings app, and stop only after the Windows Settings page is clearly visible in the remote screenshot.',
           );
 
-          expect(result).toBeTruthy();
+          await agent.aiAssert(
+            'The Windows Settings page is visible in the remote screenshot',
+          );
           return;
         } catch (error) {
           lastError = error;

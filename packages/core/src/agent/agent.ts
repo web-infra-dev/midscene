@@ -569,7 +569,7 @@ export class Agent<
   async aiTap(
     locatePrompt: TUserPrompt,
     opt?: LocateOption & { fileChooserAccept?: string | string[] },
-  ) {
+  ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for tap');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
@@ -578,39 +578,45 @@ export class Agent<
       ? this.normalizeFileInput(opt.fileChooserAccept)
       : undefined;
 
-    return withFileChooser(this.interface, fileChooserAccept, async () => {
-      return this.callActionInActionSpace('Tap', {
+    await withFileChooser(this.interface, fileChooserAccept, async () => {
+      await this.callActionInActionSpace('Tap', {
         locate: detailedLocateParam,
       });
     });
   }
 
-  async aiRightClick(locatePrompt: TUserPrompt, opt?: LocateOption) {
+  async aiRightClick(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption,
+  ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for right click');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
-    return this.callActionInActionSpace('RightClick', {
+    await this.callActionInActionSpace('RightClick', {
       locate: detailedLocateParam,
     });
   }
 
-  async aiDoubleClick(locatePrompt: TUserPrompt, opt?: LocateOption) {
+  async aiDoubleClick(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption,
+  ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for double click');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
-    return this.callActionInActionSpace('DoubleClick', {
+    await this.callActionInActionSpace('DoubleClick', {
       locate: detailedLocateParam,
     });
   }
 
-  async aiHover(locatePrompt: TUserPrompt, opt?: LocateOption) {
+  async aiHover(locatePrompt: TUserPrompt, opt?: LocateOption): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for hover');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
-    return this.callActionInActionSpace('Hover', {
+    await this.callActionInActionSpace('Hover', {
       locate: detailedLocateParam,
     });
   }
@@ -621,7 +627,7 @@ export class Agent<
     opt: LocateOption & { value: string | number } & {
       autoDismissKeyboard?: boolean;
     } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' },
-  ): Promise<any>;
+  ): Promise<void>;
 
   // Legacy signature - deprecated
   /**
@@ -633,7 +639,7 @@ export class Agent<
     opt?: LocateOption & { autoDismissKeyboard?: boolean } & {
       mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
     }, // AndroidDeviceInputOpt &
-  ): Promise<any>;
+  ): Promise<void>;
 
   // Implementation
   async aiInput(
@@ -693,7 +699,7 @@ export class Agent<
     // backward compat: convert deprecated 'append' to 'typeOnly'
     const mode = opt?.mode === 'append' ? 'typeOnly' : opt?.mode;
 
-    return this.callActionInActionSpace('Input', {
+    await this.callActionInActionSpace('Input', {
       ...(opt || {}),
       value: stringValue,
       locate: detailedLocateParam,
@@ -705,7 +711,7 @@ export class Agent<
   async aiKeyboardPress(
     locatePrompt: TUserPrompt,
     opt: LocateOption & { keyName: string },
-  ): Promise<any>;
+  ): Promise<void>;
 
   // Legacy signature - deprecated
   /**
@@ -715,7 +721,7 @@ export class Agent<
     keyName: string,
     locatePrompt?: TUserPrompt,
     opt?: LocateOption,
-  ): Promise<any>;
+  ): Promise<void>;
 
   // Implementation
   async aiKeyboardPress(
@@ -757,7 +763,7 @@ export class Agent<
       ? buildDetailedLocateParam(locatePrompt, opt)
       : undefined;
 
-    return this.callActionInActionSpace('KeyboardPress', {
+    await this.callActionInActionSpace('KeyboardPress', {
       ...(opt || {}),
       locate: detailedLocateParam,
     });
@@ -767,7 +773,7 @@ export class Agent<
   async aiScroll(
     locatePrompt: TUserPrompt | undefined,
     opt: LocateOption & ScrollParam,
-  ): Promise<any>;
+  ): Promise<void>;
 
   // Legacy signature - deprecated
   /**
@@ -777,7 +783,7 @@ export class Agent<
     scrollParam: ScrollParam,
     locatePrompt?: TUserPrompt,
     opt?: LocateOption,
-  ): Promise<any>;
+  ): Promise<void>;
 
   // Implementation
   async aiScroll(
@@ -841,7 +847,7 @@ export class Agent<
       opt,
     );
 
-    return this.callActionInActionSpace('Scroll', {
+    await this.callActionInActionSpace('Scroll', {
       ...(opt || {}),
       locate: detailedLocateParam,
     });
@@ -854,13 +860,13 @@ export class Agent<
       distance?: number;
       duration?: number;
     },
-  ) {
+  ): Promise<void> {
     const detailedLocateParam = buildDetailedLocateParam(
       locatePrompt || '',
       opt,
     );
 
-    return this.callActionInActionSpace('Pinch', {
+    await this.callActionInActionSpace('Pinch', {
       ...opt,
       locate: detailedLocateParam,
     });
@@ -869,31 +875,31 @@ export class Agent<
   async aiLongPress(
     locatePrompt: TUserPrompt,
     opt?: LocateOption & { duration?: number },
-  ) {
+  ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for long press');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
-    return this.callActionInActionSpace('LongPress', {
+    await this.callActionInActionSpace('LongPress', {
       ...(opt || {}),
       locate: detailedLocateParam,
     });
   }
 
-  async aiClearInput(locatePrompt: TUserPrompt, opt?: LocateOption) {
+  async aiClearInput(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption,
+  ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for clear input');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
-    return this.callActionInActionSpace('ClearInput', {
+    await this.callActionInActionSpace('ClearInput', {
       locate: detailedLocateParam,
     });
   }
 
-  async aiAct(
-    taskPrompt: string,
-    opt?: AiActOptions,
-  ): Promise<string | undefined> {
+  async aiAct(taskPrompt: string, opt?: AiActOptions): Promise<void> {
     const fileChooserAccept = opt?.fileChooserAccept
       ? this.normalizeFileInput(opt.fileChooserAccept)
       : undefined;
@@ -991,18 +997,16 @@ export class Agent<
           matchedCache,
         );
       }
-
-      return actionOutput?.output;
     };
 
-    return await runAiAct();
+    await runAiAct();
   }
 
   /**
    * @deprecated Use {@link Agent.aiAct} instead.
    */
-  async aiAction(taskPrompt: string, opt?: AiActOptions) {
-    return this.aiAct(taskPrompt, opt);
+  async aiAction(taskPrompt: string, opt?: AiActOptions): Promise<void> {
+    await this.aiAct(taskPrompt, opt);
   }
 
   async aiQuery<ReturnType = any>(

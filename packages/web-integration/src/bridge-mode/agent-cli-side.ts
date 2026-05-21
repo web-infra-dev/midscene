@@ -215,7 +215,7 @@ export class AgentOverChromeBridge extends Agent<ChromeExtensionPageCliSide> {
         'the `options` parameter of aiAct is not supported in cli side',
       );
     }
-    return await super.aiAct(prompt);
+    await super.aiAct(prompt);
   }
 
   async destroy(closeNewTabsAfterDisconnect?: boolean) {

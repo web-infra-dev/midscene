@@ -78,11 +78,9 @@ describe(
 
         await sleep(10 * 1000);
 
-        const result = await ctx.agent.aiAct(
-          '按住"dragMe"元素，往右拖动300像素。结束后，告诉我左上角网站的名字，全小写，如 example.com ',
-        );
+        await ctx.agent.aiAct('按住"dragMe"元素，往右拖动300像素。');
 
-        expect(result).toBe('cpstest.org');
+        await ctx.agent.aiAssert('左上角网站的名字是 cpstest.org');
       },
       LONG_TEST_TIMEOUT,
     );

@@ -603,16 +603,8 @@ export function generateCommonTools(
           if (!agent.aiAction) {
             return createErrorResult('act is not supported by this agent');
           }
-          const result = await agent.aiAction(prompt, { deepThink: false });
+          await agent.aiAction(prompt, { deepThink: false });
           const screenshotResult = await captureScreenshotResult(agent, 'act');
-          if (result) {
-            const message =
-              typeof result === 'string' ? result : JSON.stringify(result);
-            screenshotResult.content.unshift({
-              type: 'text',
-              text: `Task finished, message: ${message}`,
-            });
-          }
           return screenshotResult;
         } catch (error: unknown) {
           const errorMessage = getErrorMessage(error);
