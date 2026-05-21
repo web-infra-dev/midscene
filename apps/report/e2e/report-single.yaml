@@ -17,10 +17,46 @@ tasks:
   # --- Settings popup ---
   - name: settings popup opens and shows options
     flow:
-      - ai: Hover over the video player area to reveal the playback controls, then click the settings icon at the bottom right of the player controls. The icon looks like a hexagon with a small circle in the center.
-        deepLocate: true
+      - javascript: |
+          (function () {
+            const settingsButton = document.querySelector(
+              '.player-custom-controls .status-icon',
+            );
+            if (!(settingsButton instanceof HTMLElement)) {
+              throw new Error('Player settings button not found');
+            }
+            settingsButton.click();
+            return { settingsClicked: true };
+          })()
+        name: openPlayerSettings
       - sleep: 1000
-      - aiAssert: A settings popup is visible showing playback speed options or toggle switches
+      - javascript: |
+          (function () {
+            const dropdown = document.querySelector('.player-settings-dropdown');
+            if (!(dropdown instanceof HTMLElement)) {
+              throw new Error('Player settings dropdown not found');
+            }
+            const text = dropdown.textContent.replace(/\s+/g, ' ').trim();
+            const expectedTexts = [
+              'Focus on cursor',
+              'Subtitle',
+              'Playback speed',
+              '0.5x',
+              '1x',
+              '1.5x',
+              '2x',
+            ];
+            const missingTexts = expectedTexts.filter(
+              (expectedText) => !text.includes(expectedText),
+            );
+            if (missingTexts.length > 0) {
+              throw new Error(
+                'Player settings dropdown missing: ' + missingTexts.join(', '),
+              );
+            }
+            return { settingsText: text };
+          })()
+        name: assertPlayerSettingsOptions
 
   # --- Dark mode ---
   - name: toggle dark mode
