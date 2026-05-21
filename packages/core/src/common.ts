@@ -243,40 +243,6 @@ export function adaptBbox(
   return result;
 }
 
-// Validate a bbox that is expected to be in the normalized [0, 1000] coordinate
-// system. Some grounding models (notably qwen3.5 / qwen3.6) occasionally emit
-// raw pixel coordinates such as [0, 500, 1080, 1920] instead of normalized
-// values, which silently expands the resulting rect well beyond the screenshot
-// and produces off-screen ADB swipes. Surface that mismatch to the caller
-// instead of letting the bad coordinates propagate.
-function assertNormalized01000Bbox(
-  bbox: number[] | string[] | string,
-  modelFamily: TModelFamily | undefined,
-  width: number,
-  height: number,
-): asserts bbox is number[] {
-  const familyLabel = modelFamily ?? 'unknown';
-
-  if (!Array.isArray(bbox)) {
-    throw new Error(
-      `Model family "${familyLabel}" returned a non-array bbox for the normalized [0, 1000] format: ${JSON.stringify(bbox)} (shotSize=${width}x${height}). Expected an array of 4 numbers.`,
-    );
-  }
-
-  for (const value of bbox) {
-    if (
-      typeof value !== 'number' ||
-      !Number.isFinite(value) ||
-      value < 0 ||
-      value > 1000
-    ) {
-      throw new Error(
-        `Model family "${familyLabel}" returned a bbox outside the expected [0, 1000] normalized range: ${JSON.stringify(bbox)} (shotSize=${width}x${height}). This usually means the model emitted pixel-style coordinates instead of normalized values. Consider switching MIDSCENE_MODEL_FAMILY to a more reliable visual grounding family (e.g. "qwen3-vl"), or revisit the bbox prompt for this model.`,
-      );
-    }
-  }
-}
-
 // x1, y1, x2, y2 -> 0-1000
 export function normalized01000(
   bbox: number[] | string[] | string,
@@ -285,7 +251,24 @@ export function normalized01000(
   modelFamily?: TModelFamily | undefined,
 ): [number, number, number, number] {
   if (modelFamily !== undefined) {
-    assertNormalized01000Bbox(bbox, modelFamily, width, height);
+    if (!Array.isArray(bbox)) {
+      throw new Error(
+        `Model family "${modelFamily}" returned a non-array bbox for the normalized [0, 1000] format: ${JSON.stringify(bbox)} (shotSize=${width}x${height}). Expected an array of 4 numbers.`,
+      );
+    }
+
+    for (const value of bbox) {
+      if (
+        typeof value !== 'number' ||
+        !Number.isFinite(value) ||
+        value < 0 ||
+        value > 1000
+      ) {
+        throw new Error(
+          `Model family "${modelFamily}" returned a bbox outside the expected [0, 1000] normalized range: ${JSON.stringify(bbox)} (shotSize=${width}x${height}). This usually means the model emitted pixel-style coordinates instead of normalized values. Consider switching MIDSCENE_MODEL_FAMILY to a more reliable visual grounding family (e.g. "qwen3-vl"), or revisit the bbox prompt for this model.`,
+        );
+      }
+    }
   }
 
   const normalizedBbox = bbox as number[];
