@@ -1,52 +1,76 @@
 # 面向自然语言用例的 AI 原生 UI Testing Framework
 
-Midscene 是面向自然语言自动化用例的 AI 原生 UI Testing Framework。它把 UI 操作、观察和断言组织成结构化、可保存、可复跑、可协作、可诊断的用例。
+UI Test 的价值，取决于团队能不能持续编写和维护它。很多项目一开始写几条浏览器脚本并不难，但用例很快就会被选择器、等待逻辑、登录辅助函数、测试数据准备和失败截图塞满，最后只有少数测试工程师能看懂。
 
-YAML 是默认的人类友好用例声明格式，用来描述目标、环境、步骤、断言和输出。YAML runner 负责执行这些用例并生成可回放的 Midscene 报告。TypeScript API 提供工程控制能力，用于接入启动准备、数据、设备、确定性校验和现有测试工程。
+Midscene 提供了面向这个问题的 AI 原生 UI Testing Framework。它让团队用自然语言描述用户路径，把这些路径作为结构化 case 执行，并通过截图、回放报告和诊断信息复盘结果。测试作者可以先从 YAML 开始，后续再补充测试框架样板代码；工程同学仍然可以用 TypeScript 扩展点接入启动准备、数据、设备、确定性校验和现有测试工程。
 
-这篇文档介绍 Midscene UI Testing Framework 的设计视角和项目形态。
+目标很简单：轻量 case 要容易写，严肃测试工程也要能继续长大，而且不需要中途换掉用例表达方式。
 
-## 用例精致化
+## 从 YAML 到工程化项目
 
-UI Test 的用例表达不应该复杂。对于大多数 Smoke Test 和轻量回归项目，最重要的是快速跑通核心路径，把它变成可以重复执行、可以回放分析的 case。
+Midscene 适合希望 UI Test 更接近用户行为的团队：
 
-这种简单形态应该覆盖大约 80% 的项目。当项目需要更多准备逻辑，或者少数 case 需要更强的工程控制时，Midscene 也提供清晰的复杂度出口：业务路径继续留在 YAML，可复用的准备逻辑放进 `setup.ts`，特殊 case 使用 `case.test.ts`。
+- QA 和业务同学可以直接阅读 YAML flow 来 review 用例。
+- 前端和测试工程师可以把登录、Cookie、账号、设备和测试数据留在代码里，让自然语言步骤专注描述用户路径。
+- CI 任务可以获得可重复执行的 case、可回放的 Midscene 报告、截图和失败详情。
+- 项目从轻量 YAML case 长成标准 Rstest 工程时，不需要重写测试底座。
 
-所以 Midscene 的 UI Testing Framework 先围绕三种日常编写形态展开：
+Midscene 让测试项目可以从自然语言用例开始：核心路径可读、可维护，第一条 case 启动很轻；当项目需要登录态、测试数据、设备连接、复杂断言或 CI 管理时，也有足够的工程扩展空间。
 
-- 用 YAML 写直觉化用例：业务同学或测试同学可以直接描述入口、动作和断言，让 AI 完成 UI 操作和视觉判断。
-- 用 `setup.ts` 和少量代码保持 YAML 干净：项目配置、登录、Cookie、账号、测试数据、远程设备连接和设备准备放在 case flow 之外。
-- 对个别特殊 case 使用 `case.test.ts`：当用例需要复杂分支、内部 SDK 或确定性校验时，用测试代码补足 YAML 不适合表达的部分。
+### 从 YAML 开始
 
-| 项目形态 | 适合场景 | 推荐形态 |
-| --- | --- | --- |
-| 直觉化用例 | 快速验证一个关键业务路径是否可用 | YAML + case。用 YAML 写 `target`、任务步骤和断言，直接通过 CLI 运行并查看回放报告 |
-| 保持 YAML 干净的 setup | 测试需要登录态、Cookie、账号、远程设备或少量环境准备 | YAML + `setup.ts`。业务路径继续留在 YAML，项目级配置和运行前准备放到 `setup.ts` |
-| 代码化特殊 case | 个别 case 需要复杂分支、内部 SDK、接口校验或复用现有测试工具 | `case.test.ts`。只给少数特殊场景使用，让它和普通 YAML case 放在同一个项目里维护 |
+对于大多数 Smoke Test 和轻量回归项目，第一个有价值的里程碑，是快速跑通核心路径，并把它变成可以重复执行、可以回放分析的 case。
 
-### 1. 直觉化用例：YAML + case
-
-这种形态只关心一件事：核心路径能不能被自然表达、快速运行和复盘。测试作者写 YAML，描述入口、操作和期望结果。Midscene 负责用 AI 执行 UI 操作、完成视觉断言、截图并生成可回放报告。
+YAML case 可以让路径保持可读：
 
 ```yaml
 target:
   type: web
   url: https://shop.example.com
 
-name: Guest checkout smoke test
 flow:
   - aiAct: Search for "running shoes"
   - aiAct: Open the first product
-  - aiAssert: The cart page shows one product and the checkout button
+  - aiQuery: product name and price
+  - aiAssert: The product detail page shows a visible Add to cart button
 ```
 
-YAML 的价值不是把测试能力做小，而是把“一个用户路径应该是什么样”组织得足够清楚。它天然适合 code review、业务确认和团队协作，也能避免简单用例一开始就被测试框架样板代码包住。
+YAML 可以把“一个用户路径应该是什么样”组织得足够清楚，便于 code review、业务确认和团队协作。围绕这个 case，Midscene 负责 AI UI 操作、视觉理解、断言、截图和报告生成。
 
-### 2. 保持 YAML 干净的 setup：YAML + setup.ts
+这种简单形态可以覆盖大多数早期项目：
 
-有些项目会遇到登录态、测试账号、Cookie、远程设备连接、设备准备、灰度环境等问题。这些内容不应该写进自然语言步骤里，也不应该复制到每个 YAML case 中。它们应该进入项目级配置和 `setup.ts`。
+```text
+.
+  e2e/
+    dashboard.yaml
+    checkout.yaml
+    pricing.yaml
+```
 
-这里的 `setup.ts` 是让 YAML 专注于 case flow 的实用增强能力。它定义每个 YAML case 执行前的准备逻辑，也可以承载不适合在每个文件里重复书写的项目级选项。runner 会把当前 case 的 `target` 传给 setup，setup 再返回后续执行 `flow` 所需的 `agent` 或其他运行时资源。一个轻量项目可以长这样：
+用例本身仍然接近业务语言，runner 则提供可重复执行的过程，以及成功或失败后都可以检查的报告。
+
+### 环境配置复杂度交给 setup
+
+在专业 UI Test 项目里，用例步骤通常是最清楚的部分：打开页面、执行用户路径、检查预期结果。真正的工程复杂度往往出现在用户路径周边，集中在登录态、Cookie、测试账号、灰度环境、后端测试数据、云端设备连接和设备初始化这些环境配置里。
+
+这些内容不应该复制到每个 YAML case 里。Midscene 提供 `setup.ts`，让准备逻辑进入统一的项目层：
+
+```ts
+export default async function setup() {
+  const account = await getSmokeAccount();
+  const cookies = await loginAndGetCookies(account);
+  const device = await connectCloudDevice(process.env.DEVICE_ID);
+
+  return {
+    agent: await createAgent({
+      device,
+      cookies,
+    }),
+  };
+}
+```
+
+有了 setup 之后，项目结构仍然可以保持直接：
 
 ```text
 .
@@ -54,97 +78,46 @@ YAML 的价值不是把测试能力做小，而是把“一个用户路径应该
   e2e/
     dashboard.yaml
     checkout.yaml
-    checkout-edge-case.test.ts
 ```
 
-`setup.ts` 可以 export 项目级选项，例如模型、运行参数、报告输出和需要执行的 case；它的默认导出负责项目自己的准备逻辑；`e2e/*.yaml` 只描述业务路径；少数无法优雅表达成 YAML 的特殊场景，可以用 `case.test.ts` 直接写成测试代码。
+这里的职责边界很清楚：`e2e/*.yaml` 描述用户进入页面后要完成什么，`setup.ts` 负责把测试带到可执行的起点。这样项目可以处理真实工程问题，但用例本身仍然适合 code review、业务确认和团队协作。
 
-`setup.ts` 的内容应该围绕“把测试带到可执行的起点”展开。它通常包含这些职责：
+### 特殊 case 使用 TypeScript
 
-- 读取环境变量、测试账号、目标环境和设备 ID。
-- 完成登录，或者把已有登录态转换成浏览器 Cookie。
-- 连接远程设备平台，选择本次 case 要运行的设备。
-- 准备后端测试数据，例如创建订单、清理购物车、打开灰度开关。
-- 注册项目级 hook，例如失败时补充日志、截图或业务侧 trace id。
-- 返回当前 case 的 `agent`，让 runner 用它继续执行 YAML 里的 `flow`。
+YAML 应该是主路径，同时也要给代码留出空间。少数 case 可能需要复杂分支、内部 SDK 调用、混合接口校验、数据库断言或复用现有测试工具，这类用例可以写成 `case.test.ts`。
 
-它不适合承载用户路径本身。比如“搜索商品”“打开订单详情”“确认页面展示了发票入口”这类业务动作，仍然应该留在 YAML case 里。YAML 通过 `target` 声明“跑在哪里、用什么环境和账号”，`setup.ts` 把这份声明落地成真实的浏览器、远程设备或 Agent。
+这是给特殊场景保留的工程能力：
 
-YAML 仍然描述业务路径：
-
-```yaml
-target:
-  type: web
-  url: https://internal.example.com/dashboard
-  env: staging
-  account: smoke-user
-
-name: Check dashboard
-flow:
-  - aiAssert: The dashboard is loaded and user information is visible
+```text
+.
+  setup.ts
+  e2e/
+    dashboard.yaml
+    checkout.yaml
+    checkout-risk-control.test.ts
 ```
 
-`setup.ts` 负责把测试带到正确的起点，例如登录、注入 Cookie、准备测试数据、连接远程设备或选择目标设备。它的价值是给“确定性准备逻辑”一个明确位置，让 YAML case 仍然保持轻量：
+团队可以把普通业务路径继续保留在 YAML 中，把少数真正复杂的 case 放进 TypeScript。它们仍然在同一个项目里维护，并共享同一个运行时模型。
 
-```ts
-import { createMidsceneAgent } from './agent';
-import { createBrowserRuntime } from './browser-runtime';
-import { connectRemoteDevice } from './remote-device';
+## 基于 Rstest 构建
 
-export const config = {
-  cases: ['e2e/**/*.yaml', 'e2e/**/*.test.ts'],
-  report: {
-    outputDir: 'reports/midscene',
-    replay: true,
-  },
-};
+Midscene 是基于 Rstest 封装构建的上层测试框架。Rstest 在底层提供测试生命周期、fixture 模型、并发执行、用例过滤和适合 CI 的运行时能力。它基于 Rust 编写，具备更高的执行性能，因此 Midscene 用户默认就能获得高性能的测试底座。Midscene 则把这些能力封装成自然语言用例、AI UI 操作、视觉断言、截图、回放报告和诊断信息。
 
-export default async function setup({ target }) {
-  const account = target.account ?? process.env.TEST_ACCOUNT;
-  const cookies = await loginByTestAccount(account, target.env);
+绝大多数用户可以通过 Midscene 的 YAML runner、`setup.ts` 和 `case.test.ts` 直接使用这套底座，无需了解 Rstest 的项目细节。只有团队进入 `emit` 流程，希望直接接管生成后的 Rstest 项目时，才需要关注这些细节。
 
-  const runtime =
-    target.type === 'remote-device'
-      ? await connectRemoteDevice({
-          provider: 'remote-device-lab',
-          deviceId: target.deviceId,
-        })
-      : await createBrowserRuntime({
-          url: target.url,
-          cookies,
-        });
+### Rstest 提供的工程能力
 
-  await prepareTestData({
-    user: account,
-    scenario: 'dashboard-smoke',
-  });
-
-  return {
-    agent: createMidsceneAgent(runtime),
-  };
-}
-```
-
-上面的代码展示的是职责边界：配置、登录、账号、数据、远程设备连接这类工程逻辑放进 `setup.ts`；“用户进入页面后要完成什么”继续留在 YAML。这样项目可以处理真实工程问题，但用例本身仍然接近业务直觉。
-
-如果某个 case 需要复杂分支、调用内部 SDK、混合接口校验或复用现有测试工具，可以把它写成 `case.test.ts`。这不是主路径，而是给少数特殊场景留出的逃生口，避免为了保持 YAML 纯度反而让项目变得别扭。
-
-## 基于 Rstest 设计
-
-大多数用户不需要关心 Rstest 的项目细节。Midscene 把它放在底层，是为了让 YAML runner、`setup.ts` 和 `case.test.ts` 不只是一个轻量脚本系统，而是天然站在标准测试框架之上。
-
-换句话说，Midscene 不是用 YAML 替代测试 Runner。YAML 是面向人的用例表达层，Rstest 是底层测试框架，Midscene 在这个底座上提供 AI UI 操作、视觉断言、截图、回放报告和诊断信息。
-
-### Rstest 用在这里的优势是...
+Rstest 为 Midscene 项目提供可靠的工程底座：
 
 - 用例执行有标准测试生命周期支撑，包括 setup、teardown、hook、fixture 和并发能力。
+- 基于 Rust 的运行时让 Midscene 项目默认拥有面向性能优化的执行层。
 - 项目可以自然接入 CI、测试过滤、失败报告和团队已有的测试工程习惯。
-- YAML case 和 `case.test.ts` 不会变成两套割裂系统，它们共享同一个底层运行模型。
-- 当项目从轻量 Smoke Test 长成长期维护的回归工程时，不需要重写测试体系。
+- YAML case 和 `case.test.ts` 共享同一个底层运行模型。
+- 团队可以从轻量项目开始，同时保留成长为长期回归套件的路径。
 
-### 支持 emit 成一个标准的 Rstest 项目
+### 导出标准项目
 
-对于复杂项目，case 可能更多，fixture 更复杂，CI 需要并发和分组策略，失败分析也需要接入团队自己的系统。由于轻量 Midscene 项目本来就运行在 Rstest 之上，`emit` 不是迁移到另一套框架，而是把底层 Rstest 工程显式暴露出来，让团队可以直接接管测试 Runner、fixture 和集成代码。
+对于复杂项目，case 可能更多，fixture 更复杂，CI 需要并发和分组策略，失败分析也需要接入团队自己的系统。由于轻量 Midscene 项目本来就运行在 Rstest 之上，`emit` 会把底层 Rstest 工程显式暴露出来，让团队可以直接接管测试 Runner、fixture 和集成代码。
 
 ```bash
 midscene emit ./project-folder
@@ -169,7 +142,8 @@ project-folder/
 
 在这种项目形态里，YAML 仍然可以作为自然语言用例的人类友好表达，Rstest 则提供显式的测试工程结构。团队可以把业务路径继续保留在 YAML 中，把复杂逻辑放进 Rstest 测试文件、fixture 和内部工具里。AI UI 操作和视觉断言交给 Midscene，环境编排、接口校验、数据库校验和失败归因交给团队自己的代码。
 
-## 下一步
+### 下一步
 
+- 从命令行运行 YAML case：[YAML 脚本运行器](./yaml-script-runner)
 - 查询完整 YAML 字段：[YAML 格式的工作流](./automate-with-scripts-in-yaml)
-- 查询完整 CLI 参数：[YAML 脚本运行器](./yaml-script-runner)
+- 从平台指南开始：[Android](./android-getting-started)、[iOS](./ios-getting-started)、[Computer](./computer-getting-started)
