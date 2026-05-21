@@ -244,17 +244,6 @@ const DetailPanel = (): JSX.Element => {
       </ScreenshotDisplay>
     ) : null;
 
-    // screenshot view
-    const screenshotFromContext = activeTask.uiContext?.screenshot;
-    if (screenshotFromContext?.base64) {
-      screenshotItems.push({
-        timestamp: activeTask.timing?.start ?? undefined,
-        screenshotTimestamp: screenshotFromContext.capturedAt,
-        screenshot: screenshotFromContext.base64,
-        timing: 'before-calling',
-      });
-    }
-
     if (activeTask.recorder?.length) {
       for (const item of activeTask.recorder) {
         if (item.screenshot?.base64) {
