@@ -113,16 +113,6 @@ export class TaskRunner {
     }
   }
 
-  private async captureScreenshot(): Promise<ScreenshotItem | undefined> {
-    try {
-      const uiContext = await this.getUiContext({ forceRefresh: true });
-      return uiContext?.screenshot;
-    } catch (error) {
-      console.error('error while capturing screenshot', error);
-    }
-    return undefined;
-  }
-
   private attachRecorderItem(
     task: ExecutionTask,
     screenshot: ScreenshotItem | undefined,
@@ -144,6 +134,26 @@ export class TaskRunner {
       return;
     }
     task.recorder.push(recorderItem);
+  }
+
+  private async captureAfterCallingSnapshot(
+    task: ExecutionTask,
+  ): Promise<void> {
+    setTimingFieldOnce(task.timing, 'captureAfterCallingSnapshotStart');
+    let screenshot: ScreenshotItem | undefined;
+    try {
+      // Only Action Space tasks directly operate on the interface and need a
+      // fresh after-calling snapshot. Planning/Insight only consume UI context,
+      // and Log/Screenshot already captures its own recorder image.
+      const uiContext = await this.getUiContext({
+        forceRefresh: task.type === 'Action Space',
+      });
+      screenshot = uiContext?.screenshot;
+    } catch (error) {
+      console.error('error while capturing screenshot', error);
+    }
+    this.attachRecorderItem(task, screenshot, 'after-calling');
+    setTimingFieldOnce(task.timing, 'captureAfterCallingSnapshotEnd');
   }
 
   private markTaskAsPending(task: ExecutionTaskApply): ExecutionTask {
@@ -294,14 +304,7 @@ export class TaskRunner {
           returnValue = await task.executor(param, executorContext);
         }
 
-        const isLastTask = taskIndex === this.tasks.length - 1;
-
-        if (isLastTask) {
-          setTimingFieldOnce(task.timing, 'captureAfterCallingSnapshotStart');
-          const screenshot = await this.captureScreenshot();
-          this.attachRecorderItem(task, screenshot, 'after-calling');
-          setTimingFieldOnce(task.timing, 'captureAfterCallingSnapshotEnd');
-        }
+        await this.captureAfterCallingSnapshot(task);
 
         Object.assign(task, returnValue);
         task.status = 'finished';
@@ -316,6 +319,7 @@ export class TaskRunner {
           e?.message || (typeof e === 'string' ? e : 'error-without-message');
         task.errorStack = e.stack;
 
+        await this.captureAfterCallingSnapshot(task);
         task.status = 'failed';
         task.timing.end = Date.now();
         task.timing.cost = task.timing.end - task.timing.start;

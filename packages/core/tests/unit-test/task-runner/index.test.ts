@@ -144,6 +144,104 @@ describe(
       expect(flushResult?.output).toBe(flushResultData);
     });
 
+    it('records after-calling snapshots for every completed task and force-refreshes action snapshots', async () => {
+      const contextBuilder = vi.fn(async () => {
+        const screenshot = ScreenshotItem.create(
+          `screenshot-${contextBuilder.mock.calls.length}`,
+          Date.now(),
+        );
+        return {
+          screenshot,
+          tree: { node: null, children: [] },
+          shotSize: { width: 0, height: 0 },
+          shrunkShotToLogicalRatio: 1,
+        } as unknown as UIContext;
+      });
+
+      const firstTask: ExecutionTaskApply<'Action Space', any, string, void> = {
+        type: 'Action Space',
+        executor: async () => ({ output: 'first' }),
+      };
+      const secondTask: ExecutionTaskApply<'Action Space', any, string, void> =
+        {
+          type: 'Action Space',
+          executor: async () => ({ output: 'second' }),
+        };
+
+      const runner = new TaskRunner('after-calling', contextBuilder, {
+        tasks: [firstTask, secondTask],
+      });
+
+      await runner.flush();
+
+      expect(runner.tasks[0].recorder?.[0]?.timing).toBe('after-calling');
+      expect(runner.tasks[1].recorder?.[0]?.timing).toBe('after-calling');
+      expect(runner.tasks[0].recorder?.[0]?.screenshot).not.toBe(
+        runner.tasks[0].uiContext?.screenshot,
+      );
+      expect(runner.tasks[1].uiContext?.screenshot).toBe(
+        runner.tasks[0].recorder?.[0]?.screenshot,
+      );
+      expect(runner.tasks[1].recorder?.[0]?.screenshot).not.toBe(
+        runner.tasks[1].uiContext?.screenshot,
+      );
+      expect(contextBuilder).toHaveBeenCalledTimes(3);
+    });
+
+    it('reuses cached context for after-calling snapshots after non-action tasks', async () => {
+      const contextBuilder = vi.fn(async () => {
+        const screenshot = ScreenshotItem.create(
+          `screenshot-${contextBuilder.mock.calls.length}`,
+          Date.now(),
+        );
+        return {
+          screenshot,
+          tree: { node: null, children: [] },
+          shotSize: { width: 0, height: 0 },
+          shrunkShotToLogicalRatio: 1,
+        } as unknown as UIContext;
+      });
+
+      const locateTask: ExecutionTaskPlanningLocateApply = {
+        type: 'Planning',
+        subType: 'Locate',
+        param: {
+          prompt: 'target',
+        },
+        executor: async () => ({
+          output: {
+            element: null as any,
+          },
+        }),
+      };
+      const planTask: ExecutionTaskApply<'Planning', any, string, void> = {
+        type: 'Planning',
+        subType: 'Plan',
+        executor: async () => ({ output: 'planned' }),
+      };
+      const insightTask: ExecutionTaskApply<'Insight', any, string, void> = {
+        type: 'Insight',
+        subType: 'Query',
+        executor: async () => ({ output: 'queried' }),
+      };
+
+      const runner = new TaskRunner(
+        'non-action-after-calling',
+        contextBuilder,
+        {
+          tasks: [locateTask, planTask, insightTask],
+        },
+      );
+
+      await runner.flush();
+
+      for (const task of runner.tasks) {
+        expect(task.recorder?.[0]?.timing).toBe('after-calling');
+        expect(task.recorder?.[0]?.screenshot).toBe(task.uiContext?.screenshot);
+      }
+      expect(contextBuilder).toHaveBeenCalledTimes(2);
+    });
+
     it('insight - init and append', async () => {
       const initRunner = new TaskRunner('test', fakeUIContextBuilder);
       expect(initRunner.status).toBe('init');
@@ -211,7 +309,9 @@ describe(
       expect(tasks[0].status).toBe('failed');
       expect(tasks[0].error).toBeTruthy();
       expect(tasks[0].timing!.end).toBeTruthy();
+      expect(tasks[0].recorder?.[0]?.timing).toBe('after-calling');
       expect(tasks[1].status).toBe('cancelled');
+      expect(tasks[1].recorder).toBeUndefined();
       expect(runner.status).toBe('error');
       expect(runner.latestErrorTask()).toBeTruthy();
       expect(runner.isInErrorState()).toBeTruthy();
