@@ -1,32 +1,32 @@
-# AI-native UI Testing Framework
+# AI-native UI Testing Framework for Natural-language Cases
 
-Midscene helps teams write UI tests as intuitive cases instead of scripts built around fragile selectors and page implementation details. A case should stay simple: describe what the user wants to do, what the user should see, and what must be verified. AI drives the interaction and assertions, while YAML gives those cases a clear, lightweight structure for collaboration.
+Midscene is an AI-native UI testing framework for natural-language-driven automation cases. It turns UI actions, observations, and assertions into structured cases that can be saved, rerun, shared, and diagnosed.
+
+YAML is the default human-friendly case format for describing targets, environments, steps, assertions, and outputs. The YAML runner executes those cases and produces replayable Midscene reports. TypeScript APIs provide engineering control for setup, data, devices, deterministic checks, and integration with existing test projects.
 
 This guide introduces the design view and project shapes of Midscene UI Testing Framework.
 
-## Intuitive Cases, Maintainable Projects
+## Refined Cases
 
-UI test cases should not be complicated. Most teams also do not start with a complete test platform. They start with smoke tests: the lowest-cost way to verify that a key business path still works. At this stage, the most important thing is to get the core path running quickly and turn it into a case that can be repeated, replayed, and inspected.
+UI test cases should not be complicated. For most smoke tests and lightweight regression projects, the most important thing is to get the core path running quickly and turn it into a case that can be repeated, replayed, and inspected.
 
-But a test project cannot stay as “a few loose cases” forever. Once tests become part of daily regression, project complexity naturally appears: cookies, login state, accounts, environments, devices, test data, CI, report archiving, and failure analysis all need a clear home. Midscene balances these two requirements: keep cases intuitive while keeping the test project refined and maintainable.
+That simple shape should cover roughly 80% of projects. When a project needs more preparation, or when a few cases need stronger engineering control, Midscene provides clear outlets for that complexity: keep the business path in YAML, put reusable preparation in `setup.ts`, and use `case.test.ts` for special cases.
 
-That is why Midscene's UI Testing Framework is designed around three layers:
+That is why Midscene's UI Testing Framework starts with three everyday authoring shapes:
 
 - Write intuitive cases with YAML: business and QA users can describe the entry point, actions, and assertions, then let AI handle UI interaction and visual judgment.
-- Control project complexity with `setup.ts` and a small amount of code: project configuration, login, cookies, accounts, test data, remote device connections, and device preparation have their own place.
+- Keep YAML clean with `setup.ts` and a small amount of code: project configuration, login, cookies, accounts, test data, remote device connections, and device preparation have their own place outside the case flow.
 - Use `case.test.ts` for individual special cases: when a case needs complex branches, internal SDKs, or deterministic checks, test code covers the parts that YAML should not express.
-- Emit a complete test project from an Rstest template: when the project needs fixtures, CI, internal tools, and deterministic checks, the team can own a standard test project.
 
-| Layer | Best for | Recommended shape |
+| Project shape | Best for | Recommended shape |
 | --- | --- | --- |
 | Intuitive cases | Verify a key business path quickly | YAML + case. Write `target`, steps, and assertions in YAML, then run it from the CLI and inspect the replay report |
-| Refined, maintainable project | Tests need login state, cookies, accounts, remote devices, or a small amount of environment preparation | YAML + `setup.ts`. Keep the business path in YAML and put project configuration plus pre-run preparation in `setup.ts` |
-|  | Individual cases need complex branches, internal SDKs, API checks, or existing test utilities | `case.test.ts`. Use it only for special cases and keep it in the same project as regular YAML cases |
-| Complete test project | The project needs CI, internal tools, fixtures, data checks, or custom flows | Use `midscene emit` to export an independent Rstest project, then maintain it like a standard test project |
+| Clean YAML with setup | Tests need login state, cookies, accounts, remote devices, or a small amount of environment preparation | YAML + `setup.ts`. Keep the business path in YAML and put project configuration plus pre-run preparation in `setup.ts` |
+| Coded special cases | Individual cases need complex branches, internal SDKs, API checks, or existing test utilities | `case.test.ts`. Use it only for special cases and keep it in the same project as regular YAML cases |
 
 ### 1. Intuitive cases: YAML + case
 
-This stage is about one thing: make the core path natural to express, quick to run, and easy to review. The test author writes YAML for the entry point, actions, and expected result. Midscene uses AI to perform UI actions, evaluate visual assertions, capture screenshots, and generate a replayable report.
+This shape is about one thing: make the core path natural to express, quick to run, and easy to review. The test author writes YAML for the entry point, actions, and expected result. Midscene uses AI to perform UI actions, evaluate visual assertions, capture screenshots, and generate a replayable report.
 
 ```yaml
 target:
@@ -42,11 +42,11 @@ flow:
 
 The value of YAML is not making the framework smaller. Its value is making “what this user path should do” clear enough for review, business confirmation, and team collaboration. It also keeps simple cases from being wrapped in test framework boilerplate on day one.
 
-### 2. Refined, maintainable project: YAML + setup.ts
+### 2. Clean YAML with setup: YAML + setup.ts
 
-Once tests become part of daily work, they usually need login state, test accounts, cookies, remote device connections, device preparation, staging lanes, or other environment details. Those concerns should not be squeezed into natural-language steps, and they should not be copied into every YAML case. They belong in project-level configuration and `setup.ts`.
+Some projects need login state, test accounts, cookies, remote device connections, device preparation, staging lanes, or other environment details. Those concerns should not be squeezed into natural-language steps, and they should not be copied into every YAML case. They belong in project-level configuration and `setup.ts`.
 
-Here, `setup.ts` is the engineering entry point of the test project. It absorbs the project configuration previously carried by `midscene.config.yaml`, and it also defines the preparation logic that runs before each YAML case. The runner passes the current case `target` into setup, and setup returns the `agent` or other runtime resources used to execute the following `flow`. A refined but lightweight project can look like this:
+Here, `setup.ts` is a practical enhancement for keeping YAML focused on the case flow. It defines the preparation logic that runs before each YAML case, and can also hold project-level options that are awkward to repeat in every file. The runner passes the current case `target` into setup, and setup returns the `agent` or other runtime resources used to execute the following `flow`. A lightweight project can look like this:
 
 ```text
 .
@@ -57,7 +57,7 @@ Here, `setup.ts` is the engineering entry point of the test project. It absorbs 
     checkout-edge-case.test.ts
 ```
 
-`setup.ts` exports project-level configuration such as model settings, runtime options, report output, and selected cases. Its default export manages project-specific preparation. `e2e/*.yaml` only describes the business path. A small number of cases that cannot be expressed cleanly in YAML can be written directly as `case.test.ts`.
+`setup.ts` can export project-level options such as model settings, runtime options, report output, and selected cases. Its default export manages project-specific preparation. `e2e/*.yaml` only describes the business path. A small number of cases that cannot be expressed cleanly in YAML can be written directly as `case.test.ts`.
 
 The content of `setup.ts` should focus on getting the test to an executable starting point. It usually covers these responsibilities:
 
@@ -129,9 +129,22 @@ The code above shows the boundary: configuration, login, accounts, data, and rem
 
 If a case needs complex branches, internal SDK calls, mixed API checks, or existing test utilities, it can be written as `case.test.ts`. This is not the main path. It is an escape hatch for special cases, so the project does not become awkward just to keep everything in YAML.
 
-### 3. Complete test project: emit an Rstest project template
+## Designed on Rstest
 
-When a test project needs complete engineering capabilities, there are more cases, fixtures become more complex, CI needs parallelism and grouping, and failure analysis needs to connect with team systems. Midscene should not force all of that into a fixed YAML runner. For this stage, the core capability is `emit`: export a lightweight Midscene project into an independent Rstest project template.
+Most users do not need to study the details of an Rstest project. Midscene uses it underneath so that the YAML runner, `setup.ts`, and `case.test.ts` are not just a lightweight script system. They sit on top of a standard test framework from the start.
+
+In other words, Midscene does not replace a test runner with YAML. YAML is the user-friendly case layer; Rstest is the underlying test framework; Midscene adds AI UI actions, visual assertions, screenshots, replay reports, and diagnostics on top.
+
+### Why Rstest helps here
+
+- Case execution is backed by a standard test lifecycle, including setup, teardown, hooks, fixtures, and parallel execution.
+- Projects can naturally connect to CI, test filtering, failure reporting, and existing team testing habits.
+- YAML cases and `case.test.ts` do not become two disconnected systems; they share the same underlying runtime model.
+- When a project grows from lightweight smoke tests into a long-lived regression suite, the team does not need to rewrite the testing foundation.
+
+### Emit a standard Rstest project
+
+For complex projects, there may be more cases, richer fixtures, CI parallelism and grouping, and failure analysis that connects with team systems. Because the lightweight Midscene project already runs on Rstest, `emit` is not a migration to another framework. It makes the underlying Rstest project explicit, so the team can own the test runner, fixtures, and integration code directly.
 
 ```bash
 midscene emit ./project-folder
@@ -154,9 +167,7 @@ project-folder/
     midscene-report/
 ```
 
-At this stage, YAML is no longer the boundary of what the framework can do. It is the migration entry point. Teams can keep the business expression from YAML cases, or move complex logic into Rstest test files, fixtures, and internal tools. Midscene handles UI actions and visual assertions, while your own code handles environment orchestration, API checks, database checks, and failure analysis.
-
-Rstest is the underlying choice because it is fast, reliable, and a good foundation for a complete test project. On top of that base, Midscene provides AI UI actions, visual assertions, screenshots, replay reports, and debugging information, so the project can scale without giving up a good developer experience.
+In this project shape, YAML can remain the human-friendly expression for natural-language cases, while Rstest provides the visible test project structure. Teams can keep business paths in YAML and place complex logic in Rstest test files, fixtures, and internal tools. Midscene handles AI UI actions and visual assertions, while your own code handles environment orchestration, API checks, database checks, and failure analysis.
 
 ## Next steps
 
