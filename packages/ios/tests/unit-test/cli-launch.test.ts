@@ -67,6 +67,35 @@ describe('midscene-ios CLI argv path for launch/terminate (issue #2313)', () => 
     );
   });
 
+  it('passes external WDA session args through `connect`', async () => {
+    vi.mocked(agentFromWebDriverAgent).mockResolvedValue(
+      createMockAgent() as any,
+    );
+
+    await runToolsCLI(new IOSMidsceneTools(), 'midscene-ios', {
+      stripPrefix: 'ios_',
+      version: '0.0.0-test',
+      argv: [
+        'connect',
+        '--wda-host',
+        '127.0.0.1',
+        '--wda-port',
+        '8100',
+        '--session-id',
+        'external-session-id',
+      ],
+    });
+
+    expect(agentFromWebDriverAgent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        autoDismissKeyboard: false,
+        wdaHost: '127.0.0.1',
+        wdaPort: 8100,
+        sessionId: 'external-session-id',
+      }),
+    );
+  });
+
   it('routes `terminate --uri <bundle>` through to callActionInActionSpace with { uri }', async () => {
     const mockAgent = createMockAgent();
     vi.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);

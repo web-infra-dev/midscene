@@ -39,6 +39,25 @@ type IOSInitArgs = Pick<
   'deviceId' | 'wdaHost' | 'wdaPort' | 'sessionId' | 'useWDA' | 'wdaMjpegPort'
 >;
 
+function getTargetIdentity(initArgs?: IOSInitArgs): string {
+  if (initArgs?.deviceId) {
+    return initArgs.sessionId
+      ? `${initArgs.deviceId}-session-${initArgs.sessionId}`
+      : initArgs.deviceId;
+  }
+
+  if (initArgs?.wdaHost || initArgs?.wdaPort || initArgs?.sessionId) {
+    const wdaHost = initArgs.wdaHost ?? 'localhost';
+    const wdaPort = initArgs.wdaPort ?? 'default';
+    const sessionSegment = initArgs.sessionId
+      ? `-session-${initArgs.sessionId}`
+      : '';
+    return `wda-${wdaHost}-${wdaPort}${sessionSegment}`;
+  }
+
+  return 'auto';
+}
+
 /**
  * iOS-specific tools manager
  * Extends BaseMidsceneTools to provide iOS WebDriverAgent connection tools
@@ -105,11 +124,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
         cli: this.getAgentInitArgCliMetadata(),
         handler: async (args: Record<string, unknown>) => {
           const initArgs = this.extractAgentInitParam(args);
-          const identity =
-            initArgs?.deviceId ??
-            (initArgs?.wdaHost || initArgs?.wdaPort
-              ? `wda-${initArgs.wdaHost ?? 'localhost'}-${initArgs.wdaPort ?? 'default'}`
-              : 'auto');
+          const identity = getTargetIdentity(initArgs);
           const reportSession = this.createNewCliReportSession(identity);
           this.commitCliReportSession(reportSession);
           if (this.agent) {
