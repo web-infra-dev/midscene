@@ -98,6 +98,7 @@ and more`,
   userDouyin: 'Douyin',
   userAlibaba: 'Alibaba',
   userXiaomi: 'Xiaomi',
+  userIqiyi: 'iQIYI',
 
   // Links
   multiModelStrategyLink: '/model-strategy#advanced-combining-multiple-models',

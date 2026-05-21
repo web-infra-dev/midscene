@@ -81,6 +81,13 @@ export function WhoIsUsing() {
       iconSize: 40,
       text: t('userXiaomi'),
     },
+    {
+      kind: 'logo',
+      name: t('userIqiyi'),
+      url: 'https://www.iqiyi.com',
+      logo: '/images/users/iqiyi-color.svg',
+      logoWidth: 140,
+    },
   ];
 
   return (

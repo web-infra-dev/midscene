@@ -93,6 +93,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   userDouyin: '抖音',
   userAlibaba: '阿里巴巴',
   userXiaomi: '小米',
+  userIqiyi: '爱奇艺',
 
   // Links
   multiModelStrategyLink: '/model-strategy#高阶特性多模型配合',
