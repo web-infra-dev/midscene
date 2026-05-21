@@ -235,8 +235,9 @@ export function adaptBbox(
     result = adaptGpt5Bbox(normalizedBbox);
   } else {
     // Default: normalized 0-1000 coordinate system
-    // Includes: qwen3-vl, qwen3.5, glm-v, auto-glm, auto-glm-multilingual, and future models
-    result = normalized01000(normalizedBbox as number[], width, height);
+    // Includes: qwen3-vl, qwen3.5, qwen3.6, glm-v, auto-glm, auto-glm-multilingual,
+    // and future models.
+    result = normalized01000(normalizedBbox, width, height, modelFamily);
   }
 
   return result;
@@ -244,15 +245,39 @@ export function adaptBbox(
 
 // x1, y1, x2, y2 -> 0-1000
 export function normalized01000(
-  bbox: number[],
+  bbox: number[] | string[] | string,
   width: number,
   height: number,
+  modelFamily?: TModelFamily | undefined,
 ): [number, number, number, number] {
+  if (modelFamily !== undefined) {
+    if (!Array.isArray(bbox)) {
+      throw new Error(
+        `Model family "${modelFamily}" returned a non-array bbox for the normalized [0, 1000] format: ${JSON.stringify(bbox)} (shotSize=${width}x${height}). Expected an array of 4 numbers.`,
+      );
+    }
+
+    for (const value of bbox) {
+      if (
+        typeof value !== 'number' ||
+        !Number.isFinite(value) ||
+        value < 0 ||
+        value > 1000
+      ) {
+        throw new Error(
+          `Model family "${modelFamily}" returned a bbox outside the expected [0, 1000] normalized range: ${JSON.stringify(bbox)} (shotSize=${width}x${height}). This usually means the model emitted pixel-style coordinates instead of normalized values. Consider switching MIDSCENE_MODEL_FAMILY to a more reliable visual grounding family (e.g. "qwen3-vl"), or revisit the bbox prompt for this model.`,
+        );
+      }
+    }
+  }
+
+  const normalizedBbox = bbox as number[];
+
   return [
-    Math.round((bbox[0] * width) / 1000),
-    Math.round((bbox[1] * height) / 1000),
-    Math.round((bbox[2] * width) / 1000),
-    Math.round((bbox[3] * height) / 1000),
+    Math.round((normalizedBbox[0] * width) / 1000),
+    Math.round((normalizedBbox[1] * height) / 1000),
+    Math.round((normalizedBbox[2] * width) / 1000),
+    Math.round((normalizedBbox[3] * height) / 1000),
   ];
 }
 
