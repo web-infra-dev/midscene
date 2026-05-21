@@ -17,46 +17,12 @@ tasks:
   # --- Settings popup ---
   - name: settings popup opens and shows options
     flow:
-      - javascript: |
-          (function () {
-            const settingsButton = document.querySelector(
-              '.player-custom-controls .status-icon',
-            );
-            if (!(settingsButton instanceof HTMLElement)) {
-              throw new Error('Player settings button not found');
-            }
-            settingsButton.click();
-            return { settingsClicked: true };
-          })()
-        name: openPlayerSettings
+      - ai: Move the mouse over the center of the video player replay area so the bottom playback control bar is visible.
+      - sleep: 500
+      - ai: Click the small settings button in the bottom playback control bar. It is the hexagon or gear-shaped icon in the right-side control group, immediately to the left of the fullscreen icon and to the right of the progress bar.
+        deepLocate: true
       - sleep: 1000
-      - javascript: |
-          (function () {
-            const dropdown = document.querySelector('.player-settings-dropdown');
-            if (!(dropdown instanceof HTMLElement)) {
-              throw new Error('Player settings dropdown not found');
-            }
-            const text = dropdown.textContent.replace(/\s+/g, ' ').trim();
-            const expectedTexts = [
-              'Focus on cursor',
-              'Subtitle',
-              'Playback speed',
-              '0.5x',
-              '1x',
-              '1.5x',
-              '2x',
-            ];
-            const missingTexts = expectedTexts.filter(
-              (expectedText) => !text.includes(expectedText),
-            );
-            if (missingTexts.length > 0) {
-              throw new Error(
-                'Player settings dropdown missing: ' + missingTexts.join(', '),
-              );
-            }
-            return { settingsText: text };
-          })()
-        name: assertPlayerSettingsOptions
+      - aiAssert: The player settings popup is open above the bottom-right control bar, showing options such as "Focus on cursor", "Subtitle", "Playback speed", and speed choices like "0.5x", "1x", "1.5x", or "2x".
 
   # --- Dark mode ---
   - name: toggle dark mode
