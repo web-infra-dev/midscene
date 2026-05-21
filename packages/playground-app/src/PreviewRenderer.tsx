@@ -83,6 +83,16 @@ export function PreviewRenderer({
   const [streamSize, setStreamSize] = useState<DeviceSize | null>(null);
   const [actionTypes, setActionTypes] = useState<string[] | null>(null);
   const manualControlQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  // Shared with the active preview component (ScrcpyPanel / ScreenshotViewer)
+  // and the interaction layer so pointer coords always project against the
+  // real screen-mirror box, not the outer panel that may include chrome.
+  const previewContentRef = useRef<HTMLDivElement>(null);
+  // Default to `screen-only` so the playground does not render chrome
+  // (header / Refresh / timestamp) inside the same relative-positioned panel
+  // that DeviceInteractionLayer overlays — embedding hosts (Studio) can opt
+  // back into the full viewer by passing 'default'.
+  const resolvedScreenshotViewerMode: ScreenshotViewerMode =
+    screenshotViewerMode ?? 'screen-only';
 
   // Self-derive interaction capabilities from the connected device's
   // actionSpace. Tap is the gate for any pointer interaction; the drag
@@ -367,6 +377,7 @@ export function PreviewRenderer({
           renderErrorOverlay={renderErrorOverlay}
           serverUrl={previewConnection.scrcpyUrl}
           viewportStyle={scrcpyViewportStyle}
+          contentRef={previewContentRef}
         />
       ) : (
         <ScreenshotViewer
@@ -379,7 +390,8 @@ export function PreviewRenderer({
           serverOnline={serverOnline}
           isUserOperating={isUserOperating}
           mjpegUrl={previewConnection.mjpegUrl}
-          mode={screenshotViewerMode}
+          mode={resolvedScreenshotViewerMode}
+          contentRef={previewContentRef}
         />
       )}
       <DeviceInteractionLayer
@@ -389,6 +401,7 @@ export function PreviewRenderer({
           previewConnection.type !== 'none'
         }
         deviceSize={deviceSize}
+        contentRef={previewContentRef}
         onTap={handleTap}
         onSwipe={handleSwipe}
         keyboardEnabled={manualKeyboardEnabled}
