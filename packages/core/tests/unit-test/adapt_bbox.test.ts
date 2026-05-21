@@ -317,6 +317,65 @@ describe('normalized-0-1000 and gemini', () => {
   });
 });
 
+describe('adaptBbox - normalized [0, 1000] range guard', () => {
+  it('accepts an in-range bbox for qwen3.6', () => {
+    const result = adaptBbox([100, 200, 300, 400], 720, 1600, 'qwen3.6');
+    expect(result).toEqual([72, 320, 216, 640]);
+  });
+
+  it('accepts boundary values 0 and 1000', () => {
+    const result = adaptBbox([0, 0, 1000, 1000], 720, 1600, 'qwen3-vl');
+    expect(result).toEqual([0, 0, 720, 1600]);
+  });
+
+  it('throws when a coordinate exceeds 1000 (real qwen3.6 failure case)', () => {
+    // Observed in the wild: tongyi/qwen3.6-plus emitted pixel-style coords
+    // [0, 500, 1080, 1920] against a 720x1600 shot, which propagated to an
+    // off-screen ADB swipe.
+    expect(() =>
+      adaptBbox([0, 500, 1080, 1920], 720, 1600, 'qwen3.6'),
+    ).toThrowError(/outside the expected \[0, 1000\] normalized range/);
+  });
+
+  it('error message includes the model family, the raw bbox, and shotSize', () => {
+    try {
+      adaptBbox([0, 500, 1080, 1920], 720, 1600, 'qwen3.6');
+      throw new Error('expected adaptBbox to throw');
+    } catch (err) {
+      const msg = (err as Error).message;
+      expect(msg).toContain('qwen3.6');
+      expect(msg).toContain('[0,500,1080,1920]');
+      expect(msg).toContain('shotSize=720x1600');
+      expect(msg).toContain('MIDSCENE_MODEL_FAMILY');
+    }
+  });
+
+  it('throws on negative coordinates', () => {
+    expect(() =>
+      adaptBbox([-1, 200, 300, 400], 720, 1600, 'qwen3.5'),
+    ).toThrowError(/outside the expected \[0, 1000\] normalized range/);
+  });
+
+  it('throws on non-finite coordinates (NaN)', () => {
+    expect(() =>
+      adaptBbox([Number.NaN, 200, 300, 400], 720, 1600, 'glm-v'),
+    ).toThrowError(/outside the expected \[0, 1000\] normalized range/);
+  });
+
+  it('throws on a non-array bbox payload', () => {
+    expect(() =>
+      adaptBbox('not-a-bbox' as any, 720, 1600, 'auto-glm'),
+    ).toThrowError(/non-array bbox for the normalized \[0, 1000\] format/);
+  });
+
+  it('does not validate range for families that own their own coordinate format', () => {
+    // qwen2.5-vl uses raw pixel coords and must keep working with values > 1000.
+    expect(() =>
+      adaptBbox([0, 500, 1080, 1920], 720, 1600, 'qwen2.5-vl'),
+    ).not.toThrow();
+  });
+});
+
 describe('adaptBboxToRect - boundary overflow cases', () => {
   it('should handle x1 overflow (negative left)', () => {
     const result = adaptBboxToRect([-100, 200, 300, 400], 2000, 3000);
