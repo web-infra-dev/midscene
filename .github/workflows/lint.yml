@@ -38,7 +38,7 @@ jobs:
         cache: 'pnpm'
 
     - name: Install Dependencies
-      run: pnpm install --ignore-scripts
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
     - name: Check Dependency Version
       run: pnpm run check-dependency-version
