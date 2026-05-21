@@ -237,10 +237,7 @@ export function adaptBbox(
     // Default: normalized 0-1000 coordinate system
     // Includes: qwen3-vl, qwen3.5, qwen3.6, glm-v, auto-glm, auto-glm-multilingual,
     // and future models.
-    if (modelFamily !== undefined) {
-      assertNormalized01000Bbox(normalizedBbox, modelFamily, width, height);
-    }
-    result = normalized01000(normalizedBbox as number[], width, height);
+    result = normalized01000(normalizedBbox, width, height, modelFamily);
   }
 
   return result;
@@ -282,15 +279,22 @@ function assertNormalized01000Bbox(
 
 // x1, y1, x2, y2 -> 0-1000
 export function normalized01000(
-  bbox: number[],
+  bbox: number[] | string[] | string,
   width: number,
   height: number,
+  modelFamily?: TModelFamily | undefined,
 ): [number, number, number, number] {
+  if (modelFamily !== undefined) {
+    assertNormalized01000Bbox(bbox, modelFamily, width, height);
+  }
+
+  const normalizedBbox = bbox as number[];
+
   return [
-    Math.round((bbox[0] * width) / 1000),
-    Math.round((bbox[1] * height) / 1000),
-    Math.round((bbox[2] * width) / 1000),
-    Math.round((bbox[3] * height) / 1000),
+    Math.round((normalizedBbox[0] * width) / 1000),
+    Math.round((normalizedBbox[1] * height) / 1000),
+    Math.round((normalizedBbox[2] * width) / 1000),
+    Math.round((normalizedBbox[3] * height) / 1000),
   ];
 }
 

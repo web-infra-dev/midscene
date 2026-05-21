@@ -304,6 +304,12 @@ describe('normalized-0-1000 and gemini', () => {
     `);
   });
 
+  it('normalized-0-1000 throws with model family context', () => {
+    expect(() =>
+      normalized01000([0, 500, 1080, 1920], 720, 1600, 'qwen3.6'),
+    ).toThrowError(/outside the expected \[0, 1000\] normalized range/);
+  });
+
   it('gemini', () => {
     const result = adaptGeminiBbox([100, 150, 200, 250], 2000, 2000);
     expect(result).toMatchInlineSnapshot(`
