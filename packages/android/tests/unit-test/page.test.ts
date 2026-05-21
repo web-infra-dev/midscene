@@ -653,7 +653,7 @@ describe('AndroidDevice', () => {
     });
 
     describe('execYadb', () => {
-      it('passes keyboard text through an ASCII-only base64 shell wrapper', async () => {
+      it('writes text through an ASCII-only base64 shell wrapper and pastes natively', async () => {
         vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
 
         await (device as any).execYadb('测速');
@@ -663,18 +663,19 @@ describe('AndroidDevice', () => {
         expect(command).toContain(
           "YADB_INPUT=$(printf '%s' '5rWL6YCf' | base64 -d)",
         );
-        expect(command).toContain('-keyboard "$YADB_INPUT"');
+        expect(command).toContain('-writeClipboard "$YADB_INPUT"');
         expect(command).not.toContain('测速');
+        expect(mockAdb.keyevent).toHaveBeenCalledWith(279);
       });
 
-      it('keeps yadb newline markers before base64 encoding', async () => {
+      it('keeps real newlines before base64 encoding', async () => {
         vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
 
-        await (device as any).execYadb('你好\\nworld');
+        await (device as any).execYadb('你好\nworld');
 
         const command = mockAdb.shell.mock.calls[0][0] as string;
         expect(command).toContain(
-          "YADB_INPUT=$(printf '%s' '5L2g5aW9XG53b3JsZA==' | base64 -d)",
+          "YADB_INPUT=$(printf '%s' '5L2g5aW9Cndvcmxk' | base64 -d)",
         );
       });
     });
@@ -934,13 +935,13 @@ describe('AndroidDevice', () => {
           });
         });
 
-        // yadb path: single execYadb call, \n(0x0A) converted to literal \n
-        describe('yadb path — single execYadb call with \\n escaped', () => {
+        // yadb path: single execYadb call with raw text, including real newlines.
+        describe('yadb path — single execYadb call with raw newlines', () => {
           it('non-ASCII with middle newline: 你好\\nworld', async () => {
             await device.inputPrimitives.keyboard.typeText('你好\nworld');
             expect((device as any).execYadb).toHaveBeenCalledTimes(1);
             expect((device as any).execYadb).toHaveBeenCalledWith(
-              '你好\\nworld',
+              '你好\nworld',
             );
             expect(mockAdb.inputText).not.toHaveBeenCalled();
             expect(mockAdb.keyevent).not.toHaveBeenCalled();
@@ -952,7 +953,7 @@ describe('AndroidDevice', () => {
             );
             expect((device as any).execYadb).toHaveBeenCalledTimes(1);
             expect((device as any).execYadb).toHaveBeenCalledWith(
-              'price: $10\\nplain text',
+              'price: $10\nplain text',
             );
             expect(mockAdb.inputText).not.toHaveBeenCalled();
             expect(mockAdb.keyevent).not.toHaveBeenCalled();
@@ -961,7 +962,7 @@ describe('AndroidDevice', () => {
           it('non-ASCII trailing newline: 你好\\n', async () => {
             await device.inputPrimitives.keyboard.typeText('你好\n');
             expect((device as any).execYadb).toHaveBeenCalledTimes(1);
-            expect((device as any).execYadb).toHaveBeenCalledWith('你好\\n');
+            expect((device as any).execYadb).toHaveBeenCalledWith('你好\n');
             expect(mockAdb.keyevent).not.toHaveBeenCalled();
           });
 
@@ -971,7 +972,7 @@ describe('AndroidDevice', () => {
               autoDismissKeyboard: false,
             };
             await device.inputPrimitives.keyboard.typeText('hello\n');
-            expect((device as any).execYadb).toHaveBeenCalledWith('hello\\n');
+            expect((device as any).execYadb).toHaveBeenCalledWith('hello\n');
             expect(mockAdb.keyevent).not.toHaveBeenCalled();
           });
 
@@ -981,7 +982,7 @@ describe('AndroidDevice', () => {
               autoDismissKeyboard: false,
             };
             await device.inputPrimitives.keyboard.typeText('\nhello');
-            expect((device as any).execYadb).toHaveBeenCalledWith('\\nhello');
+            expect((device as any).execYadb).toHaveBeenCalledWith('\nhello');
           });
 
           it('always-yadb consecutive newlines: a\\n\\nb', async () => {
@@ -990,7 +991,7 @@ describe('AndroidDevice', () => {
               autoDismissKeyboard: false,
             };
             await device.inputPrimitives.keyboard.typeText('a\n\nb');
-            expect((device as any).execYadb).toHaveBeenCalledWith('a\\n\\nb');
+            expect((device as any).execYadb).toHaveBeenCalledWith('a\n\nb');
           });
 
           it('always-yadb just a newline: \\n', async () => {
@@ -999,7 +1000,7 @@ describe('AndroidDevice', () => {
               autoDismissKeyboard: false,
             };
             await device.inputPrimitives.keyboard.typeText('\n');
-            expect((device as any).execYadb).toHaveBeenCalledWith('\\n');
+            expect((device as any).execYadb).toHaveBeenCalledWith('\n');
             expect(mockAdb.keyevent).not.toHaveBeenCalled();
           });
         });

@@ -66,17 +66,12 @@ const warnDevice = getDebug('android:device', { console: true });
 /**
  * Escape text for safe use in shell single-quoted strings.
  * In single quotes, all characters are literal except ' itself.
- * Newlines (0x0A) are converted to literal \n for safe transport;
- * yadb interprets \n back to a real newline.
+ * Newlines (0x0A) are converted to literal \n for safe transport.
  */
 export function escapeForShell(text: string): string {
   return text
     .replace(/'/g, "'\\''") // End quote, escaped quote, start quote: ' → '\''
-    .replace(/\n/g, '\\n'); // 0x0A → literal \n (yadb interprets back to newline)
-}
-
-function prepareYadbKeyboardText(text: string): string {
-  return text.replace(/\n/g, '\\n');
+    .replace(/\n/g, '\\n'); // 0x0A → literal \n
 }
 
 export class AndroidDevice implements AbstractInterface {
@@ -566,8 +561,9 @@ ${Object.keys(size)
     ).toString('base64');
 
     await adb.shell(
-      `YADB_INPUT=$(printf '%s' '${encodedKeyboardContent}' | base64 -d); app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "$YADB_INPUT"`,
+      `YADB_INPUT=$(printf '%s' '${encodedKeyboardContent}' | base64 -d); app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -writeClipboard "$YADB_INPUT"`,
     );
+    await adb.keyevent(279);
   }
 
   // @deprecated
@@ -1526,10 +1522,10 @@ ${Object.keys(size)
         this.shouldUseYadbForText(text));
 
     if (useYadb) {
-      // yadb handles newlines natively: prepareYadbKeyboardText converts
-      // \n (0x0A) to literal \n (two chars), which yadb interprets back.
-      // Single adb call for the entire text.
-      await this.execYadb(prepareYadbKeyboardText(text));
+      // yadb can write Android's clipboard without an installed helper app.
+      // Then use Android's native paste key instead of yadb's Ctrl+V combo,
+      // which depends on the active IME and fails on some OEM keyboards.
+      await this.execYadb(text);
     } else {
       // inputText cannot handle newlines, so split by \n and press Enter between segments.
       const segments = text.split('\n');
