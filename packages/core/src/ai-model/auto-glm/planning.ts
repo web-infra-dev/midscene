@@ -54,6 +54,8 @@ export async function autoGLMPlanning(
     modelConfig,
     {
       abortSignal: options.abortSignal,
+      requestContext: actionContext,
+      requestContextLabel: 'planning',
     },
   );
 

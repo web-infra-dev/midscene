@@ -6,6 +6,7 @@ import path from 'node:path';
 import {
   type ActionScrollParam,
   type DeviceAction,
+  type ExtraPlanningContextOptions,
   type InterfaceType,
   type LocateResultElement,
   type Point,
@@ -573,8 +574,10 @@ ${Object.keys(size)
     return [];
   }
 
-  async getExtraPlanningContext(): Promise<string> {
-    if (!this.domIncluded) return '';
+  async getExtraPlanningContext(
+    options?: ExtraPlanningContextOptions,
+  ): Promise<string> {
+    if (!this.domIncluded || options?.xmlContext.pageXml === false) return '';
 
     try {
       const adb = await this.getAdb();

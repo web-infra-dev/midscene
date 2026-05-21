@@ -53,6 +53,30 @@ export type AIUsageInfo = Record<string, any> & {
   request_id: string | undefined;
 };
 
+export type XmlContextIntent = 'planning' | 'locate';
+
+export interface XmlContextModuleOptions {
+  /** Include page/accessibility XML in this request context. */
+  pageXml?: boolean;
+  /** Include cursor-selection XML in this request context. */
+  cursorXml?: boolean;
+}
+
+export interface ResolvedXmlContextModuleOptions {
+  pageXml: boolean;
+  cursorXml: boolean;
+}
+
+export interface XmlContextOptions {
+  planning?: XmlContextModuleOptions;
+  locate?: XmlContextModuleOptions;
+}
+
+export interface ExtraPlanningContextOptions {
+  intent: XmlContextIntent;
+  xmlContext: ResolvedXmlContextModuleOptions;
+}
+
 export type { LocateResultElement };
 
 export type AISingleElementResponseByPosition = {
@@ -263,6 +287,10 @@ export interface AgentAssertOpt {
 export interface PlanningLocateParam extends DetailedLocateParam {
   bbox?: [number, number, number, number];
   extraLocateContext?: string;
+  actualAiActContext?: string;
+  xmlContext?: Partial<
+    Record<XmlContextIntent, ResolvedXmlContextModuleOptions>
+  >;
 }
 
 export interface PlanningAction<ParamType = any> {
@@ -542,6 +570,10 @@ export type ExecutionTaskPlanningApply = ExecutionTaskApply<
     userInstruction: string;
     aiActContext?: string;
     extraPlanningContext?: string;
+    actualAiActContext?: string;
+    xmlContext?: Partial<
+      Record<XmlContextIntent, ResolvedXmlContextModuleOptions>
+    >;
   },
   PlanningAIResponse
 >;

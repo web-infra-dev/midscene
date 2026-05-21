@@ -438,6 +438,8 @@ export async function AiLocateElement(options: {
     const { content: rawResponseContent, usage } =
       await callAIWithStringResponse(msgs, modelConfig, {
         abortSignal: options.abortSignal,
+        requestContext: options.extraLocateContext,
+        requestContextLabel: 'locate',
       });
 
     debugInspect('auto-glm rawResponse:', rawResponseContent);
@@ -510,6 +512,8 @@ export async function AiLocateElement(options: {
       modelConfig,
       {
         abortSignal: options.abortSignal,
+        requestContext: options.extraLocateContext,
+        requestContextLabel: 'locate',
       },
     );
   } catch (callError) {

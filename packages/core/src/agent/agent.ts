@@ -35,6 +35,7 @@ import {
   type ServiceExtractParam,
   type TestStatus,
   type UIContext,
+  type XmlContextOptions,
 } from '../types';
 import type { MidsceneYamlScript } from '../yaml';
 
@@ -141,6 +142,7 @@ export type AiActOptions = {
   fileChooserAccept?: string | string[];
   deepThink?: DeepThinkOption;
   deepLocate?: boolean;
+  xmlContext?: XmlContextOptions;
   abortSignal?: AbortSignal;
 };
 
@@ -965,6 +967,7 @@ export class Agent<
         planningModeDeepThink,
         fileChooserAccept,
         deepLocate,
+        opt?.xmlContext,
         abortSignal,
       );
 

@@ -114,13 +114,23 @@ export const extractAiActContextFromRequestMessages = (
 const logRequestAiActContext = (
   messages: ChatCompletionMessageParam[],
   debugCall: (...args: unknown[]) => void,
+  options?: {
+    requestContext?: string;
+    requestContextLabel?: string;
+  },
 ): void => {
-  const aiActContext = extractAiActContextFromRequestMessages(messages);
+  const explicitRequestContext = options?.requestContext;
+  const aiActContext = explicitRequestContext?.trim()
+    ? explicitRequestContext
+    : extractAiActContextFromRequestMessages(messages);
   if (!aiActContext) {
     return;
   }
 
-  debugCall('request aiActContext/actionContext: %s', aiActContext);
+  const label = options?.requestContextLabel
+    ? ` (${options.requestContextLabel})`
+    : '';
+  debugCall(`request aiActContext/actionContext${label}: %s`, aiActContext);
 };
 
 async function createChatClient({
@@ -315,6 +325,8 @@ export async function callAI(
     stream?: boolean;
     onChunk?: StreamingCallback;
     abortSignal?: AbortSignal;
+    requestContext?: string;
+    requestContextLabel?: string;
   },
 ): Promise<{
   content: string;
@@ -323,7 +335,7 @@ export async function callAI(
   isStreamed: boolean;
 }> {
   const debugCall = getDebug('ai:call');
-  logRequestAiActContext(messages, debugCall);
+  logRequestAiActContext(messages, debugCall, options);
 
   if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
     if (
@@ -695,6 +707,8 @@ export async function callAIWithObjectResponse<T>(
   modelConfig: IModelConfig,
   options?: {
     abortSignal?: AbortSignal;
+    requestContext?: string;
+    requestContextLabel?: string;
   },
 ): Promise<{
   content: T;
@@ -704,6 +718,8 @@ export async function callAIWithObjectResponse<T>(
 }> {
   const response = await callAI(messages, modelConfig, {
     abortSignal: options?.abortSignal,
+    requestContext: options?.requestContext,
+    requestContextLabel: options?.requestContextLabel,
   });
   assert(response, 'empty response');
   const modelFamily = modelConfig.modelFamily;
@@ -728,10 +744,14 @@ export async function callAIWithStringResponse(
   modelConfig: IModelConfig,
   options?: {
     abortSignal?: AbortSignal;
+    requestContext?: string;
+    requestContextLabel?: string;
   },
 ): Promise<{ content: string; usage?: AIUsageInfo }> {
   const { content, usage } = await callAI(msgs, modelConfig, {
     abortSignal: options?.abortSignal,
+    requestContext: options?.requestContext,
+    requestContextLabel: options?.requestContextLabel,
   });
   return { content, usage };
 }

@@ -2,6 +2,7 @@ import { getMidsceneLocationSchema } from '@/common';
 import type {
   ActionScrollParam,
   DeviceAction,
+  ExtraPlanningContextOptions,
   LocateResultElement,
 } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -208,7 +209,9 @@ export abstract class AbstractInterface {
    * Returns extra context string to append to actionContext.
    * Called on every replan, so implementations can return fresh data (e.g. updated DOM).
    */
-  getExtraPlanningContext?(): Promise<string>;
+  getExtraPlanningContext?(
+    options?: ExtraPlanningContextOptions,
+  ): Promise<string>;
 }
 
 // Generic function to define actions with proper type inference

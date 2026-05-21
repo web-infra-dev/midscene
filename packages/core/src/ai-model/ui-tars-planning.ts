@@ -88,6 +88,8 @@ export async function uiTarsPlanning(
     modelConfig,
     {
       abortSignal: options.abortSignal,
+      requestContext: actionContext,
+      requestContextLabel: 'planning',
     },
   );
 

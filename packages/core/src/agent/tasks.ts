@@ -29,6 +29,7 @@ import type {
   ServiceDump,
   ServiceExtractOption,
   ServiceExtractParam,
+  XmlContextOptions,
 } from '@/types';
 import { ServiceError } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -39,6 +40,7 @@ import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
 import { setTimingFieldOnce } from '@/task-timing';
+import { isXmlContextEnabled, resolveXmlContextForIntent } from '@/xml-context';
 import { descriptionOfTree } from '@midscene/shared/extractor';
 import { taskTitleStr } from './ui-utils';
 import { withUsageIntent } from './usage-intent';
@@ -173,6 +175,7 @@ export class TaskExecutor {
     options?: {
       cacheable?: boolean;
       deepLocate?: boolean;
+      xmlContext?: XmlContextOptions;
       abortSignal?: AbortSignal;
     },
   ) {
@@ -258,6 +261,7 @@ export class TaskExecutor {
     planningModeDeepThink?: boolean,
     fileChooserAccept?: string[],
     deepLocate?: boolean,
+    xmlContext?: XmlContextOptions,
     abortSignal?: AbortSignal,
   ): Promise<
     ExecutionResult<
@@ -280,6 +284,7 @@ export class TaskExecutor {
         imagesIncludeCount,
         planningModeDeepThink,
         deepLocate,
+        xmlContext,
         abortSignal,
       );
     });
@@ -296,6 +301,7 @@ export class TaskExecutor {
     imagesIncludeCount?: number,
     planningModeDeepThink?: boolean,
     deepLocate?: boolean,
+    xmlContext?: XmlContextOptions,
     abortSignal?: AbortSignal,
   ): Promise<
     ExecutionResult<
@@ -349,6 +355,9 @@ export class TaskExecutor {
             aiActContext,
             imagesIncludeCount,
             planningModeDeepThink,
+            xmlContext: {
+              planning: resolveXmlContextForIntent(xmlContext, 'planning'),
+            },
             ...(subGoalStatus ? { subGoalStatus } : {}),
             ...(memoriesStatus ? { memoriesStatus } : {}),
           },
@@ -372,20 +381,28 @@ export class TaskExecutor {
 
             // Allow interface to provide extra planning context (e.g. DOM/accessibility tree)
             let actionContext = param.aiActContext;
-            if (this.interface.getExtraPlanningContext) {
+            const planningXmlContext = resolveXmlContextForIntent(
+              xmlContext,
+              'planning',
+            );
+            if (
+              isXmlContextEnabled(planningXmlContext) &&
+              this.interface.getExtraPlanningContext
+            ) {
               try {
-                const extra = await this.interface.getExtraPlanningContext();
+                const extra = await this.interface.getExtraPlanningContext({
+                  intent: 'planning',
+                  xmlContext: planningXmlContext,
+                });
                 if (extra) {
                   actionContext = (actionContext || '') + extra;
-                  executorContext.task.param = {
-                    ...executorContext.task.param,
-                    extraPlanningContext: extra,
-                  };
+                  executorContext.task.param.extraPlanningContext = extra;
                 }
               } catch (e) {
                 debug('getExtraPlanningContext failed:', e);
               }
             }
+            executorContext.task.param.actualAiActContext = actionContext;
 
             const planImpl = isUITars(modelFamily)
               ? uiTarsPlanning
@@ -498,6 +515,7 @@ export class TaskExecutor {
           {
             cacheable,
             deepLocate,
+            xmlContext,
             abortSignal,
           },
         );

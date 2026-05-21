@@ -17,9 +17,11 @@ import type {
   PlanningLocateParam,
   Rect,
   ServiceDump,
+  XmlContextOptions,
 } from '@/types';
 import { ServiceError } from '@/types';
 import { sleep } from '@/utils';
+import { isXmlContextEnabled, resolveXmlContextForIntent } from '@/xml-context';
 import type { IModelConfig } from '@midscene/shared/env';
 import { generateElementByRect } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
@@ -69,6 +71,7 @@ interface TaskBuilderDeps {
 interface BuildOptions {
   cacheable?: boolean;
   deepLocate?: boolean;
+  xmlContext?: XmlContextOptions;
   abortSignal?: AbortSignal;
 }
 
@@ -78,6 +81,7 @@ interface PlanBuildContext {
   modelConfigForDefaultIntent: IModelConfig;
   cacheable?: boolean;
   deepLocate?: boolean;
+  xmlContext?: XmlContextOptions;
   abortSignal?: AbortSignal;
 }
 
@@ -121,6 +125,7 @@ export class TaskBuilder {
       modelConfigForDefaultIntent,
       cacheable,
       deepLocate: options?.deepLocate,
+      xmlContext: options?.xmlContext,
       abortSignal: options?.abortSignal,
     };
 
@@ -402,15 +407,37 @@ export class TaskBuilder {
 
         assert(uiContext, 'uiContext is required for Service task');
 
-        if (this.interface.getExtraPlanningContext) {
+        const locateXmlContext = resolveXmlContextForIntent(
+          context.xmlContext,
+          'locate',
+        );
+        task.param = {
+          ...param,
+          xmlContext: {
+            locate: locateXmlContext,
+          },
+        };
+
+        if (
+          isXmlContextEnabled(locateXmlContext) &&
+          this.interface.getExtraPlanningContext
+        ) {
           try {
             const extraLocateContext =
-              await this.interface.getExtraPlanningContext();
+              await this.interface.getExtraPlanningContext({
+                intent: 'locate',
+                xmlContext: locateXmlContext,
+              });
             if (extraLocateContext) {
               param.extraLocateContext = extraLocateContext;
+              param.actualAiActContext = extraLocateContext;
               task.param = {
                 ...param,
                 extraLocateContext,
+                actualAiActContext: extraLocateContext,
+                xmlContext: {
+                  locate: locateXmlContext,
+                },
               };
             }
           } catch (e) {

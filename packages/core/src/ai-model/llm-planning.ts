@@ -237,6 +237,8 @@ export async function plan(
     reasoning_content,
   } = await callAI(msgs, modelConfig, {
     abortSignal: opts.abortSignal,
+    requestContext: opts.actionContext,
+    requestContextLabel: 'planning',
   });
 
   // Parse XML response to JSON object, retry once on parse failure
@@ -247,6 +249,8 @@ export async function plan(
     } catch {
       const retry = await callAI(msgs, modelConfig, {
         abortSignal: opts.abortSignal,
+        requestContext: opts.actionContext,
+        requestContextLabel: 'planning',
       });
       rawResponse = retry.content;
       usage = retry.usage;
