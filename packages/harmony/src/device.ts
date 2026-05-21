@@ -11,6 +11,7 @@ import {
 } from '@midscene/core';
 import {
   type AbstractInterface,
+  type HarmonyDeviceInputOpt,
   type HarmonyDeviceOpt,
   type MobileInputPrimitives,
   type PointerPoint,
@@ -106,6 +107,9 @@ export class HarmonyDevice implements AbstractInterface {
               value,
               opts?.target as LocateResultElement | undefined,
               opts?.replace ?? true,
+              {
+                autoDismissKeyboard: opts?.autoDismissKeyboard,
+              },
             ),
       clearInput: (target) =>
         this.clearInput(target as ElementInfo | undefined),
@@ -438,6 +442,7 @@ export class HarmonyDevice implements AbstractInterface {
     text: string,
     element?: LocateResultElement,
     shouldReplace?: boolean,
+    options?: HarmonyDeviceInputOpt,
   ): Promise<void> {
     if (!text) return;
 
@@ -469,7 +474,10 @@ export class HarmonyDevice implements AbstractInterface {
 
     await hdc.inputText(x, y, text);
 
-    if (this.options?.autoDismissKeyboard) {
+    const shouldAutoDismissKeyboard =
+      options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
+
+    if (shouldAutoDismissKeyboard) {
       await this.hideKeyboard();
     }
   }
