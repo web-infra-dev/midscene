@@ -17,10 +17,15 @@ tasks:
   # --- Settings popup ---
   - name: settings popup opens and shows options
     flow:
-      - ai: Move the mouse over the center of the video player replay area so the bottom playback control bar is visible.
-      - sleep: 500
-      - ai: Click the small settings button in the bottom playback control bar. It is the hexagon or gear-shaped icon in the right-side control group, immediately to the left of the fullscreen icon and to the right of the progress bar.
-        deepLocate: true
+      - aiHover:
+        locate:
+          prompt: the central video player replay area, not the timeline thumbnails and not the left task sidebar
+          deepLocate: true
+      - sleep: 300
+      - aiTap:
+        locate:
+          prompt: the visible settings button in the bottom playback control bar. It is the small hexagon or gear-shaped icon in the right-side control group, immediately left of the fullscreen icon and right of the progress bar.
+          deepLocate: true
       - sleep: 1000
       - aiAssert: The player settings popup is open above the bottom-right control bar, showing options such as "Focus on cursor", "Subtitle", "Playback speed", and speed choices like "0.5x", "1x", "1.5x", or "2x".
 
