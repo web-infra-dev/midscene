@@ -131,6 +131,12 @@ export type IOSDeviceOpt = {
   wdaPort?: number;
   /** WebDriverAgent host (default: 'localhost') */
   wdaHost?: string;
+  /**
+   * Existing WebDriverAgent session ID to reuse.
+   * When provided, Midscene skips creating a new WDA session and does not delete
+   * the external session during cleanup.
+   */
+  sessionId?: string;
   /** Whether to use WebDriverAgent */
   useWDA?: boolean;
   /** WDA MJPEG server port for real-time screen streaming (default: 9100) */

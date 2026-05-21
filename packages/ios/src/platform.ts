@@ -58,6 +58,13 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
               defaultValue: DEFAULT_WDA_PORT,
               placeholder: DEFAULT_WDA_PORT.toString(),
             },
+            {
+              key: 'sessionId',
+              label: 'WebDriverAgent session ID',
+              type: 'text',
+              required: false,
+              placeholder: 'Existing session ID',
+            },
           ],
         };
       },
@@ -76,11 +83,16 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
             `Invalid WebDriverAgent port: ${String(input?.port)}`,
           );
         }
+        const sessionId =
+          typeof input?.sessionId === 'string' && input.sessionId.trim()
+            ? input.sessionId.trim()
+            : undefined;
 
         const connectAgent = async (): Promise<IOSAgent> => {
           return agentFromWebDriverAgent({
             wdaHost: host,
             wdaPort: port,
+            ...(sessionId ? { sessionId } : {}),
           });
         };
 
@@ -100,6 +112,7 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
           metadata: {
             wdaHost: host,
             wdaPort: port,
+            ...(sessionId ? { sessionId } : {}),
             ...(deviceInfo ? { deviceInfo } : {}),
           },
         };

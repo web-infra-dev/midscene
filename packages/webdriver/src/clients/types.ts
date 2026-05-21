@@ -29,6 +29,12 @@ export interface WebDriverOptions {
   port?: number;
   host?: string;
   timeout?: number;
+  /**
+   * Existing WebDriver session ID to attach to instead of creating a new one.
+   * Sessions provided by the caller are detached locally on cleanup and are not
+   * deleted from the remote WebDriver server.
+   */
+  sessionId?: string;
 }
 
 export interface Point {

@@ -228,6 +228,7 @@ export class IOSDevice implements AbstractInterface {
     this.wdaBackend = new WebDriverAgentBackend({
       port: wdaPort,
       host: wdaHost,
+      ...(options?.sessionId ? { sessionId: options.sessionId } : {}),
     });
     this.wdaManager = WDAManager.getInstance(wdaPort, wdaHost);
     this.mjpegStreamUrl = `http://${wdaHost}:${mjpegPort}`;
@@ -257,8 +258,13 @@ export class IOSDevice implements AbstractInterface {
       // Start WebDriverAgent
       await this.wdaManager.start();
 
-      // Create WDA session
-      await this.wdaBackend.createSession();
+      if (this.options?.sessionId) {
+        debugDevice(`Using existing WDA session: ${this.options.sessionId}`);
+        await this.wdaBackend.setupExistingSession();
+      } else {
+        // Create WDA session
+        await this.wdaBackend.createSession();
+      }
 
       // Try to get real device info from WebDriverAgent
       const deviceInfo = await this.wdaBackend.getDeviceInfo();
