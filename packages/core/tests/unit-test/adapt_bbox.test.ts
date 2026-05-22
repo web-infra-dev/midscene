@@ -315,6 +315,27 @@ describe('normalized-0-1000 and gemini', () => {
       ]
     `);
   });
+
+  it('keeps BrowserMultiply Gemini bbox in normalized-to-pixel contract', () => {
+    const result = adaptBboxToRect(
+      [195, 431, 220, 570],
+      1080,
+      2400,
+      0,
+      0,
+      1080,
+      2400,
+      'gemini',
+    );
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "height": 61,
+        "left": 465,
+        "top": 468,
+        "width": 152,
+      }
+    `);
+  });
 });
 
 describe('adaptBboxToRect - boundary overflow cases', () => {
