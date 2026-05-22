@@ -458,6 +458,43 @@ export class Page<
     return (await page.context().newCDPSession(page)) as ScreencastCdpSession;
   }
 
+  async waitForDomQuiet(opts?: {
+    quietMs?: number;
+    timeoutMs?: number;
+  }): Promise<void> {
+    const quietMs = opts?.quietMs ?? 100;
+    const timeoutMs = opts?.timeoutMs ?? 500;
+    try {
+      await this.evaluate(
+        ([q, total]: [number, number]) =>
+          new Promise<void>((resolve) => {
+            let settleTimer: ReturnType<typeof setTimeout>;
+            const done = () => {
+              obs.disconnect();
+              clearTimeout(hardTimer);
+              clearTimeout(settleTimer);
+              resolve();
+            };
+            const obs = new MutationObserver(() => {
+              clearTimeout(settleTimer);
+              settleTimer = setTimeout(done, q);
+            });
+            obs.observe(document.body, {
+              childList: true,
+              subtree: true,
+              attributes: true,
+              characterData: true,
+            });
+            const hardTimer = setTimeout(done, total);
+            settleTimer = setTimeout(done, q);
+          }),
+        [quietMs, timeoutMs],
+      );
+    } catch (error) {
+      debugPage('waitForDomQuiet failed: %s', error);
+    }
+  }
+
   async flushPendingVisualUpdate(): Promise<void> {
     const activeStream = this.activeMjpegStream;
     if (!activeStream) return;
