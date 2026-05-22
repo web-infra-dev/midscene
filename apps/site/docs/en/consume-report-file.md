@@ -65,11 +65,12 @@ Merge multiple report files into a single combined report:
 
 ```shell
 npx @midscene/web report-tool --action merge \
-  --htmlPaths '["./midscene_run/report/case-a/index.html","./midscene_run/report/case-b.html"]' \
+  --htmlReport ./midscene_run/report/case-a/index.html \
+  --htmlReport ./midscene_run/report/case-b.html \
   --outputDir ./merged --outputName all-cases
 ```
 
-`--htmlPaths` accepts a JSON array or a comma-separated list. `--outputDir` and `--outputName` are optional; when omitted, the merged file is written to the default Midscene report directory with an auto-generated name. Pass `--overwrite` to replace an existing merged file.
+Repeat `--htmlReport` once per source report. `--outputDir` and `--outputName` are optional; when omitted, the merged file is written to the default Midscene report directory with an auto-generated name. Pass `--overwrite` to replace an existing merged file.
 
 ## Parse With The JavaScript SDK
 

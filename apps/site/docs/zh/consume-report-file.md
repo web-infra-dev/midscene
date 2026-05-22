@@ -65,11 +65,12 @@ npx @midscene/web report-tool --action to-markdown --htmlPath ./midscene_run/rep
 
 ```shell
 npx @midscene/web report-tool --action merge \
-  --htmlPaths '["./midscene_run/report/case-a/index.html","./midscene_run/report/case-b.html"]' \
+  --htmlReport ./midscene_run/report/case-a/index.html \
+  --htmlReport ./midscene_run/report/case-b.html \
   --outputDir ./merged --outputName all-cases
 ```
 
-`--htmlPaths` 同时接受 JSON 数组和英文逗号分隔的列表；`--outputDir` 和 `--outputName` 都是可选项，留空时合并后的报告会写入 Midscene 默认的报告目录、并生成自动文件名。已存在同名文件时使用 `--overwrite` 进行覆盖。
+每多合并一份报告就重复一次 `--htmlReport`。`--outputDir` 和 `--outputName` 都是可选项，留空时合并后的报告会写入 Midscene 默认的报告目录、并生成自动文件名。已存在同名文件时使用 `--overwrite` 进行覆盖。
 
 ## 使用 JavaScript SDK 解析
 
