@@ -47,8 +47,8 @@
     "playground": "DEBUG=midscene:* tsx demo/playground.ts",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
-    "test:ai": "AI_TEST_TYPE=iOS npm run test",
-    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=iOS npm run test"
+    "test:ai": "AI_TEST_TYPE=iOS vitest --run",
+    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=iOS vitest --run"
   },
   "dependencies": {
     "@midscene/core": "workspace:*",

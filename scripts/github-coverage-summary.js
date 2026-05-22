@@ -1,16 +1,19 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const coverageRoot = path.join(process.cwd(), 'coverage');
+const coverageDir = process.env.COVERAGE_DIR || 'coverage';
+const coverageTitle = process.env.COVERAGE_TITLE || 'Unit Test Coverage';
+const coverageArtifactName = process.env.COVERAGE_ARTIFACT_NAME || 'coverage';
+const coverageRoot = path.join(process.cwd(), coverageDir);
 const metricNames = ['statements', 'branches', 'functions', 'lines'];
 
 function formatArtifactLink() {
   const artifactUrl = process.env.COVERAGE_ARTIFACT_URL;
   if (!artifactUrl) {
-    return 'Full HTML and JSON reports are available in the `coverage` artifact.\n';
+    return `Full HTML and JSON reports are available in the \`${coverageArtifactName}\` artifact.\n`;
   }
 
-  return `Full HTML and JSON reports are available in the [coverage artifact](${artifactUrl}).\n`;
+  return `Full HTML and JSON reports are available in the [${coverageArtifactName} artifact](${artifactUrl}).\n`;
 }
 
 function formatMetric(metric) {
@@ -24,7 +27,7 @@ function formatMetric(metric) {
 
 function createCoverageSummary() {
   if (!fs.existsSync(coverageRoot)) {
-    return '## Unit Test Coverage\n\nNo coverage directory was generated.\n';
+    return `## ${coverageTitle}\n\nNo coverage directory was generated.\n`;
   }
 
   const totals = Object.fromEntries(
@@ -58,7 +61,7 @@ function createCoverageSummary() {
     .filter(Boolean)
     .sort((a, b) => a.project.localeCompare(b.project));
 
-  let markdown = '## Unit Test Coverage\n\n';
+  let markdown = `## ${coverageTitle}\n\n`;
   if (!rows.length) {
     return `${markdown}No coverage summary files were generated.\n`;
   }

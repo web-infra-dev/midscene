@@ -10,6 +10,7 @@
     "test": "nx run-many --target=test --projects=@midscene/core,@midscene/shared,@midscene/visualizer,@midscene/web,@midscene/cli,@midscene/android,@midscene/ios,@midscene/computer,@midscene/android-mcp,@midscene/ios-mcp,@midscene/web-bridge-mcp,@midscene/playground,studio  --verbose",
     "test:coverage": "nx run-many --target=test --projects=@midscene/core,@midscene/shared,@midscene/visualizer,@midscene/web,@midscene/cli,@midscene/android,@midscene/ios,@midscene/computer,@midscene/android-mcp,@midscene/ios-mcp,@midscene/web-bridge-mcp,@midscene/playground,studio --verbose -- --coverage",
     "test:ai": "nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli,@midscene/computer --verbose",
+    "test:ai:coverage": "MIDSCENE_COVERAGE_DIR=coverage-ai nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli,@midscene/computer --verbose -- --coverage",
     "e2e": "nx run @midscene/web:e2e --verbose --exclude-task-dependencies",
     "e2e:cache": "nx run @midscene/web:e2e:cache --verbose  --exclude-task-dependencies",
     "e2e:report": "nx run @midscene/web:e2e:report --verbose  --exclude-task-dependencies",
