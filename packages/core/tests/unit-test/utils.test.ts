@@ -1,5 +1,6 @@
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, statSync } from 'node:fs';
 import * as fs from 'node:fs';
+import * as path from 'node:path';
 import {
   extractJSONFromCodeBlock,
   safeParseJson,
@@ -8,7 +9,7 @@ import { dumpActionParam, findAllMidsceneLocatorField } from '@/common';
 import { getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
   ifPlanLocateParamHasLocatedPixelBbox,
@@ -21,6 +22,7 @@ import {
   getTmpFile,
   insertScriptBeforeClosingHtml,
   overlapped,
+  readReportTemplateFromPackage,
   reportHTMLContent,
   writeDumpReport,
 } from '../../src/utils';
@@ -40,6 +42,27 @@ function createTempHtmlFile(content: string): string {
 }
 
 describe('utils', () => {
+  const reportTemplateGlobalName =
+    '__MIDSCENE_INTERNAL_REPORT_TEMPLATE_CONTENT__';
+  let originalReportTemplateContent: unknown;
+
+  beforeEach(() => {
+    originalReportTemplateContent = (globalThis as any)[
+      reportTemplateGlobalName
+    ];
+    (globalThis as any)[reportTemplateGlobalName] = '<html></html>';
+  });
+
+  afterEach(() => {
+    if (typeof originalReportTemplateContent === 'undefined') {
+      delete (globalThis as any)[reportTemplateGlobalName];
+      return;
+    }
+
+    (globalThis as any)[reportTemplateGlobalName] =
+      originalReportTemplateContent;
+  });
+
   it('tmpDir', () => {
     const testDir = getTmpDir();
     expect(typeof testDir).toBe('string');
@@ -66,6 +89,30 @@ describe('utils', () => {
     expect(reportPath).toBeTruthy();
     const reportContent = readFileSync(reportPath!, 'utf-8');
     expect(reportContent).contains('type="midscene_web_dump"');
+  });
+
+  it('reads report template from the package asset', () => {
+    const templateContent = `<html>${uuid()}</html>`;
+    const templatePath = getTmpFile('html');
+    if (!templatePath) {
+      throw new Error('Failed to create temp html file');
+    }
+
+    try {
+      fs.writeFileSync(templatePath, templateContent, 'utf-8');
+
+      expect(readReportTemplateFromPackage(templatePath)).toBe(templateContent);
+    } finally {
+      rmSync(templatePath, { force: true });
+    }
+  });
+
+  it('throws a clear error when the package report template asset is missing', () => {
+    const missingTemplatePath = path.join(getTmpDir()!, uuid(), 'index.html');
+
+    expect(() => readReportTemplateFromPackage(missingTemplatePath)).toThrow(
+      /Midscene report template is missing.*globalThis\.__MIDSCENE_INTERNAL_REPORT_TEMPLATE_CONTENT__/,
+    );
   });
 
   it('write report file with attributes', () => {

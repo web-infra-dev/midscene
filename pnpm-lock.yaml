@@ -129,9 +129,6 @@ importers:
       '@midscene/recorder':
         specifier: workspace:*
         version: link:../../packages/recorder
-      '@midscene/report':
-        specifier: workspace:*
-        version: link:../report
       '@midscene/shared':
         specifier: workspace:*
         version: link:../../packages/shared

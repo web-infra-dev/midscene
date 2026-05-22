@@ -16,7 +16,6 @@
     "@midscene/core": "workspace:*",
     "@midscene/playground": "workspace:*",
     "@midscene/recorder": "workspace:*",
-    "@midscene/report": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/visualizer": "workspace:*",
     "@midscene/web": "workspace:*",
@@ -52,5 +51,19 @@
     "typescript": "^5.8.3",
     "vitest": "3.0.5",
     "web-ext": "9.0.0"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "dependsOn": [
+          "^build",
+          {
+            "projects": ["@midscene/report"],
+            "target": "build",
+            "params": "ignore"
+          }
+        ]
+      }
+    }
   }
 }
