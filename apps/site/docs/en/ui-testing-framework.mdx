@@ -56,38 +56,47 @@ In professional UI testing projects, the case steps are usually the clearest par
 Those concerns should not be copied into every YAML case. Midscene provides `midscene.config.ts` as the project-level config-as-code entry. It replaces the lightweight `config.yml` shape when a suite grows up: test discovery, execution policy, output, and runtime setup all live in one typed file.
 
 ```ts
+import { agentFromAdbDevice } from '@midscene/android';
 import { defineMidsceneConfig } from '@midscene/testing-framework';
 
 export default defineMidsceneConfig({
+  platform: 'android',
   testDir: './e2e',
   include: ['**/*.yaml', '**/*.test.ts'],
   exclude: ['**/*.draft.yaml'],
 
-  maxConcurrency: 1,
-  bail: 0,
-  testTimeout: 120_000,
+  testRunner: {
+    maxConcurrency: 1,
+    bail: 0,
+    testTimeout: 120_000,
+  },
 
   output: {
     summary: './midscene_run/output/summary.json',
     reportDir: './midscene_run/report',
   },
 
-  use: {
-    baseUrl: process.env.DEMO_SITE_URL ?? 'https://shop.example.com',
-    viewport: { width: 1280, height: 800 },
-    headless: process.env.CI === 'true',
+  agentOptions: {
+    aiActionContext: 'The user is already signed in as a smoke-test account.',
+    cache: true,
+    generateReport: true,
   },
 
-  async setup({ use }) {
+  runtimeOptions: {
+    deviceId: process.env.ANDROID_DEVICE_ID,
+    androidAdbPath: process.env.ANDROID_ADB_PATH,
+    autoDismissKeyboard: false,
+  },
+
+  async setup({ agentOptions, runtimeOptions }) {
+    const { deviceId, ...deviceOptions } = runtimeOptions;
     const account = await getSmokeAccount();
-    const cookies = await loginAndGetCookies(account);
-    const device = await connectCloudDevice(process.env.DEVICE_ID);
+    await prepareTestData(account);
 
     return {
-      agent: await createAgent({
-        device,
-        cookies,
-        baseUrl: use.baseUrl,
+      agent: await agentFromAdbDevice(deviceId, {
+        ...agentOptions,
+        ...deviceOptions,
       }),
     };
   },
@@ -104,7 +113,7 @@ With this config in place, the project can stay direct:
     checkout.yaml
 ```
 
-The boundary is clear: `e2e/*.yaml` describes what the user should accomplish, while `midscene.config.ts` describes how the suite is discovered, scheduled, reported, and prepared for execution. The project can handle real engineering constraints, while the case itself remains friendly to code review, business confirmation, and team collaboration.
+The boundary is clear: `e2e/*.yaml` describes what the user should accomplish, while `midscene.config.ts` describes the platform, testRunner behavior, shared Agent options, runtime connection options, reporting, and setup logic. The project can handle real engineering constraints, while the case itself remains friendly to code review, business confirmation, and team collaboration.
 
 ### Use TypeScript for Special Cases
 
