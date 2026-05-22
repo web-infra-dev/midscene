@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import { createCoverageConfig } from '../../scripts/vitest-coverage';
 
 export default defineConfig({
   test: {
@@ -12,16 +13,6 @@ export default defineConfig({
         NODE_ENV: 'test',
       },
     },
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/**',
-        'dist/**',
-        'tests/**',
-        '**/*.config.*',
-        '**/*.d.ts',
-      ],
-    },
+    coverage: createCoverageConfig(__dirname),
   },
 });

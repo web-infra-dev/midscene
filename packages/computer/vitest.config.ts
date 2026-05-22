@@ -1,6 +1,7 @@
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { defineConfig } from 'vitest/config';
+import { createCoverageConfig } from '../../scripts/vitest-coverage';
 import { version } from './package.json';
 
 /**
@@ -34,6 +35,7 @@ export default defineConfig({
     },
   },
   test: {
+    coverage: createCoverageConfig(__dirname),
     include: testFiles,
     testTimeout: 3 * 60 * 1000, // Global timeout set to 3 minutes
     hookTimeout: 3 * 60 * 1000,
