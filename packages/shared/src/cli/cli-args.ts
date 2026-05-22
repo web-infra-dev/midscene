@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { getKeyAliases } from '../key-alias-utils';
 import type { ToolCliOption, ToolDefinition } from '../mcp/types';
+import { CLIError } from './cli-error';
 
 export function parseValue(raw: string): unknown {
   if (raw.startsWith('{') || raw.startsWith('[')) {
@@ -182,4 +183,55 @@ export function formatCliValidationError(
   const optionName =
     typeof issue?.path[0] === 'string' ? `--${issue.path[0]}` : 'CLI arguments';
   return `Invalid value for "${optionName}" in ${scriptName} ${commandName}: ${issue?.message ?? parsed.error.message}`;
+}
+
+/**
+ * Move CLI args parsed under accepted alias spellings (kebab-case, alternate
+ * casings, `cli.options.aliases` entries) onto the schema's canonical key so
+ * tool handlers can read them with a single field name regardless of which
+ * spelling the user typed. Throws `CLIError` on conflicting double-spellings
+ * (e.g. both `--imageName` and `--image-name`).
+ */
+export function canonicalizeCliArgKeys(
+  scriptName: string,
+  commandName: string,
+  def: ToolDefinition,
+  rawArgs: Record<string, unknown>,
+): Record<string, unknown> {
+  if (Object.keys(def.schema).length === 0) return rawArgs;
+
+  const result: Record<string, unknown> = { ...rawArgs };
+
+  for (const schemaKey of Object.keys(def.schema)) {
+    const cliOption = def.cli?.options?.[schemaKey];
+    const acceptedSpellings = getAcceptedCliOptionNames(schemaKey, cliOption);
+
+    let chosenSpelling: string | undefined;
+    let chosenValue: unknown;
+
+    for (const spelling of acceptedSpellings) {
+      if (spelling === schemaKey) continue;
+      if (!(spelling in result)) continue;
+      if (chosenSpelling !== undefined) {
+        throw new CLIError(
+          `Conflicting CLI options "--${chosenSpelling}" and "--${spelling}" for ${scriptName} ${commandName}: both target "${schemaKey}". Use one spelling.`,
+        );
+      }
+      chosenSpelling = spelling;
+      chosenValue = result[spelling];
+    }
+
+    if (chosenSpelling === undefined) continue;
+
+    if (schemaKey in result && result[schemaKey] !== chosenValue) {
+      throw new CLIError(
+        `Conflicting CLI options "--${schemaKey}" and "--${chosenSpelling}" for ${scriptName} ${commandName}: both target "${schemaKey}". Use one spelling.`,
+      );
+    }
+
+    result[schemaKey] = chosenValue;
+    delete result[chosenSpelling];
+  }
+
+  return result;
 }
