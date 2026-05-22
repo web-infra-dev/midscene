@@ -167,7 +167,9 @@ describe('TaskExecutor concurrency isolation', () => {
     );
     expect(seenPendingFeedback).toEqual([
       '',
-      'Current time: 2023-10-15 15:37:00 (YYYY-MM-DD HH:mm:ss)',
+      expect.stringMatching(
+        /^Current time: 2023-10-15 15:37:00 \(YYYY-MM-DD HH:mm:ss, UTC[+-]\d{2}:\d{2}\)$/,
+      ),
     ]);
   });
 
@@ -225,7 +227,9 @@ describe('TaskExecutor concurrency isolation', () => {
 
     expect(seenPendingFeedback).toEqual([
       '',
-      'Current time: 2023-10-15 08:30:00 (YYYY-MM-DD HH:mm:ss)',
+      expect.stringMatching(
+        /^Current time: 2023-10-15 08:30:00 \(YYYY-MM-DD HH:mm:ss, UTC[+-]\d{2}:\d{2}\)$/,
+      ),
     ]);
   });
 });
