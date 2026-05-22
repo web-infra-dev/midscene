@@ -98,6 +98,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   userSodaMusic: '汽水音乐',
   userBilibili: '哔哩哔哩',
   userBilibiliLogo: '/images/users/bilibili-zh-color.svg',
+  userBilibiliLogoWidth: '120',
   userDoubao: '豆包',
 
   // Links

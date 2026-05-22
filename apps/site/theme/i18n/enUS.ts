@@ -103,6 +103,7 @@ and more`,
   userSodaMusic: 'Soda Music',
   userBilibili: 'Bilibili',
   userBilibiliLogo: '/images/users/bilibili-color.svg',
+  userBilibiliLogoWidth: '90',
   userDoubao: 'Doubao',
 
   // Links
