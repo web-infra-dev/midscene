@@ -16,7 +16,7 @@ const injectReportTemplate = () => ({
       // Only inject if the report template exists
       if (!fs.existsSync(reportTplPath)) {
         console.warn(
-          '[@midscene/core] Report template not found. Run "pnpm run build" to generate it.',
+          '[@midscene/core] Report template not found. Run "pnpm run build" (or npx nx build @midscene/report) to inject it. See CONTRIBUTING.md#replace_me_with_report_html-error-in-the-report-file',
         );
         return;
       }
@@ -66,12 +66,29 @@ const injectReportTemplate = () => ({
         console.log(
           `[@midscene/core] Report template injected into ${injectedCount} file(s)`,
         );
+        return;
       }
 
-      // Warning to help users find the solution when they encounter build issues
-      console.warn(
-        'If you see "REPLACE_ME_WITH_REPORT_HTML" error in the Midscene report file, please rebuild the entire project with "pnpm run build:skip-cache". Reference: https://github.com/web-infra-dev/midscene/blob/main/CONTRIBUTING.md#replace_me_with_report_html-error-in-the-report-file',
-      );
+      let stillHasPlaceholder = false;
+      for (const file of files) {
+        if (
+          typeof file === 'string' &&
+          (file.endsWith('.js') || file.endsWith('.mjs'))
+        ) {
+          const filePath = path.join(distDir, file);
+          const content = fs.readFileSync(filePath, 'utf-8');
+          if (content.includes(magicString)) {
+            stillHasPlaceholder = true;
+            break;
+          }
+        }
+      }
+
+      if (stillHasPlaceholder && !process.env.USE_DEV_REPORT) {
+        throw new Error(
+          `[@midscene/core] Report template was not injected (${injectedCount} file(s) updated). Ensure apps/report/dist/index.html contains the build output and rebuild. See CONTRIBUTING.md#replace_me_with_report_html-error-in-the-report-file`,
+        );
+      }
     });
   },
 });
