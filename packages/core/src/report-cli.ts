@@ -271,7 +271,7 @@ export function mergeReportFiles(
   return { mergedReportPath };
 }
 
-function normalizeHtmlPathsArg(raw: unknown): string[] | undefined {
+function normalizeHtmlReportArg(raw: unknown): string[] | undefined {
   if (raw === undefined || raw === null) return undefined;
   if (Array.isArray(raw)) {
     return raw.filter(
@@ -280,23 +280,7 @@ function normalizeHtmlPathsArg(raw: unknown): string[] | undefined {
   }
   if (typeof raw === 'string') {
     const trimmed = raw.trim();
-    if (!trimmed) return [];
-    if (trimmed.startsWith('[')) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        if (Array.isArray(parsed)) {
-          return parsed.filter(
-            (p): p is string => typeof p === 'string' && p.length > 0,
-          );
-        }
-      } catch {
-        // fall through to comma-split
-      }
-    }
-    return trimmed
-      .split(',')
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0);
+    return trimmed ? [trimmed] : [];
   }
   return undefined;
 }
@@ -318,11 +302,11 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
       .describe(
         'Input report HTML path (e.g. ./report/index.html). Used by split and to-markdown.',
       ),
-    htmlPaths: z
+    htmlReport: z
       .union([z.string(), z.array(z.string())])
       .optional()
       .describe(
-        'Input report HTML paths for the merge action. Accepts a JSON array (e.g. \'["a/index.html","b.html"]\') or a comma-separated list.',
+        'Input report HTML path for the merge action. Repeat the flag to merge multiple reports (e.g. --htmlReport ./a/index.html --htmlReport ./b.html).',
       ),
     outputDir: z
       .string()
@@ -347,14 +331,14 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
     const {
       action = 'split',
       htmlPath,
-      htmlPaths,
+      htmlReport,
       outputDir,
       outputName,
       overwrite,
     } = args as {
       action?: string;
       htmlPath?: string;
-      htmlPaths?: unknown;
+      htmlReport?: unknown;
       outputDir?: string;
       outputName?: string;
       overwrite?: unknown;
@@ -366,10 +350,10 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
     }
 
     if (action === 'merge') {
-      const paths = normalizeHtmlPathsArg(htmlPaths);
+      const paths = normalizeHtmlReportArg(htmlReport);
       if (!paths || paths.length === 0) {
         throw new Error(
-          'report-tool: --htmlPaths is required for action "merge". Provide a JSON array or comma-separated list of report paths.',
+          'report-tool: --htmlReport is required for action "merge". Repeat --htmlReport for each report (e.g. --htmlReport ./a/index.html --htmlReport ./b.html).',
         );
       }
 
