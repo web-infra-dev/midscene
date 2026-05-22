@@ -185,6 +185,24 @@ describe('parseCliArgs', () => {
     });
   });
 
+  it('accumulates repeated flags into arrays', () => {
+    expect(
+      parseCliArgs([
+        '--image',
+        './a.png',
+        '--image',
+        './b.png',
+        '--image-name',
+        'a',
+        '--image-name',
+        'b',
+      ]),
+    ).toEqual({
+      image: ['./a.png', './b.png'],
+      'image-name': ['a', 'b'],
+    });
+  });
+
   it('preserves dotted kebab-case keys as flat args', () => {
     expect(parseCliArgs(['--android.device-id', '127.0.0.1:7555'])).toEqual({
       'android.device-id': '127.0.0.1:7555',

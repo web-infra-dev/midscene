@@ -44,7 +44,19 @@ export function parseCliArgs(args: string[]): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
   walkCliArgs(args, (key, value) => {
-    result[key] = value;
+    const existing = result[key];
+    if (existing === undefined) {
+      result[key] = value;
+      return;
+    }
+
+    if (Array.isArray(existing)) {
+      existing.push(value);
+      result[key] = existing;
+      return;
+    }
+
+    result[key] = [existing, value];
   });
 
   return result;
