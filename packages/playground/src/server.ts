@@ -44,6 +44,14 @@ import 'dotenv/config';
 
 const defaultPort = PLAYGROUND_SERVER_PORT;
 
+/** Local by default; set MIDSCENE_PLAYGROUND_ALLOW_REMOTE=1 to listen on all interfaces. */
+function resolvePlaygroundListenHost(): string {
+  if (process.env.MIDSCENE_PLAYGROUND_ALLOW_REMOTE === '1') {
+    return '0.0.0.0';
+  }
+  return process.env.MIDSCENE_PLAYGROUND_HOST?.trim() || '127.0.0.1';
+}
+
 function serializeAiConfigSignature(aiConfig: Record<string, unknown>): string {
   return JSON.stringify(
     Object.entries(aiConfig).sort(([leftKey], [rightKey]) =>
@@ -1826,7 +1834,8 @@ class PlaygroundServer {
 
     return new Promise((resolve) => {
       const serverPort = this.port ?? defaultPort;
-      this.server = this._app.listen(serverPort, '0.0.0.0', () => {
+      const listenHost = resolvePlaygroundListenHost();
+      this.server = this._app.listen(serverPort, listenHost, () => {
         resolve(this);
       });
     });
