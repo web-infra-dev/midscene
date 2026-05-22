@@ -354,6 +354,73 @@ export interface ExecutionRecorderItem {
   timing?: string;
 }
 
+export interface ActionRecordOptions {
+  interval?: number;
+  maxCount?: number;
+}
+
+export type ActionRecordOption = boolean | ActionRecordOptions;
+
+export interface ActionRecordFrame {
+  id: string;
+  timestamp: number;
+  offset: number;
+  screenshot: ScreenshotItem;
+}
+
+export interface ActionRecordDump {
+  id: string;
+  actionTaskId: string;
+  actionName: string;
+  actionTitle?: string;
+  startedAt: number;
+  endedAt: number;
+  interval: number;
+  maxCount: number;
+  shotSize: Size;
+  shrunkShotToLogicalRatio: number;
+  deprecatedDpr?: number;
+  warnings?: string[];
+  frames: ActionRecordFrame[];
+}
+
+export interface ActionRecordSource {
+  recordId: string;
+  actionTaskId: string;
+  actionTitle?: string;
+  frameIds: string[];
+}
+
+export interface ActionResult<Output = void> {
+  output?: Output;
+  record?: ActionRecord;
+}
+
+export interface ActionResultWithRecord<Output = void>
+  extends ActionResult<Output>,
+    Pick<
+      ActionRecord,
+      'aiAssert' | 'aiQuery' | 'aiAsk' | 'aiBoolean' | 'aiNumber' | 'aiString'
+    > {
+  record: ActionRecord;
+}
+
+export interface ActionRecord extends ActionRecordDump {
+  aiAssert(
+    assertion: TUserPrompt,
+    msg?: string,
+    opt?: AgentAssertOpt & ServiceExtractOption,
+  ): Promise<undefined | { pass: boolean; thought?: string; message?: string }>;
+  aiQuery<ReturnType = any>(
+    demand: ServiceExtractParam,
+    opt?: ServiceExtractOption,
+  ): Promise<ReturnType>;
+  aiAsk(prompt: TUserPrompt, opt?: ServiceExtractOption): Promise<string>;
+  aiBoolean(prompt: TUserPrompt, opt?: ServiceExtractOption): Promise<boolean>;
+  aiNumber(prompt: TUserPrompt, opt?: ServiceExtractOption): Promise<number>;
+  aiString(prompt: TUserPrompt, opt?: ServiceExtractOption): Promise<string>;
+}
+
 export type ExecutionTaskType = 'Planning' | 'Insight' | 'Action Space' | 'Log';
 
 export interface ExecutorContext {
@@ -373,6 +440,8 @@ export interface ExecutionTaskApply<
   param?: TaskParam;
   thought?: string;
   uiContext?: UIContext;
+  actionRecord?: ActionRecordDump;
+  recordSource?: ActionRecordSource;
   executor: (
     param: TaskParam,
     context: ExecutorContext,
@@ -391,6 +460,8 @@ export interface ExecutionTaskReturn<TaskOutput = unknown, TaskLog = unknown> {
   output?: TaskOutput;
   log?: TaskLog;
   recorder?: ExecutionRecorderItem[];
+  actionRecord?: ActionRecordDump;
+  recordSource?: ActionRecordSource;
   hitBy?: ExecutionTaskHitBy;
 }
 

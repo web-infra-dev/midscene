@@ -4,6 +4,9 @@ import type Service from '@/service';
 import { setTimingFieldOnce } from '@/task-timing';
 import type {
   AIUsageInfo,
+  ActionRecordDump,
+  ActionRecordOption,
+  ActionRecordOptions,
   DetailedLocateParam,
   DeviceAction,
   ElementCacheFeature,
@@ -23,7 +26,7 @@ import { sleep } from '@/utils';
 import type { IModelConfig } from '@midscene/shared/env';
 import { generateElementByRect } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
-import { assert } from '@midscene/shared/utils';
+import { assert, uuid } from '@midscene/shared/utils';
 import type { TaskCache } from './task-cache';
 import { withUsageIntent } from './usage-intent';
 import {
@@ -35,6 +38,12 @@ import {
 } from './utils';
 
 const debug = getDebug('agent:task-builder');
+const warnLog = getDebug('agent:task-builder', { console: true });
+
+const DEFAULT_ACTION_RECORD_INTERVAL = 1000;
+const DEFAULT_ACTION_RECORD_MAX_COUNT = 5;
+
+type NormalizedActionRecordOptions = Required<ActionRecordOptions>;
 
 /**
  * Check if a cache object is non-empty
@@ -70,6 +79,7 @@ interface BuildOptions {
   cacheable?: boolean;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
+  actionRecord?: ActionRecordOption;
 }
 
 interface PlanBuildContext {
@@ -79,6 +89,40 @@ interface PlanBuildContext {
   cacheable?: boolean;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
+  actionRecord?: NormalizedActionRecordOptions;
+}
+
+function normalizeActionRecordOption(
+  record: ActionRecordOption | undefined,
+): NormalizedActionRecordOptions | undefined {
+  if (!record) {
+    return undefined;
+  }
+
+  const options = record === true ? {} : record;
+  const interval = options.interval ?? DEFAULT_ACTION_RECORD_INTERVAL;
+  const maxCount = options.maxCount ?? DEFAULT_ACTION_RECORD_MAX_COUNT;
+
+  assert(
+    Number.isFinite(interval) && interval > 0,
+    `record.interval must be a positive number, got ${interval}`,
+  );
+  assert(
+    Number.isInteger(maxCount) && maxCount > 0,
+    `record.maxCount must be a positive integer, got ${maxCount}`,
+  );
+
+  return {
+    interval,
+    maxCount,
+  };
+}
+
+function errorMessageOf(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
 }
 
 export class TaskBuilder {
@@ -122,6 +166,7 @@ export class TaskBuilder {
       cacheable,
       deepLocate: options?.deepLocate,
       abortSignal: options?.abortSignal,
+      actionRecord: normalizeActionRecordOption(options?.actionRecord),
     };
 
     type PlanHandler = (plan: PlanningAction) => Promise<void> | void;
@@ -171,6 +216,69 @@ export class TaskBuilder {
   ): Promise<void> {
     const taskLocate = this.createLocateTask(plan, plan.param, context);
     context.tasks.push(taskLocate);
+  }
+
+  private async captureActionRecord(
+    recordOptions: NormalizedActionRecordOptions,
+    actionName: string,
+    actionTaskId: string,
+    actionTitle?: string,
+  ): Promise<ActionRecordDump> {
+    const startedAt = Date.now();
+    const warnings: string[] = [];
+    const frames: ActionRecordDump['frames'] = [];
+    let shotSize: ActionRecordDump['shotSize'] | undefined;
+    let shrunkShotToLogicalRatio: number | undefined;
+    let deprecatedDpr: number | undefined;
+    const maxAttempts = Math.max(recordOptions.maxCount * 2, 3);
+
+    for (
+      let attempt = 0;
+      frames.length < recordOptions.maxCount && attempt < maxAttempts;
+      attempt++
+    ) {
+      try {
+        const context = await this.service.contextRetrieverFn();
+        const screenshot = context.screenshot;
+        const timestamp = screenshot.capturedAt || Date.now();
+
+        shotSize = context.shotSize;
+        shrunkShotToLogicalRatio = context.shrunkShotToLogicalRatio;
+        deprecatedDpr = context.deprecatedDpr;
+
+        frames.push({
+          id: screenshot.id,
+          timestamp,
+          offset: timestamp - startedAt,
+          screenshot,
+        });
+      } catch (error) {
+        const message = `failed to capture action record frame #${attempt + 1}: ${errorMessageOf(error)}`;
+        warnings.push(message);
+        warnLog(message);
+      }
+
+      if (frames.length < recordOptions.maxCount) {
+        await sleep(recordOptions.interval);
+      }
+    }
+
+    const endedAt = Date.now();
+    return {
+      id: uuid(),
+      actionTaskId,
+      actionName,
+      actionTitle,
+      startedAt,
+      endedAt,
+      interval: recordOptions.interval,
+      maxCount: recordOptions.maxCount,
+      shotSize: shotSize ?? { width: 0, height: 0 },
+      shrunkShotToLogicalRatio: shrunkShotToLogicalRatio ?? 1,
+      deprecatedDpr,
+      warnings: warnings.length ? warnings : undefined,
+      frames,
+    };
   }
 
   private async handleActionPlan(
@@ -224,12 +332,7 @@ export class TaskBuilder {
       }
     });
 
-    const task: ExecutionTaskApply<
-      'Action Space',
-      any,
-      { success: boolean; action: string; param: any },
-      void
-    > = {
+    const task: ExecutionTaskApply<'Action Space', any, any, void> = {
       type: 'Action Space',
       subType: planType,
       thought: plan.thought,
@@ -311,6 +414,15 @@ export class TaskBuilder {
         setTimingFieldOnce(timing, 'callActionEnd');
         debug('called action', action.name, 'result:', actionResult);
 
+        const recordPromise = context.actionRecord
+          ? this.captureActionRecord(
+              context.actionRecord,
+              action.name,
+              taskContext.task.taskId,
+              `${planType}`,
+            )
+          : undefined;
+
         setTimingFieldOnce(timing, 'afterInvokeActionHookStart');
 
         const delayAfterRunner =
@@ -339,6 +451,14 @@ export class TaskBuilder {
         }
 
         setTimingFieldOnce(timing, 'afterInvokeActionHookEnd');
+
+        const actionRecord = recordPromise ? await recordPromise : undefined;
+        if (actionRecord) {
+          return {
+            output: undefined,
+            actionRecord,
+          };
+        }
 
         return {
           output: actionResult,

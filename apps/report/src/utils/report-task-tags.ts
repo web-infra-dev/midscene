@@ -32,3 +32,7 @@ export function hasDeepLocateFlag(task: ExecutionTask): boolean {
 
   return param?.[consumedDumpFlagKeys.deepLocate] === true;
 }
+
+export function hasRecordFrames(task: ExecutionTask): boolean {
+  return Boolean(task.actionRecord?.frames?.length || task.recordSource);
+}

@@ -1,6 +1,6 @@
 import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import yaml from 'js-yaml';
-import type { TUserPrompt } from '../ai-model/index';
+import type { TMultimodalPrompt, TUserPrompt } from '../ai-model/index';
 import { ScreenshotItem } from '../screenshot-item';
 import Service from '../service/index';
 // Import types and values directly from their source files to avoid circular dependency
@@ -8,6 +8,10 @@ import Service from '../service/index';
 // index.ts -> agent/index.ts -> agent/agent.ts -> index.ts
 import {
   type ActionParam,
+  type ActionRecordDump,
+  type ActionRecordOption,
+  type ActionRecordOptions,
+  type ActionResultWithRecord,
   type ActionReturn,
   type AgentAssertOpt,
   type AgentDescribeElementAtPointResult,
@@ -64,6 +68,7 @@ import {
 import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
+import { ActionRecord, type ActionRecordInsightType } from './action-record';
 import { TaskCache } from './task-cache';
 import {
   TaskExecutionError,
@@ -92,6 +97,17 @@ const defaultServiceExtractOption: ServiceExtractOption = {
   domIncluded: false,
   screenshotIncluded: true,
 };
+
+type ActionRecordControl = {
+  record?: ActionRecordOption;
+};
+
+type ActionRecordEnabled = {
+  record: true | ActionRecordOptions;
+};
+
+// biome-ignore lint/suspicious/noConfusingVoidType: implementation overloads return either the documented void or a record result.
+type ActionReturnWithOptionalRecord = void | ActionResultWithRecord;
 
 type CacheStrategy = NonNullable<CacheConfig['strategy']>;
 
@@ -532,6 +548,9 @@ export class Agent<
   async callActionInActionSpace<T = any>(
     type: string,
     opt?: T, // and all other action params
+    options?: {
+      record?: ActionRecordOption;
+    },
   ) {
     debug('callActionInActionSpace', type, ',', opt);
 
@@ -557,68 +576,232 @@ export class Agent<
     const modelConfigForPlanning =
       this.modelConfigManager.getModelConfig('planning');
 
-    const { output } = await this.taskExecutor.runPlans(
+    const { output, runner } = await this.taskExecutor.runPlans(
       title,
       plans,
       modelConfigForPlanning,
       defaultIntentModelConfig,
+      {
+        actionRecord: options?.record,
+      },
     );
+    if (options?.record) {
+      const actionRecord = [...runner.tasks]
+        .reverse()
+        .find((task) => task.actionRecord)?.actionRecord;
+      assert(actionRecord, 'record is enabled but action record is missing');
+      return {
+        record: actionRecord,
+      };
+    }
+
     return output;
+  }
+
+  private async callActionInActionSpaceWithOptionalRecord<T = any>(
+    type: string,
+    opt?: T,
+    record?: ActionRecordOption,
+  ) {
+    if (record) {
+      return await this.callActionInActionSpace(type, opt, { record });
+    }
+
+    return await this.callActionInActionSpace(type, opt);
+  }
+
+  private createActionRecord(record: ActionRecordDump): ActionRecord {
+    return new ActionRecord(
+      record,
+      async <T>(
+        actionRecord: ActionRecordDump,
+        type: ActionRecordInsightType,
+        demand: ServiceExtractParam,
+        opt?: ServiceExtractOption,
+        multimodalPrompt?: TMultimodalPrompt,
+        reportDemand?: ServiceExtractParam,
+      ) => {
+        const modelConfig = this.modelConfigManager.getModelConfig('insight');
+        const { output, thought } =
+          await this.taskExecutor.createTypeQueryExecution<T>(
+            type,
+            demand,
+            modelConfig,
+            opt,
+            multimodalPrompt,
+            {
+              actionRecord,
+              reportDemand,
+            },
+          );
+        return { output, thought };
+      },
+    );
+  }
+
+  private actionResultWithRecord(output: unknown): ActionResultWithRecord {
+    const recordDump = (output as { record?: ActionRecordDump } | undefined)
+      ?.record;
+    assert(recordDump, 'record is enabled but action record is missing');
+    const record = this.createActionRecord(recordDump);
+    return {
+      record,
+      aiAssert: (...args) => record.aiAssert(...args),
+      aiQuery: (...args) => record.aiQuery(...args),
+      aiAsk: (...args) => record.aiAsk(...args),
+      aiBoolean: (...args) => record.aiBoolean(...args),
+      aiNumber: (...args) => record.aiNumber(...args),
+      aiString: (...args) => record.aiString(...args),
+    };
   }
 
   async aiTap(
     locatePrompt: TUserPrompt,
-    opt?: LocateOption & { fileChooserAccept?: string | string[] },
-  ): Promise<void> {
+    opt: LocateOption & {
+      fileChooserAccept?: string | string[];
+    } & ActionRecordEnabled,
+  ): Promise<ActionResultWithRecord>;
+  async aiTap(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption & {
+      fileChooserAccept?: string | string[];
+    } & ActionRecordControl,
+  ): Promise<void>;
+  async aiTap(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption & {
+      fileChooserAccept?: string | string[];
+    } & ActionRecordControl,
+  ): Promise<ActionReturnWithOptionalRecord> {
     assert(locatePrompt, 'missing locate prompt for tap');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const {
+      record,
+      fileChooserAccept: rawFileChooserAccept,
+      ...locateOpt
+    } = opt || {};
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      locateOpt,
+    );
 
-    const fileChooserAccept = opt?.fileChooserAccept
-      ? this.normalizeFileInput(opt.fileChooserAccept)
+    const fileChooserAccept = rawFileChooserAccept
+      ? this.normalizeFileInput(rawFileChooserAccept)
       : undefined;
 
-    await withFileChooser(this.interface, fileChooserAccept, async () => {
-      await this.callActionInActionSpace('Tap', {
-        locate: detailedLocateParam,
-      });
-    });
+    const actionOutput = await withFileChooser(
+      this.interface,
+      fileChooserAccept,
+      async () => {
+        return await this.callActionInActionSpaceWithOptionalRecord(
+          'Tap',
+          {
+            locate: detailedLocateParam,
+          },
+          record,
+        );
+      },
+    );
+
+    if (record) {
+      return this.actionResultWithRecord(actionOutput);
+    }
   }
 
   async aiRightClick(
     locatePrompt: TUserPrompt,
-    opt?: LocateOption,
-  ): Promise<void> {
+    opt: LocateOption & ActionRecordEnabled,
+  ): Promise<ActionResultWithRecord>;
+  async aiRightClick(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption & ActionRecordControl,
+  ): Promise<void>;
+  async aiRightClick(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption & ActionRecordControl,
+  ): Promise<ActionReturnWithOptionalRecord> {
     assert(locatePrompt, 'missing locate prompt for right click');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const { record, ...locateOpt } = opt || {};
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      locateOpt,
+    );
 
-    await this.callActionInActionSpace('RightClick', {
-      locate: detailedLocateParam,
-    });
+    const actionOutput = await this.callActionInActionSpaceWithOptionalRecord(
+      'RightClick',
+      {
+        locate: detailedLocateParam,
+      },
+      record,
+    );
+    if (record) {
+      return this.actionResultWithRecord(actionOutput);
+    }
   }
 
   async aiDoubleClick(
     locatePrompt: TUserPrompt,
-    opt?: LocateOption,
-  ): Promise<void> {
+    opt: LocateOption & ActionRecordEnabled,
+  ): Promise<ActionResultWithRecord>;
+  async aiDoubleClick(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption & ActionRecordControl,
+  ): Promise<void>;
+  async aiDoubleClick(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption & ActionRecordControl,
+  ): Promise<ActionReturnWithOptionalRecord> {
     assert(locatePrompt, 'missing locate prompt for double click');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const { record, ...locateOpt } = opt || {};
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      locateOpt,
+    );
 
-    await this.callActionInActionSpace('DoubleClick', {
-      locate: detailedLocateParam,
-    });
+    const actionOutput = await this.callActionInActionSpaceWithOptionalRecord(
+      'DoubleClick',
+      {
+        locate: detailedLocateParam,
+      },
+      record,
+    );
+    if (record) {
+      return this.actionResultWithRecord(actionOutput);
+    }
   }
 
-  async aiHover(locatePrompt: TUserPrompt, opt?: LocateOption): Promise<void> {
+  async aiHover(
+    locatePrompt: TUserPrompt,
+    opt: LocateOption & ActionRecordEnabled,
+  ): Promise<ActionResultWithRecord>;
+  async aiHover(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption & ActionRecordControl,
+  ): Promise<void>;
+  async aiHover(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption & ActionRecordControl,
+  ): Promise<ActionReturnWithOptionalRecord> {
     assert(locatePrompt, 'missing locate prompt for hover');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const { record, ...locateOpt } = opt || {};
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      locateOpt,
+    );
 
-    await this.callActionInActionSpace('Hover', {
-      locate: detailedLocateParam,
-    });
+    const actionOutput = await this.callActionInActionSpaceWithOptionalRecord(
+      'Hover',
+      {
+        locate: detailedLocateParam,
+      },
+      record,
+    );
+    if (record) {
+      return this.actionResultWithRecord(actionOutput);
+    }
   }
 
   // New signature, always use locatePrompt as the first param
@@ -626,7 +809,17 @@ export class Agent<
     locatePrompt: TUserPrompt,
     opt: LocateOption & { value: string | number } & {
       autoDismissKeyboard?: boolean;
-    } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' },
+    } & {
+      mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
+    } & ActionRecordEnabled,
+  ): Promise<ActionResultWithRecord>;
+  async aiInput(
+    locatePrompt: TUserPrompt,
+    opt: LocateOption & { value: string | number } & {
+      autoDismissKeyboard?: boolean;
+    } & {
+      mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
+    } & ActionRecordControl,
   ): Promise<void>;
 
   // Legacy signature - deprecated
@@ -636,9 +829,16 @@ export class Agent<
   async aiInput(
     value: string | number,
     locatePrompt: TUserPrompt,
+    opt: LocateOption & { autoDismissKeyboard?: boolean } & {
+      mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
+    } & ActionRecordEnabled,
+  ): Promise<ActionResultWithRecord>;
+  async aiInput(
+    value: string | number,
+    locatePrompt: TUserPrompt,
     opt?: LocateOption & { autoDismissKeyboard?: boolean } & {
       mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
-    }, // AndroidDeviceInputOpt &
+    } & ActionRecordControl, // AndroidDeviceInputOpt &
   ): Promise<void>;
 
   // Implementation
@@ -648,16 +848,20 @@ export class Agent<
       | TUserPrompt
       | (LocateOption & { value: string | number } & {
           autoDismissKeyboard?: boolean;
-        } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' }) // AndroidDeviceInputOpt &
+        } & {
+          mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
+        } & ActionRecordControl) // AndroidDeviceInputOpt &
       | undefined,
-    optOrUndefined?: LocateOption, // AndroidDeviceInputOpt &
-  ) {
+    optOrUndefined?: LocateOption & ActionRecordControl, // AndroidDeviceInputOpt &
+  ): Promise<ActionReturnWithOptionalRecord> {
     let value: string | number;
     let locatePrompt: TUserPrompt;
     let opt:
       | (LocateOption & { value: string | number } & {
           autoDismissKeyboard?: boolean;
-        } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' }) // AndroidDeviceInputOpt &
+        } & {
+          mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
+        } & ActionRecordControl) // AndroidDeviceInputOpt &
       | undefined;
 
     // Check if using new signature (first param is locatePrompt, second has value)
@@ -691,26 +895,41 @@ export class Agent<
     );
     assert(locatePrompt, 'missing locate prompt for input');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const { record, ...actionOpt } = opt || {};
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      actionOpt,
+    );
 
     // Convert value to string to ensure consistency
     const stringValue = typeof value === 'number' ? String(value) : value;
 
     // backward compat: convert deprecated 'append' to 'typeOnly'
-    const mode = opt?.mode === 'append' ? 'typeOnly' : opt?.mode;
+    const mode = actionOpt?.mode === 'append' ? 'typeOnly' : actionOpt?.mode;
 
-    await this.callActionInActionSpace('Input', {
-      ...(opt || {}),
-      value: stringValue,
-      locate: detailedLocateParam,
-      mode,
-    });
+    const actionOutput = await this.callActionInActionSpaceWithOptionalRecord(
+      'Input',
+      {
+        ...(actionOpt || {}),
+        value: stringValue,
+        locate: detailedLocateParam,
+        mode,
+      },
+      record,
+    );
+    if (record) {
+      return this.actionResultWithRecord(actionOutput);
+    }
   }
 
   // New signature
   async aiKeyboardPress(
     locatePrompt: TUserPrompt,
-    opt: LocateOption & { keyName: string },
+    opt: LocateOption & { keyName: string } & ActionRecordEnabled,
+  ): Promise<ActionResultWithRecord>;
+  async aiKeyboardPress(
+    locatePrompt: TUserPrompt,
+    opt: LocateOption & { keyName: string } & ActionRecordControl,
   ): Promise<void>;
 
   // Legacy signature - deprecated
@@ -720,7 +939,12 @@ export class Agent<
   async aiKeyboardPress(
     keyName: string,
     locatePrompt?: TUserPrompt,
-    opt?: LocateOption,
+    opt?: LocateOption & ActionRecordEnabled,
+  ): Promise<ActionResultWithRecord>;
+  async aiKeyboardPress(
+    keyName: string,
+    locatePrompt?: TUserPrompt,
+    opt?: LocateOption & ActionRecordControl,
   ): Promise<void>;
 
   // Implementation
@@ -728,13 +952,15 @@ export class Agent<
     locatePromptOrKeyName: TUserPrompt | string,
     locatePromptOrOpt:
       | TUserPrompt
-      | (LocateOption & { keyName: string })
+      | (LocateOption & { keyName: string } & ActionRecordControl)
       | undefined,
-    optOrUndefined?: LocateOption,
-  ) {
+    optOrUndefined?: LocateOption & ActionRecordControl,
+  ): Promise<ActionReturnWithOptionalRecord> {
     let keyName: string;
     let locatePrompt: TUserPrompt | undefined;
-    let opt: (LocateOption & { keyName: string }) | undefined;
+    let opt:
+      | (LocateOption & { keyName: string } & ActionRecordControl)
+      | undefined;
 
     // Check if using new signature (first param is locatePrompt, second has keyName)
     if (
@@ -759,20 +985,32 @@ export class Agent<
 
     assert(opt?.keyName, 'missing keyName for keyboard press');
 
+    const { record, ...actionOpt } = opt || {};
     const detailedLocateParam = locatePrompt
-      ? buildDetailedLocateParam(locatePrompt, opt)
+      ? buildDetailedLocateParam(locatePrompt, actionOpt)
       : undefined;
 
-    await this.callActionInActionSpace('KeyboardPress', {
-      ...(opt || {}),
-      locate: detailedLocateParam,
-    });
+    const actionOutput = await this.callActionInActionSpaceWithOptionalRecord(
+      'KeyboardPress',
+      {
+        ...(actionOpt || {}),
+        locate: detailedLocateParam,
+      },
+      record,
+    );
+    if (record) {
+      return this.actionResultWithRecord(actionOutput);
+    }
   }
 
   // New signature
   async aiScroll(
     locatePrompt: TUserPrompt | undefined,
-    opt: LocateOption & ScrollParam,
+    opt: LocateOption & ScrollParam & ActionRecordEnabled,
+  ): Promise<ActionResultWithRecord>;
+  async aiScroll(
+    locatePrompt: TUserPrompt | undefined,
+    opt: LocateOption & ScrollParam & ActionRecordControl,
   ): Promise<void>;
 
   // Legacy signature - deprecated
@@ -782,18 +1020,28 @@ export class Agent<
   async aiScroll(
     scrollParam: ScrollParam,
     locatePrompt?: TUserPrompt,
-    opt?: LocateOption,
+    opt?: LocateOption & ActionRecordEnabled,
+  ): Promise<ActionResultWithRecord>;
+  async aiScroll(
+    scrollParam: ScrollParam,
+    locatePrompt?: TUserPrompt,
+    opt?: LocateOption & ActionRecordControl,
   ): Promise<void>;
 
   // Implementation
   async aiScroll(
     locatePromptOrScrollParam: TUserPrompt | ScrollParam | undefined,
-    locatePromptOrOpt: TUserPrompt | (LocateOption & ScrollParam) | undefined,
-    optOrUndefined?: LocateOption,
-  ) {
+    locatePromptOrOpt:
+      | TUserPrompt
+      | (LocateOption & ScrollParam & ActionRecordControl)
+      | undefined,
+    optOrUndefined?: LocateOption & ActionRecordControl,
+  ): Promise<ActionReturnWithOptionalRecord> {
     let scrollParam: ScrollParam;
     let locatePrompt: TUserPrompt | undefined;
-    let opt: LocateOption | undefined;
+    let opt:
+      | (LocateOption & Partial<ScrollParam> & ActionRecordControl)
+      | undefined;
 
     const isLocatePromptLike = (value: unknown): value is TUserPrompt => {
       if (
@@ -842,15 +1090,23 @@ export class Agent<
       }
     }
 
+    const { record, ...actionOpt } = opt || {};
     const detailedLocateParam = buildDetailedLocateParam(
       locatePrompt || '',
-      opt,
+      actionOpt,
     );
 
-    await this.callActionInActionSpace('Scroll', {
-      ...(opt || {}),
-      locate: detailedLocateParam,
-    });
+    const actionOutput = await this.callActionInActionSpaceWithOptionalRecord(
+      'Scroll',
+      {
+        ...(actionOpt || {}),
+        locate: detailedLocateParam,
+      },
+      record,
+    );
+    if (record) {
+      return this.actionResultWithRecord(actionOutput);
+    }
   }
 
   async aiPinch(
@@ -859,44 +1115,106 @@ export class Agent<
       direction: 'in' | 'out';
       distance?: number;
       duration?: number;
-    },
-  ): Promise<void> {
+    } & ActionRecordEnabled,
+  ): Promise<ActionResultWithRecord>;
+  async aiPinch(
+    locatePrompt: TUserPrompt | undefined,
+    opt: LocateOption & {
+      direction: 'in' | 'out';
+      distance?: number;
+      duration?: number;
+    } & ActionRecordControl,
+  ): Promise<void>;
+  async aiPinch(
+    locatePrompt: TUserPrompt | undefined,
+    opt: LocateOption & {
+      direction: 'in' | 'out';
+      distance?: number;
+      duration?: number;
+    } & ActionRecordControl,
+  ): Promise<ActionReturnWithOptionalRecord> {
+    const { record, ...actionOpt } = opt;
     const detailedLocateParam = buildDetailedLocateParam(
       locatePrompt || '',
-      opt,
+      actionOpt,
     );
 
-    await this.callActionInActionSpace('Pinch', {
-      ...opt,
-      locate: detailedLocateParam,
-    });
+    const actionOutput = await this.callActionInActionSpaceWithOptionalRecord(
+      'Pinch',
+      {
+        ...actionOpt,
+        locate: detailedLocateParam,
+      },
+      record,
+    );
+    if (record) {
+      return this.actionResultWithRecord(actionOutput);
+    }
   }
 
   async aiLongPress(
     locatePrompt: TUserPrompt,
-    opt?: LocateOption & { duration?: number },
-  ): Promise<void> {
+    opt: LocateOption & { duration?: number } & ActionRecordEnabled,
+  ): Promise<ActionResultWithRecord>;
+  async aiLongPress(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption & { duration?: number } & ActionRecordControl,
+  ): Promise<void>;
+  async aiLongPress(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption & { duration?: number } & ActionRecordControl,
+  ): Promise<ActionReturnWithOptionalRecord> {
     assert(locatePrompt, 'missing locate prompt for long press');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const { record, ...actionOpt } = opt || {};
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      actionOpt,
+    );
 
-    await this.callActionInActionSpace('LongPress', {
-      ...(opt || {}),
-      locate: detailedLocateParam,
-    });
+    const actionOutput = await this.callActionInActionSpaceWithOptionalRecord(
+      'LongPress',
+      {
+        ...(actionOpt || {}),
+        locate: detailedLocateParam,
+      },
+      record,
+    );
+    if (record) {
+      return this.actionResultWithRecord(actionOutput);
+    }
   }
 
   async aiClearInput(
     locatePrompt: TUserPrompt,
-    opt?: LocateOption,
-  ): Promise<void> {
+    opt: LocateOption & ActionRecordEnabled,
+  ): Promise<ActionResultWithRecord>;
+  async aiClearInput(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption & ActionRecordControl,
+  ): Promise<void>;
+  async aiClearInput(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption & ActionRecordControl,
+  ): Promise<ActionReturnWithOptionalRecord> {
     assert(locatePrompt, 'missing locate prompt for clear input');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const { record, ...locateOpt } = opt || {};
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      locateOpt,
+    );
 
-    await this.callActionInActionSpace('ClearInput', {
-      locate: detailedLocateParam,
-    });
+    const actionOutput = await this.callActionInActionSpaceWithOptionalRecord(
+      'ClearInput',
+      {
+        locate: detailedLocateParam,
+      },
+      record,
+    );
+    if (record) {
+      return this.actionResultWithRecord(actionOutput);
+    }
   }
 
   async aiAct(taskPrompt: string, opt?: AiActOptions): Promise<void> {

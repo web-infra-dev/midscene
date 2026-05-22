@@ -2,6 +2,7 @@ import { TaskBuilder } from '@/agent/task-builder';
 import { getMidsceneLocationSchema } from '@/ai-model';
 import { AbstractInterface, defineActionSleep } from '@/device';
 import type Service from '@/insight';
+import { ScreenshotItem } from '@/screenshot-item';
 import type { DeviceAction, PlanningAction } from '@/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -180,5 +181,67 @@ describe('TaskBuilder', () => {
     expect(fastBeforeHook).toHaveBeenCalledTimes(1);
     expect(fastActionCall).toHaveBeenCalledTimes(1);
     expect(fastAfterHook).toHaveBeenCalledTimes(1);
+  });
+
+  it('captures action record frames after the primitive action call', async () => {
+    vi.useFakeTimers();
+
+    const actionCall = vi.fn(async () => undefined);
+    const action: DeviceAction = {
+      name: 'Tap',
+      description: 'mock tap action',
+      delayBeforeRunner: 0,
+      delayAfterRunner: 0,
+      call: actionCall,
+    };
+
+    let screenshotIndex = 0;
+    const insightService = {
+      contextRetrieverFn: vi.fn(async () => {
+        screenshotIndex++;
+        return {
+          screenshot: ScreenshotItem.create(
+            `data:image/png;base64,frame-${screenshotIndex}`,
+            Date.now(),
+          ),
+          shotSize: { width: 100, height: 80 },
+          shrunkShotToLogicalRatio: 2,
+          deprecatedDpr: 2,
+        };
+      }),
+      locate: vi.fn(),
+    } as unknown as Service;
+
+    const mockInterface = new MockInterface([action]);
+    const taskBuilder = new TaskBuilder({
+      interfaceInstance: mockInterface,
+      service: insightService,
+      actionSpace: mockInterface.actionSpace(),
+    });
+
+    const { tasks } = await taskBuilder.build(
+      [{ type: 'Tap', thought: '', param: {} }],
+      {} as any,
+      {} as any,
+      {
+        actionRecord: {
+          interval: 1,
+          maxCount: 2,
+        },
+      },
+    );
+
+    const resultPromise = tasks[0].executor(tasks[0].param, {
+      task: { taskId: 'action-task-id', timing: {} },
+      uiContext: { shrunkShotToLogicalRatio: 1 },
+    } as any);
+
+    await vi.advanceTimersByTimeAsync(1);
+    const result = await resultPromise;
+
+    expect(actionCall).toHaveBeenCalledTimes(1);
+    expect(result?.actionRecord?.actionTaskId).toBe('action-task-id');
+    expect(result?.actionRecord?.frames).toHaveLength(2);
+    expect(result?.output).toBeUndefined();
   });
 });

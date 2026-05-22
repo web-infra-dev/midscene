@@ -83,6 +83,43 @@
     align-items: center;
   }
 
+  .record-frame-carousel {
+    width: min(100%, 960px);
+  }
+
+  .record-frame-carousel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+
+  .record-frame-carousel-title {
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .record-frame-carousel-subtitle {
+    color: #666;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .record-frame-carousel-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .record-frame-carousel-count {
+    min-width: 48px;
+    text-align: center;
+    color: #666;
+    font-size: 13px;
+  }
+
   .screenshot-item {
     margin-bottom: @layout-space;
 
@@ -125,6 +162,11 @@
     .screenshot-item {
       .screenshot-item-title {
         color: #f8fafd;
+      }
+
+      .record-frame-carousel-subtitle,
+      .record-frame-carousel-count {
+        color: rgba(248, 250, 253, 0.72);
       }
 
       img {

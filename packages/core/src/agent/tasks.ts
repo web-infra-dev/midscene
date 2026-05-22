@@ -17,6 +17,8 @@ import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
 import type {
+  ActionRecordDump,
+  ActionRecordOption,
   DeviceAction,
   ExecutionTaskApply,
   ExecutionTaskInsightQueryApply,
@@ -30,6 +32,7 @@ import type {
   ServiceDump,
   ServiceExtractOption,
   ServiceExtractParam,
+  UIContext,
 } from '@/types';
 import { ServiceError } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -41,6 +44,7 @@ import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
 import { setTimingFieldOnce } from '@/task-timing';
 import { descriptionOfTree } from '@midscene/shared/extractor';
+import { recordDumpToSource, recordDumpToUIContext } from './action-record';
 import { taskTitleStr } from './ui-utils';
 import { withUsageIntent } from './usage-intent';
 import { parsePrompt } from './utils';
@@ -175,6 +179,7 @@ export class TaskExecutor {
       cacheable?: boolean;
       deepLocate?: boolean;
       abortSignal?: AbortSignal;
+      actionRecord?: ActionRecordOption;
     },
   ) {
     return this.taskBuilder.build(
@@ -231,12 +236,18 @@ export class TaskExecutor {
     plans: PlanningAction[],
     modelConfigForPlanning: IModelConfig,
     modelConfigForDefaultIntent: IModelConfig,
+    options?: {
+      actionRecord?: ActionRecordOption;
+    },
   ): Promise<ExecutionResult> {
     const session = this.createExecutionSession(title);
     const { tasks } = await this.convertPlanToExecutable(
       plans,
       modelConfigForPlanning,
       modelConfigForDefaultIntent,
+      {
+        actionRecord: options?.actionRecord,
+      },
     );
     const runner = session.getRunner();
     const result = await session.appendAndRun(tasks);
@@ -563,18 +574,28 @@ export class TaskExecutor {
     modelConfig: IModelConfig,
     opt?: ServiceExtractOption,
     multimodalPrompt?: TMultimodalPrompt,
+    recordContext?: {
+      record: ActionRecordDump;
+      uiContext: UIContext;
+      reportDemand?: ServiceExtractParam;
+    },
   ) {
+    const reportDemand = recordContext?.reportDemand ?? demand;
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
       subType: type,
+      recordSource: recordContext
+        ? recordDumpToSource(recordContext.record)
+        : undefined,
+      uiContext: recordContext?.uiContext,
       param: {
         domIncluded: opt?.domIncluded,
         dataDemand: multimodalPrompt
           ? ({
-              demand,
+              demand: reportDemand,
               multimodalPrompt,
             } as never)
-          : demand, // for user param presentation in report right sidebar
+          : reportDemand, // for user param presentation in report right sidebar
       },
       executor: async (param, taskContext) => {
         const { task } = taskContext;
@@ -592,7 +613,11 @@ export class TaskExecutor {
         };
 
         // Get context for query operations
-        const uiContext = taskContext.uiContext;
+        const uiContext = recordContext?.uiContext ?? taskContext.uiContext;
+        if (recordContext?.uiContext) {
+          task.uiContext = recordContext.uiContext;
+          task.recordSource = recordDumpToSource(recordContext.record);
+        }
         assert(uiContext, 'uiContext is required for Query task');
 
         const ifTypeRestricted = type !== 'Query';
@@ -613,7 +638,11 @@ export class TaskExecutor {
         let extractResult;
 
         let extraPageDescription = '';
-        if (opt?.domIncluded && this.interface.getElementsNodeTree) {
+        if (
+          opt?.domIncluded &&
+          !recordContext &&
+          this.interface.getElementsNodeTree
+        ) {
           debug('appending tree info for page');
           const tree = await this.interface.getElementsNodeTree();
           extraPageDescription = await descriptionOfTree(
@@ -689,11 +718,18 @@ export class TaskExecutor {
     modelConfig: IModelConfig,
     opt?: ServiceExtractOption,
     multimodalPrompt?: TMultimodalPrompt,
+    options?: {
+      actionRecord?: ActionRecordDump;
+      reportDemand?: ServiceExtractParam;
+    },
   ): Promise<ExecutionResult<T>> {
+    const reportDemand = options?.reportDemand ?? demand;
     const session = this.createExecutionSession(
       taskTitleStr(
         type,
-        typeof demand === 'string' ? demand : JSON.stringify(demand),
+        typeof reportDemand === 'string'
+          ? reportDemand
+          : JSON.stringify(reportDemand),
       ),
     );
 
@@ -703,6 +739,13 @@ export class TaskExecutor {
       modelConfig,
       opt,
       multimodalPrompt,
+      options?.actionRecord
+        ? {
+            record: options.actionRecord,
+            uiContext: recordDumpToUIContext(options.actionRecord),
+            reportDemand: options.reportDemand,
+          }
+        : undefined,
     );
 
     const runner = session.getRunner();

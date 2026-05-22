@@ -138,6 +138,14 @@ export class ExecutionDump implements IExecutionDump {
           }
         }
       }
+
+      if (task.actionRecord?.frames) {
+        for (const frame of task.actionRecord.frames) {
+          if (frame.screenshot instanceof ScreenshotItem) {
+            screenshots.push(frame.screenshot);
+          }
+        }
+      }
     }
 
     return screenshots;

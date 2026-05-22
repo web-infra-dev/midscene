@@ -6,6 +6,8 @@ import {
   DownloadOutlined,
   FileMarkdownOutlined,
   FileTextOutlined,
+  LeftOutlined,
+  RightOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import type {
@@ -16,7 +18,7 @@ import type { MarkdownAttachment } from '@midscene/core';
 import { executionToMarkdown } from '@midscene/core';
 import { filterBase64Value } from '@midscene/visualizer';
 import { Blackboard, Player } from '@midscene/visualizer';
-import { Segmented } from 'antd';
+import { Button, Segmented } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { fullTimeStrWithMilliseconds } from '../../../../../packages/visualizer/src/utils';
 import OpenInPlayground from '../open-in-playground';
@@ -36,6 +38,60 @@ const ScreenshotDisplay = (props: {
         </div>
       )}
       {props.children && <div>{props.children}</div>}
+    </div>
+  );
+};
+
+const RecordFrameCarousel = (props: {
+  items: Array<{
+    timestamp?: number;
+    screenshotTimestamp?: number;
+    screenshot: string;
+    timing?: string;
+  }>;
+  currentIndex: number;
+  onIndexChange: (index: number) => void;
+}) => {
+  const currentIndex = Math.min(
+    Math.max(props.currentIndex, 0),
+    props.items.length - 1,
+  );
+  const item = props.items[currentIndex];
+  if (!item) {
+    return null;
+  }
+
+  const screenshotAt = capturedAtText(item.screenshotTimestamp);
+  const title = `${item.timing || 'record frame'} / ${screenshotAt}`;
+  const canGoPrev = currentIndex > 0;
+  const canGoNext = currentIndex < props.items.length - 1;
+
+  return (
+    <div className="record-frame-carousel screenshot-item">
+      <div className="record-frame-carousel-header">
+        <div>
+          <div className="record-frame-carousel-title">Record Frames</div>
+          <div className="record-frame-carousel-subtitle">{title}</div>
+        </div>
+        <div className="record-frame-carousel-controls">
+          <Button
+            icon={<LeftOutlined />}
+            disabled={!canGoPrev}
+            onClick={() => props.onIndexChange(currentIndex - 1)}
+          />
+          <span className="record-frame-carousel-count">
+            {currentIndex + 1} / {props.items.length}
+          </span>
+          <Button
+            icon={<RightOutlined />}
+            disabled={!canGoNext}
+            onClick={() => props.onIndexChange(currentIndex + 1)}
+          />
+        </div>
+      </div>
+      <div>
+        <img src={item.screenshot} alt="record frame" loading="lazy" />
+      </div>
     </div>
   );
 };
@@ -118,6 +174,7 @@ const capturedAtText = (capturedAt?: number): string => {
 const DetailPanel = (): JSX.Element => {
   const insightDump = useExecutionDump((store) => store.insightDump);
   const _contextLoadId = useExecutionDump((store) => store._contextLoadId);
+  const groupedDump = useExecutionDump((store) => store.dump);
   const activeExecution = useExecutionDump((store) => store.activeExecution);
   const activeExecutionId = useExecutionDump(
     (store) => store._executionDumpLoadId,
@@ -129,6 +186,7 @@ const DetailPanel = (): JSX.Element => {
   );
   const imageWidth = useExecutionDump((store) => store.insightWidth);
   const imageHeight = useExecutionDump((store) => store.insightHeight);
+  const [recordFrameIndex, setRecordFrameIndex] = useState(0);
 
   // Check if page context is frozen
   const isPageContextFrozen = Boolean(activeTask?.uiContext?._isFrozen);
@@ -198,6 +256,23 @@ const DetailPanel = (): JSX.Element => {
       screenshot: string;
       timing?: string;
     }[] = [];
+    const recordFrameItems: {
+      timestamp?: number;
+      screenshotTimestamp?: number;
+      screenshot: string;
+      timing?: string;
+    }[] = [];
+    const recordForActiveTask =
+      activeTask.actionRecord ??
+      activeExecution?.tasks.find(
+        (task) => task.actionRecord?.id === activeTask.recordSource?.recordId,
+      )?.actionRecord ??
+      groupedDump?.executions
+        .flatMap((execution) => execution.tasks)
+        .find(
+          (task) => task.actionRecord?.id === activeTask.recordSource?.recordId,
+        )?.actionRecord;
+    const isRecordSourcedInsight = Boolean(activeTask.recordSource);
 
     // locator view
     let contextLocatorView;
@@ -231,22 +306,23 @@ const DetailPanel = (): JSX.Element => {
       activeTask.uiContext?.screenshot?.capturedAt,
     );
 
-    contextLocatorView = activeTask.uiContext?.shotSize ? (
-      <ScreenshotDisplay
-        title={`${isPageContextFrozen ? 'UI Context (Frozen)' : 'UI Context'} / ${contextScreenshotAt}`}
-      >
-        <Blackboard
-          key={`${_contextLoadId}`}
-          uiContext={activeTask.uiContext}
-          highlightElements={highlightElements}
-          highlightRect={insightDump?.taskInfo?.searchArea}
-        />
-      </ScreenshotDisplay>
-    ) : null;
+    contextLocatorView =
+      activeTask.uiContext?.shotSize && !isRecordSourcedInsight ? (
+        <ScreenshotDisplay
+          title={`${isPageContextFrozen ? 'UI Context (Frozen)' : 'UI Context'} / ${contextScreenshotAt}`}
+        >
+          <Blackboard
+            key={`${_contextLoadId}`}
+            uiContext={activeTask.uiContext}
+            highlightElements={highlightElements}
+            highlightRect={insightDump?.taskInfo?.searchArea}
+          />
+        </ScreenshotDisplay>
+      ) : null;
 
     // screenshot view
     const screenshotFromContext = activeTask.uiContext?.screenshot;
-    if (screenshotFromContext?.base64) {
+    if (!isRecordSourcedInsight && screenshotFromContext?.base64) {
       screenshotItems.push({
         timestamp: activeTask.timing?.start ?? undefined,
         screenshotTimestamp: screenshotFromContext.capturedAt,
@@ -255,7 +331,7 @@ const DetailPanel = (): JSX.Element => {
       });
     }
 
-    if (activeTask.recorder?.length) {
+    if (!isRecordSourcedInsight && activeTask.recorder?.length) {
       for (const item of activeTask.recorder) {
         if (item.screenshot?.base64) {
           screenshotItems.push({
@@ -268,7 +344,24 @@ const DetailPanel = (): JSX.Element => {
       }
     }
 
-    if (screenshotItems.length > 0 || contextLocatorView) {
+    if (recordForActiveTask?.frames?.length) {
+      for (const frame of recordForActiveTask.frames) {
+        if (frame.screenshot?.base64) {
+          recordFrameItems.push({
+            timestamp: frame.timestamp,
+            screenshotTimestamp: frame.screenshot.capturedAt,
+            screenshot: frame.screenshot.base64,
+            timing: `record frame +${frame.offset}ms`,
+          });
+        }
+      }
+    }
+
+    if (
+      screenshotItems.length > 0 ||
+      recordFrameItems.length > 0 ||
+      contextLocatorView
+    ) {
       content = (
         <div className="screenshot-item-wrapper scrollable">
           {contextLocatorView && <div>{contextLocatorView}</div>}
@@ -284,12 +377,23 @@ const DetailPanel = (): JSX.Element => {
               />
             );
           })}
+          {recordFrameItems.length > 0 && (
+            <RecordFrameCarousel
+              items={recordFrameItems}
+              currentIndex={recordFrameIndex}
+              onIndexChange={setRecordFrameIndex}
+            />
+          )}
         </div>
       );
     } else {
       content = <div>No screenshot</div>;
     }
   }
+
+  useEffect(() => {
+    setRecordFrameIndex(0);
+  }, [activeExecutionId, activeTask?.taskId]);
 
   useEffect(() => {
     // hit `Tab` to toggle viewType

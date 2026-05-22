@@ -16,6 +16,7 @@ import type { PlaywrightTasks } from '../../types';
 import {
   hasDeepLocateFlag,
   hasDeepThinkFlag,
+  hasRecordFrames,
 } from '../../utils/report-task-tags';
 import ReportOverview from '../report-overview';
 
@@ -231,6 +232,22 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         }}
       >
         DeepThink
+      </Tag>
+    ) : null;
+  };
+
+  const getRecordTag = (task: ExecutionTaskWithSearchAreaUsage) => {
+    return hasRecordFrames(task) ? (
+      <Tag
+        bordered={false}
+        style={{
+          padding: '0 4px',
+          marginLeft: '4px',
+          marginRight: 0,
+          lineHeight: '16px',
+        }}
+      >
+        Record
       </Tag>
     ) : null;
   };
@@ -530,6 +547,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             {getDomIncludedTag(task)}
             {getDeepLocateTag(task)}
             {getDeepThinkTag(task)}
+            {getRecordTag(task)}
           </div>
         );
       }

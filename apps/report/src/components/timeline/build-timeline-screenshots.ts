@@ -42,6 +42,14 @@ const collectScreenshotEntries = (
         });
       }
     }
+
+    for (const frame of task.actionRecord?.frames ?? []) {
+      entries.push({
+        task,
+        ts: frame.timestamp,
+        base64: frame.screenshot.base64 || '',
+      });
+    }
   }
 
   return entries;
@@ -59,6 +67,9 @@ const computeStartingTime = (allTasks: ExecutionTask[]): number => {
   for (const task of allTasks) {
     for (const recorder of task.recorder ?? []) {
       consider(recorder.ts);
+    }
+    for (const frame of task.actionRecord?.frames ?? []) {
+      consider(frame.timestamp);
     }
     if (task.timing?.start) {
       consider(task.timing.start);

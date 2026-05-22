@@ -257,7 +257,10 @@ export class TaskRunner {
         // to ensure we have the latest UI state after any preceding actions
         const forceRefresh = task.type === 'Insight';
         setTimingFieldOnce(task.timing, 'getUiContextStart');
-        const uiContext = await this.getUiContext({ forceRefresh });
+        const uiContext =
+          task.recordSource && task.uiContext
+            ? task.uiContext
+            : await this.getUiContext({ forceRefresh });
         setTimingFieldOnce(task.timing, 'getUiContextEnd');
 
         task.uiContext = uiContext;
@@ -296,7 +299,7 @@ export class TaskRunner {
 
         const isLastTask = taskIndex === this.tasks.length - 1;
 
-        if (isLastTask) {
+        if (isLastTask && !task.recordSource) {
           setTimingFieldOnce(task.timing, 'captureAfterCallingSnapshotStart');
           const screenshot = await this.captureScreenshot();
           this.attachRecorderItem(task, screenshot, 'after-calling');
