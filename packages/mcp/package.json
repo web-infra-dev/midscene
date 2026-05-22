@@ -20,7 +20,6 @@
   "devDependencies": {
     "@midscene/android": "workspace:*",
     "@midscene/core": "workspace:*",
-    "@midscene/report": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/web": "workspace:*",
     "@modelcontextprotocol/inspector": "^0.16.3",
@@ -29,5 +28,19 @@
     "@types/node": "^18.0.0",
     "typescript": "^5.8.3"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "nx": {
+    "targets": {
+      "build": {
+        "dependsOn": [
+          "^build",
+          {
+            "projects": ["@midscene/report"],
+            "target": "build",
+            "params": "ignore"
+          }
+        ]
+      }
+    }
+  }
 }

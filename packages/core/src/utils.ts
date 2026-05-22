@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import {
   defaultRunDirName,
@@ -78,16 +79,48 @@ export function processCacheConfig(
 
 const reportInitializedMap = new Map<string, boolean>();
 const reportGroupIdMap = new Map<string, string>();
+const reportTemplateGlobalName =
+  '__MIDSCENE_INTERNAL_REPORT_TEMPLATE_CONTENT__';
 
 declare const __DEV_REPORT_PATH__: string;
 
 export function getReportTpl() {
+  const globalReportTpl = (globalThis as any)[reportTemplateGlobalName];
+  if (typeof globalReportTpl === 'string' && globalReportTpl) {
+    return globalReportTpl;
+  }
+
   if (typeof __DEV_REPORT_PATH__ === 'string' && __DEV_REPORT_PATH__) {
     return fs.readFileSync(__DEV_REPORT_PATH__, 'utf-8');
   }
-  const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';
 
-  return reportTpl;
+  if (ifInBrowser || ifInWorker) {
+    throw new Error(
+      `Midscene report template is missing. If you bundle @midscene/core, inject the report template with globalThis.${reportTemplateGlobalName} before report generation.`,
+    );
+  }
+
+  return readReportTemplateFromPackage();
+}
+
+function resolveReportTemplatePath() {
+  const currentDir =
+    typeof __dirname !== 'undefined'
+      ? __dirname
+      : path.dirname(fileURLToPath(import.meta.url));
+  return path.resolve(currentDir, '..', 'report-template', 'index.html');
+}
+
+export function readReportTemplateFromPackage(
+  reportTplPath = resolveReportTemplatePath(),
+) {
+  if (!fs.existsSync(reportTplPath)) {
+    throw new Error(
+      `Midscene report template is missing at ${reportTplPath}. Build @midscene/report first so it can sync apps/report/dist/index.html into packages/core/dist/report-template/index.html. If you bundle @midscene/core, inject the template with globalThis.${reportTemplateGlobalName}.`,
+    );
+  }
+
+  return fs.readFileSync(reportTplPath, 'utf-8');
 }
 
 /**

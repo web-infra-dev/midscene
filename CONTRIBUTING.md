@@ -152,13 +152,13 @@ cd apps/playground && pnpm run dev
 cd apps/chrome-extension && pnpm run dev
 ```
 
-### `REPLACE_ME_WITH_REPORT_HTML` error in the report file
+### Missing report template errors
 
 `apps/report` is not standalone at runtime. Its built `index.html` template is
-injected back into `packages/core/dist` during build. If report UI changes do
-not show up, or you see `REPLACE_ME_WITH_REPORT_HTML` in the report file, the
-template injection is usually stale. Rebuild the entire workspace without Nx
-cache to fix it:
+synced into `packages/core/dist/report-template/index.html` during build. If
+report UI changes do not show up, or the runtime says the Midscene report
+template is missing, rebuild the entire workspace without Nx cache to refresh
+the synced template:
 
 ```sh
 # Rebuild the entire project without cache

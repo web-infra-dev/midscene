@@ -1,5 +1,6 @@
 import { defineConfig } from '@rslib/core';
 import { createTypeCheckPlugin } from '../../scripts/rsbuild-utils.ts';
+import { createCoreReportTemplateReplacementPlugin } from '../../scripts/rsbuild-utils.ts';
 import { version } from './package.json';
 
 export default defineConfig({
@@ -24,5 +25,8 @@ export default defineConfig({
       },
     },
   ],
-  plugins: [createTypeCheckPlugin()],
+  plugins: [
+    createTypeCheckPlugin(),
+    createCoreReportTemplateReplacementPlugin({ appDir: __dirname }),
+  ],
 });

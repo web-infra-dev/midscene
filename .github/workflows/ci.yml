@@ -58,6 +58,9 @@ jobs:
 
     - name: Build project
       run: pnpm run build
+    
+    - name: Verify report template asset
+      run: pnpm run verify:report-template
 
     - name: Type check tests
       run: pnpm run type-check:tests

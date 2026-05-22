@@ -19,7 +19,6 @@
   },
   "devDependencies": {
     "@midscene/core": "workspace:*",
-    "@midscene/report": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/web": "workspace:*",
     "@modelcontextprotocol/inspector": "^0.16.3",
@@ -39,5 +38,19 @@
     "sharp": "^0.34.3",
     "utf-8-validate": "6.0.5"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "nx": {
+    "targets": {
+      "build": {
+        "dependsOn": [
+          "^build",
+          {
+            "projects": ["@midscene/report"],
+            "target": "build",
+            "params": "ignore"
+          }
+        ]
+      }
+    }
+  }
 }
