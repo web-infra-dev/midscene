@@ -110,7 +110,7 @@ export function WhoIsUsing() {
       name: t('userIqiyi'),
       url: 'https://www.iqiyi.com',
       logo: '/images/users/iqiyi-color.svg',
-      logoWidth: 140,
+      logoWidth: 200,
     },
     {
       kind: 'logo',
