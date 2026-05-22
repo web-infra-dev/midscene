@@ -7,7 +7,8 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { parseCliArgs, runToolsCLI } from '@midscene/shared/cli';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { generateDumpScriptTag, generateImageScriptTag } from '../../src/dump';
 import type { ScreenshotRef } from '../../src/dump/screenshot-store';
 import {
@@ -521,7 +522,7 @@ describe('createReportCliCommands', () => {
     const [command] = createReportCliCommands();
     const result = await command.def.handler({
       action: 'merge',
-      htmlPaths: JSON.stringify([reportA, reportB]),
+      htmlReport: [reportA, reportB],
       outputDir,
       outputName: 'merged-cli',
     });
@@ -533,25 +534,28 @@ describe('createReportCliCommands', () => {
     expect(existsSync(mergedPath)).toBe(true);
   });
 
-  it('accepts comma-separated htmlPaths for the merge action', async () => {
-    const reportA = writeFakeReport('merge-csv-a', 'csv-group-A', 'exec-csv-A');
-    const reportB = writeFakeReport('merge-csv-b', 'csv-group-B', 'exec-csv-B');
+  it('accepts a single --htmlReport for the merge action', async () => {
+    const reportA = writeFakeReport(
+      'merge-single-a',
+      'single-group-A',
+      'exec-single-A',
+    );
 
-    const outputDir = join(tmpDir, 'merge-output-csv');
+    const outputDir = join(tmpDir, 'merge-output-single');
     const [command] = createReportCliCommands();
     const result = await command.def.handler({
       action: 'merge',
-      htmlPaths: `${reportA},${reportB}`,
+      htmlReport: reportA,
       outputDir,
-      outputName: 'merged-csv',
+      outputName: 'merged-single',
     });
 
     expect(result.isError).toBe(false);
-    const mergedPath = join(outputDir, 'merged-csv.html');
+    const mergedPath = join(outputDir, 'merged-single.html');
     expect(existsSync(mergedPath)).toBe(true);
   });
 
-  it('throws when --htmlPaths is missing for the merge action', async () => {
+  it('throws when --htmlReport is missing for the merge action', async () => {
     const [command] = createReportCliCommands();
 
     await expect(
@@ -559,7 +563,58 @@ describe('createReportCliCommands', () => {
         action: 'merge',
         outputDir: join(tmpDir, 'merge-missing'),
       }),
-    ).rejects.toThrow('report-tool: --htmlPaths is required');
+    ).rejects.toThrow('report-tool: --htmlReport is required');
+  });
+
+  it('drives the merge action end-to-end through runToolsCLI argv', async () => {
+    const reportA = writeFakeReport('merge-e2e-a', 'e2e-group-A', 'exec-e2e-A');
+    const reportB = writeFakeReport('merge-e2e-b', 'e2e-group-B', 'exec-e2e-B');
+
+    const outputDir = join(tmpDir, 'merge-output-e2e');
+    const [command] = createReportCliCommands();
+
+    const restArgs = [
+      '--action',
+      'merge',
+      '--htmlReport',
+      reportA,
+      '--htmlReport',
+      reportB,
+      '--outputDir',
+      outputDir,
+      '--outputName',
+      'merged-e2e',
+    ];
+    expect(parseCliArgs(restArgs)).toEqual({
+      action: 'merge',
+      htmlReport: [reportA, reportB],
+      outputDir,
+      outputName: 'merged-e2e',
+    });
+
+    const logs: string[] = [];
+    const consoleSpy = vi
+      .spyOn(console, 'log')
+      .mockImplementation((...args: unknown[]) => {
+        logs.push(args.map((a) => String(a)).join(' '));
+      });
+
+    const tools = {
+      initTools: vi.fn().mockResolvedValue(undefined),
+      destroy: vi.fn().mockResolvedValue(undefined),
+      getToolDefinitions: vi.fn().mockReturnValue([]),
+    } as any;
+
+    await runToolsCLI(tools, 'midscene-test', {
+      argv: ['report-tool', ...restArgs],
+      extraCommands: [command],
+    });
+
+    consoleSpy.mockRestore();
+
+    const mergedPath = join(outputDir, 'merged-e2e.html');
+    expect(existsSync(mergedPath)).toBe(true);
+    expect(logs.join('\n')).toContain('Merged 2 report(s) into');
   });
 
   it('throws when merge target already exists without --overwrite', async () => {
