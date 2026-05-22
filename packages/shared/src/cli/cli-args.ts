@@ -42,9 +42,18 @@ function walkCliArgs(
 
 export function parseCliArgs(args: string[]): Record<string, unknown> {
   const result: Record<string, unknown> = {};
+  const seen = new Set<string>();
 
   walkCliArgs(args, (key, value) => {
-    result[key] = value;
+    if (!seen.has(key)) {
+      result[key] = value;
+      seen.add(key);
+      return;
+    }
+    const existing = result[key];
+    result[key] = Array.isArray(existing)
+      ? [...existing, value]
+      : [existing, value];
   });
 
   return result;

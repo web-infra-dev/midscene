@@ -190,6 +190,25 @@ describe('parseCliArgs', () => {
       'android.device-id': '127.0.0.1:7555',
     });
   });
+
+  it('accumulates repeated flags into an array', () => {
+    expect(
+      parseCliArgs([
+        '--htmlReport',
+        'a.html',
+        '--htmlReport',
+        'b.html',
+        '--htmlReport',
+        'c.html',
+      ]),
+    ).toEqual({ htmlReport: ['a.html', 'b.html', 'c.html'] });
+  });
+
+  it('accumulates repeated --key=value into an array', () => {
+    expect(parseCliArgs(['--report=a.html', '--report=b.html'])).toEqual({
+      report: ['a.html', 'b.html'],
+    });
+  });
 });
 
 describe('removePrefix', () => {
