@@ -8,7 +8,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   extractAllDumpScriptsSync,
   generateImageScriptTag,
@@ -19,6 +19,24 @@ import {
   type ReportFileWithAttributes,
 } from '../../src/types';
 import { getReportTpl, getTmpFile, writeDumpReport } from '../../src/utils';
+
+const reportTemplateGlobalName =
+  '__MIDSCENE_INTERNAL_REPORT_TEMPLATE_CONTENT__';
+let originalReportTemplateContent: unknown;
+
+beforeEach(() => {
+  originalReportTemplateContent = (globalThis as any)[reportTemplateGlobalName];
+  (globalThis as any)[reportTemplateGlobalName] = '<html></html>';
+});
+
+afterEach(() => {
+  if (typeof originalReportTemplateContent === 'undefined') {
+    delete (globalThis as any)[reportTemplateGlobalName];
+    return;
+  }
+
+  (globalThis as any)[reportTemplateGlobalName] = originalReportTemplateContent;
+});
 
 function generateNReports(
   n: number,
