@@ -117,7 +117,7 @@ export function WhoIsUsing() {
       name: t('userBilibili'),
       url: 'https://www.bilibili.com',
       logo: t('userBilibiliLogo'),
-      logoWidth: 140,
+      logoWidth: Number(t('userBilibiliLogoWidth')),
     },
   ];
 
