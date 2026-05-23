@@ -86,13 +86,13 @@ describe('xmlContext', () => {
       undefined,
       undefined,
       {
-        planning: { pageXml: true, cursorXml: false },
+        planning: { xml: true },
       },
     );
 
     expect(mockInterface.getExtraPlanningContext).toHaveBeenCalledWith({
       intent: 'planning',
-      xmlContext: { pageXml: true, cursorXml: false },
+      xmlContext: { xml: true },
     });
     expect(vi.mocked(plan).mock.calls[0][1].actionContext).toBe(
       'base context\n<ExtraXml />',
@@ -101,12 +101,12 @@ describe('xmlContext', () => {
       extraPlanningContext: '\n<ExtraXml />',
       actualAiActContext: 'base context\n<ExtraXml />',
       xmlContext: {
-        planning: { pageXml: true, cursorXml: false },
+        planning: { xml: true },
       },
     });
   });
 
-  it('skips the planning device hook when both planning XML channels are disabled', async () => {
+  it('skips the planning device hook when planning XML is disabled', async () => {
     const mockInterface = new MockInterface();
     const mockService = {
       contextRetrieverFn: vi.fn().mockResolvedValue(createUiContext()),
@@ -139,7 +139,7 @@ describe('xmlContext', () => {
       undefined,
       undefined,
       {
-        planning: { pageXml: false, cursorXml: false },
+        planning: { xml: false },
       },
     );
 
@@ -148,7 +148,7 @@ describe('xmlContext', () => {
     expect(runner.tasks[0].param).toMatchObject({
       actualAiActContext: 'base context',
       xmlContext: {
-        planning: { pageXml: false, cursorXml: false },
+        planning: { xml: false },
       },
     });
   });
@@ -180,7 +180,7 @@ describe('xmlContext', () => {
 
     const { tasks } = await taskBuilder.build(plans, {} as any, {} as any, {
       xmlContext: {
-        locate: { pageXml: false, cursorXml: true },
+        locate: { xml: true },
       },
     });
     const task = {
@@ -195,7 +195,7 @@ describe('xmlContext', () => {
 
     expect(mockInterface.getExtraPlanningContext).toHaveBeenCalledWith({
       intent: 'locate',
-      xmlContext: { pageXml: false, cursorXml: true },
+      xmlContext: { xml: true },
     });
     expect(mockService.locate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -212,8 +212,69 @@ describe('xmlContext', () => {
       extraLocateContext: '\n<ExtraXml />',
       actualAiActContext: '\n<ExtraXml />',
       xmlContext: {
-        locate: { pageXml: false, cursorXml: true },
+        locate: { xml: true },
       },
     });
+  });
+
+  it('skips the locate device hook when locate XML is disabled', async () => {
+    const mockInterface = new MockInterface();
+    const mockService = {
+      contextRetrieverFn: vi.fn(),
+      locate: vi.fn().mockResolvedValue({
+        element: {
+          center: [5, 5],
+          rect: { left: 0, top: 0, width: 10, height: 10 },
+          text: 'Save',
+        },
+      }),
+    } as unknown as Service;
+    const taskBuilder = new TaskBuilder({
+      interfaceInstance: mockInterface,
+      service: mockService,
+      actionSpace: [],
+    });
+    const plans: PlanningAction[] = [
+      {
+        type: 'Locate',
+        thought: '',
+        param: { prompt: 'Save' },
+      },
+    ];
+
+    const { tasks } = await taskBuilder.build(plans, {} as any, {} as any, {
+      xmlContext: {
+        locate: { xml: false },
+      },
+    });
+    const task = {
+      ...tasks[0],
+      timing: {},
+    } as any;
+
+    await tasks[0].executor(tasks[0].param, {
+      task,
+      uiContext: createUiContext(),
+    } as any);
+
+    expect(mockInterface.getExtraPlanningContext).not.toHaveBeenCalled();
+    expect(mockService.locate).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        extraLocateContext: expect.anything(),
+        actualAiActContext: expect.anything(),
+      }),
+      expect.not.objectContaining({
+        extraLocateContext: expect.anything(),
+      }),
+      expect.anything(),
+      undefined,
+    );
+    expect(task.param).toMatchObject({
+      xmlContext: {
+        locate: { xml: false },
+      },
+    });
+    expect(task.param).not.toHaveProperty('extraLocateContext');
+    expect(task.param).not.toHaveProperty('actualAiActContext');
   });
 });

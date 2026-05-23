@@ -57,14 +57,11 @@ export type XmlContextIntent = 'planning' | 'locate';
 
 export interface XmlContextModuleOptions {
   /** Include page/accessibility XML in this request context. */
-  pageXml?: boolean;
-  /** Include cursor-selection XML in this request context. */
-  cursorXml?: boolean;
+  xml?: boolean;
 }
 
 export interface ResolvedXmlContextModuleOptions {
-  pageXml: boolean;
-  cursorXml: boolean;
+  xml: boolean;
 }
 
 export interface XmlContextOptions {

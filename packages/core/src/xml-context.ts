@@ -10,12 +10,10 @@ export const DEFAULT_XML_CONTEXT: Record<
   ResolvedXmlContextModuleOptions
 > = {
   planning: {
-    pageXml: true,
-    cursorXml: true,
+    xml: true,
   },
   locate: {
-    pageXml: true,
-    cursorXml: true,
+    xml: true,
   },
 };
 
@@ -32,5 +30,5 @@ export function resolveXmlContextForIntent(
 export function isXmlContextEnabled(
   xmlContext: XmlContextModuleOptions | ResolvedXmlContextModuleOptions,
 ): boolean {
-  return xmlContext.pageXml !== false || xmlContext.cursorXml !== false;
+  return xmlContext.xml !== false;
 }

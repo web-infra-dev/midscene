@@ -577,7 +577,7 @@ ${Object.keys(size)
   async getExtraPlanningContext(
     options?: ExtraPlanningContextOptions,
   ): Promise<string> {
-    if (!this.domIncluded || options?.xmlContext.pageXml === false) return '';
+    if (!this.domIncluded || options?.xmlContext.xml === false) return '';
 
     try {
       const adb = await this.getAdb();
