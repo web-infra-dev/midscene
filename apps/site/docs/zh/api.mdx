@@ -285,6 +285,7 @@ function aiInput(
     cacheable?: boolean;
     autoDismissKeyboard?: boolean;
     mode?: 'replace' | 'clear' | 'typeOnly';
+    caret?: 'start' | 'end';
   },
 ): Promise<void>;
 
@@ -313,6 +314,23 @@ function aiInput(
       - `'replace'`: 先清空输入框，然后输入文本。
       - `'typeOnly'`: 直接输入文本，不会先清空输入框。
       - `'clear'`: 清空输入框，不会输入新的文本。
+    - `caret?: 'start' | 'end'` - 仅 Web 平台生效。当 `mode` 为 `'typeOnly'` 时，输入前会尝试移动光标。不传该参数时，Midscene 只执行默认的聚焦和输入流程，不主动控制光标位置。
+
+  :::note Web 光标行为
+
+  `mode: 'append'` 只作为 `typeOnly` 的向后兼容别名保留，并不表示会将文本追加到末尾。如果需要在 Web 平台明确请求“追加到末尾”，请使用：
+
+  ```typescript
+  await agent.aiInput('搜索框', {
+    value: 'Hello World',
+    mode: 'typeOnly',
+    caret: 'end',
+  });
+  ```
+
+  受限于 Web 页面中复杂的输入框类型（富文本编辑器、iframe、shadow DOM 等），移动光标或清空输入框内容的能力无法对所有的输入框百分百生效。
+
+  :::
 
   **兼容用法**（已过时，但仍然支持）：
   - `value: string | number` - 要输入的文本内容。

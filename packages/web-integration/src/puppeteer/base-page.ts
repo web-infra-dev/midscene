@@ -9,6 +9,7 @@ import type {
 } from '@midscene/core';
 import type {
   AbstractInterface,
+  ActionInputCaret,
   MjpegStreamHandle,
   MjpegStreamOptions,
 } from '@midscene/core/device';
@@ -27,8 +28,16 @@ import {
   getExtraReturnLogic,
 } from '@midscene/shared/node';
 import { assert } from '@midscene/shared/utils';
-import type { Page as PlaywrightPage } from 'playwright';
-import type { CDPSession, Protocol, Page as PuppeteerPage } from 'puppeteer';
+import type {
+  Frame as PlaywrightFrame,
+  Page as PlaywrightPage,
+} from 'playwright';
+import type {
+  CDPSession,
+  Protocol,
+  Frame as PuppeteerFrame,
+  Page as PuppeteerPage,
+} from 'puppeteer';
 import {
   type CacheFeatureOptions,
   type WebElementCacheFeature,
@@ -37,6 +46,7 @@ import {
   sanitizeXpaths,
 } from '../common/cache-helper';
 import {
+  type FocusedInputCapability,
   type KeyInput,
   type MouseButton,
   commonWebActionsForWebPage,
@@ -44,6 +54,29 @@ import {
 
 export const debugPage = getDebug('web:page');
 const warnPage = getDebug('web:page', { console: true });
+
+type FocusedInputContext =
+  | PuppeteerPage
+  | PlaywrightPage
+  | PuppeteerFrame
+  | PlaywrightFrame;
+type PuppeteerInputContext = PuppeteerPage | PuppeteerFrame;
+type PlaywrightInputContext = PlaywrightPage | PlaywrightFrame;
+
+type ActiveElementHandleWithFrame = {
+  contentFrame(): Promise<FocusedInputContext | null>;
+  dispose?(): Promise<void>;
+};
+
+type ActiveElementProbe = {
+  isFrame: boolean;
+  capability: FocusedInputCapability;
+};
+
+type SetCaretResult = {
+  success: boolean;
+  reason?: string;
+};
 
 export const BROWSER_NAVIGATION_ERROR_PATTERN =
   /execution context was destroyed|frame was detached|target closed|page has been closed|context was destroyed|net::ERR_ABORTED/i;
@@ -718,37 +751,252 @@ export class Page<
     };
   }
 
-  async clearInput(element?: ElementInfo): Promise<void> {
+  async clearInput(
+    element?: ElementInfo,
+    capability?: FocusedInputCapability,
+  ): Promise<void> {
     const backspace = async () => {
       await sleep(100);
       await this.keyboard.press([{ key: 'Backspace' }]);
     };
 
     const isMac = process.platform === 'darwin';
+    const modifierKey = isMac ? 'Meta' : 'Control';
     debugPage('clearInput begin');
-    if (isMac) {
-      if (this.interfaceType === 'puppeteer') {
-        // https://github.com/segment-boneyard/nightmare/issues/810#issuecomment-452669866
-        element &&
-          (await this.mouse.click(element.center[0], element.center[1], {
-            count: 3,
-          }));
-        await backspace();
-      }
-
-      element && (await this.mouse.click(element.center[0], element.center[1]));
-      await this.underlyingPage.keyboard.down('Meta');
-      await this.underlyingPage.keyboard.press('a');
-      await this.underlyingPage.keyboard.up('Meta');
+    if (element) {
+      await this.mouse.click(element.center[0], element.center[1]);
+    }
+    const focusedInputCapability =
+      capability ?? (await this.getFocusedInputCapability());
+    if (focusedInputCapability?.supportsClear === false) {
+      warnPage(
+        `[midscene:warning] clearInput skipped: focused input capability is ${focusedInputCapability.kind}`,
+      );
+      return;
+    }
+    if (focusedInputCapability?.supportsClear === 'unknown') {
+      warnPage(
+        `[midscene:warning] clearInput continued for unknown focused input capability: ${focusedInputCapability.kind}`,
+      );
+    }
+    if (isMac && this.interfaceType === 'puppeteer' && element) {
+      // Puppeteer on macOS does not reliably clear a focused input with
+      // Meta+A Backspace alone. Use the legacy triple-click Backspace fallback.
+      // See:
+      // https://github.com/segment-boneyard/nightmare/issues/810#issuecomment-452669866
+      // tests/ai/web/puppeteer/clear-input-keyboard-shortcut.test.ts.
+      await this.mouse.click(element.center[0], element.center[1], {
+        count: 3,
+      });
       await backspace();
     } else {
-      element && (await this.mouse.click(element.center[0], element.center[1]));
-      await this.underlyingPage.keyboard.down('Control');
+      await this.underlyingPage.keyboard.down(modifierKey);
       await this.underlyingPage.keyboard.press('a');
-      await this.underlyingPage.keyboard.up('Control');
+      await this.underlyingPage.keyboard.up(modifierKey);
       await backspace();
     }
     debugPage('clearInput end');
+  }
+
+  private async getFocusedInputContextAndCapability(): Promise<{
+    context: FocusedInputContext;
+    capability: FocusedInputCapability;
+  }> {
+    let context: FocusedInputContext = this.underlyingPage;
+    const maxFrameDepth = 2;
+
+    for (let depth = 0; depth < maxFrameDepth; depth++) {
+      const probe = await this.evaluateFocusedInputProbe(context);
+
+      if (probe.isFrame) {
+        const activeElementHandle =
+          await this.evaluateFocusedInputHandle(context);
+        const frameHandle =
+          activeElementHandle as unknown as ActiveElementHandleWithFrame;
+        const frame = await frameHandle.contentFrame();
+        await activeElementHandle.dispose?.();
+        if (frame) {
+          context = frame;
+          continue;
+        }
+
+        return {
+          context,
+          capability: probe.capability,
+        };
+      }
+
+      return {
+        context,
+        capability: probe.capability,
+      };
+    }
+
+    return {
+      context,
+      capability: {
+        kind: 'unknown-frame-out-of-recursion-limit',
+        supportsClear: 'unknown',
+        supportsCaret: false,
+      },
+    };
+  }
+
+  private async evaluateFocusedInputHandle(context: FocusedInputContext) {
+    if (this.interfaceType === 'puppeteer') {
+      return (context as PuppeteerInputContext).evaluateHandle(
+        () => document.activeElement,
+      );
+    }
+
+    return (context as PlaywrightInputContext).evaluateHandle(
+      () => document.activeElement,
+    );
+  }
+
+  private async evaluateFocusedInputProbe(
+    context: FocusedInputContext,
+  ): Promise<ActiveElementProbe> {
+    const probeActiveElement = () => {
+      const activeElement = document.activeElement;
+      const noActiveElementCapability: FocusedInputCapability = {
+        kind: 'no-active-element',
+        supportsClear: false,
+        supportsCaret: false,
+      };
+      if (!activeElement) {
+        return {
+          isFrame: false,
+          capability: noActiveElementCapability,
+        };
+      }
+
+      const tagName = activeElement.tagName.toLowerCase();
+      if (tagName === 'iframe' || tagName === 'frame') {
+        return {
+          isFrame: true,
+          capability: {
+            kind: 'unknown-frame',
+            supportsClear: 'unknown',
+            supportsCaret: false,
+          } satisfies FocusedInputCapability,
+        };
+      }
+
+      if ((activeElement as HTMLElement).shadowRoot) {
+        return {
+          isFrame: false,
+          capability: {
+            kind: 'unknown-shadow-root',
+            supportsClear: 'unknown',
+            supportsCaret: false,
+          } satisfies FocusedInputCapability,
+        };
+      }
+
+      const supportsClear =
+        typeof activeElement.matches === 'function' &&
+        activeElement.matches(':read-write');
+      let kind: FocusedInputCapability['kind'] = 'non-input';
+      let supportsCaret = false;
+
+      if (activeElement instanceof HTMLInputElement) {
+        kind = 'native-input';
+        supportsCaret = true;
+      } else if (activeElement instanceof HTMLTextAreaElement) {
+        kind = 'native-textarea';
+        supportsCaret = true;
+      } else if ((activeElement as HTMLElement).isContentEditable) {
+        kind = 'contenteditable';
+      }
+
+      return {
+        isFrame: false,
+        capability: {
+          kind,
+          supportsClear,
+          supportsCaret,
+        } satisfies FocusedInputCapability,
+      };
+    };
+
+    if (this.interfaceType === 'puppeteer') {
+      return (context as PuppeteerInputContext).evaluate(probeActiveElement);
+    }
+
+    return (context as PlaywrightInputContext).evaluate(probeActiveElement);
+  }
+
+  private async evaluateSetFocusedInputCaret(
+    context: FocusedInputContext,
+    caret: ActionInputCaret,
+  ): Promise<SetCaretResult> {
+    const setCaret = (targetCaret: ActionInputCaret) => {
+      const activeElement = document.activeElement;
+      if (
+        !(
+          activeElement instanceof HTMLInputElement ||
+          activeElement instanceof HTMLTextAreaElement
+        )
+      ) {
+        return {
+          success: false,
+          reason: 'focused element is not a native input or textarea',
+        };
+      }
+
+      const offset = targetCaret === 'start' ? 0 : activeElement.value.length;
+      try {
+        activeElement.setSelectionRange(offset, offset);
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          reason: error instanceof Error ? error.message : String(error),
+        };
+      }
+    };
+
+    if (this.interfaceType === 'puppeteer') {
+      return (context as PuppeteerInputContext).evaluate(setCaret, caret);
+    }
+
+    return (context as PlaywrightInputContext).evaluate(setCaret, caret);
+  }
+
+  async getFocusedInputCapability(): Promise<
+    FocusedInputCapability | undefined
+  > {
+    return (await this.getFocusedInputContextAndCapability()).capability;
+  }
+
+  async setFocusedInputCaret(
+    caret: ActionInputCaret,
+    capability?: FocusedInputCapability,
+  ): Promise<void> {
+    if (capability && !capability.supportsCaret) {
+      warnPage(
+        `[midscene:warning] caret movement skipped: focused input capability is ${capability.kind}`,
+      );
+      return;
+    }
+
+    const focusedInput = await this.getFocusedInputContextAndCapability();
+    if (!focusedInput.capability.supportsCaret) {
+      warnPage(
+        `[midscene:warning] caret movement skipped: focused input capability is ${focusedInput.capability.kind}`,
+      );
+      return;
+    }
+
+    const result = await this.evaluateSetFocusedInputCaret(
+      focusedInput.context,
+      caret,
+    );
+
+    if (!result.success) {
+      warnPage(`[midscene:warning] caret movement skipped: ${result.reason}`);
+    }
   }
 
   private everMoved = false;

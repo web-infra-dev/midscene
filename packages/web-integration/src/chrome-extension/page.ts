@@ -13,7 +13,11 @@ import type {
   Rect,
   Size,
 } from '@midscene/core';
-import type { AbstractInterface, DeviceAction } from '@midscene/core/device';
+import type {
+  AbstractInterface,
+  ActionInputCaret,
+  DeviceAction,
+} from '@midscene/core/device';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
@@ -28,6 +32,7 @@ import {
   sanitizeXpaths,
 } from '../common/cache-helper';
 import {
+  type FocusedInputCapability,
   type KeyInput,
   type MouseButton,
   commonWebActionsForWebPage,
@@ -40,6 +45,7 @@ import {
 } from './dynamic-scripts';
 
 const debug = getDebug('web:chrome-extension:page');
+const warn = getDebug('web:chrome-extension:page', { console: true });
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -617,13 +623,23 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     );
   }
 
-  async clearInput(element: ElementInfo) {
-    if (!element) {
-      console.warn('No element to clear input');
+  async clearInput(element?: ElementInfo, capability?: FocusedInputCapability) {
+    if (element) {
+      await this.mouse.click(element.center[0], element.center[1]);
+    }
+    const focusedInputCapability =
+      capability ?? (await this.getFocusedInputCapability());
+    if (focusedInputCapability?.supportsClear === false) {
+      warn(
+        `[midscene:warning] clearInput skipped: focused input capability is ${focusedInputCapability.kind}`,
+      );
       return;
     }
-
-    await this.mouse.click(element.center[0], element.center[1]);
+    if (focusedInputCapability?.supportsClear === 'unknown') {
+      warn(
+        `[midscene:warning] clearInput continued for unknown focused input capability: ${focusedInputCapability.kind}`,
+      );
+    }
 
     await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
       type: 'keyDown',
@@ -640,6 +656,175 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     await this.keyboard.press({
       key: 'Backspace',
     });
+  }
+
+  async getFocusedInputCapability(): Promise<
+    FocusedInputCapability | undefined
+  > {
+    const result = await this.sendCommandToDebugger<{
+      result?: { value?: FocusedInputCapability };
+    }>('Runtime.evaluate', {
+      expression: `(() => {
+        const inspectDocument = (targetDocument, depth = 0) => {
+          const activeElement = targetDocument.activeElement;
+          if (!activeElement) {
+            return {
+              kind: 'no-active-element',
+              supportsClear: false,
+              supportsCaret: false,
+            };
+          }
+
+          const tagName = activeElement.tagName.toLowerCase();
+          if (tagName === 'iframe' || tagName === 'frame') {
+            if (depth >= 2) {
+              return {
+                kind: 'unknown-frame-out-of-recursion-limit',
+                supportsClear: 'unknown',
+                supportsCaret: false,
+              };
+            }
+
+            if (depth < 2) {
+              try {
+                const childDocument = activeElement.contentDocument;
+                if (childDocument) {
+                  return inspectDocument(childDocument, depth + 1);
+                }
+              } catch (error) {
+                // Ignore and return unknown-frame below.
+              }
+            }
+            return {
+              kind: 'unknown-frame',
+              supportsClear: 'unknown',
+              supportsCaret: false,
+            };
+          }
+
+          if (activeElement.shadowRoot) {
+            return {
+              kind: 'unknown-shadow-root',
+              supportsClear: 'unknown',
+              supportsCaret: false,
+            };
+          }
+
+          const supportsClear =
+            typeof activeElement.matches === 'function' &&
+            activeElement.matches(':read-write');
+          let kind = 'non-input';
+          let supportsCaret = false;
+          if (activeElement instanceof HTMLInputElement) {
+            kind = 'native-input';
+            supportsCaret = true;
+          } else if (activeElement instanceof HTMLTextAreaElement) {
+            kind = 'native-textarea';
+            supportsCaret = true;
+          } else if (activeElement.isContentEditable) {
+            kind = 'contenteditable';
+          }
+
+          return {
+            kind,
+            supportsClear,
+            supportsCaret,
+          };
+        };
+
+        return inspectDocument(document);
+      })()`,
+      returnByValue: true,
+    });
+    return result.result?.value;
+  }
+
+  async setFocusedInputCaret(
+    caret: ActionInputCaret,
+    capability?: FocusedInputCapability,
+  ): Promise<void> {
+    if (capability && !capability.supportsCaret) {
+      warn(
+        `[midscene:warning] caret movement skipped: focused input capability is ${capability.kind}`,
+      );
+      return;
+    }
+
+    const result = await this.sendCommandToDebugger<{
+      result?: { value?: { success: boolean; reason?: string } };
+    }>('Runtime.evaluate', {
+      expression: `(() => {
+        const setCaretInDocument = (targetDocument, depth = 0) => {
+          const activeElement = targetDocument.activeElement;
+          if (!activeElement) {
+            return {
+              success: false,
+              reason: 'no active element',
+            };
+          }
+
+          const tagName = activeElement.tagName.toLowerCase();
+          if (tagName === 'iframe' || tagName === 'frame') {
+            if (depth >= 2) {
+              return {
+                success: false,
+                reason: 'focused frame recursion limit exceeded',
+              };
+            }
+
+            if (depth < 2) {
+              try {
+                const childDocument = activeElement.contentDocument;
+                if (childDocument) {
+                  return setCaretInDocument(childDocument, depth + 1);
+                }
+              } catch (error) {
+                // Ignore and return unknown-frame below.
+              }
+            }
+            return {
+              success: false,
+              reason: 'focused frame cannot be inspected',
+            };
+          }
+
+          if (
+            !(
+              activeElement instanceof HTMLInputElement ||
+              activeElement instanceof HTMLTextAreaElement
+            )
+          ) {
+            return {
+              success: false,
+              reason: 'focused element is not a native input or textarea',
+            };
+          }
+
+          const targetCaret = ${JSON.stringify(caret)};
+          const offset =
+            targetCaret === 'start' ? 0 : activeElement.value.length;
+          try {
+            activeElement.setSelectionRange(offset, offset);
+            return { success: true };
+          } catch (error) {
+            return {
+              success: false,
+              reason: error instanceof Error ? error.message : String(error),
+            };
+          }
+        };
+
+        return setCaretInDocument(document);
+      })()`,
+      returnByValue: true,
+    });
+
+    const value = result.result?.value;
+    if (!value?.success) {
+      warn(
+        `[midscene:warning] caret movement skipped: ${value?.reason || 'unknown reason'}`,
+      );
+    }
   }
 
   private latestMouseX = 100;
