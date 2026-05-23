@@ -8,7 +8,18 @@ export function systemPromptToLocateElement(
   const bboxComment = bboxDescription(modelFamily);
   const xmlBoundsNote =
     modelFamily === 'gemini'
-      ? '- For Gemini, XML bounds must be converted from raw screen pixels to normalized [ymin, xmin, ymax, xmax] on a 0-1000 scale before output. Do NOT return raw XML bounds directly.'
+      ? `- XML bounds grounding for Gemini (STRICT):
+  - Rule: For Gemini, bbox must be [ymin, xmin, ymax, xmax] normalized to 0-1000.
+  - If XML bounds are [left,top][right,bottom] and screenshot size is W x H:
+    - ymin = top / H * 1000
+    - xmin = left / W * 1000
+    - ymax = bottom / H * 1000
+    - xmax = right / W * 1000
+  - Never copy XML pixel bounds directly.
+  - Example:
+    - XML bounds="[864,783][986,851]" on a 1080x2400 screenshot
+    - Correct bbox: [326,800,355,913]
+    - Wrong bbox: [783,864,851,986]`
       : '- XML bounds must be converted to the required bbox format before output. Do NOT return raw XML bounds directly.';
   return `
 ## Role:
