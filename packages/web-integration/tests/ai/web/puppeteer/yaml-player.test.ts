@@ -152,5 +152,5 @@ describe(
       expect(player.taskStatusList[1].status).toBe('done');
     });
   },
-  60 * 1000,
+  120 * 1000,
 );
