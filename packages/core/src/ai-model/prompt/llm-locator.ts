@@ -1,3 +1,4 @@
+import { hasXmlContextContent } from '@/xml-context';
 import type { TModelFamily } from '@midscene/shared/env';
 import { getPreferredLanguage } from '@midscene/shared/env';
 import { bboxDescription } from './common';
@@ -71,7 +72,9 @@ export const findElementPrompt = (
   targetElementDescription: string,
   extraLocateContext?: string,
 ) => {
-  const contextText = extraLocateContext?.trim();
+  const contextText = hasXmlContextContent(extraLocateContext)
+    ? extraLocateContext?.trim()
+    : '';
   if (!contextText) {
     return `Find: ${targetElementDescription}`;
   }

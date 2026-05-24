@@ -40,7 +40,11 @@ import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
 import { setTimingFieldOnce } from '@/task-timing';
-import { isXmlContextEnabled, resolveXmlContextForIntent } from '@/xml-context';
+import {
+  hasXmlContextContent,
+  isXmlContextEnabled,
+  resolveXmlContextForIntent,
+} from '@/xml-context';
 import { descriptionOfTree } from '@midscene/shared/extractor';
 import { taskTitleStr } from './ui-utils';
 import { withUsageIntent } from './usage-intent';
@@ -394,7 +398,7 @@ export class TaskExecutor {
                   intent: 'planning',
                   xmlContext: planningXmlContext,
                 });
-                if (extra) {
+                if (hasXmlContextContent(extra)) {
                   actionContext = (actionContext || '') + extra;
                   executorContext.task.param.extraPlanningContext = extra;
                 }

@@ -21,7 +21,11 @@ import type {
 } from '@/types';
 import { ServiceError } from '@/types';
 import { sleep } from '@/utils';
-import { isXmlContextEnabled, resolveXmlContextForIntent } from '@/xml-context';
+import {
+  hasXmlContextContent,
+  isXmlContextEnabled,
+  resolveXmlContextForIntent,
+} from '@/xml-context';
 import type { IModelConfig } from '@midscene/shared/env';
 import { generateElementByRect } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
@@ -428,7 +432,7 @@ export class TaskBuilder {
                 intent: 'locate',
                 xmlContext: locateXmlContext,
               });
-            if (extraLocateContext) {
+            if (hasXmlContextContent(extraLocateContext)) {
               param.extraLocateContext = extraLocateContext;
               param.actualAiActContext = extraLocateContext;
               task.param = {

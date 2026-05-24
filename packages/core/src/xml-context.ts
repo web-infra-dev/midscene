@@ -32,3 +32,21 @@ export function isXmlContextEnabled(
 ): boolean {
   return xmlContext.xml !== false;
 }
+
+export function hasXmlContextContent(context: string | undefined): boolean {
+  const trimmedContext = context?.trim();
+  if (!trimmedContext) {
+    return false;
+  }
+
+  const pageTreeMatches = [
+    ...trimmedContext.matchAll(
+      /<PageElementsTree\b[^>]*>([\s\S]*?)<\/PageElementsTree>/gi,
+    ),
+  ];
+  if (pageTreeMatches.length === 0) {
+    return true;
+  }
+
+  return pageTreeMatches.some((match) => match[1].trim().length > 0);
+}

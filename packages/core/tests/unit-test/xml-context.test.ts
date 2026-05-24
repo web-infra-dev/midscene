@@ -1,5 +1,6 @@
 import { TaskBuilder } from '@/agent/task-builder';
 import { TaskExecutor } from '@/agent/tasks';
+import { findElementPrompt } from '@/ai-model/prompt/llm-locator';
 import { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { DeviceAction, PlanningAction } from '@/types';
@@ -153,6 +154,60 @@ describe('xmlContext', () => {
     });
   });
 
+  it('does not inject empty planning XML context', async () => {
+    const mockInterface = new MockInterface();
+    mockInterface.getExtraPlanningContext.mockResolvedValueOnce(
+      '\nPage structure data:\n<PageElementsTree>\n  \n</PageElementsTree>',
+    );
+    const mockService = {
+      contextRetrieverFn: vi.fn().mockResolvedValue(createUiContext()),
+    } as unknown as Service;
+    const taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      replanningCycleLimit: 1,
+      actionSpace: [],
+    });
+
+    vi.mocked(plan).mockResolvedValue({
+      actions: [],
+      yamlFlow: [],
+      shouldContinuePlanning: false,
+      log: '',
+      rawResponse: '',
+      finalizeSuccess: true,
+      finalizeMessage: 'done',
+    });
+
+    const { runner } = await taskExecutor.action(
+      'do the task',
+      { modelName: 'planning-model' } as any,
+      { modelName: 'default-model' } as any,
+      true,
+      'base context',
+      undefined,
+      undefined,
+      undefined,
+      true,
+      undefined,
+      undefined,
+      {
+        planning: { xml: true },
+      },
+    );
+
+    expect(mockInterface.getExtraPlanningContext).toHaveBeenCalledWith({
+      intent: 'planning',
+      xmlContext: { xml: true },
+    });
+    expect(vi.mocked(plan).mock.calls[0][1].actionContext).toBe('base context');
+    expect(runner.tasks[0].param).toMatchObject({
+      actualAiActContext: 'base context',
+      xmlContext: {
+        planning: { xml: true },
+      },
+    });
+    expect(runner.tasks[0].param).not.toHaveProperty('extraPlanningContext');
+  });
+
   it('passes the locate XML policy to the device hook and service locate request', async () => {
     const mockInterface = new MockInterface();
     const mockService = {
@@ -215,6 +270,82 @@ describe('xmlContext', () => {
         locate: { xml: true },
       },
     });
+  });
+
+  it('does not inject empty locate XML context', async () => {
+    const mockInterface = new MockInterface();
+    mockInterface.getExtraPlanningContext.mockResolvedValueOnce(
+      '\nPage structure data:\n<PageElementsTree>\n  \n</PageElementsTree>',
+    );
+    const mockService = {
+      contextRetrieverFn: vi.fn(),
+      locate: vi.fn().mockResolvedValue({
+        element: {
+          center: [5, 5],
+          rect: { left: 0, top: 0, width: 10, height: 10 },
+          text: 'Save',
+        },
+      }),
+    } as unknown as Service;
+    const taskBuilder = new TaskBuilder({
+      interfaceInstance: mockInterface,
+      service: mockService,
+      actionSpace: [],
+    });
+    const plans: PlanningAction[] = [
+      {
+        type: 'Locate',
+        thought: '',
+        param: { prompt: 'Save' },
+      },
+    ];
+
+    const { tasks } = await taskBuilder.build(plans, {} as any, {} as any, {
+      xmlContext: {
+        locate: { xml: true },
+      },
+    });
+    const task = {
+      ...tasks[0],
+      timing: {},
+    } as any;
+
+    await tasks[0].executor(tasks[0].param, {
+      task,
+      uiContext: createUiContext(),
+    } as any);
+
+    expect(mockInterface.getExtraPlanningContext).toHaveBeenCalledWith({
+      intent: 'locate',
+      xmlContext: { xml: true },
+    });
+    expect(mockService.locate).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        extraLocateContext: expect.anything(),
+        actualAiActContext: expect.anything(),
+      }),
+      expect.not.objectContaining({
+        extraLocateContext: expect.anything(),
+      }),
+      expect.anything(),
+      undefined,
+    );
+    expect(task.param).toMatchObject({
+      xmlContext: {
+        locate: { xml: true },
+      },
+    });
+    expect(task.param).not.toHaveProperty('extraLocateContext');
+    expect(task.param).not.toHaveProperty('actualAiActContext');
+  });
+
+  it('does not include empty locate XML context in locator prompts', () => {
+    expect(
+      findElementPrompt(
+        'Save',
+        '\nPage structure data:\n<PageElementsTree>\n  \n</PageElementsTree>',
+      ),
+    ).toBe('Find: Save');
   });
 
   it('skips the locate device hook when locate XML is disabled', async () => {
