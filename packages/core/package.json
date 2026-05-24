@@ -75,7 +75,7 @@
     "test:u": "vitest --run -u",
     "test:ai": "AITEST=true vitest --run",
     "computer": "TEST_COMPUTER=true AITEST=true vitest --run tests/ai/evaluate/computer.test.ts",
-    "test:parse-action": "AITEST=true vitest --run tests/ai/parse-action.test.ts"
+    "test:parse-action": "vitest --run tests/unit-test/parse-action.test.ts"
   },
   "dependencies": {
     "@midscene/shared": "workspace:*",
