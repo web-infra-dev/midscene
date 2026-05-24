@@ -370,6 +370,25 @@ async function executeAction(
   throw new Error(`Action "${actionName}" is not supported by this agent`);
 }
 
+type ScreenshotReportAgent = BaseAgent & {
+  recordToReport?: (title?: string, opt?: { content: string }) => Promise<void>;
+  logScreenshot?: (title?: string, opt?: { content: string }) => Promise<void>;
+};
+
+async function recordScreenshotToReport(
+  agent: BaseAgent,
+  title: string,
+): Promise<void> {
+  const reportAgent = agent as ScreenshotReportAgent;
+  if (typeof reportAgent.recordToReport === 'function') {
+    await reportAgent.recordToReport(title);
+    return;
+  }
+  if (typeof reportAgent.logScreenshot === 'function') {
+    await reportAgent.logScreenshot(title);
+  }
+}
+
 /**
  * Capture screenshot and return as tool result
  */
@@ -568,6 +587,7 @@ export function generateCommonTools(
           if (!screenshot) {
             return createErrorResult('Screenshot not available');
           }
+          await recordScreenshotToReport(agent, 'take_screenshot');
           const { mimeType, body } = parseBase64(screenshot);
           return {
             content: [{ type: 'image', data: body, mimeType }],
