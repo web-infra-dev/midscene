@@ -91,7 +91,7 @@ describe('chrome extension playground advanced tests', () => {
   });
 
   it('aiAct: add a todo item via playground', async () => {
-    await agent.aiAct(`Click the "aiAct" button in ${SIDE_PANEL}`);
+    await agent.aiAct(`Click the "Action" action type button in ${SIDE_PANEL}`);
     await sleep(500);
     await agent.aiAct(
       `In ${SIDE_PANEL}, click the text input area and type: Enter "Buy groceries" in the todo input box, then press Enter`,
