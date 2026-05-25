@@ -17,8 +17,6 @@ import {
   type IModelConfig,
   MIDSCENE_LANGFUSE_DEBUG,
   MIDSCENE_LANGSMITH_DEBUG,
-  MIDSCENE_MODEL_MAX_TOKENS,
-  OPENAI_MAX_TOKENS,
   type TModelFamily,
   type UITarsModelVersion,
   globalConfigManager,
@@ -277,9 +275,7 @@ export async function callAI(
 
   const extraBody = modelConfig.extraBody;
 
-  const maxTokens =
-    globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS) ??
-    globalConfigManager.getEnvConfigValueAsNumber(OPENAI_MAX_TOKENS);
+  const maxTokens = modelConfig.maxTokens;
   const debugCall = getDebug('ai:call');
   const warnCall = getDebug('ai:call', { console: true });
   const debugProfileStats = getDebug('ai:profile:stats');

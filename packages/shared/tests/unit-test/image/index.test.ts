@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   httpImg2Base64,
   imageInfoOfBase64,
@@ -9,16 +10,15 @@ import {
   resizeAndConvertImgBuffer,
   resizeImgBase64,
   validateScreenshotBuffer,
-} from 'src/img';
+} from '../../../src/img';
 import {
   createImgBase64ByFormat,
   cropByRect,
   paddingToMatchBlockByBase64,
   parseBase64,
   saveBase64Image,
-} from 'src/img/transform';
-import { getFixture } from 'tests/utils';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+} from '../../../src/img/transform';
+import { getFixture } from '../../utils';
 
 describe('imageInfoOfBase64', () => {
   it('returns correct dimensions for PNG image', async () => {
@@ -53,11 +53,23 @@ describe('imageInfoOfBase64', () => {
   it('throws error for invalid base64 data', async () => {
     const invalidBase64 = 'data:image/png;base64,notvalidbase64data';
 
-    await expect(imageInfoOfBase64(invalidBase64)).rejects.toThrow();
+    await expect(imageInfoOfBase64(invalidBase64)).rejects.toThrow(
+      'Invalid image',
+    );
+  });
+
+  it('throws clear error for valid base64 that is not an image', async () => {
+    const nonImageBase64 = 'data:image/png;base64,Zm9v';
+
+    await expect(imageInfoOfBase64(nonImageBase64)).rejects.toThrow(
+      'Invalid image: unsupported format',
+    );
   });
 
   it('throws error for empty string', async () => {
-    await expect(imageInfoOfBase64('')).rejects.toThrow();
+    await expect(imageInfoOfBase64('')).rejects.toThrow(
+      'Invalid image: empty base64 data',
+    );
   });
 });
 
@@ -267,6 +279,14 @@ describe('image utils', () => {
     );
   });
 
+  it('parseBase64 normalizes wrapped base64 bodies', () => {
+    const base64 =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA\r\nAu4AAAU2CAYAAADK1zMG';
+    const { mimeType, body } = parseBase64(base64);
+    expect(mimeType).toBe('image/png');
+    expect(body).toBe('iVBORw0KGgoAAAANSUhEUgAAAu4AAAU2CAYAAADK1zMG');
+  });
+
   it('parseBase64, invalid', () => {
     const base64 = 'IamNotBase64';
     expect(() => parseBase64(base64)).toThrowError(
@@ -277,6 +297,11 @@ describe('image utils', () => {
   it('createImgBase64ByFormat', () => {
     const base64 = createImgBase64ByFormat('png', 'foo');
     expect(base64).toBe('data:image/png;base64,foo');
+  });
+
+  it('createImgBase64ByFormat strips WDA-style line wrapping', () => {
+    const base64 = createImgBase64ByFormat('png', 'abc\r\ndef ghi');
+    expect(base64).toBe('data:image/png;base64,abcdefghi');
   });
 
   // it(

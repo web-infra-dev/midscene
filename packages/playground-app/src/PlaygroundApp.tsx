@@ -8,6 +8,7 @@ import {
 import { Layout } from 'antd';
 import { useEffect, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { DisconnectedPreview } from './DisconnectedPreview';
 import { PlaygroundPreview } from './PlaygroundPreview';
 import { PlaygroundThemeProvider } from './PlaygroundThemeProvider';
 import { usePlaygroundController } from './controller/usePlaygroundController';
@@ -125,13 +126,17 @@ export function PlaygroundApp({
               className="app-panel right-panel"
             >
               <div className="panel-content right-panel-content">
-                <PlaygroundPreview
-                  playgroundSDK={controller.state.playgroundSDK}
-                  runtimeInfo={controller.state.runtimeInfo}
-                  serverUrl={serverUrl}
-                  serverOnline={controller.state.serverOnline}
-                  isUserOperating={controller.state.isUserOperating}
-                />
+                {controller.state.sessionViewState.connected ? (
+                  <PlaygroundPreview
+                    playgroundSDK={controller.state.playgroundSDK}
+                    runtimeInfo={controller.state.runtimeInfo}
+                    serverUrl={serverUrl}
+                    serverOnline={controller.state.serverOnline}
+                    isUserOperating={controller.state.isUserOperating}
+                  />
+                ) : (
+                  <DisconnectedPreview />
+                )}
               </div>
             </Panel>
           </PanelGroup>

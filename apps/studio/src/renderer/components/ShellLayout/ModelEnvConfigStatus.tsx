@@ -76,7 +76,7 @@ export function ModelEnvConfigStatus({ kind }: ModelEnvConfigStatusProps) {
       >
         <div className="flex items-center gap-[10px]">
           {isSuccess ? <SuccessStatusIcon /> : <ErrorStatusIcon />}
-          <span className="overflow-hidden whitespace-nowrap font-['Inter'] text-[12px] font-normal leading-[14.5px]">
+          <span className="overflow-hidden whitespace-nowrap font-sans text-[12px] font-normal leading-[14.5px]">
             {message}
           </span>
         </div>

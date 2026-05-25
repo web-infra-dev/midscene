@@ -1,6 +1,11 @@
 {
   "name": "@midscene/harmony-playground",
-  "version": "1.8.3",
+  "version": "1.8.4",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/harmony-playground"
+  },
   "description": "HarmonyOS playground for Midscene",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",

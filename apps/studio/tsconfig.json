@@ -3,12 +3,11 @@
   "compilerOptions": {
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "types": ["node"],
-    "baseUrl": "./src",
     "paths": {
-      "@main/*": ["main/*"],
-      "@preload/*": ["preload/*"],
-      "@renderer/*": ["renderer/*"],
-      "@shared/*": ["shared/*"]
+      "@main/*": ["./src/main/*"],
+      "@preload/*": ["./src/preload/*"],
+      "@renderer/*": ["./src/renderer/*"],
+      "@shared/*": ["./src/shared/*"]
     }
   },
   "include": ["src"]

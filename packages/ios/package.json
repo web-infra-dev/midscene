@@ -1,6 +1,11 @@
 {
   "name": "@midscene/ios",
-  "version": "1.8.3",
+  "version": "1.8.4",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/ios"
+  },
   "description": "iOS automation library for Midscene",
   "keywords": [
     "iOS UI automation",

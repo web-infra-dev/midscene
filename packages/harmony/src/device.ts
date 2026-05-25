@@ -11,6 +11,7 @@ import {
 } from '@midscene/core';
 import {
   type AbstractInterface,
+  type HarmonyDeviceInputOpt,
   type HarmonyDeviceOpt,
   type MobileInputPrimitives,
   type PointerPoint,
@@ -106,6 +107,9 @@ export class HarmonyDevice implements AbstractInterface {
               value,
               opts?.target as LocateResultElement | undefined,
               opts?.replace ?? true,
+              {
+                autoDismissKeyboard: opts?.autoDismissKeyboard,
+              },
             ),
       clearInput: (target) =>
         this.clearInput(target as ElementInfo | undefined),
@@ -438,6 +442,7 @@ export class HarmonyDevice implements AbstractInterface {
     text: string,
     element?: LocateResultElement,
     shouldReplace?: boolean,
+    options?: HarmonyDeviceInputOpt,
   ): Promise<void> {
     if (!text) return;
 
@@ -469,7 +474,10 @@ export class HarmonyDevice implements AbstractInterface {
 
     await hdc.inputText(x, y, text);
 
-    if (this.options?.autoDismissKeyboard) {
+    const shouldAutoDismissKeyboard =
+      options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
+
+    if (shouldAutoDismissKeyboard) {
       await this.hideKeyboard();
     }
   }
@@ -794,8 +802,6 @@ const createPlatformActions = (
         'Terminate (force-stop) a HarmonyOS app by bundle name or mapped app name',
       interfaceAlias: 'terminate',
       paramSchema: terminateParamSchema,
-      delayBeforeRunner: 0,
-      delayAfterRunner: 0,
       call: async (param) => {
         if (!param.uri || param.uri.trim() === '') {
           throw new Error('Terminate requires a non-empty uri parameter');
@@ -806,8 +812,6 @@ const createPlatformActions = (
     HarmonyBackButton: defineAction({
       name: 'HarmonyBackButton',
       description: 'Trigger the system "back" operation on HarmonyOS devices',
-      delayBeforeRunner: 0,
-      delayAfterRunner: 0,
       call: async () => {
         await device.back();
       },
@@ -815,8 +819,6 @@ const createPlatformActions = (
     HarmonyHomeButton: defineAction({
       name: 'HarmonyHomeButton',
       description: 'Trigger the system "home" operation on HarmonyOS devices',
-      delayBeforeRunner: 0,
-      delayAfterRunner: 0,
       call: async () => {
         await device.home();
       },

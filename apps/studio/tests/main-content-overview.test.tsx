@@ -120,6 +120,23 @@ function createOpeningWebContextValue(): StudioPlaygroundContextValue {
   return context;
 }
 
+function createOpeningComputerWithStaleAndroidContextValue(): StudioPlaygroundContextValue {
+  const context = createReadyContextValue();
+  context.controller.state = {
+    ...context.controller.state,
+    serverOnline: true,
+    formValues: {
+      platformId: 'android',
+    },
+    sessionMutating: true,
+    sessionViewState: {
+      connected: false,
+      setupState: 'ready',
+    },
+  } as unknown as PlaygroundControllerResult['state'];
+  return context;
+}
+
 function createConnectedComputerContextValue(): StudioPlaygroundContextValue {
   const context = createReadyContextValue();
   context.controller.state = {
@@ -168,9 +185,47 @@ describe('MainContent overview', () => {
     );
 
     expect(html).toContain('DELL U2720Q');
-    expect(html).toContain('No devices');
+    expect(html).toContain('No device');
+    expect(html).toContain('Please plug in the device and check.');
     expect(html).not.toContain('Finish environment setup');
     expect(html).not.toContain('未检测到 adb');
+  });
+
+  it('keeps overview content on one column rail and renders device rows without card borders', () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        StudioPlaygroundContext.Provider,
+        { value: createReadyContextValue() },
+        createElement(MainContent, {
+          activeView: 'overview',
+        }),
+      ),
+    );
+
+    expect(html).toContain('flex w-[704px] flex-col gap-[32px]');
+    expect(html).toContain('flex w-[704px] flex-col');
+    expect(html).toContain('w-[704px] shrink-0 overflow-hidden');
+    expect(html).toContain('rounded-[8px] bg-transparent');
+    expect(html).not.toContain(
+      'border border-border-subtle bg-surface-elevated',
+    );
+  });
+
+  it('renders iOS and Web create cards collapsed by default', () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        StudioPlaygroundContext.Provider,
+        { value: createReadyContextValue() },
+        createElement(MainContent, {
+          activeView: 'overview',
+        }),
+      ),
+    );
+
+    expect(html).toContain('Connect WebDriverAgent');
+    expect(html).toContain('Open a web page');
+    expect(html).not.toContain('WebDriverAgent host');
+    expect(html).not.toContain('https://example.com');
   });
 
   it('replaces the Android empty state with an adb-missing hint when discovery reports a toolchain error', () => {
@@ -209,7 +264,10 @@ describe('MainContent overview', () => {
       ),
     );
 
-    expect(html).toContain('app-no-drag flex h-8 items-center rounded-lg');
+    expect(html).toContain(
+      'app-no-drag group/disconnect-pill relative flex shrink-0 items-center',
+    );
+    expect(html).toContain('aria-label="Disconnect"');
     expect(html).toContain('Disconnect');
   });
 
@@ -265,6 +323,24 @@ describe('MainContent overview', () => {
     expect(html).toContain('Opening Web page…');
     expect(html).not.toContain('Open Web Page');
     expect(html).not.toContain('Connect Android Device');
+  });
+
+  it('uses the pending platform while a new Computer session is opening', () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        StudioPlaygroundContext.Provider,
+        { value: createOpeningComputerWithStaleAndroidContextValue() },
+        createElement(MainContent, {
+          activeView: 'device',
+          pendingCreatePlatform: 'computer',
+        }),
+      ),
+    );
+
+    expect(html).toContain('Preparing computer connection…');
+    expect(html).toContain('h-[56px] w-[56px]');
+    expect(html).not.toContain('Preparing Android device connection…');
+    expect(html).not.toContain('h-[80px] w-[40px]');
   });
 
   it('adds horizontal gutter around connected computer previews', () => {

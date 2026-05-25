@@ -567,6 +567,16 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark it as failed (success="false").
 - If the page is still loading (e.g., you see a loading spinner, skeleton screen, or progress bar), do NOT assert yet. Wait for the page to finish loading before evaluating the assertion.
 
+### Completion Criteria for Process-required Instructions
+
+If the user's instruction includes explicit operation steps, ordering requirements, or action requirements, it is a process-required instruction.
+
+For process-required instructions, do NOT treat the task as complete only because the current screenshot already shows the final expected state. Do NOT infer that earlier steps were executed from the final UI state.
+
+You may output <complete success="true"> only when the current execution history, previous logs, or the screenshot after the most recent action proves that every explicit step required by the user has been completed, and the final check condition is also satisfied.
+
+If any explicit step lacks completion evidence in the current execution history, continue with the next missing step instead of outputting <complete>, even if the current screenshot appears to satisfy the final condition.
+
 **Page navigation restriction:**
 - Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
 - Do NOT navigate away from the current page on your own initiative (e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs).
@@ -576,7 +586,7 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 
 - If the task is NOT complete, skip this section and continue to Step 3.
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
-  - the 'success' attribute is required. No matter what actions were executed or what errors occurred during execution, if the instruction is fulfilled, set success="true". If the instruction is not fulfilled and cannot be fulfilled, set success="false".
+  - the 'success' attribute is required. No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the instruction is not fulfilled and cannot be fulfilled, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
 
@@ -893,6 +903,16 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark it as failed (success="false").
 - If the page is still loading (e.g., you see a loading spinner, skeleton screen, or progress bar), do NOT assert yet. Wait for the page to finish loading before evaluating the assertion.
 
+### Completion Criteria for Process-required Instructions
+
+If the user's instruction includes explicit operation steps, ordering requirements, or action requirements, it is a process-required instruction.
+
+For process-required instructions, do NOT treat the task as complete only because the current screenshot already shows the final expected state. Do NOT infer that earlier steps were executed from the final UI state.
+
+You may output <complete success="true"> only when the current execution history, previous logs, or the screenshot after the most recent action proves that every explicit step required by the user has been completed, and the final check condition is also satisfied.
+
+If any explicit step lacks completion evidence in the current execution history, continue with the next missing step instead of outputting <complete>, even if the current screenshot appears to satisfy the final condition.
+
 **Page navigation restriction:**
 - Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
 - Do NOT navigate away from the current page on your own initiative (e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs).
@@ -902,7 +922,7 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 
 - If the task is NOT complete, skip this section and continue to Step 3.
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
-  - the 'success' attribute is required. No matter what actions were executed or what errors occurred during execution, if the instruction is fulfilled, set success="true". If the instruction is not fulfilled and cannot be fulfilled, set success="false".
+  - the 'success' attribute is required. No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the instruction is not fulfilled and cannot be fulfilled, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
 
@@ -1192,6 +1212,16 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark it as failed (success="false").
 - If the page is still loading (e.g., you see a loading spinner, skeleton screen, or progress bar), do NOT assert yet. Wait for the page to finish loading before evaluating the assertion.
 
+### Completion Criteria for Process-required Instructions
+
+If the user's instruction includes explicit operation steps, ordering requirements, or action requirements, it is a process-required instruction.
+
+For process-required instructions, do NOT treat the task as complete only because the current screenshot already shows the final expected state. Do NOT infer that earlier steps were executed from the final UI state.
+
+You may output <complete success="true"> only when the current execution history, previous logs, or the screenshot after the most recent action proves that every explicit step required by the user has been completed, and the final check condition is also satisfied.
+
+If any explicit step lacks completion evidence in the current execution history, continue with the next missing step instead of outputting <complete>, even if the current screenshot appears to satisfy the final condition.
+
 **Page navigation restriction:**
 - Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
 - Do NOT navigate away from the current page on your own initiative (e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs).
@@ -1201,7 +1231,7 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 
 - If the task is NOT complete, skip this section and continue to Step 3.
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
-  - the 'success' attribute is required. No matter what actions were executed or what errors occurred during execution, if the instruction is fulfilled, set success="true". If the instruction is not fulfilled and cannot be fulfilled, set success="false".
+  - the 'success' attribute is required. No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the instruction is not fulfilled and cannot be fulfilled, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
 
@@ -1579,11 +1609,21 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark the goal as failed (success="false").
 - If the page is still loading (e.g., you see a loading spinner, skeleton screen, or progress bar), do NOT assert yet. Wait for the page to finish loading before evaluating the assertion.
 
+### Completion Criteria for Process-required Instructions
+
+If the user's instruction includes explicit operation steps, ordering requirements, or action requirements, it is a process-required instruction.
+
+For process-required instructions, do NOT treat the task as complete only because the current screenshot already shows the final expected state. Do NOT infer that earlier steps were executed from the final UI state.
+
+You may output <complete success="true"> only when the current execution history, previous logs, or the screenshot after the most recent action proves that every explicit step required by the user has been completed, and the final check condition is also satisfied.
+
+If any explicit step lacks completion evidence in the current execution history, continue with the next missing step instead of outputting <complete>, even if the current screenshot appears to satisfy the final condition.
+
 ### Output Rules
 
 - If the task is NOT complete, skip this section and continue to Step 4.
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
-  - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
+  - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot and the current execution history. No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the expected goal is not accomplished and cannot be accomplished, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
 
@@ -1931,6 +1971,16 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark it as failed (success="false").
 - If the page is still loading (e.g., you see a loading spinner, skeleton screen, or progress bar), do NOT assert yet. Wait for the page to finish loading before evaluating the assertion.
 
+### Completion Criteria for Process-required Instructions
+
+If the user's instruction includes explicit operation steps, ordering requirements, or action requirements, it is a process-required instruction.
+
+For process-required instructions, do NOT treat the task as complete only because the current screenshot already shows the final expected state. Do NOT infer that earlier steps were executed from the final UI state.
+
+You may output <complete success="true"> only when the current execution history, previous logs, or the screenshot after the most recent action proves that every explicit step required by the user has been completed, and the final check condition is also satisfied.
+
+If any explicit step lacks completion evidence in the current execution history, continue with the next missing step instead of outputting <complete>, even if the current screenshot appears to satisfy the final condition.
+
 **Page navigation restriction:**
 - Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
 - Do NOT navigate away from the current page on your own initiative (e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs).
@@ -1940,7 +1990,7 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 
 - If the task is NOT complete, skip this section and continue to Step 3.
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
-  - the 'success' attribute is required. No matter what actions were executed or what errors occurred during execution, if the instruction is fulfilled, set success="true". If the instruction is not fulfilled and cannot be fulfilled, set success="false".
+  - the 'success' attribute is required. No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the instruction is not fulfilled and cannot be fulfilled, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
 
@@ -2257,6 +2307,16 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark it as failed (success="false").
 - If the page is still loading (e.g., you see a loading spinner, skeleton screen, or progress bar), do NOT assert yet. Wait for the page to finish loading before evaluating the assertion.
 
+### Completion Criteria for Process-required Instructions
+
+If the user's instruction includes explicit operation steps, ordering requirements, or action requirements, it is a process-required instruction.
+
+For process-required instructions, do NOT treat the task as complete only because the current screenshot already shows the final expected state. Do NOT infer that earlier steps were executed from the final UI state.
+
+You may output <complete success="true"> only when the current execution history, previous logs, or the screenshot after the most recent action proves that every explicit step required by the user has been completed, and the final check condition is also satisfied.
+
+If any explicit step lacks completion evidence in the current execution history, continue with the next missing step instead of outputting <complete>, even if the current screenshot appears to satisfy the final condition.
+
 **Page navigation restriction:**
 - Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
 - Do NOT navigate away from the current page on your own initiative (e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs).
@@ -2266,7 +2326,7 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 
 - If the task is NOT complete, skip this section and continue to Step 3.
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
-  - the 'success' attribute is required. No matter what actions were executed or what errors occurred during execution, if the instruction is fulfilled, set success="true". If the instruction is not fulfilled and cannot be fulfilled, set success="false".
+  - the 'success' attribute is required. No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the instruction is not fulfilled and cannot be fulfilled, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
 

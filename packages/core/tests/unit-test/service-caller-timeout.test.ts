@@ -157,6 +157,24 @@ describe('service-caller request timeout', () => {
     expect(lastCallOptions?.maxRetries).toBe(0);
   });
 
+  it('passes maxTokens from the resolved model config', async () => {
+    const { callAI } = await import('@/ai-model/service-caller');
+
+    mockCreate.mockResolvedValue({
+      choices: [{ message: { content: 'ok' } }],
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      _request_id: 'req_max_tokens',
+    });
+
+    await callAI(
+      [{ role: 'user', content: 'hello' }],
+      baseConfig({ maxTokens: 1234 }),
+    );
+
+    const lastCreateBody = mockCreate.mock.calls.at(-1)?.[0];
+    expect(lastCreateBody?.max_tokens).toBe(1234);
+  });
+
   it('retries after a hard timeout and returns the next successful response', async () => {
     const { callAI } = await import('@/ai-model/service-caller');
 

@@ -1,6 +1,11 @@
 {
   "name": "@midscene/playground",
-  "version": "1.8.3",
+  "version": "1.8.4",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/playground"
+  },
   "description": "Midscene playground utilities for web integration",
   "author": "midscene team",
   "license": "MIT",

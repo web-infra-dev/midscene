@@ -1,14 +1,16 @@
 export interface ConnectingPreviewProps {
   className?: string;
-  pcSrc: string;
-  phoneSrc: string;
+  iconSrc: string;
+  /** Aspect ratio for the device illustration. 'phone' uses a tall 40x80 box;
+   * 'desktop' uses a wide 56x56 box matching desktop/web platforms. */
+  iconVariant?: 'phone' | 'desktop';
   statusLabel?: string;
 }
 
 export default function ConnectingPreview({
   className,
-  pcSrc,
-  phoneSrc,
+  iconSrc,
+  iconVariant = 'desktop',
   statusLabel = 'Preparing device connection...',
 }: ConnectingPreviewProps) {
   const rootClassName = [
@@ -17,6 +19,8 @@ export default function ConnectingPreview({
   ]
     .filter(Boolean)
     .join(' ');
+  const iconBoxClass =
+    iconVariant === 'phone' ? 'h-[80px] w-[40px]' : 'h-[56px] w-[56px]';
 
   return (
     <div className={rootClassName}>
@@ -27,20 +31,12 @@ export default function ConnectingPreview({
         <div className="absolute inset-[216px] rounded-full border border-divider opacity-30" />
 
         <div className="absolute left-1/2 top-[256px] flex -translate-x-1/2 flex-col items-center">
-          <div className="relative h-[88px] w-[116px]">
-            <img
-              alt=""
-              aria-hidden="true"
-              className="absolute left-[4px] top-[30px] h-[44px] w-[69px] object-contain"
-              src={pcSrc}
-            />
-            <img
-              alt=""
-              aria-hidden="true"
-              className="absolute left-[52px] top-0 h-[64px] w-[64px] object-contain"
-              src={phoneSrc}
-            />
-          </div>
+          <img
+            alt=""
+            aria-hidden="true"
+            className={`${iconBoxClass} object-contain`}
+            src={iconSrc}
+          />
 
           <span className="mt-[16px] whitespace-nowrap text-center text-[13px] font-medium leading-[12px] text-text-primary">
             {statusLabel}

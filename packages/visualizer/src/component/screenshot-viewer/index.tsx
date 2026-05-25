@@ -3,6 +3,11 @@ import { Button, Spin, Tooltip } from 'antd';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './index.less';
 
+// Esbuild leaves `.tsx` on the classic JSX transform here, so JSX in this file
+// compiles to `React.createElement`. Keep a runtime reference to React or
+// biome will strip the import as type-only, breaking SSR/test renders.
+void React;
+
 export type ScreenshotViewerMode = 'default' | 'screen-only';
 
 interface ScreenshotViewerProps {
@@ -19,6 +24,10 @@ interface ScreenshotViewerProps {
   isUserOperating?: boolean; // Whether user is currently operating
   mjpegUrl?: string; // When provided, use MJPEG live stream instead of polling
   mode?: ScreenshotViewerMode;
+  // Receives the wrapper that holds the image. Consumers (e.g. the playground
+  // device-interaction layer) project pointer coords against this rect so any
+  // surrounding chrome — header, padding, toolbar — never shifts the mapping.
+  contentRef?: React.Ref<HTMLDivElement>;
 }
 
 export default function ScreenshotViewer({
@@ -28,6 +37,7 @@ export default function ScreenshotViewer({
   isUserOperating = false,
   mjpegUrl,
   mode = 'default',
+  contentRef,
 }: ScreenshotViewerProps) {
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -41,7 +51,15 @@ export default function ScreenshotViewer({
   // Changing mjpegRetryToken forces the <img> to remount so the multipart connection
   // is reopened. Used both for natural retries on stream errors and for the
   // server-driven upgrade from polling fallback to native MJPEG.
-  const [mjpegRetryToken, setMjpegRetryToken] = useState('');
+  //
+  // Initialize to a per-mount token (not '') so that each ScreenshotViewer
+  // remount gets a unique URL — otherwise the Electron/Chromium renderer
+  // reuses the previous (dead) multipart connection for the same /mjpeg URL
+  // and stays stuck on a blank canvas. The server happily ignores any extra
+  // query params.
+  const [mjpegRetryToken, setMjpegRetryToken] = useState(() =>
+    String(Date.now()),
+  );
   const mjpegImageRef = useRef<HTMLImageElement | null>(null);
   const isMjpeg = Boolean(mjpegUrl && serverOnline);
   const showChrome = mode !== 'screen-only';
@@ -264,7 +282,7 @@ export default function ScreenshotViewer({
   };
 
   const screenshotContent = (
-    <div className="screenshot-content">
+    <div className="screenshot-content" ref={contentRef}>
       {isMjpeg ? (
         <img
           key={mjpegRetryToken || 'initial'}

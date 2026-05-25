@@ -8,6 +8,7 @@ const debugClient = getDebug('webdriver:client');
 export class WebDriverClient {
   protected baseUrl: string;
   protected sessionId: string | null = null;
+  protected ownsSession = false;
   protected port: number;
   protected host: string;
   protected timeout: number;
@@ -17,6 +18,8 @@ export class WebDriverClient {
     this.host = options.host || 'localhost';
     this.timeout = options.timeout || 30000;
     this.baseUrl = `http://${this.host}:${this.port}`;
+    this.sessionId = options.sessionId || null;
+    this.ownsSession = !options.sessionId;
 
     debugClient(`Initialized WebDriver client on ${this.host}:${this.port}`);
   }
@@ -44,6 +47,7 @@ export class WebDriverClient {
       });
 
       this.sessionId = response.sessionId || response.value?.sessionId;
+      this.ownsSession = true;
 
       if (!this.sessionId) {
         throw new Error('Failed to get session ID from response');
@@ -65,6 +69,12 @@ export class WebDriverClient {
   async deleteSession(): Promise<void> {
     if (!this.sessionId) {
       debugClient('No active session to delete');
+      return;
+    }
+
+    if (!this.ownsSession) {
+      debugClient(`Detached external session: ${this.sessionId}`);
+      this.sessionId = null;
       return;
     }
 

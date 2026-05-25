@@ -39,24 +39,41 @@ describe('applyStoredThemeMode', () => {
     setMatchMedia(false);
   });
 
-  it('falls back to system when storage is empty and OS is light', async () => {
+  it('falls back to light when storage is empty', async () => {
     const { applyStoredThemeMode } = await loadModule();
     applyStoredThemeMode();
     expect(document.documentElement.dataset.theme).toBe('light');
   });
 
-  it('falls back to system when storage has an unexpected value', async () => {
+  it('falls back to light when storage has an unexpected value', async () => {
     window.localStorage.setItem('studio.theme-mode', 'rainbow');
     const { applyStoredThemeMode } = await loadModule();
     applyStoredThemeMode();
     expect(document.documentElement.dataset.theme).toBe('light');
   });
 
-  it('resolves dark when OS prefers dark under system mode', async () => {
+  it('defaults to light when the OS prefers dark', async () => {
     setMatchMedia(true);
     const { applyStoredThemeMode } = await loadModule();
     applyStoredThemeMode();
+    expect(document.documentElement.dataset.theme).toBe('light');
+  });
+
+  it('resolves dark when stored system mode follows a dark OS', async () => {
+    setMatchMedia(true);
+    window.localStorage.setItem('studio.theme-mode', 'system');
+    window.localStorage.setItem('studio.theme-mode-explicit', 'true');
+    const { applyStoredThemeMode } = await loadModule();
+    applyStoredThemeMode();
     expect(document.documentElement.dataset.theme).toBe('dark');
+  });
+
+  it('migrates legacy stored system mode to light', async () => {
+    setMatchMedia(true);
+    window.localStorage.setItem('studio.theme-mode', 'system');
+    const { applyStoredThemeMode } = await loadModule();
+    applyStoredThemeMode();
+    expect(document.documentElement.dataset.theme).toBe('light');
   });
 
   it('honours a stored explicit dark mode regardless of OS preference', async () => {

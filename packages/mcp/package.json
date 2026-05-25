@@ -1,6 +1,11 @@
 {
   "name": "@midscene/mcp",
-  "version": "1.8.3",
+  "version": "1.8.4",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/mcp"
+  },
   "description": "Deprecated - Use @midscene/web-bridge-mcp, @midscene/android-mcp, or @midscene/ios-mcp",
   "bin": "dist/index.js",
   "files": ["dist"],

@@ -76,6 +76,18 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
 
+    - name: Install Puppeteer browser binary
+      # `pnpm install` normally triggers puppeteer's `postinstall` to fetch
+      # the Chrome binary into `~/.cache/puppeteer`, but the added
+      # `optionalDependencies` (appdmg) shifts the install layout enough
+      # that the postinstall sometimes does not fire on the headless Linux
+      # runner. The Studio Web playground session needs that Chrome to
+      # launch its puppeteer page; without it `createSession` throws
+      # "Could not find Chrome" and the web preview e2e asserts on a
+      # permanently disconnected device. Install it explicitly so the test
+      # environment is deterministic.
+      run: pnpm --dir apps/studio exec puppeteer browsers install chrome
+
     - name: Build Studio
       run: npx nx run-many --target=build --projects=studio,@midscene/report
 

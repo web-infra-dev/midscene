@@ -93,6 +93,13 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   userDouyin: '抖音',
   userAlibaba: '阿里巴巴',
   userXiaomi: '小米',
+  userIqiyi: '爱奇艺',
+  userLark: '飞书',
+  userSodaMusic: '汽水音乐',
+  userBilibili: '哔哩哔哩',
+  userBilibiliLogo: '/images/users/bilibili-zh-color.svg',
+  userBilibiliLogoWidth: '120',
+  userDoubao: '豆包',
 
   // Links
   multiModelStrategyLink: '/model-strategy#高阶特性多模型配合',

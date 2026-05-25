@@ -228,6 +228,7 @@ export class IOSDevice implements AbstractInterface {
     this.wdaBackend = new WebDriverAgentBackend({
       port: wdaPort,
       host: wdaHost,
+      ...(options?.sessionId ? { sessionId: options.sessionId } : {}),
     });
     this.wdaManager = WDAManager.getInstance(wdaPort, wdaHost);
     this.mjpegStreamUrl = `http://${wdaHost}:${mjpegPort}`;
@@ -257,8 +258,13 @@ export class IOSDevice implements AbstractInterface {
       // Start WebDriverAgent
       await this.wdaManager.start();
 
-      // Create WDA session
-      await this.wdaBackend.createSession();
+      if (this.options?.sessionId) {
+        debugDevice(`Using existing WDA session: ${this.options.sessionId}`);
+        await this.wdaBackend.setupExistingSession();
+      } else {
+        // Create WDA session
+        await this.wdaBackend.createSession();
+      }
 
       // Try to get real device info from WebDriverAgent
       const deviceInfo = await this.wdaBackend.getDeviceInfo();
@@ -1053,8 +1059,6 @@ const createPlatformActions = (device: IOSDevice) => {
       sample: {
         uri: 'com.apple.Preferences',
       },
-      delayBeforeRunner: 0,
-      delayAfterRunner: 0,
       call: async (param) => {
         if (!param.uri || param.uri.trim() === '') {
           throw new Error('Terminate requires a non-empty uri parameter');
@@ -1065,8 +1069,6 @@ const createPlatformActions = (device: IOSDevice) => {
     IOSHomeButton: defineAction({
       name: 'IOSHomeButton',
       description: 'Trigger the system "home" operation on iOS devices',
-      delayBeforeRunner: 0,
-      delayAfterRunner: 0,
       call: async () => {
         await device.home();
       },

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { WebDriverClient } from '../../src/clients/WebDriverClient';
 
 // Expose protected method for testing
@@ -44,5 +44,23 @@ describe('WebDriverClient.buildSessionEndpoint', () => {
     expect(() =>
       noSessionClient.testBuildSessionEndpoint('/wda/screen'),
     ).toThrow('No active WebDriver session');
+  });
+});
+
+describe('WebDriverClient external session cleanup', () => {
+  it('should detach external sessions without deleting them from the server', async () => {
+    const client = new WebDriverClient({
+      port: 8100,
+      host: 'localhost',
+      sessionId: 'external-session',
+    });
+    const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
+
+    expect(client.sessionInfo?.sessionId).toBe('external-session');
+
+    await client.deleteSession();
+
+    expect(makeRequestSpy).not.toHaveBeenCalled();
+    expect(client.sessionInfo).toBeNull();
   });
 });

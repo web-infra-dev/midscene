@@ -98,6 +98,13 @@ and more`,
   userDouyin: 'Douyin',
   userAlibaba: 'Alibaba',
   userXiaomi: 'Xiaomi',
+  userIqiyi: 'iQIYI',
+  userLark: 'Lark',
+  userSodaMusic: 'Soda Music',
+  userBilibili: 'Bilibili',
+  userBilibiliLogo: '/images/users/bilibili-color.svg',
+  userBilibiliLogoWidth: '90',
+  userDoubao: 'Doubao',
 
   // Links
   multiModelStrategyLink: '/model-strategy#advanced-combining-multiple-models',

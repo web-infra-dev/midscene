@@ -11,10 +11,13 @@ on:
         required: true
         default: 'main'
 
-# Add permissions for creating releases
+# Add permissions for creating releases.
+# `id-token: write` is required for npm Trusted Publishers (OIDC) and for
+# Sigstore provenance signing on `npm publish --provenance`.
 permissions:
   contents: write
   packages: write
+  id-token: write
 
 jobs:
   release:
@@ -49,13 +52,17 @@ jobs:
     - name: Setup pnpm
       uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
       with:
-        version: 9.3.0
+        # 9.5+ understands `--provenance`; pnpm forwards the actual publish
+        # to the bundled npm CLI so Trusted Publisher OIDC exchange (npm 11.x)
+        # works without an NPM_TOKEN.
+        version: 9.15.9
 
     - name: Setup Node.js
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: '24.13.0'
         cache: 'pnpm'
+        registry-url: 'https://registry.npmjs.org'
 
     - name: Cache Puppeteer
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
@@ -84,10 +91,12 @@ jobs:
         sudo apt-get install -y cmake pkg-config freerdp3-dev
 
     - name: release
+      # Auth to npm uses npm Trusted Publishers via the OIDC token from
+      # `id-token: write`. No NPM_TOKEN is needed; the npm CLI bundled with
+      # Node 24.x exchanges the GitHub OIDC token for a short-lived publish
+      # token at request time.
       run: node ./scripts/release.js --version=${{ github.event.inputs.version }}
-      env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-    
+
     - name: Get version from core package
       id: get_version
       run: |
@@ -266,6 +275,24 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile --ignore-scripts
 
+    - name: Build appdmg native bindings
+      if: ${{ matrix.platform == 'darwin' }}
+      # appdmg pulls in darwin-only native deps (`macos-alias`,
+      # `fs-xattr`) whose `node-gyp rebuild` install scripts were
+      # skipped by the workspace install (`--ignore-scripts`). Rebuild
+      # each directly from its pnpm store directory.
+      run: |
+        set -euo pipefail
+        for pkg in macos-alias fs-xattr; do
+          PKG_DIR=$(ls -d "node_modules/.pnpm/${pkg}@"*"/node_modules/${pkg}" 2>/dev/null | head -n 1)
+          if [ -z "$PKG_DIR" ]; then
+            echo "${pkg} package directory not found under node_modules/.pnpm" >&2
+            exit 1
+          fi
+          echo "Rebuilding ${pkg} in ${PKG_DIR}"
+          (cd "$PKG_DIR" && npm rebuild)
+        done
+
     - name: Build Studio and Nx dependencies
       run: npx nx build studio
 
@@ -281,6 +308,7 @@ jobs:
         # download the same set the GitHub Release will publish.
         path: |
           ${{ github.workspace }}/.release/studio/artifacts/*.zip
+          ${{ github.workspace }}/.release/studio/artifacts/*.dmg
           ${{ github.workspace }}/.release/studio/artifacts/*.yml
 
     - name: Upload Studio asset to GitHub Release
@@ -292,9 +320,12 @@ jobs:
         prerelease: ${{ contains(needs.release.outputs.version, 'beta') || contains(needs.release.outputs.version, 'alpha') || contains(needs.release.outputs.version, 'rc') }}
         # The zip is the artifact users download; latest-*.yml (and
         # beta-*.yml on prereleases) is what electron-updater fetches to
-        # learn the version + sha512 of the matching zip.
+        # learn the version + sha512 of the matching zip. The dmg ships
+        # the same .app behind a drag-to-Applications installer for
+        # macOS users who want a regular GUI install.
         files: |
           ${{ github.workspace }}/.release/studio/artifacts/*.zip
+          ${{ github.workspace }}/.release/studio/artifacts/*.dmg
           ${{ github.workspace }}/.release/studio/artifacts/*.yml
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

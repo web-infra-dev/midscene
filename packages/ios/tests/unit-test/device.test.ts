@@ -22,6 +22,7 @@ describe('IOSDevice', () => {
       createSession: vi
         .fn()
         .mockResolvedValue({ sessionId: 'test-session-id' }),
+      setupExistingSession: vi.fn().mockResolvedValue(undefined),
       deleteSession: vi.fn().mockResolvedValue(undefined),
       getWindowSize: vi.fn().mockResolvedValue({ width: 375, height: 812 }),
       takeScreenshot: vi.fn().mockResolvedValue('base64-screenshot'),
@@ -120,6 +121,20 @@ describe('IOSDevice', () => {
       expect(MockedWdaClient).toHaveBeenCalledWith({
         port: 9100,
         host: 'custom-host',
+      });
+    });
+
+    it('should pass existing WDA session ID when specified', () => {
+      const device = new IOSDevice({
+        wdaPort: 9100,
+        wdaHost: 'custom-host',
+        sessionId: 'external-session-id',
+      });
+      expect(device).toBeDefined();
+      expect(MockedWdaClient).toHaveBeenCalledWith({
+        port: 9100,
+        host: 'custom-host',
+        sessionId: 'external-session-id',
       });
     });
   });
@@ -230,6 +245,21 @@ describe('IOSDevice', () => {
     it('should connect to device successfully', async () => {
       await expect(device.connect()).resolves.not.toThrow();
       expect(mockWdaClient.createSession).toHaveBeenCalled();
+    });
+
+    it('should reuse an existing WDA session without creating a new one', async () => {
+      const externalSessionDevice = new IOSDevice({
+        wdaPort: DEFAULT_WDA_PORT,
+        wdaHost: 'localhost',
+        sessionId: 'external-session-id',
+      });
+
+      await expect(externalSessionDevice.connect()).resolves.not.toThrow();
+
+      expect(mockWdaClient.createSession).not.toHaveBeenCalled();
+      expect(mockWdaClient.setupExistingSession).toHaveBeenCalled();
+
+      await externalSessionDevice.destroy();
     });
 
     it('should handle connection failure', async () => {

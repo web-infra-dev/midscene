@@ -17,19 +17,33 @@ tasks:
   # --- Settings popup ---
   - name: settings popup opens and shows options
     flow:
-      - ai: Hover over the video player area to reveal the playback controls, then click the settings icon at the bottom right of the player controls. The icon looks like a hexagon with a small circle in the center.
+      - aiHover:
+        locate:
+          prompt: the central video player replay area, not the timeline thumbnails and not the left task sidebar
+          deepLocate: true
+      - sleep: 300
+      - aiTap:
+        locate:
+          prompt: the visible settings button in the bottom playback control bar. It is the small hexagon or gear-shaped icon in the right-side control group, immediately left of the fullscreen icon and right of the progress bar.
+          deepLocate: true
       - sleep: 1000
-      - aiAssert: A settings popup is visible showing playback speed options or toggle switches
+      - aiAssert: The player settings popup is open above the bottom-right control bar, showing options such as "Focus on cursor", "Subtitle", "Playback speed", and speed choices like "0.5x", "1x", "1.5x", or "2x".
 
   # --- Dark mode ---
   - name: toggle dark mode
     flow:
-      - ai: Click the theme toggle button (sun or moon icon) in the top right corner of the page
-      - sleep: 1000
-      - aiAssert: The page background is dark colored, indicating dark mode is active
+      - aiTap:
+        locate:
+          prompt: the "Toggle theme" button with a sun or moon icon in the top right header area
+          deepLocate: true
+      - sleep: 2000
+      - aiAssert: The report UI (header, sidebar, and surrounding chrome) has a dark background color
 
   - name: toggle back to light mode
     flow:
-      - ai: Click the theme toggle button (sun or moon icon) in the top right corner of the page
-      - sleep: 1000
-      - aiAssert: The page background is light or white colored, indicating light mode is active
+      - aiTap:
+        locate:
+          prompt: the "Toggle theme" button with a sun or moon icon in the top right header area
+          deepLocate: true
+      - sleep: 2000
+      - aiAssert: The report UI (header, sidebar, and surrounding chrome) has a light/white background color

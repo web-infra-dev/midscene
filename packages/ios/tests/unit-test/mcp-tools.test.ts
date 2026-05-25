@@ -48,14 +48,21 @@ describe('IOSMidsceneTools', () => {
     expect(takeScreenshotTool).toBeDefined();
 
     await takeScreenshotTool?.handler({
-      ios: { deviceId: 'ios-target', 'wda-port': 8100 },
+      ios: {
+        deviceId: 'ios-target',
+        'wda-port': 8100,
+        sessionId: 'external-session-id',
+      },
     });
 
-    expect(agentFromWebDriverAgent).toHaveBeenCalledWith({
-      autoDismissKeyboard: false,
-      deviceId: 'ios-target',
-      wdaPort: 8100,
-    });
+    expect(agentFromWebDriverAgent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        autoDismissKeyboard: false,
+        deviceId: 'ios-target',
+        wdaPort: 8100,
+        sessionId: 'external-session-id',
+      }),
+    );
   });
 
   it('passes top-level ios aliases to act', async () => {
@@ -77,11 +84,13 @@ describe('IOSMidsceneTools', () => {
       'wda-port': 8101,
     });
 
-    expect(agentFromWebDriverAgent).toHaveBeenCalledWith({
-      autoDismissKeyboard: false,
-      wdaHost: '127.0.0.1',
-      wdaPort: 8101,
-    });
+    expect(agentFromWebDriverAgent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        autoDismissKeyboard: false,
+        wdaHost: '127.0.0.1',
+        wdaPort: 8101,
+      }),
+    );
     expect(mockAgent.aiAction).toHaveBeenCalledWith('open settings', {
       deepThink: false,
     });
@@ -102,12 +111,14 @@ describe('IOSMidsceneTools', () => {
       expect.objectContaining({
         'ios.deviceId': expect.anything(),
         'ios.wdaPort': expect.anything(),
+        'ios.sessionId': expect.anything(),
       }),
     );
     expect(actTool?.schema).toEqual(
       expect.objectContaining({
         'ios.deviceId': expect.anything(),
         'ios.wdaPort': expect.anything(),
+        'ios.sessionId': expect.anything(),
       }),
     );
   });
@@ -149,5 +160,46 @@ describe('IOSMidsceneTools', () => {
 
     expect(agentFromWebDriverAgent).toHaveBeenCalledTimes(2);
     expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it('rebuilds the iOS agent when only the external WDA session changes', async () => {
+    const firstAgent = createMockAgent();
+    const secondAgent = createMockAgent();
+    vi.mocked(agentFromWebDriverAgent)
+      .mockResolvedValueOnce(firstAgent as any)
+      .mockResolvedValueOnce(secondAgent as any);
+
+    const tools = new IOSMidsceneTools();
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+
+    await takeScreenshotTool?.handler({
+      ios: {
+        wdaHost: '127.0.0.1',
+        wdaPort: 8100,
+        sessionId: 'session-A',
+      },
+    });
+    await takeScreenshotTool?.handler({
+      ios: {
+        wdaHost: '127.0.0.1',
+        wdaPort: 8100,
+        sessionId: 'session-B',
+      },
+    });
+
+    expect(agentFromWebDriverAgent).toHaveBeenCalledTimes(2);
+    expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
+    expect(agentFromWebDriverAgent).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        autoDismissKeyboard: false,
+        wdaHost: '127.0.0.1',
+        wdaPort: 8100,
+        sessionId: 'session-B',
+      }),
+    );
   });
 });

@@ -31,6 +31,9 @@ import {
 const debug = getDebug('planning');
 const warnLog = getDebug('planning', { console: true });
 
+const noPreviousActionsText =
+  'No previous actions have been executed in this aiAct execution yet. If the instruction asks for actions, choose the first action to execute.';
+
 /**
  * Parse XML response from LLM and convert to RawResponsePlanningAIResponse
  */
@@ -172,10 +175,14 @@ export async function plan(
   // Build sub-goal status text to include in the message
   // In planning deep-think mode: show full sub-goals with logs
   // Otherwise: show historical execution logs
-  const subGoalsText = includeSubGoals
+  const executionProgressText = includeSubGoals
     ? conversationHistory.subGoalsToText()
     : conversationHistory.historicalLogsToText();
-  const subGoalsSection = subGoalsText ? `\n\n${subGoalsText}` : '';
+  const executionProgressSection = executionProgressText
+    ? `\n\n${executionProgressText}`
+    : conversationHistory.pendingFeedbackMessage
+      ? ''
+      : `\n\n${noPreviousActionsText}`;
 
   // Build memories text to include in the message
   const memoriesText = conversationHistory.memoriesToText();
@@ -187,7 +194,7 @@ export async function plan(
       content: [
         {
           type: 'text',
-          text: `${conversationHistory.pendingFeedbackMessage}. The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.${memoriesSection}${subGoalsSection}`,
+          text: `${conversationHistory.pendingFeedbackMessage}. The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.${memoriesSection}${executionProgressSection}`,
         },
         {
           type: 'image_url',
@@ -206,7 +213,7 @@ export async function plan(
       content: [
         {
           type: 'text',
-          text: `this is the latest screenshot${memoriesSection}${subGoalsSection}`,
+          text: `This is the current screenshot.${memoriesSection}${executionProgressSection}`,
         },
         {
           type: 'image_url',

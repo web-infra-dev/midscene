@@ -6,13 +6,13 @@ import {
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
 import { getMidsceneLocationSchema } from '@/index';
-import { mockActionSpace } from 'tests/common';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import {
   extractDataQueryPrompt,
   systemPromptToExtract,
 } from '../../../src/ai-model/prompt/extraction';
+import { mockActionSpace } from '../../common';
 import { mockNonChinaTimeZone, restoreIntl } from '../mocks/intl-mock';
 
 // Mock getPreferredLanguage to ensure consistent test output

@@ -593,6 +593,11 @@ export class IOSWebDriverClient extends WebDriverClient {
     }
   }
 
+  async setupExistingSession(): Promise<void> {
+    this.ensureSession();
+    await this.setupIOSSession();
+  }
+
   /**
    * Execute a WebDriverAgent API request directly
    * This is the iOS equivalent of Android's runAdbShell
