@@ -142,16 +142,26 @@ export class ReportMergingTool {
     opts?: {
       rmOriginalReports?: boolean;
       overwrite?: boolean;
+      outputDir?: string;
     },
   ): string | null {
-    const { rmOriginalReports = false, overwrite = false } = opts ?? {};
+    const {
+      rmOriginalReports = false,
+      overwrite = false,
+      outputDir,
+    } = opts ?? {};
 
     if (this.reportInfos.length === 0) {
       logMsg('No reports to merge');
       return null;
     }
 
-    const targetDir = getMidsceneRunSubDir('report');
+    const targetDir = outputDir
+      ? path.resolve(outputDir)
+      : getMidsceneRunSubDir('report');
+    if (outputDir) {
+      mkdirSync(targetDir, { recursive: true });
+    }
 
     // Check if any source report is directory mode
     const hasDirectoryModeReport = this.reportInfos.some((info) => {
