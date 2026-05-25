@@ -88,15 +88,6 @@ export default defineMidsceneConfig({
     cache: true,
     generateReport: true,
   },
-
-  async setup({ createAgent }) {
-    const account = await getSmokeAccount();
-    await prepareTestData(account);
-
-    return {
-      agent: await createAgent(),
-    };
-  },
 });
 ```
 
@@ -110,7 +101,37 @@ With this config in place, the project can stay direct:
     checkout.yaml
 ```
 
-The boundary is clear: `e2e/*.yaml` describes what the user should accomplish, while `midscene.config.ts` describes the target type and platform connection options, testRunner behavior, shared Agent options, reporting, and setup logic. By default, the framework creates the Agent from `target.type` and `target.options`; projects only need to override that step in `setup` when they use custom devices, remote services, or internal team fixtures. The project can handle real engineering constraints, while the case itself remains friendly to code review, business confirmation, and team collaboration.
+The boundary is clear: `e2e/*.yaml` describes what the user should accomplish, while `midscene.config.ts` describes the target type and platform connection options, testRunner behavior, shared Agent options, and reporting. By default, the framework creates the Agent from `target.type` and `target.options`, so ordinary projects do not need to write `setup`. If a project needs custom devices, remote services, or internal team fixtures, it can create the Agent entirely inside `setup`; in that case, `target` can be omitted to avoid defining the runtime target twice in the same config. The project can handle real engineering constraints, while the case itself remains friendly to code review, business confirmation, and team collaboration.
+
+When a project really needs a fully custom runtime target, it can put Agent creation in `setup`:
+
+```ts
+import { agentFromAdbDevice } from '@midscene/android';
+import { defineMidsceneConfig } from '@midscene/testing-framework';
+
+export default defineMidsceneConfig({
+  testDir: './e2e',
+
+  agentOptions: {
+    aiActionContext: 'The user is already signed in as a smoke-test account.',
+    cache: true,
+    generateReport: true,
+  },
+
+  async setup({ agentOptions }) {
+    const account = await getSmokeAccount();
+    await prepareTestData(account);
+
+    return {
+      agent: await agentFromAdbDevice(process.env.ANDROID_DEVICE_ID, {
+        ...agentOptions,
+        androidAdbPath: process.env.ANDROID_ADB_PATH,
+        autoDismissKeyboard: false,
+      }),
+    };
+  },
+});
+```
 
 ### Use TypeScript for Special Cases
 
