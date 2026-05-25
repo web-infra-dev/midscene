@@ -7,7 +7,9 @@ describe('IPC_CHANNELS', () => {
     expect(IPC_CHANNELS.chooseReportSavePath).toBe(
       'shell:choose-report-save-path',
     );
+    expect(IPC_CHANNELS.chooseFileSavePath).toBe('shell:choose-file-save-path');
     expect(IPC_CHANNELS.writeReportFile).toBe('shell:write-report-file');
+    expect(IPC_CHANNELS.writeFile).toBe('shell:write-file');
     expect(IPC_CHANNELS.getPlaygroundBootstrap).toBe(
       'studio:get-playground-bootstrap',
     );
@@ -18,6 +20,15 @@ describe('IPC_CHANNELS', () => {
     );
     expect(IPC_CHANNELS.setDiscoveryPollingPaused).toBe(
       'studio:set-discovery-polling-paused',
+    );
+    expect(IPC_CHANNELS.generateRecorderYaml).toBe(
+      'studio:generate-recorder-yaml',
+    );
+    expect(IPC_CHANNELS.generateRecorderCode).toBe(
+      'studio:generate-recorder-code',
+    );
+    expect(IPC_CHANNELS.generateRecorderMetadata).toBe(
+      'studio:generate-recorder-metadata',
     );
   });
 });

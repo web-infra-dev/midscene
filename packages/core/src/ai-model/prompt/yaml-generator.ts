@@ -5,6 +5,13 @@ import type {
 import { YAML_EXAMPLE_CODE } from '@midscene/shared/constants';
 import type { IModelConfig } from '@midscene/shared/env';
 import {
+  type MidsceneRecorderEvent,
+  type MidsceneRecorderTarget,
+  getMidsceneRecorderEventDescription,
+  getMidsceneRecorderScreenshotsForLLM,
+  stringifyMidsceneRecorderTargetBlock,
+} from '@midscene/shared/recorder';
+import {
   type ChatCompletionMessageParam,
   callAI,
   callAIWithStringResponse,
@@ -27,9 +34,12 @@ export interface InputDescription {
 export interface ProcessedEvent {
   type: string;
   timestamp: number;
+  source?: string;
+  actionType?: string;
   url?: string;
   title?: string;
   elementDescription?: string;
+  description?: string;
   value?: string;
   pageInfo?: any;
   elementRect?: any;
@@ -45,20 +55,7 @@ export interface EventSummary {
   events: ProcessedEvent[];
 }
 
-// Common ChromeRecordedEvent interface
-export interface ChromeRecordedEvent {
-  type: string;
-  timestamp: number;
-  url?: string;
-  title?: string;
-  elementDescription?: string;
-  value?: string;
-  pageInfo?: any;
-  elementRect?: any;
-  screenshotBefore?: string;
-  screenshotAfter?: string;
-  screenshotWithBox?: string;
-}
+export type ChromeRecordedEvent = MidsceneRecorderEvent;
 
 export interface YamlGenerationOptions {
   testName?: string;
@@ -67,6 +64,19 @@ export interface YamlGenerationOptions {
   description?: string;
   /** Language for human-readable YAML content (e.g. 'English', 'Chinese'). Keys and API names are kept as-is. */
   language?: string;
+  navigationInfo?: {
+    urls?: string[];
+    titles?: string[];
+    initialViewport?: {
+      width?: number;
+      height?: number;
+    };
+  };
+}
+
+export interface RecorderYamlGenerationInput extends YamlGenerationOptions {
+  target: MidsceneRecorderTarget;
+  events: MidsceneRecorderEvent[];
 }
 
 export interface FilteredEvents {
@@ -85,38 +95,7 @@ export const getScreenshotsForLLM = (
   events: ChromeRecordedEvent[],
   maxScreenshots = 1,
 ): string[] => {
-  // Find events with screenshots, prioritizing navigation and click events
-  const eventsWithScreenshots = events.filter(
-    (event) =>
-      event.screenshotBefore ||
-      event.screenshotAfter ||
-      event.screenshotWithBox,
-  );
-
-  // Sort them by priority (navigation first, then clicks, then others)
-  const sortedEvents = [...eventsWithScreenshots].sort((a, b) => {
-    if (a.type === 'navigation' && b.type !== 'navigation') return -1;
-    if (a.type !== 'navigation' && b.type === 'navigation') return 1;
-    if (a.type === 'click' && b.type !== 'click') return -1;
-    if (a.type !== 'click' && b.type === 'click') return 1;
-    return 0;
-  });
-
-  // Extract up to maxScreenshots screenshots
-  const screenshots: string[] = [];
-  for (const event of sortedEvents) {
-    // Prefer the most informative screenshot
-    const screenshot =
-      event.screenshotWithBox ||
-      event.screenshotAfter ||
-      event.screenshotBefore;
-    if (screenshot && !screenshots.includes(screenshot)) {
-      screenshots.push(screenshot);
-      if (screenshots.length >= maxScreenshots) break;
-    }
-  }
-
-  return screenshots;
+  return getMidsceneRecorderScreenshotsForLLM(events, maxScreenshots);
 };
 
 /**
@@ -172,9 +151,12 @@ export const processEventsForLLM = (
   return events.map((event) => ({
     type: event.type,
     timestamp: event.timestamp,
+    source: event.source,
+    actionType: event.actionType,
     url: event.url,
     title: event.title,
     elementDescription: event.elementDescription,
+    description: getMidsceneRecorderEventDescription(event),
     value: event.value,
     pageInfo: event.pageInfo,
     elementRect: event.elementRect,
@@ -275,10 +257,14 @@ const createYamlPrompt = ({
   yamlSummary,
   screenshots,
   language,
+  targetBlock,
+  target,
 }: {
   yamlSummary: EventSummary & { includeTimestamps: boolean };
   screenshots: string[];
   language?: string;
+  targetBlock: string;
+  target: MidsceneRecorderTarget;
 }): ChatCompletionMessageParam[] => {
   const prompt: ChatCompletionMessageParam[] = [
     {
@@ -287,16 +273,23 @@ const createYamlPrompt = ({
     },
     {
       role: 'user',
-      content: `Generate YAML test for Midscene.js automation from recorded browser events.
+      content: `Generate YAML test for Midscene.js automation from recorded events.
+
+Target platform:
+- Preserve this exact top-level target platform: ${target.platformId}
+- Use exactly one top-level target block.
+- The target block must be:
+${targetBlock}
 
 Event Summary:
 ${JSON.stringify(yamlSummary, null, 2)}
 
 Convert events:
-- navigation → target.url
+- navigation → target URL or aiAction only when the target platform supports it
 - click → aiTap with element description
 - input → aiInput with value and locate
 - scroll → aiScroll with appropriate direction
+- keydown → aiKeyboardPress
 - Add aiAssert for important state changes${getYamlLanguageInstruction(language)}
 
 Important: Return ONLY the raw YAML content. Do NOT wrap the response in markdown code blocks (no \`\`\`yaml or \`\`\`). Start directly with the YAML content.`,
@@ -333,6 +326,116 @@ export const validateEvents = (events: ChromeRecordedEvent[]): void => {
   }
 };
 
+function createDefaultWebTarget(
+  events: ChromeRecordedEvent[],
+  options: YamlGenerationOptions,
+): MidsceneRecorderTarget {
+  const navigationEvents = events.filter(
+    (event) => event.type === 'navigation',
+  );
+  const firstUrl =
+    options.navigationInfo?.urls?.find(Boolean) ||
+    navigationEvents.find((event) => event.url)?.url ||
+    '';
+  const firstViewport =
+    options.navigationInfo?.initialViewport ||
+    events.find((event) => event.pageInfo)?.pageInfo;
+
+  return {
+    platformId: 'web',
+    deviceId: firstUrl || undefined,
+    label: firstUrl || 'Web',
+    values: {
+      url: firstUrl,
+      ...(firstViewport?.width ? { viewportWidth: firstViewport.width } : {}),
+      ...(firstViewport?.height
+        ? { viewportHeight: firstViewport.height }
+        : {}),
+    },
+  };
+}
+
+function normalizeGeneratedYaml(content: string) {
+  const trimmed = content.trim();
+  const fencedMatch = trimmed.match(/^```(?:ya?ml)?\s*([\s\S]*?)\s*```$/i);
+  return `${(fencedMatch?.[1] ?? trimmed).trim()}\n`;
+}
+
+function createRecorderYamlPrompt(
+  input: RecorderYamlGenerationInput,
+): ChatCompletionMessageParam[] {
+  validateEvents(input.events);
+
+  const summary = prepareEventSummary(input.events, {
+    testName: input.testName,
+    maxScreenshots: input.maxScreenshots || 3,
+  });
+  const yamlSummary = {
+    ...summary,
+    target: input.target,
+    includeTimestamps: input.includeTimestamps || false,
+  };
+  const screenshots = getScreenshotsForLLM(
+    input.events,
+    input.maxScreenshots || 3,
+  );
+
+  return createYamlPrompt({
+    yamlSummary,
+    screenshots,
+    language: input.language,
+    target: input.target,
+    targetBlock: stringifyMidsceneRecorderTargetBlock(input.target),
+  });
+}
+
+export const generateRecorderYamlTest = async (
+  input: RecorderYamlGenerationInput,
+  modelConfig: IModelConfig,
+): Promise<string> => {
+  try {
+    const prompt = createRecorderYamlPrompt(input);
+    const response = await callAIWithStringResponse(prompt, modelConfig);
+
+    if (response?.content && typeof response.content === 'string') {
+      return normalizeGeneratedYaml(response.content);
+    }
+
+    throw new Error('Failed to generate recorder YAML test configuration');
+  } catch (error) {
+    throw new Error(`Failed to generate recorder YAML test: ${error}`);
+  }
+};
+
+export const generateRecorderYamlTestStream = async (
+  input: RecorderYamlGenerationInput,
+  options: StreamingCodeGenerationOptions,
+  modelConfig: IModelConfig,
+): Promise<StreamingAIResponse> => {
+  try {
+    const prompt = createRecorderYamlPrompt(input);
+    if (options.stream && options.onChunk) {
+      return await callAI(prompt, modelConfig, {
+        stream: true,
+        onChunk: options.onChunk,
+      });
+    }
+
+    const response = await callAIWithStringResponse(prompt, modelConfig);
+    if (response?.content && typeof response.content === 'string') {
+      return {
+        content: normalizeGeneratedYaml(response.content),
+        usage: response.usage,
+        isStreamed: false,
+      };
+    }
+
+    throw new Error('Failed to generate recorder YAML test configuration');
+  } catch (error) {
+    throw new Error(`Failed to generate recorder YAML test: ${error}`);
+  }
+};
+
 // YAML-specific generation functions
 
 /**
@@ -343,44 +446,14 @@ export const generateYamlTest = async (
   options: YamlGenerationOptions,
   modelConfig: IModelConfig,
 ): Promise<string> => {
-  try {
-    // Validate input
-    validateEvents(events);
-
-    // Prepare event summary using shared utilities
-    const summary = prepareEventSummary(events, {
-      testName: options.testName,
-      maxScreenshots: options.maxScreenshots || 3,
-    });
-
-    // Add YAML-specific options to summary
-    const yamlSummary = {
-      ...summary,
-      includeTimestamps: options.includeTimestamps || false,
-    };
-
-    // Get screenshots for visual context
-    const screenshots = getScreenshotsForLLM(
+  return generateRecorderYamlTest(
+    {
+      ...options,
+      target: createDefaultWebTarget(events, options),
       events,
-      options.maxScreenshots || 3,
-    );
-
-    const prompt = createYamlPrompt({
-      yamlSummary,
-      screenshots,
-      language: options.language,
-    });
-
-    const response = await callAIWithStringResponse(prompt, modelConfig);
-
-    if (response?.content && typeof response.content === 'string') {
-      return response.content;
-    }
-
-    throw new Error('Failed to generate YAML test configuration');
-  } catch (error) {
-    throw new Error(`Failed to generate YAML test: ${error}`);
-  }
+    },
+    modelConfig,
+  );
 };
 
 /**
@@ -391,55 +464,13 @@ export const generateYamlTestStream = async (
   options: YamlGenerationOptions & StreamingCodeGenerationOptions,
   modelConfig: IModelConfig,
 ): Promise<StreamingAIResponse> => {
-  try {
-    // Validate input
-    validateEvents(events);
-
-    // Prepare event summary using shared utilities
-    const summary = prepareEventSummary(events, {
-      testName: options.testName,
-      maxScreenshots: options.maxScreenshots || 3,
-    });
-
-    // Add YAML-specific options to summary
-    const yamlSummary = {
-      ...summary,
-      includeTimestamps: options.includeTimestamps || false,
-    };
-
-    // Get screenshots for visual context
-    const screenshots = getScreenshotsForLLM(
+  return generateRecorderYamlTestStream(
+    {
+      ...options,
+      target: createDefaultWebTarget(events, options),
       events,
-      options.maxScreenshots || 3,
-    );
-
-    const prompt = createYamlPrompt({
-      yamlSummary,
-      screenshots,
-      language: options.language,
-    });
-
-    if (options.stream && options.onChunk) {
-      // Use streaming
-      return await callAI(prompt, modelConfig, {
-        stream: true,
-        onChunk: options.onChunk,
-      });
-    } else {
-      // Fallback to non-streaming
-      const response = await callAIWithStringResponse(prompt, modelConfig);
-
-      if (response?.content && typeof response.content === 'string') {
-        return {
-          content: response.content,
-          usage: response.usage,
-          isStreamed: false,
-        };
-      }
-
-      throw new Error('Failed to generate YAML test configuration');
-    }
-  } catch (error) {
-    throw new Error(`Failed to generate YAML test: ${error}`);
-  }
+    },
+    options,
+    modelConfig,
+  );
 };

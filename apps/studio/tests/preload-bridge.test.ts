@@ -53,10 +53,18 @@ describe('preload bridge', () => {
     await shellApi.minimizeWindow();
     await shellApi.openExternalUrl('https://midscenejs.com');
     await shellApi.chooseReportSavePath('report.html');
+    await shellApi.chooseFileSavePath({
+      defaultFileName: 'recording.json',
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    });
     await shellApi.toggleMaximizeWindow();
     await shellApi.writeReportFile({
       path: '/tmp/report.html',
       content: '<html />',
+    });
+    await shellApi.writeFile({
+      path: '/tmp/recording.json',
+      content: '{}',
     });
 
     await studioRuntimeApi.getPlaygroundBootstrap();
@@ -70,6 +78,82 @@ describe('preload bridge', () => {
       apiKey: 'sk-test',
       baseUrl: 'https://api.example.com/v1',
       model: 'gpt-4o',
+    });
+    await studioRuntimeApi.generateRecorderYaml({
+      input: {
+        target: {
+          platformId: 'web',
+          label: 'Web',
+          values: { url: 'https://example.com' },
+        },
+        events: [
+          {
+            type: 'navigation',
+            pageInfo: { width: 1280, height: 720 },
+            timestamp: 1,
+            hashId: 'event-1',
+            url: 'https://example.com',
+          },
+        ],
+        testName: 'recording',
+      },
+      modelConfig: {
+        modelName: 'gpt-4o',
+        modelDescription: '',
+        intent: 'default',
+        slot: 'default',
+      },
+    });
+    await studioRuntimeApi.generateRecorderCode({
+      type: 'playwright',
+      input: {
+        target: {
+          platformId: 'web',
+          label: 'Web',
+          values: { url: 'https://example.com' },
+        },
+        events: [
+          {
+            type: 'navigation',
+            pageInfo: { width: 1280, height: 720 },
+            timestamp: 1,
+            hashId: 'event-1',
+            url: 'https://example.com',
+          },
+        ],
+        testName: 'recording',
+      },
+      modelConfig: {
+        modelName: 'gpt-4o',
+        modelDescription: '',
+        intent: 'default',
+        slot: 'default',
+      },
+    });
+    await studioRuntimeApi.generateRecorderMetadata({
+      input: {
+        target: {
+          platformId: 'web',
+          label: 'Web',
+          values: { url: 'https://example.com' },
+        },
+        events: [
+          {
+            type: 'navigation',
+            pageInfo: { width: 1280, height: 720 },
+            timestamp: 1,
+            hashId: 'event-1',
+            url: 'https://example.com',
+          },
+        ],
+        fallbackName: 'recording',
+      },
+      modelConfig: {
+        modelName: 'gpt-4o',
+        modelDescription: '',
+        intent: 'default',
+        slot: 'default',
+      },
     });
     stopListening();
 
@@ -86,12 +170,26 @@ describe('preload bridge', () => {
       [IPC_CHANNELS.minimizeWindow],
       [IPC_CHANNELS.openExternalUrl, 'https://midscenejs.com'],
       [IPC_CHANNELS.chooseReportSavePath, 'report.html'],
+      [
+        IPC_CHANNELS.chooseFileSavePath,
+        {
+          defaultFileName: 'recording.json',
+          filters: [{ name: 'JSON', extensions: ['json'] }],
+        },
+      ],
       [IPC_CHANNELS.toggleMaximizeWindow],
       [
         IPC_CHANNELS.writeReportFile,
         {
           path: '/tmp/report.html',
           content: '<html />',
+        },
+      ],
+      [
+        IPC_CHANNELS.writeFile,
+        {
+          path: '/tmp/recording.json',
+          content: '{}',
         },
       ],
       [IPC_CHANNELS.getPlaygroundBootstrap],
@@ -104,6 +202,91 @@ describe('preload bridge', () => {
           apiKey: 'sk-test',
           baseUrl: 'https://api.example.com/v1',
           model: 'gpt-4o',
+        },
+      ],
+      [
+        IPC_CHANNELS.generateRecorderYaml,
+        {
+          input: {
+            target: {
+              platformId: 'web',
+              label: 'Web',
+              values: { url: 'https://example.com' },
+            },
+            events: [
+              {
+                type: 'navigation',
+                pageInfo: { width: 1280, height: 720 },
+                timestamp: 1,
+                hashId: 'event-1',
+                url: 'https://example.com',
+              },
+            ],
+            testName: 'recording',
+          },
+          modelConfig: {
+            modelName: 'gpt-4o',
+            modelDescription: '',
+            intent: 'default',
+            slot: 'default',
+          },
+        },
+      ],
+      [
+        IPC_CHANNELS.generateRecorderCode,
+        {
+          type: 'playwright',
+          input: {
+            target: {
+              platformId: 'web',
+              label: 'Web',
+              values: { url: 'https://example.com' },
+            },
+            events: [
+              {
+                type: 'navigation',
+                pageInfo: { width: 1280, height: 720 },
+                timestamp: 1,
+                hashId: 'event-1',
+                url: 'https://example.com',
+              },
+            ],
+            testName: 'recording',
+          },
+          modelConfig: {
+            modelName: 'gpt-4o',
+            modelDescription: '',
+            intent: 'default',
+            slot: 'default',
+          },
+        },
+      ],
+      [
+        IPC_CHANNELS.generateRecorderMetadata,
+        {
+          input: {
+            target: {
+              platformId: 'web',
+              label: 'Web',
+              values: { url: 'https://example.com' },
+            },
+            events: [
+              {
+                type: 'navigation',
+                pageInfo: { width: 1280, height: 720 },
+                timestamp: 1,
+                hashId: 'event-1',
+                url: 'https://example.com',
+              },
+            ],
+            fallbackName: 'recording',
+          },
+          modelConfig: {
+            modelName: 'gpt-4o',
+            modelDescription: '',
+            intent: 'default',
+            slot: 'default',
+          },
         },
       ],
       [IPC_CHANNELS.updaterCheck],

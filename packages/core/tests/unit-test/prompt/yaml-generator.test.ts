@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { callAI, callAIWithStringResponse } from '../../../src/ai-model';
 import {
   type ChromeRecordedEvent,
+  generateRecorderYamlTest,
+  generateRecorderYamlTestStream,
   generateYamlTest,
   generateYamlTestStream,
 } from '../../../src/ai-model/prompt/yaml-generator';
@@ -21,11 +23,15 @@ const mockEvents: ChromeRecordedEvent[] = [
     timestamp: 1000,
     url: 'https://example.com',
     title: 'Example Page',
+    pageInfo: { width: 1280, height: 720 },
+    hashId: 'nav-1',
   },
   {
     type: 'click',
     timestamp: 2000,
     elementDescription: 'Login button',
+    pageInfo: { width: 1280, height: 720 },
+    hashId: 'click-1',
   },
 ];
 
@@ -83,6 +89,87 @@ describe('yaml-generator', () => {
     const prompt = mockCallAI.mock.calls[0]?.[0];
     expect(prompt?.[1]?.content).toContain(
       'Write all human-readable YAML content in English.',
+    );
+  });
+
+  it('preserves non-web recorder targets when generating YAML', async () => {
+    mockCallAIWithStringResponse.mockResolvedValue({
+      content: 'computer:\n  displayId: "2"\n',
+      usage: undefined,
+    });
+
+    await generateRecorderYamlTest(
+      {
+        target: {
+          platformId: 'computer',
+          label: 'DELL U2720Q',
+          values: { displayId: '2' },
+        },
+        events: [
+          {
+            type: 'click',
+            source: 'computer-native',
+            actionType: 'Click',
+            elementRect: { x: 73, y: 1071 },
+            pageInfo: { width: 1080, height: 1920 },
+            timestamp: 1000,
+            hashId: 'computer-click',
+          },
+        ],
+        testName: 'Computer recording',
+        language: 'Chinese',
+      },
+      mockedModelConfig,
+    );
+
+    const prompt = mockCallAIWithStringResponse.mock.calls[0]?.[0];
+    expect(prompt?.[1]?.content).toContain(
+      'Preserve this exact top-level target platform: computer',
+    );
+    expect(prompt?.[1]?.content).toContain('computer:\n  displayId: "2"');
+    expect(prompt?.[1]?.content).toContain('Click (73, 1071)');
+  });
+
+  it('preserves platform-aware prompt for streaming recorder YAML generation', async () => {
+    const onChunk = vi.fn();
+    mockCallAI.mockResolvedValue({
+      content: 'android:\n  deviceId: "emulator-5554"\n',
+      usage: undefined,
+      isStreamed: true,
+    });
+
+    await generateRecorderYamlTestStream(
+      {
+        target: {
+          platformId: 'android',
+          label: 'emulator-5554',
+          values: { deviceId: 'emulator-5554' },
+        },
+        events: [
+          {
+            type: 'scroll',
+            source: 'studio-preview',
+            actionType: 'Scroll',
+            value: '0,-285',
+            pageInfo: { width: 390, height: 844 },
+            timestamp: 1000,
+            hashId: 'android-scroll',
+          },
+        ],
+      },
+      {
+        stream: true,
+        onChunk,
+      },
+      mockedModelConfig,
+    );
+
+    const prompt = mockCallAI.mock.calls[0]?.[0];
+    expect(prompt?.[1]?.content).toContain(
+      'Preserve this exact top-level target platform: android',
+    );
+    expect(prompt?.[1]?.content).toContain(
+      'android:\n  deviceId: "emulator-5554"',
     );
   });
 });

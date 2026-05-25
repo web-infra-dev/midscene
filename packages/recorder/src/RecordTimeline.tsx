@@ -33,7 +33,6 @@ export const RecordTimeline = ({
   onEventClick,
 }: RecordTimelineProps) => {
   const [expandedEvents, setExpandedEvents] = useState<Set<number>>(new Set());
-  console.log('events', events);
   useEffect(() => {
     // use className and querySelector to get internal div
     if (events.length > 0) {
@@ -92,6 +91,8 @@ export const RecordTimeline = ({
     switch (type) {
       case 'click':
         return <AimOutlined style={{ color: '#1890ff' }} />;
+      case 'drag':
+        return <AimOutlined style={{ color: '#13c2c2' }} />;
       case 'input':
         return <EditOutlined style={{ color: '#52c41a' }} />;
       case 'scroll':
@@ -111,6 +112,8 @@ export const RecordTimeline = ({
     switch (type) {
       case 'click':
         return '#1890ff';
+      case 'drag':
+        return '#13c2c2';
       case 'input':
         return '#52c41a';
       case 'scroll':
@@ -145,6 +148,8 @@ export const RecordTimeline = ({
           return `Click Element "${event.value}"`;
         }
         return 'Click';
+      case 'drag':
+        return 'Drag';
       case 'input':
         return 'Input';
       case 'scroll':
@@ -165,6 +170,7 @@ export const RecordTimeline = ({
 
     switch (event.type) {
       case 'click':
+      case 'drag':
         if (
           event.descriptionLoading === true &&
           event.elementRect?.x !== undefined &&

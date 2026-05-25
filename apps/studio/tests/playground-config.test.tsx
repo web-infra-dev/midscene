@@ -3,6 +3,9 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('@midscene/playground-app', () => ({
   PlaygroundConversationPanel: () => null,
 }));
+vi.mock('../src/renderer/components/Recorder/StudioRecorderPanel', () => ({
+  StudioRecorderPanel: () => null,
+}));
 
 const { createStudioPlaygroundConfig } = await import(
   '../src/renderer/components/Playground'

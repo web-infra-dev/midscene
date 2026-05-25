@@ -1,7 +1,10 @@
 import { isNotContainerElement } from '@midscene/shared/extractor';
 import { getElementXpath } from '@midscene/shared/extractor';
+import type { MidsceneRecorderEvent } from '@midscene/shared/recorder';
 
-const DEBUG = localStorage.getItem('DEBUG') === 'true'; // Based on process.env.NODE_ENV
+const DEBUG =
+  typeof localStorage !== 'undefined' &&
+  localStorage.getItem('DEBUG') === 'true'; // Based on process.env.NODE_ENV
 // localStorage.setItem('DEBUG', 'true');
 
 function debugLog(...args: any[]) {
@@ -31,33 +34,7 @@ function generateHashId(
   return Math.abs(hash).toString(36);
 }
 
-export interface ChromeRecordedEvent {
-  type: 'click' | 'scroll' | 'input' | 'navigation' | 'setViewport' | 'keydown';
-  url?: string;
-  title?: string;
-  value?: string;
-  elementRect?: {
-    left?: number;
-    top?: number;
-    width?: number;
-    height?: number;
-    x?: number;
-    y?: number;
-  };
-  pageInfo: {
-    width: number;
-    height: number;
-  };
-  screenshotBefore?: string;
-  screenshotAfter?: string;
-  elementDescription?: string;
-  // Loading state for AI description generation
-  descriptionLoading?: boolean;
-  // Boxed screenshot with element highlighted
-  screenshotWithBox?: string;
-  timestamp: number;
-  hashId: string;
-}
+export type ChromeRecordedEvent = MidsceneRecorderEvent;
 
 // Event type definition
 export interface RecordedEvent extends ChromeRecordedEvent {

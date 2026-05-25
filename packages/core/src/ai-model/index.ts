@@ -16,10 +16,15 @@ export {
   generatePlaywrightTestStream,
 } from './prompt/playwright-generator';
 export {
+  generateRecorderYamlTest,
+  generateRecorderYamlTestStream,
   generateYamlTest,
   generateYamlTestStream,
 } from './prompt/yaml-generator';
-export type { YamlGenerationOptions } from './prompt/yaml-generator';
+export type {
+  RecorderYamlGenerationInput,
+  YamlGenerationOptions,
+} from './prompt/yaml-generator';
 
 export type { ChatCompletionMessageParam } from 'openai/resources/index';
 

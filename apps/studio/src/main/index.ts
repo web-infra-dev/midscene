@@ -1,9 +1,11 @@
 import { existsSync } from 'node:fs';
-import { writeFile } from 'node:fs/promises';
+import { writeFile as writeFileToDisk } from 'node:fs/promises';
 import path from 'node:path';
 import {
+  type ChooseFileSavePathRequest,
   type DiscoverDevicesRequest,
   IPC_CHANNELS,
+  type WriteFileRequest,
   type WriteReportFileRequest,
 } from '@shared/electron-contract';
 import type { NativeThemeMode } from '@shared/electron-contract';
@@ -125,6 +127,7 @@ const getTitleBarOverlay = (): TitleBarOverlay => ({
 });
 
 const DEFAULT_REPORT_FILE_NAME = 'midscene_report.html';
+const DEFAULT_EXPORT_FILE_NAME = 'midscene_export.json';
 
 const ensureHtmlFileName = (value: string) =>
   value.toLowerCase().endsWith('.html') ? value : `${value}.html`;
@@ -134,6 +137,31 @@ const resolveDefaultReportSavePath = (defaultFileName?: string) => {
     ensureHtmlFileName(defaultFileName?.trim() || DEFAULT_REPORT_FILE_NAME),
   );
   return path.join(app.getPath('downloads'), safeFileName);
+};
+
+const resolveDefaultFileSavePath = (defaultFileName?: string) => {
+  const safeFileName = path.basename(
+    defaultFileName?.trim() || DEFAULT_EXPORT_FILE_NAME,
+  );
+  return path.join(app.getPath('downloads'), safeFileName);
+};
+
+const ensureFileExtensionFromFilters = (
+  filePath: string,
+  filters?: ChooseFileSavePathRequest['filters'],
+) => {
+  if (path.extname(filePath)) {
+    return filePath;
+  }
+  const firstExtension = filters?.find((filter) => filter.extensions.length)
+    ?.extensions[0];
+  if (!firstExtension) {
+    return filePath;
+  }
+  if (firstExtension === '*') {
+    return filePath;
+  }
+  return `${filePath}.${firstExtension.replace(/^\./, '')}`;
 };
 
 const getPlaygroundRuntime = async (): Promise<PlaygroundRuntimeService> => {
@@ -316,6 +344,29 @@ const registerIpcHandlers = () => {
       return ensureHtmlFileName(result.filePath);
     },
   );
+  ipcMain.handle(
+    IPC_CHANNELS.chooseFileSavePath,
+    async (_event, request?: ChooseFileSavePathRequest) => {
+      const filters =
+        request?.filters && request.filters.length > 0
+          ? request.filters
+          : [{ name: 'All Files', extensions: ['*'] }];
+      const dialogOptions = {
+        title: request?.title || 'Save Midscene Export',
+        defaultPath: resolveDefaultFileSavePath(request?.defaultFileName),
+        filters,
+      };
+      const result = mainWindow
+        ? await dialog.showSaveDialog(mainWindow, dialogOptions)
+        : await dialog.showSaveDialog(dialogOptions);
+
+      if (result.canceled || !result.filePath) {
+        return null;
+      }
+
+      return ensureFileExtensionFromFilters(result.filePath, filters);
+    },
+  );
   ipcMain.handle(IPC_CHANNELS.toggleMaximizeWindow, () => {
     if (!mainWindow) return;
     if (mainWindow.isMaximized()) {
@@ -368,7 +419,34 @@ const registerIpcHandlers = () => {
         throw new Error('writeReportFile: content must be a string');
       }
 
-      await writeFile(ensureHtmlFileName(targetPath), request.content, 'utf-8');
+      await writeFileToDisk(
+        ensureHtmlFileName(targetPath),
+        request.content,
+        'utf-8',
+      );
+    },
+  );
+  ipcMain.handle(
+    IPC_CHANNELS.writeFile,
+    async (_event, request: WriteFileRequest) => {
+      const targetPath = request?.path?.trim();
+      if (!targetPath) {
+        throw new Error('writeFile: path is required');
+      }
+      if (typeof request.content !== 'string') {
+        throw new Error('writeFile: content must be a string');
+      }
+      if (request.encoding === 'base64') {
+        await writeFileToDisk(
+          targetPath,
+          Buffer.from(request.content, 'base64'),
+        );
+        return;
+      }
+      if (request.encoding && request.encoding !== 'utf-8') {
+        throw new Error(`writeFile: unsupported encoding ${request.encoding}`);
+      }
+      await writeFileToDisk(targetPath, request.content, 'utf-8');
     },
   );
   // Multi-platform playground — a single server for Android, iOS,
@@ -406,6 +484,23 @@ const registerIpcHandlers = () => {
     );
     return runConnectivityTest(request);
   });
+  ipcMain.handle(IPC_CHANNELS.generateRecorderYaml, async (_event, request) => {
+    const { generateRecorderYamlInMain } = await import('./recorder/codegen');
+    return generateRecorderYamlInMain(request);
+  });
+  ipcMain.handle(IPC_CHANNELS.generateRecorderCode, async (_event, request) => {
+    const { generateRecorderCodeInMain } = await import('./recorder/codegen');
+    return generateRecorderCodeInMain(request);
+  });
+  ipcMain.handle(
+    IPC_CHANNELS.generateRecorderMetadata,
+    async (_event, request) => {
+      const { generateRecorderMetadataInMain } = await import(
+        './recorder/codegen'
+      );
+      return generateRecorderMetadataInMain(request);
+    },
+  );
 };
 
 app.whenReady().then(() => {

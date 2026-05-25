@@ -1,4 +1,9 @@
 import type { Agent } from '@midscene/core/agent';
+import type {
+  MidsceneRecorderEvent,
+  MidsceneRecorderEventType,
+  MidsceneRecorderSourceKind,
+} from '@midscene/shared/recorder';
 import type { LaunchPlaygroundOptions } from './launcher';
 import type { AgentFactory } from './types';
 
@@ -93,6 +98,50 @@ export interface PlaygroundSidecar {
   stop?(): void | Promise<void>;
 }
 
+export type PlaygroundRecorderSourceKind = MidsceneRecorderSourceKind;
+
+export type PlaygroundRecorderEventType = MidsceneRecorderEventType;
+
+export type PlaygroundRecorderEvent = MidsceneRecorderEvent;
+
+export interface PlaygroundRecorderCapabilitiesResult {
+  supported: boolean;
+  source: PlaygroundRecorderSourceKind;
+  platformId?: string;
+  error?: string;
+}
+
+export interface PlaygroundRecorderStartResult {
+  ok: boolean;
+  supported?: boolean;
+  source?: PlaygroundRecorderSourceKind;
+  platformId?: string;
+  error?: string;
+}
+
+export interface PlaygroundRecorderEventsResult {
+  events: PlaygroundRecorderEvent[];
+  nextIndex: number;
+}
+
+export interface PlaygroundRecorderPreviewInteract {
+  sessionId: string;
+  payload: Record<string, unknown>;
+  event: PlaygroundRecorderEvent;
+}
+
+export interface PlaygroundRecorderSource {
+  getCapabilities():
+    | PlaygroundRecorderCapabilitiesResult
+    | Promise<PlaygroundRecorderCapabilitiesResult>;
+  start(sessionId: string): Promise<PlaygroundRecorderStartResult>;
+  stop(): Promise<void>;
+  getEvents(since?: number): Promise<PlaygroundRecorderEventsResult>;
+  onPreviewInteract?(
+    input: PlaygroundRecorderPreviewInteract,
+  ): void | Promise<void>;
+}
+
 export interface PlaygroundSessionState {
   connected: boolean;
   displayName?: string;
@@ -112,6 +161,7 @@ export interface PlaygroundCreatedSession {
   platformDescription?: string;
   executionHooks?: PlaygroundExecutionHooks;
   sidecars?: PlaygroundSidecar[];
+  recorderSource?: PlaygroundRecorderSource;
 }
 
 export interface PlaygroundSessionManager {

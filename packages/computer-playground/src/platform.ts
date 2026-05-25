@@ -1,5 +1,6 @@
 import path from 'node:path';
 import {
+  ComputerNativeEventRecorder,
   agentFromComputer,
   checkAccessibilityPermission,
   checkScreenRecordingPermission,
@@ -127,6 +128,11 @@ export const computerPlaygroundPlatform = definePlaygroundPlatform<
           displays.find((display) => display.id === displayId) ||
           displays.find((display) => display.primary) ||
           displays[0];
+        const recorder = new ComputerNativeEventRecorder({
+          displayId: selectedDisplay?.id,
+          displayName: selectedDisplay?.name,
+          screenshot: () => agent.interface.screenshotBase64(),
+        });
 
         return {
           agent,
@@ -141,6 +147,29 @@ export const computerPlaygroundPlatform = definePlaygroundPlatform<
           metadata: {
             displayId: selectedDisplay?.id,
             executionUx: 'countdown-before-run',
+          },
+          recorderSource: {
+            async getCapabilities() {
+              const result = recorder.getCapabilities();
+              return {
+                supported: result.supported,
+                source: result.source,
+                platformId: result.platformId,
+                error: result.error,
+              };
+            },
+            async start(_sessionId: string) {
+              return recorder.start();
+            },
+            async stop() {
+              await recorder.stop();
+            },
+            async getEvents(since) {
+              return recorder.getEvents(since);
+            },
+            onPreviewInteract({ payload }) {
+              recorder.suppressPreviewInteract(payload);
+            },
           },
         };
       },

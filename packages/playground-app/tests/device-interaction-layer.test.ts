@@ -415,6 +415,7 @@ describe('DeviceInteractionLayer contentRef projection', () => {
   async function renderWithContentRef(options: {
     onTap: ReturnType<typeof vi.fn>;
     withContentRef: boolean;
+    onWheelScroll?: ReturnType<typeof vi.fn>;
   }) {
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -434,6 +435,8 @@ describe('DeviceInteractionLayer contentRef projection', () => {
           enabled: true,
           deviceSize: { width: 1000, height: 1800 },
           onTap: options.onTap,
+          scrollEnabled: Boolean(options.onWheelScroll),
+          onWheelScroll: options.onWheelScroll,
           contentRef: options.withContentRef ? ref : undefined,
         }),
       );
@@ -534,5 +537,40 @@ describe('DeviceInteractionLayer contentRef projection', () => {
     await act(async () => {
       root.unmount();
     });
+  });
+
+  it('projects wheel scroll against the screen-mirror box', async () => {
+    vi.useFakeTimers();
+    const onTap = vi.fn();
+    const onWheelScroll = vi.fn();
+    const { overlay, root } = await renderWithContentRef({
+      onTap,
+      onWheelScroll,
+      withContentRef: true,
+    });
+
+    await act(async () => {
+      overlay.dispatchEvent(
+        new WheelEvent('wheel', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 200,
+          clientY: 152,
+          deltaX: 0,
+          deltaY: 120,
+        }),
+      );
+      vi.advanceTimersByTime(90);
+    });
+
+    expect(onWheelScroll).toHaveBeenCalledWith(
+      { x: 500, y: 180 },
+      { deltaX: 0, deltaY: 120 },
+    );
+
+    await act(async () => {
+      root.unmount();
+    });
+    vi.useRealTimers();
   });
 });
