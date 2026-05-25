@@ -322,10 +322,11 @@ describe('composeUserPrompt', () => {
     expect(composeUserPrompt({ prompt: 'just text' })).toBe('just text');
   });
 
-  it('accepts an images JSON array string', () => {
+  it('accepts paired image and imageName values', () => {
     const result = composeUserPrompt({
       prompt: 'compare to the logo',
-      images: '[{"name":"logo","url":"https://x/y.png"}]',
+      image: 'https://x/y.png',
+      imageName: 'logo',
     });
     expect(result).toEqual({
       prompt: 'compare to the logo',
@@ -333,10 +334,11 @@ describe('composeUserPrompt', () => {
     });
   });
 
-  it('accepts a native images array with convertHttpImage2Base64', () => {
+  it('accepts paired image arguments with convertHttpImage2Base64', () => {
     const result = composeUserPrompt({
       prompt: 'p',
-      images: [{ name: 'a', url: 'https://x/a.png' }],
+      image: 'https://x/a.png',
+      imageName: 'a',
       convertHttpImage2Base64: true,
     });
     expect(result).toEqual({
@@ -352,7 +354,8 @@ describe('composeUserPrompt', () => {
     // preProcessImageUrl during the actual model call.
     const result = composeUserPrompt({
       prompt: 'find the red marker',
-      images: '[{"name":"marker","url":"./fixtures/red.png"}]',
+      image: './fixtures/red.png',
+      imageName: 'marker',
     });
 
     expect(result).toEqual({
@@ -364,7 +367,8 @@ describe('composeUserPrompt', () => {
   it('coerces stringified booleans for convertHttpImage2Base64', () => {
     const result = composeUserPrompt({
       prompt: 'p',
-      images: [{ name: 'a', url: 'https://x/a.png' }],
+      image: 'https://x/a.png',
+      imageName: 'a',
       convertHttpImage2Base64: 'true',
     });
     expect(result).toMatchObject({ convertHttpImage2Base64: true });
@@ -374,46 +378,43 @@ describe('composeUserPrompt', () => {
     expect(() =>
       composeUserPrompt({
         prompt: 'p',
-        images: [{ name: 'a', url: 'https://x/a.png' }],
+        image: 'https://x/a.png',
+        imageName: 'a',
         convertHttpImage2Base64: 'maybe',
       }),
     ).toThrow(/convertHttpImage2Base64/);
   });
 
-  it('throws when images is a non-JSON string', () => {
+  it('throws when image is not a string or string array', () => {
     expect(() =>
-      composeUserPrompt({ prompt: 'p', images: 'not-json' }),
-    ).toThrow(/images:/);
+      composeUserPrompt({ prompt: 'p', image: 42 as unknown as string }),
+    ).toThrow(/image:/);
   });
 
-  it('throws when an images array entry is missing name or url', () => {
-    expect(() =>
-      composeUserPrompt({
-        prompt: 'p',
-        images: '[{"name":"x"}]',
-      }),
-    ).toThrow(/images\[0\]/);
-  });
-
-  it('throws when an images array entry contains a non-reference item', () => {
+  it('throws when image/imageName counts do not match', () => {
     expect(() =>
       composeUserPrompt({
         prompt: 'p',
-        images: [{ name: 'a', url: 'https://x/a.png' }, 'junk'],
+        image: 'https://x/a.png',
       }),
-    ).toThrow(/images\[1\]/);
+    ).toThrow(/same number/);
   });
 
-  it('strips unknown fields from image entries before forwarding', () => {
+  it('throws when imageName array contains non-string items', () => {
+    expect(() =>
+      composeUserPrompt({
+        prompt: 'p',
+        image: ['https://x/a.png'],
+        imageName: [123 as unknown as string],
+      }),
+    ).toThrow(/imageName\[0\]/);
+  });
+
+  it('builds images array from image/imageName pairs', () => {
     const result = composeUserPrompt({
       prompt: 'p',
-      images: [
-        {
-          name: 'a',
-          url: 'https://x/a.png',
-          secret: 'should-not-propagate',
-        } as unknown as { name: string; url: string },
-      ],
+      image: 'https://x/a.png',
+      imageName: 'a',
     });
     expect(result).toEqual({
       prompt: 'p',
@@ -421,15 +422,19 @@ describe('composeUserPrompt', () => {
     });
   });
 
-  it('throws when images JSON is not an array', () => {
+  it('throws when repeated image/imageName values are unbalanced', () => {
     expect(() =>
-      composeUserPrompt({ prompt: 'p', images: '{"name":"x","url":"y"}' }),
-    ).toThrow(/non-array JSON/);
+      composeUserPrompt({
+        prompt: 'p',
+        image: ['https://x/a.png'],
+        imageName: [],
+      }),
+    ).toThrow(/same number/);
   });
 
-  it('throws when images is neither a string nor an array', () => {
+  it('throws when imageName is neither a string nor a string array', () => {
     expect(() =>
-      composeUserPrompt({ prompt: 'p', images: 42 as unknown as string }),
+      composeUserPrompt({ prompt: 'p', imageName: 42 as unknown as string }),
     ).toThrow(/got number/);
   });
 });
@@ -462,7 +467,8 @@ describe('generateCommonTools — assert image prompts', () => {
     const assert = tools.find((t) => t.name === 'assert')!;
     await assert.handler({
       prompt: 'the visible badge matches the reference image',
-      images: '[{"name":"target","url":"https://example.com/btn.png"}]',
+      image: 'https://example.com/btn.png',
+      imageName: 'target',
     });
 
     expect(aiAssert).toHaveBeenCalledWith({
@@ -482,7 +488,8 @@ describe('generateCommonTools — assert image prompts', () => {
     const assert = tools.find((t) => t.name === 'assert')!;
     await assert.handler({
       prompt: 'the visible badge matches the supplied image',
-      images: '[{"name":"badge","url":"./fixtures/badge.png"}]',
+      image: './fixtures/badge.png',
+      imageName: 'badge',
     });
 
     expect(aiAssert).toHaveBeenCalledWith({
@@ -499,8 +506,10 @@ describe('generateCommonTools — assert image prompts', () => {
 
     const assertSchema = tools.find((t) => t.name === 'assert')!.schema;
     expect(assertSchema).toHaveProperty('prompt');
-    expect(assertSchema).toHaveProperty('images');
+    expect(assertSchema).toHaveProperty('image');
+    expect(assertSchema).toHaveProperty('imageName');
     expect(assertSchema).toHaveProperty('convertHttpImage2Base64');
+    expect(assertSchema).not.toHaveProperty('images');
     expect(assertSchema).not.toHaveProperty('imageFiles');
 
     // act schema stays string-only because the underlying core aiAct

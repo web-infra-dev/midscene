@@ -649,7 +649,8 @@ export function generateCommonTools(
           }
           const userPrompt = composeUserPrompt({
             prompt,
-            images: args.images,
+            image: args.image,
+            imageName: args.imageName,
             convertHttpImage2Base64: args.convertHttpImage2Base64,
           });
           await agent.aiAssert(userPrompt);

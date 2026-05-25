@@ -13,8 +13,8 @@ const GITHUB_LOGO_FIXTURE = path.resolve(
 
 /**
  * Exercise the CLI / MCP `assert` tool exposed by `generateCommonTools`
- * with the multimodal `images` payload. This proves the CLI handler path
- * (`npx @midscene/* assert --prompt … --images …`) forwards the image
+ * with multimodal image params. This proves the CLI handler path
+ * (`npx @midscene/* assert --prompt … --image … --image-name …`) forwards the image
  * reference all the way to `agent.aiAssert` and the real model call
  * succeeds, mirroring the SDK-level test in `playwright/image-prompt.spec.ts`.
  */
@@ -44,12 +44,8 @@ describe(
       // NO logo should pass even though we attach a reference image.
       const result = await assertTool.handler({
         prompt: 'There is no github logo on the current screen.',
-        images: [
-          {
-            name: 'github-logo',
-            url: GITHUB_LOGO_FIXTURE,
-          },
-        ],
+        image: GITHUB_LOGO_FIXTURE,
+        imageName: 'github-logo',
       });
 
       expect(result.isError).toBeFalsy();
@@ -59,21 +55,19 @@ describe(
       });
     });
 
-    it('accepts a JSON-string images payload (matches CLI argv parsing)', async () => {
+    it('accepts repeated image/image-name args (matches CLI argv parsing)', async () => {
       const { originPage, reset } = await launchPage('about:blank');
       ctx.resetFn = reset;
       ctx.agent = new PuppeteerAgent(originPage);
 
       const assertTool = buildAssertTool(ctx.agent);
 
-      // `cli-args.parseValue` JSON.parses argv beginning with `[`, so the
-      // handler receives an already-parsed array. Simulating the pre-parsed
-      // string form here guards both code paths.
+      // Repeated CLI flags are accumulated as arrays by parseCliArgs. Simulate
+      // that parsed argv shape here to match the actual command path.
       const result = await assertTool.handler({
         prompt: 'There is no github logo on the current screen.',
-        images: JSON.stringify([
-          { name: 'github-logo', url: GITHUB_LOGO_FIXTURE },
-        ]),
+        image: [GITHUB_LOGO_FIXTURE],
+        imageName: ['github-logo'],
       });
 
       expect(result.isError).toBeFalsy();
@@ -95,12 +89,8 @@ describe(
       // `isError: true` rather than throwing, matching the CLI contract.
       const result = await assertTool.handler({
         prompt: 'There is a github logo on the current screen.',
-        images: [
-          {
-            name: 'github-logo',
-            url: GITHUB_LOGO_FIXTURE,
-          },
-        ],
+        image: GITHUB_LOGO_FIXTURE,
+        imageName: 'github-logo',
       });
 
       expect(result.isError).toBe(true);
