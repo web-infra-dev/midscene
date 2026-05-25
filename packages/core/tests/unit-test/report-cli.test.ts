@@ -316,7 +316,7 @@ describe('createReportCliCommands', () => {
         outputDir: join(tmpDir, 'unused-output'),
       }),
     ).rejects.toThrow(
-      'report-tool: unsupported --action value "invalid-action". Currently supported: split, to-markdown',
+      'report-tool: unsupported --action value "invalid-action". Currently supported: split, to-markdown, merge-html',
     );
   });
 
@@ -521,7 +521,7 @@ describe('createReportCliCommands', () => {
     const outputDir = join(tmpDir, 'merge-output-cli');
     const [command] = createReportCliCommands();
     const result = await command.def.handler({
-      action: 'merge',
+      action: 'merge-html',
       htmlReport: [reportA, reportB],
       outputDir,
       outputName: 'merged-cli',
@@ -544,7 +544,7 @@ describe('createReportCliCommands', () => {
     const outputDir = join(tmpDir, 'merge-output-single');
     const [command] = createReportCliCommands();
     const result = await command.def.handler({
-      action: 'merge',
+      action: 'merge-html',
       htmlReport: reportA,
       outputDir,
       outputName: 'merged-single',
@@ -560,7 +560,7 @@ describe('createReportCliCommands', () => {
 
     await expect(
       command.def.handler({
-        action: 'merge',
+        action: 'merge-html',
         outputDir: join(tmpDir, 'merge-missing'),
       }),
     ).rejects.toThrow('report-tool: --htmlReport is required');
@@ -575,7 +575,7 @@ describe('createReportCliCommands', () => {
 
     const restArgs = [
       '--action',
-      'merge',
+      'merge-html',
       '--htmlReport',
       reportA,
       '--htmlReport',
@@ -586,7 +586,7 @@ describe('createReportCliCommands', () => {
       'merged-e2e',
     ];
     expect(parseCliArgs(restArgs)).toEqual({
-      action: 'merge',
+      action: 'merge-html',
       htmlReport: [reportA, reportB],
       outputDir,
       outputName: 'merged-e2e',

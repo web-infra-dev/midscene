@@ -40,7 +40,7 @@ export interface ReportCliCommandEntry {
   def: ReportCliCommandDefinition;
 }
 
-export type ConsumeReportFileAction = 'split' | 'to-markdown' | 'merge';
+export type ConsumeReportFileAction = 'split' | 'to-markdown' | 'merge-html';
 
 export interface ConsumeReportFileOptions {
   htmlPath: string;
@@ -291,10 +291,10 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
     'Transform Midscene report artifacts, including splitting executions, converting to markdown, and merging multiple reports.',
   schema: {
     action: z
-      .enum(['split', 'to-markdown', 'merge'])
+      .enum(['split', 'to-markdown', 'merge-html'])
       .optional()
       .describe(
-        'Report action to run. Supports: split, to-markdown, merge. Defaults to split.',
+        'Report action to run. Supports: split, to-markdown, merge-html. Defaults to split.',
       ),
     htmlPath: z
       .string()
@@ -343,17 +343,21 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
       outputName?: string;
       overwrite?: unknown;
     };
-    if (action !== 'split' && action !== 'to-markdown' && action !== 'merge') {
+    if (
+      action !== 'split' &&
+      action !== 'to-markdown' &&
+      action !== 'merge-html'
+    ) {
       throw new Error(
-        `report-tool: unsupported --action value "${action}". Currently supported: split, to-markdown, merge`,
+        `report-tool: unsupported --action value "${action}". Currently supported: split, to-markdown, merge-html`,
       );
     }
 
-    if (action === 'merge') {
+    if (action === 'merge-html') {
       const paths = normalizeHtmlReportArg(htmlReport);
       if (!paths || paths.length === 0) {
         throw new Error(
-          'report-tool: --htmlReport is required for action "merge". Repeat --htmlReport for each report (e.g. --htmlReport ./a/index.html --htmlReport ./b.html).',
+          'report-tool: --htmlReport is required for action "merge-html". Repeat --htmlReport for each report (e.g. --htmlReport ./a/index.html --htmlReport ./b.html).',
         );
       }
 

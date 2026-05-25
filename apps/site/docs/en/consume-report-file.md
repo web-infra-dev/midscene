@@ -64,7 +64,7 @@ npx @midscene/web report-tool --action to-markdown --htmlPath ./midscene_run/rep
 Merge multiple report files into a single combined report:
 
 ```shell
-npx @midscene/web report-tool --action merge \
+npx @midscene/web report-tool --action merge-html \
   --htmlReport ./midscene_run/report/case-a/index.html \
   --htmlReport ./midscene_run/report/case-b.html \
   --outputDir ./merged --outputName all-cases
@@ -112,7 +112,6 @@ console.log(mergedResult.mergedReportPath);
 - `reportFileToMarkdown` converts the same report into human-readable Markdown and exports the screenshots referenced by that Markdown. The returned `markdownFiles` contains the generated Markdown file paths.
 - `mergeReportFiles` combines several report files into one merged HTML report. It is a thin wrapper over [`ReportMergingTool`](./api#new-reportmergingtool) that derives `testTitle`/`testDescription` from each source report's `groupName` automatically. Use it when you run multiple CLI actions or tests and want to consolidate their reports.
 
-Use `splitReportFile` when you want the most complete, programmatic raw data. Use `reportFileToMarkdown` when you want readable content for summarization or downstream content generation. Use `mergeReportFiles` (or `--action merge` on the CLI) when you have several report HTML files to combine.
 
 ## About Fields In JSON And Markdown
 
