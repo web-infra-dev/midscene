@@ -270,6 +270,36 @@ describe('generateToolsFromActionSpace', () => {
     );
   });
 
+  it('includes aiAction return values in the common act tool result', async () => {
+    const aiAction = vi.fn().mockResolvedValue('Midscene');
+    const commonTools = generateCommonTools(async () => ({
+      aiAction,
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: {
+        screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+      },
+    }));
+    const actTool = commonTools.find((tool) => tool.name === 'act');
+
+    const result = await actTool?.handler({
+      prompt: 'return the first Google result heading for Midscene',
+    });
+
+    expect(aiAction).toHaveBeenCalledWith(
+      'return the first Google result heading for Midscene',
+      {
+        deepThink: false,
+      },
+    );
+    expect(result).toEqual({
+      content: [
+        { type: 'text', text: 'Action "act" completed.' },
+        { type: 'text', text: 'Result: Midscene' },
+        { type: 'image', data: 'Zm9v', mimeType: 'image/png' },
+      ],
+    });
+  });
+
   // Guardrail for https://github.com/web-infra-dev/midscene/issues/2313:
   // A primitive Zod paramSchema (e.g. z.string()) used to silently fall
   // through extractActionSchema and leak the Zod instance's prototype
