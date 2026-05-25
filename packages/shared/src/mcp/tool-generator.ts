@@ -15,6 +15,9 @@ import type {
   ToolResult,
   ToolSchema,
 } from './types';
+import { composeUserPrompt, promptInputExtraSchema } from './user-prompt';
+
+export { composeUserPrompt };
 
 /**
  * Generate MCP tool description from ActionSpaceItem
@@ -622,6 +625,7 @@ export function generateCommonTools(
           .describe(
             'Natural language assertion to verify, e.g. "there is a login button visible"',
           ),
+        ...promptInputExtraSchema,
         ...initArgSchema,
       },
       cli: mergeToolCliMetadata(undefined, initArgCliMetadata),
@@ -634,7 +638,13 @@ export function generateCommonTools(
           if (!agent.aiAssert) {
             return createErrorResult('assert is not supported by this agent');
           }
-          await agent.aiAssert(prompt);
+          const userPrompt = composeUserPrompt({
+            prompt,
+            image: args.image,
+            imageName: args.imageName,
+            convertHttpImage2Base64: args.convertHttpImage2Base64,
+          });
+          await agent.aiAssert(userPrompt);
           return {
             content: [{ type: 'text', text: 'Assertion passed.' }],
           };

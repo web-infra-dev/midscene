@@ -7,6 +7,7 @@ import {
   runToolsCLI,
 } from '@/cli';
 import { describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 
 describe('parseValue', () => {
   it('parses JSON objects', () => {
@@ -182,6 +183,24 @@ describe('parseCliArgs', () => {
     ).toEqual({
       android: 'foo',
       'android.deviceId': 'bar',
+    });
+  });
+
+  it('accumulates repeated flags into arrays', () => {
+    expect(
+      parseCliArgs([
+        '--image',
+        './a.png',
+        '--image',
+        './b.png',
+        '--image-name',
+        'a',
+        '--image-name',
+        'b',
+      ]),
+    ).toEqual({
+      image: ['./a.png', './b.png'],
+      'image-name': ['a', 'b'],
     });
   });
 
@@ -660,5 +679,120 @@ describe('runToolsCLI', () => {
     });
     expect(consoleSpy).toHaveBeenCalledWith('split done');
     consoleSpy.mockRestore();
+  });
+
+  it('canonicalizes kebab-case spellings to schema keys before dispatch', async () => {
+    const handler = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'ok' }],
+      isError: false,
+    });
+    const tools = {
+      initTools: vi.fn().mockResolvedValue(undefined),
+      destroy: vi.fn().mockResolvedValue(undefined),
+      getToolDefinitions: vi.fn().mockReturnValue([
+        {
+          name: 'assert',
+          description: 'assert',
+          schema: {
+            prompt: z.string(),
+            imageName: z.union([z.string(), z.array(z.string())]).optional(),
+          },
+          handler,
+        },
+      ]),
+    } as any;
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: [
+        'assert',
+        '--prompt',
+        'p',
+        '--image-name',
+        'a',
+        '--image-name',
+        'b',
+      ],
+    });
+
+    expect(handler).toHaveBeenCalledWith({
+      prompt: 'p',
+      imageName: ['a', 'b'],
+    });
+    vi.restoreAllMocks();
+  });
+
+  it('canonicalizes preferredName/aliases for namespaced fields', async () => {
+    const handler = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'ok' }],
+      isError: false,
+    });
+    const tools = {
+      initTools: vi.fn().mockResolvedValue(undefined),
+      destroy: vi.fn().mockResolvedValue(undefined),
+      getToolDefinitions: vi.fn().mockReturnValue([
+        {
+          name: 'android_connect',
+          description: 'connect',
+          schema: { 'android.deviceId': z.string().optional() },
+          cli: {
+            options: {
+              'android.deviceId': {
+                preferredName: 'device-id',
+                aliases: ['deviceId'],
+              },
+            },
+          },
+          handler,
+        },
+      ]),
+    } as any;
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'midscene-android', {
+      stripPrefix: 'android_',
+      argv: ['connect', '--device-id', 'emulator-5554'],
+    });
+
+    expect(handler).toHaveBeenCalledWith({
+      'android.deviceId': 'emulator-5554',
+    });
+    vi.restoreAllMocks();
+  });
+
+  it('throws CLIError when the same field is set under conflicting spellings', async () => {
+    const handler = vi.fn();
+    const tools = {
+      initTools: vi.fn().mockResolvedValue(undefined),
+      destroy: vi.fn().mockResolvedValue(undefined),
+      getToolDefinitions: vi.fn().mockReturnValue([
+        {
+          name: 'assert',
+          description: 'assert',
+          schema: {
+            prompt: z.string(),
+            imageName: z.string().optional(),
+          },
+          handler,
+        },
+      ]),
+    } as any;
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(
+      runToolsCLI(tools, 'test-cli', {
+        argv: [
+          'assert',
+          '--prompt',
+          'p',
+          '--imageName',
+          'camel',
+          '--image-name',
+          'kebab',
+        ],
+      }),
+    ).rejects.toThrow(/Conflicting CLI options.*image-name/);
+    expect(handler).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
   });
 });
