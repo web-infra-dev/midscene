@@ -5,6 +5,7 @@ import {
   MIDSCENE_INSIGHT_MODEL_API_KEY,
   MIDSCENE_INSIGHT_MODEL_BASE_URL,
   MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON,
+  MIDSCENE_INSIGHT_MODEL_MAX_TOKENS,
   MIDSCENE_INSIGHT_MODEL_NAME,
   MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET,
   MIDSCENE_INSIGHT_MODEL_REASONING_EFFORT,
@@ -15,6 +16,7 @@ import {
   MIDSCENE_MODEL_EXTRA_BODY_JSON,
   MIDSCENE_MODEL_FAMILY,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
+  MIDSCENE_MODEL_MAX_TOKENS,
   MIDSCENE_MODEL_NAME,
   MIDSCENE_MODEL_REASONING_BUDGET,
   MIDSCENE_MODEL_REASONING_EFFORT,
@@ -23,6 +25,7 @@ import {
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON,
+  MIDSCENE_PLANNING_MODEL_MAX_TOKENS,
   MIDSCENE_PLANNING_MODEL_NAME,
   MIDSCENE_PLANNING_MODEL_REASONING_BUDGET,
   MIDSCENE_PLANNING_MODEL_REASONING_EFFORT,
@@ -30,6 +33,7 @@ import {
   MIDSCENE_PLANNING_MODEL_TIMEOUT,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
+  OPENAI_MAX_TOKENS,
 } from '../../../src/env/types';
 
 describe('ModelConfigManager', () => {
@@ -307,6 +311,70 @@ describe('ModelConfigManager', () => {
       // insight and planning fall back to default config which has the timeout
       expect(manager.getModelConfig('insight').timeout).toBeUndefined();
       expect(manager.getModelConfig('planning').timeout).toBeUndefined();
+    });
+  });
+
+  describe('per-intent max tokens configuration', () => {
+    it('uses per-intent max tokens configs from modelConfig', () => {
+      const configWithMaxTokens = {
+        ...baseMap,
+        [MIDSCENE_MODEL_MAX_TOKENS]: '2048',
+        [MIDSCENE_INSIGHT_MODEL_MAX_TOKENS]: '4096',
+        [MIDSCENE_PLANNING_MODEL_MAX_TOKENS]: '8192',
+      };
+      const manager = new ModelConfigManager(configWithMaxTokens);
+
+      expect(manager.getModelConfig('default').maxTokens).toBe(2048);
+      expect(manager.getModelConfig('insight').maxTokens).toBe(4096);
+      expect(manager.getModelConfig('planning').maxTokens).toBe(8192);
+    });
+
+    it('reads per-intent max tokens from environment variables', () => {
+      vi.stubEnv(MIDSCENE_MODEL_NAME, 'env-model');
+      vi.stubEnv(MIDSCENE_MODEL_API_KEY, 'env-key');
+      vi.stubEnv(MIDSCENE_MODEL_BASE_URL, 'https://env.example.com');
+      vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen3-vl');
+      vi.stubEnv(MIDSCENE_MODEL_MAX_TOKENS, '1024');
+      vi.stubEnv(MIDSCENE_INSIGHT_MODEL_NAME, 'insight-model');
+      vi.stubEnv(
+        MIDSCENE_INSIGHT_MODEL_BASE_URL,
+        'https://insight.example.com',
+      );
+      vi.stubEnv(MIDSCENE_INSIGHT_MODEL_MAX_TOKENS, '2048');
+      vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'planning-model');
+      vi.stubEnv(
+        MIDSCENE_PLANNING_MODEL_BASE_URL,
+        'https://planning.example.com',
+      );
+      vi.stubEnv(MIDSCENE_PLANNING_MODEL_MAX_TOKENS, '4096');
+
+      const manager = new ModelConfigManager();
+      manager.registerGlobalConfigManager(new GlobalConfigManager());
+
+      expect(manager.getModelConfig('default').maxTokens).toBe(1024);
+      expect(manager.getModelConfig('insight').maxTokens).toBe(2048);
+      expect(manager.getModelConfig('planning').maxTokens).toBe(4096);
+    });
+
+    it('uses OPENAI_MAX_TOKENS as the legacy default intent fallback', () => {
+      const manager = new ModelConfigManager({
+        ...baseMap,
+        [OPENAI_MAX_TOKENS]: '1536',
+      });
+
+      expect(manager.getModelConfig('default').maxTokens).toBe(1536);
+    });
+
+    it('does not inherit default max tokens into dedicated intent configs', () => {
+      const configWithMaxTokens = {
+        ...baseMap,
+        [MIDSCENE_MODEL_MAX_TOKENS]: '2048',
+      };
+      const manager = new ModelConfigManager(configWithMaxTokens);
+
+      expect(manager.getModelConfig('default').maxTokens).toBe(2048);
+      expect(manager.getModelConfig('insight').maxTokens).toBeUndefined();
+      expect(manager.getModelConfig('planning').maxTokens).toBeUndefined();
     });
   });
 

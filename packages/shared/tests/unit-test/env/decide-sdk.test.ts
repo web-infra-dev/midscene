@@ -4,6 +4,8 @@ import {
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_EXTRA_BODY_JSON,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
+  MIDSCENE_MODEL_MAX_TOKENS,
+  OPENAI_MAX_TOKENS,
 } from '../../../src/env';
 import { DEFAULT_MODEL_CONFIG_KEYS } from '../../../src/env/constants';
 import { parseOpenaiSdkConfig } from '../../../src/env/parse-model-config';
@@ -59,6 +61,31 @@ describe('decideOpenaiSdkConfig', () => {
       },
     });
     expect(result.extraBody).toBeUndefined();
+  });
+
+  it('parses maxTokens from MIDSCENE_MODEL_MAX_TOKENS', () => {
+    const result = parseOpenaiSdkConfig({
+      keys: DEFAULT_MODEL_CONFIG_KEYS,
+      provider: {
+        [MIDSCENE_MODEL_API_KEY]: 'mock-key',
+        [MIDSCENE_MODEL_BASE_URL]: 'mock-url',
+        [MIDSCENE_MODEL_MAX_TOKENS]: '2048',
+      },
+    });
+    expect(result.maxTokens).toBe(2048);
+  });
+
+  it('parses maxTokens from legacy OPENAI_MAX_TOKENS in legacy mode', () => {
+    const result = parseOpenaiSdkConfig({
+      keys: DEFAULT_MODEL_CONFIG_KEYS,
+      provider: {
+        [MIDSCENE_MODEL_API_KEY]: 'mock-key',
+        [MIDSCENE_MODEL_BASE_URL]: 'mock-url',
+        [OPENAI_MAX_TOKENS]: '1024',
+      },
+      useLegacyLogic: true,
+    });
+    expect(result.maxTokens).toBe(1024);
   });
 
   it('throws on invalid extraBody JSON', () => {
