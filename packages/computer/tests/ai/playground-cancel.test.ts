@@ -5,6 +5,17 @@ import { PlaygroundServer } from '@midscene/playground';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ComputerAgent, ComputerDevice } from '../../src';
 
+// PlaygroundServer initializes ModelConfigManager on first use, which throws
+// when MIDSCENE_MODEL_NAME is unset. The SlowAction below never calls a model,
+// so dummy values just satisfy startup validation — required on headless CI
+// where no model env is provided.
+process.env.MIDSCENE_MODEL_NAME =
+  process.env.MIDSCENE_MODEL_NAME || 'noop-cancel-test';
+process.env.MIDSCENE_MODEL_BASE_URL =
+  process.env.MIDSCENE_MODEL_BASE_URL || 'http://127.0.0.1:1/v1';
+process.env.MIDSCENE_MODEL_API_KEY =
+  process.env.MIDSCENE_MODEL_API_KEY || 'noop';
+
 async function getFreePort(): Promise<number> {
   return new Promise((resolve, reject) => {
     const srv = net.createServer();
