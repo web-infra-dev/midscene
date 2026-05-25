@@ -73,9 +73,9 @@
     "build:watch": "USE_DEV_REPORT=1 rslib build --watch --no-clean",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
-    "test:ai": "AITEST=true npm run test",
-    "computer": "TEST_COMPUTER=true npm run test:ai -- tests/ai/evaluate/computer.test.ts",
-    "test:parse-action": "npm run test:ai -- tests/ai/parse-action.test.ts"
+    "test:ai": "AITEST=true vitest --run",
+    "computer": "TEST_COMPUTER=true AITEST=true vitest --run tests/ai/evaluate/computer.test.ts",
+    "test:parse-action": "vitest --run tests/unit-test/parse-action.test.ts"
   },
   "dependencies": {
     "@midscene/shared": "workspace:*",

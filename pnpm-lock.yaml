@@ -16,7 +16,7 @@ importers:
         version: 2.24.1
       '@commitlint/cli':
         specifier: 19.8.0
-        version: 19.8.0(@types/node@25.5.2)(typescript@5.8.3)
+        version: 19.8.0(@types/node@18.19.130)(typescript@5.8.3)
       '@commitlint/config-conventional':
         specifier: 19.8.0
         version: 19.8.0
@@ -26,6 +26,12 @@ importers:
       '@jsdevtools/version-bump-prompt':
         specifier: 6.1.0
         version: 6.1.0
+      '@types/node':
+        specifier: ^18.0.0
+        version: 18.19.130
+      '@vitest/coverage-v8':
+        specifier: 3.0.5
+        version: 3.0.5(vitest@3.0.5(@types/debug@4.1.12)(@types/node@18.19.130)(jsdom@29.0.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1))
       chalk:
         specifier: 4.1.2
         version: 4.1.2
@@ -34,7 +40,7 @@ importers:
         version: 4.1.1
       commitizen:
         specifier: 4.2.5
-        version: 4.2.5(@types/node@25.5.2)(typescript@5.8.3)
+        version: 4.2.5(@types/node@18.19.130)(typescript@5.8.3)
       cspell-ban-words:
         specifier: ^0.0.3
         version: 0.0.3
@@ -1544,7 +1550,7 @@ importers:
         version: 1.4.1(@rsbuild/core@2.0.0-beta.11(core-js@3.47.0))
       '@rslib/core':
         specifier: ^0.18.3
-        version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@25.5.2))(typescript@5.8.3)
+        version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.130))(typescript@5.8.3)
       '@types/react':
         specifier: ^18.3.1
         version: 18.3.23
@@ -2083,6 +2089,10 @@ packages:
   '@babel/types@7.28.1':
     resolution: {integrity: sha512-x0LvFTekgSX+83TI28Y9wYPUfzrnl2aT5+5QLnO6v7mSJYtEEevuDRN0F0uSHRk1G1IWZC43o00Y0xDDrpBGPQ==}
     engines: {node: '>=6.9.0'}
+
+  '@bcoe/v8-coverage@1.0.2':
+    resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
+    engines: {node: '>=18'}
 
   '@biomejs/biome@1.9.4':
     resolution: {integrity: sha512-1rkd7G70+o9KkTn5KLmDYXihGoTaIGO9PIIN2ZB7UJxFrWw04CZHPYiMRjYsaDvVV7hP1dYNRLxSANLaBFGpog==}
@@ -3249,6 +3259,10 @@ packages:
   '@isaacs/fs-minipass@4.0.1':
     resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
     engines: {node: '>=18.0.0'}
+
+  '@istanbuljs/schema@0.1.6':
+    resolution: {integrity: sha512-+Sg6GCR/wy1oSmQDFq4LQDAhm3ETKnorxN+y5nbLULOR3P0c14f2Wurzj3/xqPXtasLFfHd5iRFQ7AJt4KH2cw==}
+    engines: {node: '>=8'}
 
   '@jest/diff-sequences@30.0.1':
     resolution: {integrity: sha512-n5H8QLDJ47QqbCNn5SuFjCRDrOLEZ0h8vAHCK5RL9Ls7Xa8AQLa/YxAc9UjFqoEDM48muwtBGjtMY5cr0PLDCw==}
@@ -5175,6 +5189,15 @@ packages:
     resolution: {integrity: sha512-gC48tNJ0UtbithkiKCc2WUlxbVVk5o171EtruS2w2hQUblfYFHzCPu2hljjT1e0tUHXXqN8EMv7mpxHddMB2sg==}
     peerDependencies:
       react: '>=18.3.1'
+
+  '@vitest/coverage-v8@3.0.5':
+    resolution: {integrity: sha512-zOOWIsj5fHh3jjGwQg+P+J1FW3s4jBu1Zqga0qW60yutsBtqEqNEJKWYh7cYn1yGD+1bdPsPdC/eL4eVK56xMg==}
+    peerDependencies:
+      '@vitest/browser': 3.0.5
+      vitest: 3.0.5
+    peerDependenciesMeta:
+      '@vitest/browser':
+        optional: true
 
   '@vitest/expect@3.0.5':
     resolution: {integrity: sha512-nNIOqupgZ4v5jWuQx2DSlHLEs7Q4Oh/7AYwNyE+k0UQzG7tSmjPXShUikn1mpNGzYEN2jJbTvLejwShMitovBA==}
@@ -8242,6 +8265,22 @@ packages:
   isomorphic-fetch@3.0.0:
     resolution: {integrity: sha512-qvUtwJ3j6qwsF3jLxkZ72qCgjMysPzDfeV240JHiGZsANBYd+EEuu35v7dfrJ9Up0Ak07D7GGSkGhCHTqg/5wA==}
 
+  istanbul-lib-coverage@3.2.2:
+    resolution: {integrity: sha512-O8dpsF+r0WV/8MNRKfnmrtCWhuKjxrq2w+jpzBL5UZKTi2LeVWnWOmWRxFlesJONmc+wLAGvKQZEOanko0LFTg==}
+    engines: {node: '>=8'}
+
+  istanbul-lib-report@3.0.1:
+    resolution: {integrity: sha512-GCfE1mtsHGOELCU8e/Z7YWzpmybrx/+dSTfLrvY8qRmaY6zXTKWn6WQIjaAFw069icm6GVMNkgu0NzI4iPZUNw==}
+    engines: {node: '>=10'}
+
+  istanbul-lib-source-maps@5.0.6:
+    resolution: {integrity: sha512-yg2d+Em4KizZC5niWhQaIomgf5WlL4vOOjZ5xGCmF8SnPE/mDWWXgvRExdcpCgh9lLRRa1/fSYp2ymmbJ1pI+A==}
+    engines: {node: '>=10'}
+
+  istanbul-reports@3.2.0:
+    resolution: {integrity: sha512-HGYWWS/ehqTV3xN10i23tkPkpH46MLCIMFNCaaKNavAXTF1RkqxawEPtnjnGZ6XKSInBKkiOA5BKS+aZiY3AvA==}
+    engines: {node: '>=8'}
+
   iterate-object@1.3.5:
     resolution: {integrity: sha512-eL23u8oFooYTq6TtJKjp2RYjZnCkUYQvC0T/6fJfWykXJ3quvdDdzKZ3CEjy8b3JGOvLTjDYMEMIp5243R906A==}
 
@@ -8698,9 +8737,16 @@ packages:
   magic-string@0.30.17:
     resolution: {integrity: sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA==}
 
+  magicast@0.3.5:
+    resolution: {integrity: sha512-L0WhttDl+2BOsybvEOLK7fW3UA0OQ0IQ2d6Zl2x/a6vVRs3bAY0ECOSHHeL5jD+SbOpOCUEi0y1DgHEn9Qn1AQ==}
+
   make-dir@2.1.0:
     resolution: {integrity: sha512-LS9X+dc8KLxXCb8dni79fLIIUA5VyZoyjSMCwTluaXA0o27cCK0bhXkpgw+sTXVpPy/lSO57ilRixqk0vDmtRA==}
     engines: {node: '>=6'}
+
+  make-dir@4.0.0:
+    resolution: {integrity: sha512-hXdUTZYIVOt1Ex//jAQi+wTZZpUpwBj/0QsOzqegb3rGMMeJiSEu5xLHnYfBrRV4RH2+OCSOO95Is/7x1WJ4bw==}
+    engines: {node: '>=10'}
 
   make-error@1.3.6:
     resolution: {integrity: sha512-s8UhlNe7vPKomQhC1qFelMokr/Sc3AgNbso3n74mVPA5LTZwkB9NlXf4XPamLxJE8h0gh73rM94xvwRT2CVInw==}
@@ -11345,6 +11391,10 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  test-exclude@7.0.2:
+    resolution: {integrity: sha512-u9E6A+ZDYdp7a4WnarkXPZOx8Ilz46+kby6p1yZ8zsGTz9gYa6FIS7lj2oezzNKmtdyyJNNmmXDppga5GB7kSw==}
+    engines: {node: '>=18'}
+
   text-decoder@1.2.1:
     resolution: {integrity: sha512-x9v3H/lTKIJKQQe7RPQkLfKAnc9lUTkWDypIQgTzPJAq+5/GCDHonmshfvlsNSj58yyshbIJJDLmU15qNERrXQ==}
 
@@ -12548,6 +12598,8 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
 
+  '@bcoe/v8-coverage@1.0.2': {}
+
   '@biomejs/biome@1.9.4':
     optionalDependencies:
       '@biomejs/cli-darwin-arm64': 1.9.4
@@ -12750,11 +12802,11 @@ snapshots:
 
   '@colors/colors@1.6.0': {}
 
-  '@commitlint/cli@19.8.0(@types/node@25.5.2)(typescript@5.8.3)':
+  '@commitlint/cli@19.8.0(@types/node@18.19.130)(typescript@5.8.3)':
     dependencies:
       '@commitlint/format': 19.8.1
       '@commitlint/lint': 19.8.1
-      '@commitlint/load': 19.8.1(@types/node@25.5.2)(typescript@5.8.3)
+      '@commitlint/load': 19.8.1(@types/node@18.19.130)(typescript@5.8.3)
       '@commitlint/read': 19.8.1
       '@commitlint/types': 19.8.1
       tinyexec: 0.3.2
@@ -12810,7 +12862,7 @@ snapshots:
       '@commitlint/rules': 19.8.1
       '@commitlint/types': 19.8.1
 
-  '@commitlint/load@19.8.1(@types/node@25.5.2)(typescript@5.8.3)':
+  '@commitlint/load@19.8.1(@types/node@18.19.130)(typescript@5.8.3)':
     dependencies:
       '@commitlint/config-validator': 19.8.1
       '@commitlint/execute-rule': 19.8.1
@@ -12818,7 +12870,7 @@ snapshots:
       '@commitlint/types': 19.8.1
       chalk: 5.6.2
       cosmiconfig: 9.0.0(typescript@5.8.3)
-      cosmiconfig-typescript-loader: 6.2.0(@types/node@25.5.2)(cosmiconfig@9.0.0(typescript@5.8.3))(typescript@5.8.3)
+      cosmiconfig-typescript-loader: 6.2.0(@types/node@18.19.130)(cosmiconfig@9.0.0(typescript@5.8.3))(typescript@5.8.3)
       lodash.isplainobject: 4.0.6
       lodash.merge: 4.6.2
       lodash.uniq: 4.5.0
@@ -12826,7 +12878,7 @@ snapshots:
       - '@types/node'
       - typescript
 
-  '@commitlint/load@20.1.0(@types/node@25.5.2)(typescript@5.8.3)':
+  '@commitlint/load@20.1.0(@types/node@18.19.130)(typescript@5.8.3)':
     dependencies:
       '@commitlint/config-validator': 20.0.0
       '@commitlint/execute-rule': 20.0.0
@@ -12834,7 +12886,7 @@ snapshots:
       '@commitlint/types': 20.0.0
       chalk: 5.6.2
       cosmiconfig: 9.0.0(typescript@5.8.3)
-      cosmiconfig-typescript-loader: 6.2.0(@types/node@25.5.2)(cosmiconfig@9.0.0(typescript@5.8.3))(typescript@5.8.3)
+      cosmiconfig-typescript-loader: 6.2.0(@types/node@18.19.130)(cosmiconfig@9.0.0(typescript@5.8.3))(typescript@5.8.3)
       lodash.isplainobject: 4.0.6
       lodash.merge: 4.6.2
       lodash.uniq: 4.5.0
@@ -13821,6 +13873,8 @@ snapshots:
     dependencies:
       minipass: 7.1.2
 
+  '@istanbuljs/schema@0.1.6': {}
+
   '@jest/diff-sequences@30.0.1': {}
 
   '@jest/get-type@30.1.0': {}
@@ -14207,20 +14261,20 @@ snapshots:
       - '@types/node'
     optional: true
 
+  '@microsoft/api-extractor-model@7.30.7(@types/node@18.19.130)':
+    dependencies:
+      '@microsoft/tsdoc': 0.15.1
+      '@microsoft/tsdoc-config': 0.17.1
+      '@rushstack/node-core-library': 5.14.0(@types/node@18.19.130)
+    transitivePeerDependencies:
+      - '@types/node'
+    optional: true
+
   '@microsoft/api-extractor-model@7.30.7(@types/node@18.19.62)':
     dependencies:
       '@microsoft/tsdoc': 0.15.1
       '@microsoft/tsdoc-config': 0.17.1
       '@rushstack/node-core-library': 5.14.0(@types/node@18.19.62)
-    transitivePeerDependencies:
-      - '@types/node'
-    optional: true
-
-  '@microsoft/api-extractor-model@7.30.7(@types/node@25.5.2)':
-    dependencies:
-      '@microsoft/tsdoc': 0.15.1
-      '@microsoft/tsdoc-config': 0.17.1
-      '@rushstack/node-core-library': 5.14.0(@types/node@25.5.2)
     transitivePeerDependencies:
       - '@types/node'
     optional: true
@@ -14244,15 +14298,15 @@ snapshots:
       - '@types/node'
     optional: true
 
-  '@microsoft/api-extractor@7.52.10(@types/node@18.19.62)':
+  '@microsoft/api-extractor@7.52.10(@types/node@18.19.130)':
     dependencies:
-      '@microsoft/api-extractor-model': 7.30.7(@types/node@18.19.62)
+      '@microsoft/api-extractor-model': 7.30.7(@types/node@18.19.130)
       '@microsoft/tsdoc': 0.15.1
       '@microsoft/tsdoc-config': 0.17.1
-      '@rushstack/node-core-library': 5.14.0(@types/node@18.19.62)
+      '@rushstack/node-core-library': 5.14.0(@types/node@18.19.130)
       '@rushstack/rig-package': 0.5.3
-      '@rushstack/terminal': 0.15.4(@types/node@18.19.62)
-      '@rushstack/ts-command-line': 5.0.2(@types/node@18.19.62)
+      '@rushstack/terminal': 0.15.4(@types/node@18.19.130)
+      '@rushstack/ts-command-line': 5.0.2(@types/node@18.19.130)
       lodash: 4.17.23
       minimatch: 10.0.3
       resolve: 1.22.11
@@ -14263,15 +14317,15 @@ snapshots:
       - '@types/node'
     optional: true
 
-  '@microsoft/api-extractor@7.52.10(@types/node@25.5.2)':
+  '@microsoft/api-extractor@7.52.10(@types/node@18.19.62)':
     dependencies:
-      '@microsoft/api-extractor-model': 7.30.7(@types/node@25.5.2)
+      '@microsoft/api-extractor-model': 7.30.7(@types/node@18.19.62)
       '@microsoft/tsdoc': 0.15.1
       '@microsoft/tsdoc-config': 0.17.1
-      '@rushstack/node-core-library': 5.14.0(@types/node@25.5.2)
+      '@rushstack/node-core-library': 5.14.0(@types/node@18.19.62)
       '@rushstack/rig-package': 0.5.3
-      '@rushstack/terminal': 0.15.4(@types/node@25.5.2)
-      '@rushstack/ts-command-line': 5.0.2(@types/node@25.5.2)
+      '@rushstack/terminal': 0.15.4(@types/node@18.19.62)
+      '@rushstack/ts-command-line': 5.0.2(@types/node@18.19.62)
       lodash: 4.17.23
       minimatch: 10.0.3
       resolve: 1.22.11
@@ -15480,22 +15534,22 @@ snapshots:
     transitivePeerDependencies:
       - '@typescript/native-preview'
 
+  '@rslib/core@0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.130))(typescript@5.8.3)':
+    dependencies:
+      '@rsbuild/core': 1.6.15
+      rsbuild-plugin-dts: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.130))(@rsbuild/core@1.6.15)(typescript@5.8.3)
+    optionalDependencies:
+      '@microsoft/api-extractor': 7.52.10(@types/node@18.19.130)
+      typescript: 5.8.3
+    transitivePeerDependencies:
+      - '@typescript/native-preview'
+
   '@rslib/core@0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)':
     dependencies:
       '@rsbuild/core': 1.6.15
       rsbuild-plugin-dts: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(@rsbuild/core@1.6.15)(typescript@5.8.3)
     optionalDependencies:
       '@microsoft/api-extractor': 7.52.10(@types/node@18.19.62)
-      typescript: 5.8.3
-    transitivePeerDependencies:
-      - '@typescript/native-preview'
-
-  '@rslib/core@0.18.3(@microsoft/api-extractor@7.52.10(@types/node@25.5.2))(typescript@5.8.3)':
-    dependencies:
-      '@rsbuild/core': 1.6.15
-      rsbuild-plugin-dts: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@25.5.2))(@rsbuild/core@1.6.15)(typescript@5.8.3)
-    optionalDependencies:
-      '@microsoft/api-extractor': 7.52.10(@types/node@25.5.2)
       typescript: 5.8.3
     transitivePeerDependencies:
       - '@typescript/native-preview'
@@ -15783,6 +15837,20 @@ snapshots:
       '@types/node': 18.19.118
     optional: true
 
+  '@rushstack/node-core-library@5.14.0(@types/node@18.19.130)':
+    dependencies:
+      ajv: 8.13.0
+      ajv-draft-04: 1.0.0(ajv@8.13.0)
+      ajv-formats: 3.0.1(ajv@8.13.0)
+      fs-extra: 11.3.4
+      import-lazy: 4.0.0
+      jju: 1.4.0
+      resolve: 1.22.11
+      semver: 7.5.4
+    optionalDependencies:
+      '@types/node': 18.19.130
+    optional: true
+
   '@rushstack/node-core-library@5.14.0(@types/node@18.19.62)':
     dependencies:
       ajv: 8.13.0
@@ -15795,20 +15863,6 @@ snapshots:
       semver: 7.5.4
     optionalDependencies:
       '@types/node': 18.19.62
-    optional: true
-
-  '@rushstack/node-core-library@5.14.0(@types/node@25.5.2)':
-    dependencies:
-      ajv: 8.13.0
-      ajv-draft-04: 1.0.0(ajv@8.13.0)
-      ajv-formats: 3.0.1(ajv@8.13.0)
-      fs-extra: 11.3.4
-      import-lazy: 4.0.0
-      jju: 1.4.0
-      resolve: 1.22.11
-      semver: 7.5.4
-    optionalDependencies:
-      '@types/node': 25.5.2
     optional: true
 
   '@rushstack/rig-package@0.5.3':
@@ -15825,20 +15879,20 @@ snapshots:
       '@types/node': 18.19.118
     optional: true
 
+  '@rushstack/terminal@0.15.4(@types/node@18.19.130)':
+    dependencies:
+      '@rushstack/node-core-library': 5.14.0(@types/node@18.19.130)
+      supports-color: 8.1.1
+    optionalDependencies:
+      '@types/node': 18.19.130
+    optional: true
+
   '@rushstack/terminal@0.15.4(@types/node@18.19.62)':
     dependencies:
       '@rushstack/node-core-library': 5.14.0(@types/node@18.19.62)
       supports-color: 8.1.1
     optionalDependencies:
       '@types/node': 18.19.62
-    optional: true
-
-  '@rushstack/terminal@0.15.4(@types/node@25.5.2)':
-    dependencies:
-      '@rushstack/node-core-library': 5.14.0(@types/node@25.5.2)
-      supports-color: 8.1.1
-    optionalDependencies:
-      '@types/node': 25.5.2
     optional: true
 
   '@rushstack/ts-command-line@5.0.2(@types/node@18.19.118)':
@@ -15851,9 +15905,9 @@ snapshots:
       - '@types/node'
     optional: true
 
-  '@rushstack/ts-command-line@5.0.2(@types/node@18.19.62)':
+  '@rushstack/ts-command-line@5.0.2(@types/node@18.19.130)':
     dependencies:
-      '@rushstack/terminal': 0.15.4(@types/node@18.19.62)
+      '@rushstack/terminal': 0.15.4(@types/node@18.19.130)
       '@types/argparse': 1.0.38
       argparse: 1.0.10
       string-argv: 0.3.2
@@ -15861,9 +15915,9 @@ snapshots:
       - '@types/node'
     optional: true
 
-  '@rushstack/ts-command-line@5.0.2(@types/node@25.5.2)':
+  '@rushstack/ts-command-line@5.0.2(@types/node@18.19.62)':
     dependencies:
-      '@rushstack/terminal': 0.15.4(@types/node@25.5.2)
+      '@rushstack/terminal': 0.15.4(@types/node@18.19.62)
       '@types/argparse': 1.0.38
       argparse: 1.0.10
       string-argv: 0.3.2
@@ -16283,6 +16337,7 @@ snapshots:
   '@types/node@25.5.2':
     dependencies:
       undici-types: 7.18.2
+    optional: true
 
   '@types/normalize-package-data@2.4.4': {}
 
@@ -16376,6 +16431,24 @@ snapshots:
     dependencies:
       react: 19.2.4
       unhead: 2.1.13
+
+  '@vitest/coverage-v8@3.0.5(vitest@3.0.5(@types/debug@4.1.12)(@types/node@18.19.130)(jsdom@29.0.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1))':
+    dependencies:
+      '@ampproject/remapping': 2.3.0
+      '@bcoe/v8-coverage': 1.0.2
+      debug: 4.4.0
+      istanbul-lib-coverage: 3.2.2
+      istanbul-lib-report: 3.0.1
+      istanbul-lib-source-maps: 5.0.6
+      istanbul-reports: 3.2.0
+      magic-string: 0.30.17
+      magicast: 0.3.5
+      std-env: 3.9.0
+      test-exclude: 7.0.2
+      tinyrainbow: 2.0.0
+      vitest: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.130)(jsdom@29.0.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
+    transitivePeerDependencies:
+      - supports-color
 
   '@vitest/expect@3.0.5':
     dependencies:
@@ -17693,10 +17766,10 @@ snapshots:
 
   commander@9.5.0: {}
 
-  commitizen@4.2.5(@types/node@25.5.2)(typescript@5.8.3):
+  commitizen@4.2.5(@types/node@18.19.130)(typescript@5.8.3):
     dependencies:
       cachedir: 2.3.0
-      cz-conventional-changelog: 3.3.0(@types/node@25.5.2)(typescript@5.8.3)
+      cz-conventional-changelog: 3.3.0(@types/node@18.19.130)(typescript@5.8.3)
       dedent: 0.7.0
       detect-indent: 6.1.0
       find-node-modules: 2.1.3
@@ -17857,9 +17930,9 @@ snapshots:
 
   corser@2.0.1: {}
 
-  cosmiconfig-typescript-loader@6.2.0(@types/node@25.5.2)(cosmiconfig@9.0.0(typescript@5.8.3))(typescript@5.8.3):
+  cosmiconfig-typescript-loader@6.2.0(@types/node@18.19.130)(cosmiconfig@9.0.0(typescript@5.8.3))(typescript@5.8.3):
     dependencies:
-      '@types/node': 25.5.2
+      '@types/node': 18.19.130
       cosmiconfig: 9.0.0(typescript@5.8.3)
       jiti: 2.6.1
       typescript: 5.8.3
@@ -18007,16 +18080,16 @@ snapshots:
       csv-stringify: 5.6.5
       stream-transform: 2.1.3
 
-  cz-conventional-changelog@3.3.0(@types/node@25.5.2)(typescript@5.8.3):
+  cz-conventional-changelog@3.3.0(@types/node@18.19.130)(typescript@5.8.3):
     dependencies:
       chalk: 2.4.2
-      commitizen: 4.2.5(@types/node@25.5.2)(typescript@5.8.3)
+      commitizen: 4.2.5(@types/node@18.19.130)(typescript@5.8.3)
       conventional-commit-types: 3.0.0
       lodash.map: 4.6.0
       longest: 2.0.1
       word-wrap: 1.2.5
     optionalDependencies:
-      '@commitlint/load': 20.1.0(@types/node@25.5.2)(typescript@5.8.3)
+      '@commitlint/load': 20.1.0(@types/node@18.19.130)(typescript@5.8.3)
     transitivePeerDependencies:
       - '@types/node'
       - typescript
@@ -20164,6 +20237,27 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
+  istanbul-lib-coverage@3.2.2: {}
+
+  istanbul-lib-report@3.0.1:
+    dependencies:
+      istanbul-lib-coverage: 3.2.2
+      make-dir: 4.0.0
+      supports-color: 7.2.0
+
+  istanbul-lib-source-maps@5.0.6:
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.31
+      debug: 4.4.0
+      istanbul-lib-coverage: 3.2.2
+    transitivePeerDependencies:
+      - supports-color
+
+  istanbul-reports@3.2.0:
+    dependencies:
+      html-escaper: 2.0.2
+      istanbul-lib-report: 3.0.1
+
   iterate-object@1.3.5: {}
 
   jackspeak@3.4.3:
@@ -20610,11 +20704,21 @@ snapshots:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
 
+  magicast@0.3.5:
+    dependencies:
+      '@babel/parser': 7.28.0
+      '@babel/types': 7.28.1
+      source-map-js: 1.2.1
+
   make-dir@2.1.0:
     dependencies:
       pify: 4.0.1
       semver: 5.7.2
     optional: true
+
+  make-dir@4.0.0:
+    dependencies:
+      semver: 7.7.3
 
   make-error@1.3.6: {}
 
@@ -22944,20 +23048,20 @@ snapshots:
       '@microsoft/api-extractor': 7.52.10(@types/node@18.19.118)
       typescript: 5.8.3
 
+  rsbuild-plugin-dts@0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.130))(@rsbuild/core@1.6.15)(typescript@5.8.3):
+    dependencies:
+      '@ast-grep/napi': 0.37.0
+      '@rsbuild/core': 1.6.15
+    optionalDependencies:
+      '@microsoft/api-extractor': 7.52.10(@types/node@18.19.130)
+      typescript: 5.8.3
+
   rsbuild-plugin-dts@0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(@rsbuild/core@1.6.15)(typescript@5.8.3):
     dependencies:
       '@ast-grep/napi': 0.37.0
       '@rsbuild/core': 1.6.15
     optionalDependencies:
       '@microsoft/api-extractor': 7.52.10(@types/node@18.19.62)
-      typescript: 5.8.3
-
-  rsbuild-plugin-dts@0.18.3(@microsoft/api-extractor@7.52.10(@types/node@25.5.2))(@rsbuild/core@1.6.15)(typescript@5.8.3):
-    dependencies:
-      '@ast-grep/napi': 0.37.0
-      '@rsbuild/core': 1.6.15
-    optionalDependencies:
-      '@microsoft/api-extractor': 7.52.10(@types/node@25.5.2)
       typescript: 5.8.3
 
   rsbuild-plugin-workspace-dev@0.0.1(@rsbuild/core@1.6.15):
@@ -23862,6 +23966,12 @@ snapshots:
       commander: 2.20.3
       source-map-support: 0.5.21
 
+  test-exclude@7.0.2:
+    dependencies:
+      '@istanbuljs/schema': 0.1.6
+      glob: 10.4.5
+      minimatch: 10.2.5
+
   text-decoder@1.2.1: {}
 
   text-decoder@1.2.3:
@@ -24156,7 +24266,8 @@ snapshots:
 
   undici-types@7.16.0: {}
 
-  undici-types@7.18.2: {}
+  undici-types@7.18.2:
+    optional: true
 
   undici@6.22.0: {}
 

@@ -20,6 +20,8 @@
       "**/doc_build",
       "*-dump.json",
       "test-results/**",
+      "coverage/**",
+      "coverage-ai/**",
       "iife-script/**",
       "script_get_all_texts.tmp.js",
       "**/playwright-report/**",

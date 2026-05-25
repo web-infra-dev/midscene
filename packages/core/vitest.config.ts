@@ -1,6 +1,7 @@
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { defineConfig } from 'vitest/config';
+import { createCoverageConfig } from '../../scripts/vitest-coverage';
 import { version } from './package.json';
 
 /**
@@ -18,6 +19,7 @@ const basicTest = ['tests/unit-test/**/*.test.ts'];
 
 export default defineConfig({
   test: {
+    coverage: createCoverageConfig(__dirname),
     include: enableAiTest ? ['tests/ai/**/**.test.ts'] : basicTest,
     retry: process.env.CI ? 1 : 0,
   },
