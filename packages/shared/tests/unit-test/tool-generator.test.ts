@@ -270,6 +270,27 @@ describe('generateToolsFromActionSpace', () => {
     );
   });
 
+  it('records take_screenshot in report-capable agents', async () => {
+    const recordToReport = vi.fn().mockResolvedValue(undefined);
+    const commonTools = generateCommonTools(async () => ({
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: {
+        screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+      },
+      recordToReport,
+    }));
+    const takeScreenshotTool = commonTools.find(
+      (tool) => tool.name === 'take_screenshot',
+    );
+
+    const result = await takeScreenshotTool?.handler({});
+
+    expect(recordToReport).toHaveBeenCalledWith('take_screenshot');
+    expect(result).toEqual({
+      content: [{ type: 'image', data: 'Zm9v', mimeType: 'image/png' }],
+    });
+  });
+
   // Guardrail for https://github.com/web-infra-dev/midscene/issues/2313:
   // A primitive Zod paramSchema (e.g. z.string()) used to silently fall
   // through extractActionSchema and leak the Zod instance's prototype
