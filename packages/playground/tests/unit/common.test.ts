@@ -177,14 +177,18 @@ describe('common utilities', () => {
       );
 
       expect(result).toBe('action result');
-      expect(mockCallAction).toHaveBeenCalledWith('testAction', {
-        locate: {
-          prompt: 'test prompt',
-          deepLocate: false,
-          cacheable: true,
-          xpath: undefined,
+      expect(mockCallAction).toHaveBeenCalledWith(
+        'testAction',
+        {
+          locate: {
+            prompt: 'test prompt',
+            deepLocate: false,
+            cacheable: true,
+            xpath: undefined,
+          },
         },
-      });
+        { abortSignal: undefined },
+      );
     });
 
     it('should warn for non-aiAct deepThink without mutating params', async () => {
@@ -366,14 +370,18 @@ describe('common utilities', () => {
       );
 
       expect(result).toBe('alias result');
-      expect(mockCallAction).toHaveBeenCalledWith('realName', {
-        locate: {
-          prompt: 'test prompt',
-          deepLocate: false,
-          cacheable: true,
-          xpath: undefined,
+      expect(mockCallAction).toHaveBeenCalledWith(
+        'realName',
+        {
+          locate: {
+            prompt: 'test prompt',
+            deepLocate: false,
+            cacheable: true,
+            xpath: undefined,
+          },
         },
-      });
+        { abortSignal: undefined },
+      );
     });
   });
 });
