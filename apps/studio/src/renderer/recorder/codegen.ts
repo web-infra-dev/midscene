@@ -7,7 +7,11 @@ import type { StudioRecordingSession } from './types';
 function normalizeGeneratedCode(content: string, type: StudioRecorderCodeType) {
   const trimmed = content.trim();
   const fenceLanguage =
-    type === 'yaml' ? '(?:ya?ml)?' : '(?:ts|tsx|typescript|js|javascript)?';
+    type === 'yaml'
+      ? '(?:ya?ml)?'
+      : type === 'markdown'
+        ? '(?:md|markdown)?'
+        : '(?:ts|tsx|typescript|js|javascript)?';
   const fencedMatch = trimmed.match(
     new RegExp(`^\`\`\`${fenceLanguage}\\s*([\\s\\S]*?)\\s*\`\`\`$`, 'i'),
   );
@@ -36,7 +40,7 @@ export async function generateStudioRecorderCodeWithAI(
     onChunk?: (content: string) => void;
   } = {},
 ) {
-  const type = options.type || 'yaml';
+  const type = options.type || 'markdown';
   if (session.events.length === 0) {
     throw new Error(`No events provided for ${type} generation.`);
   }

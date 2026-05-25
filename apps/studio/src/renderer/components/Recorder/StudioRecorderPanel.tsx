@@ -11,7 +11,7 @@ import type {
 import { useStudioRecorder } from '../../recorder/useStudioRecorder';
 import './studio-recorder-panel.css';
 
-const CODE_TYPE_STORAGE_KEY = 'studio.recorder.defaultCodeType';
+const CODE_TYPE_STORAGE_KEY = 'studio.recorder.defaultCodeType.v2';
 const LANGUAGE_STORAGE_KEY = 'studio.recorder.yamlLanguage';
 
 const LANGUAGE_OPTIONS = [
@@ -139,11 +139,14 @@ async function runPanelAction<T>(action: () => Promise<T>) {
 
 function readPersistedCodeType(): StudioRecorderCodeType {
   if (typeof window === 'undefined') {
-    return 'yaml';
+    return 'markdown';
   }
-  return window.localStorage.getItem(CODE_TYPE_STORAGE_KEY) === 'playwright'
-    ? 'playwright'
-    : 'yaml';
+  const storedType = window.localStorage.getItem(CODE_TYPE_STORAGE_KEY);
+  return storedType === 'markdown' ||
+    storedType === 'yaml' ||
+    storedType === 'playwright'
+    ? storedType
+    : 'markdown';
 }
 
 function readPersistedLanguage() {
@@ -177,9 +180,31 @@ function getAvailableCodeType(
   preferredType: StudioRecorderCodeType,
 ): StudioRecorderCodeType {
   if (preferredType === 'playwright' && !isPlaywrightAvailable(session)) {
-    return 'yaml';
+    return 'markdown';
   }
   return preferredType;
+}
+
+function codeTypeLabel(type: StudioRecorderCodeType) {
+  switch (type) {
+    case 'markdown':
+      return 'Markdown';
+    case 'playwright':
+      return 'Playwright';
+    default:
+      return 'YAML';
+  }
+}
+
+function generatingText(type: StudioRecorderCodeType) {
+  switch (type) {
+    case 'markdown':
+      return 'Generating markdown...';
+    case 'playwright':
+      return 'Generating Playwright...';
+    default:
+      return 'Generating YAML...';
+  }
 }
 
 type StudioRecorderTab = 'timeline' | 'code';
@@ -238,7 +263,7 @@ function getGenerationSteps(
   type: StudioRecorderCodeType,
   steps: StudioRecorderGenerationStepState,
 ) {
-  const codeLabel = type === 'playwright' ? 'Playwright Code' : 'YAML';
+  const label = codeTypeLabel(type);
   return [
     {
       title: 'Prepare Recorded Events',
@@ -253,11 +278,13 @@ function getGenerationSteps(
       state: getGenerationStepState(steps.metadata.status),
     },
     {
-      title: `Generate ${codeLabel}`,
+      title: `Generate ${label}`,
       description:
         type === 'playwright'
           ? 'Creating executable Playwright test code'
-          : 'Creating YAML configuration',
+          : type === 'markdown'
+            ? 'Creating Midscene Markdown replay script'
+            : 'Creating YAML configuration',
       details: steps.code.details,
       state: getGenerationStepState(steps.code.status),
     },
@@ -289,7 +316,7 @@ export function StudioRecorderPanel() {
   );
   const [generation, setGeneration] = useState<StudioRecorderGenerationState>({
     sessionId: null,
-    type: 'yaml',
+    type: 'markdown',
     status: 'idle',
     content: '',
     error: null,
@@ -312,7 +339,7 @@ export function StudioRecorderPanel() {
     generation.type === activeCodeType
       ? generation.content || activeGeneratedCode
       : activeGeneratedCode;
-  const codeLabel = activeCodeType === 'playwright' ? 'Playwright' : 'YAML';
+  const codeLabel = codeTypeLabel(activeCodeType);
   const isGenerating =
     generation.status === 'generating' &&
     generation.sessionId === detailSession?.id &&
@@ -354,7 +381,7 @@ export function StudioRecorderPanel() {
       selectedCodeType === 'playwright' &&
       !isPlaywrightAvailable(detailSession)
     ) {
-      setSelectedCodeType('yaml');
+      setSelectedCodeType('markdown');
     }
   }, [detailSession, selectedCodeType]);
 
@@ -384,7 +411,7 @@ export function StudioRecorderPanel() {
           type,
           force,
           language:
-            type === 'yaml' && selectedLanguage !== 'auto'
+            type !== 'playwright' && selectedLanguage !== 'auto'
               ? selectedLanguage
               : undefined,
           onChunk: (content) => {
@@ -430,11 +457,7 @@ export function StudioRecorderPanel() {
             }),
           };
         });
-        message.success(
-          type === 'playwright'
-            ? 'AI Playwright test generated successfully!'
-            : 'AI YAML configuration generated successfully!',
-        );
+        message.success(`AI ${codeTypeLabel(type)} generated successfully!`);
         return code;
       } catch (error) {
         setGeneration((current) => {
@@ -557,10 +580,10 @@ export function StudioRecorderPanel() {
                 onClick={(event) => {
                   event.stopPropagation();
                   void runPanelAction(() =>
-                    exportSessionCode(session.id, 'yaml'),
+                    exportSessionCode(session.id, 'markdown'),
                   );
                 }}
-                title="Download generated YAML"
+                title="Download Markdown replay"
                 type="button"
               >
                 <DownloadIcon />
@@ -601,7 +624,7 @@ export function StudioRecorderPanel() {
     if (generation.steps.code.status === 'loading') {
       return (
         <div className="studio-recorder-generating-card">
-          <span>Generating code...</span>
+          <span>{generatingText(generation.type)}</span>
           <span className="studio-recorder-generating-pill">Analyzing...</span>
         </div>
       );
@@ -742,6 +765,7 @@ export function StudioRecorderPanel() {
                   }}
                   value={activeCodeType}
                 >
+                  <option value="markdown">Markdown</option>
                   <option value="yaml">YAML</option>
                   <option
                     disabled={!isPlaywrightAvailable(detailSession)}
@@ -752,7 +776,7 @@ export function StudioRecorderPanel() {
                 </select>
               </label>
 
-              {activeCodeType === 'yaml' ? (
+              {activeCodeType !== 'playwright' ? (
                 <label className="studio-recorder-select-shell studio-recorder-language-select">
                   <select
                     disabled={isGenerating}

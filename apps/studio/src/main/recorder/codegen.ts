@@ -2,6 +2,7 @@ import {
   type ChatCompletionMessageParam,
   callAIWithObjectResponse,
   generatePlaywrightTest,
+  generateRecorderMarkdownReplay,
   generateRecorderYamlTest,
 } from '@midscene/core/ai-model';
 import {
@@ -68,6 +69,14 @@ export async function generateRecorderCodeInMain(
       request.modelConfig,
     );
     return { type: 'yaml', code };
+  }
+
+  if (request.type === 'markdown') {
+    const code = await generateRecorderMarkdownReplay(
+      request.input,
+      request.modelConfig,
+    );
+    return { type: 'markdown', code };
   }
 
   if (request.type === 'playwright') {

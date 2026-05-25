@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { MidsceneRecorderEvent } from '../../src/recorder';
 import {
+  createMidsceneRecorderMarkdownScreenshotAssets,
   getMidsceneRecorderEventDescription,
   getMidsceneRecorderScreenshotsForLLM,
   sanitizeMidsceneRecorderFileName,
@@ -117,5 +118,56 @@ describe('recorder shared schema helpers', () => {
     expect(sanitizeMidsceneRecorderFileName('Demo / Recording: 1')).toBe(
       'demo-recording-1',
     );
+  });
+
+  it('creates stable markdown screenshot assets from recorder events', () => {
+    const png =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ';
+    const jpeg = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD';
+    const assets = createMidsceneRecorderMarkdownScreenshotAssets(
+      [
+        {
+          type: 'navigation',
+          screenshotAfter: png,
+          pageInfo: { width: 100, height: 100 },
+          timestamp: 1,
+          hashId: 'nav',
+        },
+        {
+          type: 'click',
+          elementDescription: 'Submit',
+          screenshotWithBox: jpeg,
+          pageInfo: { width: 100, height: 100 },
+          timestamp: 2,
+          hashId: 'click',
+        },
+        {
+          type: 'scroll',
+          screenshotAfter: png,
+          pageInfo: { width: 100, height: 100 },
+          timestamp: 3,
+          hashId: 'scroll',
+        },
+      ],
+      {
+        baseDir: 'shots',
+        maxScreenshots: 3,
+      },
+    );
+
+    expect(assets).toEqual([
+      expect.objectContaining({
+        eventIndex: 0,
+        eventHashId: 'nav',
+        relativePath: './shots/event-001-navigation.png',
+        mimeType: 'image/png',
+      }),
+      expect.objectContaining({
+        eventIndex: 1,
+        eventHashId: 'click',
+        relativePath: './shots/event-002-click.jpg',
+        mimeType: 'image/jpeg',
+      }),
+    ]);
   });
 });

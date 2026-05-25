@@ -16,6 +16,11 @@ export {
   generatePlaywrightTestStream,
 } from './prompt/playwright-generator';
 export {
+  createRecorderMarkdownReplayPrompt,
+  generateRecorderMarkdownReplay,
+} from './prompt/markdown-generator';
+export type { RecorderMarkdownGenerationInput } from './prompt/markdown-generator';
+export {
   generateRecorderYamlTest,
   generateRecorderYamlTestStream,
   generateYamlTest,

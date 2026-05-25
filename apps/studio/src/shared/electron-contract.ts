@@ -85,7 +85,7 @@ export interface GenerateRecorderYamlResult {
   yaml: string;
 }
 
-export type StudioRecorderCodeType = 'yaml' | 'playwright';
+export type StudioRecorderCodeType = 'markdown' | 'yaml' | 'playwright';
 
 export interface GenerateRecorderCodeRequest {
   type: StudioRecorderCodeType;

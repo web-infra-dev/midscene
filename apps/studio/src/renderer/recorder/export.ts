@@ -1,4 +1,5 @@
 import {
+  createMidsceneRecorderMarkdownScreenshotAssets,
   getMidsceneRecorderEventDescription,
   sanitizeMidsceneRecorderFileName,
 } from '@midscene/shared/recorder';
@@ -39,6 +40,9 @@ function getExportMimeType(filters: SaveFileFilter[]) {
       return 'application/x-yaml';
     case 'zip':
       return 'application/zip';
+    case 'md':
+    case 'markdown':
+      return 'text/markdown';
     default:
       return 'text/plain';
   }
@@ -89,6 +93,94 @@ function scalarToYaml(value: string | number | boolean) {
 
 function eventDescription(event: StudioRecordedEvent) {
   return getMidsceneRecorderEventDescription(event);
+}
+
+function markdownZipPath(relativePath: string) {
+  return relativePath.replace(/^\.\//, '');
+}
+
+function screenshotAssetMap(
+  session: StudioRecordingSession,
+  screenshotBaseDir: string,
+) {
+  const assets = createMidsceneRecorderMarkdownScreenshotAssets(
+    session.events,
+    {
+      baseDir: screenshotBaseDir,
+    },
+  );
+  return {
+    assets,
+    assetByHashId: new Map(
+      assets.map((asset) => [asset.eventHashId, asset.relativePath]),
+    ),
+  };
+}
+
+function addMarkdownScreenshotAssetsToZip(
+  zip: JSZip,
+  session: StudioRecordingSession,
+  options: {
+    screenshotBaseDir: string;
+    zipPrefix?: string;
+  },
+) {
+  const assets = createMidsceneRecorderMarkdownScreenshotAssets(
+    session.events,
+    {
+      baseDir: options.screenshotBaseDir,
+    },
+  );
+  for (const asset of assets) {
+    zip.file(
+      `${options.zipPrefix || ''}${markdownZipPath(asset.relativePath)}`,
+      asset.base64Data,
+      {
+        base64: true,
+      },
+    );
+  }
+  return assets;
+}
+
+function rewriteMarkdownScreenshotBaseDir(
+  markdown: string,
+  screenshotBaseDir: string,
+) {
+  if (screenshotBaseDir === './screenshots') {
+    return markdown;
+  }
+  return markdown.split('./screenshots/').join(`${screenshotBaseDir}/`);
+}
+
+function targetText(session: StudioRecordingSession) {
+  return (
+    session.url ||
+    session.target.values.url ||
+    session.target.label ||
+    session.target.deviceId ||
+    'Recorded target'
+  );
+}
+
+function stepText(event: StudioRecordedEvent) {
+  const description = eventDescription(event);
+  switch (event.type) {
+    case 'navigation':
+      return event.url ? `Open ${event.url}` : description;
+    case 'click':
+      return event.elementDescription
+        ? `Tap "${description}"`
+        : `Tap the target shown in the screenshot. Recorded hint: ${description}`;
+    case 'input':
+      return `Input ${JSON.stringify(event.value || '')} into "${description}"`;
+    case 'keydown':
+      return `Press ${event.value || description}`;
+    case 'scroll':
+      return `Scroll as recorded: ${description}`;
+    default:
+      return description;
+  }
 }
 
 function eventToYamlFlow(event: StudioRecordedEvent) {
@@ -184,6 +276,47 @@ export function generateStudioRecorderYaml(session: StudioRecordingSession) {
   return `${lines.join('\n')}\n`;
 }
 
+export function generateStudioRecorderMarkdownReplay(
+  session: StudioRecordingSession,
+  options: {
+    screenshotBaseDir?: string;
+  } = {},
+) {
+  const screenshotBaseDir = options.screenshotBaseDir || './screenshots';
+  const { assetByHashId } = screenshotAssetMap(session, screenshotBaseDir);
+  const lines = [
+    `# ${session.name}`,
+    '',
+    '## Goal',
+    'Reproduce the recorded user workflow exactly.',
+    '',
+    '## Target',
+    `- Platform: ${session.target.platformId}`,
+    `- Start target: ${targetText(session)}`,
+    '',
+    '## Replay rules',
+    '- Follow the steps in order.',
+    '- Do not invent alternative navigation paths.',
+    '- If a referenced target cannot be found, stop and report the missing step.',
+    '',
+    '## Steps',
+  ];
+
+  if (session.events.length === 0) {
+    lines.push('1. Stop. This recording has no events to replay.');
+  } else {
+    session.events.forEach((event, index) => {
+      lines.push(`${index + 1}. ${stepText(event)}`);
+      const screenshotPath = assetByHashId.get(event.hashId);
+      if (screenshotPath) {
+        lines.push(`   ![step context](${screenshotPath})`);
+      }
+    });
+  }
+
+  return `${lines.join('\n')}\n`;
+}
+
 export function generateStudioRecorderPlaywright(
   session: StudioRecordingSession,
 ) {
@@ -253,6 +386,20 @@ export async function createStudioRecorderZipBase64(
   zip.file('recordings.md', generateStudioRecorderMarkdown(sessions));
   for (const session of sessions) {
     const baseName = `${sanitizeFileName(session.name)}-${session.id}`;
+    const markdownScreenshotBaseDir = `./${baseName}/screenshots`;
+    const markdown =
+      session.generatedCode?.markdown ||
+      generateStudioRecorderMarkdownReplay(session, {
+        screenshotBaseDir: markdownScreenshotBaseDir,
+      });
+    zip.file(
+      `markdown/${baseName}.md`,
+      rewriteMarkdownScreenshotBaseDir(markdown, markdownScreenshotBaseDir),
+    );
+    addMarkdownScreenshotAssetsToZip(zip, session, {
+      screenshotBaseDir: markdownScreenshotBaseDir,
+      zipPrefix: 'markdown/',
+    });
     zip.file(
       `${baseName}.yaml`,
       session.generatedCode?.yaml || generateStudioRecorderYaml(session),
@@ -264,6 +411,20 @@ export async function createStudioRecorderZipBase64(
       zip.file(`${baseName}.spec.ts`, playwright);
     }
   }
+  return zip.generateAsync({ type: 'base64' });
+}
+
+export async function createStudioRecorderMarkdownZipBase64(
+  session: StudioRecordingSession,
+) {
+  const zip = new JSZip();
+  const markdown =
+    session.generatedCode?.markdown ||
+    generateStudioRecorderMarkdownReplay(session);
+  zip.file('recording.md', markdown);
+  addMarkdownScreenshotAssetsToZip(zip, session, {
+    screenshotBaseDir: './screenshots',
+  });
   return zip.generateAsync({ type: 'base64' });
 }
 

@@ -1056,6 +1056,7 @@ class PlaygroundServer {
     } catch (error) {
       debugScreenshot('native recorder source stop failed:', error);
     }
+    await this.pullRecorderSourceEvents();
   }
 
   private async takePageRecorderScreenshot(): Promise<string | undefined> {

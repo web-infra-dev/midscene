@@ -435,6 +435,89 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(recorderSource.stop).toHaveBeenCalledTimes(1);
   });
 
+  test('recorder stop drains buffered platform recorder source events', async () => {
+    let stopped = false;
+    const recorderSource = {
+      getCapabilities: vi.fn(() => ({
+        supported: true,
+        source: 'computer-native',
+        platformId: 'computer',
+      })),
+      start: vi.fn(async () => ({
+        ok: true,
+        supported: true,
+        source: 'computer-native',
+        platformId: 'computer',
+      })),
+      stop: vi.fn(async () => {
+        stopped = true;
+      }),
+      getEvents: vi.fn(async (since = 0) => ({
+        events:
+          stopped && since === 0
+            ? [
+                {
+                  type: 'click',
+                  source: 'computer-native',
+                  actionType: 'Click',
+                  rawPayload: { x: 20, y: 30 },
+                  elementRect: { x: 20, y: 30 },
+                  pageInfo: { width: 1440, height: 900 },
+                  timestamp: 2,
+                  hashId: 'event-final',
+                },
+              ]
+            : [],
+        nextIndex: stopped ? 1 : since,
+      })),
+    };
+    const server = new PlaygroundServer();
+    server.setPreparedPlatform({
+      platformId: 'computer',
+      title: 'Computer',
+      sessionManager: {
+        async createSession() {
+          return {
+            agent: {
+              interface: {
+                interfaceType: 'computer',
+                actionSpace: () => [],
+              },
+            } as any,
+            recorderSource,
+          };
+        },
+      },
+    });
+
+    await server.launch(6120);
+    const createSessionHandler = getRouteHandler(server, 'post', '/session');
+    await createSessionHandler({ body: {} }, createMockResponse());
+
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-1' } },
+      createMockResponse(),
+    );
+
+    const stopHandler = getRouteHandler(server, 'post', '/recorder/stop');
+    await stopHandler({}, createMockResponse());
+    expect(recorderSource.stop).toHaveBeenCalledTimes(1);
+    expect(recorderSource.getEvents).toHaveBeenCalledWith(0);
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const eventsResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, eventsResponse);
+    expect(eventsResponse.body).toMatchObject({
+      events: [{ source: 'computer-native', hashId: 'event-final' }],
+      nextIndex: 1,
+    });
+  });
+
   test('recorder records successful Studio preview interactions', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const server = new PlaygroundServer({

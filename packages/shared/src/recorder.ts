@@ -63,9 +63,25 @@ export interface MidsceneRecorderTarget {
 }
 
 export interface MidsceneRecorderGeneratedCode {
+  markdown?: string;
   yaml?: string;
   playwright?: string;
   updatedAt?: number;
+}
+
+export interface MidsceneRecorderMarkdownScreenshotAsset {
+  eventIndex: number;
+  eventHashId: string;
+  eventType: MidsceneRecorderEventType;
+  relativePath: string;
+  dataUrl: string;
+  base64Data: string;
+  mimeType: string;
+}
+
+export interface MidsceneRecorderMarkdownScreenshotOptions {
+  baseDir?: string;
+  maxScreenshots?: number;
 }
 
 export function getMidsceneRecorderEventDescription(
@@ -141,6 +157,133 @@ export function sanitizeMidsceneRecorderFileName(value: string) {
       .replace(/^-|-$/g, '')
       .toLowerCase() || 'midscene-recording'
   );
+}
+
+function normalizeMarkdownAssetBaseDir(baseDir?: string) {
+  const value = (baseDir || './screenshots').replace(/\/+$/g, '');
+  if (value.startsWith('./') || value.startsWith('../')) {
+    return value;
+  }
+  return `./${value}`;
+}
+
+function padEventIndex(index: number) {
+  return String(index + 1).padStart(3, '0');
+}
+
+function parseScreenshotDataUrl(value: string):
+  | {
+      dataUrl: string;
+      base64Data: string;
+      mimeType: string;
+      extension: string;
+    }
+  | undefined {
+  const dataUrlMatch = value.match(
+    /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/,
+  );
+  if (dataUrlMatch) {
+    const mimeType = dataUrlMatch[1];
+    const extension = mimeType.includes('jpeg')
+      ? 'jpg'
+      : mimeType.split('/')[1]?.replace(/[^a-zA-Z0-9]/g, '') || 'png';
+    return {
+      dataUrl: value,
+      base64Data: dataUrlMatch[2],
+      mimeType,
+      extension,
+    };
+  }
+
+  if (/^[a-zA-Z0-9+/=\s]+$/.test(value) && value.trim().length > 0) {
+    const base64Data = value.replace(/\s+/g, '');
+    return {
+      dataUrl: `data:image/png;base64,${base64Data}`,
+      base64Data,
+      mimeType: 'image/png',
+      extension: 'png',
+    };
+  }
+
+  return undefined;
+}
+
+function getRecorderEventScreenshot(event: MidsceneRecorderEvent) {
+  return (
+    event.screenshotWithBox || event.screenshotAfter || event.screenshotBefore
+  );
+}
+
+function hasCoordinateFallback(event: MidsceneRecorderEvent) {
+  return (
+    !event.elementDescription &&
+    event.elementRect?.x !== undefined &&
+    event.elementRect?.y !== undefined
+  );
+}
+
+function shouldIncludeMarkdownScreenshot(
+  event: MidsceneRecorderEvent,
+  eventIndex: number,
+  lastEventIndex: number,
+) {
+  return (
+    eventIndex === 0 ||
+    eventIndex === lastEventIndex ||
+    event.type === 'navigation' ||
+    event.type === 'scroll' ||
+    event.type === 'input' ||
+    Boolean(event.screenshotWithBox) ||
+    !event.elementDescription ||
+    hasCoordinateFallback(event)
+  );
+}
+
+export function createMidsceneRecorderMarkdownScreenshotAssets(
+  events: MidsceneRecorderEvent[],
+  options: MidsceneRecorderMarkdownScreenshotOptions = {},
+): MidsceneRecorderMarkdownScreenshotAsset[] {
+  const baseDir = normalizeMarkdownAssetBaseDir(options.baseDir);
+  const maxScreenshots = options.maxScreenshots ?? 8;
+  const assets: MidsceneRecorderMarkdownScreenshotAsset[] = [];
+  const seenScreenshots = new Set<string>();
+  const lastEventIndex = events.length - 1;
+
+  for (let index = 0; index < events.length; index += 1) {
+    if (assets.length >= maxScreenshots) {
+      break;
+    }
+
+    const event = events[index];
+    if (!shouldIncludeMarkdownScreenshot(event, index, lastEventIndex)) {
+      continue;
+    }
+
+    const screenshot = getRecorderEventScreenshot(event);
+    if (!screenshot || seenScreenshots.has(screenshot)) {
+      continue;
+    }
+
+    const parsedScreenshot = parseScreenshotDataUrl(screenshot);
+    if (!parsedScreenshot) {
+      continue;
+    }
+
+    seenScreenshots.add(screenshot);
+    const safeType = event.type.replace(/[^a-zA-Z0-9-]/g, '-');
+    const fileName = `event-${padEventIndex(index)}-${safeType}.${parsedScreenshot.extension}`;
+    assets.push({
+      eventIndex: index,
+      eventHashId: event.hashId,
+      eventType: event.type,
+      relativePath: `${baseDir}/${fileName}`,
+      dataUrl: parsedScreenshot.dataUrl,
+      base64Data: parsedScreenshot.base64Data,
+      mimeType: parsedScreenshot.mimeType,
+    });
+  }
+
+  return assets;
 }
 
 function scalarToYaml(value: string | number | boolean) {

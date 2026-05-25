@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { useStudioPlayground } from '../playground/useStudioPlayground';
 import { mapPageRecorderEventToStudioRecordedEvent } from './event-mapper';
 import {
+  createStudioRecorderMarkdownZipBase64,
   createStudioRecorderZipBase64,
   generateStudioRecorderJson,
   generateStudioRecorderPlaywright,
@@ -156,6 +157,17 @@ function createSessionUrl(target: StudioRecorderTarget) {
   return typeof url === 'string' ? url : '';
 }
 
+type StudioRecorderRuntime = {
+  sessionId: string;
+  cursor: number;
+  stopping: boolean;
+  getRecorderEvents: (since?: number) => Promise<{
+    events: PlaygroundPageRecordedEvent[];
+    nextIndex: number;
+  }>;
+  stopRecorderSession?: () => Promise<unknown>;
+};
+
 function upsertEvent(
   session: StudioRecordingSession,
   event: StudioRecordedEvent,
@@ -200,6 +212,50 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       null,
     [state.currentSessionId, state.sessions],
   );
+  const recordPageEventRef = useRef<
+    (event: PlaygroundPageRecordedEvent) => Promise<void>
+  >(async () => undefined);
+  const recorderRuntimeRef = useRef<StudioRecorderRuntime | null>(null);
+
+  const drainRecorderRuntime = useCallback(async (sessionId: string) => {
+    const runtime = recorderRuntimeRef.current;
+    if (!runtime || runtime.sessionId !== sessionId) {
+      return;
+    }
+
+    const result = await runtime.getRecorderEvents(runtime.cursor);
+    runtime.cursor = result.nextIndex;
+    for (const event of result.events) {
+      await recordPageEventRef.current(event);
+    }
+  }, []);
+
+  const stopRecorderRuntime = useCallback(
+    async (sessionId: string) => {
+      const runtime = recorderRuntimeRef.current;
+      if (!runtime || runtime.sessionId !== sessionId || runtime.stopping) {
+        return;
+      }
+
+      runtime.stopping = true;
+      try {
+        await runtime.stopRecorderSession?.();
+      } catch (error) {
+        debugRecorder('failed to stop server recorder session:', error);
+      }
+
+      try {
+        await drainRecorderRuntime(sessionId);
+      } catch (error) {
+        debugRecorder('failed to drain recorder events:', error);
+      } finally {
+        if (recorderRuntimeRef.current === runtime) {
+          recorderRuntimeRef.current = null;
+        }
+      }
+    },
+    [drainRecorderRuntime],
+  );
 
   const stopRecording = useCallback(async () => {
     const snapshot = stateRef.current;
@@ -210,17 +266,22 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       return;
     }
 
+    await stopRecorderRuntime(session.id);
+    const latestSnapshot = stateRef.current;
+    const latestSession =
+      latestSnapshot.sessions.find((item) => item.id === session.id) ?? session;
+
     const updatedSession: StudioRecordingSession = {
-      ...session,
+      ...latestSession,
       status: 'completed',
       stoppedAt: Date.now(),
       updatedAt: Date.now(),
     };
-    stateRef.current = upsertSessionInState(snapshot, updatedSession);
+    stateRef.current = upsertSessionInState(latestSnapshot, updatedSession);
     dispatch({ type: 'upsert-session', session: updatedSession });
     dispatch({ type: 'set-recording', isRecording: false });
     await upsertStudioRecorderSession(updatedSession);
-  }, []);
+  }, [stopRecorderRuntime]);
 
   useEffect(() => {
     let cancelled = false;
@@ -321,7 +382,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
         onProgress?: (progress: StudioRecorderGenerationProgress) => void;
       } = {},
     ) => {
-      const type = options.type || 'yaml';
+      const type = options.type || 'markdown';
       const session = stateRef.current.sessions.find(
         (item) => item.id === sessionId,
       );
@@ -409,9 +470,13 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
         details:
           type === 'playwright'
             ? 'Generating Playwright test code...'
-            : `Generating YAML configuration${
-                options.language ? ` in ${options.language}` : ''
-              }...`,
+            : type === 'markdown'
+              ? `Generating Markdown replay${
+                  options.language ? ` in ${options.language}` : ''
+                }...`
+              : `Generating YAML configuration${
+                  options.language ? ` in ${options.language}` : ''
+                }...`,
       });
       let code: string;
       try {
@@ -494,7 +559,6 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     },
     [],
   );
-  const recordPageEventRef = useRef(recordPageEvent);
   recordPageEventRef.current = recordPageEvent;
 
   useEffect(() => {
@@ -519,17 +583,12 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
 
     let cancelled = false;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
-    let cursor = 0;
 
     const pollEvents = async () => {
-      const result = await playgroundSDK.getRecorderEvents(cursor);
-      if (cancelled) {
+      if (cancelled || !session) {
         return;
       }
-      cursor = result.nextIndex;
-      for (const event of result.events) {
-        await recordPageEventRef.current(event);
-      }
+      await drainRecorderRuntime(session.id);
     };
 
     const startPageRecorder = async () => {
@@ -537,8 +596,20 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
         return;
       }
 
+      recorderRuntimeRef.current = {
+        sessionId: session.id,
+        cursor: 0,
+        stopping: false,
+        getRecorderEvents: playgroundSDK.getRecorderEvents.bind(playgroundSDK),
+        stopRecorderSession:
+          typeof playgroundSDK.stopRecorderSession === 'function'
+            ? playgroundSDK.stopRecorderSession.bind(playgroundSDK)
+            : undefined,
+      };
+
       const result = await playgroundSDK.startRecorderSession(session.id);
       if (cancelled) {
+        void stopRecorderRuntime(session.id);
         return;
       }
 
@@ -576,8 +647,8 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       if (pollTimer) {
         clearInterval(pollTimer);
       }
-      if (typeof playgroundSDK.stopRecorderSession === 'function') {
-        void playgroundSDK.stopRecorderSession();
+      if (session) {
+        void stopRecorderRuntime(session.id);
       }
     };
   }, [
@@ -587,7 +658,9 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     studioPlayground.phase === 'ready'
       ? studioPlayground.controller.state.playgroundSDK
       : null,
+    drainRecorderRuntime,
     stopRecording,
+    stopRecorderRuntime,
   ]);
 
   const exportSessionJson = useCallback(async (sessionId: string) => {
@@ -632,6 +705,20 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
 
       if (type === 'yaml') {
         await exportSessionYaml(sessionId);
+        return;
+      }
+
+      if (type === 'markdown') {
+        await saveStudioRecorderFile({
+          title: 'Export Recorder Markdown Replay',
+          defaultFileName: getStudioRecorderExportFileName(
+            session,
+            'markdown.zip',
+          ),
+          filters: [{ name: 'ZIP Archive', extensions: ['zip'] }],
+          content: await createStudioRecorderMarkdownZipBase64(session),
+          encoding: 'base64',
+        });
         return;
       }
 

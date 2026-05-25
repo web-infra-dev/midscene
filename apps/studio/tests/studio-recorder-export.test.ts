@@ -1,6 +1,12 @@
 /** @vitest-environment jsdom */
+import JSZip from 'jszip';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { saveStudioRecorderFile } from '../src/renderer/recorder/export';
+import {
+  createStudioRecorderMarkdownZipBase64,
+  createStudioRecorderZipBase64,
+  saveStudioRecorderFile,
+} from '../src/renderer/recorder/export';
+import type { StudioRecordingSession } from '../src/renderer/recorder/types';
 
 describe('studio recorder export', () => {
   afterEach(() => {
@@ -54,5 +60,103 @@ describe('studio recorder export', () => {
     expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
     expect(click).toHaveBeenCalled();
     expect(writeFile).not.toHaveBeenCalled();
+  });
+
+  it('exports Markdown replay zip with relative screenshots', async () => {
+    const session: StudioRecordingSession = {
+      id: 'session-1',
+      name: 'Replay login',
+      status: 'completed',
+      target: {
+        platformId: 'web',
+        label: 'Web',
+        values: { url: 'https://example.com' },
+      },
+      events: [
+        {
+          type: 'click',
+          platformId: 'web',
+          actionType: 'Click',
+          rawPayload: {},
+          target: {
+            platformId: 'web',
+            label: 'Web',
+            values: { url: 'https://example.com' },
+          },
+          pageInfo: { width: 1280, height: 720 },
+          elementDescription: 'Login button',
+          screenshotWithBox:
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ',
+          timestamp: 1,
+          hashId: 'click-1',
+        },
+      ],
+      createdAt: 1,
+      updatedAt: 2,
+    };
+
+    const zip = await JSZip.loadAsync(
+      await createStudioRecorderMarkdownZipBase64(session),
+      { base64: true },
+    );
+    const markdown = await zip.file('recording.md')?.async('string');
+
+    expect(markdown).toContain('# Replay login');
+    expect(markdown).toContain('./screenshots/event-001-click.png');
+    expect(zip.file('screenshots/event-001-click.png')).toBeTruthy();
+  });
+
+  it('includes Markdown replay files and screenshots in export-all zip', async () => {
+    const session: StudioRecordingSession = {
+      id: 'session-1',
+      name: 'Replay login',
+      status: 'completed',
+      target: {
+        platformId: 'web',
+        label: 'Web',
+        values: { url: 'https://example.com' },
+      },
+      events: [
+        {
+          type: 'navigation',
+          platformId: 'web',
+          actionType: 'Navigate',
+          rawPayload: {},
+          target: {
+            platformId: 'web',
+            label: 'Web',
+            values: { url: 'https://example.com' },
+          },
+          pageInfo: { width: 1280, height: 720 },
+          screenshotAfter:
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ',
+          timestamp: 1,
+          hashId: 'nav-1',
+          url: 'https://example.com',
+        },
+      ],
+      generatedCode: {
+        markdown:
+          '# Replay login\n\n## Steps\n1. Open page\n   ![step context](./screenshots/event-001-navigation.png)\n',
+      },
+      createdAt: 1,
+      updatedAt: 2,
+    };
+
+    const zip = await JSZip.loadAsync(
+      await createStudioRecorderZipBase64([session]),
+      { base64: true },
+    );
+    const markdownFileName = 'markdown/replay-login-session-1.md';
+    const markdown = await zip.file(markdownFileName)?.async('string');
+
+    expect(markdown).toContain(
+      './replay-login-session-1/screenshots/event-001-navigation.png',
+    );
+    expect(
+      zip.file(
+        'markdown/replay-login-session-1/screenshots/event-001-navigation.png',
+      ),
+    ).toBeTruthy();
   });
 });

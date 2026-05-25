@@ -10,6 +10,9 @@ vi.mock('@midscene/core/ai-model', () => ({
   generatePlaywrightTest: vi.fn(
     async () => 'import { test } from "@playwright/test";\n',
   ),
+  generateRecorderMarkdownReplay: vi.fn(
+    async () => '# Replay recording\n\n## Steps\n1. Open page\n',
+  ),
   generateRecorderYamlTest: vi.fn(
     async () => 'web:\n  url: "https://example.com"\n',
   ),
@@ -18,6 +21,7 @@ vi.mock('@midscene/core/ai-model', () => ({
 import {
   callAIWithObjectResponse,
   generatePlaywrightTest,
+  generateRecorderMarkdownReplay,
   generateRecorderYamlTest,
 } from '@midscene/core/ai-model';
 import {
@@ -82,6 +86,22 @@ describe('Studio recorder codegen in main', () => {
       code: 'web:\n  url: "https://example.com"\n',
     });
     expect(generateRecorderYamlTest).toHaveBeenCalledWith(
+      yamlRequest.input,
+      yamlRequest.modelConfig,
+    );
+  });
+
+  it('runs Markdown replay generation in the main process layer', async () => {
+    await expect(
+      generateRecorderCodeInMain({
+        ...yamlRequest,
+        type: 'markdown',
+      }),
+    ).resolves.toEqual({
+      type: 'markdown',
+      code: '# Replay recording\n\n## Steps\n1. Open page\n',
+    });
+    expect(generateRecorderMarkdownReplay).toHaveBeenCalledWith(
       yamlRequest.input,
       yamlRequest.modelConfig,
     );

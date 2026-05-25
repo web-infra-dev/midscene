@@ -11,8 +11,9 @@ import { useStudioRecorder } from '../src/renderer/recorder/useStudioRecorder';
 
 vi.mock('../src/renderer/recorder/codegen', () => ({
   generateStudioRecorderCodeWithAI: vi.fn(async (_session, options) => {
-    options?.onChunk?.('partial yaml\n');
-    return 'ai yaml\n';
+    const type = options?.type || 'markdown';
+    options?.onChunk?.(`partial ${type}\n`);
+    return `ai ${type}\n`;
   }),
   generateStudioRecorderMetadataWithAI: vi.fn(async () => ({
     title: 'Browsing Midscene.js Documentation',
@@ -214,6 +215,54 @@ describe('StudioRecorderProvider platform source recording', () => {
     await mounted.cleanup();
   });
 
+  it('drains final recorder source events when recording stops', async () => {
+    const finalEvent = {
+      type: 'click',
+      source: 'computer-native',
+      actionType: 'Click',
+      elementDescription: '(30, 40)',
+      elementRect: { x: 30, y: 40 },
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 456,
+      hashId: 'click-final',
+    };
+    const { context, stopRecorderSession, getRecorderEvents } =
+      createConnectedStudioContext();
+    let stopped = false;
+    stopRecorderSession.mockImplementation(async () => {
+      stopped = true;
+      return { ok: true };
+    });
+    getRecorderEvents.mockImplementation(async (since = 0) => ({
+      events: stopped && since === 0 ? [finalEvent] : [],
+      nextIndex: stopped ? 1 : since,
+    }));
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+    expect(mounted.recorder?.currentSession?.events).toHaveLength(0);
+
+    await act(async () => {
+      await mounted.recorder?.stopRecording();
+    });
+    await flushPromises();
+
+    expect(stopRecorderSession).toHaveBeenCalledTimes(1);
+    expect(getRecorderEvents).toHaveBeenLastCalledWith(0);
+    expect(mounted.recorder?.currentSession?.status).toBe('completed');
+    expect(mounted.recorder?.currentSession?.events).toHaveLength(1);
+    expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
+      hashId: 'click-final',
+      type: 'click',
+      platformId: 'computer',
+    });
+
+    await mounted.cleanup();
+  });
+
   it('does not record SDK interact calls as recorder events', async () => {
     const { context, playgroundSDK, interact } = createConnectedStudioContext();
     const mounted = await mountRecorder(context);
@@ -340,6 +389,46 @@ describe('StudioRecorderProvider platform source recording', () => {
     );
     expect(mounted.recorder?.currentSession?.description).toBe(
       'The user visited the Midscene.js introduction page.',
+    );
+
+    await mounted.cleanup();
+  });
+
+  it('generates Markdown by default for the current session', async () => {
+    const event = {
+      type: 'click',
+      source: 'computer-native',
+      actionType: 'Click',
+      elementDescription: '(10, 20)',
+      elementRect: { x: 10, y: 20 },
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 123,
+      hashId: 'click-1',
+    };
+    const { context } = createConnectedStudioContext({ events: [event] });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+
+    const sessionId = mounted.recorder?.currentSession?.id;
+    let markdown = '';
+    await act(async () => {
+      markdown = await mounted.recorder!.generateSessionCode(sessionId!);
+    });
+    await flushPromises();
+
+    expect(generateStudioRecorderCodeWithAI).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: sessionId,
+      }),
+      expect.objectContaining({ type: 'markdown' }),
+    );
+    expect(markdown).toBe('ai markdown\n');
+    expect(mounted.recorder?.currentSession?.generatedCode?.markdown).toBe(
+      'ai markdown\n',
     );
 
     await mounted.cleanup();
