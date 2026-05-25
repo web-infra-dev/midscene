@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'packages/computer/**'
+      - 'packages/playground/**'
+      - 'packages/core/**'
       - 'apps/chrome-extension/**'
       - '.github/workflows/headless-linux.yml'
   workflow_dispatch:
@@ -103,6 +105,71 @@ jobs:
 
     - name: Check test result
       if: steps.test-ai.outcome == 'failure'
+      run: exit 1
+
+  headless-linux-cancel:
+    runs-on: ubuntu-22.04
+    env:
+      MIDSCENE_REPORT_QUIET: "true"
+      MIDSCENE_COMPUTER_HEADLESS_LINUX: "true"
+      CI: "1"
+
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      with:
+        ref: ${{ github.event.inputs.branch || github.ref }}
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
+      with:
+        version: 9.3.0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version: '24.13.0'
+        cache: 'pnpm'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          xvfb \
+          x11-xserver-utils \
+          imagemagick \
+          libxtst6 \
+          libxinerama1 \
+          libx11-6 \
+          libxkbcommon-x11-0 \
+          libpng16-16 \
+          libnss3 \
+          libatk-bridge2.0-0 \
+          libdrm2 \
+          libgbm1 \
+          libasound2
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build project
+      run: pnpm run build:skip-cache
+
+    - name: Run playground cancel regression test
+      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/playground-cancel.test.ts
+      timeout-minutes: 10
+      id: test-cancel
+      continue-on-error: true
+
+    - name: Upload test report
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: headless-linux-cancel-report
+        path: packages/computer/midscene_run/report
+        if-no-files-found: ignore
+
+    - name: Check test result
+      if: steps.test-cancel.outcome == 'failure'
       run: exit 1
 
   chrome-extension:

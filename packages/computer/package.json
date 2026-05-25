@@ -48,6 +48,7 @@
     "node-mac-permissions": "2.5.0"
   },
   "devDependencies": {
+    "@midscene/playground": "workspace:*",
     "@rslib/core": "^0.18.3",
     "@types/node": "^18.0.0",
     "@types/screenshot-desktop": "1.15.0",
