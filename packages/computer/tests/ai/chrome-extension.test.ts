@@ -64,27 +64,27 @@ describe('chrome extension smoke test', () => {
 
   it('playground: UI elements are rendered correctly', async () => {
     await agent.aiAssert(
-      `${SIDE_PANEL} shows: (1) action type buttons like "Action" and "Query", (2) a text input area with a "Run" button, (3) a gear/settings icon`,
+      `${SIDE_PANEL} shows: (1) action type buttons like "Tap" and "Query", (2) a text input area with a "Run" button, (3) a gear/settings icon`,
     );
   });
 
   // ── 3. Action Type Switching ──────────────────────────────────────────
 
   it('playground: action type switching changes placeholder', async () => {
-    await agent.aiAct(`Click the "aiQuery" button in ${SIDE_PANEL}`);
+    await agent.aiAct(`Click the "Query" button in ${SIDE_PANEL}`);
     await sleep(500);
     await agent.aiAssert(
       `${SIDE_PANEL} shows an input area with placeholder text containing "query"`,
     );
 
-    await agent.aiAct(`Click the "aiAssert" button in ${SIDE_PANEL}`);
+    await agent.aiAct(`Click the "Assert" button in ${SIDE_PANEL}`);
     await sleep(500);
     await agent.aiAssert(
       `${SIDE_PANEL} shows an input area with placeholder text containing "assert"`,
     );
 
-    // Switch back to aiAct for the next test
-    await agent.aiAct(`Click the "aiAct" button in ${SIDE_PANEL}`);
+    // Switch back to Tap mode for the next test.
+    await agent.aiAct(`Click the "Tap" button in ${SIDE_PANEL}`);
     await sleep(500);
   });
 
