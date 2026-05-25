@@ -532,8 +532,16 @@ export class Agent<
   async callActionInActionSpace<T = any>(
     type: string,
     opt?: T, // and all other action params
+    options?: { abortSignal?: AbortSignal },
   ) {
     debug('callActionInActionSpace', type, ',', opt);
+
+    const abortSignal = options?.abortSignal;
+    if (abortSignal?.aborted) {
+      throw new Error(
+        `callActionInActionSpace aborted: ${abortSignal.reason || 'signal already aborted'}`,
+      );
+    }
 
     const actionPlan: PlanningAction<T> = {
       type: type as any,
@@ -562,6 +570,7 @@ export class Agent<
       plans,
       modelConfigForPlanning,
       defaultIntentModelConfig,
+      { abortSignal },
     );
     return output;
   }

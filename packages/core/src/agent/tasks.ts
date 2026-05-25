@@ -231,12 +231,20 @@ export class TaskExecutor {
     plans: PlanningAction[],
     modelConfigForPlanning: IModelConfig,
     modelConfigForDefaultIntent: IModelConfig,
+    options?: { abortSignal?: AbortSignal },
   ): Promise<ExecutionResult> {
+    const abortSignal = options?.abortSignal;
+    if (abortSignal?.aborted) {
+      throw new Error(
+        `runPlans aborted: ${abortSignal.reason || 'signal already aborted'}`,
+      );
+    }
     const session = this.createExecutionSession(title);
     const { tasks } = await this.convertPlanToExecutable(
       plans,
       modelConfigForPlanning,
       modelConfigForDefaultIntent,
+      { abortSignal },
     );
     const runner = session.getRunner();
     const result = await session.appendAndRun(tasks);

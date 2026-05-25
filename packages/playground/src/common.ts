@@ -193,6 +193,7 @@ export async function executeAction(
       return await activeAgent.callActionInActionSpace(
         action.name,
         parsedParams[0],
+        { abortSignal: options.abortSignal },
       );
     } else {
       // For prompt-based actions, we need to build the detailed locate param
@@ -215,6 +216,7 @@ export async function executeAction(
       return await activeAgent.callActionInActionSpace(
         action.name,
         actionParams,
+        { abortSignal: options.abortSignal },
       );
     }
   } else {

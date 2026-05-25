@@ -379,6 +379,11 @@ class PlaygroundServer {
   // Track current running task
   private currentTaskId: string | null = null;
 
+  // Cooperative abort: signals shared with the in-flight executeAction so
+  // /cancel can interrupt LLM streams and Device sleeps without waiting for
+  // the destroy/recreate fallback.
+  private taskAbortControllers = new Map<string, AbortController>();
+
   // Flag to pause MJPEG polling during agent recreation or task execution
   private _agentReady = true;
 
@@ -1300,6 +1305,14 @@ class PlaygroundServer {
         };
       }
 
+      // Cooperative abort: register a controller per requestId so /cancel
+      // can interrupt the in-flight LLM call / Device sleep without
+      // waiting on the destroy+recreate fallback.
+      const abortController = requestId ? new AbortController() : undefined;
+      if (requestId && abortController) {
+        this.taskAbortControllers.set(requestId, abortController);
+      }
+
       const response: {
         result: unknown;
         dump: ExecutionDump | null;
@@ -1334,6 +1347,7 @@ class PlaygroundServer {
           screenshotIncluded,
           domIncluded,
           deviceOptions,
+          abortSignal: abortController?.signal,
         });
       } catch (error: unknown) {
         response.error = formatErrorMessage(error);
@@ -1386,6 +1400,7 @@ class PlaygroundServer {
       // Clean up task execution dumps and unlock after execution completes
       if (requestId) {
         delete this.taskExecutionDumps[requestId];
+        this.taskAbortControllers.delete(requestId);
         // Release the lock
         if (this.currentTaskId === requestId) {
           this.currentTaskId = null;
@@ -1415,6 +1430,18 @@ class PlaygroundServer {
           }
 
           console.log(`Cancelling task: ${requestId}`);
+
+          // Cooperative abort: tell the in-flight executeAction to stop ASAP
+          // (interrupts LLM streams, Device sleep loops) before we fall back
+          // to destroy+recreate.
+          const abortController = this.taskAbortControllers.get(requestId);
+          if (abortController && !abortController.signal.aborted) {
+            try {
+              abortController.abort(new Error('cancelled by user'));
+            } catch (error) {
+              console.warn('Failed to abort task controller:', error);
+            }
+          }
 
           // Get current execution data before cancelling (dump and reportHTML)
           let dump: any = null;
@@ -1452,6 +1479,7 @@ class PlaygroundServer {
 
           // Clean up
           delete this.taskExecutionDumps[requestId];
+          this.taskAbortControllers.delete(requestId);
           this.currentTaskId = null;
 
           res.json({

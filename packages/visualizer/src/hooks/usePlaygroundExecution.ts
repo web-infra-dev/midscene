@@ -368,6 +368,20 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
   const handleStop = useCallback(async () => {
     const thisRunningId = currentRunningIdRef.current;
     if (thisRunningId && playgroundSDK && playgroundSDK.cancelExecution) {
+      // Flip the interrupted flag and clear loading immediately so any
+      // in-flight progress / dump callbacks short-circuit while we wait for
+      // the server to acknowledge cancellation. Without this the UI looks
+      // stuck whenever the cancel POST is slow (e.g. server is flushing the
+      // current report).
+      interruptedFlagRef.current[thisRunningId] = true;
+      setLoading(false);
+      if (playgroundSDK.onProgressUpdate) {
+        playgroundSDK.onProgressUpdate(() => {});
+      }
+      if (playgroundSDK.onDumpUpdate) {
+        playgroundSDK.onDumpUpdate(() => {});
+      }
+
       try {
         // Cancel execution - may return execution data directly
         const cancelResult = await playgroundSDK.cancelExecution(
@@ -388,19 +402,6 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
           } catch (error) {
             console.error('Failed to get execution data before stop:', error);
           }
-        }
-
-        interruptedFlagRef.current[thisRunningId] = true;
-        setLoading(false);
-
-        // Clear progress callback on stop to prevent stray tips
-        if (playgroundSDK.onProgressUpdate) {
-          playgroundSDK.onProgressUpdate(() => {});
-        }
-
-        // Clear dump update callback
-        if (playgroundSDK.onDumpUpdate) {
-          playgroundSDK.onDumpUpdate(() => {});
         }
 
         // Update system message to mark as stopped

@@ -301,6 +301,36 @@ export function runPhasedScroll(
 }
 
 /**
+ * Sleeps `ms` milliseconds, but throws immediately if `signal` aborts.
+ * Used so `destroy()` can interrupt long-running input sequences (smooth
+ * mouse moves, phased scrolls, text input) instead of waiting for them to
+ * finish on their own.
+ */
+function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new Error('ComputerDevice has been destroyed'));
+      return;
+    }
+    const timeoutId = setTimeout(() => {
+      if (signal && onAbort) {
+        signal.removeEventListener('abort', onAbort);
+      }
+      resolve();
+    }, ms);
+    const onAbort = signal
+      ? () => {
+          clearTimeout(timeoutId);
+          reject(new Error('ComputerDevice has been destroyed'));
+        }
+      : undefined;
+    if (signal && onAbort) {
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+  });
+}
+
+/**
  * Smooth mouse movement to trigger mousemove events
  */
 async function smoothMoveMouse(
@@ -308,10 +338,14 @@ async function smoothMoveMouse(
   targetY: number,
   steps: number,
   stepDelay: number,
+  abortSignal?: AbortSignal,
 ): Promise<void> {
   assert(libnut, 'libnut not initialized');
   const currentPos = libnut.getMousePos();
   for (let i = 1; i <= steps; i++) {
+    if (abortSignal?.aborted) {
+      throw new Error('ComputerDevice has been destroyed');
+    }
     const stepX = Math.round(
       currentPos.x + ((targetX - currentPos.x) * i) / steps,
     );
@@ -319,7 +353,7 @@ async function smoothMoveMouse(
       currentPos.y + ((targetY - currentPos.y) * i) / steps,
     );
     libnut.moveMouse(stepX, stepY);
-    await sleep(stepDelay);
+    await abortableSleep(stepDelay, abortSignal);
   }
 }
 
@@ -421,6 +455,12 @@ export class ComputerDevice implements AbstractInterface {
   private displayId?: string;
   private description?: string;
   private destroyed = false;
+  /**
+   * Aborted in `destroy()` so that in-flight input sequences (smooth mouse
+   * moves, phased scrolls, clipboard input) can wake up and bail out instead
+   * of running to completion after the agent has been recreated.
+   */
+  private destroyAbortController = new AbortController();
   private xvfbInstance?: XvfbInstance;
   private xvfbCleanup?: () => void;
   /**
@@ -433,6 +473,7 @@ export class ComputerDevice implements AbstractInterface {
   readonly inputPrimitives: ComputerInputPrimitives = {
     pointer: {
       tap: async ({ x, y }) => {
+        this.throwIfDestroyed('tap');
         assert(libnut, 'libnut not initialized');
         const targetX = Math.round(x);
         const targetY = Math.round(y);
@@ -442,43 +483,51 @@ export class ComputerDevice implements AbstractInterface {
           targetY,
           SMOOTH_MOVE_STEPS_TAP,
           SMOOTH_MOVE_DELAY_TAP,
+          this.destroyAbortController.signal,
         );
+        this.throwIfDestroyed('tap');
         libnut.mouseToggle('down', 'left');
-        await sleep(CLICK_HOLD_DURATION);
+        await this.abortableSleep(CLICK_HOLD_DURATION);
         libnut.mouseToggle('up', 'left');
       },
       doubleClick: async ({ x, y }) => {
+        this.throwIfDestroyed('doubleClick');
         assert(libnut, 'libnut not initialized');
         libnut.moveMouse(Math.round(x), Math.round(y));
         libnut.mouseClick('left', true);
       },
       rightClick: async ({ x, y }) => {
+        this.throwIfDestroyed('rightClick');
         assert(libnut, 'libnut not initialized');
         libnut.moveMouse(Math.round(x), Math.round(y));
         libnut.mouseClick('right');
       },
       hover: async ({ x, y }) => {
+        this.throwIfDestroyed('hover');
         assert(libnut, 'libnut not initialized');
         await smoothMoveMouse(
           Math.round(x),
           Math.round(y),
           SMOOTH_MOVE_STEPS_MOUSE_MOVE,
           SMOOTH_MOVE_DELAY_MOUSE_MOVE,
+          this.destroyAbortController.signal,
         );
-        await sleep(MOUSE_MOVE_EFFECT_WAIT);
+        await this.abortableSleep(MOUSE_MOVE_EFFECT_WAIT);
       },
       dragAndDrop: async (from, to) => {
+        this.throwIfDestroyed('dragAndDrop');
         assert(libnut, 'libnut not initialized');
         libnut.moveMouse(Math.round(from.x), Math.round(from.y));
         libnut.mouseToggle('down', 'left');
-        await sleep(100);
+        await this.abortableSleep(100);
         libnut.moveMouse(Math.round(to.x), Math.round(to.y));
-        await sleep(100);
+        await this.abortableSleep(100);
         libnut.mouseToggle('up', 'left');
       },
     },
     keyboard: {
       typeText: async (value, opts) => {
+        this.throwIfDestroyed('typeText');
         assert(libnut, 'libnut not initialized');
         const element = opts?.target as LocateResultElement | undefined;
 
@@ -486,17 +535,18 @@ export class ComputerDevice implements AbstractInterface {
           const [x, y] = element.center;
           libnut.moveMouse(Math.round(x), Math.round(y));
           libnut.mouseClick('left');
-          await sleep(INPUT_FOCUS_DELAY);
+          await this.abortableSleep(INPUT_FOCUS_DELAY);
 
           if (opts?.replace !== false) {
             await this.selectAllAndDelete();
-            await sleep(INPUT_CLEAR_DELAY);
+            await this.abortableSleep(INPUT_CLEAR_DELAY);
           }
         }
 
         await this.smartTypeString(value);
       },
       keyboardPress: async (keyName, opts) => {
+        this.throwIfDestroyed('keyboardPress');
         assert(libnut, 'libnut not initialized');
 
         const target = opts?.target as LocateResultElement | undefined;
@@ -504,12 +554,13 @@ export class ComputerDevice implements AbstractInterface {
           const [x, y] = target.center;
           libnut.moveMouse(Math.round(x), Math.round(y));
           libnut.mouseClick('left');
-          await sleep(50);
+          await this.abortableSleep(50);
         }
 
         await this.pressKeyboardShortcut(keyName);
       },
       clearInput: async (target) => {
+        this.throwIfDestroyed('clearInput');
         assert(libnut, 'libnut not initialized');
 
         if (target) {
@@ -517,15 +568,16 @@ export class ComputerDevice implements AbstractInterface {
           const [x, y] = element.center;
           libnut.moveMouse(Math.round(x), Math.round(y));
           libnut.mouseClick('left');
-          await sleep(100);
+          await this.abortableSleep(100);
         }
 
         await this.selectAllAndDelete();
-        await sleep(50);
+        await this.abortableSleep(50);
       },
     },
     scroll: {
       scroll: async (param) => {
+        this.throwIfDestroyed('scroll');
         await this.performScroll(param);
       },
     },
@@ -832,7 +884,7 @@ Original error: ${lastRawMessage}`,
     try {
       // 2. Write new content to clipboard
       await clipboardy.default.write(text);
-      await sleep(50);
+      await this.abortableSleep(50);
 
       // 3. Simulate paste shortcut
       if (this.useAppleScript) {
@@ -841,7 +893,7 @@ Original error: ${lastRawMessage}`,
         const modifier = process.platform === 'darwin' ? 'command' : 'control';
         libnut.keyTap('v', [modifier]);
       }
-      await sleep(100);
+      await this.abortableSleep(100);
     } finally {
       // 4. Restore old clipboard content
       if (oldClipboard) {
@@ -867,14 +919,14 @@ Original error: ${lastRawMessage}`,
     assert(libnut, 'libnut not initialized');
     if (this.useAppleScript) {
       sendKeyViaAppleScript('a', ['command']);
-      await sleep(50);
+      await this.abortableSleep(50);
       sendKeyViaAppleScript('backspace', []);
       return;
     }
 
     const modifier = process.platform === 'darwin' ? 'command' : 'control';
     libnut.keyTap('a', [modifier]);
-    await sleep(50);
+    await this.abortableSleep(50);
     libnut.keyTap('backspace');
   }
 
@@ -923,20 +975,20 @@ Original error: ${lastRawMessage}`,
           EDGE_SCROLL_STEPS,
         )
       ) {
-        await sleep(SCROLL_COMPLETE_DELAY);
+        await this.abortableSleep(SCROLL_COMPLETE_DELAY);
         return;
       }
 
       if (this.useAppleScript) {
         sendKeyViaAppleScript(edgeSpec.key);
-        await sleep(SCROLL_COMPLETE_DELAY);
+        await this.abortableSleep(SCROLL_COMPLETE_DELAY);
         return;
       }
 
       const [dx, dy] = edgeSpec.libnut;
       for (let i = 0; i < SCROLL_REPEAT_COUNT; i++) {
         libnut.scrollMouse(dx, dy);
-        await sleep(SCROLL_STEP_DELAY);
+        await this.abortableSleep(SCROLL_STEP_DELAY);
       }
       return;
     }
@@ -956,7 +1008,7 @@ Original error: ${lastRawMessage}`,
           Math.round(distance / PHASED_PIXELS_PER_STEP),
         );
         if (runPhasedScroll(direction, distance, steps)) {
-          await sleep(SCROLL_COMPLETE_DELAY);
+          await this.abortableSleep(SCROLL_COMPLETE_DELAY);
           return;
         }
       }
@@ -969,9 +1021,9 @@ Original error: ${lastRawMessage}`,
         const key = direction === 'up' ? 'pageup' : 'pagedown';
         for (let i = 0; i < pages; i++) {
           sendKeyViaAppleScript(key);
-          await sleep(SCROLL_STEP_DELAY);
+          await this.abortableSleep(SCROLL_STEP_DELAY);
         }
-        await sleep(SCROLL_COMPLETE_DELAY);
+        await this.abortableSleep(SCROLL_COMPLETE_DELAY);
         return;
       }
 
@@ -985,7 +1037,7 @@ Original error: ${lastRawMessage}`,
 
       const [dx, dy] = directionMap[direction] || [0, -ticks];
       libnut.scrollMouse(dx, dy);
-      await sleep(SCROLL_COMPLETE_DELAY);
+      await this.abortableSleep(SCROLL_COMPLETE_DELAY);
       return;
     }
 
@@ -1011,6 +1063,14 @@ Original error: ${lastRawMessage}`,
       return;
     }
 
+    // Mark destroyed and trip the abort signal first so any in-flight
+    // input sequence (smooth mouse move, scroll loop, clipboard paste)
+    // wakes up and bails immediately instead of running to completion.
+    this.destroyed = true;
+    if (!this.destroyAbortController.signal.aborted) {
+      this.destroyAbortController.abort();
+    }
+
     if (this.xvfbInstance) {
       this.xvfbInstance.stop();
       this.xvfbInstance = undefined;
@@ -1022,8 +1082,19 @@ Original error: ${lastRawMessage}`,
       this.xvfbCleanup = undefined;
     }
 
-    this.destroyed = true;
     debugDevice('Computer device destroyed');
+  }
+
+  private throwIfDestroyed(methodName: string): void {
+    if (this.destroyed) {
+      throw new Error(
+        `ComputerDevice has been destroyed (cannot run ${methodName})`,
+      );
+    }
+  }
+
+  private abortableSleep(ms: number): Promise<void> {
+    return abortableSleep(ms, this.destroyAbortController.signal);
   }
 
   async url(): Promise<string> {

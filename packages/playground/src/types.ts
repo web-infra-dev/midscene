@@ -39,6 +39,7 @@ export interface ExecutionOptions {
   context?: any;
   requestId?: string;
   deviceOptions?: DeviceOptions;
+  abortSignal?: AbortSignal;
 }
 
 export type BeforeActionHook = (

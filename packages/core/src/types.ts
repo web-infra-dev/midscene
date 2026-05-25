@@ -360,6 +360,7 @@ export interface ExecutorContext {
   task: ExecutionTask;
   element?: LocateResultElement | null;
   uiContext?: UIContext;
+  abortSignal?: AbortSignal;
 }
 
 export interface ExecutionTaskApply<
