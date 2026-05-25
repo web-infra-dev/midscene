@@ -1316,9 +1316,10 @@ await agent.aiAssert({
 
 ### 在命令行中使用图片提示词
 
-各平台命令行工具（`@midscene/android`、`@midscene/web`、`@midscene/ios`、`@midscene/harmony` 等）的 `assert` 子命令支持与 JS SDK 完全一致的多模态入参，命令行参数名与 SDK 字段一一对应：
+各平台命令行工具（`@midscene/android`、`@midscene/web`、`@midscene/ios`、`@midscene/harmony` 等）的 `assert` 子命令支持多模态入参：
 
-- `--images`：JSON 数组形式的 `{ "name", "url" }` 列表。每个 `url` 可以是 http(s) 链接、`data:` URI，或本地文件路径，由 `@midscene/core` 统一解析。
+- `--image`：参考图片的 URL 或本地路径。需要传多张图片时重复使用 `--image`。每个值可以是 http(s) 链接、`data:` URI，或本地文件路径，由 `@midscene/core` 统一解析。
+- `--image-name`：与 `--image` 一一对应的图片名称。每出现一次 `--image` 就要紧跟一次 `--image-name`，按出现顺序配对。
 - `--convertHttpImage2Base64`：传 `true` 时把 http(s) 图片链接转成 base64 后再发送。当模型提供商无法直接访问图片链接时使用。
 
 示例 — 引用一张外部图片：
@@ -1326,7 +1327,8 @@ await agent.aiAssert({
 ```shell
 npx @midscene/android assert \
   --prompt "页面上的徽章与给定的参考图一致" \
-  --images '[{"name":"badge","url":"https://example.com/badge.png"}]'
+  --image  "https://example.com/badge.png" \
+  --image-name "badge"
 ```
 
 示例 — 引用一张本地截图：
@@ -1334,7 +1336,17 @@ npx @midscene/android assert \
 ```shell
 npx @midscene/android assert \
   --prompt "页面上的徽章与本地截图一致" \
-  --images '[{"name":"badge","url":"./fixtures/badge.png"}]'
+  --image  "./fixtures/badge.png" \
+  --image-name "badge"
+```
+
+示例 — 同时传入多张参考图，重复 `--image` 与 `--image-name` 并按顺序配对：
+
+```shell
+npx @midscene/android assert \
+  --prompt "页面上同时出现 logo 与徽章" \
+  --image  "./fixtures/logo.png"   --image-name "logo" \
+  --image  "./fixtures/badge.png"  --image-name "badge"
 ```
 
 > `act` 子命令目前只支持纯文本提示词；需要引用图片的场景请改用 `assert`。

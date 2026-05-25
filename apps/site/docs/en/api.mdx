@@ -1301,9 +1301,10 @@ When prompting with images, it is necessary to pay attention to the requirements
 
 ### CLI usage
 
-The platform CLIs (`@midscene/android`, `@midscene/web`, `@midscene/ios`, `@midscene/harmony`, …) accept the same multimodal payload on the `assert` subcommand. The flag names mirror the JS SDK fields one-to-one:
+The platform CLIs (`@midscene/android`, `@midscene/web`, `@midscene/ios`, `@midscene/harmony`, …) accept the same multimodal payload on the `assert` subcommand:
 
-- `--images` — JSON array of `{ "name", "url" }`. Each `url` may be an http(s) URL, a `data:` URI, or a local file path. `@midscene/core` resolves all three forms.
+- `--image` — Reference image URL or local file path. Repeat the flag for multiple images. Each value may be an http(s) URL, a `data:` URI, or a local file path; `@midscene/core` resolves all three forms.
+- `--image-name` — Display name for the corresponding `--image`. Repeat once per `--image`; the two flags are paired by order.
 - `--convertHttpImage2Base64` — Pass `true` to convert http(s) image URLs to base64 before sending to the model. Useful when the URL is not publicly reachable from the model provider.
 
 Example — pass an external reference image:
@@ -1311,7 +1312,8 @@ Example — pass an external reference image:
 ```shell
 npx @midscene/android assert \
   --prompt "the visible badge matches the supplied reference" \
-  --images '[{"name":"badge","url":"https://example.com/badge.png"}]'
+  --image  "https://example.com/badge.png" \
+  --image-name "badge"
 ```
 
 Example — reference a local screenshot:
@@ -1319,7 +1321,17 @@ Example — reference a local screenshot:
 ```shell
 npx @midscene/android assert \
   --prompt "the visible badge matches the local screenshot" \
-  --images '[{"name":"badge","url":"./fixtures/badge.png"}]'
+  --image  "./fixtures/badge.png" \
+  --image-name "badge"
+```
+
+Example — supply multiple reference images by repeating both flags in matching order:
+
+```shell
+npx @midscene/android assert \
+  --prompt "the screen shows both the logo and the badge" \
+  --image  "./fixtures/logo.png"   --image-name "logo" \
+  --image  "./fixtures/badge.png"  --image-name "badge"
 ```
 
 > The `act` subcommand is currently text-only. Use `assert` when you need to reference images.
