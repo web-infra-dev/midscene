@@ -468,12 +468,15 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
 
-    debugDevice(`Typing text: "${text}"`);
+    const delayMs =
+      options?.keyboardTypeDelay ?? this.options?.keyboardTypeDelay ?? 80;
+
+    debugDevice(`Typing text: "${text}" (delayMs=${delayMs})`);
 
     try {
       // Wait a bit to ensure keyboard is ready
       await sleep(200);
-      await this.wdaBackend.typeText(text);
+      await this.wdaBackend.typeText(text, { delayMs });
       await sleep(300); // Give more time for text to appear
     } catch (error) {
       debugDevice(`Failed to type text with WDA: ${error}`);

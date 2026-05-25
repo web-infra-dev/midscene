@@ -112,6 +112,16 @@ export type AndroidDeviceOpt = {
 export type IOSDeviceInputOpt = {
   /** Automatically dismiss the keyboard after input is completed */
   autoDismissKeyboard?: boolean;
+  /**
+   * Per-character delay (ms) used when typing into iOS input fields. When set
+   * to a positive number, characters are dispatched to WebDriverAgent one at a
+   * time with this gap between them, which prevents app-side reaction windows
+   * (re-render, predictive bar, autocorrect) from swallowing a contiguous
+   * block of keystrokes. Set to 0 to send the whole string in a single
+   * `/wda/keys` request (faster, but lossy on slow-reacting inputs).
+   * @default 80
+   */
+  keyboardTypeDelay?: number;
 };
 
 /**

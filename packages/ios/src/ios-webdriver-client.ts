@@ -1,3 +1,4 @@
+import { sleep } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
 import { WebDriverClient } from '@midscene/webdriver';
 
@@ -304,17 +305,42 @@ export class IOSWebDriverClient extends WebDriverClient {
     }
   }
 
-  async typeText(text: string): Promise<void> {
+  async typeText(text: string, options?: { delayMs?: number }): Promise<void> {
     this.ensureSession();
 
+    // Clean the text to avoid unwanted trailing spaces
+    const cleanText = text.trim();
+    if (!cleanText) {
+      return;
+    }
+
+    const chars = Array.from(cleanText);
+    const delayMs = options?.delayMs ?? 0;
+
     try {
-      // Clean the text to avoid unwanted trailing spaces
-      const cleanText = text.trim();
-      // Use WebDriverAgent's keys endpoint with array value
-      await this.makeRequest('POST', `/session/${this.sessionId}/wda/keys`, {
-        value: cleanText.split(''), // Must be an array of characters
-      });
-      debugIOS(`Typed text: "${text}"`);
+      if (delayMs > 0) {
+        // Per-character sends with an inter-key gap prevent a single app-side
+        // reaction window (re-render, predictive bar, autocorrect) from
+        // swallowing a contiguous block of keystrokes.
+        for (let i = 0; i < chars.length; i++) {
+          await this.makeRequest(
+            'POST',
+            `/session/${this.sessionId}/wda/keys`,
+            {
+              value: [chars[i]],
+            },
+          );
+          if (i < chars.length - 1) {
+            await sleep(delayMs);
+          }
+        }
+      } else {
+        // Use WebDriverAgent's keys endpoint with array value
+        await this.makeRequest('POST', `/session/${this.sessionId}/wda/keys`, {
+          value: chars, // Must be an array of characters
+        });
+      }
+      debugIOS(`Typed text: "${text}" (delayMs=${delayMs})`);
     } catch (error) {
       debugIOS(`Failed to type text "${text}": ${error}`);
       throw new Error(`Failed to type text: ${error}`);

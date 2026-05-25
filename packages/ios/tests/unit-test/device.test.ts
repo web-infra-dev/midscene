@@ -248,8 +248,43 @@ describe('IOSDevice', () => {
       expect(mockWdaClient.tap).toHaveBeenNthCalledWith(1, 10, 20);
       expect(mockWdaClient.tap).toHaveBeenNthCalledWith(2, 30, 40);
       expect(mockWdaClient.clearActiveElement).toHaveBeenCalledTimes(2);
-      expect(mockWdaClient.typeText).toHaveBeenNthCalledWith(1, 'from action');
-      expect(mockWdaClient.typeText).toHaveBeenNthCalledWith(2, 'from pointer');
+      expect(mockWdaClient.typeText).toHaveBeenNthCalledWith(1, 'from action', {
+        delayMs: 80,
+      });
+      expect(mockWdaClient.typeText).toHaveBeenNthCalledWith(
+        2,
+        'from pointer',
+        { delayMs: 80 },
+      );
+    });
+
+    it('forwards keyboardTypeDelay from per-call options to the WDA backend', async () => {
+      await device.inputPrimitives.keyboard.typeText('per call', {
+        autoDismissKeyboard: false,
+        keyboardTypeDelay: 25,
+      } as any);
+
+      expect(mockWdaClient.typeText).toHaveBeenLastCalledWith('per call', {
+        delayMs: 25,
+      });
+    });
+
+    it('falls back to device-level keyboardTypeDelay when the call omits it', async () => {
+      const deviceWithDelay = new IOSDevice({
+        wdaPort: DEFAULT_WDA_PORT,
+        wdaHost: 'localhost',
+        keyboardTypeDelay: 0,
+      });
+
+      await deviceWithDelay.inputPrimitives.keyboard.typeText('default delay', {
+        autoDismissKeyboard: false,
+      } as any);
+
+      expect(mockWdaClient.typeText).toHaveBeenLastCalledWith('default delay', {
+        delayMs: 0,
+      });
+
+      await deviceWithDelay.destroy();
     });
   });
 
@@ -396,7 +431,9 @@ describe('IOSDevice', () => {
       await device.connect();
 
       await getInternalTextInput(device).typeText('Hello World');
-      expect(mockWdaClient.typeText).toHaveBeenCalledWith('Hello World');
+      expect(mockWdaClient.typeText).toHaveBeenCalledWith('Hello World', {
+        delayMs: 80,
+      });
     });
 
     it('should press home button', async () => {
@@ -601,7 +638,9 @@ describe('IOSDevice', () => {
       await getInternalTextInput(deviceWithAutoDismiss).typeText('test text');
 
       // Should call typeText and swipe (for keyboard dismiss)
-      expect(mockBackend.typeText).toHaveBeenCalledWith('test text');
+      expect(mockBackend.typeText).toHaveBeenCalledWith('test text', {
+        delayMs: 80,
+      });
       expect(mockBackend.swipe).toHaveBeenCalled();
     });
   });

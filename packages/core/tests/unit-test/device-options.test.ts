@@ -87,6 +87,7 @@ describe('Device Options Type Definitions', () => {
     test('IOSDeviceInputOpt should include keyboard options', () => {
       const inputOptions: IOSDeviceInputOpt = {
         autoDismissKeyboard: true,
+        keyboardTypeDelay: 80,
       };
 
       expect(inputOptions).toBeDefined();

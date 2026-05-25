@@ -1,6 +1,85 @@
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { IOSWebDriverClient } from '../../src/ios-webdriver-client';
 import type { IOSWebDriverClient as IOSWebDriverClientType } from '../../src/ios-webdriver-client';
+
+function createClientWithSession() {
+  const client = new IOSWebDriverClient({
+    port: DEFAULT_WDA_PORT,
+    host: 'localhost',
+  });
+  // Bypass createSession() — we only want to observe outbound HTTP calls.
+  (client as any).sessionId = 'session-under-test';
+  const makeRequest = vi
+    .spyOn(client as any, 'makeRequest')
+    .mockResolvedValue(undefined);
+  return { client, makeRequest };
+}
+
+describe('IOSWebDriverClient.typeText delivery modes', () => {
+  it('sends the whole string in one /wda/keys request when delayMs is 0 (default)', async () => {
+    const { client, makeRequest } = createClientWithSession();
+
+    await client.typeText('Al is amazing');
+
+    expect(makeRequest).toHaveBeenCalledTimes(1);
+    expect(makeRequest).toHaveBeenCalledWith(
+      'POST',
+      '/session/session-under-test/wda/keys',
+      {
+        value: [
+          'A',
+          'l',
+          ' ',
+          'i',
+          's',
+          ' ',
+          'a',
+          'm',
+          'a',
+          'z',
+          'i',
+          'n',
+          'g',
+        ],
+      },
+    );
+  });
+
+  it('emits one /wda/keys request per character when delayMs > 0', async () => {
+    const { client, makeRequest } = createClientWithSession();
+
+    await client.typeText('Hi!', { delayMs: 1 });
+
+    expect(makeRequest).toHaveBeenCalledTimes(3);
+    expect(makeRequest).toHaveBeenNthCalledWith(
+      1,
+      'POST',
+      '/session/session-under-test/wda/keys',
+      { value: ['H'] },
+    );
+    expect(makeRequest).toHaveBeenNthCalledWith(
+      2,
+      'POST',
+      '/session/session-under-test/wda/keys',
+      { value: ['i'] },
+    );
+    expect(makeRequest).toHaveBeenNthCalledWith(
+      3,
+      'POST',
+      '/session/session-under-test/wda/keys',
+      { value: ['!'] },
+    );
+  });
+
+  it('trims surrounding whitespace and skips empty input', async () => {
+    const { client, makeRequest } = createClientWithSession();
+
+    await client.typeText('   ');
+
+    expect(makeRequest).not.toHaveBeenCalled();
+  });
+});
 
 describe('IOSWebDriverClient - Simple Tests', () => {
   describe('Module Structure', () => {
