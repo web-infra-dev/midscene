@@ -1,5 +1,34 @@
 # Changelog
 
+## v1.8 - YAML Variables, Device Integrations & Model Behavior Updates
+
+v1.8 adds YAML result reuse, refines model reasoning defaults, and brings new device/platform integration options.
+
+### YAML Workflow Enhancements
+
+- YAML steps with `name` can be reused in later steps through `$name` and `${name}`. See: [Automate with Scripts in YAML](./automate-with-scripts-in-yaml#reuse-step-results)
+- Android `runAdbShell` now accepts a `timeout` option in both the JavaScript API and YAML scripts. See: [Android API](./android-api-reference), [Automate with Scripts in YAML](./automate-with-scripts-in-yaml)
+
+### Device and Platform Integrations
+
+- iOS now supports connecting to external WebDriverAgent sessions, making it easier to reuse an existing WDA setup
+- RDP connection options are now exposed through Computer MCP / CLI connection tools
+
+### Model and Planning Behavior
+
+- Model usage intent is now tracked separately from resolved config slots, making multi-model planning, locating, and report display clearer
+- For supported model families, Midscene now disables model-native thinking by default to improve execution speed and stability. See: [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode)
+- Doubao fast tier configuration is now supported through `MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}`. See: [Common Model Configuration](./model-common-config)
+
+### Bug Fixes
+
+- Fixed `aiAct` completion being emitted before actions actually run
+- Fixed insight prompts prioritizing reference images over the current screenshot in some cases
+- Fixed Bridge attachment after new-tab navigation
+- Fixed Playground tap projection on iOS / HarmonyOS / Computer
+- Fixed HarmonyOS per-call `autoDismissKeyboard`
+- Fixed Android Playground video streaming memory usage
+
 ## v1.7 - Flexible Report File Consumption, with Qwen 3.6 Support
 
 ### Flexible Report File Consumption
