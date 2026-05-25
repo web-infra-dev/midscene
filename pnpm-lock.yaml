@@ -1100,6 +1100,12 @@ importers:
       jsonrepair:
         specifier: 3.12.0
         version: 3.12.0
+      mdast-util-from-markdown:
+        specifier: ^2.0.2
+        version: 2.0.2
+      mdast-util-to-markdown:
+        specifier: ^2.1.2
+        version: 2.1.2
       openai:
         specifier: 6.3.0
         version: 6.3.0(ws@8.20.0)(zod@3.25.76)
