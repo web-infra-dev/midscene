@@ -3,8 +3,8 @@ import type { CodeGenerationChunk } from '@/types';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { localImg2Base64 } from '@midscene/shared/img';
 import dotenv from 'dotenv';
-import { getFixture } from 'tests/utils';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { getFixture } from '../utils';
 
 dotenv.config({
   debug: true,

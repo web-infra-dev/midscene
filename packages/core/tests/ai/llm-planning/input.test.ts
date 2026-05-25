@@ -1,9 +1,9 @@
 import { ConversationHistory, plan } from '@/ai-model';
 import type { DeviceAction } from '@/types';
 import { globalModelConfigManager } from '@midscene/shared/env';
-import { getContextFromFixture } from 'tests/evaluation';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
+import { getContextFromFixture } from '../../evaluation';
 vi.setConfig({
   testTimeout: 180 * 1000,
   hookTimeout: 30 * 1000,

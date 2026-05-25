@@ -1,7 +1,6 @@
 {
   "extends": "../shared/tsconfig.base.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "rootDir": "src",
     "module": "ES2020",
     "declarationDir": "dist/types",
