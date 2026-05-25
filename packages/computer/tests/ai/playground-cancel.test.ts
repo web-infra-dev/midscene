@@ -15,6 +15,10 @@ process.env.MIDSCENE_MODEL_BASE_URL =
   process.env.MIDSCENE_MODEL_BASE_URL || 'http://127.0.0.1:1/v1';
 process.env.MIDSCENE_MODEL_API_KEY =
   process.env.MIDSCENE_MODEL_API_KEY || 'noop';
+// PlaygroundServer also calls throwErrorIfNonVLModel before dispatching
+// customActions; any valid VL family makes the check pass.
+process.env.MIDSCENE_MODEL_FAMILY =
+  process.env.MIDSCENE_MODEL_FAMILY || 'qwen3-vl';
 
 async function getFreePort(): Promise<number> {
   return new Promise((resolve, reject) => {
