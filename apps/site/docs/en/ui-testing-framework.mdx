@@ -133,6 +133,66 @@ export default defineMidsceneConfig({
 });
 ```
 
+### Extend YAML Steps
+
+YAML should stay readable, but some teams need a few project-specific actions around the natural-language path: seeding test data, switching accounts, calling an internal API, checking a database, or wrapping a repeated business action. These actions can be registered as custom YAML steps in `midscene.config.ts`.
+
+```ts
+import { defineMidsceneConfig } from '@midscene/testing-framework';
+
+export default defineMidsceneConfig({
+  target: {
+    type: 'web',
+    options: {
+      url: 'http://127.0.0.1:3000',
+    },
+  },
+
+  testDir: './e2e',
+  include: ['**/*.yaml'],
+
+  yamlSteps: {
+    async useAccount(value, ctx) {
+      if (typeof value !== 'string') {
+        throw new Error('useAccount expects an account name');
+      }
+
+      const account = await getAccount(value);
+      ctx.state.account = account;
+      await ctx.agent.aiAct(`Sign in as ${account.email}`);
+    },
+
+    async assertOrderStatus(value) {
+      const { orderId, status } = value as {
+        orderId: string;
+        status: string;
+      };
+
+      const order = await queryOrder(orderId);
+      if (order.status !== status) {
+        throw new Error(
+          `Expected order ${orderId} to be ${status}, got ${order.status}`,
+        );
+      }
+    },
+  },
+});
+```
+
+The YAML file can then mix Midscene built-in steps with project steps:
+
+```yaml
+flow:
+  - useAccount: smoke-buyer
+  - aiAct: Open my orders
+  - assertOrderStatus:
+      orderId: E2E-10001
+      status: paid
+  - aiAssert: The order detail page shows Paid
+```
+
+The rule is intentionally small: if a `flow` step key matches a built-in Midscene step, Midscene runs the built-in behavior; if it matches `yamlSteps`, Midscene calls the registered function with the YAML value and the current step context. If neither exists, the runner reports an unknown step. Custom steps should not override built-in step names. Midscene does not require a schema for custom step values; teams can validate values inside the handler in whatever style fits their project.
+
 ### Use TypeScript for Special Cases
 
 YAML should be the main path while still leaving room for code. Some cases need complex branches, internal SDK calls, mixed API checks, database assertions, or existing test utilities. Those cases can be written as `case.test.ts`.

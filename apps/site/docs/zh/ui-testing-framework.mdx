@@ -133,6 +133,66 @@ export default defineMidsceneConfig({
 });
 ```
 
+### 扩展 YAML Step
+
+YAML 应该保持可读，但有些团队需要在自然语言路径周围放少量项目专属动作：准备测试数据、切换账号、调用内部 API、检查数据库，或封装重复的业务动作。这类动作可以在 `midscene.config.ts` 里注册成自定义 YAML step。
+
+```ts
+import { defineMidsceneConfig } from '@midscene/testing-framework';
+
+export default defineMidsceneConfig({
+  target: {
+    type: 'web',
+    options: {
+      url: 'http://127.0.0.1:3000',
+    },
+  },
+
+  testDir: './e2e',
+  include: ['**/*.yaml'],
+
+  yamlSteps: {
+    async useAccount(value, ctx) {
+      if (typeof value !== 'string') {
+        throw new Error('useAccount expects an account name');
+      }
+
+      const account = await getAccount(value);
+      ctx.state.account = account;
+      await ctx.agent.aiAct(`Sign in as ${account.email}`);
+    },
+
+    async assertOrderStatus(value) {
+      const { orderId, status } = value as {
+        orderId: string;
+        status: string;
+      };
+
+      const order = await queryOrder(orderId);
+      if (order.status !== status) {
+        throw new Error(
+          `Expected order ${orderId} to be ${status}, got ${order.status}`,
+        );
+      }
+    },
+  },
+});
+```
+
+YAML 文件可以混用 Midscene 内置 step 和项目自己的 step：
+
+```yaml
+flow:
+  - useAccount: smoke-buyer
+  - aiAct: Open my orders
+  - assertOrderStatus:
+      orderId: E2E-10001
+      status: paid
+  - aiAssert: The order detail page shows Paid
+```
+
+规则刻意保持很小：如果 `flow` 里的 step key 命中 Midscene 内置 step，就执行内置行为；如果命中 `yamlSteps`，就把 YAML value 和当前 step context 传给注册函数；两边都没有命中时，runner 报 unknown step。自定义 step 不应该覆盖内置 step 名。Midscene 不要求为自定义 step value 编写 schema；团队可以在 handler 里按自己的工程习惯做参数校验。
+
 ### 特殊 case 使用 TypeScript
 
 YAML 应该是主路径，同时也要给代码留出空间。少数 case 可能需要复杂分支、内部 SDK 调用、混合接口校验、数据库断言或复用现有测试工具，这类用例可以写成 `case.test.ts`。
