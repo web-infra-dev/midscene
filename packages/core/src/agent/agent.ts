@@ -1397,11 +1397,13 @@ export class Agent<
   async recordToReport(
     title?: string,
     opt?: {
-      content: string;
+      content?: string;
+      screenshotBase64?: string;
     },
   ) {
     // 1. screenshot
-    const base64 = await this.interface.screenshotBase64();
+    const base64 =
+      opt?.screenshotBase64 ?? (await this.interface.screenshotBase64());
     const now = Date.now();
     const screenshot = ScreenshotItem.create(base64, now);
     // 2. build recorder
