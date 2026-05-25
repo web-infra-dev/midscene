@@ -56,11 +56,18 @@ YAML 可以把“一个用户路径应该是什么样”组织得足够清楚，
 这些内容不应该复制到每个 YAML case 里。Midscene 提供 `midscene.config.ts` 作为项目级 config-as-code 入口。它是轻量 `config.yml` 形态长大之后的替代：用例发现、执行策略、输出位置和运行时 setup 都放进同一个类型化文件里。
 
 ```ts
-import { agentFromAdbDevice } from '@midscene/android';
 import { defineMidsceneConfig } from '@midscene/testing-framework';
 
 export default defineMidsceneConfig({
-  platform: 'android',
+  target: {
+    type: 'android',
+    options: {
+      deviceId: process.env.ANDROID_DEVICE_ID,
+      androidAdbPath: process.env.ANDROID_ADB_PATH,
+      autoDismissKeyboard: false,
+    },
+  },
+
   testDir: './e2e',
   include: ['**/*.yaml', '**/*.test.ts'],
   exclude: ['**/*.draft.yaml'],
@@ -82,22 +89,12 @@ export default defineMidsceneConfig({
     generateReport: true,
   },
 
-  runtimeOptions: {
-    deviceId: process.env.ANDROID_DEVICE_ID,
-    androidAdbPath: process.env.ANDROID_ADB_PATH,
-    autoDismissKeyboard: false,
-  },
-
-  async setup({ agentOptions, runtimeOptions }) {
-    const { deviceId, ...deviceOptions } = runtimeOptions;
+  async setup({ createAgent }) {
     const account = await getSmokeAccount();
     await prepareTestData(account);
 
     return {
-      agent: await agentFromAdbDevice(deviceId, {
-        ...agentOptions,
-        ...deviceOptions,
-      }),
+      agent: await createAgent(),
     };
   },
 });
@@ -113,7 +110,7 @@ export default defineMidsceneConfig({
     checkout.yaml
 ```
 
-这里的职责边界很清楚：`e2e/*.yaml` 描述用户要完成什么，`midscene.config.ts` 描述平台、testRunner 行为、共享 Agent 参数、运行时连接参数、报告和 setup 逻辑。这样项目可以处理真实工程问题，但用例本身仍然适合 code review、业务确认和团队协作。
+这里的职责边界很清楚：`e2e/*.yaml` 描述用户要完成什么，`midscene.config.ts` 描述 target 类型和平台连接参数、testRunner 行为、共享 Agent 参数、报告和 setup 逻辑。默认情况下，框架会根据 `target.type` 和 `target.options` 创建 Agent；只有项目需要接入自定义设备、远程服务或团队内部 fixture 时，才需要在 `setup` 里覆盖这一步。这样项目可以处理真实工程问题，但用例本身仍然适合 code review、业务确认和团队协作。
 
 ### 特殊 case 使用 TypeScript
 

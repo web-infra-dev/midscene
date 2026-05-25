@@ -56,11 +56,18 @@ In professional UI testing projects, the case steps are usually the clearest par
 Those concerns should not be copied into every YAML case. Midscene provides `midscene.config.ts` as the project-level config-as-code entry. It replaces the lightweight `config.yml` shape when a suite grows up: test discovery, execution policy, output, and runtime setup all live in one typed file.
 
 ```ts
-import { agentFromAdbDevice } from '@midscene/android';
 import { defineMidsceneConfig } from '@midscene/testing-framework';
 
 export default defineMidsceneConfig({
-  platform: 'android',
+  target: {
+    type: 'android',
+    options: {
+      deviceId: process.env.ANDROID_DEVICE_ID,
+      androidAdbPath: process.env.ANDROID_ADB_PATH,
+      autoDismissKeyboard: false,
+    },
+  },
+
   testDir: './e2e',
   include: ['**/*.yaml', '**/*.test.ts'],
   exclude: ['**/*.draft.yaml'],
@@ -82,22 +89,12 @@ export default defineMidsceneConfig({
     generateReport: true,
   },
 
-  runtimeOptions: {
-    deviceId: process.env.ANDROID_DEVICE_ID,
-    androidAdbPath: process.env.ANDROID_ADB_PATH,
-    autoDismissKeyboard: false,
-  },
-
-  async setup({ agentOptions, runtimeOptions }) {
-    const { deviceId, ...deviceOptions } = runtimeOptions;
+  async setup({ createAgent }) {
     const account = await getSmokeAccount();
     await prepareTestData(account);
 
     return {
-      agent: await agentFromAdbDevice(deviceId, {
-        ...agentOptions,
-        ...deviceOptions,
-      }),
+      agent: await createAgent(),
     };
   },
 });
@@ -113,7 +110,7 @@ With this config in place, the project can stay direct:
     checkout.yaml
 ```
 
-The boundary is clear: `e2e/*.yaml` describes what the user should accomplish, while `midscene.config.ts` describes the platform, testRunner behavior, shared Agent options, runtime connection options, reporting, and setup logic. The project can handle real engineering constraints, while the case itself remains friendly to code review, business confirmation, and team collaboration.
+The boundary is clear: `e2e/*.yaml` describes what the user should accomplish, while `midscene.config.ts` describes the target type and platform connection options, testRunner behavior, shared Agent options, reporting, and setup logic. By default, the framework creates the Agent from `target.type` and `target.options`; projects only need to override that step in `setup` when they use custom devices, remote services, or internal team fixtures. The project can handle real engineering constraints, while the case itself remains friendly to code review, business confirmation, and team collaboration.
 
 ### Use TypeScript for Special Cases
 
