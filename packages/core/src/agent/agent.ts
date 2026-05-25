@@ -51,7 +51,8 @@ import {
 } from '../yaml/index';
 
 import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { basename, resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
 import {
@@ -64,6 +65,7 @@ import {
 import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
+import { markdownToAiActPrompt } from './run-markdown';
 import { TaskCache } from './task-cache';
 import {
   TaskExecutionError,
@@ -71,7 +73,13 @@ import {
   locatePlanForLocate,
   withFileChooser,
 } from './tasks';
-import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
+import {
+  type TaskTitleType,
+  locateParamStr,
+  paramStr,
+  taskTitleStr,
+  typeStr,
+} from './ui-utils';
 import { commonContextParser, getReportFileName, parsePrompt } from './utils';
 
 const debug = getDebug('agent');
@@ -142,6 +150,13 @@ export type AiActOptions = {
   deepThink?: DeepThinkOption;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
+};
+
+type AiActInternalOptions = AiActOptions & {
+  _internalReportDisplay?: {
+    type?: TaskTitleType;
+    prompt?: string;
+  };
 };
 
 export class Agent<
@@ -894,8 +909,11 @@ export class Agent<
     taskPrompt: TUserPrompt,
     opt?: AiActOptions,
   ): Promise<string | undefined> {
+    const internalReportDisplay = (opt as AiActInternalOptions | undefined)
+      ?._internalReportDisplay;
     const taskPromptText =
       typeof taskPrompt === 'string' ? taskPrompt : taskPrompt.prompt;
+    const reportPrompt = internalReportDisplay?.prompt || taskPromptText;
     const fileChooserAccept = opt?.fileChooserAccept
       ? this.normalizeFileInput(opt.fileChooserAccept)
       : undefined;
@@ -944,6 +962,7 @@ export class Agent<
         await this.taskExecutor.loadYamlFlowAsPlanning(
           taskPrompt,
           matchedCache.cacheContent.yamlWorkflow,
+          internalReportDisplay,
         );
 
         debug('matched cache, will call .runYaml to run the action');
@@ -967,6 +986,7 @@ export class Agent<
         fileChooserAccept,
         deepLocate,
         abortSignal,
+        internalReportDisplay,
       );
 
       // update cache
@@ -978,7 +998,7 @@ export class Agent<
         const yamlContent: MidsceneYamlScript = {
           tasks: [
             {
-              name: taskPromptText,
+              name: reportPrompt,
               flow: actionOutput.yamlFlow,
             },
           ],
@@ -998,6 +1018,21 @@ export class Agent<
     };
 
     return await runAiAct();
+  }
+
+  async runMarkdown(
+    markdownPath: string,
+    opt?: AiActOptions,
+  ): Promise<string | undefined> {
+    const markdown = await readFile(markdownPath, 'utf-8');
+    const { prompt } = await markdownToAiActPrompt(markdown, markdownPath);
+    return this.aiAct(prompt, {
+      ...opt,
+      _internalReportDisplay: {
+        type: 'Markdown',
+        prompt: basename(markdownPath),
+      },
+    } as AiActOptions);
   }
 
   /**

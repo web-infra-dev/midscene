@@ -138,24 +138,24 @@ export function extractInsightParam(taskParam: any): {
   return { content: '' };
 }
 
-export function taskTitleStr(
-  type:
-    | 'Tap'
-    | 'Hover'
-    | 'Input'
-    | 'RightClick'
-    | 'KeyboardPress'
-    | 'Scroll'
-    | 'Act'
-    | 'Query'
-    | 'Assert'
-    | 'WaitFor'
-    | 'Locate'
-    | 'Boolean'
-    | 'Number'
-    | 'String',
-  prompt: string,
-) {
+export type TaskTitleType =
+  | 'Tap'
+  | 'Hover'
+  | 'Input'
+  | 'RightClick'
+  | 'KeyboardPress'
+  | 'Scroll'
+  | 'Act'
+  | 'Query'
+  | 'Assert'
+  | 'WaitFor'
+  | 'Locate'
+  | 'Markdown'
+  | 'Boolean'
+  | 'Number'
+  | 'String';
+
+export function taskTitleStr(type: TaskTitleType, prompt: string) {
   if (prompt) {
     return `${type} - ${prompt}`;
   }
@@ -172,6 +172,7 @@ export function paramStr(task: ExecutionTask) {
       const planTask = task as ExecutionTaskPlanning;
       value =
         planTask.output?.log ||
+        planTask.param?.userInstructionDisplay ||
         (planTask.param?.userInstruction
           ? userPromptToString(planTask.param.userInstruction as TUserPrompt)
           : undefined);
