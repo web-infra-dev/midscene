@@ -110,6 +110,10 @@ export interface BaseAgent {
   page?: {
     screenshotBase64(): Promise<string>;
   };
+  recordToReport?: (
+    title?: string,
+    opt?: { content?: string; screenshotBase64?: string },
+  ) => Promise<void>;
   callActionInActionSpace?: (
     actionName: string,
     params?: unknown,

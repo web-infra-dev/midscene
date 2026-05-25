@@ -102,6 +102,42 @@ describe('Agent dump update screenshot serialization', () => {
     await agent.destroy();
   });
 
+  it('uses provided screenshot data when recording to report', async () => {
+    const screenshotBase64 = vi
+      .fn()
+      .mockRejectedValue(new Error('should not capture again'));
+    const agent = new Agent(
+      {
+        ...createMockInterface(),
+        screenshotBase64,
+      } as any,
+      {
+        modelConfig,
+        generateReport: false,
+      },
+    );
+
+    const reportGeneratorStub = {
+      onExecutionUpdate: vi.fn(),
+      flush: vi.fn(async () => {}),
+      finalize: vi.fn(async () => undefined),
+      getReportPath: vi.fn(() => undefined),
+    };
+
+    (agent as any).reportGenerator = reportGeneratorStub;
+
+    const providedScreenshot =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB';
+    await agent.recordToReport('snapshot', {
+      screenshotBase64: providedScreenshot,
+    });
+
+    expect(screenshotBase64).not.toHaveBeenCalled();
+    expect(reportGeneratorStub.onExecutionUpdate).toHaveBeenCalled();
+
+    await agent.destroy();
+  });
+
   it('keeps dump callback payload bounded after many updates with large screenshots', async () => {
     const largeScreenshot = createLargeBase64DataUri(200_000);
     const agent = new Agent(

@@ -571,6 +571,9 @@ export function generateCommonTools(
           if (!screenshot) {
             return createErrorResult('Screenshot not available');
           }
+          await agent.recordToReport?.('take_screenshot', {
+            screenshotBase64: screenshot,
+          });
           const { mimeType, body } = parseBase64(screenshot);
           return {
             content: [{ type: 'image', data: body, mimeType }],
