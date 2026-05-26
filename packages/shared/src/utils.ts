@@ -64,23 +64,6 @@ export function assert(condition: any, message?: string): asserts condition {
   }
 }
 
-type GlobalScope = typeof window | typeof globalThis | typeof self | undefined;
-
-export function getGlobalScope(): GlobalScope {
-  if (typeof window !== 'undefined') {
-    return window;
-  }
-
-  if (typeof globalThis !== 'undefined') {
-    return globalThis;
-  }
-
-  if (typeof self !== 'undefined') {
-    return self;
-  }
-  return undefined;
-}
-
 let isMcp = false;
 
 export function setIsMcp(value: boolean) {

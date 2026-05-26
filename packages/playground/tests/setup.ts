@@ -25,6 +25,11 @@ vi.mock('@midscene/shared/img/get-photon', () => ({
 vi.mock('@midscene/shared/env', () => ({
   overrideAIConfig: vi.fn(),
   resetAIConfig: vi.fn(),
+  globalModelConfigManager: {
+    getModelConfig: vi.fn(() => ({
+      modelName: 'mock-model',
+    })),
+  },
   globalConfigManager: {
     get: vi.fn(() => ({})),
     set: vi.fn(),
@@ -33,52 +38,63 @@ vi.mock('@midscene/shared/env', () => ({
 }));
 
 // Mock findAllMidsceneLocatorField to detect locator fields in schema
-vi.mock('@midscene/core/ai-model', () => ({
-  findAllMidsceneLocatorField: vi.fn((schema: any) => {
-    // Check if schema has a shape with locateField-like keys
-    if (schema && typeof schema === 'object' && 'shape' in schema) {
-      const shape = schema.shape as Record<string, unknown>;
-      if (shape && typeof shape === 'object') {
-        return Object.keys(shape).filter(
-          (key) =>
-            typeof key === 'string' &&
-            (key.includes('locate') || key.includes('Locate')),
-        );
+vi.mock('@midscene/core/ai-model', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@midscene/core/ai-model')>();
+  return {
+    ...actual,
+    findAllMidsceneLocatorField: vi.fn((schema: any) => {
+      // Check if schema has a shape with locateField-like keys
+      if (schema && typeof schema === 'object' && 'shape' in schema) {
+        const shape = schema.shape as Record<string, unknown>;
+        if (shape && typeof shape === 'object') {
+          return Object.keys(shape).filter(
+            (key) =>
+              typeof key === 'string' &&
+              (key.includes('locate') || key.includes('Locate')),
+          );
+        }
       }
-    }
-    return [];
-  }),
-}));
+      return [];
+    }),
+  };
+});
 
-vi.mock('@midscene/core/agent', () => ({
-  Agent: class MockAgent {
-    constructor(device: any) {
-      this.device = device;
-    }
+vi.mock('@midscene/core/agent', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@midscene/core/agent')>();
+  return {
+    ...actual,
+    Agent: class MockAgent {
+      constructor(device: any) {
+        this.device = device;
+      }
 
-    async aiAssert(prompt: string) {
-      console.log(`Mock AI Assert: ${prompt}`);
-      return { pass: true, thought: 'Mock assertion passed' };
-    }
+      async aiAssert(prompt: string) {
+        console.log(`Mock AI Assert: ${prompt}`);
+        return { pass: true, thought: 'Mock assertion passed' };
+      }
 
-    async aiQuery(prompt: string) {
-      console.log(`Mock AI Query: ${prompt}`);
-      return ['mock', 'query', 'result'];
-    }
+      async aiQuery(prompt: string) {
+        console.log(`Mock AI Query: ${prompt}`);
+        return ['mock', 'query', 'result'];
+      }
 
-    async aiAct(prompt: string) {
-      console.log(`Mock AI Action: ${prompt}`);
-      return 'Mock action completed';
-    }
-  },
-}));
+      async aiAct(prompt: string) {
+        console.log(`Mock AI Action: ${prompt}`);
+        return 'Mock action completed';
+      }
+    },
+  };
+});
 
 vi.mock('express', () => {
   const mockExpress = () => ({
     use: vi.fn(),
     get: vi.fn(),
     post: vi.fn(),
-    listen: vi.fn((port: number, callback?: () => void) => {
+    delete: vi.fn(),
+    listen: vi.fn((...args: any[]) => {
+      const callback = args.find((a: any) => typeof a === 'function');
       setTimeout(() => callback?.(), 0);
       return {
         close: vi.fn((callback?: () => void) => {

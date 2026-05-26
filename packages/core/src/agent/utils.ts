@@ -175,59 +175,6 @@ export function printReportMsg(filepath: string) {
   logMsg(`Midscene - report file updated: ${filepath}`);
 }
 
-/**
- * Get the current execution file name
- * @returns The name of the current execution file
- */
-export function getCurrentExecutionFile(trace?: string): string | false {
-  const error = new Error();
-  const stackTrace = trace || error.stack;
-  const pkgDir = process.cwd() || '';
-  if (stackTrace) {
-    const stackLines = stackTrace.split('\n');
-    for (const line of stackLines) {
-      if (
-        line.includes('.spec.') ||
-        line.includes('.test.') ||
-        line.includes('.ts') ||
-        line.includes('.js')
-      ) {
-        const match = line.match(/(?:at\s+)?(.*?\.(?:spec|test)\.[jt]s)/);
-        if (match?.[1]) {
-          const targetFileName = match[1]
-            .replace(pkgDir, '')
-            .trim()
-            .replace('at ', '');
-          return targetFileName;
-        }
-      }
-    }
-  }
-  return false;
-}
-
-const testFileIndex = new Map<string, number>();
-
-export function generateCacheId(fileName?: string): string {
-  let taskFile = fileName || getCurrentExecutionFile();
-  if (!taskFile) {
-    taskFile = uuid();
-    console.warn(
-      'Midscene - using random UUID for cache id. Cache may be invalid.',
-    );
-  }
-
-  if (testFileIndex.has(taskFile)) {
-    const currentIndex = testFileIndex.get(taskFile);
-    if (currentIndex !== undefined) {
-      testFileIndex.set(taskFile, currentIndex + 1);
-    }
-  } else {
-    testFileIndex.set(taskFile, 1);
-  }
-  return `${taskFile}-${testFileIndex.get(taskFile)}`;
-}
-
 export function ifPlanLocateParamIsBbox(
   planLocateParam: PlanningLocateParam,
 ): boolean {

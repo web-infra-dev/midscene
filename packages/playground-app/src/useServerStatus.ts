@@ -3,7 +3,7 @@ import type {
   PlaygroundSDK,
 } from '@midscene/playground';
 import type { DeviceType, ExecutionUxHint } from '@midscene/visualizer';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   buildFallbackRuntimeInfo,
   filterValidExecutionUxHints,
@@ -16,6 +16,7 @@ interface ServerStatusResult {
   deviceType: DeviceType;
   runtimeInfo: PlaygroundRuntimeInfo | null;
   executionUxHints: ExecutionUxHint[];
+  refreshServerState: () => Promise<void>;
 }
 
 export function useServerStatus(
@@ -33,6 +34,15 @@ export function useServerStatus(
     [],
   );
   const runtimeInfoRef = useRef<PlaygroundRuntimeInfo | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     runtimeInfoRef.current = runtimeInfo;
@@ -44,71 +54,71 @@ export function useServerStatus(
     });
   }, [playgroundSDK]);
 
-  useEffect(() => {
-    let active = true;
+  const refreshServerState = useCallback(async () => {
+    try {
+      const online = await playgroundSDK.checkStatus();
+      if (!mountedRef.current) return;
+      setServerOnline(online);
 
-    const checkServer = async () => {
+      if (!online) {
+        runtimeInfoRef.current = null;
+        setRuntimeInfo(null);
+        setExecutionUxHints([]);
+        return;
+      }
+
       try {
-        const online = await playgroundSDK.checkStatus();
-        if (!active) return;
-        setServerOnline(online);
+        const nextRuntimeInfo = await playgroundSDK.getRuntimeInfo();
+        if (!mountedRef.current) return;
 
-        if (!online) {
-          runtimeInfoRef.current = null;
-          setRuntimeInfo(null);
-          setExecutionUxHints([]);
+        if (nextRuntimeInfo) {
+          runtimeInfoRef.current = nextRuntimeInfo;
+          setRuntimeInfo(nextRuntimeInfo);
+          setDeviceType(
+            normalizeRuntimeDeviceType(nextRuntimeInfo, defaultDeviceType),
+          );
+          setExecutionUxHints(filterValidExecutionUxHints(nextRuntimeInfo));
           return;
         }
-
-        try {
-          const nextRuntimeInfo = await playgroundSDK.getRuntimeInfo();
-          if (!active) return;
-
-          if (nextRuntimeInfo) {
-            setRuntimeInfo(nextRuntimeInfo);
-            setDeviceType(
-              normalizeRuntimeDeviceType(nextRuntimeInfo, defaultDeviceType),
-            );
-            setExecutionUxHints(filterValidExecutionUxHints(nextRuntimeInfo));
-            return;
-          }
-        } catch (error) {
-          console.warn('Failed to get runtime info:', error);
-        }
-
-        try {
-          const interfaceInfo = await playgroundSDK.getInterfaceInfo();
-          if (!active || !interfaceInfo?.type) return;
-
-          const fallbackRuntimeInfo = buildFallbackRuntimeInfo(
-            runtimeInfoRef.current,
-            interfaceInfo,
-          );
-
-          runtimeInfoRef.current = fallbackRuntimeInfo;
-          setRuntimeInfo(fallbackRuntimeInfo);
-          setDeviceType(
-            normalizeRuntimeDeviceType(fallbackRuntimeInfo, defaultDeviceType),
-          );
-          setExecutionUxHints(filterValidExecutionUxHints(fallbackRuntimeInfo));
-        } catch (error) {
-          console.warn('Failed to get interface info:', error);
-        }
       } catch (error) {
-        if (!active) return;
-        console.error('Failed to check server status:', error);
-        setServerOnline(false);
+        console.warn('Failed to get runtime info:', error);
       }
-    };
 
-    checkServer();
-    const interval = window.setInterval(checkServer, pollIntervalMs);
+      try {
+        const interfaceInfo = await playgroundSDK.getInterfaceInfo();
+        if (!mountedRef.current || !interfaceInfo?.type) return;
+
+        const fallbackRuntimeInfo = buildFallbackRuntimeInfo(
+          runtimeInfoRef.current,
+          interfaceInfo,
+        );
+
+        runtimeInfoRef.current = fallbackRuntimeInfo;
+        setRuntimeInfo(fallbackRuntimeInfo);
+        setDeviceType(
+          normalizeRuntimeDeviceType(fallbackRuntimeInfo, defaultDeviceType),
+        );
+        setExecutionUxHints(filterValidExecutionUxHints(fallbackRuntimeInfo));
+      } catch (error) {
+        console.warn('Failed to get interface info:', error);
+      }
+    } catch (error) {
+      if (!mountedRef.current) return;
+      console.error('Failed to check server status:', error);
+      setServerOnline(false);
+    }
+  }, [defaultDeviceType, playgroundSDK]);
+
+  useEffect(() => {
+    void refreshServerState();
+    const interval = window.setInterval(() => {
+      void refreshServerState();
+    }, pollIntervalMs);
 
     return () => {
-      active = false;
       window.clearInterval(interval);
     };
-  }, [playgroundSDK, pollIntervalMs, defaultDeviceType]);
+  }, [pollIntervalMs, refreshServerState]);
 
   return {
     serverOnline,
@@ -116,5 +126,6 @@ export function useServerStatus(
     deviceType,
     runtimeInfo,
     executionUxHints,
+    refreshServerState,
   };
 }

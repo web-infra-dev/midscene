@@ -18,7 +18,7 @@ export default defineConfig({
         },
       },
       dts: {
-        bundle: true,
+        bundle: false,
         distPath: 'dist/types',
       },
       format: 'esm',
@@ -27,6 +27,7 @@ export default defineConfig({
   ],
   source: {
     entry: {
+      index: './src/index.ts',
       bin: './src/bin.ts',
     },
   },

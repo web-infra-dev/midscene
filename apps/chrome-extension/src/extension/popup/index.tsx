@@ -5,13 +5,14 @@ import {
   SendOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
+import type { PlaygroundSDK } from '@midscene/playground';
 import {
   NavActions,
   globalThemeConfig,
   useEnvConfig,
 } from '@midscene/visualizer';
 import { ConfigProvider, Dropdown } from 'antd';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { BrowserExtensionPlayground } from '../../components/playground';
 import Bridge from '../bridge';
 import Recorder from '../recorder';
@@ -31,7 +32,10 @@ const extensionAgentForTab = (forceSameTabNavigation = true) => {
 const STORAGE_KEY = 'midscene-popup-mode';
 
 export function PlaygroundPopup() {
-  const { setPopupTab } = useEnvConfig();
+  const setPopupTab = useEnvConfig((state) => state.setPopupTab);
+  const [playgroundSDK, setPlaygroundSDK] = useState<PlaygroundSDK | null>(
+    null,
+  );
   const [currentMode, setCurrentMode] = useState<
     'playground' | 'bridge' | 'recorder'
   >(() => {
@@ -39,7 +43,13 @@ export function PlaygroundPopup() {
     return (savedMode as 'playground' | 'bridge' | 'recorder') || 'playground';
   });
 
-  const { config } = useEnvConfig();
+  const config = useEnvConfig((state) => state.config);
+
+  const getAgent = useCallback(
+    (forceSameTabNavigation?: boolean) =>
+      extensionAgentForTab(forceSameTabNavigation),
+    [],
+  );
 
   // Sync popupTab with saved mode on mount
   useEffect(() => {
@@ -119,14 +129,9 @@ export function PlaygroundPopup() {
         {/* Playground Component */}
         <div className="playground-component">
           <BrowserExtensionPlayground
-            getAgent={(forceSameTabNavigation?: boolean) => {
-              console.log(
-                'getAgent called with forceSameTabNavigation:',
-                forceSameTabNavigation,
-              );
-              return extensionAgentForTab(forceSameTabNavigation);
-            }}
+            getAgent={getAgent}
             showContextPreview={false}
+            onPlaygroundSDKChange={setPlaygroundSDK}
           />
         </div>
       </div>
@@ -156,7 +161,11 @@ export function PlaygroundPopup() {
             </span>
           </div>
           <div className="nav-right">
-            <NavActions showTooltipWhenEmpty={false} showModelName={false} />
+            <NavActions
+              showTooltipWhenEmpty={false}
+              showModelName={false}
+              playgroundSDK={playgroundSDK}
+            />
           </div>
         </div>
 

@@ -2,15 +2,20 @@ import { readFileSync } from 'node:fs';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 
+import {
+  defaultViewportHeight,
+  defaultViewportWidth,
+  resolveWebViewportSize,
+} from '@/common/viewport';
 import { PuppeteerAgent } from '@/puppeteer/index';
 import type { AgentOpt, Cache, MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT } from '@midscene/shared/constants';
 import puppeteer, { type Browser, type Page } from 'puppeteer';
 
+export { defaultViewportWidth, defaultViewportHeight } from '@/common/viewport';
+
 export const defaultUA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36';
-export const defaultViewportWidth = 1440;
-export const defaultViewportHeight = 768;
 // Setting deviceScaleFactor value to `0` means reset this value to the system default in Puppeteer.
 export const defaultViewportScale = 0;
 export const defaultWaitForNetworkIdleTimeout =
@@ -178,27 +183,7 @@ export async function launchPuppeteerPage(
 
   // prepare the environment
   const ua = target.userAgent || defaultUA;
-  let width = defaultViewportWidth;
-  if (target.viewportWidth !== undefined && target.viewportWidth !== null) {
-    assert(
-      typeof target.viewportWidth === 'number',
-      'viewportWidth must be a number',
-    );
-    width = Number.parseInt(target.viewportWidth as unknown as string, 10);
-    assert(width > 0, `viewportWidth must be greater than 0, but got ${width}`);
-  }
-  let height = defaultViewportHeight;
-  if (target.viewportHeight !== undefined && target.viewportHeight !== null) {
-    assert(
-      typeof target.viewportHeight === 'number',
-      'viewportHeight must be a number',
-    );
-    height = Number.parseInt(target.viewportHeight as unknown as string, 10);
-    assert(
-      height > 0,
-      `viewportHeight must be greater than 0, but got ${height}`,
-    );
-  }
+  const { width, height } = resolveWebViewportSize(target);
   let dpr = defaultViewportScale;
   if (
     target.deviceScaleFactor !== undefined &&
@@ -208,8 +193,8 @@ export async function launchPuppeteerPage(
       typeof target.deviceScaleFactor === 'number',
       'deviceScaleFactor must be a number',
     );
-    dpr = Number.parseInt(target.deviceScaleFactor as unknown as string, 10);
-    assert(dpr >= 0, `deviceScaleFactor must be >= 0, but got ${dpr}`);
+    dpr = target.deviceScaleFactor;
+    assert(dpr > 0, `deviceScaleFactor must be > 0, but got ${dpr}`);
   }
   const viewportConfig = {
     width,
@@ -344,10 +329,10 @@ export async function puppeteerAgentForTarget(
   } & Partial<
     Pick<
       AgentOpt,
-      | 'testId'
       | 'groupName'
       | 'groupDescription'
       | 'generateReport'
+      | 'persistExecutionDump'
       | 'autoPrintReportMsg'
       | 'reportFileName'
       | 'replanningCycleLimit'
@@ -372,6 +357,10 @@ export async function puppeteerAgentForTarget(
   const agent = new PuppeteerAgent(page, {
     ...preferenceToUse,
     aiActContext,
+    waitForNetworkIdleTimeout:
+      typeof target.waitForNetworkIdle?.timeout === 'number'
+        ? target.waitForNetworkIdle.timeout
+        : undefined,
     forceSameTabNavigation:
       typeof target.forceSameTabNavigation !== 'undefined'
         ? target.forceSameTabNavigation

@@ -18,15 +18,32 @@ import {
   MODEL_FAMILY_VALUES,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
+  OPENAI_MAX_TOKENS,
   type TIntent,
   type TModelFamily,
   UITarsModelVersion,
 } from './types';
 
 import { getDebug } from '../logger';
+
 import { assert } from '../utils';
 import { maskConfig, parseJson } from './helper';
 import { initDebugConfig } from './init-debug';
+
+declare const __VERSION__: string | undefined;
+
+const MODEL_CONFIG_DOC_URL = 'https://midscenejs.com/model-common-config.html';
+
+const getCurrentVersion = (): string => {
+  if (typeof __VERSION__ !== 'undefined' && __VERSION__) {
+    return __VERSION__;
+  }
+
+  return 'unknown';
+};
+
+const getInvalidModelFamilyMessage = (modelFamily: TModelFamily): string =>
+  `Invalid MIDSCENE_MODEL_FAMILY value: ${modelFamily}. Current version v${getCurrentVersion()} accepts the following model families: ${MODEL_FAMILY_VALUES.join(', ')}. You can also visit ${MODEL_CONFIG_DOC_URL} for the latest configuration information.`;
 
 type TModelConfigKeys =
   | typeof INSIGHT_MODEL_CONFIG_KEYS
@@ -70,7 +87,7 @@ export const getUITarsModelVersion = (
  */
 export const validateModelFamily = (modelFamily?: TModelFamily): void => {
   if (modelFamily && !MODEL_FAMILY_VALUES.includes(modelFamily as any)) {
-    throw new Error(`Invalid MIDSCENE_MODEL_FAMILY value: ${modelFamily}`);
+    throw new Error(getInvalidModelFamilyMessage(modelFamily));
   }
 };
 
@@ -136,6 +153,26 @@ const getModelDescription = (
   return '';
 };
 
+const normalizeOpenaiExtraConfig = (
+  config: unknown,
+): Record<string, unknown> | undefined => {
+  if (!config || typeof config !== 'object' || Array.isArray(config)) {
+    return undefined;
+  }
+
+  const { defaultHeaders, extra_headers, extraHeaders, ...rest } =
+    config as Record<string, unknown>;
+
+  // Priority: defaultHeaders > extra_headers > extraHeaders
+  const headers = defaultHeaders ?? extra_headers ?? extraHeaders;
+
+  if (headers !== undefined) {
+    return { ...rest, defaultHeaders: headers };
+  }
+
+  return rest;
+};
+
 /**
  * Parse OpenAI SDK config
  */
@@ -164,6 +201,9 @@ export const parseOpenaiSdkConfig = ({
   const legacyOpenaiExtraConfig = useLegacyLogic
     ? provider[MIDSCENE_OPENAI_INIT_CONFIG_JSON]
     : undefined;
+  const legacyMaxTokens = useLegacyLogic
+    ? provider[OPENAI_MAX_TOKENS]
+    : undefined;
   const legacyModelFamily = useLegacyLogic
     ? legacyConfigToModelFamily(provider)
     : undefined;
@@ -186,6 +226,13 @@ export const parseOpenaiSdkConfig = ({
   );
   const extraBodyStr: string | undefined = provider[keys.extraBody];
   const extraBody = parseJson(keys.extraBody, extraBodyStr);
+  const maxTokensStr = provider[keys.maxTokens] || legacyMaxTokens;
+  const maxTokens = (() => {
+    const val = maxTokensStr?.trim();
+    if (!val) return undefined;
+    const num = Number(val);
+    return Number.isFinite(num) ? num : undefined;
+  })();
   const temperature = provider[keys.temperature]
     ? Number(provider[keys.temperature])
     : 0;
@@ -201,13 +248,15 @@ export const parseOpenaiSdkConfig = ({
     httpProxy,
     openaiBaseURL,
     openaiApiKey,
-    openaiExtraConfig,
+    openaiExtraConfig: normalizeOpenaiExtraConfig(openaiExtraConfig),
     extraBody,
+    maxTokens,
     modelFamily,
     uiTarsModelVersion,
     modelName: modelName!,
     modelDescription,
     intent: '-' as any,
+    slot: '-' as any,
     timeout: provider[keys.timeout]
       ? Number(provider[keys.timeout])
       : undefined,
@@ -272,6 +321,7 @@ export const decideModelConfigFromIntentConfig = (
     useLegacyLogic: intent === 'default',
   });
   finalResult.intent = intent;
+  finalResult.slot = intent;
 
   debugLog(
     'decideModelConfig result by agent.modelConfig() with intent',

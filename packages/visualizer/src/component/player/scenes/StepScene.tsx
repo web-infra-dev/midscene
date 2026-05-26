@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
 import { mouseLoading } from '../../../utils';
-import { deriveFrameState } from './derive-frame-state';
+import { getCenterHighlightBox } from '../../../utils/highlight-element';
+import { deriveFrameState, shouldRenderCursor } from './derive-frame-state';
 import type { FrameMap } from './frame-calculator';
 import { getPlaybackViewport } from './playback-layout';
+import { resolvePointerLayout, resolveSpinnerLayout } from './pointer-layout';
 
 const POINTER_PHASE = 0.375;
 const CROSSFADE_FRAMES = 10;
@@ -48,6 +50,7 @@ export const StepsTimeline: React.FC<{
     spinning: spinningPointer,
     spinningElapsedMs,
     currentPointerImg,
+    pointerVisible,
     title,
     subTitle,
     frameInScript,
@@ -57,9 +60,14 @@ export const StepsTimeline: React.FC<{
   } = state;
 
   // ── Camera interpolation ──
-  const pT = pointerMoved
-    ? Math.min(rawProgress / POINTER_PHASE, 1)
-    : rawProgress;
+  // When focus on cursor is OFF, snap the cursor to its target instead of
+  // animating it from the previous default center; otherwise the cursor visibly
+  // slides across the un-zoomed frame and looks like it is in the wrong place.
+  const pT = !autoZoom
+    ? 1
+    : pointerMoved
+      ? Math.min(rawProgress / POINTER_PHASE, 1)
+      : rawProgress;
   const cT = pointerMoved
     ? rawProgress <= POINTER_PHASE
       ? 0
@@ -97,14 +105,18 @@ export const StepsTimeline: React.FC<{
   const camH = cameraWidth * (imgH / imgW);
   const ptrX = ((pointerLeft - cameraLeft) / cameraWidth) * contentWidth;
   const ptrY = ((pointerTop - cameraTop) / camH) * contentHeight;
-  const showCursor =
-    camera.pointerLeft !== Math.round(imgW / 2) ||
-    camera.pointerTop !== Math.round(imgH / 2) ||
-    prevCamera.pointerLeft !== Math.round(imgW / 2) ||
-    prevCamera.pointerTop !== Math.round(imgH / 2);
+  const showCursor = shouldRenderCursor(
+    pointerVisible,
+    camera,
+    prevCamera,
+    imgW,
+    imgH,
+  );
 
-  // Scale overlays proportionally so they stay visible at any resolution
-  const resScale = Math.max(1, Math.sqrt(imgW / 1920));
+  // Scale overlays proportionally so they stay visible at any resolution.
+  const pointerLayout = resolvePointerLayout(imgW);
+  const spinnerLayout = resolveSpinnerLayout(pointerLayout);
+  const resScale = pointerLayout.scale;
 
   const crossfadeAlpha = imageChanged
     ? Math.min(frameInScript / CROSSFADE_FRAMES, 1)
@@ -121,16 +133,16 @@ export const StepsTimeline: React.FC<{
       const overlays: React.ReactNode[] = [];
 
       if (insight.highlightElement) {
-        const rect = insight.highlightElement.rect;
+        const highlightBox = getCenterHighlightBox(insight.highlightElement);
         overlays.push(
           <div
             key={`highlight-${idx}`}
             style={{
               position: 'absolute',
-              left: rect.left,
-              top: rect.top,
-              width: rect.width,
-              height: rect.height,
+              left: highlightBox.left,
+              top: highlightBox.top,
+              width: highlightBox.width,
+              height: highlightBox.height,
               background: 'rgba(253, 89, 7, 0.4)',
               border: `${2 * resScale}px solid #fd5907`,
               boxShadow: `${2 * resScale}px ${2 * resScale}px ${1 * resScale}px rgba(51, 51, 51, 0.3)`,
@@ -240,10 +252,10 @@ export const StepsTimeline: React.FC<{
           src={mouseLoading}
           style={{
             position: 'absolute',
-            left: ptrX - 22 * resScale,
-            top: ptrY - 28 * resScale,
-            width: 44 * resScale,
-            height: 56 * resScale,
+            left: ptrX - spinnerLayout.centerOffset,
+            top: ptrY - spinnerLayout.centerOffset,
+            width: spinnerLayout.size,
+            height: spinnerLayout.size,
             transform: `rotate(${spinRotation}rad)`,
             transformOrigin: 'center center',
             filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
@@ -257,10 +269,10 @@ export const StepsTimeline: React.FC<{
           src={currentPointerImg}
           style={{
             position: 'absolute',
-            left: ptrX - 6 * resScale,
-            top: ptrY - 4 * resScale,
-            width: 44 * resScale,
-            height: 56 * resScale,
+            left: ptrX - pointerLayout.hotspotX,
+            top: ptrY - pointerLayout.hotspotY,
+            width: pointerLayout.width,
+            height: pointerLayout.height,
             filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
           }}
         />

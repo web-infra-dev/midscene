@@ -14,6 +14,7 @@ const baseModelConfig: IModelConfig = {
   modelName: 'gpt-5.4',
   modelDescription: 'codex',
   intent: 'default',
+  slot: 'default',
 };
 
 describe('codex app-server provider helper', () => {
@@ -32,27 +33,26 @@ describe('codex app-server provider helper', () => {
     expect(isCodexAppServerProvider(undefined)).toBe(false);
   });
 
-  it('maps deepThink and reasoning effort to codex effort', () => {
+  it('maps reasoningEnabled and reasoning effort to codex effort', () => {
     expect(
       resolveCodexReasoningEffort({
-        deepThink: true,
+        reasoningEnabled: true,
         modelConfig: baseModelConfig,
       }),
     ).toBe('high');
 
     expect(
       resolveCodexReasoningEffort({
-        deepThink: false,
+        reasoningEnabled: false,
         modelConfig: {
           ...baseModelConfig,
           reasoningEffort: 'xhigh',
         },
       }),
-    ).toBe('low');
+    ).toBe('none');
 
     expect(
       resolveCodexReasoningEffort({
-        deepThink: 'unset',
         modelConfig: {
           ...baseModelConfig,
           reasoningEffort: 'medium',
@@ -62,44 +62,60 @@ describe('codex app-server provider helper', () => {
 
     expect(
       resolveCodexReasoningEffort({
-        deepThink: 'unset',
+        modelConfig: {
+          ...baseModelConfig,
+          reasoningEffort: 'minimal',
+        },
+      }),
+    ).toBe('minimal');
+
+    expect(
+      resolveCodexReasoningEffort({
+        modelConfig: {
+          ...baseModelConfig,
+          reasoningEffort: 'none',
+        },
+      }),
+    ).toBe('none');
+
+    expect(
+      resolveCodexReasoningEffort({
         modelConfig: {
           ...baseModelConfig,
           reasoningEffort: 'invalid-effort',
         },
       }),
-    ).toBeUndefined();
+    ).toBe('none');
 
     expect(
       resolveCodexReasoningEffort({
-        deepThink: 'unset',
-        modelConfig: {
-          ...baseModelConfig,
-          reasoningEnabled: true,
-        },
+        modelConfig: baseModelConfig,
+      }),
+    ).toBe('none');
+
+    expect(
+      resolveCodexReasoningEffort({
+        reasoningEnabled: true,
+        modelConfig: baseModelConfig,
       }),
     ).toBe('high');
 
     expect(
       resolveCodexReasoningEffort({
-        deepThink: 'unset',
-        modelConfig: {
-          ...baseModelConfig,
-          reasoningEnabled: false,
-        },
+        reasoningEnabled: false,
+        modelConfig: baseModelConfig,
       }),
-    ).toBe('low');
+    ).toBe('none');
 
     expect(
       resolveCodexReasoningEffort({
-        deepThink: 'unset',
+        reasoningEnabled: false,
         modelConfig: {
           ...baseModelConfig,
-          reasoningEnabled: false,
           reasoningEffort: 'medium',
         },
       }),
-    ).toBe('medium');
+    ).toBe('none');
   });
 
   it('converts chat messages into codex turn payload', () => {

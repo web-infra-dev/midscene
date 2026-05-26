@@ -597,6 +597,105 @@ describe('BatchRunner', () => {
     });
   });
 
+  describe('Error message collection in summary', () => {
+    test('should collect specific error message from failed task instead of generic "Execution failed"', async () => {
+      vi.mocked(createYamlPlayer).mockImplementation(async () => {
+        const mockPlayer = {
+          status: 'error' as ScriptPlayerStatusValue,
+          output: '/test/output/file.json',
+          reportFile: '/test/report.html',
+          result: {},
+          errorInSetup: null,
+          taskStatusList: [
+            {
+              status: 'error',
+              error: new Error('Specific error: element not found on page'),
+            },
+          ],
+          run: vi.fn().mockImplementation(async () => undefined),
+          script: mockYamlScript,
+          setupAgent: vi.fn(),
+          unnamedResultIndex: 0,
+          pageAgent: null,
+          currentTaskIndex: undefined,
+          agentStatusTip: '',
+        };
+        return mockPlayer as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      const config = { ...mockBatchConfig, files: ['fail.yml'] };
+      const executor = new BatchRunner(config);
+      const results = await executor.run();
+
+      expect(results[0].error).toBe(
+        'Specific error: element not found on page',
+      );
+      expect(results[0].error).not.toBe('Execution failed');
+    });
+
+    test('should join multiple task error messages with semicolons', async () => {
+      vi.mocked(createYamlPlayer).mockImplementation(async () => {
+        const mockPlayer = {
+          status: 'done' as ScriptPlayerStatusValue,
+          output: '/test/output/file.json',
+          reportFile: '/test/report.html',
+          result: {},
+          errorInSetup: null,
+          taskStatusList: [
+            { status: 'error', error: new Error('First task failed') },
+            { status: 'done' },
+            { status: 'error', error: new Error('Third task failed') },
+          ],
+          run: vi.fn().mockImplementation(async () => undefined),
+          script: mockYamlScript,
+          setupAgent: vi.fn(),
+          unnamedResultIndex: 0,
+          pageAgent: null,
+          currentTaskIndex: undefined,
+          agentStatusTip: '',
+        };
+        return mockPlayer as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      const config = {
+        ...mockBatchConfig,
+        files: ['fail.yml'],
+        continueOnError: true,
+      };
+      const executor = new BatchRunner(config);
+      const results = await executor.run();
+
+      expect(results[0].error).toBe('First task failed; Third task failed');
+    });
+
+    test('should use errorInSetup message when available', async () => {
+      vi.mocked(createYamlPlayer).mockImplementation(async () => {
+        const mockPlayer = {
+          status: 'error' as ScriptPlayerStatusValue,
+          output: '/test/output/file.json',
+          reportFile: '/test/report.html',
+          result: {},
+          errorInSetup: new Error('Setup failed: invalid URL'),
+          taskStatusList: [],
+          run: vi.fn().mockImplementation(async () => undefined),
+          script: mockYamlScript,
+          setupAgent: vi.fn(),
+          unnamedResultIndex: 0,
+          pageAgent: null,
+          currentTaskIndex: undefined,
+          agentStatusTip: '',
+        };
+        return mockPlayer as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      const config = { ...mockBatchConfig, files: ['fail.yml'] };
+      const executor = new BatchRunner(config);
+      const results = await executor.run();
+
+      expect(results[0].error).toBe('Setup failed: invalid URL');
+    });
+  });
+
   describe('Global config merging', () => {
     const baseFileConfig: MidsceneYamlScript = {
       tasks: [{ name: 'test task', flow: [{ ai: 'do something' }] }],

@@ -181,7 +181,8 @@ export function generateElementByPoint(
 
 /**
  * Generate a LocateResultElement from a rect.
- * This function calculates the center point from the rect and expands the rect by edgeSize.
+ * This function calculates the center point from the rect and preserves the
+ * original rect as the returned element boundary.
  *
  * Note: The rect uses inclusive coordinates where:
  * - A rect from [left=10, top=10] with [width=1, height=1] covers exactly 1 pixel
@@ -189,13 +190,13 @@ export function generateElementByPoint(
  *
  * @param sourceRect - The source rect to generate element from (typically contains integer values)
  * @param description - Description of the element
- * @param edgeSize - Size to expand around the center point (default: 8)
- * @returns A LocateResultElement with rect, center (always integers), and description
+ * @param edgeSize - Deprecated, retained for backward compatibility
+ * @returns A LocateResultElement with the original rect, center (always integers), and description
  */
 export function generateElementByRect(
   sourceRect: { left: number; top: number; width: number; height: number },
   description: string,
-  edgeSize = 8,
+  _edgeSize = 8,
 ): LocateResultElement {
   /**
    * Calculate center point from rect
@@ -222,5 +223,9 @@ export function generateElementByRect(
   const centerX = sourceRect.left + Math.floor((sourceRect.width - 1) / 2);
   const centerY = sourceRect.top + Math.floor((sourceRect.height - 1) / 2);
 
-  return generateElementByPoint([centerX, centerY], description, edgeSize);
+  return {
+    rect: sourceRect,
+    center: [centerX, centerY],
+    description: description || '',
+  };
 }

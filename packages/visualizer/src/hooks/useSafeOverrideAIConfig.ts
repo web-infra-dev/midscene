@@ -1,6 +1,6 @@
 import { overrideAIConfig } from '@midscene/shared/env';
 import type { GLOBAL_ENV_KEYS, MODEL_ENV_KEYS } from '@midscene/shared/env';
-import { message } from 'antd';
+import { notifyError } from '../utils';
 
 /**
  * Safely override AI configuration with built-in error handling
@@ -27,7 +27,7 @@ export function safeOverrideAIConfig(
     console.error('Failed to override AI config:', err);
 
     if (showErrorMessage) {
-      message.error(`Failed to apply AI configuration: ${err.message}`);
+      notifyError(err, { title: 'Failed to apply AI configuration' });
     }
 
     return false;

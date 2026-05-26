@@ -1,10 +1,11 @@
 import { PlaygroundSDK } from '@midscene/playground';
-import { Button, Tooltip, message } from 'antd';
+import { Button, Tooltip } from 'antd';
 import type React from 'react';
 import { useEffect } from 'react';
 import { safeOverrideAIConfig } from '../../hooks/useSafeOverrideAIConfig';
 import { useServerValid } from '../../hooks/useServerValid';
 import { useEnvConfig } from '../../store/store';
+import { notifyError } from '../../utils';
 import { EnvConfig } from '../env-config';
 import { iconForStatus } from '../misc';
 interface ServiceModeControlProps {
@@ -79,8 +80,7 @@ export const ServiceModeControl: React.FC<ServiceModeControlProps> = ({
         type: 'remote-execution',
       });
       playgroundSDK.overrideConfig(config).catch((error) => {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        message.error(`Failed to apply AI configuration: ${errorMsg}`);
+        notifyError(error, { title: 'Failed to apply AI configuration' });
       });
     }
   }, [config, serviceMode, serverValid]);

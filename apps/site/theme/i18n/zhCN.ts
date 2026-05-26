@@ -69,8 +69,9 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Feature Cards
   featureRichAPIs: '丰富的 API',
   featureRichAPIsDesc: '同时支持智能执行流程与原子化精确控制。',
-  featureMCPServer: 'MCP Server',
-  featureMCPServerDesc: '将设备操作暴露为 MCP Server，并可与多种模型协作使用。',
+  featureSkillsMcp: 'Skills 与 MCP',
+  featureSkillsMcpDesc:
+    '为 AI 编程工具提供开箱即用的 Agent Skills，同时支持将设备操作暴露为 MCP Server。',
   featureReportsPlayground: '报告与 Playground',
   featureReportsPlaygroundDesc:
     '提供直观的可视化报告，帮助开发者回溯自动化流程',
@@ -78,13 +79,28 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   featureFlexibleIntegrationDesc:
     '支持使用 Yaml 编写自动化流程，支持自定义 Agent 执行策略',
   featureRichAPIsLink: '/api',
-  featureMCPServerLink: '/mcp',
+  featureSkillsMcpLink: '/skills',
   featureReportsPlaygroundLink: '/quick-experience',
   featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
 
   // View All APIs
   apiMoreLink: '查看所有 API',
   apiMoreDesc: '探索完整的 API 文档以获取更多自动化能力。',
+
+  // Who is Using
+  whoIsUsingTitle: '谁在使用 Midscene',
+  userVolcengine: '火山引擎',
+  userDouyin: '抖音',
+  userAlibaba: '阿里巴巴',
+  userXiaomi: '小米',
+  userIqiyi: '爱奇艺',
+  userLark: '飞书',
+  userSodaMusic: '汽水音乐',
+  userBilibili: '哔哩哔哩',
+  userBilibiliLogo: '/images/users/bilibili-zh-color.svg',
+  userBilibiliLogoWidth: '120',
+  userDoubao: '豆包',
+  userDongchedi: '懂车帝',
 
   // Links
   multiModelStrategyLink: '/model-strategy#高阶特性多模型配合',

@@ -108,6 +108,14 @@ async function main() {
       console.log('No changes to commit.');
     }
 
+    if (!actionPublishCanary && selectVersion) {
+      // Push version bump commit and tag before npm publish.
+      // If push fails (e.g. remote has new commits), nothing is published
+      // yet, so the release can be safely retried.
+      step('\nPushing to GitHub...');
+      await pushToGithub(selectVersion);
+    }
+
     if (selectVersion) {
       step('\nPublishing...');
       await publish(selectVersion.newVersion);
@@ -116,11 +124,6 @@ async function main() {
       await createVersionMarkerFile(selectVersion.newVersion);
     } else {
       console.log('No new version:', selectVersion);
-    }
-
-    if (!actionPublishCanary) {
-      step('\nPushing to GitHub...');
-      await pushToGithub(selectVersion);
     }
   } catch (error) {
     console.error(
@@ -210,9 +213,6 @@ async function pushToGithub(selectVersion) {
 
 async function publish(version) {
   try {
-    step('\nSetting npmrc ...');
-    await writeNpmrc();
-
     let releaseTag = 'latest';
     if (version.includes('alpha')) {
       releaseTag = 'alpha';
@@ -231,11 +231,17 @@ async function publish(version) {
       throw new Error(errorMsg);
     }
 
+    // `--provenance` attaches a Sigstore-signed attestation linking the
+    // tarball to this workflow run. Combined with npm Trusted Publishers
+    // (configured per package on npmjs.com), no long-lived NPM_TOKEN is
+    // required — pnpm forwards the publish call to the bundled npm CLI,
+    // which exchanges the GitHub OIDC token for a short-lived publish token.
     let publishArgs = [
       '-r',
       'publish',
       '--access',
       'public',
+      '--provenance',
       '--no-git-checks',
     ];
     if (version) {
@@ -264,29 +270,6 @@ async function createVersionMarkerFile(version) {
   } catch (error) {
     console.error(chalk.red('Error creating version marker file'));
     throw error;
-  }
-}
-
-async function writeNpmrc() {
-  if (process.env.CI) {
-    try {
-      const npmRcPath = `${process.env.HOME}/.npmrc`;
-      console.info(
-        `Current .npmrc file path is ${npmRcPath}, npm token is ${process.env.NPM_TOKEN}`,
-      );
-      if (fs.existsSync(npmRcPath)) {
-        console.info('Found existing .npmrc file');
-      } else {
-        console.info('No .npmrc file found, creating one');
-        fs.writeFileSync(
-          npmRcPath,
-          `//registry.npmjs.org/:_authToken=${process.env.NPM_TOKEN}`,
-        );
-      }
-    } catch (error) {
-      console.error(chalk.red('Error setting .npmrc'));
-      throw error;
-    }
   }
 }
 

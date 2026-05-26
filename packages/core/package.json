@@ -1,7 +1,7 @@
 {
   "name": "@midscene/core",
   "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
-  "version": "1.6.0",
+  "version": "1.8.5",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -73,9 +73,9 @@
     "build:watch": "USE_DEV_REPORT=1 rslib build --watch --no-clean",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
-    "test:ai": "AITEST=true npm run test",
-    "computer": "TEST_COMPUTER=true npm run test:ai -- tests/ai/evaluate/computer.test.ts",
-    "test:parse-action": "npm run test:ai -- tests/ai/parse-action.test.ts"
+    "test:ai": "AITEST=true vitest --run",
+    "computer": "TEST_COMPUTER=true AITEST=true vitest --run tests/ai/evaluate/computer.test.ts",
+    "test:parse-action": "vitest --run tests/unit-test/parse-action.test.ts"
   },
   "dependencies": {
     "@midscene/shared": "workspace:*",
@@ -88,7 +88,7 @@
     "openai": "6.3.0",
     "semver": "7.5.2",
     "undici": "^6.0.0",
-    "zod": "3.24.3"
+    "zod": "^3.25.1"
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",

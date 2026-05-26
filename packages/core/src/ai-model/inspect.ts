@@ -105,7 +105,7 @@ const promptsToChatParam = async (
       content: [
         {
           type: 'text',
-          text: 'Next, I will provide all the reference images.',
+          text: 'Next, I will provide all the reference images. These reference images are supporting context only, not the current screenshot being evaluated, unless the task explicitly asks for comparison or matching.',
         },
       ],
     });
@@ -121,7 +121,7 @@ const promptsToChatParam = async (
         content: [
           {
             type: 'text',
-            text: `this is the reference image named '${item.name}':`,
+            text: `this is the reference image named '${item.name}'. It is a reference image, not the current screenshot:`,
           },
         ],
       });
@@ -307,7 +307,9 @@ export async function AiLocateElement(options: {
     res = await callAIWithObjectResponse<AIElementResponse | [number, number]>(
       msgs,
       modelConfig,
-      { abortSignal: options.abortSignal },
+      {
+        abortSignal: options.abortSignal,
+      },
     );
   } catch (callError) {
     // Return error with usage and rawResponse if available
@@ -447,7 +449,9 @@ export async function AiLocateSection(options: {
     result = await callAIWithObjectResponse<AISectionLocatorResponse>(
       msgs,
       modelConfig,
-      { abortSignal: options.abortSignal },
+      {
+        abortSignal: options.abortSignal,
+      },
     );
   } catch (callError) {
     // Return error with usage and rawResponse if available
@@ -549,7 +553,10 @@ export async function AiExtractElementInfo<T>(options: {
 }) {
   const { dataQuery, context, extractOption, multimodalPrompt, modelConfig } =
     options;
-  const systemPrompt = systemPromptToExtract();
+  const systemPrompt = systemPromptToExtract({
+    screenshotIncluded: extractOption?.screenshotIncluded !== false,
+    referenceImagesIncluded: !!multimodalPrompt?.images?.length,
+  });
   const screenshotBase64 = context.screenshot.base64;
 
   const extractDataPromptText = extractDataQueryPrompt(
@@ -560,6 +567,11 @@ export async function AiExtractElementInfo<T>(options: {
   const userContent: ChatCompletionUserMessageParam['content'] = [];
 
   if (extractOption?.screenshotIncluded !== false) {
+    userContent.push({
+      type: 'text',
+      text: 'This is the current screenshot to evaluate. Unless <DATA_DEMAND> explicitly asks for comparison or matching against reference images, base your answer on this screenshot and its contents when provided.',
+    });
+
     userContent.push({
       type: 'image_url',
       image_url: {
@@ -637,6 +649,8 @@ export async function AiJudgeOrderSensitive(
       content: userPrompt,
     },
   ];
+
+  debugInspect('AiJudgeOrderSensitive: description=%s', description);
 
   const result = await callAIFn(msgs, modelConfig);
 

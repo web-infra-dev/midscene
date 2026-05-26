@@ -11,7 +11,7 @@ import type {
   MidsceneYamlScriptAgentOpt,
   MidsceneYamlScriptEnv,
 } from '@midscene/core';
-import { createAgent } from '@midscene/core/agent';
+import { createAgent, getReportFileName } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
 import { processCacheConfig } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
@@ -43,30 +43,33 @@ export const launchServer = async (
 };
 
 /**
- * Resolves the testId with proper priority handling.
- * Priority: CLI testId > YAML testId > fileName
+ * Resolves reportFileName with proper priority handling.
+ * Priority: YAML reportFileName > CLI testId (legacy) > YAML testId (legacy) > fileName
+ * The final name always includes a unique suffix to avoid overwriting.
  */
-function resolveTestId(
+function resolveReportFileName(
+  yamlReportFileName: string | undefined,
   cliTestId: string | undefined,
   yamlTestId: string | undefined,
   fileName: string,
 ): string {
-  return cliTestId ?? yamlTestId ?? fileName;
+  const baseName = yamlReportFileName ?? cliTestId ?? yamlTestId ?? fileName;
+  return getReportFileName(baseName);
 }
 
 /**
- * Builds agent options by merging YAML agent config with processed cache and testId.
+ * Builds agent options by merging YAML agent config with processed cache and report name.
  * Handles the spread of agent options and ensures proper cache configuration.
  */
 function buildAgentOptions(
   yamlAgent: MidsceneYamlScriptAgentOpt | undefined,
-  preferenceTestId: string,
+  reportFileName: string,
   fileName: string,
 ): Partial<AgentOpt> {
   return {
     ...(yamlAgent || {}),
     cache: processCacheConfig(yamlAgent?.cache, fileName),
-    testId: preferenceTestId,
+    reportFileName,
   };
 }
 
@@ -92,8 +95,8 @@ export async function createYamlPlayer(
   const preference = {
     headed: options?.headed,
     keepWindow: options?.keepWindow,
-    // Priority: CLI testId > YAML testId > fileName
-    testId: resolveTestId(
+    reportFileName: resolveReportFileName(
+      clonedYamlScript.agent?.reportFileName,
       options?.testId,
       clonedYamlScript.agent?.testId,
       fileName,
@@ -194,7 +197,7 @@ export async function createYamlPlayer(
               ...preference,
               ...buildAgentOptions(
                 clonedYamlScript.agent,
-                preference.testId,
+                preference.reportFileName,
                 fileName,
               ),
             },
@@ -226,7 +229,7 @@ export async function createYamlPlayer(
               ...preference,
               ...buildAgentOptions(
                 clonedYamlScript.agent,
-                preference.testId,
+                preference.reportFileName,
                 fileName,
               ),
             },
@@ -262,7 +265,7 @@ export async function createYamlPlayer(
           closeConflictServer: true,
           ...buildAgentOptions(
             clonedYamlScript.agent,
-            preference.testId,
+            preference.reportFileName,
             fileName,
           ),
         });
@@ -295,7 +298,7 @@ export async function createYamlPlayer(
           ...androidTarget, // Pass all Android config options
           ...buildAgentOptions(
             clonedYamlScript.agent,
-            preference.testId,
+            preference.reportFileName,
             fileName,
           ),
         });
@@ -320,7 +323,7 @@ export async function createYamlPlayer(
           ...iosTarget, // Pass all iOS config options
           ...buildAgentOptions(
             clonedYamlScript.agent,
-            preference.testId,
+            preference.reportFileName,
             fileName,
           ),
         });
@@ -340,12 +343,12 @@ export async function createYamlPlayer(
       // handle computer
       if (typeof clonedYamlScript.computer !== 'undefined') {
         const computerTarget = clonedYamlScript.computer;
-        const { agentFromComputer } = await import('@midscene/computer');
-        const agent = await agentFromComputer({
+        const { agentForComputer } = await import('@midscene/computer');
+        const agent = await agentForComputer({
           ...computerTarget,
           ...buildAgentOptions(
             clonedYamlScript.agent,
-            preference.testId,
+            preference.reportFileName,
             fileName,
           ),
         });
@@ -405,7 +408,7 @@ export async function createYamlPlayer(
           device,
           buildAgentOptions(
             clonedYamlScript.agent,
-            preference.testId,
+            preference.reportFileName,
             fileName,
           ),
         );

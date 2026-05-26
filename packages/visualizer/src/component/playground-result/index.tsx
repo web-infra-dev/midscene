@@ -2,8 +2,11 @@ import { LoadingOutlined } from '@ant-design/icons';
 import { noReplayAPIs } from '@midscene/playground';
 import { Spin } from 'antd';
 import type React from 'react';
-import type { PlaygroundResult as PlaygroundResultType } from '../../types';
-import type { ServiceModeType } from '../../types';
+import type {
+  PlaygroundResult as PlaygroundResultType,
+  ReportDownloadHandler,
+  ServiceModeType,
+} from '../../types';
 import type { ReplayScriptsInfo } from '../../utils/replay-scripts';
 import { emptyResultTip, serverLaunchTip } from '../misc';
 import { Player } from '../player';
@@ -24,6 +27,7 @@ interface PlaygroundResultProps {
   autoZoom?: boolean;
   actionType?: string; // The action type that was executed
   canDownloadReport?: boolean;
+  onDownloadReport?: ReportDownloadHandler;
 }
 
 export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
@@ -40,6 +44,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
   autoZoom,
   actionType,
   canDownloadReport,
+  onDownloadReport,
 }) => {
   let resultWrapperClassName = 'result-wrapper';
   if (verticalMode) {
@@ -76,36 +81,32 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
 
     if (result.reportHTML || replayScriptsInfo) {
       resultDataToShow = (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-            height: '100%',
-          }}
-        >
+        <div className="combined-result-layout">
           <div style={{ flex: '0 0 auto', maxHeight: '40%', overflow: 'auto' }}>
             <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
               Error:
             </div>
             {errorNode}
           </div>
-          <div style={{ flex: '1 1 auto', minHeight: 0 }}>
+          <div className="combined-result-section">
             <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
               Report:
             </div>
-            <Player
-              key={replayCounter}
-              replayScripts={replayScriptsInfo?.scripts}
-              imageWidth={replayScriptsInfo?.width}
-              imageHeight={replayScriptsInfo?.height}
-              reportFileContent={result.reportHTML || null}
-              fitMode={fitMode}
-              autoZoom={autoZoom}
-              canDownloadReport={
-                canDownloadReport ?? serviceMode !== 'In-Browser'
-              }
-            />
+            <div className="combined-result-player">
+              <Player
+                key={replayCounter}
+                replayScripts={replayScriptsInfo?.scripts}
+                imageWidth={replayScriptsInfo?.width}
+                imageHeight={replayScriptsInfo?.height}
+                reportFileContent={result.reportHTML || null}
+                fitMode={fitMode}
+                autoZoom={autoZoom}
+                canDownloadReport={
+                  canDownloadReport ?? serviceMode !== 'In-Browser'
+                }
+                onDownloadReport={onDownloadReport}
+              />
+            </div>
           </div>
         </div>
       );
@@ -128,32 +129,28 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
     const reportContent = result?.reportHTML || null;
 
     resultDataToShow = (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px',
-          height: '100%',
-        }}
-      >
+      <div className="combined-result-layout">
         <div style={{ flex: '0 0 auto' }}>
           <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Output:</div>
           {resultOutput}
         </div>
-        <div style={{ flex: '1 1 auto', minHeight: 0 }}>
+        <div className="combined-result-section">
           <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Report:</div>
-          <Player
-            key={replayCounter}
-            replayScripts={replayScriptsInfo.scripts}
-            imageWidth={replayScriptsInfo.width}
-            imageHeight={replayScriptsInfo.height}
-            reportFileContent={reportContent}
-            fitMode={fitMode}
-            autoZoom={autoZoom}
-            canDownloadReport={
-              canDownloadReport ?? serviceMode !== 'In-Browser'
-            }
-          />
+          <div className="combined-result-player">
+            <Player
+              key={replayCounter}
+              replayScripts={replayScriptsInfo.scripts}
+              imageWidth={replayScriptsInfo.width}
+              imageHeight={replayScriptsInfo.height}
+              reportFileContent={reportContent}
+              fitMode={fitMode}
+              autoZoom={autoZoom}
+              canDownloadReport={
+                canDownloadReport ?? serviceMode !== 'In-Browser'
+              }
+              onDownloadReport={onDownloadReport}
+            />
+          </div>
         </div>
       </div>
     );
@@ -171,6 +168,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
         fitMode={fitMode}
         autoZoom={autoZoom}
         canDownloadReport={canDownloadReport ?? serviceMode !== 'In-Browser'}
+        onDownloadReport={onDownloadReport}
       />
     );
   } else if (
@@ -187,29 +185,25 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
       );
 
     resultDataToShow = (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px',
-          height: '100%',
-        }}
-      >
+      <div className="combined-result-layout">
         <div style={{ flex: '0 0 auto' }}>
           <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Output:</div>
           {resultOutput}
         </div>
-        <div style={{ flex: '1 1 auto', minHeight: 0 }}>
+        <div className="combined-result-section">
           <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Report:</div>
-          <Player
-            key={replayCounter}
-            reportFileContent={result.reportHTML}
-            fitMode={fitMode}
-            autoZoom={autoZoom}
-            canDownloadReport={
-              canDownloadReport ?? serviceMode !== 'In-Browser'
-            }
-          />
+          <div className="combined-result-player">
+            <Player
+              key={replayCounter}
+              reportFileContent={result.reportHTML}
+              fitMode={fitMode}
+              autoZoom={autoZoom}
+              canDownloadReport={
+                canDownloadReport ?? serviceMode !== 'In-Browser'
+              }
+              onDownloadReport={onDownloadReport}
+            />
+          </div>
         </div>
       </div>
     );
@@ -230,6 +224,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
         fitMode={fitMode}
         autoZoom={autoZoom}
         canDownloadReport={canDownloadReport ?? serviceMode !== 'In-Browser'}
+        onDownloadReport={onDownloadReport}
       />
     );
   } else if (result?.result !== undefined) {

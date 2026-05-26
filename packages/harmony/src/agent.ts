@@ -9,6 +9,7 @@ import {
   type DeviceActionHarmonyRecentAppsButton,
   type DeviceActionLaunch,
   type DeviceActionRunHdcShell,
+  type DeviceActionTerminate,
   HarmonyDevice,
   type HarmonyDeviceOpt,
 } from './device';
@@ -64,6 +65,12 @@ export class HarmonyAgent extends PageAgent<HarmonyDevice> {
 
   async launch(uri: string): Promise<void> {
     const action = this.wrapActionInActionSpace<DeviceActionLaunch>('Launch');
+    return action({ uri });
+  }
+
+  async terminate(uri: string): Promise<void> {
+    const action =
+      this.wrapActionInActionSpace<DeviceActionTerminate>('Terminate');
     return action({ uri });
   }
 

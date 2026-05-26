@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import { extractAllDumpScriptsSync } from '@/dump/html-utils';
 import { ReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
-import { ExecutionDump, type GroupMeta } from '@/types';
+import { ExecutionDump, type ReportMeta } from '@/types';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import { describe, expect, it } from 'vitest';
 import {
@@ -60,7 +60,7 @@ function createExecution(
   });
 }
 
-const defaultGroupMeta: GroupMeta = {
+const defaultReportMeta: ReportMeta = {
   groupName: 'test-group',
   groupDescription: 'test',
   sdkVersion: '1.0.0-test',
@@ -95,18 +95,18 @@ describe('Issue 2: default groupName causes unrelated reports to merge', () => {
       autoPrint: false,
     });
 
-    const sameGroupMeta: GroupMeta = {
+    const sameReportMeta: ReportMeta = {
       groupName: 'Midscene Report', // default groupName
       sdkVersion: '1.0.0',
       modelBriefs: [],
     };
 
     const exec1 = createExecution([fakeScreenshot()], 'exec-from-report-1');
-    gen1.onExecutionUpdate(exec1, sameGroupMeta);
+    gen1.onExecutionUpdate(exec1, sameReportMeta);
     await gen1.flush();
 
     const exec2 = createExecution([fakeScreenshot()], 'exec-from-report-2');
-    gen2.onExecutionUpdate(exec2, sameGroupMeta);
+    gen2.onExecutionUpdate(exec2, sameReportMeta);
     await gen2.flush();
 
     const html1 = readFileSync(join(tmpDir, 'report1.html'), 'utf-8');
@@ -126,23 +126,24 @@ describe('Issue 2: default groupName causes unrelated reports to merge', () => {
 
 // ---------- Issue 3: dedup key merges unrelated old executions ----------
 
-describe('Issue 3: dedup key merges old executions without id', () => {
+describe('Issue 3: execution persistence requires id', () => {
   /**
    * Old ExecutionDump entries have no `id` field. The dedup logic uses
    * `exec.id || exec.name` as key. When multiple old executions share the
    * same name (e.g. "Act - click login"), they get incorrectly merged
    * (only the last one survives).
    */
-  it('mergeDumpScripts loses old executions with same name and no id', async () => {
+  it('should throw when execution id is missing', async () => {
     const tmpDir = getTmpDir('dedup-old');
 
     const gen = new ReportGenerator({
       reportPath: join(tmpDir, 'dedup-old.html'),
       screenshotMode: 'inline',
+      persistExecutionDump: true,
       autoPrint: false,
     });
 
-    const groupMeta: GroupMeta = {
+    const groupMeta: ReportMeta = {
       groupName: 'dedup-test',
       sdkVersion: '1.0.0',
       modelBriefs: [],
@@ -194,43 +195,10 @@ describe('Issue 3: dedup key merges old executions without id', () => {
       ],
     });
 
-    // Write both executions
     gen.onExecutionUpdate(exec1, groupMeta);
-    gen.onExecutionUpdate(exec2, groupMeta);
-    await gen.flush();
-
-    const html = readFileSync(join(tmpDir, 'dedup-old.html'), 'utf-8');
-
-    // Extract all dump scripts with data-group-id
-    const allDumps = extractAllDumpScriptsSync(
-      join(tmpDir, 'dedup-old.html'),
-    ).filter((d) => d.openTag.includes('data-group-id'));
-
-    // There should be 2 dump tags (one per execution update)
-    expect(allDumps.length).toBe(2);
-
-    // Now simulate what the Viewer does: merge and dedup
-    const allExecutions: any[] = [];
-    for (const d of allDumps) {
-      const content = antiEscapeScriptTag(d.content);
-      const parsed = JSON.parse(content);
-      allExecutions.push(...parsed.executions);
-    }
-
-    // We started with 2 executions
-    expect(allExecutions.length).toBe(2);
-
-    // Apply the dedup logic from App.tsx: only dedup by id, no-id entries kept
-    let noIdCounter = 0;
-    const deduped = new Map<string, any>();
-    for (const exec of allExecutions) {
-      const key = exec.id || `__no_id_${noIdCounter++}`;
-      deduped.set(key, exec);
-    }
-
-    // Both executions should survive dedup: without an id, executions with
-    // the same name are distinct and must not be collapsed.
-    expect(deduped.size).toBe(2);
+    await expect(gen.flush()).rejects.toThrow(
+      'execution.id is required for persisting execution dumps',
+    );
   });
 });
 
@@ -285,7 +253,7 @@ describe('Issue 5: final execution state may not be written', () => {
     // The task starts as 'running'
     expect(execution.tasks[0].status).toBe('running');
 
-    generator.onExecutionUpdate(execution, defaultGroupMeta);
+    generator.onExecutionUpdate(execution, defaultReportMeta);
     await generator.flush();
 
     // Now the task finishes (agent would do this)

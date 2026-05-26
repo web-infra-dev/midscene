@@ -6,6 +6,7 @@ import { getVersion } from './utils';
 export {
   plan,
   AiLocateElement,
+  runConnectivityTest,
   getMidsceneLocationSchema,
   PointSchema,
   SizeSchema,
@@ -14,6 +15,9 @@ export {
   TUserPromptSchema,
   type TMultimodalPrompt,
   type TUserPrompt,
+  type ConnectivityCheckResultItem,
+  type ConnectivityTestConfig,
+  type ConnectivityTestResult,
 } from './ai-model/index';
 
 export {
@@ -25,9 +29,12 @@ export type * from './types';
 export {
   ServiceError,
   ExecutionDump,
+  ReportActionDump,
   GroupedActionDump,
   type IExecutionDump,
+  type IReportActionDump,
   type IGroupedActionDump,
+  type ReportMeta,
   type GroupMeta,
 } from './types';
 
@@ -67,6 +74,35 @@ export {
 // Report generator
 export type { IReportGenerator } from './report-generator';
 export { ReportGenerator, nullReportGenerator } from './report-generator';
+export {
+  collectDedupedExecutions,
+  ReportMergingTool,
+  dedupeExecutionsKeepLatest,
+  splitReportHtmlByExecution,
+} from './report';
+export {
+  createReportCliCommands,
+  reportFileToMarkdown,
+  splitReportFile,
+  mergeReportFiles,
+  type ConsumeReportFileAction,
+  type ReportFileToMarkdownOptions,
+  type ReportCliCommandDefinition,
+  type ReportCliCommandEntry,
+  type SplitReportFileOptions,
+  type MergeReportFilesOptions,
+  type MergeReportFilesResult,
+} from './report-cli';
 
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';
+export { ScreenshotStore, type ScreenshotRef } from './dump/screenshot-store';
+
+export {
+  executionToMarkdown,
+  reportToMarkdown,
+  type ExecutionMarkdownOptions,
+  type ExecutionMarkdownResult,
+  type ReportMarkdownResult,
+  type MarkdownAttachment,
+} from './report-markdown';

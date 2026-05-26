@@ -439,6 +439,23 @@ class BatchRunner {
         outputPath = undefined;
       }
 
+      // Collect specific error messages from player
+      let errorMessage: string | undefined;
+      if (player.errorInSetup?.message) {
+        errorMessage = player.errorInSetup.message;
+      } else if (hasPlayerError || hasFailedTasks) {
+        const taskErrors = player.taskStatusList
+          ?.filter((task) => task.status === 'error' && task.error?.message)
+          .map((task) => task.error!.message);
+        if (taskErrors && taskErrors.length > 0) {
+          errorMessage = taskErrors.join('; ');
+        } else if (hasPlayerError) {
+          errorMessage = 'Execution failed';
+        } else {
+          errorMessage = 'Some tasks failed';
+        }
+      }
+
       results.push({
         file,
         success,
@@ -447,10 +464,7 @@ class BatchRunner {
         report: reportFile,
         duration,
         resultType,
-        error:
-          player.errorInSetup?.message ||
-          (hasPlayerError ? 'Execution failed' : undefined) ||
-          (hasFailedTasks ? 'Some tasks failed' : undefined),
+        error: errorMessage,
       });
     }
 

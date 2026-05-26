@@ -1,12 +1,13 @@
 import './App.less';
 
 import { Alert, ConfigProvider, Empty, theme } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import {
   GroupedActionDump,
   type ModelBrief,
+  dedupeExecutionsKeepLatest,
   restoreImageReferences,
 } from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
@@ -29,11 +30,19 @@ import type {
   PlaywrightTasks,
   VisualizerProps,
 } from './types';
+import { formatModelBriefText } from './utils/model-brief';
+import {
+  getEmptyDumpDescription,
+  parseDumpAttributes,
+} from './utils/report-dump';
 
 // Shared image cache across all test cases — resolved images are cached by id
 const imageCache = new Map<string, string>();
 
-function resolveImageFromDom(id: string): string {
+function resolveImageFromDom(
+  refOrId: string | { id: string; storage?: 'inline' | 'file'; path?: string },
+): string {
+  const id = typeof refOrId === 'string' ? refOrId : refOrId.id;
   const cached = imageCache.get(id);
   if (cached) return cached;
 
@@ -46,6 +55,10 @@ function resolveImageFromDom(id: string): string {
     return data;
   }
 
+  if (typeof refOrId === 'object' && refOrId?.storage === 'file') {
+    return refOrId.path || `./screenshots/${id}.png`;
+  }
+
   // Fallback to directory path
   return `./screenshots/${id}.png`;
 }
@@ -53,15 +66,6 @@ function resolveImageFromDom(id: string): string {
 let globalRenderCount = 1;
 const SIDEBAR_WIDTH_KEY = 'midscene-sidebar-width';
 const DEFAULT_SIDEBAR_WIDTH = 280;
-
-const formatModelBrief = (
-  modelBrief: ModelBrief,
-  includeIntent: boolean,
-): string => {
-  const { name, modelDescription, intent } = modelBrief;
-  const base = modelDescription ? `${name}(${modelDescription})` : name;
-  return includeIntent ? `${intent}/${base}` : `${base}`;
-};
 
 function Visualizer(props: VisualizerProps): JSX.Element {
   const { dumps } = props;
@@ -82,9 +86,10 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
   const sdkVersion = useExecutionDump((store) => store.sdkVersion);
   const modelBriefs = useExecutionDump((store) => store.modelBriefs);
-  const modelBriefText = modelBriefs
-    .map((brief) => formatModelBrief(brief, modelBriefs.length > 1))
-    .join(', ');
+  const playwrightAttributes = useExecutionDump(
+    (store) => store.playwrightAttributes,
+  );
+  const modelBriefText = formatModelBriefText(modelBriefs);
   const reset = useExecutionDump((store) => store.reset);
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -108,8 +113,9 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   }, [isDarkMode]);
 
   useEffect(() => {
-    if (dumps?.[0]) {
-      setGroupedDump(dumps[0].get(), dumps[0].attributes);
+    if (dumps && dumps.length > 0) {
+      const first = dumps[0];
+      setGroupedDump(first.get(), first.attributes);
     }
     return () => {
       reset();
@@ -135,13 +141,62 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     };
   }, []);
 
+  const allSkipped = useMemo(
+    () =>
+      dumps &&
+      dumps.length > 0 &&
+      dumps.every((d) => d.attributes?.playwright_test_status === 'skipped'),
+    [dumps],
+  );
+
+  const renderContent = () => {
+    if (dump && dump.executions.length === 0) {
+      return (
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={getEmptyDumpDescription(
+            playwrightAttributes?.playwright_test_status,
+          )}
+        />
+      );
+    }
+    if (replayAllMode) {
+      return (
+        <div className="replay-all-mode-wrapper">
+          <Player
+            key={`${executionDumpLoadId}`}
+            replayScripts={replayAllScripts!}
+            imageWidth={insightWidth!}
+            imageHeight={insightHeight!}
+            onTaskChange={setPlayingTaskId}
+          />
+        </div>
+      );
+    }
+    return (
+      <PanelGroup autoSaveId="page-detail-layout-v2" direction="horizontal">
+        <Panel defaultSize={75} maxSize={95}>
+          <div className="main-content-container">
+            <DetailPanel />
+          </div>
+        </Panel>
+        <PanelResizeHandle className="resize-handle" />
+        <Panel maxSize={95}>
+          <div className="main-side">
+            <DetailSide />
+          </div>
+        </Panel>
+      </PanelGroup>
+    );
+  };
+
   let mainContent: JSX.Element;
-  if (dump && dump.executions.length === 0) {
+  if (allSkipped && (!dump || dump.executions.length === 0)) {
     mainContent = (
       <div className="main-right">
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="There is no task info in this dump file."
+          description="All test cases were skipped. No report data to display."
         />
       </div>
     );
@@ -163,31 +218,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       </div>
     );
   } else {
-    const content = replayAllMode ? (
-      <div className="replay-all-mode-wrapper">
-        <Player
-          key={`${executionDumpLoadId}`}
-          replayScripts={replayAllScripts!}
-          imageWidth={insightWidth!}
-          imageHeight={insightHeight!}
-          onTaskChange={setPlayingTaskId}
-        />
-      </div>
-    ) : (
-      <PanelGroup autoSaveId="page-detail-layout-v2" direction="horizontal">
-        <Panel defaultSize={75} maxSize={95}>
-          <div className="main-content-container">
-            <DetailPanel />
-          </div>
-        </Panel>
-        <PanelResizeHandle className="resize-handle" />
-        <Panel maxSize={95}>
-          <div className="main-side">
-            <DetailSide />
-          </div>
-        </Panel>
-      </PanelGroup>
-    );
+    const content = renderContent();
 
     mainContent = (
       <div className="main-layout">
@@ -299,7 +330,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
           </div>
           <div className="page-nav-right">
             <div className="page-nav-version">
-              v{sdkVersion}
+              {sdkVersion ? `v${sdkVersion}` : 'unknown version'}
               {modelBriefText ? ` | ${modelBriefText}` : ''}
             </div>
             <div className="theme-divider" />
@@ -325,26 +356,9 @@ export function App() {
    * Parse attributes from a dump script element.
    */
   function parseAttributesFromElement(el: Element): PlaywrightTaskAttributes {
-    const attributes: Partial<PlaywrightTaskAttributes> & Record<string, any> =
-      {
-        playwright_test_description: '',
-        playwright_test_id: '',
-        playwright_test_title: '',
-        playwright_test_status: undefined,
-        playwright_test_duration: 0,
-      };
-    Array.from(el.attributes).forEach((attr) => {
-      const { name, value } = attr;
-      const valueDecoded = decodeURIComponent(value);
-      if (name.startsWith('playwright_')) {
-        if (name === 'playwright_test_duration') {
-          attributes[name] = Number(valueDecoded) || 0;
-        } else {
-          attributes[name] = valueDecoded;
-        }
-      }
-    });
-    return attributes as PlaywrightTaskAttributes;
+    return parseDumpAttributes(
+      Array.from(el.attributes).map(({ name, value }) => ({ name, value })),
+    );
   }
 
   function getDumpElements(): PlaywrightTasks[] {
@@ -359,17 +373,17 @@ export function App() {
       return !!textContent;
     });
 
-    // Group elements by data-group-id (required attribute)
+    // Group elements by data-group-id.
+    // For backward compatibility with older reports that lack data-group-id,
+    // each element without the attribute is treated as its own group.
     const groupMap = new Map<string, Element[]>();
+    let ungroupedCounter = 0;
 
     for (const el of validElements) {
       const groupId = el.getAttribute('data-group-id');
-      if (!groupId) {
-        throw new Error(
-          'Missing required attribute "data-group-id" on <script type="midscene_web_dump"> element',
-        );
-      }
-      const decodedGroupId = decodeURIComponent(groupId);
+      const decodedGroupId = groupId
+        ? decodeURIComponent(groupId)
+        : `__ungrouped_${ungroupedCounter++}`;
       if (!groupMap.has(decodedGroupId)) {
         groupMap.set(decodedGroupId, []);
       }
@@ -408,13 +422,7 @@ export function App() {
             // Deduplicate executions by id — keep only the last one.
             // Only executions with a stable id are deduped; old-format entries
             // without id are always kept (they may be distinct despite same name).
-            let noIdCounter = 0;
-            const deduped = new Map<string, any>();
-            for (const exec of allExecutions) {
-              const key = exec.id || `__no_id_${noIdCounter++}`;
-              deduped.set(key, exec);
-            }
-            baseDump!.executions = Array.from(deduped.values());
+            baseDump!.executions = dedupeExecutionsKeepLatest(allExecutions);
             cachedJsonContent = baseDump!;
 
             console.timeEnd('parse_grouped_dump');

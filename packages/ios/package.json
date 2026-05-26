@@ -1,6 +1,11 @@
 {
   "name": "@midscene/ios",
-  "version": "1.6.0",
+  "version": "1.8.5",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/ios"
+  },
   "description": "iOS automation library for Midscene",
   "keywords": [
     "iOS UI automation",
@@ -42,8 +47,8 @@
     "playground": "DEBUG=midscene:* tsx demo/playground.ts",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
-    "test:ai": "AI_TEST_TYPE=iOS npm run test",
-    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=iOS npm run test"
+    "test:ai": "AI_TEST_TYPE=iOS vitest --run",
+    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=iOS vitest --run"
   },
   "dependencies": {
     "@midscene/core": "workspace:*",
@@ -60,7 +65,7 @@
     "typescript": "^5.8.3",
     "tsx": "^4.19.2",
     "vitest": "3.0.5",
-    "zod": "3.24.3"
+    "zod": "^3.25.1"
   },
   "license": "MIT"
 }

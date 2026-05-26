@@ -147,7 +147,7 @@ describe('service-caller', () => {
         openaiBaseURL: 'https://api.openai.com/v1',
         modelDescription: 'test',
         intent: 'default',
-        from: 'modelConfig',
+        slot: 'default',
         createOpenAIClient: mockCreateClient,
       };
 
@@ -163,7 +163,7 @@ describe('service-caller', () => {
         openaiBaseURL: 'https://api.openai.com/v1',
         modelDescription: 'test',
         intent: 'default',
-        from: 'env',
+        slot: 'default',
       };
 
       // Should not have createOpenAIClient
@@ -317,14 +317,14 @@ describe('service-caller', () => {
   });
 
   describe('resolveReasoningConfig', () => {
-    it('returns empty config when no reasoning params are set', () => {
+    it('defaults reasoning to disabled for supported model families', () => {
       const result = resolveReasoningConfig({
         modelFamily: 'doubao-seed',
       });
-      expect(result.config).toEqual({});
+      expect(result.config).toEqual({ thinking: { type: 'disabled' } });
     });
 
-    // qwen3-vl / qwen3.5: reasoningEnabled → enable_thinking, reasoningBudget → thinking_budget
+    // qwen3-vl / qwen3.5 / qwen3.6: reasoningEnabled → enable_thinking, reasoningBudget → thinking_budget
     it('maps reasoningEnabled to enable_thinking for qwen3-vl with default budget', () => {
       const result = resolveReasoningConfig({
         reasoningEnabled: true,
@@ -341,6 +341,18 @@ describe('service-caller', () => {
         modelFamily: 'qwen3.5',
       });
       expect(result.config).toEqual({ enable_thinking: false });
+    });
+
+    it('maps reasoningBudget to thinking_budget for qwen3.6', () => {
+      const result = resolveReasoningConfig({
+        reasoningEnabled: true,
+        reasoningBudget: 500,
+        modelFamily: 'qwen3.6',
+      });
+      expect(result.config).toEqual({
+        enable_thinking: true,
+        thinking_budget: 500,
+      });
     });
 
     it('maps reasoningBudget to thinking_budget for qwen3-vl', () => {
@@ -360,8 +372,7 @@ describe('service-caller', () => {
         reasoningEffort: 'high',
         modelFamily: 'qwen3-vl',
       });
-      // reasoningEffort is ignored for qwen, but it was set so config is entered
-      expect(result.config).toEqual({});
+      expect(result.config).toEqual({ enable_thinking: false });
     });
 
     it('maps reasoningBudget alone without reasoningEnabled for qwen3-vl', () => {
@@ -369,7 +380,10 @@ describe('service-caller', () => {
         reasoningBudget: 16384,
         modelFamily: 'qwen3-vl',
       });
-      expect(result.config).toEqual({ thinking_budget: 16384 });
+      expect(result.config).toEqual({
+        enable_thinking: false,
+        thinking_budget: 16384,
+      });
     });
 
     // doubao-vision / doubao-seed: reasoningEnabled → thinking.type, reasoningEffort → reasoning_effort
@@ -430,57 +444,64 @@ describe('service-caller', () => {
       expect(result.config).toEqual({ thinking: { type: 'disabled' } });
     });
 
-    // gpt-5: reasoning config is ignored
-    it('ignores reasoningEffort for gpt-5', () => {
+    // gpt-5 over OpenAI-compatible HTTP is not a supported reasoning family.
+    it('returns empty config for gpt-5 when reasoning config is unset', () => {
       const result = resolveReasoningConfig({
-        reasoningEffort: 'low',
         modelFamily: 'gpt-5',
       });
-      expect(result.config).toEqual({ reasoning: undefined });
+      expect(result.config).toEqual({});
     });
 
-    it('ignores reasoningEnabled=true for gpt-5', () => {
-      const result = resolveReasoningConfig({
-        reasoningEnabled: true,
-        modelFamily: 'gpt-5',
-      });
-      expect(result.config).toEqual({ reasoning: undefined });
+    it('throws when reasoningEffort is set for unsupported gpt-5 HTTP family', () => {
+      expect(() =>
+        resolveReasoningConfig({
+          reasoningEffort: 'low',
+          modelFamily: 'gpt-5',
+        }),
+      ).toThrow(/Reasoning config is not supported/);
     });
 
-    it('ignores reasoningEnabled=false for gpt-5', () => {
-      const result = resolveReasoningConfig({
-        reasoningEnabled: false,
-        modelFamily: 'gpt-5',
-      });
-      expect(result.config).toEqual({ reasoning: undefined });
-    });
-
-    it('ignores both reasoningEffort and reasoningEnabled for gpt-5', () => {
-      const result = resolveReasoningConfig({
-        reasoningEnabled: true,
-        reasoningEffort: 'medium',
-        modelFamily: 'gpt-5',
-      });
-      expect(result.config).toEqual({ reasoning: undefined });
+    it('throws when reasoningEnabled is set for unsupported gpt-5 HTTP family', () => {
+      expect(() =>
+        resolveReasoningConfig({
+          reasoningEnabled: true,
+          modelFamily: 'gpt-5',
+        }),
+      ).toThrow(/Reasoning config is not supported/);
     });
 
     // no model family
-    it('warns when no model family is configured', () => {
+    it('returns empty config when no model family is configured and reasoning is unset', () => {
       const result = resolveReasoningConfig({
-        reasoningEnabled: true,
         modelFamily: undefined,
       });
       expect(result.config).toEqual({});
-      expect(result.warningMessage).toBeDefined();
+    });
+
+    it('throws when reasoning is explicitly configured without model family', () => {
+      expect(() =>
+        resolveReasoningConfig({
+          reasoningEnabled: true,
+          modelFamily: undefined,
+        }),
+      ).toThrow(/Reasoning config requires MIDSCENE_MODEL_FAMILY/);
     });
 
     // unknown model family
-    it('passes reasoning_effort directly for unrecognized model family', () => {
+    it('returns empty config for unrecognized model family when reasoning is unset', () => {
       const result = resolveReasoningConfig({
-        reasoningEffort: 'high',
         modelFamily: 'gemini' as any,
       });
-      expect(result.config).toEqual({ reasoning_effort: 'high' });
+      expect(result.config).toEqual({});
+    });
+
+    it('throws when reasoning is explicitly configured for unrecognized model family', () => {
+      expect(() =>
+        resolveReasoningConfig({
+          reasoningEffort: 'high',
+          modelFamily: 'gemini' as any,
+        }),
+      ).toThrow(/Reasoning config is not supported/);
     });
   });
 });

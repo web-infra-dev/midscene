@@ -1,5 +1,6 @@
 import { GithubOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { Typography } from 'antd';
+import type { PlaygroundSDKLike } from '../../types';
 import { EnvConfig } from '../env-config';
 import './style.less';
 
@@ -10,6 +11,7 @@ export interface NavActionsProps {
   githubUrl?: string;
   helpUrl?: string;
   className?: string;
+  playgroundSDK?: PlaygroundSDKLike | null;
 }
 
 export function NavActions({
@@ -19,6 +21,7 @@ export function NavActions({
   githubUrl = 'https://github.com/web-infra-dev/midscene',
   helpUrl = 'https://midscenejs.com/quick-experience.html',
   className = '',
+  playgroundSDK,
 }: NavActionsProps) {
   return (
     <div className={`nav-actions ${className}`}>
@@ -32,6 +35,7 @@ export function NavActions({
         <EnvConfig
           showTooltipWhenEmpty={showTooltipWhenEmpty}
           showModelName={showModelName}
+          playgroundSDK={playgroundSDK}
         />
       )}
     </div>

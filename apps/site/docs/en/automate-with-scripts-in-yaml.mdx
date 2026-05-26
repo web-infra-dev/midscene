@@ -154,10 +154,10 @@ web:
   # The browser user agent, optional.
   userAgent: <ua>
 
-  # The browser viewport width, optional, defaults to 1280.
+  # The browser viewport width, optional, defaults to 1440.
   viewportWidth: <width>
 
-  # The browser viewport height, optional, defaults to 960.
+  # The browser viewport height, optional, defaults to 800.
   viewportHeight: <height>
 
   # The browser's device pixel ratio, optional, defaults to the system's value.
@@ -166,11 +166,14 @@ web:
   # Path to a JSON format browser cookie file, optional.
   cookie: <path-to-cookie-file>
 
-  # The strategy for waiting for network idle, optional.
+  # The strategy for waiting for network idle in Puppeteer mode, optional.
+  # `timeout` applies to the initial opening of `web.url` defined in YAML and to later actions such as `aiTap` and `aiInput`.
+  # `continueOnNetworkIdleError` only applies to the initial opening of `web.url` defined in YAML.
   waitForNetworkIdle:
-    # The timeout in milliseconds, optional, defaults to 2000ms.
+    # The timeout in milliseconds for each network idle wait, optional, defaults to 2000ms.
     timeout: <ms>
-    # Whether to continue on timeout, optional, defaults to true.
+    # Whether to continue if the initial opening of `web.url` defined in YAML times out while waiting for network idle, optional, defaults to true.
+    # Later action-time waits always continue even if they time out.
     continueOnNetworkIdleError: <boolean>
 
   # The path to the JSON file for outputting aiQuery/aiAssert results, optional.
@@ -181,6 +184,10 @@ web:
 
   # Whether to restrict page navigation to the current tab, optional, defaults to true.
   forceSameTabNavigation: <boolean>
+
+  # CDP endpoint, optional. Connects to an existing browser instance via CDP instead of launching a new one.
+  # Mutually exclusive with bridgeMode.
+  cdpEndpoint: ws://localhost:9222/devtools/browser
 
   # The bridge mode, optional, defaults to false. Can be 'newTabWithUrl' or 'currentTab'. See below for more details.
   bridgeMode: false | 'newTabWithUrl' | 'currentTab'
@@ -217,7 +224,7 @@ android:
   # All other options supported by the AndroidDevice constructor
   # For example: androidAdbPath, remoteAdbHost, remoteAdbPort,
   # imeStrategy, displayId, autoDismissKeyboard, keyboardDismissStrategy,
-  # screenshotResizeScale, alwaysRefreshScreenInfo, etc.
+  # minScreenshotBufferSize, alwaysRefreshScreenInfo, etc.
   # See the AndroidDevice constructor documentation for the complete list
 ```
 
@@ -231,7 +238,7 @@ YAML scripts now support all configuration options from the `AndroidDevice` cons
 
 **`runAdbShell` - Execute ADB Shell Commands**
 
-Execute ADB shell commands on Android devices.
+Execute ADB shell commands on Android devices. To set a command timeout, keep `timeout` as a shallow sibling of `runAdbShell`.
 
 ```yaml
 android:
@@ -245,6 +252,11 @@ tasks:
   - name: Get battery info
     flow:
       - runAdbShell: 'dumpsys battery'
+
+  - name: Run command with timeout
+    flow:
+      - runAdbShell: 'dumpsys activity services'
+        timeout: 60000
 ```
 
 **Common ADB Shell Commands:**
@@ -270,6 +282,20 @@ tasks:
   - name: Open webpage
     flow:
       - launch: https://www.example.com
+```
+
+**`terminate` - Terminate App**
+
+Terminate (force-stop) a running Android app by package name.
+
+```yaml
+android:
+  deviceId: 'test-device'
+
+tasks:
+  - name: Terminate Settings app
+    flow:
+      - terminate: com.android.settings
 ```
 
 ### The `ios` part
@@ -434,40 +460,43 @@ tasks:
       # Perform an interaction. `ai` is a shorthand for `aiAct`.
       - ai: <prompt>
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
-        deepThink: <boolean> # Optional, enable deep thinking for planning when the model supports it (depends on MIDSCENE_MODEL_FAMILY). Default is undefined and follows the model provider's default strategy.
+        deepThink: <boolean> # Optional, guide aiAct to focus on task decomposition and separate planning from UI element locating. Defaults to false.
+        deepLocate: <boolean> # Optional, enable Deep Locate for UI element locating during aiAct execution. Defaults to false.
 
       # This usage is the same as `ai`.
       # Note: In earlier versions, this was also written as `aiAction`. The current version supports both names.
       - aiAct: <prompt>
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
-        deepThink: <boolean> # Optional, enable deep thinking for planning when the model supports it (depends on MIDSCENE_MODEL_FAMILY). Default is undefined and follows the model provider's default strategy.
+        deepThink: <boolean> # Optional, guide aiAct to focus on task decomposition and separate planning from UI element locating. Defaults to false.
+        deepLocate: <boolean> # Optional, enable Deep Locate for UI element locating during aiAct execution. Defaults to false.
 
       # Instant Action (.aiTap, .aiHover, .aiInput, .aiKeyboardPress, .aiScroll)
       # ----------------
 
       # Tap an element described by a prompt.
       - aiTap: <prompt>
-        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        deepLocate: <boolean> # Optional, whether to enable Deep Locate for this element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
+        fileChooserAccept: <path> | [<path1>, <path2>] # Optional, file path(s) to upload when the tap triggers a file chooser; only available on web
 
       # Hover over an element described by a prompt.
       - aiHover: <prompt>
-        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        deepLocate: <boolean> # Optional, whether to enable Deep Locate for this element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
       # Input text into an element described by a prompt.
       - aiInput: <prompt> # The element to input text into.
         value: <final text content of the input>
-        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        deepLocate: <boolean> # Optional, whether to enable Deep Locate for this element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
       # Press a key (e.g., Enter, Tab, Escape) on an element described by a prompt.
       - aiKeyboardPress: <prompt> # The element to press the key on.
         keyName: <key>
-        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        deepLocate: <boolean> # Optional, whether to enable Deep Locate for this element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
@@ -476,7 +505,7 @@ tasks:
         scrollType: 'singleAction' # or 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'. Defaults to 'singleAction'.
         direction: 'down' # or 'up' | 'left' | 'right'. Defaults to 'down'. Only effective when scrollType is singleAction.
         distance: <number> # Optional, the scroll distance in pixels. Use null to let Midscene decide automatically.
-        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        deepLocate: <boolean> # Optional, whether to enable Deep Locate for this element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
@@ -514,6 +543,63 @@ tasks:
     flow:
       # ...
 ```
+
+#### Reuse Step Results
+
+Steps that write a result with `name` can be referenced by later steps in the same YAML run. Use `$name` when the whole field should be replaced by the stored value.
+
+```yaml
+tasks:
+  - name: Search by extracted data
+    flow:
+      - aiString: Get the product id shown on the page
+        name: product_id
+
+      - aiInput: Search box
+        value: $product_id
+
+      - aiQuery: Get the search result after submitting the product id
+        name: search_result
+```
+
+`$name` keeps the original result type when the referenced value is used as the whole field. Runtime interpolation with `${name}` is also supported inside longer strings; non-string values are serialized as JSON before interpolation. Referencing an undefined variable throws an error.
+
+#### Upload Files With `aiTap`
+
+When clicking a button opens a file chooser, you can set `fileChooserAccept` directly on the `aiTap` step. It accepts either a single path or an array of paths.
+
+```yaml
+tasks:
+  - name: upload single file
+    flow:
+      - aiTap: Choose file button
+        fileChooserAccept: ./fixtures/document.pdf
+
+  - name: upload multiple files
+    flow:
+      - aiTap: Upload images button
+        fileChooserAccept:
+          - ./fixtures/image1.jpg
+          - ./fixtures/image2.png
+```
+
+If you are already using a `locate` object for `prompt`, `images`, or other locate options, keep `fileChooserAccept` at the same level as `locate`. Do not nest it inside `locate` or inside the `aiTap` object:
+
+```yaml
+tasks:
+  - name: upload file with locate
+    flow:
+      - aiTap:
+        locate:
+          prompt: Click the upload button
+        fileChooserAccept: ./fixtures/document.pdf
+```
+
+Notes:
+
+- `fileChooserAccept` is only available for web pages (Playwright, Puppeteer).
+- Relative paths are resolved from the current command working directory, not from the YAML file directory.
+- If a file does not exist, the script throws before the tap is executed.
 
 #### Prompting with images
 

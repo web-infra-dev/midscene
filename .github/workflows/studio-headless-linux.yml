@@ -1,0 +1,126 @@
+name: Studio Headless Linux
+
+on:
+  pull_request:
+    paths:
+      - 'apps/studio/**'
+      - '.github/workflows/studio-headless-linux.yml'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to checkout'
+        required: false
+        default: 'main'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  studio-startup:
+    runs-on: ubuntu-22.04
+    env:
+      CI: '1'
+      MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
+      MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+      MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
+      MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
+      MIDSCENE_MODEL_RETRY_COUNT: '2'
+      MIDSCENE_MODEL_RETRY_INTERVAL: '60000'
+      MIDSCENE_REPORT_QUIET: 'true'
+
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      with:
+        ref: ${{ github.event.inputs.branch || github.ref }}
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
+      with:
+        version: 9.3.0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version: '24.13.0'
+        cache: 'pnpm'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          xvfb \
+          x11-xserver-utils \
+          libasound2 \
+          libatk-bridge2.0-0 \
+          libatk1.0-0 \
+          libcups2 \
+          libdrm2 \
+          libgbm1 \
+          libgtk-3-0 \
+          libnotify4 \
+          libnss3 \
+          libpango-1.0-0 \
+          libx11-xcb1 \
+          libxcomposite1 \
+          libxdamage1 \
+          libxfixes3 \
+          libxinerama1 \
+          libxkbcommon-x11-0 \
+          libxkbcommon0 \
+          libxrandr2 \
+          libxshmfence1 \
+          libxss1 \
+          libxtst6
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Install Puppeteer browser binary
+      # `pnpm install` normally triggers puppeteer's `postinstall` to fetch
+      # the Chrome binary into `~/.cache/puppeteer`, but the added
+      # `optionalDependencies` (appdmg) shifts the install layout enough
+      # that the postinstall sometimes does not fire on the headless Linux
+      # runner. The Studio Web playground session needs that Chrome to
+      # launch its puppeteer page; without it `createSession` throws
+      # "Could not find Chrome" and the web preview e2e asserts on a
+      # permanently disconnected device. Install it explicitly so the test
+      # environment is deterministic.
+      run: pnpm --dir apps/studio exec puppeteer browsers install chrome
+
+    - name: Build Studio
+      run: npx nx run-many --target=build --projects=studio,@midscene/report
+
+    - name: Re-inject report template into @midscene/core dist
+      run: node apps/report/scripts/inject-report-template.mjs
+
+    - name: Run Studio startup smoke test
+      run: xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm --dir apps/studio run test:smoke
+      env:
+        MIDSCENE_STUDIO_RUN_STARTUP_SMOKE: '1'
+
+    - name: Run Studio Web preview e2e test
+      run: xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm --dir apps/studio run test:smoke:web-preview
+      timeout-minutes: 10
+      env:
+        MIDSCENE_STUDIO_RUN_WEB_PREVIEW_E2E: '1'
+
+    - name: Run Studio Midscene startup test
+      run: xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm --dir apps/studio run test:smoke:ai
+      timeout-minutes: 25
+      id: test-ai
+      continue-on-error: true
+      env:
+        MIDSCENE_STUDIO_RUN_STARTUP_SMOKE_AI: '1'
+
+    - name: Upload Studio Midscene report
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: studio-startup-ai-report
+        path: apps/studio/midscene_run/report/studio-startup-ai-report.html
+        if-no-files-found: error
+
+    - name: Check Studio Midscene startup result
+      if: steps.test-ai.outcome == 'failure'
+      run: exit 1

@@ -171,8 +171,17 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     // Wait for debugger banner in Chrome to appear
     await sleep(500);
 
-    // Enable water flow animation
-    await this.enableWaterFlowAnimation();
+    // Enable water flow animation. Non-fatal: this is a purely visual
+    // overlay, and Chrome can briefly detach the debugger between
+    // attach() and the eval below (cross-origin navigation / Site
+    // Isolation race). If we awaited it and it threw "Debugger is not
+    // attached", the error would propagate out of the catch block in
+    // sendCommandToDebugger, preventing the actual CDP command from
+    // ever being retried. Fire-and-forget here so the lazy-attach
+    // retry can succeed even when the animation fails.
+    this.enableWaterFlowAnimation().catch((err) => {
+      console.warn('Failed to enable water flow animation:', err);
+    });
   }
 
   private async showMousePointer(x: number, y: number) {
@@ -532,6 +541,23 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     await this.waitUntilNetworkIdle();
   }
 
+  async goForward(): Promise<void> {
+    const tabId = await this.getTabIdOrConnectToCurrentTab();
+    await chrome.tabs.goForward(tabId);
+    // Wait for navigation to complete
+    await this.waitUntilNetworkIdle();
+  }
+
+  async stopLoading(): Promise<void> {
+    await this.sendCommandToDebugger('Page.stopLoading', {});
+  }
+
+  async navigationState(): Promise<{ isLoading: boolean }> {
+    const tabId = await this.getTabIdOrConnectToCurrentTab();
+    const tab = await chrome.tabs.get(tabId);
+    return { isLoading: tab.status === 'loading' };
+  }
+
   async scrollUntilTop(startingPoint?: Point) {
     if (startingPoint) {
       await this.mouse.move(startingPoint.left, startingPoint.top);
@@ -668,21 +694,24 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
       } else {
         // standard mousePressed + mouseReleased
         for (let i = 0; i < count; i++) {
+          const clickCount = i + 1;
           await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
             type: 'mousePressed',
             x,
             y,
             button,
-            clickCount: 1,
+            clickCount,
           });
           await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
             type: 'mouseReleased',
             x,
             y,
             button,
-            clickCount: 1,
+            clickCount,
           });
-          await sleep(50);
+          if (i < count - 1) {
+            await sleep(50);
+          }
         }
       }
     },

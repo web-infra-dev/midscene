@@ -5,6 +5,7 @@ on:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -21,22 +22,22 @@ jobs:
     # env:
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
         fetch-depth: 0
 
     - name: Setup pnpm
-      uses: pnpm/action-setup@v2
+      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
       with:
         version: 9.3.0
   
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: '24.13.0'
 
     - name: Cache Puppeteer dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3.5.0
       id: cache-puppeteer
       with:
         path: ~/.cache/puppeteer
@@ -55,5 +56,20 @@ jobs:
     - name: Build project
       run: pnpm run build
 
-    - name: Run tests
-      run: pnpm run test
+    - name: Run tests with coverage
+      run: pnpm run test:coverage
+
+    - name: Upload coverage reports
+      id: upload-coverage
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: coverage
+        path: coverage
+        if-no-files-found: ignore
+
+    - name: Write coverage summary
+      if: always()
+      env:
+        COVERAGE_ARTIFACT_URL: ${{ steps.upload-coverage.outputs.artifact-url }}
+      run: node scripts/github-coverage-summary.js

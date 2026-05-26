@@ -20,6 +20,66 @@ import { BridgeClient } from './io-client';
 
 declare const __VERSION__: string;
 
+const NEW_TAB_LOAD_TIMEOUT_MS = 30_000;
+
+function isBlankUrl(url: string | undefined): boolean {
+  if (!url) return true;
+  return url === 'about:blank' || url.startsWith('chrome://newtab');
+}
+
+// Wait until the freshly created tab has navigated away from about:blank
+// and reached `status === 'complete'`. Resolves on timeout instead of
+// throwing so callers degrade to the existing lazy-attach behavior.
+function waitForTabNavigationComplete(
+  tabId: number,
+  targetUrl: string,
+  timeoutMs = NEW_TAB_LOAD_TIMEOUT_MS,
+): Promise<void> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      try {
+        chrome.tabs.onUpdated.removeListener(onUpdated);
+      } catch {}
+      clearTimeout(timer);
+      resolve();
+    };
+
+    const isReady = (tab: chrome.tabs.Tab | undefined): boolean => {
+      if (!tab) return false;
+      if (tab.status !== 'complete') return false;
+      const currentUrl = tab.url || tab.pendingUrl || '';
+      // Skip the initial about:blank "complete" that fires before
+      // the target URL navigation kicks in.
+      if (isBlankUrl(currentUrl) && !isBlankUrl(targetUrl)) return false;
+      return true;
+    };
+
+    const onUpdated = (
+      id: number,
+      _info: chrome.tabs.TabChangeInfo,
+      tab: chrome.tabs.Tab,
+    ) => {
+      if (id !== tabId) return;
+      if (isReady(tab)) finish();
+    };
+
+    chrome.tabs.onUpdated.addListener(onUpdated);
+    const timer = setTimeout(finish, timeoutMs);
+
+    // Handle the race where the tab already finished loading before
+    // we registered the listener.
+    chrome.tabs
+      .get(tabId)
+      .then((tab) => {
+        if (isReady(tab)) finish();
+      })
+      .catch(() => {});
+  });
+}
+
 export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
   public bridgeClient: BridgeClient | null = null;
 
@@ -188,6 +248,14 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
     }
     const interactionOptions = resolveWebPageInteractionOptions(options);
     this.interactionMode = interactionOptions.interactionMode;
+
+    // chrome.tabs.create returns immediately with an about:blank target,
+    // then navigates to `url`. If we attach the debugger during that
+    // cross-origin transition Site Isolation will detach it again, leaving
+    // the first CDP command to fail with "Debugger is not attached to the
+    // tab". Wait for navigation to settle so the lazy attach lands on a
+    // stable target.
+    await waitForTabNavigationComplete(tabId, url);
 
     await this.setActiveTabId(tabId);
   }

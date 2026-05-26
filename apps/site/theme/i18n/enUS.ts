@@ -73,9 +73,9 @@ and more`,
   featureRichAPIs: 'Rich APIs',
   featureRichAPIsDesc:
     'Enables both smart automation workflows and fine-grained atomic control.',
-  featureMCPServer: 'MCP Server',
-  featureMCPServerDesc:
-    'Exposes device operations as an MCP Server for collaboration with various models.',
+  featureSkillsMcp: 'Skills & MCP',
+  featureSkillsMcpDesc:
+    'Drop-in Agent Skills for AI coding tools, plus an MCP Server for model collaboration.',
   featureReportsPlayground: 'Reports & Playground',
   featureReportsPlaygroundDesc:
     'Provides intuitive visualization reports to help developers trace back the automation process',
@@ -83,7 +83,7 @@ and more`,
   featureFlexibleIntegrationDesc:
     'Supports using Yaml to write automation flows, supports custom Agent execution strategies',
   featureRichAPIsLink: '/api',
-  featureMCPServerLink: '/mcp',
+  featureSkillsMcpLink: '/skills',
   featureReportsPlaygroundLink: '/quick-experience',
   featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
 
@@ -91,6 +91,21 @@ and more`,
   apiMoreLink: 'View All APIs',
   apiMoreDesc:
     'Explore the complete API documentation for more automation capabilities.',
+
+  // Who is Using
+  whoIsUsingTitle: 'Who is using Midscene',
+  userVolcengine: 'Volcengine',
+  userDouyin: 'Douyin',
+  userAlibaba: 'Alibaba',
+  userXiaomi: 'Xiaomi',
+  userIqiyi: 'iQIYI',
+  userLark: 'Lark',
+  userSodaMusic: 'Soda Music',
+  userBilibili: 'Bilibili',
+  userBilibiliLogo: '/images/users/bilibili-color.svg',
+  userBilibiliLogoWidth: '90',
+  userDoubao: 'Doubao',
+  userDongchedi: 'Dongchedi',
 
   // Links
   multiModelStrategyLink: '/model-strategy#advanced-combining-multiple-models',

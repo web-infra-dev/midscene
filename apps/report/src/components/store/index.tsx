@@ -15,7 +15,9 @@ import {
   extractDumpMetaInfo,
   generateAnimationScripts,
 } from '@midscene/visualizer';
+import { useMemo } from 'react';
 import * as Z from 'zustand';
+import { flattenGroupedDumpTasks } from './flatten-tasks';
 
 const { create } = Z;
 
@@ -247,12 +249,5 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
 
 export const useAllCurrentTasks = (): ExecutionTask[] => {
   const groupedDump = useExecutionDump((store) => store.dump);
-  if (!groupedDump) return [];
-
-  const tasksInside = groupedDump.executions.reduce<ExecutionTask[]>(
-    (acc2, execution) => acc2.concat(execution.tasks),
-    [],
-  );
-
-  return tasksInside;
+  return useMemo(() => flattenGroupedDumpTasks(groupedDump), [groupedDump]);
 };

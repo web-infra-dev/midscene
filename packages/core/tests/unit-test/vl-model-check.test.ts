@@ -42,6 +42,29 @@ const createMockInterface = (
   }) as unknown as AbstractInterface;
 
 describe('VL Model Check for Different Interface Types', () => {
+  it('should default persistExecutionDump to false', () => {
+    const mockPage = createMockInterface('puppeteer');
+    const agent = new Agent(mockPage, {
+      modelConfig: mockedModelConfig,
+    });
+
+    expect(agent.opts.persistExecutionDump).toBe(false);
+  });
+
+  it('should throw when persistExecutionDump is true and generateReport is false', () => {
+    const mockPage = createMockInterface('puppeteer');
+
+    expect(() => {
+      new Agent(mockPage, {
+        generateReport: false,
+        persistExecutionDump: true,
+        modelConfig: mockedModelConfig,
+      });
+    }).toThrow(
+      'persistExecutionDump cannot be true when generateReport is false',
+    );
+  });
+
   it('should not require VL model for puppeteer interface', () => {
     const mockPage = createMockInterface('puppeteer');
 

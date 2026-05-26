@@ -6,6 +6,7 @@ import {
   uiTarsPlanning,
 } from '@/ai-model';
 import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
+import { buildTypeQueryDemandValue } from '@/ai-model/prompt/extraction';
 import {
   type TMultimodalPrompt,
   type TUserPrompt,
@@ -16,7 +17,6 @@ import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
 import type {
-  DeepThinkOption,
   DeviceAction,
   ExecutionTaskApply,
   ExecutionTaskInsightQueryApply,
@@ -32,7 +32,7 @@ import type {
   ServiceExtractParam,
 } from '@/types';
 import { ServiceError } from '@/types';
-import { type IModelConfig, getCurrentTime } from '@midscene/shared/env';
+import type { IModelConfig } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ExecutionSession } from './execution-session';
@@ -42,6 +42,7 @@ export { locatePlanForLocate } from './task-builder';
 import { setTimingFieldOnce } from '@/task-timing';
 import { descriptionOfTree } from '@midscene/shared/extractor';
 import { taskTitleStr } from './ui-utils';
+import { withUsageIntent } from './usage-intent';
 import { parsePrompt } from './utils';
 
 interface ExecutionResult<OutputType = any> {
@@ -58,6 +59,7 @@ interface TaskExecutorHooks {
 }
 
 const debug = getDebug('device-task-executor');
+const warnLog = getDebug('device-task-executor', { console: true });
 const maxErrorCountAllowedInOnePlanningLoop = 5;
 
 export { TaskExecutionError };
@@ -81,7 +83,7 @@ export class TaskExecutor {
 
   waitAfterAction?: number;
 
-  useDeviceTimestamp?: boolean;
+  useDeviceTime?: boolean;
 
   // @deprecated use .interface instead
   get page() {
@@ -96,7 +98,7 @@ export class TaskExecutor {
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
       replanningCycleLimit?: number;
       waitAfterAction?: number;
-      useDeviceTimestamp?: boolean;
+      useDeviceTime?: boolean;
       hooks?: TaskExecutorHooks;
       actionSpace: DeviceAction[];
     },
@@ -107,7 +109,7 @@ export class TaskExecutor {
     this.onTaskStartCallback = opts?.onTaskStart;
     this.replanningCycleLimit = opts.replanningCycleLimit;
     this.waitAfterAction = opts.waitAfterAction;
-    this.useDeviceTimestamp = opts.useDeviceTimestamp;
+    this.useDeviceTime = opts.useDeviceTime;
     this.hooks = opts.hooks;
     this.providedActionSpace = opts.actionSpace;
     this.taskBuilder = new TaskBuilder({
@@ -139,17 +141,30 @@ export class TaskExecutor {
   }
 
   /**
-   * Get a readable time string using device time when configured.
-   * This method respects the useDeviceTimestamp configuration.
+   * Get a readable time string. When device time is enabled, use the
+   * device-formatted wall-clock time directly so host timezone formatting does
+   * not reinterpret a device timestamp.
    * @param format - Optional format string
    * @returns A formatted time string
    */
   private async getTimeString(format?: string): Promise<string> {
-    const timestamp = await getCurrentTime(
-      this.interface,
-      this.useDeviceTimestamp,
-    );
-    return getReadableTimeString(format, timestamp);
+    if (this.useDeviceTime) {
+      if (this.interface.getDeviceLocalTimeString) {
+        try {
+          return await this.interface.getDeviceLocalTimeString(format);
+        } catch (error) {
+          warnLog(
+            `Failed to get device time string, falling back to runtime time: ${error}`,
+          );
+        }
+      } else {
+        warnLog(
+          'useDeviceTime is enabled but getDeviceLocalTimeString is not implemented, falling back to runtime time.',
+        );
+      }
+    }
+
+    return getReadableTimeString(format);
   }
 
   public async convertPlanToExecutable(
@@ -241,7 +256,7 @@ export class TaskExecutor {
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
-    deepThink?: DeepThinkOption,
+    deepThink?: boolean,
     fileChooserAccept?: string[],
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
@@ -280,7 +295,7 @@ export class TaskExecutor {
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
-    deepThink?: DeepThinkOption,
+    deepThink?: boolean,
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
   ): Promise<
@@ -380,7 +395,10 @@ export class TaskExecutor {
             } catch (planError) {
               if (planError instanceof AIResponseParseError) {
                 // Record usage and rawResponse even when parsing fails
-                executorContext.task.usage = planError.usage;
+                executorContext.task.usage = withUsageIntent(
+                  planError.usage,
+                  'planning',
+                );
                 executorContext.task.log = {
                   ...(executorContext.task.log || {}),
                   rawResponse: planError.rawResponse,
@@ -412,7 +430,7 @@ export class TaskExecutor {
               ...(executorContext.task.log || {}),
               rawResponse,
             };
-            executorContext.task.usage = usage;
+            executorContext.task.usage = withUsageIntent(usage, 'planning');
             executorContext.task.reasoning_content = reasoning_content;
             executorContext.task.output = {
               actions: actions || [],
@@ -550,6 +568,7 @@ export class TaskExecutor {
       type: 'Insight',
       subType: type,
       param: {
+        domIncluded: opt?.domIncluded,
         dataDemand: multimodalPrompt
           ? ({
               demand,
@@ -566,7 +585,7 @@ export class TaskExecutor {
             dump,
             rawResponse: dump.taskInfo?.rawResponse,
           };
-          task.usage = dump.taskInfo?.usage;
+          task.usage = withUsageIntent(dump.taskInfo?.usage, 'insight');
           if (dump.taskInfo?.reasoning_content) {
             task.reasoning_content = dump.taskInfo.reasoning_content;
           }
@@ -581,17 +600,13 @@ export class TaskExecutor {
         let keyOfResult = 'result';
         if (ifTypeRestricted && (type === 'Assert' || type === 'WaitFor')) {
           keyOfResult = 'StatementIsTruthy';
-          const booleanPrompt =
-            type === 'Assert'
-              ? `Boolean, whether the following statement is true: ${demand}`
-              : `Boolean, the user wants to do some 'wait for' operation, please check whether the following statement is true: ${demand}`;
           demandInput = {
-            [keyOfResult]: booleanPrompt,
+            [keyOfResult]: buildTypeQueryDemandValue(type, demand),
           };
         } else if (ifTypeRestricted) {
           keyOfResult = type;
           demandInput = {
-            [keyOfResult]: `${type}, ${demand}`,
+            [keyOfResult]: buildTypeQueryDemandValue(type, demand),
           };
         }
 
@@ -642,11 +657,14 @@ export class TaskExecutor {
           } else if (data === null || data === undefined) {
             outputResult = null;
           } else {
-            assert(
-              data?.[keyOfResult] !== undefined,
-              'No result in query data',
-            );
-            outputResult = (data as any)[keyOfResult];
+            // AI model may return {result: ...} instead of {[keyOfResult]: ...}
+            if (data?.[keyOfResult] !== undefined) {
+              outputResult = (data as any)[keyOfResult];
+            } else if (data?.result !== undefined) {
+              outputResult = (data as any).result;
+            } else {
+              assert(false, 'No result in query data');
+            }
           }
         }
 

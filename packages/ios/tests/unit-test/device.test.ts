@@ -22,12 +22,18 @@ describe('IOSDevice', () => {
       createSession: vi
         .fn()
         .mockResolvedValue({ sessionId: 'test-session-id' }),
+      setupExistingSession: vi.fn().mockResolvedValue(undefined),
       deleteSession: vi.fn().mockResolvedValue(undefined),
       getWindowSize: vi.fn().mockResolvedValue({ width: 375, height: 812 }),
       takeScreenshot: vi.fn().mockResolvedValue('base64-screenshot'),
       tap: vi.fn().mockResolvedValue(undefined),
+      doubleTap: vi.fn().mockResolvedValue(undefined),
+      tripleTap: vi.fn().mockResolvedValue(undefined),
+      longPress: vi.fn().mockResolvedValue(undefined),
       swipe: vi.fn().mockResolvedValue(undefined),
+      pinch: vi.fn().mockResolvedValue(undefined),
       typeText: vi.fn().mockResolvedValue(undefined),
+      clearActiveElement: vi.fn().mockResolvedValue(true),
       pressKey: vi.fn().mockResolvedValue(undefined),
       pressHomeButton: vi.fn().mockResolvedValue(undefined),
       launchApp: vi.fn().mockResolvedValue(undefined),
@@ -117,6 +123,20 @@ describe('IOSDevice', () => {
         host: 'custom-host',
       });
     });
+
+    it('should pass existing WDA session ID when specified', () => {
+      const device = new IOSDevice({
+        wdaPort: 9100,
+        wdaHost: 'custom-host',
+        sessionId: 'external-session-id',
+      });
+      expect(device).toBeDefined();
+      expect(MockedWdaClient).toHaveBeenCalledWith({
+        port: 9100,
+        host: 'custom-host',
+        sessionId: 'external-session-id',
+      });
+    });
   });
 
   describe('Device Info', () => {
@@ -166,10 +186,80 @@ describe('IOSDevice', () => {
     });
   });
 
+  describe('Pointer capability', () => {
+    it('should route pointer gestures through WDA primitives', async () => {
+      await device.inputPrimitives.pointer.tap({ x: 10.4, y: 20.6 });
+      await device.inputPrimitives.touch.swipe(
+        { x: 1, y: 2 },
+        { x: 3, y: 4 },
+        { duration: 123, repeat: 2 },
+      );
+
+      expect(mockWdaClient.tap).toHaveBeenCalledWith(10, 21);
+      expect(mockWdaClient.swipe).toHaveBeenNthCalledWith(1, 1, 2, 3, 4, 123);
+      expect(mockWdaClient.swipe).toHaveBeenNthCalledWith(2, 1, 2, 3, 4, 123);
+    });
+
+    it('should share tap implementation between actionSpace and pointer', async () => {
+      const tapAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Tap');
+
+      await tapAction?.call({
+        locate: { center: [11.2, 22.8] },
+      } as any);
+      await device.inputPrimitives.pointer.tap({ x: 33.2, y: 44.8 });
+
+      expect(mockWdaClient.tap).toHaveBeenNthCalledWith(1, 11, 23);
+      expect(mockWdaClient.tap).toHaveBeenNthCalledWith(2, 33, 45);
+    });
+
+    it('should share input implementation between actionSpace and pointer', async () => {
+      const inputAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Input');
+
+      await inputAction?.call({
+        value: 'from action',
+        locate: { center: [10, 20] },
+        mode: 'replace',
+        autoDismissKeyboard: false,
+      } as any);
+      await device.inputPrimitives.keyboard.typeText('from pointer', {
+        target: {
+          center: [30, 40],
+        },
+        replace: true,
+        autoDismissKeyboard: false,
+      } as any);
+
+      expect(mockWdaClient.tap).toHaveBeenNthCalledWith(1, 10, 20);
+      expect(mockWdaClient.tap).toHaveBeenNthCalledWith(2, 30, 40);
+      expect(mockWdaClient.clearActiveElement).toHaveBeenCalledTimes(2);
+      expect(mockWdaClient.typeText).toHaveBeenNthCalledWith(1, 'from action');
+      expect(mockWdaClient.typeText).toHaveBeenNthCalledWith(2, 'from pointer');
+    });
+  });
+
   describe('Device Operations', () => {
     it('should connect to device successfully', async () => {
       await expect(device.connect()).resolves.not.toThrow();
       expect(mockWdaClient.createSession).toHaveBeenCalled();
+    });
+
+    it('should reuse an existing WDA session without creating a new one', async () => {
+      const externalSessionDevice = new IOSDevice({
+        wdaPort: DEFAULT_WDA_PORT,
+        wdaHost: 'localhost',
+        sessionId: 'external-session-id',
+      });
+
+      await expect(externalSessionDevice.connect()).resolves.not.toThrow();
+
+      expect(mockWdaClient.createSession).not.toHaveBeenCalled();
+      expect(mockWdaClient.setupExistingSession).toHaveBeenCalled();
+
+      await externalSessionDevice.destroy();
     });
 
     it('should handle connection failure', async () => {
@@ -522,6 +612,76 @@ describe('IOSDevice', () => {
       expect(typeof screenshot).toBe('string');
       expect(screenshot).toContain('data:image/png;base64,');
       expect(screenshot).toContain('base64-screenshot');
+    });
+  });
+
+  // Regression for https://github.com/web-infra-dev/midscene/issues/2313:
+  // Launch/Terminate previously used a bare z.string() paramSchema, which
+  // could not be expressed as a CLI flag and forced the handler to invoke
+  // z.string().parse({}), failing with "Expected string, received object".
+  describe('Launch/Terminate paramSchema (issue #2313)', () => {
+    it('Launch action exposes a `uri` object field', () => {
+      const launchAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Launch');
+      expect(launchAction).toBeDefined();
+      const shape = (launchAction!.paramSchema as any)?._def?.typeName;
+      expect(shape).toBe('ZodObject');
+      const uriField = (launchAction!.paramSchema as any).shape?.uri;
+      expect(uriField?._def?.typeName).toBe('ZodString');
+    });
+
+    it('Terminate action exposes a `uri` object field', () => {
+      const terminateAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Terminate');
+      expect(terminateAction).toBeDefined();
+      const shape = (terminateAction!.paramSchema as any)?._def?.typeName;
+      expect(shape).toBe('ZodObject');
+      const uriField = (terminateAction!.paramSchema as any).shape?.uri;
+      expect(uriField?._def?.typeName).toBe('ZodString');
+    });
+
+    it('Launch.call delegates the uri to device.launch', async () => {
+      await device.connect();
+      const launchAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Launch');
+      await launchAction!.call({ uri: 'com.apple.Preferences' }, {} as any);
+      expect(mockWdaClient.launchApp).toHaveBeenCalledWith(
+        'com.apple.Preferences',
+      );
+    });
+
+    it('Launch.call rejects an empty uri', async () => {
+      await device.connect();
+      const launchAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Launch');
+      await expect(launchAction!.call({ uri: '' }, {} as any)).rejects.toThrow(
+        'Launch requires a non-empty uri parameter',
+      );
+    });
+
+    it('Terminate.call delegates the uri to device.terminate', async () => {
+      await device.connect();
+      const terminateAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Terminate');
+      await terminateAction!.call({ uri: 'com.apple.Preferences' }, {} as any);
+      expect(mockWdaClient.terminateApp).toHaveBeenCalledWith(
+        'com.apple.Preferences',
+      );
+    });
+
+    it('Terminate.call rejects an empty uri', async () => {
+      await device.connect();
+      const terminateAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Terminate');
+      await expect(
+        terminateAction!.call({ uri: '' }, {} as any),
+      ).rejects.toThrow('Terminate requires a non-empty uri parameter');
     });
   });
 });

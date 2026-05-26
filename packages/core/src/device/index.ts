@@ -15,6 +15,116 @@ export interface FileChooserHandler {
   accept(files: string[]): Promise<void>;
 }
 
+export interface MjpegStreamFrame {
+  /** Raw base64-encoded image bytes WITHOUT a `data:image/...;base64,` prefix. */
+  data: string;
+  contentType?: string;
+}
+
+export interface MjpegStreamHandle {
+  stop(): void | Promise<void>;
+}
+
+export interface MjpegStreamOptions {
+  signal?: AbortSignal;
+  onFrame(frame: MjpegStreamFrame): void;
+  onError?(error: unknown): void;
+}
+
+/** A point in device-pixel coordinates on the screen. */
+export interface PointerPoint {
+  x: number;
+  y: number;
+}
+
+export interface PointerInputPrimitives {
+  tap(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
+  doubleClick?(p: PointerPoint): Promise<void>;
+  rightClick?(p: PointerPoint): Promise<void>;
+  hover?(p: PointerPoint): Promise<void>;
+  longPress?(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
+  dragAndDrop?(from: PointerPoint, to: PointerPoint): Promise<void>;
+}
+
+export interface TouchInputPrimitives {
+  swipe(
+    start: PointerPoint,
+    end: PointerPoint,
+    opts?: { duration?: number; repeat?: number },
+  ): Promise<void>;
+  pinch?(
+    center: PointerPoint,
+    opts: { startDistance: number; endDistance: number; duration: number },
+  ): Promise<void>;
+}
+
+export interface KeyboardInputPrimitives {
+  keyboardPress(keyName: string, opts?: { target?: unknown }): Promise<void>;
+  cursorMove?(direction: 'left' | 'right', times?: number): Promise<void>;
+  typeText(
+    value: string,
+    opts?: {
+      autoDismissKeyboard?: boolean;
+      target?: unknown;
+      replace?: boolean;
+      focusOnly?: boolean;
+    },
+  ): Promise<void>;
+  clearInput(target?: unknown): Promise<void>;
+}
+
+export interface ScrollInputPrimitives {
+  scroll(param: ActionScrollParam): Promise<void>;
+}
+
+export interface SystemInputPrimitives {
+  backButton?(): Promise<void>;
+  homeButton?(): Promise<void>;
+  recentAppsButton?(): Promise<void>;
+}
+
+export interface InputPrimitives {
+  pointer?: PointerInputPrimitives;
+  keyboard?: KeyboardInputPrimitives;
+  touch?: TouchInputPrimitives;
+  scroll?: ScrollInputPrimitives;
+  system?: SystemInputPrimitives;
+}
+
+export interface MobileInputPrimitives extends InputPrimitives {
+  pointer: PointerInputPrimitives & {
+    doubleClick(p: PointerPoint): Promise<void>;
+    longPress(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
+    dragAndDrop(from: PointerPoint, to: PointerPoint): Promise<void>;
+  };
+  keyboard: KeyboardInputPrimitives;
+  touch: TouchInputPrimitives;
+}
+
+export interface BrowserInputPrimitives extends InputPrimitives {
+  pointer: PointerInputPrimitives & {
+    doubleClick(p: PointerPoint): Promise<void>;
+    rightClick(p: PointerPoint): Promise<void>;
+    hover(p: PointerPoint): Promise<void>;
+    dragAndDrop(from: PointerPoint, to: PointerPoint): Promise<void>;
+    longPress(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
+  };
+  keyboard: KeyboardInputPrimitives;
+  scroll: ScrollInputPrimitives;
+  touch: TouchInputPrimitives;
+}
+
+export interface ComputerInputPrimitives extends InputPrimitives {
+  pointer: PointerInputPrimitives & {
+    doubleClick(p: PointerPoint): Promise<void>;
+    rightClick(p: PointerPoint): Promise<void>;
+    hover(p: PointerPoint): Promise<void>;
+    dragAndDrop(from: PointerPoint, to: PointerPoint): Promise<void>;
+  };
+  keyboard: KeyboardInputPrimitives;
+  scroll: ScrollInputPrimitives;
+}
+
 export abstract class AbstractInterface {
   abstract interfaceType: string;
 
@@ -54,14 +164,44 @@ export abstract class AbstractInterface {
   abstract evaluateJavaScript?<T = any>(script: string): Promise<T>;
 
   /**
-   * Get the current time from the device.
-   * Returns the device's current timestamp in milliseconds.
-   * This is useful when the system time and device time are not synchronized.
+   * Get the current device-local time as a formatted string.
+   * Prefer this for user-visible time because timestamps alone do not preserve
+   * the target device's timezone when formatted on the host machine.
    */
-  getTimestamp?(): Promise<number>;
+  getDeviceLocalTimeString?(format?: string): Promise<string>;
 
   /** URL of native MJPEG stream for real-time screen preview (e.g. WDA MJPEG server) */
   mjpegStreamUrl?: string;
+
+  /**
+   * Optional in-process MJPEG frame producer. Implementations can push raw
+   * base64 frames here when there is no standalone native MJPEG URL, e.g.
+   * Chromium CDP Page.startScreencast for web previews.
+   */
+  startMjpegStream?(
+    options: MjpegStreamOptions,
+  ): MjpegStreamHandle | undefined | Promise<MjpegStreamHandle | undefined>;
+
+  /**
+   * Optional hook used after keyboard-only actions to force a fresh frame on
+   * the active MJPEG stream. Implementations should be a no-op when no stream
+   * is active.
+   */
+  flushPendingVisualUpdate?(): Promise<void>;
+
+  /**
+   * Optional navigation state probe for browser-like interfaces, used to drive
+   * loading indicators in playground UIs. Returning `undefined` means the
+   * interface does not expose this concept.
+   */
+  navigationState?(): Promise<{ isLoading: boolean }>;
+
+  /**
+   * Low-level device input surface. Platform implementations expose transport
+   * primitives here; higher-level AI actions and manual pointer dispatch should
+   * adapt to this instead of duplicating platform gesture logic.
+   */
+  inputPrimitives?: InputPrimitives;
 }
 
 // Generic function to define actions with proper type inference
@@ -88,6 +228,43 @@ export const defineAction = <
   return config as any; // Type assertion needed because schema validation type differs from runtime type
 };
 
+function pointFromLocate(
+  locate: LocateResultElement | undefined,
+  missingMessage: string,
+): PointerPoint {
+  if (!locate) {
+    throw new Error(missingMessage);
+  }
+  return { x: locate.center[0], y: locate.center[1] };
+}
+
+function defineLocatedPointAction<
+  TSchema extends z.ZodType,
+  TParam extends { locate: LocateResultElement },
+>(config: {
+  name: string;
+  description: string;
+  interfaceAlias?: string;
+  paramSchema: TSchema;
+  sample: DeviceAction<TParam>['sample'];
+  missingLocateMessage: string;
+  call: (point: PointerPoint, param: TParam) => Promise<void>;
+}): DeviceAction<TParam> {
+  return defineAction<TSchema, TParam>({
+    name: config.name,
+    description: config.description,
+    interfaceAlias: config.interfaceAlias,
+    paramSchema: config.paramSchema,
+    sample: config.sample,
+    call: async (param) => {
+      await config.call(
+        pointFromLocate(param.locate, config.missingLocateMessage),
+        param,
+      );
+    },
+  });
+}
+
 // Tap
 export const actionTapParamSchema = z.object({
   locate: getMidsceneLocationSchema().describe('The element to be tapped'),
@@ -97,9 +274,9 @@ export type ActionTapParam = {
 };
 
 export const defineActionTap = (
-  call: (param: ActionTapParam) => Promise<void>,
+  tap: PointerInputPrimitives['tap'],
 ): DeviceAction<ActionTapParam> => {
-  return defineAction<typeof actionTapParamSchema, ActionTapParam>({
+  return defineLocatedPointAction<typeof actionTapParamSchema, ActionTapParam>({
     name: 'Tap',
     description: 'Tap the element',
     interfaceAlias: 'aiTap',
@@ -107,7 +284,10 @@ export const defineActionTap = (
     sample: {
       locate: { prompt: 'the "Submit" button' },
     },
-    call,
+    missingLocateMessage: 'Element not found, cannot tap',
+    call: async (point) => {
+      await tap(point);
+    },
   });
 };
 
@@ -122,9 +302,9 @@ export type ActionRightClickParam = {
 };
 
 export const defineActionRightClick = (
-  call: (param: ActionRightClickParam) => Promise<void>,
+  rightClick: NonNullable<PointerInputPrimitives['rightClick']>,
 ): DeviceAction<ActionRightClickParam> => {
-  return defineAction<
+  return defineLocatedPointAction<
     typeof actionRightClickParamSchema,
     ActionRightClickParam
   >({
@@ -135,7 +315,10 @@ export const defineActionRightClick = (
     sample: {
       locate: { prompt: 'the file icon on the desktop' },
     },
-    call,
+    missingLocateMessage: 'Element not found, cannot right click',
+    call: async (point) => {
+      await rightClick(point);
+    },
   });
 };
 
@@ -150,9 +333,9 @@ export type ActionDoubleClickParam = {
 };
 
 export const defineActionDoubleClick = (
-  call: (param: ActionDoubleClickParam) => Promise<void>,
+  doubleClick: NonNullable<PointerInputPrimitives['doubleClick']>,
 ): DeviceAction<ActionDoubleClickParam> => {
-  return defineAction<
+  return defineLocatedPointAction<
     typeof actionDoubleClickParamSchema,
     ActionDoubleClickParam
   >({
@@ -163,7 +346,10 @@ export const defineActionDoubleClick = (
     sample: {
       locate: { prompt: 'the folder icon' },
     },
-    call,
+    missingLocateMessage: 'Element not found, cannot double click',
+    call: async (point) => {
+      await doubleClick(point);
+    },
   });
 };
 
@@ -176,9 +362,12 @@ export type ActionHoverParam = {
 };
 
 export const defineActionHover = (
-  call: (param: ActionHoverParam) => Promise<void>,
+  hover: NonNullable<PointerInputPrimitives['hover']>,
 ): DeviceAction<ActionHoverParam> => {
-  return defineAction<typeof actionHoverParamSchema, ActionHoverParam>({
+  return defineLocatedPointAction<
+    typeof actionHoverParamSchema,
+    ActionHoverParam
+  >({
     name: 'Hover',
     description: 'Move the mouse to the element',
     interfaceAlias: 'aiHover',
@@ -186,7 +375,10 @@ export const defineActionHover = (
     sample: {
       locate: { prompt: 'the navigation menu item "Products"' },
     },
-    call,
+    missingLocateMessage: 'Element not found, cannot hover',
+    call: async (point) => {
+      await hover(point);
+    },
   });
 };
 
@@ -209,15 +401,22 @@ export const actionInputParamSchema = z.object({
     .describe(
       'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
     ),
+  autoDismissKeyboard: z
+    .boolean()
+    .optional()
+    .describe(
+      'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
+    ),
 });
 export type ActionInputParam = {
   value: string;
   locate?: LocateResultElement;
   mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
+  autoDismissKeyboard?: boolean;
 };
 
 export const defineActionInput = (
-  call: (param: ActionInputParam) => Promise<void>,
+  keyboard: KeyboardInputPrimitives,
 ): DeviceAction<ActionInputParam> => {
   return defineAction<typeof actionInputParamSchema, ActionInputParam>({
     name: 'Input',
@@ -228,12 +427,26 @@ export const defineActionInput = (
       value: 'test@example.com',
       locate: { prompt: 'the email input field' },
     },
-    call: (param) => {
+    call: async (param) => {
       // backward compat: convert deprecated 'append' to 'typeOnly'
       if ((param.mode as string) === 'append') {
         param.mode = 'typeOnly';
       }
-      return call(param);
+
+      if (param.mode === 'clear') {
+        await keyboard.clearInput(param.locate);
+        return;
+      }
+
+      if (!param || !param.value) {
+        return;
+      }
+
+      await keyboard.typeText(param.value, {
+        target: param.locate,
+        replace: param.mode !== 'typeOnly',
+        autoDismissKeyboard: param.autoDismissKeyboard,
+      });
     },
   });
 };
@@ -255,7 +468,7 @@ export type ActionKeyboardPressParam = {
 };
 
 export const defineActionKeyboardPress = (
-  call: (param: ActionKeyboardPressParam) => Promise<void>,
+  keyboardPress: KeyboardInputPrimitives['keyboardPress'],
 ): DeviceAction<ActionKeyboardPressParam> => {
   return defineAction<
     typeof actionKeyboardPressParamSchema,
@@ -269,7 +482,11 @@ export const defineActionKeyboardPress = (
     sample: {
       keyName: 'Enter',
     },
-    call,
+    call: async (param) => {
+      await keyboardPress(param.keyName, {
+        target: param.locate,
+      });
+    },
   });
 };
 
@@ -306,7 +523,7 @@ export const actionScrollParamSchema = z.object({
 });
 
 export const defineActionScroll = (
-  call: (param: ActionScrollParam) => Promise<void>,
+  scroll: ScrollInputPrimitives['scroll'],
 ): DeviceAction<ActionScrollParam> => {
   return defineAction<typeof actionScrollParamSchema, ActionScrollParam>({
     name: 'Scroll',
@@ -319,7 +536,9 @@ export const defineActionScroll = (
       scrollType: 'singleAction',
       locate: { prompt: 'the center of the product list area' },
     },
-    call,
+    call: async (param) => {
+      await scroll(param);
+    },
   });
 };
 
@@ -334,7 +553,7 @@ export type ActionDragAndDropParam = {
 };
 
 export const defineActionDragAndDrop = (
-  call: (param: ActionDragAndDropParam) => Promise<void>,
+  dragAndDrop: NonNullable<PointerInputPrimitives['dragAndDrop']>,
 ): DeviceAction<ActionDragAndDropParam> => {
   return defineAction<
     typeof actionDragAndDropParamSchema,
@@ -349,7 +568,20 @@ export const defineActionDragAndDrop = (
       from: { prompt: 'the "report.pdf" file icon' },
       to: { prompt: 'the upload drop zone' },
     },
-    call,
+    call: async (param) => {
+      const from = param.from;
+      const to = param.to;
+      if (!from) {
+        throw new Error('missing "from" param for drag and drop');
+      }
+      if (!to) {
+        throw new Error('missing "to" param for drag and drop');
+      }
+      await dragAndDrop(
+        { x: from.center[0], y: from.center[1] },
+        { x: to.center[0], y: to.center[1] },
+      );
+    },
   });
 };
 
@@ -359,7 +591,6 @@ export const ActionLongPressParamSchema = z.object({
   ),
   duration: z
     .number()
-    .default(500)
     .optional()
     .describe('Long press duration in milliseconds'),
 });
@@ -369,16 +600,23 @@ export type ActionLongPressParam = {
   duration?: number;
 };
 export const defineActionLongPress = (
-  call: (param: ActionLongPressParam) => Promise<void>,
+  longPress: NonNullable<PointerInputPrimitives['longPress']>,
 ): DeviceAction<ActionLongPressParam> => {
-  return defineAction<typeof ActionLongPressParamSchema, ActionLongPressParam>({
+  return defineLocatedPointAction<
+    typeof ActionLongPressParamSchema,
+    ActionLongPressParam
+  >({
     name: 'LongPress',
     description: 'Long press the element',
+    interfaceAlias: 'aiLongPress',
     paramSchema: ActionLongPressParamSchema,
     sample: {
       locate: { prompt: 'the message bubble' },
     },
-    call,
+    missingLocateMessage: 'LongPress requires an element to be located',
+    call: async (point, param) => {
+      await longPress(point, { duration: param.duration });
+    },
   });
 };
 
@@ -484,9 +722,10 @@ export function normalizeMobileSwipeParam(
   return { startPoint, endPoint, duration, repeatCount };
 }
 
-export const defineActionSwipe = (
-  call: (param: ActionSwipeParam) => Promise<void>,
-): DeviceAction<ActionSwipeParam> => {
+export const defineActionSwipe = (config: {
+  swipe: TouchInputPrimitives['swipe'];
+  size(): Promise<Size>;
+}): DeviceAction<ActionSwipeParam> => {
   return defineAction<typeof ActionSwipeParamSchema, ActionSwipeParam>({
     name: 'Swipe',
     description:
@@ -496,7 +735,13 @@ export const defineActionSwipe = (
       start: { prompt: 'center of the notification' },
       end: { prompt: 'upper edge of the screen' },
     },
-    call,
+    call: async (param) => {
+      const { startPoint, endPoint, duration, repeatCount } =
+        normalizeMobileSwipeParam(param, await config.size());
+      for (let i = 0; i < repeatCount; i++) {
+        await config.swipe(startPoint, endPoint, { duration });
+      }
+    },
   });
 };
 
@@ -511,7 +756,7 @@ export type ActionClearInputParam = {
 };
 
 export const defineActionClearInput = (
-  call: (param: ActionClearInputParam) => Promise<void>,
+  clearInput: KeyboardInputPrimitives['clearInput'],
 ): DeviceAction<ActionClearInputParam> => {
   return defineAction<
     typeof actionClearInputParamSchema,
@@ -524,7 +769,9 @@ export const defineActionClearInput = (
     sample: {
       locate: { prompt: 'the search input field' },
     },
-    call,
+    call: async (param) => {
+      await clearInput(param.locate);
+    },
   });
 };
 
@@ -547,9 +794,10 @@ export type ActionCursorMoveParam = {
   times?: number;
 };
 
-export const defineActionCursorMove = (
-  call: (param: ActionCursorMoveParam) => Promise<void>,
-): DeviceAction<ActionCursorMoveParam> => {
+export const defineActionCursorMove = (config: {
+  keyboard: Pick<KeyboardInputPrimitives, 'keyboardPress' | 'cursorMove'>;
+  sleep?(timeMs: number): Promise<void>;
+}): DeviceAction<ActionCursorMoveParam> => {
   return defineAction<
     typeof actionCursorMoveParamSchema,
     ActionCursorMoveParam
@@ -562,7 +810,23 @@ export const defineActionCursorMove = (
       direction: 'left',
       times: 3,
     },
-    call,
+    call: async (param) => {
+      const times = param.times ?? 1;
+      if (config.keyboard.cursorMove) {
+        await config.keyboard.cursorMove(param.direction, times);
+        return;
+      }
+
+      const wait =
+        config.sleep ??
+        ((timeMs: number) =>
+          new Promise<void>((resolve) => setTimeout(resolve, timeMs)));
+      const arrowKey = param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
+      for (let i = 0; i < times; i++) {
+        await config.keyboard.keyboardPress(arrowKey);
+        await wait(100);
+      }
+    },
   });
 };
 
@@ -599,9 +863,14 @@ export type ActionPinchParam = {
   duration?: number;
 };
 
-export const defineActionPinch = (
-  call: (param: ActionPinchParam) => Promise<void>,
-): DeviceAction<ActionPinchParam> => {
+export const defineActionPinch = (config: {
+  pinch: TouchInputPrimitives['pinch'];
+  size(): Promise<Size>;
+}): DeviceAction<ActionPinchParam> | undefined => {
+  if (!config.pinch) {
+    return undefined;
+  }
+
   return defineAction<typeof ActionPinchParamSchema, ActionPinchParam>({
     name: 'Pinch',
     description:
@@ -613,7 +882,14 @@ export const defineActionPinch = (
       direction: 'out',
       distance: 200,
     },
-    call,
+    call: async (param) => {
+      const { centerX, centerY, startDistance, endDistance, duration } =
+        normalizePinchParam(param, await config.size());
+      await config.pinch?.(
+        { x: centerX, y: centerY },
+        { startDistance, endDistance, duration },
+      );
+    },
   });
 };
 
@@ -647,6 +923,134 @@ export function normalizePinchParam(
       : Math.max(10, baseDistance - fingerDistance);
 
   return { centerX, centerY, startDistance, endDistance, duration };
+}
+
+export interface MobileInputActionContext {
+  input: MobileInputPrimitives;
+  size(): Promise<Size>;
+  sleep?(timeMs: number): Promise<void>;
+  getDefaultAutoDismissKeyboard?(): boolean | undefined;
+  systemActions?: SystemInputActionOptions;
+}
+
+export interface SystemInputActionConfig {
+  name: string;
+  description: string;
+  interfaceAlias?: string;
+  delayBeforeRunner?: number;
+  delayAfterRunner?: number;
+}
+
+export interface SystemInputActionOptions {
+  backButton?: SystemInputActionConfig;
+  homeButton?: SystemInputActionConfig;
+  recentAppsButton?: SystemInputActionConfig;
+}
+
+export interface InputPrimitiveActionOptions {
+  size?: () => Promise<Size>;
+  sleep?: (timeMs: number) => Promise<void>;
+  includeSwipe?: boolean;
+  includePinch?: boolean;
+  systemActions?: SystemInputActionOptions;
+}
+
+function defineSystemInputAction(
+  config: SystemInputActionConfig,
+  call: () => Promise<void>,
+): DeviceAction<undefined, void> {
+  return defineAction<undefined, undefined, void>({
+    name: config.name,
+    description: config.description,
+    interfaceAlias: config.interfaceAlias,
+    delayBeforeRunner: config.delayBeforeRunner,
+    delayAfterRunner: config.delayAfterRunner,
+    call,
+  });
+}
+
+export function defineActionsFromInputPrimitives(
+  input: InputPrimitives,
+  options: InputPrimitiveActionOptions = {},
+): DeviceAction<any>[] {
+  const actions: Array<DeviceAction<any> | undefined> = [];
+  const { pointer, keyboard, scroll, touch, system } = input;
+
+  if (pointer) {
+    actions.push(defineActionTap(pointer.tap));
+    if (pointer.doubleClick) {
+      actions.push(defineActionDoubleClick(pointer.doubleClick));
+    }
+    if (pointer.rightClick) {
+      actions.push(defineActionRightClick(pointer.rightClick));
+    }
+    if (pointer.hover) {
+      actions.push(defineActionHover(pointer.hover));
+    }
+    if (pointer.dragAndDrop) {
+      actions.push(defineActionDragAndDrop(pointer.dragAndDrop));
+    }
+    if (pointer.longPress) {
+      actions.push(defineActionLongPress(pointer.longPress));
+    }
+  }
+
+  if (keyboard) {
+    actions.push(
+      defineActionInput(keyboard),
+      defineActionClearInput(keyboard.clearInput),
+      defineActionKeyboardPress(keyboard.keyboardPress),
+      defineActionCursorMove({ keyboard, sleep: options.sleep }),
+    );
+  }
+
+  if (scroll) {
+    actions.push(defineActionScroll(scroll.scroll));
+  }
+
+  if (touch?.swipe && options.size && options.includeSwipe !== false) {
+    actions.push(defineActionSwipe({ swipe: touch.swipe, size: options.size }));
+  }
+
+  if (touch?.pinch && options.size && options.includePinch !== false) {
+    actions.push(defineActionPinch({ pinch: touch.pinch, size: options.size }));
+  }
+
+  if (system && options.systemActions) {
+    const { systemActions } = options;
+    if (system.backButton && systemActions.backButton) {
+      actions.push(
+        defineSystemInputAction(systemActions.backButton, system.backButton),
+      );
+    }
+    if (system.homeButton && systemActions.homeButton) {
+      actions.push(
+        defineSystemInputAction(systemActions.homeButton, system.homeButton),
+      );
+    }
+    if (system.recentAppsButton && systemActions.recentAppsButton) {
+      actions.push(
+        defineSystemInputAction(
+          systemActions.recentAppsButton,
+          system.recentAppsButton,
+        ),
+      );
+    }
+  }
+
+  return actions.filter((action): action is DeviceAction<any> =>
+    Boolean(action),
+  );
+}
+
+export function createDefaultMobileActions(
+  context: MobileInputActionContext,
+): DeviceAction<any>[] {
+  return defineActionsFromInputPrimitives(context.input, {
+    size: context.size,
+    sleep: context.sleep,
+    systemActions: context.systemActions,
+  });
 }
 
 // Sleep

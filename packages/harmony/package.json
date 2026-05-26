@@ -1,6 +1,11 @@
 {
   "name": "@midscene/harmony",
-  "version": "1.6.0",
+  "version": "1.8.5",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/harmony"
+  },
   "description": "HarmonyOS automation library for Midscene",
   "keywords": [
     "HarmonyOS UI automation",
@@ -40,8 +45,8 @@
     "build:watch": "rslib build --watch --no-clean",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
-    "test:ai": "AI_TEST_TYPE=harmony npm run test",
-    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=harmony npm run test"
+    "test:ai": "AI_TEST_TYPE=harmony vitest --run",
+    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=harmony vitest --run"
   },
   "dependencies": {
     "@midscene/core": "workspace:*",
@@ -56,7 +61,7 @@
     "dotenv": "^16.4.5",
     "typescript": "^5.8.3",
     "vitest": "3.0.5",
-    "zod": "3.24.3"
+    "zod": "^3.25.1"
   },
   "license": "MIT"
 }

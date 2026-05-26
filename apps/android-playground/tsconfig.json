@@ -7,22 +7,7 @@
   "include": ["src"],
   "references": [
     {
-      "path": "../../packages/android"
-    },
-    {
-      "path": "../../packages/core"
-    },
-    {
-      "path": "../../packages/shared"
-    },
-    {
-      "path": "../../packages/visualizer"
-    },
-    {
-      "path": "../../packages/web-integration"
-    },
-    {
-      "path": "../../packages/playground"
+      "path": "../../packages/playground-app"
     }
   ]
 }

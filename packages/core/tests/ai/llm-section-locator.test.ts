@@ -2,8 +2,8 @@ import { AiLocateSection } from '@/ai-model/inspect';
 import { getTmpFile } from '@/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
-import { getContextFromFixture } from 'tests/evaluation';
 import { expect, test } from 'vitest';
+import { getContextFromFixture } from '../evaluation';
 
 const modelConfig = globalModelConfigManager.getModelConfig('default');
 

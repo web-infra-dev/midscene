@@ -24,6 +24,12 @@ describe('preapareImageUrl', () => {
     );
   });
 
+  it('base64 string will be normalized for url-safe model payloads', async () => {
+    expect(
+      await preProcessImageUrl('data:image/png;base64,aaa\r\nbbb ccc', false),
+    ).toBe('data:image/png;base64,aaabbbccc');
+  });
+
   it('local file path will be converted to base64', async () => {
     expect(
       await preProcessImageUrl(

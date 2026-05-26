@@ -82,11 +82,12 @@ describe('playground app runtime info helpers', () => {
             custom: { scrcpyPort: 6501 },
           },
           executionUxHints: [],
-          metadata: {},
+          metadata: { deviceId: 'SERIAL123' },
         },
         'http://localhost:5800',
       ),
     ).toMatchObject({
+      deviceId: 'SERIAL123',
       type: 'scrcpy',
       scrcpyPort: 6501,
       scrcpyUrl: 'http://localhost:6501/',
@@ -112,6 +113,26 @@ describe('playground app runtime info helpers', () => {
       type: 'scrcpy',
       scrcpyPort: 7700,
       scrcpyUrl: 'https://midscene.example.com:7700/',
+    });
+  });
+
+  test('falls back to screenshot polling for remote android devices', () => {
+    expect(
+      resolvePreviewConnectionInfo(
+        {
+          interface: { type: 'android' },
+          preview: {
+            kind: 'scrcpy',
+            capabilities: [],
+            custom: { scrcpyPort: 7700 },
+          },
+          executionUxHints: [],
+          metadata: { deviceId: '192.168.1.10:5555' },
+        },
+        'http://localhost:5800',
+      ),
+    ).toMatchObject({
+      type: 'screenshot',
     });
   });
 });

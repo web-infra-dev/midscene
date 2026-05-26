@@ -375,6 +375,7 @@ describe('auto-glm actions transformation', () => {
     const result = transformAutoGLMAction(launchAction, defaultSize);
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe('Launch');
+    expect(result[0].param).toEqual({ uri: 'Camera' });
   });
 
   it('should transform Back action to AndroidBackButton PlanningAction', () => {

@@ -1,6 +1,6 @@
 import path from 'node:path';
-import { input, select } from '@inquirer/prompts';
 import {
+  type PlaygroundSessionManager,
   createMjpegPreviewDescriptor,
   definePlaygroundPlatform,
 } from '@midscene/playground';
@@ -9,54 +9,37 @@ import {
   PLAYGROUND_SERVER_PORT,
 } from '@midscene/shared/constants';
 import { findAvailablePort } from '@midscene/shared/node';
-import { IOSAgent } from './agent';
-import { IOSDevice } from './device';
+import { type IOSAgent, agentFromWebDriverAgent } from './agent';
 
 export interface IOSPlatformOptions {
   staticDir?: string;
-  host?: string;
-  port?: number;
 }
 
-// Function to configure WebDriverAgent connection
-async function configureWebDriverAgent(): Promise<{
-  host: string;
-  port: number;
-}> {
-  console.log('🔧 WebDriverAgent Configuration');
-  console.log(`Default: localhost:${DEFAULT_WDA_PORT}`);
-
-  const useDefault = await select({
-    message: `Use default WebDriverAgent address (localhost:${DEFAULT_WDA_PORT})?`,
-    choices: [
-      { name: `Yes, use localhost:${DEFAULT_WDA_PORT}`, value: true },
-      { name: 'No, specify custom address', value: false },
-    ],
-  });
-
-  if (useDefault) {
-    return { host: 'localhost', port: DEFAULT_WDA_PORT };
+// Quick liveness probe so getSetupSchema can flip on autoSubmitWhenReady
+// when a WDA is already listening on the defaults — mirrors the Android
+// playground UX where a single connected device auto-creates the agent
+// instead of forcing the user through the form.
+async function probeWdaReady(
+  host: string,
+  port: number,
+  timeoutMs = 800,
+): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`http://${host}:${port}/status`, {
+      signal: controller.signal,
+    });
+    if (!res.ok) return false;
+    const body = (await res.json().catch(() => null)) as {
+      value?: { ready?: boolean };
+    } | null;
+    return body?.value?.ready === true;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
   }
-
-  const hostInput = await input({
-    message: 'WebDriverAgent host:',
-    default: 'localhost',
-  });
-
-  const host = hostInput.replace(/^https?:\/\//, '');
-
-  const portInput = await input({
-    message: 'WebDriverAgent port:',
-    default: DEFAULT_WDA_PORT.toString(),
-  });
-
-  const port = Number.parseInt(portInput, 10);
-  if (Number.isNaN(port) || port < 1 || port > 65535) {
-    console.error(`❌ Invalid port number. Using default ${DEFAULT_WDA_PORT}.`);
-    return { host, port: DEFAULT_WDA_PORT };
-  }
-
-  return { host, port };
 }
 
 export const iosPlaygroundPlatform = definePlaygroundPlatform<
@@ -68,84 +51,6 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
   async prepare(options) {
     const staticDir =
       options?.staticDir || path.join(__dirname, '../../static');
-    let wdaConfig = {
-      host: options?.host || 'localhost',
-      port: options?.port || DEFAULT_WDA_PORT,
-    };
-    let connected = false;
-
-    while (!connected) {
-      try {
-        const device = new IOSDevice({
-          wdaHost: wdaConfig.host,
-          wdaPort: wdaConfig.port,
-        });
-
-        console.log(
-          `🔌 Connecting to WebDriverAgent at ${wdaConfig.host}:${wdaConfig.port}...`,
-        );
-        await device.connect();
-
-        connected = true;
-
-        const deviceInfo = await device.getConnectedDeviceInfo();
-        console.log('✅ Connected to WebDriverAgent successfully!');
-        if (deviceInfo) {
-          console.log(
-            `📱 Connected to: ${deviceInfo.name} (${deviceInfo.model})`,
-          );
-          console.log(`🔑 Device UDID: ${deviceInfo.udid}`);
-        }
-      } catch (error) {
-        console.error(
-          `❌ Failed to connect to WebDriverAgent: ${error instanceof Error ? error.message : String(error)}`,
-        );
-
-        const action = await select({
-          message: 'What would you like to do?',
-          choices: [
-            {
-              name: '🔧 Configure different WebDriverAgent address',
-              value: 'configure',
-            },
-            { name: '📖 Show setup instructions', value: 'instructions' },
-            { name: '🚪 Exit', value: 'exit' },
-          ],
-        });
-
-        if (action === 'exit') {
-          console.log('👋 Goodbye!');
-          process.exit(0);
-        }
-
-        if (action === 'instructions') {
-          console.log(`
-🔧 WebDriverAgent Setup Instructions:
-
-1. Install WebDriverAgent:
-   npm install appium-webdriveragent
-
-2. Open WebDriverAgent project in Xcode:
-   node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj
-
-3. Select your target device/simulator in Xcode
-
-4. Build and run the WebDriverAgentRunner scheme
-
-5. WebDriverAgent will bind to your selected device and listen on port ${DEFAULT_WDA_PORT}
-
-6. Restart this playground to connect
-
-💡 The WebDriverAgent service is already bound to the device you selected in Xcode.
-💡 For more details, visit: https://github.com/appium/WebDriverAgent
-`);
-          continue;
-        }
-
-        wdaConfig = await configureWebDriverAgent();
-      }
-    }
-
     const availablePlaygroundPort = await findAvailablePort(
       PLAYGROUND_SERVER_PORT,
     );
@@ -156,17 +61,97 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
       );
     }
 
+    const sessionManager: PlaygroundSessionManager = {
+      async getSetupSchema() {
+        const wdaReady = await probeWdaReady('localhost', DEFAULT_WDA_PORT);
+        return {
+          title: 'Connect WebDriverAgent',
+          description:
+            'Provide the WebDriverAgent host and port that are already running for your selected iPhone or simulator.',
+          primaryActionLabel: 'Create Agent',
+          autoSubmitWhenReady: wdaReady,
+          fields: [
+            {
+              key: 'host',
+              label: 'WebDriverAgent host',
+              type: 'text',
+              required: true,
+              defaultValue: 'localhost',
+              placeholder: 'localhost',
+            },
+            {
+              key: 'port',
+              label: 'WebDriverAgent port',
+              type: 'number',
+              required: true,
+              defaultValue: DEFAULT_WDA_PORT,
+              placeholder: DEFAULT_WDA_PORT.toString(),
+            },
+            {
+              key: 'sessionId',
+              label: 'WebDriverAgent session ID',
+              type: 'text',
+              required: false,
+              placeholder: 'Existing session ID',
+            },
+          ],
+        };
+      },
+      async createSession(input) {
+        const host =
+          typeof input?.host === 'string' && input.host.trim()
+            ? input.host.trim().replace(/^https?:\/\//, '')
+            : 'localhost';
+        const port =
+          typeof input?.port === 'number'
+            ? input.port
+            : Number.parseInt(String(input?.port ?? DEFAULT_WDA_PORT), 10);
+
+        if (Number.isNaN(port) || port < 1 || port > 65535) {
+          throw new Error(
+            `Invalid WebDriverAgent port: ${String(input?.port)}`,
+          );
+        }
+        const sessionId =
+          typeof input?.sessionId === 'string' && input.sessionId.trim()
+            ? input.sessionId.trim()
+            : undefined;
+
+        const connectAgent = async (): Promise<IOSAgent> => {
+          return agentFromWebDriverAgent({
+            wdaHost: host,
+            wdaPort: port,
+            ...(sessionId ? { sessionId } : {}),
+          });
+        };
+
+        const agent = await connectAgent();
+        const deviceInfo = await agent.interface.getConnectedDeviceInfo?.();
+        const displayName = deviceInfo
+          ? `${deviceInfo.name} (${deviceInfo.model})`
+          : `${host}:${port}`;
+
+        return {
+          agent,
+          agentFactory: connectAgent,
+          preview: createMjpegPreviewDescriptor({
+            title: 'iOS device preview',
+          }),
+          displayName,
+          metadata: {
+            wdaHost: host,
+            wdaPort: port,
+            ...(sessionId ? { sessionId } : {}),
+            ...(deviceInfo ? { deviceInfo } : {}),
+          },
+        };
+      },
+    };
+
     return {
       platformId: 'ios',
       title: 'Midscene iOS Playground',
-      agentFactory: async (): Promise<IOSAgent> => {
-        const newDevice = new IOSDevice({
-          wdaHost: wdaConfig.host,
-          wdaPort: wdaConfig.port,
-        });
-        await newDevice.connect();
-        return new IOSAgent(newDevice);
-      },
+      sessionManager,
       launchOptions: {
         port: availablePlaygroundPort,
         openBrowser: false,
@@ -177,8 +162,8 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
         title: 'iOS device preview',
       }),
       metadata: {
-        wdaHost: wdaConfig.host,
-        wdaPort: wdaConfig.port,
+        sessionConnected: false,
+        setupState: 'required',
       },
     };
   },

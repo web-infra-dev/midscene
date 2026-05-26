@@ -82,4 +82,26 @@ describe('Agent aiScroll legacy scrollType compatibility', () => {
       }),
     );
   });
+
+  it('treats null locatePrompt as a global scroll', async () => {
+    const agent = createAgentStub();
+    const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
+      typeof vi.fn
+    >;
+
+    await agent.aiScroll(
+      null as any,
+      {
+        scrollType: 'scrollToBottom',
+        deepThink: true,
+      } as any,
+    );
+
+    expect(callActionSpy).toHaveBeenCalledTimes(1);
+    expect(callActionSpy).toHaveBeenCalledWith('Scroll', {
+      deepThink: true,
+      locate: undefined,
+      scrollType: 'scrollToBottom',
+    });
+  });
 });

@@ -26,6 +26,11 @@ vi.mock('@midscene/core/yaml', () => ({
   parseYamlScript: vi.fn(),
 }));
 
+vi.mock('@midscene/core/agent', () => ({
+  createAgent: vi.fn(),
+  getReportFileName: vi.fn((tag: string) => `${tag}-mock-report`),
+}));
+
 vi.mock('@midscene/android', () => ({
   agentFromAdbDevice: vi.fn(),
 }));
@@ -54,6 +59,7 @@ vi.mock('puppeteer', () => ({
 }));
 
 import { agentFromAdbDevice } from '@midscene/android';
+import { getReportFileName } from '@midscene/core/agent';
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { agentFromWebDriverAgent } from '@midscene/ios';
 import { globalConfigManager } from '@midscene/shared/env';
@@ -717,13 +723,14 @@ describe('create-yaml-player', () => {
         await setupFnCallback();
       }
 
-      // Verify that when agent config is undefined, testId is still set from fileName
+      // Verify that when agent config is undefined, reportFileName is set from fileName
       // and aiActionContext is not present (undefined fields are not spread)
       const callArgs = getMockCallArg(vi.mocked(agentFromAdbDevice), 0, 1);
       expect(callArgs).toMatchObject({
-        testId: 'script',
+        reportFileName: 'script-mock-report',
         deviceId: 'test-device',
       });
+      expect(vi.mocked(getReportFileName)).toHaveBeenCalledWith('script');
       expect(callArgs).not.toHaveProperty('aiActionContext');
     });
 
@@ -754,13 +761,56 @@ describe('create-yaml-player', () => {
         await setupFnCallback();
       }
 
-      // Verify that when agent config is undefined, testId is still set from fileName
+      // Verify that when agent config is undefined, reportFileName is set from fileName
       // and aiActionContext is not present (undefined fields are not spread)
       const callArgs = getMockCallArg(vi.mocked(agentFromWebDriverAgent), 0, 0);
       expect(callArgs).toMatchObject({
-        testId: 'script',
+        reportFileName: 'script-mock-report',
       });
+      expect(vi.mocked(getReportFileName)).toHaveBeenCalledWith('script');
       expect(callArgs).not.toHaveProperty('aiActionContext');
+    });
+
+    test('should generate a fresh report file name for repeated CLI runs of the same yaml file', async () => {
+      const mockScript: MidsceneYamlScript = {
+        ios: {},
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      const setupFnCallbacks: Array<() => Promise<any>> = [];
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
+      vi.mocked(getReportFileName)
+        .mockReturnValueOnce('script-run-1')
+        .mockReturnValueOnce('script-run-2');
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallbacks.push(setupFn as () => Promise<any>);
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      for (const setupFn of setupFnCallbacks) {
+        await setupFn();
+      }
+
+      expect(vi.mocked(agentFromWebDriverAgent).mock.calls).toHaveLength(2);
+      expect(
+        getMockCallArg(vi.mocked(agentFromWebDriverAgent), 0, 0),
+      ).toMatchObject({
+        reportFileName: 'script-run-1',
+      });
+      expect(
+        getMockCallArg(vi.mocked(agentFromWebDriverAgent), 1, 0),
+      ).toMatchObject({
+        reportFileName: 'script-run-2',
+      });
     });
   });
 
@@ -772,7 +822,6 @@ describe('create-yaml-player', () => {
           url: 'test.html',
         },
         agent: {
-          testId: 'custom-test-id',
           groupName: 'Custom Group',
           groupDescription: 'Custom description',
           generateReport: true,
@@ -817,10 +866,9 @@ describe('create-yaml-player', () => {
           groupDescription: 'Custom description',
           generateReport: true,
           autoPrintReportMsg: false,
-          reportFileName: 'custom-report',
+          reportFileName: 'custom-report-mock-report',
           replanningCycleLimit: 25,
           aiActionContext: 'Test context',
-          testId: 'custom-test-id', // YAML testId is used
         }),
         undefined, // browser
         undefined, // page
@@ -900,7 +948,7 @@ describe('create-yaml-player', () => {
 
       expect(agentFromWebDriverAgent).toHaveBeenCalledWith(
         expect.objectContaining({
-          reportFileName: 'ios-test-report',
+          reportFileName: 'ios-test-report-mock-report',
           autoPrintReportMsg: true,
         }),
       );
@@ -951,7 +999,7 @@ describe('create-yaml-player', () => {
       );
     });
 
-    test('should prioritize CLI preference testId over YAML testId', async () => {
+    test('should prioritize CLI legacy testId over YAML legacy testId for reportFileName', async () => {
       const mockScript: MidsceneYamlScript = {
         web: {
           serve: './test',
@@ -987,18 +1035,18 @@ describe('create-yaml-player', () => {
         await setupFnCallback();
       }
 
-      // CLI testId should take priority
+      // CLI legacy testId should take priority for reportFileName
       expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
         expect.any(Object),
         expect.objectContaining({
-          testId: 'cli-test-id',
+          reportFileName: 'cli-test-id-mock-report',
         }),
         undefined, // browser
         undefined, // page
       );
     });
 
-    test('should use YAML testId when no preference testId exists', async () => {
+    test('should use YAML legacy testId as reportFileName when no explicit reportFileName exists', async () => {
       const mockScript: MidsceneYamlScript = {
         web: {
           serve: './test',
@@ -1032,11 +1080,11 @@ describe('create-yaml-player', () => {
         await setupFnCallback();
       }
 
-      // When no explicit CLI testId is provided, YAML testId takes precedence over fileName
+      // When no explicit reportFileName/CLI value is provided, YAML legacy testId takes precedence over fileName
       expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
         expect.any(Object),
         expect.objectContaining({
-          testId: 'yaml-test-id',
+          reportFileName: 'yaml-test-id-mock-report',
         }),
         undefined, // browser
         undefined, // page
@@ -1182,7 +1230,7 @@ describe('create-yaml-player', () => {
       expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
         expect.any(Object),
         expect.objectContaining({
-          testId: 'cdp-test',
+          reportFileName: 'cdp-test-mock-report',
           groupName: 'CDP Tests',
         }),
         expect.any(Object),

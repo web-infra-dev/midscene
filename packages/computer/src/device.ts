@@ -1,27 +1,20 @@
 import assert from 'node:assert';
-import { execSync } from 'node:child_process';
+import { execFileSync, execSync, spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import {
-  type DeviceAction,
-  type InterfaceType,
-  type LocateResultElement,
-  type Size,
-  getMidsceneLocationSchema,
-  z,
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import type {
+  DeviceAction,
+  InterfaceType,
+  LocateResultElement,
+  Size,
 } from '@midscene/core';
 import {
   type AbstractInterface,
-  type ActionHoverParam,
-  type ActionTapParam,
-  actionHoverParamSchema,
+  type ComputerInputPrimitives,
   defineAction,
-  defineActionClearInput,
-  defineActionDoubleClick,
-  defineActionDragAndDrop,
-  defineActionKeyboardPress,
-  defineActionRightClick,
-  defineActionScroll,
-  defineActionTap,
+  defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
@@ -55,24 +48,6 @@ interface ScreenshotDisplay {
   primary?: boolean;
 }
 
-// Input action schema for computer
-const computerInputParamSchema = z.object({
-  value: z.string().describe('The text to input'),
-  mode: z
-    .enum(['replace', 'clear', 'append'])
-    .default('replace')
-    .optional()
-    .describe('Input mode: replace, clear, or append'),
-  locate: getMidsceneLocationSchema()
-    .describe('The input field to be filled')
-    .optional(),
-});
-type ComputerInputParam = {
-  value: string;
-  mode?: 'replace' | 'clear' | 'append';
-  locate?: LocateResultElement;
-};
-
 // Constants
 const SMOOTH_MOVE_STEPS_TAP = 8;
 const SMOOTH_MOVE_STEPS_MOUSE_MOVE = 10;
@@ -85,6 +60,44 @@ const INPUT_CLEAR_DELAY = 150;
 const SCROLL_REPEAT_COUNT = 10;
 const SCROLL_STEP_DELAY = 100;
 const SCROLL_COMPLETE_DELAY = 500;
+// Edge scrolls (scrollToTop / scrollToBottom / ...) use a large total
+// distance so ordinary pages clamp at the boundary. The step count controls
+// smoothness; 400 steps at ~16ms each is ~6.4s in the worst case but WebKit
+// short-circuits the remaining events once the boundary is reached.
+const EDGE_SCROLL_TOTAL_PX = 50_000;
+const EDGE_SCROLL_STEPS = 400;
+// singleAction vertical/horizontal scroll: target ~30px per step and a
+// minimum of 10 steps so small distances still feel momentum-like.
+const PHASED_PIXELS_PER_STEP = 30;
+const PHASED_MIN_STEPS = 10;
+// Default scroll distance is 70% of the screen size on the relevant axis,
+// matching the web puppeteer/chrome-extension behavior so a model that simply
+// says "scroll down" without a distance gets a roughly one-screen scroll on
+// every platform.
+const DEFAULT_SCROLL_VIEWPORT_RATIO = 0.7;
+
+type EdgeScrollType =
+  | 'scrollToTop'
+  | 'scrollToBottom'
+  | 'scrollToLeft'
+  | 'scrollToRight';
+type ScrollDirection = 'up' | 'down' | 'left' | 'right';
+
+interface EdgeScrollStrategy {
+  direction: ScrollDirection;
+  key: 'home' | 'end';
+  libnut: readonly [number, number];
+}
+
+// Single source of truth for edge scroll dispatch. Adding a new scrollType
+// only requires one entry here; the three backends (phased binary /
+// AppleScript / libnut) all read from the same spec.
+const EDGE_SCROLL_SPEC: Record<EdgeScrollType, EdgeScrollStrategy> = {
+  scrollToTop: { direction: 'up', key: 'home', libnut: [0, 10] },
+  scrollToBottom: { direction: 'down', key: 'end', libnut: [0, -10] },
+  scrollToLeft: { direction: 'left', key: 'home', libnut: [-10, 0] },
+  scrollToRight: { direction: 'right', key: 'end', libnut: [10, 0] },
+};
 
 // macOS AppleScript key code mapping
 // Reference: https://eastmanreference.com/complete-list-of-applescript-key-codes
@@ -158,16 +171,13 @@ function sendKeyViaAppleScript(key: string, modifiers: string[] = []): void {
   if (keyCode !== undefined) {
     // Use key code for special keys
     script = `tell application "System Events" to key code ${keyCode}${modifierStr}`;
-  } else if (lowerKey.length === 1) {
-    // Use keystroke for single characters (letters, numbers, symbols)
-    script = `tell application "System Events" to keystroke "${key}"${modifierStr}`;
   } else {
-    // Fallback: try as keystroke
-    script = `tell application "System Events" to keystroke "${key}"${modifierStr}`;
+    const escapedKey = key.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    script = `tell application "System Events" to keystroke "${escapedKey}"${modifierStr}`;
   }
 
   debugDevice('sendKeyViaAppleScript', { key, modifiers, script });
-  execSync(`osascript -e '${script}'`);
+  execFileSync('osascript', ['-e', script]);
 }
 
 // Lazy load libnut with fallback
@@ -195,6 +205,102 @@ async function getLibnut(): Promise<LibNut> {
 }
 
 const debugDevice = getDebug('computer:device');
+
+/**
+ * Resolve the phased-scroll helper binary bundled with the package.
+ *
+ * The binary is a tiny CoreGraphics helper that posts trackpad-like scroll
+ * events with proper gesture phase markers, which WebKit and modern AppKit
+ * scroll views accept without needing keyboard focus — unlike libnut's
+ * phase-less CGScrollEvent path.
+ *
+ * Returns null on non-darwin or when the binary is missing (expected if a
+ * consumer stripped the optional `bin/darwin/` directory from their install).
+ */
+let phasedScrollBinaryPath: string | null | undefined;
+/** @internal exported for unit tests — do not consume from outside this package */
+export function getPhasedScrollBinary(): string | null {
+  if (phasedScrollBinaryPath !== undefined) return phasedScrollBinaryPath;
+  if (process.platform !== 'darwin') {
+    phasedScrollBinaryPath = null;
+    return null;
+  }
+
+  // Resolve the package root via its own package.json so the lookup is
+  // independent of how the library is bundled (src/ during dev, dist/lib
+  // or dist/es after rslib build). require.resolve handles pnpm layouts,
+  // symlinks, and nested workspaces out of the box.
+  const require = createRequire(import.meta.url);
+  let pkgRoot: string | null = null;
+  try {
+    pkgRoot = dirname(require.resolve('@midscene/computer/package.json'));
+  } catch {
+    // Fallback for the dev/test path where the package is not resolvable by
+    // its public name (e.g. tests import from src directly).
+    const hereDir = dirname(fileURLToPath(import.meta.url));
+    for (const candidate of [
+      resolve(hereDir, '..'), // src/device.ts -> package root
+      resolve(hereDir, '../..'), // dist/{lib,es}/*.js -> package root
+    ]) {
+      if (existsSync(resolve(candidate, 'package.json'))) {
+        pkgRoot = candidate;
+        break;
+      }
+    }
+  }
+  if (!pkgRoot) {
+    debugDevice('phased-scroll: cannot locate @midscene/computer package root');
+    phasedScrollBinaryPath = null;
+    return null;
+  }
+
+  const binPath = resolve(pkgRoot, 'bin/darwin/phased-scroll');
+  if (!existsSync(binPath)) {
+    debugDevice('phased-scroll binary not found at', binPath);
+    phasedScrollBinaryPath = null;
+    return null;
+  }
+  phasedScrollBinaryPath = binPath;
+  return binPath;
+}
+
+let phasedScrollExecWarned = false;
+/** @internal exported for unit tests — do not consume from outside this package */
+export function runPhasedScroll(
+  direction: ScrollDirection,
+  pixels: number,
+  steps: number,
+): boolean {
+  const bin = getPhasedScrollBinary();
+  if (!bin) return false;
+  // phased-scroll posts events at the current cursor location — callers that
+  // care about routing should move the mouse before invoking.
+  try {
+    const res = spawnSync(
+      bin,
+      [direction, String(Math.max(1, Math.round(pixels))), String(steps)],
+      { stdio: 'ignore' },
+    );
+    if (res.status === 0) return true;
+    if (!phasedScrollExecWarned) {
+      phasedScrollExecWarned = true;
+      console.warn(
+        `[@midscene/computer] phased-scroll helper exited with status ${res.status}; falling back to keyboard/libnut. This usually means Accessibility permission has not been granted to the host process.`,
+      );
+    }
+    debugDevice('phased-scroll exited non-zero', res.status, res.error);
+    return false;
+  } catch (err) {
+    if (!phasedScrollExecWarned) {
+      phasedScrollExecWarned = true;
+      console.warn(
+        `[@midscene/computer] phased-scroll helper failed to spawn (${(err as Error)?.message}); falling back to keyboard/libnut.`,
+      );
+    }
+    debugDevice('phased-scroll spawn failed', err);
+    return false;
+  }
+}
 
 /**
  * Smooth mouse movement to trigger mousemove events
@@ -325,6 +431,107 @@ export class ComputerDevice implements AbstractInterface {
    */
   private useAppleScript: boolean;
   uri?: string;
+
+  readonly inputPrimitives: ComputerInputPrimitives = {
+    pointer: {
+      tap: async ({ x, y }) => {
+        assert(libnut, 'libnut not initialized');
+        const targetX = Math.round(x);
+        const targetY = Math.round(y);
+
+        await smoothMoveMouse(
+          targetX,
+          targetY,
+          SMOOTH_MOVE_STEPS_TAP,
+          SMOOTH_MOVE_DELAY_TAP,
+        );
+        libnut.mouseToggle('down', 'left');
+        await sleep(CLICK_HOLD_DURATION);
+        libnut.mouseToggle('up', 'left');
+      },
+      doubleClick: async ({ x, y }) => {
+        assert(libnut, 'libnut not initialized');
+        libnut.moveMouse(Math.round(x), Math.round(y));
+        libnut.mouseClick('left', true);
+      },
+      rightClick: async ({ x, y }) => {
+        assert(libnut, 'libnut not initialized');
+        libnut.moveMouse(Math.round(x), Math.round(y));
+        libnut.mouseClick('right');
+      },
+      hover: async ({ x, y }) => {
+        assert(libnut, 'libnut not initialized');
+        await smoothMoveMouse(
+          Math.round(x),
+          Math.round(y),
+          SMOOTH_MOVE_STEPS_MOUSE_MOVE,
+          SMOOTH_MOVE_DELAY_MOUSE_MOVE,
+        );
+        await sleep(MOUSE_MOVE_EFFECT_WAIT);
+      },
+      dragAndDrop: async (from, to) => {
+        assert(libnut, 'libnut not initialized');
+        libnut.moveMouse(Math.round(from.x), Math.round(from.y));
+        libnut.mouseToggle('down', 'left');
+        await sleep(100);
+        libnut.moveMouse(Math.round(to.x), Math.round(to.y));
+        await sleep(100);
+        libnut.mouseToggle('up', 'left');
+      },
+    },
+    keyboard: {
+      typeText: async (value, opts) => {
+        assert(libnut, 'libnut not initialized');
+        const element = opts?.target as LocateResultElement | undefined;
+
+        if (element) {
+          const [x, y] = element.center;
+          libnut.moveMouse(Math.round(x), Math.round(y));
+          libnut.mouseClick('left');
+          await sleep(INPUT_FOCUS_DELAY);
+
+          if (opts?.replace !== false) {
+            await this.selectAllAndDelete();
+            await sleep(INPUT_CLEAR_DELAY);
+          }
+        }
+
+        await this.smartTypeString(value);
+      },
+      keyboardPress: async (keyName, opts) => {
+        assert(libnut, 'libnut not initialized');
+
+        const target = opts?.target as LocateResultElement | undefined;
+        if (target) {
+          const [x, y] = target.center;
+          libnut.moveMouse(Math.round(x), Math.round(y));
+          libnut.mouseClick('left');
+          await sleep(50);
+        }
+
+        await this.pressKeyboardShortcut(keyName);
+      },
+      clearInput: async (target) => {
+        assert(libnut, 'libnut not initialized');
+
+        if (target) {
+          const element = target as LocateResultElement;
+          const [x, y] = element.center;
+          libnut.moveMouse(Math.round(x), Math.round(y));
+          libnut.mouseClick('left');
+          await sleep(100);
+        }
+
+        await this.selectAllAndDelete();
+        await sleep(50);
+      },
+    },
+    scroll: {
+      scroll: async (param) => {
+        await this.performScroll(param);
+      },
+    },
+  };
 
   constructor(options?: ComputerDeviceOpt) {
     this.options = options;
@@ -523,30 +730,72 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     }
     debugDevice('Taking screenshot', { displayId: this.displayId });
 
-    try {
-      const options: ScreenshotOptions = { format: 'png' };
-      if (this.displayId !== undefined) {
-        // On macOS: displayId is numeric (CGDirectDisplayID)
-        // On Windows: displayId is string like "\\.\DISPLAY1"
-        // On Linux: displayId is string like ":0.0"
-        if (process.platform === 'darwin') {
-          const screenIndex = Number(this.displayId);
-          if (!Number.isNaN(screenIndex)) {
-            options.screen = screenIndex;
-          }
-        } else {
-          // Windows and Linux use string IDs directly
-          options.screen = this.displayId;
+    const options: ScreenshotOptions = { format: 'png' };
+    if (this.displayId !== undefined) {
+      // On macOS: displayId is numeric (CGDirectDisplayID)
+      // On Windows: displayId is string like "\\.\DISPLAY1"
+      // On Linux: displayId is string like ":0.0"
+      if (process.platform === 'darwin') {
+        const screenIndex = Number(this.displayId);
+        if (!Number.isNaN(screenIndex)) {
+          options.screen = screenIndex;
         }
+      } else {
+        // Windows and Linux use string IDs directly
+        options.screen = this.displayId;
       }
-
-      debugDevice('Screenshot options', options);
-      const buffer: Buffer = await screenshot(options);
-      return createImgBase64ByFormat('png', buffer.toString('base64'));
-    } catch (error) {
-      debugDevice(`Screenshot failed: ${error}`);
-      throw new Error(`Failed to take screenshot: ${error}`);
     }
+    debugDevice('Screenshot options', options);
+
+    // macOS `screencapture` returns "could not create image from display"
+    // both for missing TCC Screen Recording permission AND for transient
+    // CGDisplay states (display sleep/wake, Space switch, fullscreen
+    // transition, secure input briefly held by System Settings, etc.).
+    // Real permission failures stay broken across retries, so a short
+    // retry burst recovers from the transient case without papering over
+    // genuine misconfiguration.
+    const MAX_ATTEMPTS = 3;
+    const RETRY_DELAY_MS = 300;
+    let lastRawMessage = '';
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const buffer: Buffer = await screenshot(options);
+        if (attempt > 1) {
+          debugDevice(`Screenshot succeeded on attempt ${attempt}`);
+        }
+        return createImgBase64ByFormat('png', buffer.toString('base64'));
+      } catch (error) {
+        lastRawMessage = error instanceof Error ? error.message : String(error);
+        const isMacTransient =
+          process.platform === 'darwin' &&
+          /could not create image from display/i.test(lastRawMessage);
+        const willRetry = isMacTransient && attempt < MAX_ATTEMPTS;
+        debugDevice(
+          `Screenshot attempt ${attempt} failed: ${lastRawMessage}${willRetry ? ' — retrying' : ''}`,
+        );
+        if (!willRetry) {
+          break;
+        }
+        await sleep(RETRY_DELAY_MS);
+      }
+    }
+
+    if (
+      process.platform === 'darwin' &&
+      /could not create image from display/i.test(lastRawMessage)
+    ) {
+      throw new Error(
+        `Failed to take screenshot on macOS: the host process is missing Screen Recording permission, or the target display is locked/sleeping.
+
+Please follow these steps:
+1. Open System Settings > Privacy & Security > Screen Recording
+2. Enable the application running this script (e.g., Terminal, iTerm2, VS Code, WebStorm, or Midscene Studio)
+3. Fully quit and relaunch that application after granting permission — macOS only re-reads this permission on process launch.
+
+Original error: ${lastRawMessage}`,
+      );
+    }
+    throw new Error(`Failed to take screenshot: ${lastRawMessage}`);
   }
 
   async size(): Promise<Size> {
@@ -616,259 +865,150 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     await this.typeViaClipboard(text);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  actionSpace(): DeviceAction<any>[] {
-    const defaultActions: DeviceAction<any>[] = [
-      // Tap (single click)
-      defineActionTap(async (param: ActionTapParam) => {
-        assert(libnut, 'libnut not initialized');
-        const element = param.locate as LocateResultElement;
-        assert(element, 'Element not found, cannot tap');
-        const [x, y] = element.center;
-        const targetX = Math.round(x);
-        const targetY = Math.round(y);
+  private async selectAllAndDelete(): Promise<void> {
+    assert(libnut, 'libnut not initialized');
+    if (this.useAppleScript) {
+      sendKeyViaAppleScript('a', ['command']);
+      await sleep(50);
+      sendKeyViaAppleScript('backspace', []);
+      return;
+    }
 
-        await smoothMoveMouse(
-          targetX,
-          targetY,
-          SMOOTH_MOVE_STEPS_TAP,
-          SMOOTH_MOVE_DELAY_TAP,
+    const modifier = process.platform === 'darwin' ? 'command' : 'control';
+    libnut.keyTap('a', [modifier]);
+    await sleep(50);
+    libnut.keyTap('backspace');
+  }
+
+  private async pressKeyboardShortcut(keyName: string): Promise<void> {
+    assert(libnut, 'libnut not initialized');
+    const keys = keyName.split('+');
+    const modifiers = keys.slice(0, -1).map(normalizeKeyName);
+    const key = normalizePrimaryKey(keys[keys.length - 1]);
+
+    debugDevice('KeyboardPress', {
+      original: keyName,
+      key,
+      modifiers,
+      driver: this.useAppleScript ? 'applescript' : 'libnut',
+    });
+
+    if (this.useAppleScript) {
+      sendKeyViaAppleScript(key, modifiers);
+    } else if (modifiers.length > 0) {
+      libnut.keyTap(key, modifiers);
+    } else {
+      libnut.keyTap(key);
+    }
+  }
+
+  private async performScroll(param: any): Promise<void> {
+    assert(libnut, 'libnut not initialized');
+
+    if (param.locate) {
+      const element = param.locate as LocateResultElement;
+      const [x, y] = element.center;
+      libnut.moveMouse(Math.round(x), Math.round(y));
+    }
+
+    const scrollType = param?.scrollType;
+
+    const edgeSpec =
+      scrollType && scrollType in EDGE_SCROLL_SPEC
+        ? EDGE_SCROLL_SPEC[scrollType as EdgeScrollType]
+        : null;
+    if (edgeSpec) {
+      if (
+        runPhasedScroll(
+          edgeSpec.direction,
+          EDGE_SCROLL_TOTAL_PX,
+          EDGE_SCROLL_STEPS,
+        )
+      ) {
+        await sleep(SCROLL_COMPLETE_DELAY);
+        return;
+      }
+
+      if (this.useAppleScript) {
+        sendKeyViaAppleScript(edgeSpec.key);
+        await sleep(SCROLL_COMPLETE_DELAY);
+        return;
+      }
+
+      const [dx, dy] = edgeSpec.libnut;
+      for (let i = 0; i < SCROLL_REPEAT_COUNT; i++) {
+        libnut.scrollMouse(dx, dy);
+        await sleep(SCROLL_STEP_DELAY);
+      }
+      return;
+    }
+
+    if (scrollType === 'singleAction' || !scrollType) {
+      const direction = (param?.direction || 'down') as ScrollDirection;
+      const isKnownDirection =
+        direction === 'up' ||
+        direction === 'down' ||
+        direction === 'left' ||
+        direction === 'right';
+      const isHorizontal = direction === 'left' || direction === 'right';
+
+      let distance: number | undefined = param?.distance ?? undefined;
+      let screenSize: Size | undefined;
+      if (!distance) {
+        screenSize = await this.size();
+        const base = isHorizontal ? screenSize.width : screenSize.height;
+        distance = Math.max(
+          1,
+          Math.round(base * DEFAULT_SCROLL_VIEWPORT_RATIO),
         );
-        // Use mouseToggle for more realistic click behavior
-        libnut.mouseToggle('down', 'left');
-        await sleep(CLICK_HOLD_DURATION);
-        libnut.mouseToggle('up', 'left');
-      }),
+      }
 
-      // DoubleClick
-      defineActionDoubleClick(async (param) => {
-        assert(libnut, 'libnut not initialized');
-        const element = param.locate as LocateResultElement;
-        assert(element, 'Element not found, cannot double click');
-        const [x, y] = element.center;
-        libnut.moveMouse(Math.round(x), Math.round(y));
-        libnut.mouseClick('left', true);
-      }),
-
-      // RightClick
-      defineActionRightClick(async (param) => {
-        assert(libnut, 'libnut not initialized');
-        const element = param.locate as LocateResultElement;
-        assert(element, 'Element not found, cannot right click');
-        const [x, y] = element.center;
-        libnut.moveMouse(Math.round(x), Math.round(y));
-        libnut.mouseClick('right');
-      }),
-
-      // MouseMove
-      defineAction<typeof actionHoverParamSchema, ActionHoverParam>({
-        name: 'MouseMove',
-        description: 'Move the mouse to the element',
-        interfaceAlias: 'aiHover',
-        paramSchema: actionHoverParamSchema,
-        sample: {
-          locate: { prompt: 'the navigation menu item "Products"' },
-        },
-        call: async (param) => {
-          assert(libnut, 'libnut not initialized');
-          const element = param.locate as LocateResultElement;
-          assert(element, 'Element not found, cannot move mouse');
-          const [x, y] = element.center;
-          const targetX = Math.round(x);
-          const targetY = Math.round(y);
-
-          await smoothMoveMouse(
-            targetX,
-            targetY,
-            SMOOTH_MOVE_STEPS_MOUSE_MOVE,
-            SMOOTH_MOVE_DELAY_MOUSE_MOVE,
-          );
-          await sleep(MOUSE_MOVE_EFFECT_WAIT);
-        },
-      }),
-
-      // Input
-      defineAction<typeof computerInputParamSchema, ComputerInputParam>({
-        name: 'Input',
-        description: 'Input text into the input field',
-        interfaceAlias: 'aiInput',
-        paramSchema: computerInputParamSchema,
-        sample: {
-          value: 'test@example.com',
-          locate: { prompt: 'the email input field' },
-        },
-        call: async (param) => {
-          assert(libnut, 'libnut not initialized');
-          const element = param.locate as LocateResultElement | undefined;
-
-          if (element) {
-            // Always click to ensure focus
-            const [x, y] = element.center;
-            libnut.moveMouse(Math.round(x), Math.round(y));
-            libnut.mouseClick('left');
-            await sleep(INPUT_FOCUS_DELAY);
-
-            if (param.mode !== 'append') {
-              // Select all and delete
-              if (this.useAppleScript) {
-                sendKeyViaAppleScript('a', ['command']);
-                await sleep(50);
-                sendKeyViaAppleScript('backspace', []);
-              } else {
-                const modifier =
-                  process.platform === 'darwin' ? 'command' : 'control';
-                libnut.keyTap('a', [modifier]);
-                await sleep(50);
-                libnut.keyTap('backspace');
-              }
-              await sleep(INPUT_CLEAR_DELAY);
-            }
-          }
-
-          if (param.mode === 'clear') {
-            return;
-          }
-
-          if (!param.value) {
-            return;
-          }
-
-          await this.smartTypeString(param.value);
-        },
-      }),
-
-      // Scroll
-      defineActionScroll(async (param) => {
-        assert(libnut, 'libnut not initialized');
-
-        if (param.locate) {
-          const element = param.locate as LocateResultElement;
-          const [x, y] = element.center;
-          libnut.moveMouse(Math.round(x), Math.round(y));
-        }
-
-        const scrollType = param?.scrollType;
-
-        // Scroll to edge actions
-        const scrollToEdgeActions: Record<string, [number, number]> = {
-          scrollToTop: [0, 10],
-          scrollToBottom: [0, -10],
-          scrollToLeft: [-10, 0],
-          scrollToRight: [10, 0],
-        };
-
-        const edgeAction = scrollToEdgeActions[scrollType || ''];
-        if (edgeAction) {
-          const [dx, dy] = edgeAction;
-          for (let i = 0; i < SCROLL_REPEAT_COUNT; i++) {
-            libnut.scrollMouse(dx, dy);
-            await sleep(SCROLL_STEP_DELAY);
-          }
-          return;
-        }
-
-        // Single scroll action
-        if (scrollType === 'singleAction' || !scrollType) {
-          const distance = param?.distance || 500;
-          const ticks = Math.ceil(distance / 100);
-          const direction = param?.direction || 'down';
-
-          const directionMap: Record<string, [number, number]> = {
-            up: [0, ticks],
-            down: [0, -ticks],
-            left: [-ticks, 0],
-            right: [ticks, 0],
-          };
-
-          const [dx, dy] = directionMap[direction] || [0, -ticks];
-          libnut.scrollMouse(dx, dy);
+      if (isKnownDirection) {
+        const steps = Math.max(
+          PHASED_MIN_STEPS,
+          Math.round(distance / PHASED_PIXELS_PER_STEP),
+        );
+        if (runPhasedScroll(direction, distance, steps)) {
           await sleep(SCROLL_COMPLETE_DELAY);
           return;
         }
+      }
 
-        throw new Error(
-          `Unknown scroll type: ${scrollType}, param: ${JSON.stringify(param)}`,
-        );
-      }),
-
-      // KeyboardPress
-      defineActionKeyboardPress(async (param) => {
-        assert(libnut, 'libnut not initialized');
-
-        if (param.locate) {
-          const [x, y] = param.locate.center;
-          libnut.moveMouse(Math.round(x), Math.round(y));
-          libnut.mouseClick('left');
-          await sleep(50);
+      if (this.useAppleScript && (direction === 'up' || direction === 'down')) {
+        if (!screenSize) screenSize = await this.size();
+        const pages = Math.max(1, Math.round(distance / screenSize.height));
+        const key = direction === 'up' ? 'pageup' : 'pagedown';
+        for (let i = 0; i < pages; i++) {
+          sendKeyViaAppleScript(key);
+          await sleep(SCROLL_STEP_DELAY);
         }
+        await sleep(SCROLL_COMPLETE_DELAY);
+        return;
+      }
 
-        const keys = param.keyName.split('+');
-        const modifiers = keys.slice(0, -1).map(normalizeKeyName);
-        // Use normalizePrimaryKey for the main key to handle modifier keys pressed alone
-        const key = normalizePrimaryKey(keys[keys.length - 1]);
+      const ticks = Math.ceil(distance / 100);
+      const directionMap: Record<string, [number, number]> = {
+        up: [0, ticks],
+        down: [0, -ticks],
+        left: [-ticks, 0],
+        right: [ticks, 0],
+      };
 
-        debugDevice('KeyboardPress', {
-          original: param.keyName,
-          key,
-          modifiers,
-          driver: this.useAppleScript ? 'applescript' : 'libnut',
-        });
+      const [dx, dy] = directionMap[direction] || [0, -ticks];
+      libnut.scrollMouse(dx, dy);
+      await sleep(SCROLL_COMPLETE_DELAY);
+      return;
+    }
 
-        if (this.useAppleScript) {
-          // Use AppleScript for all keys on macOS when keyboardDriver is 'applescript'
-          sendKeyViaAppleScript(key, modifiers);
-        } else {
-          // Use libnut (default)
-          if (modifiers.length > 0) {
-            libnut.keyTap(key, modifiers);
-          } else {
-            libnut.keyTap(key);
-          }
-        }
-      }),
+    throw new Error(
+      `Unknown scroll type: ${scrollType}, param: ${JSON.stringify(param)}`,
+    );
+  }
 
-      // DragAndDrop
-      defineActionDragAndDrop(async (param) => {
-        assert(libnut, 'libnut not initialized');
-        const from = param.from as LocateResultElement;
-        const to = param.to as LocateResultElement;
-        assert(from, 'missing "from" param for drag and drop');
-        assert(to, 'missing "to" param for drag and drop');
-
-        const [fromX, fromY] = from.center;
-        const [toX, toY] = to.center;
-
-        libnut.moveMouse(Math.round(fromX), Math.round(fromY));
-        libnut.mouseToggle('down', 'left');
-        await sleep(100);
-        libnut.moveMouse(Math.round(toX), Math.round(toY));
-        await sleep(100);
-        libnut.mouseToggle('up', 'left');
-      }),
-
-      // ClearInput
-      defineActionClearInput(async (param) => {
-        assert(libnut, 'libnut not initialized');
-        const element = param.locate as LocateResultElement;
-        assert(element, 'Element not found, cannot clear input');
-
-        const [x, y] = element.center;
-        libnut.moveMouse(Math.round(x), Math.round(y));
-        libnut.mouseClick('left');
-        await sleep(100);
-
-        if (this.useAppleScript) {
-          sendKeyViaAppleScript('a', ['command']);
-          await sleep(50);
-          sendKeyViaAppleScript('backspace', []);
-        } else {
-          const modifier =
-            process.platform === 'darwin' ? 'command' : 'control';
-          libnut.keyTap('a', [modifier]);
-          libnut.keyTap('backspace');
-        }
-        await sleep(50);
-      }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  actionSpace(): DeviceAction<any>[] {
+    const defaultActions: DeviceAction<any>[] = [
+      ...defineActionsFromInputPrimitives(this.inputPrimitives),
     ];
 
     const platformActions = Object.values(createPlatformActions());

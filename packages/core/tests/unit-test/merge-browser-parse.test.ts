@@ -18,8 +18,8 @@ import { ReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
 import {
   ExecutionDump,
-  type GroupMeta,
-  GroupedActionDump,
+  ReportActionDump,
+  type ReportMeta,
   type UIContext,
 } from '@/types';
 import { uuid } from '@midscene/shared/utils';
@@ -30,7 +30,7 @@ function fakeBase64(sizeBytes: number): string {
   return `data:image/png;base64,${'A'.repeat(sizeBytes)}`;
 }
 
-function createDump(screenshots: ScreenshotItem[]): GroupedActionDump {
+function createDump(screenshots: ScreenshotItem[]): ReportActionDump {
   const tasks = screenshots.map((s, i) => ({
     type: 'Insight' as const,
     subType: 'Locate',
@@ -44,7 +44,7 @@ function createDump(screenshots: ScreenshotItem[]): GroupedActionDump {
     status: 'finished' as const,
   }));
 
-  return new GroupedActionDump({
+  return new ReportActionDump({
     sdkVersion: '1.0.0-test',
     groupName: 'test-group',
     groupDescription: 'test desc',
@@ -85,7 +85,7 @@ describe('browser parse simulation for merged directory-mode reports', () => {
 
     const screenshot = ScreenshotItem.create(fakeBase64(500), Date.now());
     const dump = createDump([screenshot]);
-    const groupMeta: GroupMeta = {
+    const groupMeta: ReportMeta = {
       sdkVersion: dump.sdkVersion,
       groupName: dump.groupName,
       groupDescription: dump.groupDescription,
@@ -127,7 +127,7 @@ describe('browser parse simulation for merged directory-mode reports', () => {
         ScreenshotItem.create(fakeBase64(400 + r * 50), Date.now()),
       ];
       const dump = createDump(screenshots);
-      const groupMeta: GroupMeta = {
+      const groupMeta: ReportMeta = {
         sdkVersion: dump.sdkVersion,
         groupName: dump.groupName,
         groupDescription: dump.groupDescription,
@@ -190,13 +190,12 @@ describe('browser parse simulation for merged directory-mode reports', () => {
     // Verify screenshot reference uses relative path (directory mode preserved)
     const screenshotRef = parsed.executions[0].tasks[0].uiContext?.screenshot;
     expect(screenshotRef).toBeDefined();
-    expect(screenshotRef.base64).toMatch(/^\.\/screenshots\//);
+    expect(screenshotRef.type).toBe('midscene_screenshot_ref');
+    expect(screenshotRef.storage).toBe('file');
+    expect(screenshotRef.path).toMatch(/^\.\/screenshots\//);
 
     // Verify the referenced screenshot file exists
-    const screenshotBasename = screenshotRef.base64.replace(
-      './screenshots/',
-      '',
-    );
+    const screenshotBasename = screenshotRef.path.replace('./screenshots/', '');
     expect(screenshotFiles).toContain(screenshotBasename);
   });
 
@@ -211,7 +210,7 @@ describe('browser parse simulation for merged directory-mode reports', () => {
 
     const screenshot = ScreenshotItem.create(fakeBase64(300), Date.now());
     const dump = createDump([screenshot]);
-    const groupMeta: GroupMeta = {
+    const groupMeta: ReportMeta = {
       sdkVersion: dump.sdkVersion,
       groupName: dump.groupName,
       groupDescription: dump.groupDescription,

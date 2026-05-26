@@ -4,6 +4,7 @@ import {
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
 } from '@midscene/shared/env';
+import { normalizeForComparison } from '@midscene/shared/utils';
 import {
   type Mock,
   afterEach,
@@ -57,6 +58,22 @@ describe('HarmonyAgent', () => {
           }),
       ).not.toThrow();
     });
+
+    it('should inject default music app name mappings into device', () => {
+      const mockPage = new HarmonyDevice('test-device');
+      const setAppNameMappingSpy = vi.spyOn(mockPage, 'setAppNameMapping');
+
+      new HarmonyAgent(mockPage, {
+        modelConfig: mockedModelConfig,
+      });
+
+      expect(setAppNameMappingSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          [normalizeForComparison('华为音乐')]: 'com.huawei.hmsapp.music',
+          [normalizeForComparison('Music')]: 'com.huawei.hmsapp.music',
+        }),
+      );
+    });
   });
 
   describe('launch', () => {
@@ -83,6 +100,13 @@ describe('HarmonyAgent', () => {
           },
         },
         {
+          name: 'Terminate',
+          paramSchema: undefined,
+          call: async (param: any) => {
+            return mockPage.terminate(param.uri);
+          },
+        },
+        {
           name: 'RunHdcShell',
           paramSchema: undefined,
           call: async (param: any) => {
@@ -100,6 +124,39 @@ describe('HarmonyAgent', () => {
       await agent.launch(uri);
 
       expect(launchSpy).toHaveBeenCalledWith({ uri });
+    });
+  });
+
+  describe('terminate', () => {
+    it('should call page.terminate with the given uri', async () => {
+      const validPngBase64 =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      const mockPage = new HarmonyDevice('test-device');
+      vi.spyOn(mockPage, 'screenshotBase64').mockResolvedValue(validPngBase64);
+      vi.spyOn(mockPage, 'size').mockResolvedValue({ width: 375, height: 812 });
+      vi.spyOn(mockPage, 'url').mockResolvedValue('https://example.com');
+      if (typeof (mockPage as any).terminate !== 'function') {
+        (mockPage as any).terminate = vi.fn().mockResolvedValue(undefined);
+      }
+      const terminateSpy = vi
+        .spyOn(mockPage as any, 'terminate')
+        .mockResolvedValue(undefined);
+      vi.spyOn(mockPage, 'actionSpace').mockReturnValue([
+        { name: 'Launch', paramSchema: undefined, call: async () => {} },
+        {
+          name: 'Terminate',
+          paramSchema: undefined,
+          call: async (param: any) => mockPage.terminate(param.uri),
+        },
+        { name: 'RunHdcShell', paramSchema: undefined, call: async () => '' },
+      ] as any);
+
+      const agent = new HarmonyAgent(mockPage, {
+        modelConfig: mockedModelConfig,
+      });
+
+      await agent.terminate('com.huawei.hmos.settings');
+      expect(terminateSpy).toHaveBeenCalledWith('com.huawei.hmos.settings');
     });
   });
 

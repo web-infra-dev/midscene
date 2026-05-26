@@ -65,6 +65,7 @@ describe('Agent with custom OpenAI client', () => {
           "extraBody": undefined,
           "httpProxy": undefined,
           "intent": "default",
+          "maxTokens": undefined,
           "modelDescription": "qwen2.5-vl mode",
           "modelFamily": "qwen2.5-vl",
           "modelName": "qwen2.5-vl-max",
@@ -76,6 +77,7 @@ describe('Agent with custom OpenAI client', () => {
           "reasoningEnabled": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
+          "slot": "default",
           "socksProxy": undefined,
           "temperature": 0,
           "timeout": undefined,
@@ -91,7 +93,8 @@ describe('Agent with custom OpenAI client', () => {
           "createOpenAIClient": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
-          "intent": "default",
+          "intent": "planning",
+          "maxTokens": undefined,
           "modelDescription": "qwen2.5-vl mode",
           "modelFamily": "qwen2.5-vl",
           "modelName": "qwen2.5-vl-max",
@@ -103,6 +106,7 @@ describe('Agent with custom OpenAI client', () => {
           "reasoningEnabled": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
+          "slot": "default",
           "socksProxy": undefined,
           "temperature": 0,
           "timeout": undefined,
@@ -118,7 +122,8 @@ describe('Agent with custom OpenAI client', () => {
           "createOpenAIClient": undefined,
           "extraBody": undefined,
           "httpProxy": undefined,
-          "intent": "default",
+          "intent": "insight",
+          "maxTokens": undefined,
           "modelDescription": "qwen2.5-vl mode",
           "modelFamily": "qwen2.5-vl",
           "modelName": "qwen2.5-vl-max",
@@ -130,6 +135,7 @@ describe('Agent with custom OpenAI client', () => {
           "reasoningEnabled": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
+          "slot": "default",
           "socksProxy": undefined,
           "temperature": 0,
           "timeout": undefined,
@@ -158,6 +164,7 @@ describe('Agent with custom OpenAI client', () => {
           "extraBody": undefined,
           "httpProxy": undefined,
           "intent": "default",
+          "maxTokens": undefined,
           "modelDescription": "qwen2.5-vl mode",
           "modelFamily": "qwen2.5-vl",
           "modelName": "qwen2.5-vl-max",
@@ -169,6 +176,7 @@ describe('Agent with custom OpenAI client', () => {
           "reasoningEnabled": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
+          "slot": "default",
           "socksProxy": undefined,
           "temperature": 0,
           "timeout": undefined,
@@ -185,6 +193,7 @@ describe('Agent with custom OpenAI client', () => {
           "extraBody": undefined,
           "httpProxy": undefined,
           "intent": "planning",
+          "maxTokens": undefined,
           "modelDescription": "",
           "modelFamily": undefined,
           "modelName": "gpt-5.1",
@@ -196,6 +205,7 @@ describe('Agent with custom OpenAI client', () => {
           "reasoningEnabled": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
+          "slot": "planning",
           "socksProxy": undefined,
           "temperature": 0,
           "timeout": undefined,
@@ -212,6 +222,7 @@ describe('Agent with custom OpenAI client', () => {
           "extraBody": undefined,
           "httpProxy": undefined,
           "intent": "insight",
+          "maxTokens": undefined,
           "modelDescription": "",
           "modelFamily": undefined,
           "modelName": "model-for-insight",
@@ -223,6 +234,7 @@ describe('Agent with custom OpenAI client', () => {
           "reasoningEnabled": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
+          "slot": "insight",
           "socksProxy": undefined,
           "temperature": 0,
           "timeout": undefined,
@@ -313,12 +325,14 @@ describe('Agent with custom OpenAI client', () => {
       );
       expect(planningConfig.createOpenAIClient).toBe(mockCreateClient);
       expect(planningConfig.intent).toBe('planning');
+      expect(planningConfig.slot).toBe('planning');
 
       const defaultConfig = (agent as any).modelConfigManager.getModelConfig(
         'default',
       );
       expect(defaultConfig.createOpenAIClient).toBe(mockCreateClient);
       expect(defaultConfig.intent).toBe('default');
+      expect(defaultConfig.slot).toBe('default');
     });
   });
 
@@ -461,6 +475,60 @@ describe('Agent with custom OpenAI client', () => {
       expect(config1.createOpenAIClient).toBe(mockCreateClient);
       expect(config2.createOpenAIClient).toBe(mockCreateClient);
       expect(config3.createOpenAIClient).toBe(mockCreateClient);
+    });
+  });
+
+  describe('planning locate strategy', () => {
+    it('should not include bbox in planning when planning config is explicitly resolved', async () => {
+      const mockInterface = createMockInterface();
+      const agent = new Agent(mockInterface, {
+        modelConfig: {
+          ...defaultModelConfig,
+          [MIDSCENE_PLANNING_MODEL_NAME]:
+            defaultModelConfig[MIDSCENE_MODEL_NAME],
+          [MIDSCENE_PLANNING_MODEL_API_KEY]:
+            defaultModelConfig[MIDSCENE_MODEL_API_KEY],
+          [MIDSCENE_PLANNING_MODEL_BASE_URL]:
+            defaultModelConfig[MIDSCENE_MODEL_BASE_URL],
+        },
+      });
+      const actionSpy = vi
+        .spyOn((agent as any).taskExecutor, 'action')
+        .mockResolvedValue({
+          output: {
+            yamlFlow: [],
+          },
+        });
+
+      await agent.aiAct('click the submit button');
+
+      expect(actionSpy).toHaveBeenCalled();
+      expect(actionSpy.mock.calls[0][3]).toBe(false);
+      expect(
+        (agent as any).modelConfigManager.getModelConfig('planning').slot,
+      ).toBe('planning');
+    });
+
+    it('should include bbox in planning when planning config falls back to default', async () => {
+      const mockInterface = createMockInterface();
+      const agent = new Agent(mockInterface, {
+        modelConfig: defaultModelConfig,
+      });
+      const actionSpy = vi
+        .spyOn((agent as any).taskExecutor, 'action')
+        .mockResolvedValue({
+          output: {
+            yamlFlow: [],
+          },
+        });
+
+      await agent.aiAct('click the submit button');
+
+      expect(actionSpy).toHaveBeenCalled();
+      expect(actionSpy.mock.calls[0][3]).toBe(true);
+      expect(
+        (agent as any).modelConfigManager.getModelConfig('planning').slot,
+      ).toBe('default');
     });
   });
 });

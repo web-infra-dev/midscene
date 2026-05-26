@@ -1,5 +1,4 @@
 import path from 'node:path';
-import { commonIgnoreWarnings } from '@midscene/shared';
 import { defineConfig } from '@rsbuild/core';
 import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
@@ -8,6 +7,7 @@ import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
 import { pluginWorkspaceDev } from 'rsbuild-plugin-workspace-dev';
 import { version } from '../../packages/visualizer/package.json';
+import { commonIgnoreWarnings } from '../../scripts/rsbuild-utils.ts';
 
 export default defineConfig({
   tools: {
@@ -107,6 +107,11 @@ export default defineConfig({
       ),
       react: path.resolve(__dirname, 'node_modules/react'),
       'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+      // Keep the browser-side Photon WASM path intact for the extension.
+      // Only stub the node-only image dependencies so rspack does not walk
+      // native/optional modules from shared image helpers.
+      sharp: false,
+      '@silvia-odwyer/photon-node': false,
     },
   },
   plugins: [

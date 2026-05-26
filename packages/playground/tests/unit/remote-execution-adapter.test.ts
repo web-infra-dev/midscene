@@ -356,6 +356,41 @@ describe('RemoteExecutionAdapter', () => {
     });
   });
 
+  describe('runConnectivityTest', () => {
+    it('should call the connectivity test endpoint', async () => {
+      const mockResult = {
+        passed: true,
+        checks: [],
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResult),
+      });
+
+      const result = await adapter.runConnectivityTest();
+
+      expect(result).toEqual(mockResult);
+      expect(mockFetch).toHaveBeenCalledWith(
+        `${mockServerUrl}/connectivity-test`,
+        {
+          method: 'POST',
+        },
+      );
+    });
+
+    it('should surface endpoint errors', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: 'Bad Request',
+        json: () => Promise.resolve({ error: 'invalid config' }),
+      });
+
+      await expect(adapter.runConnectivityTest()).rejects.toThrow(
+        'invalid config',
+      );
+    });
+  });
+
   describe('getTaskProgress', () => {
     it('should get task progress successfully', async () => {
       const mockProgress = { tip: 'Processing...' };
@@ -473,6 +508,189 @@ describe('RemoteExecutionAdapter', () => {
         expect.any(Error),
       );
       consoleSpy.mockRestore();
+    });
+  });
+
+  describe('session APIs', () => {
+    it('should get session setup from server', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            fields: [{ key: 'deviceId', label: 'ADB device', type: 'select' }],
+          }),
+      });
+
+      await expect(adapter.getSessionSetup()).resolves.toMatchObject({
+        fields: [{ key: 'deviceId' }],
+      });
+      expect(mockFetch).toHaveBeenCalledWith(`${mockServerUrl}/session/setup`);
+    });
+
+    it('should send primitive setup inputs as query params', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            fields: [{ key: 'platformId', label: 'Platform', type: 'select' }],
+          }),
+      });
+
+      await adapter.getSessionSetup({
+        platformId: 'android',
+        retries: 2,
+        enabled: true,
+        ignored: { nested: true },
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        `${mockServerUrl}/session/setup?platformId=android&retries=2&enabled=true`,
+      );
+    });
+
+    it('should throw setup errors from server responses', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: 'Internal Server Error',
+        json: () => Promise.resolve({ error: 'adb executable not found' }),
+      });
+
+      await expect(adapter.getSessionSetup()).rejects.toThrow(
+        'adb executable not found',
+      );
+    });
+
+    it('should create and destroy sessions through server APIs', async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              session: { connected: true, displayName: 'SERIAL123' },
+              runtimeInfo: {
+                interface: { type: 'android' },
+                preview: { kind: 'scrcpy', capabilities: [] },
+                executionUxHints: [],
+                metadata: { sessionConnected: true },
+              },
+            }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              session: { connected: false, setupState: 'required' },
+              runtimeInfo: {
+                interface: { type: 'Unknown' },
+                preview: { kind: 'none', capabilities: [] },
+                executionUxHints: [],
+                metadata: { sessionConnected: false, setupState: 'required' },
+              },
+            }),
+        });
+
+      await expect(
+        adapter.createSession({ deviceId: 'SERIAL123' }),
+      ).resolves.toMatchObject({
+        session: { connected: true },
+      });
+      expect(mockFetch).toHaveBeenNthCalledWith(1, `${mockServerUrl}/session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId: 'SERIAL123' }),
+      });
+
+      await expect(adapter.destroySession()).resolves.toMatchObject({
+        session: { connected: false },
+      });
+      expect(mockFetch).toHaveBeenNthCalledWith(2, `${mockServerUrl}/session`, {
+        method: 'DELETE',
+      });
+    });
+  });
+
+  describe('getScreenshot', () => {
+    it('should return screenshot data when the server responds successfully', async () => {
+      const screenshotResponse = {
+        screenshot: 'data:image/png;base64,abc123',
+        timestamp: 123,
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(screenshotResponse),
+      });
+
+      await expect(adapter.getScreenshot()).resolves.toEqual(
+        screenshotResponse,
+      );
+      expect(mockFetch).toHaveBeenCalledWith(`${mockServerUrl}/screenshot`);
+    });
+
+    it('should suppress warning logs for expected 409 no-session screenshot responses', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 409,
+        statusText: 'Conflict',
+      });
+      const consoleWarnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {});
+
+      await expect(adapter.getScreenshot()).resolves.toBeNull();
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+
+      consoleWarnSpy.mockRestore();
+    });
+  });
+
+  describe('interact', () => {
+    it('POSTs JSON to /interact and returns ok', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({}),
+      });
+
+      const result = await adapter.interact({
+        actionType: 'Tap',
+        x: 100,
+        y: 200,
+      });
+
+      expect(result).toEqual({ ok: true });
+      expect(mockFetch).toHaveBeenCalledWith(`${mockServerUrl}/interact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actionType: 'Tap', x: 100, y: 200 }),
+      });
+    });
+
+    it('surfaces server-provided error message on non-ok responses', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: async () => ({
+          error: 'Action "Foo" is not available',
+        }),
+      });
+
+      const result = await adapter.interact({ actionType: 'Foo' });
+      expect(result.ok).toBe(false);
+      expect(result.error).toContain('not available');
+    });
+
+    it('returns ok:false with a generic error when fetch rejects', async () => {
+      mockFetch.mockRejectedValueOnce(new Error('network down'));
+      const result = await adapter.interact({ actionType: 'Tap', x: 0, y: 0 });
+      expect(result.ok).toBe(false);
+      expect(result.error).toBe('network down');
+    });
+
+    it('refuses without serverUrl', async () => {
+      const noUrlAdapter = new RemoteExecutionAdapter('');
+      const result = await noUrlAdapter.interact({ actionType: 'Tap' });
+      expect(result.ok).toBe(false);
+      expect(mockFetch).not.toHaveBeenCalled();
     });
   });
 });

@@ -99,30 +99,35 @@ describe('Pinch Action Parameter Validation', () => {
 
   describe('defineActionPinch', () => {
     it('should create an action with correct name and alias', () => {
-      const callFn = vi.fn();
-      const action = defineActionPinch(callFn);
+      const action = defineActionPinch({
+        pinch: async () => {},
+        size: async () => ({ width: 400, height: 800 }),
+      });
 
-      expect(action.name).toBe('Pinch');
-      expect(action.interfaceAlias).toBe('aiPinch');
-      expect(action.paramSchema).toBeDefined();
-      expect(action.sample).toEqual({
+      expect(action?.name).toBe('Pinch');
+      expect(action?.interfaceAlias).toBe('aiPinch');
+      expect(action?.paramSchema).toBeDefined();
+      expect(action?.sample).toEqual({
         locate: { prompt: 'the map area' },
         direction: 'out',
         distance: 200,
       });
     });
 
-    it('should invoke the call function with correct params', async () => {
-      const callFn = vi.fn();
-      const action = defineActionPinch(callFn);
-
-      await action.call({ direction: 'out', duration: 500 }, {} as any);
-
-      expect(callFn).toHaveBeenCalledTimes(1);
-      expect(callFn.mock.calls[0][0]).toEqual({
-        direction: 'out',
-        duration: 500,
+    it('should invoke the pinch primitive with normalized params', async () => {
+      const pinchFn = vi.fn();
+      const action = defineActionPinch({
+        pinch: pinchFn,
+        size: async () => ({ width: 400, height: 800 }),
       });
+
+      await action?.call({ direction: 'out', duration: 500 }, {} as any);
+
+      expect(pinchFn).toHaveBeenCalledTimes(1);
+      expect(pinchFn).toHaveBeenCalledWith(
+        { x: 200, y: 400 },
+        { startDistance: 100, endDistance: 200, duration: 500 },
+      );
     });
   });
 

@@ -64,27 +64,27 @@ describe('chrome extension smoke test', () => {
 
   it('playground: UI elements are rendered correctly', async () => {
     await agent.aiAssert(
-      `${SIDE_PANEL} shows: (1) action type buttons like "aiAct" and "aiQuery", (2) a text input area with a "Run" button, (3) a gear/settings icon`,
+      `${SIDE_PANEL} shows: (1) action type buttons like "Tap" and "Query", (2) a text input area with a "Run" button, (3) a gear/settings icon`,
     );
   });
 
   // ── 3. Action Type Switching ──────────────────────────────────────────
 
   it('playground: action type switching changes placeholder', async () => {
-    await agent.aiAct(`Click the "aiQuery" button in ${SIDE_PANEL}`);
+    await agent.aiAct(`Click the "Query" button in ${SIDE_PANEL}`);
     await sleep(500);
     await agent.aiAssert(
       `${SIDE_PANEL} shows an input area with placeholder text containing "query"`,
     );
 
-    await agent.aiAct(`Click the "aiAssert" button in ${SIDE_PANEL}`);
+    await agent.aiAct(`Click the "Assert" button in ${SIDE_PANEL}`);
     await sleep(500);
     await agent.aiAssert(
       `${SIDE_PANEL} shows an input area with placeholder text containing "assert"`,
     );
 
-    // Switch back to aiAct for the next test
-    await agent.aiAct(`Click the "aiAct" button in ${SIDE_PANEL}`);
+    // Switch back to Tap mode for the next test.
+    await agent.aiAct(`Click the "Tap" button in ${SIDE_PANEL}`);
     await sleep(500);
   });
 
@@ -150,22 +150,33 @@ describe('chrome extension smoke test', () => {
   // ── 6. Settings Modal ─────────────────────────────────────────────────
 
   it('settings: open and close env config modal', async () => {
+    const openEnvConfigModal = async () => {
+      await agent.aiAct(
+        `Click the settings icon in the top-right header area of ${SIDE_PANEL}, next to the GitHub and help icons. Do not click the run configuration icon inside the prompt composer.`,
+      );
+      await sleep(1500);
+    };
+
+    await openEnvConfigModal();
+
+    try {
+      await agent.aiAssert(
+        'A modal titled "Model Env Config" is visible, and it contains a large text area for environment variable configuration.',
+      );
+    } catch {
+      await openEnvConfigModal();
+      await agent.aiAssert(
+        'A modal titled "Model Env Config" is visible, and it contains a large text area for environment variable configuration.',
+      );
+    }
+
     await agent.aiAct(
-      `Click the gear or settings icon in the top area of ${SIDE_PANEL}`,
+      'Click the X close button in the top-right corner of the "Model Env Config" modal.',
     );
-    await sleep(1000);
+    await sleep(1500);
 
     await agent.aiAssert(
-      'A modal or dialog is visible with title containing "Config" or "Env" and a text area for environment variable configuration',
-    );
-
-    await agent.aiAct(
-      'Click the "Cancel" button or the close button (X) on the modal',
-    );
-    await sleep(1000);
-
-    await agent.aiAssert(
-      `The modal is closed and ${SIDE_PANEL} is visible with Playground UI`,
+      `The "Model Env Config" modal is closed, and ${SIDE_PANEL} is visible showing Playground UI without any modal overlay.`,
     );
   });
 });

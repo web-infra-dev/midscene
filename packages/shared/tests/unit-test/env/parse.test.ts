@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { version } from '../../../package.json';
 import {
   getUITarsModelVersion,
   legacyConfigToModelFamily,
@@ -11,6 +12,7 @@ import {
   MIDSCENE_USE_QWEN3_VL,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_VLM_UI_TARS,
+  MODEL_FAMILY_VALUES,
 } from '../../../src/env/types';
 
 describe('getUITarsModelVersion', () => {
@@ -40,6 +42,7 @@ describe('getUITarsModelVersion', () => {
 describe('validateModelFamily', () => {
   it('should not throw on valid model families', () => {
     expect(() => validateModelFamily('qwen3-vl')).not.toThrow();
+    expect(() => validateModelFamily('qwen3.6')).not.toThrow();
     expect(() => validateModelFamily('doubao-vision')).not.toThrow();
     expect(() => validateModelFamily('gemini')).not.toThrow();
     expect(() => validateModelFamily('glm-v')).not.toThrow();
@@ -50,7 +53,16 @@ describe('validateModelFamily', () => {
 
   it('should throw on invalid value', () => {
     expect(() => validateModelFamily('invalid' as any)).toThrow(
-      'Invalid MIDSCENE_MODEL_FAMILY value: invalid',
+      /Invalid MIDSCENE_MODEL_FAMILY value: invalid/,
+    );
+    expect(() => validateModelFamily('invalid' as any)).toThrow(
+      `Current version v${version}`,
+    );
+    expect(() => validateModelFamily('invalid' as any)).toThrow(
+      MODEL_FAMILY_VALUES.join(', '),
+    );
+    expect(() => validateModelFamily('invalid' as any)).toThrow(
+      'https://midscenejs.com/model-common-config.html',
     );
   });
 });

@@ -94,14 +94,3 @@ export function enableDebug(topic: string): void {
   }
   debug.enable(`${topicPrefix}:${topic}`);
 }
-
-// Cleanup function to close all log streams
-export function cleanupLogStreams(): void {
-  if (!ifInNode) return;
-
-  for (const stream of logStreams.values()) {
-    stream.end();
-  }
-  logStreams.clear();
-  debugInstances.clear();
-}

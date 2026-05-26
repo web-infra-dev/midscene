@@ -8,8 +8,8 @@ import type {
   UIContext,
 } from '@/index';
 import Service from '@/service';
-import { createFakeContext } from 'tests/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createFakeContext } from '../../utils';
 
 // Mock AI service caller
 vi.mock('@/ai-model/service-caller/index', () => ({
@@ -44,6 +44,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
           modelName: 'mock-model',
           modelDescription: 'mock-model-description',
           intent: 'default',
+          slot: 'default',
         },
       );
       return {

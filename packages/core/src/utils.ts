@@ -91,6 +91,21 @@ export function getReportTpl() {
 }
 
 /**
+ * Insert content before </html> in an HTML string.
+ * Falls back to simple concatenation if </html> is not found.
+ */
+export function insertContentBeforeClosingHtml(
+  html: string,
+  content: string,
+): string {
+  const htmlEndIdx = html.lastIndexOf('</html>');
+  if (htmlEndIdx === -1) {
+    return html + content;
+  }
+  return `${html.slice(0, htmlEndIdx)}${content}\n${html.slice(htmlEndIdx)}`;
+}
+
+/**
  * high performance, insert script before </html> in HTML file
  * only truncate and append, no temporary file
  */
@@ -170,9 +185,13 @@ export function reportHTMLContent(
       '\n</script>';
   } else {
     const { dumpString, attributes } = dumpData;
-    const attributesArr = Object.keys(attributes || {}).map((key) => {
-      return `${key}="${encodeURIComponent(attributes![key])}"`;
-    });
+    const attributesArr = Object.entries(attributes || {})
+      .filter((entry): entry is [string, string | number | boolean] => {
+        return entry[1] !== undefined && entry[1] !== null;
+      })
+      .map(([key, value]) => {
+        return `${key}="${encodeURIComponent(value)}"`;
+      });
 
     dumpContent =
       // do not use template string here, will cause bundle error
@@ -186,7 +205,11 @@ export function reportHTMLContent(
 
   if (writeToFile) {
     if (!appendReport) {
-      writeFileSync(reportPath!, tpl + dumpContent, { flag: 'w' });
+      writeFileSync(
+        reportPath!,
+        insertContentBeforeClosingHtml(tpl, dumpContent),
+        { flag: 'w' },
+      );
       return reportPath!;
     }
 
@@ -199,7 +222,7 @@ export function reportHTMLContent(
     return reportPath!;
   }
 
-  return tpl + dumpContent;
+  return insertContentBeforeClosingHtml(tpl, dumpContent);
 }
 
 export function writeDumpReport(

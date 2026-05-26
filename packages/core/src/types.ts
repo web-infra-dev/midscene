@@ -1,13 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
-import { join } from 'node:path';
 import type { NodeType } from '@midscene/shared/constants';
 import type { CreateOpenAIClientFn, TModelConfig } from '@midscene/shared/env';
 import type {
@@ -18,8 +10,7 @@ import type {
 } from '@midscene/shared/types';
 import type { z } from 'zod';
 import type { TUserPrompt } from './common';
-import { restoreImageReferences } from './dump/image-restoration';
-import { ScreenshotItem } from './screenshot-item';
+import type { ScreenshotItem } from './screenshot-item';
 import type {
   DetailedLocateParam,
   MidsceneYamlFlowItem,
@@ -35,6 +26,13 @@ export type {
 } from '@midscene/shared/types';
 export * from './yaml';
 
+export { ServiceError } from './errors';
+export {
+  ExecutionDump,
+  ReportActionDump,
+  GroupedActionDump,
+} from './dump/report-action-dump';
+
 export type AIUsageInfo = Record<string, any> & {
   prompt_tokens: number | undefined;
   completion_tokens: number | undefined;
@@ -43,7 +41,15 @@ export type AIUsageInfo = Record<string, any> & {
   time_cost: number | undefined;
   model_name: string | undefined;
   model_description: string | undefined;
+  /**
+   * Semantic intent of the model call, such as default, planning, or insight.
+   */
   intent: string | undefined;
+  /**
+   * Config slot where the model config was resolved from. For example, a
+   * planning call may use the default slot when no planning model is configured.
+   */
+  slot: string | undefined;
   request_id: string | undefined;
 };
 
@@ -171,9 +177,14 @@ export interface DumpMeta {
   logTime: number;
 }
 
+export type ReportAttributes = Record<
+  string,
+  string | number | boolean | null | undefined
+>;
+
 export interface ReportDumpWithAttributes {
   dumpString: string;
-  attributes?: Record<string, any>;
+  attributes?: ReportAttributes;
 }
 
 export interface ServiceDump extends DumpMeta {
@@ -211,16 +222,6 @@ export interface ServiceExtractResult<T> extends ServiceResultBase {
   thought?: string;
   usage?: AIUsageInfo;
   reasoning_content?: string;
-}
-
-export class ServiceError extends Error {
-  dump: ServiceDump;
-
-  constructor(message: string, dump: ServiceDump) {
-    super(message);
-    this.name = 'ServiceError';
-    this.dump = dump;
-  }
 }
 
 // intermediate variables to optimize the return value by AI
@@ -444,146 +445,6 @@ export interface IExecutionDump extends DumpMeta {
   aiActContext?: string;
 }
 
-/**
- * Replacer function for JSON serialization that handles Page, Browser objects and ScreenshotItem
- */
-function replacerForDumpSerialization(_key: string, value: any): any {
-  if (value && value.constructor?.name === 'Page') {
-    return '[Page object]';
-  }
-  if (value && value.constructor?.name === 'Browser') {
-    return '[Browser object]';
-  }
-  // Handle ScreenshotItem serialization
-  if (value && typeof value.toSerializable === 'function') {
-    return value.toSerializable();
-  }
-  return value;
-}
-
-/**
- * Reviver function for JSON deserialization that handles ScreenshotItem formats.
- *
- * BEHAVIOR:
- * - For { $screenshot: "id" } format: Left as-is (plain object)
- *   Consumer must use imageMap to restore base64 data
- * - For { base64: "..." } format: Creates ScreenshotItem from base64 data
- *
- * @param key - JSON key being processed
- * @param value - JSON value being processed
- * @returns Restored value
- */
-function reviverForDumpDeserialization(key: string, value: any): any {
-  // Only process screenshot fields
-  if (key !== 'screenshot' || typeof value !== 'object' || value === null) {
-    return value;
-  }
-
-  // Handle serialized format: { $screenshot: "id" }
-  // Leave as plain object — consumer uses imageMap to restore
-  if (ScreenshotItem.isSerialized(value)) {
-    return value;
-  }
-
-  // Handle inline base64 format: { base64: "..." }
-  if ('base64' in value && typeof value.base64 === 'string') {
-    return value;
-  }
-
-  return value;
-}
-
-/**
- * ExecutionDump class for serializing and deserializing execution dumps
- */
-export class ExecutionDump implements IExecutionDump {
-  id?: string;
-  logTime: number;
-  name: string;
-  description?: string;
-  tasks: ExecutionTask[];
-  aiActContext?: string;
-
-  constructor(data: IExecutionDump) {
-    this.id = data.id;
-    this.logTime = data.logTime;
-    this.name = data.name;
-    this.description = data.description;
-    this.tasks = data.tasks;
-    this.aiActContext = data.aiActContext;
-  }
-
-  /**
-   * Serialize the ExecutionDump to a JSON string
-   */
-  serialize(indents?: number): string {
-    return JSON.stringify(this.toJSON(), replacerForDumpSerialization, indents);
-  }
-
-  /**
-   * Convert to a plain object for JSON serialization
-   */
-  toJSON(): IExecutionDump {
-    return {
-      id: this.id,
-      logTime: this.logTime,
-      name: this.name,
-      description: this.description,
-      tasks: this.tasks.map((task) => ({
-        ...task,
-        recorder: task.recorder || [],
-      })),
-      aiActContext: this.aiActContext,
-    };
-  }
-
-  /**
-   * Create an ExecutionDump instance from a serialized JSON string
-   */
-  static fromSerializedString(serialized: string): ExecutionDump {
-    const parsed = JSON.parse(
-      serialized,
-      reviverForDumpDeserialization,
-    ) as IExecutionDump;
-    return new ExecutionDump(parsed);
-  }
-
-  /**
-   * Create an ExecutionDump instance from a plain object
-   */
-  static fromJSON(data: IExecutionDump): ExecutionDump {
-    return new ExecutionDump(data);
-  }
-
-  /**
-   * Collect all ScreenshotItem instances from tasks.
-   * Scans through uiContext and recorder items to find screenshots.
-   *
-   * @returns Array of ScreenshotItem instances
-   */
-  collectScreenshots(): ScreenshotItem[] {
-    const screenshots: ScreenshotItem[] = [];
-
-    for (const task of this.tasks) {
-      // Collect uiContext.screenshot if present
-      if (task.uiContext?.screenshot instanceof ScreenshotItem) {
-        screenshots.push(task.uiContext.screenshot);
-      }
-
-      // Collect recorder screenshots
-      if (task.recorder) {
-        for (const record of task.recorder) {
-          if (record.screenshot instanceof ScreenshotItem) {
-            screenshots.push(record.screenshot);
-          }
-        }
-      }
-    }
-
-    return screenshots;
-  }
-}
-
 /*
 task - service-locate
 */
@@ -610,6 +471,7 @@ task - service-query
 */
 export interface ExecutionTaskInsightQueryParam {
   dataDemand: ServiceExtractParam;
+  domIncluded?: boolean | 'visible-only';
 }
 
 export interface ExecutionTaskInsightQueryOutput {
@@ -671,12 +533,18 @@ export type ExecutionTaskLog = ExecutionTask<ExecutionTaskLogApply>;
 task - planning
 */
 
+export interface ExecutionTaskPlanningParam {
+  userInstruction: string;
+  aiActContext?: string;
+  imagesIncludeCount?: number;
+  deepThink?: DeepThinkOption;
+  subGoalStatus?: string;
+  memoriesStatus?: string;
+}
+
 export type ExecutionTaskPlanningApply = ExecutionTaskApply<
   'Planning',
-  {
-    userInstruction: string;
-    aiActContext?: string;
-  },
+  ExecutionTaskPlanningParam,
   PlanningAIResponse
 >;
 
@@ -704,9 +572,9 @@ export type ExecutionTaskPlanningLocate =
   ExecutionTask<ExecutionTaskPlanningLocateApply>;
 
 /*
-Group metadata - extracted from GroupedActionDump for per-execution writes
+Report metadata - extracted from ReportActionDump for per-execution writes
 */
-export interface GroupMeta {
+export interface ReportMeta {
   groupName: string;
   groupDescription?: string;
   sdkVersion: string;
@@ -714,10 +582,13 @@ export interface GroupMeta {
   deviceType?: string;
 }
 
+// Backward-compatible aliases for existing external consumers.
+export type GroupMeta = ReportMeta;
+
 /*
-Grouped dump
+Report dump
 */
-export interface IGroupedActionDump {
+export interface IReportActionDump {
   sdkVersion: string;
   groupName: string;
   groupDescription?: string;
@@ -725,6 +596,9 @@ export interface IGroupedActionDump {
   executions: IExecutionDump[];
   deviceType?: string;
 }
+
+// Backward-compatible aliases for existing external consumers.
+export type IGroupedActionDump = IReportActionDump;
 
 export interface ModelBrief {
   /**
@@ -741,226 +615,6 @@ export interface ModelBrief {
    * Optional human-readable model description, for example "qwen2.5-vl mode".
    */
   modelDescription?: string;
-}
-
-/**
- * GroupedActionDump class for serializing and deserializing grouped action dumps
- */
-export class GroupedActionDump implements IGroupedActionDump {
-  sdkVersion: string;
-  groupName: string;
-  groupDescription?: string;
-  modelBriefs: ModelBrief[];
-  executions: ExecutionDump[];
-  deviceType?: string;
-
-  constructor(data: IGroupedActionDump) {
-    this.sdkVersion = data.sdkVersion;
-    this.groupName = data.groupName;
-    this.groupDescription = data.groupDescription;
-    this.modelBriefs = data.modelBriefs;
-    this.executions = data.executions.map((exec) =>
-      exec instanceof ExecutionDump ? exec : ExecutionDump.fromJSON(exec),
-    );
-    this.deviceType = data.deviceType;
-  }
-
-  /**
-   * Serialize the GroupedActionDump to a JSON string
-   * Uses compact { $screenshot: id } format
-   */
-  serialize(indents?: number): string {
-    return JSON.stringify(this.toJSON(), replacerForDumpSerialization, indents);
-  }
-
-  /**
-   * Serialize the GroupedActionDump with inline screenshots to a JSON string.
-   * Each ScreenshotItem is replaced with { base64: "...", capturedAt }.
-   */
-  serializeWithInlineScreenshots(indents?: number): string {
-    const processValue = (obj: unknown): unknown => {
-      if (obj instanceof ScreenshotItem) {
-        return { base64: obj.base64, capturedAt: obj.capturedAt };
-      }
-      if (Array.isArray(obj)) {
-        return obj.map(processValue);
-      }
-      if (obj && typeof obj === 'object') {
-        const entries = Object.entries(obj).map(([key, value]) => [
-          key,
-          processValue(value),
-        ]);
-        return Object.fromEntries(entries);
-      }
-      return obj;
-    };
-
-    const data = processValue(this.toJSON());
-    return JSON.stringify(data, null, indents);
-  }
-
-  /**
-   * Convert to a plain object for JSON serialization
-   */
-  toJSON(): IGroupedActionDump {
-    return {
-      sdkVersion: this.sdkVersion,
-      groupName: this.groupName,
-      groupDescription: this.groupDescription,
-      modelBriefs: this.modelBriefs,
-      executions: this.executions.map((exec) => exec.toJSON()),
-      deviceType: this.deviceType,
-    };
-  }
-
-  /**
-   * Create a GroupedActionDump instance from a serialized JSON string
-   */
-  static fromSerializedString(serialized: string): GroupedActionDump {
-    const parsed = JSON.parse(
-      serialized,
-      reviverForDumpDeserialization,
-    ) as IGroupedActionDump;
-    return new GroupedActionDump(parsed);
-  }
-
-  /**
-   * Create a GroupedActionDump instance from a plain object
-   */
-  static fromJSON(data: IGroupedActionDump): GroupedActionDump {
-    return new GroupedActionDump(data);
-  }
-
-  /**
-   * Collect all ScreenshotItem instances from all executions.
-   *
-   * @returns Array of all ScreenshotItem instances across all executions
-   */
-  collectAllScreenshots(): ScreenshotItem[] {
-    const screenshots: ScreenshotItem[] = [];
-    for (const execution of this.executions) {
-      screenshots.push(...execution.collectScreenshots());
-    }
-    return screenshots;
-  }
-
-  /**
-   * Serialize the dump to files with screenshots as separate PNG files.
-   * Creates:
-   * - {basePath} - dump JSON with { $screenshot: id } references
-   * - {basePath}.screenshots/ - PNG files
-   * - {basePath}.screenshots.json - ID to path mapping
-   *
-   * @param basePath - Base path for the dump file
-   */
-  serializeToFiles(basePath: string): void {
-    const screenshotsDir = `${basePath}.screenshots`;
-    if (!existsSync(screenshotsDir)) {
-      mkdirSync(screenshotsDir, { recursive: true });
-    }
-
-    // Write screenshots to separate files
-    const screenshotMap: Record<string, string> = {};
-    const screenshots = this.collectAllScreenshots();
-
-    for (const screenshot of screenshots) {
-      if (screenshot.hasBase64()) {
-        const imagePath = join(
-          screenshotsDir,
-          `${screenshot.id}.${screenshot.extension}`,
-        );
-        const rawBase64 = screenshot.rawBase64;
-        writeFileSync(imagePath, Buffer.from(rawBase64, 'base64'));
-        screenshotMap[screenshot.id] = imagePath;
-      }
-    }
-
-    // Write screenshot map file
-    writeFileSync(
-      `${basePath}.screenshots.json`,
-      JSON.stringify(screenshotMap),
-      'utf-8',
-    );
-
-    // Write dump JSON with references
-    writeFileSync(basePath, this.serialize(), 'utf-8');
-  }
-
-  /**
-   * Read dump from files and return JSON string with inline screenshots.
-   * Reads the dump JSON and screenshot files, then inlines the base64 data.
-   *
-   * @param basePath - Base path for the dump file
-   * @returns JSON string with inline screenshots ({ base64: "..." } format)
-   */
-  static fromFilesAsInlineJson(basePath: string): string {
-    const dumpString = readFileSync(basePath, 'utf-8');
-    const screenshotsMapPath = `${basePath}.screenshots.json`;
-
-    if (!existsSync(screenshotsMapPath)) {
-      return dumpString;
-    }
-
-    // Read screenshot map and build imageMap from files
-    const screenshotMap: Record<string, string> = JSON.parse(
-      readFileSync(screenshotsMapPath, 'utf-8'),
-    );
-
-    const imageMap: Record<string, string> = {};
-    for (const [id, filePath] of Object.entries(screenshotMap)) {
-      if (existsSync(filePath)) {
-        const data = readFileSync(filePath);
-        const mime =
-          filePath.endsWith('.jpeg') || filePath.endsWith('.jpg')
-            ? 'jpeg'
-            : 'png';
-        imageMap[id] = `data:image/${mime};base64,${data.toString('base64')}`;
-      }
-    }
-
-    // Restore image references
-    const dumpData = JSON.parse(dumpString);
-    const processedData = restoreImageReferences(
-      dumpData,
-      (id) => imageMap[id] ?? '',
-    );
-    return JSON.stringify(processedData);
-  }
-
-  /**
-   * Clean up all files associated with a serialized dump.
-   *
-   * @param basePath - Base path for the dump file
-   */
-  static cleanupFiles(basePath: string): void {
-    const filesToClean = [
-      basePath,
-      `${basePath}.screenshots.json`,
-      `${basePath}.screenshots`,
-    ];
-
-    for (const filePath of filesToClean) {
-      try {
-        rmSync(filePath, { force: true, recursive: true });
-      } catch {
-        // Ignore errors - file may already be deleted
-      }
-    }
-  }
-
-  /**
-   * Get all file paths associated with a serialized dump.
-   *
-   * @param basePath - Base path for the dump file
-   * @returns Array of all associated file paths
-   */
-  static getFilePaths(basePath: string): string[] {
-    return [
-      basePath,
-      `${basePath}.screenshots.json`,
-      `${basePath}.screenshots`,
-    ];
-  }
 }
 
 export type InterfaceType =
@@ -1012,6 +666,7 @@ export interface DeviceAction<TParam = any, TReturn = any> {
   interfaceAlias?: string;
   paramSchema?: z.ZodType<TParam>;
   call: (param: TParam, context: ExecutorContext) => Promise<TReturn> | TReturn;
+  delayBeforeRunner?: number;
   delayAfterRunner?: number;
   /**
    * An example param object for this action.
@@ -1062,6 +717,7 @@ export type Cache =
   | CacheConfig; // Object configuration (requires explicit id)
 
 export interface AgentOpt {
+  // @deprecated Use `reportFileName` and `cache.id` instead.
   testId?: string;
   // @deprecated
   cacheId?: string; // Keep backward compatibility, but marked as deprecated
@@ -1069,6 +725,8 @@ export interface AgentOpt {
   groupDescription?: string;
   /* if auto generate report, default true */
   generateReport?: boolean;
+  /* if persist per-execution dump files next to the report, default false */
+  persistExecutionDump?: boolean;
   /* if auto print report msg, default true */
   autoPrintReportMsg?: boolean;
 
@@ -1093,6 +751,7 @@ export interface AgentOpt {
   aiActionContext?: string;
   /* custom report file name */
   reportFileName?: string;
+  reportAttributes?: ReportAttributes;
   modelConfig?: TModelConfig;
   cache?: Cache;
   /**
@@ -1110,11 +769,12 @@ export interface AgentOpt {
   waitAfterAction?: number;
 
   /**
-   * When set to true, Midscene will use the target device's time (Android/iOS)
-   * instead of the system time. Useful when the device time differs from the
-   * host machine. Default: false
+   * When set to true, Midscene will use the target device's formatted local
+   * time instead of the runtime system time. The target interface must implement
+   * getDeviceLocalTimeString to provide device-local wall-clock time.
+   * Default: false
    */
-  useDeviceTimestamp?: boolean;
+  useDeviceTime?: boolean;
 
   /**
    * Custom screenshot shrink factor to reduce AI token usage.
@@ -1172,13 +832,20 @@ export type TestStatus =
   | 'skipped'
   | 'interrupted';
 
-export interface ReportFileWithAttributes {
-  reportFilePath: string;
-  reportAttributes: {
-    testDuration: number;
-    testStatus: TestStatus;
-    testTitle: string;
-    testId: string;
-    testDescription: string;
-  };
+export interface ReportFileAttributes {
+  testDuration: number;
+  testStatus: TestStatus;
+  testTitle: string;
+  testId: string;
+  testDescription: string;
 }
+
+export type ReportFileWithAttributes =
+  | {
+      reportFilePath: string;
+      reportAttributes: ReportFileAttributes;
+    }
+  | {
+      reportFilePath?: string;
+      reportAttributes: ReportFileAttributes & { testStatus: 'skipped' };
+    };

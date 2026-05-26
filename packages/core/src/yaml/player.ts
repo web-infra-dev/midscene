@@ -27,12 +27,19 @@ interface MidsceneYamlFlowItemAIScroll extends LocateOption, ScrollParam {
   aiScroll: TUserPrompt | undefined; // which area to scroll
 }
 
+type RuntimeYamlFlowItem =
+  | MidsceneYamlFlowItem
+  | MidsceneYamlFlowItemAIInput
+  | MidsceneYamlFlowItemAIKeyboardPress
+  | MidsceneYamlFlowItemAIScroll;
+
 import type { Agent } from '@/agent/agent';
 import type { TUserPrompt } from '@/common';
 import type {
   DeviceAction,
   FreeFn,
   LocateOption,
+  MidsceneYamlFlowItem,
   MidsceneYamlFlowItemAIAction,
   MidsceneYamlFlowItemAIAssert,
   MidsceneYamlFlowItemAIWaitFor,
@@ -53,6 +60,29 @@ import {
 } from './utils';
 
 const debug = getDebug('yaml-player');
+
+const VARIABLE_FULL_MATCH_RE = /^\$([a-zA-Z_][a-zA-Z0-9_]*)$/;
+const VARIABLE_EMBEDDED_RE = /\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g;
+
+function deepTransform(
+  value: unknown,
+  transform: (val: unknown) => unknown,
+): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => deepTransform(item, transform));
+  }
+
+  if (value !== null && typeof value === 'object') {
+    const result: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(value)) {
+      result[key] = deepTransform(val, transform);
+    }
+    return result;
+  }
+
+  return transform(value);
+}
+
 const aiTaskHandlerMap = {
   aiQuery: 'aiQuery',
   aiNumber: 'aiNumber',
@@ -100,12 +130,16 @@ const isStringParamSchema = (schema?: ZodTypeAny): boolean => {
   }
 };
 
-const buildLaunchOrAdbShellParam = (
+const buildShortcutActionParam = (
   actionName: string,
   interfaceAlias: string | undefined,
   value: string,
 ) => {
   if (actionName === 'Launch' || interfaceAlias === 'launch') {
+    return { uri: value };
+  }
+
+  if (actionName === 'Terminate' || interfaceAlias === 'terminate') {
     return { uri: value };
   }
 
@@ -273,6 +307,33 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     }
   }
 
+  private resolveVariables(value: unknown): unknown {
+    return deepTransform(value, (val) => {
+      if (typeof val !== 'string') {
+        return val;
+      }
+
+      const fullMatch = val.match(VARIABLE_FULL_MATCH_RE);
+      if (fullMatch) {
+        const varName = fullMatch[1];
+        if (!(varName in this.result)) {
+          throw new Error(`Variable "${varName}" is not defined`);
+        }
+        return this.result[varName];
+      }
+
+      return val.replace(VARIABLE_EMBEDDED_RE, (_, varName) => {
+        if (!(varName in this.result)) {
+          throw new Error(`Variable "${varName}" is not defined`);
+        }
+        const replacement = this.result[varName];
+        return typeof replacement === 'string'
+          ? replacement
+          : JSON.stringify(replacement);
+      });
+    });
+  }
+
   async playTask(taskStatus: ScriptPlayerTaskStatus, agent: Agent) {
     const { flow } = taskStatus;
     assert(flow, 'missing flow in task');
@@ -280,10 +341,13 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     for (const flowItemIndex in flow) {
       const currentStep = Number.parseInt(flowItemIndex, 10);
       taskStatus.currentStep = currentStep;
-      const flowItem = flow[flowItemIndex];
+      const flowItem = this.resolveVariables(
+        flow[flowItemIndex],
+      ) as RuntimeYamlFlowItem;
+      const flowItemRecord = flowItem as Record<string, unknown>;
 
       // Skip Finalize action from cache - it's a planning-only marker
-      if ('Finalize' in flowItem) {
+      if ('Finalize' in flowItemRecord) {
         continue;
       }
 
@@ -292,7 +356,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       );
       const simpleAIKey = (
         Object.keys(aiTaskHandlerMap) as AISimpleTaskKey[]
-      ).find((key) => Object.prototype.hasOwnProperty.call(flowItem, key));
+      ).find((key) =>
+        Object.prototype.hasOwnProperty.call(flowItemRecord, key),
+      );
       if (
         'aiAct' in (flowItem as MidsceneYamlFlowItemAIAction) ||
         'aiAction' in (flowItem as MidsceneYamlFlowItemAIAction) ||
@@ -351,8 +417,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           ...(timeout !== undefined ? { timeout, timeoutMs: timeout } : {}),
         };
         await agent.aiWaitFor(prompt, waitForOptions);
-      } else if ('sleep' in (flowItem as MidsceneYamlFlowItemSleep)) {
-        const sleepTask = flowItem as MidsceneYamlFlowItemSleep;
+      } else if ('sleep' in flowItem) {
+        const sleepTask = flowItem as unknown as MidsceneYamlFlowItemSleep;
         const ms = sleepTask.sleep;
         let msNumber = ms;
         if (typeof ms === 'string') {
@@ -363,11 +429,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           `ms for sleep must be greater than 0, but got ${ms}`,
         );
         await new Promise((resolve) => setTimeout(resolve, msNumber));
-      } else if (
-        'javascript' in (flowItem as MidsceneYamlFlowItemEvaluateJavaScript)
-      ) {
+      } else if ('javascript' in flowItem) {
         const evaluateJavaScriptTask =
-          flowItem as MidsceneYamlFlowItemEvaluateJavaScript;
+          flowItem as unknown as MidsceneYamlFlowItemEvaluateJavaScript;
 
         const result = await agent.evaluateJavaScript(
           evaluateJavaScriptTask.javascript,
@@ -382,13 +446,13 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           recordTask.recordToReport ?? recordTask.logScreenshot ?? 'untitled';
         const content = recordTask.content || '';
         await agent.recordToReport(title, { content });
-      } else if ('aiInput' in (flowItem as MidsceneYamlFlowItemAIInput)) {
+      } else if ('aiInput' in flowItem) {
         // may be input empty string ''
         const {
           aiInput,
           value: rawValue,
           ...inputTask
-        } = flowItem as MidsceneYamlFlowItemAIInput;
+        } = flowItem as unknown as MidsceneYamlFlowItemAIInput;
 
         // Compatibility with previous version:
         // Old format: { aiInput: string (value), locate: TUserPrompt }
@@ -415,11 +479,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
             ? { locate: buildDetailedLocateParam(locatePrompt, inputTask) }
             : {}),
         });
-      } else if (
-        'aiKeyboardPress' in (flowItem as MidsceneYamlFlowItemAIKeyboardPress)
-      ) {
+      } else if ('aiKeyboardPress' in flowItem) {
         const { aiKeyboardPress, ...keyboardPressTask } =
-          flowItem as MidsceneYamlFlowItemAIKeyboardPress;
+          flowItem as unknown as MidsceneYamlFlowItemAIKeyboardPress;
 
         // Compatibility with previous version:
         // Old format: { aiKeyboardPress: string (key), locate?: TUserPrompt }
@@ -451,16 +513,17 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
               }
             : {}),
         });
-      } else if ('aiScroll' in (flowItem as MidsceneYamlFlowItemAIScroll)) {
+      } else if ('aiScroll' in flowItem) {
         const { aiScroll, ...scrollTask } =
-          flowItem as MidsceneYamlFlowItemAIScroll;
+          flowItem as unknown as MidsceneYamlFlowItemAIScroll;
 
         // Compatibility with previous version:
         // Old format: { aiScroll: null, locate?: TUserPrompt, direction, scrollType, distance? }
         // New format - 1: { aiScroll: TUserPrompt, direction, scrollType, distance? }
         // New format - 2: { aiScroll: undefined, locate: TUserPrompt, direction, scrollType, distance? }
         const { locate, ...scrollOptions } = scrollTask as any;
-        const locatePrompt: TUserPrompt | undefined = locate ?? aiScroll;
+        const locatePrompt: TUserPrompt | undefined =
+          locate ?? aiScroll ?? undefined;
 
         await agent.aiScroll(locatePrompt, scrollOptions);
       } else if ('aiTap' in flowItem) {
@@ -553,49 +616,38 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           matchedAction.paramSchema,
         );
         let stringParamToCall: string | undefined;
+        const resultName = (flowItem as any).name;
+        const timeout = (flowItem as any).timeout;
+        const hasRunAdbShellAlias = Object.prototype.hasOwnProperty.call(
+          flowItem,
+          'runAdbShell',
+        );
+
+        if (
+          hasRunAdbShellAlias &&
+          typeof actionParamForMatchedAction === 'string' &&
+          typeof timeout === 'number' &&
+          typeof (agent as any).runAdbShell === 'function'
+        ) {
+          const result = await (agent as any).runAdbShell(
+            actionParamForMatchedAction,
+            { timeout },
+          );
+          if (result !== undefined) {
+            this.setResult(resultName, result);
+          }
+          continue;
+        }
+
         const specialActionParamToCall =
           typeof actionParamForMatchedAction === 'string'
-            ? buildLaunchOrAdbShellParam(
+            ? buildShortcutActionParam(
                 matchedAction.name,
                 matchedAction.interfaceAlias,
                 actionParamForMatchedAction,
               )
             : undefined;
-        if (
-          typeof actionParamForMatchedAction === 'string' &&
-          (matchedAction.name === 'Launch' ||
-            matchedAction.interfaceAlias === 'launch') &&
-          typeof (agent as any).launch === 'function'
-        ) {
-          // Call agent.launch directly for Launch action with string param
-          debug(`Calling agent.launch with: ${actionParamForMatchedAction}`);
-          const result = await (agent as any).launch(
-            actionParamForMatchedAction,
-          );
-
-          const resultName = (flowItem as any).name;
-          if (result !== undefined) {
-            this.setResult(resultName, result);
-          }
-        } else if (
-          typeof actionParamForMatchedAction === 'string' &&
-          (matchedAction.name === 'RunAdbShell' ||
-            matchedAction.interfaceAlias === 'runAdbShell') &&
-          typeof (agent as any).runAdbShell === 'function'
-        ) {
-          // Call agent.runAdbShell directly for RunAdbShell action with string param
-          debug(
-            `Calling agent.runAdbShell with: ${actionParamForMatchedAction}`,
-          );
-          const result = await (agent as any).runAdbShell(
-            actionParamForMatchedAction,
-          );
-
-          const resultName = (flowItem as any).name;
-          if (result !== undefined) {
-            this.setResult(resultName, result);
-          }
-        } else if (specialActionParamToCall) {
+        if (specialActionParamToCall) {
           debug(
             `matchedAction: ${matchedAction.name}`,
             `flowParams: ${JSON.stringify(specialActionParamToCall)}`,
@@ -605,7 +657,6 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
             specialActionParamToCall,
           );
 
-          const resultName = (flowItem as any).name;
           if (result !== undefined) {
             this.setResult(resultName, result);
           }

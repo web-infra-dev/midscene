@@ -170,6 +170,26 @@ midscene /path/to/yaml --headed
 midscene /path/to/yaml --keep-window
 ```
 
+### Use CDP connection mode
+
+> `web` scenarios only
+
+CDP mode lets YAML scripts connect to an existing browser instance via Chrome DevTools Protocol, without launching a new browser. This is useful for reusing an existing browser session, connecting to remote browsers, or cloud browser services.
+
+Set `cdpEndpoint` in the `web` section:
+
+```diff
+web:
+  url: https://www.bing.com
++ cdpEndpoint: ws://localhost:9222/devtools/browser
+```
+
+:::tip
+
+CDP mode and bridge mode are mutually exclusive. In CDP mode, Midscene will only disconnect from the browser, not close it.
+
+:::
+
 ### Use bridge mode
 
 > `web` scenarios only
@@ -217,10 +237,10 @@ Use `--files` to specify execution order:
 midscene --files ./login.yaml ./buy/*.yaml ./checkout.yaml
 ```
 
-Run all scripts with a concurrency of 4 and continue when errors occur:
+Run multiple independent search scripts with a concurrency of 4 and continue when errors occur:
 
 ```bash
-midscene --files './scripts/**/*.yaml' --concurrent 4 --continue-on-error
+midscene --files './scripts/search-*.yaml' --concurrent 4 --continue-on-error
 ```
 
 ### Write command-line arguments in a file
@@ -229,13 +249,13 @@ You can place arguments in a YAML config file and reference it with `--config`. 
 
 ```yaml
 files:
-  - './scripts/login.yaml'
-  - './scripts/search.yaml'
-  - './scripts/**/*.yaml'
+  - './scripts/search-iphone.yaml'
+  - './scripts/search-laptop.yaml'
+  - './scripts/search-headphones.yaml'
+  - './scripts/search-camera.yaml'
 
 concurrent: 4
 continueOnError: true
-shareBrowserContext: true
 ```
 
 Run with:

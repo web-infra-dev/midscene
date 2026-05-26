@@ -1,4 +1,5 @@
 import { TaskExecutor } from '@/agent/tasks';
+import * as aiModel from '@/ai-model';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { ServiceDump } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -69,6 +70,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
+        slot: 'default',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -113,6 +115,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
+        slot: 'default',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -153,6 +156,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
+        slot: 'default',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -173,6 +177,18 @@ describe('TaskExecutor - Null Data Handling', () => {
           uiContext: await createEmptyUIContext(),
         } as any),
       ).rejects.toThrow('Assertion failed: Could not verify assertion');
+
+      expect(mockInsight.extract).toHaveBeenCalledWith(
+        {
+          StatementIsTruthy:
+            'Boolean, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, whether the following statement is true: Page title is correct',
+        },
+        mockModelConfig,
+        {},
+        '',
+        undefined,
+        expect.anything(),
+      );
     });
 
     it('should handle valid data for WaitFor operation', async () => {
@@ -197,6 +213,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
+        slot: 'default',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -215,8 +232,209 @@ describe('TaskExecutor - Null Data Handling', () => {
         uiContext: await createEmptyUIContext(),
       } as any);
 
+      expect(mockInsight.extract).toHaveBeenCalledWith(
+        {
+          StatementIsTruthy:
+            "Boolean, the user wants to do some 'wait for' operation. based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, please check whether the following statement is true: Element is visible",
+        },
+        mockModelConfig,
+        {},
+        '',
+        undefined,
+        expect.anything(),
+      );
       expect(result.output).toBe(true);
       expect(result.thought).toBe('Condition is met');
+    });
+
+    it('should preserve insight intent while recording resolved config slot', async () => {
+      const dump = {
+        ...createMockDump({ Boolean: true }, 'Condition is met'),
+        taskInfo: {
+          durationMs: 100,
+          rawResponse: '{"Boolean":true}',
+          usage: {
+            prompt_tokens: 12,
+            completion_tokens: 3,
+            total_tokens: 15,
+            model_name: 'mock-model',
+            slot: 'default',
+          },
+        },
+      } as ServiceDump;
+
+      const mockInsight = {
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
+        extract: vi.fn(async () => ({
+          data: {
+            Boolean: true,
+          },
+          usage: dump.taskInfo?.usage,
+          thought: 'Condition is met',
+          dump,
+        })),
+        onceDumpUpdatedFn: undefined,
+      } as any;
+
+      const mockModelConfig: IModelConfig = {
+        modelName: 'mock-model',
+        modelDescription: 'mock-model-description',
+        intent: 'default',
+        slot: 'default',
+      };
+
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
+
+      const queryTask = await (taskExecutor as any).createTypeQueryTask(
+        'Boolean',
+        'Element is visible',
+        mockModelConfig,
+        {},
+      );
+
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: await createEmptyUIContext(),
+      } as any);
+
+      expect(result.output).toBe(true);
+      expect(queryTask.usage).toMatchObject({
+        intent: 'insight',
+        slot: 'default',
+      });
+      expect(queryTask.log?.dump?.taskInfo?.usage).toMatchObject({
+        slot: 'default',
+      });
+      expect(queryTask.log?.dump?.taskInfo?.usage?.intent).toBeUndefined();
+    });
+
+    it('should preserve planning intent while recording resolved config slot', async () => {
+      const planSpy = vi.spyOn(aiModel, 'plan').mockResolvedValue({
+        actions: [],
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 5,
+          total_tokens: 25,
+          model_name: 'mock-plan-model',
+          slot: 'default',
+        },
+        rawResponse: '{"actions":[]}',
+        shouldContinuePlanning: false,
+        output: 'done',
+      } as any);
+
+      const mockService = {
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
+        onceDumpUpdatedFn: undefined,
+      } as any;
+
+      const planningModelConfig: IModelConfig = {
+        modelName: 'mock-plan-model',
+        modelDescription: 'mock-plan-model-description',
+        intent: 'default',
+        slot: 'default',
+      };
+
+      const defaultModelConfig: IModelConfig = {
+        modelName: 'mock-default-model',
+        modelDescription: 'mock-default-model-description',
+        intent: 'default',
+        slot: 'default',
+      };
+
+      const taskExecutor = new TaskExecutor(
+        { interfaceType: 'web' } as any,
+        mockService,
+        {
+          actionSpace: [],
+          replanningCycleLimit: 1,
+        },
+      );
+
+      const result = await taskExecutor.action(
+        'complete the task',
+        planningModelConfig,
+        defaultModelConfig,
+        false,
+      );
+
+      const planningTask = result.runner.tasks[0];
+      expect(planningTask.type).toBe('Planning');
+      expect(planningTask.usage).toMatchObject({
+        intent: 'planning',
+        slot: 'default',
+      });
+
+      planSpy.mockRestore();
+    });
+
+    it('should preserve existing intent and warn instead of overwriting it', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const dump = {
+        ...createMockDump({ Boolean: true }, 'Condition is met'),
+        taskInfo: {
+          durationMs: 100,
+          rawResponse: '{"Boolean":true}',
+          usage: {
+            prompt_tokens: 12,
+            completion_tokens: 3,
+            total_tokens: 15,
+            model_name: 'mock-model',
+            intent: 'preexisting',
+            slot: 'default',
+          },
+        },
+      } as ServiceDump;
+
+      const mockInsight = {
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
+        extract: vi.fn(async () => ({
+          data: {
+            Boolean: true,
+          },
+          usage: dump.taskInfo?.usage,
+          thought: 'Condition is met',
+          dump,
+        })),
+        onceDumpUpdatedFn: undefined,
+      } as any;
+
+      const mockModelConfig: IModelConfig = {
+        modelName: 'mock-model',
+        modelDescription: 'mock-model-description',
+        intent: 'default',
+        slot: 'default',
+      };
+
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
+
+      const queryTask = await (taskExecutor as any).createTypeQueryTask(
+        'Boolean',
+        'Element is visible',
+        mockModelConfig,
+        {},
+      );
+
+      await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: await createEmptyUIContext(),
+      } as any);
+
+      expect(queryTask.usage).toMatchObject({
+        intent: 'preexisting',
+        slot: 'default',
+      });
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[Midscene]',
+        'intent is already set to "preexisting", skipping overwrite to "insight"',
+      );
+
+      warnSpy.mockRestore();
     });
 
     it('should handle string data for WaitFor operation', async () => {
@@ -237,6 +455,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
+        slot: 'default',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -275,6 +494,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
+        slot: 'default',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -315,6 +535,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
+        slot: 'default',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -358,6 +579,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
+        slot: 'default',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -378,7 +600,8 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       expect(mockInsight.extract).toHaveBeenCalledWith(
         {
-          Number: 'Number, Extract the price',
+          Number:
+            'Number, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, Extract the price',
         },
         mockModelConfig,
         {},
@@ -389,6 +612,49 @@ describe('TaskExecutor - Null Data Handling', () => {
       expect(result.output).toBe(42);
       expect(result.thought).toBe('Extracted the numeric value successfully');
     });
+
+    it('should preserve domIncluded on Insight task params for report rendering', async () => {
+      const mockInsight = {
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
+        extract: vi.fn(async () => ({
+          data: {
+            Number: 42,
+          },
+          usage: { totalTokens: 100 },
+          thought: 'Extracted the numeric value successfully',
+          dump: createMockDump(
+            { Number: 42 },
+            'Extracted the numeric value successfully',
+            { totalTokens: 100 },
+          ),
+        })),
+        onceDumpUpdatedFn: undefined,
+      } as any;
+
+      const mockModelConfig: IModelConfig = {
+        modelName: 'mock-model',
+        modelDescription: 'mock-model-description',
+        intent: 'default',
+        slot: 'default',
+      };
+
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
+
+      const queryTask = await (taskExecutor as any).createTypeQueryTask(
+        'Number',
+        'Extract the price',
+        mockModelConfig,
+        { domIncluded: true },
+      );
+
+      expect(queryTask.param).toEqual({
+        domIncluded: true,
+        dataDemand: 'Extract the price',
+      });
+    });
+
     it('should handle null data for Number type query', async () => {
       const mockInsight = {
         contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
@@ -407,6 +673,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
+        slot: 'default',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -425,7 +692,72 @@ describe('TaskExecutor - Null Data Handling', () => {
         uiContext: await createEmptyUIContext(),
       } as any);
 
+      expect(mockInsight.extract).toHaveBeenCalledWith(
+        {
+          Number:
+            'Number, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, Extract the price',
+        },
+        mockModelConfig,
+        {},
+        '',
+        undefined,
+        expect.anything(),
+      );
       expect(result.output).toBeNull();
+    });
+
+    it('should prepend current screenshot guidance for Boolean type query', async () => {
+      const mockInsight = {
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
+        extract: vi.fn(async () => ({
+          data: {
+            Boolean: true,
+          },
+          usage: { totalTokens: 100 },
+          thought: 'The condition is satisfied in the current screenshot',
+          dump: createMockDump(
+            { Boolean: true },
+            'The condition is satisfied in the current screenshot',
+            { totalTokens: 100 },
+          ),
+        })),
+        onceDumpUpdatedFn: undefined,
+      } as any;
+
+      const mockModelConfig: IModelConfig = {
+        modelName: 'mock-model',
+        modelDescription: 'mock-model-description',
+        intent: 'default',
+      };
+
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
+
+      const queryTask = await (taskExecutor as any).createTypeQueryTask(
+        'Boolean',
+        'there is a like button',
+        mockModelConfig,
+        {},
+      );
+
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: await createEmptyUIContext(),
+      } as any);
+
+      expect(mockInsight.extract).toHaveBeenCalledWith(
+        {
+          Boolean:
+            'Boolean, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, there is a like button',
+        },
+        mockModelConfig,
+        {},
+        '',
+        undefined,
+        expect.anything(),
+      );
+      expect(result.output).toBe(true);
     });
   });
 });

@@ -61,7 +61,11 @@ export const iconForStatus = (status: string) => {
       return <ClockCircleOutlined />;
     case 'cancelled':
     case 'skipped':
-      return <LogoutOutlined />;
+      return (
+        <span style={{ color: '#8c8c8c' }}>
+          <LogoutOutlined />
+        </span>
+      );
     case 'running':
       return <ArrowRightOutlined />;
     default:

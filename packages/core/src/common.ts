@@ -235,8 +235,9 @@ export function adaptBbox(
     result = adaptGpt5Bbox(normalizedBbox);
   } else {
     // Default: normalized 0-1000 coordinate system
-    // Includes: qwen3-vl, qwen3.5, glm-v, auto-glm, auto-glm-multilingual, and future models
-    result = normalized01000(normalizedBbox as number[], width, height);
+    // Includes: qwen3-vl, qwen3.5, qwen3.6, glm-v, auto-glm, auto-glm-multilingual,
+    // and future models.
+    result = normalized01000(normalizedBbox, width, height, modelFamily);
   }
 
   return result;
@@ -244,15 +245,39 @@ export function adaptBbox(
 
 // x1, y1, x2, y2 -> 0-1000
 export function normalized01000(
-  bbox: number[],
+  bbox: number[] | string[] | string,
   width: number,
   height: number,
+  modelFamily?: TModelFamily | undefined,
 ): [number, number, number, number] {
+  if (modelFamily !== undefined) {
+    if (!Array.isArray(bbox)) {
+      throw new Error(
+        `Model family "${modelFamily}" returned a non-array bbox for the normalized [0, 1000] format: ${JSON.stringify(bbox)} (shotSize=${width}x${height}). Expected an array of 4 numbers.`,
+      );
+    }
+
+    for (const value of bbox) {
+      if (
+        typeof value !== 'number' ||
+        !Number.isFinite(value) ||
+        value < 0 ||
+        value > 1000
+      ) {
+        throw new Error(
+          `Model family "${modelFamily}" returned a bbox outside the expected [0, 1000] normalized range: ${JSON.stringify(bbox)} (shotSize=${width}x${height}). This usually means the model emitted pixel-style coordinates instead of normalized values. Consider switching MIDSCENE_MODEL_FAMILY to a more reliable visual grounding family (e.g. "qwen3-vl"), or revisit the bbox prompt for this model.`,
+        );
+      }
+    }
+  }
+
+  const normalizedBbox = bbox as number[];
+
   return [
-    Math.round((bbox[0] * width) / 1000),
-    Math.round((bbox[1] * height) / 1000),
-    Math.round((bbox[2] * width) / 1000),
-    Math.round((bbox[3] * height) / 1000),
+    Math.round((normalizedBbox[0] * width) / 1000),
+    Math.round((normalizedBbox[1] * height) / 1000),
+    Math.round((normalizedBbox[2] * width) / 1000),
+    Math.round((normalizedBbox[3] * height) / 1000),
   ];
 }
 
@@ -456,10 +481,30 @@ export function buildYamlFlowFromPlans(
       ? dumpActionParam(plan.param || {}, action.paramSchema)
       : {};
 
-    const flowItem: MidsceneYamlFlowItem = {
-      [flowKey]: '',
-      ...flowParam,
-    };
+    // For actions whose param is a single string field (e.g. Launch/Terminate's
+    // `uri`, RunAdbShell's `command`), inline the value on the flowKey. Writing
+    // `{ terminate: '', uri: '...' }` makes the YAML player treat the empty
+    // string as the param and drop the sibling `uri`, so cache replay would
+    // call the action with an empty argument.
+    const shortcutField =
+      action.name === 'Launch' || action.interfaceAlias === 'launch'
+        ? 'uri'
+        : action.name === 'Terminate' || action.interfaceAlias === 'terminate'
+          ? 'uri'
+          : action.name === 'RunAdbShell' ||
+              action.interfaceAlias === 'runAdbShell'
+            ? 'command'
+            : undefined;
+    const shortcutKeys = shortcutField ? Object.keys(flowParam) : [];
+    const canInlineShortcut =
+      shortcutField &&
+      shortcutKeys.length === 1 &&
+      shortcutKeys[0] === shortcutField &&
+      typeof flowParam[shortcutField] === 'string';
+
+    const flowItem: MidsceneYamlFlowItem = canInlineShortcut
+      ? { [flowKey]: flowParam[shortcutField as string] }
+      : { [flowKey]: '', ...flowParam };
 
     flow.push(flowItem);
   }
@@ -561,6 +606,17 @@ export const ifMidsceneLocatorField = (field: any): boolean => {
   return false;
 };
 
+const formatPromptWithImages = (
+  promptObj: Exclude<TUserPrompt, string>,
+): string => {
+  let promptString = promptObj.prompt;
+  if (Array.isArray(promptObj.images) && promptObj.images.length > 0) {
+    const imageCount = promptObj.images.length;
+    promptString += ` (with ${imageCount} image${imageCount > 1 ? 's' : ''})`;
+  }
+  return promptString;
+};
+
 export const dumpMidsceneLocatorField = (field: any): string => {
   assert(
     ifMidsceneLocatorField(field),
@@ -580,7 +636,7 @@ export const dumpMidsceneLocatorField = (field: any): string => {
     }
     // If prompt is a TUserPrompt object, extract the prompt string
     if (typeof field.prompt === 'object' && field.prompt.prompt) {
-      return field.prompt.prompt; // TODO: dump images if necessary
+      return formatPromptWithImages(field.prompt);
     }
   }
 
@@ -648,7 +704,7 @@ export const dumpActionParam = (
             fieldValue.prompt.prompt
           ) {
             // If prompt is a TUserPrompt object, extract the prompt string
-            result[fieldName] = fieldValue.prompt.prompt;
+            result[fieldName] = formatPromptWithImages(fieldValue.prompt);
           }
         }
       }

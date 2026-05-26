@@ -4,8 +4,8 @@ import { readFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { PhotonImage as PhotonImageType } from '@silvia-odwyer/photon-node';
-import type { Rect } from 'src/types';
 import { getDebug } from '../logger';
+import type { Rect } from '../types';
 import { ifInNode } from '../utils';
 import getPhoton from './get-photon';
 import getSharp from './get-sharp';
@@ -154,8 +154,10 @@ export async function resizeAndConvertImgBuffer(
   };
 }
 
+export const normalizeBase64Body = (body: string) => body.replace(/\s/g, '');
+
 export const createImgBase64ByFormat = (format: string, body: string) => {
-  return `data:image/${format};base64,${body}`;
+  return `data:image/${format};base64,${normalizeBase64Body(body)}`;
 };
 
 export async function resizeImgBase64(
@@ -397,7 +399,8 @@ export const preProcessImageUrl = async (
     );
   }
   if (url.startsWith('data:')) {
-    return url;
+    const { mimeType, body } = parseBase64(url);
+    return `data:${mimeType};base64,${body}`;
   } else if (url.startsWith('http://') || url.startsWith('https://')) {
     if (!convertHttpImage2Base64) {
       return url;
@@ -426,7 +429,9 @@ export const parseBase64 = (
     return {
       // 5 means 'data:'
       mimeType: fullBase64String.slice(5, index),
-      body: fullBase64String.slice(index + separator.length),
+      body: normalizeBase64Body(
+        fullBase64String.slice(index + separator.length),
+      ),
     };
   } catch (e) {
     throw new Error(

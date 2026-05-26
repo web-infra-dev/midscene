@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import { Buffer } from 'node:buffer';
 import type { Size } from '../types';
 import getPhoton from './get-photon';
 
@@ -15,9 +16,26 @@ export async function imageInfoOfBase64(
   imageBase64: string,
 ): Promise<ImageInfo> {
   const { PhotonImage } = await getPhoton();
-  const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+  const base64Data = imageBase64
+    .replace(/^data:image\/\w+;base64,/, '')
+    .replace(/\s/g, '');
+  assert(base64Data, 'Invalid image: empty base64 data');
+  assert(
+    /^[A-Za-z0-9+/]+={0,2}$/.test(base64Data) && base64Data.length % 4 !== 1,
+    'Invalid image: malformed base64 data',
+  );
+  const imageBuffer = Buffer.from(base64Data, 'base64');
+  assert(isValidImageBuffer(imageBuffer), 'Invalid image: unsupported format');
   // Support both sync (Photon) and async (Canvas fallback) versions
-  const result = PhotonImage.new_from_base64(base64Data);
+  let result: ReturnType<typeof PhotonImage.new_from_base64>;
+  try {
+    result = PhotonImage.new_from_base64(base64Data);
+  } catch (error) {
+    throw new Error(
+      `Invalid image: failed to decode base64 data (${error instanceof Error ? error.message : String(error)})`,
+      { cause: error },
+    );
+  }
   const image = result instanceof Promise ? await result : result;
   const width = image.get_width();
   const height = image.get_height();
@@ -72,4 +90,31 @@ export function isValidJPEGImageBuffer(buffer: Buffer): boolean {
  */
 export function isValidImageBuffer(buffer: Buffer): boolean {
   return isValidPNGImageBuffer(buffer) || isValidJPEGImageBuffer(buffer);
+}
+
+export interface ValidateScreenshotBufferOptions {
+  label: string;
+  minBufferSize?: number;
+}
+
+export function validateScreenshotBuffer(
+  screenshotBuffer: Buffer | undefined,
+  { label, minBufferSize = 0 }: ValidateScreenshotBufferOptions,
+): asserts screenshotBuffer is Buffer {
+  const bufferSize = screenshotBuffer?.length ?? 0;
+  if (!screenshotBuffer || bufferSize === 0) {
+    throw new Error(
+      `${label} validation failed: buffer size ${bufferSize} bytes`,
+    );
+  }
+
+  if (!isValidImageBuffer(screenshotBuffer)) {
+    throw new Error(`${label} buffer has invalid image format`);
+  }
+
+  if (minBufferSize > 0 && bufferSize < minBufferSize) {
+    throw new Error(
+      `${label} validation failed: buffer size ${bufferSize} bytes (minimum: ${minBufferSize})`,
+    );
+  }
 }

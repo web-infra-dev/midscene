@@ -6,13 +6,13 @@ import {
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
 import { getMidsceneLocationSchema } from '@/index';
-import { mockActionSpace } from 'tests/common';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import {
   extractDataQueryPrompt,
   systemPromptToExtract,
 } from '../../../src/ai-model/prompt/extraction';
+import { mockActionSpace } from '../../common';
 import { mockNonChinaTimeZone, restoreIntl } from '../mocks/intl-mock';
 
 // Mock getPreferredLanguage to ensure consistent test output
@@ -297,6 +297,54 @@ describe('system prompts', () => {
     expect(prompt).not.toContain('Submit the registration form');
   });
 
+  it('planning should include priority override guidance for input verification', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: undefined,
+      includeBbox: false,
+      includeSubGoals: false,
+    });
+
+    expect(prompt).toContain(
+      'CRITICAL PRIORITY OVERRIDE - Input verification after an input action:',
+    );
+    expect(prompt).toContain(
+      'This rule overrides the general requirement to verify the exact target text from the screenshot.',
+    );
+    expect(prompt).toContain(
+      'If the previous step already executed an input action, and the current input field is not empty, you MUST directly treat that input as successful.',
+    );
+    expect(prompt).toContain(
+      'The general rule "do EXACTLY what the user asked" still applies to the intended input value you execute, but it MUST NOT be enforced by re-validating the visible text in the screenshot after the input action.',
+    );
+  });
+
+  it('planning should include dropdown scrolling guidance', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: undefined,
+      includeBbox: false,
+      includeSubGoals: false,
+    });
+
+    expect(prompt).toContain('Scrollable option lists and dropdowns');
+    expect(prompt).toContain(
+      'When choosing an item from a scrollable select, dropdown, listbox, menu, or similar option list',
+    );
+    expect(prompt).toContain(
+      'Once the list is open, interact with the list itself, not the page',
+    );
+    expect(prompt).toContain(
+      'If the list is open but the target option is not visible, try to find it by scrolling the open list/dropdown',
+    );
+    expect(prompt).toContain(
+      'prefer small incremental Scroll actions with an explicit distance',
+    );
+    expect(prompt).toContain(
+      'treat the current selection step as fulfilled and continue evaluating the remaining user instruction',
+    );
+  });
+
   it('planning - multi-turn example with includeSubGoals true should have sub-goal tags', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
@@ -408,6 +456,27 @@ describe('system prompts', () => {
 describe('extract element', () => {
   it('systemPromptToExtract', () => {
     const prompt = systemPromptToExtract();
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('systemPromptToExtract without screenshot', () => {
+    const prompt = systemPromptToExtract({ screenshotIncluded: false });
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('systemPromptToExtract with screenshot and reference images', () => {
+    const prompt = systemPromptToExtract({
+      screenshotIncluded: true,
+      referenceImagesIncluded: true,
+    });
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('systemPromptToExtract with reference images and without screenshot', () => {
+    const prompt = systemPromptToExtract({
+      screenshotIncluded: false,
+      referenceImagesIncluded: true,
+    });
     expect(prompt).toMatchSnapshot();
   });
 

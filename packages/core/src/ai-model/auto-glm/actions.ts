@@ -383,7 +383,7 @@ export function transformAutoGLMAction(
             return [
               {
                 type: 'Launch',
-                param: launchAction.app,
+                param: { uri: launchAction.app },
                 thought: launchAction.think || '',
               },
             ];

@@ -286,7 +286,11 @@ describe('PlaygroundSDK', () => {
   });
 
   describe('overrideConfig', () => {
-    it('should be no-op for LocalExecutionAdapter', async () => {
+    it('should delegate to LocalExecutionAdapter overrideConfig', async () => {
+      const mockOverrideConfig = vi.fn().mockResolvedValue(undefined);
+      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      MockAdapter.prototype.overrideConfig = mockOverrideConfig;
+
       const config: PlaygroundConfig = {
         type: 'local-execution',
         agent: {},
@@ -295,8 +299,9 @@ describe('PlaygroundSDK', () => {
       const sdk = new PlaygroundSDK(config);
       const aiConfig = { model: 'test' };
 
-      // Should not throw
       await sdk.overrideConfig(aiConfig);
+
+      expect(mockOverrideConfig).toHaveBeenCalledWith(aiConfig);
     });
 
     it('should delegate to RemoteExecutionAdapter overrideConfig', async () => {
@@ -315,6 +320,46 @@ describe('PlaygroundSDK', () => {
       await sdk.overrideConfig(aiConfig);
 
       expect(mockOverrideConfig).toHaveBeenCalledWith(aiConfig);
+    });
+  });
+
+  describe('runConnectivityTest', () => {
+    it('should delegate to LocalExecutionAdapter', async () => {
+      const mockRunConnectivityTest = vi.fn().mockResolvedValue({
+        passed: true,
+        checks: [],
+      });
+      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      MockAdapter.prototype.runConnectivityTest = mockRunConnectivityTest;
+
+      const sdk = new PlaygroundSDK({
+        type: 'local-execution',
+        agent: {},
+      });
+
+      const result = await sdk.runConnectivityTest();
+
+      expect(result.passed).toBe(true);
+      expect(mockRunConnectivityTest).toHaveBeenCalled();
+    });
+
+    it('should delegate to RemoteExecutionAdapter', async () => {
+      const mockRunConnectivityTest = vi.fn().mockResolvedValue({
+        passed: true,
+        checks: [],
+      });
+      const MockAdapter = vi.mocked(RemoteExecutionAdapter);
+      MockAdapter.prototype.runConnectivityTest = mockRunConnectivityTest;
+
+      const sdk = new PlaygroundSDK({
+        type: 'remote-execution',
+        serverUrl: 'http://localhost:3000',
+      });
+
+      const result = await sdk.runConnectivityTest();
+
+      expect(result.passed).toBe(true);
+      expect(mockRunConnectivityTest).toHaveBeenCalled();
     });
   });
 

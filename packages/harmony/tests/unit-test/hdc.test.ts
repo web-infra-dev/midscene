@@ -91,6 +91,38 @@ describe('HdcClient', () => {
     });
   });
 
+  describe('forceStop', () => {
+    it('should execute force-stop command', async () => {
+      mockExecFile.mockResolvedValue({
+        stdout: 'force stop process successfully.\n',
+        stderr: '',
+      });
+
+      const hdc = new HdcClient({});
+      await hdc.forceStop('com.example.app');
+
+      expect(mockExecFile).toHaveBeenCalledWith(
+        expect.any(String),
+        ['shell', 'aa force-stop com.example.app'],
+        expect.any(Object),
+      );
+    });
+
+    it('should throw when force-stop reports an error in stdout', async () => {
+      mockExecFile.mockResolvedValue({
+        stdout:
+          'error: failed to force stop process.\nerror: get bundle info failed.\n',
+        stderr: '',
+      });
+
+      const hdc = new HdcClient({});
+
+      await expect(hdc.forceStop('com.bad.app')).rejects.toThrow(
+        'Failed to force stop com.bad.app',
+      );
+    });
+  });
+
   describe('click', () => {
     it('should execute uitest click command', async () => {
       mockExecFile.mockResolvedValue({ stdout: '', stderr: '' });

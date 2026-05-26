@@ -1,5 +1,8 @@
 import dayjs from 'dayjs';
 
+export { notifyError } from './notify';
+export type { NotifyErrorOptions } from './notify';
+
 export function timeStr(timestamp?: number) {
   return timestamp ? dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss') : '-';
 }

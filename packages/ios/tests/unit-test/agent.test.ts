@@ -1,11 +1,12 @@
 import {
+  MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE,
   MIDSCENE_MODEL_NAME,
   MIDSCENE_USE_DOUBAO_VISION,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
 } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { IOSAgent } from '../../src/agent';
+import { IOSAgent, agentFromWebDriverAgent } from '../../src/agent';
 import { IOSDevice } from '../../src/device';
 
 // Mock dependencies
@@ -52,14 +53,14 @@ describe('IOSAgent', () => {
           name: 'Launch',
           paramSchema: undefined,
           call: async (param: any) => {
-            return mockDevice.launch!(param);
+            return mockDevice.launch!(param.uri);
           },
         },
         {
           name: 'Terminate',
           paramSchema: undefined,
           call: async (param: any) => {
-            return mockDevice.terminate!(param);
+            return mockDevice.terminate!(param.uri);
           },
         },
         {
@@ -182,6 +183,86 @@ describe('IOSAgent', () => {
         '/wda/keys',
         requestData,
       );
+    });
+  });
+
+  describe('agentFromWebDriverAgent', () => {
+    it('should create default IOSDevice when no override is provided', async () => {
+      const connectSpy = vi.fn().mockResolvedValue(undefined);
+      MockedIOSDevice.mockImplementationOnce(
+        () =>
+          ({
+            connect: connectSpy,
+            actionSpace: vi.fn().mockReturnValue([]),
+            setAppNameMapping: vi.fn(),
+          }) as unknown as IOSDevice,
+      );
+
+      await agentFromWebDriverAgent({ modelConfig: mockedModelConfig });
+
+      expect(MockedIOSDevice).toHaveBeenCalledTimes(1);
+      expect(connectSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should load override device class from documented option', async () => {
+      const connectSpy = vi.fn().mockResolvedValue(undefined);
+      const actionSpaceSpy = vi.fn().mockReturnValue([]);
+      const setAppNameMappingSpy = vi.fn();
+      const moduleName = 'test-ios-device-override';
+
+      vi.doMock(
+        moduleName,
+        () => ({
+          IOSDevice: class {
+            connect = connectSpy;
+            actionSpace = actionSpaceSpy;
+            setAppNameMapping = setAppNameMappingSpy;
+          },
+        }),
+        { virtual: true },
+      );
+
+      await agentFromWebDriverAgent({
+        modelConfig: mockedModelConfig,
+        iOSDeviceClassOverride: moduleName,
+      });
+
+      expect(connectSpy).toHaveBeenCalledTimes(1);
+      vi.doUnmock(moduleName);
+    });
+
+    it('should load override device class from env', async () => {
+      const connectSpy = vi.fn().mockResolvedValue(undefined);
+      const actionSpaceSpy = vi.fn().mockReturnValue([]);
+      const setAppNameMappingSpy = vi.fn();
+      const moduleName = 'test-ios-device-override-env';
+      vi.stubEnv(MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE, moduleName);
+
+      vi.doMock(
+        moduleName,
+        () => ({
+          default: class {
+            connect = connectSpy;
+            actionSpace = actionSpaceSpy;
+            setAppNameMapping = setAppNameMappingSpy;
+          },
+        }),
+        { virtual: true },
+      );
+
+      await agentFromWebDriverAgent({ modelConfig: mockedModelConfig });
+
+      expect(connectSpy).toHaveBeenCalledTimes(1);
+      vi.doUnmock(moduleName);
+    });
+
+    it('should throw clear error when override package is missing', async () => {
+      await expect(
+        agentFromWebDriverAgent({
+          modelConfig: mockedModelConfig,
+          iOSDeviceClassOverride: 'missing-ios-device-override-package',
+        }),
+      ).rejects.toThrow('Failed to load iOS device class override');
     });
   });
 });

@@ -69,6 +69,8 @@ export const MIDSCENE_ANDROID_IME_STRATEGY = 'MIDSCENE_ANDROID_IME_STRATEGY';
 
 export const MIDSCENE_IOS_DEVICE_UDID = 'MIDSCENE_IOS_DEVICE_UDID';
 export const MIDSCENE_IOS_SIMULATOR_UDID = 'MIDSCENE_IOS_SIMULATOR_UDID';
+export const MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE =
+  'MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE';
 
 export const MIDSCENE_CACHE = 'MIDSCENE_CACHE';
 export const MIDSCENE_USE_VLM_UI_TARS = 'MIDSCENE_USE_VLM_UI_TARS';
@@ -104,6 +106,8 @@ export const MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON =
   'MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON';
 export const MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON =
   'MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON';
+export const MIDSCENE_INSIGHT_MODEL_MAX_TOKENS =
+  'MIDSCENE_INSIGHT_MODEL_MAX_TOKENS';
 export const MIDSCENE_INSIGHT_MODEL_TIMEOUT = 'MIDSCENE_INSIGHT_MODEL_TIMEOUT';
 export const MIDSCENE_INSIGHT_MODEL_TEMPERATURE =
   'MIDSCENE_INSIGHT_MODEL_TEMPERATURE';
@@ -133,6 +137,8 @@ export const MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON =
   'MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON';
 export const MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON =
   'MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON';
+export const MIDSCENE_PLANNING_MODEL_MAX_TOKENS =
+  'MIDSCENE_PLANNING_MODEL_MAX_TOKENS';
 export const MIDSCENE_PLANNING_MODEL_TIMEOUT =
   'MIDSCENE_PLANNING_MODEL_TIMEOUT';
 export const MIDSCENE_PLANNING_MODEL_TEMPERATURE =
@@ -176,14 +182,11 @@ export const BOOLEAN_ENV_KEYS = [
 ] as const;
 
 export const NUMBER_ENV_KEYS = [
-  MIDSCENE_MODEL_MAX_TOKENS,
   MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
 ] as const;
 
 export const STRING_ENV_KEYS = [
-  MIDSCENE_MODEL_MAX_TOKENS,
-  OPENAI_MAX_TOKENS,
   MIDSCENE_ADB_PATH,
   MIDSCENE_ADB_REMOTE_HOST,
   MIDSCENE_ADB_REMOTE_PORT,
@@ -222,6 +225,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_SOCKS_PROXY,
   MIDSCENE_MODEL_HTTP_PROXY,
+  MIDSCENE_MODEL_MAX_TOKENS,
   MIDSCENE_MODEL_TIMEOUT,
   MIDSCENE_MODEL_TEMPERATURE,
   MIDSCENE_MODEL_RETRY_COUNT,
@@ -238,6 +242,7 @@ export const MODEL_ENV_KEYS = [
   // model default legacy
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
+  OPENAI_MAX_TOKENS,
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_OPENAI_HTTP_PROXY,
   MIDSCENE_OPENAI_SOCKS_PROXY,
@@ -249,6 +254,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_INSIGHT_MODEL_API_KEY,
   MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON,
+  MIDSCENE_INSIGHT_MODEL_MAX_TOKENS,
   MIDSCENE_INSIGHT_MODEL_TIMEOUT,
   MIDSCENE_INSIGHT_MODEL_TEMPERATURE,
   MIDSCENE_INSIGHT_MODEL_RETRY_COUNT,
@@ -265,6 +271,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON,
+  MIDSCENE_PLANNING_MODEL_MAX_TOKENS,
   MIDSCENE_PLANNING_MODEL_TIMEOUT,
   MIDSCENE_PLANNING_MODEL_TEMPERATURE,
   MIDSCENE_PLANNING_MODEL_RETRY_COUNT,
@@ -293,6 +300,7 @@ export type TModelFamily =
   | 'qwen2.5-vl'
   | 'qwen3-vl'
   | 'qwen3.5'
+  | 'qwen3.6'
   | 'doubao-vision'
   | 'doubao-seed'
   | 'gemini'
@@ -311,6 +319,7 @@ export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'qwen2.5-vl',
   'qwen3-vl',
   'qwen3.5',
+  'qwen3.6',
   'vlm-ui-tars',
   'vlm-ui-tars-doubao',
   'vlm-ui-tars-doubao-1.5',
@@ -331,6 +340,8 @@ export interface IModelConfigForInsight {
   [MIDSCENE_INSIGHT_MODEL_API_KEY]?: string;
   [MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON]?: string;
   [MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON]?: string;
+  // max tokens
+  [MIDSCENE_INSIGHT_MODEL_MAX_TOKENS]?: string;
   // timeout
   [MIDSCENE_INSIGHT_MODEL_TIMEOUT]?: string;
   // temperature
@@ -350,6 +361,8 @@ export interface IModelConfigForPlanning {
   [MIDSCENE_PLANNING_MODEL_API_KEY]?: string;
   [MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON]?: string;
   [MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON]?: string;
+  // max tokens
+  [MIDSCENE_PLANNING_MODEL_MAX_TOKENS]?: string;
   // timeout
   [MIDSCENE_PLANNING_MODEL_TIMEOUT]?: string;
   // temperature
@@ -377,6 +390,8 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_API_KEY]?: string;
   [MIDSCENE_MODEL_INIT_CONFIG_JSON]?: string;
   [MIDSCENE_MODEL_EXTRA_BODY_JSON]?: string;
+  // max tokens
+  [MIDSCENE_MODEL_MAX_TOKENS]?: string;
   // extra
   [MIDSCENE_MODEL_FAMILY]?: TModelFamily;
   // temperature
@@ -399,6 +414,7 @@ export interface IModelConfigForDefaultLegacy {
   [OPENAI_BASE_URL]?: string;
   [OPENAI_API_KEY]?: string;
   [MIDSCENE_OPENAI_INIT_CONFIG_JSON]?: string;
+  [OPENAI_MAX_TOKENS]?: string;
 }
 
 /**
@@ -423,7 +439,7 @@ export enum UITarsModelVersion {
 
 /**
  * Callback to create custom OpenAI client instance
- * @param config - Resolved model configuration including apiKey, baseURL, modelName, intent, etc.
+ * @param config - Resolved model configuration including apiKey, baseURL, modelName, intent, slot, etc.
  * @returns OpenAI client instance (can be wrapped with langsmith, langfuse, etc.)
  *
  * Note: Wrapper functions like langsmith's wrapOpenAI() return the same OpenAI instance
@@ -476,6 +492,10 @@ export interface IModelConfig {
    */
   extraBody?: Record<string, unknown>;
   /**
+   * max_tokens for model responses.
+   */
+  maxTokens?: number;
+  /**
    * Timeout for API calls in milliseconds.
    * If not set, uses OpenAI SDK default (10 minutes).
    */
@@ -517,9 +537,16 @@ export interface IModelConfig {
   uiTarsModelVersion?: UITarsModelVersion;
   modelDescription: string;
   /**
-   * original intent from the config
+   * The semantic intent this config is requested for.
+   * For example, getModelConfig('planning') always returns intent === 'planning'.
    */
   intent: TIntent;
+  /**
+   * The model-config slot this config was resolved from.
+   * For example, getModelConfig('planning') may resolve from slot === 'default'
+   * when MIDSCENE_PLANNING_MODEL_NAME is not configured.
+   */
+  slot: TIntent;
   /**
    * Custom OpenAI client factory function
    *

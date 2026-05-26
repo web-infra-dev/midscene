@@ -18,6 +18,7 @@ describe('decideModelConfigFromIntentConfig', () => {
   it('parses intent specific config', () => {
     const result = decideModelConfigFromIntentConfig('insight', baseConfig)!;
     expect(result.intent).toBe('insight');
+    expect(result.slot).toBe('insight');
     expect(result.modelName).toBe('insight-model');
     expect(result.openaiApiKey).toBe('insight-key');
     expect(result.openaiBaseURL).toBe('https://insight.example.com');

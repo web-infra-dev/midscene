@@ -1,3 +1,5 @@
+import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
+import yaml from 'js-yaml';
 import type { TUserPrompt } from '../ai-model/index';
 import { ScreenshotItem } from '../screenshot-item';
 import Service from '../service/index';
@@ -18,8 +20,6 @@ import {
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
-  type GroupMeta,
-  GroupedActionDump,
   type LocateOption,
   type LocateResultElement,
   type LocateValidatorResult,
@@ -27,24 +27,22 @@ import {
   type OnTaskStartTip,
   type PlanningAction,
   type Rect,
+  ReportActionDump,
+  type ReportMeta,
   type ScrollParam,
   type ServiceAction,
   type ServiceExtractOption,
   type ServiceExtractParam,
+  type TestStatus,
   type UIContext,
 } from '../types';
 import type { MidsceneYamlScript } from '../yaml';
-export type TestStatus =
-  | 'passed'
-  | 'failed'
-  | 'timedOut'
-  | 'skipped'
-  | 'interrupted';
-import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
-import yaml from 'js-yaml';
 
 import type { IReportGenerator } from '@/report-generator';
-import { ReportGenerator } from '@/report-generator';
+import {
+  ReportGenerator,
+  assertReportGenerationOptions,
+} from '@/report-generator';
 import { getVersion, processCacheConfig, reportHTMLContent } from '@/utils';
 import {
   ScriptPlayer,
@@ -153,7 +151,7 @@ export class Agent<
 
   service: Service;
 
-  dump: GroupedActionDump;
+  dump: ReportActionDump;
 
   reportFile?: string | null;
 
@@ -264,6 +262,7 @@ export class Agent<
     this.opts = Object.assign(
       {
         generateReport: true,
+        persistExecutionDump: false,
         autoPrintReportMsg: true,
         groupName: 'Midscene Report',
         groupDescription: '',
@@ -275,6 +274,7 @@ export class Agent<
         ? { replanningCycleLimit: envReplanningCycleLimit }
         : {},
     );
+    assertReportGenerationOptions(this.opts);
 
     const resolvedAiActContext =
       this.opts.aiActContext ?? this.opts.aiActionContext;
@@ -326,12 +326,17 @@ export class Agent<
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
       waitAfterAction: this.opts.waitAfterAction,
-      useDeviceTimestamp: this.opts.useDeviceTimestamp,
+      useDeviceTime: this.opts.useDeviceTime,
       actionSpace: this.fullActionSpace,
       hooks: {
-        onTaskUpdate: (runner) => {
+        onTaskUpdate: async (runner) => {
           const executionDump = runner.dump();
           this.appendExecutionDump(executionDump, runner);
+
+          // Persist report updates before notifying listeners so screenshot
+          // payloads can be released from memory and serialized as references.
+          this.writeOutActionDumps(executionDump);
+          await this.reportGenerator.flush();
 
           // Call all registered dump update listeners
           const dumpString = this.dumpDataString();
@@ -342,21 +347,23 @@ export class Agent<
               console.error('Error in onDumpUpdate listener', error);
             }
           }
-
-          // Fire and forget - don't block task execution
-          this.writeOutActionDumps(executionDump);
         },
       },
     });
     this.dump = this.resetDump();
     this.reportFileName =
       opts?.reportFileName ||
+      // Keep deprecated testId behavior for generated report names until it is
+      // fully removed from the public API.
       getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
 
     this.reportGenerator = ReportGenerator.create(this.reportFileName!, {
       generateReport: this.opts.generateReport,
+      persistExecutionDump: this.opts.persistExecutionDump,
       outputFormat: this.opts.outputFormat,
       autoPrintReportMsg: this.opts.autoPrintReportMsg,
+      reuseExistingReport:
+        this.opts.reportAttributes?.['data-group-id'] === this.reportFileName,
     });
   }
 
@@ -433,7 +440,7 @@ export class Agent<
   }
 
   resetDump() {
-    this.dump = new GroupedActionDump({
+    this.dump = new ReportActionDump({
       sdkVersion: getVersion(),
       groupName: this.opts.groupName!,
       groupDescription: this.opts.groupDescription,
@@ -486,12 +493,16 @@ export class Agent<
     const exec = executionDump || this.lastExecutionDump;
     if (exec) {
       this.lastExecutionDump = exec;
-      this.reportGenerator.onExecutionUpdate(exec, this.getGroupMeta());
+      this.reportGenerator.onExecutionUpdate(
+        exec,
+        this.getReportMeta(),
+        this.opts.reportAttributes,
+      );
     }
     this.reportFile = this.reportGenerator.getReportPath();
   }
 
-  private getGroupMeta(): GroupMeta {
+  private getReportMeta(): ReportMeta {
     return {
       groupName: this.dump.groupName,
       groupDescription: this.dump.groupDescription,
@@ -558,7 +569,7 @@ export class Agent<
   async aiTap(
     locatePrompt: TUserPrompt,
     opt?: LocateOption & { fileChooserAccept?: string | string[] },
-  ) {
+  ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for tap');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
@@ -567,39 +578,45 @@ export class Agent<
       ? this.normalizeFileInput(opt.fileChooserAccept)
       : undefined;
 
-    return withFileChooser(this.interface, fileChooserAccept, async () => {
-      return this.callActionInActionSpace('Tap', {
+    await withFileChooser(this.interface, fileChooserAccept, async () => {
+      await this.callActionInActionSpace('Tap', {
         locate: detailedLocateParam,
       });
     });
   }
 
-  async aiRightClick(locatePrompt: TUserPrompt, opt?: LocateOption) {
+  async aiRightClick(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption,
+  ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for right click');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
-    return this.callActionInActionSpace('RightClick', {
+    await this.callActionInActionSpace('RightClick', {
       locate: detailedLocateParam,
     });
   }
 
-  async aiDoubleClick(locatePrompt: TUserPrompt, opt?: LocateOption) {
+  async aiDoubleClick(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption,
+  ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for double click');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
-    return this.callActionInActionSpace('DoubleClick', {
+    await this.callActionInActionSpace('DoubleClick', {
       locate: detailedLocateParam,
     });
   }
 
-  async aiHover(locatePrompt: TUserPrompt, opt?: LocateOption) {
+  async aiHover(locatePrompt: TUserPrompt, opt?: LocateOption): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for hover');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
-    return this.callActionInActionSpace('Hover', {
+    await this.callActionInActionSpace('Hover', {
       locate: detailedLocateParam,
     });
   }
@@ -610,7 +627,7 @@ export class Agent<
     opt: LocateOption & { value: string | number } & {
       autoDismissKeyboard?: boolean;
     } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' },
-  ): Promise<any>;
+  ): Promise<void>;
 
   // Legacy signature - deprecated
   /**
@@ -622,7 +639,7 @@ export class Agent<
     opt?: LocateOption & { autoDismissKeyboard?: boolean } & {
       mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
     }, // AndroidDeviceInputOpt &
-  ): Promise<any>;
+  ): Promise<void>;
 
   // Implementation
   async aiInput(
@@ -682,7 +699,7 @@ export class Agent<
     // backward compat: convert deprecated 'append' to 'typeOnly'
     const mode = opt?.mode === 'append' ? 'typeOnly' : opt?.mode;
 
-    return this.callActionInActionSpace('Input', {
+    await this.callActionInActionSpace('Input', {
       ...(opt || {}),
       value: stringValue,
       locate: detailedLocateParam,
@@ -694,7 +711,7 @@ export class Agent<
   async aiKeyboardPress(
     locatePrompt: TUserPrompt,
     opt: LocateOption & { keyName: string },
-  ): Promise<any>;
+  ): Promise<void>;
 
   // Legacy signature - deprecated
   /**
@@ -704,7 +721,7 @@ export class Agent<
     keyName: string,
     locatePrompt?: TUserPrompt,
     opt?: LocateOption,
-  ): Promise<any>;
+  ): Promise<void>;
 
   // Implementation
   async aiKeyboardPress(
@@ -746,7 +763,7 @@ export class Agent<
       ? buildDetailedLocateParam(locatePrompt, opt)
       : undefined;
 
-    return this.callActionInActionSpace('KeyboardPress', {
+    await this.callActionInActionSpace('KeyboardPress', {
       ...(opt || {}),
       locate: detailedLocateParam,
     });
@@ -756,7 +773,7 @@ export class Agent<
   async aiScroll(
     locatePrompt: TUserPrompt | undefined,
     opt: LocateOption & ScrollParam,
-  ): Promise<any>;
+  ): Promise<void>;
 
   // Legacy signature - deprecated
   /**
@@ -766,7 +783,7 @@ export class Agent<
     scrollParam: ScrollParam,
     locatePrompt?: TUserPrompt,
     opt?: LocateOption,
-  ): Promise<any>;
+  ): Promise<void>;
 
   // Implementation
   async aiScroll(
@@ -779,7 +796,11 @@ export class Agent<
     let opt: LocateOption | undefined;
 
     const isLocatePromptLike = (value: unknown): value is TUserPrompt => {
-      if (typeof value === 'string' || typeof value === 'undefined') {
+      if (
+        typeof value === 'string' ||
+        typeof value === 'undefined' ||
+        value === null
+      ) {
         return true;
       }
 
@@ -826,7 +847,7 @@ export class Agent<
       opt,
     );
 
-    return this.callActionInActionSpace('Scroll', {
+    await this.callActionInActionSpace('Scroll', {
       ...(opt || {}),
       locate: detailedLocateParam,
     });
@@ -839,14 +860,41 @@ export class Agent<
       distance?: number;
       duration?: number;
     },
-  ) {
+  ): Promise<void> {
     const detailedLocateParam = buildDetailedLocateParam(
       locatePrompt || '',
       opt,
     );
 
-    return this.callActionInActionSpace('Pinch', {
+    await this.callActionInActionSpace('Pinch', {
       ...opt,
+      locate: detailedLocateParam,
+    });
+  }
+
+  async aiLongPress(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption & { duration?: number },
+  ): Promise<void> {
+    assert(locatePrompt, 'missing locate prompt for long press');
+
+    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+
+    await this.callActionInActionSpace('LongPress', {
+      ...(opt || {}),
+      locate: detailedLocateParam,
+    });
+  }
+
+  async aiClearInput(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption,
+  ): Promise<void> {
+    assert(locatePrompt, 'missing locate prompt for clear input');
+
+    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+
+    await this.callActionInActionSpace('ClearInput', {
       locate: detailedLocateParam,
     });
   }
@@ -869,17 +917,12 @@ export class Agent<
     const runAiAct = async () => {
       const modelConfigForPlanning =
         this.modelConfigManager.getModelConfig('planning');
-      const defaultIntentModelConfig =
-        this.modelConfigManager.getModelConfig('default');
-      const deepThink = opt?.deepThink === 'unset' ? undefined : opt?.deepThink;
+      // Controls the aiAct planning mode, such as sub-goal prompts and bbox strategy.
+      const deepThink = opt?.deepThink === true;
 
       const deepLocate = opt?.deepLocate;
 
-      const noIndividualLocateModel =
-        modelConfigForPlanning.modelName ===
-          defaultIntentModelConfig.modelName &&
-        modelConfigForPlanning.openaiBaseURL ===
-          defaultIntentModelConfig.openaiBaseURL;
+      const noIndividualLocateModel = modelConfigForPlanning.slot === 'default';
 
       const includeBboxInPlanning = !deepThink && noIndividualLocateModel;
 
@@ -921,7 +964,7 @@ export class Agent<
       const { output: actionOutput } = await this.taskExecutor.action(
         taskPrompt,
         modelConfigForPlanning,
-        defaultIntentModelConfig,
+        this.modelConfigManager.getModelConfig('default'),
         includeBboxInPlanning,
         this.aiActContext,
         cacheable,
@@ -1135,6 +1178,18 @@ export class Agent<
     return verifyResult;
   }
 
+  /**
+   * Locate an element and return both its center point and an approximate rect.
+   *
+   * - In most locate flows, `rect` represents the matched element boundary.
+   * - Some models only support point grounding instead of boundary grounding.
+   *   In those cases (for example, AutoGLM), `rect` falls back to a small 8x8
+   *   box centered on the located point.
+   *
+   * Because `rect` may vary with the underlying model capability, avoid relying
+   * on it too heavily for strict boundary semantics. If you need a stable click
+   * target, prefer `center`.
+   */
   async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
     const locateParam = buildDetailedLocateParam(prompt, opt);
     assert(locateParam, 'cannot get locate param for aiLocate');
@@ -1342,11 +1397,13 @@ export class Agent<
   async recordToReport(
     title?: string,
     opt?: {
-      content: string;
+      content?: string;
+      screenshotBase64?: string;
     },
   ) {
     // 1. screenshot
-    const base64 = await this.interface.screenshotBase64();
+    const base64 =
+      opt?.screenshotBase64 ?? (await this.interface.screenshotBase64());
     const now = Date.now();
     const screenshot = ScreenshotItem.create(base64, now);
     // 2. build recorder
@@ -1385,6 +1442,9 @@ export class Agent<
     // 5. append to execution dump
     this.appendExecutionDump(executionDump);
 
+    this.writeOutActionDumps(executionDump);
+    await this.reportGenerator.flush();
+
     // Call all registered dump update listeners
     const dumpString = this.dumpDataString();
     for (const listener of this.dumpUpdateListeners) {
@@ -1394,9 +1454,6 @@ export class Agent<
         console.error('Error in onDumpUpdate listener', error);
       }
     }
-
-    this.writeOutActionDumps(executionDump);
-    await this.reportGenerator.flush();
   }
 
   /**
@@ -1476,7 +1533,7 @@ export class Agent<
     // Use the unified utils function to process cache configuration
     const cacheConfig = processCacheConfig(
       opts.cache,
-      opts.cacheId || opts.testId || 'default',
+      opts.cacheId || 'default',
     );
 
     if (!cacheConfig) {
@@ -1527,7 +1584,9 @@ export class Agent<
     return files.map((file) => {
       const absolutePath = resolve(file);
       if (!existsSync(absolutePath)) {
-        throw new Error(`File not found: ${file}`);
+        throw new Error(
+          `File not found: ${file}. Resolved to: ${absolutePath}. Current working directory: ${process.cwd()}`,
+        );
       }
       return absolutePath;
     });

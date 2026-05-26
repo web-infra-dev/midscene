@@ -31,6 +31,7 @@ export interface FrameState {
   spinning: boolean;
   spinningElapsedMs: number;
   currentPointerImg: string;
+  pointerVisible: boolean;
   title: string;
   subTitle: string;
   taskId: string | undefined;
@@ -53,6 +54,7 @@ interface Acc {
   spinning: boolean;
   spinningElapsedMs: number;
   pointerImg: string;
+  pointerVisible: boolean;
   title: string;
   subTitle: string;
   taskId: string | undefined;
@@ -109,6 +111,24 @@ function checkPointerMoved(prev: CameraState, cur: CameraState): boolean {
   return (
     Math.abs(prev.pointerLeft - cur.pointerLeft) > 1 ||
     Math.abs(prev.pointerTop - cur.pointerTop) > 1
+  );
+}
+
+export function shouldRenderCursor(
+  pointerVisible: boolean,
+  camera: CameraState,
+  prevCamera: CameraState,
+  imageWidth: number,
+  imageHeight: number,
+): boolean {
+  const centerX = Math.round(imageWidth / 2);
+  const centerY = Math.round(imageHeight / 2);
+  return (
+    pointerVisible ||
+    Math.abs(camera.pointerLeft - centerX) > 1 ||
+    Math.abs(camera.pointerTop - centerY) > 1 ||
+    Math.abs(prevCamera.pointerLeft - centerX) > 1 ||
+    Math.abs(prevCamera.pointerTop - centerY) > 1
   );
 }
 
@@ -205,6 +225,7 @@ export function deriveFrameState(
     spinning: false,
     spinningElapsedMs: 0,
     pointerImg: mousePointer,
+    pointerVisible: false,
     title: '',
     subTitle: '',
     taskId: undefined,
@@ -223,6 +244,7 @@ export function deriveFrameState(
       if (sf.startFrame <= frame) {
         if (sf.type === 'pointer' && sf.pointerImg) {
           acc.pointerImg = sf.pointerImg;
+          acc.pointerVisible = true;
         }
         acc.title = sf.title || acc.title;
         acc.subTitle = sf.subTitle || acc.subTitle;
@@ -291,6 +313,7 @@ export function deriveFrameState(
     spinning: acc.spinning,
     spinningElapsedMs: acc.spinningElapsedMs,
     currentPointerImg: acc.pointerImg,
+    pointerVisible: acc.pointerVisible,
     title: acc.title,
     subTitle: acc.subTitle,
     taskId: acc.taskId,

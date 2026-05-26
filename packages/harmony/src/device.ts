@@ -1,28 +1,22 @@
 import assert from 'node:assert';
 import fs from 'node:fs';
 import {
+  type ActionScrollParam,
   type DeviceAction,
   type InterfaceType,
   type LocateResultElement,
   type Point,
   type Size,
-  getMidsceneLocationSchema,
   z,
 } from '@midscene/core';
 import {
   type AbstractInterface,
-  type ActionTapParam,
+  type HarmonyDeviceInputOpt,
   type HarmonyDeviceOpt,
+  type MobileInputPrimitives,
+  type PointerPoint,
+  createDefaultMobileActions,
   defineAction,
-  defineActionClearInput,
-  defineActionCursorMove,
-  defineActionDoubleClick,
-  defineActionDragAndDrop,
-  defineActionKeyboardPress,
-  defineActionScroll,
-  defineActionSwipe,
-  defineActionTap,
-  normalizeMobileSwipeParam,
 } from '@midscene/core/device';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
@@ -33,40 +27,17 @@ import { HdcClient } from './hdc';
 
 export type { HarmonyDeviceOpt } from '@midscene/core/device';
 
-// Input action schema for Harmony
-const harmonyInputParamSchema = z.object({
-  value: z
-    .string()
-    .describe(
-      'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
-    ),
-  mode: z.preprocess(
-    (val) => (val === 'append' ? 'typeOnly' : val),
-    z
-      .enum(['replace', 'clear', 'typeOnly'])
-      .default('replace')
-      .optional()
-      .describe(
-        'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - attempt to clear the field (limited support on HarmonyOS).',
-      ),
-  ),
-  locate: getMidsceneLocationSchema()
-    .describe('The input field to be filled')
-    .optional(),
-});
-type HarmonyInputParam = {
-  value: string;
-  mode?: 'replace' | 'clear' | 'typeOnly';
-  locate?: LocateResultElement;
-};
-
 const defaultScrollUntilTimes = 10;
-const defaultSwipeSpeed = 600;
 const defaultFastSwipeSpeed = 2000;
 const maxScrollDistance = 9999999;
 const scrollQuadrantDivisions = 4;
+// Minimum margin from screen edge for fling endpoints.
+// HarmonyOS uitest ignores fling gestures that end at exact screen boundaries.
+const screenEdgeMargin = 50;
 
 const debugDevice = getDebug('harmony:device');
+
+let screenshotResizeScaleWarned = false;
 
 // HarmonyOS uitest only accepts Back/Home/Power as string names.
 // All other keys must use numeric keycodes.
@@ -117,163 +88,110 @@ export class HarmonyDevice implements AbstractInterface {
   uri: string | undefined;
   options?: HarmonyDeviceOpt;
 
-  actionSpace(): DeviceAction<any>[] {
-    const defaultActions = [
-      defineActionTap(async (param: ActionTapParam) => {
-        const element = param.locate;
-        assert(element, 'Element not found, cannot tap');
-        await this.tap(element.center[0], element.center[1]);
-      }),
-      defineActionDoubleClick(async (param) => {
-        const element = param.locate;
-        assert(element, 'Element not found, cannot double click');
-        await this.doubleTap(element.center[0], element.center[1]);
-      }),
-      defineAction<typeof harmonyInputParamSchema, HarmonyInputParam>({
-        name: 'Input',
-        description: 'Input text into the input field',
-        interfaceAlias: 'aiInput',
-        paramSchema: harmonyInputParamSchema,
-        sample: {
-          value: 'test@example.com',
-          locate: { prompt: 'the email input field' },
-        },
-        call: async (param) => {
-          const element = param.locate;
-
-          if (param.mode === 'clear') {
-            await this.clearInput(element as unknown as ElementInfo);
-            return;
-          }
-
-          if (!param || !param.value) {
-            return;
-          }
-
-          const shouldReplace = param.mode !== 'typeOnly';
-          await this.inputText(
-            param.value,
-            element as unknown as LocateResultElement | undefined,
-            shouldReplace,
-          );
-        },
-      }),
-      defineActionScroll(async (param) => {
-        const element = param.locate;
-        const startingPoint = element
-          ? {
-              left: element.center[0],
-              top: element.center[1],
-            }
-          : undefined;
-        const scrollToEventName = param?.scrollType;
-        if (scrollToEventName === 'scrollToTop') {
-          await this.scrollUntilTop(startingPoint);
-        } else if (scrollToEventName === 'scrollToBottom') {
-          await this.scrollUntilBottom(startingPoint);
-        } else if (scrollToEventName === 'scrollToRight') {
-          await this.scrollUntilRight(startingPoint);
-        } else if (scrollToEventName === 'scrollToLeft') {
-          await this.scrollUntilLeft(startingPoint);
-        } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
-          if (param?.direction === 'down' || !param || !param.direction) {
-            await this.scrollDown(param?.distance ?? undefined, startingPoint);
-          } else if (param.direction === 'up') {
-            await this.scrollUp(param.distance ?? undefined, startingPoint);
-          } else if (param.direction === 'left') {
-            await this.scrollLeft(param.distance ?? undefined, startingPoint);
-          } else if (param.direction === 'right') {
-            await this.scrollRight(param.distance ?? undefined, startingPoint);
-          } else {
-            throw new Error(`Unknown scroll direction: ${param.direction}`);
-          }
-          await sleep(500);
-        } else {
-          throw new Error(
-            `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(param)}`,
-          );
-        }
-      }),
-      defineActionDragAndDrop(async (param) => {
-        const from = param.from;
-        const to = param.to;
-        assert(from, 'missing "from" param for drag and drop');
-        assert(to, 'missing "to" param for drag and drop');
+  readonly inputPrimitives: MobileInputPrimitives = {
+    pointer: {
+      tap: (point) => this.tapPoint(point),
+      doubleClick: (point) => this.doubleTapPoint(point),
+      longPress: (point) => this.longPressPoint(point),
+      dragAndDrop: async (from, to) => {
         const hdc = await this.getHdc();
-        await hdc.drag(
-          from.center[0],
-          from.center[1],
-          to.center[0],
-          to.center[1],
-        );
-      }),
-      defineActionSwipe(async (param) => {
-        const { startPoint, endPoint, duration, repeatCount } =
-          normalizeMobileSwipeParam(param, await this.size());
+        await hdc.drag(from.x, from.y, to.x, to.y);
+      },
+    },
+    keyboard: {
+      keyboardPress: (keyName) => this.pressKey(keyName),
+      typeText: (value, opts) =>
+        opts?.focusOnly
+          ? Promise.resolve()
+          : this.typeText(
+              value,
+              opts?.target as LocateResultElement | undefined,
+              opts?.replace ?? true,
+              {
+                autoDismissKeyboard: opts?.autoDismissKeyboard,
+              },
+            ),
+      clearInput: (target) =>
+        this.clearInput(target as ElementInfo | undefined),
+      cursorMove: async (direction, times = 1) => {
+        const arrowKey = direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
+        for (let i = 0; i < times; i++) {
+          await this.pressKey(arrowKey);
+        }
+      },
+    },
+    touch: {
+      swipe: async (start, end, opts) => {
+        const duration = opts?.duration;
+        const repeatCount = opts?.repeat ?? 1;
         const hdc = await this.getHdc();
         for (let i = 0; i < repeatCount; i++) {
           await hdc.swipe(
-            startPoint.x,
-            startPoint.y,
-            endPoint.x,
-            endPoint.y,
+            start.x,
+            start.y,
+            end.x,
+            end.y,
             duration ? Math.round(duration) : undefined,
           );
         }
-      }),
-      defineActionKeyboardPress(async (param) => {
-        await this.keyboardPress(param.keyName);
-      }),
-      defineActionCursorMove(async (param) => {
-        const arrowKey =
-          param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
-        const times = param.times ?? 1;
-        for (let i = 0; i < times; i++) {
-          await this.keyboardPress(arrowKey);
-          await sleep(100);
-        }
-      }),
-      defineAction<
-        z.ZodObject<{
-          duration: z.ZodOptional<z.ZodNumber>;
-          locate: ReturnType<typeof getMidsceneLocationSchema>;
-        }>,
-        {
-          duration?: number;
-          locate: LocateResultElement;
-        }
-      >({
-        name: 'LongPress',
-        description: 'Trigger a long press on the screen at specified element',
-        paramSchema: z.object({
-          duration: z
-            .number()
-            .optional()
-            .describe('The duration of the long press in milliseconds'),
-          locate: getMidsceneLocationSchema().describe(
-            'The element to be long pressed',
-          ),
-        }),
-        sample: {
-          locate: { prompt: 'the message bubble' },
-        },
-        call: async (param) => {
-          const element = param.locate;
-          if (!element) {
-            throw new Error('LongPress requires an element to be located');
-          }
-          await this.longPress(element.center[0], element.center[1]);
-        },
-      }),
-      defineActionClearInput(async (param) => {
-        await this.clearInput(param.locate as ElementInfo | undefined);
-      }),
-    ];
+      },
+    },
+    scroll: {
+      scroll: (param) => this.performActionScroll(param),
+    },
+  };
+
+  actionSpace(): DeviceAction<any>[] {
+    const mobileActionContext = {
+      input: this.inputPrimitives,
+      size: () => this.size(),
+      sleep: async (timeMs: number) => {
+        await sleep(timeMs);
+      },
+    };
+    const defaultActions = [...createDefaultMobileActions(mobileActionContext)];
 
     const platformSpecificActions = Object.values(createPlatformActions(this));
 
     const customActions = this.customActions ?? [];
     return [...defaultActions, ...platformSpecificActions, ...customActions];
+  }
+
+  private async performActionScroll(param: ActionScrollParam): Promise<void> {
+    const element = param.locate;
+    const startingPoint = element
+      ? {
+          left: element.center[0],
+          top: element.center[1],
+        }
+      : undefined;
+    const scrollToEventName = param?.scrollType;
+    if (scrollToEventName === 'scrollToTop') {
+      await this.scrollUntilTop(startingPoint);
+    } else if (scrollToEventName === 'scrollToBottom') {
+      await this.scrollUntilBottom(startingPoint);
+    } else if (scrollToEventName === 'scrollToRight') {
+      await this.scrollUntilRight(startingPoint);
+    } else if (scrollToEventName === 'scrollToLeft') {
+      await this.scrollUntilLeft(startingPoint);
+    } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
+      if (param?.direction === 'down' || !param || !param.direction) {
+        await this.scrollDown(param?.distance ?? undefined, startingPoint);
+      } else if (param.direction === 'up') {
+        await this.scrollUp(param.distance ?? undefined, startingPoint);
+      } else if (param.direction === 'left') {
+        await this.scrollLeft(param.distance ?? undefined, startingPoint);
+      } else if (param.direction === 'right') {
+        await this.scrollRight(param.distance ?? undefined, startingPoint);
+      } else {
+        throw new Error(`Unknown scroll direction: ${param.direction}`);
+      }
+      await sleep(500);
+    } else {
+      throw new Error(
+        `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(param)}`,
+      );
+    }
   }
 
   constructor(deviceId: string, options?: HarmonyDeviceOpt) {
@@ -282,6 +200,16 @@ export class HarmonyDevice implements AbstractInterface {
     this.deviceId = deviceId;
     this.options = options;
     this.customActions = options?.customActions;
+
+    if (
+      options?.screenshotResizeScale !== undefined &&
+      !screenshotResizeScaleWarned
+    ) {
+      screenshotResizeScaleWarned = true;
+      console.warn(
+        '[midscene] screenshotResizeScale is deprecated. Use screenshotShrinkFactor in AgentOpt instead.',
+      );
+    }
   }
 
   describe(): string {
@@ -392,6 +320,27 @@ export class HarmonyDevice implements AbstractInterface {
     return this;
   }
 
+  /**
+   * Terminate (force-stop) a HarmonyOS app by bundle name.
+   * Supports app name resolution via setAppNameMapping.
+   * If uri contains "/" (e.g. com.example.app/MainAbility), only the bundle part is used.
+   */
+  public async terminate(uri: string): Promise<void> {
+    const bundlePart = uri.includes('/') ? uri.split('/')[0] : uri;
+    const resolved = this.resolvePackageName(bundlePart) ?? bundlePart;
+    const hdc = await this.getHdc();
+    try {
+      debugDevice(`Terminating app: ${resolved}`);
+      await hdc.forceStop(resolved);
+      debugDevice(`Successfully terminated: ${resolved}`);
+    } catch (error: any) {
+      debugDevice(`Error terminating ${resolved}: ${error}`);
+      throw new Error(`Failed to terminate ${resolved}: ${error.message}`, {
+        cause: error,
+      });
+    }
+  }
+
   async getScreenSize(): Promise<{ width: number; height: number }> {
     if (this.cachedScreenSize) {
       return this.cachedScreenSize;
@@ -405,14 +354,9 @@ export class HarmonyDevice implements AbstractInterface {
 
   async size(): Promise<Size> {
     const screenInfo = await this.getScreenSize();
-    const scale = this.options?.screenshotResizeScale ?? 1;
-
-    const logicalWidth = Math.round(screenInfo.width * scale);
-    const logicalHeight = Math.round(screenInfo.height * scale);
-
     return {
-      width: logicalWidth,
-      height: logicalHeight,
+      width: screenInfo.width,
+      height: screenInfo.height,
     };
   }
 
@@ -478,26 +422,27 @@ export class HarmonyDevice implements AbstractInterface {
     throw new Error('Screenshot buffer is empty after retries');
   }
 
-  async tap(x: number, y: number): Promise<void> {
-    this.lastTapPosition = { x, y };
+  private async tapPoint(point: PointerPoint): Promise<void> {
+    this.lastTapPosition = { x: point.x, y: point.y };
     const hdc = await this.getHdc();
-    await hdc.click(x, y);
+    await hdc.click(point.x, point.y);
   }
 
-  async doubleTap(x: number, y: number): Promise<void> {
+  private async doubleTapPoint(point: PointerPoint): Promise<void> {
     const hdc = await this.getHdc();
-    await hdc.doubleClick(x, y);
+    await hdc.doubleClick(point.x, point.y);
   }
 
-  async longPress(x: number, y: number): Promise<void> {
+  private async longPressPoint(point: PointerPoint): Promise<void> {
     const hdc = await this.getHdc();
-    await hdc.longClick(x, y);
+    await hdc.longClick(point.x, point.y);
   }
 
-  async inputText(
+  private async typeText(
     text: string,
     element?: LocateResultElement,
     shouldReplace?: boolean,
+    options?: HarmonyDeviceInputOpt,
   ): Promise<void> {
     if (!text) return;
 
@@ -529,7 +474,10 @@ export class HarmonyDevice implements AbstractInterface {
 
     await hdc.inputText(x, y, text);
 
-    if (this.options?.autoDismissKeyboard) {
+    const shouldAutoDismissKeyboard =
+      options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
+
+    if (shouldAutoDismissKeyboard) {
       await this.hideKeyboard();
     }
   }
@@ -545,7 +493,7 @@ export class HarmonyDevice implements AbstractInterface {
     await hdc.clearTextField(100);
   }
 
-  async keyboardPress(key: string): Promise<void> {
+  private async pressKey(key: string): Promise<void> {
     const normalizedKey = keyNameAliasMap[key.toLowerCase()] ?? key;
     const harmonyKey =
       harmonyKeyCodeMap[normalizedKey as keyof typeof harmonyKeyCodeMap] ?? key;
@@ -573,11 +521,21 @@ export class HarmonyDevice implements AbstractInterface {
     deltaX = Math.max(-maxNegativeDeltaX, Math.min(deltaX, maxPositiveDeltaX));
     deltaY = Math.max(-maxNegativeDeltaY, Math.min(deltaY, maxPositiveDeltaY));
 
-    const endX = Math.round(startX - deltaX);
-    const endY = Math.round(startY - deltaY);
+    const endX = Math.round(
+      Math.max(
+        screenEdgeMargin,
+        Math.min(width - screenEdgeMargin, startX - deltaX),
+      ),
+    );
+    const endY = Math.round(
+      Math.max(
+        screenEdgeMargin,
+        Math.min(height - screenEdgeMargin, startY - deltaY),
+      ),
+    );
 
     const hdc = await this.getHdc();
-    await hdc.swipe(startX, startY, endX, endY, speed ?? defaultSwipeSpeed);
+    await hdc.fling(startX, startY, endX, endY, speed ?? defaultFastSwipeSpeed);
   }
 
   private async scrollInDirection(
@@ -597,14 +555,20 @@ export class HarmonyDevice implements AbstractInterface {
       const sy = Math.round(startPoint.top);
 
       const endPoints = {
-        down: { x: sx, y: Math.max(0, sy - scrollDistance) },
-        up: { x: sx, y: Math.min(height, sy + scrollDistance) },
-        left: { x: Math.min(width, sx + scrollDistance), y: sy },
-        right: { x: Math.max(0, sx - scrollDistance), y: sy },
+        down: { x: sx, y: Math.max(screenEdgeMargin, sy - scrollDistance) },
+        up: {
+          x: sx,
+          y: Math.min(height - screenEdgeMargin, sy + scrollDistance),
+        },
+        left: {
+          x: Math.min(width - screenEdgeMargin, sx + scrollDistance),
+          y: sy,
+        },
+        right: { x: Math.max(screenEdgeMargin, sx - scrollDistance), y: sy },
       } as const;
 
       const end = endPoints[direction];
-      await hdc.swipe(sx, sy, end.x, end.y);
+      await hdc.fling(sx, sy, end.x, end.y, defaultFastSwipeSpeed);
       return;
     }
 
@@ -646,10 +610,10 @@ export class HarmonyDevice implements AbstractInterface {
       const sy = Math.round(startPoint.top);
 
       const flingTargets = {
-        up: { x: sx, y: Math.round(height) },
-        down: { x: sx, y: 0 },
-        left: { x: Math.round(width), y: sy },
-        right: { x: 0, y: sy },
+        up: { x: sx, y: Math.round(height) - screenEdgeMargin },
+        down: { x: sx, y: screenEdgeMargin },
+        left: { x: Math.round(width) - screenEdgeMargin, y: sy },
+        right: { x: screenEdgeMargin, y: sy },
       } as const;
 
       const target = flingTargets[direction];
@@ -711,21 +675,38 @@ export class HarmonyDevice implements AbstractInterface {
     await hdc.keyEvent('Back');
   }
 
-  async getTimestamp(): Promise<number> {
+  /**
+   * Get the current device-local time as a formatted string.
+   * This avoids formatting a device timestamp in the host machine's timezone.
+   */
+  async getDeviceLocalTimeString(
+    format = 'YYYY-MM-DD HH:mm:ss',
+  ): Promise<string> {
     const hdc = await this.getHdc();
     try {
-      const stdout = await hdc.shell('date +%s%3N');
-      const timestamp = Number.parseInt(stdout.trim(), 10);
+      const stdout = await hdc.shell('date +%Y-%m-%dT%H:%M:%S');
+      const match = stdout
+        .trim()
+        .match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})$/);
 
-      if (Number.isNaN(timestamp)) {
-        throw new Error(`Invalid timestamp format: ${stdout}`);
+      if (!match) {
+        throw new Error(`Invalid device time format: ${stdout}`);
       }
 
-      debugDevice(`Got device time: ${timestamp}`);
-      return timestamp;
+      const [, year, month, day, hours, minutes, seconds] = match;
+      const timeString = format
+        .replace('YYYY', year)
+        .replace('MM', month)
+        .replace('DD', day)
+        .replace('HH', hours)
+        .replace('mm', minutes)
+        .replace('ss', seconds);
+
+      debugDevice(`Got device local time: ${timeString}`);
+      return `${timeString} (${format})`;
     } catch (error) {
-      debugDevice(`Failed to get device time: ${error}`);
-      throw new Error(`Failed to get device time: ${error}`);
+      debugDevice(`Failed to get device local time: ${error}`);
+      throw new Error(`Failed to get device local time: ${error}`);
     }
   }
 
@@ -753,17 +734,28 @@ const launchParamSchema = z.object({
     ),
 });
 
+const terminateParamSchema = z.object({
+  uri: z
+    .string()
+    .describe(
+      'Bundle name or app name to terminate. Prioritize using the exact bundle name the user provided. If the bundle is unknown, use the accurate app name shown on screen, such as Settings or Music.',
+    ),
+});
+
 type RunHdcShellParam = z.infer<typeof runHdcShellParamSchema>;
 type LaunchParam = z.infer<typeof launchParamSchema>;
+type TerminateParam = z.infer<typeof terminateParamSchema>;
 
 export type DeviceActionRunHdcShell = DeviceAction<RunHdcShellParam, string>;
 export type DeviceActionLaunch = DeviceAction<LaunchParam, void>;
+export type DeviceActionTerminate = DeviceAction<TerminateParam, void>;
 
 const createPlatformActions = (
   device: HarmonyDevice,
 ): {
   RunHdcShell: DeviceActionRunHdcShell;
   Launch: DeviceActionLaunch;
+  Terminate: DeviceActionTerminate;
   HarmonyBackButton: DeviceActionHarmonyBackButton;
   HarmonyHomeButton: DeviceActionHarmonyHomeButton;
   HarmonyRecentAppsButton: DeviceActionHarmonyRecentAppsButton;
@@ -802,6 +794,19 @@ const createPlatformActions = (
           throw new Error('Launch requires a non-empty uri parameter');
         }
         await device.launch(param.uri);
+      },
+    }),
+    Terminate: defineAction<typeof terminateParamSchema, TerminateParam, void>({
+      name: 'Terminate',
+      description:
+        'Terminate (force-stop) a HarmonyOS app by bundle name or mapped app name',
+      interfaceAlias: 'terminate',
+      paramSchema: terminateParamSchema,
+      call: async (param) => {
+        if (!param.uri || param.uri.trim() === '') {
+          throw new Error('Terminate requires a non-empty uri parameter');
+        }
+        await device.terminate(param.uri);
       },
     }),
     HarmonyBackButton: defineAction({

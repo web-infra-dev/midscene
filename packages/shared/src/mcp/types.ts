@@ -47,6 +47,15 @@ export type ToolHandler<T = Record<string, unknown>> = (
  */
 export type ToolSchema = Record<string, z.ZodTypeAny>;
 
+export interface ToolCliOption {
+  preferredName?: string;
+  aliases?: string[];
+}
+
+export interface ToolCliMetadata {
+  options?: Record<string, ToolCliOption>;
+}
+
 /**
  * Tool definition for MCP server
  */
@@ -55,6 +64,7 @@ export interface ToolDefinition<T = Record<string, unknown>> {
   description: string;
   schema: ToolSchema;
   handler: ToolHandler<T>;
+  cli?: ToolCliMetadata;
 }
 
 /**
@@ -74,6 +84,22 @@ export interface ActionSpaceItem {
 }
 
 /**
+ * Structural shape compatible with @midscene/core `TUserPrompt`.
+ * Declared locally to avoid a circular dep on `@midscene/core` from `@midscene/shared`.
+ *
+ * Currently consumed only by the `assert` tool in `generateCommonTools`.
+ * `aiAction` and `aiWaitFor` stay string-only at the CLI surface because the
+ * tools generator does not yet expose multimodal entry points for them.
+ */
+export type UserPromptLike =
+  | string
+  | {
+      prompt: string;
+      images?: Array<{ name: string; url: string }>;
+      convertHttpImage2Base64?: boolean;
+    };
+
+/**
  * Base agent interface
  * Represents a platform-specific agent (Android, iOS, Web)
  * Note: Return types use `unknown` for compatibility with platform-specific implementations
@@ -84,6 +110,14 @@ export interface BaseAgent {
   page?: {
     screenshotBase64(): Promise<string>;
   };
+  recordToReport?: (
+    title?: string,
+    opt?: { content?: string; screenshotBase64?: string },
+  ) => Promise<void>;
+  callActionInActionSpace?: (
+    actionName: string,
+    params?: unknown,
+  ) => Promise<unknown>;
   aiAction?: (
     description: string,
     params?: Record<string, unknown>,
@@ -91,6 +125,11 @@ export interface BaseAgent {
   aiWaitFor?: (
     assertion: string,
     options: Record<string, unknown>,
+  ) => Promise<unknown>;
+  aiAssert?: (
+    assertion: UserPromptLike,
+    msg?: string,
+    options?: Record<string, unknown>,
   ) => Promise<unknown>;
 }
 

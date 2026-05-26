@@ -1,6 +1,11 @@
 {
   "name": "@midscene/recorder",
-  "version": "1.6.0",
+  "version": "1.8.5",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/recorder"
+  },
   "type": "module",
   "exports": {
     ".": {

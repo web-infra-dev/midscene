@@ -11,27 +11,21 @@ import {
   PauseOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
-import { Dropdown, Spin, Switch, Tooltip, message } from 'antd';
+import { Button, Dropdown, Progress, Switch, Tooltip, message } from 'antd';
 import GlobalPerspectiveIcon from '../../icons/global-perspective.svg';
 import PlayerSettingIcon from '../../icons/player-setting.svg';
 import { type PlaybackSpeedType, useGlobalPreference } from '../../store/store';
+import type { ReportDownloadHandler } from '../../types';
+import { notifyError } from '../../utils';
 import type { AnimationScript } from '../../utils/replay-scripts';
+import { shouldRestartPlaybackFromBeginning } from './playback-controls';
+import { triggerReportDownload } from './report-download';
 import { StepsTimeline } from './scenes/StepScene';
 import { exportBrandedVideo } from './scenes/export-branded-video';
 import { calculateFrameMap } from './scenes/frame-calculator';
 import type { FrameMap, ScriptFrame } from './scenes/frame-calculator';
 import { getPlaybackFrameState } from './scenes/playback-frame';
 import { useFramePlayer } from './use-frame-player';
-
-const downloadReport = (content: string): void => {
-  const blob = new Blob([content], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'midscene_report.html';
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
-};
 
 function deriveTaskId(
   scriptFrames: ScriptFrame[],
@@ -67,6 +61,7 @@ export function Player(props?: {
   fitMode?: 'width' | 'height';
   autoZoom?: boolean;
   canDownloadReport?: boolean;
+  onDownloadReport?: ReportDownloadHandler;
   onTaskChange?: (taskId: string | null) => void;
 }) {
   const {
@@ -124,19 +119,51 @@ export function Player(props?: {
     playbackRate: playbackSpeed,
   });
 
+  // The last frame that contains real content (skip the trailing End card).
+  // Used as the denominator for the seek bar so the knob can reach 100% when
+  // playback finishes — otherwise it parks at ~80–90% inside the End card.
+  const effectiveEndFrame = useMemo(() => {
+    if (!frameMap) return 0;
+    for (let i = frameMap.scriptFrames.length - 1; i >= 0; i--) {
+      const sf = frameMap.scriptFrames[i];
+      if (sf.taskId) return sf.startFrame + sf.durationInFrames - 1;
+    }
+    return Math.max(0, frameMap.totalDurationInFrames - 1);
+  }, [frameMap]);
+
+  const handlePlaybackToggle = useCallback(() => {
+    if (player.playing) {
+      player.pause();
+      return;
+    }
+
+    if (
+      shouldRestartPlaybackFromBeginning(player.currentFrame, effectiveEndFrame)
+    ) {
+      player.seekTo(0);
+    }
+    player.play();
+  }, [
+    effectiveEndFrame,
+    player.currentFrame,
+    player.pause,
+    player.play,
+    player.playing,
+    player.seekTo,
+  ]);
+
   // When playback stops, seek to the last frame with a taskId (skip the End card)
   useEffect(() => {
     if (!frameMap || player.playing) return;
-    const { scriptFrames, totalDurationInFrames } = frameMap;
-    if (player.currentFrame < totalDurationInFrames - 1) return;
-    for (let i = scriptFrames.length - 1; i >= 0; i--) {
-      const sf = scriptFrames[i];
-      if (sf.taskId) {
-        player.seekTo(sf.startFrame + sf.durationInFrames - 1);
-        break;
-      }
-    }
-  }, [frameMap, player.playing]);
+    if (player.currentFrame < frameMap.totalDurationInFrames - 1) return;
+    if (effectiveEndFrame > 0) player.seekTo(effectiveEndFrame);
+  }, [
+    effectiveEndFrame,
+    frameMap,
+    player.currentFrame,
+    player.playing,
+    player.seekTo,
+  ]);
 
   // Sync taskId to parent: report current task while playing, clear on stop
   useEffect(() => {
@@ -160,6 +187,21 @@ export function Player(props?: {
     return getPlaybackFrameState(frameMap, player.currentFrame);
   }, [frameMap, player.currentFrame]);
 
+  const handleDownloadReport = useCallback(async () => {
+    if (!props?.reportFileContent) {
+      return;
+    }
+
+    try {
+      await triggerReportDownload({
+        content: props.reportFileContent,
+        onDownloadReport: props.onDownloadReport,
+      });
+    } catch (error) {
+      notifyError(error, { title: 'Failed to download report' });
+    }
+  }, [props?.onDownloadReport, props?.reportFileContent]);
+
   const subtitle = useMemo(() => {
     if (!currentFrameState) return null;
     if (!currentFrameState.title && !currentFrameState.subTitle) return null;
@@ -169,6 +211,14 @@ export function Player(props?: {
     };
   }, [currentFrameState]);
 
+  // Export video state (declared up here so the controls auto-hide logic can
+  // see it and keep the control bar visible while an export is in progress —
+  // otherwise the bar fades out, the settings dropdown trigger goes
+  // pointer-events:none, and the dropdown closes mid-export).
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const exportInFlightRef = useRef(false);
+
   // Controls auto-hide
   const [controlsVisible, setControlsVisible] = useState(true);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -176,8 +226,9 @@ export function Player(props?: {
   const showControls = useCallback(() => {
     setControlsVisible(true);
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    if (isExporting) return;
     hideTimerRef.current = setTimeout(() => setControlsVisible(false), 3000);
-  }, []);
+  }, [isExporting]);
 
   const onMouseEnter = useCallback(() => {
     setControlsVisible(true);
@@ -186,8 +237,18 @@ export function Player(props?: {
 
   const onMouseLeave = useCallback(() => {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    if (isExporting) return;
     hideTimerRef.current = setTimeout(() => setControlsVisible(false), 1000);
-  }, []);
+  }, [isExporting]);
+
+  useEffect(() => {
+    if (!isExporting) return;
+    setControlsVisible(true);
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, [isExporting]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -195,12 +256,12 @@ export function Player(props?: {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.code === 'Space') {
         e.preventDefault();
-        player.toggle();
+        handlePlaybackToggle();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [player]);
+  }, [handlePlaybackToggle]);
 
   // Seek bar drag
   const seekBarRef = useRef<HTMLDivElement>(null);
@@ -216,7 +277,7 @@ export function Player(props?: {
           0,
           Math.min(1, (clientX - rect.left) / rect.width),
         );
-        player.seekTo(Math.round(ratio * (frameMap.totalDurationInFrames - 1)));
+        player.seekTo(Math.round(ratio * effectiveEndFrame));
       };
 
       seek(e.clientX);
@@ -229,7 +290,7 @@ export function Player(props?: {
       bar.addEventListener('pointermove', onMove);
       bar.addEventListener('pointerup', onUp);
     },
-    [frameMap, player],
+    [frameMap, player, effectiveEndFrame],
   );
 
   // Fullscreen
@@ -251,42 +312,43 @@ export function Player(props?: {
   }, []);
 
   // Export video
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportProgress, setExportProgress] = useState(0);
-
   const handleExportVideo = useCallback(async () => {
-    if (!frameMap || isExporting) return;
+    if (!frameMap || exportInFlightRef.current) return;
+    exportInFlightRef.current = true;
     setIsExporting(true);
     setExportProgress(0);
     try {
-      await exportBrandedVideo(frameMap, (pct) =>
-        setExportProgress(Math.round(pct * 100)),
+      await exportBrandedVideo(
+        frameMap,
+        {
+          autoZoom,
+        },
+        (pct) => setExportProgress(Math.round(pct * 100)),
       );
       message.success('Video exported');
     } catch (e) {
       console.error('Export failed:', e);
-      message.error('Export failed');
+      notifyError(e, { title: 'Video export failed' });
     } finally {
+      exportInFlightRef.current = false;
       setIsExporting(false);
       setExportProgress(0);
     }
-  }, [frameMap, isExporting]);
+  }, [autoZoom, frameMap]);
 
   // Compute chapter markers
   const chapterMarkers = useMemo(() => {
-    if (!frameMap) return [];
-    const { scriptFrames, totalDurationInFrames } = frameMap;
-    if (totalDurationInFrames === 0) return [];
+    if (!frameMap || effectiveEndFrame <= 0) return [];
 
     const markers: { percent: number; title: string; frame: number }[] = [];
-    for (const sf of scriptFrames) {
+    for (const sf of frameMap.scriptFrames) {
       if (
         (sf.type !== 'img' && sf.type !== 'insight') ||
         sf.durationInFrames === 0
       )
         continue;
       const globalFrame = sf.startFrame;
-      const percent = (globalFrame / totalDurationInFrames) * 100;
+      const percent = (globalFrame / effectiveEndFrame) * 100;
       if (percent > 1 && percent < 99) {
         const parts = [sf.title, sf.subTitle].filter(Boolean);
         markers.push({
@@ -300,11 +362,33 @@ export function Player(props?: {
       }
     }
     return markers;
-  }, [frameMap]);
+  }, [frameMap, effectiveEndFrame]);
 
-  // If no scripts, show empty
+  const reportFileContent = props?.reportFileContent ?? null;
+  const canDownloadReport = props?.canDownloadReport !== false;
+
+  // If no scripts, fall back to a Download-report empty state when a report is
+  // available (e.g. Stop was pressed before any task finished). Otherwise hide
+  // the Player entirely instead of rendering an empty bordered box.
   if (!scripts || scripts.length === 0 || !frameMap) {
-    return <div className="player-container" />;
+    if (reportFileContent && canDownloadReport) {
+      return (
+        <div className="player-container player-container-empty">
+          <div className="player-empty-state">
+            <span className="player-empty-text">No replay available</span>
+            <Button
+              icon={<DownloadOutlined />}
+              onClick={() => {
+                void handleDownloadReport();
+              }}
+            >
+              Download report
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    return null;
   }
 
   const compositionWidth = currentFrameState?.imageWidth || frameMap.imageWidth;
@@ -312,9 +396,10 @@ export function Player(props?: {
     currentFrameState?.imageHeight || frameMap.imageHeight;
   const isPortraitCanvas = compositionHeight > compositionWidth;
 
-  const totalFrames = frameMap.totalDurationInFrames;
   const seekPercent =
-    totalFrames > 1 ? (player.currentFrame / (totalFrames - 1)) * 100 : 0;
+    effectiveEndFrame > 0
+      ? Math.min(100, (player.currentFrame / effectiveEndFrame) * 100)
+      : 0;
 
   return (
     <div className="player-container" data-fit-mode={props?.fitMode}>
@@ -343,7 +428,7 @@ export function Player(props?: {
               height: '100%',
               overflow: 'hidden',
             }}
-            onClick={player.toggle}
+            onClick={handlePlaybackToggle}
           >
             {(() => {
               const scale =
@@ -403,13 +488,16 @@ export function Player(props?: {
           className={`control-bar ${controlsVisible ? '' : 'hidden'}`}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="status-icon" onClick={player.toggle}>
+          <div className="status-icon" onClick={handlePlaybackToggle}>
             {player.playing ? <PauseOutlined /> : <CaretRightOutlined />}
           </div>
 
           <span className="time-display">
-            {formatTime(player.currentFrame, frameMap.fps)} /{' '}
-            {formatTime(totalFrames, frameMap.fps)}
+            {formatTime(
+              Math.min(player.currentFrame, effectiveEndFrame),
+              frameMap.fps,
+            )}{' '}
+            / {formatTime(effectiveEndFrame + 1, frameMap.fps)}
           </span>
 
           <div
@@ -445,11 +533,13 @@ export function Player(props?: {
 
           {/* Custom controls */}
           <div className="player-custom-controls">
-            {props?.reportFileContent && props?.canDownloadReport !== false ? (
+            {reportFileContent && canDownloadReport ? (
               <Tooltip title="Download Report">
                 <div
                   className="status-icon"
-                  onClick={() => downloadReport(props.reportFileContent!)}
+                  onClick={() => {
+                    void handleDownloadReport();
+                  }}
                 >
                   <DownloadOutlined />
                 </div>
@@ -477,14 +567,33 @@ export function Player(props?: {
                     }}
                     onClick={isExporting ? undefined : handleExportVideo}
                   >
-                    {isExporting ? (
-                      <Spin size="small" />
-                    ) : (
-                      <ExportOutlined
-                        style={{ width: '16px', height: '16px' }}
-                      />
-                    )}
-                    <span style={{ fontSize: '14px' }}>
+                    <span
+                      style={{
+                        width: 16,
+                        height: 16,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {isExporting ? (
+                        <Progress
+                          type="circle"
+                          percent={exportProgress}
+                          size={16}
+                          strokeWidth={14}
+                          showInfo={false}
+                          strokeColor="#1677ff"
+                          trailColor="rgba(0, 0, 0, 0.12)"
+                        />
+                      ) : (
+                        <ExportOutlined
+                          style={{ width: '16px', height: '16px' }}
+                        />
+                      )}
+                    </span>
+                    <span className="player-export-label">
                       {isExporting
                         ? `Exporting ${exportProgress}%`
                         : 'Export video'}
@@ -583,7 +692,7 @@ export function Player(props?: {
                       style={{
                         height: '32px',
                         lineHeight: '32px',
-                        padding: '0 8px 0 24px',
+                        padding: '0 8px 0 28px',
                         fontSize: '14px',
                         cursor: 'pointer',
                         borderRadius: '4px',

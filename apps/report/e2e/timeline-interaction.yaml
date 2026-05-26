@@ -7,15 +7,6 @@ tasks:
       - sleep: 2000
       - aiAssert: A timeline or "Record" section is visible on the page with screenshot thumbnails or a time axis
 
-  - name: collapse and expand timeline
-    flow:
-      - ai: Click the text "Record" with the "▼" arrow icon to collapse the timeline section
-      - sleep: 2000
-      - aiAssert: The arrow icon next to "Record" is now pointing sideways (right) instead of downward
-      - ai: Click the "Record" text with the arrow icon again to expand it back
-      - sleep: 2000
-      - aiAssert: The timeline section is expanded again showing screenshot thumbnails or time axis
-
   - name: click timeline screenshot to navigate
     flow:
       - ai: Click on a screenshot thumbnail in the timeline area

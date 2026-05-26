@@ -1,5 +1,8 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { createReportCliCommands } from '@midscene/core';
+import { runToolsCLI } from '@midscene/shared/cli';
+import type { BaseMidsceneTools } from '@midscene/shared/mcp/base-tools';
 import dotenv from 'dotenv';
 import { version } from '../package.json';
 import { BatchRunner } from './batch-runner';
@@ -8,6 +11,25 @@ import { createConfig, createFilesConfig } from './config-factory';
 
 Promise.resolve(
   (async () => {
+    const rawArgs = process.argv.slice(2);
+    const [firstArg] = rawArgs;
+    if (firstArg === 'report-tool') {
+      await runToolsCLI(
+        {
+          initTools: async () => undefined,
+          destroy: async () => undefined,
+          getToolDefinitions: () => [],
+        } as unknown as BaseMidsceneTools,
+        'midscene',
+        {
+          argv: rawArgs,
+          version,
+          extraCommands: createReportCliCommands(),
+        },
+      );
+      return;
+    }
+
     const { options, path, files: cmdFiles } = await parseProcessArgs();
 
     const welcome = `\nWelcome to @midscene/cli v${version}\n`;

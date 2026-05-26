@@ -1,4 +1,4 @@
-import type { GroupedActionDump } from '@midscene/core';
+import type { ReportActionDump } from '@midscene/core';
 
 // Core visualization types
 export interface PlaywrightTaskAttributes {
@@ -12,10 +12,11 @@ export interface PlaywrightTaskAttributes {
     | 'skipped'
     | 'interrupted';
   playwright_test_duration: number;
+  is_merged?: boolean;
 }
 
 export interface PlaywrightTasks {
-  get: () => GroupedActionDump;
+  get: () => ReportActionDump;
   attributes: PlaywrightTaskAttributes;
 }
 

@@ -10,14 +10,14 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   overflow: hidden;
   animation: textGradient 8s ease infinite;
-  background-image: linear-gradient(45deg, #2b83ff, #6a11cb, #2575fc, #4481eb);
+  background-image: linear-gradient(45deg, #2b83ff, #1d9bf0, #2575fc, #4481eb);
 
   // Color themes
   &.theme-blue {
     background-image: linear-gradient(
       45deg,
       #2b83ff,
-      #6a11cb,
+      #1d9bf0,
       #2575fc,
       #4481eb
     );
@@ -55,6 +55,12 @@
     background-size: 400% auto;
   }
 
+  // Light-mode shine: an absolutely-positioned bright stripe slides across
+  // the bounding box. It looks good on a light app surface because the
+  // white-ish gradient blends into the white-ish background everywhere
+  // *except* over the colored text glyphs underneath. In dark mode the
+  // same overlay reads as a bright rectangle sweeping the empty container
+  // area — so the dark-mode block below opts out of this layer.
   &::after {
     content: '';
     position: absolute;
@@ -91,13 +97,7 @@
 }
 
 [data-theme='dark'] .shiny-text {
-  background-image: linear-gradient(
-    45deg,
-    #a78bfa,
-    #c084fc,
-    #e879f9,
-    #c084fc
-  );
+  background-image: linear-gradient(45deg, #7dd3fc, #60a5fa, #38bdf8, #60a5fa);
   background-size: 300% auto;
   -webkit-background-clip: text;
   background-clip: text;
@@ -106,15 +106,11 @@
   text-shadow: none;
   animation: textGradient 8s ease infinite;
 
+  // The light-mode shine layer flashes the entire text container against
+  // the dark app surface, so we suppress it here and let the base
+  // gradient (which is text-clipped) do all the shimmering on its own.
   &::after {
-    background: linear-gradient(
-      90deg,
-      rgba(197, 184, 255, 0) 0%,
-      rgba(197, 184, 255, 0.05) 10%,
-      rgba(197, 184, 255, 0.15) 50%,
-      rgba(197, 184, 255, 0.05) 90%,
-      rgba(197, 184, 255, 0) 100%
-    );
+    display: none;
   }
 }
 

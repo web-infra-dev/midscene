@@ -1,6 +1,6 @@
 import { PlayCircleOutlined } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core';
-import { staticAgentFromContext, useEnvConfig } from '@midscene/visualizer';
+import { staticAgentFromContext } from '@midscene/visualizer';
 import type { WebUIContext } from '@midscene/web';
 import {
   Button,
@@ -10,57 +10,16 @@ import {
   type TabsProps,
   Tooltip,
 } from 'antd';
-import { useEffect, useState } from 'react';
-import { getReportPlaygroundSDK } from '../../utils/report-playground-utils';
+import { useState } from 'react';
 import { StandardPlayground } from '../playground';
-
-// Create PlaygroundSDK instance for server communication
-const getPlaygroundSDK = () => {
-  return getReportPlaygroundSDK('Server');
-};
 
 const errorMessageNoContext = `No context info found.
 Try to select another task like 'Locate'
 `;
 
-const checkStatus = async () => {
-  const sdk = getPlaygroundSDK();
-  return sdk.checkStatus();
-};
-
 const tabKeys = {
   PLAYGROUND: 'playground',
   ELEMENT_DESCRIBER: 'element-describer',
-};
-
-export const useServerValid = (shouldRun = true) => {
-  const [serverValid, setServerValid] = useState(false);
-  const { serviceMode } = useEnvConfig();
-
-  useEffect(() => {
-    let interruptFlag = false;
-    if (!shouldRun) return;
-    Promise.resolve(
-      (async () => {
-        while (!interruptFlag) {
-          const status = await checkStatus();
-          if (status) {
-            setServerValid(true);
-          } else {
-            setServerValid(false);
-          }
-          // sleep 1s
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-      })(),
-    );
-
-    return () => {
-      interruptFlag = true;
-    };
-  }, [serviceMode, shouldRun]);
-
-  return serverValid;
 };
 
 export default function OpenInPlayground(props?: { context?: UIContext }) {

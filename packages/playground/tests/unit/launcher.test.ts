@@ -4,6 +4,7 @@ import {
   playgroundForAgent,
   playgroundForAgentFactory,
 } from '../../src/launcher';
+import { launchPreparedPlaygroundPlatform } from '../../src/platform-launcher';
 
 function createMockAgent() {
   return {
@@ -56,5 +57,32 @@ describe('playground launcher', () => {
     expect(configuredServer).toBe(result.server);
 
     await result.close();
+  });
+
+  it('should manage prepared platform sidecars for direct agent platforms', async () => {
+    const sidecar = {
+      id: 'mock-sidecar',
+      start: vi.fn(async () => {}),
+      stop: vi.fn(async () => {}),
+    };
+
+    const result = await launchPreparedPlaygroundPlatform(
+      {
+        platformId: 'mock',
+        title: 'Mock',
+        agent: createMockAgent(),
+        sidecars: [sidecar],
+      },
+      {
+        port: 5923,
+        openBrowser: false,
+        verbose: false,
+        staticPath,
+      },
+    );
+
+    expect(sidecar.start).toHaveBeenCalledTimes(1);
+    await result.close();
+    expect(sidecar.stop).toHaveBeenCalledTimes(1);
   });
 });

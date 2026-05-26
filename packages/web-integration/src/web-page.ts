@@ -1,33 +1,17 @@
-import assert from 'node:assert';
 import type { Point } from '@midscene/core';
 import { z } from '@midscene/core';
 import {
   AbstractInterface,
+  type BrowserInputPrimitives,
   type DeviceAction,
   defineAction,
-  defineActionClearInput,
-  defineActionCursorMove,
-  defineActionDoubleClick,
-  defineActionDragAndDrop,
-  defineActionHover,
-  defineActionInput,
-  defineActionKeyboardPress,
-  defineActionLongPress,
-  defineActionPinch,
-  defineActionRightClick,
-  defineActionScroll,
-  defineActionSwipe,
-  defineActionTap,
-  normalizePinchParam,
+  defineActionsFromInputPrimitives,
 } from '@midscene/core/device';
 
 import { sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { getDebug } from '@midscene/shared/logger';
 import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
 import { InteractionMode } from './web-element';
-
-const debug = getDebug('web:page');
 
 const navigateParamSchema = z.object({
   url: z
@@ -388,6 +372,10 @@ export abstract class AbstractWebPage extends AbstractInterface {
   navigate?(url: string): Promise<void>;
   reload?(): Promise<void>;
   goBack?(): Promise<void>;
+  goForward?(): Promise<void>;
+  stopLoading?(): Promise<void>;
+  navigationState?(): Promise<{ isLoading: boolean }>;
+  flushPendingVisualUpdate?(): Promise<void>;
 
   get mouse(): MouseAction {
     return {
@@ -441,272 +429,203 @@ export abstract class AbstractWebPage extends AbstractInterface {
   ): Promise<void>;
 }
 
+export function createWebInputPrimitives(
+  page: AbstractWebPage,
+): BrowserInputPrimitives {
+  return {
+    pointer: {
+      tap: async ({ x, y }) => {
+        await page.mouse.click(x, y, { button: 'left' });
+      },
+      rightClick: async ({ x, y }) => {
+        await page.mouse.click(x, y, { button: 'right' });
+      },
+      doubleClick: async ({ x, y }) => {
+        await page.mouse.click(x, y, { button: 'left', count: 2 });
+      },
+      hover: async ({ x, y }) => {
+        await page.mouse.move(x, y);
+      },
+      dragAndDrop: async (from, to) => {
+        await page.mouse.drag(from, to);
+      },
+      longPress: async ({ x, y }, opts) => {
+        await page.longPress(x, y, opts?.duration);
+      },
+    },
+    keyboard: {
+      typeText: async (value, opts) => {
+        const element = opts?.target;
+        if (element && opts?.replace !== false) {
+          await page.clearInput(element as ElementInfo);
+        } else if (element) {
+          const target = element as ElementInfo;
+          await page.mouse.click(target.center[0], target.center[1], {
+            button: 'left',
+          });
+          await page.keyboard.press([{ key: 'End' }]);
+        }
+
+        if (opts?.focusOnly) {
+          return;
+        }
+
+        await page.keyboard.type(value);
+        await page.flushPendingVisualUpdate?.();
+      },
+      keyboardPress: async (keyName, opts) => {
+        const element = opts?.target as
+          | { center: [number, number] }
+          | undefined;
+        if (element) {
+          await page.mouse.click(element.center[0], element.center[1], {
+            button: 'left',
+          });
+        }
+
+        const keys = getKeyCommands(keyName);
+        await page.keyboard.press(keys as any);
+        await page.flushPendingVisualUpdate?.();
+      },
+      cursorMove: async (direction, times = 1) => {
+        const arrowKey = direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
+        for (let i = 0; i < times; i++) {
+          await page.keyboard.press([{ key: arrowKey as any }]);
+          await sleep(100);
+        }
+      },
+      clearInput: async (target) => {
+        await page.clearInput(target as ElementInfo | undefined);
+      },
+    },
+    touch: {
+      pinch: async ({ x, y }, opts) => {
+        await page.pinch(
+          x,
+          y,
+          opts.startDistance,
+          opts.endDistance,
+          opts.duration,
+        );
+      },
+      swipe: async (from, to, opts) => {
+        await page.swipe(from, to, opts?.duration);
+      },
+    },
+    scroll: {
+      scroll: async (param) => {
+        const element = param.locate;
+        const startingPoint = element
+          ? {
+              left: element.center[0],
+              top: element.center[1],
+            }
+          : undefined;
+        const scrollToEventName = param?.scrollType;
+        if (scrollToEventName === 'scrollToTop') {
+          await page.scrollUntilTop(startingPoint);
+        } else if (scrollToEventName === 'scrollToBottom') {
+          await page.scrollUntilBottom(startingPoint);
+        } else if (scrollToEventName === 'scrollToRight') {
+          await page.scrollUntilRight(startingPoint);
+        } else if (scrollToEventName === 'scrollToLeft') {
+          await page.scrollUntilLeft(startingPoint);
+        } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
+          if (param?.direction === 'down' || !param || !param.direction) {
+            await page.scrollDown(param?.distance || undefined, startingPoint);
+          } else if (param.direction === 'up') {
+            await page.scrollUp(param.distance || undefined, startingPoint);
+          } else if (param.direction === 'left') {
+            await page.scrollLeft(param.distance || undefined, startingPoint);
+          } else if (param.direction === 'right') {
+            await page.scrollRight(param.distance || undefined, startingPoint);
+          } else {
+            throw new Error(`Unknown scroll direction: ${param.direction}`);
+          }
+          await sleep(500);
+        } else {
+          throw new Error(
+            `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
+              param,
+            )}`,
+          );
+        }
+      },
+    },
+  };
+}
+
 export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
   page: T,
   interactionMode: InteractionMode = InteractionMode.Mouse,
-): DeviceAction<any>[] => [
-  defineActionTap(async (param) => {
-    const element = param.locate;
-    assert(element, 'Element not found, cannot tap');
+): DeviceAction<any>[] => {
+  const input = createWebInputPrimitives(page);
+  const includeTouchActions = interactionMode === InteractionMode.Touch;
 
-    // Pure tap action - file handling is done at Page layer via setFileChooserHandler
-    await page.mouse.click(element.center[0], element.center[1], {
-      button: 'left',
-    });
-  }),
-  defineActionRightClick(async (param) => {
-    const element = param.locate;
-    assert(element, 'Element not found, cannot right click');
-    await page.mouse.click(element.center[0], element.center[1], {
-      button: 'right',
-    });
-  }),
-  defineActionDoubleClick(async (param) => {
-    const element = param.locate;
-    assert(element, 'Element not found, cannot double click');
+  return [
+    ...defineActionsFromInputPrimitives(input, {
+      size: () => page.size(),
+      sleep: async (timeMs) => {
+        await sleep(timeMs);
+      },
+      includeSwipe: includeTouchActions,
+      includePinch: includeTouchActions,
+    }),
 
-    await page.mouse.click(element.center[0], element.center[1], {
-      button: 'left',
-      count: 2,
-    });
-  }),
-  defineActionHover(async (param) => {
-    const element = param.locate;
-    assert(element, 'Element not found, cannot hover');
-    await page.mouse.move(element.center[0], element.center[1]);
-  }),
-  defineActionInput(async (param) => {
-    const element = param.locate;
-    if (element && param.mode !== 'typeOnly') {
-      await page.clearInput(element as unknown as ElementInfo);
-    } else if (element && param.mode === 'typeOnly') {
-      // typeOnly mode: click to focus and move cursor to end, but don't clear
-      await page.mouse.click(element.center[0], element.center[1], {
-        button: 'left',
-      });
-      await page.keyboard.press([{ key: 'End' }]);
-    }
-
-    if (param.mode === 'clear') {
-      return;
-    }
-
-    if (!param || !param.value) {
-      return;
-    }
-
-    // Note: there is another implementation in AndroidDevicePage, which is more complex
-    await page.keyboard.type(param.value);
-  }),
-  defineActionKeyboardPress(async (param) => {
-    const element = param.locate;
-    if (element) {
-      await page.mouse.click(element.center[0], element.center[1], {
-        button: 'left',
-      });
-    }
-
-    const keys = getKeyCommands(param.keyName);
-    await page.keyboard.press(keys as any); // TODO: fix this type error
-  }),
-  defineActionCursorMove(async (param) => {
-    const arrowKey = param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
-    const times = param.times ?? 1;
-    for (let i = 0; i < times; i++) {
-      await page.keyboard.press([{ key: arrowKey as any }]);
-      await sleep(100);
-    }
-  }),
-  defineActionScroll(async (param) => {
-    const element = param.locate;
-    const startingPoint = element
-      ? {
-          left: element.center[0],
-          top: element.center[1],
+    defineAction<typeof navigateParamSchema, { url: string }>({
+      name: 'Navigate',
+      description:
+        'Navigate the browser to a specified URL. Opens the URL in the current tab.',
+      paramSchema: navigateParamSchema,
+      sample: {
+        url: 'https://www.example.com',
+      },
+      call: async (param) => {
+        if (!page.navigate) {
+          throw new Error(
+            'Navigate operation is not supported on this page type',
+          );
         }
-      : undefined;
-    const scrollToEventName = param?.scrollType;
-    if (scrollToEventName === 'scrollToTop') {
-      await page.scrollUntilTop(startingPoint);
-    } else if (scrollToEventName === 'scrollToBottom') {
-      await page.scrollUntilBottom(startingPoint);
-    } else if (scrollToEventName === 'scrollToRight') {
-      await page.scrollUntilRight(startingPoint);
-    } else if (scrollToEventName === 'scrollToLeft') {
-      await page.scrollUntilLeft(startingPoint);
-    } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
-      if (param?.direction === 'down' || !param || !param.direction) {
-        await page.scrollDown(param?.distance || undefined, startingPoint);
-      } else if (param.direction === 'up') {
-        await page.scrollUp(param.distance || undefined, startingPoint);
-      } else if (param.direction === 'left') {
-        await page.scrollLeft(param.distance || undefined, startingPoint);
-      } else if (param.direction === 'right') {
-        await page.scrollRight(param.distance || undefined, startingPoint);
-      } else {
-        throw new Error(`Unknown scroll direction: ${param.direction}`);
-      }
-      // until mouse event is done
-      await sleep(500);
-    } else {
-      throw new Error(
-        `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
-          param,
-        )}`,
-      );
-    }
-  }),
-  defineActionDragAndDrop(async (param) => {
-    const from = param.from;
-    const to = param.to;
-    assert(from, 'missing "from" param for drag and drop');
-    assert(to, 'missing "to" param for drag and drop');
-    await page.mouse.drag(
-      {
-        x: from.center[0],
-        y: from.center[1],
+        await page.navigate(param.url);
       },
-      {
-        x: to.center[0],
-        y: to.center[1],
+    }),
+
+    defineAction({
+      name: 'Reload',
+      description: 'Reload the current page',
+      call: async () => {
+        if (!page.reload) {
+          throw new Error(
+            'Reload operation is not supported on this page type',
+          );
+        }
+        await page.reload();
       },
-    );
-  }),
+    }),
 
-  defineActionLongPress(async (param) => {
-    const element = param.locate;
-    assert(element, 'Element not found, cannot long press');
-    const duration = param?.duration;
-    await page.longPress(element.center[0], element.center[1], duration);
-  }),
-
-  ...(interactionMode === InteractionMode.Touch
-    ? [
-        defineActionPinch(async (param) => {
-          const { centerX, centerY, startDistance, endDistance, duration } =
-            normalizePinchParam(param, await page.size());
-
-          await page.pinch(
-            centerX,
-            centerY,
-            startDistance,
-            endDistance,
-            duration,
+    defineAction({
+      name: 'GoBack',
+      description: 'Navigate back in browser history',
+      call: async () => {
+        if (!page.goBack) {
+          throw new Error(
+            'GoBack operation is not supported on this page type',
           );
-        }),
-        defineActionSwipe(async (param) => {
-          const { width, height } = await page.size();
-          const { start, end } = param;
-
-          const startPoint = start
-            ? {
-                x: start.center[0],
-                y: start.center[1],
-              }
-            : {
-                x: width / 2,
-                y: height / 2,
-              };
-
-          let endPoint: {
-            x: number;
-            y: number;
-          };
-
-          if (end) {
-            endPoint = {
-              x: end.center[0],
-              y: end.center[1],
-            };
-          } else if (param.distance) {
-            const direction = param.direction;
-            if (!direction) {
-              throw new Error('direction is required for swipe gesture');
-            }
-
-            endPoint = {
-              x:
-                startPoint.x +
-                (direction === 'right'
-                  ? param.distance
-                  : direction === 'left'
-                    ? -param.distance
-                    : 0),
-              y:
-                startPoint.y +
-                (direction === 'down'
-                  ? param.distance
-                  : direction === 'up'
-                    ? -param.distance
-                    : 0),
-            };
-          } else {
-            throw new Error(
-              'Either end or distance must be specified for swipe gesture',
-            );
-          }
-
-          // Ensure end coordinates are within bounds
-          endPoint.x = Math.max(0, Math.min(endPoint.x, width));
-          endPoint.y = Math.max(0, Math.min(endPoint.y, height));
-
-          const duration = param.duration;
-
-          debug(
-            `swipe from ${startPoint.x}, ${startPoint.y} to ${endPoint.x}, ${endPoint.y} with duration ${duration}ms, repeat is set to ${param.repeat}`,
+        }
+        await page.goBack();
+      },
+    }),
+    defineAction({
+      name: 'GoForward',
+      description: 'Navigate forward in browser history',
+      call: async () => {
+        if (!page.goForward) {
+          throw new Error(
+            'GoForward operation is not supported on this page type',
           );
-          let repeat = typeof param.repeat === 'number' ? param.repeat : 1;
-          if (repeat === 0) {
-            repeat = 10; // 10 times is enough for infinite swipe
-          }
-          for (let i = 0; i < repeat; i++) {
-            await page.swipe(startPoint, endPoint, duration);
-          }
-        }),
-      ]
-    : []),
-
-  defineActionClearInput(async (param) => {
-    await page.clearInput(param.locate as ElementInfo | undefined);
-  }),
-
-  defineAction<typeof navigateParamSchema, { url: string }>({
-    name: 'Navigate',
-    description:
-      'Navigate the browser to a specified URL. Opens the URL in the current tab.',
-    paramSchema: navigateParamSchema,
-    sample: {
-      url: 'https://www.example.com',
-    },
-    call: async (param) => {
-      if (!page.navigate) {
-        throw new Error(
-          'Navigate operation is not supported on this page type',
-        );
-      }
-      await page.navigate(param.url);
-    },
-  }),
-
-  defineAction({
-    name: 'Reload',
-    description: 'Reload the current page',
-    call: async () => {
-      if (!page.reload) {
-        throw new Error('Reload operation is not supported on this page type');
-      }
-      await page.reload();
-    },
-  }),
-
-  defineAction({
-    name: 'GoBack',
-    description: 'Navigate back in browser history',
-    call: async () => {
-      if (!page.goBack) {
-        throw new Error('GoBack operation is not supported on this page type');
-      }
-      await page.goBack();
-    },
-  }),
-];
+        }
+        await page.goForward();
+      },
+    }),
+  ];
+};

@@ -9,36 +9,21 @@ const main = async () => {
   const { default: open } = await import('open');
 
   try {
+    const scrcpyServer = new ScrcpyServer();
     const prepared = await androidPlaygroundPlatform.prepare({
       staticDir,
+      scrcpyServer,
     });
-    const selectedDeviceId = prepared.metadata?.deviceId;
-    if (typeof selectedDeviceId !== 'string' || !selectedDeviceId) {
-      throw new Error(
-        'Android playground prepared metadata is missing a deviceId',
-      );
-    }
-    console.log(`✅ Selected device: ${selectedDeviceId}`);
-
-    const scrcpyServer = new ScrcpyServer();
-
-    // Set the selected device in scrcpy server
-    scrcpyServer.currentDeviceId = selectedDeviceId;
-    const scrcpyPort = Number(prepared.metadata?.scrcpyPort);
 
     console.log('🚀 Starting servers...');
 
-    const [playgroundResult] = await Promise.all([
-      launchPreparedPlaygroundPlatform(prepared),
-      scrcpyServer.launch(scrcpyPort),
-    ]);
+    const playgroundResult = await launchPreparedPlaygroundPlatform(prepared);
 
     const playgroundServer = playgroundResult.server;
 
     console.log('');
     console.log('✨ Midscene Android Playground is ready!');
     console.log(`🎮 Playground: http://localhost:${playgroundServer.port}`);
-    console.log(`📱 Device: ${selectedDeviceId}`);
     console.log(`🔑 Generated Server ID: ${playgroundServer.id}`);
     console.log('');
 

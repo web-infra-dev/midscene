@@ -1,10 +1,6 @@
 import './index.less';
 import { useAllCurrentTasks, useExecutionDump } from '@/components/store';
-import type {
-  AIUsageInfo,
-  ExecutionTask,
-  ExecutionTaskPlanningLocate,
-} from '@midscene/core';
+import type { AIUsageInfo, ExecutionTask } from '@midscene/core';
 import { typeStr } from '@midscene/core/agent';
 import {
   type AnimationScript,
@@ -17,6 +13,10 @@ import CameraIcon from '../../icons/camera.svg?react';
 import MessageIcon from '../../icons/message.svg?react';
 import PlayIcon from '../../icons/play.svg?react';
 import type { PlaywrightTasks } from '../../types';
+import {
+  hasDeepLocateFlag,
+  hasDeepThinkFlag,
+} from '../../utils/report-task-tags';
 import ReportOverview from '../report-overview';
 
 // Extended task type with searchAreaUsage
@@ -176,8 +176,33 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     ) : null;
   };
 
+  const getDomIncludedTag = (task: ExecutionTaskWithSearchAreaUsage) => {
+    const isDomIncludedInsightTask =
+      task.type === 'Insight' &&
+      (
+        task as ExecutionTask & {
+          param?: { domIncluded?: boolean | 'visible-only' };
+        }
+      )?.param?.domIncluded;
+
+    return isDomIncludedInsightTask ? (
+      <Tag
+        className="domincluded-tag"
+        bordered={false}
+        style={{
+          padding: '0 4px',
+          marginLeft: '4px',
+          marginRight: 0,
+          lineHeight: '16px',
+        }}
+      >
+        DomIncluded
+      </Tag>
+    ) : null;
+  };
+
   const getDeepLocateTag = (task: ExecutionTaskWithSearchAreaUsage) => {
-    return (task as ExecutionTaskPlanningLocate)?.param?.deepLocate ? (
+    return hasDeepLocateFlag(task) ? (
       <Tag
         className="deeplocate-tag"
         bordered={false}
@@ -194,12 +219,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
   };
 
   const getDeepThinkTag = (task: ExecutionTaskWithSearchAreaUsage) => {
-    // deepThink is an aiAct planning-phase option, not a per-locate-task param.
-    // It is not stored in ExecutionTaskPlanningLocate.param; using a generic cast
-    // here to avoid incorrectly coupling it to the locate task type.
-    const param = (task as ExecutionTask & { param?: { deepThink?: boolean } })
-      ?.param;
-    return param?.deepThink ? (
+    return hasDeepThinkFlag(task) ? (
       <Tag
         className="deepthink-tag"
         bordered={false}
@@ -507,6 +527,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             <span>{taskName}</span>
             {getTitleIcon(task)}
             {getCacheTag(task)}
+            {getDomIncludedTag(task)}
             {getDeepLocateTag(task)}
             {getDeepThinkTag(task)}
           </div>

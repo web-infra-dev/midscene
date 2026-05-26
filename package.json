@@ -1,13 +1,16 @@
 {
   "name": "midscene",
   "private": true,
-  "version": "1.6.0",
+  "version": "1.8.5",
   "scripts": {
     "dev": "node scripts/dev-prepare.js && nx run-many --target=build:watch --exclude=android-playground,chrome-extension,@midscene/report,doc --verbose --parallel=6",
     "build": "nx run-many --target=build --exclude=doc --verbose",
+    "build:packages": "pnpm -r --filter './packages/**' --if-present run build",
     "build:skip-cache": "npm run clean && nx run-many --target=build --exclude=doc --verbose --skip-nx-cache",
-    "test": "nx run-many --target=test --projects=@midscene/core,@midscene/shared,@midscene/visualizer,@midscene/web,@midscene/cli,@midscene/android,@midscene/ios,@midscene/computer,@midscene/android-mcp,@midscene/ios-mcp,@midscene/web-bridge-mcp,@midscene/playground  --verbose",
+    "test": "nx run-many --target=test --projects=@midscene/core,@midscene/shared,@midscene/visualizer,@midscene/web,@midscene/cli,@midscene/android,@midscene/ios,@midscene/computer,@midscene/android-mcp,@midscene/ios-mcp,@midscene/web-bridge-mcp,@midscene/playground,studio  --verbose",
+    "test:coverage": "nx run-many --target=test --projects=@midscene/core,@midscene/shared,@midscene/visualizer,@midscene/web,@midscene/cli,@midscene/android,@midscene/ios,@midscene/computer,@midscene/android-mcp,@midscene/ios-mcp,@midscene/web-bridge-mcp,@midscene/playground,studio --verbose -- --coverage",
     "test:ai": "nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli,@midscene/computer --verbose",
+    "test:ai:coverage": "MIDSCENE_COVERAGE_DIR=coverage-ai nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli,@midscene/computer --verbose -- --coverage",
     "e2e": "nx run @midscene/web:e2e --verbose --exclude-task-dependencies",
     "e2e:cache": "nx run @midscene/web:e2e:cache --verbose  --exclude-task-dependencies",
     "e2e:report": "nx run @midscene/web:e2e:report --verbose  --exclude-task-dependencies",
@@ -27,9 +30,9 @@
     "commit-msg": "npx --no -- commitlint --edit $1"
   },
   "lint-staged": {
-    "*.{md,mdx,json,css,less,scss}": [
-      "npx biome check --diagnostic-level=info --fix"
-    ],
+    "*.{json,css}": ["npx biome check --diagnostic-level=info --fix"],
+    "*.{md,mdx}": ["npx prettier --write"],
+    "*.{less,scss}": ["npx prettier --write"],
     "*.{js,jsx,ts,tsx,mjs,cjs}": [
       "npx biome check --diagnostic-level=info --fix"
     ],
@@ -50,6 +53,8 @@
     "@commitlint/config-conventional": "19.8.0",
     "@esm2cjs/execa": "6.1.1-cjs.1",
     "@jsdevtools/version-bump-prompt": "6.1.0",
+    "@types/node": "^18.0.0",
+    "@vitest/coverage-v8": "3.0.5",
     "chalk": "4.1.2",
     "check-dependency-version-consistency": "^4.1.1",
     "commitizen": "4.2.5",

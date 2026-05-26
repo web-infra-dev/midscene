@@ -6,7 +6,6 @@ describe('maskConfig', () => {
   it('key will be masked', () => {
     const config: IModelConfig = {
       modelName: 'test-model',
-      from: 'env',
       openaiApiKey: 'sk-thisisafakekeythatislongenough',
       socksProxy: 'socks://proxy.example.com:1080',
       httpProxy: 'http://proxy.example.com:8080',
@@ -15,11 +14,12 @@ describe('maskConfig', () => {
       modelFamily: 'doubao-vision',
       modelDescription: '',
       intent: 'default',
+      slot: 'default',
     };
     expect(maskConfig(config)).toEqual({
-      from: 'env',
       httpProxy: 'http://proxy.example.com:8080',
       intent: 'default',
+      slot: 'default',
       modelDescription: '',
       modelName: 'test-model',
       openaiApiKey: 'sk-***************************ugh',

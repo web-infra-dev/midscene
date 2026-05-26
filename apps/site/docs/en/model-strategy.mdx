@@ -6,12 +6,11 @@ import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connect
 
 If you want to try Midscene right away, pick a model and follow its configuration guide:
 * [Doubao Seed Model](./model-common-config#doubao-seed-model)
-* Qwen Models: [Qwen3.5](./model-common-config#qwen35), [Qwen3-VL](./model-common-config#qwen3-vl), [Qwen2.5-VL](./model-common-config#qwen25-vl)
+* [Qwen3.X Series](./model-common-config#qwen3x), [Qwen3-VL](./model-common-config#qwen3-vl)
 * [Zhipu GLM-V](./model-common-config#glm-v)
 * [Zhipu AutoGLM](./model-common-config#auto-glm)
-* [Gemini-3-Pro / Gemini-3-Flash](./model-common-config#gemini-3-pro)
+* [Gemini-3-Flash](./model-common-config#gemini-3-pro)
 * [GPT-5.4](./model-common-config#gpt-5-4)
-* [UI-TARS](./model-common-config#ui-tars)
 
 :::
 
@@ -44,7 +43,7 @@ Given these advantages, **Midscene 1.0 and later only support the pure-vision ap
 
 ## Recommended vision models
 
-Based on extensive real-world usage, we recommend these defaults for Midscene: Doubao Seed, Qwen VL, Gemini-3 (Pro/Flash), and UI-TARS.
+Based on extensive real-world usage, we recommend these defaults for Midscene: Doubao Seed, Qwen3.x, Zhipu GLM-V, Zhipu AutoGLM, and Gemini-3-Flash.
 
 They offer strong element-localization skills and solid performance in planning and screen understanding.
 
@@ -53,10 +52,12 @@ If you are unsure where to start, pick whichever model is easiest to access toda
 | Model family | Deployment | Midscene notes |
 | --- | --- | --- |
 | Doubao Seed Model<br />[Quick setup](./model-common-config#doubao-seed-model) | Volcano Engine:<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)<br />[Doubao-Seed-2.0-Lite](https://www.volcengine.com/docs/82379/1799865) | ⭐⭐⭐⭐<br />Strong at UI planning and targeting<br />Slightly slower |
-| Qwen3.5<br />[Quick setup](./model-common-config#qwen35) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen) | ⭐⭐⭐⭐<br />Stronger than Qwen3-VL and Qwen2.5-VL |
+| Qwen3.x<br />[Quick setup](./model-common-config#qwen3x) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen) | ⭐⭐⭐⭐<br />Stronger than Qwen3-VL and Qwen2.5-VL |
 | Zhipu GLM-4.6V<br />[Quick setup](./model-common-config#glm-v) | [Z.AI (Global)](https://docs.z.ai/guides/vlm/glm-4.6v)<br/>[BigModel (CN)](https://docs.bigmodel.cn/cn/guide/models/vlm/glm-4.6v) | Newly integrated, welcome to try it out<br />Weights open-sourced on [HuggingFace](https://huggingface.co/zai-org/GLM-4.6V) |
-| Gemini-3-Pro / Gemini-3-Flash<br />[Quick setup](./model-common-config#gemini-3-pro) | [Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini) | ⭐⭐⭐<br />Gemini-3-Flash is supported<br />Price is higher than Doubao and Qwen |
-| UI-TARS<br />[Quick setup](./model-common-config#ui-tars) | [Volcano Engine](https://www.volcengine.com/docs/82379/1536429) | ⭐⭐<br />Strong exploratory ability but results vary by scenario<br />Open-source versions available ([HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT) / [GitHub](https://github.com/bytedance/ui-tars)) |
+| Zhipu AutoGLM<br />[Quick setup](./model-common-config#auto-glm) | [Z.AI (Global)](https://z.ai/model-api/AutoGLM/AutoGLM-Phone-9B)<br/>[BigModel (CN)](https://docs.bigmodel.cn/cn/guide/models/autoglm) | Designed for mobile app operations<br />For `aiAssert`, `aiQuery`, and other page-understanding tasks, pair it with a separate Insight model |
+| Gemini-3-Flash<br />[Quick setup](./model-common-config#gemini-3-pro) | [Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini) | ⭐⭐⭐<br />Price is higher than Doubao and Qwen |
+
+Midscene is also compatible with the following model configurations, but we do not recommend them as default choices: [UI-TARS](./model-common-config#ui-tars).
 
 :::info Why not use multimodal models like gpt-5 as the default?
 
@@ -92,13 +93,13 @@ By default, the system follows these rules (unset intents fall back to the defau
 
 In short: **Planning goes to the Planning model, localization stays on the default model, and extraction/assertion goes to Insight** when configured.
 
-For a ready-to-use environment snippet, including an Insight model, see the [multi-model example](./model-common-config#gpt51-planning-insight-qwen3).
+For a ready-to-use environment snippet, including an Insight model, see the [multi-model example](./model-common-config#gpt54-planning-insight-qwen35).
 
 ### *Planning* intent
 
 For `aiAct` or `ai` planning tasks, add settings with the `MIDSCENE_PLANNING_MODEL_` prefix to use a dedicated model for the Planning intent.
 
-We recommend `gpt-5.1` or other multimodal models that understand UI workflows.
+We recommend `gpt-5.4` or other multimodal models that understand UI workflows.
 
 ### *Insight* intent
 
@@ -106,7 +107,7 @@ Midscene provides page-understanding APIs such as AI assertions (`aiAssert`) and
 
 Add settings with the `MIDSCENE_INSIGHT_MODEL_` prefix to use a dedicated model for Insight workloads.
 
-We recommend `gpt-5.1` or other models with strong VQA capability.
+We recommend `gpt-5.4` or other models with strong VQA capability.
 
 ## How do I tune execution results?
 
@@ -134,22 +135,24 @@ See [Model configuration](./model-config).
 
 ### About the `deepThink` option in `aiAct`
 
-The `deepThink` option controls whether models use deep reasoning during planning. Currently supported for `qwen3-vl`, `qwen3.5`, `doubao-seed-1.6`, `doubao-seed-2.0` and `glm-v` model families.
+The `deepThink` option controls how strongly Midscene guides `aiAct` to think during planning.
 
-When enabled, you'll see a `Reasoning` section in the report. Planning takes longer but produces more accurate results.
+- By default, `aiAct` asks the model to plan the next step and locate the target element in the same planning request.
+- When `deepThink` is enabled, `aiAct` focuses more on decomposing the task. It separates task planning and UI element locating into different model calls, which gives more stable results for complex tasks.
 
-**Default behavior varies by provider:**
-- `qwen3.5` on Alibaba Cloud: enabled by default (slower, more accurate)
-- `qwen3-vl` on Alibaba Cloud: disabled by default (faster, less accurate)
-- `doubao-seed-1.6` on Volcano Engine: enabled by default (slower, more accurate)
-- `doubao-seed-2.0` on Volcano Engine: enabled by default (slower, more accurate)
-- `glm-v` on Z.AI: enabled by default (slower, more accurate)
+In earlier versions, `deepThink` also controlled whether model-native deep reasoning was enabled during planning. This is now controlled by [Model-Native Thinking Mode](#model-native-thinking-mode).
 
-You can explicitly set `deepThink: true` or `deepThink: false` to override the provider's default.
+`deepThink` accepts `'unset' | true | false`. For compatibility, `'unset'` is still accepted and is treated the same as `false`.
 
-`deepThink` accepts `'unset' | true | false`. The default is `'unset'` (same as omitting the option, following the model provider's default strategy).
+Note: The implementation behind `deepThink` may change in the future as Midscene evolves.
 
-Note: The implementation details behind `deepThink` may evolve in the future as model providers change.
+### Model-Native Thinking Mode
+
+Some model providers enable model-native thinking by default. In Midscene UI automation, we found that model-native thinking often significantly increases task latency while providing limited improvement for execution quality. For the model families that Midscene knows how to control, Midscene disables model-native thinking by default to get the best execution speed and stability.
+
+If you need model-native thinking, set `MIDSCENE_MODEL_REASONING_ENABLED="true"` explicitly. Some model families also support extra controls such as `MIDSCENE_MODEL_REASONING_BUDGET` or `MIDSCENE_MODEL_REASONING_EFFORT`; see [Common Model Configuration](./model-common-config) for model-specific examples and [Advanced settings](./model-config#advanced-settings-optional) for the full environment variable reference.
+
+Explicit reasoning configuration requires a supported `MIDSCENE_MODEL_FAMILY`. If the model family is missing or unsupported, Midscene will throw an error instead of guessing provider-specific reasoning parameters.
 
 ### API style for model service provider
 

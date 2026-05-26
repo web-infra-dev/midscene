@@ -4,7 +4,7 @@
   flex-shrink: 0;
 
   .selector-header {
-    padding: 0 12px;
+    padding: 6px 12px;
     background: #f2f4f7;
     border-radius: 8px;
     border: 1px solid transparent;
@@ -14,6 +14,7 @@
     justify-content: space-between;
     transition: all 0.2s ease;
     min-height: 36px;
+    line-height: 1.4;
 
     &:hover {
       background: #f6f8fa;
@@ -82,34 +83,22 @@
           opacity: 1;
         }
 
-        .ant-select {
+        .status-filter-select {
           border-right: 1px solid #e1e4e8;
+          border-left: none;
+          border-top: none;
+          border-bottom: none;
+          background: transparent;
+          color: #24292f;
           display: flex;
           align-items: center;
           height: 100%;
-
-          .ant-select-selector {
-            border: none;
-            border-radius: 0;
-            box-shadow: none;
-            background: transparent;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            padding: 0 8px;
-            min-height: auto;
-          }
-
-          .ant-select-selection-item {
-            color: #24292f;
-            font-size: 12px;
-            font-weight: 500;
-            line-height: 1;
-          }
-
-          .ant-select-arrow {
-            color: #656d76;
-          }
+          width: 120px;
+          padding: 0 8px;
+          font-size: 12px;
+          font-weight: 500;
+          line-height: 1;
+          outline: none;
         }
 
         .search-input-container {
@@ -159,14 +148,14 @@
 
       .option-item {
         width: 100%;
-        padding-left: 8px;
-        padding-right: 8px;
+        padding: 6px 8px;
         display: flex;
         align-items: center;
         gap: 8px;
         cursor: pointer;
         transition: background-color 0.2s ease;
-        line-height: 32px;
+        min-height: 32px;
+        line-height: 1.4;
         white-space: normal;
         overflow: visible;
 
@@ -179,6 +168,15 @@
 
           .option-check {
             color: #00c851;
+          }
+        }
+
+        &.disabled {
+          cursor: default;
+          opacity: 0.55;
+
+          &:hover {
+            background: transparent;
           }
         }
 
@@ -251,20 +249,10 @@
           border-color: rgba(255, 255, 255, 0.12);
           background: rgba(255, 255, 255, 0.04);
 
-          .ant-select {
+          .status-filter-select {
             border-right-color: rgba(255, 255, 255, 0.12);
-
-            .ant-select-selector {
-              background: transparent;
-            }
-
-            .ant-select-selection-item {
-              color: #f8fafd;
-            }
-
-            .ant-select-arrow {
-              color: #f8fafd;
-            }
+            background: transparent;
+            color: #f8fafd;
           }
 
           .search-input-container {
@@ -295,6 +283,12 @@
 
             .option-check {
               color: #52c41a;
+            }
+          }
+
+          &.disabled {
+            &:hover {
+              background: transparent;
             }
           }
 
