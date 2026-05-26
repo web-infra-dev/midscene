@@ -70,6 +70,15 @@ const EDGE_SCROLL_STEPS = 400;
 // minimum of 10 steps so small distances still feel momentum-like.
 const PHASED_PIXELS_PER_STEP = 30;
 const PHASED_MIN_STEPS = 10;
+// libnut fallback (Win / Linux, and macOS when phased-scroll is unavailable):
+// libnut.scrollMouse(x, y) expects wheel "clicks" rather than pixels, and a
+// single oversized call gets clamped or merged by many target apps. We split
+// the requested pixel distance into multiple 1-tick calls with a small delay
+// so the scroll behaves consistently. ~100px / tick approximates one
+// WHEEL_DELTA on Windows and a similar amount on Linux/X11.
+const LIBNUT_FALLBACK_PIXELS_PER_TICK = 100;
+const LIBNUT_FALLBACK_TICK_DELAY = 16;
+const LIBNUT_FALLBACK_MAX_TICKS = 200;
 // Default scroll distance is 70% of the screen size on the relevant axis,
 // matching the web puppeteer/chrome-extension behavior so a model that simply
 // says "scroll down" without a distance gets a roughly one-screen scroll on
@@ -986,16 +995,21 @@ Original error: ${lastRawMessage}`,
         return;
       }
 
-      const ticks = Math.ceil(distance / 100);
-      const directionMap: Record<string, [number, number]> = {
-        up: [0, ticks],
-        down: [0, -ticks],
-        left: [-ticks, 0],
-        right: [ticks, 0],
-      };
-
-      const [dx, dy] = directionMap[direction] || [0, -ticks];
-      libnut.scrollMouse(dx, dy);
+      // Split the pixel distance into multiple 1-tick libnut calls. A single
+      // large call gets clamped/merged by many apps (notably on Windows),
+      // which is why "scroll down 600" only nudged the viewport while
+      // "scroll down 60000" looked normal — the bigger number happened to
+      // expand into enough ticks for the target app to honor them.
+      const totalTicks = Math.min(
+        LIBNUT_FALLBACK_MAX_TICKS,
+        Math.max(1, Math.ceil(distance / LIBNUT_FALLBACK_PIXELS_PER_TICK)),
+      );
+      const sign = direction === 'down' || direction === 'right' ? -1 : 1;
+      const [dx, dy]: [number, number] = isHorizontal ? [sign, 0] : [0, sign];
+      for (let i = 0; i < totalTicks; i++) {
+        libnut.scrollMouse(dx, dy);
+        await sleep(LIBNUT_FALLBACK_TICK_DELAY);
+      }
       await sleep(SCROLL_COMPLETE_DELAY);
       return;
     }
