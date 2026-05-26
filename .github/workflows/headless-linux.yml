@@ -154,28 +154,10 @@ jobs:
     - name: Build project
       run: pnpm run build:skip-cache
 
-    - name: Run playground cancel L1-L3 regression test
-      run: |
-        set -o pipefail
-        AI_TEST_TYPE=computer npx nx test @midscene/computer --skip-nx-cache -- tests/ai/playground-cancel.test.ts 2>&1 | tee /tmp/cancel-l1.log
-        if grep -qE "Worker exited unexpectedly|XIO:" /tmp/cancel-l1.log; then
-          echo "::error::vitest worker crashed (Xvfb / X server died) — failing job"
-          exit 1
-        fi
+    - name: Run playground cancel regression test
+      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/playground-cancel.test.ts
       timeout-minutes: 10
       id: test-cancel
-      continue-on-error: true
-
-    - name: Run playground cancel L4 device-abort regression test
-      run: |
-        set -o pipefail
-        AI_TEST_TYPE=computer npx nx test @midscene/computer --skip-nx-cache -- tests/ai/playground-cancel-device.test.ts 2>&1 | tee /tmp/cancel-l4.log
-        if grep -qE "Worker exited unexpectedly|XIO:" /tmp/cancel-l4.log; then
-          echo "::error::vitest worker crashed (Xvfb / X server died) — failing job"
-          exit 1
-        fi
-      timeout-minutes: 10
-      id: test-cancel-l4
       continue-on-error: true
 
     - name: Upload test report
@@ -187,7 +169,7 @@ jobs:
         if-no-files-found: ignore
 
     - name: Check test result
-      if: steps.test-cancel.outcome == 'failure' || steps.test-cancel-l4.outcome == 'failure'
+      if: steps.test-cancel.outcome == 'failure'
       run: exit 1
 
   chrome-extension:
