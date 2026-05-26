@@ -33,6 +33,7 @@ import {
   transformLogicalElementToScreenshot,
   transformLogicalRectToScreenshotRect,
 } from './utils';
+import { normalizeFileChooserAccept, withFileChooser } from './file-chooser';
 
 const debug = getDebug('agent:task-builder');
 
@@ -46,6 +47,22 @@ function hasNonEmptyCache(cache: unknown): boolean {
     typeof cache === 'object' &&
     Object.keys(cache).length > 0
   );
+}
+
+function getTapFileChooserAccept(
+  actionName: string,
+  param: unknown,
+): string[] | undefined {
+  if (actionName !== 'Tap' || !param || typeof param !== 'object') {
+    return undefined;
+  }
+
+  const fileChooserAccept = (
+    param as { fileChooserAccept?: string | string[] }
+  ).fileChooserAccept;
+  return fileChooserAccept
+    ? normalizeFileChooserAccept(fileChooserAccept)
+    : undefined;
 }
 
 export function locatePlanForLocate(param: string | DetailedLocateParam) {
@@ -307,38 +324,47 @@ export class TaskBuilder {
 
         debug('calling action', action.name);
         const actionFn = action.call.bind(this.interface);
-        const actionResult = await actionFn(param, taskContext);
-        setTimingFieldOnce(timing, 'callActionEnd');
-        debug('called action', action.name, 'result:', actionResult);
+        const fileChooserAccept = getTapFileChooserAccept(action.name, param);
+        const actionResult = await withFileChooser(
+          this.interface,
+          fileChooserAccept,
+          async () => {
+            const result = await actionFn(param, taskContext);
+            setTimingFieldOnce(timing, 'callActionEnd');
+            debug('called action', action.name, 'result:', result);
 
-        setTimingFieldOnce(timing, 'afterInvokeActionHookStart');
+            setTimingFieldOnce(timing, 'afterInvokeActionHookStart');
 
-        const delayAfterRunner =
-          action.delayAfterRunner ?? this.waitAfterAction ?? 300;
-        if (delayAfterRunner > 0) {
-          await sleep(delayAfterRunner);
-        }
+            const delayAfterRunner =
+              action.delayAfterRunner ?? this.waitAfterAction ?? 300;
+            if (delayAfterRunner > 0) {
+              await sleep(delayAfterRunner);
+            }
 
-        try {
-          if (this.interface.afterInvokeAction) {
-            debug(
-              `will call "afterInvokeAction" for interface with action name ${action.name}`,
-            );
-            await this.interface.afterInvokeAction(action.name, param);
-            debug(
-              `called "afterInvokeAction" for interface with action name ${action.name}`,
-            );
-          }
-        } catch (originalError: any) {
-          const originalMessage =
-            originalError?.message || String(originalError);
-          throw new Error(
-            `error in running afterInvokeAction for ${action.name}: ${originalMessage}`,
-            { cause: originalError },
-          );
-        }
+            try {
+              if (this.interface.afterInvokeAction) {
+                debug(
+                  `will call "afterInvokeAction" for interface with action name ${action.name}`,
+                );
+                await this.interface.afterInvokeAction(action.name, param);
+                debug(
+                  `called "afterInvokeAction" for interface with action name ${action.name}`,
+                );
+              }
+            } catch (originalError: any) {
+              const originalMessage =
+                originalError?.message || String(originalError);
+              throw new Error(
+                `error in running afterInvokeAction for ${action.name}: ${originalMessage}`,
+                { cause: originalError },
+              );
+            }
 
-        setTimingFieldOnce(timing, 'afterInvokeActionHookEnd');
+            setTimingFieldOnce(timing, 'afterInvokeActionHookEnd');
+
+            return result;
+          },
+        );
 
         return {
           output: actionResult,

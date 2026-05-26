@@ -12,7 +12,7 @@ import {
   type TUserPrompt,
   getReadableTimeString,
 } from '@/common';
-import type { AbstractInterface, FileChooserHandler } from '@/device';
+import type { AbstractInterface } from '@/device';
 import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
@@ -36,6 +36,7 @@ import type { IModelConfig } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ExecutionSession } from './execution-session';
+import { withFileChooser } from './file-chooser';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
@@ -63,6 +64,7 @@ const warnLog = getDebug('device-task-executor', { console: true });
 const maxErrorCountAllowedInOnePlanningLoop = 5;
 
 export { TaskExecutionError };
+export { withFileChooser } from './file-chooser';
 
 export class TaskExecutor {
   interface: AbstractInterface;
@@ -807,39 +809,5 @@ export class TaskExecutor {
     }
 
     return session.appendErrorPlan(`waitFor timeout: ${errorThought}`);
-  }
-}
-
-export async function withFileChooser<T>(
-  interfaceInstance: AbstractInterface,
-  fileChooserAccept: string[] | undefined,
-  action: () => Promise<T>,
-): Promise<T> {
-  if (!fileChooserAccept?.length) {
-    return action();
-  }
-
-  if (!interfaceInstance.registerFileChooserListener) {
-    throw new Error(
-      `File upload is not supported on ${interfaceInstance.interfaceType}`,
-    );
-  }
-
-  const handler = async (chooser: FileChooserHandler) => {
-    await chooser.accept(fileChooserAccept);
-  };
-
-  const { dispose, getError } =
-    await interfaceInstance.registerFileChooserListener(handler);
-  try {
-    const result = await action();
-    // Check for errors that occurred during file chooser handling
-    const error = getError();
-    if (error) {
-      throw error;
-    }
-    return result;
-  } finally {
-    dispose();
   }
 }

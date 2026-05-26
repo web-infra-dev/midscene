@@ -3,6 +3,26 @@ import { expect } from 'playwright/test';
 import { test } from './fixture';
 
 test.describe('file upload functionality', () => {
+  test('should upload different files in one aiAct via prompt paths', async ({
+    aiAct,
+    page,
+  }) => {
+    const fooFile = join(__dirname, '../../fixtures/foo.txt');
+    const barFile = join(__dirname, '../../fixtures/bar.txt');
+    const selectedFileName = page.locator('#selected-file-name');
+
+    await page.goto(
+      `file://${join(__dirname, '../../fixtures/ai-act-file-upload.html')}`,
+    );
+
+    await aiAct(
+      `First click the "Upload document" button and upload the file at this exact path: ${fooFile}. Wait until the page displays "foo.txt". Then click the "Upload document" button again and upload the file at this exact path: ${barFile}. Finish only after the page displays "bar.txt".`,
+      { cacheable: false },
+    );
+
+    await expect(selectedFileName).toHaveText('bar.txt');
+  });
+
   test('should upload single file', async ({ aiTap, aiAssert, page }) => {
     const testFile = join(__dirname, '../../fixtures/test-file.txt');
 
