@@ -71,14 +71,18 @@ const EDGE_SCROLL_STEPS = 400;
 const PHASED_PIXELS_PER_STEP = 30;
 const PHASED_MIN_STEPS = 10;
 // libnut fallback (Win / Linux, and macOS when phased-scroll is unavailable):
-// libnut.scrollMouse(x, y) expects wheel "clicks" rather than pixels, and a
-// single oversized call gets clamped or merged by many target apps. We split
-// the requested pixel distance into multiple 1-tick calls with a small delay
-// so the scroll behaves consistently. ~100px / tick approximates one
-// WHEEL_DELTA on Windows and a similar amount on Linux/X11.
-const LIBNUT_FALLBACK_PIXELS_PER_TICK = 100;
-const LIBNUT_FALLBACK_TICK_DELAY = 16;
-const LIBNUT_FALLBACK_MAX_TICKS = 200;
+// libnut.scrollMouse(x, y) on Windows lands in SendInput with mouseData = y,
+// and Windows only fires a wheel event when |mouseData| reaches WHEEL_DELTA
+// (=120). That's why a single `scrollMouse(0, -6)` for distance=600 used to
+// barely move the page — six "units" is ~0.05 detents, below the OS threshold.
+// We now emit one full WHEEL_DELTA per step and loop, so the target app sees
+// a stream of real wheel notches. ~50px per step matches the default Windows
+// "3 lines per notch" setting, giving roughly one screen of scroll for the
+// default 70% × screenHeight distance.
+const LIBNUT_FALLBACK_WHEEL_DELTA = 120;
+const LIBNUT_FALLBACK_PIXELS_PER_TICK = 50;
+const LIBNUT_FALLBACK_TICK_DELAY = 30;
+const LIBNUT_FALLBACK_MAX_TICKS = 120;
 // Default scroll distance is 70% of the screen size on the relevant axis,
 // matching the web puppeteer/chrome-extension behavior so a model that simply
 // says "scroll down" without a distance gets a roughly one-screen scroll on
@@ -995,17 +999,21 @@ Original error: ${lastRawMessage}`,
         return;
       }
 
-      // Split the pixel distance into multiple 1-tick libnut calls. A single
-      // large call gets clamped/merged by many apps (notably on Windows),
-      // which is why "scroll down 600" only nudged the viewport while
-      // "scroll down 60000" looked normal — the bigger number happened to
-      // expand into enough ticks for the target app to honor them.
+      // Emit one full WHEEL_DELTA per step. Windows requires |mouseData| to
+      // reach WHEEL_DELTA (=120) before a wheel event actually fires, so the
+      // previous `scrollMouse(0, -Math.ceil(distance/100))` call sat below
+      // the threshold for any reasonable distance and the page barely moved.
+      // Sending 120 per step also keeps the event stream regular for apps
+      // (Chrome, Electron, Office) that batch wheel events by detent count.
       const totalTicks = Math.min(
         LIBNUT_FALLBACK_MAX_TICKS,
         Math.max(1, Math.ceil(distance / LIBNUT_FALLBACK_PIXELS_PER_TICK)),
       );
       const sign = direction === 'down' || direction === 'right' ? -1 : 1;
-      const [dx, dy]: [number, number] = isHorizontal ? [sign, 0] : [0, sign];
+      const amount = sign * LIBNUT_FALLBACK_WHEEL_DELTA;
+      const [dx, dy]: [number, number] = isHorizontal
+        ? [amount, 0]
+        : [0, amount];
       for (let i = 0; i < totalTicks; i++) {
         libnut.scrollMouse(dx, dy);
         await sleep(LIBNUT_FALLBACK_TICK_DELAY);
