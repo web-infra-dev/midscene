@@ -1,6 +1,7 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type {
+  MidsceneYamlConfigResult,
   MidsceneYamlScript,
   MidsceneYamlScriptAndroidEnv,
   MidsceneYamlScriptEnv,
@@ -98,9 +99,66 @@ export const getYamlPlayerFailure = (
   return undefined;
 };
 
-export async function runYamlCase(
+export const createYamlCaseResult = (
+  file: string,
+  player: ScriptPlayer<MidsceneYamlScriptEnv>,
+  duration: number,
+): MidsceneYamlConfigResult => {
+  const hasFailedTasks =
+    player.taskStatusList?.some((task) => task.status === 'error') ?? false;
+  const hasPlayerError = player.status === 'error';
+
+  const outputPath =
+    player.output && existsSync(player.output) ? player.output : undefined;
+  const reportFile = player.reportFile || undefined;
+
+  let errorMessage: string | undefined;
+  if (player.errorInSetup?.message) {
+    errorMessage = player.errorInSetup.message;
+  } else if (hasPlayerError || hasFailedTasks) {
+    const taskErrors = player.taskStatusList
+      ?.filter((task) => task.status === 'error' && task.error?.message)
+      .map((task) => task.error!.message);
+    if (taskErrors && taskErrors.length > 0) {
+      errorMessage = taskErrors.join('; ');
+    } else if (hasPlayerError) {
+      errorMessage = 'Execution failed';
+    } else {
+      errorMessage = 'Some tasks failed';
+    }
+  }
+
+  const resultType = hasPlayerError
+    ? 'failed'
+    : hasFailedTasks
+      ? 'partialFailed'
+      : 'success';
+
+  return {
+    file,
+    success: resultType === 'success',
+    executed: true,
+    output: outputPath,
+    report: reportFile,
+    duration,
+    resultType,
+    error: errorMessage,
+  };
+};
+
+export const createYamlCaseFailure = (
+  result: MidsceneYamlConfigResult,
+): Error => {
+  const reportLine = result.report ? `\nReport: ${result.report}` : '';
+  const outputLine = result.output ? `\nOutput: ${result.output}` : '';
+  return new Error(
+    `${result.error || 'YAML case failed'}${reportLine}${outputLine}`,
+  );
+};
+
+export async function runYamlCaseResult(
   options: RunYamlCaseOptions,
-): Promise<RunYamlCaseResult> {
+): Promise<MidsceneYamlConfigResult> {
   const file = resolve(options.file);
   const startTime = Date.now();
   const executionConfig =
@@ -115,15 +173,21 @@ export async function runYamlCase(
 
   await player.run();
 
-  const failure = getYamlPlayerFailure(player);
-  if (failure) {
-    throw failure;
+  return createYamlCaseResult(file, player, Date.now() - startTime);
+}
+
+export async function runYamlCase(
+  options: RunYamlCaseOptions,
+): Promise<RunYamlCaseResult> {
+  const result = await runYamlCaseResult(options);
+  if (!result.success) {
+    throw createYamlCaseFailure(result);
   }
 
   return {
-    file,
-    output: player.output || undefined,
-    report: player.reportFile,
-    duration: Date.now() - startTime,
+    file: result.file,
+    output: result.output || undefined,
+    report: result.report,
+    duration: result.duration || 0,
   };
 }

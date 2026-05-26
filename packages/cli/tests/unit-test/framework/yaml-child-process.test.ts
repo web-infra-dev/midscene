@@ -89,4 +89,48 @@ export async function runYamlCase(options) {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  test('preserves partialFailed result metadata from the child process', async () => {
+    const root = createTempDir();
+    const framework = join(root, 'framework.mjs');
+    const resultFile = join(root, 'result.json');
+    writeFileSync(
+      framework,
+      `export async function runYamlCaseResult(options) {
+  return {
+    file: options.file,
+    success: false,
+    executed: true,
+    output: 'output.json',
+    report: 'report.html',
+    duration: 11,
+    resultType: 'partialFailed',
+    error: 'assertion failed'
+  };
+}
+`,
+    );
+
+    try {
+      await expect(
+        runYamlCaseInChildProcess({
+          file: join(root, 'partial.yaml'),
+          frameworkImport: framework,
+          resultFile,
+          stdio: 'pipe',
+        }),
+      ).rejects.toThrow(/assertion failed[\s\S]*Report: report\.html/);
+      expect(JSON.parse(readFileSync(resultFile, 'utf8'))).toMatchObject({
+        file: join(root, 'partial.yaml'),
+        success: false,
+        executed: true,
+        output: 'output.json',
+        report: 'report.html',
+        resultType: 'partialFailed',
+        error: 'assertion failed',
+      });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

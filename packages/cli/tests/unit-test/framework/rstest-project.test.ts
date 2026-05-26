@@ -89,4 +89,50 @@ describe('rstest yaml project generation', () => {
 
     expect(resolveTestName(projectDir, yamlFile)).toBe(yamlFile);
   });
+
+  test('generates a single batch virtual entry for shared browser context', () => {
+    const root = createTempDir();
+    const outputDir = join(root, 'runner');
+    const yamlA = join(root, 'login.yaml');
+    const yamlB = join(root, 'check.yaml');
+    writeFileSync(yamlA, 'web:\n  url: about:blank\ntasks: []\n');
+    writeFileSync(yamlB, 'web:\n  url: about:blank\ntasks: []\n');
+
+    try {
+      const project = createRstestYamlProject({
+        files: [yamlA, yamlB],
+        projectDir: root,
+        outputDir,
+        frameworkImport: '@test/framework',
+        rstestImport: '@test/rstest-core',
+        batchConfig: {
+          files: [yamlA, yamlB],
+          concurrent: 1,
+          continueOnError: true,
+          summary: 'summary.json',
+          shareBrowserContext: true,
+          globalConfig: {
+            web: {
+              url: 'https://example.com',
+            },
+          },
+          headed: false,
+          keepWindow: false,
+          dotenvOverride: false,
+          dotenvDebug: false,
+        },
+      });
+
+      expect(project.include).toEqual(['virtual/midscene-yaml/batch.test.ts']);
+      expect(project.cases).toHaveLength(2);
+      expect(project.maxConcurrency).toBe(1);
+      const generated = project.virtualModules[project.include[0]];
+      expect(generated).toContain('runYamlBatchInRstest');
+      expect(generated).toContain('"shareBrowserContext": true');
+      expect(generated).toContain(JSON.stringify(yamlA));
+      expect(generated).toContain(JSON.stringify(yamlB));
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

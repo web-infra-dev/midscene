@@ -60,6 +60,11 @@ interface BatchFileContext {
   };
 }
 
+interface BatchRunnerRunOptions {
+  generateSummary?: boolean;
+  printExecutionPlan?: boolean;
+}
+
 class BatchRunner {
   private config: BatchRunnerConfig;
   private results: MidsceneYamlConfigResult[] = [];
@@ -68,11 +73,17 @@ class BatchRunner {
     this.config = config;
   }
 
-  async run(): Promise<MidsceneYamlConfigResult[]> {
+  async run(
+    options: BatchRunnerRunOptions = {},
+  ): Promise<MidsceneYamlConfigResult[]> {
+    const generateSummary = options.generateSummary ?? true;
+    const printExecutionPlan = options.printExecutionPlan ?? true;
     const { keepWindow, headed } = this.config;
 
     // Print execution plan
-    this.printExecutionPlan();
+    if (printExecutionPlan) {
+      this.printExecutionPlan();
+    }
 
     // Prepare file contexts
     const fileContextList: BatchFileContext[] = [];
@@ -159,7 +170,9 @@ class BatchRunner {
           await browser.close();
         }
       }
-      await this.generateOutputIndex();
+      if (generateSummary) {
+        await this.generateOutputIndex();
+      }
     }
 
     return this.results;

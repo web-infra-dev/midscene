@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createYamlPlayer } from '@/create-yaml-player';
-import { runYamlCase } from '@/framework/yaml-case';
+import { runYamlCase, runYamlCaseResult } from '@/framework/yaml-case';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 vi.mock('@/create-yaml-player', () => ({
@@ -27,19 +27,26 @@ describe('runYamlCase', () => {
   });
 
   test('runs a YAML player and returns output metadata', async () => {
-    const player = createPlayer();
+    const root = createTempDir();
+    const output = join(root, 'output.json');
+    writeFileSync(output, '{}');
+    const player = createPlayer({ output });
     vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
 
-    const result = await runYamlCase({ file: 'relative.yaml', headed: true });
+    try {
+      const result = await runYamlCase({ file: 'relative.yaml', headed: true });
 
-    expect(createYamlPlayer).toHaveBeenCalledWith(
-      expect.stringMatching(/relative\.yaml$/),
-      undefined,
-      { headed: true, keepWindow: undefined },
-    );
-    expect(player.run).toHaveBeenCalledTimes(1);
-    expect(result.output).toBe('/tmp/output.json');
-    expect(result.report).toBe('/tmp/report.html');
+      expect(createYamlPlayer).toHaveBeenCalledWith(
+        expect.stringMatching(/relative\.yaml$/),
+        undefined,
+        { headed: true, keepWindow: undefined },
+      );
+      expect(player.run).toHaveBeenCalledTimes(1);
+      expect(result.output).toBe(output);
+      expect(result.report).toBe('/tmp/report.html');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   test('passes merged execution config to the YAML player', async () => {
@@ -109,8 +116,12 @@ describe('runYamlCase', () => {
   });
 
   test('throws task failures with report and output paths', async () => {
+    const root = createTempDir();
+    const output = join(root, 'output.json');
+    writeFileSync(output, '{}');
     const player = createPlayer({
       status: 'error',
+      output,
       taskStatusList: [
         {
           name: 'check result',
@@ -121,8 +132,49 @@ describe('runYamlCase', () => {
     });
     vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
 
-    await expect(runYamlCase({ file: 'failed.yaml' })).rejects.toThrow(
-      /assertion failed[\s\S]*Report: \/tmp\/report\.html[\s\S]*Output: \/tmp\/output\.json/,
-    );
+    try {
+      await expect(runYamlCase({ file: 'failed.yaml' })).rejects.toThrow(
+        new RegExp(
+          `assertion failed[\\s\\S]*Report: /tmp/report\\.html[\\s\\S]*Output: ${output.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            '\\$&',
+          )}`,
+        ),
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('returns partialFailed when tasks fail with continueOnError', async () => {
+    const root = createTempDir();
+    const output = join(root, 'output.json');
+    writeFileSync(output, '{}');
+    const player = createPlayer({
+      status: 'done',
+      output,
+      taskStatusList: [
+        {
+          name: 'soft assertion',
+          status: 'error',
+          error: new Error('soft assertion failed'),
+        },
+      ],
+    });
+    vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
+
+    try {
+      const result = await runYamlCaseResult({ file: 'partial.yaml' });
+      expect(result).toMatchObject({
+        success: false,
+        executed: true,
+        output,
+        report: '/tmp/report.html',
+        resultType: 'partialFailed',
+        error: 'soft assertion failed',
+      });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

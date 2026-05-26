@@ -9,6 +9,7 @@ import {
   sep,
 } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import type { BatchRunnerConfig } from '../batch-runner';
 import { resolveRstestCoreImportPath } from './rstest-runner';
 import type { RunYamlCaseInChildProcessOptions } from './yaml-child-process';
 
@@ -30,6 +31,7 @@ export interface CreateRstestYamlProjectOptions {
   maxConcurrency?: number;
   testTimeout?: number;
   bail?: number;
+  batchConfig?: BatchRunnerConfig;
 }
 
 export interface GeneratedYamlTestCase {
@@ -118,6 +120,31 @@ test(${JSON.stringify(options.testName)}, async () => {
 `;
 };
 
+const createGeneratedBatchTestContent = (options: {
+  rstestImport: string;
+  frameworkImport: string;
+  testName: string;
+  config: BatchRunnerConfig;
+  resultFiles: Record<string, string>;
+}): string => {
+  return `import { test } from ${toImportLiteral(options.rstestImport)};
+
+test(${JSON.stringify(options.testName)}, async () => {
+  const framework = await import(${toImportLiteral(options.frameworkImport)});
+  const runYamlBatchInRstest =
+    framework.runYamlBatchInRstest ||
+    framework.default?.runYamlBatchInRstest;
+  if (typeof runYamlBatchInRstest !== 'function') {
+    throw new Error('Cannot find runYamlBatchInRstest from Midscene framework entry');
+  }
+  await runYamlBatchInRstest({
+    config: ${JSON.stringify(options.config, null, 2)},
+    resultFiles: ${JSON.stringify(options.resultFiles, null, 2)}
+  });
+});
+`;
+};
+
 const resolveDefaultFrameworkImport = (): string => {
   const entry = process.argv[1] ? resolve(process.argv[1]) : '';
   const candidates = [
@@ -166,6 +193,32 @@ export function createRstestYamlProject(
     });
     return { yamlFile, testModule, resultFile, testName };
   });
+
+  if (options.batchConfig) {
+    const batchModule = 'virtual/midscene-yaml/batch.test.ts';
+    const resultFiles = Object.fromEntries(
+      cases.map((item) => [item.yamlFile, item.resultFile]),
+    );
+    return {
+      projectDir,
+      outputDir,
+      resultDir,
+      include: [batchModule],
+      virtualModules: {
+        [batchModule]: createGeneratedBatchTestContent({
+          rstestImport,
+          frameworkImport,
+          testName: 'midscene yaml batch',
+          config: options.batchConfig,
+          resultFiles,
+        }),
+      },
+      cases,
+      maxConcurrency: 1,
+      testTimeout,
+      bail: options.bail,
+    };
+  }
 
   return {
     projectDir,
