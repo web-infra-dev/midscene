@@ -21,7 +21,7 @@
     "format": "pretty-quick --staged",
     "commit": "cz",
     "check-spell": "npx cspell",
-    "clean": "node scripts/clean.mjs"
+    "clean": "rimraf .nx/cache packages/playground/static packages/ios/static \"packages/*/dist\" \"packages/*/node_modules/.cache\" \"apps/*/dist\" \"apps/*/node_modules/.cache\""
   },
   "simple-git-hooks": {
     "pre-commit": "npx lint-staged",
@@ -61,6 +61,7 @@
     "prettier": "^3.6.2",
     "pretty-quick": "3.1.3",
     "semver": "7.5.2",
+    "rimraf": "~3.0.2",
     "simple-git-hooks": "^2.13.1"
   }
 }
