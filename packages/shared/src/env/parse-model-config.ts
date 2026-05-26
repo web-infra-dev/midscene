@@ -18,7 +18,6 @@ import {
   MODEL_FAMILY_VALUES,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
-  OPENAI_MAX_TOKENS,
   type TIntent,
   type TModelFamily,
   UITarsModelVersion,
@@ -201,9 +200,6 @@ export const parseOpenaiSdkConfig = ({
   const legacyOpenaiExtraConfig = useLegacyLogic
     ? provider[MIDSCENE_OPENAI_INIT_CONFIG_JSON]
     : undefined;
-  const legacyMaxTokens = useLegacyLogic
-    ? provider[OPENAI_MAX_TOKENS]
-    : undefined;
   const legacyModelFamily = useLegacyLogic
     ? legacyConfigToModelFamily(provider)
     : undefined;
@@ -226,13 +222,6 @@ export const parseOpenaiSdkConfig = ({
   );
   const extraBodyStr: string | undefined = provider[keys.extraBody];
   const extraBody = parseJson(keys.extraBody, extraBodyStr);
-  const maxTokensStr = provider[keys.maxTokens] || legacyMaxTokens;
-  const maxTokens = (() => {
-    const val = maxTokensStr?.trim();
-    if (!val) return undefined;
-    const num = Number(val);
-    return Number.isFinite(num) ? num : undefined;
-  })();
   const temperature = provider[keys.temperature]
     ? Number(provider[keys.temperature])
     : 0;
@@ -250,7 +239,6 @@ export const parseOpenaiSdkConfig = ({
     openaiApiKey,
     openaiExtraConfig: normalizeOpenaiExtraConfig(openaiExtraConfig),
     extraBody,
-    maxTokens,
     modelFamily,
     uiTarsModelVersion,
     modelName: modelName!,

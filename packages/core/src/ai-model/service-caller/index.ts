@@ -275,7 +275,6 @@ export async function callAI(
 
   const extraBody = modelConfig.extraBody;
 
-  const maxTokens = modelConfig.maxTokens;
   const debugCall = getDebug('ai:call');
   const warnCall = getDebug('ai:call', { console: true });
   const debugProfileStats = getDebug('ai:profile:stats');
@@ -329,7 +328,6 @@ export async function callAI(
   const commonConfig = {
     temperature,
     stream: !!isStreaming,
-    max_tokens: maxTokens,
     ...(modelFamily === 'qwen2.5-vl' // qwen vl v2 specific config
       ? {
           vl_high_resolution_images: true,
