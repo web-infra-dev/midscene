@@ -17,8 +17,8 @@ export type WebPageOpt = {
   enableTouchEventsInActionSpace?: boolean;
   /**
    * Per-character delay (ms) used when typing text via the underlying
-   * Puppeteer/Playwright `keyboard.type` API. When omitted, Midscene leaves the
-   * option unset and the driver types instantly (delay defaults to 0).
+   * Puppeteer/Playwright `keyboard.type` API. Default undefined leaves the
+   * option unset and uses the underlying driver's own default.
    */
   keyboardTypeDelay?: number;
   /**
