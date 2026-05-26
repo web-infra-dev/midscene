@@ -909,9 +909,6 @@ importers:
         specifier: 2.5.0
         version: 2.5.0
     devDependencies:
-      '@midscene/playground':
-        specifier: workspace:*
-        version: link:../playground
       '@rslib/core':
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
