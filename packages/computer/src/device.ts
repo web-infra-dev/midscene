@@ -467,118 +467,115 @@ export class ComputerDevice implements AbstractInterface {
   private useAppleScript: boolean;
   uri?: string;
 
-  readonly inputPrimitives: ComputerInputPrimitives = {
-    pointer: {
-      tap: async ({ x, y }) => {
-        this.throwIfDestroyed('tap');
-        assert(libnut, 'libnut not initialized');
-        const targetX = Math.round(x);
-        const targetY = Math.round(y);
+  readonly inputPrimitives: ComputerInputPrimitives = this.gateOnDestroyed(
+    'inputPrimitives',
+    {
+      pointer: {
+        tap: async ({ x, y }) => {
+          assert(libnut, 'libnut not initialized');
+          const targetX = Math.round(x);
+          const targetY = Math.round(y);
 
-        await smoothMoveMouse(
-          targetX,
-          targetY,
-          SMOOTH_MOVE_STEPS_TAP,
-          SMOOTH_MOVE_DELAY_TAP,
-          this.destroyAbortController.signal,
-        );
-        this.throwIfDestroyed('tap');
-        libnut.mouseToggle('down', 'left');
-        await this.abortableSleep(CLICK_HOLD_DURATION);
-        libnut.mouseToggle('up', 'left');
-      },
-      doubleClick: async ({ x, y }) => {
-        this.throwIfDestroyed('doubleClick');
-        assert(libnut, 'libnut not initialized');
-        libnut.moveMouse(Math.round(x), Math.round(y));
-        libnut.mouseClick('left', true);
-      },
-      rightClick: async ({ x, y }) => {
-        this.throwIfDestroyed('rightClick');
-        assert(libnut, 'libnut not initialized');
-        libnut.moveMouse(Math.round(x), Math.round(y));
-        libnut.mouseClick('right');
-      },
-      hover: async ({ x, y }) => {
-        this.throwIfDestroyed('hover');
-        assert(libnut, 'libnut not initialized');
-        await smoothMoveMouse(
-          Math.round(x),
-          Math.round(y),
-          SMOOTH_MOVE_STEPS_MOUSE_MOVE,
-          SMOOTH_MOVE_DELAY_MOUSE_MOVE,
-          this.destroyAbortController.signal,
-        );
-        await this.abortableSleep(MOUSE_MOVE_EFFECT_WAIT);
-      },
-      dragAndDrop: async (from, to) => {
-        this.throwIfDestroyed('dragAndDrop');
-        assert(libnut, 'libnut not initialized');
-        libnut.moveMouse(Math.round(from.x), Math.round(from.y));
-        libnut.mouseToggle('down', 'left');
-        await this.abortableSleep(100);
-        libnut.moveMouse(Math.round(to.x), Math.round(to.y));
-        await this.abortableSleep(100);
-        libnut.mouseToggle('up', 'left');
-      },
-    },
-    keyboard: {
-      typeText: async (value, opts) => {
-        this.throwIfDestroyed('typeText');
-        assert(libnut, 'libnut not initialized');
-        const element = opts?.target as LocateResultElement | undefined;
-
-        if (element) {
-          const [x, y] = element.center;
+          await smoothMoveMouse(
+            targetX,
+            targetY,
+            SMOOTH_MOVE_STEPS_TAP,
+            SMOOTH_MOVE_DELAY_TAP,
+            this.destroyAbortController.signal,
+          );
+          // Mid-action recheck: smoothMoveMouse may have completed naturally
+          // just as destroy() flipped; bail before sending the mouseDown so
+          // we don't strand a stuck button.
+          this.throwIfDestroyed('tap');
+          libnut.mouseToggle('down', 'left');
+          await this.abortableSleep(CLICK_HOLD_DURATION);
+          libnut.mouseToggle('up', 'left');
+        },
+        doubleClick: async ({ x, y }) => {
+          assert(libnut, 'libnut not initialized');
           libnut.moveMouse(Math.round(x), Math.round(y));
-          libnut.mouseClick('left');
-          await this.abortableSleep(INPUT_FOCUS_DELAY);
-
-          if (opts?.replace !== false) {
-            await this.selectAllAndDelete();
-            await this.abortableSleep(INPUT_CLEAR_DELAY);
-          }
-        }
-
-        await this.smartTypeString(value);
-      },
-      keyboardPress: async (keyName, opts) => {
-        this.throwIfDestroyed('keyboardPress');
-        assert(libnut, 'libnut not initialized');
-
-        const target = opts?.target as LocateResultElement | undefined;
-        if (target) {
-          const [x, y] = target.center;
+          libnut.mouseClick('left', true);
+        },
+        rightClick: async ({ x, y }) => {
+          assert(libnut, 'libnut not initialized');
           libnut.moveMouse(Math.round(x), Math.round(y));
-          libnut.mouseClick('left');
-          await this.abortableSleep(50);
-        }
-
-        await this.pressKeyboardShortcut(keyName);
-      },
-      clearInput: async (target) => {
-        this.throwIfDestroyed('clearInput');
-        assert(libnut, 'libnut not initialized');
-
-        if (target) {
-          const element = target as LocateResultElement;
-          const [x, y] = element.center;
-          libnut.moveMouse(Math.round(x), Math.round(y));
-          libnut.mouseClick('left');
+          libnut.mouseClick('right');
+        },
+        hover: async ({ x, y }) => {
+          assert(libnut, 'libnut not initialized');
+          await smoothMoveMouse(
+            Math.round(x),
+            Math.round(y),
+            SMOOTH_MOVE_STEPS_MOUSE_MOVE,
+            SMOOTH_MOVE_DELAY_MOUSE_MOVE,
+            this.destroyAbortController.signal,
+          );
+          await this.abortableSleep(MOUSE_MOVE_EFFECT_WAIT);
+        },
+        dragAndDrop: async (from, to) => {
+          assert(libnut, 'libnut not initialized');
+          libnut.moveMouse(Math.round(from.x), Math.round(from.y));
+          libnut.mouseToggle('down', 'left');
           await this.abortableSleep(100);
-        }
+          libnut.moveMouse(Math.round(to.x), Math.round(to.y));
+          await this.abortableSleep(100);
+          libnut.mouseToggle('up', 'left');
+        },
+      },
+      keyboard: {
+        typeText: async (value, opts) => {
+          assert(libnut, 'libnut not initialized');
+          const element = opts?.target as LocateResultElement | undefined;
 
-        await this.selectAllAndDelete();
-        await this.abortableSleep(50);
+          if (element) {
+            const [x, y] = element.center;
+            libnut.moveMouse(Math.round(x), Math.round(y));
+            libnut.mouseClick('left');
+            await this.abortableSleep(INPUT_FOCUS_DELAY);
+
+            if (opts?.replace !== false) {
+              await this.selectAllAndDelete();
+              await this.abortableSleep(INPUT_CLEAR_DELAY);
+            }
+          }
+
+          await this.smartTypeString(value);
+        },
+        keyboardPress: async (keyName, opts) => {
+          assert(libnut, 'libnut not initialized');
+
+          const target = opts?.target as LocateResultElement | undefined;
+          if (target) {
+            const [x, y] = target.center;
+            libnut.moveMouse(Math.round(x), Math.round(y));
+            libnut.mouseClick('left');
+            await this.abortableSleep(50);
+          }
+
+          await this.pressKeyboardShortcut(keyName);
+        },
+        clearInput: async (target) => {
+          assert(libnut, 'libnut not initialized');
+
+          if (target) {
+            const element = target as LocateResultElement;
+            const [x, y] = element.center;
+            libnut.moveMouse(Math.round(x), Math.round(y));
+            libnut.mouseClick('left');
+            await this.abortableSleep(100);
+          }
+
+          await this.selectAllAndDelete();
+          await this.abortableSleep(50);
+        },
+      },
+      scroll: {
+        scroll: async (param) => {
+          await this.performScroll(param);
+        },
       },
     },
-    scroll: {
-      scroll: async (param) => {
-        this.throwIfDestroyed('scroll');
-        await this.performScroll(param);
-      },
-    },
-  };
+  );
 
   constructor(options?: ComputerDeviceOpt) {
     this.options = options;
@@ -1088,6 +1085,42 @@ Original error: ${lastRawMessage}`,
         `ComputerDevice has been destroyed (cannot run ${methodName})`,
       );
     }
+  }
+
+  /**
+   * Wrap every leaf method on an input-primitives tree with a destroyed-gate.
+   * Each call checks `this.destroyed` and throws before reaching libnut, so
+   * the body of each primitive stays focused on the OS interaction itself
+   * instead of repeating an entry-side guard. Nested objects (pointer /
+   * keyboard / scroll) are recursed automatically; new methods added later
+   * inherit the gate for free.
+   */
+  private gateOnDestroyed<T extends Record<string, any>>(
+    scope: string,
+    primitives: T,
+  ): T {
+    const wrap = (path: string, value: unknown): unknown => {
+      if (typeof value === 'function') {
+        return async (...args: unknown[]) => {
+          if (this.destroyed) {
+            throw new Error(
+              `ComputerDevice has been destroyed (cannot run ${path})`,
+            );
+          }
+          return (value as (...args: unknown[]) => unknown)(...args);
+        };
+      }
+      if (value && typeof value === 'object') {
+        return Object.fromEntries(
+          Object.entries(value).map(([name, child]) => [
+            name,
+            wrap(`${path}.${name}`, child),
+          ]),
+        );
+      }
+      return value;
+    };
+    return wrap(scope, primitives) as T;
   }
 
   private abortableSleep(ms: number): Promise<void> {
