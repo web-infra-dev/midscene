@@ -3,10 +3,7 @@
   "compilerOptions": {
     "lib": ["ESNext", "DOM"],
     "module": "esnext",
-    "paths": {
-      "@/*": ["./src/*"]
-    },
-    "rootDir": ".",
+    "rootDir": "./src",
     "declarationDir": "dist/types",
     "types": ["node"]
   },
@@ -20,9 +17,6 @@
     },
     {
       "path": "../shared"
-    },
-    {
-      "path": "../testing-framework"
     },
     {
       "path": "../web-integration"

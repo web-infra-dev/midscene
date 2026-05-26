@@ -1,9 +1,20 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import {
+  collectFrameworkTestFiles,
+  loadMidsceneConfig,
+} from '@midscene/testing-framework';
 import type { BatchRunnerConfig } from '../batch-runner';
 import { matchYamlFiles } from '../cli-utils';
+import { createRstestFrameworkProject } from './config-project';
 import {
   type CreateRstestYamlProjectOptions,
   type GeneratedRstestYamlProject,
@@ -70,6 +81,36 @@ const parseFrameworkTestArgs = (args: string[]): ParsedFrameworkArgs => {
     throw new Error(`Unexpected argument: ${arg}`);
   }
   return parsed;
+};
+
+const MIDSCENE_CONFIG_FILES = [
+  'midscene.config.ts',
+  'midscene.config.mts',
+  'midscene.config.cts',
+  'midscene.config.js',
+  'midscene.config.mjs',
+  'midscene.config.cjs',
+];
+
+const findMidsceneConfigPath = (targetPath: string): string | undefined => {
+  const resolvedPath = resolve(targetPath);
+  if (!existsSync(resolvedPath)) {
+    return undefined;
+  }
+
+  const stats = statSync(resolvedPath);
+  if (stats.isFile()) {
+    const fileName = resolvedPath.split(/[\\/]/).pop();
+    return fileName?.startsWith('midscene.config.') ? resolvedPath : undefined;
+  }
+
+  if (!stats.isDirectory()) {
+    return undefined;
+  }
+
+  return MIDSCENE_CONFIG_FILES.map((fileName) =>
+    resolve(resolvedPath, fileName),
+  ).find((configPath) => existsSync(configPath));
 };
 
 const resolveYamlFiles = async (
@@ -288,26 +329,65 @@ export async function runFrameworkTestCommand(
   commandOptions: FrameworkTestCommandOptions = {},
 ): Promise<number> {
   const parsed = parseFrameworkTestArgs(rawArgs);
-  const projectDir = resolve(
+  const requestedPath = resolve(
     commandOptions.projectDir || parsed.path || process.cwd(),
   );
 
-  if (!existsSync(projectDir)) {
-    throw new Error(`Project path does not exist: ${projectDir}`);
+  if (!existsSync(requestedPath)) {
+    throw new Error(`Project path does not exist: ${requestedPath}`);
+  }
+
+  const configPath = findMidsceneConfigPath(requestedPath);
+  if (configPath) {
+    const loadedConfig = await loadMidsceneConfig(configPath);
+    const files = await collectFrameworkTestFiles({
+      root: loadedConfig.root,
+      config: (commandOptions.files || parsed.files)?.length
+        ? {
+            ...loadedConfig.config,
+            testDir: '.',
+            include: commandOptions.files || parsed.files,
+            exclude: [],
+          }
+        : loadedConfig.config,
+    });
+
+    if (files.length === 0) {
+      throw new Error(`No test files found in ${loadedConfig.root}`);
+    }
+
+    const project = createRstestFrameworkProject({
+      loadedConfig,
+      files,
+      outputDir: commandOptions.outputDir,
+      maxConcurrency:
+        commandOptions.concurrent ??
+        parsed.concurrent ??
+        loadedConfig.config.testRunner?.maxConcurrency,
+      testTimeout: loadedConfig.config.testRunner?.testTimeout,
+      bail: loadedConfig.config.testRunner?.bail,
+    });
+
+    const runner = commandOptions.rstestRunner || runRstestCli;
+    return runner({
+      configFile: project.configFile,
+      cwd: loadedConfig.root,
+      stdio: commandOptions.stdio,
+    });
   }
 
   const files = await resolveYamlFiles({
-    projectDir,
+    projectDir: requestedPath,
     files: commandOptions.files || parsed.files,
   });
 
   if (files.length === 0) {
-    throw new Error(`No yaml files found in ${projectDir}`);
+    throw new Error(`No yaml files found in ${requestedPath}`);
   }
 
   const projectOptions: CreateRstestYamlProjectOptions = {
     files,
-    projectDir,
+    projectDir: requestedPath,
     outputDir: commandOptions.outputDir,
     frameworkImport: commandOptions.frameworkImport,
     headed: commandOptions.headed ?? parsed.headed,
@@ -319,7 +399,7 @@ export async function runFrameworkTestCommand(
   const runner = commandOptions.rstestRunner || runRstestCli;
   return runner({
     configFile: project.configFile,
-    cwd: projectDir,
+    cwd: requestedPath,
     stdio: commandOptions.stdio,
   });
 }

@@ -46,12 +46,13 @@ export interface GeneratedRstestYamlProject {
   cases: GeneratedYamlTestCase[];
 }
 
-const toPosixPath = (value: string): string => value.split(sep).join('/');
+export const toPosixPath = (value: string): string =>
+  value.split(sep).join('/');
 
 const toImportLiteral = (value: string): string =>
   JSON.stringify(toPosixPath(value));
 
-const safeFileStem = (file: string, index: number): string => {
+export const safeFileStem = (file: string, index: number): string => {
   const base = basename(file, extname(file))
     .replace(/[^a-zA-Z0-9._-]+/g, '-')
     .replace(/^-+|-+$/g, '');
@@ -113,7 +114,7 @@ test(${JSON.stringify(options.testName)}, async () => {
 `;
 };
 
-const createConfigContent = (options: {
+export const createConfigContent = (options: {
   root: string;
   include: string[];
   maxConcurrency?: number;

@@ -6,7 +6,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import {
   runFrameworkTestCommand,
   runFrameworkTestConfig,
@@ -16,6 +16,113 @@ import { describe, expect, test } from 'vitest';
 const createTempDir = () => mkdtempSync(join(tmpdir(), 'midscene-command-'));
 
 describe('framework test command', () => {
+  test('uses midscene.config.ts to collect yaml and TypeScript tests for Rstest', async () => {
+    const root = createTempDir();
+    const outputDir = join(root, 'generated-runner');
+    const e2e = join(root, 'e2e');
+    const yaml = join(e2e, 'checkout.yaml');
+    const directTest = join(e2e, 'checkout-risk.test.ts');
+    const skipped = join(e2e, 'skip.yaml');
+    const frameworkSource = resolve(
+      __dirname,
+      '../../../../testing-framework/src',
+    );
+    mkdirSync(e2e, { recursive: true });
+    writeFileSync(yaml, 'flow:\n  - aiAssert: Checkout page is visible\n');
+    writeFileSync(directTest, 'test("risk", () => {})\n');
+    writeFileSync(skipped, 'flow: []\n');
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `import { defineMidsceneConfig } from ${JSON.stringify(frameworkSource)};
+
+export default defineMidsceneConfig({
+  testDir: './e2e',
+  include: ['**/*.yaml', '**/*.test.ts'],
+  exclude: ['**/skip.yaml'],
+  testRunner: {
+    maxConcurrency: 2,
+    bail: 1,
+    testTimeout: 90_000,
+  },
+});
+`,
+    );
+
+    const calls: Array<{ configFile: string; cwd?: string }> = [];
+
+    try {
+      const exitCode = await runFrameworkTestCommand([root], {
+        outputDir,
+        rstestRunner: async (options) => {
+          calls.push(options);
+          return 0;
+        },
+      });
+
+      expect(exitCode).toBe(0);
+      expect(calls).toHaveLength(1);
+      expect(calls[0].cwd).toBe(root);
+      expect(calls[0].configFile).toBe(join(outputDir, 'rstest.config.ts'));
+
+      const rstestConfig = readFileSync(calls[0].configFile, 'utf8');
+      expect(rstestConfig).toContain('"maxConcurrency": 2');
+      expect(rstestConfig).toContain('"bail": 1');
+      expect(rstestConfig).toContain('"testTimeout": 90000');
+      expect(rstestConfig).toContain(directTest);
+      expect(rstestConfig).not.toContain(skipped);
+
+      const generatedSource = readFileSync(
+        join(outputDir, 'generated', '001-checkout.test.ts'),
+        'utf8',
+      );
+      expect(generatedSource).toContain(
+        `import config from ${JSON.stringify(join(root, 'midscene.config.ts'))}`,
+      );
+      expect(generatedSource).toContain('runYamlFrameworkCase');
+      expect(generatedSource).toContain(yaml);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('creates the default generated Rstest project under the configured project root', async () => {
+    const root = createTempDir();
+    const e2e = join(root, 'e2e');
+    const frameworkSource = resolve(
+      __dirname,
+      '../../../../testing-framework/src',
+    );
+    mkdirSync(e2e, { recursive: true });
+    writeFileSync(join(e2e, 'checkout.yaml'), 'flow: []\n');
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `import { defineMidsceneConfig } from ${JSON.stringify(frameworkSource)};
+export default defineMidsceneConfig({
+  testDir: './e2e',
+});
+`,
+    );
+
+    const calls: Array<{ configFile: string; cwd?: string }> = [];
+
+    try {
+      await runFrameworkTestCommand([root], {
+        rstestRunner: async (options) => {
+          calls.push(options);
+          return 0;
+        },
+      });
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0].cwd).toBe(root);
+      expect(calls[0].configFile).toContain(
+        join(root, 'midscene_run', 'tmp', 'rstest-framework-'),
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test('discovers YAML files, generates a Rstest project, and passes the config to the runner', async () => {
     const root = createTempDir();
     const outputDir = join(root, 'generated-runner');
