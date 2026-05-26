@@ -100,6 +100,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   userBilibiliLogo: '/images/users/bilibili-zh-color.svg',
   userBilibiliLogoWidth: '120',
   userDoubao: '豆包',
+  userDongchedi: '懂车帝',
 
   // Links
   multiModelStrategyLink: '/model-strategy#高阶特性多模型配合',

@@ -7,6 +7,7 @@ type LogoOnly = {
   logo: string;
   logoWidth: number;
   invertOnDark?: boolean;
+  logoDark?: string;
 };
 
 type IconText = {
@@ -119,6 +120,21 @@ export function WhoIsUsing() {
       logo: t('userBilibiliLogo'),
       logoWidth: Number(t('userBilibiliLogoWidth')),
     },
+    {
+      kind: 'logo',
+      name: 'Autel',
+      url: 'https://autelenergy.com',
+      logo: '/images/users/autel-color.svg',
+      logoWidth: 140,
+    },
+    {
+      kind: 'logo',
+      name: t('userDongchedi'),
+      url: 'https://www.dongchedi.com',
+      logo: '/images/users/dongchedi-color.svg',
+      logoDark: '/images/users/dongchedi-color-dark.svg',
+      logoWidth: 140,
+    },
   ];
 
   return (
@@ -141,15 +157,26 @@ export function WhoIsUsing() {
               className="flex items-center justify-center h-20 md:h-24 opacity-70 hover:opacity-100 transition-opacity duration-200"
             >
               {company.kind === 'logo' ? (
-                <img
-                  src={company.logo}
-                  alt={company.name}
-                  style={{ width: company.logoWidth, maxWidth: '100%' }}
-                  className={`h-auto max-h-full object-contain ${
-                    company.invertOnDark ? 'dark:invert' : ''
-                  }`}
-                  loading="lazy"
-                />
+                <>
+                  <img
+                    src={company.logo}
+                    alt={company.name}
+                    style={{ width: company.logoWidth, maxWidth: '100%' }}
+                    className={`h-auto max-h-full object-contain ${
+                      company.logoDark ? 'block dark:hidden' : ''
+                    } ${company.invertOnDark ? 'dark:invert' : ''}`}
+                    loading="lazy"
+                  />
+                  {company.logoDark && (
+                    <img
+                      src={company.logoDark}
+                      alt={company.name}
+                      style={{ width: company.logoWidth, maxWidth: '100%' }}
+                      className="hidden h-auto max-h-full object-contain dark:block"
+                      loading="lazy"
+                    />
+                  )}
+                </>
               ) : (
                 <div className="flex items-center gap-3">
                   <img
