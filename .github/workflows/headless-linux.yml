@@ -3,9 +3,9 @@ name: Headless Linux
 on:
   pull_request:
     paths:
-      - 'packages/computer/**'
-      - 'packages/playground/**'
-      - 'packages/core/**'
+      - 'packages/computer/src/**'
+      - 'packages/playground/src/**'
+      - 'packages/core/src/**'
       - 'apps/chrome-extension/**'
       - '.github/workflows/headless-linux.yml'
   workflow_dispatch:
