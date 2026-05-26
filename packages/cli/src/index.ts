@@ -7,24 +7,12 @@ import dotenv from 'dotenv';
 import { version } from '../package.json';
 import { matchYamlFiles, parseProcessArgs } from './cli-utils';
 import { createConfig, createFilesConfig } from './config-factory';
-import { runFrameworkTestCommand, runFrameworkTestConfig } from './framework';
+import { runFrameworkTestConfig } from './framework';
 
 Promise.resolve(
   (async () => {
     const rawArgs = process.argv.slice(2);
     const [firstArg] = rawArgs;
-    if (firstArg === 'test') {
-      const dotEnvConfigFile = join(process.cwd(), '.env');
-      if (existsSync(dotEnvConfigFile)) {
-        console.log(`   Env file: ${dotEnvConfigFile}`);
-        dotenv.config({
-          path: dotEnvConfigFile,
-        });
-      }
-      const exitCode = await runFrameworkTestCommand(rawArgs.slice(1));
-      process.exit(exitCode);
-    }
-
     if (firstArg === 'report-tool') {
       await runToolsCLI(
         {

@@ -3,7 +3,6 @@ import { dirname, relative, resolve } from 'node:path';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import type { BatchRunnerConfig } from '../batch-runner';
-import { matchYamlFiles } from '../cli-utils';
 import {
   type CreateRstestYamlProjectOptions,
   type GeneratedRstestYamlProject,
@@ -22,74 +21,6 @@ export interface FrameworkTestCommandOptions {
   stdio?: 'inherit' | 'pipe';
   rstestRunner?: typeof runRstestYamlProject;
 }
-
-interface ParsedFrameworkArgs {
-  path?: string;
-  files?: string[];
-  concurrent?: number;
-  headed?: boolean;
-  keepWindow?: boolean;
-}
-
-const parseFrameworkTestArgs = (args: string[]): ParsedFrameworkArgs => {
-  const parsed: ParsedFrameworkArgs = {};
-  for (let index = 0; index < args.length; index++) {
-    const arg = args[index];
-    if (arg === '--files') {
-      parsed.files = [];
-      while (args[index + 1] && !args[index + 1].startsWith('--')) {
-        parsed.files.push(args[++index]);
-      }
-      continue;
-    }
-    if (arg === '--concurrent') {
-      const value = args[++index];
-      const concurrent = Number.parseInt(value, 10);
-      if (!Number.isFinite(concurrent) || concurrent <= 0) {
-        throw new Error(`--concurrent must be a positive number, got ${value}`);
-      }
-      parsed.concurrent = concurrent;
-      continue;
-    }
-    if (arg === '--headed') {
-      parsed.headed = true;
-      continue;
-    }
-    if (arg === '--keep-window') {
-      parsed.keepWindow = true;
-      parsed.headed = true;
-      continue;
-    }
-    if (arg.startsWith('--')) {
-      throw new Error(`Unknown midscene test option: ${arg}`);
-    }
-    if (!parsed.path) {
-      parsed.path = arg;
-      continue;
-    }
-    throw new Error(`Unexpected argument: ${arg}`);
-  }
-  return parsed;
-};
-
-const resolveYamlFiles = async (
-  options: FrameworkTestCommandOptions,
-): Promise<string[]> => {
-  const patterns =
-    options.files && options.files.length > 0
-      ? options.files
-      : [options.projectDir || '.'];
-
-  const files: string[] = [];
-  for (const pattern of patterns) {
-    const matched = await matchYamlFiles(pattern, {
-      cwd: options.projectDir ? resolve(options.projectDir) : undefined,
-    });
-    files.push(...matched);
-  }
-
-  return files;
-};
 
 const createCaseOptions = (
   config: BatchRunnerConfig,
@@ -266,6 +197,7 @@ export async function runFrameworkTestConfig(
     keepWindow: commandOptions.keepWindow ?? config.keepWindow,
     maxConcurrency: commandOptions.concurrent ?? config.concurrent,
     bail: config.continueOnError ? 0 : 1,
+    batchConfig: config.shareBrowserContext ? config : undefined,
   });
 
   const runner = commandOptions.rstestRunner || runRstestYamlProject;
@@ -281,45 +213,4 @@ export async function runFrameworkTestConfig(
   const success = printExecutionSummary(results, summaryPath);
 
   return success ? exitCode : 1;
-}
-
-export async function runFrameworkTestCommand(
-  rawArgs: string[],
-  commandOptions: FrameworkTestCommandOptions = {},
-): Promise<number> {
-  const parsed = parseFrameworkTestArgs(rawArgs);
-  const projectDir = resolve(
-    commandOptions.projectDir || parsed.path || process.cwd(),
-  );
-
-  if (!existsSync(projectDir)) {
-    throw new Error(`Project path does not exist: ${projectDir}`);
-  }
-
-  const files = await resolveYamlFiles({
-    projectDir,
-    files: commandOptions.files || parsed.files,
-  });
-
-  if (files.length === 0) {
-    throw new Error(`No yaml files found in ${projectDir}`);
-  }
-
-  const projectOptions: CreateRstestYamlProjectOptions = {
-    files,
-    projectDir,
-    outputDir: commandOptions.outputDir,
-    frameworkImport: commandOptions.frameworkImport,
-    headed: commandOptions.headed ?? parsed.headed,
-    keepWindow: commandOptions.keepWindow ?? parsed.keepWindow,
-    maxConcurrency: commandOptions.concurrent ?? parsed.concurrent ?? 1,
-  };
-  const project = createRstestYamlProject(projectOptions);
-
-  const runner = commandOptions.rstestRunner || runRstestYamlProject;
-  return runner({
-    project,
-    cwd: projectDir,
-    stdio: commandOptions.stdio,
-  });
 }

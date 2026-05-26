@@ -1,6 +1,8 @@
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import type { MidsceneYamlConfigResult } from '@midscene/core';
+import { createYamlCaseFailure } from './yaml-case';
 import type { RunYamlCaseOptions, RunYamlCaseResult } from './yaml-case';
 
 export interface RunYamlCaseInChildProcessOptions extends RunYamlCaseOptions {
@@ -13,7 +15,7 @@ export interface RunYamlCaseInChildProcessOptions extends RunYamlCaseOptions {
 
 interface ChildMessage {
   type?: 'result' | 'error';
-  result?: RunYamlCaseResult;
+  result?: MidsceneYamlConfigResult;
   error?: {
     message?: string;
     stack?: string;
@@ -24,17 +26,47 @@ const childRunnerScript = `
 const options = JSON.parse(process.env.MIDSCENE_YAML_CASE_OPTIONS || '{}');
 const frameworkImport = process.env.MIDSCENE_FRAMEWORK_IMPORT;
 
+const sendMessage = (message) => new Promise((resolve) => {
+  if (!process.send) {
+    resolve();
+    return;
+  }
+  process.send(message, () => resolve());
+});
+
 (async () => {
   if (!frameworkImport) {
     throw new Error('MIDSCENE_FRAMEWORK_IMPORT is required');
   }
   const framework = await import(frameworkImport);
+  const runYamlCaseResult =
+    framework.runYamlCaseResult ||
+    framework.default?.runYamlCaseResult;
   const runYamlCase = framework.runYamlCase || framework.default?.runYamlCase;
+  if (typeof runYamlCaseResult === 'function') {
+    const result = await runYamlCaseResult(options);
+    await sendMessage({ type: 'result', result });
+    if (!result.success) {
+      throw new Error(result.error || 'YAML case failed');
+    }
+    return;
+  }
   if (typeof runYamlCase !== 'function') {
-    throw new Error('Cannot find runYamlCase from Midscene framework entry');
+    throw new Error('Cannot find runYamlCaseResult or runYamlCase from Midscene framework entry');
   }
   const result = await runYamlCase(options);
-  process.send?.({ type: 'result', result });
+  await sendMessage({
+    type: 'result',
+    result: {
+      file: result.file,
+      success: true,
+      executed: true,
+      output: result.output,
+      report: result.report,
+      duration: result.duration,
+      resultType: 'success'
+    }
+  });
 })().catch((error) => {
   const message = error?.message || String(error);
   const stack = error?.stack || message;
@@ -95,7 +127,7 @@ export async function runYamlCaseInChildProcess(
   return new Promise((resolvePromise, reject) => {
     let stdout = '';
     let stderr = '';
-    let result: RunYamlCaseResult | undefined;
+    let result: MidsceneYamlConfigResult | undefined;
     let childError: ChildMessage['error'];
     let settled = false;
     let timeoutId: NodeJS.Timeout | undefined;
@@ -168,20 +200,20 @@ export async function runYamlCaseInChildProcess(
       cleanup();
 
       if (code === 0 && !signal) {
-        const successResult = result || {
+        const successResult: MidsceneYamlConfigResult = result || {
           file,
-          duration: Date.now() - startTime,
-        };
-        writeResultFile(resultFile, {
-          file: successResult.file,
           success: true,
           executed: true,
-          output: successResult.output,
-          report: successResult.report,
-          duration: successResult.duration,
+          duration: Date.now() - startTime,
           resultType: 'success',
+        };
+        writeResultFile(resultFile, successResult);
+        resolvePromise({
+          file: successResult.file,
+          output: successResult.output || undefined,
+          report: successResult.report,
+          duration: successResult.duration || 0,
         });
-        resolvePromise(successResult);
         return;
       }
 
@@ -192,7 +224,7 @@ export async function runYamlCaseInChildProcess(
         error: childError,
         stderr: stderr || stdout,
       });
-      writeResultFile(resultFile, {
+      const failedResult = result || {
         file,
         success: false,
         executed: true,
@@ -201,8 +233,9 @@ export async function runYamlCaseInChildProcess(
         duration: Date.now() - startTime,
         resultType: 'failed',
         error: childError?.message || failure.message,
-      });
-      reject(failure);
+      };
+      writeResultFile(resultFile, failedResult);
+      reject(result ? createYamlCaseFailure(result) : failure);
     });
   });
 }
