@@ -48,7 +48,7 @@ const agent = new PuppeteerAgent(page, {
 - `waitForNavigationTimeout: number` —— 当操作触发页面跳转时的最长等待时间，默认 `5000`（设为 `0` 表示不等待）。
 - `waitForNetworkIdleTimeout: number` —— 每次操作后等待网络空闲的时间，默认 `2000`（设为 `0` 关闭）。
 - `enableTouchEventsInActionSpace: boolean` —— 在动作空间里增加触摸手势（如滑动），用于需要触摸事件的页面，默认 `false`。
-- `keyboardTypeDelay: number` —— 透传给 Puppeteer `page.keyboard.type` 的每字符延迟（毫秒）。未设置时使用 Puppeteer 自身默认值（`0`）。当受控输入框在快速输入下出现丢字时调大（例如 `80`）；追求最快输入则设为 `0`。
+- `keyboardTypeDelay: number` —— 透传给 Puppeteer `page.keyboard.type` 的每字符延迟（毫秒）。未设置时 Midscene 不传该选项，Puppeteer 会立即输入（`delay` 默认 `0`）。当受控输入框在快速输入下出现丢字时调大（例如 `80`）；追求最快输入则设为 `0`。
 - `forceChromeSelectRendering: boolean` —— 强制 `select` 元素使用 Chrome 的 base-select 样式，避免系统原生样式导致截图/元素提取不可见；需要 Puppeteer > `24.6.0`。
 - `customActions: DeviceAction[]` —— 借助 `defineAction` 注册自定义动作，让规划器可以调用领域特定步骤。
 
@@ -135,7 +135,7 @@ const agent = new PlaywrightAgent(page, {
 - `waitForNavigationTimeout: number` —— 等待导航完成的时间，默认 `5000`（设为 `0` 关闭）。
 - `waitForNetworkIdleTimeout: number` —— 每次操作后等待网络空闲的时间，默认 `2000`（设为 `0` 关闭）。
 - `enableTouchEventsInActionSpace: boolean` —— 在动作空间里增加触摸手势（如滑动），用于需要触摸事件的页面，默认 `false`。
-- `keyboardTypeDelay: number` —— 透传给 Playwright `page.keyboard.type` 的每字符延迟（毫秒）。未设置时使用 Playwright 自身默认值（`0`）。当受控输入框在快速输入下出现丢字时调大（例如 `80`）；追求最快输入则设为 `0`。
+- `keyboardTypeDelay: number` —— 透传给 Playwright `page.keyboard.type` 的每字符延迟（毫秒）。未设置时 Midscene 不传该选项，Playwright 会立即输入（`delay` 默认 `0`）。当受控输入框在快速输入下出现丢字时调大（例如 `80`）；追求最快输入则设为 `0`。
 - `forceChromeSelectRendering: boolean` —— 强制 `select` 元素使用 Chrome 的 base-select 样式，避免系统原生样式导致截图/元素提取不可见；需要 Playwright ≥ `1.52.0`。
 - `customActions: DeviceAction[]` —— 追加项目特有的动作，供规划器调用。
 
