@@ -9,7 +9,7 @@ import {
   type GeneratedRstestYamlProject,
   createRstestYamlProject,
 } from './rstest-project';
-import { runRstestCli } from './rstest-runner';
+import { runRstestYamlProject } from './rstest-runner';
 
 export interface FrameworkTestCommandOptions {
   projectDir?: string;
@@ -20,7 +20,7 @@ export interface FrameworkTestCommandOptions {
   outputDir?: string;
   frameworkImport?: string;
   stdio?: 'inherit' | 'pipe';
-  rstestRunner?: typeof runRstestCli;
+  rstestRunner?: typeof runRstestYamlProject;
 }
 
 interface ParsedFrameworkArgs {
@@ -268,9 +268,9 @@ export async function runFrameworkTestConfig(
     bail: config.continueOnError ? 0 : 1,
   });
 
-  const runner = commandOptions.rstestRunner || runRstestCli;
+  const runner = commandOptions.rstestRunner || runRstestYamlProject;
   const exitCode = await runner({
-    configFile: project.configFile,
+    project,
     cwd: projectDir,
     stdio: commandOptions.stdio,
   });
@@ -316,9 +316,9 @@ export async function runFrameworkTestCommand(
   };
   const project = createRstestYamlProject(projectOptions);
 
-  const runner = commandOptions.rstestRunner || runRstestCli;
+  const runner = commandOptions.rstestRunner || runRstestYamlProject;
   return runner({
-    configFile: project.configFile,
+    project,
     cwd: projectDir,
     stdio: commandOptions.stdio,
   });
