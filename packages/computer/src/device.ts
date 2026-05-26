@@ -70,9 +70,11 @@ const EDGE_SCROLL_STEPS = 400;
 // minimum of 10 steps so small distances still feel momentum-like.
 const PHASED_PIXELS_PER_STEP = 30;
 const PHASED_MIN_STEPS = 10;
-// Approximate viewport height for mapping "distance in px" to PageUp/PageDown
-// count when falling back to keyboard navigation.
-const APPROX_VIEWPORT_HEIGHT_PX = 600;
+// Default scroll distance is 70% of the screen size on the relevant axis,
+// matching the web puppeteer/chrome-extension behavior so a model that simply
+// says "scroll down" without a distance gets a roughly one-screen scroll on
+// every platform.
+const DEFAULT_SCROLL_VIEWPORT_RATIO = 0.7;
 
 type EdgeScrollType =
   | 'scrollToTop'
@@ -942,13 +944,24 @@ Original error: ${lastRawMessage}`,
     }
 
     if (scrollType === 'singleAction' || !scrollType) {
-      const distance = param?.distance || 500;
       const direction = (param?.direction || 'down') as ScrollDirection;
       const isKnownDirection =
         direction === 'up' ||
         direction === 'down' ||
         direction === 'left' ||
         direction === 'right';
+      const isHorizontal = direction === 'left' || direction === 'right';
+
+      let distance: number | undefined = param?.distance ?? undefined;
+      let screenSize: Size | undefined;
+      if (!distance) {
+        screenSize = await this.size();
+        const base = isHorizontal ? screenSize.width : screenSize.height;
+        distance = Math.max(
+          1,
+          Math.round(base * DEFAULT_SCROLL_VIEWPORT_RATIO),
+        );
+      }
 
       if (isKnownDirection) {
         const steps = Math.max(
@@ -962,10 +975,8 @@ Original error: ${lastRawMessage}`,
       }
 
       if (this.useAppleScript && (direction === 'up' || direction === 'down')) {
-        const pages = Math.max(
-          1,
-          Math.round(distance / APPROX_VIEWPORT_HEIGHT_PX),
-        );
+        if (!screenSize) screenSize = await this.size();
+        const pages = Math.max(1, Math.round(distance / screenSize.height));
         const key = direction === 'up' ? 'pageup' : 'pagedown';
         for (let i = 0; i < pages; i++) {
           sendKeyViaAppleScript(key);
