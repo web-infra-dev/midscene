@@ -1063,13 +1063,13 @@ Original error: ${lastRawMessage}`,
       return;
     }
 
-    // TEMP demo: L4 destroyed gating + abort signal deliberately disabled
-    // so the new L4 regression test in CI can prove it actually catches the
-    // bug. Restored in the following commit.
-    // this.destroyed = true;
-    // if (!this.destroyAbortController.signal.aborted) {
-    //   this.destroyAbortController.abort();
-    // }
+    // Mark destroyed and trip the abort signal first so any in-flight
+    // input sequence (smooth mouse move, scroll loop, clipboard paste)
+    // wakes up and bails immediately instead of running to completion.
+    this.destroyed = true;
+    if (!this.destroyAbortController.signal.aborted) {
+      this.destroyAbortController.abort();
+    }
 
     if (this.xvfbInstance) {
       this.xvfbInstance.stop();
