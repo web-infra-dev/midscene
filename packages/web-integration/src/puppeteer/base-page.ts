@@ -101,6 +101,7 @@ export class Page<
   private onAfterInvokeAction?: AbstractInterface['afterInvokeAction'];
   private customActions?: DeviceAction<any>[];
   private enableTouchEventsInActionSpace: boolean;
+  private keyboardTypeDelay: number | undefined;
   private puppeteerFileChooserSession?: CDPSession;
   private puppeteerFileChooserHandler?: (
     event: Protocol.Page.FileChooserOpenedEvent,
@@ -159,6 +160,7 @@ export class Page<
     this.customActions = opts?.customActions;
     this.enableTouchEventsInActionSpace =
       opts?.enableTouchEventsInActionSpace ?? false;
+    this.keyboardTypeDelay = opts?.keyboardTypeDelay;
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
@@ -689,8 +691,11 @@ export class Page<
   get keyboard() {
     return {
       type: async (text: string) => {
-        debugPage(`keyboard type ${text}`);
-        return this.underlyingPage.keyboard.type(text, { delay: 80 });
+        const delay = this.keyboardTypeDelay;
+        debugPage(
+          `keyboard type ${text}${delay !== undefined ? ` (delay: ${delay}ms)` : ''}`,
+        );
+        return this.underlyingPage.keyboard.type(text, { delay });
       },
       press: async (
         action:
