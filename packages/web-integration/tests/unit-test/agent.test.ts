@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { AbstractWebPage } from '@/web-page';
 import type { ReportActionDump } from '@midscene/core';
 import { Agent as PageAgent } from '@midscene/core/agent';
+import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { globalConfigManager } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -472,6 +473,66 @@ describe('PageAgent cache configuration', () => {
       expect(agent.taskCache?.readOnlyMode).toBe(false);
       expect(agent.taskCache?.writeOnlyMode).toBe(true);
       expect(agent.taskCache?.cacheId).toBe('custom-writeonly-cache');
+    });
+
+    it('should place cache file under provided dir without changing log/report dirs', async () => {
+      const cacheDir = path.join(
+        process.cwd(),
+        'tmp-custom-cache-dir',
+        `${Date.now()}`,
+      );
+      const logDir = getMidsceneRunSubDir('log');
+      const reportDir = getMidsceneRunSubDir('report');
+      try {
+        const agent = new PageAgent(mockPage, {
+          cache: {
+            id: 'custom-cache-dir-id',
+            cacheDir: ` ${cacheDir} `,
+          },
+          modelConfig: mockedModelConfig,
+        });
+
+        expect(agent.taskCache).toBeDefined();
+        const cacheFilePath = agent.taskCache?.cacheFilePath;
+        expect(cacheFilePath).toBe(
+          path.join(cacheDir, 'custom-cache-dir-id.cache.yaml'),
+        );
+        expect(getMidsceneRunSubDir('log')).toBe(logDir);
+        expect(getMidsceneRunSubDir('report')).toBe(reportDir);
+        expect(path.relative(cacheDir, logDir)).toMatch(/^\.\./);
+        expect(path.relative(cacheDir, reportDir)).toMatch(/^\.\./);
+
+        await agent.flushCache({ cleanUnused: false });
+        expect(fs.existsSync(cacheFilePath!)).toBe(true);
+      } finally {
+        if (fs.existsSync(cacheDir)) {
+          fs.rmSync(cacheDir, { recursive: true, force: true });
+        }
+      }
+    });
+
+    it('should throw error for empty cache dir', () => {
+      expect(() => {
+        new PageAgent(mockPage, {
+          cache: {
+            id: 'custom-cache-id',
+            cacheDir: '  ',
+          },
+          modelConfig: mockedModelConfig,
+        });
+      }).toThrow('cache.cacheDir must be a non-empty string when provided');
+    });
+
+    it('should throw error for non-string cache dir', () => {
+      expect(() => {
+        new PageAgent(mockPage, {
+          cache: {
+            id: 'custom-cache-id',
+            cacheDir: 123 as any,
+          },
+          modelConfig: mockedModelConfig,
+        });
+      }).toThrow('cache.cacheDir must be a non-empty string when provided');
     });
 
     it('should throw error for cache: true even with testId', () => {
