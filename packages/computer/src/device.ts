@@ -312,21 +312,18 @@ function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
       reject(new Error('ComputerDevice has been destroyed'));
       return;
     }
-    const timeoutId = setTimeout(() => {
-      if (signal && onAbort) {
-        signal.removeEventListener('abort', onAbort);
-      }
+    // Box object lets onAbort and the setTimeout callback cross-reference
+    // each other (clearTimeout / removeEventListener) without forward-let.
+    const refs: { timeoutId?: ReturnType<typeof setTimeout> } = {};
+    const onAbort = () => {
+      if (refs.timeoutId !== undefined) clearTimeout(refs.timeoutId);
+      reject(new Error('ComputerDevice has been destroyed'));
+    };
+    refs.timeoutId = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
       resolve();
     }, ms);
-    const onAbort = signal
-      ? () => {
-          clearTimeout(timeoutId);
-          reject(new Error('ComputerDevice has been destroyed'));
-        }
-      : undefined;
-    if (signal && onAbort) {
-      signal.addEventListener('abort', onAbort, { once: true });
-    }
+    signal?.addEventListener('abort', onAbort, { once: true });
   });
 }
 

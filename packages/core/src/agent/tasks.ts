@@ -226,6 +226,16 @@ export class TaskExecutor {
     };
   }
 
+  /**
+   * Execute a sequence of pre-built plans against this executor's interface.
+   *
+   * @param options.abortSignal Optional cooperative-abort signal. When the
+   *   signal aborts mid-execution, the run is interrupted at the next task
+   *   boundary; in-flight customActions receive the same signal via
+   *   {@link ExecutorContext.abortSignal} and can bail out of long sleeps
+   *   on their own. If the signal is already aborted on entry this method
+   *   throws immediately without executing any task.
+   */
   async runPlans(
     title: string,
     plans: PlanningAction[],
@@ -247,6 +257,7 @@ export class TaskExecutor {
       { abortSignal },
     );
     const runner = session.getRunner();
+    runner.abortSignal = abortSignal;
     const result = await session.appendAndRun(tasks);
     const { output } = result ?? {};
     return {

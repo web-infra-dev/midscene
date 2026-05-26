@@ -305,18 +305,15 @@ export class TaskBuilder {
 
         setTimingFieldOnce(timing, 'callActionStart');
 
-        if (context.abortSignal?.aborted) {
+        if (taskContext.abortSignal?.aborted) {
           throw new Error(
-            `Action ${action.name} aborted: ${context.abortSignal.reason || 'abort signal received'}`,
+            `Action ${action.name} aborted: ${taskContext.abortSignal.reason || 'abort signal received'}`,
           );
         }
 
         debug('calling action', action.name);
         const actionFn = action.call.bind(this.interface);
-        const actionResult = await actionFn(param, {
-          ...taskContext,
-          abortSignal: context.abortSignal,
-        });
+        const actionResult = await actionFn(param, taskContext);
         setTimingFieldOnce(timing, 'callActionEnd');
         debug('called action', action.name, 'result:', actionResult);
 

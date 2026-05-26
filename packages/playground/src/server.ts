@@ -1436,11 +1436,7 @@ class PlaygroundServer {
           // to destroy+recreate.
           const abortController = this.taskAbortControllers.get(requestId);
           if (abortController && !abortController.signal.aborted) {
-            try {
-              abortController.abort(new Error('cancelled by user'));
-            } catch (error) {
-              console.warn('Failed to abort task controller:', error);
-            }
+            abortController.abort(new Error('cancelled by user'));
           }
 
           // Get current execution data before cancelling (dump and reportHTML)

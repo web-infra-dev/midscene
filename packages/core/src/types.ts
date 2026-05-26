@@ -360,6 +360,13 @@ export interface ExecutorContext {
   task: ExecutionTask;
   element?: LocateResultElement | null;
   uiContext?: UIContext;
+  /**
+   * Cooperative-abort signal injected by {@link TaskRunner} when the caller
+   * (typically {@link TaskExecutor.runPlans}) passed one in. Action and
+   * insight executors — including customActions registered via
+   * {@link defineAction} — can observe `aborted` to interrupt long sleeps
+   * or model calls instead of running to natural completion.
+   */
   abortSignal?: AbortSignal;
 }
 

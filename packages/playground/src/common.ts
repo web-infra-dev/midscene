@@ -223,6 +223,8 @@ export async function executeAction(
     const prompt = value.prompt;
 
     if (actionType === 'aiAssert') {
+      // abortSignal is included via `...options` (ExecutionOptions.abortSignal
+      // is spread through); aiAssert plumbs it into its own runPlans call.
       const { pass, thought } =
         (await activeAgent?.aiAssert?.(prompt || '', undefined, {
           keepRawResponse: true,
@@ -231,7 +233,9 @@ export async function executeAction(
       return { pass: pass || false, thought: thought || '' };
     }
 
-    // Fallback for methods not found in actionSpace
+    // Fallback for methods not found in actionSpace. abortSignal travels
+    // with `options` (ExecutionOptions.abortSignal) so AiActOptions-shaped
+    // methods (aiTap / aiHover / ...) pick it up automatically.
     if (activeAgent && typeof activeAgent[actionType] === 'function') {
       return await activeAgent[actionType](prompt, options);
     }

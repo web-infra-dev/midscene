@@ -42,6 +42,15 @@ export class TaskRunner {
 
   onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
 
+  /**
+   * Optional cooperative-abort signal. When set, the runner forwards it into
+   * every {@link ExecutorContext} so action / insight executors (including
+   * customActions registered via {@link defineAction}) can observe
+   * `context.abortSignal.aborted` and bail out instead of running to natural
+   * completion. Owned by the caller (typically `TaskExecutor.runPlans`).
+   */
+  abortSignal?: AbortSignal;
+
   private readonly uiContextBuilder: () => Promise<UIContext>;
 
   private readonly onTaskUpdate?:
@@ -265,6 +274,7 @@ export class TaskRunner {
           task,
           element: previousFindOutput?.element,
           uiContext,
+          abortSignal: this.abortSignal,
         };
 
         if (task.type === 'Insight') {

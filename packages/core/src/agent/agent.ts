@@ -529,6 +529,20 @@ export class Agent<
     };
   }
 
+  /**
+   * Invoke a registered action by name. Hosts (e.g. PlaygroundServer's
+   * `/execute` route) use this entry point to dispatch a single action
+   * outside the LLM-driven `aiAct` pipeline.
+   *
+   * @param type Action name as registered in the interface's actionSpace.
+   * @param opt  Action parameters (shape depends on the action).
+   * @param options.abortSignal Optional cooperative-abort signal. If already
+   *   aborted on entry the call throws immediately. The signal is plumbed
+   *   into the underlying {@link TaskExecutor.runPlans} → {@link TaskRunner}
+   *   pipeline and surfaces in {@link ExecutorContext.abortSignal} so any
+   *   in-flight customAction or device sleep loop can observe it and
+   *   bail out instead of running to natural completion.
+   */
   async callActionInActionSpace<T = any>(
     type: string,
     opt?: T, // and all other action params
