@@ -63,27 +63,6 @@ vi.setConfig({
  *  - `executeBody` arrives within 25s — sanity check that we're nowhere near
  *    the 60s natural timeout, while staying tolerant of the destroy/dump tail
  *    that runs after the abort propagates.
- *
- * SCOPE: this suite covers L1-L3 of the cancel chain (server → executeAction
- * → core agent cooperative abort). It does NOT cover L4 (ComputerDevice
- * destroy() interrupting in-flight libnut input sequences) — that layer
- * deals with real mouse/keyboard hardware, and the Xvfb-on-CI substitute
- * doesn't reproduce the user-visible bug ("mouse keeps moving after Stop"):
- * the L4 failure mode under Xvfb is an X server crash from libnut writing
- * to a torn-down display, not a visible cursor drift.
- *
- * To verify L4 manually on macOS / a real Linux desktop:
- *   1. Build: `pnpm run build:skip-cache`
- *   2. Start the computer playground app and drive a long task — e.g. open
- *      apps/playground locally, or write a small script that invokes
- *      `device.inputPrimitives.pointer.tap` in a 30-iteration loop on
- *      varying coordinates.
- *   3. Mid-loop, hit Stop (or POST /cancel/:requestId).
- *   4. Observe the real cursor: with the L4 fix in place the cursor must
- *      freeze immediately (within ~1 frame). Without L4 the cursor keeps
- *      sliding through the remaining iterations.
- *   5. The error returned by /execute should mention "ComputerDevice has
- *      been destroyed" rather than the natural action completion.
  */
 describe.runIf(process.platform === 'linux')(
   'playground cancel propagation (headless linux)',
