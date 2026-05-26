@@ -14,7 +14,6 @@ import type {
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import {
-  DEFAULT_KEYBOARD_TYPE_DELAY,
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
@@ -102,7 +101,7 @@ export class Page<
   private onAfterInvokeAction?: AbstractInterface['afterInvokeAction'];
   private customActions?: DeviceAction<any>[];
   private enableTouchEventsInActionSpace: boolean;
-  private keyboardTypeDelay: number;
+  private keyboardTypeDelay: number | undefined;
   private puppeteerFileChooserSession?: CDPSession;
   private puppeteerFileChooserHandler?: (
     event: Protocol.Page.FileChooserOpenedEvent,
@@ -161,8 +160,7 @@ export class Page<
     this.customActions = opts?.customActions;
     this.enableTouchEventsInActionSpace =
       opts?.enableTouchEventsInActionSpace ?? false;
-    this.keyboardTypeDelay =
-      opts?.keyboardTypeDelay ?? DEFAULT_KEYBOARD_TYPE_DELAY;
+    this.keyboardTypeDelay = opts?.keyboardTypeDelay;
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
@@ -685,10 +683,11 @@ export class Page<
   get keyboard() {
     return {
       type: async (text: string) => {
-        debugPage(`keyboard type ${text} (delay: ${this.keyboardTypeDelay}ms)`);
-        return this.underlyingPage.keyboard.type(text, {
-          delay: this.keyboardTypeDelay,
-        });
+        const delay = this.keyboardTypeDelay;
+        debugPage(
+          `keyboard type ${text}${delay !== undefined ? ` (delay: ${delay}ms)` : ''}`,
+        );
+        return this.underlyingPage.keyboard.type(text, { delay });
       },
       press: async (
         action:

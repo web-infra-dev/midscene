@@ -17,8 +17,8 @@ export type WebPageOpt = {
   enableTouchEventsInActionSpace?: boolean;
   /**
    * Per-character delay (ms) used when typing text via the underlying
-   * Puppeteer/Playwright `keyboard.type` API. Defaults to
-   * `DEFAULT_KEYBOARD_TYPE_DELAY` (80ms). Set to 0 to disable the delay.
+   * Puppeteer/Playwright `keyboard.type` API. When omitted, the underlying
+   * driver's own default applies (0ms for both Puppeteer and Playwright).
    */
   keyboardTypeDelay?: number;
   /**
