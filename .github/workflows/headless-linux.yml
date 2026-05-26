@@ -155,7 +155,7 @@ jobs:
       run: pnpm run build:skip-cache
 
     - name: Run playground cancel regression test
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/playground-cancel.test.ts
+      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/playground-cancel.test.ts tests/ai/playground-cancel-device.test.ts
       timeout-minutes: 10
       id: test-cancel
       continue-on-error: true
