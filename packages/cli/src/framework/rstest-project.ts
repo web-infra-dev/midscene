@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import {
   basename,
   dirname,
@@ -34,16 +34,21 @@ export interface CreateRstestYamlProjectOptions {
 
 export interface GeneratedYamlTestCase {
   yamlFile: string;
-  testFile: string;
+  testModule: string;
   resultFile: string;
   testName: string;
 }
 
 export interface GeneratedRstestYamlProject {
   projectDir: string;
-  configFile: string;
-  generatedDir: string;
+  outputDir: string;
+  resultDir: string;
+  include: string[];
+  virtualModules: Record<string, string>;
   cases: GeneratedYamlTestCase[];
+  maxConcurrency?: number;
+  testTimeout: number;
+  bail?: number;
 }
 
 const toPosixPath = (value: string): string => value.split(sep).join('/');
@@ -113,28 +118,6 @@ test(${JSON.stringify(options.testName)}, async () => {
 `;
 };
 
-const createConfigContent = (options: {
-  root: string;
-  include: string[];
-  maxConcurrency?: number;
-  testTimeout: number;
-  bail?: number;
-}): string => {
-  const config = {
-    root: options.root,
-    include: options.include,
-    testEnvironment: 'node',
-    testTimeout: options.testTimeout,
-    ...(options.maxConcurrency !== undefined
-      ? { maxConcurrency: options.maxConcurrency }
-      : {}),
-    ...(options.bail !== undefined ? { bail: options.bail } : {}),
-  };
-
-  return `export default ${JSON.stringify(config, null, 2)};
-`;
-};
-
 const resolveDefaultFrameworkImport = (): string => {
   const entry = process.argv[1] ? resolve(process.argv[1]) : '';
   const candidates = [
@@ -155,53 +138,44 @@ export function createRstestYamlProject(
   const outputDir =
     options.outputDir ||
     join(getMidsceneRunSubDir('tmp'), `rstest-yaml-${Date.now()}`);
-  const generatedDir = join(outputDir, 'generated');
   const resultDir = options.resultDir || join(outputDir, 'results');
   const frameworkImport =
     options.frameworkImport || resolveDefaultFrameworkImport();
   const rstestImport = options.rstestImport || resolveRstestCoreImportPath();
+  const testTimeout = options.testTimeout ?? 3 * 60 * 1000;
 
   rmSync(outputDir, { recursive: true, force: true });
-  mkdirSync(generatedDir, { recursive: true });
+  mkdirSync(resultDir, { recursive: true });
 
+  const virtualModules: Record<string, string> = {};
   const cases = options.files.map((file, index) => {
     const yamlFile = resolve(file);
     const testName = resolveTestName(projectDir, yamlFile);
     const fileStem = safeFileStem(yamlFile, index);
     const resultFile = join(resultDir, `${fileStem}.json`);
-    const testFile = join(generatedDir, `${fileStem}.test.ts`);
-    writeFileSync(
-      testFile,
-      createGeneratedTestContent({
-        rstestImport,
-        frameworkImport,
-        yamlFile,
-        resultFile,
-        testName,
-        caseOptions: options.caseOptions?.[yamlFile],
-        headed: options.headed,
-        keepWindow: options.keepWindow,
-      }),
-    );
-    return { yamlFile, testFile, resultFile, testName };
+    const testModule = `virtual/midscene-yaml/${fileStem}.test.ts`;
+    virtualModules[testModule] = createGeneratedTestContent({
+      rstestImport,
+      frameworkImport,
+      yamlFile,
+      resultFile,
+      testName,
+      caseOptions: options.caseOptions?.[yamlFile],
+      headed: options.headed,
+      keepWindow: options.keepWindow,
+    });
+    return { yamlFile, testModule, resultFile, testName };
   });
 
-  const configFile = join(outputDir, 'rstest.config.ts');
-  writeFileSync(
-    configFile,
-    createConfigContent({
-      root: projectDir,
-      include: cases.map((item) => toPosixPath(item.testFile)),
-      maxConcurrency: options.maxConcurrency,
-      testTimeout: options.testTimeout ?? 3 * 60 * 1000,
-      bail: options.bail,
-    }),
-  );
-
   return {
-    projectDir: outputDir,
-    configFile,
-    generatedDir,
+    projectDir,
+    outputDir,
+    resultDir,
+    include: cases.map((item) => item.testModule),
+    virtualModules,
     cases,
+    maxConcurrency: options.maxConcurrency,
+    testTimeout,
+    bail: options.bail,
   };
 }

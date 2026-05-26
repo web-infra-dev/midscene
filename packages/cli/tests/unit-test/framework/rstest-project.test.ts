@@ -1,7 +1,7 @@
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
-  readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -16,7 +16,7 @@ import { describe, expect, test } from 'vitest';
 const createTempDir = () => mkdtempSync(join(tmpdir(), 'midscene-rstest-'));
 
 describe('rstest yaml project generation', () => {
-  test('generates a Rstest config and one test file for each YAML file', () => {
+  test('generates virtual Rstest entries for each YAML file', () => {
     const root = createTempDir();
     const outputDir = join(root, 'runner');
     const yamlA = join(root, 'cases', 'checkout.yaml');
@@ -35,19 +35,21 @@ describe('rstest yaml project generation', () => {
         maxConcurrency: 2,
       });
 
-      expect(project.configFile).toBe(join(outputDir, 'rstest.config.ts'));
+      expect(project.projectDir).toBe(root);
+      expect(project.outputDir).toBe(outputDir);
+      expect(project.include).toEqual([
+        'virtual/midscene-yaml/001-checkout.test.ts',
+        'virtual/midscene-yaml/002-case.test.ts',
+      ]);
       expect(project.cases).toHaveLength(2);
       expect(project.cases[0].testName).toBe('cases/checkout.yaml');
       expect(project.cases[0].resultFile).toBe(
         join(outputDir, 'results', '001-checkout.json'),
       );
       expect(project.cases[1].testName).toBe('cases/中文 case.yaml');
+      expect(project.maxConcurrency).toBe(2);
 
-      const config = readFileSync(project.configFile, 'utf8');
-      expect(config).toContain('"maxConcurrency": 2');
-      expect(config).toContain(project.cases[0].testFile);
-
-      const generated = readFileSync(project.cases[1].testFile, 'utf8');
+      const generated = project.virtualModules[project.cases[1].testModule];
       expect(generated).toContain('import { test } from "@test/rstest-core"');
       expect(generated).toContain('await import("@test/framework")');
       expect(generated).toContain('runYamlCaseInChildProcess');
@@ -75,7 +77,7 @@ describe('rstest yaml project generation', () => {
       });
 
       expect(project.cases).toHaveLength(1);
-      expect(() => readFileSync(staleFile, 'utf8')).toThrow();
+      expect(existsSync(staleFile)).toBe(false);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

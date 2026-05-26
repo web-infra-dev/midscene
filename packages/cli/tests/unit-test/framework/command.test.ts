@@ -11,19 +11,20 @@ import {
   runFrameworkTestCommand,
   runFrameworkTestConfig,
 } from '@/framework/command';
+import type { RunRstestYamlProjectOptions } from '@/framework/rstest-runner';
 import { describe, expect, test } from 'vitest';
 
 const createTempDir = () => mkdtempSync(join(tmpdir(), 'midscene-command-'));
 
 describe('framework test command', () => {
-  test('discovers YAML files, generates a Rstest project, and passes the config to the runner', async () => {
+  test('discovers YAML files, generates virtual Rstest entries, and passes them to the runner', async () => {
     const root = createTempDir();
     const outputDir = join(root, 'generated-runner');
     const yaml = join(root, 'cases', 'checkout.yaml');
     mkdirSync(join(root, 'cases'), { recursive: true });
     writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
 
-    const calls: Array<{ configFile: string; cwd?: string }> = [];
+    const calls: RunRstestYamlProjectOptions[] = [];
 
     try {
       const exitCode = await runFrameworkTestCommand(
@@ -41,10 +42,17 @@ describe('framework test command', () => {
       expect(exitCode).toBe(7);
       expect(calls).toHaveLength(1);
       expect(calls[0].cwd).toBe(root);
-      expect(calls[0].configFile).toBe(join(outputDir, 'rstest.config.ts'));
-      expect(readFileSync(calls[0].configFile, 'utf8')).toContain(
-        '"maxConcurrency": 3',
-      );
+      expect(calls[0].project.outputDir).toBe(outputDir);
+      expect(calls[0].project.maxConcurrency).toBe(3);
+      expect(calls[0].project.include).toEqual([
+        'virtual/midscene-yaml/001-checkout.test.ts',
+      ]);
+      expect(
+        calls[0].project.virtualModules[calls[0].project.include[0]],
+      ).toContain(JSON.stringify(yaml));
+      expect(
+        calls[0].project.virtualModules[calls[0].project.include[0]],
+      ).toContain('await import("@test/framework")');
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -62,12 +70,22 @@ describe('framework test command', () => {
     try {
       await runFrameworkTestCommand([root, '--files', 'cases/included.yaml'], {
         outputDir,
-        rstestRunner: async () => 0,
+        rstestRunner: async (options) => {
+          expect(options.project.include).toEqual([
+            'virtual/midscene-yaml/001-included.test.ts',
+          ]);
+          expect(Object.keys(options.project.virtualModules)).toEqual(
+            options.project.include,
+          );
+          expect(
+            options.project.virtualModules[options.project.include[0]],
+          ).toContain('included.yaml');
+          expect(
+            options.project.virtualModules[options.project.include[0]],
+          ).not.toContain('skipped.yaml');
+          return 0;
+        },
       });
-
-      const config = readFileSync(join(outputDir, 'rstest.config.ts'), 'utf8');
-      expect(config).toContain('included');
-      expect(config).not.toContain('skipped');
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -174,9 +192,6 @@ export async function runYamlCaseInChildProcess(options: any) {
       );
 
       expect(exitCode).toBe(0);
-      expect(
-        readFileSync(join(outputDir, 'rstest.config.ts'), 'utf8'),
-      ).toContain('"bail": 1');
       expect(JSON.parse(readFileSync(marker, 'utf8'))).toMatchObject({
         web: {
           viewportWidth: 1280,
