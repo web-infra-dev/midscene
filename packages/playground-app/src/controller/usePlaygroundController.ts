@@ -372,7 +372,17 @@ export function usePlaygroundController({
   }, [applyAiConfig, serverOnline]);
 
   useEffect(() => {
-    if (!serverOnline || sessionViewState.connected) {
+    // Skip the setup poll when no setup is needed (e.g. agent-only servers
+    // launched via playgroundForAgent / playgroundForAgentFactory without a
+    // sessionManager — setupState stays 'ready'). Without this guard, the
+    // server returns 404 from /session/setup during the brief window when
+    // cancel destroys the agent before the factory swaps a new one in, and
+    // the panel flashes "Failed to load setup".
+    if (
+      !serverOnline ||
+      sessionViewState.connected ||
+      sessionViewState.setupState === 'ready'
+    ) {
       return;
     }
 
@@ -408,7 +418,17 @@ export function usePlaygroundController({
     refreshSessionSetup,
     serverOnline,
     sessionViewState.connected,
+    sessionViewState.setupState,
   ]);
+
+  // If a transient setup poll has already surfaced an error (e.g. 404 racing
+  // a /cancel-triggered recreateAgent), clear it once the server reports the
+  // session no longer needs setup.
+  useEffect(() => {
+    if (sessionViewState.setupState === 'ready' && sessionSetupError !== null) {
+      setSessionSetupError(null);
+    }
+  }, [sessionViewState.setupState, sessionSetupError]);
 
   useEffect(() => {
     if (!serverOnline || sessionViewState.connected || !selectedPlatformId) {
