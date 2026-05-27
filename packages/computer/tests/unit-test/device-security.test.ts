@@ -147,4 +147,21 @@ describe('ComputerDevice destroy input gate', () => {
       moveCountAfterDestroy,
     );
   });
+
+  it('releases the mouse button when destroy interrupts a tap hold', async () => {
+    const { ComputerDevice } = await import('../../src/device');
+    const device = new ComputerDevice({});
+    await device.connect();
+
+    const tapPromise = device.inputPrimitives.pointer.tap({ x: 200, y: 120 });
+
+    await vi.waitFor(() => {
+      expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('down', 'left');
+    });
+
+    await device.destroy();
+
+    await expect(tapPromise).rejects.toThrow(/destroyed/);
+    expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('up', 'left');
+  });
 });
