@@ -57,7 +57,7 @@ export async function runRstestYamlProject(
       ? { pool: { maxWorkers, minWorkers: maxWorkers } }
       : {}),
     ...(project.bail !== undefined ? { bail: project.bail } : {}),
-    ...(options.stdio === 'pipe' ? { reporters: [] } : {}),
+    reporters: [],
     tools: {
       rspack: (_config, { appendPlugins }) => {
         appendPlugins(

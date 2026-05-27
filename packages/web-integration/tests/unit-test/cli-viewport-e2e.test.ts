@@ -1,12 +1,12 @@
 import { once } from 'node:events';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { type Server, createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { parseWebCliOptions } from '@/cli-options';
-import {
-  PUPPETEER_ENDPOINT_FILE,
-  WebPuppeteerMidsceneTools,
-} from '@/mcp-tools-puppeteer';
+import { WebPuppeteerMidsceneTools } from '@/mcp-tools-puppeteer';
 import { runToolsCLI } from '@midscene/shared/cli';
 import puppeteer from 'puppeteer-core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -41,8 +41,23 @@ async function closePersistentBrowser(): Promise<void> {
 describe('midscene-web CLI viewport e2e', () => {
   let server: Server;
   let baseUrl: string;
+  let persistentRoot: string;
+  let previousEndpointFile: string | undefined;
+  let previousUserDataDir: string | undefined;
 
   beforeAll(async () => {
+    persistentRoot = mkdtempSync(join(tmpdir(), 'midscene-cli-viewport-'));
+    previousEndpointFile = process.env.MIDSCENE_PUPPETEER_ENDPOINT_FILE;
+    previousUserDataDir = process.env.MIDSCENE_PUPPETEER_USER_DATA_DIR;
+    process.env.MIDSCENE_PUPPETEER_ENDPOINT_FILE = join(
+      persistentRoot,
+      'endpoint',
+    );
+    process.env.MIDSCENE_PUPPETEER_USER_DATA_DIR = join(
+      persistentRoot,
+      'profile',
+    );
+
     server = createServer((_req, res) => {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
       res.end(html);
@@ -57,16 +72,30 @@ describe('midscene-web CLI viewport e2e', () => {
   });
 
   afterAll(async () => {
-    await closePersistentBrowser();
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-        resolve();
+    try {
+      await closePersistentBrowser();
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve();
+        });
       });
-    });
+    } finally {
+      if (previousEndpointFile === undefined) {
+        Reflect.deleteProperty(process.env, 'MIDSCENE_PUPPETEER_ENDPOINT_FILE');
+      } else {
+        process.env.MIDSCENE_PUPPETEER_ENDPOINT_FILE = previousEndpointFile;
+      }
+      if (previousUserDataDir === undefined) {
+        Reflect.deleteProperty(process.env, 'MIDSCENE_PUPPETEER_USER_DATA_DIR');
+      } else {
+        process.env.MIDSCENE_PUPPETEER_USER_DATA_DIR = previousUserDataDir;
+      }
+      rmSync(persistentRoot, { recursive: true, force: true });
+    }
   });
 
   it('applies CLI viewport flags to the launched Puppeteer page', async () => {
@@ -88,7 +117,9 @@ describe('midscene-web CLI viewport e2e', () => {
       argv: parsedOptions.argv,
     });
 
-    const endpoint = (await readFile(PUPPETEER_ENDPOINT_FILE, 'utf-8')).trim();
+    const endpoint = (
+      await readFile(process.env.MIDSCENE_PUPPETEER_ENDPOINT_FILE!, 'utf-8')
+    ).trim();
     const browser = await puppeteer.connect({
       browserWSEndpoint: endpoint,
       defaultViewport: null,
