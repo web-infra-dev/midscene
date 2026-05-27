@@ -8,6 +8,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
+  DEFAULT_YAML_TEST_TIMEOUT,
   createRstestYamlProject,
   resolveTestName,
 } from '@/framework/rstest-project';
@@ -48,6 +49,7 @@ describe('rstest yaml project generation', () => {
       );
       expect(project.cases[1].testName).toBe('cases/中文 case.yaml');
       expect(project.maxConcurrency).toBe(2);
+      expect(project.testTimeout).toBe(DEFAULT_YAML_TEST_TIMEOUT);
 
       const generated = project.virtualModules[project.cases[1].testModule];
       expect(generated).toContain('import { test } from "@test/rstest-core"');
@@ -55,6 +57,26 @@ describe('rstest yaml project generation', () => {
       expect(generated).toContain('runYamlCaseInChildProcess');
       expect(generated).toContain('frameworkImport: "@test/framework"');
       expect(generated).toContain(JSON.stringify(yamlB));
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('allows overriding the YAML test timeout', () => {
+    const root = createTempDir();
+    const outputDir = join(root, 'runner');
+    const yaml = join(root, 'case.yaml');
+    writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
+
+    try {
+      const project = createRstestYamlProject({
+        files: [yaml],
+        projectDir: root,
+        outputDir,
+        testTimeout: 180_000,
+      });
+
+      expect(project.testTimeout).toBe(180_000);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

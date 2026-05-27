@@ -100,6 +100,35 @@ const writeSummaryFile = (
   return indexPath;
 };
 
+const splitProjectByConcurrency = (
+  project: GeneratedRstestYamlProject,
+): GeneratedRstestYamlProject[] => {
+  if (
+    project.include.length === 1 ||
+    project.maxConcurrency === undefined ||
+    project.maxConcurrency <= 0 ||
+    project.cases.length <= project.maxConcurrency
+  ) {
+    return [project];
+  }
+
+  const chunks: GeneratedRstestYamlProject[] = [];
+  for (let i = 0; i < project.cases.length; i += project.maxConcurrency) {
+    const cases = project.cases.slice(i, i + project.maxConcurrency);
+    const include = cases.map((item) => item.testModule);
+    chunks.push({
+      ...project,
+      include,
+      virtualModules: Object.fromEntries(
+        include.map((entry) => [entry, project.virtualModules[entry]]),
+      ),
+      cases,
+    });
+  }
+
+  return chunks;
+};
+
 const printExecutionPlan = (config: BatchRunnerConfig): void => {
   console.log('   Scripts:');
   for (const file of config.files) {
@@ -201,11 +230,20 @@ export async function runFrameworkTestConfig(
   });
 
   const runner = commandOptions.rstestRunner || runRstestYamlProject;
-  const exitCode = await runner({
-    project,
-    cwd: projectDir,
-    stdio: commandOptions.stdio,
-  });
+  let exitCode = 0;
+  for (const projectBatch of splitProjectByConcurrency(project)) {
+    const batchExitCode = await runner({
+      project: projectBatch,
+      cwd: projectDir,
+      stdio: commandOptions.stdio,
+    });
+    if (batchExitCode !== 0) {
+      exitCode = batchExitCode;
+      if (!config.continueOnError) {
+        break;
+      }
+    }
+  }
 
   const results = readProjectResults(project);
   const summaryPath = writeSummaryFile(config.summary, results);
