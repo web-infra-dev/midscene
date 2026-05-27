@@ -57,7 +57,17 @@ export class ComputerInputDriver {
   }
 
   mouseClick(button?: MouseButton, double?: boolean): void {
-    this.getLibnutOrThrow('mouseClick').mouseClick(button, double);
+    const lib = this.getLibnutOrThrow('mouseClick');
+    // libnut is a native binding that distinguishes "no argument" from
+    // "explicit undefined" — passing undefined for optional args trips
+    // "A boolean was expected" / "A string was expected" type checks.
+    if (double !== undefined) {
+      lib.mouseClick(button, double);
+    } else if (button !== undefined) {
+      lib.mouseClick(button);
+    } else {
+      lib.mouseClick();
+    }
   }
 
   mouseToggle(state: 'up' | 'down', button: MouseButton = 'left'): void {
@@ -69,7 +79,13 @@ export class ComputerInputDriver {
   }
 
   keyTap(key: string, modifiers?: string[]): void {
-    this.getLibnutOrThrow('keyTap').keyTap(key, modifiers);
+    const lib = this.getLibnutOrThrow('keyTap');
+    // See note on mouseClick — avoid passing explicit undefined to libnut.
+    if (modifiers !== undefined) {
+      lib.keyTap(key, modifiers);
+    } else {
+      lib.keyTap(key);
+    }
   }
 
   sendKeyViaAppleScript(key: string, modifiers: string[] = []): void {

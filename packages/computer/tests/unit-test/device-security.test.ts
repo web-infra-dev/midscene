@@ -165,3 +165,50 @@ describe('ComputerDevice destroy input gate', () => {
     expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('up', 'left');
   });
 });
+
+describe('ComputerInputDriver native arg handling', () => {
+  // libnut is a native binding that distinguishes "no argument" from
+  // "explicit undefined" — passing `(button, undefined)` trips its
+  // "A boolean was expected" type check, and `(key, undefined)` trips
+  // "A string was expected". The driver wrapper must not forward
+  // undefined for optional trailing args.
+  it('omits trailing undefined args when calling libnut.mouseClick', async () => {
+    const { ComputerInputDriver } = await import('../../src/input-driver');
+    const driver = new ComputerInputDriver({
+      getLibnut: () => mockState.libnut,
+      useAppleScript: () => false,
+      sendKeyViaAppleScript: vi.fn(),
+      runPhasedScroll: vi.fn(() => true),
+      debug: vi.fn(),
+    });
+
+    driver.mouseClick('right');
+    expect(mockState.libnut.mouseClick).toHaveBeenLastCalledWith('right');
+    // Confirm exactly one positional arg — no trailing undefined leaked.
+    expect(mockState.libnut.mouseClick.mock.lastCall).toHaveLength(1);
+
+    driver.mouseClick('left', true);
+    expect(mockState.libnut.mouseClick).toHaveBeenLastCalledWith('left', true);
+
+    driver.mouseClick();
+    expect(mockState.libnut.mouseClick.mock.lastCall).toHaveLength(0);
+  });
+
+  it('omits trailing undefined modifiers when calling libnut.keyTap', async () => {
+    const { ComputerInputDriver } = await import('../../src/input-driver');
+    const driver = new ComputerInputDriver({
+      getLibnut: () => mockState.libnut,
+      useAppleScript: () => false,
+      sendKeyViaAppleScript: vi.fn(),
+      runPhasedScroll: vi.fn(() => true),
+      debug: vi.fn(),
+    });
+
+    driver.keyTap('backspace');
+    expect(mockState.libnut.keyTap).toHaveBeenLastCalledWith('backspace');
+    expect(mockState.libnut.keyTap.mock.lastCall).toHaveLength(1);
+
+    driver.keyTap('a', ['command']);
+    expect(mockState.libnut.keyTap).toHaveBeenLastCalledWith('a', ['command']);
+  });
+});
