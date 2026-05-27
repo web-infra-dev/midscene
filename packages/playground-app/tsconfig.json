@@ -3,8 +3,7 @@
   "compilerOptions": {
     "sourceMap": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@midscene/shared/constants": ["../shared/src/constants/index.ts"]
+      "@/*": ["./src/*"]
     },
     "rootDir": "src",
     "target": "ES2022",
