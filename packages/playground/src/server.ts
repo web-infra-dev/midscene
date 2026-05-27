@@ -593,19 +593,32 @@ class PlaygroundServer {
     });
   }
 
-  getSessionInfo(): PlaygroundSessionState & {
-    setupState: 'required' | 'ready' | 'blocked';
-    setupBlockingReason?: string;
-  } {
-    const connected = this.sessionManager
+  /**
+   * Treat a session as connected when either:
+   * - we have a live agent, OR
+   * - we are mid-recreate (`_agentReady === false`).
+   *
+   * `recreateAgent` (e.g. via /cancel) nulls `_activeConnection.agent`
+   * before the factory swaps in a fresh one. Without this guard the UI
+   * sees a brief `connected: false` window and flashes the
+   * SessionSetupPanel ("create agent" form) for ~1–2 seconds.
+   */
+  private isEffectivelyConnected(): boolean {
+    const rawConnected = this.sessionManager
       ? Boolean(
           this._activeConnection.session?.connected &&
             this._activeConnection.agent,
         )
       : Boolean(this._activeConnection.agent);
+    return rawConnected || !this._agentReady;
+  }
 
+  getSessionInfo(): PlaygroundSessionState & {
+    setupState: 'required' | 'ready' | 'blocked';
+    setupBlockingReason?: string;
+  } {
     return {
-      connected,
+      connected: this.isEffectivelyConnected(),
       displayName: this._activeConnection.session?.displayName,
       metadata: {
         ...(this._activeConnection.session?.metadata || {}),
@@ -616,17 +629,10 @@ class PlaygroundServer {
   }
 
   private buildSessionMetadata(): Record<string, unknown> {
-    const sessionConnected = this.sessionManager
-      ? Boolean(
-          this._activeConnection.session?.connected &&
-            this._activeConnection.agent,
-        )
-      : Boolean(this._activeConnection.agent);
-
     return {
       ...(this._basePreparedMetadata || {}),
       ...(this._activeConnection.session?.metadata || {}),
-      sessionConnected,
+      sessionConnected: this.isEffectivelyConnected(),
       sessionDisplayName: this._activeConnection.session?.displayName,
       setupState: this.sessionSetupState,
       ...(this.sessionSetupBlockingReason
