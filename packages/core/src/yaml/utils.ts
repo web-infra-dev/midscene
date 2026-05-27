@@ -10,6 +10,75 @@ import yaml from 'js-yaml';
 
 const debugUtils = getDebug('yaml:utils');
 
+function replaceEnvVarRefs(
+  line: string,
+  options: { preserveMissing?: boolean },
+) {
+  let result = '';
+  let lastIndex = 0;
+  let searchFrom = 0;
+
+  while (searchFrom < line.length) {
+    const start = line.indexOf('${', searchFrom);
+    if (start === -1) {
+      break;
+    }
+
+    const end = line.indexOf('}', start + 2);
+    if (end === -1) {
+      break;
+    }
+
+    const rawName = line.slice(start + 2, end);
+    if (!rawName) {
+      searchFrom = end + 1;
+      continue;
+    }
+
+    const envVar = rawName.trim();
+    const value = process.env[envVar];
+    result += line.slice(lastIndex, start);
+    if (value === undefined) {
+      if (options.preserveMissing) {
+        result += line.slice(start, end + 1);
+      } else {
+        throw new Error(`Environment variable "${envVar}" is not defined`);
+      }
+    } else {
+      result += value;
+    }
+    lastIndex = end + 1;
+    searchFrom = end + 1;
+  }
+
+  return result + line.slice(lastIndex);
+}
+
+function assertNoMissingEnvVarsInString(value: string) {
+  let searchFrom = 0;
+
+  while (searchFrom < value.length) {
+    const start = value.indexOf('${', searchFrom);
+    if (start === -1) {
+      return;
+    }
+
+    const end = value.indexOf('}', start + 2);
+    if (end === -1) {
+      return;
+    }
+
+    const rawName = value.slice(start + 2, end);
+    if (rawName) {
+      const envVar = rawName.trim();
+      if (process.env[envVar] === undefined) {
+        throw new Error(`Environment variable "${envVar}" is not defined`);
+      }
+    }
+    searchFrom = end + 1;
+  }
+}
+
 const multimodalLocateOptionFieldMap: Record<keyof TMultimodalPrompt, true> = {
   images: true,
   convertHttpImage2Base64: true,
@@ -35,7 +104,10 @@ function extractMultimodalPrompt(
     : undefined;
 }
 
-export function interpolateEnvVars(content: string): string {
+export function interpolateEnvVars(
+  content: string,
+  options: { preserveMissing?: boolean } = {},
+): string {
   // Process line by line to skip commented lines
   const lines = content.split('\n');
   const processedLines = lines.map((line) => {
@@ -47,18 +119,37 @@ export function interpolateEnvVars(content: string): string {
     }
 
     // Process environment variables for non-comment lines
-    return line.replace(/\$\{([^}]+)\}/g, (_, envVar) => {
-      const value = process.env[envVar.trim()];
-      if (value === undefined) {
-        throw new Error(
-          `Environment variable "${envVar.trim()}" is not defined`,
-        );
-      }
-      return value;
-    });
+    return replaceEnvVarRefs(line, options);
   });
 
   return processedLines.join('\n');
+}
+
+function assertNoMissingEnvVarsOutsideTasks(
+  value: unknown,
+  path: string[] = [],
+) {
+  if (path.length === 1 && path[0] === 'tasks') {
+    return;
+  }
+
+  if (typeof value === 'string') {
+    assertNoMissingEnvVarsInString(value);
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    for (const [index, item] of value.entries()) {
+      assertNoMissingEnvVarsOutsideTasks(item, [...path, String(index)]);
+    }
+    return;
+  }
+
+  if (value && typeof value === 'object') {
+    for (const [key, item] of Object.entries(value)) {
+      assertNoMissingEnvVarsOutsideTasks(item, [...path, key]);
+    }
+  }
 }
 
 export function parseYamlScript(
@@ -79,10 +170,13 @@ export function parseYamlScript(
       `please use string-style deviceId in yaml script, for example: deviceId: "${matchedDeviceId}"`,
     );
   }
-  const interpolatedContent = interpolateEnvVars(processedContent);
+  const interpolatedContent = interpolateEnvVars(processedContent, {
+    preserveMissing: true,
+  });
   const obj = yaml.load(interpolatedContent, {
     schema: yaml.JSON_SCHEMA,
   }) as MidsceneYamlScript;
+  assertNoMissingEnvVarsOutsideTasks(obj);
 
   const pathTip = filePath ? `, failed to load ${filePath}` : '';
   assert(obj.tasks, `property "tasks" is required in yaml script ${pathTip}`);
