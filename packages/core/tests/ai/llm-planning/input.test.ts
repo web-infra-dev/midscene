@@ -1,24 +1,12 @@
 import { ConversationHistory, plan } from '@/ai-model';
-import type { DeviceAction } from '@/types';
 import { globalModelConfigManager } from '@midscene/shared/env';
+import { mockActionSpace } from 'tests/common';
 import { getContextFromFixture } from 'tests/evaluation';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { z } from 'zod';
+import { describe, expect, it, vi } from 'vitest';
 vi.setConfig({
   testTimeout: 180 * 1000,
   hookTimeout: 30 * 1000,
 });
-
-const mockActionSpace: DeviceAction[] = [
-  {
-    name: 'Input',
-    description: 'Replace the input field with a new value',
-    paramSchema: z.object({
-      value: z.string(),
-    }),
-    call: () => {},
-  },
-];
 
 const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
 
