@@ -13,12 +13,6 @@
     },
     {
       "path": "../shared"
-    },
-    {
-      "path": "../android"
-    },
-    {
-      "path": "../web-integration"
     }
   ]
 }

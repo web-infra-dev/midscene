@@ -18,6 +18,7 @@
     "test:ai:all": "npm run e2e && npm run e2e:cache && npm run e2e:report && npm run test:ai && npm run e2e:visualizer",
     "prepare": "simple-git-hooks && pnpm run build",
     "check-dependency-version": "check-dependency-version-consistency .",
+    "check:references": "node scripts/check-tsconfig-references.mjs",
     "lint": "npx biome check . --diagnostic-level=info --no-errors-on-unmatched --fix",
     "format:ci": "pretty-quick --since HEAD~1",
     "format": "pretty-quick --staged",
