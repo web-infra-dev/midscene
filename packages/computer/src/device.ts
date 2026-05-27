@@ -1,4 +1,3 @@
-import assert from 'node:assert';
 import { execFileSync, execSync, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -20,22 +19,15 @@ import { sleep } from '@midscene/core/utils';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import screenshot from 'screenshot-desktop';
+import {
+  ComputerInputDriver,
+  type LibNut,
+  type ScrollDirection,
+} from './input-driver';
 import type { XvfbInstance } from './xvfb';
 import { checkXvfbInstalled, needsXvfb, startXvfb } from './xvfb';
 
 declare const __VERSION__: string;
-
-// Type definitions
-interface LibNut {
-  getScreenSize(): { width: number; height: number };
-  getMousePos(): { x: number; y: number };
-  moveMouse(x: number, y: number): void;
-  mouseClick(button?: 'left' | 'right' | 'middle', double?: boolean): void;
-  mouseToggle(state: 'up' | 'down', button?: 'left' | 'right' | 'middle'): void;
-  scrollMouse(x: number, y: number): void;
-  keyTap(key: string, modifiers?: string[]): void;
-  typeString(text: string): void;
-}
 
 interface ScreenshotOptions {
   format: 'png' | 'jpg';
@@ -81,7 +73,6 @@ type EdgeScrollType =
   | 'scrollToBottom'
   | 'scrollToLeft'
   | 'scrollToRight';
-type ScrollDirection = 'up' | 'down' | 'left' | 'right';
 
 interface EdgeScrollStrategy {
   direction: ScrollDirection;
@@ -302,167 +293,6 @@ export function runPhasedScroll(
   }
 }
 
-type MouseButton = 'left' | 'right' | 'middle';
-
-class ComputerInputDriver {
-  private destroyed = false;
-  private pendingInputDelayWaits = new Set<{
-    timeoutId: ReturnType<typeof setTimeout>;
-    reject: (error: Error) => void;
-  }>();
-
-  constructor(private readonly useAppleScript: () => boolean) {}
-
-  destroy(): void {
-    if (this.destroyed) {
-      return;
-    }
-    this.destroyed = true;
-    this.rejectPendingInputDelays();
-  }
-
-  getScreenSize(): Size {
-    return this.getLibnutOrThrow('getScreenSize').getScreenSize();
-  }
-
-  getMousePos(): { x: number; y: number } {
-    return this.getLibnutOrThrow('getMousePos').getMousePos();
-  }
-
-  moveMouse(x: number, y: number): void {
-    this.getLibnutOrThrow('moveMouse').moveMouse(x, y);
-  }
-
-  mouseClick(button?: MouseButton, double?: boolean): void {
-    this.getLibnutOrThrow('mouseClick').mouseClick(button, double);
-  }
-
-  mouseToggle(state: 'up' | 'down', button: MouseButton = 'left'): void {
-    this.getLibnutOrThrow('mouseToggle').mouseToggle(state, button);
-  }
-
-  scrollMouse(x: number, y: number): void {
-    this.getLibnutOrThrow('scrollMouse').scrollMouse(x, y);
-  }
-
-  keyTap(key: string, modifiers?: string[]): void {
-    this.getLibnutOrThrow('keyTap').keyTap(key, modifiers);
-  }
-
-  sendKeyViaAppleScript(key: string, modifiers: string[] = []): void {
-    this.assertActive('sendKeyViaAppleScript');
-    sendKeyViaAppleScript(key, modifiers);
-  }
-
-  sendKey(key: string, modifiers: string[] = []): void {
-    if (this.useAppleScript()) {
-      this.sendKeyViaAppleScript(key, modifiers);
-      return;
-    }
-
-    if (modifiers.length > 0) {
-      this.keyTap(key, modifiers);
-    } else {
-      this.keyTap(key);
-    }
-  }
-
-  runPhasedScroll(
-    direction: ScrollDirection,
-    pixels: number,
-    steps: number,
-  ): boolean {
-    this.assertActive('runPhasedScroll');
-    return runPhasedScroll(direction, pixels, steps);
-  }
-
-  async delay(ms: number): Promise<void> {
-    this.assertActive('delay');
-    return new Promise((resolve, reject) => {
-      const waitRef = {
-        timeoutId: setTimeout(() => {
-          this.pendingInputDelayWaits.delete(waitRef);
-          try {
-            this.assertActive('delay');
-            resolve();
-          } catch (error) {
-            reject(error);
-          }
-        }, ms),
-        reject,
-      };
-      this.pendingInputDelayWaits.add(waitRef);
-    });
-  }
-
-  async smoothMoveMouse(
-    targetX: number,
-    targetY: number,
-    steps: number,
-    stepDelay: number,
-  ): Promise<void> {
-    const currentPos = this.getMousePos();
-    for (let i = 1; i <= steps; i++) {
-      const stepX = Math.round(
-        currentPos.x + ((targetX - currentPos.x) * i) / steps,
-      );
-      const stepY = Math.round(
-        currentPos.y + ((targetY - currentPos.y) * i) / steps,
-      );
-      this.moveMouse(stepX, stepY);
-      await this.delay(stepDelay);
-    }
-  }
-
-  async withMouseButton<T>(
-    button: MouseButton,
-    run: () => Promise<T>,
-  ): Promise<T> {
-    this.mouseToggle('down', button);
-    try {
-      return await run();
-    } finally {
-      this.releaseMouseButton(button);
-    }
-  }
-
-  private getLibnutOrThrow(methodName: string): LibNut {
-    this.assertActive(methodName);
-    assert(libnut, 'libnut not initialized');
-    return libnut;
-  }
-
-  private assertActive(methodName: string): void {
-    if (this.destroyed) {
-      throw this.createDestroyedError(methodName);
-    }
-  }
-
-  private createDestroyedError(methodName: string): Error {
-    return new Error(
-      `ComputerDevice has been destroyed (cannot run ${methodName})`,
-    );
-  }
-
-  private releaseMouseButton(button: MouseButton): void {
-    try {
-      assert(libnut, 'libnut not initialized');
-      libnut.mouseToggle('up', button);
-    } catch (error) {
-      debugDevice(`Failed to release mouse button ${button}: ${error}`);
-    }
-  }
-
-  private rejectPendingInputDelays(): void {
-    const error = this.createDestroyedError('in-flight input');
-    for (const waitRef of this.pendingInputDelayWaits) {
-      clearTimeout(waitRef.timeoutId);
-      waitRef.reject(error);
-    }
-    this.pendingInputDelayWaits.clear();
-  }
-}
-
 // Key name mapping for cross-platform compatibility
 // Note: Modifier keys have different names when used as primary key vs modifier
 const KEY_NAME_MAP: Record<string, string> = {
@@ -563,9 +393,13 @@ export class ComputerDevice implements AbstractInterface {
   private destroyed = false;
   private xvfbInstance?: XvfbInstance;
   private xvfbCleanup?: () => void;
-  private readonly inputDriver = new ComputerInputDriver(
-    () => this.useAppleScript,
-  );
+  private readonly inputDriver = new ComputerInputDriver({
+    getLibnut: () => libnut,
+    useAppleScript: () => this.useAppleScript,
+    sendKeyViaAppleScript,
+    runPhasedScroll,
+    debug: (message) => debugDevice(message),
+  });
   /**
    * On macOS, use AppleScript for keyboard operations by default
    * to avoid focus issues with system overlays (e.g. Spotlight).
