@@ -430,7 +430,7 @@ export class ComputerDevice implements AbstractInterface {
   private destroyed = false;
   private xvfbInstance?: XvfbInstance;
   private xvfbCleanup?: () => void;
-  private activeInputWaits = new Set<{
+  private pendingInputDelayWaits = new Set<{
     timeoutId: ReturnType<typeof setTimeout>;
     reject: (error: Error) => void;
   }>();
@@ -454,12 +454,12 @@ export class ComputerDevice implements AbstractInterface {
           SMOOTH_MOVE_STEPS_TAP,
           SMOOTH_MOVE_DELAY_TAP,
           () => this.assertInputActive('tap'),
-          (ms) => this.inputWait(ms),
+          (ms) => this.waitForInputDelayOrThrow(ms),
         );
         this.assertInputActive('tap');
         libnut.mouseToggle('down', 'left');
         try {
-          await this.inputWait(CLICK_HOLD_DURATION);
+          await this.waitForInputDelayOrThrow(CLICK_HOLD_DURATION);
         } finally {
           libnut.mouseToggle('up', 'left');
         }
@@ -482,18 +482,18 @@ export class ComputerDevice implements AbstractInterface {
           SMOOTH_MOVE_STEPS_MOUSE_MOVE,
           SMOOTH_MOVE_DELAY_MOUSE_MOVE,
           () => this.assertInputActive('hover'),
-          (ms) => this.inputWait(ms),
+          (ms) => this.waitForInputDelayOrThrow(ms),
         );
-        await this.inputWait(MOUSE_MOVE_EFFECT_WAIT);
+        await this.waitForInputDelayOrThrow(MOUSE_MOVE_EFFECT_WAIT);
       },
       dragAndDrop: async (from, to) => {
         assert(libnut, 'libnut not initialized');
         libnut.moveMouse(Math.round(from.x), Math.round(from.y));
         libnut.mouseToggle('down', 'left');
         try {
-          await this.inputWait(100);
+          await this.waitForInputDelayOrThrow(100);
           libnut.moveMouse(Math.round(to.x), Math.round(to.y));
-          await this.inputWait(100);
+          await this.waitForInputDelayOrThrow(100);
         } finally {
           libnut.mouseToggle('up', 'left');
         }
@@ -508,11 +508,11 @@ export class ComputerDevice implements AbstractInterface {
           const [x, y] = element.center;
           libnut.moveMouse(Math.round(x), Math.round(y));
           libnut.mouseClick('left');
-          await this.inputWait(INPUT_FOCUS_DELAY);
+          await this.waitForInputDelayOrThrow(INPUT_FOCUS_DELAY);
 
           if (opts?.replace !== false) {
             await this.selectAllAndDelete();
-            await this.inputWait(INPUT_CLEAR_DELAY);
+            await this.waitForInputDelayOrThrow(INPUT_CLEAR_DELAY);
           }
         }
 
@@ -526,7 +526,7 @@ export class ComputerDevice implements AbstractInterface {
           const [x, y] = target.center;
           libnut.moveMouse(Math.round(x), Math.round(y));
           libnut.mouseClick('left');
-          await this.inputWait(50);
+          await this.waitForInputDelayOrThrow(50);
         }
 
         await this.pressKeyboardShortcut(keyName);
@@ -539,11 +539,11 @@ export class ComputerDevice implements AbstractInterface {
           const [x, y] = element.center;
           libnut.moveMouse(Math.round(x), Math.round(y));
           libnut.mouseClick('left');
-          await this.inputWait(100);
+          await this.waitForInputDelayOrThrow(100);
         }
 
         await this.selectAllAndDelete();
-        await this.inputWait(50);
+        await this.waitForInputDelayOrThrow(50);
       },
     },
     scroll: {
@@ -854,7 +854,7 @@ Original error: ${lastRawMessage}`,
     try {
       // 2. Write new content to clipboard
       await clipboardy.default.write(text);
-      await this.inputWait(50);
+      await this.waitForInputDelayOrThrow(50);
 
       // 3. Simulate paste shortcut
       if (this.useAppleScript) {
@@ -863,7 +863,7 @@ Original error: ${lastRawMessage}`,
         const modifier = process.platform === 'darwin' ? 'command' : 'control';
         libnut.keyTap('v', [modifier]);
       }
-      await this.inputWait(100);
+      await this.waitForInputDelayOrThrow(100);
     } finally {
       // 4. Restore old clipboard content
       if (oldClipboard) {
@@ -889,14 +889,14 @@ Original error: ${lastRawMessage}`,
     assert(libnut, 'libnut not initialized');
     if (this.useAppleScript) {
       sendKeyViaAppleScript('a', ['command']);
-      await this.inputWait(50);
+      await this.waitForInputDelayOrThrow(50);
       sendKeyViaAppleScript('backspace', []);
       return;
     }
 
     const modifier = process.platform === 'darwin' ? 'command' : 'control';
     libnut.keyTap('a', [modifier]);
-    await this.inputWait(50);
+    await this.waitForInputDelayOrThrow(50);
     libnut.keyTap('backspace');
   }
 
@@ -945,13 +945,13 @@ Original error: ${lastRawMessage}`,
           EDGE_SCROLL_STEPS,
         )
       ) {
-        await this.inputWait(SCROLL_COMPLETE_DELAY);
+        await this.waitForInputDelayOrThrow(SCROLL_COMPLETE_DELAY);
         return;
       }
 
       if (this.useAppleScript) {
         sendKeyViaAppleScript(edgeSpec.key);
-        await this.inputWait(SCROLL_COMPLETE_DELAY);
+        await this.waitForInputDelayOrThrow(SCROLL_COMPLETE_DELAY);
         return;
       }
 
@@ -959,7 +959,7 @@ Original error: ${lastRawMessage}`,
       for (let i = 0; i < SCROLL_REPEAT_COUNT; i++) {
         this.assertInputActive('scroll');
         libnut.scrollMouse(dx, dy);
-        await this.inputWait(SCROLL_STEP_DELAY);
+        await this.waitForInputDelayOrThrow(SCROLL_STEP_DELAY);
       }
       return;
     }
@@ -990,7 +990,7 @@ Original error: ${lastRawMessage}`,
           Math.round(distance / PHASED_PIXELS_PER_STEP),
         );
         if (runPhasedScroll(direction, distance, steps)) {
-          await this.inputWait(SCROLL_COMPLETE_DELAY);
+          await this.waitForInputDelayOrThrow(SCROLL_COMPLETE_DELAY);
           return;
         }
       }
@@ -1002,9 +1002,9 @@ Original error: ${lastRawMessage}`,
         for (let i = 0; i < pages; i++) {
           this.assertInputActive('scroll');
           sendKeyViaAppleScript(key);
-          await this.inputWait(SCROLL_STEP_DELAY);
+          await this.waitForInputDelayOrThrow(SCROLL_STEP_DELAY);
         }
-        await this.inputWait(SCROLL_COMPLETE_DELAY);
+        await this.waitForInputDelayOrThrow(SCROLL_COMPLETE_DELAY);
         return;
       }
 
@@ -1019,7 +1019,7 @@ Original error: ${lastRawMessage}`,
       const [dx, dy] = directionMap[direction] || [0, -ticks];
       this.assertInputActive('scroll');
       libnut.scrollMouse(dx, dy);
-      await this.inputWait(SCROLL_COMPLETE_DELAY);
+      await this.waitForInputDelayOrThrow(SCROLL_COMPLETE_DELAY);
       return;
     }
 
@@ -1046,7 +1046,7 @@ Original error: ${lastRawMessage}`,
     }
 
     this.destroyed = true;
-    this.cancelActiveInputWaits();
+    this.rejectPendingInputDelays();
 
     if (this.xvfbInstance) {
       this.xvfbInstance.stop();
@@ -1074,12 +1074,12 @@ Original error: ${lastRawMessage}`,
     }
   }
 
-  private inputWait(ms: number): Promise<void> {
+  private waitForInputDelayOrThrow(ms: number): Promise<void> {
     this.assertInputActive('input wait');
     return new Promise((resolve, reject) => {
       const waitRef = {
         timeoutId: setTimeout(() => {
-          this.activeInputWaits.delete(waitRef);
+          this.pendingInputDelayWaits.delete(waitRef);
           try {
             this.assertInputActive('input wait');
             resolve();
@@ -1089,17 +1089,17 @@ Original error: ${lastRawMessage}`,
         }, ms),
         reject,
       };
-      this.activeInputWaits.add(waitRef);
+      this.pendingInputDelayWaits.add(waitRef);
     });
   }
 
-  private cancelActiveInputWaits(): void {
+  private rejectPendingInputDelays(): void {
     const error = this.createDestroyedError('in-flight input');
-    for (const waitRef of this.activeInputWaits) {
+    for (const waitRef of this.pendingInputDelayWaits) {
       clearTimeout(waitRef.timeoutId);
       waitRef.reject(error);
     }
-    this.activeInputWaits.clear();
+    this.pendingInputDelayWaits.clear();
   }
 
   private gateInputPrimitives<T extends Record<string, any>>(primitives: T): T {
