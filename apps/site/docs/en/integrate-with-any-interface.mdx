@@ -495,6 +495,14 @@ interface LaunchPlaygroundOptions {
 }
 ```
 
+By default, the Playground server listens on `0.0.0.0` so it can be reached
+from local device runtimes. Set `MIDSCENE_PLAYGROUND_HOST` before launching the
+Playground if you need to restrict or customize the listen address:
+
+```bash
+MIDSCENE_PLAYGROUND_HOST=127.0.0.1 tsx ./playground.ts
+```
+
 #### `launch` method return value
 
 ```typescript

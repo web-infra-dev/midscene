@@ -468,6 +468,14 @@ interface LaunchPlaygroundOptions {
 }
 ```
 
+默认情况下，Playground 服务器监听 `0.0.0.0`，方便本地设备运行时访问。
+如果需要限制或自定义监听地址，可以在启动 Playground 前设置
+`MIDSCENE_PLAYGROUND_HOST`：
+
+```bash
+MIDSCENE_PLAYGROUND_HOST=127.0.0.1 tsx ./playground.ts
+```
+
 #### `launch` 方法返回值
 
 ```typescript

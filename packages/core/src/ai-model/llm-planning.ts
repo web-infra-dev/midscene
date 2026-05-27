@@ -11,9 +11,9 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import {
-  assertPlannedActionInActionSpace,
   buildYamlFlowFromPlans,
   fillBboxParam,
+  findActionInActionSpaceOrThrow,
   findAllMidsceneLocatorField,
 } from '../common';
 import type { ConversationHistory } from './conversation-history';
@@ -297,7 +297,7 @@ export async function plan(
 
     actions.forEach((action) => {
       const type = action.type;
-      const actionInActionSpace = assertPlannedActionInActionSpace(
+      const actionInActionSpace = findActionInActionSpaceOrThrow(
         type,
         opts.actionSpace,
       );

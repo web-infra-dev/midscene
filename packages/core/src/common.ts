@@ -459,7 +459,7 @@ export async function markupImageForLLM(
   return imagePayload;
 }
 
-export function assertPlannedActionInActionSpace(
+export function findActionInActionSpaceOrThrow(
   planType: string,
   actionSpace: DeviceAction<any>[],
 ): DeviceAction<any> {
@@ -482,7 +482,7 @@ export function buildYamlFlowFromPlans(
   for (const plan of plans) {
     const verb = plan.type;
 
-    const action = assertPlannedActionInActionSpace(verb, actionSpace);
+    const action = findActionInActionSpaceOrThrow(verb, actionSpace);
 
     const flowKey = action.interfaceAlias || verb;
     const flowParam = action.paramSchema

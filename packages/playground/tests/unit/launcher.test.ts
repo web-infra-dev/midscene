@@ -28,11 +28,35 @@ describe('playground launcher', () => {
     });
 
     expect(result.port).toBe(5921);
+    expect(result.host).toBe('127.0.0.1');
     expect(result.server.id).toBe('launcher-instance-id');
     expect(result.server.staticPath).toBe(staticPath);
 
     await result.close();
     expect(agent.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should return MIDSCENE_PLAYGROUND_HOST when configured', async () => {
+    const originalHost = process.env.MIDSCENE_PLAYGROUND_HOST;
+    process.env.MIDSCENE_PLAYGROUND_HOST = 'localhost';
+
+    try {
+      const result = await playgroundForAgent(createMockAgent()).launch({
+        port: 5924,
+        openBrowser: false,
+        verbose: false,
+        staticPath,
+      });
+
+      expect(result.host).toBe('localhost');
+      await result.close();
+    } finally {
+      if (originalHost === undefined) {
+        Reflect.deleteProperty(process.env, 'MIDSCENE_PLAYGROUND_HOST');
+      } else {
+        process.env.MIDSCENE_PLAYGROUND_HOST = originalHost;
+      }
+    }
   });
 
   it('should launch from agent factory and allow server configuration', async () => {
