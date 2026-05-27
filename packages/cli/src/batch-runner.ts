@@ -1,6 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { readFileSync } from 'node:fs';
-import { dirname, relative, resolve } from 'node:path';
 import type {
   MidsceneYamlConfigResult,
   MidsceneYamlScript,
@@ -10,7 +8,6 @@ import type {
   MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
 import { type ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
-import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
   buildChromeArgs,
   defaultViewportHeight,
@@ -21,6 +18,17 @@ import merge from 'lodash.merge';
 import pLimit from 'p-limit';
 import puppeteer, { type Browser, type Page } from 'puppeteer';
 import { createYamlPlayer } from './create-yaml-player';
+import {
+  createExecutedYamlResult,
+  createNotExecutedYamlResult,
+  getExecutionSummary,
+  getResultFilesByType,
+  getSummaryAbsolutePath,
+  printExecutionFinished,
+  printExecutionPlan,
+  printExecutionSummary,
+  writeExecutionSummaryFile,
+} from './execution-summary';
 import {
   type MidsceneYamlFileContext,
   contextInfo,
@@ -77,12 +85,12 @@ class BatchRunner {
     options: BatchRunnerRunOptions = {},
   ): Promise<MidsceneYamlConfigResult[]> {
     const generateSummary = options.generateSummary ?? true;
-    const printExecutionPlan = options.printExecutionPlan ?? true;
+    const shouldPrintExecutionPlan = options.printExecutionPlan ?? true;
     const { keepWindow, headed } = this.config;
 
     // Print execution plan
-    if (printExecutionPlan) {
-      this.printExecutionPlan();
+    if (shouldPrintExecutionPlan) {
+      printExecutionPlan(this.config);
     }
 
     // Prepare file contexts
@@ -418,80 +426,11 @@ class BatchRunner {
 
     for (const context of executedContexts) {
       const { file, player, duration } = context;
-      // Determine result type based on player and task statuses
-      const hasFailedTasks =
-        player.taskStatusList?.some((task) => task.status === 'error') ?? false;
-      const hasPlayerError = player.status === 'error';
-
-      let success: boolean;
-      let resultType: 'success' | 'failed' | 'partialFailed';
-
-      if (hasPlayerError) {
-        // Complete failure - player itself failed
-        success = false;
-        resultType = 'failed';
-      } else if (hasFailedTasks) {
-        // Partial failure - some tasks failed but execution continued (continueOnError)
-        success = false;
-        resultType = 'partialFailed';
-      } else {
-        // Success - all tasks completed successfully
-        success = true;
-        resultType = 'success';
-      }
-
-      let reportFile: string | undefined;
-
-      if (player.reportFile) {
-        reportFile = player.reportFile;
-      }
-
-      // Check if output file actually exists
-      let outputPath: string | undefined = player.output || undefined;
-      if (outputPath && !existsSync(outputPath)) {
-        outputPath = undefined;
-      }
-
-      // Collect specific error messages from player
-      let errorMessage: string | undefined;
-      if (player.errorInSetup?.message) {
-        errorMessage = player.errorInSetup.message;
-      } else if (hasPlayerError || hasFailedTasks) {
-        const taskErrors = player.taskStatusList
-          ?.filter((task) => task.status === 'error' && task.error?.message)
-          .map((task) => task.error!.message);
-        if (taskErrors && taskErrors.length > 0) {
-          errorMessage = taskErrors.join('; ');
-        } else if (hasPlayerError) {
-          errorMessage = 'Execution failed';
-        } else {
-          errorMessage = 'Some tasks failed';
-        }
-      }
-
-      results.push({
-        file,
-        success,
-        executed: true,
-        output: outputPath,
-        report: reportFile,
-        duration,
-        resultType,
-        error: errorMessage,
-      });
+      results.push(createExecutedYamlResult({ file, player, duration }));
     }
 
     for (const context of notExecutedContexts) {
-      results.push({
-        file: context.file,
-        success: false,
-        executed: false,
-        output: undefined,
-        report: undefined,
-        duration: 0,
-        resultType: 'notExecuted',
-        error: 'Not executed (previous task failed)',
-      });
+      results.push(createNotExecutedYamlResult(context.file));
     }
 
     return results;
@@ -503,76 +442,13 @@ class BatchRunner {
   }
 
   private getSummaryAbsolutePath(): string {
-    return resolve(getMidsceneRunSubDir('output'), this.config.summary);
-  }
-
-  private printExecutionPlan(): void {
-    console.log('   Scripts:');
-    for (const file of this.config.files) {
-      console.log(`     - ${file}`);
-    }
-    console.log('📋 Execution plan');
-    console.log(`   Concurrency: ${this.config.concurrent}`);
-    console.log(`   Keep window: ${this.config.keepWindow}`);
-    console.log(`   Headed: ${this.config.headed}`);
-    console.log(`   Continue on error: ${this.config.continueOnError}`);
-    console.log(
-      `   Share browser context: ${this.config.shareBrowserContext ?? false}`,
-    );
-    console.log(`   Summary output: ${this.config.summary}`);
+    return getSummaryAbsolutePath(this.config.summary);
   }
 
   private async generateOutputIndex(): Promise<void> {
-    // summary field should always have a value now
-    const indexPath = resolve(
-      getMidsceneRunSubDir('output'),
-      this.config.summary,
-    );
-    const outputDir = dirname(indexPath);
-
     try {
-      mkdirSync(outputDir, { recursive: true });
-
-      const indexData = {
-        summary: {
-          total: this.results.length,
-          successful: this.results.filter((r) => r.resultType === 'success')
-            .length,
-          failed: this.results.filter((r) => r.resultType === 'failed').length,
-          partialFailed: this.results.filter(
-            (r) => r.resultType === 'partialFailed',
-          ).length,
-          notExecuted: this.results.filter(
-            (r) => r.resultType === 'notExecuted',
-          ).length,
-          totalDuration: this.results.reduce(
-            (sum, r) => sum + (r.duration || 0),
-            0,
-          ),
-          generatedAt: new Date().toLocaleString(),
-        },
-        results: this.results.map((result) => ({
-          script: relative(outputDir, result.file),
-          success: result.success,
-          resultType: result.resultType,
-          output: result.output
-            ? (() => {
-                const relativePath = relative(outputDir, result.output);
-                return relativePath.startsWith('.')
-                  ? relativePath
-                  : `./${relativePath}`;
-              })()
-            : undefined,
-          report: result.report
-            ? relative(outputDir, result.report)
-            : undefined,
-          error: result.error,
-          duration: result.duration,
-        })),
-      };
-
-      writeFileSync(indexPath, JSON.stringify(indexData, null, 2));
-      console.log('Execution finished:');
+      writeExecutionSummaryFile(this.config.summary, this.results);
+      printExecutionFinished();
     } catch (error) {
       console.error('Failed to generate output index:', error);
     }
@@ -586,52 +462,23 @@ class BatchRunner {
     notExecuted: number;
     totalDuration: number;
   } {
-    const successful = this.results.filter(
-      (r) => r.resultType === 'success',
-    ).length;
-    const failed = this.results.filter((r) => r.resultType === 'failed').length;
-    const partialFailed = this.results.filter(
-      (r) => r.resultType === 'partialFailed',
-    ).length;
-    const notExecuted = this.results.filter(
-      (r) => r.resultType === 'notExecuted',
-    ).length;
-
-    return {
-      total: this.results.length,
-      successful,
-      failed,
-      partialFailed,
-      notExecuted,
-      totalDuration: this.results.reduce(
-        (sum, r) => sum + (r.duration || 0),
-        0,
-      ),
-    };
+    return getExecutionSummary(this.results);
   }
 
   getFailedFiles(): string[] {
-    return this.results
-      .filter((r) => r.resultType === 'failed')
-      .map((r) => r.file);
+    return getResultFilesByType(this.results, 'failed');
   }
 
   getPartialFailedFiles(): string[] {
-    return this.results
-      .filter((r) => r.resultType === 'partialFailed')
-      .map((r) => r.file);
+    return getResultFilesByType(this.results, 'partialFailed');
   }
 
   getNotExecutedFiles(): string[] {
-    return this.results
-      .filter((r) => r.resultType === 'notExecuted')
-      .map((r) => r.file);
+    return getResultFilesByType(this.results, 'notExecuted');
   }
 
   getSuccessfulFiles(): string[] {
-    return this.results
-      .filter((r) => r.resultType === 'success')
-      .map((r) => r.file);
+    return getResultFilesByType(this.results, 'success');
   }
 
   getResults(): MidsceneYamlConfigResult[] {
@@ -639,58 +486,7 @@ class BatchRunner {
   }
 
   printExecutionSummary(): boolean {
-    const summary = this.getExecutionSummary();
-    const success =
-      summary.failed === 0 &&
-      summary.partialFailed === 0 &&
-      summary.notExecuted === 0;
-
-    console.log('\n📊 Execution Summary:');
-    console.log(`   Total files: ${summary.total}`);
-    console.log(`   Successful: ${summary.successful}`);
-    console.log(`   Failed: ${summary.failed}`);
-    console.log(`   Partial failed: ${summary.partialFailed}`);
-    console.log(`   Not executed: ${summary.notExecuted}`);
-    console.log(`   Duration: ${(summary.totalDuration / 1000).toFixed(2)}s`);
-    console.log(`   Summary: ${this.getSummaryAbsolutePath()}`);
-
-    if (summary.successful > 0) {
-      console.log('\n✅ Successful files:');
-      this.getSuccessfulFiles().forEach((file) => {
-        console.log(`   ${file}`);
-      });
-    }
-
-    if (summary.failed > 0) {
-      console.log('\n❌ Failed files');
-      this.getFailedFiles().forEach((file) => {
-        console.log(`   ${file}`);
-      });
-    }
-
-    if (summary.partialFailed > 0) {
-      console.log(
-        '\n⚠️  Partial failed files (some tasks failed with continueOnError)',
-      );
-      this.getPartialFailedFiles().forEach((file) => {
-        console.log(`   ${file}`);
-      });
-    }
-
-    if (summary.notExecuted > 0) {
-      console.log('\n⏸️ Not executed files');
-      this.getNotExecutedFiles().forEach((file) => {
-        console.log(`   ${file}`);
-      });
-    }
-
-    if (success) {
-      console.log('\n🎉 All files executed successfully!');
-    } else {
-      console.log('\n⚠️ Some files failed or were not executed.');
-    }
-
-    return success;
+    return printExecutionSummary(this.results, this.getSummaryAbsolutePath());
   }
 }
 
