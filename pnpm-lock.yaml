@@ -26,6 +26,9 @@ importers:
       '@jsdevtools/version-bump-prompt':
         specifier: 6.1.0
         version: 6.1.0
+      '@rsbuild/plugin-type-check':
+        specifier: ^1.3.2
+        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8(@swc/helpers@0.5.21))(typescript@5.8.3)
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.130
@@ -96,9 +99,6 @@ importers:
       '@rsbuild/plugin-svgr':
         specifier: ^1.2.2
         version: 1.2.2(@rsbuild/core@1.6.15)(typescript@5.8.3)
-      '@rsbuild/plugin-type-check':
-        specifier: ^1.3.2
-        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8(@swc/helpers@0.5.21))(typescript@5.8.3)
       '@types/react':
         specifier: ^18.3.1
         version: 18.3.23
@@ -187,9 +187,6 @@ importers:
       '@rsbuild/plugin-svgr':
         specifier: ^1.2.2
         version: 1.2.2(@rsbuild/core@1.6.15)(typescript@5.8.3)
-      '@rsbuild/plugin-type-check':
-        specifier: ^1.3.2
-        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8(@swc/helpers@0.5.21))(typescript@5.8.3)
       '@tailwindcss/postcss':
         specifier: 4.1.11
         version: 4.1.11
@@ -263,9 +260,6 @@ importers:
       '@rsbuild/plugin-svgr':
         specifier: ^1.2.2
         version: 1.2.2(@rsbuild/core@1.6.15)(typescript@5.8.3)
-      '@rsbuild/plugin-type-check':
-        specifier: ^1.3.2
-        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8(@swc/helpers@0.5.21))(typescript@5.8.3)
       '@types/react':
         specifier: ^18.3.1
         version: 18.3.23
@@ -315,9 +309,6 @@ importers:
       '@rsbuild/plugin-svgr':
         specifier: ^1.2.2
         version: 1.2.2(@rsbuild/core@1.6.15)(typescript@5.8.3)
-      '@rsbuild/plugin-type-check':
-        specifier: ^1.3.2
-        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8(@swc/helpers@0.5.21))(typescript@5.8.3)
       '@types/react':
         specifier: ^18.3.1
         version: 18.3.23
@@ -376,9 +367,6 @@ importers:
       '@rsbuild/plugin-react':
         specifier: ^1.4.1
         version: 1.4.1(@rsbuild/core@1.6.15)
-      '@rsbuild/plugin-type-check':
-        specifier: ^1.3.2
-        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8(@swc/helpers@0.5.21))(typescript@5.8.3)
       '@types/react':
         specifier: ^18.3.1
         version: 18.3.23
@@ -421,9 +409,6 @@ importers:
       '@rsbuild/plugin-react':
         specifier: ^1.4.1
         version: 1.4.1(@rsbuild/core@1.6.15)
-      '@rsbuild/plugin-type-check':
-        specifier: ^1.3.2
-        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@2.0.0-beta.9(@swc/helpers@0.5.21))(typescript@5.8.3)
       '@types/chrome':
         specifier: 0.0.279
         version: 0.0.279
@@ -596,9 +581,6 @@ importers:
       '@rsbuild/plugin-svgr':
         specifier: ^1.2.2
         version: 1.2.2(@rsbuild/core@1.6.15)(typescript@5.8.3)
-      '@rsbuild/plugin-type-check':
-        specifier: ^1.3.2
-        version: 1.3.2(@rsbuild/core@1.6.15)(@rspack/core@1.6.8(@swc/helpers@0.5.21))(typescript@5.8.3)
       '@tailwindcss/postcss':
         specifier: 4.1.11
         version: 4.1.11

@@ -1,4 +1,5 @@
 import { defineConfig } from '@rslib/core';
+import { createTypeCheckPlugin } from '../../scripts/rsbuild-utils.ts';
 import { version } from './package.json';
 
 export default defineConfig({
@@ -51,4 +52,5 @@ export default defineConfig({
     externals: ['node:buffer'],
     sourceMap: true,
   },
+  plugins: [createTypeCheckPlugin()],
 });

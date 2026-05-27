@@ -1,5 +1,6 @@
 import { pluginReact } from '@rsbuild/plugin-react';
 import { defineConfig } from '@rslib/core';
+import { createTypeCheckPlugin } from '../../scripts/rsbuild-utils.ts';
 
 export default defineConfig({
   lib: [
@@ -32,5 +33,5 @@ export default defineConfig({
   output: {
     target: 'web',
   },
-  plugins: [pluginReact()],
+  plugins: [createTypeCheckPlugin(), pluginReact()],
 });

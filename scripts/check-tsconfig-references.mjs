@@ -65,6 +65,10 @@ function getReferencedProjects(projects) {
   );
 }
 
+function getTsconfigProjects(projects) {
+  return projects.filter((project) => project.tsconfigPath);
+}
+
 function getWorkspacePackages(projects) {
   const packageByName = new Map();
   const packageByDir = new Map();
@@ -277,7 +281,7 @@ function checkReferenceImports(projects, packageByName, packageByDir) {
     }
 
     const referencedPackages = new Set(
-      tsconfig.references
+      (tsconfig.references || [])
         .map((reference) =>
           resolveReferencePackageName(tsconfigPath, reference, packageByDir),
         )
@@ -326,10 +330,11 @@ function checkReferenceImports(projects, packageByName, packageByDir) {
 }
 
 const referencedProjects = getReferencedProjects(projects);
+const tsconfigProjects = getTsconfigProjects(projects);
 const { packageByName, packageByDir } = getWorkspacePackages(projects);
 const cyclesPassed = checkReferenceCycles(referencedProjects);
 const importsPassed = checkReferenceImports(
-  referencedProjects,
+  tsconfigProjects,
   packageByName,
   packageByDir,
 );
