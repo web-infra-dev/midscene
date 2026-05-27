@@ -18,6 +18,8 @@ type GeneratedCaseOptions = Omit<
   'file' | 'frameworkImport'
 >;
 
+export const DEFAULT_YAML_TEST_TIMEOUT = 0;
+
 export interface CreateRstestYamlProjectOptions {
   files: string[];
   projectDir?: string;
@@ -169,7 +171,7 @@ export function createRstestYamlProject(
   const frameworkImport =
     options.frameworkImport || resolveDefaultFrameworkImport();
   const rstestImport = options.rstestImport || resolveRstestCoreImportPath();
-  const testTimeout = options.testTimeout ?? 3 * 60 * 1000;
+  const testTimeout = options.testTimeout ?? DEFAULT_YAML_TEST_TIMEOUT;
 
   rmSync(outputDir, { recursive: true, force: true });
   mkdirSync(resultDir, { recursive: true });

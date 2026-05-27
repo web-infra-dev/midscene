@@ -153,4 +153,83 @@ export async function runYamlCaseInChildProcess(options: any) {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  test('runs virtual entries in concurrency-sized batches and stops after failure', async () => {
+    const root = createTempDir();
+    const runDir = join(root, 'midscene-run');
+    const outputDir = join(root, 'generated-runner');
+    const yamlA = join(root, 'a.yaml');
+    const yamlB = join(root, 'b.yaml');
+    const yamlC = join(root, 'c.yaml');
+    const previousRunDir = process.env.MIDSCENE_RUN_DIR;
+    const includes: string[][] = [];
+
+    process.env.MIDSCENE_RUN_DIR = runDir;
+    writeFileSync(yamlA, 'web:\n  url: about:blank\ntasks: []\n');
+    writeFileSync(yamlB, 'web:\n  url: about:blank\ntasks: []\n');
+    writeFileSync(yamlC, 'web:\n  url: about:blank\ntasks: []\n');
+
+    try {
+      const exitCode = await runFrameworkTestConfig(
+        {
+          files: [yamlA, yamlB, yamlC],
+          concurrent: 1,
+          continueOnError: false,
+          summary: 'summary.json',
+          shareBrowserContext: false,
+          globalConfig: {},
+          headed: false,
+          keepWindow: false,
+          dotenvOverride: false,
+          dotenvDebug: false,
+        },
+        {
+          outputDir,
+          frameworkImport: '@test/framework',
+          stdio: 'pipe',
+          rstestRunner: async ({ project }) => {
+            includes.push(project.include);
+            const shouldFail = includes.length === 2;
+            for (const item of project.cases) {
+              mkdirSync(dirname(item.resultFile), { recursive: true });
+              writeFileSync(
+                item.resultFile,
+                JSON.stringify({
+                  file: item.yamlFile,
+                  success: !shouldFail,
+                  executed: true,
+                  duration: 1,
+                  resultType: shouldFail ? 'failed' : 'success',
+                  error: shouldFail ? 'failed by test' : undefined,
+                }),
+              );
+            }
+            return shouldFail ? 1 : 0;
+          },
+        },
+      );
+
+      expect(exitCode).toBe(1);
+      expect(includes).toEqual([
+        ['virtual/midscene-yaml/001-a.test.ts'],
+        ['virtual/midscene-yaml/002-b.test.ts'],
+      ]);
+      const summary = JSON.parse(
+        readFileSync(join(runDir, 'output', 'summary.json'), 'utf8'),
+      );
+      expect(summary.summary).toMatchObject({
+        successful: 1,
+        failed: 1,
+        notExecuted: 1,
+      });
+      expect(summary.results[2].resultType).toBe('notExecuted');
+    } finally {
+      if (previousRunDir === undefined) {
+        Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
+      } else {
+        process.env.MIDSCENE_RUN_DIR = previousRunDir;
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

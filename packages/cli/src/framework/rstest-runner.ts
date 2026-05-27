@@ -41,6 +41,10 @@ export async function runRstestYamlProject(
     import(pathToFileURL(resolvePackageFromRstestCore('@rsbuild/core')).href),
   ]);
   const { project } = options;
+  const maxWorkers =
+    project.maxConcurrency !== undefined
+      ? Math.max(1, project.maxConcurrency)
+      : undefined;
   const inlineConfig: RstestUserConfig = {
     root: project.projectDir,
     include: project.include,
@@ -48,6 +52,9 @@ export async function runRstestYamlProject(
     testTimeout: project.testTimeout,
     ...(project.maxConcurrency !== undefined
       ? { maxConcurrency: project.maxConcurrency }
+      : {}),
+    ...(maxWorkers !== undefined
+      ? { pool: { maxWorkers, minWorkers: maxWorkers } }
       : {}),
     ...(project.bail !== undefined ? { bail: project.bail } : {}),
     ...(options.stdio === 'pipe' ? { reporters: [] } : {}),
