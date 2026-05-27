@@ -83,4 +83,57 @@ test(${JSON.stringify(name)}, async () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  test('allows already running virtual files to finish when bail is reached', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'midscene-rstest-bail-'));
+    const marker = join(root, 'events.txt');
+    const rstestImport = resolveRstestCoreImportPath();
+
+    try {
+      const exitCode = await runRstestYamlProject({
+        cwd: root,
+        stdio: 'pipe',
+        project: {
+          projectDir: root,
+          outputDir: join(root, 'output'),
+          resultDir: join(root, 'results'),
+          include: ['virtual/a.test.ts', 'virtual/b.test.ts'],
+          virtualModules: {
+            'virtual/a.test.ts': `import { appendFileSync } from 'node:fs';
+import { test } from ${JSON.stringify(rstestImport)};
+
+test('a', async () => {
+  appendFileSync(${JSON.stringify(marker)}, 'a-start\\n');
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  appendFileSync(${JSON.stringify(marker)}, 'a-end\\n');
+  throw new Error('a failed');
+});
+`,
+            'virtual/b.test.ts': `import { appendFileSync } from 'node:fs';
+import { test } from ${JSON.stringify(rstestImport)};
+
+test('b', async () => {
+  appendFileSync(${JSON.stringify(marker)}, 'b-start\\n');
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  appendFileSync(${JSON.stringify(marker)}, 'b-end\\n');
+});
+`,
+          },
+          cases: [],
+          maxConcurrency: 2,
+          testTimeout: 0,
+          bail: 1,
+        },
+      });
+
+      expect(exitCode).toBe(1);
+      const events = readFileSync(marker, 'utf8');
+      expect(events).toContain('a-start');
+      expect(events).toContain('a-end');
+      expect(events).toContain('b-start');
+      expect(events).toContain('b-end');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

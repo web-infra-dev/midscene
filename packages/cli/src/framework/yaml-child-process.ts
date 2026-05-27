@@ -46,7 +46,7 @@ const sendMessage = (message) => new Promise((resolve) => {
   if (typeof runYamlCaseResult === 'function') {
     const result = await runYamlCaseResult(options);
     await sendMessage({ type: 'result', result });
-    if (!result.success) {
+    if (!result.success && result.resultType !== 'partialFailed') {
       throw new Error(result.error || 'YAML case failed');
     }
     return;
