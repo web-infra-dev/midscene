@@ -20,8 +20,13 @@ import { StaticPage } from './static';
 
 const ENDPOINT_FILE = join(tmpdir(), 'midscene-puppeteer-endpoint');
 const USER_DATA_DIR = join(tmpdir(), 'midscene-puppeteer-profile');
+const ENDPOINT_FILE_ENV = 'MIDSCENE_PUPPETEER_ENDPOINT_FILE';
+const USER_DATA_DIR_ENV = 'MIDSCENE_PUPPETEER_USER_DATA_DIR';
 
 export const PUPPETEER_ENDPOINT_FILE = ENDPOINT_FILE;
+
+const getEndpointFile = () => process.env[ENDPOINT_FILE_ENV] || ENDPOINT_FILE;
+const getUserDataDir = () => process.env[USER_DATA_DIR_ENV] || USER_DATA_DIR;
 
 export function buildDetachedChromeArgs(options: {
   userDataDir: string;
@@ -56,9 +61,10 @@ const browserManager = {
   async getOrLaunch(
     viewport?: ViewportSize,
   ): Promise<{ browser: Browser; reused: boolean }> {
-    if (existsSync(ENDPOINT_FILE)) {
+    const endpointFile = getEndpointFile();
+    if (existsSync(endpointFile)) {
       try {
-        const endpoint = (await readFile(ENDPOINT_FILE, 'utf-8')).trim();
+        const endpoint = (await readFile(endpointFile, 'utf-8')).trim();
         const browser = await puppeteer.connect({
           browserWSEndpoint: endpoint,
           defaultViewport: null,
@@ -66,13 +72,13 @@ const browserManager = {
         return { browser, reused: true };
       } catch {
         try {
-          await unlink(ENDPOINT_FILE);
+          await unlink(endpointFile);
         } catch {}
       }
     }
 
     const wsEndpoint = await this.launchDetachedChrome(viewport);
-    await writeFile(ENDPOINT_FILE, wsEndpoint);
+    await writeFile(endpointFile, wsEndpoint);
 
     const browser = await puppeteer.connect({
       browserWSEndpoint: wsEndpoint,
@@ -82,16 +88,17 @@ const browserManager = {
   },
 
   async closeBrowser(): Promise<void> {
-    if (!existsSync(ENDPOINT_FILE)) return;
+    const endpointFile = getEndpointFile();
+    if (!existsSync(endpointFile)) return;
     try {
-      const endpoint = (await readFile(ENDPOINT_FILE, 'utf-8')).trim();
+      const endpoint = (await readFile(endpointFile, 'utf-8')).trim();
       const browser = await puppeteer.connect({
         browserWSEndpoint: endpoint,
       });
       await browser.close();
     } catch {}
     try {
-      await unlink(ENDPOINT_FILE);
+      await unlink(endpointFile);
     } catch {}
   },
 
@@ -104,11 +111,12 @@ const browserManager = {
 
   async launchDetachedChrome(viewport?: ViewportSize): Promise<string> {
     const chromePath = resolveChromePath();
+    const userDataDir = getUserDataDir();
 
-    await mkdir(USER_DATA_DIR, { recursive: true });
+    await mkdir(userDataDir, { recursive: true });
 
     const args = buildDetachedChromeArgs({
-      userDataDir: USER_DATA_DIR,
+      userDataDir,
       viewport,
     });
 
