@@ -564,7 +564,9 @@ export class HarmonyDevice implements AbstractInterface {
    * field's text length plus a small padding for transient IME composing.
    * Falls back to the safe upper bound if the layout can't be parsed.
    */
-  private async resolveClearLength(element?: ElementInfo): Promise<number> {
+  private async resolveClearLength(element?: {
+    center: [number, number];
+  }): Promise<number> {
     const PADDING = 2;
     const FALLBACK_LENGTH = 100;
     try {
