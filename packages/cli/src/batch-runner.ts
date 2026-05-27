@@ -19,6 +19,7 @@ import pLimit from 'p-limit';
 import puppeteer, { type Browser, type Page } from 'puppeteer';
 import { createYamlPlayer } from './create-yaml-player';
 import {
+  type ExecutionSummary,
   createExecutedYamlResult,
   createNotExecutedYamlResult,
   getExecutionSummary,
@@ -454,14 +455,7 @@ class BatchRunner {
     }
   }
 
-  getExecutionSummary(): {
-    total: number;
-    successful: number;
-    failed: number;
-    partialFailed: number;
-    notExecuted: number;
-    totalDuration: number;
-  } {
+  getExecutionSummary(): ExecutionSummary {
     return getExecutionSummary(this.results);
   }
 
