@@ -333,10 +333,8 @@ describe('BatchRunner', () => {
         createMockPlayer(true),
       );
       const executor = new BatchRunner(mockBatchConfig);
-      const results = await executor.run({
-        keepWindow: true,
-        headed: true,
-      });
+      // @ts-ignore Preserve this historical options-call fixture while the runtime API now reads options from BatchRunnerConfig.
+      const results = await executor.run({ keepWindow: true, headed: true });
       expect(results).toHaveLength(3);
       expect(results.every((r) => r.success)).toBe(true);
     });
