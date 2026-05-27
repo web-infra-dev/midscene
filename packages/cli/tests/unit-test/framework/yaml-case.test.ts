@@ -102,6 +102,69 @@ describe('runYamlCase', () => {
     }
   });
 
+  test('normalizes target config and merges global platform config', async () => {
+    const root = createTempDir();
+    const yaml = join(root, 'case.yaml');
+    const player = createPlayer();
+    vi.mocked(createYamlPlayer).mockResolvedValue(player as any);
+    writeFileSync(
+      yaml,
+      [
+        'target:',
+        '  url: https://file-target.example',
+        '  userAgent: file-agent',
+        'android:',
+        '  launch: file.app',
+        'tasks: []',
+        '',
+      ].join('\n'),
+    );
+
+    try {
+      await runYamlCase({
+        file: yaml,
+        globalConfig: {
+          target: {
+            url: 'https://global-target.example',
+            viewportWidth: 1440,
+          },
+          web: {
+            viewportHeight: 900,
+          },
+          android: {
+            deviceId: 'global-device',
+          },
+          ios: {
+            deviceId: 'ios-device',
+          },
+        },
+      });
+
+      expect(createYamlPlayer).toHaveBeenCalledWith(
+        yaml,
+        {
+          web: {
+            url: 'https://global-target.example',
+            userAgent: 'file-agent',
+            viewportWidth: 1440,
+            viewportHeight: 900,
+          },
+          android: {
+            launch: 'file.app',
+            deviceId: 'global-device',
+          },
+          ios: {
+            deviceId: 'ios-device',
+          },
+          tasks: [],
+        },
+        { headed: undefined, keepWindow: undefined },
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test('throws setup errors from the YAML player', async () => {
     const error = new Error('setup failed');
     const player = createPlayer({

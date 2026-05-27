@@ -90,7 +90,7 @@ export async function runYamlCase(options) {
     }
   });
 
-  test('preserves partialFailed result metadata from the child process', async () => {
+  test('preserves partialFailed result metadata without failing the Rstest case', async () => {
     const root = createTempDir();
     const framework = join(root, 'framework.mjs');
     const resultFile = join(root, 'result.json');
@@ -112,14 +112,19 @@ export async function runYamlCase(options) {
     );
 
     try {
-      await expect(
-        runYamlCaseInChildProcess({
-          file: join(root, 'partial.yaml'),
-          frameworkImport: framework,
-          resultFile,
-          stdio: 'pipe',
-        }),
-      ).rejects.toThrow(/assertion failed[\s\S]*Report: report\.html/);
+      const result = await runYamlCaseInChildProcess({
+        file: join(root, 'partial.yaml'),
+        frameworkImport: framework,
+        resultFile,
+        stdio: 'pipe',
+      });
+
+      expect(result).toMatchObject({
+        file: join(root, 'partial.yaml'),
+        output: 'output.json',
+        report: 'report.html',
+        duration: 11,
+      });
       expect(JSON.parse(readFileSync(resultFile, 'utf8'))).toMatchObject({
         file: join(root, 'partial.yaml'),
         success: false,

@@ -55,7 +55,7 @@ const readProjectResults = (
       report: undefined,
       duration: 0,
       resultType: 'notExecuted',
-      error: 'Not executed',
+      error: 'Not executed (previous task failed)',
     };
   });
 
