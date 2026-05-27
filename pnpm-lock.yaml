@@ -65,6 +65,9 @@ importers:
       simple-git-hooks:
         specifier: ^2.13.1
         version: 2.13.1
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
 
   apps/android-playground:
     dependencies:

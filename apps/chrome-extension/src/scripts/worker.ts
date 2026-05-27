@@ -1,14 +1,14 @@
 /// <reference types="chrome" />
 
+import type { UIContext } from '@midscene/core';
 import { uuid } from '@midscene/shared/utils';
-import type { WebUIContext } from '@midscene/web';
 import { BridgeConnector, type BridgeStatus } from '../utils/bridgeConnector';
 import { registerAlarmListener, safeSetupKeepalive } from '../utils/keepalive';
 import { workerMessageTypes } from '../utils/workerMessageTypes';
 
 // save screenshot
 interface WorkerRequestSaveContext {
-  context: WebUIContext;
+  context: UIContext;
 }
 
 // get screenshot
@@ -401,7 +401,7 @@ chrome.sidePanel
 
 // cache data between sidepanel and fullscreen playground
 const MAX_CACHE_SIZE = 50;
-const cacheMap = new Map<string, WebUIContext>();
+const cacheMap = new Map<string, UIContext>();
 const cacheKeyOrder: string[] = [];
 
 // Store connected ports for message forwarding
@@ -508,7 +508,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case workerMessageTypes.GET_CONTEXT: {
       const payload: WorkerRequestGetContext = request.payload;
       const { id } = payload;
-      const context = cacheMap.get(id) as WebUIContext;
+      const context = cacheMap.get(id) as UIContext;
       if (!context) {
         sendResponse({ error: 'Screenshot not found' });
       } else {
