@@ -121,3 +121,30 @@ describe('ComputerDevice AppleScript security', () => {
     ]);
   });
 });
+
+describe('ComputerDevice destroy input gate', () => {
+  it('interrupts an in-flight pointer action and blocks later input', async () => {
+    const { ComputerDevice } = await import('../../src/device');
+    const device = new ComputerDevice({});
+    await device.connect();
+
+    const hoverPromise = device.inputPrimitives.pointer.hover({
+      x: 200,
+      y: 120,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    await device.destroy();
+
+    await expect(hoverPromise).rejects.toThrow(/destroyed/);
+    const moveCountAfterDestroy = mockState.libnut.moveMouse.mock.calls.length;
+
+    await expect(
+      device.inputPrimitives.pointer.hover({ x: 210, y: 130 }),
+    ).rejects.toThrow(/destroyed/);
+
+    expect(mockState.libnut.moveMouse).toHaveBeenCalledTimes(
+      moveCountAfterDestroy,
+    );
+  });
+});

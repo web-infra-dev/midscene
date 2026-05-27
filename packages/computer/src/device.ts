@@ -310,10 +310,15 @@ async function smoothMoveMouse(
   targetY: number,
   steps: number,
   stepDelay: number,
+  assertInputActive: () => void = () => {},
+  wait: (ms: number) => Promise<void> = async (ms) => {
+    await sleep(ms);
+  },
 ): Promise<void> {
   assert(libnut, 'libnut not initialized');
   const currentPos = libnut.getMousePos();
   for (let i = 1; i <= steps; i++) {
+    assertInputActive();
     const stepX = Math.round(
       currentPos.x + ((targetX - currentPos.x) * i) / steps,
     );
@@ -321,7 +326,7 @@ async function smoothMoveMouse(
       currentPos.y + ((targetY - currentPos.y) * i) / steps,
     );
     libnut.moveMouse(stepX, stepY);
-    await sleep(stepDelay);
+    await wait(stepDelay);
   }
 }
 
@@ -425,6 +430,10 @@ export class ComputerDevice implements AbstractInterface {
   private destroyed = false;
   private xvfbInstance?: XvfbInstance;
   private xvfbCleanup?: () => void;
+  private activeInputWaits = new Set<{
+    timeoutId: ReturnType<typeof setTimeout>;
+    reject: (error: Error) => void;
+  }>();
   /**
    * On macOS, use AppleScript for keyboard operations by default
    * to avoid focus issues with system overlays (e.g. Spotlight).
@@ -432,7 +441,7 @@ export class ComputerDevice implements AbstractInterface {
   private useAppleScript: boolean;
   uri?: string;
 
-  readonly inputPrimitives: ComputerInputPrimitives = {
+  readonly inputPrimitives: ComputerInputPrimitives = this.gateInputPrimitives({
     pointer: {
       tap: async ({ x, y }) => {
         assert(libnut, 'libnut not initialized');
@@ -444,10 +453,16 @@ export class ComputerDevice implements AbstractInterface {
           targetY,
           SMOOTH_MOVE_STEPS_TAP,
           SMOOTH_MOVE_DELAY_TAP,
+          () => this.assertInputActive('tap'),
+          (ms) => this.inputWait(ms),
         );
+        this.assertInputActive('tap');
         libnut.mouseToggle('down', 'left');
-        await sleep(CLICK_HOLD_DURATION);
-        libnut.mouseToggle('up', 'left');
+        try {
+          await this.inputWait(CLICK_HOLD_DURATION);
+        } finally {
+          libnut.mouseToggle('up', 'left');
+        }
       },
       doubleClick: async ({ x, y }) => {
         assert(libnut, 'libnut not initialized');
@@ -466,17 +481,22 @@ export class ComputerDevice implements AbstractInterface {
           Math.round(y),
           SMOOTH_MOVE_STEPS_MOUSE_MOVE,
           SMOOTH_MOVE_DELAY_MOUSE_MOVE,
+          () => this.assertInputActive('hover'),
+          (ms) => this.inputWait(ms),
         );
-        await sleep(MOUSE_MOVE_EFFECT_WAIT);
+        await this.inputWait(MOUSE_MOVE_EFFECT_WAIT);
       },
       dragAndDrop: async (from, to) => {
         assert(libnut, 'libnut not initialized');
         libnut.moveMouse(Math.round(from.x), Math.round(from.y));
         libnut.mouseToggle('down', 'left');
-        await sleep(100);
-        libnut.moveMouse(Math.round(to.x), Math.round(to.y));
-        await sleep(100);
-        libnut.mouseToggle('up', 'left');
+        try {
+          await this.inputWait(100);
+          libnut.moveMouse(Math.round(to.x), Math.round(to.y));
+          await this.inputWait(100);
+        } finally {
+          libnut.mouseToggle('up', 'left');
+        }
       },
     },
     keyboard: {
@@ -488,11 +508,11 @@ export class ComputerDevice implements AbstractInterface {
           const [x, y] = element.center;
           libnut.moveMouse(Math.round(x), Math.round(y));
           libnut.mouseClick('left');
-          await sleep(INPUT_FOCUS_DELAY);
+          await this.inputWait(INPUT_FOCUS_DELAY);
 
           if (opts?.replace !== false) {
             await this.selectAllAndDelete();
-            await sleep(INPUT_CLEAR_DELAY);
+            await this.inputWait(INPUT_CLEAR_DELAY);
           }
         }
 
@@ -506,7 +526,7 @@ export class ComputerDevice implements AbstractInterface {
           const [x, y] = target.center;
           libnut.moveMouse(Math.round(x), Math.round(y));
           libnut.mouseClick('left');
-          await sleep(50);
+          await this.inputWait(50);
         }
 
         await this.pressKeyboardShortcut(keyName);
@@ -519,11 +539,11 @@ export class ComputerDevice implements AbstractInterface {
           const [x, y] = element.center;
           libnut.moveMouse(Math.round(x), Math.round(y));
           libnut.mouseClick('left');
-          await sleep(100);
+          await this.inputWait(100);
         }
 
         await this.selectAllAndDelete();
-        await sleep(50);
+        await this.inputWait(50);
       },
     },
     scroll: {
@@ -531,7 +551,7 @@ export class ComputerDevice implements AbstractInterface {
         await this.performScroll(param);
       },
     },
-  };
+  });
 
   constructor(options?: ComputerDeviceOpt) {
     this.options = options;
@@ -834,7 +854,7 @@ Original error: ${lastRawMessage}`,
     try {
       // 2. Write new content to clipboard
       await clipboardy.default.write(text);
-      await sleep(50);
+      await this.inputWait(50);
 
       // 3. Simulate paste shortcut
       if (this.useAppleScript) {
@@ -843,7 +863,7 @@ Original error: ${lastRawMessage}`,
         const modifier = process.platform === 'darwin' ? 'command' : 'control';
         libnut.keyTap('v', [modifier]);
       }
-      await sleep(100);
+      await this.inputWait(100);
     } finally {
       // 4. Restore old clipboard content
       if (oldClipboard) {
@@ -869,14 +889,14 @@ Original error: ${lastRawMessage}`,
     assert(libnut, 'libnut not initialized');
     if (this.useAppleScript) {
       sendKeyViaAppleScript('a', ['command']);
-      await sleep(50);
+      await this.inputWait(50);
       sendKeyViaAppleScript('backspace', []);
       return;
     }
 
     const modifier = process.platform === 'darwin' ? 'command' : 'control';
     libnut.keyTap('a', [modifier]);
-    await sleep(50);
+    await this.inputWait(50);
     libnut.keyTap('backspace');
   }
 
@@ -925,20 +945,21 @@ Original error: ${lastRawMessage}`,
           EDGE_SCROLL_STEPS,
         )
       ) {
-        await sleep(SCROLL_COMPLETE_DELAY);
+        await this.inputWait(SCROLL_COMPLETE_DELAY);
         return;
       }
 
       if (this.useAppleScript) {
         sendKeyViaAppleScript(edgeSpec.key);
-        await sleep(SCROLL_COMPLETE_DELAY);
+        await this.inputWait(SCROLL_COMPLETE_DELAY);
         return;
       }
 
       const [dx, dy] = edgeSpec.libnut;
       for (let i = 0; i < SCROLL_REPEAT_COUNT; i++) {
+        this.assertInputActive('scroll');
         libnut.scrollMouse(dx, dy);
-        await sleep(SCROLL_STEP_DELAY);
+        await this.inputWait(SCROLL_STEP_DELAY);
       }
       return;
     }
@@ -969,7 +990,7 @@ Original error: ${lastRawMessage}`,
           Math.round(distance / PHASED_PIXELS_PER_STEP),
         );
         if (runPhasedScroll(direction, distance, steps)) {
-          await sleep(SCROLL_COMPLETE_DELAY);
+          await this.inputWait(SCROLL_COMPLETE_DELAY);
           return;
         }
       }
@@ -979,10 +1000,11 @@ Original error: ${lastRawMessage}`,
         const pages = Math.max(1, Math.round(distance / screenSize.height));
         const key = direction === 'up' ? 'pageup' : 'pagedown';
         for (let i = 0; i < pages; i++) {
+          this.assertInputActive('scroll');
           sendKeyViaAppleScript(key);
-          await sleep(SCROLL_STEP_DELAY);
+          await this.inputWait(SCROLL_STEP_DELAY);
         }
-        await sleep(SCROLL_COMPLETE_DELAY);
+        await this.inputWait(SCROLL_COMPLETE_DELAY);
         return;
       }
 
@@ -995,8 +1017,9 @@ Original error: ${lastRawMessage}`,
       };
 
       const [dx, dy] = directionMap[direction] || [0, -ticks];
+      this.assertInputActive('scroll');
       libnut.scrollMouse(dx, dy);
-      await sleep(SCROLL_COMPLETE_DELAY);
+      await this.inputWait(SCROLL_COMPLETE_DELAY);
       return;
     }
 
@@ -1022,6 +1045,9 @@ Original error: ${lastRawMessage}`,
       return;
     }
 
+    this.destroyed = true;
+    this.cancelActiveInputWaits();
+
     if (this.xvfbInstance) {
       this.xvfbInstance.stop();
       this.xvfbInstance = undefined;
@@ -1033,8 +1059,69 @@ Original error: ${lastRawMessage}`,
       this.xvfbCleanup = undefined;
     }
 
-    this.destroyed = true;
     debugDevice('Computer device destroyed');
+  }
+
+  private createDestroyedError(methodName: string): Error {
+    return new Error(
+      `ComputerDevice has been destroyed (cannot run ${methodName})`,
+    );
+  }
+
+  private assertInputActive(methodName: string): void {
+    if (this.destroyed) {
+      throw this.createDestroyedError(methodName);
+    }
+  }
+
+  private inputWait(ms: number): Promise<void> {
+    this.assertInputActive('input wait');
+    return new Promise((resolve, reject) => {
+      const waitRef = {
+        timeoutId: setTimeout(() => {
+          this.activeInputWaits.delete(waitRef);
+          try {
+            this.assertInputActive('input wait');
+            resolve();
+          } catch (error) {
+            reject(error);
+          }
+        }, ms),
+        reject,
+      };
+      this.activeInputWaits.add(waitRef);
+    });
+  }
+
+  private cancelActiveInputWaits(): void {
+    const error = this.createDestroyedError('in-flight input');
+    for (const waitRef of this.activeInputWaits) {
+      clearTimeout(waitRef.timeoutId);
+      waitRef.reject(error);
+    }
+    this.activeInputWaits.clear();
+  }
+
+  private gateInputPrimitives<T extends Record<string, any>>(primitives: T): T {
+    const wrap = (path: string, value: unknown): unknown => {
+      if (typeof value === 'function') {
+        return async (...args: unknown[]) => {
+          this.assertInputActive(path);
+          return (value as (...args: unknown[]) => unknown)(...args);
+        };
+      }
+      if (value && typeof value === 'object') {
+        return Object.fromEntries(
+          Object.entries(value).map(([name, child]) => [
+            name,
+            wrap(`${path}.${name}`, child),
+          ]),
+        );
+      }
+      return value;
+    };
+
+    return wrap('inputPrimitives', primitives) as T;
   }
 
   async url(): Promise<string> {

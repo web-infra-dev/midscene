@@ -1383,15 +1383,25 @@ export class Agent<
       return;
     }
 
+    this.destroyed = true;
+    let interfaceDestroyError: unknown;
+    try {
+      await this.interface.destroy?.();
+    } catch (error) {
+      interfaceDestroyError = error;
+    }
+
     // Wait for all queued write operations to complete
     await this.reportGenerator.flush();
 
     const finalPath = await this.reportGenerator.finalize();
     this.reportFile = finalPath;
 
-    await this.interface.destroy?.();
     this.resetDump(); // reset dump to release memory
-    this.destroyed = true;
+
+    if (interfaceDestroyError) {
+      throw interfaceDestroyError;
+    }
   }
 
   async recordToReport(
