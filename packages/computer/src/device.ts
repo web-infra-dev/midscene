@@ -1,4 +1,3 @@
-import assert from 'node:assert';
 import { execFileSync, execSync, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -20,22 +19,15 @@ import { sleep } from '@midscene/core/utils';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import screenshot from 'screenshot-desktop';
+import {
+  ComputerInputDriver,
+  type LibNut,
+  type ScrollDirection,
+} from './input-driver';
 import type { XvfbInstance } from './xvfb';
 import { checkXvfbInstalled, needsXvfb, startXvfb } from './xvfb';
 
 declare const __VERSION__: string;
-
-// Type definitions
-interface LibNut {
-  getScreenSize(): { width: number; height: number };
-  getMousePos(): { x: number; y: number };
-  moveMouse(x: number, y: number): void;
-  mouseClick(button?: 'left' | 'right' | 'middle', double?: boolean): void;
-  mouseToggle(state: 'up' | 'down', button?: 'left' | 'right' | 'middle'): void;
-  scrollMouse(x: number, y: number): void;
-  keyTap(key: string, modifiers?: string[]): void;
-  typeString(text: string): void;
-}
 
 interface ScreenshotOptions {
   format: 'png' | 'jpg';
@@ -81,7 +73,6 @@ type EdgeScrollType =
   | 'scrollToBottom'
   | 'scrollToLeft'
   | 'scrollToRight';
-type ScrollDirection = 'up' | 'down' | 'left' | 'right';
 
 interface EdgeScrollStrategy {
   direction: ScrollDirection;
@@ -302,29 +293,6 @@ export function runPhasedScroll(
   }
 }
 
-/**
- * Smooth mouse movement to trigger mousemove events
- */
-async function smoothMoveMouse(
-  targetX: number,
-  targetY: number,
-  steps: number,
-  stepDelay: number,
-): Promise<void> {
-  assert(libnut, 'libnut not initialized');
-  const currentPos = libnut.getMousePos();
-  for (let i = 1; i <= steps; i++) {
-    const stepX = Math.round(
-      currentPos.x + ((targetX - currentPos.x) * i) / steps,
-    );
-    const stepY = Math.round(
-      currentPos.y + ((targetY - currentPos.y) * i) / steps,
-    );
-    libnut.moveMouse(stepX, stepY);
-    await sleep(stepDelay);
-  }
-}
-
 // Key name mapping for cross-platform compatibility
 // Note: Modifier keys have different names when used as primary key vs modifier
 const KEY_NAME_MAP: Record<string, string> = {
@@ -425,6 +393,13 @@ export class ComputerDevice implements AbstractInterface {
   private destroyed = false;
   private xvfbInstance?: XvfbInstance;
   private xvfbCleanup?: () => void;
+  private readonly inputDriver = new ComputerInputDriver({
+    getLibnut: () => libnut,
+    useAppleScript: () => this.useAppleScript,
+    sendKeyViaAppleScript,
+    runPhasedScroll,
+    debug: (message) => debugDevice(message),
+  });
   /**
    * On macOS, use AppleScript for keyboard operations by default
    * to avoid focus issues with system overlays (e.g. Spotlight).
@@ -435,95 +410,85 @@ export class ComputerDevice implements AbstractInterface {
   readonly inputPrimitives: ComputerInputPrimitives = {
     pointer: {
       tap: async ({ x, y }) => {
-        assert(libnut, 'libnut not initialized');
         const targetX = Math.round(x);
         const targetY = Math.round(y);
 
-        await smoothMoveMouse(
+        await this.inputDriver.smoothMoveMouse(
           targetX,
           targetY,
           SMOOTH_MOVE_STEPS_TAP,
           SMOOTH_MOVE_DELAY_TAP,
         );
-        libnut.mouseToggle('down', 'left');
-        await sleep(CLICK_HOLD_DURATION);
-        libnut.mouseToggle('up', 'left');
+        await this.inputDriver.withMouseButton('left', async () => {
+          await this.inputDriver.delay(CLICK_HOLD_DURATION);
+        });
       },
       doubleClick: async ({ x, y }) => {
-        assert(libnut, 'libnut not initialized');
-        libnut.moveMouse(Math.round(x), Math.round(y));
-        libnut.mouseClick('left', true);
+        this.inputDriver.moveMouse(Math.round(x), Math.round(y));
+        this.inputDriver.mouseClick('left', true);
       },
       rightClick: async ({ x, y }) => {
-        assert(libnut, 'libnut not initialized');
-        libnut.moveMouse(Math.round(x), Math.round(y));
-        libnut.mouseClick('right');
+        this.inputDriver.moveMouse(Math.round(x), Math.round(y));
+        this.inputDriver.mouseClick('right');
       },
       hover: async ({ x, y }) => {
-        assert(libnut, 'libnut not initialized');
-        await smoothMoveMouse(
+        await this.inputDriver.smoothMoveMouse(
           Math.round(x),
           Math.round(y),
           SMOOTH_MOVE_STEPS_MOUSE_MOVE,
           SMOOTH_MOVE_DELAY_MOUSE_MOVE,
         );
-        await sleep(MOUSE_MOVE_EFFECT_WAIT);
+        await this.inputDriver.delay(MOUSE_MOVE_EFFECT_WAIT);
       },
       dragAndDrop: async (from, to) => {
-        assert(libnut, 'libnut not initialized');
-        libnut.moveMouse(Math.round(from.x), Math.round(from.y));
-        libnut.mouseToggle('down', 'left');
-        await sleep(100);
-        libnut.moveMouse(Math.round(to.x), Math.round(to.y));
-        await sleep(100);
-        libnut.mouseToggle('up', 'left');
+        this.inputDriver.moveMouse(Math.round(from.x), Math.round(from.y));
+        await this.inputDriver.withMouseButton('left', async () => {
+          await this.inputDriver.delay(100);
+          this.inputDriver.moveMouse(Math.round(to.x), Math.round(to.y));
+          await this.inputDriver.delay(100);
+        });
       },
     },
     keyboard: {
       typeText: async (value, opts) => {
-        assert(libnut, 'libnut not initialized');
         const element = opts?.target as LocateResultElement | undefined;
 
         if (element) {
           const [x, y] = element.center;
-          libnut.moveMouse(Math.round(x), Math.round(y));
-          libnut.mouseClick('left');
-          await sleep(INPUT_FOCUS_DELAY);
+          this.inputDriver.moveMouse(Math.round(x), Math.round(y));
+          this.inputDriver.mouseClick('left');
+          await this.inputDriver.delay(INPUT_FOCUS_DELAY);
 
           if (opts?.replace !== false) {
             await this.selectAllAndDelete();
-            await sleep(INPUT_CLEAR_DELAY);
+            await this.inputDriver.delay(INPUT_CLEAR_DELAY);
           }
         }
 
         await this.smartTypeString(value);
       },
       keyboardPress: async (keyName, opts) => {
-        assert(libnut, 'libnut not initialized');
-
         const target = opts?.target as LocateResultElement | undefined;
         if (target) {
           const [x, y] = target.center;
-          libnut.moveMouse(Math.round(x), Math.round(y));
-          libnut.mouseClick('left');
-          await sleep(50);
+          this.inputDriver.moveMouse(Math.round(x), Math.round(y));
+          this.inputDriver.mouseClick('left');
+          await this.inputDriver.delay(50);
         }
 
         await this.pressKeyboardShortcut(keyName);
       },
       clearInput: async (target) => {
-        assert(libnut, 'libnut not initialized');
-
         if (target) {
           const element = target as LocateResultElement;
           const [x, y] = element.center;
-          libnut.moveMouse(Math.round(x), Math.round(y));
-          libnut.mouseClick('left');
-          await sleep(100);
+          this.inputDriver.moveMouse(Math.round(x), Math.round(y));
+          this.inputDriver.mouseClick('left');
+          await this.inputDriver.delay(100);
         }
 
         await this.selectAllAndDelete();
-        await sleep(50);
+        await this.inputDriver.delay(50);
       },
     },
     scroll: {
@@ -647,8 +612,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
     // Step 2: Move the mouse
     console.log('[HealthCheck] Moving mouse...');
-    assert(libnut, 'libnut not initialized');
-    const startPos = libnut.getMousePos();
+    const startPos = this.inputDriver.getMousePos();
     console.log(
       `[HealthCheck] Current mouse position: (${startPos.x}, ${startPos.y})`,
     );
@@ -660,10 +624,10 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     const targetY = startPos.y + offsetY;
 
     console.log(`[HealthCheck] Moving mouse to (${targetX}, ${targetY})...`);
-    libnut.moveMouse(targetX, targetY);
+    this.inputDriver.moveMouse(targetX, targetY);
     await sleep(50);
 
-    const movedPos = libnut.getMousePos();
+    const movedPos = this.inputDriver.getMousePos();
     console.log(
       `[HealthCheck] Mouse position after move: (${movedPos.x}, ${movedPos.y})`,
     );
@@ -687,7 +651,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     }
 
     // Restore original position
-    libnut.moveMouse(startPos.x, startPos.y);
+    this.inputDriver.moveMouse(startPos.x, startPos.y);
     console.log(
       `[HealthCheck] Mouse restored to (${startPos.x}, ${startPos.y})`,
     );
@@ -799,9 +763,8 @@ Original error: ${lastRawMessage}`,
   }
 
   async size(): Promise<Size> {
-    assert(libnut, 'libnut not initialized');
     try {
-      const screenSize = libnut.getScreenSize();
+      const screenSize = this.inputDriver.getScreenSize();
       return {
         width: screenSize.width,
         height: screenSize.height,
@@ -821,7 +784,6 @@ Original error: ${lastRawMessage}`,
    * 4. Restores old clipboard content
    */
   private async typeViaClipboard(text: string): Promise<void> {
-    assert(libnut, 'libnut not initialized');
     debugDevice('Using clipboard to input text', {
       textLength: text.length,
       preview: text.substring(0, 20),
@@ -834,16 +796,16 @@ Original error: ${lastRawMessage}`,
     try {
       // 2. Write new content to clipboard
       await clipboardy.default.write(text);
-      await sleep(50);
+      await this.inputDriver.delay(50);
 
       // 3. Simulate paste shortcut
       if (this.useAppleScript) {
-        sendKeyViaAppleScript('v', ['command']);
+        this.inputDriver.sendKeyViaAppleScript('v', ['command']);
       } else {
         const modifier = process.platform === 'darwin' ? 'command' : 'control';
-        libnut.keyTap('v', [modifier]);
+        this.inputDriver.keyTap('v', [modifier]);
       }
-      await sleep(100);
+      await this.inputDriver.delay(100);
     } finally {
       // 4. Restore old clipboard content
       if (oldClipboard) {
@@ -861,27 +823,24 @@ Original error: ${lastRawMessage}`,
    * which can swallow characters or convert them when a non-English IME is active.
    */
   private async smartTypeString(text: string): Promise<void> {
-    assert(libnut, 'libnut not initialized');
     await this.typeViaClipboard(text);
   }
 
   private async selectAllAndDelete(): Promise<void> {
-    assert(libnut, 'libnut not initialized');
     if (this.useAppleScript) {
-      sendKeyViaAppleScript('a', ['command']);
-      await sleep(50);
-      sendKeyViaAppleScript('backspace', []);
+      this.inputDriver.sendKeyViaAppleScript('a', ['command']);
+      await this.inputDriver.delay(50);
+      this.inputDriver.sendKeyViaAppleScript('backspace', []);
       return;
     }
 
     const modifier = process.platform === 'darwin' ? 'command' : 'control';
-    libnut.keyTap('a', [modifier]);
-    await sleep(50);
-    libnut.keyTap('backspace');
+    this.inputDriver.keyTap('a', [modifier]);
+    await this.inputDriver.delay(50);
+    this.inputDriver.keyTap('backspace');
   }
 
   private async pressKeyboardShortcut(keyName: string): Promise<void> {
-    assert(libnut, 'libnut not initialized');
     const keys = keyName.split('+');
     const modifiers = keys.slice(0, -1).map(normalizeKeyName);
     const key = normalizePrimaryKey(keys[keys.length - 1]);
@@ -893,22 +852,14 @@ Original error: ${lastRawMessage}`,
       driver: this.useAppleScript ? 'applescript' : 'libnut',
     });
 
-    if (this.useAppleScript) {
-      sendKeyViaAppleScript(key, modifiers);
-    } else if (modifiers.length > 0) {
-      libnut.keyTap(key, modifiers);
-    } else {
-      libnut.keyTap(key);
-    }
+    this.inputDriver.sendKey(key, modifiers);
   }
 
   private async performScroll(param: any): Promise<void> {
-    assert(libnut, 'libnut not initialized');
-
     if (param.locate) {
       const element = param.locate as LocateResultElement;
       const [x, y] = element.center;
-      libnut.moveMouse(Math.round(x), Math.round(y));
+      this.inputDriver.moveMouse(Math.round(x), Math.round(y));
     }
 
     const scrollType = param?.scrollType;
@@ -919,26 +870,26 @@ Original error: ${lastRawMessage}`,
         : null;
     if (edgeSpec) {
       if (
-        runPhasedScroll(
+        this.inputDriver.runPhasedScroll(
           edgeSpec.direction,
           EDGE_SCROLL_TOTAL_PX,
           EDGE_SCROLL_STEPS,
         )
       ) {
-        await sleep(SCROLL_COMPLETE_DELAY);
+        await this.inputDriver.delay(SCROLL_COMPLETE_DELAY);
         return;
       }
 
       if (this.useAppleScript) {
-        sendKeyViaAppleScript(edgeSpec.key);
-        await sleep(SCROLL_COMPLETE_DELAY);
+        this.inputDriver.sendKeyViaAppleScript(edgeSpec.key);
+        await this.inputDriver.delay(SCROLL_COMPLETE_DELAY);
         return;
       }
 
       const [dx, dy] = edgeSpec.libnut;
       for (let i = 0; i < SCROLL_REPEAT_COUNT; i++) {
-        libnut.scrollMouse(dx, dy);
-        await sleep(SCROLL_STEP_DELAY);
+        this.inputDriver.scrollMouse(dx, dy);
+        await this.inputDriver.delay(SCROLL_STEP_DELAY);
       }
       return;
     }
@@ -968,8 +919,8 @@ Original error: ${lastRawMessage}`,
           PHASED_MIN_STEPS,
           Math.round(distance / PHASED_PIXELS_PER_STEP),
         );
-        if (runPhasedScroll(direction, distance, steps)) {
-          await sleep(SCROLL_COMPLETE_DELAY);
+        if (this.inputDriver.runPhasedScroll(direction, distance, steps)) {
+          await this.inputDriver.delay(SCROLL_COMPLETE_DELAY);
           return;
         }
       }
@@ -979,10 +930,10 @@ Original error: ${lastRawMessage}`,
         const pages = Math.max(1, Math.round(distance / screenSize.height));
         const key = direction === 'up' ? 'pageup' : 'pagedown';
         for (let i = 0; i < pages; i++) {
-          sendKeyViaAppleScript(key);
-          await sleep(SCROLL_STEP_DELAY);
+          this.inputDriver.sendKeyViaAppleScript(key);
+          await this.inputDriver.delay(SCROLL_STEP_DELAY);
         }
-        await sleep(SCROLL_COMPLETE_DELAY);
+        await this.inputDriver.delay(SCROLL_COMPLETE_DELAY);
         return;
       }
 
@@ -995,8 +946,8 @@ Original error: ${lastRawMessage}`,
       };
 
       const [dx, dy] = directionMap[direction] || [0, -ticks];
-      libnut.scrollMouse(dx, dy);
-      await sleep(SCROLL_COMPLETE_DELAY);
+      this.inputDriver.scrollMouse(dx, dy);
+      await this.inputDriver.delay(SCROLL_COMPLETE_DELAY);
       return;
     }
 
@@ -1022,6 +973,9 @@ Original error: ${lastRawMessage}`,
       return;
     }
 
+    this.destroyed = true;
+    this.inputDriver.destroy();
+
     if (this.xvfbInstance) {
       this.xvfbInstance.stop();
       this.xvfbInstance = undefined;
@@ -1033,7 +987,6 @@ Original error: ${lastRawMessage}`,
       this.xvfbCleanup = undefined;
     }
 
-    this.destroyed = true;
     debugDevice('Computer device destroyed');
   }
 

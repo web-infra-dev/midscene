@@ -200,4 +200,40 @@ describe('Agent dump update screenshot serialization', () => {
 
     await agent.destroy();
   });
+
+  it('destroys the interface before flushing the final report', async () => {
+    const order: string[] = [];
+    const agent = new Agent(
+      {
+        ...createMockInterface(),
+        destroy: vi.fn(async () => {
+          order.push('interface.destroy');
+        }),
+      } as any,
+      {
+        modelConfig,
+        generateReport: false,
+      },
+    );
+
+    (agent as any).reportGenerator = {
+      onExecutionUpdate: vi.fn(),
+      flush: vi.fn(async () => {
+        order.push('report.flush');
+      }),
+      finalize: vi.fn(async () => {
+        order.push('report.finalize');
+        return undefined;
+      }),
+      getReportPath: vi.fn(() => undefined),
+    };
+
+    await agent.destroy();
+
+    expect(order).toEqual([
+      'interface.destroy',
+      'report.flush',
+      'report.finalize',
+    ]);
+  });
 });
