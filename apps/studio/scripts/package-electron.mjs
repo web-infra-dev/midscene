@@ -35,8 +35,8 @@ export const releaseWorkspaceDir = path.join(
 export const artifactDir = path.join(releaseWorkspaceDir, 'artifacts');
 const packagingWorkspaceDir = path.join(releaseWorkspaceDir, 'workspace');
 const packagedDir = path.join(releaseWorkspaceDir, 'packaged');
-const packagedAppId = 'midscene-studio';
-const packagedProductName = 'Midscene Studio';
+const packagedAppId = 'midscene-studio-beta';
+const packagedProductName = 'Midscene Studio Beta';
 const packagedIgnorePatterns = [
   /^\/pnpm-lock\.yaml$/,
   /^\/vendor($|\/)/,

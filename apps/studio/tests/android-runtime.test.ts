@@ -106,7 +106,7 @@ describe('playground runtime bootstrap', () => {
             capturedPlatforms = platforms;
             return {
               platformId: 'multi-platform',
-              title: 'Midscene Studio',
+              title: 'Midscene Studio Beta',
               description: 'Multi-platform playground',
               metadata: {},
               sessionManager: {
@@ -215,7 +215,7 @@ describe('playground runtime bootstrap', () => {
             capturedPlatforms = platforms;
             return {
               platformId: 'multi-platform',
-              title: 'Midscene Studio',
+              title: 'Midscene Studio Beta',
               description: 'Multi-platform playground',
               metadata: {},
               sessionManager: {
@@ -335,7 +335,7 @@ describe('playground runtime bootstrap', () => {
             capturedPlatforms = platforms;
             return {
               platformId: 'multi-platform',
-              title: 'Midscene Studio',
+              title: 'Midscene Studio Beta',
               description: 'Multi-platform playground',
               metadata: {},
               sessionManager: {
