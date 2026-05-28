@@ -117,6 +117,27 @@ export class HdcClient {
     return await this.shell(`snapshot_display -f ${remotePath}`);
   }
 
+  /**
+   * Capture the current UI layout via `uitest dumpLayout` and return the JSON
+   * string. The dump is written to a fixed device path then `cat`'d back in
+   * the same shell round-trip to avoid a separate `hdc file recv` call.
+   */
+  async dumpLayout(): Promise<string> {
+    const remotePath = '/data/local/tmp/midscene_layout.json';
+    const output = await this.shell(
+      `uitest dumpLayout -p ${remotePath} && cat ${remotePath}`,
+    );
+    // `uitest dumpLayout` prints a "DumpLayout saved to:..." preamble before
+    // `cat`'s JSON body. Find the first JSON object brace and return the rest.
+    const jsonStart = output.indexOf('{');
+    if (jsonStart < 0) {
+      throw new Error(
+        `dumpLayout: no JSON body in output: ${output.slice(0, 200)}`,
+      );
+    }
+    return output.slice(jsonStart);
+  }
+
   async click(x: number, y: number): Promise<void> {
     await this.shell(`uitest uiInput click ${Math.round(x)} ${Math.round(y)}`);
   }
@@ -202,16 +223,25 @@ export class HdcClient {
   }
 
   /**
-   * Clear text field by batch-sending Backspace(2055) and Delete(2071) key
-   * events. Deletes both before and after the cursor to ensure all content is
-   * removed regardless of cursor position, matching Android's clearTextField.
+   * Clear the focused text field by sending repeated Backspace(2055) key
+   * events. `uitest uiInput keyEvent` only accepts up to 3 keyCodes per call
+   * (any more triggers "Too many parameters." with zero presses injected),
+   * so we pack codes into 3-key batches and chain the calls with shell `;`
+   * to keep a single hdc round-trip — mirroring Android adb's
+   * "one shell, many keys" design despite the per-call cap.
    */
   async clearTextField(length = 100): Promise<void> {
-    const keys: string[] = [];
-    for (let i = 0; i < length; i++) {
-      keys.push('2055', '2071'); // Backspace + Delete
+    if (length <= 0) return;
+    const MAX_KEYS_PER_CALL = 3;
+    const cmds: string[] = [];
+    let remaining = length;
+    while (remaining > 0) {
+      const n = Math.min(MAX_KEYS_PER_CALL, remaining);
+      const codes = Array(n).fill('2055').join(' '); // 2055 = Backspace
+      cmds.push(`uitest uiInput keyEvent ${codes}`);
+      remaining -= n;
     }
-    await this.keyEvent(...keys);
+    await this.shell(cmds.join(';'));
   }
 
   async startAbility(bundleName: string, abilityName: string): Promise<void> {
