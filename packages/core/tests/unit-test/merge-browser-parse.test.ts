@@ -39,7 +39,7 @@ function createDump(screenshots: ScreenshotItem[]): ReportActionDump {
     uiContext: {
       screenshot: s,
       size: { width: 1920, height: 1080 },
-    } as UIContext,
+    } as unknown as UIContext,
     executor: async () => undefined,
     recorder: [],
     status: 'finished' as const,
