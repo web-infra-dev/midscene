@@ -86,10 +86,12 @@ describe('HarmonyDevice', () => {
       const d = new HarmonyDevice('dev-1', {
         hdcPath: '/custom/hdc',
         autoDismissKeyboard: true,
+        keyboardDismissStrategy: 'esc-first',
       });
       expect(d).toBeDefined();
       expect(d.options?.hdcPath).toBe('/custom/hdc');
       expect(d.options?.autoDismissKeyboard).toBe(true);
+      expect(d.options?.keyboardDismissStrategy).toBe('esc-first');
     });
   });
 
@@ -280,17 +282,45 @@ describe('HarmonyDevice', () => {
       const d = new HarmonyDevice('dev', { autoDismissKeyboard: true });
       await d.connect();
       const element = { center: [100, 200] as [number, number] } as any;
-      await d.inputText('hi', element);
+      await d.inputPrimitives.keyboard.typeText('hi', { target: element });
 
-      // hideKeyboard sends Back keyEvent
+      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2070');
+      await d.destroy();
+    });
+
+    it('should dismiss keyboard by default with esc-first strategy', async () => {
+      const element = { center: [100, 200] as [number, number] } as any;
+      await device.inputPrimitives.keyboard.typeText('hi', { target: element });
+      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2070');
+    });
+
+    it('should use back-first strategy when specified on device options', async () => {
+      const d = new HarmonyDevice('dev', {
+        autoDismissKeyboard: true,
+        keyboardDismissStrategy: 'back-first',
+      });
+      await d.connect();
+      const element = { center: [100, 200] as [number, number] } as any;
+      await d.inputPrimitives.keyboard.typeText('hi', { target: element });
+
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('Back');
       await d.destroy();
     });
 
-    it('should NOT dismiss keyboard when autoDismissKeyboard is not set', async () => {
-      const element = { center: [100, 200] as [number, number] } as any;
-      await device.inputText('hi', element);
-      expect(mockHdc.keyEvent).not.toHaveBeenCalled();
+    it('should respect keyboardDismissStrategy passed to typeText', async () => {
+      const d = new HarmonyDevice('dev', {
+        autoDismissKeyboard: true,
+        keyboardDismissStrategy: 'esc-first',
+      });
+      await d.connect();
+
+      await d.inputPrimitives.keyboard.typeText('hi', {
+        keyboardDismissStrategy: 'back-first',
+      });
+
+      expect(mockHdc.inputText).toHaveBeenCalledWith(608, 1344, 'hi');
+      expect(mockHdc.keyEvent).toHaveBeenCalledWith('Back');
+      await d.destroy();
     });
 
     it('should respect autoDismissKeyboard passed to Input action', async () => {
@@ -407,8 +437,13 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('RecentApps');
     });
 
-    it('should send Back key for hideKeyboard', async () => {
+    it('should send Escape key for hideKeyboard by default', async () => {
       await device.hideKeyboard();
+      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2070');
+    });
+
+    it('should send Back key for hideKeyboard when back-first is specified', async () => {
+      await device.hideKeyboard({ keyboardDismissStrategy: 'back-first' });
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('Back');
     });
   });

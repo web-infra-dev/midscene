@@ -109,6 +109,7 @@ export class HarmonyDevice implements AbstractInterface {
               opts?.replace ?? true,
               {
                 autoDismissKeyboard: opts?.autoDismissKeyboard,
+                keyboardDismissStrategy: opts?.keyboardDismissStrategy,
               },
             ),
       clearInput: (target) =>
@@ -475,10 +476,10 @@ export class HarmonyDevice implements AbstractInterface {
     await hdc.inputText(x, y, text);
 
     const shouldAutoDismissKeyboard =
-      options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
+      options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
 
     if (shouldAutoDismissKeyboard) {
-      await this.hideKeyboard();
+      await this.hideKeyboard(options);
     }
   }
 
@@ -670,9 +671,17 @@ export class HarmonyDevice implements AbstractInterface {
     await hdc.keyEvent('RecentApps');
   }
 
-  async hideKeyboard(): Promise<void> {
+  async hideKeyboard(options?: HarmonyDeviceInputOpt): Promise<void> {
     const hdc = await this.getHdc();
-    await hdc.keyEvent('Back');
+    const keyboardDismissStrategy =
+      options?.keyboardDismissStrategy ??
+      this.options?.keyboardDismissStrategy ??
+      'esc-first';
+    const key =
+      keyboardDismissStrategy === 'back-first'
+        ? 'Back'
+        : harmonyKeyCodeMap.Escape;
+    await hdc.keyEvent(key);
   }
 
   /**

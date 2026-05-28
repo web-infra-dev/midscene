@@ -14,10 +14,10 @@ describe('device capabilities', () => {
     });
   });
 
-  test('treats harmony like ios for shared keyboard dismissal behavior', () => {
+  test('marks harmony keyboard dismissal capabilities correctly', () => {
     expect(getDeviceCapabilities('harmony')).toMatchObject({
       supportsImeStrategy: false,
-      supportsKeyboardDismissStrategy: false,
+      supportsKeyboardDismissStrategy: true,
       supportsAutoDismissKeyboard: true,
       supportsAlwaysRefreshScreenInfo: false,
     });

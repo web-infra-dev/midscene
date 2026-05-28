@@ -285,9 +285,17 @@ describe('HarmonyOS Settings Test', () => {
 
 ## 常见问题
 
-### 输入文本后，输入框内容被清空或消失
+### 输入后键盘没有隐藏，或页面发生返回
 
-Midscene 在输入文本后会自动隐藏键盘（默认发送 BACK 按键事件）。如果你的输入框监听了 BACK 事件并执行了清空或关闭操作，可以关闭自动隐藏键盘：
+Midscene 在输入文本后会自动隐藏键盘。HarmonyOS 默认发送 ESC，以减少触发页面返回的概率。如果你的应用里 ESC 无法关闭键盘，可以切换为优先使用 Back：
+
+```typescript
+const device = new HarmonyDevice('device-id', {
+  keyboardDismissStrategy: 'back-first',
+});
+```
+
+如果你的输入框监听了 Back 并执行清空或关闭操作，可以关闭自动隐藏键盘：
 
 ```typescript
 const device = new HarmonyDevice('device-id', {
