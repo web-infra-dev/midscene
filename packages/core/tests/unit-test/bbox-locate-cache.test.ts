@@ -17,7 +17,7 @@ import { TaskBuilder } from '@/agent/task-builder';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type Service from '@/service';
-import type { ExecutionTask, ExecutionTaskApply } from '@/types';
+import type { ExecutionTask, ExecutionTaskApply, ServiceDump } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -57,6 +57,8 @@ const createRuntimeTask = (task: ExecutionTaskApply): ExecutionTask => ({
   status: 'running',
   timing: { start: Date.now(), end: 0, cost: 0 },
 });
+
+const mockServiceDump = {} as ServiceDump;
 
 describe('bbox locate cache fix', () => {
   let taskBuilder: TaskBuilder;
@@ -130,7 +132,7 @@ describe('bbox locate cache fix', () => {
           xpaths: ['/html/body/input[1]'],
           attributes: {},
         },
-        dump: {},
+        dump: mockServiceDump,
       }),
     } as unknown as Service;
 
@@ -635,7 +637,7 @@ describe('bbox locate cache fix', () => {
           center: [600, 400],
           rect: { left: 550, top: 380, width: 100, height: 40 },
         },
-        dump: {},
+        dump: mockServiceDump,
       });
 
       // 4. Mock cacheFeatureForPoint to return new xpath
@@ -731,7 +733,7 @@ describe('bbox locate cache fix', () => {
           center: [500, 300],
           rect: { left: 450, top: 280, width: 100, height: 40 },
         },
-        dump: {},
+        dump: mockServiceDump,
       });
 
       vi.mocked(mockInterface.cacheFeatureForPoint!).mockResolvedValue({
