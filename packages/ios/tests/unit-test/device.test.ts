@@ -533,9 +533,9 @@ describe('IOSDevice', () => {
         .fn()
         .mockRejectedValue(new Error('Type text failed'));
 
-      await expect(getInternalTextInput(device).typeText('test')).rejects.toThrow(
-        'Type text failed',
-      );
+      await expect(
+        getInternalTextInput(device).typeText('test'),
+      ).rejects.toThrow('Type text failed');
     });
   });
 
