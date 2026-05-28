@@ -10,12 +10,16 @@ import {
 } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import type { BatchRunnerConfig } from '../batch-runner';
-import { resolveRstestCoreImportPath } from './rstest-runner';
-import type { RunYamlCaseInChildProcessOptions } from './yaml-child-process';
+import type { RunYamlCaseOptions } from './yaml-case';
 
-type GeneratedCaseOptions = Omit<
-  RunYamlCaseInChildProcessOptions,
-  'file' | 'frameworkImport'
+export type RstestYamlCaseOptions = Omit<
+  RunYamlCaseOptions,
+  'file' | 'headed' | 'keepWindow'
+>;
+
+export type WebYamlRuntimeOptions = Pick<
+  RunYamlCaseOptions,
+  'headed' | 'keepWindow'
 >;
 
 export const DEFAULT_YAML_TEST_TIMEOUT = 0;
@@ -26,10 +30,8 @@ export interface CreateRstestYamlProjectOptions {
   outputDir?: string;
   resultDir?: string;
   frameworkImport?: string;
-  rstestImport?: string;
-  caseOptions?: Record<string, GeneratedCaseOptions>;
-  headed?: boolean;
-  keepWindow?: boolean;
+  caseOptions?: Record<string, RstestYamlCaseOptions>;
+  webRuntimeOptions?: Record<string, WebYamlRuntimeOptions>;
   maxConcurrency?: number;
   testTimeout?: number;
   bail?: number;
@@ -60,6 +62,9 @@ const toPosixPath = (value: string): string => value.split(sep).join('/');
 const toImportLiteral = (value: string): string =>
   JSON.stringify(toPosixPath(value));
 
+const toVirtualModuleId = (fileStem: string): string =>
+  `virtual:midscene-yaml/${fileStem}.test.ts`;
+
 const safeFileStem = (file: string, index: number): string => {
   const base = basename(file, extname(file))
     .replace(/[^a-zA-Z0-9._-]+/g, '-')
@@ -76,74 +81,44 @@ export const resolveTestName = (
 };
 
 const createGeneratedTestContent = (options: {
-  rstestImport: string;
   frameworkImport: string;
   yamlFile: string;
-  resultFile?: string;
+  resultFile: string;
   testName: string;
-  headed?: boolean;
-  keepWindow?: boolean;
-  caseOptions?: GeneratedCaseOptions;
+  caseOptions?: RstestYamlCaseOptions;
+  webRuntimeOptions?: WebYamlRuntimeOptions;
 }): string => {
-  const runOptions = {
-    file: options.yamlFile,
-    ...options.caseOptions,
-    ...(options.headed !== undefined ? { headed: options.headed } : {}),
-    ...(options.keepWindow !== undefined
-      ? { keepWindow: options.keepWindow }
+  const testOptions = {
+    testName: options.testName,
+    yamlFile: options.yamlFile,
+    resultFile: options.resultFile,
+    ...(options.caseOptions ? { caseOptions: options.caseOptions } : {}),
+    ...(options.webRuntimeOptions
+      ? { webRuntimeOptions: options.webRuntimeOptions }
       : {}),
   };
 
-  return `import { test } from ${toImportLiteral(options.rstestImport)};
+  return `import { defineYamlCaseTest } from ${toImportLiteral(options.frameworkImport)};
 
-test(${JSON.stringify(options.testName)}, async () => {
-  const framework = await import(${toImportLiteral(options.frameworkImport)});
-  const runYamlCaseInChildProcess =
-    framework.runYamlCaseInChildProcess ||
-    framework.default?.runYamlCaseInChildProcess;
-  const runYamlCase = framework.runYamlCase || framework.default?.runYamlCase;
-  if (typeof runYamlCaseInChildProcess === 'function') {
-    await runYamlCaseInChildProcess({
-      ...${JSON.stringify(runOptions, null, 2)},
-      frameworkImport: ${toImportLiteral(options.frameworkImport)}${
-        options.resultFile
-          ? `,
-      resultFile: ${toImportLiteral(options.resultFile)}`
-          : ''
-      }
-    });
-    return;
-  }
-  if (typeof runYamlCase !== 'function') {
-    throw new Error('Cannot find runYamlCase from Midscene framework entry');
-  }
-  await runYamlCase(${JSON.stringify(runOptions, null, 2)});
-});
+defineYamlCaseTest(${JSON.stringify(testOptions, null, 2)});
 `;
 };
 
 const createGeneratedBatchTestContent = (options: {
-  rstestImport: string;
   frameworkImport: string;
   testName: string;
   config: BatchRunnerConfig;
   resultFiles: Record<string, string>;
 }): string => {
-  return `import { test } from ${toImportLiteral(options.rstestImport)};
+  const testOptions = {
+    testName: options.testName,
+    config: options.config,
+    resultFiles: options.resultFiles,
+  };
 
-test(${JSON.stringify(options.testName)}, async () => {
-  const framework = await import(${toImportLiteral(options.frameworkImport)});
-  const runYamlBatchInRstest =
-    framework.runYamlBatchInRstest ||
-    framework.default?.runYamlBatchInRstest;
-  if (typeof runYamlBatchInRstest !== 'function') {
-    throw new Error('Cannot find runYamlBatchInRstest from Midscene framework entry');
-  }
-  await runYamlBatchInRstest({
-    config: ${JSON.stringify(options.config, null, 2)},
-    resultFiles: ${JSON.stringify(options.resultFiles, null, 2)}
-  });
-});
+  return `import { defineYamlBatchTest } from ${toImportLiteral(options.frameworkImport)};
+
+defineYamlBatchTest(${JSON.stringify(testOptions, null, 2)});
 `;
 };
 
@@ -170,7 +145,6 @@ export function createRstestYamlProject(
   const resultDir = options.resultDir || join(outputDir, 'results');
   const frameworkImport =
     options.frameworkImport || resolveDefaultFrameworkImport();
-  const rstestImport = options.rstestImport || resolveRstestCoreImportPath();
   const testTimeout = options.testTimeout ?? DEFAULT_YAML_TEST_TIMEOUT;
 
   rmSync(outputDir, { recursive: true, force: true });
@@ -182,22 +156,20 @@ export function createRstestYamlProject(
     const testName = resolveTestName(projectDir, yamlFile);
     const fileStem = safeFileStem(yamlFile, index);
     const resultFile = join(resultDir, `${fileStem}.json`);
-    const testModule = `virtual/midscene-yaml/${fileStem}.test.ts`;
+    const testModule = toVirtualModuleId(fileStem);
     virtualModules[testModule] = createGeneratedTestContent({
-      rstestImport,
       frameworkImport,
       yamlFile,
       resultFile,
       testName,
       caseOptions: options.caseOptions?.[yamlFile],
-      headed: options.headed,
-      keepWindow: options.keepWindow,
+      webRuntimeOptions: options.webRuntimeOptions?.[yamlFile],
     });
     return { yamlFile, testModule, resultFile, testName };
   });
 
   if (options.batchConfig) {
-    const batchModule = 'virtual/midscene-yaml/batch.test.ts';
+    const batchModule = 'virtual:midscene-yaml/batch.test.ts';
     const resultFiles = Object.fromEntries(
       cases.map((item) => [item.yamlFile, item.resultFile]),
     );
@@ -208,7 +180,6 @@ export function createRstestYamlProject(
       include: [batchModule],
       virtualModules: {
         [batchModule]: createGeneratedBatchTestContent({
-          rstestImport,
           frameworkImport,
           testName: 'midscene yaml batch',
           config: options.batchConfig,

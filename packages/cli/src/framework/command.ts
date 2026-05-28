@@ -10,18 +10,22 @@ import {
   writeExecutionSummaryFile,
 } from '../execution-summary';
 import {
-  type CreateRstestYamlProjectOptions,
   type GeneratedRstestYamlProject,
+  type RstestYamlCaseOptions,
+  type WebYamlRuntimeOptions,
   createRstestYamlProject,
 } from './rstest-project';
 import { runRstestYamlProject } from './rstest-runner';
 
-export interface FrameworkTestCommandOptions {
+interface WebRuntimeOptions {
+  headed?: boolean;
+  keepWindow?: boolean;
+}
+
+export interface FrameworkTestCommandOptions extends WebRuntimeOptions {
   projectDir?: string;
   files?: string[];
   concurrent?: number;
-  headed?: boolean;
-  keepWindow?: boolean;
   outputDir?: string;
   frameworkImport?: string;
   stdio?: 'inherit' | 'pipe';
@@ -30,11 +34,25 @@ export interface FrameworkTestCommandOptions {
 
 const createCaseOptions = (
   config: BatchRunnerConfig,
-): CreateRstestYamlProjectOptions['caseOptions'] => {
-  const caseOptions: CreateRstestYamlProjectOptions['caseOptions'] = {};
+): Record<string, RstestYamlCaseOptions> => {
+  const caseOptions: Record<string, RstestYamlCaseOptions> = {};
   for (const file of config.files) {
     caseOptions[resolve(file)] = {
       globalConfig: config.globalConfig,
+    };
+  }
+  return caseOptions;
+};
+
+const createWebRuntimeOptions = (
+  config: BatchRunnerConfig,
+  runtimeOptions: WebRuntimeOptions,
+): Record<string, WebYamlRuntimeOptions> => {
+  const caseOptions: Record<string, WebYamlRuntimeOptions> = {};
+  for (const file of config.files) {
+    caseOptions[resolve(file)] = {
+      headed: runtimeOptions.headed ?? config.headed,
+      keepWindow: runtimeOptions.keepWindow ?? config.keepWindow,
     };
   }
   return caseOptions;
@@ -53,35 +71,6 @@ const readProjectResults = (
     return createNotExecutedYamlResult(item.yamlFile);
   });
 
-const splitProjectByConcurrency = (
-  project: GeneratedRstestYamlProject,
-): GeneratedRstestYamlProject[] => {
-  if (
-    project.include.length === 1 ||
-    project.maxConcurrency === undefined ||
-    project.maxConcurrency <= 0 ||
-    project.cases.length <= project.maxConcurrency
-  ) {
-    return [project];
-  }
-
-  const chunks: GeneratedRstestYamlProject[] = [];
-  for (let i = 0; i < project.cases.length; i += project.maxConcurrency) {
-    const cases = project.cases.slice(i, i + project.maxConcurrency);
-    const include = cases.map((item) => item.testModule);
-    chunks.push({
-      ...project,
-      include,
-      virtualModules: Object.fromEntries(
-        include.map((entry) => [entry, project.virtualModules[entry]]),
-      ),
-      cases,
-    });
-  }
-
-  return chunks;
-};
-
 export async function runFrameworkTestConfig(
   config: BatchRunnerConfig,
   commandOptions: FrameworkTestCommandOptions = {},
@@ -95,28 +84,18 @@ export async function runFrameworkTestConfig(
     outputDir: commandOptions.outputDir,
     frameworkImport: commandOptions.frameworkImport,
     caseOptions: createCaseOptions(config),
-    headed: commandOptions.headed ?? config.headed,
-    keepWindow: commandOptions.keepWindow ?? config.keepWindow,
+    webRuntimeOptions: createWebRuntimeOptions(config, commandOptions),
     maxConcurrency: commandOptions.concurrent ?? config.concurrent,
     bail: config.continueOnError ? 0 : 1,
     batchConfig: config.shareBrowserContext ? config : undefined,
   });
 
   const runner = commandOptions.rstestRunner || runRstestYamlProject;
-  let exitCode = 0;
-  for (const projectBatch of splitProjectByConcurrency(project)) {
-    const batchExitCode = await runner({
-      project: projectBatch,
-      cwd: projectDir,
-      stdio: commandOptions.stdio,
-    });
-    if (batchExitCode !== 0) {
-      exitCode = batchExitCode;
-      if (!config.continueOnError) {
-        break;
-      }
-    }
-  }
+  const exitCode = await runner({
+    project,
+    cwd: projectDir,
+    stdio: commandOptions.stdio,
+  });
 
   const results = readProjectResults(project);
   const summaryPath = writeExecutionSummaryFile(config.summary, results);

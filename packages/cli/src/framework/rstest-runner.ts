@@ -41,7 +41,7 @@ export async function runRstestYamlProject(
     import(pathToFileURL(resolvePackageFromRstestCore('@rsbuild/core')).href),
   ]);
   const { project } = options;
-  const maxWorkers =
+  const maxConcurrency =
     project.maxConcurrency !== undefined
       ? Math.max(1, project.maxConcurrency)
       : undefined;
@@ -50,11 +50,9 @@ export async function runRstestYamlProject(
     include: project.include,
     testEnvironment: 'node',
     testTimeout: project.testTimeout,
-    ...(project.maxConcurrency !== undefined
-      ? { maxConcurrency: project.maxConcurrency }
-      : {}),
-    ...(maxWorkers !== undefined
-      ? { pool: { maxWorkers, minWorkers: maxWorkers } }
+    ...(maxConcurrency !== undefined ? { maxConcurrency } : {}),
+    ...(maxConcurrency !== undefined
+      ? { pool: { maxWorkers: maxConcurrency, minWorkers: maxConcurrency } }
       : {}),
     ...(project.bail !== undefined ? { bail: project.bail } : {}),
     reporters: [],

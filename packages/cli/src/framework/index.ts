@@ -4,8 +4,8 @@ export {
   resolveRstestCoreImportPath,
   runRstestYamlProject,
 } from './rstest-runner';
+export { defineYamlBatchTest, defineYamlCaseTest } from './rstest-entry';
 export { runYamlBatchInRstest } from './yaml-batch';
-export { runYamlCaseInChildProcess } from './yaml-child-process';
 export {
   createYamlCaseFailure,
   createYamlCaseResult,
@@ -18,8 +18,13 @@ export type {
   CreateRstestYamlProjectOptions,
   GeneratedRstestYamlProject,
   GeneratedYamlTestCase,
+  RstestYamlCaseOptions,
+  WebYamlRuntimeOptions,
 } from './rstest-project';
+export type {
+  DefineYamlBatchTestOptions,
+  DefineYamlCaseTestOptions,
+} from './rstest-entry';
 export type { RunRstestYamlProjectOptions } from './rstest-runner';
 export type { RunYamlBatchInRstestOptions } from './yaml-batch';
-export type { RunYamlCaseInChildProcessOptions } from './yaml-child-process';
 export type { RunYamlCaseOptions, RunYamlCaseResult } from './yaml-case';

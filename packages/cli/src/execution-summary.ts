@@ -223,6 +223,9 @@ export function printExecutionSummary(
     console.log('\n❌ Failed files');
     failedFiles.forEach((result) => {
       console.log(`   ${result.file}`);
+      if (result.error) {
+        console.log(`     Error: ${result.error}`);
+      }
     });
   }
 
@@ -232,6 +235,9 @@ export function printExecutionSummary(
     );
     partialFailedFiles.forEach((result) => {
       console.log(`   ${result.file}`);
+      if (result.error) {
+        console.log(`     Error: ${result.error}`);
+      }
     });
   }
 

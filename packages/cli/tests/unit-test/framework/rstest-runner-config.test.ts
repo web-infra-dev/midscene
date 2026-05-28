@@ -24,9 +24,9 @@ describe('rstest runner config', () => {
           projectDir: root,
           outputDir: join(root, 'output'),
           resultDir: join(root, 'results'),
-          include: ['virtual/a.test.ts'],
+          include: ['virtual:a.test.ts'],
           virtualModules: {
-            'virtual/a.test.ts': 'export {};',
+            'virtual:a.test.ts': 'export {};',
           },
           cases: [],
           maxConcurrency: 1,

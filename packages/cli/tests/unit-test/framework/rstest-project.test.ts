@@ -32,15 +32,14 @@ describe('rstest yaml project generation', () => {
         projectDir: root,
         outputDir,
         frameworkImport: '@test/framework',
-        rstestImport: '@test/rstest-core',
         maxConcurrency: 2,
       });
 
       expect(project.projectDir).toBe(root);
       expect(project.outputDir).toBe(outputDir);
       expect(project.include).toEqual([
-        'virtual/midscene-yaml/001-checkout.test.ts',
-        'virtual/midscene-yaml/002-case.test.ts',
+        'virtual:midscene-yaml/001-checkout.test.ts',
+        'virtual:midscene-yaml/002-case.test.ts',
       ]);
       expect(project.cases).toHaveLength(2);
       expect(project.cases[0].testName).toBe('cases/checkout.yaml');
@@ -52,11 +51,52 @@ describe('rstest yaml project generation', () => {
       expect(project.testTimeout).toBe(DEFAULT_YAML_TEST_TIMEOUT);
 
       const generated = project.virtualModules[project.cases[1].testModule];
-      expect(generated).toContain('import { test } from "@test/rstest-core"');
-      expect(generated).toContain('await import("@test/framework")');
-      expect(generated).toContain('runYamlCaseInChildProcess');
-      expect(generated).toContain('frameworkImport: "@test/framework"');
+      expect(generated).toContain(
+        'import { defineYamlCaseTest } from "@test/framework"',
+      );
+      expect(generated).toContain('defineYamlCaseTest');
       expect(generated).toContain(JSON.stringify(yamlB));
+      expect(generated).not.toContain('runYamlCaseInChildProcess');
+      expect(generated).not.toContain('webRuntimeOptions');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('keeps web runtime options separate from generic case options', () => {
+    const root = createTempDir();
+    const outputDir = join(root, 'runner');
+    const yaml = join(root, 'case.yaml');
+    writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
+
+    try {
+      const project = createRstestYamlProject({
+        files: [yaml],
+        projectDir: root,
+        outputDir,
+        frameworkImport: '@test/framework',
+        caseOptions: {
+          [yaml]: {
+            globalConfig: {
+              web: {
+                viewportWidth: 1280,
+              },
+            },
+          },
+        },
+        webRuntimeOptions: {
+          [yaml]: {
+            headed: true,
+            keepWindow: false,
+          },
+        },
+      });
+
+      const generated = project.virtualModules[project.cases[0].testModule];
+      expect(generated).toContain('"caseOptions"');
+      expect(generated).toContain('"webRuntimeOptions"');
+      expect(generated).toContain('"viewportWidth": 1280');
+      expect(generated).toContain('"headed": true');
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -126,7 +166,6 @@ describe('rstest yaml project generation', () => {
         projectDir: root,
         outputDir,
         frameworkImport: '@test/framework',
-        rstestImport: '@test/rstest-core',
         batchConfig: {
           files: [yamlA, yamlB],
           concurrent: 1,
@@ -145,11 +184,14 @@ describe('rstest yaml project generation', () => {
         },
       });
 
-      expect(project.include).toEqual(['virtual/midscene-yaml/batch.test.ts']);
+      expect(project.include).toEqual(['virtual:midscene-yaml/batch.test.ts']);
       expect(project.cases).toHaveLength(2);
       expect(project.maxConcurrency).toBe(1);
       const generated = project.virtualModules[project.include[0]];
-      expect(generated).toContain('runYamlBatchInRstest');
+      expect(generated).toContain(
+        'import { defineYamlBatchTest } from "@test/framework"',
+      );
+      expect(generated).toContain('defineYamlBatchTest');
       expect(generated).toContain('"shareBrowserContext": true');
       expect(generated).toContain(JSON.stringify(yamlA));
       expect(generated).toContain(JSON.stringify(yamlB));

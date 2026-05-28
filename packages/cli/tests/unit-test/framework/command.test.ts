@@ -30,15 +30,17 @@ describe('framework test command', () => {
       framework,
       `import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-export async function runYamlCaseInChildProcess(options: any) {
+import { test } from '@rstest/core';
+export function defineYamlCaseTest(options: any) {
+  test(options.testName, async () => {
   mkdirSync(dirname(options.resultFile), { recursive: true });
   writeFileSync(${JSON.stringify(marker)}, JSON.stringify({
-    globalConfig: options.globalConfig,
-    headed: options.headed,
-    keepWindow: options.keepWindow
+    globalConfig: options.caseOptions.globalConfig,
+    headed: options.webRuntimeOptions.headed,
+    keepWindow: options.webRuntimeOptions.keepWindow
   }));
   writeFileSync(options.resultFile, JSON.stringify({
-    file: options.file,
+    file: options.yamlFile,
     success: true,
     executed: true,
     output: ${JSON.stringify(outputArtifact)},
@@ -46,6 +48,7 @@ export async function runYamlCaseInChildProcess(options: any) {
     duration: 12,
     resultType: 'success'
   }));
+  });
 }
 `,
     );
@@ -134,11 +137,11 @@ export async function runYamlCaseInChildProcess(options: any) {
           stdio: 'pipe',
           rstestRunner: async ({ project }) => {
             expect(project.include).toEqual([
-              'virtual/midscene-yaml/batch.test.ts',
+              'virtual:midscene-yaml/batch.test.ts',
             ]);
             expect(project.maxConcurrency).toBe(1);
             const batchModule = project.virtualModules[project.include[0]];
-            expect(batchModule).toContain('runYamlBatchInRstest');
+            expect(batchModule).toContain('defineYamlBatchTest');
             expect(batchModule).toContain('"concurrent": 3');
             expect(batchModule).toContain('"shareBrowserContext": true');
             expect(project.cases.map((item) => item.yamlFile)).toEqual([
@@ -168,7 +171,7 @@ export async function runYamlCaseInChildProcess(options: any) {
     }
   });
 
-  test('runs virtual entries in concurrency-sized batches and stops after failure', async () => {
+  test('lets Rstest schedule virtual entries by concurrency and stops after failure', async () => {
     const root = createTempDir();
     const runDir = join(root, 'midscene-run');
     const outputDir = join(root, 'generated-runner');
@@ -203,8 +206,12 @@ export async function runYamlCaseInChildProcess(options: any) {
           stdio: 'pipe',
           rstestRunner: async ({ project }) => {
             includes.push(project.include);
-            const shouldFail = includes.length === 2;
             for (const item of project.cases) {
+              const shouldSkip = item.yamlFile === yamlC;
+              if (shouldSkip) {
+                continue;
+              }
+              const shouldFail = item.yamlFile === yamlB;
               mkdirSync(dirname(item.resultFile), { recursive: true });
               writeFileSync(
                 item.resultFile,
@@ -218,15 +225,18 @@ export async function runYamlCaseInChildProcess(options: any) {
                 }),
               );
             }
-            return shouldFail ? 1 : 0;
+            return 1;
           },
         },
       );
 
       expect(exitCode).toBe(1);
       expect(includes).toEqual([
-        ['virtual/midscene-yaml/001-a.test.ts'],
-        ['virtual/midscene-yaml/002-b.test.ts'],
+        [
+          'virtual:midscene-yaml/001-a.test.ts',
+          'virtual:midscene-yaml/002-b.test.ts',
+          'virtual:midscene-yaml/003-c.test.ts',
+        ],
       ]);
       const summary = JSON.parse(
         readFileSync(join(runDir, 'output', 'summary.json'), 'utf8'),
@@ -305,8 +315,10 @@ export async function runYamlCaseInChildProcess(options: any) {
 
       expect(exitCode).toBe(1);
       expect(includes).toEqual([
-        ['virtual/midscene-yaml/001-a.test.ts'],
-        ['virtual/midscene-yaml/002-b.test.ts'],
+        [
+          'virtual:midscene-yaml/001-a.test.ts',
+          'virtual:midscene-yaml/002-b.test.ts',
+        ],
       ]);
       const summary = JSON.parse(
         readFileSync(join(runDir, 'output', 'summary.json'), 'utf8'),
@@ -327,7 +339,7 @@ export async function runYamlCaseInChildProcess(options: any) {
     }
   });
 
-  test('runs all batches when continueOnError is enabled', async () => {
+  test('runs all virtual entries when continueOnError is enabled', async () => {
     const root = createTempDir();
     const runDir = join(root, 'midscene-run');
     const outputDir = join(root, 'generated-runner');
@@ -362,8 +374,8 @@ export async function runYamlCaseInChildProcess(options: any) {
           stdio: 'pipe',
           rstestRunner: async ({ project }) => {
             includes.push(project.include);
-            const shouldFail = project.cases[0].yamlFile === yamlA;
             for (const item of project.cases) {
+              const shouldFail = item.yamlFile === yamlA;
               mkdirSync(dirname(item.resultFile), { recursive: true });
               writeFileSync(
                 item.resultFile,
@@ -377,16 +389,18 @@ export async function runYamlCaseInChildProcess(options: any) {
                 }),
               );
             }
-            return shouldFail ? 1 : 0;
+            return 1;
           },
         },
       );
 
       expect(exitCode).toBe(1);
       expect(includes).toEqual([
-        ['virtual/midscene-yaml/001-a.test.ts'],
-        ['virtual/midscene-yaml/002-b.test.ts'],
-        ['virtual/midscene-yaml/003-c.test.ts'],
+        [
+          'virtual:midscene-yaml/001-a.test.ts',
+          'virtual:midscene-yaml/002-b.test.ts',
+          'virtual:midscene-yaml/003-c.test.ts',
+        ],
       ]);
       const summary = JSON.parse(
         readFileSync(join(runDir, 'output', 'summary.json'), 'utf8'),
@@ -406,7 +420,7 @@ export async function runYamlCaseInChildProcess(options: any) {
     }
   });
 
-  test('chunks virtual entries by configured concurrency', async () => {
+  test('passes all virtual entries to one Rstest project with configured concurrency', async () => {
     const root = createTempDir();
     const outputDir = join(root, 'generated-runner');
     const yamlFiles = ['a.yaml', 'b.yaml', 'c.yaml', 'd.yaml', 'e.yaml'].map(
@@ -438,6 +452,7 @@ export async function runYamlCaseInChildProcess(options: any) {
           stdio: 'pipe',
           rstestRunner: async ({ project }) => {
             includes.push(project.include);
+            expect(project.maxConcurrency).toBe(2);
             for (const item of project.cases) {
               mkdirSync(dirname(item.resultFile), { recursive: true });
               writeFileSync(
@@ -459,14 +474,12 @@ export async function runYamlCaseInChildProcess(options: any) {
       expect(exitCode).toBe(0);
       expect(includes).toEqual([
         [
-          'virtual/midscene-yaml/001-a.test.ts',
-          'virtual/midscene-yaml/002-b.test.ts',
+          'virtual:midscene-yaml/001-a.test.ts',
+          'virtual:midscene-yaml/002-b.test.ts',
+          'virtual:midscene-yaml/003-c.test.ts',
+          'virtual:midscene-yaml/004-d.test.ts',
+          'virtual:midscene-yaml/005-e.test.ts',
         ],
-        [
-          'virtual/midscene-yaml/003-c.test.ts',
-          'virtual/midscene-yaml/004-d.test.ts',
-        ],
-        ['virtual/midscene-yaml/005-e.test.ts'],
       ]);
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -510,6 +523,9 @@ export async function runYamlCaseInChildProcess(options: any) {
           rstestRunner: async ({ project }) => {
             includes.push(project.include);
             for (const item of project.cases) {
+              if (item.yamlFile === yamlC || item.yamlFile === yamlD) {
+                continue;
+              }
               const shouldFail = item.yamlFile === yamlA;
               mkdirSync(dirname(item.resultFile), { recursive: true });
               writeFileSync(
@@ -532,8 +548,10 @@ export async function runYamlCaseInChildProcess(options: any) {
       expect(exitCode).toBe(1);
       expect(includes).toEqual([
         [
-          'virtual/midscene-yaml/001-a.test.ts',
-          'virtual/midscene-yaml/002-b.test.ts',
+          'virtual:midscene-yaml/001-a.test.ts',
+          'virtual:midscene-yaml/002-b.test.ts',
+          'virtual:midscene-yaml/003-c.test.ts',
+          'virtual:midscene-yaml/004-d.test.ts',
         ],
       ]);
       const summary = JSON.parse(
