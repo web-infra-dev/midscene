@@ -53,6 +53,7 @@ vi.mock('@midscene/shared/img', () => ({
     .mockReturnValue('data:image/jpeg;base64,fake'),
 }));
 
+// @ts-ignore package tsconfig keeps module=ES2020 for build compatibility; this test intentionally uses top-level dynamic import so mocks are registered first.
 const { HarmonyDevice } = await import('../../src/device');
 
 describe('HarmonyDevice', () => {

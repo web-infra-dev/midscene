@@ -1,3 +1,4 @@
+import type { MjpegStreamOptions } from '@midscene/core/device';
 import { describe, expect, test, vi } from 'vitest';
 import { PlaygroundServer } from '../../src/server';
 
@@ -129,7 +130,7 @@ describe('PlaygroundServer MJPEG streaming', () => {
           screenshotBase64: async () => {
             throw new Error('polling should not be used');
           },
-          startMjpegStream: async ({ onFrame }) => {
+          startMjpegStream: async ({ onFrame }: MjpegStreamOptions) => {
             onFrame({
               data: Buffer.from('recovered-frame').toString('base64'),
               contentType: 'image/jpeg',
