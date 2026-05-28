@@ -49,7 +49,7 @@ function createDump(screenshots: ScreenshotItem[]): ReportActionDump {
     sdkVersion: '1.0.0-test',
     groupName: 'test-group',
     groupDescription: 'test desc',
-    modelBriefs: ['test-model'],
+    modelBriefs: [{ name: 'test-model' }],
     executions: [
       new ExecutionDump({
         id: uuid(),
