@@ -16,6 +16,27 @@ const vlLocateParam = (modelFamily: TModelFamily | undefined) => {
   return '{ prompt: string /* description of the target element */ }';
 };
 
+const OBSERVE_STEP_NOTES = [
+  '### Notes (STRICT, REQUIRED)',
+  '',
+  '- **Source coverage**: When collecting information from any source that may be partially visible, treat the visible content as incomplete until you have verified the source boundaries.',
+  '- **Image viewing**: When image content is relevant, inspect it at the clearest available size. If it is a thumbnail, preview, or partially visible, use available UI controls to open, enlarge, or zoom it when possible before reasoning from it.',
+  "- **Inspect details when summaries are insufficient**: If a visible list, card, preview, or search result does not show the information needed to decide or complete the task, open the item's detail view, preview, options menu, expanded row/card, or another visible UI surface that exposes the missing details before acting.",
+  '- **Information preservation**: When collecting or remembering information for later use, preserve exact values as shown or provided. Do NOT normalize, summarize, translate, or shorten them.',
+].join('\n');
+
+const MEMORY_STEP_NOTES = [
+  '### Notes (STRICT, REQUIRED)',
+  '',
+  '- Use `<memory>` for information that must survive across steps, especially copied values, repeated or similar items, source-to-target mappings, and UI bindings needed for later actions.',
+  '- Each memory entry should pair the occurrence/entity with the exact value/state and the current stable visible cue or UI binding when relevant.',
+  '- Record repeated or unchanged results as separate entries. Do not merge candidates only because their visible labels or summaries match.',
+  '- For repeated or similar UI items, same visible name or summary is only a lead. Keep each candidate as a separate memory entry with its stable UI cue and complete task-relevant details; only treat items as exact duplicates when the complete details match.',
+  '- If any detail differs or is unconfirmed, treat the items as variations. When deleting or merging confirmed duplicates, act on one remembered instance at a time and verify the remaining state afterward.',
+  '- Treat positions, order, bounds, indexes, self-made labels, and other UI bindings as stale after scrolling, navigation, deletion, editing, saving, or screen changes.',
+  '- Before acting on remembered information, observe the current screen again and re-bind the remembered item or value to visible UI state.',
+].join('\n');
+
 /**
  * Find ZodDefault in the wrapper chain and return its default value
  */
@@ -356,6 +377,8 @@ ${step1Title}
 
 ${step1Description}
 
+${OBSERVE_STEP_NOTES}
+
 * <thought> tag (REQUIRED)
 
 ${thoughtTagDescription}
@@ -366,6 +389,8 @@ ${
 ## Step ${memoryStepNumber}: Memory Data from Current Screenshot (related tags: <memory>)
 
 While observing the current screenshot, if you notice any information that might be needed in follow-up actions, record it here. The current screenshot will NOT be available in subsequent steps, so this memory is your only way to preserve essential information. Examples: extracted data, element states, content that needs to be referenced.
+
+${MEMORY_STEP_NOTES}
 
 Don't use this tag if no information needs to be preserved.
 `
