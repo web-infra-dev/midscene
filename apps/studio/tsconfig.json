@@ -10,7 +10,13 @@
       "@shared/*": ["./src/shared/*"]
     }
   },
-  "include": ["src", "tests"],
+  "include": [
+    "src",
+    "tests",
+    "rsbuild.config.ts",
+    "scripts/**/*.d.mts",
+    "../../scripts/rsbuild-utils.ts"
+  ],
   "references": [
     {
       "path": "../../packages/android"

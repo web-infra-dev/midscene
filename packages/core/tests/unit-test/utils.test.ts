@@ -5,12 +5,15 @@ import {
   safeParseJson,
 } from '@/ai-model/service-caller';
 import {
-  type MidsceneLocationResultType,
   dumpActionParam,
   findAllMidsceneLocatorField,
   pointToBbox,
 } from '@/common';
-import { type DeviceAction, getMidsceneLocationSchema } from '@/index';
+import {
+  type DeviceAction,
+  type LocateResultElement,
+  getMidsceneLocationSchema,
+} from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
 import { describe, expect, it } from 'vitest';
@@ -632,7 +635,7 @@ describe('insertScriptBeforeClosingHtml', () => {
 
   it('type of DeviceAction', () => {
     const action: DeviceAction<{
-      locate: MidsceneLocationResultType;
+      locate: LocateResultElement;
       duration?: number;
       autoDismissKeyboard?: boolean;
     }> = {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { maskConfig } from '../../../src/env/helper';
-import type { IModelConfig } from '../../../src/env/model-config';
+import type { IModelConfig } from '../../../src/env/types';
 
 describe('maskConfig', () => {
   it('key will be masked', () => {
