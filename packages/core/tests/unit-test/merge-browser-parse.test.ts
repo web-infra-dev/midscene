@@ -32,6 +32,7 @@ function fakeBase64(sizeBytes: number): string {
 
 function createDump(screenshots: ScreenshotItem[]): ReportActionDump {
   const tasks = screenshots.map((s, i) => ({
+    taskId: `task-${i}`,
     type: 'Insight' as const,
     subType: 'Locate',
     param: { prompt: `task-${i}` },

@@ -1,4 +1,8 @@
-import type { ExecutorContext, LocateResultElement, Size } from '@midscene/core';
+import type {
+  ExecutorContext,
+  LocateResultElement,
+  Size,
+} from '@midscene/core';
 import { describe, expect, it } from 'vitest';
 import { ComputerAgent, RDPDevice, agentForRDPComputer } from '../../../src';
 import type {

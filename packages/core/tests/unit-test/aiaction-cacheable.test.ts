@@ -1,6 +1,7 @@
 import { TaskCache, TaskExecutor } from '@/agent';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
+import type { ExecutionTask, ExecutionTaskApply } from '@/types';
 import { uuid } from '@midscene/shared/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type Service from '../../src';
@@ -25,6 +26,13 @@ vi.mock('@/ai-model/llm-planning', () => ({
     yamlFlow: [],
   }),
 }));
+
+const createRuntimeTask = (task: ExecutionTaskApply): ExecutionTask => ({
+  ...task,
+  taskId: 'runtime-task',
+  status: 'running',
+  timing: { start: Date.now(), end: 0, cost: 0 },
+});
 
 describe('aiAction cacheable option propagation', () => {
   let taskExecutor: TaskExecutor;
@@ -150,14 +158,7 @@ describe('aiAction cacheable option propagation', () => {
     // Execute the locate task to verify cache is not used
     if (locateTask) {
       await locateTask.executor(locateTask.param, {
-        task: {
-          type: 'Planning',
-          subType: 'Locate',
-          param: locateTask.param,
-          status: 'running',
-          timing: { start: Date.now(), end: 0, cost: 0 },
-          executor: locateTask.executor,
-        },
+        task: createRuntimeTask(locateTask),
       });
 
       // Verify cache was not queried (or if queried, was rejected due to cacheable: false)
