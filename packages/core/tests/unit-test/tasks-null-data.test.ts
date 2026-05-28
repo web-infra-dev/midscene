@@ -728,6 +728,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
+        slot: 'default',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {

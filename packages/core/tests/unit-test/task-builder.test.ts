@@ -8,6 +8,21 @@ import { z } from 'zod';
 
 class MockInterface extends AbstractInterface {
   interfaceType = 'mock';
+  override cacheFeatureForPoint: AbstractInterface['cacheFeatureForPoint'] =
+    undefined;
+  override rectMatchesCacheFeature: AbstractInterface['rectMatchesCacheFeature'] =
+    undefined;
+  override destroy: AbstractInterface['destroy'] = undefined;
+  override describe: AbstractInterface['describe'] = undefined;
+  override beforeInvokeAction: AbstractInterface['beforeInvokeAction'] =
+    undefined;
+  override afterInvokeAction: AbstractInterface['afterInvokeAction'] =
+    undefined;
+  override getElementsNodeTree: AbstractInterface['getElementsNodeTree'] =
+    undefined;
+  override url: AbstractInterface['url'] = undefined;
+  override evaluateJavaScript: AbstractInterface['evaluateJavaScript'] =
+    undefined;
 
   constructor(private readonly actions: DeviceAction[]) {
     super();
