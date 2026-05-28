@@ -13,9 +13,6 @@
       "path": "../computer"
     },
     {
-      "path": "../core"
-    },
-    {
       "path": "../shared"
     }
   ]

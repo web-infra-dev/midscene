@@ -13,9 +13,6 @@
       "path": "../harmony"
     },
     {
-      "path": "../core"
-    },
-    {
       "path": "../shared"
     }
   ]
