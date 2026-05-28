@@ -47,7 +47,10 @@ const createDocAgent = (overrides: Record<string, any> = {}) => {
 describe('YAML docs usage coverage', () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    process.env.DOC_TOPIC = undefined;
+    Reflect.deleteProperty(process.env, 'DOC_ENABLED');
+    Reflect.deleteProperty(process.env, 'DOC_HOST');
+    Reflect.deleteProperty(process.env, 'DOC_TOPIC');
+    Reflect.deleteProperty(process.env, 'DOC_WIDTH');
   });
 
   it('parses the documented environment and agent sections', () => {
@@ -492,6 +495,63 @@ tasks:
 
     expect(script.tasks[0].flow[1]).toMatchObject({
       aiQuery: 'Search for ${product_id}',
+    });
+  });
+
+  it('interpolates config environment variables outside tasks', () => {
+    process.env.DOC_ENABLED = 'true';
+    process.env.DOC_HOST = 'example.com';
+    process.env.DOC_TOPIC = 'checkout';
+    process.env.DOC_WIDTH = '1280';
+
+    const script = parseYamlScript(`
+web:
+  url: https://\${DOC_HOST}/checkout
+  viewportWidth: \${DOC_WIDTH}
+agent:
+  generateReport: \${DOC_ENABLED}
+tasks:
+  - name: Runtime interpolation
+    flow:
+      - ai: Search for \${DOC_TOPIC}
+      - aiQuery: Search for \${product_id}
+        name: result
+`);
+
+    expect(script.web?.url).toBe('https://example.com/checkout');
+    expect(script.web?.viewportWidth).toBe(1280);
+    expect(script.agent?.generateReport).toBe(true);
+    expect(script.tasks[0].flow[0]).toMatchObject({
+      ai: 'Search for checkout',
+    });
+    expect(script.tasks[0].flow[1]).toMatchObject({
+      aiQuery: 'Search for ${product_id}',
+    });
+  });
+
+  it('preserves YAML scalar semantics when interpolating config environment variables', () => {
+    process.env.DOC_ENABLED = 'true';
+    process.env.DOC_WIDTH = '1280';
+    const docEnabledRef = '${DOC_ENABLED}';
+    const docWidthRef = '${DOC_WIDTH}';
+
+    const script = parseYamlScript(`
+web:
+  viewportWidth: ${docWidthRef}
+  url: "${docWidthRef}"
+agent:
+  generateReport: ${docEnabledRef}
+tasks:
+  - name: Runtime interpolation
+    flow:
+      - aiQuery: Search for ${docEnabledRef}
+`);
+
+    expect(script.web?.viewportWidth).toBe(1280);
+    expect(script.web?.url).toBe('1280');
+    expect(script.agent?.generateReport).toBe(true);
+    expect(script.tasks[0].flow[0]).toMatchObject({
+      aiQuery: 'Search for true',
     });
   });
 

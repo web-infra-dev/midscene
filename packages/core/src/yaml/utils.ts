@@ -10,74 +10,25 @@ import yaml from 'js-yaml';
 
 const debugUtils = getDebug('yaml:utils');
 
-function replaceEnvVarRefs(
-  line: string,
-  options: { preserveMissing?: boolean },
-) {
-  let result = '';
-  let lastIndex = 0;
-  let searchFrom = 0;
+const envVarRefPattern = /\$\{([^}]+)\}/g;
+const topLevelTasksPattern = /^tasks\s*:/;
+const topLevelYamlKeyPattern = /^[^\s#][^:]*:/;
 
-  while (searchFrom < line.length) {
-    const start = line.indexOf('${', searchFrom);
-    if (start === -1) {
-      break;
-    }
-
-    const end = line.indexOf('}', start + 2);
-    if (end === -1) {
-      break;
-    }
-
-    const rawName = line.slice(start + 2, end);
-    if (!rawName) {
-      searchFrom = end + 1;
-      continue;
-    }
-
+const interpolateEnvVarRefs = (
+  value: string,
+  keepUnresolvedRefs = false,
+): string =>
+  value.replace(envVarRefPattern, (_, rawName: string) => {
     const envVar = rawName.trim();
-    const value = process.env[envVar];
-    result += line.slice(lastIndex, start);
-    if (value === undefined) {
-      if (options.preserveMissing) {
-        result += line.slice(start, end + 1);
-      } else {
-        throw new Error(`Environment variable "${envVar}" is not defined`);
+    const envValue = process.env[envVar];
+    if (envValue === undefined) {
+      if (keepUnresolvedRefs) {
+        return `\${${rawName}}`;
       }
-    } else {
-      result += value;
+      throw new Error(`Environment variable "${envVar}" is not defined`);
     }
-    lastIndex = end + 1;
-    searchFrom = end + 1;
-  }
-
-  return result + line.slice(lastIndex);
-}
-
-function assertNoMissingEnvVarsInString(value: string) {
-  let searchFrom = 0;
-
-  while (searchFrom < value.length) {
-    const start = value.indexOf('${', searchFrom);
-    if (start === -1) {
-      return;
-    }
-
-    const end = value.indexOf('}', start + 2);
-    if (end === -1) {
-      return;
-    }
-
-    const rawName = value.slice(start + 2, end);
-    if (rawName) {
-      const envVar = rawName.trim();
-      if (process.env[envVar] === undefined) {
-        throw new Error(`Environment variable "${envVar}" is not defined`);
-      }
-    }
-    searchFrom = end + 1;
-  }
-}
+    return envValue;
+  });
 
 const multimodalLocateOptionFieldMap: Record<keyof TMultimodalPrompt, true> = {
   images: true,
@@ -104,10 +55,7 @@ function extractMultimodalPrompt(
     : undefined;
 }
 
-export function interpolateEnvVars(
-  content: string,
-  options: { preserveMissing?: boolean } = {},
-): string {
+export function interpolateEnvVars(content: string): string {
   // Process line by line to skip commented lines
   const lines = content.split('\n');
   const processedLines = lines.map((line) => {
@@ -119,37 +67,38 @@ export function interpolateEnvVars(
     }
 
     // Process environment variables for non-comment lines
-    return replaceEnvVarRefs(line, options);
+    return interpolateEnvVarRefs(line);
   });
 
   return processedLines.join('\n');
 }
 
-function assertNoMissingEnvVarsOutsideTasks(
-  value: unknown,
-  path: string[] = [],
-) {
-  if (path.length === 1 && path[0] === 'tasks') {
-    return;
-  }
+function interpolateYamlScriptEnvVars(content: string): string {
+  let inTopLevelTasksBlock = false;
 
-  if (typeof value === 'string') {
-    assertNoMissingEnvVarsInString(value);
-    return;
-  }
+  return content
+    .split('\n')
+    .map((line) => {
+      const trimmedLine = line.trimStart();
+      if (!trimmedLine || trimmedLine.startsWith('#')) {
+        return line;
+      }
 
-  if (Array.isArray(value)) {
-    for (const [index, item] of value.entries()) {
-      assertNoMissingEnvVarsOutsideTasks(item, [...path, String(index)]);
-    }
-    return;
-  }
+      const indentSize = line.length - trimmedLine.length;
+      if (indentSize === 0) {
+        if (topLevelTasksPattern.test(trimmedLine)) {
+          inTopLevelTasksBlock = true;
+          return line;
+        }
 
-  if (value && typeof value === 'object') {
-    for (const [key, item] of Object.entries(value)) {
-      assertNoMissingEnvVarsOutsideTasks(item, [...path, key]);
-    }
-  }
+        if (topLevelYamlKeyPattern.test(trimmedLine)) {
+          inTopLevelTasksBlock = false;
+        }
+      }
+
+      return interpolateEnvVarRefs(line, inTopLevelTasksBlock);
+    })
+    .join('\n');
 }
 
 export function parseYamlScript(
@@ -170,13 +119,10 @@ export function parseYamlScript(
       `please use string-style deviceId in yaml script, for example: deviceId: "${matchedDeviceId}"`,
     );
   }
-  const interpolatedContent = interpolateEnvVars(processedContent, {
-    preserveMissing: true,
-  });
+  const interpolatedContent = interpolateYamlScriptEnvVars(processedContent);
   const obj = yaml.load(interpolatedContent, {
     schema: yaml.JSON_SCHEMA,
   }) as MidsceneYamlScript;
-  assertNoMissingEnvVarsOutsideTasks(obj);
 
   const pathTip = filePath ? `, failed to load ${filePath}` : '';
   assert(obj.tasks, `property "tasks" is required in yaml script ${pathTip}`);
