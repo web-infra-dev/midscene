@@ -4,7 +4,10 @@ export {
   resolveRstestCoreImportPath,
   runRstestYamlProject,
 } from './rstest-runner';
-export { runYamlBatchInRstest } from './yaml-batch';
+export {
+  runYamlBatchInRstest,
+  runYamlBatchInRstestFromManifest,
+} from './yaml-batch';
 export { runYamlCaseInChildProcess } from './yaml-child-process';
 export {
   createYamlCaseFailure,
@@ -20,6 +23,9 @@ export type {
   GeneratedYamlTestCase,
 } from './rstest-project';
 export type { RunRstestYamlProjectOptions } from './rstest-runner';
-export type { RunYamlBatchInRstestOptions } from './yaml-batch';
+export type {
+  RunYamlBatchInRstestManifest,
+  RunYamlBatchInRstestOptions,
+} from './yaml-batch';
 export type { RunYamlCaseInChildProcessOptions } from './yaml-child-process';
 export type { RunYamlCaseOptions, RunYamlCaseResult } from './yaml-case';

@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
 import { type BatchRunnerConfig, runYamlBatch } from '../yaml-batch-executor';
@@ -7,6 +7,8 @@ export interface RunYamlBatchInRstestOptions {
   config: BatchRunnerConfig;
   resultFiles: Record<string, string>;
 }
+
+export type RunYamlBatchInRstestManifest = RunYamlBatchInRstestOptions;
 
 const writeResultFile = (
   resultFile: string,
@@ -21,6 +23,20 @@ const batchFailureMessage = (results: MidsceneYamlConfigResult[]): string => {
   return failed
     .map((result) => `${result.file}: ${result.error || result.resultType}`)
     .join('\n');
+};
+
+const readBatchManifest = (
+  manifestFile: string,
+): RunYamlBatchInRstestManifest => {
+  const manifest = JSON.parse(
+    readFileSync(manifestFile, 'utf8'),
+  ) as Partial<RunYamlBatchInRstestManifest>;
+
+  if (!manifest.config || !manifest.resultFiles) {
+    throw new Error(`Invalid Midscene batch manifest: ${manifestFile}`);
+  }
+
+  return manifest as RunYamlBatchInRstestManifest;
 };
 
 export async function runYamlBatchInRstest(
@@ -45,4 +61,10 @@ export async function runYamlBatchInRstest(
   }
 
   return results;
+}
+
+export async function runYamlBatchInRstestFromManifest(
+  manifestFile: string,
+): Promise<MidsceneYamlConfigResult[]> {
+  return runYamlBatchInRstest(readBatchManifest(manifestFile));
 }

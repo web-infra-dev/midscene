@@ -2,6 +2,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -148,11 +149,30 @@ describe('rstest yaml project generation', () => {
       expect(project.include).toEqual(['virtual/midscene-yaml/batch.test.ts']);
       expect(project.cases).toHaveLength(2);
       expect(project.maxConcurrency).toBe(1);
+      expect(project.batchManifestFile).toBe(
+        join(outputDir, 'batch-manifest.json'),
+      );
+      expect(existsSync(project.batchManifestFile!)).toBe(true);
+
       const generated = project.virtualModules[project.include[0]];
-      expect(generated).toContain('runYamlBatchInRstest');
-      expect(generated).toContain('"shareBrowserContext": true');
-      expect(generated).toContain(JSON.stringify(yamlA));
-      expect(generated).toContain(JSON.stringify(yamlB));
+      expect(generated).toContain('runYamlBatchInRstestFromManifest');
+      expect(generated).toContain(JSON.stringify(project.batchManifestFile));
+      expect(generated).not.toContain('"shareBrowserContext": true');
+      expect(generated).not.toContain(JSON.stringify(yamlA));
+      expect(generated).not.toContain(JSON.stringify(yamlB));
+
+      const manifest = JSON.parse(
+        readFileSync(project.batchManifestFile!, 'utf8'),
+      );
+      expect(manifest.config).toMatchObject({
+        files: [yamlA, yamlB],
+        concurrent: 1,
+        shareBrowserContext: true,
+      });
+      expect(manifest.resultFiles).toEqual({
+        [yamlA]: join(outputDir, 'results', '001-login.json'),
+        [yamlB]: join(outputDir, 'results', '002-check.json'),
+      });
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

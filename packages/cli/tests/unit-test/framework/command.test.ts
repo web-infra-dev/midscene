@@ -138,9 +138,19 @@ export async function runYamlCaseInChildProcess(options: any) {
             ]);
             expect(project.maxConcurrency).toBe(1);
             const batchModule = project.virtualModules[project.include[0]];
-            expect(batchModule).toContain('runYamlBatchInRstest');
-            expect(batchModule).toContain('"concurrent": 3');
-            expect(batchModule).toContain('"shareBrowserContext": true');
+            expect(batchModule).toContain('runYamlBatchInRstestFromManifest');
+            expect(batchModule).toContain(
+              JSON.stringify(project.batchManifestFile),
+            );
+            expect(batchModule).not.toContain('"concurrent": 3');
+            expect(batchModule).not.toContain('"shareBrowserContext": true');
+            const manifest = JSON.parse(
+              readFileSync(project.batchManifestFile!, 'utf8'),
+            );
+            expect(manifest.config).toMatchObject({
+              concurrent: 3,
+              shareBrowserContext: true,
+            });
             expect(project.cases.map((item) => item.yamlFile)).toEqual([
               yamlA,
               yamlB,

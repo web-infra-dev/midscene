@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import {
   basename,
   dirname,
@@ -47,6 +47,7 @@ export interface GeneratedRstestYamlProject {
   projectDir: string;
   outputDir: string;
   resultDir: string;
+  batchManifestFile?: string;
   include: string[];
   virtualModules: Record<string, string>;
   cases: GeneratedYamlTestCase[];
@@ -126,23 +127,19 @@ const createGeneratedBatchTestContent = (options: {
   rstestImport: string;
   frameworkImport: string;
   testName: string;
-  config: BatchRunnerConfig;
-  resultFiles: Record<string, string>;
+  manifestFile: string;
 }): string => {
   return `import { test } from ${toImportLiteral(options.rstestImport)};
 
 test(${JSON.stringify(options.testName)}, async () => {
   const framework = await import(${toImportLiteral(options.frameworkImport)});
-  const runYamlBatchInRstest =
-    framework.runYamlBatchInRstest ||
-    framework.default?.runYamlBatchInRstest;
-  if (typeof runYamlBatchInRstest !== 'function') {
-    throw new Error('Cannot find runYamlBatchInRstest from Midscene framework entry');
+  const runYamlBatchInRstestFromManifest =
+    framework.runYamlBatchInRstestFromManifest ||
+    framework.default?.runYamlBatchInRstestFromManifest;
+  if (typeof runYamlBatchInRstestFromManifest !== 'function') {
+    throw new Error('Cannot find runYamlBatchInRstestFromManifest from Midscene framework entry');
   }
-  await runYamlBatchInRstest({
-    config: ${JSON.stringify(options.config, null, 2)},
-    resultFiles: ${JSON.stringify(options.resultFiles, null, 2)}
-  });
+  await runYamlBatchInRstestFromManifest(${toImportLiteral(options.manifestFile)});
 });
 `;
 };
@@ -201,18 +198,31 @@ export function createRstestYamlProject(
     const resultFiles = Object.fromEntries(
       cases.map((item) => [item.yamlFile, item.resultFile]),
     );
+    const batchManifestFile = join(outputDir, 'batch-manifest.json');
+    writeFileSync(
+      batchManifestFile,
+      JSON.stringify(
+        {
+          config: options.batchConfig,
+          resultFiles,
+        },
+        null,
+        2,
+      ),
+    );
+
     return {
       projectDir,
       outputDir,
       resultDir,
+      batchManifestFile,
       include: [batchModule],
       virtualModules: {
         [batchModule]: createGeneratedBatchTestContent({
           rstestImport,
           frameworkImport,
           testName: 'midscene yaml batch',
-          config: options.batchConfig,
-          resultFiles,
+          manifestFile: batchManifestFile,
         }),
       },
       cases,

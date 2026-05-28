@@ -1,7 +1,10 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { runYamlBatchInRstest } from '@/framework/yaml-batch';
+import {
+  runYamlBatchInRstest,
+  runYamlBatchInRstestFromManifest,
+} from '@/framework/yaml-batch';
 import { runYamlBatch } from '@/yaml-batch-executor';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -141,6 +144,51 @@ describe('runYamlBatchInRstest', () => {
         file: yamlB,
         success: false,
         resultType: 'partialFailed',
+      });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('loads batch options from a generated manifest file', async () => {
+    const root = createTempDir();
+    const yaml = join(root, 'manifest.yaml');
+    const resultFile = join(root, 'results', 'manifest.json');
+    const manifestFile = join(root, 'batch-manifest.json');
+    const config = createConfig([yaml]);
+    const results: MidsceneYamlConfigResult[] = [
+      {
+        file: yaml,
+        success: true,
+        executed: true,
+        duration: 10,
+        resultType: 'success',
+      },
+    ];
+    mocks.runYamlBatch.mockResolvedValue(results);
+    writeFileSync(
+      manifestFile,
+      JSON.stringify({
+        config,
+        resultFiles: {
+          [yaml]: resultFile,
+        },
+      }),
+    );
+
+    try {
+      await expect(
+        runYamlBatchInRstestFromManifest(manifestFile),
+      ).resolves.toEqual(results);
+
+      expect(runYamlBatch).toHaveBeenCalledWith(config, {
+        generateSummary: false,
+        printExecutionPlan: false,
+      });
+      expect(JSON.parse(readFileSync(resultFile, 'utf8'))).toMatchObject({
+        file: yaml,
+        success: true,
+        resultType: 'success',
       });
     } finally {
       rmSync(root, { recursive: true, force: true });
