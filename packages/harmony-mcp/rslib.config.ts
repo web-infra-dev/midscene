@@ -1,6 +1,7 @@
 import { injectReportHtmlFromCore } from '@midscene/shared/mcp';
 import { defineConfig } from '@rslib/core';
 import { rspack } from '@rspack/core';
+import { createTypeCheckPlugin } from '../../scripts/rsbuild-utils.ts';
 import { version } from './package.json';
 
 export default defineConfig({
@@ -15,7 +16,7 @@ export default defineConfig({
   output: {
     externals: ['@modelcontextprotocol/sdk'],
   },
-  plugins: [injectReportHtmlFromCore(__dirname)],
+  plugins: [createTypeCheckPlugin(), injectReportHtmlFromCore(__dirname)],
   tools: {
     rspack: {
       output: {

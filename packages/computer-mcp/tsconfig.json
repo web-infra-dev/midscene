@@ -8,9 +8,5 @@
     "resolveJsonModule": true
   },
   "include": ["src"],
-  "references": [
-    { "path": "../computer" },
-    { "path": "../core" },
-    { "path": "../shared" }
-  ]
+  "references": [{ "path": "../computer" }, { "path": "../shared" }]
 }

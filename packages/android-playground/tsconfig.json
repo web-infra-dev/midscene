@@ -19,12 +19,6 @@
       "path": "../shared"
     },
     {
-      "path": "../web-integration"
-    },
-    {
-      "path": "../core"
-    },
-    {
       "path": "../playground"
     }
   ]

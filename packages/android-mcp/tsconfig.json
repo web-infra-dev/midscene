@@ -8,9 +8,5 @@
     "resolveJsonModule": true
   },
   "include": ["src"],
-  "references": [
-    { "path": "../android" },
-    { "path": "../core" },
-    { "path": "../shared" }
-  ]
+  "references": [{ "path": "../android" }, { "path": "../shared" }]
 }

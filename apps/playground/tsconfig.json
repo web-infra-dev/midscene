@@ -13,19 +13,10 @@
   "include": ["src/**/*", "demo/**/*"],
   "references": [
     {
-      "path": "../../packages/core"
-    },
-    {
       "path": "../../packages/playground"
     },
     {
       "path": "../../packages/playground-app"
-    },
-    {
-      "path": "../../packages/shared"
-    },
-    {
-      "path": "../../packages/visualizer"
     },
     {
       "path": "../../packages/web-integration"

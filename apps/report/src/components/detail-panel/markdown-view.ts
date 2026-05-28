@@ -1,6 +1,8 @@
+import type { MarkdownAttachment } from '@midscene/core';
+
 type ExecutionMarkdown = {
   markdown: string;
-  attachments: unknown[];
+  attachments: MarkdownAttachment[];
 };
 
 export type ExecutionMarkdownView =

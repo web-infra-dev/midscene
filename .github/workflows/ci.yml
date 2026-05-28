@@ -53,6 +53,9 @@ jobs:
         cd packages/web-integration
         npx puppeteer browsers install chrome
 
+    - name: Check tsconfig references
+      run: pnpm run check:references
+
     - name: Build project
       run: pnpm run build
 

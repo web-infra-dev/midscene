@@ -10,18 +10,6 @@
   "references": [
     {
       "path": "../ios"
-    },
-    {
-      "path": "../shared"
-    },
-    {
-      "path": "../web-integration"
-    },
-    {
-      "path": "../core"
-    },
-    {
-      "path": "../playground"
     }
   ]
 }

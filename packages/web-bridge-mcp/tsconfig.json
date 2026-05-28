@@ -8,9 +8,5 @@
     "resolveJsonModule": true
   },
   "include": ["src"],
-  "references": [
-    { "path": "../core" },
-    { "path": "../shared" },
-    { "path": "../web-integration" }
-  ]
+  "references": [{ "path": "../shared" }, { "path": "../web-integration" }]
 }

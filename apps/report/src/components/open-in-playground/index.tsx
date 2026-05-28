@@ -1,7 +1,6 @@
 import { PlayCircleOutlined } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core';
 import { staticAgentFromContext } from '@midscene/visualizer';
-import type { WebUIContext } from '@midscene/web';
 import {
   Button,
   ConfigProvider,
@@ -72,7 +71,7 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
     toolContent = (
       <StandardPlayground
         getAgent={() => {
-          return staticAgentFromContext(context as WebUIContext);
+          return staticAgentFromContext(context as UIContext);
         }}
         dryMode={true}
         hideLogo={true}

@@ -1,4 +1,5 @@
 import { defineConfig } from '@rslib/core';
+import { createTypeCheckPlugin } from '../../scripts/rsbuild-utils.ts';
 
 export default defineConfig({
   lib: [
@@ -30,4 +31,5 @@ export default defineConfig({
       bin: './src/bin.ts',
     },
   },
+  plugins: [createTypeCheckPlugin()],
 });

@@ -40,7 +40,7 @@ describe('processCacheConfig in CLI', () => {
     });
 
     test('should auto-generate ID when cache config object has no ID', () => {
-      const cacheConfig: Cache = { strategy: 'read-only' };
+      const cacheConfig = { strategy: 'read-only' } as unknown as Cache;
       const result = processCacheConfig(cacheConfig, 'fallback-id');
 
       expect(result).toEqual({
@@ -157,7 +157,7 @@ describe('processCacheConfig in CLI', () => {
     });
 
     test('should use fallback ID when cache object missing ID', () => {
-      const cacheConfig: Cache = { strategy: 'read-only' };
+      const cacheConfig = { strategy: 'read-only' } as unknown as Cache;
       const result = processCacheConfig(cacheConfig, 'my-custom-fallback-id');
 
       expect(result).toEqual({

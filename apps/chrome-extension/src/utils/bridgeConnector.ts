@@ -92,7 +92,10 @@ export class BridgeConnector {
             console.warn('failed to setup connection', e);
           }
 
-          // Keep listening status while retrying
+          // Keep listening status while retrying.
+          // @ts-ignore TypeScript narrows this.status to "listening" | "disconnected"
+          // inside the connect loop, but disconnect() can still set it to "closed"
+          // asynchronously while the awaited connection attempt is in flight.
           if (this.status !== 'closed') {
             this.setStatus('listening');
           }
