@@ -1,6 +1,8 @@
 import type {
   AndroidDeviceInputOpt,
   AndroidDeviceOpt,
+  HarmonyDeviceInputOpt,
+  HarmonyDeviceOpt,
   IOSDeviceInputOpt,
   IOSDeviceOpt,
 } from '@/device';
@@ -85,6 +87,28 @@ describe('Device Options Type Definitions', () => {
     test('IOSDeviceInputOpt should include keyboard options', () => {
       const inputOptions: IOSDeviceInputOpt = {
         autoDismissKeyboard: true,
+      };
+
+      expect(inputOptions).toBeDefined();
+    });
+  });
+
+  describe('HarmonyDeviceOpt', () => {
+    test('should include all required HarmonyOS device options', () => {
+      const options: HarmonyDeviceOpt = {
+        hdcPath: '/custom/path/to/hdc',
+        autoDismissKeyboard: true,
+        keyboardDismissStrategy: 'esc-first',
+        screenshotResizeScale: 0.5,
+      };
+
+      expect(options).toBeDefined();
+    });
+
+    test('HarmonyDeviceInputOpt should include keyboard options', () => {
+      const inputOptions: HarmonyDeviceInputOpt = {
+        autoDismissKeyboard: true,
+        keyboardDismissStrategy: 'back-first',
       };
 
       expect(inputOptions).toBeDefined();
@@ -237,6 +261,13 @@ describe('Device Options Type Definitions', () => {
 
       validStrategies.forEach((strategy) => {
         const options: AndroidDeviceOpt = {
+          keyboardDismissStrategy: strategy,
+        };
+        expect(options).toBeDefined();
+      });
+
+      validStrategies.forEach((strategy) => {
+        const options: HarmonyDeviceOpt = {
           keyboardDismissStrategy: strategy,
         };
         expect(options).toBeDefined();

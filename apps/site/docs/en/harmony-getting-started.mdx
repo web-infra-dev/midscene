@@ -285,9 +285,17 @@ Merged reports are stored inside `midscene_run/report` by default. Override the 
 
 ## FAQ
 
-### Text input is cleared or lost after typing
+### Keyboard is not dismissed or the page goes back after typing
 
-Midscene automatically dismisses the keyboard after entering text (by default it sends a BACK key event). If your input field listens for the BACK event and clears or closes in response, you can disable auto keyboard dismiss:
+Midscene automatically dismisses the keyboard after entering text. By default, HarmonyOS uses the ESC key so the current page is less likely to navigate back. If ESC does not close the keyboard in your app, switch to Back first:
+
+```typescript
+const device = new HarmonyDevice('device-id', {
+  keyboardDismissStrategy: 'back-first',
+});
+```
+
+If your input field listens for Back and clears or closes in response, disable auto keyboard dismiss:
 
 ```typescript
 const device = new HarmonyDevice('device-id', {

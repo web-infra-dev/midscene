@@ -45,6 +45,7 @@ const device = new HarmonyDevice(deviceId, {
 - `deviceId: string` — Value from `hdc list targets` or `getConnectedDevices()`.
 - `hdcPath?: string` — Custom path to the HDC executable. If not set, it searches `HDC_HOME` environment variable and common installation paths.
 - `autoDismissKeyboard?: boolean` — Automatically hide keyboard after input, default `true`.
+- `keyboardDismissStrategy?: 'esc-first' | 'back-first'` — Key preference for automatically hiding the keyboard, default `'esc-first'`. HarmonyOS sends the first key from the strategy only: `'esc-first'` sends ESC, while `'back-first'` sends Back.
 - `screenshotResizeScale?: number` — **Deprecated.** This option has been removed and no longer has any effect. Use `screenshotShrinkFactor` in `AgentOpt` instead to control screenshot size sent to the AI model.
 - `customActions?: DeviceAction[]` — Extend the planner's available actions via `defineAction`.
 
