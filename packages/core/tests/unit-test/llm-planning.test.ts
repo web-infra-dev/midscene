@@ -79,6 +79,15 @@ describe('llm planning - doubao', () => {
 });
 
 describe('llm planning - build yaml flow', () => {
+  it('throws when planned action is not in actionSpace', () => {
+    expect(() =>
+      buildYamlFlowFromPlans(
+        [{ type: 'NonExistentAction', param: {}, thought: '' }],
+        [{ name: 'Tap', call: async () => {} }],
+      ),
+    ).toThrow(/not in the current action space/);
+  });
+
   it('build yaml flow', () => {
     const flow = buildYamlFlowFromPlans(
       [

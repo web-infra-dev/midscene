@@ -44,6 +44,11 @@ import 'dotenv/config';
 
 const defaultPort = PLAYGROUND_SERVER_PORT;
 
+/** Default `0.0.0.0`. Override via `MIDSCENE_PLAYGROUND_HOST` (e.g. `127.0.0.1`). */
+function resolvePlaygroundListenHost(): string {
+  return process.env.MIDSCENE_PLAYGROUND_HOST?.trim() || '0.0.0.0';
+}
+
 function serializeAiConfigSignature(aiConfig: Record<string, unknown>): string {
   return JSON.stringify(
     Object.entries(aiConfig).sort(([leftKey], [rightKey]) =>
@@ -1832,7 +1837,8 @@ class PlaygroundServer {
 
     return new Promise((resolve) => {
       const serverPort = this.port ?? defaultPort;
-      this.server = this._app.listen(serverPort, '0.0.0.0', () => {
+      const listenHost = resolvePlaygroundListenHost();
+      this.server = this._app.listen(serverPort, listenHost, () => {
         resolve(this);
       });
     });
