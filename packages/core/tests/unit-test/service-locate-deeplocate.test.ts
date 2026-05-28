@@ -1,22 +1,25 @@
 import Service from '@/service';
 import type { IModelConfig } from '@midscene/shared/env';
-import { createFakeContext } from 'tests/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-vi.mock('@/ai-model/index', () => ({
-  AIResponseParseError: class AIResponseParseError extends Error {},
-  AiExtractElementInfo: vi.fn(),
-  AiLocateElement: vi.fn(),
-  callAIWithObjectResponse: vi.fn(),
-}));
+import { createFakeContext } from '../utils';
 
 vi.mock('@/ai-model/inspect', () => ({
+  AiExtractElementInfo: vi.fn(),
+  AiLocateElement: vi.fn(),
   AiLocateSection: vi.fn(),
   buildSearchAreaConfig: vi.fn(),
 }));
 
-import { AiLocateElement } from '@/ai-model/index';
-import { AiLocateSection, buildSearchAreaConfig } from '@/ai-model/inspect';
+vi.mock('@/ai-model/service-caller', () => ({
+  AIResponseParseError: class AIResponseParseError extends Error {},
+  callAIWithObjectResponse: vi.fn(),
+}));
+
+import {
+  AiLocateElement,
+  AiLocateSection,
+  buildSearchAreaConfig,
+} from '@/ai-model/inspect';
 
 describe('service.locate deepLocate routing', () => {
   const modelConfig: IModelConfig = {

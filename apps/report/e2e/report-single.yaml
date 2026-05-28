@@ -32,12 +32,18 @@ tasks:
   # --- Dark mode ---
   - name: toggle dark mode
     flow:
-      - ai: Click the theme toggle button (sun or moon icon) in the top right corner of the page
-      - sleep: 1000
-      - aiAssert: The page background is dark colored, indicating dark mode is active
+      - aiTap:
+        locate:
+          prompt: the "Toggle theme" button with a sun or moon icon in the top right header area
+          deepLocate: true
+      - sleep: 2000
+      - aiAssert: The report UI (header, sidebar, and surrounding chrome) has a dark background color
 
   - name: toggle back to light mode
     flow:
-      - ai: Click the theme toggle button (sun or moon icon) in the top right corner of the page
-      - sleep: 1000
-      - aiAssert: The page background is light or white colored, indicating light mode is active
+      - aiTap:
+        locate:
+          prompt: the "Toggle theme" button with a sun or moon icon in the top right header area
+          deepLocate: true
+      - sleep: 2000
+      - aiAssert: The report UI (header, sidebar, and surrounding chrome) has a light/white background color

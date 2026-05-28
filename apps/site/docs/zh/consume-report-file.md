@@ -61,12 +61,27 @@ npx @midscene/web report-tool --action split --htmlPath ./midscene_run/report/pu
 npx @midscene/web report-tool --action to-markdown --htmlPath ./midscene_run/report/puppeteer-2026/index.html --outputDir ./output-markdown
 ```
 
+将多个报告文件合并为一份汇总报告：
+
+```shell
+npx @midscene/web report-tool --action merge-html \
+  --htmlReport ./midscene_run/report/case-a/index.html \
+  --htmlReport ./midscene_run/report/case-b.html \
+  --outputDir ./merged --outputName all-cases
+```
+
+每多合并一份报告就重复一次 `--htmlReport`。`--outputDir` 和 `--outputName` 都是可选项，留空时合并后的报告会写入 Midscene 默认的报告目录、并生成自动文件名。已存在同名文件时使用 `--overwrite` 进行覆盖。
+
 ## 使用 JavaScript SDK 解析
 
-如果你希望在代码里控制报告解析，可以使用 `@midscene/core` 提供的 `splitReportFile` 和 `reportFileToMarkdown`。
+如果你希望在代码里控制报告解析，可以使用 `@midscene/core` 提供的 `splitReportFile`、`reportFileToMarkdown` 和 `mergeReportFiles`。
 
 ```ts
-import { reportFileToMarkdown, splitReportFile } from '@midscene/core';
+import {
+  mergeReportFiles,
+  reportFileToMarkdown,
+  splitReportFile,
+} from '@midscene/core';
 
 const splitResult = splitReportFile({
   htmlPath: './midscene_run/report/puppeteer-2026/index.html',
@@ -79,14 +94,24 @@ const markdownResult = await reportFileToMarkdown({
   outputDir: './output-markdown',
 });
 console.log(markdownResult.markdownFiles);
+
+const mergedResult = mergeReportFiles({
+  htmlPaths: [
+    './midscene_run/report/case-a/index.html',
+    './midscene_run/report/case-b.html',
+  ],
+  outputDir: './merged',
+  outputName: 'all-cases',
+});
+console.log(mergedResult.mergedReportPath);
 ```
 
-`splitReportFile` 和 `reportFileToMarkdown` 的用途不同：
+`splitReportFile`、`reportFileToMarkdown` 和 `mergeReportFiles` 的用途不同：
 
 - `splitReportFile` 会产出“原始对象”对应的 JSON 文件（每个 execution 一个 `*.execution.json`），内容是 `ReportActionDump` 的原始结构化数据，同时会导出截图文件。返回值中的 `executionJsonFiles` 和 `screenshotFiles` 都是生成后的文件路径列表。
 - `reportFileToMarkdown` 会把同一份报告转成更易读、便于给其他工具继续处理的 Markdown 文本，并导出 Markdown 里引用到的截图。返回值里的 `markdownFiles` 对应 Markdown 文件路径。
+- `mergeReportFiles` 会把多份报告合并成一份汇总 HTML 报告，是 [`ReportMergingTool`](./api#new-reportmergingtool) 的轻量封装：会自动从每份源报告里读取 `groupName` 作为 `testTitle`/`testDescription`，省去了手工准备 `reportAttributes` 的步骤。命令行多次调用或多个测试用例产生多份报告后，使用它进行汇总最为合适。
 
-如果你想保留最完整、可编程处理的数据，优先使用 `splitReportFile`；如果你想直接阅读、总结，或用于二次生成（例如生成视频脚本），优先使用 `reportFileToMarkdown`。
 
 ## 关于 JSON 和 Markdown 的内容字段
 

@@ -1,6 +1,6 @@
 {
   "name": "@midscene/ios",
-  "version": "1.8.4",
+  "version": "1.8.7",
   "repository": {
     "type": "git",
     "url": "https://github.com/web-infra-dev/midscene.git",
@@ -47,8 +47,8 @@
     "playground": "DEBUG=midscene:* tsx demo/playground.ts",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
-    "test:ai": "AI_TEST_TYPE=iOS npm run test",
-    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=iOS npm run test"
+    "test:ai": "AI_TEST_TYPE=iOS vitest --run",
+    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=iOS vitest --run"
   },
   "dependencies": {
     "@midscene/core": "workspace:*",

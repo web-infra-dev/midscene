@@ -20,6 +20,7 @@ import { getMidsceneVersion } from './utils';
 const DEFAULT_CACHE_MAX_FILENAME_LENGTH = 200;
 
 export const debug = getDebug('cache');
+const warn = getDebug('cache', { console: true });
 
 export interface PlanningCache {
   type: 'plan';
@@ -70,9 +71,20 @@ export class TaskCache {
     cacheId: string,
     isCacheResultUsed: boolean,
     cacheFilePath?: string,
-    options: { readOnly?: boolean; writeOnly?: boolean } = {},
+    options: {
+      readOnly?: boolean;
+      writeOnly?: boolean;
+      cacheDir?: string;
+    } = {},
   ) {
     assert(cacheId, 'cacheId is required');
+    if (
+      options.cacheDir !== undefined &&
+      (typeof options.cacheDir !== 'string' || !options.cacheDir.trim())
+    ) {
+      throw new Error('cacheDir must be a non-empty string when provided');
+    }
+    const cacheDir = options.cacheDir?.trim();
     let safeCacheId = replaceIllegalPathCharsAndSpace(cacheId);
     const cacheMaxFilenameLength =
       globalConfigManager.getEnvConfigValueAsNumber(
@@ -89,7 +101,10 @@ export class TaskCache {
       ifInBrowser || ifInWorker
         ? undefined
         : cacheFilePath ||
-          join(getMidsceneRunSubDir('cache'), `${this.cacheId}${cacheFileExt}`);
+          join(
+            cacheDir || getMidsceneRunSubDir('cache'),
+            `${this.cacheId}${cacheFileExt}`,
+          );
     const readOnlyMode = Boolean(options?.readOnly);
     const writeOnlyMode = Boolean(options?.writeOnly);
 
@@ -373,10 +388,8 @@ export class TaskCache {
       writeFileSync(this.cacheFilePath, yamlData);
       debug('cache flushed to file: %s', this.cacheFilePath);
     } catch (err) {
-      debug(
-        'write cache to file failed, path: %s, error: %s',
-        this.cacheFilePath,
-        err,
+      warn(
+        `write cache to file failed, path: ${this.cacheFilePath}, error: ${err}`,
       );
     }
   }

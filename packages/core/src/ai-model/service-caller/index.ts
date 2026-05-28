@@ -17,8 +17,6 @@ import {
   type IModelConfig,
   MIDSCENE_LANGFUSE_DEBUG,
   MIDSCENE_LANGSMITH_DEBUG,
-  MIDSCENE_MODEL_MAX_TOKENS,
-  OPENAI_MAX_TOKENS,
   type TModelFamily,
   type UITarsModelVersion,
   globalConfigManager,
@@ -235,6 +233,7 @@ export async function callAI(
     stream?: boolean;
     onChunk?: StreamingCallback;
     abortSignal?: AbortSignal;
+    forceOriginalImageDetail?: boolean;
   },
 ): Promise<{
   content: string;
@@ -277,9 +276,6 @@ export async function callAI(
 
   const extraBody = modelConfig.extraBody;
 
-  const maxTokens =
-    globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS) ??
-    globalConfigManager.getEnvConfigValueAsNumber(OPENAI_MAX_TOKENS);
   const debugCall = getDebug('ai:call');
   const warnCall = getDebug('ai:call', { console: true });
   const debugProfileStats = getDebug('ai:profile:stats');
@@ -333,7 +329,6 @@ export async function callAI(
   const commonConfig = {
     temperature,
     stream: !!isStreaming,
-    max_tokens: maxTokens,
     ...(modelFamily === 'qwen2.5-vl' // qwen vl v2 specific config
       ? {
           vl_high_resolution_images: true,
@@ -360,6 +355,7 @@ export async function callAI(
   }
 
   const shouldUseOriginalImageDetail =
+    options?.forceOriginalImageDetail ||
     shouldForceOriginalImageDetail(modelConfig);
 
   // For default-intent GPT-5 calls, request original image detail to preserve

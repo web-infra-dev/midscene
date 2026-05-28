@@ -12,11 +12,11 @@ import type {
 } from '@midscene/core';
 import { extractInsightParam, paramStr, typeStr } from '@midscene/core/agent';
 import {
+  fullTimeStrWithMilliseconds,
   highlightColorForType,
   timeCostStrElement,
 } from '@midscene/visualizer';
 import { Tag, Tooltip } from 'antd';
-import { fullTimeStrWithMilliseconds } from '../../../../../packages/visualizer/src/utils';
 import { isElementField, useExecutionDump } from '../store';
 
 const noop = () => {};

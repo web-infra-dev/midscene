@@ -6,9 +6,11 @@ import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSvgr } from '@rsbuild/plugin-svgr';
-import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
 import { pluginWorkspaceDev } from 'rsbuild-plugin-workspace-dev';
-import { commonIgnoreWarnings } from '../../scripts/rsbuild-utils.ts';
+import {
+  commonIgnoreWarnings,
+  createTypeCheckPlugin,
+} from '../../scripts/rsbuild-utils.ts';
 
 // Read all JSON files from test-data directory
 const testDataDir = path.join(__dirname, 'test-data');
@@ -164,7 +166,7 @@ export default defineConfig({
     pluginNodePolyfill(),
     pluginSvgr(),
     copyReportTemplate(),
-    pluginTypeCheck(),
+    createTypeCheckPlugin(),
     pluginWorkspaceDev({
       projects: {
         '@midscene/report': {

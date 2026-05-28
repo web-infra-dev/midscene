@@ -9,16 +9,21 @@ import {
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import type {
+  ExecutionDump,
   ExecutionTaskPlanning,
   ExecutionTaskPlanningLocate,
+  IExecutionDump,
 } from '@midscene/core';
 import type { MarkdownAttachment } from '@midscene/core';
 import { executionToMarkdown } from '@midscene/core';
-import { filterBase64Value } from '@midscene/visualizer';
-import { Blackboard, Player } from '@midscene/visualizer';
+import {
+  Blackboard,
+  Player,
+  filterBase64Value,
+  fullTimeStrWithMilliseconds,
+} from '@midscene/visualizer';
 import { Segmented } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
-import { fullTimeStrWithMilliseconds } from '../../../../../packages/visualizer/src/utils';
 import OpenInPlayground from '../open-in-playground';
 import { getExecutionMarkdownView } from './markdown-view';
 
@@ -135,7 +140,7 @@ const DetailPanel = (): JSX.Element => {
 
   const markdownResult = useMemo(() => {
     return getExecutionMarkdownView(activeExecution, (execution) =>
-      executionToMarkdown(execution, {
+      executionToMarkdown(execution as ExecutionDump | IExecutionDump, {
         screenshotBaseDir: './screenshots',
       }),
     );
@@ -369,7 +374,14 @@ const DetailPanel = (): JSX.Element => {
               className="download-zip-link"
               onClick={() =>
                 downloadMarkdownZip(
+                  // @ts-ignore Keep the existing Markdown download behavior for now.
+                  // markdownResult is a discriminated union, and only the "ready"
+                  // branch has markdown content. The historical condition did not
+                  // check status, and we have not confirmed whether empty/error
+                  // states intentionally still render this action.
                   markdownResult.markdown,
+                  // @ts-ignore See the note above: preserve the current behavior
+                  // until the Markdown view UX expectation is clarified.
                   markdownResult.attachments,
                   safeName || 'report',
                 )

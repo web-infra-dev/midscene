@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from '@rslib/core';
+import { createTypeCheckPlugin } from '../../scripts/rsbuild-utils.ts';
 import { version } from './package.json';
 
 // Inject report template into dist if available (self-injection as fallback)
@@ -133,5 +134,5 @@ export default defineConfig({
   output: {
     sourceMap: true,
   },
-  plugins: [injectReportTemplate()],
+  plugins: [createTypeCheckPlugin(), injectReportTemplate()],
 });

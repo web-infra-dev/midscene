@@ -153,7 +153,7 @@ describe('chrome extension settings and cross-mode tests', () => {
     );
     await sleep(3000);
     await agent.aiAssert(
-      `${SIDE_PANEL} shows Playground UI with action type buttons like "Act" and "Query"`,
+      `${SIDE_PANEL} shows Playground UI with action type buttons like "Action" and "Query"`,
     );
   });
 });

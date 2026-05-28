@@ -2,8 +2,8 @@ import { distance } from '@/ai-model/prompt/util';
 import Service from '@/service';
 import { sleep } from '@/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
-import { getContextFromFixture } from 'tests/evaluation';
 import { beforeAll, describe, expect, test, vi } from 'vitest';
+import { getContextFromFixture } from '../../evaluation';
 
 vi.setConfig({
   testTimeout: 120 * 1000,

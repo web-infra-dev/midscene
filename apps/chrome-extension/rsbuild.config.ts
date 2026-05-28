@@ -4,10 +4,12 @@ import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSvgr } from '@rsbuild/plugin-svgr';
-import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
 import { pluginWorkspaceDev } from 'rsbuild-plugin-workspace-dev';
 import { version } from '../../packages/visualizer/package.json';
-import { commonIgnoreWarnings } from '../../scripts/rsbuild-utils.ts';
+import {
+  commonIgnoreWarnings,
+  createTypeCheckPlugin,
+} from '../../scripts/rsbuild-utils.ts';
 
 export default defineConfig({
   tools: {
@@ -119,7 +121,7 @@ export default defineConfig({
     pluginNodePolyfill(),
     pluginLess(),
     pluginSvgr(),
-    pluginTypeCheck(),
+    createTypeCheckPlugin(),
     pluginWorkspaceDev({
       projects: {
         '@midscene/report': {

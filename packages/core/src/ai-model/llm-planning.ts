@@ -245,6 +245,9 @@ export async function plan(
     reasoning_content,
   } = await callAI(msgs, modelConfig, {
     abortSignal: opts.abortSignal,
+    // When GPT-5 planning includes bbox, the planning call also performs
+    // localization, so the screenshot should be sent with original detail.
+    forceOriginalImageDetail: modelFamily === 'gpt-5' && opts.includeBbox,
   });
 
   // Parse XML response to JSON object, retry once on parse failure
@@ -255,6 +258,8 @@ export async function plan(
     } catch {
       const retry = await callAI(msgs, modelConfig, {
         abortSignal: opts.abortSignal,
+        // Keep retry requests consistent with the initial planning call.
+        forceOriginalImageDetail: modelFamily === 'gpt-5' && opts.includeBbox,
       });
       rawResponse = retry.content;
       usage = retry.usage;

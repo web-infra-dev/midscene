@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 58 60" fill="none">
+  <path d="M57.4495 38.0618H46.4532C46.3514 37.2641 46.1982 36.4738 45.9945 35.6959L40.4963 14.5835H53.9473L50.3335 0.562393H22.4398L28.0185 21.9294C26.534 21.9595 25.0586 22.1679 23.6237 22.5504C20.5394 23.3533 17.7171 24.9471 15.4346 27.1748C13.1521 29.4025 11.4882 32.1873 10.6066 35.2551H21.8199L0.124786 40.9244H9.87519C9.92022 42.3019 10.1177 43.6701 10.4641 45.004C11.5172 49.049 13.914 52.6141 17.2598 55.1123C20.6055 57.6105 24.7008 58.8929 28.8712 58.7483C33.0416 58.6037 37.0386 57.0408 40.2039 54.3168C43.3693 51.5929 45.5143 47.8703 46.2858 43.7621H35.7482L57.4495 38.0618Z" fill="url(#sodaMusicGradient)"/>
+  <defs>
+    <linearGradient id="sodaMusicGradient" x1="48.2136" y1="2.02163" x2="20.547" y2="55.185" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FCFB47"/>
+      <stop offset="0.1" stop-color="#D2FB46"/>
+      <stop offset="0.29" stop-color="#89FC44"/>
+      <stop offset="0.45" stop-color="#54FD42"/>
+      <stop offset="0.57" stop-color="#33FD41"/>
+      <stop offset="0.63" stop-color="#27FD41"/>
+      <stop offset="0.75" stop-color="#26FD78"/>
+      <stop offset="0.86" stop-color="#25FDA7"/>
+      <stop offset="0.95" stop-color="#24FDC4"/>
+      <stop offset="1" stop-color="#24FDCF"/>
+    </linearGradient>
+  </defs>
+</svg>

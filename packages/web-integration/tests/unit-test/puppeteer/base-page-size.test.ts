@@ -1,7 +1,41 @@
-import { PuppeteerAgent } from '@/puppeteer';
+import { PuppeteerWebPage } from '@/puppeteer';
+import { launchPuppeteerPage } from '@/puppeteer/agent-launcher';
+import { commonContextParser } from '@midscene/core/agent';
 import { imageInfoOfBase64 } from '@midscene/shared/img';
+import type { Viewport } from 'puppeteer';
 import { describe, expect, it } from 'vitest';
-import { launchPage } from './utils';
+
+async function launchPage(
+  url: string,
+  opt?: {
+    viewport?: Viewport;
+    preference?: {
+      ignoreDefaultArgs?: boolean | string[];
+    };
+  },
+) {
+  const { page, freeFn } = await launchPuppeteerPage(
+    {
+      url,
+      viewportWidth: opt?.viewport?.width,
+      viewportHeight: opt?.viewport?.height,
+      deviceScaleFactor: opt?.viewport?.deviceScaleFactor,
+    },
+    {
+      headed: false,
+      ignoreDefaultArgs: opt?.preference?.ignoreDefaultArgs,
+    },
+  );
+
+  return {
+    originPage: page,
+    reset: async () => {
+      for (const fn of freeFn) {
+        await fn.fn();
+      }
+    },
+  };
+}
 
 // A page with content tall/wide enough to trigger both scrollbars.
 // Uses a classic (non-overlay) scrollbar style to ensure scrollbars occupy space.
@@ -135,55 +169,56 @@ describe('Page.size() with scrollbars', () => {
           deviceScaleFactor,
         },
         preference: {
-          // playwright and puppeteer hides scrollbars by default in headless mode, which will cause there is never a scrollbar visible in headless mode.
+          // playwright and puppeteer hide scrollbars by default in headless mode, which would make scrollbars invisible.
           // see: https://stackoverflow.com/questions/54937671/chrome-headless-puppeteer-make-screenshot-render-scrollbar
           ignoreDefaultArgs: ['--hide-scrollbars'],
         },
       });
-      await originPage.setContent(scrollablePageContent);
 
-      const agent = new PuppeteerAgent(originPage, {});
-      const context = await agent.getUIContext();
+      try {
+        await originPage.setContent(scrollablePageContent);
 
-      // shotSize should match the actual screenshot dimensions (physical pixels)
-      const physicalWidth = viewportWidth * deviceScaleFactor;
-      const physicalHeight = viewportHeight * deviceScaleFactor;
-      expect(
-        context.shotSize.width,
-        `shotSize.width should be ${physicalWidth} (viewport ${viewportWidth} * DPR ${deviceScaleFactor})`,
-      ).toBe(physicalWidth);
-      expect(
-        context.shotSize.height,
-        `shotSize.height should be ${physicalHeight} (viewport ${viewportHeight} * DPR ${deviceScaleFactor})`,
-      ).toBe(physicalHeight);
+        const page = new PuppeteerWebPage(originPage);
+        const context = await commonContextParser(page, {});
 
-      // The screenshot dimensions should match shotSize (physical pixels)
-      const imgInfo = await imageInfoOfBase64(context.screenshot.base64);
-      expect(
-        imgInfo.width,
-        `screenshot width should match shotSize.width (${physicalWidth}px)`,
-      ).toBe(physicalWidth);
-      expect(
-        imgInfo.height,
-        `screenshot height should match shotSize.height (${physicalHeight}px)`,
-      ).toBe(physicalHeight);
+        // shotSize should match the actual screenshot dimensions (physical pixels)
+        const physicalWidth = viewportWidth * deviceScaleFactor;
+        const physicalHeight = viewportHeight * deviceScaleFactor;
+        expect(
+          context.shotSize.width,
+          `shotSize.width should be ${physicalWidth} (viewport ${viewportWidth} * DPR ${deviceScaleFactor})`,
+        ).toBe(physicalWidth);
+        expect(
+          context.shotSize.height,
+          `shotSize.height should be ${physicalHeight} (viewport ${viewportHeight} * DPR ${deviceScaleFactor})`,
+        ).toBe(physicalHeight);
 
-      await agent.recordToReport('screenshot with scrollbars');
+        // The screenshot dimensions should match shotSize (physical pixels)
+        const imgInfo = await imageInfoOfBase64(context.screenshot.base64);
+        expect(
+          imgInfo.width,
+          `screenshot width should match shotSize.width (${physicalWidth}px)`,
+        ).toBe(physicalWidth);
+        expect(
+          imgInfo.height,
+          `screenshot height should match shotSize.height (${physicalHeight}px)`,
+        ).toBe(physicalHeight);
 
-      // Verify that clientWidth and clientHeight are smaller than viewport by scrollbar width (15px)
-      const clientDimensions = await agent.evaluateJavaScript(
-        '(() => ({ width: document.documentElement.clientWidth, height: document.documentElement.clientHeight }))()',
-      );
-      expect(
-        clientDimensions.width,
-        `clientWidth should be ${viewportWidth - 15} (viewport ${viewportWidth} - scrollbar 15px)`,
-      ).toBe(viewportWidth - 15);
-      expect(
-        clientDimensions.height,
-        `clientHeight should be ${viewportHeight - 15} (viewport ${viewportHeight} - scrollbar 15px)`,
-      ).toBe(viewportHeight - 15);
-
-      await reset();
+        // Verify that clientWidth and clientHeight are smaller than viewport by scrollbar width (15px)
+        const clientDimensions = await page.evaluateJavaScript(
+          '(() => ({ width: document.documentElement.clientWidth, height: document.documentElement.clientHeight }))()',
+        );
+        expect(
+          clientDimensions.width,
+          `clientWidth should be ${viewportWidth - 15} (viewport ${viewportWidth} - scrollbar 15px)`,
+        ).toBe(viewportWidth - 15);
+        expect(
+          clientDimensions.height,
+          `clientHeight should be ${viewportHeight - 15} (viewport ${viewportHeight} - scrollbar 15px)`,
+        ).toBe(viewportHeight - 15);
+      } finally {
+        await reset();
+      }
     },
   );
 });

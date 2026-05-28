@@ -13,7 +13,6 @@ import {
   type AgentDescribeElementAtPointResult,
   type AgentOpt,
   type AgentWaitForOpt,
-  type CacheConfig,
   type DeepThinkOption,
   type DeviceAction,
   ExecutionDump,
@@ -64,6 +63,7 @@ import {
 import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
+import { validateAgentCacheInput } from './cache-config';
 import { TaskCache } from './task-cache';
 import {
   TaskExecutionError,
@@ -92,21 +92,6 @@ const defaultServiceExtractOption: ServiceExtractOption = {
   domIncluded: false,
   screenshotIncluded: true,
 };
-
-type CacheStrategy = NonNullable<CacheConfig['strategy']>;
-
-const CACHE_STRATEGIES: readonly CacheStrategy[] = [
-  'read-only',
-  'read-write',
-  'write-only',
-];
-
-const isValidCacheStrategy = (strategy: string): strategy is CacheStrategy =>
-  CACHE_STRATEGIES.some((value) => value === strategy);
-
-const CACHE_STRATEGY_VALUES = CACHE_STRATEGIES.map(
-  (value) => `"${value}"`,
-).join(', ');
 
 const legacyScrollTypeMap = {
   once: 'singleAction',
@@ -314,6 +299,7 @@ export class Agent<
         {
           readOnly: cacheConfigObj.readOnly,
           writeOnly: cacheConfigObj.writeOnly,
+          cacheDir: cacheConfigObj.cacheDir,
         },
       );
     }
@@ -569,7 +555,7 @@ export class Agent<
   async aiTap(
     locatePrompt: TUserPrompt,
     opt?: LocateOption & { fileChooserAccept?: string | string[] },
-  ) {
+  ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for tap');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
@@ -578,39 +564,45 @@ export class Agent<
       ? this.normalizeFileInput(opt.fileChooserAccept)
       : undefined;
 
-    return withFileChooser(this.interface, fileChooserAccept, async () => {
-      return this.callActionInActionSpace('Tap', {
+    await withFileChooser(this.interface, fileChooserAccept, async () => {
+      await this.callActionInActionSpace('Tap', {
         locate: detailedLocateParam,
       });
     });
   }
 
-  async aiRightClick(locatePrompt: TUserPrompt, opt?: LocateOption) {
+  async aiRightClick(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption,
+  ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for right click');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
-    return this.callActionInActionSpace('RightClick', {
+    await this.callActionInActionSpace('RightClick', {
       locate: detailedLocateParam,
     });
   }
 
-  async aiDoubleClick(locatePrompt: TUserPrompt, opt?: LocateOption) {
+  async aiDoubleClick(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption,
+  ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for double click');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
-    return this.callActionInActionSpace('DoubleClick', {
+    await this.callActionInActionSpace('DoubleClick', {
       locate: detailedLocateParam,
     });
   }
 
-  async aiHover(locatePrompt: TUserPrompt, opt?: LocateOption) {
+  async aiHover(locatePrompt: TUserPrompt, opt?: LocateOption): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for hover');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
-    return this.callActionInActionSpace('Hover', {
+    await this.callActionInActionSpace('Hover', {
       locate: detailedLocateParam,
     });
   }
@@ -621,7 +613,7 @@ export class Agent<
     opt: LocateOption & { value: string | number } & {
       autoDismissKeyboard?: boolean;
     } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' },
-  ): Promise<any>;
+  ): Promise<void>;
 
   // Legacy signature - deprecated
   /**
@@ -633,7 +625,7 @@ export class Agent<
     opt?: LocateOption & { autoDismissKeyboard?: boolean } & {
       mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
     }, // AndroidDeviceInputOpt &
-  ): Promise<any>;
+  ): Promise<void>;
 
   // Implementation
   async aiInput(
@@ -693,7 +685,7 @@ export class Agent<
     // backward compat: convert deprecated 'append' to 'typeOnly'
     const mode = opt?.mode === 'append' ? 'typeOnly' : opt?.mode;
 
-    return this.callActionInActionSpace('Input', {
+    await this.callActionInActionSpace('Input', {
       ...(opt || {}),
       value: stringValue,
       locate: detailedLocateParam,
@@ -705,7 +697,7 @@ export class Agent<
   async aiKeyboardPress(
     locatePrompt: TUserPrompt,
     opt: LocateOption & { keyName: string },
-  ): Promise<any>;
+  ): Promise<void>;
 
   // Legacy signature - deprecated
   /**
@@ -715,7 +707,7 @@ export class Agent<
     keyName: string,
     locatePrompt?: TUserPrompt,
     opt?: LocateOption,
-  ): Promise<any>;
+  ): Promise<void>;
 
   // Implementation
   async aiKeyboardPress(
@@ -757,7 +749,7 @@ export class Agent<
       ? buildDetailedLocateParam(locatePrompt, opt)
       : undefined;
 
-    return this.callActionInActionSpace('KeyboardPress', {
+    await this.callActionInActionSpace('KeyboardPress', {
       ...(opt || {}),
       locate: detailedLocateParam,
     });
@@ -767,7 +759,7 @@ export class Agent<
   async aiScroll(
     locatePrompt: TUserPrompt | undefined,
     opt: LocateOption & ScrollParam,
-  ): Promise<any>;
+  ): Promise<void>;
 
   // Legacy signature - deprecated
   /**
@@ -777,7 +769,7 @@ export class Agent<
     scrollParam: ScrollParam,
     locatePrompt?: TUserPrompt,
     opt?: LocateOption,
-  ): Promise<any>;
+  ): Promise<void>;
 
   // Implementation
   async aiScroll(
@@ -841,7 +833,7 @@ export class Agent<
       opt,
     );
 
-    return this.callActionInActionSpace('Scroll', {
+    await this.callActionInActionSpace('Scroll', {
       ...(opt || {}),
       locate: detailedLocateParam,
     });
@@ -854,13 +846,13 @@ export class Agent<
       distance?: number;
       duration?: number;
     },
-  ) {
+  ): Promise<void> {
     const detailedLocateParam = buildDetailedLocateParam(
       locatePrompt || '',
       opt,
     );
 
-    return this.callActionInActionSpace('Pinch', {
+    await this.callActionInActionSpace('Pinch', {
       ...opt,
       locate: detailedLocateParam,
     });
@@ -869,23 +861,26 @@ export class Agent<
   async aiLongPress(
     locatePrompt: TUserPrompt,
     opt?: LocateOption & { duration?: number },
-  ) {
+  ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for long press');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
-    return this.callActionInActionSpace('LongPress', {
+    await this.callActionInActionSpace('LongPress', {
       ...(opt || {}),
       locate: detailedLocateParam,
     });
   }
 
-  async aiClearInput(locatePrompt: TUserPrompt, opt?: LocateOption) {
+  async aiClearInput(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption,
+  ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for clear input');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
-    return this.callActionInActionSpace('ClearInput', {
+    await this.callActionInActionSpace('ClearInput', {
       locate: detailedLocateParam,
     });
   }
@@ -1116,6 +1111,11 @@ export class Agent<
       debug('aiDescribe text', text);
       assert(text.description, `failed to describe element at [${center}]`);
       resultPrompt = text.description;
+
+      if (!verifyPrompt) {
+        success = true;
+        break;
+      }
 
       // Don't pass deepLocate to verification locate — the description was generated
       // from a cropped view (deepLocate describe), but verification should use regular
@@ -1374,25 +1374,37 @@ export class Agent<
       return;
     }
 
+    this.destroyed = true;
+    let interfaceDestroyError: unknown;
+    try {
+      await this.interface.destroy?.();
+    } catch (error) {
+      interfaceDestroyError = error;
+    }
+
     // Wait for all queued write operations to complete
     await this.reportGenerator.flush();
 
     const finalPath = await this.reportGenerator.finalize();
     this.reportFile = finalPath;
 
-    await this.interface.destroy?.();
     this.resetDump(); // reset dump to release memory
-    this.destroyed = true;
+
+    if (interfaceDestroyError) {
+      throw interfaceDestroyError;
+    }
   }
 
   async recordToReport(
     title?: string,
     opt?: {
-      content: string;
+      content?: string;
+      screenshotBase64?: string;
     },
   ) {
     // 1. screenshot
-    const base64 = await this.interface.screenshotBase64();
+    const base64 =
+      opt?.screenshotBase64 ?? (await this.interface.screenshotBase64());
     const now = Date.now();
     const screenshot = ScreenshotItem.create(base64, now);
     // 2. build recorder
@@ -1496,28 +1508,9 @@ export class Agent<
     enabled: boolean;
     readOnly: boolean;
     writeOnly: boolean;
+    cacheDir?: string;
   } | null {
-    // Validate original cache config before processing
-    // Agent requires explicit IDs - don't allow auto-generation
-    if (opts.cache === true) {
-      throw new Error(
-        'cache: true requires an explicit cache ID. Please provide:\n' +
-          'Example: cache: { id: "my-cache-id" }',
-      );
-    }
-
-    // Check if cache config object is missing ID
-    if (
-      opts.cache &&
-      typeof opts.cache === 'object' &&
-      opts.cache !== null &&
-      !opts.cache.id
-    ) {
-      throw new Error(
-        'cache configuration requires an explicit id.\n' +
-          'Example: cache: { id: "my-cache-id" }',
-      );
-    }
+    validateAgentCacheInput(opts.cache);
 
     // Use the unified utils function to process cache configuration
     const cacheConfig = processCacheConfig(
@@ -1532,25 +1525,7 @@ export class Agent<
     // Handle cache configuration object
     if (typeof cacheConfig === 'object' && cacheConfig !== null) {
       const id = cacheConfig.id;
-      const rawStrategy = cacheConfig.strategy as unknown;
-      let strategyValue: string;
-
-      if (rawStrategy === undefined) {
-        strategyValue = 'read-write';
-      } else if (typeof rawStrategy === 'string') {
-        strategyValue = rawStrategy;
-      } else {
-        throw new Error(
-          `cache.strategy must be a string when provided, but received type ${typeof rawStrategy}`,
-        );
-      }
-
-      if (!isValidCacheStrategy(strategyValue)) {
-        throw new Error(
-          `cache.strategy must be one of ${CACHE_STRATEGY_VALUES}, but received "${strategyValue}"`,
-        );
-      }
-
+      const strategyValue = cacheConfig.strategy ?? 'read-write';
       const isReadOnly = strategyValue === 'read-only';
       const isWriteOnly = strategyValue === 'write-only';
 
@@ -1559,6 +1534,7 @@ export class Agent<
         enabled: !isWriteOnly,
         readOnly: isReadOnly,
         writeOnly: isWriteOnly,
+        cacheDir: cacheConfig.cacheDir?.trim(),
       };
     }
 

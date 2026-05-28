@@ -1,7 +1,6 @@
 {
   "extends": "../shared/tsconfig.base.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "sourceMap": true,
     "paths": {
       "@/*": ["./src/*"]
@@ -18,9 +17,6 @@
     },
     {
       "path": "../shared"
-    },
-    {
-      "path": "../web-integration"
     }
   ]
 }

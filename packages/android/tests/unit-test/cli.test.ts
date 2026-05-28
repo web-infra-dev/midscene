@@ -128,6 +128,20 @@ describe('Android CLI integration', () => {
     });
   });
 
+  it('enables scrcpy when --use-scrcpy is provided', async () => {
+    const tools = new AndroidMidsceneTools();
+
+    await runToolsCLI(tools, 'midscene-android', {
+      stripPrefix: 'android_',
+      argv: ['take_screenshot', '--device-id', 'scrcpy-device', '--use-scrcpy'],
+    });
+
+    expect(agentFromAdbDevice).toHaveBeenCalledWith('scrcpy-device', {
+      autoDismissKeyboard: false,
+      scrcpyConfig: { enabled: true },
+    });
+  });
+
   it('strips init args from the payload passed to the action', async () => {
     const mockAgent = createMockAgent();
     vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);

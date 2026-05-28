@@ -7,6 +7,7 @@ type LogoOnly = {
   logo: string;
   logoWidth: number;
   invertOnDark?: boolean;
+  logoDark?: string;
 };
 
 type IconText = {
@@ -59,6 +60,30 @@ export function WhoIsUsing() {
     },
     {
       kind: 'iconText',
+      name: t('userLark'),
+      url: 'https://www.larksuite.com',
+      icon: '/images/users/lark-color.svg',
+      iconSize: 40,
+      text: t('userLark'),
+    },
+    {
+      kind: 'iconText',
+      name: t('userSodaMusic'),
+      url: 'https://www.douyin.com/qishui',
+      icon: '/images/users/soda-music-color.svg',
+      iconSize: 40,
+      text: t('userSodaMusic'),
+    },
+    {
+      kind: 'iconText',
+      name: t('userDoubao'),
+      url: 'https://www.doubao.com',
+      icon: '/images/users/doubao-color.png',
+      iconSize: 40,
+      text: t('userDoubao'),
+    },
+    {
+      kind: 'iconText',
       name: t('userAlibaba'),
       url: 'https://www.alibaba.com',
       icon: '/images/users/alibaba-color.svg',
@@ -86,6 +111,28 @@ export function WhoIsUsing() {
       name: t('userIqiyi'),
       url: 'https://www.iqiyi.com',
       logo: '/images/users/iqiyi-color.svg',
+      logoWidth: 200,
+    },
+    {
+      kind: 'logo',
+      name: t('userBilibili'),
+      url: 'https://www.bilibili.com',
+      logo: t('userBilibiliLogo'),
+      logoWidth: Number(t('userBilibiliLogoWidth')),
+    },
+    {
+      kind: 'logo',
+      name: 'Autel',
+      url: 'https://autelenergy.com',
+      logo: '/images/users/autel-color.svg',
+      logoWidth: 140,
+    },
+    {
+      kind: 'logo',
+      name: t('userDongchedi'),
+      url: 'https://www.dongchedi.com',
+      logo: '/images/users/dongchedi-color.svg',
+      logoDark: '/images/users/dongchedi-color-dark.svg',
       logoWidth: 140,
     },
   ];
@@ -110,15 +157,26 @@ export function WhoIsUsing() {
               className="flex items-center justify-center h-20 md:h-24 opacity-70 hover:opacity-100 transition-opacity duration-200"
             >
               {company.kind === 'logo' ? (
-                <img
-                  src={company.logo}
-                  alt={company.name}
-                  style={{ width: company.logoWidth, maxWidth: '100%' }}
-                  className={`h-auto max-h-full object-contain ${
-                    company.invertOnDark ? 'dark:invert' : ''
-                  }`}
-                  loading="lazy"
-                />
+                <>
+                  <img
+                    src={company.logo}
+                    alt={company.name}
+                    style={{ width: company.logoWidth, maxWidth: '100%' }}
+                    className={`h-auto max-h-full object-contain ${
+                      company.logoDark ? 'block dark:hidden' : ''
+                    } ${company.invertOnDark ? 'dark:invert' : ''}`}
+                    loading="lazy"
+                  />
+                  {company.logoDark && (
+                    <img
+                      src={company.logoDark}
+                      alt={company.name}
+                      style={{ width: company.logoWidth, maxWidth: '100%' }}
+                      className="hidden h-auto max-h-full object-contain dark:block"
+                      loading="lazy"
+                    />
+                  )}
+                </>
               ) : (
                 <div className="flex items-center gap-3">
                   <img

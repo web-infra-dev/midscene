@@ -1,6 +1,7 @@
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { defineConfig } from 'vitest/config';
+import { createCoverageConfig } from '../../scripts/vitest-coverage';
 
 /**
  * Read environment variables from file.
@@ -33,6 +34,7 @@ export default defineConfig({
     },
   },
   test: {
+    coverage: createCoverageConfig(__dirname),
     include: testFiles,
     testTimeout: 3 * 60 * 1000, // Global timeout set to 3 minutes
     retry: process.env.CI ? 1 : 0, // Retry failed tests once in CI to handle AI flakiness
