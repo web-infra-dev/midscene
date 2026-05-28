@@ -236,4 +236,92 @@ activeMode: 1216x2688, refreshRate=60`,
       expect(targets).toEqual(['device-1', 'device-2']);
     });
   });
+
+  describe('dumpLayout', () => {
+    it('should dump and cat layout in a single shell round-trip and strip the preamble', async () => {
+      mockExecFile.mockResolvedValue({
+        stdout:
+          'DumpLayout saved to:/data/local/tmp/midscene_layout.json\n{"attributes":{"type":"Root"},"children":[]}\n',
+        stderr: '',
+      });
+
+      const hdc = new HdcClient({});
+      const json = await hdc.dumpLayout();
+
+      expect(mockExecFile).toHaveBeenCalledTimes(1);
+      expect(mockExecFile).toHaveBeenCalledWith(
+        expect.any(String),
+        [
+          'shell',
+          'uitest dumpLayout -p /data/local/tmp/midscene_layout.json && cat /data/local/tmp/midscene_layout.json',
+        ],
+        expect.any(Object),
+      );
+      expect(json.startsWith('{')).toBe(true);
+      expect(JSON.parse(json)).toEqual({
+        attributes: { type: 'Root' },
+        children: [],
+      });
+    });
+
+    it('should throw when the shell output contains no JSON body', async () => {
+      mockExecFile.mockResolvedValue({
+        stdout: 'uitest: cannot find display',
+        stderr: '',
+      });
+
+      const hdc = new HdcClient({});
+      await expect(hdc.dumpLayout()).rejects.toThrow('no JSON body');
+    });
+  });
+
+  describe('clearTextField', () => {
+    it('should chain 3-key batches with semicolons in a single shell call', async () => {
+      mockExecFile.mockResolvedValue({ stdout: '', stderr: '' });
+
+      const hdc = new HdcClient({});
+      await hdc.clearTextField(7);
+
+      // 7 Backspaces packed into 3+3+1 batches, chained with `;`
+      const expected = [
+        'uitest uiInput keyEvent 2055 2055 2055',
+        'uitest uiInput keyEvent 2055 2055 2055',
+        'uitest uiInput keyEvent 2055',
+      ].join(';');
+
+      expect(mockExecFile).toHaveBeenCalledTimes(1);
+      expect(mockExecFile).toHaveBeenCalledWith(
+        expect.any(String),
+        ['shell', expected],
+        expect.any(Object),
+      );
+    });
+
+    it('should cap each uitest invocation at 3 keyCodes (uitest limit)', async () => {
+      mockExecFile.mockResolvedValue({ stdout: '', stderr: '' });
+
+      const hdc = new HdcClient({});
+      await hdc.clearTextField(100);
+
+      const args = mockExecFile.mock.calls[0][1] as string[];
+      expect(args[0]).toBe('shell');
+      const cmds = args[1].split(';');
+      // 100 keys / 3 per batch = 34 calls (33 full + 1 with a single key)
+      expect(cmds).toHaveLength(34);
+      for (const cmd of cmds) {
+        const codes = cmd.replace('uitest uiInput keyEvent ', '').split(' ');
+        expect(codes.length).toBeLessThanOrEqual(3);
+        for (const c of codes) expect(c).toBe('2055');
+      }
+    });
+
+    it('should no-op when length is 0', async () => {
+      mockExecFile.mockResolvedValue({ stdout: '', stderr: '' });
+
+      const hdc = new HdcClient({});
+      await hdc.clearTextField(0);
+
+      expect(mockExecFile).not.toHaveBeenCalled();
+    });
+  });
 });
