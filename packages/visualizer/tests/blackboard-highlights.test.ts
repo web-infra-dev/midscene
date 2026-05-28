@@ -1,3 +1,4 @@
+import { ScreenshotItem } from '@midscene/core';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
@@ -66,7 +67,8 @@ describe('blackboard highlights', () => {
       createElement(Blackboard, {
         uiContext: {
           shotSize: { width: 1080, height: 2400 },
-          screenshot: 'data:image/png;base64,mock',
+          screenshot: ScreenshotItem.create('data:image/png;base64,mock', 0),
+          shrunkShotToLogicalRatio: 1,
         },
         highlightElements: [
           {

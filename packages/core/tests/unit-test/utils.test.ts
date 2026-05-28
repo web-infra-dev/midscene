@@ -9,11 +9,7 @@ import {
   findAllMidsceneLocatorField,
   pointToBbox,
 } from '@/common';
-import {
-  type DeviceAction,
-  type LocateResultElement,
-  getMidsceneLocationSchema,
-} from '@/index';
+import { getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
 import { describe, expect, it } from 'vitest';
@@ -631,25 +627,6 @@ describe('insertScriptBeforeClosingHtml', () => {
     // Test requiredOnly = true (should only return required locator fields)
     const requiredOnlyResult = findAllMidsceneLocatorField(schema, true);
     expect(requiredOnlyResult).toEqual(['a', 'd']);
-  });
-
-  it('type of DeviceAction', () => {
-    const action: DeviceAction<{
-      locate: LocateResultElement;
-      duration?: number;
-      autoDismissKeyboard?: boolean;
-    }> = {
-      name: 'click',
-      description: 'click the element',
-      paramSchema: z.object({
-        locate: getMidsceneLocationSchema(),
-        duration: z.number().optional(),
-        autoDismissKeyboard: z.boolean().optional(),
-      }),
-      call: async (param) => {
-        console.log(param.duration);
-      },
-    };
   });
 });
 
