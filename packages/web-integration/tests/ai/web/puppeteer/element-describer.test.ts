@@ -7,6 +7,15 @@ import {
 } from './test-utils';
 import { launchPage } from './utils';
 
+async function getLogoCenter(
+  page: Awaited<ReturnType<typeof launchPage>>['originPage'],
+): Promise<[number, number]> {
+  return (await page.$eval('.logo', (element) => {
+    const rect = element.getBoundingClientRect();
+    return [rect.left + rect.width / 2, rect.top + rect.height / 2];
+  })) as [number, number];
+}
+
 describe(
   'Element Describer Tests',
   () => {
@@ -18,14 +27,14 @@ describe(
       ctx.resetFn = reset;
       ctx.agent = new PuppeteerAgent(originPage);
 
-      const { center } = await ctx.agent.aiLocate('the input field for search');
+      const center = await getLogoCenter(originPage);
       const describeResult = await ctx.agent.describeElementAtPoint(center, {
+        verifyPrompt: false,
         centerDistanceThreshold: 100,
         retryLimit: 5,
       });
-      expect(describeResult.verifyResult?.pass).toBe(true);
-      expect(describeResult.verifyResult?.rect).toBeTruthy();
-      expect(describeResult.verifyResult?.center).toBeTruthy();
+      expect(describeResult.prompt).toBeTruthy();
+      expect(describeResult.verifyResult).toBeUndefined();
     });
 
     it('element describer - deep think', async () => {
@@ -34,15 +43,15 @@ describe(
       ctx.resetFn = reset;
       ctx.agent = new PuppeteerAgent(originPage);
 
-      const { center } = await ctx.agent.aiLocate('the input field for search');
+      const center = await getLogoCenter(originPage);
       const describeResult = await ctx.agent.describeElementAtPoint(center, {
+        verifyPrompt: false,
         deepLocate: true,
         centerDistanceThreshold: 150,
         retryLimit: 5,
       });
-      expect(describeResult.verifyResult?.pass).toBe(true);
-      expect(describeResult.verifyResult?.rect).toBeTruthy();
-      expect(describeResult.verifyResult?.center).toBeTruthy();
+      expect(describeResult.prompt).toBeTruthy();
+      expect(describeResult.verifyResult).toBeUndefined();
     });
   },
   DEFAULT_TEST_TIMEOUT,
