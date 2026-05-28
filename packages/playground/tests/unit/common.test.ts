@@ -14,6 +14,10 @@ import type {
   PlaygroundAgent,
 } from '../../src/types';
 
+const createMockPlaygroundAgent = (
+  partial: Partial<PlaygroundAgent> = {},
+): PlaygroundAgent => partial as PlaygroundAgent;
+
 describe('common utilities', () => {
   describe('API constants', () => {
     it('should have correct data extraction APIs', () => {
@@ -151,9 +155,9 @@ describe('common utilities', () => {
   describe('executeAction', () => {
     it('should execute action through callActionInActionSpace when available', async () => {
       const mockCallAction = vi.fn().mockResolvedValue('action result');
-      const activeAgent: PlaygroundAgent = {
+      const activeAgent = createMockPlaygroundAgent({
         callActionInActionSpace: mockCallAction,
-      };
+      });
 
       const action: DeviceAction<unknown> = {
         name: 'testAction',
@@ -196,9 +200,9 @@ describe('common utilities', () => {
       // TODO: Remove this test and the corresponding warning once migration is complete.
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const mockCallAction = vi.fn().mockResolvedValue('action result');
-      const activeAgent: PlaygroundAgent = {
+      const activeAgent = createMockPlaygroundAgent({
         callActionInActionSpace: mockCallAction,
-      };
+      });
 
       const action: DeviceAction<unknown> = {
         name: 'Tap',
@@ -239,9 +243,9 @@ describe('common utilities', () => {
     it('should keep deepThink for aiAct action without warning', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const mockCallAction = vi.fn().mockResolvedValue('action result');
-      const activeAgent: PlaygroundAgent = {
+      const activeAgent = createMockPlaygroundAgent({
         callActionInActionSpace: mockCallAction,
-      };
+      });
 
       const action: DeviceAction<unknown> = {
         name: 'aiAction',
@@ -276,9 +280,9 @@ describe('common utilities', () => {
         pass: true,
         thought: 'test thought',
       });
-      const activeAgent: PlaygroundAgent = {
+      const activeAgent = createMockPlaygroundAgent({
         aiAssert: mockAiAssert,
-      };
+      });
 
       const value: FormValue = {
         type: 'aiAssert',
@@ -302,9 +306,9 @@ describe('common utilities', () => {
 
     it('should fallback to agent method when action not found', async () => {
       const mockCustomAction = vi.fn().mockResolvedValue('custom result');
-      const activeAgent: PlaygroundAgent = {
+      const activeAgent = createMockPlaygroundAgent({
         customAction: mockCustomAction,
-      };
+      });
 
       const value: FormValue = {
         type: 'customAction',
@@ -325,7 +329,7 @@ describe('common utilities', () => {
     });
 
     it('should throw error for unknown action type', async () => {
-      const activeAgent: PlaygroundAgent = {};
+      const activeAgent = createMockPlaygroundAgent();
       const value: FormValue = {
         type: 'unknownAction',
         prompt: 'test prompt',
@@ -339,9 +343,9 @@ describe('common utilities', () => {
 
     it('should find action by interfaceAlias', async () => {
       const mockCallAction = vi.fn().mockResolvedValue('alias result');
-      const activeAgent: PlaygroundAgent = {
+      const activeAgent = createMockPlaygroundAgent({
         callActionInActionSpace: mockCallAction,
-      };
+      });
 
       const action: DeviceAction<unknown> = {
         name: 'realName',
