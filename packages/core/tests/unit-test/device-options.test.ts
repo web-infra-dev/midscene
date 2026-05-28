@@ -141,8 +141,8 @@ describe('Device Options Type Definitions', () => {
         unstableLogContent: true,
       };
 
-      // @ts-expect-error - customActions should not be allowed in YAML config
       const invalidConfig: MidsceneYamlScriptAndroidEnv = {
+        // @ts-expect-error - customActions should not be allowed in YAML config
         customActions: [],
       };
 
@@ -169,8 +169,8 @@ describe('Device Options Type Definitions', () => {
         unstableLogContent: true,
       };
 
-      // @ts-expect-error - customActions should not be allowed in YAML config
       const invalidConfig: MidsceneYamlScriptIOSEnv = {
+        // @ts-expect-error - customActions should not be allowed in YAML config
         customActions: [],
       };
 

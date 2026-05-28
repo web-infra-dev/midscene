@@ -7,6 +7,11 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import MainContent from '../src/renderer/components/MainContent';
 import { StudioPlaygroundContext } from '../src/renderer/playground/useStudioPlayground';
 
+type ReadyStudioPlaygroundContextValue = Extract<
+  StudioPlaygroundContextValue,
+  { phase: 'ready' }
+>;
+
 vi.mock('@midscene/playground-app', () => ({
   PlaygroundPreview: () => null,
 }));
@@ -21,7 +26,7 @@ async function flushPromises() {
   });
 }
 
-function createConnectedWebContextValue(): StudioPlaygroundContextValue {
+function createConnectedWebContextValue(): ReadyStudioPlaygroundContextValue {
   return {
     phase: 'ready',
     serverUrl: 'http://127.0.0.1:5800',

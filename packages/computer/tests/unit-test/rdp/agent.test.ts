@@ -74,7 +74,7 @@ function createLocate(
   content = 'target',
 ): LocateResultElement {
   return {
-    id: content,
+    description: content,
     rect: {
       left: center[0] - 10,
       top: center[1] - 10,
@@ -82,7 +82,6 @@ function createLocate(
       height: 20,
     },
     center,
-    content,
   };
 }
 

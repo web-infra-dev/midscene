@@ -178,11 +178,9 @@ describe('aiAction cacheable option propagation', () => {
     // Mock the planning result
     vi.spyOn(mockService, 'locate').mockResolvedValue({
       element: {
-        id: 'element-id',
+        description: 'element-id',
         center: [100, 100],
         rect: { left: 90, top: 90, width: 20, height: 20 },
-        xpaths: [],
-        attributes: {},
       },
     });
 
@@ -201,9 +199,6 @@ describe('aiAction cacheable option propagation', () => {
 
     convertPlanSpy.mockResolvedValue({
       tasks: [],
-      planLog: 'test',
-      usedModel: { model: 'test-model', modelFamily: undefined },
-      yamlFlow: [],
     });
 
     // Call action with cacheable: false

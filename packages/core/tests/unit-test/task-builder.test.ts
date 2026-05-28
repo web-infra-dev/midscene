@@ -61,7 +61,6 @@ describe('TaskBuilder', () => {
         type: 'Locate',
         thought: 'find element',
         param: { prompt: 'first' },
-        locate: { prompt: 'first' },
       },
       {
         type: 'Finished',

@@ -85,7 +85,6 @@ describe('HarmonyAgent', () => {
 
       vi.spyOn(mockPage, 'screenshotBase64').mockResolvedValue(validPngBase64);
       vi.spyOn(mockPage, 'size').mockResolvedValue({ width: 375, height: 812 });
-      vi.spyOn(mockPage, 'url').mockResolvedValue('https://example.com');
 
       const launchSpy = vi
         .spyOn(mockPage, 'launch')
@@ -134,7 +133,6 @@ describe('HarmonyAgent', () => {
       const mockPage = new HarmonyDevice('test-device');
       vi.spyOn(mockPage, 'screenshotBase64').mockResolvedValue(validPngBase64);
       vi.spyOn(mockPage, 'size').mockResolvedValue({ width: 375, height: 812 });
-      vi.spyOn(mockPage, 'url').mockResolvedValue('https://example.com');
       if (typeof (mockPage as any).terminate !== 'function') {
         (mockPage as any).terminate = vi.fn().mockResolvedValue(undefined);
       }

@@ -8,11 +8,16 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import Sidebar from '../src/renderer/components/Sidebar';
 import { StudioPlaygroundContext } from '../src/renderer/playground/useStudioPlayground';
 
+type ReadyStudioPlaygroundContextValue = Extract<
+  StudioPlaygroundContextValue,
+  { phase: 'ready' }
+>;
+
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-function createReadyContextValue(): StudioPlaygroundContextValue {
+function createReadyContextValue(): ReadyStudioPlaygroundContextValue {
   return {
     phase: 'ready',
     serverUrl: 'http://127.0.0.1:5800',

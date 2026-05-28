@@ -51,12 +51,13 @@ describe('TaskExecutor RightClick Action', () => {
   it('should execute RightClick action correctly', async () => {
     const rightClickPlan: PlanningAction = {
       type: 'RightClick',
-      param: null,
-      thought: 'Right click on the element to open context menu',
-      locate: {
-        prompt: 'button to right click',
-        id: 'test-element-id',
+      param: {
+        locate: {
+          prompt: 'button to right click',
+          id: 'test-element-id',
+        },
       },
+      thought: 'Right click on the element to open context menu',
     };
 
     // Test plan conversion instead of full execution
@@ -80,20 +81,17 @@ describe('TaskExecutor RightClick Action', () => {
         id: 'trigger-element',
       },
       thought: 'Locate the element to right click',
-      locate: {
-        prompt: 'context menu trigger',
-        id: 'trigger-element',
-      },
     };
 
     const rightClickPlan: PlanningAction = {
       type: 'RightClick',
-      param: null,
-      thought: 'Right click to open context menu',
-      locate: {
-        prompt: 'context menu trigger',
-        id: 'trigger-element',
+      param: {
+        locate: {
+          prompt: 'context menu trigger',
+          id: 'trigger-element',
+        },
       },
+      thought: 'Right click to open context menu',
     };
 
     const plans = [locatePlan, rightClickPlan];
@@ -117,12 +115,13 @@ describe('TaskExecutor RightClick Action', () => {
   it('should call mouse.click with right button option', async () => {
     const rightClickPlan: PlanningAction = {
       type: 'RightClick',
-      param: null,
-      thought: 'Right click test',
-      locate: {
-        prompt: 'test element',
-        id: 'test-id',
+      param: {
+        locate: {
+          prompt: 'test element',
+          id: 'test-id',
+        },
       },
+      thought: 'Right click test',
     };
 
     const { tasks } = await (taskExecutor as any).convertPlanToExecutable([
@@ -170,12 +169,13 @@ describe('TaskExecutor RightClick Action', () => {
   it('should throw error when element is not found for RightClick', async () => {
     const rightClickPlan: PlanningAction = {
       type: 'RightClick',
-      param: null,
-      thought: 'Right click test',
-      locate: {
-        prompt: 'non-existent element',
-        id: 'non-existent-id',
+      param: {
+        locate: {
+          prompt: 'non-existent element',
+          id: 'non-existent-id',
+        },
       },
+      thought: 'Right click test',
     };
 
     const { tasks } = await (taskExecutor as any).convertPlanToExecutable([

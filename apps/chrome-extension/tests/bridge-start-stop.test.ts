@@ -150,7 +150,10 @@ describe('Worker bridge message handling', () => {
   });
 
   it('BRIDGE_START message should work without serverEndpoint', () => {
-    const request = {
+    const request: {
+      type: 'bridge-start';
+      payload?: { serverEndpoint?: string };
+    } = {
       type: 'bridge-start',
       payload: {},
     };

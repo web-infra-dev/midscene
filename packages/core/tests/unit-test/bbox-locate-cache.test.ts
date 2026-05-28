@@ -686,11 +686,9 @@ describe('bbox locate cache fix', () => {
       // 3. Mock AI locate to return new element with new xpath
       vi.mocked(mockService.locate).mockResolvedValue({
         element: {
-          id: 'new-element',
+          description: 'new-element',
           center: [600, 400],
           rect: { left: 550, top: 380, width: 100, height: 40 },
-          xpaths: ['/html/body/div[2]/label[1]'], // New valid xpath
-          attributes: {},
         },
         dump: {},
       });
@@ -791,11 +789,9 @@ describe('bbox locate cache fix', () => {
       // Mock AI locate success with new xpath
       vi.mocked(mockService.locate).mockResolvedValue({
         element: {
-          id: 'submit-btn',
+          description: 'submit-btn',
           center: [500, 300],
           rect: { left: 450, top: 280, width: 100, height: 40 },
-          xpaths: ['/html/body/form[1]/button[1]'], // New xpath
-          attributes: {},
         },
         dump: {},
       });

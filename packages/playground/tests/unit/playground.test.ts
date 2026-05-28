@@ -266,7 +266,7 @@ describe('Playground Integration Tests', () => {
             direction: {},
             distance: {},
           },
-        },
+        } as any,
       };
 
       const params = {
