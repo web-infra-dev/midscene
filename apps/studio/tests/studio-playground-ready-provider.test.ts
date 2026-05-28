@@ -84,7 +84,7 @@ describe('StudioPlaygroundReadyProvider', () => {
       ),
     );
 
-    const options = usePlaygroundControllerMock.mock.calls.at(-1)?.[0];
+    const options = usePlaygroundControllerMock.mock.calls.at(-1)![0]!;
     options.onCountdownFinish();
 
     expect(minimizeWindow).toHaveBeenCalledTimes(1);
