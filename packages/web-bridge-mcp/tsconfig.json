@@ -7,6 +7,16 @@
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true
   },
-  "include": ["src"],
-  "references": [{ "path": "../shared" }, { "path": "../web-integration" }]
+  "include": ["src", "tests"],
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../shared"
+    },
+    {
+      "path": "../web-integration"
+    }
+  ]
 }

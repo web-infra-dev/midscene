@@ -105,6 +105,7 @@ export default defineConfig({
     },
   ],
   source: {
+    tsconfigPath: 'tsconfig.build.json',
     define: {
       __VERSION__: JSON.stringify(version),
       __DEV_REPORT_PATH__: JSON.stringify(

@@ -5,12 +5,12 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "rootDir": "./src",
+    "rootDir": ".",
     "target": "es2018",
     "declarationDir": "dist/types",
     "types": ["node"]
   },
-  "include": ["src", "report", "tests/unit-test/common.test.ts"],
+  "include": ["src", "tests"],
   "references": [
     {
       "path": "../shared"

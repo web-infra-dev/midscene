@@ -29,6 +29,7 @@ export default defineConfig({
     },
   ],
   source: {
+    tsconfigPath: 'tsconfig.build.json',
     define: {
       __VERSION__: JSON.stringify(version),
     },

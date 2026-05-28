@@ -10,7 +10,7 @@
       "@shared/*": ["./src/shared/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "tests"],
   "references": [
     {
       "path": "../../packages/android"

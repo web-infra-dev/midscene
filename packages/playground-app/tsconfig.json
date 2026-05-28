@@ -3,15 +3,14 @@
   "compilerOptions": {
     "sourceMap": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@midscene/shared/constants": ["../shared/src/constants/index.ts"]
+      "@/*": ["./src/*"]
     },
-    "rootDir": "src",
+    "rootDir": ".",
     "target": "ES2022",
     "types": ["react", "node"],
     "declarationDir": "dist/types"
   },
-  "include": ["src"],
+  "include": ["src", "tests"],
   "references": [
     {
       "path": "../playground"

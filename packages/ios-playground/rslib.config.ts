@@ -27,6 +27,7 @@ export default defineConfig({
     },
   ],
   source: {
+    tsconfigPath: 'tsconfig.build.json',
     entry: {
       bin: './src/bin.ts',
     },

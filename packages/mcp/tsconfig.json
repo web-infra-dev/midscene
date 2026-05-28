@@ -6,7 +6,7 @@
     "useDefineForClassFields": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src"],
+  "include": ["src", "tests"],
   "references": [
     {
       "path": "../core"

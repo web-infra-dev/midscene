@@ -7,6 +7,16 @@
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true
   },
-  "include": ["src"],
-  "references": [{ "path": "../android" }, { "path": "../shared" }]
+  "include": ["src", "tests"],
+  "references": [
+    {
+      "path": "../android"
+    },
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../shared"
+    }
+  ]
 }

@@ -5,7 +5,6 @@ import { version } from './package.json';
 export default defineConfig({
   test: {
     coverage: createCoverageConfig(__dirname),
-    globals: true,
     environment: 'node',
   },
   define: {

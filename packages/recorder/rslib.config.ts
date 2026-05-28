@@ -30,6 +30,9 @@ export default defineConfig({
     },
   ],
   // externals: ['@midscene/shared'],
+  source: {
+    tsconfigPath: 'tsconfig.build.json',
+  },
   output: {
     target: 'web',
   },
