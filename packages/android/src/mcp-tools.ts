@@ -16,24 +16,37 @@ const debug = getDebug('mcp:android-tools');
  */
 export class AndroidMidsceneTools extends BaseMidsceneTools<
   AndroidAgent,
-  string
+  {
+    deviceId?: string;
+    useScrcpy?: boolean;
+  }
 > {
   protected getCliReportSessionName() {
     return 'midscene-android';
   }
 
-  protected readonly initArgSpec: InitArgSpec<string> = {
+  protected readonly initArgSpec: InitArgSpec<{
+    deviceId?: string;
+    useScrcpy?: boolean;
+  }> = {
     namespace: 'android',
     shape: {
       deviceId: z
         .string()
         .optional()
         .describe('Android device ID (from adb devices)'),
+      useScrcpy: z
+        .boolean()
+        .optional()
+        .describe('Enable scrcpy accelerated screenshots'),
     },
     cli: {
       preferBareKeys: true,
     },
-    adapt: (extracted) => extracted?.deviceId as string | undefined,
+    adapt: (extracted) => ({
+      deviceId: extracted?.deviceId as string | undefined,
+      useScrcpy: extracted?.useScrcpy as boolean | undefined,
+    }),
   };
 
   protected createTemporaryDevice() {
@@ -42,7 +55,11 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
     return new AndroidDevice('temp-for-action-space', {});
   }
 
-  protected async ensureAgent(deviceId?: string): Promise<AndroidAgent> {
+  protected async ensureAgent(initArgs?: {
+    deviceId?: string;
+    useScrcpy?: boolean;
+  }): Promise<AndroidAgent> {
+    const deviceId = initArgs?.deviceId;
     if (this.agent && deviceId) {
       // If a specific deviceId is requested and we have an agent,
       // destroy it to create a new one with the new device
@@ -62,6 +79,7 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
     const reportOptions = this.readCliReportAgentOptions();
     const agent = await agentFromAdbDevice(deviceId, {
       autoDismissKeyboard: false,
+      ...(initArgs?.useScrcpy ? { scrcpyConfig: { enabled: true } } : {}),
       ...(reportOptions ?? {}),
     });
     this.agent = agent;
@@ -80,7 +98,8 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
         schema: this.getAgentInitArgSchema(),
         cli: this.getAgentInitArgCliMetadata(),
         handler: async (args: Record<string, unknown>) => {
-          const deviceId = this.extractAgentInitParam(args);
+          const initArgs = this.extractAgentInitParam(args);
+          const deviceId = initArgs?.deviceId;
           const reportSession = this.createNewCliReportSession(
             deviceId ?? 'auto',
           );
@@ -93,7 +112,7 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
             }
             this.agent = undefined;
           }
-          const agent = await this.ensureAgent(deviceId);
+          const agent = await this.ensureAgent(initArgs);
           const screenshot = await agent.page.screenshotBase64();
 
           return {
