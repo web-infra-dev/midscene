@@ -52,7 +52,7 @@ describe('computerPlaygroundPlatform session manager', () => {
     });
 
     const { computerPlaygroundPlatform } = await import('../../src/platform');
-    const prepared = await computerPlaygroundPlatform.prepare();
+    const prepared = await computerPlaygroundPlatform.prepare({});
 
     expect(prepared.metadata).toMatchObject({
       setupState: 'blocked',
@@ -70,7 +70,7 @@ describe('computerPlaygroundPlatform session manager', () => {
     });
 
     const { computerPlaygroundPlatform } = await import('../../src/platform');
-    const prepared = await computerPlaygroundPlatform.prepare();
+    const prepared = await computerPlaygroundPlatform.prepare({});
 
     expect(prepared.metadata).toMatchObject({
       setupState: 'blocked',
@@ -96,8 +96,8 @@ describe('computerPlaygroundPlatform session manager', () => {
     });
 
     const { computerPlaygroundPlatform } = await import('../../src/platform');
-    const prepared = await computerPlaygroundPlatform.prepare();
-    const setup = await prepared.sessionManager?.getSetupSchema();
+    const prepared = await computerPlaygroundPlatform.prepare({});
+    const setup = await prepared.sessionManager!.getSetupSchema!();
 
     expect(setup?.fields[0]).toMatchObject({
       key: 'displayId',
