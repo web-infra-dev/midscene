@@ -10,25 +10,52 @@ import yaml from 'js-yaml';
 
 const debugUtils = getDebug('yaml:utils');
 
-const envVarRefPattern = /\$\{([^}]+)\}/g;
 const topLevelTasksPattern = /^tasks\s*:/;
 const topLevelYamlKeyPattern = /^[^\s#][^:]*:/;
 
-const interpolateEnvVarRefs = (
+function interpolateEnvVarRefs(
   value: string,
   keepUnresolvedRefs = false,
-): string =>
-  value.replace(envVarRefPattern, (_, rawName: string) => {
+): string {
+  let result = '';
+  let lastIndex = 0;
+  let searchFrom = 0;
+
+  while (searchFrom < value.length) {
+    const start = value.indexOf('${', searchFrom);
+    if (start === -1) {
+      break;
+    }
+
+    const end = value.indexOf('}', start + 2);
+    if (end === -1) {
+      break;
+    }
+
+    const rawName = value.slice(start + 2, end);
+    if (!rawName) {
+      searchFrom = end + 1;
+      continue;
+    }
+
+    result += value.slice(lastIndex, start);
     const envVar = rawName.trim();
     const envValue = process.env[envVar];
     if (envValue === undefined) {
       if (keepUnresolvedRefs) {
-        return `\${${rawName}}`;
+        result += value.slice(start, end + 1);
+      } else {
+        throw new Error(`Environment variable "${envVar}" is not defined`);
       }
-      throw new Error(`Environment variable "${envVar}" is not defined`);
+    } else {
+      result += envValue;
     }
-    return envValue;
-  });
+    lastIndex = end + 1;
+    searchFrom = end + 1;
+  }
+
+  return result + value.slice(lastIndex);
+}
 
 const multimodalLocateOptionFieldMap: Record<keyof TMultimodalPrompt, true> = {
   images: true,
