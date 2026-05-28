@@ -26,6 +26,36 @@ const mockModelConfig = (): IModelConfig => ({
   slot: 'planning',
 });
 
+const mockContext = (): UIContext =>
+  ({
+    screenshot: {
+      base64: 'data:image/png;base64,AA==',
+    },
+    shotSize: {
+      width: 100,
+      height: 100,
+    },
+  }) as UIContext;
+
+const mockActionSpace = (): DeviceAction[] => [
+  {
+    name: 'Tap',
+    description: 'Tap an element',
+    call: vi.fn(),
+  },
+];
+
+const latestImageDetail = () => {
+  const messages = vi.mocked(callAI).mock.calls[0]?.[0];
+  const latestMessage = messages?.at(-1);
+  const imagePart = Array.isArray(latestMessage?.content)
+    ? latestMessage.content.find((part) => part.type === 'image_url')
+    : undefined;
+  return imagePart?.image_url.detail;
+};
+
+const latestCallAIOptions = () => vi.mocked(callAI).mock.calls[0]?.[2];
+
 describe('plan XML parse retry', () => {
   beforeEach(() => {
     vi.mocked(callAI).mockReset();
@@ -43,28 +73,10 @@ describe('plan XML parse retry', () => {
 <action-type>Tap</action-type>`),
       );
 
-    const context = {
-      screenshot: {
-        base64: 'data:image/png;base64,AA==',
-      },
-      shotSize: {
-        width: 100,
-        height: 100,
-      },
-    } as UIContext;
-
-    const actionSpace: DeviceAction[] = [
-      {
-        name: 'Tap',
-        description: 'Tap an element',
-        call: vi.fn(),
-      },
-    ];
-
     const result = await plan('tap the button', {
-      context,
+      context: mockContext(),
       interfaceType: 'puppeteer',
-      actionSpace,
+      actionSpace: mockActionSpace(),
       modelConfig: mockModelConfig(),
       conversationHistory: new ConversationHistory(),
       includeBbox: false,
@@ -82,28 +94,10 @@ describe('plan XML parse retry', () => {
 <action-type>Tap</action-type>`),
     );
 
-    const context = {
-      screenshot: {
-        base64: 'data:image/png;base64,AA==',
-      },
-      shotSize: {
-        width: 100,
-        height: 100,
-      },
-    } as UIContext;
-
-    const actionSpace: DeviceAction[] = [
-      {
-        name: 'Tap',
-        description: 'Tap an element',
-        call: vi.fn(),
-      },
-    ];
-
     await plan('terminate the app, launch it, then tap the AI button', {
-      context,
+      context: mockContext(),
       interfaceType: 'puppeteer',
-      actionSpace,
+      actionSpace: mockActionSpace(),
       modelConfig: mockModelConfig(),
       conversationHistory: new ConversationHistory(),
       includeBbox: false,
@@ -123,5 +117,28 @@ describe('plan XML parse retry', () => {
     expect(textPart?.text).toContain(
       'If the instruction asks for actions, choose the first action to execute.',
     );
+  });
+
+  it('forces original image detail for gpt-5 planning when bbox is included', async () => {
+    vi.mocked(callAI).mockResolvedValueOnce(
+      mockAIResponse(`<log>Tap button</log>
+<action-type>Tap</action-type>`),
+    );
+
+    await plan('tap the button', {
+      context: mockContext(),
+      interfaceType: 'puppeteer',
+      actionSpace: mockActionSpace(),
+      modelConfig: {
+        ...mockModelConfig(),
+        modelFamily: 'gpt-5',
+      },
+      conversationHistory: new ConversationHistory(),
+      includeBbox: true,
+      deepThink: false,
+    });
+
+    expect(latestImageDetail()).toBe('high');
+    expect(latestCallAIOptions()?.forceOriginalImageDetail).toBe(true);
   });
 });

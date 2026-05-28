@@ -81,9 +81,9 @@ MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
 
 Midscene disables model-native thinking by default to get the best execution speed and quality. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode). To enable model-native thinking, set `MIDSCENE_MODEL_REASONING_ENABLED="true"`. You can also set `MIDSCENE_MODEL_REASONING_EFFORT="medium"` to control reasoning effort.
 
-### Qwen3.X Series {#qwen3x}
+### Qwen3.x Series {#qwen3x}
 
-Qwen3.5 and Qwen3.6 are currently supported in the Qwen3.X series.
+Qwen3.5 and Qwen3.6 are currently supported in the Qwen3.x series.
 
 Using Alibaba Cloud's `qwen3.5-plus` as an example:
 
@@ -149,33 +149,36 @@ AutoGLM is best suited for mobile interactions and operations. If you need to us
 - Github: [https://github.com/zai-org/Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM)
 - Hugging Face: [https://huggingface.co/zai-org/AutoGLM-Phone-9B](https://huggingface.co/zai-org/AutoGLM-Phone-9B)
 
-### Gemini-3-Flash {#gemini-3-pro}
+### Gemini 3.x Series {#gemini-3-pro}
 
-After requesting an API key from [Google Gemini](https://gemini.google.com/), configure. Use your specific Gemini-3-Flash release name for `MIDSCENE_MODEL_NAME`:
+Among Gemini 3.x models, `gemini-3.5-flash` currently has the best localization performance in our private evaluation set. After requesting an API key from [Google Gemini](https://gemini.google.com/), use this configuration.
+
+Set `MIDSCENE_MODEL_NAME` to the specific Gemini 3.x model name you use:
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="gemini-3-flash" # Or a specific Gemini-3-Flash release name
+MIDSCENE_MODEL_NAME="gemini-3.5-flash" # Or a specific Gemini 3.x model name
 MIDSCENE_MODEL_FAMILY="gemini"
 ```
 
-### GPT-5.4 {#gpt-5-4}
+### GPT-5 Series {#gpt-5-4}
 
-When using GPT-5.4 on OpenAI or an OpenAI-compatible provider, use this configuration:
+When using GPT-5 series models on OpenAI or an OpenAI-compatible provider, use this configuration:
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://api.openai.com/v1" # Or your compatible endpoint
 MIDSCENE_MODEL_API_KEY="sk-..."
-MIDSCENE_MODEL_NAME="gpt-5.4"
+MIDSCENE_MODEL_NAME="gpt-5.5" # Recommended: gpt-5.5 or gpt-5.4
 MIDSCENE_MODEL_FAMILY="gpt-5"
 ```
 
-:::warning GPT-5.4 notes
+:::warning GPT-5 notes
 
-- For UI localization with GPT, Midscene currently supports `gpt-5.4` only. To get the best localization quality, image requests need `"detail": "original"`. According to OpenAI, this option is available on `gpt-5.4` and future models, while smaller GPT-5 variants such as `gpt-5.4-mini` and `gpt-5.4-nano`, as well as older models, do not support `original` and will fail if you send it. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) and the [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use).
-- According to OpenAI, GPT-5.4 may still struggle with non-Latin text and with text that is too small in the image. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision).
+- For UI localization with GPT, Midscene currently supports `gpt-5.4` and `gpt-5.5`. To get the best localization quality, image requests need `"detail": "original"`. According to OpenAI, this option is available on `gpt-5.4` and future models, while smaller GPT-5 variants such as `gpt-5.4-mini` and `gpt-5.4-nano`, as well as older models, do not support `original` and will fail if you send it. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) and the [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use).
+- According to OpenAI, GPT-5 may still struggle with non-Latin text and with text that is too small in the image. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision).
 - In the computer use guide, OpenAI says they observe good performance around `1440x900` and `1600x900`. We recommend adjusting screenshot sizes accordingly. In Midscene, you can control screenshot compression with `screenshotShrinkFactor` in the agent options. For browser automation, you can also control the page size and scale through the browser `viewport`.
+- If you use an older GPT-5 model, we recommend using it only as the planning model and pairing it with another vision model for localization. See the [multi-model example](#gpt54-planning-insight-qwen35).
 
 :::
 

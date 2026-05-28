@@ -137,4 +137,42 @@ describe('GPT image detail handling', () => {
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
+
+  it('overrides image detail to original when forced by the caller', async () => {
+    await callAI(
+      imageMessage,
+      {
+        ...baseModelConfig,
+        intent: 'planning',
+        slot: 'planning',
+      },
+      {
+        forceOriginalImageDetail: true,
+      },
+    );
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image_url',
+                image_url: {
+                  url: 'https://example.com/shot.png',
+                  detail: 'original',
+                },
+              },
+              {
+                type: 'text',
+                text: 'Inspect this screenshot.',
+              },
+            ],
+          },
+        ],
+      }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
 });
