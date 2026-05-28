@@ -1,7 +1,7 @@
 import { TaskExecutor } from '@/agent/tasks';
 import * as aiModel from '@/ai-model';
 import { ScreenshotItem } from '@/screenshot-item';
-import type { ServiceDump } from '@/types';
+import type { AIUsageInfo, ServiceDump } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -24,12 +24,26 @@ const createEmptyUIContext = async () => {
   };
 };
 
+const createMockUsage = (totalTokens: number): AIUsageInfo => ({
+  prompt_tokens: 0,
+  completion_tokens: 0,
+  total_tokens: totalTokens,
+  cached_input: undefined,
+  time_cost: undefined,
+  model_name: undefined,
+  model_description: undefined,
+  intent: undefined,
+  slot: undefined,
+  request_id: undefined,
+});
+
 // Helper function to create mock ServiceDump
 const createMockDump = (
   data: any,
   thought?: string,
   usage?: { totalTokens: number },
 ): ServiceDump => ({
+  logTime: Date.now(),
   type: 'extract',
   logId: 'mock-log-id',
   userQuery: {},
@@ -38,7 +52,7 @@ const createMockDump = (
   taskInfo: {
     durationMs: 100,
     rawResponse: JSON.stringify(data),
-    usage: usage ? { inputTokens: 0, outputTokens: 0, ...usage } : undefined,
+    usage: usage ? createMockUsage(usage.totalTokens) : undefined,
     reasoning_content: thought,
   },
 });

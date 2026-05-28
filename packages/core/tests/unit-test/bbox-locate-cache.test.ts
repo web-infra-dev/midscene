@@ -359,9 +359,6 @@ describe('bbox locate cache fix', () => {
   });
 
   it('should annotate AI locate usage with default intent while preserving raw slot', async () => {
-    vi.mocked(mockInterface.rectMatchesCacheFeature).mockResolvedValue(
-      undefined,
-    );
     vi.mocked(mockService.locate).mockResolvedValueOnce({
       element: {
         id: 'element-id',
