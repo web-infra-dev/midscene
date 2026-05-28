@@ -108,7 +108,7 @@
     "@types/node": "^18.0.0",
     "@ui-tars/shared": "1.2.0",
     "openai": "6.3.0",
-    "rimraf": "~3.0.2",
+    "rimraf": "~5.0.10",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"
   },

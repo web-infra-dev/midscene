@@ -459,6 +459,20 @@ export async function markupImageForLLM(
   return imagePayload;
 }
 
+export function findActionInActionSpaceOrThrow(
+  planType: string,
+  actionSpace: DeviceAction<any>[],
+): DeviceAction<any> {
+  const action = actionSpace.find((item) => item.name === planType);
+  if (!action) {
+    const available = actionSpace.map((item) => item.name).join(', ');
+    throw new Error(
+      `Action type '${planType}' is not in the current action space. Available actions: ${available || '(none)'}`,
+    );
+  }
+  return action;
+}
+
 export function buildYamlFlowFromPlans(
   plans: PlanningAction[],
   actionSpace: DeviceAction<any>[],
@@ -468,13 +482,7 @@ export function buildYamlFlowFromPlans(
   for (const plan of plans) {
     const verb = plan.type;
 
-    const action = actionSpace.find((action) => action.name === verb);
-    if (!action) {
-      console.warn(
-        `Cannot convert action ${verb} to yaml flow. Will ignore it.`,
-      );
-      continue;
-    }
+    const action = findActionInActionSpaceOrThrow(verb, actionSpace);
 
     const flowKey = action.interfaceAlias || verb;
     const flowParam = action.paramSchema

@@ -13,6 +13,7 @@ import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import {
   buildYamlFlowFromPlans,
   fillBboxParam,
+  findActionInActionSpaceOrThrow,
   findAllMidsceneLocatorField,
 } from '../common';
 import type { ConversationHistory } from './conversation-history';
@@ -301,8 +302,9 @@ export async function plan(
 
     actions.forEach((action) => {
       const type = action.type;
-      const actionInActionSpace = opts.actionSpace.find(
-        (action) => action.name === type,
+      const actionInActionSpace = findActionInActionSpaceOrThrow(
+        type,
+        opts.actionSpace,
       );
 
       debug('actionInActionSpace matched', actionInActionSpace);
