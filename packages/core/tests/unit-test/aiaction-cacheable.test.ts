@@ -176,6 +176,7 @@ describe('aiAction cacheable option propagation', () => {
     const convertPlanSpy = vi.spyOn(taskExecutor, 'convertPlanToExecutable');
 
     // Mock the planning result
+    // @ts-ignore: historical skipped test uses an old locate result shape.
     vi.spyOn(mockService, 'locate').mockResolvedValue({
       element: {
         description: 'element-id',
@@ -202,8 +203,10 @@ describe('aiAction cacheable option propagation', () => {
     });
 
     // Call action with cacheable: false
+    // @ts-ignore: historical skipped test uses the old action argument shape.
     const result = await taskExecutor.action(
       'click the button',
+      // @ts-ignore: historical skipped test passes the old model config argument shape.
       {},
       {},
       undefined,
@@ -328,6 +331,7 @@ describe('aiAction cacheable option propagation', () => {
 
     // Create a minimal Agent instance for testing with proper model config
     const { Agent } = await import('@/agent');
+    // @ts-ignore: historical skipped test still uses the old Agent constructor shape.
     const agent = new Agent(mockInterface, mockService, {
       taskCache,
       modelConfig: {
@@ -387,6 +391,7 @@ describe('aiAction cacheable option propagation', () => {
 
     // Create a minimal Agent instance for testing with proper model config
     const { Agent } = await import('@/agent');
+    // @ts-ignore: historical skipped test still uses the old Agent constructor shape.
     const agent = new Agent(mockInterface, mockService, {
       taskCache,
       modelConfig: {
@@ -446,6 +451,7 @@ describe('aiAction cacheable option propagation', () => {
 
     // Create a minimal Agent instance for testing with proper model config
     const { Agent } = await import('@/agent');
+    // @ts-ignore: historical skipped test still uses the old Agent constructor shape.
     const agent = new Agent(mockInterface, mockService, {
       taskCache,
       modelConfig: {
@@ -507,6 +513,7 @@ describe('aiAction cacheable option propagation', () => {
 
     // Create a minimal Agent instance for testing with proper model config
     const { Agent } = await import('@/agent');
+    // @ts-ignore: historical skipped test still uses the old Agent constructor shape.
     const agent = new Agent(mockInterface, mockService, {
       taskCache,
       modelConfig: {

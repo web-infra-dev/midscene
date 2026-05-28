@@ -1,3 +1,4 @@
+import type { ExecutorContext } from '@midscene/core';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { WDAManager } from '@midscene/webdriver';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +9,8 @@ import { IOSWebDriverClient } from '../../src/ios-webdriver-client';
 vi.mock('../../src/utils');
 vi.mock('../../src/ios-webdriver-client');
 vi.mock('@midscene/webdriver');
+
+const mockExecutorContext = { task: {} } as ExecutorContext;
 
 describe('IOSDevice', () => {
   let device: IOSDevice;
@@ -205,9 +208,12 @@ describe('IOSDevice', () => {
         .actionSpace()
         .find((action) => action.name === 'Tap');
 
-      await tapAction?.call({
-        locate: { center: [11.2, 22.8] },
-      } as any);
+      await tapAction?.call(
+        {
+          locate: { center: [11.2, 22.8] },
+        } as any,
+        mockExecutorContext,
+      );
       await device.inputPrimitives.pointer.tap({ x: 33.2, y: 44.8 });
 
       expect(mockWdaClient.tap).toHaveBeenNthCalledWith(1, 11, 23);
@@ -219,12 +225,15 @@ describe('IOSDevice', () => {
         .actionSpace()
         .find((action) => action.name === 'Input');
 
-      await inputAction?.call({
-        value: 'from action',
-        locate: { center: [10, 20] },
-        mode: 'replace',
-        autoDismissKeyboard: false,
-      } as any);
+      await inputAction?.call(
+        {
+          value: 'from action',
+          locate: { center: [10, 20] },
+          mode: 'replace',
+          autoDismissKeyboard: false,
+        } as any,
+        mockExecutorContext,
+      );
       await device.inputPrimitives.keyboard.typeText('from pointer', {
         target: {
           center: [30, 40],
