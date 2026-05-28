@@ -1,19 +1,17 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { BatchRunner } from '@/batch-runner';
 import { runYamlBatchInRstest } from '@/framework/yaml-batch';
+import { runYamlBatch } from '@/yaml-batch-executor';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  run: vi.fn(),
+  runYamlBatch: vi.fn(),
 }));
 
-vi.mock('@/batch-runner', () => ({
-  BatchRunner: vi.fn().mockImplementation(() => ({
-    run: mocks.run,
-  })),
+vi.mock('@/yaml-batch-executor', () => ({
+  runYamlBatch: mocks.runYamlBatch,
 }));
 
 const createTempDir = () => mkdtempSync(join(tmpdir(), 'midscene-yaml-batch-'));
@@ -40,7 +38,7 @@ describe('runYamlBatchInRstest', () => {
     vi.clearAllMocks();
   });
 
-  test('runs BatchRunner without duplicate summary output and writes result files', async () => {
+  test('runs the shared batch executor without duplicate summary output and writes result files', async () => {
     const root = createTempDir();
     const yamlA = join(root, 'login.yaml');
     const yamlB = join(root, 'check.yaml');
@@ -63,7 +61,7 @@ describe('runYamlBatchInRstest', () => {
         resultType: 'success',
       },
     ];
-    mocks.run.mockResolvedValue(results);
+    mocks.runYamlBatch.mockResolvedValue(results);
 
     try {
       await expect(
@@ -76,8 +74,7 @@ describe('runYamlBatchInRstest', () => {
         }),
       ).resolves.toEqual(results);
 
-      expect(BatchRunner).toHaveBeenCalledWith(config);
-      expect(mocks.run).toHaveBeenCalledWith({
+      expect(runYamlBatch).toHaveBeenCalledWith(config, {
         generateSummary: false,
         printExecutionPlan: false,
       });
@@ -103,7 +100,7 @@ describe('runYamlBatchInRstest', () => {
     const resultA = join(root, 'results', 'failed.json');
     const resultB = join(root, 'results', 'partial.json');
     const config = createConfig([yamlA, yamlB]);
-    mocks.run.mockResolvedValue([
+    mocks.runYamlBatch.mockResolvedValue([
       {
         file: yamlA,
         success: false,
