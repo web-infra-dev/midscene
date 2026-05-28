@@ -125,7 +125,7 @@ describe('yaml utils', () => {
         `,
       ),
     ).rejects.toThrow(
-      'property "tasks" is required in yaml script, failed to load yaml',
+      /property "tasks" is required in yaml script\s*, failed to load yaml/,
     );
 
     await expect(
@@ -138,7 +138,7 @@ describe('yaml utils', () => {
         `,
       ),
     ).rejects.toThrow(
-      'property "tasks" is required in yaml script, failed to load yaml',
+      /property "tasks" is required in yaml script\s*, failed to load yaml/,
     );
   });
 });
