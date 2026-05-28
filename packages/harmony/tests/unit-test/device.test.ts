@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { HarmonyDeviceInputOpt } from '../../src/device';
 
 // Mock HdcClient
 const mockHdc = {
@@ -341,7 +342,7 @@ describe('HarmonyDevice', () => {
       await d.inputPrimitives.keyboard.typeText('hi', {
         replace: false,
         keyboardDismissStrategy: 'back-first',
-      });
+      } as HarmonyDeviceInputOpt & { replace: false });
 
       expect(mockHdc.inputText).toHaveBeenCalledWith(608, 1344, 'hi');
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('Back');
