@@ -42,7 +42,6 @@ export default defineConfig({
     retry: process.env.CI ? 1 : 0,
     dangerouslyIgnoreUnhandledErrors: !!process.env.CI,
     fileParallelism: false, // disable parallel file test for desktop automation
-    globals: true,
     environment: 'node',
   },
   define: {

@@ -391,7 +391,7 @@ describe('system prompts', () => {
   it('planning - multi-turn example with includeBbox true should have bbox in locate', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: 'gpt-4o',
+      modelFamily: 'gpt-5',
       includeBbox: true,
       includeSubGoals: false,
     });

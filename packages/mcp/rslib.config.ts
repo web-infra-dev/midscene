@@ -4,6 +4,7 @@ import { version } from './package.json';
 
 export default defineConfig({
   source: {
+    tsconfigPath: 'tsconfig.build.json',
     define: {
       __VERSION__: `'${version}'`,
     },

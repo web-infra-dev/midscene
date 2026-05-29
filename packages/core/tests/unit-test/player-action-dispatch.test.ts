@@ -496,7 +496,6 @@ describe('player action dispatch ordering', () => {
       {
         name: 'test',
         flow,
-        index: 0,
         status: 'running' as const,
         totalSteps: flow.length,
       },

@@ -6,6 +6,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import StudioPlaygroundReadyProvider from '../src/renderer/playground/StudioPlaygroundReadyProvider';
 
+type ControllerOptions = {
+  onCountdownFinish?: () => void;
+};
+
 const { setFieldsValueMock, usePlaygroundControllerMock } = vi.hoisted(() => {
   const setFieldsValueMock = vi.fn();
 
@@ -84,8 +88,12 @@ describe('StudioPlaygroundReadyProvider', () => {
       ),
     );
 
-    const options = usePlaygroundControllerMock.mock.calls.at(-1)?.[0];
-    options.onCountdownFinish();
+    const options = (
+      usePlaygroundControllerMock as unknown as {
+        mock: { calls: Array<[ControllerOptions]> };
+      }
+    ).mock.calls.at(-1)![0];
+    options.onCountdownFinish!();
 
     expect(minimizeWindow).toHaveBeenCalledTimes(1);
   });

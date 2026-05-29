@@ -27,6 +27,9 @@ const prepareCache = (
     cache.appendCache(data);
   });
 
+  if (!cache.cacheFilePath) {
+    throw new Error('Expected TaskCache to create a cache file path');
+  }
   return cache.cacheFilePath;
 };
 

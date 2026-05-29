@@ -65,6 +65,8 @@ vi.mock('@midscene/core/agent', async (importOriginal) => {
   return {
     ...actual,
     Agent: class MockAgent {
+      device: any;
+
       constructor(device: any) {
         this.device = device;
       }

@@ -8,5 +8,12 @@
     "resolveJsonModule": true
   },
   "include": ["src"],
-  "references": [{ "path": "../harmony" }, { "path": "../shared" }]
+  "references": [
+    {
+      "path": "../harmony"
+    },
+    {
+      "path": "../shared"
+    }
+  ]
 }

@@ -14,7 +14,8 @@ vi.mock('node:util', async (importOriginal) => {
   };
 });
 
-// Must import after mocks are set up
+// Must import after mocks are set up.
+// @ts-ignore package tsconfig keeps module=ES2020 for build compatibility; this test intentionally uses top-level dynamic import so mocks are registered first.
 const { HdcClient } = await import('../../src/hdc');
 
 describe('HdcClient', () => {

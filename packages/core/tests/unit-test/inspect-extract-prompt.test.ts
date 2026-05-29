@@ -37,6 +37,7 @@ describe('AiExtractElementInfo prompt assembly', () => {
     modelName: 'test-model',
     modelDescription: 'test-model-desc',
     intent: 'insight',
+    slot: 'insight',
   };
 
   beforeEach(() => {

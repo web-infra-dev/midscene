@@ -20,6 +20,9 @@ import {
 const rendererAssetPrefix = './';
 
 export default defineConfig({
+  source: {
+    tsconfigPath: 'tsconfig.build.json',
+  },
   tools: {
     rspack: {
       ignoreWarnings: commonIgnoreWarnings,

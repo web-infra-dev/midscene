@@ -1,3 +1,4 @@
+import type { RegisteredPlaygroundPlatform } from '@midscene/playground';
 import { describe, expect, it, vi } from 'vitest';
 import {
   createStudioCorsOptions,
@@ -7,6 +8,16 @@ import {
   createMultiPlatformRuntimeService,
   type loadWebPlaygroundModule,
 } from '../src/main/playground/multi-platform-runtime';
+
+type RuntimeServiceOptions = NonNullable<
+  Parameters<typeof createMultiPlatformRuntimeService>[0]
+>;
+type PlaygroundCoreLoader = NonNullable<
+  RuntimeServiceOptions['loadPlaygroundCore']
+>;
+type HarmonyModuleLoader = NonNullable<
+  RuntimeServiceOptions['loadHarmonyModule']
+>;
 
 describe('android runtime CORS policy', () => {
   it('allows Studio origins used by Electron and local renderer dev', () => {
@@ -79,30 +90,35 @@ describe('playground runtime bootstrap', () => {
       | undefined;
 
     const runtime = createMultiPlatformRuntimeService({
-      loadPlaygroundCore: async () => ({
-        launchPreparedPlaygroundPlatform: async () => ({
-          close: async () => undefined,
-          host: '127.0.0.1',
-          port: 5800,
-          server: {
-            setPreparedPlatform: () => undefined,
-          },
-        }),
-        prepareMultiPlatformPlayground: async (platforms) => {
-          capturedPlatforms = platforms;
-          return {
-            platformId: 'multi-platform',
-            title: 'Midscene Studio',
-            description: 'Multi-platform playground',
-            metadata: {},
-            sessionManager: {
-              createSession: async () => {
-                throw new Error('not needed for bootstrap');
-              },
+      loadPlaygroundCore: (async () =>
+        ({
+          launchPreparedPlaygroundPlatform: async () => ({
+            close: async () => undefined,
+            host: '127.0.0.1',
+            port: 5800,
+            server: {
+              setPreparedPlatform: () => undefined,
             },
-          };
-        },
-      }),
+          }),
+          prepareMultiPlatformPlayground: async (
+            platforms: RegisteredPlaygroundPlatform[],
+          ) => {
+            capturedPlatforms = platforms;
+            return {
+              platformId: 'multi-platform',
+              title: 'Midscene Studio',
+              description: 'Multi-platform playground',
+              metadata: {},
+              sessionManager: {
+                createSession: async () => {
+                  throw new Error('not needed for bootstrap');
+                },
+              },
+            };
+          },
+        }) as unknown as Awaited<
+          ReturnType<PlaygroundCoreLoader>
+        >) as PlaygroundCoreLoader,
       loadAndroidModule: async () => {
         androidLoadCount += 1;
         throw new Error('android should stay lazy');
@@ -183,30 +199,35 @@ describe('playground runtime bootstrap', () => {
       | undefined;
 
     const runtime = createMultiPlatformRuntimeService({
-      loadPlaygroundCore: async () => ({
-        launchPreparedPlaygroundPlatform: async () => ({
-          close: async () => undefined,
-          host: '127.0.0.1',
-          port: 5800,
-          server: {
-            setPreparedPlatform: () => undefined,
-          },
-        }),
-        prepareMultiPlatformPlayground: async (platforms) => {
-          capturedPlatforms = platforms;
-          return {
-            platformId: 'multi-platform',
-            title: 'Midscene Studio',
-            description: 'Multi-platform playground',
-            metadata: {},
-            sessionManager: {
-              createSession: async () => {
-                throw new Error('not needed for bootstrap');
-              },
+      loadPlaygroundCore: (async () =>
+        ({
+          launchPreparedPlaygroundPlatform: async () => ({
+            close: async () => undefined,
+            host: '127.0.0.1',
+            port: 5800,
+            server: {
+              setPreparedPlatform: () => undefined,
             },
-          };
-        },
-      }),
+          }),
+          prepareMultiPlatformPlayground: async (
+            platforms: RegisteredPlaygroundPlatform[],
+          ) => {
+            capturedPlatforms = platforms;
+            return {
+              platformId: 'multi-platform',
+              title: 'Midscene Studio',
+              description: 'Multi-platform playground',
+              metadata: {},
+              sessionManager: {
+                createSession: async () => {
+                  throw new Error('not needed for bootstrap');
+                },
+              },
+            };
+          },
+        }) as unknown as Awaited<
+          ReturnType<PlaygroundCoreLoader>
+        >) as PlaygroundCoreLoader,
       loadWebModule: (async () =>
         ({
           PuppeteerAgent: FakePuppeteerAgent,
@@ -298,35 +319,43 @@ describe('playground runtime bootstrap', () => {
       | undefined;
 
     const runtime = createMultiPlatformRuntimeService({
-      loadPlaygroundCore: async () => ({
-        launchPreparedPlaygroundPlatform: async () => ({
-          close: async () => undefined,
-          host: '127.0.0.1',
-          port: 5800,
-          server: {
-            setPreparedPlatform: () => undefined,
-          },
-        }),
-        prepareMultiPlatformPlayground: async (platforms) => {
-          capturedPlatforms = platforms;
-          return {
-            platformId: 'multi-platform',
-            title: 'Midscene Studio',
-            description: 'Multi-platform playground',
-            metadata: {},
-            sessionManager: {
-              createSession: async () => {
-                throw new Error('not needed for bootstrap');
-              },
+      loadPlaygroundCore: (async () =>
+        ({
+          launchPreparedPlaygroundPlatform: async () => ({
+            close: async () => undefined,
+            host: '127.0.0.1',
+            port: 5800,
+            server: {
+              setPreparedPlatform: () => undefined,
             },
-          };
-        },
-      }),
-      loadHarmonyModule: async () => ({
-        harmonyPlaygroundPlatform: {
-          prepare: harmonyPrepare,
-        },
-      }),
+          }),
+          prepareMultiPlatformPlayground: async (
+            platforms: RegisteredPlaygroundPlatform[],
+          ) => {
+            capturedPlatforms = platforms;
+            return {
+              platformId: 'multi-platform',
+              title: 'Midscene Studio',
+              description: 'Multi-platform playground',
+              metadata: {},
+              sessionManager: {
+                createSession: async () => {
+                  throw new Error('not needed for bootstrap');
+                },
+              },
+            };
+          },
+        }) as unknown as Awaited<
+          ReturnType<PlaygroundCoreLoader>
+        >) as PlaygroundCoreLoader,
+      loadHarmonyModule: (async () =>
+        ({
+          harmonyPlaygroundPlatform: {
+            prepare: harmonyPrepare,
+          },
+        }) as unknown as Awaited<
+          ReturnType<HarmonyModuleLoader>
+        >) as HarmonyModuleLoader,
       resolvePackageStaticDir: (packageName) => `/virtual/${packageName}`,
     });
 

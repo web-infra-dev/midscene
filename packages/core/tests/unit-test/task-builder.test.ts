@@ -1,13 +1,28 @@
 import { TaskBuilder } from '@/agent/task-builder';
 import { getMidsceneLocationSchema } from '@/ai-model';
 import { AbstractInterface, defineActionSleep } from '@/device';
-import type Service from '@/insight';
+import type Service from '@/service';
 import type { DeviceAction, PlanningAction } from '@/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 class MockInterface extends AbstractInterface {
   interfaceType = 'mock';
+  override cacheFeatureForPoint: AbstractInterface['cacheFeatureForPoint'] =
+    undefined;
+  override rectMatchesCacheFeature: AbstractInterface['rectMatchesCacheFeature'] =
+    undefined;
+  override destroy: AbstractInterface['destroy'] = undefined;
+  override describe: AbstractInterface['describe'] = undefined;
+  override beforeInvokeAction: AbstractInterface['beforeInvokeAction'] =
+    undefined;
+  override afterInvokeAction: AbstractInterface['afterInvokeAction'] =
+    undefined;
+  override getElementsNodeTree: AbstractInterface['getElementsNodeTree'] =
+    undefined;
+  override url: AbstractInterface['url'] = undefined;
+  override evaluateJavaScript: AbstractInterface['evaluateJavaScript'] =
+    undefined;
 
   constructor(private readonly actions: DeviceAction[]) {
     super();
@@ -61,7 +76,6 @@ describe('TaskBuilder', () => {
         type: 'Locate',
         thought: 'find element',
         param: { prompt: 'first' },
-        locate: { prompt: 'first' },
       },
       {
         type: 'Finished',

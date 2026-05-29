@@ -1,7 +1,11 @@
-import type { Size } from '@midscene/core';
+import type {
+  ExecutorContext,
+  LocateResultElement,
+  Size,
+} from '@midscene/core';
+import { describe, expect, it } from 'vitest';
 import { ComputerAgent, RDPDevice, agentForRDPComputer } from '../../../src';
 import type {
-  LocateResultElement,
   RDPBackendClient,
   RDPConnectionConfig,
   RDPConnectionInfo,
@@ -69,12 +73,14 @@ class FakeRDPBackend implements RDPBackendClient {
   }
 }
 
+const mockExecutorContext = { task: {} } as ExecutorContext;
+
 function createLocate(
   center: [number, number],
   content = 'target',
 ): LocateResultElement {
   return {
-    id: content,
+    description: content,
     rect: {
       left: center[0] - 10,
       top: center[1] - 10,
@@ -82,7 +88,6 @@ function createLocate(
       height: 20,
     },
     center,
-    content,
   };
 }
 
@@ -126,9 +131,12 @@ describe('@midscene/computer RDP device', () => {
     const tap = device.actionSpace().find((action) => action.name === 'Tap');
     expect(tap).toBeDefined();
 
-    await tap!.call({
-      locate: createLocate([100, 200]),
-    });
+    await tap!.call(
+      {
+        locate: createLocate([100, 200]),
+      },
+      mockExecutorContext,
+    );
 
     const mouseMoves = backend.calls.filter(
       (call) => call.name === 'mouseMove',
@@ -157,11 +165,14 @@ describe('@midscene/computer RDP device', () => {
       .find((action) => action.name === 'Input');
     expect(input).toBeDefined();
 
-    await input!.call({
-      value: 'hello',
-      mode: 'replace',
-      locate: createLocate([5, 5], 'field'),
-    });
+    await input!.call(
+      {
+        value: 'hello',
+        mode: 'replace',
+        locate: createLocate([5, 5], 'field'),
+      },
+      mockExecutorContext,
+    );
 
     expect(backend.calls).toEqual(
       expect.arrayContaining([
@@ -187,7 +198,9 @@ describe('@midscene/computer RDP device', () => {
       .find((action) => action.name === 'ListDisplays');
     expect(listDisplays).toBeDefined();
 
-    await expect(listDisplays!.call(undefined)).resolves.toEqual([
+    await expect(
+      listDisplays!.call(undefined, mockExecutorContext),
+    ).resolves.toEqual([
       {
         id: 'session-1',
         name: 'RDP 10.0.0.1:3389 (1920x1080)',
@@ -209,9 +222,12 @@ describe('@midscene/computer RDP device', () => {
       .find((action) => action.name === 'Hover');
     expect(hover).toBeDefined();
 
-    await hover!.call({
-      locate: createLocate([300, 400], 'hover-target'),
-    });
+    await hover!.call(
+      {
+        locate: createLocate([300, 400], 'hover-target'),
+      },
+      mockExecutorContext,
+    );
 
     const mouseMoves = backend.calls.filter(
       (call) => call.name === 'mouseMove',
@@ -239,12 +255,15 @@ describe('@midscene/computer RDP device', () => {
       .find((action) => action.name === 'Scroll');
     expect(scroll).toBeDefined();
 
-    await scroll!.call({
-      direction: 'down',
-      distance: 360,
-      scrollType: 'singleAction',
-      locate: createLocate([640, 360], 'scroll-target'),
-    });
+    await scroll!.call(
+      {
+        direction: 'down',
+        distance: 360,
+        scrollType: 'singleAction',
+        locate: createLocate([640, 360], 'scroll-target'),
+      },
+      mockExecutorContext,
+    );
 
     const wheelCalls = backend.calls.filter((call) => call.name === 'wheel');
     expect(wheelCalls).toEqual([
@@ -267,10 +286,13 @@ describe('@midscene/computer RDP device', () => {
       .find((action) => action.name === 'DragAndDrop');
     expect(dragAndDrop).toBeDefined();
 
-    await dragAndDrop!.call({
-      from: createLocate([200, 220], 'drag-source'),
-      to: createLocate([800, 640], 'drag-target'),
-    });
+    await dragAndDrop!.call(
+      {
+        from: createLocate([200, 220], 'drag-source'),
+        to: createLocate([800, 640], 'drag-target'),
+      },
+      mockExecutorContext,
+    );
 
     const mouseButtons = backend.calls.filter(
       (call) => call.name === 'mouseButton',

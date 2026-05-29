@@ -62,14 +62,7 @@ describe('llm planning - doubao', () => {
       bbox_2d: [923, 123, 123, 123] as [number, number, number, number],
     };
 
-    const filledLocate = fillBboxParam(
-      locate,
-      1000,
-      1000,
-      1000,
-      1000,
-      'doubao-vision',
-    );
+    const filledLocate = fillBboxParam(locate, 1000, 1000, 'doubao-vision');
     expect(filledLocate).toEqual({
       id: 'test',
       prompt: 'test',
@@ -84,10 +77,6 @@ describe('llm planning - build yaml flow', () => {
       [
         {
           type: 'Input',
-          locate: {
-            bbox: [512, 127, 1068, 198],
-            prompt: 'The input box for adding a new todo',
-          },
           param: {
             value: 'hello',
             locate: {
@@ -102,10 +91,6 @@ describe('llm planning - build yaml flow', () => {
         },
         {
           type: 'Tap',
-          locate: {
-            bbox: [512, 127, 1068, 197],
-            prompt: "The input box labeled 'What needs to be done?'",
-          },
           param: {
             locate: {
               bbox: [512, 127, 1068, 197],
@@ -174,10 +159,6 @@ describe('llm planning - build yaml flow', () => {
       [
         {
           type: 'Tap',
-          locate: {
-            bbox: [300, 300, 400, 400],
-            prompt: 'Cancel button',
-          },
           param: {
             locate: {
               bbox: [300, 300, 400, 400],
@@ -187,10 +168,6 @@ describe('llm planning - build yaml flow', () => {
         },
         {
           type: 'Input',
-          locate: {
-            bbox: [500, 500, 600, 600],
-            prompt: 'Text input field',
-          },
           param: {
             value: 'test',
             locate: {
@@ -240,10 +217,6 @@ describe('llm planning - build yaml flow', () => {
       [
         {
           type: 'Click',
-          locate: {
-            bbox: [100, 100, 200, 200],
-            prompt: 'Submit button',
-          },
           param: {
             locate: {
               bbox: [100, 100, 200, 200],

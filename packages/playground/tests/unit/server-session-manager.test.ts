@@ -1,6 +1,7 @@
 import { overrideAIConfig } from '@midscene/shared/env';
 import { describe, expect, test, vi } from 'vitest';
 import { PlaygroundServer } from '../../src/server';
+import type { PlaygroundAgent } from '../../src/types';
 
 function createMockResponse() {
   return {
@@ -62,7 +63,10 @@ describe('PlaygroundServer session manager APIs', () => {
                 key: 'platformId',
                 label: 'Platform',
                 type: 'select',
-                defaultValue: input?.platformId || 'android',
+                defaultValue:
+                  typeof input?.platformId === 'string'
+                    ? input.platformId
+                    : 'android',
               },
               {
                 key: 'deviceId',
@@ -232,12 +236,15 @@ describe('PlaygroundServer session manager APIs', () => {
       sessionManager: {
         async createSession() {
           return {
-            agentFactory: vi.fn(async () => ({
-              interface: {
-                interfaceType: 'android',
-                describe: () => 'Mock Android device',
-              },
-            })),
+            agentFactory: vi.fn(
+              async () =>
+                ({
+                  interface: {
+                    interfaceType: 'android',
+                    describe: () => 'Mock Android device',
+                  },
+                }) as unknown as PlaygroundAgent,
+            ),
             displayName: 'SERIAL123',
             platformId: 'computer',
             title: 'Midscene Computer Playground',
@@ -307,12 +314,15 @@ describe('PlaygroundServer session manager APIs', () => {
       sessionManager: {
         async createSession() {
           return {
-            agentFactory: vi.fn(async () => ({
-              interface: {
-                interfaceType: 'android',
-                describe: () => 'Mock Android device',
-              },
-            })),
+            agentFactory: vi.fn(
+              async () =>
+                ({
+                  interface: {
+                    interfaceType: 'android',
+                    describe: () => 'Mock Android device',
+                  },
+                }) as unknown as PlaygroundAgent,
+            ),
             displayName: 'SERIAL123',
             metadata: {
               deviceId: 'SERIAL123',

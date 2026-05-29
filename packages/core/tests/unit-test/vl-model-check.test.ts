@@ -1,5 +1,5 @@
 import { Agent } from '@/agent/agent';
-import type { AbstractInterface } from '@/types';
+import type { AbstractInterface } from '@/device';
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies

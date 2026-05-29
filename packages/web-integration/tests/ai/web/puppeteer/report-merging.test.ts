@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
+import type { TestStatus } from '@midscene/core';
 import { ReportMergingTool } from '@midscene/core/report';
 import {
   afterAll,
@@ -33,7 +34,7 @@ describe('ReportMergingTool integration', () => {
 
   afterEach(async (ctx) => {
     // Determine workflow status
-    let workflowStatus = 'passed';
+    let workflowStatus: TestStatus = 'passed';
     if (ctx.task.result?.state === 'pass') {
       workflowStatus = 'passed';
     } else if (ctx.task.result?.state === 'skip') {

@@ -42,6 +42,7 @@ const mockedModelConfig: IModelConfig = {
   modelName: 'mock-model',
   modelDescription: 'mock-model-description',
   intent: 'default',
+  slot: 'default',
 };
 
 describe('TaskExecutor waitFor method with doNotThrowError', () => {

@@ -131,6 +131,9 @@ export default defineConfig({
           }))
         : [],
   },
+  source: {
+    tsconfigPath: 'tsconfig.build.json',
+  },
   resolve: {
     alias: {
       async_hooks: path.join(
