@@ -9,6 +9,7 @@ import type { IModelConfig, TModelFamily } from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import { jsonrepair } from 'jsonrepair';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import {
   buildYamlFlowFromPlans,
@@ -25,6 +26,7 @@ import {
 import {
   AIResponseParseError,
   callAI,
+  extractJSONFromCodeBlock,
   safeParseJson,
 } from './service-caller/index';
 
@@ -33,6 +35,33 @@ const warnLog = getDebug('planning', { console: true });
 
 const noPreviousActionsText =
   'No previous actions have been executed in this aiAct execution yet. If the instruction asks for actions, choose the first action to execute.';
+
+function extractRawInputValue(actionParamStr: string): string | undefined {
+  const cleanJsonString = extractJSONFromCodeBlock(actionParamStr);
+  const candidates = [cleanJsonString];
+
+  try {
+    candidates.push(jsonrepair(cleanJsonString));
+  } catch {}
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        continue;
+      }
+
+      const valueEntry = Object.entries(parsed).find(
+        ([key]) => key.trim() === 'value',
+      );
+      if (typeof valueEntry?.[1] === 'string') {
+        return valueEntry[1];
+      }
+    } catch {}
+  }
+
+  return undefined;
+}
 
 /**
  * Parse XML response from LLM and convert to RawResponsePlanningAIResponse
@@ -83,6 +112,17 @@ export function parseXMLPlanningResponse(
       try {
         // Parse the JSON string in action-param-json
         param = safeParseJson(actionParamStr, modelFamily);
+        if (
+          type.toLowerCase() === 'input' &&
+          param &&
+          typeof param === 'object' &&
+          !Array.isArray(param)
+        ) {
+          const rawInputValue = extractRawInputValue(actionParamStr);
+          if (rawInputValue !== undefined) {
+            param.value = rawInputValue;
+          }
+        }
       } catch (e) {
         throw new Error(`Failed to parse action-param-json: ${e}`);
       }
