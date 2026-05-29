@@ -26,6 +26,7 @@
   "scripts": {
     "dev": "npm run build:watch",
     "dev:server": "npm run build && ./bin/playground",
+    "test": "vitest --run",
     "prebuild": "node ../android/scripts/download-scrcpy-server.mjs --target=bin/scrcpy-server",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",

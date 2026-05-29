@@ -53,6 +53,7 @@ function getHeapUsedMB(): number {
 
 // Chrome Service Worker memory limit (conservative estimate)
 const SW_MEMORY_LIMIT_MB = 512;
+const STRESS_TEST_TIMEOUT_MS = 30_000;
 
 describe('Chrome Extension Event Recording - Crash Reproduction', () => {
   /**
@@ -67,61 +68,66 @@ describe('Chrome Extension Event Recording - Crash Reproduction', () => {
    * This means each event triggers 2 serialize + 2 deserialize of the full array.
    * We measure actual heap to prove it exceeds the Service Worker memory limit.
    */
-  it('OLD approach: heap exceeds Service Worker limit within 50 events', () => {
-    const events: MockEvent[] = [];
-    const heapSnapshots: number[] = [];
-    let peakHeapMB = 0;
+  it(
+    'OLD approach: heap exceeds Service Worker limit within 50 events',
+    () => {
+      const events: MockEvent[] = [];
+      const heapSnapshots: number[] = [];
+      let peakHeapMB = 0;
 
-    const baselineHeap = getHeapUsedMB();
+      const baselineHeap = getHeapUsedMB();
 
-    for (let i = 0; i < 50; i++) {
-      events.push(createMockEvent(i));
+      for (let i = 0; i < 50; i++) {
+        events.push(createMockEvent(i));
 
-      // Simulate the old sendMessage path:
-      // 1) Content script serializes full array
-      const serialized = JSON.stringify({ action: 'events', data: events });
-      // 2) Worker receives (deserializes)
-      const deserialized = JSON.parse(serialized);
-      // 3) Worker forwards to popup (serializes again)
-      const forwarded = JSON.stringify(deserialized);
-      // 4) Popup receives (deserializes)
-      const _popupData = JSON.parse(forwarded);
+        // Simulate the old sendMessage path:
+        // 1) Content script serializes full array
+        const serialized = JSON.stringify({ action: 'events', data: events });
+        // 2) Worker receives (deserializes)
+        const deserialized = JSON.parse(serialized);
+        // 3) Worker forwards to popup (serializes again)
+        const forwarded = JSON.stringify(deserialized);
+        // 4) Popup receives (deserializes)
+        const _popupData = JSON.parse(forwarded);
 
-      const currentHeap = getHeapUsedMB();
-      heapSnapshots.push(currentHeap);
-      peakHeapMB = Math.max(peakHeapMB, currentHeap);
-    }
+        const currentHeap = getHeapUsedMB();
+        heapSnapshots.push(currentHeap);
+        peakHeapMB = Math.max(peakHeapMB, currentHeap);
+      }
 
-    const heapGrowthMB = peakHeapMB - baselineHeap;
-    const lastMessageSizeMB =
-      JSON.stringify({ action: 'events', data: events }).length / (1024 * 1024);
+      const heapGrowthMB = peakHeapMB - baselineHeap;
+      const lastMessageSizeMB =
+        JSON.stringify({ action: 'events', data: events }).length /
+        (1024 * 1024);
 
-    console.log('\n=== OLD APPROACH (full-array sendMessage) ===');
-    console.log(`Baseline heap: ${baselineHeap.toFixed(0)} MB`);
-    console.log(`Peak heap: ${peakHeapMB.toFixed(0)} MB`);
-    console.log(`Heap growth: ${heapGrowthMB.toFixed(0)} MB`);
-    console.log(`Last message size: ${lastMessageSizeMB.toFixed(0)} MB`);
-    console.log(
-      `Heap at event 10: ${heapSnapshots[9]?.toFixed(0)} MB, ` +
-        `event 30: ${heapSnapshots[29]?.toFixed(0)} MB, ` +
-        `event 50: ${heapSnapshots[49]?.toFixed(0)} MB`,
-    );
+      console.log('\n=== OLD APPROACH (full-array sendMessage) ===');
+      console.log(`Baseline heap: ${baselineHeap.toFixed(0)} MB`);
+      console.log(`Peak heap: ${peakHeapMB.toFixed(0)} MB`);
+      console.log(`Heap growth: ${heapGrowthMB.toFixed(0)} MB`);
+      console.log(`Last message size: ${lastMessageSizeMB.toFixed(0)} MB`);
+      console.log(
+        `Heap at event 10: ${heapSnapshots[9]?.toFixed(0)} MB, ` +
+          `event 30: ${heapSnapshots[29]?.toFixed(0)} MB, ` +
+          `event 50: ${heapSnapshots[49]?.toFixed(0)} MB`,
+      );
 
-    // ASSERTION: The old approach's peak heap usage exceeds what a
-    // Chrome Service Worker can handle. A single serialized message at
-    // 50 events is ~65MB; holding multiple copies during serialize/deserialize
-    // pushes heap well beyond normal SW working memory.
-    //
-    // The last message alone is >50MB. In Chrome, the sender (content script)
-    // and receiver (service worker) BOTH hold a copy during transit, plus
-    // the structured clone overhead. This alone would need ~200MB+ for just
-    // the message transfer at event 50, on top of the base array.
-    expect(lastMessageSizeMB).toBeGreaterThan(50);
+      // ASSERTION: The old approach's peak heap usage exceeds what a
+      // Chrome Service Worker can handle. A single serialized message at
+      // 50 events is ~65MB; holding multiple copies during serialize/deserialize
+      // pushes heap well beyond normal SW working memory.
+      //
+      // The last message alone is >50MB. In Chrome, the sender (content script)
+      // and receiver (service worker) BOTH hold a copy during transit, plus
+      // the structured clone overhead. This alone would need ~200MB+ for just
+      // the message transfer at event 50, on top of the base array.
+      expect(lastMessageSizeMB).toBeGreaterThan(50);
 
-    // Heap growth should be substantial - at minimum hundreds of MB
-    // from accumulating 50 events with screenshots + serialization copies
-    expect(heapGrowthMB).toBeGreaterThan(100);
-  });
+      // Heap growth should be substantial - at minimum hundreds of MB
+      // from accumulating 50 events with screenshots + serialization copies
+      expect(heapGrowthMB).toBeGreaterThan(100);
+    },
+    STRESS_TEST_TIMEOUT_MS,
+  );
 
   /**
    * NEW APPROACH: incremental event-update
@@ -129,114 +135,124 @@ describe('Chrome Extension Event Recording - Crash Reproduction', () => {
    * Each event sends only itself (~1.3MB) rather than the full array.
    * No O(n²) serialization blowup.
    */
-  it('NEW approach: heap stays well under Service Worker limit', () => {
-    const events: MockEvent[] = [];
-    const heapSnapshots: number[] = [];
-    let peakHeapMB = 0;
+  it(
+    'NEW approach: heap stays well under Service Worker limit',
+    () => {
+      const events: MockEvent[] = [];
+      const heapSnapshots: number[] = [];
+      let peakHeapMB = 0;
 
-    const baselineHeap = getHeapUsedMB();
+      const baselineHeap = getHeapUsedMB();
 
-    for (let i = 0; i < 50; i++) {
-      const event = createMockEvent(i);
-      events.push(event);
+      for (let i = 0; i < 50; i++) {
+        const event = createMockEvent(i);
+        events.push(event);
 
-      // Simulate the new event-update path:
-      // 1) Content script serializes ONLY the new event
-      const serialized = JSON.stringify({
-        action: 'event-update',
-        data: event,
-        eventIndex: i,
-        totalEvents: events.length,
-      });
-      // 2) Worker receives
-      const deserialized = JSON.parse(serialized);
-      // 3) Worker forwards
-      const forwarded = JSON.stringify(deserialized);
-      // 4) Popup receives
-      const _popupData = JSON.parse(forwarded);
+        // Simulate the new event-update path:
+        // 1) Content script serializes ONLY the new event
+        const serialized = JSON.stringify({
+          action: 'event-update',
+          data: event,
+          eventIndex: i,
+          totalEvents: events.length,
+        });
+        // 2) Worker receives
+        const deserialized = JSON.parse(serialized);
+        // 3) Worker forwards
+        const forwarded = JSON.stringify(deserialized);
+        // 4) Popup receives
+        const _popupData = JSON.parse(forwarded);
 
-      const currentHeap = getHeapUsedMB();
-      heapSnapshots.push(currentHeap);
-      peakHeapMB = Math.max(peakHeapMB, currentHeap);
-    }
+        const currentHeap = getHeapUsedMB();
+        heapSnapshots.push(currentHeap);
+        peakHeapMB = Math.max(peakHeapMB, currentHeap);
+      }
 
-    const heapGrowthMB = peakHeapMB - baselineHeap;
-    const lastMessageSizeMB =
-      JSON.stringify({
-        action: 'event-update',
-        data: events[49],
-        eventIndex: 49,
-        totalEvents: 50,
-      }).length /
-      (1024 * 1024);
+      const heapGrowthMB = peakHeapMB - baselineHeap;
+      const lastMessageSizeMB =
+        JSON.stringify({
+          action: 'event-update',
+          data: events[49],
+          eventIndex: 49,
+          totalEvents: 50,
+        }).length /
+        (1024 * 1024);
 
-    console.log('\n=== NEW APPROACH (incremental event-update) ===');
-    console.log(`Baseline heap: ${baselineHeap.toFixed(0)} MB`);
-    console.log(`Peak heap: ${peakHeapMB.toFixed(0)} MB`);
-    console.log(`Heap growth: ${heapGrowthMB.toFixed(0)} MB`);
-    console.log(`Message size (constant): ${lastMessageSizeMB.toFixed(2)} MB`);
-    console.log(
-      `Heap at event 10: ${heapSnapshots[9]?.toFixed(0)} MB, ` +
-        `event 30: ${heapSnapshots[29]?.toFixed(0)} MB, ` +
-        `event 50: ${heapSnapshots[49]?.toFixed(0)} MB`,
-    );
+      console.log('\n=== NEW APPROACH (incremental event-update) ===');
+      console.log(`Baseline heap: ${baselineHeap.toFixed(0)} MB`);
+      console.log(`Peak heap: ${peakHeapMB.toFixed(0)} MB`);
+      console.log(`Heap growth: ${heapGrowthMB.toFixed(0)} MB`);
+      console.log(
+        `Message size (constant): ${lastMessageSizeMB.toFixed(2)} MB`,
+      );
+      console.log(
+        `Heap at event 10: ${heapSnapshots[9]?.toFixed(0)} MB, ` +
+          `event 30: ${heapSnapshots[29]?.toFixed(0)} MB, ` +
+          `event 50: ${heapSnapshots[49]?.toFixed(0)} MB`,
+      );
 
-    // Each message is ~1.3MB - well within Chrome message limits
-    expect(lastMessageSizeMB).toBeLessThan(3);
+      // Each message is ~1.3MB - well within Chrome message limits
+      expect(lastMessageSizeMB).toBeLessThan(3);
 
-    // Heap growth is only from storing the 50 events array (~65MB base data)
-    // NOT from serialization blowup. Should stay well under SW limit.
-    expect(heapGrowthMB).toBeLessThan(SW_MEMORY_LIMIT_MB);
-  });
+      // Heap growth is only from storing the 50 events array (~65MB base data)
+      // NOT from serialization blowup. Should stay well under SW limit.
+      expect(heapGrowthMB).toBeLessThan(SW_MEMORY_LIMIT_MB);
+    },
+    STRESS_TEST_TIMEOUT_MS,
+  );
 
   /**
    * Direct comparison: measure the ratio of peak heap between old and new.
    */
-  it('NEW approach uses significantly less peak memory than OLD', () => {
-    // --- Old approach ---
-    if (global.gc) global.gc();
-    const oldBaseline = getHeapUsedMB();
-    const oldEvents: MockEvent[] = [];
+  it(
+    'NEW approach uses significantly less peak memory than OLD',
+    () => {
+      // --- Old approach ---
+      if (global.gc) global.gc();
+      const oldBaseline = getHeapUsedMB();
+      const oldEvents: MockEvent[] = [];
 
-    for (let i = 0; i < 40; i++) {
-      oldEvents.push(createMockEvent(i));
-      const s = JSON.stringify({ action: 'events', data: oldEvents });
-      JSON.parse(s);
-    }
-    const oldPeak = getHeapUsedMB();
-    const oldGrowth = oldPeak - oldBaseline;
+      for (let i = 0; i < 40; i++) {
+        oldEvents.push(createMockEvent(i));
+        const s = JSON.stringify({ action: 'events', data: oldEvents });
+        JSON.parse(s);
+      }
+      const oldPeak = getHeapUsedMB();
+      const oldGrowth = oldPeak - oldBaseline;
 
-    // Force cleanup
-    oldEvents.length = 0;
-    if (global.gc) global.gc();
+      // Force cleanup
+      oldEvents.length = 0;
+      if (global.gc) global.gc();
 
-    // --- New approach ---
-    const newBaseline = getHeapUsedMB();
-    const newEvents: MockEvent[] = [];
+      // --- New approach ---
+      const newBaseline = getHeapUsedMB();
+      const newEvents: MockEvent[] = [];
 
-    for (let i = 0; i < 40; i++) {
-      const event = createMockEvent(i);
-      newEvents.push(event);
-      const s = JSON.stringify({
-        action: 'event-update',
-        data: event,
-        eventIndex: i,
-      });
-      JSON.parse(s);
-    }
-    const newPeak = getHeapUsedMB();
-    const newGrowth = newPeak - newBaseline;
+      for (let i = 0; i < 40; i++) {
+        const event = createMockEvent(i);
+        newEvents.push(event);
+        const s = JSON.stringify({
+          action: 'event-update',
+          data: event,
+          eventIndex: i,
+        });
+        JSON.parse(s);
+      }
+      const newPeak = getHeapUsedMB();
+      const newGrowth = newPeak - newBaseline;
 
-    console.log('\n=== COMPARISON (40 events) ===');
-    console.log(`Old heap growth: ${oldGrowth.toFixed(0)} MB`);
-    console.log(`New heap growth: ${newGrowth.toFixed(0)} MB`);
-    console.log(
-      `Ratio: old is ${(oldGrowth / Math.max(newGrowth, 1)).toFixed(1)}x more memory`,
-    );
+      console.log('\n=== COMPARISON (40 events) ===');
+      console.log(`Old heap growth: ${oldGrowth.toFixed(0)} MB`);
+      console.log(`New heap growth: ${newGrowth.toFixed(0)} MB`);
+      console.log(
+        `Ratio: old is ${(oldGrowth / Math.max(newGrowth, 1)).toFixed(1)}x more memory`,
+      );
 
-    // The old approach must use significantly more memory
-    expect(oldGrowth).toBeGreaterThan(newGrowth);
-  });
+      // The old approach must use significantly more memory
+      expect(oldGrowth).toBeGreaterThan(newGrowth);
+    },
+    STRESS_TEST_TIMEOUT_MS,
+  );
 
   describe('cacheMap bounded size', () => {
     it('should evict oldest entries when cache exceeds max size', () => {
