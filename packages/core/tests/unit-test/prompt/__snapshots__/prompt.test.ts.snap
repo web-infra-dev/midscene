@@ -605,6 +605,10 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
 
+### Action Guidelines
+
+- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
+
 ### Supporting actions list
 
 - Tap, Tap the element
@@ -946,6 +950,10 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
 
+### Action Guidelines
+
+- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
+
 ### Supporting actions list
 
 - Tap, Tap the element
@@ -1259,6 +1267,10 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Make sure the previous actions are completed successfully. Otherwise, retry or do something else to recover.
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
+
+### Action Guidelines
+
+- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 
 ### Supporting actions list
 
@@ -1667,6 +1679,10 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
 
+### Action Guidelines
+
+- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
+
 ### Supporting actions list
 
 - Tap, Tap the element
@@ -2039,6 +2055,10 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
 
+### Action Guidelines
+
+- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
+
 ### Supporting actions list
 
 - Tap, Tap the element
@@ -2379,6 +2399,10 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Make sure the previous actions are completed successfully. Otherwise, retry or do something else to recover.
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
+
+### Action Guidelines
+
+- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 
 ### Supporting actions list
 

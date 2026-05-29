@@ -37,6 +37,12 @@ const MEMORY_STEP_NOTES = [
   '- If you need to copy information from one place to another, record the exact source value and the target field or UI cue it should be mapped to.',
 ].join('\n');
 
+const ACTION_STEP_NOTES = [
+  '### Action Guidelines',
+  '',
+  '- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.',
+].join('\n');
+
 /**
  * Find ZodDefault in the wrapper chain and return its default value
  */
@@ -474,6 +480,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Make sure the previous actions are completed successfully. Otherwise, retry or do something else to recover.
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
+
+${ACTION_STEP_NOTES}
 
 ### Supporting actions list
 
