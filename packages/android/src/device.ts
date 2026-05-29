@@ -1053,7 +1053,9 @@ ${Object.keys(size)
           AndroidDevice.TAKE_SCREENSHOT_FAIL_THRESHOLD
       ) {
         debugDevice('Taking screenshot via adb.takeScreenshot');
-        screenshotBuffer = await adb.takeScreenshot(null);
+        screenshotBuffer = await (
+          adb.takeScreenshot as unknown as () => Promise<Buffer>
+        ).call(adb);
         debugDevice('adb.takeScreenshot completed');
 
         try {
