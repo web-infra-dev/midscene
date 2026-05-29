@@ -18,6 +18,7 @@
   "scripts": {
     "dev": "npm run build:watch",
     "dev:server": "npm run build && ./bin/computer-playground",
+    "test": "vitest --run",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean"
   },

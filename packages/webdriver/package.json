@@ -14,7 +14,7 @@
     "dev": "npm run build:watch",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
-    "test": "vitest",
+    "test": "vitest --run",
     "lint": "biome check .",
     "lint:fix": "biome check . --write"
   },
