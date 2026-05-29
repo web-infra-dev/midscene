@@ -1,5 +1,6 @@
 import { buildYamlFlowFromPlans } from '@/common';
 import { ScriptPlayer } from '@/yaml/player';
+import { parseYamlScript } from '@/yaml/utils';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -417,6 +418,54 @@ describe('player action dispatch ordering', () => {
       );
     });
 
+    it('should interpolate bare $var inside longer strings', async () => {
+      const player = createPlayerWithActionSpace([]);
+      const agent = createMockAgent({
+        aiAssert: vi.fn().mockResolvedValue({ pass: true }),
+      });
+      player.result.currentShowName = 'Stranger Things';
+
+      const taskStatus = {
+        name: 'test',
+        flow: [{ aiAssert: 'assert the page shows [$currentShowName] now' }],
+        index: 0,
+        status: 'running' as const,
+        totalSteps: 1,
+      };
+
+      await player.playTask(taskStatus, agent);
+
+      expect(agent.aiAssert).toHaveBeenCalledWith(
+        'assert the page shows [Stranger Things] now',
+        undefined,
+        expect.anything(),
+      );
+    });
+
+    it('should JSON-serialize non-string values for embedded $var', async () => {
+      const player = createPlayerWithActionSpace([]);
+      const agent = createMockAgent({
+        aiAssert: vi.fn().mockResolvedValue({ pass: true }),
+      });
+      player.result.show = { name: 'Show', season: 2 };
+
+      const taskStatus = {
+        name: 'test',
+        flow: [{ aiAssert: 'the page shows $show details' }],
+        index: 0,
+        status: 'running' as const,
+        totalSteps: 1,
+      };
+
+      await player.playTask(taskStatus, agent);
+
+      expect(agent.aiAssert).toHaveBeenCalledWith(
+        'the page shows {"name":"Show","season":2} details',
+        undefined,
+        expect.anything(),
+      );
+    });
+
     it('should throw when referencing undefined variable', async () => {
       const player = createPlayerWithActionSpace([]);
       const agent = createMockAgent();
@@ -514,6 +563,45 @@ describe('player action dispatch ordering', () => {
       3,
       'RunAdbShell',
       { command: 'input keyevent 3' },
+    );
+  });
+});
+
+// Regression for #2509 follow-up: a value captured by `aiQuery ... name: x` in
+// one step must interpolate into a later step's prompt even when referenced as
+// a bare `$x` embedded inside a longer string (not only `${x}`).
+describe('yaml cross-step variable interpolation (end-to-end)', () => {
+  it('interpolates a bare $var captured by aiQuery into a later aiAssert prompt', async () => {
+    const yaml = `
+tasks:
+  - name: binge watching test
+    flow:
+      - aiQuery: remember the name of the current show
+        name: currentShowName
+      - aiAssert: assert the page shows [$currentShowName] now
+`;
+    const seenAssertPrompt: { value?: string } = {};
+    const agent = {
+      getActionSpace: async () => [],
+      aiQuery: vi.fn().mockResolvedValue('Stranger Things'),
+      aiAssert: vi.fn(async (prompt: string) => {
+        seenAssertPrompt.value = prompt;
+        return { pass: true, thought: 'ok', message: '' };
+      }),
+    };
+
+    const script = parseYamlScript(yaml, 'demo.yaml');
+    const player = new ScriptPlayer(script as any, async () => ({
+      agent: agent as any,
+      freeFn: [],
+    }));
+
+    await player.run();
+
+    expect(player.status).toBe('done');
+    expect(player.result.currentShowName).toBe('Stranger Things');
+    expect(seenAssertPrompt.value).toBe(
+      'assert the page shows [Stranger Things] now',
     );
   });
 });

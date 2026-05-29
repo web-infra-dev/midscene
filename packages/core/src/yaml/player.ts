@@ -62,7 +62,10 @@ import {
 const debug = getDebug('yaml-player');
 
 const VARIABLE_FULL_MATCH_RE = /^\$([a-zA-Z_][a-zA-Z0-9_]*)$/;
-const VARIABLE_EMBEDDED_RE = /\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g;
+// Embedded references inside a longer string support both `${name}` and bare
+// `$name`. The braced form is tried first so `${name}` is not split.
+const VARIABLE_EMBEDDED_RE =
+  /\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}|\$([a-zA-Z_][a-zA-Z0-9_]*)/g;
 
 function deepTransform(
   value: unknown,
@@ -322,7 +325,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         return this.result[varName];
       }
 
-      return val.replace(VARIABLE_EMBEDDED_RE, (_, varName) => {
+      return val.replace(VARIABLE_EMBEDDED_RE, (_, bracedName, bareName) => {
+        const varName = bracedName ?? bareName;
         if (!(varName in this.result)) {
           throw new Error(`Variable "${varName}" is not defined`);
         }
