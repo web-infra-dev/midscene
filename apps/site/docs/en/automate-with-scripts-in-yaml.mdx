@@ -544,25 +544,20 @@ tasks:
       # ...
 ```
 
-#### Reuse Step Results
+#### Step Result Names
 
-Steps that write a result with `name` can be referenced by later steps in the same YAML run. Use `$name` when the whole field should be replaced by the stored value.
+Steps that write a result with `name` save that value into the YAML run result and the JSON output. Step results are not interpolated back into later YAML steps; strings such as `$name` or `${name}` are passed through as literal task text unless `${name}` is resolved by environment-variable interpolation before execution.
 
 ```yaml
 tasks:
-  - name: Search by extracted data
+  - name: Save extracted data
     flow:
       - aiString: Get the product id shown on the page
         name: product_id
 
-      - aiInput: Search box
-        value: $product_id
-
       - aiQuery: Get the search result after submitting the product id
         name: search_result
 ```
-
-`$name` keeps the original result type when the referenced value is used as the whole field. Runtime interpolation with `${name}` is also supported inside longer strings; non-string values are serialized as JSON before interpolation. Referencing an undefined variable throws an error.
 
 #### Upload Files With `aiTap`
 

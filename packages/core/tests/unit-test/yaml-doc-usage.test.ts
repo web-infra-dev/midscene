@@ -51,6 +51,7 @@ describe('YAML docs usage coverage', () => {
     Reflect.deleteProperty(process.env, 'DOC_HOST');
     Reflect.deleteProperty(process.env, 'DOC_TOPIC');
     Reflect.deleteProperty(process.env, 'DOC_WIDTH');
+    Reflect.deleteProperty(process.env, 'product_id');
   });
 
   it('parses the documented environment and agent sections', () => {
@@ -328,7 +329,7 @@ tasks:
     );
   });
 
-  it('supports documented result reuse with full-field and embedded interpolation', async () => {
+  it('keeps named step results in output without runtime interpolation', async () => {
     const script = parseYamlScript(`
 web:
   url: about:blank
@@ -352,7 +353,7 @@ tasks:
 
     expect(player.status).toBe('done');
     expect(agent.callActionInActionSpace).toHaveBeenCalledWith('Input', {
-      value: 'SKU-123',
+      value: '$product_id',
       locate: {
         prompt: 'Search box',
         deepLocate: false,
@@ -361,9 +362,14 @@ tasks:
       },
     });
     expect(agent.aiQuery).toHaveBeenCalledWith(
-      'Get search results after submitting product id SKU-123',
+      'Get search results after submitting product id ${product_id}',
       {},
     );
+    expect(player.result.product_id).toBe('SKU-123');
+    expect(player.result.search_result).toEqual({
+      id: 'SKU-123',
+      title: 'doc item',
+    });
   });
 
   it('continues to the next task when documented task continueOnError is enabled', async () => {
@@ -469,7 +475,7 @@ tasks:
     );
   });
 
-  it('keeps runtime result interpolation in tasks without hiding missing env vars in config', () => {
+  it('keeps unresolved task environment-variable references literal without hiding missing env vars in config', () => {
     expect(() =>
       parseYamlScript(`
 web:
@@ -485,7 +491,7 @@ tasks:
 web:
   url: about:blank
 tasks:
-  - name: Runtime interpolation
+  - name: Literal task reference
     flow:
       - aiString: Read the product id
         name: product_id
@@ -511,7 +517,7 @@ web:
 agent:
   generateReport: \${DOC_ENABLED}
 tasks:
-  - name: Runtime interpolation
+  - name: Environment interpolation
     flow:
       - ai: Search for \${DOC_TOPIC}
       - aiQuery: Search for \${product_id}
@@ -529,6 +535,47 @@ tasks:
     });
   });
 
+  it('interpolates environment variables in task strings before execution', async () => {
+    process.env.product_id = 'ENV-123';
+
+    const script = parseYamlScript(`
+web:
+  url: about:blank
+tasks:
+  - name: Environment interpolation conflict
+    flow:
+      - aiString: Read the product id
+        name: product_id
+      - aiQuery: Search for \${product_id}
+        name: result
+`);
+
+    expect(script.tasks[0].flow[1]).toMatchObject({
+      aiQuery: 'Search for ENV-123',
+    });
+
+    const agent = createDocAgent({
+      aiString: vi.fn(async () => 'RUNTIME-123'),
+      aiQuery: vi.fn(async () => 'search-result'),
+    });
+    const player = new ScriptPlayer(
+      script,
+      async () => ({ agent, freeFn: [] }),
+      undefined,
+    );
+
+    await player.playTask(
+      {
+        ...script.tasks[0],
+        status: 'running',
+        totalSteps: script.tasks[0].flow.length,
+      },
+      agent,
+    );
+
+    expect(agent.aiQuery).toHaveBeenCalledWith('Search for ENV-123', {});
+  });
+
   it('preserves YAML scalar semantics when interpolating config environment variables', () => {
     process.env.DOC_ENABLED = 'true';
     process.env.DOC_WIDTH = '1280';
@@ -542,7 +589,7 @@ web:
 agent:
   generateReport: ${docEnabledRef}
 tasks:
-  - name: Runtime interpolation
+  - name: Environment interpolation
     flow:
       - aiQuery: Search for ${docEnabledRef}
 `);
