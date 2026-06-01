@@ -29,6 +29,7 @@
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
+    "dotenv": "^16.4.5",
     "glob": "11.0.0",
     "jiti": "2.6.1",
     "js-yaml": "4.1.0"

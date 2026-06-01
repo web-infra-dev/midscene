@@ -58,6 +58,24 @@ export interface MidsceneFrameworkConfig {
     testTimeout?: number;
     retry?: number;
   };
+  /**
+   * Controls how `runMidsceneSuite` loads `.env` files before resolving
+   * model and runtime configuration. Defaults are intentionally close to
+   * `@midscene/cli`'s behaviour:
+   * - `path` defaults to `[<cwd>/.env, <configDir>/.env]` (deduplicated;
+   *   missing files are skipped silently).
+   * - `override` defaults to `false` (existing `process.env` wins).
+   * - `debug` defaults to `false`.
+   *
+   * Set `enabled: false` to opt out entirely (e.g. when the project handles
+   * env loading on its own).
+   */
+  env?: {
+    enabled?: boolean;
+    path?: string | string[];
+    override?: boolean;
+    debug?: boolean;
+  };
   output?: {
     summary?: string;
     reportDir?: string;

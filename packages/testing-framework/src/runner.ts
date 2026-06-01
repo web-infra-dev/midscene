@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { collectFrameworkTestFiles, loadMidsceneConfig } from './config';
+import { loadFrameworkDotenv } from './dotenv';
 import { createYamlFrameworkSuiteSource } from './runtime/source';
 import type {
   FrameworkCaseResult,
@@ -246,6 +247,17 @@ export async function runMidsceneSuite(
   options: RunMidsceneSuiteOptions = {},
 ): Promise<FrameworkSuiteSummary> {
   const loaded = await loadMidsceneConfig(options.configPath);
+
+  const dotenvFiles = loadFrameworkDotenv({
+    cwd: process.cwd(),
+    configDir: loaded.root,
+    envConfig: loaded.config.env,
+  });
+  for (const entry of dotenvFiles) {
+    if (entry.loaded) {
+      console.log(`   Env file: ${entry.path}`);
+    }
+  }
 
   const files = await collectFrameworkTestFiles({
     root: loaded.root,
