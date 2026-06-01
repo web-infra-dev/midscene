@@ -42,6 +42,7 @@ export default defineConfig({
   source: {
     entry: {
       index: 'src/index.ts',
+      'framework/index': 'src/framework/index.ts',
     },
     define: {
       __VERSION__: JSON.stringify(version),

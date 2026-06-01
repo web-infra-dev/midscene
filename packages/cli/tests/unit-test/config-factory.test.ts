@@ -407,5 +407,64 @@ concurrent: 2
         cwd: process.cwd(),
       });
     });
+
+    test('should create config for the documented YAML runner config-file example', async () => {
+      const patterns = [
+        './scripts/search-iphone.yaml',
+        './scripts/search-laptop.yaml',
+        './scripts/search-headphones.yaml',
+        './scripts/search-camera.yaml',
+      ];
+      vi.mocked(matchYamlFiles)
+        .mockResolvedValueOnce(['./scripts/search-iphone.yaml'])
+        .mockResolvedValueOnce(['./scripts/search-laptop.yaml'])
+        .mockResolvedValueOnce(['./scripts/search-headphones.yaml'])
+        .mockResolvedValueOnce(['./scripts/search-camera.yaml']);
+
+      const result = await createFilesConfig(patterns, {
+        concurrent: 4,
+        continueOnError: true,
+        shareBrowserContext: true,
+        summary: 'doc-summary.json',
+        web: {
+          userAgent: 'Doc Agent',
+          viewportWidth: 1440,
+          viewportHeight: 900,
+        },
+        android: {
+          deviceId: 'android-doc-device',
+        },
+        ios: {
+          wdaPort: 8100,
+          wdaHost: '127.0.0.1',
+        },
+      });
+
+      expect(result).toEqual({
+        files: patterns,
+        concurrent: 4,
+        continueOnError: true,
+        shareBrowserContext: true,
+        summary: 'doc-summary.json',
+        headed: false,
+        keepWindow: false,
+        dotenvOverride: false,
+        dotenvDebug: false,
+        globalConfig: {
+          web: {
+            userAgent: 'Doc Agent',
+            viewportWidth: 1440,
+            viewportHeight: 900,
+          },
+          android: {
+            deviceId: 'android-doc-device',
+          },
+          ios: {
+            wdaPort: 8100,
+            wdaHost: '127.0.0.1',
+          },
+        },
+      });
+    });
   });
 });

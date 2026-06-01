@@ -5,9 +5,9 @@ import { runToolsCLI } from '@midscene/shared/cli';
 import type { BaseMidsceneTools } from '@midscene/shared/mcp/base-tools';
 import dotenv from 'dotenv';
 import { version } from '../package.json';
-import { BatchRunner } from './batch-runner';
 import { matchYamlFiles, parseProcessArgs } from './cli-utils';
 import { createConfig, createFilesConfig } from './config-factory';
+import { runFrameworkTestConfig } from './framework';
 
 Promise.resolve(
   (async () => {
@@ -98,11 +98,7 @@ Promise.resolve(
       });
     }
 
-    const executor = new BatchRunner(config);
-
-    await executor.run();
-
-    const success = executor.printExecutionSummary();
+    const exitCode = await runFrameworkTestConfig(config);
 
     if (config.keepWindow) {
       // hang the process to keep the browser window open
@@ -110,10 +106,7 @@ Promise.resolve(
         console.log('browser is still running, use ctrl+c to stop it');
       }, 5000);
     } else {
-      if (!success) {
-        process.exit(1);
-      }
-      process.exit(0);
+      process.exit(exitCode);
     }
   })().catch((e) => {
     console.error(e);
