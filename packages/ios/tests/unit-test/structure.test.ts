@@ -5,6 +5,13 @@ import { IOSAgent } from '../../src/agent';
 import { IOSDevice } from '../../src/device';
 import { IOSWebDriverClient } from '../../src/ios-webdriver-client';
 
+const mockedModelConfig = {
+  MIDSCENE_MODEL_NAME: 'mock',
+  MIDSCENE_MODEL_API_KEY: 'mock',
+  MIDSCENE_MODEL_BASE_URL: 'mock',
+  MIDSCENE_MODEL_FAMILY: 'doubao-vision',
+} as const;
+
 describe('iOS Package Structure', () => {
   describe('IOSDevice', () => {
     it('should be constructable with options', () => {
@@ -56,18 +63,27 @@ describe('iOS Package Structure', () => {
   describe('IOSAgent', () => {
     it('should be constructable with device', () => {
       const device = new IOSDevice();
-      expect(() => new IOSAgent(device)).not.toThrow();
+      expect(
+        () =>
+          new IOSAgent(device, {
+            modelConfig: mockedModelConfig,
+          }),
+      ).not.toThrow();
     });
 
     it('should extend base Agent functionality', () => {
       const device = new IOSDevice();
-      const agent = new IOSAgent(device);
+      const agent = new IOSAgent(device, {
+        modelConfig: mockedModelConfig,
+      });
       expect(agent.page).toBe(device);
     });
 
     it('should have launch method', () => {
       const device = new IOSDevice();
-      const agent = new IOSAgent(device);
+      const agent = new IOSAgent(device, {
+        modelConfig: mockedModelConfig,
+      });
       expect(typeof agent.launch).toBe('function');
     });
   });
@@ -155,7 +171,9 @@ describe('iOS Package Structure', () => {
   describe('Integration Points', () => {
     it('should have consistent device handling', () => {
       const device = new IOSDevice();
-      const agent = new IOSAgent(device);
+      const agent = new IOSAgent(device, {
+        modelConfig: mockedModelConfig,
+      });
       const client = new IOSWebDriverClient();
       const manager = WDAManager.getInstance();
 

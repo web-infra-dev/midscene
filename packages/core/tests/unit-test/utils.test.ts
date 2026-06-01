@@ -3,19 +3,16 @@ import * as fs from 'node:fs';
 import {
   extractJSONFromCodeBlock,
   safeParseJson,
-} from '@/ai-model/service-caller';
-import {
-  dumpActionParam,
-  findAllMidsceneLocatorField,
-  pointToBbox,
-} from '@/common';
+} from '@/ai-model/service-caller/json';
+import { dumpActionParam, findAllMidsceneLocatorField } from '@/common';
 import { getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
-  ifPlanLocateParamIsBbox,
+  ifPlanLocateParamHasLocatedPixelBbox,
+  isPixelBbox,
   transformLogicalElementToScreenshot,
   transformLogicalRectToScreenshotRect,
 } from '../../src/agent/utils';
@@ -321,31 +318,32 @@ describe('extractJSONFromCodeBlock', () => {
 
   it('should handle JSON with point coordinates', () => {
     const input = '(123,456)';
-    const result = safeParseJson(input, undefined);
+    const result = safeParseJson(input);
     expect(result).toEqual([123, 456]);
   });
 
   it('should parse valid JSON string using JSON.parse', () => {
     const input = '{"key": "value"}';
-    const result = safeParseJson(input, undefined);
+    const result = safeParseJson(input);
     expect(result).toEqual({ key: 'value' });
   });
 
   it('should parse dirty JSON using dirty-json parser', () => {
     const input = "{key: 'value'}"; // Invalid JSON but valid dirty-json
-    const result = safeParseJson(input, undefined);
+    const result = safeParseJson(input);
     expect(result).toEqual({ key: 'value' });
   });
 
   it('should throw error for unparseable content', () => {
-    const input = 'not a json at all';
-    const result = safeParseJson(input, undefined);
-    expect(result).toEqual(input);
+    const input = '{foo: true false}';
+    expect(() => safeParseJson(input)).toThrow(
+      /failed to parse LLM response into JSON/,
+    );
   });
 
   it('should parse JSON from code block', () => {
     const input = '```json\n{"key": "value"}\n```';
-    const result = safeParseJson(input, undefined);
+    const result = safeParseJson(input);
     expect(result).toEqual({ key: 'value' });
   });
 
@@ -359,7 +357,7 @@ describe('extractJSONFromCodeBlock', () => {
         "nested": "value"
       }
     }`;
-    const result = safeParseJson(input, undefined);
+    const result = safeParseJson(input);
     expect(result).toEqual({
       string: 'value',
       number: 123,
@@ -444,42 +442,6 @@ describe('buildDetailedLocateParamAndRestParams', () => {
     expect(result.restParams).toEqual({
       uiContext,
     });
-  });
-});
-
-describe('pointToBbox', () => {
-  it('should convert point to bbox in [0, 1000] space with default size (20)', () => {
-    const bbox = pointToBbox(500, 500);
-    expect(bbox).toEqual([490, 490, 510, 510]);
-  });
-
-  it('should convert point to bbox with custom size', () => {
-    const bbox = pointToBbox(500, 500, 10);
-    expect(bbox).toEqual([495, 495, 505, 505]);
-  });
-
-  it('should handle boundary at origin (0, 0)', () => {
-    const bbox = pointToBbox(0, 0);
-    expect(bbox[0]).toBe(0);
-    expect(bbox[1]).toBe(0);
-    expect(bbox[2]).toBe(10);
-    expect(bbox[3]).toBe(10);
-  });
-
-  it('should handle boundary at max (1000, 1000)', () => {
-    const bbox = pointToBbox(1000, 1000);
-    expect(bbox[0]).toBe(990);
-    expect(bbox[1]).toBe(990);
-    expect(bbox[2]).toBe(1000);
-    expect(bbox[3]).toBe(1000);
-  });
-
-  it('should clamp to [0, 1000] range', () => {
-    const bbox = pointToBbox(5, 995);
-    expect(bbox[0]).toBe(0);
-    expect(bbox[1]).toBe(985);
-    expect(bbox[2]).toBe(15);
-    expect(bbox[3]).toBe(1000);
   });
 });
 
@@ -886,56 +848,89 @@ describe('dumpActionParam', () => {
   });
 });
 
-describe('ifPlanLocateParamIsBbox', () => {
-  it('should return true when bbox is valid array with 4 elements', () => {
+describe('ifPlanLocateParamHasLocatedPixelBbox', () => {
+  it('should return true when locatedPixelBbox is valid array with 4 elements', () => {
     const param = {
       prompt: 'test element',
-      bbox: [100, 200, 300, 400] as [number, number, number, number],
+      locatedPixelBbox: [100, 200, 300, 400] as [
+        number,
+        number,
+        number,
+        number,
+      ],
     };
-    expect(ifPlanLocateParamIsBbox(param)).toBe(true);
+    expect(ifPlanLocateParamHasLocatedPixelBbox(param)).toBe(true);
   });
 
-  it('should return false when bbox is undefined', () => {
+  it('should return false when locatedPixelBbox is undefined', () => {
     const param = {
       prompt: 'test element',
     };
-    expect(ifPlanLocateParamIsBbox(param)).toBe(false);
+    expect(ifPlanLocateParamHasLocatedPixelBbox(param)).toBe(false);
   });
 
-  it('should return false when bbox is not an array', () => {
+  it('should return false when locatedPixelBbox is not an array', () => {
     const param = {
       prompt: 'test element',
-      bbox: 'not an array' as any,
+      locatedPixelBbox: 'not an array' as any,
     };
-    expect(ifPlanLocateParamIsBbox(param)).toBe(false);
+    expect(ifPlanLocateParamHasLocatedPixelBbox(param)).toBe(false);
   });
 
-  it('should return false when bbox array length is not 4', () => {
+  it('should return false when locatedPixelBbox array length is not 4', () => {
     const param1 = {
       prompt: 'test element',
-      bbox: [100, 200] as any,
+      locatedPixelBbox: [100, 200] as any,
     };
-    expect(ifPlanLocateParamIsBbox(param1)).toBe(false);
+    expect(ifPlanLocateParamHasLocatedPixelBbox(param1)).toBe(false);
 
     const param2 = {
       prompt: 'test element',
-      bbox: [100, 200, 300] as any,
+      locatedPixelBbox: [100, 200, 300] as any,
     };
-    expect(ifPlanLocateParamIsBbox(param2)).toBe(false);
+    expect(ifPlanLocateParamHasLocatedPixelBbox(param2)).toBe(false);
 
     const param3 = {
       prompt: 'test element',
-      bbox: [100, 200, 300, 400, 500] as any,
+      locatedPixelBbox: [100, 200, 300, 400, 500] as any,
     };
-    expect(ifPlanLocateParamIsBbox(param3)).toBe(false);
+    expect(ifPlanLocateParamHasLocatedPixelBbox(param3)).toBe(false);
   });
 
-  it('should return false when bbox is null', () => {
+  it('should return false when locatedPixelBbox is null', () => {
     const param = {
       prompt: 'test element',
-      bbox: null as any,
+      locatedPixelBbox: null as any,
     };
-    expect(ifPlanLocateParamIsBbox(param)).toBe(false);
+    expect(ifPlanLocateParamHasLocatedPixelBbox(param)).toBe(false);
+  });
+
+  it('should return false when locatedPixelBbox contains non-finite or non-number values', () => {
+    expect(
+      ifPlanLocateParamHasLocatedPixelBbox({
+        prompt: 'test element',
+        locatedPixelBbox: [100, Number.NaN, 300, 400] as any,
+      }),
+    ).toBe(false);
+    expect(
+      ifPlanLocateParamHasLocatedPixelBbox({
+        prompt: 'test element',
+        locatedPixelBbox: [100, '200', 300, 400] as any,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe('isPixelBbox', () => {
+  it('should return true for a finite four-number array', () => {
+    expect(isPixelBbox([1, 2, 3, 4])).toBe(true);
+  });
+
+  it('should return false for invalid bbox values', () => {
+    expect(isPixelBbox([1, 2, 3])).toBe(false);
+    expect(isPixelBbox([1, 2, 3, Number.POSITIVE_INFINITY])).toBe(false);
+    expect(isPixelBbox([1, 2, 3, '4'])).toBe(false);
+    expect(isPixelBbox(null)).toBe(false);
   });
 });
 

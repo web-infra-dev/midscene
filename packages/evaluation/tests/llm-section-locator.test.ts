@@ -1,6 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import type { Rect } from '@midscene/core';
-import { AiLocateSection } from '@midscene/core/ai-model';
+import { AiLocateSection, getModelRuntime } from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
@@ -17,6 +17,7 @@ dotenv.config({
 const testSources = ['antd-tooltip'];
 
 const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
+const defaultModelRuntime = getModelRuntime(defaultModelConfig);
 
 const { modelName, modelFamily } = defaultModelConfig;
 const resultCollector = new TestResultCollector('section-locator', modelName);
@@ -51,11 +52,11 @@ testSources.forEach((source) => {
         const result = await AiLocateSection({
           context,
           sectionDescription: prompt,
-          modelConfig: defaultModelConfig,
+          modelRuntime: defaultModelRuntime,
         });
 
         if (process.env.UPDATE_ANSWER_DATA) {
-          const { rect } = result;
+          const rect = result.searchAreaConfig?.sourceRect;
 
           if (rect) {
             const indexId = index + 1;

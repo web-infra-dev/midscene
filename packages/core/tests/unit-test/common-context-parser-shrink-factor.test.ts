@@ -26,36 +26,12 @@ function createMockInterface(
   } as unknown as AbstractInterface;
 }
 
-describe('commonContextParser modelFamily-based auto shrink', () => {
+describe('commonContextParser screenshotShrinkFactor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('does not auto-shrink large screenshots for gpt-5', async () => {
-    const mockInterface = createMockInterface(800, 400);
-    mockedImageInfo.mockResolvedValue({ width: 2400, height: 1200 });
-
-    const result = await commonContextParser(mockInterface, {
-      modelFamily: 'gpt-5',
-    });
-
-    expect(mockedResizeImg).not.toHaveBeenCalled();
-    expect(result.shotSize).toEqual({ width: 2400, height: 1200 });
-  });
-
-  it('does not auto-shrink for non-gpt-5 modelFamily', async () => {
-    const mockInterface = createMockInterface(800, 400);
-    mockedImageInfo.mockResolvedValue({ width: 2400, height: 1200 });
-
-    const result = await commonContextParser(mockInterface, {
-      modelFamily: 'qwen2.5-vl',
-    });
-
-    expect(mockedResizeImg).not.toHaveBeenCalled();
-    expect(result.shotSize).toEqual({ width: 2400, height: 1200 });
-  });
-
-  it('should not auto-shrink when no modelFamily is provided', async () => {
+  it('does not shrink when screenshotShrinkFactor is not provided', async () => {
     const mockInterface = createMockInterface(800, 400);
     mockedImageInfo.mockResolvedValue({ width: 2400, height: 1200 });
 
@@ -65,13 +41,12 @@ describe('commonContextParser modelFamily-based auto shrink', () => {
     expect(result.shotSize).toEqual({ width: 2400, height: 1200 });
   });
 
-  it('should use screenshotShrinkFactor when modelFamily is not gpt-5', async () => {
+  it('uses screenshotShrinkFactor when configured', async () => {
     const mockInterface = createMockInterface(800, 400);
     mockedImageInfo.mockResolvedValue({ width: 2400, height: 1200 });
 
     const result = await commonContextParser(mockInterface, {
       screenshotShrinkFactor: 2,
-      modelFamily: 'gemini',
     });
 
     expect(mockedResizeImg).toHaveBeenCalledWith('mock-base64-data', {
@@ -79,21 +54,6 @@ describe('commonContextParser modelFamily-based auto shrink', () => {
       height: 600,
     });
     expect(result.shotSize).toEqual({ width: 1200, height: 600 });
-  });
-
-  it('uses screenshotShrinkFactor even when modelFamily is gpt-5', async () => {
-    const mockInterface = createMockInterface(800, 400);
-    mockedImageInfo.mockResolvedValue({ width: 2400, height: 1200 });
-
-    const result = await commonContextParser(mockInterface, {
-      screenshotShrinkFactor: 3,
-      modelFamily: 'gpt-5',
-    });
-
-    expect(result.shotSize).toEqual({
-      width: 800,
-      height: 400,
-    });
   });
 
   it('should handle dpr=1 (logical equals physical) with screenshotShrinkFactor', async () => {

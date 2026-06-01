@@ -78,7 +78,7 @@ describe('Agent with custom OpenAI client', () => {
           "retryInterval": 2000,
           "slot": "default",
           "socksProxy": undefined,
-          "temperature": 0,
+          "temperature": undefined,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
         }
@@ -106,7 +106,7 @@ describe('Agent with custom OpenAI client', () => {
           "retryInterval": 2000,
           "slot": "default",
           "socksProxy": undefined,
-          "temperature": 0,
+          "temperature": undefined,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
         }
@@ -134,7 +134,7 @@ describe('Agent with custom OpenAI client', () => {
           "retryInterval": 2000,
           "slot": "default",
           "socksProxy": undefined,
-          "temperature": 0,
+          "temperature": undefined,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
         }
@@ -174,7 +174,7 @@ describe('Agent with custom OpenAI client', () => {
           "retryInterval": 2000,
           "slot": "default",
           "socksProxy": undefined,
-          "temperature": 0,
+          "temperature": undefined,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
         }
@@ -202,7 +202,7 @@ describe('Agent with custom OpenAI client', () => {
           "retryInterval": 2000,
           "slot": "planning",
           "socksProxy": undefined,
-          "temperature": 0,
+          "temperature": undefined,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
         }
@@ -230,7 +230,7 @@ describe('Agent with custom OpenAI client', () => {
           "retryInterval": 2000,
           "slot": "insight",
           "socksProxy": undefined,
-          "temperature": 0,
+          "temperature": undefined,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
         }

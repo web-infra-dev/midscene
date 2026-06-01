@@ -1,12 +1,19 @@
-import type { TModelFamily } from '@midscene/shared/env';
 import { getPreferredLanguage } from '@midscene/shared/env';
-import { bboxDescription } from './common';
+import type { LocateResultPromptSpec } from '../shared/model-locate-result';
+import { formatLocateExampleValue } from './locate-param-example';
 
 export function systemPromptToLocateSection(
-  modelFamily: TModelFamily | undefined,
+  promptSpec: LocateResultPromptSpec,
 ) {
   const preferredLanguage = getPreferredLanguage();
-  const bboxFormat = bboxDescription(modelFamily);
+  const resultKey = promptSpec.resultKey;
+  const exampleValueText = formatLocateExampleValue(
+    promptSpec.exampleValues[0],
+  );
+  const resultJsonProperty = `"${resultKey}": ${promptSpec.resultValueSchema},  // ${promptSpec.resultValueDescription}`;
+  const resultValueType = promptSpec.resultValueSchema;
+  const resultFieldDescription = `${promptSpec.resultNoun} of the section containing the target element`;
+  const referenceFieldDescription = `Optional array of ${promptSpec.resultNounPlural} of reference elements`;
   return `
 ## Role:
 You are an AI assistant that helps identify UI elements.
@@ -18,9 +25,9 @@ You are an AI assistant that helps identify UI elements.
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],  // ${bboxFormat}
-  "references_bbox"?: [
-    [number, number, number, number],
+  ${resultJsonProperty}
+  "references_${resultKey}"?: [
+    ${resultValueType},
     ...
   ],
   "error"?: string
@@ -28,16 +35,16 @@ You are an AI assistant that helps identify UI elements.
 \`\`\`
 
 Fields:
-* \`bbox\` - Bounding box of the section containing the target element
-* \`references_bbox\` - Optional array of bounding boxes for reference elements
+* \`${resultKey}\` - ${resultFieldDescription}
+* \`references_${resultKey}\` - ${referenceFieldDescription}
 * \`error\` - Optional error message if the section cannot be found. Use ${preferredLanguage}.
 
 Example:
 If the description is "delete button on the second row with title 'Peter'", return:
 \`\`\`json
 {
-  "bbox": [100, 100, 200, 200],
-  "references_bbox": [[100, 100, 200, 200]]
+  "${resultKey}": ${exampleValueText},
+  "references_${resultKey}": [${exampleValueText}]
 }
 \`\`\`
 `;

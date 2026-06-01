@@ -1,14 +1,11 @@
 import { parseXMLPlanningResponse } from '@/ai-model/llm-planning';
+import { getModelAdapter } from '@/ai-model/models';
 import { descriptionForAction } from '@/ai-model/prompt/llm-planning';
 import {
   parseMarkFinishedIndexes,
   parseSubGoalsFromXML,
 } from '@/ai-model/prompt/util';
-import {
-  adaptQwen2_5Bbox as adaptQwenBbox,
-  fillBboxParam,
-  getMidsceneLocationSchema,
-} from '@/common';
+import { getMidsceneLocationSchema } from '@/common';
 import { buildYamlFlowFromPlans } from '@/common';
 import {
   MIDSCENE_USE_DOUBAO_VISION,
@@ -17,32 +14,6 @@ import {
 } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-
-describe('llm planning - qwen', () => {
-  it('adapt qwen bbox', () => {
-    const result = adaptQwenBbox([100, 100]);
-    expect(result).toMatchInlineSnapshot(`
-      [
-        100,
-        100,
-        120,
-        120,
-      ]
-    `);
-  });
-
-  it('adapt qwen bbox', () => {
-    const result = adaptQwenBbox([100, 100]);
-    expect(result).toMatchInlineSnapshot(`
-      [
-        100,
-        100,
-        120,
-        120,
-      ]
-    `);
-  });
-});
 
 describe('llm planning - doubao', () => {
   beforeEach(() => {
@@ -55,19 +26,58 @@ describe('llm planning - doubao', () => {
     vi.unstubAllEnvs();
   });
 
-  it('fill locate param', () => {
+  it('adapts doubao locate result to pixel bbox', () => {
+    const locateAdapter = getModelAdapter('doubao-vision').locate;
+    if (locateAdapter.kind !== 'standard') {
+      throw new Error('doubao-vision should use standard locate adapter');
+    }
     const locate = {
       id: 'test',
       prompt: 'test',
-      bbox_2d: [923, 123, 123, 123] as [number, number, number, number],
+      bbox_2d: [123, 123, 923, 923] as [number, number, number, number],
     };
 
-    const filledLocate = fillBboxParam(locate, 1000, 1000, 'doubao-vision');
-    expect(filledLocate).toEqual({
+    const locatedPixelBbox =
+      locateAdapter.resultAdapter.adaptPlanningParamToPixelBbox(locate, {
+        preparedSize: { width: 1000, height: 1000 },
+      });
+    expect(locatedPixelBbox).toEqual([123, 123, 922, 922]);
+  });
+
+  it('throws when adapting locate result without a recognizable result field', () => {
+    const locateAdapter = getModelAdapter('glm-v').locate;
+    if (locateAdapter.kind !== 'standard') {
+      throw new Error('glm-v should use standard locate adapter');
+    }
+    const locate = {
       id: 'test',
       prompt: 'test',
-      bbox: [923, 123, 123, 123],
-    });
+    };
+
+    expect(() =>
+      locateAdapter.resultAdapter.adaptPlanningParamToPixelBbox(locate, {
+        preparedSize: { width: 1000, height: 2000 },
+      }),
+    ).toThrow(/recognizable locate result field/);
+  });
+
+  it('clamps normalized locate bbox to content size', () => {
+    const locateAdapter = getModelAdapter('glm-v').locate;
+    if (locateAdapter.kind !== 'standard') {
+      throw new Error('glm-v should use standard locate adapter');
+    }
+    const locate = {
+      id: 'test',
+      prompt: 'test',
+      bbox: [100, 200, 1000, 1000] as [number, number, number, number],
+    };
+
+    const locatedPixelBbox =
+      locateAdapter.resultAdapter.adaptPlanningParamToPixelBbox(locate, {
+        preparedSize: { width: 1200, height: 1400 },
+        contentSize: { width: 1000, height: 1000 },
+      });
+    expect(locatedPixelBbox).toEqual([120, 280, 999, 999]);
   });
 });
 
@@ -669,7 +679,10 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result).toEqual({
       thought: 'I need to click the login button',
@@ -701,7 +714,10 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result).toEqual({
       log: 'Performing action',
@@ -723,7 +739,10 @@ describe('parseXMLPlanningResponse', () => {
 <action-type>null</action-type>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result).toEqual({
       log: 'Task completed',
@@ -737,7 +756,10 @@ describe('parseXMLPlanningResponse', () => {
 <log>Just logging</log>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result).toEqual({
       log: 'Just logging',
@@ -758,7 +780,10 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result).toEqual({
       log: 'Attempting to recover',
@@ -779,7 +804,10 @@ describe('parseXMLPlanningResponse', () => {
 <action-type>Wait</action-type>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result).toEqual({
       log: 'Waiting',
@@ -808,7 +836,10 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result.thought).toBe(
       'This is a complex thought\n  spanning multiple lines',
@@ -824,7 +855,10 @@ describe('parseXMLPlanningResponse', () => {
 <complete success="true">Task completed</complete>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
     expect(result).toEqual({
       thought: 'Some thought',
       log: '',
@@ -844,9 +878,9 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    expect(() => parseXMLPlanningResponse(xml, modelFamily)).toThrow(
-      'Failed to parse action-param-json',
-    );
+    expect(() =>
+      parseXMLPlanningResponse(xml, getModelAdapter(modelFamily).jsonParser),
+    ).toThrow('Failed to parse action-param-json');
   });
 
   it('should handle case-insensitive tag matching', () => {
@@ -856,7 +890,10 @@ describe('parseXMLPlanningResponse', () => {
 <ACTION-TYPE>Tap</ACTION-TYPE>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result.log).toBe('Case insensitive log');
     expect(result.action?.type).toBe('Tap');
@@ -875,7 +912,10 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result).toEqual({
       thought: 'The Priority input field is active now.',
@@ -904,7 +944,10 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result.log).toBe('Click "Submit" button');
     expect(result.memory).toBe('Values: <100 & >50');
@@ -918,7 +961,10 @@ describe('parseXMLPlanningResponse', () => {
 <complete success="true">The product names are: 'Product A', 'Product B', 'Product C'</complete>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result).toEqual({
       thought: 'Task completed successfully',
@@ -937,7 +983,10 @@ describe('parseXMLPlanningResponse', () => {
 <complete success="false">Unable to find the required element on the page</complete>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result).toEqual({
       thought: 'Task failed',
@@ -955,7 +1004,10 @@ describe('parseXMLPlanningResponse', () => {
 <complete success="true"></complete>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result).toEqual({
       thought: 'Task completed',
@@ -977,7 +1029,10 @@ Extracted data:
 </complete>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result).toEqual({
       thought: 'Data extraction completed',
@@ -997,7 +1052,10 @@ Extracted data:
 <complete success="true">All 10 items have been processed</complete>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result).toEqual({
       thought: 'All tasks completed successfully',
@@ -1016,7 +1074,10 @@ Extracted data:
 <COMPLETE success="true">Success message</COMPLETE>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result).toEqual({
       thought: 'Task done',
@@ -1039,7 +1100,10 @@ Extracted data:
 </update-plan-content>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result.updateSubGoals).toEqual([
       { index: 1, status: 'pending', description: 'Log in to the system' },
@@ -1062,7 +1126,10 @@ Extracted data:
 </mark-sub-goal-done>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result.markFinishedIndexes).toEqual([1]);
   });
@@ -1078,7 +1145,10 @@ Extracted data:
 </mark-sub-goal-done>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result.markFinishedIndexes).toEqual([1, 2]);
   });
@@ -1100,7 +1170,10 @@ Extracted data:
 </action-type>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result.action?.type).toBe('KeyboardPress');
     expect(result.action?.param).toEqual({ keyName: 'Enter' });
@@ -1120,7 +1193,10 @@ Extracted data:
 </mark-sub-goal-done>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+    );
 
     expect(result.updateSubGoals).toEqual([
       { index: 1, status: 'finished', description: 'Log in to the system' },

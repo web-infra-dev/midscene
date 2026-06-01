@@ -1,4 +1,5 @@
 import { TaskExecutor } from '@midscene/core/agent';
+import { getModelRuntime } from '@midscene/core/ai-model';
 import { defineActionSleep } from '@midscene/core/device';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -44,6 +45,7 @@ const mockedModelConfig: IModelConfig = {
   intent: 'default',
   slot: 'default',
 };
+const mockedModelRuntime = getModelRuntime(mockedModelConfig);
 
 describe('TaskExecutor waitFor method with doNotThrowError', () => {
   let taskExecutor: TaskExecutor;
@@ -113,14 +115,14 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
         timeoutMs: 5000,
         checkIntervalMs: 1000,
       },
-      mockedModelConfig,
+      mockedModelRuntime,
     );
 
     // Verify that createTypeQueryTask was called with ServiceExtractOption
     expect(createTypeQueryTaskSpy).toHaveBeenCalledWith(
       'WaitFor',
       'test assertion',
-      mockedModelConfig,
+      mockedModelRuntime,
       {
         domIncluded: undefined,
         screenshotIncluded: undefined,
@@ -168,14 +170,14 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
         timeoutMs: 5000,
         checkIntervalMs: 1000,
       },
-      mockedModelConfig,
+      mockedModelRuntime,
     );
 
     // Verify that createTypeQueryTask was called multiple times with ServiceExtractOption
     expect(createTypeQueryTaskSpy).toHaveBeenCalledWith(
       'WaitFor',
       'test assertion',
-      mockedModelConfig,
+      mockedModelRuntime,
       {
         domIncluded: undefined,
         screenshotIncluded: undefined,

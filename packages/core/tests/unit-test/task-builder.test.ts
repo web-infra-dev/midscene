@@ -1,5 +1,6 @@
 import { TaskBuilder } from '@/agent/task-builder';
 import { getMidsceneLocationSchema } from '@/ai-model';
+import { getModelRuntime } from '@/ai-model/models';
 import { AbstractInterface, defineActionSleep } from '@/device';
 import type Service from '@/service';
 import type { DeviceAction, PlanningAction } from '@/types';
@@ -42,6 +43,13 @@ class MockInterface extends AbstractInterface {
 }
 
 describe('TaskBuilder', () => {
+  const mockModelRuntime = getModelRuntime({
+    modelName: 'mock-model',
+    modelDescription: 'mock-model-description',
+    intent: 'default',
+    slot: 'default',
+  });
+
   afterEach(() => {
     vi.useRealTimers();
   });
@@ -94,7 +102,11 @@ describe('TaskBuilder', () => {
       },
     ];
 
-    const { tasks } = await taskBuilder.build(plans, {} as any, {} as any);
+    const { tasks } = await taskBuilder.build(
+      plans,
+      mockModelRuntime,
+      mockModelRuntime,
+    );
 
     expect(tasks.map((task) => [task.type, task.subType])).toEqual([
       ['Planning', 'Locate'],
@@ -155,13 +167,13 @@ describe('TaskBuilder', () => {
 
     const { tasks: defaultTasks } = await defaultTaskBuilder.build(
       [{ type: 'DefaultExit', thought: '', param: {} }],
-      {} as any,
-      {} as any,
+      mockModelRuntime,
+      mockModelRuntime,
     );
     const { tasks: fastTasks } = await fastTaskBuilder.build(
       [{ type: 'FastExit', thought: '', param: {} }],
-      {} as any,
-      {} as any,
+      mockModelRuntime,
+      mockModelRuntime,
     );
 
     const defaultTask = defaultTasks[0];

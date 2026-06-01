@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import Service, { type Rect } from '@midscene/core';
+import { getModelRuntime } from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
@@ -80,7 +81,7 @@ testSources.forEach((source) => {
                   : testCase.deepLocate,
             },
             {},
-            modelConfig,
+            getModelRuntime(modelConfig),
           );
         } catch (error) {
           result = error as Error;

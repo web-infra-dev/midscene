@@ -22,6 +22,7 @@ describe('service-caller empty content handling', () => {
     const { callAI, AIResponseParseError } = await import(
       '@/ai-model/service-caller'
     );
+    const { getModelRuntime } = await import('@/ai-model/models');
 
     mockCreate.mockResolvedValue({
       choices: [{ message: { content: '' } }],
@@ -45,7 +46,10 @@ describe('service-caller empty content handling', () => {
       slot: 'default',
     };
 
-    const promise = callAI([{ role: 'user', content: 'hello' }], modelConfig);
+    const promise = callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime(modelConfig),
+    );
 
     await expect(promise).rejects.toBeInstanceOf(AIResponseParseError);
 

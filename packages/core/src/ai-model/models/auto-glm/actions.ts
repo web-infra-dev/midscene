@@ -1,7 +1,11 @@
-import { adaptBbox, pointToBbox } from '@/common';
 import type { DeviceAction } from '@/device';
-import type { PlanningAction } from '@/types';
+import type {
+  PlanningAction,
+  PlanningLocateParamWithLocatedPixelBbox,
+} from '@/types';
 import { getDebug } from '@midscene/shared/logger';
+import { finalizePixelBbox } from '../../shared/model-locate-result/bbox';
+import { mapLocateResultToPixelBboxByCoordinates } from '../../shared/model-locate-result/pixel-bbox-mapper';
 
 const debug = getDebug('auto-glm-actions');
 
@@ -10,17 +14,21 @@ const debug = getDebug('auto-glm-actions');
  */
 const AUTO_GLM_COORDINATE_MAX = 1000;
 
-/**
- * Convert auto-glm coordinate [0,1000] to bbox in pixel coordinates
- */
-function autoGLMCoordinateToBbox(
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-): [number, number, number, number] {
-  const bbox = pointToBbox(x, y, 10);
-  return adaptBbox(bbox, width, height, 'auto-glm');
+function autoGLMCoordinateToLocateParam(
+  coordinate: [number, number],
+  size: { width: number; height: number },
+): PlanningLocateParamWithLocatedPixelBbox {
+  const ctx = { preparedSize: size };
+  const pixelBbox = mapLocateResultToPixelBboxByCoordinates(
+    { type: 'point', coordinates: coordinate },
+    ctx,
+    { shape: 'point', order: 'xy', normalizedBy: AUTO_GLM_COORDINATE_MAX },
+  );
+
+  return {
+    prompt: '',
+    locatedPixelBbox: finalizePixelBbox(pixelBbox, coordinate, ctx),
+  };
 }
 
 export interface BaseAction {
@@ -180,20 +188,10 @@ export function transformAutoGLMAction(
           case 'Tap': {
             const tapAction = doAction as TapAction;
             debug('Transform Tap action:', tapAction);
-            const [x1, y1, x2, y2] = autoGLMCoordinateToBbox(
-              tapAction.element[0],
-              tapAction.element[1],
-              size.width,
-              size.height,
+            const locate = autoGLMCoordinateToLocateParam(
+              tapAction.element,
+              size,
             );
-
-            const locate: {
-              prompt: string;
-              bbox: [number, number, number, number];
-            } = {
-              prompt: '',
-              bbox: [x1, y1, x2, y2],
-            };
 
             return [
               {
@@ -207,20 +205,10 @@ export function transformAutoGLMAction(
           case 'Double Tap': {
             const doubleTapAction = doAction as DoubleTapAction;
             debug('Transform Double Tap action:', doubleTapAction);
-            const [x1, y1, x2, y2] = autoGLMCoordinateToBbox(
-              doubleTapAction.element[0],
-              doubleTapAction.element[1],
-              size.width,
-              size.height,
+            const locate = autoGLMCoordinateToLocateParam(
+              doubleTapAction.element,
+              size,
             );
-
-            const locate: {
-              prompt: string;
-              bbox: [number, number, number, number];
-            } = {
-              prompt: '',
-              bbox: [x1, y1, x2, y2],
-            };
 
             return [
               {
@@ -248,21 +236,10 @@ export function transformAutoGLMAction(
             const swipeAction = doAction as SwipeAction;
             debug('Transform Swipe action:', swipeAction);
 
-            // Calculate locate using start coordinate
-            const [x1, y1, x2, y2] = autoGLMCoordinateToBbox(
-              swipeAction.start[0],
-              swipeAction.start[1],
-              size.width,
-              size.height,
+            const locate = autoGLMCoordinateToLocateParam(
+              swipeAction.start,
+              size,
             );
-
-            const locate: {
-              prompt: string;
-              bbox: [number, number, number, number];
-            } = {
-              prompt: '',
-              bbox: [x1, y1, x2, y2],
-            };
 
             // Calculate horizontal and vertical delta in [0,AUTO_GLM_COORDINATE_MAX] coordinate system
             const deltaX = swipeAction.end[0] - swipeAction.start[0];
@@ -309,20 +286,10 @@ export function transformAutoGLMAction(
           case 'Long Press': {
             const longPressAction = doAction as LongPressAction;
             debug('Transform Long Press action:', longPressAction);
-            const [x1, y1, x2, y2] = autoGLMCoordinateToBbox(
-              longPressAction.element[0],
-              longPressAction.element[1],
-              size.width,
-              size.height,
+            const locate = autoGLMCoordinateToLocateParam(
+              longPressAction.element,
+              size,
             );
-
-            const locate: {
-              prompt: string;
-              bbox: [number, number, number, number];
-            } = {
-              prompt: '',
-              bbox: [x1, y1, x2, y2],
-            };
 
             return [
               {

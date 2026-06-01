@@ -2,7 +2,7 @@
  * Test for bbox locate cache bug fix
  *
  * Bug description:
- * When planning returns actions with bbox coordinates (includeBboxInPlanning=true),
+ * When planning returns actions with bbox coordinates (includeLocateInPlanning=true),
  * the locate cache was not being written. This caused:
  * - 1st execution: only plan cache written
  * - 2nd execution: plan cache hit, but locate needs AI call
@@ -14,6 +14,7 @@
  */
 import { type LocateCache, TaskCache } from '@/agent';
 import { TaskBuilder } from '@/agent/task-builder';
+import { getModelRuntime } from '@/ai-model/models';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type Service from '@/service';
@@ -78,6 +79,7 @@ describe('bbox locate cache fix', () => {
     intent: 'default',
     slot: 'default',
   };
+  const mockModelRuntime = getModelRuntime(mockModelConfig);
 
   beforeEach(() => {
     // Create mock interface with typed methods
@@ -164,14 +166,19 @@ describe('bbox locate cache fix', () => {
 
   describe('when planning returns actions with bbox', () => {
     it('should write locate cache even when bbox is used for positioning', async () => {
-      // Mock planning result with bbox (simulates includeBboxInPlanning=true)
+      // Mock planning result with bbox (simulates includeLocateInPlanning=true)
       const plansWithBbox = [
         {
           type: 'Tap',
           param: {
             locate: {
               prompt: 'search input box',
-              bbox: [450, 280, 550, 320] as [number, number, number, number],
+              locatedPixelBbox: [450, 280, 550, 320] as [
+                number,
+                number,
+                number,
+                number,
+              ],
             },
           },
           thought: 'tap the search box',
@@ -181,8 +188,8 @@ describe('bbox locate cache fix', () => {
       // Convert plans to executable tasks
       const { tasks } = await taskBuilder.build(
         plansWithBbox,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
         { cacheable: true },
       );
 
@@ -221,7 +228,12 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'submit button',
-              bbox: [100, 200, 200, 250] as [number, number, number, number],
+              locatedPixelBbox: [100, 200, 200, 250] as [
+                number,
+                number,
+                number,
+                number,
+              ],
             },
           },
           thought: 'tap submit',
@@ -230,8 +242,8 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilder.build(
         plansWithBbox,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
@@ -252,7 +264,12 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'submit button',
-              bbox: [100, 200, 200, 250] as [number, number, number, number],
+              locatedPixelBbox: [100, 200, 200, 250] as [
+                number,
+                number,
+                number,
+                number,
+              ],
               deepLocate: true,
             },
           },
@@ -262,8 +279,8 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilder.build(
         plansWithBboxAndDeepLocate,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
@@ -277,7 +294,7 @@ describe('bbox locate cache fix', () => {
       expect(mockService.locate).toHaveBeenCalledWith(
         expect.objectContaining({
           prompt: 'submit button',
-          bbox: [100, 200, 200, 250],
+          locatedPixelBbox: [100, 200, 200, 250],
           deepLocate: true,
         }),
         expect.objectContaining({
@@ -291,7 +308,9 @@ describe('bbox locate cache fix', () => {
           }),
         }),
         expect.objectContaining({
-          modelName: 'test-model',
+          config: expect.objectContaining({
+            modelName: 'test-model',
+          }),
         }),
         undefined,
       );
@@ -330,7 +349,12 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'existing element',
-              bbox: [100, 100, 200, 150] as [number, number, number, number],
+              locatedPixelBbox: [100, 100, 200, 150] as [
+                number,
+                number,
+                number,
+                number,
+              ],
             },
           },
           thought: 'tap existing element',
@@ -339,8 +363,8 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilderWithCache.build(
         plansWithBbox,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
@@ -393,8 +417,8 @@ describe('bbox locate cache fix', () => {
           thought: 'tap the search box',
         },
       ],
-      mockModelConfig,
-      mockModelConfig,
+      mockModelRuntime,
+      mockModelRuntime,
       { cacheable: false },
     );
 
@@ -468,8 +492,8 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilderWithCache.build(
         plansWithoutBbox,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
@@ -495,7 +519,12 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: '',
-              bbox: [100, 100, 200, 150] as [number, number, number, number],
+              locatedPixelBbox: [100, 100, 200, 150] as [
+                number,
+                number,
+                number,
+                number,
+              ],
             },
           },
           thought: 'tap element',
@@ -504,8 +533,8 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilder.build(
         plansWithBbox,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
@@ -527,7 +556,12 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'no cache element',
-              bbox: [100, 100, 200, 150] as [number, number, number, number],
+              locatedPixelBbox: [100, 100, 200, 150] as [
+                number,
+                number,
+                number,
+                number,
+              ],
             },
           },
           thought: 'tap without cache',
@@ -536,8 +570,8 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilder.build(
         plansWithBbox,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
         { cacheable: false },
       );
 
@@ -569,7 +603,12 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'element with no cache features',
-              bbox: [100, 100, 200, 150] as [number, number, number, number],
+              locatedPixelBbox: [100, 100, 200, 150] as [
+                number,
+                number,
+                number,
+                number,
+              ],
             },
           },
           thought: 'tap element',
@@ -578,8 +617,8 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilder.build(
         plansWithBbox,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
@@ -666,8 +705,8 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilderWithCache.build(
         plans,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
@@ -760,8 +799,8 @@ describe('bbox locate cache fix', () => {
 
       const { tasks } = await taskBuilderWithCache.build(
         plansWithoutBbox,
-        mockModelConfig,
-        mockModelConfig,
+        mockModelRuntime,
+        mockModelRuntime,
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');

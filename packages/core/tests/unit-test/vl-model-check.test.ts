@@ -120,17 +120,17 @@ describe('VL Model Check for Different Interface Types', () => {
     }).not.toThrow();
   });
 
-  it('should require VL model for android interface without modelFamily', () => {
+  it('should defer VL model check for android interface until getting UI context', async () => {
     const mockPage = createMockInterface('android');
 
-    // This should not throw at construction time, but would throw when
-    // ensureVLModelWarning is called (e.g., during an AI action)
-    expect(() => {
-      new Agent(mockPage, {
-        generateReport: false,
-        modelConfig: mockedModelConfig,
-      });
-    }).not.toThrow();
+    const agent = new Agent(mockPage, {
+      generateReport: false,
+      modelConfig: mockedModelConfig,
+    });
+
+    await expect(agent.getUIContext()).rejects.toThrow(
+      /MIDSCENE_MODEL_FAMILY is not set/,
+    );
   });
 
   it('should not throw error for android interface with VL model configured', () => {

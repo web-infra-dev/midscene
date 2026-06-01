@@ -1,5 +1,6 @@
 import type { DeviceAction, PlanningAction } from '@midscene/core';
 import { TaskExecutor } from '@midscene/core/agent';
+import { getModelRuntime } from '@midscene/core/ai-model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock page with mouse operations
@@ -38,6 +39,13 @@ const mockInsight = {
   }),
 } as any;
 
+const mockModelRuntime = getModelRuntime({
+  modelName: 'mock-model',
+  modelDescription: 'mock-model-description',
+  intent: 'default',
+  slot: 'default',
+});
+
 describe('TaskExecutor RightClick Action', () => {
   let taskExecutor: TaskExecutor;
 
@@ -61,9 +69,11 @@ describe('TaskExecutor RightClick Action', () => {
     };
 
     // Test plan conversion instead of full execution
-    const { tasks } = await (taskExecutor as any).convertPlanToExecutable([
-      rightClickPlan,
-    ]);
+    const { tasks } = await (taskExecutor as any).convertPlanToExecutable(
+      [rightClickPlan],
+      mockModelRuntime,
+      mockModelRuntime,
+    );
 
     expect(tasks).toHaveLength(1);
     expect(tasks[0].type).toBe('Action Space');
@@ -99,6 +109,8 @@ describe('TaskExecutor RightClick Action', () => {
     // Convert plans to executable tasks
     const { tasks } = await (taskExecutor as any).convertPlanToExecutable(
       plans,
+      mockModelRuntime,
+      mockModelRuntime,
     );
 
     expect(tasks).toHaveLength(2);
@@ -124,9 +136,11 @@ describe('TaskExecutor RightClick Action', () => {
       thought: 'Right click test',
     };
 
-    const { tasks } = await (taskExecutor as any).convertPlanToExecutable([
-      rightClickPlan,
-    ]);
+    const { tasks } = await (taskExecutor as any).convertPlanToExecutable(
+      [rightClickPlan],
+      mockModelRuntime,
+      mockModelRuntime,
+    );
     const rightClickTask = tasks[0];
 
     // Mock element for executor context
@@ -178,9 +192,11 @@ describe('TaskExecutor RightClick Action', () => {
       thought: 'Right click test',
     };
 
-    const { tasks } = await (taskExecutor as any).convertPlanToExecutable([
-      rightClickPlan,
-    ]);
+    const { tasks } = await (taskExecutor as any).convertPlanToExecutable(
+      [rightClickPlan],
+      mockModelRuntime,
+      mockModelRuntime,
+    );
     const rightClickTask = tasks[0];
 
     const mockContext = {

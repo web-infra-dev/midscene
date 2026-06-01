@@ -67,20 +67,36 @@ describe('IIFE bundle runtime behavior', () => {
 
       expect(exports).toBeDefined();
 
+      // Usage status is based on direct calls through
+      // window.midscene_element_inspector.xxx in runtime code.
       const requiredExports = [
+        // Used by shared node injection and Chrome Extension page content extraction.
         'webExtractNodeTree',
+        // Not found in runtime calls; suspected removable from the IIFE surface.
         'getNodeInfoByXpath',
+        // Not found in runtime calls; suspected removable from the IIFE surface.
         'treeToList',
+        // Not found in runtime calls; suspected removable from the IIFE surface.
         'traverseTree',
+        // Not found in runtime calls; suspected removable from the IIFE surface.
         'trimAttributes',
+        // Used by web-integration extractor tests and kept as part of the browser
+        // extraction API.
         'webExtractNodeTreeAsString',
+        // Used by shared node injection for text-position extraction.
         'webExtractTextWithPosition',
         'generateElementByRect',
+        // Not found in runtime calls; suspected removable from the IIFE surface.
         'isNotContainerElement',
+        // Not found in runtime calls; suspected removable from the IIFE surface.
         'getElementXpath',
+        // Used by Puppeteer and Chrome Extension cache lookup flows.
         'getElementInfoByXpath',
+        // Not found in runtime calls; suspected removable from the IIFE surface.
         'descriptionOfTree',
+        // Used by Puppeteer and Chrome Extension cache lookup flows.
         'getXpathsByPoint',
+        // Not found in runtime calls; suspected removable from the IIFE surface.
         'truncateText',
       ];
 

@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { expandSearchArea, mergeRects } from '@/common';
+import { mergePixelBboxesToRect } from '@/ai-model/workflows/inspect/locate-result-rect';
+import { expandSearchArea } from '@/common';
 
-it('mergeRects', () => {
-  const result = mergeRects([
-    { left: 10, top: 10, width: 10, height: 500 },
-    { left: 100, top: 100, width: 100, height: 100 },
+it('mergePixelBboxesToRect', () => {
+  const result = mergePixelBboxesToRect([
+    [10, 10, 19, 509],
+    [100, 100, 199, 199],
   ]);
   expect(result).toMatchInlineSnapshot(`
       {

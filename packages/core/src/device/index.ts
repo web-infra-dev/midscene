@@ -1,10 +1,10 @@
+import type { ModelRuntime } from '@/ai-model/models';
 import { getMidsceneLocationSchema } from '@/common';
 import type {
   ActionScrollParam,
   DeviceAction,
   LocateResultElement,
 } from '@/types';
-import type { IModelConfig } from '@midscene/shared/env';
 import type { ElementNode } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
@@ -137,7 +137,7 @@ export abstract class AbstractInterface {
     center: [number, number],
     options?: {
       targetDescription?: string;
-      modelConfig?: IModelConfig;
+      modelRuntime?: ModelRuntime;
     },
   ): Promise<ElementCacheFeature>;
   abstract rectMatchesCacheFeature?(
