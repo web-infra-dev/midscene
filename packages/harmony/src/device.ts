@@ -3,9 +3,11 @@ import fs from 'node:fs';
 import {
   type ActionScrollParam,
   type DeviceAction,
+  type ElementCacheFeature,
   type InterfaceType,
   type LocateResultElement,
   type Point,
+  type Rect,
   type Size,
   z,
 } from '@midscene/core';
@@ -18,12 +20,17 @@ import {
   createDefaultMobileActions,
   defineAction,
 } from '@midscene/core/device';
+import {
+  findRectByXpath,
+  generateXpathCandidates,
+} from '@midscene/core/device-cache';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison, repeat } from '@midscene/shared/utils';
 import { HdcClient } from './hdc';
+import { uitestJsonToUiNode } from './uitest-tree';
 
 type KeyboardDismissStrategy = 'esc-first' | 'back-first';
 
@@ -419,6 +426,73 @@ export class HarmonyDevice implements AbstractInterface {
     const screenInfo = await hdc.getScreenInfo();
     this.cachedScreenSize = screenInfo;
     return screenInfo;
+  }
+
+  async cacheFeatureForPoint(
+    center: [number, number],
+  ): Promise<ElementCacheFeature> {
+    try {
+      const hdc = await this.getHdc();
+      const json = await hdc.dumpLayout();
+      const root = uitestJsonToUiNode(json);
+      const xpaths = generateXpathCandidates(
+        root,
+        { x: center[0], y: center[1] },
+        {
+          // ArkUI exposes inspectorKey via the `key` attribute in dumpLayout;
+          // some component libraries also surface `id`. Prefer key when both
+          // exist.
+          stableAttrs: ['key', 'id', 'inspectorKey'],
+          textAttrs: ['text', 'description', 'accessibilityText'],
+        },
+      );
+      if (xpaths.length === 0) {
+        debugDevice(
+          'cacheFeatureForPoint: no xpath candidate at point %o',
+          center,
+        );
+      }
+      return { xpaths };
+    } catch (error) {
+      debugDevice(`cacheFeatureForPoint failed: ${error}`);
+      return { xpaths: [] };
+    }
+  }
+
+  async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
+    const xpaths = Array.isArray((feature as { xpaths?: unknown }).xpaths)
+      ? ((feature as { xpaths: unknown[] }).xpaths.filter(
+          (x): x is string => typeof x === 'string' && x.length > 0,
+        ) as string[])
+      : [];
+    if (xpaths.length === 0) {
+      throw new Error('rectMatchesCacheFeature: no xpath in cache feature');
+    }
+    const hdc = await this.getHdc();
+    const json = await hdc.dumpLayout();
+    const root = uitestJsonToUiNode(json);
+    for (const xpath of xpaths) {
+      try {
+        const rect = findRectByXpath(root, xpath);
+        if (rect && rect.width > 0 && rect.height > 0) {
+          debugDevice(
+            'rectMatchesCacheFeature: hit xpath %s -> %o',
+            xpath,
+            rect,
+          );
+          return rect;
+        }
+      } catch (error) {
+        debugDevice(
+          'rectMatchesCacheFeature: xpath %s failed: %s',
+          xpath,
+          error,
+        );
+      }
+    }
+    throw new Error(
+      `rectMatchesCacheFeature: no xpath matched (tried ${xpaths.length})`,
+    );
   }
 
   async size(): Promise<Size> {

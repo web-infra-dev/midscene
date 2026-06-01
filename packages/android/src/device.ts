@@ -6,10 +6,12 @@ import path from 'node:path';
 import {
   type ActionScrollParam,
   type DeviceAction,
+  type ElementCacheFeature,
   type ExecutorContext,
   type InterfaceType,
   type LocateResultElement,
   type Point,
+  type Rect,
   type Size,
   getMidsceneLocationSchema,
   z,
@@ -23,6 +25,10 @@ import {
   createDefaultMobileActions,
   defineAction,
 } from '@midscene/core/device';
+import {
+  findRectByXpath,
+  generateXpathCandidates,
+} from '@midscene/core/device-cache';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import {
   MIDSCENE_ADB_PATH,
@@ -38,6 +44,7 @@ import {
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison, repeat } from '@midscene/shared/utils';
+import { uiautomatorXmlToUiNode } from './uiautomator-tree';
 
 import { ADB } from 'appium-adb';
 import {
@@ -593,6 +600,85 @@ ${Object.keys(size)
       node: null,
       children: [],
     };
+  }
+
+  /**
+   * Run `uiautomator dump` and read back the XML. Used by the xpath cache
+   * pipeline. v1 uses the dump-to-file + cat round-trip, which adds ~500ms
+   * to ~1.5s per call depending on the device. Phase 1.4 will migrate this
+   * to a yadb-backed accessibility-service RPC.
+   */
+  private async dumpUiautomatorXml(): Promise<string> {
+    const adb = await this.getAdb();
+    const tmpPath = '/sdcard/midscene_window_dump.xml';
+    await adb.shell(`uiautomator dump --compressed ${tmpPath}`);
+    const xml = await adb.shell(`cat ${tmpPath}`);
+    if (typeof xml !== 'string' || xml.length === 0) {
+      throw new Error('uiautomator dump returned empty output');
+    }
+    return xml;
+  }
+
+  async cacheFeatureForPoint(
+    center: [number, number],
+  ): Promise<ElementCacheFeature> {
+    try {
+      const xml = await this.dumpUiautomatorXml();
+      const root = uiautomatorXmlToUiNode(xml, this.devicePixelRatio || 1);
+      const xpaths = generateXpathCandidates(
+        root,
+        { x: center[0], y: center[1] },
+        {
+          stableAttrs: ['resource-id'],
+          textAttrs: ['text', 'content-desc'],
+        },
+      );
+      if (xpaths.length === 0) {
+        debugDevice(
+          'cacheFeatureForPoint: no xpath candidate at point %o',
+          center,
+        );
+      }
+      return { xpaths };
+    } catch (error) {
+      debugDevice(`cacheFeatureForPoint failed: ${error}`);
+      return { xpaths: [] };
+    }
+  }
+
+  async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
+    const xpaths = Array.isArray((feature as { xpaths?: unknown }).xpaths)
+      ? ((feature as { xpaths: unknown[] }).xpaths.filter(
+          (x): x is string => typeof x === 'string' && x.length > 0,
+        ) as string[])
+      : [];
+    if (xpaths.length === 0) {
+      throw new Error('rectMatchesCacheFeature: no xpath in cache feature');
+    }
+    const xml = await this.dumpUiautomatorXml();
+    const root = uiautomatorXmlToUiNode(xml, this.devicePixelRatio || 1);
+    for (const xpath of xpaths) {
+      try {
+        const rect = findRectByXpath(root, xpath);
+        if (rect && rect.width > 0 && rect.height > 0) {
+          debugDevice(
+            'rectMatchesCacheFeature: hit xpath %s -> %o',
+            xpath,
+            rect,
+          );
+          return rect;
+        }
+      } catch (error) {
+        debugDevice(
+          'rectMatchesCacheFeature: xpath %s failed: %s',
+          xpath,
+          error,
+        );
+      }
+    }
+    throw new Error(
+      `rectMatchesCacheFeature: no xpath matched (tried ${xpaths.length})`,
+    );
   }
 
   async getScreenSize(): Promise<{

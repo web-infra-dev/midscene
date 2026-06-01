@@ -499,6 +499,26 @@ export class IOSWebDriverClient extends WebDriverClient {
     debugIOS(`Triple tapped at coordinates (${x}, ${y})`);
   }
 
+  /**
+   * Fetch the WebDriverAgent UI source as raw XML. Used by the xpath-based
+   * element-location cache to materialize the current XCUIElement tree, walk
+   * it to find the element under a screenshot point, and emit ranked xpath
+   * candidates that can be replayed cheaply on later runs.
+   */
+  async getSource(): Promise<string> {
+    this.ensureSession();
+
+    const response = await this.makeRequest(
+      'GET',
+      `/session/${this.sessionId}/source`,
+    );
+    const xml = response?.value;
+    if (typeof xml !== 'string' || xml.length === 0) {
+      throw new Error('WDA /source returned empty response');
+    }
+    return xml;
+  }
+
   async getScreenScale(): Promise<number | null> {
     this.ensureSession();
 
