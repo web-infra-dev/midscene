@@ -113,12 +113,18 @@ export type IOSDeviceInputOpt = {
   /** Automatically dismiss the keyboard after input is completed */
   autoDismissKeyboard?: boolean;
   /**
-   * Per-character delay (ms) used when typing into iOS input fields. When set
-   * to a positive number, characters are dispatched to WebDriverAgent one at a
-   * time with this gap between them, which prevents app-side reaction windows
-   * (re-render, predictive bar, autocorrect) from swallowing a contiguous
-   * block of keystrokes. Set to 0 to send the whole string in a single
-   * `/wda/keys` request (faster, but lossy on slow-reacting inputs).
+   * Strategy used to enter text into iOS input fields. `paste` writes the text
+   * to the iOS pasteboard and triggers a paste shortcut, avoiding occasional
+   * character loss from WebDriverAgent key typing on longer inputs. `type`
+   * keeps the old `/wda/keys` delivery path.
+   * @default 'paste'
+   */
+  keyboardInputStrategy?: 'paste' | 'type';
+  /**
+   * Per-character delay (ms) used by the `type` strategy and by the fallback
+   * path when paste is not supported by the active WebDriverAgent/iOS runtime.
+   * When set to a positive number, characters are dispatched to
+   * WebDriverAgent one at a time with this gap between them.
    * @default 80
    */
   keyboardTypeDelay?: number;

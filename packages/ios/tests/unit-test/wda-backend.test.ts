@@ -81,6 +81,66 @@ describe('IOSWebDriverClient.typeText delivery modes', () => {
   });
 });
 
+describe('IOSWebDriverClient.pasteText', () => {
+  it('sets the iOS pasteboard and sends Command+V to the active element', async () => {
+    const { client, makeRequest } = createClientWithSession();
+    makeRequest.mockImplementation(async (_method, path) => {
+      if (path === '/session/session-under-test/element/active') {
+        return { value: { ELEMENT: 'active-element-id' } };
+      }
+      return undefined;
+    });
+
+    await client.pasteText('Hello 世界');
+
+    expect(makeRequest).toHaveBeenCalledTimes(3);
+    expect(makeRequest).toHaveBeenNthCalledWith(
+      1,
+      'POST',
+      '/session/session-under-test/wda/setPasteboard',
+      {
+        content: Buffer.from('Hello 世界', 'utf8').toString('base64'),
+        contentType: 'plaintext',
+      },
+    );
+    expect(makeRequest).toHaveBeenNthCalledWith(
+      2,
+      'GET',
+      '/session/session-under-test/element/active',
+    );
+    expect(makeRequest).toHaveBeenNthCalledWith(
+      3,
+      'POST',
+      '/session/session-under-test/wda/element/active-element-id/keyboardInput',
+      {
+        keys: [{ key: 'v', modifierFlags: 16 }],
+      },
+    );
+  });
+
+  it('falls back to the active application when no active element is available', async () => {
+    const { client, makeRequest } = createClientWithSession();
+
+    await client.pasteText('Hello');
+
+    expect(makeRequest).toHaveBeenLastCalledWith(
+      'POST',
+      '/session/session-under-test/wda/element/0/keyboardInput',
+      {
+        keys: [{ key: 'v', modifierFlags: 16 }],
+      },
+    );
+  });
+
+  it('trims surrounding whitespace and skips empty input', async () => {
+    const { client, makeRequest } = createClientWithSession();
+
+    await client.pasteText('   ');
+
+    expect(makeRequest).not.toHaveBeenCalled();
+  });
+});
+
 describe('IOSWebDriverClient - Simple Tests', () => {
   describe('Module Structure', () => {
     it('should export IOSWebDriverClient class', async () => {
@@ -117,6 +177,7 @@ describe('IOSWebDriverClient - Simple Tests', () => {
         'tap',
         'swipe',
         'typeText',
+        'pasteText',
         'pressKey',
         'launchApp',
         'openUrl',

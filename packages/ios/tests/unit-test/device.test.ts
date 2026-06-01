@@ -39,6 +39,7 @@ describe('IOSDevice', () => {
       longPress: vi.fn().mockResolvedValue(undefined),
       swipe: vi.fn().mockResolvedValue(undefined),
       pinch: vi.fn().mockResolvedValue(undefined),
+      pasteText: vi.fn().mockResolvedValue(undefined),
       typeText: vi.fn().mockResolvedValue(undefined),
       clearActiveElement: vi.fn().mockResolvedValue(true),
       pressKey: vi.fn().mockResolvedValue(undefined),
@@ -248,31 +249,42 @@ describe('IOSDevice', () => {
       expect(mockWdaClient.tap).toHaveBeenNthCalledWith(1, 10, 20);
       expect(mockWdaClient.tap).toHaveBeenNthCalledWith(2, 30, 40);
       expect(mockWdaClient.clearActiveElement).toHaveBeenCalledTimes(2);
-      expect(mockWdaClient.typeText).toHaveBeenNthCalledWith(1, 'from action', {
-        delayMs: 80,
-      });
-      expect(mockWdaClient.typeText).toHaveBeenNthCalledWith(
+      expect(mockWdaClient.pasteText).toHaveBeenNthCalledWith(1, 'from action');
+      expect(mockWdaClient.pasteText).toHaveBeenNthCalledWith(
         2,
         'from pointer',
-        { delayMs: 80 },
       );
+      expect(mockWdaClient.typeText).not.toHaveBeenCalled();
     });
 
-    it('forwards keyboardTypeDelay from per-call options to the WDA backend', async () => {
-      await device.inputPrimitives.keyboard.typeText('per call', {
-        autoDismissKeyboard: false,
-        keyboardTypeDelay: 25,
-      } as any);
+    it('forwards keyboardTypeDelay from per-call options when using type strategy', async () => {
+      const deviceWithTypeStrategy = new IOSDevice({
+        wdaPort: DEFAULT_WDA_PORT,
+        wdaHost: 'localhost',
+        keyboardInputStrategy: 'type',
+      });
+
+      await deviceWithTypeStrategy.inputPrimitives.keyboard.typeText(
+        'per call',
+        {
+          autoDismissKeyboard: false,
+          keyboardTypeDelay: 25,
+        } as any,
+      );
 
       expect(mockWdaClient.typeText).toHaveBeenLastCalledWith('per call', {
         delayMs: 25,
       });
+      expect(mockWdaClient.pasteText).not.toHaveBeenCalled();
+
+      await deviceWithTypeStrategy.destroy();
     });
 
-    it('falls back to device-level keyboardTypeDelay when the call omits it', async () => {
+    it('falls back to device-level keyboardTypeDelay when using type strategy', async () => {
       const deviceWithDelay = new IOSDevice({
         wdaPort: DEFAULT_WDA_PORT,
         wdaHost: 'localhost',
+        keyboardInputStrategy: 'type',
         keyboardTypeDelay: 0,
       });
 
@@ -285,6 +297,21 @@ describe('IOSDevice', () => {
       });
 
       await deviceWithDelay.destroy();
+    });
+
+    it('falls back to WDA typing when paste input is unavailable', async () => {
+      mockWdaClient.pasteText = vi
+        .fn()
+        .mockRejectedValue(new Error('Paste not supported'));
+
+      await device.inputPrimitives.keyboard.typeText('fallback text', {
+        autoDismissKeyboard: false,
+      } as any);
+
+      expect(mockWdaClient.pasteText).toHaveBeenCalledWith('fallback text');
+      expect(mockWdaClient.typeText).toHaveBeenLastCalledWith('fallback text', {
+        delayMs: 80,
+      });
     });
   });
 
@@ -427,13 +454,12 @@ describe('IOSDevice', () => {
       expect(mockWdaClient.swipe).toHaveBeenCalledWith(100, 200, 300, 400, 500);
     });
 
-    it('should type text', async () => {
+    it('should paste text by default', async () => {
       await device.connect();
 
       await getInternalTextInput(device).typeText('Hello World');
-      expect(mockWdaClient.typeText).toHaveBeenCalledWith('Hello World', {
-        delayMs: 80,
-      });
+      expect(mockWdaClient.pasteText).toHaveBeenCalledWith('Hello World');
+      expect(mockWdaClient.typeText).not.toHaveBeenCalled();
     });
 
     it('should press home button', async () => {
@@ -566,6 +592,9 @@ describe('IOSDevice', () => {
 
     it('should handle text input failure', async () => {
       await device.connect();
+      mockWdaClient.pasteText = vi
+        .fn()
+        .mockRejectedValue(new Error('Paste text failed'));
       mockWdaClient.typeText = vi
         .fn()
         .mockRejectedValue(new Error('Type text failed'));
@@ -619,6 +648,7 @@ describe('IOSDevice', () => {
       const mockBackend = {
         ...mockWdaClient,
         createSession: vi.fn().mockResolvedValue({ sessionId: 'test-session' }),
+        pasteText: vi.fn().mockResolvedValue(undefined),
         typeText: vi.fn().mockResolvedValue(undefined),
         dismissKeyboard: vi
           .fn()
@@ -637,10 +667,9 @@ describe('IOSDevice', () => {
       await deviceWithAutoDismiss.connect();
       await getInternalTextInput(deviceWithAutoDismiss).typeText('test text');
 
-      // Should call typeText and swipe (for keyboard dismiss)
-      expect(mockBackend.typeText).toHaveBeenCalledWith('test text', {
-        delayMs: 80,
-      });
+      // Should call pasteText and swipe (for keyboard dismiss)
+      expect(mockBackend.pasteText).toHaveBeenCalledWith('test text');
+      expect(mockBackend.typeText).not.toHaveBeenCalled();
       expect(mockBackend.swipe).toHaveBeenCalled();
     });
   });

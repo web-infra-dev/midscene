@@ -8,6 +8,7 @@ const debugIOS = getDebug('webdriver:ios');
 const WDA_MJPEG_SCREENSHOT_QUALITY = 50;
 const WDA_MJPEG_FRAMERATE = 30;
 const WDA_MJPEG_SCALING_FACTOR = 50;
+const XCUI_KEY_MODIFIER_COMMAND = 1 << 4;
 
 export class IOSWebDriverClient extends WebDriverClient {
   async launchApp(bundleId: string): Promise<void> {
@@ -303,6 +304,56 @@ export class IOSWebDriverClient extends WebDriverClient {
       debugIOS(`Failed to dismiss keyboard: ${error}`);
       return false;
     }
+  }
+
+  async pasteText(text: string): Promise<void> {
+    this.ensureSession();
+
+    // Keep the same surrounding-whitespace behavior as typeText.
+    const cleanText = text.trim();
+    if (!cleanText) {
+      return;
+    }
+
+    try {
+      await this.setPasteboardText(cleanText);
+      await this.sendPasteShortcut();
+      debugIOS(`Pasted text: "${text}"`);
+    } catch (error) {
+      debugIOS(`Failed to paste text "${text}": ${error}`);
+      throw new Error(`Failed to paste text: ${error}`);
+    }
+  }
+
+  private async setPasteboardText(text: string): Promise<void> {
+    this.ensureSession();
+
+    await this.makeRequest(
+      'POST',
+      `/session/${this.sessionId}/wda/setPasteboard`,
+      {
+        content: Buffer.from(text, 'utf8').toString('base64'),
+        contentType: 'plaintext',
+      },
+    );
+  }
+
+  private async sendPasteShortcut(): Promise<void> {
+    this.ensureSession();
+
+    const elementId = (await this.getActiveElement()) ?? '0';
+    await this.makeRequest(
+      'POST',
+      `/session/${this.sessionId}/wda/element/${elementId}/keyboardInput`,
+      {
+        keys: [
+          {
+            key: 'v',
+            modifierFlags: XCUI_KEY_MODIFIER_COMMAND,
+          },
+        ],
+      },
+    );
   }
 
   async typeText(text: string, options?: { delayMs?: number }): Promise<void> {

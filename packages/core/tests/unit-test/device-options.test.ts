@@ -62,6 +62,7 @@ describe('Device Options Type Definitions', () => {
         sessionId: 'external-session-id',
         useWDA: true,
         autoDismissKeyboard: true,
+        keyboardInputStrategy: 'paste',
       };
 
       // Type check - this will fail at compile time if types are incorrect
@@ -87,6 +88,7 @@ describe('Device Options Type Definitions', () => {
     test('IOSDeviceInputOpt should include keyboard options', () => {
       const inputOptions: IOSDeviceInputOpt = {
         autoDismissKeyboard: true,
+        keyboardInputStrategy: 'type',
         keyboardTypeDelay: 80,
       };
 
@@ -161,6 +163,7 @@ describe('Device Options Type Definitions', () => {
         sessionId: 'external-session-id',
         useWDA: true,
         autoDismissKeyboard: true,
+        keyboardInputStrategy: 'paste',
 
         // YAML-specific
         launch: 'com.example.app',

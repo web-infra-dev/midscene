@@ -470,16 +470,33 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
     const delayMs =
       options?.keyboardTypeDelay ?? this.options?.keyboardTypeDelay ?? 80;
+    const keyboardInputStrategy =
+      options?.keyboardInputStrategy ??
+      this.options?.keyboardInputStrategy ??
+      'paste';
 
-    debugDevice(`Typing text: "${text}" (delayMs=${delayMs})`);
+    debugDevice(
+      `Input text: "${text}" (strategy=${keyboardInputStrategy}, delayMs=${delayMs})`,
+    );
 
     try {
       // Wait a bit to ensure keyboard is ready
       await sleep(200);
-      await this.wdaBackend.typeText(text, { delayMs });
+      if (keyboardInputStrategy === 'type') {
+        await this.wdaBackend.typeText(text, { delayMs });
+      } else {
+        try {
+          await this.wdaBackend.pasteText(text);
+        } catch (pasteError) {
+          debugDevice(
+            `Failed to paste text with WDA, falling back to typing: ${pasteError}`,
+          );
+          await this.wdaBackend.typeText(text, { delayMs });
+        }
+      }
       await sleep(300); // Give more time for text to appear
     } catch (error) {
-      debugDevice(`Failed to type text with WDA: ${error}`);
+      debugDevice(`Failed to input text with WDA: ${error}`);
       throw error;
     }
 
