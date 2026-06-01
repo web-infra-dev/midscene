@@ -4814,6 +4814,20 @@ packages:
       jsdom:
         optional: true
 
+  '@rstest/core@https://pkg.pr.new/@rstest/core@953945e':
+    resolution: {tarball: https://pkg.pr.new/@rstest/core@953945e}
+    version: 0.10.2
+    engines: {node: ^20.19.0 || >=22.12.0}
+    hasBin: true
+    peerDependencies:
+      happy-dom: ^20.8.3
+      jsdom: '*'
+    peerDependenciesMeta:
+      happy-dom:
+        optional: true
+      jsdom:
+        optional: true
+
   '@rushstack/node-core-library@5.14.0':
     resolution: {integrity: sha512-eRong84/rwQUlATGFW3TMTYVyqL1vfW9Lf10PH+mVGfIb9HzU3h5AASNIw+axnBLjnD0n3rT5uQBwu9fvzATrg==}
     peerDependencies:
@@ -16029,6 +16043,16 @@ snapshots:
       - core-js
 
   '@rstest/core@0.10.3(core-js@3.47.0)(jsdom@29.0.2)':
+    dependencies:
+      '@rsbuild/core': 2.0.9(core-js@3.47.0)
+      '@types/chai': 5.2.3
+    optionalDependencies:
+      jsdom: 29.0.2
+    transitivePeerDependencies:
+      - '@module-federation/runtime-tools'
+      - core-js
+
+  '@rstest/core@https://pkg.pr.new/@rstest/core@953945e(core-js@3.47.0)(jsdom@29.0.2)':
     dependencies:
       '@rsbuild/core': 2.0.9(core-js@3.47.0)
       '@types/chai': 5.2.3
