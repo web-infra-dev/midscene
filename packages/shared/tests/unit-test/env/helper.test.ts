@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { maskConfig } from '../../../src/env/helper';
-import type { IModelConfig } from '../../../src/env/model-config';
+import type { IModelConfig } from '../../../src/env/types';
 
 describe('maskConfig', () => {
   it('key will be masked', () => {
-    const config: IModelConfig = {
+    const config = {
       modelName: 'test-model',
       openaiApiKey: 'sk-thisisafakekeythatislongenough',
       socksProxy: 'socks://proxy.example.com:1080',
@@ -15,7 +15,7 @@ describe('maskConfig', () => {
       modelDescription: '',
       intent: 'default',
       slot: 'default',
-    };
+    } satisfies IModelConfig;
     expect(maskConfig(config)).toEqual({
       httpProxy: 'http://proxy.example.com:8080',
       intent: 'default',

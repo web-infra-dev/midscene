@@ -1,3 +1,4 @@
+import type { ExecutorContext } from '@midscene/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockState = vi.hoisted(() => {
@@ -74,6 +75,7 @@ vi.mock('node:module', () => ({
 }));
 
 const originalPlatform = process.platform;
+const mockExecutorContext = { task: {} } as ExecutorContext;
 
 beforeEach(() => {
   mockState.reset();
@@ -95,7 +97,7 @@ async function runKeyboardPress(keyName: string): Promise<void> {
     .find((action) => action.name === 'KeyboardPress');
 
   expect(keyboardPress).toBeDefined();
-  await keyboardPress!.call({ keyName });
+  await keyboardPress!.call({ keyName }, mockExecutorContext);
 }
 
 describe('ComputerDevice AppleScript security', () => {

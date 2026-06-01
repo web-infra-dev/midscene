@@ -61,8 +61,9 @@ describe('scrcpy server version helper', () => {
     }));
 
     await downloadScrcpyServerReleaseAsset({
+      dispatcher: undefined,
       destinationPath,
-      fetchImpl,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
       version: 'v3.3.3',
     });
 
@@ -124,9 +125,9 @@ describe('scrcpy server version helper', () => {
       installDownloadedScrcpyServer({
         fsApi: {
           access: fs.access,
-          rename,
+          rename: rename as unknown as typeof fs.rename,
           rm: fs.rm,
-        },
+        } as unknown as typeof fs,
         serverBinPath,
         downloadedFile,
       }),

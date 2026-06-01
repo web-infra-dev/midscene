@@ -27,6 +27,13 @@ export function createProxyDispatcher({ proxyUrl } = {}) {
   });
 }
 
+/**
+ * @param {{
+ *   env?: NodeJS.ProcessEnv;
+ *   log?: (...data: any[]) => void;
+ *   logPrefix?: string;
+ * }} [options]
+ */
 export function createLoggedProxyDispatcher({
   env = process.env,
   log = console.log,

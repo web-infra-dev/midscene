@@ -271,12 +271,12 @@ describe('LocalExecutionAdapter', () => {
     });
 
     it('should use empty actionSpace when agent has no getActionSpace', async () => {
-      const agentWithoutActionSpace: PlaygroundAgent = {
+      const agentWithoutActionSpace = {
         dumpDataString: () => '{}',
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
         resetDump: () => {},
-      };
+      } as unknown as PlaygroundAgent;
       const localAdapter = new LocalExecutionAdapter(agentWithoutActionSpace);
 
       const value: FormValue = { type: 'click', prompt: 'click button' };
@@ -321,7 +321,9 @@ describe('LocalExecutionAdapter', () => {
     });
 
     it('should return error when no agent', async () => {
-      const adapterNoAgent = new LocalExecutionAdapter({});
+      const adapterNoAgent = new LocalExecutionAdapter(
+        {} as unknown as PlaygroundAgent,
+      );
       (adapterNoAgent as any).agent = null;
 
       const result = await adapterNoAgent.cancelTask('request-123');

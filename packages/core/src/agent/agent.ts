@@ -1112,6 +1112,11 @@ export class Agent<
       assert(text.description, `failed to describe element at [${center}]`);
       resultPrompt = text.description;
 
+      if (!verifyPrompt) {
+        success = true;
+        break;
+      }
+
       // Don't pass deepLocate to verification locate — the description was generated
       // from a cropped view (deepLocate describe), but verification should use regular
       // locate on the full screenshot to confirm the description works universally.

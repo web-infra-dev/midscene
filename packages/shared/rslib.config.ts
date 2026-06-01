@@ -34,6 +34,7 @@ export default defineConfig({
     },
   ],
   source: {
+    tsconfigPath: 'tsconfig.build.json',
     define: {
       __HTML_ELEMENT_SCRIPT__: JSON.stringify(scriptStr),
       __VERSION__: JSON.stringify(version),

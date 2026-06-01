@@ -1,5 +1,5 @@
 import { ADB } from 'appium-adb';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { type Mock, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getConnectedDevices,
   getConnectedDevicesWithDetails,
@@ -23,19 +23,17 @@ describe('Android Utils', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     const mockAdbInstance = await ADB.createADB();
-    (mockAdbInstance.setDeviceId as vi.Mock).mockImplementation(
-      () => undefined,
-    );
-    (mockAdbInstance.shell as vi.Mock).mockReset();
-    (mockAdbInstance.getScreenDensity as vi.Mock).mockReset();
-    (mockAdbInstance.getConnectedDevices as vi.Mock).mockReset();
+    (mockAdbInstance.setDeviceId as Mock).mockImplementation(() => undefined);
+    (mockAdbInstance.shell as Mock).mockReset();
+    (mockAdbInstance.getScreenDensity as Mock).mockReset();
+    (mockAdbInstance.getConnectedDevices as Mock).mockReset();
   });
 
   describe('getConnectedDevices', () => {
     it('should return a list of connected devices', async () => {
       const mockDevices = [{ udid: 'device-1' }, { udid: 'device-2' }];
       const mockAdbInstance = await ADB.createADB();
-      (mockAdbInstance.getConnectedDevices as vi.Mock).mockResolvedValue(
+      (mockAdbInstance.getConnectedDevices as Mock).mockResolvedValue(
         mockDevices,
       );
 
@@ -49,7 +47,7 @@ describe('Android Utils', () => {
     it('should throw a formatted error if getting devices fails', async () => {
       const error = new Error('Failed to connect to ADB');
       const mockAdbInstance = await ADB.createADB();
-      (mockAdbInstance.getConnectedDevices as vi.Mock).mockRejectedValue(error);
+      (mockAdbInstance.getConnectedDevices as Mock).mockRejectedValue(error);
 
       await expect(getConnectedDevices()).rejects.toThrow(
         `Unable to get connected Android device list, please check https://midscenejs.com/integrate-with-android.html#faq : ${error.message}`,
@@ -61,14 +59,14 @@ describe('Android Utils', () => {
     it('should enrich devices with model, resolution, and density when available', async () => {
       const mockDevices = [{ udid: 'device-1', state: 'device' }];
       const mockAdbInstance = await ADB.createADB();
-      (mockAdbInstance.getConnectedDevices as vi.Mock).mockResolvedValue(
+      (mockAdbInstance.getConnectedDevices as Mock).mockResolvedValue(
         mockDevices,
       );
-      (mockAdbInstance.shell as vi.Mock)
+      (mockAdbInstance.shell as Mock)
         .mockResolvedValueOnce('Pixel 8\n')
         .mockResolvedValueOnce('google\n')
         .mockResolvedValueOnce('Physical size: 1080x2400\n');
-      (mockAdbInstance.getScreenDensity as vi.Mock).mockResolvedValue(420);
+      (mockAdbInstance.getScreenDensity as Mock).mockResolvedValue(420);
 
       const devices = await getConnectedDevicesWithDetails();
 
@@ -91,10 +89,10 @@ describe('Android Utils', () => {
     it('should silently fall back to the basic device list when detail lookup fails', async () => {
       const mockDevices = [{ udid: 'device-1', state: 'device' }];
       const mockAdbInstance = await ADB.createADB();
-      (mockAdbInstance.getConnectedDevices as vi.Mock).mockResolvedValue(
+      (mockAdbInstance.getConnectedDevices as Mock).mockResolvedValue(
         mockDevices,
       );
-      (mockAdbInstance.setDeviceId as vi.Mock).mockImplementation(() => {
+      (mockAdbInstance.setDeviceId as Mock).mockImplementation(() => {
         throw new Error('set device failed');
       });
 
@@ -109,14 +107,14 @@ describe('Android Utils', () => {
       try {
         const mockDevices = [{ udid: 'device-1', state: 'device' }];
         const mockAdbInstance = await ADB.createADB();
-        (mockAdbInstance.getConnectedDevices as vi.Mock).mockResolvedValue(
+        (mockAdbInstance.getConnectedDevices as Mock).mockResolvedValue(
           mockDevices,
         );
-        (mockAdbInstance.shell as vi.Mock)
+        (mockAdbInstance.shell as Mock)
           .mockImplementationOnce(() => new Promise(() => {}))
           .mockResolvedValueOnce('google\n')
           .mockResolvedValueOnce('Physical size: 1080x2400\n');
-        (mockAdbInstance.getScreenDensity as vi.Mock).mockResolvedValue(420);
+        (mockAdbInstance.getScreenDensity as Mock).mockResolvedValue(420);
 
         const devicesPromise = getConnectedDevicesWithDetails();
         await vi.advanceTimersByTimeAsync(2500);

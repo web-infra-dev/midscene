@@ -15,6 +15,12 @@ class TestAdapter extends BasePlaygroundAdapter {
   async executeAction(): Promise<unknown> {
     return 'test result';
   }
+
+  async overrideConfig(): Promise<void> {}
+
+  async runConnectivityTest() {
+    return { passed: true, checks: [] };
+  }
 }
 
 describe('BasePlaygroundAdapter', () => {

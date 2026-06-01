@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { HarmonyDeviceInputOpt } from '../../src/device';
 
 // Mock HdcClient
 const mockHdc = {
@@ -53,6 +54,7 @@ vi.mock('@midscene/shared/img', () => ({
     .mockReturnValue('data:image/jpeg;base64,fake'),
 }));
 
+// @ts-ignore package tsconfig keeps module=ES2020 for build compatibility; this test intentionally uses top-level dynamic import so mocks are registered first.
 const { HarmonyDevice } = await import('../../src/device');
 
 describe('HarmonyDevice', () => {
@@ -86,10 +88,12 @@ describe('HarmonyDevice', () => {
       const d = new HarmonyDevice('dev-1', {
         hdcPath: '/custom/hdc',
         autoDismissKeyboard: true,
+        keyboardDismissStrategy: 'esc-first',
       });
       expect(d).toBeDefined();
       expect(d.options?.hdcPath).toBe('/custom/hdc');
       expect(d.options?.autoDismissKeyboard).toBe(true);
+      expect(d.options?.keyboardDismissStrategy).toBe('esc-first');
     });
   });
 
@@ -189,15 +193,15 @@ describe('HarmonyDevice', () => {
   describe('tap', () => {
     it('should call hdc.click', async () => {
       await device.connect();
-      await device.tap(100, 200);
+      await device.inputPrimitives.pointer.tap({ x: 100, y: 200 });
       expect(mockHdc.click).toHaveBeenCalledWith(100, 200);
     });
 
     it('should track lastTapPosition', async () => {
       await device.connect();
-      await device.tap(300, 400);
+      await device.inputPrimitives.pointer.tap({ x: 300, y: 400 });
       // Verify by inputText fallback using lastTapPosition
-      await device.inputText('test');
+      await device.inputPrimitives.keyboard.typeText('test');
       expect(mockHdc.inputText).toHaveBeenCalledWith(300, 400, 'test');
     });
   });
@@ -205,7 +209,7 @@ describe('HarmonyDevice', () => {
   describe('doubleTap', () => {
     it('should call hdc.doubleClick', async () => {
       await device.connect();
-      await device.doubleTap(150, 300);
+      await device.inputPrimitives.pointer.doubleClick({ x: 150, y: 300 });
       expect(mockHdc.doubleClick).toHaveBeenCalledWith(150, 300);
     });
   });
@@ -213,7 +217,7 @@ describe('HarmonyDevice', () => {
   describe('longPress', () => {
     it('should call hdc.longClick', async () => {
       await device.connect();
-      await device.longPress(200, 400);
+      await device.inputPrimitives.pointer.longPress({ x: 200, y: 400 });
       expect(mockHdc.longClick).toHaveBeenCalledWith(200, 400);
     });
   });
@@ -224,32 +228,38 @@ describe('HarmonyDevice', () => {
     });
 
     it('should do nothing for empty text', async () => {
-      await device.inputText('');
+      await device.inputPrimitives.keyboard.typeText('');
       expect(mockHdc.inputText).not.toHaveBeenCalled();
     });
 
     it('should use element center when element is provided', async () => {
       const element = { center: [500, 600] as [number, number] } as any;
-      await device.inputText('hello', element);
+      await device.inputPrimitives.keyboard.typeText('hello', {
+        target: element,
+        replace: false,
+      });
       expect(mockHdc.inputText).toHaveBeenCalledWith(500, 600, 'hello');
     });
 
     it('should use lastTapPosition when no element', async () => {
-      await device.tap(300, 400);
+      await device.inputPrimitives.pointer.tap({ x: 300, y: 400 });
       mockHdc.inputText.mockClear();
-      await device.inputText('world');
+      await device.inputPrimitives.keyboard.typeText('world');
       expect(mockHdc.inputText).toHaveBeenCalledWith(300, 400, 'world');
     });
 
     it('should fallback to screen center when no element or lastTap', async () => {
-      await device.inputText('test');
+      await device.inputPrimitives.keyboard.typeText('test');
       // screen center: 1216/2=608, 2688/2=1344
       expect(mockHdc.inputText).toHaveBeenCalledWith(608, 1344, 'test');
     });
 
     it('should click+clearTextField before inputText when shouldReplace is true', async () => {
       const element = { center: [100, 200] as [number, number] } as any;
-      await device.inputText('new text', element, true);
+      await device.inputPrimitives.keyboard.typeText('new text', {
+        target: element,
+        replace: true,
+      });
 
       // 1. click to focus
       expect(mockHdc.click).toHaveBeenCalledWith(100, 200);
@@ -261,36 +271,82 @@ describe('HarmonyDevice', () => {
 
     it('should NOT use sentinel pattern when shouldReplace is false', async () => {
       const element = { center: [100, 200] as [number, number] } as any;
-      await device.inputText('append text', element, false);
+      await device.inputPrimitives.keyboard.typeText('append text', {
+        target: element,
+        replace: false,
+      });
 
       expect(mockHdc.inputText).toHaveBeenCalledTimes(1);
       expect(mockHdc.inputText).toHaveBeenCalledWith(100, 200, 'append text');
-      expect(mockHdc.keyEvent).not.toHaveBeenCalled();
+      expect(mockHdc.click).not.toHaveBeenCalled();
+      expect(mockHdc.clearTextField).not.toHaveBeenCalled();
     });
 
     it('should NOT use sentinel pattern when shouldReplace is undefined', async () => {
       const element = { center: [100, 200] as [number, number] } as any;
-      await device.inputText('text', element);
+      await device.inputPrimitives.keyboard.typeText('text', {
+        target: element,
+        replace: false,
+      });
 
       expect(mockHdc.inputText).toHaveBeenCalledTimes(1);
-      expect(mockHdc.keyEvent).not.toHaveBeenCalled();
+      expect(mockHdc.click).not.toHaveBeenCalled();
+      expect(mockHdc.clearTextField).not.toHaveBeenCalled();
     });
 
     it('should dismiss keyboard when autoDismissKeyboard is true', async () => {
       const d = new HarmonyDevice('dev', { autoDismissKeyboard: true });
       await d.connect();
       const element = { center: [100, 200] as [number, number] } as any;
-      await d.inputText('hi', element);
+      await d.inputPrimitives.keyboard.typeText('hi', {
+        target: element,
+        replace: false,
+      });
 
-      // hideKeyboard sends Back keyEvent
+      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2070');
+      await d.destroy();
+    });
+
+    it('should dismiss keyboard by default with esc-first strategy', async () => {
+      const element = { center: [100, 200] as [number, number] } as any;
+      await device.inputPrimitives.keyboard.typeText('hi', {
+        target: element,
+        replace: false,
+      });
+      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2070');
+    });
+
+    it('should use back-first strategy when specified on device options', async () => {
+      const d = new HarmonyDevice('dev', {
+        autoDismissKeyboard: true,
+        keyboardDismissStrategy: 'back-first',
+      });
+      await d.connect();
+      const element = { center: [100, 200] as [number, number] } as any;
+      await d.inputPrimitives.keyboard.typeText('hi', {
+        target: element,
+        replace: false,
+      });
+
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('Back');
       await d.destroy();
     });
 
-    it('should NOT dismiss keyboard when autoDismissKeyboard is not set', async () => {
-      const element = { center: [100, 200] as [number, number] } as any;
-      await device.inputText('hi', element);
-      expect(mockHdc.keyEvent).not.toHaveBeenCalled();
+    it('should respect keyboardDismissStrategy passed to typeText', async () => {
+      const d = new HarmonyDevice('dev', {
+        autoDismissKeyboard: true,
+        keyboardDismissStrategy: 'esc-first',
+      });
+      await d.connect();
+
+      await d.inputPrimitives.keyboard.typeText('hi', {
+        replace: false,
+        keyboardDismissStrategy: 'back-first',
+      } as HarmonyDeviceInputOpt & { replace: false });
+
+      expect(mockHdc.inputText).toHaveBeenCalledWith(608, 1344, 'hi');
+      expect(mockHdc.keyEvent).toHaveBeenCalledWith('Back');
+      await d.destroy();
     });
 
     it('should respect autoDismissKeyboard passed to Input action', async () => {
@@ -344,45 +400,45 @@ describe('HarmonyDevice', () => {
       ['Space', '2050'],
       ['Delete', '2071'],
     ])('should map %s to keycode %s', async (key, code) => {
-      await device.keyboardPress(key);
+      await device.inputPrimitives.keyboard.keyboardPress(key);
       expect(mockHdc.keyEvent).toHaveBeenCalledWith(code);
     });
 
     it('should map Home to string "Home"', async () => {
-      await device.keyboardPress('Home');
+      await device.inputPrimitives.keyboard.keyboardPress('Home');
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('Home');
     });
 
     it('should normalize case-insensitive key names', async () => {
-      await device.keyboardPress('enter');
+      await device.inputPrimitives.keyboard.keyboardPress('enter');
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('2054');
     });
 
     it('should normalize aliases (esc -> Escape)', async () => {
-      await device.keyboardPress('esc');
+      await device.inputPrimitives.keyboard.keyboardPress('esc');
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('2070');
     });
 
     it('should normalize arrow aliases (up -> ArrowUp)', async () => {
-      await device.keyboardPress('up');
+      await device.inputPrimitives.keyboard.keyboardPress('up');
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('2012');
     });
 
     it('should normalize arrow aliases (down/left/right)', async () => {
-      await device.keyboardPress('down');
+      await device.inputPrimitives.keyboard.keyboardPress('down');
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('2013');
 
       mockHdc.keyEvent.mockClear();
-      await device.keyboardPress('left');
+      await device.inputPrimitives.keyboard.keyboardPress('left');
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('2014');
 
       mockHdc.keyEvent.mockClear();
-      await device.keyboardPress('right');
+      await device.inputPrimitives.keyboard.keyboardPress('right');
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('2015');
     });
 
     it('should pass through unknown keys as-is', async () => {
-      await device.keyboardPress('F5');
+      await device.inputPrimitives.keyboard.keyboardPress('F5');
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('F5');
     });
   });
@@ -407,8 +463,13 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('RecentApps');
     });
 
-    it('should send Back key for hideKeyboard', async () => {
+    it('should send Escape key for hideKeyboard by default', async () => {
       await device.hideKeyboard();
+      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2070');
+    });
+
+    it('should send Back key for hideKeyboard when back-first is specified', async () => {
+      await device.hideKeyboard({ keyboardDismissStrategy: 'back-first' });
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('Back');
     });
   });

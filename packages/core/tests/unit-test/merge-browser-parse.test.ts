@@ -32,13 +32,14 @@ function fakeBase64(sizeBytes: number): string {
 
 function createDump(screenshots: ScreenshotItem[]): ReportActionDump {
   const tasks = screenshots.map((s, i) => ({
+    taskId: `task-${i}`,
     type: 'Insight' as const,
     subType: 'Locate',
     param: { prompt: `task-${i}` },
     uiContext: {
       screenshot: s,
       size: { width: 1920, height: 1080 },
-    } as UIContext,
+    } as unknown as UIContext,
     executor: async () => undefined,
     recorder: [],
     status: 'finished' as const,
@@ -48,7 +49,7 @@ function createDump(screenshots: ScreenshotItem[]): ReportActionDump {
     sdkVersion: '1.0.0-test',
     groupName: 'test-group',
     groupDescription: 'test desc',
-    modelBriefs: ['test-model'],
+    modelBriefs: [{ name: 'test-model' }],
     executions: [
       new ExecutionDump({
         id: uuid(),

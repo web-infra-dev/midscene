@@ -233,6 +233,7 @@ export async function callAI(
     stream?: boolean;
     onChunk?: StreamingCallback;
     abortSignal?: AbortSignal;
+    forceOriginalImageDetail?: boolean;
   },
 ): Promise<{
   content: string;
@@ -354,6 +355,7 @@ export async function callAI(
   }
 
   const shouldUseOriginalImageDetail =
+    options?.forceOriginalImageDetail ||
     shouldForceOriginalImageDetail(modelConfig);
 
   // For default-intent GPT-5 calls, request original image detail to preserve

@@ -11,6 +11,10 @@ import type {
   PlaygroundConfig,
 } from '../../src/types';
 
+const createMockPlaygroundAgent = (
+  partial: Partial<PlaygroundAgent> = {},
+): PlaygroundAgent => partial as PlaygroundAgent;
+
 describe('Playground Integration Tests', () => {
   describe('End-to-end workflow with LocalExecutionAdapter', () => {
     let mockAgent: PlaygroundAgent;
@@ -261,12 +265,13 @@ describe('Playground Integration Tests', () => {
       const action: DeviceAction<unknown> = {
         name: 'scroll',
         description: 'Scroll action',
+        call: async () => undefined,
         paramSchema: {
           shape: {
             direction: {},
             distance: {},
           },
-        },
+        } as any,
       };
 
       const params = {
@@ -302,7 +307,7 @@ describe('Playground Integration Tests', () => {
     it('should create LocalExecutionAdapter for local-execution type', () => {
       const config: PlaygroundConfig = {
         type: 'local-execution',
-        agent: {},
+        agent: createMockPlaygroundAgent(),
       };
 
       const sdk = new PlaygroundSDK(config);
@@ -334,9 +339,9 @@ describe('Playground Integration Tests', () => {
     it('should provide consistent interface across adapters', async () => {
       const localConfig: PlaygroundConfig = {
         type: 'local-execution',
-        agent: {
+        agent: createMockPlaygroundAgent({
           getActionSpace: async () => [],
-        },
+        }),
       };
 
       const remoteConfig: PlaygroundConfig = {

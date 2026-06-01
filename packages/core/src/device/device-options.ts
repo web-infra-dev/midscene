@@ -149,6 +149,8 @@ export type IOSDeviceOpt = {
 export type HarmonyDeviceInputOpt = {
   /** Automatically dismiss the keyboard after input is completed */
   autoDismissKeyboard?: boolean;
+  /** Strategy for dismissing the keyboard. Defaults to 'esc-first'. */
+  keyboardDismissStrategy?: 'esc-first' | 'back-first';
 };
 
 /**

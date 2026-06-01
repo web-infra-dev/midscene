@@ -72,6 +72,7 @@ export default defineConfig({
     favicon: './src/favicon.ico',
   },
   source: {
+    tsconfigPath: 'tsconfig.build.json',
     entry: {
       index: './src/index.tsx',
     },

@@ -320,7 +320,7 @@ function aiInput(
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
-    - `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android/iOS 中有效。默认值为 true。
+    - `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android/iOS/HarmonyOS 中有效。默认值为 true。
     - `mode?: 'replace' | 'clear' | 'typeOnly'` - 输入模式。(默认值: 'replace')
       - `'replace'`: 先清空输入框，然后输入文本。
       - `'typeOnly'`: 直接输入文本，不会先清空输入框。

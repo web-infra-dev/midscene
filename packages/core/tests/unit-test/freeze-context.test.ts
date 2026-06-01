@@ -76,7 +76,6 @@ describe('PageAgent freeze/unfreeze page context', () => {
     } as unknown as UIContext;
 
     // Create agent instance
-    // @ts-expect-error - access private property _id in test
     agent = new PageAgent(mockPage, {
       generateReport: false,
       autoPrintReportMsg: false,
@@ -85,7 +84,6 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
     // Mock _snapshotContext method to return different contexts on successive calls
     let callCount = 0;
-    // @ts-expect-error - access private property _id in test
     vi.spyOn(agent, '_snapshotContext').mockImplementation(async () => {
       callCount++;
       return callCount === 1 ? mockContext : mockContext2;
@@ -171,7 +169,6 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
   describe('Context isolation and lifecycle', () => {
     it('should not share context between different agents', async () => {
-      // @ts-expect-error - access private property _id in test
       const agent2 = new PageAgent(mockPage, {
         generateReport: false,
         autoPrintReportMsg: false,
@@ -179,7 +176,6 @@ describe('PageAgent freeze/unfreeze page context', () => {
       });
 
       // Mock second agent's _snapshotContext
-      // @ts-expect-error - access private property _id in test
       vi.spyOn(agent2, '_snapshotContext').mockResolvedValue(mockContext2);
 
       // Freeze context for agent1 only
