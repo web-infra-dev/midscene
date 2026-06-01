@@ -1,7 +1,7 @@
+import { fork } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { collectFrameworkTestFiles, loadMidsceneConfig } from './config';
 import { createYamlFrameworkSuiteSource } from './runtime/source';
 import type {
@@ -9,6 +9,8 @@ import type {
   FrameworkSuiteSummary,
   LoadedMidsceneConfig,
 } from './types';
+
+const RUNNER_WORKER_RESULT_PREFIX = '__MIDSCENE_RUNNER_WORKER_RESULT__';
 
 const SUITE_MODULE_ID = 'virtual:midscene-framework/suite.test.ts';
 
@@ -50,53 +52,138 @@ const safeStem = (relativePath: string, index: number): string => {
   return `${String(index + 1).padStart(3, '0')}-${base || 'case'}`;
 };
 
+interface WorkerInput {
+  cwd: string;
+  root: string;
+  include: string[];
+  virtualModules: Record<string, string>;
+  maxConcurrency?: number;
+  testTimeout?: number;
+  bail?: number;
+  retry?: number;
+}
+
+interface WorkerOutput {
+  ok: boolean;
+  unhandledErrors: Array<{
+    name?: string;
+    message?: string;
+    stack?: string;
+  }>;
+}
+
+const resolveWorkerEntry = (): string => {
+  // `runner.js` and `runner-worker.js` ship side-by-side in both the CJS and
+  // ESM bundles, so resolving relative to the current module works in both
+  // formats. Use `__filename` for CJS and `import.meta.url` for ESM. The ESM
+  // build emits `.mjs` files; pick the matching extension.
+  const moduleUrl =
+    typeof __filename === 'string'
+      ? null
+      : (import.meta as { url?: string } | undefined)?.url;
+  const here = moduleUrl ? fileURLToPath(moduleUrl) : __filename;
+  const ext = here.endsWith('.mjs') ? '.mjs' : '.js';
+  return resolve(dirname(here), `runner-worker${ext}`);
+};
+
 /**
- * Default Rstest driver. It reuses the same `runRstest` + virtual-module
- * mechanism the CLI YAML runner already relies on, so framework cases execute
- * inside Rstest instead of a bespoke concurrent runner.
+ * Default Rstest driver. We deliberately spawn `runRstest` in a child process:
+ * the user's `midscene.config.ts` typically imports playwright (or
+ * `@midscene/web/playwright`), which transitively initializes a bundled
+ * `@vitest/expect` copy and defines `Symbol.for('$$jest-matchers-object')` on
+ * `globalThis` non-configurably. Calling `runRstest` in the same process then
+ * fails with `TypeError: Cannot redefine property: Symbol($$jest-matchers-object)`
+ * because Rstest's own `@vitest/expect` copy tries to redefine the same global.
+ * Forking sidesteps the collision: the child has never imported playwright.
  */
 const defaultRstestRunner: FrameworkRstestRunner = async (project) => {
-  const projectRequire = createRequire(resolve(project.root, 'package.json'));
-  const rstestPkgJson = projectRequire.resolve('@rstest/core/package.json');
-  const rsbuildEntry = createRequire(rstestPkgJson).resolve('@rsbuild/core');
+  const workerEntry = resolveWorkerEntry();
 
-  const [{ runRstest }, { rspack }] = await Promise.all([
-    import('@rstest/core/api'),
-    import(pathToFileURL(rsbuildEntry).href),
-  ]);
-
-  const maxConcurrency =
-    project.maxConcurrency !== undefined
-      ? Math.max(1, project.maxConcurrency)
-      : undefined;
-
-  const inlineConfig: Record<string, unknown> = {
+  const input: WorkerInput = {
+    cwd: project.root,
     root: project.root,
     include: project.include,
-    testEnvironment: 'node',
-    ...(project.testTimeout !== undefined
-      ? { testTimeout: project.testTimeout }
-      : {}),
-    ...(maxConcurrency !== undefined ? { maxConcurrency } : {}),
-    ...(maxConcurrency !== undefined
-      ? { pool: { maxWorkers: maxConcurrency, minWorkers: maxConcurrency } }
-      : {}),
-    ...(project.bail !== undefined ? { bail: project.bail } : {}),
-    ...(project.retry !== undefined ? { retry: project.retry } : {}),
-    tools: {
-      rspack: (
-        _config: unknown,
-        { appendPlugins }: { appendPlugins: (plugin: unknown) => void },
-      ) => {
-        appendPlugins(
-          new rspack.experiments.VirtualModulesPlugin(project.virtualModules),
-        );
-      },
-    },
+    virtualModules: project.virtualModules,
+    maxConcurrency: project.maxConcurrency,
+    testTimeout: project.testTimeout,
+    bail: project.bail,
+    retry: project.retry,
   };
 
-  const result = await runRstest({ cwd: project.root, inlineConfig });
-  return { ok: Boolean(result?.ok) };
+  return await new Promise<{ ok: boolean }>((resolveRunner, rejectRunner) => {
+    const child = fork(workerEntry, [], {
+      cwd: project.root,
+      env: process.env,
+      stdio: ['pipe', 'pipe', 'inherit', 'ipc'],
+    });
+
+    let stdoutBuffer = '';
+    let parsedResult: WorkerOutput | undefined;
+
+    child.stdout?.setEncoding('utf8');
+    child.stdout?.on('data', (chunk: string) => {
+      stdoutBuffer += chunk;
+      let newlineIndex = stdoutBuffer.indexOf('\n');
+      while (newlineIndex !== -1) {
+        const line = stdoutBuffer.slice(0, newlineIndex);
+        stdoutBuffer = stdoutBuffer.slice(newlineIndex + 1);
+        if (line.startsWith(RUNNER_WORKER_RESULT_PREFIX)) {
+          try {
+            parsedResult = JSON.parse(
+              line.slice(RUNNER_WORKER_RESULT_PREFIX.length),
+            ) as WorkerOutput;
+          } catch (error) {
+            rejectRunner(
+              new Error(
+                `Failed to parse runner-worker result: ${
+                  error instanceof Error ? error.message : String(error)
+                }`,
+              ),
+            );
+            return;
+          }
+        } else if (line.length > 0) {
+          process.stdout.write(`${line}\n`);
+        }
+        newlineIndex = stdoutBuffer.indexOf('\n');
+      }
+    });
+
+    child.on('error', (error) => {
+      rejectRunner(error);
+    });
+
+    child.on('exit', (code, signal) => {
+      if (
+        stdoutBuffer.length > 0 &&
+        !stdoutBuffer.startsWith(RUNNER_WORKER_RESULT_PREFIX)
+      ) {
+        process.stdout.write(stdoutBuffer);
+      }
+
+      if (!parsedResult) {
+        rejectRunner(
+          new Error(
+            `runner-worker exited (code=${code ?? 'null'}, signal=${
+              signal ?? 'null'
+            }) without producing a result`,
+          ),
+        );
+        return;
+      }
+
+      if (parsedResult.unhandledErrors.length > 0) {
+        for (const error of parsedResult.unhandledErrors) {
+          console.error(error.stack || `${error.name}: ${error.message}`);
+        }
+      }
+
+      resolveRunner({ ok: parsedResult.ok });
+    });
+
+    child.stdin?.write(JSON.stringify(input));
+    child.stdin?.end();
+  });
 };
 
 const readCaseResult = (item: SuiteCase): FrameworkCaseResult => {
@@ -159,6 +246,7 @@ export async function runMidsceneSuite(
   options: RunMidsceneSuiteOptions = {},
 ): Promise<FrameworkSuiteSummary> {
   const loaded = await loadMidsceneConfig(options.configPath);
+
   const files = await collectFrameworkTestFiles({
     root: loaded.root,
     config: loaded.config,
