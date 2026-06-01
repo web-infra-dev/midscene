@@ -44,6 +44,11 @@
       "import": "./dist/es/dump/task-service-dump.mjs",
       "require": "./dist/lib/dump/task-service-dump.js"
     },
+    "./device-cache": {
+      "types": "./dist/types/device-cache/index.d.ts",
+      "import": "./dist/es/device-cache/index.mjs",
+      "require": "./dist/lib/device-cache/index.js"
+    },
     "./agent": {
       "types": "./dist/types/agent/index.d.ts",
       "import": "./dist/es/agent/index.mjs",
@@ -74,6 +79,7 @@
       "device": ["./dist/types/device.d.ts"],
       "dump": ["./dist/types/dump/index.d.ts"],
       "dump/task-service-dump": ["./dist/types/dump/task-service-dump.d.ts"],
+      "device-cache": ["./dist/types/device-cache/index.d.ts"],
       "agent": ["./dist/types/agent.d.ts"],
       "yaml": ["./dist/types/yaml.d.ts"],
       "skill": ["./dist/types/skill/index.d.ts"]

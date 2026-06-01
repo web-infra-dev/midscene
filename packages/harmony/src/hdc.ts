@@ -118,8 +118,8 @@ export class HdcClient {
   }
 
   /**
-   * Capture the current UI layout via `uitest dumpLayout` and return the JSON
-   * string. The dump is written to a fixed device path then `cat`'d back in
+   * Capture the current UI layout via `uitest dumpLayout` for the xpath cache
+   * pipeline. The dump is written to a fixed device path then `cat`'d back in
    * the same shell round-trip to avoid a separate `hdc file recv` call.
    */
   async dumpLayout(): Promise<string> {

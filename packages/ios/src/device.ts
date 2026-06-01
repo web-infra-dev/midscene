@@ -2,8 +2,10 @@ import assert from 'node:assert';
 import {
   type ActionScrollParam,
   type DeviceAction,
+  type ElementCacheFeature,
   type InterfaceType,
   type Point,
+  type Rect,
   type Size,
   z,
 } from '@midscene/core';
@@ -17,6 +19,10 @@ import {
   createDefaultMobileActions,
   defineAction,
 } from '@midscene/core/device';
+import {
+  findRectByXpath,
+  generateXpathCandidates,
+} from '@midscene/core/device-cache';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
@@ -26,6 +32,7 @@ import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
 import { MjpegFrameSource } from './mjpeg-frame-source';
+import { wdaSourceToUiNode } from './wda-source-tree';
 
 // Re-export IOSDeviceOpt and IOSDeviceInputOpt for backward compatibility
 export type { IOSDeviceOpt, IOSDeviceInputOpt } from '@midscene/core/device';
@@ -383,6 +390,71 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       node: null,
       children: [],
     };
+  }
+
+  async cacheFeatureForPoint(
+    center: [number, number],
+  ): Promise<ElementCacheFeature> {
+    try {
+      const xml = await this.wdaBackend.getSource();
+      const root = wdaSourceToUiNode(xml);
+      const xpaths = generateXpathCandidates(
+        root,
+        { x: center[0], y: center[1] },
+        {
+          // WDA exposes the element's accessibilityIdentifier as `name` in
+          // /source. When unset, `name` falls back to the visible label, but
+          // it is still the most stable identifier available.
+          stableAttrs: ['name'],
+          textAttrs: ['label', 'value'],
+        },
+      );
+      if (xpaths.length === 0) {
+        debugDevice(
+          'cacheFeatureForPoint: no xpath candidate at point %o',
+          center,
+        );
+      }
+      return { xpaths };
+    } catch (error) {
+      debugDevice(`cacheFeatureForPoint failed: ${error}`);
+      return { xpaths: [] };
+    }
+  }
+
+  async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
+    const xpaths = Array.isArray((feature as { xpaths?: unknown }).xpaths)
+      ? ((feature as { xpaths: unknown[] }).xpaths.filter(
+          (x): x is string => typeof x === 'string' && x.length > 0,
+        ) as string[])
+      : [];
+    if (xpaths.length === 0) {
+      throw new Error('rectMatchesCacheFeature: no xpath in cache feature');
+    }
+    const xml = await this.wdaBackend.getSource();
+    const root = wdaSourceToUiNode(xml);
+    for (const xpath of xpaths) {
+      try {
+        const rect = findRectByXpath(root, xpath);
+        if (rect && rect.width > 0 && rect.height > 0) {
+          debugDevice(
+            'rectMatchesCacheFeature: hit xpath %s -> %o',
+            xpath,
+            rect,
+          );
+          return rect;
+        }
+      } catch (error) {
+        debugDevice(
+          'rectMatchesCacheFeature: xpath %s failed: %s',
+          xpath,
+          error,
+        );
+      }
+    }
+    throw new Error(
+      `rectMatchesCacheFeature: no xpath matched (tried ${xpaths.length})`,
+    );
   }
 
   private async initializeDevicePixelRatio(): Promise<void> {
