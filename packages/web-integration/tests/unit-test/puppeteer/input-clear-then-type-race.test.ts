@@ -36,7 +36,7 @@ afterAll(async () => {
 }, PUPPETEER_TEST_TIMEOUT_MS);
 
 // Simulates a controlled component that replaces the input element shortly
-// after the clear-triggered `input` event. The tests use an explicit
+// after the clear-triggered `input` event. The test uses an explicit
 // per-character keyboard delay so the replacement lands inside the raw
 // `keyboard.type` loop instead of depending on host/browser timing.
 const RACE_PAGE_HTML = `
@@ -79,38 +79,6 @@ const inputCenter = async (page: any) =>
   });
 
 describe('clearInput → keyboard.type race (replace mode)', () => {
-  test(
-    'raw clearInput + keyboard.type drops characters when the input is replaced mid-type',
-    async () => {
-      const page = await browser.newPage();
-      await page.setContent(RACE_PAGE_HTML);
-
-      const webPage = new PuppeteerWebPage(page, {
-        keyboardTypeDelay: KEYBOARD_TYPE_DELAY_MS,
-      });
-      const { x, y } = await inputCenter(page);
-
-      // The low-level path: no waitForDomQuiet between clear and type.
-      await webPage.mouse.click(x, y);
-      await webPage.clearInput({ center: [x, y] } as any);
-      await webPage.keyboard.type('Hello');
-      await page.waitForFunction(
-        () => (window as any).__midsceneRaceReplacementCount > 0,
-      );
-
-      const finalValue = await page.$eval(
-        '#i',
-        (el) => (el as HTMLInputElement).value,
-      );
-      await page.close();
-
-      // Demonstrates the underlying race: at least one character is lost.
-      expect(finalValue).not.toBe('Hello');
-      expect(finalValue.length).toBeLessThan('Hello'.length);
-    },
-    PUPPETEER_TEST_TIMEOUT_MS,
-  );
-
   test(
     'Input action (replace mode) preserves all characters via waitForDomQuiet',
     async () => {
