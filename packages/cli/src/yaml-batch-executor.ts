@@ -41,10 +41,10 @@ export interface BatchRunnerConfig {
   summary: string;
   shareBrowserContext: boolean;
   globalConfig?: {
-    web?: MidsceneYamlScriptWebEnv;
-    android?: MidsceneYamlScriptAndroidEnv;
-    ios?: MidsceneYamlScriptIOSEnv;
-    target?: MidsceneYamlScriptWebEnv;
+    web?: Partial<MidsceneYamlScriptWebEnv>;
+    android?: Partial<MidsceneYamlScriptAndroidEnv>;
+    ios?: Partial<MidsceneYamlScriptIOSEnv>;
+    target?: Partial<MidsceneYamlScriptWebEnv>;
   };
   headed: boolean;
   keepWindow: boolean;
