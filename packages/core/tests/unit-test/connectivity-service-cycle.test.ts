@@ -100,15 +100,13 @@ describe('runConnectivityTest service load order', () => {
       .mockResolvedValueOnce({ content: 'What needs to be done?' });
     mocks.AiLocateElement.mockResolvedValue({
       parseResult: {
-        elements: [
-          {
-            center: [300, 120],
-            rect: { left: 120, top: 90, width: 360, height: 60 },
-            description: 'main todo input box',
-            xpaths: [],
-            attributes: {},
-          },
-        ],
+        element: {
+          center: [300, 120],
+          rect: { left: 120, top: 90, width: 360, height: 60 },
+          description: 'main todo input box',
+          xpaths: [],
+          attributes: {},
+        },
         errors: [],
       },
       rect: { left: 120, top: 90, width: 360, height: 60 },
@@ -132,7 +130,9 @@ describe('runConnectivityTest service load order', () => {
     expect(mocks.AiLocateElement).toHaveBeenCalledWith(
       expect.objectContaining({
         targetElementDescription: 'the main todo input box',
-        modelConfig: defaultModelConfig,
+        modelRuntime: expect.objectContaining({
+          config: defaultModelConfig,
+        }),
       }),
     );
   });
@@ -142,8 +142,7 @@ describe('runConnectivityTest service load order', () => {
       join(__dirname, '../../src/service/index.ts'),
     );
 
-    expect(serviceImports).not.toEqual(
-      expect.arrayContaining(['@/ai-model', '@/ai-model/index']),
-    );
+    expect(serviceImports).not.toContain('@/ai-model');
+    expect(serviceImports).not.toContain('@/ai-model/index');
   });
 });

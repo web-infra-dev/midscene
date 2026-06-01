@@ -69,16 +69,19 @@ export class ModelConfigManager {
       default: {
         ...defaultConfig,
         intent: 'default',
+        slot: 'default',
         createOpenAIClient: this.createOpenAIClientFn,
       },
       insight: {
         ...(insightConfig || defaultConfig),
         intent: 'insight',
+        slot: insightConfig ? 'insight' : 'default',
         createOpenAIClient: this.createOpenAIClientFn,
       },
       planning: {
         ...(planningConfig || defaultConfig),
         intent: 'planning',
+        slot: planningConfig ? 'planning' : 'default',
         createOpenAIClient: this.createOpenAIClientFn,
       },
     };

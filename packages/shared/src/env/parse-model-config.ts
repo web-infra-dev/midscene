@@ -172,6 +172,15 @@ const normalizeOpenaiExtraConfig = (
   return rest;
 };
 
+const parseTemperature = (rawValue: string | undefined): number | undefined => {
+  if (rawValue === undefined || rawValue === '') {
+    return undefined;
+  }
+
+  const temperature = Number(rawValue);
+  return Number.isFinite(temperature) ? temperature : undefined;
+};
+
 /**
  * Parse OpenAI SDK config
  */
@@ -222,9 +231,7 @@ export const parseOpenaiSdkConfig = ({
   );
   const extraBodyStr: string | undefined = provider[keys.extraBody];
   const extraBody = parseJson(keys.extraBody, extraBodyStr);
-  const temperature = provider[keys.temperature]
-    ? Number(provider[keys.temperature])
-    : 0;
+  const temperature = parseTemperature(provider[keys.temperature]);
 
   const modelFamily = modelFamilyRaw as unknown as TModelFamily;
   validateModelFamily(modelFamily);

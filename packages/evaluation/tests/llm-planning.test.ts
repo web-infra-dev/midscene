@@ -1,6 +1,10 @@
 import { writeFileSync } from 'node:fs';
 import { type PlanningAIResponse, type Rect, plan } from '@midscene/core';
-import { adaptBboxToRect } from '@midscene/core/ai-model';
+import {
+  ConversationHistory,
+  adaptModelLocateResultToRect,
+  getModelRuntime,
+} from '@midscene/core/ai-model';
 import {
   type DeviceAction,
   defineActionsFromInputPrimitives,
@@ -9,7 +13,7 @@ import { sleep } from '@midscene/core/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
-import { afterEach, beforeAll, describe, expect, test } from 'vitest';
+import { afterEach, beforeAll, describe, test } from 'vitest';
 import { TestResultCollector } from '../src/test-analyzer';
 import { annotateRects, buildContext, getCases } from './util';
 dotenv.config({
@@ -22,16 +26,11 @@ const testSources = ['todo'];
 
 let actionSpace: DeviceAction[] = [];
 
-let globalModelFamily = false;
+const planningModelConfig = globalModelConfigManager.getModelConfig('planning');
+const planningModelRuntime = getModelRuntime(planningModelConfig);
+const globalModelFamily = !!planningModelConfig.modelFamily;
 
 beforeAll(async () => {
-  const defaultModelConfig =
-    globalModelConfigManager.getModelConfig('planning');
-  const { modelFamily } = defaultModelConfig;
-  globalModelFamily = !!modelFamily;
-
-  expect(globalModelFamily).toBeTruthy();
-
   actionSpace = [
     ...defineActionsFromInputPrimitives({
       pointer: {
@@ -58,12 +57,9 @@ describe.skipIf(globalModelFamily)('ai planning - by element', () => {
 
         const caseGroupName = aiDataPath.split('/').pop() || '';
 
-        const modelConfig = globalModelConfigManager.getModelConfig('planning');
-        const { modelName } = modelConfig;
-
         const resultCollector = new TestResultCollector(
           `${caseGroupName}-planning`,
-          modelName || 'unspecified',
+          planningModelConfig.modelName || 'unspecified',
         );
 
         for (const [, testCase] of cases.testCases.entries()) {
@@ -74,9 +70,10 @@ describe.skipIf(globalModelFamily)('ai planning - by element', () => {
 
           const res = await plan(prompt, {
             context,
-            interfaceType: 'puppeteer',
             actionSpace,
-            modelConfig,
+            modelRuntime: planningModelRuntime,
+            conversationHistory: new ConversationHistory(),
+            includeLocateInPlanning: false,
           });
 
           if (process.env.UPDATE_ANSWER_DATA) {
@@ -108,7 +105,7 @@ const vlCases = [
   'antd-tooltip-vl',
 ];
 
-const { modelName } = globalModelConfigManager.getModelConfig('planning');
+const { modelName } = planningModelConfig;
 
 const resultCollector = new TestResultCollector(
   'planning',
@@ -136,8 +133,6 @@ describe.skipIf(!globalModelFamily)('ai planning - by coordinates', () => {
           rect: Rect;
         }> = [];
 
-        const modelConfig = globalModelConfigManager.getModelConfig('planning');
-
         for (const [index, testCase] of cases.testCases.entries()) {
           const context = await buildContext(source.replace('-vl', ''));
 
@@ -147,12 +142,16 @@ describe.skipIf(!globalModelFamily)('ai planning - by coordinates', () => {
           let res: PlanningAIResponse | Error;
           try {
             res = await plan(prompt, {
-              log: testCase.log,
               context,
               actionContext: testCase.action_context,
-              interfaceType: 'puppeteer',
               actionSpace,
-              modelConfig,
+              modelRuntime: planningModelRuntime,
+              conversationHistory: new ConversationHistory({
+                initialMessages: testCase.log
+                  ? [{ role: 'assistant', content: testCase.log }]
+                  : undefined,
+              }),
+              includeLocateInPlanning: true,
             });
           } catch (error) {
             res = error as Error;
@@ -167,13 +166,19 @@ describe.skipIf(!globalModelFamily)('ai planning - by coordinates', () => {
               testCase.response_planning = res;
               if (res.action?.locate?.bbox) {
                 const indexId = index + 1;
-                testCase.response_rect = adaptBboxToRect(
+                const locateAdapter = planningModelRuntime.adapter.locate;
+                if (locateAdapter.kind !== 'standard') {
+                  throw new Error(
+                    'planning evaluation requires a standard locate adapter',
+                  );
+                }
+                testCase.response_rect = adaptModelLocateResultToRect(
                   res.action.locate.bbox,
-                  context.shotSize.width,
-                  context.shotSize.height,
-                  0,
-                  0,
-                  modelConfig.modelFamily,
+                  {
+                    width: context.shotSize.width,
+                    height: context.shotSize.height,
+                    resultAdapter: locateAdapter.resultAdapter,
+                  },
                 );
                 testCase.annotation_index_id = indexId;
                 annotations.push({

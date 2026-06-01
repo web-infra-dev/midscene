@@ -1,15 +1,17 @@
+import { pixelBboxToRect } from '@/ai-model/workflows/inspect/locate-result-rect';
 import type { TMultimodalPrompt, TUserPrompt } from '@/common';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type {
   ElementCacheFeature,
   LocateResultElement,
+  PixelBbox,
   PlanningLocateParam,
+  PlanningLocateParamWithLocatedPixelBbox,
   Rect,
   UIContext,
 } from '@/types';
 import { uploadTestInfoToServer } from '@/utils';
-import type { TModelFamily } from '@midscene/shared/env';
 import {
   MIDSCENE_REPORT_QUIET,
   MIDSCENE_REPORT_TAG_NAME,
@@ -29,7 +31,6 @@ export async function commonContextParser(
   _opt: {
     uploadServerUrl?: string;
     screenshotShrinkFactor?: number;
-    modelFamily?: TModelFamily;
   },
 ): Promise<UIContext> {
   const debug = getDebug('commonContextParser');
@@ -175,42 +176,40 @@ export function printReportMsg(filepath: string) {
   logMsg(`Midscene - report file updated: ${filepath}`);
 }
 
-export function ifPlanLocateParamIsBbox(
-  planLocateParam: PlanningLocateParam,
-): boolean {
-  return !!(
-    planLocateParam.bbox &&
-    Array.isArray(planLocateParam.bbox) &&
-    planLocateParam.bbox.length === 4
+export function isPixelBbox(value: unknown): value is PixelBbox {
+  return (
+    Array.isArray(value) &&
+    value.length === 4 &&
+    value.every((item) => typeof item === 'number' && Number.isFinite(item))
   );
 }
 
+type PlanningLocateParamWithMaybeLocatedPixelBbox = PlanningLocateParam & {
+  locatedPixelBbox?: unknown;
+};
+
+export function ifPlanLocateParamHasLocatedPixelBbox(
+  planLocateParam: PlanningLocateParamWithMaybeLocatedPixelBbox,
+): planLocateParam is PlanningLocateParamWithLocatedPixelBbox {
+  return isPixelBbox(planLocateParam.locatedPixelBbox);
+}
+
 export function matchElementFromPlan(
-  planLocateParam: PlanningLocateParam,
+  planLocateParam: PlanningLocateParamWithLocatedPixelBbox,
 ): LocateResultElement | undefined {
   if (!planLocateParam) {
     return undefined;
   }
 
-  if (planLocateParam.bbox) {
-    // Convert bbox [x1, y1, x2, y2] to rect {left, top, width, height}
-    const rect = {
-      left: planLocateParam.bbox[0],
-      top: planLocateParam.bbox[1],
-      width: planLocateParam.bbox[2] - planLocateParam.bbox[0] + 1,
-      height: planLocateParam.bbox[3] - planLocateParam.bbox[1] + 1,
-    };
+  const rect = pixelBboxToRect(planLocateParam.locatedPixelBbox);
 
-    const element = generateElementByRect(
-      rect,
-      typeof planLocateParam.prompt === 'string'
-        ? planLocateParam.prompt
-        : planLocateParam.prompt?.prompt || '',
-    );
-    return element;
-  }
-
-  return undefined;
+  const element = generateElementByRect(
+    rect,
+    typeof planLocateParam.prompt === 'string'
+      ? planLocateParam.prompt
+      : planLocateParam.prompt?.prompt || '',
+  );
+  return element;
 }
 
 export async function matchElementFromCache(

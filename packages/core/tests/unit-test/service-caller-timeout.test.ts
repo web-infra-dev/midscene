@@ -86,6 +86,7 @@ describe('service-caller request timeout', () => {
 
   it('aborts a hung request via the injected AbortSignal once timeout elapses', async () => {
     const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
 
     let observedSignal: AbortSignal | undefined;
     mockCreate.mockImplementation((_body, opts) => {
@@ -99,7 +100,7 @@ describe('service-caller request timeout', () => {
 
     const promise = callAI(
       [{ role: 'user', content: 'hello' }],
-      baseConfig({ timeout: 50 }),
+      getModelRuntime(baseConfig({ timeout: 50 })),
     );
 
     await expect(promise).rejects.toThrow(/hard timeout after 50ms/);
@@ -109,6 +110,7 @@ describe('service-caller request timeout', () => {
 
   it('tags the timeout error with AI_CALL_HARD_TIMEOUT so callers can branch on it', async () => {
     const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
     const { AI_CALL_HARD_TIMEOUT_CODE, isHardTimeoutError } = await import(
       '@/ai-model/service-caller/request-timeout'
     );
@@ -125,7 +127,7 @@ describe('service-caller request timeout', () => {
     try {
       await callAI(
         [{ role: 'user', content: 'hello' }],
-        baseConfig({ timeout: 30 }),
+        getModelRuntime(baseConfig({ timeout: 30 })),
       );
       throw new Error('should have timed out');
     } catch (err) {
@@ -135,6 +137,7 @@ describe('service-caller request timeout', () => {
 
   it('uses the 180s default timeout when none is configured', async () => {
     const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
     const { DEFAULT_AI_CALL_TIMEOUT_MS } = await import(
       '@/ai-model/service-caller/request-timeout'
     );
@@ -147,7 +150,10 @@ describe('service-caller request timeout', () => {
       _request_id: 'req_default_timeout',
     });
 
-    await callAI([{ role: 'user', content: 'hello' }], baseConfig());
+    await callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime(baseConfig()),
+    );
 
     const OpenAI = (await import('openai')).default as unknown as ReturnType<
       typeof vi.fn
@@ -159,6 +165,7 @@ describe('service-caller request timeout', () => {
 
   it('retries after a hard timeout and returns the next successful response', async () => {
     const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
 
     mockCreate
       .mockImplementationOnce((_body, opts) => {
@@ -177,7 +184,9 @@ describe('service-caller request timeout', () => {
 
     const result = await callAI(
       [{ role: 'user', content: 'hello' }],
-      baseConfig({ timeout: 30, retryCount: 1, retryInterval: 0 }),
+      getModelRuntime(
+        baseConfig({ timeout: 30, retryCount: 1, retryInterval: 0 }),
+      ),
     );
 
     expect(result.content).toBe('recovered');
@@ -186,6 +195,7 @@ describe('service-caller request timeout', () => {
 
   it('disables the hard timeout when modelConfig.timeout is 0', async () => {
     const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
     const { resolveEffectiveTimeoutMs } = await import(
       '@/ai-model/service-caller/request-timeout'
     );
@@ -200,7 +210,7 @@ describe('service-caller request timeout', () => {
 
     await callAI(
       [{ role: 'user', content: 'hello' }],
-      baseConfig({ timeout: 0 }),
+      getModelRuntime(baseConfig({ timeout: 0 })),
     );
 
     const OpenAI = (await import('openai')).default as unknown as ReturnType<
@@ -218,6 +228,7 @@ describe('service-caller request timeout', () => {
 
   it('honours the caller abortSignal even before the timeout fires', async () => {
     const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
 
     mockCreate.mockImplementation((_body, opts) => {
       const signal = opts?.signal as AbortSignal | undefined;
@@ -231,7 +242,7 @@ describe('service-caller request timeout', () => {
     const controller = new AbortController();
     const promise = callAI(
       [{ role: 'user', content: 'hello' }],
-      baseConfig({ timeout: 60_000 }),
+      getModelRuntime(baseConfig({ timeout: 60_000 })),
       { abortSignal: controller.signal },
     );
 

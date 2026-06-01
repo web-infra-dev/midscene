@@ -152,7 +152,7 @@ Some model providers enable model-native thinking by default. In Midscene UI aut
 
 If you need model-native thinking, set `MIDSCENE_MODEL_REASONING_ENABLED="true"` explicitly. Some model families also support extra controls such as `MIDSCENE_MODEL_REASONING_BUDGET` or `MIDSCENE_MODEL_REASONING_EFFORT`; see [Common Model Configuration](./model-common-config) for model-specific examples and [Advanced settings](./model-config#advanced-settings-optional) for the full environment variable reference.
 
-Explicit reasoning configuration requires a supported `MIDSCENE_MODEL_FAMILY`. If the model family is missing or unsupported, Midscene will throw an error instead of guessing provider-specific reasoning parameters.
+Reasoning controls are model-family specific. If the configured model family does not support a reasoning option, Midscene ignores that option instead of guessing provider-specific reasoning parameters.
 
 ### API style for model service provider
 

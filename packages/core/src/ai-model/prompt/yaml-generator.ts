@@ -3,12 +3,12 @@ import type {
   StreamingCodeGenerationOptions,
 } from '@/types';
 import { YAML_EXAMPLE_CODE } from '@midscene/shared/constants';
-import type { IModelConfig } from '@midscene/shared/env';
 import {
   type ChatCompletionMessageParam,
   callAI,
   callAIWithStringResponse,
 } from '../index';
+import type { ModelRuntime } from '../models';
 
 // Common interfaces for test generation (shared between YAML and Playwright)
 export interface EventCounts {
@@ -341,7 +341,7 @@ export const validateEvents = (events: ChromeRecordedEvent[]): void => {
 export const generateYamlTest = async (
   events: ChromeRecordedEvent[],
   options: YamlGenerationOptions,
-  modelConfig: IModelConfig,
+  modelRuntime: ModelRuntime,
 ): Promise<string> => {
   try {
     // Validate input
@@ -371,7 +371,7 @@ export const generateYamlTest = async (
       language: options.language,
     });
 
-    const response = await callAIWithStringResponse(prompt, modelConfig);
+    const response = await callAIWithStringResponse(prompt, modelRuntime);
 
     if (response?.content && typeof response.content === 'string') {
       return response.content;
@@ -389,7 +389,7 @@ export const generateYamlTest = async (
 export const generateYamlTestStream = async (
   events: ChromeRecordedEvent[],
   options: YamlGenerationOptions & StreamingCodeGenerationOptions,
-  modelConfig: IModelConfig,
+  modelRuntime: ModelRuntime,
 ): Promise<StreamingAIResponse> => {
   try {
     // Validate input
@@ -421,13 +421,13 @@ export const generateYamlTestStream = async (
 
     if (options.stream && options.onChunk) {
       // Use streaming
-      return await callAI(prompt, modelConfig, {
+      return await callAI(prompt, modelRuntime, {
         stream: true,
         onChunk: options.onChunk,
       });
     } else {
       // Fallback to non-streaming
-      const response = await callAIWithStringResponse(prompt, modelConfig);
+      const response = await callAIWithStringResponse(prompt, modelRuntime);
 
       if (response?.content && typeof response.content === 'string') {
         return {
