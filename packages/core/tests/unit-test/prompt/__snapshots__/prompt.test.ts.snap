@@ -607,7 +607,7 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Action Guidelines
 
-- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
+- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters, and use Input with mode "typeOnly" when typing new characters for such edits.
 
 ### Supporting actions list
 
@@ -952,7 +952,7 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Action Guidelines
 
-- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
+- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters, and use Input with mode "typeOnly" when typing new characters for such edits.
 
 ### Supporting actions list
 
@@ -1270,7 +1270,7 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Action Guidelines
 
-- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
+- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters, and use Input with mode "typeOnly" when typing new characters for such edits.
 
 ### Supporting actions list
 
@@ -1681,7 +1681,7 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Action Guidelines
 
-- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
+- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters, and use Input with mode "typeOnly" when typing new characters for such edits.
 
 ### Supporting actions list
 
@@ -2057,7 +2057,7 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Action Guidelines
 
-- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
+- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters, and use Input with mode "typeOnly" when typing new characters for such edits.
 
 ### Supporting actions list
 
@@ -2402,7 +2402,7 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Action Guidelines
 
-- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
+- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters, and use Input with mode "typeOnly" when typing new characters for such edits.
 
 ### Supporting actions list
 

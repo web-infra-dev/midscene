@@ -5,6 +5,7 @@ import {
 } from '@/ai-model/prompt/llm-planning';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
+import { defineActionInput } from '@/device';
 import { getMidsceneLocationSchema } from '@/index';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -151,6 +152,22 @@ describe('action space', () => {
         - param:
           - command: string // ADB shell command to execute"
     `);
+  });
+
+  it('input action explains typeOnly incremental edits', () => {
+    const action = descriptionForAction(
+      defineActionInput({
+        clearInput: async () => {},
+        keyboardPress: async () => {},
+        typeText: async () => {},
+      }),
+      mockLocatorScheme,
+    );
+
+    expect(action).toContain('only the inserted characters for typeOnly mode');
+    expect(action).toContain(
+      'should be set explicitly for incremental edits after moving the cursor',
+    );
   });
 });
 

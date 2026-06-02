@@ -40,7 +40,7 @@ const MEMORY_STEP_NOTES = [
 const ACTION_STEP_NOTES = [
   '### Action Guidelines',
   '',
-  '- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.',
+  '- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters, and use Input with mode "typeOnly" when typing new characters for such edits.',
 ].join('\n');
 
 /**
