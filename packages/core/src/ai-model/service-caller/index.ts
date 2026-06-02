@@ -313,6 +313,7 @@ export async function callAI(
     )?.prompt_tokens_details?.cached_tokens;
 
     return {
+      ...usageData,
       prompt_tokens: usageData.prompt_tokens ?? 0,
       completion_tokens: usageData.completion_tokens ?? 0,
       total_tokens: usageData.total_tokens ?? 0,
