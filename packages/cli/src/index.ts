@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import { version } from '../package.json';
 import { matchYamlFiles, parseProcessArgs } from './cli-utils';
 import { createConfig, createFilesConfig } from './config-factory';
+import { runEmitCommand } from './emit-command';
 import { runFrameworkTestConfig } from './framework';
 
 Promise.resolve(
@@ -28,6 +29,12 @@ Promise.resolve(
         },
       );
       return;
+    }
+
+    if (firstArg === 'emit') {
+      console.log(`\nWelcome to @midscene/cli v${version}\n`);
+      const exitCode = await runEmitCommand(rawArgs.slice(1));
+      process.exit(exitCode);
     }
 
     const { options, path, files: cmdFiles } = await parseProcessArgs();

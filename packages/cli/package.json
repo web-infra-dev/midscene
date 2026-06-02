@@ -24,6 +24,7 @@
     "@midscene/core": "workspace:*",
     "@midscene/ios": "workspace:*",
     "@midscene/shared": "workspace:*",
+    "@midscene/testing-framework": "workspace:*",
     "@midscene/web": "workspace:*",
     "@rstest/core": "0.10.3",
     "http-server": "14.1.1",
