@@ -222,16 +222,50 @@ describe('setupFrameworkAgent', () => {
       {
         testDir: './e2e',
         include: ['**/*.yaml'],
-        agentOptions: { cache: true },
         setup,
       },
-      { projectDir: '/tmp/project', agentOptions: { cache: true } },
+      { projectDir: '/tmp/project', agentOptions: { headed: false } },
     );
 
     expect(setup).toHaveBeenCalledWith({
       projectDir: '/tmp/project',
-      agentOptions: { cache: true },
+      agentOptions: { headed: false },
     });
     expect(result.agent).toBe(customAgent);
+  });
+
+  it('resolves cache:true to a stable id derived from the project folder', async () => {
+    const setup = vi.fn(async () => ({ agent: { runYaml: vi.fn() } }));
+    await setupFrameworkAgent(
+      { testDir: './e2e', include: ['**/*.yaml'], setup },
+      { projectDir: '/work/my-smoke-suite', agentOptions: { cache: true } },
+    );
+    expect(setup).toHaveBeenCalledWith({
+      projectDir: '/work/my-smoke-suite',
+      agentOptions: { cache: { id: 'my-smoke-suite' } },
+    });
+  });
+
+  it('leaves an explicit cache id (or cache:false) untouched', async () => {
+    const setup = vi.fn(async () => ({ agent: { runYaml: vi.fn() } }));
+    await setupFrameworkAgent(
+      { testDir: './e2e', include: ['**/*.yaml'], setup },
+      {
+        projectDir: '/work/proj',
+        agentOptions: { cache: { id: 'fixed' } },
+      },
+    );
+    await setupFrameworkAgent(
+      { testDir: './e2e', include: ['**/*.yaml'], setup },
+      { projectDir: '/work/proj', agentOptions: { cache: false } },
+    );
+    expect(setup).toHaveBeenNthCalledWith(1, {
+      projectDir: '/work/proj',
+      agentOptions: { cache: { id: 'fixed' } },
+    });
+    expect(setup).toHaveBeenNthCalledWith(2, {
+      projectDir: '/work/proj',
+      agentOptions: { cache: false },
+    });
   });
 });

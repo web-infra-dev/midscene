@@ -1,3 +1,4 @@
+import { basename } from 'node:path';
 import type {
   FrameworkSetupResult,
   MidsceneFrameworkConfig,
@@ -5,6 +6,31 @@ import type {
 } from '../types';
 
 interface DefaultSetupContext extends SetupContext {}
+
+/**
+ * Core deliberately rejects `cache: true` (it never auto-generates ids). The
+ * framework adds the convenience: when a suite sets `cache: true`, derive a
+ * stable id from the project folder name so the same cache is reused across
+ * runs and users never have to invent one. An explicit `cache: { id }` (or
+ * `cache: false`) is left untouched.
+ */
+const deriveStableCacheId = (projectDir: string): string =>
+  basename(projectDir)
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'midscene';
+
+const resolveAgentOptions = (
+  agentOptions: Record<string, unknown>,
+  projectDir: string,
+): Record<string, unknown> => {
+  if (agentOptions.cache !== true) {
+    return agentOptions;
+  }
+  return {
+    ...agentOptions,
+    cache: { id: deriveStableCacheId(projectDir) },
+  };
+};
 
 async function createAndroidSetup(
   config: MidsceneFrameworkConfig,
@@ -109,9 +135,16 @@ export async function setupFrameworkAgent(
   config: MidsceneFrameworkConfig,
   context: DefaultSetupContext,
 ): Promise<FrameworkSetupResult> {
+  // Resolve `cache: true` to a stable id once, so both custom and default
+  // setups receive agent options Core will accept.
+  const resolvedContext: DefaultSetupContext = {
+    ...context,
+    agentOptions: resolveAgentOptions(context.agentOptions, context.projectDir),
+  };
+
   if (config.setup) {
-    return config.setup(context);
+    return config.setup(resolvedContext);
   }
 
-  return createDefaultSetup(config, context);
+  return createDefaultSetup(config, resolvedContext);
 }
