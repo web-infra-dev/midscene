@@ -1,29 +1,83 @@
 import { emitRstestProject } from '@midscene/testing-framework';
+import { dependencies } from '../package.json';
 
 export interface EmitCommandDeps {
   emit: typeof emitRstestProject;
+  rstestVersion?: string;
 }
 
-const readFlag = (args: string[], name: string): string | undefined => {
-  const index = args.indexOf(name);
-  return index !== -1 && index + 1 < args.length ? args[index + 1] : undefined;
+interface ParsedEmitArgs {
+  outDir?: string;
+  configPath?: string;
+  error?: string;
+  help?: boolean;
+}
+
+const usage = 'Usage: midscene emit <out-dir> [--config <path>]';
+const help = `${usage}
+
+Options:
+  --config <path>  Path to the source midscene.config file
+  -h, --help       Show this help message`;
+
+const normalizePackageVersion = (
+  packageVersion: string | undefined,
+  fallbackVersion: string,
+): string => {
+  if (!packageVersion || packageVersion.startsWith('workspace:')) {
+    return fallbackVersion;
+  }
+  return packageVersion;
 };
 
-const firstPositional = (args: string[]): string | undefined => {
+const defaultRstestVersion = normalizePackageVersion(
+  dependencies['@rstest/core'],
+  'latest',
+);
+
+const parseEmitArgs = (args: string[]): ParsedEmitArgs => {
+  let outDir: string | undefined;
+  let configPath: string | undefined;
+
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
-    if (arg.startsWith('-')) {
-      // `--flag value` consumes the following token as its value, so skip it
-      // (but not `--flag=value`, which is self-contained).
-      const next = args[index + 1];
-      if (!arg.includes('=') && next !== undefined && !next.startsWith('-')) {
-        index += 1;
+
+    if (arg === '--help' || arg === '-h') {
+      return { help: true };
+    }
+
+    if (arg === '--config') {
+      const value = args[index + 1];
+      if (!value || value.startsWith('-')) {
+        return { error: '--config requires a path value' };
       }
+      configPath = value;
+      index += 1;
       continue;
     }
-    return arg;
+
+    if (arg.startsWith('--config=')) {
+      const value = arg.slice('--config='.length);
+      if (!value) {
+        return { error: '--config requires a path value' };
+      }
+      configPath = value;
+      continue;
+    }
+
+    if (arg.startsWith('-')) {
+      return { error: `Unknown option: ${arg}` };
+    }
+
+    if (!outDir) {
+      outDir = arg;
+      continue;
+    }
+
+    return { error: `Unexpected argument: ${arg}` };
   }
-  return undefined;
+
+  return { outDir, configPath };
 };
 
 /**
@@ -36,15 +90,31 @@ export async function runEmitCommand(
   args: string[],
   deps: EmitCommandDeps = { emit: emitRstestProject },
 ): Promise<number> {
-  const outDir = firstPositional(args);
+  const {
+    outDir,
+    configPath,
+    error,
+    help: shouldShowHelp,
+  } = parseEmitArgs(args);
+  if (shouldShowHelp) {
+    console.log(help);
+    return 0;
+  }
+
+  if (error) {
+    console.error(`${error}\n${usage}`);
+    return 1;
+  }
+
   if (!outDir) {
-    console.error('Usage: midscene emit <out-dir> [--config <path>]');
+    console.error(usage);
     return 1;
   }
 
   const result = await deps.emit({
     outDir,
-    configPath: readFlag(args, '--config'),
+    configPath,
+    rstestVersion: deps.rstestVersion ?? defaultRstestVersion,
   });
   console.log(
     `Emitted native Rstest project to ${result.outDir} (${result.caseFiles.length} case(s))`,
