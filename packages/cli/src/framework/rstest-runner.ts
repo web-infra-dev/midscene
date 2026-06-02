@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
-import type { RstestUserConfig, TestRunResult } from '@rstest/core/api';
+import { runRstestWithVirtualModules } from '@midscene/shared/rstest';
+import type { TestRunResult } from '@rstest/core/api';
 import type { GeneratedRstestYamlProject } from './rstest-project';
 
 export interface RunRstestYamlProjectOptions {
@@ -36,43 +36,27 @@ const formatRunError = (
 export async function runRstestYamlProject(
   options: RunRstestYamlProjectOptions,
 ): Promise<number> {
-  const [{ runRstest }, { rspack }] = await Promise.all([
-    import('@rstest/core/api'),
-    import(pathToFileURL(resolvePackageFromRstestCore('@rsbuild/core')).href),
-  ]);
   const { project } = options;
-  const maxConcurrency =
-    project.maxConcurrency !== undefined
-      ? Math.max(1, project.maxConcurrency)
-      : undefined;
-  const inlineConfig: RstestUserConfig = {
+  // The CLI bundles its own `@rstest/core`, so `@rsbuild/core` is resolved
+  // relative to it. The actual `runRstest` wiring is shared with
+  // `@midscene/testing-framework` via `@midscene/shared/rstest`.
+  const result = await runRstestWithVirtualModules({
+    cwd: options.cwd || project.projectDir,
     root: project.projectDir,
     include: project.include,
-    testEnvironment: 'node',
+    virtualModules: project.virtualModules,
+    rsbuildEntry: resolvePackageFromRstestCore('@rsbuild/core'),
     testTimeout: project.testTimeout,
-    ...(maxConcurrency !== undefined ? { maxConcurrency } : {}),
-    ...(maxConcurrency !== undefined
-      ? { pool: { maxWorkers: maxConcurrency, minWorkers: maxConcurrency } }
-      : {}),
-    ...(project.bail !== undefined ? { bail: project.bail } : {}),
+    maxConcurrency: project.maxConcurrency,
+    bail: project.bail,
     reporters: [],
-    tools: {
-      rspack: (_config, { appendPlugins }) => {
-        appendPlugins(
-          new rspack.experiments.VirtualModulesPlugin(project.virtualModules),
-        );
-      },
-    },
-  };
-
-  const result = await runRstest({
-    cwd: options.cwd || project.projectDir,
-    inlineConfig,
   });
 
-  if (!result.ok && options.stdio !== 'pipe' && result.unhandledErrors.length) {
+  const unhandledErrors = (result.unhandledErrors ??
+    []) as TestRunResult['unhandledErrors'];
+  if (!result.ok && options.stdio !== 'pipe' && unhandledErrors.length) {
     console.error(
-      result.unhandledErrors.map((error) => formatRunError(error)).join('\n'),
+      unhandledErrors.map((error) => formatRunError(error)).join('\n'),
     );
   }
 
