@@ -6,6 +6,7 @@ import {
   createPackageJsonSource,
   createRstestConfigSource,
 } from './runtime/source';
+import { DEFAULT_FRAMEWORK_VERSION } from './version';
 
 export interface EmitRstestProjectOptions {
   /** Path to the source `midscene.config.ts`. Defaults to the one in `cwd`. */
@@ -107,7 +108,7 @@ export async function emitRstestProject(
     packageJsonFile,
     createPackageJsonSource({
       name: basename(outDir),
-      frameworkVersion: options.frameworkVersion,
+      frameworkVersion: options.frameworkVersion ?? DEFAULT_FRAMEWORK_VERSION,
       rstestVersion: options.rstestVersion,
     }),
   );

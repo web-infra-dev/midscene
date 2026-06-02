@@ -65,10 +65,24 @@ const toImportLiteral = (value: string): string =>
 const toVirtualModuleId = (fileStem: string): string =>
   `virtual:midscene-yaml/${fileStem}.test.ts`;
 
+const trimEdgeHyphens = (value: string): string => {
+  let start = 0;
+  let end = value.length;
+
+  while (start < end && value.charCodeAt(start) === 45) {
+    start += 1;
+  }
+  while (end > start && value.charCodeAt(end - 1) === 45) {
+    end -= 1;
+  }
+
+  return value.slice(start, end);
+};
+
 const safeFileStem = (file: string, index: number): string => {
-  const base = basename(file, extname(file))
-    .replace(/[^a-zA-Z0-9._-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+  const base = trimEdgeHyphens(
+    basename(file, extname(file)).replace(/[^a-zA-Z0-9._-]+/g, '-'),
+  );
   return `${String(index + 1).padStart(3, '0')}-${base || 'case'}`;
 };
 

@@ -16,15 +16,28 @@ export const emptySuiteSummary = (): FrameworkSuiteSummary => ({
   results: [],
 });
 
+const trimEdgeHyphens = (value: string): string => {
+  let start = 0;
+  let end = value.length;
+
+  while (start < end && value.charCodeAt(start) === 45) {
+    start += 1;
+  }
+  while (end > start && value.charCodeAt(end - 1) === 45) {
+    end -= 1;
+  }
+
+  return value.slice(start, end);
+};
+
 /**
  * Build a stable, filesystem-safe stem for a per-case result file. The index
  * keeps ordering deterministic even when two cases normalize to the same name.
  */
 export const safeResultStem = (relativePath: string, index: number): string => {
-  const base = relativePath
-    .replace(/\.[^.]+$/, '')
-    .replace(/[^a-zA-Z0-9._-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+  const base = trimEdgeHyphens(
+    relativePath.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]+/g, '-'),
+  );
   return `${String(index + 1).padStart(3, '0')}-${base || 'case'}`;
 };
 

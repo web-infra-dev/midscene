@@ -246,6 +246,21 @@ describe('setupFrameworkAgent', () => {
     });
   });
 
+  it('normalizes derived cache ids without trimming regex backtracking', async () => {
+    const setup = vi.fn(async () => ({ agent: { runYaml: vi.fn() } }));
+    await setupFrameworkAgent(
+      { testDir: './e2e', include: ['**/*.yaml'], setup },
+      {
+        projectDir: `/work/${'-'.repeat(10_000)}`,
+        agentOptions: { cache: true },
+      },
+    );
+    expect(setup).toHaveBeenCalledWith({
+      projectDir: `/work/${'-'.repeat(10_000)}`,
+      agentOptions: { cache: { id: 'midscene' } },
+    });
+  });
+
   it('leaves an explicit cache id (or cache:false) untouched', async () => {
     const setup = vi.fn(async () => ({ agent: { runYaml: vi.fn() } }));
     await setupFrameworkAgent(

@@ -122,6 +122,31 @@ describe('rstest yaml project generation', () => {
     }
   });
 
+  test('normalizes generated file stems without trimming regex backtracking', () => {
+    const root = createTempDir();
+    const outputDir = join(root, 'runner');
+    const checkoutYaml = join(root, '---checkout---.yaml');
+    const hyphenOnlyYaml = join(root, `${'-'.repeat(10_000)}.yaml`);
+
+    try {
+      const project = createRstestYamlProject({
+        files: [checkoutYaml, hyphenOnlyYaml],
+        projectDir: root,
+        outputDir,
+      });
+
+      expect(project.include).toEqual([
+        'virtual:midscene-yaml/001-checkout.test.ts',
+        'virtual:midscene-yaml/002-case.test.ts',
+      ]);
+      expect(project.cases[1].resultFile).toBe(
+        join(outputDir, 'results', '002-case.json'),
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test('replaces stale generated files when output directory already exists', () => {
     const root = createTempDir();
     const outputDir = join(root, 'runner');

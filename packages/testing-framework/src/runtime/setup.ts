@@ -14,10 +14,23 @@ interface DefaultSetupContext extends SetupContext {}
  * runs and users never have to invent one. An explicit `cache: { id }` (or
  * `cache: false`) is left untouched.
  */
+const trimEdgeHyphens = (value: string): string => {
+  let start = 0;
+  let end = value.length;
+
+  while (start < end && value.charCodeAt(start) === 45) {
+    start += 1;
+  }
+  while (end > start && value.charCodeAt(end - 1) === 45) {
+    end -= 1;
+  }
+
+  return value.slice(start, end);
+};
+
 const deriveStableCacheId = (projectDir: string): string =>
-  basename(projectDir)
-    .replace(/[^a-zA-Z0-9._-]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'midscene';
+  trimEdgeHyphens(basename(projectDir).replace(/[^a-zA-Z0-9._-]+/g, '-')) ||
+  'midscene';
 
 const resolveAgentOptions = (
   agentOptions: Record<string, unknown>,

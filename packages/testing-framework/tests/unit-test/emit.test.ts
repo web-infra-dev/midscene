@@ -54,5 +54,25 @@ describe('emitRstestProject', () => {
 
     const pkg = JSON.parse(readFileSync(join(outDir, 'package.json'), 'utf8'));
     expect(pkg.scripts.test).toBe('rstest run');
+    expect(pkg.dependencies['@midscene/testing-framework']).toBe('1.2.3-test');
+    expect(pkg.devDependencies['@rstest/core']).toBe('latest');
+  });
+
+  it('allows callers to override emitted package versions', async () => {
+    const root = createSourceProject(
+      "export default { testDir: './e2e', include: ['**/*.yaml'] };\n",
+    );
+    const outDir = join(root, 'out');
+
+    await emitRstestProject({
+      configPath: join(root, 'midscene.config.ts'),
+      outDir,
+      frameworkVersion: '1.2.3',
+      rstestVersion: '0.10.3',
+    });
+
+    const pkg = JSON.parse(readFileSync(join(outDir, 'package.json'), 'utf8'));
+    expect(pkg.dependencies['@midscene/testing-framework']).toBe('1.2.3');
+    expect(pkg.devDependencies['@rstest/core']).toBe('0.10.3');
   });
 });
