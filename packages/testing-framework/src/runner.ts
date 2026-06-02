@@ -1,8 +1,7 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
-import type { RstestUserConfig } from '@rstest/core/api';
+import { runRstestWithVirtualModules } from '@midscene/shared/rstest';
 import { resolveMidsceneConfigPath } from './config';
 import { SUITE_SUMMARY_FILENAME, emptySuiteSummary } from './result';
 import { createBootstrapModuleSource } from './runtime/source';
@@ -39,39 +38,29 @@ export interface RunMidsceneTestOptions {
 }
 
 /**
- * Default in-process Rstest driver. Unlike the previous forked worker, this
- * runs `runRstest` directly in the current process: the runner never imports
- * the user's `midscene.config` (only the Rstest worker that loads the bootstrap
- * module does), so the Playwright `@vitest/expect` global never collides with
- * Rstest's own copy. `@rsbuild/core` is resolved relative to `@rstest/core` so
- * the `VirtualModulesPlugin` matches the bundler Rstest actually uses.
+ * Default in-process Rstest driver. It runs `runRstest` directly in the current
+ * process: the runner never imports the user's `midscene.config` (only the
+ * Rstest worker that loads the bootstrap module does), so the Playwright
+ * `@vitest/expect` global never collides with Rstest's own copy. `@rsbuild/core`
+ * is resolved relative to the *project's* `@rstest/core` (a peer dependency) so
+ * the `VirtualModulesPlugin` matches the bundler Rstest actually uses. The
+ * `runRstest` wiring itself is shared with `@midscene/cli` via
+ * `@midscene/shared/rstest`.
  */
 const defaultBootstrapRunner: FrameworkBootstrapRunner = async (project) => {
   const projectRequire = createRequire(resolve(project.root, 'package.json'));
   const rstestPkgJson = projectRequire.resolve('@rstest/core/package.json');
   const rsbuildEntry = createRequire(rstestPkgJson).resolve('@rsbuild/core');
 
-  const [{ runRstest }, { rspack }] = await Promise.all([
-    import('@rstest/core/api'),
-    import(pathToFileURL(rsbuildEntry).href),
-  ]);
-
-  const inlineConfig: RstestUserConfig = {
+  const result = await runRstestWithVirtualModules({
+    cwd: project.root,
     root: project.root,
     include: project.include,
-    testEnvironment: 'node',
+    virtualModules: project.virtualModules,
+    rsbuildEntry,
     testTimeout: 0,
-    pool: { maxWorkers: 1, minWorkers: 1 },
-    tools: {
-      rspack: (_config, { appendPlugins }) => {
-        appendPlugins(
-          new rspack.experiments.VirtualModulesPlugin(project.virtualModules),
-        );
-      },
-    },
-  };
-
-  const result = await runRstest({ cwd: project.root, inlineConfig });
+    maxConcurrency: 1,
+  });
 
   return { ok: Boolean(result?.ok) };
 };
