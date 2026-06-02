@@ -124,7 +124,7 @@ The CLI prints execution progress and generates a visual report when it finishes
 
 ### Use environment variables in `.yaml`
 
-Reference environment variables in your scripts with `${variable-name}`.
+Reference environment variables in your scripts with `${variable-name}`. Environment-variable interpolation is applied before YAML task execution, including task strings.
 
 ```ini filename=.env
 topic=weather today

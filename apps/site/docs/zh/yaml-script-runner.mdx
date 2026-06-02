@@ -127,7 +127,7 @@ npx midscene ./bing-search.yaml
 
 ### 在 `.yaml` 中使用环境变量来填入动态值
 
-脚本中可以通过 `${variable-name}` 引用环境变量。
+脚本中可以通过 `${variable-name}` 引用环境变量。环境变量会在 YAML 任务执行前完成替换，包括任务正文中的字符串。
 
 ```ini filename=.env
 topic=weather today
