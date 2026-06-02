@@ -816,6 +816,9 @@ importers:
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
+      '@midscene/testing-framework':
+        specifier: workspace:*
+        version: link:../testing-framework
       '@midscene/web':
         specifier: workspace:*
         version: link:../web-integration

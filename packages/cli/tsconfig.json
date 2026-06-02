@@ -28,6 +28,9 @@
       "path": "../shared"
     },
     {
+      "path": "../testing-framework"
+    },
+    {
       "path": "../web-integration"
     }
   ]
