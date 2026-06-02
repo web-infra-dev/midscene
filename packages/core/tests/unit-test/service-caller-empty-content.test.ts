@@ -60,6 +60,11 @@ describe('service-caller empty content handling', () => {
         request_id: 'req_test_123',
       });
       expect(typedError.usage?.intent).toBeUndefined();
+      expect(typedError.usage?.rawUsage).toEqual({
+        prompt_tokens: 12,
+        completion_tokens: 0,
+        total_tokens: 12,
+      });
       expect(typedError.rawResponse).toContain('"choices"');
     }
   });

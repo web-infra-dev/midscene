@@ -732,6 +732,7 @@ class CodexAppServerConnection {
       slot: modelConfig.slot,
       intent: undefined,
       request_id: turnId,
+      rawUsage: tokenUsage,
     } satisfies AIUsageInfo;
   }
 
