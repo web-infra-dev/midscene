@@ -1,0 +1,73 @@
+{
+  "name": "@midscene/testing-framework",
+  "description": "Midscene AI-native UI testing framework runtime built on Rstest.",
+  "version": "1.8.7",
+  "repository": "https://github.com/web-infra-dev/midscene",
+  "homepage": "https://midscenejs.com/",
+  "main": "./dist/lib/index.js",
+  "types": "./dist/types/index.d.ts",
+  "module": "./dist/es/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js"
+    },
+    "./runtime": {
+      "types": "./dist/types/runtime/index.d.ts",
+      "import": "./dist/es/runtime/index.mjs",
+      "require": "./dist/lib/runtime/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "dev": "npm run build:watch",
+    "build": "rslib build",
+    "build:watch": "rslib build --watch --no-clean",
+    "test": "vitest --run"
+  },
+  "dependencies": {
+    "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "dotenv": "^16.4.5",
+    "glob": "11.0.0",
+    "jiti": "2.6.1",
+    "js-yaml": "4.1.0"
+  },
+  "peerDependencies": {
+    "@midscene/android": "workspace:*",
+    "@midscene/web": "workspace:*",
+    "@rstest/core": "*",
+    "playwright": "^1.45.0"
+  },
+  "peerDependenciesMeta": {
+    "@midscene/android": {
+      "optional": true
+    },
+    "@midscene/web": {
+      "optional": true
+    },
+    "playwright": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@midscene/android": "workspace:*",
+    "@midscene/web": "workspace:*",
+    "@rslib/core": "^0.18.3",
+    "@rstest/core": "0.10.3",
+    "@types/js-yaml": "4.0.9",
+    "@types/node": "^18.0.0",
+    "playwright": "^1.45.0",
+    "typescript": "^5.8.3",
+    "vitest": "3.0.5"
+  },
+  "engines": {
+    "node": ">=18.19.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "MIT"
+}
