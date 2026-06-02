@@ -1647,8 +1647,8 @@ importers:
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.130))(typescript@5.8.3)
       '@rstest/core':
-        specifier: https://pkg.pr.new/@rstest/core@953945e
-        version: https://pkg.pr.new/@rstest/core@953945e(core-js@3.47.0)(jsdom@29.0.2)
+        specifier: 0.10.3
+        version: 0.10.3(core-js@3.47.0)(jsdom@29.0.2)
       '@types/js-yaml':
         specifier: 4.0.9
         version: 4.0.9
@@ -2353,16 +2353,19 @@ packages:
   '@computer-use/libnut-darwin@2.7.1':
     resolution: {integrity: sha512-7B/aPcIYS4a4S7D3IYIHSpZ4B4m8Z3CjlYq0efTr+/JYmEu+LlO67ZhPvisLKifhagxf7goqEfnphg1F4jq5jw==}
     engines: {node: '>=10.15.3'}
+    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut-linux@2.7.1':
     resolution: {integrity: sha512-QJD5URTFJ/2+JwBwRyajRF2BB+3eXpd4+t5btGeRVeiRQLKQ4lgorbMHySo6IrfAbSfnU1OVOrxAUygGxj0cFg==}
     engines: {node: '>=10.15.3'}
+    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut-win32@2.7.1':
     resolution: {integrity: sha512-nDvH5kP1zoO2cBtFYWV0om9xtTu523cc1LIk8r/wizqPrIAm0wCizTU+odF3Fi42zcKJWT6J+Pguy8fKrZyIuA==}
     engines: {node: '>=10.15.3'}
+    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut@4.2.0':
@@ -4803,20 +4806,6 @@ packages:
 
   '@rstest/core@0.10.3':
     resolution: {integrity: sha512-UiJ1td7KszgAfPVroNKnQQ60S0EeyHdPZArng08ffMMCmwo/6aeLmjk4s+W/ojR5iredelM9Z0Yc01vN3kSaeA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    hasBin: true
-    peerDependencies:
-      happy-dom: ^20.8.3
-      jsdom: '*'
-    peerDependenciesMeta:
-      happy-dom:
-        optional: true
-      jsdom:
-        optional: true
-
-  '@rstest/core@https://pkg.pr.new/@rstest/core@953945e':
-    resolution: {tarball: https://pkg.pr.new/@rstest/core@953945e}
-    version: 0.10.2
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -16043,16 +16032,6 @@ snapshots:
       - core-js
 
   '@rstest/core@0.10.3(core-js@3.47.0)(jsdom@29.0.2)':
-    dependencies:
-      '@rsbuild/core': 2.0.9(core-js@3.47.0)
-      '@types/chai': 5.2.3
-    optionalDependencies:
-      jsdom: 29.0.2
-    transitivePeerDependencies:
-      - '@module-federation/runtime-tools'
-      - core-js
-
-  '@rstest/core@https://pkg.pr.new/@rstest/core@953945e(core-js@3.47.0)(jsdom@29.0.2)':
     dependencies:
       '@rsbuild/core': 2.0.9(core-js@3.47.0)
       '@types/chai': 5.2.3

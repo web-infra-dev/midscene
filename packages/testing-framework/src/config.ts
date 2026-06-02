@@ -28,7 +28,12 @@ const DEFAULT_CONFIG_BASENAMES = [
   'midscene.config.cjs',
 ];
 
-const resolveConfigPath = (configPath?: string): string => {
+/**
+ * Resolve the path to a `midscene.config.*` without importing it. Safe to call
+ * in the runner process (it only touches the filesystem), unlike
+ * {@link loadMidsceneConfig} which executes the config module.
+ */
+export const resolveMidsceneConfigPath = (configPath?: string): string => {
   if (configPath) {
     return resolve(configPath);
   }
@@ -44,7 +49,7 @@ const resolveConfigPath = (configPath?: string): string => {
 export async function loadMidsceneConfig(
   configPath?: string,
 ): Promise<LoadedMidsceneConfig> {
-  const resolvedPath = resolveConfigPath(configPath);
+  const resolvedPath = resolveMidsceneConfigPath(configPath);
   if (!existsSync(resolvedPath)) {
     throw new Error(`midscene config not found: ${resolvedPath}`);
   }

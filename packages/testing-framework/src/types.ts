@@ -59,7 +59,7 @@ export interface MidsceneFrameworkConfig {
     retry?: number;
   };
   /**
-   * Controls how `runMidsceneSuite` loads `.env` files before resolving
+   * Controls how the framework loads `.env` files before resolving
    * model and runtime configuration. Defaults are intentionally close to
    * `@midscene/cli`'s behaviour:
    * - `path` defaults to `[<cwd>/.env, <configDir>/.env]` (deduplicated;

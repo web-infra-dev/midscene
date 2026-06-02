@@ -7,6 +7,9 @@
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
   "module": "./dist/es/index.mjs",
+  "bin": {
+    "midscene-testing-framework": "./dist/lib/cli.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
@@ -55,7 +58,7 @@
     "@midscene/android": "workspace:*",
     "@midscene/web": "workspace:*",
     "@rslib/core": "^0.18.3",
-    "@rstest/core": "https://pkg.pr.new/@rstest/core@953945e",
+    "@rstest/core": "0.10.3",
     "@types/js-yaml": "4.0.9",
     "@types/node": "^18.0.0",
     "playwright": "^1.45.0",
