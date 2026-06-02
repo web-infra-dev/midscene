@@ -7,9 +7,6 @@
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
   "module": "./dist/es/index.mjs",
-  "bin": {
-    "midscene-testing-framework": "./dist/lib/cli.js"
-  },
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
