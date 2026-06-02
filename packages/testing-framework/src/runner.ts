@@ -93,13 +93,13 @@ interface WorkerOutput {
 const resolveWorkerEntry = (): string => {
   // `runner.js` and `runner-worker.js` ship side-by-side in both the CJS and
   // ESM bundles, so resolving relative to the current module works in both
-  // formats. Use `__filename` for CJS and `import.meta.url` for ESM. The ESM
-  // build emits `.mjs` files; pick the matching extension.
-  const moduleUrl =
-    typeof __filename === 'string'
-      ? null
-      : (import.meta as { url?: string } | undefined)?.url;
-  const here = moduleUrl ? fileURLToPath(moduleUrl) : __filename;
+  // formats. Prefer `import.meta.url` because some runtimes expose a
+  // `__filename` global to ESM modules that points at the user entrypoint.
+  const moduleUrl = (import.meta as { url?: string } | undefined)?.url;
+  const here =
+    typeof moduleUrl === 'string' && moduleUrl.startsWith('file:')
+      ? fileURLToPath(moduleUrl)
+      : __filename;
   const ext = here.endsWith('.mjs') ? '.mjs' : '.js';
   return resolve(dirname(here), `runner-worker${ext}`);
 };
@@ -132,6 +132,7 @@ const defaultRstestRunner: FrameworkRstestRunner = async (project) => {
     const child = fork(workerEntry, [], {
       cwd: project.root,
       env: process.env,
+      execArgv: [],
       stdio: ['pipe', 'pipe', 'inherit', 'ipc'],
     });
 
