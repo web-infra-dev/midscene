@@ -329,7 +329,7 @@ tasks:
     );
   });
 
-  it('keeps named step results in output without runtime interpolation', async () => {
+  it('keeps named step results in output', async () => {
     const script = parseYamlScript(`
 web:
   url: about:blank

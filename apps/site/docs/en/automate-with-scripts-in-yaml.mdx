@@ -546,7 +546,7 @@ tasks:
 
 #### Step Result Names
 
-Steps that write a result with `name` save that value into the YAML run result and the JSON output. Step results are not interpolated back into later YAML steps; strings such as `$name` or `${name}` are passed through as literal task text unless `${name}` is resolved by environment-variable interpolation before execution.
+Steps that write a result with `name` save that value into the YAML run result and the JSON output. Use `name` to label values that should appear in the run output.
 
 ```yaml
 tasks:
