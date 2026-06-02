@@ -427,6 +427,30 @@ describe('service-caller', () => {
       });
     });
 
+    // gemini: reasoningEnabled is ignored; reasoningEffort → reasoning_effort
+    it('maps Gemini default disabled reasoning to reasoning_effort=minimal', () => {
+      const result = resolveReasoningConfig({
+        modelFamily: 'gemini',
+      });
+      expect(result.config).toEqual({ reasoning_effort: 'minimal' });
+    });
+
+    it('passes reasoningEffort through for Gemini OpenAI-compatible requests', () => {
+      const result = resolveReasoningConfig({
+        reasoningEffort: 'high',
+        modelFamily: 'gemini',
+      });
+      expect(result.config).toEqual({ reasoning_effort: 'high' });
+    });
+
+    it('ignores reasoningEnabled for Gemini OpenAI-compatible requests', () => {
+      const result = resolveReasoningConfig({
+        reasoningEnabled: true,
+        modelFamily: 'gemini',
+      });
+      expect(result.config).toEqual({ reasoning_effort: 'minimal' });
+    });
+
     // glm-v: reasoningEnabled → thinking.type
     it('maps reasoningEnabled to thinking.type for glm-v', () => {
       const result = resolveReasoningConfig({
@@ -490,7 +514,7 @@ describe('service-caller', () => {
     // unknown model family
     it('returns empty config for unrecognized model family when reasoning is unset', () => {
       const result = resolveReasoningConfig({
-        modelFamily: 'gemini' as any,
+        modelFamily: 'unknown' as any,
       });
       expect(result.config).toEqual({});
     });
@@ -499,7 +523,7 @@ describe('service-caller', () => {
       expect(() =>
         resolveReasoningConfig({
           reasoningEffort: 'high',
-          modelFamily: 'gemini' as any,
+          modelFamily: 'unknown' as any,
         }),
       ).toThrow(/Reasoning config is not supported/);
     });
