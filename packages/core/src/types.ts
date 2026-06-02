@@ -51,10 +51,7 @@ export type AIUsageInfo = Record<string, any> & {
    */
   slot: string | undefined;
   request_id: string | undefined;
-  rawUsage?: AIRawUsageInfo;
 };
-
-export type AIRawUsageInfo = Record<string, any>;
 
 export type { LocateResultElement };
 

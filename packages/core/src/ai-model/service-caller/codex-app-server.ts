@@ -722,6 +722,7 @@ class CodexAppServerConnection {
     if (!picked) return undefined;
 
     return {
+      ...picked,
       prompt_tokens: picked.inputTokens ?? 0,
       completion_tokens: picked.outputTokens ?? 0,
       total_tokens: picked.totalTokens ?? 0,
@@ -732,7 +733,6 @@ class CodexAppServerConnection {
       slot: modelConfig.slot,
       intent: undefined,
       request_id: turnId,
-      rawUsage: tokenUsage,
     } satisfies AIUsageInfo;
   }
 

@@ -1,4 +1,4 @@
-import type { AIRawUsageInfo, AIUsageInfo } from '@/types';
+import type { AIUsageInfo } from '@/types';
 import type { CodeGenerationChunk, StreamingCallback } from '@/types';
 
 // Error class that preserves usage and rawResponse when AI call parsing fails
@@ -296,7 +296,6 @@ export async function callAI(
   let accumulated = '';
   let accumulatedReasoning = '';
   let usage: OpenAI.CompletionUsage | undefined;
-  let rawUsage: AIRawUsageInfo | undefined;
   let timeCost: number | undefined;
   let requestId: string | null | undefined;
 
@@ -306,7 +305,6 @@ export async function callAI(
   const buildUsageInfo = (
     usageData?: OpenAI.CompletionUsage,
     requestId?: string | null,
-    rawUsageData?: AIRawUsageInfo,
   ) => {
     if (!usageData) return undefined;
 
@@ -315,6 +313,7 @@ export async function callAI(
     )?.prompt_tokens_details?.cached_tokens;
 
     return {
+      ...usageData,
       prompt_tokens: usageData.prompt_tokens ?? 0,
       completion_tokens: usageData.completion_tokens ?? 0,
       total_tokens: usageData.total_tokens ?? 0,
@@ -325,7 +324,6 @@ export async function callAI(
       slot: modelConfig.slot,
       intent: undefined,
       request_id: requestId ?? undefined,
-      ...(rawUsageData ? { rawUsage: rawUsageData } : {}),
     } satisfies AIUsageInfo;
   };
 
@@ -428,7 +426,6 @@ export async function callAI(
           // Check for usage info in any chunk (OpenAI provides usage in separate chunks)
           if (chunk.usage) {
             usage = chunk.usage;
-            rawUsage = chunk.usage;
           }
 
           if (content || reasoning_content) {
@@ -524,7 +521,6 @@ export async function callAI(
           accumulatedReasoning =
             (result.choices[0].message as any)?.reasoning_content || '';
           usage = result.usage;
-          rawUsage = result.usage;
           requestId = result._request_id;
 
           if (!hasUsableText(content) && hasUsableText(accumulatedReasoning)) {
@@ -536,7 +532,7 @@ export async function callAI(
             throw new AIResponseParseError(
               'empty content from AI model',
               JSON.stringify(result),
-              buildUsageInfo(usage, requestId, rawUsage),
+              buildUsageInfo(usage, requestId),
             );
           }
 
@@ -589,7 +585,7 @@ export async function callAI(
     return {
       content: content || '',
       reasoning_content: accumulatedReasoning || undefined,
-      usage: buildUsageInfo(usage, requestId, rawUsage),
+      usage: buildUsageInfo(usage, requestId),
       isStreamed: !!isStreaming,
     };
   } catch (e: any) {

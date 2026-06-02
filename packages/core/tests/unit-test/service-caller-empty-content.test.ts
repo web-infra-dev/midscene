@@ -29,6 +29,9 @@ describe('service-caller empty content handling', () => {
         prompt_tokens: 12,
         completion_tokens: 0,
         total_tokens: 12,
+        prompt_tokens_details: {
+          cached_tokens: 7,
+        },
       },
       _request_id: 'req_test_123',
     });
@@ -54,17 +57,16 @@ describe('service-caller empty content handling', () => {
         prompt_tokens: 12,
         completion_tokens: 0,
         total_tokens: 12,
+        cached_input: 7,
+        prompt_tokens_details: {
+          cached_tokens: 7,
+        },
         model_name: 'gpt-4o',
         model_description: 'test model',
         slot: 'default',
         request_id: 'req_test_123',
       });
       expect(typedError.usage?.intent).toBeUndefined();
-      expect(typedError.usage?.rawUsage).toEqual({
-        prompt_tokens: 12,
-        completion_tokens: 0,
-        total_tokens: 12,
-      });
       expect(typedError.rawResponse).toContain('"choices"');
     }
   });
