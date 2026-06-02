@@ -13,12 +13,26 @@ interface WorkerInput {
   retry?: number;
 }
 
+interface WorkerError {
+  name?: string;
+  message?: string;
+  stack?: string;
+}
+
 interface WorkerOutput {
   ok: boolean;
-  unhandledErrors: Array<{
-    name?: string;
-    message?: string;
-    stack?: string;
+  unhandledErrors: WorkerError[];
+  /**
+   * Failures captured from Rstest's result graph. We forward both case-level
+   * errors and file/suite-level errors (e.g. a `beforeAll` hook crash) so the
+   * framework can surface a meaningful message when a case never produced its
+   * own result file.
+   */
+  testErrors: Array<{
+    kind: 'case' | 'suite';
+    file: string;
+    testName: string;
+    errors: WorkerError[];
   }>;
 }
 
@@ -85,18 +99,68 @@ const main = async (): Promise<void> => {
 
   const result = await runRstest({ cwd: input.cwd, inlineConfig });
 
-  type UnhandledError = { name?: string; message?: string; stack?: string };
-  const unhandled =
-    (result as { unhandledErrors?: UnhandledError[] } | undefined)
-      ?.unhandledErrors ?? [];
+  type FormattedError = {
+    name?: string;
+    message?: string;
+    stack?: string;
+  };
+  type RstestTestResult = {
+    name?: string;
+    testPath?: string;
+    parentNames?: string[];
+    status?: string;
+    errors?: FormattedError[];
+  };
+  type RstestFileResult = RstestTestResult & {
+    results?: RstestTestResult[];
+  };
+  type RstestRunResult = {
+    ok?: boolean;
+    files?: RstestFileResult[];
+    unhandledErrors?: FormattedError[];
+  };
 
-  writeOutput({
-    ok: Boolean(result?.ok),
-    unhandledErrors: unhandled.map((error) => ({
+  const rstestResult = (result ?? {}) as RstestRunResult;
+  const unhandled = rstestResult.unhandledErrors ?? [];
+  const testErrors: WorkerOutput['testErrors'] = [];
+
+  const mapErrors = (errors: FormattedError[] | undefined): WorkerError[] =>
+    (errors ?? []).map((error) => ({
       name: error.name,
       message: error.message,
       stack: error.stack,
-    })),
+    }));
+
+  for (const file of rstestResult.files ?? []) {
+    const filePath = file.testPath ?? '';
+    // Errors that belong to the file itself (suite hooks, top-level throws).
+    if (file.errors && file.errors.length > 0) {
+      testErrors.push({
+        kind: 'suite',
+        file: filePath,
+        testName: file.name ?? filePath,
+        errors: mapErrors(file.errors),
+      });
+    }
+    // Per-test results (rstest flattens cases and nested suites here).
+    for (const entry of file.results ?? []) {
+      if (!entry.errors || entry.errors.length === 0) continue;
+      const trail = [...(entry.parentNames ?? []), entry.name ?? '']
+        .filter((segment) => segment && segment.length > 0)
+        .join(' > ');
+      testErrors.push({
+        kind: 'case',
+        file: entry.testPath ?? filePath,
+        testName: trail || entry.name || filePath,
+        errors: mapErrors(entry.errors),
+      });
+    }
+  }
+
+  writeOutput({
+    ok: Boolean(rstestResult.ok),
+    unhandledErrors: mapErrors(unhandled),
+    testErrors,
   });
 };
 
@@ -113,6 +177,7 @@ main().catch((error) => {
         stack: error instanceof Error ? error.stack : undefined,
       },
     ],
+    testErrors: [],
   });
   process.exit(1);
 });

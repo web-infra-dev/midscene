@@ -27,7 +27,16 @@ export interface FrameworkRstestProject {
 
 export type FrameworkRstestRunner = (
   project: FrameworkRstestProject,
-) => Promise<{ ok: boolean }>;
+) => Promise<{
+  ok: boolean;
+  unhandledErrors?: WorkerError[];
+  testErrors?: Array<{
+    kind: 'case' | 'suite';
+    file: string;
+    testName: string;
+    errors: WorkerError[];
+  }>;
+}>;
 
 export interface RunMidsceneSuiteOptions {
   /** Path to `midscene.config.ts`. Defaults to the one in `cwd`. */
@@ -64,12 +73,20 @@ interface WorkerInput {
   retry?: number;
 }
 
+interface WorkerError {
+  name?: string;
+  message?: string;
+  stack?: string;
+}
+
 interface WorkerOutput {
   ok: boolean;
-  unhandledErrors: Array<{
-    name?: string;
-    message?: string;
-    stack?: string;
+  unhandledErrors: WorkerError[];
+  testErrors: Array<{
+    kind: 'case' | 'suite';
+    file: string;
+    testName: string;
+    errors: WorkerError[];
   }>;
 }
 
@@ -111,7 +128,7 @@ const defaultRstestRunner: FrameworkRstestRunner = async (project) => {
     retry: project.retry,
   };
 
-  return await new Promise<{ ok: boolean }>((resolveRunner, rejectRunner) => {
+  return await new Promise<WorkerOutput>((resolveRunner, rejectRunner) => {
     const child = fork(workerEntry, [], {
       cwd: project.root,
       env: process.env,
@@ -179,7 +196,7 @@ const defaultRstestRunner: FrameworkRstestRunner = async (project) => {
         }
       }
 
-      resolveRunner({ ok: parsedResult.ok });
+      resolveRunner(parsedResult);
     });
 
     child.stdin?.write(JSON.stringify(input));
@@ -187,19 +204,55 @@ const defaultRstestRunner: FrameworkRstestRunner = async (project) => {
   });
 };
 
-const readCaseResult = (item: SuiteCase): FrameworkCaseResult => {
+const formatWorkerError = (error: WorkerError): string => {
+  if (error.stack) return error.stack;
+  if (error.message) {
+    return error.name ? `${error.name}: ${error.message}` : error.message;
+  }
+  return error.name ?? 'Unknown error';
+};
+
+const readCaseResult = (
+  item: SuiteCase,
+  context: {
+    testErrors: WorkerOutput['testErrors'];
+    unhandledErrors: WorkerError[];
+  },
+): FrameworkCaseResult => {
   if (existsSync(item.resultFile)) {
     return JSON.parse(
       readFileSync(item.resultFile, 'utf8'),
     ) as FrameworkCaseResult;
   }
 
+  // Case-specific errors win over suite-level / hook errors.
+  const caseErrors = context.testErrors
+    .filter(
+      (entry) =>
+        entry.kind === 'case' && entry.testName.includes(item.testName),
+    )
+    .flatMap((entry) => entry.errors);
+  const suiteErrors = context.testErrors
+    .filter((entry) => entry.kind === 'suite')
+    .flatMap((entry) => entry.errors);
+
+  const errorSource =
+    caseErrors.length > 0
+      ? caseErrors
+      : suiteErrors.length > 0
+        ? suiteErrors
+        : context.unhandledErrors;
+  const errorText =
+    errorSource.length > 0
+      ? errorSource.map(formatWorkerError).join('\n\n')
+      : 'Not executed';
+
   return {
     file: item.filePath,
     testName: item.testName,
     success: false,
     duration: 0,
-    error: 'Not executed',
+    error: errorText,
   };
 };
 
@@ -313,7 +366,12 @@ export async function runMidsceneSuite(
     retry: loaded.config.testRunner?.retry,
   });
 
-  const results = yamlCases.map(readCaseResult);
+  const results = yamlCases.map((item) =>
+    readCaseResult(item, {
+      testErrors: runResult.testErrors ?? [],
+      unhandledErrors: runResult.unhandledErrors ?? [],
+    }),
+  );
   const summary: FrameworkSuiteSummary = {
     total: results.length,
     passed: results.filter((result) => result.success).length,
