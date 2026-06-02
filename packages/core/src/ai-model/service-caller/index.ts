@@ -708,6 +708,7 @@ const SUPPORTED_REASONING_FAMILIES = [
   'qwen3.6',
   'doubao-vision',
   'doubao-seed',
+  'gemini',
   'glm-v',
 ] as const satisfies readonly TModelFamily[];
 
@@ -797,6 +798,13 @@ export function resolveReasoningConfig({
       debugMessages.push(`reasoning_effort="${reasoningEffort}"`);
     }
     // reasoningBudget is ignored for doubao
+  } else if (modelFamily === 'gemini') {
+    // Gemini OpenAI-compatible API uses reasoning_effort.
+    // Gemini 3.x series cannot fully disable thinking, so use the lowest supported
+    // effort by default and let reasoningEffort override it.
+    config.reasoning_effort = reasoningEffort || 'minimal';
+    debugMessages.push(`reasoning_effort="${config.reasoning_effort}"`);
+    // reasoningBudget is ignored for Gemini OpenAI-compatible requests.
   } else if (modelFamily === 'glm-v') {
     // reasoningEnabled → thinking.type
     config.thinking = {
