@@ -20,13 +20,9 @@ Midscene 不是让团队在“轻量 YAML”和“严肃测试工程”之间二
 
 Midscene 的第一步，是让团队用 YAML 把一个简单 UI 任务写清楚、跑起来、回放出来。对于大多数 Smoke Test 和轻量回归项目，第一个有价值的里程碑不是搭建复杂工程，而是把核心用户路径变成可读、可重复执行、可分析的 case。
 
-YAML case 可以让路径保持可读：
+YAML case 可以让路径保持可读。case 只描述用户路径，运行目标环境放在 `midscene.config.ts` 里，绝不写进 case 文件：
 
 ```yaml
-target:
-  type: web
-  url: https://shop.example.com
-
 flow:
   - ui: Search for "running shoes"
   - ui: Open the first product
@@ -138,12 +134,12 @@ flow:
 import { defineMidsceneConfig } from '@midscene/testing-framework';
 
 export default defineMidsceneConfig({
-  target: {
-    type: 'android',
+  // 单个 `uiAgent` 字段定义运行目标。传对象是配置式（框架据 `type` + `options`
+  // 创建 UI Agent）；传函数是编程式（自行构造，见下文）。
+  uiAgent: {
+    type: 'web',
     options: {
-      deviceId: process.env.ANDROID_DEVICE_ID,
-      androidAdbPath: process.env.ANDROID_ADB_PATH,
-      autoDismissKeyboard: false,
+      url: 'https://shop.example.com',
     },
   },
 
@@ -179,7 +175,7 @@ export default defineMidsceneConfig({
     checkout.yaml
 ```
 
-`e2e/*.yaml` 描述用户要完成什么，`midscene.config.ts` 描述 target 类型和平台连接参数、testRunner 行为、共享 UI Agent 参数和报告。默认情况下，框架会根据 `target.type` 和 `target.options` 创建 UI Agent；如果项目需要接入自定义设备、远程服务或自定义的 Agent 构造逻辑，可以在 `createUIAgent` 里完全自行创建 UI Agent，并省略 `target`，避免同一份配置里出现两套运行目标定义。
+`e2e/*.yaml` 描述用户要完成什么，`midscene.config.ts` 描述 target 类型和平台连接参数、testRunner 行为、共享 UI Agent 参数和报告。当 `uiAgent` 是对象时，框架会据其 `type` 和 `options` 创建 UI Agent；如果项目需要接入自定义设备、远程服务或自定义的 Agent 构造逻辑，把 `uiAgent` 设为工厂函数即可——还是同一个字段，只是换成构造逻辑，从根上避免出现两套运行目标定义。`options`（平台连接参数，如 url / deviceId）与 `uiAgentOptions`（Agent 行为，如 aiActContext / generateReport）是两类不同的东西，都保留。
 
 ```ts
 import { agentFromAdbDevice } from '@midscene/android';
@@ -193,15 +189,14 @@ export default defineMidsceneConfig({
     generateReport: true,
   },
 
-  async createUIAgent({ uiAgentOptions }) {
-    return {
-      agent: await agentFromAdbDevice(process.env.ANDROID_DEVICE_ID, {
-        ...uiAgentOptions,
-        androidAdbPath: process.env.ANDROID_ADB_PATH,
-        autoDismissKeyboard: false,
-      }),
-    };
-  },
+  // 编程式：同一个 `uiAgent` 字段，填工厂函数。
+  uiAgent: async ({ uiAgentOptions, env }) => ({
+    agent: await agentFromAdbDevice(env.ANDROID_DEVICE_ID, {
+      ...uiAgentOptions,
+      androidAdbPath: env.ANDROID_ADB_PATH,
+      autoDismissKeyboard: false,
+    }),
+  }),
 });
 ```
 
@@ -214,7 +209,7 @@ import {
 } from '@midscene/testing-framework';
 
 export default defineMidsceneConfig({
-  target: {
+  uiAgent: {
     type: 'web',
     options: {
       url: 'http://127.0.0.1:3000',
@@ -224,17 +219,17 @@ export default defineMidsceneConfig({
   testDir: './e2e',
 
   runtime: {
-    prepareOrderFixture: defineRuntime(async ({ input, context }) => {
-      const fixture = await createOrderFixture(input);
-      context.state.orderFixture = fixture;
+    prepareOrderFixture: defineRuntime(async (ctx) => {
+      const fixture = await createOrderFixture(ctx.input);
+      ctx.state.orderFixture = fixture;
 
       return {
         conclusion: `Prepared order fixture ${fixture.id}`,
       };
     }),
 
-    notifySlack: defineRuntime(async ({ context }) => {
-      await sendSlackSummary(context.result);
+    notifySlack: defineRuntime(async (ctx) => {
+      await sendSlackSummary(ctx.result);
 
       return {
         conclusion: 'Slack notification sent',
@@ -244,10 +239,10 @@ export default defineMidsceneConfig({
 });
 ```
 
-runtime 节点有两条信道，对应上面讲过的上下文契约，要分清：
+runtime 节点接收单个上下文参数，包含 `input`、`uiAgent`、`outputs`、`state`、`result`、`env`。它有两条信道，对应上面讲过的上下文契约，要分清：
 
 - 返回值里的 `conclusion` 是**面向上下文的输出**，会和其它步骤的输出一样进入后续 `verify` / `agent` 的上下文。
-- `context.state`（如 `context.state.orderFixture`）是**面向工程的 TypeScript 状态**，供 runtime 节点之间传递结构化数据，**不会进入 Pi Agent 的上下文**。换句话说，agent 看不到 `context.state`，只看得到 `conclusion`。要让某个值被后续的 `verify` / `agent` 用到，就得把它放进 `conclusion`。
+- `ctx.state`（如 `ctx.state.orderFixture`）是**面向工程的 TypeScript 状态**，供 runtime 节点之间传递结构化数据，**不会进入 Pi Agent 的上下文**。换句话说，agent 看不到 `ctx.state`，只看得到 `conclusion`。要让某个值被后续的 `verify` / `agent` 用到，就得把它放进 `conclusion`。
 
 这条路线不会丢掉 YAML 驱动 UI Test 的低门槛。相反，它把 YAML 作为面向人的测试表达，把 TypeScript 配置作为面向工程的能力注册入口：普通路径继续用自然语言描述，真正需要确定性证据的地方再接入团队自己的工具。
 

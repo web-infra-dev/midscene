@@ -20,13 +20,9 @@ Midscene is not a choice between lightweight YAML and serious test engineering. 
 
 Midscene starts by helping teams write a simple UI task clearly, run it, and replay it. For most smoke tests and lightweight regression projects, the first useful milestone is not setting up a complex testing project. It is turning a core user path into a readable, repeatable, inspectable case.
 
-A YAML case keeps the path readable:
+A YAML case keeps the path readable. The case only describes the user path — the target environment lives in `midscene.config.ts`, never in the case file:
 
 ```yaml
-target:
-  type: web
-  url: https://shop.example.com
-
 flow:
   - ui: Search for "running shoes"
   - ui: Open the first product
@@ -140,12 +136,13 @@ As a project grows from lightweight cases into a long-lived regression suite, en
 import { defineMidsceneConfig } from '@midscene/testing-framework';
 
 export default defineMidsceneConfig({
-  target: {
-    type: 'android',
+  // A single `uiAgent` field defines the run target. An object is config-style
+  // (the framework builds the UI Agent from `type` + `options`); a function is
+  // programmatic (you build it yourself, see below).
+  uiAgent: {
+    type: 'web',
     options: {
-      deviceId: process.env.ANDROID_DEVICE_ID,
-      androidAdbPath: process.env.ANDROID_ADB_PATH,
-      autoDismissKeyboard: false,
+      url: 'https://shop.example.com',
     },
   },
 
@@ -181,7 +178,7 @@ With this config in place, the project can stay direct:
     checkout.yaml
 ```
 
-`e2e/*.yaml` describes what the user should accomplish, while `midscene.config.ts` describes the target type and platform connection options, testRunner behavior, shared UI Agent options, and reporting. By default, the framework creates the UI Agent from `target.type` and `target.options`. If a project needs custom devices, remote services, or custom agent construction logic, it can create the UI Agent entirely inside `createUIAgent` and omit `target` to avoid defining the runtime target twice.
+`e2e/*.yaml` describes what the user should accomplish, while `midscene.config.ts` describes the target type and platform connection options, testRunner behavior, shared UI Agent options, and reporting. When `uiAgent` is an object, the framework creates the UI Agent from its `type` and `options`. If a project needs custom devices, remote services, or custom agent construction logic, set `uiAgent` to a factory function instead — the same single field, now holding the construction logic, so the runtime target is never defined twice. `options` (platform connection parameters like url / deviceId) and `uiAgentOptions` (Agent behavior like aiActContext / generateReport) stay distinct.
 
 ```ts
 import { agentFromAdbDevice } from '@midscene/android';
@@ -195,15 +192,14 @@ export default defineMidsceneConfig({
     generateReport: true,
   },
 
-  async createUIAgent({ uiAgentOptions }) {
-    return {
-      agent: await agentFromAdbDevice(process.env.ANDROID_DEVICE_ID, {
-        ...uiAgentOptions,
-        androidAdbPath: process.env.ANDROID_ADB_PATH,
-        autoDismissKeyboard: false,
-      }),
-    };
-  },
+  // Programmatic form: the same `uiAgent` field, filled with a factory.
+  uiAgent: async ({ uiAgentOptions, env }) => ({
+    agent: await agentFromAdbDevice(env.ANDROID_DEVICE_ID, {
+      ...uiAgentOptions,
+      androidAdbPath: env.ANDROID_ADB_PATH,
+      autoDismissKeyboard: false,
+    }),
+  }),
 });
 ```
 
@@ -216,7 +212,7 @@ import {
 } from '@midscene/testing-framework';
 
 export default defineMidsceneConfig({
-  target: {
+  uiAgent: {
     type: 'web',
     options: {
       url: 'http://127.0.0.1:3000',
@@ -226,17 +222,17 @@ export default defineMidsceneConfig({
   testDir: './e2e',
 
   runtime: {
-    prepareOrderFixture: defineRuntime(async ({ input, context }) => {
-      const fixture = await createOrderFixture(input);
-      context.state.orderFixture = fixture;
+    prepareOrderFixture: defineRuntime(async (ctx) => {
+      const fixture = await createOrderFixture(ctx.input);
+      ctx.state.orderFixture = fixture;
 
       return {
         conclusion: `Prepared order fixture ${fixture.id}`,
       };
     }),
 
-    notifySlack: defineRuntime(async ({ context }) => {
-      await sendSlackSummary(context.result);
+    notifySlack: defineRuntime(async (ctx) => {
+      await sendSlackSummary(ctx.result);
 
       return {
         conclusion: 'Slack notification sent',
@@ -246,10 +242,10 @@ export default defineMidsceneConfig({
 });
 ```
 
-A runtime node has two channels, matching the context contract above — keep them distinct:
+A runtime node receives a single context argument with `input`, `uiAgent`, `outputs`, `state`, `result`, and `env`. It has two channels, matching the context contract above — keep them distinct:
 
 - The `conclusion` in the return value is the **context-facing output**: like any other step's output, it enters the context of later `verify` / `agent` nodes.
-- `context.state` (such as `context.state.orderFixture`) is **engineering-facing TypeScript state** for passing structured data between runtime nodes, and **does not enter Pi Agent's context**. In other words, the agent cannot see `context.state`, only `conclusion`. To make a value available to a later `verify` / `agent`, put it in `conclusion`.
+- `ctx.state` (such as `ctx.state.orderFixture`) is **engineering-facing TypeScript state** for passing structured data between runtime nodes, and **does not enter Pi Agent's context**. In other words, the agent cannot see `ctx.state`, only `conclusion`. To make a value available to a later `verify` / `agent`, put it in `conclusion`.
 
 This direction keeps the low-friction YAML-driven UI testing model intact. YAML remains the human-facing expression for the test, and TypeScript config remains the engineering entry for registering capabilities: ordinary paths stay in natural language, while places that need deterministic evidence can connect to the team's own tools.
 

@@ -1,0 +1,12 @@
+name: Open a product and check Add to cart
+
+flow:
+  - ui: Open the "Running Shoes" product
+  - ui: |
+      Read the product name and price on the detail page.
+      Name this step's output productInfo and record the name and price.
+  - verify: The product detail page shows a visible "Add to cart" button
+  - soft: The page has no obvious layout glitches
+  - agent: |
+      Briefly inspect this product detail page and note anything that looks
+      off (copy, pricing, button states) with follow-up suggestions.

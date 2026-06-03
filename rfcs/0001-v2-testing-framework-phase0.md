@@ -6,6 +6,8 @@
 
 > 本稿目标：把"动手前必须先定的接口"钉死成可评审的草案。每节末尾的 **🔶 待讨论** 是我留的开放决策点。
 
+> **实现状态（Phase 0）**：本稿契约已落地为新包 `@midscene/testing-framework`（`packages/testing-framework`），含 `defineMidsceneConfig` / `defineRuntime`、v2 YAML 解析、节点引擎（`ui`/`verify`/`soft`/`agent`/自定义）、上下文装配、verify fail-closed 判定、默认 Pi agent 运行时（已解决 C′），以及一个轻量 runner 与 CLI（`midscene-tf`）。可 copy 演示的样例在仓库根 `example/`。唯一开放项 C′ 已落实（见 §4.1）。
+
 ---
 
 ## 0. 术语与分层回顾（已达成共识，作为前提）
@@ -294,9 +296,28 @@ await session.prompt(assembledContext, {
 | skills 注入 | `DefaultResourceLoader` + `skillsOverride` | ✅ |
 | 选模型 / 鉴权 | `getModel(provider, model)`；`AuthStorage.setRuntimeApiKey` 或 env | ✅ |
 
-🔶 **唯一真实对接项（C′）**：Pi 文档**没看到 base URL override**。Midscene 走 `MIDSCENE_MODEL_BASE_URL`（自定义 / OpenAI 兼容端点）。要让 `verify`/`agent` 和 `ui` 用**同一个模型端点**，必须确认 Pi 能否指定自定义 base URL / 兼容 provider。这是和 Pi 的**唯一一个需要落实的依赖**——其余都齐了。
+✅ **C′ 已落实（不再是开放项）**：核对 Pi SDK 源码（`@earendil-works/pi-coding-agent` 0.78）确认 `ModelRegistry.registerProvider(name, config)` 接受 `baseUrl` + `apiKey` + 一组 `models`（可指定 `api: 'openai-completions'`、`input: ['text','image']`）。因此框架可以：
 
-> 所以回答"还要确认啥"：设计层面已闭合；剩下的就这一条 base URL 能力，去 Pi 源码/最新文档核一下即可，不行就和 Pi 团队提。
+```ts
+const authStorage = AuthStorage.inMemory();
+const registry = ModelRegistry.inMemory(authStorage);
+registry.registerProvider('midscene', {
+  baseUrl: process.env.MIDSCENE_MODEL_BASE_URL,
+  apiKey: process.env.MIDSCENE_MODEL_API_KEY,
+  models: [{
+    id: process.env.MIDSCENE_MODEL_NAME, name: process.env.MIDSCENE_MODEL_NAME,
+    api: 'openai-completions', reasoning: false, input: ['text', 'image'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 128_000, maxTokens: 8_192,
+  }],
+});
+const model = registry.find('midscene', process.env.MIDSCENE_MODEL_NAME);
+const { session } = await createAgentSession({ model, modelRegistry: registry, authStorage, ... });
+```
+
+这样 `verify`/`agent`（Pi）与 `ui`（Midscene UI Agent）走**同一个 `MIDSCENE_MODEL_BASE_URL` 端点**，零 Pi 改动。实现见 `@midscene/testing-framework` 的 `PiAgentRuntime`（`src/agent-runtime/pi-runtime.ts`），并有 `tests/smoke/pi-wiring.mjs` 验证（provider 注册 / apiKey 解析 / session 选模型 / `report_verdict` customTool 激活）均通过。
+
+> 注：`MIDSCENE_MODEL_EXTRA_BODY_JSON`（如 `{"service_tier":"fast"}`）只对 `ui` 节点的 Midscene UI Agent 生效；Phase 0 未把它透传给 Pi 节点（属性能优化、非正确性，后续可经 stream `onPayload` 接入）。
 
 ---
 
@@ -430,11 +451,13 @@ flow:
 | 节点指令形态 | 内置=文本；自定义=文本或 object |
 | 长 flow 上下文 | 不截断（Phase 0） |
 
-### 唯一待对接
+### 待对接
 
 | # | 事项 | 状态 |
 |---|---|---|
-| C′ | Pi 能否指定自定义模型 **base URL**（对齐 `MIDSCENE_MODEL_BASE_URL`），让 verify/agent 与 ui 同端点 | 文档未见；**去 Pi 源码/最新文档核实，不行则与 Pi 团队对接**（§4.1） |
+| C′ | Pi 能否指定自定义模型 **base URL**（对齐 `MIDSCENE_MODEL_BASE_URL`），让 verify/agent 与 ui 同端点 | ✅ **已落实**：经 `ModelRegistry.registerProvider({ baseUrl, apiKey, models })` 实现，见 §4.1 与 `PiAgentRuntime` |
+
+（无剩余待对接项。）
 
 ---
 
