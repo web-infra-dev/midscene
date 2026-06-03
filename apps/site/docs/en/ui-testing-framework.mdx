@@ -189,6 +189,38 @@ flow:
 
 The rule is intentionally small: `ui` is the unified entry for interface behavior, `verify` is the unified entry for assertions and external evidence, and `agent` is the entry for analysis, attribution, and cross-tool orchestration. A `$name` such as `$database` refers to a skill, and the runtime engine resolves and loads it automatically. `runtime` is for extending YAML with new nodes such as `useAccount` based on project needs. Teams decide which nodes to add and how many to add according to their own business and engineering habits. Midscene does not require a schema for custom node values; teams can validate values inside runtime handlers in whatever style fits their project.
 
+### `verify` and `agent`
+
+`verify` and `agent` nodes are executed by Midscene's built-in Pi Agent. They are not new UI operation entries; they verify, analyze, and attribute results from the current test context. They use the same kind of Agent capability, but `verify` carries test judgment semantics: it must decide pass or fail, and a failed verification fails the current case. `agent` is better suited for summaries, analysis, attribution, and recommendations.
+
+When Pi Agent executes these nodes, it sees two kinds of context:
+
+- The output of each previous node, such as conclusions recorded by `ui` nodes or `conclusion` values returned by runtime nodes.
+- The current screenshot, so it can understand the current page or screen state.
+
+It does not see the full execution process of previous nodes. For example, a `ui` node may click, type, and retry several times to create an order, but later `verify` / `agent` nodes only see that node's final output and the current screenshot.
+
+If a later step needs a variable, ask the earlier node to write it explicitly into its output:
+
+```yaml
+flow:
+  - ui: |
+      Create a test order.
+
+      Name this step's output createOrder, and record:
+      - orderId: the order id
+      - pageState: the current page state
+
+  - verify: |
+      Use $database to verify that the orderId from the output named createOrder exists.
+
+  - agent: |
+      Analyze this test's risk from the output named createOrder, database verification result,
+      and current screenshot.
+```
+
+Here, `ui` still takes only natural-language input. `createOrder` is the output name requested in that natural-language instruction, and `orderId` is a field in that output. Later nodes can reference “the `orderId` from the output named `createOrder`” in natural language. External capabilities still use skill references such as `$database`.
+
 ### Toward Agentic Testing
 
 The UI is the entry point to user experience, and it is the most natural place for a test to begin. But many real failures do not stay on the page: an order page may look successful while no record exists in the database; a click may finish without a visible error while logs contain an exception; a user path may complete while analytics, network requests, or downstream state are wrong.
