@@ -514,11 +514,6 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
-### Observation Guidelines
-
-- Treat visible summaries, thumbnails, cropped content, and partially visible lists as potentially incomplete when the task depends on precise details.
-- If the current view does not provide enough information to decide safely, use available UI affordances such as opening details, expanding content, previewing, enlarging, zooming, or scrolling before acting.
-
 * <thought> tag (REQUIRED)
 
 REQUIRED: You MUST always output the <thought> tag. Never skip it.
@@ -859,11 +854,6 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
-### Observation Guidelines
-
-- Treat visible summaries, thumbnails, cropped content, and partially visible lists as potentially incomplete when the task depends on precise details.
-- If the current view does not provide enough information to decide safely, use available UI affordances such as opening details, expanding content, previewing, enlarging, zooming, or scrolling before acting.
-
 * <thought> tag (REQUIRED)
 
 REQUIRED: You MUST always output the <thought> tag. Never skip it.
@@ -1176,11 +1166,6 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 ## Step 1: Observe (related tags: <thought>)
 
 First, observe the current screenshot and previous logs to understand the current state.
-
-### Observation Guidelines
-
-- Treat visible summaries, thumbnails, cropped content, and partially visible lists as potentially incomplete when the task depends on precise details.
-- If the current view does not provide enough information to decide safely, use available UI affordances such as opening details, expanding content, previewing, enlarging, zooming, or scrolling before acting.
 
 * <thought> tag (REQUIRED)
 
@@ -1964,11 +1949,6 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
-### Observation Guidelines
-
-- Treat visible summaries, thumbnails, cropped content, and partially visible lists as potentially incomplete when the task depends on precise details.
-- If the current view does not provide enough information to decide safely, use available UI affordances such as opening details, expanding content, previewing, enlarging, zooming, or scrolling before acting.
-
 * <thought> tag (REQUIRED)
 
 REQUIRED: You MUST always output the <thought> tag. Never skip it.
@@ -2308,11 +2288,6 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 ## Step 1: Observe (related tags: <thought>)
 
 First, observe the current screenshot and previous logs to understand the current state.
-
-### Observation Guidelines
-
-- Treat visible summaries, thumbnails, cropped content, and partially visible lists as potentially incomplete when the task depends on precise details.
-- If the current view does not provide enough information to decide safely, use available UI affordances such as opening details, expanding content, previewing, enlarging, zooming, or scrolling before acting.
 
 * <thought> tag (REQUIRED)
 

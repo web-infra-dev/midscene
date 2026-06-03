@@ -382,9 +382,7 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 ${step1Title}
 
 ${step1Description}
-
-${OBSERVE_STEP_NOTES}
-
+${shouldIncludeSubGoals ? `\n${OBSERVE_STEP_NOTES}\n` : ''}
 * <thought> tag (REQUIRED)
 
 ${thoughtTagDescription}

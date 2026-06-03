@@ -256,6 +256,9 @@ describe('system prompts', () => {
     // Should still contain thought tag
     expect(prompt).toContain('<thought>');
 
+    // Observation Guidelines are only available in deepThink (sub-goals) mode
+    expect(prompt).not.toContain('### Observation Guidelines');
+
     // Should have simplified Step 1 title
     expect(prompt).toContain('## Step 1: Observe (related tags: <thought>)');
     expect(prompt).not.toContain(
@@ -278,6 +281,9 @@ describe('system prompts', () => {
 
     // Should still contain thought tag
     expect(prompt).toContain('<thought>');
+
+    // Observation Guidelines are only available in deepThink (sub-goals) mode
+    expect(prompt).toContain('### Observation Guidelines');
 
     // Should have full Step 1 title with sub-goal tags
     expect(prompt).toContain(
