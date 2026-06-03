@@ -1,21 +1,18 @@
 # 面向自然语言用例的 AI 原生 UI Testing Framework
 
-UI Test 的价值，取决于团队能不能持续编写和维护它。很多项目一开始写几条浏览器脚本并不难，但用例很快就会被选择器、等待逻辑、登录辅助函数、测试数据准备和失败截图塞满，最后只有少数测试工程师能看懂。
+UI Test 真正的难点，不是写出第一条浏览器脚本，而是让团队长期愿意写、看得懂、维护得起。传统脚本很快会被选择器、等待逻辑、登录辅助函数、测试数据准备和失败截图塞满，最后只有少数测试工程师能理解它们到底在验证什么。
 
-Midscene 提供了面向这个问题的 AI 原生 UI Testing Framework。它让团队用自然语言描述用户路径，把这些路径作为结构化 case 执行，并通过截图、回放报告和诊断信息复盘结果。测试作者可以先从 YAML 开始，后续再补充测试框架样板代码；工程同学仍然可以用 TypeScript 扩展点接入 UI Agent 创建、数据、设备、确定性校验和现有测试工程。
+Midscene 的设计围绕三个核心要点展开：
 
-目标很简单：轻量 case 要容易写，严肃测试工程也要能继续长大，而且不需要中途换掉用例表达方式。更进一步，Midscene 希望把 UI Test 带向 Agentic Testing：一切从 UI 开始，但测试不该止步于 UI。真正可信的测试结论，应该能把页面行为、接口响应、数据库状态、日志、埋点和团队已有工具串在一起。
+- 用例必须可读。测试作者用 YAML 写自然语言用户路径，QA、业务同学和工程师都能直接 review case 本身，而不是先读懂一套脚本实现。
+- 工程架构必须优雅拆分职责。YAML 专注描述用户要完成什么；`midscene.config.ts` 管理目标环境、UI Agent 创建、运行策略、报告输出和 runtime 扩展；TypeScript 代码承接数据准备、设备接入、确定性校验和团队内部工具。
+- 架构必须面向 Agentic Testing。团队可以从 UI 路径切入测试，但结论不必止步于 UI。`ui`、`verify`、`agent`、skill 引用和 runtime 扩展让测试可以继续连接接口响应、数据库状态、日志、埋点和团队已有工具。
 
-## 从 YAML 到工程化项目
+Midscene 不是让团队在“轻量 YAML”和“严肃测试工程”之间二选一，而是让第一条 case 足够轻，同时让同一套表达方式继续长成长期回归套件。
 
-Midscene 适合希望 UI Test 更接近用户行为的团队：
+## 渐进式落地路径
 
-- QA 和业务同学可以直接阅读 YAML flow 来 review 用例。
-- 前端和测试工程师可以把用例匹配、并发、报告、登录、Cookie、账号、设备和测试数据留在代码里，让自然语言步骤专注描述用户路径。
-- CI 任务可以获得可重复执行的 case、可回放的 Midscene 报告、截图和失败详情。
-- 项目从轻量 YAML case 长成长期回归套件时，不需要重写测试底座。
-
-Midscene 让测试项目可以从自然语言用例开始：核心路径可读、可维护，第一条 case 启动很轻；当项目需要用例过滤、并发控制、登录态、测试数据、设备连接、复杂断言、报告输出或 CI 管理时，也有足够的工程扩展空间。
+基于这三个原则，Midscene 让项目可以从自然语言用例开始：先把核心路径写成可读、可运行、可回放的 YAML case；当项目需要更强的工程能力时，再接入用例过滤、并发控制、登录态、测试数据、设备连接、复杂断言、报告输出或 CI 管理。
 
 ### 从 YAML 开始
 
@@ -293,28 +290,11 @@ export default defineMidsceneConfig({
 
 这条路线不会丢掉 YAML 驱动 UI Test 的低门槛。相反，它把 YAML 作为面向人的测试表达，把 TypeScript 配置作为面向工程的能力注册入口：普通路径继续用自然语言描述，真正需要确定性证据的地方再接入团队自己的工具。
 
-### 特殊 case 使用 TypeScript
-
-YAML 应该是主路径，同时也要给代码留出空间。少数 case 可能需要复杂分支、内部 SDK 调用、混合接口校验、数据库断言或复用现有测试工具，这类用例可以写成 `case.test.ts`。
-
-这是给特殊场景保留的工程能力：
-
-```text
-.
-  midscene.config.ts
-  e2e/
-    dashboard.yaml
-    checkout.yaml
-    checkout-risk-control.test.ts
-```
-
-团队可以把普通业务路径继续保留在 YAML 中，把少数真正复杂的 case 放进 TypeScript。它们仍然在同一个项目里维护，并共享同一个运行时模型。
-
 ## 基于 Rstest 构建
 
 Midscene 是基于 Rstest 封装构建的上层测试框架。Rstest 在底层提供测试生命周期、fixture 模型、并发执行、用例过滤和适合 CI 的运行时能力。它基于 Rust 编写，具备更高的执行性能，因此 Midscene 用户默认就能获得高性能的测试底座。Midscene 则把这些能力封装成自然语言用例、AI UI 操作、视觉断言、截图、回放报告和诊断信息。
 
-绝大多数用户可以通过 Midscene 的 YAML runner、`midscene.config.ts` 和 `case.test.ts` 直接使用这套底座，无需了解 Rstest 的项目细节。`midscene.config.ts` 的字段会刻意和 Rstest 的概念对齐，例如 include/exclude、maxConcurrency、retry、timeout、setup、teardown 和 reporters，同时把 Midscene 特有的 UI Agent 创建入口留在同一个配置里。
+绝大多数用户可以通过 Midscene 的 YAML runner 和 `midscene.config.ts` 直接使用这套底座，无需了解 Rstest 的项目细节。`midscene.config.ts` 的字段会刻意和 Rstest 的概念对齐，例如 include/exclude、maxConcurrency、retry、timeout、setup、teardown 和 reporters，同时把 Midscene 特有的 UI Agent 创建入口留在同一个配置里。
 
 ### Rstest 提供的工程能力
 
@@ -323,7 +303,7 @@ Rstest 为 Midscene 项目提供可靠的工程底座：
 - 用例执行有标准测试生命周期支撑，包括 setup、teardown、hook、fixture 和并发能力。
 - 基于 Rust 的运行时让 Midscene 项目默认拥有面向性能优化的执行层。
 - 项目可以自然接入 CI、测试过滤、失败报告和团队已有的测试工程习惯。
-- YAML case 和 `case.test.ts` 共享同一个底层运行模型。
+- YAML case、runtime 节点和配置扩展共享同一个底层运行模型。
 - 团队可以从轻量项目开始，同时保留成长为长期回归套件的路径。
 
 ### 下一步

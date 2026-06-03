@@ -1,21 +1,18 @@
 # AI-native UI Testing Framework for Natural-language Cases
 
-UI tests are valuable only when teams can keep writing and maintaining them. In many projects, the first few browser scripts are easy, but the suite soon fills with selectors, waits, login helpers, data setup, and failure screenshots that only test specialists can understand.
+The hard part of UI testing is not writing the first browser script. It is keeping the suite readable, writable, and maintainable as the product changes. Traditional scripts quickly fill with selectors, waits, login helpers, data setup, and failure screenshots, until only a few test specialists can tell what they actually verify.
 
-Midscene provides an AI-native UI Testing Framework for this problem. It lets teams describe user paths in natural language, run them as structured cases, and review the result through screenshots, replay reports, and diagnostics. Test authors can start with YAML before adding test framework boilerplate, while engineers still have TypeScript extension points for UI Agent creation, data, devices, deterministic checks, and existing test projects.
+Midscene is designed around three core ideas:
 
-The goal is simple: make lightweight cases easy to write, and make serious test projects possible without changing the authoring model later. From there, Midscene moves UI testing toward Agentic Testing: everything starts from the UI, but testing should not stop at the UI. A trustworthy test conclusion should be able to connect page behavior with API responses, database state, logs, analytics, and the tools a team already relies on.
+- Cases must stay readable. Test authors write natural-language user paths in YAML, so QA, business teams, and engineers can review the case itself instead of first decoding a script implementation.
+- The engineering architecture must split responsibilities cleanly. YAML focuses on what the user should accomplish; `midscene.config.ts` manages target environments, UI Agent creation, execution policy, reporting, and runtime extensions; TypeScript code owns data setup, device integration, deterministic checks, and internal tools.
+- The architecture must be ready for Agentic Testing. Teams can start from the UI path, but conclusions do not have to stop at the UI. `ui`, `verify`, `agent`, skill references, and runtime extensions let tests connect API responses, database state, logs, analytics, and the tools a team already relies on.
 
-## From YAML to an Engineering-ready Project
+Midscene is not a choice between lightweight YAML and serious test engineering. It makes the first case lightweight while letting the same authoring model grow into a long-lived regression suite.
 
-Midscene is designed for teams that want UI tests to stay close to user behavior:
+## Progressive Adoption Path
 
-- QA and business teams can review a case by reading the YAML flow.
-- Frontend and test engineers can keep case matching, concurrency, reports, login, cookies, accounts, devices, and test data in code, leaving natural-language steps focused on the user path.
-- CI jobs get repeatable cases, replayable Midscene reports, screenshots, and failure details.
-- Growing projects can move from lightweight YAML cases to long-lived regression suites without rewriting the testing foundation.
-
-Midscene lets a test project start from natural-language cases: core paths stay readable and maintainable, and the first case stays lightweight. When the project needs case filtering, concurrency control, login state, test data, device connections, complex assertions, reports, or CI management, it still has enough room for engineering extension.
+Based on those principles, Midscene lets a project start from natural-language cases: first write the core path as a readable, runnable, replayable YAML case; then add case filtering, concurrency control, login state, test data, device connections, complex assertions, reports, or CI management when the suite needs them.
 
 ### Start with YAML
 
@@ -295,28 +292,11 @@ export default defineMidsceneConfig({
 
 This direction keeps the low-friction YAML-driven UI testing model intact. YAML remains the human-facing expression for the test, and TypeScript config remains the engineering entry for registering capabilities: ordinary paths stay in natural language, while places that need deterministic evidence can connect to the team's own tools.
 
-### Use TypeScript for Special Cases
-
-YAML should be the main path while still leaving room for code. Some cases need complex branches, internal SDK calls, mixed API checks, database assertions, or existing test utilities. Those cases can be written as `case.test.ts`.
-
-This is an engineering capability for special cases:
-
-```text
-.
-  midscene.config.ts
-  e2e/
-    dashboard.yaml
-    checkout.yaml
-    checkout-risk-control.test.ts
-```
-
-Teams can keep ordinary business paths in YAML and put the few truly complex cases in TypeScript. They still live in the same project and share the same runtime model.
-
 ## Built on Rstest
 
 Midscene is built as a higher-level testing framework on top of Rstest. Rstest provides the underlying lifecycle, fixture model, parallel execution, filtering, and CI-friendly runtime. It is also written in Rust for strong execution performance, so Midscene users get a high-performance test foundation by default. Midscene wraps those capabilities with natural-language cases, AI UI actions, visual assertions, screenshots, replay reports, and diagnostics.
 
-Most users can rely on that foundation through Midscene's YAML runner, `midscene.config.ts`, and `case.test.ts` without learning Rstest project details. The `midscene.config.ts` fields are intentionally aligned with Rstest concepts such as include/exclude, maxConcurrency, retry, timeout, setup, teardown, and reporters, while keeping Midscene-specific UI Agent creation in the same config.
+Most users can rely on that foundation through Midscene's YAML runner and `midscene.config.ts` without learning Rstest project details. The `midscene.config.ts` fields are intentionally aligned with Rstest concepts such as include/exclude, maxConcurrency, retry, timeout, setup, teardown, and reporters, while keeping Midscene-specific UI Agent creation in the same config.
 
 ### Why Rstest Helps
 
@@ -325,7 +305,7 @@ Rstest gives the Midscene project a reliable engineering base:
 - Case execution is backed by a standard test lifecycle, including setup, teardown, hooks, fixtures, and parallel execution.
 - The Rust-based runtime gives Midscene projects a performance-oriented execution layer by default.
 - Projects can naturally connect to CI, test filtering, failure reporting, and existing team testing habits.
-- YAML cases and `case.test.ts` share the same underlying runtime model.
+- YAML cases, runtime nodes, and config extensions share the same underlying runtime model.
 - Teams can start lightweight and still keep a path toward long-lived regression suites.
 
 ### Next Steps
