@@ -9,7 +9,7 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "tests"],
+  "include": ["src", "tests/unit-test"],
   "references": [
     {
       "path": "../core"
