@@ -1,3 +1,4 @@
+import { isQwen3 } from '@/ai-model/model-family';
 import {
   resolveReasoningConfig,
   safeParseJson,
@@ -6,6 +7,21 @@ import type { IModelConfig } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('service-caller', () => {
+  describe('isQwen3', () => {
+    it('returns true for qwen3 family variants', () => {
+      expect(isQwen3('qwen3')).toBe(true);
+      expect(isQwen3('qwen3.5')).toBe(true);
+      expect(isQwen3('qwen3.6')).toBe(true);
+    });
+
+    it('returns false for qwen3-vl and non-qwen3 family values', () => {
+      expect(isQwen3('qwen3-vl')).toBe(false);
+      expect(isQwen3('qwen2.5-vl')).toBe(false);
+      expect(isQwen3('doubao-seed')).toBe(false);
+      expect(isQwen3(undefined)).toBe(false);
+    });
+  });
+
   describe('code block cleaning logic', () => {
     it('should clean markdown code blocks for TEXT action type', () => {
       // Test the cleaning logic directly
@@ -324,7 +340,7 @@ describe('service-caller', () => {
       expect(result.config).toEqual({ thinking: { type: 'disabled' } });
     });
 
-    // qwen3-vl / qwen3.5 / qwen3.6: reasoningEnabled → enable_thinking, reasoningBudget → thinking_budget
+    // qwen3-vl / qwen3 / qwen3.5 / qwen3.6: reasoningEnabled → enable_thinking, reasoningBudget → thinking_budget
     it('maps reasoningEnabled to enable_thinking for qwen3-vl with default budget', () => {
       const result = resolveReasoningConfig({
         reasoningEnabled: true,
@@ -339,6 +355,14 @@ describe('service-caller', () => {
       const result = resolveReasoningConfig({
         reasoningEnabled: false,
         modelFamily: 'qwen3.5',
+      });
+      expect(result.config).toEqual({ enable_thinking: false });
+    });
+
+    it('maps reasoningEnabled=false to enable_thinking=false for qwen3', () => {
+      const result = resolveReasoningConfig({
+        reasoningEnabled: false,
+        modelFamily: 'qwen3',
       });
       expect(result.config).toEqual({ enable_thinking: false });
     });
@@ -427,6 +451,30 @@ describe('service-caller', () => {
       });
     });
 
+    // gemini: reasoningEnabled is ignored; reasoningEffort → reasoning_effort
+    it('maps Gemini default disabled reasoning to reasoning_effort=minimal', () => {
+      const result = resolveReasoningConfig({
+        modelFamily: 'gemini',
+      });
+      expect(result.config).toEqual({ reasoning_effort: 'minimal' });
+    });
+
+    it('passes reasoningEffort through for Gemini OpenAI-compatible requests', () => {
+      const result = resolveReasoningConfig({
+        reasoningEffort: 'high',
+        modelFamily: 'gemini',
+      });
+      expect(result.config).toEqual({ reasoning_effort: 'high' });
+    });
+
+    it('ignores reasoningEnabled for Gemini OpenAI-compatible requests', () => {
+      const result = resolveReasoningConfig({
+        reasoningEnabled: true,
+        modelFamily: 'gemini',
+      });
+      expect(result.config).toEqual({ reasoning_effort: 'minimal' });
+    });
+
     // glm-v: reasoningEnabled → thinking.type
     it('maps reasoningEnabled to thinking.type for glm-v', () => {
       const result = resolveReasoningConfig({
@@ -490,7 +538,7 @@ describe('service-caller', () => {
     // unknown model family
     it('returns empty config for unrecognized model family when reasoning is unset', () => {
       const result = resolveReasoningConfig({
-        modelFamily: 'gemini' as any,
+        modelFamily: 'unknown' as any,
       });
       expect(result.config).toEqual({});
     });
@@ -499,7 +547,7 @@ describe('service-caller', () => {
       expect(() =>
         resolveReasoningConfig({
           reasoningEffort: 'high',
-          modelFamily: 'gemini' as any,
+          modelFamily: 'unknown' as any,
         }),
       ).toThrow(/Reasoning config is not supported/);
     });

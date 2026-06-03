@@ -6,19 +6,13 @@
     "useDefineForClassFields": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src"],
+  "include": ["src", "tests"],
   "references": [
     {
       "path": "../core"
     },
     {
       "path": "../shared"
-    },
-    {
-      "path": "../android"
-    },
-    {
-      "path": "../web-integration"
     }
   ]
 }

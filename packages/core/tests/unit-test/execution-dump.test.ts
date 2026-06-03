@@ -167,7 +167,7 @@ describe('ReportActionDump', () => {
     sdkVersion: '1.0.0',
     groupName: 'Test Group',
     groupDescription: 'A test group description',
-    modelBriefs: ['model1', 'model2'],
+    modelBriefs: [{ name: 'model1' }, { name: 'model2' }],
     executions: [
       {
         logTime: 1234567890,
@@ -393,7 +393,7 @@ describe('ReportActionDump', () => {
         sdkVersion: '2.0.0',
         groupName: 'Complex Group',
         groupDescription: 'A complex test',
-        modelBriefs: ['openai/gpt-4', 'anthropic/claude'],
+        modelBriefs: [{ name: 'openai/gpt-4' }, { name: 'anthropic/claude' }],
         executions: [
           {
             logTime: Date.now(),

@@ -45,7 +45,7 @@ export function processCacheConfig(
   // 1. New cache object configuration (highest priority)
   if (cache !== undefined) {
     if (cache === false) {
-      return undefined; // Completely disable cache
+      return false; // Keep explicit disablement distinguishable from missing config.
     }
 
     if (cache === true) {

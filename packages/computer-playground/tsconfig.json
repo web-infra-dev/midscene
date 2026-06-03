@@ -1,21 +1,18 @@
 {
   "extends": "../shared/tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
+    "rootDir": ".",
     "module": "ES2020",
     "declarationDir": "dist/types",
     "types": ["node"]
   },
-  "include": ["src"],
+  "include": ["src", "tests"],
   "references": [
     {
       "path": "../computer"
     },
     {
       "path": "../shared"
-    },
-    {
-      "path": "../core"
     },
     {
       "path": "../playground"

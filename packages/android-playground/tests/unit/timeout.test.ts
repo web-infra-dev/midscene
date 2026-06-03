@@ -29,9 +29,10 @@ describe('withTimeout', () => {
   it('runs late cleanup when the promise resolves after timing out', async () => {
     vi.useFakeTimers();
 
-    let resolvePromise:
-      | ((value: { close: () => Promise<void> }) => void)
-      | null = null;
+    let resolvePromise: (value: { close: () => Promise<void> }) => void =
+      () => {
+        throw new Error('pending promise resolver was not initialized');
+      };
     const close = vi.fn().mockResolvedValue(undefined);
     const pendingPromise = new Promise<{ close: () => Promise<void> }>(
       (resolve) => {
@@ -52,7 +53,7 @@ describe('withTimeout', () => {
 
     await vi.advanceTimersByTimeAsync(100);
     await expectation;
-    resolvePromise?.({ close });
+    resolvePromise({ close });
     await vi.runAllTicks();
     await Promise.resolve();
 

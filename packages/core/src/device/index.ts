@@ -65,6 +65,7 @@ export interface KeyboardInputPrimitives {
     value: string,
     opts?: {
       autoDismissKeyboard?: boolean;
+      keyboardDismissStrategy?: 'esc-first' | 'back-first';
       target?: unknown;
       replace?: boolean;
       focusOnly?: boolean;

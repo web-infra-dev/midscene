@@ -59,7 +59,7 @@ describe('prepareMultiPlatformPlayground', () => {
 
     expect(prepared.platformId).toBe('unified');
 
-    const setup = await prepared.sessionManager?.getSetupSchema();
+    const setup = await prepared.sessionManager!.getSetupSchema!();
     expect(setup).toMatchObject({
       platformSelector: {
         fieldKey: 'platformId',
@@ -74,7 +74,7 @@ describe('prepareMultiPlatformPlayground', () => {
       ],
     });
 
-    const childSetup = await prepared.sessionManager?.getSetupSchema({
+    const childSetup = await prepared.sessionManager!.getSetupSchema!({
       platformId: 'android',
     });
     expect(childSetup).toMatchObject({

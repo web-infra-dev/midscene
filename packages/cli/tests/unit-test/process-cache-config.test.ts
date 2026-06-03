@@ -40,7 +40,7 @@ describe('processCacheConfig in CLI', () => {
     });
 
     test('should auto-generate ID when cache config object has no ID', () => {
-      const cacheConfig: Cache = { strategy: 'read-only' };
+      const cacheConfig = { strategy: 'read-only' } as unknown as Cache;
       const result = processCacheConfig(cacheConfig, 'fallback-id');
 
       expect(result).toEqual({
@@ -49,10 +49,11 @@ describe('processCacheConfig in CLI', () => {
       });
     });
 
-    test('should return undefined when cache config is false', () => {
+    test('should preserve explicit false when cache config is false', () => {
       const result = processCacheConfig(false, 'fallback-id');
 
-      expect(result).toBeUndefined();
+      expect(result).toBe(false);
+      expect(globalConfigManager.getEnvConfigInBoolean).not.toHaveBeenCalled();
     });
 
     test('should return undefined when cache config is undefined', () => {
@@ -120,6 +121,17 @@ describe('processCacheConfig in CLI', () => {
         strategy: 'read-write',
       });
     });
+
+    test('should prefer explicit cache false over legacy cacheId', () => {
+      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+        true,
+      );
+
+      const result = processCacheConfig(false, 'legacy-cache-id');
+
+      expect(globalConfigManager.getEnvConfigInBoolean).not.toHaveBeenCalled();
+      expect(result).toBe(false);
+    });
   });
 
   describe('Strategy handling', () => {
@@ -157,7 +169,7 @@ describe('processCacheConfig in CLI', () => {
     });
 
     test('should use fallback ID when cache object missing ID', () => {
-      const cacheConfig: Cache = { strategy: 'read-only' };
+      const cacheConfig = { strategy: 'read-only' } as unknown as Cache;
       const result = processCacheConfig(cacheConfig, 'my-custom-fallback-id');
 
       expect(result).toEqual({

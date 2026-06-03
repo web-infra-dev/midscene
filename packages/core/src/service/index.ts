@@ -1,12 +1,15 @@
 import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import {
-  AIResponseParseError,
   AiExtractElementInfo,
   AiLocateElement,
-  callAIWithObjectResponse,
-} from '@/ai-model/index';
-import { AiLocateSection, buildSearchAreaConfig } from '@/ai-model/inspect';
+  AiLocateSection,
+  buildSearchAreaConfig,
+} from '@/ai-model/inspect';
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
+import {
+  AIResponseParseError,
+  callAIWithObjectResponse,
+} from '@/ai-model/service-caller';
 import { type AIArgs, expandSearchArea } from '@/common';
 import type {
   AIDescribeElementResponse,

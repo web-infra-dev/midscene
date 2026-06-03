@@ -9,8 +9,11 @@
   },
   "include": ["src"],
   "references": [
-    { "path": "../harmony" },
-    { "path": "../core" },
-    { "path": "../shared" }
+    {
+      "path": "../harmony"
+    },
+    {
+      "path": "../shared"
+    }
   ]
 }

@@ -7,12 +7,21 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import MainContent from '../src/renderer/components/MainContent';
 import { StudioPlaygroundContext } from '../src/renderer/playground/useStudioPlayground';
 
+type ReadyStudioPlaygroundContextValue = Extract<
+  StudioPlaygroundContextValue,
+  { phase: 'ready' }
+>;
+
 vi.mock('@midscene/playground-app', () => ({
   PlaygroundPreview: () => null,
 }));
 
 beforeAll(() => {
-  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  (
+    globalThis as typeof globalThis & {
+      IS_REACT_ACT_ENVIRONMENT?: boolean;
+    }
+  ).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 async function flushPromises() {
@@ -21,7 +30,7 @@ async function flushPromises() {
   });
 }
 
-function createConnectedWebContextValue(): StudioPlaygroundContextValue {
+function createConnectedWebContextValue(): ReadyStudioPlaygroundContextValue {
   return {
     phase: 'ready',
     serverUrl: 'http://127.0.0.1:5800',

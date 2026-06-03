@@ -4,8 +4,10 @@ import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSvgr } from '@rsbuild/plugin-svgr';
-import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
-import { commonIgnoreWarnings } from '../../scripts/rsbuild-utils.ts';
+import {
+  commonIgnoreWarnings,
+  createTypeCheckPlugin,
+} from '../../scripts/rsbuild-utils.ts';
 import { version as appVersion } from './package.json';
 import {
   rendererDevHost,
@@ -18,6 +20,9 @@ import {
 const rendererAssetPrefix = './';
 
 export default defineConfig({
+  source: {
+    tsconfigPath: 'tsconfig.build.json',
+  },
   tools: {
     rspack: {
       ignoreWarnings: commonIgnoreWarnings,
@@ -44,7 +49,7 @@ export default defineConfig({
     }),
     pluginLess(),
     pluginNodePolyfill(),
-    pluginTypeCheck(),
+    createTypeCheckPlugin(),
   ],
   resolve: {
     alias: {

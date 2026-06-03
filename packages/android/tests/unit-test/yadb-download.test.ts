@@ -41,7 +41,7 @@ describe('yadb download script', () => {
     await downloadYadbReleaseAsset({
       destinationPath,
       dispatcher,
-      fetchImpl,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
       version: YADB_VERSION,
     });
 
@@ -63,8 +63,9 @@ describe('yadb download script', () => {
 
     await expect(
       downloadYadbReleaseAsset({
+        dispatcher: undefined,
         destinationPath: path.join(os.tmpdir(), 'midscene-yadb-should-fail'),
-        fetchImpl,
+        fetchImpl: fetchImpl as unknown as typeof fetch,
       }),
     ).rejects.toThrow('Response code 502 (Bad Gateway)');
   });

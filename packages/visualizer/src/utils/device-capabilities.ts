@@ -12,7 +12,8 @@ export function getDeviceCapabilities(
 ): DeviceCapabilities {
   return {
     supportsImeStrategy: deviceType === 'android',
-    supportsKeyboardDismissStrategy: deviceType === 'android',
+    supportsKeyboardDismissStrategy:
+      deviceType === 'android' || deviceType === 'harmony',
     supportsAutoDismissKeyboard:
       deviceType === 'android' ||
       deviceType === 'ios' ||

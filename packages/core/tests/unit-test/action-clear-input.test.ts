@@ -29,12 +29,12 @@ describe('ClearInput Action', () => {
         { locate: { prompt: 'the search input field' } },
         actionClearInputParamSchema,
       );
-      expect(parsed.locate).toEqual({ prompt: 'the search input field' });
+      expect(parsed!.locate).toEqual({ prompt: 'the search input field' });
     });
 
     it('should allow missing locate (optional)', () => {
       const parsed = parseActionParam({}, actionClearInputParamSchema);
-      expect(parsed.locate).toBeUndefined();
+      expect(parsed!.locate).toBeUndefined();
     });
   });
 

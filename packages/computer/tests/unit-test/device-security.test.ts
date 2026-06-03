@@ -1,3 +1,4 @@
+import type { ExecutorContext } from '@midscene/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockState = vi.hoisted(() => {
@@ -74,6 +75,7 @@ vi.mock('node:module', () => ({
 }));
 
 const originalPlatform = process.platform;
+const mockExecutorContext = { task: {} } as ExecutorContext;
 
 beforeEach(() => {
   mockState.reset();
@@ -95,7 +97,7 @@ async function runKeyboardPress(keyName: string): Promise<void> {
     .find((action) => action.name === 'KeyboardPress');
 
   expect(keyboardPress).toBeDefined();
-  await keyboardPress!.call({ keyName });
+  await keyboardPress!.call({ keyName }, mockExecutorContext);
 }
 
 describe('ComputerDevice AppleScript security', () => {
@@ -119,5 +121,96 @@ describe('ComputerDevice AppleScript security', () => {
       '-e',
       'tell application "System Events" to keystroke "a\\"\\\\b"',
     ]);
+  });
+});
+
+describe('ComputerDevice destroy input gate', () => {
+  it('interrupts an in-flight pointer action and blocks later input', async () => {
+    const { ComputerDevice } = await import('../../src/device');
+    const device = new ComputerDevice({});
+    await device.connect();
+
+    const hoverPromise = device.inputPrimitives.pointer.hover({
+      x: 200,
+      y: 120,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    await device.destroy();
+
+    await expect(hoverPromise).rejects.toThrow(/destroyed/);
+    const moveCountAfterDestroy = mockState.libnut.moveMouse.mock.calls.length;
+
+    await expect(
+      device.inputPrimitives.pointer.hover({ x: 210, y: 130 }),
+    ).rejects.toThrow(/destroyed/);
+
+    expect(mockState.libnut.moveMouse).toHaveBeenCalledTimes(
+      moveCountAfterDestroy,
+    );
+  });
+
+  it('releases the mouse button when destroy interrupts a tap hold', async () => {
+    const { ComputerDevice } = await import('../../src/device');
+    const device = new ComputerDevice({});
+    await device.connect();
+
+    const tapPromise = device.inputPrimitives.pointer.tap({ x: 200, y: 120 });
+
+    await vi.waitFor(() => {
+      expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('down', 'left');
+    });
+
+    await device.destroy();
+
+    await expect(tapPromise).rejects.toThrow(/destroyed/);
+    expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('up', 'left');
+  });
+});
+
+describe('ComputerInputDriver native arg handling', () => {
+  // libnut is a native binding that distinguishes "no argument" from
+  // "explicit undefined" — passing `(button, undefined)` trips its
+  // "A boolean was expected" type check, and `(key, undefined)` trips
+  // "A string was expected". The driver wrapper must not forward
+  // undefined for optional trailing args.
+  it('omits trailing undefined args when calling libnut.mouseClick', async () => {
+    const { ComputerInputDriver } = await import('../../src/input-driver');
+    const driver = new ComputerInputDriver({
+      getLibnut: () => mockState.libnut,
+      useAppleScript: () => false,
+      sendKeyViaAppleScript: vi.fn(),
+      runPhasedScroll: vi.fn(() => true),
+      debug: vi.fn(),
+    });
+
+    driver.mouseClick('right');
+    expect(mockState.libnut.mouseClick).toHaveBeenLastCalledWith('right');
+    // Confirm exactly one positional arg — no trailing undefined leaked.
+    expect(mockState.libnut.mouseClick.mock.lastCall).toHaveLength(1);
+
+    driver.mouseClick('left', true);
+    expect(mockState.libnut.mouseClick).toHaveBeenLastCalledWith('left', true);
+
+    driver.mouseClick();
+    expect(mockState.libnut.mouseClick.mock.lastCall).toHaveLength(0);
+  });
+
+  it('omits trailing undefined modifiers when calling libnut.keyTap', async () => {
+    const { ComputerInputDriver } = await import('../../src/input-driver');
+    const driver = new ComputerInputDriver({
+      getLibnut: () => mockState.libnut,
+      useAppleScript: () => false,
+      sendKeyViaAppleScript: vi.fn(),
+      runPhasedScroll: vi.fn(() => true),
+      debug: vi.fn(),
+    });
+
+    driver.keyTap('backspace');
+    expect(mockState.libnut.keyTap).toHaveBeenLastCalledWith('backspace');
+    expect(mockState.libnut.keyTap.mock.lastCall).toHaveLength(1);
+
+    driver.keyTap('a', ['command']);
+    expect(mockState.libnut.keyTap).toHaveBeenLastCalledWith('a', ['command']);
   });
 });

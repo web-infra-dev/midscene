@@ -53,8 +53,29 @@ jobs:
         cd packages/web-integration
         npx puppeteer browsers install chrome
 
+    - name: Check tsconfig references
+      run: pnpm run check:references
+
     - name: Build project
       run: pnpm run build
 
-    - name: Run tests
-      run: pnpm run test
+    - name: Type check tests
+      run: pnpm run type-check:tests
+
+    - name: Run tests with coverage
+      run: pnpm run test:coverage
+
+    - name: Upload coverage reports
+      id: upload-coverage
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: coverage
+        path: coverage
+        if-no-files-found: ignore
+
+    - name: Write coverage summary
+      if: always()
+      env:
+        COVERAGE_ARTIFACT_URL: ${{ steps.upload-coverage.outputs.artifact-url }}
+      run: node scripts/github-coverage-summary.js

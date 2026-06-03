@@ -368,7 +368,7 @@ describe('create-yaml-player', () => {
       });
     });
 
-    test('should disable cache when cache is explicitly false', () => {
+    test('should preserve explicit cache false', () => {
       // When cache is explicitly set to false in YAML script
       const fileName = 'my-test-script';
       const result = processCacheConfig(false, fileName);
@@ -376,8 +376,48 @@ describe('create-yaml-player', () => {
       // Environment variable should not be checked for explicit cache: false
       expect(globalConfigManager.getEnvConfigInBoolean).not.toHaveBeenCalled();
 
-      // Verify that cache is disabled
-      expect(result).toBeUndefined();
+      // Verify that explicit disablement survives the first normalization layer.
+      expect(result).toBe(false);
+    });
+
+    test('should pass explicit cache false to the web agent even when legacy env enables cache', async () => {
+      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+        true,
+      );
+
+      const mockScript: MidsceneYamlScript = {
+        web: { url: 'http://example.com' },
+        agent: {
+          cache: false,
+        },
+        tasks: [],
+      };
+      const mockAgent = { destroy: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+      await setupFnCallback?.();
+
+      expect(globalConfigManager.getEnvConfigInBoolean).not.toHaveBeenCalled();
+      expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({
+          cache: false,
+        }),
+        undefined,
+        undefined,
+      );
     });
   });
 

@@ -323,6 +323,69 @@ describe('parseProcessArgs', () => {
     });
   });
 
+  test('should parse every documented YAML runner command-line option', async () => {
+    process.argv = [
+      'node',
+      'midscene',
+      '--config',
+      './config.yaml',
+      '--files',
+      './login.yaml',
+      './buy/*.yaml',
+      './checkout.yaml',
+      '--concurrent',
+      '4',
+      '--continue-on-error',
+      '--share-browser-context',
+      '--summary',
+      'summary.json',
+      '--headed',
+      '--keep-window',
+      '--web.userAgent',
+      'Doc Agent',
+      '--web.viewportWidth',
+      '1440',
+      '--web.viewportHeight',
+      '900',
+      '--android.deviceId',
+      'android-doc-device',
+      '--ios.wdaPort',
+      '8100',
+      '--ios.wdaHost',
+      '127.0.0.1',
+      '--dotenv-debug',
+      '--dotenv-override',
+    ];
+
+    const { path, files, options } = await parseProcessArgs();
+
+    expect(path).toBeUndefined();
+    expect(files).toEqual(['./login.yaml', './buy/*.yaml', './checkout.yaml']);
+    expect(options).toMatchObject({
+      config: './config.yaml',
+      concurrent: 4,
+      'continue-on-error': true,
+      'share-browser-context': true,
+      summary: 'summary.json',
+      headed: true,
+      'keep-window': true,
+      'dotenv-debug': true,
+      'dotenv-override': true,
+      web: {
+        userAgent: 'Doc Agent',
+        viewportWidth: 1440,
+        viewportHeight: 900,
+      },
+      android: {
+        deviceId: 'android-doc-device',
+      },
+      ios: {
+        wdaPort: 8100,
+        wdaHost: '127.0.0.1',
+      },
+    });
+  });
+
   test('should handle camelCase parameters and convert to both formats', async () => {
     process.argv = [
       'node',

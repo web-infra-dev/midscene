@@ -13,7 +13,7 @@ describe('Pinch Action Parameter Validation', () => {
         { direction: 'out' },
         ActionPinchParamSchema,
       );
-      expect(parsed.direction).toBe('out');
+      expect(parsed!.direction).toBe('out');
     });
 
     it('should accept direction "in" (zoom out)', () => {
@@ -21,7 +21,7 @@ describe('Pinch Action Parameter Validation', () => {
         { direction: 'in' },
         ActionPinchParamSchema,
       );
-      expect(parsed.direction).toBe('in');
+      expect(parsed!.direction).toBe('in');
     });
 
     it('should accept custom distance', () => {
@@ -29,8 +29,8 @@ describe('Pinch Action Parameter Validation', () => {
         { direction: 'out', distance: 300 },
         ActionPinchParamSchema,
       );
-      expect(parsed.direction).toBe('out');
-      expect(parsed.distance).toBe(300);
+      expect(parsed!.direction).toBe('out');
+      expect(parsed!.distance).toBe(300);
     });
 
     it('should accept custom duration', () => {
@@ -38,7 +38,7 @@ describe('Pinch Action Parameter Validation', () => {
         { direction: 'out', duration: 1000 },
         ActionPinchParamSchema,
       );
-      expect(parsed.duration).toBe(1000);
+      expect(parsed!.duration).toBe(1000);
     });
 
     it('should accept locate parameter', () => {
@@ -46,8 +46,8 @@ describe('Pinch Action Parameter Validation', () => {
         { direction: 'out', locate: { prompt: 'the map area' } },
         ActionPinchParamSchema,
       );
-      expect(parsed.direction).toBe('out');
-      expect(parsed.locate).toEqual({ prompt: 'the map area' });
+      expect(parsed!.direction).toBe('out');
+      expect(parsed!.locate).toEqual({ prompt: 'the map area' });
     });
 
     it('should reject missing direction', () => {
@@ -88,12 +88,11 @@ describe('Pinch Action Parameter Validation', () => {
         ActionPinchParamSchema,
         { shrunkShotToLogicalRatio: 2 },
       );
-
-      expect(parsed.locate).toEqual({
+      expect(parsed!.locate).toEqual({
         center: [200, 300],
         rect: { left: 150, top: 250, width: 100, height: 100 },
       });
-      expect(parsed.direction).toBe('out');
+      expect(parsed!.direction).toBe('out');
     });
   });
 

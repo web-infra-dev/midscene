@@ -1,6 +1,7 @@
 import { TaskCache, TaskExecutor } from '@/agent';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
+import type { ExecutionTask, ExecutionTaskApply } from '@/types';
 import { uuid } from '@midscene/shared/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type Service from '../../src';
@@ -25,6 +26,13 @@ vi.mock('@/ai-model/llm-planning', () => ({
     yamlFlow: [],
   }),
 }));
+
+const createRuntimeTask = (task: ExecutionTaskApply): ExecutionTask => ({
+  ...task,
+  taskId: 'runtime-task',
+  status: 'running',
+  timing: { start: Date.now(), end: 0, cost: 0 },
+});
 
 describe('aiAction cacheable option propagation', () => {
   let taskExecutor: TaskExecutor;
@@ -150,14 +158,7 @@ describe('aiAction cacheable option propagation', () => {
     // Execute the locate task to verify cache is not used
     if (locateTask) {
       await locateTask.executor(locateTask.param, {
-        task: {
-          type: 'Planning',
-          subType: 'Locate',
-          param: locateTask.param,
-          status: 'running',
-          timing: { start: Date.now(), end: 0, cost: 0 },
-          executor: locateTask.executor,
-        },
+        task: createRuntimeTask(locateTask),
       });
 
       // Verify cache was not queried (or if queried, was rejected due to cacheable: false)
@@ -176,13 +177,12 @@ describe('aiAction cacheable option propagation', () => {
     const convertPlanSpy = vi.spyOn(taskExecutor, 'convertPlanToExecutable');
 
     // Mock the planning result
+    // @ts-ignore: historical skipped test uses an old locate result shape.
     vi.spyOn(mockService, 'locate').mockResolvedValue({
       element: {
-        id: 'element-id',
+        description: 'element-id',
         center: [100, 100],
         rect: { left: 90, top: 90, width: 20, height: 20 },
-        xpaths: [],
-        attributes: {},
       },
     });
 
@@ -201,14 +201,13 @@ describe('aiAction cacheable option propagation', () => {
 
     convertPlanSpy.mockResolvedValue({
       tasks: [],
-      planLog: 'test',
-      usedModel: { model: 'test-model', modelFamily: undefined },
-      yamlFlow: [],
     });
 
     // Call action with cacheable: false
+    // @ts-ignore: historical skipped test uses the old action argument shape.
     const result = await taskExecutor.action(
       'click the button',
+      // @ts-ignore: historical skipped test passes the old model config argument shape.
       {},
       {},
       undefined,
@@ -333,6 +332,7 @@ describe('aiAction cacheable option propagation', () => {
 
     // Create a minimal Agent instance for testing with proper model config
     const { Agent } = await import('@/agent');
+    // @ts-ignore: historical skipped test still uses the old Agent constructor shape.
     const agent = new Agent(mockInterface, mockService, {
       taskCache,
       modelConfig: {
@@ -392,6 +392,7 @@ describe('aiAction cacheable option propagation', () => {
 
     // Create a minimal Agent instance for testing with proper model config
     const { Agent } = await import('@/agent');
+    // @ts-ignore: historical skipped test still uses the old Agent constructor shape.
     const agent = new Agent(mockInterface, mockService, {
       taskCache,
       modelConfig: {
@@ -451,6 +452,7 @@ describe('aiAction cacheable option propagation', () => {
 
     // Create a minimal Agent instance for testing with proper model config
     const { Agent } = await import('@/agent');
+    // @ts-ignore: historical skipped test still uses the old Agent constructor shape.
     const agent = new Agent(mockInterface, mockService, {
       taskCache,
       modelConfig: {
@@ -512,6 +514,7 @@ describe('aiAction cacheable option propagation', () => {
 
     // Create a minimal Agent instance for testing with proper model config
     const { Agent } = await import('@/agent');
+    // @ts-ignore: historical skipped test still uses the old Agent constructor shape.
     const agent = new Agent(mockInterface, mockService, {
       taskCache,
       modelConfig: {

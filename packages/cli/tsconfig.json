@@ -16,7 +16,13 @@
       "path": "../android"
     },
     {
+      "path": "../computer"
+    },
+    {
       "path": "../core"
+    },
+    {
+      "path": "../ios"
     },
     {
       "path": "../shared"

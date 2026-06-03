@@ -486,8 +486,11 @@ describe('CDP WebSocket Proxy', () => {
     // bookkeeping with manual SIGTERM + cleanupFiles() in between, which
     // hides whether killProxy()'s synchronous unlinks let the next
     // spawnProxy() through without tripping its duplicate-proxy guard.
+    // Import the built manager so spawnProxy() resolves its sibling
+    // cdp-proxy.js from dist/lib, matching the published runtime layout.
+    const proxyManagerPath = '../../dist/lib/cdp-proxy-manager.js';
     const { getProxyEndpoint, isProxyAlive, readProxyUpstream } = await import(
-      '../../dist/lib/cdp-proxy-manager.js'
+      proxyManagerPath
     );
 
     cleanupFiles();

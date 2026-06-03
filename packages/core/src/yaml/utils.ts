@@ -10,6 +10,53 @@ import yaml from 'js-yaml';
 
 const debugUtils = getDebug('yaml:utils');
 
+const topLevelTasksPattern = /^tasks\s*:/;
+const topLevelYamlKeyPattern = /^[^\s#][^:]*:/;
+
+function interpolateEnvVarRefs(
+  value: string,
+  keepUnresolvedRefs = false,
+): string {
+  let result = '';
+  let lastIndex = 0;
+  let searchFrom = 0;
+
+  while (searchFrom < value.length) {
+    const start = value.indexOf('${', searchFrom);
+    if (start === -1) {
+      break;
+    }
+
+    const end = value.indexOf('}', start + 2);
+    if (end === -1) {
+      break;
+    }
+
+    const rawName = value.slice(start + 2, end);
+    if (!rawName) {
+      searchFrom = end + 1;
+      continue;
+    }
+
+    result += value.slice(lastIndex, start);
+    const envVar = rawName.trim();
+    const envValue = process.env[envVar];
+    if (envValue === undefined) {
+      if (keepUnresolvedRefs) {
+        result += value.slice(start, end + 1);
+      } else {
+        throw new Error(`Environment variable "${envVar}" is not defined`);
+      }
+    } else {
+      result += envValue;
+    }
+    lastIndex = end + 1;
+    searchFrom = end + 1;
+  }
+
+  return result + value.slice(lastIndex);
+}
+
 const multimodalLocateOptionFieldMap: Record<keyof TMultimodalPrompt, true> = {
   images: true,
   convertHttpImage2Base64: true,
@@ -47,18 +94,38 @@ export function interpolateEnvVars(content: string): string {
     }
 
     // Process environment variables for non-comment lines
-    return line.replace(/\$\{([^}]+)\}/g, (_, envVar) => {
-      const value = process.env[envVar.trim()];
-      if (value === undefined) {
-        throw new Error(
-          `Environment variable "${envVar.trim()}" is not defined`,
-        );
-      }
-      return value;
-    });
+    return interpolateEnvVarRefs(line);
   });
 
   return processedLines.join('\n');
+}
+
+function interpolateYamlScriptEnvVars(content: string): string {
+  let inTopLevelTasksBlock = false;
+
+  return content
+    .split('\n')
+    .map((line) => {
+      const trimmedLine = line.trimStart();
+      if (!trimmedLine || trimmedLine.startsWith('#')) {
+        return line;
+      }
+
+      const indentSize = line.length - trimmedLine.length;
+      if (indentSize === 0) {
+        if (topLevelTasksPattern.test(trimmedLine)) {
+          inTopLevelTasksBlock = true;
+          return line;
+        }
+
+        if (topLevelYamlKeyPattern.test(trimmedLine)) {
+          inTopLevelTasksBlock = false;
+        }
+      }
+
+      return interpolateEnvVarRefs(line, inTopLevelTasksBlock);
+    })
+    .join('\n');
 }
 
 export function parseYamlScript(
@@ -79,7 +146,7 @@ export function parseYamlScript(
       `please use string-style deviceId in yaml script, for example: deviceId: "${matchedDeviceId}"`,
     );
   }
-  const interpolatedContent = interpolateEnvVars(processedContent);
+  const interpolatedContent = interpolateYamlScriptEnvVars(processedContent);
   const obj = yaml.load(interpolatedContent, {
     schema: yaml.JSON_SCHEMA,
   }) as MidsceneYamlScript;

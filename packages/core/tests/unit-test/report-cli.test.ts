@@ -7,11 +7,13 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { parseCliArgs, runToolsCLI } from '@midscene/shared/cli';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { generateDumpScriptTag, generateImageScriptTag } from '../../src/dump';
 import type { ScreenshotRef } from '../../src/dump/screenshot-store';
 import {
   createReportCliCommands,
+  mergeReportFiles,
   reportFileToMarkdown,
   splitReportFile,
 } from '../../src/report-cli';
@@ -26,6 +28,14 @@ function createExecution(
   id: string,
   screenshot: ScreenshotItem | ScreenshotRef,
 ): ExecutionDump {
+  // Some report fixtures intentionally model already-serialized dumps with
+  // ScreenshotRef, while ExecutionTask still types live UIContext screenshots
+  // as ScreenshotItem.
+  const uiContextScreenshot =
+    screenshot instanceof ScreenshotItem
+      ? screenshot
+      : (screenshot as unknown as ScreenshotItem);
+
   return new ExecutionDump({
     id,
     logTime: Date.now(),
@@ -37,10 +47,11 @@ function createExecution(
         subType: 'Locate',
         param: { prompt: 'find something' },
         uiContext: {
-          screenshot,
+          screenshot: uiContextScreenshot,
           shotSize: { width: 1920, height: 1080 },
           shrunkShotToLogicalRatio: 1,
         },
+        executor: async () => undefined,
         recorder: [],
         status: 'finished',
       },
@@ -314,7 +325,7 @@ describe('createReportCliCommands', () => {
         outputDir: join(tmpDir, 'unused-output'),
       }),
     ).rejects.toThrow(
-      'report-tool: unsupported --action value "invalid-action". Currently supported: split, to-markdown',
+      'report-tool: unsupported --action value "invalid-action". Currently supported: split, to-markdown, merge-html',
     );
   });
 
@@ -462,5 +473,183 @@ describe('createReportCliCommands', () => {
     expect(readFileSync(exportedScreenshot)).toEqual(
       readFileSync(sourceScreenshotPath),
     );
+  });
+
+  function writeFakeReport(
+    dirName: string,
+    groupName: string,
+    executionId: string,
+  ): string {
+    const reportPath = join(tmpDir, dirName, 'index.html');
+    mkdirSync(join(tmpDir, dirName), { recursive: true });
+
+    const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
+    const dump = new ReportActionDump({
+      groupName,
+      groupDescription: `${groupName}-desc`,
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [createExecution(executionId, screenshot)],
+    });
+
+    const html = [
+      generateImageScriptTag(screenshot.id, screenshot.base64),
+      generateDumpScriptTag(dump.serialize(), {
+        'data-group-id': `group-${executionId}`,
+      }),
+    ].join('\n');
+    writeFileSync(reportPath, html, 'utf-8');
+    return reportPath;
+  }
+
+  it('merges multiple reports via the JS SDK API', () => {
+    const reportA = writeFakeReport('merge-input-a', 'group-A', 'exec-A');
+    const reportB = writeFakeReport('merge-input-b', 'group-B', 'exec-B');
+
+    const outputDir = join(tmpDir, 'merge-output-sdk');
+    const result = mergeReportFiles({
+      htmlPaths: [reportA, reportB],
+      outputDir,
+      outputName: 'merged-sdk',
+    });
+
+    expect(result.mergedReportPath.startsWith(outputDir)).toBe(true);
+    expect(existsSync(result.mergedReportPath)).toBe(true);
+
+    const merged = readFileSync(result.mergedReportPath, 'utf-8');
+    const idMatches = merged.match(/playwright_test_id="[^"]+"/g) ?? [];
+    expect(idMatches.length).toBe(2);
+    expect(merged).toContain('group-A');
+    expect(merged).toContain('group-B');
+  });
+
+  it('runs the merge action through the generic report command', async () => {
+    const reportA = writeFakeReport('merge-cli-a', 'cli-group-A', 'exec-cli-A');
+    const reportB = writeFakeReport('merge-cli-b', 'cli-group-B', 'exec-cli-B');
+
+    const outputDir = join(tmpDir, 'merge-output-cli');
+    const [command] = createReportCliCommands();
+    const result = await command.def.handler({
+      action: 'merge-html',
+      htmlReport: [reportA, reportB],
+      outputDir,
+      outputName: 'merged-cli',
+    });
+
+    expect(result.isError).toBe(false);
+    expect(result.content[0].text).toContain('Merged 2 report(s) into');
+
+    const mergedPath = join(outputDir, 'merged-cli.html');
+    expect(existsSync(mergedPath)).toBe(true);
+  });
+
+  it('accepts a single --htmlReport for the merge action', async () => {
+    const reportA = writeFakeReport(
+      'merge-single-a',
+      'single-group-A',
+      'exec-single-A',
+    );
+
+    const outputDir = join(tmpDir, 'merge-output-single');
+    const [command] = createReportCliCommands();
+    const result = await command.def.handler({
+      action: 'merge-html',
+      htmlReport: reportA,
+      outputDir,
+      outputName: 'merged-single',
+    });
+
+    expect(result.isError).toBe(false);
+    const mergedPath = join(outputDir, 'merged-single.html');
+    expect(existsSync(mergedPath)).toBe(true);
+  });
+
+  it('throws when --htmlReport is missing for the merge action', async () => {
+    const [command] = createReportCliCommands();
+
+    await expect(
+      command.def.handler({
+        action: 'merge-html',
+        outputDir: join(tmpDir, 'merge-missing'),
+      }),
+    ).rejects.toThrow('report-tool: --htmlReport is required');
+  });
+
+  it('drives the merge action end-to-end through runToolsCLI argv', async () => {
+    const reportA = writeFakeReport('merge-e2e-a', 'e2e-group-A', 'exec-e2e-A');
+    const reportB = writeFakeReport('merge-e2e-b', 'e2e-group-B', 'exec-e2e-B');
+
+    const outputDir = join(tmpDir, 'merge-output-e2e');
+    const [command] = createReportCliCommands();
+
+    const restArgs = [
+      '--action',
+      'merge-html',
+      '--htmlReport',
+      reportA,
+      '--htmlReport',
+      reportB,
+      '--outputDir',
+      outputDir,
+      '--outputName',
+      'merged-e2e',
+    ];
+    expect(parseCliArgs(restArgs)).toEqual({
+      action: 'merge-html',
+      htmlReport: [reportA, reportB],
+      outputDir,
+      outputName: 'merged-e2e',
+    });
+
+    const logs: string[] = [];
+    const consoleSpy = vi
+      .spyOn(console, 'log')
+      .mockImplementation((...args: unknown[]) => {
+        logs.push(args.map((a) => String(a)).join(' '));
+      });
+
+    const tools = {
+      initTools: vi.fn().mockResolvedValue(undefined),
+      destroy: vi.fn().mockResolvedValue(undefined),
+      getToolDefinitions: vi.fn().mockReturnValue([]),
+    } as any;
+
+    await runToolsCLI(tools, 'midscene-test', {
+      argv: ['report-tool', ...restArgs],
+      extraCommands: [command],
+    });
+
+    consoleSpy.mockRestore();
+
+    const mergedPath = join(outputDir, 'merged-e2e.html');
+    expect(existsSync(mergedPath)).toBe(true);
+    expect(logs.join('\n')).toContain('Merged 2 report(s) into');
+  });
+
+  it('throws when merge target already exists without --overwrite', async () => {
+    const reportA = writeFakeReport('merge-ow-a', 'ow-A', 'exec-ow-A');
+    const outputDir = join(tmpDir, 'merge-output-overwrite');
+
+    mergeReportFiles({
+      htmlPaths: [reportA],
+      outputDir,
+      outputName: 'merged-ow',
+    });
+
+    expect(() =>
+      mergeReportFiles({
+        htmlPaths: [reportA],
+        outputDir,
+        outputName: 'merged-ow',
+      }),
+    ).toThrow('Report file already exists');
+
+    const second = mergeReportFiles({
+      htmlPaths: [reportA],
+      outputDir,
+      outputName: 'merged-ow',
+      overwrite: true,
+    });
+    expect(existsSync(second.mergedReportPath)).toBe(true);
   });
 });

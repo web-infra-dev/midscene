@@ -3,6 +3,7 @@ import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import { defineConfig } from '@rslib/core';
+import { createTypeCheckPlugin } from '../../scripts/rsbuild-utils.ts';
 import { version } from './package.json';
 
 export default defineConfig({
@@ -32,6 +33,7 @@ export default defineConfig({
     },
   ],
   source: {
+    tsconfigPath: 'tsconfig.build.json',
     entry: {
       index: ['./src/**', '!./src/**/*.json'],
     },
@@ -46,6 +48,7 @@ export default defineConfig({
     externals: [/.*\.json$/],
   },
   plugins: [
+    createTypeCheckPlugin(),
     pluginReact(),
     pluginLess(),
     pluginSvgr({

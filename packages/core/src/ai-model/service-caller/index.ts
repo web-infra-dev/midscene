@@ -30,6 +30,7 @@ import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
 import type { AIArgs } from '../../common';
 import { isAutoGLM, isUITars } from '../auto-glm/util';
+import { isQwen3 } from '../model-family';
 import {
   callAIWithCodexAppServer,
   isCodexAppServerProvider,
@@ -233,6 +234,7 @@ export async function callAI(
     stream?: boolean;
     onChunk?: StreamingCallback;
     abortSignal?: AbortSignal;
+    forceOriginalImageDetail?: boolean;
   },
 ): Promise<{
   content: string;
@@ -275,7 +277,6 @@ export async function callAI(
 
   const extraBody = modelConfig.extraBody;
 
-  const maxTokens = modelConfig.maxTokens;
   const debugCall = getDebug('ai:call');
   const warnCall = getDebug('ai:call', { console: true });
   const debugProfileStats = getDebug('ai:profile:stats');
@@ -313,6 +314,7 @@ export async function callAI(
     )?.prompt_tokens_details?.cached_tokens;
 
     return {
+      ...usageData,
       prompt_tokens: usageData.prompt_tokens ?? 0,
       completion_tokens: usageData.completion_tokens ?? 0,
       total_tokens: usageData.total_tokens ?? 0,
@@ -329,7 +331,6 @@ export async function callAI(
   const commonConfig = {
     temperature,
     stream: !!isStreaming,
-    max_tokens: maxTokens,
     ...(modelFamily === 'qwen2.5-vl' // qwen vl v2 specific config
       ? {
           vl_high_resolution_images: true,
@@ -356,6 +357,7 @@ export async function callAI(
   }
 
   const shouldUseOriginalImageDetail =
+    options?.forceOriginalImageDetail ||
     shouldForceOriginalImageDetail(modelConfig);
 
   // For default-intent GPT-5 calls, request original image detail to preserve
@@ -704,10 +706,12 @@ function hasExplicitReasoningConfig({
 
 const SUPPORTED_REASONING_FAMILIES = [
   'qwen3-vl',
+  'qwen3',
   'qwen3.5',
   'qwen3.6',
   'doubao-vision',
   'doubao-seed',
+  'gemini',
   'glm-v',
 ] as const satisfies readonly TModelFamily[];
 
@@ -769,11 +773,7 @@ export function resolveReasoningConfig({
   const debugMessages: string[] = [];
   const config: Record<string, unknown> = {};
 
-  if (
-    modelFamily === 'qwen3-vl' ||
-    modelFamily === 'qwen3.5' ||
-    modelFamily === 'qwen3.6'
-  ) {
+  if (modelFamily === 'qwen3-vl' || isQwen3(modelFamily)) {
     // reasoningEnabled → enable_thinking
     config.enable_thinking = effectiveReasoningEnabled;
     debugMessages.push(`enable_thinking=${effectiveReasoningEnabled}`);
@@ -797,6 +797,13 @@ export function resolveReasoningConfig({
       debugMessages.push(`reasoning_effort="${reasoningEffort}"`);
     }
     // reasoningBudget is ignored for doubao
+  } else if (modelFamily === 'gemini') {
+    // Gemini OpenAI-compatible API uses reasoning_effort.
+    // Gemini 3.x series cannot fully disable thinking, so use the lowest supported
+    // effort by default and let reasoningEffort override it.
+    config.reasoning_effort = reasoningEffort || 'minimal';
+    debugMessages.push(`reasoning_effort="${config.reasoning_effort}"`);
+    // reasoningBudget is ignored for Gemini OpenAI-compatible requests.
   } else if (modelFamily === 'glm-v') {
     // reasoningEnabled → thinking.type
     config.thinking = {

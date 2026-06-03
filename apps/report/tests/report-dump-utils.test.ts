@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   getEmptyDumpDescription,
   parseDumpAttributes,
-} from '../../../apps/report/src/utils/report-dump';
+} from '../src/utils/report-dump';
 
 describe('report dump utils', () => {
   it('parses is_merged alongside playwright attributes', () => {

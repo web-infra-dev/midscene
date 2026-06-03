@@ -10,15 +10,6 @@
   "references": [
     {
       "path": "../harmony"
-    },
-    {
-      "path": "../shared"
-    },
-    {
-      "path": "../core"
-    },
-    {
-      "path": "../playground"
     }
   ]
 }

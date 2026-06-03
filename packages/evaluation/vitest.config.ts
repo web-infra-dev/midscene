@@ -1,6 +1,7 @@
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { defineConfig } from 'vitest/config';
+import { createCoverageConfig } from '../../scripts/vitest-coverage';
 
 /**
  * Read environment variables from file.
@@ -14,6 +15,7 @@ dotenv.config({
 
 export default defineConfig({
   test: {
+    coverage: createCoverageConfig(__dirname),
     include: ['tests/**.test.ts'],
   },
   resolve: {

@@ -22,6 +22,8 @@ vi.mock('appium-adb');
 vi.mock('../../src/device');
 vi.mock('../../src/utils');
 
+const MockedAndroidDevice = AndroidDevice as unknown as Mock;
+
 const mockedModelConfig = {
   MIDSCENE_MODEL_NAME: 'mock',
   MIDSCENE_MODEL_API_KEY: 'mock',
@@ -31,7 +33,7 @@ const mockedModelConfig = {
 
 describe('AndroidAgent', () => {
   beforeEach(() => {
-    (AndroidDevice as Mock).mockImplementation(() => {
+    MockedAndroidDevice.mockImplementation(() => {
       return {
         interfaceType: 'android',
         actionSpace: vi.fn().mockReturnValue([]),
@@ -188,7 +190,7 @@ describe('AndroidAgent', () => {
         mockDevices as any,
       );
       const mockConnect = vi.fn().mockResolvedValue(new ADB());
-      (AndroidDevice as Mock).mockImplementation((deviceId, options) => {
+      MockedAndroidDevice.mockImplementation((deviceId, options) => {
         return {
           connect: mockConnect,
           constructor: vi.fn(),
@@ -216,7 +218,7 @@ describe('AndroidAgent', () => {
 
     it('should use the specified deviceId', async () => {
       const mockConnect = vi.fn().mockResolvedValue(new ADB());
-      (AndroidDevice as Mock).mockImplementation((deviceId, options) => {
+      MockedAndroidDevice.mockImplementation((deviceId, options) => {
         return {
           connect: mockConnect,
           constructor: vi.fn(),
@@ -243,7 +245,7 @@ describe('AndroidAgent', () => {
 
     it('should pass options to AndroidDevice', async () => {
       const mockConnect = vi.fn().mockResolvedValue(new ADB());
-      (AndroidDevice as Mock).mockImplementation((deviceId, options) => {
+      MockedAndroidDevice.mockImplementation((deviceId, options) => {
         return {
           connect: mockConnect,
           constructor: vi.fn(),

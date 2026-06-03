@@ -1,9 +1,10 @@
 import { defineConfig } from 'vitest/config';
+import { createCoverageConfig } from '../../scripts/vitest-coverage';
 import { version } from './package.json';
 
 export default defineConfig({
   test: {
-    globals: true,
+    coverage: createCoverageConfig(__dirname),
     environment: 'node',
   },
   define: {

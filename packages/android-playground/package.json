@@ -1,6 +1,6 @@
 {
   "name": "@midscene/android-playground",
-  "version": "1.8.4",
+  "version": "1.8.9",
   "repository": {
     "type": "git",
     "url": "https://github.com/web-infra-dev/midscene.git",
@@ -26,6 +26,7 @@
   "scripts": {
     "dev": "npm run build:watch",
     "dev:server": "npm run build && ./bin/playground",
+    "test": "vitest --run",
     "prebuild": "node ../android/scripts/download-scrcpy-server.mjs --target=bin/scrcpy-server",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
@@ -52,7 +53,8 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^18.0.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "3.0.5"
   },
   "license": "MIT"
 }

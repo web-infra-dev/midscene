@@ -139,7 +139,6 @@ describe('iOS Package Structure', () => {
       const customAction = {
         name: 'TestAction',
         description: 'A test action',
-        paramSchema: {},
         call: () => Promise.resolve(),
       };
 

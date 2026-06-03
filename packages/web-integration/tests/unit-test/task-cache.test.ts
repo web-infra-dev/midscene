@@ -1,4 +1,10 @@
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  readFileSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import path, { join } from 'node:path';
 import {
   type LocateCache,
@@ -21,6 +27,9 @@ const prepareCache = (
     cache.appendCache(data);
   });
 
+  if (!cache.cacheFilePath) {
+    throw new Error('Expected TaskCache to create a cache file path');
+  }
   return cache.cacheFilePath;
 };
 
@@ -400,6 +409,30 @@ describe('TaskCache', { timeout: 20000 }, () => {
     // Directory and file should now exist
     expect(existsSync(customCacheDir)).toBe(true);
     expect(existsSync(customCacheFilePath)).toBe(true);
+  });
+
+  it('should trim cacheDir before building the cache file path', () => {
+    const cacheId = uuid();
+    const cacheDir = path.join(
+      process.cwd(),
+      'midscene_run',
+      'cache',
+      `test-cache-dir-trim-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    );
+    const cache = new TaskCache(cacheId, true, undefined, {
+      cacheDir: ` ${cacheDir} `,
+    });
+
+    expect(cache.cacheFilePath).toBe(join(cacheDir, `${cacheId}.cache.yaml`));
+
+    cache.appendCache({
+      type: 'plan',
+      prompt: 'test',
+      yamlWorkflow: 'test-workflow',
+    });
+
+    expect(existsSync(cache.cacheFilePath!)).toBe(true);
+    rmSync(cacheDir, { recursive: true, force: true });
   });
 
   it('should handle custom cache file path', () => {

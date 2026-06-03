@@ -1,10 +1,13 @@
 import { once } from 'node:events';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { type Server, createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { parseWebCliOptions } from '@/cli-options';
 import {
-  PUPPETEER_ENDPOINT_FILE,
+  type PuppeteerPersistenceOptions,
   WebPuppeteerMidsceneTools,
 } from '@/mcp-tools-puppeteer';
 import { runToolsCLI } from '@midscene/shared/cli';
@@ -23,8 +26,10 @@ const html = `<!DOCTYPE html>
   </body>
 </html>`;
 
-async function closePersistentBrowser(): Promise<void> {
-  const tools = new WebPuppeteerMidsceneTools();
+async function closePersistentBrowser(
+  persistence: PuppeteerPersistenceOptions,
+): Promise<void> {
+  const tools = new WebPuppeteerMidsceneTools(undefined, { persistence });
   await tools.initTools();
   const closeTool = tools
     .getToolDefinitions()
@@ -41,8 +46,16 @@ async function closePersistentBrowser(): Promise<void> {
 describe('midscene-web CLI viewport e2e', () => {
   let server: Server;
   let baseUrl: string;
+  let persistentRoot: string;
+  let persistence: Required<PuppeteerPersistenceOptions>;
 
   beforeAll(async () => {
+    persistentRoot = mkdtempSync(join(tmpdir(), 'midscene-cli-viewport-'));
+    persistence = {
+      endpointFile: join(persistentRoot, 'endpoint'),
+      userDataDir: join(persistentRoot, 'profile'),
+    };
+
     server = createServer((_req, res) => {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
       res.end(html);
@@ -53,20 +66,24 @@ describe('midscene-web CLI viewport e2e', () => {
     const address = server.address() as AddressInfo;
     baseUrl = `http://127.0.0.1:${address.port}`;
 
-    await closePersistentBrowser();
+    await closePersistentBrowser(persistence);
   });
 
   afterAll(async () => {
-    await closePersistentBrowser();
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-        resolve();
+    try {
+      await closePersistentBrowser(persistence);
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve();
+        });
       });
-    });
+    } finally {
+      rmSync(persistentRoot, { recursive: true, force: true });
+    }
   });
 
   it('applies CLI viewport flags to the launched Puppeteer page', async () => {
@@ -82,13 +99,15 @@ describe('midscene-web CLI viewport e2e', () => {
       baseUrl,
     ]);
 
-    const tools = new WebPuppeteerMidsceneTools(parsedOptions.viewport);
+    const tools = new WebPuppeteerMidsceneTools(parsedOptions.viewport, {
+      persistence,
+    });
     await runToolsCLI(tools, 'midscene-web', {
       stripPrefix: 'web_',
       argv: parsedOptions.argv,
     });
 
-    const endpoint = (await readFile(PUPPETEER_ENDPOINT_FILE, 'utf-8')).trim();
+    const endpoint = (await readFile(persistence.endpointFile, 'utf-8')).trim();
     const browser = await puppeteer.connect({
       browserWSEndpoint: endpoint,
       defaultViewport: null,

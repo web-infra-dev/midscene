@@ -10,6 +10,7 @@ import type {
   ToolResultContent,
 } from '../mcp/types';
 import {
+  canonicalizeCliArgKeys,
   formatCliValidationError,
   getCliOptionDisplay,
   parseCliArgs,
@@ -214,9 +215,16 @@ export async function runToolsCLI(
     throw new CLIError(cliValidationError);
   }
 
-  debug('command: %s, args: %s', match.name, JSON.stringify(parsedArgs));
+  const handlerArgs = canonicalizeCliArgKeys(
+    scriptName,
+    match.name,
+    match.def,
+    parsedArgs,
+  );
 
-  const result = await match.def.handler(parsedArgs);
+  debug('command: %s, args: %s', match.name, JSON.stringify(handlerArgs));
+
+  const result = await match.def.handler(handlerArgs);
   debug(
     'command %s completed, isError: %s',
     match.name,

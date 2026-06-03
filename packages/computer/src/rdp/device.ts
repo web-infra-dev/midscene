@@ -38,6 +38,7 @@ const INPUT_CLEAR_DELAY = 150;
 const SCROLL_STEP_DELAY = 100;
 const SCROLL_COMPLETE_DELAY = 500;
 const DEFAULT_SCROLL_DISTANCE = 480;
+const DEFAULT_SCROLL_VIEWPORT_RATIO = 0.7;
 const EDGE_SCROLL_STEPS = 10;
 const DEFAULT_SCROLL_STEP_AMOUNT = 120;
 
@@ -173,7 +174,8 @@ export class RDPDevice implements AbstractInterface {
         }
         await this.performWheel(
           param.direction || 'down',
-          param.distance || DEFAULT_SCROLL_DISTANCE,
+          param.distance ||
+            this.defaultScrollDistance(param.direction || 'down'),
           target?.center[0],
           target?.center[1],
         );
@@ -313,6 +315,16 @@ export class RDPDevice implements AbstractInterface {
       default:
         throw new Error(`Unsupported scroll type: ${scrollType}`);
     }
+  }
+
+  private defaultScrollDistance(direction: RDPScrollDirection): number {
+    const size = this.connectionInfo?.size;
+    if (!size) {
+      return DEFAULT_SCROLL_DISTANCE;
+    }
+    const isHorizontal = direction === 'left' || direction === 'right';
+    const base = isHorizontal ? size.width : size.height;
+    return Math.max(1, Math.round(base * DEFAULT_SCROLL_VIEWPORT_RATIO));
   }
 
   private async movePointer(

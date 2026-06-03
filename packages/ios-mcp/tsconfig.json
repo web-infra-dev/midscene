@@ -7,10 +7,13 @@
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true
   },
-  "include": ["src"],
+  "include": ["src", "tests"],
   "references": [
-    { "path": "../core" },
-    { "path": "../ios" },
-    { "path": "../shared" }
+    {
+      "path": "../ios"
+    },
+    {
+      "path": "../shared"
+    }
   ]
 }

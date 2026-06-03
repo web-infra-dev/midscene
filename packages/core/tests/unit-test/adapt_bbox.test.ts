@@ -329,6 +329,11 @@ describe('adaptBbox - normalized [0, 1000] range guard', () => {
     expect(result).toEqual([72, 320, 216, 640]);
   });
 
+  it('accepts an in-range bbox for qwen3', () => {
+    const result = adaptBbox([100, 200, 300, 400], 720, 1600, 'qwen3');
+    expect(result).toEqual([72, 320, 216, 640]);
+  });
+
   it('accepts boundary values 0 and 1000', () => {
     const result = adaptBbox([0, 0, 1000, 1000], 720, 1600, 'qwen3-vl');
     expect(result).toEqual([0, 0, 720, 1600]);

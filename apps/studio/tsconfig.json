@@ -10,5 +10,46 @@
       "@shared/*": ["./src/shared/*"]
     }
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "tests",
+    "rsbuild.config.ts",
+    "scripts/**/*.d.mts",
+    "../../scripts/rsbuild-utils.ts"
+  ],
+  "references": [
+    {
+      "path": "../../packages/android"
+    },
+    {
+      "path": "../../packages/android-playground"
+    },
+    {
+      "path": "../../packages/computer"
+    },
+    {
+      "path": "../../packages/computer-playground"
+    },
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/harmony"
+    },
+    {
+      "path": "../../packages/ios"
+    },
+    {
+      "path": "../../packages/playground"
+    },
+    {
+      "path": "../../packages/playground-app"
+    },
+    {
+      "path": "../../packages/shared"
+    },
+    {
+      "path": "../../packages/visualizer"
+    }
+  ]
 }

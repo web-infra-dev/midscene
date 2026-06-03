@@ -1371,6 +1371,7 @@ describe('AndroidDevice', () => {
 
         // Override with back-first in method call
         await device.inputPrimitives.keyboard.typeText('hello', {
+          // @ts-ignore: dist MobileInputPrimitives type has not caught up with AndroidDeviceInputOpt.
           keyboardDismissStrategy: 'back-first',
         });
 

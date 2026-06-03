@@ -127,7 +127,7 @@ npx midscene ./bing-search.yaml
 
 ### 在 `.yaml` 中使用环境变量来填入动态值
 
-脚本中可以通过 `${variable-name}` 引用环境变量。
+脚本中可以通过 `${variable-name}` 引用环境变量。环境变量会在 YAML 任务执行前完成替换，包括任务正文中的字符串。
 
 ```ini filename=.env
 topic=weather today
@@ -216,7 +216,7 @@ web:
 
 命令行工具提供了多项参数，用于控制脚本的执行行为：
 
-- `--files <file1> <file2> ...`：指定脚本文件列表。默认按顺序执行（`--concurrent` 为 `1`），可通过 `--concurrent` 设置并发数量。支持 [glob](https://www.npmjs.com/package/glob) 通配符语法。
+- `--files <file1> <file2> ...`：指定脚本文件列表。默认按顺序执行（`--concurrent` 为 `1`），可通过 `--concurrent` 设置并发数量。支持 [glob](https://www.npmjs.com/package/glob) 通配符语法；当 glob 或目录匹配到多个文件时，匹配结果会按文件路径的字典序排序后加入执行列表。
 - `--concurrent <number>`：设置并发执行的数量，默认 `1`。
 - `--continue-on-error`：启用后，即使某个脚本失败也会继续执行后续脚本。默认关闭。
 - `--share-browser-context`：在多个脚本之间共享浏览器上下文（Cookies、`localStorage` 等），适合需要连续登录态的场景。默认关闭。
