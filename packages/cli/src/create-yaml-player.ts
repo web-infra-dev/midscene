@@ -340,6 +340,31 @@ export async function createYamlPlayer(
         return { agent, freeFn };
       }
 
+      // handle harmony
+      if (typeof clonedYamlScript.harmony !== 'undefined') {
+        const harmonyTarget = clonedYamlScript.harmony;
+        const { agentFromHdcDevice } = await import('@midscene/harmony');
+        const agent = await agentFromHdcDevice(harmonyTarget?.deviceId, {
+          ...harmonyTarget, // Pass all HarmonyOS config options
+          ...buildAgentOptions(
+            clonedYamlScript.agent,
+            preference.reportFileName,
+            fileName,
+          ),
+        });
+
+        if (harmonyTarget?.launch) {
+          await agent.launch(harmonyTarget.launch);
+        }
+
+        freeFn.push({
+          name: 'destroy_harmony_agent',
+          fn: () => agent.destroy(),
+        });
+
+        return { agent, freeFn };
+      }
+
       // handle computer
       if (typeof clonedYamlScript.computer !== 'undefined') {
         const computerTarget = clonedYamlScript.computer;
@@ -424,7 +449,7 @@ export async function createYamlPlayer(
       }
 
       throw new Error(
-        'No valid interface configuration found in the yaml script, should be either "web", "android", "ios", "computer", or "interface"',
+        'No valid interface configuration found in the yaml script, should be either "web", "android", "ios", "harmony", "computer", or "interface"',
       );
     },
     undefined,

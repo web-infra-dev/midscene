@@ -41,7 +41,7 @@ To execute YAML workflows from the command line, install the Midscene CLI. See [
 
 Script files use YAML format to describe automation tasks. It defines the target to be manipulated (like a webpage or an Android app) and the series of steps to perform.
 
-A standard `.yaml` script file includes a `web`, `android`, `ios`, or `computer` section to configure the environment, an optional `agent` section to configure AI agent behavior, and a `tasks` section to define the automation tasks.
+A standard `.yaml` script file includes a `web`, `android`, `ios`, `harmony`, or `computer` section to configure the environment, an optional `agent` section to configure AI agent behavior, and a `tasks` section to define the automation tasks.
 
 ```yaml
 web:
@@ -399,6 +399,79 @@ tasks:
   - name: Terminate Settings app
     flow:
       - terminate: com.apple.Preferences
+```
+
+### The `harmony` part
+
+The `harmony` section is used for HarmonyOS device automation via HDC. The device is connected with `hdc`, so make sure `hdc list targets` reports your device before running.
+
+```yaml
+harmony:
+  # The HarmonyOS device ID to connect to, optional, defaults to the first connected device.
+  deviceId: <device-id>
+
+  # The app to launch, optional, defaults to the device's current screen.
+  launch: <bundle-name>
+
+  # The path to the HDC executable, optional.
+  hdcPath: <path-to-hdc>
+
+  # Whether to auto dismiss keyboard after input, optional, defaults to false.
+  autoDismissKeyboard: <boolean>
+
+  # Custom mapping of app names to bundle names, optional. User-provided mappings take precedence over defaults.
+  appNameMapping:
+    <app-name>: <bundle-name>
+
+  # The path to the JSON file for outputting aiQuery/aiAssert results, optional.
+  output: <path-to-output-file>
+
+  # All other options supported by the HarmonyDevice constructor
+```
+
+#### HarmonyOS Platform-Specific Actions
+
+**`launch` - Launch App**
+
+Launch a HarmonyOS app by its bundle name.
+
+```yaml
+harmony:
+  deviceId: 'test-device'
+
+tasks:
+  - name: Launch app
+    flow:
+      - launch: com.example.app
+```
+
+**`terminate` - Terminate App**
+
+Terminate (force-stop) a running HarmonyOS app by bundle name or mapped app name.
+
+```yaml
+harmony:
+  deviceId: 'test-device'
+
+tasks:
+  - name: Terminate app
+    flow:
+      - terminate: com.example.app
+```
+
+**`runHdcShell` - Execute HDC Shell Command**
+
+Execute an HDC shell command on the HarmonyOS device.
+
+```yaml
+harmony:
+  deviceId: 'test-device'
+
+tasks:
+  - name: Dump window info
+    flow:
+      - runHdcShell:
+          command: 'hidumper -s WindowManagerService -a'
 ```
 
 ### The `computer` part

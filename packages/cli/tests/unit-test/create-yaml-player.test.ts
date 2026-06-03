@@ -39,6 +39,10 @@ vi.mock('@midscene/ios', () => ({
   agentFromWebDriverAgent: vi.fn(),
 }));
 
+vi.mock('@midscene/harmony', () => ({
+  agentFromHdcDevice: vi.fn(),
+}));
+
 vi.mock('@midscene/web/bridge-mode', () => ({
   AgentOverChromeBridge: vi.fn(),
 }));
@@ -61,6 +65,7 @@ vi.mock('puppeteer', () => ({
 import { agentFromAdbDevice } from '@midscene/android';
 import { getReportFileName } from '@midscene/core/agent';
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
+import { agentFromHdcDevice } from '@midscene/harmony';
 import { agentFromWebDriverAgent } from '@midscene/ios';
 import { globalConfigManager } from '@midscene/shared/env';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
@@ -533,6 +538,88 @@ describe('create-yaml-player', () => {
           launch: mockIOSOptions.launch,
         }),
       );
+    });
+
+    test('should pass all HarmonyOS device options from YAML to agentFromHdcDevice', async () => {
+      const mockHarmonyOptions = {
+        deviceId: 'harmony-device-1',
+        hdcPath: '/custom/path/to/hdc',
+        autoDismissKeyboard: true,
+        keyboardDismissStrategy: 'esc-first' as const,
+        appNameMapping: { 携程: 'com.ctrip.harmonynext' },
+        launch: 'com.example.app',
+      };
+
+      const mockScript: MidsceneYamlScript = {
+        harmony: mockHarmonyOptions,
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(agentFromHdcDevice).mockResolvedValue(mockAgent as any);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      // Verify agentFromHdcDevice was called with deviceId and all options
+      expect(agentFromHdcDevice).toHaveBeenCalledWith(
+        mockHarmonyOptions.deviceId,
+        expect.objectContaining({
+          hdcPath: mockHarmonyOptions.hdcPath,
+          autoDismissKeyboard: mockHarmonyOptions.autoDismissKeyboard,
+          keyboardDismissStrategy: mockHarmonyOptions.keyboardDismissStrategy,
+          appNameMapping: mockHarmonyOptions.appNameMapping,
+          launch: mockHarmonyOptions.launch,
+        }),
+      );
+      // Verify launch was triggered
+      expect(mockAgent.launch).toHaveBeenCalledWith(mockHarmonyOptions.launch);
+    });
+
+    test('should connect first HarmonyOS device when deviceId is omitted', async () => {
+      const mockScript: MidsceneYamlScript = {
+        harmony: {},
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(agentFromHdcDevice).mockResolvedValue(mockAgent as any);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      expect(agentFromHdcDevice).toHaveBeenCalledWith(
+        undefined,
+        expect.any(Object),
+      );
+      // No launch field, so launch should not be triggered
+      expect(mockAgent.launch).not.toHaveBeenCalled();
     });
 
     test('should handle Android config with minimal options', async () => {
