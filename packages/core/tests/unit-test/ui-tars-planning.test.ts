@@ -143,4 +143,26 @@ Action: click(start_box='(1000,1000)')`,
       },
     });
   });
+
+  it('transforms fenced finished content into a Finished action thought', async () => {
+    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+      content: `\`\`\`
+finished(content='已经将计数器加到3，任务完成。')
+\`\`\``,
+    });
+
+    const result = await uiTarsPlanning(
+      'increase counter to 3',
+      createPlanOptions(),
+      UITarsModelVersion.V1_0,
+    );
+    const action = firstAction(result);
+
+    expect(result.shouldContinuePlanning).toBe(false);
+    expect(action).toMatchObject({
+      type: 'Finished',
+      param: {},
+      thought: '已经将计数器加到3，任务完成。',
+    });
+  });
 });

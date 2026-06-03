@@ -209,7 +209,7 @@ export async function uiTarsPlanning(
       transformActions.push({
         type: 'Finished',
         param: {},
-        thought: action.thought || '',
+        thought: action.action_inputs.content || action.thought || '',
       });
     } else if (actionType === 'hotkey') {
       if (!action.action_inputs.key) {
@@ -329,8 +329,10 @@ function convertBboxToCoordinates(text: string): string {
     return `(${x},${y})`;
   }
 
-  // Remove [EOS] and replace <bbox> coordinates
-  const cleanedText = text.replace(/\[EOS\]/g, '');
+  // Remove common model wrappers before handing the response to UI-TARS parser.
+  const cleanedText = text
+    .replace(/\[EOS\]/g, '')
+    .replace(/```(?:[a-zA-Z0-9_-]+)?/g, '');
   return cleanedText.replace(pattern, replaceMatch).trim();
 }
 
@@ -412,7 +414,9 @@ interface ScrollAction extends BaseAction {
 
 interface FinishedAction extends BaseAction {
   action_type: 'finished';
-  action_inputs: Record<string, never>;
+  action_inputs: {
+    content?: string;
+  };
 }
 
 export type Action =
