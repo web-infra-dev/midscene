@@ -10,13 +10,9 @@ Midscene is designed around three core ideas:
 
 Midscene is not a choice between lightweight YAML and serious test engineering. It makes the first case lightweight while letting the same authoring model grow into a long-lived regression suite.
 
-## Progressive Adoption Path
+## Start with Simple UI Tasks
 
-Based on those principles, Midscene lets a project start from natural-language cases: first write the core path as a readable, runnable, replayable YAML case; then add case filtering, concurrency control, login state, test data, device connections, complex assertions, reports, or CI management when the suite needs them.
-
-### Start with YAML
-
-For most smoke tests and lightweight regression projects, the first useful milestone is to get a core path running quickly and turn it into a case that can be repeated, replayed, and inspected.
+Midscene starts by helping teams write a simple UI task clearly, run it, and replay it. For most smoke tests and lightweight regression projects, the first useful milestone is not setting up a complex testing project. It is turning a core user path into a readable, repeatable, inspectable case.
 
 A YAML case keeps the path readable:
 
@@ -49,11 +45,72 @@ That simple shape should cover most early projects:
 
 The case remains close to business language, while the runner gives it a repeatable execution and a report that can be inspected after success or failure.
 
-### Configure the Project in TypeScript
+## Connect External Context with `verify` and `agent`
 
-In professional UI testing projects, the case steps are usually the clearest part: open a page, perform a user path, and check the expected result. The engineering complexity tends to sit around that path, in project configuration such as which cases to run, how much concurrency to use, where reports should be written, login state, cookies, test accounts, staging lanes, backend data, cloud device connections, and device initialization.
+`verify` and `agent` nodes are executed by Midscene's built-in Pi Agent. They are not new UI operation entries; they verify, analyze, and attribute results from the current test context. They use the same kind of Agent capability, but `verify` carries test judgment semantics: it must decide pass or fail, and a failed verification fails the current case. `agent` is better suited for summaries, analysis, attribution, and recommendations.
 
-Those concerns should not be copied into every YAML case. Midscene provides `midscene.config.ts` as the project-level config-as-code entry. It replaces the lightweight `config.yml` shape when a suite grows up: test discovery, execution policy, output, UI Agent creation, and runtime extensions all live in one typed file.
+When Pi Agent executes these nodes, it sees two kinds of context:
+
+- The output of each previous node, such as conclusions recorded by `ui` nodes or `conclusion` values returned by runtime nodes.
+- The current screenshot, so it can understand the current page or screen state.
+
+It does not see the full execution process of previous nodes. For example, a `ui` node may click, type, and retry several times to create an order, but later `verify` / `agent` nodes only see that node's final output and the current screenshot.
+
+If a later step needs a variable, ask the earlier node to write it explicitly into its output:
+
+```yaml
+flow:
+  - ui: |
+      Create a test order.
+
+      Name this step's output createOrder, and record:
+      - orderId: the order id
+      - pageState: the current page state
+
+  - verify: |
+      Use $database to verify that the orderId from the output named createOrder exists.
+
+  - agent: |
+      Analyze this test's risk from the output named createOrder, database verification result,
+      and current screenshot.
+```
+
+Here, `ui` still takes only natural-language input. `createOrder` is the output name requested in that natural-language instruction, and `orderId` is a field in that output. Later nodes can reference "the `orderId` from the output named `createOrder`" in natural language.
+
+External systems stay in natural language as well. `$database`, `$logs`, and other `$name` references are resolved by the runtime engine as skills. Pi Agent uses skill results together with previous node outputs and the current screenshot when executing `verify` or `agent`.
+
+A fuller case can look like this:
+
+```yaml
+name: Create Order
+
+flow:
+  - prepareOrderFixture:
+      scenario: paid-order
+  - ui: |
+      Sign in with a test account and create a test order.
+
+      Record in the conclusion:
+      - order id
+      - current page state
+      - whether the order was created successfully
+  - verify: |
+      Use $database to verify that the order id from the previous conclusion
+      really exists and that the order status is paid.
+  - verify: |
+      Use $logs to check whether any related ERROR appeared during the test.
+  - verify: The order detail page shows payment success
+  - agent: Analyze the risk of this test from all verification results
+  - notifySlack
+```
+
+In this example, `ui` creates the order and records order information; `verify` uses `$database` and `$logs` for external checks and returns a pass or fail judgment; `agent` summarizes the verification results and current screenshot; `notifySlack` is a custom node added later through runtime.
+
+There are two kinds of extension here: `$database` and `$logs` are skill references for external context; `prepareOrderFixture` and `notifySlack` are new YAML nodes registered by the project in `midscene.config.ts`.
+
+## Extension and Integration
+
+As a project grows from lightweight cases into a long-lived regression suite, engineering complexity should move into configuration and extension layers instead of being copied into every YAML file. Midscene provides `midscene.config.ts` as the project-level config-as-code entry for test discovery, execution policy, output, UI Agent creation, and runtime extensions.
 
 ```ts
 import { defineMidsceneConfig } from '@midscene/testing-framework';
@@ -69,7 +126,7 @@ export default defineMidsceneConfig({
   },
 
   testDir: './e2e',
-  include: ['**/*.yaml', '**/*.test.ts'],
+  include: ['**/*.yaml'],
   exclude: ['**/*.draft.yaml'],
 
   testRunner: {
@@ -101,9 +158,7 @@ With this config in place, the project can stay direct:
     checkout.yaml
 ```
 
-The boundary is clear: `e2e/*.yaml` describes what the user should accomplish, while `midscene.config.ts` describes the target type and platform connection options, testRunner behavior, shared UI Agent options, and reporting. By default, the framework creates the UI Agent from `target.type` and `target.options`, so ordinary projects do not need to write `createUIAgent`. If a project needs custom devices, remote services, or internal team fixtures, it can create the UI Agent entirely inside `createUIAgent`; in that case, `target` can be omitted to avoid defining the runtime target twice in the same config. The project can handle real engineering constraints, while the case itself remains friendly to code review, business confirmation, and team collaboration.
-
-When a project really needs a fully custom runtime target, it can put UI Agent creation in `createUIAgent`:
+`e2e/*.yaml` describes what the user should accomplish, while `midscene.config.ts` describes the target type and platform connection options, testRunner behavior, shared UI Agent options, and reporting. By default, the framework creates the UI Agent from `target.type` and `target.options`. If a project needs custom devices, remote services, or internal team fixtures, it can create the UI Agent entirely inside `createUIAgent` and omit `target` to avoid defining the runtime target twice.
 
 ```ts
 import { agentFromAdbDevice } from '@midscene/android';
@@ -133,125 +188,7 @@ export default defineMidsceneConfig({
 });
 ```
 
-### Extend YAML Nodes with Runtime
-
-YAML should stay readable, but some teams need a few project-specific actions around the natural-language path: seeding test data, switching accounts, calling an internal API, sending notifications, or wrapping a repeated business action. These actions can be registered as custom runtimes in `midscene.config.ts` and used as new YAML nodes.
-
-```ts
-import {
-  defineMidsceneConfig,
-  defineRuntime,
-} from '@midscene/testing-framework';
-
-export default defineMidsceneConfig({
-  target: {
-    type: 'web',
-    options: {
-      url: 'http://127.0.0.1:3000',
-    },
-  },
-
-  testDir: './e2e',
-  include: ['**/*.yaml'],
-
-  runtime: {
-    useAccount: defineRuntime(async ({ input, context }) => {
-      const value = input;
-      if (typeof value !== 'string') {
-        throw new Error('useAccount expects an account name');
-      }
-
-      const account = await getAccount(value);
-      context.state.account = account;
-      await signInWithAccount(context.agent, account);
-
-      return {
-        conclusion: `Signed in as ${account.email}`,
-      };
-    }),
-  },
-});
-```
-
-The YAML file can then mix Midscene built-in steps with project steps:
-
-```yaml
-flow:
-  - useAccount: smoke-buyer
-  - ui: Open my orders
-  - verify: |
-      Use $database to verify that order E2E-10001 has status paid.
-  - verify: The order detail page shows Paid
-```
-
-The rule is intentionally small: `ui` is the unified entry for interface behavior, `verify` is the unified entry for assertions and external evidence, and `agent` is the entry for analysis, attribution, and cross-tool orchestration. A `$name` such as `$database` refers to a skill, and the runtime engine resolves and loads it automatically. `runtime` is for extending YAML with new nodes such as `useAccount` based on project needs. Teams decide which nodes to add and how many to add according to their own business and engineering habits. Midscene does not require a schema for custom node values; teams can validate values inside runtime handlers in whatever style fits their project.
-
-### `verify` and `agent`
-
-`verify` and `agent` nodes are executed by Midscene's built-in Pi Agent. They are not new UI operation entries; they verify, analyze, and attribute results from the current test context. They use the same kind of Agent capability, but `verify` carries test judgment semantics: it must decide pass or fail, and a failed verification fails the current case. `agent` is better suited for summaries, analysis, attribution, and recommendations.
-
-When Pi Agent executes these nodes, it sees two kinds of context:
-
-- The output of each previous node, such as conclusions recorded by `ui` nodes or `conclusion` values returned by runtime nodes.
-- The current screenshot, so it can understand the current page or screen state.
-
-It does not see the full execution process of previous nodes. For example, a `ui` node may click, type, and retry several times to create an order, but later `verify` / `agent` nodes only see that node's final output and the current screenshot.
-
-If a later step needs a variable, ask the earlier node to write it explicitly into its output:
-
-```yaml
-flow:
-  - ui: |
-      Create a test order.
-
-      Name this step's output createOrder, and record:
-      - orderId: the order id
-      - pageState: the current page state
-
-  - verify: |
-      Use $database to verify that the orderId from the output named createOrder exists.
-
-  - agent: |
-      Analyze this test's risk from the output named createOrder, database verification result,
-      and current screenshot.
-```
-
-Here, `ui` still takes only natural-language input. `createOrder` is the output name requested in that natural-language instruction, and `orderId` is a field in that output. Later nodes can reference “the `orderId` from the output named `createOrder`” in natural language. External capabilities still use skill references such as `$database`.
-
-### Toward Agentic Testing
-
-The UI is the entry point to user experience, and it is the most natural place for a test to begin. But many real failures do not stay on the page: an order page may look successful while no record exists in the database; a click may finish without a visible error while logs contain an exception; a user path may complete while analytics, network requests, or downstream state are wrong.
-
-Agentic Testing means starting from UI behavior and extending the test into a cross-tool process for collecting evidence and making a judgment. Midscene understands the page, operates the interface, and produces replayable reports, while the project can register databases, logs, network requests, analytics, notification systems, and internal tools as testing capabilities. YAML still starts with the user path, but verification can continue into system state and business risk.
-
-A fuller case can look like this:
-
-```yaml
-name: Create Order
-
-flow:
-  - prepareOrderFixture:
-      scenario: paid-order
-  - ui: |
-      Sign in with a test account and create a test order.
-
-      Record in the conclusion:
-      - order id
-      - current page state
-      - whether the order was created successfully
-  - verify: |
-      Use $database to verify that the order id from the previous conclusion
-      really exists and that the order status is paid.
-  - verify: |
-      Use $logs to check whether any related ERROR appeared during the test.
-  - verify: The order detail page shows payment success
-  - agent: Analyze the risk of this test from all verification results
-  - notifySlack
-```
-
-The core still starts from the UI mindset: how the user signs in, how the order is created, and what appears on the page. Projects can insert custom nodes for data preparation or notifications before or after the UI step; later steps pass the UI conclusion to project capabilities for deeper verification: whether the order exists in the database, whether error logs appeared during the test, and whether the final page state matches the business state.
-
-There are two kinds of capabilities here: `$database` and `$logs` are `$name` references that the runtime engine resolves and loads automatically; `prepareOrderFixture` and `notifySlack` are new YAML nodes registered by the project in `midscene.config.ts`:
+YAML can also gain new project-specific nodes. For example, `prepareOrderFixture` and `notifySlack` can be registered as custom runtimes:
 
 ```ts
 import {

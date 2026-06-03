@@ -10,13 +10,9 @@ Midscene 的设计围绕三个核心要点展开：
 
 Midscene 不是让团队在“轻量 YAML”和“严肃测试工程”之间二选一，而是让第一条 case 足够轻，同时让同一套表达方式继续长成长期回归套件。
 
-## 渐进式落地路径
+## 从简单 UI 任务开始
 
-基于这三个原则，Midscene 让项目可以从自然语言用例开始：先把核心路径写成可读、可运行、可回放的 YAML case；当项目需要更强的工程能力时，再接入用例过滤、并发控制、登录态、测试数据、设备连接、复杂断言、报告输出或 CI 管理。
-
-### 从 YAML 开始
-
-对于大多数 Smoke Test 和轻量回归项目，第一个有价值的里程碑，是快速跑通核心路径，并把它变成可以重复执行、可以回放分析的 case。
+Midscene 的第一步，是让团队用 YAML 把一个简单 UI 任务写清楚、跑起来、回放出来。对于大多数 Smoke Test 和轻量回归项目，第一个有价值的里程碑不是搭建复杂工程，而是把核心用户路径变成可读、可重复执行、可分析的 case。
 
 YAML case 可以让路径保持可读：
 
@@ -49,11 +45,70 @@ YAML 可以把“一个用户路径应该是什么样”组织得足够清楚，
 
 用例本身仍然接近业务语言，runner 则提供可重复执行的过程，以及成功或失败后都可以检查的报告。
 
-### 用 TypeScript 配置项目
+## 用 `verify` 和 `agent` 连接外部能力
 
-在专业 UI Test 项目里，用例步骤通常是最清楚的部分：打开页面、执行用户路径、检查预期结果。真正的工程复杂度往往出现在用户路径周边，集中在要运行哪些 case、并发怎么控制、报告写到哪里、登录态、Cookie、测试账号、灰度环境、后端测试数据、云端设备连接和设备初始化这些项目配置里。
+`verify` 和 `agent` 节点由 Midscene 内置的 Pi Agent 执行。它们不是新的 UI 操作入口，而是基于当前测试上下文做验证、分析和归因。两者本质上使用同一类 Agent 能力，区别在于 `verify` 带有测试判定语义：它需要给出通过或不通过的判断，不通过时会让当前 case 失败；`agent` 更适合做总结、分析、归因和建议。
 
-这些内容不应该复制到每个 YAML case 里。Midscene 提供 `midscene.config.ts` 作为项目级 config-as-code 入口。它是轻量 `config.yml` 形态长大之后的替代：用例发现、执行策略、输出位置、UI Agent 创建和运行时扩展都放进同一个类型化文件里。
+Pi Agent 在执行这些节点时会看到两类上下文：
+
+- 前序每个节点的输出，例如 `ui` 节点记录的结论、runtime 节点返回的 `conclusion`。
+- 当前截图，用来理解此刻页面或屏幕上的状态。
+
+它不会看到前序节点的完整执行过程。比如一个 `ui` 节点为了创建订单可能经历了多次点击、输入和重试，后续 `verify` / `agent` 只能看到这个节点最终输出了什么，以及当前截图是什么样。
+
+因此，如果后续步骤需要使用某个变量，应该让前面的节点把它明确写进输出里：
+
+```yaml
+flow:
+  - ui: |
+      创建一笔测试订单。
+
+      将这一步的输出命名为 createOrder，并记录：
+      - orderId: 订单号
+      - pageState: 当前页面状态
+
+  - verify: |
+      使用 $database 验证名为 createOrder 的输出中的 orderId 是否真实存在。
+
+  - agent: |
+      根据名为 createOrder 的输出、数据库验证结果和当前截图，分析本次测试风险。
+```
+
+这里的 `ui` 仍然只有自然语言输入。`createOrder` 是这段自然语言要求 Pi Agent 记录的输出名称，`orderId` 是该输出里的字段。后续节点可以直接用自然语言引用“名为 `createOrder` 的输出中的 `orderId`”。
+
+对外部系统的引用也保持在自然语言里。`$database`、`$logs` 这样的 `$name` 会被运行时引擎解析为对应 skill；Pi Agent 会把 skill 结果、前序节点输出和当前截图一起用于 `verify` 或 `agent`。
+
+一个更完整的 case 可以长成这样：
+
+```yaml
+name: Create Order
+
+flow:
+  - prepareOrderFixture:
+      scenario: paid-order
+  - ui: |
+      使用测试账号登录系统，创建一笔测试订单。
+
+      在结论中记录：
+      - 订单号
+      - 当前页面状态
+      - 是否创建成功
+  - verify: |
+      使用 $database 验证前面结论中的订单号是否真实存在，且订单状态是 paid。
+  - verify: |
+      使用 $logs 检查测试期间是否出现相关 ERROR。
+  - verify: 订单详情页展示支付成功
+  - agent: 根据所有验证结果分析本次测试风险
+  - notifySlack
+```
+
+这个例子里，`ui` 负责创建订单并输出订单信息；`verify` 用 `$database` 和 `$logs` 做外部验证，并给出通过或不通过的判断；`agent` 汇总验证结果和当前截图；`notifySlack` 是后面通过 runtime 扩展出来的自定义节点。
+
+这里有两类扩展方式：`$database` 和 `$logs` 这样的 `$name` 引用用来连接外部 skill；`prepareOrderFixture` 和 `notifySlack` 则是项目在 `midscene.config.ts` 里扩展出来的新 YAML 节点。
+
+## 扩展和集成能力
+
+当项目从轻量 case 长成长期回归套件时，工程复杂度应该进入配置和扩展层，而不是塞回每个 YAML 文件。Midscene 提供 `midscene.config.ts` 作为项目级 config-as-code 入口，用来管理用例发现、执行策略、输出位置、UI Agent 创建和 runtime 扩展。
 
 ```ts
 import { defineMidsceneConfig } from '@midscene/testing-framework';
@@ -69,7 +124,7 @@ export default defineMidsceneConfig({
   },
 
   testDir: './e2e',
-  include: ['**/*.yaml', '**/*.test.ts'],
+  include: ['**/*.yaml'],
   exclude: ['**/*.draft.yaml'],
 
   testRunner: {
@@ -101,9 +156,7 @@ export default defineMidsceneConfig({
     checkout.yaml
 ```
 
-这里的职责边界很清楚：`e2e/*.yaml` 描述用户要完成什么，`midscene.config.ts` 描述 target 类型和平台连接参数、testRunner 行为、共享 UI Agent 参数和报告。默认情况下，框架会根据 `target.type` 和 `target.options` 创建 UI Agent，普通项目不需要编写 `createUIAgent`。如果项目需要接入自定义设备、远程服务或团队内部 fixture，可以在 `createUIAgent` 里完全自行创建 UI Agent；这时 `target` 可以省略，避免同一份配置里出现两套运行目标定义。这样项目可以处理真实工程问题，但用例本身仍然适合 code review、业务确认和团队协作。
-
-当项目确实需要完全自定义运行目标时，可以把 UI Agent 创建逻辑放进 `createUIAgent`：
+`e2e/*.yaml` 描述用户要完成什么，`midscene.config.ts` 描述 target 类型和平台连接参数、testRunner 行为、共享 UI Agent 参数和报告。默认情况下，框架会根据 `target.type` 和 `target.options` 创建 UI Agent；如果项目需要接入自定义设备、远程服务或团队内部 fixture，可以在 `createUIAgent` 里完全自行创建 UI Agent，并省略 `target`，避免同一份配置里出现两套运行目标定义。
 
 ```ts
 import { agentFromAdbDevice } from '@midscene/android';
@@ -133,123 +186,7 @@ export default defineMidsceneConfig({
 });
 ```
 
-### 用 Runtime 扩展 YAML 节点
-
-YAML 应该保持可读，但有些团队需要在自然语言路径周围放少量项目专属动作：准备测试数据、切换账号、调用内部 API、发送通知，或封装重复的业务动作。这类动作可以在 `midscene.config.ts` 里注册成自定义 runtime，并作为新的 YAML 节点使用。
-
-```ts
-import {
-  defineMidsceneConfig,
-  defineRuntime,
-} from '@midscene/testing-framework';
-
-export default defineMidsceneConfig({
-  target: {
-    type: 'web',
-    options: {
-      url: 'http://127.0.0.1:3000',
-    },
-  },
-
-  testDir: './e2e',
-  include: ['**/*.yaml'],
-
-  runtime: {
-    useAccount: defineRuntime(async ({ input, context }) => {
-      const value = input;
-      if (typeof value !== 'string') {
-        throw new Error('useAccount expects an account name');
-      }
-
-      const account = await getAccount(value);
-      context.state.account = account;
-      await signInWithAccount(context.agent, account);
-
-      return {
-        conclusion: `Signed in as ${account.email}`,
-      };
-    }),
-  },
-});
-```
-
-YAML 文件可以混用 Midscene 内置 step 和项目自己的 step：
-
-```yaml
-flow:
-  - useAccount: smoke-buyer
-  - ui: Open my orders
-  - verify: |
-      使用 $database 验证订单 E2E-10001 的状态是 paid。
-  - verify: The order detail page shows Paid
-```
-
-规则刻意保持很小：`ui` 是面向界面行为的统一入口，`verify` 是面向断言和外部证据的统一入口，`agent` 是面向分析、归因和跨工具编排的入口。`$database` 这样的 `$name` 表示引用某个 skill，运行时引擎会自动解析和读取；`runtime` 则用于按项目需要扩展新的 YAML 节点，例如 `useAccount`。团队可以根据自己的业务和工程习惯决定要扩展哪些节点、扩展多少节点。Midscene 不要求为自定义节点 value 编写 schema；团队可以在 runtime handler 里按自己的工程习惯做参数校验。
-
-### `verify` 和 `agent`
-
-`verify` 和 `agent` 节点由 Midscene 内置的 Pi Agent 执行。它们不是新的 UI 操作入口，而是基于当前测试上下文做验证、分析和归因。两者本质上使用同一类 Agent 能力，区别在于 `verify` 带有测试判定语义：它需要给出通过或不通过的判断，不通过时会让当前 case 失败；`agent` 更适合做总结、分析、归因和建议。
-
-Pi Agent 在执行这些节点时会看到两类上下文：
-
-- 前序每个节点的输出，例如 `ui` 节点记录的结论、runtime 节点返回的 `conclusion`。
-- 当前截图，用来理解此刻页面或屏幕上的状态。
-
-它不会看到前序节点的完整执行过程。比如一个 `ui` 节点为了创建订单可能经历了多次点击、输入和重试，后续 `verify` / `agent` 只能看到这个节点最终输出了什么，以及当前截图是什么样。
-
-因此，如果后续步骤需要使用某个变量，应该让前面的节点把它明确写进输出里：
-
-```yaml
-flow:
-  - ui: |
-      创建一笔测试订单。
-
-      将这一步的输出命名为 createOrder，并记录：
-      - orderId: 订单号
-      - pageState: 当前页面状态
-
-  - verify: |
-      使用 $database 验证名为 createOrder 的输出中的 orderId 是否真实存在。
-
-  - agent: |
-      根据名为 createOrder 的输出、数据库验证结果和当前截图，分析本次测试风险。
-```
-
-这里的 `ui` 仍然只有自然语言输入。`createOrder` 是这段自然语言要求 Pi Agent 记录的输出名称，`orderId` 是该输出里的字段。后续节点可以直接用自然语言引用“名为 `createOrder` 的输出中的 `orderId`”。如果要调用外部能力，仍然使用 `$database` 这样的 skill 引用。
-
-### 走向 Agentic Testing
-
-UI 是用户体验的入口，也是最自然的测试起点。但很多真实缺陷并不会只停留在页面上：订单页面可能显示成功，数据库里却没有记录；按钮点击没有报错，日志里却出现了异常；用户路径看似完成，埋点、网络请求或下游状态却不符合预期。
-
-Agentic Testing 的核心理念是：从 UI 行为出发，把测试扩展成一次跨工具的证据收集和判断过程。Midscene 负责理解页面、操作界面和产出可回放报告，同时允许项目把数据库、日志、网络请求、埋点、通知系统和内部工具注册为测试能力。这样 YAML 仍然从用户路径开始，但验证可以继续深入到系统状态和业务风险。
-
-一个更完整的 case 可以长成这样：
-
-```yaml
-name: Create Order
-
-flow:
-  - prepareOrderFixture:
-      scenario: paid-order
-  - ui: |
-      使用测试账号登录系统，创建一笔测试订单。
-
-      在结论中记录：
-      - 订单号
-      - 当前页面状态
-      - 是否创建成功
-  - verify: |
-      使用 $database 验证前面结论中的订单号是否真实存在，且订单状态是 paid。
-  - verify: |
-      使用 $logs 检查测试期间是否出现相关 ERROR。
-  - verify: 订单详情页展示支付成功
-  - agent: 根据所有验证结果分析本次测试风险
-  - notifySlack
-```
-
-这里的核心仍然从 UI 切入：用户如何登录、如何创建订单、页面上发生了什么。项目可以在 UI 步骤前后插入准备数据、发送通知等自定义节点；后续步骤则把 UI 结论交给项目自己的能力继续验证：订单是否真的进入数据库，测试期间是否有错误日志，最终页面状态是否和业务状态一致。
-
-这里有两类能力：`$database` 和 `$logs` 这样的 `$name` 引用由运行时引擎自动解析和读取；`prepareOrderFixture` 和 `notifySlack` 则是项目在 `midscene.config.ts` 里扩展出来的新 YAML 节点：
+YAML 也可以按项目需要扩展新的节点。比如 `prepareOrderFixture` 和 `notifySlack` 可以注册成自定义 runtime：
 
 ```ts
 import {
