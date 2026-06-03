@@ -619,7 +619,7 @@ export async function callAIWithObjectResponse<T>(
   });
   assert(response, 'empty response');
   const modelFamily = modelConfig.modelFamily;
-  const jsonContent = safeParseJson(response.content, modelFamily);
+  const jsonContent = parseModelResponseJson(response.content, modelFamily);
   if (typeof jsonContent !== 'object') {
     throw new AIResponseParseError(
       `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,
@@ -817,10 +817,17 @@ export function resolveReasoningConfig({
 /**
  * Normalize a parsed JSON object by trimming whitespace from:
  * 1. All object keys (e.g., " prompt " -> "prompt")
- * 2. All string values (e.g., " Tap " -> "Tap")
+ * 2. String values unless the key is explicitly preserved
  * This handles LLM output that may include leading/trailing spaces.
  */
-function normalizeJsonObject(obj: any): any {
+interface ParseModelResponseJsonOptions {
+  preserveStringValueKeys?: string[];
+}
+
+function normalizeJsonObject(
+  obj: any,
+  options: ParseModelResponseJsonOptions = {},
+): any {
   // Handle null and undefined
   if (obj === null || obj === undefined) {
     return obj;
@@ -828,7 +835,7 @@ function normalizeJsonObject(obj: any): any {
 
   // Handle arrays - recursively normalize each element
   if (Array.isArray(obj)) {
-    return obj.map((item) => normalizeJsonObject(item));
+    return obj.map((item) => normalizeJsonObject(item, options));
   }
 
   // Handle objects
@@ -838,14 +845,15 @@ function normalizeJsonObject(obj: any): any {
     for (const [key, value] of Object.entries(obj)) {
       // Trim the key to remove leading/trailing spaces
       const trimmedKey = key.trim();
+      const preserveStringValue =
+        options.preserveStringValueKeys?.includes(trimmedKey) ?? false;
 
-      // Recursively normalize the value
-      let normalizedValue = normalizeJsonObject(value);
-
-      // Trim all string values
-      if (typeof normalizedValue === 'string') {
-        normalizedValue = normalizedValue.trim();
-      }
+      const normalizedValue =
+        typeof value === 'string'
+          ? preserveStringValue
+            ? value
+            : value.trim()
+          : normalizeJsonObject(value, options);
 
       normalized[trimmedKey] = normalizedValue;
     }
@@ -862,43 +870,51 @@ function normalizeJsonObject(obj: any): any {
   return obj;
 }
 
-export function safeParseJson(
-  input: string,
-  modelFamily: TModelFamily | undefined,
-) {
-  const cleanJsonString = extractJSONFromCodeBlock(input);
-  // match the point
-  if (cleanJsonString?.match(/\((\d+),(\d+)\)/)) {
-    return cleanJsonString
-      .match(/\((\d+),(\d+)\)/)
-      ?.slice(1)
-      .map(Number);
-  }
+function parseCoordinateTuple(cleanJsonString: string): number[] | undefined {
+  const coordinateMatch = cleanJsonString.match(/\((\d+),(\d+)\)/);
+  return coordinateMatch?.slice(1).map(Number);
+}
 
-  let parsed: any;
-  let lastError: unknown;
+function parseJsonWithRepair(jsonString: string): unknown {
   try {
-    parsed = JSON.parse(cleanJsonString);
-    return normalizeJsonObject(parsed);
-  } catch (error) {
-    lastError = error;
+    return JSON.parse(jsonString);
+  } catch {
+    return JSON.parse(jsonrepair(jsonString));
   }
-  try {
-    parsed = JSON.parse(jsonrepair(cleanJsonString));
-    return normalizeJsonObject(parsed);
-  } catch (error) {
-    lastError = error;
-  }
+}
 
-  if (
+function shouldPreprocessModelJson(modelFamily: TModelFamily | undefined) {
+  return (
     modelFamily === 'doubao-vision' ||
     modelFamily === 'doubao-seed' ||
     isUITars(modelFamily)
-  ) {
+  );
+}
+
+export function parseModelResponseJson(
+  input: string,
+  modelFamily: TModelFamily | undefined,
+  options: ParseModelResponseJsonOptions = {},
+) {
+  const cleanJsonString = extractJSONFromCodeBlock(input);
+  const coordinateTuple = parseCoordinateTuple(cleanJsonString);
+  if (coordinateTuple) {
+    return coordinateTuple;
+  }
+
+  let lastError: unknown;
+  try {
+    const parsed = parseJsonWithRepair(cleanJsonString);
+    return normalizeJsonObject(parsed, options);
+  } catch (error) {
+    lastError = error;
+  }
+
+  if (shouldPreprocessModelJson(modelFamily)) {
     const jsonString = preprocessDoubaoBboxJson(cleanJsonString);
     try {
-      parsed = JSON.parse(jsonrepair(jsonString));
-      return normalizeJsonObject(parsed);
+      const parsed = parseJsonWithRepair(jsonString);
+      return normalizeJsonObject(parsed, options);
     } catch (error) {
       lastError = error;
     }

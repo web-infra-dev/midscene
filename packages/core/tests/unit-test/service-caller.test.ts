@@ -1,6 +1,6 @@
 import {
+  parseModelResponseJson,
   resolveReasoningConfig,
-  safeParseJson,
 } from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -175,11 +175,11 @@ describe('service-caller', () => {
     });
   });
 
-  describe('safeParseJson - JSON normalization', () => {
+  describe('parseModelResponseJson - JSON normalization', () => {
     it('should trim leading and trailing spaces from object keys', () => {
       const input =
         '{"  type  ": "Tap", "param": {"  prompt  ": "Login button"}}';
-      const result = safeParseJson(input, undefined);
+      const result = parseModelResponseJson(input, undefined);
 
       expect(result).toEqual({
         type: 'Tap',
@@ -193,14 +193,14 @@ describe('service-caller', () => {
 
     it('should trim leading and trailing spaces from type field values', () => {
       const input = '{"type": "  Tap  ", "param": {}}';
-      const result = safeParseJson(input, undefined);
+      const result = parseModelResponseJson(input, undefined);
 
       expect(result.type).toBe('Tap');
     });
 
     it('should trim leading and trailing spaces from prompt field values', () => {
       const input = '{"param": {"prompt": "  Click the button  "}}';
-      const result = safeParseJson(input, undefined);
+      const result = parseModelResponseJson(input, undefined);
 
       expect(result.param.prompt).toBe('Click the button');
     });
@@ -210,7 +210,7 @@ describe('service-caller', () => {
       // Note: extractJSONFromCodeBlock extracts the first object from an array string
       const input =
         '[{"type":" Tap","param":{"locate":{"bbox":[574,308,865,352]," prompt ":"The \'Login\' button"}}}]';
-      const result = safeParseJson(input, undefined);
+      const result = parseModelResponseJson(input, undefined);
 
       // The result is the first object (array wrapper is removed by extractJSONFromCodeBlock)
       expect(result).toEqual({
@@ -229,7 +229,7 @@ describe('service-caller', () => {
         ' type ': '  Tap  ',
         ' items ': [{ '  name  ': '  item1  ' }, { '  name  ': '  item2  ' }],
       });
-      const result = safeParseJson(input, undefined);
+      const result = parseModelResponseJson(input, undefined);
 
       expect(result).toEqual({
         type: 'Tap',
@@ -243,15 +243,66 @@ describe('service-caller', () => {
     it('should trim all string values including descriptions', () => {
       const input =
         '{"type": "  Tap  ", "description": "  Some text with spaces  "}';
-      const result = safeParseJson(input, undefined);
+      const result = parseModelResponseJson(input, undefined);
 
       expect(result.type).toBe('Tap');
       expect(result.description).toBe('Some text with spaces'); // All strings are trimmed
     });
 
+    it('should preserve configured string value keys while trimming other fields', () => {
+      const input =
+        '{" value ": "  test value  ", "param": {" prompt ": "  input field  "}}';
+      const result = parseModelResponseJson(input, undefined, {
+        preserveStringValueKeys: ['value'],
+      });
+
+      expect(result).toEqual({
+        value: '  test value  ',
+        param: {
+          prompt: 'input field',
+        },
+      });
+    });
+
+    it('should preserve configured string value keys from JSON code blocks', () => {
+      const input = `\`\`\`json
+{
+  "value": "  test value  ",
+  "locate": {
+    "prompt": "  input field  "
+  }
+}
+\`\`\``;
+      const result = parseModelResponseJson(input, undefined, {
+        preserveStringValueKeys: ['value'],
+      });
+
+      expect(result).toEqual({
+        value: '  test value  ',
+        locate: {
+          prompt: 'input field',
+        },
+      });
+    });
+
+    it('should preserve configured string value keys after jsonrepair', () => {
+      const input =
+        '{ value: "  test value  ", locate: {" prompt ": "  input field  ",}, }';
+      const result = parseModelResponseJson(input, undefined, {
+        preserveStringValueKeys: ['value'],
+      });
+
+      expect(result).toEqual({
+        value: '  test value  ',
+        locate: {
+          prompt: 'input field',
+        },
+      });
+    });
+
     it('should handle null and undefined values', () => {
       const input = '{"type": "Tap", "value": null, "param": {}}';
-      const result = safeParseJson(input, undefined);
+      const result = parseModelResponseJson(input, undefined);
 
       expect(result.type).toBe('Tap');
       expect(result.value).toBeNull();
@@ -260,7 +311,7 @@ describe('service-caller', () => {
     it('should work with malformed JSON that jsonrepair can fix', () => {
       // jsonrepair can fix missing quotes, trailing commas, etc.
       const input = '{type: " Tap ", param: {" prompt ": "Login"}}';
-      const result = safeParseJson(input, undefined);
+      const result = parseModelResponseJson(input, undefined);
 
       expect(result.type).toBe('Tap');
       expect(result.param.prompt).toBe('Login');
@@ -277,7 +328,7 @@ describe('service-caller', () => {
           },
         },
       });
-      const result = safeParseJson(input, undefined);
+      const result = parseModelResponseJson(input, undefined);
 
       expect(result.type).toBe('Action');
       expect(result.nested.level1.level2.prompt).toBe('deep value');
@@ -285,7 +336,7 @@ describe('service-caller', () => {
 
     it('should trim id field values', () => {
       const input = '{"id": "  element-123  ", "type": "  Tap  "}';
-      const result = safeParseJson(input, undefined);
+      const result = parseModelResponseJson(input, undefined);
 
       expect(result.id).toBe('element-123');
       expect(result.type).toBe('Tap');
@@ -293,14 +344,14 @@ describe('service-caller', () => {
 
     it('should handle arrays of actions with spaces', () => {
       const input = '[{"  type  ": "  Tap  "}, {"  type  ": "  Hover  "}]';
-      const result = safeParseJson(input, undefined);
+      const result = parseModelResponseJson(input, undefined);
 
       expect(result).toEqual([{ type: 'Tap' }, { type: 'Hover' }]);
     });
 
     it('should handle coordinate tuples without breaking them', () => {
       const input = '(100,200)';
-      const result = safeParseJson(input, undefined);
+      const result = parseModelResponseJson(input, undefined);
 
       // This should match coordinates pattern and return array
       expect(result).toEqual([100, 200]);
@@ -309,7 +360,7 @@ describe('service-caller', () => {
     it('should work with doubao-vision mode and trim spaces', () => {
       // Test that normalization works correctly even when modelFamily is set
       const input = '{"  type  ": "  Tap  ", "param": {"  prompt  ": "Click"}}';
-      const result = safeParseJson(input, 'doubao-vision');
+      const result = parseModelResponseJson(input, 'doubao-vision');
 
       expect(result.type).toBe('Tap');
       expect(result.param.prompt).toBe('Click');
