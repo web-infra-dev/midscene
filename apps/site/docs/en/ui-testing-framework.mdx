@@ -47,7 +47,19 @@ The case remains close to business language, while the runner gives it a repeata
 
 ## Connect External Context with `verify` and `agent`
 
-`verify` and `agent` nodes are executed by Midscene's built-in Pi Agent. They are not new UI operation entries; they verify, analyze, and attribute results from the current test context. They use the same kind of Agent capability, but `verify` carries test judgment semantics: it must decide pass or fail, and a failed verification fails the current case. `agent` is better suited for summaries, analysis, attribution, and recommendations.
+`verify` and `agent` nodes are executed by Midscene's built-in Pi Agent. Pi is the lightweight agent framework used by OpenClaw (see [earendil-works/pi](https://github.com/earendil-works/pi)); Midscene embeds it to run these nodes. They are not new UI operation entries; they make judgments or explore freely from the current test context. They use the same kind of Agent capability, but differ in semantics: `verify` carries test judgment semantics — it must decide pass or fail, and a failed verification fails the current case. `agent` is a free-running agent with no fixed judgment semantics; it can be creative within the current test context — summarizing, attributing, investigating deeper, proposing follow-ups, and even deciding on its own what to look at or analyze next from a natural-language instruction.
+
+For example, you can let `agent` freely probe the current page for potential issues:
+
+```yaml
+flow:
+  - ui: Open the checkout page
+  - agent: |
+      Freely inspect the current checkout flow and find anything that looks off:
+      copy, prices, button states, potential usability problems.
+
+      List your findings with likely causes and follow-up suggestions.
+```
 
 When Pi Agent executes these nodes, it sees two kinds of context:
 
@@ -142,7 +154,6 @@ export default defineMidsceneConfig({
 
   uiAgentOptions: {
     aiActContext: 'The user is already signed in as a smoke-test account.',
-    cache: true,
     generateReport: true,
   },
 });
@@ -158,7 +169,7 @@ With this config in place, the project can stay direct:
     checkout.yaml
 ```
 
-`e2e/*.yaml` describes what the user should accomplish, while `midscene.config.ts` describes the target type and platform connection options, testRunner behavior, shared UI Agent options, and reporting. By default, the framework creates the UI Agent from `target.type` and `target.options`. If a project needs custom devices, remote services, or internal team fixtures, it can create the UI Agent entirely inside `createUIAgent` and omit `target` to avoid defining the runtime target twice.
+`e2e/*.yaml` describes what the user should accomplish, while `midscene.config.ts` describes the target type and platform connection options, testRunner behavior, shared UI Agent options, and reporting. By default, the framework creates the UI Agent from `target.type` and `target.options`. If a project needs custom devices, remote services, or custom agent construction logic, it can create the UI Agent entirely inside `createUIAgent` and omit `target` to avoid defining the runtime target twice.
 
 ```ts
 import { agentFromAdbDevice } from '@midscene/android';
@@ -169,14 +180,10 @@ export default defineMidsceneConfig({
 
   uiAgentOptions: {
     aiActContext: 'The user is already signed in as a smoke-test account.',
-    cache: true,
     generateReport: true,
   },
 
   async createUIAgent({ uiAgentOptions }) {
-    const account = await getSmokeAccount();
-    await prepareTestData(account);
-
     return {
       agent: await agentFromAdbDevice(process.env.ANDROID_DEVICE_ID, {
         ...uiAgentOptions,

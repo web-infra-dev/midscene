@@ -47,7 +47,19 @@ YAML 可以把“一个用户路径应该是什么样”组织得足够清楚，
 
 ## 用 `verify` 和 `agent` 连接外部能力
 
-`verify` 和 `agent` 节点由 Midscene 内置的 Pi Agent 执行。它们不是新的 UI 操作入口，而是基于当前测试上下文做验证、分析和归因。两者本质上使用同一类 Agent 能力，区别在于 `verify` 带有测试判定语义：它需要给出通过或不通过的判断，不通过时会让当前 case 失败；`agent` 更适合做总结、分析、归因和建议。
+`verify` 和 `agent` 节点由 Midscene 内置的 Pi Agent 执行。Pi 是 OpenClaw 采用的轻量 Agent 框架（参见 [earendil-works/pi](https://github.com/earendil-works/pi)），Midscene 内置它来执行这些节点。它们不是新的 UI 操作入口，而是基于当前测试上下文做判断或自由探索。两者本质上使用同一类 Agent 能力，区别在于语义：`verify` 带有测试判定语义，需要给出通过或不通过的判断，不通过时会让当前 case 失败；`agent` 则是一个自由运行的 Agent，没有固定的判定语义，可以在当前测试上下文里发挥创造力——总结、归因、深入排查、提出后续建议，甚至按自然语言要求自行决定接下来该看什么、分析什么。
+
+比如，可以让 `agent` 在当前页面上自由探查潜在问题：
+
+```yaml
+flow:
+  - ui: 打开结账页面
+  - agent: |
+      自由检查当前结账流程，找出任何看起来不合理的地方：
+      文案、价格、按钮状态、潜在的可用性问题。
+
+      列出你的发现，并给出可能的原因和后续建议。
+```
 
 Pi Agent 在执行这些节点时会看到两类上下文：
 
@@ -140,7 +152,6 @@ export default defineMidsceneConfig({
 
   uiAgentOptions: {
     aiActContext: 'The user is already signed in as a smoke-test account.',
-    cache: true,
     generateReport: true,
   },
 });
@@ -156,7 +167,7 @@ export default defineMidsceneConfig({
     checkout.yaml
 ```
 
-`e2e/*.yaml` 描述用户要完成什么，`midscene.config.ts` 描述 target 类型和平台连接参数、testRunner 行为、共享 UI Agent 参数和报告。默认情况下，框架会根据 `target.type` 和 `target.options` 创建 UI Agent；如果项目需要接入自定义设备、远程服务或团队内部 fixture，可以在 `createUIAgent` 里完全自行创建 UI Agent，并省略 `target`，避免同一份配置里出现两套运行目标定义。
+`e2e/*.yaml` 描述用户要完成什么，`midscene.config.ts` 描述 target 类型和平台连接参数、testRunner 行为、共享 UI Agent 参数和报告。默认情况下，框架会根据 `target.type` 和 `target.options` 创建 UI Agent；如果项目需要接入自定义设备、远程服务或自定义的 Agent 构造逻辑，可以在 `createUIAgent` 里完全自行创建 UI Agent，并省略 `target`，避免同一份配置里出现两套运行目标定义。
 
 ```ts
 import { agentFromAdbDevice } from '@midscene/android';
@@ -167,14 +178,10 @@ export default defineMidsceneConfig({
 
   uiAgentOptions: {
     aiActContext: 'The user is already signed in as a smoke-test account.',
-    cache: true,
     generateReport: true,
   },
 
   async createUIAgent({ uiAgentOptions }) {
-    const account = await getSmokeAccount();
-    await prepareTestData(account);
-
     return {
       agent: await agentFromAdbDevice(process.env.ANDROID_DEVICE_ID, {
         ...uiAgentOptions,
