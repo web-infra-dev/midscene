@@ -83,15 +83,15 @@ Midscene disables model-native thinking by default to get the best execution spe
 
 ### Qwen3.x Series {#qwen3x}
 
-Qwen3.5 and Qwen3.6 are currently supported in the Qwen3.x series.
+Qwen3.5, Qwen3.6, and Qwen3.7 are currently supported in the Qwen3.x series. Recommended order: Qwen3.7 > Qwen3.5 > Qwen3.6.
 
-Using Alibaba Cloud's `qwen3.5-plus` as an example:
+Using Alibaba Cloud's `qwen3.7-plus` as an example:
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen3.5-plus" # For Qwen3.6, use "qwen3.6-plus"
-MIDSCENE_MODEL_FAMILY="qwen3.5" # For Qwen3.6, use "qwen3.6"
+MIDSCENE_MODEL_NAME="qwen3.7-plus" # For Qwen3.5 and Qwen3.6, use "qwen3.5-plus" and "qwen3.6-plus"
+MIDSCENE_MODEL_FAMILY="qwen3" # For Qwen3.5 and Qwen3.6, the previous families `qwen3.5` and `qwen3.6` remain compatible.
 ```
 
 Midscene disables model-native thinking by default to get the best execution speed and quality. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode). To enable model-native thinking, set `MIDSCENE_MODEL_REASONING_ENABLED="true"`. You can also set `MIDSCENE_MODEL_REASONING_BUDGET="500"` to control thinking cost.

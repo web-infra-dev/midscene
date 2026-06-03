@@ -285,6 +285,7 @@ export type TGlobalConfig = Record<TEnvKeys, string | undefined>;
 export type TModelFamily =
   | 'qwen2.5-vl'
   | 'qwen3-vl'
+  | 'qwen3'
   | 'qwen3.5'
   | 'qwen3.6'
   | 'doubao-vision'
@@ -304,6 +305,7 @@ export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'gemini',
   'qwen2.5-vl',
   'qwen3-vl',
+  'qwen3',
   'qwen3.5',
   'qwen3.6',
   'vlm-ui-tars',

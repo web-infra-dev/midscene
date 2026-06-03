@@ -30,6 +30,7 @@ import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
 import type { AIArgs } from '../../common';
 import { isAutoGLM, isUITars } from '../auto-glm/util';
+import { isQwen3 } from '../model-family';
 import {
   callAIWithCodexAppServer,
   isCodexAppServerProvider,
@@ -705,6 +706,7 @@ function hasExplicitReasoningConfig({
 
 const SUPPORTED_REASONING_FAMILIES = [
   'qwen3-vl',
+  'qwen3',
   'qwen3.5',
   'qwen3.6',
   'doubao-vision',
@@ -771,11 +773,7 @@ export function resolveReasoningConfig({
   const debugMessages: string[] = [];
   const config: Record<string, unknown> = {};
 
-  if (
-    modelFamily === 'qwen3-vl' ||
-    modelFamily === 'qwen3.5' ||
-    modelFamily === 'qwen3.6'
-  ) {
+  if (modelFamily === 'qwen3-vl' || isQwen3(modelFamily)) {
     // reasoningEnabled → enable_thinking
     config.enable_thinking = effectiveReasoningEnabled;
     debugMessages.push(`enable_thinking=${effectiveReasoningEnabled}`);

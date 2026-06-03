@@ -235,7 +235,7 @@ export function adaptBbox(
     result = adaptGpt5Bbox(normalizedBbox);
   } else {
     // Default: normalized 0-1000 coordinate system
-    // Includes: qwen3-vl, qwen3.5, qwen3.6, glm-v, auto-glm, auto-glm-multilingual,
+    // Includes: qwen3-vl, qwen3, qwen3.5, qwen3.6, glm-v, auto-glm, auto-glm-multilingual,
     // and future models.
     result = normalized01000(normalizedBbox, width, height, modelFamily);
   }
