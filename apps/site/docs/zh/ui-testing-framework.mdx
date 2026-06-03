@@ -2,6 +2,12 @@
 
 UI Test 真正的难点，不是写出第一条浏览器脚本，而是让团队长期愿意写、看得懂、维护得起。传统脚本很快会被选择器、等待逻辑、登录辅助函数、测试数据准备和失败截图塞满，最后只有少数测试工程师能理解它们到底在验证什么。
 
+:::info 这是全新的 v2 测试框架
+
+本文描述的是 Midscene 全新设计的 v2 测试框架——一套独立的新事物，它的表达方式和定位都与现有 YAML player 不同。本文只介绍这套新框架本身，不涉及与旧版本的迁移或兼容。
+
+:::
+
 Midscene 的设计围绕三个核心要点展开：
 
 - 用例必须可读。测试作者用 YAML 写自然语言用户路径，QA、业务同学和工程师都能直接 review case 本身，而不是先读懂一套脚本实现。
@@ -47,7 +53,12 @@ YAML 可以把“一个用户路径应该是什么样”组织得足够清楚，
 
 ## 用 `verify` 和 `agent` 连接外部能力
 
-`verify` 和 `agent` 节点由 Midscene 内置的 Pi Agent 执行。Pi 是 OpenClaw 采用的轻量 Agent 框架（参见 [earendil-works/pi](https://github.com/earendil-works/pi)），Midscene 内置它来执行这些节点。它们不是新的 UI 操作入口，而是基于当前测试上下文做判断或自由探索。两者本质上使用同一类 Agent 能力，区别在于语义：`verify` 带有测试判定语义，需要给出通过或不通过的判断，不通过时会让当前 case 失败；`agent` 则是一个自由运行的 Agent，没有固定的判定语义，可以在当前测试上下文里发挥创造力——总结、归因、深入排查、提出后续建议，甚至按自然语言要求自行决定接下来该看什么、分析什么。
+`verify` 和 `agent` 节点不是新的 UI 操作入口，而是基于当前测试上下文做判断或自由探索。这里有一个有意为之的分工：Midscene 自身专注 UI 能力（`ui` 节点由 Midscene 的 UI Agent 执行）；而 `verify` 和 `agent` 这类需要推理、编排、连接外部上下文的节点，交给一个**可替换的通用 Agent 框架**来执行。当前内置的是 Pi——OpenClaw 采用的轻量 Agent 框架（参见 [earendil-works/pi](https://github.com/earendil-works/pi)）。这一层刻意做成可替换的：未来也可能换成 Codex Agent SDK 等社区方案，让 Midscene 的测试能力跟随社区 Agent 生态一起演进，而不是绑死在某一个实现上。
+
+`verify` 和 `agent` 使用同一类 Agent 能力，区别在于**语义**，以及它们对测试结论的**影响**：
+
+- `verify` 带有测试判定语义：它必须给出通过或不通过的结论，不通过会让当前 case 失败。它是测试的**确定性闸门**，是回归套件真正用来 gate CI 的部分。
+- `agent` 是一个自由运行的 Agent，没有固定判定语义，强调的是**创造和想象的空间**——总结、归因、深入排查、提出后续建议，甚至按自然语言要求自行决定接下来该看什么、分析什么。也正因为这种自由，要正视它的另一面：它的输出天然带有不确定性，同一个 case 两次运行可能给出不同的观察。因此 `agent` 默认**不参与 case 的通过/失败判定**，它产出的是供人阅读的诊断与建议，而不是回归断言。需要稳定、可复现地卡住结论时，用 `verify`；想让测试在 UI 之外多一层探索和洞察时，用 `agent`。
 
 比如，可以让 `agent` 在当前页面上自由探查潜在问题：
 
@@ -61,14 +72,15 @@ flow:
       列出你的发现，并给出可能的原因和后续建议。
 ```
 
-Pi Agent 在执行这些节点时会看到两类上下文：
+每个 flow 步骤都有输出。这构成了一条明确的**上下文契约**：当 Pi Agent 执行某个 `verify` 或 `agent` 节点时，它能看到的全部就是——
 
-- 前序每个节点的输出，例如 `ui` 节点记录的结论、runtime 节点返回的 `conclusion`。
-- 当前截图，用来理解此刻页面或屏幕上的状态。
+- **所有过往步骤本身**，也就是每一步要做什么（它的意图）。
+- **每个过往步骤的输出**，例如 `ui` 节点记录的结论、runtime 节点返回的 `conclusion`。
+- **当前 UI 截图**，用来理解此刻页面或屏幕上的状态。
 
-它不会看到前序节点的完整执行过程。比如一个 `ui` 节点为了创建订单可能经历了多次点击、输入和重试，后续 `verify` / `agent` 只能看到这个节点最终输出了什么，以及当前截图是什么样。
+除此之外，没有别的。它不会看到前序节点的完整执行过程：一个 `ui` 节点为了创建订单可能经历了多次点击、输入和重试，后续 `verify` / `agent` 只能看到这个节点**最终输出了什么**。它也看不到历史截图——只有当前这一张。
 
-因此，如果后续步骤需要使用某个变量，应该让前面的节点把它明确写进输出里：
+由此得到一条贯穿始终的规则：**唯一能往后传递的通道就是 output。** 后续步骤要用到某个东西，前面那一步就必须把它明确写进自己的输出里：
 
 ```yaml
 flow:
@@ -86,9 +98,9 @@ flow:
       根据名为 createOrder 的输出、数据库验证结果和当前截图，分析本次测试风险。
 ```
 
-这里的 `ui` 仍然只有自然语言输入。`createOrder` 是这段自然语言要求 Pi Agent 记录的输出名称，`orderId` 是该输出里的字段。后续节点可以直接用自然语言引用“名为 `createOrder` 的输出中的 `orderId`”。
+这里的 `ui` 仍然只有自然语言输入。`createOrder` 是这段自然语言要求 Pi Agent 记录的输出名称，`orderId` 是该输出里的字段。需要说明的是：既然所有过往步骤的输出本就都在上下文里，命名**不是**“不命名就传不过去”，而是为了在多个输出之间**无歧义地指代**某一个——后续节点可以直接用自然语言引用“名为 `createOrder` 的输出中的 `orderId`”。
 
-对外部系统的引用也保持在自然语言里。`$database`、`$logs` 这样的 `$name` 会被运行时引擎解析为对应 skill；Pi Agent 会把 skill 结果、前序节点输出和当前截图一起用于 `verify` 或 `agent`。
+对外部系统的引用也保持在自然语言里。`$database`、`$logs` 这样的 `$name` 会被运行时引擎解析为对应 skill；Pi Agent 会把 skill 结果、过往步骤的输出和当前截图一起，用于**当前这一次** `verify` 或 `agent`。但要注意：**skill 结果只属于这一次执行**，不会自动进入后续节点的上下文。如果后面还要用到，需由当前节点把它写进自己的输出。
 
 一个更完整的 case 可以长成这样：
 
@@ -116,7 +128,7 @@ flow:
 
 这个例子里，`ui` 负责创建订单并输出订单信息；`verify` 用 `$database` 和 `$logs` 做外部验证，并给出通过或不通过的判断；`agent` 汇总验证结果和当前截图；`notifySlack` 是后面通过 runtime 扩展出来的自定义节点。
 
-这里有两类扩展方式：`$database` 和 `$logs` 这样的 `$name` 引用用来连接外部 skill；`prepareOrderFixture` 和 `notifySlack` 则是项目在 `midscene.config.ts` 里扩展出来的新 YAML 节点。
+这里的两种扩展方式是**分层**的，并不冲突：`$name` + skill 是**轻量接入层**——像 `$database`、`$logs` 这样的 `$name` 引用，只要注册好对应 skill，就能在自然语言里直接引用，接入成本很低；`defineRuntime`（如 `prepareOrderFixture`、`notifySlack`）是**更底层的扩展方案**，用来定义独立的 YAML 节点、接管一整步的执行逻辑。需要快速把外部上下文喂给 `verify` / `agent`，就用 `$name` skill；需要完全掌控一个步骤怎么跑，就用 `defineRuntime`。
 
 ## 扩展和集成能力
 
@@ -193,7 +205,7 @@ export default defineMidsceneConfig({
 });
 ```
 
-YAML 也可以按项目需要扩展新的节点。比如 `prepareOrderFixture` 和 `notifySlack` 可以注册成自定义 runtime：
+YAML 也可以按项目需要扩展新的节点。相比 `$name` skill 的轻量接入，`defineRuntime` 是更底层的扩展方案：它定义独立的 YAML 节点、接管整步执行逻辑。比如 `prepareOrderFixture` 和 `notifySlack` 可以注册成自定义 runtime：
 
 ```ts
 import {
@@ -232,23 +244,30 @@ export default defineMidsceneConfig({
 });
 ```
 
+runtime 节点有两条信道，对应上面讲过的上下文契约，要分清：
+
+- 返回值里的 `conclusion` 是**面向上下文的输出**，会和其它步骤的输出一样进入后续 `verify` / `agent` 的上下文。
+- `context.state`（如 `context.state.orderFixture`）是**面向工程的 TypeScript 状态**，供 runtime 节点之间传递结构化数据，**不会进入 Pi Agent 的上下文**。换句话说，agent 看不到 `context.state`，只看得到 `conclusion`。要让某个值被后续的 `verify` / `agent` 用到，就得把它放进 `conclusion`。
+
 这条路线不会丢掉 YAML 驱动 UI Test 的低门槛。相反，它把 YAML 作为面向人的测试表达，把 TypeScript 配置作为面向工程的能力注册入口：普通路径继续用自然语言描述，真正需要确定性证据的地方再接入团队自己的工具。
 
 ## 基于 Rstest 构建
 
-Midscene 是基于 Rstest 封装构建的上层测试框架。Rstest 在底层提供测试生命周期、fixture 模型、并发执行、用例过滤和适合 CI 的运行时能力。它基于 Rust 编写，具备更高的执行性能，因此 Midscene 用户默认就能获得高性能的测试底座。Midscene 则把这些能力封装成自然语言用例、AI UI 操作、视觉断言、截图、回放报告和诊断信息。
+Midscene 是基于 Rstest 封装构建的上层测试框架。对一个 AI 驱动的 UI 测试框架来说，真正的价值不在 runner 本身有多快——每个节点的耗时主要由模型推理决定——而在于它能不能稳稳地接住一套测试工程该有的能力：生命周期、fixture、并发、用例过滤、失败上报和 CI 接入。Rstest 在底层提供了这些，Midscene 则把它们封装成自然语言用例、AI UI 操作、视觉断言、截图、回放报告和诊断信息。
 
 绝大多数用户可以通过 Midscene 的 YAML runner 和 `midscene.config.ts` 直接使用这套底座，无需了解 Rstest 的项目细节。`midscene.config.ts` 的字段会刻意和 Rstest 的概念对齐，例如 include/exclude、maxConcurrency、retry、timeout、setup、teardown 和 reporters，同时把 Midscene 特有的 UI Agent 创建入口留在同一个配置里。
 
 ### Rstest 提供的工程能力
 
-Rstest 为 Midscene 项目提供可靠的工程底座：
+Rstest 为 Midscene 项目提供可靠的测试工程底座：
 
-- 用例执行有标准测试生命周期支撑，包括 setup、teardown、hook、fixture 和并发能力。
-- 基于 Rust 的运行时让 Midscene 项目默认拥有面向性能优化的执行层。
-- 项目可以自然接入 CI、测试过滤、失败报告和团队已有的测试工程习惯。
-- YAML case、runtime 节点和配置扩展共享同一个底层运行模型。
-- 团队可以从轻量项目开始，同时保留成长为长期回归套件的路径。
+- **标准测试生命周期**：setup / teardown / hook 给登录态准备、测试数据初始化和清理提供明确的挂载点，而不必把这些塞进每个用例。
+- **Fixture 模型**：把共享的前置依赖（账号、设备连接、fixture 数据）声明成可复用、可组合的 fixture，并按用例需要注入。
+- **并发与隔离**：用例可以并发执行，由 runner 负责调度与隔离，让回归套件在 CI 上的整体耗时可控。
+- **用例过滤与失败上报**：按文件、名称或标签筛选用例，配合标准的失败报告，方便定位和重跑。
+- **统一运行模型**：YAML case、runtime 节点和配置扩展共享同一个底层运行模型，团队可以从轻量项目起步，再自然长成长期回归套件，而不必更换框架。
+
+Rstest 本身基于 Rust 编写、执行层性能良好；但对 Midscene 用户而言，更有价值的是上面这套成熟的测试工程能力，而不是 runner 的原始速度——毕竟在 AI 测试里，时间主要花在模型推理上。
 
 ### 下一步
 
