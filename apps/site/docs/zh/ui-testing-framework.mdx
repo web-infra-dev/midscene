@@ -2,9 +2,9 @@
 
 UI Test 的价值，取决于团队能不能持续编写和维护它。很多项目一开始写几条浏览器脚本并不难，但用例很快就会被选择器、等待逻辑、登录辅助函数、测试数据准备和失败截图塞满，最后只有少数测试工程师能看懂。
 
-Midscene 提供了面向这个问题的 AI 原生 UI Testing Framework。它让团队用自然语言描述用户路径，把这些路径作为结构化 case 执行，并通过截图、回放报告和诊断信息复盘结果。测试作者可以先从 YAML 开始，后续再补充测试框架样板代码；工程同学仍然可以用 TypeScript 扩展点接入启动准备、数据、设备、确定性校验和现有测试工程。
+Midscene 提供了面向这个问题的 AI 原生 UI Testing Framework。它让团队用自然语言描述用户路径，把这些路径作为结构化 case 执行，并通过截图、回放报告和诊断信息复盘结果。测试作者可以先从 YAML 开始，后续再补充测试框架样板代码；工程同学仍然可以用 TypeScript 扩展点接入 UI Agent 创建、数据、设备、确定性校验和现有测试工程。
 
-目标很简单：轻量 case 要容易写，严肃测试工程也要能继续长大，而且不需要中途换掉用例表达方式。
+目标很简单：轻量 case 要容易写，严肃测试工程也要能继续长大，而且不需要中途换掉用例表达方式。更进一步，Midscene 希望把 UI Test 带向 Agentic Testing：一切从 UI 开始，但测试不该止步于 UI。真正可信的测试结论，应该能把页面行为、接口响应、数据库状态、日志、埋点和团队已有工具串在一起。
 
 ## 从 YAML 到工程化项目
 
@@ -13,7 +13,7 @@ Midscene 适合希望 UI Test 更接近用户行为的团队：
 - QA 和业务同学可以直接阅读 YAML flow 来 review 用例。
 - 前端和测试工程师可以把用例匹配、并发、报告、登录、Cookie、账号、设备和测试数据留在代码里，让自然语言步骤专注描述用户路径。
 - CI 任务可以获得可重复执行的 case、可回放的 Midscene 报告、截图和失败详情。
-- 项目从轻量 YAML case 长成标准 Rstest 工程时，不需要重写测试底座。
+- 项目从轻量 YAML case 长成长期回归套件时，不需要重写测试底座。
 
 Midscene 让测试项目可以从自然语言用例开始：核心路径可读、可维护，第一条 case 启动很轻；当项目需要用例过滤、并发控制、登录态、测试数据、设备连接、复杂断言、报告输出或 CI 管理时，也有足够的工程扩展空间。
 
@@ -29,10 +29,13 @@ target:
   url: https://shop.example.com
 
 flow:
-  - aiAct: Search for "running shoes"
-  - aiAct: Open the first product
-  - aiQuery: product name and price
-  - aiAssert: The product detail page shows a visible Add to cart button
+  - ui: Search for "running shoes"
+  - ui: Open the first product
+  - ui: |
+      Read the product name and price.
+
+      Record them in the conclusion.
+  - verify: The product detail page shows a visible Add to cart button
 ```
 
 YAML 可以把“一个用户路径应该是什么样”组织得足够清楚，便于 code review、业务确认和团队协作。围绕这个 case，Midscene 负责 AI UI 操作、视觉理解、断言、截图和报告生成。
@@ -53,7 +56,7 @@ YAML 可以把“一个用户路径应该是什么样”组织得足够清楚，
 
 在专业 UI Test 项目里，用例步骤通常是最清楚的部分：打开页面、执行用户路径、检查预期结果。真正的工程复杂度往往出现在用户路径周边，集中在要运行哪些 case、并发怎么控制、报告写到哪里、登录态、Cookie、测试账号、灰度环境、后端测试数据、云端设备连接和设备初始化这些项目配置里。
 
-这些内容不应该复制到每个 YAML case 里。Midscene 提供 `midscene.config.ts` 作为项目级 config-as-code 入口。它是轻量 `config.yml` 形态长大之后的替代：用例发现、执行策略、输出位置和运行时 setup 都放进同一个类型化文件里。
+这些内容不应该复制到每个 YAML case 里。Midscene 提供 `midscene.config.ts` 作为项目级 config-as-code 入口。它是轻量 `config.yml` 形态长大之后的替代：用例发现、执行策略、输出位置、UI Agent 创建和运行时扩展都放进同一个类型化文件里。
 
 ```ts
 import { defineMidsceneConfig } from '@midscene/testing-framework';
@@ -83,8 +86,8 @@ export default defineMidsceneConfig({
     reportDir: './midscene_run/report',
   },
 
-  agentOptions: {
-    aiActionContext: 'The user is already signed in as a smoke-test account.',
+  uiAgentOptions: {
+    aiActContext: 'The user is already signed in as a smoke-test account.',
     cache: true,
     generateReport: true,
   },
@@ -101,9 +104,9 @@ export default defineMidsceneConfig({
     checkout.yaml
 ```
 
-这里的职责边界很清楚：`e2e/*.yaml` 描述用户要完成什么，`midscene.config.ts` 描述 target 类型和平台连接参数、testRunner 行为、共享 Agent 参数和报告。默认情况下，框架会根据 `target.type` 和 `target.options` 创建 Agent，普通项目不需要编写 `setup`。如果项目需要接入自定义设备、远程服务或团队内部 fixture，可以在 `setup` 里完全自行创建 Agent；这时 `target` 可以省略，避免同一份配置里出现两套运行目标定义。这样项目可以处理真实工程问题，但用例本身仍然适合 code review、业务确认和团队协作。
+这里的职责边界很清楚：`e2e/*.yaml` 描述用户要完成什么，`midscene.config.ts` 描述 target 类型和平台连接参数、testRunner 行为、共享 UI Agent 参数和报告。默认情况下，框架会根据 `target.type` 和 `target.options` 创建 UI Agent，普通项目不需要编写 `createUIAgent`。如果项目需要接入自定义设备、远程服务或团队内部 fixture，可以在 `createUIAgent` 里完全自行创建 UI Agent；这时 `target` 可以省略，避免同一份配置里出现两套运行目标定义。这样项目可以处理真实工程问题，但用例本身仍然适合 code review、业务确认和团队协作。
 
-当项目确实需要完全自定义运行目标时，可以把 Agent 创建逻辑放进 `setup`：
+当项目确实需要完全自定义运行目标时，可以把 UI Agent 创建逻辑放进 `createUIAgent`：
 
 ```ts
 import { agentFromAdbDevice } from '@midscene/android';
@@ -112,19 +115,19 @@ import { defineMidsceneConfig } from '@midscene/testing-framework';
 export default defineMidsceneConfig({
   testDir: './e2e',
 
-  agentOptions: {
-    aiActionContext: 'The user is already signed in as a smoke-test account.',
+  uiAgentOptions: {
+    aiActContext: 'The user is already signed in as a smoke-test account.',
     cache: true,
     generateReport: true,
   },
 
-  async setup({ agentOptions }) {
+  async createUIAgent({ uiAgentOptions }) {
     const account = await getSmokeAccount();
     await prepareTestData(account);
 
     return {
       agent: await agentFromAdbDevice(process.env.ANDROID_DEVICE_ID, {
-        ...agentOptions,
+        ...uiAgentOptions,
         androidAdbPath: process.env.ANDROID_ADB_PATH,
         autoDismissKeyboard: false,
       }),
@@ -133,12 +136,15 @@ export default defineMidsceneConfig({
 });
 ```
 
-### 扩展 YAML Step
+### 用 Runtime 扩展 YAML 节点
 
-YAML 应该保持可读，但有些团队需要在自然语言路径周围放少量项目专属动作：准备测试数据、切换账号、调用内部 API、检查数据库，或封装重复的业务动作。这类动作可以在 `midscene.config.ts` 里注册成自定义 YAML step。
+YAML 应该保持可读，但有些团队需要在自然语言路径周围放少量项目专属动作：准备测试数据、切换账号、调用内部 API、发送通知，或封装重复的业务动作。这类动作可以在 `midscene.config.ts` 里注册成自定义 runtime，并作为新的 YAML 节点使用。
 
 ```ts
-import { defineMidsceneConfig } from '@midscene/testing-framework';
+import {
+  defineMidsceneConfig,
+  defineRuntime,
+} from '@midscene/testing-framework';
 
 export default defineMidsceneConfig({
   target: {
@@ -151,30 +157,21 @@ export default defineMidsceneConfig({
   testDir: './e2e',
   include: ['**/*.yaml'],
 
-  yamlSteps: {
-    async useAccount(value, ctx) {
+  runtime: {
+    useAccount: defineRuntime(async ({ input, context }) => {
+      const value = input;
       if (typeof value !== 'string') {
         throw new Error('useAccount expects an account name');
       }
 
       const account = await getAccount(value);
-      ctx.state.account = account;
-      await ctx.agent.aiAct(`Sign in as ${account.email}`);
-    },
+      context.state.account = account;
+      await signInWithAccount(context.agent, account);
 
-    async assertOrderStatus(value) {
-      const { orderId, status } = value as {
-        orderId: string;
-        status: string;
+      return {
+        conclusion: `Signed in as ${account.email}`,
       };
-
-      const order = await queryOrder(orderId);
-      if (order.status !== status) {
-        throw new Error(
-          `Expected order ${orderId} to be ${status}, got ${order.status}`,
-        );
-      }
-    },
+    }),
   },
 });
 ```
@@ -184,14 +181,86 @@ YAML 文件可以混用 Midscene 内置 step 和项目自己的 step：
 ```yaml
 flow:
   - useAccount: smoke-buyer
-  - aiAct: Open my orders
-  - assertOrderStatus:
-      orderId: E2E-10001
-      status: paid
-  - aiAssert: The order detail page shows Paid
+  - ui: Open my orders
+  - verify: |
+      使用 $database 验证订单 E2E-10001 的状态是 paid。
+  - verify: The order detail page shows Paid
 ```
 
-规则刻意保持很小：如果 `flow` 里的 step key 命中 Midscene 内置 step，就执行内置行为；如果命中 `yamlSteps`，就把 YAML value 和当前 step context 传给注册函数；两边都没有命中时，runner 报 unknown step。自定义 step 不应该覆盖内置 step 名。Midscene 不要求为自定义 step value 编写 schema；团队可以在 handler 里按自己的工程习惯做参数校验。
+规则刻意保持很小：`ui` 是面向界面行为的统一入口，`verify` 是面向断言和外部证据的统一入口，`agent` 是面向分析、归因和跨工具编排的入口。`$database` 这样的 `$name` 表示引用某个 skill，运行时引擎会自动解析和读取；`runtime` 则用于按项目需要扩展新的 YAML 节点，例如 `useAccount`。团队可以根据自己的业务和工程习惯决定要扩展哪些节点、扩展多少节点。Midscene 不要求为自定义节点 value 编写 schema；团队可以在 runtime handler 里按自己的工程习惯做参数校验。
+
+### 走向 Agentic Testing
+
+UI 是用户体验的入口，也是最自然的测试起点。但很多真实缺陷并不会只停留在页面上：订单页面可能显示成功，数据库里却没有记录；按钮点击没有报错，日志里却出现了异常；用户路径看似完成，埋点、网络请求或下游状态却不符合预期。
+
+Agentic Testing 的核心理念是：从 UI 行为出发，把测试扩展成一次跨工具的证据收集和判断过程。Midscene 负责理解页面、操作界面和产出可回放报告，同时允许项目把数据库、日志、网络请求、埋点、通知系统和内部工具注册为测试能力。这样 YAML 仍然从用户路径开始，但验证可以继续深入到系统状态和业务风险。
+
+一个更完整的 case 可以长成这样：
+
+```yaml
+name: Create Order
+
+flow:
+  - prepareOrderFixture:
+      scenario: paid-order
+  - ui: |
+      使用测试账号登录系统，创建一笔测试订单。
+
+      在结论中记录：
+      - 订单号
+      - 当前页面状态
+      - 是否创建成功
+  - verify: |
+      使用 $database 验证前面结论中的订单号是否真实存在，且订单状态是 paid。
+  - verify: |
+      使用 $logs 检查测试期间是否出现相关 ERROR。
+  - verify: 订单详情页展示支付成功
+  - agent: 根据所有验证结果分析本次测试风险
+  - notifySlack
+```
+
+这里的核心仍然从 UI 切入：用户如何登录、如何创建订单、页面上发生了什么。项目可以在 UI 步骤前后插入准备数据、发送通知等自定义节点；后续步骤则把 UI 结论交给项目自己的能力继续验证：订单是否真的进入数据库，测试期间是否有错误日志，最终页面状态是否和业务状态一致。
+
+这里有两类能力：`$database` 和 `$logs` 这样的 `$name` 引用由运行时引擎自动解析和读取；`prepareOrderFixture` 和 `notifySlack` 则是项目在 `midscene.config.ts` 里扩展出来的新 YAML 节点：
+
+```ts
+import {
+  defineMidsceneConfig,
+  defineRuntime,
+} from '@midscene/testing-framework';
+
+export default defineMidsceneConfig({
+  target: {
+    type: 'web',
+    options: {
+      url: 'http://127.0.0.1:3000',
+    },
+  },
+
+  testDir: './e2e',
+
+  runtime: {
+    prepareOrderFixture: defineRuntime(async ({ input, context }) => {
+      const fixture = await createOrderFixture(input);
+      context.state.orderFixture = fixture;
+
+      return {
+        conclusion: `Prepared order fixture ${fixture.id}`,
+      };
+    }),
+
+    notifySlack: defineRuntime(async ({ context }) => {
+      await sendSlackSummary(context.result);
+
+      return {
+        conclusion: 'Slack notification sent',
+      };
+    }),
+  },
+});
+```
+
+这条路线不会丢掉 YAML 驱动 UI Test 的低门槛。相反，它把 YAML 作为面向人的测试表达，把 TypeScript 配置作为面向工程的能力注册入口：普通路径继续用自然语言描述，真正需要确定性证据的地方再接入团队自己的工具。
 
 ### 特殊 case 使用 TypeScript
 
@@ -214,7 +283,7 @@ YAML 应该是主路径，同时也要给代码留出空间。少数 case 可能
 
 Midscene 是基于 Rstest 封装构建的上层测试框架。Rstest 在底层提供测试生命周期、fixture 模型、并发执行、用例过滤和适合 CI 的运行时能力。它基于 Rust 编写，具备更高的执行性能，因此 Midscene 用户默认就能获得高性能的测试底座。Midscene 则把这些能力封装成自然语言用例、AI UI 操作、视觉断言、截图、回放报告和诊断信息。
 
-绝大多数用户可以通过 Midscene 的 YAML runner、`midscene.config.ts` 和 `case.test.ts` 直接使用这套底座，无需了解 Rstest 的项目细节。`midscene.config.ts` 的字段会刻意和 Rstest 的概念对齐，例如 include/exclude、maxConcurrency、retry、timeout、setup、teardown 和 reporters，同时把 Midscene 特有的 agent setup 留在同一个入口里。只有团队进入 `emit` 流程，希望直接接管生成后的 Rstest 项目时，才需要关注 Rstest 的细节。
+绝大多数用户可以通过 Midscene 的 YAML runner、`midscene.config.ts` 和 `case.test.ts` 直接使用这套底座，无需了解 Rstest 的项目细节。`midscene.config.ts` 的字段会刻意和 Rstest 的概念对齐，例如 include/exclude、maxConcurrency、retry、timeout、setup、teardown 和 reporters，同时把 Midscene 特有的 UI Agent 创建入口留在同一个配置里。
 
 ### Rstest 提供的工程能力
 
@@ -225,33 +294,6 @@ Rstest 为 Midscene 项目提供可靠的工程底座：
 - 项目可以自然接入 CI、测试过滤、失败报告和团队已有的测试工程习惯。
 - YAML case 和 `case.test.ts` 共享同一个底层运行模型。
 - 团队可以从轻量项目开始，同时保留成长为长期回归套件的路径。
-
-### 导出标准项目
-
-对于复杂项目，case 可能更多，fixture 更复杂，CI 需要并发和分组策略，失败分析也需要接入团队自己的系统。由于轻量 Midscene 项目本来就运行在 Rstest 之上，`emit` 会把底层 Rstest 工程显式暴露出来，让团队可以直接接管测试 Runner、fixture 和集成代码。
-
-```bash
-midscene emit ./project-folder
-```
-
-导出后的项目形态类似：
-
-```text
-project-folder/
-  package.json
-  midscene.config.ts
-  rstest.config.ts
-  e2e/
-    dashboard.test.ts
-    checkout.test.ts
-  fixtures/
-    account.ts
-    device.ts
-  reports/
-    midscene-report/
-```
-
-在这种项目形态里，YAML 仍然可以作为自然语言用例的人类友好表达，`midscene.config.ts` 仍然是面向 Midscene 的配置事实来源，Rstest 则提供显式的测试工程结构。团队可以把业务路径继续保留在 YAML 中，把复杂逻辑放进 Rstest 测试文件、fixture 和内部工具里。AI UI 操作和视觉断言交给 Midscene，环境编排、接口校验、数据库校验和失败归因交给团队自己的代码。
 
 ### 下一步
 

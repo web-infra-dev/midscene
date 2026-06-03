@@ -2,9 +2,9 @@
 
 UI tests are valuable only when teams can keep writing and maintaining them. In many projects, the first few browser scripts are easy, but the suite soon fills with selectors, waits, login helpers, data setup, and failure screenshots that only test specialists can understand.
 
-Midscene provides an AI-native UI Testing Framework for this problem. It lets teams describe user paths in natural language, run them as structured cases, and review the result through screenshots, replay reports, and diagnostics. Test authors can start with YAML before adding test framework boilerplate, while engineers still have TypeScript extension points for setup, data, devices, deterministic checks, and existing test projects.
+Midscene provides an AI-native UI Testing Framework for this problem. It lets teams describe user paths in natural language, run them as structured cases, and review the result through screenshots, replay reports, and diagnostics. Test authors can start with YAML before adding test framework boilerplate, while engineers still have TypeScript extension points for UI Agent creation, data, devices, deterministic checks, and existing test projects.
 
-The goal is simple: make lightweight cases easy to write, and make serious test projects possible without changing the authoring model later.
+The goal is simple: make lightweight cases easy to write, and make serious test projects possible without changing the authoring model later. From there, Midscene moves UI testing toward Agentic Testing: everything starts from the UI, but testing should not stop at the UI. A trustworthy test conclusion should be able to connect page behavior with API responses, database state, logs, analytics, and the tools a team already relies on.
 
 ## From YAML to an Engineering-ready Project
 
@@ -13,7 +13,7 @@ Midscene is designed for teams that want UI tests to stay close to user behavior
 - QA and business teams can review a case by reading the YAML flow.
 - Frontend and test engineers can keep case matching, concurrency, reports, login, cookies, accounts, devices, and test data in code, leaving natural-language steps focused on the user path.
 - CI jobs get repeatable cases, replayable Midscene reports, screenshots, and failure details.
-- Growing projects can move from lightweight YAML cases to a standard Rstest project without rewriting the testing foundation.
+- Growing projects can move from lightweight YAML cases to long-lived regression suites without rewriting the testing foundation.
 
 Midscene lets a test project start from natural-language cases: core paths stay readable and maintainable, and the first case stays lightweight. When the project needs case filtering, concurrency control, login state, test data, device connections, complex assertions, reports, or CI management, it still has enough room for engineering extension.
 
@@ -29,10 +29,13 @@ target:
   url: https://shop.example.com
 
 flow:
-  - aiAct: Search for "running shoes"
-  - aiAct: Open the first product
-  - aiQuery: product name and price
-  - aiAssert: The product detail page shows a visible Add to cart button
+  - ui: Search for "running shoes"
+  - ui: Open the first product
+  - ui: |
+      Read the product name and price.
+
+      Record them in the conclusion.
+  - verify: The product detail page shows a visible Add to cart button
 ```
 
 YAML makes "what this user path should do" clear enough for review, business confirmation, and team collaboration. Midscene handles the AI UI actions, visual understanding, assertions, screenshots, and report generation around that case.
@@ -53,7 +56,7 @@ The case remains close to business language, while the runner gives it a repeata
 
 In professional UI testing projects, the case steps are usually the clearest part: open a page, perform a user path, and check the expected result. The engineering complexity tends to sit around that path, in project configuration such as which cases to run, how much concurrency to use, where reports should be written, login state, cookies, test accounts, staging lanes, backend data, cloud device connections, and device initialization.
 
-Those concerns should not be copied into every YAML case. Midscene provides `midscene.config.ts` as the project-level config-as-code entry. It replaces the lightweight `config.yml` shape when a suite grows up: test discovery, execution policy, output, and runtime setup all live in one typed file.
+Those concerns should not be copied into every YAML case. Midscene provides `midscene.config.ts` as the project-level config-as-code entry. It replaces the lightweight `config.yml` shape when a suite grows up: test discovery, execution policy, output, UI Agent creation, and runtime extensions all live in one typed file.
 
 ```ts
 import { defineMidsceneConfig } from '@midscene/testing-framework';
@@ -83,8 +86,8 @@ export default defineMidsceneConfig({
     reportDir: './midscene_run/report',
   },
 
-  agentOptions: {
-    aiActionContext: 'The user is already signed in as a smoke-test account.',
+  uiAgentOptions: {
+    aiActContext: 'The user is already signed in as a smoke-test account.',
     cache: true,
     generateReport: true,
   },
@@ -101,9 +104,9 @@ With this config in place, the project can stay direct:
     checkout.yaml
 ```
 
-The boundary is clear: `e2e/*.yaml` describes what the user should accomplish, while `midscene.config.ts` describes the target type and platform connection options, testRunner behavior, shared Agent options, and reporting. By default, the framework creates the Agent from `target.type` and `target.options`, so ordinary projects do not need to write `setup`. If a project needs custom devices, remote services, or internal team fixtures, it can create the Agent entirely inside `setup`; in that case, `target` can be omitted to avoid defining the runtime target twice in the same config. The project can handle real engineering constraints, while the case itself remains friendly to code review, business confirmation, and team collaboration.
+The boundary is clear: `e2e/*.yaml` describes what the user should accomplish, while `midscene.config.ts` describes the target type and platform connection options, testRunner behavior, shared UI Agent options, and reporting. By default, the framework creates the UI Agent from `target.type` and `target.options`, so ordinary projects do not need to write `createUIAgent`. If a project needs custom devices, remote services, or internal team fixtures, it can create the UI Agent entirely inside `createUIAgent`; in that case, `target` can be omitted to avoid defining the runtime target twice in the same config. The project can handle real engineering constraints, while the case itself remains friendly to code review, business confirmation, and team collaboration.
 
-When a project really needs a fully custom runtime target, it can put Agent creation in `setup`:
+When a project really needs a fully custom runtime target, it can put UI Agent creation in `createUIAgent`:
 
 ```ts
 import { agentFromAdbDevice } from '@midscene/android';
@@ -112,19 +115,19 @@ import { defineMidsceneConfig } from '@midscene/testing-framework';
 export default defineMidsceneConfig({
   testDir: './e2e',
 
-  agentOptions: {
-    aiActionContext: 'The user is already signed in as a smoke-test account.',
+  uiAgentOptions: {
+    aiActContext: 'The user is already signed in as a smoke-test account.',
     cache: true,
     generateReport: true,
   },
 
-  async setup({ agentOptions }) {
+  async createUIAgent({ uiAgentOptions }) {
     const account = await getSmokeAccount();
     await prepareTestData(account);
 
     return {
       agent: await agentFromAdbDevice(process.env.ANDROID_DEVICE_ID, {
-        ...agentOptions,
+        ...uiAgentOptions,
         androidAdbPath: process.env.ANDROID_ADB_PATH,
         autoDismissKeyboard: false,
       }),
@@ -133,12 +136,15 @@ export default defineMidsceneConfig({
 });
 ```
 
-### Extend YAML Steps
+### Extend YAML Nodes with Runtime
 
-YAML should stay readable, but some teams need a few project-specific actions around the natural-language path: seeding test data, switching accounts, calling an internal API, checking a database, or wrapping a repeated business action. These actions can be registered as custom YAML steps in `midscene.config.ts`.
+YAML should stay readable, but some teams need a few project-specific actions around the natural-language path: seeding test data, switching accounts, calling an internal API, sending notifications, or wrapping a repeated business action. These actions can be registered as custom runtimes in `midscene.config.ts` and used as new YAML nodes.
 
 ```ts
-import { defineMidsceneConfig } from '@midscene/testing-framework';
+import {
+  defineMidsceneConfig,
+  defineRuntime,
+} from '@midscene/testing-framework';
 
 export default defineMidsceneConfig({
   target: {
@@ -151,30 +157,21 @@ export default defineMidsceneConfig({
   testDir: './e2e',
   include: ['**/*.yaml'],
 
-  yamlSteps: {
-    async useAccount(value, ctx) {
+  runtime: {
+    useAccount: defineRuntime(async ({ input, context }) => {
+      const value = input;
       if (typeof value !== 'string') {
         throw new Error('useAccount expects an account name');
       }
 
       const account = await getAccount(value);
-      ctx.state.account = account;
-      await ctx.agent.aiAct(`Sign in as ${account.email}`);
-    },
+      context.state.account = account;
+      await signInWithAccount(context.agent, account);
 
-    async assertOrderStatus(value) {
-      const { orderId, status } = value as {
-        orderId: string;
-        status: string;
+      return {
+        conclusion: `Signed in as ${account.email}`,
       };
-
-      const order = await queryOrder(orderId);
-      if (order.status !== status) {
-        throw new Error(
-          `Expected order ${orderId} to be ${status}, got ${order.status}`,
-        );
-      }
-    },
+    }),
   },
 });
 ```
@@ -184,14 +181,87 @@ The YAML file can then mix Midscene built-in steps with project steps:
 ```yaml
 flow:
   - useAccount: smoke-buyer
-  - aiAct: Open my orders
-  - assertOrderStatus:
-      orderId: E2E-10001
-      status: paid
-  - aiAssert: The order detail page shows Paid
+  - ui: Open my orders
+  - verify: |
+      Use $database to verify that order E2E-10001 has status paid.
+  - verify: The order detail page shows Paid
 ```
 
-The rule is intentionally small: if a `flow` step key matches a built-in Midscene step, Midscene runs the built-in behavior; if it matches `yamlSteps`, Midscene calls the registered function with the YAML value and the current step context. If neither exists, the runner reports an unknown step. Custom steps should not override built-in step names. Midscene does not require a schema for custom step values; teams can validate values inside the handler in whatever style fits their project.
+The rule is intentionally small: `ui` is the unified entry for interface behavior, `verify` is the unified entry for assertions and external evidence, and `agent` is the entry for analysis, attribution, and cross-tool orchestration. A `$name` such as `$database` refers to a skill, and the runtime engine resolves and loads it automatically. `runtime` is for extending YAML with new nodes such as `useAccount` based on project needs. Teams decide which nodes to add and how many to add according to their own business and engineering habits. Midscene does not require a schema for custom node values; teams can validate values inside runtime handlers in whatever style fits their project.
+
+### Toward Agentic Testing
+
+The UI is the entry point to user experience, and it is the most natural place for a test to begin. But many real failures do not stay on the page: an order page may look successful while no record exists in the database; a click may finish without a visible error while logs contain an exception; a user path may complete while analytics, network requests, or downstream state are wrong.
+
+Agentic Testing means starting from UI behavior and extending the test into a cross-tool process for collecting evidence and making a judgment. Midscene understands the page, operates the interface, and produces replayable reports, while the project can register databases, logs, network requests, analytics, notification systems, and internal tools as testing capabilities. YAML still starts with the user path, but verification can continue into system state and business risk.
+
+A fuller case can look like this:
+
+```yaml
+name: Create Order
+
+flow:
+  - prepareOrderFixture:
+      scenario: paid-order
+  - ui: |
+      Sign in with a test account and create a test order.
+
+      Record in the conclusion:
+      - order id
+      - current page state
+      - whether the order was created successfully
+  - verify: |
+      Use $database to verify that the order id from the previous conclusion
+      really exists and that the order status is paid.
+  - verify: |
+      Use $logs to check whether any related ERROR appeared during the test.
+  - verify: The order detail page shows payment success
+  - agent: Analyze the risk of this test from all verification results
+  - notifySlack
+```
+
+The core still starts from the UI mindset: how the user signs in, how the order is created, and what appears on the page. Projects can insert custom nodes for data preparation or notifications before or after the UI step; later steps pass the UI conclusion to project capabilities for deeper verification: whether the order exists in the database, whether error logs appeared during the test, and whether the final page state matches the business state.
+
+There are two kinds of capabilities here: `$database` and `$logs` are `$name` references that the runtime engine resolves and loads automatically; `prepareOrderFixture` and `notifySlack` are new YAML nodes registered by the project in `midscene.config.ts`:
+
+```ts
+import {
+  defineMidsceneConfig,
+  defineRuntime,
+} from '@midscene/testing-framework';
+
+export default defineMidsceneConfig({
+  target: {
+    type: 'web',
+    options: {
+      url: 'http://127.0.0.1:3000',
+    },
+  },
+
+  testDir: './e2e',
+
+  runtime: {
+    prepareOrderFixture: defineRuntime(async ({ input, context }) => {
+      const fixture = await createOrderFixture(input);
+      context.state.orderFixture = fixture;
+
+      return {
+        conclusion: `Prepared order fixture ${fixture.id}`,
+      };
+    }),
+
+    notifySlack: defineRuntime(async ({ context }) => {
+      await sendSlackSummary(context.result);
+
+      return {
+        conclusion: 'Slack notification sent',
+      };
+    }),
+  },
+});
+```
+
+This direction keeps the low-friction YAML-driven UI testing model intact. YAML remains the human-facing expression for the test, and TypeScript config remains the engineering entry for registering capabilities: ordinary paths stay in natural language, while places that need deterministic evidence can connect to the team's own tools.
 
 ### Use TypeScript for Special Cases
 
@@ -214,7 +284,7 @@ Teams can keep ordinary business paths in YAML and put the few truly complex cas
 
 Midscene is built as a higher-level testing framework on top of Rstest. Rstest provides the underlying lifecycle, fixture model, parallel execution, filtering, and CI-friendly runtime. It is also written in Rust for strong execution performance, so Midscene users get a high-performance test foundation by default. Midscene wraps those capabilities with natural-language cases, AI UI actions, visual assertions, screenshots, replay reports, and diagnostics.
 
-Most users can rely on that foundation through Midscene's YAML runner, `midscene.config.ts`, and `case.test.ts` without learning Rstest project details. The `midscene.config.ts` fields are intentionally aligned with Rstest concepts such as include/exclude, maxConcurrency, retry, timeout, setup, teardown, and reporters, while keeping Midscene-specific agent setup in the same place. Rstest details only become necessary when a team enters the `emit` workflow and wants to own the generated Rstest project directly.
+Most users can rely on that foundation through Midscene's YAML runner, `midscene.config.ts`, and `case.test.ts` without learning Rstest project details. The `midscene.config.ts` fields are intentionally aligned with Rstest concepts such as include/exclude, maxConcurrency, retry, timeout, setup, teardown, and reporters, while keeping Midscene-specific UI Agent creation in the same config.
 
 ### Why Rstest Helps
 
@@ -225,33 +295,6 @@ Rstest gives the Midscene project a reliable engineering base:
 - Projects can naturally connect to CI, test filtering, failure reporting, and existing team testing habits.
 - YAML cases and `case.test.ts` share the same underlying runtime model.
 - Teams can start lightweight and still keep a path toward long-lived regression suites.
-
-### Emit a Standard Project
-
-For complex projects, there may be more cases, richer fixtures, CI parallelism and grouping, and failure analysis that connects with team systems. Because the lightweight Midscene project already runs on Rstest, `emit` makes the underlying Rstest project explicit, so the team can own the test runner, fixtures, and integration code directly.
-
-```bash
-midscene emit ./project-folder
-```
-
-The emitted project can look like this:
-
-```text
-project-folder/
-  package.json
-  midscene.config.ts
-  rstest.config.ts
-  e2e/
-    dashboard.test.ts
-    checkout.test.ts
-  fixtures/
-    account.ts
-    device.ts
-  reports/
-    midscene-report/
-```
-
-In this project shape, YAML can remain the human-friendly expression for natural-language cases, `midscene.config.ts` remains the Midscene-facing source of truth, and Rstest provides the visible test project structure. Teams can keep business paths in YAML and place complex logic in Rstest test files, fixtures, and internal tools. Midscene handles AI UI actions and visual assertions, while your own code handles environment orchestration, API checks, database checks, and failure analysis.
 
 ### Next Steps
 
