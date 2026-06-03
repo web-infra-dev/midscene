@@ -49,8 +49,6 @@ import {
   parseYamlScript,
 } from '../yaml/index';
 
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
 import {
@@ -64,6 +62,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
 import { validateAgentCacheInput } from './cache-config';
+import { normalizeFileChooserAccept } from './file-chooser';
 import { TaskCache } from './task-cache';
 import {
   TaskExecutionError,
@@ -1542,19 +1541,7 @@ export class Agent<
   }
 
   private normalizeFilePaths(files: string[]): string[] {
-    if (ifInBrowser) {
-      throw new Error('File chooser is not supported in browser environment');
-    }
-
-    return files.map((file) => {
-      const absolutePath = resolve(file);
-      if (!existsSync(absolutePath)) {
-        throw new Error(
-          `File not found: ${file}. Resolved to: ${absolutePath}. Current working directory: ${process.cwd()}`,
-        );
-      }
-      return absolutePath;
-    });
+    return normalizeFileChooserAccept(files);
   }
 
   private normalizeFileInput(files: string | string[]): string[] {

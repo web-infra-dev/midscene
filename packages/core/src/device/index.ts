@@ -269,9 +269,16 @@ function defineLocatedPointAction<
 // Tap
 export const actionTapParamSchema = z.object({
   locate: getMidsceneLocationSchema().describe('The element to be tapped'),
+  fileChooserAccept: z
+    .union([z.string(), z.array(z.string())])
+    .optional()
+    .describe(
+      'Optional file path(s) to upload when this tap triggers a file chooser. Use only for file upload controls. If the user asks to upload a concrete file path, copy the exact path here.',
+    ),
 });
 export type ActionTapParam = {
   locate: LocateResultElement;
+  fileChooserAccept?: string | string[];
 };
 
 export const defineActionTap = (
