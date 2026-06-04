@@ -373,6 +373,24 @@ describe('system prompts', () => {
     );
   });
 
+  it('planning should include durable change completion guidance', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: undefined,
+      includeBbox: false,
+      includeSubGoals: false,
+    });
+
+    expect(prompt).toContain('Change completion');
+    expect(prompt).toContain('If the requested outcome is a durable change');
+    expect(prompt).toContain(
+      "Continue through the app/page's normal completion control such as Save, Done, Confirm, OK, Submit, Apply, Send, or Publish before completing",
+    );
+    expect(prompt).toContain(
+      'If the user only asks for an intermediate UI state',
+    );
+  });
+
   it('planning - multi-turn example with includeSubGoals true should have sub-goal tags', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,

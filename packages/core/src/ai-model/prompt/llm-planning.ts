@@ -411,6 +411,10 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 - "type 'hello' in the search box" → ${shouldIncludeSubGoals ? 'Goal accomplished' : 'Instruction fulfilled'} when 'hello' is typed. Do NOT press Enter or trigger search.
 - "select the first item" → ${shouldIncludeSubGoals ? 'Goal accomplished' : 'Instruction fulfilled'} when selected. Do NOT proceed to checkout.
 
+**Change completion:**
+- If the requested outcome is a durable change, such as create, edit, update, delete, save, send, submit, apply, or publish, do not stop at an unsaved draft, open editor, temporary input, transient selection, or staged value. Continue through the app/page's normal completion control such as Save, Done, Confirm, OK, Submit, Apply, Send, or Publish before completing, so the result remains after leaving the screen.
+- If the user only asks for an intermediate UI state, such as typing text, selecting an option, filling fields, or opening a screen without saving/submitting/applying, stop once that exact state is reached.
+
 **Special case - Scrollable option lists and dropdowns:**
 - When choosing an item from a scrollable select, dropdown, listbox, menu, or similar option list, first open the control if it is closed. Once the list is open, interact with the list itself, not the page.
 - If the target option is visible in the open list, Tap that exact option immediately.
