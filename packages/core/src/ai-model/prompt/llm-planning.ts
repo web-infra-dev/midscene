@@ -16,6 +16,33 @@ const vlLocateParam = (modelFamily: TModelFamily | undefined) => {
   return '{ prompt: string /* description of the target element */ }';
 };
 
+const OBSERVE_STEP_NOTES = [
+  '### Observation Guidelines',
+  '',
+  '- Treat visible summaries, thumbnails, cropped content, and partially visible lists as potentially incomplete when the task depends on precise details.',
+  '- If the current view does not provide enough information to decide safely, use available UI affordances such as opening details, expanding content, previewing, enlarging, zooming, or scrolling before acting.',
+].join('\n');
+
+const MEMORY_STEP_NOTES = [
+  'Use `<memory>` to record clear, task-relevant information from the current screenshot that may be needed in later steps. The current screenshot will not be available later, so memory should preserve enough detail for future reasoning, verification, or action.',
+  '',
+  '- Record information completely and exactly as shown. Do not summarize, translate, normalize, or merge values that may matter later.',
+  '- When recording an item, include the item itself, its exact task-relevant details, and the visible cue or UI context that identifies where it came from when relevant.',
+  '- Keep similar or repeated items as separate memory entries unless their task-relevant details are confirmed to be the same.',
+  '- After navigation, scrolling, editing, deletion, saving, or other screen changes, treat remembered positions, order, indexes, and UI bindings as references only. Re-check the current screen before acting on them.',
+  '',
+  'Examples:',
+  '- If you need to find an item and later assert its details, record the item name and the exact details needed for the assertion, such as status, price, date, owner, description, or other visible fields.',
+  '- If you need to compare multiple similar results, record each candidate separately with its exact distinguishing details and visible context.',
+  '- If you need to copy information from one place to another, record the exact source value and the target field or UI cue it should be mapped to.',
+].join('\n');
+
+const ACTION_STEP_NOTES = [
+  '### Action Guidelines',
+  '',
+  '- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters, and use Input with mode "typeOnly" when typing new characters for such edits.',
+].join('\n');
+
 /**
  * Find ZodDefault in the wrapper chain and return its default value
  */
@@ -355,7 +382,7 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 ${step1Title}
 
 ${step1Description}
-
+${shouldIncludeSubGoals ? `\n${OBSERVE_STEP_NOTES}\n` : ''}
 * <thought> tag (REQUIRED)
 
 ${thoughtTagDescription}
@@ -365,7 +392,7 @@ ${
     ? `
 ## Step ${memoryStepNumber}: Memory Data from Current Screenshot (related tags: <memory>)
 
-While observing the current screenshot, if you notice any information that might be needed in follow-up actions, record it here. The current screenshot will NOT be available in subsequent steps, so this memory is your only way to preserve essential information. Examples: extracted data, element states, content that needs to be referenced.
+${MEMORY_STEP_NOTES}
 
 Don't use this tag if no information needs to be preserved.
 `
@@ -451,6 +478,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Make sure the previous actions are completed successfully. Otherwise, retry or do something else to recover.
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
+
+${ACTION_STEP_NOTES}
 
 ### Supporting actions list
 

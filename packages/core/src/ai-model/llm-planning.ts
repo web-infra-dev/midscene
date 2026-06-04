@@ -25,7 +25,7 @@ import {
 import {
   AIResponseParseError,
   callAI,
-  safeParseJson,
+  parseModelResponseJson,
 } from './service-caller/index';
 
 const debug = getDebug('planning');
@@ -82,7 +82,13 @@ export function parseXMLPlanningResponse(
     if (actionParamStr) {
       try {
         // Parse the JSON string in action-param-json
-        param = safeParseJson(actionParamStr, modelFamily);
+        param = parseModelResponseJson(
+          actionParamStr,
+          modelFamily,
+          type.toLowerCase() === 'input'
+            ? { preserveStringValueKeys: ['value'] }
+            : undefined,
+        );
       } catch (e) {
         throw new Error(`Failed to parse action-param-json: ${e}`);
       }

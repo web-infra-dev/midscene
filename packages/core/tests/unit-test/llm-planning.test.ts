@@ -817,6 +817,87 @@ describe('parseXMLPlanningResponse', () => {
     expect(result.action?.type).toBe('Input');
   });
 
+  it('should preserve Input value boundary whitespace while trimming other param strings', () => {
+    const modelFamily = 'doubao-vision';
+    const xml = `
+<log>Type text with boundary spaces</log>
+<action-type>Input</action-type>
+<action-param-json>
+{
+  "value": "  test value  ",
+  "locate": {
+    "prompt": "  input field  "
+  }
+}
+</action-param-json>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml, modelFamily);
+
+    expect(result.action).toEqual({
+      type: 'Input',
+      param: {
+        value: '  test value  ',
+        locate: {
+          prompt: 'input field',
+        },
+      },
+    });
+  });
+
+  it('should preserve Input value boundary whitespace from JSON code blocks', () => {
+    const modelFamily = 'doubao-vision';
+    const xml = `
+<log>Type text with boundary spaces</log>
+<action-type>Input</action-type>
+<action-param-json>
+\`\`\`json
+{
+  "value": "  test value  ",
+  "locate": {
+    "prompt": "  input field  "
+  }
+}
+\`\`\`
+</action-param-json>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml, modelFamily);
+
+    expect(result.action).toEqual({
+      type: 'Input',
+      param: {
+        value: '  test value  ',
+        locate: {
+          prompt: 'input field',
+        },
+      },
+    });
+  });
+
+  it('should preserve Input value boundary whitespace from repaired action params', () => {
+    const modelFamily = 'doubao-vision';
+    const xml = `
+<log>Type text with boundary spaces</log>
+<action-type>Input</action-type>
+<action-param-json>
+{ value: "  test value  ", locate: {" prompt ": "  input field  ",}, }
+</action-param-json>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml, modelFamily);
+
+    expect(result.action).toEqual({
+      type: 'Input',
+      param: {
+        value: '  test value  ',
+        locate: {
+          prompt: 'input field',
+        },
+      },
+    });
+  });
+
   it('should not throw error when log field is missing and no action', () => {
     const modelFamily = 'doubao-vision';
     const xml = `

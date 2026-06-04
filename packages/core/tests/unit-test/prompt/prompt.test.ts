@@ -5,6 +5,7 @@ import {
 } from '@/ai-model/prompt/llm-planning';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
+import { defineActionInput } from '@/device';
 import { getMidsceneLocationSchema } from '@/index';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -152,6 +153,22 @@ describe('action space', () => {
           - command: string // ADB shell command to execute"
     `);
   });
+
+  it('input action explains typeOnly incremental edits', () => {
+    const action = descriptionForAction(
+      defineActionInput({
+        clearInput: async () => {},
+        keyboardPress: async () => {},
+        typeText: async () => {},
+      }),
+      mockLocatorScheme,
+    );
+
+    expect(action).toContain('only the inserted characters for typeOnly mode');
+    expect(action).toContain(
+      'should be set explicitly for incremental edits after moving the cursor',
+    );
+  });
 });
 
 describe('system prompts', () => {
@@ -239,6 +256,9 @@ describe('system prompts', () => {
     // Should still contain thought tag
     expect(prompt).toContain('<thought>');
 
+    // Observation Guidelines are only available in deepThink (sub-goals) mode
+    expect(prompt).not.toContain('### Observation Guidelines');
+
     // Should have simplified Step 1 title
     expect(prompt).toContain('## Step 1: Observe (related tags: <thought>)');
     expect(prompt).not.toContain(
@@ -261,6 +281,9 @@ describe('system prompts', () => {
 
     // Should still contain thought tag
     expect(prompt).toContain('<thought>');
+
+    // Observation Guidelines are only available in deepThink (sub-goals) mode
+    expect(prompt).toContain('### Observation Guidelines');
 
     // Should have full Step 1 title with sub-goal tags
     expect(prompt).toContain(
