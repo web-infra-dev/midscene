@@ -181,6 +181,12 @@ if (!env.available) {
 - `aiLocate(description: string)`：定位元素
 - 更多...
 
+定位元素后，还可以使用即时操作（Instant Action）进行直接、确定性的控制：
+
+- `aiTap()`、`aiDoubleClick()`、`aiRightClick()`、`aiHover()`：鼠标操作
+- `aiInput()`、`aiClearInput()`、`aiKeyboardPress()`：键盘操作
+- `aiScroll()`：滚动操作
+
 详见 [通用 API 参考](./api)。
 
 ## 可用操作
@@ -215,12 +221,16 @@ await agent.aiAct('右键点击桌面');
 await agent.aiAct('右键点击文件');
 ```
 
-#### MouseMove（移动鼠标）
+#### MouseMove（移动鼠标 / 悬停）
 
-移动鼠标到目标元素。
+将鼠标移动到目标元素上，也就是鼠标悬停（hover），例如用于触发悬停菜单或提示框。
 
 ```typescript
+// 自然语言形式（移动鼠标 / 悬停）
 await agent.aiAct('移动鼠标到菜单项');
+
+// 即时操作：一次调用完成定位并悬停
+await agent.aiHover('菜单项「Products」');
 ```
 
 #### DragAndDrop（拖放）

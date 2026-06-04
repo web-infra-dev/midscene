@@ -172,7 +172,7 @@ await agent.launch('com.android.settings/.Settings'); // open a native page
 
 Execute a command through `adb shell` on the connected device.
 
-> Note: This method wraps `adb shell` and forwards the command directly to the device.
+> Note: This method wraps `adb shell`, so pass only the shell command itself. For example, use `input tap 100 200`, not `adb shell input tap 100 200`.
 
 - Type
 
@@ -182,7 +182,7 @@ function runAdbShell(command: string, opt?: { timeout?: number }): Promise<strin
 
 - Parameters:
 
-  - `command: string` - The adb shell command to execute.
+  - `command: string` - The adb shell command to execute, without the `adb shell` prefix.
   - `opt.timeout?: number` - Optional command execution timeout in milliseconds.
 
 - Return Value:
@@ -201,6 +201,9 @@ await device.connect();
 const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
 // Equivalent to running `adb shell dumpsys battery` with a 60s timeout
 console.log(result);
+
+await agent.runAdbShell('input tap 100 200');
+// Equivalent to running `adb shell input tap 100 200`
 ```
 
 #### `agentFromAdbDevice()`
@@ -372,7 +375,10 @@ Additionally, you can also specify the adb path, remote adb host and port throug
 ```typescript
 const device = new AndroidDevice('s4ey59', {
   androidAdbPath: '/path/to/adb',
+  // the adb server to connect to (like `adb -H <host> -P <port>`), NOT the device's adbd or an `adb connect <ip:port>` target
   remoteAdbHost: '192.168.1.100',
   remoteAdbPort: 5037,
 });
 ```
+
+> For a cloud / remote device, just `adb connect <ip:port>` it to your local adb server and use the normal `getConnectedDevices()` flow — you only need `remoteAdbHost` / `remoteAdbPort` when the device is exposed through a separate remote adb server.

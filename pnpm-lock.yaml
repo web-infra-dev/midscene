@@ -810,6 +810,9 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../core
+      '@midscene/harmony':
+        specifier: workspace:*
+        version: link:../harmony
       '@midscene/ios':
         specifier: workspace:*
         version: link:../ios
@@ -1210,6 +1213,16 @@ importers:
         version: 3.25.76
 
   packages/harmony-mcp:
+    dependencies:
+      '@silvia-odwyer/photon':
+        specifier: 0.3.3
+        version: 0.3.3
+      '@silvia-odwyer/photon-node':
+        specifier: 0.3.3
+        version: 0.3.3
+      sharp:
+        specifier: ^0.34.3
+        version: 0.34.3
     devDependencies:
       '@midscene/core':
         specifier: workspace:*
@@ -1238,9 +1251,6 @@ importers:
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.118
-      sharp:
-        specifier: ^0.34.3
-        version: 0.34.3
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -1394,7 +1404,7 @@ importers:
         version: link:../web-integration
       '@modelcontextprotocol/inspector':
         specifier: ^0.16.3
-        version: 0.16.3(@types/node@18.19.62)(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(typescript@5.8.3)
+        version: 0.16.3(@types/node@18.19.62)(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@6.0.5)
       '@modelcontextprotocol/sdk':
         specifier: 1.10.2
         version: 1.10.2
@@ -15454,7 +15464,7 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@modelcontextprotocol/inspector@0.16.3(@types/node@18.19.62)(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(typescript@5.8.3)':
+  '@modelcontextprotocol/inspector@0.16.3(@types/node@18.19.62)(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@6.0.5)':
     dependencies:
       '@modelcontextprotocol/inspector-cli': 0.16.3
       '@modelcontextprotocol/inspector-client': 0.16.3(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)

@@ -82,7 +82,14 @@ describe('midscene-web CLI viewport e2e', () => {
         });
       });
     } finally {
-      rmSync(persistentRoot, { recursive: true, force: true });
+      // Chrome may still be flushing profile files shortly after web_close
+      // returns, so retry the recursive cleanup for transient ENOTEMPTY errors.
+      rmSync(persistentRoot, {
+        recursive: true,
+        force: true,
+        maxRetries: 2,
+        retryDelay: 1000,
+      });
     }
   });
 

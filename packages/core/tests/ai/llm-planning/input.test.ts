@@ -1,7 +1,8 @@
 import { ConversationHistory, plan } from '@/ai-model';
+import { getModelRuntime } from '@/ai-model/models';
 import type { DeviceAction } from '@/types';
 import { globalModelConfigManager } from '@midscene/shared/env';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { getContextFromFixture } from '../../evaluation';
 vi.setConfig({
@@ -21,6 +22,7 @@ const mockActionSpace: DeviceAction[] = [
 ];
 
 const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
+const defaultModelRuntime = getModelRuntime(defaultModelConfig);
 
 describe('automation - planning input', () => {
   it('input value', async () => {
@@ -34,10 +36,9 @@ describe('automation - planning input', () => {
       const { actions } = await plan(instruction, {
         context,
         actionSpace: mockActionSpace,
-        interfaceType: 'puppeteer',
-        modelConfig: defaultModelConfig,
+        modelRuntime: defaultModelRuntime,
         conversationHistory: new ConversationHistory(),
-        includeBbox: true,
+        includeLocateInPlanning: true,
       });
       expect(actions).toBeDefined();
       expect(actions?.length).toBeGreaterThan(0);
@@ -56,10 +57,9 @@ describe('automation - planning input', () => {
       const { actions } = await plan(instruction, {
         context,
         actionSpace: mockActionSpace,
-        interfaceType: 'puppeteer',
-        modelConfig: defaultModelConfig,
+        modelRuntime: defaultModelRuntime,
         conversationHistory: new ConversationHistory(),
-        includeBbox: true,
+        includeLocateInPlanning: true,
       });
       expect(actions).toBeDefined();
       expect(actions?.length).toBeGreaterThan(0);

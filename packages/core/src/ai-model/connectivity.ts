@@ -3,6 +3,7 @@ import Service from '@/service';
 import type { UIContext } from '@/types';
 import type { IModelConfig, TIntent } from '@midscene/shared/env';
 import { imageInfoOfBase64 } from '@midscene/shared/img';
+import { getModelRuntime } from './models';
 import { callAI } from './service-caller';
 
 const CONNECTIVITY_FIXTURE_IMAGE =
@@ -103,6 +104,9 @@ export async function runConnectivityTest(
   config: ConnectivityTestConfig,
 ): Promise<ConnectivityTestResult> {
   const checks: ConnectivityCheckResultItem[] = [];
+  const planningModelRuntime = getModelRuntime(config.planningModelConfig);
+  const insightModelRuntime = getModelRuntime(config.insightModelConfig);
+  const defaultModelRuntime = getModelRuntime(config.defaultModelConfig);
 
   {
     const startTime = Date.now();
@@ -118,7 +122,7 @@ export async function runConnectivityTest(
             content: `Return exactly ${TEXT_EXPECTED_TOKEN}`,
           },
         ],
-        config.planningModelConfig,
+        planningModelRuntime,
       );
       const content = result.content.trim();
       const passed = content.includes(TEXT_EXPECTED_TOKEN);
@@ -162,7 +166,7 @@ export async function runConnectivityTest(
             ],
           },
         ],
-        config.insightModelConfig,
+        insightModelRuntime,
       );
       const normalized = normalizeText(result.content);
       checks.push(
@@ -191,7 +195,7 @@ export async function runConnectivityTest(
       const locateResult = await service.locate(
         { prompt: LOCATE_PROMPT },
         {},
-        config.defaultModelConfig,
+        defaultModelRuntime,
       );
       const targetRect = locateResult.rect || locateResult.element?.rect;
       const center = locateResult.element?.center;

@@ -151,7 +151,7 @@ Midscene 提供了基于页面理解的数据处理接口，如 AI 断言（`aiA
 
 如果你需要模型原生思考，请显式设置 `MIDSCENE_MODEL_REASONING_ENABLED="true"`。部分模型系列还支持 `MIDSCENE_MODEL_REASONING_BUDGET` 或 `MIDSCENE_MODEL_REASONING_EFFORT` 等额外控制项，具体示例请参考[常用模型配置](./model-common-config)，完整环境变量说明请参考[高阶配置](./model-config#高阶配置可选)。
 
-显式配置 reasoning 时必须使用已支持的 `MIDSCENE_MODEL_FAMILY`。如果没有配置模型系列，或者模型系列不支持 reasoning 配置，Midscene 会直接抛出错误，而不会猜测服务商的私有参数。
+reasoning 控制项与模型系列相关。如果当前模型系列不支持某个 reasoning 配置，Midscene 会忽略该配置，而不会猜测服务商的私有参数。
 
 ### 模型接口风格
 

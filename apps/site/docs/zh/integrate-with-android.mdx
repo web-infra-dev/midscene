@@ -241,7 +241,7 @@ await agent.launch('com.android.settings/.Settings'); // 打开系统设置 app(
 
 执行 `adb shell` 命令。
 
-> 注意：该方法本质上是调用 `adb shell` 执行传入的命令。
+> 注意：该方法本质上已经封装了 `adb shell`，所以传入的内容只需要包含 shell 命令本身。例如传 `input tap 100 200`，不要传 `adb shell input tap 100 200`。
 
 - 类型
 
@@ -251,7 +251,7 @@ function runAdbShell(command: string, opt?: { timeout?: number }): Promise<strin
 
 - 参数：
 
-  - `command: string` - 要执行的 adb shell 命令
+  - `command: string` - 要执行的 adb shell 命令，不需要包含 `adb shell` 前缀
   - `opt.timeout?: number` - 可选的命令执行超时时间，单位为毫秒。
 
 - 返回值:
@@ -270,6 +270,9 @@ await page.connect();
 const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
 // 等同于执行 `adb shell dumpsys battery`，并设置 60 秒超时
 console.log(result);
+
+await agent.runAdbShell('input tap 100 200');
+// 等同于执行 `adb shell input tap 100 200`
 ```
 
 :::info 在 YAML 脚本中使用
@@ -519,7 +522,10 @@ export MIDSCENE_ADB_REMOTE_PORT=5037
 ```typescript
 const device = new AndroidDevice('s4ey59', {
   androidAdbPath: '/path/to/adb',
+  // 要连接的 adb server 地址(等价于 `adb -H <host> -P <port>`)，不是设备的 adbd，也不是 `adb connect <ip:port>` 里的设备地址
   remoteAdbHost: '192.168.1.100',
   remoteAdbPort: 5037,
 });
 ```
+
+> 云真机 / 远程设备只需先 `adb connect <ip:port>` 挂到本地 adb server，再走正常的 `getConnectedDevices()` 流程即可；只有当设备是通过独立的远端 adb server 暴露时，才需要设置 `remoteAdbHost` / `remoteAdbPort`。

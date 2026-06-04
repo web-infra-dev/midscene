@@ -1,9 +1,7 @@
 import { ConversationHistory, plan } from '@/ai-model';
-import {
-  globalConfigManager,
-  globalModelConfigManager,
-} from '@midscene/shared/env';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { getModelRuntime } from '@/ai-model/models';
+import { globalModelConfigManager } from '@midscene/shared/env';
+import { describe, expect, it, vi } from 'vitest';
 import { mockActionSpace } from '../../common';
 import { getContextFromFixture } from '../../evaluation';
 
@@ -13,53 +11,51 @@ vi.setConfig({
 });
 
 const modelConfig = globalModelConfigManager.getModelConfig('default');
+const modelRuntime = getModelRuntime(modelConfig);
 
+// These assertions check a deterministic next-action shape. In real
+// model-family runs, planning may choose a valid intermediate Tap before Input
+// or include a whole-page locate for page-level scroll, so keep this suite out
+// of AI CI until that prompt contract is tightened.
 describe.skipIf(modelConfig.modelFamily)('automation - llm planning', () => {
   it('basic run', async () => {
     const { context } = await getContextFromFixture('todo');
 
-    const { actions } = await plan(
+    const { actions, shouldContinuePlanning } = await plan(
       'type "Why is the earth a sphere?", wait 3.5s, hit Enter',
       {
         context,
         actionSpace: mockActionSpace,
-        interfaceType: 'puppeteer',
-        modelConfig,
+        modelRuntime,
         conversationHistory: new ConversationHistory(),
-        includeBbox: true,
+        includeLocateInPlanning: true,
       },
     );
     expect(actions).toBeTruthy();
 
-    expect(actions!.length).toBe(3);
+    expect(actions!.length).toBe(1);
     expect(actions![0].type).toBe('Input');
-    expect(actions![1].type).toBe('Sleep');
-    expect(actions![1].param).toMatchSnapshot();
-    expect(actions![2].type).toBe('KeyboardPress');
-    expect(actions![2].param).toMatchSnapshot();
+    expect(shouldContinuePlanning).toBeTruthy();
   });
 
   it('scroll page', async () => {
     const { context } = await getContextFromFixture('todo');
-    const { actions } = await plan(
+    const { actions, shouldContinuePlanning } = await plan(
       'Scroll down the page by 200px, scroll up the page by 100px, scroll right the second item of the task list by 300px',
       {
         context,
         actionSpace: mockActionSpace,
-        interfaceType: 'puppeteer',
-        modelConfig,
+        modelRuntime,
         conversationHistory: new ConversationHistory(),
-        includeBbox: true,
+        includeLocateInPlanning: true,
       },
     );
     expect(actions).toBeTruthy();
-    expect(actions!.length).toBe(3);
+    expect(actions!.length).toBe(1);
     expect(actions![0].type).toBe('Scroll');
     expect(actions![0].param).toBeDefined();
     expect(actions![0].param.locate).toBeNull();
-
-    expect(actions![2].param).toBeDefined();
-    expect(actions![2].param.locate).toBeTruthy();
+    expect(shouldContinuePlanning).toBeTruthy();
   });
 });
 
@@ -98,10 +94,9 @@ describe('planning', () => {
       const { actions } = await plan(instruction, {
         context,
         actionSpace: mockActionSpace,
-        interfaceType: 'puppeteer',
-        modelConfig,
+        modelRuntime,
         conversationHistory: new ConversationHistory(),
-        includeBbox: true,
+        includeLocateInPlanning: true,
       });
       expect(actions).toBeTruthy();
       // console.log(actions);
@@ -120,10 +115,9 @@ describe('planning', () => {
       {
         context,
         actionSpace: mockActionSpace,
-        interfaceType: 'puppeteer',
-        modelConfig,
+        modelRuntime,
         conversationHistory: new ConversationHistory(),
-        includeBbox: true,
+        includeLocateInPlanning: true,
       },
     );
     expect(actions).toBeTruthy();
@@ -139,10 +133,9 @@ describe('planning', () => {
       {
         context,
         actionSpace: mockActionSpace,
-        interfaceType: 'puppeteer',
-        modelConfig,
+        modelRuntime,
         conversationHistory: new ConversationHistory(),
-        includeBbox: true,
+        includeLocateInPlanning: true,
       },
     );
 
@@ -158,10 +151,9 @@ describe('planning', () => {
       {
         context,
         actionSpace: mockActionSpace,
-        interfaceType: 'puppeteer',
-        modelConfig,
+        modelRuntime,
         conversationHistory: new ConversationHistory(),
-        includeBbox: true,
+        includeLocateInPlanning: true,
       },
     );
 

@@ -1,3 +1,4 @@
+import { getModelRuntime } from '@/ai-model/models';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createFakeContext } from '../utils';
@@ -27,8 +28,8 @@ vi.mock('@midscene/shared/img', async () => {
   };
 });
 
-import { AiExtractElementInfo } from '@/ai-model/inspect';
 import { callAI } from '@/ai-model/service-caller/index';
+import { AiExtractElementInfo } from '@/ai-model/workflows/inspect';
 import { preProcessImageUrl } from '@midscene/shared/img';
 
 describe('AiExtractElementInfo prompt assembly', () => {
@@ -68,7 +69,7 @@ describe('AiExtractElementInfo prompt assembly', () => {
         ],
         convertHttpImage2Base64: true,
       },
-      modelConfig,
+      modelRuntime: getModelRuntime(modelConfig),
     });
 
     expect(result.parseResult.data).toEqual({ result: true });

@@ -234,7 +234,10 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
       testCase.response_rect &&
       globalModelConfigManager.getModelConfig('insight').modelFamily
     ) {
-      const resultRect = (result as LocateResult).rect;
+      const resultRect =
+        (result as LocateResult).rect ??
+        (result as Awaited<ReturnType<typeof AiLocateSection>>).searchAreaConfig
+          ?.sourceRect;
       if (!resultRect) {
         throw new Error(
           `resultRect is not set, the prompt is: ${testCase.prompt}`,

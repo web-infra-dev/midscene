@@ -1,5 +1,9 @@
 import type { TMultimodalPrompt, TUserPrompt } from './common';
-import type { AndroidDeviceOpt, IOSDeviceOpt } from './device';
+import type {
+  AndroidDeviceOpt,
+  HarmonyDeviceOpt,
+  IOSDeviceOpt,
+} from './device';
 import type { AgentOpt, LocateResultElement, Rect } from './types';
 import type { UIContext } from './types';
 
@@ -54,6 +58,7 @@ export interface MidsceneYamlScript {
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
   ios?: MidsceneYamlScriptIOSEnv;
+  harmony?: MidsceneYamlScriptHarmonyEnv;
   computer?: MidsceneYamlScriptComputerEnv;
 
   interface?: MidsceneYamlScriptEnvGeneralInterface;
@@ -196,6 +201,19 @@ export interface MidsceneYamlScriptIOSEnv
   launch?: string;
 }
 
+export interface MidsceneYamlScriptHarmonyEnv
+  extends MidsceneYamlScriptConfig,
+    Omit<HarmonyDeviceOpt, 'customActions'> {
+  // The HarmonyOS device ID to connect to, optional, will use the first device if not specified
+  deviceId?: string;
+
+  // The app package to launch, optional, will use the current screen if not specified
+  launch?: string;
+
+  // Custom mapping of app names to bundle names, user-provided mappings take precedence over defaults
+  appNameMapping?: Record<string, string>;
+}
+
 export interface MidsceneYamlScriptComputerEnv
   extends MidsceneYamlScriptConfig {
   // The display ID to use, optional, will use the primary display if not specified
@@ -206,6 +224,7 @@ export type MidsceneYamlScriptEnv =
   | MidsceneYamlScriptWebEnv
   | MidsceneYamlScriptAndroidEnv
   | MidsceneYamlScriptIOSEnv
+  | MidsceneYamlScriptHarmonyEnv
   | MidsceneYamlScriptComputerEnv;
 
 export interface MidsceneYamlFlowItemAIAction {

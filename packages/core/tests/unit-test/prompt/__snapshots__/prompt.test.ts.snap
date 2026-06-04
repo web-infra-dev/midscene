@@ -374,50 +374,6 @@ By viewing the screenshot and page contents, you can extract the following data:
 "
 `;
 
-exports[`system prompts > locator - 4o 1`] = `
-"
-## Role:
-You are an AI assistant that helps identify UI elements.
-
-## Objective:
-- Identify elements in screenshots that match the user's description.
-- Provide the coordinates of the element that matches the user's description.
-
-## Important Notes for Locating Elements:
-- When the user describes an element that contains text (such as buttons, input fields, dropdown options, radio buttons, etc.), you should locate ONLY the text region of that element, not the entire element boundary.
-- For example: If an input field is large (both wide and tall) with a placeholder text "Please enter your comment", you should locate only the area where the placeholder text appears, not the entire input field.
-- This principle applies to all text-containing elements: focus on the visible text region rather than the full element container.
-
-## Output Format:
-\`\`\`json
-{
-  "bbox": [number, number, number, number],  // 2d bounding box as [xmin, ymin, xmax, ymax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height.
-  "errors"?: string[]
-}
-\`\`\`
-
-Fields:
-* \`bbox\` is the bounding box of the element that matches the user's description
-* \`errors\` is an optional array of error messages (if any)
-
-For example, when an element is found:
-\`\`\`json
-{
-  "bbox": [100, 100, 200, 200],
-  "errors": []
-}
-\`\`\`
-
-When no element is found:
-\`\`\`json
-{
-  "bbox": [],
-  "errors": ["I can see ..., but {some element} is not found. Use English."]
-}
-\`\`\`
-"
-`;
-
 exports[`system prompts > locator - gemini 1`] = `
 "
 ## Role:
@@ -435,7 +391,7 @@ You are an AI assistant that helps identify UI elements.
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],  // box_2d bounding box for the target element as [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height.
+  "bbox": [number, number, number, number],  // 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height.
   "errors"?: string[]
 }
 \`\`\`
@@ -479,7 +435,7 @@ You are an AI assistant that helps identify UI elements.
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],  // 2d bounding box as [xmin, ymin, xmax, ymax] in pixel coordinates relative to the screenshot.
+  "bbox": [number, number, number, number],  // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot.
   "errors"?: string[]
 }
 \`\`\`
@@ -600,12 +556,21 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
 
+### Action Guidelines
+
+- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters, and use Input with mode "typeOnly" when typing new characters for such edits.
+
+## Important Notes for Locating Elements:
+- When the user describes an element that contains text (such as buttons, input fields, dropdown options, radio buttons, etc.), you should locate ONLY the text region of that element, not the entire element boundary.
+- For example: If an input field is large (both wide and tall) with a placeholder text "Please enter your comment", you should locate only the area where the placeholder text appears, not the entire input field.
+- This principle applies to all text-containing elements: focus on the visible text region rather than the full element container.
+
 ### Supporting actions list
 
 - Tap, Tap the element
   - type: "Tap"
   - param:
-    - locate: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] in pixel coordinates relative to the screenshot. // The element to be tapped
+    - locate: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The element to be tapped
 - Sleep, Sleep for a period of time
   - type: "Sleep"
   - param:
@@ -614,7 +579,7 @@ ONLY if the task is not complete: Think what the next action is according to the
   - type: "Input"
   - param:
     - value: string // The value to be input
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] in pixel coordinates relative to the screenshot. // The input field to target
+    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The input field to target
   - sample:
     <action-type>Input</action-type>
     <action-param-json>
@@ -623,7 +588,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       "locate": {
         "prompt": "the email input field",
         "bbox": [
-          50,
+          100,
           100,
           200,
           200
@@ -635,12 +600,12 @@ ONLY if the task is not complete: Think what the next action is according to the
   - type: "KeyboardPress"
   - param:
     - value: string // The key to be pressed
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] in pixel coordinates relative to the screenshot. // The element to target for key press
+    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The element to target for key press
 - Scroll, Scroll the page
   - type: "Scroll"
   - param:
     - value: string // The scroll direction or amount
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] in pixel coordinates relative to the screenshot. // The element to scroll
+    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The element to scroll
   - sample:
     <action-type>Scroll</action-type>
     <action-param-json>
@@ -649,7 +614,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       "locate": {
         "prompt": "the product list area",
         "bbox": [
-          50,
+          100,
           100,
           200,
           200
@@ -660,8 +625,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 - DragAndDrop, Drag an element to another position
   - type: "DragAndDrop"
   - param:
-    - from: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] in pixel coordinates relative to the screenshot. // The element to drag
-    - to: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] in pixel coordinates relative to the screenshot. // The drop target
+    - from: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The element to drag
+    - to: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The drop target
   - sample:
     <action-type>DragAndDrop</action-type>
     <action-param-json>
@@ -669,7 +634,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       "from": {
         "prompt": "the \\"report.pdf\\" file icon",
         "bbox": [
-          50,
+          100,
           100,
           200,
           200
@@ -678,10 +643,10 @@ ONLY if the task is not complete: Think what the next action is according to the
       "to": {
         "prompt": "the upload drop zone",
         "bbox": [
-          300,
-          400,
-          500,
-          500
+          345,
+          442,
+          458,
+          483
         ]
       }
     }
@@ -935,6 +900,10 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Make sure the previous actions are completed successfully. Otherwise, retry or do something else to recover.
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
+
+### Action Guidelines
+
+- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters, and use Input with mode "typeOnly" when typing new characters for such edits.
 
 ### Supporting actions list
 
@@ -1245,12 +1214,21 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
 
+### Action Guidelines
+
+- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters, and use Input with mode "typeOnly" when typing new characters for such edits.
+
+## Important Notes for Locating Elements:
+- When the user describes an element that contains text (such as buttons, input fields, dropdown options, radio buttons, etc.), you should locate ONLY the text region of that element, not the entire element boundary.
+- For example: If an input field is large (both wide and tall) with a placeholder text "Please enter your comment", you should locate only the area where the placeholder text appears, not the entire input field.
+- This principle applies to all text-containing elements: focus on the visible text region rather than the full element container.
+
 ### Supporting actions list
 
 - Tap, Tap the element
   - type: "Tap"
   - param:
-    - locate: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element as [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. // The element to be tapped
+    - locate: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. // The element to be tapped
 - Sleep, Sleep for a period of time
   - type: "Sleep"
   - param:
@@ -1259,7 +1237,7 @@ ONLY if the task is not complete: Think what the next action is according to the
   - type: "Input"
   - param:
     - value: string // The value to be input
-    - locate?: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element as [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. // The input field to target
+    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. // The input field to target
   - sample:
     <action-type>Input</action-type>
     <action-param-json>
@@ -1268,7 +1246,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       "locate": {
         "prompt": "the email input field",
         "bbox": [
-          50,
+          100,
           100,
           200,
           200
@@ -1280,12 +1258,12 @@ ONLY if the task is not complete: Think what the next action is according to the
   - type: "KeyboardPress"
   - param:
     - value: string // The key to be pressed
-    - locate?: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element as [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. // The element to target for key press
+    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. // The element to target for key press
 - Scroll, Scroll the page
   - type: "Scroll"
   - param:
     - value: string // The scroll direction or amount
-    - locate?: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element as [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. // The element to scroll
+    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. // The element to scroll
   - sample:
     <action-type>Scroll</action-type>
     <action-param-json>
@@ -1294,7 +1272,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       "locate": {
         "prompt": "the product list area",
         "bbox": [
-          50,
+          100,
           100,
           200,
           200
@@ -1305,8 +1283,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 - DragAndDrop, Drag an element to another position
   - type: "DragAndDrop"
   - param:
-    - from: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element as [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. // The element to drag
-    - to: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element as [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. // The drop target
+    - from: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. // The element to drag
+    - to: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. // The drop target
   - sample:
     <action-type>DragAndDrop</action-type>
     <action-param-json>
@@ -1314,7 +1292,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       "from": {
         "prompt": "the \\"report.pdf\\" file icon",
         "bbox": [
-          50,
+          100,
           100,
           200,
           200
@@ -1323,10 +1301,10 @@ ONLY if the task is not complete: Think what the next action is according to the
       "to": {
         "prompt": "the upload drop zone",
         "bbox": [
-          300,
-          400,
-          500,
-          500
+          442,
+          345,
+          483,
+          458
         ]
       }
     }
@@ -1358,7 +1336,7 @@ For example:
 {
   "locate": {
     "prompt": "Add to cart button for Sauce Labs Backpack",
-    "bbox": [345, 442, 458, 483]
+    "bbox": [442, 345, 483, 458]
   }
 }
 </action-param-json>
@@ -1415,7 +1393,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 {
   "locate": {
     "prompt": "Name input field in the registration form",
-    "bbox": [120, 180, 380, 210]
+    "bbox": [180, 120, 210, 380]
   }
 }
 </action-param-json>
@@ -1452,7 +1430,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 {
   "locate": {
     "prompt": "Email input field in the registration form",
-    "bbox": [120, 240, 380, 270]
+    "bbox": [240, 120, 270, 380]
   }
 }
 </action-param-json>
@@ -1494,6 +1472,11 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 ## Step 1: Observe and Plan (related tags: <thought>, <update-plan-content>, <mark-sub-goal-done>)
 
 First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot.
+
+### Observation Guidelines
+
+- Treat visible summaries, thumbnails, cropped content, and partially visible lists as potentially incomplete when the task depends on precise details.
+- If the current view does not provide enough information to decide safely, use available UI affordances such as opening details, expanding content, previewing, enlarging, zooming, or scrolling before acting.
 
 * <thought> tag (REQUIRED)
 
@@ -1561,7 +1544,17 @@ After some time, when the last sub-goal is also completed, you can mark it as do
 
 ## Step 2: Memory Data from Current Screenshot (related tags: <memory>)
 
-While observing the current screenshot, if you notice any information that might be needed in follow-up actions, record it here. The current screenshot will NOT be available in subsequent steps, so this memory is your only way to preserve essential information. Examples: extracted data, element states, content that needs to be referenced.
+Use \`<memory>\` to record clear, task-relevant information from the current screenshot that may be needed in later steps. The current screenshot will not be available later, so memory should preserve enough detail for future reasoning, verification, or action.
+
+- Record information completely and exactly as shown. Do not summarize, translate, normalize, or merge values that may matter later.
+- When recording an item, include the item itself, its exact task-relevant details, and the visible cue or UI context that identifies where it came from when relevant.
+- Keep similar or repeated items as separate memory entries unless their task-relevant details are confirmed to be the same.
+- After navigation, scrolling, editing, deletion, saving, or other screen changes, treat remembered positions, order, indexes, and UI bindings as references only. Re-check the current screen before acting on them.
+
+Examples:
+- If you need to find an item and later assert its details, record the item name and the exact details needed for the assertion, such as status, price, date, owner, description, or other visible fields.
+- If you need to compare multiple similar results, record each candidate separately with its exact distinguishing details and visible context.
+- If you need to copy information from one place to another, record the exact source value and the target field or UI cue it should be mapped to.
 
 Don't use this tag if no information needs to be preserved.
 
@@ -1636,6 +1629,10 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Make sure the previous actions are completed successfully. Otherwise, retry or do something else to recover.
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
+
+### Action Guidelines
+
+- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters, and use Input with mode "typeOnly" when typing new characters for such edits.
 
 ### Supporting actions list
 
@@ -2004,12 +2001,21 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
 
+### Action Guidelines
+
+- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters, and use Input with mode "typeOnly" when typing new characters for such edits.
+
+## Important Notes for Locating Elements:
+- When the user describes an element that contains text (such as buttons, input fields, dropdown options, radio buttons, etc.), you should locate ONLY the text region of that element, not the entire element boundary.
+- For example: If an input field is large (both wide and tall) with a placeholder text "Please enter your comment", you should locate only the area where the placeholder text appears, not the entire input field.
+- This principle applies to all text-containing elements: focus on the visible text region rather than the full element container.
+
 ### Supporting actions list
 
 - Tap, Tap the element
   - type: "Tap"
   - param:
-    - locate: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] in pixel coordinates relative to the screenshot. // The element to be tapped
+    - locate: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The element to be tapped
 - Sleep, Sleep for a period of time
   - type: "Sleep"
   - param:
@@ -2018,7 +2024,7 @@ ONLY if the task is not complete: Think what the next action is according to the
   - type: "Input"
   - param:
     - value: string // The value to be input
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] in pixel coordinates relative to the screenshot. // The input field to target
+    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The input field to target
   - sample:
     <action-type>Input</action-type>
     <action-param-json>
@@ -2027,7 +2033,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       "locate": {
         "prompt": "the email input field",
         "bbox": [
-          50,
+          100,
           100,
           200,
           200
@@ -2039,12 +2045,12 @@ ONLY if the task is not complete: Think what the next action is according to the
   - type: "KeyboardPress"
   - param:
     - value: string // The key to be pressed
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] in pixel coordinates relative to the screenshot. // The element to target for key press
+    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The element to target for key press
 - Scroll, Scroll the page
   - type: "Scroll"
   - param:
     - value: string // The scroll direction or amount
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] in pixel coordinates relative to the screenshot. // The element to scroll
+    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The element to scroll
   - sample:
     <action-type>Scroll</action-type>
     <action-param-json>
@@ -2053,7 +2059,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       "locate": {
         "prompt": "the product list area",
         "bbox": [
-          50,
+          100,
           100,
           200,
           200
@@ -2064,8 +2070,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 - DragAndDrop, Drag an element to another position
   - type: "DragAndDrop"
   - param:
-    - from: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] in pixel coordinates relative to the screenshot. // The element to drag
-    - to: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] in pixel coordinates relative to the screenshot. // The drop target
+    - from: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The element to drag
+    - to: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The drop target
   - sample:
     <action-type>DragAndDrop</action-type>
     <action-param-json>
@@ -2073,7 +2079,7 @@ ONLY if the task is not complete: Think what the next action is according to the
       "from": {
         "prompt": "the \\"report.pdf\\" file icon",
         "bbox": [
-          50,
+          100,
           100,
           200,
           200
@@ -2082,10 +2088,10 @@ ONLY if the task is not complete: Think what the next action is according to the
       "to": {
         "prompt": "the upload drop zone",
         "bbox": [
-          300,
-          400,
-          500,
-          500
+          345,
+          442,
+          458,
+          483
         ]
       }
     }
@@ -2340,6 +2346,10 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
 
+### Action Guidelines
+
+- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters, and use Input with mode "typeOnly" when typing new characters for such edits.
+
 ### Supporting actions list
 
 - Tap, Tap the element
@@ -2567,7 +2577,7 @@ You are an AI assistant that helps identify UI elements.
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],  // box_2d bounding box for the target element as [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height.
+  "bbox": [number, number, number, number],  // 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height.
   "references_bbox"?: [
     [number, number, number, number],
     ...
@@ -2577,8 +2587,8 @@ You are an AI assistant that helps identify UI elements.
 \`\`\`
 
 Fields:
-* \`bbox\` - Bounding box of the section containing the target element
-* \`references_bbox\` - Optional array of bounding boxes for reference elements
+* \`bbox\` - bounding box of the section containing the target element
+* \`references_bbox\` - Optional array of bounding boxes of reference elements
 * \`error\` - Optional error message if the section cannot be found. Use English.
 
 Example:
@@ -2604,7 +2614,7 @@ You are an AI assistant that helps identify UI elements.
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],  // 2d bounding box as [xmin, ymin, xmax, ymax] in pixel coordinates relative to the screenshot.
+  "bbox": [number, number, number, number],  // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot.
   "references_bbox"?: [
     [number, number, number, number],
     ...
@@ -2614,8 +2624,8 @@ You are an AI assistant that helps identify UI elements.
 \`\`\`
 
 Fields:
-* \`bbox\` - Bounding box of the section containing the target element
-* \`references_bbox\` - Optional array of bounding boxes for reference elements
+* \`bbox\` - bounding box of the section containing the target element
+* \`references_bbox\` - Optional array of bounding boxes of reference elements
 * \`error\` - Optional error message if the section cannot be found. Use English.
 
 Example:

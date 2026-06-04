@@ -1,34 +1,25 @@
-import type { DeviceAction } from '@/device';
-import type { PlanningAIResponse, UIContext } from '@/types';
-import type { IModelConfig } from '@midscene/shared/env';
+import type { PlanningAIResponse } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import type { ConversationHistory } from '../conversation-history';
 import {
   AIResponseParseError,
   callAIWithStringResponse,
-} from '../service-caller/index';
+} from '../../service-caller/index';
+import type { PlanOptions } from '../../workflows/planning/types';
 import { transformAutoGLMAction } from './actions';
 import { parseAction, parseAutoGLMResponse } from './parser';
-import { getAutoGLMPlanPrompt } from './prompt';
 
 const debug = getDebug('auto-glm-planning');
 
-export async function autoGLMPlanning(
+export async function autoGlmPlanning(
   userInstruction: string,
-  options: {
-    conversationHistory: ConversationHistory;
-    context: UIContext;
-    modelConfig: IModelConfig;
-    actionContext?: string;
-    actionSpace?: DeviceAction[];
-    abortSignal?: AbortSignal;
-  },
+  options: PlanOptions,
+  getSystemPrompt: () => string,
 ): Promise<PlanningAIResponse> {
-  const { conversationHistory, context, modelConfig, actionContext } = options;
+  const { conversationHistory, context, actionContext } = options;
 
   const systemPrompt =
-    getAutoGLMPlanPrompt(modelConfig.modelFamily) +
+    getSystemPrompt() +
     (actionContext
       ? `<high_priority_knowledge>${actionContext}</high_priority_knowledge>`
       : '');
@@ -51,7 +42,7 @@ export async function autoGLMPlanning(
 
   const { content: rawResponse, usage } = await callAIWithStringResponse(
     msgs,
-    modelConfig,
+    options.modelRuntime,
     {
       abortSignal: options.abortSignal,
     },

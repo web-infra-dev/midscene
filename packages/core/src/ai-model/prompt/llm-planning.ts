@@ -1,20 +1,49 @@
 import { findAllMidsceneLocatorField } from '@/common';
 import type { DeviceAction } from '@/types';
-import type { TModelFamily } from '@midscene/shared/env';
 import { getPreferredLanguage } from '@midscene/shared/env';
 import {
   getZodDescription,
   getZodTypeName,
 } from '@midscene/shared/zod-schema-utils';
 import type { z } from 'zod';
-import { bboxDescription } from './common';
+import { planningModelFamilyRequiredForLocateMessage } from '../errors';
+import type { LocateResultPromptSpec } from '../shared/model-locate-result';
+import { locateGroundingRules } from './locate-grounding-rules';
+import { locateParamExample } from './locate-param-example';
 
-const vlLocateParam = (modelFamily: TModelFamily | undefined) => {
-  if (modelFamily) {
-    return `{bbox: [number, number, number, number], prompt: string } // ${bboxDescription(modelFamily)}`;
+const locateParamSchemaDescription = (promptSpec?: LocateResultPromptSpec) => {
+  if (promptSpec) {
+    return `{${promptSpec.resultKey}: ${promptSpec.resultValueSchema}, prompt: string } // ${promptSpec.resultValueDescription}`;
   }
   return '{ prompt: string /* description of the target element */ }';
 };
+
+const OBSERVE_STEP_NOTES = [
+  '### Observation Guidelines',
+  '',
+  '- Treat visible summaries, thumbnails, cropped content, and partially visible lists as potentially incomplete when the task depends on precise details.',
+  '- If the current view does not provide enough information to decide safely, use available UI affordances such as opening details, expanding content, previewing, enlarging, zooming, or scrolling before acting.',
+].join('\n');
+
+const MEMORY_STEP_NOTES = [
+  'Use `<memory>` to record clear, task-relevant information from the current screenshot that may be needed in later steps. The current screenshot will not be available later, so memory should preserve enough detail for future reasoning, verification, or action.',
+  '',
+  '- Record information completely and exactly as shown. Do not summarize, translate, normalize, or merge values that may matter later.',
+  '- When recording an item, include the item itself, its exact task-relevant details, and the visible cue or UI context that identifies where it came from when relevant.',
+  '- Keep similar or repeated items as separate memory entries unless their task-relevant details are confirmed to be the same.',
+  '- After navigation, scrolling, editing, deletion, saving, or other screen changes, treat remembered positions, order, indexes, and UI bindings as references only. Re-check the current screen before acting on them.',
+  '',
+  'Examples:',
+  '- If you need to find an item and later assert its details, record the item name and the exact details needed for the assertion, such as status, price, date, owner, description, or other visible fields.',
+  '- If you need to compare multiple similar results, record each candidate separately with its exact distinguishing details and visible context.',
+  '- If you need to copy information from one place to another, record the exact source value and the target field or UI cue it should be mapped to.',
+].join('\n');
+
+const ACTION_STEP_NOTES = [
+  '### Action Guidelines',
+  '',
+  '- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters, and use Input with mode "typeOnly" when typing new characters for such edits.',
+].join('\n');
 
 /**
  * Find ZodDefault in the wrapper chain and return its default value
@@ -54,25 +83,19 @@ const findDefaultValue = (field: unknown): any | undefined => {
 };
 
 /**
- * Inject bbox into locate fields of a sample object.
+ * Inject model locate results into locate fields of a sample object.
  * Walks the sample and for any locate field (identified by paramSchema),
- * adds a fake bbox array when includeBbox is true.
+ * adds a fake locate result when includeLocateInPlanning is true.
  */
-const SAMPLE_BBOXES: [number, number, number, number][] = [
-  [50, 100, 200, 200],
-  [300, 400, 500, 500],
-  [600, 100, 800, 250],
-  [50, 600, 250, 750],
-];
-
-const injectBboxIntoSample = (
+const injectLocateResultIntoSample = (
   sample: Record<string, any>,
   locateFields: string[],
-  includeBbox: boolean,
+  promptSpec: LocateResultPromptSpec,
 ): Record<string, any> => {
-  if (!includeBbox) return sample;
+  const resultKey = promptSpec.resultKey;
+  const sampleResults = promptSpec.exampleValues;
   const result = { ...sample };
-  let bboxIndex = 0;
+  let sampleResultIndex = 0;
   for (const field of locateFields) {
     if (
       result[field] &&
@@ -81,9 +104,9 @@ const injectBboxIntoSample = (
     ) {
       result[field] = {
         ...result[field],
-        bbox: SAMPLE_BBOXES[bboxIndex % SAMPLE_BBOXES.length],
+        [resultKey]: sampleResults[sampleResultIndex % sampleResults.length],
       };
-      bboxIndex++;
+      sampleResultIndex++;
     }
   }
   return result;
@@ -91,8 +114,9 @@ const injectBboxIntoSample = (
 
 export const descriptionForAction = (
   action: DeviceAction<any>,
-  locatorSchemaTypeDescription: string,
-  includeBbox = false,
+  locateParamTypeDescription: string,
+  includeLocateInPlanning = false,
+  locatePromptSpec?: LocateResultPromptSpec,
 ) => {
   const tab = '  ';
   const fields: string[] = [];
@@ -125,7 +149,7 @@ export const descriptionForAction = (
           const keyWithOptional = isOptional ? `${key}?` : key;
 
           // Get the type name using extracted helper
-          const typeName = getZodTypeName(field, locatorSchemaTypeDescription);
+          const typeName = getZodTypeName(field, locateParamTypeDescription);
 
           // Get description using extracted helper
           const description = getZodDescription(field as z.ZodTypeAny);
@@ -181,12 +205,15 @@ export const descriptionForAction = (
   // Render sample if provided, using the same XML tag format as the real output
   if (action.sample && typeof action.sample === 'object') {
     const locateFields = findAllMidsceneLocatorField(action.paramSchema);
-    const sampleWithBbox = injectBboxIntoSample(
-      action.sample,
-      locateFields,
-      includeBbox,
-    );
-    const sampleStr = `- sample:\n${tab}${tab}<action-type>${action.name}</action-type>\n${tab}${tab}<action-param-json>\n${tab}${tab}${JSON.stringify(sampleWithBbox, null, 2).replace(/\n/g, `\n${tab}${tab}`)}\n${tab}${tab}</action-param-json>`;
+    const sampleWithLocateResult =
+      includeLocateInPlanning && locatePromptSpec
+        ? injectLocateResultIntoSample(
+            action.sample,
+            locateFields,
+            locatePromptSpec,
+          )
+        : action.sample;
+    const sampleStr = `- sample:\n${tab}${tab}<action-type>${action.name}</action-type>\n${tab}${tab}<action-param-json>\n${tab}${tab}${JSON.stringify(sampleWithLocateResult, null, 2).replace(/\n/g, `\n${tab}${tab}`)}\n${tab}${tab}</action-param-json>`;
     fields.push(sampleStr);
   }
 
@@ -197,31 +224,31 @@ ${tab}${fields.join(`\n${tab}`)}
 
 export async function systemPromptToTaskPlanning({
   actionSpace,
-  modelFamily,
-  includeBbox,
+  locatePromptSpec,
+  includeLocateInPlanning,
   includeThought,
   includeSubGoals,
 }: {
   actionSpace: DeviceAction<any>[];
-  modelFamily: TModelFamily | undefined;
-  includeBbox: boolean;
+  locatePromptSpec?: LocateResultPromptSpec;
+  includeLocateInPlanning: boolean;
   includeThought?: boolean;
   includeSubGoals?: boolean;
 }) {
   const preferredLanguage = getPreferredLanguage();
 
-  // Validate parameters: if includeBbox is true, modelFamily must be defined
-  if (includeBbox && !modelFamily) {
-    throw new Error(
-      'modelFamily cannot be undefined when includeBbox is true. A valid modelFamily is required for bbox-based location.',
-    );
+  if (includeLocateInPlanning && !locatePromptSpec) {
+    throw new Error(planningModelFamilyRequiredForLocateMessage());
   }
 
   const actionDescriptionList = actionSpace.map((action) => {
     return descriptionForAction(
       action,
-      vlLocateParam(includeBbox ? modelFamily : undefined),
-      includeBbox,
+      locateParamSchemaDescription(
+        includeLocateInPlanning ? locatePromptSpec : undefined,
+      ),
+      includeLocateInPlanning,
+      locatePromptSpec,
     );
   });
   const actionList = actionDescriptionList.join('\n');
@@ -229,34 +256,25 @@ export async function systemPromptToTaskPlanning({
   const shouldIncludeThought = includeThought ?? true;
   const shouldIncludeSubGoals = includeSubGoals ?? false;
 
-  // Generate locate object examples based on includeBbox
-  const locateExample1 = includeBbox
-    ? `{
-    "prompt": "Add to cart button for Sauce Labs Backpack",
-    "bbox": [345, 442, 458, 483]
-  }`
-    : `{
-    "prompt": "Add to cart button for Sauce Labs Backpack"
-  }`;
-
-  // Locate examples for multi-turn conversation
-  const locateNameField = includeBbox
-    ? `{
-    "prompt": "Name input field in the registration form",
-    "bbox": [120, 180, 380, 210]
-  }`
-    : `{
-    "prompt": "Name input field in the registration form"
-  }`;
-
-  const locateEmailField = includeBbox
-    ? `{
-    "prompt": "Email input field in the registration form",
-    "bbox": [120, 240, 380, 270]
-  }`
-    : `{
-    "prompt": "Email input field in the registration form"
-  }`;
+  const locateExample = (prompt: string, exampleValueIndex: number) =>
+    locateParamExample(
+      prompt,
+      includeLocateInPlanning ? locatePromptSpec : undefined,
+      locatePromptSpec?.exampleValues[exampleValueIndex] ??
+        locatePromptSpec?.exampleValues[0],
+    );
+  const locateExample1 = locateExample(
+    'Add to cart button for Sauce Labs Backpack',
+    1,
+  );
+  const locateNameField = locateExample(
+    'Name input field in the registration form',
+    2,
+  );
+  const locateEmailField = locateExample(
+    'Email input field in the registration form',
+    3,
+  );
 
   const thoughtTag = (content: string) =>
     shouldIncludeThought ? `<thought>${content}</thought>\n` : '';
@@ -355,7 +373,7 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 ${step1Title}
 
 ${step1Description}
-
+${shouldIncludeSubGoals ? `\n${OBSERVE_STEP_NOTES}\n` : ''}
 * <thought> tag (REQUIRED)
 
 ${thoughtTagDescription}
@@ -365,7 +383,7 @@ ${
     ? `
 ## Step ${memoryStepNumber}: Memory Data from Current Screenshot (related tags: <memory>)
 
-While observing the current screenshot, if you notice any information that might be needed in follow-up actions, record it here. The current screenshot will NOT be available in subsequent steps, so this memory is your only way to preserve essential information. Examples: extracted data, element states, content that needs to be referenced.
+${MEMORY_STEP_NOTES}
 
 Don't use this tag if no information needs to be preserved.
 `
@@ -452,7 +470,15 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
 
-### Supporting actions list
+${ACTION_STEP_NOTES}
+
+${
+  includeLocateInPlanning
+    ? `${locateGroundingRules()}
+
+`
+    : ''
+}### Supporting actions list
 
 ${actionList}
 

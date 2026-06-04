@@ -98,10 +98,20 @@ describe('runConnectivityTest', () => {
     expect(locate).toHaveBeenCalledWith(
       { prompt: 'the main todo input box' },
       {},
-      defaultModelConfig,
+      expect.objectContaining({
+        config: defaultModelConfig,
+      }),
     );
-    expect(vi.mocked(callAI).mock.calls[0]?.[1]).toBe(planningModelConfig);
-    expect(vi.mocked(callAI).mock.calls[1]?.[1]).toBe(insightModelConfig);
+    expect(vi.mocked(callAI).mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({
+        config: planningModelConfig,
+      }),
+    );
+    expect(vi.mocked(callAI).mock.calls[1]?.[1]).toEqual(
+      expect.objectContaining({
+        config: insightModelConfig,
+      }),
+    );
     expect(vi.mocked(imageInfoOfBase64)).toHaveBeenCalledWith(
       expect.stringMatching(/^data:image\/png;base64,/),
     );

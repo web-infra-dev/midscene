@@ -2,9 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@midscene/core/ai-model', () => ({
   callAIWithStringResponse: vi.fn(),
+  getModelRuntime: vi.fn((config) => ({
+    config,
+    adapter: {},
+  })),
 }));
 
-import { callAIWithStringResponse } from '@midscene/core/ai-model';
+import {
+  callAIWithStringResponse,
+  getModelRuntime,
+} from '@midscene/core/ai-model';
 import { runConnectivityTest } from '../src/main/playground/connectivity-test';
 
 describe('runConnectivityTest', () => {
@@ -27,6 +34,16 @@ describe('runConnectivityTest', () => {
       ok: true,
       sample: 'CONNECTIVITY_OK',
     });
+    expect(getModelRuntime).toHaveBeenCalledWith(
+      expect.objectContaining({
+        openaiApiKey: 'sk-test',
+        openaiBaseURL: 'https://api.example.com/v1',
+        modelName: 'gpt-4o',
+        intent: 'default',
+        slot: 'default',
+        timeout: 30_000,
+      }),
+    );
     expect(callAIWithStringResponse).toHaveBeenCalledWith(
       [
         {
@@ -39,12 +56,14 @@ describe('runConnectivityTest', () => {
         },
       ],
       expect.objectContaining({
-        openaiApiKey: 'sk-test',
-        openaiBaseURL: 'https://api.example.com/v1',
-        modelName: 'gpt-4o',
-        intent: 'default',
-        slot: 'default',
-        timeout: 30_000,
+        config: expect.objectContaining({
+          openaiApiKey: 'sk-test',
+          openaiBaseURL: 'https://api.example.com/v1',
+          modelName: 'gpt-4o',
+          intent: 'default',
+          slot: 'default',
+          timeout: 30_000,
+        }),
       }),
       expect.objectContaining({
         abortSignal: expect.any(AbortSignal),

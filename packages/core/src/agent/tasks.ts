@@ -1,12 +1,7 @@
-import {
-  AIResponseParseError,
-  ConversationHistory,
-  autoGLMPlanning,
-  plan,
-  uiTarsPlanning,
-} from '@/ai-model';
-import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
+import { AIResponseParseError, ConversationHistory } from '@/ai-model';
+import type { ModelRuntime } from '@/ai-model/models';
 import { buildTypeQueryDemandValue } from '@/ai-model/prompt/extraction';
+import { genericXmlPlan } from '@/ai-model/workflows/planning';
 import {
   type TMultimodalPrompt,
   type TUserPrompt,
@@ -22,7 +17,6 @@ import type {
   ExecutionTaskInsightQueryApply,
   ExecutionTaskPlanningApply,
   ExecutionTaskProgressOptions,
-  InterfaceType,
   MidsceneYamlFlowItem,
   PlanningAIResponse,
   PlanningAction,
@@ -32,7 +26,6 @@ import type {
   ServiceExtractParam,
 } from '@/types';
 import { ServiceError } from '@/types';
-import type { IModelConfig } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ExecutionSession } from './execution-session';
@@ -169,20 +162,15 @@ export class TaskExecutor {
 
   public async convertPlanToExecutable(
     plans: PlanningAction[],
-    modelConfigForPlanning: IModelConfig,
-    modelConfigForDefaultIntent: IModelConfig,
+    planningModel: ModelRuntime,
+    defaultModel: ModelRuntime,
     options?: {
       cacheable?: boolean;
       deepLocate?: boolean;
       abortSignal?: AbortSignal;
     },
   ) {
-    return this.taskBuilder.build(
-      plans,
-      modelConfigForPlanning,
-      modelConfigForDefaultIntent,
-      options,
-    );
+    return this.taskBuilder.build(plans, planningModel, defaultModel, options);
   }
 
   async loadYamlFlowAsPlanning(userInstruction: string, yamlString: string) {
@@ -229,14 +217,14 @@ export class TaskExecutor {
   async runPlans(
     title: string,
     plans: PlanningAction[],
-    modelConfigForPlanning: IModelConfig,
-    modelConfigForDefaultIntent: IModelConfig,
+    planningModel: ModelRuntime,
+    defaultModel: ModelRuntime,
   ): Promise<ExecutionResult> {
     const session = this.createExecutionSession(title);
     const { tasks } = await this.convertPlanToExecutable(
       plans,
-      modelConfigForPlanning,
-      modelConfigForDefaultIntent,
+      planningModel,
+      defaultModel,
     );
     const runner = session.getRunner();
     const result = await session.appendAndRun(tasks);
@@ -249,9 +237,9 @@ export class TaskExecutor {
 
   async action(
     userPrompt: string,
-    modelConfigForPlanning: IModelConfig,
-    modelConfigForDefaultIntent: IModelConfig,
-    includeBboxInPlanning: boolean,
+    planningModel: ModelRuntime,
+    defaultModel: ModelRuntime,
+    includeLocateInPlanning: boolean,
     aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
@@ -272,9 +260,9 @@ export class TaskExecutor {
     return withFileChooser(this.interface, fileChooserAccept, async () => {
       return this.runAction(
         userPrompt,
-        modelConfigForPlanning,
-        modelConfigForDefaultIntent,
-        includeBboxInPlanning,
+        planningModel,
+        defaultModel,
+        includeLocateInPlanning,
         aiActContext,
         cacheable,
         replanningCycleLimitOverride,
@@ -288,9 +276,9 @@ export class TaskExecutor {
 
   private async runAction(
     userPrompt: string,
-    modelConfigForPlanning: IModelConfig,
-    modelConfigForDefaultIntent: IModelConfig,
-    includeBboxInPlanning: boolean,
+    planningModel: ModelRuntime,
+    defaultModel: ModelRuntime,
+    includeLocateInPlanning: boolean,
     aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
@@ -307,6 +295,16 @@ export class TaskExecutor {
       | undefined
     >
   > {
+    if (
+      deepLocate &&
+      !planningModel.adapter.planning.supportsActionDeepLocate
+    ) {
+      warnLog(
+        `The "deepLocate" option is not supported for aiAct with the current planning adapter (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored.`,
+      );
+      deepLocate = false;
+    }
+
     const conversationHistory = new ConversationHistory();
 
     const session = this.createExecutionSession(
@@ -356,7 +354,6 @@ export class TaskExecutor {
           executor: async (param, executorContext) => {
             const { uiContext } = executorContext;
             assert(uiContext, 'uiContext is required for Planning task');
-            const { modelFamily } = modelConfigForPlanning;
             const timing = executorContext.task.timing;
 
             const actionSpace = this.getActionSpace();
@@ -371,11 +368,10 @@ export class TaskExecutor {
               );
             }
 
-            const planImpl = isUITars(modelFamily)
-              ? uiTarsPlanning
-              : isAutoGLM(modelFamily)
-                ? autoGLMPlanning
-                : plan;
+            const planImpl =
+              planningModel.adapter.planning.kind === 'custom'
+                ? planningModel.adapter.planning.planFn
+                : genericXmlPlan;
 
             let planResult: Awaited<ReturnType<typeof planImpl>>;
             try {
@@ -383,11 +379,10 @@ export class TaskExecutor {
               planResult = await planImpl(param.userInstruction, {
                 context: uiContext,
                 actionContext: param.aiActContext,
-                interfaceType: this.interface.interfaceType as InterfaceType,
                 actionSpace,
-                modelConfig: modelConfigForPlanning,
+                modelRuntime: planningModel,
                 conversationHistory,
-                includeBbox: includeBboxInPlanning,
+                includeLocateInPlanning,
                 imagesIncludeCount,
                 deepThink,
                 abortSignal,
@@ -477,8 +472,8 @@ export class TaskExecutor {
       try {
         executables = await this.convertPlanToExecutable(
           plans,
-          modelConfigForPlanning,
-          modelConfigForDefaultIntent,
+          planningModel,
+          defaultModel,
           {
             cacheable,
             deepLocate,
@@ -560,7 +555,7 @@ export class TaskExecutor {
   private createTypeQueryTask(
     type: 'Query' | 'Boolean' | 'Number' | 'String' | 'Assert' | 'WaitFor',
     demand: ServiceExtractParam,
-    modelConfig: IModelConfig,
+    modelRuntime: ModelRuntime,
     opt?: ServiceExtractOption,
     multimodalPrompt?: TMultimodalPrompt,
   ) {
@@ -627,7 +622,7 @@ export class TaskExecutor {
         try {
           extractResult = await this.service.extract<any>(
             demandInput,
-            modelConfig,
+            modelRuntime,
             opt,
             extraPageDescription,
             multimodalPrompt,
@@ -686,7 +681,7 @@ export class TaskExecutor {
   async createTypeQueryExecution<T>(
     type: 'Query' | 'Boolean' | 'Number' | 'String' | 'Assert',
     demand: ServiceExtractParam,
-    modelConfig: IModelConfig,
+    modelRuntime: ModelRuntime,
     opt?: ServiceExtractOption,
     multimodalPrompt?: TMultimodalPrompt,
   ): Promise<ExecutionResult<T>> {
@@ -700,7 +695,7 @@ export class TaskExecutor {
     const queryTask = await this.createTypeQueryTask(
       type,
       demand,
-      modelConfig,
+      modelRuntime,
       opt,
       multimodalPrompt,
     );
@@ -726,7 +721,7 @@ export class TaskExecutor {
   async waitFor(
     assertion: TUserPrompt,
     opt: PlanningActionParamWaitFor,
-    modelConfig: IModelConfig,
+    modelRuntime: ModelRuntime,
   ): Promise<ExecutionResult<void>> {
     const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
 
@@ -767,7 +762,7 @@ export class TaskExecutor {
       const queryTask = await this.createTypeQueryTask(
         'WaitFor',
         textPrompt,
-        modelConfig,
+        modelRuntime,
         serviceExtractOpt,
         multimodalPrompt,
       );
@@ -797,8 +792,8 @@ export class TaskExecutor {
         const thought = `Check interval is ${checkIntervalMs}ms, ${elapsed}ms elapsed since last check, sleeping for ${timeRemaining}ms`;
         const { tasks: sleepTasks } = await this.convertPlanToExecutable(
           [{ type: 'Sleep', param: { timeMs: timeRemaining }, thought }],
-          modelConfig,
-          modelConfig,
+          modelRuntime,
+          modelRuntime,
         );
         if (sleepTasks[0]) {
           await session.appendAndRun(sleepTasks[0]);

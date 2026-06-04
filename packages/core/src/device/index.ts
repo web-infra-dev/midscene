@@ -1,10 +1,10 @@
+import type { ModelRuntime } from '@/ai-model/models';
 import { getMidsceneLocationSchema } from '@/common';
 import type {
   ActionScrollParam,
   DeviceAction,
   LocateResultElement,
 } from '@/types';
-import type { IModelConfig } from '@midscene/shared/env';
 import type { ElementNode } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
@@ -137,7 +137,7 @@ export abstract class AbstractInterface {
     center: [number, number],
     options?: {
       targetDescription?: string;
-      modelConfig?: IModelConfig;
+      modelRuntime?: ModelRuntime;
     },
   ): Promise<ElementCacheFeature>;
   abstract rectMatchesCacheFeature?(
@@ -391,7 +391,7 @@ export const actionInputParamSchema = z.object({
     .union([z.string(), z.number()])
     .transform((val) => String(val))
     .describe(
-      'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
+      'The text to input. Provide the final content for replace mode, only the inserted characters for typeOnly mode, or an empty string when using clear mode to remove existing text.',
     ),
   locate: getMidsceneLocationSchema()
     .describe(inputLocateDescription)
@@ -400,7 +400,7 @@ export const actionInputParamSchema = z.object({
     .enum(['replace', 'clear', 'typeOnly'])
     .default('replace')
     .describe(
-      'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
+      'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first, and should be set explicitly for incremental edits after moving the cursor; "clear" - clear the field without inputting new text.',
     ),
   autoDismissKeyboard: z
     .boolean()

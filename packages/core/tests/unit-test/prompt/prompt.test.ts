@@ -1,11 +1,15 @@
 import { systemPromptToLocateElement } from '@/ai-model';
+import { getModelAdapter } from '@/ai-model/models';
 import {
   descriptionForAction,
   systemPromptToTaskPlanning,
 } from '@/ai-model/prompt/llm-planning';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
+import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
+import { defineActionInput } from '@/device';
 import { getMidsceneLocationSchema } from '@/index';
+import type { TModelFamily } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import {
@@ -16,12 +20,26 @@ import { mockActionSpace } from '../../common';
 import { mockNonChinaTimeZone, restoreIntl } from '../mocks/intl-mock';
 
 // Mock getPreferredLanguage to ensure consistent test output
-vi.mock('@midscene/shared/env', () => ({
-  getPreferredLanguage: vi.fn().mockReturnValue('English'),
-}));
+vi.mock('@midscene/shared/env', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@midscene/shared/env')>();
+  return {
+    ...actual,
+    getPreferredLanguage: vi.fn().mockReturnValue('English'),
+  };
+});
 
 const mockLocatorScheme =
   '{"bbox": [number, number, number, number], "prompt": string}';
+const locatePromptSpecFor = (
+  modelFamily: TModelFamily,
+): LocateResultPromptSpec => {
+  const locateAdapter = getModelAdapter(modelFamily).locate;
+  if (locateAdapter.kind !== 'standard') {
+    throw new Error(`${modelFamily} should use standard locate adapter`);
+  }
+  return locateAdapter.resultAdapter.promptSpec;
+};
+
 describe('action space', () => {
   it('action without param, no locate needed', () => {
     const action = descriptionForAction(
@@ -152,35 +170,47 @@ describe('action space', () => {
           - command: string // ADB shell command to execute"
     `);
   });
+
+  it('input action explains typeOnly incremental edits', () => {
+    const action = descriptionForAction(
+      defineActionInput({
+        clearInput: async () => {},
+        keyboardPress: async () => {},
+        typeText: async () => {},
+      }),
+      mockLocatorScheme,
+    );
+
+    expect(action).toContain('only the inserted characters for typeOnly mode');
+    expect(action).toContain(
+      'should be set explicitly for incremental edits after moving the cursor',
+    );
+  });
 });
 
 describe('system prompts', () => {
   it('planning - cot', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
+      includeLocateInPlanning: false,
     });
     expect(prompt).toMatchSnapshot();
   });
 
-  it('planning - should throw error when includeBbox is true but modelFamily is undefined', async () => {
+  it('planning - includeLocateInPlanning requires modelFamily', async () => {
     await expect(
       systemPromptToTaskPlanning({
         actionSpace: mockActionSpace,
-        modelFamily: undefined,
-        includeBbox: true,
+        includeLocateInPlanning: true,
       }),
-    ).rejects.toThrow(
-      'modelFamily cannot be undefined when includeBbox is true. A valid modelFamily is required for bbox-based location.',
-    );
+    ).rejects.toThrow(/MIDSCENE_MODEL_FAMILY/);
   });
 
   it('planning - qwen - cot', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: 'qwen2.5-vl',
-      includeBbox: true,
+      locatePromptSpec: locatePromptSpecFor('qwen2.5-vl'),
+      includeLocateInPlanning: true,
     });
     expect(prompt).toMatchSnapshot();
   });
@@ -188,8 +218,7 @@ describe('system prompts', () => {
   it('planning - qwen - cot without bbox', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: 'qwen2.5-vl',
-      includeBbox: false,
+      includeLocateInPlanning: false,
     });
 
     expect(prompt).toMatchSnapshot();
@@ -198,8 +227,8 @@ describe('system prompts', () => {
   it('planning - gemini', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: 'gemini',
-      includeBbox: true,
+      locatePromptSpec: locatePromptSpecFor('gemini'),
+      includeLocateInPlanning: true,
     });
     expect(prompt).toMatchSnapshot();
   });
@@ -207,8 +236,8 @@ describe('system prompts', () => {
   it('planning - android', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: 'qwen2.5-vl',
-      includeBbox: true,
+      locatePromptSpec: locatePromptSpecFor('qwen2.5-vl'),
+      includeLocateInPlanning: true,
     });
     expect(prompt).toMatchSnapshot();
   });
@@ -216,8 +245,7 @@ describe('system prompts', () => {
   it('planning - includeSubGoals true', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
+      includeLocateInPlanning: false,
       includeSubGoals: true,
     });
     expect(prompt).toMatchSnapshot();
@@ -226,8 +254,7 @@ describe('system prompts', () => {
   it('planning - includeSubGoals false (default) should not contain sub-goal tags', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
+      includeLocateInPlanning: false,
       includeSubGoals: false,
     });
 
@@ -239,6 +266,9 @@ describe('system prompts', () => {
     // Should still contain thought tag
     expect(prompt).toContain('<thought>');
 
+    // Observation Guidelines are only available in deepThink (sub-goals) mode
+    expect(prompt).not.toContain('### Observation Guidelines');
+
     // Should have simplified Step 1 title
     expect(prompt).toContain('## Step 1: Observe (related tags: <thought>)');
     expect(prompt).not.toContain(
@@ -249,8 +279,7 @@ describe('system prompts', () => {
   it('planning - includeSubGoals true should contain sub-goal tags', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
+      includeLocateInPlanning: false,
       includeSubGoals: true,
     });
 
@@ -262,6 +291,9 @@ describe('system prompts', () => {
     // Should still contain thought tag
     expect(prompt).toContain('<thought>');
 
+    // Observation Guidelines are only available in deepThink (sub-goals) mode
+    expect(prompt).toContain('### Observation Guidelines');
+
     // Should have full Step 1 title with sub-goal tags
     expect(prompt).toContain(
       '## Step 1: Observe and Plan (related tags: <thought>, <update-plan-content>, <mark-sub-goal-done>)',
@@ -271,8 +303,7 @@ describe('system prompts', () => {
   it('planning - includeSubGoals true should include sub-goal examples', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
+      includeLocateInPlanning: false,
       includeSubGoals: true,
     });
 
@@ -286,8 +317,7 @@ describe('system prompts', () => {
   it('planning - includeSubGoals false should not include sub-goal examples', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
+      includeLocateInPlanning: false,
       includeSubGoals: false,
     });
 
@@ -300,8 +330,7 @@ describe('system prompts', () => {
   it('planning should include priority override guidance for input verification', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
+      includeLocateInPlanning: false,
       includeSubGoals: false,
     });
 
@@ -322,8 +351,7 @@ describe('system prompts', () => {
   it('planning should include dropdown scrolling guidance', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
+      includeLocateInPlanning: false,
       includeSubGoals: false,
     });
 
@@ -348,8 +376,7 @@ describe('system prompts', () => {
   it('planning - multi-turn example with includeSubGoals true should have sub-goal tags', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
+      includeLocateInPlanning: false,
       includeSubGoals: true,
     });
 
@@ -370,8 +397,7 @@ describe('system prompts', () => {
   it('planning - multi-turn example with includeSubGoals false should not have sub-goal tags', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
+      includeLocateInPlanning: false,
       includeSubGoals: false,
     });
 
@@ -388,11 +414,11 @@ describe('system prompts', () => {
     );
   });
 
-  it('planning - multi-turn example with includeBbox true should have bbox in locate', async () => {
+  it('planning - multi-turn example with includeLocateInPlanning true should have bbox in locate', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: 'gpt-5',
-      includeBbox: true,
+      locatePromptSpec: locatePromptSpecFor('qwen3-vl'),
+      includeLocateInPlanning: true,
       includeSubGoals: false,
     });
 
@@ -402,11 +428,10 @@ describe('system prompts', () => {
     expect(prompt).toContain('"bbox": [120, 240, 380, 270]'); // Email field bbox
   });
 
-  it('planning - multi-turn example with includeBbox false should not have bbox in locate', async () => {
+  it('planning - multi-turn example with includeLocateInPlanning false should not have bbox in locate', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
+      includeLocateInPlanning: false,
       includeSubGoals: false,
     });
 
@@ -417,27 +442,26 @@ describe('system prompts', () => {
   });
 
   it('section locator - gemini', () => {
-    const prompt = systemPromptToLocateSection('gemini');
+    const prompt = systemPromptToLocateSection(locatePromptSpecFor('gemini'));
     expect(prompt).toMatchSnapshot();
   });
 
   it('section locator - qwen', () => {
-    const prompt = systemPromptToLocateSection('qwen2.5-vl');
-    expect(prompt).toMatchSnapshot();
-  });
-
-  it('locator - 4o', () => {
-    const prompt = systemPromptToLocateElement(undefined);
+    const prompt = systemPromptToLocateSection(
+      locatePromptSpecFor('qwen2.5-vl'),
+    );
     expect(prompt).toMatchSnapshot();
   });
 
   it('locator - qwen', () => {
-    const prompt = systemPromptToLocateElement('qwen2.5-vl');
+    const prompt = systemPromptToLocateElement(
+      locatePromptSpecFor('qwen2.5-vl'),
+    );
     expect(prompt).toMatchSnapshot();
   });
 
   it('locator - gemini', () => {
-    const prompt = systemPromptToLocateElement('gemini');
+    const prompt = systemPromptToLocateElement(locatePromptSpecFor('gemini'));
     expect(prompt).toMatchSnapshot();
   });
 
