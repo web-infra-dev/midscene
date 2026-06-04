@@ -244,6 +244,29 @@ Migration mapping:
 
 Starting with version 1.0, Midscene no longer supports GPT-4o as the planning model for UI operations. See [Model strategy](./model-strategy) for details.
 
+## Using Azure OpenAI Service {#azure-openai}
+
+Midscene no longer ships a dedicated Azure client. Because Azure OpenAI exposes an OpenAI-compatible API, you connect to it like any other OpenAI-compatible endpoint: point `MIDSCENE_MODEL_BASE_URL` at your deployment and pass Azure's `api-version` query parameter and `api-key` header through `MIDSCENE_MODEL_INIT_CONFIG_JSON`.
+
+```bash
+# Point at your deployment. Do NOT append /chat/completions — the SDK adds it.
+MIDSCENE_MODEL_BASE_URL="https://<your-resource>.openai.azure.com/openai/deployments/<your-deployment>"
+# Use the deployment name as the model name.
+MIDSCENE_MODEL_NAME="<your-deployment>"
+# Required by the OpenAI SDK constructor, but ignored by Azure when the api-key header is set below.
+MIDSCENE_MODEL_API_KEY="placeholder"
+# Azure auth uses an `api-key` header (not a Bearer token) and requires the api-version query param.
+MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultQuery":{"api-version":"2024-08-01-preview"},"defaultHeaders":{"api-key":"<your-azure-api-key>"}}'
+```
+
+This sends requests as `POST /openai/deployments/<your-deployment>/chat/completions?api-version=2024-08-01-preview` with the `api-key` header, which is exactly what Azure OpenAI expects.
+
+:::warning Azure AD / keyless auth is not supported
+
+The previous `DefaultAzureCredential` (Azure AD token provider, a.k.a. keyless) mode has been removed. Use an API key as shown above.
+
+:::
+
 ## Multi-model example: GPT-5.4 for planning/insight + Qwen 3.5 for visual grounding {#gpt54-planning-insight-qwen35}
 
 For more information on combining multiple models, see [Advanced: Combining Multiple Models](./model-strategy#advanced-combining-multiple-models).
