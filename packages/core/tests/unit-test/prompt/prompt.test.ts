@@ -186,6 +186,21 @@ describe('action space', () => {
       'should be set explicitly for incremental edits after moving the cursor',
     );
   });
+
+  it('planning prompt recommends cursor-level recovery for text inserts', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: undefined,
+      includeBbox: false,
+    });
+
+    expect(prompt).toContain(
+      'use CursorMove when the caret must be adjusted precisely',
+    );
+    expect(prompt).toContain(
+      'do not switch to replace as a fallback for cursor placement failures',
+    );
+  });
 });
 
 describe('system prompts', () => {
