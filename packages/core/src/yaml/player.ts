@@ -121,7 +121,12 @@ const buildShortcutActionParam = (
     return { uri: value };
   }
 
-  if (actionName === 'RunAdbShell' || interfaceAlias === 'runAdbShell') {
+  if (
+    actionName === 'RunAdbShell' ||
+    interfaceAlias === 'runAdbShell' ||
+    actionName === 'RunHdcShell' ||
+    interfaceAlias === 'runHdcShell'
+  ) {
     return { command: value };
   }
 
@@ -696,12 +701,14 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   }
 
   async run() {
-    const { target, web, android, ios, computer, tasks } = this.script;
+    const { target, web, android, ios, harmony, computer, tasks } = this.script;
     const webEnv = web || target;
     const androidEnv = android;
     const iosEnv = ios;
+    const harmonyEnv = harmony;
     const computerEnv = computer;
-    const platform = webEnv || androidEnv || iosEnv || computerEnv;
+    const platform =
+      webEnv || androidEnv || iosEnv || harmonyEnv || computerEnv;
 
     this.setPlayerStatus('running');
 

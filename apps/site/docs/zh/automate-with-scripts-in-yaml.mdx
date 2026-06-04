@@ -41,7 +41,7 @@ tasks:
 
 脚本文件使用 YAML 格式来描述自动化任务。它定义了要操作的目标（如网页或安卓应用）以及一系列要执行的步骤。
 
-一个标准的 `.yaml` 脚本文件包含 `web`、`android`、`ios` 或 `computer` 部分配置环境，可选的 `agent` 部分配置 AI Agent 行为，以及一个 `tasks` 部分来定义自动化任务。
+一个标准的 `.yaml` 脚本文件包含 `web`、`android`、`ios`、`harmony` 或 `computer` 部分配置环境,可选的 `agent` 部分配置 AI Agent 行为,以及一个 `tasks` 部分来定义自动化任务。
 
 ```yaml
 web:
@@ -403,6 +403,79 @@ tasks:
   - name: 终止设置应用
     flow:
       - terminate: com.apple.Preferences
+```
+
+### `harmony` 部分
+
+`harmony` 部分用于通过 HDC 进行 HarmonyOS 设备自动化。设备通过 `hdc` 连接,运行前请先确认 `hdc list targets` 能列出你的设备。
+
+```yaml
+harmony:
+  # 要连接的 HarmonyOS 设备 ID,可选,默认使用第一个已连接的设备。
+  deviceId: <device-id>
+
+  # 要启动的应用,可选,默认使用设备当前屏幕。
+  launch: <bundle-name>
+
+  # HDC 可执行文件路径,可选。
+  hdcPath: <path-to-hdc>
+
+  # 输入完成后是否自动收起键盘,可选,默认为 false。
+  autoDismissKeyboard: <boolean>
+
+  # 应用名到 Bundle 名的自定义映射,可选。用户提供的映射优先级高于默认映射。
+  appNameMapping:
+    <app-name>: <bundle-name>
+
+  # 用于输出 aiQuery/aiAssert 结果的 JSON 文件路径,可选。
+  output: <path-to-output-file>
+
+  # HarmonyDevice 构造函数支持的其他所有选项
+```
+
+#### HarmonyOS 平台专属动作
+
+**`launch` - 启动应用**
+
+通过 Bundle 名启动 HarmonyOS 应用。
+
+```yaml
+harmony:
+  deviceId: 'test-device'
+
+tasks:
+  - name: 启动应用
+    flow:
+      - launch: com.example.app
+```
+
+**`terminate` - 终止应用**
+
+通过 Bundle 名或映射的应用名终止(强制停止)正在运行的 HarmonyOS 应用。
+
+```yaml
+harmony:
+  deviceId: 'test-device'
+
+tasks:
+  - name: 终止应用
+    flow:
+      - terminate: com.example.app
+```
+
+**`runHdcShell` - 执行 HDC Shell 命令**
+
+在 HarmonyOS 设备上执行 HDC shell 命令。
+
+```yaml
+harmony:
+  deviceId: 'test-device'
+
+tasks:
+  - name: 导出窗口信息
+    flow:
+      - runHdcShell:
+          command: 'hidumper -s WindowManagerService -a'
 ```
 
 ### `computer` 部分

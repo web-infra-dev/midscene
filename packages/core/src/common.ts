@@ -492,7 +492,9 @@ export function buildYamlFlowFromPlans(
         : action.name === 'Terminate' || action.interfaceAlias === 'terminate'
           ? 'uri'
           : action.name === 'RunAdbShell' ||
-              action.interfaceAlias === 'runAdbShell'
+              action.interfaceAlias === 'runAdbShell' ||
+              action.name === 'RunHdcShell' ||
+              action.interfaceAlias === 'runHdcShell'
             ? 'command'
             : undefined;
     const shortcutKeys = shortcutField ? Object.keys(flowParam) : [];

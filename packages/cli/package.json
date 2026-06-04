@@ -22,6 +22,7 @@
     "@midscene/android": "workspace:*",
     "@midscene/computer": "workspace:*",
     "@midscene/core": "workspace:*",
+    "@midscene/harmony": "workspace:*",
     "@midscene/ios": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/web": "workspace:*",
