@@ -48,8 +48,8 @@ export default defineMidsceneConfig({
   runtime: {
     // A fixture-prep node: writes engineering state (not visible to the agent)
     // and a natural-language conclusion (visible to later verify/agent).
-    prepareCartFixture: defineRuntime(async (ctx) => {
-      const input = (ctx.input ?? {}) as { scenario?: string };
+    prepareCartFixture: defineRuntime(async (rawInput, ctx) => {
+      const input = (rawInput ?? {}) as { scenario?: string };
       const scenario = input.scenario ?? 'default';
       ctx.state.cartFixture = { id: `cart-${Date.now()}`, scenario };
 
@@ -60,7 +60,7 @@ export default defineMidsceneConfig({
     }),
 
     // A side-effect node that reads the accumulated case result.
-    notify: defineRuntime(async (ctx) => {
+    notify: defineRuntime(async (_input, ctx) => {
       const failed = ctx.result.steps.filter((s) => s.status === 'failed');
       return {
         conclusion:

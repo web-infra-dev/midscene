@@ -65,12 +65,12 @@ describe('runner mock-model smoke (example cases)', () => {
       output: { summary: summaryPath },
       generalAgent: mockGeneralAgent,
       runtime: {
-        prepareCartFixture: defineRuntime(async (ctx) => {
-          const input = (ctx.input ?? {}) as { scenario?: string };
+        prepareCartFixture: defineRuntime(async (rawInput, ctx) => {
+          const input = (rawInput ?? {}) as { scenario?: string };
           ctx.state.cartFixture = { scenario: input.scenario };
           return { conclusion: `Prepared a "${input.scenario}" cart fixture.` };
         }),
-        notify: defineRuntime(async (ctx) => {
+        notify: defineRuntime(async (_input, ctx) => {
           const failed = ctx.result.steps.filter((s) => s.status === 'failed');
           return {
             conclusion: failed.length === 0 ? 'no alert needed' : 'would alert',

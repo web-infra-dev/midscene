@@ -164,7 +164,6 @@ async function runCustomNode(
   }
 
   const ctx: RuntimeNodeContext = {
-    input,
     uiAgent: deps.uiAgent,
     outputs: deps.outputs,
     state: deps.state,
@@ -177,7 +176,7 @@ async function runCustomNode(
   };
 
   // A runtime node that throws fails the case (RFC §8).
-  const result = await runtimeNode(ctx);
+  const result = await runtimeNode(input, ctx);
   return {
     status: 'info',
     output: { text: result.conclusion, structured: result.output },

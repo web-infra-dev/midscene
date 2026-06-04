@@ -155,10 +155,10 @@ describe('runCase node semantics', () => {
     const result = await runCase({
       ...base,
       runtimeNodes: {
-        prep: defineRuntime(async (ctx) => {
+        prep: defineRuntime(async (input, ctx) => {
           ctx.state.fixtureId = 'fx-1';
           return {
-            conclusion: `prepared ${(ctx.input as { scenario: string }).scenario}`,
+            conclusion: `prepared ${(input as { scenario: string }).scenario}`,
           };
         }),
       },

@@ -46,13 +46,13 @@ const summary = await runAll(
       generateReport: true,
     },
     runtime: {
-      prepareCartFixture: async (ctx) => {
-        ctx.state.cartFixture = { scenario: ctx.input?.scenario };
+      prepareCartFixture: async (input, ctx) => {
+        ctx.state.cartFixture = { scenario: input?.scenario };
         return {
-          conclusion: `Prepared a "${ctx.input?.scenario}" cart fixture.`,
+          conclusion: `Prepared a "${input?.scenario}" cart fixture.`,
         };
       },
-      notify: async (ctx) => {
+      notify: async (_input, ctx) => {
         const failed = ctx.result.steps.filter((s) => s.status === 'failed');
         return {
           conclusion:

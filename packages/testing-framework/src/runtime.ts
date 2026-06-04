@@ -1,7 +1,9 @@
 /**
  * `defineRuntime` — custom YAML nodes (RFC §3).
  *
- * A runtime node owns a whole step's execution. It has two channels:
+ * A runtime node owns a whole step's execution. Its handler receives two
+ * arguments: `input` (this node's own YAML value) and `context` (the ambient
+ * execution context). It has two output channels:
  *  - `conclusion` (+ optional `output`): context-facing, flows into later
  *    verify/agent nodes.
  *  - `state`: engineering-facing TypeScript state shared between runtime
@@ -10,8 +12,6 @@
 import type { Agent, OutputStore, TestResultSoFar } from './types';
 
 export interface RuntimeNodeContext {
-  /** This node's YAML value (string or object). */
-  input: unknown;
   /** The UI Agent — runtime nodes may also drive the page. */
   uiAgent: Agent;
   /** All past context-facing outputs (read-only). */
@@ -35,7 +35,9 @@ export interface RuntimeNodeResult {
 }
 
 export type RuntimeNode = (
-  ctx: RuntimeNodeContext,
+  /** This node's YAML value (string or object). */
+  input: unknown,
+  context: RuntimeNodeContext,
 ) => Promise<RuntimeNodeResult>;
 
 /**

@@ -215,10 +215,12 @@ flow:
 ## 3. `defineRuntime` —— 自定义节点（更底层扩展）
 
 ```ts
-type RuntimeNode = (ctx: RuntimeNodeContext) => Promise<RuntimeNodeResult>;
+type RuntimeNode = (
+  input: unknown,                 // 该节点的 YAML 值（字符串或 object）
+  context: RuntimeNodeContext,
+) => Promise<RuntimeNodeResult>;
 
 interface RuntimeNodeContext {
-  input: unknown;                 // 该节点的 YAML 值（字符串或 object）
   uiAgent: Agent;                 // UI Agent，runtime 也可驱动页面
   outputs: OutputStore;           // 所有过往"面向上下文的输出"（只读）
   state: Record<string, unknown>; // ★ TS 侧状态，agent 看不到（见 §7）
@@ -235,6 +237,7 @@ function defineRuntime(node: RuntimeNode): RuntimeNode;
 ```
 
 要点：
+- 节点入参拆成两个：`input`（这个节点自己的 YAML 值）+ `context`（环境上下文）。
 - `conclusion`（和可选 `output`）= **面向上下文信道**，进后续 `verify` / `agent`。
 - `state` = **面向工程信道**，runtime 节点之间传结构化数据，**不进 agent 上下文**。
 - runtime 抛错 → 该 case 失败。

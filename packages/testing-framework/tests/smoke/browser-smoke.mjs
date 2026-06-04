@@ -83,9 +83,9 @@ flow:
     uiAgent: agent,
     generalAgent: stubGeneralAgent,
     runtimeNodes: {
-      prepareCartFixture: defineRuntime(async (ctx) => {
-        ctx.state.fixture = { scenario: ctx.input?.scenario };
-        return { conclusion: `prepared ${ctx.input?.scenario} fixture` };
+      prepareCartFixture: defineRuntime(async (input, ctx) => {
+        ctx.state.fixture = { scenario: input?.scenario };
+        return { conclusion: `prepared ${input?.scenario} fixture` };
       }),
     },
     projectRoot: repoRoot,
