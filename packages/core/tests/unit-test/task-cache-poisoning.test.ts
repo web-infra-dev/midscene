@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { type LocateCache, TaskCache } from '@/agent';
 import { uuid } from '@midscene/shared/utils';
 import { describe, expect, it } from 'vitest';
@@ -112,5 +115,63 @@ describe('locate cache poisoning regression (#2529)', () => {
     expect(internal.cache.caches).toHaveLength(2);
     expect(internal.cache.caches[0].cache?.xpaths).toEqual(['row/1']);
     expect(internal.cache.caches[1].cache?.xpaths).toEqual(['row/2']);
+  });
+
+  it('overwrites a consumed entry when the same prompt overflows (known limitation)', () => {
+    // Documents the accepted trade-off in updateOrAppendCacheRecord: when a
+    // prompt is located more times in one run than it has cached entries, the
+    // extra (genuine) miss overwrites the most recently consumed entry instead
+    // of appending. This layer cannot distinguish it from real poisoning.
+    const cache = new TaskCache(uuid(), true);
+    const internal = getTaskCacheInternal(cache);
+    internal.cache.caches.push(
+      { type: 'locate', prompt: 'row action', cache: { xpaths: ['row/1'] } },
+      { type: 'locate', prompt: 'row action', cache: { xpaths: ['row/2'] } },
+    );
+    internal.cacheOriginalLength = 2;
+
+    // Three occurrences in one run: the first two hit, the third misses.
+    expect(
+      cache.matchLocateCache('row action')?.cacheContent.cache?.xpaths,
+    ).toEqual(['row/1']);
+    expect(
+      cache.matchLocateCache('row action')?.cacheContent.cache?.xpaths,
+    ).toEqual(['row/2']);
+    expect(cache.matchLocateCache('row action')).toBeUndefined();
+
+    cache.updateOrAppendCacheRecord(
+      { type: 'locate', prompt: 'row action', cache: { xpaths: ['row/3'] } },
+      undefined,
+    );
+
+    // The most recently consumed entry (index 1) is overwritten, not appended.
+    expect(internal.cache.caches).toHaveLength(2);
+    expect(internal.cache.caches[0].cache?.xpaths).toEqual(['row/1']);
+    expect(internal.cache.caches[1].cache?.xpaths).toEqual(['row/3']);
+  });
+
+  it('replaces in memory but does not flush to file in read-only mode', () => {
+    const filePath = join(tmpdir(), `mid-cache-${uuid()}.cache.yaml`);
+    const cache = new TaskCache(uuid(), true, filePath, { readOnly: true });
+    seedStaleLocate(cache, 'click submit', 'wrong/xpath');
+
+    expect(cache.matchLocateCache('click submit')).toBeDefined();
+    expect(cache.matchLocateCache('click submit')).toBeUndefined();
+
+    cache.updateOrAppendCacheRecord(
+      {
+        type: 'locate',
+        prompt: 'click submit',
+        cache: { xpaths: ['correct/xpath'] },
+      },
+      undefined,
+    );
+
+    const internal = getTaskCacheInternal(cache);
+    // In-memory entry is replaced in place...
+    expect(internal.cache.caches).toHaveLength(1);
+    expect(internal.cache.caches[0].cache?.xpaths).toEqual(['correct/xpath']);
+    // ...but nothing is written to disk in read-only mode.
+    expect(existsSync(filePath)).toBe(false);
   });
 });

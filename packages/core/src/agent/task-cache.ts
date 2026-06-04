@@ -146,8 +146,7 @@ export class TaskCache {
       return undefined;
     }
     // Find the first unused matching cache
-    const promptStr =
-      typeof prompt === 'string' ? prompt : JSON.stringify(prompt);
+    const promptStr = this.promptKey(prompt);
     for (let i = 0; i < this.cacheOriginalLength; i++) {
       const item = this.cache.caches[i];
       const key = `${type}:${promptStr}:${i}`;
@@ -403,25 +402,40 @@ export class TaskCache {
     }
   }
 
+  // Single source of truth for turning a prompt into a stable string key.
+  // matchCache and updateOrAppendCacheRecord must agree on this, otherwise a
+  // consumed entry can never be found again for in-place replacement.
+  private promptKey(prompt: TUserPrompt): string {
+    return typeof prompt === 'string' ? prompt : JSON.stringify(prompt);
+  }
+
+  // Copy the mutable payload of `newRecord` into an existing cache entry.
+  // Shared by the live-record update path and replaceCacheRecord so the field
+  // list lives in exactly one place. Caller guarantees same `type`.
+  private applyRecordInto(
+    target: PlanningCache | LocateCache,
+    newRecord: PlanningCache | LocateCache,
+  ) {
+    if (newRecord.type === 'plan') {
+      (target as PlanningCache).yamlWorkflow = newRecord.yamlWorkflow;
+    } else {
+      const locateCache = target as LocateCache;
+      locateCache.cache = newRecord.cache;
+      if ('xpaths' in locateCache) {
+        locateCache.xpaths = undefined;
+      }
+    }
+  }
+
   updateOrAppendCacheRecord(
     newRecord: PlanningCache | LocateCache,
     cachedRecord?: MatchCacheResult<PlanningCache | LocateCache>,
   ) {
     if (cachedRecord) {
       // update existing record
-      if (newRecord.type === 'plan') {
-        cachedRecord.updateFn((cache) => {
-          (cache as PlanningCache).yamlWorkflow = newRecord.yamlWorkflow;
-        });
-      } else {
-        cachedRecord.updateFn((cache) => {
-          const locateCache = cache as LocateCache;
-          locateCache.cache = newRecord.cache;
-          if ('xpaths' in locateCache) {
-            locateCache.xpaths = undefined;
-          }
-        });
-      }
+      cachedRecord.updateFn((cache) => {
+        this.applyRecordInto(cache, newRecord);
+      });
     } else {
       // No live MatchCacheResult was passed. During replanning a previous
       // locate may have consumed (marked-used) a cache entry for this prompt
@@ -429,11 +443,19 @@ export class TaskCache {
       // the retry, so we land here. Replace that consumed (stale) entry in
       // place instead of appending a duplicate — otherwise the stale entry is
       // matched first on the next run and re-triggers replanning forever.
-      const promptStr =
-        typeof newRecord.prompt === 'string'
-          ? newRecord.prompt
-          : JSON.stringify(newRecord.prompt);
-      const consumeKey = `${newRecord.type}:${promptStr}`;
+      //
+      // Known limitation: if the same prompt is located more times in one run
+      // than there are cached entries for it (e.g. the script added an extra
+      // same-prompt locate), the extra locate is a genuine cache miss but still
+      // finds a consumed index here and overwrites a still-valid entry instead
+      // of appending. This layer cannot tell that case apart from real
+      // poisoning, because both arrive as "consumed, then undefined match". The
+      // robust fix is to have the caller signal which entry actually failed; we
+      // accept the narrow overwrite for now since perpetual poisoning is the
+      // more common and more harmful failure. See the regression test
+      // "overwrites a consumed entry when the same prompt overflows" which pins
+      // this behavior.
+      const consumeKey = `${newRecord.type}:${this.promptKey(newRecord.prompt)}`;
       const consumed = this.consumedCacheIndices.get(consumeKey);
       const staleIndex = consumed?.pop();
       if (staleIndex !== undefined && this.cache.caches[staleIndex]) {
@@ -455,15 +477,14 @@ export class TaskCache {
     newRecord: PlanningCache | LocateCache,
   ) {
     const target = this.cache.caches[index];
-    if (newRecord.type === 'plan') {
-      (target as PlanningCache).yamlWorkflow = newRecord.yamlWorkflow;
-    } else {
-      const locateCache = target as LocateCache;
-      locateCache.cache = newRecord.cache;
-      if ('xpaths' in locateCache) {
-        locateCache.xpaths = undefined;
-      }
-    }
+    // Consumed indices are recorded per `${type}:${prompt}` in matchCache, which
+    // only stores entries whose `item.type === type`, so the target must share
+    // newRecord's type. Assert it to make the invariant explicit and fail fast.
+    assert(
+      target.type === newRecord.type,
+      `cache record type mismatch on replace: expected ${newRecord.type}, got ${target.type}`,
+    );
+    this.applyRecordInto(target, newRecord);
 
     if (this.readOnlyMode) {
       debug('read-only mode, cache replaced in memory but not flushed to file');
