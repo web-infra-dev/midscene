@@ -376,3 +376,11 @@ const device = new AndroidDevice('s4ey59', {
   remoteAdbPort: 5037,
 });
 ```
+
+:::info This refers to the adb server, not the device's adbd
+`remoteAdbHost` / `remoteAdbPort` (and their environment variables) point to the **adb server**, equivalent to `adb -H <host> -P <port>` (default port `5037`). They do **not** refer to the device's own adbd, nor to the `ip:port` of a device in `adb connect <ip:port>`.
+
+Note: these two options only take effect on an `AndroidDevice` instance. `getConnectedDevices()` (used to list devices) always connects to the local default adb server and is not affected by them.
+
+To drive a cloud / remote real device, the usual approach is: run `adb connect <device-ip:port>` in your terminal first to attach the device to your local adb server, then go through the normal `getConnectedDevices()` / `new AndroidDevice(deviceId)` flow — no `remoteAdbHost` needed. Only set `remoteAdbHost` / `remoteAdbPort` when the device is exposed through a **remote adb server**, pointing them at that remote adb server.
+:::
