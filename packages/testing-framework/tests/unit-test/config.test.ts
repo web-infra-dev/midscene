@@ -1,8 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defineMidsceneConfig } from '../../src/config';
 import { defineRuntime } from '../../src/runtime';
 
 describe('defineMidsceneConfig', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('accepts a config-style uiAgent object', () => {
     const config = defineMidsceneConfig({
       uiAgent: { type: 'web', options: { url: 'https://x.test' } },
@@ -19,11 +23,16 @@ describe('defineMidsceneConfig', () => {
     expect(typeof config.uiAgent).toBe('function');
   });
 
-  it('throws without uiAgent', () => {
-    expect(() =>
+  it('warns but does not throw without uiAgent', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const config =
       // @ts-expect-error intentionally missing
-      defineMidsceneConfig({ testDir: './e2e' }),
-    ).toThrow(/uiAgent/);
+      defineMidsceneConfig({ testDir: './e2e' });
+    expect(config.uiAgent).toBeUndefined();
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[Midscene]',
+      expect.stringMatching(/uiAgent/),
+    );
   });
 
   it('throws without testDir', () => {

@@ -1,4 +1,7 @@
+import { getDebug } from '@midscene/shared/logger';
 import type { MidsceneConfig } from './types';
+
+const warn = getDebug('testing-framework:config', { console: true });
 
 /**
  * Identity helper for `midscene.config.ts`, giving full type inference and a
@@ -9,8 +12,10 @@ export function defineMidsceneConfig(config: MidsceneConfig): MidsceneConfig {
     throw new Error('[midscene] defineMidsceneConfig expects a config object.');
   }
   if (!config.uiAgent) {
-    throw new Error(
-      '[midscene] midscene.config.ts must define a `uiAgent` (object or factory function).',
+    // A missing uiAgent is recoverable for some flows (e.g. cases that only use
+    // custom runtime nodes), so warn instead of failing the whole config load.
+    warn(
+      'midscene.config.ts does not define a `uiAgent` (object or factory function); ui/verify/soft/agent nodes will have no UI Agent to run against.',
     );
   }
   if (!config.testDir) {

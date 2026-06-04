@@ -14,10 +14,18 @@ export interface ResolvedUIAgent {
 }
 
 export async function createUIAgent(
-  uiAgent: UIAgent,
+  uiAgent: UIAgent | undefined,
   uiAgentOptions: UIAgentOptions | undefined,
   env: NodeJS.ProcessEnv,
 ): Promise<ResolvedUIAgent> {
+  if (!uiAgent) {
+    // `defineMidsceneConfig` only warns about a missing `uiAgent` (some flows
+    // use custom runtime nodes only). Once a case actually needs the UI Agent,
+    // fail with a clear, actionable message rather than a cryptic crash.
+    throw new Error(
+      '[midscene] This case needs a UI Agent, but `uiAgent` is not configured in midscene.config.ts. Add a `uiAgent` object or factory function.',
+    );
+  }
   if (typeof uiAgent === 'function') {
     // Programmatic factory: the project fully controls construction.
     const result = await uiAgent({ uiAgentOptions, env });
