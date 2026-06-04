@@ -26,7 +26,7 @@ function seedStaleLocate(taskCache: TaskCache, prompt: string, xpath: string) {
 }
 
 describe('locate cache poisoning regression (#2529)', () => {
-  it('replaces a consumed stale locate entry in place during replanning instead of appending', () => {
+  it('replaces a stale locate entry in place when the consumed hit was rejected', () => {
     const cache = new TaskCache(uuid(), true);
     seedStaleLocate(cache, 'click submit', 'wrong/xpath');
 
@@ -35,12 +35,14 @@ describe('locate cache poisoning regression (#2529)', () => {
     expect(matched).toBeDefined();
     expect(matched?.cacheContent.cache?.xpaths).toEqual(['wrong/xpath']);
 
+    // The action using that element failed -> the replan loop marks it stale.
+    cache.markLocateCacheStale('click submit');
+
     // Replanning re-locates the same prompt; the entry was already consumed,
     // so matchLocateCache now returns undefined.
-    const rematched = cache.matchLocateCache('click submit');
-    expect(rematched).toBeUndefined();
+    expect(cache.matchLocateCache('click submit')).toBeUndefined();
 
-    // The corrected locate result must replace the stale entry, not append.
+    // The corrected locate result replaces the stale entry, not append.
     cache.updateOrAppendCacheRecord(
       {
         type: 'locate',
@@ -53,6 +55,30 @@ describe('locate cache poisoning regression (#2529)', () => {
     const internal = getTaskCacheInternal(cache);
     expect(internal.cache.caches).toHaveLength(1);
     expect(internal.cache.caches[0].cache?.xpaths).toEqual(['correct/xpath']);
+  });
+
+  it('appends (does not replace) a consumed entry that was never marked stale', () => {
+    // Without a stale mark, a re-locate after a consumed hit must append, not
+    // overwrite — the prior hit may have been correct.
+    const cache = new TaskCache(uuid(), true);
+    seedStaleLocate(cache, 'click submit', 'first/xpath');
+
+    expect(cache.matchLocateCache('click submit')).toBeDefined();
+    expect(cache.matchLocateCache('click submit')).toBeUndefined();
+
+    cache.updateOrAppendCacheRecord(
+      {
+        type: 'locate',
+        prompt: 'click submit',
+        cache: { xpaths: ['second/xpath'] },
+      },
+      undefined,
+    );
+
+    const internal = getTaskCacheInternal(cache);
+    expect(internal.cache.caches).toHaveLength(2);
+    expect(internal.cache.caches[0].cache?.xpaths).toEqual(['first/xpath']);
+    expect(internal.cache.caches[1].cache?.xpaths).toEqual(['second/xpath']);
   });
 
   it('appends a new entry when nothing was consumed for the prompt', () => {
@@ -76,11 +102,12 @@ describe('locate cache poisoning regression (#2529)', () => {
     const cache = new TaskCache(uuid(), true);
     seedStaleLocate(cache, 'click submit', 'wrong/xpath');
 
-    // Consume the stale entry for "click submit".
+    // Consume and mark the stale entry for "click submit".
     expect(cache.matchLocateCache('click submit')).toBeDefined();
+    cache.markLocateCacheStale('click submit');
 
-    // A write for a different prompt must append, leaving the consumed entry
-    // untouched.
+    // A write for a different prompt must append, leaving the stale-marked
+    // entry untouched (the stale mark is keyed by prompt).
     cache.updateOrAppendCacheRecord(
       {
         type: 'locate',
@@ -117,11 +144,10 @@ describe('locate cache poisoning regression (#2529)', () => {
     expect(internal.cache.caches[1].cache?.xpaths).toEqual(['row/2']);
   });
 
-  it('overwrites a consumed entry when the same prompt overflows (known limitation)', () => {
-    // Documents the accepted trade-off in updateOrAppendCacheRecord: when a
-    // prompt is located more times in one run than it has cached entries, the
-    // extra (genuine) miss overwrites the most recently consumed entry instead
-    // of appending. This layer cannot distinguish it from real poisoning.
+  it('appends instead of overwriting when the same prompt overflows without failure', () => {
+    // Same prompt located more times than it has cached entries, and no hit was
+    // rejected: the extra miss must append a new entry, never overwrite a still
+    // valid one. This is the case Codex flagged (P2).
     const cache = new TaskCache(uuid(), true);
     const internal = getTaskCacheInternal(cache);
     internal.cache.caches.push(
@@ -144,10 +170,31 @@ describe('locate cache poisoning regression (#2529)', () => {
       undefined,
     );
 
-    // The most recently consumed entry (index 1) is overwritten, not appended.
-    expect(internal.cache.caches).toHaveLength(2);
+    // Both original entries are preserved; the third occurrence is appended.
+    expect(internal.cache.caches).toHaveLength(3);
     expect(internal.cache.caches[0].cache?.xpaths).toEqual(['row/1']);
-    expect(internal.cache.caches[1].cache?.xpaths).toEqual(['row/3']);
+    expect(internal.cache.caches[1].cache?.xpaths).toEqual(['row/2']);
+    expect(internal.cache.caches[2].cache?.xpaths).toEqual(['row/3']);
+  });
+
+  it('markLocateCacheStale is a no-op when nothing was consumed', () => {
+    const cache = new TaskCache(uuid(), true);
+    seedStaleLocate(cache, 'click submit', 'wrong/xpath');
+
+    // No matchLocateCache call -> nothing consumed -> marking is a no-op, so the
+    // following write appends rather than replaces.
+    cache.markLocateCacheStale('click submit');
+    cache.updateOrAppendCacheRecord(
+      {
+        type: 'locate',
+        prompt: 'click submit',
+        cache: { xpaths: ['correct/xpath'] },
+      },
+      undefined,
+    );
+
+    const internal = getTaskCacheInternal(cache);
+    expect(internal.cache.caches).toHaveLength(2);
   });
 
   it('replaces in memory but does not flush to file in read-only mode', () => {
@@ -156,6 +203,7 @@ describe('locate cache poisoning regression (#2529)', () => {
     seedStaleLocate(cache, 'click submit', 'wrong/xpath');
 
     expect(cache.matchLocateCache('click submit')).toBeDefined();
+    cache.markLocateCacheStale('click submit');
     expect(cache.matchLocateCache('click submit')).toBeUndefined();
 
     cache.updateOrAppendCacheRecord(

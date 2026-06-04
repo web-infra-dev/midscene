@@ -27,6 +27,7 @@ import type {
   PlanningAIResponse,
   PlanningAction,
   PlanningActionParamWaitFor,
+  PlanningLocateParam,
   ServiceDump,
   ServiceExtractOption,
   ServiceExtractParam,
@@ -286,6 +287,34 @@ export class TaskExecutor {
     });
   }
 
+  /**
+   * After a failed plan-execution batch, mark every cache-hit locate task in
+   * that batch (tasks at index >= fromIndex) as stale, so the upcoming replan's
+   * re-locate replaces the bad entry in place instead of appending a duplicate
+   * that would re-poison the cache on the next run (#2529).
+   */
+  private invalidateFailedCacheHitLocates(
+    runner: TaskRunner,
+    fromIndex: number,
+  ) {
+    if (!this.taskCache) {
+      return;
+    }
+    for (let i = fromIndex; i < runner.tasks.length; i++) {
+      const task = runner.tasks[i];
+      if (
+        task.type === 'Planning' &&
+        task.subType === 'Locate' &&
+        task.hitBy?.from === 'Cache'
+      ) {
+        const prompt = (task.param as PlanningLocateParam | undefined)?.prompt;
+        if (prompt) {
+          this.taskCache.markLocateCacheStale(prompt);
+        }
+      }
+    }
+  }
+
   private async runAction(
     userPrompt: string,
     modelConfigForPlanning: IModelConfig,
@@ -503,11 +532,17 @@ export class TaskExecutor {
       const initialTimeString = await this.getTimeString();
       conversationHistory.pendingFeedbackMessage += `Current time: ${initialTimeString}`;
 
+      const taskCountBeforeRun = runner.tasks.length;
       try {
         await session.appendAndRun(executables.tasks);
       } catch (error: any) {
         // errorFlag = true;
         errorCountInOnePlanningLoop++;
+        // The just-run batch failed and we are about to replan. Any locate task
+        // in it that was served from cache produced an element the action then
+        // rejected, so mark those cache entries stale; the re-locate will then
+        // replace them in place instead of appending a poisoning duplicate.
+        this.invalidateFailedCacheHitLocates(runner, taskCountBeforeRun);
         const timeString = await this.getTimeString();
         conversationHistory.pendingFeedbackMessage = `Time: ${timeString}, Error executing running tasks: ${error?.message || String(error)}`;
         debug(

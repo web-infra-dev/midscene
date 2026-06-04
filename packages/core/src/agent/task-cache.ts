@@ -67,10 +67,17 @@ export class TaskCache {
 
   private matchedCacheIndices: Set<string> = new Set(); // Track matched records
 
-  // Track, per `${type}:${promptStr}`, the in-memory indices of cache entries
-  // consumed by matchCache (most recent last). Used to replace a stale entry
-  // in place during replanning instead of appending a duplicate.
+  // Per `${type}:${promptStr}`, the in-memory indices of cache entries consumed
+  // by matchCache this run (most recent last). markLocateCacheStale() drains
+  // from here into staleCacheIndices when the consumed entry's element is
+  // rejected by a failed action.
   private consumedCacheIndices: Map<string, number[]> = new Map();
+
+  // Per `${type}:${promptStr}`, indices of consumed entries whose backing
+  // element was rejected (the action using it failed and the run replanned).
+  // Only these are replaced in place on the re-locate; every other write
+  // appends, so legitimately repeated prompts keep one entry per occurrence.
+  private staleCacheIndices: Map<string, number[]> = new Map();
 
   constructor(
     cacheId: string,
@@ -437,30 +444,17 @@ export class TaskCache {
         this.applyRecordInto(cache, newRecord);
       });
     } else {
-      // No live MatchCacheResult was passed. During replanning a previous
-      // locate may have consumed (marked-used) a cache entry for this prompt
-      // that pointed at the wrong element; matchCache then returns undefined on
-      // the retry, so we land here. Replace that consumed (stale) entry in
-      // place instead of appending a duplicate — otherwise the stale entry is
-      // matched first on the next run and re-triggers replanning forever.
-      //
-      // Known limitation: if the same prompt is located more times in one run
-      // than there are cached entries for it (e.g. the script added an extra
-      // same-prompt locate), the extra locate is a genuine cache miss but still
-      // finds a consumed index here and overwrites a still-valid entry instead
-      // of appending. This layer cannot tell that case apart from real
-      // poisoning, because both arrive as "consumed, then undefined match". The
-      // robust fix is to have the caller signal which entry actually failed; we
-      // accept the narrow overwrite for now since perpetual poisoning is the
-      // more common and more harmful failure. See the regression test
-      // "overwrites a consumed entry when the same prompt overflows" which pins
-      // this behavior.
+      // No live MatchCacheResult was passed. This is either a genuine first-time
+      // miss or a replanning re-locate after the previously matched entry was
+      // rejected. Only replace an entry that was explicitly marked stale (its
+      // element caused a failed action); otherwise append. Without this gate a
+      // legitimately repeated prompt — located more times than it has cached
+      // entries — would overwrite a still-valid entry instead of appending.
       const consumeKey = `${newRecord.type}:${this.promptKey(newRecord.prompt)}`;
-      const consumed = this.consumedCacheIndices.get(consumeKey);
-      const staleIndex = consumed?.pop();
+      const staleIndex = this.staleCacheIndices.get(consumeKey)?.pop();
       if (staleIndex !== undefined && this.cache.caches[staleIndex]) {
         debug(
-          'replacing consumed stale cache entry in place, type: %s, prompt: %s, index: %d',
+          'replacing stale cache entry in place, type: %s, prompt: %s, index: %d',
           newRecord.type,
           newRecord.prompt,
           staleIndex,
@@ -470,6 +464,32 @@ export class TaskCache {
         this.appendCache(newRecord);
       }
     }
+  }
+
+  /**
+   * Mark the most recently consumed locate cache entry for `prompt` as stale.
+   * Call this when an action that used the cache-hit element failed and the run
+   * is about to replan: the subsequent re-locate then replaces this entry in
+   * place instead of appending a duplicate, which would otherwise be matched
+   * first on the next run and re-trigger replanning forever (#2529).
+   *
+   * No-op when nothing was consumed for the prompt, so a plain first-time miss
+   * (and any repeated prompt that never failed) still appends normally.
+   */
+  markLocateCacheStale(prompt: TUserPrompt) {
+    const consumeKey = `locate:${this.promptKey(prompt)}`;
+    const index = this.consumedCacheIndices.get(consumeKey)?.pop();
+    if (index === undefined) {
+      return;
+    }
+    const stale = this.staleCacheIndices.get(consumeKey) ?? [];
+    stale.push(index);
+    this.staleCacheIndices.set(consumeKey, stale);
+    debug(
+      'marked locate cache entry as stale, prompt: %s, index: %d',
+      prompt,
+      index,
+    );
   }
 
   private replaceCacheRecord(
