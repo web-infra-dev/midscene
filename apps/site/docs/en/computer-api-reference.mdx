@@ -181,6 +181,12 @@ The `ComputerAgent` class extends `PageAgent<ComputerDevice>` and inherits all c
 - `aiLocate(description: string)`: Locate an element
 - And more...
 
+Instant actions are also available for direct, deterministic control once an element is located:
+
+- `aiTap()`, `aiDoubleClick()`, `aiRightClick()`, `aiHover()`: Mouse actions
+- `aiInput()`, `aiClearInput()`, `aiKeyboardPress()`: Keyboard actions
+- `aiScroll()`: Scroll action
+
 See [Common API Reference](./api) for details.
 
 ## Available Actions
@@ -215,12 +221,16 @@ await agent.aiAct('right-click on the desktop');
 await agent.aiAct('right-click on the file');
 ```
 
-#### MouseMove
+#### Hover (Mouse Move)
 
-Move mouse to an element.
+Move the mouse over an element, for example to reveal a hover menu or tooltip.
 
 ```typescript
+// Natural-language form
 await agent.aiAct('move mouse to the menu item');
+
+// Instant action: locate and hover in one call
+await agent.aiHover('the menu item "Products"');
 ```
 
 #### DragAndDrop
