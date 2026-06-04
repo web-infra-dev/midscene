@@ -1,15 +1,21 @@
 /**
- * AgentRuntimeAdapter — the swappable general-purpose agent layer (RFC §6,
- * design doc "swappable agent framework"). The default implementation wraps
- * Pi; teams can replace it with another agent SDK via `agentRuntime` in
- * `midscene.config.ts`.
+ * GeneralAgentAdapter — the swappable general-purpose agent layer (RFC §6,
+ * design doc "swappable agent framework"). It is the counterpart to the UI
+ * Agent (`ui-agent/`): the UI Agent *acts on* the page (`ui` nodes), while the
+ * general agent *reasons about* it and gates (`verify` / `soft` / `agent`
+ * nodes). The default implementation wraps Pi; teams can replace it via the
+ * `generalAgent` field in `midscene.config.ts`.
+ *
+ * Naming note: "runtime" is reserved for custom YAML nodes (`defineRuntime`,
+ * RFC §3) — this layer deliberately avoids that word to keep the two extension
+ * points distinct.
  *
  * Phase 0 keeps this interface deliberately minimal: a single `run` entry that
  * the engine calls for `verify` / `soft` / `agent` nodes.
  */
 import type { Verdict } from '../types';
 
-export interface AgentRunInput {
+export interface GeneralAgentInput {
   /**
    * Node kind. `verify` and `soft` both must produce a verdict; `agent` is
    * advisory and never produces one.
@@ -32,7 +38,7 @@ export interface AgentRunInput {
   projectRoot: string;
 }
 
-export interface AgentRunResult {
+export interface GeneralAgentResult {
   /** The agent's final natural-language message. */
   text: string;
   /**
@@ -42,8 +48,8 @@ export interface AgentRunResult {
   verdict?: Verdict;
 }
 
-export interface AgentRuntimeAdapter {
-  run(input: AgentRunInput): Promise<AgentRunResult>;
+export interface GeneralAgentAdapter {
+  run(input: GeneralAgentInput): Promise<GeneralAgentResult>;
   /** Release any underlying resources. */
   dispose?(): Promise<void>;
 }

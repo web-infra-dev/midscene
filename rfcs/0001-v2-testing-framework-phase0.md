@@ -6,7 +6,7 @@
 
 > 本稿目标：把"动手前必须先定的接口"钉死成可评审的草案。每节末尾的 **🔶 待讨论** 是我留的开放决策点。
 
-> **实现状态（Phase 0）**：本稿契约已落地为新包 `@midscene/testing-framework`（`packages/testing-framework`），含 `defineMidsceneConfig` / `defineRuntime`、v2 YAML 解析、节点引擎（`ui`/`verify`/`soft`/`agent`/自定义）、上下文装配、verify fail-closed 判定、默认 Pi agent 运行时（已解决 C′），以及一个轻量 runner 与 CLI（`midscene-tf`）。可 copy 演示的样例在仓库根 `example/`。唯一开放项 C′ 已落实（见 §4.1）。
+> **实现状态（Phase 0）**：本稿契约已落地为新包 `@midscene/testing-framework`（`packages/testing-framework`），含 `defineMidsceneConfig` / `defineRuntime`、v2 YAML 解析、节点引擎（`ui`/`verify`/`soft`/`agent`/自定义）、上下文装配、verify fail-closed 判定、默认 Pi 通用 agent（已解决 C′），以及一个轻量 runner 与 CLI（`midscene-tf`）。可 copy 演示的样例在仓库根 `example/`。唯一开放项 C′ 已落实（见 §4.1）。
 
 ---
 
@@ -107,7 +107,7 @@ export default defineMidsceneConfig({
 
   // —— 扩展点 ——
   runtime?: Record<string, RuntimeNode>;         // 自定义 YAML 节点（§3）
-  agentRuntime?: AgentRuntimeAdapter;            // Pi 的替换点（§6）
+  generalAgent?: GeneralAgentAdapter;            // Pi 的替换点（§6）
 });
 ```
 
@@ -315,7 +315,7 @@ const model = registry.find('midscene', process.env.MIDSCENE_MODEL_NAME);
 const { session } = await createAgentSession({ model, modelRegistry: registry, authStorage, ... });
 ```
 
-这样 `verify`/`agent`（Pi）与 `ui`（Midscene UI Agent）走**同一个 `MIDSCENE_MODEL_BASE_URL` 端点**，零 Pi 改动。实现见 `@midscene/testing-framework` 的 `PiAgentRuntime`（`src/agent-runtime/pi-runtime.ts`），并有 `tests/smoke/pi-wiring.mjs` 验证（provider 注册 / apiKey 解析 / session 选模型 / `report_verdict` customTool 激活）均通过。
+这样 `verify`/`agent`（Pi）与 `ui`（Midscene UI Agent）走**同一个 `MIDSCENE_MODEL_BASE_URL` 端点**，零 Pi 改动。实现见 `@midscene/testing-framework` 的 `PiGeneralAgent`（`src/general-agent/pi-general-agent.ts`），并有 `tests/smoke/pi-wiring.mjs` 验证（provider 注册 / apiKey 解析 / session 选模型 / `report_verdict` customTool 激活）均通过。
 
 > 注：`MIDSCENE_MODEL_EXTRA_BODY_JSON`（如 `{"service_tier":"fast"}`）只对 `ui` 节点的 Midscene UI Agent 生效；Phase 0 未把它透传给 Pi 节点（属性能优化、非正确性，后续可经 stream `onPayload` 接入）。
 
@@ -455,7 +455,7 @@ flow:
 
 | # | 事项 | 状态 |
 |---|---|---|
-| C′ | Pi 能否指定自定义模型 **base URL**（对齐 `MIDSCENE_MODEL_BASE_URL`），让 verify/agent 与 ui 同端点 | ✅ **已落实**：经 `ModelRegistry.registerProvider({ baseUrl, apiKey, models })` 实现，见 §4.1 与 `PiAgentRuntime` |
+| C′ | Pi 能否指定自定义模型 **base URL**（对齐 `MIDSCENE_MODEL_BASE_URL`），让 verify/agent 与 ui 同端点 | ✅ **已落实**：经 `ModelRegistry.registerProvider({ baseUrl, apiKey, models })` 实现，见 §4.1 与 `PiGeneralAgent` |
 
 （无剩余待对接项。）
 
@@ -463,7 +463,7 @@ flow:
 
 ## 附：Phase 0 之后（不在本稿讨论范围，仅备忘）
 
-- Pi `AgentRuntimeAdapter` 的最小接口（让 Codex Agent SDK 等可替换）。
+- Pi `GeneralAgentAdapter` 的最小接口（让 Codex Agent SDK 等可替换）。
 - Rstest 接线：用例 → 虚拟测试模块 → 生命周期/fixture 映射。
 - 报告：复用 core `ReportGenerator`，把 verify verdict / agent 诊断如何呈现。
 - v1→v2 转译器（可选、外挂）。

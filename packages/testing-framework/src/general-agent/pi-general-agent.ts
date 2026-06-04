@@ -1,8 +1,8 @@
 /**
- * Default agent runtime, backed by Pi (`@earendil-works/pi-coding-agent`).
+ * Default general agent, backed by Pi (`@earendil-works/pi-coding-agent`).
  *
- * This is the Phase 0 implementation of the swappable agent layer used by
- * `verify` / `soft` / `agent` nodes.
+ * This is the Phase 0 implementation of the swappable general agent layer used
+ * by `verify` / `soft` / `agent` nodes.
  *
  * Decision C′ (RFC §4.1 / §10) — RESOLVED here. Pi exposes
  * `ModelRegistry.registerProvider({ baseUrl, apiKey, models })`, which lets us
@@ -26,16 +26,16 @@ import {
 import { getDebug } from '@midscene/shared/logger';
 import type { Verdict } from '../types';
 import type {
-  AgentRunInput,
-  AgentRunResult,
-  AgentRuntimeAdapter,
+  GeneralAgentAdapter,
+  GeneralAgentInput,
+  GeneralAgentResult,
 } from './types';
 
 const debug = getDebug('testing-framework:pi');
 
 const PROVIDER_NAME = 'midscene';
 
-export interface PiRuntimeOptions {
+export interface PiGeneralAgentOptions {
   /** Endpoint base URL. Defaults to MIDSCENE_MODEL_BASE_URL. */
   baseUrl?: string;
   /** API key. Defaults to MIDSCENE_MODEL_API_KEY. */
@@ -55,15 +55,15 @@ interface PreparedModel {
 }
 
 /**
- * Pi-backed implementation of {@link AgentRuntimeAdapter}.
+ * Pi-backed implementation of {@link GeneralAgentAdapter}.
  */
-export class PiAgentRuntime implements AgentRuntimeAdapter {
+export class PiGeneralAgent implements GeneralAgentAdapter {
   private prepared?: PreparedModel;
   private readonly loaderCache = new Map<string, DefaultResourceLoader>();
 
-  constructor(private readonly options: PiRuntimeOptions = {}) {}
+  constructor(private readonly options: PiGeneralAgentOptions = {}) {}
 
-  async run(input: AgentRunInput): Promise<AgentRunResult> {
+  async run(input: GeneralAgentInput): Promise<GeneralAgentResult> {
     const prepared = this.prepareModel();
     const loader = await this.getResourceLoader(input.projectRoot);
 
@@ -146,7 +146,7 @@ export class PiAgentRuntime implements AgentRuntimeAdapter {
     }
   }
 
-  private buildPrompt(input: AgentRunInput): string {
+  private buildPrompt(input: GeneralAgentInput): string {
     const parts = [input.context];
     if (input.referencedSkills.length > 0) {
       parts.push('');
@@ -168,18 +168,18 @@ export class PiAgentRuntime implements AgentRuntimeAdapter {
 
     if (!baseUrl) {
       throw new Error(
-        '[midscene] Pi agent runtime requires MIDSCENE_MODEL_BASE_URL ' +
-          '(or PiRuntimeOptions.baseUrl) so verify/agent share the UI Agent endpoint.',
+        '[midscene] Pi general agent requires MIDSCENE_MODEL_BASE_URL ' +
+          '(or PiGeneralAgentOptions.baseUrl) so verify/agent share the UI Agent endpoint.',
       );
     }
     if (!apiKey) {
       throw new Error(
-        '[midscene] Pi agent runtime requires MIDSCENE_MODEL_API_KEY (or PiRuntimeOptions.apiKey).',
+        '[midscene] Pi general agent requires MIDSCENE_MODEL_API_KEY (or PiGeneralAgentOptions.apiKey).',
       );
     }
     if (!modelName) {
       throw new Error(
-        '[midscene] Pi agent runtime requires MIDSCENE_MODEL_NAME (or PiRuntimeOptions.modelName).',
+        '[midscene] Pi general agent requires MIDSCENE_MODEL_NAME (or PiGeneralAgentOptions.modelName).',
       );
     }
 

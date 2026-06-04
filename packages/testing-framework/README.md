@@ -67,8 +67,8 @@ const { config } = await loadConfig(process.cwd());
 const summary = await runAll(config);
 ```
 
-## Swapping the agent layer
+## Swapping the general agent
 
-The `verify`/`soft`/`agent` runtime is swappable. Provide your own
-`agentRuntime` (an `AgentRuntimeAdapter`) in `midscene.config.ts` to replace the
-default Pi-backed implementation.
+The general agent that backs `verify`/`soft`/`agent` is swappable. Provide your
+own `generalAgent` (a `GeneralAgentAdapter`) in `midscene.config.ts` to replace
+the default Pi-backed implementation.

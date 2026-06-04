@@ -66,7 +66,7 @@ flow:
 
   let sawScreenshot = false;
   let sawConclusion = false;
-  const stubRuntime = {
+  const stubGeneralAgent = {
     run: async (input) => {
       sawScreenshot = Boolean(input.screenshotBase64);
       sawConclusion = input.context.includes('smoke');
@@ -81,7 +81,7 @@ flow:
     parsed,
     file: 'smoke.yaml',
     uiAgent: agent,
-    agentRuntime: stubRuntime,
+    generalAgent: stubGeneralAgent,
     runtimeNodes: {
       prepareCartFixture: defineRuntime(async (ctx) => {
         ctx.state.fixture = { scenario: ctx.input?.scenario };

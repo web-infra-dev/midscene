@@ -4,7 +4,7 @@
  */
 import type { Agent } from '@midscene/core/agent';
 import type { AgentOpt } from '@midscene/core/agent';
-import type { AgentRuntimeAdapter } from '../agent-runtime/types';
+import type { GeneralAgentAdapter } from '../general-agent/types';
 import type { RuntimeNode } from '../runtime';
 
 /** Platforms the framework can build a UI Agent for out of the box. */
@@ -76,8 +76,8 @@ export interface MidsceneConfig {
   // —— extension points ——
   /** Custom YAML nodes (RFC §3). */
   runtime?: Record<string, RuntimeNode>;
-  /** Replacement for the default Pi-backed agent layer (RFC §6). */
-  agentRuntime?: AgentRuntimeAdapter;
+  /** Replacement for the default Pi-backed general agent layer (RFC §6). */
+  generalAgent?: GeneralAgentAdapter;
 }
 
 /** Defaults applied when reading a config. */

@@ -6,7 +6,7 @@
  *  - the node model, verdict contract, output contract, context-assembly
  *    contract (as types)
  *  - a lightweight runner (`runAll`) and CLI (`midscene-tf`)
- *  - the default Pi-backed agent runtime with a custom model base URL
+ *  - the default Pi-backed general agent with a custom model base URL
  *    (decision C′, RFC §4.1)
  */
 
@@ -47,15 +47,15 @@ export type {
   BuiltinNodeType,
 } from './types';
 
-// —— agent runtime (swappable) ——
+// —— general agent (swappable) ——
 export type {
-  AgentRuntimeAdapter,
-  AgentRunInput,
-  AgentRunResult,
-} from './agent-runtime/types';
-export { PiAgentRuntime } from './agent-runtime/pi-runtime';
-export type { PiRuntimeOptions } from './agent-runtime/pi-runtime';
-export { extractSkillReferences } from './agent-runtime/skills';
+  GeneralAgentAdapter,
+  GeneralAgentInput,
+  GeneralAgentResult,
+} from './general-agent/types';
+export { PiGeneralAgent } from './general-agent/pi-general-agent';
+export type { PiGeneralAgentOptions } from './general-agent/pi-general-agent';
+export { extractSkillReferences } from './general-agent/skills';
 
 // —— YAML ——
 export { parseCaseYaml } from './yaml/parse';

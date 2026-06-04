@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { extractSkillReferences } from '../../src/agent-runtime/skills';
 import { assembleContext } from '../../src/context/assembler';
 import { OutputStoreImpl } from '../../src/engine/output-store';
+import { extractSkillReferences } from '../../src/general-agent/skills';
 import type { StepResult } from '../../src/types';
 
 describe('extractSkillReferences', () => {

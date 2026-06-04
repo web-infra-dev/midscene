@@ -1,10 +1,10 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, resolve } from 'node:path';
 import { getDebug } from '@midscene/shared/logger';
-import { PiAgentRuntime } from '../agent-runtime/pi-runtime';
-import type { AgentRuntimeAdapter } from '../agent-runtime/types';
 import { DEFAULT_INCLUDE, type MidsceneConfig } from '../config/types';
 import { runCase } from '../engine/run-case';
+import { PiGeneralAgent } from '../general-agent/pi-general-agent';
+import type { GeneralAgentAdapter } from '../general-agent/types';
 import type { CaseResult, RunSummary } from '../types';
 import { createUIAgent } from '../ui-agent/factory';
 import { parseCaseYaml } from '../yaml/parse';
@@ -45,8 +45,8 @@ export async function runAll(
 
   debug('discovered cases', files);
 
-  const agentRuntime: AgentRuntimeAdapter =
-    config.agentRuntime ?? new PiAgentRuntime();
+  const generalAgent: GeneralAgentAdapter =
+    config.generalAgent ?? new PiGeneralAgent();
   const runtimeNodes = config.runtime ?? {};
 
   const startedAt = new Date();
@@ -69,7 +69,7 @@ export async function runAll(
         parsed,
         file,
         uiAgent: agent,
-        agentRuntime,
+        generalAgent,
         runtimeNodes,
         projectRoot,
         env,
@@ -86,7 +86,7 @@ export async function runAll(
     }
   }
 
-  await agentRuntime.dispose?.();
+  await generalAgent.dispose?.();
 
   const finishedAt = new Date();
   const summary: RunSummary = {

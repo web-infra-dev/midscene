@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import type {
-  AgentRunInput,
-  AgentRunResult,
-  AgentRuntimeAdapter,
-} from '../../src/agent-runtime/types';
 import { runCase } from '../../src/engine/run-case';
+import type {
+  GeneralAgentAdapter,
+  GeneralAgentInput,
+  GeneralAgentResult,
+} from '../../src/general-agent/types';
 import { defineRuntime } from '../../src/runtime';
 import type { Agent } from '../../src/types';
 import { parseCaseYaml } from '../../src/yaml/parse';
@@ -22,9 +22,9 @@ function fakeAgent(overrides: Partial<Record<string, unknown>> = {}): Agent {
   return agent as unknown as Agent;
 }
 
-function fakeRuntime(
-  handler: (input: AgentRunInput) => AgentRunResult,
-): AgentRuntimeAdapter {
+function fakeGeneralAgent(
+  handler: (input: GeneralAgentInput) => GeneralAgentResult,
+): GeneralAgentAdapter {
   return { run: async (input) => handler(input) };
 }
 
@@ -42,7 +42,7 @@ describe('runCase node semantics', () => {
       parsed,
       file: 'c.yaml',
       uiAgent: fakeAgent(),
-      agentRuntime: fakeRuntime(() => ({ text: '' })),
+      generalAgent: fakeGeneralAgent(() => ({ text: '' })),
     });
     expect(result.status).toBe('passed');
     expect(result.steps[0].output?.text).toBe('did the thing');
@@ -55,7 +55,7 @@ describe('runCase node semantics', () => {
       parsed,
       file: 'c.yaml',
       uiAgent: fakeAgent(),
-      agentRuntime: fakeRuntime(() => ({
+      generalAgent: fakeGeneralAgent(() => ({
         text: 'looks good',
         verdict: { pass: true, reason: 'all good' },
       })),
@@ -72,7 +72,7 @@ describe('runCase node semantics', () => {
       parsed,
       file: 'c.yaml',
       uiAgent,
-      agentRuntime: fakeRuntime(() => ({
+      generalAgent: fakeGeneralAgent(() => ({
         text: 'nope',
         verdict: { pass: false, reason: 'missing' },
       })),
@@ -88,7 +88,7 @@ describe('runCase node semantics', () => {
       parsed,
       file: 'c.yaml',
       uiAgent: fakeAgent(),
-      agentRuntime: fakeRuntime(() => ({ text: 'I am not sure' })),
+      generalAgent: fakeGeneralAgent(() => ({ text: 'I am not sure' })),
     });
     expect(result.status).toBe('failed');
     expect(result.steps[0].verdict?.pass).toBe(false);
@@ -102,7 +102,7 @@ describe('runCase node semantics', () => {
       parsed,
       file: 'c.yaml',
       uiAgent: fakeAgent(),
-      agentRuntime: fakeRuntime((input) =>
+      generalAgent: fakeGeneralAgent((input) =>
         input.kind === 'soft'
           ? { text: 'minor', verdict: { pass: false, reason: 'tiny glitch' } }
           : { text: '' },
@@ -120,7 +120,7 @@ describe('runCase node semantics', () => {
       parsed,
       file: 'c.yaml',
       uiAgent: fakeAgent(),
-      agentRuntime: {
+      generalAgent: {
         run: async () => {
           throw new Error('boom');
         },
@@ -141,7 +141,7 @@ describe('runCase node semantics', () => {
           throw new Error('click failed');
         }),
       }),
-      agentRuntime: fakeRuntime(() => ({ text: '' })),
+      generalAgent: fakeGeneralAgent(() => ({ text: '' })),
     });
     expect(result.status).toBe('failed');
     expect(result.steps[0].error).toMatch(/click failed/);
@@ -165,7 +165,7 @@ describe('runCase node semantics', () => {
       parsed,
       file: 'c.yaml',
       uiAgent: fakeAgent(),
-      agentRuntime: fakeRuntime((input) => {
+      generalAgent: fakeGeneralAgent((input) => {
         seen.push(input.context);
         return { text: 'ok', verdict: { pass: true, reason: 'fine' } };
       }),
@@ -184,7 +184,7 @@ describe('runCase node semantics', () => {
       parsed,
       file: 'c.yaml',
       uiAgent: fakeAgent(),
-      agentRuntime: fakeRuntime(() => ({ text: '' })),
+      generalAgent: fakeGeneralAgent(() => ({ text: '' })),
     });
     expect(result.status).toBe('failed');
     expect(result.steps[0].error).toMatch(/Unknown node/);

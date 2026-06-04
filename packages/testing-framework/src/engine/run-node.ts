@@ -1,7 +1,7 @@
 import type { Agent } from '@midscene/core/agent';
-import { extractSkillReferences } from '../agent-runtime/skills';
-import type { AgentRuntimeAdapter } from '../agent-runtime/types';
 import { assembleContext } from '../context/assembler';
+import { extractSkillReferences } from '../general-agent/skills';
+import type { GeneralAgentAdapter } from '../general-agent/types';
 import type { RuntimeNode, RuntimeNodeContext } from '../runtime';
 import type { StepOutput, StepResult, Verdict } from '../types';
 import { isBuiltinNode } from '../yaml/types';
@@ -9,7 +9,7 @@ import type { OutputStoreImpl } from './output-store';
 
 export interface RunNodeDeps {
   uiAgent: Agent;
-  agentRuntime: AgentRuntimeAdapter;
+  generalAgent: GeneralAgentAdapter;
   runtimeNodes: Record<string, RuntimeNode>;
   outputs: OutputStoreImpl;
   /** Shared engineering-facing state across runtime nodes. */
@@ -36,7 +36,6 @@ export interface RunNodeOutcome {
 export async function runNode(
   node: string,
   input: unknown,
-  index: number,
   deps: RunNodeDeps,
 ): Promise<RunNodeOutcome> {
   if (isBuiltinNode(node)) {
@@ -44,11 +43,11 @@ export async function runNode(
       case 'ui':
         return runUiNode(input as string, deps);
       case 'verify':
-        return runJudgmentNode('verify', input as string, index, deps);
+        return runJudgmentNode('verify', input as string, deps);
       case 'soft':
-        return runJudgmentNode('soft', input as string, index, deps);
+        return runJudgmentNode('soft', input as string, deps);
       case 'agent':
-        return runAgentNode(input as string, index, deps);
+        return runAgentNode(input as string, deps);
     }
   }
   return runCustomNode(node, input, deps);
@@ -77,7 +76,6 @@ async function runUiNode(
 async function runJudgmentNode(
   kind: 'verify' | 'soft',
   instruction: string,
-  index: number,
   deps: RunNodeDeps,
 ): Promise<RunNodeOutcome> {
   const { data, mediaType } = await captureScreenshot(deps.uiAgent);
@@ -88,7 +86,7 @@ async function runJudgmentNode(
     kind,
   });
 
-  const result = await deps.agentRuntime.run({
+  const result = await deps.generalAgent.run({
     kind,
     instruction,
     context,
@@ -122,7 +120,6 @@ async function runJudgmentNode(
 
 async function runAgentNode(
   instruction: string,
-  index: number,
   deps: RunNodeDeps,
 ): Promise<RunNodeOutcome> {
   const { data, mediaType } = await captureScreenshot(deps.uiAgent);
@@ -136,7 +133,7 @@ async function runAgentNode(
   // `agent` is advisory: its output never changes pass/fail. Even internal
   // errors are downgraded to a warning (RFC §8).
   try {
-    const result = await deps.agentRuntime.run({
+    const result = await deps.generalAgent.run({
       kind: 'agent',
       instruction,
       context,

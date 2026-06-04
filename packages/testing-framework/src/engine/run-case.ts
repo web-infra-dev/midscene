@@ -1,5 +1,5 @@
 import type { Agent } from '@midscene/core/agent';
-import type { AgentRuntimeAdapter } from '../agent-runtime/types';
+import type { GeneralAgentAdapter } from '../general-agent/types';
 import type { RuntimeNode } from '../runtime';
 import type { CaseResult, StepResult } from '../types';
 import type { ParsedCase } from '../yaml/types';
@@ -10,7 +10,7 @@ export interface RunCaseOptions {
   parsed: ParsedCase;
   file: string;
   uiAgent: Agent;
-  agentRuntime: AgentRuntimeAdapter;
+  generalAgent: GeneralAgentAdapter;
   runtimeNodes: Record<string, RuntimeNode>;
   projectRoot: string;
   env: NodeJS.ProcessEnv;
@@ -25,7 +25,7 @@ export async function runCase(options: RunCaseOptions): Promise<CaseResult> {
     parsed,
     file,
     uiAgent,
-    agentRuntime,
+    generalAgent,
     runtimeNodes,
     projectRoot,
     env,
@@ -45,7 +45,7 @@ export async function runCase(options: RunCaseOptions): Promise<CaseResult> {
 
     const deps: RunNodeDeps = {
       uiAgent,
-      agentRuntime,
+      generalAgent,
       runtimeNodes,
       outputs,
       state,
@@ -58,7 +58,7 @@ export async function runCase(options: RunCaseOptions): Promise<CaseResult> {
 
     let stepResult: StepResult;
     try {
-      const outcome = await runNode(step.node, step.input, index, deps);
+      const outcome = await runNode(step.node, step.input, deps);
       stepResult = {
         index,
         node: step.node,

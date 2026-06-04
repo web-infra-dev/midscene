@@ -3,11 +3,11 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it, vi } from 'vitest';
-import type {
-  AgentRunInput,
-  AgentRuntimeAdapter,
-} from '../../src/agent-runtime/types';
 import type { MidsceneConfig } from '../../src/config/types';
+import type {
+  GeneralAgentAdapter,
+  GeneralAgentInput,
+} from '../../src/general-agent/types';
 import { runAll } from '../../src/runner/run';
 import { defineRuntime } from '../../src/runtime';
 import type { Agent, RunSummary } from '../../src/types';
@@ -37,9 +37,9 @@ function fakeUiAgent(): Agent {
 
 describe('runner mock-model smoke (example cases)', () => {
   it('runs the example suite green with a mocked browser + model', async () => {
-    const seenVerify: AgentRunInput[] = [];
+    const seenVerify: GeneralAgentInput[] = [];
 
-    const mockRuntime: AgentRuntimeAdapter = {
+    const mockGeneralAgent: GeneralAgentAdapter = {
       run: async (input) => {
         if (input.kind === 'verify' || input.kind === 'soft') {
           seenVerify.push(input);
@@ -63,7 +63,7 @@ describe('runner mock-model smoke (example cases)', () => {
       include: ['**/*.yaml'],
       exclude: ['**/*.draft.yaml'],
       output: { summary: summaryPath },
-      agentRuntime: mockRuntime,
+      generalAgent: mockGeneralAgent,
       runtime: {
         prepareCartFixture: defineRuntime(async (ctx) => {
           const input = (ctx.input ?? {}) as { scenario?: string };
