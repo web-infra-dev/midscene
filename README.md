@@ -73,7 +73,7 @@ Use [Midscene Skills](https://github.com/web-infra-dev/midscene-skills) to contr
 
 ## ✨ Driven by Visual Language Model
 
-Midscene.js is all-in on the pure-vision route for UI actions: element localization and interactions are based on screenshots only. It supports visual-language models like `Qwen3-VL`, `Doubao-1.6-vision`, `gemini-3-pro`, and `UI-TARS`. For data extraction and page understanding, you can still opt in to include DOM when needed.
+Midscene.js is all-in on the pure-vision route for UI actions: element localization and interactions are based on screenshots only. It supports visual-language models like `Qwen3.x`, `Doubao-Seed-2.0`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`. For data extraction and page understanding, you can still opt in to include DOM when needed.
 
 * Pure-vision localization for UI actions; the DOM extraction mode is removed.
 * Works across web, mobile, desktop, and even `<canvas>` surfaces.
