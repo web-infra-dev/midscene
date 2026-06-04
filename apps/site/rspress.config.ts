@@ -130,13 +130,6 @@ export default defineConfig(async () => {
             link: '/showcases',
           },
           {
-            sectionHeaderText: 'UI Testing Framework',
-          },
-          {
-            text: 'Overview',
-            link: '/ui-testing-framework',
-          },
-          {
             sectionHeaderText: 'Web browser',
           },
           {
@@ -315,13 +308,6 @@ export default defineConfig(async () => {
           {
             text: '案例展示',
             link: '/zh/showcases',
-          },
-          {
-            sectionHeaderText: 'UI Testing Framework',
-          },
-          {
-            text: '专题总览',
-            link: '/zh/ui-testing-framework',
           },
           {
             sectionHeaderText: 'Web 浏览器',
