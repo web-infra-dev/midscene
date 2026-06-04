@@ -523,3 +523,13 @@ const device = new AndroidDevice('s4ey59', {
   remoteAdbPort: 5037,
 });
 ```
+
+:::info 这里指的是 adb server，不是设备的 adbd
+`remoteAdbHost` / `remoteAdbPort`(以及对应的环境变量)指向的是 **adb server** 的地址，等价于 `adb -H <host> -P <port>`，默认端口 `5037`。它**不是**设备本身的 adbd 地址，也不是 `adb connect <ip:port>` 里设备的 ip:port。
+
+需要注意:这两个参数只对 `AndroidDevice` 实例生效；而 `getConnectedDevices()`(用于列举设备)始终连接本地默认的 adb server，不受这两个参数影响。
+
+**什么时候需要设置 `remoteAdbHost`?** 只有当云真机 / 远程设备是通过一个独立的**远端 adb server** 暴露时才需要——此时把 `remoteAdbHost` / `remoteAdbPort` 指向那个远端 adb server。
+
+如果云真机是挂在本地 adb server 上(即先在终端执行 `adb connect <设备ip:port>`)，则**不需要**设置 `remoteAdbHost`，直接走正常的 `getConnectedDevices()` / `new AndroidDevice(deviceId)` 流程即可。
+:::
