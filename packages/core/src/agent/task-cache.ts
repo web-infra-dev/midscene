@@ -67,6 +67,11 @@ export class TaskCache {
 
   private matchedCacheIndices: Set<string> = new Set(); // Track matched records
 
+  // Track, per `${type}:${promptStr}`, the in-memory indices of cache entries
+  // consumed by matchCache (most recent last). Used to replace a stale entry
+  // in place during replanning instead of appending a duplicate.
+  private consumedCacheIndices: Map<string, number[]> = new Map();
+
   constructor(
     cacheId: string,
     isCacheResultUsed: boolean,
@@ -161,6 +166,10 @@ export class TaskCache {
           }
         }
         this.matchedCacheIndices.add(key);
+        const consumeKey = `${type}:${promptStr}`;
+        const consumed = this.consumedCacheIndices.get(consumeKey) ?? [];
+        consumed.push(i);
+        this.consumedCacheIndices.set(consumeKey, consumed);
         debug(
           'cache found and marked as used, type: %s, prompt: %s, index: %d',
           type,
@@ -414,7 +423,53 @@ export class TaskCache {
         });
       }
     } else {
-      this.appendCache(newRecord);
+      // No live MatchCacheResult was passed. During replanning a previous
+      // locate may have consumed (marked-used) a cache entry for this prompt
+      // that pointed at the wrong element; matchCache then returns undefined on
+      // the retry, so we land here. Replace that consumed (stale) entry in
+      // place instead of appending a duplicate — otherwise the stale entry is
+      // matched first on the next run and re-triggers replanning forever.
+      const promptStr =
+        typeof newRecord.prompt === 'string'
+          ? newRecord.prompt
+          : JSON.stringify(newRecord.prompt);
+      const consumeKey = `${newRecord.type}:${promptStr}`;
+      const consumed = this.consumedCacheIndices.get(consumeKey);
+      const staleIndex = consumed?.pop();
+      if (staleIndex !== undefined && this.cache.caches[staleIndex]) {
+        debug(
+          'replacing consumed stale cache entry in place, type: %s, prompt: %s, index: %d',
+          newRecord.type,
+          newRecord.prompt,
+          staleIndex,
+        );
+        this.replaceCacheRecord(staleIndex, newRecord);
+      } else {
+        this.appendCache(newRecord);
+      }
     }
+  }
+
+  private replaceCacheRecord(
+    index: number,
+    newRecord: PlanningCache | LocateCache,
+  ) {
+    const target = this.cache.caches[index];
+    if (newRecord.type === 'plan') {
+      (target as PlanningCache).yamlWorkflow = newRecord.yamlWorkflow;
+    } else {
+      const locateCache = target as LocateCache;
+      locateCache.cache = newRecord.cache;
+      if ('xpaths' in locateCache) {
+        locateCache.xpaths = undefined;
+      }
+    }
+
+    if (this.readOnlyMode) {
+      debug('read-only mode, cache replaced in memory but not flushed to file');
+      return;
+    }
+
+    this.flushCacheToFile();
   }
 }
