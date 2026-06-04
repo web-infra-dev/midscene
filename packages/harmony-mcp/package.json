@@ -15,6 +15,11 @@
     "build:watch": "rslib build --watch --no-clean",
     "mcp-playground": "npx @modelcontextprotocol/inspector node ./dist/index.js"
   },
+  "dependencies": {
+    "@silvia-odwyer/photon": "0.3.3",
+    "@silvia-odwyer/photon-node": "0.3.3",
+    "sharp": "^0.34.3"
+  },
   "devDependencies": {
     "@midscene/harmony": "workspace:*",
     "@midscene/core": "workspace:*",
@@ -25,7 +30,6 @@
     "@rslib/core": "^0.18.3",
     "@rspack/core": "1.6.6",
     "@types/node": "^18.0.0",
-    "sharp": "^0.34.3",
     "typescript": "^5.8.3"
   },
   "license": "MIT"

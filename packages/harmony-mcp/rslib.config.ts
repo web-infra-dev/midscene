@@ -15,7 +15,16 @@ export default defineConfig({
     },
   },
   output: {
-    externals: ['@modelcontextprotocol/sdk'],
+    externals: [
+      // Keep the image libraries external. Bundling photon-node rewrites its
+      // `readFileSync(__dirname, 'photon_rs_bg.wasm')` to the dist dir, where
+      // the .wasm is never emitted, so the WASM module fails to initialize
+      // ("Cannot read properties of undefined (reading '__wbindgen_malloc')").
+      // Resolving from node_modules keeps the asset next to the module.
+      '@silvia-odwyer/photon',
+      '@silvia-odwyer/photon-node',
+      '@modelcontextprotocol/sdk',
+    ],
   },
   plugins: [createTypeCheckPlugin(), injectReportHtmlFromCore(__dirname)],
   tools: {
