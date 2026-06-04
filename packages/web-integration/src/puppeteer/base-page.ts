@@ -962,13 +962,12 @@ export class Page<
   }
   async longPress(x: number, y: number, duration?: number) {
     duration = duration || 500;
-    const LONG_PRESS_THRESHOLD = 600;
-    const MIN_PRESS_THRESHOLD = 300;
-    if (duration > LONG_PRESS_THRESHOLD) {
-      duration = LONG_PRESS_THRESHOLD;
-    }
-    if (duration < MIN_PRESS_THRESHOLD) {
-      duration = MIN_PRESS_THRESHOLD;
+    // Keep a lower bound so the press is registered as a long press rather than
+    // a click, but never cap the upper bound: the duration is the caller's
+    // intent (e.g. "hold for 6 seconds").
+    const MIN_LONG_PRESS_DURATION = 300;
+    if (duration < MIN_LONG_PRESS_DURATION) {
+      duration = MIN_LONG_PRESS_DURATION;
     }
     debugPage(`mouse longPress at ${x}, ${y} for ${duration}ms`);
     if (this.interfaceType === 'puppeteer') {
