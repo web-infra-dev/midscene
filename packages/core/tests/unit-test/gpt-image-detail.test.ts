@@ -1,5 +1,5 @@
+import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller';
-import { shouldForceOriginalImageDetail } from '@/ai-model/service-caller/image-detail';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -57,29 +57,8 @@ describe('GPT image detail handling', () => {
     });
   });
 
-  it('forces original detail only for gpt-5 default intent', () => {
-    expect(
-      shouldForceOriginalImageDetail({
-        modelFamily: 'gpt-5',
-        intent: 'default',
-      }),
-    ).toBe(true);
-    expect(
-      shouldForceOriginalImageDetail({
-        modelFamily: 'gpt-5',
-        intent: 'planning',
-      }),
-    ).toBe(false);
-    expect(
-      shouldForceOriginalImageDetail({
-        modelFamily: 'qwen3-vl',
-        intent: 'default',
-      }),
-    ).toBe(false);
-  });
-
   it('overrides image detail to original for gpt-5 default intent requests', async () => {
-    await callAI(imageMessage, baseModelConfig);
+    await callAI(imageMessage, getModelRuntime(baseModelConfig));
 
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -107,11 +86,14 @@ describe('GPT image detail handling', () => {
   });
 
   it('keeps the original image detail for non-default intents', async () => {
-    await callAI(imageMessage, {
-      ...baseModelConfig,
-      intent: 'planning',
-      slot: 'planning',
-    });
+    await callAI(
+      imageMessage,
+      getModelRuntime({
+        ...baseModelConfig,
+        intent: 'planning',
+        slot: 'planning',
+      }),
+    );
 
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -138,16 +120,16 @@ describe('GPT image detail handling', () => {
     );
   });
 
-  it('overrides image detail to original when forced by the caller', async () => {
+  it('overrides image detail to original when required by the caller and adapter', async () => {
     await callAI(
       imageMessage,
-      {
+      getModelRuntime({
         ...baseModelConfig,
         intent: 'planning',
         slot: 'planning',
-      },
+      }),
       {
-        forceOriginalImageDetail: true,
+        requiresOriginalImageDetail: true,
       },
     );
 
@@ -173,6 +155,35 @@ describe('GPT image detail handling', () => {
         ],
       }),
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it('lets extraBody override gpt-5 standard temperature policy', async () => {
+    await callAI(
+      imageMessage,
+      getModelRuntime({
+        ...baseModelConfig,
+        extraBody: {
+          temperature: 0.7,
+        },
+      }),
+    );
+
+    expect(mockCreate.mock.calls[0][0]).toHaveProperty('temperature', 0.7);
+  });
+
+  it('ignores standard model temperature for gpt-5', async () => {
+    await callAI(
+      imageMessage,
+      getModelRuntime({
+        ...baseModelConfig,
+        temperature: 0.7,
+      }),
+    );
+
+    expect(mockCreate.mock.calls[0][0]).toHaveProperty(
+      'temperature',
+      undefined,
     );
   });
 });

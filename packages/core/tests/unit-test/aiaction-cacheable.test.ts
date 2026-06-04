@@ -1,4 +1,5 @@
 import { TaskCache, TaskExecutor } from '@/agent';
+import { getModelRuntime } from '@/ai-model/models';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { ExecutionTask, ExecutionTaskApply } from '@/types';
@@ -8,24 +9,29 @@ import type Service from '../../src';
 import { getMidsceneLocationSchema, z } from '../../src';
 
 // Mock AI planning to avoid real AI calls
-vi.mock('@/ai-model/llm-planning', () => ({
-  plan: vi.fn().mockResolvedValue({
-    actions: [
-      {
-        type: 'Click',
-        param: {
-          locate: {
-            prompt: 'button',
+vi.mock('@/ai-model/workflows/planning', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/ai-model/workflows/planning')>();
+  return {
+    ...actual,
+    genericXmlPlan: vi.fn().mockResolvedValue({
+      actions: [
+        {
+          type: 'Click',
+          param: {
+            locate: {
+              prompt: 'button',
+            },
           },
+          thought: 'test thought',
         },
-        thought: 'test thought',
-      },
-    ],
-    more_actions_needed_by_instruction: false,
-    log: 'test log',
-    yamlFlow: [],
-  }),
-}));
+      ],
+      more_actions_needed_by_instruction: false,
+      log: 'test log',
+      yamlFlow: [],
+    }),
+  };
+});
 
 const createRuntimeTask = (task: ExecutionTaskApply): ExecutionTask => ({
   ...task,
@@ -131,14 +137,16 @@ describe('aiAction cacheable option propagation', () => {
     // Mock model config
     const mockModelConfig = {
       modelFamily: undefined,
-      model: 'test-model',
+      modelName: 'test-model',
+      modelDescription: 'test model',
+      intent: 'default',
     } as any;
 
     // Call convertPlanToExecutable with cacheable: false
     const { tasks } = await taskExecutor.convertPlanToExecutable(
       mockPlans,
-      mockModelConfig,
-      mockModelConfig,
+      getModelRuntime(mockModelConfig),
+      getModelRuntime(mockModelConfig),
       {
         cacheable: false,
       },
@@ -204,15 +212,21 @@ describe('aiAction cacheable option propagation', () => {
     });
 
     // Call action with cacheable: false
-    // @ts-ignore: historical skipped test uses the old action argument shape.
     const result = await taskExecutor.action(
       'click the button',
-      // @ts-ignore: historical skipped test passes the old model config argument shape.
-      {},
-      {},
+      getModelRuntime({
+        modelName: 'test-model',
+        modelDescription: 'test model',
+        intent: 'default',
+      } as any),
+      getModelRuntime({
+        modelName: 'test-model',
+        modelDescription: 'test model',
+        intent: 'default',
+      } as any),
+      true, // includeLocateInPlanning: true
       undefined,
       false, // cacheable: false
-      true, // includeBboxInPlanning: true
     );
 
     // Verify the result
@@ -244,14 +258,16 @@ describe('aiAction cacheable option propagation', () => {
     // Mock model config
     const mockModelConfig = {
       modelFamily: undefined,
-      model: 'test-model',
+      modelName: 'test-model',
+      modelDescription: 'test model',
+      intent: 'default',
     } as any;
 
     // Call convertPlanToExecutable without cacheable option (should default to allowing cache)
     const { tasks } = await taskExecutor.convertPlanToExecutable(
       mockPlans,
-      mockModelConfig,
-      mockModelConfig,
+      getModelRuntime(mockModelConfig),
+      getModelRuntime(mockModelConfig),
     );
 
     // Verify that we have tasks
@@ -285,14 +301,16 @@ describe('aiAction cacheable option propagation', () => {
     // Mock model config
     const mockModelConfig = {
       modelFamily: undefined,
-      model: 'test-model',
+      modelName: 'test-model',
+      modelDescription: 'test model',
+      intent: 'default',
     } as any;
 
     // Call convertPlanToExecutable with cacheable: true
     const { tasks } = await taskExecutor.convertPlanToExecutable(
       mockPlans,
-      mockModelConfig,
-      mockModelConfig,
+      getModelRuntime(mockModelConfig),
+      getModelRuntime(mockModelConfig),
       {
         cacheable: true,
       },

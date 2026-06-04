@@ -1,9 +1,6 @@
 import type { ElementCacheFeature, Point, Rect } from '@midscene/core';
-import {
-  AiJudgeOrderSensitive,
-  callAIWithObjectResponse,
-} from '@midscene/core/ai-model';
-import type { IModelConfig } from '@midscene/shared/env';
+import { AiJudgeOrderSensitive } from '@midscene/core/ai-model';
+import type { ModelRuntime } from '@midscene/core/ai-model';
 import type { DebugFunction } from '@midscene/shared/logger';
 
 // Shared type for web element cache feature
@@ -25,7 +22,7 @@ export const sanitizeXpaths = (xpaths: unknown): string[] => {
 // Cache feature extraction options interface
 export interface CacheFeatureOptions {
   targetDescription?: string;
-  modelConfig?: IModelConfig;
+  modelRuntime?: ModelRuntime;
 }
 
 // Shared logic for judging isOrderSensitive
@@ -33,14 +30,13 @@ export async function judgeOrderSensitive(
   options: CacheFeatureOptions | undefined,
   debug: DebugFunction,
 ): Promise<boolean> {
-  if (!options?.targetDescription || !options?.modelConfig) {
+  if (!options?.targetDescription || !options?.modelRuntime) {
     return false;
   }
   try {
     const judgeResult = await AiJudgeOrderSensitive(
       options.targetDescription,
-      callAIWithObjectResponse,
-      options.modelConfig,
+      options.modelRuntime,
     );
     debug(
       'judged isOrderSensitive=%s for description: %s',

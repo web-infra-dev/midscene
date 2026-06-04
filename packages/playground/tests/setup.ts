@@ -22,20 +22,26 @@ vi.mock('@midscene/shared/img/get-photon', () => ({
   default: vi.fn(),
 }));
 
-vi.mock('@midscene/shared/env', () => ({
-  overrideAIConfig: vi.fn(),
-  resetAIConfig: vi.fn(),
-  globalModelConfigManager: {
-    getModelConfig: vi.fn(() => ({
-      modelName: 'mock-model',
-    })),
-  },
-  globalConfigManager: {
-    get: vi.fn(() => ({})),
-    set: vi.fn(),
-    reset: vi.fn(),
-  },
-}));
+vi.mock('@midscene/shared/env', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@midscene/shared/env')>();
+  return {
+    ...actual,
+    overrideAIConfig: vi.fn(),
+    resetAIConfig: vi.fn(),
+    globalModelConfigManager: {
+      ...actual.globalModelConfigManager,
+      getModelConfig: vi.fn(() => ({
+        modelName: 'mock-model',
+      })),
+    },
+    globalConfigManager: {
+      ...actual.globalConfigManager,
+      get: vi.fn(() => ({})),
+      set: vi.fn(),
+      reset: vi.fn(),
+    },
+  };
+});
 
 // Mock findAllMidsceneLocatorField to detect locator fields in schema
 vi.mock('@midscene/core/ai-model', async (importOriginal) => {

@@ -15,7 +15,6 @@ vi.stubGlobal('chrome', {
 // Mock dependencies
 vi.mock('@midscene/core/ai-model', () => ({
   AiJudgeOrderSensitive: vi.fn(),
-  callAIWithObjectResponse: vi.fn(),
 }));
 
 vi.mock('@midscene/shared/logger', () => ({
@@ -77,23 +76,25 @@ describe('ChromeExtensionProxyPage cache methods', () => {
       expect(result).toEqual({ xpaths: [] });
     });
 
-    it('should call AiJudgeOrderSensitive when targetDescription and modelConfig are provided', async () => {
+    it('should call AiJudgeOrderSensitive when targetDescription and modelRuntime are provided', async () => {
       const mockXpaths = ['/html/body/div[1]'];
       vi.spyOn(page, 'getXpathsByPoint').mockResolvedValue(mockXpaths);
       vi.mocked(AiJudgeOrderSensitive).mockResolvedValue({
         isOrderSensitive: true,
       });
 
-      const modelConfig = { modelName: 'test-model' } as any;
+      const modelRuntime = {
+        config: { modelName: 'test-model' },
+        adapter: {},
+      } as any;
       await page.cacheFeatureForPoint([100, 200], {
         targetDescription: 'Click the submit button',
-        modelConfig,
+        modelRuntime,
       });
 
       expect(AiJudgeOrderSensitive).toHaveBeenCalledWith(
         'Click the submit button',
-        expect.any(Function),
-        modelConfig,
+        modelRuntime,
       );
       expect(page.getXpathsByPoint).toHaveBeenCalledWith(
         { left: 100, top: 200 },
@@ -108,7 +109,10 @@ describe('ChromeExtensionProxyPage cache methods', () => {
 
       await page.cacheFeatureForPoint([100, 200], {
         targetDescription: 'Click the submit button',
-        modelConfig: { modelName: 'test-model' } as any,
+        modelRuntime: {
+          config: { modelName: 'test-model' },
+          adapter: {},
+        } as any,
       });
 
       expect(page.getXpathsByPoint).toHaveBeenCalledWith(

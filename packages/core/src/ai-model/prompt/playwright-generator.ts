@@ -3,10 +3,10 @@ import type {
   StreamingCodeGenerationOptions,
 } from '@/types';
 import { PLAYWRIGHT_EXAMPLE_CODE } from '@midscene/shared/constants';
-import type { IModelConfig } from '@midscene/shared/env';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { callAI, callAIWithStringResponse } from '../index';
-// Import shared utilities and types from yaml-generator
+import type { ModelRuntime } from '../models';
+// Import shared utilities and types from yaml generation.
 import {
   type ChromeRecordedEvent,
   type EventCounts,
@@ -62,7 +62,7 @@ export {
 export const generatePlaywrightTest = async (
   events: ChromeRecordedEvent[],
   options: PlaywrightGenerationOptions,
-  modelConfig: IModelConfig,
+  modelRuntime: ModelRuntime,
 ): Promise<string> => {
   // Validate input
   validateEvents(events);
@@ -126,7 +126,7 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
     },
   ];
 
-  const response = await callAIWithStringResponse(prompt, modelConfig);
+  const response = await callAIWithStringResponse(prompt, modelRuntime);
 
   if (response?.content && typeof response.content === 'string') {
     return response.content;
@@ -141,7 +141,7 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
 export const generatePlaywrightTestStream = async (
   events: ChromeRecordedEvent[],
   options: PlaywrightGenerationOptions & StreamingCodeGenerationOptions,
-  modelConfig: IModelConfig,
+  modelRuntime: ModelRuntime,
 ): Promise<StreamingAIResponse> => {
   // Validate input
   validateEvents(events);
@@ -208,13 +208,13 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
 
   if (options.stream && options.onChunk) {
     // Use streaming
-    return await callAI(prompt, modelConfig, {
+    return await callAI(prompt, modelRuntime, {
       stream: true,
       onChunk: options.onChunk,
     });
   } else {
     // Fallback to non-streaming
-    const response = await callAIWithStringResponse(prompt, modelConfig);
+    const response = await callAIWithStringResponse(prompt, modelRuntime);
 
     if (response?.content && typeof response.content === 'string') {
       return {

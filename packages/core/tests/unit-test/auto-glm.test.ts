@@ -11,14 +11,13 @@ import {
   type TypeAction,
   type WaitAction,
   transformAutoGLMAction,
-} from '@/ai-model/auto-glm/actions';
+} from '@/ai-model/models/auto-glm/actions';
 import {
   extractValueAfter,
   parseAction,
   parseAutoGLMLocateResponse,
   parseAutoGLMResponse,
-} from '@/ai-model/auto-glm/parser';
-import { isAutoGLM } from '@/ai-model/auto-glm/util';
+} from '@/ai-model/models/auto-glm/parser';
 import { describe, expect, it } from 'vitest';
 
 const defaultSize = { width: 1080, height: 1920 };
@@ -296,11 +295,27 @@ describe('auto-glm actions transformation', () => {
     const result = transformAutoGLMAction(tapAction, defaultSize);
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe('Tap');
-    expect(result[0].param.locate.bbox).toHaveLength(4);
-    expect(result[0].param.locate.bbox[0]).toBeGreaterThanOrEqual(0);
-    expect(result[0].param.locate.bbox[2]).toBeLessThanOrEqual(
-      defaultSize.width,
+    expect(result[0].param.locate.locatedPixelBbox).toHaveLength(4);
+    expect(result[0].param.locate.locatedPixelBbox[0]).toBeGreaterThanOrEqual(
+      0,
     );
+    expect(result[0].param.locate.locatedPixelBbox[2]).toBeLessThanOrEqual(
+      defaultSize.width - 1,
+    );
+  });
+
+  it('should keep Tap locatedPixelBbox inside inclusive image bounds', () => {
+    const tapAction: TapAction = {
+      _metadata: 'do',
+      action: 'Tap',
+      element: [1000, 1000],
+    };
+
+    const result = transformAutoGLMAction(tapAction, defaultSize);
+
+    expect(result[0].param.locate.locatedPixelBbox).toEqual([
+      1068, 1900, 1079, 1919,
+    ]);
   });
 
   it('should transform Double Tap action to DoubleClick PlanningAction', () => {
@@ -547,26 +562,7 @@ describe('auto-glm actions transformation', () => {
   });
 });
 
-describe('auto-glm util functions', () => {
-  describe('isAutoGLM', () => {
-    it('should return true for auto-glm', () => {
-      expect(isAutoGLM('auto-glm')).toBe(true);
-    });
-
-    it('should return true for auto-glm-multilingual', () => {
-      expect(isAutoGLM('auto-glm-multilingual')).toBe(true);
-    });
-
-    it('should return false for other modelFamily', () => {
-      expect(isAutoGLM('qwen2.5-vl')).toBe(false);
-      expect(isAutoGLM('gemini')).toBe(false);
-    });
-
-    it('should return false for undefined', () => {
-      expect(isAutoGLM(undefined)).toBe(false);
-    });
-  });
-
+describe('auto-glm action helpers', () => {
   describe('swipe direction calculation', () => {
     it('should calculate left direction for swipe', () => {
       const swipeAction: SwipeAction = {

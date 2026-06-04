@@ -1,4 +1,4 @@
-import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
+import { type ModelRuntime, getModelRuntime } from '@/ai-model/models';
 import yaml from 'js-yaml';
 import type { TUserPrompt } from '../ai-model/index';
 import { ScreenshotItem } from '../screenshot-item';
@@ -57,6 +57,7 @@ import {
   type IModelConfig,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
   ModelConfigManager,
+  type TIntent,
   globalConfigManager,
   globalModelConfigManager,
 } from '@midscene/shared/env';
@@ -116,10 +117,6 @@ const normalizeScrollType = (
 
   return scrollType as ScrollParam['scrollType'];
 };
-
-const defaultReplanningCycleLimit = 20;
-const defaultVlmUiTarsReplanningCycleLimit = 40;
-const defaultAutoGlmReplanningCycleLimit = 100;
 
 export type AiActOptions = {
   cacheable?: boolean;
@@ -189,11 +186,6 @@ export class Agent<
     return this.opts.aiActContext ?? this.opts.aiActionContext;
   }
 
-  /**
-   * Flag to track if VL model warning has been shown
-   */
-  private hasWarnedNonVLModel = false;
-
   private executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
   private fullActionSpace: DeviceAction[];
@@ -206,11 +198,21 @@ export class Agent<
   }
 
   /**
-   * Ensures VL model warning is shown once when needed
+   * Fails fast for non-web interfaces when the model family is missing.
+   *
+   * Early Midscene web usage allowed running without `modelFamily` and falling
+   * back to a default bbox parser. Non-web users do not have that compatibility
+   * path, so this check helps surface configuration problems before spending a
+   * model call.
+   *
+   * Web flows validate missing locate model family at workflow boundaries:
+   * `Service.locate` throws when aiTap/aiType fallback to the default model for
+   * direct locate, and generic planning throws when aiAct asks a planning model
+   * to return inline locate coordinates. Those checks are intentionally placed
+   * where Midscene knows which model role should provide coordinate parsing.
    */
-  private ensureVLModelWarning() {
+  private assertModelFamilyForNonWebContext() {
     if (
-      !this.hasWarnedNonVLModel &&
       this.interface.interfaceType !== 'puppeteer' &&
       this.interface.interfaceType !== 'playwright' &&
       this.interface.interfaceType !== 'static' &&
@@ -218,31 +220,25 @@ export class Agent<
       this.interface.interfaceType !== 'page-over-chrome-extension-bridge'
     ) {
       this.modelConfigManager.throwErrorIfNonVLModel();
-      this.hasWarnedNonVLModel = true;
     }
   }
 
-  private resolveReplanningCycleLimit(
-    modelConfigForPlanning: IModelConfig,
-  ): number {
-    if (this.opts.replanningCycleLimit !== undefined) {
-      return this.opts.replanningCycleLimit;
-    }
+  private resolveReplanningCycleLimit(planningModel: ModelRuntime): number {
+    return (
+      this.opts.replanningCycleLimit ??
+      globalConfigManager.getEnvConfigValueAsNumber(
+        MIDSCENE_REPLANNING_CYCLE_LIMIT,
+      ) ??
+      planningModel.adapter.planning.defaultReplanningCycleLimit
+    );
+  }
 
-    return isUITars(modelConfigForPlanning.modelFamily)
-      ? defaultVlmUiTarsReplanningCycleLimit
-      : isAutoGLM(modelConfigForPlanning.modelFamily)
-        ? defaultAutoGlmReplanningCycleLimit
-        : defaultReplanningCycleLimit;
+  private resolveModelRuntime(intent: TIntent): ModelRuntime {
+    return getModelRuntime(this.modelConfigManager.getModelConfig(intent));
   }
 
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
     this.interface = interfaceInstance;
-
-    const envReplanningCycleLimit =
-      globalConfigManager.getEnvConfigValueAsNumber(
-        MIDSCENE_REPLANNING_CYCLE_LIMIT,
-      );
 
     this.opts = Object.assign(
       {
@@ -253,11 +249,6 @@ export class Agent<
         groupDescription: '',
       },
       opts || {},
-      opts?.replanningCycleLimit === undefined &&
-        envReplanningCycleLimit !== undefined &&
-        !Number.isNaN(envReplanningCycleLimit)
-        ? { replanningCycleLimit: envReplanningCycleLimit }
-        : {},
     );
     assertReportGenerationOptions(this.opts);
 
@@ -370,8 +361,10 @@ export class Agent<
   }
 
   async getUIContext(action?: ServiceAction): Promise<UIContext> {
-    // Check VL model configuration when UI context is first needed
-    this.ensureVLModelWarning();
+    // Some non-web flows, such as Android, need an Agent instance before they
+    // can call device methods via ADB, so defer missing modelFamily errors
+    // until UI context is actually requested.
+    this.assertModelFamilyForNonWebContext();
 
     // If page context is frozen, return the frozen context for all actions
     if (this.frozenUIContext) {
@@ -379,15 +372,12 @@ export class Agent<
       return this.frozenUIContext;
     }
 
-    const { modelFamily } = this.modelConfigManager.getModelConfig('default');
-
     const maxRetries = Agent.CONTEXT_RETRY_MAX;
     for (let attempt = 0; ; attempt++) {
       try {
         return await commonContextParser(this.interface, {
           uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
           screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
-          modelFamily,
         });
       } catch (error) {
         if (attempt < maxRetries && this.isRetryableContextError(error)) {
@@ -538,16 +528,14 @@ export class Agent<
     );
 
     // assume all operation in action space is related to locating
-    const defaultIntentModelConfig =
-      this.modelConfigManager.getModelConfig('default');
-    const modelConfigForPlanning =
-      this.modelConfigManager.getModelConfig('planning');
+    const defaultModel = this.resolveModelRuntime('default');
+    const planningModel = this.resolveModelRuntime('planning');
 
     const { output } = await this.taskExecutor.runPlans(
       title,
       plans,
-      modelConfigForPlanning,
-      defaultIntentModelConfig,
+      planningModel,
+      defaultModel,
     );
     return output;
   }
@@ -901,31 +889,28 @@ export class Agent<
     }
 
     const runAiAct = async () => {
-      const modelConfigForPlanning =
-        this.modelConfigManager.getModelConfig('planning');
-      // Controls the aiAct planning mode, such as sub-goal prompts and bbox strategy.
+      const planningModel = this.resolveModelRuntime('planning');
+      const defaultModel = this.resolveModelRuntime('default');
+      // Controls the aiAct planning mode, such as sub-goal prompts and locate result strategy.
       const deepThink = opt?.deepThink === true;
 
       const deepLocate = opt?.deepLocate;
 
-      const noIndividualLocateModel = modelConfigForPlanning.slot === 'default';
+      const noIndividualLocateModel = planningModel.config.slot === 'default';
 
-      const includeBboxInPlanning = !deepThink && noIndividualLocateModel;
+      const includeLocateInPlanning = !deepThink && noIndividualLocateModel;
 
-      debug('setting includeBboxInPlanning to', includeBboxInPlanning, {
+      debug('setting includeLocateInPlanning to', includeLocateInPlanning, {
         deepThink,
         noIndividualLocateModel,
       });
 
       const cacheable = opt?.cacheable;
-      const replanningCycleLimit = this.resolveReplanningCycleLimit(
-        modelConfigForPlanning,
-      );
-      // if vlm-ui-tars or auto-glm, plan cache is not used
-      const isVlmUiTars = isUITars(modelConfigForPlanning.modelFamily);
-      const isAutoGlm = isAutoGLM(modelConfigForPlanning.modelFamily);
+      const replanningCycleLimit =
+        this.resolveReplanningCycleLimit(planningModel);
+      const planCacheEnabled = planningModel.adapter.planning.cacheEnabled;
       const matchedCache =
-        isVlmUiTars || isAutoGlm || cacheable === false
+        !planCacheEnabled || cacheable === false
           ? undefined
           : this.taskCache?.matchPlanCache(taskPrompt);
       if (
@@ -949,9 +934,9 @@ export class Agent<
       const imagesIncludeCount: number = deepThink ? 2 : 1;
       const { output: actionOutput } = await this.taskExecutor.action(
         taskPrompt,
-        modelConfigForPlanning,
-        this.modelConfigManager.getModelConfig('default'),
-        includeBboxInPlanning,
+        planningModel,
+        defaultModel,
+        includeLocateInPlanning,
         this.aiActContext,
         cacheable,
         replanningCycleLimit,
@@ -1004,11 +989,11 @@ export class Agent<
     demand: ServiceExtractParam,
     opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<ReturnType> {
-    const modelConfig = this.modelConfigManager.getModelConfig('insight');
+    const modelRuntime = this.resolveModelRuntime('insight');
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       'Query',
       demand,
-      modelConfig,
+      modelRuntime,
       opt,
     );
     return output as ReturnType;
@@ -1018,13 +1003,13 @@ export class Agent<
     prompt: TUserPrompt,
     opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<boolean> {
-    const modelConfig = this.modelConfigManager.getModelConfig('insight');
+    const modelRuntime = this.resolveModelRuntime('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       'Boolean',
       textPrompt,
-      modelConfig,
+      modelRuntime,
       opt,
       multimodalPrompt,
     );
@@ -1035,13 +1020,13 @@ export class Agent<
     prompt: TUserPrompt,
     opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<number> {
-    const modelConfig = this.modelConfigManager.getModelConfig('insight');
+    const modelRuntime = this.resolveModelRuntime('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       'Number',
       textPrompt,
-      modelConfig,
+      modelRuntime,
       opt,
       multimodalPrompt,
     );
@@ -1052,13 +1037,13 @@ export class Agent<
     prompt: TUserPrompt,
     opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<string> {
-    const modelConfig = this.modelConfigManager.getModelConfig('insight');
+    const modelRuntime = this.resolveModelRuntime('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       'String',
       textPrompt,
-      modelConfig,
+      modelRuntime,
       opt,
       multimodalPrompt,
     );
@@ -1103,9 +1088,9 @@ export class Agent<
         deepLocate,
       );
       // use same intent as aiLocate
-      const modelConfig = this.modelConfigManager.getModelConfig('insight');
+      const modelRuntime = this.resolveModelRuntime('insight');
 
-      const text = await this.service.describe(center, modelConfig, {
+      const text = await this.service.describe(center, modelRuntime, {
         deepLocate,
       });
       debug('aiDescribe text', text);
@@ -1120,8 +1105,9 @@ export class Agent<
       // Don't pass deepLocate to verification locate — the description was generated
       // from a cropped view (deepLocate describe), but verification should use regular
       // locate on the full screenshot to confirm the description works universally.
-      // Passing deepLocate here would trigger AiLocateSection with an element-level
-      // description as a section prompt, which is semantically incorrect.
+      // Passing deepLocate here would add another first-pass locate and search-area
+      // crop around an already element-level description, which is not the intent of
+      // verification.
       verifyResult = await this.verifyLocator(
         resultPrompt,
         undefined,
@@ -1186,16 +1172,14 @@ export class Agent<
     assert(locateParam, 'cannot get locate param for aiLocate');
     const locatePlan = locatePlanForLocate(locateParam);
     const plans = [locatePlan];
-    const defaultIntentModelConfig =
-      this.modelConfigManager.getModelConfig('default');
-    const modelConfigForPlanning =
-      this.modelConfigManager.getModelConfig('planning');
+    const defaultModel = this.resolveModelRuntime('default');
+    const planningModel = this.resolveModelRuntime('planning');
 
     const { output } = await this.taskExecutor.runPlans(
       taskTitleStr('Locate', locateParamStr(locateParam)),
       plans,
-      modelConfigForPlanning,
-      defaultIntentModelConfig,
+      planningModel,
+      defaultModel,
     );
 
     const { element } = output;
@@ -1212,7 +1196,7 @@ export class Agent<
     msg?: string,
     opt?: AgentAssertOpt & ServiceExtractOption,
   ) {
-    const modelConfig = this.modelConfigManager.getModelConfig('insight');
+    const modelRuntime = this.resolveModelRuntime('insight');
 
     const serviceOpt: ServiceExtractOption = {
       domIncluded: opt?.domIncluded ?? defaultServiceExtractOption.domIncluded,
@@ -1230,7 +1214,7 @@ export class Agent<
         await this.taskExecutor.createTypeQueryExecution<boolean>(
           'Assert',
           textPrompt,
-          modelConfig,
+          modelRuntime,
           serviceOpt,
           multimodalPrompt,
         );
@@ -1284,7 +1268,7 @@ export class Agent<
   }
 
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
-    const modelConfig = this.modelConfigManager.getModelConfig('insight');
+    const modelRuntime = this.resolveModelRuntime('insight');
     await this.taskExecutor.waitFor(
       assertion,
       {
@@ -1292,7 +1276,7 @@ export class Agent<
         timeoutMs: opt?.timeoutMs || 15 * 1000,
         checkIntervalMs: opt?.checkIntervalMs || 3 * 1000,
       },
-      modelConfig,
+      modelRuntime,
     );
   }
 

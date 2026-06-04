@@ -1,5 +1,6 @@
 import { ConversationHistory } from '@/ai-model/conversation-history';
 import { plan } from '@/ai-model/llm-planning';
+import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller/index';
 import type { DeviceAction, UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -75,11 +76,10 @@ describe('plan XML parse retry', () => {
 
     const result = await plan('tap the button', {
       context: mockContext(),
-      interfaceType: 'puppeteer',
       actionSpace: mockActionSpace(),
-      modelConfig: mockModelConfig(),
+      modelRuntime: getModelRuntime(mockModelConfig()),
       conversationHistory: new ConversationHistory(),
-      includeBbox: false,
+      includeLocateInPlanning: false,
       deepThink: false,
     });
 
@@ -96,11 +96,10 @@ describe('plan XML parse retry', () => {
 
     await plan('terminate the app, launch it, then tap the AI button', {
       context: mockContext(),
-      interfaceType: 'puppeteer',
       actionSpace: mockActionSpace(),
-      modelConfig: mockModelConfig(),
+      modelRuntime: getModelRuntime(mockModelConfig()),
       conversationHistory: new ConversationHistory(),
-      includeBbox: false,
+      includeLocateInPlanning: false,
       deepThink: false,
     });
 
@@ -119,7 +118,7 @@ describe('plan XML parse retry', () => {
     );
   });
 
-  it('forces original image detail for gpt-5 planning when bbox is included', async () => {
+  it('marks planning as requiring original image detail when locate is included', async () => {
     vi.mocked(callAI).mockResolvedValueOnce(
       mockAIResponse(`<log>Tap button</log>
 <action-type>Tap</action-type>`),
@@ -127,18 +126,17 @@ describe('plan XML parse retry', () => {
 
     await plan('tap the button', {
       context: mockContext(),
-      interfaceType: 'puppeteer',
       actionSpace: mockActionSpace(),
-      modelConfig: {
+      modelRuntime: getModelRuntime({
         ...mockModelConfig(),
-        modelFamily: 'gpt-5',
-      },
+        modelFamily: 'qwen3-vl',
+      }),
       conversationHistory: new ConversationHistory(),
-      includeBbox: true,
+      includeLocateInPlanning: true,
       deepThink: false,
     });
 
     expect(latestImageDetail()).toBe('high');
-    expect(latestCallAIOptions()?.forceOriginalImageDetail).toBe(true);
+    expect(latestCallAIOptions()?.requiresOriginalImageDetail).toBe(true);
   });
 });

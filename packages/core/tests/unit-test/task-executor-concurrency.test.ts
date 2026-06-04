@@ -1,14 +1,25 @@
 import { TaskExecutor } from '@/agent/tasks';
+import { getMidsceneLocationSchema } from '@/ai-model';
+import { getModelRuntime } from '@/ai-model/models';
+import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
+import type { ModelRuntime } from '@/ai-model/models/types';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
+import type { DeviceAction } from '@/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 import type Service from '../../src';
 
-vi.mock('@/ai-model/llm-planning', () => ({
-  plan: vi.fn(),
-}));
+vi.mock('@/ai-model/workflows/planning', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/ai-model/workflows/planning')>();
+  return {
+    ...actual,
+    genericXmlPlan: vi.fn(),
+  };
+});
 
-import { plan } from '@/ai-model/llm-planning';
+import { genericXmlPlan } from '@/ai-model/workflows/planning';
 
 const validBase64Image =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
@@ -22,6 +33,29 @@ const createDeferred = () => {
   return { promise, resolve };
 };
 
+const planningModel = () =>
+  getModelRuntime({
+    modelName: 'planning-model',
+    modelDescription: 'planning-model',
+    intent: 'planning',
+    slot: 'planning',
+  });
+const defaultModel = () =>
+  getModelRuntime({
+    modelName: 'default-model',
+    modelDescription: 'default-model',
+    intent: 'default',
+    slot: 'default',
+  });
+const emptyParamActionSpace: DeviceAction[] = [
+  {
+    name: 'Noop',
+    description: 'noop',
+    paramSchema: z.object({}),
+    call: async () => undefined,
+  },
+];
+
 describe('TaskExecutor concurrency isolation', () => {
   let taskExecutor: TaskExecutor;
   let mockInterface: AbstractInterface;
@@ -30,7 +64,7 @@ describe('TaskExecutor concurrency isolation', () => {
   beforeEach(() => {
     mockInterface = {
       interfaceType: 'web',
-      actionSpace: vi.fn().mockReturnValue([]),
+      actionSpace: vi.fn().mockReturnValue(emptyParamActionSpace),
     } as unknown as AbstractInterface;
 
     mockService = {
@@ -48,7 +82,7 @@ describe('TaskExecutor concurrency isolation', () => {
 
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
       replanningCycleLimit: 1,
-      actionSpace: [],
+      actionSpace: emptyParamActionSpace,
     });
 
     vi.spyOn(taskExecutor, 'convertPlanToExecutable').mockResolvedValue({
@@ -68,37 +102,39 @@ describe('TaskExecutor concurrency isolation', () => {
 
     const seenHistories: any[] = [];
 
-    vi.mocked(plan).mockImplementation(async (_instruction, opts: any) => {
-      seenHistories.push(opts.conversationHistory);
-      if (seenHistories.length === 2) {
-        waitForBothCalls.resolve();
-      }
+    vi.mocked(genericXmlPlan).mockImplementation(
+      async (_instruction, opts: any) => {
+        seenHistories.push(opts.conversationHistory);
+        if (seenHistories.length === 2) {
+          waitForBothCalls.resolve();
+        }
 
-      if (seenHistories.length < 2) {
-        await releasePlans.promise;
-      }
+        if (seenHistories.length < 2) {
+          await releasePlans.promise;
+        }
 
-      return {
-        actions: [],
-        yamlFlow: [],
-        shouldContinuePlanning: false,
-        log: '',
-        rawResponse: '',
-        finalizeSuccess: true,
-        finalizeMessage: 'done',
-      };
-    });
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: false,
+          log: '',
+          rawResponse: '',
+          finalizeSuccess: true,
+          finalizeMessage: 'done',
+        };
+      },
+    );
 
     const actionPromiseA = taskExecutor.action(
       'first prompt',
-      { modelName: 'planning-model' } as any,
-      { modelName: 'default-model' } as any,
+      planningModel(),
+      defaultModel(),
       true,
     );
     const actionPromiseB = taskExecutor.action(
       'second prompt',
-      { modelName: 'planning-model' } as any,
-      { modelName: 'default-model' } as any,
+      planningModel(),
+      defaultModel(),
       true,
     );
 
@@ -117,7 +153,7 @@ describe('TaskExecutor concurrency isolation', () => {
       .mockResolvedValue('2023-10-15 15:37:00 (YYYY-MM-DD HH:mm:ss)');
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
       replanningCycleLimit: 1,
-      actionSpace: [],
+      actionSpace: emptyParamActionSpace,
       useDeviceTime: true,
     });
     vi.spyOn(taskExecutor, 'convertPlanToExecutable').mockResolvedValue({
@@ -125,7 +161,7 @@ describe('TaskExecutor concurrency isolation', () => {
       yamlFlow: [],
     } as any);
 
-    vi.mocked(plan)
+    vi.mocked(genericXmlPlan)
       .mockImplementationOnce(async (_instruction, opts: any) => {
         seenPendingFeedback.push(
           opts.conversationHistory.pendingFeedbackMessage,
@@ -155,12 +191,7 @@ describe('TaskExecutor concurrency isolation', () => {
         };
       });
 
-    await taskExecutor.action(
-      'prompt',
-      { modelName: 'planning-model' } as any,
-      { modelName: 'default-model' } as any,
-      true,
-    );
+    await taskExecutor.action('prompt', planningModel(), defaultModel(), true);
 
     expect(mockInterface.getDeviceLocalTimeString).toHaveBeenCalledWith(
       undefined,
@@ -178,7 +209,7 @@ describe('TaskExecutor concurrency isolation', () => {
     const seenPendingFeedback: string[] = [];
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
       replanningCycleLimit: 1,
-      actionSpace: [],
+      actionSpace: emptyParamActionSpace,
       useDeviceTime: true,
     });
     vi.spyOn(taskExecutor, 'convertPlanToExecutable').mockResolvedValue({
@@ -186,7 +217,7 @@ describe('TaskExecutor concurrency isolation', () => {
       yamlFlow: [],
     } as any);
 
-    vi.mocked(plan)
+    vi.mocked(genericXmlPlan)
       .mockImplementationOnce(async (_instruction, opts: any) => {
         seenPendingFeedback.push(
           opts.conversationHistory.pendingFeedbackMessage,
@@ -216,16 +247,101 @@ describe('TaskExecutor concurrency isolation', () => {
         };
       });
 
-    await taskExecutor.action(
-      'prompt',
-      { modelName: 'planning-model' } as any,
-      { modelName: 'default-model' } as any,
-      true,
-    );
+    await taskExecutor.action('prompt', planningModel(), defaultModel(), true);
 
     expect(seenPendingFeedback).toEqual([
       '',
       'Current time: 2023-10-15 08:30:00 (YYYY-MM-DD HH:mm:ss)',
     ]);
+  });
+
+  it('disables aiAct deepLocate for custom planning adapters by default', async () => {
+    const actionSpace: DeviceAction[] = [
+      {
+        name: 'Tap',
+        description: 'tap',
+        paramSchema: z.object({
+          locate: getMidsceneLocationSchema(),
+        }),
+        call: async () => undefined,
+      },
+    ];
+    mockInterface.actionSpace = vi.fn().mockReturnValue(actionSpace);
+    taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      replanningCycleLimit: 1,
+      actionSpace,
+    });
+    vi.spyOn(taskExecutor, 'convertPlanToExecutable').mockResolvedValue({
+      tasks: [],
+      yamlFlow: [],
+    } as any);
+
+    const planFn = vi.fn().mockResolvedValue({
+      actions: [
+        {
+          type: 'Tap',
+          param: {
+            locate: {
+              prompt: 'button',
+              deepLocate: true,
+              locatedPixelBbox: [10, 20, 30, 40],
+            },
+          },
+        },
+      ],
+      yamlFlow: [],
+      shouldContinuePlanning: false,
+      log: '',
+      rawResponse: '',
+    });
+    const customPlanningModel: ModelRuntime = {
+      config: {
+        modelName: 'custom-planning-model',
+        modelDescription: 'custom-planning-model',
+        intent: 'planning',
+        slot: 'planning',
+      },
+      adapter: new ResolvedModelAdapter(
+        {
+          planning: {
+            kind: 'custom',
+            planFn,
+          },
+        },
+        'test-custom-planning',
+      ),
+    };
+    const convertSpy = vi.mocked(taskExecutor.convertPlanToExecutable);
+    const warnSpy = vi
+      .spyOn(console, 'warn')
+      .mockImplementation(() => undefined);
+
+    await taskExecutor.action(
+      'prompt',
+      customPlanningModel,
+      defaultModel(),
+      true,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      true,
+    );
+
+    expect(convertSpy).toHaveBeenCalledWith(
+      expect.any(Array),
+      customPlanningModel,
+      expect.anything(),
+      expect.objectContaining({
+        deepLocate: false,
+      }),
+    );
+    expect(convertSpy.mock.calls[0][0][0].param.locate.deepLocate).toBe(true);
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[Midscene]',
+      'The "deepLocate" option is not supported for aiAct with the current planning adapter (modelFamily: unknown). It will be ignored.',
+    );
   });
 });

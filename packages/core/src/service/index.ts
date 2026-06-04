@@ -1,16 +1,19 @@
-import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
+import { defaultModelFamilyRequiredForLocateMessage } from '@/ai-model/errors';
 import {
   AiExtractElementInfo,
   AiLocateElement,
   AiLocateSection,
   buildSearchAreaConfig,
 } from '@/ai-model/inspect';
+import type { ModelRuntime } from '@/ai-model/models';
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
 import {
   AIResponseParseError,
   callAIWithObjectResponse,
 } from '@/ai-model/service-caller';
-import { type AIArgs, expandSearchArea } from '@/common';
+import type { AIArgs } from '@/ai-model/types';
+import type { SearchAreaConfig } from '@/ai-model/workflows/inspect/types';
+import { expandSearchArea } from '@/common';
 import type {
   AIDescribeElementResponse,
   AIUsageInfo,
@@ -27,11 +30,10 @@ import type {
   UIContext,
 } from '@/types';
 import { ServiceError } from '@/types';
-import type { IModelConfig } from '@midscene/shared/env';
 import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type { TMultimodalPrompt } from '../common';
+import type { TMultimodalPrompt, TUserPrompt } from '../common';
 import { createServiceDump } from './utils';
 
 export interface LocateOpts {
@@ -45,6 +47,15 @@ export type AnyValue<T> = {
 
 interface ServiceOptions {
   taskInfo?: Omit<ServiceTaskInfo, 'durationMs'>;
+}
+
+interface LocateSearchAreaResult {
+  config?: SearchAreaConfig;
+  trace: {
+    sourceRect?: Rect;
+    rawResponse?: string;
+    usage?: AIUsageInfo;
+  };
 }
 
 const debug = getDebug('ai:service');
@@ -72,86 +83,37 @@ export default class Service {
   async locate(
     query: PlanningLocateParam,
     opt: LocateOpts,
-    modelConfig: IModelConfig,
+    modelRuntime: ModelRuntime,
     abortSignal?: AbortSignal,
   ): Promise<LocateResultWithDump> {
+    const { config: modelConfig } = modelRuntime;
     const queryPrompt = typeof query === 'string' ? query : query.prompt;
     assert(queryPrompt, 'query is required for locate');
 
     assert(typeof query === 'object', 'query should be an object for locate');
 
-    const hasPlanLocatedElement = !!opt?.planLocatedElement?.rect;
-
-    let searchAreaPrompt;
-    if (query.deepLocate && !hasPlanLocatedElement) {
-      searchAreaPrompt = query.prompt;
-    }
-
-    const { modelFamily } = modelConfig;
-
-    if (searchAreaPrompt && !modelFamily) {
-      console.warn(
-        'The "deepLocate" feature is not supported with multimodal LLM. Please config VL model for Midscene. https://midscenejs.com/model-config',
-      );
-      searchAreaPrompt = undefined;
-    }
-
-    if (searchAreaPrompt && isAutoGLM(modelFamily)) {
-      console.warn('The "deepLocate" feature is not supported with AutoGLM.');
-      searchAreaPrompt = undefined;
+    if (!modelConfig.modelFamily) {
+      throw new Error(defaultModelFamilyRequiredForLocateMessage);
     }
 
     const context = opt?.context || (await this.contextRetrieverFn());
 
-    let searchArea: Rect | undefined = undefined;
-    let searchAreaRawResponse: string | undefined = undefined;
-    let searchAreaUsage: AIUsageInfo | undefined = undefined;
-    let searchAreaResponse:
-      | Awaited<ReturnType<typeof AiLocateSection>>
-      | undefined = undefined;
-    if (query.deepLocate && hasPlanLocatedElement) {
-      const searchAreaConfig = await buildSearchAreaConfig({
-        context,
-        baseRect: opt.planLocatedElement!.rect,
-        modelFamily,
-      });
-      searchArea = searchAreaConfig.rect;
-
-      searchAreaRawResponse = JSON.stringify({
-        source: 'plan-located-element',
-        rect: opt.planLocatedElement!.rect,
-      });
-      searchAreaResponse = {
-        rect: searchArea,
-        imageBase64: searchAreaConfig.imageBase64,
-        scale: searchAreaConfig.scale,
-        rawResponse: searchAreaRawResponse,
-      };
-    } else if (searchAreaPrompt) {
-      searchAreaResponse = await AiLocateSection({
-        context,
-        sectionDescription: searchAreaPrompt,
-        modelConfig,
-        abortSignal,
-      });
-      assert(
-        searchAreaResponse.rect,
-        `cannot find search area for "${searchAreaPrompt}"${
-          searchAreaResponse.error ? `: ${searchAreaResponse.error}` : ''
-        }`,
-      );
-      searchAreaRawResponse = searchAreaResponse.rawResponse;
-      searchAreaUsage = searchAreaResponse.usage;
-      searchArea = searchAreaResponse.rect;
-    }
+    const searchArea = await this.resolveLocateSearchArea({
+      query,
+      queryPrompt,
+      opt,
+      context,
+      modelRuntime,
+      abortSignal,
+    });
 
     const startTime = Date.now();
     const { parseResult, rect, rawResponse, usage, reasoning_content } =
       await AiLocateElement({
         context,
         targetElementDescription: queryPrompt,
-        searchConfig: searchAreaResponse,
-        modelConfig,
+        searchConfig: searchArea.config,
+        modelRuntime,
         abortSignal,
       });
 
@@ -162,9 +124,9 @@ export default class Service {
       rawResponse: JSON.stringify(rawResponse),
       formatResponse: JSON.stringify(parseResult),
       usage,
-      searchArea,
-      searchAreaRawResponse,
-      searchAreaUsage,
+      searchArea: searchArea.trace.sourceRect,
+      searchAreaRawResponse: searchArea.trace.rawResponse,
+      searchAreaUsage: searchArea.trace.usage,
       reasoning_content,
     };
 
@@ -178,38 +140,30 @@ export default class Service {
       userQuery: {
         element: queryPrompt,
       },
-      matchedElement: [],
       matchedRect: rect,
       data: null,
       taskInfo,
-      deepLocate: !!searchArea,
+      deepLocate: !!searchArea.trace.sourceRect,
       error: errorLog,
     };
 
-    const elements = parseResult.elements || [];
+    const element = parseResult.element;
 
     const dump = createServiceDump({
       ...dumpData,
-      matchedElement: elements,
+      matchedElement: element ? [element] : [],
     });
 
     if (errorLog) {
       throw new ServiceError(errorLog, dump);
     }
 
-    if (elements.length > 1) {
-      throw new ServiceError(
-        `locate: multiple elements found, length = ${elements.length}`,
-        dump,
-      );
-    }
-
-    if (elements.length === 1) {
+    if (element) {
       return {
         element: {
-          center: elements[0]!.center,
-          rect: elements[0]!.rect,
-          description: elements[0]!.description,
+          center: element.center,
+          rect: element.rect,
+          description: element.description,
         },
         rect,
         dump,
@@ -223,9 +177,103 @@ export default class Service {
     };
   }
 
+  private async resolveLocateSearchArea(options: {
+    query: PlanningLocateParam;
+    queryPrompt: TUserPrompt;
+    opt: LocateOpts;
+    context: UIContext;
+    modelRuntime: ModelRuntime;
+    abortSignal?: AbortSignal;
+  }): Promise<LocateSearchAreaResult> {
+    const { query, queryPrompt, opt, context, modelRuntime, abortSignal } =
+      options;
+    const { adapter } = modelRuntime;
+    const hasPlanLocatedElement = !!opt?.planLocatedElement?.rect;
+
+    if (!query.deepLocate) {
+      return { trace: {} };
+    }
+
+    if (hasPlanLocatedElement) {
+      const config = await buildSearchAreaConfig({
+        context,
+        baseRect: opt.planLocatedElement!.rect,
+      });
+
+      return {
+        config,
+        trace: {
+          sourceRect: config.sourceRect,
+          rawResponse: JSON.stringify({
+            source: 'plan-located-element',
+            rect: opt.planLocatedElement!.rect,
+          }),
+        },
+      };
+    }
+
+    if (adapter.locate.supportsSearchArea) {
+      const searchAreaResponse = await AiLocateSection({
+        context,
+        sectionDescription: queryPrompt,
+        modelRuntime,
+        abortSignal,
+      });
+      const { searchAreaConfig } = searchAreaResponse;
+      assert(
+        searchAreaConfig,
+        `cannot find search area for "${queryPrompt}"${
+          searchAreaResponse.error ? `: ${searchAreaResponse.error}` : ''
+        }`,
+      );
+
+      return {
+        config: searchAreaConfig,
+        trace: {
+          sourceRect: searchAreaConfig.sourceRect,
+          rawResponse: searchAreaResponse.rawResponse,
+          usage: searchAreaResponse.usage,
+        },
+      };
+    }
+
+    const firstPassLocateResult = await AiLocateElement({
+      context,
+      targetElementDescription: queryPrompt,
+      modelRuntime,
+      abortSignal,
+    });
+    assert(
+      firstPassLocateResult.rect,
+      `cannot find search area for "${queryPrompt}"${
+        firstPassLocateResult.parseResult.errors?.length
+          ? `: ${firstPassLocateResult.parseResult.errors.join('\n')}`
+          : ''
+      }`,
+    );
+
+    const config = await buildSearchAreaConfig({
+      context,
+      baseRect: firstPassLocateResult.rect,
+    });
+
+    return {
+      config,
+      trace: {
+        sourceRect: config.sourceRect,
+        rawResponse: JSON.stringify({
+          source: 'deep-locate-first-pass',
+          rect: firstPassLocateResult.rect,
+          rawResponse: firstPassLocateResult.rawResponse,
+        }),
+        usage: firstPassLocateResult.usage,
+      },
+    };
+  }
+
   async extract<T>(
     dataDemand: ServiceExtractParam,
-    modelConfig: IModelConfig,
+    modelRuntime: ModelRuntime,
     opt?: ServiceExtractOption,
     pageDescription?: string,
     multimodalPrompt?: TMultimodalPrompt,
@@ -252,7 +300,7 @@ export default class Service {
         dataQuery: dataDemand,
         multimodalPrompt,
         extractOption: opt,
-        modelConfig,
+        modelRuntime,
         pageDescription,
       });
       parseResult = result.parseResult;
@@ -272,7 +320,6 @@ export default class Service {
         const dump = createServiceDump({
           type: 'extract',
           userQuery: { dataDemand },
-          matchedElement: [],
           data: null,
           taskInfo,
           error: error.message,
@@ -302,7 +349,6 @@ export default class Service {
       userQuery: {
         dataDemand,
       },
-      matchedElement: [],
       data: null,
       taskInfo,
       error: errorLog,
@@ -330,7 +376,7 @@ export default class Service {
 
   async describe(
     target: Rect | [number, number],
-    modelConfig: IModelConfig,
+    modelRuntime: ModelRuntime,
     opt?: {
       deepLocate?: boolean;
     },
@@ -340,8 +386,6 @@ export default class Service {
     const { shotSize } = context;
     const screenshotBase64 = context.screenshot.base64;
     assert(screenshotBase64, 'screenshot is required for service.describe');
-    // The result of the "describe" function will be used for positioning, so essentially it is a form of grounding.
-    const { modelFamily } = modelConfig;
     const systemPrompt = elementDescriberInstruction();
 
     // Convert [x,y] center point to Rect if needed
@@ -373,12 +417,10 @@ export default class Service {
       // deepLocate intentionally zooms in so the model produces a more
       // precise description from a focused view. expandSearchArea already
       // guarantees a minimum 400x400 area with surrounding context.
+      // Describe is not a coordinate-parsing flow, so it does not need image
+      // padding for bbox normalization.
       debug('describe: cropping to searchArea', searchArea);
-      const croppedResult = await cropByRect(
-        imagePayload,
-        searchArea,
-        modelFamily === 'qwen2.5-vl',
-      );
+      const croppedResult = await cropByRect(imagePayload, searchArea);
       imagePayload = croppedResult.imageBase64;
     }
 
@@ -400,7 +442,7 @@ export default class Service {
 
     const res = await callAIWithObjectResponse<AIDescribeElementResponse>(
       msgs,
-      modelConfig,
+      modelRuntime,
     );
 
     const { content } = res;

@@ -1,11 +1,17 @@
-import type { TModelFamily } from '@midscene/shared/env';
 import { getPreferredLanguage } from '@midscene/shared/env';
-import { bboxDescription } from './common';
+import type { LocateResultPromptSpec } from '../shared/model-locate-result';
+import { locateGroundingRules } from './locate-grounding-rules';
+import { formatLocateExampleValue } from './locate-param-example';
+
 export function systemPromptToLocateElement(
-  modelFamily: TModelFamily | undefined,
+  promptSpec: LocateResultPromptSpec,
 ) {
   const preferredLanguage = getPreferredLanguage();
-  const bboxComment = bboxDescription(modelFamily);
+  const resultKey = promptSpec.resultKey;
+  const exampleValueText = formatLocateExampleValue(
+    promptSpec.exampleValues[0],
+  );
+  const resultFieldDescription = `the ${promptSpec.resultNoun} of the element that matches the user's description`;
   return `
 ## Role:
 You are an AI assistant that helps identify UI elements.
@@ -14,27 +20,24 @@ You are an AI assistant that helps identify UI elements.
 - Identify elements in screenshots that match the user's description.
 - Provide the coordinates of the element that matches the user's description.
 
-## Important Notes for Locating Elements:
-- When the user describes an element that contains text (such as buttons, input fields, dropdown options, radio buttons, etc.), you should locate ONLY the text region of that element, not the entire element boundary.
-- For example: If an input field is large (both wide and tall) with a placeholder text "Please enter your comment", you should locate only the area where the placeholder text appears, not the entire input field.
-- This principle applies to all text-containing elements: focus on the visible text region rather than the full element container.
+${locateGroundingRules()}
 
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],  // ${bboxComment}
+  "${resultKey}": ${promptSpec.resultValueSchema},  // ${promptSpec.resultValueDescription}
   "errors"?: string[]
 }
 \`\`\`
 
 Fields:
-* \`bbox\` is the bounding box of the element that matches the user's description
+* \`${resultKey}\` is ${resultFieldDescription}
 * \`errors\` is an optional array of error messages (if any)
 
 For example, when an element is found:
 \`\`\`json
 {
-  "bbox": [100, 100, 200, 200],
+  "${resultKey}": ${exampleValueText},
   "errors": []
 }
 \`\`\`
@@ -42,7 +45,7 @@ For example, when an element is found:
 When no element is found:
 \`\`\`json
 {
-  "bbox": [],
+  "${resultKey}": [],
   "errors": ["I can see ..., but {some element} is not found. Use ${preferredLanguage}."]
 }
 \`\`\`

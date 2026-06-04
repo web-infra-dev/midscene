@@ -22,9 +22,6 @@
  * Modifications:
  * - Adapted prompts for Midscene.js integration
  */
-
-import type { TModelFamily } from '@midscene/shared/env';
-
 /**
  * Get formatted date string for system prompts
  * @returns Formatted date string like "2026-01-12, Sunday"
@@ -69,7 +66,7 @@ function getChineseFormattedDate(): string {
   return `${year}年${month}月${date}日 ${weekday}`;
 }
 
-const getAutoGLMMultilingualPlanPrompt = (): string => {
+export const getAutoGLMMultilingualPlanPrompt = (): string => {
   return `
 The current date: ${getMultilingualFormattedDate()}
 
@@ -142,7 +139,7 @@ REMEMBER:
   `;
 };
 
-const getAutoGLMChinesePlanPrompt = (): string => {
+export const getAutoGLMChinesePlanPrompt = (): string => {
   return `
 今天的日期是: ${getChineseFormattedDate()}
 
@@ -204,24 +201,8 @@ const getAutoGLMChinesePlanPrompt = (): string => {
 `;
 };
 
-export const getAutoGLMPlanPrompt = (
-  modelFamily: TModelFamily | undefined,
-): string => {
-  if (modelFamily === 'auto-glm-multilingual') {
-    return getAutoGLMMultilingualPlanPrompt();
-  } else if (modelFamily === 'auto-glm') {
-    return getAutoGLMChinesePlanPrompt();
-  }
-  throw new Error(
-    `Unsupported modelFamily for Auto-GLM plan prompt: ${modelFamily}`,
-  );
-};
-
-export const getAutoGLMLocatePrompt = (
-  modelFamily: TModelFamily | undefined,
-): string => {
-  if (modelFamily === 'auto-glm-multilingual') {
-    return `
+export const getAutoGLMMultilingualLocatePrompt = (): string => {
+  return `
 The current date: ${getMultilingualFormattedDate()}
 
 # Setup
@@ -251,8 +232,10 @@ Your output should STRICTLY follow the format:
 REMEMBER:
 - Your goal is to locate and tap the UI element specified by the user (e.g., button, icon, link, etc.). Do not attempt any other actions.
   `;
-  } else if (modelFamily === 'auto-glm') {
-    return `
+};
+
+export const getAutoGLMChineseLocatePrompt = (): string => {
+  return `
 今天的日期是: ${getChineseFormattedDate()}
 
 你是一个智能体分析专家，可以根据操作历史和当前状态图执行一系列操作来完成任务。
@@ -271,8 +254,4 @@ REMEMBER:
 必须遵循的规则：
 - 你的目标是定位并点击用户指定的UI元素（例如按钮、图标、链接等），请不要尝试任何其他的操作。
     `;
-  }
-  throw new Error(
-    `Unsupported modelFamily for Auto-GLM locate prompt: ${modelFamily}`,
-  );
 };

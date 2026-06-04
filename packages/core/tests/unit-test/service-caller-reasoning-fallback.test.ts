@@ -1,8 +1,19 @@
+import { getModelRuntime } from '@/ai-model/models';
 import { callAI, callAIWithObjectResponse } from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const { mockDebugLog, mockWarnLog } = vi.hoisted(() => ({
+  mockDebugLog: vi.fn(),
+  mockWarnLog: vi.fn(),
+}));
 const mockCreate = vi.fn();
+
+vi.mock('@midscene/shared/logger', () => ({
+  getDebug: vi.fn((_topic, options) =>
+    options?.console ? mockWarnLog : mockDebugLog,
+  ),
+}));
 
 vi.mock('openai', () => ({
   default: vi.fn().mockImplementation(() => ({
@@ -26,6 +37,8 @@ const baseModelConfig: IModelConfig = {
 describe('service-caller reasoning fallback', () => {
   beforeEach(() => {
     mockCreate.mockReset();
+    mockDebugLog.mockClear();
+    mockWarnLog.mockClear();
   });
 
   it('uses reasoning_content when content is empty and modelFamily is unset', async () => {
@@ -48,7 +61,7 @@ describe('service-caller reasoning fallback', () => {
 
     const response = await callAI(
       [{ role: 'user', content: 'next action' }],
-      baseModelConfig,
+      getModelRuntime(baseModelConfig),
     );
 
     expect(response.content).toContain('<action-type>Tap</action-type>');
@@ -102,11 +115,14 @@ describe('service-caller reasoning fallback', () => {
       ],
     });
 
-    await callAI([{ role: 'user', content: 'hello' }], {
-      ...baseModelConfig,
-      modelFamily: 'doubao-seed',
-      reasoningEnabled: true,
-    });
+    await callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime({
+        ...baseModelConfig,
+        modelFamily: 'doubao-seed',
+        reasoningEnabled: true,
+      }),
+    );
 
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -118,7 +134,7 @@ describe('service-caller reasoning fallback', () => {
     );
   });
 
-  it('defaults model reasoning to disabled for supported model families', async () => {
+  it('disables reasoning by default for supported model families', async () => {
     mockCreate.mockResolvedValue({
       choices: [
         {
@@ -129,10 +145,13 @@ describe('service-caller reasoning fallback', () => {
       ],
     });
 
-    await callAI([{ role: 'user', content: 'hello' }], {
-      ...baseModelConfig,
-      modelFamily: 'doubao-seed',
-    });
+    await callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime({
+        ...baseModelConfig,
+        modelFamily: 'doubao-seed',
+      }),
+    );
 
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -141,6 +160,34 @@ describe('service-caller reasoning fallback', () => {
         },
       }),
       expect.any(Object),
+    );
+  });
+
+  it('prints adapter chat completion params for debugging', async () => {
+    mockCreate.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: 'ok',
+          },
+        },
+      ],
+    });
+
+    await callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime({
+        ...baseModelConfig,
+        modelFamily: 'glm-v',
+        reasoningEnabled: true,
+      }),
+    );
+
+    expect(mockDebugLog).toHaveBeenCalledWith(
+      expect.stringContaining('adapter chat completion params:'),
+    );
+    expect(mockDebugLog).toHaveBeenCalledWith(
+      expect.stringContaining('"thinking":{"type":"enabled"}'),
     );
   });
 });

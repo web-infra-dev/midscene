@@ -65,12 +65,16 @@ export type AISingleElementResponseByPosition = {
   text: string;
 };
 
-export interface AIElementCoordinatesResponse {
-  bbox: [number, number, number, number];
+export type LocateResultPoint = [number, number];
+export type Bbox = [number, number, number, number];
+export type LocateResultBbox = Bbox;
+export type PixelBbox = Bbox;
+
+export interface AIElementLocateResponse {
+  bbox?: LocateResultBbox;
+  point?: LocateResultPoint;
   errors?: string[];
 }
-
-export type AIElementResponse = AIElementCoordinatesResponse;
 
 export interface AIDataExtractionResponse<DataDemand> {
   data: DataDemand;
@@ -79,8 +83,10 @@ export interface AIDataExtractionResponse<DataDemand> {
 }
 
 export interface AISectionLocatorResponse {
-  bbox: [number, number, number, number];
-  references_bbox?: [number, number, number, number][];
+  bbox?: LocateResultBbox;
+  point?: LocateResultPoint;
+  references_bbox?: LocateResultBbox[];
+  references_point?: LocateResultPoint[];
   error?: string;
 }
 
@@ -195,7 +201,7 @@ export interface ServiceDump extends DumpMeta {
     dataDemand?: ServiceExtractParam;
     assertion?: TUserPrompt;
   };
-  matchedElement: LocateResultElement[];
+  matchedElement?: LocateResultElement[];
   matchedRect?: Rect;
   deepLocate?: boolean;
   data: any;
@@ -259,8 +265,14 @@ export interface AgentAssertOpt {
  */
 
 export interface PlanningLocateParam extends DetailedLocateParam {
-  bbox?: [number, number, number, number];
+  bbox?: LocateResultBbox;
+  point?: LocateResultPoint;
 }
+
+export type PlanningLocateParamWithLocatedPixelBbox = PlanningLocateParam & {
+  /** Pixel bbox of the located element in screenshot coordinates. */
+  locatedPixelBbox: PixelBbox;
+};
 
 export interface PlanningAction<ParamType = any> {
   thought?: string;
@@ -670,7 +682,7 @@ export interface DeviceAction<TParam = any, TReturn = any> {
   delayAfterRunner?: number;
   /**
    * An example param object for this action.
-   * Locate fields with { prompt } will automatically get bbox injected when needed.
+   * Locate fields with { prompt } may be resolved to internal pixel bboxes when needed.
    */
   sample?: { [K in keyof TParam]?: any };
 }
@@ -762,7 +774,8 @@ export interface AgentOpt {
   cache?: Cache;
   /**
    * Maximum number of replanning cycles for aiAct.
-   * Defaults to 20 (40 for `vlm-ui-tars`) when not provided.
+   * Defaults are resolved by the active model adapter: 20 for standard planning,
+   * 40 for UI-TARS, and 100 for Auto-GLM.
    * If omitted, the agent will also read `MIDSCENE_REPLANNING_CYCLE_LIMIT` for backward compatibility.
    */
   replanningCycleLimit?: number;

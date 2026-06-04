@@ -5,6 +5,7 @@ import type {
 import {
   generateYamlTest as generateYamlTestCore,
   generateYamlTestStream as generateYamlTestStreamCore,
+  getModelRuntime,
 } from '@midscene/core/ai-model';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -39,7 +40,7 @@ export const generateYamlTest = async (
     const yamlContent = await generateYamlTestCore(
       events,
       enhancedOptions,
-      modelConfig,
+      getModelRuntime(modelConfig),
     );
 
     recordLogger.success('AI-powered YAML test generated successfully', {
@@ -125,7 +126,7 @@ export const generateYamlTestStream = async (
     const result = await generateYamlTestStreamCore(
       events,
       enhancedOptions,
-      modelConfig,
+      getModelRuntime(modelConfig),
     );
 
     recordLogger.success(

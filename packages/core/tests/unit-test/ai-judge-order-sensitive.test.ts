@@ -1,12 +1,37 @@
-import { AiJudgeOrderSensitive } from '@/ai-model/inspect';
+import { getModelRuntime } from '@/ai-model/models';
+import { callAIWithObjectResponse } from '@/ai-model/service-caller';
+import { AiJudgeOrderSensitive } from '@/ai-model/workflows/inspect';
+import type { AIUsageInfo } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@/ai-model/service-caller', () => ({
+  callAIWithObjectResponse: vi.fn(),
+}));
 
 describe('AiJudgeOrderSensitive', () => {
+  beforeEach(() => {
+    vi.mocked(callAIWithObjectResponse).mockReset();
+  });
+
   it('judges order sensitivity with generated messages', async () => {
-    const callAIFn = vi.fn().mockResolvedValue({
+    const usage: AIUsageInfo = {
+      prompt_tokens: undefined,
+      completion_tokens: undefined,
+      total_tokens: 12,
+      cached_input: undefined,
+      time_cost: undefined,
+      model_name: undefined,
+      model_description: undefined,
+      intent: undefined,
+      slot: undefined,
+      request_id: undefined,
+    };
+
+    vi.mocked(callAIWithObjectResponse).mockResolvedValue({
       content: { isOrderSensitive: true },
-      usage: { total_tokens: 12 },
+      usage,
+      contentString: '{"isOrderSensitive": true}',
     });
 
     const modelConfig: IModelConfig = {
@@ -15,14 +40,14 @@ describe('AiJudgeOrderSensitive', () => {
       intent: 'default',
       slot: 'default',
     };
+    const modelRuntime = getModelRuntime(modelConfig);
 
     const result = await AiJudgeOrderSensitive(
       'the button to the right of login',
-      callAIFn as any,
-      modelConfig,
+      modelRuntime,
     );
 
-    expect(callAIFn).toHaveBeenCalledWith(
+    expect(callAIWithObjectResponse).toHaveBeenCalledWith(
       [
         expect.objectContaining({ role: 'system' }),
         expect.objectContaining({
@@ -31,12 +56,13 @@ describe('AiJudgeOrderSensitive', () => {
             'Analyze this element description: "the button to the right of login"',
         }),
       ],
-      modelConfig,
+      modelRuntime,
+      { jsonParserSource: 'generic-object' },
     );
 
     expect(result).toEqual({
       isOrderSensitive: true,
-      usage: { total_tokens: 12 },
+      usage,
     });
   });
 });

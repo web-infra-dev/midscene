@@ -1,3 +1,4 @@
+import { getModelRuntime } from '@/ai-model/models';
 import { ScreenshotItem, TaskRunner } from '@/index';
 import type {
   ExecutionTaskActionApply,
@@ -40,12 +41,13 @@ const insightFindTask = (shouldThrow?: boolean) => {
           prompt: param.prompt,
         },
         {},
-        {
+        getModelRuntime({
           modelName: 'mock-model',
+          modelFamily: 'qwen2.5-vl',
           modelDescription: 'mock-model-description',
           intent: 'default',
           slot: 'default',
-        },
+        }),
       );
       return {
         output: {

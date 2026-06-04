@@ -1,0 +1,145 @@
+import { normalJsonParser } from '../service-caller/json';
+import { createLocateResultAdapter } from '../shared/model-locate-result/factory';
+import type { LocateResultAdapterDefinition } from '../shared/model-locate-result/types';
+import type {
+  ChatCompletionAdapter,
+  ChatCompletionCallContext,
+  ChatCompletionCallInput,
+  ImagePreprocessPolicy,
+  JsonParser,
+  LocateAdapter,
+  MidsceneChatCompletionDefaults,
+  ModelAdapter,
+  ModelAdapterDefinition,
+  PlanningAdapter,
+} from './types';
+
+const defaultReplanningCycleLimit = 20;
+
+const defaultImageDetail = (_input: unknown) => undefined;
+
+const defaultChatCompletionParams = ({
+  midsceneDefaults,
+  userConfig,
+}: ChatCompletionCallContext) => ({
+  config: {
+    temperature: userConfig.temperature ?? midsceneDefaults.temperature,
+  },
+});
+
+const midsceneChatCompletionDefaults: MidsceneChatCompletionDefaults = {
+  temperature: 0,
+};
+
+const defaultLocateResultAdapterDefinition: LocateResultAdapterDefinition = {
+  coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+};
+
+function resolveJsonParser(
+  jsonParser: ModelAdapterDefinition['jsonParser'],
+): JsonParser {
+  if (!jsonParser || jsonParser === 'lenient-json') {
+    return normalJsonParser;
+  }
+
+  if (typeof jsonParser === 'function') {
+    return jsonParser;
+  }
+
+  throw new Error(`Unknown json parser preset: ${jsonParser}`);
+}
+
+function resolveChatCompletion(
+  chatCompletion: ModelAdapterDefinition['chatCompletion'],
+): ChatCompletionAdapter {
+  const buildChatCompletionParams =
+    chatCompletion?.buildChatCompletionParams ?? defaultChatCompletionParams;
+  const resolveImageDetail =
+    chatCompletion?.resolveImageDetail ?? defaultImageDetail;
+  const unsupportedUserConfig = chatCompletion?.unsupportedUserConfig ?? [];
+
+  return {
+    unsupportedUserConfig,
+    buildChatCompletionParams: (input) => {
+      const context = {
+        ...input,
+        userConfig: input.userConfig ?? {},
+        midsceneDefaults: midsceneChatCompletionDefaults,
+      };
+      return buildChatCompletionParams(context);
+    },
+    resolveImageDetail: (input) =>
+      resolveImageDetail({
+        ...input,
+        userConfig: input.userConfig ?? {},
+        midsceneDefaults: midsceneChatCompletionDefaults,
+      }),
+  };
+}
+
+function resolveImagePreprocess(
+  imagePreprocess: ModelAdapterDefinition['imagePreprocess'],
+): ImagePreprocessPolicy {
+  return {
+    padBlockSize: imagePreprocess?.padBlockSize,
+  };
+}
+
+function resolvePlanning(
+  planning: ModelAdapterDefinition['planning'],
+): PlanningAdapter {
+  if (planning?.kind === 'custom') {
+    return {
+      kind: 'custom',
+      cacheEnabled: planning.cacheEnabled ?? true,
+      defaultReplanningCycleLimit:
+        planning.defaultReplanningCycleLimit ?? defaultReplanningCycleLimit,
+      supportsActionDeepLocate: planning.supportsActionDeepLocate ?? false,
+      planFn: planning.planFn,
+    };
+  }
+
+  return {
+    kind: 'standard',
+    cacheEnabled: planning?.cacheEnabled ?? true,
+    defaultReplanningCycleLimit:
+      planning?.defaultReplanningCycleLimit ?? defaultReplanningCycleLimit,
+    supportsActionDeepLocate: planning?.supportsActionDeepLocate ?? true,
+  };
+}
+
+function resolveLocate(
+  locate: ModelAdapterDefinition['locate'],
+): LocateAdapter {
+  if (locate?.kind === 'custom') {
+    return {
+      kind: 'custom',
+      supportsSearchArea: locate.supportsSearchArea ?? false,
+      locateFn: locate.locateFn,
+    };
+  }
+
+  return {
+    kind: 'standard',
+    supportsSearchArea: locate?.supportsSearchArea ?? true,
+    resultAdapter: createLocateResultAdapter(
+      locate?.resultAdapter ?? defaultLocateResultAdapterDefinition,
+    ),
+  };
+}
+
+export class ResolvedModelAdapter implements ModelAdapter {
+  readonly jsonParser: JsonParser;
+  readonly chatCompletion: ChatCompletionAdapter;
+  readonly imagePreprocess: ImagePreprocessPolicy;
+  readonly planning: PlanningAdapter;
+  readonly locate: LocateAdapter;
+
+  constructor(config: ModelAdapterDefinition, modelFamily: string) {
+    this.jsonParser = resolveJsonParser(config.jsonParser);
+    this.chatCompletion = resolveChatCompletion(config.chatCompletion);
+    this.imagePreprocess = resolveImagePreprocess(config.imagePreprocess);
+    this.planning = resolvePlanning(config.planning);
+    this.locate = resolveLocate(config.locate);
+  }
+}

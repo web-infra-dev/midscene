@@ -1,20 +1,25 @@
 import type {
   PlanningAIResponse,
   PlanningAction,
+  PlanningLocateParamWithLocatedPixelBbox,
   Size,
-  UIContext,
 } from '@/types';
-import { type IModelConfig, UITarsModelVersion } from '@midscene/shared/env';
+import type { UITarsModelVersion } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
 import { assert } from '@midscene/shared/utils';
 import { actionParser } from '@ui-tars/action-parser';
-import type { ConversationHistory } from './conversation-history';
-import { getSummary, getUiTarsPlanningPrompt } from './prompt/ui-tars-planning';
+import {
+  getSummary,
+  getUiTarsPlanningPrompt,
+} from '../../prompt/ui-tars-planning';
 import {
   AIResponseParseError,
   callAIWithStringResponse,
-} from './service-caller/index';
+} from '../../service-caller/index';
+import { finalizePixelBbox } from '../../shared/model-locate-result/bbox';
+import { mapLocateResultToPixelBboxByCoordinates } from '../../shared/model-locate-result/pixel-bbox-mapper';
+import type { PlanOptions } from '../../workflows/planning/types';
 
 type ActionType =
   | 'click'
@@ -29,32 +34,31 @@ type ActionType =
 
 const debug = getDebug('ui-tars-planning');
 const warnLog = getDebug('ui-tars-planning', { console: true });
-const bboxSize = 10;
-const pointToBbox = (
-  point: { x: number; y: number },
-  width: number,
-  height: number,
-): [number, number, number, number] => {
-  return [
-    Math.round(Math.max(point.x - bboxSize / 2, 0)),
-    Math.round(Math.max(point.y - bboxSize / 2, 0)),
-    Math.round(Math.min(point.x + bboxSize / 2, width)),
-    Math.round(Math.min(point.y + bboxSize / 2, height)),
-  ];
-};
+
+function pointToLocateParam(
+  point: [number, number],
+  thought: string | null,
+  size: Size,
+): PlanningLocateParamWithLocatedPixelBbox {
+  const ctx = { preparedSize: size };
+  const pixelBbox = mapLocateResultToPixelBboxByCoordinates(
+    { type: 'point', coordinates: point },
+    ctx,
+    { shape: 'point', order: 'xy', normalizedBy: 1 },
+  );
+
+  return {
+    prompt: thought || '',
+    locatedPixelBbox: finalizePixelBbox(pixelBbox, point, ctx),
+  };
+}
 
 export async function uiTarsPlanning(
   userInstruction: string,
-  options: {
-    conversationHistory: ConversationHistory;
-    context: UIContext;
-    modelConfig: IModelConfig;
-    actionContext?: string;
-    abortSignal?: AbortSignal;
-  },
+  options: PlanOptions,
+  uiTarsModelVersion: UITarsModelVersion,
 ): Promise<PlanningAIResponse> {
-  const { conversationHistory, context, modelConfig, actionContext } = options;
-  const { uiTarsModelVersion } = modelConfig;
+  const { conversationHistory, context, modelRuntime, actionContext } = options;
 
   let instruction = userInstruction;
   if (actionContext) {
@@ -85,7 +89,7 @@ export async function uiTarsPlanning(
       },
       ...conversationHistory.snapshot(),
     ],
-    modelConfig,
+    modelRuntime,
     {
       abortSignal: options.abortSignal,
     },
@@ -135,87 +139,52 @@ export async function uiTarsPlanning(
     const actionType = (action.action_type || '').toLowerCase();
     if (actionType === 'click') {
       assert(action.action_inputs.start_box, 'start_box is required');
-      const point = getPoint(action.action_inputs.start_box, shotSize);
+      const point = getPoint(action.action_inputs.start_box);
 
-      const locate = {
-        prompt: action.thought || '',
-        bbox: pointToBbox(
-          { x: point[0], y: point[1] },
-          shotSize.width,
-          shotSize.height,
-        ),
-      };
+      const locate = pointToLocateParam(point, action.thought, shotSize);
 
       transformActions.push({
         type: 'Tap',
         param: {
-          locate: locate,
+          locate,
         },
       });
     } else if (actionType === 'left_double') {
       assert(action.action_inputs.start_box, 'start_box is required');
-      const point = getPoint(action.action_inputs.start_box, shotSize);
+      const point = getPoint(action.action_inputs.start_box);
 
-      const locate = {
-        prompt: action.thought || '',
-        bbox: pointToBbox(
-          { x: point[0], y: point[1] },
-          shotSize.width,
-          shotSize.height,
-        ),
-      };
+      const locate = pointToLocateParam(point, action.thought, shotSize);
 
       transformActions.push({
         type: 'DoubleClick',
         param: {
-          locate: locate,
+          locate,
         },
         thought: action.thought || '',
       });
     } else if (actionType === 'right_single') {
       assert(action.action_inputs.start_box, 'start_box is required');
-      const point = getPoint(action.action_inputs.start_box, shotSize);
+      const point = getPoint(action.action_inputs.start_box);
 
-      const locate = {
-        prompt: action.thought || '',
-        bbox: pointToBbox(
-          { x: point[0], y: point[1] },
-          shotSize.width,
-          shotSize.height,
-        ),
-      };
+      const locate = pointToLocateParam(point, action.thought, shotSize);
 
       transformActions.push({
         type: 'RightClick',
         param: {
-          locate: locate,
+          locate,
         },
         thought: action.thought || '',
       });
     } else if (actionType === 'drag') {
       assert(action.action_inputs.start_box, 'start_box is required');
       assert(action.action_inputs.end_box, 'end_box is required');
-      const startPoint = getPoint(action.action_inputs.start_box, shotSize);
-      const endPoint = getPoint(action.action_inputs.end_box, shotSize);
+      const startPoint = getPoint(action.action_inputs.start_box);
+      const endPoint = getPoint(action.action_inputs.end_box);
       transformActions.push({
         type: 'DragAndDrop',
         param: {
-          from: {
-            prompt: action.thought || '',
-            bbox: pointToBbox(
-              { x: startPoint[0], y: startPoint[1] },
-              shotSize.width,
-              shotSize.height,
-            ),
-          },
-          to: {
-            prompt: action.thought || '',
-            bbox: pointToBbox(
-              { x: endPoint[0], y: endPoint[1] },
-              shotSize.width,
-              shotSize.height,
-            ),
-          },
+          from: pointToLocateParam(startPoint, action.thought, shotSize),
+          to: pointToLocateParam(endPoint, action.thought, shotSize),
         },
         thought: action.thought || '',
       });
@@ -240,7 +209,7 @@ export async function uiTarsPlanning(
       transformActions.push({
         type: 'Finished',
         param: {},
-        thought: action.thought || '',
+        thought: action.action_inputs.content || action.thought || '',
       });
     } else if (actionType === 'hotkey') {
       if (!action.action_inputs.key) {
@@ -360,14 +329,23 @@ function convertBboxToCoordinates(text: string): string {
     return `(${x},${y})`;
   }
 
-  // Remove [EOS] and replace <bbox> coordinates
-  const cleanedText = text.replace(/\[EOS\]/g, '');
+  // Remove common model wrappers before handing the response to UI-TARS parser.
+  const cleanedText = text
+    .replace(/\[EOS\]/g, '')
+    .replace(/```(?:[a-zA-Z0-9_-]+)?/g, '');
   return cleanedText.replace(pattern, replaceMatch).trim();
 }
 
-function getPoint(startBox: string, size: { width: number; height: number }) {
+function getPoint(startBox: string): [number, number] {
   const [x, y] = JSON.parse(startBox);
-  return [x * size.width, y * size.height];
+  assert(
+    typeof x === 'number' &&
+      Number.isFinite(x) &&
+      typeof y === 'number' &&
+      Number.isFinite(y),
+    `invalid point data for ui-tars planning: ${startBox}`,
+  );
+  return [x, y];
 }
 
 interface BaseAction {
@@ -436,7 +414,9 @@ interface ScrollAction extends BaseAction {
 
 interface FinishedAction extends BaseAction {
   action_type: 'finished';
-  action_inputs: Record<string, never>;
+  action_inputs: {
+    content?: string;
+  };
 }
 
 export type Action =

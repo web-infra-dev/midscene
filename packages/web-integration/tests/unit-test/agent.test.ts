@@ -65,29 +65,6 @@ const mockedModelConfig = {
   MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
 };
 
-const modelConfigCalcByMockedModelConfig = {
-  httpProxy: undefined,
-  intent: 'insight',
-  modelDescription: 'qwen3-vl mode',
-  modelName: 'mock-model',
-  openaiApiKey: 'mock-api-key',
-  openaiBaseURL: 'mock-base-url',
-  openaiExtraConfig: undefined,
-  socksProxy: undefined,
-  temperature: 0,
-  uiTarsModelVersion: undefined,
-  modelFamily: 'qwen3-vl',
-  createOpenAIClient: undefined,
-  extraBody: undefined,
-  reasoningBudget: undefined,
-  reasoningEffort: undefined,
-  reasoningEnabled: undefined,
-  retryCount: 1,
-  retryInterval: 2000,
-  slot: 'default',
-  timeout: undefined,
-};
-
 // Mock task executor
 const mockTaskExecutor = {
   runPlans: vi.fn(),
@@ -296,7 +273,14 @@ describe('PageAgent aiWaitFor', () => {
         timeoutMs: 5000,
         checkIntervalMs: 1000,
       },
-      modelConfigCalcByMockedModelConfig,
+      expect.objectContaining({
+        config: expect.objectContaining({
+          modelName: 'mock-model',
+          modelFamily: 'qwen3-vl',
+          intent: 'insight',
+          slot: 'default',
+        }),
+      }),
     );
   });
 
@@ -334,7 +318,14 @@ describe('PageAgent aiWaitFor', () => {
         timeoutMs: 15000, // 15 * 1000
         checkIntervalMs: 3000, // 3 * 1000
       },
-      modelConfigCalcByMockedModelConfig,
+      expect.objectContaining({
+        config: expect.objectContaining({
+          modelName: 'mock-model',
+          modelFamily: 'qwen3-vl',
+          intent: 'insight',
+          slot: 'default',
+        }),
+      }),
     );
   });
 
@@ -364,7 +355,14 @@ describe('PageAgent aiWaitFor', () => {
         timeoutMs: 30000,
         checkIntervalMs: 5000,
       },
-      modelConfigCalcByMockedModelConfig,
+      expect.objectContaining({
+        config: expect.objectContaining({
+          modelName: 'mock-model',
+          modelFamily: 'qwen3-vl',
+          intent: 'insight',
+          slot: 'default',
+        }),
+      }),
     );
   });
 });
