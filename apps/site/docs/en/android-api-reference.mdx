@@ -169,18 +169,20 @@ function launch(target: string): Promise<void>;
 
 #### `agent.runAdbShell()`
 
-Run a raw `adb shell` command through the connected device.
+Run a raw `adb shell` command through the connected device. Pass only the shell command itself, without the `adb shell` prefix.
 
 ```ts
 function runAdbShell(command: string, opt?: { timeout?: number }): Promise<string>;
 ```
 
-- `command: string` &mdash; Command passed verbatim to `adb shell`.
+- `command: string` &mdash; Command passed verbatim to `adb shell`. For example, use `input tap 100 200`, not `adb shell input tap 100 200`.
 - `opt.timeout?: number` &mdash; Optional command execution timeout in milliseconds.
 
 ```ts
 const result = await agent.runAdbShell('dumpsys battery', { timeout: 60 * 1000 });
 console.log(result);
+
+await agent.runAdbShell('input tap 100 200');
 ```
 
 #### `agent.terminate()`
