@@ -1448,5 +1448,32 @@ describe('create-yaml-player', () => {
         'cdpEndpoint and bridgeMode are mutually exclusive',
       );
     });
+
+    test('should throw when harmony is combined with another target', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: { url: 'http://example.com' },
+        harmony: { deviceId: 'harmony-device-1' },
+        tasks: [],
+      };
+
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      // The setup function should reject because two targets are specified
+      await expect(setupFnCallback!()).rejects.toThrow(
+        /Only one target type can be specified, but found multiple: web, harmony/,
+      );
+    });
   });
 });

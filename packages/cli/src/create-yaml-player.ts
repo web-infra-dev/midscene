@@ -114,6 +114,7 @@ export async function createYamlPlayer(
         typeof webTarget !== 'undefined',
         typeof clonedYamlScript.android !== 'undefined',
         typeof clonedYamlScript.ios !== 'undefined',
+        typeof clonedYamlScript.harmony !== 'undefined',
         typeof clonedYamlScript.computer !== 'undefined',
         typeof clonedYamlScript.interface !== 'undefined',
       ].filter(Boolean).length;
@@ -123,6 +124,7 @@ export async function createYamlPlayer(
           typeof webTarget !== 'undefined' ? 'web' : null,
           typeof clonedYamlScript.android !== 'undefined' ? 'android' : null,
           typeof clonedYamlScript.ios !== 'undefined' ? 'ios' : null,
+          typeof clonedYamlScript.harmony !== 'undefined' ? 'harmony' : null,
           typeof clonedYamlScript.computer !== 'undefined' ? 'computer' : null,
           typeof clonedYamlScript.interface !== 'undefined'
             ? 'interface'
@@ -130,7 +132,7 @@ export async function createYamlPlayer(
         ].filter(Boolean);
 
         throw new Error(
-          `Only one target type can be specified, but found multiple: ${specifiedTargets.join(', ')}. Please specify only one of: web, android, ios, computer, or interface.`,
+          `Only one target type can be specified, but found multiple: ${specifiedTargets.join(', ')}. Please specify only one of: web, android, ios, harmony, computer, or interface.`,
         );
       }
 
