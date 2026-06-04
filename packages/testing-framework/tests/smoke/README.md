@@ -6,6 +6,7 @@ first (`npx nx build @midscene/testing-framework`), then run with `node`.
 | Script | What it checks | Needs network? | Needs a browser? |
 | ------ | -------------- | -------------- | ---------------- |
 | `pi-wiring.mjs` | Decision C′: Pi registers a custom base-URL provider, resolves the API key, selects the model, and activates the `report_verdict` tool. No model call. | no | no |
+| `rstest-real.mjs` | Real Rstest orchestration: spawns a worker, bundles the generated virtual module, loads the config in-worker, runs a `ui`/`verify`/`agent` flow, and writes the per-case result — with a **stubbed** UI Agent and general agent. | no | no |
 | `browser-smoke.mjs` | Real headless Chrome: discover + parse the example cases, launch the web UI Agent, navigate, capture a screenshot, and drive the engine (runtime node + verify) with a **stubbed** agent runtime. | no | yes |
 | `model-smoke.mjs` | Full end-to-end: runs the real example cases with the real UI Agent (`ui`) and real Pi runtime (`verify`/`soft`/`agent`) on the same model endpoint. | yes (model endpoint) | yes |
 

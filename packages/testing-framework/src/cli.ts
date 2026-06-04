@@ -4,8 +4,7 @@
  * Usage:
  *   midscene-tf run [--config <path>] [--root <dir>] [file...]
  */
-import { loadConfig } from './runner/load-config';
-import { runAll } from './runner/run';
+import { runWithRstest } from './rstest';
 import type { RunSummary } from './types';
 
 interface ParsedArgs {
@@ -72,13 +71,13 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     return 2;
   }
 
-  const { config } = await loadConfig(args.config ?? args.root);
-  const summary = await runAll(config, {
+  const { summary, exitCode } = await runWithRstest({
+    configPath: args.config ?? args.root,
     projectRoot: args.root,
     files: args.files,
   });
   printSummary(summary);
-  return summary.failed > 0 ? 1 : 0;
+  return summary.failed > 0 ? 1 : exitCode;
 }
 
 main()

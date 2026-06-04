@@ -41,6 +41,7 @@
     "@earendil-works/pi-coding-agent": "^0.78.0",
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
+    "@rstest/core": "0.10.3",
     "jiti": "2.7.0",
     "js-yaml": "4.1.0"
   },

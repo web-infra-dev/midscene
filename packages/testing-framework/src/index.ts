@@ -5,7 +5,8 @@
  *  - `defineMidsceneConfig` / `defineRuntime` authoring helpers
  *  - the node model, verdict contract, output contract, context-assembly
  *    contract (as types)
- *  - a lightweight runner (`runAll`) and CLI (`midscene-tf`)
+ *  - an Rstest-backed orchestrator (`runWithRstest`) driving the CLI
+ *    (`midscene-tf`), plus a lightweight in-process runner (`runAll`)
  *  - the default Pi-backed general agent with a custom model base URL
  *    (decision C′, RFC §4.1)
  */
@@ -69,9 +70,27 @@ export type { AssembleContextInput } from './context/assembler';
 // —— engine / runner ——
 export { runCase } from './engine/run-case';
 export type { RunCaseOptions } from './engine/run-case';
-export { runAll } from './runner/run';
-export type { RunAllOptions } from './runner/run';
+export { runAll, executeCaseFile } from './runner/run';
+export type { RunAllOptions, ExecuteCaseFileOptions } from './runner/run';
 export { loadConfig, resolveConfigPath } from './runner/load-config';
 export { discoverCases } from './runner/glob';
 export { createUIAgent } from './ui-agent/factory';
 export type { ResolvedUIAgent } from './ui-agent/factory';
+
+// —— Rstest orchestration (default for the CLI) ——
+export {
+  runWithRstest,
+  createRstestProject,
+  runRstestProject,
+  defineMidsceneCaseTest,
+  resolveTestName,
+} from './rstest';
+export type {
+  RunWithRstestOptions,
+  RunWithRstestResult,
+  CreateRstestProjectOptions,
+  GeneratedCase,
+  GeneratedRstestProject,
+  RunRstestProjectOptions,
+  DefineMidsceneCaseTestOptions,
+} from './rstest';

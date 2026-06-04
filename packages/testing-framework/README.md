@@ -9,8 +9,10 @@ judgments and free-form analysis.
 > This is the Phase 0 implementation of RFC 0001
 > (`rfcs/0001-v2-testing-framework-phase0.md`). It covers the node model,
 > `midscene.config.ts`, `defineRuntime` / `$name` skills, the verify verdict
-> contract, the output contract, and context assembly. Rstest wiring and
-> v1→v2 migration are out of scope for this phase.
+> contract, the output contract, and context assembly. Cases are orchestrated
+> through [Rstest](https://rstest.dev): each YAML case becomes a virtual test
+> module, so discovery, concurrency, bail, retry, and isolation come from
+> Rstest. v1→v2 migration is out of scope for this phase.
 
 ## Concepts
 
@@ -59,6 +61,17 @@ midscene-tf run e2e/x.yaml # run a specific case
 See a runnable demo in the repository's `example/` directory.
 
 ## Programmatic API
+
+Drive the full suite through Rstest (what `midscene-tf run` uses):
+
+```ts
+import { runWithRstest } from '@midscene/testing-framework';
+
+const { summary, exitCode } = await runWithRstest({ configPath: process.cwd() });
+```
+
+Or run cases in-process (sequential, embeddable, no Rstest workers — handy for
+tests and tooling that already hold a `MidsceneConfig` in memory):
 
 ```ts
 import { runAll, loadConfig } from '@midscene/testing-framework';

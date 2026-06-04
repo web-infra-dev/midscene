@@ -1,2 +1,14 @@
 #!/usr/bin/env node
-require("../dist/lib/cli.js");
+// Load the ESM build: the general agent (Pi) and its `@earendil-works/pi-ai`
+// dependency are ESM-only, so a CommonJS `require` of this package fails with
+// ERR_PACKAGE_PATH_NOT_EXPORTED. Dynamic import from this CJS shim resolves the
+// ESM entry through Node's ESM loader, which honors their `import` condition.
+const { pathToFileURL } = require('node:url');
+const { join } = require('node:path');
+
+import(pathToFileURL(join(__dirname, '..', 'dist', 'es', 'cli.mjs')).href).catch(
+  (error) => {
+    console.error(error);
+    process.exit(1);
+  },
+);

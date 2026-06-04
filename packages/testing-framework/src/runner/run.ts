@@ -21,9 +21,111 @@ export interface RunAllOptions {
   env?: NodeJS.ProcessEnv;
 }
 
+export interface ExecuteCaseFileOptions {
+  config: MidsceneConfig;
+  /** Absolute path to the case YAML file. */
+  file: string;
+  /** Resolved general agent backing verify/soft/agent nodes. */
+  generalAgent: GeneralAgentAdapter;
+  /** Root used to resolve relative paths and for skill discovery. */
+  projectRoot: string;
+  env: NodeJS.ProcessEnv;
+}
+
 /**
- * Run an entire suite from a resolved config. This is the lightweight Phase 0
- * runner; Rstest wiring is out of scope (RFC scope note).
+ * Execute a single case file end-to-end: parse the YAML, build the UI Agent,
+ * run the flow, and tear the UI Agent down. This is the shared unit of work
+ * behind both the in-process {@link runAll} loop and the Rstest worker entry
+ * (`defineMidsceneCaseTest`), so a case runs identically either way.
+ *
+ * The `generalAgent` is owned by the caller (created/disposed there) so it can
+ * be reused across cases in-process or scoped per worker under Rstest.
+ */
+export async function executeCaseFile(
+  options: ExecuteCaseFileOptions,
+): Promise<CaseResult> {
+  const { config, file, generalAgent, projectRoot, env } = options;
+  const source = readFileSync(file, 'utf-8');
+  const parsed = parseCaseYaml(source, file);
+
+  const { agent, cleanup } = await createUIAgent(
+    config.uiAgent,
+    config.uiAgentOptions,
+    env,
+  );
+
+  try {
+    return await runCase({
+      parsed,
+      file,
+      uiAgent: agent,
+      generalAgent,
+      runtimeNodes: config.runtime ?? {},
+      projectRoot,
+      env,
+    });
+  } finally {
+    await cleanup?.();
+  }
+}
+
+/**
+ * Resolve the discovered case files for a config (absolute paths), honoring an
+ * explicit file list when provided. Shared by the in-process runner and the
+ * Rstest orchestrator.
+ */
+export function resolveCaseFiles(
+  config: MidsceneConfig,
+  projectRoot: string,
+  files?: string[],
+): string[] {
+  if (files && files.length > 0) {
+    return files.map((f) => resolvePath(projectRoot, f));
+  }
+  const testDir = resolvePath(projectRoot, config.testDir);
+  const include = config.include ?? DEFAULT_INCLUDE;
+  const exclude = config.exclude ?? [];
+  return discoverCases(testDir, include, exclude);
+}
+
+/** Build a {@link RunSummary} from per-case results. */
+export function summarizeCases(
+  cases: CaseResult[],
+  startedAt: Date,
+  finishedAt: Date,
+): RunSummary {
+  return {
+    startedAt: startedAt.toISOString(),
+    finishedAt: finishedAt.toISOString(),
+    durationMs: finishedAt.getTime() - startedAt.getTime(),
+    total: cases.length,
+    passed: cases.filter((c) => c.status === 'passed').length,
+    failed: cases.filter((c) => c.status === 'failed').length,
+    cases,
+  };
+}
+
+/** Write the aggregate summary JSON to `output.summary`, if configured. */
+export function writeSummaryFile(
+  config: MidsceneConfig,
+  projectRoot: string,
+  summary: RunSummary,
+): void {
+  if (!config.output?.summary) return;
+  const summaryPath = resolvePath(projectRoot, config.output.summary);
+  mkdirSync(dirname(summaryPath), { recursive: true });
+  writeFileSync(summaryPath, JSON.stringify(summary, null, 2), 'utf-8');
+  debug('wrote summary', summaryPath);
+}
+
+/**
+ * Run an entire suite in-process from a resolved config. This is the
+ * lightweight, embeddable runner: it executes cases sequentially in the
+ * current process and is handy for programmatic use and deterministic tests.
+ *
+ * The CLI drives cases through Rstest instead (see `runWithRstest`), which is
+ * the orchestration layer for discovery, concurrency, bail, retry, and
+ * reporting.
  */
 export async function runAll(
   config: MidsceneConfig,
@@ -34,78 +136,41 @@ export async function runAll(
     : process.cwd();
   const env = options.env ?? process.env;
 
-  const testDir = resolvePath(projectRoot, config.testDir);
-  const include = config.include ?? DEFAULT_INCLUDE;
-  const exclude = config.exclude ?? [];
-
-  const files =
-    options.files && options.files.length > 0
-      ? options.files.map((f) => resolvePath(projectRoot, f))
-      : discoverCases(testDir, include, exclude);
+  const files = resolveCaseFiles(config, projectRoot, options.files);
 
   debug('discovered cases', files);
 
   const generalAgent: GeneralAgentAdapter =
     config.generalAgent ?? new PiGeneralAgent();
-  const runtimeNodes = config.runtime ?? {};
 
   const startedAt = new Date();
   const cases: CaseResult[] = [];
   const bail = config.testRunner?.bail ?? 0;
   let failures = 0;
 
-  for (const file of files) {
-    const source = readFileSync(file, 'utf-8');
-    const parsed = parseCaseYaml(source, file);
-
-    const { agent, cleanup } = await createUIAgent(
-      config.uiAgent,
-      config.uiAgentOptions,
-      env,
-    );
-
-    try {
-      const result = await runCase({
-        parsed,
+  try {
+    for (const file of files) {
+      const result = await executeCaseFile({
+        config,
         file,
-        uiAgent: agent,
         generalAgent,
-        runtimeNodes,
         projectRoot,
         env,
       });
       cases.push(result);
       if (result.status === 'failed') failures++;
-    } finally {
-      await cleanup?.();
-    }
 
-    if (bail > 0 && failures >= bail) {
-      debug('bail threshold reached', { bail, failures });
-      break;
+      if (bail > 0 && failures >= bail) {
+        debug('bail threshold reached', { bail, failures });
+        break;
+      }
     }
+  } finally {
+    await generalAgent.dispose?.();
   }
 
-  await generalAgent.dispose?.();
-
-  const finishedAt = new Date();
-  const summary: RunSummary = {
-    startedAt: startedAt.toISOString(),
-    finishedAt: finishedAt.toISOString(),
-    durationMs: finishedAt.getTime() - startedAt.getTime(),
-    total: cases.length,
-    passed: cases.filter((c) => c.status === 'passed').length,
-    failed: cases.filter((c) => c.status === 'failed').length,
-    cases,
-  };
-
-  if (config.output?.summary) {
-    const summaryPath = resolvePath(projectRoot, config.output.summary);
-    mkdirSync(dirname(summaryPath), { recursive: true });
-    writeFileSync(summaryPath, JSON.stringify(summary, null, 2), 'utf-8');
-    debug('wrote summary', summaryPath);
-  }
-
+  const summary = summarizeCases(cases, startedAt, new Date());
+  writeSummaryFile(config, projectRoot, summary);
   return summary;
 }
 

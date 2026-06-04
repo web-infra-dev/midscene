@@ -32,6 +32,9 @@ export default defineConfig({
     entry: {
       index: './src/index.ts',
       cli: './src/cli.ts',
+      // Standalone worker entry imported by the generated Rstest virtual
+      // modules; must stay a separate file (not bundled into index/cli).
+      'rstest-entry': './src/rstest/entry.ts',
     },
     define: {
       __VERSION__: JSON.stringify(version),
@@ -39,11 +42,14 @@ export default defineConfig({
   },
   output: {
     // Pi and the platform UI agents are heavy runtime deps; keep them external.
+    // Rstest is provided by the project running the suite (resolved at runtime).
     externals: [
       '@earendil-works/pi-coding-agent',
       '@earendil-works/pi-ai',
       '@midscene/web',
       '@midscene/web/puppeteer-agent-launcher',
+      '@rstest/core',
+      '@rstest/core/api',
     ],
   },
   plugins: [createTypeCheckPlugin()],

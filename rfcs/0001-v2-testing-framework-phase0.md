@@ -6,7 +6,7 @@
 
 > 本稿目标：把"动手前必须先定的接口"钉死成可评审的草案。每节末尾的 **🔶 待讨论** 是我留的开放决策点。
 
-> **实现状态（Phase 0）**：本稿契约已落地为新包 `@midscene/testing-framework`（`packages/testing-framework`），含 `defineMidsceneConfig` / `defineRuntime`、v2 YAML 解析、节点引擎（`ui`/`verify`/`soft`/`agent`/自定义）、上下文装配、verify fail-closed 判定、默认 Pi 通用 agent（已解决 C′），以及一个轻量 runner 与 CLI（`midscene-tf`）。可 copy 演示的样例在仓库根 `example/`。唯一开放项 C′ 已落实（见 §4.1）。
+> **实现状态（Phase 0）**：本稿契约已落地为新包 `@midscene/testing-framework`（`packages/testing-framework`），含 `defineMidsceneConfig` / `defineRuntime`、v2 YAML 解析、节点引擎（`ui`/`verify`/`soft`/`agent`/自定义）、上下文装配、verify fail-closed 判定、默认 Pi 通用 agent（已解决 C′），以及 CLI（`midscene-tf`）。**用例编排已接 Rstest**：每个用例 YAML 生成一个虚拟测试模块，发现/并发/bail/retry/隔离交给 Rstest（`runWithRstest`，见 `src/rstest/`）；另保留一个轻量 in-process runner（`runAll`）供编程式/嵌入使用。可 copy 演示的样例在仓库根 `example/`。唯一开放项 C′ 已落实（见 §4.1）。
 
 ---
 
@@ -467,6 +467,6 @@ flow:
 ## 附：Phase 0 之后（不在本稿讨论范围，仅备忘）
 
 - Pi `GeneralAgentAdapter` 的最小接口（让 Codex Agent SDK 等可替换）。
-- Rstest 接线：用例 → 虚拟测试模块 → 生命周期/fixture 映射。
+- ~~Rstest 接线：用例 → 虚拟测试模块 → 生命周期/fixture 映射。~~ **已实现**（`src/rstest/`：用例 → 虚拟测试模块 → Rstest 调度）；fixture 映射仍待后续。
 - 报告：复用 core `ReportGenerator`，把 verify verdict / agent 诊断如何呈现。
 - v1→v2 转译器（可选、外挂）。
