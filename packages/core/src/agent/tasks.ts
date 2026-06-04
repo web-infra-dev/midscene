@@ -288,10 +288,16 @@ export class TaskExecutor {
   }
 
   /**
-   * After a failed plan-execution batch, mark every cache-hit locate task in
-   * that batch (tasks at index >= fromIndex) as stale, so the upcoming replan's
-   * re-locate replaces the bad entry in place instead of appending a duplicate
-   * that would re-poison the cache on the next run (#2529).
+   * Called when the task is about to replan. Marks every cache-hit locate task
+   * in the just-run batch (tasks at index >= fromIndex) as stale: that batch
+   * did not finish the task, so the element each cache hit produced is suspect.
+   * The upcoming re-locate of the same prompt then replaces the bad entry in
+   * place instead of appending a duplicate that would re-poison the cache on the
+   * next run (#2529).
+   *
+   * Marking a locate that was actually fine is harmless: the step is only ever
+   * replaced if the same prompt is located again (i.e. the step is redone),
+   * which does not happen for a locate that already succeeded.
    */
   private invalidateFailedCacheHitLocates(
     runner: TaskRunner,
@@ -538,11 +544,6 @@ export class TaskExecutor {
       } catch (error: any) {
         // errorFlag = true;
         errorCountInOnePlanningLoop++;
-        // The just-run batch failed and we are about to replan. Any locate task
-        // in it that was served from cache produced an element the action then
-        // rejected, so mark those cache entries stale; the re-locate will then
-        // replace them in place instead of appending a poisoning duplicate.
-        this.invalidateFailedCacheHitLocates(runner, taskCountBeforeRun);
         const timeString = await this.getTimeString();
         conversationHistory.pendingFeedbackMessage = `Time: ${timeString}, Error executing running tasks: ${error?.message || String(error)}`;
         debug(
@@ -568,6 +569,15 @@ export class TaskExecutor {
       if (!planResult?.shouldContinuePlanning) {
         break;
       }
+
+      // We are about to replan, which means the batch we just ran did not finish
+      // the task. Any locate task in that batch that was served from cache
+      // produced an element that failed to complete the step (the action threw,
+      // or it clicked the wrong element and the goal was not reached). Mark those
+      // cache entries stale so the re-locate of the same prompt replaces them in
+      // place instead of appending a poisoning duplicate that would be matched
+      // first on the next run (#2529).
+      this.invalidateFailedCacheHitLocates(runner, taskCountBeforeRun);
 
       // Increment replan count for next iteration
       ++replanCount;
