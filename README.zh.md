@@ -73,7 +73,7 @@
 
 ## ✨ 视觉语言模型驱动
 
-Midscene.js 在 UI 操作上完全采用纯视觉路线：元素定位与交互仅基于截图。它支持 `Qwen3-VL`、`Doubao-1.6-vision`、`gemini-3-pro`、`UI-TARS` 等视觉语言模型。在数据提取与页面理解场景中，你仍可按需选择携带 DOM。
+Midscene.js 在 UI 操作上完全采用纯视觉路线：元素定位与交互仅基于截图。它支持 `Qwen3.x`、`Doubao-Seed-2.0`、`GLM-4.6V`、`gemini-3.5-flash`、`UI-TARS` 等视觉语言模型。在数据提取与页面理解场景中，你仍可按需选择携带 DOM。
 
 * UI 操作使用纯视觉定位；不再保留 DOM 提取模式。
 * 支持 Web、移动端、桌面端，甚至 `<canvas>` 场景。
