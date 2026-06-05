@@ -1,9 +1,11 @@
 import type { TMultimodalPrompt, TUserPrompt } from './common';
 import type {
-  AndroidDeviceOpt,
-  HarmonyDeviceOpt,
-  IOSDeviceOpt,
-} from './device';
+  AndroidConnectionOpt,
+  ComputerConnectionOpt,
+  HarmonyConnectionOpt,
+  IOSConnectionOpt,
+  WebConnectionOpt,
+} from './connection-options';
 import type { AgentOpt, LocateResultElement, Rect } from './types';
 import type { UIContext } from './types';
 
@@ -125,100 +127,29 @@ export interface MidsceneYamlScriptEnvGeneralInterface {
   param?: Record<string, any>;
 }
 
+// The YAML-script env types are the connection options plus the YAML run
+// config (and, for web, agent behavior). Connection options are the source of
+// truth — see `./connection-options`.
 export interface MidsceneYamlScriptWebEnv
-  extends MidsceneYamlScriptConfig,
-    MidsceneYamlScriptAgentOpt {
-  // for web only
-  serve?: string;
-  url: string;
-
-  // puppeteer only
-  userAgent?: string;
-  acceptInsecureCerts?: boolean;
-  viewportWidth?: number;
-  viewportHeight?: number;
-  deviceScaleFactor?: number;
-  waitForNetworkIdle?: {
-    timeout?: number;
-    continueOnNetworkIdleError?: boolean; // should continue if failed to wait for network idle, true for default
-  };
-  cookie?: string;
-  forceSameTabNavigation?: boolean; // if track the newly opened tab, true for default in yaml script
-
-  /**
-   * Custom Chrome launch arguments (Puppeteer only, not supported in bridge mode).
-   *
-   * Allows passing custom command-line arguments to Chrome/Chromium when launching the browser.
-   * This is useful for testing scenarios that require specific browser configurations.
-   *
-   * ⚠️ Security Warning: Some arguments (e.g., --no-sandbox, --disable-web-security) may
-   * reduce browser security. Use only in controlled testing environments.
-   *
-   * @example
-   * ```yaml
-   * web:
-   *   url: https://example.com
-   *   chromeArgs:
-   *     - '--disable-features=ThirdPartyCookiePhaseout'
-   *     - '--disable-features=SameSiteByDefaultCookies'
-   *     - '--window-size=1920,1080'
-   * ```
-   */
-  chromeArgs?: string[];
-
-  // bridge mode config
-  bridgeMode?: false | 'newTabWithUrl' | 'currentTab';
-  closeNewTabsAfterDisconnect?: boolean;
-
-  /**
-   * CDP (Chrome DevTools Protocol) endpoint URL.
-   * When specified, connects to an existing Chrome browser via CDP instead of launching a new one.
-   *
-   * @example
-   * ```yaml
-   * web:
-   *   url: https://example.com
-   *   cdpEndpoint: ws://localhost:9222/devtools/browser/xxxx
-   * ```
-   */
-  cdpEndpoint?: string;
-}
+  extends WebConnectionOpt,
+    MidsceneYamlScriptConfig,
+    MidsceneYamlScriptAgentOpt {}
 
 export interface MidsceneYamlScriptAndroidEnv
-  extends MidsceneYamlScriptConfig,
-    Omit<AndroidDeviceOpt, 'customActions'> {
-  // The Android device ID to connect to, optional, will use the first device if not specified
-  deviceId?: string;
-
-  // The URL or app package to launch, optional, will use the current screen if not specified
-  launch?: string;
-}
+  extends AndroidConnectionOpt,
+    MidsceneYamlScriptConfig {}
 
 export interface MidsceneYamlScriptIOSEnv
-  extends MidsceneYamlScriptConfig,
-    Omit<IOSDeviceOpt, 'customActions'> {
-  // The URL or app bundle ID to launch, optional, will use the current screen if not specified
-  launch?: string;
-}
+  extends IOSConnectionOpt,
+    MidsceneYamlScriptConfig {}
 
 export interface MidsceneYamlScriptHarmonyEnv
-  extends MidsceneYamlScriptConfig,
-    Omit<HarmonyDeviceOpt, 'customActions'> {
-  // The HarmonyOS device ID to connect to, optional, will use the first device if not specified
-  deviceId?: string;
-
-  // The app package to launch, optional, will use the current screen if not specified
-  launch?: string;
-
-  // Custom mapping of app names to bundle names, user-provided mappings take precedence over defaults
-  appNameMapping?: Record<string, string>;
-}
+  extends HarmonyConnectionOpt,
+    MidsceneYamlScriptConfig {}
 
 export interface MidsceneYamlScriptComputerEnv
-  extends MidsceneYamlScriptConfig {
-  // The display ID to use, optional, will use the primary display if not specified
-  displayId?: string;
-}
+  extends ComputerConnectionOpt,
+    MidsceneYamlScriptConfig {}
 
 export type MidsceneYamlScriptEnv =
   | MidsceneYamlScriptWebEnv
@@ -226,42 +157,6 @@ export type MidsceneYamlScriptEnv =
   | MidsceneYamlScriptIOSEnv
   | MidsceneYamlScriptHarmonyEnv
   | MidsceneYamlScriptComputerEnv;
-
-/**
- * Canonical per-platform connection / launch target options.
- *
- * These are the pure "how to reach the target" types: the same fields the
- * `MidsceneYamlScript*Env` types carry, but with the YAML run config
- * (`MidsceneYamlScriptConfig`: output, unstableLogContent) and the agent
- * behavior options (`MidsceneYamlScriptAgentOpt`: generateReport, cache, ...)
- * stripped out. Use these when you only need to describe the connection target
- * and want agent behavior expressed separately (e.g. via `AgentOpt`). They are
- * derived from the env types, so they stay in sync automatically.
- */
-export type WebConnectionOpt = Omit<
-  MidsceneYamlScriptWebEnv,
-  keyof MidsceneYamlScriptConfig | keyof MidsceneYamlScriptAgentOpt
->;
-
-export type AndroidConnectionOpt = Omit<
-  MidsceneYamlScriptAndroidEnv,
-  keyof MidsceneYamlScriptConfig
->;
-
-export type IOSConnectionOpt = Omit<
-  MidsceneYamlScriptIOSEnv,
-  keyof MidsceneYamlScriptConfig
->;
-
-export type HarmonyConnectionOpt = Omit<
-  MidsceneYamlScriptHarmonyEnv,
-  keyof MidsceneYamlScriptConfig
->;
-
-export type ComputerConnectionOpt = Omit<
-  MidsceneYamlScriptComputerEnv,
-  keyof MidsceneYamlScriptConfig
->;
 
 export interface MidsceneYamlFlowItemAIAction {
   // defined as aiAction for backward compatibility

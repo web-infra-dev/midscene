@@ -81,8 +81,9 @@ export default defineMidsceneConfig({
   // —— 运行目标：单字段 uiAgent，容纳配置式与编程式（见 §2.1）——
   // 配置式按 type 判别，options 直接复用 @midscene/core 的逐平台「连接类型」
   // （WebConnectionOpt / AndroidConnectionOpt / IOSConnectionOpt /
-  // ComputerConnectionOpt），即从 env 类型里剥掉 agent 行为与 yaml 配置后的
-  // 纯连接契约，与 agent launcher 入参同源，不再是手写的 Record。
+  // ComputerConnectionOpt）——这些是一等的纯连接契约，env 类型反过来由它们
+  // 组合而成（env = 连接 + yaml 配置 + agent 行为）。与 agent launcher 入参
+  // 同源，不再是手写的 Record。
   uiAgent:
     | { type: 'web'; options: WebConnectionOpt }
     | { type: 'android'; options?: AndroidConnectionOpt }
@@ -127,7 +128,7 @@ export default defineMidsceneConfig({
 - 值是**对象** → 配置式：框架据 `type + options` 创建 UI Agent。
 - 值是**函数** → 编程式：项目完全掌控构造。
 
-两者唯一的 key，类型层就是 union，从根上消除"两套运行目标定义"的气味。`options`（平台连接参数，如 url / deviceId）与 `uiAgentOptions`（Agent 行为，如 aiActContext / generateReport）是两类不同的东西，都保留。`options` 不是手写的 `Record`，而是按 `type` 判别后落到 `@midscene/core` 暴露的逐平台「连接类型」`WebConnectionOpt` / `AndroidConnectionOpt` / … 上——这些是从对应 env 类型派生、剥掉 agent 行为与 yaml 配置后的纯连接契约（web 的 `url` 因此是必填）。改 core 类型这里会立即感知，且不再把 agent-opt / output 等无关字段混进连接参数。
+两者唯一的 key，类型层就是 union，从根上消除"两套运行目标定义"的气味。`options`（平台连接参数，如 url / deviceId）与 `uiAgentOptions`（Agent 行为，如 aiActContext / generateReport）是两类不同的东西，都保留。`options` 不是手写的 `Record`，而是按 `type` 判别后落到 `@midscene/core` 暴露的逐平台「连接类型」`WebConnectionOpt` / `AndroidConnectionOpt` / … 上。这些连接类型是**一等公民**（定义在 core 的 `connection-options.ts`），`MidsceneYamlScript*Env` 反过来由它们组合而成（env = 连接 + yaml 配置 + agent 行为），所以连接参数纯净（web 的 `url` 必填，且不夹带 agent-opt / output 等无关字段）。改 core 类型这里会立即感知。
 
 **配置式样例：**
 

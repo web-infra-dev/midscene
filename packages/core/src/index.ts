@@ -54,13 +54,17 @@ export type {
   MidsceneYamlScriptIOSEnv,
   MidsceneYamlScriptComputerEnv,
   MidsceneYamlScriptEnv,
-  WebConnectionOpt,
-  AndroidConnectionOpt,
-  IOSConnectionOpt,
-  ComputerConnectionOpt,
   LocateOption,
   DetailedLocateParam,
 } from './yaml';
+
+export type {
+  WebConnectionOpt,
+  AndroidConnectionOpt,
+  IOSConnectionOpt,
+  HarmonyConnectionOpt,
+  ComputerConnectionOpt,
+} from './connection-options';
 
 export { Agent, type AgentOpt, type AiActOptions, createAgent } from './agent';
 
