@@ -155,7 +155,7 @@ export default class ScrcpyServer {
         return [];
       }
 
-      debugPage('success to get adb client, start to request devices list');
+      debugPage('successfully got adb client, starting to request devices list');
       let devices;
 
       try {
@@ -240,7 +240,7 @@ export default class ScrcpyServer {
             port: 5037,
           }),
         );
-        await debugPage('success to initialize adb client');
+        await debugPage('successfully initialized adb client');
       } else {
         debugPage('use existing adb client');
       }
