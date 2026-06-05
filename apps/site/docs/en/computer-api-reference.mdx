@@ -180,11 +180,11 @@ if (!env.available) {
 
 The `ComputerAgent` class extends `PageAgent<ComputerDevice>` and inherits all common agent methods:
 
-- `aiAct(action: string)`: Perform an action with AI
-- `aiQuery(query: string)`: Extract information with AI
-- `aiAssert(assertion: string)`: Assert a condition with AI
-- `aiWaitFor(condition: string)`: Wait for a condition
-- `aiLocate(description: string)`: Locate an element
+- `aiAct(...)`: Perform an action with AI
+- `aiQuery(...)`: Extract information with AI
+- `aiAssert(...)`: Assert a condition with AI
+- `aiWaitFor(...)`: Wait for a condition
+- `aiLocate(...)`: Locate an element
 - And more...
 
 Instant actions are also available for direct, deterministic control once an element is located:

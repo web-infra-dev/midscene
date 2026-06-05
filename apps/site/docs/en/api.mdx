@@ -145,7 +145,7 @@ This method was previously named `aiAction()` in earlier versions. The current v
 
 ```typescript
 function aiAct(
-  prompt: string,
+  prompt: string | Object,
   options?: {
     cacheable?: boolean;
     deepThink?: 'unset' | true | false;
@@ -154,12 +154,12 @@ function aiAct(
     abortSignal?: AbortSignal;
   },
 ): Promise<string | undefined>;
-function ai(prompt: string): Promise<string | undefined>; // shorthand form
+function ai(prompt: string | Object): Promise<string | undefined>; // shorthand form
 ```
 
 - Parameters:
 
-  - `prompt: string` - A natural language description of the UI steps.
+  - `prompt: string | Object` - A natural language description of the UI steps, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
     - `deepThink?: 'unset' | true | false` - Controls the planning implementation used by Midscene when `aiAct` performs planning. When enabled, `aiAct` focuses more on task decomposition and separates task planning from UI element locating into different model calls. For compatibility, `'unset'` is accepted and treated the same as `false`. [Learn more about deepThink](./model-strategy#about-the-deepthink-option-in-aiact).
@@ -1271,7 +1271,7 @@ When prompting with images, the format of the prompt parameters is as follows:
   images?: {
     // Image name, corresponding to the names referred in the prompt text
     name: string,
-    // Image url, can be a local image path, Base64 string, or http link
+    // Image url, can be a local image path, Base64 data URL, or http link
     url: string
   }[]
   // When convertHttpImage2Base64 is true, the image links in the http format will be converted into Base64 encoding and sent to the LLM.
@@ -1302,6 +1302,20 @@ await agent.aiAssert({
   images: [
     {
       name: 'The specific logo',
+      url: 'https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png',
+    },
+  ],
+});
+```
+
+- Example 3: use images in auto-planning.
+
+```javascript
+await agent.aiAct({
+  prompt: 'Complete the flow using the button that matches the target logo.',
+  images: [
+    {
+      name: 'target logo',
       url: 'https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png',
     },
   ],

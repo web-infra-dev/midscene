@@ -179,11 +179,11 @@ if (!env.available) {
 
 `ComputerAgent` 类继承自 `PageAgent<ComputerDevice>`，并继承所有通用 agent 方法：
 
-- `aiAct(action: string)`：使用 AI 执行操作
-- `aiQuery(query: string)`：使用 AI 提取信息
-- `aiAssert(assertion: string)`：使用 AI 断言条件
-- `aiWaitFor(condition: string)`：等待条件
-- `aiLocate(description: string)`：定位元素
+- `aiAct(...)`：使用 AI 执行操作
+- `aiQuery(...)`：使用 AI 提取信息
+- `aiAssert(...)`：使用 AI 断言条件
+- `aiWaitFor(...)`：等待条件
+- `aiLocate(...)`：定位元素
 - 更多...
 
 定位元素后，还可以使用即时操作（Instant Action）进行直接、确定性的控制：
