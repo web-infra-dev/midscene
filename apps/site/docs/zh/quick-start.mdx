@@ -1,0 +1,82 @@
+import { PackageManagerTabs } from '@theme';
+import QuickModelConfig from './common/quick-model-config.mdx';
+
+# 快速开始
+
+几分钟内跑通你的第一个 AI 驱动的 UI 自动化。本文以浏览器（Playwright）为例，文末可跳转到[其他平台](#后续步骤)。
+
+:::info 想零代码体验？
+你可以直接用 [Chrome 插件](./quick-experience) 在浏览器里体验 Midscene，无需搭建任何项目。
+:::
+
+## 第一步：安装依赖
+
+<PackageManagerTabs command="install @midscene/web playwright tsx --save-dev" />
+
+## 第二步：配置模型
+
+<QuickModelConfig />
+
+> 想用其他模型（Doubao、GLM、Gemini、GPT-5……）？请查看 [配置你的模型](./model-common-config)，其中列出了所有受支持的服务商。
+
+## 第三步：编写第一个脚本
+
+将下面的代码保存为 `./demo.ts`。它会打开 eBay、搜索耳机、读取结果列表，并对页面状态做断言——全部用自然语言描述：
+
+```typescript title="./demo.ts"
+import { chromium } from 'playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+import 'dotenv/config'; // 如存在 .env 文件，则从中加载环境变量
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+Promise.resolve(
+  (async () => {
+    const browser = await chromium.launch({ headless: false }); // 👀 实时观察运行过程
+    const page = await browser.newPage();
+    await page.goto('https://www.ebay.com');
+    await sleep(3000);
+
+    // 👀 初始化 Midscene agent
+    const agent = new PlaywrightAgent(page);
+
+    // 👀 用自然语言执行操作
+    await agent.aiAct('在搜索框输入 "Headphones"，然后回车');
+    await agent.aiWaitFor('列表中至少出现一个耳机商品');
+
+    // 👀 提取结构化数据
+    const items = await agent.aiQuery(
+      '{ title: string, price: number }[], 列表中的耳机商品',
+    );
+    console.log('headphones in stock:', items);
+
+    // 👀 用自然语言做断言
+    await agent.aiAssert('页面左侧有一个分类筛选栏');
+
+    await browser.close();
+  })(),
+);
+```
+
+## 第四步：运行
+
+```bash
+npx tsx demo.ts
+```
+
+## 第五步：查看报告
+
+运行成功后，Midscene 会打印类似下面的日志：
+
+```log
+Midscene - report file updated: /path/to/report/some_id.html
+```
+
+在浏览器中打开这个 HTML 文件，即可逐步回放每一次操作、查询和断言。报告是大多数开发者用来理解和排查 AI 行为的核心工具。
+
+## 后续步骤
+
+- **深入 Web**：[集成到 Playwright](./integrate-with-playwright)、[集成到 Puppeteer](./integrate-with-puppeteer)，或使用[桥接模式](./bridge-mode)控制你自己的 Chrome。
+- **其他平台**：[Android](./android-getting-started)、[iOS](./ios-getting-started)、[HarmonyOS](./harmony-getting-started)、[PC 桌面](./computer-getting-started)。
+- **选择合适的模型**：[模型策略](./model-strategy)。
+- **浏览全部 API**：[API 参考](./api)。

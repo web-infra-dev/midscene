@@ -1,0 +1,82 @@
+import { PackageManagerTabs } from '@theme';
+import QuickModelConfig from './common/quick-model-config.mdx';
+
+# Quick Start
+
+Get your first AI-driven UI automation running in a few minutes. This guide uses the browser (Playwright) as the example; jump to [other platforms](#next-steps) at the end.
+
+:::info Prefer no code?
+You can try Midscene right in your browser with the [Chrome extension](./quick-experience) — no project setup required.
+:::
+
+## Step 1. Install dependencies
+
+<PackageManagerTabs command="install @midscene/web playwright tsx --save-dev" />
+
+## Step 2. Configure a model
+
+<QuickModelConfig />
+
+> Using a different model (Doubao, GLM, Gemini, GPT-5…)? See [Configure your model](./model-common-config) for every supported provider.
+
+## Step 3. Write your first script
+
+Save the following as `./demo.ts`. It opens eBay, searches for headphones, reads the result list, and asserts the page state — all described in natural language:
+
+```typescript title="./demo.ts"
+import { chromium } from 'playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+import 'dotenv/config'; // load environment variables from .env if present
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+Promise.resolve(
+  (async () => {
+    const browser = await chromium.launch({ headless: false }); // 👀 watch it run
+    const page = await browser.newPage();
+    await page.goto('https://www.ebay.com');
+    await sleep(3000);
+
+    // 👀 init the Midscene agent
+    const agent = new PlaywrightAgent(page);
+
+    // 👀 act with natural language
+    await agent.aiAct('type "Headphones" in the search box, then hit Enter');
+    await agent.aiWaitFor('there is at least one headphone product in the list');
+
+    // 👀 extract structured data
+    const items = await agent.aiQuery(
+      '{ title: string, price: number }[], the headphone products in the list',
+    );
+    console.log('headphones in stock:', items);
+
+    // 👀 assert with natural language
+    await agent.aiAssert('There is a category filter on the left side');
+
+    await browser.close();
+  })(),
+);
+```
+
+## Step 4. Run it
+
+```bash
+npx tsx demo.ts
+```
+
+## Step 5. View the report
+
+After a successful run, Midscene prints something like:
+
+```log
+Midscene - report file updated: /path/to/report/some_id.html
+```
+
+Open that HTML file in your browser to replay every action, query, and assertion step by step. The report is the tool most developers rely on to understand and debug what the AI did.
+
+## Next steps
+
+- **Web in depth**: [Integrate with Playwright](./integrate-with-playwright), [Integrate with Puppeteer](./integrate-with-puppeteer), or [Bridge mode](./bridge-mode) to control your own Chrome.
+- **Other platforms**: [Android](./android-getting-started), [iOS](./ios-getting-started), [HarmonyOS](./harmony-getting-started), [PC Desktop](./computer-getting-started).
+- **Pick the right model**: [Model strategy](./model-strategy).
+- **Browse all APIs**: [API reference](./api).
