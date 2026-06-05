@@ -190,10 +190,6 @@ midscene-android --deep-locate tap --locate "the login button"
 
 A per-call value always wins over the startup flag: action tools accept `locate.deepLocate`, and the `act` tool accepts top-level `deepLocate` and `deepThink` booleans, so an individual call can opt in or out regardless of the startup setting.
 
-:::tip
-Deep locate only takes effect with a visual-language (VL) model. See [Model strategy](./model-strategy) for the supported models.
-:::
-
 ## Implement your own MCP
 
 If you want to integrate Midscene tools into your own MCP service, you can use the `mcpKitForAgent` function to get tool definitions and expose your own MCP service as needed.
