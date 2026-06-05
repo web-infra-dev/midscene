@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { MidsceneRecorderEvent } from '../../src/recorder';
 import {
+  DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
   createMidsceneRecorderMarkdownScreenshotAssets,
   getMidsceneRecorderEventDescription,
   getMidsceneRecorderScreenshotsForLLM,
@@ -9,14 +10,14 @@ import {
 } from '../../src/recorder';
 
 describe('recorder shared schema helpers', () => {
-  it('accepts recorder events from web, studio preview, and computer native sources', () => {
+  it('accepts unified studio preview recorder events', () => {
     const events: MidsceneRecorderEvent[] = [
       {
         type: 'click',
-        source: 'web-dom',
+        source: 'studio-preview',
         pageInfo: { width: 1280, height: 720 },
         timestamp: 1,
-        hashId: 'web-click',
+        hashId: 'web-preview-click',
       },
       {
         type: 'drag',
@@ -28,18 +29,18 @@ describe('recorder shared schema helpers', () => {
       },
       {
         type: 'scroll',
-        source: 'computer-native',
+        source: 'studio-preview',
         value: '0,-285',
         pageInfo: { width: 1728, height: 1117 },
         timestamp: 3,
-        hashId: 'computer-scroll',
+        hashId: 'computer-preview-scroll',
       },
     ];
 
     expect(events.map((event) => event.source)).toEqual([
-      'web-dom',
       'studio-preview',
-      'computer-native',
+      'studio-preview',
+      'studio-preview',
     ]);
   });
 
@@ -67,7 +68,21 @@ describe('recorder shared schema helpers', () => {
     ).toBe('Click (10, 21)');
   });
 
-  it('selects screenshots by event priority and removes duplicates', () => {
+  it('does not expose pending analyzer placeholders as semantic descriptions', () => {
+    expect(
+      getMidsceneRecorderEventDescription({
+        type: 'input',
+        actionType: 'Input',
+        elementDescription: 'AI is analyzing element...',
+        value: '2',
+        pageInfo: { width: 100, height: 100 },
+        timestamp: 1,
+        hashId: 'input-pending',
+      }),
+    ).toBe('Input 2');
+  });
+
+  it('selects screenshots by timeline distribution and removes duplicates', () => {
     expect(
       getMidsceneRecorderScreenshotsForLLM(
         [
@@ -103,7 +118,7 @@ describe('recorder shared schema helpers', () => {
         ],
         3,
       ),
-    ).toEqual(['nav-shot', 'click-box', 'scroll-shot']);
+    ).toEqual(['scroll-shot', 'click-box', 'nav-shot']);
   });
 
   it('serializes recorder targets and sanitizes file names', () => {
@@ -169,5 +184,49 @@ describe('recorder shared schema helpers', () => {
         mimeType: 'image/jpeg',
       }),
     ]);
+  });
+
+  it('uses 20 markdown screenshot assets as the default cap', () => {
+    const events: MidsceneRecorderEvent[] = Array.from(
+      { length: DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS + 1 },
+      (_, index) => ({
+        type: 'scroll',
+        screenshotAfter: `data:image/png;base64,shot${index}`,
+        pageInfo: { width: 100, height: 100 },
+        timestamp: index + 1,
+        hashId: `scroll-${index}`,
+      }),
+    );
+
+    const assets = createMidsceneRecorderMarkdownScreenshotAssets(events);
+
+    expect(assets).toHaveLength(
+      DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
+    );
+    expect(assets.at(-1)?.relativePath).toBe(
+      './screenshots/event-021-scroll.png',
+    );
+  });
+
+  it('keeps long recordings visually distributed under a screenshot cap', () => {
+    const events: MidsceneRecorderEvent[] = Array.from(
+      { length: 10 },
+      (_, index) => ({
+        type: 'scroll',
+        screenshotAfter: `data:image/png;base64,shot${index}`,
+        pageInfo: { width: 100, height: 100 },
+        timestamp: index + 1,
+        hashId: `scroll-${index}`,
+      }),
+    );
+
+    const assets = createMidsceneRecorderMarkdownScreenshotAssets(events, {
+      maxScreenshots: 5,
+    });
+
+    expect(assets.map((asset) => asset.eventIndex)).toEqual([0, 1, 5, 8, 9]);
+    expect(assets.at(-1)?.relativePath).toBe(
+      './screenshots/event-010-scroll.png',
+    );
   });
 });

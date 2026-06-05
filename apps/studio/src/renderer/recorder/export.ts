@@ -95,6 +95,10 @@ function eventDescription(event: StudioRecordedEvent) {
   return getMidsceneRecorderEventDescription(event);
 }
 
+function isPendingRecorderDescription(value?: string) {
+  return value?.trim() === 'AI is analyzing element...';
+}
+
 function markdownZipPath(relativePath: string) {
   return relativePath.replace(/^\.\//, '');
 }
@@ -153,6 +157,24 @@ function rewriteMarkdownScreenshotBaseDir(
   return markdown.split('./screenshots/').join(`${screenshotBaseDir}/`);
 }
 
+function createMarkdownReplayManifest(
+  session: StudioRecordingSession,
+  source: 'ai' | 'local-fallback',
+) {
+  return JSON.stringify(
+    {
+      artifact: 'markdown-replay',
+      markdownSource: source,
+      aiGenerated: source === 'ai',
+      sessionId: session.id,
+      sessionName: session.name,
+      exportedAt: new Date().toISOString(),
+    },
+    null,
+    2,
+  );
+}
+
 function targetText(session: StudioRecordingSession) {
   return (
     session.url ||
@@ -169,7 +191,8 @@ function stepText(event: StudioRecordedEvent) {
     case 'navigation':
       return event.url ? `Open ${event.url}` : description;
     case 'click':
-      return event.elementDescription
+      return event.elementDescription &&
+        !isPendingRecorderDescription(event.elementDescription)
         ? `Tap "${description}"`
         : `Tap the target shown in the screenshot. Recorded hint: ${description}`;
     case 'input':
@@ -246,6 +269,8 @@ export function generateStudioRecorderMarkdown(
 
 export function generateStudioRecorderYaml(session: StudioRecordingSession) {
   const lines = [
+    '# Generated locally from recorded events, not AI-generated.',
+    '# Generate YAML in Studio before replaying for higher fidelity.',
     `# Generated from Midscene Studio Recorder: ${session.name}`,
     `${session.target.platformId}:`,
   ];
@@ -286,6 +311,8 @@ export function generateStudioRecorderMarkdownReplay(
   const { assetByHashId } = screenshotAssetMap(session, screenshotBaseDir);
   const lines = [
     `# ${session.name}`,
+    '',
+    '> Generated locally from recorded events, not AI-generated. Generate Markdown in Studio before replaying for higher fidelity.',
     '',
     '## Goal',
     'Reproduce the recorded user workflow exactly.',
@@ -387,6 +414,9 @@ export async function createStudioRecorderZipBase64(
   for (const session of sessions) {
     const baseName = `${sanitizeFileName(session.name)}-${session.id}`;
     const markdownScreenshotBaseDir = `./${baseName}/screenshots`;
+    const markdownSource = session.generatedCode?.markdown
+      ? 'ai'
+      : 'local-fallback';
     const markdown =
       session.generatedCode?.markdown ||
       generateStudioRecorderMarkdownReplay(session, {
@@ -395,6 +425,10 @@ export async function createStudioRecorderZipBase64(
     zip.file(
       `markdown/${baseName}.md`,
       rewriteMarkdownScreenshotBaseDir(markdown, markdownScreenshotBaseDir),
+    );
+    zip.file(
+      `markdown/${baseName}.manifest.json`,
+      createMarkdownReplayManifest(session, markdownSource),
     );
     addMarkdownScreenshotAssetsToZip(zip, session, {
       screenshotBaseDir: markdownScreenshotBaseDir,
@@ -418,10 +452,17 @@ export async function createStudioRecorderMarkdownZipBase64(
   session: StudioRecordingSession,
 ) {
   const zip = new JSZip();
+  const markdownSource = session.generatedCode?.markdown
+    ? 'ai'
+    : 'local-fallback';
   const markdown =
     session.generatedCode?.markdown ||
     generateStudioRecorderMarkdownReplay(session);
   zip.file('recording.md', markdown);
+  zip.file(
+    'recording.manifest.json',
+    createMarkdownReplayManifest(session, markdownSource),
+  );
   addMarkdownScreenshotAssetsToZip(zip, session, {
     screenshotBaseDir: './screenshots',
   });
@@ -466,9 +507,10 @@ export async function saveStudioRecorderFile(options: {
   }
 }
 
-export function getStudioRecorderExportFileName(
+export function getStudioRecorderExportVariantFileName(
   session: StudioRecordingSession,
+  variant: string,
   extension: string,
 ) {
-  return `${sanitizeFileName(session.name)}.${extension}`;
+  return `${sanitizeFileName(session.name)}-${sanitizeFileName(variant)}.${extension}`;
 }

@@ -21,9 +21,6 @@ describe('IPC_CHANNELS', () => {
     expect(IPC_CHANNELS.setDiscoveryPollingPaused).toBe(
       'studio:set-discovery-polling-paused',
     );
-    expect(IPC_CHANNELS.generateRecorderYaml).toBe(
-      'studio:generate-recorder-yaml',
-    );
     expect(IPC_CHANNELS.generateRecorderCode).toBe(
       'studio:generate-recorder-code',
     );

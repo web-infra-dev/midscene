@@ -79,31 +79,6 @@ describe('preload bridge', () => {
       baseUrl: 'https://api.example.com/v1',
       model: 'gpt-4o',
     });
-    await studioRuntimeApi.generateRecorderYaml({
-      input: {
-        target: {
-          platformId: 'web',
-          label: 'Web',
-          values: { url: 'https://example.com' },
-        },
-        events: [
-          {
-            type: 'navigation',
-            pageInfo: { width: 1280, height: 720 },
-            timestamp: 1,
-            hashId: 'event-1',
-            url: 'https://example.com',
-          },
-        ],
-        testName: 'recording',
-      },
-      modelConfig: {
-        modelName: 'gpt-4o',
-        modelDescription: '',
-        intent: 'default',
-        slot: 'default',
-      },
-    });
     await studioRuntimeApi.generateRecorderCode({
       type: 'playwright',
       input: {
@@ -202,34 +177,6 @@ describe('preload bridge', () => {
           apiKey: 'sk-test',
           baseUrl: 'https://api.example.com/v1',
           model: 'gpt-4o',
-        },
-      ],
-      [
-        IPC_CHANNELS.generateRecorderYaml,
-        {
-          input: {
-            target: {
-              platformId: 'web',
-              label: 'Web',
-              values: { url: 'https://example.com' },
-            },
-            events: [
-              {
-                type: 'navigation',
-                pageInfo: { width: 1280, height: 720 },
-                timestamp: 1,
-                hashId: 'event-1',
-                url: 'https://example.com',
-              },
-            ],
-            testName: 'recording',
-          },
-          modelConfig: {
-            modelName: 'gpt-4o',
-            modelDescription: '',
-            intent: 'default',
-            slot: 'default',
-          },
         },
       ],
       [

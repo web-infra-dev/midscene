@@ -1,15 +1,5 @@
 export { ComputerDevice } from './device';
 export type { ComputerDeviceOpt, DisplayInfo } from './device';
-export {
-  ComputerNativeEventRecorder,
-  getComputerEventRecorderBinary,
-} from './recorder';
-export type {
-  ComputerNativeRecordedEvent,
-  ComputerNativeRecorderEventsResult,
-  ComputerNativeRecorderOptions,
-  ComputerNativeRecorderStartResult,
-} from './recorder';
 
 export {
   ComputerAgent,

@@ -1,10 +1,19 @@
-import { existsSync } from 'node:fs';
-import { writeFile as writeFileToDisk } from 'node:fs/promises';
+import { existsSync, mkdirSync } from 'node:fs';
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  stat,
+  writeFile as writeFileToDisk,
+} from 'node:fs/promises';
 import path from 'node:path';
 import {
   type ChooseFileSavePathRequest,
+  type ChooseReplayFileResult,
   type DiscoverDevicesRequest,
   IPC_CHANNELS,
+  type PrepareRecorderMarkdownReplayRequest,
   type WriteFileRequest,
   type WriteReportFileRequest,
 } from '@shared/electron-contract';
@@ -13,6 +22,7 @@ import { resolveExternalUrl } from '@shared/external-links';
 import {
   BrowserWindow,
   type NativeImage,
+  type OpenDialogOptions,
   app,
   dialog,
   ipcMain,
@@ -23,6 +33,11 @@ import {
 import type { TitleBarOverlay } from 'electron';
 import { requestPlaygroundBootstrap } from './playground/bootstrap-request';
 import type { PlaygroundRuntimeService } from './playground/types';
+import {
+  describeRecorderUIEventsInMain,
+  generateRecorderCodeInMain,
+  generateRecorderMetadataInMain,
+} from './recorder/codegen';
 import { configureStudioShellEnvHydration } from './shell-env';
 import { studioUpdater } from './updater';
 import { registerUpdaterHandlers } from './updater-handlers';
@@ -112,6 +127,24 @@ const getAppIcon = () => {
   return icon;
 };
 
+const resolveStudioUserRunDir = () =>
+  path.join(app.getPath('userData'), 'midscene_run');
+
+const resolveStudioTempRunDir = () =>
+  path.join(app.getPath('temp'), 'midscene-studio');
+
+const ensureStudioRunDirEnv = () => {
+  const currentRunDir = process.env.MIDSCENE_RUN_DIR;
+  const tempRunDir = resolveStudioTempRunDir();
+  const runDir =
+    currentRunDir && path.resolve(currentRunDir) !== path.resolve(tempRunDir)
+      ? currentRunDir
+      : resolveStudioUserRunDir();
+
+  process.env.MIDSCENE_RUN_DIR = runDir;
+  mkdirSync(runDir, { recursive: true });
+};
+
 // macOS `vibrancy` and Windows `backgroundMaterial: 'acrylic'` only show
 // through when the BrowserWindow's own backgroundColor is fully transparent
 // — any opaque fill paints over the OS material. Linux has no native
@@ -163,6 +196,94 @@ const ensureFileExtensionFromFilters = (
   }
   return `${filePath}.${firstExtension.replace(/^\./, '')}`;
 };
+
+const MARKDOWN_REPLAY_EXTENSIONS = new Set(['.md', '.markdown']);
+const YAML_REPLAY_EXTENSIONS = new Set(['.yaml', '.yml']);
+
+const getReplayFileType = (filePath: string) => {
+  const extension = path.extname(filePath).toLowerCase();
+  if (MARKDOWN_REPLAY_EXTENSIONS.has(extension)) {
+    return 'markdown' as const;
+  }
+  if (YAML_REPLAY_EXTENSIONS.has(extension)) {
+    return 'yaml' as const;
+  }
+  return null;
+};
+
+async function findMarkdownReplayFileInDirectory(directoryPath: string) {
+  const preferredFileNames = ['recording.md', 'recording.markdown'];
+  for (const fileName of preferredFileNames) {
+    const candidatePath = path.join(directoryPath, fileName);
+    try {
+      const candidateStats = await stat(candidatePath);
+      if (candidateStats.isFile()) {
+        return candidatePath;
+      }
+    } catch {
+      // Continue to the generic scan below.
+    }
+  }
+
+  const entries = await readdir(directoryPath, { withFileTypes: true });
+  const markdownEntry = entries
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name)
+    .sort((left, right) => left.localeCompare(right))
+    .find((fileName) => MARKDOWN_REPLAY_EXTENSIONS.has(path.extname(fileName)));
+
+  return markdownEntry ? path.join(directoryPath, markdownEntry) : null;
+}
+
+const resolveReplayBundlePath = (baseDir: string, relativePath: string) => {
+  const normalized = relativePath.replace(/\\/g, '/').replace(/^\.\/+/, '');
+  if (!normalized || path.isAbsolute(normalized)) {
+    throw new Error(`Invalid replay screenshot path: ${relativePath}`);
+  }
+  const targetPath = path.resolve(baseDir, normalized);
+  const normalizedBaseDir = path.resolve(baseDir);
+  if (
+    targetPath !== normalizedBaseDir &&
+    !targetPath.startsWith(`${normalizedBaseDir}${path.sep}`)
+  ) {
+    throw new Error(`Replay screenshot path escapes bundle: ${relativePath}`);
+  }
+  return targetPath;
+};
+
+async function prepareRecorderMarkdownReplayBundle(
+  request: PrepareRecorderMarkdownReplayRequest,
+) {
+  if (!request || typeof request.markdown !== 'string') {
+    throw new Error('prepareRecorderMarkdownReplay: markdown is required');
+  }
+  const bundleDir = await mkdtemp(
+    path.join(app.getPath('temp'), 'midscene-studio-replay-'),
+  );
+  const markdownPath = path.join(bundleDir, 'recording.md');
+  await writeFileToDisk(markdownPath, request.markdown, 'utf-8');
+
+  for (const screenshot of request.screenshots || []) {
+    if (
+      !screenshot ||
+      typeof screenshot.relativePath !== 'string' ||
+      typeof screenshot.base64Data !== 'string'
+    ) {
+      continue;
+    }
+    const screenshotPath = resolveReplayBundlePath(
+      bundleDir,
+      screenshot.relativePath,
+    );
+    await mkdir(path.dirname(screenshotPath), { recursive: true });
+    await writeFileToDisk(
+      screenshotPath,
+      Buffer.from(screenshot.base64Data, 'base64'),
+    );
+  }
+
+  return { markdownPath };
+}
 
 const getPlaygroundRuntime = async (): Promise<PlaygroundRuntimeService> => {
   if (!playgroundRuntimePromise) {
@@ -367,6 +488,67 @@ const registerIpcHandlers = () => {
       return ensureFileExtensionFromFilters(result.filePath, filters);
     },
   );
+  ipcMain.handle(
+    IPC_CHANNELS.chooseReplayFile,
+    async (): Promise<ChooseReplayFileResult> => {
+      const dialogOptions: OpenDialogOptions = {
+        title: 'Choose Markdown or YAML Replay',
+        properties: ['openFile', 'openDirectory', 'treatPackageAsDirectory'],
+        filters: [
+          {
+            name: 'Replay Files',
+            extensions: ['md', 'markdown', 'yaml', 'yml'],
+          },
+          {
+            name: 'All Files',
+            extensions: ['*'],
+          },
+        ],
+      };
+      const result = mainWindow
+        ? await dialog.showOpenDialog(mainWindow, dialogOptions)
+        : await dialog.showOpenDialog(dialogOptions);
+
+      if (result.canceled || !result.filePaths[0]) {
+        return null;
+      }
+
+      const filePath = result.filePaths[0];
+      const fileStats = await stat(filePath);
+      if (fileStats.isDirectory()) {
+        const markdownPath = await findMarkdownReplayFileInDirectory(filePath);
+        if (!markdownPath) {
+          throw new Error(
+            'Selected folder does not contain recording.md or a Markdown replay file.',
+          );
+        }
+        return {
+          type: 'markdown',
+          path: markdownPath,
+          displayName: `${path.basename(filePath)}/${path.basename(markdownPath)}`,
+        };
+      }
+
+      const type = getReplayFileType(filePath);
+      if (!type) {
+        throw new Error('Only Markdown and YAML replay files are supported.');
+      }
+
+      if (type === 'markdown') {
+        return {
+          type,
+          path: filePath,
+          displayName: path.basename(filePath),
+        };
+      }
+
+      return {
+        type,
+        content: await readFile(filePath, 'utf-8'),
+        displayName: path.basename(filePath),
+      };
+    },
+  );
   ipcMain.handle(IPC_CHANNELS.toggleMaximizeWindow, () => {
     if (!mainWindow) return;
     if (mainWindow.isMaximized()) {
@@ -484,26 +666,30 @@ const registerIpcHandlers = () => {
     );
     return runConnectivityTest(request);
   });
-  ipcMain.handle(IPC_CHANNELS.generateRecorderYaml, async (_event, request) => {
-    const { generateRecorderYamlInMain } = await import('./recorder/codegen');
-    return generateRecorderYamlInMain(request);
-  });
   ipcMain.handle(IPC_CHANNELS.generateRecorderCode, async (_event, request) => {
-    const { generateRecorderCodeInMain } = await import('./recorder/codegen');
     return generateRecorderCodeInMain(request);
   });
   ipcMain.handle(
     IPC_CHANNELS.generateRecorderMetadata,
     async (_event, request) => {
-      const { generateRecorderMetadataInMain } = await import(
-        './recorder/codegen'
-      );
       return generateRecorderMetadataInMain(request);
     },
+  );
+  ipcMain.handle(
+    IPC_CHANNELS.describeRecorderUIEvents,
+    async (_event, request) => {
+      return describeRecorderUIEventsInMain(request);
+    },
+  );
+  ipcMain.handle(
+    IPC_CHANNELS.prepareRecorderMarkdownReplay,
+    async (_event, request) => prepareRecorderMarkdownReplayBundle(request),
   );
 };
 
 app.whenReady().then(() => {
+  ensureStudioRunDirEnv();
+
   if (process.platform === 'darwin' && app.dock) {
     app.dock.setIcon(getAppIcon());
   }

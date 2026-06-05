@@ -16,6 +16,8 @@ import {
 // `file://` HTML. A relative prefix works in both places; an absolute
 // `/static/...` prefix leaves packaged/build smoke runs with a blank renderer.
 const rendererAssetPrefix = './';
+const studioRecorderEntryEnabled =
+  process.env.VITE_STUDIO_RECORDER_ENABLED !== 'false';
 
 export default defineConfig({
   tools: {
@@ -79,6 +81,10 @@ export default defineConfig({
         __dirname,
         '../../packages/visualizer/src/index.tsx',
       ),
+      '@midscene/visualizer/history-selector$': path.join(
+        __dirname,
+        '../../packages/visualizer/src/component/history-selector/index.tsx',
+      ),
       '@midscene/web/static$': path.join(
         __dirname,
         '../../packages/web-integration/src/static/index.ts',
@@ -102,6 +108,9 @@ export default defineConfig({
         },
         define: {
           __APP_VERSION__: JSON.stringify(appVersion),
+          __STUDIO_RECORDER_ENTRY_ENABLED__: JSON.stringify(
+            studioRecorderEntryEnabled,
+          ),
         },
       },
       output: {

@@ -1,7 +1,7 @@
 import type { PlaygroundPageRecordedEvent } from '@midscene/playground';
 import type { StudioRecordedEvent, StudioRecorderTarget } from './types';
 
-function resolvePageRecorderActionType(
+function resolvePreviewRecorderActionType(
   eventType: PlaygroundPageRecordedEvent['type'],
 ): string {
   switch (eventType) {
@@ -24,12 +24,13 @@ function resolvePageRecorderActionType(
   }
 }
 
-export function mapPageRecorderEventToStudioRecordedEvent(input: {
+export function mapPreviewRecorderEventToStudioRecordedEvent(input: {
   event: PlaygroundPageRecordedEvent;
   target: StudioRecorderTarget;
 }): StudioRecordedEvent {
   const actionType =
-    input.event.actionType ?? resolvePageRecorderActionType(input.event.type);
+    input.event.actionType ??
+    resolvePreviewRecorderActionType(input.event.type);
   return {
     ...input.event,
     platformId: input.target.platformId,

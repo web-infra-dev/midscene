@@ -1,4 +1,5 @@
 .studio-recorder-panel {
+  --studio-recorder-motion: 200ms cubic-bezier(0.2, 0, 0, 1);
   position: relative;
   display: flex;
   height: 100%;
@@ -158,7 +159,7 @@
 
 .studio-recorder-card-actions {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   border-top: 1px solid var(--midscene-border-subtle);
   background: var(--midscene-surface-muted);
 }
@@ -172,6 +173,17 @@
   background: transparent;
   color: var(--midscene-text-secondary);
   cursor: pointer;
+}
+
+.studio-recorder-card-action-tooltip {
+  display: block;
+  min-width: 0;
+  height: 40px;
+}
+
+.studio-recorder-card-action-tooltip button {
+  width: 100%;
+  height: 100%;
 }
 
 .studio-recorder-card-actions button:hover:not(:disabled) {
@@ -272,6 +284,17 @@
 
 .studio-recorder-timeline .ant-card {
   border-radius: 8px;
+}
+
+[data-theme="dark"] .studio-recorder-timeline .ant-card .ant-card-body {
+  border: 1px solid var(--midscene-border-subtle);
+  background: var(--midscene-surface-muted) !important;
+  color: var(--midscene-text-primary) !important;
+}
+
+[data-theme="dark"] .studio-recorder-timeline .ant-space,
+[data-theme="dark"] .studio-recorder-timeline .ant-typography {
+  color: var(--midscene-text-primary) !important;
 }
 
 .studio-recorder-empty {
@@ -507,7 +530,7 @@
   border-radius: 8px;
   background: var(--midscene-surface);
   padding: 16px;
-  color: #064587;
+  color: var(--midscene-text-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
   font-size: 13px;
@@ -570,4 +593,911 @@
 
 .studio-recorder-stop:hover:not(:disabled) {
   background: #dc2626;
+}
+
+.studio-recorder-panel {
+  position: absolute;
+  top: 4px;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  width: 320px;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  overflow: visible;
+  background: transparent;
+  box-sizing: border-box;
+  padding: 0;
+  pointer-events: none;
+}
+
+.studio-recorder-floating-card {
+  position: relative;
+  display: flex;
+  width: 320px;
+  height: 368px;
+  min-height: 368px;
+  max-height: 100%;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid #ebebeb;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.08);
+  pointer-events: auto;
+  transition: height var(--studio-recorder-motion), min-height
+    var(--studio-recorder-motion), max-height var(--studio-recorder-motion),
+    border-radius var(--studio-recorder-motion), box-shadow
+    var(--studio-recorder-motion);
+  will-change: height, max-height;
+}
+
+.studio-recorder-floating-card-expanded {
+  height: calc(100% - 12px);
+  max-height: calc(100% - 12px);
+}
+
+.studio-recorder-floating-card-collapsed {
+  min-height: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 20px;
+}
+
+.studio-recorder-floating-header {
+  display: flex;
+  width: calc(100% + 2px);
+  height: 44px;
+  flex: 0 0 44px;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  margin: -1px -1px 0;
+  border: 1px solid #ebebeb;
+  border-radius: 20px 20px 16px 16px;
+  background: radial-gradient(
+      48px 44px at 97% 0%,
+      rgba(26, 121, 255, 0.04),
+      rgba(26, 121, 255, 0) 70%
+    ),
+    radial-gradient(
+      64px 44px at 74% 0%,
+      rgba(153, 95, 245, 0.04),
+      rgba(153, 95, 245, 0) 72%
+    ),
+    radial-gradient(
+      56px 44px at 60% 0%,
+      rgba(255, 142, 0, 0.04),
+      rgba(255, 142, 0, 0) 70%
+    ), #f5f5f5;
+  padding: 0 8px 0 16px;
+  transition: border-radius var(--studio-recorder-motion), background
+    var(--studio-recorder-motion);
+}
+
+.studio-recorder-floating-header-collapsed {
+  border-radius: 20px;
+}
+
+.studio-recorder-floating-title {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  color: #1a1a1a;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
+}
+
+.studio-recorder-floating-title > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-recorder-floating-title svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.studio-recorder-floating-status {
+  position: relative;
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  align-items: center;
+  justify-content: center;
+}
+
+.studio-recorder-floating-status::before {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(26, 121, 255, 0.22);
+  border-top-color: #1a79ff;
+  border-radius: 50%;
+  content: "";
+}
+
+.studio-recorder-floating-status-running::before {
+  animation: studio-recorder-floating-status-spin 1s linear infinite;
+}
+
+@keyframes studio-recorder-floating-status-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.studio-recorder-floating-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.studio-recorder-floating-tool-button {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 0;
+  color: #6d6d6d;
+  cursor: pointer;
+  transition: background var(--studio-recorder-motion), color
+    var(--studio-recorder-motion), transform 150ms ease-out;
+}
+
+.studio-recorder-floating-tool-button:hover,
+.studio-recorder-floating-tool-button-active {
+  color: #1a1a1a;
+}
+
+.studio-recorder-floating-tool-button:active {
+  transform: scale(0.92);
+}
+
+.studio-recorder-floating-tool-button svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+}
+
+.studio-recorder-floating-fold-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  background: currentColor;
+  -webkit-mask: url("./assets/click-to-fold.svg") center / 16px 16px no-repeat;
+  mask: url("./assets/click-to-fold.svg") center / 16px 16px no-repeat;
+  transition: transform var(--studio-recorder-motion), opacity
+    var(--studio-recorder-motion);
+}
+
+.studio-recorder-floating-header-collapsed .studio-recorder-floating-fold-icon {
+  -webkit-mask-image: url("./assets/click-to-expand.svg");
+  mask-image: url("./assets/click-to-expand.svg");
+  transform: rotate(180deg);
+}
+
+.studio-recorder-floating-history-icon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  background: currentColor;
+  -webkit-mask: url("./assets/history.svg") center / 14px 14px no-repeat;
+  mask: url("./assets/history.svg") center / 14px 14px no-repeat;
+}
+
+.studio-recorder-floating-actions .history-selector-wrapper,
+.studio-recorder-floating-actions .selector-trigger {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.history-modal-overlay.studio-recorder-history-modal-overlay {
+  box-sizing: border-box;
+  width: 280px;
+  height: 305px;
+  border: 1px solid #ebebeb;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.08);
+  z-index: 20;
+}
+
+.history-modal-overlay.studio-recorder-history-modal-overlay.history-modal-overlay-in-container {
+  right: 8px;
+  bottom: 24px;
+  left: auto !important;
+  top: auto !important;
+}
+
+.studio-recorder-floating-card-expanded
+  .history-modal-overlay.studio-recorder-history-modal-overlay.history-modal-overlay-in-container {
+  top: 52px !important;
+  bottom: auto;
+}
+
+.history-modal-overlay.studio-recorder-history-modal-overlay
+  .history-modal-container {
+  border-radius: 20px;
+}
+
+.history-modal-overlay.studio-recorder-history-modal-overlay .history-content {
+  padding: 0 20px 20px;
+}
+
+.history-modal-overlay.studio-recorder-history-modal-overlay .history-item {
+  border-radius: 8px;
+}
+
+.history-modal-overlay.studio-recorder-history-modal-overlay
+  .history-item:hover {
+  margin: 0;
+  background: #f3f3f4;
+  padding: 0 8px;
+}
+
+.studio-recorder-history-action-trigger {
+  display: inline-flex;
+  min-width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 0 4px;
+  color: #909090;
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.studio-recorder-history-action-trigger:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: #0d0d0d;
+}
+
+.studio-recorder-history-actions-popover .ant-popover-inner {
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.studio-recorder-history-actions-menu {
+  display: flex;
+  min-width: 108px;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.studio-recorder-history-actions-menu button {
+  display: flex;
+  height: 30px;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 0 8px;
+  color: #5f5f5f;
+  font-size: 13px;
+  line-height: 20px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.studio-recorder-history-actions-menu button:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.04);
+  color: #0d0d0d;
+}
+
+.studio-recorder-history-actions-menu button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.studio-recorder-history-actions-menu svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+}
+
+.studio-recorder-floating-record-button {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: #1a79ff;
+  padding: 0;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background var(--studio-recorder-motion), opacity
+    var(--studio-recorder-motion), transform 150ms ease-out;
+}
+
+.studio-recorder-floating-record-button:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.studio-recorder-floating-record-button svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.studio-recorder-floating-record-button-icon {
+  width: 29px;
+  height: 29px;
+  flex: 0 0 29px;
+}
+
+.studio-recorder-floating-record-button-active {
+  background: transparent;
+}
+
+.studio-recorder-floating-record-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+.studio-recorder-floating-main {
+  display: flex;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 208px;
+  max-height: 208px;
+  flex: 0 0 208px;
+  flex-direction: column;
+  margin: 8px 8px 0;
+  overflow: hidden;
+  padding: 12px;
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+  transition:
+    height var(--studio-recorder-motion),
+    max-height var(--studio-recorder-motion),
+    flex-basis var(--studio-recorder-motion),
+    margin var(--studio-recorder-motion),
+    padding var(--studio-recorder-motion),
+    opacity 140ms ease-out,
+    transform var(--studio-recorder-motion),
+    visibility 0s linear 0s;
+  will-change: height, opacity, transform;
+}
+
+.studio-recorder-floating-card-expanded .studio-recorder-floating-main {
+  height: auto;
+  max-height: none;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.studio-recorder-floating-main-collapsed {
+  height: 0;
+  max-height: 0;
+  flex-basis: 0;
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition:
+    height var(--studio-recorder-motion),
+    max-height var(--studio-recorder-motion),
+    flex-basis var(--studio-recorder-motion),
+    margin var(--studio-recorder-motion),
+    padding var(--studio-recorder-motion),
+    opacity 140ms ease-out,
+    transform var(--studio-recorder-motion),
+    visibility 0s linear 200ms;
+  visibility: hidden;
+}
+
+.studio-recorder-floating-main-content {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.studio-recorder-floating-empty {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #909090;
+  text-align: center;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.studio-recorder-floating-empty > span:last-child {
+  width: 197px;
+}
+
+.studio-recorder-floating-empty-icon {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #e9e9e9;
+  color: #7a7a7a;
+}
+
+.studio-recorder-floating-empty-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.studio-recorder-floating-section {
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.studio-recorder-floating-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.studio-recorder-floating-section-title {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  color: #909090;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.studio-recorder-floating-section-title svg,
+.studio-recorder-floating-show-more svg {
+  width: 12px;
+  height: 12px;
+}
+
+.studio-recorder-floating-show-more {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #909090;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  cursor: pointer;
+  transition: color var(--studio-recorder-motion), opacity
+    var(--studio-recorder-motion), transform 150ms ease-out;
+}
+
+.studio-recorder-floating-show-more svg {
+  transform: scaleY(-1);
+  transition: transform var(--studio-recorder-motion);
+}
+
+.studio-recorder-floating-show-more-expanded svg {
+  transform: none;
+}
+
+.studio-recorder-floating-show-more:hover {
+  color: #5f5f5f;
+}
+
+.studio-recorder-floating-show-more:active {
+  transform: scale(0.96);
+}
+
+.studio-recorder-floating-timeline {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: 156px;
+  flex: 0 0 156px;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 8px;
+  max-height: 156px;
+  margin-top: 12px;
+  overflow: hidden;
+  transition: height var(--studio-recorder-motion), max-height
+    var(--studio-recorder-motion), flex-basis var(--studio-recorder-motion);
+}
+
+.studio-recorder-floating-timeline-expanded {
+  flex: 1 1 auto;
+  height: auto;
+  max-height: none;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.studio-recorder-floating-timeline-empty {
+  min-height: 156px;
+  justify-content: flex-start;
+}
+
+.studio-recorder-floating-timeline > div {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  padding: 0 !important;
+}
+
+.studio-recorder-floating-timeline .ant-space {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.studio-recorder-floating-timeline > div > .ant-space {
+  display: flex !important;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.studio-recorder-floating-timeline > div > .ant-space > .ant-space-item {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.studio-recorder-floating-timeline .timeline-scrollable {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding-top: 2px !important;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-left: 4px;
+}
+
+.studio-recorder-floating-timeline .timeline-scrollable > div {
+  max-height: none;
+  overflow: visible;
+}
+
+.studio-recorder-floating-timeline .ant-timeline-item {
+  padding-bottom: 18px;
+}
+
+.studio-recorder-floating-timeline .ant-timeline-item-last {
+  padding-bottom: 0;
+}
+
+.studio-recorder-floating-timeline .ant-timeline-item-tail {
+  display: none;
+}
+
+.studio-recorder-floating-timeline .ant-timeline-item-head {
+  background: transparent;
+}
+
+.studio-recorder-floating-timeline .ant-timeline-item-head-custom {
+  inset-inline-start: 8px;
+  inset-block-start: 6px;
+}
+
+.studio-recorder-floating-timeline .ant-timeline-item-head-custom svg {
+  width: 16px;
+  height: 16px;
+}
+
+.studio-recorder-floating-timeline .ant-timeline-item-content {
+  min-height: 0;
+  margin-inline-start: 28px;
+  color: #0d0d0d;
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.studio-recorder-floating-timeline .ant-card {
+  margin-bottom: 0 !important;
+  background: transparent;
+  box-shadow: none;
+}
+
+.studio-recorder-floating-timeline .ant-card-body {
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.studio-recorder-floating-timeline .ant-card-body > .ant-space {
+  display: flex !important;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start !important;
+  gap: 8px !important;
+  color: #0d0d0d !important;
+}
+
+.studio-recorder-floating-timeline .ant-card-body > .ant-space > .ant-space {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.studio-recorder-floating-timeline .ant-typography {
+  color: #0d0d0d;
+  font-size: 13px;
+  line-height: 16px;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.studio-recorder-floating-timeline .step-title-shiny {
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.studio-recorder-floating-timeline .ant-image {
+  width: 24px !important;
+  height: 24px !important;
+  flex: 0 0 24px;
+}
+
+.studio-recorder-floating-outputs {
+  position: relative;
+  box-sizing: border-box;
+  height: 84px;
+  max-height: 84px;
+  flex: 0 0 84px;
+  margin: 16px 8px 8px;
+  border-top: 0;
+  padding: 12px;
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+  transition:
+    height var(--studio-recorder-motion),
+    max-height var(--studio-recorder-motion),
+    flex-basis var(--studio-recorder-motion),
+    margin var(--studio-recorder-motion),
+    padding var(--studio-recorder-motion),
+    opacity 140ms ease-out,
+    transform var(--studio-recorder-motion),
+    visibility 0s linear 0s;
+  will-change: height, opacity, transform;
+}
+
+.studio-recorder-floating-outputs-hidden {
+  height: 0;
+  max-height: 0;
+  flex-basis: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition:
+    height var(--studio-recorder-motion),
+    max-height var(--studio-recorder-motion),
+    flex-basis var(--studio-recorder-motion),
+    margin var(--studio-recorder-motion),
+    padding var(--studio-recorder-motion),
+    opacity 140ms ease-out,
+    transform var(--studio-recorder-motion),
+    visibility 0s linear 200ms;
+  visibility: hidden;
+}
+
+.studio-recorder-floating-outputs::before {
+  display: block;
+  position: absolute;
+  top: -8px;
+  right: 12px;
+  left: 12px;
+  height: 1px;
+  background: var(--midscene-border-subtle);
+  content: "";
+}
+
+.studio-recorder-floating-outputs-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #909090;
+  text-align: left;
+  font-family: Inter, sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.studio-recorder-floating-outputs-title svg {
+  width: 16px;
+  height: 16px;
+  color: rgba(144, 144, 144, 0.22);
+}
+
+.studio-recorder-floating-output-empty {
+  display: flex;
+  height: 32px;
+  align-items: center;
+  margin-top: 12px;
+  padding: 0;
+  color: #909090;
+  text-align: left;
+  font-family: Inter, sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.studio-recorder-floating-output {
+  display: flex;
+  width: calc(100% + 24px);
+  height: 32px;
+  min-width: 0;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin: 12px -12px 0;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #0d0d0d;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 21px;
+  text-align: left;
+}
+
+.studio-recorder-floating-output:hover,
+.studio-recorder-floating-output:focus-within {
+  background: #f3f3f4;
+}
+
+.studio-recorder-floating-output-info {
+  display: inline-flex;
+  min-width: 0;
+  flex: 1 1 0;
+  align-items: center;
+  gap: 8px;
+  color: #0d0d0d;
+}
+
+.studio-recorder-floating-output-info svg,
+.studio-recorder-floating-output-action svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.studio-recorder-floating-output-info svg {
+  color: #333;
+}
+
+.studio-recorder-floating-output-info span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-recorder-floating-output-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity var(--studio-recorder-motion);
+}
+
+.studio-recorder-floating-output-action {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #5f5f5f;
+  cursor: pointer;
+}
+
+.studio-recorder-floating-output:hover .studio-recorder-floating-output-actions,
+.studio-recorder-floating-output:focus-within
+  .studio-recorder-floating-output-actions {
+  opacity: 1;
+}
+
+.studio-recorder-floating-output-action:hover {
+  color: #0d0d0d;
+}
+
+.studio-recorder-output-tooltip .ant-tooltip-inner {
+  min-height: 0;
+  border-radius: 6px;
+  background: #000;
+  padding: 6px 12px;
+  color: #fff;
+  font-family: Inter, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.studio-recorder-output-tooltip .ant-tooltip-arrow-content {
+  background: #000;
+}
+
+.studio-recorder-floating-output-generating {
+  gap: 8px;
+  justify-content: flex-start;
+  background: transparent;
+  cursor: default;
+}
+
+.studio-recorder-floating-output-generating:hover {
+  background: transparent;
+}
+
+.studio-recorder-floating-output-generating svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.studio-recorder-floating-output-generating span {
+  min-width: 0;
+  overflow: hidden;
+  background-image: linear-gradient(92.8202deg, #0066ff 0%, #7b02c5 56.414%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: transparent;
+  font-weight: 500;
 }

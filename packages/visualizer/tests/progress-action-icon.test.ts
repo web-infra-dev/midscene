@@ -14,6 +14,18 @@ describe('progress-action-icon', () => {
       expect(defaultProgressActionIcon('WaitFor')).toBeTruthy();
     });
 
+    it('renders the default checkmark at 16px with a 16px viewBox', () => {
+      const icon = defaultProgressActionIcon('Planning') as any;
+      const svg = icon.type();
+
+      expect(svg.props.width).toBe(16);
+      expect(svg.props.height).toBe(16);
+      expect(svg.props.viewBox).toBe('0 0 16 16');
+      expect(svg.props.children.props.d).toBe(
+        'M3 7.99984L6.33333 11.3332L13 4.6665',
+      );
+    });
+
     it('falls through to a generic action icon for unknown kinds', () => {
       // Device-specific or custom actions still get an icon rather than null.
       expect(defaultProgressActionIcon('RunAdbShell')).toBeTruthy();

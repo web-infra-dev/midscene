@@ -609,7 +609,7 @@ For steps whose prompt accepts images, you can attach images to the prompt by se
 - `images`: (Optional) The reference images used in the prompt. Each image needs a `name` and a `url`.
 - `convertHttpImage2Base64`: (Optional) Converts HTTP image links to Base64 before sending them to the model, which is useful when the link is not publicly accessible.
 
-Image URLs can be local paths, Base64 data URLs, or remote links. Base64 data URLs must include the `data:image/...;base64,` prefix. When using image links that cannot be accessed by the model, set `convertHttpImage2Base64: true` so Midscene will download the image and send it as a Base64 data URL.
+Image URLs can be local paths, Base64 strings, or remote links. When using image links that cannot be accessed for the model, set `convertHttpImage2Base64: true` so Midscene will download the image and send the base64 string to the model.
 
 For interactions like `aiTap`, `aiHover`, `aiDoubleClick`, `aiRightClick`, put the text and images in the `locate` field as a sibling of the action key.
 
@@ -644,22 +644,6 @@ tasks:
     flow:
       - aiAssert:
           prompt: Check whether the image appears on the page.
-          images:
-            - name: target logo
-              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
-          convertHttpImage2Base64: true
-```
-
-For auto-planning steps like `aiAct`, `aiAction`, and `ai`, put the text and
-images in the `instruction` field as a sibling of the action key.
-
-```yaml
-tasks:
-  - name: Click target logo
-    flow:
-      - aiAct:
-        instruction:
-          prompt: Click the target logo shown in the reference image.
           images:
             - name: target logo
               url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png

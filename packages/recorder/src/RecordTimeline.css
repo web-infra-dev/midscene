@@ -20,6 +20,21 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.ant-image-preview-root,
+.ant-image-preview-mask,
+.ant-image-preview-wrap,
+.ant-image-preview-img-wrapper,
+.ant-image-preview-operations-wrapper,
+.ant-image-preview-close,
+.ant-image-preview-operations-operation {
+  -webkit-app-region: no-drag;
+}
+
+.ant-image-preview-close,
+.ant-image-preview-operations-operation {
+  pointer-events: auto;
+}
+
 .timeline-scrollable > div {
   max-height: 500px;
   overflow-y: auto;

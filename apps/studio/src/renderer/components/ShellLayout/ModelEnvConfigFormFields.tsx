@@ -24,7 +24,7 @@ function ModelEnvConfigFormItem({
       >
         {label}
       </div>
-      <div className="box-border flex h-[36px] px-[12px] w-full items-center justify-between rounded-[8px] border border-border-subtle bg-surface-elevated">
+      <div className="box-border flex h-[36px] w-full items-center justify-between rounded-[8px] border border-border-control bg-surface-elevated px-[12px]">
         <input
           aria-label={`${label} value`}
           className="h-[17px] w-full flex-1 overflow-hidden whitespace-nowrap border-0 bg-transparent font-sans text-[14px] font-normal leading-[16.9px] text-text-primary outline-none placeholder:text-text-placeholder"

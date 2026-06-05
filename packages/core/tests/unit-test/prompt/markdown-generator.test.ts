@@ -5,7 +5,7 @@ import {
   createRecorderMarkdownReplayPrompt,
   generateRecorderMarkdownReplay,
 } from '../../../src/ai-model/prompt/markdown-generator';
-import type { ChromeRecordedEvent } from '../../../src/ai-model/prompt/yaml-generator';
+import type { ChromeRecordedEvent } from '../../../src/ai-model/prompt/recorder-generation-common';
 
 vi.mock('../../../src/ai-model', () => ({
   callAIWithStringResponse: vi.fn(),

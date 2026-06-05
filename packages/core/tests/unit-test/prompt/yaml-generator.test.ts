@@ -108,8 +108,9 @@ describe('yaml-generator', () => {
         events: [
           {
             type: 'click',
-            source: 'computer-native',
+            source: 'studio-preview',
             actionType: 'Click',
+            elementDescription: 'Use documentation link',
             elementRect: { x: 73, y: 1071 },
             pageInfo: { width: 1080, height: 1920 },
             timestamp: 1000,
@@ -127,7 +128,66 @@ describe('yaml-generator', () => {
       'Preserve this exact top-level target platform: computer',
     );
     expect(prompt?.[1]?.content).toContain('computer:\n  displayId: "2"');
-    expect(prompt?.[1]?.content).toContain('Click (73, 1071)');
+    expect(prompt?.[1]?.content).toContain('Use documentation link');
+  });
+
+  it('marks screenshot-event relationships in recorder YAML prompts', async () => {
+    mockCallAIWithStringResponse.mockResolvedValue({
+      content: 'web:\n  url: "https://example.com"\n',
+      usage: undefined,
+    });
+
+    await generateRecorderYamlTest(
+      {
+        target: {
+          platformId: 'web',
+          label: 'Web',
+          values: { url: 'https://example.com' },
+        },
+        events: [
+          {
+            type: 'navigation',
+            timestamp: 1000,
+            url: 'https://example.com',
+            title: 'Example Page',
+            screenshotAfter:
+              'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ',
+            pageInfo: { width: 1280, height: 720 },
+            hashId: 'nav-1',
+          },
+          {
+            type: 'click',
+            timestamp: 2000,
+            elementDescription: 'Login button',
+            screenshotWithBox:
+              'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSK',
+            pageInfo: { width: 1280, height: 720 },
+            hashId: 'click-1',
+          },
+        ],
+        maxScreenshots: 2,
+      },
+      mockedModelConfig,
+    );
+
+    const prompt = mockCallAIWithStringResponse.mock.calls[0]?.[0];
+    const promptText = prompt
+      ?.map((message) =>
+        Array.isArray(message.content)
+          ? message.content
+              .filter((part) => part.type === 'text')
+              .map((part) => part.text)
+              .join('\n')
+          : message.content,
+      )
+      .join('\n');
+
+    expect(promptText).toContain('Screenshot assets:');
+    expect(promptText).toContain('"eventHashId": "nav-1"');
+    expect(promptText).toContain(
+      'Screenshot asset for event #1: ./screenshots/event-001-navigation.png',
+    );
+    expect(promptText).toContain('"screenshotPath"');
   });
 
   it('preserves platform-aware prompt for streaming recorder YAML generation', async () => {

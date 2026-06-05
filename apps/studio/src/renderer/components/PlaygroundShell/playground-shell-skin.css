@@ -38,95 +38,26 @@
   align-items: center;
 }
 
-.playground-shell-mode-button {
+.playground-shell-mode-icon {
   display: inline-flex;
-  height: 32px;
-  width: 32px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: transparent;
-  cursor: pointer;
-  outline: none;
-}
-
-.playground-shell-mode-button:hover {
-  border-color: var(--midscene-border-subtle);
-  background: var(--midscene-surface-hover);
-}
-
-.playground-shell-mode-button:focus-visible {
-  border-color: rgba(50, 136, 255, 0.5);
-  box-shadow: 0 0 0 3px rgba(50, 136, 255, 0.16);
-}
-
-.playground-shell-mode-button span {
-  display: block;
-  height: 2px;
-  width: 18px;
-  border-radius: 999px;
-  background: var(--midscene-text-primary);
-}
-
-.playground-shell-mode-popover {
-  position: absolute;
-  top: 38px;
-  left: 0;
-  z-index: 50;
-  min-width: 180px;
-  border: 1px solid var(--midscene-border-subtle);
-  border-radius: 8px;
-  background: var(--midscene-surface);
-  padding: 8px;
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.14);
-}
-
-.playground-shell-mode-item {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  gap: 10px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  padding: 10px 12px;
-  color: var(--midscene-text-primary);
-  font-size: 13px;
-  line-height: 20px;
-  text-align: left;
-  cursor: pointer;
-  outline: none;
-}
-
-.playground-shell-mode-item:hover:not(:disabled),
-.playground-shell-mode-item[data-selected="true"] {
-  background: var(--midscene-surface-hover);
-}
-
-.playground-shell-mode-item:focus-visible {
-  box-shadow: inset 0 0 0 2px rgba(50, 136, 255, 0.35);
-}
-
-.playground-shell-mode-item-icon {
-  display: inline-flex;
-  width: 16px;
   height: 16px;
-  flex: 0 0 16px;
+  width: 16px;
   align-items: center;
   justify-content: center;
   color: var(--midscene-text-secondary);
 }
 
-.playground-shell-mode-item-icon svg {
+.playground-shell-mode-button-icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+}
+
+.playground-shell-mode-button-icon img,
+.playground-shell-mode-button-icon svg {
   width: 16px;
   height: 16px;
   stroke: currentColor;
-}
-
-.playground-shell-mode-item:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
 }

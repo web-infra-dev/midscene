@@ -167,9 +167,11 @@ export async function executeAction(
   value: FormValue,
   options: ExecutionOptions,
 ): Promise<unknown> {
-  if (actionType !== 'aiAct' && options.deepThink !== undefined) {
+  const canForwardDeepThink =
+    actionType === 'aiAct' || actionType === 'runMarkdown';
+  if (!canForwardDeepThink && options.deepThink !== undefined) {
     console.warn(
-      '[Playground] Received deepThink in non-aiAct action options. deepThink is expected to be used with aiAct during migration.',
+      '[Playground] Received deepThink in non-aiAct action options. deepThink is expected to be used with aiAct/runMarkdown during migration.',
       {
         actionType,
         requestId: options.requestId,

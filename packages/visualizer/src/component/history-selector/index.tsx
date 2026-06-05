@@ -22,6 +22,20 @@ interface HistorySelectorProps {
   currentType: string;
   trigger?: ReactNode;
   popupPlacement?: 'top' | 'bottom';
+  title?: string;
+  showClear?: boolean;
+  onClear?: () => void;
+  searchPlaceholder?: string;
+  emptyText?: string;
+  noMatchText?: string;
+  renderItemActions?: (
+    history: HistoryItem,
+    controls: { close: () => void; scrollVersion: number },
+  ) => ReactNode;
+  overlayClassName?: string;
+  popupWidth?: number;
+  popupHeight?: number;
+  portalContainerSelector?: string;
 }
 
 export const HistorySelector: React.FC<HistorySelectorProps> = ({
@@ -30,9 +44,21 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
   currentType,
   trigger,
   popupPlacement = 'bottom',
+  title = 'History',
+  showClear = true,
+  onClear,
+  searchPlaceholder = 'Search',
+  emptyText = 'No history record',
+  noMatchText = 'No matching history record',
+  renderItemActions,
+  overlayClassName,
+  popupWidth = HISTORY_MODAL_WIDTH,
+  popupHeight = HISTORY_MODAL_HEIGHT,
+  portalContainerSelector,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const [scrollVersion, setScrollVersion] = useState(0);
   const clearHistory = useHistoryStore((state) => state.clearHistory);
   const modalRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -40,6 +66,8 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
     left: number;
     top: number;
   } | null>(null);
+  const [overlayTarget, setOverlayTarget] = useState<HTMLElement | null>(null);
+  const [isOverlayInContainer, setIsOverlayInContainer] = useState(false);
 
   // group history by time
   const groupedHistory = useMemo(() => {
@@ -69,8 +97,16 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
     setIsModalOpen(false);
   };
 
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
+
   const handleClearHistory = () => {
-    clearHistory(currentType);
+    if (onClear) {
+      onClear();
+    } else {
+      clearHistory(currentType);
+    }
     setSearchText('');
     setIsModalOpen(false); // clear and close modal
   };
@@ -83,28 +119,47 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
       if (!triggerRef.current) return;
 
       const triggerRect = triggerRef.current.getBoundingClientRect();
+      const portalContainer = portalContainerSelector
+        ? (triggerRef.current.closest(
+            portalContainerSelector,
+          ) as HTMLElement | null)
+        : null;
+      const boundaryRect = portalContainer?.getBoundingClientRect();
+      const boundaryWidth = boundaryRect?.width ?? window.innerWidth;
+      const boundaryHeight = boundaryRect?.height ?? window.innerHeight;
+      const triggerRight = boundaryRect
+        ? triggerRect.right - boundaryRect.left
+        : triggerRect.right;
+      const triggerTop = boundaryRect
+        ? triggerRect.top - boundaryRect.top
+        : triggerRect.top;
+      const triggerBottom = boundaryRect
+        ? triggerRect.bottom - boundaryRect.top
+        : triggerRect.bottom;
       const maxLeft = Math.max(
         HISTORY_MODAL_GUTTER,
-        window.innerWidth - HISTORY_MODAL_WIDTH - HISTORY_MODAL_GUTTER,
+        boundaryWidth - popupWidth - HISTORY_MODAL_GUTTER,
       );
       const maxTop = Math.max(
         HISTORY_MODAL_GUTTER,
-        window.innerHeight - HISTORY_MODAL_HEIGHT - HISTORY_MODAL_GUTTER,
+        boundaryHeight - popupHeight - HISTORY_MODAL_GUTTER,
       );
       const left = Math.min(
-        Math.max(HISTORY_MODAL_GUTTER, triggerRect.right - HISTORY_MODAL_WIDTH),
+        Math.max(HISTORY_MODAL_GUTTER, triggerRight - popupWidth),
         maxLeft,
       );
       const preferredTop =
         popupPlacement === 'top'
-          ? triggerRect.top - HISTORY_MODAL_HEIGHT - HISTORY_MODAL_OFFSET
-          : triggerRect.bottom + HISTORY_MODAL_OFFSET;
+          ? triggerTop - popupHeight - HISTORY_MODAL_OFFSET
+          : triggerBottom + HISTORY_MODAL_OFFSET;
       const top = Math.min(
         Math.max(HISTORY_MODAL_GUTTER, preferredTop),
         maxTop,
       );
 
       setOverlayPosition({ left, top });
+      setOverlayTarget(portalContainer ?? document.body);
+      setIsOverlayInContainer(Boolean(portalContainer));
     };
 
     const handleClickOutside = (event: MouseEvent) => {
@@ -131,7 +186,13 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
       window.removeEventListener('resize', updateOverlayPosition);
       window.removeEventListener('scroll', updateOverlayPosition, true);
     };
-  }, [isModalOpen, popupPlacement]);
+  }, [
+    isModalOpen,
+    popupHeight,
+    popupPlacement,
+    popupWidth,
+    portalContainerSelector,
+  ]);
 
   const renderHistoryGroup = (title: string, items: HistoryItem[]) => {
     if (items.length === 0) return null;
@@ -145,7 +206,15 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
             className="history-item"
             onClick={() => handleHistoryClick(item)}
           >
-            {item.prompt}
+            <span className="history-item-label">{item.prompt}</span>
+            {renderItemActions ? (
+              <span
+                className="history-item-actions"
+                onClick={(event) => event.stopPropagation()}
+              >
+                {renderItemActions(item, { close: closeModal, scrollVersion })}
+              </span>
+            ) : null}
           </div>
         ))}
       </div>
@@ -156,7 +225,7 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
     <div className="history-selector-wrapper">
       <div
         className="selector-trigger"
-        onClick={() => setIsModalOpen(true)}
+        onClick={() => setIsModalOpen((current) => !current)}
         ref={triggerRef}
       >
         {trigger ?? <HistoryOutlined width={24} height={24} />}
@@ -164,9 +233,22 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
 
       {isModalOpen &&
         overlayPosition &&
+        overlayTarget &&
         createPortal(
           <div
-            className="history-modal-overlay"
+            className={
+              overlayClassName
+                ? `history-modal-overlay ${overlayClassName}${
+                    isOverlayInContainer
+                      ? ' history-modal-overlay-in-container'
+                      : ''
+                  }`
+                : `history-modal-overlay${
+                    isOverlayInContainer
+                      ? ' history-modal-overlay-in-container'
+                      : ''
+                  }`
+            }
             ref={modalRef}
             style={overlayPosition}
           >
@@ -174,7 +256,7 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
               {/* top title bar */}
               <div className="history-modal-header">
                 <Text strong style={{ fontSize: '16px' }}>
-                  History ({history.length})
+                  {title} ({history.length})
                 </Text>
                 <Button
                   size="small"
@@ -189,30 +271,37 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
               <div className="history-search-section">
                 <div className="search-input-wrapper">
                   <Input
-                    placeholder="Search"
+                    placeholder={searchPlaceholder}
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}
                     prefix={<MagnifyingGlass width={18} height={18} />}
                     className="search-input"
                     allowClear
                   />
-                  <Button
-                    type="link"
-                    onClick={handleClearHistory}
-                    className="clear-button"
-                    disabled={history.length === 0}
-                  >
-                    Clear
-                  </Button>
+                  {showClear ? (
+                    <Button
+                      type="link"
+                      onClick={handleClearHistory}
+                      className="clear-button"
+                      disabled={history.length === 0}
+                    >
+                      Clear
+                    </Button>
+                  ) : null}
                 </div>
               </div>
 
               {/* history content */}
-              <div className="history-content">
+              <div
+                className="history-content"
+                onScroll={() => {
+                  setScrollVersion((current) => current + 1);
+                }}
+              >
                 {history.length === 0 ? (
                   /* no history record */
                   <div className="no-results">
-                    <Text type="secondary">No history record</Text>
+                    <Text type="secondary">{emptyText}</Text>
                   </div>
                 ) : (
                   <>
@@ -232,9 +321,7 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
                       groupedHistory.recent1Year.length === 0 &&
                       groupedHistory.older.length === 0 && (
                         <div className="no-results">
-                          <Text type="secondary">
-                            No matching history record
-                          </Text>
+                          <Text type="secondary">{noMatchText}</Text>
                         </div>
                       )}
                   </>
@@ -242,7 +329,7 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
               </div>
             </div>
           </div>,
-          document.body,
+          overlayTarget,
         )}
     </div>
   );

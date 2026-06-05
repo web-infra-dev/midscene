@@ -62,7 +62,6 @@ export type {
   PlaygroundRecorderCapabilitiesResult,
   PlaygroundRecorderEvent,
   PlaygroundRecorderEventsResult,
-  PlaygroundRecorderSource,
   PlaygroundRecorderSourceKind,
   PlaygroundRecorderStartResult,
   PlaygroundSidecar,

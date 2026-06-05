@@ -1,19 +1,17 @@
 import type { IModelConfig } from '@midscene/shared/env';
 import {
-  createMidsceneRecorderMarkdownScreenshotAssets,
   getMidsceneRecorderEventDescription,
   stringifyMidsceneRecorderTargetBlock,
 } from '@midscene/shared/recorder';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { callAIWithStringResponse } from '../index';
 import {
-  type ProcessedEvent,
-  type RecorderYamlGenerationInput,
-  prepareEventSummary,
+  type RecorderGenerationInput,
+  prepareRecorderGenerationContext,
   validateEvents,
-} from './yaml-generator';
+} from './recorder-generation-common';
 
-export type RecorderMarkdownGenerationInput = RecorderYamlGenerationInput;
+export type RecorderMarkdownGenerationInput = RecorderGenerationInput;
 
 function getMarkdownLanguageInstruction(language?: string) {
   const normalizedLanguage = language?.trim();
@@ -35,41 +33,12 @@ function normalizeGeneratedMarkdown(content: string) {
   return `${(fencedMatch?.[1] ?? trimmed).trim()}\n`;
 }
 
-function createEventPromptItems(
-  input: RecorderMarkdownGenerationInput,
-  screenshotPathByEventHash: Map<string, string>,
-): Array<ProcessedEvent & { screenshotPath?: string }> {
-  return prepareEventSummary(input.events, {
-    testName: input.testName,
-    maxScreenshots: input.maxScreenshots || 8,
-  }).events.map((event, index) => ({
-    ...event,
-    screenshotPath: screenshotPathByEventHash.get(
-      input.events[index]?.hashId || '',
-    ),
-  }));
-}
-
 export function createRecorderMarkdownReplayPrompt(
   input: RecorderMarkdownGenerationInput,
 ): ChatCompletionMessageParam[] {
   validateEvents(input.events);
 
-  const screenshotAssets = createMidsceneRecorderMarkdownScreenshotAssets(
-    input.events,
-    {
-      baseDir: './screenshots',
-      maxScreenshots: input.maxScreenshots ?? 8,
-    },
-  );
-  const screenshotPathByEventHash = new Map(
-    screenshotAssets.map((asset) => [asset.eventHashId, asset.relativePath]),
-  );
-  const summary = prepareEventSummary(input.events, {
-    testName: input.testName,
-    maxScreenshots: input.maxScreenshots || 8,
-  });
-  const promptEvents = createEventPromptItems(input, screenshotPathByEventHash);
+  const { summary, screenshotAssets } = prepareRecorderGenerationContext(input);
   const promptText = `Generate a Markdown replay script for Midscene Agent.
 
 This Markdown will be executed with:
@@ -89,6 +58,8 @@ Replay goal:
 - Do not invent alternative navigation paths.
 - Do not skip, merge, reorder, or add extra user actions.
 - Prefer recorded UI text, element descriptions, URLs, input values, and scroll direction.
+- Prefer event.replayInstruction and event.elementDescription when descriptionSource is "ai".
+- If descriptionSource is "fallback", use the screenshot/context to write the best visual instruction.
 - Coordinates are only fallback hints. Do not make coordinates the primary instruction when text or screenshots are available.
 - If a target cannot be found, stop and report the missing step. Do not click similar-looking elements.
 - Use screenshots only when they are provided below. Reference them by their exact relative paths.
@@ -116,7 +87,7 @@ ${JSON.stringify(
   {
     ...summary,
     target: input.target,
-    events: promptEvents,
+    events: summary.events,
     screenshotAssets: screenshotAssets.map((asset) => ({
       eventIndex: asset.eventIndex,
       eventHashId: asset.eventHashId,
@@ -188,4 +159,11 @@ export async function generateRecorderMarkdownReplay(
   } catch (error) {
     throw new Error(`Failed to generate recorder Markdown replay: ${error}`);
   }
+}
+
+export async function convertRecordLogIntoMarkdown(
+  log: RecorderMarkdownGenerationInput,
+  modelConfig: IModelConfig,
+): Promise<string> {
+  return generateRecorderMarkdownReplay(log, modelConfig);
 }

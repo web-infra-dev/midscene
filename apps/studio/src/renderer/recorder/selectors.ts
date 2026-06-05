@@ -7,7 +7,7 @@ import {
   resolveSelectedDeviceId,
 } from '../playground/selectors';
 import type { StudioPlaygroundContextValue } from '../playground/types';
-import type { StudioRecorderTarget } from './types';
+import type { StudioRecorderTarget, StudioRecordingSession } from './types';
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
@@ -202,6 +202,26 @@ export function createStudioRecorderTargetSignature(
     deviceId: target.deviceId,
     values: Object.fromEntries(Object.entries(target.values).sort()),
   });
+}
+
+export function isStudioRecorderSessionForTarget(
+  session: StudioRecordingSession,
+  target: StudioRecorderTarget | null,
+) {
+  const targetSignature = createStudioRecorderTargetSignature(target);
+  return (
+    targetSignature !== null &&
+    createStudioRecorderTargetSignature(session.target) === targetSignature
+  );
+}
+
+export function filterStudioRecorderSessionsForTarget(
+  sessions: StudioRecordingSession[],
+  target: StudioRecorderTarget | null,
+) {
+  return sessions.filter((session) =>
+    isStudioRecorderSessionForTarget(session, target),
+  );
 }
 
 export function selectStudioRecorderTarget(

@@ -41,7 +41,7 @@ export default function ConnectionFailedPreview({
         </div>
 
         <button
-          className="mt-[12px] flex h-8 cursor-pointer items-center justify-center rounded-[8px] bg-surface-muted px-[16px] text-[13px] font-medium leading-[22px] text-text-primary transition-colors hover:bg-surface-hover-strong active:bg-surface-active"
+          className="mt-[12px] flex h-8 cursor-pointer appearance-none items-center justify-center rounded-[8px] border-0 bg-surface-muted px-[16px] text-[13px] font-medium leading-[22px] text-text-primary transition-colors hover:bg-surface-hover-strong active:bg-surface-active"
           onClick={onReconnect}
           type="button"
         >

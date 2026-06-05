@@ -11,11 +11,17 @@
       "types": "./dist/types/index.d.ts",
       "import": "./dist/es/index.mjs",
       "require": "./dist/lib/index.js"
+    },
+    "./history-selector": {
+      "types": "./dist/types/component/history-selector/index.d.ts",
+      "import": "./dist/es/component/history-selector/index.mjs",
+      "require": "./dist/lib/component/history-selector/index.js"
     }
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/types/index.d.ts"]
+      ".": ["./dist/types/index.d.ts"],
+      "history-selector": ["./dist/types/component/history-selector/index.d.ts"]
     }
   },
   "files": ["dist", "html", "README.md"],

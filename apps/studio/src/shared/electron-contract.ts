@@ -31,9 +31,11 @@ export const IPC_CHANNELS = {
   discoveredDevicesUpdated: 'studio:discovered-devices-updated',
   setDiscoveryPollingPaused: 'studio:set-discovery-polling-paused',
   runConnectivityTest: 'studio:run-connectivity-test',
-  generateRecorderYaml: 'studio:generate-recorder-yaml',
   generateRecorderCode: 'studio:generate-recorder-code',
   generateRecorderMetadata: 'studio:generate-recorder-metadata',
+  describeRecorderUIEvents: 'studio:describe-recorder-ui-events',
+  prepareRecorderMarkdownReplay: 'studio:prepare-recorder-markdown-replay',
+  chooseReplayFile: 'studio:choose-replay-file',
   // Auto-updater bridge — main owns the electron-updater state machine,
   // the renderer just renders it.
   updaterCheck: 'updater:check',
@@ -76,15 +78,6 @@ export type ConnectivityTestResult =
   | { ok: true; sample: string }
   | { ok: false; error: string };
 
-export interface GenerateRecorderYamlRequest {
-  input: RecorderYamlGenerationInput;
-  modelConfig: IModelConfig;
-}
-
-export interface GenerateRecorderYamlResult {
-  yaml: string;
-}
-
 export type StudioRecorderCodeType = 'markdown' | 'yaml' | 'playwright';
 
 export interface GenerateRecorderCodeRequest {
@@ -112,6 +105,50 @@ export interface GenerateRecorderMetadataResult {
   title?: string;
   description?: string;
 }
+
+export interface DescribeRecorderUIEventsRequest {
+  input: {
+    target?: MidsceneRecorderTarget;
+    events: MidsceneRecorderEvent[];
+  };
+  modelConfig: IModelConfig;
+}
+
+export interface DescribeRecorderUIEventsResult {
+  events: MidsceneRecorderEvent[];
+  results: Array<{
+    hashId: string;
+    usedFallback: boolean;
+    error?: string;
+  }>;
+}
+
+export interface RecorderMarkdownReplayScreenshot {
+  relativePath: string;
+  base64Data: string;
+}
+
+export interface PrepareRecorderMarkdownReplayRequest {
+  markdown: string;
+  screenshots: RecorderMarkdownReplayScreenshot[];
+}
+
+export interface PrepareRecorderMarkdownReplayResult {
+  markdownPath: string;
+}
+
+export type ChooseReplayFileResult =
+  | {
+      type: 'markdown';
+      path: string;
+      displayName: string;
+    }
+  | {
+      type: 'yaml';
+      content: string;
+      displayName: string;
+    }
+  | null;
 
 /** Generic bootstrap status for the multi-platform playground server. */
 export interface PlaygroundBootstrap {
@@ -157,16 +194,15 @@ export interface DiscoveredDevice {
  * Per-platform error from the cross-platform device discovery scan.
  *
  * Platforms (Android, Harmony) require an external CLI (`adb`, `hdc`) to be
- * installed and reachable on PATH. When that prerequisite is missing the
- * scan throws — the renderer needs to know so it can prompt the user to
- * install the toolchain instead of just rendering "No devices".
+ * installed and reachable on PATH. Empty CLI output is a normal "no device"
+ * state; this error is reserved for command/probe failures that need setup
+ * guidance instead of just rendering "No devices".
  */
 export interface PlatformDiscoveryError {
   platformId: StudioPlatformId;
   /**
-   * `toolchain-missing` covers any failure of the platform's discovery
-   * probe — in practice this is dominated by the CLI binary not being on
-   * PATH, which is the actionable case for the user.
+   * `toolchain-missing` means the platform discovery command could not run
+   * successfully, e.g. the CLI binary is not installed or not reachable.
    */
   kind: 'toolchain-missing';
 }
@@ -242,13 +278,17 @@ export interface StudioRuntimeApi {
   runConnectivityTest: (
     request: ConnectivityTestRequest,
   ) => Promise<ConnectivityTestResult>;
-  generateRecorderYaml: (
-    request: GenerateRecorderYamlRequest,
-  ) => Promise<GenerateRecorderYamlResult>;
   generateRecorderCode: (
     request: GenerateRecorderCodeRequest,
   ) => Promise<GenerateRecorderCodeResult>;
   generateRecorderMetadata: (
     request: GenerateRecorderMetadataRequest,
   ) => Promise<GenerateRecorderMetadataResult>;
+  describeRecorderUIEvents: (
+    request: DescribeRecorderUIEventsRequest,
+  ) => Promise<DescribeRecorderUIEventsResult>;
+  prepareRecorderMarkdownReplay: (
+    request: PrepareRecorderMarkdownReplayRequest,
+  ) => Promise<PrepareRecorderMarkdownReplayResult>;
+  chooseReplayFile: () => Promise<ChooseReplayFileResult>;
 }

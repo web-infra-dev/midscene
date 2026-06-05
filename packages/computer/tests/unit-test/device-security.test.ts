@@ -81,14 +81,20 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.resetModules();
   Object.defineProperty(process, 'platform', { value: originalPlatform });
 });
 
-async function runKeyboardPress(keyName: string): Promise<void> {
+async function createConnectedDevice() {
   const { ComputerDevice } = await import('../../src/device');
   const device = new ComputerDevice({});
   await device.connect();
+  return device;
+}
+
+async function runKeyboardPress(keyName: string): Promise<void> {
+  const device = await createConnectedDevice();
 
   const keyboardPress = device
     .actionSpace()
@@ -96,6 +102,14 @@ async function runKeyboardPress(keyName: string): Promise<void> {
 
   expect(keyboardPress).toBeDefined();
   await keyboardPress!.call({ keyName });
+}
+
+async function runPointerTap(
+  point: { x: number; y: number },
+  opts?: { duration?: number },
+): Promise<void> {
+  const device = await createConnectedDevice();
+  await device.inputPrimitives.pointer!.tap(point, opts);
 }
 
 describe('ComputerDevice AppleScript security', () => {
@@ -119,5 +133,98 @@ describe('ComputerDevice AppleScript security', () => {
       '-e',
       'tell application "System Events" to keystroke "a\\"\\\\b"',
     ]);
+  });
+});
+
+describe('ComputerDevice pointer input', () => {
+  it('sends a press and release for tap after moving to the target', async () => {
+    await runPointerTap({ x: 100, y: 120 });
+
+    expect(mockState.libnut.moveMouse).toHaveBeenLastCalledWith(100, 120);
+    expect(mockState.libnut.mouseClick).not.toHaveBeenCalled();
+    expect(mockState.libnut.mouseToggle).toHaveBeenCalledTimes(2);
+    expect(mockState.libnut.mouseToggle).toHaveBeenNthCalledWith(
+      1,
+      'down',
+      'left',
+    );
+    expect(mockState.libnut.mouseToggle).toHaveBeenNthCalledWith(
+      2,
+      'up',
+      'left',
+    );
+  });
+
+  it('holds tap until the requested duration elapses', async () => {
+    const device = await createConnectedDevice();
+
+    vi.useFakeTimers();
+    const tapPromise = device.inputPrimitives.pointer!.tap(
+      { x: 100, y: 120 },
+      { duration: 250 },
+    );
+
+    await vi.advanceTimersByTimeAsync(64);
+    expect(mockState.libnut.mouseToggle).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(50);
+    expect(mockState.libnut.mouseToggle).toHaveBeenCalledTimes(1);
+    expect(mockState.libnut.mouseToggle).toHaveBeenNthCalledWith(
+      1,
+      'down',
+      'left',
+    );
+
+    await vi.advanceTimersByTimeAsync(249);
+    expect(mockState.libnut.mouseToggle).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await tapPromise;
+    expect(mockState.libnut.mouseToggle).toHaveBeenCalledTimes(2);
+    expect(mockState.libnut.mouseToggle).toHaveBeenNthCalledWith(
+      2,
+      'up',
+      'left',
+    );
+  });
+
+  it('retries tap once when the first click only changes the frontmost app', async () => {
+    const device = await createConnectedDevice();
+    mockState.execFileSync.mockReset();
+    mockState.execFileSync
+      .mockReturnValueOnce(Buffer.from('100\tElectron'))
+      .mockReturnValueOnce(Buffer.from('200\tSafari'));
+
+    vi.useFakeTimers();
+    const tapPromise = device.inputPrimitives.pointer!.tap({
+      x: 100,
+      y: 120,
+    });
+
+    await vi.advanceTimersByTimeAsync(64 + 50 + 100 + 120 + 50 + 100);
+    await tapPromise;
+
+    expect(mockState.execFileSync).toHaveBeenCalledTimes(2);
+    expect(mockState.libnut.mouseToggle).toHaveBeenCalledTimes(4);
+    expect(mockState.libnut.mouseToggle).toHaveBeenNthCalledWith(
+      1,
+      'down',
+      'left',
+    );
+    expect(mockState.libnut.mouseToggle).toHaveBeenNthCalledWith(
+      2,
+      'up',
+      'left',
+    );
+    expect(mockState.libnut.mouseToggle).toHaveBeenNthCalledWith(
+      3,
+      'down',
+      'left',
+    );
+    expect(mockState.libnut.mouseToggle).toHaveBeenNthCalledWith(
+      4,
+      'up',
+      'left',
+    );
   });
 });
