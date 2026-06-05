@@ -1,6 +1,7 @@
 {
   "name": "@midscene/testing-framework",
   "version": "1.8.9",
+  "private": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/web-infra-dev/midscene.git",
@@ -63,10 +64,6 @@
   },
   "engines": {
     "node": ">=18.19.0"
-  },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org"
   },
   "license": "MIT"
 }

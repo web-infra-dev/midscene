@@ -1,6 +1,6 @@
 # Midscene v2 Testing Framework — Example
 
-A self-contained demo of [`@midscene/testing-framework`](../packages/testing-framework)
+A self-contained demo of [`@midscene/testing-framework`](..)
 (the AI-native v2 UI testing framework, Phase 0). Copy this folder out, install,
 set your model env vars, and run.
 

@@ -56,7 +56,7 @@ midscene-tf run            # run all discovered cases
 midscene-tf run e2e/x.yaml # run a specific case
 ```
 
-See a runnable demo in the repository's `example/` directory.
+See a runnable demo in this package's [`example/`](./example) directory.
 
 ## Programmatic API
 
