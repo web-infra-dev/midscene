@@ -181,6 +181,10 @@ const PLATFORM_TOOLCHAIN_HINTS: Partial<
     label: '⚠️ ADB not detected',
     href: STUDIO_EXTERNAL_LINKS.androidIntegrationFaq,
   },
+  harmony: {
+    label: '⚠️ HDC not detected',
+    href: STUDIO_EXTERNAL_LINKS.harmonyGettingStarted,
+  },
 };
 
 function ToolchainMissingTile({
@@ -228,7 +232,7 @@ function DeviceCardBody({
         {iconSrc ? (
           <img
             alt=""
-            className="h-[36px] w-[36px] object-contain"
+            className="h-[29px] w-[29px] object-contain"
             src={iconSrc}
           />
         ) : null}
@@ -385,7 +389,18 @@ export function DeviceList({
   };
 
   return (
-    <div className="flex h-full w-full flex-col items-center overflow-y-auto px-[16px] pb-[40px] pt-[59px]">
+    <div className="flex h-full w-full flex-col items-center overflow-y-auto px-[16px] pb-[40px] pt-[88px]">
+      <div className="mb-[28px] flex w-[704px] flex-col">
+        <h1
+          className="m-0 text-[24px] font-medium not-italic leading-[32px] tracking-[0] text-[#0D0D0D] dark:text-text-primary"
+          style={{ fontFamily: 'Inter, sans-serif' }}
+        >
+          Overview
+        </h1>
+        <p className="m-0 mt-[4px] font-sans text-[12px] font-normal leading-[18px] text-text-secondary">
+          Manage models and devices, and let Midscene connect your devices.
+        </p>
+      </div>
       <div className="flex w-[704px] flex-col gap-[32px]">
         {showModelConfigCard ? (
           <ModelConfigCard

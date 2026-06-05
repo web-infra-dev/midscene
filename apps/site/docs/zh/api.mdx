@@ -173,8 +173,7 @@ function ai(prompt: string): Promise<string | undefined>; // 简写形式
 
 - 返回值：
 
-  - 返回一个 Promise。当指令要求 Midscene 返回或告诉你某些信息时，Promise 会解析为最终输出字符串。如果任务只执行操作、没有产出返回信息，则解析为 `undefined`。
-  - 若执行失败，则抛出错误。
+  - 返回一个 Promise。当所有步骤执行完成时解析为 void；若执行失败，则抛出错误。
 
 - 示例：
 
@@ -193,12 +192,6 @@ setTimeout(() => controller.abort('timeout'), 30000); // 30 秒超时
 await agent.aiAct('填写表单并提交', {
   abortSignal: controller.signal,
 });
-
-// 让 aiAct 在完成任务后返回信息
-const heading = await agent.aiAct(
-  '在 Google 搜索 "Midscene"，并且只返回第一个搜索结果页面的标题',
-);
-expect(heading).toContain('Midscene');
 
 // 对于复杂任务，可以启用 deepThink 参数
 await agent.aiAct('完成 github 账号注册的表单填写。地区必须选择「加拿大」。确保表单上没有遗漏的字段，确保所有的表单项能够通过校验。 只需要填写表单项即可，不需要发起真实的账号注册。 最终请返回表单上实际填写的字段内容', { deepThink: true });

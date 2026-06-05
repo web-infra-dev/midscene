@@ -1,3 +1,10 @@
+import type { RecorderYamlGenerationInput } from '@midscene/core/ai-model';
+import type { IModelConfig } from '@midscene/shared/env';
+import type {
+  MidsceneRecorderEvent,
+  MidsceneRecorderTarget,
+} from '@midscene/shared/recorder';
+
 /**
  * IPC channel names bridging the Midscene Studio main process and renderer.
  * Shared with {@link ElectronShellApi} so both sides agree on the wire
@@ -8,8 +15,10 @@ export const IPC_CHANNELS = {
   minimizeWindow: 'shell:minimize-window',
   openExternalUrl: 'shell:open-external-url',
   chooseReportSavePath: 'shell:choose-report-save-path',
+  chooseFileSavePath: 'shell:choose-file-save-path',
   toggleMaximizeWindow: 'shell:toggle-maximize-window',
   writeReportFile: 'shell:write-report-file',
+  writeFile: 'shell:write-file',
   setNativeTheme: 'shell:set-native-theme',
   systemThemeChanged: 'shell:system-theme-changed',
   // Multi-platform playground runtime (Android, iOS, HarmonyOS, Computer).
@@ -22,6 +31,11 @@ export const IPC_CHANNELS = {
   discoveredDevicesUpdated: 'studio:discovered-devices-updated',
   setDiscoveryPollingPaused: 'studio:set-discovery-polling-paused',
   runConnectivityTest: 'studio:run-connectivity-test',
+  generateRecorderCode: 'studio:generate-recorder-code',
+  generateRecorderMetadata: 'studio:generate-recorder-metadata',
+  describeRecorderUIEvents: 'studio:describe-recorder-ui-events',
+  prepareRecorderMarkdownReplay: 'studio:prepare-recorder-markdown-replay',
+  chooseReplayFile: 'studio:choose-replay-file',
   // Auto-updater bridge — main owns the electron-updater state machine,
   // the renderer just renders it.
   updaterCheck: 'updater:check',
@@ -43,9 +57,98 @@ export interface WriteReportFileRequest {
   content: string;
 }
 
+export interface SaveFileFilter {
+  name: string;
+  extensions: string[];
+}
+
+export interface ChooseFileSavePathRequest {
+  title?: string;
+  defaultFileName?: string;
+  filters?: SaveFileFilter[];
+}
+
+export interface WriteFileRequest {
+  path: string;
+  content: string;
+  encoding?: 'utf-8' | 'base64';
+}
+
 export type ConnectivityTestResult =
   | { ok: true; sample: string }
   | { ok: false; error: string };
+
+export type StudioRecorderCodeType = 'markdown' | 'yaml' | 'playwright';
+
+export interface GenerateRecorderCodeRequest {
+  type: StudioRecorderCodeType;
+  input: RecorderYamlGenerationInput;
+  modelConfig: IModelConfig;
+}
+
+export interface GenerateRecorderCodeResult {
+  type: StudioRecorderCodeType;
+  code: string;
+}
+
+export interface GenerateRecorderMetadataRequest {
+  input: {
+    target: MidsceneRecorderTarget;
+    events: MidsceneRecorderEvent[];
+    fallbackName?: string;
+    maxScreenshots?: number;
+  };
+  modelConfig: IModelConfig;
+}
+
+export interface GenerateRecorderMetadataResult {
+  title?: string;
+  description?: string;
+}
+
+export interface DescribeRecorderUIEventsRequest {
+  input: {
+    target?: MidsceneRecorderTarget;
+    events: MidsceneRecorderEvent[];
+  };
+  modelConfig: IModelConfig;
+}
+
+export interface DescribeRecorderUIEventsResult {
+  events: MidsceneRecorderEvent[];
+  results: Array<{
+    hashId: string;
+    usedFallback: boolean;
+    error?: string;
+  }>;
+}
+
+export interface RecorderMarkdownReplayScreenshot {
+  relativePath: string;
+  base64Data: string;
+}
+
+export interface PrepareRecorderMarkdownReplayRequest {
+  markdown: string;
+  screenshots: RecorderMarkdownReplayScreenshot[];
+}
+
+export interface PrepareRecorderMarkdownReplayResult {
+  markdownPath: string;
+}
+
+export type ChooseReplayFileResult =
+  | {
+      type: 'markdown';
+      path: string;
+      displayName: string;
+    }
+  | {
+      type: 'yaml';
+      content: string;
+      displayName: string;
+    }
+  | null;
 
 /** Generic bootstrap status for the multi-platform playground server. */
 export interface PlaygroundBootstrap {
@@ -91,16 +194,15 @@ export interface DiscoveredDevice {
  * Per-platform error from the cross-platform device discovery scan.
  *
  * Platforms (Android, Harmony) require an external CLI (`adb`, `hdc`) to be
- * installed and reachable on PATH. When that prerequisite is missing the
- * scan throws — the renderer needs to know so it can prompt the user to
- * install the toolchain instead of just rendering "No devices".
+ * installed and reachable on PATH. Empty CLI output is a normal "no device"
+ * state; this error is reserved for command/probe failures that need setup
+ * guidance instead of just rendering "No devices".
  */
 export interface PlatformDiscoveryError {
   platformId: StudioPlatformId;
   /**
-   * `toolchain-missing` covers any failure of the platform's discovery
-   * probe — in practice this is dominated by the CLI binary not being on
-   * PATH, which is the actionable case for the user.
+   * `toolchain-missing` means the platform discovery command could not run
+   * successfully, e.g. the CLI binary is not installed or not reachable.
    */
   kind: 'toolchain-missing';
 }
@@ -131,6 +233,10 @@ export interface ElectronShellApi {
   openExternalUrl: (url: string) => Promise<void>;
   /** Ask the main process for a target path for a report HTML export. */
   chooseReportSavePath: (defaultFileName?: string) => Promise<string | null>;
+  /** Ask the main process for a target path for a generic file export. */
+  chooseFileSavePath: (
+    request?: ChooseFileSavePathRequest,
+  ) => Promise<string | null>;
   /**
    * Toggle maximize/unmaximize on the current shell window. No-op if the
    * window is not available (e.g. during teardown).
@@ -138,6 +244,8 @@ export interface ElectronShellApi {
   toggleMaximizeWindow: () => Promise<void>;
   /** Persist a report HTML file using the native shell process. */
   writeReportFile: (request: WriteReportFileRequest) => Promise<void>;
+  /** Persist a generic text or base64-encoded binary file via the shell. */
+  writeFile: (request: WriteFileRequest) => Promise<void>;
   /**
    * Sync the app's resolved theme to the OS so window chrome (border,
    * traffic lights) and `vibrancy` use the matching light/dark variant.
@@ -170,4 +278,17 @@ export interface StudioRuntimeApi {
   runConnectivityTest: (
     request: ConnectivityTestRequest,
   ) => Promise<ConnectivityTestResult>;
+  generateRecorderCode: (
+    request: GenerateRecorderCodeRequest,
+  ) => Promise<GenerateRecorderCodeResult>;
+  generateRecorderMetadata: (
+    request: GenerateRecorderMetadataRequest,
+  ) => Promise<GenerateRecorderMetadataResult>;
+  describeRecorderUIEvents: (
+    request: DescribeRecorderUIEventsRequest,
+  ) => Promise<DescribeRecorderUIEventsResult>;
+  prepareRecorderMarkdownReplay: (
+    request: PrepareRecorderMarkdownReplayRequest,
+  ) => Promise<PrepareRecorderMarkdownReplayResult>;
+  chooseReplayFile: () => Promise<ChooseReplayFileResult>;
 }

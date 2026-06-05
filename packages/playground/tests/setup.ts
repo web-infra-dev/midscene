@@ -100,6 +100,7 @@ vi.mock('express', () => {
     use: vi.fn(),
     get: vi.fn(),
     post: vi.fn(),
+    options: vi.fn(),
     delete: vi.fn(),
     listen: vi.fn((...args: any[]) => {
       const callback = args.find((a: any) => typeof a === 'function');
@@ -113,6 +114,7 @@ vi.mock('express', () => {
   });
   mockExpress.static = vi.fn();
   mockExpress.json = vi.fn(() => (req: any, res: any, next: any) => next());
+  mockExpress.text = vi.fn(() => (req: any, res: any, next: any) => next());
   return { default: mockExpress };
 });
 

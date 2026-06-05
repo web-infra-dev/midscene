@@ -1237,6 +1237,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             </div>
 
             <div className="form-controller-wrapper">
+              {chrome?.inputActions}
               {renderMinimalActionButton()}
             </div>
           </div>
@@ -1320,7 +1321,10 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       >
         {inputContent}
 
-        <div className="form-controller-wrapper">{renderActionButton()}</div>
+        <div className="form-controller-wrapper">
+          {chrome?.inputActions}
+          {renderActionButton()}
+        </div>
       </div>
     </div>
   );

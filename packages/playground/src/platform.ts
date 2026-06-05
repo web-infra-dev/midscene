@@ -1,4 +1,9 @@
 import type { Agent } from '@midscene/core/agent';
+import type {
+  MidsceneRecorderEvent,
+  MidsceneRecorderEventType,
+  MidsceneRecorderSourceKind,
+} from '@midscene/shared/recorder';
 import type { LaunchPlaygroundOptions } from './launcher';
 import type { AgentFactory } from './types';
 
@@ -91,6 +96,32 @@ export interface PlaygroundSidecar {
   id: string;
   start(): void | Promise<void>;
   stop?(): void | Promise<void>;
+}
+
+export type PlaygroundRecorderSourceKind = MidsceneRecorderSourceKind;
+
+export type PlaygroundRecorderEventType = MidsceneRecorderEventType;
+
+export type PlaygroundRecorderEvent = MidsceneRecorderEvent;
+
+export interface PlaygroundRecorderCapabilitiesResult {
+  supported: boolean;
+  source: PlaygroundRecorderSourceKind;
+  platformId?: string;
+  error?: string;
+}
+
+export interface PlaygroundRecorderStartResult {
+  ok: boolean;
+  supported?: boolean;
+  source?: PlaygroundRecorderSourceKind;
+  platformId?: string;
+  error?: string;
+}
+
+export interface PlaygroundRecorderEventsResult {
+  events: PlaygroundRecorderEvent[];
+  nextIndex: number;
 }
 
 export interface PlaygroundSessionState {

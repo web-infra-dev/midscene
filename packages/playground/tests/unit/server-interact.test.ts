@@ -49,6 +49,9 @@ function makeInputPrimitiveStub(
       swipe: vi.fn(async () => {}),
       pinch: vi.fn(async () => {}),
     },
+    scroll: {
+      scroll: vi.fn(async () => {}),
+    },
     ...overrides,
   };
 }
@@ -191,6 +194,45 @@ describe('PlaygroundServer manual interaction APIs', () => {
     );
   });
 
+  test('POST /interact forwards Scroll to input primitives', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'computer',
+        actionSpace: () => [],
+        inputPrimitives,
+      },
+    } as any);
+
+    await server.launch(6111);
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    const response = createMockResponse();
+    await interactHandler(
+      {
+        body: {
+          actionType: 'Scroll',
+          x: 10,
+          y: 20,
+          direction: 'down',
+          scrollType: 'singleAction',
+          distance: 120,
+        },
+      },
+      response,
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(inputPrimitives.scroll?.scroll).toHaveBeenCalledWith({
+      direction: 'down',
+      scrollType: 'singleAction',
+      distance: 120,
+      locate: expect.objectContaining({
+        center: [10, 20],
+        description: 'manual scroll target',
+      }),
+    });
+  });
+
   test('POST /interact returns 400 when a required pointer field is missing', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const server = new PlaygroundServer({
@@ -251,6 +293,251 @@ describe('PlaygroundServer manual interaction APIs', () => {
         }),
       },
     );
+  });
+
+  test('recorder start is unsupported without preview interaction support', async () => {
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'computer',
+        actionSpace: () => [],
+      },
+    } as any);
+
+    await server.launch(6116);
+    const capabilitiesHandler = getRouteHandler(
+      server,
+      'get',
+      '/recorder/capabilities',
+    );
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+
+    const capabilitiesResponse = createMockResponse();
+    await capabilitiesHandler({}, capabilitiesResponse);
+    expect(capabilitiesResponse.body).toMatchObject({
+      supported: false,
+      source: 'unsupported',
+      platformId: 'computer',
+    });
+
+    const startResponse = createMockResponse();
+    await startRecorderHandler(
+      {
+        body: {
+          sessionId: 'session-1',
+        },
+      },
+      startResponse,
+    );
+    expect(startResponse.body).toMatchObject({
+      ok: false,
+      supported: false,
+      source: 'unsupported',
+      platformId: 'computer',
+    });
+  });
+
+  test('recorder records successful Studio preview interactions', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => 'base64-image',
+        size: async () => ({ width: 390, height: 844 }),
+      },
+    } as any);
+
+    await server.launch(6118);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    const startResponse = createMockResponse();
+    await startRecorderHandler(
+      { body: { sessionId: 'session-preview' } },
+      startResponse,
+    );
+    expect(startResponse.body).toMatchObject({
+      ok: true,
+      supported: true,
+      source: 'studio-preview',
+    });
+
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 10, y: 20 } },
+      createMockResponse(),
+    );
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const eventsResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, eventsResponse);
+    expect(eventsResponse.body).toMatchObject({
+      events: [
+        {
+          type: 'click',
+          source: 'studio-preview',
+          actionType: 'Tap',
+          elementRect: { x: 10, y: 20 },
+          pageInfo: { width: 390, height: 844 },
+          descriptionLoading: true,
+        },
+      ],
+      nextIndex: 1,
+    });
+  });
+
+  test('recorder dispatches preview interactions before taking the after screenshot', async () => {
+    const callOrder: string[] = [];
+    const tap = vi.fn(async () => {
+      callOrder.push('tap');
+    });
+    const inputPrimitives = makeInputPrimitiveStub({
+      pointer: {
+        tap,
+        doubleClick: vi.fn(async () => {}),
+        longPress: vi.fn(async () => {}),
+        dragAndDrop: vi.fn(async () => {}),
+      },
+    });
+    const screenshotBase64 = vi.fn(async () => {
+      callOrder.push('screenshot');
+      return 'base64-image';
+    });
+    const size = vi.fn(async () => {
+      callOrder.push('size');
+      return { width: 390, height: 844 };
+    });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'computer',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64,
+        size,
+      },
+    } as any);
+
+    await server.launch(6120);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-preview-order' } },
+      createMockResponse(),
+    );
+    callOrder.length = 0;
+
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 10, y: 20 } },
+      createMockResponse(),
+    );
+
+    expect(tap).toHaveBeenCalledWith({ x: 10, y: 20 }, { duration: undefined });
+    expect(callOrder[0]).toBe('tap');
+    expect(callOrder).toEqual(['tap', 'screenshot', 'size']);
+  });
+
+  test('recorder appends navigation event when preview interact changes web url', async () => {
+    let currentUrl = 'https://example.com/start';
+    let currentScreenshot = 'start-screenshot';
+    const inputPrimitives = makeInputPrimitiveStub({
+      pointer: {
+        tap: vi.fn(async () => {
+          if (currentUrl.endsWith('/start')) {
+            currentUrl = 'https://example.com/next';
+            currentScreenshot = 'next-screenshot';
+          }
+        }),
+        doubleClick: vi.fn(async () => {}),
+        longPress: vi.fn(async () => {}),
+        dragAndDrop: vi.fn(async () => {}),
+      },
+    });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'web',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => currentScreenshot,
+        size: async () => ({ width: 1280, height: 720 }),
+        url: async () => currentUrl,
+        evaluateJavaScript: async () =>
+          currentUrl.endsWith('/next') ? 'Next page' : 'Start page',
+      },
+    } as any);
+
+    await server.launch(6119);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-web-preview' } },
+      createMockResponse(),
+    );
+
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 120, y: 314 } },
+      createMockResponse(),
+    );
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 220, y: 414 } },
+      createMockResponse(),
+    );
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const eventsResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, eventsResponse);
+    expect(eventsResponse.body).toMatchObject({
+      events: [
+        {
+          type: 'navigation',
+          source: 'studio-preview',
+          actionType: 'InitialNavigation',
+          url: 'https://example.com/start',
+          title: 'Start page',
+          replayInstruction: 'Navigate to `https://example.com/start`.',
+          descriptionLoading: false,
+        },
+        {
+          type: 'click',
+          source: 'studio-preview',
+          url: 'https://example.com/start',
+          title: 'Start page',
+          screenshotBefore: 'start-screenshot',
+        },
+        {
+          type: 'navigation',
+          source: 'studio-preview',
+          actionType: 'NavigationChanged',
+          url: 'https://example.com/next',
+          title: 'Next page',
+          replayInstruction:
+            'Wait for navigation to complete at `https://example.com/next`.',
+          descriptionLoading: false,
+        },
+        {
+          type: 'click',
+          source: 'studio-preview',
+          url: 'https://example.com/next',
+          title: 'Next page',
+          screenshotBefore: 'next-screenshot',
+        },
+      ],
+      nextIndex: 4,
+    });
   });
 
   test('POST /interact returns 400 for invalid manual params', async () => {

@@ -28,6 +28,18 @@ describe('Harmony Utils', () => {
       ]);
     });
 
+    it('should pass discovery options to HdcClient', async () => {
+      const { __mockListTargets } = (await import('../../src/hdc')) as any;
+      __mockListTargets.mockResolvedValue([]);
+
+      await getConnectedDevices('/custom/hdc', { timeout: 5000 });
+
+      expect(HdcClient).toHaveBeenCalledWith({
+        hdcPath: '/custom/hdc',
+        timeout: 5000,
+      });
+    });
+
     it('should throw a formatted error if getting devices fails', async () => {
       const error = new Error('Failed to connect to HDC');
       const { __mockListTargets } = (await import('../../src/hdc')) as any;
