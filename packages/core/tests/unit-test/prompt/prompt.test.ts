@@ -7,7 +7,7 @@ import {
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
-import { defineActionInput } from '@/device';
+import { defineActionInput, defineActionSwipe } from '@/device';
 import { getMidsceneLocationSchema } from '@/index';
 import type { TModelFamily } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
@@ -187,6 +187,21 @@ describe('action space', () => {
     );
   });
 
+  it('swipe action explains touch slider use', () => {
+    const action = descriptionForAction(
+      defineActionSwipe({
+        swipe: async () => {},
+        size: async () => ({ width: 1080, height: 2400 }),
+      }),
+      mockLocatorScheme,
+    );
+
+    expect(action).toContain('adjust a continuous control such as a slider');
+    expect(action).toContain(
+      'Use "distance" + "direction" for relative movement, or "start" + "end" for precise endpoint movement.',
+    );
+  });
+
   it('planning prompt recommends cursor-level recovery for text inserts', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
@@ -202,7 +217,7 @@ describe('action space', () => {
     );
   });
 
-  it('planning prompt recommends firm drag placement', async () => {
+  it('planning prompt recommends swipe for touch sliders', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
       modelFamily: undefined,
@@ -210,14 +225,15 @@ describe('action space', () => {
     });
 
     expect(prompt).toContain(
-      'Swipe gestures that must cross a threshold such as page flip, dismiss, reveal, or swipe-to-delete',
+      'For actions that must reach or cross a precise touch threshold',
     );
     expect(prompt).toContain(
-      'move slightly farther in the intended direction instead of stopping short',
+      'such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint',
     );
     expect(prompt).toContain(
-      'After the drag or swipe, re-check the actual UI state and continue or recover if it did not land at the requested position',
+      'DragAndDrop placement/resize/reposition, page flip, dismiss, reveal, or swipe-to-delete',
     );
+    expect(prompt).toContain('then re-check the actual UI state');
   });
 });
 

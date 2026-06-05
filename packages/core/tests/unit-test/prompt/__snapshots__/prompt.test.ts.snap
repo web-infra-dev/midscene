@@ -562,7 +562,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Action Guidelines
 
-- For DragAndDrop placement, slider, resize, or reposition actions, or Swipe gestures that must cross a threshold such as page flip, dismiss, reveal, or swipe-to-delete, if the target may require a firm landing, move slightly farther in the intended direction instead of stopping short. After the drag or swipe, re-check the actual UI state and continue or recover if it did not land at the requested position.
+- For actions that must reach or cross a precise touch threshold, such as DragAndDrop placement/resize/reposition, page flip, dismiss, reveal, or swipe-to-delete, move slightly farther in the intended direction instead of stopping short, then re-check the actual UI state.
+- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
 
@@ -913,7 +914,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Action Guidelines
 
-- For DragAndDrop placement, slider, resize, or reposition actions, or Swipe gestures that must cross a threshold such as page flip, dismiss, reveal, or swipe-to-delete, if the target may require a firm landing, move slightly farther in the intended direction instead of stopping short. After the drag or swipe, re-check the actual UI state and continue or recover if it did not land at the requested position.
+- For actions that must reach or cross a precise touch threshold, such as DragAndDrop placement/resize/reposition, page flip, dismiss, reveal, or swipe-to-delete, move slightly farther in the intended direction instead of stopping short, then re-check the actual UI state.
+- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
 
@@ -1232,7 +1234,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Action Guidelines
 
-- For DragAndDrop placement, slider, resize, or reposition actions, or Swipe gestures that must cross a threshold such as page flip, dismiss, reveal, or swipe-to-delete, if the target may require a firm landing, move slightly farther in the intended direction instead of stopping short. After the drag or swipe, re-check the actual UI state and continue or recover if it did not land at the requested position.
+- For actions that must reach or cross a precise touch threshold, such as DragAndDrop placement/resize/reposition, page flip, dismiss, reveal, or swipe-to-delete, move slightly farther in the intended direction instead of stopping short, then re-check the actual UI state.
+- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
 
@@ -1654,7 +1657,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Action Guidelines
 
-- For DragAndDrop placement, slider, resize, or reposition actions, or Swipe gestures that must cross a threshold such as page flip, dismiss, reveal, or swipe-to-delete, if the target may require a firm landing, move slightly farther in the intended direction instead of stopping short. After the drag or swipe, re-check the actual UI state and continue or recover if it did not land at the requested position.
+- For actions that must reach or cross a precise touch threshold, such as DragAndDrop placement/resize/reposition, page flip, dismiss, reveal, or swipe-to-delete, move slightly farther in the intended direction instead of stopping short, then re-check the actual UI state.
+- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
 
@@ -2031,7 +2035,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Action Guidelines
 
-- For DragAndDrop placement, slider, resize, or reposition actions, or Swipe gestures that must cross a threshold such as page flip, dismiss, reveal, or swipe-to-delete, if the target may require a firm landing, move slightly farther in the intended direction instead of stopping short. After the drag or swipe, re-check the actual UI state and continue or recover if it did not land at the requested position.
+- For actions that must reach or cross a precise touch threshold, such as DragAndDrop placement/resize/reposition, page flip, dismiss, reveal, or swipe-to-delete, move slightly farther in the intended direction instead of stopping short, then re-check the actual UI state.
+- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
 
@@ -2382,7 +2387,8 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Action Guidelines
 
-- For DragAndDrop placement, slider, resize, or reposition actions, or Swipe gestures that must cross a threshold such as page flip, dismiss, reveal, or swipe-to-delete, if the target may require a firm landing, move slightly farther in the intended direction instead of stopping short. After the drag or swipe, re-check the actual UI state and continue or recover if it did not land at the requested position.
+- For actions that must reach or cross a precise touch threshold, such as DragAndDrop placement/resize/reposition, page flip, dismiss, reveal, or swipe-to-delete, move slightly farther in the intended direction instead of stopping short, then re-check the actual UI state.
+- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
 
