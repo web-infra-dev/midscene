@@ -74,18 +74,7 @@ function writeAttachmentFromReport(
 
   const absolutePath = path.join(opts.screenshotsDir, suggestedFileName);
 
-  const sourceRef = attachment.sourcePath
-    ? {
-        type: 'midscene_screenshot_ref' as const,
-        id,
-        capturedAt: 0,
-        mimeType: (mimeType || 'image/png') as 'image/png' | 'image/jpeg',
-        storage: 'file' as const,
-        path: attachment.sourcePath,
-      }
-    : null;
-
-  const resolved = resolveScreenshotSource(sourceRef, {
+  const resolved = resolveScreenshotSource(attachment.sourceRef ?? null, {
     reportPath: opts.htmlPath,
     fallbackId: id,
     fallbackMimeType: (mimeType || 'image/png') as 'image/png' | 'image/jpeg',
