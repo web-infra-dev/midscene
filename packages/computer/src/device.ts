@@ -40,6 +40,27 @@ interface ScreenshotDisplay {
   primary?: boolean;
 }
 
+interface NativeDisplayInfoResponse {
+  displays?: DarwinDisplayGeometry[];
+}
+
+export interface DarwinDisplayGeometry {
+  screenIndex: number;
+  cgDisplayId: number;
+  primary: boolean;
+  bounds: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
 // Constants
 const SMOOTH_MOVE_STEPS_TAP = 8;
 const SMOOTH_MOVE_STEPS_MOUSE_MOVE = 10;
@@ -197,6 +218,32 @@ async function getLibnut(): Promise<LibNut> {
 
 const debugDevice = getDebug('computer:device');
 
+function resolvePackageRoot(helperName: string): string | null {
+  const require = createRequire(import.meta.url);
+  let pkgRoot: string | null = null;
+  try {
+    pkgRoot = dirname(require.resolve('@midscene/computer/package.json'));
+  } catch {
+    // Fallback for the dev/test path where the package is not resolvable by
+    // its public name (e.g. tests import from src directly).
+    const hereDir = dirname(fileURLToPath(import.meta.url));
+    for (const candidate of [
+      resolve(hereDir, '..'), // src/device.ts -> package root
+      resolve(hereDir, '../..'), // dist/{lib,es}/*.js -> package root
+    ]) {
+      if (existsSync(resolve(candidate, 'package.json'))) {
+        pkgRoot = candidate;
+        break;
+      }
+    }
+  }
+  if (!pkgRoot) {
+    debugDevice(`${helperName}: cannot locate @midscene/computer package root`);
+    return null;
+  }
+  return pkgRoot;
+}
+
 /**
  * Resolve the phased-scroll helper binary bundled with the package.
  *
@@ -217,30 +264,8 @@ export function getPhasedScrollBinary(): string | null {
     return null;
   }
 
-  // Resolve the package root via its own package.json so the lookup is
-  // independent of how the library is bundled (src/ during dev, dist/lib
-  // or dist/es after rslib build). require.resolve handles pnpm layouts,
-  // symlinks, and nested workspaces out of the box.
-  const require = createRequire(import.meta.url);
-  let pkgRoot: string | null = null;
-  try {
-    pkgRoot = dirname(require.resolve('@midscene/computer/package.json'));
-  } catch {
-    // Fallback for the dev/test path where the package is not resolvable by
-    // its public name (e.g. tests import from src directly).
-    const hereDir = dirname(fileURLToPath(import.meta.url));
-    for (const candidate of [
-      resolve(hereDir, '..'), // src/device.ts -> package root
-      resolve(hereDir, '../..'), // dist/{lib,es}/*.js -> package root
-    ]) {
-      if (existsSync(resolve(candidate, 'package.json'))) {
-        pkgRoot = candidate;
-        break;
-      }
-    }
-  }
+  const pkgRoot = resolvePackageRoot('phased-scroll');
   if (!pkgRoot) {
-    debugDevice('phased-scroll: cannot locate @midscene/computer package root');
     phasedScrollBinaryPath = null;
     return null;
   }
@@ -253,6 +278,99 @@ export function getPhasedScrollBinary(): string | null {
   }
   phasedScrollBinaryPath = binPath;
   return binPath;
+}
+
+let displayInfoBinaryPath: string | null | undefined;
+/** @internal exported for unit tests — do not consume from outside this package */
+export function getDisplayInfoBinary(): string | null {
+  if (displayInfoBinaryPath !== undefined) return displayInfoBinaryPath;
+  if (process.platform !== 'darwin') {
+    displayInfoBinaryPath = null;
+    return null;
+  }
+
+  const pkgRoot = resolvePackageRoot('display-info');
+  if (!pkgRoot) {
+    displayInfoBinaryPath = null;
+    return null;
+  }
+
+  const binPath = resolve(pkgRoot, 'bin/darwin/display-info');
+  if (!existsSync(binPath)) {
+    debugDevice('display-info binary not found at', binPath);
+    displayInfoBinaryPath = null;
+    return null;
+  }
+  displayInfoBinaryPath = binPath;
+  return binPath;
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isDarwinDisplayGeometry(
+  value: unknown,
+): value is DarwinDisplayGeometry {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as DarwinDisplayGeometry;
+  return (
+    Number.isInteger(candidate.screenIndex) &&
+    Number.isInteger(candidate.cgDisplayId) &&
+    typeof candidate.primary === 'boolean' &&
+    !!candidate.bounds &&
+    isFiniteNumber(candidate.bounds.x) &&
+    isFiniteNumber(candidate.bounds.y) &&
+    isFiniteNumber(candidate.bounds.width) &&
+    isFiniteNumber(candidate.bounds.height)
+  );
+}
+
+/** @internal exported for unit tests — do not consume from outside this package */
+export function readDarwinDisplayGeometries(): DarwinDisplayGeometry[] {
+  const bin = getDisplayInfoBinary();
+  if (!bin) return [];
+
+  try {
+    const output = execFileSync(bin, [], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const parsed = JSON.parse(output) as NativeDisplayInfoResponse;
+    return Array.isArray(parsed.displays)
+      ? parsed.displays.filter(isDarwinDisplayGeometry)
+      : [];
+  } catch (error) {
+    debugDevice('display-info helper failed:', error);
+    return [];
+  }
+}
+
+function resolveDisplayGeometry(
+  displayId: string | undefined,
+): DarwinDisplayGeometry | undefined {
+  if (process.platform !== 'darwin') return undefined;
+  const screenIndex =
+    displayId === undefined || displayId === '' ? 0 : Number(displayId);
+  if (!Number.isInteger(screenIndex) || screenIndex < 0) {
+    debugDevice('Invalid macOS screen index for display geometry:', displayId);
+    return undefined;
+  }
+  return readDarwinDisplayGeometries().find(
+    (display) => display.screenIndex === screenIndex,
+  );
+}
+
+/** @internal exported for unit tests — do not consume from outside this package */
+export function mapDisplayLocalPointToGlobal(
+  point: Point,
+  geometry?: DarwinDisplayGeometry,
+): Point {
+  if (!geometry) return point;
+  return {
+    x: point.x + geometry.bounds.x,
+    y: point.y + geometry.bounds.y,
+  };
 }
 
 let phasedScrollExecWarned = false;
@@ -389,6 +507,7 @@ export class ComputerDevice implements AbstractInterface {
   interfaceType: InterfaceType = 'computer';
   private options?: ComputerDeviceOpt;
   private displayId?: string;
+  private displayGeometry?: DarwinDisplayGeometry;
   private description?: string;
   private destroyed = false;
   private xvfbInstance?: XvfbInstance;
@@ -410,8 +529,9 @@ export class ComputerDevice implements AbstractInterface {
   readonly inputPrimitives: ComputerInputPrimitives = {
     pointer: {
       tap: async ({ x, y }) => {
-        const targetX = Math.round(x);
-        const targetY = Math.round(y);
+        const target = this.toGlobalPoint({ x, y });
+        const targetX = Math.round(target.x);
+        const targetY = Math.round(target.y);
 
         await this.inputDriver.smoothMoveMouse(
           targetX,
@@ -424,27 +544,38 @@ export class ComputerDevice implements AbstractInterface {
         });
       },
       doubleClick: async ({ x, y }) => {
-        this.inputDriver.moveMouse(Math.round(x), Math.round(y));
+        const target = this.toGlobalPoint({ x, y });
+        this.inputDriver.moveMouse(Math.round(target.x), Math.round(target.y));
         this.inputDriver.mouseClick('left', true);
       },
       rightClick: async ({ x, y }) => {
-        this.inputDriver.moveMouse(Math.round(x), Math.round(y));
+        const target = this.toGlobalPoint({ x, y });
+        this.inputDriver.moveMouse(Math.round(target.x), Math.round(target.y));
         this.inputDriver.mouseClick('right');
       },
       hover: async ({ x, y }) => {
+        const target = this.toGlobalPoint({ x, y });
         await this.inputDriver.smoothMoveMouse(
-          Math.round(x),
-          Math.round(y),
+          Math.round(target.x),
+          Math.round(target.y),
           SMOOTH_MOVE_STEPS_MOUSE_MOVE,
           SMOOTH_MOVE_DELAY_MOUSE_MOVE,
         );
         await this.inputDriver.delay(MOUSE_MOVE_EFFECT_WAIT);
       },
       dragAndDrop: async (from, to) => {
-        this.inputDriver.moveMouse(Math.round(from.x), Math.round(from.y));
+        const globalFrom = this.toGlobalPoint(from);
+        const globalTo = this.toGlobalPoint(to);
+        this.inputDriver.moveMouse(
+          Math.round(globalFrom.x),
+          Math.round(globalFrom.y),
+        );
         await this.inputDriver.withMouseButton('left', async () => {
           await this.inputDriver.delay(100);
-          this.inputDriver.moveMouse(Math.round(to.x), Math.round(to.y));
+          this.inputDriver.moveMouse(
+            Math.round(globalTo.x),
+            Math.round(globalTo.y),
+          );
           await this.inputDriver.delay(100);
         });
       },
@@ -455,7 +586,11 @@ export class ComputerDevice implements AbstractInterface {
 
         if (element) {
           const [x, y] = element.center;
-          this.inputDriver.moveMouse(Math.round(x), Math.round(y));
+          const target = this.toGlobalPoint({ x, y });
+          this.inputDriver.moveMouse(
+            Math.round(target.x),
+            Math.round(target.y),
+          );
           this.inputDriver.mouseClick('left');
           await this.inputDriver.delay(INPUT_FOCUS_DELAY);
 
@@ -471,7 +606,8 @@ export class ComputerDevice implements AbstractInterface {
         const target = opts?.target as LocateResultElement | undefined;
         if (target) {
           const [x, y] = target.center;
-          this.inputDriver.moveMouse(Math.round(x), Math.round(y));
+          const point = this.toGlobalPoint({ x, y });
+          this.inputDriver.moveMouse(Math.round(point.x), Math.round(point.y));
           this.inputDriver.mouseClick('left');
           await this.inputDriver.delay(50);
         }
@@ -482,7 +618,8 @@ export class ComputerDevice implements AbstractInterface {
         if (target) {
           const element = target as LocateResultElement;
           const [x, y] = element.center;
-          this.inputDriver.moveMouse(Math.round(x), Math.round(y));
+          const point = this.toGlobalPoint({ x, y });
+          this.inputDriver.moveMouse(Math.round(point.x), Math.round(point.y));
           this.inputDriver.mouseClick('left');
           await this.inputDriver.delay(100);
         }
@@ -560,6 +697,7 @@ export class ComputerDevice implements AbstractInterface {
 
       // Load libnut on first connect
       libnut = await getLibnut();
+      this.displayGeometry = resolveDisplayGeometry(this.displayId);
 
       const size = await this.size();
       const displays = await ComputerDevice.listDisplays();
@@ -696,7 +834,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
     const options: ScreenshotOptions = { format: 'png' };
     if (this.displayId !== undefined) {
-      // On macOS: displayId is numeric (CGDirectDisplayID)
+      // On macOS: displayId is screenshot-desktop's screen index.
       // On Windows: displayId is string like "\\.\DISPLAY1"
       // On Linux: displayId is string like ":0.0"
       if (process.platform === 'darwin') {
@@ -763,6 +901,13 @@ Original error: ${lastRawMessage}`,
   }
 
   async size(): Promise<Size> {
+    if (this.displayGeometry) {
+      return {
+        width: Math.round(this.displayGeometry.bounds.width),
+        height: Math.round(this.displayGeometry.bounds.height),
+      };
+    }
+
     try {
       const screenSize = this.inputDriver.getScreenSize();
       return {
@@ -773,6 +918,10 @@ Original error: ${lastRawMessage}`,
       debugDevice(`Failed to get screen size: ${error}`);
       throw new Error(`Failed to get screen size: ${error}`);
     }
+  }
+
+  private toGlobalPoint(point: Point): Point {
+    return mapDisplayLocalPointToGlobal(point, this.displayGeometry);
   }
 
   /**
@@ -859,7 +1008,8 @@ Original error: ${lastRawMessage}`,
     if (param.locate) {
       const element = param.locate as LocateResultElement;
       const [x, y] = element.center;
-      this.inputDriver.moveMouse(Math.round(x), Math.round(y));
+      const point = this.toGlobalPoint({ x, y });
+      this.inputDriver.moveMouse(Math.round(point.x), Math.round(point.y));
     }
 
     const scrollType = param?.scrollType;

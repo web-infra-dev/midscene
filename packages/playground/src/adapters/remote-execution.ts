@@ -5,6 +5,10 @@ import type {
 } from '@midscene/core';
 import { parseStructuredParams } from '../common';
 import type {
+  PlaygroundRecorderCapabilitiesResult,
+  PlaygroundRecorderEventsResult,
+  PlaygroundRecorderSourceKind,
+  PlaygroundRecorderStartResult,
   PlaygroundSessionSetup,
   PlaygroundSessionState,
   PlaygroundSessionTarget,
@@ -492,6 +496,151 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
         ok: false,
         error: error instanceof Error ? error.message : 'Unknown error',
       };
+    }
+  }
+
+  async startRecorderSession(
+    sessionId: string,
+  ): Promise<PlaygroundRecorderStartResult> {
+    if (!this.serverUrl) {
+      return { ok: false, supported: false, error: 'No server URL configured' };
+    }
+
+    try {
+      const response = await fetch(`${this.serverUrl}/recorder/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          callbackUrlBase: this.serverUrl,
+        }),
+      });
+      const data = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        supported?: boolean;
+        source?: PlaygroundRecorderSourceKind;
+        platformId?: string;
+        error?: string;
+      } | null;
+
+      if (!response.ok) {
+        return {
+          ok: false,
+          supported: data?.supported ?? false,
+          source: data?.source,
+          platformId: data?.platformId,
+          error:
+            data?.error || `Recorder start request failed (${response.status})`,
+        };
+      }
+
+      return {
+        ok: data?.ok ?? true,
+        supported: data?.supported ?? true,
+        source: data?.source,
+        platformId: data?.platformId,
+        error: data?.error,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        supported: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  async getRecorderCapabilities(): Promise<PlaygroundRecorderCapabilitiesResult> {
+    if (!this.serverUrl) {
+      return {
+        supported: false,
+        source: 'unsupported',
+        error: 'No server URL configured',
+      };
+    }
+
+    try {
+      const response = await fetch(`${this.serverUrl}/recorder/capabilities`);
+      const data = (await response.json().catch(() => null)) as {
+        supported?: boolean;
+        source?: PlaygroundRecorderSourceKind;
+        platformId?: string;
+        error?: string;
+      } | null;
+      if (!response.ok) {
+        return {
+          supported: false,
+          source: 'unsupported',
+          error:
+            data?.error ||
+            `Recorder capabilities request failed (${response.status})`,
+        };
+      }
+      return {
+        supported: data?.supported === true,
+        source: data?.source || 'unsupported',
+        platformId: data?.platformId,
+        error: data?.error,
+      };
+    } catch (error) {
+      return {
+        supported: false,
+        source: 'unsupported',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  async stopRecorderSession(): Promise<{ ok: boolean; error?: string }> {
+    if (!this.serverUrl) {
+      return { ok: false, error: 'No server URL configured' };
+    }
+
+    try {
+      const response = await fetch(`${this.serverUrl}/recorder/stop`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        return {
+          ok: false,
+          error: `Recorder stop request failed (${response.status})`,
+        };
+      }
+      return { ok: true };
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  async getRecorderEvents(since = 0): Promise<PlaygroundRecorderEventsResult> {
+    if (!this.serverUrl) {
+      return { events: [], nextIndex: since };
+    }
+
+    try {
+      const response = await fetch(
+        `${this.serverUrl}/recorder/events?since=${encodeURIComponent(String(since))}`,
+      );
+      if (!response.ok) {
+        return { events: [], nextIndex: since };
+      }
+      const data = (await response.json().catch(() => null)) as {
+        events?: unknown;
+        nextIndex?: unknown;
+      } | null;
+      return {
+        events: Array.isArray(data?.events) ? data.events : [],
+        nextIndex:
+          typeof data?.nextIndex === 'number' && Number.isFinite(data.nextIndex)
+            ? data.nextIndex
+            : since,
+      };
+    } catch (error) {
+      console.error('Failed to poll recorder events:', error);
+      return { events: [], nextIndex: since };
     }
   }
 

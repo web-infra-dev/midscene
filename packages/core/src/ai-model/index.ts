@@ -17,10 +17,20 @@ export {
   generatePlaywrightTestStream,
 } from './prompt/playwright-generator';
 export {
+  createRecorderMarkdownReplayPrompt,
+  generateRecorderMarkdownReplay,
+} from './prompt/markdown-generator';
+export type { RecorderMarkdownGenerationInput } from './prompt/markdown-generator';
+export {
+  generateRecorderYamlTest,
+  generateRecorderYamlTestStream,
   generateYamlTest,
   generateYamlTestStream,
 } from './prompt/yaml-generator';
-export type { YamlGenerationOptions } from './prompt/yaml-generator';
+export type {
+  RecorderYamlGenerationInput,
+  YamlGenerationOptions,
+} from './prompt/yaml-generator';
 
 export type { ChatCompletionMessageParam } from 'openai/resources/index';
 

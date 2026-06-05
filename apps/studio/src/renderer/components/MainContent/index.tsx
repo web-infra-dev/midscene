@@ -427,7 +427,6 @@ export default function MainContent({
     studioPlayground.phase === 'ready'
       ? studioPlayground.controller.state.playgroundSDK
       : null;
-
   useEffect(() => {
     if (!showWebNavigation || !webNavigationServerOnline || !webNavigationSDK) {
       setWebIsLoading(false);
@@ -459,8 +458,10 @@ export default function MainContent({
   const runWebNavigationAction = async (
     actionType: 'GoBack' | 'GoForward' | 'Stop' | 'Reload',
   ) => {
+    const sdk = webNavigationSDK;
     if (
       studioPlayground.phase !== 'ready' ||
+      !sdk ||
       webNavigationBusyAction !== null ||
       previewPlatform !== 'web'
     ) {
@@ -471,10 +472,9 @@ export default function MainContent({
       if (actionType !== 'Stop') {
         setWebIsLoading(true);
       }
-      const result =
-        await studioPlayground.controller.state.playgroundSDK.interact({
-          actionType,
-        });
+      const result = await sdk.interact({
+        actionType,
+      });
       if (!result.ok) {
         debugWebNavigation(
           'failed to run web navigation action "%s": %s',

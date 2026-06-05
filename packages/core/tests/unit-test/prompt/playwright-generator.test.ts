@@ -35,12 +35,16 @@ describe('playwright-generator', () => {
       url: 'https://example.com',
       title: 'Example Page',
       screenshotBefore: 'data:image/png;base64,screenshot1',
+      pageInfo: { width: 1280, height: 800 },
+      hashId: 'nav-1',
     },
     {
       type: 'click',
       timestamp: 2000,
       elementDescription: 'Login button',
       screenshotWithBox: 'data:image/png;base64,screenshot2',
+      pageInfo: { width: 1280, height: 800 },
+      hashId: 'click-1',
     },
     {
       type: 'input',
@@ -48,10 +52,14 @@ describe('playwright-generator', () => {
       elementDescription: 'Username field',
       value: 'testuser',
       screenshotAfter: 'data:image/png;base64,screenshot3',
+      pageInfo: { width: 1280, height: 800 },
+      hashId: 'input-1',
     },
     {
       type: 'scroll',
       timestamp: 4000,
+      pageInfo: { width: 1280, height: 800 },
+      hashId: 'scroll-1',
     },
   ];
 
@@ -79,6 +87,8 @@ describe('playwright-generator', () => {
           screenshotBefore: 'data:image/png;base64,before',
           screenshotAfter: 'data:image/png;base64,after',
           screenshotWithBox: 'data:image/png;base64,withbox',
+          pageInfo: { width: 1280, height: 800 },
+          hashId: 'box-click',
         },
       ];
 
@@ -136,18 +146,24 @@ describe('playwright-generator', () => {
           timestamp: 1000,
           elementDescription: '',
           value: 'test',
+          pageInfo: { width: 1280, height: 800 },
+          hashId: 'empty-input',
         },
         {
           type: 'input',
           timestamp: 2000,
           elementDescription: 'Field',
           value: '',
+          pageInfo: { width: 1280, height: 800 },
+          hashId: 'empty-value',
         },
         {
           type: 'input',
           timestamp: 3000,
           elementDescription: 'Valid field',
           value: 'valid value',
+          pageInfo: { width: 1280, height: 800 },
+          hashId: 'valid-input',
         },
       ];
 
@@ -168,9 +184,12 @@ describe('playwright-generator', () => {
         url: 'https://example.com',
         title: 'Example Page',
         elementDescription: undefined,
+        description: 'Navigate to https://example.com',
         value: undefined,
-        pageInfo: undefined,
+        pageInfo: { width: 1280, height: 800 },
         elementRect: undefined,
+        actionType: undefined,
+        source: undefined,
       });
     });
   });

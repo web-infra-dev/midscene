@@ -24,6 +24,7 @@ import { type ScrcpyErrorOverlayRenderer, ScrcpyPanel } from './ScrcpyPanel';
 import {
   type ManualDragActionType,
   buildManualDragInteractPayload,
+  buildManualScrollInteractPayload,
 } from './manual-interaction';
 import { resolvePreviewConnectionInfo } from './runtime-info';
 import type { ScrcpyPreviewStatus } from './scrcpy-preview';
@@ -110,6 +111,7 @@ export function PreviewRenderer({
     actionTypes?.includes('KeyboardPress') ||
     actionTypes?.includes('Input') ||
     false;
+  const manualScrollEnabled = actionTypes?.includes('Scroll') ?? false;
 
   const enqueueManualControl = useCallback(
     <TResult,>(task: () => Promise<TResult>): Promise<TResult> => {
@@ -278,6 +280,21 @@ export function PreviewRenderer({
     [enqueueManualControl, playgroundSDK, showManualControlError],
   );
 
+  const handleWheelScroll = useCallback(
+    async (
+      point: { x: number; y: number },
+      delta: { deltaX: number; deltaY: number },
+    ) => {
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact(buildManualScrollInteractPayload(point, delta)),
+      );
+      if (!res.ok) {
+        showManualControlError('Scroll failed', res.error);
+      }
+    },
+    [enqueueManualControl, playgroundSDK, showManualControlError],
+  );
+
   // Fall back to screenshot polling when WebCodecs is unavailable
   // (e.g. non-secure context over HTTP with a LAN IP)
   const scrcpyAvailable =
@@ -404,6 +421,8 @@ export function PreviewRenderer({
         contentRef={previewContentRef}
         onTap={handleTap}
         onSwipe={handleSwipe}
+        scrollEnabled={manualScrollEnabled}
+        onWheelScroll={handleWheelScroll}
         keyboardEnabled={manualKeyboardEnabled}
         onTextInput={handleTextInput}
         onKeyboardPress={handleKeyboardPress}

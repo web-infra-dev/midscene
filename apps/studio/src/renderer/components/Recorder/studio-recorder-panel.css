@@ -1,0 +1,573 @@
+.studio-recorder-panel {
+  position: relative;
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  background: var(--midscene-surface);
+  color: var(--midscene-text-primary);
+}
+
+.studio-recorder-panel button,
+.studio-recorder-panel select {
+  outline: none;
+}
+
+.studio-recorder-panel button:focus-visible,
+.studio-recorder-panel select:focus-visible {
+  box-shadow: 0 0 0 3px rgba(50, 136, 255, 0.18);
+}
+
+.studio-recorder-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 24px 22px 14px;
+}
+
+.studio-recorder-title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.studio-recorder-subtitle {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--midscene-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-recorder-icon-button,
+.studio-recorder-inline-icon-button {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--midscene-text-primary);
+  cursor: pointer;
+}
+
+.studio-recorder-icon-button:hover:not(:disabled),
+.studio-recorder-inline-icon-button:hover:not(:disabled) {
+  background: var(--midscene-surface-hover);
+}
+
+.studio-recorder-icon-button:disabled,
+.studio-recorder-inline-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.studio-recorder-icon-button svg,
+.studio-recorder-inline-icon-button svg,
+.studio-recorder-card-actions svg {
+  width: 17px;
+  height: 17px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.studio-recorder-notice {
+  margin: 0 22px 12px;
+  border-radius: 8px;
+  background: #fff2f0;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 18px;
+  color: #a8071a;
+}
+
+.studio-recorder-content {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  padding: 0 18px 104px;
+}
+
+.studio-recorder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.studio-recorder-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--midscene-border-subtle);
+  border-radius: 8px;
+  background: var(--midscene-surface);
+  cursor: pointer;
+}
+
+.studio-recorder-card:hover {
+  border-color: rgba(50, 136, 255, 0.24);
+}
+
+.studio-recorder-card-body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+
+.studio-recorder-card-title,
+.studio-recorder-session-title {
+  overflow: hidden;
+  color: var(--midscene-text-primary);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 21px;
+  text-overflow: ellipsis;
+}
+
+.studio-recorder-card-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.studio-recorder-card-summary,
+.studio-recorder-card-target,
+.studio-recorder-card-time,
+.studio-recorder-session-meta {
+  overflow: hidden;
+  color: var(--midscene-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+}
+
+.studio-recorder-card-target,
+.studio-recorder-card-time,
+.studio-recorder-session-meta {
+  white-space: nowrap;
+}
+
+.studio-recorder-card-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--midscene-border-subtle);
+  background: var(--midscene-surface-muted);
+}
+
+.studio-recorder-card-actions button {
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--midscene-text-secondary);
+  cursor: pointer;
+}
+
+.studio-recorder-card-actions button:hover:not(:disabled) {
+  background: var(--midscene-surface-hover);
+  color: var(--midscene-text-primary);
+}
+
+.studio-recorder-card-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.studio-recorder-detail {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.studio-recorder-detail-nav {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.studio-recorder-session-heading {
+  min-width: 0;
+  flex: 1;
+}
+
+.studio-recorder-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  background: var(--midscene-surface-muted);
+  padding: 8px;
+}
+
+.studio-recorder-tab {
+  display: inline-flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 8px 6px;
+  color: var(--midscene-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.studio-recorder-tab:hover:not(:disabled) {
+  background: var(--midscene-surface-hover);
+}
+
+.studio-recorder-tab-active {
+  color: var(--midscene-text-primary);
+}
+
+.studio-recorder-tab svg,
+.studio-recorder-code-toolbar svg {
+  width: 16px;
+  height: 16px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.studio-recorder-tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.studio-recorder-tab-arrow {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  color: var(--midscene-text-secondary);
+}
+
+.studio-recorder-tab-arrow svg {
+  width: 14px;
+  height: 14px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.studio-recorder-timeline {
+  min-height: 0;
+}
+
+.studio-recorder-timeline .ant-card {
+  border-radius: 8px;
+}
+
+.studio-recorder-empty {
+  display: flex;
+  min-height: 160px;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--midscene-border-subtle);
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  color: var(--midscene-text-secondary);
+  font-size: 13px;
+  line-height: 21px;
+}
+
+.studio-recorder-code-pane {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.studio-recorder-code-toolbar {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.studio-recorder-code-toolbar button {
+  display: inline-flex;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--midscene-border-subtle);
+  border-radius: 8px;
+  background: var(--midscene-surface);
+  padding: 0;
+  color: var(--midscene-text-primary);
+  cursor: pointer;
+}
+
+.studio-recorder-code-toolbar button:hover:not(:disabled) {
+  background: var(--midscene-surface-hover);
+}
+
+.studio-recorder-code-toolbar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.studio-recorder-select-shell {
+  display: inline-flex;
+  height: 32px;
+  min-width: 0;
+  max-width: 140px;
+  flex: 1 1 104px;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--midscene-border-subtle);
+  border-radius: 8px;
+  background: var(--midscene-surface);
+  padding: 0 6px;
+  color: var(--midscene-text-primary);
+}
+
+.studio-recorder-select-shell svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.studio-recorder-select-shell select {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+
+.studio-recorder-select-shell:has(select:disabled) {
+  opacity: 0.45;
+}
+
+.studio-recorder-language-select {
+  max-width: 92px;
+  flex: 0 1 82px;
+}
+
+.studio-recorder-code-spacer {
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.studio-recorder-generation {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.studio-recorder-generating-card {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--midscene-border-subtle);
+  border-radius: 8px;
+  background: var(--midscene-surface);
+  padding: 12px 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.studio-recorder-generating-pill {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: rgba(50, 136, 255, 0.14);
+  padding: 4px 10px;
+  color: #3288ff;
+  font-weight: 700;
+}
+
+.studio-recorder-generation-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.studio-recorder-generation-step {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 10px;
+  border: 1px solid var(--midscene-border-subtle);
+  border-radius: 8px;
+  background: var(--midscene-surface);
+  padding: 12px;
+}
+
+.studio-recorder-generation-step-marker {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--midscene-surface-muted);
+  color: var(--midscene-text-secondary);
+}
+
+.studio-recorder-generation-step-marker svg {
+  width: 12px;
+  height: 12px;
+}
+
+.studio-recorder-generation-step-success
+  .studio-recorder-generation-step-marker {
+  background: rgba(52, 199, 89, 0.16);
+  color: #23ad44;
+}
+
+.studio-recorder-generation-step-running
+  .studio-recorder-generation-step-marker {
+  background: rgba(50, 136, 255, 0.16);
+}
+
+.studio-recorder-generation-step-running
+  .studio-recorder-generation-step-marker::after {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3288ff;
+  content: "";
+}
+
+.studio-recorder-generation-step-running
+  .studio-recorder-generation-step-title {
+  color: #3288ff;
+}
+
+.studio-recorder-generation-step-error .studio-recorder-generation-step-marker {
+  background: rgba(239, 68, 68, 0.16);
+}
+
+.studio-recorder-generation-step-error
+  .studio-recorder-generation-step-marker::after {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  content: "";
+}
+
+.studio-recorder-generation-step-title {
+  color: var(--midscene-text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.studio-recorder-generation-step-description {
+  margin-top: 2px;
+  color: var(--midscene-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.studio-recorder-generation-step-details {
+  margin-top: 4px;
+  color: var(--midscene-text-primary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.studio-recorder-code-block {
+  min-height: 280px;
+  margin: 0;
+  overflow: auto;
+  border: 1px solid var(--midscene-border-subtle);
+  border-radius: 8px;
+  background: var(--midscene-surface);
+  padding: 16px;
+  color: #064587;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 20px;
+  white-space: pre;
+}
+
+.studio-recorder-footer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  padding: 18px 20px 24px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0),
+    var(--midscene-surface) 34%
+  );
+}
+
+.studio-recorder-primary {
+  min-width: 188px;
+  height: 44px;
+  border: 1px solid transparent;
+  border-radius: 22px;
+  background: #3288ff;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(50, 136, 255, 0.22);
+}
+
+.studio-recorder-primary:focus-visible {
+  box-shadow: 0 8px 18px rgba(50, 136, 255, 0.22), 0 0 0 3px
+    rgba(50, 136, 255, 0.2);
+}
+
+.studio-recorder-primary:hover:not(:disabled) {
+  background: #1f78ee;
+}
+
+.studio-recorder-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+.studio-recorder-stop {
+  background: #ef4444;
+  box-shadow: 0 8px 18px rgba(239, 68, 68, 0.18);
+}
+
+.studio-recorder-stop:focus-visible {
+  box-shadow: 0 8px 18px rgba(239, 68, 68, 0.18), 0 0 0 3px
+    rgba(239, 68, 68, 0.18);
+}
+
+.studio-recorder-stop:hover:not(:disabled) {
+  background: #dc2626;
+}

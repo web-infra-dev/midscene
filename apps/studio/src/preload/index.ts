@@ -18,10 +18,13 @@ const electronShellApi: ElectronShellApi = {
     ipcRenderer.invoke(IPC_CHANNELS.openExternalUrl, url),
   chooseReportSavePath: (defaultFileName) =>
     ipcRenderer.invoke(IPC_CHANNELS.chooseReportSavePath, defaultFileName),
+  chooseFileSavePath: (request) =>
+    ipcRenderer.invoke(IPC_CHANNELS.chooseFileSavePath, request),
   toggleMaximizeWindow: () =>
     ipcRenderer.invoke(IPC_CHANNELS.toggleMaximizeWindow),
   writeReportFile: (request) =>
     ipcRenderer.invoke(IPC_CHANNELS.writeReportFile, request),
+  writeFile: (request) => ipcRenderer.invoke(IPC_CHANNELS.writeFile, request),
   setNativeTheme: (mode) =>
     ipcRenderer.invoke(IPC_CHANNELS.setNativeTheme, mode),
   onSystemThemeChanged: (listener) => {
@@ -59,6 +62,12 @@ const studioRuntimeApi: StudioRuntimeApi = {
     ipcRenderer.invoke(IPC_CHANNELS.setDiscoveryPollingPaused, paused),
   runConnectivityTest: (request) =>
     ipcRenderer.invoke(IPC_CHANNELS.runConnectivityTest, request),
+  generateRecorderYaml: (request) =>
+    ipcRenderer.invoke(IPC_CHANNELS.generateRecorderYaml, request),
+  generateRecorderCode: (request) =>
+    ipcRenderer.invoke(IPC_CHANNELS.generateRecorderCode, request),
+  generateRecorderMetadata: (request) =>
+    ipcRenderer.invoke(IPC_CHANNELS.generateRecorderMetadata, request),
 };
 
 const updaterApi: UpdaterApi = {

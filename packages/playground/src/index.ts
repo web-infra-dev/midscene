@@ -24,11 +24,16 @@ export {
 } from './multi-platform';
 
 // SDK exports
-export { PlaygroundSDK } from './sdk';
+export { PlaygroundSDK } from './sdk/index';
 export { BasePlaygroundAdapter } from './adapters/base';
 export { LocalExecutionAdapter } from './adapters/local-execution';
 export { RemoteExecutionAdapter } from './adapters/remote-execution';
 
+export type {
+  PlaygroundInteractPayload,
+  PlaygroundInteractResult,
+  PlaygroundPageRecordedEvent,
+} from './sdk/index';
 export type {
   BeforeActionHook,
   ExecutionOptions,
@@ -54,6 +59,12 @@ export type {
   PlaygroundPreviewCapability,
   PlaygroundPreviewDescriptor,
   PlaygroundPreviewKind,
+  PlaygroundRecorderCapabilitiesResult,
+  PlaygroundRecorderEvent,
+  PlaygroundRecorderEventsResult,
+  PlaygroundRecorderSource,
+  PlaygroundRecorderSourceKind,
+  PlaygroundRecorderStartResult,
   PlaygroundSidecar,
   PreparedPlaygroundPlatform,
   PlaygroundSessionField,
