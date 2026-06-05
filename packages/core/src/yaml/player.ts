@@ -319,10 +319,33 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         'ai' in (flowItem as MidsceneYamlFlowItemAIAction)
       ) {
         const actionTask = flowItem as MidsceneYamlFlowItemAIAction;
-        const { aiAct, aiAction, ai, ...actionOptions } = actionTask;
-        const prompt = aiAct || aiAction || ai;
-        assert(prompt, 'missing prompt for ai (aiAct)');
-        await agent.aiAct(prompt, actionOptions);
+        const { aiAct, aiAction, ai, instruction, ...actionOptions } =
+          actionTask as any;
+        const actionPrompt = aiAct ?? aiAction ?? ai;
+        let promptForAI: TUserPrompt | undefined;
+
+        if (typeof instruction === 'string' && instruction) {
+          promptForAI = instruction;
+        } else if (
+          instruction &&
+          typeof instruction === 'object' &&
+          typeof (instruction as { prompt?: unknown }).prompt === 'string' &&
+          (instruction as { prompt?: string }).prompt
+        ) {
+          promptForAI = instruction as TUserPrompt;
+        } else if (
+          actionPrompt &&
+          typeof actionPrompt === 'object' &&
+          typeof (actionPrompt as { prompt?: unknown }).prompt === 'string' &&
+          (actionPrompt as { prompt?: string }).prompt
+        ) {
+          promptForAI = actionPrompt as TUserPrompt;
+        } else if (typeof actionPrompt === 'string' && actionPrompt) {
+          promptForAI = actionPrompt;
+        }
+
+        assert(promptForAI, 'missing prompt for ai (aiAct)');
+        await agent.aiAct(promptForAI, actionOptions);
       } else if ('aiAssert' in (flowItem as MidsceneYamlFlowItemAIAssert)) {
         const assertTask = flowItem as MidsceneYamlFlowItemAIAssert;
         const {

@@ -1,3 +1,4 @@
+import { type TUserPrompt, userPromptToString } from '@/common';
 import type {
   PlanningAIResponse,
   RawResponsePlanningAIResponse,
@@ -102,7 +103,7 @@ export function parseXMLPlanningResponse(
 }
 
 export async function plan(
-  userInstruction: string,
+  userInstruction: TUserPrompt,
   opts: PlanOptions,
 ): Promise<PlanningAIResponse> {
   const { context, conversationHistory } = opts;
@@ -141,20 +142,23 @@ export async function plan(
   });
   const imagePayload = preparedImage.imageBase64;
 
+  const userInstructionText = userPromptToString(userInstruction);
   const actionContext = opts.actionContext
     ? `<high_priority_knowledge>${opts.actionContext}</high_priority_knowledge>\n`
     : '';
 
+  const referenceImageMessages = opts.referenceImageMessages ?? [];
   const instruction: ChatCompletionMessageParam[] = [
     {
       role: 'user',
       content: [
         {
           type: 'text',
-          text: `${actionContext}<user_instruction>${userInstruction}</user_instruction>`,
+          text: `${actionContext}<user_instruction>${userInstructionText}</user_instruction>`,
         },
       ],
     },
+    ...referenceImageMessages,
   ];
 
   let latestFeedbackMessage: ChatCompletionMessageParam;
