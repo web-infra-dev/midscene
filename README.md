@@ -43,11 +43,21 @@ Use [Midscene Skills](https://github.com/web-infra-dev/midscene-skills) to contr
 * [MCP Integration - Midscene MCP UI prepatch release](https://midscenejs.com/showcases#mcp)
 * [robotic arm + vision + voice for in-vehicle testing](https://midscenejs.com/showcases#community-showcases)
 
+## 💡 Why Midscene
+
+Traditional UI tests are tied to selectors and the DOM, so they break on every refactor and can't reach `<canvas>`, native apps, or cross-origin iframes. Midscene locates elements from the screenshot alone, and you describe each step in natural language:
+
+- **Less maintenance** — no selectors to chase when the UI changes.
+- **Test anything you can see** — web, Android, iOS, HarmonyOS, and desktop, with one API.
+- **Two ways to test** — add Midscene to your [Playwright](https://midscenejs.com/integrate-with-playwright) / Vitest suite, or let an AI agent test autonomously via [Skills](https://midscenejs.com/skills) and [MCP](https://midscenejs.com/mcp).
+
+Midscene is built for UI testing first, but the same vision-driven engine handles any UI automation task.
+
 ## 💡 Features
 
-### Write Automation with Natural Language
+### Write UI Tests & Automation in Natural Language
 - Describe your goals and steps, and Midscene will plan and operate the user interface for you.
-- Use Javascript SDK or YAML to write your automation script.
+- Use the JavaScript SDK or YAML to write your tests and automation scripts.
 
 ### Web & Mobile App & Any Interface
 - **Web Automation**: Either integrate with [Puppeteer](https://midscenejs.com/integrate-with-puppeteer), [Playwright](https://midscenejs.com/integrate-with-playwright) or use [Bridge Mode](https://midscenejs.com/bridge-mode) to control your desktop browser.

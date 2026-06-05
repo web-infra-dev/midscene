@@ -43,11 +43,21 @@
 * [MCP 集成 - Midscene MCP UI prepatch 版本发布](https://midscenejs.com/zh/showcases#mcp)
 * [车机测试中的机械臂 + 视觉 + 语音方案](https://midscenejs.com/zh/showcases#community-showcases)
 
+## 💡 为什么选择 Midscene
+
+传统 UI 测试依赖选择器和 DOM，界面一重构就会失效，也触及不到 `<canvas>`、原生应用或跨域 iframe。Midscene 仅凭截图定位元素，你只需用自然语言描述每一步：
+
+- **更低的维护成本** —— UI 变化时无需再追着改选择器。
+- **凡所见皆可测** —— Web、Android、iOS、HarmonyOS、桌面端，一套 API 全覆盖。
+- **两种测试方式** —— 接入你的 [Playwright](https://midscenejs.com/zh/integrate-with-playwright) / Vitest 测试，或让 AI Agent 通过 [Skills](https://midscenejs.com/zh/skills) 与 [MCP](https://midscenejs.com/zh/mcp) 自主测试。
+
+Midscene 首先为 UI 测试而生，但同一套视觉驱动引擎也能胜任任意 UI 自动化任务。
+
 ## 💡 特性
 
-### 用自然语言编写自动化
+### 用自然语言编写测试与自动化
 - 描述你的目标和步骤，Midscene 会为你规划并操作用户界面。
-- 使用 Javascript SDK 或 YAML 编写自动化脚本。
+- 使用 Javascript SDK 或 YAML 编写测试与自动化脚本。
 
 ### Web + 移动 App + 任意界面
 - **Web 自动化**: 可与 [Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer)、[Playwright](https://midscenejs.com/zh/integrate-with-playwright) 集成，或使用 [Bridge Mode](https://midscenejs.com/zh/bridge-mode) 控制桌面浏览器。
