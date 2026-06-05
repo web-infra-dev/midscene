@@ -1,17 +1,46 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   resolveRstestCoreImportPath,
   runRstestYamlProject,
 } from '@/framework/rstest-runner';
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test } from 'vitest';
 
 describe('rstest runner', () => {
   test('resolves the bundled Rstest core import path', () => {
     expect(resolveRstestCoreImportPath()).toMatch(
       /@rstest[/\\]core[/\\]dist[/\\]index\.js$/,
     );
+  });
+
+  describe('dependency resolution anchor', () => {
+    const originalEntry = process.argv[1];
+    let isolatedRoot: string | undefined;
+
+    afterEach(() => {
+      process.argv[1] = originalEntry;
+      if (isolatedRoot) {
+        rmSync(isolatedRoot, { recursive: true, force: true });
+        isolatedRoot = undefined;
+      }
+    });
+
+    test('resolves @rstest/core independently of process.argv[1]', () => {
+      // Simulate a launcher (wrapper script, symlinked bin, npx cache, Docker
+      // entrypoint) whose node_modules chain does NOT contain @rstest/core.
+      // Resolution must still succeed because it is anchored on the CLI module
+      // location, not on the command-line entry. This is the regression that
+      // caused "Cannot find module '@rstest/core/package.json'".
+      isolatedRoot = mkdtempSync(join(tmpdir(), 'midscene-bogus-entry-'));
+      const fakeEntry = join(isolatedRoot, 'midscene-cli.js');
+      writeFileSync(fakeEntry, '');
+      process.argv[1] = fakeEntry;
+
+      expect(resolveRstestCoreImportPath()).toMatch(
+        /@rstest[/\\]core[/\\]dist[/\\]index\.js$/,
+      );
+    });
   });
 
   test('limits virtual YAML files with the configured worker concurrency', async () => {
