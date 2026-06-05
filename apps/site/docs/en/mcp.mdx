@@ -155,6 +155,41 @@ Add the Midscene Computer MCP server (`@midscene/computer-mcp`) in your MCP clie
 }
 ```
 
+## Improve precision (deep locate / deep think)
+
+Two independent startup flags help when the MCP service struggles with a task:
+
+- `--deep-locate` — spends an extra round of visual reasoning to pinpoint the target element. Use it when actions tap or interact with the wrong spot (location drift / offset). It applies to every operation that locates an element (action tools such as `Tap`, `Input`, `Scroll`, and the locating that happens inside `act`).
+- `--deep-think` — plans the `act` tool with deeper reasoning (richer context and sub-goal decomposition). Use it for complex, multi-step `act` instructions. It only affects planning, so it has no effect on the single-step action tools.
+
+Both trade a little speed for better results, and you can combine them. Once a flag is on, the relevant tools default to it without having to pass a parameter on every call.
+
+For an MCP server, add the flag(s) to `args`:
+
+```json
+{
+  "mcpServers": {
+    "midscene-android": {
+      "command": "npx",
+      "args": ["-y", "@midscene/android-mcp", "--deep-locate", "--deep-think"],
+      "env": {
+        "MIDSCENE_MODEL_BASE_URL": "replace with your model service URL",
+        "MIDSCENE_MODEL_API_KEY": "replace with your API Key",
+        "MIDSCENE_MODEL_NAME": "replace with your model name"
+      }
+    }
+  }
+}
+```
+
+The same flags work for the Agent Skill / device CLIs (`midscene-android`, `midscene-web`, `midscene-ios`, etc.), since they share the same tool definitions:
+
+```bash
+midscene-android --deep-locate tap --locate "the login button"
+```
+
+A per-call value always wins over the startup flag: action tools accept `locate.deepLocate`, and the `act` tool accepts top-level `deepLocate` and `deepThink` booleans, so an individual call can opt in or out regardless of the startup setting.
+
 ## Implement your own MCP
 
 If you want to integrate Midscene tools into your own MCP service, you can use the `mcpKitForAgent` function to get tool definitions and expose your own MCP service as needed.

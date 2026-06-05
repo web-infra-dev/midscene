@@ -10,6 +10,12 @@ import express, {
   type Response,
 } from 'express';
 import { getErrorMessage } from './error-formatter';
+import {
+  TOOL_BEHAVIOR_FLAGS,
+  type ToolDefaults,
+  mergeToolDefaults,
+  resolveToolDefaults,
+} from './tool-defaults';
 import type { IMidsceneTools } from './types';
 
 export interface BaseMCPServerConfig {
@@ -47,18 +53,25 @@ interface SessionData {
 }
 
 /**
- * CLI argument configuration for MCP servers
+ * CLI argument configuration for MCP servers. Behavior flags (e.g.
+ * `--deep-locate`) are generated from {@link TOOL_BEHAVIOR_FLAGS}, so adding a
+ * new flag there exposes it here automatically.
  */
 export const CLI_ARGS_CONFIG: ParseArgsConfig['options'] = {
   mode: { type: 'string', default: 'stdio' },
   port: { type: 'string', default: '3000' },
   host: { type: 'string', default: 'localhost' },
+  ...Object.fromEntries(
+    TOOL_BEHAVIOR_FLAGS.map((flag) => [flag.cli, { type: 'boolean' as const }]),
+  ),
 };
 
 export interface CLIArgs {
   mode?: string;
   port?: string;
   host?: string;
+  /** Behavior flags such as `deep-locate` / `deep-think` (see TOOL_BEHAVIOR_FLAGS). */
+  [flag: string]: string | boolean | undefined;
 }
 
 /**
@@ -69,6 +82,7 @@ export function launchMCPServer(
   server: BaseMCPServer,
   args: CLIArgs,
 ): Promise<LaunchMCPServerResult> {
+  server.setToolDefaults(resolveToolDefaults((cli) => args[cli] === true));
   if (args.mode === 'http') {
     return server.launchHttp({
       port: Number.parseInt(args.port || '3000', 10),
@@ -91,6 +105,7 @@ export abstract class BaseMCPServer {
   protected toolsManager?: IMidsceneTools;
   protected config: BaseMCPServerConfig;
   protected providedToolsManager?: IMidsceneTools;
+  protected toolDefaults: ToolDefaults = {};
 
   constructor(config: BaseMCPServerConfig, toolsManager?: IMidsceneTools) {
     this.config = config;
@@ -100,6 +115,16 @@ export abstract class BaseMCPServer {
       description: config.description,
     });
     this.providedToolsManager = toolsManager;
+  }
+
+  /**
+   * Set the default options injected into generated tool calls (e.g. forced
+   * deep locate / deep think). Must be called before `launch()` /
+   * `launchHttp()` so they are applied to the tools manager before its tools
+   * are generated. Merges with any previously set defaults.
+   */
+  public setToolDefaults(toolDefaults: ToolDefaults): void {
+    this.toolDefaults = mergeToolDefaults(this.toolDefaults, toolDefaults);
   }
 
   /**
@@ -116,6 +141,10 @@ export abstract class BaseMCPServer {
 
     // Use provided tools manager if available, otherwise create new one
     this.toolsManager = this.providedToolsManager || this.createToolsManager();
+
+    // Apply the tool defaults before tools are generated so they are baked
+    // into the generated tool handlers.
+    this.toolsManager.setToolDefaults?.(this.toolDefaults);
 
     try {
       await this.toolsManager.initTools();
