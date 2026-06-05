@@ -654,7 +654,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           {/* Summary */}
           {proModeEnabled && (
             <div className="table-summary">
-              <div className="side-seperator side-seperator-line side-seperator-space-up" />
+              <div className="side-separator side-separator-line side-separator-space-up" />
               {(() => {
                 const modelEntries = Array.from(tokensByModel.entries());
                 const hasMultipleModels = modelEntries.length > 1;
