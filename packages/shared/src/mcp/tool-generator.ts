@@ -7,6 +7,7 @@ import {
   unwrapZodField,
 } from '../zod-schema-utils';
 import { getErrorMessage } from './error-formatter';
+import type { ToolDefaults } from './tool-defaults';
 import type {
   ActionSpaceItem,
   BaseAgent,
@@ -291,6 +292,62 @@ function normalizeActionArgs(
 }
 
 /**
+ * Merge `defaults` into a single locate object without overwriting values the
+ * caller set explicitly. `deepThink` is a deprecated alias for `deepLocate`,
+ * so an explicit `deepThink` counts as `deepLocate` already being set.
+ */
+function mergeLocateDefaults(
+  locate: Record<string, unknown>,
+  defaults: Record<string, unknown>,
+): Record<string, unknown> {
+  let merged: Record<string, unknown> | undefined;
+  for (const [key, value] of Object.entries(defaults)) {
+    if (locate[key] !== undefined) {
+      continue;
+    }
+    if (key === 'deepLocate' && locate.deepThink !== undefined) {
+      continue;
+    }
+    merged = merged ?? { ...locate };
+    merged[key] = value;
+  }
+  return merged ?? locate;
+}
+
+/**
+ * Apply `locateDefaults` to every locate-like field of an action's args.
+ * Generic over the default keys, so new behaviors need no changes here.
+ */
+function applyLocateDefaults(
+  args: Record<string, unknown>,
+  paramSchema: z.ZodTypeAny | undefined,
+  locateDefaults: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!paramSchema || Object.keys(locateDefaults).length === 0) {
+    return args;
+  }
+
+  const shape = getZodObjectShape(paramSchema);
+  if (!shape) {
+    return args;
+  }
+
+  return Object.fromEntries(
+    Object.entries(args).map(([key, value]) => {
+      const fieldSchema = shape[key] as z.ZodTypeAny | undefined;
+      if (
+        fieldSchema &&
+        isMidsceneLocatorField(fieldSchema) &&
+        isRecord(value)
+      ) {
+        return [key, mergeLocateDefaults(value, locateDefaults)];
+      }
+      return [key, value];
+    }),
+  );
+}
+
+/**
  * Serialize args to human-readable description for AI action
  */
 function serializeArgsToDescription(args: Record<string, unknown>): string {
@@ -490,6 +547,7 @@ export function generateToolsFromActionSpace(
   ) => args,
   initArgSchema: ToolSchema = {},
   initArgCliMetadata?: ToolCliMetadata,
+  toolDefaults: ToolDefaults = {},
 ): ToolDefinition[] {
   return actionSpace.map((action) => {
     const schema = {
@@ -505,10 +563,17 @@ export function generateToolsFromActionSpace(
       handler: async (args: Record<string, unknown>) => {
         try {
           const agent = await getAgent(args);
-          const normalizedArgs = normalizeActionArgs(
+          let normalizedArgs = normalizeActionArgs(
             sanitizeArgs(args),
             action.paramSchema,
           );
+          if (toolDefaults.locate) {
+            normalizedArgs = applyLocateDefaults(
+              normalizedArgs,
+              action.paramSchema,
+              toolDefaults.locate,
+            );
+          }
           let actionResult: unknown;
 
           try {
@@ -553,6 +618,7 @@ export function generateCommonTools(
   getAgent: (args?: Record<string, unknown>) => Promise<BaseAgent>,
   initArgSchema: ToolSchema = {},
   initArgCliMetadata?: ToolCliMetadata,
+  toolDefaults: ToolDefaults = {},
 ): ToolDefinition[] {
   return [
     {
@@ -597,6 +663,18 @@ export function generateCommonTools(
           .describe(
             'Natural language description of the action to perform, e.g. "press Command+Space, type Safari, press Enter"',
           ),
+        deepLocate: z
+          .boolean()
+          .optional()
+          .describe(
+            'Use deep locate for every element this action targets. Improves precision for small or ambiguous targets at the cost of speed. Defaults to the server --deep-locate setting.',
+          ),
+        deepThink: z
+          .boolean()
+          .optional()
+          .describe(
+            'Plan this action with deep thinking (richer context and sub-goal decomposition). Helps with complex multi-step instructions at the cost of speed. Defaults to the server --deep-think setting.',
+          ),
         ...initArgSchema,
       },
       cli: mergeToolCliMetadata(undefined, initArgCliMetadata),
@@ -609,7 +687,19 @@ export function generateCommonTools(
           if (!agent.aiAction) {
             return createErrorResult('act is not supported by this agent');
           }
-          const result = await agent.aiAction(prompt, { deepThink: false });
+          // Start from the act defaults (deepThink off), overlay the server
+          // tool defaults, then let explicit per-call args win.
+          const actOptions: Record<string, unknown> = {
+            deepThink: false,
+            ...toolDefaults.act,
+          };
+          if (args.deepLocate !== undefined) {
+            actOptions.deepLocate = args.deepLocate;
+          }
+          if (args.deepThink !== undefined) {
+            actOptions.deepThink = args.deepThink;
+          }
+          const result = await agent.aiAction(prompt, actOptions);
           return await captureScreenshotResult(agent, 'act', result);
         } catch (error: unknown) {
           const errorMessage = getErrorMessage(error);

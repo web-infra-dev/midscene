@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import dotenv from 'dotenv';
 import { getDebug } from '../logger';
 import type { BaseMidsceneTools } from '../mcp/base-tools';
+import { TOOL_BEHAVIOR_FLAGS, resolveToolDefaults } from '../mcp/tool-defaults';
 import type {
   ToolDefinition,
   ToolResult,
@@ -135,8 +136,29 @@ export async function runToolsCLI(
   scriptName: string,
   options?: CLIRunnerOptions,
 ): Promise<void> {
-  const rawArgs = options?.argv ?? process.argv.slice(2);
-  debug('CLI invoked: %s %s', scriptName, rawArgs.join(' '));
+  const inputArgs = options?.argv ?? process.argv.slice(2);
+  debug('CLI invoked: %s %s', scriptName, inputArgs.join(' '));
+
+  // Global behavior flags (e.g. `--deep-locate` / `--deep-think`) apply
+  // regardless of which command runs. Driven by TOOL_BEHAVIOR_FLAGS, stripped
+  // here so the per-command parser never sees them.
+  // See https://github.com/web-infra-dev/midscene/issues/2446.
+  const isFlag = (arg: string, cli: string) =>
+    arg === `--${cli}` ||
+    arg === `--${cli.replace(/-([a-z])/g, (_, c) => c.toUpperCase())}`;
+  const enabledFlags = new Set(
+    TOOL_BEHAVIOR_FLAGS.filter((flag) =>
+      inputArgs.some((arg) => isFlag(arg, flag.cli)),
+    ).map((flag) => flag.cli),
+  );
+  const rawArgs = inputArgs.filter(
+    (arg) => !TOOL_BEHAVIOR_FLAGS.some((flag) => isFlag(arg, flag.cli)),
+  );
+  if (enabledFlags.size > 0) {
+    tools.setToolDefaults?.(
+      resolveToolDefaults((cli) => enabledFlags.has(cli)),
+    );
+  }
 
   // Load .env from cwd before any tool initialization
   const envFile = join(process.cwd(), '.env');
