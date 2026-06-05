@@ -643,4 +643,58 @@ export function defineYamlCaseTest(options: any) {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  test('records a module load failure in the summary instead of a blank "not executed"', async () => {
+    const root = createTempDir();
+    const runDir = join(root, 'midscene-run');
+    const outputDir = join(root, 'generated-runner');
+    const yaml = join(root, 'case.yaml');
+    const previousRunDir = process.env.MIDSCENE_RUN_DIR;
+
+    process.env.MIDSCENE_RUN_DIR = runDir;
+    writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
+
+    try {
+      // The generated virtual module imports the framework entry. Point it at an
+      // unresolvable specifier so the test module fails to load ("Cannot find
+      // module") — exactly the failure shape of the original bug, where no
+      // result file was ever written. The summary must still carry the real
+      // error instead of a blank "not executed".
+      const exitCode = await runFrameworkTestConfig(
+        {
+          files: [yaml],
+          concurrent: 1,
+          continueOnError: false,
+          summary: 'summary.json',
+          shareBrowserContext: false,
+          globalConfig: {},
+          headed: false,
+          keepWindow: false,
+          dotenvOverride: false,
+          dotenvDebug: false,
+        },
+        {
+          outputDir,
+          frameworkImport: '@midscene/__nonexistent_framework_entry__',
+          stdio: 'pipe',
+        },
+      );
+
+      expect(exitCode).toBe(1);
+      const summary = JSON.parse(
+        readFileSync(join(runDir, 'output', 'summary.json'), 'utf8'),
+      );
+      expect(summary.summary.notExecuted).toBe(0);
+      expect(summary.results[0].resultType).toBe('failed');
+      expect(summary.results[0].error).toBeTruthy();
+      expect(summary.results[0].error).not.toContain('Not executed');
+    } finally {
+      if (previousRunDir === undefined) {
+        Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
+      } else {
+        process.env.MIDSCENE_RUN_DIR = previousRunDir;
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
