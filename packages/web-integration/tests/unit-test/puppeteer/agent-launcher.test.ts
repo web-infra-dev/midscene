@@ -118,6 +118,19 @@ describe('launchPuppeteerPage', () => {
     expect(pageMock.setExtraHTTPHeaders).toHaveBeenCalledWith(headers);
   });
 
+  it('normalizes non-string extraHTTPHeaders values to strings', async () => {
+    await launchPuppeteerPage({
+      url: 'https://example.com',
+      // YAML may yield booleans/numbers for unquoted values
+      extraHTTPHeaders: { 'X-Flag': true, 'X-Num': 123 } as any,
+    });
+
+    expect(pageMock.setExtraHTTPHeaders).toHaveBeenCalledWith({
+      'X-Flag': 'true',
+      'X-Num': '123',
+    });
+  });
+
   it('does not set extraHTTPHeaders when not provided', async () => {
     await launchPuppeteerPage({ url: 'https://example.com' });
 

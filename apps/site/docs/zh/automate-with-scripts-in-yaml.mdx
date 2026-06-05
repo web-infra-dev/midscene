@@ -167,6 +167,7 @@ web:
 
   # 随每个请求发送的额外 HTTP 请求头（仅 Puppeteer 模式），可选
   # 适用于服务器会校验自定义请求头的场景
+  # 值必须是字符串；像 true、false、纯数字这类会被 YAML 解析为非字符串的值需加引号，如 "true"
   extraHTTPHeaders:
     X-Custom-Token: my-token
     Accept-Language: en-US

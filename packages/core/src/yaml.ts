@@ -148,6 +148,9 @@ export interface MidsceneYamlScriptWebEnv
    * Extra HTTP headers sent with every request (Puppeteer only, not supported
    * in bridge mode). Useful when the server validates custom request headers.
    *
+   * Header values must be strings. Quote values that YAML would otherwise parse
+   * as a boolean or number (e.g. `true`, `false`, `123`), such as `"true"`.
+   *
    * @example
    * ```yaml
    * web:

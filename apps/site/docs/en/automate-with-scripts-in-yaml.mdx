@@ -168,6 +168,7 @@ web:
 
   # Extra HTTP headers sent with every request (Puppeteer only), optional.
   # Useful when the server validates custom request headers.
+  # Values must be strings; quote values YAML would treat as a boolean or number, e.g. "true".
   extraHTTPHeaders:
     X-Custom-Token: my-token
     Accept-Language: en-US

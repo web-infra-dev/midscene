@@ -286,7 +286,15 @@ export async function launchPuppeteerPage(
   }
 
   if (target.extraHTTPHeaders) {
-    await page.setExtraHTTPHeaders(target.extraHTTPHeaders);
+    // YAML may parse unquoted values into booleans/numbers (e.g. `yes` -> true),
+    // but Puppeteer requires string header values, so normalize them here.
+    const normalizedHeaders = Object.fromEntries(
+      Object.entries(target.extraHTTPHeaders).map(([key, value]) => [
+        key,
+        String(value),
+      ]),
+    );
+    await page.setExtraHTTPHeaders(normalizedHeaders);
   }
 
   if (viewportConfig) {

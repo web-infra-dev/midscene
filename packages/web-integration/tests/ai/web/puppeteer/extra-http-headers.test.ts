@@ -55,12 +55,16 @@ describe('extraHTTPHeaders via YAML (puppeteer)', () => {
   });
 
   it('sends custom headers declared in the YAML web config', async () => {
+    // `X-Bool-Flag: true` / `X-Num-Flag: 123` are intentionally unquoted: YAML
+    // parses them to a boolean / number, and the launcher must normalize them
+    // to strings before they reach the server.
     await runYaml(`
 web:
   url: ${baseUrl}
   extraHTTPHeaders:
     X-Custom-Token: my-secret-token
-    X-From-Midscene: "yes"
+    X-Bool-Flag: true
+    X-Num-Flag: 123
 tasks:
   - name: noop
     flow:
@@ -69,7 +73,8 @@ tasks:
 
     const docReq = received.find((h) => h['x-custom-token'] !== undefined);
     expect(docReq?.['x-custom-token']).toBe('my-secret-token');
-    expect(docReq?.['x-from-midscene']).toBe('yes');
+    expect(docReq?.['x-bool-flag']).toBe('true');
+    expect(docReq?.['x-num-flag']).toBe('123');
   });
 
   it('does not send custom headers when the YAML omits them', async () => {
