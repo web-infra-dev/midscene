@@ -14,7 +14,7 @@ English | [简体中文](./README.zh.md)
 </div>
 
 <p align="center">
-  AI-powered, vision-driven UI automation for every platform.
+  Open-source, vision-driven UI testing — write tests in natural language, automate any platform.
 </p>
 
 <p align="center">
