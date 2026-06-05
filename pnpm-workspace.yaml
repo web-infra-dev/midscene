@@ -1,3 +1,9 @@
 packages:
   - apps/*
   - packages/*
+
+strictPeerDependencies: false
+saveWorkspaceProtocol: rolling
+ignoreCompatibilityDb: true
+useLockfileV6: true
+savePrefix: ''
