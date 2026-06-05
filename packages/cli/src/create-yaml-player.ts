@@ -255,10 +255,11 @@ export async function createYamlPlayer(
           webTarget.deviceScaleFactor != null ||
           webTarget.waitForNetworkIdle ||
           webTarget.cookie ||
+          webTarget.extraHTTPHeaders ||
           webTarget.chromeArgs
         ) {
           console.warn(
-            'puppeteer options (userAgent, viewportWidth, viewportHeight, deviceScaleFactor, waitForNetworkIdle, cookie, chromeArgs) are not supported in bridge mode. They will be ignored.',
+            'puppeteer options (userAgent, viewportWidth, viewportHeight, deviceScaleFactor, waitForNetworkIdle, cookie, extraHTTPHeaders, chromeArgs) are not supported in bridge mode. They will be ignored.',
           );
         }
 

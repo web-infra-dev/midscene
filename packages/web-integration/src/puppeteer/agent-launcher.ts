@@ -285,6 +285,10 @@ export async function launchPuppeteerPage(
     await page.setUserAgent(ua);
   }
 
+  if (target.extraHTTPHeaders) {
+    await page.setExtraHTTPHeaders(target.extraHTTPHeaders);
+  }
+
   if (viewportConfig) {
     await page.setViewport(viewportConfig);
   }

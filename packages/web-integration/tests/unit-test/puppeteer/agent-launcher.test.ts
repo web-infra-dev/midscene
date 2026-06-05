@@ -20,6 +20,7 @@ const browserMock = {
 
 const createPageMock = () => ({
   setUserAgent: vi.fn().mockResolvedValue(undefined),
+  setExtraHTTPHeaders: vi.fn().mockResolvedValue(undefined),
   setViewport: vi.fn().mockResolvedValue(undefined),
   goto: vi.fn().mockResolvedValue(undefined),
   waitForNetworkIdle: vi.fn().mockResolvedValue(undefined),
@@ -102,6 +103,25 @@ describe('launchPuppeteerPage', () => {
         deviceScaleFactor: 0,
       }),
     ).rejects.toThrow(/deviceScaleFactor must be > 0/);
+  });
+
+  it('applies extraHTTPHeaders to the page when provided', async () => {
+    const headers = {
+      'X-Custom-Token': 'my-token',
+      'Accept-Language': 'en-US',
+    };
+    await launchPuppeteerPage({
+      url: 'https://example.com',
+      extraHTTPHeaders: headers,
+    });
+
+    expect(pageMock.setExtraHTTPHeaders).toHaveBeenCalledWith(headers);
+  });
+
+  it('does not set extraHTTPHeaders when not provided', async () => {
+    await launchPuppeteerPage({ url: 'https://example.com' });
+
+    expect(pageMock.setExtraHTTPHeaders).not.toHaveBeenCalled();
   });
 
   it('passes yaml waitForNetworkIdle settings to the agent for later actions', async () => {
