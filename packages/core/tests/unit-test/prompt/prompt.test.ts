@@ -201,6 +201,24 @@ describe('action space', () => {
       'do not switch to replace as a fallback for cursor placement failures',
     );
   });
+
+  it('planning prompt recommends firm drag placement', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: undefined,
+      includeBbox: false,
+    });
+
+    expect(prompt).toContain(
+      'Swipe gestures that must cross a threshold such as page flip, dismiss, reveal, or swipe-to-delete',
+    );
+    expect(prompt).toContain(
+      'move slightly farther in the intended direction instead of stopping short',
+    );
+    expect(prompt).toContain(
+      'After the drag or swipe, re-check the actual UI state and continue or recover if it did not land at the requested position',
+    );
+  });
 });
 
 describe('system prompts', () => {

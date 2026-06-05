@@ -42,6 +42,7 @@ const MEMORY_STEP_NOTES = [
 const ACTION_STEP_NOTES = [
   '### Action Guidelines',
   '',
+  '- For DragAndDrop placement, slider, resize, or reposition actions, or Swipe gestures that must cross a threshold such as page flip, dismiss, reveal, or swipe-to-delete, if the target may require a firm landing, move slightly farther in the intended direction instead of stopping short. After the drag or swipe, re-check the actual UI state and continue or recover if it did not land at the requested position.',
   '- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.',
   '- For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.',
 ].join('\n');
