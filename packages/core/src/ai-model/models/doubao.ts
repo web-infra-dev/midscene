@@ -167,21 +167,21 @@ const buildDoubaoChatCompletionParams = (
 ): ChatCompletionParamsResult => {
   const { midsceneDefaults, userConfig } = input;
   const { reasoningEnabled, reasoningEffort } = userConfig;
-  const effectiveReasoningEnabled = reasoningEnabled ?? false;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   if (userConfig.temperature !== undefined) {
     commonOverrideConfig.temperature = userConfig.temperature;
   }
 
-  const modelSpecificConfig: Record<string, unknown> = {
-    thinking: {
-      type: effectiveReasoningEnabled ? 'enabled' : 'disabled',
-    },
-  };
+  const modelSpecificConfig: Record<string, unknown> = {};
 
-  if (reasoningEffort) {
-    modelSpecificConfig.reasoning_effort = reasoningEffort;
+  if (reasoningEnabled !== 'default') {
+    modelSpecificConfig.thinking = {
+      type: (reasoningEnabled ?? false) ? 'enabled' : 'disabled',
+    };
+    if (reasoningEffort) {
+      modelSpecificConfig.reasoning_effort = reasoningEffort;
+    }
   }
 
   return {

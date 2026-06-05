@@ -137,11 +137,18 @@ Note: The implementation behind `deepThink` may change in the future as Midscene
 
 ### Model-Native Thinking Mode
 
-Some model providers enable model-native thinking by default. In Midscene UI automation, we found that model-native thinking often significantly increases task latency while providing limited improvement for execution quality. For the model families that Midscene knows how to control, Midscene disables model-native thinking by default to get the best execution speed and stability.
+Midscene disables model-native thinking by default to get better execution speed and stability. If the model itself does not support disabling native thinking, Midscene reduces model-native thinking as much as possible by controlling thinking granularity or limiting the thinking budget.
 
-If you need model-native thinking, set `MIDSCENE_MODEL_REASONING_ENABLED="true"` explicitly. Some model families also support extra controls such as `MIDSCENE_MODEL_REASONING_BUDGET` or `MIDSCENE_MODEL_REASONING_EFFORT`; see [Common Model Configuration](./model-common-config) for model-specific examples and [Advanced settings](./model-config#advanced-settings-optional) for the full environment variable reference.
+You can control model-native thinking with the following reasoning settings.
 
-Reasoning controls are model-family specific. If the configured model family does not support a reasoning option, Midscene ignores that option instead of guessing provider-specific reasoning parameters.
+- `MIDSCENE_MODEL_REASONING_ENABLED`: Explicitly controls whether model-native thinking is enabled.
+  - `false`: Force-disable model-native thinking (Midscene's default behavior).
+  - `true`: Force-enable model-native thinking.
+  - `default`: Follow the model's default behavior. Midscene will not send any setting that enables or disables thinking. In this case, explicitly configured `MIDSCENE_MODEL_REASONING_BUDGET` and `MIDSCENE_MODEL_REASONING_EFFORT` will also be ignored.
+- `MIDSCENE_MODEL_REASONING_BUDGET`: Controls the model's thinking budget (supported by some models). See [Common Model Configuration](./model-common-config) for examples.
+- `MIDSCENE_MODEL_REASONING_EFFORT`: Controls the model's thinking effort (supported by some models). See [Common Model Configuration](./model-common-config) for examples.
+
+Note: Different model providers use different parameters to control model-native thinking. If an explicit reasoning setting is not supported by the current model, Midscene ignores that setting instead of guessing provider-specific private parameters.
 
 ### "MIDSCENE_MODEL_FAMILY is not set to a multimodal model" error
 

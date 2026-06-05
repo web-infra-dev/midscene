@@ -31,7 +31,7 @@ const buildGeminiChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
   const { midsceneDefaults, userConfig, intent } = input;
-  const { reasoningEffort } = userConfig;
+  const { reasoningEnabled, reasoningEffort } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
 
   if (userConfig.temperature !== undefined) {
@@ -47,31 +47,33 @@ const buildGeminiChatCompletionParams = (
     reasoning_effort?: unknown;
   } = {};
 
-  if (intent === 'insight') {
-    modelSpecificConfig.extra_body = {
-      google: {
-        thinking_config: {
-          // In real Gemini tests, insight calls need `include_thoughts` to get
-          // the model's thinking, and Gemini puts that thinking into `content`.
-          include_thoughts: true,
+  if (reasoningEnabled !== 'default') {
+    if (reasoningEffort) {
+      modelSpecificConfig.extra_body = {
+        google: {
+          thinking_config: {
+            thinking_level: reasoningEffort,
+            include_thoughts: true,
+          },
         },
-      },
-    };
-  }
+      };
+    } else {
+      if (intent === 'insight') {
+        modelSpecificConfig.extra_body = {
+          google: {
+            thinking_config: {
+              // In real Gemini tests, insight calls need `include_thoughts` to get
+              // the model's thinking, and Gemini puts that thinking into `content`.
+              include_thoughts: true,
+            },
+          },
+        };
+      }
 
-  if (reasoningEffort) {
-    modelSpecificConfig.extra_body = {
-      google: {
-        thinking_config: {
-          thinking_level: reasoningEffort,
-          include_thoughts: true,
-        },
-      },
-    };
-  } else {
-    // Gemini 3.x cannot fully disable native thinking, so use the lowest
-    // supported effort unless the user explicitly requests another level.
-    modelSpecificConfig.reasoning_effort = 'minimal';
+      // Gemini 3.x cannot fully disable native thinking, so use the lowest
+      // supported effort unless the user explicitly requests another level.
+      modelSpecificConfig.reasoning_effort = 'minimal';
+    }
   }
 
   return {

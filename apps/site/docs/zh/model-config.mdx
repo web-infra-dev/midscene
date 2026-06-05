@@ -43,9 +43,9 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 | `MIDSCENE_MODEL_TEMPERATURE` | 模型采样温度 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | AI 调用失败时的重试次数，默认 1（即失败后重试 1 次）|
 | `MIDSCENE_MODEL_RETRY_INTERVAL` | AI 调用重试间隔毫秒数，默认 2000 |
-| `MIDSCENE_MODEL_REASONING_ENABLED` | 开启或关闭模型原生推理/思考。设为 `"true"` 或 `"false"`。对于已适配的模型系列，如果不配置该变量，Midscene 会默认关闭或降低模型原生思考。Gemini 3.x 系列不支持关闭模型原生 thinking，需通过 `MIDSCENE_MODEL_REASONING_EFFORT` 控制思考力度。见[模型原生的思考模式](./model-strategy#模型原生的思考模式)。显式配置 reasoning 时必须使用已支持的 `MIDSCENE_MODEL_FAMILY` |
-| `MIDSCENE_MODEL_REASONING_EFFORT` | 推理力度字符串。透传为豆包和 Gemini OpenAI-compatible 接口的 `reasoning_effort`，以及 Codex app-server 的 `effort`。常用值：`low`、`medium`、`high`；Gemini 3.x 系列默认使用 `minimal` |
-| `MIDSCENE_MODEL_REASONING_BUDGET` | 思考 token 预算（数字）。透传为千问的 `thinking_budget`。显式配置 reasoning 时必须使用已支持的 `MIDSCENE_MODEL_FAMILY` |
+| `MIDSCENE_MODEL_REASONING_ENABLED` | 控制是否启用模型的原生思考能力，Midscene 默认关闭。详见[模型原生的思考模式](./model-strategy#模型原生的思考模式) |
+| `MIDSCENE_MODEL_REASONING_EFFORT` | 控制模型的原生思考力度，部分模型支持。常用值：`low`、`medium`、`high`。详见[模型原生的思考模式](./model-strategy#模型原生的思考模式) |
+| `MIDSCENE_MODEL_REASONING_BUDGET` | 思考 token 预算（数字），部分模型支持。详见[模型原生的思考模式](./model-strategy#模型原生的思考模式) |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS 代理配置，如 `http://127.0.0.1:8080` 或 `https://proxy.example.com:8080`，优先级高于 `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS 代理配置，如 `socks5://127.0.0.1:1080` |
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | 覆盖 OpenAI SDK 初始化配置的 JSON。自定义鉴权 header 请使用 `defaultHeaders`；`extra_headers` 和 `extraHeaders` 也会作为别名兼容 |

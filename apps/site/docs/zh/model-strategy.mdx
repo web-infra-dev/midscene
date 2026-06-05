@@ -138,11 +138,19 @@ Midscene 提供了基于页面理解的数据处理接口，如 AI 断言（`aiA
 
 ### 模型原生的思考模式
 
-一些模型服务商会默认开启模型原生思考。在 Midscene 的 UI 自动化场景中，我们注意到模型原生思考通常会明显增加任务耗时，而对执行质量的提升有限。对于 Midscene 已经适配控制方式的模型系列，Midscene 会默认关闭模型原生思考，以获得更好的执行速度和稳定性。
+Midscene 会默认关闭模型原生思考，以获得更好的执行速度和稳定性。如果模型自身不支持关闭原生思考，Midscene 会通过控制思考粒度或限制思考额度的方式，尽可能减少模型的原生思考。
 
-如果你需要模型原生思考，请显式设置 `MIDSCENE_MODEL_REASONING_ENABLED="true"`。部分模型系列还支持 `MIDSCENE_MODEL_REASONING_BUDGET` 或 `MIDSCENE_MODEL_REASONING_EFFORT` 等额外控制项。具体示例请参考[常用模型配置](./model-common-config)，完整环境变量说明请参考[高阶配置](./model-config#高阶配置可选)。
+你可以通过下面的 reasoning 配置控制模型的原生思考。
 
-reasoning 控制项与模型系列相关。如果当前模型系列不支持某个 reasoning 配置，Midscene 会忽略该配置，而不会猜测服务商的私有参数。
+- `MIDSCENE_MODEL_REASONING_ENABLED`：显式控制是否开启模型原生思考。
+  - `false`：强制关闭模型原生思考（Midscene 默认行为）。
+  - `true`：强制开启模型原生思考。
+  - `default`：遵循模型的默认行为，Midscene 将不会向模型发送任何开启或关闭思考的配置。此时，显式配置的 `MIDSCENE_MODEL_REASONING_BUDGET` 和 `MIDSCENE_MODEL_REASONING_EFFORT` 也会被忽略。
+- `MIDSCENE_MODEL_REASONING_BUDGET`：控制模型的思考限额（部分模型支持），具体示例请参考[常用模型配置](./model-common-config)。
+- `MIDSCENE_MODEL_REASONING_EFFORT`：控制模型的思考力度（部分模型支持），具体示例请参考[常用模型配置](./model-common-config)。
+
+
+注意：不同模型厂商控制模型原生思考方式的参数各不相同。如果某个显式的 reasoning 配置不被当前模型支持，Midscene 会忽略该配置，而不会猜测服务商的私有参数。
 
 ### "MIDSCENE_MODEL_FAMILY is not set to a multimodal model" 错误
 

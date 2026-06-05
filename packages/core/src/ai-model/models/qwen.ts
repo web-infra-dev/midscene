@@ -65,12 +65,13 @@ const buildQwenChatCompletionParams = (
     commonOverrideConfig.temperature = userConfig.temperature;
   }
 
-  const modelSpecificConfig: Record<string, unknown> = {
-    enable_thinking: reasoningEnabled ?? false,
-  };
+  const modelSpecificConfig: Record<string, unknown> = {};
 
-  if (reasoningBudget !== undefined) {
-    modelSpecificConfig.thinking_budget = reasoningBudget;
+  if (reasoningEnabled !== 'default') {
+    modelSpecificConfig.enable_thinking = reasoningEnabled ?? false;
+    if (reasoningBudget !== undefined) {
+      modelSpecificConfig.thinking_budget = reasoningBudget;
+    }
   }
 
   return {
