@@ -37,8 +37,10 @@ describe('defineMidsceneConfig', () => {
 
   it('throws without testDir', () => {
     expect(() =>
-      // @ts-expect-error intentionally missing
-      defineMidsceneConfig({ uiAgent: { type: 'web' } }),
+      // @ts-expect-error intentionally missing testDir
+      defineMidsceneConfig({
+        uiAgent: { type: 'web', options: { url: 'https://x.test' } },
+      }),
     ).toThrow(/testDir/);
   });
 });

@@ -5,6 +5,7 @@
  * (programmatic). This module resolves both into a live Midscene UI Agent plus
  * an optional cleanup hook.
  */
+import type { AndroidConnectionOpt, WebConnectionOpt } from '@midscene/core';
 import type { Agent } from '@midscene/core/agent';
 import type { UIAgent, UIAgentConfig, UIAgentOptions } from '../config/types';
 
@@ -46,9 +47,9 @@ async function createFromConfig(
 ): Promise<ResolvedUIAgent> {
   switch (config.type) {
     case 'web':
-      return createWebAgent(config, uiAgentOptions);
+      return createWebAgent(config.options, uiAgentOptions);
     case 'android':
-      return createAndroidAgent(config, uiAgentOptions);
+      return createAndroidAgent(config.options, uiAgentOptions);
     case 'ios':
     case 'computer':
       throw new Error(
@@ -62,11 +63,10 @@ async function createFromConfig(
 }
 
 async function createWebAgent(
-  config: UIAgentConfig,
+  options: WebConnectionOpt,
   uiAgentOptions: UIAgentOptions | undefined,
 ): Promise<ResolvedUIAgent> {
-  const options = (config.options ?? {}) as Record<string, unknown>;
-  if (!options.url) {
+  if (!options?.url) {
     throw new Error('[midscene] uiAgent.type "web" requires `options.url`.');
   }
 
@@ -80,14 +80,12 @@ async function createWebAgent(
   }
 
   const { agent, freeFn } = await mod.puppeteerAgentForTarget(
-    options as unknown as Parameters<typeof mod.puppeteerAgentForTarget>[0],
-    uiAgentOptions as unknown as Parameters<
-      typeof mod.puppeteerAgentForTarget
-    >[1],
+    options,
+    uiAgentOptions,
   );
 
   return {
-    agent: agent as unknown as Agent,
+    agent,
     cleanup: async () => {
       for (const free of freeFn) {
         try {
@@ -101,10 +99,10 @@ async function createWebAgent(
 }
 
 async function createAndroidAgent(
-  config: UIAgentConfig,
+  options: AndroidConnectionOpt | undefined,
   uiAgentOptions: UIAgentOptions | undefined,
 ): Promise<ResolvedUIAgent> {
-  const options = (config.options ?? {}) as Record<string, unknown>;
+  const env = options ?? {};
   // `@midscene/android` is an optional peer; load it loosely so the framework
   // does not hard-depend on it.
   const spec = '@midscene/android';
@@ -122,10 +120,9 @@ async function createAndroidAgent(
     );
   }
 
-  const deviceId = options.deviceId as string | undefined;
-  const agent = await mod.agentFromAdbDevice(deviceId, {
-    ...(uiAgentOptions as object),
-    ...options,
+  const agent = await mod.agentFromAdbDevice(env.deviceId, {
+    ...uiAgentOptions,
+    ...env,
   });
 
   return {
