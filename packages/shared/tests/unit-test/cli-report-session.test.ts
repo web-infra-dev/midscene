@@ -156,6 +156,7 @@ describe('CLI report session', () => {
     expect(assertTools.createdReportGroupIds).toEqual([firstReportFileName]);
     expect(assertTools.aiAssert).toHaveBeenCalledWith(
       'The login page shows both email and password input fields',
+      undefined,
     );
   });
 
