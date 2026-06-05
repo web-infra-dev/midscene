@@ -52,7 +52,12 @@ export type {
   MidsceneYamlScriptWebEnv,
   MidsceneYamlScriptAndroidEnv,
   MidsceneYamlScriptIOSEnv,
+  MidsceneYamlScriptComputerEnv,
   MidsceneYamlScriptEnv,
+  WebConnectionOpt,
+  AndroidConnectionOpt,
+  IOSConnectionOpt,
+  ComputerConnectionOpt,
   LocateOption,
   DetailedLocateParam,
 } from './yaml';

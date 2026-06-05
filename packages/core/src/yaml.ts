@@ -227,6 +227,42 @@ export type MidsceneYamlScriptEnv =
   | MidsceneYamlScriptHarmonyEnv
   | MidsceneYamlScriptComputerEnv;
 
+/**
+ * Canonical per-platform connection / launch target options.
+ *
+ * These are the pure "how to reach the target" types: the same fields the
+ * `MidsceneYamlScript*Env` types carry, but with the YAML run config
+ * (`MidsceneYamlScriptConfig`: output, unstableLogContent) and the agent
+ * behavior options (`MidsceneYamlScriptAgentOpt`: generateReport, cache, ...)
+ * stripped out. Use these when you only need to describe the connection target
+ * and want agent behavior expressed separately (e.g. via `AgentOpt`). They are
+ * derived from the env types, so they stay in sync automatically.
+ */
+export type WebConnectionOpt = Omit<
+  MidsceneYamlScriptWebEnv,
+  keyof MidsceneYamlScriptConfig | keyof MidsceneYamlScriptAgentOpt
+>;
+
+export type AndroidConnectionOpt = Omit<
+  MidsceneYamlScriptAndroidEnv,
+  keyof MidsceneYamlScriptConfig
+>;
+
+export type IOSConnectionOpt = Omit<
+  MidsceneYamlScriptIOSEnv,
+  keyof MidsceneYamlScriptConfig
+>;
+
+export type HarmonyConnectionOpt = Omit<
+  MidsceneYamlScriptHarmonyEnv,
+  keyof MidsceneYamlScriptConfig
+>;
+
+export type ComputerConnectionOpt = Omit<
+  MidsceneYamlScriptComputerEnv,
+  keyof MidsceneYamlScriptConfig
+>;
+
 export interface MidsceneYamlFlowItemAIAction {
   // defined as aiAction for backward compatibility
   aiAction?: string;
