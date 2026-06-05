@@ -3,23 +3,48 @@ import QuickModelConfig from './common/quick-model-config.mdx';
 
 # 快速开始
 
-几分钟内跑通你的第一个 AI 驱动的 UI 自动化。本文以浏览器（Playwright）为例，文末可跳转到[其他平台](#后续步骤)。
+几分钟内上手 Midscene。有两种开始方式，你可以任选其一先体验：
 
-:::info 想零代码体验？
-你可以直接用 [Chrome 插件](./quick-experience) 在浏览器里体验 Midscene，无需搭建任何项目。
-:::
+- **零代码** —— 安装 Chrome 插件，在任意网页上直接体验 Midscene，无需搭建项目。
+- **编写脚本** —— 使用 JavaScript SDK 构建可复用的自动化。
 
-## 第一步：安装依赖
+两种方式都需要先配置一个视觉语言模型，我们先把它准备好。
 
-<PackageManagerTabs command="install @midscene/web playwright tsx --save-dev" />
-
-## 第二步：配置模型
+## 配置模型
 
 <QuickModelConfig />
 
 > 想用其他模型（Doubao、GLM、Gemini、GPT-5……）？请查看 [配置你的模型](./model-common-config)，其中列出了所有受支持的服务商。
 
-## 第三步：编写第一个脚本
+下面无论选择哪条路径，都会复用这组配置——把它粘贴到插件的设置里，或作为环境变量提供给 SDK。
+
+## 零代码体验（Chrome 插件）
+
+这是感受 Midscene 能力最快的方式——无需项目、无需写代码。插件与 `@midscene/web` SDK 共用同一套核心，因此在这里能跑通的能力，写成脚本后表现一致。
+
+1. 从 Chrome 应用商店安装 Midscene：
+
+   <a href="https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief" target="_blank"><img src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/chrome_extension_store_btn.png" width="200" /></a>
+
+2. 打开 **Midscene** 面板（可能被折叠在 Chrome 插件图标里）——浏览器右侧会出现一个侧边栏。
+3. 点击设置（齿轮）图标，粘贴你的模型配置。插件接受与上文 [配置模型](#配置模型) 相同的 `export KEY="value"` 格式。
+4. 打开任意网页，输入一条指令——操作、数据提取或断言——即可看到 Midscene 为你操作页面。
+
+完整流程与排障请参考 [通过 Chrome 插件快速体验](./quick-experience)。
+
+## 编写第一个脚本（SDK）
+
+更喜欢写代码？用 JavaScript SDK 构建可复用的自动化。本示例以浏览器（Playwright）为例。
+
+### 第一步：安装依赖
+
+<PackageManagerTabs command="install @midscene/web playwright tsx --save-dev" />
+
+### 第二步：设置模型环境变量
+
+将 [配置模型](#配置模型) 中的值设置为环境变量，或写入 `.env` 文件并通过 [dotenv](https://www.npmjs.com/package/dotenv) 加载。
+
+### 第三步：编写脚本
 
 将下面的代码保存为 `./demo.ts`。它会打开 eBay、搜索耳机、读取结果列表，并对页面状态做断言——全部用自然语言描述：
 
@@ -58,13 +83,13 @@ Promise.resolve(
 );
 ```
 
-## 第四步：运行
+### 第四步：运行
 
 ```bash
 npx tsx demo.ts
 ```
 
-## 第五步：查看报告
+### 第五步：查看报告
 
 运行成功后，Midscene 会打印类似下面的日志：
 
