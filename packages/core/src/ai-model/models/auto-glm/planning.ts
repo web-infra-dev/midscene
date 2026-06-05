@@ -1,3 +1,4 @@
+import { type TUserPrompt, userPromptToString } from '@/common';
 import type { PlanningAIResponse } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
@@ -12,7 +13,7 @@ import { parseAction, parseAutoGLMResponse } from './parser';
 const debug = getDebug('auto-glm-planning');
 
 export async function autoGlmPlanning(
-  userInstruction: string,
+  userInstruction: TUserPrompt,
   options: PlanOptions,
   getSystemPrompt: () => string,
 ): Promise<PlanningAIResponse> {
@@ -25,11 +26,13 @@ export async function autoGlmPlanning(
       : '');
 
   const imagePayloadBase64 = context.screenshot.base64;
+  const userInstructionText = userPromptToString(userInstruction);
+  const referenceImageMessages = options.referenceImageMessages ?? [];
 
-  conversationHistory.append({
+  const userInstructionMessage: ChatCompletionMessageParam = {
     role: 'user',
-    content: [{ type: 'text', text: userInstruction }],
-  });
+    content: [{ type: 'text', text: userInstructionText }],
+  };
   conversationHistory.append({
     role: 'user',
     content: [{ type: 'image_url', image_url: { url: imagePayloadBase64 } }],
@@ -37,6 +40,8 @@ export async function autoGlmPlanning(
 
   const msgs: ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
+    userInstructionMessage,
+    ...referenceImageMessages,
     ...conversationHistory.snapshot(1),
   ];
 

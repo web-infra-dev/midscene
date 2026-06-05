@@ -6,6 +6,9 @@ import {
   type TMultimodalPrompt,
   type TUserPrompt,
   getReadableTimeString,
+  multimodalPromptToChatMessages,
+  userPromptToMultimodalPrompt,
+  userPromptToString,
 } from '@/common';
 import type { AbstractInterface, FileChooserHandler } from '@/device';
 import type Service from '@/service';
@@ -173,9 +176,12 @@ export class TaskExecutor {
     return this.taskBuilder.build(plans, planningModel, defaultModel, options);
   }
 
-  async loadYamlFlowAsPlanning(userInstruction: string, yamlString: string) {
+  async loadYamlFlowAsPlanning(
+    userInstruction: TUserPrompt,
+    yamlString: string,
+  ) {
     const session = this.createExecutionSession(
-      taskTitleStr('Act', userInstruction),
+      taskTitleStr('Act', userPromptToString(userInstruction)),
     );
 
     const task: ExecutionTaskPlanningApply = {
@@ -236,7 +242,7 @@ export class TaskExecutor {
   }
 
   async action(
-    userPrompt: string,
+    userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
     defaultModel: ModelRuntime,
     includeLocateInPlanning: boolean,
@@ -275,7 +281,7 @@ export class TaskExecutor {
   }
 
   private async runAction(
-    userPrompt: string,
+    userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
     defaultModel: ModelRuntime,
     includeLocateInPlanning: boolean,
@@ -308,7 +314,7 @@ export class TaskExecutor {
     const conversationHistory = new ConversationHistory();
 
     const session = this.createExecutionSession(
-      taskTitleStr('Act', userPrompt),
+      taskTitleStr('Act', userPromptToString(userPrompt)),
     );
     const runner = session.getRunner();
 
@@ -323,6 +329,15 @@ export class TaskExecutor {
 
     let errorCountInOnePlanningLoop = 0; // count the number of errors in one planning loop
     let outputString: string | undefined;
+
+    if (abortSignal?.aborted) {
+      return session.appendErrorPlan(
+        `Task aborted: ${abortSignal.reason || 'abort signal received'}`,
+      );
+    }
+    const referenceImageMessages = await multimodalPromptToChatMessages(
+      userPromptToMultimodalPrompt(userPrompt),
+    );
 
     // Main planning loop - unified plan/replan logic
     while (true) {
@@ -385,6 +400,7 @@ export class TaskExecutor {
                 includeLocateInPlanning,
                 imagesIncludeCount,
                 deepThink,
+                referenceImageMessages,
                 abortSignal,
               });
             } catch (planError) {
