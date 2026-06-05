@@ -22,9 +22,9 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   clientsTitle: '平台',
   clientsHeading: `Web、PC、Mobile
 等多端支持`,
-  clientsDesc1: '用自然语言跨平台控制浏览器和移动应用',
-  clientsDesc2: '统一的 API 设计，轻松实现跨平台自动化',
-  clientsDesc3: '支持 Android、iOS、HarmonyOS、Linux、macOS 和 Windows',
+  clientsDesc1: '用自然语言测试与自动化 Web、移动端和桌面应用',
+  clientsDesc2: '一套 API、一套用例，在每个平台都一样',
+  clientsDesc3: '触达选择器够不到的地方——canvas、原生应用、跨域 iframe',
 
   // Feature Sections - Platforms
   platformWeb: 'Web',
@@ -42,9 +42,9 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   modelsHeading: `视觉模型
  多模型组合
  适配开源模型`,
-  modelsDesc1: '视觉模型提升操作精准度',
+  modelsDesc1: '视觉定位元素精准，无需维护选择器',
   modelsDesc2: '多模型协同提升完成率',
-  modelsDesc3: '有开源选项也靠谱',
+  modelsDesc3: '自带模型，含表现强劲的开源选项',
 
   // Model Cards
   modelSeedName: '豆包 Seed',
@@ -63,9 +63,9 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   debuggingTitle: '开发体验',
   debuggingHeading: `丰富的 API
 和工具`,
-  debuggingDesc1: '大量实用 API，方便控制自动化流程和运行策略',
+  debuggingDesc1: '丰富的 API，用于编写测试与控制自动化流程',
   debuggingDesc2: '支持扩展自己的 UI 操作 Agent',
-  debuggingDesc3: '帮助开发者快速完成 UI Automation 任务上线',
+  debuggingDesc3: '大幅降低 UI 测试的维护成本',
 
   // Feature Cards
   featureRichAPIs: '丰富的 API',

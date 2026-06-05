@@ -21,9 +21,11 @@ export const EN_US = {
   clientsHeading: `Web, PC, Mobile,
 and more`,
   clientsDesc1:
-    'Control browsers and mobile apps with natural language across multiple platforms',
-  clientsDesc2: 'Unified API design for seamless cross-platform automation',
-  clientsDesc3: 'Supports Android, iOS, HarmonyOS, Linux, macOS, and Windows',
+    'Test and automate with natural language across web, mobile, and desktop',
+  clientsDesc2:
+    'One unified API and test suite — the same way on every platform',
+  clientsDesc3:
+    'Reaches what selectors cannot — canvas, native apps, and cross-origin frames',
 
   // Feature Sections - Platforms
   platformWeb: 'Web',
@@ -44,9 +46,9 @@ and more`,
   modelsHeading: `Vision Models
  Multi-model combination
  Adapt open-source models`,
-  modelsDesc1: 'Vision models boost action precision',
+  modelsDesc1: 'Vision locates elements precisely — no selectors to maintain',
   modelsDesc2: 'Multi-model setups raise completion rates',
-  modelsDesc3: 'Open-source options that still perform',
+  modelsDesc3: 'Bring your own model, including strong open-source options',
 
   // Model Cards
   modelSeedName: 'Doubao Seed',
@@ -66,9 +68,9 @@ and more`,
   debuggingTitle: 'DEVELOPER EXPERIENCE',
   debuggingHeading: `Rich APIs
 & Tools`,
-  debuggingDesc1: 'Practical APIs to control automation flows and run strategy',
+  debuggingDesc1: 'Practical APIs to script tests and control automation flows',
   debuggingDesc2: 'Supports extending your own UI action agents',
-  debuggingDesc3: 'Helps developers ship UI automation tasks faster',
+  debuggingDesc3: 'Lowers the maintenance cost of your UI tests',
 
   // Feature Cards
   featureRichAPIs: 'Rich APIs',
