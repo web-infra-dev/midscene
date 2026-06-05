@@ -7,11 +7,16 @@ export interface HarmonyDeviceInfo {
   deviceId: string;
 }
 
+export interface HarmonyDeviceDiscoveryOptions {
+  timeout?: number;
+}
+
 export async function getConnectedDevices(
   hdcPath?: string,
+  options: HarmonyDeviceDiscoveryOptions = {},
 ): Promise<HarmonyDeviceInfo[]> {
   try {
-    const hdc = new HdcClient({ hdcPath });
+    const hdc = new HdcClient({ hdcPath, timeout: options.timeout });
     const targets = await hdc.listTargets();
 
     const devices = targets.map((deviceId) => ({ deviceId }));

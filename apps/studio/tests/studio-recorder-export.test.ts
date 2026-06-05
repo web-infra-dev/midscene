@@ -4,9 +4,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createStudioRecorderMarkdownZipBase64,
   createStudioRecorderZipBase64,
+  generateStudioRecorderMarkdown,
   saveStudioRecorderFile,
 } from '../src/renderer/recorder/export';
 import type { StudioRecordingSession } from '../src/renderer/recorder/types';
+import type { ElectronShellApi } from '../src/shared/electron-contract';
 
 describe('studio recorder export', () => {
   afterEach(() => {
@@ -32,7 +34,7 @@ describe('studio recorder export', () => {
     });
     vi.spyOn(document, 'createElement').mockImplementation((tagName) => {
       const element = originalCreateElement(tagName);
-      if (tagName === 'a') {
+      if (String(tagName) === 'a') {
         Object.defineProperty(element, 'click', {
           configurable: true,
           value: click,
@@ -48,7 +50,7 @@ describe('studio recorder export', () => {
         );
       }),
       writeFile,
-    };
+    } satisfies Partial<ElectronShellApi> as unknown as ElectronShellApi;
 
     await saveStudioRecorderFile({
       title: 'Export Recorder JSON',
@@ -175,5 +177,43 @@ describe('studio recorder export', () => {
         'markdown/replay-login-session-1/screenshots/event-001-navigation.png',
       ),
     ).toBeTruthy();
+  });
+
+  it('escapes Markdown table cell content in recording summaries', () => {
+    const markdown = generateStudioRecorderMarkdown([
+      {
+        id: 'session-1',
+        name: 'Replay login',
+        status: 'completed',
+        target: {
+          platformId: 'web',
+          label: 'Web',
+          values: { url: 'https://example.com' },
+        },
+        events: [
+          {
+            type: 'click',
+            platformId: 'web',
+            actionType: 'Click',
+            rawPayload: {},
+            target: {
+              platformId: 'web',
+              label: 'Web',
+              values: { url: 'https://example.com' },
+            },
+            pageInfo: { width: 1280, height: 720 },
+            elementDescription: 'Path C:\\temp | confirm\nnext step',
+            timestamp: 1,
+            hashId: 'click-1',
+          },
+        ],
+        createdAt: 1,
+        updatedAt: 2,
+      },
+    ]);
+
+    expect(markdown).toContain(
+      '| 1 | click | Path C:\\\\temp \\| confirm<br>next step |',
+    );
   });
 });

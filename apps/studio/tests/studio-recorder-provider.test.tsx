@@ -12,14 +12,20 @@ import {
 import type { StudioRecorderContextValue } from '../src/renderer/recorder/types';
 import { useStudioRecorder } from '../src/renderer/recorder/useStudioRecorder';
 
+type ReadyStudioPlaygroundContext = Extract<
+  StudioPlaygroundContextValue,
+  { phase: 'ready' }
+>;
+
 vi.mock('../src/renderer/recorder/codegen', () => ({
-  describeStudioRecorderEventsWithAI: vi.fn(async (events) =>
-    events.map((event) => ({
-      ...event,
-      elementDescription: 'AI described target',
-      descriptionLoading: false,
-      descriptionSource: 'ai',
-    })),
+  describeStudioRecorderEventsWithAI: vi.fn(
+    async (events: Array<Record<string, unknown>>) =>
+      events.map((event) => ({
+        ...event,
+        elementDescription: 'AI described target',
+        descriptionLoading: false,
+        descriptionSource: 'ai',
+      })),
   ),
   generateStudioRecorderCodeWithAI: vi.fn(async (_session, options) => {
     const type = options?.type || 'markdown';
@@ -37,7 +43,9 @@ vi.mock('../src/renderer/recorder/codegen', () => ({
 }));
 
 beforeAll(() => {
-  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  (
+    globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+  ).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 afterEach(() => {
@@ -78,7 +86,7 @@ function createConnectedStudioContext({
   };
   events?: unknown[];
 } = {}) {
-  const interact = vi.fn(async () => ({ ok: true }));
+  const interact = vi.fn(async (_payload?: unknown) => ({ ok: true }));
   const startRecorderSession = vi.fn(async () => startResult);
   const stopRecorderSession = vi.fn(async () => ({ ok: true }));
   const getRecorderEvents = vi.fn(async (since = 0) => ({
@@ -134,7 +142,7 @@ function createConnectedStudioContext({
         createSession: vi.fn(async () => false),
         destroySession: vi.fn(async () => undefined),
       },
-    } as unknown as StudioPlaygroundContextValue['controller'],
+    } as unknown as ReadyStudioPlaygroundContext['controller'],
     discoveredDevices: {
       android: [],
       ios: [],

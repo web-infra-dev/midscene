@@ -16,6 +16,7 @@ import {
   getStudioRecorderExportVariantFileName,
   saveStudioRecorderFile,
 } from './export';
+import { createSecureRecorderId } from './secure-id';
 import {
   canStartStudioRecording,
   createStudioRecorderTargetSignature,
@@ -142,9 +143,7 @@ function reducer(
 }
 
 function createSessionId() {
-  return `studio-recording-${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2, 8)}`;
+  return createSecureRecorderId(`studio-recording-${Date.now()}`);
 }
 
 function createSessionName(target: StudioRecorderTarget) {

@@ -95,6 +95,13 @@ function eventDescription(event: StudioRecordedEvent) {
   return getMidsceneRecorderEventDescription(event);
 }
 
+function markdownTableCell(value: string) {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/\|/g, '\\|')
+    .replace(/\r?\n/g, '<br>');
+}
+
 function isPendingRecorderDescription(value?: string) {
   return value?.trim() === 'AI is analyzing element...';
 }
@@ -258,7 +265,7 @@ export function generateStudioRecorderMarkdown(
     } else {
       session.events.forEach((event, index) => {
         lines.push(
-          `| ${index + 1} | ${event.type} | ${eventDescription(event).replace(/\|/g, '\\|')} |`,
+          `| ${index + 1} | ${event.type} | ${markdownTableCell(eventDescription(event))} |`,
         );
       });
     }

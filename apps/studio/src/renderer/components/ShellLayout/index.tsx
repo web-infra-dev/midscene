@@ -416,7 +416,7 @@ export default function ShellLayout() {
       </div>
 
       <div
-        className={`absolute bottom-[4px] right-[4px] top-[0px] z-20 flex rounded-[12px] bg-surface transition-[left] ${SIDEBAR_TRANSITION_CLASS}`}
+        className={`absolute bottom-[4px] right-[4px] top-[4px] z-20 flex rounded-[12px] bg-surface transition-[left] ${SIDEBAR_TRANSITION_CLASS}`}
         style={mainAreaStyle}
       >
         <MainContent

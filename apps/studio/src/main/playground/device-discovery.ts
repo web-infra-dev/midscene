@@ -30,6 +30,7 @@ const debugLog = getDebug('studio:device-discovery', { console: true });
 const IOS_WDA_DISCOVERY_HOST = 'localhost';
 const IOS_WDA_DISCOVERY_TIMEOUT_MS = 1000;
 const DEVICE_CLI_DISCOVERY_TIMEOUT_MS = 5000;
+export const DEVICE_PLATFORM_DISCOVERY_TIMEOUT_MS = 10_000;
 export const DEVICE_DISCOVERY_POLL_INTERVAL_MS = 5000;
 const execFileAsync = promisify(execFile);
 
@@ -79,11 +80,12 @@ async function execFirstAvailable(
 
   for (const candidate of uniqueStrings(candidates)) {
     try {
-      const { stdout } = await execFileAsync(candidate, args, {
+      const result = (await execFileAsync(candidate, args, {
         encoding: 'utf8',
         timeout: DEVICE_CLI_DISCOVERY_TIMEOUT_MS,
         windowsHide: true,
-      });
+      })) as string | { stdout: string };
+      const stdout = typeof result === 'string' ? result : result.stdout;
       return stdout;
     } catch (error) {
       lastError = error;
@@ -195,6 +197,36 @@ async function scanHarmonyDevicesFromCli(): Promise<PlatformScanResult> {
     'targets',
   ]);
   return { devices: parseHdcTargets(stdout) };
+}
+
+function timeoutScanResult(platformId: StudioPlatformId): PlatformScanResult {
+  if (platformId === 'android' || platformId === 'harmony') {
+    return { devices: [], error: toolchainMissing(platformId) };
+  }
+  return { devices: [] };
+}
+
+async function withPlatformDiscoveryTimeout(
+  platformId: StudioPlatformId,
+  scan: Promise<PlatformScanResult>,
+): Promise<PlatformScanResult> {
+  let timeoutId: ReturnType<typeof globalThis.setTimeout> | undefined;
+  const timeout = new Promise<PlatformScanResult>((resolve) => {
+    timeoutId = setTimeout(() => {
+      debugLog(
+        `${platformId} scan timed out after ${DEVICE_PLATFORM_DISCOVERY_TIMEOUT_MS}ms`,
+      );
+      resolve(timeoutScanResult(platformId));
+    }, DEVICE_PLATFORM_DISCOVERY_TIMEOUT_MS);
+  });
+
+  try {
+    return await Promise.race([scan, timeout]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
 }
 
 function buildIOSDiscoveryLabel(status: WDAStatusResponse): string {
@@ -349,10 +381,10 @@ export function createDeviceDiscoveryService({
  */
 export async function discoverAllDevices(): Promise<DiscoverDevicesResult> {
   const scans = await Promise.allSettled([
-    scanAndroidDevices(),
-    scanIOSDevices(),
-    scanHarmonyDevices(),
-    scanComputerDisplays(),
+    withPlatformDiscoveryTimeout('android', scanAndroidDevices()),
+    withPlatformDiscoveryTimeout('ios', scanIOSDevices()),
+    withPlatformDiscoveryTimeout('harmony', scanHarmonyDevices()),
+    withPlatformDiscoveryTimeout('computer', scanComputerDisplays()),
   ]);
 
   const devices: DiscoveredDevice[] = [];
@@ -461,7 +493,9 @@ async function scanHarmonyDevices(): Promise<PlatformScanResult> {
   try {
     ensureStudioShellEnvHydrated();
     const { getConnectedDevices } = await import('@midscene/harmony');
-    const devices = await getConnectedDevices();
+    const devices = await getConnectedDevices(undefined, {
+      timeout: DEVICE_CLI_DISCOVERY_TIMEOUT_MS,
+    });
     return {
       devices: devices.map((device) => ({
         platformId: 'harmony',

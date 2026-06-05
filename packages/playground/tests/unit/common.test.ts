@@ -280,7 +280,7 @@ describe('common utilities', () => {
       const mockRunMarkdown = vi.fn().mockResolvedValue('markdown result');
       const activeAgent: PlaygroundAgent = {
         runMarkdown: mockRunMarkdown,
-      };
+      } as unknown as PlaygroundAgent;
 
       const value: FormValue = {
         type: 'runMarkdown',

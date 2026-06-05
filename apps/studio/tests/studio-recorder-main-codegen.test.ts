@@ -26,13 +26,14 @@ import {
   generateRecorderCodeInMain,
   generateRecorderMetadataInMain,
 } from '../src/main/recorder/codegen';
+import type { GenerateRecorderCodeRequest } from '../src/shared/electron-contract';
 
 describe('Studio recorder codegen in main', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  const yamlRequest = {
+  const yamlRequest: Omit<GenerateRecorderCodeRequest, 'type'> = {
     input: {
       target: {
         platformId: 'web',
@@ -60,7 +61,7 @@ describe('Studio recorder codegen in main', () => {
       intent: 'default',
       slot: 'default',
     },
-  } as const;
+  };
 
   it('runs generic YAML code generation in the main process layer', async () => {
     await expect(

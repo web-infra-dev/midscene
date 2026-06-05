@@ -42,7 +42,9 @@ function NotConnectedFallback() {
 
 declare const __APP_VERSION__: string;
 declare const __STUDIO_RECORDER_ENTRY_ENABLED__: boolean;
-const STUDIO_RECORDER_ENTRY_ENABLED = __STUDIO_RECORDER_ENTRY_ENABLED__;
+const STUDIO_RECORDER_ENTRY_ENABLED =
+  typeof __STUDIO_RECORDER_ENTRY_ENABLED__ !== 'undefined' &&
+  __STUDIO_RECORDER_ENTRY_ENABLED__;
 type StudioExternalRunRequest = ExternalRunRequest & {
   targetSignature: string | null;
 };

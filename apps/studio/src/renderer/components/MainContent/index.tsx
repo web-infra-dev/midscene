@@ -37,7 +37,9 @@ import {
 const debugWebNavigation = getDebug('studio:web-navigation', { console: true });
 
 declare const __STUDIO_RECORDER_ENTRY_ENABLED__: boolean;
-const STUDIO_RECORDER_ENTRY_ENABLED = __STUDIO_RECORDER_ENTRY_ENABLED__;
+const STUDIO_RECORDER_ENTRY_ENABLED =
+  typeof __STUDIO_RECORDER_ENTRY_ENABLED__ !== 'undefined' &&
+  __STUDIO_RECORDER_ENTRY_ENABLED__;
 
 export interface MainContentProps {
   activeView: ShellActiveView;

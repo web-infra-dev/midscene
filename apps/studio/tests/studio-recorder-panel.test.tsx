@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, cloneElement, createElement, isValidElement } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -15,10 +15,13 @@ vi.mock('antd', () => ({
   Input: ({ allowClear, className, prefix, ...props }: any) =>
     createElement('label', null, prefix, createElement('input', props)),
   Popover: ({ children, content, onOpenChange, open }: any) => {
+    const triggerElement = children as ReactElement<{
+      onClick?: (event: MouseEvent) => void;
+    }>;
     const trigger = isValidElement(children)
-      ? cloneElement(children, {
+      ? cloneElement(triggerElement, {
           onClick: (event: MouseEvent) => {
-            children.props.onClick?.(event);
+            triggerElement.props.onClick?.(event);
             onOpenChange?.(!open);
           },
         } as any)
@@ -123,7 +126,9 @@ async function renderRecorderPanel(props?: StudioRecorderPanelProps) {
   const root = createRoot(container);
 
   await act(async () => {
-    root.render(createElement(StudioRecorderPanel, props));
+    root.render(
+      props ? <StudioRecorderPanel {...props} /> : <StudioRecorderPanel />,
+    );
   });
 
   return { container, root };

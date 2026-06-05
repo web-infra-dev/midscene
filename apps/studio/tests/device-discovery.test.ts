@@ -1,6 +1,12 @@
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+type ExecFileCallback = (
+  error: Error | null,
+  stdout: string,
+  stderr: string,
+) => void;
+
 const mocks = vi.hoisted(() => ({
   ensureStudioShellEnvHydrated: vi.fn(),
   getConnectedDevicesWithDetails: vi.fn(),
@@ -38,7 +44,23 @@ vi.mock('../src/main/shell-env', () => ({
   ensureStudioShellEnvHydrated: mocks.ensureStudioShellEnvHydrated,
 }));
 
-import { discoverAllDevices } from '../src/main/playground/device-discovery';
+function finishExecFile(
+  args: unknown[],
+  error: Error | null,
+  stdout = '',
+  stderr = '',
+) {
+  const callback = [...args]
+    .reverse()
+    .find((arg): arg is ExecFileCallback => typeof arg === 'function');
+  callback?.(error, stdout, stderr);
+  return {} as ReturnType<typeof import('node:child_process').execFile>;
+}
+
+import {
+  DEVICE_PLATFORM_DISCOVERY_TIMEOUT_MS,
+  discoverAllDevices,
+} from '../src/main/playground/device-discovery';
 
 describe('discoverAllDevices', () => {
   beforeEach(() => {
@@ -49,13 +71,13 @@ describe('discoverAllDevices', () => {
       mutatedKeys: [],
       reason: 'not-packaged',
     });
-    mocks.execFile.mockImplementation((_command, _args, _options, callback) => {
-      callback(new Error('command not found'), '', '');
-      return {} as ReturnType<typeof import('node:child_process').execFile>;
+    mocks.execFile.mockImplementation((...args) => {
+      return finishExecFile(args, new Error('command not found'));
     });
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -147,6 +169,9 @@ describe('discoverAllDevices', () => {
         signal: expect.any(AbortSignal),
       }),
     );
+    expect(mocks.getConnectedHarmonyDevices).toHaveBeenCalledWith(undefined, {
+      timeout: 5000,
+    });
   });
 
   it('skips the iOS WDA shortcut when the endpoint is reachable but not ready', async () => {
@@ -229,18 +254,15 @@ describe('discoverAllDevices', () => {
     );
     mocks.getConnectedDisplays.mockResolvedValue([]);
     vi.mocked(fetch).mockRejectedValue(new Error('connect ECONNREFUSED'));
-    mocks.execFile.mockImplementation((_command, args, _options, callback) => {
-      const [firstArg] = args as string[];
+    mocks.execFile.mockImplementation((_command, cliArgs, ...args) => {
+      const [firstArg] = cliArgs as string[];
       if (firstArg === 'devices') {
-        callback(null, 'List of devices attached\n\n', '');
-        return {} as ReturnType<typeof import('node:child_process').execFile>;
+        return finishExecFile(args, null, 'List of devices attached\n\n');
       }
       if (firstArg === 'list') {
-        callback(null, '[Empty]\n', '');
-        return {} as ReturnType<typeof import('node:child_process').execFile>;
+        return finishExecFile(args, null, '[Empty]\n');
       }
-      callback(new Error('unexpected command'), '', '');
-      return {} as ReturnType<typeof import('node:child_process').execFile>;
+      return finishExecFile(args, new Error('unexpected command'));
     });
 
     await expect(discoverAllDevices()).resolves.toEqual({
@@ -256,22 +278,20 @@ describe('discoverAllDevices', () => {
     mocks.getConnectedHarmonyDevices.mockResolvedValue([]);
     mocks.getConnectedDisplays.mockResolvedValue([]);
     vi.mocked(fetch).mockRejectedValue(new Error('connect ECONNREFUSED'));
-    mocks.execFile.mockImplementation((_command, args, _options, callback) => {
-      const [firstArg] = args as string[];
+    mocks.execFile.mockImplementation((_command, cliArgs, ...args) => {
+      const [firstArg] = cliArgs as string[];
       if (firstArg === 'devices') {
-        callback(
+        return finishExecFile(
+          args,
           null,
           [
             'List of devices attached',
             'emulator-5554 device product:sdk_gphone model:Pixel_8 device:emu',
             '',
           ].join('\n'),
-          '',
         );
-        return {} as ReturnType<typeof import('node:child_process').execFile>;
       }
-      callback(new Error('unexpected command'), '', '');
-      return {} as ReturnType<typeof import('node:child_process').execFile>;
+      return finishExecFile(args, new Error('unexpected command'));
     });
 
     await expect(discoverAllDevices()).resolves.toEqual({
@@ -289,5 +309,69 @@ describe('discoverAllDevices', () => {
       ],
       errors: [],
     });
+  });
+
+  it('reports Harmony toolchain missing when package and CLI discovery fail', async () => {
+    mocks.getConnectedDevicesWithDetails.mockResolvedValue([]);
+    mocks.getConnectedHarmonyDevices.mockRejectedValue(
+      new Error('HDC command timed out'),
+    );
+    mocks.getConnectedDisplays.mockResolvedValue([]);
+    vi.mocked(fetch).mockRejectedValue(new Error('connect ECONNREFUSED'));
+    mocks.execFile.mockImplementation((_command, cliArgs, ...args) => {
+      const [firstArg] = cliArgs as string[];
+      if (firstArg === 'list') {
+        return finishExecFile(args, new Error('spawn hdc ENOENT'));
+      }
+      return finishExecFile(args, new Error('unexpected command'));
+    });
+
+    await expect(discoverAllDevices()).resolves.toEqual({
+      devices: [],
+      errors: [{ platformId: 'harmony', kind: 'toolchain-missing' }],
+    });
+
+    expect(mocks.getConnectedHarmonyDevices).toHaveBeenCalledWith(undefined, {
+      timeout: 5000,
+    });
+    expect(mocks.debugLog).toHaveBeenCalledWith(
+      'harmony cli fallback failed:',
+      expect.any(Error),
+    );
+  });
+
+  it('keeps discovery responsive when a platform probe never settles', async () => {
+    vi.useFakeTimers();
+    mocks.getConnectedDevicesWithDetails.mockResolvedValue([
+      { udid: 'emulator-5554', label: 'Pixel 8', state: 'device' },
+    ]);
+    mocks.getConnectedHarmonyDevices.mockImplementation(
+      () => new Promise(() => undefined),
+    );
+    mocks.getConnectedDisplays.mockResolvedValue([]);
+    vi.mocked(fetch).mockRejectedValue(new Error('connect ECONNREFUSED'));
+
+    const discovery = discoverAllDevices();
+    await vi.advanceTimersByTimeAsync(DEVICE_PLATFORM_DISCOVERY_TIMEOUT_MS);
+
+    await expect(discovery).resolves.toEqual({
+      devices: [
+        {
+          platformId: 'android',
+          id: 'emulator-5554',
+          label: 'Pixel 8',
+          description: 'ADB: emulator-5554',
+          status: 'device',
+          sessionValues: {
+            deviceId: 'emulator-5554',
+          },
+        },
+      ],
+      errors: [{ platformId: 'harmony', kind: 'toolchain-missing' }],
+    });
+
+    expect(mocks.debugLog).toHaveBeenCalledWith(
+      `harmony scan timed out after ${DEVICE_PLATFORM_DISCOVERY_TIMEOUT_MS}ms`,
+    );
   });
 });
