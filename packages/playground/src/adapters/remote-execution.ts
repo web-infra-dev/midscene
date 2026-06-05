@@ -512,7 +512,6 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId,
-          callbackUrlBase: this.serverUrl,
         }),
       });
       const data = (await response.json().catch(() => null)) as {

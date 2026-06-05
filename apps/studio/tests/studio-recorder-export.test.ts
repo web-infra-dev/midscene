@@ -100,9 +100,17 @@ describe('studio recorder export', () => {
       { base64: true },
     );
     const markdown = await zip.file('recording.md')?.async('string');
+    const manifest = JSON.parse(
+      (await zip.file('recording.manifest.json')?.async('string')) || '{}',
+    );
 
     expect(markdown).toContain('# Replay login');
+    expect(markdown).toContain('not AI-generated');
     expect(markdown).toContain('./screenshots/event-001-click.png');
+    expect(manifest).toMatchObject({
+      aiGenerated: false,
+      markdownSource: 'local-fallback',
+    });
     expect(zip.file('screenshots/event-001-click.png')).toBeTruthy();
   });
 
@@ -149,10 +157,19 @@ describe('studio recorder export', () => {
     );
     const markdownFileName = 'markdown/replay-login-session-1.md';
     const markdown = await zip.file(markdownFileName)?.async('string');
+    const manifest = JSON.parse(
+      (await zip
+        .file('markdown/replay-login-session-1.manifest.json')
+        ?.async('string')) || '{}',
+    );
 
     expect(markdown).toContain(
       './replay-login-session-1/screenshots/event-001-navigation.png',
     );
+    expect(manifest).toMatchObject({
+      aiGenerated: true,
+      markdownSource: 'ai',
+    });
     expect(
       zip.file(
         'markdown/replay-login-session-1/screenshots/event-001-navigation.png',

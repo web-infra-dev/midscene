@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
+  compositePointMarkerImg,
   httpImg2Base64,
   imageInfoOfBase64,
   isValidPNGImageBuffer,
@@ -109,6 +110,23 @@ describe('image utils', () => {
       height: 100,
     });
     expect(resizedBase64).toContain(';base64,');
+  });
+
+  it('compositePointMarkerImg keeps image dimensions and marks a point', async () => {
+    const image = getFixture('icon.png');
+    const base64 = localImg2Base64(image);
+
+    const markedBase64 = await compositePointMarkerImg({
+      inputImgBase64: base64,
+      point: { x: 20, y: 20 },
+    });
+
+    expect(markedBase64).toContain(';base64,');
+    expect(markedBase64).not.toBe(base64);
+
+    const originalInfo = await imageInfoOfBase64(base64);
+    const markedInfo = await imageInfoOfBase64(markedBase64);
+    expect(markedInfo).toEqual(originalInfo);
   });
 
   it('paddingToMatchBlockByBase64', async () => {

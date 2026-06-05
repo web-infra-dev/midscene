@@ -8,8 +8,11 @@ import {
 } from 'react';
 import type { StudioPlatformId } from '../../../shared/electron-contract';
 import { STUDIO_EXTERNAL_LINKS } from '../../../shared/external-links';
+import type { UpdateStatus } from '../../../shared/updater-contract';
+import { assetUrls } from '../../assets';
 import { useStudioUpdater } from '../../hooks/useStudioUpdater';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
+import type { StudioRecorderPanelMode } from '../../recorder/types';
 import MainContent from '../MainContent';
 import Playground from '../Playground';
 import SettingsPanel from '../SettingsPanel';
@@ -31,6 +34,16 @@ const SIDEBAR_MAX_WIDTH = 400;
 const PLAYGROUND_DEFAULT_WIDTH = 400;
 const PLAYGROUND_MIN_WIDTH = 320;
 const PLAYGROUND_MAX_WIDTH = 720;
+const RECORDER_PANEL_CONTENT_WIDTH = 320;
+const RECORDER_PANEL_RIGHT_OFFSET = 12;
+const RECORDER_OVERLAY_WIDTH =
+  RECORDER_PANEL_CONTENT_WIDTH + RECORDER_PANEL_RIGHT_OFFSET;
+const SIDEBAR_COLLAPSED_WIDTH = 0;
+const COLLAPSED_TITLEBAR_INSET = 280;
+const TITLEBAR_CONTROL_TOP = 11;
+const UPDATE_PILL_LEFT = 128;
+const SIDEBAR_TOGGLE_LEFT = 98;
+const SIDEBAR_TRANSITION_CLASS = 'duration-200 ease-[cubic-bezier(0.2,0,0,1)]';
 
 const requireElectronShell = () => {
   if (!window.electronShell) {
@@ -56,8 +69,102 @@ function readPersistedWidth(
   return Math.min(max, Math.max(min, num));
 }
 
+function SidebarCollapseIcon({ collapsed }: { collapsed: boolean }) {
+  return (
+    <img
+      alt=""
+      aria-hidden="true"
+      className="h-[14px] w-[16px]"
+      src={collapsed ? assetUrls.sidebar.expand : assetUrls.sidebar.collapse}
+    />
+  );
+}
+
+function formatUpdatePercent(percent: number): string {
+  return `${Math.min(100, Math.max(0, Math.round(percent)))}%`;
+}
+
+function UpdatePill({
+  onDownload,
+  onInstall,
+  onOpenDownloadPage,
+  status,
+}: {
+  onDownload: () => void;
+  onInstall: () => void;
+  onOpenDownloadPage?: () => void;
+  status: UpdateStatus;
+}) {
+  if (
+    status.state !== 'available' &&
+    status.state !== 'downloading' &&
+    status.state !== 'downloaded'
+  ) {
+    return null;
+  }
+
+  const isDownloading = status.state === 'downloading';
+  const label = isDownloading
+    ? formatUpdatePercent(status.percent)
+    : status.state === 'downloaded'
+      ? 'Restart'
+      : 'Update';
+  const title =
+    status.state === 'downloaded'
+      ? 'Restart to install update'
+      : isDownloading
+        ? `Downloading update ${label}`
+        : 'Update available';
+
+  return (
+    <button
+      aria-label={title}
+      className="app-no-drag box-border inline-flex items-center gap-[4px] rounded-[40px] border-0 bg-[#DEEBEC] p-[5px] font-sans text-[11px] font-medium leading-[12px] text-[#1A79FF]"
+      disabled={isDownloading}
+      onClick={() => {
+        if (status.state === 'available') {
+          if (status.externalDownloadOnly && onOpenDownloadPage) {
+            onOpenDownloadPage();
+            return;
+          }
+          onDownload();
+          return;
+        }
+        if (status.state === 'downloaded') {
+          onInstall();
+        }
+      }}
+      title={title}
+      type="button"
+    >
+      <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full bg-[#1A79FF] text-white">
+        <svg
+          aria-hidden="true"
+          fill="none"
+          height="11"
+          viewBox="0 0 11 11"
+          width="11"
+        >
+          <path
+            d="M5.5 1.8v6.1M3 5.5l2.5 2.5L8 5.5"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="1.7"
+          />
+        </svg>
+      </span>
+      <span className="h-[12px] overflow-hidden whitespace-nowrap text-left">
+        {label}
+      </span>
+    </button>
+  );
+}
+
 export default function ShellLayout() {
   const [activeView, setActiveView] = useState<ShellActiveView>('overview');
+  const [rightPanelMode, setRightPanelMode] =
+    useState<StudioRecorderPanelMode>('playground');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modelModalOpen, setModelModalOpen] = useState(false);
   // Bridges the gap between any device-click path (Sidebar row, Overview
@@ -90,6 +197,7 @@ export default function ShellLayout() {
       PLAYGROUND_MAX_WIDTH,
     ),
   );
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const settingsAnchorRef = useRef<HTMLDivElement | null>(null);
   const updater = useStudioUpdater();
   const modelConfigComplete = useMemo(
@@ -219,9 +327,12 @@ export default function ShellLayout() {
   );
 
   const mainAreaStyle: CSSProperties = {
-    left: sidebarWidth,
+    left: sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : sidebarWidth,
     ['--studio-playground-width' as string]: `${playgroundWidth}px`,
   };
+  const shouldShowRightPanel = activeView !== 'overview';
+  const recorderPanelActive =
+    shouldShowRightPanel && rightPanelMode === 'recorder';
 
   // When the OS window loses focus, replace the translucent vibrancy
   // background with a flat solid panel — matching macOS's own inactive
@@ -230,18 +341,23 @@ export default function ShellLayout() {
   const sidebarBgClassName = windowFocused
     ? ''
     : 'bg-[#F4F5F6] dark:bg-[#292929]';
-
+  const sidebarPanelStyle: CSSProperties = {
+    transform: sidebarCollapsed
+      ? `translateX(-${sidebarWidth}px)`
+      : 'translateX(0)',
+    width: sidebarWidth,
+  };
   return (
     <div
       className={`relative h-full w-full overflow-hidden font-sans ${
         windowFocused ? '' : 'bg-app-bg'
       }`}
     >
-      <div className="app-drag absolute left-0 right-0 top-0 z-10 h-[52px]" />
+      <div className="app-drag absolute left-0 right-0 top-0 z-10 h-[48px]" />
 
       <div
-        className={`absolute left-0 top-0 h-full ${sidebarBgClassName}`}
-        style={{ width: sidebarWidth }}
+        className={`absolute left-0 top-0 z-30 h-full overflow-visible transition-transform ${SIDEBAR_TRANSITION_CLASS} ${sidebarBgClassName}`}
+        style={sidebarPanelStyle}
       >
         <div className="absolute left-[4px] right-[4px] top-[52px] overflow-hidden">
           <Sidebar
@@ -283,23 +399,24 @@ export default function ShellLayout() {
           )}
           <SidebarFooter
             envAlert={!modelConfigComplete}
-            hasUpdateReady={updater.hasUpdateReady}
             onEnvClick={openEnvModal}
             onToggleSettings={() => setSettingsOpen((prev) => !prev)}
             settingsOpen={settingsOpen}
           />
         </div>
 
-        <div
-          aria-hidden
-          className="app-no-drag absolute right-0 top-0 z-30 h-full w-[4px] cursor-col-resize hover:bg-border-subtle"
-          onMouseDown={(event) => startResize('sidebar', event)}
-          style={{ touchAction: 'none' }}
-        />
+        {!sidebarCollapsed && (
+          <div
+            aria-hidden
+            className="app-no-drag absolute right-0 top-0 z-30 h-full w-[4px] cursor-col-resize hover:bg-border-subtle"
+            onMouseDown={(event) => startResize('sidebar', event)}
+            style={{ touchAction: 'none' }}
+          />
+        )}
       </div>
 
       <div
-        className="absolute bottom-[4px] right-[4px] top-[4px] z-20 flex rounded-[12px] bg-surface"
+        className={`absolute bottom-[4px] right-[4px] top-[0px] z-20 flex rounded-[12px] bg-surface transition-[left] ${SIDEBAR_TRANSITION_CLASS}`}
         style={mainAreaStyle}
       >
         <MainContent
@@ -308,21 +425,89 @@ export default function ShellLayout() {
           modelEnvText={modelEnvText}
           onOpenEnvModal={openEnvModal}
           onPendingCreatePlatformChange={setPendingCreatePlatform}
+          onRightPanelModeChange={setRightPanelMode}
           onSelectDeviceView={() => setActiveView('device')}
           onSelectOverview={selectOverview}
           pendingCreatePlatform={pendingCreatePlatform}
+          rightPanelMode={rightPanelMode}
+          titlebarInsetLeft={
+            sidebarCollapsed ? COLLAPSED_TITLEBAR_INSET : undefined
+          }
         />
-        {activeView !== 'overview' && (
+        {shouldShowRightPanel && (
           <>
+            {recorderPanelActive ? null : (
+              <div
+                aria-hidden
+                className="app-no-drag absolute top-0 z-30 h-full w-[4px] cursor-col-resize hover:bg-border-subtle"
+                onMouseDown={(event) => startResize('playground', event)}
+                style={{ right: playgroundWidth - 2, touchAction: 'none' }}
+              />
+            )}
             <div
-              aria-hidden
-              className="app-no-drag absolute top-0 z-30 h-full w-[4px] cursor-col-resize hover:bg-border-subtle"
-              onMouseDown={(event) => startResize('playground', event)}
-              style={{ right: playgroundWidth - 2, touchAction: 'none' }}
-            />
-            <Playground />
+              className={
+                recorderPanelActive
+                  ? 'pointer-events-none absolute bottom-0 right-0 top-[52px] z-20 overflow-visible bg-transparent'
+                  : 'relative z-0 flex h-full min-h-0'
+              }
+              style={
+                recorderPanelActive
+                  ? { width: RECORDER_OVERLAY_WIDTH }
+                  : undefined
+              }
+            >
+              <Playground
+                onRightPanelModeChange={setRightPanelMode}
+                rightPanelMode={rightPanelMode}
+              />
+            </div>
           </>
         )}
+      </div>
+
+      <div
+        className="app-no-drag absolute z-[80]"
+        style={{
+          left: UPDATE_PILL_LEFT,
+          top: TITLEBAR_CONTROL_TOP,
+        }}
+      >
+        <UpdatePill
+          onDownload={() => {
+            void updater.download();
+          }}
+          onInstall={() => {
+            void updater.install();
+          }}
+          onOpenDownloadPage={() =>
+            openExternalUrl(STUDIO_EXTERNAL_LINKS.studioReleases)
+          }
+          status={updater.status}
+        />
+      </div>
+
+      <div
+        className={`app-no-drag absolute z-[80] flex items-center gap-[8px] transition-[opacity,transform] ${SIDEBAR_TRANSITION_CLASS}`}
+        style={{ left: SIDEBAR_TOGGLE_LEFT, top: TITLEBAR_CONTROL_TOP }}
+      >
+        <button
+          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-pressed={sidebarCollapsed}
+          className="app-no-drag flex h-[22px] w-[22px] cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-text-secondary transition-transform duration-150 ease-out active:scale-90"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setSidebarCollapsed((prev) => !prev);
+          }}
+          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          type="button"
+        >
+          <SidebarCollapseIcon collapsed={sidebarCollapsed} />
+        </button>
       </div>
 
       <ModelEnvConfigModal

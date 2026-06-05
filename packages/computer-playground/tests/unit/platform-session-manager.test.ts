@@ -5,10 +5,8 @@ const checkScreenRecordingPermissionMock = vi.fn();
 const getConnectedDisplaysMock = vi.fn();
 const agentFromComputerMock = vi.fn();
 const findAvailablePortMock = vi.fn(async (port: number) => port);
-const computerNativeEventRecorderMock = vi.fn();
 
 vi.mock('@midscene/computer', () => ({
-  ComputerNativeEventRecorder: computerNativeEventRecorderMock,
   agentFromComputer: agentFromComputerMock,
   checkAccessibilityPermission: checkAccessibilityPermissionMock,
   checkScreenRecordingPermission: checkScreenRecordingPermissionMock,
@@ -36,21 +34,6 @@ describe('computerPlaygroundPlatform session manager', () => {
     checkScreenRecordingPermissionMock.mockReturnValue({
       hasPermission: true,
     });
-    computerNativeEventRecorderMock.mockImplementation(() => ({
-      getCapabilities: () => ({
-        supported: true,
-        source: 'computer-native',
-        platformId: 'computer',
-      }),
-      start: vi.fn(async () => ({
-        ok: true,
-        supported: true,
-        source: 'computer-native',
-        platformId: 'computer',
-      })),
-      stop: vi.fn(async () => {}),
-      getEvents: vi.fn(async () => ({ events: [], nextIndex: 0 })),
-    }));
     getConnectedDisplaysMock.mockResolvedValue([
       {
         id: 1,
@@ -129,12 +112,6 @@ describe('computerPlaygroundPlatform session manager', () => {
     expect(created?.metadata).toMatchObject({
       displayId: 1,
       executionUx: 'countdown-before-run',
-    });
-    expect(created?.recorderSource).toBeTruthy();
-    expect(computerNativeEventRecorderMock).toHaveBeenCalledWith({
-      displayId: 1,
-      displayName: 'Primary display',
-      screenshot: expect.any(Function),
     });
   });
 });

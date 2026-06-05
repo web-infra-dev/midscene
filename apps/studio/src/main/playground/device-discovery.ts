@@ -1,3 +1,6 @@
+import { execFile } from 'node:child_process';
+import path from 'node:path';
+import { promisify } from 'node:util';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
 import type {
@@ -26,7 +29,9 @@ function toolchainMissing(
 const debugLog = getDebug('studio:device-discovery', { console: true });
 const IOS_WDA_DISCOVERY_HOST = 'localhost';
 const IOS_WDA_DISCOVERY_TIMEOUT_MS = 1000;
+const DEVICE_CLI_DISCOVERY_TIMEOUT_MS = 5000;
 export const DEVICE_DISCOVERY_POLL_INTERVAL_MS = 5000;
+const execFileAsync = promisify(execFile);
 
 export interface DeviceDiscoveryService {
   close(): void;
@@ -56,6 +61,140 @@ interface WDAStatusResponse {
 
 function isString(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0;
+}
+
+function uniqueStrings(values: Array<string | undefined>): string[] {
+  return Array.from(new Set(values.filter(isString)));
+}
+
+function getPlatformExecutableName(name: string): string {
+  return process.platform === 'win32' ? `${name}.exe` : name;
+}
+
+async function execFirstAvailable(
+  candidates: string[],
+  args: string[],
+): Promise<string> {
+  let lastError: unknown;
+
+  for (const candidate of uniqueStrings(candidates)) {
+    try {
+      const { stdout } = await execFileAsync(candidate, args, {
+        encoding: 'utf8',
+        timeout: DEVICE_CLI_DISCOVERY_TIMEOUT_MS,
+        windowsHide: true,
+      });
+      return stdout;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError ?? new Error('No executable candidate provided');
+}
+
+function resolveAdbCandidates(): string[] {
+  const adbName = getPlatformExecutableName('adb');
+  return uniqueStrings([
+    process.env.ANDROID_HOME
+      ? path.join(process.env.ANDROID_HOME, 'platform-tools', adbName)
+      : undefined,
+    process.env.ANDROID_SDK_ROOT
+      ? path.join(process.env.ANDROID_SDK_ROOT, 'platform-tools', adbName)
+      : undefined,
+    adbName,
+  ]);
+}
+
+function resolveHdcCandidates(): string[] {
+  const hdcName = getPlatformExecutableName('hdc');
+  const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+  return uniqueStrings([
+    process.env.HDC_HOME ? path.join(process.env.HDC_HOME, hdcName) : undefined,
+    homeDir
+      ? path.join(
+          homeDir,
+          'Library/HarmonyOS/next/command-line-tools/sdk/default/openharmony/toolchains',
+          hdcName,
+        )
+      : undefined,
+    homeDir
+      ? path.join(
+          homeDir,
+          'Library/HarmonyOS/sdk/hmscore/3.1.0/toolchains',
+          hdcName,
+        )
+      : undefined,
+    hdcName,
+  ]);
+}
+
+function parseAdbDevices(stdout: string): DiscoveredDevice[] {
+  return stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(
+      (line) =>
+        line &&
+        !line.startsWith('List of devices') &&
+        !line.startsWith('* daemon'),
+    )
+    .map((line) => {
+      const parts = line.split(/\s+/);
+      const udid = parts[0];
+      const status = parts[1] || 'unknown';
+      const model = line.match(/\bmodel:([^\s]+)/)?.[1]?.replace(/_/g, ' ');
+      return {
+        platformId: 'android' as const,
+        id: udid,
+        label: model || udid,
+        description: `ADB: ${udid}`,
+        status,
+        sessionValues: {
+          deviceId: udid,
+        },
+      };
+    })
+    .filter((device) => Boolean(device.id));
+}
+
+function parseHdcTargets(stdout: string): DiscoveredDevice[] {
+  return stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(
+      (line) =>
+        line &&
+        !line.startsWith('[') &&
+        line.toLowerCase() !== 'empty' &&
+        line.toLowerCase() !== '[empty]',
+    )
+    .map((deviceId) => ({
+      platformId: 'harmony' as const,
+      id: deviceId,
+      label: deviceId,
+      description: `HDC: ${deviceId}`,
+      status: 'device',
+      sessionValues: {
+        deviceId,
+      },
+    }));
+}
+
+async function scanAndroidDevicesFromCli(): Promise<PlatformScanResult> {
+  const stdout = await execFirstAvailable(resolveAdbCandidates(), [
+    'devices',
+    '-l',
+  ]);
+  return { devices: parseAdbDevices(stdout) };
+}
+
+async function scanHarmonyDevicesFromCli(): Promise<PlatformScanResult> {
+  const stdout = await execFirstAvailable(resolveHdcCandidates(), [
+    'list',
+    'targets',
+  ]);
+  return { devices: parseHdcTargets(stdout) };
 }
 
 function buildIOSDiscoveryLabel(status: WDAStatusResponse): string {
@@ -253,7 +392,12 @@ async function scanAndroidDevices(): Promise<PlatformScanResult> {
     };
   } catch (err) {
     debugLog('android scan failed:', err);
-    return { devices: [], error: toolchainMissing('android') };
+    try {
+      return await scanAndroidDevicesFromCli();
+    } catch (fallbackError) {
+      debugLog('android cli fallback failed:', fallbackError);
+      return { devices: [], error: toolchainMissing('android') };
+    }
   }
 }
 
@@ -332,7 +476,12 @@ async function scanHarmonyDevices(): Promise<PlatformScanResult> {
     };
   } catch (err) {
     debugLog('harmony scan failed:', err);
-    return { devices: [], error: toolchainMissing('harmony') };
+    try {
+      return await scanHarmonyDevicesFromCli();
+    } catch (fallbackError) {
+      debugLog('harmony cli fallback failed:', fallbackError);
+      return { devices: [], error: toolchainMissing('harmony') };
+    }
   }
 }
 

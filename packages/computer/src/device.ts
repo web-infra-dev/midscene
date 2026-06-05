@@ -44,6 +44,11 @@ interface NativeDisplayInfoResponse {
   displays?: DarwinDisplayGeometry[];
 }
 
+interface DarwinFrontmostApplication {
+  pid: number;
+  name: string;
+}
+
 export interface DarwinDisplayGeometry {
   screenIndex: number;
   cgDisplayId: number;
@@ -67,7 +72,9 @@ const SMOOTH_MOVE_STEPS_MOUSE_MOVE = 10;
 const SMOOTH_MOVE_DELAY_TAP = 8;
 const SMOOTH_MOVE_DELAY_MOUSE_MOVE = 10;
 const MOUSE_MOVE_EFFECT_WAIT = 300;
-const CLICK_HOLD_DURATION = 50;
+const CLICK_SETTLE_DELAY = 50;
+const CLICK_HOLD_DURATION = 100;
+const CLICK_FOCUS_SETTLE_DELAY = 120;
 const INPUT_FOCUS_DELAY = 300;
 const INPUT_CLEAR_DELAY = 150;
 const SCROLL_REPEAT_COUNT = 10;
@@ -217,6 +224,7 @@ async function getLibnut(): Promise<LibNut> {
 }
 
 const debugDevice = getDebug('computer:device');
+const debugComputerInput = getDebug('computer:input', { console: true });
 
 function resolvePackageRoot(helperName: string): string | null {
   const require = createRequire(import.meta.url);
@@ -346,18 +354,85 @@ export function readDarwinDisplayGeometries(): DarwinDisplayGeometry[] {
   }
 }
 
+function readDarwinFrontmostApplication():
+  | DarwinFrontmostApplication
+  | undefined {
+  try {
+    const output = execFileSync('osascript', [
+      '-e',
+      [
+        'tell application "System Events"',
+        'set frontApp to first application process whose frontmost is true',
+        'return (unix id of frontApp as string) & "\t" & (name of frontApp as string)',
+        'end tell',
+      ].join('\n'),
+    ])
+      .toString()
+      .trim();
+    const [pidText, ...nameParts] = output.split('\t');
+    const pid = Number(pidText);
+    if (!Number.isInteger(pid) || pid <= 0) return undefined;
+    return { pid, name: nameParts.join('\t') };
+  } catch (error) {
+    debugDevice('Failed to read macOS frontmost application:', error);
+    return undefined;
+  }
+}
+
+async function pressMouseAtGlobalPoint(
+  inputDriver: ComputerInputDriver,
+  targetX: number,
+  targetY: number,
+  holdDuration: number,
+  reason: 'primary' | 'focus-follow-up',
+): Promise<void> {
+  await inputDriver.delay(CLICK_SETTLE_DELAY);
+  const current = inputDriver.getMousePos();
+  debugComputerInput('tap mouse moved %o', {
+    reason,
+    target: { x: targetX, y: targetY },
+    current,
+    drift: { x: current.x - targetX, y: current.y - targetY },
+  });
+  await inputDriver.withMouseButton('left', async () => {
+    debugComputerInput('tap mouse down %o', { reason });
+    await inputDriver.delay(holdDuration);
+  });
+  debugComputerInput('tap mouse up %o', { reason });
+}
+
+/** @internal exported for unit tests — do not consume from outside this package */
+export function resolveDarwinDisplayGeometryFromList(
+  displayId: string | undefined,
+  displays: DarwinDisplayGeometry[],
+): DarwinDisplayGeometry | undefined {
+  if (!displays.length) return undefined;
+  const screenIndex =
+    displayId === undefined || displayId === '' ? 0 : Number(displayId);
+  if (!Number.isInteger(screenIndex) || screenIndex < 0) {
+    debugDevice('Invalid macOS display id for display geometry:', displayId);
+    return undefined;
+  }
+  if (displayId === undefined || displayId === '') {
+    return (
+      displays.find((display) => display.primary) ||
+      displays.find((display) => display.screenIndex === 0) ||
+      displays[0]
+    );
+  }
+  return (
+    displays.find((display) => display.screenIndex === screenIndex) ||
+    displays.find((display) => display.cgDisplayId === screenIndex)
+  );
+}
+
 function resolveDisplayGeometry(
   displayId: string | undefined,
 ): DarwinDisplayGeometry | undefined {
   if (process.platform !== 'darwin') return undefined;
-  const screenIndex =
-    displayId === undefined || displayId === '' ? 0 : Number(displayId);
-  if (!Number.isInteger(screenIndex) || screenIndex < 0) {
-    debugDevice('Invalid macOS screen index for display geometry:', displayId);
-    return undefined;
-  }
-  return readDarwinDisplayGeometries().find(
-    (display) => display.screenIndex === screenIndex,
+  return resolveDarwinDisplayGeometryFromList(
+    displayId,
+    readDarwinDisplayGeometries(),
   );
 }
 
@@ -528,20 +603,67 @@ export class ComputerDevice implements AbstractInterface {
 
   readonly inputPrimitives: ComputerInputPrimitives = {
     pointer: {
-      tap: async ({ x, y }) => {
+      tap: async ({ x, y }, opts) => {
         const target = this.toGlobalPoint({ x, y });
         const targetX = Math.round(target.x);
         const targetY = Math.round(target.y);
+        const holdDuration = Math.max(
+          0,
+          Math.round(opts?.duration ?? CLICK_HOLD_DURATION),
+        );
+        debugComputerInput('tap start %o', {
+          local: { x, y },
+          global: { x: targetX, y: targetY },
+          holdDuration,
+          displayId: this.displayId,
+          displayGeometry: this.displayGeometry
+            ? {
+                screenIndex: this.displayGeometry.screenIndex,
+                cgDisplayId: this.displayGeometry.cgDisplayId,
+                bounds: this.displayGeometry.bounds,
+              }
+            : undefined,
+        });
 
+        const frontmostBefore =
+          process.platform === 'darwin'
+            ? readDarwinFrontmostApplication()
+            : undefined;
         await this.inputDriver.smoothMoveMouse(
           targetX,
           targetY,
           SMOOTH_MOVE_STEPS_TAP,
           SMOOTH_MOVE_DELAY_TAP,
         );
-        await this.inputDriver.withMouseButton('left', async () => {
-          await this.inputDriver.delay(CLICK_HOLD_DURATION);
-        });
+        await pressMouseAtGlobalPoint(
+          this.inputDriver,
+          targetX,
+          targetY,
+          holdDuration,
+          'primary',
+        );
+
+        if (frontmostBefore && process.platform === 'darwin') {
+          await sleep(CLICK_FOCUS_SETTLE_DELAY);
+          const frontmostAfter = readDarwinFrontmostApplication();
+          const focusChanged =
+            !!frontmostAfter && frontmostAfter.pid !== frontmostBefore.pid;
+          debugComputerInput('tap focus check %o', {
+            before: frontmostBefore,
+            after: frontmostAfter,
+            focusChanged,
+          });
+          if (focusChanged) {
+            this.inputDriver.moveMouse(targetX, targetY);
+            await pressMouseAtGlobalPoint(
+              this.inputDriver,
+              targetX,
+              targetY,
+              holdDuration,
+              'focus-follow-up',
+            );
+          }
+        }
       },
       doubleClick: async ({ x, y }) => {
         const target = this.toGlobalPoint({ x, y });

@@ -5,11 +5,22 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { StudioPlaygroundContext } from '../src/renderer/playground/useStudioPlayground';
 import { StudioRecorderProvider } from '../src/renderer/recorder/StudioRecorderProvider';
-import { generateStudioRecorderCodeWithAI } from '../src/renderer/recorder/codegen';
+import {
+  describeStudioRecorderEventsWithAI,
+  generateStudioRecorderCodeWithAI,
+} from '../src/renderer/recorder/codegen';
 import type { StudioRecorderContextValue } from '../src/renderer/recorder/types';
 import { useStudioRecorder } from '../src/renderer/recorder/useStudioRecorder';
 
 vi.mock('../src/renderer/recorder/codegen', () => ({
+  describeStudioRecorderEventsWithAI: vi.fn(async (events) =>
+    events.map((event) => ({
+      ...event,
+      elementDescription: 'AI described target',
+      descriptionLoading: false,
+      descriptionSource: 'ai',
+    })),
+  ),
   generateStudioRecorderCodeWithAI: vi.fn(async (_session, options) => {
     const type = options?.type || 'markdown';
     options?.onChunk?.(`partial ${type}\n`);
@@ -52,7 +63,11 @@ function RecorderProbe({
 }
 
 function createConnectedStudioContext({
-  startResult = { ok: true, supported: true, source: 'web-dom' as const },
+  startResult = {
+    ok: true,
+    supported: true,
+    source: 'studio-preview' as const,
+  },
   events = [],
 }: {
   startResult?: {
@@ -180,11 +195,11 @@ async function mountRecorder(context: StudioPlaygroundContextValue) {
   };
 }
 
-describe('StudioRecorderProvider platform source recording', () => {
-  it('records events emitted by the playground recorder source', async () => {
+describe('StudioRecorderProvider preview recording', () => {
+  it('records events emitted by the playground preview recorder', async () => {
     const event = {
       type: 'click',
-      source: 'web-dom',
+      source: 'studio-preview',
       elementDescription: 'Introduction',
       elementRect: { x: 10, y: 20 },
       pageInfo: { width: 1200, height: 800 },
@@ -215,10 +230,78 @@ describe('StudioRecorderProvider platform source recording', () => {
     await mounted.cleanup();
   });
 
-  it('drains final recorder source events when recording stops', async () => {
+  it('updates preview events with AI descriptions after recording', async () => {
+    const event = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      elementRect: { x: 10, y: 20 },
+      pageInfo: { width: 1200, height: 800 },
+      screenshotAfter: 'data:image/png;base64,shot',
+      timestamp: 123,
+      hashId: 'click-described',
+    };
+    const { context } = createConnectedStudioContext({ events: [event] });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(describeStudioRecorderEventsWithAI).toHaveBeenCalledWith(
+      [expect.objectContaining({ hashId: 'click-described' })],
+      expect.any(Object),
+    );
+    expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
+      hashId: 'click-described',
+      elementDescription: 'AI described target',
+      descriptionLoading: false,
+      descriptionSource: 'ai',
+    });
+
+    await mounted.cleanup();
+  });
+
+  it('marks failed preview descriptions as fallback instead of leaving them pending', async () => {
+    vi.mocked(describeStudioRecorderEventsWithAI).mockRejectedValueOnce(
+      new Error('model unavailable'),
+    );
+    const event = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      elementRect: { x: 30, y: 40 },
+      pageInfo: { width: 1200, height: 800 },
+      screenshotAfter: 'data:image/png;base64,shot',
+      timestamp: 456,
+      hashId: 'click-fallback',
+    };
+    const { context } = createConnectedStudioContext({ events: [event] });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
+      hashId: 'click-fallback',
+      elementDescription: 'target element in the current visible UI',
+      descriptionLoading: false,
+      descriptionSource: 'fallback',
+      semanticConfidence: 'low',
+    });
+
+    await mounted.cleanup();
+  });
+
+  it('drains final preview recorder events when recording stops', async () => {
     const finalEvent = {
       type: 'click',
-      source: 'computer-native',
+      source: 'studio-preview',
       actionType: 'Click',
       elementDescription: '(30, 40)',
       elementRect: { x: 30, y: 40 },
@@ -287,13 +370,13 @@ describe('StudioRecorderProvider platform source recording', () => {
     await mounted.cleanup();
   });
 
-  it('stops recording when the current platform has no recorder source', async () => {
+  it('stops recording when the current target has no preview recorder support', async () => {
     const { context } = createConnectedStudioContext({
       startResult: {
         ok: false,
         supported: false,
         source: 'unsupported',
-        error: 'No native recorder source is registered for computer.',
+        error: 'Preview recording is unavailable for computer.',
       },
     });
     const mounted = await mountRecorder(context);
@@ -305,7 +388,7 @@ describe('StudioRecorderProvider platform source recording', () => {
 
     expect(mounted.recorder?.state.isRecording).toBe(false);
     expect(mounted.recorder?.state.error).toBe(
-      'No native recorder source is registered for computer.',
+      'Preview recording is unavailable for computer.',
     );
 
     await mounted.cleanup();
@@ -314,7 +397,7 @@ describe('StudioRecorderProvider platform source recording', () => {
   it('generates and persists AI YAML for the current session', async () => {
     const event = {
       type: 'click',
-      source: 'computer-native',
+      source: 'studio-preview',
       actionType: 'Click',
       elementDescription: '(10, 20)',
       elementRect: { x: 10, y: 20 },
@@ -397,7 +480,7 @@ describe('StudioRecorderProvider platform source recording', () => {
   it('generates Markdown by default for the current session', async () => {
     const event = {
       type: 'click',
-      source: 'computer-native',
+      source: 'studio-preview',
       actionType: 'Click',
       elementDescription: '(10, 20)',
       elementRect: { x: 10, y: 20 },

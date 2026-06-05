@@ -1,11 +1,12 @@
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { callAIWithStringResponse } from '../../../src/ai-model';
+import { getModelRuntime } from '../../../src/ai-model/models';
 import {
   createRecorderMarkdownReplayPrompt,
   generateRecorderMarkdownReplay,
 } from '../../../src/ai-model/prompt/markdown-generator';
-import type { ChromeRecordedEvent } from '../../../src/ai-model/prompt/yaml-generator';
+import type { ChromeRecordedEvent } from '../../../src/ai-model/prompt/recorder-generation-common';
 
 vi.mock('../../../src/ai-model', () => ({
   callAIWithStringResponse: vi.fn(),
@@ -19,6 +20,7 @@ const mockedModelConfig = {
   intent: 'default',
   slot: 'default',
 } as const satisfies IModelConfig;
+const mockedModelRuntime = getModelRuntime(mockedModelConfig);
 
 const screenshot =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ';
@@ -104,7 +106,7 @@ describe('markdown-generator', () => {
 
     expect(mockCallAIWithStringResponse).toHaveBeenCalledWith(
       expect.any(Array),
-      mockedModelConfig,
+      mockedModelRuntime,
     );
   });
 });

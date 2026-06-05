@@ -124,24 +124,6 @@ export interface PlaygroundRecorderEventsResult {
   nextIndex: number;
 }
 
-export interface PlaygroundRecorderPreviewInteract {
-  sessionId: string;
-  payload: Record<string, unknown>;
-  event: PlaygroundRecorderEvent;
-}
-
-export interface PlaygroundRecorderSource {
-  getCapabilities():
-    | PlaygroundRecorderCapabilitiesResult
-    | Promise<PlaygroundRecorderCapabilitiesResult>;
-  start(sessionId: string): Promise<PlaygroundRecorderStartResult>;
-  stop(): Promise<void>;
-  getEvents(since?: number): Promise<PlaygroundRecorderEventsResult>;
-  onPreviewInteract?(
-    input: PlaygroundRecorderPreviewInteract,
-  ): void | Promise<void>;
-}
-
 export interface PlaygroundSessionState {
   connected: boolean;
   displayName?: string;
@@ -161,7 +143,6 @@ export interface PlaygroundCreatedSession {
   platformDescription?: string;
   executionHooks?: PlaygroundExecutionHooks;
   sidecars?: PlaygroundSidecar[];
-  recorderSource?: PlaygroundRecorderSource;
 }
 
 export interface PlaygroundSessionManager {

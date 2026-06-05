@@ -83,6 +83,8 @@ export function PreviewRenderer({
   // the real stream resolution by a few pixels.
   const [streamSize, setStreamSize] = useState<DeviceSize | null>(null);
   const [actionTypes, setActionTypes] = useState<string[] | null>(null);
+  const [scrcpyStatus, setScrcpyStatus] =
+    useState<ScrcpyPreviewStatus>('connecting');
   const manualControlQueueRef = useRef<Promise<unknown>>(Promise.resolve());
   // Shared with the active preview component (ScrcpyPanel / ScreenshotViewer)
   // and the interaction layer so pointer coords always project against the
@@ -308,6 +310,17 @@ export function PreviewRenderer({
     previewConnection.type === 'scrcpy' &&
     !WebCodecsVideoDecoder.isSupported &&
     isNonLocalhostHttp();
+  const previewInteractionEnabled =
+    previewConnection.type !== 'none' &&
+    (!scrcpyAvailable || scrcpyStatus === 'connected');
+
+  const handleScrcpyStatusChange = useCallback(
+    (status: ScrcpyPreviewStatus, statusText: string) => {
+      setScrcpyStatus(status);
+      onScrcpyStatusChange?.(status, statusText);
+    },
+    [onScrcpyStatusChange],
+  );
 
   return (
     <div
@@ -390,7 +403,7 @@ export function PreviewRenderer({
           connectingOverlay={connectingOverlay}
           deviceId={previewConnection.deviceId}
           onIntrinsicSize={setStreamSize}
-          onStatusChange={onScrcpyStatusChange}
+          onStatusChange={handleScrcpyStatusChange}
           renderErrorOverlay={renderErrorOverlay}
           serverUrl={previewConnection.scrcpyUrl}
           viewportStyle={scrcpyViewportStyle}
@@ -413,9 +426,7 @@ export function PreviewRenderer({
       )}
       <DeviceInteractionLayer
         enabled={
-          manualControlEnabled &&
-          serverOnline &&
-          previewConnection.type !== 'none'
+          manualControlEnabled && serverOnline && previewInteractionEnabled
         }
         deviceSize={deviceSize}
         contentRef={previewContentRef}

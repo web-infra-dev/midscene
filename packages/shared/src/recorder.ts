@@ -8,9 +8,7 @@ export type MidsceneRecorderEventType =
   | 'keydown';
 
 export type MidsceneRecorderSourceKind =
-  | 'web-dom'
   | 'studio-preview'
-  | 'computer-native'
   | 'unsupported'
   | (string & {});
 
@@ -49,7 +47,12 @@ export interface MidsceneRecorderEvent {
   screenshotBefore?: string;
   screenshotAfter?: string;
   elementDescription?: string;
+  replayInstruction?: string;
+  actionSummary?: string;
+  semanticConfidence?: 'high' | 'medium' | 'low';
   descriptionLoading?: boolean;
+  descriptionSource?: 'ai' | 'fallback';
+  descriptionError?: string;
   screenshotWithBox?: string;
   timestamp: number;
   hashId: string;
@@ -84,14 +87,35 @@ export interface MidsceneRecorderMarkdownScreenshotOptions {
   maxScreenshots?: number;
 }
 
+export const DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS = 20;
+
+function isMidsceneRecorderPendingDescription(value?: string) {
+  return value?.trim() === 'AI is analyzing element...';
+}
+
 export function getMidsceneRecorderEventDescription(
   event: MidsceneRecorderEvent,
 ) {
+  if (
+    event.actionSummary &&
+    !isMidsceneRecorderPendingDescription(event.actionSummary)
+  ) {
+    return event.actionSummary;
+  }
+  if (
+    event.elementDescription &&
+    !isMidsceneRecorderPendingDescription(event.elementDescription)
+  ) {
+    return event.elementDescription;
+  }
+  if (
+    event.replayInstruction &&
+    !isMidsceneRecorderPendingDescription(event.replayInstruction)
+  ) {
+    return event.replayInstruction;
+  }
   if (event.type === 'navigation' && event.url) {
     return `Navigate to ${event.url}`;
-  }
-  if (event.elementDescription) {
-    return event.elementDescription;
   }
   if (event.value) {
     return event.actionType
@@ -114,37 +138,10 @@ export function getMidsceneRecorderScreenshotsForLLM(
   events: MidsceneRecorderEvent[],
   maxScreenshots = 1,
 ) {
-  const eventsWithScreenshots = events.filter(
-    (event) =>
-      event.screenshotBefore ||
-      event.screenshotAfter ||
-      event.screenshotWithBox,
-  );
-
-  const sortedEvents = [...eventsWithScreenshots].sort((left, right) => {
-    const rank = (event: MidsceneRecorderEvent) => {
-      if (event.type === 'navigation') return 0;
-      if (event.type === 'click') return 1;
-      if (event.type === 'input') return 2;
-      return 3;
-    };
-    return rank(left) - rank(right);
-  });
-
-  const screenshots: string[] = [];
-  for (const event of sortedEvents) {
-    const screenshot =
-      event.screenshotWithBox ||
-      event.screenshotAfter ||
-      event.screenshotBefore;
-    if (screenshot && !screenshots.includes(screenshot)) {
-      screenshots.push(screenshot);
-      if (screenshots.length >= maxScreenshots) {
-        break;
-      }
-    }
-  }
-  return screenshots;
+  return selectRecorderScreenshotCandidates(
+    getRecorderScreenshotCandidates(events),
+    maxScreenshots,
+  ).map((candidate) => candidate.screenshot);
 }
 
 export function sanitizeMidsceneRecorderFileName(value: string) {
@@ -239,23 +236,145 @@ function shouldIncludeMarkdownScreenshot(
   );
 }
 
-export function createMidsceneRecorderMarkdownScreenshotAssets(
+interface RecorderScreenshotCandidate {
+  event: MidsceneRecorderEvent;
+  eventIndex: number;
+  screenshot: string;
+}
+
+function getRecorderScreenshotCandidatePriority(
+  candidate: RecorderScreenshotCandidate,
+  firstEventIndex: number,
+  lastEventIndex: number,
+) {
+  const event = candidate.event;
+  let priority = 0;
+
+  if (candidate.eventIndex === firstEventIndex) {
+    priority += 100;
+  }
+  if (candidate.eventIndex === lastEventIndex) {
+    priority += 95;
+  }
+  if (event.type === 'navigation') {
+    priority += 80;
+  }
+  if (event.screenshotWithBox) {
+    priority += 70;
+  }
+  if (
+    event.descriptionSource === 'fallback' ||
+    event.semanticConfidence === 'low' ||
+    event.descriptionError
+  ) {
+    priority += 60;
+  }
+  if (event.type === 'input' || event.type === 'scroll') {
+    priority += 40;
+  }
+  if (!event.elementDescription || hasCoordinateFallback(event)) {
+    priority += 30;
+  }
+
+  return priority;
+}
+
+function selectEvenlyDistributedCandidates<
+  T extends RecorderScreenshotCandidate,
+>(candidates: T[], count: number) {
+  if (count <= 0) {
+    return [];
+  }
+  if (candidates.length <= count) {
+    return candidates;
+  }
+  if (count === 1) {
+    return [candidates[Math.floor((candidates.length - 1) / 2)]];
+  }
+
+  return Array.from({ length: count }, (_, index) => {
+    const candidateIndex = Math.round(
+      (index * (candidates.length - 1)) / (count - 1),
+    );
+    return candidates[candidateIndex];
+  });
+}
+
+function selectRecorderScreenshotCandidates<
+  T extends RecorderScreenshotCandidate,
+>(candidates: T[], maxScreenshots: number): T[] {
+  if (maxScreenshots <= 0 || candidates.length === 0) {
+    return [];
+  }
+  if (candidates.length <= maxScreenshots) {
+    return candidates;
+  }
+
+  const selected = new Map<number, T>();
+  const firstEventIndex = candidates[0].eventIndex;
+  const lastEventIndex = candidates[candidates.length - 1].eventIndex;
+  const addCandidate = (candidate: T | undefined) => {
+    if (!candidate || selected.size >= maxScreenshots) {
+      return;
+    }
+    selected.set(candidate.eventIndex, candidate);
+  };
+  const addEvenly = (pool: T[]) => {
+    const remaining = maxScreenshots - selected.size;
+    if (remaining <= 0) {
+      return;
+    }
+    const unselected = pool.filter(
+      (candidate) => !selected.has(candidate.eventIndex),
+    );
+    for (const candidate of selectEvenlyDistributedCandidates(
+      unselected,
+      remaining,
+    )) {
+      addCandidate(candidate);
+    }
+  };
+
+  addCandidate(candidates[0]);
+  addCandidate(candidates[candidates.length - 1]);
+
+  addEvenly(
+    candidates.filter(
+      (candidate) =>
+        getRecorderScreenshotCandidatePriority(
+          candidate,
+          firstEventIndex,
+          lastEventIndex,
+        ) >= 60,
+    ),
+  );
+  addEvenly(
+    candidates.filter(
+      (candidate) =>
+        getRecorderScreenshotCandidatePriority(
+          candidate,
+          firstEventIndex,
+          lastEventIndex,
+        ) >= 40,
+    ),
+  );
+  addEvenly(candidates);
+
+  return Array.from(selected.values()).sort(
+    (left, right) => left.eventIndex - right.eventIndex,
+  );
+}
+
+function getRecorderScreenshotCandidates(
   events: MidsceneRecorderEvent[],
-  options: MidsceneRecorderMarkdownScreenshotOptions = {},
-): MidsceneRecorderMarkdownScreenshotAsset[] {
-  const baseDir = normalizeMarkdownAssetBaseDir(options.baseDir);
-  const maxScreenshots = options.maxScreenshots ?? 8;
-  const assets: MidsceneRecorderMarkdownScreenshotAsset[] = [];
+): RecorderScreenshotCandidate[] {
+  const candidates: RecorderScreenshotCandidate[] = [];
   const seenScreenshots = new Set<string>();
   const lastEventIndex = events.length - 1;
 
-  for (let index = 0; index < events.length; index += 1) {
-    if (assets.length >= maxScreenshots) {
-      break;
-    }
-
-    const event = events[index];
-    if (!shouldIncludeMarkdownScreenshot(event, index, lastEventIndex)) {
+  for (let eventIndex = 0; eventIndex < events.length; eventIndex += 1) {
+    const event = events[eventIndex];
+    if (!shouldIncludeMarkdownScreenshot(event, eventIndex, lastEventIndex)) {
       continue;
     }
 
@@ -264,26 +383,56 @@ export function createMidsceneRecorderMarkdownScreenshotAssets(
       continue;
     }
 
-    const parsedScreenshot = parseScreenshotDataUrl(screenshot);
-    if (!parsedScreenshot) {
-      continue;
-    }
-
     seenScreenshots.add(screenshot);
-    const safeType = event.type.replace(/[^a-zA-Z0-9-]/g, '-');
-    const fileName = `event-${padEventIndex(index)}-${safeType}.${parsedScreenshot.extension}`;
-    assets.push({
-      eventIndex: index,
-      eventHashId: event.hashId,
-      eventType: event.type,
-      relativePath: `${baseDir}/${fileName}`,
-      dataUrl: parsedScreenshot.dataUrl,
-      base64Data: parsedScreenshot.base64Data,
-      mimeType: parsedScreenshot.mimeType,
+    candidates.push({
+      event,
+      eventIndex,
+      screenshot,
     });
   }
 
-  return assets;
+  return candidates;
+}
+
+export function createMidsceneRecorderMarkdownScreenshotAssets(
+  events: MidsceneRecorderEvent[],
+  options: MidsceneRecorderMarkdownScreenshotOptions = {},
+): MidsceneRecorderMarkdownScreenshotAsset[] {
+  const baseDir = normalizeMarkdownAssetBaseDir(options.baseDir);
+  const maxScreenshots =
+    options.maxScreenshots ??
+    DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS;
+  const candidates: Array<
+    RecorderScreenshotCandidate & {
+      parsedScreenshot: NonNullable<ReturnType<typeof parseScreenshotDataUrl>>;
+    }
+  > = [];
+
+  for (const candidate of getRecorderScreenshotCandidates(events)) {
+    const parsedScreenshot = parseScreenshotDataUrl(candidate.screenshot);
+    if (parsedScreenshot) {
+      candidates.push({
+        ...candidate,
+        parsedScreenshot,
+      });
+    }
+  }
+
+  return selectRecorderScreenshotCandidates(candidates, maxScreenshots).map(
+    ({ event, eventIndex, parsedScreenshot }) => {
+      const safeType = event.type.replace(/[^a-zA-Z0-9-]/g, '-');
+      const fileName = `event-${padEventIndex(eventIndex)}-${safeType}.${parsedScreenshot.extension}`;
+      return {
+        eventIndex,
+        eventHashId: event.hashId,
+        eventType: event.type,
+        relativePath: `${baseDir}/${fileName}`,
+        dataUrl: parsedScreenshot.dataUrl,
+        base64Data: parsedScreenshot.base64Data,
+        mimeType: parsedScreenshot.mimeType,
+      };
+    },
+  );
 }
 
 function scalarToYaml(value: string | number | boolean) {

@@ -258,6 +258,31 @@ describe('MainContent overview', () => {
     expect(html).toContain('ADB not detected');
   });
 
+  it('replaces the HarmonyOS empty state with an hdc-missing hint when discovery reports a toolchain error', () => {
+    const baseContext = createReadyContextValue();
+    if (baseContext.phase !== 'ready') {
+      throw new Error('expected ready context');
+    }
+    const context: StudioPlaygroundContextValue = {
+      ...baseContext,
+      discoveryErrors: {
+        harmony: { platformId: 'harmony', kind: 'toolchain-missing' },
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      createElement(
+        StudioPlaygroundContext.Provider,
+        { value: context },
+        createElement(MainContent, {
+          activeView: 'overview',
+        }),
+      ),
+    );
+
+    expect(html).toContain('HDC not detected');
+  });
+
   it('keeps the disconnect control out of the window drag region', () => {
     const html = renderToStaticMarkup(
       createElement(

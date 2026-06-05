@@ -295,7 +295,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     );
   });
 
-  test('recorder start is unsupported without a platform recorder source', async () => {
+  test('recorder start is unsupported without preview interaction support', async () => {
     const server = new PlaygroundServer({
       interface: {
         interfaceType: 'computer',
@@ -328,7 +328,6 @@ describe('PlaygroundServer manual interaction APIs', () => {
       {
         body: {
           sessionId: 'session-1',
-          callbackUrlBase: 'http://127.0.0.1:6116',
         },
       },
       startResponse,
@@ -338,183 +337,6 @@ describe('PlaygroundServer manual interaction APIs', () => {
       supported: false,
       source: 'unsupported',
       platformId: 'computer',
-    });
-  });
-
-  test('recorder APIs delegate to a platform recorder source', async () => {
-    const recorderSource = {
-      getCapabilities: vi.fn(() => ({
-        supported: true,
-        source: 'computer-native',
-        platformId: 'computer',
-      })),
-      start: vi.fn(async () => ({
-        ok: true,
-        supported: true,
-        source: 'computer-native',
-        platformId: 'computer',
-      })),
-      stop: vi.fn(async () => {}),
-      getEvents: vi.fn(async (since = 0) => ({
-        events: [
-          {
-            type: 'click',
-            source: 'computer-native',
-            actionType: 'Click',
-            rawPayload: { x: 10, y: 20 },
-            elementRect: { x: 10, y: 20 },
-            pageInfo: { width: 1440, height: 900 },
-            timestamp: 1,
-            hashId: 'event-1',
-          },
-        ],
-        nextIndex: since + 1,
-      })),
-    };
-    const server = new PlaygroundServer();
-    server.setPreparedPlatform({
-      platformId: 'computer',
-      title: 'Computer',
-      sessionManager: {
-        async createSession() {
-          return {
-            agent: {
-              interface: {
-                interfaceType: 'computer',
-                actionSpace: () => [],
-              },
-            } as any,
-            recorderSource,
-          };
-        },
-      },
-    });
-
-    await server.launch(6117);
-    const createSessionHandler = getRouteHandler(server, 'post', '/session');
-    await createSessionHandler({ body: {} }, createMockResponse());
-
-    const capabilitiesHandler = getRouteHandler(
-      server,
-      'get',
-      '/recorder/capabilities',
-    );
-    const capabilitiesResponse = createMockResponse();
-    await capabilitiesHandler({}, capabilitiesResponse);
-    expect(capabilitiesResponse.body).toMatchObject({
-      supported: true,
-      source: 'computer-native',
-    });
-
-    const startRecorderHandler = getRouteHandler(
-      server,
-      'post',
-      '/recorder/start',
-    );
-    const startResponse = createMockResponse();
-    await startRecorderHandler(
-      { body: { sessionId: 'session-1' } },
-      startResponse,
-    );
-    expect(startResponse.body).toMatchObject({
-      ok: true,
-      source: 'computer-native',
-    });
-    expect(recorderSource.start).toHaveBeenCalledWith('session-1');
-
-    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
-    const eventsResponse = createMockResponse();
-    await eventsHandler({ query: { since: '0' } }, eventsResponse);
-    expect(eventsResponse.body).toMatchObject({
-      events: [{ source: 'computer-native', actionType: 'Click' }],
-      nextIndex: 1,
-    });
-
-    const stopHandler = getRouteHandler(server, 'post', '/recorder/stop');
-    await stopHandler({}, createMockResponse());
-    expect(recorderSource.stop).toHaveBeenCalledTimes(1);
-  });
-
-  test('recorder stop drains buffered platform recorder source events', async () => {
-    let stopped = false;
-    const recorderSource = {
-      getCapabilities: vi.fn(() => ({
-        supported: true,
-        source: 'computer-native',
-        platformId: 'computer',
-      })),
-      start: vi.fn(async () => ({
-        ok: true,
-        supported: true,
-        source: 'computer-native',
-        platformId: 'computer',
-      })),
-      stop: vi.fn(async () => {
-        stopped = true;
-      }),
-      getEvents: vi.fn(async (since = 0) => ({
-        events:
-          stopped && since === 0
-            ? [
-                {
-                  type: 'click',
-                  source: 'computer-native',
-                  actionType: 'Click',
-                  rawPayload: { x: 20, y: 30 },
-                  elementRect: { x: 20, y: 30 },
-                  pageInfo: { width: 1440, height: 900 },
-                  timestamp: 2,
-                  hashId: 'event-final',
-                },
-              ]
-            : [],
-        nextIndex: stopped ? 1 : since,
-      })),
-    };
-    const server = new PlaygroundServer();
-    server.setPreparedPlatform({
-      platformId: 'computer',
-      title: 'Computer',
-      sessionManager: {
-        async createSession() {
-          return {
-            agent: {
-              interface: {
-                interfaceType: 'computer',
-                actionSpace: () => [],
-              },
-            } as any,
-            recorderSource,
-          };
-        },
-      },
-    });
-
-    await server.launch(6120);
-    const createSessionHandler = getRouteHandler(server, 'post', '/session');
-    await createSessionHandler({ body: {} }, createMockResponse());
-
-    const startRecorderHandler = getRouteHandler(
-      server,
-      'post',
-      '/recorder/start',
-    );
-    await startRecorderHandler(
-      { body: { sessionId: 'session-1' } },
-      createMockResponse(),
-    );
-
-    const stopHandler = getRouteHandler(server, 'post', '/recorder/stop');
-    await stopHandler({}, createMockResponse());
-    expect(recorderSource.stop).toHaveBeenCalledTimes(1);
-    expect(recorderSource.getEvents).toHaveBeenCalledWith(0);
-
-    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
-    const eventsResponse = createMockResponse();
-    await eventsHandler({ query: { since: '0' } }, eventsResponse);
-    expect(eventsResponse.body).toMatchObject({
-      events: [{ source: 'computer-native', hashId: 'event-final' }],
-      nextIndex: 1,
     });
   });
 
@@ -564,67 +386,55 @@ describe('PlaygroundServer manual interaction APIs', () => {
           actionType: 'Tap',
           elementRect: { x: 10, y: 20 },
           pageInfo: { width: 390, height: 844 },
+          descriptionLoading: true,
         },
       ],
       nextIndex: 1,
     });
   });
 
-  test('recorder notifies platform sources about Studio preview interactions', async () => {
-    const inputPrimitives = makeInputPrimitiveStub();
-    const recorderSource = {
-      getCapabilities: vi.fn(() => ({
-        supported: true,
-        source: 'computer-native',
-        platformId: 'computer',
-      })),
-      start: vi.fn(async () => ({
-        ok: true,
-        supported: true,
-        source: 'computer-native',
-        platformId: 'computer',
-      })),
-      stop: vi.fn(async () => {}),
-      getEvents: vi.fn(async (since = 0) => ({
-        events: [],
-        nextIndex: since,
-      })),
-      onPreviewInteract: vi.fn(),
-    };
-    const server = new PlaygroundServer();
-    server.setPreparedPlatform({
-      platformId: 'computer',
-      title: 'Computer',
-      sessionManager: {
-        async createSession() {
-          return {
-            agent: {
-              interface: {
-                interfaceType: 'computer',
-                actionSpace: () => [],
-                inputPrimitives,
-                screenshotBase64: async () => 'base64-image',
-                size: async () => ({ width: 1440, height: 900 }),
-              },
-            } as any,
-            recorderSource,
-          };
-        },
+  test('recorder dispatches preview interactions before taking the after screenshot', async () => {
+    const callOrder: string[] = [];
+    const tap = vi.fn(async () => {
+      callOrder.push('tap');
+    });
+    const inputPrimitives = makeInputPrimitiveStub({
+      pointer: {
+        tap,
+        doubleClick: vi.fn(async () => {}),
+        longPress: vi.fn(async () => {}),
+        dragAndDrop: vi.fn(async () => {}),
       },
     });
+    const screenshotBase64 = vi.fn(async () => {
+      callOrder.push('screenshot');
+      return 'base64-image';
+    });
+    const size = vi.fn(async () => {
+      callOrder.push('size');
+      return { width: 390, height: 844 };
+    });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'computer',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64,
+        size,
+      },
+    } as any);
 
-    await server.launch(6119);
-    const createSessionHandler = getRouteHandler(server, 'post', '/session');
-    await createSessionHandler({ body: {} }, createMockResponse());
+    await server.launch(6120);
     const startRecorderHandler = getRouteHandler(
       server,
       'post',
       '/recorder/start',
     );
     await startRecorderHandler(
-      { body: { sessionId: 'session-1' } },
+      { body: { sessionId: 'session-preview-order' } },
       createMockResponse(),
     );
+    callOrder.length = 0;
 
     const interactHandler = getRouteHandler(server, 'post', '/interact');
     await interactHandler(
@@ -632,16 +442,102 @@ describe('PlaygroundServer manual interaction APIs', () => {
       createMockResponse(),
     );
 
-    expect(recorderSource.onPreviewInteract).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sessionId: 'session-1',
-        payload: { actionType: 'Tap', x: 10, y: 20 },
-        event: expect.objectContaining({
-          source: 'studio-preview',
-          actionType: 'Tap',
+    expect(tap).toHaveBeenCalledWith({ x: 10, y: 20 }, { duration: undefined });
+    expect(callOrder[0]).toBe('tap');
+    expect(callOrder).toEqual(['tap', 'screenshot', 'size']);
+  });
+
+  test('recorder appends navigation event when preview interact changes web url', async () => {
+    let currentUrl = 'https://example.com/start';
+    let currentScreenshot = 'start-screenshot';
+    const inputPrimitives = makeInputPrimitiveStub({
+      pointer: {
+        tap: vi.fn(async () => {
+          if (currentUrl.endsWith('/start')) {
+            currentUrl = 'https://example.com/next';
+            currentScreenshot = 'next-screenshot';
+          }
         }),
-      }),
+        doubleClick: vi.fn(async () => {}),
+        longPress: vi.fn(async () => {}),
+        dragAndDrop: vi.fn(async () => {}),
+      },
+    });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'web',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => currentScreenshot,
+        size: async () => ({ width: 1280, height: 720 }),
+        url: async () => currentUrl,
+        evaluateJavaScript: async () =>
+          currentUrl.endsWith('/next') ? 'Next page' : 'Start page',
+      },
+    } as any);
+
+    await server.launch(6119);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
     );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-web-preview' } },
+      createMockResponse(),
+    );
+
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 120, y: 314 } },
+      createMockResponse(),
+    );
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 220, y: 414 } },
+      createMockResponse(),
+    );
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const eventsResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, eventsResponse);
+    expect(eventsResponse.body).toMatchObject({
+      events: [
+        {
+          type: 'navigation',
+          source: 'studio-preview',
+          actionType: 'InitialNavigation',
+          url: 'https://example.com/start',
+          title: 'Start page',
+          replayInstruction: 'Navigate to `https://example.com/start`.',
+          descriptionLoading: false,
+        },
+        {
+          type: 'click',
+          source: 'studio-preview',
+          url: 'https://example.com/start',
+          title: 'Start page',
+          screenshotBefore: 'start-screenshot',
+        },
+        {
+          type: 'navigation',
+          source: 'studio-preview',
+          actionType: 'NavigationChanged',
+          url: 'https://example.com/next',
+          title: 'Next page',
+          replayInstruction:
+            'Wait for navigation to complete at `https://example.com/next`.',
+          descriptionLoading: false,
+        },
+        {
+          type: 'click',
+          source: 'studio-preview',
+          url: 'https://example.com/next',
+          title: 'Next page',
+          screenshotBefore: 'next-screenshot',
+        },
+      ],
+      nextIndex: 4,
+    });
   });
 
   test('POST /interact returns 400 for invalid manual params', async () => {

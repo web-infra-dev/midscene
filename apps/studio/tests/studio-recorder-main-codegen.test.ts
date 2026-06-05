@@ -1,16 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@midscene/core/ai-model', () => ({
-  callAIWithObjectResponse: vi.fn(async () => ({
-    content: {
-      title: 'Browsing Midscene.js Documentation',
-      description: 'The user visited the Midscene.js introduction page.',
-    },
+  generateRecorderSessionMetadata: vi.fn(async () => ({
+    title: 'Browsing Midscene.js Documentation',
+    description: 'The user visited the Midscene.js introduction page.',
   })),
   generatePlaywrightTest: vi.fn(
     async () => 'import { test } from "@playwright/test";\n',
   ),
-  generateRecorderMarkdownReplay: vi.fn(
+  convertRecordLogIntoMarkdown: vi.fn(
     async () => '# Replay recording\n\n## Steps\n1. Open page\n',
   ),
   generateRecorderYamlTest: vi.fn(
@@ -19,15 +17,14 @@ vi.mock('@midscene/core/ai-model', () => ({
 }));
 
 import {
-  callAIWithObjectResponse,
+  convertRecordLogIntoMarkdown,
   generatePlaywrightTest,
-  generateRecorderMarkdownReplay,
+  generateRecorderSessionMetadata,
   generateRecorderYamlTest,
 } from '@midscene/core/ai-model';
 import {
   generateRecorderCodeInMain,
   generateRecorderMetadataInMain,
-  generateRecorderYamlInMain,
 } from '../src/main/recorder/codegen';
 
 describe('Studio recorder codegen in main', () => {
@@ -65,16 +62,6 @@ describe('Studio recorder codegen in main', () => {
     },
   } as const;
 
-  it('runs recorder YAML generation in the main process layer', async () => {
-    await expect(generateRecorderYamlInMain(yamlRequest)).resolves.toEqual({
-      yaml: 'web:\n  url: "https://example.com"\n',
-    });
-    expect(generateRecorderYamlTest).toHaveBeenCalledWith(
-      yamlRequest.input,
-      yamlRequest.modelConfig,
-    );
-  });
-
   it('runs generic YAML code generation in the main process layer', async () => {
     await expect(
       generateRecorderCodeInMain({
@@ -101,7 +88,7 @@ describe('Studio recorder codegen in main', () => {
       type: 'markdown',
       code: '# Replay recording\n\n## Steps\n1. Open page\n',
     });
-    expect(generateRecorderMarkdownReplay).toHaveBeenCalledWith(
+    expect(convertRecordLogIntoMarkdown).toHaveBeenCalledWith(
       yamlRequest.input,
       yamlRequest.modelConfig,
     );
@@ -160,23 +147,13 @@ describe('Studio recorder codegen in main', () => {
       title: 'Browsing Midscene.js Documentation',
       description: 'The user visited the Midscene.js introduction page.',
     });
-    expect(callAIWithObjectResponse).toHaveBeenCalledWith(
-      expect.any(Array),
+    expect(generateRecorderSessionMetadata).toHaveBeenCalledWith(
+      {
+        target: yamlRequest.input.target,
+        events: yamlRequest.input.events,
+        fallbackName: 'web recording',
+      },
       yamlRequest.modelConfig,
-    );
-    const prompt = vi.mocked(callAIWithObjectResponse).mock.calls[0][0];
-    const userMessage = prompt.find((message) => message.role === 'user');
-    const promptText =
-      Array.isArray(userMessage?.content) &&
-      userMessage.content[0] &&
-      'text' in userMessage.content[0]
-        ? userMessage.content[0].text
-        : '';
-    expect(promptText).toContain(
-      'The description should use the user as the subject',
-    );
-    expect(promptText).toContain(
-      'Do not start the description with "The session ..."',
     );
   });
 });

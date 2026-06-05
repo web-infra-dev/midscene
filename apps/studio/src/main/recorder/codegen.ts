@@ -1,26 +1,20 @@
 import {
-  type ChatCompletionMessageParam,
-  callAIWithObjectResponse,
+  convertRecordLogIntoMarkdown,
+  describeRecorderUIEvents,
   generatePlaywrightTest,
-  generateRecorderMarkdownReplay,
+  generateRecorderSessionMetadata,
   generateRecorderYamlTest,
 } from '@midscene/core/ai-model';
-import {
-  getMidsceneRecorderEventDescription,
-  getMidsceneRecorderScreenshotsForLLM,
-} from '@midscene/shared/recorder';
 import type {
+  DescribeRecorderUIEventsRequest,
+  DescribeRecorderUIEventsResult,
   GenerateRecorderCodeRequest,
   GenerateRecorderCodeResult,
   GenerateRecorderMetadataRequest,
   GenerateRecorderMetadataResult,
-  GenerateRecorderYamlRequest,
-  GenerateRecorderYamlResult,
 } from '@shared/electron-contract';
 
-function validateRecorderCodeRequest(
-  request: GenerateRecorderCodeRequest | GenerateRecorderYamlRequest,
-) {
+function validateRecorderCodeRequest(request: GenerateRecorderCodeRequest) {
   if (!request?.input) {
     throw new Error('generateRecorderCode: input is required.');
   }
@@ -72,7 +66,7 @@ export async function generateRecorderCodeInMain(
   }
 
   if (request.type === 'markdown') {
-    const code = await generateRecorderMarkdownReplay(
+    const code = await convertRecordLogIntoMarkdown(
       request.input,
       request.modelConfig,
     );
@@ -102,62 +96,6 @@ export async function generateRecorderCodeInMain(
   throw new Error(`Unsupported recorder code type: ${request.type}`);
 }
 
-export async function generateRecorderYamlInMain(
-  request: GenerateRecorderYamlRequest,
-): Promise<GenerateRecorderYamlResult> {
-  validateRecorderCodeRequest(request);
-
-  const yaml = await generateRecorderYamlTest(
-    request.input,
-    request.modelConfig,
-  );
-  return { yaml };
-}
-
-function summarizeRecorderEvents(request: GenerateRecorderMetadataRequest) {
-  const events = request.input.events;
-  const navigationEvents = events.filter(
-    (event) => event.type === 'navigation',
-  );
-  const clickEvents = events.filter((event) => event.type === 'click');
-  const inputEvents = events.filter((event) => event.type === 'input');
-  const scrollEvents = events.filter((event) => event.type === 'scroll');
-  const urls = navigationEvents
-    .map((event) => event.url)
-    .filter((url): url is string => Boolean(url));
-  const titles = navigationEvents
-    .map((event) => event.title)
-    .filter((title): title is string => Boolean(title));
-
-  return {
-    platform: request.input.target.platformId,
-    target: request.input.target,
-    fallbackName: request.input.fallbackName,
-    pageCount: navigationEvents.length,
-    pageTitles: titles.slice(0, 5),
-    urls: urls.slice(0, 5),
-    clickCount: clickEvents.length,
-    inputCount: inputEvents.length,
-    scrollCount: scrollEvents.length,
-    totalActions: events.length,
-    firstUrl: urls[0] || request.input.target.values.url || '',
-    lastUrl: urls[urls.length - 1] || '',
-    events: events.slice(0, 20).map((event) => ({
-      type: event.type,
-      actionType: event.actionType,
-      url: event.url,
-      title: event.title,
-      value: event.value,
-      description: getMidsceneRecorderEventDescription(event),
-      elementDescription: event.elementDescription,
-    })),
-  };
-}
-
-function normalizeMetadataValue(value: unknown) {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
 export async function generateRecorderMetadataInMain(
   request: GenerateRecorderMetadataRequest,
 ): Promise<GenerateRecorderMetadataResult> {
@@ -170,54 +108,38 @@ export async function generateRecorderMetadataInMain(
     );
   }
 
-  const summary = summarizeRecorderEvents(request);
-  const screenshots = getMidsceneRecorderScreenshotsForLLM(
-    request.input.events,
-    request.input.maxScreenshots ?? 1,
-  );
-  const messageContent: any[] = [
-    {
-      type: 'text',
-      text: `Generate a concise title (5-7 words) and brief description (1-2 sentences) for a Studio recording of user actions.
+  return generateRecorderSessionMetadata(request.input, request.modelConfig);
+}
 
-The recording can target Web, Android, iOS, HarmonyOS, or Computer. Do not assume it is a browser session unless the platform is web.
-Describe what the user did or accomplished. The description should use the user as the subject, preferably starting with "The user ...". Do not start the description with "The session ...".
-The title should be action-oriented and highlight the main task accomplished.
-
-Summary:
-${JSON.stringify(summary, null, 2)}
-
-Respond with a JSON object containing exactly "title" and "description".`,
-    },
-  ];
-
-  for (const screenshot of screenshots) {
-    messageContent.push({
-      type: 'image_url',
-      image_url: { url: screenshot },
-    });
+export async function describeRecorderUIEventsInMain(
+  request: DescribeRecorderUIEventsRequest,
+): Promise<DescribeRecorderUIEventsResult> {
+  if (!request?.input?.events?.length) {
+    return { events: [], results: [] };
+  }
+  if (!request.modelConfig?.modelName) {
+    throw new Error(
+      'describeRecorderUIEvents: modelConfig.modelName is required.',
+    );
   }
 
-  const response = await callAIWithObjectResponse<{
-    title?: string;
-    description?: string;
-  }>(
-    [
-      {
-        role: 'system',
-        content:
-          'You generate clear, task-oriented titles and descriptions for recorded automation sessions.',
-      },
-      {
-        role: 'user',
-        content: messageContent,
-      },
-    ],
+  const results = await describeRecorderUIEvents(
+    request.input.events.map((event) => ({
+      event,
+      target: request.input.target,
+    })),
     request.modelConfig,
+    {
+      concurrency: 2,
+    },
   );
 
   return {
-    title: normalizeMetadataValue(response.content.title),
-    description: normalizeMetadataValue(response.content.description),
+    events: results.map((result) => result.event),
+    results: results.map((result) => ({
+      hashId: result.event.hashId,
+      usedFallback: result.usedFallback,
+      ...(result.error ? { error: result.error } : {}),
+    })),
   };
 }

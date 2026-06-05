@@ -225,7 +225,7 @@ describe('common utilities', () => {
       const actionParams = mockCallAction.mock.calls[0][1];
       expect(actionParams.deepThink).toBe(true);
       expect(warnSpy).toHaveBeenCalledWith(
-        '[Playground] Received deepThink in non-aiAct action options. deepThink is expected to be used with aiAct during migration.',
+        '[Playground] Received deepThink in non-aiAct action options. deepThink is expected to be used with aiAct/runMarkdown during migration.',
         {
           actionType: 'aiTap',
           options: {
@@ -268,9 +268,44 @@ describe('common utilities', () => {
       const actionParams = mockCallAction.mock.calls[0][1];
       expect(actionParams.deepThink).toBe(true);
       expect(warnSpy).not.toHaveBeenCalledWith(
-        '[Playground] Received deepThink in non-aiAct action options. deepThink is expected to be used with aiAct during migration.',
+        '[Playground] Received deepThink in non-aiAct action options. deepThink is expected to be used with aiAct/runMarkdown during migration.',
         expect.anything(),
       );
+
+      warnSpy.mockRestore();
+    });
+
+    it('should keep deepThink for runMarkdown without warning', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const mockRunMarkdown = vi.fn().mockResolvedValue('markdown result');
+      const activeAgent: PlaygroundAgent = {
+        runMarkdown: mockRunMarkdown,
+      };
+
+      const value: FormValue = {
+        type: 'runMarkdown',
+        prompt: '/tmp/recording.md',
+      };
+
+      const result = await executeAction(
+        activeAgent,
+        'runMarkdown',
+        [],
+        value,
+        {
+          deepLocate: false,
+          deepThink: true,
+          requestId: 'req-3',
+        },
+      );
+
+      expect(result).toBe('markdown result');
+      expect(mockRunMarkdown).toHaveBeenCalledWith('/tmp/recording.md', {
+        deepLocate: false,
+        deepThink: true,
+        requestId: 'req-3',
+      });
+      expect(warnSpy).not.toHaveBeenCalled();
 
       warnSpy.mockRestore();
     });

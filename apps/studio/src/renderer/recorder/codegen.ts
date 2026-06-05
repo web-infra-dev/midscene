@@ -1,8 +1,12 @@
 import type { IModelConfig } from '@midscene/shared/env';
+import type { MidsceneRecorderEvent } from '@midscene/shared/recorder';
 import type { StudioRecorderCodeType } from '@shared/electron-contract';
-import { toStudioRecorderCodegenInput } from './codegen-adapter';
+import {
+  toStudioRecorderCodegenEvents,
+  toStudioRecorderCodegenInput,
+} from './codegen-adapter';
 import { resolveStudioRecorderModelConfig } from './model-config';
-import type { StudioRecordingSession } from './types';
+import type { StudioRecorderTarget, StudioRecordingSession } from './types';
 
 function normalizeGeneratedCode(content: string, type: StudioRecorderCodeType) {
   const trimmed = content.trim();
@@ -65,14 +69,7 @@ export async function generateStudioRecorderCodeWithAI(
             modelConfig: serializableModelConfig,
           })
         ).code
-      : type === 'yaml' && typeof runtime.generateRecorderYaml === 'function'
-        ? (
-            await runtime.generateRecorderYaml({
-              input,
-              modelConfig: serializableModelConfig,
-            })
-          ).yaml
-        : null;
+      : null;
   if (!code) {
     throw new Error('Studio recorder codegen bridge is unavailable.');
   }
@@ -114,10 +111,37 @@ export async function generateStudioRecorderMetadataWithAI(
   return runtime.generateRecorderMetadata({
     input: {
       target: session.target,
-      events: session.events,
+      events: toStudioRecorderCodegenEvents(session.events),
       fallbackName: session.name,
       maxScreenshots: 1,
     },
     modelConfig: toSerializableModelConfig(modelConfig),
   });
+}
+
+export async function describeStudioRecorderEventsWithAI(
+  events: MidsceneRecorderEvent[],
+  options: {
+    target?: StudioRecorderTarget;
+    modelConfig?: IModelConfig;
+  } = {},
+) {
+  if (events.length === 0) {
+    return [];
+  }
+
+  const runtime = requireStudioRuntime();
+  if (typeof runtime.describeRecorderUIEvents !== 'function') {
+    throw new Error('Studio recorder event describer bridge is unavailable.');
+  }
+
+  const modelConfig = resolveStudioRecorderModelConfig(options.modelConfig);
+  const result = await runtime.describeRecorderUIEvents({
+    input: {
+      target: options.target,
+      events: toStudioRecorderCodegenEvents(events),
+    },
+    modelConfig: toSerializableModelConfig(modelConfig),
+  });
+  return result.events;
 }

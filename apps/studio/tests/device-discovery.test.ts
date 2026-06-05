@@ -6,8 +6,17 @@ const mocks = vi.hoisted(() => ({
   getConnectedDevicesWithDetails: vi.fn(),
   getConnectedHarmonyDevices: vi.fn(),
   getConnectedDisplays: vi.fn(),
+  execFile: vi.fn(),
   debugLog: vi.fn(),
 }));
+
+vi.mock('node:child_process', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:child_process')>();
+  return {
+    ...actual,
+    execFile: mocks.execFile,
+  };
+});
 
 vi.mock('@midscene/android', () => ({
   getConnectedDevicesWithDetails: mocks.getConnectedDevicesWithDetails,
@@ -39,6 +48,10 @@ describe('discoverAllDevices', () => {
       applied: false,
       mutatedKeys: [],
       reason: 'not-packaged',
+    });
+    mocks.execFile.mockImplementation((_command, _args, _options, callback) => {
+      callback(new Error('command not found'), '', '');
+      return {} as ReturnType<typeof import('node:child_process').execFile>;
     });
   });
 
@@ -198,8 +211,83 @@ describe('discoverAllDevices', () => {
       expect.any(Error),
     );
     expect(mocks.debugLog).toHaveBeenCalledWith(
+      'android cli fallback failed:',
+      expect.any(Error),
+    );
+    expect(mocks.debugLog).toHaveBeenCalledWith(
       'ios scan failed:',
       expect.any(Error),
     );
+  });
+
+  it('treats successful empty Android and Harmony CLI probes as no-device states', async () => {
+    mocks.getConnectedDevicesWithDetails.mockRejectedValue(
+      new Error('appium adb probe failed'),
+    );
+    mocks.getConnectedHarmonyDevices.mockRejectedValue(
+      new Error('hdc package probe failed'),
+    );
+    mocks.getConnectedDisplays.mockResolvedValue([]);
+    vi.mocked(fetch).mockRejectedValue(new Error('connect ECONNREFUSED'));
+    mocks.execFile.mockImplementation((_command, args, _options, callback) => {
+      const [firstArg] = args as string[];
+      if (firstArg === 'devices') {
+        callback(null, 'List of devices attached\n\n', '');
+        return {} as ReturnType<typeof import('node:child_process').execFile>;
+      }
+      if (firstArg === 'list') {
+        callback(null, '[Empty]\n', '');
+        return {} as ReturnType<typeof import('node:child_process').execFile>;
+      }
+      callback(new Error('unexpected command'), '', '');
+      return {} as ReturnType<typeof import('node:child_process').execFile>;
+    });
+
+    await expect(discoverAllDevices()).resolves.toEqual({
+      devices: [],
+      errors: [],
+    });
+  });
+
+  it('uses direct adb output when the Android package probe fails but adb is available', async () => {
+    mocks.getConnectedDevicesWithDetails.mockRejectedValue(
+      new Error('appium adb probe failed'),
+    );
+    mocks.getConnectedHarmonyDevices.mockResolvedValue([]);
+    mocks.getConnectedDisplays.mockResolvedValue([]);
+    vi.mocked(fetch).mockRejectedValue(new Error('connect ECONNREFUSED'));
+    mocks.execFile.mockImplementation((_command, args, _options, callback) => {
+      const [firstArg] = args as string[];
+      if (firstArg === 'devices') {
+        callback(
+          null,
+          [
+            'List of devices attached',
+            'emulator-5554 device product:sdk_gphone model:Pixel_8 device:emu',
+            '',
+          ].join('\n'),
+          '',
+        );
+        return {} as ReturnType<typeof import('node:child_process').execFile>;
+      }
+      callback(new Error('unexpected command'), '', '');
+      return {} as ReturnType<typeof import('node:child_process').execFile>;
+    });
+
+    await expect(discoverAllDevices()).resolves.toEqual({
+      devices: [
+        {
+          platformId: 'android',
+          id: 'emulator-5554',
+          label: 'Pixel 8',
+          description: 'ADB: emulator-5554',
+          status: 'device',
+          sessionValues: {
+            deviceId: 'emulator-5554',
+          },
+        },
+      ],
+      errors: [],
+    });
   });
 });
