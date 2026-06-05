@@ -85,3 +85,36 @@ export function resolveToolDefaults(
     {},
   );
 }
+
+/**
+ * Split argv into the resolved {@link ToolDefaults} and the remaining args.
+ *
+ * Behavior flags (e.g. `--deep-locate`) are global: they may appear anywhere
+ * in argv and are not tied to a specific sub-command. They are recognized by
+ * exact kebab-case match — the same surface the MCP `parseArgs` config exposes
+ * — and removed so a strict per-command parser never sees them. Every other
+ * token is returned untouched and in order for that per-command parser.
+ *
+ * This is the single place that knows how a behavior flag looks on the command
+ * line; both the device / Agent Skill CLI and the MCP launch path resolve their
+ * defaults from {@link TOOL_BEHAVIOR_FLAGS} through here / {@link resolveToolDefaults}.
+ */
+export function stripBehaviorFlags(argv: readonly string[]): {
+  rawArgs: string[];
+  toolDefaults: ToolDefaults;
+} {
+  const enabled = new Set<string>();
+  const rawArgs: string[] = [];
+  for (const arg of argv) {
+    const flag = TOOL_BEHAVIOR_FLAGS.find((f) => arg === `--${f.cli}`);
+    if (flag) {
+      enabled.add(flag.cli);
+    } else {
+      rawArgs.push(arg);
+    }
+  }
+  return {
+    rawArgs,
+    toolDefaults: resolveToolDefaults((cli) => enabled.has(cli)),
+  };
+}
