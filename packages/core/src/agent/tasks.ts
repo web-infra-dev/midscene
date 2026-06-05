@@ -24,6 +24,7 @@ import type {
   PlanningAIResponse,
   PlanningAction,
   PlanningActionParamWaitFor,
+  PlanningLocateParam,
   ServiceDump,
   ServiceExtractOption,
   ServiceExtractParam,
@@ -280,6 +281,40 @@ export class TaskExecutor {
     });
   }
 
+  /**
+   * Called when the task is about to replan. Marks every cache-hit locate task
+   * in the just-run batch (tasks at index >= fromIndex) as stale: that batch
+   * did not finish the task, so the element each cache hit produced is suspect.
+   * The upcoming re-locate of the same prompt then replaces the bad entry in
+   * place instead of appending a duplicate that would re-poison the cache on the
+   * next run (#2529).
+   *
+   * Marking a locate that was actually fine is harmless: the step is only ever
+   * replaced if the same prompt is located again (i.e. the step is redone),
+   * which does not happen for a locate that already succeeded.
+   */
+  private invalidateFailedCacheHitLocates(
+    runner: TaskRunner,
+    fromIndex: number,
+  ) {
+    if (!this.taskCache) {
+      return;
+    }
+    for (let i = fromIndex; i < runner.tasks.length; i++) {
+      const task = runner.tasks[i];
+      if (
+        task.type === 'Planning' &&
+        task.subType === 'Locate' &&
+        task.hitBy?.from === 'Cache'
+      ) {
+        const prompt = (task.param as PlanningLocateParam | undefined)?.prompt;
+        if (prompt) {
+          this.taskCache.markLocateCacheStale(prompt);
+        }
+      }
+    }
+  }
+
   private async runAction(
     userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
@@ -514,6 +549,7 @@ export class TaskExecutor {
       const initialTimeString = await this.getTimeString();
       conversationHistory.pendingFeedbackMessage += `Current time: ${initialTimeString}`;
 
+      const taskCountBeforeRun = runner.tasks.length;
       try {
         await session.appendAndRun(executables.tasks);
       } catch (error: any) {
@@ -544,6 +580,15 @@ export class TaskExecutor {
       if (!planResult?.shouldContinuePlanning) {
         break;
       }
+
+      // We are about to replan, which means the batch we just ran did not finish
+      // the task. Any locate task in that batch that was served from cache
+      // produced an element that failed to complete the step (the action threw,
+      // or it clicked the wrong element and the goal was not reached). Mark those
+      // cache entries stale so the re-locate of the same prompt replaces them in
+      // place instead of appending a poisoning duplicate that would be matched
+      // first on the next run (#2529).
+      this.invalidateFailedCacheHitLocates(runner, taskCountBeforeRun);
 
       // Increment replan count for next iteration
       ++replanCount;

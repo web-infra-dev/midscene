@@ -67,6 +67,18 @@ export class TaskCache {
 
   private matchedCacheIndices: Set<string> = new Set(); // Track matched records
 
+  // Per `${type}:${promptStr}`, the in-memory indices of cache entries consumed
+  // by matchCache this run (most recent last). markLocateCacheStale() drains
+  // from here into staleCacheIndices when the consumed entry's element is
+  // rejected by a failed action.
+  private consumedCacheIndices: Map<string, number[]> = new Map();
+
+  // Per `${type}:${promptStr}`, indices of consumed entries whose backing
+  // element was rejected (the action using it failed and the run replanned).
+  // Only these are replaced in place on the re-locate; every other write
+  // appends, so legitimately repeated prompts keep one entry per occurrence.
+  private staleCacheIndices: Map<string, number[]> = new Map();
+
   constructor(
     cacheId: string,
     isCacheResultUsed: boolean,
@@ -141,8 +153,7 @@ export class TaskCache {
       return undefined;
     }
     // Find the first unused matching cache
-    const promptStr =
-      typeof prompt === 'string' ? prompt : JSON.stringify(prompt);
+    const promptStr = this.promptKey(prompt);
     for (let i = 0; i < this.cacheOriginalLength; i++) {
       const item = this.cache.caches[i];
       const key = `${type}:${promptStr}:${i}`;
@@ -161,6 +172,10 @@ export class TaskCache {
           }
         }
         this.matchedCacheIndices.add(key);
+        const consumeKey = `${type}:${promptStr}`;
+        const consumed = this.consumedCacheIndices.get(consumeKey) ?? [];
+        consumed.push(i);
+        this.consumedCacheIndices.set(consumeKey, consumed);
         debug(
           'cache found and marked as used, type: %s, prompt: %s, index: %d',
           type,
@@ -396,27 +411,108 @@ export class TaskCache {
     }
   }
 
+  // Single source of truth for turning a prompt into a stable string key.
+  // matchCache and updateOrAppendCacheRecord must agree on this, otherwise a
+  // consumed entry can never be found again for in-place replacement.
+  private promptKey(prompt: TUserPrompt): string {
+    return typeof prompt === 'string' ? prompt : JSON.stringify(prompt);
+  }
+
+  // Copy the mutable payload of `newRecord` into an existing cache entry.
+  // Shared by the live-record update path and replaceCacheRecord so the field
+  // list lives in exactly one place. Caller guarantees same `type`.
+  private applyRecordInto(
+    target: PlanningCache | LocateCache,
+    newRecord: PlanningCache | LocateCache,
+  ) {
+    if (newRecord.type === 'plan') {
+      (target as PlanningCache).yamlWorkflow = newRecord.yamlWorkflow;
+    } else {
+      const locateCache = target as LocateCache;
+      locateCache.cache = newRecord.cache;
+      if ('xpaths' in locateCache) {
+        locateCache.xpaths = undefined;
+      }
+    }
+  }
+
   updateOrAppendCacheRecord(
     newRecord: PlanningCache | LocateCache,
     cachedRecord?: MatchCacheResult<PlanningCache | LocateCache>,
   ) {
     if (cachedRecord) {
       // update existing record
-      if (newRecord.type === 'plan') {
-        cachedRecord.updateFn((cache) => {
-          (cache as PlanningCache).yamlWorkflow = newRecord.yamlWorkflow;
-        });
-      } else {
-        cachedRecord.updateFn((cache) => {
-          const locateCache = cache as LocateCache;
-          locateCache.cache = newRecord.cache;
-          if ('xpaths' in locateCache) {
-            locateCache.xpaths = undefined;
-          }
-        });
-      }
+      cachedRecord.updateFn((cache) => {
+        this.applyRecordInto(cache, newRecord);
+      });
     } else {
-      this.appendCache(newRecord);
+      // No live MatchCacheResult was passed. This is either a genuine first-time
+      // miss or a replanning re-locate after the previously matched entry was
+      // rejected. Only replace an entry that was explicitly marked stale (its
+      // element caused a failed action); otherwise append. Without this gate a
+      // legitimately repeated prompt — located more times than it has cached
+      // entries — would overwrite a still-valid entry instead of appending.
+      const consumeKey = `${newRecord.type}:${this.promptKey(newRecord.prompt)}`;
+      const staleIndex = this.staleCacheIndices.get(consumeKey)?.pop();
+      if (staleIndex !== undefined && this.cache.caches[staleIndex]) {
+        debug(
+          'replacing stale cache entry in place, type: %s, prompt: %s, index: %d',
+          newRecord.type,
+          newRecord.prompt,
+          staleIndex,
+        );
+        this.replaceCacheRecord(staleIndex, newRecord);
+      } else {
+        this.appendCache(newRecord);
+      }
     }
+  }
+
+  /**
+   * Mark the most recently consumed locate cache entry for `prompt` as stale.
+   * Call this when an action that used the cache-hit element failed and the run
+   * is about to replan: the subsequent re-locate then replaces this entry in
+   * place instead of appending a duplicate, which would otherwise be matched
+   * first on the next run and re-trigger replanning forever (#2529).
+   *
+   * No-op when nothing was consumed for the prompt, so a plain first-time miss
+   * (and any repeated prompt that never failed) still appends normally.
+   */
+  markLocateCacheStale(prompt: TUserPrompt) {
+    const consumeKey = `locate:${this.promptKey(prompt)}`;
+    const index = this.consumedCacheIndices.get(consumeKey)?.pop();
+    if (index === undefined) {
+      return;
+    }
+    const stale = this.staleCacheIndices.get(consumeKey) ?? [];
+    stale.push(index);
+    this.staleCacheIndices.set(consumeKey, stale);
+    debug(
+      'marked locate cache entry as stale, prompt: %s, index: %d',
+      prompt,
+      index,
+    );
+  }
+
+  private replaceCacheRecord(
+    index: number,
+    newRecord: PlanningCache | LocateCache,
+  ) {
+    const target = this.cache.caches[index];
+    // Consumed indices are recorded per `${type}:${prompt}` in matchCache, which
+    // only stores entries whose `item.type === type`, so the target must share
+    // newRecord's type. Assert it to make the invariant explicit and fail fast.
+    assert(
+      target.type === newRecord.type,
+      `cache record type mismatch on replace: expected ${newRecord.type}, got ${target.type}`,
+    );
+    this.applyRecordInto(target, newRecord);
+
+    if (this.readOnlyMode) {
+      debug('read-only mode, cache replaced in memory but not flushed to file');
+      return;
+    }
+
+    this.flushCacheToFile();
   }
 }
