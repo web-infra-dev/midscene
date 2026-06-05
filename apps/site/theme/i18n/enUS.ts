@@ -33,13 +33,13 @@ and more`,
   platformMobile: 'Mobile',
   platformAnyInterface: 'Any Interface',
   platformWebDesc:
-    'Integrate with Puppeteer or Playwright, or use Bridge Mode to control desktop browsers.',
+    'Add Midscene to your Playwright or Puppeteer tests, or drive your own Chrome via Bridge Mode.',
   platformPCDesc:
-    'Control desktop applications on macOS, Windows, and Linux with natural language.',
+    'Test and automate desktop apps on macOS, Windows, and Linux with natural language.',
   platformMobileDesc:
-    'Control Android, iOS, and HarmonyOS devices with natural language automation.',
+    'Test and automate Android, iOS, and HarmonyOS apps on real devices and simulators.',
   platformAnyInterfaceDesc:
-    'Automation on any interface, beyond DOM / Accessibility limitations.',
+    'Automate any interface you can screenshot — beyond DOM and accessibility limits.',
 
   // Feature Sections - MODELS
   modelsTitle: 'MODEL STRATEGY',
@@ -53,16 +53,16 @@ and more`,
   // Model Cards
   modelSeedName: 'Doubao Seed',
   modelSeedDesc:
-    'Doubao Seed vision model optimized for visual understanding and UI element recognition with excellent performance.',
+    'Strong visual grounding for reliable element location — a solid default for Midscene.',
   modelQwenName: 'Qwen3-VL',
   modelQwenDesc:
-    'Qwen vision-language model with high-quality image understanding and UI element recognition at competitive pricing.',
+    'High-quality visual grounding at competitive pricing, with open-source builds you can self-host.',
   modelGeminiName: 'Gemini-3-Pro',
   modelGeminiDesc:
-    'Advanced Gemini multimodal model with powerful vision capabilities and comprehensive UI automation support.',
+    'Powerful multimodal understanding with excellent element localization.',
   modelMultiModelName: 'Multi-model combo',
   modelMultiModelDesc:
-    'Supports using different models for planning and interaction to improve task completion rates',
+    'Pair a planning model with a vision model to raise task completion rates.',
 
   // Feature Sections - DEBUGGING
   debuggingTitle: 'DEVELOPER EXPERIENCE',
@@ -75,16 +75,16 @@ and more`,
   // Feature Cards
   featureRichAPIs: 'Rich APIs',
   featureRichAPIsDesc:
-    'Enables both smart automation workflows and fine-grained atomic control.',
+    'Auto-planning for whole flows, plus atomic APIs like aiTap and aiAssert for precise tests.',
   featureSkillsMcp: 'Skills & MCP',
   featureSkillsMcpDesc:
-    'Drop-in Agent Skills for AI coding tools, plus an MCP Server for model collaboration.',
+    'Drop-in Skills let AI coding agents test your UI; an MCP Server exposes Midscene to other agents.',
   featureReportsPlayground: 'Reports & Playground',
   featureReportsPlaygroundDesc:
-    'Provides intuitive visualization reports to help developers trace back the automation process',
+    'Replay every step in a visual report, and try ideas fast in the playground.',
   featureFlexibleIntegration: 'Flexible Integration',
   featureFlexibleIntegrationDesc:
-    'Supports using Yaml to write automation flows, supports custom Agent execution strategies',
+    'Write flows in YAML, integrate with your test runner, and customize agent execution strategies.',
   featureRichAPIsLink: '/api',
   featureSkillsMcpLink: '/skills',
   featureReportsPlaygroundLink: '/quick-experience',

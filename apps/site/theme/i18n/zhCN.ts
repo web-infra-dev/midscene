@@ -32,10 +32,11 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   platformMobile: 'Mobile',
   platformAnyInterface: '任意界面',
   platformWebDesc:
-    '与 Puppeteer 或 Playwright 集成，或使用桥接模式控制桌面浏览器。',
-  platformPCDesc: '通过自然语言控制 macOS、Windows、Linux 上的桌面应用。',
-  platformMobileDesc: '通过自然语言自动化控制 Android、iOS 和 HarmonyOS 设备。',
-  platformAnyInterfaceDesc: '视觉建模支持任意界面的自动化，突破 DOM 限制。',
+    '把 Midscene 接入你的 Playwright 或 Puppeteer 测试，或用桥接模式驱动自己的 Chrome。',
+  platformPCDesc: '用自然语言测试与自动化 macOS、Windows、Linux 上的桌面应用。',
+  platformMobileDesc:
+    '在真机与模拟器上测试与自动化 Android、iOS 和 HarmonyOS 应用。',
+  platformAnyInterfaceDesc: '凡可截图皆可自动化——突破 DOM 与无障碍树的限制。',
 
   // Feature Sections - MODELS
   modelsTitle: '模型策略',
@@ -48,16 +49,13 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Model Cards
   modelSeedName: '豆包 Seed',
-  modelSeedDesc:
-    '豆包 Seed 视觉模型，针对视觉理解和 UI 元素识别进行优化，表现出色。',
+  modelSeedDesc: '强大的视觉定位能力，元素定位可靠——Midscene 的稳妥默认选择。',
   modelQwenName: 'Qwen3-VL',
-  modelQwenDesc:
-    'Qwen 视觉语言模型，支持高质量图像理解和 UI 元素识别，性价比高。',
+  modelQwenDesc: '高质量视觉定位，性价比高，并提供可自托管的开源版本。',
   modelGeminiName: 'Gemini-3-Pro',
-  modelGeminiDesc:
-    'Gemini 先进的多模态模型，拥有强大的视觉能力和全面的 UI 自动化支持。',
+  modelGeminiDesc: '强大的多模态理解，元素定位表现出色。',
   modelMultiModelName: '多模型组合',
-  modelMultiModelDesc: '支持在规划、交互时选用不同模型，提升任务完成率',
+  modelMultiModelDesc: '让规划模型与视觉模型协同，提升任务完成率。',
 
   // Feature Sections - DEBUGGING
   debuggingTitle: '开发体验',
@@ -69,16 +67,17 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Feature Cards
   featureRichAPIs: '丰富的 API',
-  featureRichAPIsDesc: '同时支持智能执行流程与原子化精确控制。',
+  featureRichAPIsDesc:
+    '既能自动规划完整流程，也提供 aiTap、aiAssert 等原子 API，用于精确测试。',
   featureSkillsMcp: 'Skills 与 MCP',
   featureSkillsMcpDesc:
-    '为 AI 编程工具提供开箱即用的 Agent Skills，同时支持将设备操作暴露为 MCP Server。',
+    '开箱即用的 Skills 让 AI 编程 Agent 测试你的 UI；MCP Server 把 Midscene 暴露给其他 Agent。',
   featureReportsPlayground: '报告与 Playground',
   featureReportsPlaygroundDesc:
-    '提供直观的可视化报告，帮助开发者回溯自动化流程',
+    '在可视化报告中逐步回放，并在 Playground 里快速试验。',
   featureFlexibleIntegration: '灵活集成',
   featureFlexibleIntegrationDesc:
-    '支持使用 Yaml 编写自动化流程，支持自定义 Agent 执行策略',
+    '用 YAML 编写流程，接入你的测试运行器，并自定义 Agent 执行策略。',
   featureRichAPIsLink: '/api',
   featureSkillsMcpLink: '/skills',
   featureReportsPlaygroundLink: '/quick-experience',
