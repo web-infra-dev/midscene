@@ -15,7 +15,18 @@ export interface MarkdownAttachment {
   id: string;
   suggestedFileName: string;
   mimeType?: string;
+  /**
+   * Path referenced from the markdown file. Always points at the exported copy
+   * (`${screenshotBaseDir}/${suggestedFileName}`) so the markdown links stay in
+   * sync with the files actually written to disk.
+   */
   filePath: string;
+  /**
+   * Original on-disk location of the screenshot in the source report (a
+   * ScreenshotRef `path`). Used only to locate the source file when copying it
+   * to the exported name; never referenced from the markdown. See issue #2392.
+   */
+  sourcePath?: string;
   executionIndex: number;
   taskIndex: number;
   /** Populated when screenshot data is available in memory (e.g. browser context). */
@@ -204,13 +215,14 @@ function screenshotAttachment(
   if (ref) {
     const ext = ref.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${ref.id}.${ext}`;
-    const filePath = ref.path || `${screenshotBaseDir}/${suggestedFileName}`;
+    const filePath = `${screenshotBaseDir}/${suggestedFileName}`;
     return {
       markdown: `\n![task-${taskIndex + 1}](${filePath})`,
       attachment: {
         id: ref.id,
         suggestedFileName,
         filePath,
+        sourcePath: ref.path,
         mimeType: ref.mimeType,
         executionIndex,
         taskIndex,

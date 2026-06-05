@@ -74,18 +74,16 @@ function writeAttachmentFromReport(
 
   const absolutePath = path.join(opts.screenshotsDir, suggestedFileName);
 
-  const outputRelativePath = `./screenshots/${suggestedFileName}`;
-  const sourceRef =
-    attachment.filePath !== outputRelativePath
-      ? {
-          type: 'midscene_screenshot_ref' as const,
-          id,
-          capturedAt: 0,
-          mimeType: (mimeType || 'image/png') as 'image/png' | 'image/jpeg',
-          storage: 'file' as const,
-          path: attachment.filePath,
-        }
-      : null;
+  const sourceRef = attachment.sourcePath
+    ? {
+        type: 'midscene_screenshot_ref' as const,
+        id,
+        capturedAt: 0,
+        mimeType: (mimeType || 'image/png') as 'image/png' | 'image/jpeg',
+        storage: 'file' as const,
+        path: attachment.sourcePath,
+      }
+    : null;
 
   const resolved = resolveScreenshotSource(sourceRef, {
     reportPath: opts.htmlPath,
