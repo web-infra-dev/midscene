@@ -576,4 +576,71 @@ export function defineYamlCaseTest(options: any) {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  test('records the real error in the summary when a case fails before writing its result', async () => {
+    const root = createTempDir();
+    const runDir = join(root, 'midscene-run');
+    const outputDir = join(root, 'generated-runner');
+    const yaml = join(root, 'case.yaml');
+    const framework = join(root, 'framework.ts');
+    const previousRunDir = process.env.MIDSCENE_RUN_DIR;
+    const failureMessage =
+      'Model configuration is incomplete: model name (MIDSCENE_MODEL_NAME) is required.';
+
+    process.env.MIDSCENE_RUN_DIR = runDir;
+    writeFileSync(yaml, 'web:\n  url: https://file.example\ntasks: []\n');
+    // The case throws before writing its own result file, mimicking a module /
+    // setup failure inside the worker. The summary must still surface the real
+    // error instead of a blank "not executed".
+    writeFileSync(
+      framework,
+      `import { test } from '@rstest/core';
+export function defineYamlCaseTest(options: any) {
+  test(options.testName, async () => {
+    throw new Error(${JSON.stringify(failureMessage)});
+  });
+}
+`,
+    );
+
+    try {
+      const exitCode = await runFrameworkTestConfig(
+        {
+          files: [yaml],
+          concurrent: 1,
+          continueOnError: false,
+          summary: 'summary.json',
+          shareBrowserContext: false,
+          globalConfig: {},
+          headed: false,
+          keepWindow: false,
+          dotenvOverride: false,
+          dotenvDebug: false,
+        },
+        {
+          outputDir,
+          frameworkImport: framework,
+          stdio: 'pipe',
+        },
+      );
+
+      expect(exitCode).toBe(1);
+      const summary = JSON.parse(
+        readFileSync(join(runDir, 'output', 'summary.json'), 'utf8'),
+      );
+      expect(summary.summary).toMatchObject({
+        failed: 1,
+        notExecuted: 0,
+      });
+      expect(summary.results[0].resultType).toBe('failed');
+      expect(summary.results[0].error).toContain(failureMessage);
+    } finally {
+      if (previousRunDir === undefined) {
+        Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
+      } else {
+        process.env.MIDSCENE_RUN_DIR = previousRunDir;
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

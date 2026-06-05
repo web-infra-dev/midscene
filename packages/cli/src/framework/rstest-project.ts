@@ -123,15 +123,33 @@ defineYamlBatchTest(${JSON.stringify(testOptions, null, 2)});
 };
 
 const resolveDefaultFrameworkImport = (): string => {
-  const entry = process.argv[1] ? resolve(process.argv[1]) : '';
+  // Anchor the framework entry on this bundle's own directory rather than
+  // `process.argv[1]`. The command-line entry can be a `.bin` symlink, an
+  // `npx` cache path, or a wrapper script whose directory does not lead to the
+  // compiled `framework/index.js`. In those cases the argv-based lookup below
+  // falls through to the bare specifier `@midscene/cli/dist/lib/framework/
+  // index.js`, which the generated virtual test module then fails to resolve
+  // from the user's CWD ("Cannot find module ..."), silently turning every run
+  // into "not executed". `__dirname` always points at the installed CLI output
+  // (this mirrors `requireFromCliPackage` in rstest-runner.ts). Resolve to an
+  // absolute path so the virtual module imports it regardless of CWD.
   const candidates = [
-    entry ? join(dirname(entry), 'framework', 'index.js') : '',
-    entry
-      ? join(dirname(entry), '..', 'dist', 'lib', 'framework', 'index.js')
+    typeof __dirname !== 'undefined'
+      ? join(__dirname, 'framework', 'index.js')
       : '',
-  ].filter(Boolean);
+  ];
 
-  const matched = candidates.find((candidate) => existsSync(candidate));
+  const entry = process.argv[1] ? resolve(process.argv[1]) : '';
+  if (entry) {
+    candidates.push(join(dirname(entry), 'framework', 'index.js'));
+    candidates.push(
+      join(dirname(entry), '..', 'dist', 'lib', 'framework', 'index.js'),
+    );
+  }
+
+  const matched = candidates
+    .filter(Boolean)
+    .find((candidate) => existsSync(candidate));
   return matched || '@midscene/cli/dist/lib/framework/index.js';
 };
 
