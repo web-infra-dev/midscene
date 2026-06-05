@@ -6,6 +6,19 @@ Midscene is an open-source SDK for AI-powered, vision-driven UI automation. Desc
 Head to the [Quick start](./quick-start) to run your first automation in a few minutes, or try it with no code via the [Chrome extension](./quick-experience).
 :::
 
+## Why Midscene
+
+Traditional UI tests lean on selectors and the DOM, so they break whenever the interface is refactored — and they can't reach `<canvas>`, native mobile apps, or cross-origin iframes at all. Keeping a suite green turns into a constant maintenance tax.
+
+Midscene takes a different route: it **locates elements from the screenshot alone**, using a vision-language model, and you describe each step in natural language. That changes what UI testing feels like:
+
+- **Tests stop breaking on every refactor.** There are no selectors to chase when markup or styles change, so the maintenance cost of your suite drops sharply.
+- **Test anything you can see.** Web, Android, iOS, HarmonyOS, and desktop — one API, the same way everywhere, including surfaces the DOM can't describe.
+- **Two ways to test.** Add Midscene to your existing [Playwright](./integrate-with-playwright) or Vitest suite, or let an AI agent test your app autonomously through [Skills](./skills) and [MCP](./mcp).
+- **Failures you can read.** Every run produces a visual report you can replay step by step.
+
+> Midscene is built for UI testing first, but the same vision-driven engine handles any UI automation task — use it however fits your work.
+
 ## Features
 
 ### Write UI Automation with Natural Language

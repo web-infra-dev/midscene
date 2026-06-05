@@ -5,7 +5,8 @@ export const EN_US = {
 
   // Banner - Title
   heroTitle: 'Midscene.js',
-  heroSubtitle: 'AI-powered, vision-driven UI automation for every platform.',
+  heroSubtitle:
+    'Vision-driven AI for UI testing — write tests in natural language, automate any platform.',
 
   // Banner - Stats
   githubStars: 'Github Stars',

@@ -7,7 +7,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Banner - Title
   heroTitle: 'Midscene.js',
-  heroSubtitle: 'AI 驱动、视觉感知，适用于全平台的 UI 自动化。',
+  heroSubtitle:
+    '视觉驱动的 AI UI 测试——用自然语言编写测试用例，自动化任意平台。',
 
   // Banner - Stats
   githubStars: 'Github Stars',
