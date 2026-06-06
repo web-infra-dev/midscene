@@ -186,6 +186,18 @@ std::string GenerateSessionId() {
   return session_id.str();
 }
 
+std::string FormatServerAddress(std::string_view host, UINT32 port) {
+  std::ostringstream server;
+  if (host.find(':') != std::string_view::npos &&
+      !(host.size() >= 2 && host.front() == '[' && host.back() == ']')) {
+    server << '[' << host << ']';
+  } else {
+    server << host;
+  }
+  server << ':' << port;
+  return server.str();
+}
+
 DWORD VerifyCertificateEx(freerdp* instance,
                           const char* host,
                           UINT16 port,
@@ -588,9 +600,7 @@ ConnectionInfo FreeRdpSessionTransport::Connect(const ConnectionConfig& config) 
     const char* host = freerdp_settings_get_server_name(settings);
     const UINT32 port =
         freerdp_settings_get_uint32(settings, FreeRDP_ServerPort);
-    std::ostringstream server;
-    server << (host ? host : "") << ":" << port;
-    info.server = server.str();
+    info.server = FormatServerAddress(host ? host : "", port);
     if (instance_->context && instance_->context->gdi) {
       info.size.width = instance_->context->gdi->width;
       info.size.height = instance_->context->gdi->height;

@@ -13,6 +13,7 @@ import type {
   RDPMouseButtonAction,
   RDPScrollDirection,
 } from '../../../src';
+import { formatRdpServerAddress } from '../../../src/rdp/address';
 
 class FakeRDPBackend implements RDPBackendClient {
   calls: Array<{ name: string; args: unknown[] }> = [];
@@ -21,7 +22,7 @@ class FakeRDPBackend implements RDPBackendClient {
     this.calls.push({ name: 'connect', args: [config] });
     return {
       sessionId: 'session-1',
-      server: `${config.host}:${config.port || 3389}`,
+      server: formatRdpServerAddress(config.host, config.port || 3389),
       size: { width: 1920, height: 1080 },
     };
   }
@@ -133,6 +134,41 @@ describe('@midscene/computer RDP device', () => {
       password: 'secret',
       ignoreCertificate: true,
     });
+  });
+
+  it('normalizes and brackets IPv6 hosts in RDP device metadata', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({
+      host: '[2001:db8::10]',
+      port: 3390,
+      backend,
+    });
+    await device.connect();
+
+    expect(backend.calls[0]).toEqual({
+      name: 'connect',
+      args: [
+        expect.objectContaining({
+          host: '2001:db8::10',
+          port: 3390,
+        }),
+      ],
+    });
+    expect(device.describe()).toContain('[2001:db8::10]:3390');
+
+    const listDisplays = device
+      .actionSpace()
+      .find((action) => action.name === 'ListDisplays');
+
+    await expect(
+      listDisplays!.call(undefined, mockExecutorContext),
+    ).resolves.toEqual([
+      {
+        id: 'session-1',
+        name: 'RDP [2001:db8::10]:3390 (1920x1080)',
+        primary: true,
+      },
+    ]);
   });
 
   it('allows ComputerAgent to wrap an RDP device directly', async () => {

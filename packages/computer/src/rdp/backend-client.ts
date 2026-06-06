@@ -7,6 +7,7 @@ import { once } from 'node:events';
 import { type Interface, createInterface } from 'node:readline';
 import type { Size } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
+import { normalizeRdpConnectionConfig } from './address';
 import { getRdpHelperBinaryPath } from './helper-binary';
 import type {
   RDPBackendClient,
@@ -126,7 +127,7 @@ export class HelperProcessRDPBackendClient implements RDPBackendClient {
     await this.ensureHelperStarted();
     const response = await this.send({
       type: 'connect',
-      config,
+      config: normalizeRdpConnectionConfig(config),
     });
 
     if (response.type !== 'connected') {

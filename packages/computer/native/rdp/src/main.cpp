@@ -12,6 +12,14 @@ namespace midscene::rdp {
 
 namespace {
 
+std::string NormalizeRdpHost(std::string_view host) {
+  if (host.size() >= 2 && host.front() == '[' && host.back() == ']' &&
+      host.find(':') != std::string_view::npos) {
+    return std::string(host.substr(1, host.size() - 2));
+  }
+  return std::string(host);
+}
+
 ConnectionConfig ParseConnectionConfig(const JsonObject& payload) {
   const JsonObject* config = GetObjectField(payload, "config");
   if (!config) {
@@ -24,7 +32,7 @@ ConnectionConfig ParseConnectionConfig(const JsonObject& payload) {
   }
 
   ConnectionConfig parsed;
-  parsed.host = *host;
+  parsed.host = NormalizeRdpHost(*host);
   if (const auto port = GetIntField(*config, "port"); port.has_value()) {
     parsed.port = static_cast<uint16_t>(*port);
   }

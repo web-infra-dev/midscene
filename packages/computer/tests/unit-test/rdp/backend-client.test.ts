@@ -99,6 +99,44 @@ describe('HelperProcessRDPBackendClient', () => {
     });
   });
 
+  it('normalizes bracketed IPv6 hosts before sending helper connect requests', async () => {
+    const { child, client } = createClientWithChild();
+
+    onNextRequest(child, (request) => {
+      expect(request.payload.type).toBe('connect');
+      expect(request.payload.config).toEqual(
+        expect.objectContaining({
+          host: '2001:db8::42',
+          port: 3390,
+        }),
+      );
+      writeResponse(child, {
+        id: request.id,
+        ok: true,
+        payload: {
+          type: 'connected',
+          info: {
+            sessionId: 'session-ipv6',
+            server: '[2001:db8::42]:3390',
+            size: { width: 1280, height: 720 },
+          },
+        },
+      });
+    });
+
+    await expect(
+      client.connect({
+        host: '[2001:db8::42]',
+        port: 3390,
+        username: 'Admin',
+      }),
+    ).resolves.toEqual({
+      sessionId: 'session-ipv6',
+      server: '[2001:db8::42]:3390',
+      size: { width: 1280, height: 720 },
+    });
+  });
+
   it('rejects structured helper errors', async () => {
     const { child, client } = createClientWithChild();
 
