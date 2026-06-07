@@ -1,8 +1,26 @@
 # 更新日志
 
+## v1.9 - HarmonyOS YAML 目标与模型适配重构
+
+v1.9 版本将 YAML 自动化扩展到 HarmonyOS，并重构了模型适配器内部实现。
+
+### YAML 与设备自动化
+
+- CLI 的 YAML 脚本新增 HarmonyOS target，HarmonyOS 自动化可以通过与 Web、Android、iOS、Computer 一致的脚本运行器流程执行。详见：[YAML 脚本自动化](./automate-with-scripts-in-yaml)、[HarmonyOS API](./harmony-api-reference)
+
+### 模型配置与适配更新
+
+- 重构了模型适配器内部实现，便于维护不同模型系列的请求和响应处理逻辑
+
+### 问题修复
+
+- 修复 Web integration 中 `longPress` 时长被限制在 600ms 的问题
+- 修复部分环境下 HarmonyOS MCP 因 `photon` / `sharp` WASM 初始化失败而无法启动的问题
+- 修复 CLI 依赖解析问题，确保 `@rstest/core` 从 CLI 包自身解析，而不是从 `process.argv[1]` 解析
+
 ## v1.8 - YAML 工作流、设备集成与模型行为更新
 
-v1.8 版本调整模型思考模式默认行为，并补充了多项设备与平台集成能力。
+v1.8 版本改进了 YAML 执行、模型思考模式默认行为、报告工具链，并补充了多项设备与平台集成能力。
 
 ### YAML 工作流增强
 
@@ -12,12 +30,22 @@ v1.8 版本调整模型思考模式默认行为，并补充了多项设备与平
 
 - iOS 支持连接外部 WebDriverAgent 会话，方便复用已有 WDA 环境
 - Computer MCP / CLI 连接工具支持传入 RDP 连接选项
+- Android CLI 新增启用 `scrcpy` 预览的参数
+- `WebPageOpt` 支持配置 Web integration 的键盘输入延迟
 
 ### 模型与规划行为
 
 - 模型使用意图与实际解析到的配置槽位分离，多模型 Planning、定位和报告展示更清晰
 - 对于已支持的模型系列，Midscene 默认关闭模型原生思考，以提升执行速度和稳定性。详见：[模型原生的思考模式](./model-strategy#模型原生的思考模式)
 - 支持豆包低延迟模式配置方式，可通过 `MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}` 开启。详见：[常用模型配置](./model-common-config)
+- 支持 Qwen3.7 模型
+- 适配 Gemini 的思考模式
+
+### 报告、缓存与工具链
+
+- report-tool CLI 新增 `merge` 操作
+- assert CLI / MCP 工具支持传入图片 prompt
+- 移除了报告中动作执行前冗余的截图
 
 ### 问题修复
 
@@ -27,6 +55,12 @@ v1.8 版本调整模型思考模式默认行为，并补充了多项设备与平
 - 修复 iOS / HarmonyOS / Computer Playground 点击投影问题
 - 修复 HarmonyOS 单次调用 `autoDismissKeyboard` 的配置不生效问题
 - 修复 Android Playground 视频流内存占用问题
+- 修复 action API 返回值与文档不一致的问题
+- 修复在 `0.0.0.0` 上探测端口时与实际监听 host 不一致的问题
+- 修复 HarmonyOS 清空输入、键盘收起策略和系统动作延迟覆盖问题
+- 修复 Computer 默认滚动距离与 Web 不一致的问题，并在销毁 agent 时取消未完成输入
+- 修复 Android 截图时传入 `null` 作为 `displayId` 的问题
+- 修复可能导致模型验证失败的 service import cycle 问题
 
 ## v1.7 - 灵活处理报告文件、支持 Qwen 3.6 模型
 
