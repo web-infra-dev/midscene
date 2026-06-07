@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url);
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const workspaceConfigPath = join(workspaceRoot, 'pnpm-workspace.yaml');
 const tscPath = require.resolve('typescript/bin/tsc');
-const excludedProjects = new Set(['apps/site', 'packages/evaluation']);
+const excludedProjects = new Set(['apps/site']);
 const concurrency = 5;
 
 function readWorkspacePatterns() {
