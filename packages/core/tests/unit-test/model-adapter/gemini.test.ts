@@ -31,6 +31,25 @@ describe('gemini model adapter', () => {
     });
   });
 
+  it('preserves midscene defaults and applies explicit gemini temperature override', () => {
+    const result =
+      geminiAdapters.gemini.chatCompletion?.buildChatCompletionParams({
+        midsceneDefaults: {
+          temperature: 0,
+          seed: 123,
+        } as any,
+        userConfig: {
+          temperature: 0.7,
+        },
+      });
+
+    expect(result?.config).toEqual({
+      temperature: 0.7,
+      seed: 123,
+      reasoning_effort: 'minimal',
+    });
+  });
+
   it('enables thought summaries for insight intent', () => {
     const result = geminiAdapter.chatCompletion.buildChatCompletionParams({
       intent: 'insight',

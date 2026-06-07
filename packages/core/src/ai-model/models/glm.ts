@@ -11,14 +11,25 @@ const buildGlmChatCompletionParams = (
   const { midsceneDefaults, userConfig } = input;
   const { reasoningEnabled } = userConfig;
   const effectiveReasoningEnabled = reasoningEnabled ?? false;
-  const config: Record<string, unknown> = {
-    temperature: userConfig.temperature ?? midsceneDefaults.temperature,
+  const commonOverrideConfig: Record<string, unknown> = {};
+
+  if (userConfig.temperature !== undefined) {
+    commonOverrideConfig.temperature = userConfig.temperature;
+  }
+
+  const modelSpecificConfig = {
     thinking: {
       type: effectiveReasoningEnabled ? 'enabled' : 'disabled',
     },
   };
 
-  return { config };
+  return {
+    config: {
+      ...midsceneDefaults,
+      ...commonOverrideConfig,
+      ...modelSpecificConfig,
+    },
+  };
 };
 
 export const glmAdapters = {

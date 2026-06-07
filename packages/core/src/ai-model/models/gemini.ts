@@ -32,12 +32,23 @@ const buildGeminiChatCompletionParams = (
 ): ChatCompletionParamsResult => {
   const { midsceneDefaults, userConfig, intent } = input;
   const { reasoningEffort } = userConfig;
-  const config: Record<string, unknown> = {
-    temperature: userConfig.temperature ?? midsceneDefaults.temperature,
-  };
+  const commonOverrideConfig: Record<string, unknown> = {};
+
+  if (userConfig.temperature !== undefined) {
+    commonOverrideConfig.temperature = userConfig.temperature;
+  }
+
+  const modelSpecificConfig: {
+    extra_body?: {
+      google?: {
+        thinking_config: Record<string, unknown>;
+      };
+    };
+    reasoning_effort?: unknown;
+  } = {};
 
   if (intent === 'insight') {
-    config.extra_body = {
+    modelSpecificConfig.extra_body = {
       google: {
         thinking_config: {
           // In real Gemini tests, insight calls need `include_thoughts` to get
@@ -49,7 +60,7 @@ const buildGeminiChatCompletionParams = (
   }
 
   if (reasoningEffort) {
-    config.extra_body = {
+    modelSpecificConfig.extra_body = {
       google: {
         thinking_config: {
           thinking_level: reasoningEffort,
@@ -60,9 +71,16 @@ const buildGeminiChatCompletionParams = (
   } else {
     // Gemini 3.x cannot fully disable native thinking, so use the lowest
     // supported effort unless the user explicitly requests another level.
-    config.reasoning_effort = 'minimal';
+    modelSpecificConfig.reasoning_effort = 'minimal';
   }
-  return { config };
+
+  return {
+    config: {
+      ...midsceneDefaults,
+      ...commonOverrideConfig,
+      ...modelSpecificConfig,
+    },
+  };
 };
 
 const extractInlineThought = (content: string): string | undefined => {

@@ -118,6 +118,36 @@ describe('auto-glm model adapter', () => {
     });
   });
 
+  it('preserves midscene defaults and applies explicit Auto-GLM temperature override', () => {
+    const chatCompletion = autoGlmAdapters['auto-glm'].chatCompletion;
+    expect(chatCompletion).toBeDefined();
+    if (!chatCompletion) {
+      throw new Error('Auto-GLM should define chat completion adapter');
+    }
+    const buildChatCompletionParams = chatCompletion.buildChatCompletionParams;
+    expect(buildChatCompletionParams).toBeDefined();
+    if (!buildChatCompletionParams) {
+      throw new Error('Auto-GLM should define chat completion params builder');
+    }
+
+    const result = buildChatCompletionParams({
+      midsceneDefaults: {
+        temperature: 0,
+        seed: 123,
+      } as any,
+      userConfig: {
+        temperature: 0.7,
+      },
+    });
+
+    expect(result.config).toEqual({
+      temperature: 0.7,
+      seed: 123,
+      top_p: 0.85,
+      frequency_penalty: 0.2,
+    });
+  });
+
   it('ignores reasoning config for Auto-GLM adapters', () => {
     const result = autoGlmAdapter.chatCompletion.buildChatCompletionParams({
       userConfig: {

@@ -174,11 +174,20 @@ function createUiTarsAdapter(
         'reasoningEffort',
         'reasoningBudget',
       ],
-      buildChatCompletionParams: ({ midsceneDefaults, userConfig }) => ({
-        config: {
-          temperature: userConfig.temperature ?? midsceneDefaults.temperature,
-        },
-      }),
+      buildChatCompletionParams: ({ midsceneDefaults, userConfig }) => {
+        const commonOverrideConfig: Record<string, unknown> = {};
+
+        if (userConfig.temperature !== undefined) {
+          commonOverrideConfig.temperature = userConfig.temperature;
+        }
+
+        return {
+          config: {
+            ...midsceneDefaults,
+            ...commonOverrideConfig,
+          },
+        };
+      },
     },
     planning: {
       kind: 'custom',

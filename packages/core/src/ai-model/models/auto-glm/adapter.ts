@@ -25,13 +25,26 @@ function createAutoGlmAdapter({
         'reasoningEffort',
         'reasoningBudget',
       ],
-      buildChatCompletionParams: ({ midsceneDefaults, userConfig }) => ({
-        config: {
-          temperature: userConfig.temperature ?? midsceneDefaults.temperature,
+      buildChatCompletionParams: ({ midsceneDefaults, userConfig }) => {
+        const commonOverrideConfig: Record<string, unknown> = {};
+
+        if (userConfig.temperature !== undefined) {
+          commonOverrideConfig.temperature = userConfig.temperature;
+        }
+
+        const modelSpecificConfig = {
           top_p: 0.85,
           frequency_penalty: 0.2,
-        },
-      }),
+        };
+
+        return {
+          config: {
+            ...midsceneDefaults,
+            ...commonOverrideConfig,
+            ...modelSpecificConfig,
+          },
+        };
+      },
     },
     planning: {
       kind: 'custom',
