@@ -58,26 +58,44 @@ const buildQwenChatCompletionParams = (
 ): ChatCompletionParamsResult => {
   const { midsceneDefaults, userConfig } = input;
   const { reasoningEnabled, reasoningBudget } = userConfig;
-  const effectiveReasoningEnabled = reasoningEnabled ?? false;
-  const config: Record<string, unknown> = {
-    temperature: userConfig.temperature ?? midsceneDefaults.temperature,
-    enable_thinking: effectiveReasoningEnabled,
+
+  const commonOverrideConfig: Record<string, unknown> = {};
+
+  if (userConfig.temperature !== undefined) {
+    commonOverrideConfig.temperature = userConfig.temperature;
+  }
+
+  const modelSpecificConfig: Record<string, unknown> = {
+    enable_thinking: reasoningEnabled ?? false,
   };
 
   if (reasoningBudget !== undefined) {
-    config.thinking_budget = reasoningBudget;
+    modelSpecificConfig.thinking_budget = reasoningBudget;
   }
 
-  return { config };
+  return {
+    config: {
+      ...midsceneDefaults,
+      ...commonOverrideConfig,
+      ...modelSpecificConfig,
+    },
+  };
 };
 
 const buildQwen25ChatCompletionParams = (
   input: ChatCompletionCallContext,
 ): ChatCompletionParamsResult => {
   const { midsceneDefaults, userConfig } = input;
+  const commonOverrideConfig: Record<string, unknown> = {};
+
+  if (userConfig.temperature !== undefined) {
+    commonOverrideConfig.temperature = userConfig.temperature;
+  }
+
   return {
     config: {
-      temperature: userConfig.temperature ?? midsceneDefaults.temperature,
+      ...midsceneDefaults,
+      ...commonOverrideConfig,
       vl_high_resolution_images: true,
     },
   };

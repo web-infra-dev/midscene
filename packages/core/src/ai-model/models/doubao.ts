@@ -168,18 +168,29 @@ const buildDoubaoChatCompletionParams = (
   const { midsceneDefaults, userConfig } = input;
   const { reasoningEnabled, reasoningEffort } = userConfig;
   const effectiveReasoningEnabled = reasoningEnabled ?? false;
-  const config: Record<string, unknown> = {
-    temperature: userConfig.temperature ?? midsceneDefaults.temperature,
+  const commonOverrideConfig: Record<string, unknown> = {};
+
+  if (userConfig.temperature !== undefined) {
+    commonOverrideConfig.temperature = userConfig.temperature;
+  }
+
+  const modelSpecificConfig: Record<string, unknown> = {
     thinking: {
       type: effectiveReasoningEnabled ? 'enabled' : 'disabled',
     },
   };
 
   if (reasoningEffort) {
-    config.reasoning_effort = reasoningEffort;
+    modelSpecificConfig.reasoning_effort = reasoningEffort;
   }
 
-  return { config };
+  return {
+    config: {
+      ...midsceneDefaults,
+      ...commonOverrideConfig,
+      ...modelSpecificConfig,
+    },
+  };
 };
 
 const doubaoVisionAdapter: ModelAdapterDefinition = {

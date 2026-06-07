@@ -10,13 +10,25 @@ const buildGeminiChatCompletionParams = (
 ): ChatCompletionParamsResult => {
   const { midsceneDefaults, userConfig } = input;
   const { reasoningEffort } = userConfig;
-  const config: Record<string, unknown> = {
-    temperature: userConfig.temperature ?? midsceneDefaults.temperature,
+  const commonOverrideConfig: Record<string, unknown> = {};
+
+  if (userConfig.temperature !== undefined) {
+    commonOverrideConfig.temperature = userConfig.temperature;
+  }
+
+  const modelSpecificConfig = {
     // Gemini 3.x cannot fully disable native thinking, so use the lowest
     // supported effort unless the user explicitly requests another level.
     reasoning_effort: reasoningEffort || 'minimal',
   };
-  return { config };
+
+  return {
+    config: {
+      ...midsceneDefaults,
+      ...commonOverrideConfig,
+      ...modelSpecificConfig,
+    },
+  };
 };
 
 export const geminiAdapters = {
