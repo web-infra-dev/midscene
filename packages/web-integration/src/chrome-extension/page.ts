@@ -13,7 +13,11 @@ import type {
   Rect,
   Size,
 } from '@midscene/core';
-import type { AbstractInterface, DeviceAction } from '@midscene/core/device';
+import type {
+  AbstractInterface,
+  DeviceAction,
+  FileChooserHandler,
+} from '@midscene/core/device';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
@@ -45,6 +49,29 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function hasFlatNodeAttribute(
+  attributes: string[] | undefined,
+  name: string,
+): boolean {
+  if (!attributes) return false;
+  for (let i = 0; i < attributes.length; i += 2) {
+    if (attributes[i] === name) return true;
+  }
+  return false;
+}
+
+function serializeError(error: Error): {
+  message: string;
+  name?: string;
+  stack?: string;
+} {
+  return {
+    message: error.message,
+    name: error.name,
+    stack: error.stack,
+  };
+}
+
 export default class ChromeExtensionProxyPage implements AbstractInterface {
   interfaceType = 'chrome-extension-proxy';
 
@@ -55,6 +82,14 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
   private activeTabId: number | null = null;
 
   private destroyed = false;
+
+  private fileChooserEventHandler?: Parameters<
+    typeof chrome.debugger.onEvent.addListener
+  >[0];
+
+  private bridgeFileChooserDispose?: () => void;
+
+  private bridgeFileChooserGetError?: () => Error | undefined;
 
   private isMobileEmulation: boolean | null = null;
 
@@ -358,6 +393,121 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
       expression: script,
       awaitPromise: true,
     });
+  }
+
+  async registerFileChooserListener(
+    handler: (chooser: FileChooserHandler) => Promise<void>,
+  ): Promise<{ dispose: () => void; getError: () => Error | undefined }> {
+    const tabId = await this.getTabIdOrConnectToCurrentTab();
+    await this.sendCommandToDebugger('Page.enable', {});
+    await this.sendCommandToDebugger('DOM.enable', {});
+    await this.sendCommandToDebugger('Page.setInterceptFileChooserDialog', {
+      enabled: true,
+    });
+
+    if (this.fileChooserEventHandler) {
+      chrome.debugger.onEvent.removeListener(this.fileChooserEventHandler);
+      this.fileChooserEventHandler = undefined;
+    }
+
+    let capturedError: Error | undefined;
+
+    const fileChooserEventHandler: Parameters<
+      typeof chrome.debugger.onEvent.addListener
+    >[0] = async (source, method, params) => {
+      if (source.tabId !== tabId || method !== 'Page.fileChooserOpened') {
+        return;
+      }
+
+      const event = params as CDPTypes.Page.FileChooserOpenedEvent;
+      if (event.backendNodeId === undefined) {
+        debug(
+          'chrome extension file chooser opened without backendNodeId, skip',
+        );
+        return;
+      }
+
+      try {
+        await handler({
+          accept: async (files: string[]) => {
+            const { node } = await this.sendCommandToDebugger<
+              CDPTypes.DOM.DescribeNodeResponse,
+              CDPTypes.DOM.DescribeNodeRequest
+            >('DOM.describeNode', {
+              backendNodeId: event.backendNodeId,
+            });
+
+            const hasWebkitDirectory =
+              hasFlatNodeAttribute(node.attributes, 'webkitdirectory') ||
+              hasFlatNodeAttribute(node.attributes, 'directory');
+            if (hasWebkitDirectory) {
+              throw new Error(
+                'Directory upload (webkitdirectory) is not supported in Chrome extension bridge mode. Please use Playwright instead, which supports directory upload since version 1.45.',
+              );
+            }
+
+            if (
+              files.length > 1 &&
+              !hasFlatNodeAttribute(node.attributes, 'multiple')
+            ) {
+              throw new Error(
+                'Non-multiple file input can only accept single file',
+              );
+            }
+
+            await this.sendCommandToDebugger('DOM.setFileInputFiles', {
+              files,
+              backendNodeId: event.backendNodeId,
+            });
+          },
+        });
+      } catch (error) {
+        capturedError =
+          error instanceof Error ? error : new Error(String(error));
+      }
+    };
+
+    this.fileChooserEventHandler = fileChooserEventHandler;
+    chrome.debugger.onEvent.addListener(fileChooserEventHandler);
+
+    return {
+      dispose: () => {
+        if (this.fileChooserEventHandler === fileChooserEventHandler) {
+          chrome.debugger.onEvent.removeListener(fileChooserEventHandler);
+          this.fileChooserEventHandler = undefined;
+        }
+        this.sendCommandToDebugger('Page.setInterceptFileChooserDialog', {
+          enabled: false,
+        }).catch((error) => {
+          debug('failed to disable file chooser interception: %O', error);
+        });
+      },
+      getError: () => capturedError,
+    };
+  }
+
+  async registerFileChooserAccept(files: string[]): Promise<void> {
+    this.clearFileChooserAccept();
+    const { dispose, getError } = await this.registerFileChooserListener(
+      async (chooser) => {
+        await chooser.accept(files);
+      },
+    );
+    this.bridgeFileChooserDispose = dispose;
+    this.bridgeFileChooserGetError = getError;
+  }
+
+  clearFileChooserAccept(): void {
+    this.bridgeFileChooserDispose?.();
+    this.bridgeFileChooserDispose = undefined;
+    this.bridgeFileChooserGetError = undefined;
+  }
+
+  getFileChooserError():
+    | { message: string; name?: string; stack?: string }
+    | undefined {
+    const error = this.bridgeFileChooserGetError?.();
+    return error ? serializeError(error) : undefined;
   }
 
   async beforeInvokeAction(): Promise<void> {
@@ -798,6 +948,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   async destroy(): Promise<void> {
     this.destroyed = true;
+    this.clearFileChooserAccept();
     const tabIdToDetach = this.activeTabId;
     this.activeTabId = null;
     if (tabIdToDetach) {
