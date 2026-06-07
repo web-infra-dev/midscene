@@ -103,8 +103,11 @@ describe('HelperProcessRDPBackendClient', () => {
     const { child, client } = createClientWithChild();
 
     onNextRequest(child, (request) => {
-      expect(request.payload.type).toBe('connect');
-      expect(request.payload.config).toEqual(
+      const { payload } = request;
+      if (payload.type !== 'connect') {
+        throw new Error(`Expected connect request, got ${payload.type}`);
+      }
+      expect(payload.config).toEqual(
         expect.objectContaining({
           host: '2001:db8::42',
           port: 3390,
