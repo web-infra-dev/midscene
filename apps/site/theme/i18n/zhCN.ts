@@ -24,7 +24,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 等多端支持`,
   clientsDesc1: '用自然语言测试与自动化 Web、移动端和桌面应用',
   clientsDesc2: '一套 API、一套用例，在每个平台都一样',
-  clientsDesc3: '触达选择器够不到的地方——canvas、原生应用、跨域 iframe',
+  clientsDesc3:
+    '触达选择器够不到的地方——无语义标注的元素、canvas、原生应用、跨域 iframe',
 
   // Feature Sections - Platforms
   platformWeb: 'Web',

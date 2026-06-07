@@ -709,7 +709,7 @@ export function FeatureSections() {
                 </div>
                 <div className="flex flex-col gap-[17px]">
                   <TiltCard
-                    href="/zh/api"
+                    href={tUrl('/api')}
                     className="rounded-2xl w-full h-[120px] md:h-[185px] flex flex-col justify-center items-center hover:bg-gray-200 dark:hover:bg-[#252525] transition-all duration-200 cursor-pointer group border-2 border-transparent hover:border-[#0555FF] overflow-hidden"
                   >
                     <div

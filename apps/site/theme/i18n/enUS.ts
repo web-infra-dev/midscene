@@ -25,7 +25,7 @@ and more`,
   clientsDesc2:
     'One unified API and test suite — the same way on every platform',
   clientsDesc3:
-    'Reaches what selectors cannot — canvas, native apps, and cross-origin frames',
+    'Reaches what selectors cannot — unlabeled elements, canvas, native apps, and cross-origin frames',
 
   // Feature Sections - Platforms
   platformWeb: 'Web',

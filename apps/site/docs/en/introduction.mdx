@@ -8,12 +8,13 @@ Head to the [Quick start](./quick-start) to run your first automation in a few m
 
 ## Why Midscene
 
-Traditional UI tests lean on selectors and the DOM, so they break whenever the interface is refactored — and they can't reach `<canvas>`, native mobile apps, or cross-origin iframes at all. Keeping a suite green turns into a constant maintenance tax.
+Most UI automation — including AI tools that read the DOM or the accessibility tree — depends on page structure. That structure is fragile and incomplete: selectors break on every refactor; elements without semantic markup (icon-only buttons, custom-rendered controls, `<canvas>`) are invisible to it; native apps and cross-origin iframes are out of reach; and it cannot tell whether something actually *looks* right.
 
-Midscene takes a different route: it **locates elements from the screenshot alone**, using a vision-language model, and you describe each step in natural language. That changes what UI testing feels like:
+Midscene takes a different route: it **works from the screenshot alone**, using a vision-language model, and you describe each step in natural language — the way a human tester would. That changes what UI testing feels like:
 
 - **Tests stop breaking on every refactor.** There are no selectors to chase when markup or styles change, so the maintenance cost of your suite drops sharply.
-- **Test anything you can see.** Web, Android, iOS, HarmonyOS, and desktop — one API, the same way everywhere, including surfaces the DOM can't describe.
+- **Reach every element and every surface.** If a human can see it, Midscene can target it — even elements with no semantic annotations, `<canvas>`, native apps, and cross-origin iframes that structure-based tools cannot reach.
+- **Assert on what users actually see.** Verify visual results — colors, highlights, layout, rendered state — not just whether a node exists in the DOM.
 - **Two ways to test.** Add Midscene to your existing [Playwright](./integrate-with-playwright) or Vitest suite, or let an AI agent test your app autonomously through [Skills](./skills) and [MCP](./mcp).
 - **Failures you can read.** Every run produces a visual report you can replay step by step.
 
