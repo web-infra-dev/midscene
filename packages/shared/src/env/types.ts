@@ -321,6 +321,18 @@ export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'kimi',
 ];
 
+export const CUSTOM_MODEL_ADAPTER_REF_PREFIX = 'custom:';
+
+export type TCustomModelAdapterRef =
+  `${typeof CUSTOM_MODEL_ADAPTER_REF_PREFIX}${string}`;
+
+export type TModelFamilyRef = TModelFamily | TCustomModelAdapterRef;
+
+export const isCustomModelAdapterRef = (
+  value?: string,
+): value is TCustomModelAdapterRef =>
+  !!value && value.startsWith(CUSTOM_MODEL_ADAPTER_REF_PREFIX);
+
 export interface IModelConfigForInsight {
   // model name
   [MIDSCENE_INSIGHT_MODEL_NAME]: string;
@@ -337,7 +349,7 @@ export interface IModelConfigForInsight {
   // temperature
   [MIDSCENE_INSIGHT_MODEL_TEMPERATURE]?: string;
   // model family
-  [MIDSCENE_INSIGHT_MODEL_FAMILY]?: TModelFamily;
+  [MIDSCENE_INSIGHT_MODEL_FAMILY]?: TModelFamilyRef;
 }
 
 export interface IModelConfigForPlanning {
@@ -356,7 +368,7 @@ export interface IModelConfigForPlanning {
   // temperature
   [MIDSCENE_PLANNING_MODEL_TEMPERATURE]?: string;
   // model family
-  [MIDSCENE_PLANNING_MODEL_FAMILY]?: TModelFamily;
+  [MIDSCENE_PLANNING_MODEL_FAMILY]?: TModelFamilyRef;
 }
 
 /**
@@ -365,7 +377,7 @@ export interface IModelConfigForPlanning {
  * IMPORTANT: Planning MUST use a vision language model (VL mode).
  * DOM-based planning is not supported.
  *
- * Required: MIDSCENE_MODEL_FAMILY must be set to one of 「TModelFamily」
+ * Required: MIDSCENE_MODEL_FAMILY must be set to a built-in model family or a custom model adapter reference.
  */
 export interface IModelConfigForDefault {
   // model name
@@ -379,7 +391,7 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_INIT_CONFIG_JSON]?: string;
   [MIDSCENE_MODEL_EXTRA_BODY_JSON]?: string;
   // extra
-  [MIDSCENE_MODEL_FAMILY]?: TModelFamily;
+  [MIDSCENE_MODEL_FAMILY]?: TModelFamilyRef;
   // temperature
   [MIDSCENE_MODEL_TEMPERATURE]?: string;
   // reasoning effort
@@ -512,10 +524,10 @@ export interface IModelConfig {
    */
   reasoningBudget?: number;
   /**
-   * Model family - unified model configuration
-   * Maps directly to model families like 'qwen2.5-vl', 'qwen3-vl', 'doubao-vision', 'doubao-seed', etc.
+   * Model family reference - unified model configuration.
+   * Supports built-in model families like 'qwen3-vl' and custom adapter refs like 'custom:./adapter.cjs'.
    */
-  modelFamily?: TModelFamily;
+  modelFamily?: TModelFamilyRef;
   uiTarsModelVersion?: UITarsModelVersion;
   modelDescription: string;
   /**

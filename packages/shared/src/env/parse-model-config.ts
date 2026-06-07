@@ -20,7 +20,9 @@ import {
   OPENAI_BASE_URL,
   type TIntent,
   type TModelFamily,
+  type TModelFamilyRef,
   UITarsModelVersion,
+  isCustomModelAdapterRef,
 } from './types';
 
 import { getDebug } from '../logger';
@@ -140,11 +142,14 @@ export const legacyConfigToModelFamily = (
 };
 
 const getModelDescription = (
-  modelFamily: TModelFamily | undefined,
+  modelFamily: TModelFamilyRef | undefined,
   uiTarsModelVersion: UITarsModelVersion | undefined,
 ) => {
   if (uiTarsModelVersion) {
     return `UI-TARS=${uiTarsModelVersion}`;
+  }
+  if (isCustomModelAdapterRef(modelFamily)) {
+    return `custom model adapter (${modelFamily})`;
   }
   if (modelFamily) {
     return `${modelFamily} mode`;
@@ -233,9 +238,14 @@ export const parseOpenaiSdkConfig = ({
   const extraBody = parseJson(keys.extraBody, extraBodyStr);
   const temperature = parseTemperature(provider[keys.temperature]);
 
-  const modelFamily = modelFamilyRaw as unknown as TModelFamily;
-  validateModelFamily(modelFamily);
-  const uiTarsModelVersion = getUITarsModelVersion(modelFamily);
+  const modelFamily = modelFamilyRaw as unknown as TModelFamilyRef;
+  const builtInModelFamily = isCustomModelAdapterRef(modelFamily)
+    ? undefined
+    : modelFamily;
+  if (builtInModelFamily) {
+    validateModelFamily(builtInModelFamily);
+  }
+  const uiTarsModelVersion = getUITarsModelVersion(builtInModelFamily);
 
   const modelDescription = getModelDescription(modelFamily, uiTarsModelVersion);
 

@@ -196,9 +196,106 @@ MIDSCENE_MODEL_FAMILY="gpt-5"
 
 :::
 
-:::note Model-native thinking
-Midscene disables model-native thinking by default for the best execution speed and stability. To turn it on for any of the models above, set `MIDSCENE_MODEL_REASONING_ENABLED="true"`. Some families accept an extra knob — for example `MIDSCENE_MODEL_REASONING_BUDGET` (Qwen) or `MIDSCENE_MODEL_REASONING_EFFORT` (Doubao). See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode).
+## Custom Model Adapter (Experimental) {#custom-model-adapter}
+
+:::warning Experimental feature
+
+Custom Model Adapter is an experimental feature. You can set `MIDSCENE_MODEL_FAMILY` to a custom `.cjs` adapter file to control how Midscene adapts to a model.
+
+In most cases, you should prefer Midscene's built-in `MIDSCENE_MODEL_FAMILY` values. This feature is intended only for temporarily validating whether a model can work with Midscene. Its API and configuration may change at any time as Midscene evolves.
+
 :::
+
+### Basic Configuration
+
+Set `MIDSCENE_MODEL_FAMILY` to `custom:<specifier>` to enable a custom model adapter:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://your-endpoint.example.com/v1"
+MIDSCENE_MODEL_API_KEY="your-api-key"
+MIDSCENE_MODEL_NAME="your-model-name"
+MIDSCENE_MODEL_FAMILY="custom:./midscene-adapter.cjs"
+```
+
+Here, `custom:` is a Custom Model Adapter reference. The value after `custom:` must be a relative or absolute path to a CommonJS file.
+
+### Write an Adapter File
+
+You can define an adapter file like the example below. For most models, you only need to adapt these two fields:
+
+- `chatCompletion.buildChatCompletionParams`: converts Midscene model config into chat completion parameters required by your model service.
+- `locate.resultAdapter.coordinates`: declares the coordinate format returned by the model.
+
+```js
+// midscene-adapter.cjs
+module.exports = {
+  chatCompletion: {
+    buildChatCompletionParams: ({ userConfig, midsceneDefaults }) => {
+      const commonOverrideConfig = {};
+
+      if (userConfig.temperature !== undefined) {
+        commonOverrideConfig.temperature = userConfig.temperature;
+      }
+
+      // Adapt model-native thinking parameters. If the user does not configure
+      // thinking explicitly, Midscene recommends disabling model-native thinking by default.
+      // Field names should follow your model service documentation. This example uses a Qwen-compatible API.
+      const reasoningEnabled = userConfig.reasoningEnabled ?? false;
+      const modelSpecificConfig = {
+        enable_thinking: reasoningEnabled,
+      };
+
+      // You can define any chat parameters required by the model, such as thinking effort or budget.
+      if (userConfig.reasoningBudget !== undefined) {
+        modelSpecificConfig.thinking_budget = userConfig.reasoningBudget;
+      }
+
+      return {
+        config: {
+          ...midsceneDefaults,
+          ...commonOverrideConfig,
+          ...modelSpecificConfig,
+        },
+      };
+    },
+  },
+
+  locate: {
+    resultAdapter: {
+      coordinates: {
+        shape: 'bbox',
+        order: 'xy',
+        normalizedBy: 1000,
+      },
+    },
+  },
+};
+```
+
+`buildChatCompletionParams` receives the context of the current call:
+
+- `userConfig`: parameters defined by users through environment variables.
+  - `temperature`: maps to `MIDSCENE_MODEL_TEMPERATURE` and controls model sampling temperature.
+  - `reasoningEnabled`: maps to `MIDSCENE_MODEL_REASONING_ENABLED` and controls whether model-native thinking is enabled.
+  - `reasoningBudget`: maps to `MIDSCENE_MODEL_REASONING_BUDGET` and controls the token budget for model-native thinking.
+- `midsceneDefaults`: Midscene's default chat completion parameters. You can override them with custom config.
+
+We recommend disabling model-native thinking by default for the best execution speed and quality. In other words, when `userConfig.reasoningEnabled` is not explicitly configured, handle it as `false`. If the user explicitly sets it to `true`, pass the corresponding thinking parameters to your model service. Different model services use different field names for disabling thinking, such as `enable_thinking: false` or `thinking: { type: 'disabled' }`. Check your model service documentation for the exact fields.
+
+`coordinates` describes the coordinate format returned by the model:
+
+- `shape`: the coordinate shape returned by the model. `'bbox'` means a bounding box, and `'point'` means a point. The default is `'bbox'`.
+- `order`: the coordinate order returned by the model. `'xy'` means `[x, y]`; for bbox, it means `[xmin, ymin, xmax, ymax]`. `'yx'` means `[y, x]`; for bbox, it means `[ymin, xmin, ymax, xmax]`.
+- `normalizedBy`: the normalization base of the coordinates. If the model returns normalized coordinates from 0 to 1000, set `normalizedBy: 1000`; `undefined` means the model returns pixel coordinates.
+
+### Path and Export Rules
+
+Custom Model Adapter currently has these limitations:
+
+- The value after `custom:` must be a relative or absolute path to a CommonJS file.
+- Only `.cjs` files are supported, and the adapter object must be exported with `module.exports`.
+- `.mjs`, ESM modules, TypeScript source files, and async factories are not supported.
+- This feature is mainly intended for Node.js runtime and is not guaranteed to work in browser or Chrome extension bundles.
 
 ## Other Models
 

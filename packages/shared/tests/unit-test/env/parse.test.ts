@@ -135,4 +135,20 @@ describe('parseOpenaiSdkConfig', () => {
 
     expect(result.temperature).toBeUndefined();
   });
+
+  it('allows custom model adapter refs', () => {
+    const result = parseOpenaiSdkConfig({
+      keys: DEFAULT_MODEL_CONFIG_KEYS,
+      provider: {
+        MIDSCENE_MODEL_NAME: 'gpt-4o',
+        MIDSCENE_MODEL_FAMILY: 'custom:./midscene-adapter.cjs',
+      },
+    });
+
+    expect(result.modelFamily).toBe('custom:./midscene-adapter.cjs');
+    expect(result.modelDescription).toBe(
+      'custom model adapter (custom:./midscene-adapter.cjs)',
+    );
+    expect(result.uiTarsModelVersion).toBeUndefined();
+  });
 });

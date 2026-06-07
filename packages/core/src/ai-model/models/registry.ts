@@ -1,6 +1,15 @@
-import type { IModelConfig, TModelFamily } from '@midscene/shared/env';
+import type {
+  IModelConfig,
+  TModelFamily,
+  TModelFamilyRef,
+} from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { autoGlmAdapters } from './auto-glm/adapter';
+import {
+  getCustomModelAdapterCacheKey,
+  isCustomModelAdapterRef,
+  loadCustomModelAdapterDefinition,
+} from './custom';
 import { defaultOpenAICompatibleAdapterConfig } from './default';
 import { doubaoAdapters } from './doubao';
 import { geminiAdapters } from './gemini';
@@ -27,7 +36,7 @@ export const MODEL_ADAPTER_CONFIGS = {
   ...kimiAdapters,
 } satisfies Record<TModelFamily, ModelAdapterDefinition>;
 
-type ModelAdapterCacheKey = TModelFamily | 'default';
+type ModelAdapterCacheKey = TModelFamily | 'default' | `custom:${string}`;
 
 const modelAdapterCache = new Map<ModelAdapterCacheKey, ModelAdapter>();
 const debugModelAdapter = getDebug('ai:model-adapter');
@@ -47,16 +56,20 @@ function debugAdapterUnsupportedUserConfig(
   );
 }
 
-export function getModelAdapter(modelFamily?: TModelFamily): ModelAdapter {
-  const cacheKey: ModelAdapterCacheKey = modelFamily ?? 'default';
+export function getModelAdapter(modelFamily?: TModelFamilyRef): ModelAdapter {
+  const cacheKey: ModelAdapterCacheKey = isCustomModelAdapterRef(modelFamily)
+    ? (getCustomModelAdapterCacheKey(modelFamily) as `custom:${string}`)
+    : (modelFamily ?? 'default');
   let adapter = modelAdapterCache.get(cacheKey);
   if (adapter) {
     return adapter;
   }
 
-  const config = modelFamily
-    ? MODEL_ADAPTER_CONFIGS[modelFamily]
-    : defaultOpenAICompatibleAdapterConfig;
+  const config = isCustomModelAdapterRef(modelFamily)
+    ? loadCustomModelAdapterDefinition(modelFamily)
+    : modelFamily
+      ? MODEL_ADAPTER_CONFIGS[modelFamily]
+      : defaultOpenAICompatibleAdapterConfig;
   if (!config) {
     throw new Error(
       `No model adapter registered for modelFamily: ${modelFamily}`,
