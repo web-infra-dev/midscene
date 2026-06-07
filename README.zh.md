@@ -45,10 +45,11 @@
 
 ## 💡 为什么选择 Midscene
 
-传统 UI 测试依赖选择器和 DOM，界面一重构就会失效，也触及不到 `<canvas>`、原生应用或跨域 iframe。Midscene 仅凭截图定位元素，你只需用自然语言描述每一步：
+大多数 UI 自动化——包括读取 DOM 或无障碍树的 AI 工具——都依赖页面结构。而页面结构既脆弱又不完整：选择器一重构就失效，缺少语义化标注的元素（纯图标按钮、自定义控件、`<canvas>`）对它们“看不见”，原生应用与跨域 iframe 更是够不到，也无法判断界面实际看起来是否正确。Midscene 仅凭截图工作，你只需用自然语言描述每一步：
 
 - **更低的维护成本** —— UI 变化时无需再追着改选择器。
-- **凡所见皆可测** —— Web、Android、iOS、HarmonyOS、桌面端，一套 API 全覆盖。
+- **触达每个元素与界面** —— 只要人眼能看到，Midscene 就能定位，哪怕元素没有语义化标注，或位于 `<canvas>`、原生应用、跨域 iframe 上。
+- **校验用户真正看到的效果** —— 验证颜色、高亮、布局与渲染状态，而不只是判断 DOM 节点是否存在。
 - **两种测试方式** —— 接入你的 [Playwright](https://midscenejs.com/zh/integrate-with-playwright) / Vitest 测试，或让 AI Agent 通过 [Skills](https://midscenejs.com/zh/skills) 与 [MCP](https://midscenejs.com/zh/mcp) 自主测试。
 
 Midscene 首先为 UI 测试而生，但同一套视觉驱动引擎也能胜任任意 UI 自动化任务。
