@@ -20,60 +20,11 @@ Midscene takes a different route: it **works from the screenshot alone**, using 
 
 > Midscene is built for UI testing first, but the same vision-driven engine handles any UI automation task — use it however fits your work.
 
-## Features
+## What you can automate
 
-### Write UI Automation with Natural Language
-- Describe your goals and steps, and Midscene will plan and operate the user interface for you.
-- Drive by visual language model, suitable for web, mobile, desktop, and even `<canvas>` surfaces with much less tokens.
-- Use Javascript SDK or YAML to write your automation script.
+Midscene works anywhere you can take a screenshot — web browsers, Android, iOS, HarmonyOS, desktop apps, and [any custom interface](./integrate-with-any-interface) — all through one API. Each platform has its own getting-started guide in the sidebar.
 
-### Web & Mobile App & Any Interface
-- **Web Automation**: Either [integrate with Puppeteer](./integrate-with-puppeteer), [with Playwright](./integrate-with-playwright) or use [Bridge Mode](./bridge-mode) to control your desktop browser.
-- **Android Automation**: Use [Javascript SDK](./android-getting-started) with adb to control your local Android device.
-- **iOS Automation**: Use [Javascript SDK](./ios-getting-started) with WebDriverAgent to control your local iOS devices and simulators.
-- **Any Interface Automation**: Use [Javascript SDK](./integrate-with-any-interface) to control your own interface.
-
-### For Developers
-- **Three kinds of APIs**:
-  - [Interaction API](./api#interaction-methods): interact with the user interface.
-  - [Data Extraction API](./api#data-extraction): extract data from the user interface and dom.
-  - [Utility API](./api#more-apis): utility functions like `aiAssert()`, `aiLocate()`, `aiWaitFor()`.
-- **MCP**: Midscene provides MCP services that expose atomic Midscene Agent actions as MCP tools so upper-layer agents can inspect and operate UIs with natural language. [Docs](./mcp)
-- [**Caching for Efficiency**](./caching): Replay your script with cache and get the result faster.
-- **Debugging Experience**: Midscene.js offers a visualized replay back report file, a built-in playground, and a Chrome Extension to simplify the debugging process. These are the tools most developers truly need.
-
-
-## Showcases
-
-Register the GitHub form autonomously in a web browser and pass all field validations:
-
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github2.mp4" height="300" controls />
-
-Plus these real-world showcases:
-* [iOS Automation - Meituan coffee order](./showcases#ios)
-* [iOS Automation - Auto-like the first @midscene_ai tweet](./showcases#ios)
-* [Android Automation - DCar: Xiaomi SU7 specs](./showcases#android)
-* [Android Automation - Booking a Tokyo hotel for Christmas](./showcases#android)
-* [MCP Integration - Midscene MCP UI prepatch release](./showcases#mcp)
-
-
-## Zero-code quick experience
-
-- **[Chrome Extension](./quick-experience)**: Start in-browser experience immediately through [the Chrome Extension](./quick-experience), without writing any code.
-- **[Android Playground](./android-getting-started#try-playground-no-code)**: There is also a built-in Android playground to control your local Android device.
-- **[iOS Playground](./ios-getting-started#try-playground)**: There is also a built-in iOS playground to control your local iOS device.
-
-## Driven by Visual Language Model
-
-Midscene.js is all-in on the pure-vision route for UI actions: element localization and interactions are based on screenshots only. It supports visual-language models like `Qwen3.x`, `Doubao-Seed-2.0`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`. For data extraction and page understanding, you can still opt in to include DOM when needed.
-
-* Pure-vision localization for UI actions; the DOM extraction mode is removed.
-* Works across web, mobile, desktop, and even `<canvas>` surfaces.
-* Far fewer tokens by skipping DOM for actions, which cuts cost and speeds up runs.
-* DOM can still be included for data extraction and page understanding when needed.
-* Strong open-source options for self-hosting.
-
-Read more about [Model Strategy](./model-strategy)
+Write your automation with the JavaScript SDK or in YAML, and look up every method — `aiAct`, `aiQuery`, `aiAssert`, and more — in the [API reference](./api).
 
 ## Two styles of automation
 
@@ -99,25 +50,31 @@ for (const record of recordList) {
 }
 ```
 
-> For more details about the workflow style, please refer to [Use JavaScript to Optimize the AI Automation Code](./use-javascript-to-optimize-ai-automation-code)
+> For more on the workflow style, see [Use JavaScript to optimize the AI automation code](./use-javascript-to-optimize-ai-automation-code).
 
-## Resources
+## Driven by Visual Language Model
 
-* Home Page and Documentation: [https://midscenejs.com](https://midscenejs.com/)
-* Sample Projects: [https://github.com/web-infra-dev/midscene-example](https://github.com/web-infra-dev/midscene-example)
-* API Reference: [https://midscenejs.com/api.html](./api)
-* GitHub: [https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
+Midscene is all-in on pure vision for UI actions: element localization is based on screenshots only. It supports vision-language models such as `Qwen3.x`, `Doubao-Seed-2.0`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`, including open-source options you can self-host. For data extraction and page understanding, you can still opt in to include DOM when needed.
 
-## Community
+Read more in [Model strategy](./model-strategy).
 
-* [Discord](https://discord.gg/2JyBHxszE4)
-* [Follow us on X](https://x.com/midscene_ai)
-* [Lark Group(飞书交流群)](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=693v0991-a6bb-4b44-b2e1-365ca0d199ba)
+## Showcases
 
+Register the GitHub form autonomously in a web browser and pass all field validations:
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github2.mp4" height="300" controls />
+
+See more real-world examples across iOS, Android, desktop, and MCP in [Showcases](./showcases).
+
+## Resources & community
+
+- Sample projects: [midscene-example](https://github.com/web-infra-dev/midscene-example)
+- GitHub: [web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
+- [Discord](https://discord.gg/2JyBHxszE4) · [X](https://x.com/midscene_ai) · [Lark group (飞书交流群)](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=693v0991-a6bb-4b44-b2e1-365ca0d199ba)
 
 ## Credits
 
-Midscene.js builds on many excellent open-source projects, including [UI-TARS](https://github.com/bytedance/ui-tars), [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL), [Playwright](https://github.com/microsoft/playwright), [Puppeteer](https://github.com/puppeteer/puppeteer), [scrcpy](https://github.com/Genymobile/scrcpy), [appium-adb](https://github.com/appium/appium-adb), [WebDriverAgent](https://github.com/appium/WebDriverAgent), [YADB](https://github.com/ysbing/YADB), and [libnut-core](https://github.com/nut-tree/libnut-core). See the [README](https://github.com/web-infra-dev/midscene) for the full list and details.
+Midscene builds on many excellent open-source projects — including UI-TARS, Qwen, Playwright, Puppeteer, scrcpy, appium, WebDriverAgent, YADB, and libnut-core. See the [README](https://github.com/web-infra-dev/midscene) for the full list.
 
 ## License
 
