@@ -1,8 +1,18 @@
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { getModelAdapter } from '@/ai-model/models';
 import { MODEL_ADAPTER_CONFIGS } from '@/ai-model/models/registry';
 import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import { MODEL_FAMILY_VALUES } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
+
+function writeCustomAdapter(content: string): string {
+  const dir = mkdtempSync(join(tmpdir(), 'midscene-adapter-'));
+  const adapterPath = join(dir, 'adapter.cjs');
+  writeFileSync(adapterPath, content);
+  return adapterPath;
+}
 
 describe('model adapter registry', () => {
   it('resolves the default adapter when modelFamily is not configured', () => {
@@ -66,6 +76,65 @@ describe('model adapter registry', () => {
     } finally {
       (MODEL_ADAPTER_CONFIGS as any)[testModelFamily] = previousConfig;
     }
+  });
+
+  it('loads a custom CommonJS adapter from a file ref', () => {
+    const adapterPath = writeCustomAdapter(`
+      module.exports = {
+        chatCompletion: {
+          unsupportedUserConfig: ['reasoningEffort']
+        },
+        planning: {
+          defaultReplanningCycleLimit: 7
+        },
+        locate: {
+          supportsSearchArea: false
+        }
+      };
+    `);
+
+    const adapter = getModelAdapter(`custom:${adapterPath}` as any);
+
+    expect(adapter.chatCompletion.unsupportedUserConfig).toEqual([
+      'reasoningEffort',
+    ]);
+    expect(adapter.planning.defaultReplanningCycleLimit).toBe(7);
+    expect(adapter.locate.supportsSearchArea).toBe(false);
+  });
+
+  it('caches custom adapters by resolved path', () => {
+    const adapterPath = writeCustomAdapter(`
+      module.exports = {
+        planning: {
+          defaultReplanningCycleLimit: 8
+        }
+      };
+    `);
+
+    const first = getModelAdapter(`custom:${adapterPath}` as any);
+    const second = getModelAdapter(`custom:${adapterPath}` as any);
+
+    expect(first).toBe(second);
+  });
+
+  it('throws when the custom adapter file ref is empty', () => {
+    expect(() => getModelAdapter('custom:' as any)).toThrow(
+      'Custom model adapter specifier is empty after "custom:".',
+    );
+  });
+
+  it('throws when the custom adapter cannot be resolved', () => {
+    expect(() =>
+      getModelAdapter('custom:./missing-midscene-adapter.cjs' as any),
+    ).toThrow('Cannot find module');
+  });
+
+  it('throws when the custom adapter does not export an object', () => {
+    const adapterPath = writeCustomAdapter('module.exports = 1;');
+
+    expect(() => getModelAdapter(`custom:${adapterPath}` as any)).toThrow(
+      'Custom model adapter module must export a ModelAdapterDefinition object',
+    );
   });
 });
 

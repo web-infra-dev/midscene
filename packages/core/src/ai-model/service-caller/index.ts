@@ -17,7 +17,7 @@ import {
   type IModelConfig,
   MIDSCENE_LANGFUSE_DEBUG,
   MIDSCENE_LANGSMITH_DEBUG,
-  type TModelFamily,
+  type TModelFamilyRef,
   globalConfigManager,
 } from '@midscene/shared/env';
 
@@ -61,7 +61,7 @@ export async function createChatClient({
   completion: OpenAI.Chat.Completions;
   modelName: string;
   modelDescription: string;
-  modelFamily: TModelFamily | undefined;
+  modelFamily: TModelFamilyRef | undefined;
 }> {
   const {
     socksProxy,

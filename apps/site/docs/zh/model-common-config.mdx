@@ -186,6 +186,106 @@ MIDSCENE_MODEL_FAMILY="gpt-5"
 
 :::
 
+## 自定义模型适配器（实验性） {#custom-model-adapter}
+
+:::warning 实验性功能
+
+自定义模型适配器是一个实验性功能，可以通过 `MIDSCENE_MODEL_FAMILY` 指定一段自定义的 `.cjs` adapter 文件，控制 Midscene 对模型的兼容逻辑。
+
+通常情况下，你应该优先使用 Midscene 内置的 `MIDSCENE_MODEL_FAMILY`。该功能仅用于临时快速验证某款模型是否适用于 Midscene，且随着 Midscene 的版本迭代，该功能的接口和配置方式随时可能调整。
+
+:::
+
+### 基本配置
+
+将 `MIDSCENE_MODEL_FAMILY` 修改为 `custom:<specifier>` 启用自定义模型适配器：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://your-endpoint.example.com/v1"
+MIDSCENE_MODEL_API_KEY="your-api-key"
+MIDSCENE_MODEL_NAME="your-model-name"
+MIDSCENE_MODEL_FAMILY="custom:./midscene-adapter.cjs"
+```
+
+这里的 `custom:` 是一个自定义 Model Adapter 引用，`custom:` 后面需要指定一个相对路径或绝对路径的 CommonJS 文件。
+
+### 编写 Adapter 文件
+
+你可以参考如下的示例定义 adapter 文件，对于大部分的模型，只需要适配下面两部分字段：
+
+- `chatCompletion.buildChatCompletionParams`：把 Midscene 的模型配置转换成当前模型服务需要的 chat completion 参数。
+- `locate.resultAdapter.coordinates`：声明模型返回的坐标格式。
+
+```js
+// midscene-adapter.cjs
+module.exports = {
+  chatCompletion: {
+    buildChatCompletionParams: ({ userConfig, midsceneDefaults }) => {
+      const commonOverrideConfig = {};
+
+      if (userConfig.temperature !== undefined) {
+        commonOverrideConfig.temperature = userConfig.temperature;
+      }
+
+      // 适配模型的思考参数。如果用户没有自定义思考配置，Midscene 推荐默认关闭模型思考。
+      // 字段名请以模型服务文档为准。这里以 Qwen 兼容接口为例。
+      const reasoningEnabled = userConfig.reasoningEnabled ?? false;
+      const modelSpecificConfig = {
+        enable_thinking: reasoningEnabled,
+      };
+
+      // 可以在这里定义任何传给模型的 chat 参数，比如思考力度、思考额度。
+      if (userConfig.reasoningBudget !== undefined) {
+        modelSpecificConfig.thinking_budget = userConfig.reasoningBudget;
+      }
+
+      return {
+        config: {
+          ...midsceneDefaults,
+          ...commonOverrideConfig,
+          ...modelSpecificConfig,
+        },
+      };
+    },
+  },
+
+  locate: {
+    resultAdapter: {
+      coordinates: {
+        shape: 'bbox',
+        order: 'xy',
+        normalizedBy: 1000,
+      },
+    },
+  },
+};
+```
+
+`buildChatCompletionParams` 的入参中可以拿到当前调用的上下文，有以下参数：
+
+- `userConfig`：用户通过环境变量定义的参数，目前有：
+  - `temperature`：对应 `MIDSCENE_MODEL_TEMPERATURE`，用于控制模型采样温度。
+  - `reasoningEnabled`：对应 `MIDSCENE_MODEL_REASONING_ENABLED`，用于控制是否开启模型原生思考。
+  - `reasoningBudget`：对应 `MIDSCENE_MODEL_REASONING_BUDGET`，用于控制模型原生思考的 token 预算。
+- `midsceneDefaults`：Midscene 默认的 chat completion 参数，可使用自定义的配置覆盖。
+
+建议默认关闭模型原生思考，以获得最佳的执行速度和执行效果。也就是说，当 `userConfig.reasoningEnabled` 没有显式配置时，可以按 `false` 处理；如果用户显式设置为 `true`，再把对应的思考参数传给模型服务。不同模型服务关闭思考的字段名不同，例如有的使用 `enable_thinking: false`，有的使用 `thinking: { type: 'disabled' }`，请以实际模型服务文档为准。
+
+`coordinates` 用来描述模型返回的坐标格式：
+
+- `shape`：模型返回的坐标形状。`'bbox'` 表示模型返回矩形框，`'point'` 表示模型返回点坐标。默认为 `'bbox'`。
+- `order`：模型返回的坐标顺序。`'xy'` 表示坐标顺序为 `[x, y]`，对于 bbox 则为 `[xmin, ymin, xmax, ymax]`；`'yx'` 表示坐标顺序为 `[y, x]`，对于 bbox 则为 `[ymin, xmin, ymax, xmax]`。
+- `normalizedBy`：坐标的归一化基准。如果模型返回的是 0 到 1000 的归一化坐标，则配置 `normalizedBy: 1000`；`undefined` 则表示模型返回像素坐标。
+
+### 路径和导出规则
+
+当前自定义模型适配器有以下限制：
+
+- `custom:` 后面需要指定一个相对路径或绝对路径的 CommonJS 文件。
+- 仅支持 `.cjs` 文件，并且必须通过 `module.exports` 导出 adapter 对象。
+- 不支持 `.mjs`、ESM module、TypeScript 源文件或 async factory。
+- 该能力主要面向 Node.js runtime，不保证在浏览器、Chrome extension bundle 等环境中可用。
+
 ## 其他模型
 
 ### 千问 Qwen3-VL {#qwen3-vl}
