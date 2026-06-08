@@ -1,5 +1,6 @@
 import { Agent, type AgentOpt } from '@midscene/core/agent';
 import type { FileChooserHandler } from '@midscene/core/device';
+import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { commonWebActionsForWebPage } from '../web-page';
 import type { KeyboardAction, MouseAction } from '../web-page';
@@ -27,6 +28,8 @@ type BridgeSerializedError = {
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const debug = getDebug('web:bridge:agent-cli-side');
 
 function deserializeBridgeError(error: BridgeSerializedError): Error {
   const result = new Error(error.message);
@@ -153,7 +156,12 @@ export const getBridgePageInCliSide = (options?: {
               fileChooserEnabled = false;
               server
                 .call(BridgeEvent.ClearFileChooserAccept, [], 5000)
-                .catch(() => {});
+                .catch((error) => {
+                  debug(
+                    'failed to clear bridge file chooser accept: %O',
+                    error,
+                  );
+                });
             },
             getError: () => fileChooserError,
           };

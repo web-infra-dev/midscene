@@ -17,6 +17,7 @@ import type {
   AbstractInterface,
   DeviceAction,
   FileChooserHandler,
+  FileChooserRegistration,
 } from '@midscene/core/device';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
@@ -91,7 +92,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   private bridgeFileChooserDispose?: () => void;
 
-  private bridgeFileChooserGetError?: () => Error | undefined;
+  private bridgeFileChooserGetError?: FileChooserRegistration['getError'];
 
   private isMobileEmulation: boolean | null = null;
 
@@ -399,7 +400,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   async registerFileChooserListener(
     handler: (chooser: FileChooserHandler) => Promise<void>,
-  ): Promise<{ dispose: () => void; getError: () => Error | undefined }> {
+  ): Promise<FileChooserRegistration> {
     const registrationVersion = ++this.fileChooserRegistrationVersion;
     const tabId = await this.getTabIdOrConnectToCurrentTab();
 
@@ -415,10 +416,11 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     }
 
     let capturedError: Error | undefined;
+    let pendingFileChooserHandling = Promise.resolve();
 
     const fileChooserEventHandler: Parameters<
       typeof chrome.debugger.onEvent.addListener
-    >[0] = async (source, method, params) => {
+    >[0] = (source, method, params) => {
       if (source.tabId !== tabId || method !== 'Page.fileChooserOpened') {
         return;
       }
@@ -431,44 +433,51 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         return;
       }
 
-      try {
-        await handler({
-          accept: async (files: string[]) => {
-            const { node } = await this.sendCommandToDebugger<
-              CDPTypes.DOM.DescribeNodeResponse,
-              CDPTypes.DOM.DescribeNodeRequest
-            >('DOM.describeNode', {
-              backendNodeId: event.backendNodeId,
-            });
+      const currentFileChooserHandling = (async () => {
+        try {
+          await handler({
+            accept: async (files: string[]) => {
+              const { node } = await this.sendCommandToDebugger<
+                CDPTypes.DOM.DescribeNodeResponse,
+                CDPTypes.DOM.DescribeNodeRequest
+              >('DOM.describeNode', {
+                backendNodeId: event.backendNodeId,
+              });
 
-            const hasWebkitDirectory =
-              hasFlatNodeAttribute(node.attributes, 'webkitdirectory') ||
-              hasFlatNodeAttribute(node.attributes, 'directory');
-            if (hasWebkitDirectory) {
-              throw new Error(
-                'Directory upload (webkitdirectory) is not supported in Chrome extension bridge mode. Please use Playwright instead, which supports directory upload since version 1.45.',
-              );
-            }
+              const hasWebkitDirectory =
+                hasFlatNodeAttribute(node.attributes, 'webkitdirectory') ||
+                hasFlatNodeAttribute(node.attributes, 'directory');
+              if (hasWebkitDirectory) {
+                throw new Error(
+                  'Directory upload (webkitdirectory) is not supported in Chrome extension bridge mode. Please use Playwright instead, which supports directory upload since version 1.45.',
+                );
+              }
 
-            if (
-              files.length > 1 &&
-              !hasFlatNodeAttribute(node.attributes, 'multiple')
-            ) {
-              throw new Error(
-                'Non-multiple file input can only accept single file',
-              );
-            }
+              if (
+                files.length > 1 &&
+                !hasFlatNodeAttribute(node.attributes, 'multiple')
+              ) {
+                throw new Error(
+                  'Non-multiple file input can only accept single file',
+                );
+              }
 
-            await this.sendCommandToDebugger('DOM.setFileInputFiles', {
-              files,
-              backendNodeId: event.backendNodeId,
-            });
-          },
-        });
-      } catch (error) {
-        capturedError =
-          error instanceof Error ? error : new Error(String(error));
-      }
+              await this.sendCommandToDebugger('DOM.setFileInputFiles', {
+                files,
+                backendNodeId: event.backendNodeId,
+              });
+            },
+          });
+        } catch (error) {
+          capturedError =
+            error instanceof Error ? error : new Error(String(error));
+        }
+      })();
+      const previousFileChooserHandling = pendingFileChooserHandling;
+      pendingFileChooserHandling = Promise.all([
+        previousFileChooserHandling,
+        currentFileChooserHandling,
+      ]).then(() => {});
     };
 
     this.fileChooserEventHandler = fileChooserEventHandler;
@@ -497,7 +506,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
             debug('failed to disable file chooser interception: %O', error);
           });
       },
-      getError: () => capturedError,
+      getError: async () => {
+        await pendingFileChooserHandling;
+        return capturedError;
+      },
     };
   }
 
@@ -518,10 +530,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     this.bridgeFileChooserGetError = undefined;
   }
 
-  getFileChooserError():
-    | { message: string; name?: string; stack?: string }
-    | undefined {
-    const error = this.bridgeFileChooserGetError?.();
+  async getFileChooserError(): Promise<
+    { message: string; name?: string; stack?: string } | undefined
+  > {
+    const error = await this.bridgeFileChooserGetError?.();
     return error ? serializeError(error) : undefined;
   }
 

@@ -64,7 +64,9 @@ describe('bridge file chooser adapter', () => {
     expect(
       calls.some((call) => call.method === BridgeEvent.GetFileChooserError),
     ).toBe(true);
-    expect(registration.getError()?.message).toBe('remote file chooser failed');
+    expect((await registration.getError())?.message).toBe(
+      'remote file chooser failed',
+    );
 
     registration.dispose();
     await sleep(50);

@@ -167,6 +167,7 @@ function ai(prompt: string): Promise<string | undefined>; // shorthand form
     - `fileChooserAccept?: string | string[]` - When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer, or Chrome extension Bridge mode).
       - **Note**: If the file input does not support multiple files (no `multiple` attribute) but multiple files are provided, an error will be thrown.
       - **Note**: If a file chooser is triggered but no `fileChooserAccept` parameter is provided, the file chooser will be ignored and the page can continue to operate normally.
+      - **Note**: Chrome extension Bridge mode does not support directory upload inputs (`webkitdirectory` / `directory`). Use Playwright for directory uploads.
     - `abortSignal?: AbortSignal` - An optional [AbortSignal](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) that allows you to abort the `aiAct` execution. When the signal is triggered, Midscene will stop the current planning loop and throw an error. This is useful for implementing timeouts or user-initiated cancellations.
 
 - Return Value:
@@ -230,6 +231,7 @@ function aiTap(locate: string | Object, options?: Object): Promise<void>;
     - `fileChooserAccept?: string | string[]` - When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer, or Chrome extension Bridge mode).
       - **Note**: If the file input does not support multiple files (no `multiple` attribute) but multiple files are provided, an error will be thrown.
       - **Note**: If a file chooser is triggered but no `fileChooserAccept` parameter is provided, the file chooser will be ignored and the page can continue to operate normally.
+      - **Note**: Chrome extension Bridge mode does not support directory upload inputs (`webkitdirectory` / `directory`). Use Playwright for directory uploads.
 
 - Return Value:
 

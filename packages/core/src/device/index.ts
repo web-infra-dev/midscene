@@ -15,6 +15,11 @@ export interface FileChooserHandler {
   accept(files: string[]): Promise<void>;
 }
 
+export interface FileChooserRegistration {
+  dispose: () => void;
+  getError: () => Error | undefined | Promise<Error | undefined>;
+}
+
 export interface MjpegStreamFrame {
   /** Raw base64-encoded image bytes WITHOUT a `data:image/...;base64,` prefix. */
   data: string;
@@ -153,7 +158,7 @@ export abstract class AbstractInterface {
   // for web only
   registerFileChooserListener?(
     handler: (chooser: FileChooserHandler) => Promise<void>,
-  ): Promise<{ dispose: () => void; getError: () => Error | undefined }>;
+  ): Promise<FileChooserRegistration>;
 
   // @deprecated do NOT extend this method
   abstract getElementsNodeTree?: () => Promise<ElementNode>;

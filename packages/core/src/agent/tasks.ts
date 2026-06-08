@@ -911,7 +911,7 @@ export async function withFileChooser<T>(
   try {
     const result = await action();
     // Check for errors that occurred during file chooser handling
-    const error = getError();
+    const error = await getError();
     if (error) {
       throw error;
     }

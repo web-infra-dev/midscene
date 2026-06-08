@@ -47,7 +47,7 @@ describe('ChromeExtensionProxyPage file chooser support', () => {
       source: chrome.debugger.Debuggee,
       method: string,
       params?: unknown,
-    ) => Promise<void>;
+    ) => void;
   };
 
   const getInterceptFileChooserCalls = (enabled: boolean) =>
@@ -101,9 +101,10 @@ describe('ChromeExtensionProxyPage file chooser support', () => {
     );
 
     const listener = getFileChooserListener();
-    await listener({ tabId: 7 }, 'Page.fileChooserOpened', {
+    listener({ tabId: 7 }, 'Page.fileChooserOpened', {
       backendNodeId: 42,
     });
+    const error = await registration.getError();
 
     expect(mockSendCommand).toHaveBeenCalledWith(
       { tabId: 7 },
@@ -113,7 +114,7 @@ describe('ChromeExtensionProxyPage file chooser support', () => {
         backendNodeId: 42,
       },
     );
-    expect(registration.getError()).toBeUndefined();
+    expect(error).toBeUndefined();
 
     registration.dispose();
     expect(mockRemoveListener).toHaveBeenCalledWith(listener);
@@ -147,11 +148,11 @@ describe('ChromeExtensionProxyPage file chooser support', () => {
     );
 
     const listener = getFileChooserListener();
-    await listener({ tabId: 7 }, 'Page.fileChooserOpened', {
+    listener({ tabId: 7 }, 'Page.fileChooserOpened', {
       backendNodeId: 42,
     });
 
-    expect(registration.getError()?.message).toBe(
+    expect((await registration.getError())?.message).toBe(
       'Non-multiple file input can only accept single file',
     );
     expect(mockSendCommand).not.toHaveBeenCalledWith(
@@ -161,16 +162,56 @@ describe('ChromeExtensionProxyPage file chooser support', () => {
     );
   });
 
+  it('waits for asynchronous file chooser errors before reporting them', async () => {
+    let resolveDescribeNode:
+      | ((value: { node: { attributes: string[] } }) => void)
+      | undefined;
+    mockSendCommand.mockImplementation(async (_target, method: string) => {
+      if (method === 'DOM.describeNode') {
+        return new Promise<{ node: { attributes: string[] } }>((resolve) => {
+          resolveDescribeNode = resolve;
+        });
+      }
+
+      if (method === 'Runtime.evaluate') {
+        return { result: { value: true } };
+      }
+
+      return {};
+    });
+
+    const registration = await page.registerFileChooserListener(
+      async (chooser) => {
+        await chooser.accept(['/tmp/a.txt', '/tmp/b.txt']);
+      },
+    );
+    const listener = getFileChooserListener();
+
+    listener({ tabId: 7 }, 'Page.fileChooserOpened', {
+      backendNodeId: 42,
+    });
+
+    const errorPromise = registration.getError();
+    await Promise.resolve();
+    expect(resolveDescribeNode).toBeTypeOf('function');
+
+    resolveDescribeNode?.({ node: { attributes: [] } });
+
+    await expect(errorPromise).resolves.toMatchObject({
+      message: 'Non-multiple file input can only accept single file',
+    });
+  });
+
   it('captures an error for directory upload inputs', async () => {
     nodeAttributes = ['type', 'file', 'webkitdirectory', ''];
 
     await page.registerFileChooserAccept(['/tmp/upload-dir']);
     const listener = getFileChooserListener();
-    await listener({ tabId: 7 }, 'Page.fileChooserOpened', {
+    listener({ tabId: 7 }, 'Page.fileChooserOpened', {
       backendNodeId: 42,
     });
 
-    expect(page.getFileChooserError()?.message).toContain(
+    expect((await page.getFileChooserError())?.message).toContain(
       'Directory upload (webkitdirectory) is not supported in Chrome extension bridge mode',
     );
   });
