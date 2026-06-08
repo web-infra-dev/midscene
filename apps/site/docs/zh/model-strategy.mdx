@@ -42,7 +42,7 @@ DOM 定位方案的稳定性不足预期，它常在 Canvas 元素、CSS backgro
 
 综合上述情况，**从 1.0 版本开始，Midscene 只支持纯视觉方案**，不再提供“提取 DOM”的兼容模式。这一限制针对 UI 操作与元素定位；在数据提取或页面理解场景中，仍可按需附带 DOM 信息。
 
-## 推荐使用的视觉模型
+## 推荐使用的多模态模型 {#recommended-vision-models}
 
 经过大量项目实测，我们推荐使用这些模型作为使用 Midscene 的默认模型：豆包 Seed、千问 Qwen3.x、智谱 GLM-V、智谱 AutoGLM、Gemini 3.x 系列。
 
@@ -170,7 +170,7 @@ Midscene 要求模型服务商提供兼容 OpenAI 风格的接口（这并不是
 
 如果收到了 "No visual language model (VL model) detected" 或 "MIDSCENE_MODEL_FAMILY is required" 错误，请确认已经正确配置 VL 模型的 `MIDSCENE_MODEL_FAMILY` 环境变量。
 
-从 1.0 版本开始，Midscene 推荐使用 `MIDSCENE_MODEL_FAMILY` 来指定视觉模型类型。旧的 `MIDSCENE_USE_...` 配置仍然兼容但已废弃。
+从 1.0 版本开始，Midscene 推荐使用 `MIDSCENE_MODEL_FAMILY` 来指定多模态模型类型。旧的 `MIDSCENE_USE_...` 配置仍然兼容但已废弃。
 
 详细配置方法请参考 [模型配置](./model-config)。
 

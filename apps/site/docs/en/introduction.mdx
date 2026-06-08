@@ -1,6 +1,6 @@
 # Midscene.js - Vision-Driven UI Testing & Automation
 
-Midscene is an open-source SDK for vision-driven UI testing and automation. You describe each step in natural language, and Midscene drives a vision-language model to plan and operate the interface for you — across web, mobile, desktop, and even `<canvas>` surfaces.
+Midscene is an open-source SDK for vision-driven UI testing and automation. You describe each step in natural language, and Midscene drives a multimodal model to plan and operate the interface for you — across web, mobile, desktop, and even `<canvas>` surfaces.
 
 :::tip Ready to build?
 Head to the [Quick start](./quick-start) to run your first automation in a few minutes, or try it with no code via the [Chrome extension](./quick-experience).
@@ -10,7 +10,7 @@ Head to the [Quick start](./quick-start) to run your first automation in a few m
 
 Most UI automation — including AI tools that read the DOM or the accessibility tree — depends on page structure. That structure is fragile and incomplete: selectors break on every refactor; elements without semantic markup (icon-only buttons, custom-rendered controls, `<canvas>`) are invisible to it; native apps and cross-origin iframes are out of reach; and it cannot tell whether something actually *looks* right.
 
-Midscene takes a different route: it **works from the screenshot alone**, using a vision-language model, and you describe each step in natural language — the way a human tester would. That changes what UI testing feels like:
+Midscene takes a different route: it **works from the screenshot alone**, using a multimodal model, and you describe each step in natural language — the way a human tester would. That changes what UI testing feels like:
 
 - **Tests stop breaking on every refactor.** There are no selectors to chase when markup or styles change, so the maintenance cost of your suite drops sharply.
 - **Reach every element and every surface.** If a human can see it, Midscene can target it — even elements with no semantic annotations, `<canvas>`, native apps, and cross-origin iframes that structure-based tools cannot reach.
@@ -52,9 +52,9 @@ for (const record of recordList) {
 
 > For more on the workflow style, see [Use JavaScript to optimize the AI automation code](./use-javascript-to-optimize-ai-automation-code).
 
-## Driven by Visual Language Model
+## Driven by Multimodal Models
 
-Midscene is all-in on pure vision for UI actions: element localization is based on screenshots only. It supports vision-language models such as `Qwen3.x`, `Doubao-Seed-2.0`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`, including open-source options you can self-host. For data extraction and page understanding, you can still opt in to include DOM when needed.
+Midscene is all-in on pure vision for UI actions: element localization is based on screenshots only. It runs on multimodal models with strong UI localization, such as `Qwen3.x`, `Doubao-Seed-2.0`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`, including open-source options you can self-host. For data extraction and page understanding, you can still opt in to include DOM when needed.
 
 Read more in [Model strategy](./model-strategy).
 

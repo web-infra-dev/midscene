@@ -68,7 +68,7 @@ import 'dotenv/config';
 
 ## 常用模型配置
 
-这里列出常用模型的配置，如需了解模型区别和选型，可查阅 [推荐的视觉模型](./model-strategy#recommended-vision-models)。
+这里列出常用模型的配置，如需了解模型区别和选型，可查阅 [推荐的多模态模型](./model-strategy#recommended-vision-models)。
 
 ### 豆包 Seed 模型 {#doubao-seed-model}
 
@@ -189,7 +189,7 @@ MIDSCENE_MODEL_FAMILY="gpt-5"
 - 使用 GPT 做 UI 定位时，目前只支持使用 `gpt-5.4`、`gpt-5.5`。因为为了获得最佳的定位效果，需要在发送图片时指定 `"detail": "original"` 参数，这一参数仅在 `gpt-5.4` 及后续模型上可用，`gpt-5.4-mini`、`gpt-5.4-nano` 等更小的 GPT-5 变体以及前代模型不支持 `original` 参数，会导致报错。详情请参考 [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) 和 [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)。
 - 按照 OpenAI 的文档，GPT-5 在处理非拉丁字母文本、字号太小的文本时效果可能不理想，参见 [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision)。
 - OpenAI 在 computer use 文档中提到，他们观察到 `1440x900` 和 `1600x900` 这两种截图尺寸上通常能获得比较好的效果，详见 [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)。因此，建议按照 OpenAI 的推荐对截图尺寸进行调整。在 Midscene 中，你可以通过 Agent 参数里的 `screenshotShrinkFactor` 控制截图压缩倍率。如果是浏览器自动化，还可以通过浏览器 `viewport` 指定页面的尺寸和比例。
-- 如果你使用的是更老版本的 GPT-5，建议只将其用作规划模型，并搭配其他视觉模型完成定位，参考[多模型示例](#gpt54-planning-insight-qwen35)。
+- 如果你使用的是更老版本的 GPT-5，建议只将其用作规划模型，并搭配其他多模态模型完成定位，参考[多模型示例](#gpt54-planning-insight-qwen35)。
 
 :::
 
@@ -260,7 +260,7 @@ MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"
 下面以 GPT-5.4 用于 Planning/Insight、Qwen 3.5 负责视觉为例。使用 GPT-5.4 处理重度推理（Planning 和/或 Insight），让 Qwen 3.5 专注视觉定位。独立的 Planning 和 Insight 模型可按需启用，不需要同时开启。
 
 ```bash
-# 默认视觉模型：Qwen 3.5
+# 默认多模态模型：Qwen 3.5
 export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 接口地址
 export MIDSCENE_MODEL_API_KEY="..."                # 你的 Qwen 3.5 API Key
 export MIDSCENE_MODEL_NAME="qwen3.5-plus"

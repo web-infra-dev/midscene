@@ -42,7 +42,7 @@ Meanwhile, the pure-vision route has started to show clear advantages:
 
 Given these advantages, **Midscene 1.0 and later only support the pure-vision approach**—the DOM-extraction compatibility mode has been removed. This applies to UI actions and element localization; for data extraction or page understanding you can still opt in to include DOM when needed.
 
-## Recommended vision models
+## Recommended multimodal models {#recommended-vision-models}
 
 Based on extensive real-world usage, we recommend these defaults for Midscene: Doubao Seed, Qwen3.x, Zhipu GLM-V, Zhipu AutoGLM, and the Gemini 3.x series.
 
@@ -169,7 +169,7 @@ Set `DEBUG=midscene:ai:profile:stats` to print cost and latency information. You
 
 If you see "No visual language model (VL model) detected" or "MIDSCENE_MODEL_FAMILY is required," make sure the `MIDSCENE_MODEL_FAMILY` environment variable for your VL model is set correctly.
 
-Starting with version 1.0, Midscene recommends using `MIDSCENE_MODEL_FAMILY` to specify the vision model type. Legacy `MIDSCENE_USE_...` configs remain compatible but are deprecated.
+Starting with version 1.0, Midscene recommends using `MIDSCENE_MODEL_FAMILY` to specify the multimodal model type. Legacy `MIDSCENE_USE_...` configs remain compatible but are deprecated.
 
 See [Model configuration](./model-config) for setup details.
 
