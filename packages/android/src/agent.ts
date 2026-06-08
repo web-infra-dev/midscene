@@ -117,8 +117,9 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
    */
   async runAdbShell(command: string, opt?: RunAdbShellOpt): Promise<string> {
     if (opt?.timeout !== undefined) {
-      const adb = await this.interface.getAdb();
-      return await adb.shell(command, { timeout: opt.timeout });
+      return await this.interface.runShellCommandWithExitCode(command, {
+        timeout: opt.timeout,
+      });
     }
 
     const action =

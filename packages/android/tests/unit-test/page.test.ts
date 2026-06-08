@@ -29,6 +29,7 @@ const createMockAdb = () => ({
   hideKeyboard: vi.fn(),
   push: vi.fn(),
   isSoftKeyboardPresent: vi.fn().mockResolvedValue(false),
+  EXEC_OUTPUT_FORMAT: { STDOUT: 'stdout', FULL: 'full' },
 });
 
 let mockAdbInstance: ReturnType<typeof createMockAdb>;
@@ -2485,6 +2486,68 @@ describe('AndroidDevice', () => {
       await expect(device.getDeviceLocalTimeString()).rejects.toThrow(
         'Invalid device time format',
       );
+    });
+  });
+
+  describe('runShellCommandWithExitCode', () => {
+    it('should append an exit-code marker and request full output', async () => {
+      mockAdb.shell.mockResolvedValueOnce({
+        stdout: 'hello\n__MIDSCENE_ADB_EXIT_CODE__0',
+        stderr: '',
+      } as any);
+
+      const result = await device.runShellCommandWithExitCode('echo hello');
+
+      expect(result).toBe('hello');
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        'echo hello\necho "__MIDSCENE_ADB_EXIT_CODE__$?"',
+        { outputFormat: 'full' },
+      );
+    });
+
+    it('should forward the timeout option to adb.shell', async () => {
+      mockAdb.shell.mockResolvedValueOnce({
+        stdout: '__MIDSCENE_ADB_EXIT_CODE__0',
+        stderr: '',
+      } as any);
+
+      await device.runShellCommandWithExitCode('whoami', { timeout: 2_000 });
+
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        'whoami\necho "__MIDSCENE_ADB_EXIT_CODE__$?"',
+        { timeout: 2_000, outputFormat: 'full' },
+      );
+    });
+
+    it('should throw with exit code, stdout and stderr when command fails', async () => {
+      mockAdb.shell.mockResolvedValueOnce({
+        stdout: 'partial output\n__MIDSCENE_ADB_EXIT_CODE__1',
+        stderr: 'No such file or directory',
+      } as any);
+
+      await expect(
+        device.runShellCommandWithExitCode('cat /missing'),
+      ).rejects.toThrow(/exited with code 1/);
+
+      mockAdb.shell.mockResolvedValueOnce({
+        stdout: '__MIDSCENE_ADB_EXIT_CODE__2',
+        stderr: 'boom',
+      } as any);
+
+      await expect(device.runShellCommandWithExitCode('false')).rejects.toThrow(
+        /stderr: boom/,
+      );
+    });
+
+    it('should return raw stdout when the marker is missing', async () => {
+      mockAdb.shell.mockResolvedValueOnce({
+        stdout: 'unexpected output without marker',
+        stderr: '',
+      } as any);
+
+      const result = await device.runShellCommandWithExitCode('weird');
+
+      expect(result).toBe('unexpected output without marker');
     });
   });
 });
