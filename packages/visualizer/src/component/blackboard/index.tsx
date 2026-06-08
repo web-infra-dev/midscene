@@ -2,6 +2,7 @@
 import type { BaseElement, Rect, UIContext } from '@midscene/core';
 import React, { type ReactElement } from 'react';
 import { getCenterHighlightBox } from '../../utils/highlight-element';
+import { ClickReticle } from '../click-reticle';
 import { normalizeBlackboardHighlights } from './highlights';
 import './index.less';
 
@@ -120,7 +121,12 @@ export const Blackboard = (props: {
                   width: `${(highlightBox.width / screenWidth) * 100}%`,
                   height: `${(highlightBox.height / screenHeight) * 100}%`,
                 }}
-              />
+              >
+                <ClickReticle
+                  scale="var(--ui-scale, 1)"
+                  style={{ left: '50%', top: '50%' }}
+                />
+              </div>
             );
           })}
         </div>

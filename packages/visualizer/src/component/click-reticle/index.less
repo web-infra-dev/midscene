@@ -1,0 +1,57 @@
+.click-reticle {
+  --click-reticle-scale: 1;
+  --click-reticle-color: #fd5907;
+  --click-reticle-glow: rgba(253, 89, 7, 0.5);
+
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.click-reticle-ring,
+.click-reticle-cross {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.click-reticle-ring {
+  width: calc(44px * var(--click-reticle-scale));
+  height: calc(44px * var(--click-reticle-scale));
+  border: calc(2px * var(--click-reticle-scale)) solid
+    var(--click-reticle-color);
+  border-radius: 50%;
+  box-shadow: 0 0 calc(10px * var(--click-reticle-scale))
+    var(--click-reticle-glow);
+  animation: click-reticle-ring 1.15s ease-in-out infinite;
+}
+
+.click-reticle-cross {
+  width: calc(26px * var(--click-reticle-scale));
+  height: calc(26px * var(--click-reticle-scale));
+  background:
+    radial-gradient(
+      circle,
+      var(--click-reticle-color) 0 calc(4px * var(--click-reticle-scale)),
+      transparent calc(4px * var(--click-reticle-scale))
+    ),
+    linear-gradient(var(--click-reticle-color), var(--click-reticle-color))
+    center / calc(2px * var(--click-reticle-scale)) 100% no-repeat,
+    linear-gradient(var(--click-reticle-color), var(--click-reticle-color))
+    center / 100% calc(2px * var(--click-reticle-scale)) no-repeat;
+}
+
+@keyframes click-reticle-ring {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(0.86);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+

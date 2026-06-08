@@ -2,8 +2,8 @@ const POINTER_REFERENCE_IMAGE_WIDTH = 1920;
 
 export const POINTER_WIDTH = 44;
 export const POINTER_HEIGHT = 56;
-export const POINTER_HOTSPOT_X = 6;
-export const POINTER_HOTSPOT_Y = 4;
+export const POINTER_HOTSPOT_X = 0;
+export const POINTER_HOTSPOT_Y = 0;
 
 export interface PointerLayout {
   scale: number;

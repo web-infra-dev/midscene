@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { mouseLoading } from '../../../utils';
 import { getCenterHighlightBox } from '../../../utils/highlight-element';
+import { ClickReticle } from '../../click-reticle';
 import { deriveFrameState, shouldRenderCursor } from './derive-frame-state';
 import type { FrameMap } from './frame-calculator';
 import { getPlaybackViewport } from './playback-layout';
@@ -129,25 +130,22 @@ export const StepsTimeline: React.FC<{
   // ── Insight overlay rendering ──
   const renderInsightOverlays = () => {
     if (insights.length === 0) return null;
+    const overlayScale = resScale / zoom;
     return insights.map((insight, idx) => {
       const overlays: React.ReactNode[] = [];
 
       if (insight.highlightElement) {
         const highlightBox = getCenterHighlightBox(insight.highlightElement);
+        const centerX = highlightBox.left + highlightBox.width / 2;
+        const centerY = highlightBox.top + highlightBox.height / 2;
         overlays.push(
-          <div
+          <ClickReticle
             key={`highlight-${idx}`}
+            opacity={insight.alpha}
+            scale={overlayScale}
             style={{
-              position: 'absolute',
-              left: highlightBox.left,
-              top: highlightBox.top,
-              width: highlightBox.width,
-              height: highlightBox.height,
-              background: 'rgba(253, 89, 7, 0.4)',
-              border: `${2 * resScale}px solid #fd5907`,
-              boxShadow: `${2 * resScale}px ${2 * resScale}px ${1 * resScale}px rgba(51, 51, 51, 0.3)`,
-              opacity: insight.alpha,
-              pointerEvents: 'none',
+              left: centerX,
+              top: centerY,
             }}
           />,
         );
