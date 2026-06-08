@@ -104,6 +104,11 @@ const mapRunErrorsToCases = (
       errors.set(item.yamlFile, message);
     }
   };
+  const addAll = (message: string) => {
+    for (const item of project.cases) {
+      add(item, message);
+    }
+  };
   const matchFileCase = (
     file: TestRunResult['files'][number],
   ): GeneratedYamlTestCase | undefined => {
@@ -116,18 +121,51 @@ const mapRunErrorsToCases = (
     }
     return undefined;
   };
+  const isBatchFile = (file: TestRunResult['files'][number]): boolean => {
+    if (!project.batchTest) return false;
+    for (const key of [file.name, file.testPath]) {
+      if (
+        key &&
+        (key === project.batchTest.testModule ||
+          key.includes(project.batchTest.testModule))
+      ) {
+        return true;
+      }
+    }
+    return false;
+  };
+  const isBatchTest = (testName: string): boolean =>
+    testName === project.batchTest?.testName;
 
   for (const file of result.files ?? []) {
     const fileCase = matchFileCase(file);
     for (const error of file.errors ?? []) {
-      add(fileCase, errorMessage(error));
+      const message = errorMessage(error);
+      if (isBatchFile(file)) {
+        addAll(message);
+      } else {
+        add(fileCase, message);
+      }
     }
     for (const testResult of file.results ?? []) {
       const item = byTestName.get(testResult.name) ?? fileCase;
       for (const error of testResult.errors ?? []) {
-        add(item, errorMessage(error));
+        const message = errorMessage(error);
+        if (isBatchTest(testResult.name) || isBatchFile(file)) {
+          addAll(message);
+        } else {
+          add(item, message);
+        }
       }
     }
+  }
+
+  if (
+    project.batchTest &&
+    errors.size === 0 &&
+    result.unhandledErrors?.length
+  ) {
+    addAll(errorMessage(result.unhandledErrors[0]));
   }
 
   // A single-case run whose failure rstest could not pin to a file/test (e.g. a

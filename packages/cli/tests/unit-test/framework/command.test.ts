@@ -697,4 +697,77 @@ export function defineYamlCaseTest(options: any) {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  test('records shared browser batch setup failures for every YAML case', async () => {
+    const root = createTempDir();
+    const runDir = join(root, 'midscene-run');
+    const outputDir = join(root, 'generated-runner');
+    const yamlA = join(root, 'login.yaml');
+    const yamlB = join(root, 'check-login.yaml');
+    const framework = join(root, 'framework.ts');
+    const previousRunDir = process.env.MIDSCENE_RUN_DIR;
+    const failureMessage =
+      'Model configuration is incomplete: model name (MIDSCENE_MODEL_NAME) is required.';
+
+    process.env.MIDSCENE_RUN_DIR = runDir;
+    writeFileSync(yamlA, 'web:\n  url: about:blank\ntasks: []\n');
+    writeFileSync(yamlB, 'web:\n  url: about:blank\ntasks: []\n');
+    writeFileSync(
+      framework,
+      `import { test } from '@rstest/core';
+export function defineYamlBatchTest(options: any) {
+  test(options.testName, async () => {
+    throw new Error(${JSON.stringify(failureMessage)});
+  });
+}
+`,
+    );
+
+    try {
+      const exitCode = await runFrameworkTestConfig(
+        {
+          files: [yamlA, yamlB],
+          concurrent: 2,
+          continueOnError: true,
+          summary: 'summary.json',
+          shareBrowserContext: true,
+          globalConfig: {},
+          headed: false,
+          keepWindow: false,
+          dotenvOverride: false,
+          dotenvDebug: false,
+        },
+        {
+          outputDir,
+          frameworkImport: framework,
+          stdio: 'pipe',
+        },
+      );
+
+      expect(exitCode).toBe(1);
+      const summary = JSON.parse(
+        readFileSync(join(runDir, 'output', 'summary.json'), 'utf8'),
+      );
+      expect(summary.summary).toMatchObject({
+        failed: 2,
+        notExecuted: 0,
+      });
+      expect(summary.results).toHaveLength(2);
+      expect(summary.results[0]).toMatchObject({
+        resultType: 'failed',
+        error: expect.stringContaining(failureMessage),
+      });
+      expect(summary.results[1]).toMatchObject({
+        resultType: 'failed',
+        error: expect.stringContaining(failureMessage),
+      });
+    } finally {
+      if (previousRunDir === undefined) {
+        Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
+      } else {
+        process.env.MIDSCENE_RUN_DIR = previousRunDir;
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

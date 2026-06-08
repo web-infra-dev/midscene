@@ -23,6 +23,9 @@ export type WebYamlRuntimeOptions = Pick<
 >;
 
 export const DEFAULT_YAML_TEST_TIMEOUT = 0;
+export const RSTEST_YAML_BATCH_TEST_MODULE =
+  'virtual:midscene-yaml/batch.test.ts';
+export const RSTEST_YAML_BATCH_TEST_NAME = 'midscene yaml batch';
 
 export interface CreateRstestYamlProjectOptions {
   files: string[];
@@ -45,6 +48,11 @@ export interface GeneratedYamlTestCase {
   testName: string;
 }
 
+export interface GeneratedYamlBatchTest {
+  testModule: string;
+  testName: string;
+}
+
 export interface GeneratedRstestYamlProject {
   projectDir: string;
   outputDir: string;
@@ -52,6 +60,7 @@ export interface GeneratedRstestYamlProject {
   include: string[];
   virtualModules: Record<string, string>;
   cases: GeneratedYamlTestCase[];
+  batchTest?: GeneratedYamlBatchTest;
   maxConcurrency?: number;
   testTimeout: number;
   bail?: number;
@@ -189,24 +198,28 @@ export function createRstestYamlProject(
   });
 
   if (options.batchConfig) {
-    const batchModule = 'virtual:midscene-yaml/batch.test.ts';
     const resultFiles = Object.fromEntries(
       cases.map((item) => [item.yamlFile, item.resultFile]),
     );
+    const batchTest = {
+      testModule: RSTEST_YAML_BATCH_TEST_MODULE,
+      testName: RSTEST_YAML_BATCH_TEST_NAME,
+    };
     return {
       projectDir,
       outputDir,
       resultDir,
-      include: [batchModule],
+      include: [batchTest.testModule],
       virtualModules: {
-        [batchModule]: createGeneratedBatchTestContent({
+        [batchTest.testModule]: createGeneratedBatchTestContent({
           frameworkImport,
-          testName: 'midscene yaml batch',
+          testName: batchTest.testName,
           config: options.batchConfig,
           resultFiles,
         }),
       },
       cases,
+      batchTest,
       maxConcurrency: 1,
       testTimeout,
       bail: options.bail,

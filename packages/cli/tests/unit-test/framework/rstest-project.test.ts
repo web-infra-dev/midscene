@@ -213,6 +213,10 @@ describe('rstest yaml project generation', () => {
       });
 
       expect(project.include).toEqual(['virtual:midscene-yaml/batch.test.ts']);
+      expect(project.batchTest).toEqual({
+        testModule: 'virtual:midscene-yaml/batch.test.ts',
+        testName: 'midscene yaml batch',
+      });
       expect(project.cases).toHaveLength(2);
       expect(project.maxConcurrency).toBe(1);
       const generated = project.virtualModules[project.include[0]];
