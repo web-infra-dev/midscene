@@ -1,9 +1,12 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, relative, resolve } from 'node:path';
+import { basename, dirname, extname, relative, resolve } from 'node:path';
 import type {
+  MidsceneYamlConfigAttempt,
   MidsceneYamlConfigResult,
   MidsceneYamlScriptEnv,
+  TestStatus,
 } from '@midscene/core';
+import { ReportMergingTool } from '@midscene/core';
 import type { ScriptPlayer } from '@midscene/core/yaml';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 
@@ -134,6 +137,62 @@ export function getSummaryAbsolutePath(summary: string): string {
   return resolve(getMidsceneRunSubDir('output'), summary);
 }
 
+const toOutputRelativePath = (outputDir: string, filePath: string): string => {
+  const relativePath = relative(outputDir, filePath);
+  return relativePath.startsWith('.') ? relativePath : `./${relativePath}`;
+};
+
+const toTestStatus = (
+  attempt: Pick<MidsceneYamlConfigAttempt, 'success' | 'resultType'>,
+): TestStatus => {
+  if (attempt.success) return 'passed';
+  if (attempt.resultType === 'notExecuted') return 'skipped';
+  return 'failed';
+};
+
+const safeReportNamePart = (value: string): string =>
+  value.replace(/[:*?"<>|# ]/g, '-');
+
+const createRetryReportName = (file: string): string => {
+  const fileName = basename(file, extname(file)) || 'yaml';
+  return `${safeReportNamePart(fileName)}-retry-attempts`;
+};
+
+const createRetryAttemptReport = (
+  result: MidsceneYamlConfigResult,
+): string | undefined => {
+  const attemptsWithReports = result.attempts?.filter(
+    (attempt) => attempt.report && existsSync(attempt.report),
+  );
+  if (!attemptsWithReports || attemptsWithReports.length <= 1) {
+    return undefined;
+  }
+
+  const tool = new ReportMergingTool();
+  for (const attempt of attemptsWithReports) {
+    const status = toTestStatus(attempt);
+    tool.append({
+      reportFilePath: attempt.report!,
+      reportAttributes: {
+        testDuration: attempt.duration ?? 0,
+        testStatus: status,
+        testTitle: `Attempt ${attempt.attempt}: ${status} - ${basename(result.file)}`,
+        testId: `${safeReportNamePart(basename(result.file))}-attempt-${attempt.attempt}`,
+        testDescription:
+          attempt.error ??
+          (attempt.success ? 'YAML attempt passed' : 'YAML attempt failed'),
+      },
+    });
+  }
+
+  return (
+    tool.mergeReports(createRetryReportName(result.file), {
+      outputDir: getMidsceneRunSubDir('report'),
+      overwrite: true,
+    }) || undefined
+  );
+};
+
 export function writeExecutionSummaryFile(
   summary: string,
   results: MidsceneYamlConfigResult[],
@@ -148,22 +207,39 @@ export function writeExecutionSummaryFile(
       ...executionSummary,
       generatedAt: new Date().toLocaleString(),
     },
-    results: results.map((result) => ({
-      script: relative(outputDir, result.file),
-      success: result.success,
-      resultType: result.resultType,
-      output: result.output
-        ? (() => {
-            const relativePath = relative(outputDir, result.output);
-            return relativePath.startsWith('.')
-              ? relativePath
-              : `./${relativePath}`;
-          })()
-        : undefined,
-      report: result.report ? relative(outputDir, result.report) : undefined,
-      error: result.error,
-      duration: result.duration,
-    })),
+    results: results.map((result) => {
+      const retryReport = createRetryAttemptReport(result);
+
+      return {
+        script: relative(outputDir, result.file),
+        success: result.success,
+        resultType: result.resultType,
+        output: result.output
+          ? toOutputRelativePath(outputDir, result.output)
+          : undefined,
+        report: result.report ? relative(outputDir, result.report) : undefined,
+        retryReport: retryReport
+          ? relative(outputDir, retryReport)
+          : result.retryReport
+            ? relative(outputDir, result.retryReport)
+            : undefined,
+        attempts: result.attempts?.map((attempt) => ({
+          attempt: attempt.attempt,
+          success: attempt.success,
+          resultType: attempt.resultType,
+          output: attempt.output
+            ? toOutputRelativePath(outputDir, attempt.output)
+            : undefined,
+          report: attempt.report
+            ? relative(outputDir, attempt.report)
+            : undefined,
+          error: attempt.error,
+          duration: attempt.duration,
+        })),
+        error: result.error,
+        duration: result.duration,
+      };
+    }),
   };
 
   writeFileSync(indexPath, JSON.stringify(indexData, null, 2));

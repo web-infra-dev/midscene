@@ -314,12 +314,30 @@ export interface MidsceneYamlConfigOutput {
   path?: string;
 }
 
+export type MidsceneYamlConfigResultType =
+  | 'success'
+  | 'failed'
+  | 'partialFailed'
+  | 'notExecuted';
+
+export interface MidsceneYamlConfigAttempt {
+  attempt: number;
+  success: boolean;
+  output?: string | null;
+  report?: string | null;
+  error?: string;
+  duration?: number;
+  resultType?: MidsceneYamlConfigResultType;
+}
+
 export interface MidsceneYamlConfigResult {
   file: string;
   success: boolean;
   executed: boolean;
   output?: string | null;
   report?: string | null;
+  retryReport?: string | null;
+  attempts?: MidsceneYamlConfigAttempt[];
   error?: string;
   duration?: number;
   /**
@@ -329,5 +347,5 @@ export interface MidsceneYamlConfigResult {
    * - 'partialFailed': Some tasks failed but execution continued (continueOnError)
    * - 'notExecuted': Not executed due to previous failures
    */
-  resultType?: 'success' | 'failed' | 'partialFailed' | 'notExecuted';
+  resultType?: MidsceneYamlConfigResultType;
 }
