@@ -87,8 +87,8 @@ vi.mock('@midscene/core/agent', async (importOriginal) => {
         return ['mock', 'query', 'result'];
       }
 
-      async aiAct(prompt: string) {
-        console.log(`Mock AI Action: ${prompt}`);
+      async aiAct(prompt: unknown) {
+        console.log(`Mock AI Action: ${JSON.stringify(prompt)}`);
         return 'Mock action completed';
       }
     },
@@ -100,6 +100,7 @@ vi.mock('express', () => {
     use: vi.fn(),
     get: vi.fn(),
     post: vi.fn(),
+    options: vi.fn(),
     delete: vi.fn(),
     listen: vi.fn((...args: any[]) => {
       const callback = args.find((a: any) => typeof a === 'function');
@@ -113,6 +114,7 @@ vi.mock('express', () => {
   });
   mockExpress.static = vi.fn();
   mockExpress.json = vi.fn(() => (req: any, res: any, next: any) => next());
+  mockExpress.text = vi.fn(() => (req: any, res: any, next: any) => next());
   return { default: mockExpress };
 });
 

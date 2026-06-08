@@ -23,6 +23,7 @@ const locateSchema = z
   .object({
     prompt: z.union([z.string(), multimodalPromptSchema]),
     deepLocate: z.boolean().optional(),
+    deepThink: z.boolean().optional(),
     cacheable: z.boolean().optional(),
     xpath: z.union([z.string(), z.boolean()]).optional(),
   })
@@ -508,7 +509,27 @@ describe('generateCommonTools — assert image prompts', () => {
     const assert = tools.find((t) => t.name === 'assert')!;
     await assert.handler({ prompt: 'login button visible' });
 
-    expect(aiAssert).toHaveBeenCalledWith('login button visible');
+    expect(aiAssert).toHaveBeenCalledWith('login button visible', undefined);
+  });
+
+  it('forwards the custom failure message to aiAssert', async () => {
+    const aiAssert = vi.fn().mockResolvedValue(undefined);
+    const tools = generateCommonTools(async () => ({
+      aiAssert,
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+    }));
+
+    const assert = tools.find((t) => t.name === 'assert')!;
+    await assert.handler({
+      prompt: 'login button visible',
+      message: 'the login button should be visible',
+    });
+
+    expect(aiAssert).toHaveBeenCalledWith(
+      'login button visible',
+      'the login button should be visible',
+    );
   });
 
   it('forwards images to aiAssert as a TUserPrompt-style object', async () => {
@@ -526,10 +547,13 @@ describe('generateCommonTools — assert image prompts', () => {
       imageName: 'target',
     });
 
-    expect(aiAssert).toHaveBeenCalledWith({
-      prompt: 'the visible badge matches the reference image',
-      images: [{ name: 'target', url: 'https://example.com/btn.png' }],
-    });
+    expect(aiAssert).toHaveBeenCalledWith(
+      {
+        prompt: 'the visible badge matches the reference image',
+        images: [{ name: 'target', url: 'https://example.com/btn.png' }],
+      },
+      undefined,
+    );
   });
 
   it('forwards a local-path url verbatim so core can resolve it', async () => {
@@ -547,10 +571,13 @@ describe('generateCommonTools — assert image prompts', () => {
       imageName: 'badge',
     });
 
-    expect(aiAssert).toHaveBeenCalledWith({
-      prompt: 'the visible badge matches the supplied image',
-      images: [{ name: 'badge', url: './fixtures/badge.png' }],
-    });
+    expect(aiAssert).toHaveBeenCalledWith(
+      {
+        prompt: 'the visible badge matches the supplied image',
+        images: [{ name: 'badge', url: './fixtures/badge.png' }],
+      },
+      undefined,
+    );
   });
 
   it('exposes images and convertHttpImage2Base64 on the assert schema (no imageFiles flag)', () => {
@@ -561,6 +588,7 @@ describe('generateCommonTools — assert image prompts', () => {
 
     const assertSchema = tools.find((t) => t.name === 'assert')!.schema;
     expect(assertSchema).toHaveProperty('prompt');
+    expect(assertSchema).toHaveProperty('message');
     expect(assertSchema).toHaveProperty('image');
     expect(assertSchema).toHaveProperty('imageName');
     expect(assertSchema).toHaveProperty('convertHttpImage2Base64');
@@ -573,5 +601,212 @@ describe('generateCommonTools — assert image prompts', () => {
     expect(actSchema).toHaveProperty('prompt');
     expect(actSchema).not.toHaveProperty('images');
     expect(actSchema).not.toHaveProperty('imageFiles');
+  });
+});
+
+describe('toolDefaults (deep locate / deep think)', () => {
+  it('defaults locate.deepLocate to true for action tools when enabled', async () => {
+    const callActionInActionSpace = vi.fn().mockResolvedValue(undefined);
+    const [tool] = generateToolsFromActionSpace(
+      actionSpace,
+      async () => ({
+        callActionInActionSpace,
+        getActionSpace: vi.fn().mockResolvedValue([]),
+        page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      }),
+      undefined,
+      undefined,
+      undefined,
+      { locate: { deepLocate: true } },
+    );
+
+    await tool.handler({ locate: 'the login button' });
+
+    expect(callActionInActionSpace).toHaveBeenCalledWith('Tap', {
+      locate: {
+        prompt: 'the login button',
+        deepLocate: true,
+      },
+    });
+  });
+
+  it('keeps an explicit locate.deepLocate=false even when forced', async () => {
+    const callActionInActionSpace = vi.fn().mockResolvedValue(undefined);
+    const [tool] = generateToolsFromActionSpace(
+      actionSpace,
+      async () => ({
+        callActionInActionSpace,
+        getActionSpace: vi.fn().mockResolvedValue([]),
+        page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      }),
+      undefined,
+      undefined,
+      undefined,
+      { locate: { deepLocate: true } },
+    );
+
+    await tool.handler({
+      locate: { prompt: 'the login button', deepLocate: false },
+    });
+
+    expect(callActionInActionSpace).toHaveBeenCalledWith('Tap', {
+      locate: {
+        prompt: 'the login button',
+        deepLocate: false,
+      },
+    });
+  });
+
+  it('treats an explicit deepThink alias as deepLocate already set', async () => {
+    const callActionInActionSpace = vi.fn().mockResolvedValue(undefined);
+    const [tool] = generateToolsFromActionSpace(
+      actionSpace,
+      async () => ({
+        callActionInActionSpace,
+        getActionSpace: vi.fn().mockResolvedValue([]),
+        page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      }),
+      undefined,
+      undefined,
+      undefined,
+      { locate: { deepLocate: true } },
+    );
+
+    await tool.handler({
+      locate: { prompt: 'the login button', deepThink: false },
+    });
+
+    expect(callActionInActionSpace).toHaveBeenCalledWith('Tap', {
+      locate: {
+        prompt: 'the login button',
+        deepThink: false,
+      },
+    });
+  });
+
+  it('does not inject deepLocate for action tools when disabled', async () => {
+    const callActionInActionSpace = vi.fn().mockResolvedValue(undefined);
+    const [tool] = generateToolsFromActionSpace(actionSpace, async () => ({
+      callActionInActionSpace,
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+    }));
+
+    await tool.handler({ locate: 'the login button' });
+
+    expect(callActionInActionSpace).toHaveBeenCalledWith('Tap', {
+      locate: { prompt: 'the login button' },
+    });
+  });
+
+  it('passes deepLocate to the act tool when enabled', async () => {
+    const aiAction = vi.fn().mockResolvedValue('done');
+    const commonTools = generateCommonTools(
+      async () => ({
+        aiAction,
+        getActionSpace: vi.fn().mockResolvedValue([]),
+        page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      }),
+      undefined,
+      undefined,
+      { act: { deepLocate: true } },
+    );
+    const actTool = commonTools.find((tool) => tool.name === 'act');
+
+    await actTool?.handler({ prompt: 'open settings' });
+
+    expect(aiAction).toHaveBeenCalledWith('open settings', {
+      deepThink: false,
+      deepLocate: true,
+    });
+  });
+
+  it('lets an explicit act deepLocate arg override the server default', async () => {
+    const aiAction = vi.fn().mockResolvedValue('done');
+    const commonTools = generateCommonTools(
+      async () => ({
+        aiAction,
+        getActionSpace: vi.fn().mockResolvedValue([]),
+        page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      }),
+      undefined,
+      undefined,
+      { act: { deepLocate: true } },
+    );
+    const actTool = commonTools.find((tool) => tool.name === 'act');
+
+    await actTool?.handler({ prompt: 'open settings', deepLocate: false });
+
+    expect(aiAction).toHaveBeenCalledWith('open settings', {
+      deepThink: false,
+      deepLocate: false,
+    });
+  });
+
+  it('plans the act tool with deepThink when enabled', async () => {
+    const aiAction = vi.fn().mockResolvedValue('done');
+    const commonTools = generateCommonTools(
+      async () => ({
+        aiAction,
+        getActionSpace: vi.fn().mockResolvedValue([]),
+        page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      }),
+      undefined,
+      undefined,
+      { act: { deepThink: true } },
+    );
+    const actTool = commonTools.find((tool) => tool.name === 'act');
+
+    await actTool?.handler({ prompt: 'open settings' });
+
+    expect(aiAction).toHaveBeenCalledWith('open settings', {
+      deepThink: true,
+    });
+  });
+
+  it('lets an explicit act deepThink arg override the server default', async () => {
+    const aiAction = vi.fn().mockResolvedValue('done');
+    const commonTools = generateCommonTools(
+      async () => ({
+        aiAction,
+        getActionSpace: vi.fn().mockResolvedValue([]),
+        page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      }),
+      undefined,
+      undefined,
+      { act: { deepThink: true } },
+    );
+    const actTool = commonTools.find((tool) => tool.name === 'act');
+
+    await actTool?.handler({ prompt: 'open settings', deepThink: false });
+
+    expect(aiAction).toHaveBeenCalledWith('open settings', {
+      deepThink: false,
+    });
+  });
+
+  it('applies both locate and act defaults together', async () => {
+    const aiAction = vi.fn().mockResolvedValue('done');
+    const commonTools = generateCommonTools(
+      async () => ({
+        aiAction,
+        getActionSpace: vi.fn().mockResolvedValue([]),
+        page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      }),
+      undefined,
+      undefined,
+      {
+        locate: { deepLocate: true },
+        act: { deepLocate: true, deepThink: true },
+      },
+    );
+    const actTool = commonTools.find((tool) => tool.name === 'act');
+
+    await actTool?.handler({ prompt: 'open settings' });
+
+    expect(aiAction).toHaveBeenCalledWith('open settings', {
+      deepThink: true,
+      deepLocate: true,
+    });
   });
 });

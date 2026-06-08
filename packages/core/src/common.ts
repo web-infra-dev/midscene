@@ -7,11 +7,14 @@ import type {
   Rect,
   Size,
 } from '@/types';
-import { assert, isPlainObject } from '@midscene/shared/utils';
-
 import { NodeType } from '@midscene/shared/constants';
 import { treeToList } from '@midscene/shared/extractor';
-import { compositeElementInfoImg } from '@midscene/shared/img';
+import {
+  compositeElementInfoImg,
+  preProcessImageUrl,
+} from '@midscene/shared/img';
+import { assert, isPlainObject } from '@midscene/shared/utils';
+import type { ChatCompletionUserMessageParam } from 'openai/resources/index';
 import { z } from 'zod';
 
 /**
@@ -200,6 +203,70 @@ export const TUserPromptSchema = z.union([
 // Generate TypeScript types from Zod schemas
 export type TMultimodalPrompt = z.infer<typeof TMultimodalPromptSchema>;
 export type TUserPrompt = z.infer<typeof TUserPromptSchema>;
+
+export const userPromptToString = (prompt: TUserPrompt): string => {
+  return typeof prompt === 'string' ? prompt : prompt.prompt;
+};
+
+export const userPromptToMultimodalPrompt = (
+  prompt: TUserPrompt,
+): TMultimodalPrompt | undefined => {
+  if (typeof prompt === 'string' || !prompt.images) {
+    return undefined;
+  }
+  return {
+    images: prompt.images,
+    convertHttpImage2Base64: !!prompt.convertHttpImage2Base64,
+  };
+};
+
+export const multimodalPromptToChatMessages = async (
+  multimodalPrompt?: TMultimodalPrompt,
+): Promise<ChatCompletionUserMessageParam[]> => {
+  const msgs: ChatCompletionUserMessageParam[] = [];
+  if (multimodalPrompt?.images?.length) {
+    msgs.push({
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'Next, I will provide all the reference images. These reference images are supporting context only, not the current screenshot being evaluated, unless the task explicitly asks for comparison or matching.',
+        },
+      ],
+    });
+
+    for (const item of multimodalPrompt.images) {
+      const imagePayload = await preProcessImageUrl(
+        item.url,
+        !!multimodalPrompt.convertHttpImage2Base64,
+      );
+
+      msgs.push({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: `this is the reference image named '${item.name}'. It is a reference image, not the current screenshot:`,
+          },
+        ],
+      });
+
+      msgs.push({
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: {
+              url: imagePayload,
+              detail: 'high',
+            },
+          },
+        ],
+      });
+    }
+  }
+  return msgs;
+};
 
 const locateFieldFlagName = 'midscene_location_field_flag';
 

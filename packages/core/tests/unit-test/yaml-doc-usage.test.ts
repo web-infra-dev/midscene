@@ -153,6 +153,12 @@ tasks:
       - aiAct: Click the search button
         cacheable: true
       - aiAction: Legacy field is still accepted
+      - aiAct:
+          prompt: Click the target logo shown in the reference image.
+          images:
+            - name: Target logo
+              url: https://example.com/target-logo.png
+          convertHttpImage2Base64: true
       - aiTap: Choose file button
         deepLocate: true
         xpath: //*[@id="upload"]
@@ -221,7 +227,17 @@ tasks:
     await player.run();
 
     expect(player.status).toBe('done');
-    expect(agent.aiAct).toHaveBeenCalledTimes(3);
+    expect(agent.aiAct).toHaveBeenCalledTimes(4);
+    expect(agent.aiAct).toHaveBeenCalledWith(
+      {
+        prompt: 'Click the target logo shown in the reference image.',
+        images: [
+          { name: 'Target logo', url: 'https://example.com/target-logo.png' },
+        ],
+        convertHttpImage2Base64: true,
+      },
+      {},
+    );
     expect(agent.aiTap).toHaveBeenCalledWith('Choose file button', {
       deepLocate: true,
       xpath: '//*[@id="upload"]',

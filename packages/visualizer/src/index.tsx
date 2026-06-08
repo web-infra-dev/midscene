@@ -68,6 +68,7 @@ export type {
   UniversalPlaygroundConfig,
   PlaygroundBranding,
   InfoListItem,
+  ExternalRunRequest,
   FormValue,
   ExecutionOptions,
   ProgressCallback,

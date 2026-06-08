@@ -10,13 +10,14 @@ import type {
 } from '@midscene/core';
 import { ReportActionDump, runConnectivityTest } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
-import { getTmpDir } from '@midscene/core/utils';
+import { getTmpDir, sleep } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import {
   globalModelConfigManager,
   overrideAIConfig,
 } from '@midscene/shared/env';
 import { generateElementByPoint } from '@midscene/shared/extractor';
+import { compositePointMarkerImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
@@ -26,6 +27,8 @@ import type {
   PlaygroundCreatedSession,
   PlaygroundExecutionHooks,
   PlaygroundPreviewDescriptor,
+  PlaygroundRecorderCapabilitiesResult,
+  PlaygroundRecorderEvent,
   PlaygroundSessionManager,
   PlaygroundSessionSetup,
   PlaygroundSessionState,
@@ -43,6 +46,7 @@ import type { AgentFactory } from './types';
 import 'dotenv/config';
 
 const defaultPort = PLAYGROUND_SERVER_PORT;
+const RECORDER_CAPTURE_AFTER_INTERACT_DELAY_MS = 250;
 
 function serializeAiConfigSignature(aiConfig: Record<string, unknown>): string {
   return JSON.stringify(
@@ -123,6 +127,7 @@ const STATIC_PATH = join(__dirname, '..', '..', 'static');
 
 const debugScreenshot = getDebug('playground:screenshot', { console: true });
 const debugMjpeg = getDebug('playground:mjpeg', { console: true });
+const debugInteract = getDebug('playground:interact', { console: true });
 
 /**
  * Thrown when a caller supplies an /interact body that fails validation
@@ -178,6 +183,7 @@ const POINTER_INTERACT_ACTIONS = new Set([
   'LongPress',
   'Swipe',
   'DragAndDrop',
+  'Scroll',
   'KeyboardPress',
   'Input',
   'Pinch',
@@ -185,6 +191,24 @@ const POINTER_INTERACT_ACTIONS = new Set([
 
 function isPointerInteractActionType(actionType: string): boolean {
   return POINTER_INTERACT_ACTIONS.has(actionType);
+}
+
+function summarizeInteractPayload(
+  body: Record<string, unknown>,
+): Record<string, unknown> {
+  return {
+    actionType: body.actionType,
+    x: body.x,
+    y: body.y,
+    endX: body.endX,
+    endY: body.endY,
+    duration: body.duration,
+    direction: body.direction,
+    scrollType: body.scrollType,
+    distance: body.distance,
+    keyName: body.keyName,
+    valueLength: typeof body.value === 'string' ? body.value.length : undefined,
+  };
 }
 
 const buildLocateActionParams: InteractParamBuilder = (body, actionType) => {
@@ -217,6 +241,23 @@ const buildDragAndDropParams: InteractParamBuilder = (body) => ({
   from: locateFromPoint(body.x, body.y, 'x', 'y', 'manual drag from'),
   to: locateFromPoint(body.endX, body.endY, 'endX', 'endY', 'manual drag to'),
 });
+
+const buildScrollParams: InteractParamBuilder = (body) => {
+  const params: Record<string, unknown> = {
+    scrollType:
+      typeof body.scrollType === 'string' ? body.scrollType : 'singleAction',
+  };
+  if (typeof body.direction === 'string') {
+    params.direction = body.direction;
+  }
+  if (typeof body.distance === 'number') {
+    params.distance = body.distance;
+  }
+  if (typeof body.x === 'number' && typeof body.y === 'number') {
+    params.locate = locateFromPoint(body.x, body.y, 'x', 'y', 'manual scroll');
+  }
+  return params;
+};
 
 const buildKeyboardPressParams: InteractParamBuilder = (body) => {
   if (typeof body.keyName !== 'string') {
@@ -266,6 +307,8 @@ function getManualInteractParamBuilder(
       return buildSwipeParams;
     case 'DragAndDrop':
       return buildDragAndDropParams;
+    case 'Scroll':
+      return buildScrollParams;
     case 'KeyboardPress':
       return buildKeyboardPressParams;
     case 'Input':
@@ -333,8 +376,29 @@ interface PlaygroundActiveConnection {
   sidecars?: PlaygroundSidecar[];
 }
 
+interface PlaygroundRecorderPageState {
+  pageInfo: {
+    width: number;
+    height: number;
+  };
+  url?: string;
+  title?: string;
+}
+
+interface PlaygroundRecorderSnapshot {
+  screenshot?: string;
+  pageState: PlaygroundRecorderPageState;
+}
+
 const RECOVERABLE_PAGE_SESSION_ERROR_PATTERN =
   /Session closed|page has been closed|target closed|browser has been closed|Target page, context or browser has been closed/i;
+
+const BROWSER_CHROME_NAVIGATION_ACTIONS = new Set([
+  'GoBack',
+  'GoForward',
+  'Reload',
+  'Stop',
+]);
 
 function isRecoverablePageSessionError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
@@ -389,6 +453,12 @@ class PlaygroundServer {
   private _basePreparedMetadata?: Record<string, unknown>;
   private _baseExecutionHooks?: PlaygroundExecutionHooks;
   private _baseSidecars?: PlaygroundSidecar[];
+  private _recorderSessionId: string | null = null;
+  private _recorderEvents: PlaygroundRecorderEvent[] = [];
+  private _studioPreviewRecorderLastScreenshot: string | undefined;
+  private _studioPreviewRecorderLastPageState:
+    | PlaygroundRecorderPageState
+    | undefined;
   private _activeConnection: PlaygroundActiveConnection = {
     session: null,
     agent: null,
@@ -661,6 +731,474 @@ class PlaygroundServer {
     return this._activeConnection.agent;
   }
 
+  private async getRecorderCapabilities(): Promise<PlaygroundRecorderCapabilitiesResult> {
+    const agent = this._activeConnection.agent;
+    const platformId =
+      this._activeConnection.runtime?.platformId ||
+      agent?.interface?.interfaceType;
+
+    if (!agent) {
+      return {
+        supported: false,
+        source: 'unsupported',
+        platformId,
+        error: 'No active session.',
+      };
+    }
+
+    if (this.canRecordStudioPreviewInteractions()) {
+      return {
+        supported: true,
+        source: 'studio-preview',
+        platformId,
+      };
+    }
+
+    return {
+      supported: false,
+      source: 'unsupported',
+      platformId,
+      error: `Preview recording is unavailable for ${platformId || 'the current target'} because it does not expose manual interaction controls.`,
+    };
+  }
+
+  private resetRecorderState(): void {
+    this._recorderSessionId = null;
+    this._recorderEvents = [];
+    this._studioPreviewRecorderLastScreenshot = undefined;
+    this._studioPreviewRecorderLastPageState = undefined;
+  }
+
+  private canRecordStudioPreviewInteractions(): boolean {
+    const agent = this._activeConnection.agent;
+    if (!agent) return false;
+    if (agent.interface.inputPrimitives) return true;
+    try {
+      return (
+        typeof agent.interface.actionSpace === 'function' &&
+        agent.interface.actionSpace().length > 0
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  private async takeRecorderScreenshot(): Promise<string | undefined> {
+    const agent = this._activeConnection.agent;
+    if (typeof agent?.interface?.screenshotBase64 !== 'function') {
+      return undefined;
+    }
+
+    try {
+      return await agent.interface.screenshotBase64();
+    } catch (error) {
+      debugScreenshot('recorder screenshot failed:', error);
+      return undefined;
+    }
+  }
+
+  private async getActivePageInfo(): Promise<{
+    width: number;
+    height: number;
+  }> {
+    const agent = this._activeConnection.agent;
+    if (typeof agent?.interface?.size !== 'function') {
+      return { width: 0, height: 0 };
+    }
+    try {
+      return await agent.interface.size();
+    } catch (error) {
+      debugScreenshot('recorder page size failed:', error);
+      return { width: 0, height: 0 };
+    }
+  }
+
+  private async getActivePageUrl(): Promise<string | undefined> {
+    const activeInterface = this._activeConnection.agent?.interface;
+    const getUrl = activeInterface?.url;
+    if (typeof getUrl !== 'function') {
+      return undefined;
+    }
+    try {
+      const url = await getUrl.call(activeInterface);
+      return typeof url === 'string' && url ? url : undefined;
+    } catch (error) {
+      debugScreenshot('recorder page url failed:', error);
+      return undefined;
+    }
+  }
+
+  private async getActivePageTitle(): Promise<string | undefined> {
+    const activeInterface = this._activeConnection.agent?.interface;
+    const evaluateJavaScript = activeInterface?.evaluateJavaScript;
+    if (typeof evaluateJavaScript !== 'function') {
+      return undefined;
+    }
+    try {
+      const title = await evaluateJavaScript.call(
+        activeInterface,
+        'document.title',
+      );
+      return typeof title === 'string' && title ? title : undefined;
+    } catch (error) {
+      debugScreenshot('recorder page title failed:', error);
+      return undefined;
+    }
+  }
+
+  private async getActiveRecorderPageState(): Promise<PlaygroundRecorderPageState> {
+    const [pageInfo, url, title] = await Promise.all([
+      this.getActivePageInfo(),
+      this.getActivePageUrl(),
+      this.getActivePageTitle(),
+    ]);
+    return {
+      pageInfo,
+      ...(url ? { url } : {}),
+      ...(title ? { title } : {}),
+    };
+  }
+
+  private async captureRecorderSnapshotBeforeInteract(): Promise<
+    PlaygroundRecorderSnapshot | undefined
+  > {
+    if (!this._recorderSessionId) {
+      return undefined;
+    }
+    return {
+      screenshot: this._studioPreviewRecorderLastScreenshot,
+      pageState:
+        this._studioPreviewRecorderLastPageState ||
+        (await this.getActiveRecorderPageState()),
+    };
+  }
+
+  private async startStudioPreviewRecorder(sessionId: string): Promise<void> {
+    this._recorderSessionId = sessionId;
+    this._studioPreviewRecorderLastScreenshot =
+      await this.takeRecorderScreenshot();
+    const initialPageState = await this.getActiveRecorderPageState();
+    this._studioPreviewRecorderLastPageState = initialPageState;
+    const initialNavigationEvent =
+      this.buildStudioPreviewInitialNavigationEvent(
+        initialPageState,
+        this._studioPreviewRecorderLastScreenshot,
+      );
+    if (initialNavigationEvent) {
+      this._recorderEvents.push(initialNavigationEvent);
+    }
+  }
+
+  private async storeStudioPreviewRecorderEvent(
+    payload: Record<string, unknown>,
+    snapshotBefore?: PlaygroundRecorderSnapshot,
+  ): Promise<void> {
+    if (!this._recorderSessionId) {
+      return;
+    }
+    const before =
+      snapshotBefore || (await this.captureRecorderSnapshotBeforeInteract());
+    const screenshotBefore = before?.screenshot;
+    debugInteract('recorder capture scheduled after action %o', {
+      payload: summarizeInteractPayload(payload),
+      delayMs: RECORDER_CAPTURE_AFTER_INTERACT_DELAY_MS,
+      hasBeforeScreenshot: Boolean(screenshotBefore),
+      beforeUrl: before?.pageState.url,
+    });
+    await sleep(RECORDER_CAPTURE_AFTER_INTERACT_DELAY_MS);
+    if (!this._recorderSessionId) {
+      return;
+    }
+    const screenshotAfter = await this.takeRecorderScreenshot();
+    const pageStateAfter = await this.getActiveRecorderPageState();
+    debugInteract('recorder capture completed after action %o', {
+      payload: summarizeInteractPayload(payload),
+      hasAfterScreenshot: Boolean(screenshotAfter),
+      afterUrl: pageStateAfter.url,
+    });
+    const event = await this.buildStudioPreviewRecorderEvent(
+      payload,
+      before?.pageState || pageStateAfter,
+      screenshotBefore,
+      screenshotAfter,
+    );
+    if (!event) {
+      this._studioPreviewRecorderLastScreenshot = screenshotAfter;
+      this._studioPreviewRecorderLastPageState = pageStateAfter;
+      return;
+    }
+
+    this._recorderEvents.push(event);
+    const navigationEvent = this.buildStudioPreviewNavigationChangeEvent(
+      payload,
+      before?.pageState,
+      pageStateAfter,
+      screenshotAfter,
+    );
+    if (navigationEvent) {
+      this._recorderEvents.push(navigationEvent);
+    }
+    this._studioPreviewRecorderLastScreenshot = screenshotAfter;
+    this._studioPreviewRecorderLastPageState = pageStateAfter;
+  }
+
+  private async buildStudioPreviewRecorderEvent(
+    payload: Record<string, unknown>,
+    pageState: PlaygroundRecorderPageState,
+    screenshotBefore?: string,
+    screenshotAfter?: string,
+  ): Promise<PlaygroundRecorderEvent | null> {
+    const actionType =
+      typeof payload.actionType === 'string' ? payload.actionType : undefined;
+    if (!actionType) return null;
+
+    const { pageInfo, url, title } = pageState;
+    const timestamp = Date.now();
+    const x = typeof payload.x === 'number' ? payload.x : undefined;
+    const y = typeof payload.y === 'number' ? payload.y : undefined;
+    const endX = typeof payload.endX === 'number' ? payload.endX : undefined;
+    const endY = typeof payload.endY === 'number' ? payload.endY : undefined;
+    const dragDescription =
+      x !== undefined &&
+      y !== undefined &&
+      endX !== undefined &&
+      endY !== undefined
+        ? `${Math.round(x)},${Math.round(y)} -> ${Math.round(endX)},${Math.round(endY)}`
+        : undefined;
+    const screenshotWithMarker =
+      x !== undefined && y !== undefined
+        ? await this.createRecorderScreenshotWithMarker(
+            screenshotBefore || screenshotAfter,
+            pageInfo,
+            { x, y },
+          )
+        : undefined;
+
+    const base = {
+      source: 'studio-preview' as const,
+      actionType,
+      rawPayload: payload,
+      pageInfo,
+      url,
+      title,
+      screenshotBefore,
+      screenshotAfter,
+      screenshotWithBox: screenshotWithMarker,
+      descriptionLoading: true,
+      descriptionSource: undefined,
+      timestamp,
+      hashId: `studio-preview-${actionType}-${timestamp}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`,
+    };
+
+    switch (actionType) {
+      case 'Tap':
+      case 'DoubleClick':
+      case 'LongPress':
+      case 'RightClick':
+        return {
+          ...base,
+          type: 'click',
+          elementRect:
+            x !== undefined && y !== undefined ? { x, y, left: x, top: y } : {},
+          value:
+            x !== undefined && y !== undefined
+              ? `${Math.round(x)},${Math.round(y)}`
+              : undefined,
+        };
+      case 'DragAndDrop':
+      case 'Swipe':
+        return {
+          ...base,
+          type: 'drag',
+          elementRect:
+            x !== undefined && y !== undefined
+              ? {
+                  x,
+                  y,
+                  left: x,
+                  top: y,
+                  width:
+                    endX !== undefined
+                      ? Math.abs(endX - x) || undefined
+                      : undefined,
+                  height:
+                    endY !== undefined
+                      ? Math.abs(endY - y) || undefined
+                      : undefined,
+                }
+              : {},
+          value: dragDescription,
+        };
+      case 'Input':
+        return {
+          ...base,
+          type: 'input',
+          value: typeof payload.value === 'string' ? payload.value : '',
+          elementRect:
+            x !== undefined && y !== undefined ? { x, y, left: x, top: y } : {},
+        };
+      case 'KeyboardPress':
+        return {
+          ...base,
+          type: 'keydown',
+          value: typeof payload.keyName === 'string' ? payload.keyName : '',
+          elementRect:
+            x !== undefined && y !== undefined ? { x, y, left: x, top: y } : {},
+        };
+      case 'Scroll':
+        return {
+          ...base,
+          type: 'scroll',
+          value: [
+            typeof payload.direction === 'string' ? payload.direction : 'down',
+            typeof payload.distance === 'number' ? payload.distance : undefined,
+          ]
+            .filter((part) => part !== undefined)
+            .join(' '),
+          elementRect:
+            x !== undefined && y !== undefined ? { x, y, left: x, top: y } : {},
+        };
+      case 'GoBack':
+      case 'GoForward':
+      case 'Reload':
+      case 'Stop':
+        return {
+          ...base,
+          type: 'navigation',
+          value: actionType,
+          elementDescription: url || actionType,
+          replayInstruction:
+            actionType === 'Stop'
+              ? 'Stop loading the current page.'
+              : url
+                ? `Wait for navigation to complete at \`${url}\`.`
+                : `${actionType} in the browser.`,
+          actionSummary:
+            actionType === 'Stop'
+              ? 'Stop page loading'
+              : url
+                ? `${actionType} to ${url}`
+                : actionType,
+          semanticConfidence: url ? 'high' : 'medium',
+          descriptionLoading: false,
+          descriptionSource: 'fallback',
+        };
+      default:
+        return {
+          ...base,
+          type: 'click',
+          value:
+            x !== undefined && y !== undefined
+              ? `${Math.round(x)},${Math.round(y)}`
+              : actionType,
+        };
+    }
+  }
+
+  private buildStudioPreviewNavigationChangeEvent(
+    payload: Record<string, unknown>,
+    pageStateBefore: PlaygroundRecorderPageState | undefined,
+    pageStateAfter: PlaygroundRecorderPageState,
+    screenshotAfter?: string,
+  ): PlaygroundRecorderEvent | null {
+    const actionType =
+      typeof payload.actionType === 'string' ? payload.actionType : undefined;
+    if (!actionType || BROWSER_CHROME_NAVIGATION_ACTIONS.has(actionType)) {
+      return null;
+    }
+    const beforeUrl = pageStateBefore?.url;
+    const afterUrl = pageStateAfter.url;
+    if (!afterUrl || beforeUrl === afterUrl) {
+      return null;
+    }
+
+    const timestamp = Date.now();
+    return {
+      source: 'studio-preview',
+      type: 'navigation',
+      actionType: 'NavigationChanged',
+      rawPayload: {
+        triggerActionType: actionType,
+        beforeUrl,
+        afterUrl,
+      },
+      pageInfo: pageStateAfter.pageInfo,
+      url: afterUrl,
+      title: pageStateAfter.title,
+      value: afterUrl,
+      screenshotBefore: screenshotAfter,
+      screenshotAfter,
+      elementDescription: afterUrl,
+      replayInstruction: `Wait for navigation to complete at \`${afterUrl}\`.`,
+      actionSummary: `Wait for navigation to complete at ${afterUrl}`,
+      semanticConfidence: 'high',
+      descriptionLoading: false,
+      descriptionSource: 'fallback',
+      timestamp,
+      hashId: `studio-preview-navigation-${timestamp}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`,
+    };
+  }
+
+  private buildStudioPreviewInitialNavigationEvent(
+    pageState: PlaygroundRecorderPageState,
+    screenshot?: string,
+  ): PlaygroundRecorderEvent | null {
+    if (!pageState.url) {
+      return null;
+    }
+
+    const timestamp = Date.now();
+    return {
+      source: 'studio-preview',
+      type: 'navigation',
+      actionType: 'InitialNavigation',
+      rawPayload: {
+        url: pageState.url,
+        title: pageState.title,
+      },
+      pageInfo: pageState.pageInfo,
+      url: pageState.url,
+      title: pageState.title,
+      value: pageState.url,
+      screenshotBefore: screenshot,
+      screenshotAfter: screenshot,
+      elementDescription: pageState.url,
+      replayInstruction: `Navigate to \`${pageState.url}\`.`,
+      actionSummary: `Navigate to ${pageState.url}`,
+      semanticConfidence: 'high',
+      descriptionLoading: false,
+      descriptionSource: 'fallback',
+      timestamp,
+      hashId: `studio-preview-initial-navigation-${timestamp}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`,
+    };
+  }
+
+  private async createRecorderScreenshotWithMarker(
+    screenshot: string | undefined,
+    pageInfo: { width: number; height: number },
+    point: { x: number; y: number },
+  ): Promise<string | undefined> {
+    if (!screenshot || !pageInfo.width || !pageInfo.height) {
+      return undefined;
+    }
+    try {
+      return await compositePointMarkerImg({
+        inputImgBase64: screenshot,
+        size: pageInfo,
+        point,
+      });
+    } catch (error) {
+      debugScreenshot('recorder screenshot marker failed:', error);
+      return undefined;
+    }
+  }
+
   private async destroyCurrentAgent({
     preserveActiveStream = false,
   }: { preserveActiveStream?: boolean } = {}): Promise<void> {
@@ -669,6 +1207,7 @@ class PlaygroundServer {
     }
 
     try {
+      this.resetRecorderState();
       if (typeof this._activeConnection.agent.destroy === 'function') {
         await this._activeConnection.agent.destroy();
       }
@@ -1477,6 +2016,74 @@ class PlaygroundServer {
       },
     );
 
+    this._app.post('/recorder/start', async (req: Request, res: Response) => {
+      const { sessionId } = req.body ?? {};
+      if (typeof sessionId !== 'string' || !sessionId.trim()) {
+        return res.status(400).json({
+          ok: false,
+          error: 'sessionId is required',
+        });
+      }
+
+      const capabilities = await this.getRecorderCapabilities();
+      if (!capabilities.supported) {
+        this.resetRecorderState();
+        return res.json({
+          ok: false,
+          supported: false,
+          source: capabilities.source,
+          platformId: capabilities.platformId,
+          error: capabilities.error,
+        });
+      }
+
+      try {
+        this.resetRecorderState();
+        await this.startStudioPreviewRecorder(sessionId);
+        res.json({
+          ok: true,
+          supported: true,
+          source: 'studio-preview',
+          platformId: capabilities.platformId,
+        });
+      } catch (error: unknown) {
+        this.resetRecorderState();
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({
+          ok: false,
+          supported: false,
+          error: errorMessage,
+        });
+      }
+    });
+
+    this._app.get(
+      '/recorder/capabilities',
+      async (_req: Request, res: Response) => {
+        res.json(await this.getRecorderCapabilities());
+      },
+    );
+
+    this._app.post('/recorder/stop', async (_req: Request, res: Response) => {
+      this._recorderSessionId = null;
+      this._studioPreviewRecorderLastScreenshot = undefined;
+      this._studioPreviewRecorderLastPageState = undefined;
+      res.json({ ok: true });
+    });
+
+    this._app.get('/recorder/events', async (req: Request, res: Response) => {
+      const since =
+        typeof req.query.since === 'string'
+          ? Number.parseInt(req.query.since, 10)
+          : 0;
+      const startIndex = Number.isFinite(since) && since > 0 ? since : 0;
+      res.json({
+        events: this._recorderEvents.slice(startIndex),
+        nextIndex: this._recorderEvents.length,
+      });
+    });
+
     // Screenshot API for real-time screenshot polling
     this._app.get('/screenshot', async (_req: Request, res: Response) => {
       try {
@@ -1608,11 +2215,32 @@ class PlaygroundServer {
       }
 
       try {
+        const interactStartedAt = Date.now();
+        debugInteract('received manual interact %o', {
+          payload: summarizeInteractPayload(req.body ?? {}),
+          interfaceType: agent.interface.interfaceType,
+          recorderActive: Boolean(this._recorderSessionId),
+          hasInputPrimitives: Boolean(agent.interface.inputPrimitives),
+        });
+        const recorderSnapshotBefore =
+          await this.captureRecorderSnapshotBeforeInteract();
         const inputPrimitives = agent.interface.inputPrimitives;
         if (inputPrimitives) {
           await dispatchPointer(inputPrimitives, req.body ?? {}, () =>
             agent.interface.size(),
           );
+          debugInteract('primitive manual interact dispatched %o', {
+            payload: summarizeInteractPayload(req.body ?? {}),
+            elapsedMs: Date.now() - interactStartedAt,
+          });
+          await this.storeStudioPreviewRecorderEvent(
+            req.body ?? {},
+            recorderSnapshotBefore,
+          );
+          debugInteract('manual interact completed %o', {
+            payload: summarizeInteractPayload(req.body ?? {}),
+            elapsedMs: Date.now() - interactStartedAt,
+          });
           res.json({});
           return;
         }
@@ -1630,6 +2258,18 @@ class PlaygroundServer {
 
         const params = buildInteractParams(actionType, req.body ?? {});
         await this.runInteractAction(agent, actionType, params);
+        debugInteract('actionSpace manual interact dispatched %o', {
+          payload: summarizeInteractPayload(req.body ?? {}),
+          elapsedMs: Date.now() - interactStartedAt,
+        });
+        await this.storeStudioPreviewRecorderEvent(
+          req.body ?? {},
+          recorderSnapshotBefore,
+        );
+        debugInteract('manual interact completed %o', {
+          payload: summarizeInteractPayload(req.body ?? {}),
+          elapsedMs: Date.now() - interactStartedAt,
+        });
         res.json({});
       } catch (error: unknown) {
         if (error instanceof PointerInputError) {

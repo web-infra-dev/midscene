@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import dotenv from 'dotenv';
 import { getDebug } from '../logger';
 import type { BaseMidsceneTools } from '../mcp/base-tools';
+import { stripBehaviorFlags } from '../mcp/tool-defaults';
 import type {
   ToolDefinition,
   ToolResult,
@@ -135,8 +136,18 @@ export async function runToolsCLI(
   scriptName: string,
   options?: CLIRunnerOptions,
 ): Promise<void> {
-  const rawArgs = options?.argv ?? process.argv.slice(2);
-  debug('CLI invoked: %s %s', scriptName, rawArgs.join(' '));
+  const inputArgs = options?.argv ?? process.argv.slice(2);
+  debug('CLI invoked: %s %s', scriptName, inputArgs.join(' '));
+
+  // Global behavior flags (e.g. `--deep-locate` / `--deep-think`) apply
+  // regardless of which command runs. `stripBehaviorFlags` is the single place
+  // that knows how they look on the command line: it resolves their defaults
+  // and returns the remaining args so the per-command parser never sees them.
+  // See https://github.com/web-infra-dev/midscene/issues/2446.
+  const { rawArgs, toolDefaults } = stripBehaviorFlags(inputArgs);
+  if (Object.keys(toolDefaults).length > 0) {
+    tools.setToolDefaults?.(toolDefaults);
+  }
 
   // Load .env from cwd before any tool initialization
   const envFile = join(process.cwd(), '.env');

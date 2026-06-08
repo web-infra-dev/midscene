@@ -245,7 +245,7 @@ For VS Code users, you can install the [Biome VS Code extension](https://marketp
 
 ## Documentation
 
-You can find the Rsbuild documentation in the [website](./app/site) folder.
+You can find the Midscene documentation in the [website](./apps/site) folder.
 
 ---
 

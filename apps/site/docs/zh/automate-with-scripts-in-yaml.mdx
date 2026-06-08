@@ -165,6 +165,13 @@ web:
   # JSON 格式的浏览器 Cookie 文件路径，可选
   cookie: <path-to-cookie-file>
 
+  # 随每个请求发送的额外 HTTP 请求头（仅 Puppeteer 模式），可选
+  # 适用于服务器会校验自定义请求头的场景
+  # 值必须是字符串；像 true、false、纯数字这类会被 YAML 解析为非字符串的值需加引号，如 "true"
+  extraHTTPHeaders:
+    X-Custom-Token: my-token
+    Accept-Language: en-US
+
   # Puppeteer 模式下等待网络空闲的策略，可选
   # `timeout` 会作用于初始打开 YAML 中的 `web.url`，以及后续 `aiTap`、`aiInput` 等操作后的等待
   # `continueOnNetworkIdleError` 只作用于初始打开 YAML 中的 `web.url`

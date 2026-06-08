@@ -107,6 +107,34 @@ describe('@midscene/computer RDP device', () => {
     expect(backend.calls[0]?.name).toBe('connect');
   });
 
+  it('forwards only serializable connection settings to the backend', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({
+      host: '10.0.0.3',
+      port: 3389,
+      username: 'Admin',
+      password: 'secret',
+      ignoreCertificate: true,
+      backend,
+      customActions: [],
+    });
+    await device.connect();
+
+    const connectCall = backend.calls.find((call) => call.name === 'connect');
+    const config = connectCall?.args[0] as Record<string, unknown>;
+    // The backend instance and custom actions are runtime objects that must
+    // never be serialized into the helper's JSON connection request.
+    expect(config).not.toHaveProperty('backend');
+    expect(config).not.toHaveProperty('customActions');
+    expect(config).toMatchObject({
+      host: '10.0.0.3',
+      port: 3389,
+      username: 'Admin',
+      password: 'secret',
+      ignoreCertificate: true,
+    });
+  });
+
   it('allows ComputerAgent to wrap an RDP device directly', async () => {
     const backend = new FakeRDPBackend();
     const device = new RDPDevice({

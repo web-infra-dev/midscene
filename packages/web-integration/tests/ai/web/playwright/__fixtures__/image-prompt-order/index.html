@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #f8fafc;
+        font-family: Arial, sans-serif;
+      }
+
+      main {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+      }
+
+      .icons {
+        display: grid;
+        grid-template-columns: repeat(4, 150px);
+        gap: 24px;
+      }
+
+      button {
+        width: 150px;
+        height: 150px;
+        border: 1px solid #d4d4d8;
+        background: #ffffff;
+        border-radius: 8px;
+        padding: 14px;
+        cursor: pointer;
+      }
+
+      button.clicked {
+        outline: 4px solid #22c55e;
+      }
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        pointer-events: none;
+      }
+
+      #result {
+        min-height: 28px;
+        font-size: 20px;
+        color: #166534;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="icons">
+        <button type="button" data-slot="slot-1">
+          <img src="./image-c.png" alt="" />
+        </button>
+        <button type="button" data-slot="slot-2">
+          <img src="./image-d.png" alt="" />
+        </button>
+        <button type="button" data-slot="slot-3">
+          <img src="./image-a.png" alt="" />
+        </button>
+        <button type="button" data-slot="slot-4">
+          <img src="./image-b.png" alt="" />
+        </button>
+      </div>
+      <div id="result" aria-live="polite"></div>
+    </main>
+    <script>
+      window.clickedSlots = [];
+      const expectedSlots = ['slot-3', 'slot-4', 'slot-1', 'slot-2'];
+      document.querySelectorAll('button[data-slot]').forEach((button) => {
+        button.addEventListener('click', () => {
+          window.clickedSlots.push(button.dataset.slot);
+          button.classList.add('clicked');
+          if (window.clickedSlots.length === expectedSlots.length) {
+            document.querySelector('#result').textContent =
+              window.clickedSlots.join(',') === expectedSlots.join(',')
+                ? '已经按照预期顺序点击'
+                : '点击顺序不正确';
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

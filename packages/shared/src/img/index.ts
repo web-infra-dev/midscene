@@ -23,5 +23,6 @@ export {
 export {
   processImageElementInfo,
   compositeElementInfoImg,
+  compositePointMarkerImg,
   annotateRects,
 } from './box-select';

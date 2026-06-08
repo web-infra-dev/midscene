@@ -33,7 +33,6 @@ export const RecordTimeline = ({
   onEventClick,
 }: RecordTimelineProps) => {
   const [expandedEvents, setExpandedEvents] = useState<Set<number>>(new Set());
-  console.log('events', events);
   useEffect(() => {
     // use className and querySelector to get internal div
     if (events.length > 0) {
@@ -92,6 +91,8 @@ export const RecordTimeline = ({
     switch (type) {
       case 'click':
         return <AimOutlined style={{ color: '#1890ff' }} />;
+      case 'drag':
+        return <AimOutlined style={{ color: '#13c2c2' }} />;
       case 'input':
         return <EditOutlined style={{ color: '#52c41a' }} />;
       case 'scroll':
@@ -111,6 +112,8 @@ export const RecordTimeline = ({
     switch (type) {
       case 'click':
         return '#1890ff';
+      case 'drag':
+        return '#13c2c2';
       case 'input':
         return '#52c41a';
       case 'scroll':
@@ -135,16 +138,24 @@ export const RecordTimeline = ({
     });
   };
 
+  const isCoordinateValue = (value?: string) =>
+    Boolean(value && /^\s*\d+(?:\.\d+)?,\s*\d+(?:\.\d+)?\s*$/.test(value));
+
+  const getDisplayDescription = (event: RecordedEvent) =>
+    event.elementDescription || event.actionSummary || event.replayInstruction;
+
   const getEventTitle = (event: RecordedEvent) => {
     switch (event.type) {
       case 'click':
         if (event.targetTagName === 'BUTTON') {
           return 'Click Button';
         }
-        if (event.value) {
+        if (event.value && !isCoordinateValue(event.value)) {
           return `Click Element "${event.value}"`;
         }
         return 'Click';
+      case 'drag':
+        return 'Drag';
       case 'input':
         return 'Input';
       case 'scroll':
@@ -165,16 +176,13 @@ export const RecordTimeline = ({
 
     switch (event.type) {
       case 'click':
-        if (
-          event.descriptionLoading === true &&
-          event.elementRect?.x !== undefined &&
-          event.elementRect?.y !== undefined
-        ) {
+      case 'drag':
+        if (event.descriptionLoading === true) {
           return (
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Text>{eventTitle} - </Text>
               <ShinyText
-                text={`(${event.elementRect!.x}, ${event.elementRect!.y})`}
+                text="analyzing target..."
                 disabled={false}
                 speed={3}
                 className="step-title-shiny"
@@ -183,10 +191,13 @@ export const RecordTimeline = ({
           );
         }
 
-        if (event.descriptionLoading === false && event.elementDescription) {
+        if (
+          event.descriptionLoading === false &&
+          getDisplayDescription(event)
+        ) {
           return (
-            <Text className="">
-              {eventTitle} - {event.elementDescription}
+            <Text>
+              {eventTitle} - {getDisplayDescription(event)}
             </Text>
           );
         }
@@ -194,10 +205,13 @@ export const RecordTimeline = ({
         return <Text>{eventTitle}</Text>;
 
       case 'input':
-        if (event.descriptionLoading === false && event.elementDescription) {
+        if (
+          event.descriptionLoading === false &&
+          getDisplayDescription(event)
+        ) {
           return (
             <Text>
-              {eventTitle} - {event.elementDescription}
+              {eventTitle} - {getDisplayDescription(event)}
             </Text>
           );
         }
@@ -215,21 +229,31 @@ export const RecordTimeline = ({
         );
 
       case 'scroll':
-        if (event.elementDescription) {
+        if (getDisplayDescription(event)) {
           return (
             <Text>
-              {eventTitle} - {event.value?.split(' ')[0] || ''}
+              {eventTitle} - {getDisplayDescription(event)}
             </Text>
           );
         }
         return (
           <Text>
-            {eventTitle} - Position: ({event.elementRect?.x || 0},{' '}
-            {event.elementRect?.y || 0})
+            {eventTitle} - {event.value?.split(' ')[0] || 'recorded scroll'}
           </Text>
         );
 
       case 'navigation': {
+        const navigationDescription =
+          event.actionSummary ||
+          event.replayInstruction ||
+          event.elementDescription;
+        if (navigationDescription) {
+          return (
+            <Text>
+              {eventTitle} - {navigationDescription}
+            </Text>
+          );
+        }
         const truncatedUrl =
           event.url && event.url.length > 50
             ? `${event.url.substring(0, 50)}...`

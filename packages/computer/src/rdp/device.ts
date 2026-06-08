@@ -212,7 +212,16 @@ export class RDPDevice implements AbstractInterface {
       port: this.options.port,
       username: this.options.username,
     });
-    this.connectionInfo = await this.backend.connect(this.options);
+    // Only forward serializable connection settings. `backend` and
+    // `customActions` are runtime objects (the backend instance even holds a
+    // live child process with circular references); leaking them into the
+    // config sent over the helper's JSON protocol corrupts the request line.
+    const {
+      backend: _backend,
+      customActions: _customActions,
+      ...config
+    } = this.options;
+    this.connectionInfo = await this.backend.connect(config);
     this.cursorPosition = [
       Math.round(this.connectionInfo.size.width / 2),
       Math.round(this.connectionInfo.size.height / 2),

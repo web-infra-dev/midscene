@@ -8,11 +8,7 @@ import type {
   UIContext,
 } from '@/types';
 import { generateElementByRect } from '@midscene/shared/extractor';
-import {
-  cropByRect,
-  preProcessImageUrl,
-  scaleImage,
-} from '@midscene/shared/img';
+import { cropByRect, scaleImage } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { LocateResultElement } from '@midscene/shared/types';
 import { assert } from '@midscene/shared/utils';
@@ -21,7 +17,12 @@ import type {
   ChatCompletionUserMessageParam,
 } from 'openai/resources/index';
 import type { TMultimodalPrompt, TUserPrompt } from '../common';
-import { expandSearchArea } from '../common';
+import {
+  expandSearchArea,
+  multimodalPromptToChatMessages,
+  userPromptToMultimodalPrompt,
+  userPromptToString,
+} from '../common';
 import type { ModelRuntime } from './models';
 import {
   extractDataQueryPrompt,
@@ -64,6 +65,11 @@ export type InspectAIArgs = [
 
 const debugInspect = getDebug('ai:inspect');
 const debugSection = getDebug('ai:section');
+
+export {
+  userPromptToString as extraTextFromUserPrompt,
+  multimodalPromptToChatMessages as promptsToChatParam,
+} from '../common';
 
 function hasLocateResult(input: unknown, resultKey: string) {
   if (!input || typeof input !== 'object') {
@@ -108,61 +114,6 @@ export async function buildSearchAreaConfig(options: {
   };
 }
 
-export const extraTextFromUserPrompt = (prompt: TUserPrompt): string => {
-  if (typeof prompt === 'string') {
-    return prompt;
-  }
-  return prompt.prompt;
-};
-
-export const promptsToChatParam = async (
-  multimodalPrompt: TMultimodalPrompt,
-): Promise<ChatCompletionUserMessageParam[]> => {
-  const msgs: ChatCompletionUserMessageParam[] = [];
-  if (multimodalPrompt?.images?.length) {
-    msgs.push({
-      role: 'user',
-      content: [
-        {
-          type: 'text',
-          text: 'Next, I will provide all the reference images. These reference images are supporting context only, not the current screenshot being evaluated, unless the task explicitly asks for comparison or matching.',
-        },
-      ],
-    });
-
-    for (const item of multimodalPrompt.images) {
-      const base64 = await preProcessImageUrl(
-        item.url,
-        !!multimodalPrompt.convertHttpImage2Base64,
-      );
-
-      msgs.push({
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: `this is the reference image named '${item.name}'. It is a reference image, not the current screenshot:`,
-          },
-        ],
-      });
-
-      msgs.push({
-        role: 'user',
-        content: [
-          {
-            type: 'image_url',
-            image_url: {
-              url: base64,
-              detail: 'high',
-            },
-          },
-        ],
-      });
-    }
-  }
-  return msgs;
-};
-
 export async function AiLocateElement(
   options: LocateOptions & { targetElementDescription: TUserPrompt },
 ): Promise<LocateResult> {
@@ -188,7 +139,7 @@ export async function genericLocate(
   const screenshotBase64 = context.screenshot.base64;
 
   assert(elementDescription, 'cannot find the target element description');
-  const elementDescriptionText = extraTextFromUserPrompt(elementDescription);
+  const elementDescriptionText = userPromptToString(elementDescription);
   const userInstructionPrompt = findElementPrompt(elementDescriptionText);
   const systemPrompt = systemPromptToLocateElement(
     adapter.locate.resultAdapter.promptSpec,
@@ -229,10 +180,9 @@ export async function genericLocate(
   ];
 
   if (typeof elementDescription !== 'string') {
-    const addOns = await promptsToChatParam({
-      images: elementDescription.images,
-      convertHttpImage2Base64: elementDescription.convertHttpImage2Base64,
-    });
+    const addOns = await multimodalPromptToChatMessages(
+      userPromptToMultimodalPrompt(elementDescription),
+    );
     msgs.push(...addOns);
   }
 
@@ -367,7 +317,7 @@ export async function AiLocateSection(options: {
     adapter.locate.resultAdapter.promptSpec,
   );
   const sectionLocatorInstructionText = sectionLocatorInstruction(
-    extraTextFromUserPrompt(sectionDescription),
+    userPromptToString(sectionDescription),
   );
   const msgs: InspectAIArgs = [
     { role: 'system', content: systemPrompt },
@@ -390,10 +340,9 @@ export async function AiLocateSection(options: {
   ];
 
   if (typeof sectionDescription !== 'string') {
-    const addOns = await promptsToChatParam({
-      images: sectionDescription.images,
-      convertHttpImage2Base64: sectionDescription.convertHttpImage2Base64,
-    });
+    const addOns = await multimodalPromptToChatMessages(
+      userPromptToMultimodalPrompt(sectionDescription),
+    );
     msgs.push(...addOns);
   }
 
@@ -540,10 +489,7 @@ export async function AiExtractElementInfo<T>(options: {
   ];
 
   if (multimodalPrompt) {
-    const addOns = await promptsToChatParam({
-      images: multimodalPrompt.images,
-      convertHttpImage2Base64: multimodalPrompt.convertHttpImage2Base64,
-    });
+    const addOns = await multimodalPromptToChatMessages(multimodalPrompt);
     msgs.push(...addOns);
   }
 

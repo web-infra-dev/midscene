@@ -54,7 +54,71 @@ describe('yadb download script', () => {
     );
   });
 
-  it('throws on non-2xx responses', async () => {
+  it('falls back to the GitHub asset API when the browser download URL fails', async () => {
+    const dirPath = await fs.mkdtemp(path.join(os.tmpdir(), 'midscene-yadb-'));
+    tempDirs.push(dirPath);
+
+    const destinationPath = path.join(dirPath, 'yadb');
+    const apiAssetUrl =
+      'https://api.github.com/repos/ysbing/YADB/releases/assets/392259748';
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (
+        url === 'https://github.com/ysbing/YADB/releases/download/v1.1.1/yadb'
+      ) {
+        return {
+          ok: false,
+          status: 504,
+          statusText: 'Gateway Time-out',
+        };
+      }
+
+      if (
+        url === 'https://api.github.com/repos/ysbing/YADB/releases/tags/v1.1.1'
+      ) {
+        return {
+          ok: true,
+          json: async () => ({
+            assets: [{ name: 'yadb', url: apiAssetUrl }],
+          }),
+          status: 200,
+          statusText: 'OK',
+        };
+      }
+
+      if (url === apiAssetUrl) {
+        return {
+          ok: true,
+          arrayBuffer: async () =>
+            new TextEncoder().encode('yadb-binary').buffer,
+          status: 200,
+          statusText: 'OK',
+        };
+      }
+
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    await downloadYadbReleaseAsset({
+      dispatcher: undefined,
+      destinationPath,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      version: YADB_VERSION,
+    });
+
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      2,
+      'https://api.github.com/repos/ysbing/YADB/releases/tags/v1.1.1',
+      { headers: { Accept: 'application/vnd.github+json' } },
+    );
+    expect(fetchImpl).toHaveBeenNthCalledWith(3, apiAssetUrl, {
+      headers: { Accept: 'application/octet-stream' },
+    });
+    await expect(fs.readFile(destinationPath, 'utf8')).resolves.toBe(
+      'yadb-binary',
+    );
+  });
+
+  it('throws when the browser URL and API metadata fallback both fail', async () => {
     const fetchImpl = vi.fn(async () => ({
       ok: false,
       status: 502,
@@ -67,6 +131,8 @@ describe('yadb download script', () => {
         destinationPath: path.join(os.tmpdir(), 'midscene-yadb-should-fail'),
         fetchImpl: fetchImpl as unknown as typeof fetch,
       }),
-    ).rejects.toThrow('Response code 502 (Bad Gateway)');
+    ).rejects.toThrow(
+      'Failed to download yadb: browser download failed: Response code 502 (Bad Gateway); API metadata fallback failed: Response code 502 (Bad Gateway)',
+    );
   });
 });

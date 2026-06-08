@@ -24,6 +24,7 @@ import { type ScrcpyErrorOverlayRenderer, ScrcpyPanel } from './ScrcpyPanel';
 import {
   type ManualDragActionType,
   buildManualDragInteractPayload,
+  buildManualScrollInteractPayload,
 } from './manual-interaction';
 import { resolvePreviewConnectionInfo } from './runtime-info';
 import type { ScrcpyPreviewStatus } from './scrcpy-preview';
@@ -82,6 +83,8 @@ export function PreviewRenderer({
   // the real stream resolution by a few pixels.
   const [streamSize, setStreamSize] = useState<DeviceSize | null>(null);
   const [actionTypes, setActionTypes] = useState<string[] | null>(null);
+  const [scrcpyStatus, setScrcpyStatus] =
+    useState<ScrcpyPreviewStatus>('connecting');
   const manualControlQueueRef = useRef<Promise<unknown>>(Promise.resolve());
   // Shared with the active preview component (ScrcpyPanel / ScreenshotViewer)
   // and the interaction layer so pointer coords always project against the
@@ -110,6 +113,7 @@ export function PreviewRenderer({
     actionTypes?.includes('KeyboardPress') ||
     actionTypes?.includes('Input') ||
     false;
+  const manualScrollEnabled = actionTypes?.includes('Scroll') ?? false;
 
   const enqueueManualControl = useCallback(
     <TResult,>(task: () => Promise<TResult>): Promise<TResult> => {
@@ -278,6 +282,21 @@ export function PreviewRenderer({
     [enqueueManualControl, playgroundSDK, showManualControlError],
   );
 
+  const handleWheelScroll = useCallback(
+    async (
+      point: { x: number; y: number },
+      delta: { deltaX: number; deltaY: number },
+    ) => {
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact(buildManualScrollInteractPayload(point, delta)),
+      );
+      if (!res.ok) {
+        showManualControlError('Scroll failed', res.error);
+      }
+    },
+    [enqueueManualControl, playgroundSDK, showManualControlError],
+  );
+
   // Fall back to screenshot polling when WebCodecs is unavailable
   // (e.g. non-secure context over HTTP with a LAN IP)
   const scrcpyAvailable =
@@ -291,6 +310,17 @@ export function PreviewRenderer({
     previewConnection.type === 'scrcpy' &&
     !WebCodecsVideoDecoder.isSupported &&
     isNonLocalhostHttp();
+  const previewInteractionEnabled =
+    previewConnection.type !== 'none' &&
+    (!scrcpyAvailable || scrcpyStatus === 'connected');
+
+  const handleScrcpyStatusChange = useCallback(
+    (status: ScrcpyPreviewStatus, statusText: string) => {
+      setScrcpyStatus(status);
+      onScrcpyStatusChange?.(status, statusText);
+    },
+    [onScrcpyStatusChange],
+  );
 
   return (
     <div
@@ -373,7 +403,7 @@ export function PreviewRenderer({
           connectingOverlay={connectingOverlay}
           deviceId={previewConnection.deviceId}
           onIntrinsicSize={setStreamSize}
-          onStatusChange={onScrcpyStatusChange}
+          onStatusChange={handleScrcpyStatusChange}
           renderErrorOverlay={renderErrorOverlay}
           serverUrl={previewConnection.scrcpyUrl}
           viewportStyle={scrcpyViewportStyle}
@@ -396,14 +426,14 @@ export function PreviewRenderer({
       )}
       <DeviceInteractionLayer
         enabled={
-          manualControlEnabled &&
-          serverOnline &&
-          previewConnection.type !== 'none'
+          manualControlEnabled && serverOnline && previewInteractionEnabled
         }
         deviceSize={deviceSize}
         contentRef={previewContentRef}
         onTap={handleTap}
         onSwipe={handleSwipe}
+        scrollEnabled={manualScrollEnabled}
+        onWheelScroll={handleWheelScroll}
         keyboardEnabled={manualKeyboardEnabled}
         onTextInput={handleTextInput}
         onKeyboardPress={handleKeyboardPress}

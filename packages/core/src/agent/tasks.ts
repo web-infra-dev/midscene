@@ -6,6 +6,9 @@ import {
   type TMultimodalPrompt,
   type TUserPrompt,
   getReadableTimeString,
+  multimodalPromptToChatMessages,
+  userPromptToMultimodalPrompt,
+  userPromptToString,
 } from '@/common';
 import type { AbstractInterface, FileChooserHandler } from '@/device';
 import type Service from '@/service';
@@ -21,6 +24,7 @@ import type {
   PlanningAIResponse,
   PlanningAction,
   PlanningActionParamWaitFor,
+  PlanningLocateParam,
   ServiceDump,
   ServiceExtractOption,
   ServiceExtractParam,
@@ -34,7 +38,7 @@ import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
 import { setTimingFieldOnce } from '@/task-timing';
 import { descriptionOfTree } from '@midscene/shared/extractor';
-import { taskTitleStr } from './ui-utils';
+import { type TaskTitleType, taskTitleStr } from './ui-utils';
 import { withUsageIntent } from './usage-intent';
 import { parsePrompt } from './utils';
 
@@ -50,6 +54,11 @@ interface TaskExecutorHooks {
     error?: TaskExecutionError,
   ) => Promise<void> | void;
 }
+
+export type ActionReportOptions = {
+  type?: TaskTitleType;
+  prompt?: string;
+};
 
 const debug = getDebug('device-task-executor');
 const warnLog = getDebug('device-task-executor', { console: true });
@@ -173,9 +182,16 @@ export class TaskExecutor {
     return this.taskBuilder.build(plans, planningModel, defaultModel, options);
   }
 
-  async loadYamlFlowAsPlanning(userInstruction: string, yamlString: string) {
+  async loadYamlFlowAsPlanning(
+    userInstruction: TUserPrompt,
+    yamlString: string,
+    reportOptions?: ActionReportOptions,
+  ) {
     const session = this.createExecutionSession(
-      taskTitleStr('Act', userInstruction),
+      taskTitleStr(
+        reportOptions?.type || 'Act',
+        reportOptions?.prompt || userPromptToString(userInstruction),
+      ),
     );
 
     const task: ExecutionTaskPlanningApply = {
@@ -183,6 +199,9 @@ export class TaskExecutor {
       subType: 'LoadYaml',
       param: {
         userInstruction,
+        ...(reportOptions?.prompt
+          ? { userInstructionDisplay: reportOptions.prompt }
+          : {}),
       },
       executor: async (param, executorContext) => {
         const { uiContext } = executorContext;
@@ -236,7 +255,7 @@ export class TaskExecutor {
   }
 
   async action(
-    userPrompt: string,
+    userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
     defaultModel: ModelRuntime,
     includeLocateInPlanning: boolean,
@@ -248,6 +267,7 @@ export class TaskExecutor {
     fileChooserAccept?: string[],
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
+    reportOptions?: ActionReportOptions,
   ): Promise<
     ExecutionResult<
       | {
@@ -270,12 +290,47 @@ export class TaskExecutor {
         deepThink,
         deepLocate,
         abortSignal,
+        reportOptions,
       );
     });
   }
 
+  /**
+   * Called when the task is about to replan. Marks every cache-hit locate task
+   * in the just-run batch (tasks at index >= fromIndex) as stale: that batch
+   * did not finish the task, so the element each cache hit produced is suspect.
+   * The upcoming re-locate of the same prompt then replaces the bad entry in
+   * place instead of appending a duplicate that would re-poison the cache on the
+   * next run (#2529).
+   *
+   * Marking a locate that was actually fine is harmless: the step is only ever
+   * replaced if the same prompt is located again (i.e. the step is redone),
+   * which does not happen for a locate that already succeeded.
+   */
+  private invalidateFailedCacheHitLocates(
+    runner: TaskRunner,
+    fromIndex: number,
+  ) {
+    if (!this.taskCache) {
+      return;
+    }
+    for (let i = fromIndex; i < runner.tasks.length; i++) {
+      const task = runner.tasks[i];
+      if (
+        task.type === 'Planning' &&
+        task.subType === 'Locate' &&
+        task.hitBy?.from === 'Cache'
+      ) {
+        const prompt = (task.param as PlanningLocateParam | undefined)?.prompt;
+        if (prompt) {
+          this.taskCache.markLocateCacheStale(prompt);
+        }
+      }
+    }
+  }
+
   private async runAction(
-    userPrompt: string,
+    userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
     defaultModel: ModelRuntime,
     includeLocateInPlanning: boolean,
@@ -286,6 +341,7 @@ export class TaskExecutor {
     deepThink?: boolean,
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
+    reportOptions?: ActionReportOptions,
   ): Promise<
     ExecutionResult<
       | {
@@ -308,7 +364,10 @@ export class TaskExecutor {
     const conversationHistory = new ConversationHistory();
 
     const session = this.createExecutionSession(
-      taskTitleStr('Act', userPrompt),
+      taskTitleStr(
+        reportOptions?.type || 'Act',
+        reportOptions?.prompt || userPromptToString(userPrompt),
+      ),
     );
     const runner = session.getRunner();
 
@@ -323,6 +382,15 @@ export class TaskExecutor {
 
     let errorCountInOnePlanningLoop = 0; // count the number of errors in one planning loop
     let outputString: string | undefined;
+
+    if (abortSignal?.aborted) {
+      return session.appendErrorPlan(
+        `Task aborted: ${abortSignal.reason || 'abort signal received'}`,
+      );
+    }
+    const referenceImageMessages = await multimodalPromptToChatMessages(
+      userPromptToMultimodalPrompt(userPrompt),
+    );
 
     // Main planning loop - unified plan/replan logic
     while (true) {
@@ -345,6 +413,9 @@ export class TaskExecutor {
           subType: 'Plan',
           param: {
             userInstruction: userPrompt,
+            ...(reportOptions?.prompt
+              ? { userInstructionDisplay: reportOptions.prompt }
+              : {}),
             aiActContext,
             imagesIncludeCount,
             deepThink,
@@ -385,6 +456,7 @@ export class TaskExecutor {
                 includeLocateInPlanning,
                 imagesIncludeCount,
                 deepThink,
+                referenceImageMessages,
                 abortSignal,
               });
             } catch (planError) {
@@ -498,6 +570,7 @@ export class TaskExecutor {
       const initialTimeString = await this.getTimeString();
       conversationHistory.pendingFeedbackMessage += `Current time: ${initialTimeString}`;
 
+      const taskCountBeforeRun = runner.tasks.length;
       try {
         await session.appendAndRun(executables.tasks);
       } catch (error: any) {
@@ -528,6 +601,15 @@ export class TaskExecutor {
       if (!planResult?.shouldContinuePlanning) {
         break;
       }
+
+      // We are about to replan, which means the batch we just ran did not finish
+      // the task. Any locate task in that batch that was served from cache
+      // produced an element that failed to complete the step (the action threw,
+      // or it clicked the wrong element and the goal was not reached). Mark those
+      // cache entries stale so the re-locate of the same prompt replaces them in
+      // place instead of appending a poisoning duplicate that would be matched
+      // first on the next run (#2529).
+      this.invalidateFailedCacheHitLocates(runner, taskCountBeforeRun);
 
       // Increment replan count for next iteration
       ++replanCount;

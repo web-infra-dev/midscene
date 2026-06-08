@@ -9,13 +9,24 @@ import type {
   IReportActionDump,
   ReportActionDump,
 } from '@/types';
+import type { ScreenshotRef } from './dump/screenshot-store';
 import { normalizeScreenshotRef } from './dump/screenshot-store';
 
 export interface MarkdownAttachment {
   id: string;
+  /**
+   * Stable, prefixed file name for the exported copy. The markdown image link
+   * always points at `${screenshotBaseDir}/${suggestedFileName}`, so consumers
+   * write the screenshot under this name to keep links in sync. See #2392.
+   */
   suggestedFileName: string;
   mimeType?: string;
-  filePath: string;
+  /**
+   * Reference to the screenshot in the source report, used to locate the
+   * original bytes when copying them to the exported name. Absent for in-memory
+   * screenshots, which carry their data in `base64Data` instead.
+   */
+  sourceRef?: ScreenshotRef;
   executionIndex: number;
   taskIndex: number;
   /** Populated when screenshot data is available in memory (e.g. browser context). */
@@ -185,13 +196,11 @@ function screenshotAttachment(
   if (screenshot instanceof ScreenshotItem) {
     const ext = screenshot.extension;
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${screenshot.id}.${ext}`;
-    const filePath = `${screenshotBaseDir}/${suggestedFileName}`;
     return {
-      markdown: `\n![task-${taskIndex + 1}](${filePath})`,
+      markdown: `\n![task-${taskIndex + 1}](${screenshotBaseDir}/${suggestedFileName})`,
       attachment: {
         id: screenshot.id,
         suggestedFileName,
-        filePath,
         mimeType: `image/${ext === 'jpeg' ? 'jpeg' : 'png'}`,
         executionIndex,
         taskIndex,
@@ -204,13 +213,12 @@ function screenshotAttachment(
   if (ref) {
     const ext = ref.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${ref.id}.${ext}`;
-    const filePath = ref.path || `${screenshotBaseDir}/${suggestedFileName}`;
     return {
-      markdown: `\n![task-${taskIndex + 1}](${filePath})`,
+      markdown: `\n![task-${taskIndex + 1}](${screenshotBaseDir}/${suggestedFileName})`,
       attachment: {
         id: ref.id,
         suggestedFileName,
-        filePath,
+        sourceRef: ref,
         mimeType: ref.mimeType,
         executionIndex,
         taskIndex,
@@ -224,13 +232,11 @@ function screenshotAttachment(
     const ext = base64.startsWith('data:image/jpeg') ? 'jpeg' : 'png';
     const id = `restored-${executionIndex + 1}-${taskIndex + 1}`;
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${id}.${ext}`;
-    const filePath = `${screenshotBaseDir}/${suggestedFileName}`;
     return {
-      markdown: `\n![task-${taskIndex + 1}](${filePath})`,
+      markdown: `\n![task-${taskIndex + 1}](${screenshotBaseDir}/${suggestedFileName})`,
       attachment: {
         id,
         suggestedFileName,
-        filePath,
         mimeType: `image/${ext}`,
         executionIndex,
         taskIndex,

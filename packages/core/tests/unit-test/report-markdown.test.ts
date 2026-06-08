@@ -70,8 +70,10 @@ describe('report-markdown', () => {
     expect(result.markdown).toContain('timing=after click');
     expect(result.markdown).toContain('Screen size: 1280 x 720');
     expect(result.attachments).toHaveLength(2);
-    expect(result.attachments[0].filePath).toContain('./screenshots/');
     expect(result.attachments[0].suggestedFileName).toContain('.png');
+    expect(result.markdown).toContain(
+      `./screenshots/${result.attachments[0].suggestedFileName}`,
+    );
   });
 
   it('merges all executions into one markdown and keeps file snapshot', async () => {

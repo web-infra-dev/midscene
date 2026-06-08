@@ -285,18 +285,32 @@ int main() {
   midscene::rdp::FreeRdpSessionTransport transport;
   std::string line;
   while (std::getline(std::cin, line)) {
-    const auto request = midscene::rdp::ParseRequestLine(line);
-    const std::string request_id =
-        request.has_value() ? request->id : midscene::rdp::ExtractRequestId(line);
+    // A single malformed request, or any unexpected exception while handling
+    // one, must never abort the helper: that would kill the live RDP session
+    // mid-automation. Degrade to an error response and keep serving.
+    try {
+      const auto request = midscene::rdp::ParseRequestLine(line);
+      if (!request.has_value()) {
+        std::fprintf(stderr, "Failed to parse helper request JSON\n");
+        std::fflush(stderr);
+        const std::string request_id = midscene::rdp::ExtractRequestId(line);
+        std::cout << midscene::rdp::MakeErrorResponse(
+                         request_id, "invalid_request",
+                         "Failed to parse helper request JSON")
+                  << '\n';
+        std::cout.flush();
+        continue;
+      }
 
-    if (!request.has_value()) {
-      std::fprintf(stderr, "Failed to parse helper request JSON\n");
-      std::fflush(stderr);
-      continue;
+      std::cout << midscene::rdp::HandleRequest(*request, transport) << '\n';
+      std::cout.flush();
+    } catch (const std::exception& error) {
+      const std::string request_id = midscene::rdp::ExtractRequestId(line);
+      std::cout << midscene::rdp::MakeErrorResponse(request_id, "internal_error",
+                                                    error.what())
+                << '\n';
+      std::cout.flush();
     }
-
-    std::cout << midscene::rdp::HandleRequest(*request, transport) << '\n';
-    std::cout.flush();
   }
 
   transport.Disconnect();

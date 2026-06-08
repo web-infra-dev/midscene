@@ -21,8 +21,8 @@ import type { Agent, RunSummary } from '../../src/types';
  */
 
 const here = dirname(fileURLToPath(import.meta.url));
-const repoRoot = join(here, '../../../..');
-const exampleDir = join(repoRoot, 'example');
+const packageRoot = join(here, '../..');
+const exampleDir = join(packageRoot, 'example');
 
 function fakeUiAgent(): Agent {
   return {

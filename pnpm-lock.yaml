@@ -534,6 +534,9 @@ importers:
       '@midscene/playground-app':
         specifier: workspace:*
         version: link:../../packages/playground-app
+      '@midscene/recorder':
+        specifier: workspace:*
+        version: link:../../packages/recorder
       '@midscene/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -549,6 +552,9 @@ importers:
       electron-updater:
         specifier: 6.8.3
         version: 6.8.3
+      jszip:
+        specifier: 3.10.1
+        version: 3.10.1
       puppeteer:
         specifier: 24.6.0
         version: 24.6.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@6.0.5)
@@ -1103,6 +1109,12 @@ importers:
       jsonrepair:
         specifier: 3.12.0
         version: 3.12.0
+      mdast-util-from-markdown:
+        specifier: ^2.0.2
+        version: 2.0.2
+      mdast-util-to-markdown:
+        specifier: ^2.1.2
+        version: 2.1.2
       openai:
         specifier: 6.3.0
         version: 6.3.0(ws@8.20.0)(zod@3.25.76)
@@ -1140,40 +1152,6 @@ importers:
       vitest:
         specifier: 3.0.5
         version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@29.0.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
-
-  packages/evaluation:
-    dependencies:
-      '@midscene/core':
-        specifier: workspace:*
-        version: link:../core
-      '@midscene/shared':
-        specifier: workspace:*
-        version: link:../shared
-      '@midscene/web':
-        specifier: workspace:*
-        version: link:../web-integration
-    devDependencies:
-      '@playwright/test':
-        specifier: ^1.45.0
-        version: 1.58.1
-      cli-progress:
-        specifier: 3.12.0
-        version: 3.12.0
-      dotenv:
-        specifier: ^16.4.5
-        version: 16.4.5
-      playwright:
-        specifier: ^1.45.0
-        version: 1.58.1
-      sharp:
-        specifier: ^0.34.3
-        version: 0.34.3
-      typescript:
-        specifier: ^5.8.3
-        version: 5.8.3
-      vitest:
-        specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@25.5.2)(jsdom@29.0.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
 
   packages/harmony:
     dependencies:

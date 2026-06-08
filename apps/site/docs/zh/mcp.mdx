@@ -155,6 +155,41 @@ open report_file_name.html
 }
 ```
 
+## 提升精度（深度定位 / 深度思考）
+
+有两个相互独立的启动参数,可在 MCP 服务处理任务遇到困难时使用:
+
+- `--deep-locate`(深度定位)——额外进行一轮视觉推理来精确定位目标元素。当操作点击或交互到错误位置(定位漂移 / 偏移)时使用。它作用于所有需要定位元素的操作(`Tap`、`Input`、`Scroll` 等 Action 工具,以及 `act` 内部发生的定位)。
+- `--deep-think`(深度思考)——让 `act` 工具以更深的推理来规划(更丰富的上下文与子目标拆解)。适用于复杂、多步的 `act` 指令。它只影响规划,因此对单步的 Action 工具无效。
+
+两者都用少量速度换取更好的效果,且可以同时开启。开启后,相关工具会默认使用对应能力,无需在每次调用时单独传参。
+
+对于 MCP server,把参数加到 `args` 中:
+
+```json
+{
+  "mcpServers": {
+    "midscene-android": {
+      "command": "npx",
+      "args": ["-y", "@midscene/android-mcp", "--deep-locate", "--deep-think"],
+      "env": {
+        "MIDSCENE_MODEL_BASE_URL": "replace with your model service URL",
+        "MIDSCENE_MODEL_API_KEY": "replace with your API Key",
+        "MIDSCENE_MODEL_NAME": "replace with your model name"
+      }
+    }
+  }
+}
+```
+
+同样的参数对 Agent Skill / 设备 CLI(`midscene-android`、`midscene-web`、`midscene-ios` 等)同样生效,因为它们共用同一套工具定义:
+
+```bash
+midscene-android --deep-locate tap --locate "登录按钮"
+```
+
+单次调用的取值始终优先于启动参数:Action 工具支持 `locate.deepLocate`,`act` 工具支持顶层的 `deepLocate` 与 `deepThink` 布尔参数,因此任意单次调用都可以无视启动设置自行开启或关闭。
+
 ## 实现自己的 MCP
 
 如果你想在自己的 MCP 服务中集成 Midscene 工具，可以使用 `mcpKitForAgent` 函数来获取工具定义，继而自己按需暴露 MCP 服务。

@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { z } from 'zod';
+import type { ToolDefaults } from './tool-defaults';
 
 // Avoid circular dependency: don't import from @midscene/core
 // Instead, use generic types that will be provided by implementation
@@ -148,4 +149,5 @@ export interface IMidsceneTools {
   attachToServer(server: McpServer): void;
   initTools(): Promise<void>;
   destroy?(): Promise<void>;
+  setToolDefaults?(toolDefaults: ToolDefaults): void;
 }

@@ -14,6 +14,7 @@ import {
   extractNamespacedArgs,
   sanitizeNamespacedArgs,
 } from './init-arg-utils';
+import { type ToolDefaults, mergeToolDefaults } from './tool-defaults';
 import {
   generateCommonTools,
   generateToolsFromActionSpace,
@@ -73,6 +74,14 @@ export abstract class BaseMidsceneTools<
   protected mcpServer?: McpServer;
   protected agent?: TAgent;
   protected toolDefinitions: ToolDefinition[] = [];
+
+  /**
+   * Default options injected into every generated tool call (e.g. forced deep
+   * locate / deep think). Set from server/CLI behavior flags before
+   * `initTools()` so they are baked into the generated tool handlers.
+   * See https://github.com/web-infra-dev/midscene/issues/2446.
+   */
+  protected toolDefaults: ToolDefaults = {};
 
   /**
    * Declarative init-arg spec. Subclasses that accept CLI/MCP init args should
@@ -289,6 +298,7 @@ export abstract class BaseMidsceneTools<
       (args = {}) => this.sanitizeToolArgs(args),
       this.getAgentInitArgSchema(),
       this.getAgentInitArgCliMetadata(),
+      this.toolDefaults,
     );
 
     // 4. Add common tools (screenshot, waitFor)
@@ -296,6 +306,7 @@ export abstract class BaseMidsceneTools<
       (args = {}) => this.ensureAgent(this.extractAgentInitParam(args)),
       this.getAgentInitArgSchema(),
       this.getAgentInitArgCliMetadata(),
+      this.toolDefaults,
     );
     this.toolDefinitions.push(...actionTools, ...commonTools);
 
@@ -343,6 +354,15 @@ export abstract class BaseMidsceneTools<
    */
   public setAgent(agent: TAgent): void {
     this.agent = agent;
+  }
+
+  /**
+   * Set the default options injected into generated tool calls. Must be called
+   * before `initTools()` because the values are captured into the generated
+   * tool handlers. Merges with any previously set defaults.
+   */
+  public setToolDefaults(toolDefaults: ToolDefaults): void {
+    this.toolDefaults = mergeToolDefaults(this.toolDefaults, toolDefaults);
   }
 
   /**

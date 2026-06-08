@@ -117,7 +117,7 @@ describe('buildAppUpdateYml', () => {
         'provider: github',
         'owner: web-infra-dev',
         'repo: midscene',
-        'updaterCacheDirName: midscene-studio-updater',
+        'updaterCacheDirName: midscene-studio-beta-updater',
         '',
       ].join('\n'),
     );
