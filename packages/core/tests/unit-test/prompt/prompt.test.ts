@@ -205,8 +205,7 @@ describe('action space', () => {
   it('planning prompt recommends cursor-level recovery for text inserts', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
+      includeLocateInPlanning: false,
     });
 
     expect(prompt).toContain(
@@ -220,8 +219,7 @@ describe('action space', () => {
   it('planning prompt recommends swipe for touch sliders', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
+      includeLocateInPlanning: false,
     });
 
     expect(prompt).not.toContain(
@@ -244,8 +242,7 @@ describe('action space', () => {
 
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: [...mockActionSpace, runAdbShellAction],
-      modelFamily: undefined,
-      includeBbox: false,
+      includeLocateInPlanning: false,
     });
 
     expect(prompt).toContain(
@@ -442,8 +439,7 @@ describe('system prompts', () => {
   it('planning should include durable change completion guidance', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
+      includeLocateInPlanning: false,
       includeSubGoals: false,
     });
 

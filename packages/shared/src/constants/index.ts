@@ -32,6 +32,7 @@ export const PREVIEW_TEXT_INPUT_BATCH_DELAY_MS = 120;
 export const PREVIEW_WHEEL_SCROLL_BATCH_DELAY_MS = 80;
 export const RECORDER_SCROLL_BATCH_DELAY_MS = 200;
 export const RECORDER_INPUT_BATCH_DELAY_MS = 300;
+export const MAX_RUN_ADB_SHELL_STDOUT = 200;
 
 // WebDriver constants
 export const WEBDRIVER_ELEMENT_ID_KEY = 'element-6066-11e4-a52e-4f735466cecf';

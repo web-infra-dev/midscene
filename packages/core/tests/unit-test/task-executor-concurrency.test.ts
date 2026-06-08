@@ -202,6 +202,259 @@ describe('TaskExecutor concurrency isolation', () => {
     ]);
   });
 
+  it('should pass RunAdbShell stdout into the next planning feedback', async () => {
+    const seenPendingFeedback: string[] = [];
+    const command = 'settings get system screen_brightness';
+    const stdout = '0\n';
+
+    vi.spyOn(taskExecutor, 'convertPlanToExecutable')
+      .mockResolvedValueOnce({
+        tasks: [
+          {
+            type: 'Action Space',
+            subType: 'RunAdbShell',
+            param: { command },
+            executor: async () => ({
+              output: stdout,
+            }),
+          },
+        ],
+        yamlFlow: [],
+      } as any)
+      .mockResolvedValue({
+        tasks: [],
+        yamlFlow: [],
+      } as any);
+
+    vi.mocked(genericXmlPlan)
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [
+            {
+              type: 'RunAdbShell',
+              param: { command },
+              thought: 'read brightness setting',
+            },
+          ],
+          yamlFlow: [],
+          shouldContinuePlanning: true,
+          log: 'first plan',
+          rawResponse: '',
+        };
+      })
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: false,
+          log: '',
+          rawResponse: '',
+          finalizeSuccess: true,
+          finalizeMessage: 'done',
+        };
+      });
+
+    await taskExecutor.action(
+      'check brightness',
+      planningModel(),
+      defaultModel(),
+      true,
+    );
+
+    expect(seenPendingFeedback[0]).toBe('');
+    expect(seenPendingFeedback[1]).toContain('RunAdbShell returned stdout');
+    expect(seenPendingFeedback[1]).toContain(
+      'The stdout may indicate success or failure',
+    );
+    expect(seenPendingFeedback[1]).toContain(`Command: ${command}`);
+    expect(seenPendingFeedback[1]).toContain(`Stdout:\n${stdout}`);
+  });
+
+  it('should collect all RunAdbShell stdout instead of the final task output', async () => {
+    const seenPendingFeedback: string[] = [];
+    const command = 'settings get system screen_brightness';
+    const secondCommand = 'settings get system screen_off_timeout';
+    const stdout = '0\n';
+    const secondStdout = '30000\n';
+    const finalActionOutput = 'tap-output';
+
+    vi.spyOn(taskExecutor, 'convertPlanToExecutable')
+      .mockResolvedValueOnce({
+        tasks: [
+          {
+            type: 'Action Space',
+            subType: 'RunAdbShell',
+            param: { command },
+            executor: async () => ({
+              output: stdout,
+            }),
+          },
+          {
+            type: 'Action Space',
+            subType: 'RunAdbShell',
+            param: { command: secondCommand },
+            executor: async () => ({
+              output: secondStdout,
+            }),
+          },
+          {
+            type: 'Action Space',
+            subType: 'Tap',
+            param: { x: 10, y: 20 },
+            executor: async () => ({
+              output: finalActionOutput,
+            }),
+          },
+        ],
+        yamlFlow: [],
+      } as any)
+      .mockResolvedValue({
+        tasks: [],
+        yamlFlow: [],
+      } as any);
+
+    vi.mocked(genericXmlPlan)
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [
+            {
+              type: 'RunAdbShell',
+              param: { command },
+              thought: 'read brightness setting',
+            },
+            {
+              type: 'RunAdbShell',
+              param: { command: secondCommand },
+              thought: 'read screen timeout setting',
+            },
+            {
+              type: 'Tap',
+              param: { x: 10, y: 20 },
+              thought: 'tap after adb shell',
+            },
+          ],
+          yamlFlow: [],
+          shouldContinuePlanning: true,
+          log: 'first plan',
+          rawResponse: '',
+        };
+      })
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: false,
+          log: '',
+          rawResponse: '',
+          finalizeSuccess: true,
+          finalizeMessage: 'done',
+        };
+      });
+
+    await taskExecutor.action(
+      'check brightness',
+      planningModel(),
+      defaultModel(),
+      true,
+    );
+
+    expect(seenPendingFeedback[1]).toContain('RunAdbShell returned stdout');
+    expect(seenPendingFeedback[1]).toContain(`Command: ${command}`);
+    expect(seenPendingFeedback[1]).toContain(`Stdout:\n${stdout}`);
+    expect(seenPendingFeedback[1]).toContain(`Command: ${secondCommand}`);
+    expect(seenPendingFeedback[1]).toContain(`Stdout:\n${secondStdout}`);
+    expect(seenPendingFeedback[1]).not.toContain(finalActionOutput);
+  });
+
+  it('should not pass empty RunAdbShell stdout into the next planning feedback', async () => {
+    const seenPendingFeedback: string[] = [];
+    const command = 'cmd clipboard set-text "Tracking #: 5K672F4C"';
+    taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      replanningCycleLimit: 1,
+      actionSpace: [],
+    });
+    vi.spyOn(taskExecutor, 'convertPlanToExecutable')
+      .mockResolvedValueOnce({
+        tasks: [
+          {
+            type: 'Action Space',
+            subType: 'RunAdbShell',
+            param: { command },
+            executor: async () => ({
+              output: '',
+            }),
+          },
+        ],
+        yamlFlow: [],
+      } as any)
+      .mockResolvedValue({
+        tasks: [],
+        yamlFlow: [],
+      } as any);
+
+    vi.mocked(genericXmlPlan)
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [
+            {
+              type: 'RunAdbShell',
+              param: { command },
+              thought: 'set clipboard',
+            },
+          ],
+          yamlFlow: [],
+          shouldContinuePlanning: true,
+          log: 'first plan',
+          rawResponse: '',
+        };
+      })
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: false,
+          log: '',
+          rawResponse: '',
+          finalizeSuccess: true,
+          finalizeMessage: 'done',
+        };
+      });
+
+    await taskExecutor.action(
+      'copy clipboard',
+      planningModel(),
+      defaultModel(),
+      true,
+    );
+
+    expect(seenPendingFeedback[1]).not.toContain('RunAdbShell returned stdout');
+    expect(seenPendingFeedback[1]).not.toContain(`Command: ${command}`);
+  });
+
   it('should fall back to runtime time instead of device timestamp when device-local time is unavailable', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2023, 9, 15, 8, 30, 0));

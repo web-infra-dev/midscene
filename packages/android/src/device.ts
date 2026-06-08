@@ -39,6 +39,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison, repeat } from '@midscene/shared/utils';
 
 import { ADB } from 'appium-adb';
+import { runAdbShellStdoutOrThrow } from './adb-shell';
 import {
   type DevicePhysicalInfo,
   ScrcpyDeviceAdapter,
@@ -2050,7 +2051,7 @@ const createPlatformActions = (
           throw new Error('RunAdbShell requires a non-empty command parameter');
         }
         const adb = await device.getAdb();
-        return await adb.shell(param.command);
+        return await runAdbShellStdoutOrThrow(adb, param.command);
       },
     }),
     Launch: defineAction<typeof launchParamSchema, LaunchParam, void>({

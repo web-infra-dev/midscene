@@ -16,6 +16,10 @@ import { AndroidDevice, escapeForShell } from '../../src/device';
 
 // Mock the entire appium-adb module
 const createMockAdb = () => ({
+  EXEC_OUTPUT_FORMAT: {
+    FULL: 'full',
+    STDOUT: 'stdout',
+  },
   startUri: vi.fn(),
   startApp: vi.fn(),
   activateApp: vi.fn(),
@@ -212,6 +216,29 @@ describe('AndroidDevice', () => {
       expect(
         (terminateAction!.paramSchema as any).shape?.uri?._def?.typeName,
       ).toBe('ZodString');
+    });
+  });
+
+  describe('RunAdbShell action output', () => {
+    it('should throw when adb shell exits zero with stderr output', async () => {
+      const command = 'cmd clipboard set-text "Tracking #: 5K672F4C"';
+      mockAdb.shell.mockResolvedValue({
+        stdout: '',
+        stderr: 'No shell command implementation.',
+      } as any);
+
+      const runAdbShellAction = device
+        .actionSpace()
+        .find((action) => action.name === 'RunAdbShell');
+
+      await expect(
+        runAdbShellAction!.call({ command }, {} as any),
+      ).rejects.toThrow(
+        /RunAdbShell command returned stderr\.[\s\S]*No shell command implementation\./,
+      );
+      expect(mockAdb.shell).toHaveBeenCalledWith(command, {
+        outputFormat: 'full',
+      });
     });
   });
 
