@@ -124,6 +124,13 @@ describe('playback composition sizing', () => {
     );
   });
 
+  it('aligns the pointer tip to the target point', () => {
+    const pointerLayout = resolvePointerLayout(1280);
+
+    expect(pointerLayout.hotspotX).toBe(0);
+    expect(pointerLayout.hotspotY).toBe(0);
+  });
+
   it('uses the same resolution scale for live and exported high-res pointers', () => {
     const imageWidth = 2560;
     const contentWidth = 960;
