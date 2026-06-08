@@ -76,6 +76,74 @@ describe('scrcpy server version helper', () => {
     );
   });
 
+  it('falls back to the GitHub asset API when the browser download URL fails', async () => {
+    const dirPath = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'midscene-scrcpy-server-'),
+    );
+    tempDirs.push(dirPath);
+
+    const destinationPath = path.join(dirPath, 'scrcpy-server-v3.3.3');
+    const apiAssetUrl =
+      'https://api.github.com/repos/Genymobile/scrcpy/releases/assets/123';
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (
+        url ===
+        'https://github.com/Genymobile/scrcpy/releases/download/v3.3.3/scrcpy-server-v3.3.3'
+      ) {
+        return {
+          ok: false,
+          status: 504,
+          statusText: 'Gateway Time-out',
+        };
+      }
+
+      if (
+        url ===
+        'https://api.github.com/repos/Genymobile/scrcpy/releases/tags/v3.3.3'
+      ) {
+        return {
+          ok: true,
+          json: async () => ({
+            assets: [{ name: 'scrcpy-server-v3.3.3', url: apiAssetUrl }],
+          }),
+          status: 200,
+          statusText: 'OK',
+        };
+      }
+
+      if (url === apiAssetUrl) {
+        return {
+          ok: true,
+          arrayBuffer: async () =>
+            new TextEncoder().encode('server-binary').buffer,
+          status: 200,
+          statusText: 'OK',
+        };
+      }
+
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    await downloadScrcpyServerReleaseAsset({
+      dispatcher: undefined,
+      destinationPath,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      version: 'v3.3.3',
+    });
+
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      2,
+      'https://api.github.com/repos/Genymobile/scrcpy/releases/tags/v3.3.3',
+      { headers: { Accept: 'application/vnd.github+json' } },
+    );
+    expect(fetchImpl).toHaveBeenNthCalledWith(3, apiAssetUrl, {
+      headers: { Accept: 'application/octet-stream' },
+    });
+    await expect(fs.readFile(destinationPath, 'utf8')).resolves.toBe(
+      'server-binary',
+    );
+  });
+
   it('replaces the cached server only after the new download is ready', async () => {
     const dirPath = await fs.mkdtemp(
       path.join(os.tmpdir(), 'midscene-scrcpy-server-'),

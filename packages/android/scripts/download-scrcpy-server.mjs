@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import { Buffer } from 'node:buffer';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getDownloadMaxRetries, retryDownload } from './download-retry.mjs';
+import { downloadGitHubReleaseAssetWithApiFallback } from './github-release-asset.mjs';
 import { createLoggedProxyDispatcher } from './proxy-dispatcher.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
@@ -74,18 +74,17 @@ export async function downloadScrcpyServerReleaseAsset({
   version = SCRCPY_VERSION,
   dispatcher,
 }) {
-  const response = await fetchImpl(getScrcpyServerDownloadUrl(version), {
-    ...(dispatcher ? { dispatcher } : {}),
+  await downloadGitHubReleaseAssetWithApiFallback({
+    assetName: `scrcpy-server-${version}`,
+    destinationPath,
+    directUrl: getScrcpyServerDownloadUrl(version),
+    dispatcher,
+    fetchImpl,
+    fsApi,
+    owner: 'Genymobile',
+    repo: 'scrcpy',
+    version,
   });
-
-  if (!response.ok) {
-    throw new Error(
-      `Response code ${response.status} (${response.statusText})`,
-    );
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  await fsApi.writeFile(destinationPath, Buffer.from(arrayBuffer));
 }
 
 export async function main() {
