@@ -49,10 +49,10 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   modelSeedName: '豆包 Seed',
   modelSeedDesc:
     '豆包 Seed 视觉模型，针对视觉理解和 UI 元素识别进行优化，表现出色。',
-  modelQwenName: 'Qwen3-VL',
+  modelQwenName: 'qwen3.7-plus',
   modelQwenDesc:
     'Qwen 视觉语言模型，支持高质量图像理解和 UI 元素识别，性价比高。',
-  modelGeminiName: 'Gemini-3-Pro',
+  modelGeminiName: 'gemini-3.5-flash',
   modelGeminiDesc:
     'Gemini 先进的多模态模型，拥有强大的视觉能力和全面的 UI 自动化支持。',
   modelMultiModelName: '多模型组合',
