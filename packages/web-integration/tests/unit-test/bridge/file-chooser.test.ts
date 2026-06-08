@@ -74,4 +74,43 @@ describe('bridge file chooser adapter', () => {
       calls.some((call) => call.method === BridgeEvent.ClearFileChooserAccept),
     ).toBe(true);
   });
+
+  it('polls remote file chooser errors when getError is called', async () => {
+    const port = testPort++;
+    const calls: { method: string; args: any[] }[] = [];
+    const remoteFileChooserError = {
+      message: 'late remote file chooser failed',
+      name: 'Error',
+    };
+
+    page = getBridgePageInCliSide({ port, timeout: 2000 });
+    await sleep(50);
+
+    client = new BridgeClient(
+      `ws://${DEFAULT_HOST}:${port}`,
+      async (method, args) => {
+        calls.push({ method, args });
+        if (method === BridgeEvent.GetFileChooserError) {
+          return remoteFileChooserError;
+        }
+        return undefined;
+      },
+    );
+    await client.connect();
+
+    const registration = await page.registerFileChooserListener(
+      async (chooser) => {
+        await chooser.accept(['/tmp/upload.txt']);
+      },
+    );
+
+    expect((await registration.getError())?.message).toBe(
+      'late remote file chooser failed',
+    );
+    expect(
+      calls.some((call) => call.method === BridgeEvent.GetFileChooserError),
+    ).toBe(true);
+
+    registration.dispose();
+  });
 });

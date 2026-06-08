@@ -163,7 +163,10 @@ export const getBridgePageInCliSide = (options?: {
                   );
                 });
             },
-            getError: () => fileChooserError,
+            getError: async () => {
+              await syncFileChooserError();
+              return fileChooserError;
+            },
           };
         };
       }
