@@ -202,6 +202,27 @@ describe('ChromeExtensionProxyPage file chooser support', () => {
     });
   });
 
+  it('accepts files registered through chrome extension bridge mode', async () => {
+    const files = ['/tmp/bridge-upload.txt'];
+
+    await page.registerFileChooserAccept(files);
+    const listener = getFileChooserListener();
+    listener({ tabId: 7 }, 'Page.fileChooserOpened', {
+      backendNodeId: 42,
+    });
+    const error = await page.getFileChooserError();
+
+    expect(mockSendCommand).toHaveBeenCalledWith(
+      { tabId: 7 },
+      'DOM.setFileInputFiles',
+      {
+        files,
+        backendNodeId: 42,
+      },
+    );
+    expect(error).toBeUndefined();
+  });
+
   it('captures an error for directory upload inputs', async () => {
     nodeAttributes = ['type', 'file', 'webkitdirectory', ''];
 
