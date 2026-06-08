@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getDownloadMaxRetries, retryDownload } from './download-retry.mjs';
 import { createLoggedProxyDispatcher } from './proxy-dispatcher.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
@@ -62,27 +63,22 @@ export async function main() {
 
   await fs.mkdir(binDir, { recursive: true });
 
-  const maxRetries = 3;
+  const maxRetries = getDownloadMaxRetries();
   const dispatcher = createLoggedProxyDispatcher({
     logPrefix: 'yadb',
   });
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
+  await retryDownload({
+    label: 'yadb',
+    maxRetries,
+    download: async () => {
       await downloadYadbReleaseAsset({
         destinationPath: yadbPath,
         dispatcher,
         version: YADB_VERSION,
       });
-      break;
-    } catch (err) {
-      if (attempt === maxRetries) throw err;
-      console.log(
-        `[yadb] Download attempt ${attempt} failed: ${err.message}, retrying in ${attempt * 2}s...`,
-      );
-      await new Promise((r) => setTimeout(r, attempt * 2000));
-    }
-  }
+    },
+  });
 
   // Write version marker for future upgrade detection
   await fs.writeFile(versionFile, YADB_VERSION);
