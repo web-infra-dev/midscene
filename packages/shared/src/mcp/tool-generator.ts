@@ -718,6 +718,12 @@ export function generateCommonTools(
           .describe(
             'Natural language assertion to verify, e.g. "there is a login button visible"',
           ),
+        message: z
+          .string()
+          .optional()
+          .describe(
+            'Custom error message to throw when the assertion fails, e.g. "the login button should be visible".',
+          ),
         ...promptInputExtraSchema,
         ...initArgSchema,
       },
@@ -726,6 +732,7 @@ export function generateCommonTools(
         args: Record<string, unknown> = {},
       ): Promise<ToolResult> => {
         const prompt = args.prompt as string;
+        const message = args.message as string | undefined;
         try {
           const agent = await getAgent(args);
           if (!agent.aiAssert) {
@@ -737,7 +744,7 @@ export function generateCommonTools(
             imageName: args.imageName,
             convertHttpImage2Base64: args.convertHttpImage2Base64,
           });
-          await agent.aiAssert(userPrompt);
+          await agent.aiAssert(userPrompt, message);
           return {
             content: [{ type: 'text', text: 'Assertion passed.' }],
           };
