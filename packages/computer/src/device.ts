@@ -1202,9 +1202,7 @@ Original error: ${lastRawMessage}`,
     this.inputDriver.sendKey(key, modifiers);
   }
 
-  private async moveMouseToScrollTarget(
-    param: any,
-  ): Promise<Size | undefined> {
+  private async moveMouseToScrollTarget(param: any): Promise<Size | undefined> {
     if (param.locate) {
       const element = param.locate as LocateResultElement;
       const [x, y] = element.center;
