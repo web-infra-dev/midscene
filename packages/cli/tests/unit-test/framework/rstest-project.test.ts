@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import {
   DEFAULT_YAML_TEST_TIMEOUT,
   createRstestYamlProject,
+  resolveDefaultFrameworkImport,
   resolveTestName,
 } from '@/framework/rstest-project';
 import { describe, expect, test } from 'vitest';
@@ -152,6 +153,33 @@ describe('rstest yaml project generation', () => {
     expect(resolveTestName(projectDir, yamlFile)).toBe(yamlFile);
   });
 
+  test('resolves the framework entry from the CLI module dir, not process.argv[1]', () => {
+    // Installed layout: the CLI module directory contains framework/index.js.
+    const moduleDir = createTempDir();
+    mkdirSync(join(moduleDir, 'framework'), { recursive: true });
+    writeFileSync(join(moduleDir, 'framework', 'index.js'), 'export {};');
+
+    // process.argv[1] points at a launcher whose directory does NOT lead to the
+    // framework entry (a .bin symlink / npx cache / wrapper). The original bug
+    // derived the path from argv[1] and fell back to the bare specifier
+    // `@midscene/cli/dist/lib/framework/index.js`, which the virtual test module
+    // then could not resolve from the user's CWD. The fix must anchor on the
+    // module directory instead and return an existing absolute path.
+    const originalEntry = process.argv[1];
+    const bogusLauncherDir = createTempDir();
+    process.argv[1] = join(bogusLauncherDir, 'midscene');
+
+    try {
+      const resolved = resolveDefaultFrameworkImport(moduleDir);
+      expect(resolved).toBe(join(moduleDir, 'framework', 'index.js'));
+      expect(resolved).not.toBe('@midscene/cli/dist/lib/framework/index.js');
+    } finally {
+      process.argv[1] = originalEntry;
+      rmSync(moduleDir, { recursive: true, force: true });
+      rmSync(bogusLauncherDir, { recursive: true, force: true });
+    }
+  });
+
   test('generates a single batch virtual entry for shared browser context', () => {
     const root = createTempDir();
     const outputDir = join(root, 'runner');
@@ -185,6 +213,10 @@ describe('rstest yaml project generation', () => {
       });
 
       expect(project.include).toEqual(['virtual:midscene-yaml/batch.test.ts']);
+      expect(project.batchTest).toEqual({
+        testModule: 'virtual:midscene-yaml/batch.test.ts',
+        testName: 'midscene yaml batch',
+      });
       expect(project.cases).toHaveLength(2);
       expect(project.maxConcurrency).toBe(1);
       const generated = project.virtualModules[project.include[0]];

@@ -38,7 +38,7 @@ import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
 import { setTimingFieldOnce } from '@/task-timing';
 import { descriptionOfTree } from '@midscene/shared/extractor';
-import { taskTitleStr } from './ui-utils';
+import { type TaskTitleType, taskTitleStr } from './ui-utils';
 import { withUsageIntent } from './usage-intent';
 import { parsePrompt } from './utils';
 
@@ -54,6 +54,11 @@ interface TaskExecutorHooks {
     error?: TaskExecutionError,
   ) => Promise<void> | void;
 }
+
+export type ActionReportOptions = {
+  type?: TaskTitleType;
+  prompt?: string;
+};
 
 const debug = getDebug('device-task-executor');
 const warnLog = getDebug('device-task-executor', { console: true });
@@ -180,9 +185,13 @@ export class TaskExecutor {
   async loadYamlFlowAsPlanning(
     userInstruction: TUserPrompt,
     yamlString: string,
+    reportOptions?: ActionReportOptions,
   ) {
     const session = this.createExecutionSession(
-      taskTitleStr('Act', userPromptToString(userInstruction)),
+      taskTitleStr(
+        reportOptions?.type || 'Act',
+        reportOptions?.prompt || userPromptToString(userInstruction),
+      ),
     );
 
     const task: ExecutionTaskPlanningApply = {
@@ -190,6 +199,9 @@ export class TaskExecutor {
       subType: 'LoadYaml',
       param: {
         userInstruction,
+        ...(reportOptions?.prompt
+          ? { userInstructionDisplay: reportOptions.prompt }
+          : {}),
       },
       executor: async (param, executorContext) => {
         const { uiContext } = executorContext;
@@ -255,6 +267,7 @@ export class TaskExecutor {
     fileChooserAccept?: string[],
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
+    reportOptions?: ActionReportOptions,
   ): Promise<
     ExecutionResult<
       | {
@@ -277,6 +290,7 @@ export class TaskExecutor {
         deepThink,
         deepLocate,
         abortSignal,
+        reportOptions,
       );
     });
   }
@@ -327,6 +341,7 @@ export class TaskExecutor {
     deepThink?: boolean,
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
+    reportOptions?: ActionReportOptions,
   ): Promise<
     ExecutionResult<
       | {
@@ -349,7 +364,10 @@ export class TaskExecutor {
     const conversationHistory = new ConversationHistory();
 
     const session = this.createExecutionSession(
-      taskTitleStr('Act', userPromptToString(userPrompt)),
+      taskTitleStr(
+        reportOptions?.type || 'Act',
+        reportOptions?.prompt || userPromptToString(userPrompt),
+      ),
     );
     const runner = session.getRunner();
 
@@ -395,6 +413,9 @@ export class TaskExecutor {
           subType: 'Plan',
           param: {
             userInstruction: userPrompt,
+            ...(reportOptions?.prompt
+              ? { userInstructionDisplay: reportOptions.prompt }
+              : {}),
             aiActContext,
             imagesIncludeCount,
             deepThink,

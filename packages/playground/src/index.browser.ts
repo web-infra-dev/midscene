@@ -9,7 +9,7 @@ export {
 } from './common';
 
 // SDK exports (all browser-safe)
-export { PlaygroundSDK } from './sdk';
+export { PlaygroundSDK } from './sdk/index';
 export { BasePlaygroundAdapter } from './adapters/base';
 export { LocalExecutionAdapter } from './adapters/local-execution';
 export { RemoteExecutionAdapter } from './adapters/remote-execution';
@@ -29,6 +29,11 @@ export const playgroundForSessionManager = undefined;
 export const launchPreparedPlaygroundPlatform = undefined;
 
 export type {
+  PlaygroundInteractPayload,
+  PlaygroundInteractResult,
+  PlaygroundPageRecordedEvent,
+} from './sdk/index';
+export type {
   BeforeActionHook,
   ExecutionOptions,
   FormValue,
@@ -40,10 +45,19 @@ export type {
 } from './types';
 export type {
   PlaygroundCreatedSession,
+  PlaygroundExecutionHooks,
+  PlaygroundPlatformRegistration,
   PlaygroundPlatformDescriptor,
+  PlaygroundPlatformSelectorConfig,
   PlaygroundPreviewCapability,
   PlaygroundPreviewDescriptor,
   PlaygroundPreviewKind,
+  PlaygroundRecorderCapabilitiesResult,
+  PlaygroundRecorderEvent,
+  PlaygroundRecorderEventsResult,
+  PlaygroundRecorderSourceKind,
+  PlaygroundRecorderStartResult,
+  PlaygroundSidecar,
   PreparedPlaygroundPlatform,
   PlaygroundSessionField,
   PlaygroundSessionFieldOption,

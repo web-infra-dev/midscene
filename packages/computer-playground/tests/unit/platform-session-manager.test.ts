@@ -91,6 +91,7 @@ describe('computerPlaygroundPlatform session manager', () => {
         interfaceType: 'computer',
         describe: () => 'Desktop',
         actionSpace: () => [],
+        screenshotBase64: vi.fn(async () => 'screenshot'),
       },
       destroy: vi.fn(),
     });

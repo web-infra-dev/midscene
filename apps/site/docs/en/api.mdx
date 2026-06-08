@@ -171,8 +171,7 @@ function ai(prompt: string): Promise<string | undefined>; // shorthand form
 
 - Return Value:
 
-  - Returns a Promise that resolves to the final output string when the instruction asks Midscene to return or tell you some information. If the task only performs actions and no output is produced, it resolves to `undefined`.
-  - If execution fails, an error is thrown.
+  - Returns a Promise that resolves to void when all steps are completed; if execution fails, an error is thrown.
 
 - Examples:
 
@@ -194,12 +193,6 @@ setTimeout(() => controller.abort('timeout'), 30000); // 30s timeout
 await agent.aiAct('Fill in the form and submit', {
   abortSignal: controller.signal,
 });
-
-// Ask aiAct to return information after completing the task
-const heading = await agent.aiAct(
-  'Search for "Midscene" on Google and return only the heading of the first result page',
-);
-expect(heading).toContain('Midscene');
 
 // For complex tasks, you can enable the deepThink parameter
 await agent.aiAct('Complete the GitHub account registration form. The region must be set to "Canada". Make sure no fields on the form are missed and all form fields pass validation. Just fill in the form fields without actually submitting the registration. Finally, return the actual content filled in the form fields', { deepThink: true });

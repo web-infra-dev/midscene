@@ -223,6 +223,135 @@ function fillRect(
   }
 }
 
+function drawCircle(
+  pixels: Uint8Array,
+  width: number,
+  height: number,
+  center: { x: number; y: number },
+  radius: number,
+  color: { r: number; g: number; b: number; a: number },
+  options: {
+    thickness?: number;
+    fill?: boolean;
+  } = {},
+) {
+  const cx = Math.round(center.x);
+  const cy = Math.round(center.y);
+  const outerRadius = Math.max(Math.round(radius), 1);
+  const thickness = Math.max(Math.round(options.thickness ?? 2), 1);
+  const innerRadius = Math.max(outerRadius - thickness, 0);
+  const outerRadiusSq = outerRadius * outerRadius;
+  const innerRadiusSq = innerRadius * innerRadius;
+
+  for (let py = cy - outerRadius; py <= cy + outerRadius; py++) {
+    for (let px = cx - outerRadius; px <= cx + outerRadius; px++) {
+      if (px < 0 || py < 0 || px >= width || py >= height) continue;
+      const distanceSq = (px - cx) ** 2 + (py - cy) ** 2;
+      const shouldDraw = options.fill
+        ? distanceSq <= outerRadiusSq
+        : distanceSq <= outerRadiusSq && distanceSq >= innerRadiusSq;
+      if (!shouldDraw) continue;
+      const idx = (py * width + px) * 4;
+      pixels[idx + 0] = color.r;
+      pixels[idx + 1] = color.g;
+      pixels[idx + 2] = color.b;
+      pixels[idx + 3] = color.a;
+    }
+  }
+}
+
+function drawLine(
+  pixels: Uint8Array,
+  width: number,
+  height: number,
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  color: { r: number; g: number; b: number; a: number },
+  thickness = 2,
+) {
+  const x0 = Math.round(from.x);
+  const y0 = Math.round(from.y);
+  const x1 = Math.round(to.x);
+  const y1 = Math.round(to.y);
+  const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+  const halfThickness = Math.max(Math.floor(thickness / 2), 0);
+
+  for (let step = 0; step <= steps; step++) {
+    const x = Math.round(x0 + ((x1 - x0) * step) / steps);
+    const y = Math.round(y0 + ((y1 - y0) * step) / steps);
+    for (let dy = -halfThickness; dy <= halfThickness; dy++) {
+      for (let dx = -halfThickness; dx <= halfThickness; dx++) {
+        const px = x + dx;
+        const py = y + dy;
+        if (px < 0 || py < 0 || px >= width || py >= height) continue;
+        const idx = (py * width + px) * 4;
+        pixels[idx + 0] = color.r;
+        pixels[idx + 1] = color.g;
+        pixels[idx + 2] = color.b;
+        pixels[idx + 3] = color.a;
+      }
+    }
+  }
+}
+
+function drawPointMarker(
+  pixels: Uint8Array,
+  width: number,
+  height: number,
+  point: { x: number; y: number },
+  radius: number,
+) {
+  const red = { r: 0xff, g: 0x3b, b: 0x30, a: 0xff };
+  const white = { r: 0xff, g: 0xff, b: 0xff, a: 0xff };
+  const cx = Math.round(point.x);
+  const cy = Math.round(point.y);
+  const markerRadius = Math.max(Math.round(radius), 8);
+
+  drawCircle(pixels, width, height, point, markerRadius + 2, white, {
+    thickness: 3,
+  });
+  drawCircle(pixels, width, height, point, markerRadius, red, {
+    thickness: 3,
+  });
+  drawCircle(pixels, width, height, point, 3, red, { fill: true });
+  drawLine(
+    pixels,
+    width,
+    height,
+    { x: cx - markerRadius - 4, y: cy },
+    { x: cx - markerRadius + 2, y: cy },
+    red,
+    2,
+  );
+  drawLine(
+    pixels,
+    width,
+    height,
+    { x: cx + markerRadius - 2, y: cy },
+    { x: cx + markerRadius + 4, y: cy },
+    red,
+    2,
+  );
+  drawLine(
+    pixels,
+    width,
+    height,
+    { x: cx, y: cy - markerRadius - 4 },
+    { x: cx, y: cy - markerRadius + 2 },
+    red,
+    2,
+  );
+  drawLine(
+    pixels,
+    width,
+    height,
+    { x: cx, y: cy + markerRadius - 2 },
+    { x: cx, y: cy + markerRadius + 4 },
+    red,
+    2,
+  );
+}
+
 function blendPixels(
   basePixels: Uint8Array,
   overlayPixels: Uint8Array,
@@ -528,6 +657,68 @@ export const compositeElementInfoImg = async (options: {
     const resultImage = new PhotonImage(blendedPixels, width, height);
     const base64 = await photonToBase64(resultImage, 90);
 
+    resultImage.free();
+    return base64;
+  } finally {
+    photonImage.free();
+  }
+};
+
+export const compositePointMarkerImg = async (options: {
+  inputImgBase64: string;
+  point: { x: number; y: number };
+  size?: { width: number; height: number };
+  radius?: number;
+}) => {
+  assert(options.inputImgBase64, 'inputImgBase64 is required');
+  const { PhotonImage, SamplingFilter, resize } = await getPhoton();
+
+  let width = 0;
+  let height = 0;
+
+  if (options.size) {
+    width = options.size.width;
+    height = options.size.height;
+  }
+
+  let photonImage = await photonFromBase64(options.inputImgBase64);
+
+  if (!width || !height) {
+    width = photonImage.get_width();
+    height = photonImage.get_height();
+  } else {
+    const imageWidth = photonImage.get_width();
+    const imageHeight = photonImage.get_height();
+    if (imageWidth !== width || imageHeight !== height) {
+      const resized = resize(
+        photonImage,
+        width,
+        height,
+        SamplingFilter.Nearest,
+      );
+      photonImage.free();
+      photonImage = resized;
+    }
+  }
+
+  if (!width || !height) {
+    photonImage.free();
+    throw Error('Image processing failed because width or height is undefined');
+  }
+
+  try {
+    const basePixels = photonImage.get_raw_pixels();
+    const overlayPixels = new Uint8Array(width * height * 4);
+    drawPointMarker(
+      overlayPixels,
+      width,
+      height,
+      options.point,
+      options.radius ?? 14,
+    );
+    const blendedPixels = blendPixels(basePixels, overlayPixels, width, height);
+    const resultImage = new PhotonImage(blendedPixels, width, height);
+    const base64 = await photonToBase64(resultImage, 90);
     resultImage.free();
     return base64;
   } finally {

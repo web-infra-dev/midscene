@@ -23,6 +23,9 @@ export type WebYamlRuntimeOptions = Pick<
 >;
 
 export const DEFAULT_YAML_TEST_TIMEOUT = 0;
+export const RSTEST_YAML_BATCH_TEST_MODULE =
+  'virtual:midscene-yaml/batch.test.ts';
+export const RSTEST_YAML_BATCH_TEST_NAME = 'midscene yaml batch';
 
 export interface CreateRstestYamlProjectOptions {
   files: string[];
@@ -45,6 +48,11 @@ export interface GeneratedYamlTestCase {
   testName: string;
 }
 
+export interface GeneratedYamlBatchTest {
+  testModule: string;
+  testName: string;
+}
+
 export interface GeneratedRstestYamlProject {
   projectDir: string;
   outputDir: string;
@@ -52,6 +60,7 @@ export interface GeneratedRstestYamlProject {
   include: string[];
   virtualModules: Record<string, string>;
   cases: GeneratedYamlTestCase[];
+  batchTest?: GeneratedYamlBatchTest;
   maxConcurrency?: number;
   testTimeout: number;
   bail?: number;
@@ -122,16 +131,36 @@ defineYamlBatchTest(${JSON.stringify(testOptions, null, 2)});
 `;
 };
 
-const resolveDefaultFrameworkImport = (): string => {
-  const entry = process.argv[1] ? resolve(process.argv[1]) : '';
+// Anchor the framework entry on this bundle's own directory rather than
+// `process.argv[1]`. The command-line entry can be a `.bin` symlink, an
+// `npx` cache path, or a wrapper script whose directory does not lead to the
+// compiled `framework/index.js`. In those cases the argv-based lookup below
+// falls through to the bare specifier `@midscene/cli/dist/lib/framework/
+// index.js`, which the generated virtual test module then fails to resolve
+// from the user's CWD ("Cannot find module ..."), silently turning every run
+// into "not executed". `__dirname` always points at the installed CLI output
+// (this mirrors `requireFromCliPackage` in rstest-runner.ts). Resolve to an
+// absolute path so the virtual module imports it regardless of CWD.
+// `moduleDir` is injectable so tests can exercise the resolution order without
+// depending on the dist layout.
+export const resolveDefaultFrameworkImport = (moduleDir?: string): string => {
+  const anchorDir =
+    moduleDir ?? (typeof __dirname !== 'undefined' ? __dirname : undefined);
   const candidates = [
-    entry ? join(dirname(entry), 'framework', 'index.js') : '',
-    entry
-      ? join(dirname(entry), '..', 'dist', 'lib', 'framework', 'index.js')
-      : '',
-  ].filter(Boolean);
+    anchorDir ? join(anchorDir, 'framework', 'index.js') : '',
+  ];
 
-  const matched = candidates.find((candidate) => existsSync(candidate));
+  const entry = process.argv[1] ? resolve(process.argv[1]) : '';
+  if (entry) {
+    candidates.push(join(dirname(entry), 'framework', 'index.js'));
+    candidates.push(
+      join(dirname(entry), '..', 'dist', 'lib', 'framework', 'index.js'),
+    );
+  }
+
+  const matched = candidates
+    .filter(Boolean)
+    .find((candidate) => existsSync(candidate));
   return matched || '@midscene/cli/dist/lib/framework/index.js';
 };
 
@@ -169,24 +198,28 @@ export function createRstestYamlProject(
   });
 
   if (options.batchConfig) {
-    const batchModule = 'virtual:midscene-yaml/batch.test.ts';
     const resultFiles = Object.fromEntries(
       cases.map((item) => [item.yamlFile, item.resultFile]),
     );
+    const batchTest = {
+      testModule: RSTEST_YAML_BATCH_TEST_MODULE,
+      testName: RSTEST_YAML_BATCH_TEST_NAME,
+    };
     return {
       projectDir,
       outputDir,
       resultDir,
-      include: [batchModule],
+      include: [batchTest.testModule],
       virtualModules: {
-        [batchModule]: createGeneratedBatchTestContent({
+        [batchTest.testModule]: createGeneratedBatchTestContent({
           frameworkImport,
-          testName: 'midscene yaml batch',
+          testName: batchTest.testName,
           config: options.batchConfig,
           resultFiles,
         }),
       },
       cases,
+      batchTest,
       maxConcurrency: 1,
       testTimeout,
       bail: options.bail,

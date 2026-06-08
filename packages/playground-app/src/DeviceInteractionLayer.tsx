@@ -24,6 +24,11 @@ export interface DeviceInteractionLayerProps {
     end: { x: number; y: number },
     duration: number,
   ) => void;
+  scrollEnabled?: boolean;
+  onWheelScroll?: (
+    point: { x: number; y: number },
+    delta: { deltaX: number; deltaY: number },
+  ) => void;
   keyboardEnabled?: boolean;
   onTextInput?: (text: string, point?: { x: number; y: number }) => void;
   onKeyboardPress?: (keyName: string, point?: { x: number; y: number }) => void;
@@ -50,6 +55,12 @@ interface ActivePointer {
   startY: number;
   startTime: number;
   contentRect: { left: number; top: number; width: number; height: number };
+}
+
+interface PendingWheelScroll {
+  point: { x: number; y: number };
+  deltaX: number;
+  deltaY: number;
 }
 
 const keyboardControlKeys = new Set([
@@ -183,6 +194,8 @@ export function DeviceInteractionLayer({
   deviceSize,
   onTap,
   onSwipe,
+  scrollEnabled = false,
+  onWheelScroll,
   keyboardEnabled = false,
   onTextInput,
   onKeyboardPress,
@@ -197,6 +210,8 @@ export function DeviceInteractionLayer({
   const composingRef = useRef(false);
   const keyboardArmedRef = useRef(false);
   const lastKeyboardPointRef = useRef<{ x: number; y: number } | null>(null);
+  const pendingWheelRef = useRef<PendingWheelScroll | null>(null);
+  const wheelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const focusKeyboardSink = useCallback(() => {
     if (keyboardEnabled) {
@@ -321,6 +336,65 @@ export function DeviceInteractionLayer({
     [finishPointer],
   );
 
+  const flushPendingWheel = useCallback(() => {
+    const pending = pendingWheelRef.current;
+    pendingWheelRef.current = null;
+    if (wheelTimerRef.current) {
+      clearTimeout(wheelTimerRef.current);
+      wheelTimerRef.current = null;
+    }
+    if (!pending) return;
+    onWheelScroll?.(pending.point, {
+      deltaX: pending.deltaX,
+      deltaY: pending.deltaY,
+    });
+  }, [onWheelScroll]);
+
+  const handleWheel = useCallback(
+    (event: React.WheelEvent<HTMLDivElement>) => {
+      if (!enabled || !scrollEnabled || !deviceSize || !overlayRef.current) {
+        return;
+      }
+      const measurementSource = contentRef?.current ?? overlayRef.current;
+      const panelRect = measurementSource.getBoundingClientRect();
+      const contentRect = inscribedContentRect(panelRect, deviceSize);
+      if (
+        event.clientX < contentRect.left ||
+        event.clientX > contentRect.left + contentRect.width ||
+        event.clientY < contentRect.top ||
+        event.clientY > contentRect.top + contentRect.height
+      ) {
+        return;
+      }
+
+      const point = projectToDevice(event.clientX, event.clientY, contentRect);
+      if (!point) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const current = pendingWheelRef.current;
+      pendingWheelRef.current = {
+        point,
+        deltaX: (current?.deltaX || 0) + event.deltaX,
+        deltaY: (current?.deltaY || 0) + event.deltaY,
+      };
+
+      if (wheelTimerRef.current) {
+        clearTimeout(wheelTimerRef.current);
+      }
+      wheelTimerRef.current = setTimeout(flushPendingWheel, 80);
+    },
+    [
+      contentRef,
+      deviceSize,
+      enabled,
+      flushPendingWheel,
+      projectToDevice,
+      scrollEnabled,
+    ],
+  );
+
   const clearLocalEditableText = useCallback(() => {
     if (keyboardSinkRef.current?.value) {
       keyboardSinkRef.current.value = '';
@@ -423,6 +497,11 @@ export function DeviceInteractionLayer({
   useEffect(() => {
     if (!enabled) {
       activePointer.current = null;
+      pendingWheelRef.current = null;
+      if (wheelTimerRef.current) {
+        clearTimeout(wheelTimerRef.current);
+        wheelTimerRef.current = null;
+      }
       composingRef.current = false;
       keyboardArmedRef.current = false;
       lastKeyboardPointRef.current = null;
@@ -459,6 +538,15 @@ export function DeviceInteractionLayer({
     };
   }, [enabled, handleKeyboardEvent, keyboardEnabled]);
 
+  useEffect(() => {
+    return () => {
+      if (wheelTimerRef.current) {
+        clearTimeout(wheelTimerRef.current);
+        wheelTimerRef.current = null;
+      }
+    };
+  }, []);
+
   if (!enabled || !deviceSize) {
     return null;
   }
@@ -469,6 +557,7 @@ export function DeviceInteractionLayer({
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
+      onWheel={handleWheel}
       onContextMenu={(e) => e.preventDefault()}
       data-midscene-device-interaction-layer="true"
       style={{

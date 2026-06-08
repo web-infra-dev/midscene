@@ -4,7 +4,7 @@ import path from 'node:path';
 
 const GITHUB_OWNER = 'web-infra-dev';
 const GITHUB_REPO = 'midscene';
-const UPDATER_CACHE_DIR_NAME = 'midscene-studio-updater';
+const UPDATER_CACHE_DIR_NAME = 'midscene-studio-beta-updater';
 
 const PRERELEASE_TOKEN_RE = /[-.](alpha|beta|rc)([-.\d]|$)/i;
 

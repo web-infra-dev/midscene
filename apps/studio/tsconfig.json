@@ -46,6 +46,9 @@
       "path": "../../packages/playground-app"
     },
     {
+      "path": "../../packages/recorder"
+    },
+    {
       "path": "../../packages/shared"
     },
     {

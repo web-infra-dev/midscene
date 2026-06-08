@@ -16,6 +16,10 @@
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
+.history-modal-overlay-in-container {
+  position: absolute;
+}
+
 .history-modal-container {
   width: 100%;
   height: 100%;
@@ -112,14 +116,28 @@
       }
 
       .history-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
         cursor: pointer;
         height: 40px;
         line-height: 40px;
         font-size: 14px;
         color: rgba(0, 0, 0, 0.85);
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
+
+        .history-item-label {
+          min-width: 0;
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+
+        .history-item-actions {
+          display: inline-flex;
+          flex: 0 0 auto;
+          align-items: center;
+        }
 
         &:hover {
           background: rgba(242, 244, 247, 1);

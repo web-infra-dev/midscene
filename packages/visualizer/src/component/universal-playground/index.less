@@ -147,6 +147,35 @@
   }
 
   // Progress Message Styles
+  .progress-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 4px 0;
+  }
+
+  .progress-row-content {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .progress-status-icon {
+    flex: 0 0 auto;
+
+    &.loading {
+      color: #1890ff;
+    }
+
+    &.completed {
+      color: #52c41a;
+    }
+
+    &.error {
+      color: #ff4d4f;
+      font-weight: bold;
+    }
+  }
+
   .progress-action-item {
     background: var(--midscene-surface-muted, #f2f4f7);
     color: var(--midscene-text-primary, #000);
@@ -157,24 +186,7 @@
     padding: 0 12px;
     display: flex;
     justify-content: space-between;
-    margin: 4px 0;
-
-    .progress-status-icon {
-      margin-left: 4px;
-
-      &.loading {
-        color: #1890ff;
-      }
-
-      &.completed {
-        color: #52c41a;
-      }
-
-      &.error {
-        color: #ff4d4f;
-        font-weight: bold;
-      }
-    }
+    margin: 0;
   }
 
   .progress-description {
@@ -398,21 +410,18 @@
  * --- Conversation skin ---
  *
  * Shared skin used by `PlaygroundConversationPanel` across Studio and the
- * standalone playground apps. Renders the Execution Flow as a vertical
- * timeline: 16x16 status icon on the left, a thin vertical connector
- * threading through the column, and the action + description text flowing
+ * standalone playground apps. Renders the Execution Flow as compact rows:
+ * 16x16 status icon on the left and the action + description text flowing
  * inline on the right. Tightens message spacing and adopts the compact
  * bubble/input treatment previously unique to the Studio shell.
  *
  * Layout reference (matches the imported design):
- *   text starts at 60px from the list-item's left edge
- *   icon left edge at 36px, icon size 16x16, icon center at 44px
- *   connector centered at 44px, runs from below the icon to bridge the
- *     8px gap between consecutive steps
+ *   group header and status icon start at the 20px container inset
+ *   step text starts 36px after the status icon column
  */
 .playground-container.playground-conversation-skin {
   .middle-dialog-area .info-list-container {
-    padding: 20px 16px 32px;
+    padding: 20px 16px 32px 20px;
   }
 
   .middle-dialog-area .info-list-container .ant-list-items {
@@ -444,22 +453,36 @@
   }
 
   // === Execution Flow step rows ===
-  // Each progress list-item is its own row. The icon sits absolutely in
-  // the left "indicator column" (left:36px width:16px), and all text
-  // (action + " - " + description) flows inline starting at 60px.
+  // Each progress list-item is its own row. The header stays at the
+  // container's 20px inset, while only the progress content reserves the
+  // left indicator column.
   // Selectors are scoped under `.middle-dialog-area .info-list-container`
   // to outweigh the base (5-class) `.ant-list-item { padding: 0 }` rule.
   .middle-dialog-area .info-list-container {
-    .list-item:has(.progress-action-item) {
+    .list-item:has(.progress-row) {
       position: relative;
-      padding: 4px 0 4px 60px;
       min-height: 24px;
     }
 
-    // The unclassed wrapper div around the pill+description: drop any
-    // flex layout it might inherit so the inline text flows naturally.
-    .list-item > div:has(> .progress-action-item) {
-      display: block;
+    // The unclassed wrapper div around each progress row owns the
+    // two-column layout: 16px icon, 20px gap, then text.
+    .list-item > div:has(> .progress-row) {
+      display: grid;
+      grid-template-columns: 16px minmax(0, 1fr);
+      column-gap: 20px;
+      align-items: start;
+      min-height: 24px;
+      padding: 4px 0;
+    }
+
+    .progress-row {
+      display: contents;
+      margin: 0;
+    }
+
+    .progress-row-content {
+      min-width: 0;
+      line-height: 20px;
     }
 
     // Drop the pill chrome — render the action label as plain inline text.
@@ -478,65 +501,44 @@
       letter-spacing: 0;
     }
 
-    // Lift the status icon out of inline flow into the indicator column.
-    // Positioned against the list-item (the nearest position:relative
-    // ancestor). z-index keeps it on top of the connector line. The
-    // 1px circular border gives the glyph (✓/✗) a chip-like outline
-    // that matches the design's circled status indicator.
-    .progress-action-item .progress-status-icon {
-      position: absolute;
-      top: 6px;
-      left: 36px;
+    .progress-status-icon {
       width: 16px;
       height: 16px;
-      margin: 0;
+      margin: 3px 0 0;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       font-size: 10px;
       font-weight: 700;
       line-height: 1;
-      border-radius: 50%;
-      border: 1px solid currentColor;
-      background: var(--midscene-surface, #fff);
-      z-index: 2;
 
       &.loading {
-        // Loading spinner already comes with its own circular SVG —
-        // suppress the chip outline so it doesn't double up.
-        border-color: transparent;
-        background: transparent;
         font-size: 14px;
       }
     }
 
-    // First step in a run: the same li also hosts the toggle header
-    // (15px line + 8px margin = 23px). Push the icon down so it lines
-    // up with the "Plan" text below the header instead of overlapping
-    // the toggle.
-    .list-item:not(.list-item:has(.progress-action-item) + .list-item):has(
-        .progress-action-item
-      )
-      .progress-action-item
-      .progress-status-icon {
-      top: 29px;
+    .progress-status-icon svg {
+      display: block;
+      width: 16px;
+      height: 16px;
+      flex: 0 0 16px;
     }
 
     // Description wrapper: the visualiser renders descriptions inside an
     // unclassed `<div>` right after the action span. Switch it to inline
     // so the description text joins the action text on the same line and
     // wraps naturally; insert a " - " separator to match the design copy.
-    .progress-action-item + div {
+    .progress-action-item + .progress-description-wrap {
       display: inline;
       margin: 0;
       padding: 0;
     }
 
-    .progress-action-item + div::before {
+    .progress-action-item + .progress-description-wrap::before {
       content: ' - ';
     }
 
-    .progress-action-item + div .shiny-text {
+    .progress-action-item + .progress-description-wrap .shiny-text {
       display: inline;
       padding: 0;
       margin: 0;
@@ -554,77 +556,24 @@
 
     // Ant-list's 16px row gap would visibly outpace the 8px intra-step
     // gap; pull each subsequent progress item up by 8px to equalise.
-    .list-item:has(.progress-action-item)
-      + .list-item:has(.progress-action-item) {
+    .list-item:has(.progress-row) + .list-item:has(.progress-row) {
       margin-top: -8px;
     }
 
-    // Vertical connector — 1px line at x=22px, i.e. 2px to the right of
-    // where the "Execution Flow" toggle text starts (toggle padding-left
-    // 20px). Sits to the LEFT of the 16px icon (icon spans x=36..52).
-    // Runs the full height of the li plus 8px overrun to bridge the
-    // inter-step gap, so adjacent segments visually merge into one rail.
-    .list-item:has(.progress-action-item)::after {
-      content: '';
-      position: absolute;
-      left: 22px;
-      top: 0;
-      bottom: -8px;
-      width: 1px;
-      background: var(--midscene-divider, rgba(0, 0, 0, 0.06));
-      pointer-events: none;
-      z-index: 1;
-    }
-
-    // First step in a run (li also hosts the toggle header): start the
-    // connector at the first icon's top edge (top:29 — see icon offset
-    // rule above) so the rail aligns with the first circle.
-    .list-item:not(.list-item:has(.progress-action-item) + .list-item):has(
-        .progress-action-item
-      )::after {
-      top: 29px;
-    }
-
-    // Last step in a run: stop the connector at the icon's bottom edge
-    // (icon top 6 + height 16 = 22). Clears the bottom overrun so the
-    // rail does not dangle past the final circle.
-    .list-item:has(.progress-action-item):not(
-        :has(+ .list-item .progress-action-item)
-      )::after {
-      bottom: auto;
-      height: 22px;
-    }
-
-    // Only step (both first and last): nothing to connect — hide the
-    // line entirely.
-    .list-item:not(.list-item:has(.progress-action-item) + .list-item):has(
-        .progress-action-item
-      ):not(:has(+ .list-item .progress-action-item))::after {
-      display: none;
-    }
-
-    // Toggle header sits above the steps. Anchored to the indicator
-    // column at 20px from the list-item's left edge.
+    // Toggle header sits above the steps. It starts at the container's
+    // 20px left inset, matching the design.
     .progress-group-toggle {
       display: flex;
       align-items: center;
       gap: 8px;
       height: 15px;
       margin: 0 0 8px;
-      padding: 0 4px 0 20px;
+      padding: 0 4px 0 0;
       font-family: Inter, system-ui, sans-serif;
       font-weight: 500;
       font-size: 12px;
       line-height: 14.5px;
       color: var(--midscene-text-tertiary, rgba(0, 0, 0, 0.5));
-    }
-
-    // When the first list-item in a progress group also carries the
-    // first step content, the li takes a 60px left padding to reserve
-    // the icon column. Cancel that padding for the toggle button so it
-    // stays in the 20px-indent header position.
-    .list-item:has(.progress-action-item) > .progress-group-toggle {
-      margin-left: -60px;
     }
   }
 
@@ -636,16 +585,11 @@
   }
 }
 
-// Dark mode palette for the conversation skin — rgba(0,0,0,0.06) on a dark
-// surface is invisible, flip the connector to a translucent white.
+// Dark mode palette for the conversation skin.
 [data-theme='dark'] .playground-container.playground-conversation-skin {
   .middle-dialog-area .info-list-container {
     .progress-action-item {
       color: var(--midscene-text-primary);
-    }
-
-    .list-item:has(.progress-action-item)::after {
-      background: rgba(255, 255, 255, 0.12);
     }
 
     .progress-description {

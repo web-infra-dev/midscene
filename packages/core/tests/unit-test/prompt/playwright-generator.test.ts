@@ -35,12 +35,16 @@ describe('playwright-generator', () => {
       url: 'https://example.com',
       title: 'Example Page',
       screenshotBefore: 'data:image/png;base64,screenshot1',
+      pageInfo: { width: 1280, height: 800 },
+      hashId: 'nav-1',
     },
     {
       type: 'click',
       timestamp: 2000,
       elementDescription: 'Login button',
       screenshotWithBox: 'data:image/png;base64,screenshot2',
+      pageInfo: { width: 1280, height: 800 },
+      hashId: 'click-1',
     },
     {
       type: 'input',
@@ -48,20 +52,24 @@ describe('playwright-generator', () => {
       elementDescription: 'Username field',
       value: 'testuser',
       screenshotAfter: 'data:image/png;base64,screenshot3',
+      pageInfo: { width: 1280, height: 800 },
+      hashId: 'input-1',
     },
     {
       type: 'scroll',
       timestamp: 4000,
+      pageInfo: { width: 1280, height: 800 },
+      hashId: 'scroll-1',
     },
   ];
 
   describe('getScreenshotsForLLM', () => {
-    test('should extract screenshots prioritizing navigation and click events', () => {
+    test('should keep screenshot context distributed across the timeline', () => {
       const screenshots = getScreenshotsForLLM(mockEvents, 2);
 
       expect(screenshots).toHaveLength(2);
-      expect(screenshots[0]).toBe('data:image/png;base64,screenshot1'); // navigation event
-      expect(screenshots[1]).toBe('data:image/png;base64,screenshot2'); // click event with box
+      expect(screenshots[0]).toBe('data:image/png;base64,screenshot1'); // first screenshot
+      expect(screenshots[1]).toBe('data:image/png;base64,screenshot3'); // last screenshot
     });
 
     test('should respect maxScreenshots limit', () => {
@@ -79,6 +87,8 @@ describe('playwright-generator', () => {
           screenshotBefore: 'data:image/png;base64,before',
           screenshotAfter: 'data:image/png;base64,after',
           screenshotWithBox: 'data:image/png;base64,withbox',
+          pageInfo: { width: 1280, height: 800 },
+          hashId: 'box-click',
         },
       ];
 
@@ -136,18 +146,24 @@ describe('playwright-generator', () => {
           timestamp: 1000,
           elementDescription: '',
           value: 'test',
+          pageInfo: { width: 1280, height: 800 },
+          hashId: 'empty-input',
         },
         {
           type: 'input',
           timestamp: 2000,
           elementDescription: 'Field',
           value: '',
+          pageInfo: { width: 1280, height: 800 },
+          hashId: 'empty-value',
         },
         {
           type: 'input',
           timestamp: 3000,
           elementDescription: 'Valid field',
           value: 'valid value',
+          pageInfo: { width: 1280, height: 800 },
+          hashId: 'valid-input',
         },
       ];
 
@@ -162,19 +178,39 @@ describe('playwright-generator', () => {
       const processed = processEventsForLLM(mockEvents);
 
       expect(processed).toHaveLength(4);
-      expect(processed[0]).toEqual({
-        type: 'navigation',
-        timestamp: 1000,
-        url: 'https://example.com',
-        title: 'Example Page',
-        elementDescription: undefined,
-        value: undefined,
-        pageInfo: undefined,
-        elementRect: undefined,
-      });
+      expect(processed[0]).toEqual(
+        expect.objectContaining({
+          hashId: 'nav-1',
+          screenshotPath: undefined,
+          type: 'navigation',
+          timestamp: 1000,
+          url: 'https://example.com',
+          title: 'Example Page',
+          elementDescription: undefined,
+          description: 'Navigate to https://example.com',
+          value: undefined,
+          pageInfo: { width: 1280, height: 800 },
+          elementRect: undefined,
+          actionType: undefined,
+          source: undefined,
+        }),
+      );
+    });
+
+    test('should attach screenshot paths when provided', () => {
+      const processed = processEventsForLLM(
+        mockEvents,
+        new Map([['click-1', './screenshots/event-002-click.png']]),
+      );
+
+      expect(processed[1]).toEqual(
+        expect.objectContaining({
+          hashId: 'click-1',
+          screenshotPath: './screenshots/event-002-click.png',
+        }),
+      );
     });
   });
-
   describe('prepareEventSummary', () => {
     test('should create comprehensive event summary', () => {
       const summary = prepareEventSummary(mockEvents, {
@@ -299,6 +335,15 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
             content: expect.any(Array),
           }),
         ]),
+        mockedModelRuntime,
+      );
+    });
+
+    test('should accept model config for compatibility', async () => {
+      await generatePlaywrightTest(mockEvents, {}, mockedModelConfig);
+
+      expect(mockCallAiWithStringResponse).toHaveBeenCalledWith(
+        expect.any(Array),
         mockedModelRuntime,
       );
     });

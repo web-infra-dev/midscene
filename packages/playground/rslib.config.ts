@@ -38,4 +38,7 @@ export default defineConfig({
     sourceMap: true,
   },
   plugins: [createTypeCheckPlugin()],
+  performance: {
+    buildCache: false,
+  },
 });

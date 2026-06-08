@@ -60,10 +60,6 @@ const getMockAgent = async () => {
         methodCalls.push({ method: 'aiAction', args });
         return {};
       }),
-      aiAct: vi.fn(async (...args) => {
-        methodCalls.push({ method: 'aiAct', args });
-        return {};
-      }),
       aiInput: vi.fn(),
       aiScroll: vi.fn(),
       aiKeyboardPress: vi.fn(),
@@ -460,57 +456,6 @@ tasks:
               },
             ],
           },
-        ],
-      ]
-    `);
-  });
-
-  test('aiAct with image prompts using instruction field', async () => {
-    const yamlString = `
-target:
-  url: "https://example.com"
-tasks:
-  - name: test_aiAct_image_prompt
-    flow:
-      - aiAct:
-        instruction:
-          prompt: complete the flow using the image.
-          images:
-            - name: target image
-              url: https://example.com/image.png
-          convertHttpImage2Base64: true
-`;
-
-    const script = parseYamlScript(yamlString);
-    const mockAgent = await getMockAgent();
-    const player = new ScriptPlayer<MidsceneYamlScriptWebEnv>(
-      script,
-      async () => mockAgent,
-    );
-
-    await player.run();
-
-    expect(player.errorInSetup).toBeUndefined();
-    expect(player.taskStatusList[0].error).toBeUndefined();
-    expect(player.status).toBe('done');
-
-    const aiActCalls = (mockAgent.agent.aiAct as MockedFunction<any>).mock
-      .calls;
-    expect(aiActCalls).toHaveLength(1);
-    expect(aiActCalls).toMatchInlineSnapshot(`
-      [
-        [
-          {
-            "convertHttpImage2Base64": true,
-            "images": [
-              {
-                "name": "target image",
-                "url": "https://example.com/image.png",
-              },
-            ],
-            "prompt": "complete the flow using the image.",
-          },
-          {},
         ],
       ]
     `);

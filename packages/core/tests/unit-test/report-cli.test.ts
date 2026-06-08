@@ -473,6 +473,76 @@ describe('createReportCliCommands', () => {
     expect(readFileSync(exportedScreenshot)).toEqual(
       readFileSync(sourceScreenshotPath),
     );
+
+    // The markdown must reference the exported (prefixed) file name, not the
+    // original source path. See issue #2392.
+    const mdContent = readFileSync(join(outputDir, 'report.md'), 'utf-8');
+    expect(mdContent).toContain(
+      './screenshots/execution-1-task-1-file-shot.png',
+    );
+    expect(mdContent).not.toContain(sourceScreenshotPath);
+  });
+
+  it('references the exported file name for report-relative screenshots', async () => {
+    // Reproduces the exact issue #2392 scenario: the android
+    // html-and-external-assets mode stores screenshots as
+    // ./screenshots/<id>.png relative to the report file. The exported markdown
+    // must point at the prefixed copy, not the original relative path.
+    const reportDir = join(tmpDir, 'input-report-md-rel');
+    const reportPath = join(reportDir, 'index.html');
+    const sourceScreenshotsDir = join(reportDir, 'screenshots');
+    mkdirSync(sourceScreenshotsDir, { recursive: true });
+
+    const sourceScreenshotPath = join(sourceScreenshotsDir, 'rel-shot.png');
+    writeFileSync(sourceScreenshotPath, Buffer.from('png-binary-rel'));
+
+    const screenshotRef: ScreenshotRef = {
+      type: 'midscene_screenshot_ref',
+      id: 'rel-shot',
+      capturedAt: Date.now(),
+      mimeType: 'image/png',
+      storage: 'file',
+      path: './screenshots/rel-shot.png',
+    };
+    const dump = new ReportActionDump({
+      groupName: 'markdown-rel-file-test',
+      groupDescription: 'markdown export relative file ref test',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [createExecution('exec-md-rel', screenshotRef)],
+    });
+
+    writeFileSync(
+      reportPath,
+      generateDumpScriptTag(dump.serialize(), { 'data-group-id': 'group-1' }),
+      'utf-8',
+    );
+
+    const outputDir = join(tmpDir, 'output-md-rel');
+    const [command] = createReportCliCommands();
+    await command.def.handler({
+      htmlPath: reportPath,
+      outputDir,
+      action: 'to-markdown',
+    });
+
+    const exportedScreenshot = join(
+      outputDir,
+      'screenshots',
+      'execution-1-task-1-rel-shot.png',
+    );
+    expect(existsSync(exportedScreenshot)).toBe(true);
+    expect(readFileSync(exportedScreenshot)).toEqual(
+      readFileSync(sourceScreenshotPath),
+    );
+
+    // Markdown references the exported copy; the original relative path
+    // ./screenshots/rel-shot.png must no longer appear on its own.
+    const mdContent = readFileSync(join(outputDir, 'report.md'), 'utf-8');
+    expect(mdContent).toContain(
+      './screenshots/execution-1-task-1-rel-shot.png',
+    );
+    expect(mdContent).not.toContain('(./screenshots/rel-shot.png)');
   });
 
   function writeFakeReport(

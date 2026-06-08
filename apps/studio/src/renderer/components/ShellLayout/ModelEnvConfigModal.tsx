@@ -80,7 +80,7 @@ function EnvModalTabs({
   onTabChange: (tab: TabKey) => void;
 }) {
   return (
-    <div className="relative z-10 box-border flex h-[36px] w-[210px] items-center rounded-[32px] bg-surface-muted p-[2px]">
+    <div className="relative z-10 box-border flex h-[36px] w-[210px] items-center rounded-[32px] border border-border-control bg-surface-muted p-[2px]">
       {/*
         Active tab fills with `bg-surface-elevated` for the white pill on
         light mode. In dark mode `surface-elevated` and `surface-muted`
@@ -132,7 +132,7 @@ function EnvModalFooter({
   return (
     <div className="relative z-10 mt-auto box-border flex w-full items-center justify-between px-[20px] pb-[24px]">
       <button
-        className={`flex h-[32px] w-[159px] items-center gap-[4px] rounded-[8px] border border-border-subtle bg-surface-elevated px-[12px] py-0 ${
+        className={`flex h-[32px] w-[159px] items-center gap-[4px] rounded-[8px] border border-border-control bg-surface-elevated px-[12px] py-0 ${
           isTesting
             ? 'cursor-not-allowed opacity-60'
             : canRunConnectivityTest
@@ -311,7 +311,7 @@ export function ModelEnvConfigModal({
         {tab === 'text' ? (
           <div className="relative z-10 mt-[16px] flex w-full justify-center">
             <textarea
-              className="box-border h-[162px] w-[360px] resize-none overflow-hidden rounded-[12px] border border-border-subtle bg-surface-elevated p-[12px] font-sans text-[14px] font-normal leading-[16.9px] text-text-primary placeholder:text-text-placeholder outline-none"
+              className="box-border h-[162px] w-[360px] resize-none overflow-hidden rounded-[12px] border border-border-control bg-surface-elevated p-[12px] font-sans text-[14px] font-normal leading-[16.9px] text-text-primary outline-none placeholder:text-text-placeholder"
               onChange={(event) => handleTextChange(event.target.value)}
               placeholder={TEXT_PLACEHOLDER}
               value={text}
