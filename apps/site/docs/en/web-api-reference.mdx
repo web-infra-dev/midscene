@@ -56,10 +56,28 @@ In addition to the base agent options, Puppeteer exposes:
 
 :::info
 
-- One agent per page: by default (`forceSameTabNavigation: true`), Midscene opens new links in the current tab for easier debugging. Set it to `false` if you want new tabs, and create a new agent per tab.
+- One agent per page: by default (`forceSameTabNavigation: true`), Midscene opens new links in the current tab for easier debugging. Set it to `false` if you want normal new-tab behavior and create a new `PuppeteerAgent` for each page yourself. Use `PuppeteerBrowserAgent` when the same Agent should manage browser-level page switching.
 - For the full list of interaction methods, see [API reference (Common)](./api#interaction-methods).
 
 :::
+
+### Browser agent
+
+Use `PuppeteerBrowserAgent` when one Midscene Agent should manage page switching inside a Puppeteer browser.
+
+```ts
+const agent = new PuppeteerBrowserAgent(browser, page, {
+  autoFollowNewPage: true,
+});
+```
+
+- Constructor: `new PuppeteerBrowserAgent(browser, page, options?)` &mdash; Use this when you already have the initial page.
+- Factory: `PuppeteerBrowserAgent.create(browser, options?)` &mdash; Use this when you do not already have a page. It uses `initialPage` if provided, otherwise the first existing browser page, or creates a new page.
+- `initialPage: Page` &mdash; Initial Puppeteer page for the factory.
+- `autoFollowNewPage: boolean` &mdash; Automatically switch the active page when the browser opens a new page. Default `false`.
+- `newPageTimeout: number` &mdash; Timeout for `waitForNewPage`. Default `5000`.
+- `setActivePage(page: Page)` &mdash; Explicitly set which Puppeteer page the Browser Agent controls next.
+- `waitForNewPage(action?, options?)` &mdash; Wait for a newly opened page without implicitly switching the active page.
 
 ### Examples
 
@@ -143,10 +161,28 @@ const agent = new PlaywrightAgent(page, {
 
 :::info
 
-- One agent per page: with `forceSameTabNavigation` (default `true`), Midscene intercepts new tabs for stability. Set it to `false` to allow new tabs and create a separate agent for each.
+- One agent per page: with `forceSameTabNavigation` (default `true`), Midscene intercepts new tabs for stability. Set it to `false` to allow normal new tabs and create a new `PlaywrightAgent` for each page yourself. Use `PlaywrightBrowserAgent` when the same Agent should manage browser-context-level page switching.
 - For the full list of interaction methods, see [API reference (Common)](./api#interaction-methods).
 
 :::
+
+### Browser agent
+
+Use `PlaywrightBrowserAgent` when one Midscene Agent should manage page switching inside a Playwright browser context.
+
+```ts
+const agent = new PlaywrightBrowserAgent(context, page, {
+  autoFollowNewPage: true,
+});
+```
+
+- Constructor: `new PlaywrightBrowserAgent(context, page, options?)` &mdash; Use this when you already have the initial page.
+- Factory: `PlaywrightBrowserAgent.create(context, options?)` &mdash; Use this when you do not already have a page. It uses `initialPage` if provided, otherwise the first existing context page, or creates a new page.
+- `initialPage: Page` &mdash; Initial Playwright page for the factory.
+- `autoFollowNewPage: boolean` &mdash; Automatically switch the active page when the context opens a new page. Default `false`.
+- `newPageTimeout: number` &mdash; Timeout for `waitForNewPage`. Default `5000`.
+- `setActivePage(page: Page)` &mdash; Explicitly set which Playwright page the Browser Agent controls next.
+- `waitForNewPage(action?, options?)` &mdash; Wait for a newly opened page without implicitly switching the active page.
 
 ### Examples
 

@@ -7,7 +7,7 @@ import {
   defaultViewportWidth,
   resolveWebViewportSize,
 } from '@/common/viewport';
-import { PuppeteerAgent } from '@/puppeteer/index';
+import { PuppeteerAgent, PuppeteerBrowserAgent } from '@/puppeteer/index';
 import type { AgentOpt, Cache, MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT } from '@midscene/shared/constants';
 import puppeteer, { type Browser, type Page } from 'puppeteer';
@@ -365,19 +365,37 @@ export async function puppeteerAgentForTarget(
 
   const { aiActionContext, ...preferenceToUse } = preference ?? {};
 
-  // prepare Midscene agent
-  const agent = new PuppeteerAgent(page, {
+  const forceSameTabNavigation =
+    typeof target.forceSameTabNavigation !== 'undefined'
+      ? target.forceSameTabNavigation
+      : true;
+
+  if (target.autoFollowNewPage && target.forceSameTabNavigation === true) {
+    throw new Error(
+      '[midscene] autoFollowNewPage cannot be used with forceSameTabNavigation: true.',
+    );
+  }
+
+  const commonAgentOpts = {
     ...preferenceToUse,
     aiActContext,
     waitForNetworkIdleTimeout:
       typeof target.waitForNetworkIdle?.timeout === 'number'
         ? target.waitForNetworkIdle.timeout
         : undefined,
-    forceSameTabNavigation:
-      typeof target.forceSameTabNavigation !== 'undefined'
-        ? target.forceSameTabNavigation
-        : true, // true for default in yaml script
-  });
+  };
+
+  // prepare Midscene agent
+  const agent = target.autoFollowNewPage
+    ? await PuppeteerBrowserAgent.create(page.browser(), {
+        ...commonAgentOpts,
+        initialPage: page,
+        autoFollowNewPage: true,
+      })
+    : new PuppeteerAgent(page, {
+        ...commonAgentOpts,
+        forceSameTabNavigation,
+      });
 
   freeFn.push({
     name: 'midscene_puppeteer_agent',

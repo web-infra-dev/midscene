@@ -162,7 +162,8 @@ export interface MidsceneYamlScriptWebEnv
    */
   extraHTTPHeaders?: Record<string, string>;
 
-  forceSameTabNavigation?: boolean; // if track the newly opened tab, true for default in yaml script
+  forceSameTabNavigation?: boolean; // if limit the new tab to the current page, true for default in yaml script
+  autoFollowNewPage?: boolean; // if use BrowserAgent to follow newly opened pages, false for default
 
   /**
    * Custom Chrome launch arguments (Puppeteer only, not supported in bridge mode).

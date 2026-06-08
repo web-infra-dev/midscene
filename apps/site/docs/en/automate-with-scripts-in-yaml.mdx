@@ -192,6 +192,10 @@ web:
   # Whether to restrict page navigation to the current tab, optional, defaults to true.
   forceSameTabNavigation: <boolean>
 
+  # Whether to use BrowserAgent and automatically continue in newly opened pages, optional, defaults to false.
+  # Cannot be used together with forceSameTabNavigation: true.
+  autoFollowNewPage: <boolean>
+
   # CDP endpoint, optional. Connects to an existing browser instance via CDP instead of launching a new one.
   # Mutually exclusive with bridgeMode.
   cdpEndpoint: ws://localhost:9222/devtools/browser
