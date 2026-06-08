@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { type ChildProcess, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -20,6 +20,7 @@ import { StaticPage } from './static';
 
 const ENDPOINT_FILE = join(tmpdir(), 'midscene-puppeteer-endpoint');
 const USER_DATA_DIR = join(tmpdir(), 'midscene-puppeteer-profile');
+const DETACHED_CHROME_LAUNCH_TIMEOUT_MS = 30_000;
 
 export const PUPPETEER_ENDPOINT_FILE = ENDPOINT_FILE;
 
@@ -53,6 +54,23 @@ export function buildDetachedChromeArgs(options: {
     `--window-size=${viewport.width},${viewport.height}`,
     '--force-color-profile=srgb',
   ];
+}
+
+function terminateDetachedChrome(proc: ChildProcess): void {
+  if (proc.killed || proc.exitCode !== null || proc.signalCode !== null) {
+    return;
+  }
+
+  if (process.platform !== 'win32' && proc.pid) {
+    try {
+      process.kill(-proc.pid, 'SIGKILL');
+      return;
+    } catch {}
+  }
+
+  try {
+    proc.kill('SIGKILL');
+  } catch {}
 }
 
 /**
@@ -142,33 +160,54 @@ class PuppeteerBrowserManager {
 
     return new Promise<string>((resolve, reject) => {
       let output = '';
+      let settled = false;
+      const cleanup = () => {
+        clearTimeout(timeout);
+        proc.stderr!.removeListener('data', onData);
+        proc.removeListener('exit', onExit);
+      };
+      const resolveOnce = (value: string) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(value);
+      };
+      const rejectOnce = (error: Error, terminate = false) => {
+        if (settled) return;
+        settled = true;
+        if (terminate) {
+          terminateDetachedChrome(proc);
+        }
+        cleanup();
+        reject(error);
+      };
       const onData = (data: Buffer) => {
         output += data.toString();
         const match = output.match(/DevTools listening on (ws:\/\/[^\s]+)/);
         if (match) {
-          proc.stderr!.removeListener('data', onData);
-          resolve(match[1]);
+          resolveOnce(match[1]);
         }
       };
       proc.stderr!.on('data', onData);
 
-      proc.on('exit', (code) => {
-        proc.stderr!.removeListener('data', onData);
-        reject(
+      const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
+        rejectOnce(
           new Error(
-            `Chrome exited with code ${code} before DevTools was ready.\nChrome stderr: ${output}\nTip: try setting MIDSCENE_MCP_NO_SANDBOX=1 if running in a container.`,
+            `Chrome exited with code ${code ?? signal} before DevTools was ready.\nChrome stderr: ${output}\nTip: try setting MIDSCENE_MCP_NO_SANDBOX=1 if running in a container.`,
           ),
         );
-      });
+      };
+      proc.on('exit', onExit);
 
-      setTimeout(
+      const timeout = setTimeout(
         () =>
-          reject(
+          rejectOnce(
             new Error(
               `Chrome launch timeout.\nChrome stderr: ${output}\nTip: try setting MIDSCENE_MCP_NO_SANDBOX=1 if running in a container.`,
             ),
+            true,
           ),
-        15000,
+        DETACHED_CHROME_LAUNCH_TIMEOUT_MS,
       );
     });
   }
