@@ -1,7 +1,8 @@
 /** @vitest-environment jsdom */
+import { PREVIEW_TEXT_INPUT_BATCH_DELAY_MS } from '@midscene/shared/constants';
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { PreviewRenderer } from '../src/PreviewRenderer';
 
 vi.mock('@midscene/visualizer', () => ({
@@ -14,6 +15,10 @@ beforeAll(() => {
       IS_REACT_ACT_ENVIRONMENT?: boolean;
     }
   ).IS_REACT_ACT_ENVIRONMENT = true;
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 async function flushPromises() {
@@ -69,7 +74,8 @@ describe('PreviewRenderer manual web input', () => {
     container.remove();
   });
 
-  it('queues tap before keyboard input and sends typeOnly text to the active web page', async () => {
+  it('batches keyboard input and sends typeOnly text to the active web page', async () => {
+    vi.useFakeTimers();
     const interact = vi.fn(async () => ({ ok: true }));
     const playgroundSDK = {
       getInterfaceInfo: vi.fn(async () => ({
@@ -161,6 +167,52 @@ describe('PreviewRenderer manual web input', () => {
           inputType: 'insertText',
         }),
       );
+      keyboardSink.value = 'e';
+      keyboardSink.dispatchEvent(
+        new InputEvent('input', {
+          bubbles: true,
+          data: 'e',
+          inputType: 'insertText',
+        }),
+      );
+      keyboardSink.value = 'l';
+      keyboardSink.dispatchEvent(
+        new InputEvent('input', {
+          bubbles: true,
+          data: 'l',
+          inputType: 'insertText',
+        }),
+      );
+    });
+    await flushPromises();
+
+    expect(interact).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      vi.advanceTimersByTime(PREVIEW_TEXT_INPUT_BATCH_DELAY_MS);
+    });
+    await flushPromises();
+
+    expect(interact).toHaveBeenNthCalledWith(1, {
+      actionType: 'Tap',
+      x: 50,
+      y: 50,
+    });
+    expect(interact).toHaveBeenNthCalledWith(2, {
+      actionType: 'Input',
+      value: 'hel',
+      mode: 'typeOnly',
+    });
+
+    await act(async () => {
+      keyboardSink.value = 'o';
+      keyboardSink.dispatchEvent(
+        new InputEvent('input', {
+          bubbles: true,
+          data: 'o',
+          inputType: 'insertText',
+        }),
+      );
       keyboardSink.dispatchEvent(
         new KeyboardEvent('keydown', {
           bubbles: true,
@@ -190,32 +242,33 @@ describe('PreviewRenderer manual web input', () => {
     });
     await flushPromises();
 
-    expect(interact).toHaveBeenNthCalledWith(1, {
-      actionType: 'Tap',
-      x: 50,
-      y: 50,
-    });
-    expect(interact).toHaveBeenNthCalledWith(2, {
-      actionType: 'Input',
-      value: 'h',
-      mode: 'typeOnly',
-    });
     expect(interact).toHaveBeenNthCalledWith(3, {
-      actionType: 'KeyboardPress',
-      keyName: 'Enter',
+      actionType: 'Input',
+      value: 'o',
+      mode: 'typeOnly',
     });
     expect(interact).toHaveBeenNthCalledWith(4, {
       actionType: 'KeyboardPress',
-      keyName: 'Meta+c',
+      keyName: 'Enter',
     });
     expect(interact).toHaveBeenNthCalledWith(5, {
       actionType: 'KeyboardPress',
-      keyName: 'Meta+a',
+      keyName: 'Meta+c',
     });
     expect(interact).toHaveBeenNthCalledWith(6, {
       actionType: 'KeyboardPress',
+      keyName: 'Meta+a',
+    });
+    expect(interact).toHaveBeenNthCalledWith(7, {
+      actionType: 'KeyboardPress',
       keyName: 'Backspace',
     });
+
+    await act(async () => {
+      vi.advanceTimersByTime(PREVIEW_TEXT_INPUT_BATCH_DELAY_MS);
+    });
+    await flushPromises();
+    expect(interact).toHaveBeenCalledTimes(7);
 
     await act(async () => {
       root.unmount();

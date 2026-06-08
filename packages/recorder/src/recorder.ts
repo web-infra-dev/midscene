@@ -1,3 +1,7 @@
+import {
+  RECORDER_INPUT_BATCH_DELAY_MS,
+  RECORDER_SCROLL_BATCH_DELAY_MS,
+} from '@midscene/shared/constants';
 import { isNotContainerElement } from '@midscene/shared/extractor';
 import { getElementXpath } from '@midscene/shared/extractor';
 import type { MidsceneRecorderEvent } from '@midscene/shared/recorder';
@@ -90,9 +94,9 @@ export class EventRecorder {
   private isRecording = false;
   private eventCallback: EventCallback;
   private scrollThrottleTimer: number | null = null;
-  private scrollThrottleDelay = 200; // 200ms throttle
+  private scrollThrottleDelay = RECORDER_SCROLL_BATCH_DELAY_MS;
   private inputThrottleTimer: number | null = null;
-  private inputThrottleDelay = 300; // 300ms throttle for input events
+  private inputThrottleDelay = RECORDER_INPUT_BATCH_DELAY_MS;
   private lastViewportScroll: { x: number; y: number } | null = null;
   private sessionId: string;
   private mutationObserver: MutationObserver | null = null;

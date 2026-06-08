@@ -65,8 +65,6 @@ function RecorderFloatingTimeline({
     );
   }
 
-  const visibleEvents = showAllTimelineEvents ? events : events.slice(-2);
-
   return (
     <section className="studio-recorder-floating-section">
       <div className="studio-recorder-floating-section-header">
@@ -103,7 +101,7 @@ function RecorderFloatingTimeline({
               : 'studio-recorder-floating-timeline'
         }
       >
-        <RecordTimeline events={visibleEvents} />
+        <RecordTimeline events={events} />
       </div>
     </section>
   );

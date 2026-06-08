@@ -1184,6 +1184,7 @@
   display: block;
   width: 100%;
   min-width: 0;
+  box-sizing: border-box;
   height: 100%;
   max-height: 100%;
   margin: 0;
@@ -1192,12 +1193,15 @@
   flex: 1 1 auto;
   overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding-left: 4px;
+  scrollbar-gutter: stable;
+  -webkit-app-region: no-drag;
 }
 
 .studio-recorder-floating-timeline .timeline-scrollable > div {
-  max-height: none;
-  overflow: visible;
+  max-height: 100%;
+  overflow-y: auto;
 }
 
 .studio-recorder-floating-timeline .ant-timeline-item {

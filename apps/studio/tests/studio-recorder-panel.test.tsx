@@ -299,7 +299,7 @@ describe('StudioRecorderPanel', () => {
     await unmount(root);
   });
 
-  it('shows recent recording events first and can expand the timeline', async () => {
+  it('shows all recording events and can expand the timeline height', async () => {
     const currentSession = {
       createdAt: Date.now(),
       description: '',
@@ -352,7 +352,7 @@ describe('StudioRecorderPanel', () => {
     const { container, root } = await renderRecorderPanel();
 
     expect(container.textContent).toContain('Record Timeline');
-    expect(container.textContent).not.toContain('Booking.com app icon');
+    expect(container.textContent).toContain('Booking.com app icon');
     expect(container.textContent).toContain(
       'destination input field containing Beijing',
     );
@@ -366,7 +366,6 @@ describe('StudioRecorderPanel', () => {
       showMoreButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(container.textContent).toContain('Booking.com app icon');
     expect(container.textContent).toContain('Hide more');
     expect(container.textContent).toContain('Outputs');
     expect(
