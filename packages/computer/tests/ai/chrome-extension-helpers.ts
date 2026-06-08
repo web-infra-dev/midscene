@@ -8,8 +8,11 @@ import { isHeadlessLinux } from './test-utils';
 
 export const CDP_PORT = 9222;
 const USER_DATA_DIR = '/tmp/midscene-chrome-ext-test';
-const BROWSER_STARTUP_DELAY = 10_000;
 const EXTENSION_POLL_INTERVAL = 2_000;
+// On slow CI runners Chrome can take 30s+ from spawn to a listening CDP
+// endpoint, so poll for readiness instead of sleeping a fixed amount.
+const CDP_READY_MAX_ATTEMPTS = 30; // 30 × 2s = 60s
+const CDP_READY_INTERVAL = 2_000;
 const CDP_INJECTION_TIMEOUT = 10_000;
 const NAVIGATE_INJECT_TIMEOUT = 15_000;
 const RELOAD_TIMEOUT = 5_000;
@@ -118,12 +121,37 @@ export async function launchChromeWithExtension(
   });
 
   child.unref();
-  await sleep(BROWSER_STARTUP_DELAY);
+  await waitForCdpReady();
+}
+
+// Wait until Chrome's CDP endpoint answers, i.e. the browser is actually up.
+// A fixed sleep either wastes time on fast runners or races browser startup on
+// slow ones (the latter showed up as "extension not found": the poll window was
+// spent waiting for Chrome itself, leaving no time for the extension to register).
+async function waitForCdpReady(
+  maxAttempts = CDP_READY_MAX_ATTEMPTS,
+): Promise<void> {
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json/version`);
+      if (res.ok) {
+        console.log(`CDP endpoint ready after ${i + 1} attempt(s)`);
+        return;
+      }
+    } catch {
+      // browser not listening yet, retry
+    }
+    console.log(`Waiting for CDP endpoint (${i + 1}/${maxAttempts})...`);
+    await sleep(CDP_READY_INTERVAL);
+  }
+  console.warn(
+    `CDP endpoint not ready after ${maxAttempts} attempts; continuing anyway`,
+  );
 }
 
 // ─── Extension ID Reader ────────────────────────────────────────────────────
 
-export async function readExtensionId(maxAttempts = 15): Promise<string> {
+export async function readExtensionId(maxAttempts = 30): Promise<string> {
   const prefsPath = path.join(USER_DATA_DIR, 'Default', 'Preferences');
 
   for (let i = 0; i < maxAttempts; i++) {

@@ -1,5 +1,5 @@
 import { execFileSync, execSync, spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { chmodSync, existsSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -287,6 +287,18 @@ export function getPhasedScrollBinary(): string | null {
     phasedScrollBinaryPath = null;
     return null;
   }
+  // npm tarball extraction drops the executable bit on packed files (mode
+  // becomes 0644). Self-heal once at resolution time so spawnSync doesn't
+  // come back with status:null/EACCES on every scroll.
+  try {
+    const st = statSync(binPath);
+    if ((st.mode & 0o111) === 0) {
+      chmodSync(binPath, 0o755);
+      debugDevice('phased-scroll: restored executable bit on', binPath);
+    }
+  } catch (err) {
+    debugDevice('phased-scroll: chmod self-heal failed', err);
+  }
   phasedScrollBinaryPath = binPath;
   return binPath;
 }
@@ -471,11 +483,24 @@ export function runPhasedScroll(
     if (res.status === 0) return true;
     if (!phasedScrollExecWarned) {
       phasedScrollExecWarned = true;
+      // status === null means the child was killed by a signal before it
+      // could exit normally — usually EACCES (binary not executable) or a
+      // codesign/quarantine rejection. status !== 0 means the helper exited
+      // on its own; on macOS that's almost always Accessibility denial.
+      const hint =
+        res.status === null
+          ? `signal ${res.signal ?? 'unknown'}; the binary may not be executable (npm tarball extraction can drop the +x bit) or may be blocked by quarantine. Try: chmod +x "${bin}"`
+          : 'this usually means Accessibility permission has not been granted to the host process (System Settings → Privacy & Security → Accessibility)';
       console.warn(
-        `[@midscene/computer] phased-scroll helper exited with status ${res.status}; falling back to keyboard/libnut. This usually means Accessibility permission has not been granted to the host process.`,
+        `[@midscene/computer] phased-scroll helper failed (exit=${res.status}, signal=${res.signal ?? 'none'}); falling back to keyboard/libnut. ${hint}`,
       );
     }
-    debugDevice('phased-scroll exited non-zero', res.status, res.error);
+    debugDevice(
+      'phased-scroll exited non-zero',
+      res.status,
+      res.signal,
+      res.error,
+    );
     return false;
   } catch (err) {
     if (!phasedScrollExecWarned) {
