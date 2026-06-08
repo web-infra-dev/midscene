@@ -50,6 +50,13 @@ describe('ChromeExtensionProxyPage file chooser support', () => {
     ) => Promise<void>;
   };
 
+  const getInterceptFileChooserCalls = (enabled: boolean) =>
+    mockSendCommand.mock.calls.filter(
+      ([, method, params]) =>
+        method === 'Page.setInterceptFileChooserDialog' &&
+        (params as { enabled?: boolean }).enabled === enabled,
+    );
+
   beforeEach(() => {
     vi.clearAllMocks();
     nodeAttributes = [];
@@ -110,6 +117,26 @@ describe('ChromeExtensionProxyPage file chooser support', () => {
 
     registration.dispose();
     expect(mockRemoveListener).toHaveBeenCalledWith(listener);
+  });
+
+  it('does not let stale dispose disable a newer registration', async () => {
+    const firstRegistration = await page.registerFileChooserListener(
+      async (chooser) => {
+        await chooser.accept(['/tmp/first.txt']);
+      },
+    );
+    const firstListener = getFileChooserListener();
+
+    firstRegistration.dispose();
+
+    await page.registerFileChooserListener(async (chooser) => {
+      await chooser.accept(['/tmp/second.txt']);
+    });
+    await Promise.resolve();
+
+    expect(mockRemoveListener).toHaveBeenCalledWith(firstListener);
+    expect(getInterceptFileChooserCalls(true)).toHaveLength(2);
+    expect(getInterceptFileChooserCalls(false)).toHaveLength(0);
   });
 
   it('captures an error when multiple files target a single-file input', async () => {

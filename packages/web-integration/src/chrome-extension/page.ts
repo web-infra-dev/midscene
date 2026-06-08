@@ -87,6 +87,8 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     typeof chrome.debugger.onEvent.addListener
   >[0];
 
+  private fileChooserRegistrationVersion = 0;
+
   private bridgeFileChooserDispose?: () => void;
 
   private bridgeFileChooserGetError?: () => Error | undefined;
@@ -398,7 +400,9 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
   async registerFileChooserListener(
     handler: (chooser: FileChooserHandler) => Promise<void>,
   ): Promise<{ dispose: () => void; getError: () => Error | undefined }> {
+    const registrationVersion = ++this.fileChooserRegistrationVersion;
     const tabId = await this.getTabIdOrConnectToCurrentTab();
+
     await this.sendCommandToDebugger('Page.enable', {});
     await this.sendCommandToDebugger('DOM.enable', {});
     await this.sendCommandToDebugger('Page.setInterceptFileChooserDialog', {
@@ -472,15 +476,26 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
     return {
       dispose: () => {
-        if (this.fileChooserEventHandler === fileChooserEventHandler) {
-          chrome.debugger.onEvent.removeListener(fileChooserEventHandler);
-          this.fileChooserEventHandler = undefined;
+        if (this.fileChooserEventHandler !== fileChooserEventHandler) {
+          return;
         }
-        this.sendCommandToDebugger('Page.setInterceptFileChooserDialog', {
-          enabled: false,
-        }).catch((error) => {
-          debug('failed to disable file chooser interception: %O', error);
-        });
+        chrome.debugger.onEvent.removeListener(fileChooserEventHandler);
+        this.fileChooserEventHandler = undefined;
+        Promise.resolve()
+          .then(() => {
+            if (this.fileChooserRegistrationVersion !== registrationVersion) {
+              return;
+            }
+            return this.sendCommandToDebugger(
+              'Page.setInterceptFileChooserDialog',
+              {
+                enabled: false,
+              },
+            );
+          })
+          .catch((error) => {
+            debug('failed to disable file chooser interception: %O', error);
+          });
       },
       getError: () => capturedError,
     };
