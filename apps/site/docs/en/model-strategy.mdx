@@ -165,9 +165,9 @@ Most major vendors and deployment tools already support this pattern.
 
 Set `DEBUG=midscene:ai:profile:stats` to print cost and latency information. You can also review token usage in the generated report files.
 
-### "MIDSCENE_MODEL_FAMILY is required" error
+### "MIDSCENE_MODEL_FAMILY is not set to a multimodal model" error
 
-If you see "No visual language model (VL model) detected" or "MIDSCENE_MODEL_FAMILY is required," make sure the `MIDSCENE_MODEL_FAMILY` environment variable for your VL model is set correctly.
+If you see "MIDSCENE_MODEL_FAMILY is not set to a multimodal model with UI localization," make sure the `MIDSCENE_MODEL_FAMILY` environment variable for your multimodal model is set correctly.
 
 Starting with version 1.0, Midscene recommends using `MIDSCENE_MODEL_FAMILY` to specify the multimodal model type. Legacy `MIDSCENE_USE_...` configs remain compatible but are deprecated.
 

@@ -166,9 +166,9 @@ Midscene 要求模型服务商提供兼容 OpenAI 风格的接口（这并不是
 
 你也可以在报告文件中查看模型的使用情况。
 
-### "MIDSCENE_MODEL_FAMILY is required" 错误
+### "MIDSCENE_MODEL_FAMILY is not set to a multimodal model" 错误
 
-如果收到了 "No visual language model (VL model) detected" 或 "MIDSCENE_MODEL_FAMILY is required" 错误，请确认已经正确配置 VL 模型的 `MIDSCENE_MODEL_FAMILY` 环境变量。
+如果收到了 "MIDSCENE_MODEL_FAMILY is not set to a multimodal model with UI localization" 错误，请确认已经正确配置多模态模型的 `MIDSCENE_MODEL_FAMILY` 环境变量。
 
 从 1.0 版本开始，Midscene 推荐使用 `MIDSCENE_MODEL_FAMILY` 来指定多模态模型类型。旧的 `MIDSCENE_USE_...` 配置仍然兼容但已废弃。
 
