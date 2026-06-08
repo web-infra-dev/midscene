@@ -224,16 +224,33 @@ describe('action space', () => {
       includeBbox: false,
     });
 
-    expect(prompt).toContain(
-      'For actions that must reach or cross a precise touch threshold',
+    expect(prompt).not.toContain(
+      "If the user's task can be completed with the RunAdbShell action, prefer using the RunAdbShell action",
     );
     expect(prompt).toContain(
       'such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint',
     );
+  });
+
+  it('planning prompt recommends RunAdbShell only when action is available', async () => {
+    const runAdbShellAction = {
+      name: 'RunAdbShell',
+      description: 'Execute ADB shell command',
+      paramSchema: z.object({
+        command: z.string().describe('The ADB shell command to execute'),
+      }),
+      call: async () => '',
+    };
+
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: [...mockActionSpace, runAdbShellAction],
+      modelFamily: undefined,
+      includeBbox: false,
+    });
+
     expect(prompt).toContain(
-      'DragAndDrop placement/resize/reposition, page flip, dismiss, reveal, or swipe-to-delete',
+      "If the user's task can be completed with the RunAdbShell action, prefer using the RunAdbShell action",
     );
-    expect(prompt).toContain('then re-check the actual UI state');
   });
 });
 

@@ -39,14 +39,20 @@ const MEMORY_STEP_NOTES = [
   '- If you need to copy information from one place to another, record the exact source value and the target field or UI cue it should be mapped to.',
 ].join('\n');
 
-const ACTION_STEP_NOTES = [
-  '### Action Guidelines',
-  '',
-  '- For actions that must reach or cross a precise touch threshold, such as DragAndDrop placement/resize/reposition, page flip, dismiss, reveal, or swipe-to-delete, move slightly farther in the intended direction instead of stopping short, then re-check the actual UI state.',
-  '- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.',
-  '- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.',
-  '- For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.',
-].join('\n');
+const RUN_ADB_SHELL_ACTION_GUIDANCE =
+  "- If the user's task can be completed with the RunAdbShell action, prefer using the RunAdbShell action.";
+
+const buildActionStepNotes = (actionList: string) =>
+  [
+    '### Action Guidelines',
+    '',
+    ...(actionList.includes('RunAdbShell')
+      ? [RUN_ADB_SHELL_ACTION_GUIDANCE]
+      : []),
+    '- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.',
+    '- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.',
+    '- For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.',
+  ].join('\n');
 
 /**
  * Find ZodDefault in the wrapper chain and return its default value
@@ -255,6 +261,7 @@ export async function systemPromptToTaskPlanning({
     );
   });
   const actionList = actionDescriptionList.join('\n');
+  const actionStepNotes = buildActionStepNotes(actionList);
 
   const shouldIncludeThought = includeThought ?? true;
   const shouldIncludeSubGoals = includeSubGoals ?? false;
@@ -477,7 +484,7 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
 
-${ACTION_STEP_NOTES}
+${actionStepNotes}
 
 ${
   includeLocateInPlanning
