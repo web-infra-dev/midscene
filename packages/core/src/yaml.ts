@@ -290,6 +290,13 @@ export type ScriptPlayerStatusValue = 'init' | 'running' | 'done' | 'error';
 export interface MidsceneYamlConfig {
   concurrent?: number;
   continueOnError?: boolean;
+  /**
+   * Number of times to retry a failed yaml file before marking it as failed.
+   * A value of 2 means each failing case is re-executed up to 2 extra times
+   * (3 attempts in total). Only the cases that failed in the previous attempt
+   * are retried. Defaults to 0 (no retry).
+   */
+  retry?: number;
   summary?: string;
   shareBrowserContext?: boolean;
   web?: MidsceneYamlScriptWebEnv;

@@ -11,6 +11,7 @@ export interface ExecutionPlanConfig {
   files: string[];
   concurrent: number;
   continueOnError: boolean;
+  retry?: number;
   summary: string;
   shareBrowserContext?: boolean;
   headed: boolean;
@@ -179,6 +180,7 @@ export function printExecutionPlan(config: ExecutionPlanConfig): void {
   console.log(`   Keep window: ${config.keepWindow}`);
   console.log(`   Headed: ${config.headed}`);
   console.log(`   Continue on error: ${config.continueOnError}`);
+  console.log(`   Retry: ${config.retry ?? 0}`);
   console.log(
     `   Share browser context: ${config.shareBrowserContext ?? false}`,
   );

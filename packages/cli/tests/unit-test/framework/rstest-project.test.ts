@@ -122,6 +122,26 @@ describe('rstest yaml project generation', () => {
     }
   });
 
+  test('carries the retry count into the generated project', () => {
+    const root = createTempDir();
+    const outputDir = join(root, 'runner');
+    const yaml = join(root, 'case.yaml');
+    writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
+
+    try {
+      const project = createRstestYamlProject({
+        files: [yaml],
+        projectDir: root,
+        outputDir,
+        retry: 3,
+      });
+
+      expect(project.retry).toBe(3);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test('replaces stale generated files when output directory already exists', () => {
     const root = createTempDir();
     const outputDir = join(root, 'runner');

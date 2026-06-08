@@ -1,6 +1,9 @@
 import type { MidsceneYamlConfigResult } from '@midscene/core';
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { printExecutionSummary } from '../../src/execution-summary';
+import {
+  printExecutionPlan,
+  printExecutionSummary,
+} from '../../src/execution-summary';
 
 const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
 
@@ -9,6 +12,21 @@ afterEach(() => {
 });
 
 describe('execution summary', () => {
+  test('prints the configured retry count in the execution plan', () => {
+    printExecutionPlan({
+      files: ['/tmp/case.yaml'],
+      concurrent: 1,
+      continueOnError: false,
+      retry: 2,
+      summary: 'summary.json',
+      shareBrowserContext: false,
+      headed: false,
+      keepWindow: false,
+    });
+
+    expect(consoleLog).toHaveBeenCalledWith('   Retry: 2');
+  });
+
   test('prints failed file error details', () => {
     const results: MidsceneYamlConfigResult[] = [
       {

@@ -87,6 +87,7 @@ export async function runFrameworkTestConfig(
     webRuntimeOptions: createWebRuntimeOptions(config, commandOptions),
     maxConcurrency: commandOptions.concurrent ?? config.concurrent,
     bail: config.continueOnError ? 0 : 1,
+    retry: config.retry,
     batchConfig: config.shareBrowserContext ? config : undefined,
   });
 
