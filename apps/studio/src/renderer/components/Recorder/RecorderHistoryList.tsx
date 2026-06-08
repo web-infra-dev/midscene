@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 import type { StudioRecordingSession } from '../../recorder/types';
-import { DownloadIcon, EditIcon, TrashIcon } from './assets/recorder-icons';
+import { DownloadIcon, TrashIcon } from './assets/recorder-icons';
 import type { StudioRecorderTab } from './recorder-panel-utils';
 
 const RECORDER_HISTORY_TYPE = 'studio-recorder';
@@ -43,12 +43,9 @@ function RecorderHistoryActions({
   isRecording,
   onDeleteSession,
   onExportMarkdown,
-  onOpenDetail,
-  onCloseHistory,
   scrollVersion,
   session,
-}: Omit<RecorderHistoryListProps, 'sessions' | 'trigger'> & {
-  onCloseHistory: () => void;
+}: Omit<RecorderHistoryListProps, 'onOpenDetail' | 'sessions' | 'trigger'> & {
   scrollVersion: number;
   session: StudioRecordingSession;
 }) {
@@ -83,18 +80,11 @@ function RecorderHistoryActions({
             <DownloadIcon />
             <span>download</span>
           </button>
-          <button
-            onClick={(event) => {
-              event.stopPropagation();
-              setOpen(false);
-              onCloseHistory();
-              onOpenDetail(session.id, 'timeline');
-            }}
-            type="button"
-          >
+          {/* Edit action is hidden until the history item has an edit callback. */}
+          {/* <button type="button">
             <EditIcon />
             <span>edit</span>
-          </button>
+          </button> */}
           <button
             disabled={deleteDisabled}
             onClick={(event) => {
@@ -184,8 +174,6 @@ export function RecorderHistoryList({
             isRecording={isRecording}
             onDeleteSession={onDeleteSession}
             onExportMarkdown={onExportMarkdown}
-            onCloseHistory={close}
-            onOpenDetail={onOpenDetail}
             scrollVersion={scrollVersion}
             session={session}
           />

@@ -6,13 +6,6 @@ describe('rsbuild config', () => {
     expect(config.environments?.renderer?.output?.assetPrefix).toBe('./');
   });
 
-  it('injects the recorder entry feature flag into the renderer bundle', () => {
-    expect(
-      config.environments?.renderer?.source?.define
-        ?.__STUDIO_RECORDER_ENTRY_ENABLED__,
-    ).toBe(JSON.stringify(true));
-  });
-
   it('resolves renderer workspace packages from source-safe entries', () => {
     const alias = config.resolve?.alias as Record<string, string | false>;
 

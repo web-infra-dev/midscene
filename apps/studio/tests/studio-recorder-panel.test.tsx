@@ -185,7 +185,7 @@ describe('StudioRecorderPanel', () => {
       '.studio-recorder-history-actions-menu',
     );
     expect(actionsMenu?.textContent).toContain('download');
-    expect(actionsMenu?.textContent).toContain('edit');
+    expect(actionsMenu?.textContent).not.toContain('edit');
     expect(actionsMenu?.textContent).toContain('delete');
     expect(actionsMenu?.textContent).not.toContain('replay');
     const downloadButton = Array.from(
@@ -204,7 +204,7 @@ describe('StudioRecorderPanel', () => {
     await unmount(root);
   });
 
-  it('closes recording history when editing from item actions', async () => {
+  it('hides the unavailable edit action from recording history item actions', async () => {
     mocks.recorder = createRecorderMock();
     mocks.playground = {
       controller: {
@@ -239,12 +239,9 @@ describe('StudioRecorderPanel', () => {
         '.studio-recorder-history-actions-menu button',
       ),
     ).find((button) => button.textContent?.includes('edit'));
-    await act(async () => {
-      editButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
 
-    expect(mocks.recorder.selectSession).toHaveBeenCalledWith('session-1');
-    expect(document.body.textContent).not.toContain('Existing recording');
+    expect(editButton).toBeUndefined();
+    expect(document.body.textContent).toContain('Existing recording');
 
     await unmount(root);
   });
