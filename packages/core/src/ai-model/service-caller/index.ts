@@ -4,13 +4,24 @@ import type { CodeGenerationChunk, StreamingCallback } from '@/types';
 // Error class that preserves usage and rawResponse when AI call parsing fails
 export class AIResponseParseError extends Error {
   usage?: AIUsageInfo;
+  /**
+   * Adapter-extracted content used by Midscene for parsing. This is not the
+   * full provider response or choices[0].message.
+   */
   rawResponse: string;
+  rawChoiceMessage?: unknown;
 
-  constructor(message: string, rawResponse: string, usage?: AIUsageInfo) {
+  constructor(
+    message: string,
+    rawResponse: string,
+    usage?: AIUsageInfo,
+    rawChoiceMessage?: unknown,
+  ) {
     super(message);
     this.name = 'AIResponseParseError';
     this.rawResponse = rawResponse;
     this.usage = usage;
+    this.rawChoiceMessage = rawChoiceMessage;
   }
 }
 import {
@@ -247,6 +258,7 @@ export async function callAI(
 ): Promise<{
   content: string;
   reasoning_content?: string;
+  rawChoiceMessage?: unknown;
   usage?: AIUsageInfo;
   isStreamed: boolean;
 }> {
@@ -297,6 +309,7 @@ export async function callAI(
   let content: string | undefined;
   let accumulated = '';
   let accumulatedReasoning = '';
+  let rawChoiceMessage: unknown;
   let usage: OpenAI.CompletionUsage | undefined;
   let timeCost: number | undefined;
   let requestId: string | null | undefined;
@@ -497,6 +510,7 @@ export async function callAI(
             );
           }
 
+          rawChoiceMessage = result.choices[0].message;
           const parsedMessage =
             adapter.chatCompletion.extractContentAndReasoning(
               result.choices[0].message,
@@ -516,6 +530,7 @@ export async function callAI(
               'empty content from AI model',
               JSON.stringify(result),
               buildUsageInfo(usage, requestId),
+              rawChoiceMessage,
             );
           }
 
@@ -568,6 +583,7 @@ export async function callAI(
     return {
       content: content || '',
       reasoning_content: accumulatedReasoning || undefined,
+      rawChoiceMessage,
       usage: buildUsageInfo(usage, requestId),
       isStreamed: !!isStreaming,
     };
@@ -602,6 +618,7 @@ export async function callAIWithObjectResponse<T>(
   contentString: string;
   usage?: AIUsageInfo;
   reasoning_content?: string;
+  rawChoiceMessage?: unknown;
 }> {
   const modelRuntime = resolveCompatibleModelRuntime(model);
   const { config: modelConfig, adapter } = modelRuntime;
@@ -617,6 +634,7 @@ export async function callAIWithObjectResponse<T>(
       `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,
       response.content,
       response.usage,
+      response.rawChoiceMessage,
     );
   }
   return {
@@ -624,6 +642,7 @@ export async function callAIWithObjectResponse<T>(
     contentString: response.content,
     usage: response.usage,
     reasoning_content: response.reasoning_content,
+    rawChoiceMessage: response.rawChoiceMessage,
   };
 }
 
@@ -643,9 +662,17 @@ export async function callAIWithStringResponse(
   options?: {
     abortSignal?: AbortSignal;
   },
-): Promise<{ content: string; usage?: AIUsageInfo }> {
-  const { content, usage } = await callAI(msgs, modelRuntime, {
-    abortSignal: options?.abortSignal,
-  });
-  return { content, usage };
+): Promise<{
+  content: string;
+  usage?: AIUsageInfo;
+  rawChoiceMessage?: unknown;
+}> {
+  const { content, usage, rawChoiceMessage } = await callAI(
+    msgs,
+    modelRuntime,
+    {
+      abortSignal: options?.abortSignal,
+    },
+  );
+  return { content, usage, rawChoiceMessage };
 }

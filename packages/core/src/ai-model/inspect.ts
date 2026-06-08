@@ -207,6 +207,10 @@ export async function genericLocate(
         : errorMessage;
     const usage =
       callError instanceof AIResponseParseError ? callError.usage : undefined;
+    const rawChoiceMessage =
+      callError instanceof AIResponseParseError
+        ? callError.rawChoiceMessage
+        : undefined;
     return {
       rect: undefined,
       parseResult: {
@@ -214,6 +218,7 @@ export async function genericLocate(
         errors: [`AI call error: ${errorMessage}`],
       },
       rawResponse,
+      rawChoiceMessage,
       usage,
       reasoning_content: undefined,
     };
@@ -234,6 +239,7 @@ export async function genericLocate(
         errors: errors as string[],
       },
       rawResponse,
+      rawChoiceMessage: res.rawChoiceMessage,
       usage: res.usage,
       reasoning_content: res.reasoning_content,
     };
@@ -282,6 +288,7 @@ export async function genericLocate(
       errors: errors as string[],
     },
     rawResponse,
+    rawChoiceMessage: res.rawChoiceMessage,
     usage: res.usage,
     reasoning_content: res.reasoning_content,
   };
@@ -296,6 +303,7 @@ export async function AiLocateSection(options: {
   searchAreaConfig?: SearchAreaConfig;
   error?: string;
   rawResponse: string;
+  rawChoiceMessage?: unknown;
   usage?: AIUsageInfo;
 }> {
   const { context, sectionDescription } = options;
@@ -367,10 +375,15 @@ export async function AiLocateSection(options: {
         : errorMessage;
     const usage =
       callError instanceof AIResponseParseError ? callError.usage : undefined;
+    const rawChoiceMessage =
+      callError instanceof AIResponseParseError
+        ? callError.rawChoiceMessage
+        : undefined;
     return {
       searchAreaConfig: undefined,
       error: `AI call error: ${errorMessage}`,
       rawResponse,
+      rawChoiceMessage,
       usage,
     };
   }
@@ -385,6 +398,7 @@ export async function AiLocateSection(options: {
       searchAreaConfig: undefined,
       error: sectionError,
       rawResponse: JSON.stringify(result.content),
+      rawChoiceMessage: result.rawChoiceMessage,
       usage: result.usage,
     };
   }
@@ -433,6 +447,7 @@ export async function AiLocateSection(options: {
     searchAreaConfig,
     error: sectionError,
     rawResponse: JSON.stringify(result.content),
+    rawChoiceMessage: result.rawChoiceMessage,
     usage: result.usage,
   };
 }
@@ -497,6 +512,7 @@ export async function AiExtractElementInfo<T>(options: {
     content: rawResponse,
     usage,
     reasoning_content,
+    rawChoiceMessage,
   } = await callAI(msgs, modelRuntime);
 
   let parseResult: AIDataExtractionResponse<T>;
@@ -509,12 +525,14 @@ export async function AiExtractElementInfo<T>(options: {
       `XML parse error: ${errorMessage}`,
       rawResponse,
       usage,
+      rawChoiceMessage,
     );
   }
 
   return {
     parseResult,
     rawResponse,
+    rawChoiceMessage,
     usage,
     reasoning_content,
   };

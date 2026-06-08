@@ -469,6 +469,7 @@ export class TaskExecutor {
                 executorContext.task.log = {
                   ...(executorContext.task.log || {}),
                   rawResponse: planError.rawResponse,
+                  rawChoiceMessage: planError.rawChoiceMessage,
                 };
               }
               throw planError;
@@ -485,6 +486,7 @@ export class TaskExecutor {
               error,
               usage,
               rawResponse,
+              rawChoiceMessage,
               reasoning_content,
               finalizeSuccess,
               finalizeMessage,
@@ -496,6 +498,7 @@ export class TaskExecutor {
             executorContext.task.log = {
               ...(executorContext.task.log || {}),
               rawResponse,
+              rawChoiceMessage,
             };
             executorContext.task.usage = withUsageIntent(usage, 'planning');
             executorContext.task.reasoning_content = reasoning_content;
@@ -661,6 +664,9 @@ export class TaskExecutor {
           task.log = {
             dump,
             rawResponse: dump.taskInfo?.rawResponse,
+            rawChoiceMessage: dump.taskInfo?.rawChoiceMessage,
+            searchAreaRawChoiceMessage:
+              dump.taskInfo?.searchAreaRawChoiceMessage,
           };
           task.usage = withUsageIntent(dump.taskInfo?.usage, 'insight');
           if (dump.taskInfo?.reasoning_content) {
