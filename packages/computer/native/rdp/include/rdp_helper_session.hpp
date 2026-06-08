@@ -70,13 +70,14 @@ class FreeRdpSessionTransport final : public SessionTransport {
   bool IsConnected() const override;
   std::optional<ErrorPayload> LastError() const override;
   void MarkGdiInitialized();
-  // Chain a frame-paint hook onto the GDI update pipeline so the session can
-  // tell when the first real desktop frame has arrived. Must be called after
-  // gdi_init() has installed its own EndPaint handler.
+  // Chain a frame-paint hook onto the update pipeline after GDI callbacks are
+  // installed, so the session can tell when desktop pixels reach the primary
+  // framebuffer.
   void HookEndPaint(rdpUpdate* update);
-  // Invoked from the event loop after each EndPaint; records that at least one
-  // real paint has reached the local framebuffer and wakes Connect().
-  void MarkFramePainted();
+  // Records that at least one paint has reached the local framebuffer and
+  // wakes Connect().
+  void MarkFramePainted(std::optional<RawFrame> first_frame = std::nullopt);
+  bool HasFramePainted() const;
   BOOL CallOriginalEndPaint(rdpContext* context);
   // Mark the session as no longer active and wake any first-frame waiter.
   void SignalSessionInactive();
@@ -103,6 +104,8 @@ class FreeRdpSessionTransport final : public SessionTransport {
   std::atomic<bool> session_active_{false};
   std::condition_variable frame_cv_;
   std::mutex frame_mutex_;
+  std::optional<RawFrame> first_frame_;
+  bool first_frame_consumed_ = false;
   pEndPaint original_end_paint_ = nullptr;
   uint16_t mouse_x_ = 0;
   uint16_t mouse_y_ = 0;
