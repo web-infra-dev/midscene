@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const createDocAgent = (overrides: Record<string, any> = {}) => {
   const agent = {
     reportFile: '/tmp/doc-report.html',
+    dump: { executions: [] },
     onTaskStartTip: undefined,
     aiAct: vi.fn(async () => undefined),
     aiTap: vi.fn(async () => undefined),
@@ -26,6 +27,7 @@ const createDocAgent = (overrides: Record<string, any> = {}) => {
     })),
     evaluateJavaScript: vi.fn(async () => 'js-result'),
     recordToReport: vi.fn(async () => undefined),
+    recordErrorToReport: vi.fn(async () => undefined),
     runAdbShell: vi.fn(async () => 'adb-result'),
     callActionInActionSpace: vi.fn(async () => 'action-result'),
     getActionSpace: vi.fn(async () => [
@@ -420,6 +422,80 @@ tasks:
     expect(player.taskStatusList[0].status).toBe('error');
     expect(player.taskStatusList[1].status).toBe('done');
     expect(player.result.title).toBe('js-result');
+  });
+
+  it('records YAML runner step failures to the report', async () => {
+    const error = new Error('javascript gate failed');
+    const script = parseYamlScript(`
+web:
+  url: about:blank
+tasks:
+  - name: JavaScript gate
+    flow:
+      - javascript: throw new Error('javascript gate failed')
+        name: gate
+`);
+    const agent = createDocAgent({
+      evaluateJavaScript: vi.fn(async () => {
+        throw error;
+      }),
+    });
+    const player = new ScriptPlayer(script, async () => ({
+      agent,
+      freeFn: [],
+    }));
+
+    await player.run();
+
+    expect(player.status).toBe('error');
+    expect(player.taskStatusList[0].status).toBe('error');
+    expect(agent.recordErrorToReport).toHaveBeenCalledWith(
+      'YAML task failed - JavaScript gate',
+      {
+        error,
+        content: 'Step 0 failed while running YAML task "JavaScript gate".',
+      },
+    );
+  });
+
+  it('does not duplicate report errors when the failed action already produced one', async () => {
+    const error = new Error('agent action failed');
+    const script = parseYamlScript(`
+web:
+  url: about:blank
+tasks:
+  - name: Agent action
+    flow:
+      - aiAct: Click the broken button
+`);
+    const agent = createDocAgent({
+      aiAct: vi.fn(async () => {
+        agent.dump.executions.push({
+          id: 'failed-agent-action',
+          logTime: Date.now(),
+          name: 'Click the broken button',
+          tasks: [
+            {
+              taskId: 'failed-task',
+              type: 'Log',
+              status: 'failed',
+              errorMessage: error.message,
+              executor: async () => {},
+            },
+          ],
+        });
+        throw error;
+      }),
+    });
+    const player = new ScriptPlayer(script, async () => ({
+      agent,
+      freeFn: [],
+    }));
+
+    await player.run();
+
+    expect(player.status).toBe('error');
+    expect(agent.recordErrorToReport).not.toHaveBeenCalled();
   });
 
   it('dispatches documented Android and iOS platform-specific actions', async () => {

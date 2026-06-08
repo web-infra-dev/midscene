@@ -138,6 +138,46 @@ describe('Agent dump update screenshot serialization', () => {
     await agent.destroy();
   });
 
+  it('records failed log entries for runner-level errors', async () => {
+    const agent = new Agent(createMockInterface(), {
+      modelConfig,
+      generateReport: false,
+    });
+
+    const reportGeneratorStub = {
+      onExecutionUpdate: vi.fn(),
+      flush: vi.fn(async () => {}),
+      finalize: vi.fn(async () => undefined),
+      getReportPath: vi.fn(() => undefined),
+    };
+
+    (agent as any).reportGenerator = reportGeneratorStub;
+
+    const error = new Error('javascript gate failed');
+    await agent.recordErrorToReport('YAML task failed - JavaScript gate', {
+      error,
+      content: 'Step 0 failed while running YAML task "JavaScript gate".',
+    });
+
+    expect(reportGeneratorStub.onExecutionUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'YAML task failed - JavaScript gate',
+        tasks: [
+          expect.objectContaining({
+            type: 'Log',
+            subType: 'Error',
+            status: 'failed',
+            errorMessage: 'javascript gate failed',
+          }),
+        ],
+      }),
+      expect.anything(),
+      undefined,
+    );
+
+    await agent.destroy();
+  });
+
   it('keeps dump callback payload bounded after many updates with large screenshots', async () => {
     const largeScreenshot = createLargeBase64DataUri(200_000);
     const agent = new Agent(

@@ -1389,6 +1389,17 @@ export class Agent<
     this.dumpUpdateListeners = [];
   }
 
+  private notifyDumpUpdateListeners(executionDump?: ExecutionDump) {
+    const dumpString = this.dumpDataString();
+    for (const listener of this.dumpUpdateListeners) {
+      try {
+        listener(dumpString, executionDump);
+      } catch (error) {
+        console.error('Error in onDumpUpdate listener', error);
+      }
+    }
+  }
+
   async destroy() {
     // Early return if already destroyed
     if (this.destroyed) {
@@ -1468,14 +1479,61 @@ export class Agent<
     await this.reportGenerator.flush();
 
     // Call all registered dump update listeners
-    const dumpString = this.dumpDataString();
-    for (const listener of this.dumpUpdateListeners) {
-      try {
-        listener(dumpString);
-      } catch (error) {
-        console.error('Error in onDumpUpdate listener', error);
-      }
+    this.notifyDumpUpdateListeners(executionDump);
+  }
+
+  async recordErrorToReport(
+    title: string,
+    opt: {
+      error: Error;
+      content?: string;
+      screenshotBase64?: string;
+    },
+  ) {
+    const now = Date.now();
+    const recorder: ExecutionRecorderItem[] = [];
+    const base64 =
+      opt.screenshotBase64 ?? (await this.interface.screenshotBase64());
+    if (base64) {
+      recorder.push({
+        type: 'screenshot',
+        ts: now,
+        screenshot: ScreenshotItem.create(base64, now),
+      });
     }
+
+    const task: ExecutionTaskLog = {
+      taskId: uuid(),
+      type: 'Log',
+      subType: 'Error',
+      status: 'failed',
+      recorder,
+      timing: {
+        start: now,
+        end: now,
+        cost: 0,
+      },
+      param: {
+        content: opt.content || '',
+      },
+      error: opt.error,
+      errorMessage: opt.error.message,
+      errorStack: opt.error.stack,
+      executor: async () => {},
+    };
+
+    const executionDump = new ExecutionDump({
+      id: uuid(),
+      logTime: now,
+      name: title,
+      description: opt.content || opt.error.message,
+      tasks: [task],
+    });
+
+    this.appendExecutionDump(executionDump);
+    this.writeOutActionDumps(executionDump);
+    await this.reportGenerator.flush();
+    this.notifyDumpUpdateListeners(executionDump);
   }
 
   /**

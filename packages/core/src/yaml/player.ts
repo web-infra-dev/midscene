@@ -774,12 +774,41 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       const taskStatus = this.taskStatusList[taskIndex];
       this.setTaskStatus(taskIndex, 'running' as any);
       this.setTaskIndex(taskIndex);
+      const executionCountBeforeTask = agent.dump?.executions?.length ?? 0;
 
       try {
         await this.playTask(taskStatus, this.interfaceAgent);
         this.setTaskStatus(taskIndex, 'done' as any);
       } catch (e) {
         this.setTaskStatus(taskIndex, 'error' as any, e as Error);
+        const hasFailedReportExecution = (agent.dump?.executions ?? [])
+          .slice(executionCountBeforeTask)
+          .some((execution) =>
+            execution.tasks.some(
+              (task) =>
+                task.status === 'failed' ||
+                Boolean(task.error || task.errorMessage),
+            ),
+          );
+
+        const recordErrorToReport = (agent as any).recordErrorToReport;
+        if (
+          !hasFailedReportExecution &&
+          typeof recordErrorToReport === 'function'
+        ) {
+          try {
+            await recordErrorToReport.call(
+              agent,
+              `YAML task failed - ${taskStatus.name}`,
+              {
+                error: e as Error,
+                content: `Step ${taskStatus.currentStep ?? 0} failed while running YAML task "${taskStatus.name}".`,
+              },
+            );
+          } catch (reportError) {
+            debug('failed to record yaml error to report', reportError);
+          }
+        }
 
         if (taskStatus.continueOnError) {
           // nothing more to do
