@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, relative, resolve } from 'node:path';
 import type {
@@ -155,7 +156,11 @@ const safeReportNamePart = (value: string): string =>
 
 const createRetryReportName = (file: string): string => {
   const fileName = basename(file, extname(file)) || 'yaml';
-  return `${safeReportNamePart(fileName)}-retry-attempts`;
+  const fileHash = createHash('sha1')
+    .update(resolve(file))
+    .digest('hex')
+    .slice(0, 8);
+  return `${safeReportNamePart(fileName)}-${fileHash}-retry-attempts`;
 };
 
 const createRetryAttemptReport = (

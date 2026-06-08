@@ -115,7 +115,7 @@ export function defineYamlCaseTest(options: DefineYamlCaseTestOptions) {
       result = appendAttemptHistory(options.resultFile, result);
       writeResultFile(options.resultFile, result);
 
-      if (!result.success && result.resultType !== 'partialFailed') {
+      if (!result.success) {
         throw createYamlCaseFailure(result);
       }
     } catch (error) {

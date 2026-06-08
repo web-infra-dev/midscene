@@ -1,4 +1,5 @@
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -16,6 +17,18 @@ import {
 } from '../../src/execution-summary';
 
 const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+const writeFakeReport = (
+  file: string,
+  groupName: string,
+  executionName: string,
+) => {
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(
+    file,
+    `<html><body><script type="midscene_web_dump" data-group-id="${groupName}">{"sdkVersion":"1.9.1","groupName":"${groupName}","groupDescription":"","modelBriefs":[],"executions":[{"id":"${executionName}","name":"${executionName}","tasks":[]}]}</script></body></html>`,
+  );
+};
 
 afterEach(() => {
   consoleLog.mockClear();
@@ -66,18 +79,6 @@ describe('execution summary', () => {
     const attemptTwoReport = join(reportDir, 'attempt-2.html');
     const previousRunDir = process.env.MIDSCENE_RUN_DIR;
 
-    const writeFakeReport = (
-      file: string,
-      groupName: string,
-      executionName: string,
-    ) => {
-      mkdirSync(dirname(file), { recursive: true });
-      writeFileSync(
-        file,
-        `<html><body><script type="midscene_web_dump" data-group-id="${groupName}">{"sdkVersion":"1.9.1","groupName":"${groupName}","groupDescription":"","modelBriefs":[],"executions":[{"id":"${executionName}","name":"${executionName}","tasks":[]}]}</script></body></html>`,
-      );
-    };
-
     process.env.MIDSCENE_RUN_DIR = runDir;
     writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
     writeFakeReport(attemptOneReport, 'attempt-one', 'failed-before-retry');
@@ -117,8 +118,8 @@ describe('execution summary', () => {
         { attempt: 1, success: false, resultType: 'failed' },
         { attempt: 2, success: true, resultType: 'success' },
       ]);
-      expect(summary.results[0].retryReport).toBe(
-        '../report/case-retry-attempts.html',
+      expect(summary.results[0].retryReport).toMatch(
+        /^\.\.\/report\/case-[a-f0-9]{8}-retry-attempts\.html$/,
       );
 
       const retryReportPath = resolve(
@@ -130,6 +131,118 @@ describe('execution summary', () => {
       expect(retryReport).toContain('playwright_test_status="passed"');
       expect(retryReport).toContain('Attempt%201%3A%20failed%20-%20case.yaml');
       expect(retryReport).toContain('Attempt%202%3A%20passed%20-%20case.yaml');
+    } finally {
+      if (previousRunDir === undefined) {
+        Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
+      } else {
+        process.env.MIDSCENE_RUN_DIR = previousRunDir;
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('writes distinct retry reports for YAML files with duplicate basenames', () => {
+    const root = mkdtempSync(join(tmpdir(), 'midscene-summary-'));
+    const runDir = join(root, 'midscene-run');
+    const reportDir = join(runDir, 'report');
+    const yamlOne = join(root, 'flows', 'login', 'case.yaml');
+    const yamlTwo = join(root, 'checkout', 'case.yaml');
+    const previousRunDir = process.env.MIDSCENE_RUN_DIR;
+
+    process.env.MIDSCENE_RUN_DIR = runDir;
+    writeFakeReport(
+      join(reportDir, 'login-attempt-1.html'),
+      'login-attempt-one',
+      'login-failed-before-retry',
+    );
+    writeFakeReport(
+      join(reportDir, 'login-attempt-2.html'),
+      'login-attempt-two',
+      'login-passed-after-retry',
+    );
+    writeFakeReport(
+      join(reportDir, 'checkout-attempt-1.html'),
+      'checkout-attempt-one',
+      'checkout-failed-before-retry',
+    );
+    writeFakeReport(
+      join(reportDir, 'checkout-attempt-2.html'),
+      'checkout-attempt-two',
+      'checkout-passed-after-retry',
+    );
+
+    try {
+      const summaryPath = writeExecutionSummaryFile('summary.json', [
+        {
+          file: yamlOne,
+          success: true,
+          executed: true,
+          report: join(reportDir, 'login-attempt-2.html'),
+          duration: 20,
+          resultType: 'success',
+          attempts: [
+            {
+              attempt: 1,
+              success: false,
+              report: join(reportDir, 'login-attempt-1.html'),
+              duration: 10,
+              resultType: 'failed',
+            },
+            {
+              attempt: 2,
+              success: true,
+              report: join(reportDir, 'login-attempt-2.html'),
+              duration: 10,
+              resultType: 'success',
+            },
+          ],
+        },
+        {
+          file: yamlTwo,
+          success: true,
+          executed: true,
+          report: join(reportDir, 'checkout-attempt-2.html'),
+          duration: 20,
+          resultType: 'success',
+          attempts: [
+            {
+              attempt: 1,
+              success: false,
+              report: join(reportDir, 'checkout-attempt-1.html'),
+              duration: 10,
+              resultType: 'failed',
+            },
+            {
+              attempt: 2,
+              success: true,
+              report: join(reportDir, 'checkout-attempt-2.html'),
+              duration: 10,
+              resultType: 'success',
+            },
+          ],
+        },
+      ]);
+
+      const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
+      const retryReports = summary.results.map(
+        (result: { retryReport: string }) => result.retryReport,
+      );
+
+      expect(retryReports).toHaveLength(2);
+      expect(new Set(retryReports).size).toBe(2);
+      expect(retryReports).toEqual([
+        expect.stringMatching(
+          /^\.\.\/report\/case-[a-f0-9]{8}-retry-attempts\.html$/,
+        ),
+        expect.stringMatching(
+          /^\.\.\/report\/case-[a-f0-9]{8}-retry-attempts\.html$/,
+        ),
+      ]);
+      for (const retryReport of retryReports) {
+        expect(existsSync(resolve(dirname(summaryPath), retryReport))).toBe(
+          true,
+        );
+      }
     } finally {
       if (previousRunDir === undefined) {
         Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
