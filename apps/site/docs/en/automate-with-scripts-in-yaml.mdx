@@ -166,6 +166,13 @@ web:
   # Path to a JSON format browser cookie file, optional.
   cookie: <path-to-cookie-file>
 
+  # Extra HTTP headers sent with every request (Puppeteer only), optional.
+  # Useful when the server validates custom request headers.
+  # Values must be strings; quote values YAML would treat as a boolean or number, e.g. "true".
+  extraHTTPHeaders:
+    X-Custom-Token: my-token
+    Accept-Language: en-US
+
   # The strategy for waiting for network idle in Puppeteer mode, optional.
   # `timeout` applies to the initial opening of `web.url` defined in YAML and to later actions such as `aiTap` and `aiInput`.
   # `continueOnNetworkIdleError` only applies to the initial opening of `web.url` defined in YAML.
