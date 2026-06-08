@@ -78,6 +78,29 @@ export class ComputerInputDriver {
     this.getLibnutOrThrow('scrollMouse').scrollMouse(x, y);
   }
 
+  /**
+   * Emit one `libnut.scrollMouse` call per detent and pace them with
+   * `delayMs`. Per-call magnitude is fixed by the caller so each call is
+   * exactly one detent on the target platform — on Windows the libnut
+   * binding forwards `mouseData` straight to `MOUSEEVENTF_WHEEL`, where
+   * sub-WHEEL_DELTA values (< 120) get accumulated and frequently dropped
+   * by Chromium's WheelEventQueue.
+   */
+  async emitScrollDetents(
+    dx: number,
+    dy: number,
+    detents: number,
+    delayMs: number,
+  ): Promise<void> {
+    this.assertActive('emitScrollDetents');
+    for (let i = 0; i < detents; i++) {
+      this.scrollMouse(dx, dy);
+      if (i < detents - 1) {
+        await this.delay(delayMs);
+      }
+    }
+  }
+
   keyTap(key: string, modifiers?: string[]): void {
     const lib = this.getLibnutOrThrow('keyTap');
     // See note on mouseClick — avoid passing explicit undefined to libnut.

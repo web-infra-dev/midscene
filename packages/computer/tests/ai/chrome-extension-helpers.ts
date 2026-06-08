@@ -151,10 +151,40 @@ async function waitForCdpReady(
 
 // ─── Extension ID Reader ────────────────────────────────────────────────────
 
+// Read the extension id from the live CDP target list. The extension's
+// service worker registers as a `chrome-extension://<id>/...` target as soon
+// as it boots — typically well before Chrome flushes the id into the on-disk
+// Preferences file. Only one extension is loaded
+// (`--disable-extensions-except`), so any chrome-extension target is ours.
+async function readExtensionIdFromCdp(): Promise<string | null> {
+  try {
+    const targets = await listCdpTargets();
+    for (const t of targets) {
+      const match = t.url?.match(/^chrome-extension:\/\/([a-p]{32})\//);
+      if (
+        match &&
+        (t.type === 'service_worker' ||
+          t.type === 'background_page' ||
+          t.type === 'page')
+      ) {
+        return match[1];
+      }
+    }
+  } catch {
+    // CDP endpoint not up yet — caller will retry.
+  }
+  return null;
+}
+
 export async function readExtensionId(maxAttempts = 30): Promise<string> {
   const prefsPath = path.join(USER_DATA_DIR, 'Default', 'Preferences');
 
   for (let i = 0; i < maxAttempts; i++) {
+    // Preferences is the source of truth (lets us match by manifest name),
+    // but it is only flushed to disk periodically, so on a slow CI runner it
+    // can lag tens of seconds behind the extension actually loading. Try it
+    // first, then fall back to the CDP target list which reflects the live
+    // state immediately.
     if (fs.existsSync(prefsPath)) {
       try {
         const prefs = JSON.parse(fs.readFileSync(prefsPath, 'utf-8'));
@@ -174,9 +204,13 @@ export async function readExtensionId(maxAttempts = 30): Promise<string> {
         // retry
       }
     }
-    console.log(
-      `Waiting for extension in Preferences (${i + 1}/${maxAttempts})...`,
-    );
+
+    const cdpId = await readExtensionIdFromCdp();
+    if (cdpId) {
+      return cdpId;
+    }
+
+    console.log(`Waiting for extension (${i + 1}/${maxAttempts})...`);
     await sleep(EXTENSION_POLL_INTERVAL);
   }
   throw new Error(

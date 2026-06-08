@@ -114,6 +114,15 @@ async function runPointerTap(
   await device.inputPrimitives.pointer!.tap(point, opts);
 }
 
+async function createConnectedDeviceForPlatform(platform: NodeJS.Platform) {
+  Object.defineProperty(process, 'platform', { value: platform });
+  const device = await createConnectedDevice();
+  mockState.libnut.moveMouse.mockClear();
+  mockState.libnut.mouseClick.mockClear();
+  mockState.libnut.scrollMouse.mockClear();
+  return device;
+}
+
 describe('ComputerDevice AppleScript security', () => {
   it('uses execFileSync to avoid shell interpolation when sending keys', async () => {
     const payload = `'; touch /tmp/midscene-shell-injection-proof; echo '`;
@@ -226,6 +235,21 @@ describe('ComputerInputDriver native arg handling', () => {
 
     driver.keyTap('a', ['command']);
     expect(mockState.libnut.keyTap).toHaveBeenLastCalledWith('a', ['command']);
+  });
+});
+
+describe('ComputerDevice scroll targeting', () => {
+  it('anchors untargeted libnut scrolls at screen center without clicking', async () => {
+    const device = await createConnectedDeviceForPlatform('win32');
+
+    await device.inputPrimitives.scroll!.scroll({
+      scrollType: 'singleAction',
+      direction: 'down',
+    });
+
+    expect(mockState.libnut.moveMouse).toHaveBeenCalledWith(400, 300);
+    expect(mockState.libnut.mouseClick).not.toHaveBeenCalled();
+    expect(mockState.libnut.scrollMouse).toHaveBeenCalled();
   });
 });
 
