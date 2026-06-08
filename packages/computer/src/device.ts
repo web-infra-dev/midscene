@@ -226,6 +226,8 @@ async function getLibnut(): Promise<LibNut> {
 const debugDevice = getDebug('computer:device');
 const warnDevice = getDebug('computer:device', { console: true });
 const debugComputerInput = getDebug('computer:input', { console: true });
+const WINDOWS_UIPI_DOC_URL =
+  'https://midscenejs.com/computer-getting-started#windows-clicks-have-no-effect-on-some-apps';
 
 function resolvePackageRoot(helperName: string): string | null {
   const require = createRequire(import.meta.url);
@@ -913,11 +915,11 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     // observable symptom) rather than asserting something is wrong — most
     // non-admin sessions target non-admin apps and work fine.
     if (process.platform === 'win32' && !this.isRunningAsAdmin()) {
-      const hint =
-        'Heads-up: Midscene is not running as Administrator. ' +
-        'If clicks appear to do nothing while the cursor still moves to the right ' +
-        'position, your target app is likely elevated (admin) and Windows UIPI is ' +
-        'dropping the injected input — run your terminal or Node.js as Administrator.';
+      const hint = [
+        'Heads-up: Midscene is not running as Administrator.',
+        'If clicks or key presses have no effect while the cursor still moves to the right position,',
+        `see the Windows permission troubleshooting guide: ${WINDOWS_UIPI_DOC_URL}`,
+      ].join(' ');
       warnDevice(`[HealthCheck] ${hint}`);
     }
 
