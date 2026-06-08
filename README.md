@@ -64,9 +64,9 @@ Midscene works anywhere you can take a screenshot — web browsers, Android, iOS
 - **No code?** Try Midscene on any web page with the [Chrome extension](https://midscenejs.com/quick-experience).
 - **Other platforms** — getting-started guides for [Android](https://midscenejs.com/android-getting-started), [iOS](https://midscenejs.com/ios-getting-started), [HarmonyOS](https://midscenejs.com/harmony-getting-started), and [desktop](https://midscenejs.com/computer-getting-started).
 
-## ✨ Driven by Visual Language Model
+## ✨ Driven by Multimodal Models
 
-Midscene is all-in on pure vision for UI actions: element localization is based on screenshots only. It supports vision-language models like `Qwen3.x`, `Doubao-Seed-2.0`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`, including open-source options you can self-host. For data extraction and page understanding, you can still opt in to include DOM when needed.
+Midscene is all-in on pure vision for UI actions: element localization is based on screenshots only. It runs on multimodal models with strong UI localization, such as `Qwen3.x`, `Doubao-Seed-2.0`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`, including open-source options you can self-host. For data extraction and page understanding, you can still opt in to include DOM when needed.
 
 Read more about [Model Strategy](https://midscenejs.com/model-strategy).
 
@@ -102,7 +102,7 @@ We would like to thank the following projects:
 
 - [Rsbuild](https://github.com/web-infra-dev/rsbuild) and [Rslib](https://github.com/web-infra-dev/rslib) for the build tool.
 - [UI-TARS](https://github.com/bytedance/ui-tars) for the open-source agent model UI-TARS.
-- [Qwen-VL](https://github.com/QwenLM/Qwen-VL) for the open-source VL model Qwen-VL.
+- [Qwen-VL](https://github.com/QwenLM/Qwen-VL) for the open-source multimodal model Qwen-VL.
 - [scrcpy](https://github.com/Genymobile/scrcpy) and [yume-chan](https://github.com/yume-chan) allow us to control Android devices with browser.
 - [appium-adb](https://github.com/appium/appium-adb) for the javascript bridge of adb.
 - [appium-webdriveragent](https://github.com/appium/WebDriverAgent) for the javascript operate XCTest。
