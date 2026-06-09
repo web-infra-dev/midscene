@@ -68,6 +68,37 @@ describe('service-caller reasoning fallback', () => {
     expect(response.reasoning_content).toContain('POI RichInfo tab');
   });
 
+  it('records the raw response model name in usage metadata', async () => {
+    mockCreate.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: 'ok',
+          },
+        },
+      ],
+      model: 'doubao-seed-2-0-lite-260215',
+      usage: {
+        prompt_tokens: 10,
+        completion_tokens: 20,
+        total_tokens: 30,
+      },
+    });
+
+    const response = await callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime({
+        ...baseModelConfig,
+        modelName: 'ep-20260402170055-hm5ng',
+      }),
+    );
+
+    expect(response.usage).toMatchObject({
+      model_name: 'ep-20260402170055-hm5ng',
+      response_model_name: 'doubao-seed-2-0-lite-260215',
+    });
+  });
+
   it('parses object responses from reasoning_content when content is blank', async () => {
     mockCreate.mockResolvedValue({
       choices: [

@@ -42,6 +42,10 @@ export type AIUsageInfo = Record<string, any> & {
   model_name: string | undefined;
   model_description: string | undefined;
   /**
+   * Raw top-level `.model` value returned by the model service response.
+   */
+  response_model_name: string | undefined;
+  /**
    * Semantic intent of the model call, such as default, planning, or insight.
    */
   intent: string | undefined;

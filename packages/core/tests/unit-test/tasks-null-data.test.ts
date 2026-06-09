@@ -42,6 +42,7 @@ const createMockUsage = (totalTokens: number): AIUsageInfo => ({
   time_cost: undefined,
   model_name: undefined,
   model_description: undefined,
+  response_model_name: undefined,
   intent: undefined,
   slot: undefined,
   request_id: undefined,
