@@ -5,6 +5,11 @@ import { test } from './fixture';
 
 const CACHE_TIME_OUT = process.env.MIDSCENE_CACHE;
 
+test.skip(
+  process.env.MIDSCENE_CACHE === 'true',
+  'runMarkdown reference-image order is covered by the non-cache e2e run',
+);
+
 test('agent.runMarkdown follows Markdown reference image order', async ({
   agentForPage,
   page,
