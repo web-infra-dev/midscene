@@ -22,7 +22,7 @@ import {
   Player,
   fullTimeStrWithMilliseconds,
 } from '@midscene/visualizer';
-import { Button, Segmented, message } from 'antd';
+import { Segmented, message } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { JsonView, allExpanded } from 'react-json-view-lite';
 import 'react-json-view-lite/dist/index.css';
@@ -416,9 +416,8 @@ const DetailPanel = (): JSX.Element => {
             </a>
           )}
           {viewType === VIEW_TYPE_JSON && activeTaskJsonText && (
-            <Button
-              size="small"
-              icon={<CopyOutlined />}
+            <a
+              className="download-zip-link"
               onClick={() => {
                 navigator.clipboard
                   .writeText(activeTaskJsonText)
@@ -430,8 +429,8 @@ const DetailPanel = (): JSX.Element => {
                   });
               }}
             >
-              Copy JSON
-            </Button>
+              <CopyOutlined /> Copy JSON
+            </a>
           )}
           <OpenInPlayground
             context={(activeTask as ExecutionTaskPlanning)?.uiContext}
