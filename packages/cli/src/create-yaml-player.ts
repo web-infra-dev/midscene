@@ -10,6 +10,7 @@ import type {
   MidsceneYamlScript,
   MidsceneYamlScriptAgentOpt,
   MidsceneYamlScriptEnv,
+  MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
 import { createAgent, getReportFileName } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
@@ -248,17 +249,22 @@ export async function createYamlPlayer(
           `bridgeMode config value must be either "newTabWithUrl" or "currentTab", but got ${webTarget.bridgeMode}`,
         );
 
-        if (
-          webTarget.userAgent ||
-          webTarget.viewportWidth != null ||
-          webTarget.viewportHeight != null ||
-          webTarget.deviceScaleFactor != null ||
-          webTarget.waitForNetworkIdle ||
-          webTarget.cookie ||
-          webTarget.chromeArgs
-        ) {
+        const bridgeUnsupportedKeys: (keyof MidsceneYamlScriptWebEnv)[] = [
+          'userAgent',
+          'viewportWidth',
+          'viewportHeight',
+          'deviceScaleFactor',
+          'waitForNetworkIdle',
+          'cookie',
+          'extraHTTPHeaders',
+          'chromeArgs',
+        ];
+        const ignoredKeys = bridgeUnsupportedKeys.filter(
+          (key) => webTarget[key] != null,
+        );
+        if (ignoredKeys.length > 0) {
           console.warn(
-            'puppeteer options (userAgent, viewportWidth, viewportHeight, deviceScaleFactor, waitForNetworkIdle, cookie, chromeArgs) are not supported in bridge mode. They will be ignored.',
+            `puppeteer options (${ignoredKeys.join(', ')}) are not supported in bridge mode. They will be ignored.`,
           );
         }
 

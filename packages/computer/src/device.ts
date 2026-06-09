@@ -1,5 +1,5 @@
 import { execFileSync, execSync, spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { chmodSync, existsSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -224,7 +224,10 @@ async function getLibnut(): Promise<LibNut> {
 }
 
 const debugDevice = getDebug('computer:device');
+const warnDevice = getDebug('computer:device', { console: true });
 const debugComputerInput = getDebug('computer:input', { console: true });
+const WINDOWS_UIPI_DOC_URL =
+  'https://midscenejs.com/computer-getting-started#windows-clicks-have-no-effect-on-some-apps';
 
 function resolvePackageRoot(helperName: string): string | null {
   const require = createRequire(import.meta.url);
@@ -283,6 +286,18 @@ export function getPhasedScrollBinary(): string | null {
     debugDevice('phased-scroll binary not found at', binPath);
     phasedScrollBinaryPath = null;
     return null;
+  }
+  // npm tarball extraction drops the executable bit on packed files (mode
+  // becomes 0644). Self-heal once at resolution time so spawnSync doesn't
+  // come back with status:null/EACCES on every scroll.
+  try {
+    const st = statSync(binPath);
+    if ((st.mode & 0o111) === 0) {
+      chmodSync(binPath, 0o755);
+      debugDevice('phased-scroll: restored executable bit on', binPath);
+    }
+  } catch (err) {
+    debugDevice('phased-scroll: chmod self-heal failed', err);
   }
   phasedScrollBinaryPath = binPath;
   return binPath;
@@ -468,11 +483,24 @@ export function runPhasedScroll(
     if (res.status === 0) return true;
     if (!phasedScrollExecWarned) {
       phasedScrollExecWarned = true;
+      // status === null means the child was killed by a signal before it
+      // could exit normally — usually EACCES (binary not executable) or a
+      // codesign/quarantine rejection. status !== 0 means the helper exited
+      // on its own; on macOS that's almost always Accessibility denial.
+      const hint =
+        res.status === null
+          ? `signal ${res.signal ?? 'unknown'}; the binary may not be executable (npm tarball extraction can drop the +x bit) or may be blocked by quarantine. Try: chmod +x "${bin}"`
+          : 'this usually means Accessibility permission has not been granted to the host process (System Settings → Privacy & Security → Accessibility)';
       console.warn(
-        `[@midscene/computer] phased-scroll helper exited with status ${res.status}; falling back to keyboard/libnut. This usually means Accessibility permission has not been granted to the host process.`,
+        `[@midscene/computer] phased-scroll helper failed (exit=${res.status}, signal=${res.signal ?? 'none'}); falling back to keyboard/libnut. ${hint}`,
       );
     }
-    debugDevice('phased-scroll exited non-zero', res.status, res.error);
+    debugDevice(
+      'phased-scroll exited non-zero',
+      res.status,
+      res.signal,
+      res.error,
+    );
     return false;
   } catch (err) {
     if (!phasedScrollExecWarned) {
@@ -599,6 +627,8 @@ export class ComputerDevice implements AbstractInterface {
    * to avoid focus issues with system overlays (e.g. Spotlight).
    */
   private useAppleScript: boolean;
+  /** Cached result of the elevation check; see isRunningAsAdmin(). */
+  private adminCheckCache?: boolean;
   uri?: string;
 
   readonly inputPrimitives: ComputerInputPrimitives = {
@@ -897,17 +927,25 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     const deltaY = Math.abs(movedPos.y - targetY);
     if (deltaX > 5 || deltaY > 5) {
       const msg = `[HealthCheck] WARNING: Mouse control may not be working. Expected (${targetX}, ${targetY}), got (${movedPos.x}, ${movedPos.y}), delta=(${deltaX}, ${deltaY})`;
-      console.warn(msg);
-      debugDevice(msg);
+      warnDevice(msg);
+    }
 
-      if (process.platform === 'win32' && !this.isRunningAsAdmin()) {
-        const hint =
-          'Midscene is NOT running as Administrator. ' +
-          'Windows blocks mouse/keyboard input to elevated (admin) applications from non-admin processes (UIPI). ' +
-          'Please run your terminal or Node.js as Administrator and try again.';
-        console.error(`\n[HealthCheck] ${hint}\n`);
-        debugDevice(hint);
-      }
+    // Windows UIPI advisory. This must NOT be gated on the moveMouse delta
+    // check above: UIPI does not block cursor movement, it only silently
+    // drops button/key input injected into an elevated (admin) window. So a
+    // non-admin process can pass the move test yet have every click land on
+    // nothing — clicks "do nothing" while the cursor visibly moves to the
+    // right spot. We cannot tell from here whether the target app is actually
+    // elevated, so phrase this as a conditional heads-up (keyed off the
+    // observable symptom) rather than asserting something is wrong — most
+    // non-admin sessions target non-admin apps and work fine.
+    if (process.platform === 'win32' && !this.isRunningAsAdmin()) {
+      const hint = [
+        'Heads-up: Midscene is not running as Administrator.',
+        'If clicks or key presses have no effect while the cursor still moves to the right position,',
+        `see the Windows permission troubleshooting guide: ${WINDOWS_UIPI_DOC_URL}`,
+      ].join(' ');
+      warnDevice(`[HealthCheck] ${hint}`);
     }
 
     // Restore original position
@@ -937,15 +975,21 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
   /**
    * Check if the current process is running with Administrator privileges.
    * Uses "net session" which succeeds only when elevated.
+   *
+   * The result is cached because elevation cannot change during the process
+   * lifetime, and the underlying `execSync('net session')` is a blocking
+   * subprocess spawn that should not run on every connect / health check.
    */
   private isRunningAsAdmin(): boolean {
     if (process.platform !== 'win32') return false;
+    if (this.adminCheckCache !== undefined) return this.adminCheckCache;
     try {
       execSync('net session', { stdio: 'pipe' });
-      return true;
+      this.adminCheckCache = true;
     } catch {
-      return false;
+      this.adminCheckCache = false;
     }
+    return this.adminCheckCache;
   }
 
   async screenshotBase64(): Promise<string> {

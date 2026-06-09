@@ -1,51 +1,104 @@
 # Changelog
 
-## v1.9 - Harmony YAML Target & Model Adapter Refactor
+## v1.9.x - Studio Recorder, Markdown Replay & Harmony YAML Target
 
-v1.9 extends YAML automation to HarmonyOS and refactors model adapter internals.
+The v1.9 line covers v1.9.0 through v1.9.2. The current latest release is available from [GitHub Releases](https://github.com/web-infra-dev/midscene/releases/latest), which automatically redirects to the latest tag.
 
-### YAML and Device Automation
+### Midscene Studio Beta Recorder
+
+Midscene Studio remains in **Beta**. Download it from the [latest release page](https://github.com/web-infra-dev/midscene/releases/latest) by choosing a `midscene-studio-beta-*` asset. Current v1.9.2 direct downloads: [macOS Apple Silicon DMG](https://github.com/web-infra-dev/midscene/releases/download/v1.9.2/midscene-studio-beta-v1.9.2-darwin-arm64.dmg), [Windows x64 ZIP](https://github.com/web-infra-dev/midscene/releases/download/v1.9.2/midscene-studio-beta-v1.9.2-win32-x64.zip), [Linux x64 ZIP](https://github.com/web-infra-dev/midscene/releases/download/v1.9.2/midscene-studio-beta-v1.9.2-linux-x64.zip).
+
+- **Record and replay panel**: Studio can record operations performed in the live device preview, keep a visual event timeline with screenshots, and replay the captured flow inside Studio.
+- **Script generation and exports**: Recorded sessions can generate structured Midscene scripts, Markdown replay output with screenshots, and Web Playwright output for Web recordings.
+- **Multi-platform context**: The recorder works alongside the same Studio shell that hosts Android, iOS, HarmonyOS, Computer, and Web previews, so manual device control and API Playground runs stay in one desktop app.
+
+![Studio API Playground execution flow](/blog/studio-beta-api-playground.png)
+
+![Studio Record and replay timeline](/blog/studio-beta-record-replay.png)
+
+### v1.9.2
+
+- `aiAct` now supports image prompts, so action instructions can include reference images.
+- CLI / MCP / Skill flows can expose `deepLocate` / `deepThink` controls through shared flags.
+- Assert CLI / MCP tooling forwards custom failure messages to make assertion failures clearer.
+- YAML Web config supports custom HTTP headers for browser automation.
+- YAML runs now surface real execution errors instead of ending as a silent "not executed" case.
+- Report Markdown exports keep image paths aligned with exported screenshots.
+- Computer automation fixed blank first-frame screenshots in RDP sessions, self-heals missing execute permission on the phased-scroll helper, and warns about elevated Windows app input drops.
+
+### v1.9.1
+
+- The CLI now resolves `@rstest/core` from the CLI package itself instead of `process.argv[1]`, making framework runs more stable from external launch paths.
+
+### v1.9.0
 
 - YAML scripts now support the HarmonyOS target in the CLI, so HarmonyOS automation can be driven through the same script runner workflow as Web, Android, iOS, and Computer. See: [Automate with Scripts in YAML](./automate-with-scripts-in-yaml), [HarmonyOS API](./harmony-api-reference)
+- Model adapter internals were refactored to make family-specific request and response handling easier to maintain across providers.
+- Web integration no longer caps `longPress` duration at 600ms.
+- HarmonyOS MCP startup no longer fails in environments where `photon` / `sharp` WASM initialization had to be externalized.
+- Site docs clarified `aiHover` support on PC desktop, `remoteAdbHost` / adb server usage, coordinate taps through `runAdbShell`, and the recommended model list.
 
-### Model Adapter Updates
+## v1.8 - Midscene Studio Desktop App, YAML Variables & Multi-Platform Enhancements
 
-- Model adapter internals were refactored to make family-specific request and response handling easier to maintain across providers
+v1.8 introduces **Midscene Studio**, a brand-new desktop application, alongside YAML step result reuse, new interaction APIs (long press / clear input), refined model planning behavior, and broad upgrades across device integrations, the report system, and the MCP toolset.
 
-### Bug Fixes
+### Midscene Studio — A New Desktop Application (Beta)
 
-- Fixed `longPress` duration in Web integration being capped at 600ms
-- Fixed HarmonyOS MCP startup failures caused by `photon` / `sharp` WASM initialization in some environments
-- Fixed CLI dependency resolution so `@rstest/core` is resolved from the CLI package instead of `process.argv[1]`
+Midscene Studio is an Electron-based desktop app that brings every Midscene playground into a single native shell. It is currently in **Beta** — try it out and let us know what works (and what doesn't):
 
-## v1.8 - YAML Workflow, Device Integrations & Model Behavior Updates
+- **Multi-platform playground**: Switch seamlessly between Web, Android, iOS, HarmonyOS, and Computer playgrounds inside the same Studio app
+- **Interactive device preview**: Manually drive Android / iOS / HarmonyOS device previews with mouse and touch input; Web preview supports live streaming
 
-v1.8 refines YAML execution, model reasoning defaults, report tooling, and device/platform integration options.
+#### Coming next: record-to-replay Midscene scripts inside Studio
+
+We're building a full record → script → replay loop into Studio: drive a real device inside Studio, automatically capture the interaction as a structured Midscene script, then replay, debug, and export it without leaving the app. The capability will roll out across upcoming releases — stay tuned.
 
 ### YAML Workflow Enhancements
 
-- Android `runAdbShell` now accepts a `timeout` option in both the JavaScript API and YAML scripts. See: [Android API](./android-api-reference), [Automate with Scripts in YAML](./automate-with-scripts-in-yaml)
+- **Reuse step results**: YAML steps with `name` can be reused in later steps through `$name` and `${name}`. See: [Automate with Scripts in YAML](./automate-with-scripts-in-yaml#reuse-step-results)
+- **Android `runAdbShell` timeout**: A `timeout` option is now accepted in both the JavaScript API and YAML scripts. See: [Android API](./android-api-reference), [Automate with Scripts in YAML](./automate-with-scripts-in-yaml)
+
+### New Interaction APIs
+
+- **`agent.aiLongPress()`**: Long-press a target element to trigger long-press menus and similar gestures. See: [API Reference](./api.mdx#agentailongpress)
+- **`agent.aiClearInput()`**: Clear the contents of an input field, ideal when clearing needs to be its own step. See: [API Reference](./api.mdx#agentaiclearinput)
 
 ### Device and Platform Integrations
 
-- iOS now supports connecting to external WebDriverAgent sessions, making it easier to reuse an existing WDA setup
-- RDP connection options are now exposed through Computer MCP / CLI connection tools
-- Android CLI now exposes a flag to enable `scrcpy`-based preview
-- `WebPageOpt` now supports configuring keyboard typing delay for Web integrations
+- **iOS external WDA sessions**: iOS now supports connecting to existing WebDriverAgent sessions, making it easier to reuse an external WDA setup
+- **Pluggable iOS device implementation**: The iOSDevice implementation can be overridden, enabling deeper extension or customization
+- **Computer remote desktop**: RDP connection options are now exposed through Computer MCP / CLI connection tools, letting you take over a remote Windows desktop directly
+- **`agentForComputer` rename**: `agentForComputer` is introduced as the primary API; the original `agentFromComputer` is kept as a deprecated alias
+- **Puppeteer CLI viewport options**: The Puppeteer CLI now accepts viewport configuration, so you can size the browser at launch from the command line
+- **Android `scrcpy` preview flag**: Android CLI now exposes a flag to enable `scrcpy`-based preview
+- **Web typing delay**: `WebPageOpt` now supports configuring keyboard typing delay for Web integrations
 
 ### Model and Planning Behavior
 
-- Model usage intent is now tracked separately from resolved config slots, making multi-model planning, locating, and report display clearer
-- For supported model families, Midscene now disables model-native thinking by default to improve execution speed and stability. See: [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode)
-- Doubao fast tier configuration is now supported through `MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}`. See: [Common Model Configuration](./model-common-config)
-- Added support for the Qwen3.7 model
-- Gemini thinking mode handling was adapted to match provider behavior more closely
+- **Usage intent decoupled from config slot**: Model usage intent is now tracked separately from resolved config slots, making multi-model planning, locating, and report display clearer
+- **Native thinking off by default**: For supported model families, Midscene now disables model-native thinking by default to improve execution speed and stability. See: [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode)
+- **Doubao fast tier**: Doubao fast tier configuration is now supported through `MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}`. See: [Common Model Configuration](./model-common-config)
+- **GLM-5V-Turbo support**: Added support for Zhipu GLM-5V-Turbo. See: [Common Model Configuration](./model-common-config)
+- **Qwen3.7 support**: Added support for the Qwen3.7 model
+- **Gemini thinking mode adaptation**: Gemini thinking mode handling was adapted to match provider behavior more closely
+- **Better scrollable select planning**: Planning for scrollable selects (dropdowns, scroll wheels) is more reliable in complex scenarios
 
-### Report, Cache, and Tooling
+### MCP and Platform CLIs
 
-- Report tooling now supports a `merge` action in the report-tool CLI
-- Image prompts are now supported in assert CLI / MCP tools
-- Removed a redundant before-action screenshot in reports
+- **New `assert` MCP tool**: The MCP server now exposes an assertion tool backed by `aiAssert`, so AI assistants can run assertions directly. See: [MCP](./mcp)
+- **Image prompts in assert**: The assert CLI / MCP tool now accepts images as prompt input, so you can assert against a reference image
+- **Bare init args in platform CLIs**: Platform CLIs simplify argument passing and now accept platform Agent constructor options directly
+- **Playwright fixture passes Agent options through**: `PlaywrightAiFixture` now forwards `PlaywrightAgent` constructor options, so you can customize the Agent while keeping the fixture
+
+### Report System
+
+- **CLI report merging**: A new `report-tool merge` subcommand lets you combine multiple report files into one for centralized review
+- **Screenshot tool calls recorded in reports**: `take_screenshot` invocations now appear in reports, easing diagnosis of screenshot-related issues
+- **Less redundant report capture**: Removed a redundant before-action screenshot in reports
+
+### Chrome Extension
+
+- **Automated Chrome Web Store publishing**: The Chrome Web Store extension release pipeline is now fully automated, shortening release cycles
 
 ### Bug Fixes
 
@@ -54,11 +107,17 @@ v1.8 refines YAML execution, model reasoning defaults, report tooling, and devic
 - Fixed Bridge attachment after new-tab navigation
 - Fixed Playground tap projection on iOS / HarmonyOS / Computer
 - Fixed HarmonyOS per-call `autoDismissKeyboard`
-- Fixed Android Playground video streaming memory usage
-- Fixed action API return values to align with docs
-- Fixed port probing on `0.0.0.0` to match the actual listen host
-- Fixed HarmonyOS input clearing, keyboard dismiss behavior, and system action delay overrides
-- Fixed Computer default scroll distance to align with Web and disarmed pending input when destroying the agent
+- Fixed excessive Android Playground video streaming memory usage
+- Fixed Computer scroll default distance not matching Web
+- Fixed pending Computer input being disarmed when destroying the agent
+- Fixed out-of-range bbox handling for models that return normalized `[0,1000]` coordinates
+- Fixed `aiAct` options not being inherited in Bridge mode
+- Fixed Action API return values diverging from the documented shape
+- Fixed `maxTokens` not aligning with intent model config
+- Fixed server port probing on a non-`0.0.0.0` host that did not match the actual listen host
+- Fixed `deepThink` dump flag being lost in reports
+- Fixed sporadic dropped characters when typing on iOS
+- Fixed HarmonyOS input clearing, keyboard dismiss behavior, and unwanted system action delay overrides
 - Fixed Android screenshots passing `null` as `displayId`
 - Fixed a service import cycle that could break model verification
 

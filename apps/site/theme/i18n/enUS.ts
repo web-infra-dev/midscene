@@ -51,10 +51,10 @@ and more`,
   modelSeedName: 'Doubao Seed',
   modelSeedDesc:
     'Doubao Seed vision model optimized for visual understanding and UI element recognition with excellent performance.',
-  modelQwenName: 'Qwen3-VL',
+  modelQwenName: 'qwen3.7-plus',
   modelQwenDesc:
     'Qwen vision-language model with high-quality image understanding and UI element recognition at competitive pricing.',
-  modelGeminiName: 'Gemini-3-Pro',
+  modelGeminiName: 'gemini-3.5-flash',
   modelGeminiDesc:
     'Advanced Gemini multimodal model with powerful vision capabilities and comprehensive UI automation support.',
   modelMultiModelName: 'Multi-model combo',

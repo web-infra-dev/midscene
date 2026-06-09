@@ -143,6 +143,25 @@ export interface MidsceneYamlScriptWebEnv
     continueOnNetworkIdleError?: boolean; // should continue if failed to wait for network idle, true for default
   };
   cookie?: string;
+
+  /**
+   * Extra HTTP headers sent with every request (Puppeteer only, not supported
+   * in bridge mode). Useful when the server validates custom request headers.
+   *
+   * Header values must be strings. Quote values that YAML would otherwise parse
+   * as a boolean or number (e.g. `true`, `false`, `123`), such as `"true"`.
+   *
+   * @example
+   * ```yaml
+   * web:
+   *   url: https://example.com
+   *   extraHTTPHeaders:
+   *     X-Custom-Token: my-token
+   *     Accept-Language: en-US
+   * ```
+   */
+  extraHTTPHeaders?: Record<string, string>;
+
   forceSameTabNavigation?: boolean; // if track the newly opened tab, true for default in yaml script
 
   /**

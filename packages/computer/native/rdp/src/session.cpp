@@ -1,7 +1,6 @@
 #include "rdp_helper_session.hpp"
 
 #include <algorithm>
-#include <array>
 #include <atomic>
 #include <chrono>
 #include <cctype>
@@ -11,6 +10,7 @@
 #include <random>
 #include <sstream>
 #include <stdexcept>
+#include <unordered_set>
 
 #include <freerdp/freerdp.h>
 #include <freerdp/gdi/gdi.h>
@@ -28,6 +28,114 @@ struct MidsceneRdpContext {
   rdpContext context;
   FreeRdpSessionTransport* owner = nullptr;
 };
+
+// Maximum time Connect() waits for the first desktop frame before giving up.
+// Normal sessions paint within a few hundred milliseconds; a session that
+// never paints within this window is treated as blank/locked and fails fast
+// instead of feeding an all-black screenshot to the caller.
+constexpr int kFirstFrameTimeoutMs = 20'000;
+// The first frame should prove that real desktop pixels reached the primary
+// buffer without requiring a complex wallpaper or fully loaded app content.
+constexpr size_t kMinInformativeColorCount = 128;
+constexpr size_t kMinInformativeNonBlackPermille = 150;
+
+bool HasPendingFramebufferInvalidation(rdpContext* context) {
+  if (!context || !context->gdi || !context->gdi->primary ||
+      !context->gdi->primary->hdc || !context->gdi->primary->hdc->hwnd) {
+    return false;
+  }
+
+  HGDI_WND hwnd = context->gdi->primary->hdc->hwnd;
+  return hwnd->ninvalid > 0 && hwnd->invalid && !hwnd->invalid->null;
+}
+
+std::optional<RawFrame> CaptureInformativeFramebuffer(rdpContext* context) {
+  if (!context || !context->gdi || !context->gdi->primary_buffer ||
+      context->gdi->width <= 0 || context->gdi->height <= 0 ||
+      context->gdi->stride == 0) {
+    return std::nullopt;
+  }
+
+  rdpGdi* gdi = context->gdi;
+  const auto width = static_cast<size_t>(gdi->width);
+  const auto height = static_cast<size_t>(gdi->height);
+  const auto stride = static_cast<size_t>(gdi->stride);
+  if (stride < width * 4) {
+    return std::nullopt;
+  }
+
+  const BYTE* buffer = gdi->primary_buffer;
+  const size_t total_pixels = width * height;
+  const size_t min_non_black_pixels =
+      std::max<size_t>(
+          1, (total_pixels * kMinInformativeNonBlackPermille) / 1000);
+  size_t non_black_pixels = 0;
+  std::unordered_set<uint32_t> colors;
+  colors.reserve(kMinInformativeColorCount);
+  for (size_t y = 0; y < height; y++) {
+    const size_t row_offset = y * stride;
+    for (size_t x = 0; x < width; x++) {
+      const size_t pixel_offset = row_offset + x * 4;
+      const BYTE blue = buffer[pixel_offset];
+      const BYTE green = buffer[pixel_offset + 1];
+      const BYTE red = buffer[pixel_offset + 2];
+      if (blue == 0 && green == 0 && red == 0) {
+        continue;
+      }
+
+      non_black_pixels++;
+      const uint32_t color =
+          (static_cast<uint32_t>(red) << 16) |
+          (static_cast<uint32_t>(green) << 8) |
+          static_cast<uint32_t>(blue);
+      colors.insert(color);
+      if (colors.size() >= kMinInformativeColorCount &&
+          non_black_pixels >= min_non_black_pixels) {
+        break;
+      }
+    }
+    if (colors.size() >= kMinInformativeColorCount &&
+        non_black_pixels >= min_non_black_pixels) {
+      break;
+    }
+  }
+
+  if (colors.size() < kMinInformativeColorCount ||
+      non_black_pixels < min_non_black_pixels) {
+    return std::nullopt;
+  }
+
+  RawFrame frame;
+  frame.size.width = gdi->width;
+  frame.size.height = gdi->height;
+  frame.stride = stride;
+  const size_t buffer_size = stride * height;
+  frame.bgra.assign(buffer, buffer + buffer_size);
+  return frame;
+}
+
+// EndPaint hook chained onto FreeRDP's update pipeline. FreeRDP invokes this
+// after an update PDU; only paints with a GDI invalid region and informative
+// primary framebuffer prove that desktop pixels reached the client.
+BOOL MidsceneEndPaint(rdpContext* context) {
+  auto* typed_context = reinterpret_cast<MidsceneRdpContext*>(context);
+  BOOL ok = TRUE;
+  if (typed_context->owner) {
+    const bool framebuffer_invalidated =
+        HasPendingFramebufferInvalidation(context);
+    ok = typed_context->owner->CallOriginalEndPaint(context);
+    const bool already_painted = typed_context->owner->HasFramePainted();
+    if (ok && framebuffer_invalidated) {
+      if (already_painted) {
+        typed_context->owner->MarkFramePainted();
+      } else if (auto first_frame = CaptureInformativeFramebuffer(context);
+                 first_frame.has_value()) {
+        typed_context->owner->MarkFramePainted(std::move(first_frame));
+      }
+    }
+  }
+  return ok;
+}
 
 std::string ToLower(std::string_view value) {
   std::string lowered(value);
@@ -148,6 +256,9 @@ BOOL PostConnect(freerdp* instance) {
       reinterpret_cast<MidsceneRdpContext*>(instance->context);
   if (typed_context->owner) {
     typed_context->owner->MarkGdiInitialized();
+    // Chain our hook after GDI update callbacks are installed so Connect() can
+    // wait for the first paint that actually touches the primary framebuffer.
+    typed_context->owner->HookEndPaint(instance->context->update);
   }
 
   rdpInput* input = instance->context ? instance->context->input : nullptr;
@@ -445,6 +556,13 @@ ConnectionInfo FreeRdpSessionTransport::Connect(const ConnectionConfig& config) 
     instance_ = instance;
     mouse_x_ = 0;
     mouse_y_ = 0;
+    frames_painted_.store(0, std::memory_order_relaxed);
+    {
+      std::lock_guard<std::mutex> frame_lock(frame_mutex_);
+      first_frame_.reset();
+      first_frame_consumed_ = false;
+    }
+    original_end_paint_ = nullptr;
     ClearSessionErrorLocked();
   }
 
@@ -479,7 +597,47 @@ ConnectionInfo FreeRdpSessionTransport::Connect(const ConnectionConfig& config) 
     }
   }
 
+  session_active_.store(true, std::memory_order_relaxed);
   event_thread_ = std::thread(&FreeRdpSessionTransport::EventLoop, this);
+
+  // Block until the remote desktop paints its first frame. Without this the
+  // primary buffer is still zero-filled (all black) and an immediate
+  // screenshot would hand the caller a blank image, which the agent reads as
+  // "nothing on screen" and aborts. This race is the root cause of the
+  // intermittent blank-screenshot failures.
+  bool painted = false;
+  {
+    std::unique_lock<std::mutex> frame_lock(frame_mutex_);
+    painted = frame_cv_.wait_for(
+        frame_lock, std::chrono::milliseconds(kFirstFrameTimeoutMs),
+        [this] {
+          return frames_painted_.load(std::memory_order_relaxed) > 0 ||
+                 !session_active_.load(std::memory_order_relaxed);
+        });
+  }
+
+  // A wait that ended without a frame because the session dropped should
+  // surface as a failure, not a false "painted" success.
+  if (frames_painted_.load(std::memory_order_relaxed) == 0) {
+    painted = false;
+  }
+
+  if (!painted) {
+    std::string reason;
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      reason = connected_ ? std::string() : LastFreeRdpErrorLocked();
+    }
+    StopInstance(false);
+    std::string message =
+        "Connected to the RDP server but received no desktop frame within "
+        "timeout; the remote desktop may be blank or locked";
+    if (!reason.empty()) {
+      message += " (" + reason + ")";
+    }
+    throw std::runtime_error(message);
+  }
+
   return info;
 }
 
@@ -491,6 +649,19 @@ RawFrame FreeRdpSessionTransport::CaptureFrame() {
   std::lock_guard<std::mutex> lock(mutex_);
   if (!connected_ || !instance_ || !instance_->context || !instance_->context->gdi) {
     throw std::runtime_error("No remote framebuffer is available");
+  }
+
+  if (frames_painted_.load(std::memory_order_relaxed) == 0) {
+    throw std::runtime_error(
+        "Remote framebuffer has not received its first paint yet");
+  }
+
+  {
+    std::lock_guard<std::mutex> frame_lock(frame_mutex_);
+    if (!first_frame_consumed_ && first_frame_.has_value()) {
+      first_frame_consumed_ = true;
+      return *first_frame_;
+    }
   }
 
   rdpGdi* gdi = instance_->context->gdi;
@@ -748,6 +919,13 @@ void FreeRdpSessionTransport::ResetStateLocked() {
   running_ = false;
   connected_ = false;
   gdi_initialized_ = false;
+  frames_painted_.store(0, std::memory_order_relaxed);
+  {
+    std::lock_guard<std::mutex> frame_lock(frame_mutex_);
+    first_frame_.reset();
+    first_frame_consumed_ = false;
+  }
+  original_end_paint_ = nullptr;
   mouse_x_ = 0;
   mouse_y_ = 0;
   session_id_.clear();
@@ -755,6 +933,48 @@ void FreeRdpSessionTransport::ResetStateLocked() {
 
 void FreeRdpSessionTransport::MarkGdiInitialized() {
   gdi_initialized_ = true;
+}
+
+void FreeRdpSessionTransport::HookEndPaint(rdpUpdate* update) {
+  if (!update) {
+    return;
+  }
+  original_end_paint_ = update->EndPaint;
+  update->EndPaint = &MidsceneEndPaint;
+}
+
+BOOL FreeRdpSessionTransport::CallOriginalEndPaint(rdpContext* context) {
+  if (original_end_paint_) {
+    return original_end_paint_(context);
+  }
+  return TRUE;
+}
+
+void FreeRdpSessionTransport::MarkFramePainted(
+    std::optional<RawFrame> first_frame) {
+  {
+    std::lock_guard<std::mutex> lock(frame_mutex_);
+    if (first_frame.has_value() &&
+        frames_painted_.load(std::memory_order_relaxed) == 0 &&
+        !first_frame_.has_value()) {
+      first_frame_ = std::move(*first_frame);
+      first_frame_consumed_ = false;
+    }
+    frames_painted_.fetch_add(1, std::memory_order_relaxed);
+  }
+  frame_cv_.notify_all();
+}
+
+bool FreeRdpSessionTransport::HasFramePainted() const {
+  return frames_painted_.load(std::memory_order_relaxed) > 0;
+}
+
+void FreeRdpSessionTransport::SignalSessionInactive() {
+  {
+    std::lock_guard<std::mutex> lock(frame_mutex_);
+    session_active_.store(false, std::memory_order_relaxed);
+  }
+  frame_cv_.notify_all();
 }
 
 void FreeRdpSessionTransport::ClearSessionErrorLocked() {
@@ -822,6 +1042,8 @@ void FreeRdpSessionTransport::StopInstance(bool preserve_session_error) {
     }
   }
 
+  SignalSessionInactive();
+
   if (should_disconnect) {
     std::lock_guard<std::mutex> lock(mutex_);
     freerdp_disconnect(instance_);
@@ -872,6 +1094,7 @@ void FreeRdpSessionTransport::EventLoop() {
       std::fprintf(stderr,
                    "RDP session event loop failed: freerdp_get_event_handles returned no handles\n");
       std::fflush(stderr);
+      SignalSessionInactive();
       return;
     }
 
@@ -887,6 +1110,7 @@ void FreeRdpSessionTransport::EventLoop() {
       std::fprintf(stderr,
                    "RDP session event loop failed: WaitForMultipleObjects failed\n");
       std::fflush(stderr);
+      SignalSessionInactive();
       return;
     }
 
@@ -916,6 +1140,7 @@ void FreeRdpSessionTransport::EventLoop() {
       std::fprintf(stderr, "RDP session event loop failed: %s\n",
                    failure_reason.c_str());
       std::fflush(stderr);
+      SignalSessionInactive();
       return;
     }
   }

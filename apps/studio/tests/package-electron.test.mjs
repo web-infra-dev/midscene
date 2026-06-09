@@ -47,11 +47,11 @@ describe('package-electron helpers', () => {
 
   it('lays out the dmg with the .app on the left and /Applications on the right', () => {
     const spec = buildStudioDmgSpecification({
-      appBundlePath: '/tmp/Midscene Studio.app',
+      appBundlePath: '/tmp/Midscene Studio Beta.app',
       iconPath: '/tmp/midscene-icon.icns',
       backgroundPath: '/tmp/dmg-background.png',
     });
-    expect(spec.title).toBe('Midscene Studio');
+    expect(spec.title).toBe('Midscene Studio Beta');
     expect(spec.icon).toBe('/tmp/midscene-icon.icns');
     expect(spec.background).toBe('/tmp/dmg-background.png');
     expect(spec.window).toEqual({ size: { width: 540, height: 380 } });
@@ -65,8 +65,8 @@ describe('package-electron helpers', () => {
     // the background image lines up with them.
     expect(linkEntry?.y).toBe(fileEntry?.y);
     expect(linkEntry?.y).toBe(160);
-    expect(fileEntry?.path).toBe('/tmp/Midscene Studio.app');
-    expect(fileEntry?.name).toBe('Midscene Studio.app');
+    expect(fileEntry?.path).toBe('/tmp/Midscene Studio Beta.app');
+    expect(fileEntry?.name).toBe('Midscene Studio Beta.app');
   });
 
   it('builds a deterministic artifact basename', () => {
@@ -76,7 +76,7 @@ describe('package-electron helpers', () => {
         platform: 'darwin',
         arch: 'x64',
       }),
-    ).toBe('midscene-studio-v1.7.4-darwin-x64');
+    ).toBe('midscene-studio-beta-v1.7.4-darwin-x64');
   });
 
   it('defaults Windows packaging to x64 regardless of host arch', () => {
@@ -107,9 +107,9 @@ describe('package-electron helpers', () => {
       description: 'Studio shell',
       license: 'MIT',
       main: 'dist/main/main.cjs',
-      name: 'midscene-studio',
+      name: 'midscene-studio-beta',
       private: true,
-      productName: 'Midscene Studio',
+      productName: 'Midscene Studio Beta',
       type: 'module',
       version: '1.7.4',
     });
@@ -372,9 +372,12 @@ describe('package-electron helpers', () => {
     );
     const packagedOutputPath = path.join(
       tempRootDir,
-      'Midscene Studio-darwin-arm64',
+      'Midscene Studio Beta-darwin-arm64',
     );
-    const appBundlePath = path.join(packagedOutputPath, 'Midscene Studio.app');
+    const appBundlePath = path.join(
+      packagedOutputPath,
+      'Midscene Studio Beta.app',
+    );
 
     try {
       await fs.mkdir(appBundlePath, { recursive: true });
@@ -537,11 +540,11 @@ describe('package-electron helpers', () => {
     );
     const packagedOutputPath = path.join(
       tempRootDir,
-      'Midscene Studio-darwin-x64',
+      'Midscene Studio Beta-darwin-x64',
     );
     const packagedAppPath = path.join(
       packagedOutputPath,
-      'Midscene Studio.app',
+      'Midscene Studio Beta.app',
     );
     const packagedNodeModulesDir = path.join(
       packagedAppPath,
@@ -692,7 +695,7 @@ describe('package-electron helpers', () => {
           '@midscene/shared': 'file:vendor/midscene-shared',
         },
       },
-      productName: 'Midscene Studio',
+      productName: 'Midscene Studio Beta',
       version: '1.7.4',
     });
     expect(installManifest.pnpm).not.toHaveProperty('supportedArchitectures');
@@ -1182,7 +1185,7 @@ describe('package-electron helpers', () => {
     // `actions/upload-artifact` re-zip the raw `.app`, dropping xattrs and
     // breaking the notarization stapler ticket on macOS.
     expect(workflow).not.toMatch(/--skip-archive/);
-    expect(workflow).toMatch(/Package Midscene Studio/);
+    expect(workflow).toMatch(/Package Midscene Studio Beta/);
     expect(workflow).toMatch(/\.release\/studio\/artifacts\/\*\.zip/);
   });
 });

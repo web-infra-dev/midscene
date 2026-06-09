@@ -1,6 +1,7 @@
 import { normalJsonParser } from '../service-caller/json';
 import { createLocateResultAdapter } from '../shared/model-locate-result/factory';
 import type { LocateResultAdapterDefinition } from '../shared/model-locate-result/types';
+import { defaultExtractContentAndReasoning } from './chat-content';
 import type {
   ChatCompletionAdapter,
   ChatCompletionCallContext,
@@ -57,6 +58,9 @@ function resolveChatCompletion(
   const resolveImageDetail =
     chatCompletion?.resolveImageDetail ?? defaultImageDetail;
   const unsupportedUserConfig = chatCompletion?.unsupportedUserConfig ?? [];
+  const extractContentAndReasoning =
+    chatCompletion?.extractContentAndReasoning ??
+    defaultExtractContentAndReasoning;
 
   return {
     unsupportedUserConfig,
@@ -74,6 +78,7 @@ function resolveChatCompletion(
         userConfig: input.userConfig ?? {},
         midsceneDefaults: midsceneChatCompletionDefaults,
       }),
+    extractContentAndReasoning,
   };
 }
 

@@ -105,7 +105,7 @@ export default defineConfig({
   environments: {
     renderer: {
       html: {
-        title: 'Midscene Studio',
+        title: 'Midscene Studio Beta',
       },
       source: {
         entry: {
