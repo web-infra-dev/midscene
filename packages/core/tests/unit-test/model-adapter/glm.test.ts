@@ -19,6 +19,27 @@ describe('glm model adapter', () => {
     });
   });
 
+  it('preserves midscene defaults and applies explicit glm-v temperature override', () => {
+    const result = glmAdapters[
+      'glm-v'
+    ].chatCompletion?.buildChatCompletionParams({
+      midsceneDefaults: {
+        temperature: 0,
+        seed: 123,
+      } as any,
+      userConfig: {
+        temperature: 0.7,
+        reasoningEnabled: true,
+      },
+    });
+
+    expect(result?.config).toEqual({
+      temperature: 0.7,
+      seed: 123,
+      thinking: { type: 'enabled' },
+    });
+  });
+
   it('maps reasoningEnabled to thinking.type for glm-v', () => {
     const result = glmAdapter.chatCompletion.buildChatCompletionParams({
       userConfig: {

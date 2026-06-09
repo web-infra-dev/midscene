@@ -57,6 +57,34 @@ describe('ui-tars model adapter', () => {
     expect(uiTarsAdapter.planning.supportsActionDeepLocate).toBe(false);
   });
 
+  it('preserves midscene defaults and applies explicit UI-TARS temperature override', () => {
+    const chatCompletion = uiTarsAdapters['vlm-ui-tars'].chatCompletion;
+    expect(chatCompletion).toBeDefined();
+    if (!chatCompletion) {
+      throw new Error('UI-TARS should define chat completion adapter');
+    }
+    const buildChatCompletionParams = chatCompletion.buildChatCompletionParams;
+    expect(buildChatCompletionParams).toBeDefined();
+    if (!buildChatCompletionParams) {
+      throw new Error('UI-TARS should define chat completion params builder');
+    }
+
+    const result = buildChatCompletionParams({
+      midsceneDefaults: {
+        temperature: 0,
+        seed: 123,
+      } as any,
+      userConfig: {
+        temperature: 0.7,
+      },
+    });
+
+    expect(result.config).toEqual({
+      temperature: 0.7,
+      seed: 123,
+    });
+  });
+
   it('repairs bbox coordinate strings for locate-like json parser sources', () => {
     const parser = uiTarsAdapter.jsonParser;
 

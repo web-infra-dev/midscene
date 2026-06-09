@@ -82,6 +82,98 @@ describe('qwen model adapter', () => {
     });
   });
 
+  it('preserves midscene defaults and applies explicit qwen temperature override', () => {
+    const chatCompletion = qwenAdapters['qwen3-vl'].chatCompletion;
+    expect(chatCompletion).toBeDefined();
+    if (!chatCompletion) {
+      throw new Error('qwen3-vl should define chat completion adapter');
+    }
+    const buildChatCompletionParams = chatCompletion.buildChatCompletionParams;
+    expect(buildChatCompletionParams).toBeDefined();
+    if (!buildChatCompletionParams) {
+      throw new Error('qwen3-vl should define chat completion params builder');
+    }
+
+    const result = buildChatCompletionParams({
+      midsceneDefaults: {
+        temperature: 0,
+        seed: 123,
+      } as any,
+      userConfig: {
+        temperature: 0.7,
+        reasoningEnabled: true,
+      },
+    });
+
+    expect(result.config).toEqual({
+      temperature: 0.7,
+      seed: 123,
+      enable_thinking: true,
+    });
+  });
+
+  it('keeps qwen2.5-vl default temperature when user temperature is undefined', () => {
+    const chatCompletion = qwenAdapters['qwen2.5-vl'].chatCompletion;
+    expect(chatCompletion).toBeDefined();
+    if (!chatCompletion) {
+      throw new Error('qwen2.5-vl should define chat completion adapter');
+    }
+    const buildChatCompletionParams = chatCompletion.buildChatCompletionParams;
+    expect(buildChatCompletionParams).toBeDefined();
+    if (!buildChatCompletionParams) {
+      throw new Error(
+        'qwen2.5-vl should define chat completion params builder',
+      );
+    }
+
+    const result = buildChatCompletionParams({
+      midsceneDefaults: {
+        temperature: 0.2,
+        seed: 456,
+      } as any,
+      userConfig: {
+        temperature: undefined,
+      },
+    });
+
+    expect(result.config).toEqual({
+      temperature: 0.2,
+      seed: 456,
+      vl_high_resolution_images: true,
+    });
+  });
+
+  it('applies explicit qwen2.5-vl temperature override', () => {
+    const chatCompletion = qwenAdapters['qwen2.5-vl'].chatCompletion;
+    expect(chatCompletion).toBeDefined();
+    if (!chatCompletion) {
+      throw new Error('qwen2.5-vl should define chat completion adapter');
+    }
+    const buildChatCompletionParams = chatCompletion.buildChatCompletionParams;
+    expect(buildChatCompletionParams).toBeDefined();
+    if (!buildChatCompletionParams) {
+      throw new Error(
+        'qwen2.5-vl should define chat completion params builder',
+      );
+    }
+
+    const result = buildChatCompletionParams({
+      midsceneDefaults: {
+        temperature: 0.2,
+        seed: 456,
+      } as any,
+      userConfig: {
+        temperature: 0.7,
+      },
+    });
+
+    expect(result.config).toEqual({
+      temperature: 0.7,
+      seed: 456,
+      vl_high_resolution_images: true,
+    });
+  });
+
   it('keeps qwen2.5-vl high-resolution flag while ignoring reasoning params', () => {
     const result = qwen25Adapter.chatCompletion.buildChatCompletionParams({
       userConfig: {

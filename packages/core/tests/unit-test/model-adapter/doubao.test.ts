@@ -35,6 +35,38 @@ describe('doubao model adapter', () => {
     });
   });
 
+  it('preserves midscene defaults and applies explicit doubao temperature override', () => {
+    const chatCompletion = doubaoAdapters['doubao-seed'].chatCompletion;
+    expect(chatCompletion).toBeDefined();
+    if (!chatCompletion) {
+      throw new Error('doubao-seed should define chat completion adapter');
+    }
+    const buildChatCompletionParams = chatCompletion.buildChatCompletionParams;
+    expect(buildChatCompletionParams).toBeDefined();
+    if (!buildChatCompletionParams) {
+      throw new Error(
+        'doubao-seed should define chat completion params builder',
+      );
+    }
+
+    const result = buildChatCompletionParams({
+      midsceneDefaults: {
+        temperature: 0,
+        seed: 123,
+      } as any,
+      userConfig: {
+        temperature: 0.7,
+        reasoningEnabled: true,
+      },
+    });
+
+    expect(result.config).toEqual({
+      temperature: 0.7,
+      seed: 123,
+      thinking: { type: 'enabled' },
+    });
+  });
+
   it('omits maxTokens from adapter-owned chat completion params', () => {
     const result = doubaoSeedAdapter.chatCompletion.buildChatCompletionParams({
       userConfig: {
