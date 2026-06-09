@@ -699,6 +699,8 @@ await agent.aiRightClick('页面顶部的文件名称', { deepLocate: true });
 
 使用此方法，你可以针对当前页面，直接向 AI 模型发起提问，并获得字符串形式的回答。
 
+`aiAsk()` 与 `aiString()` 完全等价。
+
 - 类型
 
 ```typescript
@@ -843,6 +845,8 @@ const numberB = await agent.aiNumber('账户剩余的积分元素的 value 值',
 ### `agent.aiString()`
 
 从 UI 中提取一个字符串。
+
+`aiString()` 与 `aiAsk()` 完全等价。
 
 - 类型
 
