@@ -1,12 +1,12 @@
 # 更新日志
 
-## v1.9.x - Studio 录制、Markdown 回放与 HarmonyOS YAML 目标
+## v1.9 - Studio 录制、Markdown 回放与 HarmonyOS YAML 目标
 
-v1.9.x 覆盖 v1.9.0 到 v1.9.2。当前最新版本可从 [GitHub Releases](https://github.com/web-infra-dev/midscene/releases/latest) 获取，该链接会自动跳转到最新 tag。
+v1.9 版本带来 Studio 录制能力、Markdown 回放输出、HarmonyOS YAML 自动化，并补充了 CLI、报告、模型和桌面自动化相关修复。当前最新版本可从 [GitHub Releases](https://github.com/web-infra-dev/midscene/releases/latest) 获取，该链接会自动跳转到最新 tag。
 
 ### Midscene Studio Beta 录制功能
 
-Midscene Studio 仍处于 **Beta** 阶段。可从 [latest release 页面](https://github.com/web-infra-dev/midscene/releases/latest) 下载，选择 `midscene-studio-beta-*` 资源即可。当前 v1.9.2 直接下载链接：[macOS Apple Silicon DMG](https://github.com/web-infra-dev/midscene/releases/download/v1.9.2/midscene-studio-beta-v1.9.2-darwin-arm64.dmg)、[Windows x64 ZIP](https://github.com/web-infra-dev/midscene/releases/download/v1.9.2/midscene-studio-beta-v1.9.2-win32-x64.zip)、[Linux x64 ZIP](https://github.com/web-infra-dev/midscene/releases/download/v1.9.2/midscene-studio-beta-v1.9.2-linux-x64.zip)。
+Midscene Studio 仍处于 **Beta** 阶段。可从 [latest release 页面](https://github.com/web-infra-dev/midscene/releases/latest) 下载，选择 `midscene-studio-beta-*` 资源即可。Beta 安装包直链：[macOS Apple Silicon DMG](https://github.com/web-infra-dev/midscene/releases/download/v1.9.2/midscene-studio-beta-v1.9.2-darwin-arm64.dmg)、[Windows x64 ZIP](https://github.com/web-infra-dev/midscene/releases/download/v1.9.2/midscene-studio-beta-v1.9.2-win32-x64.zip)、[Linux x64 ZIP](https://github.com/web-infra-dev/midscene/releases/download/v1.9.2/midscene-studio-beta-v1.9.2-linux-x64.zip)。
 
 - **Record and replay 面板**：Studio 可以录制实时设备预览中的人工操作，保留带截图的可视化事件时间线，并在 Studio 内回放录制流程。
 - **脚本生成与导出**：录制会话可以生成结构化 Midscene 脚本、带截图的 Markdown 回放内容；Web 录制还可以生成 Playwright 输出。
@@ -16,26 +16,26 @@ Midscene Studio 仍处于 **Beta** 阶段。可从 [latest release 页面](https
 
 ![Studio Record and replay 时间线](/blog/studio-beta-record-replay.png)
 
-### v1.9.2
+### YAML 与设备自动化
+
+- CLI 的 YAML 脚本新增 HarmonyOS target，HarmonyOS 自动化可以通过与 Web、Android、iOS、Computer 一致的脚本运行器流程执行。详见：[YAML 脚本自动化](./automate-with-scripts-in-yaml)、[HarmonyOS API](./harmony-api-reference)
+- YAML Web config 支持自定义 HTTP headers。
+- YAML 执行会暴露真实错误，不再只落到静默的 "not executed" 结果。
+
+### 模型、CLI 与报告更新
 
 - `aiAct` 支持图片 prompt，动作指令可以带参考图。
 - CLI / MCP / Skill 流程可以通过共享参数暴露 `deepLocate` / `deepThink` 控制项。
 - Assert CLI / MCP 工具会转发自定义失败信息，让断言失败更清晰。
-- YAML Web config 支持自定义 HTTP headers。
-- YAML 执行会暴露真实错误，不再只落到静默的 "not executed" 结果。
-- Report Markdown 导出会让图片路径与导出的截图保持一致。
-- Computer 自动化修复了 RDP 首帧空白截图、phased-scroll helper 缺失可执行权限的自修复问题，并补充 elevated Windows 应用输入丢失的警告。
-
-### v1.9.1
-
-- CLI 现在从 CLI 包自身解析 `@rstest/core`，而不是从 `process.argv[1]` 解析，让外部启动路径下的 framework 执行更稳定。
-
-### v1.9.0
-
-- CLI 的 YAML 脚本新增 HarmonyOS target，HarmonyOS 自动化可以通过与 Web、Android、iOS、Computer 一致的脚本运行器流程执行。详见：[YAML 脚本自动化](./automate-with-scripts-in-yaml)、[HarmonyOS API](./harmony-api-reference)
 - 重构了模型适配器内部实现，便于维护不同模型系列的请求和响应处理逻辑。
-- Web integration 不再把 `longPress` 时长限制在 600ms。
+- CLI 现在从 CLI 包自身解析 `@rstest/core`，而不是从 `process.argv[1]` 解析，让外部启动路径下的 framework 执行更稳定。
+- Report Markdown 导出会让图片路径与导出的截图保持一致。
+
+### 问题修复
+
+- 修复 Web integration 中 `longPress` 时长被限制在 600ms 的问题。
 - 修复部分环境下 HarmonyOS MCP 因 `photon` / `sharp` WASM 初始化失败而无法启动的问题。
+- 修复 Computer RDP 首帧空白截图、phased-scroll helper 缺失可执行权限的自修复问题，并补充 elevated Windows 应用输入丢失的警告。
 - 站点文档补充说明了 PC 桌面端 `aiHover`、`remoteAdbHost` / adb server、通过 `runAdbShell` 执行坐标点击，并刷新了推荐模型列表。
 
 ## v1.8 - Midscene Studio 桌面端、YAML 变量复用与多平台增强
@@ -70,8 +70,6 @@ Midscene Studio 是一个基于 Electron 的桌面应用，把多平台 Playgrou
 - **Computer 远程桌面**：Computer MCP / CLI 连接工具支持传入 RDP 连接选项，可直接接管远程 Windows 桌面
 - **`agentForComputer` 命名修正**：新增 `agentForComputer` 作为主推 API，原有 `agentFromComputer` 保留为向后兼容别名
 - **Puppeteer CLI viewport 选项**：Puppeteer CLI 新增窗口尺寸配置，方便在命令行中指定运行时的浏览器视口
-- **Android `scrcpy` 预览参数**：Android CLI 新增启用 `scrcpy` 预览的参数
-- **Web 输入延迟配置**：`WebPageOpt` 支持配置 Web integration 的键盘输入延迟
 
 ### 模型与规划行为
 
@@ -79,8 +77,6 @@ Midscene Studio 是一个基于 Electron 的桌面应用，把多平台 Playgrou
 - **默认关闭原生思考**：对于已支持的模型系列，Midscene 默认关闭模型原生思考，以提升执行速度和稳定性。详见：[模型原生的思考模式](./model-strategy#模型原生的思考模式)
 - **豆包低延迟模式**：支持豆包低延迟模式配置方式，可通过 `MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}` 开启。详见：[常用模型配置](./model-common-config)
 - **GLM-5V-Turbo 支持**：新增智谱 GLM-5V-Turbo 模型支持。详见：[常用模型配置](./model-common-config)
-- **Qwen3.7 支持**：新增 Qwen3.7 模型支持
-- **Gemini 思考模式适配**：适配 Gemini 的思考模式
 - **滚动选择规划优化**：优化滚动选择（scrollable select）的规划流程，提升复杂下拉与滚轮选择场景的成功率
 
 ### MCP 与平台 CLI
@@ -94,7 +90,6 @@ Midscene Studio 是一个基于 Electron 的桌面应用，把多平台 Playgrou
 
 - **CLI 合并报告**：CLI 新增 `report-tool merge` 子命令，可将多份报告文件合并为一个，便于集中查看
 - **报告中记录截图工具调用**：截图工具（`take_screenshot`）的调用现在会在报告中显示，便于排查截图相关问题
-- **减少冗余报告截图**：移除了报告中动作执行前冗余的截图
 
 ### Chrome 扩展
 
@@ -109,7 +104,6 @@ Midscene Studio 是一个基于 Electron 的桌面应用，把多平台 Playgrou
 - 修复 HarmonyOS 单次调用 `autoDismissKeyboard` 的配置不生效问题
 - 修复 Android Playground 视频流内存占用过高的问题
 - 修复 Computer 滚动默认距离与 Web 不一致的问题
-- 修复销毁 agent 时 Computer 未完成输入未取消的问题
 - 修复部分模型返回归一化 [0,1000] 坐标超出范围的边界问题
 - 修复 Bridge 模式下 `aiAct` 选项未被继承的问题
 - 修复 Action API 返回值与文档不一致的问题
@@ -117,9 +111,7 @@ Midscene Studio 是一个基于 Electron 的桌面应用，把多平台 Playgrou
 - 修复服务端端口探测时未使用 `0.0.0.0` 与实际监听 host 不一致的问题
 - 修复 `aiAct` 中 deepThink 标记在报告中丢失的问题
 - 修复 iOS 输入时偶发的字符丢失问题
-- 修复 HarmonyOS 清空输入、键盘收起策略和 system action 延迟覆盖逻辑
-- 修复 Android 截图时传入 `null` 作为 `displayId` 的问题
-- 修复可能导致模型验证失败的 service import cycle 问题
+- 修复 HarmonyOS system action 延迟覆盖逻辑
 
 ## v1.7 - 灵活处理报告文件、支持 Qwen 3.6 模型
 
