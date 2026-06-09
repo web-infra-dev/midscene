@@ -38,6 +38,7 @@ export interface CreateRstestYamlProjectOptions {
   maxConcurrency?: number;
   testTimeout?: number;
   bail?: number;
+  retry?: number;
   batchConfig?: BatchRunnerConfig;
 }
 
@@ -64,6 +65,7 @@ export interface GeneratedRstestYamlProject {
   maxConcurrency?: number;
   testTimeout: number;
   bail?: number;
+  retry?: number;
 }
 
 const toPosixPath = (value: string): string => value.split(sep).join('/');
@@ -236,5 +238,6 @@ export function createRstestYamlProject(
     maxConcurrency: options.maxConcurrency,
     testTimeout,
     bail: options.bail,
+    retry: options.retry,
   };
 }

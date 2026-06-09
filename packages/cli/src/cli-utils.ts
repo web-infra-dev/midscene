@@ -64,6 +64,10 @@ Usage:
         type: 'boolean',
         description: `Continue execution even if some tasks fail, default is ${defaultConfig.continueOnError}`,
       },
+      retry: {
+        type: 'number',
+        description: `Number of times to retry a failed yaml file. Only the cases that failed in the previous attempt are retried, default is ${defaultConfig.retry}`,
+      },
       headed: {
         type: 'boolean',
         description: `Run the browser in headed mode to see the browser UI, default is ${defaultConfig.headed}`,

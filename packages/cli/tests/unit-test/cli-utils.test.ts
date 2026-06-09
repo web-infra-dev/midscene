@@ -82,6 +82,8 @@ describe('parseProcessArgs', () => {
       '--dotenv-debug',
       '--concurrent',
       '3',
+      '--retry',
+      '2',
       '--summary',
       'report.json',
     ];
@@ -93,6 +95,7 @@ describe('parseProcessArgs', () => {
     expect(options['dotenv-override']).toBe(true);
     expect(options['dotenv-debug']).toBe(true);
     expect(options.concurrent).toBe(3);
+    expect(options.retry).toBe(2);
     expect(options.summary).toBe('report.json');
   });
 
