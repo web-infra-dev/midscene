@@ -34,6 +34,7 @@ import {
   resolveMacCodeSignEntitlementsPath,
   resolveMacPackagedAppBundlePath,
   resolveMacPackagedAppSecurity,
+  resolveNodeModulesPackageEntry,
   resolvePackagedAppArchiver,
   resolvePackagerIconPath,
   resolvePnpmPackageEntry,
@@ -110,6 +111,44 @@ describe('package-electron helpers', () => {
         workspaceRoot: root,
       });
       expect(appdmg()).toBe('loaded');
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('loads appdmg from hoisted node_modules in the staged workspace', async () => {
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'midscene-hoisted-pnpm-'),
+    );
+    const appdmgDir = path.join(root, 'node_modules', 'appdmg');
+    try {
+      await fs.mkdir(appdmgDir, { recursive: true });
+      await fs.writeFile(
+        path.join(appdmgDir, 'package.json'),
+        JSON.stringify({ main: 'index.mjs', type: 'module' }),
+      );
+      await fs.writeFile(
+        path.join(appdmgDir, 'index.mjs'),
+        'export default function appdmg() { return "loaded from hoisted"; }\n',
+      );
+
+      expect(
+        resolveNodeModulesPackageEntry({
+          packageName: 'appdmg',
+          workspaceRoot: root,
+        }),
+      ).toBe(path.join(appdmgDir, 'index.mjs'));
+
+      const missingDirectImport = Object.assign(new Error('missing appdmg'), {
+        code: 'ERR_MODULE_NOT_FOUND',
+      });
+      const appdmg = await loadAppDmg({
+        directImport: async () => {
+          throw missingDirectImport;
+        },
+        workspaceRoot: root,
+      });
+      expect(appdmg()).toBe('loaded from hoisted');
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }
@@ -750,6 +789,9 @@ describe('package-electron helpers', () => {
           '@midscene/shared': 'workspace:*',
           react: '18.3.1',
         },
+        optionalDependencies: {
+          appdmg: '0.6.6',
+        },
         description: 'Studio shell',
         license: 'MIT',
         type: 'module',
@@ -774,6 +816,9 @@ describe('package-electron helpers', () => {
         '@midscene/playground': '1.7.4',
         '@midscene/shared': '1.7.4',
         react: '18.3.1',
+      },
+      optionalDependencies: {
+        appdmg: '0.6.6',
       },
       main: 'dist/main/main.cjs',
       pnpm: {

@@ -1263,6 +1263,10 @@ export const buildInstallWorkspaceManifest = ({
     dependencies: packageJson.dependencies,
     workspacePackages: vendoredWorkspacePackages,
   });
+  const optionalDependencies = buildResolvedWorkspaceDependencyVersions({
+    dependencies: packageJson.optionalDependencies,
+    workspacePackages: vendoredWorkspacePackages,
+  });
   const overrides = Object.fromEntries(
     vendoredWorkspacePackages.map((workspacePackage) => [
       workspacePackage.name,
@@ -1277,6 +1281,9 @@ export const buildInstallWorkspaceManifest = ({
 
   return {
     ...buildPackagedAppManifest(packageJson, version, dependencies),
+    ...(Object.keys(optionalDependencies).length > 0
+      ? { optionalDependencies }
+      : {}),
     pnpm: {
       overrides,
       ...(supportedArchitectures ? { supportedArchitectures } : {}),
@@ -1916,6 +1923,27 @@ export const buildStudioDmgSpecification = ({
   format: 'ULFO',
 });
 
+const resolvePackageEntry = (packageDir) => {
+  const packageJsonPath = path.join(packageDir, 'package.json');
+  if (!existsSync(packageJsonPath)) {
+    return undefined;
+  }
+  const packageManifest = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+  return path.join(packageDir, packageManifest.main ?? 'index.js');
+};
+
+export const resolveNodeModulesPackageEntry = ({
+  packageName,
+  workspaceRoot = workspaceRootDir,
+}) => {
+  const packageDir = path.join(
+    workspaceRoot,
+    'node_modules',
+    ...packageName.split('/'),
+  );
+  return resolvePackageEntry(packageDir);
+};
+
 export const resolvePnpmPackageEntry = ({
   packageName,
   version,
@@ -1942,12 +1970,10 @@ export const resolvePnpmPackageEntry = ({
       'node_modules',
       ...packagePathSegments,
     );
-    const packageJsonPath = path.join(packageDir, 'package.json');
-    if (!existsSync(packageJsonPath)) {
-      continue;
+    const packageEntry = resolvePackageEntry(packageDir);
+    if (packageEntry) {
+      return packageEntry;
     }
-    const packageManifest = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
-    return path.join(packageDir, packageManifest.main ?? 'index.js');
   }
 
   return undefined;
@@ -1966,13 +1992,17 @@ export const loadAppDmg = async ({
       throw error;
     }
     const appdmgEntry = [workspaceRoot, ...extraWorkspaceRoots]
-      .map((root) =>
+      .flatMap((root) => [
+        resolveNodeModulesPackageEntry({
+          packageName: 'appdmg',
+          workspaceRoot: root,
+        }),
         resolvePnpmPackageEntry({
           packageName: 'appdmg',
           version: '0.6.6',
           workspaceRoot: root,
         }),
-      )
+      ])
       .find(Boolean);
     if (!appdmgEntry) {
       throw error;
