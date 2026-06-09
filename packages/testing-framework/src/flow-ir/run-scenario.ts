@@ -190,7 +190,6 @@ async function execPromptStep(
 
   let stepResult: StepResult;
   try {
-    // Substitution happens here, mechanically, before any model call.
     const resolved = substitute(
       step.template,
       scope,
@@ -257,18 +256,18 @@ async function execCaptureStep(
     // Lower to a structured extraction on the UI agent. The value is
     // machine-owned: it goes into the variable table, not into model prose.
     const value = await ctx.uiAgent.aiString(resolved);
-    if (!String(value).trim()) {
+    if (!value.trim()) {
       // Fail fast instead of letting a blank variable poison later prompts
       // (e.g. the value is not visible on the current screen).
       throw new Error(
         `[midscene] capture {${step.varName}}: the extraction "${resolved}" returned an empty value. Is it visible on the current screen?`,
       );
     }
-    scope.set(step.varName, String(value));
+    scope.set(step.varName, value);
     ctx.emit({
       type: 'varSet',
       name: step.varName,
-      value: String(value),
+      value,
       source: 'capture',
       depth,
     });
@@ -279,8 +278,8 @@ async function execCaptureStep(
       input: resolved,
       status: 'info',
       output: {
-        text: `Captured variable {${step.varName}} = ${JSON.stringify(String(value))} (${resolved}).`,
-        structured: { [step.varName]: String(value) },
+        text: `Captured variable {${step.varName}} = ${JSON.stringify(value)} (${resolved}).`,
+        structured: { [step.varName]: value },
       },
       durationMs: Date.now() - stepStart,
     };

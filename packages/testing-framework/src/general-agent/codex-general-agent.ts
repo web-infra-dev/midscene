@@ -81,7 +81,7 @@ export class CodexGeneralAgent implements GeneralAgentAdapter {
       modelRuntime,
     );
 
-    const text = result.content?.trim() ?? '';
+    const text = result.content.trim();
     debug('codex run finished', { kind: input.kind, chars: text.length });
 
     if (!needsVerdict) {
