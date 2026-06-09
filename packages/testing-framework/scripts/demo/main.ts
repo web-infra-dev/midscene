@@ -161,7 +161,7 @@ export async function main(argv: string[]): Promise<number> {
   }
 
   if (selectedModes.length === modes.length) {
-    printComparison(outcomes, gherkin);
+    printComparison(outcomes, gherkin, live);
   }
 
   const failed = outcomes
@@ -332,8 +332,9 @@ function canonical(event: ScenarioRunEvent): string {
 function printComparison(
   outcomes: ModeOutcome[],
   gherkin: CompiledFeature,
+  live: boolean,
 ): void {
-  const [gherkinMode, jsMode, boundMode] = outcomes;
+  const [gherkinMode, jsMode] = outcomes;
 
   console.log('');
   console.log(bold(cyan('━━━ Comparison: three modes, one IR ━━━')));
@@ -341,6 +342,13 @@ function printComparison(
   // 1. Gherkin vs JS: identical traces prove the two front-ends compile to
   //    the same IR and drive the engine identically.
   console.log('');
+  if (live) {
+    console.log(
+      dim(
+        '  (live mode: traces include real model verdicts, which are nondeterministic — exact trace identity is only guaranteed offline)',
+      ),
+    );
+  }
   for (let i = 0; i < SCENARIO_NAMES.length; i++) {
     const a = gherkinMode.scenarios[i];
     const b = jsMode.scenarios[i];

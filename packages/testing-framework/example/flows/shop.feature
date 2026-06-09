@@ -18,6 +18,7 @@ Feature: Checkout with a reusable login flow
 
   Scenario: Checkout as admin
     When I run the "Login" flow with role "admin"
+    And I go back to the shop home page
     And I remember the price of the "Trail Backpack" product as "price"
     When I add the "Trail Backpack" to the cart and open the cart
     Then the cart total equals {price}

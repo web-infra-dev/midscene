@@ -257,6 +257,13 @@ async function execCaptureStep(
     // Lower to a structured extraction on the UI agent. The value is
     // machine-owned: it goes into the variable table, not into model prose.
     const value = await ctx.uiAgent.aiString(resolved);
+    if (!String(value).trim()) {
+      // Fail fast instead of letting a blank variable poison later prompts
+      // (e.g. the value is not visible on the current screen).
+      throw new Error(
+        `[midscene] capture {${step.varName}}: the extraction "${resolved}" returned an empty value. Is it visible on the current screen?`,
+      );
+    }
     scope.set(step.varName, String(value));
     ctx.emit({
       type: 'varSet',

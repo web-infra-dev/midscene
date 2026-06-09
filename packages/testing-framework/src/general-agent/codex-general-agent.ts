@@ -20,8 +20,6 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { callAI, getModelRuntime } from '@midscene/core/ai-model';
-import { globalModelConfigManager } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import type { Verdict } from '../types';
 import type {
@@ -67,6 +65,14 @@ export class CodexGeneralAgent implements GeneralAgentAdapter {
       });
     }
 
+    // Lazy imports: `@midscene/core/ai-model` pulls in heavy image/runtime
+    // dependencies that callers of this package should not pay for unless a
+    // codex-backed general agent is actually used.
+    const [{ callAI, getModelRuntime }, { globalModelConfigManager }] =
+      await Promise.all([
+        import('@midscene/core/ai-model'),
+        import('@midscene/shared/env'),
+      ]);
     const modelRuntime = getModelRuntime(
       globalModelConfigManager.getModelConfig('default'),
     );

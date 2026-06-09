@@ -41,14 +41,38 @@ shop; no model keys, no browser). Expected output (excerpt):
       + injected var {couponCode} = "E2E-2026-06-09"
 ```
 
-**Live mode (experimental, unverified in CI):** with model env configured
-(`MIDSCENE_MODEL_BASE_URL` etc., as for the AI tests) and puppeteer
-available, `pnpm --filter @midscene/testing-framework demo -- --live` drives
-a real web UI agent against the self-contained static shop in
-`example/demo-app/index.html` (override with `DEMO_URL`), with the default
-Pi-backed general agent issuing the verdicts. Each scenario gets a fresh
-browser. Implemented in `scripts/demo/live.ts`; the offline path is the
-verified reference.
+**Live mode** — `pnpm --filter @midscene/testing-framework demo -- --live`
+drives a real puppeteer web agent against the self-contained static shop in
+`example/demo-app/index.html` (override with `DEMO_URL`), with real model
+calls. The default/easy path is **Midscene's codex app-server provider**
+(no API key — it spawns `codex app-server` and reuses the Codex CLI OAuth
+session via JSON-RPC over stdio, see
+`packages/core/src/ai-model/service-caller/codex-app-server.ts`):
+
+```bash
+# one-time setup
+codex login              # verify with: codex login status
+
+# run — the demo auto-configures when MIDSCENE_MODEL_BASE_URL is unset:
+#   MIDSCENE_MODEL_BASE_URL="codex://app-server"
+#   MIDSCENE_MODEL_NAME="gpt-5.5"      (override with env)
+#   MIDSCENE_MODEL_FAMILY="gpt-5"
+pnpm --filter @midscene/testing-framework demo -- --live
+
+# optional: run a single mode (faster)
+pnpm --filter @midscene/testing-framework demo -- --live --mode gherkin   # or js | bound
+```
+
+On the codex path, `verify`/`soft` verdicts run through `CodexGeneralAgent`
+(`src/general-agent/codex-general-agent.ts`), which routes the same
+provider via core's `callAI` and parses a JSON verdict fail-closed — the
+default Pi general agent needs an OpenAI-compatible HTTP endpoint and
+cannot speak `codex://`. Any such endpoint still works by setting
+`MIDSCENE_MODEL_*` yourself (Pi is used for verdicts then). Each scenario
+gets a fresh browser; Midscene HTML reports land in `midscene_run/report/`.
+Verified end to end against codex `gpt-5.5`: all three modes pass (one
+expected nondeterminism: the advisory promo-banner soft check may PASS or
+SOFT-FAIL depending on whether the model counts the header as a banner).
 
 ```
  .feature files          .flows.ts files
@@ -86,7 +110,9 @@ Three step kinds (`types.ts`):
 machine-owned. `capture` steps ("remember … as varName") extract values
 through `aiString`; later templates get **mechanical** `{varName}`
 substitution *before* any prompt is sent to a model. Unknown placeholders
-fail the step immediately (typo safety) without a model call. Model-owned
+fail the step immediately (typo safety) without a model call, and a capture
+that extracts an empty value fails fast instead of poisoning later prompts
+with a blank. Model-owned
 prose conclusions keep flowing through the existing `StepOutput` channel —
 the two channels never mix.
 

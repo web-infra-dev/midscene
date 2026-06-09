@@ -36,6 +36,7 @@ const background = Given('the demo shop is open on the home page');
 export const checkoutAsAdmin = scenario('Checkout as admin', [
   background,
   callFlow('Login', { role: 'admin' }),
+  When('I go back to the shop home page'),
   remember('the price of the "Trail Backpack" product', 'price'),
   When('I add the "Trail Backpack" to the cart and open the cart'),
   Then('the cart total equals {price}'),

@@ -76,6 +76,23 @@ describe('runScenario: variable capture and substitution', () => {
     expect(ui.actCalls).toEqual(['search for backpack']);
   });
 
+  it('fails the capture step when the extraction returns an empty value', async () => {
+    const ui = new FakeUiAgent(['   ']);
+    const { result, general } = await run(
+      scenario('blank capture', [
+        remember('the order id shown in the banner', 'orderId'),
+        Then('the confirmation page shows order {orderId}'),
+      ]),
+      { ui },
+    );
+    expect(result.status).toBe('failed');
+    expect(result.steps[0].error).toMatch(
+      /capture \{orderId\}.*returned an empty value/,
+    );
+    expect(result.variables).not.toHaveProperty('orderId');
+    expect(general.calls).toEqual([]);
+  });
+
   it('fails the step (and case) on an unknown variable, before any model call', async () => {
     const { result, ui, general } = await run(
       scenario('typo', [Then('the total is {totl}')]),
