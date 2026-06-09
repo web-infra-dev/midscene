@@ -317,6 +317,7 @@ export class IOSWebDriverClient extends WebDriverClient {
 
     try {
       await this.setPasteboardText(cleanText);
+      await this.verifyPasteboardText(cleanText);
       await this.sendPasteShortcut();
       debugIOS(`Pasted text: "${text}"`);
     } catch (error) {
@@ -336,6 +337,62 @@ export class IOSWebDriverClient extends WebDriverClient {
         contentType: 'plaintext',
       },
     );
+  }
+
+  private async verifyPasteboardText(expectedText: string): Promise<void> {
+    const actualText = await this.getPasteboardText(expectedText);
+    if (actualText !== expectedText) {
+      throw new Error(
+        `WDA pasteboard verification failed: expected ${this.formatTextForError(
+          expectedText,
+        )}, got ${this.formatTextForError(actualText)}`,
+      );
+    }
+  }
+
+  private async getPasteboardText(expectedText: string): Promise<string> {
+    this.ensureSession();
+
+    const response = await this.makeRequest(
+      'POST',
+      `/session/${this.sessionId}/wda/getPasteboard`,
+      {
+        contentType: 'plaintext',
+      },
+    );
+    const value = response?.value ?? response;
+    if (typeof value !== 'string') {
+      throw new Error(
+        `Unexpected WDA pasteboard response: ${JSON.stringify(response)}`,
+      );
+    }
+    return this.decodePasteboardText(value, expectedText);
+  }
+
+  private decodePasteboardText(value: string, expectedText: string): string {
+    if (!value) {
+      return '';
+    }
+    if (value === expectedText) {
+      return value;
+    }
+
+    const normalized = value.trim();
+    try {
+      const decoded = Buffer.from(normalized, 'base64');
+      const reencoded = decoded.toString('base64').replace(/=+$/, '');
+      if (reencoded === normalized.replace(/=+$/, '')) {
+        return decoded.toString('utf8');
+      }
+    } catch {
+      // Some WDA versions return plaintext directly.
+    }
+    return value;
+  }
+
+  private formatTextForError(text: string): string {
+    const preview = text.length > 80 ? `${text.slice(0, 80)}...` : text;
+    return `${JSON.stringify(preview)} (length=${text.length})`;
   }
 
   private async sendPasteShortcut(): Promise<void> {

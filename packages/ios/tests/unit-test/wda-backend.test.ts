@@ -82,9 +82,14 @@ describe('IOSWebDriverClient.typeText delivery modes', () => {
 });
 
 describe('IOSWebDriverClient.pasteText', () => {
-  it('sets the iOS pasteboard and sends Command+V to the active element', async () => {
+  it('sets and verifies the iOS pasteboard before sending Command+V to the active element', async () => {
     const { client, makeRequest } = createClientWithSession();
     makeRequest.mockImplementation(async (_method, path) => {
+      if (path === '/session/session-under-test/wda/getPasteboard') {
+        return {
+          value: Buffer.from('Hello 世界', 'utf8').toString('base64'),
+        };
+      }
       if (path === '/session/session-under-test/element/active') {
         return { value: { ELEMENT: 'active-element-id' } };
       }
@@ -93,7 +98,7 @@ describe('IOSWebDriverClient.pasteText', () => {
 
     await client.pasteText('Hello 世界');
 
-    expect(makeRequest).toHaveBeenCalledTimes(3);
+    expect(makeRequest).toHaveBeenCalledTimes(4);
     expect(makeRequest).toHaveBeenNthCalledWith(
       1,
       'POST',
@@ -105,11 +110,19 @@ describe('IOSWebDriverClient.pasteText', () => {
     );
     expect(makeRequest).toHaveBeenNthCalledWith(
       2,
+      'POST',
+      '/session/session-under-test/wda/getPasteboard',
+      {
+        contentType: 'plaintext',
+      },
+    );
+    expect(makeRequest).toHaveBeenNthCalledWith(
+      3,
       'GET',
       '/session/session-under-test/element/active',
     );
     expect(makeRequest).toHaveBeenNthCalledWith(
-      3,
+      4,
       'POST',
       '/session/session-under-test/wda/element/active-element-id/keyboardInput',
       {
@@ -118,8 +131,53 @@ describe('IOSWebDriverClient.pasteText', () => {
     );
   });
 
+  it('accepts plaintext pasteboard readback from WDA variants that do not return base64', async () => {
+    const { client, makeRequest } = createClientWithSession();
+    makeRequest.mockImplementation(async (_method, path) => {
+      if (path === '/session/session-under-test/wda/getPasteboard') {
+        return { value: 'test' };
+      }
+      return undefined;
+    });
+
+    await client.pasteText('test');
+
+    expect(makeRequest).toHaveBeenLastCalledWith(
+      'POST',
+      '/session/session-under-test/wda/element/0/keyboardInput',
+      {
+        keys: [{ key: 'v', modifierFlags: 16 }],
+      },
+    );
+  });
+
+  it('throws before Command+V when WDA reports a mismatched pasteboard value', async () => {
+    const { client, makeRequest } = createClientWithSession();
+    makeRequest.mockImplementation(async (_method, path) => {
+      if (path === '/session/session-under-test/wda/getPasteboard') {
+        return { value: '' };
+      }
+      return undefined;
+    });
+
+    await expect(client.pasteText('Hello')).rejects.toThrow(
+      'WDA pasteboard verification failed',
+    );
+    expect(makeRequest).not.toHaveBeenCalledWith(
+      'POST',
+      '/session/session-under-test/wda/element/0/keyboardInput',
+      expect.anything(),
+    );
+  });
+
   it('falls back to the active application when no active element is available', async () => {
     const { client, makeRequest } = createClientWithSession();
+    makeRequest.mockImplementation(async (_method, path) => {
+      if (path === '/session/session-under-test/wda/getPasteboard') {
+        return { value: Buffer.from('Hello', 'utf8').toString('base64') };
+      }
+      return undefined;
+    });
 
     await client.pasteText('Hello');
 
