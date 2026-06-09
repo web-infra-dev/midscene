@@ -1,4 +1,5 @@
 import type { IModelConfig, TIntent } from '@midscene/shared/env';
+import type OpenAI from 'openai';
 import type {
   JsonParser,
   JsonParserContext,
@@ -57,12 +58,30 @@ export interface ChatCompletionCallContext {
 
 export type ImageDetail = 'auto' | 'low' | 'high' | 'original';
 
+export interface ContentAndReasoning {
+  content: string;
+  reasoning_content: string;
+}
+
+export type ChatCompletionContentSource =
+  | (OpenAI.Chat.Completions.ChatCompletionMessage & {
+      reasoning_content?: string;
+    })
+  | (OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta & {
+      reasoning_content?: string;
+    });
+
+export type ExtractContentAndReasoning = (
+  message: ChatCompletionContentSource | undefined,
+) => ContentAndReasoning;
+
 export interface ChatCompletionAdapter {
   unsupportedUserConfig: ChatCompletionUnsupportedUserConfig[];
   buildChatCompletionParams(
     input: ChatCompletionCallInput,
   ): ChatCompletionParamsResult;
   resolveImageDetail(input: ChatCompletionCallInput): ImageDetail | undefined;
+  extractContentAndReasoning: ExtractContentAndReasoning;
 }
 
 export interface ChatCompletionDefinition {
@@ -73,6 +92,7 @@ export interface ChatCompletionDefinition {
   resolveImageDetail?: (
     input: ChatCompletionCallContext,
   ) => ImageDetail | undefined;
+  extractContentAndReasoning?: ExtractContentAndReasoning;
 }
 
 export type ImagePreprocessDefinition = Partial<ImagePreprocessPolicy>;

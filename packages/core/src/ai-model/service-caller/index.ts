@@ -398,9 +398,11 @@ export async function callAI(
         requestId = stream._request_id;
 
         for await (const chunk of stream) {
-          const content = chunk.choices?.[0]?.delta?.content || '';
-          const reasoning_content =
-            (chunk.choices?.[0]?.delta as any)?.reasoning_content || '';
+          const parsedChunk = adapter.chatCompletion.extractContentAndReasoning(
+            chunk.choices?.[0]?.delta,
+          );
+          const content = parsedChunk.content || '';
+          const reasoning_content = parsedChunk.reasoning_content || '';
 
           // Check for usage info in any chunk (OpenAI provides usage in separate chunks)
           if (chunk.usage) {
@@ -495,9 +497,12 @@ export async function callAI(
             );
           }
 
-          content = result.choices[0].message.content!;
-          accumulatedReasoning =
-            (result.choices[0].message as any)?.reasoning_content || '';
+          const parsedMessage =
+            adapter.chatCompletion.extractContentAndReasoning(
+              result.choices[0].message,
+            );
+          content = parsedMessage.content;
+          accumulatedReasoning = parsedMessage.reasoning_content;
           usage = result.usage;
           requestId = result._request_id;
 

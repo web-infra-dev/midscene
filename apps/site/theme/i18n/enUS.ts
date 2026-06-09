@@ -54,10 +54,10 @@ and more`,
   modelSeedName: 'Doubao Seed',
   modelSeedDesc:
     'Strong visual grounding for reliable element location — a solid default for Midscene.',
-  modelQwenName: 'Qwen3.x',
+  modelQwenName: 'qwen3.7-plus',
   modelQwenDesc:
     'High-quality visual grounding at competitive pricing, with open-source builds you can self-host.',
-  modelGeminiName: 'Gemini 3.x',
+  modelGeminiName: 'gemini-3.5-flash',
   modelGeminiDesc:
     'Powerful multimodal understanding with excellent element localization.',
   modelMultiModelName: 'Multi-model combo',
