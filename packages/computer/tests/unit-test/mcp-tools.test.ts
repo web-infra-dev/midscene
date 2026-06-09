@@ -123,6 +123,7 @@ describe('ComputerMidsceneTools', () => {
         'computer.port': expect.anything(),
         'computer.username': expect.anything(),
         'computer.password': expect.anything(),
+        'computer.localAddress': expect.anything(),
         'computer.securityProtocol': expect.anything(),
       }),
     );
@@ -143,6 +144,7 @@ describe('ComputerMidsceneTools', () => {
       port: 3390,
       username: 'admin',
       password: 'secret',
+      'local-address': '10.0.0.20',
       'security-protocol': 'nla',
       'ignore-certificate': true,
     });
@@ -153,6 +155,7 @@ describe('ComputerMidsceneTools', () => {
         port: 3390,
         username: 'admin',
         password: 'secret',
+        localAddress: '10.0.0.20',
         securityProtocol: 'nla',
         ignoreCertificate: true,
       }),

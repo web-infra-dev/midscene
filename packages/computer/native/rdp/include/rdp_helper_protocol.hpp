@@ -32,6 +32,7 @@ struct ConnectionConfig {
   std::string username;
   std::string password;
   std::string domain;
+  std::string local_address;
   bool admin_session = false;
   bool ignore_certificate = false;
   std::string security_protocol = "auto";

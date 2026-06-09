@@ -140,6 +140,47 @@ describe('HelperProcessRDPBackendClient', () => {
     });
   });
 
+  it('forwards localAddress in helper connect requests', async () => {
+    const { child, client } = createClientWithChild();
+
+    onNextRequest(child, (request) => {
+      const { payload } = request;
+      if (payload.type !== 'connect') {
+        throw new Error(`Expected connect request, got ${payload.type}`);
+      }
+      expect(payload.config).toEqual(
+        expect.objectContaining({
+          host: '10.75.166.249',
+          localAddress: '10.75.166.10',
+        }),
+      );
+      writeResponse(child, {
+        id: request.id,
+        ok: true,
+        payload: {
+          type: 'connected',
+          info: {
+            sessionId: 'session-local-address',
+            server: '10.75.166.249:3389',
+            size: { width: 1280, height: 720 },
+          },
+        },
+      });
+    });
+
+    await expect(
+      client.connect({
+        host: '10.75.166.249',
+        localAddress: '10.75.166.10',
+        username: 'Admin',
+      }),
+    ).resolves.toEqual({
+      sessionId: 'session-local-address',
+      server: '10.75.166.249:3389',
+      size: { width: 1280, height: 720 },
+    });
+  });
+
   it('rejects structured helper errors', async () => {
     const { child, client } = createClientWithChild();
 

@@ -28,5 +28,8 @@ export function normalizeRdpConnectionConfig<T extends RDPConnectionConfig>(
   return {
     ...config,
     host: normalizeRdpHost(config.host),
+    ...(config.localAddress
+      ? { localAddress: config.localAddress.trim() }
+      : {}),
   };
 }

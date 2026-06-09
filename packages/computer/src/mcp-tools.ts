@@ -59,6 +59,12 @@ const computerInitArgShape = {
       'RDP password. Requires host. Prefer setting via environment or a secrets manager.',
     ),
   domain: z.string().optional().describe('RDP domain. Requires host.'),
+  localAddress: z
+    .string()
+    .optional()
+    .describe(
+      'Local source IP address for the RDP TCP connection. Requires host.',
+    ),
   adminSession: z
     .boolean()
     .optional()
@@ -236,7 +242,7 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
           'Connect to a computer desktop.',
           'Default (local) mode controls the local machine; pass displayId to target a specific local display (see computer_list_displays).',
           'Pass host to switch to RDP mode and connect to a remote Windows desktop via the RDP helper binary.',
-          'RDP-related options (port/username/password/domain/securityProtocol/ignoreCertificate/adminSession/desktopWidth/desktopHeight) only take effect when host is set.',
+          'RDP-related options (port/username/password/domain/localAddress/securityProtocol/ignoreCertificate/adminSession/desktopWidth/desktopHeight) only take effect when host is set.',
         ].join(' '),
         schema: this.getAgentInitArgSchema(),
         cli: this.getAgentInitArgCliMetadata(),

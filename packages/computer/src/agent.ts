@@ -39,6 +39,7 @@ function createRDPComputerDevice(opts: RDPComputerAgentOpt): RDPDevice {
     username: opts.username,
     password: opts.password,
     domain: opts.domain,
+    localAddress: opts.localAddress,
     adminSession: opts.adminSession,
     ignoreCertificate: opts.ignoreCertificate,
     securityProtocol: opts.securityProtocol,

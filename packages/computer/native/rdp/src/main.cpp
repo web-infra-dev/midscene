@@ -45,6 +45,10 @@ ConnectionConfig ParseConnectionConfig(const JsonObject& payload) {
   if (const auto domain = GetStringField(*config, "domain"); domain.has_value()) {
     parsed.domain = *domain;
   }
+  if (const auto local_address = GetStringField(*config, "localAddress");
+      local_address.has_value()) {
+    parsed.local_address = *local_address;
+  }
   if (const auto admin_session = GetBoolField(*config, "adminSession");
       admin_session.has_value()) {
     parsed.admin_session = *admin_session;

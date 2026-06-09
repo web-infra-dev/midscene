@@ -115,6 +115,7 @@ describe('@midscene/computer RDP device', () => {
       port: 3389,
       username: 'Admin',
       password: 'secret',
+      localAddress: '10.0.0.20',
       ignoreCertificate: true,
       backend,
       customActions: [],
@@ -132,7 +133,30 @@ describe('@midscene/computer RDP device', () => {
       port: 3389,
       username: 'Admin',
       password: 'secret',
+      localAddress: '10.0.0.20',
       ignoreCertificate: true,
+    });
+  });
+
+  it('passes localAddress through agentForRDPComputer', async () => {
+    const backend = new FakeRDPBackend();
+    await agentForRDPComputer({
+      host: '10.0.0.4',
+      port: 3389,
+      username: 'Admin',
+      localAddress: '10.0.0.20',
+      backend,
+      generateReport: false,
+    });
+
+    expect(backend.calls[0]).toEqual({
+      name: 'connect',
+      args: [
+        expect.objectContaining({
+          host: '10.0.0.4',
+          localAddress: '10.0.0.20',
+        }),
+      ],
     });
   });
 

@@ -101,6 +101,8 @@ const agent = await agentForRDPComputer({
   port: 3389,
   username: 'Admin',
   password: 'replace-with-your-password',
+  // Optional: bind the TCP connection to this local source IP.
+  localAddress: '10.75.166.10',
   ignoreCertificate: true,
 });
 
@@ -112,6 +114,10 @@ await agent.aiAct('Open Settings');
 :::tip Example: Remote Windows desktop over RDP
 A runnable demo that connects to a remote Windows machine over RDP, opens Settings, navigates into Windows Update, and emits a structured report: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
 :::
+
+Use `localAddress` only when the machine running Midscene has multiple outbound
+routes and the RDP server must be reached from a specific local source IP. Pass
+an IP address, not a network interface name.
 
 ## Device Management
 
