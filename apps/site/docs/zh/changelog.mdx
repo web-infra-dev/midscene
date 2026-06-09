@@ -26,9 +26,9 @@ v1.9 版本重构了模型适配器，方便后续新模型快速接入，并补
 - 修复 Computer RDP 首帧空白截图、phased-scroll helper 缺失可执行权限的自修复问题，并补充 elevated Windows 应用输入丢失的警告。
 - 站点文档补充说明了 PC 桌面端 `aiHover`、`remoteAdbHost` / adb server、通过 `runAdbShell` 执行坐标点击，并刷新了推荐模型列表。
 
-## v1.8 - Midscene Studio 桌面端、YAML 变量复用与多平台增强
+## v1.8 - Midscene Studio 桌面端与多平台增强
 
-v1.8 版本带来全新的桌面端应用 **Midscene Studio**，新增 YAML 步骤结果复用、长按/清空输入等多项 API，并对模型规划行为、设备集成、报告系统和 MCP 工具集进行了全面升级。
+v1.8 版本带来全新的桌面端应用 **Midscene Studio**，新增长按/清空输入等多项 API，并对模型规划行为、设备集成、报告系统和 MCP 工具集进行了全面升级。
 
 ### 全新桌面端应用 Midscene Studio（Beta）
 
@@ -43,7 +43,6 @@ Midscene Studio 是一个基于 Electron 的桌面应用，把多平台 Playgrou
 
 ### YAML 工作流增强
 
-- **步骤结果复用**：带有 `name` 的 YAML 步骤可以在后续步骤中通过 `$name` 和 `${name}` 复用结果。详见：[YAML 脚本自动化](./automate-with-scripts-in-yaml#复用步骤结果)
 - **Android runAdbShell timeout**：在 JavaScript API 和 YAML 脚本中都支持 `timeout` 选项。详见：[Android API](./android-api-reference)、[YAML 脚本自动化](./automate-with-scripts-in-yaml)
 
 ### 新增交互 API

@@ -26,9 +26,9 @@ v1.9 refactors the model adapter layer, making future model integrations faster 
 - Fixed Computer blank first-frame screenshots in RDP sessions, self-healed missing execute permission on the phased-scroll helper, and warned about elevated Windows app input drops.
 - Site docs clarified `aiHover` support on PC desktop, `remoteAdbHost` / adb server usage, coordinate taps through `runAdbShell`, and the recommended model list.
 
-## v1.8 - Midscene Studio Desktop App, YAML Variables & Multi-Platform Enhancements
+## v1.8 - Midscene Studio Desktop App & Multi-Platform Enhancements
 
-v1.8 introduces **Midscene Studio**, a brand-new desktop application, alongside YAML step result reuse, new interaction APIs (long press / clear input), refined model planning behavior, and broad upgrades across device integrations, the report system, and the MCP toolset.
+v1.8 introduces **Midscene Studio**, a brand-new desktop application, alongside new interaction APIs (long press / clear input), refined model planning behavior, and broad upgrades across device integrations, the report system, and the MCP toolset.
 
 ### Midscene Studio — A New Desktop Application (Beta)
 
@@ -43,7 +43,6 @@ We're building a full record → script → replay loop into Studio: drive a rea
 
 ### YAML Workflow Enhancements
 
-- **Reuse step results**: YAML steps with `name` can be reused in later steps through `$name` and `${name}`. See: [Automate with Scripts in YAML](./automate-with-scripts-in-yaml#reuse-step-results)
 - **Android `runAdbShell` timeout**: A `timeout` option is now accepted in both the JavaScript API and YAML scripts. See: [Android API](./android-api-reference), [Automate with Scripts in YAML](./automate-with-scripts-in-yaml)
 
 ### New Interaction APIs
