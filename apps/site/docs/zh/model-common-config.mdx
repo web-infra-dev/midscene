@@ -248,7 +248,9 @@ MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"
 
 ## 使用 Azure OpenAI Service {#azure-openai}
 
-Midscene 不再内置专用的 Azure 客户端。由于 Azure OpenAI 提供的是 OpenAI 兼容接口，你只需像接入其他 OpenAI 兼容端点一样接入它：把 `MIDSCENE_MODEL_BASE_URL` 指向你的 deployment，并通过 `MIDSCENE_MODEL_INIT_CONFIG_JSON` 传入 Azure 所需的 `api-version` 查询参数和 `api-key` 请求头。
+Midscene 不再内置专用的 Azure 客户端。由于 Azure OpenAI 提供 OpenAI 兼容接口，你可以像接入其他 OpenAI 兼容端点一样接入它。具体的 base URL 取决于你的 Azure 资源提供哪种端点格式。
+
+对于经典的 Azure OpenAI deployment 端点，把 `MIDSCENE_MODEL_BASE_URL` 指向你的 deployment，并通过 `MIDSCENE_MODEL_INIT_CONFIG_JSON` 传入 Azure 所需的 `api-version` 查询参数和 `api-key` 请求头。
 
 ```bash
 # 指向你的 deployment。不要在末尾加 /chat/completions，SDK 会自动补全。
@@ -262,6 +264,17 @@ MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultQuery":{"api-version":"2024-08-01-prev
 ```
 
 这样发出的请求会是 `POST /openai/deployments/<your-deployment>/chat/completions?api-version=2024-08-01-preview`，并携带 `api-key` 请求头，正是 Azure OpenAI 所期望的格式。
+
+对于提供 OpenAI 兼容 `/openai/v1` 端点的 Azure 资源，base URL 使用 `/openai/v1`，不要再追加 `api-version`。也不要在末尾加 `/chat/completions`，OpenAI SDK 会自动补全这个路径。
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1"
+MIDSCENE_MODEL_NAME="<your-model-or-deployment-name>"
+MIDSCENE_MODEL_API_KEY="placeholder"
+MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"api-key":"<your-azure-api-key>"}}'
+```
+
+这样发出的请求会是 `POST /openai/v1/chat/completions`，并携带 `api-key` 请求头。
 
 :::warning 不再支持 Azure AD / keyless 鉴权
 
