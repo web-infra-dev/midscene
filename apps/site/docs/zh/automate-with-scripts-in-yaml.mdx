@@ -684,9 +684,10 @@ tasks:
 
 注意：
 
-- `fileChooserAccept` 仅在 web 页面（Playwright、Puppeteer）中可用。
+- `fileChooserAccept` 仅在 web 页面（Playwright、Puppeteer 或 Chrome extension Bridge mode）中可用。
 - 相对路径会基于当前命令执行目录解析，而不是基于 YAML 文件所在目录解析。
 - 如果文件不存在，脚本会在执行点击前直接报错。
+- Chrome extension Bridge mode 不支持目录上传输入框（`webkitdirectory` / `directory`）。如需上传目录，请使用 Playwright。
 
 #### 使用图像提示
 
