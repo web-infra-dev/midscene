@@ -29,7 +29,7 @@ class FakeChildProcess extends EventEmitter {
         const callback = args.findLast((arg) => typeof arg === 'function') as
           | ((error?: Error | null) => void)
           | undefined;
-        setImmediate(() => {
+        queueMicrotask(() => {
           callback?.(error);
         });
         return false;
@@ -291,6 +291,76 @@ describe('HelperProcessRDPBackendClient', () => {
     ).rejects.toThrowError(
       /Failed to send connect request to RDP helper: write EPIPE[\s\S]*path=\/fake\/rdp-helper[\s\S]*pid=4242[\s\S]*exitCode=127, signal=null[\s\S]*libfreerdp2\.so/u,
     );
+  });
+
+  it('rejects old helper pending requests after a reconnect starts a new helper', async () => {
+    const firstChild = new FakeChildProcess();
+    const secondChild = new FakeChildProcess();
+    const spawnedChildren = [firstChild, secondChild];
+    let spawnCount = 0;
+
+    const client = new HelperProcessRDPBackendClient({
+      spawnFn: () => spawnedChildren[spawnCount++] as any,
+      helperPath: '/fake/rdp-helper',
+    });
+
+    onNextRequest(firstChild, (request) => {
+      expect(request.payload.type).toBe('connect');
+      writeResponse(firstChild, {
+        id: request.id,
+        ok: true,
+        payload: {
+          type: 'connected',
+          info: {
+            sessionId: 'session-1',
+            server: '10.75.166.249:3389',
+            size: { width: 1280, height: 720 },
+          },
+        },
+      });
+    });
+
+    await client.connect({
+      host: '10.75.166.249',
+      username: 'Admin',
+    });
+
+    const screenshotPromise = client.screenshotBase64();
+    firstChild.stderr.write('first helper crashed before screenshot response');
+    firstChild.exitCode = 1;
+    firstChild.emit('exit', 1, null);
+
+    onNextRequest(secondChild, (request) => {
+      expect(request.payload.type).toBe('connect');
+      writeResponse(secondChild, {
+        id: request.id,
+        ok: true,
+        payload: {
+          type: 'connected',
+          info: {
+            sessionId: 'session-2',
+            server: '10.75.166.249:3389',
+            size: { width: 1280, height: 720 },
+          },
+        },
+      });
+    });
+
+    await expect(
+      client.connect({
+        host: '10.75.166.249',
+        username: 'Admin',
+      }),
+    ).resolves.toEqual({
+      sessionId: 'session-2',
+      server: '10.75.166.249:3389',
+      size: { width: 1280, height: 720 },
+    });
+
+    await expect(screenshotPromise).rejects.toThrowError(
+      /RDP helper exited unexpectedly[\s\S]*first helper crashed before screenshot response/u,
+    );
+    expect(spawnCount).toBe(2);
   });
 
   it('throws on malformed helper output', async () => {

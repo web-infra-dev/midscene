@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <random>
 #include <sstream>
@@ -50,8 +51,12 @@ struct LocalAddressTcpConnectContext {
 };
 
 #ifdef _WIN32
+using SocketHandle = SOCKET;
+constexpr SocketHandle kInvalidSocketHandle = INVALID_SOCKET;
 using FdSetSocket = SOCKET;
 #else
+using SocketHandle = int;
+constexpr SocketHandle kInvalidSocketHandle = -1;
 using FdSetSocket = int;
 #endif
 
@@ -65,12 +70,34 @@ constexpr int kFirstFrameTimeoutMs = 20'000;
 constexpr size_t kMinInformativeColorCount = 128;
 constexpr size_t kMinInformativeNonBlackPermille = 150;
 
-void CloseSocketFd(int sockfd) {
-  if (sockfd >= 0) {
+bool IsInvalidSocketHandle(SocketHandle socket_handle) {
 #ifdef _WIN32
-    closesocket(static_cast<SOCKET>(sockfd));
+  return socket_handle == INVALID_SOCKET;
 #else
-    close(sockfd);
+  return socket_handle < 0;
+#endif
+}
+
+bool SocketHandleFitsFreeRdpInt(SocketHandle socket_handle) {
+#ifdef _WIN32
+  return socket_handle <=
+         static_cast<SocketHandle>(std::numeric_limits<int>::max());
+#else
+  static_cast<void>(socket_handle);
+  return true;
+#endif
+}
+
+int SocketHandleToFreeRdpInt(SocketHandle socket_handle) {
+  return static_cast<int>(socket_handle);
+}
+
+void CloseSocketHandle(SocketHandle socket_handle) {
+  if (!IsInvalidSocketHandle(socket_handle)) {
+#ifdef _WIN32
+    closesocket(socket_handle);
+#else
+    close(socket_handle);
 #endif
   }
 }
@@ -99,44 +126,46 @@ std::string SocketErrorMessage(int error_code) {
 #endif
 }
 
-int BindSocketFd(int sockfd, const sockaddr* address, socklen_t address_length) {
+int BindSocketHandle(SocketHandle socket_handle,
+                     const sockaddr* address,
+                     socklen_t address_length) {
 #ifdef _WIN32
-  return bind(static_cast<SOCKET>(sockfd), address,
-              static_cast<int>(address_length));
+  return bind(socket_handle, address, static_cast<int>(address_length));
 #else
-  return bind(sockfd, address, address_length);
+  return bind(socket_handle, address, address_length);
 #endif
 }
 
-int ConnectSocketFd(int sockfd,
-                    const sockaddr* address,
-                    socklen_t address_length) {
+int ConnectSocketHandle(SocketHandle socket_handle,
+                        const sockaddr* address,
+                        socklen_t address_length) {
 #ifdef _WIN32
-  return connect(static_cast<SOCKET>(sockfd), address,
-                 static_cast<int>(address_length));
+  return connect(socket_handle, address, static_cast<int>(address_length));
 #else
-  return connect(sockfd, address, address_length);
+  return connect(socket_handle, address, address_length);
 #endif
 }
 
-bool SetSocketNonBlocking(int sockfd, int& original_flags, std::string& last_error) {
+bool SetSocketNonBlocking(SocketHandle socket_handle,
+                          int& original_flags,
+                          std::string& last_error) {
 #ifdef _WIN32
   static_cast<void>(original_flags);
   u_long mode = 1;
-  if (ioctlsocket(static_cast<SOCKET>(sockfd), FIONBIO, &mode) != 0) {
+  if (ioctlsocket(socket_handle, FIONBIO, &mode) != 0) {
     last_error = "failed to set socket non-blocking mode: " +
                  SocketErrorMessage(LastSocketError());
     return false;
   }
   return true;
 #else
-  original_flags = fcntl(sockfd, F_GETFL, 0);
+  original_flags = fcntl(socket_handle, F_GETFL, 0);
   if (original_flags < 0) {
     last_error = "failed to read socket flags: " + SocketErrorMessage(errno);
     return false;
   }
 
-  if (fcntl(sockfd, F_SETFL, original_flags | O_NONBLOCK) < 0) {
+  if (fcntl(socket_handle, F_SETFL, original_flags | O_NONBLOCK) < 0) {
     last_error = "failed to set socket non-blocking mode: " +
                  SocketErrorMessage(errno);
     return false;
@@ -145,13 +174,13 @@ bool SetSocketNonBlocking(int sockfd, int& original_flags, std::string& last_err
 #endif
 }
 
-void RestoreSocketBlockingMode(int sockfd, int original_flags) {
+void RestoreSocketBlockingMode(SocketHandle socket_handle, int original_flags) {
 #ifdef _WIN32
   static_cast<void>(original_flags);
   u_long mode = 0;
-  (void)ioctlsocket(static_cast<SOCKET>(sockfd), FIONBIO, &mode);
+  (void)ioctlsocket(socket_handle, FIONBIO, &mode);
 #else
-  (void)fcntl(sockfd, F_SETFL, original_flags);
+  (void)fcntl(socket_handle, F_SETFL, original_flags);
 #endif
 }
 
@@ -163,11 +192,22 @@ bool IsConnectInProgressError(int error_code) {
 #endif
 }
 
-int GetSocketConnectError(int sockfd, std::string& last_error) {
+int SelectWritableSocket(SocketHandle socket_handle,
+                         fd_set* write_fds,
+                         timeval* timeout) {
+#ifdef _WIN32
+  static_cast<void>(socket_handle);
+  return select(0, nullptr, write_fds, nullptr, timeout);
+#else
+  return select(socket_handle + 1, nullptr, write_fds, nullptr, timeout);
+#endif
+}
+
+int GetSocketConnectError(SocketHandle socket_handle, std::string& last_error) {
   int socket_error = 0;
 #ifdef _WIN32
   int socket_error_length = sizeof(socket_error);
-  if (getsockopt(static_cast<SOCKET>(sockfd), SOL_SOCKET, SO_ERROR,
+  if (getsockopt(socket_handle, SOL_SOCKET, SO_ERROR,
                  reinterpret_cast<char*>(&socket_error),
                  &socket_error_length) != 0) {
     last_error = "getsockopt(SO_ERROR) failed: " +
@@ -176,7 +216,7 @@ int GetSocketConnectError(int sockfd, std::string& last_error) {
   }
 #else
   socklen_t socket_error_length = sizeof(socket_error);
-  if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &socket_error,
+  if (getsockopt(socket_handle, SOL_SOCKET, SO_ERROR, &socket_error,
                  &socket_error_length) != 0) {
     last_error = "getsockopt(SO_ERROR) failed: " + SocketErrorMessage(errno);
     return -1;
@@ -185,7 +225,7 @@ int GetSocketConnectError(int sockfd, std::string& last_error) {
   return socket_error;
 }
 
-bool BindSocketToLocalAddress(int sockfd,
+bool BindSocketToLocalAddress(SocketHandle socket_handle,
                               int address_family,
                               const std::string& local_address,
                               std::string& last_error) {
@@ -206,7 +246,8 @@ bool BindSocketToLocalAddress(int sockfd,
   std::unique_ptr<addrinfo, decltype(&freeaddrinfo)> local_addresses(
       local_result, freeaddrinfo);
   for (addrinfo* local = local_addresses.get(); local; local = local->ai_next) {
-    if (BindSocketFd(sockfd, local->ai_addr, local->ai_addrlen) == 0) {
+    if (BindSocketHandle(socket_handle, local->ai_addr, local->ai_addrlen) ==
+        0) {
       return true;
     }
     last_error = "failed to bind localAddress " + local_address + ": " +
@@ -216,31 +257,31 @@ bool BindSocketToLocalAddress(int sockfd,
   return false;
 }
 
-bool ConnectSocketWithTimeout(int sockfd,
+bool ConnectSocketWithTimeout(SocketHandle socket_handle,
                               const sockaddr* address,
                               socklen_t address_length,
                               DWORD timeout_ms,
                               std::string& last_error) {
   int original_flags = 0;
-  if (!SetSocketNonBlocking(sockfd, original_flags, last_error)) {
+  if (!SetSocketNonBlocking(socket_handle, original_flags, last_error)) {
     return false;
   }
 
-  if (ConnectSocketFd(sockfd, address, address_length) == 0) {
-    RestoreSocketBlockingMode(sockfd, original_flags);
+  if (ConnectSocketHandle(socket_handle, address, address_length) == 0) {
+    RestoreSocketBlockingMode(socket_handle, original_flags);
     return true;
   }
 
   const int connect_error = LastSocketError();
   if (!IsConnectInProgressError(connect_error)) {
     last_error = "connect failed: " + SocketErrorMessage(connect_error);
-    RestoreSocketBlockingMode(sockfd, original_flags);
+    RestoreSocketBlockingMode(socket_handle, original_flags);
     return false;
   }
 
   fd_set write_fds;
   FD_ZERO(&write_fds);
-  FD_SET(static_cast<FdSetSocket>(sockfd), &write_fds);
+  FD_SET(static_cast<FdSetSocket>(socket_handle), &write_fds);
 
   timeval timeout = {};
   timeval* timeout_ptr = nullptr;
@@ -251,40 +292,40 @@ bool ConnectSocketWithTimeout(int sockfd,
   }
 
   const int select_result =
-      select(sockfd + 1, nullptr, &write_fds, nullptr, timeout_ptr);
+      SelectWritableSocket(socket_handle, &write_fds, timeout_ptr);
   if (select_result <= 0) {
     last_error =
         select_result == 0 ? "connect timeout" : "select failed: " +
                                                    SocketErrorMessage(LastSocketError());
-    RestoreSocketBlockingMode(sockfd, original_flags);
+    RestoreSocketBlockingMode(socket_handle, original_flags);
     return false;
   }
 
-  const int socket_error = GetSocketConnectError(sockfd, last_error);
+  const int socket_error = GetSocketConnectError(socket_handle, last_error);
   if (socket_error < 0) {
-    RestoreSocketBlockingMode(sockfd, original_flags);
+    RestoreSocketBlockingMode(socket_handle, original_flags);
     return false;
   }
 
   if (socket_error != 0) {
     last_error = "connect failed: " + SocketErrorMessage(socket_error);
-    RestoreSocketBlockingMode(sockfd, original_flags);
+    RestoreSocketBlockingMode(socket_handle, original_flags);
     return false;
   }
 
-  RestoreSocketBlockingMode(sockfd, original_flags);
+  RestoreSocketBlockingMode(socket_handle, original_flags);
   return true;
 }
 
-int ConnectWithLocalAddress(rdpContext* context,
-                            const char* hostname,
-                            int port,
-                            DWORD timeout_ms,
-                            const std::string& local_address,
-                            std::string& last_error) {
+SocketHandle ConnectWithLocalAddress(rdpContext* context,
+                                     const char* hostname,
+                                     int port,
+                                     DWORD timeout_ms,
+                                     const std::string& local_address,
+                                     std::string& last_error) {
   if (!hostname || local_address.empty()) {
     last_error = "hostname and localAddress are required";
-    return -1;
+    return kInvalidSocketHandle;
   }
 
   addrinfo hints = {};
@@ -299,37 +340,36 @@ int ConnectWithLocalAddress(rdpContext* context,
     last_error = "failed to resolve RDP host " + std::string(hostname) +
                  ": " + gai_strerror(status);
     freerdp_set_last_error_if_not(context, FREERDP_ERROR_DNS_NAME_NOT_FOUND);
-    return -1;
+    return kInvalidSocketHandle;
   }
 
   std::unique_ptr<addrinfo, decltype(&freeaddrinfo)> remote_addresses(
       remote_result, freeaddrinfo);
   for (addrinfo* remote = remote_addresses.get(); remote;
        remote = remote->ai_next) {
-    const auto socket_handle =
+    const SocketHandle socket_handle =
         socket(remote->ai_family, remote->ai_socktype, remote->ai_protocol);
-    const int sockfd = static_cast<int>(socket_handle);
-    if (sockfd < 0) {
+    if (IsInvalidSocketHandle(socket_handle)) {
       last_error = "socket failed: " + SocketErrorMessage(LastSocketError());
       continue;
     }
 
-    if (!BindSocketToLocalAddress(sockfd, remote->ai_family, local_address,
-                                  last_error)) {
-      CloseSocketFd(sockfd);
+    if (!BindSocketToLocalAddress(socket_handle, remote->ai_family,
+                                  local_address, last_error)) {
+      CloseSocketHandle(socket_handle);
       continue;
     }
 
-    if (ConnectSocketWithTimeout(sockfd, remote->ai_addr, remote->ai_addrlen,
-                                 timeout_ms, last_error)) {
-      return sockfd;
+    if (ConnectSocketWithTimeout(socket_handle, remote->ai_addr,
+                                 remote->ai_addrlen, timeout_ms, last_error)) {
+      return socket_handle;
     }
 
-    CloseSocketFd(sockfd);
+    CloseSocketHandle(socket_handle);
   }
 
   freerdp_set_last_error_if_not(context, FREERDP_ERROR_CONNECT_FAILED);
-  return -1;
+  return kInvalidSocketHandle;
 }
 
 int LocalAddressTcpConnect(rdpContext* context,
@@ -344,10 +384,10 @@ int LocalAddressTcpConnect(rdpContext* context,
   }
 
   std::string last_error;
-  const int sockfd = ConnectWithLocalAddress(
+  const SocketHandle socket_handle = ConnectWithLocalAddress(
       context, hostname, port, timeout_ms, bind_context->local_address,
       last_error);
-  if (sockfd < 0) {
+  if (IsInvalidSocketHandle(socket_handle)) {
     std::fprintf(stderr,
                  "RDP localAddress connection failed (localAddress=%s, "
                  "target=%s:%d): %s\n",
@@ -357,6 +397,20 @@ int LocalAddressTcpConnect(rdpContext* context,
     return -1;
   }
 
+  if (!SocketHandleFitsFreeRdpInt(socket_handle)) {
+    std::fprintf(stderr,
+                 "RDP localAddress connection failed (localAddress=%s, "
+                 "target=%s:%d): socket handle exceeds FreeRDP transport "
+                 "callback int range\n",
+                 bind_context->local_address.c_str(), hostname ? hostname : "",
+                 port);
+    std::fflush(stderr);
+    CloseSocketHandle(socket_handle);
+    freerdp_set_last_error_if_not(context, FREERDP_ERROR_CONNECT_FAILED);
+    return -1;
+  }
+
+  const int sockfd = SocketHandleToFreeRdpInt(socket_handle);
   if (!bind_context->default_io.TCPConnect) {
     return sockfd;
   }
@@ -364,7 +418,7 @@ int LocalAddressTcpConnect(rdpContext* context,
   const int attached_sockfd = bind_context->default_io.TCPConnect(
       context, settings, "|midscene-bound-socket", sockfd, timeout_ms);
   if (attached_sockfd < 0) {
-    CloseSocketFd(sockfd);
+    CloseSocketHandle(socket_handle);
   }
   return attached_sockfd;
 }
