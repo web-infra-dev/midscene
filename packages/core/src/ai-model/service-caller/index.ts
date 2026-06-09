@@ -300,6 +300,7 @@ export async function callAI(
   let usage: OpenAI.CompletionUsage | undefined;
   let timeCost: number | undefined;
   let requestId: string | null | undefined;
+  let responseModelName: string | undefined;
 
   const hasUsableText = (value: string | null | undefined): value is string =>
     typeof value === 'string' && value.trim().length > 0;
@@ -323,6 +324,7 @@ export async function callAI(
       time_cost: timeCost ?? 0,
       model_name: modelName,
       model_description: modelDescription,
+      response_model_name: responseModelName,
       slot: modelConfig.slot,
       // Agent task layers fill semantic intent after the raw model call.
       intent: undefined,
@@ -407,6 +409,9 @@ export async function callAI(
           // Check for usage info in any chunk (OpenAI provides usage in separate chunks)
           if (chunk.usage) {
             usage = chunk.usage;
+          }
+          if (chunk.model) {
+            responseModelName = chunk.model;
           }
 
           if (content || reasoning_content) {
@@ -505,6 +510,7 @@ export async function callAI(
           accumulatedReasoning = parsedMessage.reasoning_content;
           usage = result.usage;
           requestId = result._request_id;
+          responseModelName = result.model;
 
           if (!hasUsableText(content) && hasUsableText(accumulatedReasoning)) {
             warnCall('empty content from AI model, using reasoning content');

@@ -730,6 +730,7 @@ class CodexAppServerConnection {
       time_cost: Date.now() - startTime,
       model_name: modelConfig.modelName,
       model_description: modelConfig.modelDescription,
+      response_model_name: undefined,
       slot: modelConfig.slot,
       intent: undefined,
       request_id: turnId,
