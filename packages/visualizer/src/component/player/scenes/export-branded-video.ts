@@ -369,35 +369,72 @@ function drawSteps(
 
 // ── main export function ──
 
-export async function exportBrandedVideo(
-  frameMap: FrameMap,
-  options?: {
-    autoZoom?: boolean;
-  },
-  onProgress?: (pct: number) => void,
-): Promise<void> {
-  if (activeExport) {
-    throw new Error('Video export is already in progress');
-  }
-  activeExport = true;
-  try {
-    await runExportBrandedVideo(frameMap, options, onProgress);
-  } finally {
-    activeExport = false;
-  }
+export interface RecordBrandedVideoOptions {
+  autoZoom?: boolean;
+  scale?: number;
+  // Render for a headless page (the Midscene CLI exporter) instead of an
+  // interactive tab. Disables the "tab hidden" and "render stalled" interruption
+  // guards: a headless page reports no visibility changes, and software
+  // rendering is legitimately slow, so neither signal indicates a real problem.
+  headless?: boolean;
 }
 
-async function runExportBrandedVideo(
-  frameMap: FrameMap,
-  options?: {
-    autoZoom?: boolean;
-  },
-  onProgress?: (pct: number) => void,
-): Promise<void> {
-  const { totalDurationInFrames: total, fps } = frameMap;
-  const autoZoom = options?.autoZoom ?? true;
+export interface BrandedFrameRendererOptions {
+  autoZoom?: boolean;
+  scale?: number;
+}
 
-  // 1. pre-load all images
+export interface BrandedFrameRenderer {
+  canvas: HTMLCanvasElement;
+  width: number;
+  height: number;
+  fps: number;
+  totalFrames: number;
+  renderFrame: (frameIndex: number) => void;
+  renderFrameToBlob: (
+    frameIndex: number,
+    type?: string,
+    quality?: number,
+  ) => Promise<Blob>;
+  renderFrameToDataURL: (
+    frameIndex: number,
+    type?: string,
+    quality?: number,
+  ) => string;
+  dispose: () => void;
+}
+
+function canvasToBlob(
+  canvas: HTMLCanvasElement,
+  type = 'image/png',
+  quality?: number,
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error('failed to encode canvas frame'));
+          return;
+        }
+        resolve(blob);
+      },
+      type,
+      quality,
+    );
+  });
+}
+
+export async function createBrandedFrameRenderer(
+  frameMap: FrameMap,
+  options?: BrandedFrameRendererOptions,
+): Promise<BrandedFrameRenderer> {
+  const { totalDurationInFrames: totalFrames, fps } = frameMap;
+  const autoZoom = options?.autoZoom ?? true;
+  const scale = options?.scale ?? 1;
+  if (!Number.isFinite(scale) || scale <= 0) {
+    throw new Error('video frame scale must be a positive number');
+  }
+
   const imgSrcs = new Set<string>();
   for (const sf of frameMap.scriptFrames) {
     if (sf.img) imgSrcs.add(sf.img);
@@ -436,12 +473,116 @@ async function runExportBrandedVideo(
     /* optional */
   }
 
-  // 2. canvas + recorder
   const canvas = document.createElement('canvas');
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext('2d')!;
+  canvas.width = Math.round(W * scale);
+  canvas.height = Math.round(H * scale);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('failed to create video canvas context');
+  }
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
 
+  const renderFrame = (frameIndex: number) => {
+    if (frameIndex < 0 || frameIndex >= totalFrames) {
+      throw new Error(
+        `video frame index ${frameIndex} out of range (0-${totalFrames - 1})`,
+      );
+    }
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    drawSteps(
+      ctx,
+      frameIndex,
+      frameMap,
+      imgCache,
+      pointerCache,
+      spinnerImg,
+      autoZoom,
+    );
+  };
+
+  return {
+    canvas,
+    width: canvas.width,
+    height: canvas.height,
+    fps,
+    totalFrames,
+    renderFrame,
+    renderFrameToBlob: (frameIndex, type, quality) => {
+      renderFrame(frameIndex);
+      return canvasToBlob(canvas, type, quality);
+    },
+    renderFrameToDataURL: (frameIndex, type, quality) => {
+      renderFrame(frameIndex);
+      return canvas.toDataURL(type ?? 'image/png', quality);
+    },
+    dispose: () => {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      imgCache.clear();
+      pointerCache.clear();
+      spinnerImg = null;
+    },
+  };
+}
+
+// MediaRecorder must be started with a timeslice, otherwise headless Chromium
+// emits no `dataavailable` events and the resulting blob is empty.
+const RECORDER_TIMESLICE_MS = 100;
+
+export async function exportBrandedVideo(
+  frameMap: FrameMap,
+  options?: RecordBrandedVideoOptions,
+  onProgress?: (pct: number) => void,
+): Promise<void> {
+  const blob = await recordBrandedVideo(frameMap, options, onProgress);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'midscene_replay.webm';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export async function recordBrandedVideo(
+  frameMap: FrameMap,
+  options?: RecordBrandedVideoOptions,
+  onProgress?: (pct: number) => void,
+): Promise<Blob> {
+  if (activeExport) {
+    throw new Error('Video export is already in progress');
+  }
+  activeExport = true;
+  try {
+    return await runRecordBrandedVideo(frameMap, options, onProgress);
+  } finally {
+    activeExport = false;
+  }
+}
+
+async function runRecordBrandedVideo(
+  frameMap: FrameMap,
+  options?: RecordBrandedVideoOptions,
+  onProgress?: (pct: number) => void,
+): Promise<Blob> {
+  const { totalDurationInFrames: total, fps } = frameMap;
+  const autoZoom = options?.autoZoom ?? true;
+  const headless = options?.headless ?? false;
+  const renderer = await createBrandedFrameRenderer(frameMap, {
+    autoZoom,
+    scale: options?.scale,
+  });
+  const { canvas } = renderer;
+
+  // captureStream(fps) lets the browser sample frames in lockstep with the
+  // compositor; the rAF-driven loop below advances the compositor, so every
+  // drawn frame is captured (this holds in headless too — rAF keeps running).
+  // We deliberately do NOT use captureStream(0)+requestFrame: forcing every
+  // drawn frame floods the software (swiftshader) encoder, which then drops
+  // frames nondeterministically.
   const stream = canvas.captureStream(fps);
   const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
   const chunks: BlobPart[] = [];
@@ -450,7 +591,7 @@ async function runExportBrandedVideo(
   };
 
   // 3. render loop
-  return new Promise<void>((resolve, reject) => {
+  return new Promise<Blob>((resolve, reject) => {
     let stoppedByError: Error | null = null;
     let settled = false;
     let nextFrame = 0;
@@ -465,6 +606,7 @@ async function runExportBrandedVideo(
       if (renderTimer) clearTimeout(renderTimer);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       stream.getTracks().forEach((track) => track.stop());
+      renderer.dispose();
     };
 
     const finishWithError = (error: Error) => {
@@ -504,19 +646,18 @@ async function runExportBrandedVideo(
         reject(new Error('No video data'));
         return;
       }
-      const blob = new Blob(chunks, { type: 'video/webm' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'midscene_replay.webm';
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      resolve();
+      resolve(new Blob(chunks, { type: 'video/webm' }));
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    recorder.start();
+    if (!headless) {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+    recorder.start(RECORDER_TIMESLICE_MS);
 
+    // The loop is rAF-driven in both modes: captureStream(fps) samples frames in
+    // lockstep with the compositor, and rAF is what advances the compositor, so
+    // every drawn frame is captured. (Headless pages keep rAF running at full
+    // rate.) setTimeout only paces frames to real time between rAF ticks.
     const scheduleNextFrame = () => {
       const delay = Math.max(0, nextFrameDueAt - performance.now());
       renderTimer = setTimeout(() => {
@@ -527,6 +668,7 @@ async function runExportBrandedVideo(
     const renderFrame = (timestamp: number) => {
       if (settled || recorder.state === 'inactive') return;
       if (
+        !headless &&
         nextFrame > 0 &&
         isExportRenderStalled(timestamp - lastFrameAt, frameDuration)
       ) {
@@ -537,16 +679,7 @@ async function runExportBrandedVideo(
       }
 
       lastFrameAt = timestamp;
-      ctx.clearRect(0, 0, W, H);
-      drawSteps(
-        ctx,
-        nextFrame,
-        frameMap,
-        imgCache,
-        pointerCache,
-        spinnerImg,
-        autoZoom,
-      );
+      renderer.renderFrame(nextFrame);
       onProgress?.((nextFrame + 1) / total);
 
       nextFrame += 1;

@@ -8,11 +8,17 @@ import { version } from '../package.json';
 import { matchYamlFiles, parseProcessArgs } from './cli-utils';
 import { createConfig, createFilesConfig } from './config-factory';
 import { runFrameworkTestConfig } from './framework';
+import { reportVideoCommand } from './report-video';
 
 Promise.resolve(
   (async () => {
     const rawArgs = process.argv.slice(2);
     const [firstArg] = rawArgs;
+    if (firstArg === 'report-video') {
+      const exitCode = await reportVideoCommand(rawArgs.slice(1));
+      // Ensure the process terminates even if a browser handle lingers.
+      process.exit(exitCode);
+    }
     if (firstArg === 'report-tool') {
       await runToolsCLI(
         {

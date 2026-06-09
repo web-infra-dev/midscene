@@ -801,6 +801,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@ffmpeg-installer/ffmpeg':
+        specifier: ^1.1.0
+        version: 1.1.0
       '@midscene/android':
         specifier: workspace:*
         version: link:../android
@@ -13515,7 +13518,6 @@ snapshots:
       '@ffmpeg-installer/linux-x64': 4.1.0
       '@ffmpeg-installer/win32-ia32': 4.1.0
       '@ffmpeg-installer/win32-x64': 4.1.0
-    optional: true
 
   '@ffmpeg-installer/linux-arm64@4.1.4':
     optional: true

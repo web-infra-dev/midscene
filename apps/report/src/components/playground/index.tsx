@@ -5,8 +5,8 @@ import type {
   ReportActionDump,
   UIContext,
 } from '@midscene/core';
-import { GroupedActionDump } from '@midscene/core';
 import { paramStr, typeStr } from '@midscene/core/agent';
+import { GroupedActionDump } from '@midscene/core/dump';
 import { type PlaygroundSDK, noReplayAPIs } from '@midscene/playground';
 import type { ServerResponse } from '@midscene/playground';
 import {

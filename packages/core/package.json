@@ -34,6 +34,11 @@
       "import": "./dist/es/device/index.mjs",
       "require": "./dist/lib/device/index.js"
     },
+    "./dump": {
+      "types": "./dist/types/dump/index.d.ts",
+      "import": "./dist/es/dump/index.mjs",
+      "require": "./dist/lib/dump/index.js"
+    },
     "./agent": {
       "types": "./dist/types/agent/index.d.ts",
       "import": "./dist/es/agent/index.mjs",
@@ -49,6 +54,11 @@
       "import": "./dist/es/report.mjs",
       "require": "./dist/lib/report.js"
     },
+    "./report-markdown": {
+      "types": "./dist/types/report-markdown.d.ts",
+      "import": "./dist/es/report-markdown.mjs",
+      "require": "./dist/lib/report-markdown.js"
+    },
     "./skill": {
       "types": "./dist/types/skill/index.d.ts",
       "import": "./dist/es/skill/index.mjs",
@@ -62,8 +72,10 @@
       "ai-model": ["./dist/types/ai-model.d.ts"],
       "tree": ["./dist/types/tree.d.ts"],
       "device": ["./dist/types/device.d.ts"],
+      "dump": ["./dist/types/dump/index.d.ts"],
       "agent": ["./dist/types/agent.d.ts"],
       "yaml": ["./dist/types/yaml.d.ts"],
+      "report-markdown": ["./dist/types/report-markdown.d.ts"],
       "mcp": ["./dist/types/skill/index.d.ts"]
     }
   },

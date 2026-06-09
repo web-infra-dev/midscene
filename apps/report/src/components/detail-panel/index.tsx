@@ -14,8 +14,10 @@ import type {
   ExecutionTaskPlanningLocate,
   IExecutionDump,
 } from '@midscene/core';
-import type { MarkdownAttachment } from '@midscene/core';
-import { executionToMarkdown } from '@midscene/core';
+import {
+  type MarkdownAttachment,
+  executionToMarkdown,
+} from '@midscene/core/report-markdown';
 import {
   Blackboard,
   Player,

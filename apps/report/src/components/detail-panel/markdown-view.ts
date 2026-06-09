@@ -1,4 +1,4 @@
-import type { MarkdownAttachment } from '@midscene/core';
+import type { MarkdownAttachment } from '@midscene/core/report-markdown';
 
 type ExecutionMarkdown = {
   markdown: string;

@@ -72,6 +72,40 @@ npx @midscene/web report-tool --action merge-html \
 
 每多合并一份报告就重复一次 `--htmlReport`。`--outputDir` 和 `--outputName` 都是可选项，留空时合并后的报告会写入 Midscene 默认的报告目录、并生成自动文件名。已存在同名文件时使用 `--overwrite` 进行覆盖。
 
+## 通过命令行生成回放视频
+
+报告页面有一个「导出视频」按钮，可以把回放渲染成 `.webm` 文件。`@midscene/cli` 的 `report-video` 子命令能在命令行直接产出回放视频，无需在浏览器中打开报告，适合 CI 或批处理场景。它内部会驱动一个无头浏览器，并默认使用随 CLI 安装的 `@ffmpeg-installer/ffmpeg` 二进制进行逐帧编码，因此只随 `@midscene/cli` 提供（不在各平台 CLI 中）。
+
+从已有的报告 HTML 生成视频。也支持 `html-and-external-assets` 生成的目录模式报告，可以传入报告目录或其中的 `index.html`：
+
+```shell
+npx @midscene/cli report-video --input ./midscene_run/report/puppeteer-2026/index.html --output ./videos --name my-replay
+```
+
+也可以传入 dump JSON 文件，而不是 HTML 报告：
+
+```shell
+npx @midscene/cli report-video --input ./output-data/some.execution.json --output ./videos
+```
+
+可用参数：
+
+- `--input, -i`:报告 HTML（文件或目录）或 dump JSON 文件，必填。
+- `--output, -o`:输出目录，留空时使用 Midscene 默认的报告目录。
+- `--name`:输出文件名（不含扩展名），默认为 `midscene_replay`。
+- `--index`:多分组报告中要渲染的 dump 分组序号，默认为 `0`。
+- `--encoder`:编码器，可选 `ffmpeg`（默认）或 `media-recorder`。ffmpeg 会离线逐帧编码，更适合较长回放。
+- `--format`:使用 ffmpeg 编码时的输出格式，可选 `webm`（默认）或 `mp4`。
+- `--fps`:使用 ffmpeg 编码时的输出帧率，默认为 `15` 以提升导出速度；如需接近浏览器导出的流畅度，可传入 `30`。
+- `--frame-format`:使用 ffmpeg 编码时的中间帧格式，默认为高质量 `jpeg` 以提升速度；如需无损中间帧，可传入 `png`。
+- `--concurrency`:使用 ffmpeg 编码时的并行帧渲染器数量，默认为 `4`。
+- `--scale`:使用 ffmpeg 编码时的输出分辨率倍率，默认为 `1`（960×540）；传入 `2` 可输出 1920×1080。
+- `--no-auto-zoom`:关闭自动缩放的镜头动画。
+
+默认输出为 WebM 视频（960×540），并以 15fps、高质量 JPEG 中间帧和 2Mbps VP8 码率渲染。当增大 `--scale` 时，WebM 码率会随输出像素面积同步增大（`--scale 2` 使用 8Mbps）。若需要 MP4，可传入 `--format mp4`，或让 `--name` 以 `.mp4` 结尾。若优先考虑流畅度而不是速度，可传入 `--fps 30`；若优先考虑无损中间帧而不是速度，可传入 `--frame-format png`；若优先考虑清晰度而不是速度和文件大小，可传入 `--scale 2`。
+
+当输入为 HTML 报告时会自动保留截图;而 dump JSON 只会渲染内嵌的截图，因此当截图以独立文件存储时，建议使用 HTML 输入。报告需要由包含视频导出 hook 的当前 Midscene 模板生成；旧版报告 HTML 请先重新生成再导出视频。
+
 ## 使用 JavaScript SDK 解析
 
 如果你希望在代码里控制报告解析，可以使用 `@midscene/core` 提供的 `splitReportFile`、`reportFileToMarkdown` 和 `mergeReportFiles`。

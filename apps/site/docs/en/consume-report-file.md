@@ -72,6 +72,40 @@ npx @midscene/web report-tool --action merge-html \
 
 Repeat `--htmlReport` once per source report. `--outputDir` and `--outputName` are optional; when omitted, the merged file is written to the default Midscene report directory with an auto-generated name. Pass `--overwrite` to replace an existing merged file.
 
+## Generate A Replay Video From The CLI
+
+The report viewer has an "Export video" button that renders the replay as a `.webm` file. The `report-video` subcommand of `@midscene/cli` produces the replay video from the command line, without opening the report in a browser — handy for CI or batch jobs. It drives a headless browser internally and encodes frames with the bundled `@ffmpeg-installer/ffmpeg` binary by default, so it ships only in `@midscene/cli` (not in the per-platform CLIs).
+
+Generate a video from an existing report HTML. Directory-mode reports generated with `html-and-external-assets` are also supported; pass either the report directory or its `index.html`:
+
+```shell
+npx @midscene/cli report-video --input ./midscene_run/report/puppeteer-2026/index.html --output ./videos --name my-replay
+```
+
+You can also pass a dump JSON file instead of an HTML report:
+
+```shell
+npx @midscene/cli report-video --input ./output-data/some.execution.json --output ./videos
+```
+
+Options:
+
+- `--input, -i`: report HTML (file or directory) or a dump JSON file. Required.
+- `--output, -o`: output directory. Defaults to the Midscene report directory.
+- `--name`: output file name without extension. Defaults to `midscene_replay`.
+- `--index`: which dump group to render for a multi-group report. Defaults to `0`.
+- `--encoder`: `ffmpeg` (default) or `media-recorder`. The ffmpeg encoder renders frames offline and supports long replays more reliably.
+- `--format`: `webm` (default) or `mp4` when using the ffmpeg encoder.
+- `--fps`: output frame rate for the ffmpeg encoder. Defaults to `15` for faster export; pass `30` for the browser export cadence.
+- `--frame-format`: intermediate frame format for the ffmpeg encoder. Defaults to high-quality `jpeg` for speed; pass `png` for lossless intermediate frames.
+- `--concurrency`: parallel frame renderers for the ffmpeg encoder. Defaults to `4`.
+- `--scale`: output resolution scale for the ffmpeg encoder. Defaults to `1` (960×540); pass `2` for 1920×1080.
+- `--no-auto-zoom`: disable the auto-zoom camera animation.
+
+The default output is a WebM video (960×540) rendered at 15fps with high-quality JPEG intermediate frames and a 2Mbps VP8 bitrate. When `--scale` is increased, the WebM bitrate scales with the output pixel area (`--scale 2` uses 8Mbps). To produce MP4, pass `--format mp4` or a `--name` ending in `.mp4`. To prioritize smoothness over speed, pass `--fps 30`; to prioritize lossless intermediate frames over speed, pass `--frame-format png`; to prioritize sharpness over speed and file size, pass `--scale 2`.
+
+When the input is an HTML report, screenshots are preserved automatically; a dump JSON only renders embedded screenshots, so prefer the HTML input when screenshots are stored as separate files. The report must be generated with a current Midscene template that includes the video export hook; older report HTML files should be regenerated before exporting video.
+
 ## Parse With The JavaScript SDK
 
 If you prefer to control report parsing in code, use `splitReportFile`, `reportFileToMarkdown`, and `mergeReportFiles` from `@midscene/core`.

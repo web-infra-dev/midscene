@@ -26,6 +26,7 @@
     "@midscene/shared": "workspace:*",
     "@midscene/web": "workspace:*",
     "@rstest/core": "0.10.3",
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "http-server": "14.1.1",
     "lodash.merge": "4.6.2",
     "puppeteer": "24.6.0"

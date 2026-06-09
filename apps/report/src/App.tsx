@@ -4,12 +4,7 @@ import { Alert, ConfigProvider, Empty, theme } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
-import {
-  GroupedActionDump,
-  dedupeExecutionsKeepLatest,
-  restoreImageReferences,
-} from '@midscene/core';
-import { antiEscapeScriptTag } from '@midscene/shared/utils';
+import type { GroupedActionDump } from '@midscene/core';
 import {
   Logo,
   Player,
@@ -31,36 +26,13 @@ import type {
 } from './types';
 import { formatModelBriefText } from './utils/model-brief';
 import {
+  groupDumpScriptElements,
+  parseDumpGroup,
+} from './utils/read-report-dumps';
+import {
   getEmptyDumpDescription,
   parseDumpAttributes,
 } from './utils/report-dump';
-
-// Shared image cache across all test cases — resolved images are cached by id
-const imageCache = new Map<string, string>();
-
-function resolveImageFromDom(
-  refOrId: string | { id: string; storage?: 'inline' | 'file'; path?: string },
-): string {
-  const id = typeof refOrId === 'string' ? refOrId : refOrId.id;
-  const cached = imageCache.get(id);
-  if (cached) return cached;
-
-  const el = document.querySelector(
-    `script[type="midscene-image"][data-id="${CSS.escape(id)}"]`,
-  );
-  if (el?.textContent) {
-    const data = antiEscapeScriptTag(el.textContent);
-    imageCache.set(id, data);
-    return data;
-  }
-
-  if (typeof refOrId === 'object' && refOrId?.storage === 'file') {
-    return refOrId.path || `./screenshots/${id}.png`;
-  }
-
-  // Fallback to directory path
-  return `./screenshots/${id}.png`;
-}
 
 let globalRenderCount = 1;
 const SIDEBAR_WIDTH_KEY = 'midscene-sidebar-width';
@@ -361,74 +333,24 @@ export function App() {
   }
 
   function getDumpElements(): PlaywrightTasks[] {
-    const dumpElements = document.querySelectorAll(
-      'script[type="midscene_web_dump"]',
-    );
-    const validElements = Array.from(dumpElements).filter((el) => {
-      const textContent = el.textContent;
-      if (!textContent) {
-        console.warn('empty content in script tag', el);
-      }
-      return !!textContent;
-    });
-
-    // Group elements by data-group-id.
-    // For backward compatibility with older reports that lack data-group-id,
-    // each element without the attribute is treated as its own group.
-    const groupMap = new Map<string, Element[]>();
-    let ungroupedCounter = 0;
-
-    for (const el of validElements) {
-      const groupId = el.getAttribute('data-group-id');
-      const decodedGroupId = groupId
-        ? decodeURIComponent(groupId)
-        : `__ungrouped_${ungroupedCounter++}`;
-      if (!groupMap.has(decodedGroupId)) {
-        groupMap.set(decodedGroupId, []);
-      }
-      groupMap.get(decodedGroupId)!.push(el);
-    }
-
+    const groupMap = groupDumpScriptElements();
     const result: PlaywrightTasks[] = [];
 
-    // Process grouped dump tags — merge into one PlaywrightTasks per group
+    // Process grouped dump tags — merge into one PlaywrightTasks per group.
+    // Parsing is deferred until first access (reports can be large).
     for (const [, elements] of groupMap) {
       const attributes = parseAttributesFromElement(elements[0]);
       let cachedJsonContent: GroupedActionDump | null = null;
-      let isParsed = false;
 
       result.push({
         get: () => {
-          if (!isParsed) {
+          if (!cachedJsonContent) {
             console.time('parse_grouped_dump');
-            const allExecutions: any[] = [];
-            let baseDump: GroupedActionDump | null = null;
-
-            for (const el of elements) {
-              const content = antiEscapeScriptTag(el.textContent || '');
-              const parsed = JSON.parse(content);
-              const restored = restoreImageReferences(
-                parsed,
-                resolveImageFromDom,
-              );
-              const dump = GroupedActionDump.fromJSON(restored);
-              if (!baseDump) {
-                baseDump = dump;
-              }
-              allExecutions.push(...dump.executions);
-            }
-
-            // Deduplicate executions by id — keep only the last one.
-            // Only executions with a stable id are deduped; old-format entries
-            // without id are always kept (they may be distinct despite same name).
-            baseDump!.executions = dedupeExecutionsKeepLatest(allExecutions);
-            cachedJsonContent = baseDump!;
-
-            console.timeEnd('parse_grouped_dump');
+            cachedJsonContent = parseDumpGroup(elements);
             (cachedJsonContent as any).attributes = attributes;
-            isParsed = true;
+            console.timeEnd('parse_grouped_dump');
           }
-          return cachedJsonContent!;
+          return cachedJsonContent;
         },
         attributes,
       });
