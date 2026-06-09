@@ -268,11 +268,14 @@ For Azure resources that expose the OpenAI-compatible `/openai/v1` endpoint, use
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1"
 MIDSCENE_MODEL_NAME="<your-model-or-deployment-name>"
+# Required by the OpenAI SDK constructor. Azure auth uses the api-key header below.
 MIDSCENE_MODEL_API_KEY="placeholder"
 MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"api-key":"<your-azure-api-key>"}}'
 ```
 
 This sends requests as `POST /openai/v1/chat/completions` with the `api-key` header.
+
+Do not omit `MIDSCENE_MODEL_API_KEY` in this setup unless `OPENAI_API_KEY` is already set. The OpenAI SDK validates its constructor `apiKey` before sending the request; Azure still uses the `api-key` header above for authentication.
 
 :::warning Azure AD / keyless auth is not supported
 

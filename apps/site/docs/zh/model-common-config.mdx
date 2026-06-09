@@ -270,11 +270,14 @@ MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultQuery":{"api-version":"2024-08-01-prev
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1"
 MIDSCENE_MODEL_NAME="<your-model-or-deployment-name>"
+# OpenAI SDK 构造时必填；Azure 实际鉴权使用下方 api-key 请求头。
 MIDSCENE_MODEL_API_KEY="placeholder"
 MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"api-key":"<your-azure-api-key>"}}'
 ```
 
 这样发出的请求会是 `POST /openai/v1/chat/completions`，并携带 `api-key` 请求头。
+
+除非已经设置了 `OPENAI_API_KEY`，否则这个配置里不要省略 `MIDSCENE_MODEL_API_KEY`。OpenAI SDK 会在发请求前校验构造器里的 `apiKey`；Azure 实际鉴权仍然使用上面的 `api-key` 请求头。
 
 :::warning 不再支持 Azure AD / keyless 鉴权
 
