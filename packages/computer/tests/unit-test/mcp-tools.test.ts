@@ -123,6 +123,7 @@ describe('ComputerMidsceneTools', () => {
         'computer.port': expect.anything(),
         'computer.username': expect.anything(),
         'computer.password': expect.anything(),
+        'computer.localAddress': expect.anything(),
         'computer.securityProtocol': expect.anything(),
       }),
     );
@@ -143,6 +144,7 @@ describe('ComputerMidsceneTools', () => {
       port: 3390,
       username: 'admin',
       password: 'secret',
+      'local-address': '10.0.0.20',
       'security-protocol': 'nla',
       'ignore-certificate': true,
     });
@@ -153,11 +155,40 @@ describe('ComputerMidsceneTools', () => {
         port: 3390,
         username: 'admin',
         password: 'secret',
+        localAddress: '10.0.0.20',
         securityProtocol: 'nla',
         ignoreCertificate: true,
       }),
     );
     expect(agentFromComputer).not.toHaveBeenCalled();
+  });
+
+  it('normalizes bracketed IPv6 host for RDP connect args and text', async () => {
+    const tools = new ComputerMidsceneTools();
+    await tools.initTools();
+
+    const connectTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'computer_connect');
+
+    expect(connectTool).toBeDefined();
+
+    const result = await connectTool?.handler({
+      host: '[2001:db8::7]',
+      port: 3390,
+      username: 'admin',
+    });
+
+    expect(agentForRDPComputer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        host: '2001:db8::7',
+        port: 3390,
+        username: 'admin',
+      }),
+    );
+    expect((result as any).content[0].text).toBe(
+      'Connected to computer via RDP ([2001:db8::7]:3390 as admin)',
+    );
   });
 
   it('routes action tools with namespaced host to agentForRDPComputer', async () => {

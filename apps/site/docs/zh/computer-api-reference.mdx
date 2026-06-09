@@ -101,6 +101,8 @@ const agent = await agentForRDPComputer({
   port: 3389,
   username: 'Admin',
   password: 'replace-with-your-password',
+  // 可选：把 TCP 连接绑定到这个本地源 IP。
+  localAddress: '10.75.166.10',
   ignoreCertificate: true,
 });
 
@@ -112,6 +114,9 @@ await agent.aiAct('Open Settings');
 :::tip 示例：通过 RDP 控制远程 Windows 桌面
 一个可直接运行的 Demo：连接远程 Windows，打开「设置」并进入「Windows 更新」，最后输出一份结构化报告：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/rdp-demo)
 :::
+
+当运行 Midscene 的机器存在多条出站路由，且 RDP 服务器要求从指定本地源
+IP 访问时，可以使用 `localAddress`。这里传入的是 IP 地址，不是网卡名。
 
 ## 设备管理
 
