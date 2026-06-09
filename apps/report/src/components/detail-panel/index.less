@@ -76,6 +76,89 @@
     }
   }
 
+  .json-content {
+    padding: 16px;
+    background: #f6f8fa;
+    border: 1px solid @heavy-border-color;
+    border-radius: 6px;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #24292f;
+  }
+
+  .report-json-view {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .report-json-child-fields {
+    margin: 0;
+    padding: 0 0 0 18px;
+  }
+
+  .report-json-child {
+    margin: 0;
+    padding: 0;
+  }
+
+  .report-json-label,
+  .report-json-punctuation {
+    color: #24292f;
+  }
+
+  .report-json-label {
+    font-weight: 600;
+    margin-right: 5px;
+  }
+
+  .report-json-clickable-label {
+    cursor: pointer;
+  }
+
+  .report-json-string {
+    color: #0a7f42;
+  }
+
+  .report-json-number {
+    color: #0550ae;
+  }
+
+  .report-json-boolean,
+  .report-json-null,
+  .report-json-undefined {
+    color: #953800;
+  }
+
+  .report-json-other {
+    color: #8250df;
+  }
+
+  .report-json-expand-icon,
+  .report-json-collapse-icon {
+    cursor: pointer;
+    margin-right: 5px;
+    user-select: none;
+    color: #57606a;
+  }
+
+  .report-json-expand-icon::after {
+    content: '\25B8';
+  }
+
+  .report-json-collapse-icon::after {
+    content: '\25BE';
+  }
+
+  .report-json-collapsed-content {
+    margin-right: 5px;
+    color: #57606a;
+  }
+
+  .report-json-collapsed-content::after {
+    content: '...';
+  }
+
   .screenshot-item-wrapper {
     display: flex;
     flex-wrap: wrap;
@@ -137,6 +220,41 @@
     background: #2d2d2d;
     border-color: rgba(255, 255, 255, 0.12);
     color: #e8eaed;
+  }
+
+  .json-content {
+    background: #2d2d2d;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #e8eaed;
+  }
+
+  .report-json-label,
+  .report-json-punctuation {
+    color: #e8eaed;
+  }
+
+  .report-json-string {
+    color: #7ee787;
+  }
+
+  .report-json-number {
+    color: #79c0ff;
+  }
+
+  .report-json-boolean,
+  .report-json-null,
+  .report-json-undefined {
+    color: #ffa657;
+  }
+
+  .report-json-other {
+    color: #d2a8ff;
+  }
+
+  .report-json-expand-icon,
+  .report-json-collapse-icon,
+  .report-json-collapsed-content {
+    color: #8b949e;
   }
 
   .download-zip-link {

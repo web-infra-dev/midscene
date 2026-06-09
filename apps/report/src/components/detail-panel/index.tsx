@@ -3,6 +3,7 @@ import './index.less';
 import { isElementField, useExecutionDump } from '@/components/store';
 import {
   CameraOutlined,
+  CopyOutlined,
   DownloadOutlined,
   FileMarkdownOutlined,
   FileTextOutlined,
@@ -19,12 +20,14 @@ import { executionToMarkdown } from '@midscene/core';
 import {
   Blackboard,
   Player,
-  filterBase64Value,
   fullTimeStrWithMilliseconds,
 } from '@midscene/visualizer';
-import { Segmented } from 'antd';
+import { Button, Segmented, message } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
+import { JsonView, allExpanded } from 'react-json-view-lite';
+import 'react-json-view-lite/dist/index.css';
 import OpenInPlayground from '../open-in-playground';
+import { sanitizeJsonViewData } from './json-view-data';
 import { getExecutionMarkdownView } from './markdown-view';
 
 const ScreenshotDisplay = (props: {
@@ -49,6 +52,26 @@ const VIEW_TYPE_REPLAY = 'replay';
 const VIEW_TYPE_MARKDOWN = 'markdown';
 const VIEW_TYPE_SCREENSHOT = 'screenshot';
 const VIEW_TYPE_JSON = 'json';
+
+const jsonViewStyles = {
+  container: 'report-json-view',
+  childFieldsContainer: 'report-json-child-fields',
+  basicChildStyle: 'report-json-child',
+  label: 'report-json-label',
+  clickableLabel: 'report-json-clickable-label',
+  nullValue: 'report-json-null',
+  undefinedValue: 'report-json-undefined',
+  numberValue: 'report-json-number',
+  stringValue: 'report-json-string',
+  booleanValue: 'report-json-boolean',
+  otherValue: 'report-json-other',
+  punctuation: 'report-json-punctuation',
+  expandIcon: 'report-json-expand-icon',
+  collapseIcon: 'report-json-collapse-icon',
+  collapsedContent: 'report-json-collapsed-content',
+  quotesForFieldNames: true,
+  stringifyStringValues: true,
+};
 
 async function downloadMarkdownZip(
   markdown: string,
@@ -145,6 +168,14 @@ const DetailPanel = (): JSX.Element => {
       }),
     );
   }, [activeExecution]);
+  const activeTaskJsonViewData = useMemo(() => {
+    return activeTask ? sanitizeJsonViewData(activeTask) : null;
+  }, [activeTask]);
+  const activeTaskJsonText = useMemo(() => {
+    return activeTaskJsonViewData
+      ? JSON.stringify(activeTaskJsonViewData, undefined, 2)
+      : '';
+  }, [activeTaskJsonViewData]);
 
   const hasReplay =
     activeTask?.type === 'Planning' &&
@@ -193,7 +224,12 @@ const DetailPanel = (): JSX.Element => {
   } else if (viewType === VIEW_TYPE_JSON) {
     content = (
       <div className="json-content scrollable">
-        {filterBase64Value(JSON.stringify(activeTask, undefined, 2))}
+        <JsonView
+          data={activeTaskJsonViewData as object}
+          style={jsonViewStyles}
+          shouldExpandNode={allExpanded}
+          clickToExpandNode
+        />
       </div>
     );
   } else if (viewType === VIEW_TYPE_SCREENSHOT) {
@@ -378,6 +414,24 @@ const DetailPanel = (): JSX.Element => {
             >
               <DownloadOutlined /> Download ZIP
             </a>
+          )}
+          {viewType === VIEW_TYPE_JSON && activeTaskJsonText && (
+            <Button
+              size="small"
+              icon={<CopyOutlined />}
+              onClick={() => {
+                navigator.clipboard
+                  .writeText(activeTaskJsonText)
+                  .then(() => {
+                    message.success('JSON copied to clipboard');
+                  })
+                  .catch(() => {
+                    message.error('Copy failed');
+                  });
+              }}
+            >
+              Copy JSON
+            </Button>
           )}
           <OpenInPlayground
             context={(activeTask as ExecutionTaskPlanning)?.uiContext}
