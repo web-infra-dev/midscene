@@ -7,9 +7,7 @@ vi.mock('../src/renderer/components/Recorder/StudioRecorderPanel', () => ({
   StudioRecorderPanel: () => null,
 }));
 
-(
-  globalThis as { __STUDIO_RECORDER_ENTRY_ENABLED__?: boolean }
-).__STUDIO_RECORDER_ENTRY_ENABLED__ = true;
+vi.stubGlobal('studioRuntime', { recorderEntryEnabled: true });
 
 const { createStudioPlaygroundConfig, createStudioPlaygroundStorageNamespace } =
   await import('../src/renderer/components/Playground');

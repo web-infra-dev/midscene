@@ -108,6 +108,7 @@ function createRecorderMock({
     exportAllZip: vi.fn(),
     exportSessionCode: vi.fn(),
     generateSessionCode: vi.fn(),
+    renameSession: vi.fn(async () => undefined),
     selectSession: vi.fn(),
     startRecording: vi.fn(),
     state: {
@@ -204,7 +205,7 @@ describe('StudioRecorderPanel', () => {
     await unmount(root);
   });
 
-  it('closes recording history when editing from item actions', async () => {
+  it('edits the recording name from history item actions', async () => {
     mocks.recorder = createRecorderMock();
     mocks.playground = {
       controller: {
@@ -239,12 +240,40 @@ describe('StudioRecorderPanel', () => {
         '.studio-recorder-history-actions-menu button',
       ),
     ).find((button) => button.textContent?.includes('edit'));
+
+    expect(editButton).toBeTruthy();
+
     await act(async () => {
       editButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(mocks.recorder.selectSession).toHaveBeenCalledWith('session-1');
-    expect(document.body.textContent).not.toContain('Existing recording');
+    const input = document.body.querySelector<HTMLInputElement>(
+      'input[aria-label="Recording name"]',
+    );
+    expect(input).toBeTruthy();
+    expect(input?.value).toBe('Existing recording');
+
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set;
+      nativeInputValueSetter?.call(input, 'Renamed recording');
+      input?.dispatchEvent(
+        new InputEvent('input', { bubbles: true, inputType: 'insertText' }),
+      );
+    });
+
+    await act(async () => {
+      input?.dispatchEvent(
+        new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }),
+      );
+    });
+
+    expect(mocks.recorder.renameSession).toHaveBeenCalledWith(
+      'session-1',
+      'Renamed recording',
+    );
 
     await unmount(root);
   });
@@ -299,7 +328,7 @@ describe('StudioRecorderPanel', () => {
     await unmount(root);
   });
 
-  it('shows recent recording events first and can expand the timeline', async () => {
+  it('shows all recording events and can expand the timeline height', async () => {
     const currentSession = {
       createdAt: Date.now(),
       description: '',
@@ -352,7 +381,7 @@ describe('StudioRecorderPanel', () => {
     const { container, root } = await renderRecorderPanel();
 
     expect(container.textContent).toContain('Record Timeline');
-    expect(container.textContent).not.toContain('Booking.com app icon');
+    expect(container.textContent).toContain('Booking.com app icon');
     expect(container.textContent).toContain(
       'destination input field containing Beijing',
     );
@@ -366,7 +395,6 @@ describe('StudioRecorderPanel', () => {
       showMoreButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(container.textContent).toContain('Booking.com app icon');
     expect(container.textContent).toContain('Hide more');
     expect(container.textContent).toContain('Outputs');
     expect(
@@ -585,12 +613,13 @@ describe('StudioRecorderPanel', () => {
     await unmount(root);
   });
 
-  it('shows the generated Markdown output label', async () => {
+  it('uses the current recording name for the generated Markdown output label', async () => {
     mocks.recorder = createRecorderMock({
       sessionOverrides: {
         generatedCode: {
           markdown: '# Search for Hotels in Hangzhou\n\naiAction(...)',
         },
+        name: 'Renamed recording',
       },
     });
     mocks.playground = {
@@ -612,7 +641,7 @@ describe('StudioRecorderPanel', () => {
       historyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     const actionsButton = document.body.querySelector(
-      'button[aria-label="More actions for Existing recording"]',
+      'button[aria-label="More actions for Renamed recording"]',
     );
     await act(async () => {
       actionsButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -631,7 +660,10 @@ describe('StudioRecorderPanel', () => {
       sessionCard?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(container.textContent).toContain('Search for Hotels in Hangzhou');
+    expect(container.textContent).toContain('Renamed recording');
+    expect(container.textContent).not.toContain(
+      'Search for Hotels in Hangzhou',
+    );
     const downloadOutputButton = container.querySelector(
       'button[aria-label="Download Markdown output"]',
     );

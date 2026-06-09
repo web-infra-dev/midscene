@@ -1,4 +1,5 @@
 /** @vitest-environment jsdom */
+import { PREVIEW_WHEEL_SCROLL_BATCH_DELAY_MS } from '@midscene/shared/constants';
 import { act, createElement, createRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -560,7 +561,7 @@ describe('DeviceInteractionLayer contentRef projection', () => {
           deltaY: 120,
         }),
       );
-      vi.advanceTimersByTime(90);
+      vi.advanceTimersByTime(PREVIEW_WHEEL_SCROLL_BATCH_DELAY_MS + 10);
     });
 
     expect(onWheelScroll).toHaveBeenCalledWith(

@@ -83,6 +83,7 @@ export interface StudioRecorderContextValue {
   startRecording: () => Promise<StudioRecordingSession | null>;
   stopRecording: () => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
+  renameSession: (sessionId: string, name: string) => Promise<void>;
   selectSession: (sessionId: string) => void;
   generateSessionYaml: (
     sessionId: string,

@@ -16,7 +16,7 @@ import {
   Typography,
   message,
 } from 'antd';
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ShinyText } from './components/shiny-text';
 import type { RecordedEvent } from './recorder';
 import './RecordTimeline.css';
@@ -33,17 +33,22 @@ export const RecordTimeline = ({
   onEventClick,
 }: RecordTimelineProps) => {
   const [expandedEvents, setExpandedEvents] = useState<Set<number>>(new Set());
+  const timelineRootRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    // use className and querySelector to get internal div
     if (events.length > 0) {
-      const timeline = document.querySelector(
-        '.ant-timeline',
-      ) as HTMLDivElement;
+      const timeline =
+        timelineRootRef.current?.querySelector<HTMLElement>('.ant-timeline');
       if (timeline) {
-        timeline.scrollIntoView({
-          behavior: 'smooth',
-          block: 'end',
-        });
+        const nextScrollTop = timeline.scrollHeight;
+        if (typeof timeline.scrollTo === 'function') {
+          timeline.scrollTo({
+            top: nextScrollTop,
+            behavior: 'smooth',
+          });
+        } else {
+          timeline.scrollTop = nextScrollTop;
+        }
       }
     }
   }, [events.length]);
@@ -458,7 +463,7 @@ export const RecordTimeline = ({
   });
 
   return (
-    <div style={{ padding: '3px' }}>
+    <div ref={timelineRootRef} style={{ minHeight: 0, padding: '3px' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <Timeline
           mode="left"

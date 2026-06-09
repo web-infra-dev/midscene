@@ -9,6 +9,7 @@ import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { downloadStudioReport } from '../../playground/report-download';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
+import { isStudioRecorderEntryEnabled } from '../../recorder/feature-flag';
 import { createRecorderMarkdownReplayRequest } from '../../recorder/replay';
 import { createStudioRecorderTargetSignature } from '../../recorder/selectors';
 import type {
@@ -41,10 +42,6 @@ function NotConnectedFallback() {
 }
 
 declare const __APP_VERSION__: string;
-declare const __STUDIO_RECORDER_ENTRY_ENABLED__: boolean;
-const STUDIO_RECORDER_ENTRY_ENABLED =
-  typeof __STUDIO_RECORDER_ENTRY_ENABLED__ !== 'undefined' &&
-  __STUDIO_RECORDER_ENTRY_ENABLED__;
 type StudioExternalRunRequest = ExternalRunRequest & {
   targetSignature: string | null;
 };
@@ -127,6 +124,7 @@ export default function Playground({
 }: PlaygroundProps) {
   const studioPlayground = useStudioPlayground();
   const recorder = useStudioRecorder();
+  const recorderEntryEnabled = isStudioRecorderEntryEnabled();
   const stopRecording = recorder.stopRecording;
   const [externalRunRequest, setExternalRunRequest] =
     useState<StudioExternalRunRequest | null>(null);
@@ -240,7 +238,7 @@ export default function Playground({
   );
   const importReplayAction = useMemo(
     () =>
-      STUDIO_RECORDER_ENTRY_ENABLED ? (
+      recorderEntryEnabled ? (
         <Tooltip
           placement="top"
           title={importReplayDisabledReason || 'Import Markdown or YAML replay'}
@@ -258,7 +256,7 @@ export default function Playground({
           </span>
         </Tooltip>
       ) : null,
-    [handleImportReplay, importReplayDisabledReason],
+    [handleImportReplay, importReplayDisabledReason, recorderEntryEnabled],
   );
   const playgroundConfig = useMemo(
     () =>
@@ -271,7 +269,7 @@ export default function Playground({
   );
   const modeMenuItems = useMemo(
     () =>
-      STUDIO_RECORDER_ENTRY_ENABLED
+      recorderEntryEnabled
         ? [
             {
               key: 'playground',
@@ -281,14 +279,19 @@ export default function Playground({
             { key: 'recorder', label: 'Recorder', icon: <RecorderModeIcon /> },
           ]
         : [],
-    [],
+    [recorderEntryEnabled],
   );
   useEffect(() => {
-    if (!STUDIO_RECORDER_ENTRY_ENABLED && rightPanelMode === 'recorder') {
+    if (!recorderEntryEnabled && rightPanelMode === 'recorder') {
       onRightPanelModeChange('playground');
       void stopRecording();
     }
-  }, [onRightPanelModeChange, rightPanelMode, stopRecording]);
+  }, [
+    onRightPanelModeChange,
+    recorderEntryEnabled,
+    rightPanelMode,
+    stopRecording,
+  ]);
 
   useEffect(() => {
     if (rightPanelMode !== 'recorder') {
@@ -302,7 +305,7 @@ export default function Playground({
     };
   }, [stopRecording]);
 
-  if (STUDIO_RECORDER_ENTRY_ENABLED && rightPanelMode === 'recorder') {
+  if (recorderEntryEnabled && rightPanelMode === 'recorder') {
     return (
       <div className="min-h-0 h-full flex-1 overflow-visible bg-transparent">
         <StudioRecorderPanel onReplayMarkdown={handleReplayRecorderMarkdown} />
@@ -313,7 +316,7 @@ export default function Playground({
   return (
     <PlaygroundShell
       modeMenu={
-        STUDIO_RECORDER_ENTRY_ENABLED
+        recorderEntryEnabled
           ? {
               items: modeMenuItems,
               selectedKey: rightPanelMode,

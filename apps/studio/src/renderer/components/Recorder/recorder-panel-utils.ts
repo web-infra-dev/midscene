@@ -126,6 +126,10 @@ export function getMarkdownOutputLabel(
   content: string,
   session?: StudioRecordingSession | null,
 ) {
+  if (session?.name) {
+    return session.name;
+  }
+
   const firstHeading = content
     .split('\n')
     .map((line) => line.trim())
@@ -135,7 +139,7 @@ export function getMarkdownOutputLabel(
     return firstHeading.replace(/^#\s+/, '');
   }
 
-  return session?.name || 'Markdown replay';
+  return 'Markdown replay';
 }
 
 export function createInitialGenerationSteps(): StudioRecorderGenerationStepState {

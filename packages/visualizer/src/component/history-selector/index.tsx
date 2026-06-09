@@ -32,6 +32,10 @@ interface HistorySelectorProps {
     history: HistoryItem,
     controls: { close: () => void; scrollVersion: number },
   ) => ReactNode;
+  renderItemLabel?: (
+    history: HistoryItem,
+    controls: { close: () => void },
+  ) => ReactNode;
   overlayClassName?: string;
   popupWidth?: number;
   popupHeight?: number;
@@ -51,6 +55,7 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
   emptyText = 'No history record',
   noMatchText = 'No matching history record',
   renderItemActions,
+  renderItemLabel,
   overlayClassName,
   popupWidth = HISTORY_MODAL_WIDTH,
   popupHeight = HISTORY_MODAL_HEIGHT,
@@ -206,7 +211,11 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
             className="history-item"
             onClick={() => handleHistoryClick(item)}
           >
-            <span className="history-item-label">{item.prompt}</span>
+            <span className="history-item-label">
+              {renderItemLabel
+                ? renderItemLabel(item, { close: closeModal })
+                : item.prompt}
+            </span>
             {renderItemActions ? (
               <span
                 className="history-item-actions"

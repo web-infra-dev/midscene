@@ -2,6 +2,7 @@ import type {
   PlaygroundRuntimeInfo,
   PlaygroundSDK,
 } from '@midscene/playground';
+import { PREVIEW_TEXT_INPUT_BATCH_DELAY_MS } from '@midscene/shared/constants';
 import {
   ScreenshotViewer,
   type ScreenshotViewerMode,
@@ -86,6 +87,9 @@ export function PreviewRenderer({
   const [scrcpyStatus, setScrcpyStatus] =
     useState<ScrcpyPreviewStatus>('connecting');
   const manualControlQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  const pendingTextInputRef = useRef('');
+  const textInputTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const textInputFlushPromiseRef = useRef<Promise<void> | null>(null);
   // Shared with the active preview component (ScrcpyPanel / ScreenshotViewer)
   // and the interaction layer so pointer coords always project against the
   // real screen-mirror box, not the outer panel that may include chrome.
@@ -194,109 +198,6 @@ export function PreviewRenderer({
     onDeviceSizeChange?.(streamSize ?? deviceSize);
   }, [deviceSize, onDeviceSizeChange, streamSize]);
 
-  const showManualControlError = useCallback(
-    (fallback: string, error?: string) => {
-      message.open({
-        type: 'error',
-        content: error || fallback,
-        key: 'manual-control-error',
-      });
-    },
-    [],
-  );
-
-  const handleTap = useCallback(
-    async (point: { x: number; y: number }) => {
-      const res = await enqueueManualControl(() =>
-        playgroundSDK.interact({
-          actionType: 'Tap',
-          x: point.x,
-          y: point.y,
-        }),
-      );
-      if (!res.ok) {
-        showManualControlError('Tap failed', res.error);
-      }
-    },
-    [enqueueManualControl, playgroundSDK, showManualControlError],
-  );
-
-  const handleSwipe = useCallback(
-    async (
-      start: { x: number; y: number },
-      end: { x: number; y: number },
-      duration: number,
-    ) => {
-      const res = await enqueueManualControl(() =>
-        playgroundSDK.interact(
-          buildManualDragInteractPayload(
-            manualDragActionType,
-            start,
-            end,
-            duration,
-          ),
-        ),
-      );
-      if (!res.ok) {
-        showManualControlError(`${manualDragActionType} failed`, res.error);
-      }
-    },
-    [
-      enqueueManualControl,
-      manualDragActionType,
-      playgroundSDK,
-      showManualControlError,
-    ],
-  );
-
-  const handleTextInput = useCallback(
-    async (text: string) => {
-      if (!text) return;
-      const res = await enqueueManualControl(() =>
-        playgroundSDK.interact({
-          actionType: 'Input',
-          value: text,
-          mode: 'typeOnly',
-        }),
-      );
-      if (!res.ok) {
-        showManualControlError('Input failed', res.error);
-      }
-    },
-    [enqueueManualControl, playgroundSDK, showManualControlError],
-  );
-
-  const handleKeyboardPress = useCallback(
-    async (keyName: string) => {
-      if (!keyName) return;
-      const res = await enqueueManualControl(() =>
-        playgroundSDK.interact({
-          actionType: 'KeyboardPress',
-          keyName,
-        }),
-      );
-      if (!res.ok) {
-        showManualControlError('Keyboard press failed', res.error);
-      }
-    },
-    [enqueueManualControl, playgroundSDK, showManualControlError],
-  );
-
-  const handleWheelScroll = useCallback(
-    async (
-      point: { x: number; y: number },
-      delta: { deltaX: number; deltaY: number },
-    ) => {
-      const res = await enqueueManualControl(() =>
-        playgroundSDK.interact(buildManualScrollInteractPayload(point, delta)),
-      );
-      if (!res.ok) {
-        showManualControlError('Scroll failed', res.error);
-      }
-    },
-    [enqueueManualControl, playgroundSDK, showManualControlError],
-  );
-
   // Fall back to screenshot polling when WebCodecs is unavailable
   // (e.g. non-secure context over HTTP with a LAN IP)
   const scrcpyAvailable =
@@ -313,6 +214,208 @@ export function PreviewRenderer({
   const previewInteractionEnabled =
     previewConnection.type !== 'none' &&
     (!scrcpyAvailable || scrcpyStatus === 'connected');
+
+  const showManualControlError = useCallback(
+    (fallback: string, error?: string) => {
+      message.open({
+        type: 'error',
+        content: error || fallback,
+        key: 'manual-control-error',
+      });
+    },
+    [],
+  );
+
+  const clearTextInputTimer = useCallback(() => {
+    if (textInputTimerRef.current) {
+      clearTimeout(textInputTimerRef.current);
+      textInputTimerRef.current = null;
+    }
+  }, []);
+
+  const flushPendingTextInput = useCallback((): Promise<void> => {
+    clearTextInputTimer();
+
+    const text = pendingTextInputRef.current;
+    if (!text) {
+      return textInputFlushPromiseRef.current ?? Promise.resolve();
+    }
+
+    pendingTextInputRef.current = '';
+    const previousFlush = textInputFlushPromiseRef.current ?? Promise.resolve();
+    const flushPromise = previousFlush
+      .catch(() => undefined)
+      .then(async () => {
+        const res = await enqueueManualControl(() =>
+          playgroundSDK.interact({
+            actionType: 'Input',
+            value: text,
+            mode: 'typeOnly',
+          }),
+        );
+        if (!res.ok) {
+          showManualControlError('Input failed', res.error);
+        }
+      });
+
+    const trackedFlushPromise = flushPromise.finally(() => {
+      if (textInputFlushPromiseRef.current === trackedFlushPromise) {
+        textInputFlushPromiseRef.current = null;
+      }
+    });
+
+    textInputFlushPromiseRef.current = trackedFlushPromise;
+    return textInputFlushPromiseRef.current;
+  }, [
+    clearTextInputTimer,
+    enqueueManualControl,
+    playgroundSDK,
+    showManualControlError,
+  ]);
+
+  const handleTap = useCallback(
+    async (point: { x: number; y: number }) => {
+      await flushPendingTextInput();
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact({
+          actionType: 'Tap',
+          x: point.x,
+          y: point.y,
+        }),
+      );
+      if (!res.ok) {
+        showManualControlError('Tap failed', res.error);
+      }
+    },
+    [
+      enqueueManualControl,
+      flushPendingTextInput,
+      playgroundSDK,
+      showManualControlError,
+    ],
+  );
+
+  const handleSwipe = useCallback(
+    async (
+      start: { x: number; y: number },
+      end: { x: number; y: number },
+      duration: number,
+    ) => {
+      await flushPendingTextInput();
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact(
+          buildManualDragInteractPayload(
+            manualDragActionType,
+            start,
+            end,
+            duration,
+          ),
+        ),
+      );
+      if (!res.ok) {
+        showManualControlError(`${manualDragActionType} failed`, res.error);
+      }
+    },
+    [
+      enqueueManualControl,
+      flushPendingTextInput,
+      manualDragActionType,
+      playgroundSDK,
+      showManualControlError,
+    ],
+  );
+
+  const handleTextInput = useCallback(
+    (text: string) => {
+      if (!text) return;
+      pendingTextInputRef.current += text;
+      clearTextInputTimer();
+      textInputTimerRef.current = setTimeout(() => {
+        void flushPendingTextInput();
+      }, PREVIEW_TEXT_INPUT_BATCH_DELAY_MS);
+    },
+    [clearTextInputTimer, flushPendingTextInput],
+  );
+
+  useEffect(() => {
+    if (serverOnline && previewInteractionEnabled && manualKeyboardEnabled) {
+      return;
+    }
+    clearTextInputTimer();
+    pendingTextInputRef.current = '';
+  }, [
+    clearTextInputTimer,
+    manualKeyboardEnabled,
+    previewInteractionEnabled,
+    serverOnline,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (
+        serverOnline &&
+        previewInteractionEnabled &&
+        manualKeyboardEnabled &&
+        pendingTextInputRef.current
+      ) {
+        void flushPendingTextInput();
+        return;
+      }
+      clearTextInputTimer();
+    };
+  }, [
+    clearTextInputTimer,
+    flushPendingTextInput,
+    manualKeyboardEnabled,
+    previewConnection.type,
+    previewInteractionEnabled,
+    runtimeInfo,
+    serverOnline,
+    serverUrl,
+  ]);
+
+  const handleKeyboardPress = useCallback(
+    async (keyName: string) => {
+      if (!keyName) return;
+      await flushPendingTextInput();
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact({
+          actionType: 'KeyboardPress',
+          keyName,
+        }),
+      );
+      if (!res.ok) {
+        showManualControlError('Keyboard press failed', res.error);
+      }
+    },
+    [
+      enqueueManualControl,
+      flushPendingTextInput,
+      playgroundSDK,
+      showManualControlError,
+    ],
+  );
+
+  const handleWheelScroll = useCallback(
+    async (
+      point: { x: number; y: number },
+      delta: { deltaX: number; deltaY: number },
+    ) => {
+      await flushPendingTextInput();
+      const res = await enqueueManualControl(() =>
+        playgroundSDK.interact(buildManualScrollInteractPayload(point, delta)),
+      );
+      if (!res.ok) {
+        showManualControlError('Scroll failed', res.error);
+      }
+    },
+    [
+      enqueueManualControl,
+      flushPendingTextInput,
+      playgroundSDK,
+      showManualControlError,
+    ],
+  );
 
   const handleScrcpyStatusChange = useCallback(
     (status: ScrcpyPreviewStatus, statusText: string) => {

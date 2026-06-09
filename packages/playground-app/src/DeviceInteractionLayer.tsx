@@ -1,3 +1,4 @@
+import { PREVIEW_WHEEL_SCROLL_BATCH_DELAY_MS } from '@midscene/shared/constants';
 import React, {
   type CSSProperties,
   useCallback,
@@ -383,7 +384,10 @@ export function DeviceInteractionLayer({
       if (wheelTimerRef.current) {
         clearTimeout(wheelTimerRef.current);
       }
-      wheelTimerRef.current = setTimeout(flushPendingWheel, 80);
+      wheelTimerRef.current = setTimeout(
+        flushPendingWheel,
+        PREVIEW_WHEEL_SCROLL_BATCH_DELAY_MS,
+      );
     },
     [
       contentRef,

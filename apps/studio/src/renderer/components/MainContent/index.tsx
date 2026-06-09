@@ -16,6 +16,7 @@ import {
   resolveSelectedDeviceId,
 } from '../../playground/selectors';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
+import { isStudioRecorderEntryEnabled } from '../../recorder/feature-flag';
 import type { StudioRecorderPanelMode } from '../../recorder/types';
 import ConnectingPreview from '../ConnectingPreview';
 import ConnectionFailedPreview from '../ConnectionFailedPreview';
@@ -35,11 +36,6 @@ import {
 } from './preview-layout';
 
 const debugWebNavigation = getDebug('studio:web-navigation', { console: true });
-
-declare const __STUDIO_RECORDER_ENTRY_ENABLED__: boolean;
-const STUDIO_RECORDER_ENTRY_ENABLED =
-  typeof __STUDIO_RECORDER_ENTRY_ENABLED__ !== 'undefined' &&
-  __STUDIO_RECORDER_ENTRY_ENABLED__;
 
 export interface MainContentProps {
   activeView: ShellActiveView;
@@ -435,7 +431,7 @@ export default function MainContent({
   const pillColors = pillPalette[connectionStatus];
   const selectedPreviewToolbarKey =
     rightPanelMode === 'recorder' ? 'recorder' : 'api-playground';
-  const previewToolbarIcons = STUDIO_RECORDER_ENTRY_ENABLED
+  const previewToolbarIcons = isStudioRecorderEntryEnabled()
     ? [
         {
           icon: <RecorderModeIcon />,
