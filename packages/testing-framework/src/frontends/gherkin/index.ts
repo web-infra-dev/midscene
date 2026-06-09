@@ -44,7 +44,7 @@ import type {
   PromptStepIR,
   ScenarioIR,
 } from '../../flow-ir';
-import { assertIdentifier } from '../../flow-ir';
+import { IDENTIFIER_PATTERN, assertIdentifier } from '../../flow-ir';
 
 export interface CompiledFeature {
   name: string;
@@ -54,11 +54,14 @@ export interface CompiledFeature {
   flows: FlowDefIR[];
 }
 
-const REMEMBER_STEP = /^I remember (.+?) as "([A-Za-z_][A-Za-z0-9_]*)"$/i;
+const REMEMBER_STEP = new RegExp(
+  `^I remember (.+?) as "(${IDENTIFIER_PATTERN})"$`,
+  'i',
+);
 const CALL_FLOW_STEP = /^I run the "([^"]+)" flow(?: with (.+))?$/i;
-const CALL_FLOW_ARG = /([A-Za-z_][A-Za-z0-9_]*)\s+"([^"]*)"/g;
-const PARAM_TAG = /^@param:([A-Za-z_][A-Za-z0-9_]*)$/;
-const RETURNS_TAG = /^@returns?:([A-Za-z_][A-Za-z0-9_]*)$/;
+const CALL_FLOW_ARG = new RegExp(`(${IDENTIFIER_PATTERN})\\s+"([^"]*)"`, 'g');
+const PARAM_TAG = new RegExp(`^@param:(${IDENTIFIER_PATTERN})$`);
+const RETURNS_TAG = new RegExp(`^@returns?:(${IDENTIFIER_PATTERN})$`);
 
 /** Compile Gherkin source text into IR scenarios and flow definitions. */
 export function compileFeature(
@@ -222,16 +225,15 @@ function promptFromPickleType(
   // And/But (conjunctions) to the last primary keyword.
   switch (step.type) {
     case PickleStepType.CONTEXT:
-      return { kind: 'prompt', node: 'ui', role: 'setup', template: text };
+      return { kind: 'prompt', node: 'ui', template: text };
     case PickleStepType.OUTCOME:
       return {
         kind: 'prompt',
         node: opts.isSoft ? 'soft' : 'verify',
-        role: 'assertion',
         template: text,
       };
     default:
       // ACTION and UNKNOWN (`*` bullets) both run as plain UI actions.
-      return { kind: 'prompt', node: 'ui', role: 'action', template: text };
+      return { kind: 'prompt', node: 'ui', template: text };
   }
 }

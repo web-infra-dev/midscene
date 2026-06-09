@@ -31,6 +31,7 @@ import {
   type ScenarioIR,
   assertIdentifier,
   listPlaceholders,
+  stringifyVarRecord,
 } from '../../flow-ir';
 
 /** A step in the fluent API: an IR step, or a bare string (= `when`). */
@@ -40,23 +41,23 @@ export type StepInput = FlowIRStep | string;
 // `Then`). A lowercase `then` export would also make the module namespace a
 // thenable, which breaks dynamic `import()` of this module.
 export function Given(template: string): PromptStepIR {
-  return promptStep('ui', 'setup', template, 'Given');
+  return promptStep('ui', template, 'Given');
 }
 
 export function When(template: string): PromptStepIR {
-  return promptStep('ui', 'action', template, 'When');
+  return promptStep('ui', template, 'When');
 }
 
 export function Then(template: string): PromptStepIR {
-  return promptStep('verify', 'assertion', template, 'Then');
+  return promptStep('verify', template, 'Then');
 }
 
 export function Soft(template: string): PromptStepIR {
-  return promptStep('soft', 'assertion', template, 'Soft');
+  return promptStep('soft', template, 'Soft');
 }
 
 export function Advisory(template: string): PromptStepIR {
-  return promptStep('agent', 'advisory', template, 'Advisory');
+  return promptStep('agent', template, 'Advisory');
 }
 
 /** "Remember <description> as {varName}" — machine-owned variable capture. */
@@ -76,12 +77,11 @@ export function callFlow(
   if (!flowName.trim()) {
     throw new Error('[midscene] callFlow(): flow name must not be empty.');
   }
-  const normalized: Record<string, string> = {};
-  for (const [key, value] of Object.entries(args)) {
-    assertIdentifier(key, `callFlow("${flowName}") args`);
-    normalized[key] = String(value);
-  }
-  return { kind: 'callFlow', flowName, args: normalized };
+  return {
+    kind: 'callFlow',
+    flowName,
+    args: stringifyVarRecord(args, `callFlow("${flowName}") args`),
+  };
 }
 
 export interface DefineFlowInput {
@@ -128,15 +128,10 @@ export function scenario(
   if (!name.trim()) {
     throw new Error('[midscene] scenario(): a scenario must have a name.');
   }
-  const vars: Record<string, string> = {};
-  for (const [key, value] of Object.entries(options.vars ?? {})) {
-    assertIdentifier(key, `scenario("${name}") vars`);
-    vars[key] = String(value);
-  }
   return {
     name,
     steps: normalizeSteps(steps, `scenario("${name}")`),
-    vars,
+    vars: stringifyVarRecord(options.vars ?? {}, `scenario("${name}") vars`),
     tags: options.tags ?? [],
   };
 }
@@ -151,26 +146,30 @@ export function feature(name: string, scenarios: ScenarioIR[]): FeatureIR {
 
 function promptStep(
   node: PromptStepIR['node'],
-  role: PromptStepIR['role'],
   template: string,
   helper: string,
 ): PromptStepIR {
   if (!template.trim()) {
     throw new Error(`[midscene] ${helper}(): the prompt must not be empty.`);
   }
-  return { kind: 'prompt', node, role, template };
+  return { kind: 'prompt', node, template };
+}
+
+/** A bare string in a step list is shorthand for `When(...)`. */
+export function normalizeStep(step: StepInput): FlowIRStep {
+  return typeof step === 'string' ? When(step) : step;
 }
 
 function normalizeSteps(steps: StepInput[], where: string): FlowIRStep[] {
   if (!Array.isArray(steps) || steps.length === 0) {
     throw new Error(`[midscene] ${where}: steps must be a non-empty array.`);
   }
-  return steps.map((step) => (typeof step === 'string' ? When(step) : step));
+  return steps.map(normalizeStep);
 }
 
 // Hybrid mode (Gherkin source of truth + sparse JS overlay). Re-exported
-// last: bind-feature imports `When` from this module, and keeping the cycle
-// edge at the bottom makes the load order explicit.
+// last: bind-feature imports `normalizeStep` from this module, and keeping
+// the cycle edge at the bottom makes the load order explicit.
 export { bindFeature, anchorText } from './bind-feature';
 export type {
   FeatureOverlay,

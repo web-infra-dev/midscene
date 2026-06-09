@@ -69,9 +69,13 @@ export function ensureLiveModelEnv(env: NodeJS.ProcessEnv = process.env): {
   return { baseURL, isCodex };
 }
 
+let codexAvailable: boolean | undefined;
 function codexCliAvailable(): boolean {
-  const probe = spawnSync('codex', ['--version'], { stdio: 'ignore' });
-  return probe.status === 0;
+  // Memoized: ensureLiveModelEnv runs once per scenario bundle, and the CLI
+  // probe spawns a subprocess.
+  codexAvailable ??=
+    spawnSync('codex', ['--version'], { stdio: 'ignore' }).status === 0;
+  return codexAvailable;
 }
 
 export async function createLiveBundle() {

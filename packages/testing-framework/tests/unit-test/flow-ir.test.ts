@@ -15,7 +15,6 @@ const loginFlow: FlowDefIR = {
     {
       kind: 'prompt',
       node: 'ui',
-      role: 'action',
       template: 'log in as {role}',
     },
   ],

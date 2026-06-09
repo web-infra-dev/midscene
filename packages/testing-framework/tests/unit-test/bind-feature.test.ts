@@ -70,7 +70,6 @@ describe('bindFeature: overlay application', () => {
     expect(checkout?.steps.at(-1)).toEqual({
       kind: 'prompt',
       node: 'soft',
-      role: 'assertion',
       template: 'the cart total equals {price} within $0.01',
     });
     // Earlier steps untouched.
@@ -127,7 +126,7 @@ describe('bindFeature: overlay application', () => {
     ]);
     expect(steps?.[4]).toMatchObject({
       template: 'apply the coupon code {coupon} in the cart',
-      role: 'action',
+      node: 'ui',
     });
   });
 

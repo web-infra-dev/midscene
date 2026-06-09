@@ -54,14 +54,15 @@ export class CodexGeneralAgent implements GeneralAgentAdapter {
       | { type: 'image_url'; image_url: { url: string } }
     > = [{ type: 'text', text: this.buildPrompt(input, needsVerdict) }];
 
+    let screenshotFile: string | undefined;
     if (input.screenshotBase64) {
-      const file = this.writeScreenshot(
+      screenshotFile = this.writeScreenshot(
         input.screenshotBase64,
         input.screenshotMediaType,
       );
       userContent.push({
         type: 'image_url',
-        image_url: { url: `file://${file}` },
+        image_url: { url: `file://${screenshotFile}` },
       });
     }
 
@@ -76,10 +77,17 @@ export class CodexGeneralAgent implements GeneralAgentAdapter {
     const modelRuntime = getModelRuntime(
       globalModelConfigManager.getModelConfig('default'),
     );
-    const result = await callAI(
-      [{ role: 'user', content: userContent }],
-      modelRuntime,
-    );
+    let result: Awaited<ReturnType<typeof callAI>>;
+    try {
+      result = await callAI(
+        [{ role: 'user', content: userContent }],
+        modelRuntime,
+      );
+    } finally {
+      // The provider has consumed the image once the call settles; delete it
+      // so long runs don't accumulate one file per step until dispose().
+      if (screenshotFile) rmSync(screenshotFile, { force: true });
+    }
 
     const text = result.content.trim();
     debug('codex run finished', { kind: input.kind, chars: text.length });
@@ -132,9 +140,9 @@ export class CodexGeneralAgent implements GeneralAgentAdapter {
 
 /** Parse the last `{"pass": ..., "reason": ...}` object in the reply. */
 export function extractVerdict(text: string): Verdict | undefined {
-  const candidates = text.match(/\{[^{}]*"pass"[^{}]*\}/g);
-  if (!candidates) return undefined;
+  const candidates = jsonObjectCandidates(text);
   for (let i = candidates.length - 1; i >= 0; i--) {
+    if (!candidates[i].includes('"pass"')) continue;
     try {
       const parsed = JSON.parse(candidates[i]);
       if (typeof parsed.pass === 'boolean') {
@@ -152,4 +160,37 @@ export function extractVerdict(text: string): Verdict | undefined {
     }
   }
   return undefined;
+}
+
+/**
+ * Brace-balanced scan for top-level `{...}` substrings. Unlike a
+ * `[^{}]*`-style regex, this matches verdicts whose fields contain nested
+ * objects (e.g. structured `evidence`).
+ */
+function jsonObjectCandidates(text: string): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] !== '{') continue;
+    let depth = 0;
+    let inString = false;
+    for (let j = i; j < text.length; j++) {
+      const ch = text[j];
+      if (inString) {
+        if (ch === '\\') j++;
+        else if (ch === '"') inString = false;
+      } else if (ch === '"') {
+        inString = true;
+      } else if (ch === '{') {
+        depth++;
+      } else if (ch === '}') {
+        depth--;
+        if (depth === 0) {
+          out.push(text.slice(i, j + 1));
+          i = j; // resume after this object; nested braces stay inside it
+          break;
+        }
+      }
+    }
+  }
+  return out;
 }

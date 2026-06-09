@@ -150,7 +150,6 @@ describe('runScenario: named flows', () => {
         {
           kind: 'prompt',
           node: 'ui',
-          role: 'action',
           template: 'use {secret}',
         },
       ],
@@ -188,9 +187,7 @@ describe('runScenario: named flows', () => {
       name: 'NoCapture',
       params: [],
       returns: ['token'],
-      steps: [
-        { kind: 'prompt', node: 'ui', role: 'action', template: 'do nothing' },
-      ],
+      steps: [{ kind: 'prompt', node: 'ui', template: 'do nothing' }],
     };
     const { result } = await run(
       scenario('missing return', [callFlow('NoCapture')]),
@@ -230,9 +227,7 @@ describe('runScenario: call-depth cap', () => {
     name: 'Leaf',
     params: [],
     returns: [],
-    steps: [
-      { kind: 'prompt', node: 'ui', role: 'action', template: 'leaf action' },
-    ],
+    steps: [{ kind: 'prompt', node: 'ui', template: 'leaf action' }],
   };
   const mid: FlowDefIR = {
     name: 'Mid',

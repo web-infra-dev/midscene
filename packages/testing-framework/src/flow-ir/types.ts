@@ -20,18 +20,15 @@
  */
 import type { BuiltinNodeType } from '../types';
 
-/** Keyword→policy mapping: what authoring role a prompt step plays. */
-export type PromptRole = 'setup' | 'action' | 'assertion' | 'advisory';
-
 /**
  * A natural-language prompt step. Lowers 1:1 onto an engine node:
- * given-like → `ui` (setup), when-like → `ui` (action), then-like → `verify`
- * (fail-closed), soft variants → `soft`, advisory → `agent`.
+ * given/when-like → `ui`, then-like → `verify` (fail-closed), soft variants →
+ * `soft`, advisory → `agent`. The authoring keyword fully determines `node`,
+ * so the keyword itself is not stored.
  */
 export interface PromptStepIR {
   kind: 'prompt';
   node: BuiltinNodeType;
-  role: PromptRole;
   /** Natural-language template; may contain `{varName}` placeholders. */
   template: string;
 }
@@ -109,13 +106,32 @@ export interface FeatureIR {
 /** Flow calls may nest at most this deep (scenario itself is depth 0). */
 export const MAX_FLOW_CALL_DEPTH = 2;
 
-const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
+/** Source pattern for identifiers, for composing into larger regexes. */
+export const IDENTIFIER_PATTERN = '[A-Za-z_][A-Za-z0-9_]*';
+
+const IDENTIFIER = new RegExp(`^${IDENTIFIER_PATTERN}$`);
 
 /** Variable / param names must be simple identifiers so `{name}` is unambiguous. */
 export function assertIdentifier(name: string, where: string): void {
   if (!IDENTIFIER.test(name)) {
     throw new Error(
-      `[midscene] ${where}: "${name}" is not a valid variable name (expected /^[A-Za-z_][A-Za-z0-9_]*$/).`,
+      `[midscene] ${where}: "${name}" is not a valid variable name (expected /^${IDENTIFIER_PATTERN}$/).`,
     );
   }
+}
+
+/**
+ * Validate keys as identifiers and stringify values — the normalization every
+ * front-end applies to user-supplied vars/args records.
+ */
+export function stringifyVarRecord(
+  record: Record<string, string | number | boolean>,
+  where: string,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(record)) {
+    assertIdentifier(key, where);
+    out[key] = String(value);
+  }
+  return out;
 }

@@ -1,10 +1,11 @@
 /** POC: shared flow-IR — see `types.ts` for the design notes. */
 export {
+  IDENTIFIER_PATTERN,
   MAX_FLOW_CALL_DEPTH,
   assertIdentifier,
+  stringifyVarRecord,
 } from './types';
 export type {
-  PromptRole,
   PromptStepIR,
   CaptureStepIR,
   CallFlowStepIR,

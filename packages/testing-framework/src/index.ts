@@ -94,7 +94,6 @@ export type {
   PromptStepIR,
   CaptureStepIR,
   CallFlowStepIR,
-  PromptRole,
   ScenarioIR,
   ScenarioConfigIR,
   FlowDefIR,

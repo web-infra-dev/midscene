@@ -17,11 +17,9 @@ describe('JS front-end: keyword→node mapping', () => {
     expect(Given('the shop is open')).toEqual({
       kind: 'prompt',
       node: 'ui',
-      role: 'setup',
       template: 'the shop is open',
     });
     expect(When('I add the item to the cart').node).toBe('ui');
-    expect(When('I add the item to the cart').role).toBe('action');
     expect(Then('the cart shows 1 item').node).toBe('verify');
     expect(Soft('a promo banner is visible').node).toBe('soft');
     expect(Advisory('summarize risks').node).toBe('agent');
@@ -62,7 +60,6 @@ describe('JS front-end: scenario / feature builders', () => {
     expect(s.steps[0]).toEqual({
       kind: 'prompt',
       node: 'ui',
-      role: 'action',
       template: 'open the home page',
     });
     expect(s.steps[1].kind).toBe('prompt');

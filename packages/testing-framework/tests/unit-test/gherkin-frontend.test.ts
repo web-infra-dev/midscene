@@ -58,7 +58,6 @@ describe('Gherkin front-end', () => {
     expect(login.steps[0]).toMatchObject({
       kind: 'prompt',
       node: 'ui',
-      role: 'action',
       template: 'I open the login page',
     });
     // `I remember ... as "greeting"` becomes a capture step.
@@ -71,8 +70,8 @@ describe('Gherkin front-end', () => {
 
   it('maps keywords to node kinds, with And/But inheriting the last primary keyword', () => {
     const checkout = compiled.scenarios[0];
-    // Background Given → ui/setup leading step.
-    expect(checkout.steps[0]).toMatchObject({ node: 'ui', role: 'setup' });
+    // Background Given → ui leading step.
+    expect(checkout.steps[0]).toMatchObject({ kind: 'prompt', node: 'ui' });
     // `And I remember ...` after a When still parses as capture.
     expect(checkout.steps[2]).toMatchObject({
       kind: 'capture',

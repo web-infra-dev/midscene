@@ -50,10 +50,6 @@ export class FlowRegistry {
     }
     return flow;
   }
-
-  names(): string[] {
-    return [...this.flows.keys()];
-  }
 }
 
 /** Convenience: build a registry from a list of flow definitions. */

@@ -16,9 +16,9 @@
  */
 import type { Agent } from '@midscene/core/agent';
 import { OutputStoreImpl } from '../engine/output-store';
+import { getReportFile, recordStepResult } from '../engine/run-case';
 import { type RunNodeDeps, runNode } from '../engine/run-node';
 import type { GeneralAgentAdapter } from '../general-agent/types';
-import type { RuntimeNode } from '../runtime';
 import type { CaseResult, StepResult } from '../types';
 import { FlowRegistry } from './registry';
 import { type VariableScope, substitute } from './substitute';
@@ -76,9 +76,7 @@ export interface RunScenarioOptions {
   file?: string;
   uiAgent: Agent;
   generalAgent: GeneralAgentAdapter;
-  runtimeNodes?: Record<string, RuntimeNode>;
   projectRoot?: string;
-  env?: NodeJS.ProcessEnv;
   /** Optional observer for narration/debugging. */
   onEvent?: (event: ScenarioRunEvent) => void;
 }
@@ -93,13 +91,10 @@ interface ExecCtx {
   registry: FlowRegistry;
   uiAgent: Agent;
   generalAgent: GeneralAgentAdapter;
-  runtimeNodes: Record<string, RuntimeNode>;
   projectRoot: string;
-  env: NodeJS.ProcessEnv;
   caseName: string;
   caseFile: string;
   outputs: OutputStoreImpl;
-  state: Record<string, unknown>;
   steps: StepResult[];
   warnings: string[];
   emit: (event: ScenarioRunEvent) => void;
@@ -117,13 +112,10 @@ export async function runScenario(
     registry: options.registry ?? new FlowRegistry(),
     uiAgent: options.uiAgent,
     generalAgent: options.generalAgent,
-    runtimeNodes: options.runtimeNodes ?? {},
     projectRoot: options.projectRoot ?? process.cwd(),
-    env: options.env ?? process.env,
     caseName: scenario.name,
     caseFile: options.file ?? '<ir>',
     outputs: new OutputStoreImpl(),
-    state: {},
     steps: [],
     warnings: [],
     emit: options.onEvent ?? (() => {}),
@@ -179,11 +171,21 @@ async function execStep(
   }
 }
 
-async function execPromptStep(
-  step: PromptStepIR,
+/**
+ * Shared scaffolding for templated steps (prompt and capture): substitution,
+ * stepStart emission, try/catch into a {@link StepResult}, and recording.
+ * Only the per-kind body differs.
+ */
+async function runTemplatedStep(
+  template: string,
+  node: string,
+  whereDetail: string,
   scope: VariableScope,
   depth: number,
   ctx: ExecCtx,
+  body: (
+    resolved: string,
+  ) => Promise<Pick<StepResult, 'status' | 'output' | 'verdict' | 'error'>>,
 ): Promise<boolean> {
   const index = ctx.steps.length;
   const stepStart = Date.now();
@@ -191,34 +193,30 @@ async function execPromptStep(
   let stepResult: StepResult;
   try {
     const resolved = substitute(
-      step.template,
+      template,
       scope,
-      `${ctx.caseName} step ${index + 1} (${step.node})`,
+      `${ctx.caseName} step ${index + 1} (${whereDetail})`,
     );
     ctx.emit({
       type: 'stepStart',
       index,
-      node: step.node,
+      node,
       input: resolved,
-      template: resolved === step.template ? undefined : step.template,
+      template: resolved === template ? undefined : template,
       depth,
     });
-    const outcome = await runNode(step.node, resolved, nodeDeps(ctx));
     stepResult = {
       index,
-      node: step.node,
+      node,
       input: resolved,
-      status: outcome.status,
-      output: outcome.output,
-      verdict: outcome.verdict,
-      error: outcome.error,
+      ...(await body(resolved)),
       durationMs: Date.now() - stepStart,
     };
   } catch (err) {
     stepResult = {
       index,
-      node: step.node,
-      input: step.template,
+      node,
+      input: template,
       status: 'failed',
       error: (err as Error).message,
       durationMs: Date.now() - stepStart,
@@ -229,73 +227,72 @@ async function execPromptStep(
   return stepResult.status !== 'failed';
 }
 
-async function execCaptureStep(
+function execPromptStep(
+  step: PromptStepIR,
+  scope: VariableScope,
+  depth: number,
+  ctx: ExecCtx,
+): Promise<boolean> {
+  return runTemplatedStep(
+    step.template,
+    step.node,
+    step.node,
+    scope,
+    depth,
+    ctx,
+    async (resolved) => {
+      const outcome = await runNode(step.node, resolved, nodeDeps(ctx));
+      return {
+        status: outcome.status,
+        output: outcome.output,
+        verdict: outcome.verdict,
+        error: outcome.error,
+      };
+    },
+  );
+}
+
+function execCaptureStep(
   step: CaptureStepIR,
   scope: VariableScope,
   depth: number,
   ctx: ExecCtx,
 ): Promise<boolean> {
-  const index = ctx.steps.length;
-  const stepStart = Date.now();
-
-  let stepResult: StepResult;
-  try {
-    const resolved = substitute(
-      step.template,
-      scope,
-      `${ctx.caseName} step ${index + 1} (capture ${step.varName})`,
-    );
-    ctx.emit({
-      type: 'stepStart',
-      index,
-      node: 'capture',
-      input: resolved,
-      template: resolved === step.template ? undefined : step.template,
-      depth,
-    });
-    // Lower to a structured extraction on the UI agent. The value is
-    // machine-owned: it goes into the variable table, not into model prose.
-    const value = await ctx.uiAgent.aiString(resolved);
-    if (!value.trim()) {
-      // Fail fast instead of letting a blank variable poison later prompts
-      // (e.g. the value is not visible on the current screen).
-      throw new Error(
-        `[midscene] capture {${step.varName}}: the extraction "${resolved}" returned an empty value. Is it visible on the current screen?`,
-      );
-    }
-    scope.set(step.varName, value);
-    ctx.emit({
-      type: 'varSet',
-      name: step.varName,
-      value,
-      source: 'capture',
-      depth,
-    });
-
-    stepResult = {
-      index,
-      node: 'capture',
-      input: resolved,
-      status: 'info',
-      output: {
-        text: `Captured variable {${step.varName}} = ${JSON.stringify(value)} (${resolved}).`,
-        structured: { [step.varName]: value },
-      },
-      durationMs: Date.now() - stepStart,
-    };
-  } catch (err) {
-    stepResult = {
-      index,
-      node: 'capture',
-      input: step.template,
-      status: 'failed',
-      error: (err as Error).message,
-      durationMs: Date.now() - stepStart,
-    };
-  }
-
-  recordStep(stepResult, depth, ctx);
-  return stepResult.status !== 'failed';
+  return runTemplatedStep(
+    step.template,
+    'capture',
+    `capture ${step.varName}`,
+    scope,
+    depth,
+    ctx,
+    async (resolved) => {
+      // Lower to a structured extraction on the UI agent. The value is
+      // machine-owned: it goes into the variable table, not into model prose.
+      const value = await ctx.uiAgent.aiString(resolved);
+      if (!value.trim()) {
+        // Fail fast instead of letting a blank variable poison later prompts
+        // (e.g. the value is not visible on the current screen).
+        throw new Error(
+          `[midscene] capture {${step.varName}}: the extraction "${resolved}" returned an empty value. Is it visible on the current screen?`,
+        );
+      }
+      scope.set(step.varName, value);
+      ctx.emit({
+        type: 'varSet',
+        name: step.varName,
+        value,
+        source: 'capture',
+        depth,
+      });
+      return {
+        status: 'info',
+        output: {
+          text: `Captured variable {${step.varName}} = ${JSON.stringify(value)} (${resolved}).`,
+          structured: { [step.varName]: value },
+        },
+      };
+    },
+  );
 }
 
 async function execCallFlowStep(
@@ -410,32 +407,22 @@ function nodeDeps(ctx: ExecCtx): RunNodeDeps {
   return {
     uiAgent: ctx.uiAgent,
     generalAgent: ctx.generalAgent,
-    runtimeNodes: ctx.runtimeNodes,
+    // The IR only emits builtin node kinds, so the custom-runtime deps are
+    // inert placeholders here.
+    runtimeNodes: {},
     outputs: ctx.outputs,
-    state: ctx.state,
+    state: {},
     projectRoot: ctx.projectRoot,
     caseName: ctx.caseName,
     caseFile: ctx.caseFile,
     pastSteps: ctx.steps,
-    env: ctx.env,
+    env: process.env,
   };
 }
 
-/** Mirror `runCase`'s bookkeeping for outputs and warnings. */
 function recordStep(stepResult: StepResult, depth: number, ctx: ExecCtx): void {
   ctx.emit({ type: 'stepEnd', result: stepResult, depth });
-  ctx.steps.push(stepResult);
-  if (stepResult.output) {
-    ctx.outputs.add(stepResult.node, stepResult.index, stepResult.output);
-  }
-  if (stepResult.status === 'warning' && stepResult.error) {
-    ctx.warnings.push(stepResult.error);
-  }
-  if (stepResult.status === 'warning' && stepResult.verdict) {
-    ctx.warnings.push(
-      `soft check failed at step ${stepResult.index + 1} (${stepResult.node}): ${stepResult.verdict.reason}`,
-    );
-  }
+  recordStepResult(stepResult, ctx);
 }
 
 function formatCall(flowName: string, args: Record<string, string>): string {
@@ -446,10 +433,4 @@ function formatArgs(args: Record<string, string>): string {
   const entries = Object.entries(args);
   if (entries.length === 0) return 'no arguments';
   return entries.map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(', ');
-}
-
-function getReportFile(agent: Agent): string | undefined {
-  const candidate = (agent as unknown as { reportFile?: string | null })
-    .reportFile;
-  return candidate ?? undefined;
 }

@@ -211,7 +211,6 @@ async function runOne(
       registry,
       uiAgent: bundle.uiAgent,
       generalAgent: bundle.generalAgent,
-      env: process.env,
       onEvent: (event) => {
         narrate(event);
         trace.push(canonical(event));

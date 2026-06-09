@@ -81,18 +81,7 @@ export async function runCase(options: RunCaseOptions): Promise<CaseResult> {
       };
     }
 
-    steps.push(stepResult);
-    if (stepResult.output) {
-      outputs.add(step.node, index, stepResult.output);
-    }
-    if (stepResult.status === 'warning' && stepResult.error) {
-      warnings.push(stepResult.error);
-    }
-    if (stepResult.status === 'warning' && stepResult.verdict) {
-      warnings.push(
-        `soft check failed at step ${index + 1} (${step.node}): ${stepResult.verdict.reason}`,
-      );
-    }
+    recordStepResult(stepResult, { steps, outputs, warnings });
 
     if (stepResult.status === 'failed') {
       // A gating failure stops the flow; later steps depend on prior ones.
@@ -112,7 +101,30 @@ export async function runCase(options: RunCaseOptions): Promise<CaseResult> {
   };
 }
 
-function getReportFile(agent: Agent): string | undefined {
+/** Shared step bookkeeping, also used by the flow-IR executor. */
+export function recordStepResult(
+  stepResult: StepResult,
+  sink: {
+    steps: StepResult[];
+    outputs: OutputStoreImpl;
+    warnings: string[];
+  },
+): void {
+  sink.steps.push(stepResult);
+  if (stepResult.output) {
+    sink.outputs.add(stepResult.node, stepResult.index, stepResult.output);
+  }
+  if (stepResult.status === 'warning' && stepResult.error) {
+    sink.warnings.push(stepResult.error);
+  }
+  if (stepResult.status === 'warning' && stepResult.verdict) {
+    sink.warnings.push(
+      `soft check failed at step ${stepResult.index + 1} (${stepResult.node}): ${stepResult.verdict.reason}`,
+    );
+  }
+}
+
+export function getReportFile(agent: Agent): string | undefined {
   const candidate = (agent as unknown as { reportFile?: string | null })
     .reportFile;
   return candidate ?? undefined;

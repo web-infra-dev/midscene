@@ -4,7 +4,7 @@ import type {
   ScenarioConfigIR,
   ScenarioIR,
 } from '../../flow-ir';
-import { assertIdentifier } from '../../flow-ir';
+import { stringifyVarRecord } from '../../flow-ir';
 /**
  * POC: hybrid authoring mode — `bindFeature(featurePathOrSource, overlay)`.
  *
@@ -31,7 +31,7 @@ import {
   compileFeature,
   compileFeatureFile,
 } from '../gherkin';
-import { type StepInput, When } from './index';
+import { type StepInput, normalizeStep } from './index';
 
 /** Anchor a step by its exact text (see {@link anchorText}) or its index. */
 export type StepAnchor = string | number;
@@ -161,12 +161,10 @@ function applyScenarioOverlay(
   const result: ScenarioIR = { ...scenario, steps };
 
   if (overlay.vars) {
-    const vars: Record<string, string> = { ...scenario.vars };
-    for (const [key, value] of Object.entries(overlay.vars)) {
-      assertIdentifier(key, `${where} overlay vars`);
-      vars[key] = String(value);
-    }
-    result.vars = vars;
+    result.vars = {
+      ...scenario.vars,
+      ...stringifyVarRecord(overlay.vars, `${where} overlay vars`),
+    };
   }
 
   if (overlay.skip !== undefined || overlay.only !== undefined) {
@@ -191,24 +189,19 @@ function patchStep(step: FlowIRStep, overlay: StepOverlay): FlowIRStep {
       return { ...step, template: overlay.template ?? step.template };
     case 'callFlow':
       return overlay.args
-        ? { ...step, args: { ...step.args, ...stringifyArgs(overlay.args) } }
+        ? {
+            ...step,
+            args: {
+              ...step.args,
+              ...stringifyVarRecord(overlay.args, 'bindFeature overlay args'),
+            },
+          }
         : step;
   }
 }
 
 function normalizeInserts(inserts: StepInput[] | undefined): FlowIRStep[] {
-  return (inserts ?? []).map((s) => (typeof s === 'string' ? When(s) : s));
-}
-
-function stringifyArgs(
-  args: Record<string, string | number | boolean>,
-): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const [key, value] of Object.entries(args)) {
-    assertIdentifier(key, 'bindFeature overlay args');
-    out[key] = String(value);
-  }
-  return out;
+  return (inserts ?? []).map(normalizeStep);
 }
 
 // ——————————————————— bind-time drift validation ———————————————————
