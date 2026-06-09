@@ -58,6 +58,12 @@ interface PreparedModel {
  * Pi-backed implementation of {@link GeneralAgentAdapter}.
  */
 export class PiGeneralAgent implements GeneralAgentAdapter {
+  /** Pi registers a `report_verdict` tool, so the prompt demands it. */
+  readonly verdictInstructions =
+    'Make a judgment. You MUST finish by calling the `report_verdict` tool ' +
+    'with `pass`, `reason`, and optional `evidence`. If you cannot ' +
+    'confidently determine the result, report `pass: false`.';
+
   private prepared?: PreparedModel;
   private readonly loaderCache = new Map<string, DefaultResourceLoader>();
 

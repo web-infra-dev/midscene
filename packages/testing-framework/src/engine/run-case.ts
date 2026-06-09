@@ -1,7 +1,6 @@
-import type { Agent } from '@midscene/core/agent';
 import type { GeneralAgentAdapter } from '../general-agent/types';
 import type { RuntimeNode } from '../runtime';
-import type { CaseResult, StepResult } from '../types';
+import type { CaseResult, StepResult, UiAgentLike } from '../types';
 import type { ParsedCase } from '../yaml/types';
 import { OutputStoreImpl } from './output-store';
 import { type RunNodeDeps, runNode } from './run-node';
@@ -9,7 +8,7 @@ import { type RunNodeDeps, runNode } from './run-node';
 export interface RunCaseOptions {
   parsed: ParsedCase;
   file: string;
-  uiAgent: Agent;
+  uiAgent: UiAgentLike;
   generalAgent: GeneralAgentAdapter;
   runtimeNodes: Record<string, RuntimeNode>;
   projectRoot: string;
@@ -124,8 +123,6 @@ export function recordStepResult(
   }
 }
 
-export function getReportFile(agent: Agent): string | undefined {
-  const candidate = (agent as unknown as { reportFile?: string | null })
-    .reportFile;
-  return candidate ?? undefined;
+export function getReportFile(agent: UiAgentLike): string | undefined {
+  return agent.reportFile ?? undefined;
 }

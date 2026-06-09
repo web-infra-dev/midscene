@@ -81,6 +81,29 @@ describe('runCase node semantics', () => {
     expect(result.steps).toHaveLength(1); // stopped before ui
   });
 
+  it('verify prompts carry the adapter-supplied verdict instructions', async () => {
+    const parsed = parseCaseYaml('flow:\n  - verify: ok?');
+    const seen: string[] = [];
+    const result = await runCase({
+      ...base,
+      parsed,
+      file: 'c.yaml',
+      uiAgent: fakeAgent(),
+      generalAgent: {
+        verdictInstructions: 'Reply with VERDICT: pass or VERDICT: fail.',
+        run: async (input) => {
+          seen.push(input.context);
+          return { text: 'ok', verdict: { pass: true, reason: 'fine' } };
+        },
+      },
+    });
+    expect(result.status).toBe('passed');
+    // The adapter's own verdict channel is what the prompt demands — no
+    // hardcoded report_verdict wording for adapters without that tool.
+    expect(seen[0]).toContain('Reply with VERDICT: pass or VERDICT: fail.');
+    expect(seen[0]).not.toContain('report_verdict');
+  });
+
   it('verify with NO verdict is fail-closed', async () => {
     const parsed = parseCaseYaml('flow:\n  - verify: ok?');
     const result = await runCase({

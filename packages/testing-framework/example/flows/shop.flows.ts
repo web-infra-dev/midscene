@@ -29,8 +29,6 @@ export const loginFlow = defineFlow({
   ],
 });
 
-export const registry = createFlowRegistry([loginFlow]);
-
 const background = Given('the demo shop is open on the home page');
 
 export const checkoutAsAdmin = scenario('Checkout as admin', [
@@ -51,14 +49,21 @@ export const promoBanner = scenario('Promo banner is advisory', [
 // Dynamic authoring: plain JS replaces Scenario Outline examples.
 const roles = ['admin', 'guest'];
 
-export const shopFeature = feature('Checkout with a reusable login flow', [
-  checkoutAsAdmin,
-  promoBanner,
-  ...roles.map((role) =>
-    scenario(`Login greets every role (${role})`, [
-      background,
-      callFlow('Login', { role }),
-      Then('the header greets the user with {greeting}'),
-    ]),
-  ),
-]);
+// Same { name, scenarios, flows } shape as the Gherkin compiler's output.
+export const shopFeature = feature(
+  'Checkout with a reusable login flow',
+  [
+    checkoutAsAdmin,
+    promoBanner,
+    ...roles.map((role) =>
+      scenario(`Login greets every role (${role})`, [
+        background,
+        callFlow('Login', { role }),
+        Then('the header greets the user with {greeting}'),
+      ]),
+    ),
+  ],
+  [loginFlow],
+);
+
+export const registry = createFlowRegistry(shopFeature.flows);

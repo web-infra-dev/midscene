@@ -9,13 +9,13 @@
  * example/demo-app (experimental; needs MIDSCENE_MODEL_* env vars).
  */
 import { join } from 'node:path';
-import type { Agent } from '@midscene/core/agent';
 import {
   type CompiledFeature,
   type FlowRegistry,
   type ScenarioIR,
   type ScenarioRunEvent,
   type ScenarioRunResult,
+  type UiAgentLike,
   compileFeatureFile,
   createFlowRegistry,
   runScenario,
@@ -45,7 +45,7 @@ const cyan = paint(36);
 const magenta = paint(35);
 
 interface AgentBundle {
-  uiAgent: Agent;
+  uiAgent: UiAgentLike;
   generalAgent: GeneralAgentAdapter;
   cleanup?: () => Promise<void>;
   describeState?: () => string;
@@ -86,7 +86,7 @@ export async function main(argv: string[]): Promise<number> {
     : async () => {
         const ui = new ScriptedUiAgent();
         return {
-          uiAgent: ui.asAgent(),
+          uiAgent: ui,
           generalAgent: new ScriptedGeneralAgent(),
           describeState: () => ui.describeState(),
         };

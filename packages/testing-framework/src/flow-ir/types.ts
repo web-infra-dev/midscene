@@ -90,17 +90,45 @@ export interface FlowDefIR {
   returns: string[];
   steps: FlowIRStep[];
   /**
-   * Memoization tier. Only 'none' is implemented.
-   * TODO(POC): 'once-per-run' should skip re-execution and replay the
-   * memoized returns when the flow is called again with identical args.
+   * Memoization tier. With 'once-per-run', a successful completion is stored
+   * in the run's {@link FlowMemoStore} (keyed by flow name + resolved args);
+   * a later call with identical args skips the flow's steps and replays the
+   * memoized returns into the caller scope. Failed runs are never memoized.
+   * Defaults to 'none' (every call executes).
    */
   memo?: 'none' | 'once-per-run';
 }
 
-/** A group of scenarios (Gherkin Feature / JS `feature()` builder). */
+/**
+ * Memo table for `memo: 'once-per-run'` flows: cache key → the returns of a
+ * fully successful completion. `runScenario` defaults to a fresh per-call
+ * store; pass one Map to several `runScenario` calls to share memoized flows
+ * (e.g. a login) across the scenarios of one run.
+ */
+export type FlowMemoStore = Map<string, Record<string, string>>;
+
+/** Cache key for a memoized flow call: flow name + resolved args. */
+export function flowMemoKey(
+  flowName: string,
+  resolvedArgs: Record<string, string>,
+): string {
+  // resolvedArgs is built in declared-param order, so the JSON is stable.
+  return `${flowName}\u0000${JSON.stringify(resolvedArgs)}`;
+}
+
+/**
+ * A compiled feature: runnable scenarios plus the flow definitions authored
+ * alongside them. Both front-ends return this exact shape — the Gherkin
+ * compiler (`compileFeature`, where `CompiledFeature` is an alias of this
+ * type) and the JS `feature()` builder — so callers can build a registry
+ * from `.flows` and run `.scenarios` without caring about the surface.
+ */
 export interface FeatureIR {
   name: string;
+  /** Runnable scenarios (in Gherkin: everything not tagged `@flow`). */
   scenarios: ScenarioIR[];
+  /** Flow definitions, ready for a {@link FlowRegistry}. */
+  flows: FlowDefIR[];
 }
 
 /** Flow calls may nest at most this deep (scenario itself is depth 0). */

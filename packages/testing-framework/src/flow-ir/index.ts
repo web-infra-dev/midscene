@@ -3,6 +3,7 @@ export {
   IDENTIFIER_PATTERN,
   MAX_FLOW_CALL_DEPTH,
   assertIdentifier,
+  flowMemoKey,
   stringifyVarRecord,
 } from './types';
 export type {
@@ -10,6 +11,7 @@ export type {
   CaptureStepIR,
   CallFlowStepIR,
   FlowIRStep,
+  FlowMemoStore,
   ScenarioIR,
   ScenarioConfigIR,
   FlowDefIR,

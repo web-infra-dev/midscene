@@ -86,6 +86,23 @@ describe('JS front-end: scenario / feature builders', () => {
       kind: 'callFlow',
       args: { role: 'guest' },
     });
+    // flows default to none; the shape still matches the Gherkin compiler.
+    expect(f.flows).toEqual([]);
+  });
+
+  it('returns the same { name, scenarios, flows } shape as compileFeature', () => {
+    const login = defineFlow({
+      name: 'Login',
+      params: ['role'],
+      steps: [When('sign in as {role}')],
+    });
+    const f = feature(
+      'shop',
+      [scenario('s', [callFlow('Login', { role: 'admin' })])],
+      [login],
+    );
+    expect(Object.keys(f).sort()).toEqual(['flows', 'name', 'scenarios']);
+    expect(f.flows).toEqual([login]);
   });
 
   it('rejects empty step lists', () => {

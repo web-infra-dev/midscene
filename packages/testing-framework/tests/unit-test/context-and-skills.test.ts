@@ -51,8 +51,37 @@ describe('assembleContext', () => {
     expect(ctx).toContain('Created order #123');
     expect(ctx).toContain('"orderId":"123"');
     expect(ctx).toContain('PASS — found in db');
-    expect(ctx).toContain('report_verdict');
     expect(ctx).toContain('Use $database to verify orderId');
+  });
+
+  it('uses the adapter-supplied verdict instructions verbatim', () => {
+    const ctx = assembleContext({
+      caseName: 'c',
+      pastSteps: [],
+      instruction: 'check it',
+      kind: 'verify',
+      verdictInstructions:
+        'End your reply with a single JSON verdict object on its own line.',
+    });
+    expect(ctx).toContain(
+      'End your reply with a single JSON verdict object on its own line.',
+    );
+    expect(ctx).not.toContain('report_verdict');
+  });
+
+  it('falls back to an adapter-neutral verdict instruction', () => {
+    for (const kind of ['verify', 'soft'] as const) {
+      const ctx = assembleContext({
+        caseName: 'c',
+        pastSteps: [],
+        instruction: 'check it',
+        kind,
+      });
+      // Neutral: demands a verdict without naming any reporting mechanism.
+      expect(ctx).toContain('pass/fail verdict');
+      expect(ctx).not.toContain('report_verdict');
+      expect(ctx).not.toContain('JSON');
+    }
   });
 
   it('frames agent nodes as advisory', () => {

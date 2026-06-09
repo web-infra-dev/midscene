@@ -9,14 +9,14 @@
  * Both record every call so tests can assert that `{var}` substitution
  * happened mechanically BEFORE the prompt reached the "model".
  */
-import type { Agent } from '@midscene/core/agent';
 import type {
   GeneralAgentAdapter,
   GeneralAgentInput,
   GeneralAgentResult,
 } from '../../../src/general-agent/types';
+import type { UiAgentLike } from '../../../src/types';
 
-export class FakeUiAgent {
+export class FakeUiAgent implements UiAgentLike {
   /** Instructions received by aiAct (ui nodes), post-substitution. */
   actCalls: string[] = [];
   /** Extraction prompts received by aiString (capture steps). */
@@ -51,10 +51,6 @@ export class FakeUiAgent {
   interface = {
     screenshotBase64: async () => 'data:image/png;base64,FAKE',
   };
-
-  asAgent(): Agent {
-    return this as unknown as Agent;
-  }
 }
 
 export type GeneralAgentScript = (

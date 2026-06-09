@@ -3,12 +3,12 @@ import { assembleContext } from '../context/assembler';
 import { extractSkillReferences } from '../general-agent/skills';
 import type { GeneralAgentAdapter } from '../general-agent/types';
 import type { RuntimeNode, RuntimeNodeContext } from '../runtime';
-import type { StepOutput, StepResult, Verdict } from '../types';
+import type { StepOutput, StepResult, UiAgentLike, Verdict } from '../types';
 import { isBuiltinNode } from '../yaml/types';
 import type { OutputStoreImpl } from './output-store';
 
 export interface RunNodeDeps {
-  uiAgent: Agent;
+  uiAgent: UiAgentLike;
   generalAgent: GeneralAgentAdapter;
   runtimeNodes: Record<string, RuntimeNode>;
   outputs: OutputStoreImpl;
@@ -84,6 +84,10 @@ async function runJudgmentNode(
     pastSteps: deps.pastSteps,
     instruction,
     kind,
+    // The verdict channel is the adapter's business (tool call vs. JSON
+    // reply); let it phrase the instruction so the prompt never contradicts
+    // the mechanism it actually supports.
+    verdictInstructions: deps.generalAgent.verdictInstructions,
   });
 
   const result = await deps.generalAgent.run({
@@ -100,7 +104,7 @@ async function runJudgmentNode(
   const verdict: Verdict = result.verdict ?? {
     pass: false,
     reason:
-      'The agent did not report a verdict via report_verdict; treated as failure (fail-closed).',
+      'The general agent did not report a verdict; treated as failure (fail-closed).',
   };
 
   const output: StepOutput = {
@@ -164,7 +168,11 @@ async function runCustomNode(
   }
 
   const ctx: RuntimeNodeContext = {
-    uiAgent: deps.uiAgent,
+    // The runtime-node contract promises a full Agent (custom nodes may use
+    // any of its methods). Runtime nodes are only registered through the
+    // YAML runner, whose uiAgent is always a real core Agent; the flow-IR
+    // executor passes `runtimeNodes: {}` and never reaches this code.
+    uiAgent: deps.uiAgent as Agent,
     outputs: deps.outputs,
     state: deps.state,
     result: {
@@ -184,7 +192,7 @@ async function runCustomNode(
 }
 
 async function captureScreenshot(
-  agent: Agent,
+  agent: UiAgentLike,
 ): Promise<{ data?: string; mediaType: string }> {
   try {
     const raw = await agent.interface.screenshotBase64();

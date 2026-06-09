@@ -90,9 +90,8 @@ describe('example parity: Gherkin vs JS front-end', () => {
       const result = await runScenario({
         scenario: s,
         registry: reg,
-        uiAgent: ui.asAgent(),
+        uiAgent: ui,
         generalAgent: general,
-        env: {},
       });
       return {
         status: result.status,

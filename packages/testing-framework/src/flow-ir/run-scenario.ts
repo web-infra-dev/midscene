@@ -14,21 +14,22 @@
  * All templates go through mechanical `{varName}` substitution before any
  * model sees them.
  */
-import type { Agent } from '@midscene/core/agent';
 import { OutputStoreImpl } from '../engine/output-store';
 import { getReportFile, recordStepResult } from '../engine/run-case';
 import { type RunNodeDeps, runNode } from '../engine/run-node';
 import type { GeneralAgentAdapter } from '../general-agent/types';
-import type { CaseResult, StepResult } from '../types';
+import type { CaseResult, StepResult, UiAgentLike } from '../types';
 import { FlowRegistry } from './registry';
 import { type VariableScope, substitute } from './substitute';
 import {
   type CallFlowStepIR,
   type CaptureStepIR,
   type FlowIRStep,
+  type FlowMemoStore,
   MAX_FLOW_CALL_DEPTH,
   type PromptStepIR,
   type ScenarioIR,
+  flowMemoKey,
 } from './types';
 
 /**
@@ -74,9 +75,15 @@ export interface RunScenarioOptions {
   registry?: FlowRegistry;
   /** Source file the scenario came from, for reporting. */
   file?: string;
-  uiAgent: Agent;
+  uiAgent: UiAgentLike;
   generalAgent: GeneralAgentAdapter;
   projectRoot?: string;
+  /**
+   * Memo table for `memo: 'once-per-run'` flows. Defaults to a fresh store
+   * per call; pass one Map to several `runScenario` calls to share memoized
+   * flow completions across the scenarios of one run.
+   */
+  memoStore?: FlowMemoStore;
   /** Optional observer for narration/debugging. */
   onEvent?: (event: ScenarioRunEvent) => void;
 }
@@ -89,7 +96,7 @@ export interface ScenarioRunResult extends CaseResult {
 
 interface ExecCtx {
   registry: FlowRegistry;
-  uiAgent: Agent;
+  uiAgent: UiAgentLike;
   generalAgent: GeneralAgentAdapter;
   projectRoot: string;
   caseName: string;
@@ -97,6 +104,7 @@ interface ExecCtx {
   outputs: OutputStoreImpl;
   steps: StepResult[];
   warnings: string[];
+  memoStore: FlowMemoStore;
   emit: (event: ScenarioRunEvent) => void;
 }
 
@@ -118,6 +126,7 @@ export async function runScenario(
     outputs: new OutputStoreImpl(),
     steps: [],
     warnings: [],
+    memoStore: options.memoStore ?? new Map(),
     emit: options.onEvent ?? (() => {}),
   };
 
@@ -305,8 +314,6 @@ async function execCallFlowStep(
   const stepStart = Date.now();
   const where = `${ctx.caseName} step ${index + 1} (flow "${step.flowName}")`;
 
-  let childScope: VariableScope;
-  let resolvedArgs: Record<string, string>;
   try {
     if (depth + 1 > MAX_FLOW_CALL_DEPTH) {
       throw new Error(
@@ -322,8 +329,8 @@ async function execCallFlowStep(
         );
       }
     }
-    resolvedArgs = {};
-    childScope = new Map();
+    const resolvedArgs: Record<string, string> = {};
+    const childScope: VariableScope = new Map();
     for (const param of flow.params) {
       const template = step.args[param];
       if (template === undefined) {
@@ -337,9 +344,17 @@ async function execCallFlowStep(
       childScope.set(param, value);
     }
 
-    // TODO(POC): flow.memo === 'once-per-run' should look up a per-run memo
-    // table keyed by (flowName, resolvedArgs) and replay returns on a hit.
-    // For now every call executes.
+    const memoKey =
+      flow.memo === 'once-per-run'
+        ? flowMemoKey(step.flowName, resolvedArgs)
+        : undefined;
+    if (memoKey !== undefined) {
+      const memoized = ctx.memoStore.get(memoKey);
+      if (memoized) {
+        replayMemoizedFlow(step, resolvedArgs, memoized, scope, depth, ctx);
+        return true;
+      }
+    }
 
     ctx.emit({
       type: 'flowEnter',
@@ -379,6 +394,11 @@ async function execCallFlowStep(
       returns[ret] = value;
       ctx.emit({ type: 'varSet', name: ret, value, source: 'return', depth });
     }
+    // Memoize only fully successful completions (all steps green, all
+    // declared returns captured); failures above never reach this point.
+    if (memoKey !== undefined) {
+      ctx.memoStore.set(memoKey, returns);
+    }
     ctx.emit({
       type: 'flowExit',
       flowName: step.flowName,
@@ -401,6 +421,54 @@ async function execCallFlowStep(
     );
     return false;
   }
+}
+
+/**
+ * Memo hit for a `memo: 'once-per-run'` flow: skip the flow's steps and
+ * replay the memoized returns into the caller scope. The trace stays
+ * narratable — flowEnter/flowExit still fire and an info step records that
+ * the result was replayed rather than re-executed.
+ */
+function replayMemoizedFlow(
+  step: CallFlowStepIR,
+  resolvedArgs: Record<string, string>,
+  returns: Record<string, string>,
+  scope: VariableScope,
+  depth: number,
+  ctx: ExecCtx,
+): void {
+  ctx.emit({
+    type: 'flowEnter',
+    flowName: step.flowName,
+    args: resolvedArgs,
+    depth: depth + 1,
+  });
+  recordStep(
+    {
+      index: ctx.steps.length,
+      node: 'flow',
+      input: formatCall(step.flowName, resolvedArgs),
+      status: 'info',
+      output: {
+        text: `Memo hit for flow "${step.flowName}" (memo: once-per-run): steps were not re-executed; replayed ${
+          Object.keys(returns).length > 0 ? formatArgs(returns) : 'no returns'
+        } from an earlier successful run.`,
+      },
+      durationMs: 0,
+    },
+    depth,
+    ctx,
+  );
+  for (const [name, value] of Object.entries(returns)) {
+    scope.set(name, value);
+    ctx.emit({ type: 'varSet', name, value, source: 'return', depth });
+  }
+  ctx.emit({
+    type: 'flowExit',
+    flowName: step.flowName,
+    returns,
+    depth: depth + 1,
+  });
 }
 
 function nodeDeps(ctx: ExecCtx): RunNodeDeps {

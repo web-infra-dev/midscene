@@ -89,7 +89,7 @@ export interface DefineFlowInput {
   params?: string[];
   returns?: string[];
   steps: StepInput[];
-  /** TODO(POC): only 'none' is implemented; 'once-per-run' is accepted but ignored. */
+  /** See {@link FlowDefIR.memo}: 'once-per-run' replays a successful completion on identical args. */
   memo?: 'none' | 'once-per-run';
 }
 
@@ -136,12 +136,20 @@ export function scenario(
   };
 }
 
-/** Group scenarios, mirroring a Gherkin Feature. */
-export function feature(name: string, scenarios: ScenarioIR[]): FeatureIR {
+/**
+ * Group scenarios (and the flows they use), mirroring a Gherkin Feature.
+ * Returns the same {@link FeatureIR} shape as `compileFeature`, so
+ * `createFlowRegistry(feature.flows)` works identically for both surfaces.
+ */
+export function feature(
+  name: string,
+  scenarios: ScenarioIR[],
+  flows: FlowDefIR[] = [],
+): FeatureIR {
   if (!name.trim()) {
     throw new Error('[midscene] feature(): a feature must have a name.');
   }
-  return { name, scenarios };
+  return { name, scenarios, flows };
 }
 
 function promptStep(

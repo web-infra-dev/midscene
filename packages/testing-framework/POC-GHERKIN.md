@@ -67,7 +67,11 @@ On the codex path, `verify`/`soft` verdicts run through `CodexGeneralAgent`
 (`src/general-agent/codex-general-agent.ts`), which routes the same
 provider via core's `callAI` and parses a JSON verdict fail-closed — the
 default Pi general agent needs an OpenAI-compatible HTTP endpoint and
-cannot speak `codex://`. Any such endpoint still works by setting
+cannot speak `codex://`. Each adapter supplies its own
+`verdictInstructions` (Pi: "call the `report_verdict` tool"; codex: "end
+your reply with a JSON verdict object"), which the engine embeds into the
+assembled context so the prompt always matches the verdict channel the
+adapter actually supports. Any such endpoint still works by setting
 `MIDSCENE_MODEL_*` yourself (Pi is used for verdicts then). Each scenario
 gets a fresh browser; Midscene HTML reports land in `midscene_run/report/`.
 Verified end to end against codex `gpt-5.5`: all three modes pass (one
@@ -125,8 +129,16 @@ the two channels never mix.
 - only declared `returns` are copied back into the caller scope;
 - UI/browser state is naturally shared (same UI agent);
 - call depth is capped at 2 (`MAX_FLOW_CALL_DEPTH`); deeper nesting fails;
-- `memo: 'once-per-run'` is accepted but stubbed (TODO in
-  `run-scenario.ts`).
+- `memo: 'once-per-run'` memoizes a **fully successful** completion (keyed
+  by flow name + resolved args) and replays the declared returns on the next
+  identical call instead of re-running the steps. The trace stays narratable
+  (flowEnter/flowExit still fire, plus an info "memo hit" step); failures
+  are never memoized, and different args miss. The memo table defaults to
+  per-`runScenario` call — pass one `memoStore` (a `FlowMemoStore` Map) to
+  several `runScenario` calls to share login-type flows across the
+  scenarios of a run. Note: replay assumes the flow's UI side effects (e.g.
+  an authenticated session) still hold; that judgment stays with the author
+  who opts a flow into memoization.
 
 **Keyword→policy mapping**: given-like → `ui` (setup), when-like → `ui`
 (action), then-like → `verify` (fail-closed), soft variants → `soft`
@@ -171,6 +183,12 @@ export would make the module namespace a thenable and break dynamic
 `import()`). Everything is plain JS values, so dynamic authoring (mapping
 over data, computed args, build-time conditionals) just works —
 `defineFlow` additionally runs cheap static scoping checks.
+
+`feature(name, scenarios, flows)` returns the same
+`{ name, scenarios, flows }` shape as the Gherkin compiler
+(`CompiledFeature` is an alias of `FeatureIR`), so both front-ends hand
+callers an identical bundle: build a registry from `.flows`, run
+`.scenarios`.
 
 ## Gherkin front-end (`src/frontends/gherkin/`)
 
@@ -229,7 +247,9 @@ Binding glue is **title + anchor**: scenarios are keyed by title (a Scenario
 Outline title patches every expansion), steps by exact anchor text (prompt
 template, capture description, or flow name) or by index. Anchors always
 resolve against the *original* step list, so inserts never shift one
-another. `template`/`node` apply to prompt steps, `template` to captures,
+another, and each step may be targeted by **at most one** overlay entry —
+two entries anchoring the same step throw at bind time instead of merging
+silently. `template`/`node` apply to prompt steps, `template` to captures,
 `args` to flow calls — mismatches fail at bind time.
 
 **Drift validation with codegen**: every overlay reference is checked at
@@ -290,10 +310,11 @@ for (const s of scenarios) {
 
 ## Validation
 
-- `pnpm --filter @midscene/testing-framework test` — 100 tests, all green
-  (63 new across `flow-ir.test.ts`, `js-frontend.test.ts`,
+- `pnpm --filter @midscene/testing-framework test` — 119 tests, all green
+  (across `flow-ir.test.ts`, `js-frontend.test.ts`,
   `gherkin-frontend.test.ts`, `run-scenario.test.ts`, `bind-feature.test.ts`,
-  `example-parity.test.ts`; fakes only, no browsers / no model calls).
+  `example-parity.test.ts` and the Phase 0 suites; fakes only, no browsers /
+  no model calls).
 
 ## Open questions / next steps
 
@@ -303,9 +324,10 @@ for (const s of scenarios) {
 - **Typed captures**: `capture` always extracts strings (`aiString`); add
   number/boolean/structured (`aiQuery`) tiers and maybe a declared type in
   the "remember" convention.
-- **Memoization**: implement `once-per-run` (memo table keyed by flow name +
-  resolved args, replaying returns) — useful for login-type flows; decide
-  whether UI state divergence makes replay unsafe by default.
+- **Memo safety**: `once-per-run` is implemented (see Named flows above),
+  but replay trusts that the flow's UI side effects still hold. Decide
+  whether some flows need a cheap "still valid?" probe before replaying
+  (e.g. a session check for login flows).
 - **Flow-call reporting**: inner flow steps are flattened into the case's
   step list after an `info` "Entering flow …" marker; reports may want a
   nested view instead.

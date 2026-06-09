@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { extractVerdict } from '../../src/general-agent/codex-general-agent';
+import {
+  CodexGeneralAgent,
+  extractVerdict,
+} from '../../src/general-agent/codex-general-agent';
+
+describe('CodexGeneralAgent verdict channel', () => {
+  it('advertises the JSON-reply channel, not a report_verdict tool', () => {
+    const instructions = new CodexGeneralAgent().verdictInstructions;
+    // Self-consistent prompt: codex has no tools, so the instruction must
+    // describe the trailing-JSON channel that extractVerdict parses.
+    expect(instructions).toContain('You have no tools');
+    expect(instructions).toContain('"pass": true|false');
+    expect(instructions).not.toContain('report_verdict');
+  });
+});
 
 describe('extractVerdict', () => {
   it('parses a trailing verdict object after prose', () => {

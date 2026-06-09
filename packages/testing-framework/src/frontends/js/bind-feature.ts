@@ -122,12 +122,7 @@ function applyScenarioOverlay(
 ): ScenarioIR {
   const where = `bindFeature(${uri}): scenario "${scenario.name}"`;
 
-  interface Patch {
-    overlays: StepOverlay[];
-    before: FlowIRStep[];
-    after: FlowIRStep[];
-  }
-  const patches = new Map<number, Patch>();
+  const patches = new Map<number, StepOverlay>();
 
   for (const stepOverlay of overlay.steps ?? []) {
     // All anchors resolve against the ORIGINAL step list, so several
@@ -135,15 +130,16 @@ function applyScenarioOverlay(
     const index = resolveAnchor(stepOverlay.at, scenario, uri);
     validateStepOverlay(stepOverlay, scenario.steps[index], index, where);
 
-    const patch = patches.get(index) ?? {
-      overlays: [],
-      before: [],
-      after: [],
-    };
-    patch.overlays.push(stepOverlay);
-    patch.before.push(...normalizeInserts(stepOverlay.before));
-    patch.after.push(...normalizeInserts(stepOverlay.after));
-    patches.set(index, patch);
+    // One overlay per step: silently merging two entries that target the
+    // same step would hide a conflict (whose template wins? in what order do
+    // inserts land?), so duplicates fail loudly like every other drift.
+    const previous = patches.get(index);
+    if (previous) {
+      throw new Error(
+        `[midscene] ${where}: overlays \`at: ${JSON.stringify(previous.at)}\` and \`at: ${JSON.stringify(stepOverlay.at)}\` both target step ${index} (${describeStep(scenario.steps[index])}). Merge them into a single overlay entry.`,
+      );
+    }
+    patches.set(index, stepOverlay);
   }
 
   const steps: FlowIRStep[] = [];
@@ -153,9 +149,9 @@ function applyScenarioOverlay(
       steps.push(scenario.steps[i]);
       continue;
     }
-    steps.push(...patch.before);
-    steps.push(patch.overlays.reduce(patchStep, scenario.steps[i]));
-    steps.push(...patch.after);
+    steps.push(...normalizeInserts(patch.before));
+    steps.push(patchStep(scenario.steps[i], patch));
+    steps.push(...normalizeInserts(patch.after));
   }
 
   const result: ScenarioIR = { ...scenario, steps };

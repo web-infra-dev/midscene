@@ -36,9 +36,8 @@ function run(
   return runScenario({
     scenario: s,
     registry: createFlowRegistry(opts.flows ?? []),
-    uiAgent: ui.asAgent(),
+    uiAgent: ui,
     generalAgent: general,
-    env: {},
   }).then((result) => ({ result, ui, general }));
 }
 
@@ -222,6 +221,168 @@ describe('runScenario: named flows', () => {
   });
 });
 
+describe('runScenario: flow memoization (once-per-run)', () => {
+  const memoLogin = defineFlow({
+    name: 'Login',
+    params: ['role'],
+    returns: ['greeting'],
+    memo: 'once-per-run',
+    steps: [
+      When('open the login page'),
+      When('sign in as the "{role}" user'),
+      remember('the greeting shown in the header', 'greeting'),
+    ],
+  });
+
+  it('replays returns on a hit without re-running the flow steps', async () => {
+    // Only ONE scripted aiString result: a re-run of the capture would throw.
+    const ui = new FakeUiAgent(['Hello, Admin!']);
+    const events: string[] = [];
+    const result = await runScenario({
+      scenario: scenario('memo hit', [
+        callFlow('Login', { role: 'admin' }),
+        callFlow('Login', { role: 'admin' }),
+        Then('the header shows {greeting}'),
+      ]),
+      registry: createFlowRegistry([memoLogin]),
+      uiAgent: ui,
+      generalAgent: new FakeGeneralAgent(),
+      onEvent: (e) => events.push(`${e.type}@${'depth' in e ? e.depth : '?'}`),
+    });
+
+    expect(result.status).toBe('passed');
+    // The flow body executed exactly once.
+    expect(ui.actCalls).toEqual([
+      'open the login page',
+      'sign in as the "admin" user',
+    ]);
+    expect(ui.stringCalls).toEqual(['the greeting shown in the header']);
+    // The replay still delivered the declared return into the caller scope.
+    expect(result.variables.greeting).toBe('Hello, Admin!');
+    // The hit stays narratable: an info step records the replay...
+    const memoSteps = result.steps.filter((s) =>
+      s.output?.text.includes('Memo hit'),
+    );
+    expect(memoSteps).toHaveLength(1);
+    expect(memoSteps[0]).toMatchObject({
+      node: 'flow',
+      status: 'info',
+      input: 'Login(role="admin")',
+    });
+    // ...and flowEnter/flowExit still fire for the replayed call.
+    expect(
+      events.filter((e) => e === 'flowEnter@1' || e === 'flowExit@1'),
+    ).toEqual(['flowEnter@1', 'flowExit@1', 'flowEnter@1', 'flowExit@1']);
+  });
+
+  it('misses when the resolved args differ', async () => {
+    const ui = new FakeUiAgent(['Hello, Admin!', 'Hello, Guest!']);
+    const { result } = await run(
+      scenario('memo miss', [
+        callFlow('Login', { role: 'admin' }),
+        callFlow('Login', { role: 'guest' }),
+      ]),
+      { flows: [memoLogin], ui },
+    );
+    expect(result.status).toBe('passed');
+    expect(ui.actCalls).toEqual([
+      'open the login page',
+      'sign in as the "admin" user',
+      'open the login page',
+      'sign in as the "guest" user',
+    ]);
+    expect(result.variables.greeting).toBe('Hello, Guest!');
+  });
+
+  it('shares hits across scenarios through a caller-provided memoStore', async () => {
+    const memoStore = new Map<string, Record<string, string>>();
+    const runWith = (ui: FakeUiAgent) =>
+      runScenario({
+        scenario: scenario('login once', [
+          callFlow('Login', { role: 'admin' }),
+          Then('the header shows {greeting}'),
+        ]),
+        registry: createFlowRegistry([memoLogin]),
+        uiAgent: ui,
+        generalAgent: new FakeGeneralAgent(),
+        memoStore,
+      });
+
+    const first = new FakeUiAgent(['Hello, Admin!']);
+    expect((await runWith(first)).status).toBe('passed');
+
+    // No scripted aiString results: any flow re-execution would fail.
+    const second = new FakeUiAgent();
+    const replayed = await runWith(second);
+    expect(replayed.status).toBe('passed');
+    expect(second.actCalls).toEqual([]);
+    expect(second.stringCalls).toEqual([]);
+    expect(replayed.variables.greeting).toBe('Hello, Admin!');
+  });
+
+  it('defaults to a per-call store (no sharing across runScenario calls)', async () => {
+    const loginOnce = scenario('login once', [
+      callFlow('Login', { role: 'admin' }),
+    ]);
+    const first = new FakeUiAgent(['Hello, Admin!']);
+    await run(loginOnce, { flows: [memoLogin], ui: first });
+
+    const second = new FakeUiAgent(['Hello, Admin!']);
+    const { result } = await run(loginOnce, { flows: [memoLogin], ui: second });
+    expect(result.status).toBe('passed');
+    // Without a shared store the flow executed again.
+    expect(second.actCalls).toContain('sign in as the "admin" user');
+  });
+
+  it('never memoizes a failed flow run', async () => {
+    const guard = defineFlow({
+      name: 'Guard',
+      params: [],
+      returns: [],
+      memo: 'once-per-run',
+      steps: [When('prepare'), Then('precondition holds')],
+    });
+    const memoStore = new Map<string, Record<string, string>>();
+    const runWith = (ui: FakeUiAgent, general: FakeGeneralAgent) =>
+      runScenario({
+        scenario: scenario('guarded', [callFlow('Guard')]),
+        registry: createFlowRegistry([guard]),
+        uiAgent: ui,
+        generalAgent: general,
+        memoStore,
+      });
+
+    const failing = await runWith(
+      new FakeUiAgent(),
+      new FakeGeneralAgent(() => ({
+        text: 'nope',
+        verdict: { pass: false, reason: 'not ready' },
+      })),
+    );
+    expect(failing.status).toBe('failed');
+
+    // The failure was not cached: the next run re-executes the flow.
+    const retryUi = new FakeUiAgent();
+    const retried = await runWith(retryUi, new FakeGeneralAgent());
+    expect(retried.status).toBe('passed');
+    expect(retryUi.actCalls).toEqual(['prepare']);
+  });
+
+  it('flows without memo always execute, even with a shared store', async () => {
+    const ui = new FakeUiAgent(['Hello, Admin!', 'Hello, Admin!']);
+    const { result } = await run(
+      scenario('no memo', [
+        callFlow('Login', { role: 'admin' }),
+        callFlow('Login', { role: 'admin' }),
+      ]),
+      { flows: [loginFlow], ui },
+    );
+    expect(result.status).toBe('passed');
+    expect(ui.actCalls).toHaveLength(4);
+    expect(ui.stringCalls).toHaveLength(2);
+  });
+});
+
 describe('runScenario: call-depth cap', () => {
   const leaf: FlowDefIR = {
     name: 'Leaf',
@@ -330,9 +491,8 @@ describe('runScenario: observability events', () => {
         { vars: { whoami: 'admin' } },
       ),
       registry: createFlowRegistry([loginFlow]),
-      uiAgent: ui.asAgent(),
+      uiAgent: ui,
       generalAgent: new FakeGeneralAgent(),
-      env: {},
       onEvent: (e) => {
         switch (e.type) {
           case 'stepStart':

@@ -39,6 +39,7 @@ import {
   PickleStepType,
 } from '@cucumber/messages';
 import type {
+  FeatureIR,
   FlowDefIR,
   FlowIRStep,
   PromptStepIR,
@@ -46,13 +47,12 @@ import type {
 } from '../../flow-ir';
 import { IDENTIFIER_PATTERN, assertIdentifier } from '../../flow-ir';
 
-export interface CompiledFeature {
-  name: string;
-  /** Runnable scenarios (everything not tagged `@flow`). */
-  scenarios: ScenarioIR[];
-  /** Flow definitions (scenarios tagged `@flow`), ready for a FlowRegistry. */
-  flows: FlowDefIR[];
-}
+/**
+ * The Gherkin compiler's output — the shared {@link FeatureIR} shape that the
+ * JS `feature()` builder also returns: runnable scenarios (everything not
+ * tagged `@flow`) plus flow definitions (scenarios tagged `@flow`).
+ */
+export type CompiledFeature = FeatureIR;
 
 const REMEMBER_STEP = new RegExp(
   `^I remember (.+?) as "(${IDENTIFIER_PATTERN})"$`,

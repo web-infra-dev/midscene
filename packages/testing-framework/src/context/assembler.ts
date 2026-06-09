@@ -25,7 +25,23 @@ export interface AssembleContextInput {
   instruction: string;
   /** The current node's kind, for framing. */
   kind: 'verify' | 'soft' | 'agent';
+  /**
+   * Adapter-specific verdict-reporting instruction for verify/soft nodes
+   * (see {@link GeneralAgentAdapter.verdictInstructions}). Falls back to an
+   * adapter-neutral instruction when the adapter does not supply one.
+   */
+  verdictInstructions?: string;
 }
+
+/**
+ * Adapter-neutral fallback when a general agent does not say how verdicts
+ * must be reported. Deliberately mechanism-free: it demands a clear verdict
+ * without naming a tool or output format the adapter may not have.
+ */
+const NEUTRAL_VERDICT_INSTRUCTIONS =
+  'Make a judgment. You MUST finish by reporting a clear pass/fail verdict ' +
+  'with a reason. If you cannot confidently determine the result, report a ' +
+  'failure.';
 
 export function assembleContext(input: AssembleContextInput): string {
   const { caseName, pastSteps, instruction, kind } = input;
@@ -74,11 +90,7 @@ export function assembleContext(input: AssembleContextInput): string {
         'screenshot. Your output is advisory and does NOT decide pass/fail.',
     );
   } else {
-    lines.push(
-      'Make a judgment. You MUST finish by calling the `report_verdict` tool ' +
-        'with `pass`, `reason`, and optional `evidence`. If you cannot ' +
-        'confidently determine the result, report `pass: false`.',
-    );
+    lines.push(input.verdictInstructions ?? NEUTRAL_VERDICT_INSTRUCTIONS);
   }
   lines.push('');
   lines.push(instruction.trim());

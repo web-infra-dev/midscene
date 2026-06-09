@@ -45,6 +45,7 @@ export type {
   OutputStore,
   TestResultSoFar,
   BuiltinNodeType,
+  UiAgentLike,
 } from './types';
 
 // —— general agent (swappable) ——
@@ -97,6 +98,7 @@ export type {
   ScenarioIR,
   ScenarioConfigIR,
   FlowDefIR,
+  FlowMemoStore,
   FeatureIR,
   RunScenarioOptions,
   ScenarioRunResult,

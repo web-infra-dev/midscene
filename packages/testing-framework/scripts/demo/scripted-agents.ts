@@ -5,12 +5,12 @@
  * in tests/unit-test/helpers, but behavior-driven instead of queue-driven so
  * all three authoring modes can run against one simulation.
  */
-import type { Agent } from '@midscene/core/agent';
 import type {
   GeneralAgentAdapter,
   GeneralAgentInput,
   GeneralAgentResult,
 } from '../../src/general-agent/types';
+import type { UiAgentLike } from '../../src/types';
 
 const PRICE = 129.0;
 
@@ -30,7 +30,7 @@ class ShopSimulation {
   }
 }
 
-export class ScriptedUiAgent {
+export class ScriptedUiAgent implements UiAgentLike {
   private readonly sim = new ShopSimulation();
 
   async aiAct(instruction: string): Promise<string> {
@@ -70,10 +70,6 @@ export class ScriptedUiAgent {
   interface = {
     screenshotBase64: async () => 'data:image/png;base64,SIMULATED',
   };
-
-  asAgent(): Agent {
-    return this as unknown as Agent;
-  }
 
   describeState(): string {
     return `role=${this.sim.role ?? 'anonymous'}, cart=${this.sim.inCart ? 'Trail Backpack' : 'empty'}, total=$${this.sim.total.toFixed(2)}`;

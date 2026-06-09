@@ -177,9 +177,8 @@ describe('bindFeature: overlay application', () => {
     const result = await runScenario({
       scenario: checkout,
       registry: createFlowRegistry(bound.flows),
-      uiAgent: ui.asAgent(),
+      uiAgent: ui,
       generalAgent: general,
-      env: {},
     });
 
     // Injected variable was substituted into the inserted step's prompt.
@@ -244,6 +243,23 @@ describe('bindFeature: drift validation with codegen', () => {
         },
       }),
     ).toThrow(/anchor 9 is out of range.*indices 0–1/s);
+  });
+
+  it('rejects two overlays targeting the same step', () => {
+    expect(() =>
+      bindFeature(FEATURE, {
+        scenarios: {
+          'Checkout as admin': {
+            steps: [
+              { at: 'the cart total equals {price}', node: 'soft' },
+              { at: 3, template: 'the cart total roughly equals {price}' },
+            ],
+          },
+        },
+      }),
+    ).toThrow(
+      /overlays `at: "the cart total equals \{price\}"` and `at: 3` both target step 3.*single overlay entry/s,
+    );
   });
 
   it('rejects ambiguous text anchors and suggests index anchors', () => {

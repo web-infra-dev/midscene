@@ -11,6 +11,24 @@ import type { Agent } from '@midscene/core/agent';
 export type BuiltinNodeType = 'ui' | 'verify' | 'soft' | 'agent';
 
 /**
+ * The structural slice of the Midscene UI Agent the engine actually uses:
+ * `aiAct` (ui nodes), `aiAsk` (ui-node conclusions), `aiString` (capture
+ * steps), the current screenshot, and the optional report path. A real core
+ * {@link Agent} satisfies this as-is; tests and offline demos can supply a
+ * plain object instead of casting fakes to `Agent`.
+ */
+export interface UiAgentLike {
+  aiAct(instruction: string): Promise<string | undefined>;
+  aiAsk(prompt: string): Promise<string>;
+  aiString(prompt: string): Promise<string>;
+  interface: {
+    screenshotBase64(): Promise<string>;
+  };
+  /** Path to the Midscene HTML report, when the agent generates one. */
+  reportFile?: string | null;
+}
+
+/**
  * A verify/soft verdict. `verify` gates the case; `soft` only records a warning.
  * See RFC §6.
  */

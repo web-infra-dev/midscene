@@ -52,4 +52,12 @@ export interface GeneralAgentAdapter {
   run(input: GeneralAgentInput): Promise<GeneralAgentResult>;
   /** Release any underlying resources. */
   dispose?(): Promise<void>;
+  /**
+   * How the model must report its verdict for verify/soft nodes, in this
+   * adapter's own channel (e.g. Pi's `report_verdict` tool vs. Codex's
+   * trailing JSON object). Included verbatim in the assembled context so the
+   * prompt never contradicts the adapter's actual verdict mechanism. When
+   * omitted, the engine uses an adapter-neutral instruction.
+   */
+  verdictInstructions?: string;
 }

@@ -14,12 +14,13 @@
  *  - no tool runtime: the verdict is requested as a strict JSON object in the
  *    reply and parsed fail-closed (no `report_verdict` tool, no `$skill`
  *    loading — referenced skills are only named in the prompt);
- *  - the screenshot is written to a temp file and passed as a `file://`
- *    image_url, which the codex provider maps to a localImage input.
+ *  - the screenshot is written to a temp file under `midscene_run/tmp` and
+ *    passed as a `file://` image_url, which the codex provider maps to a
+ *    localImage input; the file is deleted as soon as the call settles.
  */
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { getDebug } from '@midscene/shared/logger';
 import type { Verdict } from '../types';
 import type {
@@ -33,17 +34,23 @@ const warn = getDebug('testing-framework:codex-general-agent', {
   console: true,
 });
 
-const VERDICT_INSTRUCTIONS = `
-You have no tools in this environment. After your analysis, end your reply
-with the verdict as a single JSON object on its own line, exactly in this
-shape (no markdown fence around it):
+const VERDICT_INSTRUCTIONS = `Make a judgment. You have no tools in this environment. After your analysis,
+end your reply with the verdict as a single JSON object on its own line,
+exactly in this shape (no markdown fence around it):
 
 {"pass": true|false, "reason": "<human-readable rationale>"}
 
 If you cannot confidently determine the result, report "pass": false.`;
 
 export class CodexGeneralAgent implements GeneralAgentAdapter {
-  private tempDir?: string;
+  /**
+   * Codex has no tool runtime here, so the verdict travels as a trailing
+   * JSON object in the reply (parsed fail-closed by {@link extractVerdict}).
+   * Supplying this to the engine keeps the assembled context consistent with
+   * that mechanism instead of demanding a `report_verdict` tool call.
+   */
+  readonly verdictInstructions = VERDICT_INSTRUCTIONS;
+
   private screenshotCount = 0;
 
   async run(input: GeneralAgentInput): Promise<GeneralAgentResult> {
@@ -52,7 +59,7 @@ export class CodexGeneralAgent implements GeneralAgentAdapter {
     const userContent: Array<
       | { type: 'text'; text: string }
       | { type: 'image_url'; image_url: { url: string } }
-    > = [{ type: 'text', text: this.buildPrompt(input, needsVerdict) }];
+    > = [{ type: 'text', text: this.buildPrompt(input) }];
 
     let screenshotFile: string | undefined;
     if (input.screenshotBase64) {
@@ -104,34 +111,25 @@ export class CodexGeneralAgent implements GeneralAgentAdapter {
     return { text, verdict };
   }
 
-  async dispose(): Promise<void> {
-    if (this.tempDir) {
-      rmSync(this.tempDir, { recursive: true, force: true });
-      this.tempDir = undefined;
-    }
-  }
-
-  private buildPrompt(input: GeneralAgentInput, needsVerdict: boolean): string {
+  private buildPrompt(input: GeneralAgentInput): string {
+    // Verdict-reporting instructions are NOT appended here: the engine puts
+    // `verdictInstructions` into the assembled context for verify/soft nodes.
     const parts = [input.context];
     if (input.referencedSkills.length > 0) {
       parts.push(
         `\nThis task references the following skills (not loadable in this environment, judge from the screenshot and history): ${input.referencedSkills.map((s) => `$${s}`).join(', ')}.`,
       );
     }
-    if (needsVerdict) {
-      parts.push(VERDICT_INSTRUCTIONS);
-    }
     return parts.join('\n');
   }
 
   private writeScreenshot(base64: string, mediaType?: string): string {
-    if (!this.tempDir) {
-      this.tempDir = mkdtempSync(join(tmpdir(), 'midscene-codex-ga-'));
-    }
     const ext = mediaType === 'image/jpeg' ? 'jpg' : 'png';
+    // Repo convention: transient artifacts live under midscene_run/tmp.
+    // Each file is deleted right after the provider consumes it (see run()).
     const file = join(
-      this.tempDir,
-      `screenshot-${++this.screenshotCount}.${ext}`,
+      getMidsceneRunSubDir('tmp'),
+      `codex-general-agent-${process.pid}-${++this.screenshotCount}.${ext}`,
     );
     writeFileSync(file, Buffer.from(base64, 'base64'));
     return file;
