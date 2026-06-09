@@ -8,7 +8,10 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
-import type { MidsceneYamlConfigResult } from '@midscene/core';
+import {
+  type MidsceneYamlConfigResult,
+  ReportMergingTool,
+} from '@midscene/core';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import {
   printExecutionPlan,
@@ -17,6 +20,7 @@ import {
 } from '../../src/execution-summary';
 
 const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
+const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
 const writeFakeReport = (
   file: string,
@@ -32,6 +36,7 @@ const writeFakeReport = (
 
 afterEach(() => {
   consoleLog.mockClear();
+  consoleWarn.mockClear();
 });
 
 describe('execution summary', () => {
@@ -244,6 +249,79 @@ describe('execution summary', () => {
         );
       }
     } finally {
+      if (previousRunDir === undefined) {
+        Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
+      } else {
+        process.env.MIDSCENE_RUN_DIR = previousRunDir;
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('keeps writing summary when retry report merging fails', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'midscene-summary-'));
+    const runDir = join(root, 'midscene-run');
+    const reportDir = join(runDir, 'report');
+    const yaml = join(root, 'case.yaml');
+    const attemptOneReport = join(reportDir, 'attempt-1.html');
+    const attemptTwoReport = join(reportDir, 'attempt-2.html');
+    const previousRunDir = process.env.MIDSCENE_RUN_DIR;
+
+    process.env.MIDSCENE_RUN_DIR = runDir;
+    writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
+    writeFakeReport(attemptOneReport, 'attempt-one', 'failed-before-retry');
+    writeFakeReport(attemptTwoReport, 'attempt-two', 'failed-after-retry');
+    const mergeReports = vi
+      .spyOn(ReportMergingTool.prototype, 'mergeReports')
+      .mockImplementationOnce(() => {
+        throw new Error('merge failed');
+      });
+
+    try {
+      const summaryPath = writeExecutionSummaryFile('summary.json', [
+        {
+          file: yaml,
+          success: false,
+          executed: true,
+          report: attemptTwoReport,
+          error: 'final attempt failed',
+          duration: 20,
+          resultType: 'failed',
+          attempts: [
+            {
+              attempt: 1,
+              success: false,
+              report: attemptOneReport,
+              error: 'first attempt failed',
+              duration: 10,
+              resultType: 'failed',
+            },
+            {
+              attempt: 2,
+              success: false,
+              report: attemptTwoReport,
+              error: 'final attempt failed',
+              duration: 10,
+              resultType: 'failed',
+            },
+          ],
+        },
+      ]);
+
+      const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
+      expect(summary.results[0]).not.toHaveProperty('retryReport');
+      expect(summary.results[0].attempts).toMatchObject([
+        { attempt: 1, success: false, resultType: 'failed' },
+        { attempt: 2, success: false, resultType: 'failed' },
+      ]);
+      expect(consoleWarn).toHaveBeenCalledWith(
+        '[Midscene]',
+        expect.stringContaining('Failed to merge retry attempt report'),
+      );
+      expect(mergeReports).toHaveBeenCalled();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    } finally {
+      mergeReports.mockRestore();
       if (previousRunDir === undefined) {
         Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
       } else {

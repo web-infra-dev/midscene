@@ -10,6 +10,9 @@ import type {
 import { ReportMergingTool } from '@midscene/core';
 import type { ScriptPlayer } from '@midscene/core/yaml';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import { getDebug } from '@midscene/shared/logger';
+
+const warnRetryReport = getDebug('execution-summary', { console: true });
 
 export interface ExecutionPlanConfig {
   files: string[];
@@ -198,6 +201,36 @@ const createRetryAttemptReport = (
   );
 };
 
+const errorMessageOf = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+const warnRetryReportFailure = (message: string): void => {
+  try {
+    mkdirSync(getMidsceneRunSubDir('log'), { recursive: true });
+    warnRetryReport(message);
+  } catch {
+    // Summary output is more important than warning output.
+  }
+};
+
+const createRetryAttemptReportSafely = (
+  result: MidsceneYamlConfigResult,
+): { report?: string; failed: boolean } => {
+  try {
+    return {
+      report: createRetryAttemptReport(result),
+      failed: false,
+    };
+  } catch (error) {
+    warnRetryReportFailure(
+      `Failed to merge retry attempt report for ${result.file}: ${errorMessageOf(
+        error,
+      )}`,
+    );
+    return { failed: true };
+  }
+};
+
 export function writeExecutionSummaryFile(
   summary: string,
   results: MidsceneYamlConfigResult[],
@@ -213,7 +246,7 @@ export function writeExecutionSummaryFile(
       generatedAt: new Date().toLocaleString(),
     },
     results: results.map((result) => {
-      const retryReport = createRetryAttemptReport(result);
+      const retryReport = createRetryAttemptReportSafely(result);
 
       return {
         script: relative(outputDir, result.file),
@@ -223,9 +256,9 @@ export function writeExecutionSummaryFile(
           ? toOutputRelativePath(outputDir, result.output)
           : undefined,
         report: result.report ? relative(outputDir, result.report) : undefined,
-        retryReport: retryReport
-          ? relative(outputDir, retryReport)
-          : result.retryReport
+        retryReport: retryReport.report
+          ? relative(outputDir, retryReport.report)
+          : !retryReport.failed && result.retryReport
             ? relative(outputDir, result.retryReport)
             : undefined,
         attempts: result.attempts?.map((attempt) => ({
