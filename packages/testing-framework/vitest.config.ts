@@ -13,6 +13,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
+      // Let tests import the example authoring files (which use the package
+      // name) without requiring a dist build.
+      '@midscene/testing-framework': path.resolve(__dirname, 'src/index.ts'),
     },
   },
   test: {

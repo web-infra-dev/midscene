@@ -75,3 +75,56 @@ export { loadConfig, resolveConfigPath } from './runner/load-config';
 export { discoverCases } from './runner/glob';
 export { createUIAgent } from './ui-agent/factory';
 export type { ResolvedUIAgent } from './ui-agent/factory';
+
+// —— POC: shared flow-IR + authoring front-ends ——
+// A flow intermediate representation with a scenario-scoped variable table
+// and named, parameterized flows. Two authoring surfaces compile to it: a
+// fluent JS/TS API and a Gherkin (.feature) compiler. See POC-GHERKIN.md.
+export {
+  FlowRegistry,
+  createFlowRegistry,
+  runScenario,
+  substitute,
+  listPlaceholders,
+  MAX_FLOW_CALL_DEPTH,
+} from './flow-ir';
+export type {
+  FlowIRStep,
+  PromptStepIR,
+  CaptureStepIR,
+  CallFlowStepIR,
+  PromptRole,
+  ScenarioIR,
+  ScenarioConfigIR,
+  FlowDefIR,
+  FeatureIR,
+  RunScenarioOptions,
+  ScenarioRunResult,
+  ScenarioRunEvent,
+  VariableScope,
+} from './flow-ir';
+export {
+  defineFlow,
+  scenario,
+  feature,
+  Given,
+  When,
+  Then,
+  Soft,
+  Advisory,
+  remember,
+  callFlow,
+  bindFeature,
+  anchorText,
+} from './frontends/js';
+export type {
+  DefineFlowInput,
+  ScenarioOptions,
+  StepInput,
+  FeatureOverlay,
+  ScenarioOverlay,
+  StepOverlay,
+  StepAnchor,
+} from './frontends/js';
+export { compileFeature, compileFeatureFile } from './frontends/gherkin';
+export type { CompiledFeature } from './frontends/gherkin';

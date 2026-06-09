@@ -38,6 +38,8 @@
     "test:u": "vitest --run -u"
   },
   "dependencies": {
+    "@cucumber/gherkin": "^39.1.0",
+    "@cucumber/messages": "^32.3.1",
     "@earendil-works/pi-ai": "^0.78.0",
     "@earendil-works/pi-coding-agent": "^0.78.0",
     "@midscene/core": "workspace:*",

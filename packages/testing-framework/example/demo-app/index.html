@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Midscene POC Shop</title>
+    <style>
+      * { box-sizing: border-box; font-family: system-ui, sans-serif; }
+      body { margin: 0; color: #1f2933; }
+      header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: #0b5fff; color: #fff; }
+      header button { padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; }
+      main { padding: 24px; max-width: 640px; margin: 0 auto; }
+      section { display: none; }
+      section.active { display: block; }
+      .card { border: 1px solid #e4e7eb; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+      .price { color: #0b5fff; font-weight: 600; }
+      button.primary { padding: 12px 20px; background: #0b5fff; color: #fff; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
+      select, input { padding: 10px; border: 1px solid #cbd2d9; border-radius: 6px; margin-right: 8px; }
+      .row { display: flex; align-items: center; gap: 8px; margin: 12px 0; }
+      #cartTotal { font-size: 20px; font-weight: 700; }
+      .muted { color: #52606d; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>Midscene POC Shop</strong>
+      <div>
+        <span id="greeting" hidden></span>
+        <button id="navLogin">Login</button>
+      </div>
+    </header>
+    <main>
+      <section id="home" class="active">
+        <h2>Welcome to the POC shop</h2>
+        <div class="card" id="productCard">
+          <h3>Trail Backpack</h3>
+          <div class="price" id="productPrice">$129.00</div>
+          <p class="muted">Lightweight 28L pack for day hikes.</p>
+          <button class="primary" id="addToCart">Add to cart</button>
+        </div>
+        <button id="openCart">Open cart</button>
+      </section>
+
+      <section id="login">
+        <h2>Sign in</h2>
+        <div class="row">
+          <select id="role">
+            <option value="admin">admin</option>
+            <option value="guest">guest</option>
+          </select>
+          <button class="primary" id="signIn">Sign in with saved test credentials</button>
+        </div>
+      </section>
+
+      <section id="dashboard">
+        <h2 id="dashboardTitle"></h2>
+        <p class="muted">You are signed in. Use the header to keep shopping.</p>
+        <button id="backHome">Back to shop</button>
+      </section>
+
+      <section id="cart">
+        <h2>Your cart</h2>
+        <div class="card" id="cartLine" hidden>
+          <span>Trail Backpack</span> — <span class="price">$129.00</span>
+        </div>
+        <div class="row">
+          <input id="coupon" placeholder="Coupon code" />
+          <button id="applyCoupon">Apply coupon</button>
+        </div>
+        <p>Total: <span id="cartTotal">$0.00</span></p>
+        <p class="muted" id="couponNote" hidden></p>
+        <button id="backHome2">Back to shop</button>
+      </section>
+    </main>
+
+    <script>
+      const state = { role: null, inCart: false, discount: 0 };
+      const price = 129.0;
+      const show = (id) => {
+        document
+          .querySelectorAll('section')
+          .forEach((s) => s.classList.toggle('active', s.id === id));
+      };
+      const renderTotal = () => {
+        const total = state.inCart ? price * (1 - state.discount) : 0;
+        document.getElementById('cartTotal').textContent = `$${total.toFixed(2)}`;
+      };
+      document.getElementById('navLogin').addEventListener('click', () => show('login'));
+      document.getElementById('signIn').addEventListener('click', () => {
+        state.role = document.getElementById('role').value;
+        const pretty = state.role[0].toUpperCase() + state.role.slice(1);
+        const greeting = document.getElementById('greeting');
+        greeting.textContent = `Hello, ${pretty}!`;
+        greeting.hidden = false;
+        document.getElementById('dashboardTitle').textContent = `Dashboard (${state.role})`;
+        show('dashboard');
+      });
+      document.getElementById('addToCart').addEventListener('click', () => {
+        state.inCart = true;
+        document.getElementById('cartLine').hidden = false;
+        renderTotal();
+      });
+      document.getElementById('openCart').addEventListener('click', () => {
+        renderTotal();
+        show('cart');
+      });
+      document.getElementById('applyCoupon').addEventListener('click', () => {
+        const code = document.getElementById('coupon').value.trim();
+        if (!code) return;
+        state.discount = 0.1;
+        const note = document.getElementById('couponNote');
+        note.textContent = `Coupon "${code}" applied: 10% off.`;
+        note.hidden = false;
+        renderTotal();
+      });
+      for (const id of ['backHome', 'backHome2']) {
+        document.getElementById(id).addEventListener('click', () => show('home'));
+      }
+    </script>
+  </body>
+</html>
