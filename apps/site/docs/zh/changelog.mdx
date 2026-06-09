@@ -1,12 +1,38 @@
 # 更新日志
 
-## v1.8 - Midscene Studio 桌面端、YAML 变量复用与多平台增强
+## v1.9 - 模型适配器重构与 CLI 增强
 
-v1.8 版本带来全新的桌面端应用 **Midscene Studio**，新增 YAML 步骤结果复用、长按/清空输入等多项 API，并对模型规划行为、设备集成、报告系统和 MCP 工具集进行了全面升级。
+v1.9 版本重构了模型适配器，方便后续新模型快速接入，并补充了更广泛的 YAML 自动化能力以及 CLI、报告、模型和桌面自动化相关修复。
+
+### YAML 与设备自动化
+
+- CLI 的 YAML 脚本新增 HarmonyOS target，HarmonyOS 自动化可以通过与 Web、Android、iOS、Computer 一致的脚本运行器流程执行。详见：[YAML 脚本自动化](./automate-with-scripts-in-yaml)、[HarmonyOS API](./harmony-api-reference)
+- YAML Web config 支持自定义 HTTP headers。
+- YAML 执行会暴露真实错误，不再只落到静默的 "not executed" 结果。
+
+### 模型、CLI 与报告更新
+
+- `aiAct` 支持图片 prompt，动作指令可以带参考图。
+- CLI / MCP / Skill 流程可以通过共享参数暴露 `deepLocate` / `deepThink` 控制项。
+- Assert CLI / MCP 工具会转发自定义失败信息，让断言失败更清晰。
+- 重构了模型适配器内部实现，便于维护不同模型系列的请求和响应处理逻辑。
+- CLI 现在从 CLI 包自身解析 `@rstest/core`，而不是从 `process.argv[1]` 解析，让外部启动路径下的 framework 执行更稳定。
+- Report 导出会让图片路径与导出的截图保持一致。
+
+### 问题修复
+
+- 修复 Web integration 中 `longPress` 时长被限制在 600ms 的问题。
+- 修复部分环境下 HarmonyOS MCP 因 `photon` / `sharp` WASM 初始化失败而无法启动的问题。
+- 修复 Computer RDP 首帧空白截图、phased-scroll helper 缺失可执行权限的自修复问题，并补充 elevated Windows 应用输入丢失的警告。
+- 站点文档补充说明了 PC 桌面端 `aiHover`、`remoteAdbHost` / adb server、通过 `runAdbShell` 执行坐标点击，并刷新了推荐模型列表。
+
+## v1.8 - Midscene Studio 桌面端与多平台增强
+
+v1.8 版本带来全新的桌面端应用 **Midscene Studio**，新增长按/清空输入等多项 API，并对模型规划行为、设备集成、报告系统和 MCP 工具集进行了全面升级。
 
 ### 全新桌面端应用 Midscene Studio（Beta）
 
-Midscene Studio 是一个基于 Electron 的桌面应用，把多平台 Playground 整合进一个原生界面，开箱即用。当前处于 **Beta** 阶段，欢迎试用并反馈问题：
+Midscene Studio 是一个基于 Electron 的桌面应用，把多平台 Playground 整合进一个原生界面，开箱即用。当前处于 **Beta** 阶段，可从 [latest release 页面](https://github.com/web-infra-dev/midscene/releases/latest) 选择 `midscene-studio-beta-*` 资源下载最新版 Studio，欢迎试用并反馈问题：
 
 - **多平台 Playground**：Web、Android、iOS、HarmonyOS、Computer 在同一个 Studio 应用中无缝切换
 - **设备交互预览**：Android / iOS / HarmonyOS 设备预览支持手动鼠标和触控控制；Web 预览支持实时画面流式渲染
@@ -17,7 +43,6 @@ Midscene Studio 是一个基于 Electron 的桌面应用，把多平台 Playgrou
 
 ### YAML 工作流增强
 
-- **步骤结果复用**：带有 `name` 的 YAML 步骤可以在后续步骤中通过 `$name` 和 `${name}` 复用结果。详见：[YAML 脚本自动化](./automate-with-scripts-in-yaml#复用步骤结果)
 - **Android runAdbShell timeout**：在 JavaScript API 和 YAML 脚本中都支持 `timeout` 选项。详见：[Android API](./android-api-reference)、[YAML 脚本自动化](./automate-with-scripts-in-yaml)
 
 ### 新增交互 API

@@ -1,12 +1,38 @@
 # Changelog
 
-## v1.8 - Midscene Studio Desktop App, YAML Variables & Multi-Platform Enhancements
+## v1.9 - Model Adapter Refactor and CLI Enhancements
 
-v1.8 introduces **Midscene Studio**, a brand-new desktop application, alongside YAML step result reuse, new interaction APIs (long press / clear input), refined model planning behavior, and broad upgrades across device integrations, the report system, and the MCP toolset.
+v1.9 refactors the model adapter layer, making future model integrations faster to add, and includes broader YAML automation plus CLI, report, model, and desktop automation fixes.
+
+### YAML and Device Automation
+
+- YAML scripts now support the HarmonyOS target in the CLI, so HarmonyOS automation can be driven through the same script runner workflow as Web, Android, iOS, and Computer. See: [Automate with Scripts in YAML](./automate-with-scripts-in-yaml), [HarmonyOS API](./harmony-api-reference)
+- YAML Web config supports custom HTTP headers for browser automation.
+- YAML runs now surface real execution errors instead of ending as a silent "not executed" case.
+
+### Model, CLI, and Report Updates
+
+- `aiAct` now supports image prompts, so action instructions can include reference images.
+- CLI / MCP / Skill flows can expose `deepLocate` / `deepThink` controls through shared flags.
+- Assert CLI / MCP tooling forwards custom failure messages to make assertion failures clearer.
+- Model adapter internals were refactored to make family-specific request and response handling easier to maintain across providers.
+- The CLI now resolves `@rstest/core` from the CLI package itself instead of `process.argv[1]`, making framework runs more stable from external launch paths.
+- Report exports keep image paths aligned with exported screenshots.
+
+### Bug Fixes
+
+- Fixed `longPress` duration in Web integration being capped at 600ms.
+- Fixed HarmonyOS MCP startup failures caused by `photon` / `sharp` WASM initialization in some environments.
+- Fixed Computer blank first-frame screenshots in RDP sessions, self-healed missing execute permission on the phased-scroll helper, and warned about elevated Windows app input drops.
+- Site docs clarified `aiHover` support on PC desktop, `remoteAdbHost` / adb server usage, coordinate taps through `runAdbShell`, and the recommended model list.
+
+## v1.8 - Midscene Studio Desktop App & Multi-Platform Enhancements
+
+v1.8 introduces **Midscene Studio**, a brand-new desktop application, alongside new interaction APIs (long press / clear input), refined model planning behavior, and broad upgrades across device integrations, the report system, and the MCP toolset.
 
 ### Midscene Studio — A New Desktop Application (Beta)
 
-Midscene Studio is an Electron-based desktop app that brings every Midscene playground into a single native shell. It is currently in **Beta** — try it out and let us know what works (and what doesn't):
+Midscene Studio is an Electron-based desktop app that brings every Midscene playground into a single native shell. It is currently in **Beta** — download the current Studio build from the [latest release page](https://github.com/web-infra-dev/midscene/releases/latest) by choosing a `midscene-studio-beta-*` asset, try it out, and let us know what works (and what doesn't):
 
 - **Multi-platform playground**: Switch seamlessly between Web, Android, iOS, HarmonyOS, and Computer playgrounds inside the same Studio app
 - **Interactive device preview**: Manually drive Android / iOS / HarmonyOS device previews with mouse and touch input; Web preview supports live streaming
@@ -17,7 +43,6 @@ We're building a full record → script → replay loop into Studio: drive a rea
 
 ### YAML Workflow Enhancements
 
-- **Reuse step results**: YAML steps with `name` can be reused in later steps through `$name` and `${name}`. See: [Automate with Scripts in YAML](./automate-with-scripts-in-yaml#reuse-step-results)
 - **Android `runAdbShell` timeout**: A `timeout` option is now accepted in both the JavaScript API and YAML scripts. See: [Android API](./android-api-reference), [Automate with Scripts in YAML](./automate-with-scripts-in-yaml)
 
 ### New Interaction APIs
