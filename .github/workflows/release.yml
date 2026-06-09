@@ -279,23 +279,45 @@ jobs:
       if: ${{ matrix.platform == 'darwin' }}
       # appdmg pulls in darwin-only native deps (`macos-alias`,
       # `fs-xattr`) whose `node-gyp rebuild` install scripts were
-      # skipped by the workspace install (`--ignore-scripts`). Rebuild
-      # each directly from its pnpm store directory.
+      # skipped by the workspace install (`--ignore-scripts`). Ensure
+      # each helper exists in the consumer's resolver path, then rebuild
+      # directly from the package directory.
       run: |
         set -euo pipefail
         shopt -s nullglob
-        for pkg in macos-alias fs-xattr; do
+
+        ensure_native_pkg() {
+          local pkg="$1"
+          local version="$2"
+          local consumer="$3"
           PKG_DIRS=(
             node_modules/.pnpm/${pkg}@*/node_modules/${pkg}
-            node_modules/.pnpm/appdmg@*/node_modules/${pkg}
+            node_modules/.pnpm/${consumer}@*/node_modules/${pkg}
           )
           if [ "${#PKG_DIRS[@]}" -eq 0 ]; then
-            echo "${pkg} package directory not found under node_modules/.pnpm" >&2
-            exit 1
+            CONSUMER_STORE_ROOTS=(node_modules/.pnpm/${consumer}@*)
+            if [ "${#CONSUMER_STORE_ROOTS[@]}" -eq 0 ]; then
+              echo "${consumer} store directory not found under node_modules/.pnpm" >&2
+              exit 1
+            fi
+            CONSUMER_STORE_ROOT="${CONSUMER_STORE_ROOTS[0]}"
+            echo "Installing ${pkg}@${version} under ${CONSUMER_STORE_ROOT}"
+            npm install --prefix "${CONSUMER_STORE_ROOT}" --no-save --no-package-lock --ignore-scripts "${pkg}@${version}"
+            PKG_DIRS=(
+              node_modules/.pnpm/${pkg}@*/node_modules/${pkg}
+              node_modules/.pnpm/${consumer}@*/node_modules/${pkg}
+            )
+            if [ "${#PKG_DIRS[@]}" -eq 0 ]; then
+              echo "${pkg} package directory not found under node_modules/.pnpm" >&2
+              exit 1
+            fi
           fi
           echo "Rebuilding ${pkg} in ${PKG_DIRS[0]}"
           (cd "${PKG_DIRS[0]}" && npm rebuild)
-        done
+        }
+
+        ensure_native_pkg macos-alias 0.2.12 ds-store
+        ensure_native_pkg fs-xattr 0.3.1 appdmg
 
     - name: Build Studio and Nx dependencies
       run: npx nx build studio
