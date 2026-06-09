@@ -351,7 +351,7 @@ export function FeatureSections() {
 
               {/* Model 2 - Qwen */}
               <TiltCard
-                href={tUrl('/model-config#qwen3-vl')}
+                href={tUrl('/model-common-config#qwen3x')}
                 className="w-full md:w-[381px] md:h-[289px] flex flex-col group cursor-pointer"
               >
                 <div className="flex flex-col gap-[17px] h-full">
@@ -386,7 +386,7 @@ export function FeatureSections() {
             <div className="flex flex-col md:flex-row gap-6">
               {/* Model 3 - Gemini */}
               <TiltCard
-                href={tUrl('/model-config#gemini-3-pro')}
+                href={tUrl('/model-common-config#gemini-3x')}
                 className="w-full md:w-[381px] md:h-[289px] flex flex-col group cursor-pointer"
               >
                 <div className="flex flex-col gap-[17px] h-full">

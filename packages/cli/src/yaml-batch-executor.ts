@@ -38,6 +38,12 @@ export interface BatchRunnerConfig {
   files: string[];
   concurrent: number;
   continueOnError: boolean;
+  /**
+   * Number of extra attempts for a failed yaml file. Mapped to Rstest's
+   * `retry` option, so only the cases that failed in the previous attempt
+   * are re-executed. Defaults to 0 (no retry).
+   */
+  retry?: number;
   summary: string;
   shareBrowserContext: boolean;
   globalConfig?: {

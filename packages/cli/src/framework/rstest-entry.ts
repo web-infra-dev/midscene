@@ -1,6 +1,9 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import type { MidsceneYamlConfigResult } from '@midscene/core';
+import type {
+  MidsceneYamlConfigAttempt,
+  MidsceneYamlConfigResult,
+} from '@midscene/core';
 import { test } from '@rstest/core';
 import type { BatchRunnerConfig } from '../batch-runner';
 import { runYamlBatchInRstest } from './yaml-batch';
@@ -35,6 +38,55 @@ const writeResultFile = (
   writeFileSync(resultFile, JSON.stringify(data, null, 2));
 };
 
+const attemptHistoryFileFor = (resultFile: string): string =>
+  `${resultFile}.attempts.json`;
+
+const readAttemptHistory = (
+  resultFile: string,
+): MidsceneYamlConfigAttempt[] => {
+  const attemptHistoryFile = attemptHistoryFileFor(resultFile);
+  if (!existsSync(attemptHistoryFile)) return [];
+
+  return JSON.parse(
+    readFileSync(attemptHistoryFile, 'utf8'),
+  ) as MidsceneYamlConfigAttempt[];
+};
+
+const toAttemptResult = (
+  result: MidsceneYamlConfigResult,
+  attempt: number,
+): MidsceneYamlConfigAttempt => ({
+  attempt,
+  success: result.success,
+  output: result.output,
+  report: result.report,
+  error: result.error,
+  duration: result.duration,
+  resultType: result.resultType,
+});
+
+const appendAttemptHistory = (
+  resultFile: string,
+  result: MidsceneYamlConfigResult,
+): MidsceneYamlConfigResult => {
+  const attempts = readAttemptHistory(resultFile);
+  const nextAttempts = [
+    ...attempts,
+    toAttemptResult(result, attempts.length + 1),
+  ];
+
+  mkdirSync(dirname(resultFile), { recursive: true });
+  writeFileSync(
+    attemptHistoryFileFor(resultFile),
+    JSON.stringify(nextAttempts, null, 2),
+  );
+
+  return {
+    ...result,
+    attempts: nextAttempts,
+  };
+};
+
 const createRuntimeFailureResult = (
   file: string,
   startTime: number,
@@ -60,17 +112,19 @@ export function defineYamlCaseTest(options: DefineYamlCaseTestOptions) {
         ...options.webRuntimeOptions,
         file,
       });
+      result = appendAttemptHistory(options.resultFile, result);
       writeResultFile(options.resultFile, result);
 
-      if (!result.success && result.resultType !== 'partialFailed') {
+      if (!result.success) {
         throw createYamlCaseFailure(result);
       }
     } catch (error) {
       if (!result) {
-        writeResultFile(
+        const failureResult = appendAttemptHistory(
           options.resultFile,
           createRuntimeFailureResult(file, startTime, error),
         );
+        writeResultFile(options.resultFile, failureResult);
       }
       throw error;
     }

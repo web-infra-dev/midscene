@@ -233,6 +233,9 @@ export async function runRstestYamlProject(
       ? { pool: { maxWorkers: maxConcurrency, minWorkers: maxConcurrency } }
       : {}),
     ...(project.bail !== undefined ? { bail: project.bail } : {}),
+    ...(project.retry !== undefined && project.retry > 0
+      ? { retry: project.retry }
+      : {}),
     reporters: [],
     tools: {
       rspack: (_config, { appendPlugins }) => {

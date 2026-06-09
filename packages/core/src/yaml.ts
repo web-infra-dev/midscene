@@ -309,6 +309,13 @@ export type ScriptPlayerStatusValue = 'init' | 'running' | 'done' | 'error';
 export interface MidsceneYamlConfig {
   concurrent?: number;
   continueOnError?: boolean;
+  /**
+   * Number of times to retry a failed yaml file before marking it as failed.
+   * A value of 2 means each failing case is re-executed up to 2 extra times
+   * (3 attempts in total). Only the cases that failed in the previous attempt
+   * are retried. Defaults to 0 (no retry).
+   */
+  retry?: number;
   summary?: string;
   shareBrowserContext?: boolean;
   web?: MidsceneYamlScriptWebEnv;
@@ -326,12 +333,30 @@ export interface MidsceneYamlConfigOutput {
   path?: string;
 }
 
+export type MidsceneYamlConfigResultType =
+  | 'success'
+  | 'failed'
+  | 'partialFailed'
+  | 'notExecuted';
+
+export interface MidsceneYamlConfigAttempt {
+  attempt: number;
+  success: boolean;
+  output?: string | null;
+  report?: string | null;
+  error?: string;
+  duration?: number;
+  resultType?: MidsceneYamlConfigResultType;
+}
+
 export interface MidsceneYamlConfigResult {
   file: string;
   success: boolean;
   executed: boolean;
   output?: string | null;
   report?: string | null;
+  retryReport?: string | null;
+  attempts?: MidsceneYamlConfigAttempt[];
   error?: string;
   duration?: number;
   /**
@@ -341,5 +366,5 @@ export interface MidsceneYamlConfigResult {
    * - 'partialFailed': Some tasks failed but execution continued (continueOnError)
    * - 'notExecuted': Not executed due to previous failures
    */
-  resultType?: 'success' | 'failed' | 'partialFailed' | 'notExecuted';
+  resultType?: MidsceneYamlConfigResultType;
 }

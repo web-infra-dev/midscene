@@ -53,6 +53,7 @@ Promise.resolve(
     const configOptions = {
       concurrent: options.concurrent,
       continueOnError: options['continue-on-error'],
+      retry: options.retry,
       summary: options.summary,
       shareBrowserContext: options['share-browser-context'],
       headed: options.headed,

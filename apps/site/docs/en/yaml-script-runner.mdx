@@ -215,6 +215,7 @@ The CLI provides parameters to control how scripts run:
 - `--files <file1> <file2> ...`: List of script files. Executes in order, sequentially by default (`--concurrent` is `1`), or concurrently when `--concurrent` is set. Supports [glob](https://www.npmjs.com/package/glob) patterns; when a glob pattern or directory matches multiple files, matched files are added to the execution list in lexicographic path order.
 - `--concurrent <number>`: Number of concurrent executions. Default `1`.
 - `--continue-on-error`: Continue running remaining scripts even if one fails. Default off.
+- `--retry <number>`: Number of times to retry a failed script. Only the scripts that failed in the previous attempt are retried, which helps with unstable networks or unstable model output. Default `0`. (Not effective together with `--share-browser-context`, where the whole batch shares a single run.)
 - `--share-browser-context`: Share browser context (cookies, `localStorage`, etc.) across scripts. Default off.
 - `--summary <filename>`: Path for the JSON summary report.
 - `--headed`: Run in a headed browser instead of headless.
@@ -256,6 +257,7 @@ files:
 
 concurrent: 4
 continueOnError: true
+retry: 2
 ```
 
 Run with:
