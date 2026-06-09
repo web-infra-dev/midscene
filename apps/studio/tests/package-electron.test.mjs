@@ -115,6 +115,47 @@ describe('package-electron helpers', () => {
     }
   });
 
+  it('loads appdmg from the staged packaging workspace pnpm store', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'midscene-pnpm-'));
+    const stageRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'midscene-stage-pnpm-'),
+    );
+    const appdmgDir = path.join(
+      stageRoot,
+      'node_modules',
+      '.pnpm',
+      'appdmg@0.6.6',
+      'node_modules',
+      'appdmg',
+    );
+    try {
+      await fs.mkdir(appdmgDir, { recursive: true });
+      await fs.writeFile(
+        path.join(appdmgDir, 'package.json'),
+        JSON.stringify({ main: 'index.mjs', type: 'module' }),
+      );
+      await fs.writeFile(
+        path.join(appdmgDir, 'index.mjs'),
+        'export default function appdmg() { return "loaded from stage"; }\n',
+      );
+
+      const missingDirectImport = Object.assign(new Error('missing appdmg'), {
+        code: 'ERR_MODULE_NOT_FOUND',
+      });
+      const appdmg = await loadAppDmg({
+        directImport: async () => {
+          throw missingDirectImport;
+        },
+        workspaceRoot: root,
+        extraWorkspaceRoots: [stageRoot],
+      });
+      expect(appdmg()).toBe('loaded from stage');
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+      await fs.rm(stageRoot, { recursive: true, force: true });
+    }
+  });
+
   it('builds a deterministic artifact basename', () => {
     expect(
       buildArtifactBaseName({

@@ -1956,6 +1956,7 @@ export const resolvePnpmPackageEntry = ({
 export const loadAppDmg = async ({
   directImport = () => import('appdmg'),
   workspaceRoot = workspaceRootDir,
+  extraWorkspaceRoots = [],
 } = {}) => {
   try {
     const appdmgModule = await directImport();
@@ -1964,11 +1965,15 @@ export const loadAppDmg = async ({
     if (error?.code !== 'ERR_MODULE_NOT_FOUND') {
       throw error;
     }
-    const appdmgEntry = resolvePnpmPackageEntry({
-      packageName: 'appdmg',
-      version: '0.6.6',
-      workspaceRoot,
-    });
+    const appdmgEntry = [workspaceRoot, ...extraWorkspaceRoots]
+      .map((root) =>
+        resolvePnpmPackageEntry({
+          packageName: 'appdmg',
+          version: '0.6.6',
+          workspaceRoot: root,
+        }),
+      )
+      .find(Boolean);
     if (!appdmgEntry) {
       throw error;
     }
@@ -1977,12 +1982,12 @@ export const loadAppDmg = async ({
   }
 };
 
-const runAppDmg = async ({ source, target }) => {
+const runAppDmg = async ({ source, target, extraWorkspaceRoots = [] }) => {
   // `appdmg` (via `macos-alias`) loads a darwin-only native binding at
   // require time, so keep the import dynamic and gated to the darwin
   // packaging path. CI can have the package in pnpm's store without a
   // direct workspace symlink, so `loadAppDmg` falls back to that store path.
-  const appdmg = await loadAppDmg();
+  const appdmg = await loadAppDmg({ extraWorkspaceRoots });
   return new Promise((resolve, reject) => {
     const ee = appdmg({ source, target });
     ee.on('progress', (info) => {
@@ -2000,6 +2005,7 @@ export const buildStudioDmgArtifact = async ({
   baseName,
   iconPath,
   security = resolveMacPackagedAppSecurity({ platform: 'darwin' }),
+  stageDir,
 }) => {
   const dmgArtifactPath = path.join(artifactDir, `${baseName}.dmg`);
   await removeIfExists(dmgArtifactPath);
@@ -2020,7 +2026,11 @@ export const buildStudioDmgArtifact = async ({
     )}\n`,
   );
   try {
-    await runAppDmg({ source: specPath, target: dmgArtifactPath });
+    await runAppDmg({
+      source: specPath,
+      target: dmgArtifactPath,
+      extraWorkspaceRoots: stageDir ? [stageDir] : [],
+    });
   } finally {
     await removeIfExists(specPath);
   }
@@ -2147,6 +2157,7 @@ export const packageStudioElectronApp = async ({
       baseName,
       iconPath: resolvePackagerIconPath(platform),
       security: macSecurity,
+      stageDir,
     });
   }
 
