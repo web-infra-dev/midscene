@@ -6,10 +6,11 @@ import {
   type ReactNode,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import type { StudioRecordingSession } from '../../recorder/types';
-import { DownloadIcon, TrashIcon } from './assets/recorder-icons';
+import { DownloadIcon, EditIcon, TrashIcon } from './assets/recorder-icons';
 import type { StudioRecorderTab } from './recorder-panel-utils';
 
 const RECORDER_HISTORY_TYPE = 'studio-recorder';
@@ -24,6 +25,10 @@ type HistorySelectorWithActionControlsProps = Omit<
     history: HistorySelectorHistory,
     controls: { close: () => void; scrollVersion: number },
   ) => ReactNode;
+  renderItemLabel?: (
+    history: HistorySelectorHistory,
+    controls: { close: () => void },
+  ) => ReactNode;
 };
 const RecorderHistorySelector =
   HistorySelector as ComponentType<HistorySelectorWithActionControlsProps>;
@@ -34,6 +39,7 @@ interface RecorderHistoryListProps {
   onDeleteSession: (sessionId: string) => void;
   onExportMarkdown: (sessionId: string) => void;
   onOpenDetail: (sessionId: string, tab?: StudioRecorderTab) => void;
+  onRenameSession: (sessionId: string, name: string) => Promise<void>;
   sessions: StudioRecordingSession[];
   trigger: ReactNode;
 }
@@ -42,10 +48,15 @@ function RecorderHistoryActions({
   currentSessionId,
   isRecording,
   onDeleteSession,
+  onEditSession,
   onExportMarkdown,
   scrollVersion,
   session,
-}: Omit<RecorderHistoryListProps, 'onOpenDetail' | 'sessions' | 'trigger'> & {
+}: Omit<
+  RecorderHistoryListProps,
+  'onOpenDetail' | 'onRenameSession' | 'sessions' | 'trigger'
+> & {
+  onEditSession: (session: StudioRecordingSession) => void;
   scrollVersion: number;
   session: StudioRecordingSession;
 }) {
@@ -80,11 +91,17 @@ function RecorderHistoryActions({
             <DownloadIcon />
             <span>download</span>
           </button>
-          {/* Edit action is hidden until the history item has an edit callback. */}
-          {/* <button type="button">
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              setOpen(false);
+              onEditSession(session);
+            }}
+            type="button"
+          >
             <EditIcon />
             <span>edit</span>
-          </button> */}
+          </button>
           <button
             disabled={deleteDisabled}
             onClick={(event) => {
@@ -120,15 +137,64 @@ function RecorderHistoryActions({
   );
 }
 
+function RecorderHistoryNameEditor({
+  name,
+  onCancel,
+  onChange,
+  onCommit,
+}: {
+  name: string;
+  onCancel: () => void;
+  onChange: (name: string) => void;
+  onCommit: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  return (
+    <input
+      aria-label="Recording name"
+      className="studio-recorder-history-name-input"
+      onBlur={onCommit}
+      onChange={(event) => onChange(event.target.value)}
+      onClick={(event) => event.stopPropagation()}
+      onKeyDown={(event) => {
+        event.stopPropagation();
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          event.currentTarget.blur();
+          return;
+        }
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          onCancel();
+        }
+      }}
+      ref={inputRef}
+      value={name}
+    />
+  );
+}
+
 export function RecorderHistoryList({
   currentSessionId,
   isRecording,
   onDeleteSession,
   onExportMarkdown,
   onOpenDetail,
+  onRenameSession,
   sessions,
   trigger,
 }: RecorderHistoryListProps) {
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const [renamingSessionId, setRenamingSessionId] = useState<string | null>(
+    null,
+  );
   const sessionById = useMemo(
     () => new Map(sessions.map((session) => [session.id, session])),
     [sessions],
@@ -143,6 +209,40 @@ export function RecorderHistoryList({
       })),
     [sessions],
   );
+  const cancelEditing = () => {
+    setEditingSessionId(null);
+    setEditingName('');
+  };
+  const startEditing = (session: StudioRecordingSession) => {
+    setEditingSessionId(session.id);
+    setEditingName(session.name);
+  };
+  const commitEditing = () => {
+    const sessionId = editingSessionId;
+    if (!sessionId || renamingSessionId) {
+      return;
+    }
+    const session = sessionById.get(sessionId);
+    if (!session) {
+      cancelEditing();
+      return;
+    }
+    const nextName = editingName.trim();
+    if (!nextName || nextName === session.name) {
+      cancelEditing();
+      return;
+    }
+    setRenamingSessionId(sessionId);
+    void onRenameSession(sessionId, nextName).finally(() => {
+      setRenamingSessionId((current) =>
+        current === sessionId ? null : current,
+      );
+      setEditingSessionId((current) =>
+        current === sessionId ? null : current,
+      );
+      setEditingName('');
+    });
+  };
 
   return (
     <RecorderHistorySelector
@@ -152,7 +252,7 @@ export function RecorderHistoryList({
       noMatchText="No matching recording"
       onSelect={(history) => {
         const sessionId = history.params?.sessionId;
-        if (typeof sessionId === 'string') {
+        if (typeof sessionId === 'string' && sessionId !== editingSessionId) {
           onOpenDetail(sessionId, 'timeline');
         }
       }}
@@ -161,7 +261,7 @@ export function RecorderHistoryList({
       popupPlacement="bottom"
       popupWidth={280}
       portalContainerSelector=".studio-recorder-floating-card"
-      renderItemActions={(history, { close, scrollVersion }) => {
+      renderItemActions={(history, { scrollVersion }) => {
         const sessionId = history.params?.sessionId;
         const session =
           typeof sessionId === 'string' ? sessionById.get(sessionId) : null;
@@ -173,9 +273,24 @@ export function RecorderHistoryList({
             currentSessionId={currentSessionId}
             isRecording={isRecording}
             onDeleteSession={onDeleteSession}
+            onEditSession={startEditing}
             onExportMarkdown={onExportMarkdown}
             scrollVersion={scrollVersion}
             session={session}
+          />
+        );
+      }}
+      renderItemLabel={(history) => {
+        const sessionId = history.params?.sessionId;
+        if (typeof sessionId !== 'string' || sessionId !== editingSessionId) {
+          return history.prompt;
+        }
+        return (
+          <RecorderHistoryNameEditor
+            name={editingName}
+            onCancel={cancelEditing}
+            onChange={setEditingName}
+            onCommit={commitEditing}
           />
         );
       }}

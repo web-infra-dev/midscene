@@ -841,6 +841,36 @@
   border-radius: 8px;
 }
 
+.studio-recorder-history-name-input {
+  display: block;
+  width: calc(100% - 4px);
+  height: 28px;
+  box-sizing: border-box;
+  border: 1px solid #d6dae0;
+  border-radius: 6px;
+  appearance: none;
+  background: #fff;
+  color: #1f1f1f;
+  font-size: 13px;
+  line-height: 20px;
+  margin: 0 2px;
+  outline: none;
+  padding: 0 8px;
+}
+
+.studio-recorder-history-name-input:focus {
+  border-color: #4d8dff;
+  box-shadow: 0 0 0 2px rgba(77, 141, 255, 0.14);
+}
+
+.history-modal-overlay.studio-recorder-history-modal-overlay
+  .history-item:has(.studio-recorder-history-name-input),
+.history-modal-overlay.studio-recorder-history-modal-overlay
+  .history-item:has(.studio-recorder-history-name-input):hover {
+  background: transparent;
+  padding: 0;
+}
+
 .history-modal-overlay.studio-recorder-history-modal-overlay
   .history-item:hover {
   margin: 0;

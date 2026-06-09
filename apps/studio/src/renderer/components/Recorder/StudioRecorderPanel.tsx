@@ -52,6 +52,7 @@ export function StudioRecorderPanel({
     startRecording,
     stopRecording,
     deleteSession,
+    renameSession,
     selectSession,
     generateSessionCode,
     exportSessionCode,
@@ -419,6 +420,11 @@ export function StudioRecorderPanel({
         void runPanelAction(() => exportSessionCode(sessionId, 'markdown'));
       }}
       onOpenDetail={openDetail}
+      onRenameSession={(sessionId, name) =>
+        runPanelAction(() => renameSession(sessionId, name)).then(
+          () => undefined,
+        )
+      }
       sessions={visibleSessions}
       trigger={
         <button

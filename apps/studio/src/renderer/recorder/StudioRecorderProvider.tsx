@@ -396,6 +396,10 @@ function isStudioPreviewInputEvent(event: StudioRecordedEvent) {
   );
 }
 
+function isTypeOnlyRecorderInput(event: StudioRecordedEvent) {
+  return event.rawPayload.mode === 'typeOnly';
+}
+
 function hasRecorderElementRect(event: StudioRecordedEvent) {
   const rect = event.elementRect;
   if (!rect) {
@@ -431,6 +435,8 @@ function canCoalesceRecorderInput(
     pending.sessionId === sessionId &&
     isStudioPreviewInputEvent(pending.event) &&
     isStudioPreviewInputEvent(event) &&
+    isTypeOnlyRecorderInput(pending.event) &&
+    isTypeOnlyRecorderInput(event) &&
     createStudioRecorderTargetSignature(pending.event.target) ===
       createStudioRecorderTargetSignature(event.target) &&
     pending.event.url === event.url &&
@@ -1042,6 +1048,30 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     [stopRecording],
   );
 
+  const renameSession = useCallback(
+    async (sessionId: string, name: string) => {
+      const nextName = name.trim();
+      if (!nextName) {
+        return;
+      }
+      await flushPendingRecorderInput(sessionId);
+      const snapshot = stateRef.current;
+      const session = snapshot.sessions.find((item) => item.id === sessionId);
+      if (!session || session.name === nextName) {
+        return;
+      }
+      const updatedSession: StudioRecordingSession = {
+        ...session,
+        name: nextName,
+        updatedAt: Date.now(),
+      };
+      stateRef.current = upsertSessionInState(snapshot, updatedSession);
+      dispatch({ type: 'upsert-session', session: updatedSession });
+      await upsertStudioRecorderSession(updatedSession);
+    },
+    [flushPendingRecorderInput],
+  );
+
   const selectSession = useCallback((sessionId: string) => {
     void setCurrentStudioRecorderSessionId(sessionId);
     dispatch({ type: 'select-session', sessionId });
@@ -1533,6 +1563,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       startRecording,
       stopRecording,
       deleteSession,
+      renameSession,
       selectSession,
       generateSessionYaml,
       generateSessionCode,
@@ -1552,6 +1583,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       exportSessionCode,
       generateSessionCode,
       generateSessionYaml,
+      renameSession,
       selectSession,
       startRecording,
       state,

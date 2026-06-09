@@ -338,14 +338,6 @@ export function PreviewRenderer({
   );
 
   useEffect(() => {
-    return () => {
-      clearTextInputTimer();
-      pendingTextInputRef.current = '';
-      textInputFlushPromiseRef.current = null;
-    };
-  }, [clearTextInputTimer]);
-
-  useEffect(() => {
     if (serverOnline && previewInteractionEnabled && manualKeyboardEnabled) {
       return;
     }
@@ -367,9 +359,12 @@ export function PreviewRenderer({
         pendingTextInputRef.current
       ) {
         void flushPendingTextInput();
+        return;
       }
+      clearTextInputTimer();
     };
   }, [
+    clearTextInputTimer,
     flushPendingTextInput,
     manualKeyboardEnabled,
     previewConnection.type,

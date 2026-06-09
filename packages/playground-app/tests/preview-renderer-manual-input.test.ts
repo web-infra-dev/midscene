@@ -275,4 +275,116 @@ describe('PreviewRenderer manual web input', () => {
     });
     container.remove();
   });
+
+  it('flushes pending keyboard input before unmounting', async () => {
+    vi.useFakeTimers();
+    const interact = vi.fn(async () => ({ ok: true }));
+    const playgroundSDK = {
+      getInterfaceInfo: vi.fn(async () => ({
+        type: 'puppeteer',
+        size: { width: 100, height: 100 },
+        actionTypes: ['Tap', 'DragAndDrop', 'KeyboardPress', 'Input'],
+      })),
+      getScreenshot: vi.fn(async () => null),
+      interact,
+    };
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        createElement(PreviewRenderer, {
+          playgroundSDK,
+          runtimeInfo: {
+            interface: { type: 'puppeteer' },
+            metadata: {},
+            preview: {
+              kind: 'mjpeg',
+              mjpegPath: '/mjpeg',
+            },
+          },
+          serverOnline: true,
+          serverUrl: 'http://127.0.0.1:5800',
+          isUserOperating: false,
+          screenshotViewerMode: 'screen-only',
+        } as any),
+      );
+    });
+    await flushPromises();
+
+    const overlay = container.querySelector(
+      '[data-midscene-device-interaction-layer="true"]',
+    ) as HTMLDivElement;
+    const keyboardSink = container.querySelector(
+      '[data-midscene-keyboard-sink="true"]',
+    ) as HTMLTextAreaElement;
+    expect(overlay).toBeTruthy();
+    expect(keyboardSink).toBeTruthy();
+    Object.defineProperty(overlay, 'setPointerCapture', {
+      configurable: true,
+      value: vi.fn(),
+    });
+    Object.defineProperty(overlay, 'releasePointerCapture', {
+      configurable: true,
+      value: vi.fn(),
+    });
+    Object.defineProperty(overlay, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        bottom: 100,
+        height: 100,
+        left: 0,
+        right: 100,
+        top: 0,
+        width: 100,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      }),
+    });
+
+    await act(async () => {
+      overlay.dispatchEvent(
+        new MouseEvent('pointerdown', {
+          bubbles: true,
+          button: 0,
+          clientX: 50,
+          clientY: 50,
+        }),
+      );
+      overlay.dispatchEvent(
+        new MouseEvent('pointerup', {
+          bubbles: true,
+          button: 0,
+          clientX: 50,
+          clientY: 50,
+        }),
+      );
+      keyboardSink.value = 'z';
+      keyboardSink.dispatchEvent(
+        new InputEvent('input', {
+          bubbles: true,
+          data: 'z',
+          inputType: 'insertText',
+        }),
+      );
+    });
+    await flushPromises();
+
+    expect(interact).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      root.unmount();
+    });
+    await flushPromises();
+
+    expect(interact).toHaveBeenNthCalledWith(2, {
+      actionType: 'Input',
+      value: 'z',
+      mode: 'typeOnly',
+    });
+
+    container.remove();
+  });
 });

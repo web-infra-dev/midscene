@@ -277,7 +277,7 @@ describe('StudioRecorderProvider preview recording', () => {
       type: 'input',
       source: 'studio-preview',
       actionType: 'Input',
-      rawPayload: { actionType: 'Input', value: 'h' },
+      rawPayload: { actionType: 'Input', mode: 'typeOnly', value: 'h' },
       value: 'h',
       url: 'https://example.com',
       title: 'Example',
@@ -291,7 +291,7 @@ describe('StudioRecorderProvider preview recording', () => {
       type: 'input',
       source: 'studio-preview',
       actionType: 'Input',
-      rawPayload: { actionType: 'Input', value: 'e' },
+      rawPayload: { actionType: 'Input', mode: 'typeOnly', value: 'e' },
       value: 'e',
       url: 'https://example.com',
       title: 'Example',
@@ -340,6 +340,73 @@ describe('StudioRecorderProvider preview recording', () => {
       [expect.objectContaining({ hashId: 'input-h', value: 'he' })],
       expect.any(Object),
     );
+
+    await mounted.cleanup();
+  });
+
+  it('does not coalesce preview input events unless both are typeOnly', async () => {
+    const inputH = {
+      type: 'input',
+      source: 'studio-preview',
+      actionType: 'Input',
+      rawPayload: { actionType: 'Input', mode: 'typeOnly', value: 'h' },
+      value: 'h',
+      url: 'https://example.com',
+      title: 'Example',
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 123,
+      hashId: 'input-h',
+    };
+    const replaceInput = {
+      type: 'input',
+      source: 'studio-preview',
+      actionType: 'Input',
+      rawPayload: { actionType: 'Input', mode: 'replace', value: 'hello' },
+      value: 'hello',
+      url: 'https://example.com',
+      title: 'Example',
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 124,
+      hashId: 'input-replace',
+    };
+    const click = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      elementDescription: 'Submit',
+      elementRect: { x: 10, y: 20 },
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 125,
+      hashId: 'click-after-input',
+    };
+    const { context } = createConnectedStudioContext({
+      events: [inputH, replaceInput, click],
+    });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(mounted.recorder?.currentSession?.events).toHaveLength(3);
+    expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
+      hashId: 'input-h',
+      type: 'input',
+      value: 'h',
+      rawPayload: expect.objectContaining({ mode: 'typeOnly', value: 'h' }),
+    });
+    expect(mounted.recorder?.currentSession?.events[1]).toMatchObject({
+      hashId: 'input-replace',
+      type: 'input',
+      value: 'hello',
+      rawPayload: expect.objectContaining({ mode: 'replace', value: 'hello' }),
+    });
+    expect(mounted.recorder?.currentSession?.events[2]).toMatchObject({
+      hashId: 'click-after-input',
+      type: 'click',
+    });
 
     await mounted.cleanup();
   });
@@ -446,6 +513,26 @@ describe('StudioRecorderProvider preview recording', () => {
       y: 20,
     });
     expect(mounted.recorder?.currentSession?.events).toHaveLength(0);
+
+    await mounted.cleanup();
+  });
+
+  it('renames the current recorder session', async () => {
+    const { context } = createConnectedStudioContext();
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+
+    const sessionId = mounted.recorder?.currentSession?.id;
+    await act(async () => {
+      await mounted.recorder?.renameSession(sessionId!, '  Checkout replay  ');
+    });
+    await flushPromises();
+
+    expect(mounted.recorder?.currentSession?.name).toBe('Checkout replay');
 
     await mounted.cleanup();
   });
