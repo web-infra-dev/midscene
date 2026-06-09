@@ -24,7 +24,8 @@ import type {
 
 const debug = getDebug('rdp:backend');
 const HELPER_SHUTDOWN_TIMEOUT_MS = 3_000;
-const MAX_STDERR_LINES = 40;
+const HELPER_WRITE_ERROR_DIAGNOSTIC_DELAY_MS = 50;
+const MAX_STDERR_CHARS = 16_384;
 
 type PendingRequest = {
   resolve: (value: RDPProtocolResponse) => void;
@@ -107,9 +108,11 @@ export class HelperProcessRDPBackendClient implements RDPBackendClient {
   private readonly resolveHelperPath: () => string;
   private child?: ChildProcessWithoutNullStreams;
   private stdoutReader?: Interface;
-  private stderrReader?: Interface;
   private readonly pending = new Map<string, PendingRequest>();
-  private readonly stderrLines: string[] = [];
+  private stderrBuffer = '';
+  private helperPath?: string;
+  private helperPid?: number;
+  private helperExit?: { code: number | null; signal: NodeJS.Signals | null };
   private nextRequestId = 0;
   private connected = false;
   private fatalHelperError?: Error;
@@ -271,21 +274,21 @@ export class HelperProcessRDPBackendClient implements RDPBackendClient {
     child.stderr.setEncoding('utf8');
 
     this.child = child;
-    this.stderrLines.length = 0;
+    this.stderrBuffer = '';
+    this.helperPath = helperPath;
+    this.helperPid = child.pid;
+    this.helperExit = undefined;
+    debug('started rdp helper', { helperPath, pid: child.pid });
     this.stdoutReader = createInterface({
       input: child.stdout,
-      crlfDelay: Number.POSITIVE_INFINITY,
-    });
-    this.stderrReader = createInterface({
-      input: child.stderr,
       crlfDelay: Number.POSITIVE_INFINITY,
     });
 
     this.stdoutReader.on('line', (line) => {
       this.handleStdoutLine(line);
     });
-    this.stderrReader.on('line', (line) => {
-      this.captureStderrLine(line);
+    child.stderr.on('data', (chunk) => {
+      this.captureStderrChunk(chunk);
     });
     child.stdin.on('error', (error) => {
       this.handleHelperStreamError(child, 'stdin', error);
@@ -298,14 +301,22 @@ export class HelperProcessRDPBackendClient implements RDPBackendClient {
     });
 
     child.on('exit', (code, signal) => {
+      if (this.child !== child) {
+        return;
+      }
+
       this.connected = false;
-      const error = this.createHelperError(
+      this.helperExit = { code, signal };
+      debug('rdp helper exited', {
+        helperPath: this.helperPath,
+        pid: this.helperPid,
+        code,
+        signal,
+      });
+      this.fatalHelperError = this.createHelperError(
         `RDP helper exited unexpectedly (code=${code}, signal=${signal})`,
       );
-      this.fatalHelperError = error;
-      this.rejectPending(error);
-      this.disposeReaders();
-      this.child = undefined;
+      this.deferHelperExitRejection(child, code, signal);
     });
 
     child.on('error', (error) => {
@@ -340,9 +351,6 @@ export class HelperProcessRDPBackendClient implements RDPBackendClient {
 
     if (child.exitCode === null) {
       child.kill('SIGTERM');
-    }
-    if (streamName !== 'stderr') {
-      this.disposeReaders();
     }
     this.child = undefined;
   }
@@ -381,14 +389,21 @@ export class HelperProcessRDPBackendClient implements RDPBackendClient {
     );
   }
 
-  private captureStderrLine(line: string): void {
-    if (!line.trim()) {
+  private captureStderrChunk(chunk: string | Buffer): void {
+    const text = chunk.toString();
+    if (!text.trim()) {
       return;
     }
 
-    this.stderrLines.push(line);
-    if (this.stderrLines.length > MAX_STDERR_LINES) {
-      this.stderrLines.shift();
+    debug('rdp helper stderr', {
+      helperPath: this.helperPath,
+      pid: this.helperPid,
+      stderr: text.trim(),
+    });
+
+    this.stderrBuffer += text;
+    if (this.stderrBuffer.length > MAX_STDERR_CHARS) {
+      this.stderrBuffer = this.stderrBuffer.slice(-MAX_STDERR_CHARS);
     }
   }
 
@@ -424,13 +439,39 @@ export class HelperProcessRDPBackendClient implements RDPBackendClient {
         }
 
         this.pending.delete(id);
-        reject(
-          this.createHelperError(
-            `Failed to send ${payload.type} request to RDP helper: ${error.message}`,
-          ),
-        );
+        const nodeError = error as NodeJS.ErrnoException;
+        const timer = setTimeout(() => {
+          reject(
+            this.createHelperError(
+              `Failed to send ${payload.type} request to RDP helper: ${error.message}`,
+              nodeError.code,
+            ),
+          );
+        }, HELPER_WRITE_ERROR_DIAGNOSTIC_DELAY_MS);
+        timer.unref?.();
       });
     });
+  }
+
+  private deferHelperExitRejection(
+    child: ChildProcessWithoutNullStreams,
+    code: number | null,
+    signal: NodeJS.Signals | null,
+  ): void {
+    const timer = setTimeout(() => {
+      if (this.child !== child) {
+        return;
+      }
+
+      const error = this.createHelperError(
+        `RDP helper exited unexpectedly (code=${code}, signal=${signal})`,
+      );
+      this.fatalHelperError = error;
+      this.rejectPending(error);
+      this.disposeReaders();
+      this.child = undefined;
+    }, HELPER_WRITE_ERROR_DIAGNOSTIC_DELAY_MS);
+    timer.unref?.();
   }
 
   private expectOk(
@@ -452,9 +493,22 @@ export class HelperProcessRDPBackendClient implements RDPBackendClient {
   }
 
   private createHelperError(message: string, code?: string): Error {
-    const stderrSummary = this.stderrLines.join('\n').trim();
-    const suffix = stderrSummary ? `\nHelper stderr:\n${stderrSummary}` : '';
-    const error = new Error(`${message}${suffix}`);
+    const diagnostics = [
+      this.helperPath ? `path=${this.helperPath}` : undefined,
+      typeof this.helperPid === 'number' ? `pid=${this.helperPid}` : undefined,
+      this.helperExit
+        ? `exitCode=${this.helperExit.code}, signal=${this.helperExit.signal}`
+        : undefined,
+    ].filter(Boolean);
+    const diagnosticsSuffix =
+      diagnostics.length > 0
+        ? `\nHelper diagnostics: ${diagnostics.join(', ')}`
+        : '';
+    const stderrSummary = this.stderrBuffer.trim();
+    const stderrSuffix = stderrSummary
+      ? `\nHelper stderr:\n${stderrSummary}`
+      : '';
+    const error = new Error(`${message}${diagnosticsSuffix}${stderrSuffix}`);
     if (code) {
       error.name = code;
     }
@@ -463,9 +517,7 @@ export class HelperProcessRDPBackendClient implements RDPBackendClient {
 
   private disposeReaders(): void {
     this.stdoutReader?.close();
-    this.stderrReader?.close();
     this.stdoutReader = undefined;
-    this.stderrReader = undefined;
   }
 
   private async shutdownHelper(rootError?: Error): Promise<void> {
