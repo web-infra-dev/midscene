@@ -50,10 +50,10 @@ Use `modelConfig: Record<string, string | number>` to configure models directly 
 ```typescript
 const agent = new PuppeteerAgent(page, {
   modelConfig: {
-    MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+    MIDSCENE_MODEL_NAME: 'qwen3.7-plus',
     MIDSCENE_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     MIDSCENE_MODEL_API_KEY: 'sk-...',
-    MIDSCENE_MODEL_FAMILY: 'qwen3-vl'
+    MIDSCENE_MODEL_FAMILY: 'qwen3'
   }
 });
 ```
@@ -63,10 +63,10 @@ const agent = new PuppeteerAgent(page, {
 const agent = new PuppeteerAgent(page, {
   modelConfig: {
     // default
-    MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+    MIDSCENE_MODEL_NAME: 'qwen3.7-plus',
     MIDSCENE_MODEL_API_KEY: 'sk-default-key',
     MIDSCENE_MODEL_BASE_URL: '.....',
-    MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
+    MIDSCENE_MODEL_FAMILY: 'qwen3',
 
     // planning intent
     MIDSCENE_PLANNING_MODEL_NAME: 'gpt-5.1',
