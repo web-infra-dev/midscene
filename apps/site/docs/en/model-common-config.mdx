@@ -246,36 +246,28 @@ Starting with version 1.0, Midscene no longer supports GPT-4o as the planning mo
 
 ## Using Azure OpenAI Service {#azure-openai}
 
-Midscene no longer ships a dedicated Azure client. Because Azure OpenAI exposes OpenAI-compatible APIs, you connect to it like any other OpenAI-compatible endpoint. The exact base URL depends on which Azure endpoint shape your resource provides.
+Midscene no longer ships a dedicated Azure client. Use Azure resources that expose an OpenAI-compatible `/openai/v1` Chat Completions endpoint the same way you use any other OpenAI-compatible provider.
 
-For the classic Azure OpenAI deployment endpoint, point `MIDSCENE_MODEL_BASE_URL` at your deployment and pass Azure's `api-version` query parameter and `api-key` header through `MIDSCENE_MODEL_INIT_CONFIG_JSON`.
+Use this configuration for endpoints such as `https://<your-resource>.openai.azure.com/openai/v1` or `https://<your-resource>.services.ai.azure.com/openai/v1`. Do not append `/chat/completions`; the OpenAI SDK adds that path.
 
 ```bash
-# Point at your deployment. Do NOT append /chat/completions — the SDK adds it.
-MIDSCENE_MODEL_BASE_URL="https://<your-resource>.openai.azure.com/openai/deployments/<your-deployment>"
-# Use the deployment name as the model name.
-MIDSCENE_MODEL_NAME="<your-deployment>"
-# Required by the OpenAI SDK constructor, but ignored by Azure when the api-key header is set below.
-MIDSCENE_MODEL_API_KEY="placeholder"
-# Azure auth uses an `api-key` header (not a Bearer token) and requires the api-version query param.
-MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultQuery":{"api-version":"2024-08-01-preview"},"defaultHeaders":{"api-key":"<your-azure-api-key>"}}'
+MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1" # Or https://<your-resource>.openai.azure.com/openai/v1
+MIDSCENE_MODEL_NAME="<your-model-or-deployment-name>"
+MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
 ```
 
-This sends requests as `POST /openai/deployments/<your-deployment>/chat/completions?api-version=2024-08-01-preview` with the `api-key` header, which is exactly what Azure OpenAI expects.
+This sends requests as `POST /openai/v1/chat/completions` with the `Authorization: Bearer ...` header. For GPT-5 series models, also set `MIDSCENE_MODEL_FAMILY="gpt-5"` as shown in the [GPT-5 Series](#gpt-5-4) section above.
 
-For Azure resources that expose the OpenAI-compatible `/openai/v1` endpoint, use the `/openai/v1` base URL and do not add `api-version`. Do not append `/chat/completions`; the OpenAI SDK adds that path.
+Some Azure-compatible gateways may only accept the `api-key` header. In that case, keep `MIDSCENE_MODEL_API_KEY` as a non-empty placeholder for the OpenAI SDK constructor and pass the real key through `MIDSCENE_MODEL_INIT_CONFIG_JSON`.
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1"
 MIDSCENE_MODEL_NAME="<your-model-or-deployment-name>"
-# Required by the OpenAI SDK constructor. Azure auth uses the api-key header below.
 MIDSCENE_MODEL_API_KEY="placeholder"
 MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"api-key":"<your-azure-api-key>"}}'
 ```
 
-This sends requests as `POST /openai/v1/chat/completions` with the `api-key` header.
-
-Do not omit `MIDSCENE_MODEL_API_KEY` in this setup unless `OPENAI_API_KEY` is already set. The OpenAI SDK validates its constructor `apiKey` before sending the request; Azure still uses the `api-key` header above for authentication.
+For `/openai/v1` endpoints, do not add `api-version`. The base URL must stop at `/openai/v1`.
 
 :::warning Azure AD / keyless auth is not supported
 
