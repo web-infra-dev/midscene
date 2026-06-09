@@ -68,13 +68,17 @@ interface ModeOutcome {
 
 export async function main(argv: string[]): Promise<number> {
   const live = argv.includes('--live');
-  if (live && !process.env.MIDSCENE_MODEL_BASE_URL) {
-    console.error(
-      red(
-        '[midscene] demo --live needs model configuration (MIDSCENE_MODEL_BASE_URL etc., the same env the AI tests use). Run without --live for the offline reference demo.',
-      ),
-    );
-    return 2;
+  const modeFilter = parseModeFilter(argv);
+  if (live) {
+    // Fail fast (and self-configure the codex app-server path) before any
+    // mode banner is printed.
+    const { ensureLiveModelEnv } = await import('./live');
+    try {
+      ensureLiveModelEnv();
+    } catch (err) {
+      console.error(red((err as Error).message));
+      return 2;
+    }
   }
 
   const agentFactory: AgentFactory = live
@@ -130,11 +134,23 @@ export async function main(argv: string[]): Promise<number> {
     },
   ];
 
+  const selectedModes = modeFilter
+    ? modes.filter((m) => m.label.toLowerCase().includes(modeFilter))
+    : modes;
+  if (selectedModes.length === 0) {
+    console.error(red(`No mode matches --mode ${modeFilter}.`));
+    return 2;
+  }
+
   const outcomes: ModeOutcome[] = [];
-  for (let i = 0; i < modes.length; i++) {
-    const mode = modes[i];
+  for (let i = 0; i < selectedModes.length; i++) {
+    const mode = selectedModes[i];
     console.log('');
-    console.log(bold(cyan(`━━━ Mode ${i + 1}/3: ${mode.label} ━━━`)));
+    console.log(
+      bold(
+        cyan(`━━━ Mode ${i + 1}/${selectedModes.length}: ${mode.label} ━━━`),
+      ),
+    );
     console.log(dim(`    ${mode.source}`));
 
     const scenarios: ScenarioOutcome[] = [];
@@ -144,12 +160,24 @@ export async function main(argv: string[]): Promise<number> {
     outcomes.push({ label: mode.label, scenarios });
   }
 
-  printComparison(outcomes, gherkin);
+  if (selectedModes.length === modes.length) {
+    printComparison(outcomes, gherkin);
+  }
 
   const failed = outcomes
     .flatMap((m) => m.scenarios)
     .some((s) => s.result?.status === 'failed');
   return failed ? 1 : 0;
+}
+
+/** `--mode gherkin|js|bound` runs a single mode (handy for live runs). */
+function parseModeFilter(argv: string[]): string | undefined {
+  const index = argv.indexOf('--mode');
+  if (index === -1) return undefined;
+  const value = argv[index + 1]?.toLowerCase();
+  if (!value)
+    throw new Error('demo: --mode requires a value (gherkin|js|bound)');
+  return value === 'bound' ? 'overlay' : value;
 }
 
 function pickScenarios(compiled: CompiledFeature): ScenarioIR[] {

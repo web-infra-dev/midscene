@@ -55,6 +55,7 @@ export type {
 } from './general-agent/types';
 export { PiGeneralAgent } from './general-agent/pi-general-agent';
 export type { PiGeneralAgentOptions } from './general-agent/pi-general-agent';
+export { CodexGeneralAgent } from './general-agent/codex-general-agent';
 export { extractSkillReferences } from './general-agent/skills';
 
 // —— YAML ——
