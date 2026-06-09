@@ -67,10 +67,6 @@ import 'dotenv/config';
 
 This section lists common model configurations. For details on model differences and selection strategies, see [Recommended multimodal models](./model-strategy#recommended-vision-models).
 
-:::note Model-native thinking
-Midscene disables model-native thinking by default for the best execution speed and stability. To turn it on for any model below, set `MIDSCENE_MODEL_REASONING_ENABLED="true"`. Some families accept an extra knob — for example `MIDSCENE_MODEL_REASONING_BUDGET` (Qwen) or `MIDSCENE_MODEL_REASONING_EFFORT` (Doubao). See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode).
-:::
-
 ### Doubao Seed Model {#doubao-seed-model}
 
 Doubao-Seed-2.0-Lite is the recommended model. Doubao-Seed-1.6-Vision and Doubao-Seed-1.8 are also supported.
@@ -185,6 +181,10 @@ MIDSCENE_MODEL_FAMILY="gpt-5"
 - In the computer use guide, OpenAI says they observe good performance around `1440x900` and `1600x900`. We recommend adjusting screenshot sizes accordingly. In Midscene, you can control screenshot compression with `screenshotShrinkFactor` in the agent options. For browser automation, you can also control the page size and scale through the browser `viewport`.
 - If you use an older GPT-5 model, we recommend using it only as the planning model and pairing it with another multimodal model for localization. See the [multi-model example](#gpt54-planning-insight-qwen35).
 
+:::
+
+:::note Model-native thinking
+Midscene disables model-native thinking by default for the best execution speed and stability. To turn it on for any of the models above, set `MIDSCENE_MODEL_REASONING_ENABLED="true"`. Some families accept an extra knob — for example `MIDSCENE_MODEL_REASONING_BUDGET` (Qwen) or `MIDSCENE_MODEL_REASONING_EFFORT` (Doubao). See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode).
 :::
 
 ## Other Models

@@ -70,10 +70,6 @@ import 'dotenv/config';
 
 这里列出常用模型的配置，如需了解模型区别和选型，可查阅 [推荐的多模态模型](./model-strategy#recommended-vision-models)。
 
-:::note 模型原生思考
-Midscene 默认关闭模型原生思考，以获得最佳的执行速度和稳定性。如需为下方任意模型开启，设置 `MIDSCENE_MODEL_REASONING_ENABLED="true"` 即可。部分模型系列还支持额外控制项——例如 `MIDSCENE_MODEL_REASONING_BUDGET`（Qwen）或 `MIDSCENE_MODEL_REASONING_EFFORT`（豆包）。详见[模型原生的思考模式](./model-strategy#模型原生的思考模式)。
-:::
-
 ### 豆包 Seed 模型 {#doubao-seed-model}
 
 推荐使用 Doubao-Seed-2.0-Lite，同时也支持 Doubao-Seed-1.6-Vision 和 Doubao-Seed-1.8 模型。
@@ -189,6 +185,10 @@ MIDSCENE_MODEL_FAMILY="gpt-5"
 - OpenAI 在 computer use 文档中提到，他们观察到 `1440x900` 和 `1600x900` 这两种截图尺寸上通常能获得比较好的效果，详见 [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)。因此，建议按照 OpenAI 的推荐对截图尺寸进行调整。在 Midscene 中，你可以通过 Agent 参数里的 `screenshotShrinkFactor` 控制截图压缩倍率。如果是浏览器自动化，还可以通过浏览器 `viewport` 指定页面的尺寸和比例。
 - 如果你使用的是更老版本的 GPT-5，建议只将其用作规划模型，并搭配其他多模态模型完成定位，参考[多模型示例](#gpt54-planning-insight-qwen35)。
 
+:::
+
+:::note 模型原生思考
+Midscene 默认关闭模型原生思考，以获得最佳的执行速度和稳定性。如需为上面任意模型开启，设置 `MIDSCENE_MODEL_REASONING_ENABLED="true"` 即可。部分模型系列还支持额外控制项——例如 `MIDSCENE_MODEL_REASONING_BUDGET`（Qwen）或 `MIDSCENE_MODEL_REASONING_EFFORT`（豆包）。详见[模型原生的思考模式](./model-strategy#模型原生的思考模式)。
 :::
 
 ## 其他模型
