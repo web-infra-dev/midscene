@@ -1916,11 +1916,73 @@ export const buildStudioDmgSpecification = ({
   format: 'ULFO',
 });
 
+export const resolvePnpmPackageEntry = ({
+  packageName,
+  version,
+  workspaceRoot = workspaceRootDir,
+}) => {
+  const pnpmStoreDir = path.join(workspaceRoot, 'node_modules', '.pnpm');
+  if (!existsSync(pnpmStoreDir)) {
+    return undefined;
+  }
+
+  const storePackageName = packageName.replace('/', '+');
+  const storeEntryPrefix = `${storePackageName}@${version}`;
+  const packagePathSegments = packageName.split('/');
+  for (const storeEntry of readdirSync(pnpmStoreDir).sort()) {
+    if (
+      storeEntry !== storeEntryPrefix &&
+      !storeEntry.startsWith(`${storeEntryPrefix}_`)
+    ) {
+      continue;
+    }
+    const packageDir = path.join(
+      pnpmStoreDir,
+      storeEntry,
+      'node_modules',
+      ...packagePathSegments,
+    );
+    const packageJsonPath = path.join(packageDir, 'package.json');
+    if (!existsSync(packageJsonPath)) {
+      continue;
+    }
+    const packageManifest = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+    return path.join(packageDir, packageManifest.main ?? 'index.js');
+  }
+
+  return undefined;
+};
+
+export const loadAppDmg = async ({
+  directImport = () => import('appdmg'),
+  workspaceRoot = workspaceRootDir,
+} = {}) => {
+  try {
+    const appdmgModule = await directImport();
+    return appdmgModule.default ?? appdmgModule;
+  } catch (error) {
+    if (error?.code !== 'ERR_MODULE_NOT_FOUND') {
+      throw error;
+    }
+    const appdmgEntry = resolvePnpmPackageEntry({
+      packageName: 'appdmg',
+      version: '0.6.6',
+      workspaceRoot,
+    });
+    if (!appdmgEntry) {
+      throw error;
+    }
+    const appdmgModule = await import(pathToFileURL(appdmgEntry).href);
+    return appdmgModule.default ?? appdmgModule;
+  }
+};
+
 const runAppDmg = async ({ source, target }) => {
   // `appdmg` (via `macos-alias`) loads a darwin-only native binding at
   // require time, so keep the import dynamic and gated to the darwin
-  // packaging path.
-  const { default: appdmg } = await import('appdmg');
+  // packaging path. CI can have the package in pnpm's store without a
+  // direct workspace symlink, so `loadAppDmg` falls back to that store path.
+  const appdmg = await loadAppDmg();
   return new Promise((resolve, reject) => {
     const ee = appdmg({ source, target });
     ee.on('progress', (info) => {

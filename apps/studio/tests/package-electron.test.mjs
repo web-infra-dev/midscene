@@ -21,6 +21,7 @@ import {
   dropAntdEsmBuild,
   dropMidsceneEsmBuilds,
   getStudioElectronVersion,
+  loadAppDmg,
   normalizeReleaseVersion,
   packagedAsarOptions,
   parseBooleanLike,
@@ -35,6 +36,7 @@ import {
   resolveMacPackagedAppSecurity,
   resolvePackagedAppArchiver,
   resolvePackagerIconPath,
+  resolvePnpmPackageEntry,
   shouldUseShellForCommand,
   slimStageNodeModules,
 } from '../scripts/package-electron.mjs';
@@ -67,6 +69,50 @@ describe('package-electron helpers', () => {
     expect(linkEntry?.y).toBe(160);
     expect(fileEntry?.path).toBe('/tmp/Midscene Studio Beta.app');
     expect(fileEntry?.name).toBe('Midscene Studio Beta.app');
+  });
+
+  it('loads appdmg from the pnpm store when the workspace symlink is missing', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'midscene-pnpm-'));
+    const appdmgDir = path.join(
+      root,
+      'node_modules',
+      '.pnpm',
+      'appdmg@0.6.6',
+      'node_modules',
+      'appdmg',
+    );
+    try {
+      await fs.mkdir(appdmgDir, { recursive: true });
+      await fs.writeFile(
+        path.join(appdmgDir, 'package.json'),
+        JSON.stringify({ main: 'index.mjs', type: 'module' }),
+      );
+      await fs.writeFile(
+        path.join(appdmgDir, 'index.mjs'),
+        'export default function appdmg() { return "loaded"; }\n',
+      );
+
+      expect(
+        resolvePnpmPackageEntry({
+          packageName: 'appdmg',
+          version: '0.6.6',
+          workspaceRoot: root,
+        }),
+      ).toBe(path.join(appdmgDir, 'index.mjs'));
+
+      const missingDirectImport = Object.assign(new Error('missing appdmg'), {
+        code: 'ERR_MODULE_NOT_FOUND',
+      });
+      const appdmg = await loadAppDmg({
+        directImport: async () => {
+          throw missingDirectImport;
+        },
+        workspaceRoot: root,
+      });
+      expect(appdmg()).toBe('loaded');
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
   });
 
   it('builds a deterministic artifact basename', () => {
