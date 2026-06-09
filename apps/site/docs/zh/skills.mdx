@@ -1,8 +1,8 @@
 # 使用 Skills 控制任意平台
 
-[Agent Skills](https://github.com/anthropics/skills) 是一种扩展 AI 编程助手能力的格式。Midscene 提供了 Agent Skills，让 AI 编程工具（如 Claude Code、Cline 等）可以通过 CLI 命令驱动 UI 自动化 —— 无需配置 MCP 服务。
+[Agent Skills](https://github.com/anthropics/skills) 是一种扩展 AI 编程助手能力的格式。Midscene 提供了 Agent Skills，让 AI 编程工具（如 Claude Code、Cline 等）可以通过 CLI 命令驱动 UI 自动化，无需配置 MCP 服务。
 
-与 [MCP 集成](./mcp) 不同，Skills 通过在终端中直接运行 CLI 命令来工作。AI 编程助手充当"大脑"：截图、分析 UI、决定下一步操作。
+与 [MCP 集成](./mcp) 不同，Skills 通过在终端中直接运行 CLI 命令来工作。AI 编程助手充当“大脑”：截图、分析 UI、决定下一步操作。
 
 ## 支持的平台
 
@@ -35,7 +35,7 @@ Skills 仓库：[github.com/web-infra-dev/midscene-skills](https://github.com/we
 
 ## 模型配置
 
-Midscene Skills 需要具备极强 UI 定位能力的多模态模型。配置以下环境变量 —— 可以设为系统环境变量，也可以写在当前工作目录的 `.env` 文件中（Midscene 会自动加载 `.env`）：
+Midscene Skills 需要具备极强 UI 定位能力的多模态模型。请配置以下环境变量。你可以把它们设为系统环境变量，也可以写在当前工作目录的 `.env` 文件中（Midscene 会自动加载 `.env`）。
 
 ```bash
 MIDSCENE_MODEL_API_KEY="your-api-key"
@@ -48,13 +48,13 @@ MIDSCENE_MODEL_FAMILY="family-identifier"
 
 ## 使用 Skills
 
-安装完成后，只需用自然语言把任务描述给你的 AI 编程助手即可。它会自动选择合适的 Skill、运行 CLI、读取截图并决定下一步——例如：
+安装完成后，只需用自然语言把任务描述给你的 AI 编程助手即可。它会自动选择合适的 Skill、运行 CLI、读取截图并决定下一步。例如：
 
 > 打开相册应用，看看相册里的第一张照片是什么。
 
 ## 案例：编码 Agent 写完代码后自行验证功能
 
-以下示例中，我们让 Claude Code 开发一个 Electron Todo 应用，并在写完代码后通过 `desktop-computer-automation` Skill 自行启动应用、操作 UI、截图验证功能是否符合预期 —— 全程无需人工介入，也无需编写测试脚本。
+以下示例中，我们让 Claude Code 开发一个 Electron Todo 应用。写完代码后，它会通过 `desktop-computer-automation` Skill 自行启动应用、操作 UI、截图验证功能是否符合预期。全程无需人工介入，也无需编写测试脚本。
 
 **Prompt：**
 
@@ -63,7 +63,7 @@ MIDSCENE_MODEL_FAMILY="family-identifier"
 开发完成后，启动应用并用桌面自动化验证：添加 3 个 todo、勾选其中 1 个、删除 1 个，截图确认最终状态正确。
 ```
 
-编码 Agent 会自主完成以下工作：编写 Todo 组件 → 启动 Electron 应用 → 连接桌面 → 截图识别 UI → 通过自然语言操作界面 → 截图验证结果。开发者只需描述意图，Skill 赋予 Agent "看屏幕、动鼠标" 的能力，让它像人一样验证自己写的代码。
+编码 Agent 会自主完成以下工作：编写 Todo 组件 → 启动 Electron 应用 → 连接桌面 → 截图识别 UI → 通过自然语言操作界面 → 截图验证结果。开发者只需描述意图，Skill 赋予 Agent “看屏幕、动鼠标”的能力，让它像人一样验证自己写的代码。
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/computer-skill.mp4" height="300" controls />
 
@@ -71,12 +71,12 @@ MIDSCENE_MODEL_FAMILY="family-identifier"
 
 Skills 不仅限于本地桌面测试，通过组合不同 Skill 可以覆盖更多场景：
 
-- **桌面应用自动化测试** — 验证 Electron、Qt、WPF 等桌面应用的功能流程
-- **远程控制电脑** — 通过远程桌面连接操控远程机器上的应用，实现远程运维和调试
-- **移动端应用测试** — 使用 `@midscene/android` 和 `@midscene/ios` Skill 在真机或模拟器上验证移动应用
-- **跨应用工作流** — 串联多个应用操作，如从浏览器取数据 → 粘贴到 Excel → 截图发送到 Slack
-- **CI/CD 集成** — 在 Linux CI 中通过 Xvfb 无头模式运行，无需物理显示器
-- **日常任务自动化** — 批量填写表单、定时截图监控、自动整理文件等
+- **桌面应用自动化测试**：验证 Electron、Qt、WPF 等桌面应用的功能流程
+- **远程控制电脑**：通过远程桌面连接操控远程机器上的应用，实现远程运维和调试
+- **移动端应用测试**：使用 `@midscene/android` 和 `@midscene/ios` Skill 在真机或模拟器上验证移动应用
+- **跨应用工作流**：串联多个应用操作，如从浏览器取数据 → 粘贴到 Excel → 截图发送到 Slack
+- **CI/CD 集成**：在 Linux CI 中通过 Xvfb 无头模式运行，无需物理显示器
+- **日常任务自动化**：批量填写表单、定时截图监控、自动整理文件等
 
 ## 更多
 

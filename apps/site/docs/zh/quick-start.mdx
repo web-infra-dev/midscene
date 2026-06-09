@@ -5,8 +5,8 @@ import QuickModelConfig from './common/quick-model-config.mdx';
 
 几分钟内上手 Midscene。有两种开始方式，你可以任选其一先体验：
 
-- **零代码** —— 安装 Chrome 插件，在任意网页上直接体验 Midscene，无需搭建项目。
-- **编写脚本** —— 使用 JavaScript SDK 构建可复用的自动化。
+- **零代码**：安装 Chrome 插件，在任意网页上直接体验 Midscene，无需搭建项目。
+- **编写脚本**：使用 JavaScript SDK 构建可复用的自动化。
 
 两种方式都需要先配置一个多模态模型，我们先把它准备好。
 
@@ -16,19 +16,19 @@ import QuickModelConfig from './common/quick-model-config.mdx';
 
 > 想用其他模型（Doubao、GLM、Gemini、GPT-5……）？请查看 [配置你的模型](./model-common-config)，其中列出了所有受支持的服务商。
 
-下面无论选择哪条路径，都会复用这组配置——把它粘贴到插件的设置里，或作为环境变量提供给 SDK。
+下面无论选择哪条路径，都会复用这组配置。你可以把它粘贴到插件的设置里，或作为环境变量提供给 SDK。
 
 ## 零代码体验（Chrome 插件）
 
-你可以把插件理解为 **Midscene 的 Playground**——它类似一个 API Playground，是一个交互式的沙盒：你可以在这里尝试自然语言指令、即时预览结果并进行调试，全程无需编写或运行任何代码。由于它与 `@midscene/web` SDK 共用同一套核心，在这里验证通过的能力，写成脚本后表现一致。
+你可以把插件理解为 **Midscene 的 Playground**。它类似 API Playground，是一个交互式沙盒。你可以在这里尝试自然语言指令、即时预览结果并调试，全程无需编写或运行代码。插件与 `@midscene/web` SDK 共用同一套核心。在插件中验证通过的能力，写成脚本后表现一致。
 
 1. 从 Chrome 应用商店安装 Midscene：
 
    <a href="https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief" target="_blank"><img src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/chrome_extension_store_btn.png" width="200" /></a>
 
-2. 打开 **Midscene** 面板（可能被折叠在 Chrome 插件图标里）——浏览器右侧会出现一个侧边栏。
+2. 打开 **Midscene** 面板（可能被折叠在 Chrome 插件图标里）。浏览器右侧会出现一个侧边栏。
 3. 点击设置（齿轮）图标，粘贴你的模型配置。插件接受与上文 [配置模型](#配置模型) 相同的 `export KEY="value"` 格式。
-4. 打开任意网页，输入一条指令——操作、数据提取或断言——即可看到 Midscene 为你操作页面。
+4. 打开任意网页，输入一条操作、数据提取或断言指令，即可看到 Midscene 为你操作页面。
 
 完整流程与排障请参考 [通过 Chrome 插件快速体验](./quick-experience)。
 
@@ -46,7 +46,7 @@ import QuickModelConfig from './common/quick-model-config.mdx';
 
 ### 第三步：编写脚本
 
-将下面的代码保存为 `./demo.ts`。它会打开 eBay、搜索耳机、读取结果列表，并对页面状态做断言——全部用自然语言描述：
+将下面的代码保存为 `./demo.ts`。它会打开 eBay、搜索耳机、读取结果列表，并对页面状态做断言。所有步骤都用自然语言描述：
 
 ```typescript title="./demo.ts"
 import { chromium } from 'playwright';
