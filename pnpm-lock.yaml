@@ -253,8 +253,8 @@ importers:
         version: 1.2.0
     devDependencies:
       electron:
-        specifier: ^39.2.4
-        version: 39.8.10
+        specifier: 41.2.0
+        version: 41.2.0
       electron-builder:
         specifier: ^26.0.12
         version: 26.15.2(electron-builder-squirrel-windows@26.15.2(dmg-builder@26.15.2))
@@ -5275,9 +5275,6 @@ packages:
   '@types/node@18.19.62':
     resolution: {integrity: sha512-UOGhw+yZV/icyM0qohQVh3ktpY40Sp7tdTW7HxG3pTd7AiMrlFlAJNUrGK9t5mdW0+ViQcFV74zCSIx9ZJpncA==}
 
-  '@types/node@22.19.20':
-    resolution: {integrity: sha512-6tELRwSDYWW9EdZhbeZmYGZ1/7Djkt+Ah3/ScEYT9cDord7UJzasR/4D3VONg9tQI5CDp+/CZC1AXj2pCFOvpw==}
-
   '@types/node@24.12.2':
     resolution: {integrity: sha512-A1sre26ke7HDIuY/M23nd9gfB+nrmhtYyMINbjI1zHJxYteKR6qSMX56FsmjMcDb3SMcjJg5BiRRgOCC/yBD0g==}
 
@@ -7050,11 +7047,6 @@ packages:
   electron-winstaller@5.4.0:
     resolution: {integrity: sha512-bO3y10YikuUwUuDUQRM4KfwNkKhnpVO7IPdbsrejwN9/AABJzzTQ4GeHwyzNSrVO+tEH3/Np255a3sVZpZDjvg==}
     engines: {node: '>=8.0.0'}
-
-  electron@39.8.10:
-    resolution: {integrity: sha512-zbYtGPYUI7PzqLAzkk21Rk6j67WN0hxn0Mq/njErZo1d0HSf33is4f8ICI5fMLy5vYe0JtCtM5sYunNOaochSQ==}
-    engines: {node: '>= 12.20.55'}
-    hasBin: true
 
   electron@41.2.0:
     resolution: {integrity: sha512-0OKLiymqfV0WK68RBXqAm3Myad2TpI5wwxLCBEUcH5Nugo3YfSk7p1Js/AL9266qTz5xZioUnxt9hG8FFwax0g==}
@@ -12051,9 +12043,6 @@ packages:
   undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
 
-  undici-types@6.21.0:
-    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
-
   undici-types@7.16.0:
     resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
 
@@ -16940,10 +16929,6 @@ snapshots:
     dependencies:
       undici-types: 5.26.5
 
-  '@types/node@22.19.20':
-    dependencies:
-      undici-types: 6.21.0
-
   '@types/node@24.12.2':
     dependencies:
       undici-types: 7.16.0
@@ -19140,14 +19125,6 @@ snapshots:
       temp: 0.9.4
     optionalDependencies:
       '@electron/windows-sign': 1.2.2
-    transitivePeerDependencies:
-      - supports-color
-
-  electron@39.8.10:
-    dependencies:
-      '@electron/get': 2.0.3
-      '@types/node': 22.19.20
-      extract-zip: 2.0.1
     transitivePeerDependencies:
       - supports-color
 
@@ -25145,8 +25122,6 @@ snapshots:
       which-boxed-primitive: 1.1.1
 
   undici-types@5.26.5: {}
-
-  undici-types@6.21.0: {}
 
   undici-types@7.16.0: {}
 

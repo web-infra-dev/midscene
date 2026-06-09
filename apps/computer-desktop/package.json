@@ -21,7 +21,7 @@
     "@midscene/shared": "workspace:*"
   },
   "devDependencies": {
-    "electron": "^39.2.4",
+    "electron": "41.2.0",
     "electron-builder": "^26.0.12"
   },
   "optionalDependencies": {
