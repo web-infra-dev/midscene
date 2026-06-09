@@ -2,19 +2,11 @@ import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connect
 
 # Model Strategy
 
-:::info Quick start
-
-If you want to try Midscene right away, pick a model and follow its configuration guide:
-* [Doubao Seed Model](./model-common-config#doubao-seed-model)
-* [Qwen3.x Series](./model-common-config#qwen3x), [Qwen3-VL](./model-common-config#qwen3-vl)
-* [Zhipu GLM-V](./model-common-config#glm-v)
-* [Zhipu AutoGLM](./model-common-config#auto-glm)
-* [Gemini 3.x Series](./model-common-config#gemini-3-pro)
-* [GPT-5 Series](./model-common-config#gpt-5-4)
-
+:::tip
+Just want to get running? Jump to [Configure your model](./model-common-config) for ready-to-use setups.
 :::
 
-This guide focuses on how we choose models in Midscene. If you need configuration instructions, head to [Model configuration](./model-config).
+This guide focuses on how we choose models in Midscene. If you need configuration instructions, head to [Configure your model](./model-common-config).
 
 ## Background - UI automation approaches
 
@@ -130,10 +122,6 @@ The flip side is higher demands on the model itself.
 
 For example, on mobile UI automation, if you have a component tree plus full a11y annotations, you can lean on a small text-only model and reason over structure, potentially pushing performance further. Pure vision skips those annotations and is more universal, saving UI labeling effort but consuming more model resources at runtime.
 
-### Model configuration doc
-
-See [Model configuration](./model-config).
-
 ### About the `deepThink` option in `aiAct`
 
 The `deepThink` option controls how strongly Midscene guides `aiAct` to think during planning.
@@ -155,23 +143,13 @@ If you need model-native thinking, set `MIDSCENE_MODEL_REASONING_ENABLED="true"`
 
 Reasoning controls are model-family specific. If the configured model family does not support a reasoning option, Midscene ignores that option instead of guessing provider-specific reasoning parameters.
 
-### API style for model service provider
-
-Midscene expects providers to expose an OpenAI-compatible API (this does **not** mean you must use OpenAI models).
-
-Most major vendors and deployment tools already support this pattern.
-
-### How do I inspect token usage?
-
-Set `DEBUG=midscene:ai:profile:stats` to print cost and latency information. You can also review token usage in the generated report files.
-
 ### "MIDSCENE_MODEL_FAMILY is not set to a multimodal model" error
 
 If you see "MIDSCENE_MODEL_FAMILY is not set to a multimodal model with UI localization," make sure the `MIDSCENE_MODEL_FAMILY` environment variable for your multimodal model is set correctly.
 
 Starting with version 1.0, Midscene recommends using `MIDSCENE_MODEL_FAMILY` to specify the multimodal model type. Legacy `MIDSCENE_USE_...` configs remain compatible but are deprecated.
 
-See [Model configuration](./model-config) for setup details.
+See [Configure your model](./model-common-config) for setup details.
 
 ### Can each Agent instance use its own model?
 
@@ -180,19 +158,5 @@ Yes. You can configure per-agent models via the `modelConfig` parameter. See the
 ### Want to send browser DOM info to the model?
 
 By default, Midscene does not send browser DOM data to models. If you need to include it for UI understanding (for example, to pass details not visible in a screenshot), set `domIncluded` to `true` in the options for interfaces like `aiAsk` or `aiQuery`. See the [API reference](./api) for details.
-
-### Backward compatibility
-
-From version 1.0 onward, Midscene.js recommends these environment variable names, for example:
-
-- `MIDSCENE_MODEL_API_KEY`
-- `MIDSCENE_MODEL_BASE_URL`
-
-For compatibility, we still support these OpenAI-style names, though they are no longer preferred:
-
-- `OPENAI_API_KEY`
-- `OPENAI_BASE_URL`
-
-When both are present, Midscene prefers the new `MIDSCENE_MODEL_*` variables.
 
 <TroubleshootingLLMConnectivity />

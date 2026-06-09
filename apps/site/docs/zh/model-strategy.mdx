@@ -2,19 +2,11 @@ import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connect
 
 # 模型策略
 
-:::info 快速开始
-
-如果你想快速开始体验 Midscene，请选择模型并参考配置文档：
-* [豆包 Seed 模型](./model-common-config#doubao-seed-model)
-* [Qwen3.x 系列](./model-common-config#qwen3x)、[Qwen3-VL](./model-common-config#qwen3-vl)
-* [智谱 GLM-V](./model-common-config#glm-v)
-* [智谱 AutoGLM](./model-common-config#auto-glm)
-* [Gemini 3.x 系列](./model-common-config#gemini-3-pro)
-* [GPT-5 系列](./model-common-config#gpt-5-4)
-
+:::tip
+只想尽快跑起来？直接前往 [常用模型配置](./model-common-config)，里面有可直接使用的配置。
 :::
 
-本篇文档会重点介绍 Midscene 的模型选用策略。如果你需要进行模型配置，请参考 [模型配置](./model-config)。
+本篇文档会重点介绍 Midscene 的模型选用策略。如果你需要进行模型配置，请参考 [常用模型配置](./model-common-config)。
 
 ## 背景知识：UI 自动化的技术路线
 
@@ -129,10 +121,6 @@ Midscene 提供了基于页面理解的数据处理接口，如 AI 断言（`aiA
 
 以移动端的 UI 自动化为例，如果界面上有组件树信息 + 完备的 a11y（无障碍）标注，开发者可以使用小尺寸的纯文本模型、基于组件结构推理来完成自动化任务，更有机会把性能做到极致。而纯视觉模型方案则忽略了这些信息，它省下了开发者标注界面的开发成本、更通用，但在运行时需要耗费更多的模型资源。
 
-### 模型配置文档
-
-请参考 [模型配置](./model-config)。
-
 ### 关于 `aiAct` 方法的 `deepThink` 参数
 
 `deepThink` 参数用于控制 Midscene 在 `aiAct` 规划时引导模型思考的力度。
@@ -154,25 +142,13 @@ Midscene 提供了基于页面理解的数据处理接口，如 AI 断言（`aiA
 
 reasoning 控制项与模型系列相关。如果当前模型系列不支持某个 reasoning 配置，Midscene 会忽略该配置，而不会猜测服务商的私有参数。
 
-### 模型接口风格
-
-Midscene 要求模型服务商提供兼容 OpenAI 风格的接口（这并不是说只能使用 OpenAI 的模型）。
-
-绝大多数的服务商、部署工具都能满足这个要求。
-
-### 如何查看模型的 token 使用情况？
-
-在环境变量中设置 `DEBUG=midscene:ai:profile:stats`，即可打印模型的用量信息与响应时长。
-
-你也可以在报告文件中查看模型的使用情况。
-
 ### "MIDSCENE_MODEL_FAMILY is not set to a multimodal model" 错误
 
 如果收到了 "MIDSCENE_MODEL_FAMILY is not set to a multimodal model with UI localization" 错误，请确认已经正确配置多模态模型的 `MIDSCENE_MODEL_FAMILY` 环境变量。
 
 从 1.0 版本开始，Midscene 推荐使用 `MIDSCENE_MODEL_FAMILY` 来指定多模态模型类型。旧的 `MIDSCENE_USE_...` 配置仍然兼容但已废弃。
 
-详细配置方法请参考 [模型配置](./model-config)。
+详细配置方法请参考 [常用模型配置](./model-common-config)。
 
 ### 是否可以为每个 Agent 实例单独配置模型？
 
@@ -181,19 +157,5 @@ Midscene 要求模型服务商提供兼容 OpenAI 风格的接口（这并不是
 ### 希望将浏览器 DOM 信息发送给模型？
 
 Midscene 默认不发送浏览器 DOM 信息给模型，如果你依然希望在进行界面理解时发送（如附加一些截图里不可见的信息），你可以在 `aiAsk` 或 `aiQuery` 等界面理解接口的 options 参数中设置 `domIncluded` 为 `true`，来发送浏览器 DOM 信息给模型。更多详情请参考 [API 参考](./api)。
-
-### 早期版本兼容
-
-从 1.0 版本开始，Midscene.js 推荐使用以下环境变量名，如：
-
-- `MIDSCENE_MODEL_API_KEY`
-- `MIDSCENE_MODEL_BASE_URL`
-
-为了保持兼容，我们仍然支持下列 OpenAI 生态中的变量名，但不再推荐使用：
-
-- `OPENAI_API_KEY`
-- `OPENAI_BASE_URL`
-
-当新变量与 OpenAI 兼容变量同时设置时，Midscene 将优先使用新变量（`MIDSCENE_MODEL_*`）。
 
 <TroubleshootingLLMConnectivity />

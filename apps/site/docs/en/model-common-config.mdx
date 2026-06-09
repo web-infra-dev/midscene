@@ -67,6 +67,10 @@ import 'dotenv/config';
 
 This section lists common model configurations. For details on model differences and selection strategies, see [Recommended multimodal models](./model-strategy#recommended-vision-models).
 
+:::note Model-native thinking
+Midscene disables model-native thinking by default for the best execution speed and stability. To turn it on for any model below, set `MIDSCENE_MODEL_REASONING_ENABLED="true"`. Some families accept an extra knob — for example `MIDSCENE_MODEL_REASONING_BUDGET` (Qwen) or `MIDSCENE_MODEL_REASONING_EFFORT` (Doubao). See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode).
+:::
+
 ### Doubao Seed Model {#doubao-seed-model}
 
 Doubao-Seed-2.0-Lite is the recommended model. Doubao-Seed-1.6-Vision and Doubao-Seed-1.8 are also supported.
@@ -86,8 +90,6 @@ If your Volcano Engine account has fast tier quota enabled, add the extra reques
 MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
 ```
 
-Midscene disables model-native thinking by default to get the best execution speed and quality. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode). To enable model-native thinking, set `MIDSCENE_MODEL_REASONING_ENABLED="true"`. You can also set `MIDSCENE_MODEL_REASONING_EFFORT="medium"` to control reasoning effort.
-
 ### Qwen3.x Series {#qwen3x}
 
 Qwen3.5, Qwen3.6, and Qwen3.7 are currently supported in the Qwen3.x series. Recommended order: Qwen3.7 > Qwen3.5 > Qwen3.6.
@@ -100,8 +102,6 @@ MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen3.7-plus" # For Qwen3.5 and Qwen3.6, use "qwen3.5-plus" and "qwen3.6-plus"
 MIDSCENE_MODEL_FAMILY="qwen3" # For Qwen3.5 and Qwen3.6, the previous families `qwen3.5` and `qwen3.6` remain compatible.
 ```
-
-Midscene disables model-native thinking by default to get the best execution speed and quality. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode). To enable model-native thinking, set `MIDSCENE_MODEL_REASONING_ENABLED="true"`. You can also set `MIDSCENE_MODEL_REASONING_BUDGET="500"` to control thinking cost.
 
 ### Zhipu GLM-V Series {#glm-v}
 
@@ -117,8 +117,6 @@ MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="glm-4.6v" # For GLM-5V-Turbo, use "glm-5v-turbo"
 MIDSCENE_MODEL_FAMILY="glm-v"
 ```
-
-Midscene disables model-native thinking by default to get the best execution speed and quality. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode). To enable model-native thinking, set `MIDSCENE_MODEL_REASONING_ENABLED="true"`.
 
 **Learn more about the open-source Zhipu GLM-V model**
 
@@ -201,8 +199,6 @@ MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen3-vl-plus"
 MIDSCENE_MODEL_FAMILY="qwen3-vl"
 ```
-
-Midscene disables model-native thinking by default to get the best execution speed and quality. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode). To enable model-native thinking, set `MIDSCENE_MODEL_REASONING_ENABLED="true"`. You can also set `MIDSCENE_MODEL_REASONING_BUDGET="500"` to control thinking cost.
 
 You can also use Qwen3-VL from [OpenRouter](https://openrouter.ai/qwen).
 

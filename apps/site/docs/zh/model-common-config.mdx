@@ -70,6 +70,10 @@ import 'dotenv/config';
 
 这里列出常用模型的配置，如需了解模型区别和选型，可查阅 [推荐的多模态模型](./model-strategy#recommended-vision-models)。
 
+:::note 模型原生思考
+Midscene 默认关闭模型原生思考，以获得最佳的执行速度和稳定性。如需为下方任意模型开启，设置 `MIDSCENE_MODEL_REASONING_ENABLED="true"` 即可。部分模型系列还支持额外控制项——例如 `MIDSCENE_MODEL_REASONING_BUDGET`（Qwen）或 `MIDSCENE_MODEL_REASONING_EFFORT`（豆包）。详见[模型原生的思考模式](./model-strategy#模型原生的思考模式)。
+:::
+
 ### 豆包 Seed 模型 {#doubao-seed-model}
 
 推荐使用 Doubao-Seed-2.0-Lite，同时也支持 Doubao-Seed-1.6-Vision 和 Doubao-Seed-1.8 模型。
@@ -89,8 +93,6 @@ MIDSCENE_MODEL_FAMILY="doubao-seed" # 也兼容 "doubao-vision"
 MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
 ```
 
-Midscene 会默认关闭模型原生思考以获得最佳的执行速度和执行效果，见[模型原生的思考模式](./model-strategy#模型原生的思考模式)。如果需要开启原生的思考模式，可以配置 `MIDSCENE_MODEL_REASONING_ENABLED="true"`，并通过 `MIDSCENE_MODEL_REASONING_EFFORT="medium"` 控制推理力度。
-
 ### 千问 Qwen3.x 系列 {#qwen3x}
 
 目前已支持 Qwen3.x 系列中的 Qwen3.5、Qwen3.6、Qwen3.7，推荐程度：Qwen3.7 > Qwen3.5> Qwen3.6。
@@ -103,8 +105,6 @@ MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen3.7-plus" # Qwen3.5 和 Qwen3.6 系列的 plus 模型分别为 "qwen3.5-plus"、"qwen3.6-plus"
 MIDSCENE_MODEL_FAMILY="qwen3" // 对于 Qwen3.5 和 Qwen3.6，family 曾使用 `qwen3.5`、`qwen3.6`，依然兼容。
 ```
-
-Midscene 会默认关闭模型原生思考以获得最佳的执行速度和执行效果，见[模型原生的思考模式](./model-strategy#模型原生的思考模式)。如果需要开启原生的思考模式，可以配置 `MIDSCENE_MODEL_REASONING_ENABLED="true"`，并通过 `MIDSCENE_MODEL_REASONING_BUDGET="500"` 控制思考成本。
 
 ### 智谱 GLM-V 系列 {#glm-v}
 
@@ -120,8 +120,6 @@ MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="glm-4.6v" # GLM-5V-Turbo 的对应模型名为 "glm-5v-turbo"
 MIDSCENE_MODEL_FAMILY="glm-v"
 ```
-
-Midscene 会默认关闭模型原生思考以获得最佳的执行速度和执行效果，见[模型原生的思考模式](./model-strategy#模型原生的思考模式)。如果需要开启原生的思考模式，可以配置 `MIDSCENE_MODEL_REASONING_ENABLED="true"`。
 
 **了解更多关于智谱 GLM-V 开源模型**
 
@@ -205,8 +203,6 @@ MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen3-vl-plus"
 MIDSCENE_MODEL_FAMILY="qwen3-vl"
 ```
-
-Midscene 会默认关闭模型原生思考以获得最佳的执行速度和执行效果，见[模型原生的思考模式](./model-strategy#模型原生的思考模式)。如果需要开启原生的思考模式，可以配置 `MIDSCENE_MODEL_REASONING_ENABLED="true"`，并通过 `MIDSCENE_MODEL_REASONING_BUDGET="500"` 控制思考成本。
 
 ### 千问 Qwen2.5-VL（不推荐） {#qwen25-vl}
 
