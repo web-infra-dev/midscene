@@ -1,10 +1,10 @@
-# 模型配置
+# 全部配置项
 
 Midscene 通过读取操作系统中指定的环境变量来完成配置。
 
 Midscene 默认集成了 OpenAI SDK 调用 AI 服务，它限定了推理服务的参数风格，绝大多数模型服务商（或模型部署工具）都提供了满足这种要求的接口。
 
-本篇文档会重点介绍 Midscene 的模型配置参数。如果你对 Midscene 的模型策略感兴趣，请阅读 [模型策略](./model-strategy)。如果你想查看常用模型的配置示例，请阅读 [常用模型配置](./model-common-config)。
+本篇文档会重点介绍 Midscene 的模型配置参数。如果你对 Midscene 的模型策略感兴趣，请阅读 [模型策略](./model-strategy)。如果你想查看常用模型的配置示例，请阅读 [配置你的模型](./model-common-config)。
 
 ## 必选配置
 
@@ -140,7 +140,7 @@ const agent = new Agent(page, {
   // 通过 modelConfig 配置
   modelConfig: {
     MIDSCENE_MODEL_TIMEOUT: '60000', // 60 秒
-    MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+    MIDSCENE_MODEL_NAME: 'qwen3.7-plus',
     // ... 其他配置
   }
 });

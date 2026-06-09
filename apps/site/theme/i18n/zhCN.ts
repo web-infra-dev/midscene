@@ -7,7 +7,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Banner - Title
   heroTitle: 'Midscene.js',
-  heroSubtitle: 'AI 驱动、视觉感知，适用于全平台的 UI 自动化。',
+  heroSubtitle:
+    '开源、视觉驱动的 UI 测试——用自然语言编写测试用例，自动化任意平台。',
 
   // Banner - Stats
   githubStars: 'Github Stars',
@@ -21,9 +22,10 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   clientsTitle: '平台',
   clientsHeading: `Web、PC、Mobile
 等多端支持`,
-  clientsDesc1: '用自然语言跨平台控制浏览器和移动应用',
-  clientsDesc2: '统一的 API 设计，轻松实现跨平台自动化',
-  clientsDesc3: '支持 Android、iOS、HarmonyOS、Linux、macOS 和 Windows',
+  clientsDesc1: '用自然语言测试与自动化 Web、移动端和桌面应用',
+  clientsDesc2: '一套 API、一套用例，在每个平台都一样',
+  clientsDesc3:
+    '触达选择器够不到的地方——无语义标注的元素、canvas、原生应用、跨域 iframe',
 
   // Feature Sections - Platforms
   platformWeb: 'Web',
@@ -31,53 +33,52 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   platformMobile: 'Mobile',
   platformAnyInterface: '任意界面',
   platformWebDesc:
-    '与 Puppeteer 或 Playwright 集成，或使用桥接模式控制桌面浏览器。',
-  platformPCDesc: '通过自然语言控制 macOS、Windows、Linux 上的桌面应用。',
-  platformMobileDesc: '通过自然语言自动化控制 Android、iOS 和 HarmonyOS 设备。',
-  platformAnyInterfaceDesc: '视觉建模支持任意界面的自动化，突破 DOM 限制。',
+    '把 Midscene 接入你的 Playwright 或 Puppeteer 测试，或用桥接模式驱动自己的 Chrome。',
+  platformPCDesc: '用自然语言测试与自动化 macOS、Windows、Linux 上的桌面应用。',
+  platformMobileDesc:
+    '在真机与模拟器上测试与自动化 Android、iOS 和 HarmonyOS 应用。',
+  platformAnyInterfaceDesc: '凡可截图皆可自动化——突破 DOM 与无障碍树的限制。',
 
   // Feature Sections - MODELS
   modelsTitle: '模型策略',
   modelsHeading: `视觉模型
  多模型组合
  适配开源模型`,
-  modelsDesc1: '视觉模型提升操作精准度',
+  modelsDesc1: '视觉定位元素精准，无需维护选择器',
   modelsDesc2: '多模型协同提升完成率',
-  modelsDesc3: '有开源选项也靠谱',
+  modelsDesc3: '自带模型，含表现强劲的开源选项',
 
   // Model Cards
   modelSeedName: '豆包 Seed',
-  modelSeedDesc:
-    '豆包 Seed 视觉模型，针对视觉理解和 UI 元素识别进行优化，表现出色。',
+  modelSeedDesc: '强大的视觉定位能力，元素定位可靠——Midscene 的稳妥默认选择。',
   modelQwenName: 'qwen3.7-plus',
-  modelQwenDesc:
-    'Qwen 视觉语言模型，支持高质量图像理解和 UI 元素识别，性价比高。',
+  modelQwenDesc: '高质量视觉定位，性价比高，并提供可自托管的开源版本。',
   modelGeminiName: 'gemini-3.5-flash',
-  modelGeminiDesc:
-    'Gemini 先进的多模态模型，拥有强大的视觉能力和全面的 UI 自动化支持。',
+  modelGeminiDesc: '强大的多模态理解，元素定位表现出色。',
   modelMultiModelName: '多模型组合',
-  modelMultiModelDesc: '支持在规划、交互时选用不同模型，提升任务完成率',
+  modelMultiModelDesc: '让规划模型与视觉模型协同，提升任务完成率。',
 
   // Feature Sections - DEBUGGING
   debuggingTitle: '开发体验',
   debuggingHeading: `丰富的 API
 和工具`,
-  debuggingDesc1: '大量实用 API，方便控制自动化流程和运行策略',
+  debuggingDesc1: '丰富的 API，用于编写测试与控制自动化流程',
   debuggingDesc2: '支持扩展自己的 UI 操作 Agent',
-  debuggingDesc3: '帮助开发者快速完成 UI Automation 任务上线',
+  debuggingDesc3: '大幅降低 UI 测试的维护成本',
 
   // Feature Cards
   featureRichAPIs: '丰富的 API',
-  featureRichAPIsDesc: '同时支持智能执行流程与原子化精确控制。',
+  featureRichAPIsDesc:
+    '既能自动规划完整流程，也提供 aiTap、aiAssert 等原子 API，用于精确测试。',
   featureSkillsMcp: 'Skills 与 MCP',
   featureSkillsMcpDesc:
-    '为 AI 编程工具提供开箱即用的 Agent Skills，同时支持将设备操作暴露为 MCP Server。',
+    '开箱即用的 Skills 让 AI 编程 Agent 测试你的 UI；MCP Server 把 Midscene 暴露给其他 Agent。',
   featureReportsPlayground: '报告与 Playground',
   featureReportsPlaygroundDesc:
-    '提供直观的可视化报告，帮助开发者回溯自动化流程',
+    '在可视化报告中逐步回放，并在 Playground 里快速试验。',
   featureFlexibleIntegration: '灵活集成',
   featureFlexibleIntegrationDesc:
-    '支持使用 Yaml 编写自动化流程，支持自定义 Agent 执行策略',
+    '用 YAML 编写流程，接入你的测试运行器，并自定义 Agent 执行策略。',
   featureRichAPIsLink: '/api',
   featureSkillsMcpLink: '/skills',
   featureReportsPlaygroundLink: '/quick-experience',

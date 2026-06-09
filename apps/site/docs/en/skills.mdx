@@ -35,7 +35,7 @@ Skills repository: [github.com/web-infra-dev/midscene-skills](https://github.com
 
 ## Model configuration
 
-Midscene skills require a vision model with strong visual grounding capabilities. Configure the following environment variables — either as system environment variables or in a `.env` file in the current working directory (Midscene loads `.env` automatically):
+Midscene skills require a multimodal model with strong UI localization. Configure the following environment variables — either as system environment variables or in a `.env` file in the current working directory (Midscene loads `.env` automatically):
 
 ```bash
 MIDSCENE_MODEL_API_KEY="your-api-key"
@@ -48,11 +48,9 @@ For supported models and configuration details, see [Model strategy](./model-str
 
 ## Use skills
 
-In your AI chat assistant, you can use the following command to use skills:
+Once installed, just describe the task in natural language to your AI coding agent. It picks the right Skill, runs the CLI, reads the screenshots, and decides what to do next — for example:
 
-```markdown
-Open photo app, see what is the first photo in the album.
-```
+> Open the photo app and tell me the first photo in the album.
 
 ## Example: Coding Agent self-verifies after writing code
 

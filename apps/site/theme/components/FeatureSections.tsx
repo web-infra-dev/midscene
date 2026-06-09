@@ -319,7 +319,7 @@ export function FeatureSections() {
             <div className="flex flex-col md:flex-row gap-6">
               {/* Model 1 - Seed */}
               <TiltCard
-                href={tUrl('/model-config#doubao-seed-vision')}
+                href={tUrl('/model-common-config#doubao-seed-model')}
                 className="w-full md:w-[381px] md:h-[289px] flex flex-col group cursor-pointer"
               >
                 <div className="flex flex-col gap-[17px] h-full">
@@ -709,7 +709,7 @@ export function FeatureSections() {
                 </div>
                 <div className="flex flex-col gap-[17px]">
                   <TiltCard
-                    href="/zh/api"
+                    href={tUrl('/api')}
                     className="rounded-2xl w-full h-[120px] md:h-[185px] flex flex-col justify-center items-center hover:bg-gray-200 dark:hover:bg-[#252525] transition-all duration-200 cursor-pointer group border-2 border-transparent hover:border-[#0555FF] overflow-hidden"
                   >
                     <div

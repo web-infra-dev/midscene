@@ -1,0 +1,106 @@
+import { PackageManagerTabs } from '@theme';
+import QuickModelConfig from './common/quick-model-config.mdx';
+
+# 快速开始
+
+几分钟内上手 Midscene。有两种开始方式，你可以任选其一先体验：
+
+- **零代码**：安装 Chrome 插件，在任意网页上直接体验 Midscene，无需搭建项目。
+- **编写脚本**：使用 JavaScript SDK 构建可复用的自动化。
+
+两种方式都需要先配置一个多模态模型，我们先把它准备好。
+
+## 配置模型
+
+<QuickModelConfig />
+
+> 想用其他模型（Doubao、GLM、Gemini、GPT-5……）？请查看 [配置你的模型](./model-common-config)，其中列出了所有受支持的服务商。
+
+下面无论选择哪条路径，都会复用这组配置。你可以把它粘贴到插件的设置里，或作为环境变量提供给 SDK。
+
+## 零代码体验（Chrome 插件）
+
+你可以把插件理解为 **Midscene 的 Playground**。它类似 API Playground，是一个交互式沙盒。你可以在这里尝试自然语言指令、即时预览结果并调试，全程无需编写或运行代码。插件与 `@midscene/web` SDK 共用同一套核心。在插件中验证通过的能力，写成脚本后表现一致。
+
+1. 从 Chrome 应用商店安装 Midscene：
+
+   <a href="https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief" target="_blank"><img src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/chrome_extension_store_btn.png" width="200" /></a>
+
+2. 打开 **Midscene** 面板（可能被折叠在 Chrome 插件图标里）。浏览器右侧会出现一个侧边栏。
+3. 点击设置（齿轮）图标，粘贴你的模型配置。插件接受与上文 [配置模型](#配置模型) 相同的 `export KEY="value"` 格式。
+4. 打开任意网页，输入一条操作、数据提取或断言指令，即可看到 Midscene 为你操作页面。
+
+完整流程与排障请参考 [通过 Chrome 插件快速体验](./quick-experience)。
+
+## 编写第一个脚本（SDK）
+
+更喜欢写代码？用 JavaScript SDK 构建可复用的自动化。本示例以浏览器（Playwright）为例。
+
+### 第一步：安装依赖
+
+<PackageManagerTabs command="install @midscene/web playwright tsx --save-dev" />
+
+### 第二步：设置模型环境变量
+
+将 [配置模型](#配置模型) 中的值设置为环境变量，或写入 `.env` 文件并通过 [dotenv](https://www.npmjs.com/package/dotenv) 加载。
+
+### 第三步：编写脚本
+
+将下面的代码保存为 `./demo.ts`。它会打开 eBay、搜索耳机、读取结果列表，并对页面状态做断言。所有步骤都用自然语言描述：
+
+```typescript title="./demo.ts"
+import { chromium } from 'playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+import 'dotenv/config'; // 如存在 .env 文件，则从中加载环境变量
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+Promise.resolve(
+  (async () => {
+    const browser = await chromium.launch({ headless: false }); // 👀 实时观察运行过程
+    const page = await browser.newPage();
+    await page.goto('https://www.ebay.com');
+    await sleep(3000);
+
+    // 👀 初始化 Midscene agent
+    const agent = new PlaywrightAgent(page);
+
+    // 👀 用自然语言执行操作
+    await agent.aiAct('在搜索框输入 "Headphones"，然后回车');
+    await agent.aiWaitFor('列表中至少出现一个耳机商品');
+
+    // 👀 提取结构化数据
+    const items = await agent.aiQuery(
+      '{ title: string, price: number }[], 列表中的耳机商品',
+    );
+    console.log('headphones in stock:', items);
+
+    // 👀 用自然语言做断言
+    await agent.aiAssert('页面左侧有一个分类筛选栏');
+
+    await browser.close();
+  })(),
+);
+```
+
+### 第四步：运行
+
+```bash
+npx tsx demo.ts
+```
+
+### 第五步：查看报告
+
+运行成功后，Midscene 会打印类似下面的日志：
+
+```log
+Midscene - report file updated: ./midscene_run/report/some_id.html
+```
+
+在浏览器中打开这个 HTML 文件，即可逐步回放每一次操作、查询和断言。报告是大多数开发者用来理解和排查 AI 行为的核心工具。
+
+## 后续步骤
+
+- **用于测试**：[集成到 Playwright](./integrate-with-playwright)，把 Midscene 接入你现有的测试套件。
+- **其他平台**：在 [Android](./android-getting-started)、[iOS](./ios-getting-started)、[HarmonyOS](./harmony-getting-started) 或 [桌面端](./computer-getting-started) 上开始使用。
+- **进一步了解**：用 [模型策略](./model-strategy) 提升效果，或在 [API 参考](./api) 中查阅所有方法。
