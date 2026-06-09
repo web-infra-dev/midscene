@@ -35,7 +35,8 @@
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
     "test": "vitest --run",
-    "test:u": "vitest --run -u"
+    "test:u": "vitest --run -u",
+    "demo": "node scripts/demo.mjs"
   },
   "dependencies": {
     "@cucumber/gherkin": "^39.1.0",

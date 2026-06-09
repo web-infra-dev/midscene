@@ -8,6 +8,48 @@ flows" authored in **two surfaces** — a fluent JS/TS API and Gherkin
 step is natural language executed by the AI agents. A third, **hybrid** mode
 (`bindFeature`) layers a sparse JS overlay over a `.feature` file.
 
+## Run the demo
+
+```bash
+pnpm --filter @midscene/testing-framework demo
+```
+
+Runs the login/checkout journey through **all three authoring modes** with a
+narrated walkthrough — offline by default (scripted fake agents simulate the
+shop; no model keys, no browser). Expected output (excerpt):
+
+```
+━━━ Mode 1/3: Pure Gherkin ━━━
+  ▶ Scenario: Checkout as admin
+    [ui]      the demo shop is open on the home page
+      → flow Login(role="admin")
+      [ui]      I sign in as the "admin" user with the saved test credentials   (template: "I sign in as the \"{role}\" user ...")
+      [capture] the greeting message shown in the header
+        {greeting} = "Hello, Admin!" (capture)
+      ← Login returned greeting="Hello, Admin!"
+    [verify]  the cart total equals $129.00   (template: "the cart total equals {price}")
+      ✔ PASS — The cart shows $129.00, matching the remembered price.
+    ✔ scenario passed
+...
+━━━ Comparison: three modes, one IR ━━━
+  Gherkin vs JS — "Checkout as admin": identical execution trace ✔ (24 events)
+  Bound overlay vs pure Gherkin:
+    "Checkout as admin":
+      - [verify] the cart total equals {price}
+      + [ui] apply the coupon code {couponCode} in the cart
+      + [soft] the cart total equals {price} minus the "{couponCode}" coupon discount
+      + injected var {couponCode} = "E2E-2026-06-09"
+```
+
+**Live mode (experimental, unverified in CI):** with model env configured
+(`MIDSCENE_MODEL_BASE_URL` etc., as for the AI tests) and puppeteer
+available, `pnpm --filter @midscene/testing-framework demo -- --live` drives
+a real web UI agent against the self-contained static shop in
+`example/demo-app/index.html` (override with `DEMO_URL`), with the default
+Pi-backed general agent issuing the verdicts. Each scenario gets a fresh
+browser. Implemented in `scripts/demo/live.ts`; the offline path is the
+verified reference.
+
 ```
  .feature files          .flows.ts files
       │       └─────┐          │
