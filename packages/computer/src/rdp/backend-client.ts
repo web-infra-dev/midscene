@@ -287,6 +287,15 @@ export class HelperProcessRDPBackendClient implements RDPBackendClient {
     this.stderrReader.on('line', (line) => {
       this.captureStderrLine(line);
     });
+    child.stdin.on('error', (error) => {
+      this.handleHelperStreamError(child, 'stdin', error);
+    });
+    child.stdout.on('error', (error) => {
+      this.handleHelperStreamError(child, 'stdout', error);
+    });
+    child.stderr.on('error', (error) => {
+      this.handleHelperStreamError(child, 'stderr', error);
+    });
 
     child.on('exit', (code, signal) => {
       this.connected = false;
@@ -309,6 +318,33 @@ export class HelperProcessRDPBackendClient implements RDPBackendClient {
       this.disposeReaders();
       this.child = undefined;
     });
+  }
+
+  private handleHelperStreamError(
+    child: ChildProcessWithoutNullStreams,
+    streamName: 'stdin' | 'stdout' | 'stderr',
+    error: Error,
+  ): void {
+    if (this.child !== child) {
+      return;
+    }
+
+    this.connected = false;
+    const nodeError = error as NodeJS.ErrnoException;
+    const helperError = this.createHelperError(
+      `RDP helper ${streamName} stream error: ${error.message}`,
+      nodeError.code,
+    );
+    this.fatalHelperError = helperError;
+    this.rejectPending(helperError);
+
+    if (child.exitCode === null) {
+      child.kill('SIGTERM');
+    }
+    if (streamName !== 'stderr') {
+      this.disposeReaders();
+    }
+    this.child = undefined;
   }
 
   private handleStdoutLine(line: string): void {

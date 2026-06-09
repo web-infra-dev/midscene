@@ -185,6 +185,25 @@ describe('HelperProcessRDPBackendClient', () => {
     );
   });
 
+  it('rejects pending requests if the helper stdin pipe breaks', async () => {
+    const { child, client } = createClientWithChild();
+
+    onNextRequest(child, () => {
+      child.stdin.emit(
+        'error',
+        Object.assign(new Error('write EPIPE'), { code: 'EPIPE' }),
+      );
+    });
+
+    await expect(
+      client.connect({
+        host: '10.75.166.249',
+        username: 'Admin',
+      }),
+    ).rejects.toThrow('RDP helper stdin stream error: write EPIPE');
+    expect(child.killed).toBe(true);
+  });
+
   it('throws on malformed helper output', async () => {
     const { child, client } = createClientWithChild();
 
