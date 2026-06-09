@@ -112,6 +112,21 @@ MIDSCENE_MODEL_NAME="kimi-k2.6" # Or "kimi-k2.5"
 MIDSCENE_MODEL_FAMILY="kimi"
 ```
 
+### Xiaomi MiMo Model {#xiaomi-mimo}
+
+Midscene currently supports Xiaomi's `mimo-v2.5` and `mimo-v2-omni` models.
+
+After obtaining an API key from the [Xiaomi MiMo API Open Platform](https://platform.xiaomimimo.com/), configure:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://api.xiaomimimo.com/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="mimo-v2.5" # Or "mimo-v2-omni"
+MIDSCENE_MODEL_FAMILY="xiaomi-mimo"
+```
+
+Note: Midscene's visual automation relies on multimodal image understanding. In Xiaomi MiMo, only the Omni series currently supports multimodal input; the Pro series is a text model and cannot be used for Midscene visual tasks.
+
 ### Zhipu GLM-V Series {#glm-v}
 
 Zhipu GLM-V is a vision understanding model from Zhipu AI. The latest versions include `GLM-4.6V` (open-source) and `GLM-5V-Turbo`.
