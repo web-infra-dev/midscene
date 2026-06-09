@@ -2,7 +2,10 @@ import { readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
-import { getBridgePageInCliSide } from '@/bridge-mode/agent-cli-side';
+import {
+  AgentOverChromeBridge,
+  type getBridgePageInCliSide,
+} from '@/bridge-mode/agent-cli-side';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.setConfig({
@@ -53,14 +56,14 @@ async function evaluateJson<T>(
 }
 
 describeIf('file upload in bridge mode', () => {
-  let page: ReturnType<typeof getBridgePageInCliSide> | undefined;
+  let agent: AgentOverChromeBridge | undefined;
   let closeServer: (() => Promise<void>) | undefined;
 
   afterEach(async () => {
     try {
-      await page?.destroy();
+      await agent?.destroy();
     } finally {
-      page = undefined;
+      agent = undefined;
     }
 
     if (closeServer) {
@@ -74,37 +77,21 @@ describeIf('file upload in bridge mode', () => {
     closeServer = fixtureServer.close;
     const testFile = fixturePath('test-file.txt');
 
-    page = getBridgePageInCliSide();
-    await page.connectNewTabWithUrl(fixtureServer.url);
-    await page.setDestroyOptions({ closeTab: true });
+    agent = new AgentOverChromeBridge({
+      closeNewTabsAfterDisconnect: true,
+    });
+    await agent.connectNewTabWithUrl(fixtureServer.url);
 
-    const buttonCenter = await evaluateJson<{ x: number; y: number }>(
-      page,
-      `() => {
-        const buttons = Array.from(document.querySelectorAll('.upload-btn'));
-        const button = buttons.find((element) =>
-          element.textContent.includes('Choose Single File')
-        );
-        if (!button) {
-          throw new Error('Choose Single File button not found');
-        }
-        const rect = button.getBoundingClientRect();
-        return {
-          x: rect.left + rect.width / 2,
-          y: rect.top + rect.height / 2,
-        };
-      }`,
-    );
-
-    await page.registerFileChooserAccept([testFile]);
-    await page.mouse.click(buttonCenter.x, buttonCenter.y);
-    expect(await page.getFileChooserError()).toBeUndefined();
+    await agent.aiTap('Choose Single File', {
+      xpath: '//*[@id="single-file-input"]/following-sibling::button[1]',
+      fileChooserAccept: [testFile],
+    });
 
     const selected = await evaluateJson<{
       files: string[];
       selectedText: string;
     }>(
-      page,
+      agent.page,
       `() => {
         const input = document.querySelector('#single-file-input');
         return {
