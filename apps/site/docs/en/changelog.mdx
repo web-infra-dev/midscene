@@ -1,8 +1,8 @@
 # Changelog
 
-## v1.9 - Markdown Replay and Automation Fixes
+## v1.9 - Model Adapter Refactor and CLI Enhancements
 
-The v1.9 release brings Markdown replay output, HarmonyOS YAML automation, and a set of CLI, report, model, and desktop automation fixes. The current latest release is available from [GitHub Releases](https://github.com/web-infra-dev/midscene/releases/latest), which automatically redirects to the latest tag.
+v1.9 refactors the model adapter layer, making future model integrations faster to add, and includes broader YAML automation plus CLI, report, model, and desktop automation fixes.
 
 ### YAML and Device Automation
 
@@ -17,7 +17,7 @@ The v1.9 release brings Markdown replay output, HarmonyOS YAML automation, and a
 - Assert CLI / MCP tooling forwards custom failure messages to make assertion failures clearer.
 - Model adapter internals were refactored to make family-specific request and response handling easier to maintain across providers.
 - The CLI now resolves `@rstest/core` from the CLI package itself instead of `process.argv[1]`, making framework runs more stable from external launch paths.
-- Report Markdown exports keep image paths aligned with exported screenshots.
+- Report exports keep image paths aligned with exported screenshots.
 
 ### Bug Fixes
 
