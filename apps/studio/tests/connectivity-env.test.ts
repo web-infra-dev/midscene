@@ -114,6 +114,7 @@ describe('resolveModelConnection', () => {
   it('reports missing required keys', () => {
     const result = resolveModelConnection({ OPENAI_API_KEY: 'sk' });
     expect(result).toEqual({
+      kind: 'missing-required-keys',
       error: expect.stringContaining('OPENAI_BASE_URL'),
     });
   });
@@ -129,6 +130,7 @@ describe('resolveModelConnection', () => {
     const result = resolveModelConnection(parseEnvText(source));
 
     expect(result).toEqual({
+      kind: 'invalid-config',
       error: expect.stringContaining('Invalid MIDSCENE_MODEL_FAMILY value: 1'),
     });
     expect(hasCompleteModelEnvConfig(source)).toBe(false);

@@ -225,11 +225,10 @@ export function ModelEnvConfigModal({
     () => resolveModelConnection(envValues),
     [envValues],
   );
-  const configError =
-    'error' in resolvedConnection ? resolvedConnection.error : null;
   const validationError =
-    configError && !configError.startsWith('Missing required keys:')
-      ? configError
+    'error' in resolvedConnection &&
+    resolvedConnection.kind === 'invalid-config'
+      ? resolvedConnection.error
       : null;
   const canRunConnectivityTest = !('error' in resolvedConnection);
   const isExpandedForm = tab === 'form';

@@ -12,6 +12,9 @@ function resolveModelConfigFromProvider(
 ): IModelConfig | null {
   const resolved = resolveModelConnectionWithConfig(provider);
   if ('error' in resolved) {
+    if (resolved.kind === 'invalid-config') {
+      throw new Error(resolved.error);
+    }
     return null;
   }
   return resolved.modelConfig;

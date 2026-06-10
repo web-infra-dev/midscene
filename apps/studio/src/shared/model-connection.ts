@@ -22,7 +22,12 @@ export interface ResolvedModelConnection extends ModelConnectionParams {
   modelConfig: IModelConfig;
 }
 
+export type ModelConnectionErrorKind =
+  | 'missing-required-keys'
+  | 'invalid-config';
+
 export interface ModelConnectionError {
+  kind: ModelConnectionErrorKind;
   error: string;
 }
 
@@ -65,7 +70,10 @@ export function resolveModelConnectionWithConfig(
   if (!model) missing.push(MIDSCENE_MODEL_NAME);
 
   if (missing.length > 0) {
-    return { error: `Missing required keys: ${missing.join(', ')}` };
+    return {
+      kind: 'missing-required-keys',
+      error: `Missing required keys: ${missing.join(', ')}`,
+    };
   }
 
   let modelConfig: IModelConfig;
@@ -76,6 +84,7 @@ export function resolveModelConnectionWithConfig(
     modelConfig = modelConfigManager.getModelConfig('default');
   } catch (error) {
     return {
+      kind: 'invalid-config',
       error: error instanceof Error ? error.message : String(error),
     };
   }
