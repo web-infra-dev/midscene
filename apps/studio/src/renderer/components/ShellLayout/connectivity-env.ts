@@ -46,8 +46,13 @@ export const FIXED_MODEL_ENV_FIELDS: readonly ModelEnvField[] = [
  * saved env text may use compatible aliases such as OPENAI_API_KEY.
  */
 export function hasCompleteModelEnvConfig(text: string): boolean {
+  return getModelEnvConfigError(text) === null;
+}
+
+export function getModelEnvConfigError(text: string): string | null {
   const env = parseEnvText(text);
-  return !('error' in resolveModelConnection(env));
+  const resolved = resolveModelConnection(env);
+  return 'error' in resolved ? resolved.error : null;
 }
 
 /**

@@ -147,6 +147,31 @@ describe('ModelEnvConfigModal', () => {
     await unmountModal(validRender.root);
   });
 
+  it('shows invalid model family without crashing the modal', async () => {
+    const { container, root } = await renderModal(
+      [
+        'MIDSCENE_MODEL_BASE_URL=https://example.com/v1',
+        'MIDSCENE_MODEL_API_KEY=sk-test',
+        'MIDSCENE_MODEL_NAME=qwen3-vl-plus',
+        'MIDSCENE_MODEL_FAMILY=1',
+      ].join('\n'),
+    );
+
+    expect(getConnectivityButton(container).disabled).toBe(true);
+    expect(container.textContent).toContain(
+      'Invalid MIDSCENE_MODEL_FAMILY value: 1',
+    );
+    const errorMessage = Array.from(container.querySelectorAll('span')).find(
+      (item) =>
+        item.textContent?.includes('Invalid MIDSCENE_MODEL_FAMILY value: 1'),
+    );
+    expect(errorMessage?.className).toContain('whitespace-normal');
+    expect(errorMessage?.className).not.toContain('text-ellipsis');
+    expect(container.querySelector('.h-\\[524px\\]')).toBeTruthy();
+
+    await unmountModal(root);
+  });
+
   it('starts spinning only while the connectivity test is running', async () => {
     const { container, root } = await renderModal(VALID_ENV_TEXT);
     const runConnectivityTest = vi.fn(
