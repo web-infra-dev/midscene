@@ -21,7 +21,16 @@ import type {
   VarScope,
 } from './types';
 
-const SKILL_TOKEN_RE = /\$([A-Za-z0-9][A-Za-z0-9_-]*)/g;
+// Skill tokens must start with a letter: a leading digit would make money
+// amounts in step text ("the total is $42.50") hijack routing to the agent.
+const SKILL_TOKEN_RE = /\$([A-Za-z][A-Za-z0-9_-]*)/g;
+/**
+ * An annotation comment line must consist ONLY of markers/tokens after `#`
+ * (e.g. `# @agent $check-logs`). Prose comments that merely mention a marker
+ * ("# TODO: make this @no-ai later") must not flip routing.
+ */
+const ANNOTATION_LINE_RE =
+  /^(?:@(?:agent|no-ai|soft)|\$[A-Za-z][A-Za-z0-9_-]*)(?:\s+(?:@(?:agent|no-ai|soft)|\$[A-Za-z][A-Za-z0-9_-]*))*$/;
 const AGENT_MARKER_RE = /@agent\b/;
 const NO_AI_MARKER_RE = /@no-ai\b/;
 const SOFT_MARKER_RE = /@soft\b/;
@@ -143,6 +152,10 @@ export function resolveStepAnnotations(input: {
 
   for (const rawText of blockTexts) {
     const text = rawText.trim().replace(/^#/, '').trim();
+    // Only marker-shaped lines route; prose comments are inert.
+    if (!ANNOTATION_LINE_RE.test(text)) {
+      continue;
+    }
     if (AGENT_MARKER_RE.test(text)) {
       agent = true;
     }

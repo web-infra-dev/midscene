@@ -15,7 +15,7 @@ import { executeFlow } from './flows';
 import { matchUserStep, noAiUnmatchedError } from './no-ai';
 import { selectSkills } from './skills';
 import { ERROR_PREFIX, type RouterContext, type RunStepFn } from './types';
-import { matchRemember, substituteVars } from './vars';
+import { matchMalformedRemember, matchRemember, substituteVars } from './vars';
 
 const ACT_LOG_LIMIT = 500;
 
@@ -107,10 +107,16 @@ export const runStep: RunStepFn = async (ctx) => {
     return;
   }
 
-  // 3. Flow call (matchStep throws on ambiguity itself).
-  const flowMatch = ctx.flows.matchStep(resolved);
+  // 3. Flow call (matchStep throws on ambiguity itself). Matched on the RAW
+  // text so a captured page value containing quotes can never break or
+  // hijack flow matching; <var> references are substituted per argument.
+  const flowMatch = ctx.flows.matchStep(ctx.stepText);
   if (flowMatch) {
-    await executeFlow(flowMatch, ctx, runStep);
+    const args: Record<string, string> = {};
+    for (const [name, value] of Object.entries(flowMatch.args)) {
+      args[name] = substituteVars(value, ctx.vars);
+    }
+    await executeFlow({ flow: flowMatch.flow, args }, ctx, runStep);
     return;
   }
 
@@ -129,6 +135,12 @@ export const runStep: RunStepFn = async (ctx) => {
       `${ERROR_PREFIX} remembered ${remember.varName} = "${value}"`,
     );
     return;
+  }
+  const malformed = matchMalformedRemember(resolved);
+  if (malformed) {
+    throw new Error(
+      `${ERROR_PREFIX} "I remember ... as \"${malformed.varName}\"": variable names must be identifiers (letters, digits, underscore; not starting with a digit). Rename it, e.g. "${malformed.varName.replace(/[^A-Za-z0-9_]+/g, '_')}".`,
+    );
   }
 
   // 5. Default: Midscene UI agent.

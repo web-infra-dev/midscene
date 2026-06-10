@@ -69,6 +69,13 @@ const child = spawn(process.execPath, [cliPath, ...args], {
   stdio: 'inherit',
 });
 
+child.on('error', (error) => {
+  console.error(
+    `[midscene-bdd] Failed to launch cucumber-js at ${cliPath}: ${error.message}`,
+  );
+  process.exit(1);
+});
+
 child.on('exit', (code, signal) => {
   if (signal) {
     process.kill(process.pid, signal);

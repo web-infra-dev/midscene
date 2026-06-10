@@ -7,6 +7,7 @@
  * (Codex CLI OAuth). Core imports are lazy so pure prompt/verdict logic is
  * testable without the model stack.
  */
+import { randomBytes } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
@@ -157,11 +158,17 @@ export class CallAiGeneralAgent implements GeneralAgent {
     if (req.screenshotBase64) {
       const base64 = req.screenshotBase64.replace(/^data:[^,]*,/, '');
       tmpImageSeq += 1;
+      // Random suffix + owner-only mode + 'wx' (fail on pre-existing path):
+      // the run dir can fall back to a shared /tmp, where predictable names
+      // would be readable or symlink-plantable by other local users.
       tmpImagePath = path.join(
         getMidsceneRunSubDir('tmp'),
-        `bdd-agent-${process.pid}-${tmpImageSeq}.png`,
+        `bdd-agent-${process.pid}-${tmpImageSeq}-${randomBytes(8).toString('hex')}.png`,
       );
-      await fs.writeFile(tmpImagePath, Buffer.from(base64, 'base64'));
+      await fs.writeFile(tmpImagePath, Buffer.from(base64, 'base64'), {
+        mode: 0o600,
+        flag: 'wx',
+      });
       // codex:// maps file:// image_url parts to localImage turn inputs;
       // file:// keeps parity with core's handling of local screenshots.
       content.push({

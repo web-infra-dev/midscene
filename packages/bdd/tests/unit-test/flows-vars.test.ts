@@ -6,7 +6,11 @@ import type {
   ResolvedBddConfig,
   RouterContext,
 } from '../../src/types';
-import { matchRemember, substituteVars } from '../../src/vars';
+import {
+  matchMalformedRemember,
+  matchRemember,
+  substituteVars,
+} from '../../src/vars';
 
 vi.mock('../../src/annotations', () => {
   const stepTypeOf = () => 'action';
@@ -149,6 +153,24 @@ describe('substituteVars', () => {
       'press <left-arrow> then <1abc> 1',
     );
     expect(substituteVars('compare 1 < 2 > 0', vars)).toBe('compare 1 < 2 > 0');
+  });
+});
+
+describe('matchMalformedRemember', () => {
+  it('detects remember-intent with a non-identifier variable name', () => {
+    expect(matchMalformedRemember('I remember the id as "order-id"')).toEqual({
+      varName: 'order-id',
+    });
+    expect(matchMalformedRemember('I remember the id as "order id"')).toEqual({
+      varName: 'order id',
+    });
+  });
+
+  it('returns undefined for valid remember statements and unrelated text', () => {
+    expect(
+      matchMalformedRemember('I remember the id as "orderId"'),
+    ).toBeUndefined();
+    expect(matchMalformedRemember('I open the page')).toBeUndefined();
   });
 });
 

@@ -45,3 +45,20 @@ export function matchRemember(
   if (!m) return undefined;
   return { description: m[1], varName: m[2] };
 }
+
+const REMEMBER_SHAPE_RE = /^I remember .+ as "([^"]*)"[.]?$/i;
+
+/**
+ * Detect a remember-INTENT step whose quoted variable name is not a valid
+ * identifier (`order-id`, `order id`, ...). Without this check the step
+ * would silently fall through to the UI agent and the later `<order-id>`
+ * reference would reach the model as a literal placeholder.
+ */
+export function matchMalformedRemember(
+  text: string,
+): { varName: string } | undefined {
+  if (REMEMBER_RE.test(text)) return undefined;
+  const m = REMEMBER_SHAPE_RE.exec(text);
+  if (!m) return undefined;
+  return { varName: m[1] };
+}

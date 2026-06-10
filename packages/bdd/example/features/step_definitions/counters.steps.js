@@ -1,23 +1,19 @@
-const fs = require('node:fs');
-const path = require('node:path');
 const { defineStep } = require('@midscene/bdd');
 
-defineStep('the login attempt counter increments', async () => {
-  // Classic deterministic assertion — no AI involved.
-  //
-  // POC note: the world API that would let classic callbacks reach the
-  // browser (and read window.__loginAttempts directly) is not finalized yet,
-  // so this callback performs a deterministic Node-side check instead: it
-  // re-reads the server log fixture and asserts the recorded failed-login
-  // WARN line is there. A real project would call its own APIs here.
-  const logFile = path.join(__dirname, '..', '..', 'server.log');
-  const lines = fs.readFileSync(logFile, 'utf8').split('\n');
-  const failedLogins = lines.filter(
-    (line) => line.includes(' WARN ') && line.includes('failed login attempt'),
-  );
-  if (failedLogins.length !== 1) {
+// A classic `# @no-ai` step: deterministic code, no AI involved. Must be a
+// regular `function` (not an arrow) so `this` is the step context, which
+// exposes `vars`, `getUiAgent`, `attach`, and `log`.
+defineStep('the login attempt counter increments', async function () {
+  // The demo app counts failed sign-ins in `window.__loginAttempts`. The
+  // step context's UI agent is the same Midscene PuppeteerAgent driving the
+  // scenario, so its underlying page is available for direct evaluation —
+  // a real project would more typically call its own APIs here.
+  const agent = await this.getUiAgent();
+  const attempts = await agent.page.evaluate(() => window.__loginAttempts);
+  if (!(attempts >= 1)) {
     throw new Error(
-      `expected exactly 1 failed-login WARN line in server.log, found ${failedLogins.length}`,
+      `expected window.__loginAttempts >= 1 after a failed sign-in, got ${attempts}`,
     );
   }
+  await this.log(`login attempt counter = ${attempts}`);
 });

@@ -26,6 +26,8 @@ export interface BddRuntime {
   config: ResolvedBddConfig;
   flows: FlowRegistryLike;
   skills: Map<string, Skill>;
+  /** Absolute feature paths scanned for flows; used to warn on divergence. */
+  scannedFiles?: string[];
 }
 
 let runtime: BddRuntime | undefined;
@@ -113,9 +115,11 @@ export class MidsceneWorld extends World {
   /**
    * Tear down both agents. The Midscene report path is captured BEFORE
    * cleanup (teardown may clear it). Every cleanup is attempted even when an
-   * earlier one fails; failures are aggregated into one thrown Error.
+   * earlier one fails. Never throws: failures are RETURNED so the caller
+   * can still use the report path before surfacing them (the After hook
+   * attaches the report, then rethrows).
    */
-  async destroyAgents(): Promise<{ reportFile?: string }> {
+  async destroyAgents(): Promise<{ reportFile?: string; errors: Error[] }> {
     // A creation may still be in flight (e.g. a timed-out step): wait for it
     // so the browser it launches does not leak.
     if (this.uiAgentPromise) {
@@ -133,7 +137,10 @@ export class MidsceneWorld extends World {
     this.generalAgent = undefined;
 
     const reportFile = uiState?.agent.reportFile ?? undefined;
-    const errors: unknown[] = [];
+    const errors: Error[] = [];
+    const record = (error: unknown) => {
+      errors.push(error instanceof Error ? error : new Error(String(error)));
+    };
 
     if (uiState) {
       try {
@@ -143,7 +150,7 @@ export class MidsceneWorld extends World {
           await uiState.agent.destroy();
         }
       } catch (error) {
-        errors.push(error);
+        record(error);
       }
     }
 
@@ -151,21 +158,18 @@ export class MidsceneWorld extends World {
       try {
         await generalAgent.dispose();
       } catch (error) {
-        errors.push(error);
+        record(error);
       }
     }
 
-    if (errors.length > 0) {
-      const details = errors
-        .map((error) =>
-          error instanceof Error ? error.message : String(error),
-        )
-        .join('; ');
-      throw new Error(
-        `${ERROR_PREFIX} Agent cleanup failed (${errors.length} error(s)): ${details}`,
-      );
-    }
-
-    return { reportFile };
+    return { reportFile, errors };
   }
+}
+
+/** Combine destroyAgents() errors into the single Error the After hook throws. */
+export function cleanupError(errors: Error[]): Error {
+  const details = errors.map((error) => error.message).join('; ');
+  return new Error(
+    `${ERROR_PREFIX} Agent cleanup failed (${errors.length} error(s)): ${details}`,
+  );
 }

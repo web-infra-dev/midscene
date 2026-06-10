@@ -30,6 +30,14 @@ export async function createUiAgent(
         )}`,
       );
     }
+    const cleanup = (created as { cleanup?: unknown }).cleanup;
+    if (cleanup !== undefined && typeof cleanup !== 'function') {
+      // Fail fast: a non-function cleanup would otherwise throw during
+      // teardown and skip agent.destroy(), leaking a browser per scenario.
+      throw new Error(
+        `${ERROR_PREFIX} uiAgent factory: cleanup must be a function when provided, got ${typeof cleanup}`,
+      );
+    }
     return created;
   }
 

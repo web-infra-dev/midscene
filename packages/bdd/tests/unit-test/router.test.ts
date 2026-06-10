@@ -23,8 +23,8 @@ vi.mock('../../src/flows', () => ({
 
 const mockedExecuteFlow = vi.mocked(executeFlow);
 
-function makeFlowMatch(): FlowMatch {
-  return { flow: { name: 'fake flow' } as FlowDef, args: {} };
+function makeFlowMatch(overrides: Partial<FlowMatch> = {}): FlowMatch {
+  return { flow: { name: 'fake flow' } as FlowDef, args: {}, ...overrides };
 }
 
 function makeFlows(
@@ -126,7 +126,7 @@ describe('precedence', () => {
     });
     await runStep(ctx);
     expect(mockedExecuteFlow).toHaveBeenCalledTimes(1);
-    expect(mockedExecuteFlow.mock.calls[0][0]).toBe(match);
+    expect(mockedExecuteFlow.mock.calls[0][0]).toEqual(match);
     expect(ctx.vars.has('total')).toBe(false);
   });
 
@@ -375,9 +375,25 @@ describe('flow route', () => {
     await runStep(ctx);
     expect(mockedExecuteFlow).toHaveBeenCalledTimes(1);
     const [seenMatch, seenCtx, seenRunStep] = mockedExecuteFlow.mock.calls[0];
-    expect(seenMatch).toBe(match);
+    // The router rebuilds the match with per-argument substitution, so the
+    // payload is equal but not identical.
+    expect(seenMatch).toEqual(match);
     expect(seenCtx).toBe(ctx);
     expect(seenRunStep).toBe(runStep);
+  });
+
+  it('substitutes <var> references per argument after matching on raw text', async () => {
+    const match = makeFlowMatch({ args: { role: '<who>' } });
+    const ctx = makeCtx({
+      stepText: 'I am logged in as "<who>"',
+      vars: new Map([['who', 'ad"min']]),
+      flows: makeFlows(match),
+    });
+    await runStep(ctx);
+    const [seenMatch] = mockedExecuteFlow.mock.calls[0];
+    // Quote-bearing captured values can no longer break flow matching: the
+    // match used the RAW text, and only the arg value was substituted.
+    expect(seenMatch.args).toEqual({ role: 'ad"min' });
   });
 
   it('propagates an ambiguity error thrown by matchStep', async () => {
@@ -395,6 +411,16 @@ describe('flow route', () => {
 });
 
 describe('capture route', () => {
+  it('fails loud on remember-intent with a non-identifier variable name', async () => {
+    const ctx = makeCtx({
+      stepText: 'I remember the id as "order-id"',
+      getUiAgent: async () => makeUi(),
+    });
+    await expect(runStep(ctx)).rejects.toThrow(
+      /variable names must be identifiers .* "order_id"/,
+    );
+  });
+
   it('stores the extracted value and logs it', async () => {
     const log = vi.fn();
     const ui = makeUi({ aiString: vi.fn(async () => '$42.00') });
@@ -530,7 +556,7 @@ describe('default Midscene route', () => {
 });
 
 describe('variable substitution happens before routing', () => {
-  it('flow matchStep receives the substituted text', async () => {
+  it('flow matchStep receives the RAW text; other routes get substituted text', async () => {
     const flows = makeFlows();
     const ui = makeUi();
     const ctx = makeCtx({
@@ -540,7 +566,9 @@ describe('variable substitution happens before routing', () => {
       getUiAgent: async () => ui,
     });
     await runStep(ctx);
-    expect(flows.seenTexts).toEqual(['I search for $42.00']);
+    // Flow matching is injection-safe: it sees the raw authored text.
+    expect(flows.seenTexts).toEqual(['I search for <price>']);
+    // The UI route still receives the mechanically substituted prompt.
     expect(ui.aiAct).toHaveBeenCalledWith('I search for $42.00');
   });
 

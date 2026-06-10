@@ -35,7 +35,7 @@ All three in one scenario:
 Feature: Failed login reporting
 
   Scenario: Failed login is reported everywhere
-    Given the demo shop is open on the login page
+    Given I open the login page of the demo shop
     When I try to sign in as the "admin" user with a wrong password
     Then an error toast shows on the screen
     # @agent
@@ -68,7 +68,7 @@ Feature: Shared login flow
   @flow @param:role @returns:greeting
   Scenario: I am logged in as {string}
     When I open the login page
-    And I sign in as the "<role>" user with the correct password
+    And I sign in as the "<role>" user with the demo password shown on the login form
     Then the dashboard for the "<role>" role is visible
     And I remember the greeting message in the header as "greeting"
 ```

@@ -57,8 +57,12 @@ describe('parseSkillTokens', () => {
     ).toEqual(['check-logs', 'db_reset']);
   });
 
-  it('requires an alphanumeric first character', () => {
-    expect(parseSkillTokens('$-nope $_nope $9lives')).toEqual(['9lives']);
+  it('requires a letter as the first character', () => {
+    // Digit-first tokens are excluded so money amounts in step text
+    // ("the total is $42.50") can never hijack routing to the agent.
+    expect(parseSkillTokens('$-nope $_nope $9lives')).toEqual([]);
+    expect(parseSkillTokens('the cart total is $42.50')).toEqual([]);
+    expect(parseSkillTokens('run $check-logs for $42')).toEqual(['check-logs']);
   });
 
   it('stops tokens at invalid characters', () => {
@@ -142,12 +146,12 @@ describe('resolveStepAnnotations', () => {
     });
   });
 
-  it('collects a contiguous multi-line comment block', () => {
+  it('collects a contiguous multi-line comment block (marker-only lines)', () => {
     const parsed = parse(`Feature: f
   Scenario: s
     # @no-ai
     # @soft
-    # uses $first then $second
+    # $first $second
     When I do a thing
     Then nothing leaked here
 `);
@@ -158,6 +162,45 @@ describe('resolveStepAnnotations', () => {
       skills: ['first', 'second'],
     });
     expect(resolve(parsed, 'nothing leaked here')).toEqual({
+      agent: false,
+      noAi: false,
+      soft: false,
+      skills: [],
+    });
+  });
+
+  it('ignores prose comments that merely mention markers or tokens', () => {
+    const parsed = parse(`Feature: f
+  Scenario: s
+    # TODO: convert this to @no-ai once the API client lands
+    When I add the first item to the cart
+    # costs about $5 per run, see $billing docs
+    Then the run completes
+`);
+    expect(resolve(parsed, 'I add the first item to the cart')).toEqual({
+      agent: false,
+      noAi: false,
+      soft: false,
+      skills: [],
+    });
+    expect(resolve(parsed, 'the run completes')).toEqual({
+      agent: false,
+      noAi: false,
+      soft: false,
+      skills: [],
+    });
+  });
+
+  it('drops the annotation when a blank line separates it from the step', () => {
+    const parsed = parse(`Feature: f
+  Scenario: s
+    # @no-ai
+
+    When I do a thing
+`);
+    // Contiguity is the rule: a blank line breaks the block. Pinned so this
+    // sharp edge is a documented choice rather than an accident.
+    expect(resolve(parsed, 'I do a thing')).toEqual({
       agent: false,
       noAi: false,
       soft: false,
@@ -298,7 +341,7 @@ Feature: f
   it('merges comment and inline skills, comment-first, deduped', () => {
     const parsed = parse(`Feature: f
   Scenario: s
-    # see $alpha
+    # $alpha
     When I run $beta with $alpha
 `);
     expect(resolve(parsed, 'I run $beta with $alpha')).toEqual({

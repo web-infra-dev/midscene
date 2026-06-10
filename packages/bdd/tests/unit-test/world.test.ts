@@ -10,6 +10,7 @@ import type { ResolvedBddConfig, UiAgent } from '../../src/types';
 import {
   type BddRuntime,
   MidsceneWorld,
+  cleanupError,
   getRuntime,
   resetRuntime,
   setRuntime,
@@ -160,6 +161,25 @@ describe('MidsceneWorld.getGeneralAgent', () => {
       getRuntime().config.generalAgent,
     );
   });
+
+  it('uses config.generalAgent.factory when provided, bypassing CallAiGeneralAgent', async () => {
+    const fake = { run: vi.fn() };
+    const factory = vi.fn(async () => fake);
+    setRuntime({
+      ...getRuntime(),
+      config: {
+        ...getRuntime().config,
+        generalAgent: { factory },
+      },
+    });
+    const world = makeWorld();
+    const first = await world.getGeneralAgent();
+    const second = await world.getGeneralAgent();
+    expect(first).toBe(fake);
+    expect(second).toBe(fake);
+    expect(factory).toHaveBeenCalledTimes(1);
+    expect(generalCtorSpy).not.toHaveBeenCalled();
+  });
 });
 
 describe('MidsceneWorld.destroyAgents', () => {
@@ -205,7 +225,14 @@ describe('MidsceneWorld.destroyAgents', () => {
     await world.getUiAgent();
     await world.getGeneralAgent();
 
-    await expect(world.destroyAgents()).rejects.toThrow(
+    // destroyAgents never throws — errors are RETURNED so the caller (the
+    // After hook) can attach the report path before surfacing them.
+    const { errors } = await world.destroyAgents();
+    expect(errors.map((e) => e.message)).toEqual([
+      'browser close failed',
+      'dispose failed',
+    ]);
+    expect(cleanupError(errors).message).toBe(
       `${ERROR_PREFIX} Agent cleanup failed (2 error(s)): browser close failed; dispose failed`,
     );
     expect(cleanup).toHaveBeenCalledTimes(1);
@@ -214,10 +241,27 @@ describe('MidsceneWorld.destroyAgents', () => {
     expect(world.peekUiAgent()).toBeUndefined();
   });
 
+  it('still returns the report path when cleanup fails', async () => {
+    const agent = makeFakeAgent();
+    agent.reportFile = '/tmp/report.html';
+    mockedCreateUiAgent.mockResolvedValue({
+      agent,
+      cleanup: vi.fn(async () => {
+        throw new Error('boom');
+      }),
+    });
+    const world = makeWorld();
+    await world.getUiAgent();
+    const { reportFile, errors } = await world.destroyAgents();
+    expect(reportFile).toBe('/tmp/report.html');
+    expect(errors).toHaveLength(1);
+  });
+
   it('is a no-op (and returns no reportFile) when nothing was created', async () => {
     const world = makeWorld();
     await expect(world.destroyAgents()).resolves.toEqual({
       reportFile: undefined,
+      errors: [],
     });
   });
 
