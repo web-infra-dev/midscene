@@ -3,7 +3,10 @@ import type {
   CodeGenerationChunk,
   StreamingCallback,
 } from '@/types';
-import type { IModelConfig } from '@midscene/shared/env';
+import type {
+  IModelConfig,
+  TModelReasoningEnabled,
+} from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
@@ -259,11 +262,12 @@ export const resolveCodexReasoningEffort = ({
   reasoningEnabled,
   modelConfig,
 }: {
-  reasoningEnabled?: boolean;
+  reasoningEnabled?: TModelReasoningEnabled;
   modelConfig: IModelConfig;
 }): CodexReasoningEffort | undefined => {
   if (reasoningEnabled === true) return 'high';
   if (reasoningEnabled === false) return 'none';
+  if (reasoningEnabled === 'default') return undefined;
 
   const normalized = modelConfig.reasoningEffort?.trim().toLowerCase();
   if (
@@ -400,7 +404,7 @@ class CodexAppServerConnection {
     modelConfig: IModelConfig;
     stream?: boolean;
     onChunk?: StreamingCallback;
-    reasoningEnabled?: boolean;
+    reasoningEnabled?: TModelReasoningEnabled;
     abortSignal?: AbortSignal;
   }): Promise<CodexTurnResult> {
     const startTime = Date.now();
@@ -935,7 +939,7 @@ class CodexAppServerConnectionManager {
     modelConfig: IModelConfig;
     stream?: boolean;
     onChunk?: StreamingCallback;
-    reasoningEnabled?: boolean;
+    reasoningEnabled?: TModelReasoningEnabled;
     abortSignal?: AbortSignal;
   }): Promise<CodexTurnResult> {
     return this.runner.run(async () => {
@@ -987,7 +991,7 @@ export async function callAIWithCodexAppServer(
   options?: {
     stream?: boolean;
     onChunk?: StreamingCallback;
-    reasoningEnabled?: boolean;
+    reasoningEnabled?: TModelReasoningEnabled;
     abortSignal?: AbortSignal;
   },
 ): Promise<CodexTurnResult> {

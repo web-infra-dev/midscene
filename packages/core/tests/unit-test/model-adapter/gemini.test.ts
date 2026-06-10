@@ -86,6 +86,18 @@ describe('gemini model adapter', () => {
     });
   });
 
+  it('follows provider default and ignores effort for gemini when reasoningEnabled=default', () => {
+    const result = geminiAdapter.chatCompletion.buildChatCompletionParams({
+      userConfig: {
+        reasoningEnabled: 'default',
+        reasoningEffort: 'high',
+      },
+    });
+    expect(result.config).toEqual({
+      temperature: 0,
+    });
+  });
+
   it('ignores unsupported reasoning fields for gemini', () => {
     const result = geminiAdapter.chatCompletion.buildChatCompletionParams({
       userConfig: {

@@ -223,6 +223,17 @@ describe('ModelConfigManager', () => {
     expect(config.reasoningEnabled).toBe(false);
   });
 
+  it('parses reasoningEnabled=default as default', () => {
+    const configWithDefaultReasoning = {
+      ...baseMap,
+      [MIDSCENE_MODEL_REASONING_ENABLED]: 'default',
+    };
+    const manager = new ModelConfigManager(configWithDefaultReasoning);
+
+    const config = manager.getModelConfig('default');
+    expect(config.reasoningEnabled).toBe('default');
+  });
+
   it('reasoningEnabled is undefined when not set', () => {
     const manager = new ModelConfigManager(baseMap);
 

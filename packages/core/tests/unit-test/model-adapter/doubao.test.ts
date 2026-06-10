@@ -135,6 +135,18 @@ describe('doubao model adapter', () => {
     });
   });
 
+  it('follows provider default and ignores effort for doubao when reasoningEnabled=default', () => {
+    const result = doubaoSeedAdapter.chatCompletion.buildChatCompletionParams({
+      userConfig: {
+        reasoningEnabled: 'default',
+        reasoningEffort: 'high',
+      },
+    });
+    expect(result.config).toEqual({
+      temperature: 0,
+    });
+  });
+
   it('ignores reasoningBudget for doubao', () => {
     const result = doubaoSeedAdapter.chatCompletion.buildChatCompletionParams({
       userConfig: {
