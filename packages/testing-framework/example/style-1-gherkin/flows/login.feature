@@ -1,5 +1,11 @@
 # READ THIS FIRST (style 1: pure Gherkin).
 #
+# This style is COMPLETE ON ITS OWN: plain .feature files run end-to-end
+# with no JS anywhere — no step definitions, no overlay, no glue code. The
+# sibling style folders are optional alternatives (style 2) or an optional
+# escape hatch for computed values / per-env tweaks (style 3), not layers
+# you are expected to add.
+#
 # This suite has no step-definition code anywhere: every step is natural
 # language executed by AI agents (Given/When → UI actions performed by the
 # Midscene UI Agent; Then → a fail-closed verify judgment by a general

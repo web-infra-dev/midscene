@@ -7,6 +7,26 @@ Two related examples live here:
 2. A copy-out **YAML runner** demo (`e2e/` + `midscene.config.ts`) — the
    Phase 0 node engine. See [below](#the-phase-0-yaml-runner-example).
 
+## Which style do I need?
+
+**You probably only need style 1.** Plain `.feature` files run end-to-end
+with nothing else — no JS, no step definitions, no overlay. If your tests
+are plain English with no computed data, stop there.
+
+- **Style 1 — pure Gherkin**: the default, complete on its own.
+- **Style 2 — pure JS/TS**: for engineering-owned suites that want loops,
+  types, and computed args as first-class code.
+- **Style 3 — overlay**: **optional — an escape hatch, never a
+  requirement.** It only earns its keep when Gherkin is the contract AND a
+  handful of scenarios need programmatic exceptions:
+  - bind-time computed values (dates, env-derived data Gherkin cannot
+    express),
+  - environment-specific tweaks without forking the feature file (skip a
+    scenario in CI, downgrade a verify to soft, insert a step),
+  - a safe seam between non-engineer-owned prose and engineer-owned JS —
+    the overlay is sparse and drift-validated at bind time, so it cannot
+    silently rot.
+
 ## Three interchangeable styles of the SAME suite
 
 The style folders author the **same multi-file test suite** for the static
@@ -18,9 +38,9 @@ step is natural language executed by AI agents.
 
 | Folder | Style | Read this first | Choose it when |
 | --- | --- | --- | --- |
-| `style-1-gherkin/` | Pure Gherkin `.feature` files | `flows/login.feature` | Non-engineers own the suite; specs are the shared language. |
+| `style-1-gherkin/` | Pure Gherkin `.feature` files | `flows/login.feature` | Non-engineers own the suite; specs are the shared language. Fully sufficient on its own. |
 | `style-2-js/` | Pure JS/TS fluent API | `flows/index.ts` | The suite is generated or heavily dynamic (loops, computed prompts). |
-| `style-3-overlay/` | Gherkin source of truth + sparse JS overlay | `checkout.overlay.ts` | Gherkin stays canonical, but a few scenarios need computed values or env tweaks. Binds **style 1's** feature files — nothing is duplicated. |
+| `style-3-overlay/` | OPTIONAL: Gherkin source of truth + sparse JS overlay | `checkout.overlay.ts` | Escape hatch only: Gherkin stays canonical, but a few scenarios need computed values or env tweaks. Binds **style 1's** feature files — nothing is duplicated. |
 
 Inside each style the layout shows real-world modular reuse:
 

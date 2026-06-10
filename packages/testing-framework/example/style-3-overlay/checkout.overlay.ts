@@ -1,6 +1,12 @@
 /**
  * READ THIS FIRST (style 3: Gherkin + sparse JS overlay).
  *
+ * OVERLAYS ARE OPTIONAL. If you don't need computed values or
+ * per-environment tweaks, you only need the .feature files — style 1 runs
+ * end-to-end on its own, and nothing about it assumes an overlay exists.
+ * This style is an escape hatch for the few scenarios where plain Gherkin
+ * isn't enough, not a required layer.
+ *
  * WHAT AN OVERLAY IS: the .feature file (style 1's checkout.feature) stays
  * the human-readable source of truth — this file is a sparse JS PATCH on
  * top of it. The overlay is keyed by scenario title, and within a scenario

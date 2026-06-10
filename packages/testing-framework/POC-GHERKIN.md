@@ -291,11 +291,15 @@ scenarios: {
 
 ### Choosing a mode
 
+**You probably only need pure Gherkin.** Plain `.feature` files run
+end-to-end with nothing else; the other two modes are alternatives or an
+optional escape hatch, never a requirement.
+
 | Mode | Use when |
 | --- | --- |
-| Pure Gherkin (`compileFeature`) | Non-engineers own the suite; no computed values or per-env tweaks needed. |
-| Pure JS (`defineFlow`/`scenario`) | The suite is generated or heavily dynamic (loops, conditionals, computed prompts); no BDD stakeholders. |
-| Bound overlay (`bindFeature`) | Gherkin is the shared source of truth, but a few scenarios need computed variables, env-specific arg tweaks, inserted steps, or skip/only flags — without forking the feature file or restating it in JS. |
+| Pure Gherkin (`compileFeature`) | The default — fully sufficient on its own. Non-engineers own the suite; tests are plain English with no computed data. |
+| Pure JS (`defineFlow`/`scenario`) | The suite is engineering-owned and generated or heavily dynamic (loops, types, computed args); no BDD stakeholders. |
+| Bound overlay (`bindFeature`) | OPTIONAL escape hatch: Gherkin is the contract, but a handful of scenarios need programmatic exceptions — bind-time computed values, env-specific tweaks (skip in CI, verify→soft, inserted steps) without forking the feature file. Sparse + bind-time drift validation keeps the seam between prose and JS from silently rotting. |
 
 ## Example: one suite, three style folders
 
