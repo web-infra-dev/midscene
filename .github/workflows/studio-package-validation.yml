@@ -108,6 +108,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      - name: Install @midscene/computer native build deps (macOS)
+        if: ${{ matrix.platform == 'darwin' }}
+        run: brew install cmake pkg-config freerdp
+
+      - name: Build @midscene/computer native helpers
+        if: ${{ matrix.platform == 'darwin' }}
+        run: pnpm --filter @midscene/computer run build:native
+
       - name: Build Studio and Nx dependencies
         run: npx nx build studio
 

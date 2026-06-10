@@ -1465,6 +1465,9 @@ describe('package-electron helpers', () => {
       expect(workflow).toMatch(
         /os:\s*macos-15-intel\s*\n\s*platform:\s*darwin\s*\n\s*arch:\s*x64/,
       );
+      expect(workflow).toMatch(
+        /Build @midscene\/computer native helpers[\s\S]*pnpm --filter @midscene\/computer run build:native/,
+      );
     }
   });
 });
