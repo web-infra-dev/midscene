@@ -25,8 +25,7 @@
     "format": "pretty-quick --staged",
     "commit": "cz",
     "check-spell": "npx cspell",
-    "clean": "rm -rf .nx/cache packages/*/dist packages/*/node_modules/.cache apps/*/dist apps/*/node_modules/.cache packages/playground/static packages/ios/static",
-    "build:computer-desktop:intel": "pnpm --filter computer-desktop build:mac:intel"
+    "clean": "rm -rf .nx/cache packages/*/dist packages/*/node_modules/.cache apps/*/dist apps/*/node_modules/.cache packages/playground/static packages/ios/static"
   },
   "simple-git-hooks": {
     "pre-commit": "npx lint-staged",
@@ -49,12 +48,6 @@
     "node": ">=18.19.0"
   },
   "packageManager": "pnpm@9.3.0",
-  "pnpm": {
-    "supportedArchitectures": {
-      "os": ["darwin", "current"],
-      "cpu": ["x64", "current"]
-    }
-  },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@changesets/cli": "2.24.1",
