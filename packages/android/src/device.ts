@@ -57,6 +57,12 @@ const defaultNormalScrollDuration = 1000;
 
 const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
 const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
+
+// Marker used to capture the exit code of a command executed via `adb shell`.
+// `adb.shell` only resolves with stdout, and on devices using the legacy adb
+// shell protocol the remote exit code is not propagated to the adb process,
+// so we echo it explicitly and parse it back from stdout.
+const ADB_SHELL_EXIT_CODE_MARKER = '__MIDSCENE_ADB_EXIT_CODE__';
 type ScrollDirection = 'up' | 'down' | 'left' | 'right';
 
 const debugDevice = getDebug('android:device');
@@ -439,6 +445,56 @@ ${Object.keys(size)
         };
       },
     });
+  }
+
+  /**
+   * Execute an `adb shell` command and surface the remote command's exit code.
+   *
+   * `adb.shell` only resolves with stdout, and on devices that use the legacy
+   * adb shell protocol the remote exit code is not propagated to the adb
+   * process. That means a failing command would resolve as if it succeeded and
+   * the caller could not tell it failed. To make failures observable across
+   * shell protocol versions, append an exit-code marker to the command, parse
+   * it back from stdout, and throw when the command exited non-zero.
+   *
+   * @returns stdout of the command (without the exit-code marker) on success.
+   * @throws if the command exits with a non-zero code.
+   */
+  public async runShellCommandWithExitCode(
+    command: string,
+    opts: { timeout?: number } = {},
+  ): Promise<string> {
+    const adb = await this.getAdb();
+    const wrappedCommand = `${command}\necho "${ADB_SHELL_EXIT_CODE_MARKER}$?"`;
+    const { stdout, stderr } = (await adb.shell(wrappedCommand, {
+      ...opts,
+      outputFormat: adb.EXEC_OUTPUT_FORMAT.FULL,
+    })) as { stdout: string; stderr: string };
+
+    const markerMatch = stdout.match(
+      new RegExp(`${ADB_SHELL_EXIT_CODE_MARKER}(-?\\d+)\\s*$`),
+    );
+    if (!markerMatch || markerMatch.index === undefined) {
+      // The marker is missing (unexpected). Return the raw stdout untouched so
+      // we don't mask the command output, but log it for debugging.
+      debugDevice(
+        `runShellCommandWithExitCode: exit code marker not found for command: ${command}`,
+      );
+      return stdout;
+    }
+
+    const exitCode = Number(markerMatch[1]);
+    const commandStdout = stdout.slice(0, markerMatch.index).replace(/\n$/, '');
+
+    if (exitCode !== 0) {
+      throw new Error(
+        `ADB shell command exited with code ${exitCode}: ${command}\n` +
+          `stdout: ${commandStdout || '<empty>'}\n` +
+          `stderr: ${stderr?.trim() || '<empty>'}`,
+      );
+    }
+
+    return commandStdout;
   }
 
   /**
@@ -2049,8 +2105,7 @@ const createPlatformActions = (
         if (!param.command || param.command.trim() === '') {
           throw new Error('RunAdbShell requires a non-empty command parameter');
         }
-        const adb = await device.getAdb();
-        return await adb.shell(param.command);
+        return await device.runShellCommandWithExitCode(param.command);
       },
     }),
     Launch: defineAction<typeof launchParamSchema, LaunchParam, void>({
