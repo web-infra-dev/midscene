@@ -95,6 +95,41 @@ describe('Studio recorder codegen in main', () => {
     );
   });
 
+  it('retries Markdown replay generation without screenshots after input length errors', async () => {
+    vi.mocked(convertRecordLogIntoMarkdown)
+      .mockRejectedValueOnce(
+        new Error(
+          'failed to call AI model service: Range of input length should be [1, 991808]',
+        ),
+      )
+      .mockResolvedValueOnce('# Replay recording\n\n## Steps\n1. Open page\n');
+
+    await expect(
+      generateRecorderCodeInMain({
+        ...yamlRequest,
+        type: 'markdown',
+        input: {
+          ...yamlRequest.input,
+          maxScreenshots: 20,
+        },
+      }),
+    ).resolves.toEqual({
+      type: 'markdown',
+      code: '# Replay recording\n\n## Steps\n1. Open page\n',
+    });
+
+    expect(convertRecordLogIntoMarkdown).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ maxScreenshots: 20 }),
+      yamlRequest.modelConfig,
+    );
+    expect(convertRecordLogIntoMarkdown).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ maxScreenshots: 0 }),
+      yamlRequest.modelConfig,
+    );
+  });
+
   it('runs Playwright code generation for Web recordings', async () => {
     await expect(
       generateRecorderCodeInMain({

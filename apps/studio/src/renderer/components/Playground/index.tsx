@@ -4,13 +4,16 @@ import type {
   FormValue,
   UniversalPlaygroundConfig,
 } from '@midscene/visualizer';
-import { Tooltip, message } from 'antd';
+import { App as AntdApp, Tooltip } from 'antd';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { downloadStudioReport } from '../../playground/report-download';
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
 import { isStudioRecorderEntryEnabled } from '../../recorder/feature-flag';
-import { createRecorderMarkdownReplayRequest } from '../../recorder/replay';
+import {
+  createImportedMarkdownAiActReplayPrompt,
+  createRecorderAiActReplayPrompt,
+} from '../../recorder/replay';
 import { createStudioRecorderTargetSignature } from '../../recorder/selectors';
 import type {
   StudioRecorderPanelMode,
@@ -122,6 +125,7 @@ export default function Playground({
   onRightPanelModeChange,
   rightPanelMode,
 }: PlaygroundProps) {
+  const { message } = AntdApp.useApp();
   const studioPlayground = useStudioPlayground();
   const recorder = useStudioRecorder();
   const recorderEntryEnabled = isStudioRecorderEntryEnabled();
@@ -181,7 +185,13 @@ export default function Playground({
       }
       if (replayFile.type === 'markdown') {
         triggerExternalRun(
-          { type: 'runMarkdown', prompt: replayFile.path },
+          {
+            type: 'aiAct',
+            prompt: createImportedMarkdownAiActReplayPrompt({
+              markdown: replayFile.content,
+              displayName: replayFile.displayName,
+            }),
+          },
           `Imported Markdown Replay: ${replayFile.displayName}`,
         );
         return;
@@ -193,7 +203,7 @@ export default function Playground({
     } catch (error) {
       message.error(error instanceof Error ? error.message : String(error));
     }
-  }, [importReplayDisabledReason, triggerExternalRun]);
+  }, [importReplayDisabledReason, message, triggerExternalRun]);
   const handleReplayRecorderMarkdown = useCallback(
     async (session: StudioRecordingSession) => {
       try {
@@ -213,16 +223,11 @@ export default function Playground({
         ) {
           throw new Error('Connect the recorded target before replay.');
         }
-        if (!window.studioRuntime?.prepareRecorderMarkdownReplay) {
-          message.error('Studio replay preparation is unavailable.');
-          return;
-        }
-        const replayBundle =
-          await window.studioRuntime.prepareRecorderMarkdownReplay(
-            createRecorderMarkdownReplayRequest(session),
-          );
         triggerExternalRun(
-          { type: 'runMarkdown', prompt: replayBundle.markdownPath },
+          {
+            type: 'aiAct',
+            prompt: createRecorderAiActReplayPrompt(session),
+          },
           `Recorder Markdown Replay: ${session.name}`,
         );
       } catch (error) {
@@ -232,6 +237,7 @@ export default function Playground({
     [
       currentTargetSignature,
       importReplayDisabledReason,
+      message,
       recorder.state.isRecording,
       triggerExternalRun,
     ],

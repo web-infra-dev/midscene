@@ -1,5 +1,5 @@
 import { Page } from '@/puppeteer/base-page';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@midscene/shared/logger', () => ({
   getDebug: vi.fn(() => vi.fn()),
@@ -22,6 +22,10 @@ vi.mock('@midscene/shared/node', () => ({
 vi.mock('@/web-page', () => ({
   commonWebActionsForWebPage: vi.fn(() => []),
 }));
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('Page startMjpegStream', () => {
   it('starts a Puppeteer CDP screencast and ACKs incoming frames', async () => {
@@ -159,6 +163,43 @@ describe('Page startMjpegStream', () => {
     mockPage.screenshot.mockClear();
     await page.flushPendingVisualUpdate();
     expect(mockPage.screenshot).not.toHaveBeenCalled();
+  });
+
+  it('coalesces scheduled visual refreshes while one refresh is in flight', async () => {
+    vi.useFakeTimers();
+    const mockPage = {
+      evaluate: vi.fn(async () => ({ width: 1280, height: 768 })),
+      url: () => 'http://example.com',
+    } as any;
+
+    const page = new Page(mockPage, 'puppeteer');
+    (page as any).activeMjpegStream = {
+      token: Symbol('mjpeg-stream'),
+      onFrame: vi.fn(),
+    };
+
+    let resolveFirstFlush: (() => void) | null = null;
+    const flushSpy = vi
+      .spyOn(page, 'flushPendingVisualUpdate')
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveFirstFlush = resolve;
+          }),
+      )
+      .mockImplementation(async () => undefined);
+
+    page.schedulePendingVisualUpdate();
+    page.schedulePendingVisualUpdate();
+    page.schedulePendingVisualUpdate();
+
+    expect(flushSpy).toHaveBeenCalledTimes(1);
+
+    resolveFirstFlush?.();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(flushSpy).toHaveBeenCalledTimes(2);
   });
 });
 

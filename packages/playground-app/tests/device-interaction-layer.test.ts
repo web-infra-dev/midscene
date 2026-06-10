@@ -20,7 +20,18 @@ beforeAll(() => {
 afterEach(() => {
   document.body.innerHTML = '';
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, reject, resolve };
+}
 
 describe('inscribedContentRect', () => {
   it('letter-boxes horizontally when the panel is wider than device aspect', () => {
@@ -105,9 +116,12 @@ describe('keyNameForKeyboardEvent', () => {
 });
 
 describe('DeviceInteractionLayer keyboard capture', () => {
-  async function renderKeyboardLayer() {
+  async function renderKeyboardLayer(
+    props: Partial<React.ComponentProps<typeof DeviceInteractionLayer>> = {},
+  ) {
     const onTextInput = vi.fn();
     const onKeyboardPress = vi.fn();
+    const onTap = vi.fn();
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -118,8 +132,10 @@ describe('DeviceInteractionLayer keyboard capture', () => {
           enabled: true,
           deviceSize: { width: 100, height: 100 },
           keyboardEnabled: true,
+          onTap,
           onTextInput,
           onKeyboardPress,
+          ...props,
         }),
       );
     });
@@ -158,6 +174,7 @@ describe('DeviceInteractionLayer keyboard capture', () => {
       container,
       keyboardSink,
       onKeyboardPress,
+      onTap,
       onTextInput,
       overlay,
       root,
@@ -201,6 +218,67 @@ describe('DeviceInteractionLayer keyboard capture', () => {
     });
 
     expect(onTextInput).toHaveBeenCalledWith('h', { x: 50, y: 50 });
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it('refocuses the keyboard sink after an async tap steals focus', async () => {
+    vi.useFakeTimers();
+    const tapDeferred = createDeferred<void>();
+    const onTap = vi.fn(() => tapDeferred.promise);
+    const hostInput = document.createElement('input');
+    document.body.appendChild(hostInput);
+    const { keyboardSink, onTextInput, overlay, root } =
+      await renderKeyboardLayer({ onTap });
+
+    await act(async () => {
+      overlay.dispatchEvent(
+        new MouseEvent('pointerdown', {
+          bubbles: true,
+          button: 0,
+          clientX: 50,
+          clientY: 50,
+        }),
+      );
+      overlay.dispatchEvent(
+        new MouseEvent('pointerup', {
+          bubbles: true,
+          button: 0,
+          clientX: 50,
+          clientY: 50,
+        }),
+      );
+    });
+
+    expect(document.activeElement).toBe(keyboardSink);
+    hostInput.focus();
+    expect(document.activeElement).toBe(hostInput);
+
+    await act(async () => {
+      tapDeferred.resolve();
+      await tapDeferred.promise;
+      await Promise.resolve();
+    });
+    await act(async () => {
+      vi.runOnlyPendingTimers();
+    });
+
+    expect(document.activeElement).toBe(keyboardSink);
+
+    await act(async () => {
+      keyboardSink.value = '7';
+      keyboardSink.dispatchEvent(
+        new InputEvent('input', {
+          bubbles: true,
+          data: '7',
+          inputType: 'insertText',
+        }),
+      );
+    });
+
+    expect(onTextInput).toHaveBeenCalledWith('7', { x: 50, y: 50 });
 
     await act(async () => {
       root.unmount();

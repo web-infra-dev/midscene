@@ -196,6 +196,13 @@ export abstract class AbstractInterface {
   flushPendingVisualUpdate?(): Promise<void>;
 
   /**
+   * Optional non-blocking variant of `flushPendingVisualUpdate`. Keyboard-
+   * heavy preview interactions can schedule a coalesced refresh here without
+   * stalling the input hot path.
+   */
+  schedulePendingVisualUpdate?(): void;
+
+  /**
    * Optional navigation state probe for browser-like interfaces, used to drive
    * loading indicators in playground UIs. Returning `undefined` means the
    * interface does not expose this concept.

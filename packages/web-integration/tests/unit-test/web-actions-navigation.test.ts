@@ -23,11 +23,12 @@ describe('commonWebActionsForWebPage navigation actions', () => {
 });
 
 describe('commonWebActionsForWebPage visual refresh', () => {
-  it('refreshes the preview after keyboard-only actions', async () => {
+  it('schedules the preview refresh after keyboard-only actions', async () => {
     const page = {
       keyboard: {
         press: vi.fn(async () => undefined),
       },
+      schedulePendingVisualUpdate: vi.fn(),
       flushPendingVisualUpdate: vi.fn(async () => undefined),
     };
     const actions = commonWebActionsForWebPage(page as any);
@@ -37,14 +38,16 @@ describe('commonWebActionsForWebPage visual refresh', () => {
       ?.call({ keyName: 'Meta+A' }, mockExecutorContext);
 
     expect(page.keyboard.press).toHaveBeenCalledTimes(1);
-    expect(page.flushPendingVisualUpdate).toHaveBeenCalledTimes(1);
+    expect(page.schedulePendingVisualUpdate).toHaveBeenCalledTimes(1);
+    expect(page.flushPendingVisualUpdate).not.toHaveBeenCalled();
   });
 
-  it('refreshes the preview after text input actions', async () => {
+  it('schedules the preview refresh after text input actions', async () => {
     const page = {
       keyboard: {
         type: vi.fn(async () => undefined),
       },
+      schedulePendingVisualUpdate: vi.fn(),
       flushPendingVisualUpdate: vi.fn(async () => undefined),
     };
     const actions = commonWebActionsForWebPage(page as any);
@@ -54,6 +57,7 @@ describe('commonWebActionsForWebPage visual refresh', () => {
       ?.call({ value: 'hello', mode: 'typeOnly' }, mockExecutorContext);
 
     expect(page.keyboard.type).toHaveBeenCalledWith('hello');
-    expect(page.flushPendingVisualUpdate).toHaveBeenCalledTimes(1);
+    expect(page.schedulePendingVisualUpdate).toHaveBeenCalledTimes(1);
+    expect(page.flushPendingVisualUpdate).not.toHaveBeenCalled();
   });
 });

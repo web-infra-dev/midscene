@@ -4,7 +4,7 @@ import { toStudioRecorderCodegenInput } from '../src/renderer/recorder/codegen-a
 import { mapPreviewRecorderEventToStudioRecordedEvent } from '../src/renderer/recorder/event-mapper';
 import { generateStudioRecorderYaml } from '../src/renderer/recorder/export';
 import {
-  createRecorderMarkdownReplayRequest,
+  createRecorderAiActReplayPrompt,
   getRecorderYamlReplayContent,
 } from '../src/renderer/recorder/replay';
 import {
@@ -167,7 +167,11 @@ describe('studio recorder event mapper', () => {
         target,
         event: {
           type: 'click',
-          elementDescription: 'Introduction',
+          semantic: {
+            source: 'aiDescribe',
+            status: 'ready',
+            elementDescription: 'Introduction',
+          },
           elementRect: { x: 10, y: 20 },
           pageInfo: { width: 1200, height: 800 },
           timestamp: 124,
@@ -177,7 +181,9 @@ describe('studio recorder event mapper', () => {
     ).toMatchObject({
       type: 'click',
       actionType: 'Click',
-      elementDescription: 'Introduction',
+      semantic: {
+        elementDescription: 'Introduction',
+      },
       elementRect: { x: 10, y: 20 },
     });
   });
@@ -248,7 +254,11 @@ describe('studio recorder export', () => {
           pageInfo: { width: 100, height: 100 },
           timestamp: 1,
           hashId: 'event-1',
-          elementDescription: 'Tap at (10, 20)',
+          semantic: {
+            source: 'heuristic',
+            status: 'ready',
+            elementDescription: 'Tap at (10, 20)',
+          },
         },
       ],
     };
@@ -309,14 +319,26 @@ describe('studio recorder codegen adapter', () => {
     expect(input.events[0]).not.toHaveProperty('target');
     expect(input.events[0]).not.toHaveProperty('platformId');
     expect(input.events[0]).not.toHaveProperty('rawPayload');
+
+    expect(
+      toStudioRecorderCodegenInput(session, { maxScreenshots: 0 }),
+    ).toMatchObject({
+      maxScreenshots: 0,
+    });
+
+    expect(
+      toStudioRecorderCodegenInput(session, { maxScreenshots: 3 }),
+    ).toMatchObject({
+      maxScreenshots: 3,
+    });
   });
 });
 
 describe('studio recorder replay adapters', () => {
-  it('creates a Markdown replay request from AI generated Markdown and screenshots', () => {
+  it('creates an aiAct replay prompt from AI generated Markdown', () => {
     const session: StudioRecordingSession = {
       id: 'session-1',
-      name: 'Replay login',
+      name: 'Replay workflow',
       status: 'completed',
       createdAt: 1,
       updatedAt: 2,
@@ -346,19 +368,30 @@ describe('studio recorder replay adapters', () => {
         },
       ],
       generatedCode: {
-        markdown: '# Replay login\n\n## Steps\n1. Tap login\n',
+        markdown: '# Replay workflow\n\n## Steps\n1. Tap primary action\n',
       },
     };
 
-    expect(createRecorderMarkdownReplayRequest(session)).toMatchObject({
-      markdown: '# Replay login\n\n## Steps\n1. Tap login\n',
-      screenshots: [
-        {
-          relativePath: './screenshots/event-001-click.png',
-          base64Data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ',
-        },
-      ],
-    });
+    const prompt = createRecorderAiActReplayPrompt(session);
+
+    expect(prompt).toContain(
+      '# Replay workflow\n\n## Steps\n1. Tap primary action\n',
+    );
+    expect(prompt).toContain('Follow the recorded Markdown steps in order');
+    expect(prompt).toContain('user-intent replay');
+    expect(prompt).toContain('recorded goal and surrounding steps');
+    expect(prompt).toContain('Preserve recorded input values exactly');
+    expect(prompt).not.toContain('state-dependent UI');
+    expect(prompt).not.toContain('temporary layer');
+    expect(prompt).not.toContain('authentication or account-state workflows');
+    expect(prompt).not.toContain('restore the logged-out prerequisite state');
+    expect(prompt).not.toContain('volatile hints');
+    expect(prompt).not.toContain('For sequential form filling');
+    expect(prompt).not.toContain('filled/empty state');
+    expect(prompt).not.toMatch(
+      /\blogin\b|authorization|SMS|phone|one-tap|product|recommendations|hot search/i,
+    );
+    expect(prompt).not.toContain('./screenshots/');
   });
 
   it('requires AI generated replay artifacts', () => {
@@ -376,7 +409,7 @@ describe('studio recorder replay adapters', () => {
       events: [],
     };
 
-    expect(() => createRecorderMarkdownReplayRequest(session)).toThrow(
+    expect(() => createRecorderAiActReplayPrompt(session)).toThrow(
       'Generate Markdown before replay.',
     );
     expect(() => getRecorderYamlReplayContent(session)).toThrow(

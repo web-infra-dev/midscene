@@ -22,9 +22,11 @@ vi.mock('../src/renderer/recorder/codegen', () => ({
     async (events: Array<Record<string, unknown>>) =>
       events.map((event) => ({
         ...event,
-        elementDescription: 'AI described target',
-        descriptionLoading: false,
-        descriptionSource: 'ai',
+        semantic: {
+          source: 'recorderAI',
+          status: 'ready',
+          elementDescription: 'AI described target',
+        },
       })),
   ),
   generateStudioRecorderCodeWithAI: vi.fn(async (_session, options) => {
@@ -56,6 +58,16 @@ async function flushPromises() {
   await act(async () => {
     await Promise.resolve();
   });
+}
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
 }
 
 function RecorderProbe({
@@ -208,7 +220,11 @@ describe('StudioRecorderProvider preview recording', () => {
     const event = {
       type: 'click',
       source: 'studio-preview',
-      elementDescription: 'Introduction',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'Introduction',
+      },
       elementRect: { x: 10, y: 20 },
       pageInfo: { width: 1200, height: 800 },
       timestamp: 123,
@@ -232,7 +248,131 @@ describe('StudioRecorderProvider preview recording', () => {
       actionType: 'Click',
       type: 'click',
       platformId: 'computer',
-      elementDescription: 'Introduction',
+      semantic: {
+        elementDescription: 'Introduction',
+      },
+    });
+    expect(describeStudioRecorderEventsWithAI).not.toHaveBeenCalled();
+
+    await mounted.cleanup();
+  });
+
+  it('serializes overlapping preview recorder drains so cursor advances in order', async () => {
+    vi.useFakeTimers();
+    const firstPoll = createDeferred<{
+      events: unknown[];
+      nextIndex: number;
+    }>();
+    const firstEvent = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'First',
+      },
+      elementRect: { x: 10, y: 20 },
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 123,
+      hashId: 'click-first',
+    };
+    const secondEvent = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'Second',
+      },
+      elementRect: { x: 30, y: 40 },
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 124,
+      hashId: 'click-second',
+    };
+    const { context, getRecorderEvents } = createConnectedStudioContext();
+    getRecorderEvents
+      .mockResolvedValueOnce({ events: [], nextIndex: 0 })
+      .mockReturnValueOnce(firstPoll.promise as any)
+      .mockResolvedValueOnce({ events: [secondEvent], nextIndex: 2 });
+    const mounted = await mountRecorder(context);
+
+    try {
+      await act(async () => {
+        await mounted.recorder?.startRecording();
+      });
+      await flushPromises();
+      expect(getRecorderEvents).toHaveBeenCalledWith(0);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+      expect(getRecorderEvents).toHaveBeenCalledTimes(2);
+      expect(getRecorderEvents).toHaveBeenNthCalledWith(2, 0);
+
+      await act(async () => {
+        firstPoll.resolve({ events: [firstEvent], nextIndex: 1 });
+        await firstPoll.promise;
+      });
+      await flushPromises();
+
+      expect(getRecorderEvents).toHaveBeenCalledTimes(3);
+      expect(getRecorderEvents).toHaveBeenNthCalledWith(3, 1);
+      expect(mounted.recorder?.currentSession?.events).toMatchObject([
+        { hashId: 'click-first' },
+        { hashId: 'click-second' },
+      ]);
+    } finally {
+      await mounted.cleanup();
+      vi.useRealTimers();
+    }
+  });
+
+  it('falls back from aiDescribe failed events to recorderAI descriptions', async () => {
+    const event = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'failed',
+        error: 'aiDescribe verification failed.',
+      },
+      elementRect: { x: 10, y: 20 },
+      pageInfo: { width: 1200, height: 800 },
+      screenshotAfter: 'data:image/png;base64,shot',
+      timestamp: 123,
+      hashId: 'click-ai-describe-failed',
+    };
+    const { context } = createConnectedStudioContext({ events: [event] });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(describeStudioRecorderEventsWithAI).toHaveBeenCalledWith(
+      [expect.objectContaining({ hashId: 'click-ai-describe-failed' })],
+      expect.any(Object),
+    );
+    expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
+      hashId: 'click-ai-describe-failed',
+      semantic: {
+        source: 'recorderAI',
+        status: 'ready',
+        elementDescription: 'AI described target',
+        fallbackFrom: {
+          source: 'aiDescribe',
+          status: 'failed',
+          error: 'aiDescribe verification failed.',
+        },
+      },
     });
 
     await mounted.cleanup();
@@ -264,9 +404,11 @@ describe('StudioRecorderProvider preview recording', () => {
     );
     expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
       hashId: 'click-described',
-      elementDescription: 'AI described target',
-      descriptionLoading: false,
-      descriptionSource: 'ai',
+      semantic: {
+        source: 'recorderAI',
+        status: 'ready',
+        elementDescription: 'AI described target',
+      },
     });
 
     await mounted.cleanup();
@@ -282,6 +424,7 @@ describe('StudioRecorderProvider preview recording', () => {
       url: 'https://example.com',
       title: 'Example',
       pageInfo: { width: 1200, height: 800 },
+      elementRect: { x: 100, y: 200 },
       screenshotBefore: 'data:image/png;base64,before',
       screenshotAfter: 'data:image/png;base64,h',
       timestamp: 123,
@@ -296,6 +439,7 @@ describe('StudioRecorderProvider preview recording', () => {
       url: 'https://example.com',
       title: 'Example',
       pageInfo: { width: 1200, height: 800 },
+      elementRect: { x: 100, y: 200 },
       screenshotAfter: 'data:image/png;base64,he',
       timestamp: 124,
       hashId: 'input-e',
@@ -304,7 +448,11 @@ describe('StudioRecorderProvider preview recording', () => {
       type: 'click',
       source: 'studio-preview',
       actionType: 'Click',
-      elementDescription: 'Submit',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'Submit',
+      },
       elementRect: { x: 10, y: 20 },
       pageInfo: { width: 1200, height: 800 },
       timestamp: 125,
@@ -344,6 +492,499 @@ describe('StudioRecorderProvider preview recording', () => {
     await mounted.cleanup();
   });
 
+  it('updates merged preview input when late semantic arrives for a merged fragment', async () => {
+    const inputA = {
+      type: 'input',
+      source: 'studio-preview',
+      actionType: 'Input',
+      rawPayload: { actionType: 'Input', mode: 'typeOnly', value: 'a' },
+      value: 'a',
+      url: 'https://example.com',
+      title: 'Example',
+      pageInfo: { width: 1200, height: 800 },
+      elementRect: { x: 100, y: 200 },
+      screenshotAfter: 'data:image/png;base64,a',
+      timestamp: 123,
+      hashId: 'input-a',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'login input field',
+      },
+    };
+    const inputB = {
+      type: 'input',
+      source: 'studio-preview',
+      actionType: 'Input',
+      rawPayload: { actionType: 'Input', mode: 'typeOnly', value: 'b' },
+      value: 'b',
+      url: 'https://example.com',
+      title: 'Example',
+      pageInfo: { width: 1200, height: 800 },
+      elementRect: { x: 100, y: 200 },
+      screenshotAfter: 'data:image/png;base64,ab',
+      timestamp: 124,
+      hashId: 'input-b',
+    };
+    const click = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'Submit',
+      },
+      elementRect: { x: 10, y: 20 },
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 125,
+      hashId: 'click-after-input',
+    };
+    const lateInputBSemantic = {
+      ...inputB,
+      value: 'b',
+      timestamp: 126,
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'verification code input field',
+      },
+    };
+    const { context } = createConnectedStudioContext({
+      events: [inputA, inputB, click, lateInputBSemantic],
+    });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(mounted.recorder?.currentSession?.events).toHaveLength(2);
+    expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
+      hashId: 'input-a',
+      mergedHashIds: ['input-a', 'input-b'],
+      type: 'input',
+      value: 'ab',
+      rawPayload: expect.objectContaining({ value: 'ab' }),
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'verification code input field',
+        replayInstruction:
+          'Input "ab" into the element described as "verification code input field".',
+      },
+    });
+    expect(mounted.recorder?.currentSession?.events[1]).toMatchObject({
+      hashId: 'click-after-input',
+      type: 'click',
+    });
+    expect(describeStudioRecorderEventsWithAI).not.toHaveBeenCalled();
+
+    await mounted.cleanup();
+  });
+
+  it('coalesces adjacent preview input events without requiring stable element rects', async () => {
+    const inputA = {
+      type: 'input',
+      source: 'studio-preview',
+      actionType: 'Input',
+      rawPayload: { actionType: 'Input', mode: 'typeOnly', value: 'a' },
+      value: 'a',
+      url: 'https://example.com',
+      title: 'Example',
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 123,
+      hashId: 'input-a',
+    };
+    const inputB = {
+      type: 'input',
+      source: 'studio-preview',
+      actionType: 'Input',
+      rawPayload: { actionType: 'Input', mode: 'typeOnly', value: 'b' },
+      value: 'b',
+      url: 'https://example.com',
+      title: 'Example',
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 124,
+      hashId: 'input-b',
+    };
+    const click = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'Submit',
+      },
+      elementRect: { x: 10, y: 20 },
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 125,
+      hashId: 'click-after-input',
+    };
+    const { context } = createConnectedStudioContext({
+      events: [inputA, inputB, click],
+    });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(mounted.recorder?.currentSession?.events).toHaveLength(2);
+    expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
+      hashId: 'input-a',
+      value: 'ab',
+      rawPayload: expect.objectContaining({ value: 'ab' }),
+    });
+    expect(mounted.recorder?.currentSession?.events[1]).toMatchObject({
+      hashId: 'click-after-input',
+      type: 'click',
+    });
+
+    await mounted.cleanup();
+  });
+
+  it('keeps delayed pending input events in original timestamp order', async () => {
+    const clickBeforeDelayedInput = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'Get verification code',
+      },
+      elementRect: { x: 300, y: 200 },
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 200,
+      hashId: 'click-before-delayed-input',
+    };
+    const delayedInput = {
+      type: 'input',
+      source: 'studio-preview',
+      actionType: 'Input',
+      rawPayload: { actionType: 'Input', mode: 'typeOnly', value: '234' },
+      value: '234',
+      url: 'https://example.com',
+      title: 'Example',
+      pageInfo: { width: 1200, height: 800 },
+      elementRect: { x: 100, y: 200 },
+      timestamp: 100,
+      hashId: 'delayed-input',
+    };
+    const clickAfterDelayedInput = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'Submit',
+      },
+      elementRect: { x: 400, y: 300 },
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 300,
+      hashId: 'click-after-delayed-input',
+    };
+    const { context } = createConnectedStudioContext({
+      events: [clickBeforeDelayedInput, delayedInput, clickAfterDelayedInput],
+    });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(
+      mounted.recorder?.currentSession?.events.map((event) => event.hashId),
+    ).toEqual([
+      'delayed-input',
+      'click-before-delayed-input',
+      'click-after-delayed-input',
+    ]);
+
+    await mounted.cleanup();
+  });
+
+  it('uses hashId timestamp fallback to order delayed recorder events', async () => {
+    const clickBeforeDelayedInput = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'Get verification code',
+      },
+      elementRect: { x: 300, y: 200 },
+      pageInfo: { width: 1200, height: 800 },
+      hashId: 'studio-preview-Tap-1781087667955-click-before-delayed-input',
+    };
+    const delayedInput = {
+      type: 'input',
+      source: 'studio-preview',
+      actionType: 'Input',
+      rawPayload: { actionType: 'Input', mode: 'typeOnly', value: '234' },
+      value: '234',
+      url: 'https://example.com',
+      title: 'Example',
+      pageInfo: { width: 1200, height: 800 },
+      elementRect: { x: 100, y: 200 },
+      hashId: 'studio-preview-Input-1781087662206-delayed-input',
+    };
+    const clickAfterDelayedInput = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'Submit',
+      },
+      elementRect: { x: 400, y: 300 },
+      pageInfo: { width: 1200, height: 800 },
+      hashId: 'studio-preview-Tap-1781087669540-click-after-delayed-input',
+    };
+    const { context } = createConnectedStudioContext({
+      events: [clickBeforeDelayedInput, delayedInput, clickAfterDelayedInput],
+    });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(
+      mounted.recorder?.currentSession?.events.map((event) => event.hashId),
+    ).toEqual([
+      'studio-preview-Input-1781087662206-delayed-input',
+      'studio-preview-Tap-1781087667955-click-before-delayed-input',
+      'studio-preview-Tap-1781087669540-click-after-delayed-input',
+    ]);
+
+    await mounted.cleanup();
+  });
+
+  it('keeps phone and verification code input batches separated by click boundaries', async () => {
+    const phoneFirst = {
+      type: 'input',
+      source: 'studio-preview',
+      actionType: 'Input',
+      rawPayload: { actionType: 'Input', mode: 'typeOnly', value: '1' },
+      value: '1',
+      url: 'https://www.douyin.com/jingxuan',
+      title: 'Douyin',
+      pageInfo: { width: 1200, height: 800 },
+      elementRect: { x: 100, y: 200 },
+      hashId: 'studio-preview-Input-1781087661904-phone-first',
+    };
+    const getCodeClick = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'Get verification code',
+      },
+      elementRect: { x: 300, y: 200 },
+      pageInfo: { width: 1200, height: 800 },
+      hashId: 'studio-preview-Tap-1781087667955-get-code',
+    };
+    const codeFieldClick = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'Verification code field',
+      },
+      elementRect: { x: 100, y: 260 },
+      pageInfo: { width: 1200, height: 800 },
+      hashId: 'studio-preview-Tap-1781087669540-code-field',
+    };
+    const delayedPhoneRest = {
+      type: 'input',
+      source: 'studio-preview',
+      actionType: 'Input',
+      rawPayload: {
+        actionType: 'Input',
+        mode: 'typeOnly',
+        value: '2343014883',
+      },
+      value: '2343014883',
+      url: 'https://www.douyin.com/jingxuan',
+      title: 'Douyin',
+      pageInfo: { width: 1200, height: 800 },
+      elementRect: { x: 100, y: 200 },
+      hashId: 'studio-preview-Input-1781087662206-phone-rest',
+    };
+    const codeInput = {
+      type: 'input',
+      source: 'studio-preview',
+      actionType: 'Input',
+      rawPayload: { actionType: 'Input', mode: 'typeOnly', value: '002937' },
+      value: '002937',
+      url: 'https://www.douyin.com/jingxuan',
+      title: 'Douyin',
+      pageInfo: { width: 1200, height: 800 },
+      elementRect: { x: 100, y: 260 },
+      hashId: 'studio-preview-Input-1781087671200-code',
+    };
+    const submitClick = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'Submit login',
+      },
+      elementRect: { x: 500, y: 360 },
+      pageInfo: { width: 1200, height: 800 },
+      hashId: 'studio-preview-Tap-1781087678000-submit',
+    };
+    const { context } = createConnectedStudioContext({
+      events: [
+        phoneFirst,
+        getCodeClick,
+        codeFieldClick,
+        delayedPhoneRest,
+        codeInput,
+        submitClick,
+      ],
+    });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(
+      mounted.recorder?.currentSession?.events.map((event) => ({
+        type: event.type,
+        value: event.value,
+        hashId: event.hashId,
+      })),
+    ).toEqual([
+      {
+        type: 'input',
+        value: '12343014883',
+        hashId: 'studio-preview-Input-1781087661904-phone-first',
+      },
+      {
+        type: 'click',
+        value: undefined,
+        hashId: 'studio-preview-Tap-1781087667955-get-code',
+      },
+      {
+        type: 'click',
+        value: undefined,
+        hashId: 'studio-preview-Tap-1781087669540-code-field',
+      },
+      {
+        type: 'input',
+        value: '002937',
+        hashId: 'studio-preview-Input-1781087671200-code',
+      },
+      {
+        type: 'click',
+        value: undefined,
+        hashId: 'studio-preview-Tap-1781087678000-submit',
+      },
+    ]);
+
+    await mounted.cleanup();
+  });
+
+  it('uses recorder input value when recorderAI describes input target', async () => {
+    vi.mocked(describeStudioRecorderEventsWithAI).mockResolvedValueOnce([
+      {
+        type: 'input',
+        actionType: 'Input',
+        value: '00022993377',
+        semantic: {
+          source: 'recorderAI',
+          status: 'ready',
+          elementDescription: 'verification code input field',
+          replayInstruction:
+            'Input "00022993377" into the element described as "verification code input field".',
+          actionSummary: 'Input wrong OCR value',
+        },
+      } as any,
+    ]);
+    const inputEvent = {
+      type: 'input',
+      source: 'studio-preview',
+      actionType: 'Input',
+      rawPayload: { actionType: 'Input', mode: 'typeOnly', value: '002937' },
+      value: '002937',
+      url: 'https://example.com',
+      title: 'Example',
+      pageInfo: { width: 1200, height: 800 },
+      elementRect: { x: 100, y: 200 },
+      screenshotAfter: 'data:image/png;base64,code',
+      timestamp: 123,
+      hashId: 'input-code',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'failed',
+        error: 'aiDescribe failed',
+      },
+    };
+    const click = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'Submit',
+      },
+      elementRect: { x: 10, y: 20 },
+      pageInfo: { width: 1200, height: 800 },
+      timestamp: 124,
+      hashId: 'click-after-input',
+    };
+    const { context } = createConnectedStudioContext({
+      events: [inputEvent, click],
+    });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
+      hashId: 'input-code',
+      value: '002937',
+      semantic: {
+        source: 'recorderAI',
+        status: 'ready',
+        elementDescription: 'verification code input field',
+        replayInstruction:
+          'Input "002937" into the element described as "verification code input field".',
+        actionSummary: 'Input into verification code input field',
+      },
+    });
+
+    await mounted.cleanup();
+  });
+
   it('does not coalesce preview input events unless both are typeOnly', async () => {
     const inputH = {
       type: 'input',
@@ -373,7 +1014,11 @@ describe('StudioRecorderProvider preview recording', () => {
       type: 'click',
       source: 'studio-preview',
       actionType: 'Click',
-      elementDescription: 'Submit',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'Submit',
+      },
       elementRect: { x: 10, y: 20 },
       pageInfo: { width: 1200, height: 800 },
       timestamp: 125,
@@ -411,7 +1056,7 @@ describe('StudioRecorderProvider preview recording', () => {
     await mounted.cleanup();
   });
 
-  it('marks failed preview descriptions as fallback instead of leaving them pending', async () => {
+  it('marks failed preview descriptions as heuristic instead of leaving them pending', async () => {
     vi.mocked(describeStudioRecorderEventsWithAI).mockRejectedValueOnce(
       new Error('model unavailable'),
     );
@@ -436,10 +1081,12 @@ describe('StudioRecorderProvider preview recording', () => {
 
     expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
       hashId: 'click-fallback',
-      elementDescription: 'target element in the current visible UI',
-      descriptionLoading: false,
-      descriptionSource: 'fallback',
-      semanticConfidence: 'low',
+      semantic: {
+        source: 'heuristic',
+        status: 'ready',
+        elementDescription: 'target element in the current visible UI',
+        confidence: 'low',
+      },
     });
 
     await mounted.cleanup();
@@ -450,7 +1097,11 @@ describe('StudioRecorderProvider preview recording', () => {
       type: 'click',
       source: 'studio-preview',
       actionType: 'Click',
-      elementDescription: '(30, 40)',
+      semantic: {
+        source: 'heuristic',
+        status: 'ready',
+        elementDescription: '(30, 40)',
+      },
       elementRect: { x: 30, y: 40 },
       pageInfo: { width: 1200, height: 800 },
       timestamp: 456,
@@ -566,7 +1217,11 @@ describe('StudioRecorderProvider preview recording', () => {
       type: 'click',
       source: 'studio-preview',
       actionType: 'Click',
-      elementDescription: '(10, 20)',
+      semantic: {
+        source: 'heuristic',
+        status: 'ready',
+        elementDescription: '(10, 20)',
+      },
       elementRect: { x: 10, y: 20 },
       pageInfo: { width: 1200, height: 800 },
       timestamp: 123,
@@ -649,7 +1304,11 @@ describe('StudioRecorderProvider preview recording', () => {
       type: 'click',
       source: 'studio-preview',
       actionType: 'Click',
-      elementDescription: '(10, 20)',
+      semantic: {
+        source: 'heuristic',
+        status: 'ready',
+        elementDescription: '(10, 20)',
+      },
       elementRect: { x: 10, y: 20 },
       pageInfo: { width: 1200, height: 800 },
       timestamp: 123,

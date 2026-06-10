@@ -43,7 +43,7 @@ describe('recorder-ui-describer', () => {
     });
   });
 
-  it('marks events without screenshots as fallback descriptions', async () => {
+  it('marks events without screenshots as heuristic descriptions', async () => {
     const result = await describeRecorderUIEvent(
       {
         event: {
@@ -64,18 +64,15 @@ describe('recorder-ui-describer', () => {
     );
 
     expect(result.usedFallback).toBe(true);
-    expect(result.event.descriptionLoading).toBe(false);
-    expect(result.event.descriptionSource).toBe('fallback');
-    expect(result.event.descriptionError).toBe(
-      'Recorder event has no screenshot.',
-    );
-    expect(result.event.elementDescription).toBe(
-      'control on the current desktop screen',
-    );
-    expect(result.event.replayInstruction).toBe(
-      'Click on the element described as "control on the current desktop screen".',
-    );
-    expect(result.event.semanticConfidence).toBe('low');
+    expect(result.event.semantic).toMatchObject({
+      source: 'heuristic',
+      status: 'ready',
+      error: 'Recorder event has no screenshot.',
+      elementDescription: 'control on the current desktop screen',
+      replayInstruction:
+        'Click on the element described as "control on the current desktop screen".',
+      confidence: 'low',
+    });
   });
 
   it('keeps batch result order when falling back', async () => {
@@ -110,9 +107,9 @@ describe('recorder-ui-describer', () => {
       'scroll-1',
       'input-1',
     ]);
-    expect(results.map((result) => result.event.descriptionSource)).toEqual([
-      'fallback',
-      'fallback',
+    expect(results.map((result) => result.event.semantic?.source)).toEqual([
+      'heuristic',
+      'heuristic',
     ]);
   });
 
@@ -144,10 +141,11 @@ describe('recorder-ui-describer', () => {
     );
 
     expect(result.usedFallback).toBe(true);
-    expect(result.event.descriptionError).toBe(
-      'AI returned a weak recorder event description.',
-    );
-    expect(result.event.elementDescription).toBe('control in Semi Design Form');
+    expect(result.event.semantic).toMatchObject({
+      source: 'heuristic',
+      error: 'AI returned a weak recorder event description.',
+      elementDescription: 'control in Semi Design Form',
+    });
   });
 
   it.each([
@@ -199,8 +197,8 @@ describe('recorder-ui-describer', () => {
       );
 
       expect(result.usedFallback).toBe(false);
-      expect(result.event.replayInstruction).toBe(replayInstruction);
-      expect(result.event.actionSummary).toBe(actionSummary);
+      expect(result.event.semantic?.replayInstruction).toBe(replayInstruction);
+      expect(result.event.semantic?.actionSummary).toBe(actionSummary);
     },
   );
 
@@ -256,8 +254,8 @@ describe('recorder-ui-describer', () => {
       );
 
       expect(result.usedFallback).toBe(false);
-      expect(result.event.replayInstruction).toBe(replayInstruction);
-      expect(result.event.actionSummary).toBe(actionSummary);
+      expect(result.event.semantic?.replayInstruction).toBe(replayInstruction);
+      expect(result.event.semantic?.actionSummary).toBe(actionSummary);
     },
   );
 
@@ -291,10 +289,12 @@ describe('recorder-ui-describer', () => {
     );
 
     expect(result.usedFallback).toBe(false);
-    expect(result.event.replayInstruction).toBe(
+    expect(result.event.semantic?.replayInstruction).toBe(
       'Swipe through the area described as "Notifications list".',
     );
-    expect(result.event.actionSummary).toBe('Swipe Notifications list');
+    expect(result.event.semantic?.actionSummary).toBe(
+      'Swipe Notifications list',
+    );
   });
 
   it('accepts semantic scroll descriptions with page context', async () => {
@@ -330,13 +330,13 @@ describe('recorder-ui-describer', () => {
     );
 
     expect(result.usedFallback).toBe(false);
-    expect(result.event.elementDescription).toBe(
+    expect(result.event.semantic?.elementDescription).toBe(
       '集成到 Playwright - Midscene - Vision-Driven UI Automation page',
     );
-    expect(result.event.replayInstruction).toBe(
+    expect(result.event.semantic?.replayInstruction).toBe(
       'Scroll the page/region with description "集成到 Playwright - Midscene - Vision-Driven UI Automation page" by value "0,514" until "API reference section" is visible.',
     );
-    expect(result.event.actionSummary).toBe(
+    expect(result.event.semantic?.actionSummary).toBe(
       'Scroll 集成到 Playwright - Midscene - Vision-Driven UI Automation page toward API reference section',
     );
   });
@@ -372,7 +372,7 @@ describe('recorder-ui-describer', () => {
     );
 
     expect(result.usedFallback).toBe(true);
-    expect(result.event.descriptionError).toBe(
+    expect(result.event.semantic?.error).toBe(
       'AI returned a scroll description without a destination.',
     );
   });
@@ -409,10 +409,10 @@ describe('recorder-ui-describer', () => {
     );
 
     expect(result.usedFallback).toBe(true);
-    expect(result.event.descriptionError).toBe(
+    expect(result.event.semantic?.error).toBe(
       'AI returned a scroll description without a destination.',
     );
-    expect(result.event.elementDescription).toBe(
+    expect(result.event.semantic?.elementDescription).toBe(
       'Android settings scrollable content',
     );
   });
@@ -448,10 +448,10 @@ describe('recorder-ui-describer', () => {
     );
 
     expect(result.usedFallback).toBe(false);
-    expect(result.event.elementDescription).toBe(
+    expect(result.event.semantic?.elementDescription).toBe(
       '数量 input in the basic form',
     );
-    expect(result.event.replayInstruction).toBe(
+    expect(result.event.semantic?.replayInstruction).toBe(
       'Input "2" into the element described as "数量 input in the basic form".',
     );
   });
@@ -487,10 +487,12 @@ describe('recorder-ui-describer', () => {
     );
 
     expect(result.usedFallback).toBe(true);
-    expect(result.event.descriptionError).toBe(
+    expect(result.event.semantic?.error).toBe(
       'AI used the recorded input value as the field description.',
     );
-    expect(result.event.elementDescription).toBe('input field in Search Page');
+    expect(result.event.semantic?.elementDescription).toBe(
+      'unresolved input field on the current UI',
+    );
   });
 
   it('rejects weak replay instructions that reference highlighted markers', async () => {
@@ -522,10 +524,12 @@ describe('recorder-ui-describer', () => {
     );
 
     expect(result.usedFallback).toBe(true);
-    expect(result.event.descriptionError).toBe(
+    expect(result.event.semantic?.error).toBe(
       'AI returned a weak recorder replay instruction.',
     );
-    expect(result.event.elementDescription).toBe('control in Settings');
+    expect(result.event.semantic?.elementDescription).toBe(
+      'control in Settings',
+    );
   });
 
   it.each([
@@ -573,6 +577,45 @@ describe('recorder-ui-describer', () => {
     },
   );
 
+  it('uses generic dynamic UI guidance without business-specific examples', async () => {
+    vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+      content: {
+        elementDescription: 'field in the active form section',
+        replayInstruction:
+          'Input "value" into the element described as "field in the active form section".',
+        actionSummary: 'Input into field in the active form section',
+        confidence: 'high',
+      },
+    } as any);
+
+    const result = await describeRecorderUIEvent(
+      {
+        event: {
+          type: 'input',
+          source: 'studio-preview',
+          timestamp: 1000,
+          hashId: 'input-generic-guidance',
+          value: 'value',
+          pageInfo: { width: 1280, height: 720 },
+          elementRect: { x: 537, y: 450 },
+          screenshotWithBox: screenshot,
+        },
+      },
+      modelConfig,
+      { maxRetries: 1 },
+    );
+
+    const calls = vi.mocked(callAIWithObjectResponse).mock.calls;
+    const prompt = JSON.stringify(calls[calls.length - 1]?.[0]);
+    expect(result.usedFallback).toBe(false);
+    expect(prompt).toContain('placeholder or hint text that can change');
+    expect(prompt).toContain('For repeated collections');
+    expect(prompt).toContain('For consecutive input events');
+    expect(prompt).not.toMatch(
+      /recommendations|hot search|product names|login|SMS|phone|one-tap/i,
+    );
+  });
+
   it('rejects pending placeholder descriptions returned by AI', async () => {
     vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
       content: {
@@ -603,9 +646,9 @@ describe('recorder-ui-describer', () => {
     );
 
     expect(result.usedFallback).toBe(true);
-    expect(result.event.descriptionSource).toBe('fallback');
-    expect(result.event.elementDescription).toBe(
-      'input field in Semi Design Form',
+    expect(result.event.semantic?.source).toBe('heuristic');
+    expect(result.event.semantic?.elementDescription).toBe(
+      'unresolved input field on the current UI',
     );
   });
 });

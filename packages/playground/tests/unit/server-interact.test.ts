@@ -1,3 +1,4 @@
+import { ReportActionDump } from '@midscene/core';
 import type { InputPrimitives } from '@midscene/core/device';
 import { describe, expect, test, vi } from 'vitest';
 import { PlaygroundServer } from '../../src/server';
@@ -18,6 +19,31 @@ function createMockResponse() {
       this.body = payload;
       return this;
     },
+  };
+}
+
+function latestRecorderEventsBody(body: any) {
+  const events = Array.isArray(body?.events) ? body.events : [];
+  const indexes = new Map<string, number>();
+  const latest: unknown[] = [];
+  for (const event of events) {
+    const hashId = event?.hashId;
+    if (typeof hashId !== 'string') {
+      latest.push(event);
+      continue;
+    }
+    const existingIndex = indexes.get(hashId);
+    if (existingIndex === undefined) {
+      indexes.set(hashId, latest.length);
+      latest.push(event);
+    } else {
+      latest[existingIndex] = event;
+    }
+  }
+  return {
+    ...body,
+    events: latest,
+    nextIndex: latest.length,
   };
 }
 
@@ -57,6 +83,82 @@ function makeInputPrimitiveStub(
 }
 
 describe('PlaygroundServer manual interaction APIs', () => {
+  test('POST /execute resets stale preview dumps before replay execution', async () => {
+    const dump = {
+      sdkVersion: 'test',
+      groupName: 'Midscene Report',
+      modelBriefs: [],
+      executions: [
+        { id: 'stale-preview', logTime: 100, name: 'Locate - final login' },
+      ],
+    };
+    const appendExecution = (execution: {
+      id: string;
+      logTime: number;
+      name: string;
+    }) => {
+      dump.executions.push({ ...execution, tasks: [] } as any);
+    };
+    const agent = {
+      interface: {
+        actionSpace: () => [{ name: 'aiAct', description: 'act' }],
+      },
+      resetDump: vi.fn(() => {
+        dump.executions = [];
+      }),
+      callActionInActionSpace: vi.fn(async () => {
+        appendExecution({ id: 'login', logTime: 300, name: 'Act - login' });
+        return { ok: true };
+      }),
+      dumpDataString: vi.fn(() => JSON.stringify(dump)),
+      reportHTMLString: vi.fn(() => '<html></html>'),
+      writeOutActionDumps: vi.fn(),
+    };
+    const server = new PlaygroundServer(agent as any);
+    server.setPreparedPlatform({
+      platformId: 'web',
+      title: 'Web',
+      description: 'Web',
+      preview: { kind: 'none' },
+      executionHooks: {
+        beforeExecute: async () => {
+          appendExecution({
+            id: 'logout',
+            logTime: 200,
+            name: 'Act - logout',
+          });
+        },
+      },
+    });
+
+    await server.launch(6110);
+    const executeHandler = getRouteHandler(server, 'post', '/execute');
+    expect(executeHandler).toBeTypeOf('function');
+
+    const response = createMockResponse();
+    await executeHandler(
+      {
+        body: {
+          type: 'aiAct',
+          prompt: 'replay markdown',
+          requestId: 'replay-1',
+        },
+      },
+      response,
+    );
+
+    expect(response.statusCode).toBe(200);
+    const body = response.body as { dump: ReportActionDump };
+    expect(agent.resetDump).toHaveBeenCalledBefore(
+      agent.callActionInActionSpace,
+    );
+    expect(body.dump).toBeInstanceOf(ReportActionDump);
+    expect(body.dump.executions.map((execution) => execution.id)).toEqual([
+      'logout',
+      'login',
+    ]);
+  });
+
   test('POST /interact routes pointer events to input primitives', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const actionCall = vi.fn();
@@ -342,6 +444,16 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
   test('recorder records successful Studio preview interactions', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
+    const describeElementAtPoint = vi.fn(async () => ({
+      prompt: 'login button',
+      deepLocate: false,
+      verifyResult: {
+        pass: true,
+        rect: { left: 0, top: 0, width: 20, height: 20 },
+        center: [10, 20] as [number, number],
+        centerDistance: 0,
+      },
+    }));
     const server = new PlaygroundServer({
       interface: {
         interfaceType: 'ios',
@@ -350,6 +462,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         screenshotBase64: async () => 'base64-image',
         size: async () => ({ width: 390, height: 844 }),
       },
+      describeElementAtPoint,
     } as any);
 
     await server.launch(6118);
@@ -374,6 +487,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       { body: { actionType: 'Tap', x: 10, y: 20 } },
       createMockResponse(),
     );
+    await server.waitForRecorderIdle();
 
     const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
     const eventsResponse = createMockResponse();
@@ -382,14 +496,58 @@ describe('PlaygroundServer manual interaction APIs', () => {
       events: [
         {
           type: 'click',
+          semantic: {
+            source: 'aiDescribe',
+            status: 'pending',
+          },
+        },
+        {
+          type: 'click',
+          semantic: {
+            source: 'aiDescribe',
+            status: 'ready',
+          },
+        },
+      ],
+      nextIndex: 2,
+    });
+    const rawEvents = (eventsResponse.body as any).events;
+    expect(rawEvents[0].hashId).toBe(rawEvents[1].hashId);
+
+    expect(latestRecorderEventsBody(eventsResponse.body)).toMatchObject({
+      events: [
+        {
+          type: 'click',
           source: 'studio-preview',
           actionType: 'Tap',
           elementRect: { x: 10, y: 20 },
           pageInfo: { width: 390, height: 844 },
-          descriptionLoading: true,
+          semantic: {
+            source: 'aiDescribe',
+            status: 'ready',
+            elementDescription: 'login button',
+            replayInstruction:
+              'Tap on the element described as "login button".',
+            actionSummary: 'Tap login button',
+            confidence: 'high',
+            aiDescribe: {
+              verifyPrompt: true,
+              verifyPassed: true,
+              deepLocate: false,
+              centerDistance: 0,
+              expectedCenter: [10, 20],
+              actualCenter: [10, 20],
+            },
+          },
         },
       ],
       nextIndex: 1,
+    });
+    expect(describeElementAtPoint).toHaveBeenCalledWith([10, 20], {
+      verifyPrompt: true,
+      screenshotBase64: 'base64-image',
+      coordinateSpace: 'logical',
+      logicalSize: { width: 390, height: 844 },
     });
   });
 
@@ -441,10 +599,451 @@ describe('PlaygroundServer manual interaction APIs', () => {
       { body: { actionType: 'Tap', x: 10, y: 20 } },
       createMockResponse(),
     );
+    await server.waitForRecorderIdle();
 
     expect(tap).toHaveBeenCalledWith({ x: 10, y: 20 }, { duration: undefined });
     expect(callOrder[0]).toBe('tap');
     expect(callOrder).toEqual(['tap', 'screenshot', 'size']);
+  });
+
+  test('recorder marks input aiDescribe failed when no describe capability is available', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => 'base64-image',
+        size: async () => ({ width: 390, height: 844 }),
+      },
+    } as any);
+
+    await server.launch(6122);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-preview-delayed-describe' } },
+      createMockResponse(),
+    );
+
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      {
+        body: {
+          actionType: 'Input',
+          x: 10,
+          y: 20,
+          value: 'hello',
+        },
+      },
+      createMockResponse(),
+    );
+    await server.waitForRecorderIdle();
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const eventsResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, eventsResponse);
+    expect(latestRecorderEventsBody(eventsResponse.body)).toMatchObject({
+      events: [
+        {
+          type: 'input',
+          source: 'studio-preview',
+          actionType: 'Input',
+          value: 'hello',
+          semantic: {
+            source: 'aiDescribe',
+            status: 'failed',
+          },
+        },
+      ],
+      nextIndex: 1,
+    });
+  });
+
+  test('recorder inherits the last target point for input events without coordinates', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => 'base64-image',
+        size: async () => ({ width: 390, height: 844 }),
+      },
+    } as any);
+
+    await server.launch(6126);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-preview-input-target' } },
+      createMockResponse(),
+    );
+
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 33, y: 44 } },
+      createMockResponse(),
+    );
+    await interactHandler(
+      { body: { actionType: 'Input', value: 'hello' } },
+      createMockResponse(),
+    );
+    await server.waitForRecorderIdle();
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const eventsResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, eventsResponse);
+    expect(latestRecorderEventsBody(eventsResponse.body)).toMatchObject({
+      events: [
+        {
+          type: 'click',
+          elementRect: { x: 33, y: 44, left: 33, top: 44 },
+        },
+        {
+          type: 'input',
+          value: 'hello',
+          elementRect: { x: 33, y: 44, left: 33, top: 44 },
+        },
+      ],
+      nextIndex: 2,
+    });
+  });
+
+  test('recorder leaves clicks eligible for recorderAI fallback when aiDescribe is unavailable', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => 'base64-image',
+        size: async () => ({ width: 390, height: 844 }),
+      },
+    } as any);
+
+    await server.launch(6123);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-preview-verify-failure' } },
+      createMockResponse(),
+    );
+
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 10, y: 20 } },
+      createMockResponse(),
+    );
+    await server.waitForRecorderIdle();
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const eventsResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, eventsResponse);
+    expect(latestRecorderEventsBody(eventsResponse.body)).toMatchObject({
+      events: [
+        {
+          type: 'click',
+          source: 'studio-preview',
+          actionType: 'Tap',
+          semantic: {
+            source: 'aiDescribe',
+            status: 'failed',
+          },
+        },
+      ],
+      nextIndex: 1,
+    });
+    expect(
+      latestRecorderEventsBody(eventsResponse.body).events[0],
+    ).not.toHaveProperty('descriptionSource');
+  });
+
+  test('recorder continues recording clicks when background aiDescribe fails', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => 'base64-image',
+        size: async () => ({ width: 390, height: 844 }),
+      },
+    } as any);
+
+    await server.launch(6121);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-preview-describe-failure' } },
+      createMockResponse(),
+    );
+
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 10, y: 20 } },
+      createMockResponse(),
+    );
+    await server.waitForRecorderIdle();
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const eventsResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, eventsResponse);
+    expect(latestRecorderEventsBody(eventsResponse.body)).toMatchObject({
+      events: [
+        {
+          type: 'click',
+          source: 'studio-preview',
+          actionType: 'Tap',
+          semantic: {
+            source: 'aiDescribe',
+            status: 'failed',
+          },
+        },
+      ],
+      nextIndex: 1,
+    });
+  });
+
+  test('recorder runs aiDescribe after preview interact without blocking dispatch', async () => {
+    const callOrder: string[] = [];
+    const inputPrimitives = makeInputPrimitiveStub({
+      pointer: {
+        tap: vi.fn(async () => {
+          callOrder.push('tap');
+        }),
+        doubleClick: vi.fn(async () => {}),
+        longPress: vi.fn(async () => {}),
+        dragAndDrop: vi.fn(async () => {}),
+      },
+    });
+    const describeElementAtPoint = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          callOrder.push('describe-start');
+          setTimeout(
+            () =>
+              resolve({
+                prompt: 'slow target',
+                deepLocate: false,
+                verifyResult: { pass: true },
+              }),
+            1000,
+          );
+        }),
+    );
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => 'base64-image',
+        size: async () => ({ width: 390, height: 844 }),
+      },
+      describeElementAtPoint,
+    } as any);
+
+    await server.launch(6124);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-preview-slow-describe' } },
+      createMockResponse(),
+    );
+
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 10, y: 20 } },
+      createMockResponse(),
+    );
+    await server.waitForRecorderIdle();
+
+    expect(callOrder[0]).toBe('tap');
+    expect(callOrder).toEqual(['tap', 'describe-start']);
+    expect(describeElementAtPoint).toHaveBeenCalledWith([10, 20], {
+      verifyPrompt: true,
+      screenshotBase64: 'base64-image',
+      coordinateSpace: 'logical',
+      logicalSize: { width: 390, height: 844 },
+    });
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const eventsResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, eventsResponse);
+    expect(latestRecorderEventsBody(eventsResponse.body)).toMatchObject({
+      events: [
+        {
+          type: 'click',
+          source: 'studio-preview',
+          actionType: 'Tap',
+          semantic: {
+            source: 'aiDescribe',
+            status: 'ready',
+            elementDescription: 'slow target',
+          },
+        },
+      ],
+      nextIndex: 1,
+    });
+  });
+
+  test('recorder uses event before screenshot for aiDescribe when the live page changes after capture', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    const screenshotBase64 = vi
+      .fn()
+      .mockResolvedValueOnce('initial-screenshot')
+      .mockResolvedValueOnce('event-screenshot')
+      .mockResolvedValueOnce('stale-live-screenshot');
+    const describeElementAtPoint = vi.fn(async () => ({
+      prompt: 'login dialog target',
+      deepLocate: false,
+      verifyResult: { pass: true },
+    }));
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64,
+        size: async () => ({ width: 390, height: 844 }),
+      },
+      describeElementAtPoint,
+    } as any);
+
+    await server.launch(6127);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-preview-stale-live-describe' } },
+      createMockResponse(),
+    );
+
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 10, y: 20 } },
+      createMockResponse(),
+    );
+    await server.waitForRecorderIdle();
+
+    expect(describeElementAtPoint).toHaveBeenCalledWith([10, 20], {
+      verifyPrompt: true,
+      screenshotBase64: 'initial-screenshot',
+      coordinateSpace: 'logical',
+      logicalSize: { width: 390, height: 844 },
+    });
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const eventsResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, eventsResponse);
+    expect(latestRecorderEventsBody(eventsResponse.body)).toMatchObject({
+      events: [
+        {
+          type: 'click',
+          source: 'studio-preview',
+          actionType: 'Tap',
+          screenshotAfter: 'event-screenshot',
+          semantic: {
+            source: 'aiDescribe',
+            status: 'ready',
+            elementDescription: 'login dialog target',
+          },
+        },
+      ],
+      nextIndex: 1,
+    });
+  });
+
+  test('recorder appends aiDescribe failed metadata after unavailable background describe', async () => {
+    const tap = vi.fn(async () => {});
+    const inputPrimitives = makeInputPrimitiveStub({
+      pointer: {
+        tap,
+        doubleClick: vi.fn(async () => {}),
+        longPress: vi.fn(async () => {}),
+        dragAndDrop: vi.fn(async () => {}),
+      },
+    });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => 'base64-image',
+        size: async () => ({ width: 390, height: 844 }),
+      },
+    } as any);
+
+    await server.launch(6125);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-preview-describe-timeout' } },
+      createMockResponse(),
+    );
+
+    vi.useFakeTimers();
+    try {
+      const interactHandler = getRouteHandler(server, 'post', '/interact');
+      const response = createMockResponse();
+      const interactPromise = interactHandler(
+        { body: { actionType: 'Tap', x: 10, y: 20 } },
+        response,
+      );
+
+      await vi.advanceTimersByTimeAsync(250);
+      await interactPromise;
+      await server.waitForRecorderIdle();
+
+      expect(response.statusCode).toBe(200);
+      expect(tap).toHaveBeenCalledWith(
+        { x: 10, y: 20 },
+        { duration: undefined },
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const eventsResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, eventsResponse);
+    expect(latestRecorderEventsBody(eventsResponse.body)).toMatchObject({
+      events: [
+        {
+          type: 'click',
+          source: 'studio-preview',
+          actionType: 'Tap',
+          semantic: {
+            source: 'aiDescribe',
+            status: 'failed',
+          },
+        },
+      ],
+      nextIndex: 1,
+    });
+    expect(
+      latestRecorderEventsBody(eventsResponse.body).events[0],
+    ).not.toHaveProperty('descriptionSource');
   });
 
   test('recorder appends navigation event when preview interact changes web url', async () => {
@@ -496,11 +1095,12 @@ describe('PlaygroundServer manual interaction APIs', () => {
       { body: { actionType: 'Tap', x: 220, y: 414 } },
       createMockResponse(),
     );
+    await server.waitForRecorderIdle();
 
     const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
     const eventsResponse = createMockResponse();
     await eventsHandler({ query: { since: '0' } }, eventsResponse);
-    expect(eventsResponse.body).toMatchObject({
+    expect(latestRecorderEventsBody(eventsResponse.body)).toMatchObject({
       events: [
         {
           type: 'navigation',
@@ -508,8 +1108,11 @@ describe('PlaygroundServer manual interaction APIs', () => {
           actionType: 'InitialNavigation',
           url: 'https://example.com/start',
           title: 'Start page',
-          replayInstruction: 'Navigate to `https://example.com/start`.',
-          descriptionLoading: false,
+          semantic: {
+            source: 'heuristic',
+            status: 'ready',
+            replayInstruction: 'Navigate to `https://example.com/start`.',
+          },
         },
         {
           type: 'click',
@@ -524,9 +1127,12 @@ describe('PlaygroundServer manual interaction APIs', () => {
           actionType: 'NavigationChanged',
           url: 'https://example.com/next',
           title: 'Next page',
-          replayInstruction:
-            'Wait for navigation to complete at `https://example.com/next`.',
-          descriptionLoading: false,
+          semantic: {
+            source: 'heuristic',
+            status: 'ready',
+            replayInstruction:
+              'Wait for navigation to complete at `https://example.com/next`.',
+          },
         },
         {
           type: 'click',
@@ -701,6 +1307,173 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(firstDestroy).toHaveBeenCalledTimes(1);
     expect(firstTapCall).toHaveBeenCalledTimes(1);
     expect(secondTapCall).not.toHaveBeenCalled();
+  });
+
+  test('POST /interact responds before async recorder capture finishes', async () => {
+    const screenshotBase64 = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('base64-image')
+      .mockImplementation(
+        async () =>
+          new Promise<string>((resolve) => {
+            setTimeout(() => resolve('base64-image'), 25);
+          }),
+      );
+    const inputPrimitives = makeInputPrimitiveStub({
+      keyboard: {
+        keyboardPress: vi.fn(async () => {}),
+        typeText: vi.fn(async () => {}),
+        clearInput: vi.fn(async () => {}),
+      },
+    });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'web',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64,
+        size: async () => ({ width: 1280, height: 720 }),
+      },
+    } as any);
+
+    await server.launch(6126);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-preview-async-recorder' } },
+      createMockResponse(),
+    );
+
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    const response = createMockResponse();
+    await interactHandler(
+      {
+        body: {
+          actionType: 'Input',
+          value: '12343014883',
+          mode: 'typeOnly',
+        },
+      },
+      response,
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toEqual({});
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const beforeFlushResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, beforeFlushResponse);
+    expect(beforeFlushResponse.body).toMatchObject({
+      events: [],
+      nextIndex: 0,
+    });
+
+    await server.waitForRecorderIdle();
+
+    const afterFlushResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, afterFlushResponse);
+    expect(latestRecorderEventsBody(afterFlushResponse.body)).toMatchObject({
+      events: [
+        {
+          type: 'input',
+          source: 'studio-preview',
+          actionType: 'Input',
+          value: '12343014883',
+        },
+      ],
+      nextIndex: 1,
+    });
+  }, 10_000);
+
+  test('POST /interact does not fail when sync recorder capture throws', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'web',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => 'base64-image',
+        size: async () => ({ width: 1280, height: 720 }),
+      },
+    } as any);
+
+    await server.launch(6127);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-preview-recorder-failure' } },
+      createMockResponse(),
+    );
+
+    (server as any).createRecorderScreenshotWithMarker = vi.fn(async () => {
+      throw new Error('marker failed');
+    });
+
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    const response = createMockResponse();
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 10, y: 20 } },
+      response,
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toEqual({});
+    expect(inputPrimitives.pointer?.tap).toHaveBeenCalledWith(
+      { x: 10, y: 20 },
+      { duration: undefined },
+    );
+  });
+
+  test('POST /interact skips recorder snapshot preflight for deferred keyboard input', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'web',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => 'base64-image',
+        size: async () => ({ width: 1280, height: 720 }),
+      },
+    } as any);
+
+    await server.launch(6128);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-preview-keyboard-preflight' } },
+      createMockResponse(),
+    );
+
+    const captureRecorderSnapshotBeforeInteract = vi.spyOn(
+      server as any,
+      'captureRecorderSnapshotBeforeInteract',
+    );
+
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    const response = createMockResponse();
+    await interactHandler(
+      {
+        body: {
+          actionType: 'Input',
+          value: '002937',
+          mode: 'typeOnly',
+        },
+      },
+      response,
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toEqual({});
+    expect(captureRecorderSnapshotBeforeInteract).not.toHaveBeenCalled();
   });
 
   test('GET /interface-info includes device size without fetching a screenshot', async () => {

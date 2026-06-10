@@ -610,6 +610,15 @@ describe('StudioRecorderPanel', () => {
       container.querySelector('.studio-recorder-floating-status-running'),
     ).toBeNull();
 
+    const historyButton = container.querySelector(
+      'button[aria-label="Recording history"]',
+    );
+    await act(async () => {
+      historyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(document.body.textContent).toContain('Existing recording');
+
     await unmount(root);
   });
 

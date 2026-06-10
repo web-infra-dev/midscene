@@ -18,4 +18,8 @@ export { cacheFileExt } from './task-cache';
 export { TaskExecutor } from './tasks';
 
 export type { AgentOpt } from '../types';
-export type { AiActOptions } from './agent';
+export type {
+  AiActOptions,
+  DescribeElementAtPointOptions,
+  DescribeElementCoordinateSpace,
+} from './agent';

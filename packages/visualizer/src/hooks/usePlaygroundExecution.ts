@@ -63,6 +63,29 @@ function wrapExecutionDumpForReplay(
   };
 }
 
+function isReportActionDump(
+  dump: ExecutionDump | IExecutionDump | IReportActionDump | null | undefined,
+): dump is IReportActionDump {
+  return Array.isArray((dump as IReportActionDump | undefined)?.executions);
+}
+
+function replayInfoFromDump(
+  dump: ExecutionDump | IExecutionDump | IReportActionDump | null | undefined,
+  deviceType?: string,
+) {
+  if (!dump) return null;
+
+  if (isReportActionDump(dump)) {
+    return allScriptsFromDump(dump);
+  }
+
+  if (dump.tasks && Array.isArray(dump.tasks)) {
+    return allScriptsFromDump(wrapExecutionDumpForReplay(dump, deviceType));
+  }
+
+  return null;
+}
+
 export interface UsePlaygroundExecutionOptions {
   playgroundSDK: PlaygroundSDKLike | null;
   storage: StorageProvider | undefined | null;
@@ -292,12 +315,8 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
       // Generate replay info for all APIs (including noReplayAPIs)
       // This allows noReplayAPIs to display both output and report
       if (result?.dump) {
-        if (result.dump.tasks && Array.isArray(result.dump.tasks)) {
-          const groupedDump = wrapExecutionDumpForReplay(
-            result.dump,
-            deviceType,
-          );
-          const info = allScriptsFromDump(groupedDump);
+        const info = replayInfoFromDump(result.dump, deviceType);
+        if (info) {
           setReplayCounter((c) => c + 1);
           replayInfo = info;
           counter = replayCounter + 1;
@@ -388,7 +407,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
 
         // If cancelExecution didn't return data, try getCurrentExecutionData as fallback
         let executionData: {
-          dump: ExecutionDump | null;
+          dump: ExecutionDump | IExecutionDump | IReportActionDump | null;
           reportHTML: string | null;
         } | null = null;
 
@@ -435,15 +454,8 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
           let replayInfo = null;
           let counter = replayCounter;
 
-          if (
-            executionData.dump?.tasks &&
-            Array.isArray(executionData.dump.tasks)
-          ) {
-            const groupedDump = wrapExecutionDumpForReplay(
-              executionData.dump,
-              deviceType,
-            );
-            replayInfo = allScriptsFromDump(groupedDump);
+          replayInfo = replayInfoFromDump(executionData.dump, deviceType);
+          if (replayInfo) {
             setReplayCounter((c) => c + 1);
             counter = replayCounter + 1;
           }

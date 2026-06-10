@@ -32,6 +32,7 @@ import {
   type ServiceAction,
   type ServiceExtractOption,
   type ServiceExtractParam,
+  type Size,
   type TestStatus,
   type UIContext,
 } from '../types';
@@ -62,6 +63,10 @@ import {
   globalConfigManager,
   globalModelConfigManager,
 } from '@midscene/shared/env';
+import {
+  createImgBase64ByFormat,
+  imageInfoOfBase64,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
@@ -83,6 +88,18 @@ import {
 } from './ui-utils';
 import { commonContextParser, getReportFileName, parsePrompt } from './utils';
 
+export type DescribeElementCoordinateSpace = 'screenshot' | 'logical';
+
+export type DescribeElementAtPointOptions = {
+  verifyPrompt?: boolean;
+  retryLimit?: number;
+  deepLocate?: boolean;
+  screenshotBase64?: string;
+  screenshotSize?: Size;
+  coordinateSpace?: DescribeElementCoordinateSpace;
+  logicalSize?: Size;
+} & LocatorValidatorOption;
+
 const debug = getDebug('agent');
 
 const distanceOfTwoPoints = (p1: [number, number], p2: [number, number]) => {
@@ -95,6 +112,91 @@ const includedInRect = (point: [number, number], rect: Rect) => {
   const [x, y] = point;
   const { left, top, width, height } = rect;
   return x >= left && x <= left + width && y >= top && y <= top + height;
+};
+
+function assertPositiveSize(
+  size: Size | undefined,
+  label: string,
+): asserts size is Size {
+  assert(
+    size &&
+      Number.isFinite(size.width) &&
+      Number.isFinite(size.height) &&
+      size.width > 0 &&
+      size.height > 0,
+    `${label} must include positive width and height`,
+  );
+}
+
+const mapPointToScreenshotSpace = (
+  center: [number, number],
+  screenshotSize: Size,
+  opt: DescribeElementAtPointOptions,
+): [number, number] => {
+  const coordinateSpace = opt.coordinateSpace || 'screenshot';
+  if (coordinateSpace === 'screenshot') {
+    return center;
+  }
+
+  assertPositiveSize(
+    opt.logicalSize,
+    'logicalSize is required when coordinateSpace is logical',
+  );
+  return [
+    (center[0] * screenshotSize.width) / opt.logicalSize.width,
+    (center[1] * screenshotSize.height) / opt.logicalSize.height,
+  ];
+};
+
+const screenshotDataUrlPattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
+
+const inferBase64ImageFormat = (base64Body: string) => {
+  if (base64Body.startsWith('iVBORw0KGgo')) {
+    return 'png';
+  }
+  return 'jpeg';
+};
+
+const normalizeScreenshotBase64ForContext = (screenshotBase64: string) => {
+  const trimmedScreenshotBase64 = screenshotBase64.trim();
+  if (screenshotDataUrlPattern.test(trimmedScreenshotBase64)) {
+    return trimmedScreenshotBase64;
+  }
+
+  const base64Body = trimmedScreenshotBase64.replace(/\s/g, '');
+  assert(base64Body, 'screenshotBase64 must include image data');
+  return createImgBase64ByFormat(
+    inferBase64ImageFormat(base64Body),
+    base64Body,
+  );
+};
+
+const createScreenshotBoundUIContext = async (
+  screenshotBase64: string,
+  opt: DescribeElementAtPointOptions,
+): Promise<UIContext> => {
+  const normalizedScreenshotBase64 =
+    normalizeScreenshotBase64ForContext(screenshotBase64);
+  const actualScreenshotSize = await imageInfoOfBase64(
+    normalizedScreenshotBase64,
+  );
+  if (
+    opt.screenshotSize &&
+    (opt.screenshotSize.width !== actualScreenshotSize.width ||
+      opt.screenshotSize.height !== actualScreenshotSize.height)
+  ) {
+    debug('describeElementAtPoint screenshotSize mismatch, use actual size', {
+      provided: opt.screenshotSize,
+      actual: actualScreenshotSize,
+    });
+  }
+
+  return {
+    screenshot: ScreenshotItem.create(normalizedScreenshotBase64, Date.now()),
+    shotSize: actualScreenshotSize,
+    shrunkShotToLogicalRatio: 1,
+    _isFrozen: true,
+  };
 };
 
 const defaultServiceExtractOption: ServiceExtractOption = {
@@ -1096,13 +1198,15 @@ export class Agent<
 
   async describeElementAtPoint(
     center: [number, number],
-    opt?: {
-      verifyPrompt?: boolean;
-      retryLimit?: number;
-      deepLocate?: boolean;
-    } & LocatorValidatorOption,
+    opt?: DescribeElementAtPointOptions,
   ): Promise<AgentDescribeElementAtPointResult> {
     const { verifyPrompt = true, retryLimit = 3 } = opt || {};
+    const screenshotContext = opt?.screenshotBase64
+      ? await createScreenshotBoundUIContext(opt.screenshotBase64, opt)
+      : undefined;
+    const targetCenter = screenshotContext
+      ? mapPointToScreenshotSpace(center, screenshotContext.shotSize, opt || {})
+      : center;
 
     let success = false;
     let retryCount = 0;
@@ -1116,7 +1220,7 @@ export class Agent<
       }
       debug(
         'aiDescribe',
-        center,
+        targetCenter,
         'verifyPrompt',
         verifyPrompt,
         'retryCount',
@@ -1126,12 +1230,20 @@ export class Agent<
       );
       // use same intent as aiLocate
       const modelRuntime = this.resolveModelRuntime('insight');
+      const describeOpt = screenshotContext
+        ? { deepLocate, context: screenshotContext }
+        : { deepLocate };
 
-      const text = await this.service.describe(center, modelRuntime, {
-        deepLocate,
-      });
+      const text = await this.service.describe(
+        targetCenter,
+        modelRuntime,
+        describeOpt,
+      );
       debug('aiDescribe text', text);
-      assert(text.description, `failed to describe element at [${center}]`);
+      assert(
+        text.description,
+        `failed to describe element at [${targetCenter}]`,
+      );
       resultPrompt = text.description;
 
       if (!verifyPrompt) {
@@ -1147,8 +1259,8 @@ export class Agent<
       // verification.
       verifyResult = await this.verifyLocator(
         resultPrompt,
-        undefined,
-        center,
+        screenshotContext ? { uiContext: screenshotContext } : undefined,
+        targetCenter,
         opt,
       );
       if (verifyResult.pass) {
@@ -1217,6 +1329,7 @@ export class Agent<
       plans,
       planningModel,
       defaultModel,
+      opt?.uiContext ? { uiContext: opt.uiContext } : undefined,
     );
 
     const { element } = output;

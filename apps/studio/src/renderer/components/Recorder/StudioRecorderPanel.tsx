@@ -1,5 +1,5 @@
 import type { StudioRecorderCodeType } from '@shared/electron-contract';
-import { message } from 'antd';
+import { App as AntdApp } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   filterStudioRecorderSessionsForTarget,
@@ -31,18 +31,10 @@ interface StudioRecorderPanelProps {
   onReplayMarkdown?: (session: StudioRecordingSession) => Promise<void>;
 }
 
-async function runPanelAction<T>(action: () => Promise<T>) {
-  try {
-    return await action();
-  } catch (error) {
-    message.error(error instanceof Error ? error.message : 'Recorder failed.');
-    return undefined;
-  }
-}
-
 export function StudioRecorderPanel({
   onReplayMarkdown,
 }: StudioRecorderPanelProps = {}) {
+  const { message } = AntdApp.useApp();
   const recorder = useStudioRecorder();
   const {
     state,
@@ -81,6 +73,19 @@ export function StudioRecorderPanel({
     error: null,
     steps: createInitialGenerationSteps(),
   });
+  const runPanelAction = useCallback(
+    async <T,>(action: () => Promise<T>) => {
+      try {
+        return await action();
+      } catch (error) {
+        message.error(
+          error instanceof Error ? error.message : 'Recorder failed.',
+        );
+        return undefined;
+      }
+    },
+    [message],
+  );
 
   const detailSession = useMemo(() => {
     const selectedSession =
@@ -263,6 +268,7 @@ export function StudioRecorderPanel({
     [
       currentSession,
       generateSessionCode,
+      message,
       selectedCodeType,
       selectedLanguage,
       sessions,
@@ -298,6 +304,7 @@ export function StudioRecorderPanel({
     detailSession,
     generation.status,
     runCodeGeneration,
+    runPanelAction,
     state.isRecording,
   ]);
 
@@ -307,7 +314,7 @@ export function StudioRecorderPanel({
     }
     await navigator.clipboard.writeText(activeCode);
     message.success(`${codeLabel} copied to clipboard`);
-  }, [activeCode, codeLabel]);
+  }, [activeCode, codeLabel, message]);
 
   const handleCodeTypeChange = useCallback(
     (nextType: StudioRecorderCodeType) => {
@@ -325,7 +332,7 @@ export function StudioRecorderPanel({
         );
       }
     },
-    [detailSession, runCodeGeneration],
+    [detailSession, runCodeGeneration, runPanelAction],
   );
 
   const handleLanguageChange = useCallback((nextLanguage: string) => {
@@ -397,6 +404,7 @@ export function StudioRecorderPanel({
     currentSession,
     isStoppingRecording,
     openDetail,
+    runPanelAction,
     runCodeGeneration,
     selectedCodeType,
     startRecording,

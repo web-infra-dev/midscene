@@ -156,6 +156,44 @@ export async function resizeAndConvertImgBuffer(
 
 export const normalizeBase64Body = (body: string) => body.replace(/\s/g, '');
 
+function detectImageMimeTypeFromBuffer(buffer: Buffer): string | undefined {
+  if (
+    buffer.length >= 8 &&
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47 &&
+    buffer[4] === 0x0d &&
+    buffer[5] === 0x0a &&
+    buffer[6] === 0x1a &&
+    buffer[7] === 0x0a
+  ) {
+    return 'image/png';
+  }
+  if (
+    buffer.length >= 3 &&
+    buffer[0] === 0xff &&
+    buffer[1] === 0xd8 &&
+    buffer[2] === 0xff
+  ) {
+    return 'image/jpeg';
+  }
+  if (buffer.length >= 6 && buffer.subarray(0, 3).toString('ascii') === 'GIF') {
+    return 'image/gif';
+  }
+  if (
+    buffer.length >= 12 &&
+    buffer.subarray(0, 4).toString('ascii') === 'RIFF' &&
+    buffer.subarray(8, 12).toString('ascii') === 'WEBP'
+  ) {
+    return 'image/webp';
+  }
+  if (buffer.length >= 2 && buffer[0] === 0x42 && buffer[1] === 0x4d) {
+    return 'image/bmp';
+  }
+  return undefined;
+}
+
 export const createImgBase64ByFormat = (format: string, body: string) => {
   return `data:image/${format};base64,${normalizeBase64Body(body)}`;
 };
@@ -411,7 +449,14 @@ export const parseBase64 = (
     const separator = ';base64,';
     const index = fullBase64String.indexOf(separator);
     if (index === -1) {
-      throw new Error('Invalid base64 string');
+      const body = normalizeBase64Body(fullBase64String);
+      const mimeType = detectImageMimeTypeFromBuffer(
+        Buffer.from(body, 'base64'),
+      );
+      if (!mimeType) {
+        throw new Error('Invalid base64 string');
+      }
+      return { mimeType, body };
     }
     return {
       // 5 means 'data:'

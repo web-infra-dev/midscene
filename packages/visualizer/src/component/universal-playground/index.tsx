@@ -75,13 +75,6 @@ export function UniversalPlayground({
   const [sdkReady, setSdkReady] = useState(false);
   const lastExternalRunRequestIdRef = useRef<string | null>(null);
 
-  // Initialize form with default type on mount
-  useEffect(() => {
-    form.setFieldsValue({
-      type: defaultMainButtons[0],
-    });
-  }, [form]);
-
   // Initialize SDK ID on mount for remote execution
   useEffect(() => {
     const initializeSDK = async () => {
@@ -259,7 +252,7 @@ export function UniversalPlayground({
   // one-frame window where downstream consumers (e.g. PromptInput minimal
   // chrome) observe an empty type and run type-sync effects unnecessarily.
   const watchedType = Form.useWatch('type', form);
-  const selectedType = watchedType || form.getFieldValue('type');
+  const selectedType = watchedType || defaultMainButtons[0];
 
   // Determine service mode based on SDK adapter type
   const serviceMode = useMemo(() => {
@@ -420,7 +413,12 @@ export function UniversalPlayground({
 
   return (
     <div className={`playground-container ${layout}-mode ${className}`.trim()}>
-      <Form form={form} onFinish={handleFormRun} className="command-form">
+      <Form
+        form={form}
+        onFinish={handleFormRun}
+        className="command-form"
+        initialValues={{ type: defaultMainButtons[0] }}
+      >
         {/* Context Preview Section */}
         {finalShowContextPreview && (
           <div className="context-preview-section">

@@ -23,7 +23,7 @@ import {
   useServerValid,
 } from '@midscene/visualizer';
 import type { StaticPageAgent } from '@midscene/web/static';
-import { Form, message } from 'antd';
+import { App as AntdApp, Form } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import {
@@ -70,6 +70,7 @@ export function StandardPlayground({
   dryMode = false,
   canDownloadReport,
 }: PlaygroundProps) {
+  const { message } = AntdApp.useApp();
   const { serviceMode } = useEnvConfig();
   // State management
   const [uiContextPreview, setUiContextPreview] = useState<

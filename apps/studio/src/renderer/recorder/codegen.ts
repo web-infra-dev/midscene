@@ -57,6 +57,7 @@ export async function generateStudioRecorderCodeWithAI(
   const modelConfig = resolveStudioRecorderModelConfig(options.modelConfig);
   const input = toStudioRecorderCodegenInput(session, {
     language: options.language,
+    maxScreenshots: type === 'markdown' ? 3 : undefined,
   });
   const runtime = requireStudioRuntime();
   const serializableModelConfig = toSerializableModelConfig(modelConfig);

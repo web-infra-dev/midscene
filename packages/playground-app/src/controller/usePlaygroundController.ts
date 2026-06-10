@@ -5,7 +5,7 @@ import {
   notifyError,
   useEnvConfig,
 } from '@midscene/visualizer';
-import { Form, message } from 'antd';
+import { App as AntdApp, Form } from 'antd';
 import {
   useCallback,
   useEffect,
@@ -68,6 +68,7 @@ export function usePlaygroundController({
   initialFormValues,
   onCountdownFinish,
 }: UsePlaygroundControllerOptions): PlaygroundControllerResult {
+  const { message } = AntdApp.useApp();
   const [form] = Form.useForm<PlaygroundFormValues>();
   const initialFormValuesRef = useRef(initialFormValues);
   // Seed the form ONCE before paint. Later prop changes are ignored so
@@ -335,7 +336,7 @@ export function usePlaygroundController({
           setSessionMutating(false);
         }
       }),
-    [applyAiConfig, form, playgroundSDK, refreshServerState],
+    [applyAiConfig, form, message, playgroundSDK, refreshServerState],
   );
 
   const destroySession = useCallback(async () => {
@@ -357,6 +358,7 @@ export function usePlaygroundController({
     }
   }, [
     form,
+    message,
     playgroundSDK,
     refreshServerState,
     refreshSessionSetup,

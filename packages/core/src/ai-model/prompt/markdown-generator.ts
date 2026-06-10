@@ -1,5 +1,12 @@
 import type { IModelConfig } from '@midscene/shared/env';
 import {
+  imageInfoOfBase64,
+  parseBase64,
+  resizeImgBase64,
+} from '@midscene/shared/img';
+import { getDebug } from '@midscene/shared/logger';
+import {
+  type MidsceneRecorderMarkdownScreenshotAsset,
   getMidsceneRecorderEventDescription,
   stringifyMidsceneRecorderTargetBlock,
 } from '@midscene/shared/recorder';
@@ -13,6 +20,122 @@ import {
 } from './recorder-generation-common';
 
 export type RecorderMarkdownGenerationInput = RecorderGenerationInput;
+
+const MARKDOWN_REPLAY_SCREENSHOT_PAYLOAD_BUDGET = 600_000;
+const MARKDOWN_REPLAY_SCREENSHOT_MAX_EDGE = 768;
+const debugMarkdownReplay = getDebug('ai:recorder-markdown', {
+  console: true,
+});
+
+function limitScreenshotAssetsForMarkdownReplay(
+  screenshotAssets: MidsceneRecorderMarkdownScreenshotAsset[],
+) {
+  let usedPayload = 0;
+  return screenshotAssets.filter((asset) => {
+    const payloadSize = asset.dataUrl.length;
+    if (
+      payloadSize > MARKDOWN_REPLAY_SCREENSHOT_PAYLOAD_BUDGET ||
+      usedPayload + payloadSize > MARKDOWN_REPLAY_SCREENSHOT_PAYLOAD_BUDGET
+    ) {
+      return false;
+    }
+    usedPayload += payloadSize;
+    return true;
+  });
+}
+
+async function compressScreenshotAssetForMarkdownReplay(
+  asset: MidsceneRecorderMarkdownScreenshotAsset,
+): Promise<MidsceneRecorderMarkdownScreenshotAsset> {
+  const { width, height } = await imageInfoOfBase64(asset.dataUrl);
+  const longestEdge = Math.max(width, height);
+  if (longestEdge <= MARKDOWN_REPLAY_SCREENSHOT_MAX_EDGE) {
+    return asset;
+  }
+
+  const scale = MARKDOWN_REPLAY_SCREENSHOT_MAX_EDGE / longestEdge;
+  const dataUrl = await resizeImgBase64(asset.dataUrl, {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  });
+  const { body, mimeType } = parseBase64(dataUrl);
+  return {
+    ...asset,
+    dataUrl,
+    base64Data: body,
+    mimeType,
+  };
+}
+
+async function prepareScreenshotAssetsForMarkdownReplay(
+  screenshotAssets: MidsceneRecorderMarkdownScreenshotAsset[],
+) {
+  const compressedAssets: MidsceneRecorderMarkdownScreenshotAsset[] = [];
+  for (const asset of screenshotAssets) {
+    try {
+      compressedAssets.push(
+        await compressScreenshotAssetForMarkdownReplay(asset),
+      );
+    } catch {
+      compressedAssets.push(asset);
+    }
+  }
+  return limitScreenshotAssetsForMarkdownReplay(compressedAssets);
+}
+
+function summarizeScreenshotAssets(
+  screenshotAssets: MidsceneRecorderMarkdownScreenshotAsset[],
+) {
+  const payloadSizes = screenshotAssets.map((asset) => asset.dataUrl.length);
+  return {
+    count: screenshotAssets.length,
+    totalPayloadChars: payloadSizes.reduce((sum, size) => sum + size, 0),
+    maxPayloadChars: payloadSizes.length ? Math.max(...payloadSizes) : 0,
+  };
+}
+
+function getPromptShape(prompt: ChatCompletionMessageParam[]) {
+  let textChars = 0;
+  let imageCount = 0;
+  for (const message of prompt) {
+    const content = message.content;
+    if (typeof content === 'string') {
+      textChars += content.length;
+      continue;
+    }
+    if (!Array.isArray(content)) {
+      continue;
+    }
+    for (const part of content) {
+      if (typeof part === 'object' && part && 'type' in part) {
+        if (part.type === 'text' && 'text' in part) {
+          textChars += String(part.text).length;
+        }
+        if (part.type === 'image_url') {
+          imageCount += 1;
+        }
+      }
+    }
+  }
+  return { textChars, imageCount };
+}
+
+function removeOmittedScreenshotPaths(
+  summary: ReturnType<typeof prepareRecorderGenerationContext>['summary'],
+  screenshotAssets: MidsceneRecorderMarkdownScreenshotAsset[],
+) {
+  const includedScreenshotPaths = new Set(
+    screenshotAssets.map((asset) => asset.relativePath),
+  );
+  return {
+    ...summary,
+    events: summary.events.map((event) =>
+      event.screenshotPath && !includedScreenshotPaths.has(event.screenshotPath)
+        ? { ...event, screenshotPath: undefined }
+        : event,
+    ),
+  };
+}
 
 function getMarkdownLanguageInstruction(language?: string) {
   const normalizedLanguage = language?.trim();
@@ -31,7 +154,16 @@ function normalizeGeneratedMarkdown(content: string) {
   const fencedMatch = trimmed.match(
     /^```(?:md|markdown)?\s*([\s\S]*?)\s*```$/i,
   );
-  return `${(fencedMatch?.[1] ?? trimmed).trim()}\n`;
+  return `${stripMarkdownImages(fencedMatch?.[1] ?? trimmed).trim()}\n`;
+}
+
+function stripMarkdownImages(markdown: string) {
+  return markdown
+    .split(/\r?\n/)
+    .filter((line) => !/^\s*!\[[^\]]*\]\([^)]+\)\s*$/.test(line))
+    .join('\n')
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
+    .replace(/^\s*\[[^\]]+\]:\s+\S+.*$/gm, '');
 }
 
 function resolveModelRuntime(model: IModelConfig | ModelRuntime): ModelRuntime {
@@ -46,17 +178,86 @@ export function createRecorderMarkdownReplayPrompt(
 ): ChatCompletionMessageParam[] {
   validateEvents(input.events);
 
-  const { summary, screenshotAssets } = prepareRecorderGenerationContext(input);
-  const promptText = `Generate a Markdown replay script for Midscene Agent.
+  const { summary: rawSummary, screenshotAssets: rawScreenshotAssets } =
+    prepareRecorderGenerationContext(input);
+  const screenshotAssets =
+    limitScreenshotAssetsForMarkdownReplay(rawScreenshotAssets);
+  const summary = removeOmittedScreenshotPaths(rawSummary, screenshotAssets);
+  return createRecorderMarkdownReplayPromptFromContext(
+    input,
+    summary,
+    screenshotAssets,
+  );
+}
 
-This Markdown will be executed with:
-await agent.runMarkdown('./x.md')
+async function createRecorderMarkdownReplayPromptForGeneration(
+  input: RecorderMarkdownGenerationInput,
+): Promise<ChatCompletionMessageParam[]> {
+  validateEvents(input.events);
 
-It is an AI-executable replay script, not a human report.
+  const { summary: rawSummary, screenshotAssets: rawScreenshotAssets } =
+    prepareRecorderGenerationContext(input);
+  const screenshotAssets =
+    await prepareScreenshotAssetsForMarkdownReplay(rawScreenshotAssets);
+  const summary = removeOmittedScreenshotPaths(rawSummary, screenshotAssets);
+  const prompt = createRecorderMarkdownReplayPromptFromContext(
+    input,
+    summary,
+    screenshotAssets,
+  );
+  debugMarkdownReplay('markdown replay prompt shape %o', {
+    eventCount: input.events.length,
+    maxScreenshots: input.maxScreenshots,
+    rawScreenshots: summarizeScreenshotAssets(rawScreenshotAssets),
+    includedScreenshots: summarizeScreenshotAssets(screenshotAssets),
+    prompt: getPromptShape(prompt),
+  });
+  return prompt;
+}
 
-Target platform:
-- Preserve this exact platform: ${input.target.platformId}
-- Target block:
+function createRecorderMarkdownReplayPromptFromContext(
+  input: RecorderMarkdownGenerationInput,
+  summary: ReturnType<typeof prepareRecorderGenerationContext>['summary'],
+  screenshotAssets: MidsceneRecorderMarkdownScreenshotAsset[],
+): ChatCompletionMessageParam[] {
+  const screenshotIndexByEventHash = new Map(
+    screenshotAssets.map((asset, index) => [
+      asset.eventHashId,
+      `screenshot-${index + 1}`,
+    ]),
+  );
+  const events = summary.events.map((event) => {
+    const screenshotRef = screenshotIndexByEventHash.get(event.hashId);
+    const { screenshotPath, ...eventWithoutScreenshotPath } = event;
+    return screenshotRef
+      ? { ...eventWithoutScreenshotPath, screenshotRef }
+      : eventWithoutScreenshotPath;
+  });
+  const promptPayload = {
+    testName: input.testName || summary.testName,
+    target: {
+      platformId: input.target.platformId,
+      label: input.target.label,
+      values: input.target.values,
+    },
+    startUrl: summary.startUrl,
+    events,
+    screenshots: screenshotAssets.map((asset, index) => ({
+      screenshotRef: `screenshot-${index + 1}`,
+      eventIndex: asset.eventIndex,
+      eventHashId: asset.eventHashId,
+      eventType: asset.eventType,
+      description: getMidsceneRecorderEventDescription(
+        input.events[asset.eventIndex],
+      ),
+    })),
+  };
+  const promptText = `Generate a Markdown replay script for Midscene Agent. It will be executed with:
+await agent.aiAct(markdownReplayPrompt)
+
+Use only the recorder data and screenshots below.
+
+Target block:
 ${stringifyMidsceneRecorderTargetBlock(input.target)}
 
 Replay goal:
@@ -66,13 +267,16 @@ Replay goal:
 - Do not invent alternative navigation paths.
 - Do not skip, merge, reorder, or add extra user actions.
 - Prefer recorded UI text, element descriptions, URLs, input values, and scroll direction.
-- Prefer event.replayInstruction and event.elementDescription when descriptionSource is "ai".
-- If descriptionSource is "fallback", use the screenshot/context to write the best visual instruction.
+- For input events, enter event.typedText/event.value exactly; do not infer or correct the text from screenshots.
+- Prefer event.semantic.replayInstruction and event.semantic.elementDescription when event.semantic.source is "aiDescribe" or "recorderAI" and event.semantic.status is "ready".
+- If event.semantic.source is "heuristic" or event.semantic.status is "pending"/"failed", use the screenshot/context to write the best visual instruction.
 - Coordinates are only fallback hints. Do not make coordinates the primary instruction when text or screenshots are available.
+- For a click/tap that only focuses a field before an input event, describe the target as the field/control itself. Do not target a placeholder character, typed character, caret, or inner text fragment inside the field.
 - If a target cannot be found, stop and report the missing step. Do not click similar-looking elements.
-- Use screenshots only when they are provided below. Reference them by their exact relative paths.
+- Use screenshots only as generation-time evidence. Do not include screenshots, image syntax, image paths, or reference-image names in the generated Markdown.
+- Do not write Markdown image syntax such as ![step context](...) in the output.
 
-Required Markdown structure:
+Required structure:
 # ${input.testName || summary.testName}
 
 ## Goal
@@ -82,39 +286,11 @@ Reproduce the recorded user workflow exactly.
 - Platform: ${input.target.platformId}
 - Start target: ${summary.startUrl || input.target.label || input.target.deviceId || 'Recorded target'}
 
-## Replay rules
-- Follow the steps in order.
-- Do not invent alternative navigation paths.
-- If a referenced target cannot be found, stop and report the missing step.
-
 ## Steps
 1. ...
 
-Event summary:
-${JSON.stringify(
-  {
-    ...summary,
-    target: input.target,
-    events: summary.events,
-    screenshotAssets: screenshotAssets.map((asset) => ({
-      eventIndex: asset.eventIndex,
-      eventHashId: asset.eventHashId,
-      eventType: asset.eventType,
-      relativePath: asset.relativePath,
-      description: getMidsceneRecorderEventDescription(
-        input.events[asset.eventIndex],
-      ),
-    })),
-  },
-  null,
-  2,
-)}
-
-Screenshot rules:
-- Insert a screenshot directly under the step that needs visual grounding.
-- Use Markdown image syntax exactly like: ![step context](./screenshots/event-001-click.png)
-- Only reference paths listed in screenshotAssets.
-- Do not reference images that are not listed.${getMarkdownLanguageInstruction(input.language)}
+Recorder data:
+${JSON.stringify(promptPayload, null, 2)}${getMarkdownLanguageInstruction(input.language)}
 
 Important: Return ONLY raw Markdown. Do NOT wrap the response in markdown code blocks.`;
 
@@ -126,9 +302,10 @@ Important: Return ONLY raw Markdown. Do NOT wrap the response in markdown code b
   ];
 
   for (const asset of screenshotAssets) {
+    const screenshotRef = screenshotIndexByEventHash.get(asset.eventHashId);
     content.push({
       type: 'text',
-      text: `Screenshot asset for event #${asset.eventIndex + 1}: ${asset.relativePath}`,
+      text: `${screenshotRef} for event #${asset.eventIndex + 1}`,
     });
     content.push({
       type: 'image_url',
@@ -142,7 +319,7 @@ Important: Return ONLY raw Markdown. Do NOT wrap the response in markdown code b
     {
       role: 'system',
       content:
-        'You generate precise Markdown replay scripts for Midscene agent.runMarkdown. The output must be deterministic, ordered, and safe for AI execution.',
+        'You generate precise Markdown replay scripts for Midscene agent.aiAct. The output must be deterministic, ordered, safe for AI execution, and must not contain image references.',
     },
     {
       role: 'user',
@@ -156,7 +333,7 @@ export async function generateRecorderMarkdownReplay(
   model: IModelConfig | ModelRuntime,
 ): Promise<string> {
   try {
-    const prompt = createRecorderMarkdownReplayPrompt(input);
+    const prompt = await createRecorderMarkdownReplayPromptForGeneration(input);
     const response = await callAIWithStringResponse(
       prompt,
       resolveModelRuntime(model),

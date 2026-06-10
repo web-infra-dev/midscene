@@ -54,6 +54,7 @@ GUIDELINES:
 - Avoid page-specific or temporary content
 - Don't mention the red rectangle or selection box
 - Focus on stable, reusable characteristics
+- If the selected point/box is inside a text input, textarea, search box, or form field, describe the whole field/control, not the individual placeholder character, typed character, caret, or inner text fragment.
 - **Write the description in ${preferredLanguage}**
 
 EXAMPLES:

@@ -379,10 +379,11 @@ export default class Service {
     modelRuntime: ModelRuntime,
     opt?: {
       deepLocate?: boolean;
+      context?: UIContext;
     },
   ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
     assert(target, 'target is required for service.describe');
-    const context = await this.contextRetrieverFn();
+    const context = opt?.context || (await this.contextRetrieverFn());
     const { shotSize } = context;
     const screenshotBase64 = context.screenshot.base64;
     assert(screenshotBase64, 'screenshot is required for service.describe');

@@ -19,6 +19,14 @@ import {
 import { generateElementByPoint } from '@midscene/shared/extractor';
 import { compositePointMarkerImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
+import type {
+  MidsceneRecorderSemantic,
+  MidsceneRecorderSemanticAction,
+} from '@midscene/shared/recorder';
+import {
+  buildMidsceneRecorderActionSummary,
+  buildMidsceneRecorderReplayInstruction,
+} from '@midscene/shared/recorder';
 import { uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
@@ -47,6 +55,7 @@ import 'dotenv/config';
 
 const defaultPort = PLAYGROUND_SERVER_PORT;
 const RECORDER_CAPTURE_AFTER_INTERACT_DELAY_MS = 250;
+const RECORDER_AI_DESCRIBE_AFTER_INTERACT_TIMEOUT_MS = 10_000;
 
 function serializeAiConfigSignature(aiConfig: Record<string, unknown>): string {
   return JSON.stringify(
@@ -331,6 +340,106 @@ export function buildInteractParams(
   return passthrough;
 }
 
+function getRecorderSemanticActionType(
+  actionType: string,
+): MidsceneRecorderSemanticAction['type'] {
+  switch (actionType) {
+    case 'Tap':
+    case 'DoubleClick':
+    case 'LongPress':
+    case 'RightClick':
+      return 'click';
+    case 'Swipe':
+    case 'DragAndDrop':
+      return 'drag';
+    case 'Input':
+      return 'input';
+    case 'KeyboardPress':
+      return 'keydown';
+    case 'Scroll':
+      return 'scroll';
+    case 'GoBack':
+    case 'GoForward':
+    case 'Reload':
+    case 'Stop':
+    case 'InitialNavigation':
+    case 'NavigationChanged':
+      return 'navigation';
+    default:
+      return 'click';
+  }
+}
+
+function buildRecorderSemanticAction(
+  actionType: string,
+  payload: Record<string, unknown>,
+  url?: string,
+): MidsceneRecorderSemanticAction {
+  return {
+    type: getRecorderSemanticActionType(actionType),
+    actionType,
+    value:
+      typeof payload.value === 'string'
+        ? payload.value
+        : typeof payload.keyName === 'string'
+          ? payload.keyName
+          : undefined,
+    url,
+  };
+}
+
+function buildReadyRecorderSemantic(
+  source: MidsceneRecorderSemantic['source'],
+  event: MidsceneRecorderSemanticAction,
+  elementDescription: string,
+  confidence: MidsceneRecorderSemantic['confidence'],
+  extra?: Pick<MidsceneRecorderSemantic, 'aiDescribe' | 'error'>,
+): MidsceneRecorderSemantic {
+  return {
+    source,
+    status: 'ready',
+    elementDescription,
+    replayInstruction: buildMidsceneRecorderReplayInstruction(
+      event,
+      elementDescription,
+    ),
+    actionSummary: buildMidsceneRecorderActionSummary(
+      event,
+      elementDescription,
+    ),
+    confidence,
+    ...extra,
+  };
+}
+
+function buildFailedAiDescribeRecorderSemantic(
+  error: unknown,
+): MidsceneRecorderSemantic {
+  return {
+    source: 'aiDescribe',
+    status: 'failed',
+    error: error instanceof Error ? error.message : String(error),
+  };
+}
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  message: string,
+): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_resolve, reject) => {
+    timeout = setTimeout(() => {
+      reject(new Error(message));
+    }, timeoutMs);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  });
+}
+
 export function createManualExecutorContext(
   actionType: string,
   param: unknown,
@@ -389,6 +498,33 @@ interface PlaygroundRecorderSnapshot {
   screenshot?: string;
   pageState: PlaygroundRecorderPageState;
 }
+
+interface PlaygroundRecorderTargetPoint {
+  x: number;
+  y: number;
+}
+
+type PlaygroundDescribeElementAtPointOptions = {
+  verifyPrompt?: boolean;
+  screenshotBase64?: string;
+  coordinateSpace?: 'screenshot' | 'logical';
+  logicalSize?: { width: number; height: number };
+};
+
+type PlaygroundScreenshotDescribeAgent = {
+  describeElementAtPoint: (
+    center: [number, number],
+    opt?: PlaygroundDescribeElementAtPointOptions,
+  ) => Promise<{
+    prompt?: string;
+    deepLocate?: boolean;
+    verifyResult?: {
+      pass?: boolean;
+      center?: [number, number];
+      centerDistance?: number;
+    };
+  }>;
+};
 
 const RECOVERABLE_PAGE_SESSION_ERROR_PATTERN =
   /Session closed|page has been closed|target closed|browser has been closed|Target page, context or browser has been closed/i;
@@ -455,6 +591,13 @@ class PlaygroundServer {
   private _baseSidecars?: PlaygroundSidecar[];
   private _recorderSessionId: string | null = null;
   private _recorderEvents: PlaygroundRecorderEvent[] = [];
+  private _recorderEventQueue: Promise<void> = Promise.resolve();
+  private _recorderAiDescribeAppendQueue: Promise<void> = Promise.resolve();
+  private _recorderPendingCaptures = 0;
+  private _recorderAiDescribeInputKeys = new Set<string>();
+  private _studioPreviewRecorderLastTargetPoint:
+    | PlaygroundRecorderTargetPoint
+    | undefined;
   private _studioPreviewRecorderLastScreenshot: string | undefined;
   private _studioPreviewRecorderLastPageState:
     | PlaygroundRecorderPageState
@@ -765,8 +908,17 @@ class PlaygroundServer {
   private resetRecorderState(): void {
     this._recorderSessionId = null;
     this._recorderEvents = [];
+    this._recorderEventQueue = Promise.resolve();
+    this._recorderAiDescribeAppendQueue = Promise.resolve();
+    this._recorderAiDescribeInputKeys.clear();
+    this._studioPreviewRecorderLastTargetPoint = undefined;
     this._studioPreviewRecorderLastScreenshot = undefined;
     this._studioPreviewRecorderLastPageState = undefined;
+  }
+
+  async waitForRecorderIdle(): Promise<void> {
+    await this._recorderEventQueue;
+    await this._recorderAiDescribeAppendQueue;
   }
 
   private canRecordStudioPreviewInteractions(): boolean {
@@ -873,6 +1025,24 @@ class PlaygroundServer {
     };
   }
 
+  private captureCachedRecorderSnapshotBeforeInteract():
+    | PlaygroundRecorderSnapshot
+    | undefined {
+    if (
+      !this._recorderSessionId ||
+      !this._studioPreviewRecorderLastPageState ||
+      this._recorderPendingCaptures > 0
+    ) {
+      return undefined;
+    }
+    return {
+      screenshot:
+        this._mjpegHandler.getLastFrameBase64() ||
+        this._studioPreviewRecorderLastScreenshot,
+      pageState: this._studioPreviewRecorderLastPageState,
+    };
+  }
+
   private async startStudioPreviewRecorder(sessionId: string): Promise<void> {
     this._recorderSessionId = sessionId;
     this._studioPreviewRecorderLastScreenshot =
@@ -892,6 +1062,7 @@ class PlaygroundServer {
   private async storeStudioPreviewRecorderEvent(
     payload: Record<string, unknown>,
     snapshotBefore?: PlaygroundRecorderSnapshot,
+    agent?: PageAgent,
   ): Promise<void> {
     if (!this._recorderSessionId) {
       return;
@@ -928,18 +1099,15 @@ class PlaygroundServer {
       return;
     }
 
-    this._recorderEvents.push(event);
     const navigationEvent = this.buildStudioPreviewNavigationChangeEvent(
       payload,
       before?.pageState,
       pageStateAfter,
       screenshotAfter,
     );
-    if (navigationEvent) {
-      this._recorderEvents.push(navigationEvent);
-    }
     this._studioPreviewRecorderLastScreenshot = screenshotAfter;
     this._studioPreviewRecorderLastPageState = pageStateAfter;
+    this.queueStudioPreviewRecorderEventAppend(event, navigationEvent, agent);
   }
 
   private async buildStudioPreviewRecorderEvent(
@@ -954,8 +1122,23 @@ class PlaygroundServer {
 
     const { pageInfo, url, title } = pageState;
     const timestamp = Date.now();
-    const x = typeof payload.x === 'number' ? payload.x : undefined;
-    const y = typeof payload.y === 'number' ? payload.y : undefined;
+    const payloadX = typeof payload.x === 'number' ? payload.x : undefined;
+    const payloadY = typeof payload.y === 'number' ? payload.y : undefined;
+    const canReuseLastTargetPoint =
+      actionType === 'Input' || actionType === 'KeyboardPress';
+    const inheritedTargetPoint =
+      canReuseLastTargetPoint &&
+      (payloadX === undefined || payloadY === undefined)
+        ? this._studioPreviewRecorderLastTargetPoint
+        : undefined;
+    const x = payloadX ?? inheritedTargetPoint?.x;
+    const y = payloadY ?? inheritedTargetPoint?.y;
+    if (payloadX !== undefined && payloadY !== undefined) {
+      this._studioPreviewRecorderLastTargetPoint = {
+        x: payloadX,
+        y: payloadY,
+      };
+    }
     const endX = typeof payload.endX === 'number' ? payload.endX : undefined;
     const endY = typeof payload.endY === 'number' ? payload.endY : undefined;
     const dragDescription =
@@ -984,8 +1167,10 @@ class PlaygroundServer {
       screenshotBefore,
       screenshotAfter,
       screenshotWithBox: screenshotWithMarker,
-      descriptionLoading: true,
-      descriptionSource: undefined,
+      semantic: {
+        source: 'aiDescribe' as const,
+        status: 'pending' as const,
+      },
       timestamp,
       hashId: `studio-preview-${actionType}-${timestamp}-${Math.random()
         .toString(36)
@@ -1063,28 +1248,25 @@ class PlaygroundServer {
       case 'GoBack':
       case 'GoForward':
       case 'Reload':
-      case 'Stop':
+      case 'Stop': {
+        const elementDescription = url || actionType;
+        const semanticEvent = buildRecorderSemanticAction(
+          actionType,
+          { value: actionType },
+          url,
+        );
         return {
           ...base,
           type: 'navigation',
           value: actionType,
-          elementDescription: url || actionType,
-          replayInstruction:
-            actionType === 'Stop'
-              ? 'Stop loading the current page.'
-              : url
-                ? `Wait for navigation to complete at \`${url}\`.`
-                : `${actionType} in the browser.`,
-          actionSummary:
-            actionType === 'Stop'
-              ? 'Stop page loading'
-              : url
-                ? `${actionType} to ${url}`
-                : actionType,
-          semanticConfidence: url ? 'high' : 'medium',
-          descriptionLoading: false,
-          descriptionSource: 'fallback',
+          semantic: buildReadyRecorderSemantic(
+            'heuristic',
+            semanticEvent,
+            elementDescription,
+            url ? 'high' : 'medium',
+          ),
         };
+      }
       default:
         return {
           ...base,
@@ -1095,6 +1277,223 @@ class PlaygroundServer {
               : actionType,
         };
     }
+  }
+
+  private getRecorderAiDescribeInputKey(event: PlaygroundRecorderEvent) {
+    if (
+      event.type !== 'input' ||
+      event.actionType !== 'Input' ||
+      event.rawPayload?.mode !== 'typeOnly'
+    ) {
+      return undefined;
+    }
+    const rect = event.elementRect;
+    const x = typeof rect?.x === 'number' ? Math.round(rect.x) : undefined;
+    const y = typeof rect?.y === 'number' ? Math.round(rect.y) : undefined;
+    if (x === undefined || y === undefined) {
+      return undefined;
+    }
+    return [this._recorderSessionId || '', event.url || '', x, y].join(':');
+  }
+
+  private shouldAttemptRecorderAiDescribe(event: PlaygroundRecorderEvent) {
+    if (event.type === 'navigation' || event.type === 'setViewport') {
+      return false;
+    }
+    const rect = event.elementRect;
+    if (typeof rect?.x !== 'number' || typeof rect?.y !== 'number') {
+      return false;
+    }
+    const inputKey = this.getRecorderAiDescribeInputKey(event);
+    if (!inputKey) {
+      return true;
+    }
+    if (this._recorderAiDescribeInputKeys.has(inputKey)) {
+      return false;
+    }
+    this._recorderAiDescribeInputKeys.add(inputKey);
+    return true;
+  }
+
+  private async enrichStudioPreviewRecorderEventWithAiDescribe(
+    event: PlaygroundRecorderEvent,
+    agent?: PageAgent,
+  ): Promise<PlaygroundRecorderEvent> {
+    if (!this.shouldAttemptRecorderAiDescribe(event)) {
+      return {
+        ...event,
+        semantic: buildFailedAiDescribeRecorderSemantic(
+          'aiDescribe skipped because the event has no new stable point target.',
+        ),
+      };
+    }
+    if (typeof agent?.describeElementAtPoint !== 'function') {
+      return {
+        ...event,
+        semantic: buildFailedAiDescribeRecorderSemantic(
+          'Active agent does not support describeElementAtPoint.',
+        ),
+      };
+    }
+
+    const x = event.elementRect?.x;
+    const y = event.elementRect?.y;
+    const eventScreenshot = this.getRecorderAiDescribeScreenshot(event);
+    try {
+      if (!eventScreenshot) {
+        throw new Error(
+          'Skipped aiDescribe because the recorder event has no screenshot.',
+        );
+      }
+      if (!event.pageInfo?.width || !event.pageInfo?.height) {
+        throw new Error(
+          'Skipped aiDescribe because the recorder event has no pageInfo for coordinate mapping.',
+        );
+      }
+      const describeResult = await withTimeout(
+        (
+          agent as unknown as PlaygroundScreenshotDescribeAgent
+        ).describeElementAtPoint([x as number, y as number], {
+          verifyPrompt: true,
+          screenshotBase64: eventScreenshot,
+          coordinateSpace: 'logical',
+          logicalSize: event.pageInfo,
+        }),
+        RECORDER_AI_DESCRIBE_AFTER_INTERACT_TIMEOUT_MS,
+        'Timed out while analyzing recorder event with aiDescribe.',
+      );
+      const elementDescription = describeResult.prompt?.trim();
+      if (!elementDescription) {
+        throw new Error('aiDescribe returned an empty element description.');
+      }
+      if (
+        describeResult.verifyResult &&
+        describeResult.verifyResult.pass === false
+      ) {
+        throw new Error('aiDescribe verification failed.');
+      }
+      const semanticAction = buildRecorderSemanticAction(
+        event.actionType || event.type,
+        event.rawPayload || {},
+        event.url,
+      );
+      return {
+        ...event,
+        semantic: buildReadyRecorderSemantic(
+          'aiDescribe',
+          semanticAction,
+          elementDescription,
+          describeResult.verifyResult?.pass ? 'high' : 'medium',
+          {
+            aiDescribe: {
+              verifyPrompt: true,
+              verifyPassed: describeResult.verifyResult?.pass,
+              deepLocate: describeResult.deepLocate,
+              centerDistance: describeResult.verifyResult?.centerDistance,
+              expectedCenter:
+                x !== undefined && y !== undefined ? [x, y] : undefined,
+              actualCenter: describeResult.verifyResult?.center,
+            },
+          },
+        ),
+      };
+    } catch (error) {
+      debugInteract('background aiDescribe failed:', error);
+      return {
+        ...event,
+        semantic: buildFailedAiDescribeRecorderSemantic(error),
+      };
+    }
+  }
+
+  private getRecorderAiDescribeScreenshot(
+    event: PlaygroundRecorderEvent,
+  ): string | undefined {
+    if (
+      event.type === 'click' ||
+      event.type === 'input' ||
+      event.type === 'keydown' ||
+      event.type === 'drag'
+    ) {
+      return event.screenshotBefore || event.screenshotAfter;
+    }
+    return event.screenshotAfter || event.screenshotBefore;
+  }
+
+  private queueStudioPreviewRecorderEventAppend(
+    event: PlaygroundRecorderEvent,
+    navigationEvent: PlaygroundRecorderEvent | null,
+    agent?: PageAgent,
+  ): void {
+    const sessionId = this._recorderSessionId;
+    if (!sessionId) {
+      return;
+    }
+
+    this._recorderEvents.push(event);
+    if (navigationEvent) {
+      this._recorderEvents.push(navigationEvent);
+    }
+    if (event.type === 'navigation') {
+      return;
+    }
+
+    const appendTask = this._recorderAiDescribeAppendQueue
+      .catch(() => undefined)
+      .then(async () => {
+        const eventToAppend =
+          await this.enrichStudioPreviewRecorderEventWithAiDescribe(
+            event,
+            agent,
+          );
+        if (!this._recorderSessionId || this._recorderSessionId !== sessionId) {
+          return;
+        }
+        this._recorderEvents.push(eventToAppend);
+      });
+
+    this._recorderAiDescribeAppendQueue = appendTask.catch((error) => {
+      debugInteract('async recorder event append failed:', error);
+    });
+  }
+
+  private queueStudioPreviewRecorderEvent(
+    payload: Record<string, unknown>,
+    snapshotBefore?: PlaygroundRecorderSnapshot,
+    agent?: PageAgent,
+  ): void {
+    const sessionId = this._recorderSessionId;
+    if (!sessionId) {
+      return;
+    }
+
+    this._recorderPendingCaptures++;
+    const queuedTask = this._recorderEventQueue
+      .catch(() => undefined)
+      .then(async () => {
+        try {
+          if (
+            !this._recorderSessionId ||
+            this._recorderSessionId !== sessionId
+          ) {
+            return;
+          }
+          await this.storeStudioPreviewRecorderEvent(
+            payload,
+            snapshotBefore,
+            agent,
+          );
+        } finally {
+          this._recorderPendingCaptures = Math.max(
+            0,
+            this._recorderPendingCaptures - 1,
+          );
+        }
+      });
+
+    this._recorderEventQueue = queuedTask.catch((error) => {
+      debugInteract('async recorder event capture failed:', error);
+    });
   }
 
   private buildStudioPreviewNavigationChangeEvent(
@@ -1115,6 +1514,11 @@ class PlaygroundServer {
     }
 
     const timestamp = Date.now();
+    const semanticEvent = buildRecorderSemanticAction(
+      'NavigationChanged',
+      { value: afterUrl },
+      afterUrl,
+    );
     return {
       source: 'studio-preview',
       type: 'navigation',
@@ -1130,12 +1534,12 @@ class PlaygroundServer {
       value: afterUrl,
       screenshotBefore: screenshotAfter,
       screenshotAfter,
-      elementDescription: afterUrl,
-      replayInstruction: `Wait for navigation to complete at \`${afterUrl}\`.`,
-      actionSummary: `Wait for navigation to complete at ${afterUrl}`,
-      semanticConfidence: 'high',
-      descriptionLoading: false,
-      descriptionSource: 'fallback',
+      semantic: buildReadyRecorderSemantic(
+        'heuristic',
+        semanticEvent,
+        afterUrl,
+        'high',
+      ),
       timestamp,
       hashId: `studio-preview-navigation-${timestamp}-${Math.random()
         .toString(36)
@@ -1152,6 +1556,11 @@ class PlaygroundServer {
     }
 
     const timestamp = Date.now();
+    const semanticEvent = buildRecorderSemanticAction(
+      'InitialNavigation',
+      { value: pageState.url },
+      pageState.url,
+    );
     return {
       source: 'studio-preview',
       type: 'navigation',
@@ -1166,12 +1575,12 @@ class PlaygroundServer {
       value: pageState.url,
       screenshotBefore: screenshot,
       screenshotAfter: screenshot,
-      elementDescription: pageState.url,
-      replayInstruction: `Navigate to \`${pageState.url}\`.`,
-      actionSummary: `Navigate to ${pageState.url}`,
-      semanticConfidence: 'high',
-      descriptionLoading: false,
-      descriptionSource: 'fallback',
+      semantic: buildReadyRecorderSemantic(
+        'heuristic',
+        semanticEvent,
+        pageState.url,
+        'high',
+      ),
       timestamp,
       hashId: `studio-preview-initial-navigation-${timestamp}-${Math.random()
         .toString(36)
@@ -1847,7 +2256,7 @@ class PlaygroundServer {
 
       const response: {
         result: unknown;
-        dump: ExecutionDump | null;
+        dump: ExecutionDump | ReportActionDump | null;
         error: string | null;
         reportHTML: string | null;
         requestId?: string;
@@ -1861,6 +2270,7 @@ class PlaygroundServer {
 
       const startTime = Date.now();
       try {
+        agent.resetDump?.();
         await this._activeConnection.executionHooks?.beforeExecute?.();
 
         // Get action space to check for dynamic actions
@@ -1896,8 +2306,7 @@ class PlaygroundServer {
         });
         if (dumpString) {
           const groupedDump = ReportActionDump.fromSerializedString(dumpString);
-          // Extract first execution from grouped dump, matching local execution adapter behavior
-          response.dump = groupedDump.executions?.[0] || null;
+          response.dump = groupedDump;
         } else {
           response.dump = null;
         }
@@ -1972,8 +2381,7 @@ class PlaygroundServer {
             if (dumpString) {
               const groupedDump =
                 ReportActionDump.fromSerializedString(dumpString);
-              // Extract first execution from grouped dump
-              dump = groupedDump.executions?.[0] || null;
+              dump = groupedDump;
             }
 
             reportHTML =
@@ -2066,6 +2474,7 @@ class PlaygroundServer {
     );
 
     this._app.post('/recorder/stop', async (_req: Request, res: Response) => {
+      await this.waitForRecorderIdle();
       this._recorderSessionId = null;
       this._studioPreviewRecorderLastScreenshot = undefined;
       this._studioPreviewRecorderLastPageState = undefined;
@@ -2223,7 +2632,7 @@ class PlaygroundServer {
           hasInputPrimitives: Boolean(agent.interface.inputPrimitives),
         });
         const recorderSnapshotBefore =
-          await this.captureRecorderSnapshotBeforeInteract();
+          this.captureCachedRecorderSnapshotBeforeInteract();
         const inputPrimitives = agent.interface.inputPrimitives;
         if (inputPrimitives) {
           await dispatchPointer(inputPrimitives, req.body ?? {}, () =>
@@ -2233,15 +2642,16 @@ class PlaygroundServer {
             payload: summarizeInteractPayload(req.body ?? {}),
             elapsedMs: Date.now() - interactStartedAt,
           });
-          await this.storeStudioPreviewRecorderEvent(
+          res.json({});
+          this.queueStudioPreviewRecorderEvent(
             req.body ?? {},
             recorderSnapshotBefore,
+            agent,
           );
           debugInteract('manual interact completed %o', {
             payload: summarizeInteractPayload(req.body ?? {}),
             elapsedMs: Date.now() - interactStartedAt,
           });
-          res.json({});
           return;
         }
 
@@ -2262,15 +2672,16 @@ class PlaygroundServer {
           payload: summarizeInteractPayload(req.body ?? {}),
           elapsedMs: Date.now() - interactStartedAt,
         });
-        await this.storeStudioPreviewRecorderEvent(
+        res.json({});
+        this.queueStudioPreviewRecorderEvent(
           req.body ?? {},
           recorderSnapshotBefore,
+          agent,
         );
         debugInteract('manual interact completed %o', {
           payload: summarizeInteractPayload(req.body ?? {}),
           elapsedMs: Date.now() - interactStartedAt,
         });
-        res.json({});
       } catch (error: unknown) {
         if (error instanceof PointerInputError) {
           return res.status(error.statusCode).json({ error: error.message });
