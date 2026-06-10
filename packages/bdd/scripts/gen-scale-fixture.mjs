@@ -138,6 +138,38 @@ const COMPOSED_FLOWS = `Feature: Shared composed flows
     Given I have added "<product>" to the basket
     When I open the basket review page
     Then the "<product>" line item has a review checkmark
+
+  @flow @param:product @returns:discount
+  Scenario: I have a discounted basket with {string}
+    Given I have added "<product>" to the basket
+    And I have applied the coupon "BUNDLE20"
+    Then the basket shows the bundle discount
+
+  @flow @param:role @returns:resultCount
+  Scenario: I am signed in as {string} on the search page
+    Given I am signed in as "<role>"
+    And I have searched the catalog for "starter kit"
+    Then the search page header shows the "<role>" avatar
+
+  @flow @param:locale @returns:greeting
+  Scenario: I have a localized session in {string}
+    Given I am signed in as "guest"
+    And I have switched the locale to "<locale>"
+    And I remember the localized greeting as "greeting"
+    Then the greeting matches the "<locale>" locale
+`;
+
+// A deliberately over-deep chain (depth 3 > MAX_FLOW_DEPTH): calling a
+// composed flow from another flow. Seeds the 'flow-depth' health finding
+// and gives the graph a 3-column flow chain to draw.
+const DEEP_FLOWS = `Feature: Shared reporting flows
+
+  @flow @param:role @returns:summary
+  Scenario: I have generated a quarterly summary as {string}
+    Given I have completed checkout as "<role>"
+    When I open the reporting workspace
+    And I remember the summary reference as "summary"
+    Then the quarterly summary is listed
 `;
 
 writeFileSync(join(base, 'features', 'flows', 'core.feature'), CORE_FLOWS);
@@ -145,6 +177,7 @@ writeFileSync(
   join(base, 'features', 'flows', 'composed.feature'),
   COMPOSED_FLOWS,
 );
+writeFileSync(join(base, 'features', 'flows', 'reporting.feature'), DEEP_FLOWS);
 
 // ———————————————————————————— feature files ————————————————————————————
 
@@ -229,6 +262,27 @@ const TEMPLATES = [
     '    Given I have archived the oldest invoice',
     '    When I open the archive tab',
     '    Then the invoice <invoiceNumber> appears in the archive list',
+  ],
+  (n) => [
+    `  Scenario: Bundle discount applies to the ${pick(PRODUCTS, n)} basket`,
+    `    Given I have a discounted basket with "${pick(PRODUCTS, n)}"`,
+    '    When I open the basket panel',
+    '    Then the bundle savings line shows <discount>',
+  ],
+  (n) => [
+    `  Scenario: Localized greeting for ${pick(ROLES, n)} sessions`,
+    `    Given I have a localized session in "de-DE"`,
+    '    Then the welcome banner shows <greeting>',
+  ],
+  (n) => [
+    `  Scenario: Search avatar appears for ${pick(ROLES, n)}`,
+    `    Given I am signed in as "${pick(ROLES, n)}" on the search page`,
+    '    Then the result counter equals <resultCount>',
+  ],
+  () => [
+    '  Scenario: Quarterly summary is generated (deep chain)',
+    '    Given I have generated a quarterly summary as "manager"',
+    '    Then the summary <summary> is downloadable',
   ],
 ];
 

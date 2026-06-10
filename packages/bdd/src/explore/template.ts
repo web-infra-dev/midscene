@@ -187,18 +187,22 @@ export const DASHBOARD_TEMPLATE = String.raw`<!DOCTYPE html>
   #graph-scroll { flex: 1; overflow: auto; }
   .gnode { cursor: pointer; }
   .gnode rect { fill: var(--panel-2); stroke: var(--border); stroke-width: 1.2; rx: 9; }
-  .gnode.feature rect { fill: #232a36; stroke: #3a4a63; }
-  .gnode.scenario rect { fill: #232a36; stroke: #3a4a63; stroke-dasharray: 4 3; }
-  .gnode.flow rect { fill: #243027; stroke: #3c5a44; }
-  .gnode.flow.unused rect { stroke: var(--warn); stroke-dasharray: 4 3; }
-  .gnode.focus rect { stroke: var(--accent); stroke-width: 2; }
+  .gnode.feature rect { fill: #20283a; stroke: #41557a; }
+  .gnode.scenario rect { fill: #20283a; stroke: #41557a; stroke-dasharray: 4 3; }
+  .gnode.flow rect { fill: #1f3326; stroke: #4a7a55; }
+  .gnode.flow.unused rect { stroke: var(--warn); stroke-dasharray: 4 3; fill: #33291f; }
+  .gnode.focus rect { stroke: var(--accent); stroke-width: 2.2; fill: #1d3242; }
   .gnode.hot rect { stroke: var(--accent); stroke-width: 2; }
+  .gnode:focus { outline: none; }
+  .gnode:focus rect { stroke: var(--accent); stroke-width: 2; }
   .gnode text { fill: var(--text); font-size: 12px; }
   .gnode text.sub { fill: var(--muted); font-size: 10px; }
-  .gedge { fill: none; stroke: #46506180; stroke-width: 1.6; }
+  .gedge { fill: none; stroke: #46506155; stroke-width: 1.4; }
+  .gedge.flowedge { stroke: #4a7a5599; stroke-width: 1.8; }
   .gedge.hot { stroke: var(--accent); stroke-width: 2.4; }
   .gedge-hit { fill: none; stroke: transparent; stroke-width: 12; cursor: pointer; }
-  .gedge-label { fill: var(--muted); font-size: 10px; pointer-events: none; }
+  .gedge-label { fill: var(--text); font-size: 11px; pointer-events: none; paint-order: stroke; stroke: var(--bg); stroke-width: 4; }
+  .gcol-label { fill: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 
   /* ———— health ———— */
   #view-health { display: none; overflow-y: auto; padding: 20px 28px 60px; }
@@ -763,8 +767,31 @@ function layoutAndDraw(svg, nodes, links) {
     });
     if (list.length > maxRows) maxRows = list.length;
   });
+  var HEADER_H = 26;
   svg.setAttribute('width', String(PAD * 2 + (maxCol + 1) * NODE_W + maxCol * COL_GAP));
-  svg.setAttribute('height', String(PAD * 2 + maxRows * (NODE_H + ROW_GAP)));
+  svg.setAttribute('height', String(PAD * 2 + HEADER_H + maxRows * (NODE_H + ROW_GAP)));
+
+  // Column headers, derived from what each column actually contains.
+  Object.keys(cols).forEach(function (c) {
+    var list = cols[c];
+    if (list.length === 0) return;
+    var col = Number(c);
+    var kinds = {};
+    list.forEach(function (n) { kinds[n.kind] = true; });
+    var text;
+    if (kinds.feature) text = 'FEATURES';
+    else if (kinds.scenario && !kinds.flow) text = 'CALLERS';
+    else if (kinds.scenario && kinds.flow) text = 'CALLERS';
+    else text = col <= 1 ? 'FLOWS' : 'NESTED FLOWS · DEPTH ' + col;
+    var label = svgEl('text');
+    label.setAttribute('class', 'gcol-label');
+    label.setAttribute('x', String(PAD + col * (NODE_W + COL_GAP)));
+    label.setAttribute('y', String(PAD - 6 + HEADER_H));
+    label.textContent = text;
+    svg.appendChild(label);
+  });
+  // Shift node rows below the headers.
+  nodes.forEach(function (n) { n.y += HEADER_H; });
 
   var defs = svgEl('defs');
   var marker = svgEl('marker');
@@ -805,7 +832,10 @@ function layoutAndDraw(svg, nodes, links) {
       d = 'M ' + x1 + ' ' + y1 + ' C ' + out + ' ' + y1 + ', ' + out + ' ' + (y2 - 26) + ', ' + x1 + ' ' + (y2 - 26);
     }
     var path = svgEl('path');
-    path.setAttribute('class', 'gedge');
+    // Flow→flow composition edges read differently from feature→flow usage.
+    var isFlowEdge =
+      l.from.indexOf('flow:') === 0 && l.to.indexOf('flow:') === 0;
+    path.setAttribute('class', 'gedge' + (isFlowEdge ? ' flowedge' : ''));
     path.setAttribute('d', d);
     path.setAttribute('marker-end', 'url(#arrow)');
     var title = svgEl('title');
