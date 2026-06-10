@@ -21,7 +21,7 @@ import {
   type ReportMeta,
   type UIContext,
 } from '@/types';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   countGroupedDumpScripts,
   extractGroupedDumpScripts,
@@ -599,6 +599,89 @@ describe('ReportGenerator — append-only model', () => {
       expect(() => screenshot.base64).not.toThrow();
       expect(screenshot.base64).toContain('data:image/png;base64,');
       expect(screenshot.base64).toContain('AAAA');
+    });
+  });
+
+  describe('autoPrint — report path logging', () => {
+    let logSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      logSpy.mockRestore();
+    });
+
+    const updatedLogs = () =>
+      logSpy.mock.calls
+        .map((args) => String(args[0]))
+        .filter((msg) => msg.includes('Midscene - report file updated:'));
+
+    it('does not log on construction, and logs "report file updated" once on first write', async () => {
+      const reportPath = join(tmpDir, 'autoprint-inline.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+      });
+
+      // Constructing the generator must not print anything yet.
+      expect(updatedLogs()).toHaveLength(0);
+
+      const execution = createExecution([
+        ScreenshotItem.create(fakeBase64(100), Date.now()),
+      ]);
+
+      generator.onExecutionUpdate(execution, defaultReportMeta);
+      await generator.flush();
+
+      expect(updatedLogs()).toEqual([
+        `Midscene - report file updated: ${reportPath}`,
+      ]);
+
+      // Subsequent updates and finalize must not print the tip again.
+      generator.onExecutionUpdate(execution, defaultReportMeta);
+      await generator.flush();
+      await generator.finalize();
+
+      expect(updatedLogs()).toHaveLength(1);
+    });
+
+    it('does not log when autoPrint is disabled', async () => {
+      const reportPath = join(tmpDir, 'autoprint-disabled.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+
+      generator.onExecutionUpdate(
+        createExecution([ScreenshotItem.create(fakeBase64(100), Date.now())]),
+        defaultReportMeta,
+      );
+      await generator.flush();
+      await generator.finalize();
+
+      expect(updatedLogs()).toHaveLength(0);
+    });
+
+    it('points at "npx serve <dir>" in directory mode', async () => {
+      const reportDir = join(tmpDir, 'autoprint-dir');
+      const reportPath = join(reportDir, 'index.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'directory',
+      });
+
+      generator.onExecutionUpdate(
+        createExecution([ScreenshotItem.create(fakeBase64(100), Date.now())]),
+        defaultReportMeta,
+      );
+      await generator.flush();
+
+      expect(updatedLogs()).toEqual([
+        `Midscene - report file updated: npx serve ${reportDir}`,
+      ]);
     });
   });
 
