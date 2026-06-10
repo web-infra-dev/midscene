@@ -507,6 +507,33 @@ const device = new AndroidDevice('device-id', {
 - 使用 `aiAct` 指令手动隐藏键盘，例如 `await agent.aiAct('隐藏键盘')`
 - 安装并切换到 [ADBKeyBoard](https://github.com/senzhk/ADBKeyBoard)——这是一款极小面积的虚拟键盘，即使不隐藏也几乎不影响屏幕操作
 
+### 英文文本被 Android 输入法改写
+
+如果报告中显示的输入参数是正确的，但 App 实际收到的是不同文本、缺字，或被改成中文/拼音候选词，通常是当前 Android 输入法改写了输入内容。纯 ASCII 文本如果走原生 `adb input text` 路径，在中文输入法或带自动纠错的输入法下就可能出现这个问题。
+
+使用已有的 `imeStrategy` 选项，将所有文本输入强制改为 yadb：
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  imeStrategy: 'always-yadb',
+});
+```
+
+YAML 脚本中可以这样配置：
+
+```yaml
+android:
+  imeStrategy: always-yadb
+```
+
+也可以通过环境变量设置：
+
+```bash
+export MIDSCENE_ANDROID_IME_STRATEGY=always-yadb
+```
+
+这和“输入后被清空”不是同一个问题。如果文本先正确输入、随后消失，请优先检查 `keyboardDismissStrategy` 或 `autoDismissKeyboard`。
+
 ### 如何使用自定义的 adb 路径、远程 adb 主机和端口？
 
 你可以使用 `MIDSCENE_ADB_PATH` 环境变量来指定 adb 可执行文件的路径，`MIDSCENE_ADB_REMOTE_HOST` 环境变量来指定远程 adb 主机，`MIDSCENE_ADB_REMOTE_PORT` 环境变量来指定远程 adb 端口。
