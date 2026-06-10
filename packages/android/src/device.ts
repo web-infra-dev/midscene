@@ -2044,7 +2044,8 @@ const createPlatformActions = (
       string
     >({
       name: 'RunAdbShell',
-      description: 'Execute ADB shell command on Android device',
+      description:
+        'Execute an ADB shell command on the Android device and return the command stdout. Read the returned stdout to decide the next step; the stdout may indicate either success or failure.',
       interfaceAlias: 'runAdbShell',
       paramSchema: runAdbShellParamSchema,
       sample: {

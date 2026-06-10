@@ -278,6 +278,82 @@ Stdout:
     expect(seenPendingFeedback[1]).toContain(planningFeedback);
   });
 
+  it('should truncate oversized planning feedback before the next planning request', async () => {
+    const seenPendingFeedback: string[] = [];
+    const longFeedback = 'x'.repeat(600);
+
+    vi.spyOn(taskExecutor, 'convertPlanToExecutable')
+      .mockResolvedValueOnce({
+        tasks: [
+          {
+            type: 'Action Space',
+            subType: 'RunAdbShell',
+            param: { command: 'cat big-file' },
+            executor: async (_param: unknown, context: ExecutorContext) => {
+              context.task.planningFeedback = longFeedback;
+              return {
+                output: longFeedback,
+              };
+            },
+          },
+        ],
+        yamlFlow: [],
+      } as any)
+      .mockResolvedValue({
+        tasks: [],
+        yamlFlow: [],
+      } as any);
+
+    vi.mocked(genericXmlPlan)
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [
+            {
+              type: 'RunAdbShell',
+              param: { command: 'cat big-file' },
+              thought: 'read a large file',
+            },
+          ],
+          yamlFlow: [],
+          shouldContinuePlanning: true,
+          log: 'first plan',
+          rawResponse: '',
+        };
+      })
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: false,
+          log: '',
+          rawResponse: '',
+          finalizeSuccess: true,
+          finalizeMessage: 'done',
+        };
+      });
+
+    await taskExecutor.action(
+      'read big file with adb shell',
+      planningModel(),
+      defaultModel(),
+      true,
+    );
+
+    expect(seenPendingFeedback[1]).toContain('x'.repeat(500));
+    expect(seenPendingFeedback[1]).not.toContain('x'.repeat(600));
+    expect(seenPendingFeedback[1]).toContain(
+      '...[truncated, 100 more characters]',
+    );
+  });
+
   it('should collect all planning feedback instead of the final task output', async () => {
     const seenPendingFeedback: string[] = [];
     vi.setSystemTime(new Date(2023, 9, 15, 8, 30, 0));
