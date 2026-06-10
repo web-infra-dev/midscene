@@ -57,7 +57,9 @@ if (!hasCucumberConfig(process.cwd())) {
   for (const entry of profile.format) {
     preset.push('--format', entry);
   }
-  if (!hasPositionalArgs(userArgs)) {
+  // No default paths: cucumber's own features/ default applies, and user
+  // positional args keep working (config paths would suppress them).
+  if (profile.paths && !hasPositionalArgs(userArgs)) {
     preset.push(...profile.paths);
   }
   args = [...preset, ...userArgs];

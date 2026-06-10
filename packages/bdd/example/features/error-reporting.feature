@@ -9,7 +9,7 @@
 Feature: Failed login reporting
 
   Scenario: Failed login is reported everywhere
-    Given the demo shop is open on the login page
+    Given I open the login page of the demo shop
     When I try to sign in as the "admin" user with a wrong password
     Then an error toast shows on the screen
     # @agent

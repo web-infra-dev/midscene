@@ -100,6 +100,15 @@
         margin: 12px 0 4px;
       }
       select,
+      .hint {
+        color: #5b6b7a;
+        font-size: 14px;
+      }
+      .hint code {
+        background: #eef2f6;
+        border-radius: 4px;
+        padding: 1px 5px;
+      }
       input[type='password'],
       input[type='text'] {
         font-size: 16px;
@@ -211,6 +220,9 @@
           </select>
           <label for="password-input">Password</label>
           <input type="password" id="password-input" placeholder="Password" />
+          <p class="hint" id="credentials-hint">
+            Demo credentials — password: <code>secret</code> (any role)
+          </p>
           <p>
             <button id="sign-in">Sign in</button>
           </p>

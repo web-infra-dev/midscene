@@ -12,6 +12,6 @@ Feature: Shared login flow
   @flow @param:role @returns:greeting
   Scenario: I am logged in as {string}
     When I open the login page
-    And I sign in as the "<role>" user with the correct password
+    And I sign in as the "<role>" user with the demo password shown on the login form
     Then the dashboard for the "<role>" role is visible
     And I remember the greeting message in the header as "greeting"

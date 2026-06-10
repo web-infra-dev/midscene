@@ -20,7 +20,7 @@ import type {
 } from '../types';
 
 export const VERDICT_INSTRUCTIONS = [
-  'You have no tools available; reason only from the information given above.',
+  'If your environment provides tools (e.g. a sandboxed shell or file access), use them to gather the evidence the task requires; otherwise reason only from the information given above.',
   'End your reply with a single-line JSON verdict: {"pass": true|false, "reason": "..."}.',
   'Verdicts are fail-closed: if you are unsure or lack evidence, report {"pass": false, "reason": "..."} explaining what is missing.',
 ].join('\n');

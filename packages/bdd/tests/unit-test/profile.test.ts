@@ -13,7 +13,9 @@ describe('defineProfile', () => {
     expect(path.isAbsolute(importEntries[0])).toBe(true);
     expect(importEntries[0]).toMatch(/register\.(ts|js|mjs|cjs)$/);
     expect(importEntries[1]).toBe('features/step_definitions/**/*.js');
-    expect(profile.paths).toEqual(['features/**/*.feature']);
+    // No `paths` by default: cucumber's own default already covers
+    // features/**/*.feature, and config paths suppress CLI positional args.
+    expect(profile.paths).toBeUndefined();
     expect(profile.tags).toBe('not @flow');
     expect(profile.format).toEqual(['progress']);
   });

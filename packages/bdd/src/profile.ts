@@ -76,10 +76,17 @@ function resolveRegisterPath(): string {
   }
 }
 
-function baseProfile() {
+function baseProfile(): {
+  import: string[];
+  paths?: string[];
+  tags: string;
+  format: string[];
+} {
+  // No `paths` in the base: cucumber's own default is already
+  // features/**/*.feature, and config-file paths SUPPRESS CLI positional
+  // args in cucumber v13 (running one file would become impossible).
   return {
     import: [resolveRegisterPath(), 'features/step_definitions/**/*.js'],
-    paths: ['features/**/*.feature'],
     tags: 'not @flow',
     format: ['progress'],
   };
@@ -139,12 +146,15 @@ export function defineProfile(overrides: ProfileOverrides = {}): {
     import: importOverride
       ? concatDedupe(base.import, importOverride)
       : base.import,
-    paths: pathsOverride ?? base.paths,
     tags: tagsOverride ? `(${base.tags}) and (${tagsOverride})` : base.tags,
     format: formatOverride
       ? concatDedupe(base.format, formatOverride)
       : base.format,
   };
+  // Only emit `paths` when explicitly overridden — see baseProfile.
+  if (pathsOverride) {
+    merged.paths = pathsOverride;
+  }
 
   return { default: merged };
 }

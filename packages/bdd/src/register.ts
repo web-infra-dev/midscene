@@ -58,8 +58,10 @@ BeforeStep(function (
   this.currentStep = { pickle, pickleStep, gherkinDocument };
 });
 
-// THE catch-all — the only cucumber step definition in the system.
-Given(/^(.*)$/s, async function (this: MidsceneWorld) {
+// THE catch-all — the only cucumber step definition in the system. cucumber
+// checks function arity against the pattern's capture count, so the capture
+// must be declared even though routing reads the full pickle step instead.
+Given(/^(.*)$/s, async function (this: MidsceneWorld, _stepText: string) {
   const current = this.currentStep;
   if (!current) {
     throw new Error(

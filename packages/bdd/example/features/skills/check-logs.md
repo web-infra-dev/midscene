@@ -4,8 +4,9 @@ Verify whether the demo server log records a failed login.
 
 ## Where the log lives
 
-The log file is `example/server.log`, relative to the project root (it sits
-next to this example's `midscene.config.ts`).
+The log file is `server.log` in the current working directory (it sits next
+to this project's `midscene.config.ts`). Use your sandbox's file access to
+read it — e.g. `cat server.log`.
 
 ## Line format
 
