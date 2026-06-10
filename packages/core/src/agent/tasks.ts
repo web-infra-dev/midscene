@@ -31,7 +31,6 @@ import type {
   ServiceExtractParam,
 } from '@/types';
 import { ServiceError } from '@/types';
-import { MAX_RUN_ADB_SHELL_STDOUT } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ExecutionSession } from './execution-session';
@@ -65,64 +64,6 @@ export type ActionReportOptions = {
 const debug = getDebug('device-task-executor');
 const warnLog = getDebug('device-task-executor', { console: true });
 const maxErrorCountAllowedInOnePlanningLoop = 5;
-
-function truncateRunAdbShellStdout(stdout: string): string {
-  if (stdout.length <= MAX_RUN_ADB_SHELL_STDOUT) {
-    return stdout;
-  }
-
-  return `${stdout.slice(0, MAX_RUN_ADB_SHELL_STDOUT)}
-...[stdout truncated, ${stdout.length - MAX_RUN_ADB_SHELL_STDOUT} more characters]`;
-}
-
-function buildRunAdbShellStdoutFeedback(
-  results: Array<{ command?: unknown; stdout: string }>,
-  timeString: string,
-): string | undefined {
-  const nonEmptyResults = results.filter(({ stdout }) => stdout !== '');
-  if (nonEmptyResults.length === 0) {
-    return undefined;
-  }
-
-  const stdoutSections = nonEmptyResults
-    .map(({ command, stdout }, index) => {
-      const commandText =
-        typeof command === 'string' && command.length > 0
-          ? `Command: ${command}\n`
-          : '';
-      const sectionTitle =
-        nonEmptyResults.length > 1 ? `RunAdbShell #${index + 1}\n` : '';
-
-      return `${sectionTitle}${commandText}Stdout:
-${truncateRunAdbShellStdout(stdout)}`;
-    })
-    .join('\n\n');
-
-  return `Time: ${timeString}, RunAdbShell returned stdout. The stdout may indicate success or failure.
-${stdoutSections}`;
-}
-
-function getRunAdbShellStdouts(
-  tasks: ExecutionTask[],
-): Array<{ command?: unknown; stdout: string }> {
-  const results: Array<{ command?: unknown; stdout: string }> = [];
-
-  for (const task of tasks) {
-    if (
-      task.type === 'Action Space' &&
-      task.subType === 'RunAdbShell' &&
-      task.status === 'finished' &&
-      typeof task.output === 'string'
-    ) {
-      results.push({
-        command: (task.param as { command?: unknown } | undefined)?.command,
-        stdout: task.output,
-      });
-    }
-  }
-
-  return results;
-}
 
 export { TaskExecutionError };
 
@@ -200,6 +141,21 @@ export class TaskExecutor {
 
   private getActionSpace(): DeviceAction[] {
     return this.providedActionSpace;
+  }
+
+  private updatePendingFeedbackWithPlanningFeedback(
+    conversationHistory: ConversationHistory,
+    tasks: ExecutionTask[],
+    timeString: string,
+  ) {
+    const feedbackMessages = tasks.flatMap(({ planningFeedback }) =>
+      planningFeedback ? [planningFeedback] : [],
+    );
+    if (feedbackMessages.length === 0) {
+      return;
+    }
+
+    conversationHistory.pendingFeedbackMessage = `Time: ${timeString}, ${feedbackMessages.join('\n\n')}`;
   }
 
   /**
@@ -632,18 +588,12 @@ export class TaskExecutor {
 
       const taskCountBeforeRun = runner.tasks.length;
       try {
-        const taskStartIndex = taskCountBeforeRun;
         await session.appendAndRun(executables.tasks);
-        const runAdbShellResults = getRunAdbShellStdouts(
-          runner.tasks.slice(taskStartIndex),
-        );
-        const runAdbShellFeedback = buildRunAdbShellStdoutFeedback(
-          runAdbShellResults,
+        this.updatePendingFeedbackWithPlanningFeedback(
+          conversationHistory,
+          runner.tasks.slice(taskCountBeforeRun),
           initialTimeString,
         );
-        if (runAdbShellFeedback) {
-          conversationHistory.pendingFeedbackMessage = runAdbShellFeedback;
-        }
       } catch (error: any) {
         // errorFlag = true;
         errorCountInOnePlanningLoop++;

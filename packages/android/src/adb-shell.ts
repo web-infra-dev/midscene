@@ -1,4 +1,3 @@
-import { MAX_RUN_ADB_SHELL_STDOUT } from '@midscene/shared/constants';
 import type { ADB } from 'appium-adb';
 
 type AdbShellFullOutput = {
@@ -11,6 +10,7 @@ type RunAdbShellOptions = {
 };
 
 const EMPTY_ADB_SHELL_STDOUT = '<empty>';
+const MAX_RUN_ADB_SHELL_STDOUT = 200;
 
 function normalizeShellStream(value: unknown): string {
   if (value === undefined || value === null) {
@@ -27,6 +27,27 @@ function truncateAdbShellStream(output: string, streamName: string): string {
 
   return `${output.slice(0, MAX_RUN_ADB_SHELL_STDOUT)}
 ...[${streamName} truncated, ${output.length - MAX_RUN_ADB_SHELL_STDOUT} more characters]`;
+}
+
+export function buildRunAdbShellPlanningFeedback({
+  command,
+  stdout,
+}: {
+  command?: unknown;
+  stdout: string;
+}): string | undefined {
+  if (stdout === '') {
+    return undefined;
+  }
+
+  const commandText =
+    typeof command === 'string' && command.length > 0
+      ? `Command: ${command}\n`
+      : '';
+
+  return `RunAdbShell returned stdout. The stdout may indicate success or failure.
+${commandText}Stdout:
+${truncateAdbShellStream(stdout, 'stdout')}`;
 }
 
 function buildAdbShellStderrErrorMessage(

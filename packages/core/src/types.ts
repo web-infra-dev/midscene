@@ -423,6 +423,11 @@ export type ExecutionTask<
   > & {
     taskId: string;
     status: 'pending' | 'running' | 'finished' | 'failed' | 'cancelled';
+    /**
+     * Optional feedback produced by a task for the next planning round.
+     * This is execution metadata, not part of the action return value.
+     */
+    planningFeedback?: string;
     error?: Error;
     errorMessage?: string;
     errorStack?: string;
@@ -678,7 +683,10 @@ export interface DeviceAction<TParam = any, TReturn = any> {
   description?: string;
   interfaceAlias?: string;
   paramSchema?: z.ZodType<TParam>;
-  call: (param: TParam, context: ExecutorContext) => Promise<TReturn> | TReturn;
+  call: (
+    param: TParam,
+    context?: ExecutorContext,
+  ) => Promise<TReturn> | TReturn;
   delayBeforeRunner?: number;
   delayAfterRunner?: number;
   /**

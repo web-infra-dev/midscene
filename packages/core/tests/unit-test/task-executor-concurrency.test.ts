@@ -5,7 +5,7 @@ import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import type { ModelRuntime } from '@/ai-model/models/types';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
-import type { DeviceAction } from '@/types';
+import type { DeviceAction, ExecutorContext } from '@/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import type Service from '../../src';
@@ -202,10 +202,12 @@ describe('TaskExecutor concurrency isolation', () => {
     ]);
   });
 
-  it('should pass RunAdbShell stdout into the next planning feedback', async () => {
+  it('should pass RunAdbShell planning feedback into the next planning request', async () => {
     const seenPendingFeedback: string[] = [];
-    const command = 'settings get system screen_brightness';
-    const stdout = '0\n';
+    const planningFeedback = `RunAdbShell returned stdout. The stdout may indicate success or failure.
+Command: settings get system screen_brightness
+Stdout:
+0`;
 
     vi.spyOn(taskExecutor, 'convertPlanToExecutable')
       .mockResolvedValueOnce({
@@ -213,10 +215,13 @@ describe('TaskExecutor concurrency isolation', () => {
           {
             type: 'Action Space',
             subType: 'RunAdbShell',
-            param: { command },
-            executor: async () => ({
-              output: stdout,
-            }),
+            param: { command: 'settings get system screen_brightness' },
+            executor: async (_param: unknown, context: ExecutorContext) => {
+              context.task.planningFeedback = planningFeedback;
+              return {
+                output: '0',
+              };
+            },
           },
         ],
         yamlFlow: [],
@@ -236,8 +241,8 @@ describe('TaskExecutor concurrency isolation', () => {
           actions: [
             {
               type: 'RunAdbShell',
-              param: { command },
-              thought: 'read brightness setting',
+              param: { command: 'settings get system screen_brightness' },
+              thought: 'read brightness state from adb shell',
             },
           ],
           yamlFlow: [],
@@ -263,27 +268,31 @@ describe('TaskExecutor concurrency isolation', () => {
       });
 
     await taskExecutor.action(
-      'check brightness',
+      'check brightness with adb shell',
       planningModel(),
       defaultModel(),
       true,
     );
 
     expect(seenPendingFeedback[0]).toBe('');
-    expect(seenPendingFeedback[1]).toContain('RunAdbShell returned stdout');
-    expect(seenPendingFeedback[1]).toContain(
-      'The stdout may indicate success or failure',
-    );
-    expect(seenPendingFeedback[1]).toContain(`Command: ${command}`);
-    expect(seenPendingFeedback[1]).toContain(`Stdout:\n${stdout}`);
+    expect(seenPendingFeedback[1]).toContain(planningFeedback);
   });
 
-  it('should collect all RunAdbShell stdout instead of the final task output', async () => {
+  it('should collect all planning feedback instead of the final task output', async () => {
     const seenPendingFeedback: string[] = [];
-    const command = 'settings get system screen_brightness';
-    const secondCommand = 'settings get system screen_off_timeout';
-    const stdout = '0\n';
-    const secondStdout = '30000\n';
+    vi.setSystemTime(new Date(2023, 9, 15, 8, 30, 0));
+    const firstPlanningFeedback = `RunAdbShell returned stdout. The stdout may indicate success or failure.
+Command: settings get system screen_brightness
+Stdout:
+0`;
+    const secondPlanningFeedback = `RunAdbShell returned stdout. The stdout may indicate success or failure.
+Command: settings get system screen_off_timeout
+Stdout:
+30000`;
+    const thirdPlanningFeedback = `RunAdbShell returned stdout. The stdout may indicate success or failure.
+Command: dumpsys window
+Stdout:
+mCurrentFocus=Window{abc}`;
     const finalActionOutput = 'tap-output';
 
     vi.spyOn(taskExecutor, 'convertPlanToExecutable')
@@ -292,18 +301,35 @@ describe('TaskExecutor concurrency isolation', () => {
           {
             type: 'Action Space',
             subType: 'RunAdbShell',
-            param: { command },
-            executor: async () => ({
-              output: stdout,
-            }),
+            param: { command: 'settings get system screen_brightness' },
+            executor: async (_param: unknown, context: ExecutorContext) => {
+              context.task.planningFeedback = firstPlanningFeedback;
+              return {
+                output: '0',
+              };
+            },
           },
           {
             type: 'Action Space',
             subType: 'RunAdbShell',
-            param: { command: secondCommand },
-            executor: async () => ({
-              output: secondStdout,
-            }),
+            param: { command: 'settings get system screen_off_timeout' },
+            executor: async (_param: unknown, context: ExecutorContext) => {
+              context.task.planningFeedback = secondPlanningFeedback;
+              return {
+                output: '30000',
+              };
+            },
+          },
+          {
+            type: 'Action Space',
+            subType: 'RunAdbShell',
+            param: { command: 'dumpsys window' },
+            executor: async (_param: unknown, context: ExecutorContext) => {
+              context.task.planningFeedback = thirdPlanningFeedback;
+              return {
+                output: 'mCurrentFocus=Window{abc}',
+              };
+            },
           },
           {
             type: 'Action Space',
@@ -331,13 +357,18 @@ describe('TaskExecutor concurrency isolation', () => {
           actions: [
             {
               type: 'RunAdbShell',
-              param: { command },
-              thought: 'read brightness setting',
+              param: { command: 'settings get system screen_brightness' },
+              thought: 'read brightness state from adb shell',
             },
             {
               type: 'RunAdbShell',
-              param: { command: secondCommand },
-              thought: 'read screen timeout setting',
+              param: { command: 'settings get system screen_off_timeout' },
+              thought: 'read screen timeout state from adb shell',
+            },
+            {
+              type: 'RunAdbShell',
+              param: { command: 'dumpsys window' },
+              thought: 'read current focus from adb shell',
             },
             {
               type: 'Tap',
@@ -374,17 +405,18 @@ describe('TaskExecutor concurrency isolation', () => {
       true,
     );
 
-    expect(seenPendingFeedback[1]).toContain('RunAdbShell returned stdout');
-    expect(seenPendingFeedback[1]).toContain(`Command: ${command}`);
-    expect(seenPendingFeedback[1]).toContain(`Stdout:\n${stdout}`);
-    expect(seenPendingFeedback[1]).toContain(`Command: ${secondCommand}`);
-    expect(seenPendingFeedback[1]).toContain(`Stdout:\n${secondStdout}`);
+    expect(
+      seenPendingFeedback[1],
+    ).toBe(`Time: 2023-10-15 08:30:00 (YYYY-MM-DD HH:mm:ss), ${firstPlanningFeedback}
+
+${secondPlanningFeedback}
+
+${thirdPlanningFeedback}`);
     expect(seenPendingFeedback[1]).not.toContain(finalActionOutput);
   });
 
-  it('should not pass empty RunAdbShell stdout into the next planning feedback', async () => {
+  it('should not pass empty planning feedback into the next planning request', async () => {
     const seenPendingFeedback: string[] = [];
-    const command = 'cmd clipboard set-text "Tracking #: 5K672F4C"';
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
       replanningCycleLimit: 1,
       actionSpace: [],
@@ -394,11 +426,14 @@ describe('TaskExecutor concurrency isolation', () => {
         tasks: [
           {
             type: 'Action Space',
-            subType: 'RunAdbShell',
-            param: { command },
-            executor: async () => ({
-              output: '',
-            }),
+            subType: 'WriteState',
+            param: { key: 'clipboard' },
+            executor: async (_param: unknown, context: ExecutorContext) => {
+              context.task.planningFeedback = '';
+              return {
+                output: '',
+              };
+            },
           },
         ],
         yamlFlow: [],
@@ -417,9 +452,9 @@ describe('TaskExecutor concurrency isolation', () => {
         return {
           actions: [
             {
-              type: 'RunAdbShell',
-              param: { command },
-              thought: 'set clipboard',
+              type: 'WriteState',
+              param: { key: 'clipboard' },
+              thought: 'write state',
             },
           ],
           yamlFlow: [],
@@ -451,8 +486,7 @@ describe('TaskExecutor concurrency isolation', () => {
       true,
     );
 
-    expect(seenPendingFeedback[1]).not.toContain('RunAdbShell returned stdout');
-    expect(seenPendingFeedback[1]).not.toContain(`Command: ${command}`);
+    expect(seenPendingFeedback[1]).not.toContain('WriteState');
   });
 
   it('should fall back to runtime time instead of device timestamp when device-local time is unavailable', async () => {

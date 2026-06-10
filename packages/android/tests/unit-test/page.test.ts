@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import type { ExecutorContext } from '@midscene/core';
 import * as CoreUtils from '@midscene/core/utils';
 import * as ImgUtils from '@midscene/shared/img';
 import { ADB } from 'appium-adb';
@@ -220,6 +221,90 @@ describe('AndroidDevice', () => {
   });
 
   describe('RunAdbShell action output', () => {
+    it('should expose non-empty stdout as planning feedback', async () => {
+      const command = 'settings get system screen_brightness';
+      mockAdb.shell.mockResolvedValue({
+        stdout: '0\n',
+        stderr: '',
+      } as any);
+
+      const runAdbShellAction = device
+        .actionSpace()
+        .find((action) => action.name === 'RunAdbShell');
+      const taskContext: { task: { planningFeedback?: string } } = {
+        task: {},
+      };
+      await runAdbShellAction!.call(
+        { command },
+        taskContext as ExecutorContext,
+      );
+
+      expect(taskContext.task).toEqual({
+        planningFeedback: `RunAdbShell returned stdout. The stdout may indicate success or failure.
+Command: ${command}
+Stdout:
+0
+`,
+      });
+    });
+
+    it('should omit planning feedback for empty stdout', async () => {
+      const command = 'cmd clipboard set-text "Tracking #: 5K672F4C"';
+      mockAdb.shell.mockResolvedValue({
+        stdout: '',
+        stderr: '',
+      } as any);
+
+      const runAdbShellAction = device
+        .actionSpace()
+        .find((action) => action.name === 'RunAdbShell');
+      const taskContext: { task: { planningFeedback?: string } } = {
+        task: {},
+      };
+      await runAdbShellAction!.call(
+        { command },
+        taskContext as ExecutorContext,
+      );
+
+      expect(taskContext.task).toEqual({});
+    });
+
+    it('should truncate stdout in planning feedback', async () => {
+      const command = 'cmd test';
+      mockAdb.shell.mockResolvedValue({
+        stdout: 'o'.repeat(240),
+        stderr: '',
+      } as any);
+
+      const runAdbShellAction = device
+        .actionSpace()
+        .find((action) => action.name === 'RunAdbShell');
+      const taskContext: { task: { planningFeedback?: string } } = {
+        task: {},
+      };
+      await runAdbShellAction!.call(
+        { command },
+        taskContext as ExecutorContext,
+      );
+
+      expect(taskContext.task.planningFeedback).toContain(`${'o'.repeat(200)}
+...[stdout truncated, 40 more characters]`);
+    });
+
+    it('should return stdout without requiring executor context', async () => {
+      const command = 'settings get system screen_brightness';
+      mockAdb.shell.mockResolvedValue({
+        stdout: '0\n',
+        stderr: '',
+      } as any);
+
+      const runAdbShellAction = device
+        .actionSpace()
+        .find((action) => action.name === 'RunAdbShell');
+
+      await expect(runAdbShellAction!.call({ command })).resolves.toBe('0\n');
+    });
+
     it('should throw when adb shell exits zero with stderr output', async () => {
       const command = 'cmd clipboard set-text "Tracking #: 5K672F4C"';
       mockAdb.shell.mockResolvedValue({
@@ -232,7 +317,7 @@ describe('AndroidDevice', () => {
         .find((action) => action.name === 'RunAdbShell');
 
       await expect(
-        runAdbShellAction!.call({ command }, {} as any),
+        runAdbShellAction!.call({ command }, {} as ExecutorContext),
       ).rejects.toThrow(
         /RunAdbShell command returned stderr\.[\s\S]*No shell command implementation\./,
       );
