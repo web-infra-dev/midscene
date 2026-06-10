@@ -1,0 +1,76 @@
+#!/usr/bin/env node
+'use strict';
+
+/**
+ * midscene-bdd — thin launcher around the cucumber-js CLI.
+ *
+ * - If the cwd already has a cucumber config file, user args pass through
+ *   unchanged (the user's config governs).
+ * - Otherwise the @midscene/bdd preset is injected as CLI flags before user
+ *   args, so `npx midscene-bdd` works with zero config.
+ */
+
+const fs = require('node:fs');
+const path = require('node:path');
+const { spawn } = require('node:child_process');
+
+// @cucumber/cucumber's exports map does not expose ./bin/*, so resolve the
+// package root via package.json (which it does expose) and join from there.
+// The real CLI file in v13 is bin/cucumber.js (see its package.json "bin").
+const cucumberPkg = require.resolve('@cucumber/cucumber/package.json');
+const cliPath = path.join(path.dirname(cucumberPkg), 'bin', 'cucumber.js');
+
+const CONFIG_BASENAMES = ['cucumber', 'cucumber.config'];
+const CONFIG_EXTENSIONS = ['js', 'cjs', 'mjs', 'json', 'yaml', 'yml'];
+
+function hasCucumberConfig(cwd) {
+  return CONFIG_BASENAMES.some((base) =>
+    CONFIG_EXTENSIONS.some((ext) =>
+      fs.existsSync(path.join(cwd, `${base}.${ext}`)),
+    ),
+  );
+}
+
+// Positional heuristic: an arg is a path when it doesn't start with '-' and
+// the previous arg isn't a flag (cucumber flags take values as `--flag value`;
+// `--flag=value` stays a single token).
+function hasPositionalArgs(args) {
+  return args.some(
+    (arg, i) => !arg.startsWith('-') && (i === 0 || !args[i - 1].startsWith('-')),
+  );
+}
+
+const userArgs = process.argv.slice(2);
+let args = userArgs;
+
+if (!hasCucumberConfig(process.cwd())) {
+  // Derive the flags from the same defineProfile() the cucumber.js preset
+  // uses, so the bin and the profile can never drift. The bin always runs
+  // from the installed/built package, so dist exists.
+  const { defineProfile } = require('../dist/lib/profile.js');
+  const profile = defineProfile().default;
+  const preset = [];
+  for (const entry of profile.import) {
+    preset.push('--import', entry);
+  }
+  preset.push('--tags', profile.tags);
+  for (const entry of profile.format) {
+    preset.push('--format', entry);
+  }
+  if (!hasPositionalArgs(userArgs)) {
+    preset.push(...profile.paths);
+  }
+  args = [...preset, ...userArgs];
+}
+
+const child = spawn(process.execPath, [cliPath, ...args], {
+  stdio: 'inherit',
+});
+
+child.on('exit', (code, signal) => {
+  if (signal) {
+    process.kill(process.pid, signal);
+    return;
+  }
+  process.exit(code === null ? 1 : code);
+});

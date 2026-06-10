@@ -1,0 +1,22 @@
+{
+  "extends": "../shared/tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "target": "es2021",
+    "rootDir": ".",
+    "declarationDir": "dist/types",
+    "types": ["node"]
+  },
+  "exclude": ["node_modules", "example"],
+  "include": ["src", "tests"],
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../shared"
+    }
+  ]
+}

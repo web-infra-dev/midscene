@@ -1,0 +1,229 @@
+/**
+ * Step-level annotation resolution for @midscene/bdd.
+ *
+ * Gherkin has no step-level tags, so per-step routing markers live in `#`
+ * comment lines directly above the step (`@agent`, `@no-ai`, `@soft`, and
+ * `$skill` tokens). Scenario/feature-level `@no-ai` / `@soft` tags are
+ * inherited via the pickle's tags; `@agent` is intentionally per-line only.
+ */
+import type {
+  GherkinDocument,
+  Pickle,
+  PickleStep,
+  Step,
+} from '@cucumber/messages';
+import { PickleStepType } from '@cucumber/messages';
+import { ERROR_PREFIX } from './types';
+import type {
+  RouterContext,
+  StepAnnotations,
+  StepType,
+  VarScope,
+} from './types';
+
+const SKILL_TOKEN_RE = /\$([A-Za-z0-9][A-Za-z0-9_-]*)/g;
+const AGENT_MARKER_RE = /@agent\b/;
+const NO_AI_MARKER_RE = /@no-ai\b/;
+const SOFT_MARKER_RE = /@soft\b/;
+
+/**
+ * Extract `$skill-name` tokens from text, deduped, in order of first
+ * appearance.
+ */
+export function parseSkillTokens(text: string): string[] {
+  const tokens: string[] = [];
+  for (const match of text.matchAll(SKILL_TOKEN_RE)) {
+    const token = match[1];
+    if (!tokens.includes(token)) {
+      tokens.push(token);
+    }
+  }
+  return tokens;
+}
+
+/** Map the gherkin-computed pickle step type to our StepType. */
+export function stepTypeOf(pickleStep: PickleStep): StepType {
+  switch (pickleStep.type) {
+    case PickleStepType.CONTEXT:
+      return 'context';
+    case PickleStepType.ACTION:
+      return 'action';
+    case PickleStepType.OUTCOME:
+      return 'outcome';
+    case PickleStepType.UNKNOWN:
+    case undefined:
+      return 'unknown';
+    default: {
+      const _exhaustive: never = pickleStep.type;
+      return 'unknown';
+    }
+  }
+}
+
+interface DocumentIndex {
+  stepById: Map<string, Step>;
+  commentTextByLine: Map<number, string>;
+}
+
+// Gherkin documents are immutable after parse and reused across a feature's
+// scenarios (and across flow calls), so index each document once.
+const documentIndexes = new WeakMap<GherkinDocument, DocumentIndex>();
+
+function indexDocument(document: GherkinDocument): DocumentIndex {
+  let index = documentIndexes.get(document);
+  if (index) return index;
+
+  const stepById = new Map<string, Step>();
+  // Covers feature-level Background and Scenario steps plus Rule children;
+  // Scenario Outline pickle steps point at the outline step node, so the
+  // same walk covers them.
+  for (const child of document.feature?.children ?? []) {
+    const scopes = [child.background, child.scenario];
+    for (const ruleChild of child.rule?.children ?? []) {
+      scopes.push(ruleChild.background, ruleChild.scenario);
+    }
+    for (const scope of scopes) {
+      for (const step of scope?.steps ?? []) {
+        stepById.set(step.id, step);
+      }
+    }
+  }
+
+  const commentTextByLine = new Map<number, string>();
+  for (const comment of document.comments ?? []) {
+    commentTextByLine.set(comment.location.line, comment.text);
+  }
+
+  index = { stepById, commentTextByLine };
+  documentIndexes.set(document, index);
+  return index;
+}
+
+function addUnique(target: string[], tokens: string[]): void {
+  for (const token of tokens) {
+    if (!target.includes(token)) {
+      target.push(token);
+    }
+  }
+}
+
+/**
+ * Resolve routing annotations for one pickle step from (a) the contiguous
+ * `#` comment block ending directly above the step's AST line, (b) inherited
+ * pickle tags (`@no-ai` / `@soft` only), and (c) inline `$skill` tokens.
+ */
+export function resolveStepAnnotations(input: {
+  document: GherkinDocument;
+  pickle: Pickle;
+  pickleStep: PickleStep;
+}): StepAnnotations {
+  const { document, pickle, pickleStep } = input;
+
+  const { stepById, commentTextByLine } = indexDocument(document);
+  const astNodeId = pickleStep.astNodeIds[0];
+  const step = astNodeId ? stepById.get(astNodeId) : undefined;
+  if (!step) {
+    throw new Error(
+      `${ERROR_PREFIX} Could not locate the AST step for pickle step "${pickleStep.text}"`,
+    );
+  }
+
+  // Contiguous run of comment lines ending exactly at stepLine - 1. The run
+  // stops at the previous step / scenario header line, so comments above a
+  // `Scenario:` header never leak into the scenario's first step.
+  const blockTexts: string[] = [];
+  for (let line = step.location.line - 1; commentTextByLine.has(line); line--) {
+    blockTexts.unshift(commentTextByLine.get(line) as string);
+  }
+
+  let agent = false;
+  let noAi = false;
+  let soft = false;
+  const skills: string[] = [];
+
+  for (const rawText of blockTexts) {
+    const text = rawText.trim().replace(/^#/, '').trim();
+    if (AGENT_MARKER_RE.test(text)) {
+      agent = true;
+    }
+    if (NO_AI_MARKER_RE.test(text)) {
+      noAi = true;
+    }
+    if (SOFT_MARKER_RE.test(text)) {
+      soft = true;
+    }
+    addUnique(skills, parseSkillTokens(text));
+  }
+
+  // Pickle tags already include inherited feature/rule tags per Gherkin
+  // semantics. `@agent` is deliberately not honored here (per-line bailout
+  // by design) and `@flow` is handled by the assets scanner.
+  for (const tag of pickle.tags ?? []) {
+    if (tag.name === '@no-ai') {
+      noAi = true;
+    }
+    if (tag.name === '@soft') {
+      soft = true;
+    }
+  }
+
+  addUnique(skills, parseSkillTokens(pickleStep.text));
+
+  if (skills.length > 0) {
+    agent = true;
+  }
+
+  return { agent, noAi, soft, skills };
+}
+
+/** Render a pickle data table as `| cell | cell |` lines for prompts. */
+export function renderDataTable(step: PickleStep): string | undefined {
+  const table = step.argument?.dataTable;
+  if (!table) return undefined;
+  return table.rows
+    .map((row) => `| ${row.cells.map((cell) => cell.value).join(' | ')} |`)
+    .join('\n');
+}
+
+export interface StepContextInput {
+  document: GherkinDocument;
+  pickle: Pickle;
+  pickleStep: PickleStep;
+  vars: VarScope;
+  flowDepth: number;
+  runtime: Pick<RouterContext, 'flows' | 'skills' | 'config'>;
+  agents: Pick<RouterContext, 'getUiAgent' | 'getGeneralAgent' | 'peekUiAgent'>;
+  attach?: RouterContext['attach'];
+  log?: RouterContext['log'];
+}
+
+/**
+ * The single way a (document, pickle, pickleStep) triple becomes a
+ * RouterContext — used by the catch-all step (register.ts), the flow
+ * executor (flows.ts), and the integration harness, so prompts and routing
+ * can never drift between top-level and flow steps.
+ */
+export function buildStepContext(input: StepContextInput): RouterContext {
+  const { pickleStep } = input;
+  return {
+    stepText: pickleStep.text,
+    stepType: stepTypeOf(pickleStep),
+    annotations: resolveStepAnnotations({
+      document: input.document,
+      pickle: input.pickle,
+      pickleStep,
+    }),
+    dataTable: renderDataTable(pickleStep),
+    docString: pickleStep.argument?.docString?.content,
+    vars: input.vars,
+    flowDepth: input.flowDepth,
+    flows: input.runtime.flows,
+    skills: input.runtime.skills,
+    config: input.runtime.config,
+    getUiAgent: input.agents.getUiAgent,
+    getGeneralAgent: input.agents.getGeneralAgent,
+    peekUiAgent: input.agents.peekUiAgent,
+    attach: input.attach,
+    log: input.log,
+  };
+}

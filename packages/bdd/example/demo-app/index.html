@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Midscene Demo Shop</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        background: #f4f6f8;
+        color: #1c2430;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        padding: 16px 32px;
+        background: #15314d;
+        color: #fff;
+      }
+      header .brand {
+        font-size: 22px;
+        font-weight: 700;
+      }
+      nav a {
+        color: #cfe2f5;
+        margin-right: 18px;
+        text-decoration: none;
+        font-size: 16px;
+      }
+      nav a:hover {
+        text-decoration: underline;
+      }
+      #greeting {
+        margin-left: auto;
+        font-size: 18px;
+        font-weight: 600;
+        color: #ffd966;
+      }
+      main {
+        max-width: 760px;
+        margin: 28px auto;
+        padding: 0 16px;
+      }
+      .view {
+        display: none;
+      }
+      .view.active {
+        display: block;
+      }
+      h1 {
+        font-size: 26px;
+        margin: 0 0 18px;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid #dbe2ea;
+        border-radius: 10px;
+        padding: 20px 24px;
+        margin-bottom: 16px;
+      }
+      .product {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .product .name {
+        font-size: 20px;
+        font-weight: 600;
+      }
+      .price {
+        font-size: 20px;
+        font-weight: 700;
+        color: #0a6e3d;
+      }
+      button {
+        font-size: 15px;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        background: #1d6fd1;
+        color: #fff;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #1858a8;
+      }
+      button.qty {
+        padding: 4px 12px;
+        font-size: 16px;
+        background: #5a6b7d;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin: 12px 0 4px;
+      }
+      select,
+      input[type='password'],
+      input[type='text'] {
+        font-size: 16px;
+        padding: 8px 10px;
+        border: 1px solid #b6c2cf;
+        border-radius: 6px;
+        width: 240px;
+      }
+      #error-toast {
+        display: none;
+        margin: 16px 0;
+        padding: 14px 18px;
+        background: #c92a2a;
+        color: #fff;
+        font-size: 17px;
+        font-weight: 600;
+        border-radius: 8px;
+      }
+      #error-toast.visible {
+        display: block;
+      }
+      #coupon-message {
+        display: none;
+        margin-top: 10px;
+        padding: 10px 14px;
+        background: #d3f2dd;
+        color: #0a6e3d;
+        font-size: 16px;
+        font-weight: 600;
+        border-radius: 6px;
+      }
+      #coupon-message.visible {
+        display: inline-block;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 17px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 10px 8px;
+        border-bottom: 1px solid #e3e9ef;
+      }
+      td.num,
+      th.num {
+        text-align: right;
+      }
+      #cart-total-row td {
+        font-size: 21px;
+        font-weight: 700;
+      }
+      #page-log-section {
+        margin-top: 28px;
+      }
+      #page-log-section h2 {
+        font-size: 16px;
+        color: #5a6b7d;
+        margin-bottom: 6px;
+      }
+      #page-log {
+        background: #fff;
+        border: 1px dashed #b6c2cf;
+        border-radius: 8px;
+        padding: 10px 28px;
+        min-height: 36px;
+        font-family: 'Consolas', monospace;
+        font-size: 14px;
+        color: #44505c;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="brand">Trailside Outfitters</span>
+      <nav>
+        <a href="#" id="nav-home">Home</a>
+        <a href="#" id="nav-login">Login</a>
+        <a href="#" id="nav-cart">Cart</a>
+      </nav>
+      <span id="greeting"></span>
+    </header>
+
+    <main>
+      <div id="error-toast" role="alert"></div>
+
+      <section id="view-home" class="view active">
+        <h1>Products</h1>
+        <div class="card product" data-product="Trail Backpack" data-price="129.00">
+          <span class="name">Trail Backpack</span>
+          <span class="price">$129.00</span>
+          <button class="add-to-cart">Add to cart</button>
+        </div>
+        <div class="card product" data-product="Camp Mug" data-price="24.50">
+          <span class="name">Camp Mug</span>
+          <span class="price">$24.50</span>
+          <button class="add-to-cart">Add to cart</button>
+        </div>
+      </section>
+
+      <section id="view-login" class="view">
+        <h1>Login</h1>
+        <div class="card">
+          <label for="role-select">Role</label>
+          <select id="role-select">
+            <option value="admin">admin</option>
+            <option value="guest">guest</option>
+          </select>
+          <label for="password-input">Password</label>
+          <input type="password" id="password-input" placeholder="Password" />
+          <p>
+            <button id="sign-in">Sign in</button>
+          </p>
+        </div>
+      </section>
+
+      <section id="view-dashboard" class="view">
+        <h1 id="dashboard-title">Dashboard</h1>
+        <div class="card">
+          <p>Welcome back. Use the navigation above to browse products or review your cart.</p>
+        </div>
+      </section>
+
+      <section id="view-cart" class="view">
+        <h1>Your Cart</h1>
+        <div class="card">
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th class="num">Unit price</th>
+                <th>Quantity</th>
+                <th class="num">Line total</th>
+              </tr>
+            </thead>
+            <tbody id="cart-items"></tbody>
+            <tfoot>
+              <tr id="cart-total-row">
+                <td colspan="3">Total</td>
+                <td class="num" id="cart-total">$0.00</td>
+              </tr>
+            </tfoot>
+          </table>
+          <label for="coupon-input">Coupon code</label>
+          <input type="text" id="coupon-input" placeholder="Coupon code" />
+          <button id="apply-coupon">Apply</button>
+          <div id="coupon-message">Coupon applied</div>
+        </div>
+      </section>
+
+      <section id="page-log-section">
+        <h2>Page log</h2>
+        <ol id="page-log"></ol>
+      </section>
+    </main>
+
+    <script>
+      // Fully client-side demo state — no network calls anywhere.
+      window.__loginAttempts = 0;
+
+      var cart = []; // { name, price, qty }
+      var discount = 0; // 0 or 0.10 once SAVE10 is applied
+
+      function $(id) {
+        return document.getElementById(id);
+      }
+
+      function showView(name) {
+        var views = document.querySelectorAll('.view');
+        for (var i = 0; i < views.length; i++) {
+          views[i].classList.remove('active');
+        }
+        $('view-' + name).classList.add('active');
+      }
+
+      function pageLog(message) {
+        var li = document.createElement('li');
+        li.textContent = message;
+        $('page-log').appendChild(li);
+      }
+
+      function showToast(message) {
+        var toast = $('error-toast');
+        toast.textContent = message;
+        toast.classList.add('visible');
+      }
+
+      function hideToast() {
+        $('error-toast').classList.remove('visible');
+      }
+
+      function money(value) {
+        return '$' + value.toFixed(2);
+      }
+
+      function renderCart() {
+        var tbody = $('cart-items');
+        tbody.innerHTML = '';
+        var total = 0;
+        cart.forEach(function (item, index) {
+          total += item.price * item.qty;
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td>' + item.name + '</td>' +
+            '<td class="num">' + money(item.price) + '</td>' +
+            '<td>' +
+            '<button class="qty" data-index="' + index + '" data-delta="-1">−</button> ' +
+            '<span class="qty-value">' + item.qty + '</span> ' +
+            '<button class="qty" data-index="' + index + '" data-delta="1">+</button>' +
+            '</td>' +
+            '<td class="num">' + money(item.price * item.qty) + '</td>';
+          tbody.appendChild(tr);
+        });
+        $('cart-total').textContent = money(total * (1 - discount));
+      }
+
+      // ——— navigation ———
+      $('nav-home').addEventListener('click', function (e) {
+        e.preventDefault();
+        hideToast();
+        showView('home');
+      });
+      $('nav-login').addEventListener('click', function (e) {
+        e.preventDefault();
+        hideToast();
+        showView('login');
+      });
+      $('nav-cart').addEventListener('click', function (e) {
+        e.preventDefault();
+        hideToast();
+        renderCart();
+        showView('cart');
+      });
+
+      // ——— login ———
+      $('sign-in').addEventListener('click', function () {
+        var role = $('role-select').value;
+        var password = $('password-input').value;
+        if (password === 'secret') {
+          hideToast();
+          var pretty = role.charAt(0).toUpperCase() + role.slice(1);
+          $('greeting').textContent = 'Hello, ' + pretty + '!';
+          $('dashboard-title').textContent = 'Dashboard (' + role + ')';
+          pageLog('login ok: role=' + role);
+          showView('dashboard');
+        } else {
+          window.__loginAttempts += 1;
+          showToast('Invalid password for role "' + role + '"');
+          pageLog(
+            'login failed: role=' + role + ' (attempt #' + window.__loginAttempts + ')'
+          );
+        }
+      });
+
+      // ——— products ———
+      document.querySelectorAll('.add-to-cart').forEach(function (button) {
+        button.addEventListener('click', function () {
+          var card = button.closest('.product');
+          var name = card.getAttribute('data-product');
+          var price = parseFloat(card.getAttribute('data-price'));
+          var existing = cart.find(function (item) {
+            return item.name === name;
+          });
+          if (existing) {
+            existing.qty += 1;
+          } else {
+            cart.push({ name: name, price: price, qty: 1 });
+          }
+          pageLog('added to cart: ' + name);
+          renderCart();
+          showView('cart');
+        });
+      });
+
+      // ——— cart quantity controls (event delegation) ———
+      $('cart-items').addEventListener('click', function (e) {
+        var target = e.target;
+        if (!target.classList.contains('qty')) return;
+        var index = parseInt(target.getAttribute('data-index'), 10);
+        var delta = parseInt(target.getAttribute('data-delta'), 10);
+        cart[index].qty = Math.max(0, cart[index].qty + delta);
+        if (cart[index].qty === 0) {
+          cart.splice(index, 1);
+        }
+        renderCart();
+      });
+
+      // ——— coupon ———
+      $('apply-coupon').addEventListener('click', function () {
+        var code = $('coupon-input').value.trim();
+        if (code === 'SAVE10') {
+          discount = 0.1;
+          $('coupon-message').classList.add('visible');
+          pageLog('coupon applied: SAVE10 (10% off)');
+        } else {
+          showToast('Unknown coupon code "' + code + '"');
+          pageLog('coupon rejected: ' + code);
+        }
+        renderCart();
+      });
+    </script>
+  </body>
+</html>

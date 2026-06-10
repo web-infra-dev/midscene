@@ -1,0 +1,65 @@
+{
+  "name": "@midscene/bdd",
+  "version": "1.9.3",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/bdd"
+  },
+  "description": "AI-native BDD test runner: standard Gherkin driven by cucumber-js, executed by Midscene. Midscene by default, coding agent on @agent/$skill, classic callbacks on @no-ai.",
+  "author": "midscene team",
+  "license": "MIT",
+  "main": "./dist/lib/index.js",
+  "types": "./dist/types/index.d.ts",
+  "module": "./dist/es/index.mjs",
+  "bin": {
+    "midscene-bdd": "./bin/midscene-bdd"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "require": "./dist/lib/index.js",
+      "import": "./dist/es/index.mjs",
+      "default": "./dist/es/index.mjs"
+    },
+    "./register": {
+      "types": "./dist/types/register.d.ts",
+      "require": "./dist/lib/register.js",
+      "import": "./dist/es/register.mjs",
+      "default": "./dist/es/register.mjs"
+    },
+    "./profile": {
+      "types": "./dist/types/profile.d.ts",
+      "require": "./dist/lib/profile.js",
+      "import": "./dist/es/profile.mjs",
+      "default": "./dist/es/profile.mjs"
+    }
+  },
+  "files": ["dist", "bin", "README.md"],
+  "scripts": {
+    "build": "rslib build",
+    "build:watch": "rslib build --watch --no-clean",
+    "dev": "npm run build:watch",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cucumber/cucumber": "13.0.0",
+    "@cucumber/cucumber-expressions": "19.0.1",
+    "@cucumber/gherkin": "39.1.0",
+    "@cucumber/messages": "32.3.1",
+    "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "@midscene/web": "workspace:*",
+    "glob": "11.0.0",
+    "jiti": "2.7.0"
+  },
+  "devDependencies": {
+    "@rslib/core": "^0.18.3",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.8.3",
+    "vitest": "3.0.5"
+  }
+}
