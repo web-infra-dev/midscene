@@ -461,12 +461,14 @@ export class Page<
   async waitForDomQuiet(opts?: {
     quietMs?: number;
     timeoutMs?: number;
+    target?: ElementInfo;
   }): Promise<void> {
     const quietMs = opts?.quietMs ?? 100;
     const timeoutMs = opts?.timeoutMs ?? 500;
+    const targetCenter = opts?.target?.center;
     try {
       await this.evaluate(
-        ([q, total]: [number, number]) =>
+        ([q, total, center]: [number, number, [number, number] | undefined]) =>
           new Promise<void>((resolve) => {
             let settleTimer: ReturnType<typeof setTimeout> | undefined;
             const done = () => {
@@ -475,11 +477,17 @@ export class Page<
               if (settleTimer) clearTimeout(settleTimer);
               resolve();
             };
+            const target =
+              center && Number.isFinite(center[0]) && Number.isFinite(center[1])
+                ? document.elementFromPoint(center[0], center[1])
+                : null;
+            const observeRoot =
+              target?.closest('form') ?? target?.parentElement ?? document.body;
             const obs = new MutationObserver(() => {
               if (settleTimer) clearTimeout(settleTimer);
               settleTimer = setTimeout(done, q);
             });
-            obs.observe(document.body, {
+            obs.observe(observeRoot, {
               childList: true,
               subtree: true,
               attributes: true,
@@ -487,7 +495,7 @@ export class Page<
             });
             const hardTimer = setTimeout(done, total);
           }),
-        [quietMs, timeoutMs],
+        [quietMs, timeoutMs, targetCenter],
       );
     } catch (error) {
       debugPage('waitForDomQuiet failed: %s', error);

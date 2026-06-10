@@ -15,7 +15,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest';
  *
  * The fix lives in `createWebInputPrimitives` (web-page.ts): after
  * `clearInput`, it waits for the DOM to be quiet via
- * `page.waitForDomQuiet()` before starting `keyboard.type`.
+ * `page.waitForDomQuiet({ target })` before starting `keyboard.type`.
  */
 
 const KEYBOARD_TYPE_DELAY_MS = 300;
@@ -72,6 +72,25 @@ const RACE_PAGE_HTML = `
   </html>
 `;
 
+const SCOPED_WAIT_PAGE_HTML = `
+  <!DOCTYPE html>
+  <html>
+    <body style="padding: 24px;">
+      <form id="target-root">
+        <input id="i" type="text" value="initial"
+               style="width: 320px; padding: 10px; font-size: 16px;" />
+      </form>
+      <div id="ticker"></div>
+      <script>
+        let count = 0;
+        setInterval(() => {
+          document.getElementById('ticker').textContent = String(count++);
+        }, 25);
+      </script>
+    </body>
+  </html>
+`;
+
 const inputCenter = async (page: any) =>
   page.$eval('#i', (el: HTMLInputElement) => {
     const r = el.getBoundingClientRect();
@@ -111,6 +130,36 @@ describe('clearInput → keyboard.type race (replace mode)', () => {
       await page.close();
 
       expect(finalValue).toBe('Hello');
+    },
+    PUPPETEER_TEST_TIMEOUT_MS,
+  );
+
+  test(
+    'waitForDomQuiet scopes observation to the target ancestor',
+    async () => {
+      const page = await browser.newPage();
+      await page.setContent(SCOPED_WAIT_PAGE_HTML);
+
+      const webPage = new PuppeteerWebPage(page);
+      const { x, y } = await inputCenter(page);
+      await page.evaluate(() => {
+        setTimeout(() => {
+          document
+            .getElementById('target-root')
+            ?.setAttribute('data-ready', 'true');
+        }, 20);
+      });
+
+      const startedAt = Date.now();
+      await webPage.waitForDomQuiet({
+        quietMs: 80,
+        timeoutMs: 500,
+        target: { center: [x, y] } as any,
+      });
+      const elapsedMs = Date.now() - startedAt;
+      await page.close();
+
+      expect(elapsedMs).toBeLessThan(350);
     },
     PUPPETEER_TEST_TIMEOUT_MS,
   );

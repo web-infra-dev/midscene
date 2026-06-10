@@ -378,6 +378,7 @@ export abstract class AbstractWebPage extends AbstractInterface {
   waitForDomQuiet?(opts?: {
     quietMs?: number;
     timeoutMs?: number;
+    target?: ElementInfo;
   }): Promise<void>;
 
   get mouse(): MouseAction {
@@ -466,7 +467,7 @@ export function createWebInputPrimitives(
           // between clearInput returning and the first typed character,
           // the keypresses can be dropped. Wait for the DOM to settle
           // before starting to type.
-          await page.waitForDomQuiet?.();
+          await page.waitForDomQuiet?.({ target: element as ElementInfo });
         } else if (element) {
           const target = element as ElementInfo;
           await page.mouse.click(target.center[0], target.center[1], {
