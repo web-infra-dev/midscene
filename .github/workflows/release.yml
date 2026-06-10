@@ -52,9 +52,10 @@ jobs:
     - name: Setup pnpm
       uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
       with:
-        # 9.5+ understands `--provenance`; pnpm forwards the actual publish
-        # to the bundled npm CLI so Trusted Publisher OIDC exchange (npm 11.x)
-        # works without an NPM_TOKEN.
+        # pnpm forwards publish auth to the bundled npm CLI so Trusted
+        # Publisher OIDC exchange (npm 11.x) works without an NPM_TOKEN.
+        # npm now generates provenance automatically for trusted publishing,
+        # so the release script should not pass an explicit --provenance flag.
         version: 9.15.9
 
     - name: Setup Node.js
