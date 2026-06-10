@@ -38,6 +38,7 @@ describe('getUITarsModelVersion', () => {
     expect(getUITarsModelVersion('gemini')).toBeUndefined();
     expect(getUITarsModelVersion('glm-v')).toBeUndefined();
     expect(getUITarsModelVersion('gpt-5')).toBeUndefined();
+    expect(getUITarsModelVersion('kimi')).toBeUndefined();
   });
 });
 
@@ -50,6 +51,7 @@ describe('validateModelFamily', () => {
     expect(() => validateModelFamily('gemini')).not.toThrow();
     expect(() => validateModelFamily('glm-v')).not.toThrow();
     expect(() => validateModelFamily('gpt-5')).not.toThrow();
+    expect(() => validateModelFamily('kimi')).not.toThrow();
     expect(() => validateModelFamily('vlm-ui-tars')).not.toThrow();
     expect(() => validateModelFamily(undefined)).not.toThrow();
   });

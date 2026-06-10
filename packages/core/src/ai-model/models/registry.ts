@@ -6,6 +6,7 @@ import { doubaoAdapters } from './doubao';
 import { geminiAdapters } from './gemini';
 import { glmAdapters } from './glm';
 import { gptAdapters } from './gpt';
+import { kimiAdapters } from './kimi';
 import { qwenAdapters } from './qwen';
 import { ResolvedModelAdapter } from './resolved';
 import type {
@@ -23,6 +24,7 @@ export const MODEL_ADAPTER_CONFIGS = {
   ...glmAdapters,
   ...autoGlmAdapters,
   ...gptAdapters,
+  ...kimiAdapters,
 } satisfies Record<TModelFamily, ModelAdapterDefinition>;
 
 type ModelAdapterCacheKey = TModelFamily | 'default';
