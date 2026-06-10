@@ -56,6 +56,11 @@ export default defineConfig(async () => {
       light: '/midscene_with_text_light.png',
       dark: '/midscene_with_text_dark.png',
     },
+    markdown: {
+      link: {
+        checkDeadLinks: true,
+      },
+    },
     themeConfig: {
       lastUpdated: true,
       socialLinks: [
