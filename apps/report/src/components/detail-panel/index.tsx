@@ -417,7 +417,7 @@ const DetailPanel = (): JSX.Element => {
           )}
           {viewType === VIEW_TYPE_JSON && activeTaskJsonText && (
             <a
-              className="download-zip-link"
+              className="copy-json-link"
               onClick={() => {
                 navigator.clipboard
                   .writeText(activeTaskJsonText)
