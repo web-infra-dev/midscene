@@ -1202,6 +1202,23 @@ Original error: ${lastRawMessage}`,
     this.inputDriver.sendKey(key, modifiers);
   }
 
+  private resolveUntargetedScrollPoint(screenSize: Size): Point {
+    if (process.platform === 'win32') {
+      const activeWindowRect = this.inputDriver.getActiveWindowRect();
+      if (activeWindowRect) {
+        return {
+          x: activeWindowRect.x + activeWindowRect.width / 2,
+          y: activeWindowRect.y + activeWindowRect.height / 2,
+        };
+      }
+    }
+
+    return this.toGlobalPoint({
+      x: screenSize.width / 2,
+      y: screenSize.height / 2,
+    });
+  }
+
   private async moveMouseToScrollTarget(param: any): Promise<Size | undefined> {
     if (param.locate) {
       const element = param.locate as LocateResultElement;
@@ -1212,13 +1229,13 @@ Original error: ${lastRawMessage}`,
     }
 
     // Wheel events are delivered to the window under the cursor. For an
-    // untargeted "scroll down", anchor the cursor in the viewport instead of
-    // relying on wherever the previous action left it.
+    // untargeted "scroll down", anchor the cursor in the active viewport
+    // instead of relying on wherever the previous action left it.
     const screenSize = await this.size();
-    const point = this.toGlobalPoint({
-      x: screenSize.width / 2,
-      y: screenSize.height / 2,
-    });
+    if (process.platform === 'win32' && this.inputDriver.focusActiveWindow()) {
+      await this.inputDriver.delay(CLICK_FOCUS_SETTLE_DELAY);
+    }
+    const point = this.resolveUntargetedScrollPoint(screenSize);
     this.inputDriver.moveMouse(Math.round(point.x), Math.round(point.y));
     await this.inputDriver.delay(MOUSE_MOVE_EFFECT_WAIT);
     return screenSize;
