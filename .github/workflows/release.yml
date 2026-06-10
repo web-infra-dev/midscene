@@ -192,7 +192,7 @@ jobs:
         - os: macos-15
           platform: darwin
           arch: arm64
-        - os: macos-15
+        - os: macos-15-intel
           platform: darwin
           arch: x64
     # Same miette-graphical workaround as the `release` job above.

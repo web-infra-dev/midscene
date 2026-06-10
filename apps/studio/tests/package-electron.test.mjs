@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  assertMacNativeCodeArchitectures,
   assertPortablePackagedNodeModules,
   buildArtifactBaseName,
   buildInstallWorkspaceManifest,
@@ -14,6 +15,7 @@ import {
   buildStudioDmgSpecification,
   buildVendoredWorkspaceDirName,
   buildVendoredWorkspaceManifest,
+  collectMacNativeArchitectureIssues,
   collectNestedMacCodeSignTargets,
   collectPackagedNodeModuleSymlinkIssues,
   collectWorkspaceDependencyClosure,
@@ -29,6 +31,7 @@ import {
   pruneAntdUmdBundles,
   pruneGifwrapTestFixtures,
   pruneSourceMapFiles,
+  readMacMachOArchitectures,
   releaseWorkspaceDir,
   resolveDefaultPackageArch,
   resolveMacCodeSignEntitlementsPath,
@@ -41,6 +44,23 @@ import {
   shouldUseShellForCommand,
   slimStageNodeModules,
 } from '../scripts/package-electron.mjs';
+
+const createThinMacMachOBuffer = (arch) => {
+  const cpuTypes = {
+    x64: 0x01000007,
+    arm64: 0x0100000c,
+  };
+  const cpuType = cpuTypes[arch];
+  if (!cpuType) {
+    throw new Error(`Unsupported test Mach-O arch: ${arch}`);
+  }
+
+  const buffer = Buffer.alloc(32);
+  // 64-bit little-endian Mach-O magic.
+  buffer.writeUInt32BE(0xcffaedfe, 0);
+  buffer.writeUInt32LE(cpuType, 4);
+  return buffer;
+};
 
 describe('package-electron helpers', () => {
   it('normalizes Git tag versions for archive naming', () => {
@@ -623,6 +643,105 @@ describe('package-electron helpers', () => {
           'Squirrel.framework',
         ),
       ]);
+    } finally {
+      await fs.rm(tempRootDir, { force: true, recursive: true });
+    }
+  });
+
+  it('reads the architecture from a thin Mach-O native module', async () => {
+    const tempRootDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'midscene-studio-mach-o-'),
+    );
+    const addonPath = path.join(tempRootDir, 'permissions.node');
+
+    try {
+      await fs.writeFile(addonPath, createThinMacMachOBuffer('arm64'));
+
+      await expect(readMacMachOArchitectures(addonPath)).resolves.toEqual([
+        'arm64',
+      ]);
+    } finally {
+      await fs.rm(tempRootDir, { force: true, recursive: true });
+    }
+  });
+
+  it('rejects arm64-only native modules in the packaged macOS x64 app', async () => {
+    const tempRootDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'midscene-studio-native-arch-'),
+    );
+    const appBundlePath = path.join(tempRootDir, 'Midscene Studio Beta.app');
+    const addonPath = path.join(
+      appBundlePath,
+      'Contents',
+      'Resources',
+      'app.asar.unpacked',
+      'node_modules',
+      'node-mac-permissions',
+      'build',
+      'Release',
+      'permissions.node',
+    );
+
+    try {
+      await fs.mkdir(path.dirname(addonPath), { recursive: true });
+      await fs.writeFile(addonPath, createThinMacMachOBuffer('arm64'));
+
+      await expect(
+        collectMacNativeArchitectureIssues({
+          appPath: appBundlePath,
+          arch: 'x64',
+        }),
+      ).resolves.toEqual([
+        {
+          path: addonPath,
+          expectedArch: 'x86_64',
+          actualArchs: ['arm64'],
+        },
+      ]);
+      await expect(
+        assertMacNativeCodeArchitectures({
+          appPath: appBundlePath,
+          arch: 'x64',
+        }),
+      ).rejects.toThrow(/expected x86_64, found arm64/);
+    } finally {
+      await fs.rm(tempRootDir, { force: true, recursive: true });
+    }
+  });
+
+  it('accepts x86_64 native modules in the packaged macOS x64 app', async () => {
+    const tempRootDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'midscene-studio-native-arch-'),
+    );
+    const appBundlePath = path.join(tempRootDir, 'Midscene Studio Beta.app');
+    const addonPath = path.join(
+      appBundlePath,
+      'Contents',
+      'Resources',
+      'app.asar.unpacked',
+      'node_modules',
+      'node-mac-permissions',
+      'build',
+      'Release',
+      'permissions.node',
+    );
+
+    try {
+      await fs.mkdir(path.dirname(addonPath), { recursive: true });
+      await fs.writeFile(addonPath, createThinMacMachOBuffer('x64'));
+
+      await expect(
+        collectMacNativeArchitectureIssues({
+          appPath: appBundlePath,
+          arch: 'x64',
+        }),
+      ).resolves.toEqual([]);
+      await expect(
+        assertMacNativeCodeArchitectures({
+          appPath: appBundlePath,
+          arch: 'x64',
+        }),
+      ).resolves.toBeUndefined();
     } finally {
       await fs.rm(tempRootDir, { force: true, recursive: true });
     }
@@ -1319,5 +1438,33 @@ describe('package-electron helpers', () => {
     expect(workflow).not.toMatch(/--skip-archive/);
     expect(workflow).toMatch(/Package Midscene Studio Beta/);
     expect(workflow).toMatch(/\.release\/studio\/artifacts\/\*\.zip/);
+  });
+
+  it('packages macOS x64 Studio on an Intel GitHub runner', async () => {
+    const workflowPaths = [
+      path.join(
+        releaseWorkspaceDir,
+        '..',
+        '..',
+        '.github',
+        'workflows',
+        'release.yml',
+      ),
+      path.join(
+        releaseWorkspaceDir,
+        '..',
+        '..',
+        '.github',
+        'workflows',
+        'studio-package-validation.yml',
+      ),
+    ];
+
+    for (const workflowPath of workflowPaths) {
+      const workflow = await fs.readFile(workflowPath, 'utf8');
+      expect(workflow).toMatch(
+        /os:\s*macos-15-intel\s*\n\s*platform:\s*darwin\s*\n\s*arch:\s*x64/,
+      );
+    }
   });
 });
