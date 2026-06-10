@@ -95,8 +95,18 @@ jobs:
       # Auth to npm uses npm Trusted Publishers via the OIDC token from
       # `id-token: write`. No NPM_TOKEN is needed; the npm CLI bundled with
       # Node 24.x exchanges the GitHub OIDC token for a short-lived publish
-      # token at request time.
-      run: node ./scripts/release.js --version=${{ github.event.inputs.version }}
+      # token at request time. Pre-release workflow dispatches disable
+      # automatic provenance because npm's transparency-log write can reject
+      # otherwise valid publishes with duplicate-entry 409s, which blocks the
+      # Studio artifact packaging jobs.
+      env:
+        RELEASE_VERSION_INPUT: ${{ github.event.inputs.version }}
+      run: |
+        if [[ "$RELEASE_VERSION_INPUT" == pre* ]]; then
+          export NPM_CONFIG_PROVENANCE=false
+          echo "Disabled npm provenance for prerelease workflow dispatch."
+        fi
+        node ./scripts/release.js --version="$RELEASE_VERSION_INPUT"
 
     - name: Get version from core package
       id: get_version
