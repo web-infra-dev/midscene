@@ -374,7 +374,7 @@ defineAction(
 * `description`：动作的描述，AI 模型将使用此描述来理解动作的作用。对于复杂动作，你可以在这里给出更详细的示例说明
 * `paramSchema`：动作参数的 [Zod](https://www.npmjs.com/package/zod) 模式，AI 模型将根据此模式帮助填充参数
 * `call`：调用动作的函数，你可以从符合 `paramSchema` 的 `param` 参数中获取参数
-* `context`：可选的执行上下文。高级动作可以设置 `context.task.planningFeedback`，把简短反馈传给下一轮规划。
+* `context`：可选的执行上下文。动作的返回值会写入 `task.output`（供你的 API 调用方和报告使用），**不会**发给规划器。若想给下一轮规划传一段简短的、面向规划器的反馈，请设置 `context.task.planningFeedback`；core 的规划层会对其做截断，以免撑爆模型上下文。
 
 
 示例：
