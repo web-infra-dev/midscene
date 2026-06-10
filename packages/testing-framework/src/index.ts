@@ -128,5 +128,13 @@ export type {
   StepOverlay,
   StepAnchor,
 } from './frontends/js';
-export { compileFeature, compileFeatureFile } from './frontends/gherkin';
-export type { CompiledFeature } from './frontends/gherkin';
+export {
+  compileFeature,
+  compileFeatureFile,
+  compileSuite,
+} from './frontends/gherkin';
+export type {
+  CompiledFeature,
+  CompiledSuite,
+  SuiteModule,
+} from './frontends/gherkin';

@@ -108,6 +108,12 @@ export function compileFeatureFile(file: string): CompiledFeature {
   return compileFeature(readFileSync(file, 'utf-8'), file);
 }
 
+// Multi-file suite assembly. Re-exported last: suite.ts imports
+// `compileFeatureFile` from this module, and keeping the cycle edge at the
+// bottom makes the load order explicit (same pattern as frontends/js).
+export { compileSuite } from './suite';
+export type { CompiledSuite, SuiteModule } from './suite';
+
 function compileScenario(
   pickle: Pickle,
   tags: string[],

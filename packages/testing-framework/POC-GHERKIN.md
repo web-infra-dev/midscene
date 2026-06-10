@@ -14,31 +14,40 @@ step is natural language executed by the AI agents. A third, **hybrid** mode
 pnpm --filter @midscene/testing-framework demo
 ```
 
-Runs the login/checkout journey through **all three authoring modes** with a
-narrated walkthrough — offline by default (scripted fake agents simulate the
-shop; no model keys, no browser). Expected output (excerpt):
+Runs the multi-file example suite (see "Example" below) through **all three
+authoring styles**, module by module, with a narrated walkthrough — offline
+by default (scripted fake agents simulate the shop; no model keys, no
+browser). Expected output (excerpt):
 
 ```
-━━━ Mode 1/3: Pure Gherkin ━━━
-  ▶ Scenario: Checkout as admin
-    [ui]      the demo shop is open on the home page
-      → flow Login(role="admin")
-      [ui]      I sign in as the "admin" user with the saved test credentials   (template: "I sign in as the \"{role}\" user ...")
-      [capture] the greeting message shown in the header
-        {greeting} = "Hello, Admin!" (capture)
-      ← Login returned greeting="Hello, Admin!"
-    [verify]  the cart total equals $129.00   (template: "the cart total equals {price}")
-      ✔ PASS — The cart shows $129.00, matching the remembered price.
-    ✔ scenario passed
+━━━ Mode 1/3: Style 1 — pure Gherkin ━━━
+
+  ▣ Module: style-1-gherkin/features/checkout.feature
+    ▶ Scenario: Checkout as admin
+      [ui]      the demo shop is open on the home page
+        → flow Login(role="admin")
+        [ui]      I sign in as the "admin" user with the saved test credentials   (template: "I sign in as the \"{role}\" user ...")
+        [capture] the greeting message shown in the header
+          {greeting} = "Hello, Admin!" (capture)
+        ← Login returned greeting="Hello, Admin!"
+        → flow Add product to cart(product="Trail Backpack")
+        ...
+      [verify]  the cart total equals $129.00   (template: "the cart total equals {price}")
+        ✔ PASS — The cart shows $129.00, matching the remembered price.
+      ✔ scenario passed
+
+  ▣ Module: style-1-gherkin/flows/login.feature
+    registers shared flow: "Login"
+    (no runnable scenarios — flows only)
 ...
-━━━ Comparison: three modes, one IR ━━━
-  Gherkin vs JS — "Checkout as admin": identical execution trace ✔ (24 events)
-  Bound overlay vs pure Gherkin:
+━━━ Comparison: three styles, one IR ━━━
+  ...cart.feature vs ...cart.flows.ts — "Cart shows the added product with quantity and price": identical execution trace ✔ (30 events)
+  Style 3 overlay vs the style-1 checkout.feature it binds:
     "Checkout as admin":
       - [verify] the cart total equals {price}
       + [ui] apply the coupon code {couponCode} in the cart
       + [soft] the cart total equals {price} minus the "{couponCode}" coupon discount
-      + injected var {couponCode} = "E2E-2026-06-09"
+      + injected var {couponCode} = "E2E-2026-06-10"
 ```
 
 **Live mode** — `pnpm --filter @midscene/testing-framework demo -- --live`
@@ -208,6 +217,14 @@ free. Conventions on top:
   `@returns:greeting`. Background steps are excluded from `@flow` pickles so
   a reusable flow never replays the feature's setup.
 
+**Multi-file suites** (`suite.ts`): real suites keep shared flows in their
+own `.feature` files and call them from separate test modules.
+`compileSuite(dirOrFiles)` compiles every `.feature` under a directory (or
+an explicit file list), merges ALL `@flow` definitions into **one**
+`FlowRegistry` — duplicate flow names across files throw, naming both
+definition sites — and returns the compiled modules so each module's
+scenarios run against the shared registry. Flow names are suite-global.
+
 ## Hybrid mode: `bindFeature` (`src/frontends/js/bind-feature.ts`)
 
 Modeled on jest-cucumber's inverted binding (JS attaches to a loaded
@@ -220,13 +237,13 @@ scenarios/steps run as pure Gherkin, no restatement required.
 ```ts
 import { bindFeature } from '@midscene/testing-framework';
 
-const bound = bindFeature('flows/shop.feature', {
+const bound = bindFeature('features/checkout.feature', {
   scenarios: {
     'Checkout as admin': {
       vars: { couponCode: computeCoupon() },          // inject computed variables
       steps: [
         {
-          at: 'I add the "Trail Backpack" to the cart and open the cart',
+          at: 'Add product to cart',                  // a flow call, anchored by name
           after: ['apply the coupon code {couponCode} in the cart'], // insert
         },
         {
@@ -259,7 +276,7 @@ scenario or step throws an error that names the closest match
 real anchor — jest-cucumber's best trick, applied to a sparse overlay:
 
 ```
-[midscene] bindFeature(shop.feature): scenario "Checkout as admin" has no
+[midscene] bindFeature(checkout.feature): scenario "Checkout as admin" has no
 step matching anchor "the cart total equals {prce}".
 Did you mean "the cart total equals {price}"?
 Available anchors:
@@ -280,41 +297,60 @@ scenarios: {
 | Pure JS (`defineFlow`/`scenario`) | The suite is generated or heavily dynamic (loops, conditionals, computed prompts); no BDD stakeholders. |
 | Bound overlay (`bindFeature`) | Gherkin is the shared source of truth, but a few scenarios need computed variables, env-specific arg tweaks, inserted steps, or skip/only flags — without forking the feature file or restating it in JS. |
 
-## Example
+## Example: one suite, three style folders
 
-`example/flows/shop.feature` and `example/flows/shop.flows.ts` author the
-same suite — a `Login` flow reused by a checkout scenario, a `@soft` promo
-check, and a per-role login matrix (Scenario Outline vs `roles.map(...)`).
-The test `tests/unit-test/example-parity.test.ts` proves both compile to the
-same IR and produce identical execution traces (same prompts to the UI
-agent, same verify prompts to the general agent, same final variable table)
-through the shared executor.
+The example (`example/`, orientation in `example/README.md`) is a
+**multi-file suite** authored three times — one folder per style, all
+running against the static shop in `example/demo-app/`:
 
-`example/flows/shop.overlay.ts` shows the hybrid mode on the same feature: a
-computed coupon code injected into the checkout scenario's variable table,
-an inserted "apply the coupon" step that uses it, the exact-total verify
-downgraded to a reworded soft check, and the promo scenario skipped — while
-the login-matrix scenarios stay untouched pure Gherkin.
+```text
+example/
+  style-1-gherkin/          # pure Gherkin
+    flows/                  #   SHARED flow definitions (@flow scenarios):
+      login.feature         #     "Login" (@param:role @returns:greeting)
+      add-to-cart.feature   #     "Add product to cart" (@param:product @returns:price)
+    features/               #   independent test modules that CALL the shared
+      cart.feature          #   flows without defining them (cross-file
+      checkout.feature      #   resolution via compileSuite's merged registry)
+      smoke.feature
+  style-2-js/               # the SAME suite in the fluent JS API
+    flows/index.ts          #   defineFlow() twins + the shared registry
+    features/*.flows.ts     #   one module per .feature twin
+  style-3-overlay/          # hybrid: binds style-1's checkout.feature
+    checkout.overlay.ts     #   sparse patch (computed coupon, soft override,
+                            #   skip) — nothing duplicated from the .feature
+```
+
+The reuse story is the point: flows are written once (login,
+add-to-cart) and composed by every test module — the cart module inspects
+quantities/badges, the checkout module asserts totals, the smoke module is
+a per-role login matrix (Scenario Outline vs `roles.map(...)`). The tests
+in `tests/unit-test/example-parity.test.ts` prove styles 1 and 2 compile to
+the same IR and produce identical execution traces (same prompts to the UI
+agent, same verify prompts to the general agent, same final variable
+table); `tests/unit-test/suite.test.ts` covers `compileSuite` assembly
+(cross-file flow calls, duplicate-name errors).
 
 Run programmatically (no CLI wiring yet):
 
 ```ts
-import { compileFeatureFile, createFlowRegistry, runScenario } from '@midscene/testing-framework';
+import { compileSuite, runScenario } from '@midscene/testing-framework';
 
-const { scenarios, flows } = compileFeatureFile('flows/shop.feature');
-const registry = createFlowRegistry(flows);
-for (const s of scenarios) {
-  const result = await runScenario({ scenario: s, registry, uiAgent, generalAgent });
+const { modules, registry } = compileSuite('example/style-1-gherkin');
+for (const { feature } of modules) {
+  for (const s of feature.scenarios) {
+    const result = await runScenario({ scenario: s, registry, uiAgent, generalAgent });
+  }
 }
 ```
 
 ## Validation
 
-- `pnpm --filter @midscene/testing-framework test` — 119 tests, all green
+- `pnpm --filter @midscene/testing-framework test` — 125 tests, all green
   (across `flow-ir.test.ts`, `js-frontend.test.ts`,
-  `gherkin-frontend.test.ts`, `run-scenario.test.ts`, `bind-feature.test.ts`,
-  `example-parity.test.ts` and the Phase 0 suites; fakes only, no browsers /
-  no model calls).
+  `gherkin-frontend.test.ts`, `suite.test.ts`, `run-scenario.test.ts`,
+  `bind-feature.test.ts`, `example-parity.test.ts` and the Phase 0 suites;
+  fakes only, no browsers / no model calls).
 
 ## Open questions / next steps
 
@@ -331,9 +367,11 @@ for (const s of scenarios) {
 - **Flow-call reporting**: inner flow steps are flattened into the case's
   step list after an `info` "Entering flow …" marker; reports may want a
   nested view instead.
-- **Cross-file flow registries**: today a registry is built per
-  feature/module; decide on project-level registration (config field, glob
-  for `*.flows.ts`, shared between Gherkin and JS suites).
+- **Cross-file flow registries**: `compileSuite` solves this for Gherkin
+  (one merged registry per suite directory); JS suites share a registry by
+  importing one module. Still open: a *mixed* project-level registry
+  (config field or glob that merges `.feature` @flows AND `*.flows.ts`
+  definitions into one registry for both surfaces).
 - **Gherkin arg syntax**: the `with key "value" and key "value"` convention
   is regex-based; data tables (`PickleStepArgument`) would be a more
   Gherkin-native way to pass args (and to seed variables).

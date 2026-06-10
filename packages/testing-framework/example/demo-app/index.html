@@ -9,6 +9,7 @@
       body { margin: 0; color: #1f2933; }
       header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: #0b5fff; color: #fff; }
       header button { padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; }
+      header .right { display: flex; align-items: center; gap: 12px; }
       main { padding: 24px; max-width: 640px; margin: 0 auto; }
       section { display: none; }
       section.active { display: block; }
@@ -17,6 +18,8 @@
       button.primary { padding: 12px 20px; background: #0b5fff; color: #fff; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
       select, input { padding: 10px; border: 1px solid #cbd2d9; border-radius: 6px; margin-right: 8px; }
       .row { display: flex; align-items: center; gap: 8px; margin: 12px 0; }
+      .qty { display: inline-flex; align-items: center; gap: 8px; }
+      .qty button { width: 32px; height: 32px; border: 1px solid #cbd2d9; background: #fff; border-radius: 6px; cursor: pointer; font-size: 16px; }
       #cartTotal { font-size: 20px; font-weight: 700; }
       .muted { color: #52606d; font-size: 14px; }
     </style>
@@ -24,19 +27,26 @@
   <body>
     <header>
       <strong>Midscene POC Shop</strong>
-      <div>
+      <div class="right">
         <span id="greeting" hidden></span>
+        <span id="cartBadge">Cart: 0 items</span>
         <button id="navLogin">Login</button>
       </div>
     </header>
     <main>
       <section id="home" class="active">
         <h2>Welcome to the POC shop</h2>
-        <div class="card" id="productCard">
+        <div class="card">
           <h3>Trail Backpack</h3>
-          <div class="price" id="productPrice">$129.00</div>
+          <div class="price">$129.00</div>
           <p class="muted">Lightweight 28L pack for day hikes.</p>
-          <button class="primary" id="addToCart">Add to cart</button>
+          <button class="primary" data-add="Trail Backpack">Add to cart</button>
+        </div>
+        <div class="card">
+          <h3>Camp Mug</h3>
+          <div class="price">$24.50</div>
+          <p class="muted">Enamel mug that survives the campfire.</p>
+          <button class="primary" data-add="Camp Mug">Add to cart</button>
         </div>
         <button id="openCart">Open cart</button>
       </section>
@@ -60,9 +70,7 @@
 
       <section id="cart">
         <h2>Your cart</h2>
-        <div class="card" id="cartLine" hidden>
-          <span>Trail Backpack</span> — <span class="price">$129.00</span>
-        </div>
+        <div id="cartLines"></div>
         <div class="row">
           <input id="coupon" placeholder="Coupon code" />
           <button id="applyCoupon">Apply coupon</button>
@@ -74,16 +82,38 @@
     </main>
 
     <script>
-      const state = { role: null, inCart: false, discount: 0 };
-      const price = 129.0;
+      const PRICES = { 'Trail Backpack': 129.0, 'Camp Mug': 24.5 };
+      const state = { role: null, items: {}, discount: 0 };
       const show = (id) => {
         document
           .querySelectorAll('section')
           .forEach((s) => s.classList.toggle('active', s.id === id));
       };
-      const renderTotal = () => {
-        const total = state.inCart ? price * (1 - state.discount) : 0;
-        document.getElementById('cartTotal').textContent = `$${total.toFixed(2)}`;
+      const money = (n) => `$${n.toFixed(2)}`;
+      const itemCount = () =>
+        Object.values(state.items).reduce((sum, qty) => sum + qty, 0);
+      const render = () => {
+        const lines = document.getElementById('cartLines');
+        lines.innerHTML = '';
+        let total = 0;
+        for (const [name, qty] of Object.entries(state.items)) {
+          if (qty <= 0) continue;
+          total += PRICES[name] * qty;
+          const line = document.createElement('div');
+          line.className = 'card row';
+          line.innerHTML =
+            `<span>${name}</span>` +
+            `<span class="qty"><button data-dec="${name}">−</button>` +
+            `<span>Qty: <strong>${qty}</strong></span>` +
+            `<button data-inc="${name}">+</button></span>` +
+            `<span class="price">${money(PRICES[name] * qty)}</span>`;
+          lines.appendChild(line);
+        }
+        total *= 1 - state.discount;
+        document.getElementById('cartTotal').textContent = money(total);
+        const n = itemCount();
+        document.getElementById('cartBadge').textContent =
+          `Cart: ${n} item${n === 1 ? '' : 's'}`;
       };
       document.getElementById('navLogin').addEventListener('click', () => show('login'));
       document.getElementById('signIn').addEventListener('click', () => {
@@ -95,13 +125,24 @@
         document.getElementById('dashboardTitle').textContent = `Dashboard (${state.role})`;
         show('dashboard');
       });
-      document.getElementById('addToCart').addEventListener('click', () => {
-        state.inCart = true;
-        document.getElementById('cartLine').hidden = false;
-        renderTotal();
+      document.body.addEventListener('click', (event) => {
+        const t = event.target;
+        if (!(t instanceof HTMLElement)) return;
+        if (t.dataset.add) {
+          state.items[t.dataset.add] = (state.items[t.dataset.add] ?? 0) + 1;
+          render();
+        }
+        if (t.dataset.inc) {
+          state.items[t.dataset.inc] += 1;
+          render();
+        }
+        if (t.dataset.dec) {
+          state.items[t.dataset.dec] = Math.max(0, state.items[t.dataset.dec] - 1);
+          render();
+        }
       });
       document.getElementById('openCart').addEventListener('click', () => {
-        renderTotal();
+        render();
         show('cart');
       });
       document.getElementById('applyCoupon').addEventListener('click', () => {
@@ -111,7 +152,7 @@
         const note = document.getElementById('couponNote');
         note.textContent = `Coupon "${code}" applied: 10% off.`;
         note.hidden = false;
-        renderTotal();
+        render();
       });
       for (const id of ['backHome', 'backHome2']) {
         document.getElementById(id).addEventListener('click', () => show('home'));

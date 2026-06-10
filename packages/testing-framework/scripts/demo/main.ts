@@ -1,14 +1,15 @@
 /**
- * Narrated end-to-end demo of the POC: runs the login/checkout journey
- * through all three authoring modes — pure Gherkin, pure JS, and the bound
- * overlay — over the one shared flow-IR, printing each resolved prompt, the
- * variable table as it evolves, flow entry/exit, and verdicts.
+ * Narrated end-to-end demo of the POC: runs the multi-file example suite
+ * (example/style-*) through all three authoring styles — pure Gherkin,
+ * pure JS, and the sparse overlay — over the one shared flow-IR, printing
+ * each module, each resolved prompt, the variable table as it evolves,
+ * flow entry/exit, and verdicts.
  *
  * Offline by default (scripted fake agents, no model keys / no browser).
  * Pass `--live` to drive a real browser + model against the static shop in
  * example/demo-app (experimental; needs MIDSCENE_MODEL_* env vars).
  */
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import {
   type CompiledFeature,
   type FlowRegistry,
@@ -16,21 +17,19 @@ import {
   type ScenarioRunEvent,
   type ScenarioRunResult,
   type UiAgentLike,
-  compileFeatureFile,
-  createFlowRegistry,
+  compileSuite,
   runScenario,
 } from '@midscene/testing-framework';
-import {
-  checkoutAsAdmin,
-  registry as jsRegistry,
-  promoBanner,
-} from '../../example/flows/shop.flows';
-import { bound } from '../../example/flows/shop.overlay';
+import { cartFeature } from '../../example/style-2-js/features/cart.flows';
+import { checkoutFeature } from '../../example/style-2-js/features/checkout.flows';
+import { smokeFeature } from '../../example/style-2-js/features/smoke.flows';
+import { registry as jsRegistry } from '../../example/style-2-js/flows';
+import { bound } from '../../example/style-3-overlay/checkout.overlay';
 import type { GeneralAgentAdapter } from '../../src/general-agent/types';
 import { ScriptedGeneralAgent, ScriptedUiAgent } from './scripted-agents';
 
-const FEATURE_FILE = join(__dirname, '../../example/flows/shop.feature');
-const SCENARIO_NAMES = ['Checkout as admin', 'Promo banner is advisory'];
+const EXAMPLE_DIR = join(__dirname, '../../example');
+const STYLE1_DIR = join(EXAMPLE_DIR, 'style-1-gherkin');
 
 // —— tiny ANSI helpers (plain escapes; disabled via NO_COLOR) ——
 const useColor = process.env.NO_COLOR === undefined;
@@ -53,11 +52,25 @@ interface AgentBundle {
 
 type AgentFactory = () => Promise<AgentBundle>;
 
+interface DemoModule {
+  /** Display path of the module's source file, relative to example/. */
+  label: string;
+  feature: CompiledFeature;
+}
+
+interface DemoMode {
+  label: string;
+  source: string;
+  modules: DemoModule[];
+  registry: FlowRegistry;
+}
+
 interface ScenarioOutcome {
+  module: string;
   name: string;
   skipped: boolean;
   result?: ScenarioRunResult;
-  /** Canonical event trace, used to prove cross-mode equivalence. */
+  /** Canonical event trace, used to prove cross-style equivalence. */
   trace: string[];
 }
 
@@ -94,7 +107,9 @@ export async function main(argv: string[]): Promise<number> {
 
   console.log('');
   console.log(
-    bold('Midscene testing-framework POC — three authoring modes, one flow-IR'),
+    bold(
+      'Midscene testing-framework POC — three authoring styles, one flow-IR',
+    ),
   );
   console.log(
     dim(
@@ -104,33 +119,47 @@ export async function main(argv: string[]): Promise<number> {
     ),
   );
 
-  const gherkin = compileFeatureFile(FEATURE_FILE);
-  const gherkinRegistry = createFlowRegistry(gherkin.flows);
+  // Style 1 (and 3) resolve flows suite-wide: compile every .feature under
+  // the style-1 folder and merge all @flow definitions into one registry.
+  const suite = compileSuite(STYLE1_DIR);
+  const suiteModules: DemoModule[] = suite.modules.map((m) => ({
+    label: relative(EXAMPLE_DIR, m.file),
+    feature: m.feature,
+  }));
 
-  const modes: Array<{
-    label: string;
-    source: string;
-    scenarios: ScenarioIR[];
-    registry: FlowRegistry;
-  }> = [
+  const modes: DemoMode[] = [
     {
-      label: 'Pure Gherkin',
-      source: 'example/flows/shop.feature → compileFeatureFile()',
-      scenarios: pickScenarios(gherkin),
-      registry: gherkinRegistry,
+      label: 'Style 1 — pure Gherkin',
+      source: 'example/style-1-gherkin → compileSuite()',
+      modules: suiteModules,
+      registry: suite.registry,
     },
     {
-      label: 'Pure JS',
-      source: 'example/flows/shop.flows.ts → defineFlow()/scenario()',
-      scenarios: [checkoutAsAdmin, promoBanner],
+      label: 'Style 2 — pure JS',
+      source: 'example/style-2-js → defineFlow() + feature()/scenario()',
+      modules: [
+        { label: 'style-2-js/features/cart.flows.ts', feature: cartFeature },
+        {
+          label: 'style-2-js/features/checkout.flows.ts',
+          feature: checkoutFeature,
+        },
+        { label: 'style-2-js/features/smoke.flows.ts', feature: smokeFeature },
+      ],
       registry: jsRegistry,
     },
     {
-      label: 'Bound overlay',
+      label: 'Style 3 — sparse overlay',
       source:
-        'example/flows/shop.overlay.ts → bindFeature(shop.feature, overlay)',
-      scenarios: pickScenarios(bound),
-      registry: createFlowRegistry(bound.flows),
+        'example/style-3-overlay/checkout.overlay.ts → bindFeature(style-1 checkout.feature)',
+      modules: [
+        {
+          label: 'style-3-overlay/checkout.overlay.ts',
+          feature: bound,
+        },
+      ],
+      // The bound feature defines no flows of its own; it runs against the
+      // same suite-wide registry as style 1.
+      registry: suite.registry,
     },
   ];
 
@@ -154,14 +183,31 @@ export async function main(argv: string[]): Promise<number> {
     console.log(dim(`    ${mode.source}`));
 
     const scenarios: ScenarioOutcome[] = [];
-    for (const scenario of mode.scenarios) {
-      scenarios.push(await runOne(scenario, mode.registry, agentFactory));
+    for (const module of mode.modules) {
+      console.log('');
+      console.log(`  ${bold(`▣ Module: ${module.label}`)}`);
+      if (module.feature.flows.length > 0) {
+        console.log(
+          `    ${dim(
+            `registers shared flow${module.feature.flows.length === 1 ? '' : 's'}: ${module.feature.flows.map((f) => `"${f.name}"`).join(', ')}`,
+          )}`,
+        );
+      }
+      if (module.feature.scenarios.length === 0) {
+        console.log(`    ${dim('(no runnable scenarios — flows only)')}`);
+        continue;
+      }
+      for (const scenario of module.feature.scenarios) {
+        scenarios.push(
+          await runOne(scenario, module.label, mode.registry, agentFactory),
+        );
+      }
     }
     outcomes.push({ label: mode.label, scenarios });
   }
 
   if (selectedModes.length === modes.length) {
-    printComparison(outcomes, gherkin, live);
+    printComparison(outcomes, suiteModules, live);
   }
 
   const failed = outcomes
@@ -170,7 +216,7 @@ export async function main(argv: string[]): Promise<number> {
   return failed ? 1 : 0;
 }
 
-/** `--mode gherkin|js|bound` runs a single mode (handy for live runs). */
+/** `--mode gherkin|js|bound` runs a single style (handy for live runs). */
 function parseModeFilter(argv: string[]): string | undefined {
   const index = argv.indexOf('--mode');
   if (index === -1) return undefined;
@@ -180,27 +226,18 @@ function parseModeFilter(argv: string[]): string | undefined {
   return value === 'bound' ? 'overlay' : value;
 }
 
-function pickScenarios(compiled: CompiledFeature): ScenarioIR[] {
-  return SCENARIO_NAMES.map((name) => {
-    const found = compiled.scenarios.find((s) => s.name === name);
-    if (!found) {
-      throw new Error(`demo: scenario "${name}" not found in the feature.`);
-    }
-    return found;
-  });
-}
-
 async function runOne(
   scenario: ScenarioIR,
+  module: string,
   registry: FlowRegistry,
   agentFactory: AgentFactory,
 ): Promise<ScenarioOutcome> {
   console.log('');
-  console.log(`  ${bold(`▶ Scenario: ${scenario.name}`)}`);
+  console.log(`    ${bold(`▶ Scenario: ${scenario.name}`)}`);
 
   if (scenario.config?.skip) {
-    console.log(`    ${yellow('↷ skipped')} ${dim('(overlay config.skip)')}`);
-    return { name: scenario.name, skipped: true, trace: [] };
+    console.log(`      ${yellow('↷ skipped')} ${dim('(overlay config.skip)')}`);
+    return { module, name: scenario.name, skipped: true, trace: [] };
   }
 
   const bundle = await agentFactory();
@@ -220,21 +257,21 @@ async function runOne(
     const vars = Object.entries(result.variables);
     if (vars.length > 0) {
       console.log(
-        `    ${dim('final variables:')} ${vars
+        `      ${dim('final variables:')} ${vars
           .map(([k, v]) => `${magenta(`{${k}}`)}=${JSON.stringify(v)}`)
           .join(', ')}`,
       );
     }
     if (bundle.describeState) {
-      console.log(`    ${dim(`simulated shop: ${bundle.describeState()}`)}`);
+      console.log(`      ${dim(`simulated shop: ${bundle.describeState()}`)}`);
     }
     for (const warning of result.warnings) {
-      console.log(`    ${yellow(`⚠ warning: ${warning}`)}`);
+      console.log(`      ${yellow(`⚠ warning: ${warning}`)}`);
     }
     console.log(
-      `    ${result.status === 'passed' ? green('✔ scenario passed') : red('✘ scenario failed')}`,
+      `      ${result.status === 'passed' ? green('✔ scenario passed') : red('✘ scenario failed')}`,
     );
-    return { name: scenario.name, skipped: false, result, trace };
+    return { module, name: scenario.name, skipped: false, result, trace };
   } finally {
     await bundle.cleanup?.();
   }
@@ -243,7 +280,7 @@ async function runOne(
 // —— narration ——
 
 function narrate(event: ScenarioRunEvent): void {
-  const pad = `    ${'  '.repeat('depth' in event ? event.depth : 0)}`;
+  const pad = `      ${'  '.repeat('depth' in event ? event.depth : 0)}`;
   switch (event.type) {
     case 'flowEnter':
       console.log(
@@ -310,7 +347,7 @@ function formatArgs(args: Record<string, string>): string {
   return entries.map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(', ');
 }
 
-/** Mode-independent fingerprint of an event, for cross-mode comparison. */
+/** Style-independent fingerprint of an event, for cross-style comparison. */
 function canonical(event: ScenarioRunEvent): string {
   switch (event.type) {
     case 'stepStart':
@@ -330,16 +367,16 @@ function canonical(event: ScenarioRunEvent): string {
 
 function printComparison(
   outcomes: ModeOutcome[],
-  gherkin: CompiledFeature,
+  suiteModules: DemoModule[],
   live: boolean,
 ): void {
   const [gherkinMode, jsMode] = outcomes;
 
   console.log('');
-  console.log(bold(cyan('━━━ Comparison: three modes, one IR ━━━')));
+  console.log(bold(cyan('━━━ Comparison: three styles, one IR ━━━')));
 
-  // 1. Gherkin vs JS: identical traces prove the two front-ends compile to
-  //    the same IR and drive the engine identically.
+  // 1. Gherkin vs JS: identical traces, module by module, prove the two
+  //    front-ends compile to the same IR and drive the engine identically.
   console.log('');
   if (live) {
     console.log(
@@ -348,7 +385,8 @@ function printComparison(
       ),
     );
   }
-  for (let i = 0; i < SCENARIO_NAMES.length; i++) {
+  const pairs = Math.min(gherkinMode.scenarios.length, jsMode.scenarios.length);
+  for (let i = 0; i < pairs; i++) {
     const a = gherkinMode.scenarios[i];
     const b = jsMode.scenarios[i];
     const identical =
@@ -357,15 +395,26 @@ function printComparison(
     const outcome = identical
       ? green(`identical execution trace ✔ (${a.trace.length} events)`)
       : red('traces DIFFER ✘');
-    console.log(`  Gherkin vs JS — "${SCENARIO_NAMES[i]}": ${outcome}`);
+    console.log(
+      `  ${dim(a.module)} vs ${dim(b.module)} — "${a.name}": ${outcome}`,
+    );
+  }
+  if (gherkinMode.scenarios.length !== jsMode.scenarios.length) {
+    console.log(red('  scenario counts DIFFER between Gherkin and JS ✘'));
   }
 
   // 2. What the overlay changed, derived from the IR itself.
+  const plainCheckout = suiteModules.find((m) =>
+    m.label.endsWith('features/checkout.feature'),
+  )?.feature;
+  const boundCheckout = outcomes[2] ? bound : undefined;
   console.log('');
-  console.log(`  ${bold('Bound overlay vs pure Gherkin:')}`);
-  for (const name of SCENARIO_NAMES) {
-    const plain = gherkin.scenarios.find((s) => s.name === name);
-    const overlaid = bound.scenarios.find((s) => s.name === name);
+  console.log(
+    `  ${bold('Style 3 overlay vs the style-1 checkout.feature it binds:')}`,
+  );
+  for (const name of plainCheckout?.scenarios.map((s) => s.name) ?? []) {
+    const plain = plainCheckout?.scenarios.find((s) => s.name === name);
+    const overlaid = boundCheckout?.scenarios.find((s) => s.name === name);
     if (!plain || !overlaid) continue;
 
     const fingerprint = (s: ScenarioIR) =>
@@ -422,13 +471,8 @@ function printComparison(
           : '';
       return `${s.name}: ${status}${warn}`;
     });
-    console.log(`    ${mode.label.padEnd(14)} ${cells.join(dim('  |  '))}`);
+    console.log(`    ${bold(mode.label)}`);
+    console.log(`      ${cells.join(dim('  |  '))}`);
   }
-  console.log('');
-  console.log(
-    dim(
-      '  (The login-matrix Scenario Outline runs too — omitted here for brevity; see example/flows/.)',
-    ),
-  );
   console.log('');
 }
