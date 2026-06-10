@@ -17,6 +17,7 @@ import {
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
+  SUB_XPATH_SEPARATOR,
 } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
@@ -27,8 +28,16 @@ import {
   getExtraReturnLogic,
 } from '@midscene/shared/node';
 import { assert } from '@midscene/shared/utils';
-import type { Page as PlaywrightPage } from 'playwright';
-import type { CDPSession, Protocol, Page as PuppeteerPage } from 'puppeteer';
+import type {
+  Frame as PlaywrightFrame,
+  Page as PlaywrightPage,
+} from 'playwright';
+import type {
+  CDPSession,
+  Protocol,
+  Frame as PuppeteerFrame,
+  Page as PuppeteerPage,
+} from 'puppeteer';
 import {
   type CacheFeatureOptions,
   type WebElementCacheFeature,
@@ -250,19 +259,233 @@ export class Page<
     return treeToList(tree);
   }
 
-  private async getXpathsByPoint(point: Point, isOrderSensitive: boolean) {
+  private async getXpathsByPoint(
+    point: Point,
+    isOrderSensitive: boolean,
+  ): Promise<string[] | null> {
     const elementInfosScriptContent = getElementInfosScriptContent();
 
-    return this.evaluateJavaScript(
+    const result = await this.evaluateJavaScript(
       `${elementInfosScriptContent}midscene_element_inspector.getXpathsByPoint({left: ${point.left}, top: ${point.top}}, ${isOrderSensitive})`,
     );
+
+    if (
+      result &&
+      typeof result === 'object' &&
+      '__crossOriginIframe' in result
+    ) {
+      return this.handleCrossOriginXpathsByPoint(
+        result as {
+          __crossOriginIframe: true;
+          iframeXpath: string;
+          translatedPoint: { left: number; top: number };
+        },
+        isOrderSensitive,
+      );
+    }
+
+    return result;
+  }
+
+  private async handleCrossOriginXpathsByPoint(
+    signal: {
+      __crossOriginIframe: true;
+      iframeXpath: string;
+      translatedPoint: { left: number; top: number };
+    },
+    isOrderSensitive: boolean,
+    depth = 0,
+  ): Promise<string[] | null> {
+    const MAX_CROSS_ORIGIN_DEPTH = 5;
+    if (depth >= MAX_CROSS_ORIGIN_DEPTH) {
+      debugPage(
+        'Cross-origin iframe recursion depth exceeded (%d), stopping',
+        depth,
+      );
+      return [signal.iframeXpath];
+    }
+
+    debugPage(
+      'Cross-origin iframe detected, iframe xpath: %s',
+      signal.iframeXpath,
+    );
+
+    const frame = await this.findFrameByXpath(
+      this.underlyingPage,
+      signal.iframeXpath,
+    );
+    if (!frame) {
+      debugPage('Could not find Frame for cross-origin iframe');
+      return [signal.iframeXpath];
+    }
+
+    const elementInfosScriptContent = getElementInfosScriptContent();
+    const innerResult = await this.evaluateInContext(
+      frame,
+      `${elementInfosScriptContent}midscene_element_inspector.getXpathsByPoint({left: ${signal.translatedPoint.left}, top: ${signal.translatedPoint.top}}, ${isOrderSensitive})`,
+    );
+
+    if (
+      innerResult &&
+      typeof innerResult === 'object' &&
+      '__crossOriginIframe' in (innerResult as any)
+    ) {
+      const innerSignal = innerResult as {
+        __crossOriginIframe: true;
+        iframeXpath: string;
+        translatedPoint: { left: number; top: number };
+      };
+      innerSignal.iframeXpath = `${signal.iframeXpath}${SUB_XPATH_SEPARATOR}${innerSignal.iframeXpath}`;
+      return this.handleCrossOriginXpathsByPoint(
+        innerSignal,
+        isOrderSensitive,
+        depth + 1,
+      );
+    }
+
+    if (Array.isArray(innerResult) && innerResult.length > 0) {
+      return innerResult.map(
+        (inner: string) =>
+          `${signal.iframeXpath}${SUB_XPATH_SEPARATOR}${inner}`,
+      );
+    }
+
+    return [signal.iframeXpath];
+  }
+
+  private async findFrameByXpath(
+    parentContext:
+      | PuppeteerPage
+      | PuppeteerFrame
+      | PlaywrightPage
+      | PlaywrightFrame,
+    iframeXpath: string,
+  ): Promise<PuppeteerFrame | PlaywrightFrame | null> {
+    const parts = iframeXpath
+      .split(SUB_XPATH_SEPARATOR)
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    let context = parentContext;
+    for (const part of parts) {
+      const frame = await this.findSingleFrameByXpath(context, part);
+      if (!frame) return null;
+      context = frame;
+    }
+    return context as PuppeteerFrame | PlaywrightFrame;
+  }
+
+  private async findSingleFrameByXpath(
+    parentContext:
+      | PuppeteerPage
+      | PuppeteerFrame
+      | PlaywrightPage
+      | PlaywrightFrame,
+    xpath: string,
+  ): Promise<PuppeteerFrame | PlaywrightFrame | null> {
+    try {
+      if (this.interfaceType === 'puppeteer') {
+        const ctx = parentContext as PuppeteerPage | PuppeteerFrame;
+        const handles = await ctx.$$(`xpath/${xpath}`);
+        if (!handles.length) return null;
+        const handle = handles[0];
+        const contentFrame = await handle.contentFrame();
+        await handle.dispose();
+        return contentFrame;
+      }
+      const ctx = parentContext as PlaywrightPage | PlaywrightFrame;
+      const handle = await ctx.locator(`xpath=${xpath}`).elementHandle();
+      if (!handle) return null;
+      const contentFrame = await handle.contentFrame();
+      await handle.dispose();
+      return contentFrame;
+    } catch (error) {
+      debugPage('findSingleFrameByXpath failed for xpath %s: %s', xpath, error);
+      return null;
+    }
   }
 
   private async getElementInfoByXpath(xpath: string) {
+    const parts = xpath
+      .split(SUB_XPATH_SEPARATOR)
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    if (parts.length <= 1) {
+      const elementInfosScriptContent = getElementInfosScriptContent();
+      return this.evaluateJavaScript(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath(${JSON.stringify(xpath)})`,
+      );
+    }
+
+    return this.resolveMultiFrameElementInfo(parts);
+  }
+
+  private async evaluateInContext<R>(
+    context: PuppeteerPage | PuppeteerFrame | PlaywrightPage | PlaywrightFrame,
+    script: string,
+  ): Promise<R> {
+    return (context as any).evaluate(script);
+  }
+
+  private async resolveMultiFrameElementInfo(
+    xpathParts: string[],
+  ): Promise<any> {
+    let currentContext:
+      | PuppeteerPage
+      | PuppeteerFrame
+      | PlaywrightPage
+      | PlaywrightFrame = this.underlyingPage;
+    let accumulatedOffset = { left: 0, top: 0 };
+
+    for (let i = 0; i < xpathParts.length - 1; i++) {
+      const iframeXpath = xpathParts[i];
+
+      const elementInfosScriptContent = getElementInfosScriptContent();
+      const iframeRect = await this.evaluateInContext<any>(
+        currentContext,
+        `${elementInfosScriptContent}midscene_element_inspector.getIframeRectByXpath(${JSON.stringify(iframeXpath)})`,
+      );
+
+      if (!iframeRect) {
+        debugPage(
+          'resolveMultiFrameElementInfo: could not find iframe for xpath: %s',
+          iframeXpath,
+        );
+        return null;
+      }
+
+      const zoom = iframeRect.zoom || 1;
+      accumulatedOffset = {
+        left:
+          accumulatedOffset.left / zoom +
+          iframeRect.left +
+          iframeRect.borderLeft,
+        top:
+          accumulatedOffset.top / zoom + iframeRect.top + iframeRect.borderTop,
+      };
+
+      const childFrame = await this.findFrameByXpath(
+        currentContext,
+        iframeXpath,
+      );
+      if (!childFrame) {
+        debugPage(
+          'resolveMultiFrameElementInfo: could not find Frame for iframe xpath: %s',
+          iframeXpath,
+        );
+        return null;
+      }
+
+      currentContext = childFrame;
+    }
+
+    const innerXpath = xpathParts[xpathParts.length - 1];
     const elementInfosScriptContent = getElementInfosScriptContent();
 
-    return this.evaluateJavaScript(
-      `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath(${JSON.stringify(xpath)})`,
+    return this.evaluateInContext(
+      currentContext,
+      `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpathInCurrentFrame(${JSON.stringify(innerXpath)}, ${JSON.stringify(accumulatedOffset)})`,
     );
   }
 
