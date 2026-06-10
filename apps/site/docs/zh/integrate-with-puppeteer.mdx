@@ -221,7 +221,7 @@ npx puppeteer browsers install chrome --base-url="https://registry.npmmirror.com
 
 如果点击下拉框后，报告中的截图没有出现下拉选项，通常是页面使用了原生 `select` 标签，导致展开后的下拉面板由操作系统原生控件渲染，没有真正出现在浏览器页面里。
 
-这时可以开启 `forceChromeSelectRendering` 选项，强制由 Chrome 来渲染下拉框。详细原因、判断方式和效果说明，请参考 [Playwright FAQ — 下拉框点击不到](./integrate-with-playwright#下拉框点击不到)。
+Midscene 默认开启 `forceChromeSelectRendering` 选项，强制由 Chrome 来渲染下拉框；如需关闭可将其设为 `false`。详细原因、判断方式和效果说明，请参考 [Playwright FAQ — 下拉框点击不到](./integrate-with-playwright#下拉框点击不到)。
 
 ### 浏览器界面持续闪动
 
