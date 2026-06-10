@@ -45,9 +45,11 @@ export function buildRunAdbShellPlanningFeedback({
       ? `Command: ${command}\n`
       : '';
 
-  return `RunAdbShell returned stdout. The stdout may indicate success or failure.
-${commandText}Stdout:
-${truncateAdbShellStream(stdout, 'stdout')}`;
+  // Pass the full stdout through. The static "what this returns" guidance now
+  // lives in the RunAdbShell action description, and truncating the value to
+  // keep it within the model context is the core planning layer's job.
+  return `${commandText}Stdout:
+${stdout}`;
 }
 
 function buildAdbShellStderrErrorMessage(

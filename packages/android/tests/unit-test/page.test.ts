@@ -240,8 +240,7 @@ describe('AndroidDevice', () => {
       );
 
       expect(taskContext.task).toEqual({
-        planningFeedback: `RunAdbShell returned stdout. The stdout may indicate success or failure.
-Command: ${command}
+        planningFeedback: `Command: ${command}
 Stdout:
 0
 `,
@@ -269,7 +268,7 @@ Stdout:
       expect(taskContext.task).toEqual({});
     });
 
-    it('should truncate stdout in planning feedback', async () => {
+    it('should pass full stdout into planning feedback (core handles truncation)', async () => {
       const command = 'cmd test';
       mockAdb.shell.mockResolvedValue({
         stdout: 'o'.repeat(240),
@@ -287,8 +286,8 @@ Stdout:
         taskContext as ExecutorContext,
       );
 
-      expect(taskContext.task.planningFeedback).toContain(`${'o'.repeat(200)}
-...[stdout truncated, 40 more characters]`);
+      expect(taskContext.task.planningFeedback).toContain('o'.repeat(240));
+      expect(taskContext.task.planningFeedback).not.toContain('truncated');
     });
 
     it('should return stdout without requiring executor context', async () => {
