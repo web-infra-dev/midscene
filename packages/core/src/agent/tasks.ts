@@ -143,19 +143,34 @@ export class TaskExecutor {
     return this.providedActionSpace;
   }
 
-  private updatePendingFeedbackWithPlanningFeedback(
+  /**
+   * Set the pending feedback message consumed by the next planning round.
+   * The message is always prefixed with the current time. When a body is
+   * provided it is appended after the timestamp; otherwise only the time
+   * context is recorded. This is the single entry point for writing
+   * `pendingFeedbackMessage` so the time prefix stays consistent.
+   */
+  private setPendingFeedbackMessage(
     conversationHistory: ConversationHistory,
-    tasks: ExecutionTask[],
     timeString: string,
+    body?: string,
   ) {
+    conversationHistory.pendingFeedbackMessage = body
+      ? `Time: ${timeString}, ${body}`
+      : `Current time: ${timeString}`;
+  }
+
+  /**
+   * Collect feedback produced by executed tasks for the next planning round.
+   * Returns undefined when no task reported feedback.
+   */
+  private collectPlanningFeedback(tasks: ExecutionTask[]): string | undefined {
     const feedbackMessages = tasks.flatMap(({ planningFeedback }) =>
       planningFeedback ? [planningFeedback] : [],
     );
-    if (feedbackMessages.length === 0) {
-      return;
-    }
-
-    conversationHistory.pendingFeedbackMessage = `Time: ${timeString}, ${feedbackMessages.join('\n\n')}`;
+    return feedbackMessages.length > 0
+      ? feedbackMessages.join('\n\n')
+      : undefined;
   }
 
   /**
@@ -582,23 +597,26 @@ export class TaskExecutor {
         );
       }
 
-      // Set initial time context for the first planning call
+      // Capture the time context for the next planning call before running.
       const initialTimeString = await this.getTimeString();
-      conversationHistory.pendingFeedbackMessage += `Current time: ${initialTimeString}`;
 
       const taskCountBeforeRun = runner.tasks.length;
       try {
         await session.appendAndRun(executables.tasks);
-        this.updatePendingFeedbackWithPlanningFeedback(
+        this.setPendingFeedbackMessage(
           conversationHistory,
-          runner.tasks.slice(taskCountBeforeRun),
           initialTimeString,
+          this.collectPlanningFeedback(runner.tasks.slice(taskCountBeforeRun)),
         );
       } catch (error: any) {
         // errorFlag = true;
         errorCountInOnePlanningLoop++;
         const timeString = await this.getTimeString();
-        conversationHistory.pendingFeedbackMessage = `Time: ${timeString}, Error executing running tasks: ${error?.message || String(error)}`;
+        this.setPendingFeedbackMessage(
+          conversationHistory,
+          timeString,
+          `Error executing running tasks: ${error?.message || String(error)}`,
+        );
         debug(
           'error when executing running tasks, but continue to run if it is not too many errors:',
           error instanceof Error ? error.message : String(error),
