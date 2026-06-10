@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getModelEnvConfigError,
   hasCompleteModelEnvConfig,
   parseEnvEntries,
   parseEnvText,
@@ -115,6 +116,25 @@ describe('resolveModelConnection', () => {
     expect(result).toEqual({
       error: expect.stringContaining('OPENAI_BASE_URL'),
     });
+  });
+
+  it('reports invalid model family as a config error instead of throwing', () => {
+    const source = [
+      'MIDSCENE_MODEL_BASE_URL=https://example.com/v1',
+      'MIDSCENE_MODEL_API_KEY=sk-test',
+      'MIDSCENE_MODEL_NAME=qwen3-vl-plus',
+      'MIDSCENE_MODEL_FAMILY=1',
+    ].join('\n');
+
+    const result = resolveModelConnection(parseEnvText(source));
+
+    expect(result).toEqual({
+      error: expect.stringContaining('Invalid MIDSCENE_MODEL_FAMILY value: 1'),
+    });
+    expect(hasCompleteModelEnvConfig(source)).toBe(false);
+    expect(getModelEnvConfigError(source)).toContain(
+      'Invalid MIDSCENE_MODEL_FAMILY value: 1',
+    );
   });
 
   it('treats OpenAI-compatible env aliases as a complete Studio model config', () => {
