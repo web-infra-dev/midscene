@@ -36,6 +36,33 @@ You can generate the JSON string with JSON serialization to avoid mistakes when 
 JSON.stringify({ defaultHeaders: { foo: 'bar' } })
 ```
 
+## How do I use Azure OpenAI Service?
+
+First choose the model and model family from [Model configuration](./model-common-config). Azure only changes the provider URL and key:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1" # Or https://<your-resource>.openai.azure.com/openai/v1
+MIDSCENE_MODEL_NAME="<your-model-or-deployment-name>"
+MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
+```
+
+This uses the normal OpenAI-compatible path and sends `POST /openai/v1/chat/completions` with `Authorization: Bearer ...`. Do not append `/chat/completions` to `MIDSCENE_MODEL_BASE_URL`, and do not add `api-version` for `/openai/v1` endpoints.
+
+`MIDSCENE_MODEL_FAMILY` is still configured according to the model you choose, not according to Azure. For example, use the GPT-5, Qwen, Gemini, or other model sections in [Model configuration](./model-common-config) as the source of truth.
+
+If an Azure-compatible gateway only accepts the `api-key` header, use this fallback:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1"
+MIDSCENE_MODEL_NAME="<your-model-or-deployment-name>"
+MIDSCENE_MODEL_API_KEY="placeholder"
+MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"api-key":"<your-azure-api-key>"}}'
+```
+
+In this fallback, `MIDSCENE_MODEL_API_KEY="placeholder"` only satisfies the OpenAI SDK constructor check. The real key is sent through `defaultHeaders.api-key`.
+
+Azure AD / keyless auth (`DefaultAzureCredential`) is not supported. Use an API key.
+
 ## How to improve the running time?
 
 There are several ways to improve the running time:

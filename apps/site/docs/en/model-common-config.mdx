@@ -244,37 +244,6 @@ Migration mapping:
 
 Starting with version 1.0, Midscene no longer supports GPT-4o as the planning model for UI operations. See [Model strategy](./model-strategy) for details.
 
-## Using Azure OpenAI Service {#azure-openai}
-
-Midscene no longer ships a dedicated Azure client. Use Azure resources that expose an OpenAI-compatible `/openai/v1` Chat Completions endpoint the same way you use any other OpenAI-compatible provider.
-
-Use this configuration for endpoints such as `https://<your-resource>.openai.azure.com/openai/v1` or `https://<your-resource>.services.ai.azure.com/openai/v1`. Do not append `/chat/completions`; the OpenAI SDK adds that path.
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1" # Or https://<your-resource>.openai.azure.com/openai/v1
-MIDSCENE_MODEL_NAME="<your-model-or-deployment-name>"
-MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
-```
-
-This sends requests as `POST /openai/v1/chat/completions` with the `Authorization: Bearer ...` header. For GPT-5 series models, also set `MIDSCENE_MODEL_FAMILY="gpt-5"` as shown in the [GPT-5 Series](#gpt-5-4) section above.
-
-Some Azure-compatible gateways may only accept the `api-key` header. In that case, keep `MIDSCENE_MODEL_API_KEY` as a non-empty placeholder for the OpenAI SDK constructor and pass the real key through `MIDSCENE_MODEL_INIT_CONFIG_JSON`.
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1"
-MIDSCENE_MODEL_NAME="<your-model-or-deployment-name>"
-MIDSCENE_MODEL_API_KEY="placeholder"
-MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"api-key":"<your-azure-api-key>"}}'
-```
-
-For `/openai/v1` endpoints, do not add `api-version`. The base URL must stop at `/openai/v1`.
-
-:::warning Azure AD / keyless auth is not supported
-
-The previous `DefaultAzureCredential` (Azure AD token provider, a.k.a. keyless) mode has been removed. Use an API key as shown above.
-
-:::
-
 ## Multi-model example: GPT-5.4 for planning/insight + Qwen 3.5 for visual grounding {#gpt54-planning-insight-qwen35}
 
 For more information on combining multiple models, see [Advanced: Combining Multiple Models](./model-strategy#advanced-combining-multiple-models).

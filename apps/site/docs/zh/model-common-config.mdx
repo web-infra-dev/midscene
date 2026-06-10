@@ -246,37 +246,6 @@ MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"
 
 从 1.0 版本开始，Midscene 不再支持使用 GPT-4o 作为 UI 操作的规划模型。详见：[模型策略](./model-strategy)。
 
-## 使用 Azure OpenAI Service {#azure-openai}
-
-Midscene 不再内置专用的 Azure 客户端。对于提供 OpenAI 兼容 `/openai/v1` Chat Completions 端点的 Azure 资源，直接按普通 OpenAI-compatible provider 接入即可。
-
-以下配置适用于 `https://<your-resource>.openai.azure.com/openai/v1` 或 `https://<your-resource>.services.ai.azure.com/openai/v1` 这类端点。不要在末尾加 `/chat/completions`，OpenAI SDK 会自动补全这个路径。
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1" # 或 https://<your-resource>.openai.azure.com/openai/v1
-MIDSCENE_MODEL_NAME="<your-model-or-deployment-name>"
-MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
-```
-
-这样发出的请求会是 `POST /openai/v1/chat/completions`，并携带 `Authorization: Bearer ...` 请求头。如果使用 GPT-5 系列模型，还需要按上方 [GPT-5 Series](#gpt-5-4) 章节设置 `MIDSCENE_MODEL_FAMILY="gpt-5"`。
-
-少数 Azure-compatible 网关可能只接受 `api-key` 请求头。遇到这种情况时，保留非空的 `MIDSCENE_MODEL_API_KEY` 作为 OpenAI SDK 构造参数占位，并通过 `MIDSCENE_MODEL_INIT_CONFIG_JSON` 传入真实 key。
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1"
-MIDSCENE_MODEL_NAME="<your-model-or-deployment-name>"
-MIDSCENE_MODEL_API_KEY="placeholder"
-MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"api-key":"<your-azure-api-key>"}}'
-```
-
-对于 `/openai/v1` 端点，不要追加 `api-version`。base URL 应该停在 `/openai/v1`。
-
-:::warning 不再支持 Azure AD / keyless 鉴权
-
-此前基于 `DefaultAzureCredential`（Azure AD token provider，即 keyless）的模式已被移除，请改用上面的 API Key 方式。
-
-:::
-
 ## 多模型示例：GPT-5.4 规划/理解 + Qwen 3.5 视觉定位 {#gpt54-planning-insight-qwen35}
 
 关于组合多个模型的更多信息，可查阅 [进阶：组合多个模型](./model-strategy#advanced-combining-multiple-models)。

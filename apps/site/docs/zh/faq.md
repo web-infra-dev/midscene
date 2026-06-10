@@ -36,6 +36,33 @@ MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"foo":"bar"}}'
 JSON.stringify({ defaultHeaders: { foo: 'bar' } })
 ```
 
+## 如何使用 Azure OpenAI Service？
+
+先从 [模型配置](./model-common-config) 里选择模型和对应的 Model Family。Azure 只影响服务 URL 和 key 的写法：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1" # 或 https://<your-resource>.openai.azure.com/openai/v1
+MIDSCENE_MODEL_NAME="<your-model-or-deployment-name>"
+MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
+```
+
+这会走普通 OpenAI-compatible 路径，以 `Authorization: Bearer ...` 请求头发送 `POST /openai/v1/chat/completions`。`MIDSCENE_MODEL_BASE_URL` 不要追加 `/chat/completions`，`/openai/v1` 端点也不要追加 `api-version`。
+
+`MIDSCENE_MODEL_FAMILY` 仍然按你选择的模型来配置，而不是按 Azure 来配置。例如 GPT-5、Qwen、Gemini 或其他模型，都以 [模型配置](./model-common-config) 里的对应章节为准。
+
+如果某个 Azure-compatible 网关只接受 `api-key` 请求头，可以使用下面的 fallback：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1"
+MIDSCENE_MODEL_NAME="<your-model-or-deployment-name>"
+MIDSCENE_MODEL_API_KEY="placeholder"
+MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"api-key":"<your-azure-api-key>"}}'
+```
+
+在这个 fallback 里，`MIDSCENE_MODEL_API_KEY="placeholder"` 只用于满足 OpenAI SDK 构造器校验，真实 key 通过 `defaultHeaders.api-key` 发送。
+
+不支持 Azure AD / keyless 鉴权（`DefaultAzureCredential`）。请使用 API Key。
+
 ## 如何配置 midscene_run 目录？
 
 Midscene 会将运行产物（报告、日志、缓存等）保存在 `midscene_run` 目录下。默认情况下，该目录会创建在当前工作目录下。
