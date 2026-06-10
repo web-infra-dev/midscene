@@ -1,6 +1,6 @@
 import { join } from 'node:path';
+import { BatchRunner } from '@/batch-runner';
 import { createConfig } from '@/config-factory';
-import { runFrameworkTestConfig } from '@/framework/command';
 import { createServer } from 'http-server';
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 
@@ -33,22 +33,15 @@ describe('shareBrowserContext - Storage Sharing', () => {
   test('should preserve all storage types when shareBrowserContext is true', async () => {
     const scriptDir = join(__dirname, '../share_context_test_scripts');
     const indexYamlPath = join(scriptDir, 'index.yaml');
-    const frameworkImport = join(
-      __dirname,
-      '../../src/framework/rstest-entry.ts',
-    );
     const previousCwd = process.cwd();
 
     process.chdir(scriptDir);
     try {
       const config = await createConfig(indexYamlPath);
-      const exitCode = await runFrameworkTestConfig(config, {
-        projectDir: scriptDir,
-        frameworkImport,
-        stdio: 'pipe',
-      });
+      const runner = new BatchRunner(config);
+      const results = await runner.run();
 
-      expect(exitCode).toBe(0);
+      expect(results.every((result) => result.success)).toBe(true);
     } finally {
       process.chdir(previousCwd);
     }

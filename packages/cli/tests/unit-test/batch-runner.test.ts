@@ -694,6 +694,32 @@ describe('BatchRunner', () => {
     });
   });
 
+  describe('retry handling', () => {
+    test('retries failed YAML files and records attempt history', async () => {
+      const failedPlayer = createMockPlayer(false);
+      const successfulPlayer = createMockPlayer(true);
+      vi.mocked(createYamlPlayer)
+        .mockResolvedValueOnce(failedPlayer)
+        .mockResolvedValueOnce(successfulPlayer);
+
+      const executor = new BatchRunner({
+        ...mockBatchConfig,
+        files: ['flaky.yml'],
+        retry: 1,
+      });
+
+      const results = await executor.run();
+
+      expect(createYamlPlayer).toHaveBeenCalledTimes(2);
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(true);
+      expect(results[0].attempts).toMatchObject([
+        { attempt: 1, success: false, resultType: 'failed' },
+        { attempt: 2, success: true, resultType: 'success' },
+      ]);
+    });
+  });
+
   describe('Global config merging', () => {
     const baseFileConfig: MidsceneYamlScript = {
       tasks: [{ name: 'test task', flow: [{ ai: 'do something' }] }],
