@@ -401,7 +401,7 @@ defineAction(
 * `description`: the description of the action, AI model will use this description to understand what the action is doing. For complex actions, you can provide a more detailed example here.
 * `paramSchema`: the [Zod](https://www.npmjs.com/package/zod) schema of the parameters of the action, AI model will help to fill the parameters according to this schema
 * `call`: the function to invoke the action, you can get the parameters from the `param` parameter which conforms to the `paramSchema`
-* `context`: optional execution context. Advanced actions can set `context.task.planningFeedback` to pass concise feedback to the next planning round.
+* `context`: optional execution context. The action's return value populates `task.output` (for your API callers and the report) and is **not** sent to the planner. To pass a concise, planner-facing summary to the next planning round, set `context.task.planningFeedback`; the core planning layer truncates it to keep it within the model context.
 
 
 Example:
