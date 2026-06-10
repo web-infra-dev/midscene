@@ -40,46 +40,95 @@ function hasPositionalArgs(args) {
   );
 }
 
-const userArgs = process.argv.slice(2);
-let args = userArgs;
-
-if (!hasCucumberConfig(process.cwd())) {
-  // Derive the flags from the same defineProfile() the cucumber.js preset
-  // uses, so the bin and the profile can never drift. The bin always runs
-  // from the installed/built package, so dist exists.
-  const { defineProfile } = require('../dist/lib/profile.js');
-  const profile = defineProfile().default;
-  const preset = [];
-  for (const entry of profile.import) {
-    preset.push('--import', entry);
+// `midscene-bdd dashboard [--out <file>] [--config <midscene.config.ts>]`:
+// generate the static exploration dashboard instead of running cucumber.
+// Like the profile preset, this requires the built package (../dist).
+function runDashboard(dashboardArgs) {
+  let out;
+  let configPath;
+  for (let i = 0; i < dashboardArgs.length; i++) {
+    const arg = dashboardArgs[i];
+    if (arg === '--out' && dashboardArgs[i + 1] !== undefined) {
+      out = dashboardArgs[++i];
+    } else if (arg === '--config' && dashboardArgs[i + 1] !== undefined) {
+      configPath = dashboardArgs[++i];
+    } else {
+      console.error(
+        `[midscene-bdd] dashboard: unknown or incomplete argument "${arg}" (usage: midscene-bdd dashboard [--out <file>] [--config <midscene.config.ts>])`,
+      );
+      process.exit(1);
+    }
   }
-  preset.push('--tags', profile.tags);
-  for (const entry of profile.format) {
-    preset.push('--format', entry);
-  }
-  // No default paths: cucumber's own features/ default applies, and user
-  // positional args keep working (config paths would suppress them).
-  if (profile.paths && !hasPositionalArgs(userArgs)) {
-    preset.push(...profile.paths);
-  }
-  args = [...preset, ...userArgs];
+  const {
+    loadBddConfig,
+    buildExploreModel,
+    renderDashboard,
+  } = require('../dist/lib/index.js');
+  (async () => {
+    const config = await loadBddConfig({ cwd: process.cwd(), configPath });
+    const model = await buildExploreModel(config);
+    const html = renderDashboard(model);
+    const outPath = path.resolve(
+      process.cwd(),
+      out ?? path.join('midscene_run', 'report', 'bdd-dashboard.html'),
+    );
+    fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    fs.writeFileSync(outPath, html);
+    console.log(outPath);
+  })().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
 }
 
-const child = spawn(process.execPath, [cliPath, ...args], {
-  stdio: 'inherit',
-});
+function runCucumber(userArgs) {
+  let args = userArgs;
 
-child.on('error', (error) => {
-  console.error(
-    `[midscene-bdd] Failed to launch cucumber-js at ${cliPath}: ${error.message}`,
-  );
-  process.exit(1);
-});
-
-child.on('exit', (code, signal) => {
-  if (signal) {
-    process.kill(process.pid, signal);
-    return;
+  if (!hasCucumberConfig(process.cwd())) {
+    // Derive the flags from the same defineProfile() the cucumber.js preset
+    // uses, so the bin and the profile can never drift. The bin always runs
+    // from the installed/built package, so dist exists.
+    const { defineProfile } = require('../dist/lib/profile.js');
+    const profile = defineProfile().default;
+    const preset = [];
+    for (const entry of profile.import) {
+      preset.push('--import', entry);
+    }
+    preset.push('--tags', profile.tags);
+    for (const entry of profile.format) {
+      preset.push('--format', entry);
+    }
+    // No default paths: cucumber's own features/ default applies, and user
+    // positional args keep working (config paths would suppress them).
+    if (profile.paths && !hasPositionalArgs(userArgs)) {
+      preset.push(...profile.paths);
+    }
+    args = [...preset, ...userArgs];
   }
-  process.exit(code === null ? 1 : code);
-});
+
+  const child = spawn(process.execPath, [cliPath, ...args], {
+    stdio: 'inherit',
+  });
+
+  child.on('error', (error) => {
+    console.error(
+      `[midscene-bdd] Failed to launch cucumber-js at ${cliPath}: ${error.message}`,
+    );
+    process.exit(1);
+  });
+
+  child.on('exit', (code, signal) => {
+    if (signal) {
+      process.kill(process.pid, signal);
+      return;
+    }
+    process.exit(code === null ? 1 : code);
+  });
+}
+
+const userArgs = process.argv.slice(2);
+if (userArgs[0] === 'dashboard') {
+  runDashboard(userArgs.slice(1));
+} else {
+  runCucumber(userArgs);
+}
