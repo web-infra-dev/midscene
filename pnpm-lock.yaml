@@ -1788,6 +1788,9 @@ importers:
       ws:
         specifier: ^8.18.1
         version: 8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5)
+      zod:
+        specifier: ^3.25.1
+        version: 3.25.76
     devDependencies:
       '@playwright/test':
         specifier: ^1.45.0

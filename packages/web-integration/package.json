@@ -123,7 +123,8 @@
     "semver": "7.5.2",
     "socket.io": "^4.8.1",
     "socket.io-client": "4.8.1",
-    "ws": "^8.18.1"
+    "ws": "^8.18.1",
+    "zod": "^3.25.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.45.0",
