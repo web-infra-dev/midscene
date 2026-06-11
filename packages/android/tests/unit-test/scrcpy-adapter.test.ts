@@ -3,12 +3,18 @@ import type { DevicePhysicalInfo } from '../../src/scrcpy-device-adapter';
 import { ScrcpyDeviceAdapter } from '../../src/scrcpy-device-adapter';
 import { DEFAULT_SCRCPY_CONFIG } from '../../src/scrcpy-manager';
 
+const { mockAdb, mockAdbServerClient, mockCreateTransport, mockGetDevices } =
+  vi.hoisted(() => ({
+    mockAdb: vi.fn().mockImplementation(() => ({})),
+    mockAdbServerClient: vi.fn(),
+    mockCreateTransport: vi.fn(),
+    mockGetDevices: vi.fn(),
+  }));
+
 // Mock @yume-chan packages (ESM-only, used via dynamic import in ensureManager)
 vi.mock('@yume-chan/adb', () => ({
-  Adb: vi.fn().mockImplementation(() => ({})),
-  AdbServerClient: vi.fn().mockImplementation(() => ({
-    createTransport: vi.fn().mockResolvedValue({}),
-  })),
+  Adb: mockAdb,
+  AdbServerClient: mockAdbServerClient,
 }));
 
 vi.mock('@yume-chan/adb-server-node-tcp', () => ({
@@ -52,6 +58,18 @@ const defaultDeviceInfo: DevicePhysicalInfo = {
 describe('ScrcpyDeviceAdapter', () => {
   beforeEach(() => {
     currentMockManager = createMockManager();
+    mockCreateTransport.mockResolvedValue({});
+    mockGetDevices.mockResolvedValue([
+      {
+        serial: 'device',
+        state: 'device',
+        transportId: 1n,
+      },
+    ]);
+    mockAdbServerClient.mockImplementation(() => ({
+      createTransport: mockCreateTransport,
+      getDevices: mockGetDevices,
+    }));
   });
 
   afterEach(() => {
@@ -250,8 +268,38 @@ describe('ScrcpyDeviceAdapter', () => {
 
       await adapter.ensureManager(defaultDeviceInfo);
 
+      expect(mockCreateTransport).toHaveBeenCalledWith({ transportId: 1n });
       expect(currentMockManager.validateEnvironment).toHaveBeenCalledTimes(1);
       expect((adapter as any).manager).toBe(currentMockManager);
+    });
+
+    it('should prefer transport id when resolving the scrcpy ADB transport', async () => {
+      mockGetDevices.mockResolvedValueOnce([
+        {
+          serial: 'device-1',
+          state: 'device',
+          transportId: 101n,
+        },
+        {
+          serial: 'device-2',
+          state: 'device',
+          transportId: 202n,
+        },
+      ]);
+      const adapter = new ScrcpyDeviceAdapter('device-2', { enabled: true });
+
+      await adapter.ensureManager(defaultDeviceInfo);
+
+      expect(mockCreateTransport).toHaveBeenCalledWith({ transportId: 202n });
+    });
+
+    it('should fall back to serial selector when transport id lookup fails', async () => {
+      mockGetDevices.mockRejectedValueOnce(new Error('device list failed'));
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
+
+      await adapter.ensureManager(defaultDeviceInfo);
+
+      expect(mockCreateTransport).toHaveBeenCalledWith({ serial: 'device' });
     });
 
     it('should NOT cache manager when validateEnvironment fails', async () => {

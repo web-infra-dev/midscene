@@ -20,12 +20,40 @@ interface ResolvedScrcpyConfig {
   idleTimeoutMs: number;
 }
 
+type AdbDeviceSelector = { serial: string } | { transportId: bigint };
+
+interface AdbServerDevice {
+  serial: string;
+  transportId?: bigint | number | string;
+}
+
+interface AdbServerClientWithDevices {
+  getDevices(
+    includeStates?: readonly ('device' | 'unauthorized' | 'offline')[],
+  ): Promise<AdbServerDevice[]>;
+}
+
 export interface DevicePhysicalInfo {
   physicalWidth: number;
   physicalHeight: number;
   dpr: number;
   orientation: number;
   isCurrentOrientation?: boolean;
+}
+
+function normalizeTransportId(
+  value: AdbServerDevice['transportId'],
+): bigint | undefined {
+  if (typeof value === 'bigint') {
+    return value;
+  }
+  if (typeof value === 'number' && Number.isSafeInteger(value)) {
+    return BigInt(value);
+  }
+  if (typeof value === 'string' && /^\d+$/.test(value)) {
+    return BigInt(value);
+  }
+  return undefined;
 }
 
 /**
@@ -112,7 +140,9 @@ export class ScrcpyDeviceAdapter {
         new AdbServerNodeTcpConnector({ host: '127.0.0.1', port: 5037 }),
       );
       const adb = new Adb(
-        await adbClient.createTransport({ serial: this.deviceId }),
+        await adbClient.createTransport(
+          await this.resolveAdbDeviceSelector(adbClient),
+        ),
       );
 
       const config = this.resolveConfig(deviceInfo);
@@ -137,6 +167,36 @@ export class ScrcpyDeviceAdapter {
           `Ensure ADB server is running and device is connected. Error: ${error}`,
       );
     }
+  }
+
+  private async resolveAdbDeviceSelector(
+    adbClient: AdbServerClientWithDevices,
+  ): Promise<AdbDeviceSelector> {
+    try {
+      const devices = await adbClient.getDevices([
+        'device',
+        'unauthorized',
+        'offline',
+      ]);
+      const device = devices.find((item) => item.serial === this.deviceId);
+      const transportId = normalizeTransportId(device?.transportId);
+      if (transportId !== undefined) {
+        debugAdapter(
+          `Using ADB transport id ${transportId} for device ${this.deviceId}`,
+        );
+        return { transportId };
+      }
+
+      debugAdapter(
+        `ADB transport id not found for device ${this.deviceId}; falling back to serial selector`,
+      );
+    } catch (error) {
+      debugAdapter(
+        `Failed to resolve ADB transport id for device ${this.deviceId}; falling back to serial selector: ${error}`,
+      );
+    }
+
+    return { serial: this.deviceId };
   }
 
   /**
