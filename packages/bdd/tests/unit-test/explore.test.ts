@@ -466,9 +466,31 @@ Feature: Main
 });
 
 describe('renderDashboard', () => {
+  function withDashboardTemplate<T>(template: string, run: () => T): T {
+    const dir = mkdtempSync(join(tmpdir(), 'midscene-bdd-template-'));
+    tmpDirs.push(dir);
+    const templatePath = join(dir, 'dashboard-template.html');
+    writeFileSync(templatePath, template, 'utf-8');
+
+    const previous = process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH;
+    process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH = templatePath;
+    try {
+      return run();
+    } finally {
+      if (previous === undefined) {
+        process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH = undefined;
+      } else {
+        process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH = previous;
+      }
+    }
+  }
+
   it('renders one self-contained HTML document with safely embedded data', async () => {
     const model = await buildExploreModel(basicConfig());
-    const html = renderDashboard(model);
+    const html = withDashboardTemplate(
+      '<!DOCTYPE html><html><head><title>midscene-bdd dashboard</title></head><body><script id="midscene-bdd-explore-model" type="application/json">__EXPLORE_MODEL_PLACEHOLDER__</script></body></html>',
+      () => renderDashboard(model),
+    );
 
     expect(html.startsWith('<!DOCTYPE html>')).toBe(true);
     expect(html).toContain('<title>midscene-bdd dashboard</title>');
@@ -476,7 +498,8 @@ describe('renderDashboard', () => {
 
     // Embedded model JSON with every '<' escaped (so no '</script>' or
     // comment-opener can terminate the data block).
-    const tag = '<script id="explore-data" type="application/json">';
+    const tag =
+      '<script id="midscene-bdd-explore-model" type="application/json">';
     expect(html).toContain(tag);
     const start = html.indexOf(tag) + tag.length;
     const end = html.indexOf('</script>', start);
@@ -484,5 +507,25 @@ describe('renderDashboard', () => {
     expect(json).toContain('\\u003c');
     expect(json).not.toContain('</');
     expect(JSON.parse(json)).toEqual(model);
+  });
+
+  it('throws a clear error when the template is missing', async () => {
+    const model = await buildExploreModel(basicConfig());
+    const previous = process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH;
+    process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH = join(
+      tmpdir(),
+      'missing-dashboard-template.html',
+    );
+    try {
+      expect(() => renderDashboard(model)).toThrow(
+        'Build it first: npx nx build bdd-dashboard',
+      );
+    } finally {
+      if (previous === undefined) {
+        process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH = undefined;
+      } else {
+        process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH = previous;
+      }
+    }
   });
 });
