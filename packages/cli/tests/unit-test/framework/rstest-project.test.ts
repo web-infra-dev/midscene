@@ -33,6 +33,7 @@ describe('rstest yaml project generation', () => {
         projectDir: root,
         outputDir,
         frameworkImport: '@test/framework',
+        rstestCoreImport: '@test/rstest-core',
         maxConcurrency: 2,
       });
 
@@ -52,10 +53,12 @@ describe('rstest yaml project generation', () => {
       expect(project.testTimeout).toBe(DEFAULT_YAML_TEST_TIMEOUT);
 
       const generated = project.virtualModules[project.cases[1].testModule];
+      expect(generated).toContain('import { test } from "@test/rstest-core"');
       expect(generated).toContain(
         'import { defineYamlCaseTest } from "@test/framework"',
       );
-      expect(generated).toContain('defineYamlCaseTest');
+      expect(generated).toContain('defineYamlCaseTest(test, testOptions)');
+      expect(generated).toContain('defineYamlCaseTest(testOptions)');
       expect(generated).toContain(JSON.stringify(yamlB));
       expect(generated).not.toContain('runYamlCaseInChildProcess');
       expect(generated).not.toContain('webRuntimeOptions');
@@ -76,6 +79,7 @@ describe('rstest yaml project generation', () => {
         projectDir: root,
         outputDir,
         frameworkImport: '@test/framework',
+        rstestCoreImport: '@test/rstest-core',
         caseOptions: {
           [yaml]: {
             globalConfig: {
@@ -214,6 +218,7 @@ describe('rstest yaml project generation', () => {
         projectDir: root,
         outputDir,
         frameworkImport: '@test/framework',
+        rstestCoreImport: '@test/rstest-core',
         batchConfig: {
           files: [yamlA, yamlB],
           concurrent: 1,
@@ -240,10 +245,12 @@ describe('rstest yaml project generation', () => {
       expect(project.cases).toHaveLength(2);
       expect(project.maxConcurrency).toBe(1);
       const generated = project.virtualModules[project.include[0]];
+      expect(generated).toContain('import { test } from "@test/rstest-core"');
       expect(generated).toContain(
         'import { defineYamlBatchTest } from "@test/framework"',
       );
-      expect(generated).toContain('defineYamlBatchTest');
+      expect(generated).toContain('defineYamlBatchTest(test, testOptions)');
+      expect(generated).toContain('defineYamlBatchTest(testOptions)');
       expect(generated).toContain('"shareBrowserContext": true');
       expect(generated).toContain(JSON.stringify(yamlA));
       expect(generated).toContain(JSON.stringify(yamlB));

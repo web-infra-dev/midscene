@@ -4,7 +4,7 @@ import type {
   MidsceneYamlConfigAttempt,
   MidsceneYamlConfigResult,
 } from '@midscene/core';
-import { test } from '@rstest/core';
+import type { test as rstestTest } from '@rstest/core';
 import type { BatchRunnerConfig } from '../batch-runner';
 import { runYamlBatchInRstest } from './yaml-batch';
 import {
@@ -12,6 +12,8 @@ import {
   createYamlCaseFailure,
   runYamlCaseResult,
 } from './yaml-case';
+
+export type RstestTest = typeof rstestTest;
 
 export interface DefineYamlCaseTestOptions {
   testName: string;
@@ -100,7 +102,19 @@ const createRuntimeFailureResult = (
   error: errorMessageOf(error),
 });
 
-export function defineYamlCaseTest(options: DefineYamlCaseTestOptions) {
+let rstestCorePromise: Promise<{ test: RstestTest }> | undefined;
+
+const loadRstestTest = async (): Promise<RstestTest> => {
+  if (!rstestCorePromise) {
+    rstestCorePromise = import('@rstest/core');
+  }
+  return (await rstestCorePromise).test;
+};
+
+const registerYamlCaseTest = (
+  test: RstestTest,
+  options: DefineYamlCaseTestOptions,
+) => {
   test(options.testName, async () => {
     const file = resolve(options.yamlFile);
     const startTime = Date.now();
@@ -129,13 +143,58 @@ export function defineYamlCaseTest(options: DefineYamlCaseTestOptions) {
       throw error;
     }
   });
+};
+
+export function defineYamlCaseTest(
+  test: RstestTest,
+  options: DefineYamlCaseTestOptions,
+): void;
+export function defineYamlCaseTest(
+  options: DefineYamlCaseTestOptions,
+): Promise<void>;
+export function defineYamlCaseTest(
+  testOrOptions: RstestTest | DefineYamlCaseTestOptions,
+  maybeOptions?: DefineYamlCaseTestOptions,
+): void | Promise<void> {
+  if (maybeOptions) {
+    registerYamlCaseTest(testOrOptions as RstestTest, maybeOptions);
+    return;
+  }
+
+  return loadRstestTest().then((test) => {
+    registerYamlCaseTest(test, testOrOptions as DefineYamlCaseTestOptions);
+  });
 }
 
-export function defineYamlBatchTest(options: DefineYamlBatchTestOptions) {
+const registerYamlBatchTest = (
+  test: RstestTest,
+  options: DefineYamlBatchTestOptions,
+) => {
   test(options.testName, async () => {
     await runYamlBatchInRstest({
       config: options.config,
       resultFiles: options.resultFiles,
     });
+  });
+};
+
+export function defineYamlBatchTest(
+  test: RstestTest,
+  options: DefineYamlBatchTestOptions,
+): void;
+export function defineYamlBatchTest(
+  options: DefineYamlBatchTestOptions,
+): Promise<void>;
+export function defineYamlBatchTest(
+  testOrOptions: RstestTest | DefineYamlBatchTestOptions,
+  maybeOptions?: DefineYamlBatchTestOptions,
+): void | Promise<void> {
+  if (maybeOptions) {
+    registerYamlBatchTest(testOrOptions as RstestTest, maybeOptions);
+    return;
+  }
+
+  return loadRstestTest().then((test) => {
+    registerYamlBatchTest(test, testOrOptions as DefineYamlBatchTestOptions);
   });
 }
