@@ -111,6 +111,48 @@ export class ScrcpyDeviceAdapter {
       const adbClient = new AdbServerClient(
         new AdbServerNodeTcpConnector({ host: '127.0.0.1', port: 5037 }),
       );
+
+      // Workaround for @yume-chan/adb multi-device bug:
+      // getDeviceFeatures() uses a two-step protocol that fails when multiple
+      // devices are connected. Override it to use the one-shot format.
+      // See: https://github.com/yume-chan/ya-webadb/pull/849
+      const deviceId = this.deviceId;
+      const originalGetDeviceFeatures =
+        adbClient.getDeviceFeatures.bind(adbClient);
+      adbClient.getDeviceFeatures = async function (device: unknown) {
+        try {
+          return await originalGetDeviceFeatures(device);
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            /more than one device\/emulator/i.test(error.message)
+          ) {
+            const service = AdbServerClient.formatDeviceService(
+              device as Parameters<
+                typeof AdbServerClient.formatDeviceService
+              >[0],
+              'features',
+            );
+            const connection = await adbClient.createConnection(service);
+            try {
+              const featuresString = await connection.readString();
+              const features = featuresString.split(',');
+              const devices = await adbClient.getDevices();
+              const info = devices.find(
+                (d: { serial: string }) => d.serial === deviceId,
+              );
+              return {
+                transportId: info?.transportId,
+                features,
+              };
+            } finally {
+              await connection.dispose();
+            }
+          }
+          throw error;
+        }
+      };
+
       const adb = new Adb(
         await adbClient.createTransport({ serial: this.deviceId }),
       );
