@@ -187,7 +187,12 @@ export function resolveStepAnnotations(input: {
     }
   }
 
-  addUnique(skills, parseSkillTokens(pickleStep.text));
+  // Inline $tokens come from the AUTHORED step text (the AST node), not the
+  // pickle text: a Scenario Outline pickle is post-substitution, so an
+  // Examples cell value like `$sneaky` must never inject routing — the same
+  // invariant flows.ts protects for flow arguments. (Flow-body steps already
+  // resolve from authored text: their pickle is never pre-substituted.)
+  addUnique(skills, parseSkillTokens(step.text));
 
   if (skills.length > 0) {
     agent = true;

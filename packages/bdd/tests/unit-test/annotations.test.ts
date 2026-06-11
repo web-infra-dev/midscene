@@ -339,6 +339,45 @@ Feature: f
     });
   });
 
+  it('ignores $tokens injected via Scenario Outline example values', () => {
+    // The pickle text is post-substitution; routing must come from the
+    // AUTHORED step text, so an Examples cell can never flip a row to the
+    // general agent.
+    const parsed = parse(`Feature: f
+  Scenario Outline: s
+    When I pay via <method>
+
+    Examples:
+      | method  |
+      | $sneaky |
+`);
+    expect(resolve(parsed, 'I pay via $sneaky')).toEqual({
+      agent: false,
+      noAi: false,
+      soft: false,
+      skills: [],
+    });
+  });
+
+  it('keeps authored $tokens routing inside a Scenario Outline step', () => {
+    const parsed = parse(`Feature: f
+  Scenario Outline: s
+    Then the <kind> log is clean, per $check-logs
+
+    Examples:
+      | kind   |
+      | server |
+`);
+    expect(resolve(parsed, 'the server log is clean, per $check-logs')).toEqual(
+      {
+        agent: true,
+        noAi: false,
+        soft: false,
+        skills: ['check-logs'],
+      },
+    );
+  });
+
   it('merges comment and inline skills, comment-first, deduped', () => {
     const parsed = parse(`Feature: f
   Scenario: s
