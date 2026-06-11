@@ -875,9 +875,31 @@ function applyCone(cone) {
   });
 }
 
+// Bring the pinned node's cone into view: scroll so the chain's top-left
+// corner is visible, letting the user read the highlighted path rightward.
+function scrollConeIntoView(cone) {
+  var scroller = document.getElementById('graph-scroll');
+  if (!scroller || !graphRefs) return;
+  var minX = Infinity;
+  var minY = Infinity;
+  graphRefs.nodes.forEach(function (n) {
+    if (!cone.nodes[n.id]) return;
+    if (n.x < minX) minX = n.x;
+    if (n.y < minY) minY = n.y;
+  });
+  if (minX === Infinity) return;
+  scroller.scrollTo({
+    left: Math.max(0, minX - 48),
+    top: Math.max(0, minY - 72),
+    behavior: 'smooth',
+  });
+}
+
 function setPinned(id) {
   state.pinnedId = id;
-  applyCone(id && graphRefs ? computeCone(id, graphRefs.links) : null);
+  var cone = id && graphRefs ? computeCone(id, graphRefs.links) : null;
+  applyCone(cone);
+  if (cone) scrollConeIntoView(cone);
   renderGraphToolbar();
 }
 
