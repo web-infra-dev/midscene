@@ -272,8 +272,12 @@ concurrent: 2
         dotenvDebug: true,
         summary: 'parsed.json',
         shareBrowserContext: false,
+        page: undefined,
+        browser: undefined,
         web: { userAgent: 'from-file', viewportWidth: 800 },
+        target: undefined,
         android: { deviceId: 'from-file' },
+        ios: undefined,
       };
       vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
       vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);

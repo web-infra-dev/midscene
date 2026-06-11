@@ -9,10 +9,20 @@ import {
 } from './test-utils';
 import { launchPage } from './utils';
 
-const clickNewTabLink = async (page: PuppeteerPage) => {
-  const popupPromise = new Promise<PuppeteerPage>((resolve) => {
-    page.once('popup', resolve);
+const waitForPopup = (page: PuppeteerPage) =>
+  new Promise<PuppeteerPage>((resolve, reject) => {
+    page.once('popup', (popup) => {
+      if (!popup) {
+        reject(new Error('Expected popup page to be available'));
+        return;
+      }
+
+      resolve(popup);
+    });
   });
+
+const clickNewTabLink = async (page: PuppeteerPage) => {
+  const popupPromise = waitForPopup(page);
 
   await page.click('#newTabLink');
   const popup = await popupPromise;
@@ -24,9 +34,7 @@ const tapNewTabLinkWithAgent = async (
   agent: PuppeteerAgent | PuppeteerBrowserAgent,
   page: PuppeteerPage,
 ) => {
-  const popupPromise = new Promise<PuppeteerPage>((resolve) => {
-    page.once('popup', resolve);
-  });
+  const popupPromise = waitForPopup(page);
 
   await agent.aiTap('the "Open in New Tab" link on the original page', {
     xpath: '//*[@id="newTabLink"]',
