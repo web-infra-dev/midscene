@@ -23,7 +23,23 @@ interface RegisteredStep {
   match: TextMatcher;
 }
 
-const registry: RegisteredStep[] = [];
+/**
+ * The package ships dual-format (dist/lib CJS + dist/es ESM), and one process
+ * routinely loads BOTH copies: cucumber imports the register entry as CJS
+ * while an ESM user project imports `@midscene/bdd` as ESM. Module-level
+ * state would give each copy its own registry and `# @no-ai` lookups would
+ * never see the user's callbacks — so the registry is a process-wide
+ * singleton stored on `globalThis`.
+ */
+const REGISTRY_KEY = Symbol.for('@midscene/bdd:no-ai-registry');
+
+function registry(): RegisteredStep[] {
+  const store = globalThis as { [REGISTRY_KEY]?: RegisteredStep[] };
+  if (!store[REGISTRY_KEY]) {
+    store[REGISTRY_KEY] = [];
+  }
+  return store[REGISTRY_KEY];
+}
 
 function patternKey(pattern: string | RegExp): string {
   return pattern instanceof RegExp
@@ -52,12 +68,13 @@ function buildMatcher(pattern: string | RegExp): TextMatcher {
 
 function registerStep(pattern: string | RegExp, fn: UserStepFn): void {
   const key = patternKey(pattern);
-  if (registry.some((entry) => patternKey(entry.def.pattern) === key)) {
+  const steps = registry();
+  if (steps.some((entry) => patternKey(entry.def.pattern) === key)) {
     throw new Error(
       `${ERROR_PREFIX} Step definition already registered for pattern: ${patternLabel(pattern)}`,
     );
   }
-  registry.push({ def: { pattern, fn }, match: buildMatcher(pattern) });
+  steps.push({ def: { pattern, fn }, match: buildMatcher(pattern) });
 }
 
 export function Given(pattern: string | RegExp, fn: UserStepFn): void {
@@ -78,7 +95,7 @@ export function defineStep(pattern: string | RegExp, fn: UserStepFn): void {
 
 export function matchUserStep(text: string): UserStepMatch | undefined {
   const matches: UserStepMatch[] = [];
-  for (const entry of registry) {
+  for (const entry of registry()) {
     const args = entry.match(text);
     if (args) {
       matches.push({ def: entry.def, args });
@@ -122,9 +139,9 @@ export function noAiUnmatchedError(stepText: string): Error {
 }
 
 export function clearUserSteps(): void {
-  registry.length = 0;
+  registry().length = 0;
 }
 
 export function listUserSteps(): UserStepDef[] {
-  return registry.map((entry) => entry.def);
+  return registry().map((entry) => entry.def);
 }

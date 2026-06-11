@@ -173,4 +173,27 @@ describe('no-ai user step registry', () => {
       expect(matchUserStep('a step')).toBeUndefined();
     });
   });
+
+  describe('cross-module-instance registry (H1)', () => {
+    it('shares one registry between two module copies via globalThis', async () => {
+      // Dual-format builds load the module TWICE in one process (CJS register
+      // + ESM user import). Simulate the second copy with a fresh module
+      // instance: a step registered through THIS copy must be visible to it.
+      const fn = vi.fn();
+      defineStep('a step registered in copy one', fn);
+
+      vi.resetModules();
+      const secondCopy = await import('../../src/no-ai');
+      expect(secondCopy.matchUserStep).not.toBe(matchUserStep);
+
+      expect(secondCopy.matchUserStep('a step registered in copy one')).toEqual(
+        { def: { pattern: 'a step registered in copy one', fn }, args: [] },
+      );
+      expect(secondCopy.listUserSteps()).toHaveLength(1);
+
+      // ...and clearing through the second copy clears the first.
+      secondCopy.clearUserSteps();
+      expect(listUserSteps()).toHaveLength(0);
+    });
+  });
 });

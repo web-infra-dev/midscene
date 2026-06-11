@@ -22,10 +22,12 @@
 import { execSync, spawnSync } from 'node:child_process';
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
   statSync,
+  symlinkSync,
 } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -34,6 +36,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 const PKG_DIR = path.resolve(__dirname, '../..');
 const FIXTURE_DIR = path.resolve(__dirname, 'fixture');
+const FIXTURE_ESM_DIR = path.resolve(__dirname, 'fixture-esm');
 const REGISTER_DIST = path.join(PKG_DIR, 'dist/lib/register.js');
 
 const TEST_TIMEOUT_MS = 60_000;
@@ -79,6 +82,18 @@ beforeAll(() => {
   if (needsBuild) {
     execSync('npx rslib build', { cwd: PKG_DIR, stdio: 'pipe' });
   }
+
+  // The ESM fixture has its own package.json ("type": "module"), which makes
+  // it a separate package scope — the @midscene/bdd self-reference the CJS
+  // fixture relies on does not reach it. Link the built package into the
+  // fixture's node_modules instead, exactly like an installed dependency in
+  // a real ESM user project.
+  const linkDir = path.join(FIXTURE_ESM_DIR, 'node_modules/@midscene');
+  const link = path.join(linkDir, 'bdd');
+  if (!existsSync(link)) {
+    mkdirSync(linkDir, { recursive: true });
+    symlinkSync(PKG_DIR, link, 'dir');
+  }
 }, 180_000);
 
 type StubRecord = [method: string, ...rest: unknown[]];
@@ -95,7 +110,7 @@ interface CucumberRun {
 
 function runCucumber(
   args: string[],
-  opts: { messages?: boolean } = {},
+  opts: { messages?: boolean; cwd?: string } = {},
 ): CucumberRun {
   const dir = mkdtempSync(path.join(tmpdir(), 'midscene-bdd-real-'));
   const stubLog = path.join(dir, 'stub-calls.jsonl');
@@ -106,7 +121,7 @@ function runCucumber(
   }
 
   const result = spawnSync(process.execPath, [cucumberCli, ...fullArgs], {
-    cwd: FIXTURE_DIR,
+    cwd: opts.cwd ?? FIXTURE_DIR,
     env: { ...process.env, BDD_STUB_LOG: stubLog },
     encoding: 'utf-8',
     timeout: SPAWN_TIMEOUT_MS,
@@ -269,6 +284,28 @@ describe('real cucumber spawn', () => {
         ),
       ).toBe(false);
       expect(run.records).not.toContainEqual(['no-ai-marker', 'MARKER_42']);
+    },
+    TEST_TIMEOUT_MS,
+  );
+
+  it(
+    'an ESM project shares one no-ai registry across module formats (H1)',
+    () => {
+      // The fixture-esm project is "type": "module": cucumber loads the
+      // register entry as CJS (dist/lib, via the profile's createRequire
+      // fallback) while the user's step definitions import '@midscene/bdd'
+      // as ESM (dist/es). Before the globalThis registry singleton, the two
+      // module instances had separate registries and this run failed with
+      // "no step definition matched".
+      const run = runCucumber([], { cwd: FIXTURE_ESM_DIR });
+      expect(run.status, run.stdout + run.stderr).toBe(0);
+      expect(run.records).toContainEqual(['no-ai-marker-esm', 'ESM_MARKER']);
+      // The UI step also ran, so the whole ESM pipeline (profile, register,
+      // config via jiti, stub agent, cleanup) is exercised.
+      expect(prompts(run.records, 'aiAct')).toEqual(['I open the demo shop']);
+      expect(
+        run.records.filter((record) => record[0] === 'cleanup'),
+      ).toHaveLength(1);
     },
     TEST_TIMEOUT_MS,
   );

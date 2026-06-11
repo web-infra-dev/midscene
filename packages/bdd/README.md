@@ -131,6 +131,15 @@ export default defineBddConfig({
 module.exports = require('@midscene/bdd/profile').defineProfile();
 ```
 
+In an ESM project (`"type": "module"` in `package.json`), use the import form instead:
+
+```js
+// cucumber.js (or cucumber.mjs)
+import { defineProfile } from '@midscene/bdd/profile';
+
+export default defineProfile().default;
+```
+
 Model setup, either:
 
 - `codex login` once, then point the general agent at it with `MIDSCENE_MODEL_BASE_URL=codex://app-server`, or
