@@ -311,6 +311,28 @@ describe('real cucumber spawn', () => {
   );
 
   it(
+    'a @flow scenario run standalone fails with a clear guard error (M5)',
+    () => {
+      // The no-flow-guard profile simulates a user cucumber config that
+      // lost the preset's `tags: 'not @flow'` filter. Running the flow
+      // standalone must throw instead of sending "<role>" to the model.
+      const run = runCucumber([
+        '--profile',
+        'no-flow-guard',
+        'features/flows/login.feature',
+      ]);
+      expect(run.status, run.stdout + run.stderr).not.toBe(0);
+      const output = run.stdout + run.stderr;
+      expect(output).toContain('is tagged @flow');
+      expect(output).toContain("tags: 'not @flow'");
+      // The guard fires before any routing: the stub never saw a step.
+      expect(prompts(run.records, 'aiAct')).toEqual([]);
+      expect(prompts(run.records, 'aiAssert')).toEqual([]);
+    },
+    TEST_TIMEOUT_MS,
+  );
+
+  it(
     '--dry-run matches every step via the catch-all (no undefined snippets)',
     () => {
       const run = runCucumber(['--dry-run']);

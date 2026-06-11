@@ -92,6 +92,17 @@ const catchAllStep = async function (this: MidsceneWorld, ..._args: unknown[]) {
     );
   }
 
+  // The catch-all only ever sees top-level pickles (flow bodies run through
+  // executeFlow), so a @flow tag here means the scenario is executing
+  // STANDALONE — its <param> placeholders would go to the vision model
+  // verbatim. That is never intended; the profile preset filters flows out
+  // (`tags: 'not @flow'`), so a user-supplied cucumber config dropped it.
+  if (current.pickle.tags?.some((tag) => tag.name === '@flow')) {
+    throw new Error(
+      `${ERROR_PREFIX} Scenario "${current.pickle.name}" is tagged @flow — flows are reusable sub-procedures and must never run standalone (their <param> placeholders would reach the model unsubstituted). Exclude them with tags: 'not @flow' in your cucumber config, or use the @midscene/bdd/profile preset which does this for you.`,
+    );
+  }
+
   const ctx = buildStepContext({
     document: current.gherkinDocument,
     pickle: current.pickle,
