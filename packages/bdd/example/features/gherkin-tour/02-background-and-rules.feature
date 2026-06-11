@@ -23,7 +23,10 @@ Feature: Gherkin tour — Background and Rules
       Given I have added "Trail Backpack" to the cart
 
     # `Example:` is the modern synonym for `Scenario:` — both spellings are
-    # interchangeable; this tour shows each once.
+    # interchangeable and declare ONE concrete scenario; no variables are
+    # involved. Don't confuse it with `Examples:` (plural), which only appears
+    # under a `Scenario Outline:` and holds the value table for its
+    # `<placeholders>` — see 03-scenario-outlines.feature.
     Example: Applying SAVE10 confirms and discounts the total
       When I enter the coupon code "SAVE10" and click Apply
       Then a "Coupon applied" message is visible
