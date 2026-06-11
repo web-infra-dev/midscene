@@ -84,6 +84,7 @@ import {
 import { commonContextParser, getReportFileName, parsePrompt } from './utils';
 
 const debug = getDebug('agent');
+const warn = getDebug('agent', { console: true });
 
 const distanceOfTwoPoints = (p1: [number, number], p2: [number, number]) => {
   const [x1, y1] = p1;
@@ -933,22 +934,32 @@ export class Agent<
         !planCacheEnabled || cacheable === false
           ? undefined
           : this.taskCache?.matchPlanCache(taskPrompt);
+      let cachedYamlFailed = false;
       if (
         matchedCache?.cacheUsable &&
         this.taskCache?.isCacheResultUsed &&
         matchedCache.cacheContent?.yamlWorkflow?.trim()
       ) {
-        // log into report file
-        await this.taskExecutor.loadYamlFlowAsPlanning(
-          taskPrompt,
-          matchedCache.cacheContent.yamlWorkflow,
-          internalReportDisplay,
-        );
-
-        debug('matched cache, will call .runYaml to run the action');
         const yaml = matchedCache.cacheContent.yamlWorkflow;
-        await this.runYaml(yaml);
-        return;
+        try {
+          // log into report file
+          await this.taskExecutor.loadYamlFlowAsPlanning(
+            taskPrompt,
+            yaml,
+            internalReportDisplay,
+          );
+
+          debug('matched cache, will call .runYaml to run the action');
+          await this.runYaml(yaml);
+          return;
+        } catch (error) {
+          cachedYamlFailed = true;
+          warn(
+            `cached aiAct plan failed, will replan and refresh or disable cache: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
       }
 
       // If cache matched but is not executable, fall through to normal execution
@@ -970,16 +981,22 @@ export class Agent<
       );
 
       // update cache
-      if (
-        this.taskCache &&
-        actionOutput?.yamlFlow?.length &&
-        cacheable !== false
-      ) {
+      if (this.taskCache && cacheable !== false) {
+        const shouldUpdatePlanCache =
+          !!actionOutput?.yamlFlow?.length || cachedYamlFailed;
+        const yamlFlow = shouldUpdatePlanCache
+          ? (actionOutput?.yamlFlow ?? [])
+          : undefined;
+
+        if (!yamlFlow) {
+          return actionOutput?.output;
+        }
+
         const yamlContent: MidsceneYamlScript = {
           tasks: [
             {
               name: reportPrompt,
-              flow: actionOutput.yamlFlow,
+              flow: yamlFlow,
             },
           ],
         };
