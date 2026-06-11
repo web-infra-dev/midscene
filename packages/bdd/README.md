@@ -222,7 +222,10 @@ Everything cucumber gives you keeps working — this package adds exactly three 
 
 Data tables and doc strings on AI-routed steps are appended to the prompt verbatim. `@no-ai` and `@soft` may also be applied as ordinary scenario/feature tags (inherited per normal Gherkin semantics); `@agent` is deliberately per-line only.
 
-Callback registration is the standard cucumber shape — `Given`/`When`/`Then` take `(pattern, fn)` where `pattern` is a cucumber expression string or a RegExp, captures arrive as function arguments, and the world is `this`. Per cucumber convention the keyword is documentation only: matching ignores it, and `defineStep` is the keyword-agnostic alias.
+Callback registration is the cucumber shape — `Given`/`When`/`Then` take `(pattern, fn)` where `pattern` is a cucumber expression string or a RegExp, and captures arrive as function arguments. Per cucumber convention the keyword is documentation only: matching ignores it, and `defineStep` is the keyword-agnostic alias. Two deliberate divergences from standard cucumber:
+
+- **`this` is the step context, not the cucumber World.** Use a regular `function` (not an arrow) to access it: `this.getUiAgent()` / `this.peekUiAgent()`, `this.attach(...)`, `this.log(...)`, plus the step's `stepText`, `annotations`, `dataTable`, and `docString`.
+- **Data tables and doc strings are not passed as a trailing argument.** Standard cucumber appends the `DataTable`/doc-string as the last callback parameter; here the callback receives only the pattern captures — read the step's table or doc string via `this.dataTable` (rendered `| cell |` lines) and `this.docString` instead.
 
 ## How it works
 

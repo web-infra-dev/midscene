@@ -3,7 +3,9 @@
  *
  * - `defineBddConfig` — author `midscene.config.ts`
  * - `Given` / `When` / `Then` / `defineStep` — register classic callbacks for
- *   `@no-ai` steps (standard cucumber signatures; world is `this`)
+ *   `@no-ai` steps (cucumber-style `(pattern, fn)`; `this` inside the
+ *   callback is the step context — getUiAgent/attach/log/dataTable/
+ *   docString — not the cucumber World)
  * - `defineProfile` — cucumber config preset (also exported from
  *   `@midscene/bdd/profile`)
  *
