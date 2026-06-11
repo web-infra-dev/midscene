@@ -1129,10 +1129,6 @@ interface RecordToReportOptions {
     base64: string;
     description?: string;
   }[];
-  customScreenshotData?: {
-    base64: string;
-    description?: string;
-  }[];
   subType?: string;
 }
 
@@ -1148,14 +1144,12 @@ function recordToReport(
   - `options?: RecordToReportOptions` - 可选，一个配置对象，包含：
     - `content?: string` - 截图的描述。
     - `screenshots?: Array<{ base64: string; description?: string }>` - 在同一个报告条目下记录一张或多张传入的截图。设置该选项后，Midscene 不会再自动截图。
-    - `customScreenshotData?: Array<{ base64: string; description?: string }>` - `screenshots` 的兼容别名。
     - `subType?: string` - 这个日志条目的自定义展示标签。底层报告任务类型仍然是 `Log`。
 
 - 兼容性：
 
   `screenshotBase64?: string` 仍然作为向后兼容的单截图覆盖参数被接受。新代码建议使用
-  `screenshots: [{ base64 }]`。`screenshots`、`customScreenshotData` 和
-  `screenshotBase64` 三者只能传入一个。
+  `screenshots: [{ base64 }]`。`screenshots` 和 `screenshotBase64` 二者只能传入一个。
 
 - 返回值：
 

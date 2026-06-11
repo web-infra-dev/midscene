@@ -215,10 +215,6 @@ export interface RecordToReportOptions {
    */
   screenshots?: RecordToReportScreenshot[];
   /**
-   * Alias for the API shape proposed in issue #1998.
-   */
-  customScreenshotData?: RecordToReportScreenshot[];
-  /**
    * Custom display label for this log task. The underlying task type stays Log.
    */
   subType?: string;
@@ -1566,23 +1562,13 @@ export class Agent<
   async recordToReport(title?: string, opt?: RecordToReportOptions) {
     const now = Date.now();
     const hasScreenshots = Array.isArray(opt?.screenshots);
-    const hasCustomScreenshotData = Array.isArray(opt?.customScreenshotData);
     const hasScreenshotBase64 = typeof opt?.screenshotBase64 === 'string';
-    const screenshotSourceCount = [
-      hasScreenshots,
-      hasCustomScreenshotData,
-      hasScreenshotBase64,
-    ].filter(Boolean).length;
-    if (screenshotSourceCount > 1) {
+    if (hasScreenshots && hasScreenshotBase64) {
       throw new Error(
-        'recordToReport: provide only one of screenshots, customScreenshotData, or screenshotBase64',
+        'recordToReport: provide only one of screenshots or screenshotBase64',
       );
     }
-    const customScreenshots = hasScreenshots
-      ? opt!.screenshots
-      : hasCustomScreenshotData
-        ? opt!.customScreenshotData
-        : undefined;
+    const customScreenshots = hasScreenshots ? opt!.screenshots : undefined;
     if (customScreenshots && customScreenshots.length === 0) {
       throw new Error('recordToReport: screenshots cannot be empty');
     }
