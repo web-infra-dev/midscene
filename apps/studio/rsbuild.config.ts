@@ -6,6 +6,7 @@ import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import {
   commonIgnoreWarnings,
+  createCoreReportTemplateReplacementPlugin,
   createTypeCheckPlugin,
 } from '../../scripts/rsbuild-utils.ts';
 import { version as appVersion } from './package.json';
@@ -50,6 +51,9 @@ export default defineConfig({
     pluginLess(),
     pluginNodePolyfill(),
     createTypeCheckPlugin(),
+    createCoreReportTemplateReplacementPlugin({
+      appDir: __dirname,
+    }),
   ],
   resolve: {
     alias: {

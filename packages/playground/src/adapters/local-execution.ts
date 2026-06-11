@@ -354,11 +354,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     try {
       if (typeof this.agent.reportHTMLString === 'function') {
         const html = this.agent.reportHTMLString();
-        if (
-          html &&
-          typeof html === 'string' &&
-          !html.includes('REPLACE_ME_WITH_REPORT_HTML')
-        ) {
+        if (html && typeof html === 'string') {
           reportHTML = html;
         }
       }

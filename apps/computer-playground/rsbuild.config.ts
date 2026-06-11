@@ -8,6 +8,7 @@ import { pluginWorkspaceDev } from 'rsbuild-plugin-workspace-dev';
 import { version as playgroundVersion } from '../../packages/playground/package.json';
 import {
   commonIgnoreWarnings,
+  createCoreReportTemplateReplacementPlugin,
   createPlaygroundCopyPlugin,
   createTypeCheckPlugin,
 } from '../../scripts/rsbuild-utils.ts';
@@ -66,6 +67,9 @@ export default defineConfig({
     pluginNodePolyfill(),
     pluginLess(),
     pluginSvgr(),
+    createCoreReportTemplateReplacementPlugin({
+      appDir: __dirname,
+    }),
     createPlaygroundCopyPlugin(
       path.join(__dirname, 'dist'),
       path.join(__dirname, '../../packages/computer-playground/static'),

@@ -60,5 +60,19 @@
     "appdmg": "0.6.6",
     "fs-xattr": "0.3.1",
     "macos-alias": "0.2.12"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "dependsOn": [
+          "^build",
+          {
+            "projects": ["@midscene/report"],
+            "target": "build",
+            "params": "ignore"
+          }
+        ]
+      }
+    }
   }
 }
