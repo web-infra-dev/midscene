@@ -350,5 +350,5 @@ for (let f = 0; f < 30; f++) {
 }
 
 console.log(
-  `Wrote scale fixture to ${base}: 30 feature files, ${scenarioTotal} scenarios, 12 flows (2 unused), seeded health findings.`,
+  `Wrote scale fixture to ${base}: 33 feature files (30 suites + 3 shared-flow files), ${scenarioTotal} scenarios, 16 flows (2 unused, incl. a depth-3 chain), seeded health findings.`,
 );

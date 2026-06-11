@@ -20,18 +20,22 @@ export const DASHBOARD_TEMPLATE = String.raw`<!DOCTYPE html>
 <title>midscene-bdd dashboard</title>
 <style>
   :root {
-    --bg: #14161a;
-    --panel: #1b1e24;
-    --panel-2: #20242c;
+    --bg: #111318;
+    --panel: #181b21;
+    --panel-2: #1f232b;
+    --panel-3: #262b35;
     --border: #2c313b;
-    --text: #d8dce3;
+    --border-soft: #232830;
+    --text: #dde1e8;
     --muted: #8b93a1;
     --accent: #6ea8e0;
+    --accent-soft: #6ea8e022;
     --context: #58c08a;   /* Given */
     --action: #5aa2e8;    /* When */
     --outcome: #b48ee8;   /* Then */
     --warn: #e0a35a;
     --bad: #e06a6a;
+    --shadow: 0 1px 2px rgba(0,0,0,.35);
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
@@ -46,6 +50,13 @@ export const DASHBOARD_TEMPLATE = String.raw`<!DOCTYPE html>
   code, .mono, .step-text, .kw, .tree-row-name, .docstring {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: #2e3440; border-radius: 6px; border: 2px solid var(--bg);
+  }
+  ::-webkit-scrollbar-thumb:hover { background: #3a4252; }
+  button { transition: background-color .12s ease, border-color .12s ease, color .12s ease; }
 
   /* ———— header ———— */
   header {
@@ -55,30 +66,46 @@ export const DASHBOARD_TEMPLATE = String.raw`<!DOCTYPE html>
     gap: 10px 16px;
     padding: 10px 16px;
     border-bottom: 1px solid var(--border);
-    background: var(--panel);
+    background: linear-gradient(180deg, #1b1f27, #171a20);
+    box-shadow: var(--shadow);
+    position: relative;
+    z-index: 5;
   }
-  header h1 { font-size: 15px; margin: 0; font-weight: 650; white-space: nowrap; }
+  header h1 {
+    font-size: 15px; margin: 0; font-weight: 700; white-space: nowrap;
+    display: flex; align-items: center; gap: 8px; letter-spacing: .01em;
+  }
+  header h1::before {
+    content: ''; width: 9px; height: 9px; border-radius: 3px;
+    background: linear-gradient(135deg, var(--context), var(--accent));
+    box-shadow: 0 0 8px #6ea8e066;
+  }
   #base-dir { color: var(--muted); font-size: 12px; max-width: 34ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .stats { display: flex; gap: 6px; flex-wrap: wrap; }
   .chip {
     display: inline-flex; align-items: center; gap: 4px;
-    border: 1px solid var(--border); border-radius: 999px;
+    border: 1px solid var(--border-soft); border-radius: 999px;
     padding: 1px 9px; font-size: 12px; color: var(--muted); background: var(--panel-2);
   }
   .chip b { color: var(--text); font-weight: 650; }
   #search {
     flex: 1; min-width: 180px; max-width: 420px;
-    background: var(--panel-2); border: 1px solid var(--border); border-radius: 7px;
-    color: var(--text); padding: 6px 10px; font-size: 13px; outline: none;
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); padding: 6px 11px; font-size: 13px; outline: none;
+    transition: border-color .12s ease, box-shadow .12s ease;
   }
-  #search:focus { border-color: var(--accent); }
-  nav { display: flex; gap: 4px; margin-left: auto; }
+  #search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  nav {
+    display: flex; gap: 2px; margin-left: auto;
+    background: var(--panel-2); border: 1px solid var(--border-soft);
+    border-radius: 9px; padding: 2px;
+  }
   nav button {
     background: transparent; border: 1px solid transparent; border-radius: 7px;
-    color: var(--muted); padding: 6px 12px; font-size: 13px; cursor: pointer;
+    color: var(--muted); padding: 5px 12px; font-size: 13px; cursor: pointer; font-weight: 550;
   }
   nav button:hover { color: var(--text); }
-  nav button.active { background: var(--panel-2); border-color: var(--border); color: var(--text); }
+  nav button.active { background: var(--panel-3); border-color: var(--border); color: var(--text); box-shadow: var(--shadow); }
   nav .pill { background: var(--bad); color: #fff; border-radius: 999px; padding: 0 6px; font-size: 11px; margin-left: 5px; }
   nav .pill.zero { background: var(--border); color: var(--muted); }
 
@@ -95,6 +122,7 @@ export const DASHBOARD_TEMPLATE = String.raw`<!DOCTYPE html>
     display: flex; align-items: center; gap: 7px;
     padding: 7px 12px 5px; cursor: pointer; user-select: none;
     color: var(--text); font-weight: 600; font-size: 13px;
+    position: sticky; top: 0; background: var(--panel); z-index: 2;
   }
   .tree-head:hover { background: var(--panel-2); }
   .tree-head .caret { color: var(--muted); width: 12px; font-size: 11px; }
@@ -103,9 +131,11 @@ export const DASHBOARD_TEMPLATE = String.raw`<!DOCTYPE html>
   .tree-row {
     display: flex; align-items: baseline; gap: 7px;
     padding: 4px 12px 4px 31px; cursor: pointer; font-size: 12.5px;
+    border-left: 2px solid transparent;
+    transition: background-color .1s ease;
   }
   .tree-row:hover { background: var(--panel-2); }
-  .tree-row.active { background: #283041; }
+  .tree-row.active { background: #283041; border-left-color: var(--accent); }
   .tree-row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tree-row .mini { color: var(--muted); font-size: 10.5px; white-space: nowrap; }
   .tree-row .mini.tag { color: var(--accent); }
@@ -121,12 +151,21 @@ export const DASHBOARD_TEMPLATE = String.raw`<!DOCTYPE html>
   .chip.clickable { cursor: pointer; }
   .chip.clickable:hover { border-color: var(--accent); color: var(--text); }
 
+  .steps-card {
+    background: var(--panel);
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    padding: 14px 12px;
+    box-shadow: var(--shadow);
+    max-width: 980px;
+  }
   .step { margin: 2px 0; }
   .step-row {
     display: flex; align-items: baseline; gap: 8px;
     padding: 4px 10px; border-radius: 6px;
+    transition: background-color .1s ease;
   }
-  .step-row:hover { background: var(--panel); }
+  .step-row:hover { background: var(--panel-2); }
   .step.step-issue > .step-row { background: rgba(224,106,106,.08); }
   .kw { font-weight: 700; white-space: nowrap; }
   .kw-context { color: var(--context); }
@@ -174,35 +213,55 @@ export const DASHBOARD_TEMPLATE = String.raw`<!DOCTYPE html>
   /* ———— graph ———— */
   #view-graph { display: none; flex-direction: column; }
   #graph-toolbar {
-    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
     padding: 9px 16px; border-bottom: 1px solid var(--border); background: var(--panel);
     font-size: 12.5px; color: var(--muted);
   }
   #graph-toolbar b { color: var(--text); }
+  #graph-toolbar label.toggle {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--text); cursor: pointer; user-select: none; white-space: nowrap;
+  }
+  #graph-toolbar label.toggle input { accent-color: var(--accent); margin: 0; }
   .btn {
     background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px;
     color: var(--text); padding: 4px 11px; font-size: 12px; cursor: pointer;
   }
   .btn:hover { border-color: var(--accent); }
   #graph-scroll { flex: 1; overflow: auto; }
+  .gband { fill: rgba(255,255,255,.018); stroke: var(--border); stroke-opacity: .55; }
+  .gband-label { fill: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
   .gnode { cursor: pointer; }
-  .gnode rect { fill: var(--panel-2); stroke: var(--border); stroke-width: 1.2; rx: 9; }
+  .gnode { transition: opacity .15s ease; }
+  .gedge { transition: opacity .15s ease, stroke .15s ease; }
+  .gnode rect {
+    fill: var(--panel-2); stroke: var(--border); stroke-width: 1.2; rx: 9;
+    transition: stroke .12s ease, fill .12s ease;
+  }
+  .gnode:hover rect { stroke: var(--accent); }
   .gnode.feature rect { fill: #20283a; stroke: #41557a; }
   .gnode.scenario rect { fill: #20283a; stroke: #41557a; stroke-dasharray: 4 3; }
   .gnode.flow rect { fill: #1f3326; stroke: #4a7a55; }
   .gnode.flow.unused rect { stroke: var(--warn); stroke-dasharray: 4 3; fill: #33291f; }
   .gnode.focus rect { stroke: var(--accent); stroke-width: 2.2; fill: #1d3242; }
-  .gnode.hot rect { stroke: var(--accent); stroke-width: 2; }
   .gnode:focus { outline: none; }
   .gnode:focus rect { stroke: var(--accent); stroke-width: 2; }
   .gnode text { fill: var(--text); font-size: 12px; }
   .gnode text.sub { fill: var(--muted); font-size: 10px; }
-  .gedge { fill: none; stroke: #46506155; stroke-width: 1.4; }
-  .gedge.flowedge { stroke: #4a7a5599; stroke-width: 1.8; }
-  .gedge.hot { stroke: var(--accent); stroke-width: 2.4; }
+  /* dependency-cone highlighting: in-cone pops, everything else dims */
+  .gnode.dim { opacity: .18; }
+  .gnode.cone rect { stroke-width: 1.9; }
+  .gnode.pinned rect { stroke: var(--accent); stroke-width: 2.4; }
+  .gnode.hot rect { stroke: var(--accent); stroke-width: 2; }
+  .gedge { fill: none; stroke: #465061; stroke-opacity: .42; stroke-width: 1.4; }
+  .gedge.flowedge { stroke: #4a7a55; stroke-opacity: .7; stroke-width: 1.8; }
+  svg.fade-edges .gedge { stroke-opacity: .16; }
+  svg.fade-edges .gedge.flowedge { stroke-opacity: .3; }
+  .gedge.dim, svg.fade-edges .gedge.dim { stroke-opacity: .07; }
+  .gedge.cone, svg.fade-edges .gedge.cone { stroke-opacity: .95; stroke-width: 2.1; }
+  .gedge.hot, svg.fade-edges .gedge.hot { stroke: var(--accent); stroke-opacity: 1; stroke-width: 2.4; }
   .gedge-hit { fill: none; stroke: transparent; stroke-width: 12; cursor: pointer; }
   .gedge-label { fill: var(--text); font-size: 11px; pointer-events: none; paint-order: stroke; stroke: var(--bg); stroke-width: 4; }
-  .gcol-label { fill: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 
   /* ———— health ———— */
   #view-health { display: none; overflow-y: auto; padding: 20px 28px 60px; }
@@ -305,7 +364,10 @@ var state = {
   view: 'stories',
   selectedId: null,
   query: '',
-  focusFlowId: null,
+  focusFlowId: null,       // optional subgraph focus (toolbar button on a pinned flow)
+  pinnedId: null,          // graph node whose dependency cone is pinned
+  graphScenarios: true,    // graph toggle: every scenario vs aggregated features
+  graphFadeEdges: true,    // graph toggle: dim edges when the graph is dense
   collapsed: Object.create(null) // feature id (or '__flows__') -> true
 };
 var rowEls = Object.create(null); // tree row elements by item id
@@ -587,12 +649,15 @@ function renderDetail() {
   }
   detail.appendChild(head);
 
+  // Gherkin body framed as a card so the prose reads as one document.
+  var stepsCard = el('div', 'steps-card');
   item.steps.forEach(function (step) {
-    detail.appendChild(renderStep(step, [item.id]));
+    stepsCard.appendChild(renderStep(step, [item.id]));
   });
+  detail.appendChild(stepsCard);
 }
 
-/* ———————————————— flow graph (inline SVG) ———————————————— */
+/* ———————————————— flow graph (inline SVG, vertical layers) ———————————————— */
 
 var SVG_NS = 'http://www.w3.org/2000/svg';
 function svgEl(tag) { return document.createElementNS(SVG_NS, tag); }
@@ -634,35 +699,53 @@ function dedupeLinks(raw) {
   return out;
 }
 
-// Default overview: aggregated feature nodes (one per feature that calls
-// flows, with a scenario count) on the left, flows layered to the right.
-// Individual scenario nodes only appear in focus mode — this is what keeps
-// the graph readable at 150+ scenarios.
-function buildOverviewGraph(nodes, rawLinks) {
+// The whole dependency picture, top to bottom: layer 0 = the dependents
+// (every scenario individually, or aggregated feature nodes when the
+// "Show every scenario" toggle is off), flows by call depth below. Nodes
+// get an explicit "order" so the layout never re-sorts (scenarios keep
+// feature/document order; flows keep the model's name order).
+function buildFullGraph(nodes, rawLinks) {
   var layers = flowLayers();
-  var featureCalls = Object.create(null); // feature id -> flow id -> count
-  MODEL.edges.forEach(function (e) {
-    if (e.from.indexOf('scenario:') !== 0) return;
-    var featId = featureOfScenario[e.from];
-    if (!featId) return;
-    var agg = featureCalls[featId] || (featureCalls[featId] = Object.create(null));
-    agg[e.to] = (agg[e.to] || 0) + 1;
-  });
-  var hiddenFeatures = 0;
-  MODEL.features.forEach(function (feat) {
-    var agg = featureCalls[feat.id];
-    if (!agg) { hiddenFeatures++; return; }
-    nodes.push({
-      id: feat.id, kind: 'feature', col: 0, label: feat.name,
-      sub: plural(feat.scenarios.length, 'scenario')
+  var hiddenCallers = 0;
+  var order = 0;
+  if (state.graphScenarios) {
+    MODEL.features.forEach(function (feat) {
+      feat.scenarios.forEach(function (sc) {
+        var outs = edgesFrom[sc.id] || [];
+        if (outs.length === 0) { hiddenCallers++; return; }
+        nodes.push({
+          id: sc.id, kind: 'scenario', layer: 0, order: order++, small: true,
+          label: sc.name, sub: feat.name
+        });
+        outs.forEach(function (e) {
+          rawLinks.push({ from: sc.id, to: e.to, label: argsSummary(e.args) });
+        });
+      });
     });
-    Object.keys(agg).sort().forEach(function (flowId) {
-      rawLinks.push({ from: feat.id, to: flowId, label: plural(agg[flowId], 'call'), count: agg[flowId] });
+  } else {
+    var featureCalls = Object.create(null); // feature id -> flow id -> count
+    MODEL.edges.forEach(function (e) {
+      if (e.from.indexOf('scenario:') !== 0) return;
+      var featId = featureOfScenario[e.from];
+      if (!featId) return;
+      var agg = featureCalls[featId] || (featureCalls[featId] = Object.create(null));
+      agg[e.to] = (agg[e.to] || 0) + 1;
     });
-  });
+    MODEL.features.forEach(function (feat) {
+      var agg = featureCalls[feat.id];
+      if (!agg) { hiddenCallers++; return; }
+      nodes.push({
+        id: feat.id, kind: 'feature', layer: 0, order: order++, label: feat.name,
+        sub: plural(feat.scenarios.length, 'scenario')
+      });
+      Object.keys(agg).sort().forEach(function (flowId) {
+        rawLinks.push({ from: feat.id, to: flowId, label: plural(agg[flowId], 'call'), count: agg[flowId] });
+      });
+    });
+  }
   MODEL.flows.forEach(function (f) {
     nodes.push({
-      id: f.id, kind: 'flow', col: layers[f.id], label: f.name,
+      id: f.id, kind: 'flow', layer: layers[f.id], order: order++, label: f.name,
       sub: plural(f.params.length, 'param') + ' · ' + plural(f.returns.length, 'return'),
       unused: (edgesTo[f.id] || []).length === 0
     });
@@ -671,18 +754,19 @@ function buildOverviewGraph(nodes, rawLinks) {
     if (e.from.indexOf('flow:') !== 0) return;
     rawLinks.push({ from: e.from, to: e.to, label: argsSummary(e.args) });
   });
-  return hiddenFeatures;
+  return hiddenCallers;
 }
 
-// Focus mode: the selected flow in the middle, its direct callers (now as
-// individual scenario/flow nodes) on the left, transitive callees rightward.
+// Optional focus subgraph (toolbar button on a pinned flow): the flow's
+// direct callers above, the flow, then its transitive callees below.
 function buildFocusGraph(nodes, rawLinks) {
   var fid = state.focusFlowId;
   var focus = flowById[fid];
   var seen = Object.create(null);
+  var order = 0;
   seen[fid] = true;
   nodes.push({
-    id: fid, kind: 'flow', col: 1, label: focus.name,
+    id: fid, kind: 'flow', layer: 1, order: order++, label: focus.name,
     sub: plural(focus.params.length, 'param') + ' · ' + plural(focus.returns.length, 'return'),
     focus: true
   });
@@ -694,15 +778,15 @@ function buildFocusGraph(nodes, rawLinks) {
       var sub = '';
       if (!isFlow && featureOfScenario[e.from]) sub = featureById[featureOfScenario[e.from]].name;
       nodes.push({
-        id: e.from, kind: isFlow ? 'flow' : 'scenario', col: 0,
-        label: caller ? caller.name : e.from, sub: sub
+        id: e.from, kind: isFlow ? 'flow' : 'scenario', layer: 0, order: order++,
+        small: !isFlow, label: caller ? caller.name : e.from, sub: sub
       });
     }
     rawLinks.push({ from: e.from, to: fid, label: argsSummary(e.args) });
   });
   var frontier = [fid];
-  var col = 2;
-  while (frontier.length > 0 && col < 6) {
+  var layer = 2;
+  while (frontier.length > 0 && layer < 6) {
     var next = [];
     frontier.forEach(function (src) {
       (edgesFrom[src] || []).forEach(function (e) {
@@ -711,7 +795,8 @@ function buildFocusGraph(nodes, rawLinks) {
           seen[e.to] = true;
           var callee = flowById[e.to];
           nodes.push({
-            id: e.to, kind: 'flow', col: col, label: callee ? callee.name : e.to,
+            id: e.to, kind: 'flow', layer: layer, order: order++,
+            label: callee ? callee.name : e.to,
             sub: callee ? plural(callee.params.length, 'param') + ' · ' + plural(callee.returns.length, 'return') : ''
           });
           next.push(e.to);
@@ -720,78 +805,163 @@ function buildFocusGraph(nodes, rawLinks) {
       });
     });
     frontier = next;
-    col++;
+    layer++;
   }
-}
-
-function onNodeClick(node) {
-  if (node.kind === 'feature') {
-    var feat = featureById[node.id];
-    if (feat && feat.scenarios.length > 0) selectItem(feat.scenarios[0].id);
-    return;
-  }
-  if (node.kind === 'scenario') { selectItem(node.id); return; }
-  // Flow node: first click focuses the subgraph; clicking the focused flow
-  // again opens it in the Stories view.
-  if (state.focusFlowId === node.id) selectItem(node.id);
-  else { state.focusFlowId = node.id; renderGraph(); }
 }
 
 function truncate(text, max) {
   return text.length > max ? text.slice(0, max - 1) + '…' : text;
 }
 
+/* ———— dependency cone ———— */
+
+// Transitive closure of one node over the DRAWN graph: ancestors (everything
+// that depends on it, via reverse BFS) plus descendants (everything it
+// depends on, via forward BFS). Returns the in-cone node-id set and the
+// in-cone link-index set. Visited-link marking makes cycles terminate.
+function computeCone(rootId, links) {
+  var byTo = Object.create(null);
+  var byFrom = Object.create(null);
+  links.forEach(function (l, i) {
+    (byTo[l.to] = byTo[l.to] || []).push(i);
+    (byFrom[l.from] = byFrom[l.from] || []).push(i);
+  });
+  var nodesIn = Object.create(null);
+  var linksIn = Object.create(null);
+  nodesIn[rootId] = true;
+  var stack = [rootId];
+  while (stack.length > 0) {  // ancestors
+    var cur = stack.pop();
+    (byTo[cur] || []).forEach(function (i) {
+      if (linksIn[i]) return;
+      linksIn[i] = true;
+      var from = links[i].from;
+      if (!nodesIn[from]) { nodesIn[from] = true; stack.push(from); }
+    });
+  }
+  stack = [rootId];
+  while (stack.length > 0) {  // descendants
+    var cur2 = stack.pop();
+    (byFrom[cur2] || []).forEach(function (i) {
+      if (linksIn[i]) return;
+      linksIn[i] = true;
+      var to = links[i].to;
+      if (!nodesIn[to]) { nodesIn[to] = true; stack.push(to); }
+    });
+  }
+  return { rootId: rootId, nodes: nodesIn, links: linksIn };
+}
+
+// Live handles to the last-drawn graph (cone highlighting re-styles in
+// place instead of re-rendering, so scroll position is preserved).
+var graphRefs = null;
+
+function applyCone(cone) {
+  if (!graphRefs) return;
+  graphRefs.nodes.forEach(function (n) {
+    var g = graphRefs.groupById[n.id];
+    if (!g) return;
+    g.classList.toggle('cone', !!cone && !!cone.nodes[n.id]);
+    g.classList.toggle('dim', !!cone && !cone.nodes[n.id]);
+    g.classList.toggle('pinned', !!cone && cone.rootId === n.id && state.pinnedId === n.id);
+  });
+  graphRefs.links.forEach(function (l, i) {
+    var rec = graphRefs.edgeRecs[i];
+    if (!rec) return;
+    rec.classList.toggle('cone', !!cone && !!cone.links[i]);
+    rec.classList.toggle('dim', !!cone && !cone.links[i]);
+  });
+}
+
+function setPinned(id) {
+  state.pinnedId = id;
+  applyCone(id && graphRefs ? computeCone(id, graphRefs.links) : null);
+  renderGraphToolbar();
+}
+
+// Jump to the Stories view for a graph node (features open their first
+// scenario).
+function openNode(node) {
+  if (node.kind === 'feature') {
+    var feat = featureById[node.id];
+    if (feat && feat.scenarios.length > 0) selectItem(feat.scenarios[0].id);
+    return;
+  }
+  selectItem(node.id);
+}
+
+/* ———— vertical layered layout ———— */
+
+var GRAPH_TARGET_W = 1600; // wrap wide layers to roughly this canvas width
 var NODE_W = 240;
 var NODE_H = 46;
-var COL_GAP = 120;
-var ROW_GAP = 18;
+var NODE_H_SMALL = 32;
+var H_GAP = 48;
+var V_GAP = 22;
+var BAND_LABEL_H = 30;
+var BAND_GAP = 56;
 var PAD = 28;
 
-function layoutAndDraw(svg, nodes, links) {
-  var cols = Object.create(null);
-  var maxCol = 0;
+// Grid-packs each layer into rows of up to perRow nodes inside a labeled
+// band, then draws bands, edges (source bottom-center → target top-center,
+// arrowheads pointing down) and nodes. Returns live handles for cone
+// re-styling.
+function layoutVertical(svg, nodes, links, layerLabels) {
+  var byLayer = [];
   nodes.forEach(function (n) {
-    (cols[n.col] = cols[n.col] || []).push(n);
-    if (n.col > maxCol) maxCol = n.col;
+    (byLayer[n.layer] = byLayer[n.layer] || []).push(n);
   });
-  var maxRows = 1;
-  Object.keys(cols).forEach(function (c) {
-    var list = cols[c];
-    list.sort(function (a, b) {
-      if (a.focus !== b.focus) return a.focus ? -1 : 1;
-      return a.label.localeCompare(b.label);
-    });
-    list.forEach(function (n, i) {
-      n.x = PAD + n.col * (NODE_W + COL_GAP);
-      n.y = PAD + i * (NODE_H + ROW_GAP);
-    });
-    if (list.length > maxRows) maxRows = list.length;
+  var perRow = Math.max(1, Math.floor((GRAPH_TARGET_W - PAD * 2 + H_GAP) / (NODE_W + H_GAP)));
+  var widestRow = 1;
+  byLayer.forEach(function (list) {
+    if (list) widestRow = Math.max(widestRow, Math.min(list.length, perRow));
   });
-  var HEADER_H = 26;
-  svg.setAttribute('width', String(PAD * 2 + (maxCol + 1) * NODE_W + maxCol * COL_GAP));
-  svg.setAttribute('height', String(PAD * 2 + HEADER_H + maxRows * (NODE_H + ROW_GAP)));
+  var width = PAD * 2 + widestRow * (NODE_W + H_GAP) - H_GAP;
 
-  // Column headers, derived from what each column actually contains.
-  Object.keys(cols).forEach(function (c) {
-    var list = cols[c];
-    if (list.length === 0) return;
-    var col = Number(c);
-    var kinds = {};
-    list.forEach(function (n) { kinds[n.kind] = true; });
-    var text;
-    if (kinds.feature) text = 'FEATURES';
-    else if (kinds.scenario && !kinds.flow) text = 'CALLERS';
-    else if (kinds.scenario && kinds.flow) text = 'CALLERS';
-    else text = col <= 1 ? 'FLOWS' : 'NESTED FLOWS · DEPTH ' + col;
+  var bands = [];
+  var y = PAD;
+  byLayer.forEach(function (list, li) {
+    if (!list || list.length === 0) return;
+    list.sort(function (a, b) { return a.order - b.order; });
+    var layerH = NODE_H_SMALL;
+    list.forEach(function (n) {
+      n.h = n.small ? NODE_H_SMALL : NODE_H;
+      if (n.h > layerH) layerH = n.h;
+    });
+    var contentTop = y + BAND_LABEL_H;
+    list.forEach(function (n, i) {
+      n.x = PAD + (i % perRow) * (NODE_W + H_GAP);
+      n.y = contentTop + Math.floor(i / perRow) * (layerH + V_GAP);
+    });
+    var rows = Math.ceil(list.length / perRow);
+    var bottom = contentTop + rows * (layerH + V_GAP) - V_GAP + 12;
+    bands.push({
+      top: y, bottom: bottom,
+      label: (layerLabels[li] || 'LAYER ' + li) + ' · ' + list.length
+    });
+    y = bottom + BAND_GAP;
+  });
+  var height = y - BAND_GAP + PAD;
+  svg.setAttribute('width', String(width));
+  svg.setAttribute('height', String(height));
+
+  // Band backgrounds + labels (painted lowest).
+  bands.forEach(function (b) {
+    var rect = svgEl('rect');
+    rect.setAttribute('class', 'gband');
+    rect.setAttribute('x', String(PAD / 2));
+    rect.setAttribute('y', String(b.top - 8));
+    rect.setAttribute('width', String(width - PAD));
+    rect.setAttribute('height', String(b.bottom - b.top + 8));
+    rect.setAttribute('rx', '10');
+    svg.appendChild(rect);
     var label = svgEl('text');
-    label.setAttribute('class', 'gcol-label');
-    label.setAttribute('x', String(PAD + col * (NODE_W + COL_GAP)));
-    label.setAttribute('y', String(PAD - 6 + HEADER_H));
-    label.textContent = text;
+    label.setAttribute('class', 'gband-label');
+    label.setAttribute('x', String(PAD));
+    label.setAttribute('y', String(b.top + 11));
+    label.textContent = b.label;
     svg.appendChild(label);
   });
-  // Shift node rows below the headers.
-  nodes.forEach(function (n) { n.y += HEADER_H; });
 
   var defs = svgEl('defs');
   var marker = svgEl('marker');
@@ -813,26 +983,29 @@ function layoutAndDraw(svg, nodes, links) {
   var groupById = Object.create(null);
   nodes.forEach(function (n) { nodeById[n.id] = n; });
 
-  // Edges first so nodes paint on top of them.
-  links.forEach(function (l) {
+  // Edges first so nodes paint on top of them. edgeRecs is index-aligned
+  // with links so applyCone can address edges by link index.
+  var edgeRecs = [];
+  links.forEach(function (l, i) {
     var s = nodeById[l.from];
     var t = nodeById[l.to];
+    edgeRecs[i] = null;
     if (!s || !t) return;
-    var x1 = s.x + NODE_W;
-    var y1 = s.y + NODE_H / 2;
-    var x2 = t.x;
-    var y2 = t.y + NODE_H / 2;
+    var x1 = s.x + NODE_W / 2;
+    var y1 = s.y + s.h;
+    var x2 = t.x + NODE_W / 2;
+    var y2 = t.y;
     var d;
-    if (t.col > s.col) {
-      var mx = (x1 + x2) / 2;
-      d = 'M ' + x1 + ' ' + y1 + ' C ' + mx + ' ' + y1 + ', ' + mx + ' ' + y2 + ', ' + x2 + ' ' + y2;
+    if (y2 > y1) {
+      var my = (y1 + y2) / 2;
+      d = 'M ' + x1 + ' ' + y1 + ' C ' + x1 + ' ' + my + ', ' + x2 + ' ' + my + ', ' + x2 + ' ' + y2;
     } else {
-      // Back edge or self call: loop out to the right and back.
-      var out = x1 + 50;
-      d = 'M ' + x1 + ' ' + y1 + ' C ' + out + ' ' + y1 + ', ' + out + ' ' + (y2 - 26) + ', ' + x1 + ' ' + (y2 - 26);
+      // Back/upward edge (cycle): swing out to the left of both nodes.
+      var xo = Math.min(s.x, t.x) - 60;
+      d = 'M ' + x1 + ' ' + y1 + ' C ' + xo + ' ' + (y1 + 36) + ', ' + xo + ' ' + (y2 - 36) + ', ' + x2 + ' ' + y2;
     }
     var path = svgEl('path');
-    // Flow→flow composition edges read differently from feature→flow usage.
+    // Flow→flow composition edges read differently from caller→flow usage.
     var isFlowEdge =
       l.from.indexOf('flow:') === 0 && l.to.indexOf('flow:') === 0;
     path.setAttribute('class', 'gedge' + (isFlowEdge ? ' flowedge' : ''));
@@ -863,85 +1036,191 @@ function layoutAndDraw(svg, nodes, links) {
     svg.appendChild(path);
     svg.appendChild(hit);
     svg.appendChild(labelText);
+    edgeRecs[i] = path;
   });
 
+  var KIND_NAMES = { feature: 'Feature', scenario: 'Scenario', flow: 'Flow' };
   nodes.forEach(function (n) {
     var g = svgEl('g');
     g.setAttribute('class', 'gnode ' + n.kind + (n.focus ? ' focus' : '') + (n.unused ? ' unused' : ''));
     g.setAttribute('transform', 'translate(' + n.x + ' ' + n.y + ')');
     var rect = svgEl('rect');
     rect.setAttribute('width', String(NODE_W));
-    rect.setAttribute('height', String(NODE_H));
-    rect.setAttribute('rx', '9');
+    rect.setAttribute('height', String(n.h));
+    rect.setAttribute('rx', n.small ? '7' : '9');
     g.appendChild(rect);
     var label = svgEl('text');
     label.setAttribute('x', '11');
-    label.setAttribute('y', '19');
+    label.setAttribute('y', n.small ? '20' : '19');
     label.textContent = truncate(n.label, 32);
     g.appendChild(label);
-    var sub = svgEl('text');
-    sub.setAttribute('class', 'sub');
-    sub.setAttribute('x', '11');
-    sub.setAttribute('y', '36');
-    sub.textContent = truncate((n.unused ? 'UNUSED · ' : '') + (n.sub || ''), 40);
-    g.appendChild(sub);
+    if (!n.small) {
+      var sub = svgEl('text');
+      sub.setAttribute('class', 'sub');
+      sub.setAttribute('x', '11');
+      sub.setAttribute('y', '36');
+      sub.textContent = truncate((n.unused ? 'UNUSED · ' : '') + (n.sub || ''), 40);
+      g.appendChild(sub);
+    }
     var title = svgEl('title');
     title.textContent = n.label + (n.sub ? '\n' + n.sub : '') + (n.unused ? '\n(unused)' : '');
     g.appendChild(title);
     // Keyboard + assistive-tech reachable (SVG groups are invisible to the
-    // accessibility tree without an explicit role).
+    // accessibility tree without an explicit role). Enter/Space = click.
     g.setAttribute('role', 'button');
     g.setAttribute('tabindex', '0');
-    g.setAttribute('aria-label', n.label + (n.sub ? ' — ' + n.sub : ''));
-    g.onclick = function () { onNodeClick(n); };
+    g.setAttribute('aria-label',
+      (KIND_NAMES[n.kind] || n.kind) + ': ' + n.label + (n.sub ? ' — ' + n.sub : ''));
+    // Click pins/unpins the dependency cone; hover previews it while
+    // nothing is pinned; double-click jumps to Stories.
+    g.onclick = function (ev) {
+      ev.stopPropagation();
+      setPinned(state.pinnedId === n.id ? null : n.id);
+    };
+    g.ondblclick = function (ev) {
+      ev.stopPropagation();
+      openNode(n);
+    };
+    g.onmouseenter = function () {
+      if (!state.pinnedId) applyCone(computeCone(n.id, links));
+    };
+    g.onmouseleave = function () {
+      if (!state.pinnedId) applyCone(null);
+    };
     g.onkeydown = function (ev) {
       if (ev.key === 'Enter' || ev.key === ' ') {
         ev.preventDefault();
-        onNodeClick(n);
+        setPinned(state.pinnedId === n.id ? null : n.id);
       }
     };
     groupById[n.id] = g;
     svg.appendChild(g);
   });
+
+  return { nodes: nodes, links: links, groupById: groupById, edgeRecs: edgeRecs };
+}
+
+/* ———— graph toolbar + entry point ———— */
+
+function toggleControl(labelText, key) {
+  var label = el('label', 'toggle');
+  var input = el('input');
+  input.type = 'checkbox';
+  input.checked = !!state[key];
+  input.onchange = function () {
+    state[key] = input.checked;
+    state.pinnedId = null; // the pinned node may not exist in the new graph
+    renderGraph();
+  };
+  label.appendChild(input);
+  label.appendChild(document.createTextNode(labelText));
+  return label;
+}
+
+function renderGraphToolbar() {
+  var toolbar = document.getElementById('graph-toolbar');
+  clear(toolbar);
+  var focused = state.focusFlowId && flowById[state.focusFlowId];
+
+  if (focused) {
+    toolbar.appendChild(el('span', null, 'Focused on'));
+    toolbar.appendChild(el('b', null, focused.name));
+    var clearBtn = el('button', 'btn', 'Clear focus');
+    clearBtn.onclick = function () {
+      state.focusFlowId = null;
+      state.pinnedId = null;
+      renderGraph();
+    };
+    toolbar.appendChild(clearBtn);
+  } else {
+    toolbar.appendChild(toggleControl('Show every scenario', 'graphScenarios'));
+    toolbar.appendChild(toggleControl('Fit edges (dim when dense)', 'graphFadeEdges'));
+  }
+
+  if (graphRefs) {
+    toolbar.appendChild(el('span', null,
+      plural(graphRefs.nodes.length, 'node') + ' · ' + plural(graphRefs.links.length, 'edge')));
+    if (graphRefs.hiddenNote) toolbar.appendChild(el('span', null, graphRefs.hiddenNote));
+  }
+
+  var pinnedNode = null;
+  if (state.pinnedId && graphRefs) {
+    pinnedNode = graphRefs.nodes.filter(function (n) { return n.id === state.pinnedId; })[0];
+  }
+  if (pinnedNode) {
+    toolbar.appendChild(el('span', null, 'Pinned:'));
+    toolbar.appendChild(el('b', null, truncate(pinnedNode.label, 48)));
+    var openBtn = el('button', 'btn', 'Open in Stories');
+    var openTarget = pinnedNode;
+    openBtn.onclick = function () { openNode(openTarget); };
+    toolbar.appendChild(openBtn);
+    if (pinnedNode.kind === 'flow' && !focused) {
+      var focusBtn = el('button', 'btn', 'Focus subgraph');
+      var focusTarget = pinnedNode.id;
+      focusBtn.onclick = function () {
+        state.focusFlowId = focusTarget;
+        state.pinnedId = null;
+        renderGraph();
+      };
+      toolbar.appendChild(focusBtn);
+    }
+    var unpinBtn = el('button', 'btn', 'Unpin');
+    unpinBtn.onclick = function () { setPinned(null); };
+    toolbar.appendChild(unpinBtn);
+  } else {
+    toolbar.appendChild(el('span', null,
+      'Hover a node to preview its dependency cone; click to pin it. Double-click opens in Stories.'));
+  }
 }
 
 function renderGraph() {
   var svg = document.getElementById('graph-svg');
   clear(svg);
-  var toolbar = document.getElementById('graph-toolbar');
-  clear(toolbar);
+  graphRefs = null;
   var nodes = [];
   var rawLinks = [];
+  var layerLabels = [];
+  var hiddenNote = '';
 
   if (state.focusFlowId && flowById[state.focusFlowId]) {
     buildFocusGraph(nodes, rawLinks);
-    var focusId = state.focusFlowId;
-    var callerCount = nodes.filter(function (n) { return n.col < 1; }).length;
-    var calleeCount = nodes.filter(function (n) { return n.col > 1 && n.id !== focusId; }).length;
-    toolbar.appendChild(el('span', null, 'Focused on'));
-    toolbar.appendChild(el('b', null, flowById[state.focusFlowId].name));
-    toolbar.appendChild(
-      el('span', 'muted', plural(callerCount, 'caller') + ' · ' + plural(calleeCount, 'callee')),
-    );
-    var openBtn = el('button', 'btn', 'Open in Stories');
-    openBtn.onclick = function () { selectItem(state.focusFlowId); };
-    toolbar.appendChild(openBtn);
-    var clearBtn = el('button', 'btn', 'Clear focus');
-    clearBtn.onclick = function () { state.focusFlowId = null; renderGraph(); };
-    toolbar.appendChild(clearBtn);
-    toolbar.appendChild(el('span', null, 'Callers on the left, callees on the right. Click the focused flow again to open it.'));
+    layerLabels = ['CALLERS', 'FOCUSED FLOW', 'CALLEES', 'CALLEES · DEPTH 2', 'CALLEES · DEPTH 3', 'CALLEES · DEPTH 4'];
   } else {
-    var hidden = buildOverviewGraph(nodes, rawLinks);
-    var hint = 'Features (aggregated) → flows, layered by call depth. Click a flow to focus its callers/callees; click a feature to open it.';
-    if (hidden > 0) hint += ' ' + plural(hidden, 'feature') + ' without flow calls hidden.';
-    toolbar.appendChild(el('span', null, hint));
+    var hidden = buildFullGraph(nodes, rawLinks);
+    layerLabels = [
+      state.graphScenarios ? 'SCENARIOS' : 'FEATURES',
+      'FLOWS', 'NESTED FLOWS · DEPTH 2', 'NESTED FLOWS · DEPTH 3',
+      'NESTED FLOWS · DEPTH 4', 'NESTED FLOWS · DEPTH 5'
+    ];
+    if (hidden > 0) {
+      hiddenNote = hidden + (state.graphScenarios ? ' scenarios' : ' features') + ' without flow calls hidden';
+    }
   }
 
   if (nodes.length === 0) {
-    toolbar.appendChild(el('b', null, 'No flows or flow calls to draw.'));
+    renderGraphToolbar();
+    document.getElementById('graph-toolbar')
+      .appendChild(el('b', null, 'No flows or flow calls to draw.'));
     return;
   }
-  layoutAndDraw(svg, nodes, dedupeLinks(rawLinks));
+
+  var links = dedupeLinks(rawLinks);
+  graphRefs = layoutVertical(svg, nodes, links, layerLabels);
+  graphRefs.hiddenNote = hiddenNote;
+
+  // Optional readability aid for dense suites: fade the edge layer.
+  svg.classList.toggle('fade-edges', !!state.graphFadeEdges && links.length > 150);
+
+  // Clicking empty canvas unpins (node clicks stop propagation).
+  svg.onclick = function () { if (state.pinnedId) setPinned(null); };
+
+  // Restore a still-valid pin across re-renders; otherwise drop it.
+  if (state.pinnedId && graphRefs.groupById[state.pinnedId]) {
+    applyCone(computeCone(state.pinnedId, links));
+  } else {
+    state.pinnedId = null;
+  }
+  renderGraphToolbar();
 }
 
 /* ———————————————— health ———————————————— */
