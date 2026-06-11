@@ -107,6 +107,9 @@ export interface RecordToReportScreenshot {
 
 export interface RecordToReportOptions {
   content?: string;
+  /**
+   * @deprecated Use `screenshots: [{ base64 }]` instead.
+   */
   screenshotBase64?: string;
   screenshots?: RecordToReportScreenshot[];
   customScreenshotData?: RecordToReportScreenshot[];

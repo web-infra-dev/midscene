@@ -280,6 +280,45 @@ describe('Agent dump update screenshot serialization', () => {
     await agent.destroy();
   });
 
+  it('rejects multiple custom screenshot sources', async () => {
+    const screenshotBase64 = vi
+      .fn()
+      .mockRejectedValue(new Error('should not capture again'));
+    const agent = new Agent(
+      {
+        ...createMockInterface(),
+        screenshotBase64,
+      } as any,
+      {
+        modelConfig,
+        generateReport: false,
+      },
+    );
+
+    const reportGeneratorStub = {
+      onExecutionUpdate: vi.fn(),
+      flush: vi.fn(async () => {}),
+      finalize: vi.fn(async () => undefined),
+      getReportPath: vi.fn(() => undefined),
+    };
+
+    (agent as any).reportGenerator = reportGeneratorStub;
+
+    await expect(
+      agent.recordToReport('conflicting screenshots', {
+        screenshotBase64: 'data:image/png;base64,legacy',
+        screenshots: [{ base64: 'data:image/png;base64,custom' }],
+      }),
+    ).rejects.toThrow(
+      'recordToReport: provide only one of screenshots, customScreenshotData, or screenshotBase64',
+    );
+
+    expect(screenshotBase64).not.toHaveBeenCalled();
+    expect(reportGeneratorStub.onExecutionUpdate).not.toHaveBeenCalled();
+
+    await agent.destroy();
+  });
+
   it('records failed log entries for runner-level errors', async () => {
     const agent = new Agent(createMockInterface(), {
       modelConfig,
