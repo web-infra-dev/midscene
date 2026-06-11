@@ -195,24 +195,40 @@ describe('ScrcpyScreenshotManager', () => {
   });
 
   describe('scrcpy tunnel fallback', () => {
-    it('retries with forward tunnel when reverse tunnel fails with multiple devices', async () => {
-      const client = { videoStream: Promise.resolve(null) };
+    it('retries with forward tunnel from ensureConnected when reverse tunnel fails with multiple devices', async () => {
+      const reader = {
+        read: vi.fn().mockResolvedValue({ done: true }),
+        cancel: vi.fn(),
+      };
+      const videoStream = {
+        metadata: { width: 1080, height: 1920 },
+        stream: {
+          getReader: vi.fn(() => reader),
+        },
+      };
+      const client = {
+        videoStream: Promise.resolve(videoStream),
+        close: vi.fn().mockResolvedValue(undefined),
+      };
       mockStart
         .mockRejectedValueOnce(new Error('more than one device/emulator'))
         .mockResolvedValueOnce(client as any);
 
-      const manager = new ScrcpyScreenshotManager({
-        serial: 'device-1',
-      } as any);
-      const onProgress = vi.fn();
-
-      const result = await (manager as any).startScrcpy(
-        { serial: 'device-1' } as any,
-        { maxSize: 720 },
-        onProgress,
+      const manager = new ScrcpyScreenshotManager(
+        {
+          serial: 'device-1',
+        } as any,
+        {
+          maxSize: 720,
+          idleTimeoutMs: 0,
+        },
       );
 
-      expect(result).toBe(client);
+      await manager.ensureConnected();
+
+      expect(manager.isConnected()).toBe(true);
+      expect(manager.getResolution()).toEqual({ width: 1080, height: 1920 });
+      expect(mockPushServer).toHaveBeenCalledTimes(2);
       expect(mockStart).toHaveBeenCalledTimes(2);
       expect(mockOptionsCtor).toHaveBeenNthCalledWith(
         1,
@@ -228,12 +244,9 @@ describe('ScrcpyScreenshotManager', () => {
           maxSize: 720,
         }),
       );
-      expect(onProgress.mock.calls).toEqual([
-        ['pushing-server'],
-        ['starting-service'],
-        ['pushing-server'],
-        ['starting-service'],
-      ]);
+
+      await manager.disconnect();
+      expect(client.close).toHaveBeenCalledTimes(1);
     });
   });
 

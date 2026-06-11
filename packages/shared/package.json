@@ -72,6 +72,11 @@
       "import": "./dist/es/logger.mjs",
       "require": "./dist/lib/logger.js"
     },
+    "./timeout": {
+      "types": "./dist/types/timeout.d.ts",
+      "import": "./dist/es/timeout.mjs",
+      "require": "./dist/lib/timeout.js"
+    },
     "./*": {
       "types": "./dist/types/*.d.ts",
       "import": "./dist/es/*.mjs",

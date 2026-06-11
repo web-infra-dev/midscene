@@ -6,6 +6,7 @@ import {
   SCRCPY_START_TIMEOUT_MS,
 } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
+import { withTimeout } from '@midscene/shared/timeout';
 import type { Adb } from '@yume-chan/adb';
 
 const debugScrcpy = getDebug('android:scrcpy');
@@ -35,45 +36,6 @@ const BUSY_LOOP_WINDOW_MS = 1_000; // Sliding window for measuring frame rate
 const BUSY_LOOP_MAX_READS = 500; // Max reads per window before considered busy-loop
 const BUSY_LOOP_COOLDOWN_MS = 50; // Throttle delay when busy-loop detected
 const BUSY_LOOP_WARN_INTERVAL_MS = 5_000; // Min interval between busy-loop warnings
-
-interface WithTimeoutOptions<T> {
-  onSettledAfterTimeout?: (value: T) => void | Promise<void>;
-}
-
-function withTimeout<T>(
-  promise: PromiseLike<T> | T,
-  timeoutMs: number,
-  message: string,
-  options: WithTimeoutOptions<T> = {},
-): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    let timedOut = false;
-    const timer = setTimeout(() => {
-      timedOut = true;
-      reject(new Error(message));
-    }, timeoutMs);
-
-    Promise.resolve(promise).then(
-      (value) => {
-        clearTimeout(timer);
-        if (timedOut) {
-          void Promise.resolve(options.onSettledAfterTimeout?.(value));
-          return;
-        }
-
-        resolve(value);
-      },
-      (error) => {
-        clearTimeout(timer);
-        if (timedOut) {
-          return;
-        }
-
-        reject(error);
-      },
-    );
-  });
-}
 
 // Scrcpy default configuration (disabled by default, opt-in via scrcpyConfig.enabled)
 export const DEFAULT_SCRCPY_CONFIG = {
@@ -336,7 +298,7 @@ export class ScrcpyScreenshotManager {
       }
 
       warnScrcpy(
-        `Reverse tunnel failed for device ${this.adb.serial}; retrying scrcpy with forward tunnel: ${error}`,
+        `Reverse tunnel failed for device ${adb.serial}; retrying scrcpy with forward tunnel: ${error}`,
       );
       return await this.startScrcpyOnce(adb, options, onProgress, true);
     }
