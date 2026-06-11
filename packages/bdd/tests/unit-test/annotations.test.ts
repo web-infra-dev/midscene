@@ -485,6 +485,33 @@ Feature: f
     expect(warnings[0]).toContain('probe.feature:2');
   });
 
+  it('warns on a comment that starts with a marker but mixes in prose', () => {
+    const warnings = footguns(`Feature: f
+  Scenario: s
+    # @agent check the logs
+    When I do a thing
+    # $check-logs after deploying
+    Then it worked
+`);
+    expect(warnings).toHaveLength(2);
+    expect(warnings[0]).toContain('"# @agent check the logs"');
+    expect(warnings[0]).toContain('probe.feature:3');
+    expect(warnings[0]).toContain('starts with a routing marker');
+    expect(warnings[1]).toContain('"# $check-logs after deploying"');
+    expect(warnings[1]).toContain('probe.feature:5');
+  });
+
+  it('does not flag prose that merely mentions a marker mid-line', () => {
+    const warnings = footguns(`Feature: f
+  Scenario: s
+    # TODO: make this @no-ai later
+    When I do a thing
+    # @agents is not a marker
+    Then it worked
+`);
+    expect(warnings).toEqual([]);
+  });
+
   it('stays silent for attached markers, prose comments, and consumed tags', () => {
     const warnings = footguns(`@no-ai
 Feature: f

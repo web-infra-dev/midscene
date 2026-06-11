@@ -30,6 +30,14 @@ const ANNOTATION_LINE_RE =
 const AGENT_MARKER_RE = /@agent\b/;
 const NO_AI_MARKER_RE = /@no-ai\b/;
 const SOFT_MARKER_RE = /@soft\b/;
+/**
+ * A comment body that STARTS with a routing marker but is not marker-only
+ * (`# @agent check the logs`) was likely intended to route — it is silently
+ * inert, so the footgun audit flags it. Prose that merely mentions a marker
+ * mid-line ("# TODO: make this @no-ai later") stays un-flagged.
+ */
+const MARKER_AT_START_RE =
+  /^(?:@(?:agent|no-ai|soft)|\$[A-Za-z][A-Za-z0-9_-]*)(?:\s|$)/;
 
 /**
  * The single definition of "this comment line is a routing marker": strip
@@ -211,6 +219,9 @@ export function resolveStepAnnotations(input: {
  * 2. An `@agent` Gherkin tag at feature/rule/scenario/examples level —
  *    `@no-ai` and `@soft` are inherited via pickle tags, but `@agent` is
  *    deliberately per-line only, so the tag is silently ignored.
+ * 3. A comment line that STARTS with a routing marker but mixes in prose
+ *    (`# @agent check the logs`) — only marker-only lines route, so the
+ *    line is silently inert despite almost certainly being intended.
  */
 export function collectAnnotationFootguns(document: GherkinDocument): string[] {
   const warnings: string[] = [];
@@ -224,6 +235,14 @@ export function collectAnnotationFootguns(document: GherkinDocument): string[] {
 
   for (const [line, rawText] of commentTextByLine) {
     if (markerBody(rawText) === undefined) {
+      // Marker-at-start prose ("# @agent check the logs") is inert despite
+      // almost certainly being intended to route.
+      const body = rawText.trim().replace(/^#/, '').trim();
+      if (MARKER_AT_START_RE.test(body)) {
+        warnings.push(
+          `annotation comment "${rawText.trim()}" at ${uri}:${line} starts with a routing marker but mixes in prose, so the whole line is ignored — keep marker lines marker-only (e.g. "# @agent") and put prose in a separate comment`,
+        );
+      }
       continue;
     }
     // Attached means the contiguous comment run containing this line ends
