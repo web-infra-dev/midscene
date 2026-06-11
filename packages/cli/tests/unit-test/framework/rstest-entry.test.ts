@@ -7,7 +7,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { defineYamlCaseTest } from '@/framework/rstest-entry';
+import { type RstestTest, defineYamlCaseTest } from '@/framework/rstest-entry';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -27,6 +27,8 @@ vi.mock('@/framework/yaml-case', () => ({
 
 const createTempDir = () =>
   mkdtempSync(join(tmpdir(), 'midscene-rstest-entry-'));
+
+const injectedRstestTest = () => mocks.rstestTest as unknown as RstestTest;
 
 describe('defineYamlCaseTest', () => {
   beforeEach(() => {
@@ -79,7 +81,7 @@ describe('defineYamlCaseTest', () => {
       });
 
     try {
-      defineYamlCaseTest(mocks.rstestTest, {
+      defineYamlCaseTest(injectedRstestTest(), {
         testName: 'case',
         yamlFile: yaml,
         resultFile,
@@ -127,7 +129,7 @@ describe('defineYamlCaseTest', () => {
     });
 
     try {
-      defineYamlCaseTest(mocks.rstestTest, {
+      defineYamlCaseTest(injectedRstestTest(), {
         testName: 'case',
         yamlFile: yaml,
         resultFile,
