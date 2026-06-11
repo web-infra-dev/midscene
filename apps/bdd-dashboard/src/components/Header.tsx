@@ -1,6 +1,5 @@
-import type { ExploreModel } from '@midscene/bdd';
 import type { RefObject } from 'react';
-import type { DashboardView } from '../model/types';
+import type { DashboardView, ExploreModel } from '../model/types';
 
 interface StatChip {
   value: number;

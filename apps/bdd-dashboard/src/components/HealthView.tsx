@@ -1,5 +1,4 @@
-import type { ExploreModel } from '@midscene/bdd';
-import type { HealthFinding, HealthKind } from '../model/types';
+import type { ExploreModel, HealthFinding, HealthKind } from '../model/types';
 
 type Severity = 'error' | 'warn';
 

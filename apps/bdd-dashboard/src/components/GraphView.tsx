@@ -1,10 +1,3 @@
-/**
- * Flow graph view: React SVG rendering of the layered left→right scene from
- * model/graph.ts. Interactions: hover previews a dependency cone, click pins
- * it (re-styling in place so scroll is preserved), double-click jumps to
- * Stories, plus zoom (toolbar buttons / ctrl+wheel) and drag-panning.
- */
-import type { ExploreModel } from '@midscene/bdd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type GraphNode,
@@ -13,6 +6,13 @@ import {
   computeCone,
 } from '../model/graph';
 import { type ModelIndices, plural, truncate } from '../model/indices';
+/**
+ * Flow graph view: React SVG rendering of the layered left→right scene from
+ * model/graph.ts. Interactions: hover previews a dependency cone, click pins
+ * it (re-styling in place so scroll is preserved), double-click jumps to
+ * Stories, plus zoom (toolbar buttons / ctrl+wheel) and drag-panning.
+ */
+import type { ExploreModel } from '../model/types';
 
 const KIND_NAMES = { feature: 'Feature', scenario: 'Scenario', flow: 'Flow' };
 

@@ -1,5 +1,5 @@
-import type { ExploreModel } from '@midscene/bdd';
 import sampleExploreModel from './fixtures/example-explore-model.json';
+import type { ExploreModel } from './model/types';
 
 const MODEL_ELEMENT_ID = 'midscene-bdd-explore-model';
 const DATA_PLACEHOLDER = '__EXPLORE_MODEL_PLACEHOLDER__';

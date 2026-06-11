@@ -21,9 +21,21 @@
     "typescript": "^5.8.3"
   },
   "nx": {
+    "includedScripts": ["dev", "build:watch", "preview"],
     "targets": {
       "build": {
-        "dependsOn": []
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "pnpm run build",
+          "cwd": "apps/bdd-dashboard"
+        },
+        "cache": true,
+        "dependsOn": [],
+        "inputs": ["build", "^build", "{workspaceRoot}/package.json"],
+        "outputs": [
+          "{projectRoot}/dist",
+          "{workspaceRoot}/packages/bdd/static/*.html"
+        ]
       },
       "build:watch": {
         "dependsOn": []

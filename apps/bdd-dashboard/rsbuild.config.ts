@@ -4,10 +4,20 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@rsbuild/core';
 import { pluginReact } from '@rsbuild/plugin-react';
-import { createTypeCheckPlugin } from '../../scripts/rsbuild-utils.ts';
+import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
 
 const DATA_PLACEHOLDER = '__EXPLORE_MODEL_PLACEHOLDER__';
 const appRoot = path.dirname(fileURLToPath(import.meta.url));
+
+const createTypeCheckPlugin = () =>
+  pluginTypeCheck({
+    tsCheckerOptions: {
+      typescript: {
+        // Keep checks scoped to this app instead of traversing references.
+        build: false,
+      },
+    },
+  });
 
 const copyDashboardTemplate = () => ({
   name: 'copy-bdd-dashboard-template',

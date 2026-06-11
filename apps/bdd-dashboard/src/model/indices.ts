@@ -3,9 +3,9 @@
  * index tables the legacy template built at parse time (flowById,
  * featureOfScenario, edge adjacency, search haystacks).
  */
-import type { ExploreModel } from '@midscene/bdd';
 import type {
   ExploreEdge,
+  ExploreModel,
   FeatureModel,
   FlowModel,
   ScenarioModel,

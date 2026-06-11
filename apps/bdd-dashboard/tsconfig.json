@@ -4,6 +4,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "declarationDir": "dist/types",
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }

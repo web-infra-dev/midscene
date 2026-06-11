@@ -4,8 +4,8 @@
  * ordering, bezier edge routing, dependency cones) as pure functions. The
  * React component only renders the scene this module computes.
  */
-import type { ExploreModel } from '@midscene/bdd';
 import { type ModelIndices, argsSummary, flowSub, plural } from './indices';
+import type { ExploreModel } from './types';
 
 export const NODE_W = 280;
 const NODE_H = 48;

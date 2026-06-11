@@ -3,9 +3,8 @@
  * filtered by the search query. Flat rows feed the virtualized list and the
  * keyboard navigation order.
  */
-import type { ExploreModel } from '@midscene/bdd';
 import { type ModelIndices, matchesQuery } from './indices';
-import type { FlowModel, ScenarioModel } from './types';
+import type { ExploreModel, FlowModel, ScenarioModel } from './types';
 
 export type TreeEntry =
   | {

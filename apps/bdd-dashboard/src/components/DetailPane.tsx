@@ -1,5 +1,5 @@
-import type { ExploreModel } from '@midscene/bdd';
 import { type ModelIndices, plural } from '../model/indices';
+import type { ExploreModel } from '../model/types';
 import { RoutingLegend, StepRow } from './StepList';
 
 interface DetailPaneProps {
