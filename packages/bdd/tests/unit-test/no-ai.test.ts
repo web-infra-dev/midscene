@@ -118,7 +118,7 @@ describe('no-ai user step registry', () => {
       expect(noAiSnippet('I login as "admin" with "secret"')).toBe(
         [
           "defineStep('I login as {string} with {string}', async function (arg1, arg2) {",
-          '  // `this` is the step context (vars, getUiAgent, attach, log);',
+          '  // `this` is the step context (getUiAgent, attach, log);',
           '  // throw to fail the step',
           '});',
         ].join('\n'),
@@ -129,7 +129,7 @@ describe('no-ai user step registry', () => {
       expect(noAiSnippet('I reload the page')).toBe(
         [
           "defineStep('I reload the page', async function () {",
-          '  // `this` is the step context (vars, getUiAgent, attach, log);',
+          '  // `this` is the step context (getUiAgent, attach, log);',
           '  // throw to fail the step',
           '});',
         ].join('\n'),
@@ -140,7 +140,7 @@ describe('no-ai user step registry', () => {
       expect(noAiSnippet("I open the user's profile")).toBe(
         [
           "defineStep('I open the user\\'s profile', async function () {",
-          '  // `this` is the step context (vars, getUiAgent, attach, log);',
+          '  // `this` is the step context (getUiAgent, attach, log);',
           '  // throw to fail the step',
           '});',
         ].join('\n'),
@@ -157,7 +157,7 @@ describe('no-ai user step registry', () => {
           '  I click "Save"\n' +
           'Implement it:\n\n' +
           "defineStep('I click {string}', async function (arg1) {\n" +
-          '  // `this` is the step context (vars, getUiAgent, attach, log);\n' +
+          '  // `this` is the step context (getUiAgent, attach, log);\n' +
           '  // throw to fail the step\n' +
           '});',
       );

@@ -174,13 +174,9 @@ describe('real cucumber spawn', () => {
         'I add the first item to the cart',
       ]);
 
-      // Capture + <price> substitution: aiString returned 42.00 and the
-      // later Then reached the stub with the value substituted in.
-      expect(prompts(run.records, 'aiString')).toContain(
-        'the first item price',
-      );
+      // The post-flow Then reached the stub as a plain assertion.
       expect(prompts(run.records, 'aiAssert')).toContain(
-        'the order total equals 42.00',
+        'the order total is shown',
       );
 
       // ARITY PIN (doc string): before the dynamic-length catch-all this

@@ -52,7 +52,6 @@ function makeConfig(): ResolvedBddConfig {
     uiAgent: { type: 'web', url: 'http://localhost' },
     generalAgent: { modelEnv: { MIDSCENE_MODEL_NAME: 'test-model' } },
     paths: { features: ['features/**/*.feature'], skills: 'features/skills' },
-    capture: { failOnEmpty: true },
     baseDir: '/tmp/project',
   };
 }
@@ -73,7 +72,6 @@ function makeFakeAgent(over: Partial<UiAgent> = {}): UiAgent {
   return {
     aiAct: vi.fn(),
     aiAssert: vi.fn(),
-    aiString: vi.fn(),
     reportFile: '/tmp/midscene-report.html',
     ...over,
   };

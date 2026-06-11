@@ -11,15 +11,11 @@ import type {
   Pickle,
   PickleStep,
   Step,
+  Tag,
 } from '@cucumber/messages';
 import { PickleStepType } from '@cucumber/messages';
 import { ERROR_PREFIX } from './types';
-import type {
-  RouterContext,
-  StepAnnotations,
-  StepType,
-  VarScope,
-} from './types';
+import type { RouterContext, StepAnnotations, StepType } from './types';
 
 // Skill tokens must start with a letter: a leading digit would make money
 // amounts in step text ("the total is $42.50") hijack routing to the agent.
@@ -189,6 +185,76 @@ export function resolveStepAnnotations(input: {
   return { agent, noAi, soft, skills };
 }
 
+/**
+ * Audit a parsed document for the two silent annotation footguns and return
+ * one human-readable warning per occurrence (callers decide how to emit):
+ *
+ * 1. A marker-only comment block (`# @agent`, `# @no-ai`, `# @soft`,
+ *    `# $skill`) that is NOT directly above a step — e.g. separated by a
+ *    blank line — never attaches to anything and silently does not route.
+ * 2. An `@agent` Gherkin tag at feature/rule/scenario/examples level —
+ *    `@no-ai` and `@soft` are inherited via pickle tags, but `@agent` is
+ *    deliberately per-line only, so the tag is silently ignored.
+ */
+export function collectAnnotationFootguns(document: GherkinDocument): string[] {
+  const warnings: string[] = [];
+  const uri = document.uri ?? '(unknown feature)';
+
+  const { stepById, commentTextByLine } = indexDocument(document);
+  const stepLines = new Set<number>();
+  for (const step of stepById.values()) {
+    stepLines.add(step.location.line);
+  }
+
+  for (const [line, rawText] of commentTextByLine) {
+    const text = rawText.trim().replace(/^#/, '').trim();
+    if (!ANNOTATION_LINE_RE.test(text)) {
+      continue;
+    }
+    // Attached means the contiguous comment run containing this line ends
+    // directly above a step line — the exact rule resolveStepAnnotations uses.
+    let runEnd = line;
+    while (commentTextByLine.has(runEnd + 1)) {
+      runEnd++;
+    }
+    if (stepLines.has(runEnd + 1)) {
+      continue;
+    }
+    warnings.push(
+      `annotation comment "${rawText.trim()}" at ${uri}:${line} is not directly above a step (blank line or non-step content in between), so it will not affect routing — move it to the line right above its step`,
+    );
+  }
+
+  const tagScopes: Array<{ tags: readonly Tag[] }> = [];
+  const feature = document.feature;
+  if (feature) {
+    tagScopes.push(feature);
+    const scenarioScopes = feature.children.flatMap((child) => [
+      child.scenario,
+      ...(child.rule ? [child.rule] : []),
+      ...(child.rule?.children ?? []).map((ruleChild) => ruleChild.scenario),
+    ]);
+    for (const scope of scenarioScopes) {
+      if (!scope) continue;
+      tagScopes.push(scope);
+      if ('examples' in scope) {
+        tagScopes.push(...scope.examples);
+      }
+    }
+  }
+  for (const scope of tagScopes) {
+    for (const tag of scope.tags) {
+      if (tag.name === '@agent') {
+        warnings.push(
+          `tag "@agent" at ${uri}:${tag.location.line} is ignored: @agent routes only as a "# @agent" comment directly above a step (feature/scenario tags support @no-ai, @soft, @flow, @param:*)`,
+        );
+      }
+    }
+  }
+
+  return warnings;
+}
+
 /** Render a pickle data table as `| cell | cell |` lines for prompts. */
 export function renderDataTable(step: PickleStep): string | undefined {
   const table = step.argument?.dataTable;
@@ -202,7 +268,6 @@ export interface StepContextInput {
   document: GherkinDocument;
   pickle: Pickle;
   pickleStep: PickleStep;
-  vars: VarScope;
   flowDepth: number;
   runtime: Pick<RouterContext, 'flows' | 'skills' | 'config'>;
   agents: Pick<RouterContext, 'getUiAgent' | 'getGeneralAgent' | 'peekUiAgent'>;
@@ -228,7 +293,6 @@ export function buildStepContext(input: StepContextInput): RouterContext {
     }),
     dataTable: renderDataTable(pickleStep),
     docString: pickleStep.argument?.docString?.content,
-    vars: input.vars,
     flowDepth: input.flowDepth,
     flows: input.runtime.flows,
     skills: input.runtime.skills,

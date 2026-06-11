@@ -21,7 +21,6 @@ export interface UiAgent {
     errorMsg?: string,
     opt?: { keepRawResponse?: boolean },
   ): Promise<unknown>;
-  aiString(prompt: string): Promise<string>;
   /** Midscene HTML report path, when report generation is enabled. */
   reportFile?: string | null;
   interface?: {
@@ -88,17 +87,12 @@ export interface BddConfig {
     /** Skills directory. Default: 'features/skills' */
     skills?: string;
   };
-  capture?: {
-    /** Throw when `I remember ...` extracts an empty value. Default: true. */
-    failOnEmpty?: boolean;
-  };
 }
 
 export interface ResolvedBddConfig {
   uiAgent: WebUiTarget | UiAgentFactory;
   generalAgent: GeneralAgentConfig;
   paths: { features: string[]; skills: string };
-  capture: { failOnEmpty: boolean };
   /** Absolute directory the config file was loaded from (cwd fallback). */
   baseDir: string;
 }
@@ -127,15 +121,13 @@ export type StepType = 'context' | 'action' | 'outcome' | 'unknown';
  * register hooks (top-level steps) and by the flow executor (flow steps).
  */
 export interface RouterContext {
-  /** Raw step text (before <var> substitution). */
+  /** Step text (flow-body steps arrive with `<param>` already substituted). */
   stepText: string;
   stepType: StepType;
   annotations: StepAnnotations;
   /** Rendered data table (markdown-ish text), when the step has one. */
   dataTable?: string;
   docString?: string;
-  /** Scenario-scoped variable table (flow calls get a fresh one). */
-  vars: VarScope;
   /** 0 at scenario level; flow calls increment. Cap: MAX_FLOW_DEPTH. */
   flowDepth: number;
   flows: FlowRegistryLike;
@@ -165,8 +157,6 @@ export interface FlowDef {
   name: string;
   /** `@param:x` tag names, in tag order; expression captures bind positionally. */
   params: string[];
-  /** `@returns:x` tag names copied back to the caller scope. */
-  returns: string[];
   pickle: Pickle;
   document: GherkinDocument;
   uri: string;
@@ -186,15 +176,11 @@ export interface FlowRegistryLike {
   list(): FlowDef[];
 }
 
-// ———————————————————————————— vars ————————————————————————————
-
-export type VarScope = Map<string, string>;
-
 // ———————————————————————————— no-ai ————————————————————————————
 
 /**
  * Classic `@no-ai` callback. `this` is the step's {@link RouterContext}
- * (vars, getUiAgent, attach, log, ...) — NOT the cucumber World instance.
+ * (getUiAgent, attach, log, ...) — NOT the cucumber World instance.
  */
 export type UserStepFn = (
   this: RouterContext,
@@ -234,5 +220,5 @@ export interface ScannedAssets {
 /** Message prefix for all errors and informational log lines. */
 export const ERROR_PREFIX = '[midscene-bdd]';
 
-/** Source pattern for variable/param identifiers, shared by all modules. */
+/** Source pattern for flow param identifiers, shared by all modules. */
 export const IDENT_RE_SOURCE = '[A-Za-z_][A-Za-z0-9_]*';

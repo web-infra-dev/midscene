@@ -1,10 +1,10 @@
 /**
  * Cucumber World and per-worker runtime singleton for @midscene/bdd.
  *
- * `MidsceneWorld` owns scenario-scoped state: the variable table, the current
- * pickle step (stashed by the BeforeStep hook in register.ts), and lazily
- * created UI/general agents. The module-level `BddRuntime` singleton carries
- * the worker-wide config/flows/skills loaded once in BeforeAll.
+ * `MidsceneWorld` owns scenario-scoped state: the current pickle step
+ * (stashed by the BeforeStep hook in register.ts) and lazily created
+ * UI/general agents. The module-level `BddRuntime` singleton carries the
+ * worker-wide config/flows/skills loaded once in BeforeAll.
  */
 import { World } from '@cucumber/cucumber';
 import type { GherkinDocument, Pickle, PickleStep } from '@cucumber/messages';
@@ -17,7 +17,6 @@ import {
   type ResolvedBddConfig,
   type Skill,
   type UiAgent,
-  type VarScope,
 } from './types';
 
 // ———————————————————————— per-worker runtime ————————————————————————
@@ -58,8 +57,6 @@ interface UiAgentState {
 }
 
 export class MidsceneWorld extends World {
-  /** Scenario-scoped variable table; reset by the Before hook. */
-  vars: VarScope = new Map();
   /** Stashed by the BeforeStep hook so the catch-all step can read it. */
   currentStep?: {
     pickleStep: PickleStep;

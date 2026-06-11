@@ -14,10 +14,10 @@ Feature: Cart inspection
     And I have added "Camp Mug" to the cart
     When I open the cart page
     Then the cart line item shows quantity controls to increase and decrease the quantity
-    And the cart total equals <price>
+    And the cart total equals the Camp Mug unit price of $24.50
 ```
 
-No step definitions exist for this scenario. The first two lines call reusable Gherkin-authored flows (see below), `<price>` is a runtime variable returned by the add-to-cart flow, and every other line is performed or verified by the vision agent directly.
+No step definitions exist for this scenario. The first two lines call reusable Gherkin-authored flows (see below); every other line is performed or verified by the vision agent directly.
 
 ## The three routing rules
 
@@ -65,12 +65,11 @@ A flow is a scenario tagged `@flow` whose **name is a cucumber expression**. Any
 # features/flows/login.feature
 Feature: Shared login flow
 
-  @flow @param:role @returns:greeting
+  @flow @param:role
   Scenario: I am logged in as {string}
     When I open the login page
     And I sign in as the "<role>" user with the demo password shown on the login form
     Then the dashboard for the "<role>" role is visible
-    And I remember the greeting message in the header as "greeting"
 ```
 
 ```gherkin
@@ -78,8 +77,7 @@ Feature: Shared login flow
 Given I am logged in as "admin"
 ```
 
-- `@param:role` binds the expression's `{string}` capture to the runtime variable `<role>` inside the flow. Multiple `@param:` tags bind captures positionally, in tag order. A capture/param count mismatch is an error.
-- Each call gets a **fresh variable scope** seeded only with the call arguments; only variables declared via `@returns:` flow back to the caller (here, `<greeting>`). A declared return that was never captured is an error.
+- `@param:role` binds the expression's `{string}` capture to the `<role>` placeholder inside the flow body — the same `<x>` substitution semantics as a Scenario Outline, scoped to the flow. Multiple `@param:` tags bind captures positionally, in tag order. A capture/param count mismatch is an error, and so is a `<placeholder>` in the flow body that names no declared param.
 - Flows may call other flows, capped at depth 2.
 - Flows are discovered across all files matched by the features glob — define once, call from any feature.
 - The base cucumber profile excludes `@flow` scenarios from standalone runs (`tags: 'not @flow'`); they only execute when called.
@@ -92,19 +90,6 @@ Given I run the "I am logged in as {string}" flow with role "admin"
 ```
 
 Arguments are `name "value"` pairs; unknown or missing argument names are errors.
-
-## Variables
-
-Capture a value from the screen with the built-in remember statement:
-
-```gherkin
-And I remember the price of "Trail Backpack" as "price"
-Then the cart total equals <price> minus a 10% discount
-```
-
-`I remember <description> as "name"` extracts the described value via structured extraction (`aiString`) and stores it in the scenario's variable scope. Later steps reference it as `<price>` — the same placeholder visual as a Scenario Outline, deliberately: Outline placeholders are substituted by Gherkin at compile time, so any identifier-shaped `<name>` left at runtime is by definition a runtime variable.
-
-Substitution is mechanical and happens before routing — the model never sees a placeholder, only the resolved text. Referencing an unknown variable fails fast with the list of known variables. Empty extractions fail by default (`capture.failOnEmpty`).
 
 ## Skills
 
@@ -159,7 +144,19 @@ npx cucumber-js     # uses cucumber.js -> the @midscene/bdd profile
 npx midscene-bdd    # zero-config launcher; injects the same preset when no cucumber config exists
 ```
 
-A runnable end-to-end demo (static shop page, all three routing rules, flows, variables, skills) lives in [`example/`](./example/README.md).
+A runnable end-to-end demo (static shop page, all three routing rules, flows, skills) lives in [`example/`](./example/README.md).
+
+## Gherkin tour
+
+New to Cucumber/BDD? [`example/features/gherkin-tour/`](./example/features/gherkin-tour/) walks through the full standard [Gherkin grammar](https://cucumber.io/docs/gherkin/reference/) as runnable, commented feature files — proof that every construct works unchanged through this framework:
+
+| File | Constructs |
+| --- | --- |
+| `01-steps-and-comments.feature` | Feature description blocks, `Given`/`When`/`Then`/`And`/`But`, the `*` bullet keyword, `#` comments (and this framework's marker-comment extension) |
+| `02-background-and-rules.feature` | Feature-level `Background:`, `Rule:` grouping with its own Background and tag, the `Example:`/`Scenario:` synonyms |
+| `03-scenario-outlines.feature` | `Scenario Outline:` / `Scenario Template:`, `<placeholder>` substitution, multiple named `Examples:`/`Scenarios:` tables, tagged Examples |
+| `04-data-tables-and-doc-strings.feature` | Data tables on a step; doc strings with `"""` fences, a content type, and the ``` backtick alternative |
+| `05-localized-keywords.feature` | The `# language:` header (German keywords driving the same English prompts) |
 
 ## Configuration reference
 
@@ -187,11 +184,6 @@ interface BddConfig {
     features?: string[];          // default: ['features/**/*.feature']
     skills?: string;              // default: 'features/skills'
   };
-
-  capture?: {
-    // Throw when `I remember ...` extracts an empty value.
-    failOnEmpty?: boolean;        // default: true
-  };
 }
 
 interface WebUiTarget {
@@ -217,7 +209,7 @@ Everything cucumber gives you keeps working — this package adds exactly three 
 | **100% standard** | `Background`, `Scenario Outline` + `Examples`, `Rule`, tags, data tables, doc strings, hooks, formatters, parallel workers, tag expressions, `cucumber.js` profiles | Plain cucumber-js — this package is one catch-all step definition plus a config preset |
 | **Extension 1** | `# @agent` / `# @no-ai` / `# @soft` comment lines directly above a step | Gherkin has no step-level tags, so per-step routing lives in comment annotations (the established workaround in the Gherkin ecosystem) |
 | **Extension 2** | `$skill-name` tokens in step text | Shell-style `$` references; a token both routes the statement to the general agent and loads the skill |
-| **Extension 3** | `@flow` / `@param:x` / `@returns:x` scenario tags | Karate's `call` model for reusable sub-scenarios, expressed through standard Gherkin tags |
+| **Extension 3** | `@flow` / `@param:x` scenario tags | Karate's `call` model for reusable sub-scenarios, expressed through standard Gherkin tags; `<param>` substitution inside the flow body mirrors Scenario Outline placeholders |
 
 Data tables and doc strings on AI-routed steps are appended to the prompt verbatim. `@no-ai` and `@soft` may also be applied as ordinary scenario/feature tags (inherited per normal Gherkin semantics); `@agent` is deliberately per-line only.
 
@@ -229,15 +221,13 @@ cucumber-js drives the run; `@midscene/bdd/register` contributes a single catch-
 
 ```mermaid
 flowchart TD
-    S[Statement<br/>vars substituted] --> A{"# @no-ai?"}
+    S[Statement] --> A{"# @no-ai?"}
     A -- yes --> CB[registered callback<br/>or fail with snippet]
     A -- no --> B{"# @agent or $skill?"}
     B -- yes --> GA[general coding agent<br/>Then needs JSON verdict, fail-closed]
     B -- no --> C{matches a @flow?}
-    C -- yes --> FL[execute flow steps<br/>fresh scope, depth ≤ 2]
-    C -- no --> D{"I remember ... as ...?"}
-    D -- yes --> CAP[aiString capture into vars]
-    D -- no --> E{step type}
+    C -- yes --> FL[execute flow steps<br/>&lt;param&gt; substituted, depth ≤ 2]
+    C -- no --> E{step type}
     E -- Then --> AS[aiAssert — fail-closed]
     E -- Given / When --> ACT[aiAct]
 ```

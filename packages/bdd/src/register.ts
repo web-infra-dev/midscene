@@ -14,7 +14,6 @@
 import { resolve } from 'node:path';
 import {
   After,
-  Before,
   BeforeAll,
   BeforeStep,
   Given,
@@ -63,11 +62,6 @@ function warnIfUnscanned(uri: string | undefined): void {
   );
 }
 
-// Fresh scenario scope; agents stay lazy (created on first UI/agent step).
-Before(function (this: MidsceneWorld) {
-  this.vars = new Map();
-});
-
 // Step definitions only receive captured text, so the hook stashes the full
 // pickle context the catch-all needs (annotations, table, doc string).
 // `currentStepHasArgument` is module-level (safe: scenarios run serially
@@ -102,7 +96,6 @@ const catchAllStep = async function (this: MidsceneWorld, ..._args: unknown[]) {
     document: current.gherkinDocument,
     pickle: current.pickle,
     pickleStep: current.pickleStep,
-    vars: this.vars,
     flowDepth: 0,
     runtime: getRuntime(),
     agents: {

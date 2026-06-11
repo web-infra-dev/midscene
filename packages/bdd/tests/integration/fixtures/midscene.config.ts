@@ -10,14 +10,12 @@
  *   { pass: false, thought: 'soft-fail' } when the prompt contains
  *   SOFT_FAIL (else { pass: true }); without keepRawResponse it throws when
  *   the prompt contains FAIL_ME, else resolves (pass).
- * - aiString: records ['string', prompt]; '' for EMPTY prompts, '42.00' for
- *   price-ish prompts, a fixed greeting otherwise.
  */
 import { defineBddConfig } from '../../../src/config';
 import type { UiAgent } from '../../../src/types';
 
 export interface UiStubRecord {
-  calls: Array<[method: 'act' | 'assert' | 'string', prompt: string]>;
+  calls: Array<[method: 'act' | 'assert', prompt: string]>;
   factoryCalls: number;
 }
 
@@ -52,12 +50,6 @@ const stubUiAgent: UiAgent = {
       throw new Error(`stub assertion failed: ${assertion}`);
     }
     return undefined;
-  },
-  async aiString(prompt: string): Promise<string> {
-    record().calls.push(['string', prompt]);
-    if (prompt.includes('EMPTY')) return '';
-    if (/price/i.test(prompt)) return '42.00';
-    return 'hello-from-stub';
   },
 };
 

@@ -109,7 +109,7 @@ export function noAiSnippet(stepText: string): string {
   ).join(', ');
   return [
     `defineStep('${escaped}', async function (${argNames}) {`,
-    '  // `this` is the step context (vars, getUiAgent, attach, log);',
+    '  // `this` is the step context (getUiAgent, attach, log);',
     '  // throw to fail the step',
     '});',
   ].join('\n');

@@ -1,5 +1,5 @@
-# Coupon journey built on the shared flows. <price> is returned by the
-# add-to-cart flow; the final assertion checks the 10% discount against it.
+# Coupon journey built on the shared flows. The final assertion checks the
+# 10% discount against the unit price shown on the page.
 Feature: Checkout with a coupon
 
   Scenario: Applying SAVE10 gives a 10% discount
@@ -8,4 +8,4 @@ Feature: Checkout with a coupon
     When I open the cart page
     And I enter the coupon code "SAVE10" and click Apply
     Then a "Coupon applied" message is visible
-    And the cart total equals <price> minus a 10% discount
+    And the cart total equals $116.10, a 10% discount off the $129.00 unit price

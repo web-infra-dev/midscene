@@ -46,10 +46,6 @@ const stubAgent: UiAgent = {
     }
     return undefined;
   },
-  async aiString(prompt: string): Promise<string> {
-    record(['aiString', prompt]);
-    return prompt.includes('EMPTY') ? '' : '42.00';
-  },
   reportFile: '/tmp/bdd-fake-report.html',
 };
 

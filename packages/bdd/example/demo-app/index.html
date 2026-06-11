@@ -189,6 +189,7 @@
         <a href="#" id="nav-home">Home</a>
         <a href="#" id="nav-login">Login</a>
         <a href="#" id="nav-cart">Cart</a>
+        <a href="#" id="nav-notes">Notes</a>
       </nav>
       <span id="greeting"></span>
     </header>
@@ -260,6 +261,19 @@
           <input type="text" id="coupon-input" placeholder="Coupon code" />
           <button id="apply-coupon">Apply</button>
           <div id="coupon-message">Coupon applied</div>
+        </div>
+      </section>
+
+      <section id="view-notes" class="view">
+        <h1>Notes</h1>
+        <div class="card">
+          <label for="note-input">New note</label>
+          <textarea id="note-input" rows="5" placeholder="Write a note"></textarea>
+          <p>
+            <button id="save-note">Save note</button>
+          </p>
+          <h2>Saved notes</h2>
+          <ol id="notes-list"></ol>
         </div>
       </section>
 
@@ -345,6 +359,25 @@
         hideToast();
         renderCart();
         showView('cart');
+      });
+      $('nav-notes').addEventListener('click', function (e) {
+        e.preventDefault();
+        hideToast();
+        showView('notes');
+      });
+
+      // ——— notes ———
+      $('save-note').addEventListener('click', function () {
+        var text = $('note-input').value.trim();
+        if (!text) {
+          showToast('Cannot save an empty note');
+          return;
+        }
+        var li = document.createElement('li');
+        li.textContent = text;
+        $('notes-list').appendChild(li);
+        $('note-input').value = '';
+        pageLog('note saved (' + text.length + ' chars)');
       });
 
       // ——— login ———

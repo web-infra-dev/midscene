@@ -1,16 +1,11 @@
 import type { GherkinDocument, Pickle, PickleStep } from '@cucumber/messages';
 import { describe, expect, it, vi } from 'vitest';
-import { FlowRegistry, executeFlow } from '../../src/flows';
+import { FlowRegistry, executeFlow, substituteParams } from '../../src/flows';
 import type {
   FlowDef,
   ResolvedBddConfig,
   RouterContext,
 } from '../../src/types';
-import {
-  matchMalformedRemember,
-  matchRemember,
-  substituteVars,
-} from '../../src/vars';
 
 vi.mock('../../src/annotations', () => {
   const stepTypeOf = () => 'action';
@@ -45,7 +40,6 @@ vi.mock('../../src/annotations', () => {
         docString?: { content?: string };
       };
     };
-    vars: Map<string, string>;
     flowDepth: number;
     runtime: { flows: unknown; skills: unknown; config: unknown };
     agents: {
@@ -61,7 +55,6 @@ vi.mock('../../src/annotations', () => {
     annotations: resolveStepAnnotations(),
     dataTable: renderDataTable(input.pickleStep),
     docString: input.pickleStep.argument?.docString?.content,
-    vars: input.vars,
     flowDepth: input.flowDepth,
     flows: input.runtime.flows,
     skills: input.runtime.skills,
@@ -84,7 +77,6 @@ vi.mock('../../src/annotations', () => {
 function makeFlow(partial: Partial<FlowDef> & { name: string }): FlowDef {
   return {
     params: [],
-    returns: [],
     pickle: { steps: [] } as unknown as Pickle,
     document: {} as GherkinDocument,
     uri: 'features/flows.feature',
@@ -101,7 +93,6 @@ function makeParentCtx(overrides: Partial<RouterContext> = {}): RouterContext {
     stepText: '',
     stepType: 'action',
     annotations: { agent: false, noAi: false, soft: false, skills: [] },
-    vars: new Map(),
     flowDepth: 0,
     flows: new FlowRegistry(),
     skills: new Map(),
@@ -117,84 +108,42 @@ function makeParentCtx(overrides: Partial<RouterContext> = {}): RouterContext {
   };
 }
 
-describe('substituteVars', () => {
-  it('replaces known variables', () => {
-    const vars = new Map([['name', 'world']]);
-    expect(substituteVars('hello <name>', vars)).toBe('hello world');
+describe('substituteParams', () => {
+  const flow = makeFlow({
+    name: 'I am logged in as {string}',
+    params: ['role'],
+    uri: 'features/login.feature',
   });
 
-  it('replaces multiple occurrences of the same and different variables', () => {
-    const vars = new Map([
-      ['a', '1'],
-      ['b', '2'],
-    ]);
-    expect(substituteVars('<a> + <a> = <b>', vars)).toBe('1 + 1 = 2');
+  it('replaces declared params, all occurrences', () => {
+    expect(
+      substituteParams('the dashboard for "<role>" greets <role>', flow, {
+        role: 'admin',
+      }),
+    ).toBe('the dashboard for "admin" greets admin');
   });
 
-  it('throws on an unknown identifier-shaped placeholder, listing known vars', () => {
-    const vars = new Map([
-      ['a', '1'],
-      ['b', '2'],
-    ]);
-    expect(() => substituteVars('use <c>', vars)).toThrow(
-      '[midscene-bdd] unknown variable <c> in step "use <c>". Known variables: a, b',
+  it('throws on an identifier-shaped placeholder that is not a param', () => {
+    expect(() => substituteParams('use <typo>', flow, { role: 'x' })).toThrow(
+      '[midscene-bdd] Flow "I am logged in as {string}" (features/login.feature): step "use <typo>" references <typo>, which is not a declared @param: (params: role)',
     );
   });
 
-  it("reports '(none)' when no variables are known", () => {
-    expect(() => substituteVars('use <c>', new Map())).toThrow(
-      '[midscene-bdd] unknown variable <c> in step "use <c>". Known variables: (none)',
-    );
+  it("reports '(none)' for a zero-param flow", () => {
+    expect(() =>
+      substituteParams('use <x>', makeFlow({ name: 'zero' }), {}),
+    ).toThrow(/params: \(none\)/);
   });
 
   it('leaves non-identifier <...> content untouched', () => {
-    const vars = new Map([['a', '1']]);
-    expect(substituteVars('press <left-arrow> then <1abc> <a>', vars)).toBe(
-      'press <left-arrow> then <1abc> 1',
-    );
-    expect(substituteVars('compare 1 < 2 > 0', vars)).toBe('compare 1 < 2 > 0');
-  });
-});
-
-describe('matchMalformedRemember', () => {
-  it('detects remember-intent with a non-identifier variable name', () => {
-    expect(matchMalformedRemember('I remember the id as "order-id"')).toEqual({
-      varName: 'order-id',
-    });
-    expect(matchMalformedRemember('I remember the id as "order id"')).toEqual({
-      varName: 'order id',
-    });
-  });
-
-  it('returns undefined for valid remember statements and unrelated text', () => {
     expect(
-      matchMalformedRemember('I remember the id as "orderId"'),
-    ).toBeUndefined();
-    expect(matchMalformedRemember('I open the page')).toBeUndefined();
-  });
-});
-
-describe('matchRemember', () => {
-  it('matches the remember statement', () => {
-    expect(matchRemember('I remember the order id as "orderId"')).toEqual({
-      description: 'the order id',
-      varName: 'orderId',
-    });
-  });
-
-  it('is case-insensitive and tolerates a trailing period', () => {
-    expect(matchRemember('i remember the total as "total".')).toEqual({
-      description: 'the total',
-      varName: 'total',
-    });
-  });
-
-  it('returns undefined for non-identifier variable names', () => {
-    expect(matchRemember('I remember the id as "order-id"')).toBeUndefined();
-  });
-
-  it('returns undefined for unrelated text', () => {
-    expect(matchRemember('I click the button')).toBeUndefined();
+      substituteParams('press <left-arrow> then <1abc> <role>', flow, {
+        role: 'admin',
+      }),
+    ).toBe('press <left-arrow> then <1abc> admin');
+    expect(substituteParams('compare 1 < 2 > 0', flow, { role: 'x' })).toBe(
+      'compare 1 < 2 > 0',
+    );
   });
 });
 
@@ -320,64 +269,47 @@ describe('FlowRegistry', () => {
 });
 
 describe('executeFlow', () => {
-  it('runs steps in order through runStep with a fresh scope seeded from args', async () => {
+  it('runs steps in order through runStep with <param> substituted', async () => {
     const flow = makeFlow({
       name: 'login',
       params: ['role'],
       pickle: {
-        steps: [makeStep('one'), makeStep('two'), makeStep('three')],
+        steps: [
+          makeStep('I open the login page'),
+          makeStep('I sign in as "<role>"'),
+          makeStep('the "<role>" dashboard is visible'),
+        ],
       } as unknown as Pickle,
     });
-    const parentCtx = makeParentCtx({ vars: new Map([['outer', 'x']]) });
-    const seen: Array<{
-      text: string;
-      vars: Map<string, string>;
-      depth: number;
-    }> = [];
+    const seen: Array<{ text: string; depth: number }> = [];
     await executeFlow(
       { flow, args: { role: 'admin' } },
-      parentCtx,
+      makeParentCtx(),
       async (ctx) => {
-        seen.push({ text: ctx.stepText, vars: ctx.vars, depth: ctx.flowDepth });
+        seen.push({ text: ctx.stepText, depth: ctx.flowDepth });
       },
     );
-    expect(seen.map((s) => s.text)).toEqual(['one', 'two', 'three']);
-    // Fresh scope: seeded ONLY with args, no parent vars leak in.
-    expect(seen[0].vars.get('role')).toBe('admin');
-    expect(seen[0].vars.has('outer')).toBe(false);
-    // Same scope shared across all steps of the flow.
-    expect(seen[1].vars).toBe(seen[0].vars);
-    expect(seen[0].depth).toBe(1);
-    // Parent scope untouched (no returns declared).
-    expect(parentCtx.vars).toEqual(new Map([['outer', 'x']]));
+    expect(seen.map((s) => s.text)).toEqual([
+      'I open the login page',
+      'I sign in as "admin"',
+      'the "admin" dashboard is visible',
+    ]);
+    expect(seen.map((s) => s.depth)).toEqual([1, 1, 1]);
   });
 
-  it('copies @returns vars back into the parent scope', async () => {
+  it('throws when a flow-body step references an undeclared placeholder', async () => {
     const flow = makeFlow({
       name: 'login',
-      returns: ['token'],
-      pickle: { steps: [makeStep('capture')] } as unknown as Pickle,
+      params: ['role'],
+      pickle: {
+        steps: [makeStep('I sign in as "<typo>"')],
+      } as unknown as Pickle,
     });
-    const parentCtx = makeParentCtx();
-    await executeFlow({ flow, args: {} }, parentCtx, async (ctx) => {
-      ctx.vars.set('token', 'abc123');
-      ctx.vars.set('internal', 'hidden');
-    });
-    expect(parentCtx.vars.get('token')).toBe('abc123');
-    expect(parentCtx.vars.has('internal')).toBe(false);
-  });
-
-  it('throws when a declared @returns var was never captured', async () => {
-    const flow = makeFlow({
-      name: 'login',
-      returns: ['token'],
-      pickle: { steps: [makeStep('noop')] } as unknown as Pickle,
-    });
+    const runStep = vi.fn();
     await expect(
-      executeFlow({ flow, args: {} }, makeParentCtx(), async () => {}),
-    ).rejects.toThrow(
-      '[midscene-bdd] Flow "login": declares @returns:token but never captured it',
-    );
+      executeFlow({ flow, args: { role: 'admin' } }, makeParentCtx(), runStep),
+    ).rejects.toThrow(/references <typo>, which is not a declared @param:/);
+    expect(runStep).not.toHaveBeenCalled();
   });
 
   it('throws when the depth cap is exceeded (2 -> 3)', async () => {
