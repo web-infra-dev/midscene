@@ -53,12 +53,22 @@ export interface HealthFinding {
   subject?: string;
 }
 
+/**
+ * Where the runtime router sends a step. Mirrors the router precedence
+ * exactly: `@no-ai` beats `@agent`/`$skill`, which beat the default
+ * Midscene UI agent. Flow-call steps are routed AFTER annotations, so a
+ * flow-call step keeps its annotation-derived route ('ui' when unannotated).
+ */
+export type StepRoute = 'ui' | 'agent' | 'no-ai';
+
 export interface StepModel {
   /** Original keyword text from the AST, e.g. 'When ' (trailing space kept). */
   keyword: string;
   text: string;
   stepType: StepType;
   annotations: StepAnnotations;
+  /** Which executor the runtime router would pick for this step. */
+  route: StepRoute;
   /** Rendered `| cell | cell |` lines, when the step has a data table. */
   dataTable?: string;
   docString?: string;
@@ -122,6 +132,10 @@ export interface ExploreStats {
   flows: number;
   steps: number;
   edges: number;
+  /** Steps routed to the general coding agent (`# @agent` / `$skill`). */
+  agentSteps: number;
+  /** Steps routed to a user-registered classic callback (`# @no-ai`). */
+  noAiSteps: number;
 }
 
 export interface ExploreModel {
@@ -302,6 +316,9 @@ function analyzeSteps(
       text: pickleStep.text,
       stepType: stepTypeOf(pickleStep),
       annotations,
+      // resolveStepAnnotations already folds `$skill` tokens into `agent`,
+      // so this ternary is the full router precedence (no-ai > agent > ui).
+      route: annotations.noAi ? 'no-ai' : annotations.agent ? 'agent' : 'ui',
       dataTable: renderDataTable(pickleStep),
       docString: pickleStep.argument?.docString?.content,
       line,
@@ -536,13 +553,14 @@ export async function buildExploreModel(
     (sum, feature) => sum + feature.scenarios.length,
     0,
   );
-  const stepCount =
-    features.reduce(
-      (sum, feature) =>
-        sum +
-        feature.scenarios.reduce((s, scenario) => s + scenario.steps.length, 0),
-      0,
-    ) + flows.reduce((sum, flow) => sum + flow.steps.length, 0);
+  const allSteps: StepModel[] = [];
+  for (const feature of features) {
+    for (const scenario of feature.scenarios) allSteps.push(...scenario.steps);
+  }
+  for (const flow of flows) allSteps.push(...flow.steps);
+  const stepCount = allSteps.length;
+  const agentSteps = allSteps.filter((step) => step.route === 'agent').length;
+  const noAiSteps = allSteps.filter((step) => step.route === 'no-ai').length;
 
   return {
     generatedAt: new Date().toISOString(),
@@ -557,6 +575,8 @@ export async function buildExploreModel(
       flows: flows.length,
       steps: stepCount,
       edges: edges.length,
+      agentSteps,
+      noAiSteps,
     },
   };
 }

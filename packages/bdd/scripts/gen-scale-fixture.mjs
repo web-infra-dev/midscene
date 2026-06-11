@@ -15,7 +15,9 @@
  * plus 33 feature files x ~5 scenarios (~163 scenarios) that call the flows —
  * including one fan-out smoke scenario calling 5 flows and two story-arc
  * features whose scenarios climb the pipeline/support chains level by level.
- * Captures + <var> uses, step annotations, two Scenario Outlines, and seeded
+ * Captures + <var> uses, step annotations (# @agent / # @no-ai / @soft /
+ * $skill — including routed steps inside two flow bodies so the graph's
+ * routing markers light up), two Scenario Outlines, and seeded
  * imperfections so the HEALTH panel has content:
  *   - 2 unused flows
  *   - 1 unknown-var use
@@ -118,6 +120,7 @@ const CORE_FLOWS = `Feature: Shared core flows
     When I open the reports page
     And I click the export button
     Then the download toast appears
+    Then the export is recorded in the server log, per $check-logs
 
   @flow
   Scenario: I have reset the sandbox environment
@@ -290,6 +293,8 @@ const SUPPORT_FLOWS = `Feature: Shared support flows
     When I open the ticket actions menu
     And I click archive ticket
     Then the ticket disappears from the open queue
+    # @no-ai
+    Then the archived-ticket counter increments
 `;
 
 // Quarterly summary keeps its place as a reporting flow over checkout
@@ -304,24 +309,26 @@ const DEEP_FLOWS = `Feature: Shared reporting flows
     Then the quarterly summary is listed
 `;
 
-writeFileSync(join(base, 'features', 'flows', 'core.feature'), CORE_FLOWS);
-writeFileSync(
+// Every feature body also lands in featureBodies so the summary can count
+// routing markers without re-reading the tree.
+const featureBodies = [];
+const writeFeature = (absPath, body) => {
+  featureBodies.push(body);
+  writeFileSync(absPath, body);
+};
+
+writeFeature(join(base, 'features', 'flows', 'core.feature'), CORE_FLOWS);
+writeFeature(
   join(base, 'features', 'flows', 'composed.feature'),
   COMPOSED_FLOWS,
 );
-writeFileSync(
-  join(base, 'features', 'flows', 'account.feature'),
-  ACCOUNT_FLOWS,
-);
-writeFileSync(
+writeFeature(join(base, 'features', 'flows', 'account.feature'), ACCOUNT_FLOWS);
+writeFeature(
   join(base, 'features', 'flows', 'platform.feature'),
   PLATFORM_FLOWS,
 );
-writeFileSync(
-  join(base, 'features', 'flows', 'support.feature'),
-  SUPPORT_FLOWS,
-);
-writeFileSync(join(base, 'features', 'flows', 'reporting.feature'), DEEP_FLOWS);
+writeFeature(join(base, 'features', 'flows', 'support.feature'), SUPPORT_FLOWS);
+writeFeature(join(base, 'features', 'flows', 'reporting.feature'), DEEP_FLOWS);
 
 // ———————————————————————————— feature files ————————————————————————————
 
@@ -523,7 +530,7 @@ for (let f = 0; f < 30; f++) {
     blocks.join('\n\n'),
     '',
   ].join('\n');
-  writeFileSync(
+  writeFeature(
     join(base, 'features', `suite-${fileNo}-${domain}.feature`),
     body,
   );
@@ -616,10 +623,16 @@ const ARC_FEATURES = [
   ['suite-33-support.feature', SUPPORT_FEATURE, 4],
 ];
 for (const [name, body, count] of ARC_FEATURES) {
-  writeFileSync(join(base, 'features', name), body);
+  writeFeature(join(base, 'features', name), body);
   scenarioTotal += count;
 }
 
+const allContent = featureBodies.join('\n');
+const countMatches = (re) => (allContent.match(re) ?? []).length;
+const agentMarkers = countMatches(/^\s*# @agent$/gm);
+const noAiMarkers = countMatches(/^\s*# @no-ai$/gm);
+const skillRefs = countMatches(/\$[A-Za-z][A-Za-z0-9_-]*/g);
+
 console.log(
-  `Wrote scale fixture to ${base}: 39 feature files (33 suites + 6 shared-flow files), ${scenarioTotal} scenarios, 30 flows (2 unused; deepest chain nests 7 flows: report → run → pipeline → data source → project → workspace → sign-in), seeded health findings.`,
+  `Wrote scale fixture to ${base}: 39 feature files (33 suites + 6 shared-flow files), ${scenarioTotal} scenarios, 30 flows (2 unused; deepest chain nests 7 flows: report → run → pipeline → data source → project → workspace → sign-in), seeded health findings, routing markers: ${agentMarkers} × "# @agent", ${noAiMarkers} × "# @no-ai", ${skillRefs} × $skill references.`,
 );

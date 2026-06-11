@@ -117,7 +117,52 @@ describe('buildExploreModel', () => {
       flows: 2,
       steps: 10,
       edges: 3,
+      agentSteps: 0,
+      noAiSteps: 0,
     });
+  });
+
+  it('classifies step routing with router precedence (no-ai > agent > ui)', async () => {
+    const config = makeFixture({
+      'features/skills/check-logs.md': '# check-logs\n\nInspect logs.\n',
+      'features/routing.feature': `Feature: Routing
+
+  Scenario: Mixed routing
+    Given I open the page
+    # @agent
+    When the coding agent rotates the API key
+    Then the server log notes the rotation, per $check-logs
+    # @no-ai
+    Then the counter increments
+    # @soft
+    Then the banner is visible
+    # @no-ai @agent
+    Then conflicting markers prefer the callback
+`,
+    });
+    const model = await buildExploreModel(config);
+    const steps = model.features[0].scenarios[0].steps;
+
+    // Default → Midscene UI agent.
+    expect(steps[0].route).toBe('ui');
+    expect(steps[0].annotations.soft).toBe(false);
+    // # @agent comment → general coding agent.
+    expect(steps[1].route).toBe('agent');
+    expect(steps[1].annotations.skills).toEqual([]);
+    // Inline $skill token implies agent and carries the skill name.
+    expect(steps[2].route).toBe('agent');
+    expect(steps[2].annotations.skills).toEqual(['check-logs']);
+    // # @no-ai → user-registered classic callback.
+    expect(steps[3].route).toBe('no-ai');
+    // # @soft is captured but does not change the route.
+    expect(steps[4].route).toBe('ui');
+    expect(steps[4].annotations.soft).toBe(true);
+    // no-ai beats agent, exactly like the runtime router.
+    expect(steps[5].route).toBe('no-ai');
+    expect(steps[5].annotations.agent).toBe(true);
+
+    expect(model.stats.agentSteps).toBe(2);
+    expect(model.stats.noAiSteps).toBe(2);
   });
 
   it('extracts flow edges, including flow-to-flow, with args and callers', async () => {

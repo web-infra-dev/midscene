@@ -14,5 +14,6 @@ export type {
   HealthKind,
   ScenarioModel,
   StepModel,
+  StepRoute,
 } from './model';
 export { renderDashboard } from './render';

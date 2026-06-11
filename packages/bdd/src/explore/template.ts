@@ -184,11 +184,18 @@ export const DASHBOARD_TEMPLATE = String.raw`<!DOCTYPE html>
     font-size: 10px; font-weight: 700; letter-spacing: .04em;
     border-radius: 4px; padding: 1px 6px; line-height: 1.5; white-space: nowrap;
   }
-  .badge-noai    { background: #3a2f4d; color: #cdb6f5; }
-  .badge-agent   { background: #4d3a26; color: #f0c690; }
+  .badge-agent   { background: #3d2d5e; color: #cdb0f7; border: 1px solid #54417e; }
+  .badge-noai    { background: #2b3038; color: #9aa3b2; border: 1px solid #3a414d; }
   .badge-soft    { background: #26404d; color: #90d4f0; }
-  .badge-skill   { background: #2c4d36; color: #9af0b8; }
   .badge-capture { background: #2c3a4d; color: #9ec7f0; }
+  .route-legend {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
+    margin-top: 10px; max-width: 980px;
+    color: var(--muted); font-size: 11.5px;
+  }
+  .route-legend .badge { cursor: default; }
+  .chip.chip-agent b { color: #cdb0f7; }
+  .chip.chip-noai b { color: #aab3c0; }
   .issue-note { color: var(--bad); font-size: 12px; padding: 2px 10px 4px 34px; }
   table.dt { border-collapse: collapse; margin: 4px 10px 8px 34px; font-size: 12.5px; }
   table.dt td { border: 1px solid var(--border); padding: 3px 10px; font-family: ui-monospace, Menlo, Consolas, monospace; }
@@ -350,7 +357,13 @@ MODEL.edges.forEach(function (e) {
 var haystack = Object.create(null);
 function buildHaystack(item) {
   var parts = [item.name].concat(item.tags || []);
-  item.steps.forEach(function (s) { parts.push(s.text); });
+  item.steps.forEach(function (s) {
+    parts.push(s.text);
+    // Routing markers are searchable ("@agent", "@no-ai", "$skill") even
+    // when they live in comment lines that the step text does not contain.
+    if (s.route !== 'ui') parts.push('@' + s.route);
+    s.annotations.skills.forEach(function (sk) { parts.push('$' + sk); });
+  });
   return parts.join('\n').toLowerCase();
 }
 MODEL.features.forEach(function (feat) {
@@ -385,6 +398,20 @@ function argsSummary(args) {
   if (keys.length === 0) return 'no args';
   return keys.map(function (k) { return k + ' = "' + args[k] + '"'; }).join(', ');
 }
+// Graph node subtitle for a flow: params/returns plus a routing marker when
+// the flow body contains agent / no-ai steps.
+function flowSub(flow) {
+  var sub = plural(flow.params.length, 'param') + ' · ' + plural(flow.returns.length, 'return');
+  var agentCount = 0;
+  var noAiCount = 0;
+  flow.steps.forEach(function (s) {
+    if (s.route === 'agent') agentCount++;
+    else if (s.route === 'no-ai') noAiCount++;
+  });
+  if (agentCount > 0) sub += ' · ◆ ' + agentCount + ' agent';
+  if (noAiCount > 0) sub += ' · ' + noAiCount + ' no-ai';
+  return sub;
+}
 
 /* ———————————————— header ———————————————— */
 
@@ -392,16 +419,28 @@ function renderHeader() {
   document.getElementById('base-dir').textContent = MODEL.baseDir;
   document.getElementById('base-dir').title = MODEL.baseDir;
   var stats = document.getElementById('stats');
-  [
+  var entries = [
     [MODEL.stats.features, 'features'],
     [MODEL.stats.scenarios, 'scenarios'],
     [MODEL.stats.flows, 'flows'],
     [MODEL.stats.steps, 'steps'],
     [MODEL.stats.edges, 'flow calls']
-  ].forEach(function (entry) {
-    var chip = el('span', 'chip');
+  ];
+  // Routing chips only when the suite actually routes off the default UI
+  // agent, so plain suites keep a quiet header.
+  if (MODEL.stats.agentSteps > 0) {
+    entries.push([MODEL.stats.agentSteps, 'agent steps', 'chip-agent',
+      'Steps routed to the general coding agent via # @agent or a $skill token']);
+  }
+  if (MODEL.stats.noAiSteps > 0) {
+    entries.push([MODEL.stats.noAiSteps, 'no-ai steps', 'chip-noai',
+      'Steps routed to a user-registered classic callback via # @no-ai']);
+  }
+  entries.forEach(function (entry) {
+    var chip = el('span', 'chip' + (entry[2] ? ' ' + entry[2] : ''));
     chip.appendChild(el('b', null, String(entry[0])));
     chip.appendChild(document.createTextNode(entry[1]));
+    if (entry[3]) chip.title = entry[3];
     stats.appendChild(chip);
   });
   var pill = document.getElementById('health-count');
@@ -569,6 +608,27 @@ function renderStepText(step) {
   return span;
 }
 
+// Routing badge mirroring the runtime router precedence: no-ai beats
+// agent; the default Midscene UI route stays badge-free so it reads quiet.
+function makeRouteBadge(step) {
+  if (step.route === 'no-ai') {
+    var noai = el('span', 'badge badge-noai', 'no-ai');
+    noai.title = 'Runs a user-registered classic callback (Given/When/Then/defineStep) — no AI involved';
+    return noai;
+  }
+  if (step.route === 'agent') {
+    var label = 'agent';
+    var skills = step.annotations.skills.map(function (s) { return '$' + s; });
+    if (skills.length > 0) label += ' · ' + skills.join(' ');
+    var agent = el('span', 'badge badge-agent', label);
+    agent.title = 'Runs on the general coding agent (e.g. Codex)' +
+      (skills.length > 0 ? ' with skill' + (skills.length === 1 ? '' : 's') + ' ' + skills.join(', ') : '') +
+      ' — marked with # @agent or a $skill token';
+    return agent;
+  }
+  return null; // default: Midscene UI agent
+}
+
 function renderStep(step, path) {
   var wrap = el('div', 'step' + (step.varIssues ? ' step-issue' : ''));
   var row = el('div', 'step-row');
@@ -576,12 +636,13 @@ function renderStep(step, path) {
   row.appendChild(renderStepText(step));
 
   var badges = el('span', 'step-badges');
-  if (step.annotations.noAi) badges.appendChild(el('span', 'badge badge-noai', 'NO-AI'));
-  if (step.annotations.agent) badges.appendChild(el('span', 'badge badge-agent', 'AGENT'));
-  if (step.annotations.soft) badges.appendChild(el('span', 'badge badge-soft', 'SOFT'));
-  step.annotations.skills.forEach(function (s) {
-    badges.appendChild(el('span', 'badge badge-skill', '$' + s));
-  });
+  var routeBadge = makeRouteBadge(step);
+  if (routeBadge) badges.appendChild(routeBadge);
+  if (step.annotations.soft) {
+    var soft = el('span', 'badge badge-soft', 'soft');
+    soft.title = 'Soft check — a failure is logged as a warning instead of failing the run';
+    badges.appendChild(soft);
+  }
   if (step.capture) {
     var cap = el('span', 'badge badge-capture', '⤴ ' + step.capture.varName);
     cap.title = 'captures "' + step.capture.varName + '" — ' + step.capture.description;
@@ -655,6 +716,24 @@ function renderDetail() {
     stepsCard.appendChild(renderStep(step, [item.id]));
   });
   detail.appendChild(stepsCard);
+
+  // Routing legend — only when the suite routes off the default UI agent.
+  if (MODEL.stats.agentSteps > 0 || MODEL.stats.noAiSteps > 0) {
+    var legend = el('div', 'route-legend');
+    legend.appendChild(el('span', null, 'Step routing:'));
+    var agentSample = el('span', 'badge badge-agent', 'agent');
+    agentSample.title = 'Marked with # @agent or a $skill token';
+    legend.appendChild(agentSample);
+    legend.appendChild(el('span', null, 'general coding agent (e.g. Codex)'));
+    legend.appendChild(el('span', null, '·'));
+    var noaiSample = el('span', 'badge badge-noai', 'no-ai');
+    noaiSample.title = 'Marked with # @no-ai';
+    legend.appendChild(noaiSample);
+    legend.appendChild(el('span', null, 'classic user callback'));
+    legend.appendChild(el('span', null, '·'));
+    legend.appendChild(el('span', null, 'unmarked steps run on the Midscene UI agent'));
+    detail.appendChild(legend);
+  }
 }
 
 /* ———————————————— flow graph (inline SVG, left→right columns) ———————————————— */
@@ -747,7 +826,7 @@ function buildFullGraph(nodes, rawLinks) {
   MODEL.flows.forEach(function (f) {
     nodes.push({
       id: f.id, kind: 'flow', layer: layers[f.id], order: order++, label: f.name,
-      sub: plural(f.params.length, 'param') + ' · ' + plural(f.returns.length, 'return'),
+      sub: flowSub(f),
       unused: (edgesTo[f.id] || []).length === 0
     });
   });
@@ -769,7 +848,7 @@ function buildFocusGraph(nodes, rawLinks) {
   seen[fid] = true;
   nodes.push({
     id: fid, kind: 'flow', layer: 1, order: order++, label: focus.name,
-    sub: plural(focus.params.length, 'param') + ' · ' + plural(focus.returns.length, 'return'),
+    sub: flowSub(focus),
     focus: true
   });
   (edgesTo[fid] || []).forEach(function (e) {
@@ -799,7 +878,7 @@ function buildFocusGraph(nodes, rawLinks) {
           nodes.push({
             id: e.to, kind: 'flow', layer: layer, order: order++,
             label: callee ? callee.name : e.to,
-            sub: callee ? plural(callee.params.length, 'param') + ' · ' + plural(callee.returns.length, 'return') : ''
+            sub: callee ? flowSub(callee) : ''
           });
           next.push(e.to);
         }
