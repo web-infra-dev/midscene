@@ -141,6 +141,57 @@ type AiActInternalOptions = AiActOptions & {
   };
 };
 
+export interface RecordToReportScreenshot {
+  base64: string;
+  description?: string;
+}
+
+export interface RecordToReportOptions {
+  content?: string;
+  /**
+   * Backward-compatible single screenshot override.
+   */
+  screenshotBase64?: string;
+  /**
+   * Custom screenshots to display under a single report entry.
+   */
+  screenshots?: RecordToReportScreenshot[];
+  /**
+   * Alias for the API shape proposed in issue #1998.
+   */
+  customScreenshotData?: RecordToReportScreenshot[];
+  /**
+   * Custom display label for this log task. The underlying task type stays Log.
+   */
+  subType?: string;
+}
+
+function assertRecordToReportScreenshot(
+  screenshot: RecordToReportScreenshot,
+  index: number,
+) {
+  if (!screenshot || typeof screenshot.base64 !== 'string') {
+    throw new Error(
+      `recordToReport: screenshot #${index + 1} must include a base64 string`,
+    );
+  }
+
+  if (!screenshot.base64.trim()) {
+    throw new Error(
+      `recordToReport: screenshot #${index + 1} base64 cannot be empty`,
+    );
+  }
+
+  if (
+    screenshot.description !== undefined &&
+    typeof screenshot.description !== 'string'
+  ) {
+    throw new Error(
+      `recordToReport: screenshot #${index + 1} description must be a string`,
+    );
+  }
+}
+
 export class Agent<
   InterfaceType extends AbstractInterface = AbstractInterface,
 > {
@@ -1427,31 +1478,44 @@ export class Agent<
     }
   }
 
-  async recordToReport(
-    title?: string,
-    opt?: {
-      content?: string;
-      screenshotBase64?: string;
-    },
-  ) {
-    // 1. screenshot
-    const base64 =
-      opt?.screenshotBase64 ?? (await this.interface.screenshotBase64());
+  async recordToReport(title?: string, opt?: RecordToReportOptions) {
     const now = Date.now();
-    const screenshot = ScreenshotItem.create(base64, now);
-    // 2. build recorder
-    const recorder: ExecutionRecorderItem[] = [
-      {
-        type: 'screenshot',
-        ts: now,
-        screenshot,
+    const customScreenshots = Array.isArray(opt?.screenshots)
+      ? opt.screenshots
+      : Array.isArray(opt?.customScreenshotData)
+        ? opt.customScreenshotData
+        : undefined;
+    if (customScreenshots && customScreenshots.length === 0) {
+      throw new Error('recordToReport: screenshots cannot be empty');
+    }
+    const screenshotInputs: RecordToReportScreenshot[] =
+      customScreenshots ??
+      (opt?.screenshotBase64
+        ? [{ base64: opt.screenshotBase64 }]
+        : [{ base64: await this.interface.screenshotBase64() }]);
+
+    // 1. build recorder
+    const recorder: ExecutionRecorderItem[] = screenshotInputs.map(
+      (screenshotInput, index) => {
+        assertRecordToReportScreenshot(screenshotInput, index);
+        const ts = now + index;
+        return {
+          type: 'screenshot',
+          ts,
+          screenshot: ScreenshotItem.create(screenshotInput.base64, ts),
+          description: screenshotInput.description,
+        };
       },
-    ];
-    // 3. build ExecutionTaskLog
+    );
+    const customSubType = opt?.subType?.trim();
+    const taskSubType = customSubType || 'Screenshot';
+    const executionTypeLabel = customSubType || 'Log';
+
+    // 2. build ExecutionTaskLog
     const task: ExecutionTaskLog = {
       taskId: uuid(),
       type: 'Log',
-      subType: 'Screenshot',
+      subType: taskSubType,
       status: 'finished',
       recorder,
       timing: {
@@ -1464,15 +1528,15 @@ export class Agent<
       },
       executor: async () => {},
     };
-    // 4. build ExecutionDump
+    // 3. build ExecutionDump
     const executionDump = new ExecutionDump({
       id: uuid(),
       logTime: now,
-      name: `Log - ${title || 'untitled'}`,
+      name: `${executionTypeLabel} - ${title || 'untitled'}`,
       description: opt?.content || '',
       tasks: [task],
     });
-    // 5. append to execution dump
+    // 4. append to execution dump
     this.appendExecutionDump(executionDump);
 
     this.writeOutActionDumps(executionDump);
