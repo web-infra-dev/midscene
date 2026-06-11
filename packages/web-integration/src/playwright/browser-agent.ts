@@ -2,6 +2,8 @@ import {
   type BrowserAgentAdapter,
   BrowserAgentPageController,
   BrowserAwareAgent,
+  appendBrowserAgentPageActions,
+  createBrowserAgentPageActions,
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
 import {
@@ -25,6 +27,8 @@ const createPlaywrightBrowserAdapter = (
   newPage: () => context.newPage(),
   isPageClosed: (page) => page.isClosed(),
   bringToFront: (page) => page.bringToFront(),
+  pageTitle: (page) => page.title(),
+  pageUrl: (page) => page.url(),
   onNewPage: (handler) => context.on('page', handler),
   offNewPage: (handler) => context.off('page', handler),
   resolveNewPage: (page) => page,
@@ -84,9 +88,28 @@ export class PlaywrightBrowserAgent extends BrowserAwareAgent<
       newPageTimeout,
     });
     const { forceChromeSelectRendering } = agentOpts;
+    const pageControllerRef: {
+      current?: BrowserAgentPageController<PlaywrightPage, PlaywrightPage>;
+    } = {};
+    const getPageController = () => {
+      if (!pageControllerRef.current) {
+        throw new Error(
+          '[midscene] PlaywrightBrowserAgent page controller is not initialized.',
+        );
+      }
+      return pageControllerRef.current;
+    };
+    const browserActions = createBrowserAgentPageActions({
+      agentName: 'PlaywrightBrowserAgent',
+      getPageController,
+    });
     const webPage = new PlaywrightWebPage(initialPage, {
       ...agentOpts,
       forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
+      customActions: appendBrowserAgentPageActions(
+        agentOpts.customActions,
+        browserActions,
+      ),
     });
     const pageController = new BrowserAgentPageController({
       agentName: 'PlaywrightBrowserAgent',
@@ -99,6 +122,7 @@ export class PlaywrightBrowserAgent extends BrowserAwareAgent<
       newPageTimeout: runtimeOptions.newPageTimeout,
       debug,
     });
+    pageControllerRef.current = pageController;
     super(webPage, agentOpts, pageController);
 
     applyForceChromeSelectRendering(
