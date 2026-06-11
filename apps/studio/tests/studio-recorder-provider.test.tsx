@@ -89,6 +89,7 @@ function createConnectedStudioContext({
     source: 'studio-preview' as const,
   },
   events = [],
+  describeRecorderEventAtPoint,
 }: {
   startResult?: {
     ok: boolean;
@@ -97,6 +98,7 @@ function createConnectedStudioContext({
     error?: string;
   };
   events?: unknown[];
+  describeRecorderEventAtPoint?: ReturnType<typeof vi.fn>;
 } = {}) {
   const interact = vi.fn(async (_payload?: unknown) => ({ ok: true }));
   const startRecorderSession = vi.fn(async () => startResult);
@@ -110,6 +112,7 @@ function createConnectedStudioContext({
     startRecorderSession,
     stopRecorderSession,
     getRecorderEvents,
+    ...(describeRecorderEventAtPoint ? { describeRecorderEventAtPoint } : {}),
   };
 
   const context: StudioPlaygroundContextValue = {
@@ -174,6 +177,7 @@ function createConnectedStudioContext({
     startRecorderSession,
     stopRecorderSession,
     getRecorderEvents,
+    describeRecorderEventAtPoint,
   };
 }
 
@@ -909,6 +913,131 @@ describe('StudioRecorderProvider preview recording', () => {
     await mounted.cleanup();
   });
 
+  it('describes merged input with the same canonical event for aiDescribe and recorderAI fallback', async () => {
+    vi.mocked(describeStudioRecorderEventsWithAI).mockResolvedValueOnce([
+      {
+        type: 'input',
+        actionType: 'Input',
+        semantic: {
+          source: 'recorderAI',
+          status: 'ready',
+          elementDescription: 'phone number input field',
+        },
+      } as any,
+    ]);
+    const describeRecorderEventAtPoint = vi.fn(async (event) => ({
+      ok: true,
+      event: {
+        ...event,
+        semantic: {
+          source: 'aiDescribe',
+          status: 'failed',
+          error: 'aiDescribe verification failed.',
+        },
+      },
+    }));
+    const phoneFirst = {
+      type: 'input',
+      source: 'studio-preview',
+      actionType: 'Input',
+      rawPayload: { actionType: 'Input', mode: 'typeOnly', value: '1' },
+      value: '1',
+      url: 'https://www.douyin.com/jingxuan',
+      title: 'Douyin',
+      pageInfo: { width: 1200, height: 800 },
+      elementRect: { x: 100, y: 200 },
+      screenshotAfter: 'data:image/png;base64,phone-a',
+      timestamp: 123,
+      hashId: 'studio-preview-Input-1781087661904-phone-first',
+    };
+    const phoneRest = {
+      type: 'input',
+      source: 'studio-preview',
+      actionType: 'Input',
+      rawPayload: {
+        actionType: 'Input',
+        mode: 'typeOnly',
+        value: '2343014883',
+      },
+      value: '2343014883',
+      url: 'https://www.douyin.com/jingxuan',
+      title: 'Douyin',
+      pageInfo: { width: 1200, height: 800 },
+      elementRect: { x: 100, y: 200 },
+      screenshotAfter: 'data:image/png;base64,phone-b',
+      timestamp: 124,
+      hashId: 'studio-preview-Input-1781087662206-phone-rest',
+    };
+    const clickBoundary = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'Get verification code',
+      },
+      elementRect: { x: 300, y: 200 },
+      pageInfo: { width: 1200, height: 800 },
+      screenshotAfter: 'data:image/png;base64,click',
+      timestamp: 125,
+      hashId: 'studio-preview-Tap-1781087667955-get-code',
+    };
+    const { context } = createConnectedStudioContext({
+      events: [phoneFirst, phoneRest, clickBoundary],
+      describeRecorderEventAtPoint,
+    });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(describeRecorderEventAtPoint).toHaveBeenCalledTimes(1);
+    expect(describeRecorderEventAtPoint).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'input',
+        value: '12343014883',
+        hashId: 'studio-preview-Input-1781087661904-phone-first',
+        mergedHashIds: [
+          'studio-preview-Input-1781087661904-phone-first',
+          'studio-preview-Input-1781087662206-phone-rest',
+        ],
+      }),
+    );
+    expect(describeStudioRecorderEventsWithAI).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          type: 'input',
+          value: '12343014883',
+          hashId: 'studio-preview-Input-1781087661904-phone-first',
+          mergedHashIds: [
+            'studio-preview-Input-1781087661904-phone-first',
+            'studio-preview-Input-1781087662206-phone-rest',
+          ],
+        }),
+      ],
+      expect.any(Object),
+    );
+    expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
+      value: '12343014883',
+      semantic: {
+        source: 'recorderAI',
+        status: 'ready',
+        elementDescription: 'phone number input field',
+        fallbackFrom: {
+          source: 'aiDescribe',
+          status: 'failed',
+          error: 'aiDescribe verification failed.',
+        },
+      },
+    });
+
+    await mounted.cleanup();
+  });
+
   it('uses recorder input value when recorderAI describes input target', async () => {
     vi.mocked(describeStudioRecorderEventsWithAI).mockResolvedValueOnce([
       {
@@ -1139,6 +1268,86 @@ describe('StudioRecorderProvider preview recording', () => {
       hashId: 'click-final',
       type: 'click',
       platformId: 'computer',
+    });
+
+    await mounted.cleanup();
+  });
+
+  it('waits for final event descriptions before completing a stopped recording', async () => {
+    const finalEvent = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      elementRect: { x: 30, y: 40 },
+      pageInfo: { width: 1200, height: 800 },
+      screenshotAfter: 'data:image/png;base64,shot',
+      timestamp: 456,
+      hashId: 'click-final-ai-describe',
+    };
+    const describedFinalEvent = {
+      ...finalEvent,
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        confidence: 'high',
+        elementDescription: 'Save button in the login dialog',
+      },
+    };
+    const describeDeferred = createDeferred<{
+      ok: boolean;
+      event: typeof describedFinalEvent;
+    }>();
+    const describeRecorderEventAtPoint = vi.fn(() => describeDeferred.promise);
+    const { context, stopRecorderSession, getRecorderEvents } =
+      createConnectedStudioContext({ describeRecorderEventAtPoint });
+    let stopped = false;
+    stopRecorderSession.mockImplementation(async () => {
+      stopped = true;
+      return { ok: true };
+    });
+    getRecorderEvents.mockImplementation(async (since = 0) => ({
+      events: stopped && since === 0 ? [finalEvent] : [],
+      nextIndex: stopped ? 1 : since,
+    }));
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+
+    let stopSettled = false;
+    let stopPromise!: Promise<void>;
+    await act(async () => {
+      stopPromise = mounted.recorder!.stopRecording();
+      stopPromise.then(() => {
+        stopSettled = true;
+      });
+      await Promise.resolve();
+    });
+    await flushPromises();
+
+    expect(describeRecorderEventAtPoint).toHaveBeenCalledWith(
+      expect.objectContaining({ hashId: 'click-final-ai-describe' }),
+    );
+    expect(stopSettled).toBe(false);
+    expect(mounted.recorder?.currentSession?.status).toBe('recording');
+
+    await act(async () => {
+      describeDeferred.resolve({ ok: true, event: describedFinalEvent });
+      await stopPromise;
+    });
+    await flushPromises();
+
+    expect(stopSettled).toBe(true);
+    expect(mounted.recorder?.currentSession?.status).toBe('completed');
+    expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
+      hashId: 'click-final-ai-describe',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'Save button in the login dialog',
+      },
     });
 
     await mounted.cleanup();

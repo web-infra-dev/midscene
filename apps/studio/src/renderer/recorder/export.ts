@@ -1,4 +1,5 @@
 import {
+  createMidsceneRecorderMarkdownScreenshotAssets,
   getMidsceneRecorderEventDescription,
   getMidsceneRecorderSemantic,
   sanitizeMidsceneRecorderFileName,
@@ -177,16 +178,6 @@ function createMarkdownReplayManifest(
     null,
     2,
   );
-}
-
-function stripMarkdownReplayImages(markdown: string) {
-  return `${markdown
-    .split(/\r?\n/)
-    .filter((line) => !/^\s*!\[[^\]]*\]\([^)]+\)\s*$/.test(line))
-    .join('\n')
-    .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
-    .replace(/^\s*\[[^\]]+\]:\s+\S+.*$/gm, '')
-    .trim()}\n`;
 }
 
 function targetText(session: StudioRecordingSession) {
@@ -422,15 +413,23 @@ export async function createStudioRecorderZipBase64(
     const markdownSource = session.generatedCode?.markdown
       ? 'ai'
       : 'local-fallback';
-    const markdown = stripMarkdownReplayImages(
+    const markdown =
       session.generatedCode?.markdown ||
-        generateStudioRecorderMarkdownReplay(session),
-    );
+      generateStudioRecorderMarkdownReplay(session);
     zip.file(`markdown/${baseName}.md`, markdown);
     zip.file(
       `markdown/${baseName}.manifest.json`,
       createMarkdownReplayManifest(session, markdownSource),
     );
+    for (const screenshot of createMidsceneRecorderMarkdownScreenshotAssets(
+      session.events,
+    )) {
+      zip.file(
+        `markdown/${screenshot.relativePath.replace(/^\.\//, '')}`,
+        screenshot.base64Data,
+        { base64: true },
+      );
+    }
     zip.file(
       `${baseName}.yaml`,
       session.generatedCode?.yaml || generateStudioRecorderYaml(session),
@@ -452,15 +451,25 @@ export async function createStudioRecorderMarkdownZipBase64(
   const markdownSource = session.generatedCode?.markdown
     ? 'ai'
     : 'local-fallback';
-  const markdown = stripMarkdownReplayImages(
+  const markdown =
     session.generatedCode?.markdown ||
-      generateStudioRecorderMarkdownReplay(session),
-  );
+    generateStudioRecorderMarkdownReplay(session);
   zip.file('recording.md', markdown);
   zip.file(
     'recording.manifest.json',
     createMarkdownReplayManifest(session, markdownSource),
   );
+  for (const screenshot of createMidsceneRecorderMarkdownScreenshotAssets(
+    session.events,
+  )) {
+    zip.file(
+      screenshot.relativePath.replace(/^\.\//, ''),
+      screenshot.base64Data,
+      {
+        base64: true,
+      },
+    );
+  }
   return zip.generateAsync({ type: 'base64' });
 }
 

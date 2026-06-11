@@ -308,10 +308,16 @@ export interface FormValue {
   params?: Record<string, unknown>;
 }
 
+export interface ExecutionReportDisplay {
+  type?: string;
+  prompt?: string;
+}
+
 export interface ExternalRunRequest {
   id: string;
   value: FormValue;
   displayContent?: string;
+  reportDisplay?: ExecutionReportDisplay;
 }
 
 // ExecutionOptions is imported from playground package to ensure consistency

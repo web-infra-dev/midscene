@@ -230,6 +230,9 @@ export function UniversalPlayground({
     }
     executeAction(request.value, {
       displayContent: request.displayContent,
+      ...(request.reportDisplay
+        ? { reportDisplay: request.reportDisplay }
+        : {}),
     }).catch((error) => {
       notifyError(error, { title: 'Execution failed' });
     });

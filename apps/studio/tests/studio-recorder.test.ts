@@ -381,13 +381,15 @@ describe('studio recorder replay adapters', () => {
     expect(prompt).toContain('user-intent replay');
     expect(prompt).toContain('recorded goal and surrounding steps');
     expect(prompt).toContain('Preserve recorded input values exactly');
-    expect(prompt).not.toContain('state-dependent UI');
-    expect(prompt).not.toContain('temporary layer');
-    expect(prompt).not.toContain('authentication or account-state workflows');
-    expect(prompt).not.toContain('restore the logged-out prerequisite state');
-    expect(prompt).not.toContain('volatile hints');
-    expect(prompt).not.toContain('For sequential form filling');
-    expect(prompt).not.toContain('filled/empty state');
+    expect(prompt).toContain(
+      'Treat each recorded step as an intent with an expected outcome',
+    );
+    expect(prompt).toContain(
+      'If the intended outcome of the missing step is already satisfied',
+    );
+    expect(prompt).toContain(
+      'Do not undo visible progress or change durable application state',
+    );
     expect(prompt).not.toMatch(
       /\blogin\b|authorization|SMS|phone|one-tap|product|recommendations|hot search/i,
     );

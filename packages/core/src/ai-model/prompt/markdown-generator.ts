@@ -154,16 +154,7 @@ function normalizeGeneratedMarkdown(content: string) {
   const fencedMatch = trimmed.match(
     /^```(?:md|markdown)?\s*([\s\S]*?)\s*```$/i,
   );
-  return `${stripMarkdownImages(fencedMatch?.[1] ?? trimmed).trim()}\n`;
-}
-
-function stripMarkdownImages(markdown: string) {
-  return markdown
-    .split(/\r?\n/)
-    .filter((line) => !/^\s*!\[[^\]]*\]\([^)]+\)\s*$/.test(line))
-    .join('\n')
-    .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
-    .replace(/^\s*\[[^\]]+\]:\s+\S+.*$/gm, '');
+  return `${(fencedMatch?.[1] ?? trimmed).trim()}\n`;
 }
 
 function resolveModelRuntime(model: IModelConfig | ModelRuntime): ModelRuntime {
@@ -273,8 +264,9 @@ Replay goal:
 - Coordinates are only fallback hints. Do not make coordinates the primary instruction when text or screenshots are available.
 - For a click/tap that only focuses a field before an input event, describe the target as the field/control itself. Do not target a placeholder character, typed character, caret, or inner text fragment inside the field.
 - If a target cannot be found, stop and report the missing step. Do not click similar-looking elements.
-- Use screenshots only as generation-time evidence. Do not include screenshots, image syntax, image paths, or reference-image names in the generated Markdown.
-- Do not write Markdown image syntax such as ![step context](...) in the output.
+- Screenshots are only generation-time visual evidence for you. The generated Markdown will be passed directly to agent.aiAct(markdownReplayPrompt), which accepts text only and cannot receive attached images.
+- Convert any useful screenshot evidence into textual replay instructions. Do not include screenshots, image syntax, image paths, or reference-image names in the generated Markdown.
+- Never write Markdown image syntax such as ![step context](...), reference-style images, HTML <img> tags, ./screenshots/... paths, or screenshot-* names in the output.
 
 Required structure:
 # ${input.testName || summary.testName}
@@ -319,7 +311,7 @@ Important: Return ONLY raw Markdown. Do NOT wrap the response in markdown code b
     {
       role: 'system',
       content:
-        'You generate precise Markdown replay scripts for Midscene agent.aiAct. The output must be deterministic, ordered, safe for AI execution, and must not contain image references.',
+        'You generate precise Markdown replay scripts for Midscene agent.aiAct. The final output is plain text that will be passed directly to agent.aiAct, so it must be deterministic, ordered, safe for AI execution, and must not contain image references, screenshot paths, or screenshot labels.',
     },
     {
       role: 'user',

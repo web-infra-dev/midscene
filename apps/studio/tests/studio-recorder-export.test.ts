@@ -64,7 +64,7 @@ describe('studio recorder export', () => {
     expect(writeFile).not.toHaveBeenCalled();
   });
 
-  it('exports Markdown replay zip without screenshot files', async () => {
+  it('exports Markdown replay zip with screenshot files', async () => {
     const session: StudioRecordingSession = {
       id: 'session-1',
       name: 'Replay login',
@@ -143,10 +143,10 @@ describe('studio recorder export', () => {
         },
       ],
     });
-    expect(zip.file(/screenshots\//)).toEqual([]);
+    expect(zip.file('screenshots/event-001-click.png')).toBeTruthy();
   });
 
-  it('includes Markdown replay files without screenshots in export-all zip', async () => {
+  it('includes Markdown replay files with screenshots in export-all zip', async () => {
     const session: StudioRecordingSession = {
       id: 'session-1',
       name: 'Replay login',
@@ -181,8 +181,7 @@ describe('studio recorder export', () => {
         },
       ],
       generatedCode: {
-        markdown:
-          '# Replay login\n\n## Steps\n1. Open page\n   ![step context](./screenshots/event-001-navigation.png)\n',
+        markdown: '# Replay login\n\n## Steps\n1. Open page\n',
       },
       createdAt: 1,
       updatedAt: 2,
@@ -219,7 +218,9 @@ describe('studio recorder export', () => {
         },
       ],
     });
-    expect(zip.file(/screenshots\//)).toEqual([]);
+    expect(
+      zip.file('markdown/screenshots/event-001-navigation.png'),
+    ).toBeTruthy();
   });
 
   it('escapes Markdown table cell content in recording summaries', () => {

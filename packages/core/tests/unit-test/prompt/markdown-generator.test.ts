@@ -86,6 +86,13 @@ describe('markdown-generator', () => {
     expect(text).toContain(
       'Do not include screenshots, image syntax, image paths, or reference-image names',
     );
+    expect(text).toContain(
+      'agent.aiAct(markdownReplayPrompt), which accepts text only and cannot receive attached images',
+    );
+    expect(text).toContain(
+      'Never write Markdown image syntax such as ![step context](...)',
+    );
+    expect(text).toContain('./screenshots/... paths');
     expect(text).not.toContain('Stability rules for dynamic UI');
     expect(text).not.toContain('State-dependent UI');
     expect(text).not.toContain('Transient UI');
@@ -325,7 +332,7 @@ describe('markdown-generator', () => {
   it('generates raw Markdown replay content', async () => {
     mockCallAIWithStringResponse.mockResolvedValue({
       content:
-        '```markdown\n# Replay workflow\n\n## Steps\n1. Open page\n2. Tap on the element described as "content card titled \'daily featured story\' in the main content grid".\n\n![step context](./screenshots/event-001-click.png)\n```',
+        '```markdown\n# Replay workflow\n\n## Steps\n1. Open page\n2. Tap on the element described as "content card titled \'daily featured story\' in the main content grid".\n```',
       usage: undefined,
     });
 

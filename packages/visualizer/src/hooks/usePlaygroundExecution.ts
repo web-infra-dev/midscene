@@ -8,6 +8,7 @@ import { paramStr, typeStr } from '@midscene/core/agent';
 import { useCallback } from 'react';
 import { useEnvConfig } from '../store/store';
 import type {
+  ExecutionReportDisplay,
   FormValue,
   InfoListItem,
   PlaygroundSDKLike,
@@ -103,6 +104,7 @@ export interface UsePlaygroundExecutionOptions {
 
 export interface RunActionOptions {
   displayContent?: string;
+  reportDisplay?: ExecutionReportDisplay;
 }
 
 function shouldForwardDeepThink(actionType: string) {
@@ -268,6 +270,9 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
             keyboardDismissStrategy,
             alwaysRefreshScreenInfo,
           },
+          ...(runOptions.reportDisplay
+            ? { reportDisplay: runOptions.reportDisplay }
+            : {}),
         };
         result.result = await playgroundSDK.executeAction(
           actionType,

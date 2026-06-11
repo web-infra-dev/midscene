@@ -45,7 +45,12 @@ function NotConnectedFallback() {
 }
 
 declare const __APP_VERSION__: string;
+type ReportDisplay = {
+  type?: string;
+  prompt?: string;
+};
 type StudioExternalRunRequest = ExternalRunRequest & {
+  reportDisplay?: ReportDisplay;
   targetSignature: string | null;
 };
 
@@ -83,13 +88,18 @@ function createExternalRunRequest(
   value: FormValue,
   displayContent: string,
   targetSignature: string | null,
+  reportDisplay?: ReportDisplay,
 ): StudioExternalRunRequest {
-  return {
+  const request: StudioExternalRunRequest = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     value,
     displayContent,
     targetSignature,
   };
+  if (reportDisplay) {
+    request.reportDisplay = reportDisplay;
+  }
+  return request;
 }
 
 export function createStudioPlaygroundStorageNamespace(
@@ -140,10 +150,19 @@ export default function Playground({
     onRightPanelModeChange('playground');
   }, [onRightPanelModeChange]);
   const triggerExternalRun = useCallback(
-    (value: FormValue, displayContent: string) => {
+    (
+      value: FormValue,
+      displayContent: string,
+      reportDisplay?: ReportDisplay,
+    ) => {
       showPlaygroundPanel();
       setExternalRunRequest(
-        createExternalRunRequest(value, displayContent, currentTargetSignature),
+        createExternalRunRequest(
+          value,
+          displayContent,
+          currentTargetSignature,
+          reportDisplay,
+        ),
       );
     },
     [currentTargetSignature, showPlaygroundPanel],
@@ -193,6 +212,7 @@ export default function Playground({
             }),
           },
           `Imported Markdown Replay: ${replayFile.displayName}`,
+          { prompt: `Imported Markdown Replay: ${replayFile.displayName}` },
         );
         return;
       }
@@ -229,6 +249,7 @@ export default function Playground({
             prompt: createRecorderAiActReplayPrompt(session),
           },
           `Recorder Markdown Replay: ${session.name}`,
+          { prompt: `Recorder Markdown Replay: ${session.name}` },
         );
       } catch (error) {
         message.error(error instanceof Error ? error.message : String(error));

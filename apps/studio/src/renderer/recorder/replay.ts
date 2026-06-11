@@ -16,6 +16,9 @@ Execution rules:
 - Preserve recorded input values exactly.
 - Use visible UI text, roles, labels, and recorded element descriptions to locate each target.
 - If the current UI is not at the same prerequisite state as the next recorded step, infer the minimal visible action needed to reach that prerequisite from the recorded goal and surrounding steps.
+- Treat each recorded step as an intent with an expected outcome, not as a requirement that the same intermediate UI must still exist.
+- Before failing because the recorded target is absent, compare the current UI with the recorded goal, previous steps, and following steps. If the intended outcome of the missing step is already satisfied, mark that step as done and continue with the next unsatisfied recorded intent.
+- Do not undo visible progress or change durable application state only to recreate an earlier intermediate UI, unless the recorded Markdown explicitly asks for that action and the action is visibly safe.
 - Stop only when the recorded intent cannot be inferred or no safe visible path exists.
 
 Recorded Markdown:

@@ -56,6 +56,17 @@ function getRouteHandler(
   return calls.find(([registeredRoute]) => registeredRoute === route)?.[1];
 }
 
+async function describeRecorderEvent(server: PlaygroundServer, event: unknown) {
+  const describeHandler = getRouteHandler(
+    server,
+    'post',
+    '/recorder/describe-event',
+  );
+  const describeResponse = createMockResponse();
+  await describeHandler({ body: { event } }, describeResponse);
+  return describeResponse;
+}
+
 function makeInputPrimitiveStub(
   overrides: Partial<InputPrimitives> = {},
 ): InputPrimitives {
@@ -501,53 +512,78 @@ describe('PlaygroundServer manual interaction APIs', () => {
             status: 'pending',
           },
         },
-        {
-          type: 'click',
-          semantic: {
-            source: 'aiDescribe',
-            status: 'ready',
-          },
-        },
       ],
-      nextIndex: 2,
+      nextIndex: 1,
     });
     const rawEvents = (eventsResponse.body as any).events;
-    expect(rawEvents[0].hashId).toBe(rawEvents[1].hashId);
+    expect(rawEvents).toHaveLength(1);
 
-    expect(latestRecorderEventsBody(eventsResponse.body)).toMatchObject({
-      events: [
-        {
+    const describeResponse = await describeRecorderEvent(server, rawEvents[0]);
+    expect(describeResponse.body).toMatchObject({
+      ok: true,
+      trace: {
+        eventHashId: rawEvents[0].hashId,
+        eventType: 'click',
+        actionType: 'Tap',
+        eventSummary: {
+          hashId: rawEvents[0].hashId,
           type: 'click',
           source: 'studio-preview',
           actionType: 'Tap',
+          rawPayloadSummary: {
+            actionType: 'Tap',
+            x: 10,
+            y: 20,
+          },
           elementRect: { x: 10, y: 20 },
           pageInfo: { width: 390, height: 844 },
-          semantic: {
-            source: 'aiDescribe',
-            status: 'ready',
-            elementDescription: 'login button',
-            replayInstruction:
-              'Tap on the element described as "login button".',
-            actionSummary: 'Tap login button',
-            confidence: 'high',
-            aiDescribe: {
-              verifyPrompt: true,
-              verifyPassed: true,
-              deepLocate: false,
-              centerDistance: 0,
-              expectedCenter: [10, 20],
-              actualCenter: [10, 20],
-            },
+        },
+        status: 'ready',
+        point: [10, 20],
+        pageInfo: { width: 390, height: 844 },
+        screenshotBytes: expect.any(Number),
+        durationMs: expect.any(Number),
+        modelCallDurationMs: expect.any(Number),
+        elementDescription: 'login button',
+        verifyPassed: true,
+        centerDistance: 0,
+        verifyResult: {
+          pass: true,
+          rect: { left: 0, top: 0, width: 20, height: 20 },
+          center: [10, 20],
+          centerDistance: 0,
+        },
+      },
+      event: {
+        type: 'click',
+        source: 'studio-preview',
+        actionType: 'Tap',
+        elementRect: { x: 10, y: 20 },
+        pageInfo: { width: 390, height: 844 },
+        semantic: {
+          source: 'aiDescribe',
+          status: 'ready',
+          elementDescription: 'login button',
+          replayInstruction: 'Tap on the element described as "login button".',
+          actionSummary: 'Tap login button',
+          confidence: 'high',
+          aiDescribe: {
+            verifyPrompt: true,
+            verifyPassed: true,
+            deepLocate: false,
+            centerDistance: 0,
+            expectedCenter: [10, 20],
+            actualCenter: [10, 20],
           },
         },
-      ],
-      nextIndex: 1,
+      },
     });
     expect(describeElementAtPoint).toHaveBeenCalledWith([10, 20], {
       verifyPrompt: true,
       screenshotBase64: 'base64-image',
       coordinateSpace: 'logical',
       logicalSize: { width: 390, height: 844 },
+      rectPadding: 8,
     });
   });
 
@@ -606,7 +642,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(callOrder).toEqual(['tap', 'screenshot', 'size']);
   });
 
-  test('recorder marks input aiDescribe failed when no describe capability is available', async () => {
+  test('recorder returns input aiDescribe failed when no describe capability is available', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const server = new PlaygroundServer({
       interface: {
@@ -655,12 +691,53 @@ describe('PlaygroundServer manual interaction APIs', () => {
           value: 'hello',
           semantic: {
             source: 'aiDescribe',
-            status: 'failed',
+            status: 'pending',
           },
         },
       ],
       nextIndex: 1,
     });
+    const describeResponse = await describeRecorderEvent(
+      server,
+      latestRecorderEventsBody(eventsResponse.body).events[0],
+    );
+    expect(describeResponse.body).toMatchObject({
+      ok: true,
+      trace: {
+        eventType: 'input',
+        actionType: 'Input',
+        eventSummary: {
+          type: 'input',
+          source: 'studio-preview',
+          actionType: 'Input',
+          valueLength: 5,
+          rawPayloadSummary: {
+            actionType: 'Input',
+            x: 10,
+            y: 20,
+            valueLength: 5,
+          },
+        },
+        status: 'failed',
+        error: 'Active agent does not support describeElementAtPoint.',
+        durationMs: expect.any(Number),
+        screenshotRef: {
+          path: expect.stringContaining('recorder-ai-describe-screenshots'),
+          sha256: expect.any(String),
+          bytes: expect.any(Number),
+        },
+      },
+      event: {
+        type: 'input',
+        semantic: {
+          source: 'aiDescribe',
+          status: 'failed',
+          error: 'Active agent does not support describeElementAtPoint.',
+        },
+      },
+    });
+    const failedTrace = (describeResponse.body as any).trace;
+    expect(failedTrace.eventSummary.rawPayloadSummary.value).toBeUndefined();
   });
 
   test('recorder inherits the last target point for input events without coordinates', async () => {
@@ -716,6 +793,92 @@ describe('PlaygroundServer manual interaction APIs', () => {
     });
   });
 
+  test('recorder describes typeOnly input when the merged event has a stable point', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    const describeElementAtPoint = vi.fn(async () => ({
+      prompt: 'phone number input',
+      deepLocate: false,
+      verifyResult: { pass: true },
+    }));
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => 'base64-image',
+        size: async () => ({ width: 390, height: 844 }),
+      },
+      describeElementAtPoint,
+    } as any);
+
+    await server.launch(6126);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-preview-typeonly-input' } },
+      createMockResponse(),
+    );
+
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      {
+        body: {
+          actionType: 'Input',
+          x: 10,
+          y: 20,
+          value: 'h',
+          mode: 'typeOnly',
+        },
+      },
+      createMockResponse(),
+    );
+    await server.waitForRecorderIdle();
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const eventsResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, eventsResponse);
+    const [event] = latestRecorderEventsBody(eventsResponse.body).events;
+
+    const describeResponse = await describeRecorderEvent(server, event);
+
+    expect(describeElementAtPoint).toHaveBeenCalledWith([10, 20], {
+      verifyPrompt: true,
+      screenshotBase64: 'base64-image',
+      coordinateSpace: 'logical',
+      logicalSize: { width: 390, height: 844 },
+      rectPadding: 8,
+    });
+    expect(describeResponse.statusCode).toBe(200);
+    expect(describeResponse.body).toMatchObject({
+      ok: true,
+      trace: {
+        status: 'ready',
+        eventType: 'input',
+        actionType: 'Input',
+        point: [10, 20],
+        eventSummary: {
+          rawPayloadSummary: {
+            mode: 'typeOnly',
+            valueLength: 1,
+          },
+        },
+      },
+      event: {
+        type: 'input',
+        actionType: 'Input',
+        value: 'h',
+        semantic: {
+          source: 'aiDescribe',
+          status: 'ready',
+          elementDescription: 'phone number input',
+        },
+      },
+    });
+  });
+
   test('recorder leaves clicks eligible for recorderAI fallback when aiDescribe is unavailable', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const server = new PlaygroundServer({
@@ -757,18 +920,33 @@ describe('PlaygroundServer manual interaction APIs', () => {
           actionType: 'Tap',
           semantic: {
             source: 'aiDescribe',
-            status: 'failed',
+            status: 'pending',
           },
         },
       ],
       nextIndex: 1,
+    });
+    const describeResponse = await describeRecorderEvent(
+      server,
+      latestRecorderEventsBody(eventsResponse.body).events[0],
+    );
+    expect(describeResponse.body).toMatchObject({
+      ok: true,
+      event: {
+        type: 'click',
+        semantic: {
+          source: 'aiDescribe',
+          status: 'failed',
+          error: 'Active agent does not support describeElementAtPoint.',
+        },
+      },
     });
     expect(
       latestRecorderEventsBody(eventsResponse.body).events[0],
     ).not.toHaveProperty('descriptionSource');
   });
 
-  test('recorder continues recording clicks when background aiDescribe fails', async () => {
+  test('recorder continues recording clicks when canonical aiDescribe fails', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const server = new PlaygroundServer({
       interface: {
@@ -809,11 +987,26 @@ describe('PlaygroundServer manual interaction APIs', () => {
           actionType: 'Tap',
           semantic: {
             source: 'aiDescribe',
-            status: 'failed',
+            status: 'pending',
           },
         },
       ],
       nextIndex: 1,
+    });
+    const describeResponse = await describeRecorderEvent(
+      server,
+      latestRecorderEventsBody(eventsResponse.body).events[0],
+    );
+    expect(describeResponse.body).toMatchObject({
+      ok: true,
+      event: {
+        type: 'click',
+        semantic: {
+          source: 'aiDescribe',
+          status: 'failed',
+          error: 'Active agent does not support describeElementAtPoint.',
+        },
+      },
     });
   });
 
@@ -874,31 +1067,36 @@ describe('PlaygroundServer manual interaction APIs', () => {
     await server.waitForRecorderIdle();
 
     expect(callOrder[0]).toBe('tap');
+    expect(callOrder).toEqual(['tap']);
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const eventsResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, eventsResponse);
+    const describeResponse = await describeRecorderEvent(
+      server,
+      latestRecorderEventsBody(eventsResponse.body).events[0],
+    );
     expect(callOrder).toEqual(['tap', 'describe-start']);
     expect(describeElementAtPoint).toHaveBeenCalledWith([10, 20], {
       verifyPrompt: true,
       screenshotBase64: 'base64-image',
       coordinateSpace: 'logical',
       logicalSize: { width: 390, height: 844 },
+      rectPadding: 8,
     });
 
-    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
-    const eventsResponse = createMockResponse();
-    await eventsHandler({ query: { since: '0' } }, eventsResponse);
-    expect(latestRecorderEventsBody(eventsResponse.body)).toMatchObject({
-      events: [
-        {
-          type: 'click',
-          source: 'studio-preview',
-          actionType: 'Tap',
-          semantic: {
-            source: 'aiDescribe',
-            status: 'ready',
-            elementDescription: 'slow target',
-          },
+    expect(describeResponse.body).toMatchObject({
+      ok: true,
+      event: {
+        type: 'click',
+        source: 'studio-preview',
+        actionType: 'Tap',
+        semantic: {
+          source: 'aiDescribe',
+          status: 'ready',
+          elementDescription: 'slow target',
         },
-      ],
-      nextIndex: 1,
+      },
     });
   });
 
@@ -943,35 +1141,39 @@ describe('PlaygroundServer manual interaction APIs', () => {
     );
     await server.waitForRecorderIdle();
 
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const eventsResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, eventsResponse);
+    const describeResponse = await describeRecorderEvent(
+      server,
+      latestRecorderEventsBody(eventsResponse.body).events[0],
+    );
+
     expect(describeElementAtPoint).toHaveBeenCalledWith([10, 20], {
       verifyPrompt: true,
       screenshotBase64: 'initial-screenshot',
       coordinateSpace: 'logical',
       logicalSize: { width: 390, height: 844 },
+      rectPadding: 8,
     });
 
-    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
-    const eventsResponse = createMockResponse();
-    await eventsHandler({ query: { since: '0' } }, eventsResponse);
-    expect(latestRecorderEventsBody(eventsResponse.body)).toMatchObject({
-      events: [
-        {
-          type: 'click',
-          source: 'studio-preview',
-          actionType: 'Tap',
-          screenshotAfter: 'event-screenshot',
-          semantic: {
-            source: 'aiDescribe',
-            status: 'ready',
-            elementDescription: 'login dialog target',
-          },
+    expect(describeResponse.body).toMatchObject({
+      ok: true,
+      event: {
+        type: 'click',
+        source: 'studio-preview',
+        actionType: 'Tap',
+        screenshotAfter: 'event-screenshot',
+        semantic: {
+          source: 'aiDescribe',
+          status: 'ready',
+          elementDescription: 'login dialog target',
         },
-      ],
-      nextIndex: 1,
+      },
     });
   });
 
-  test('recorder appends aiDescribe failed metadata after unavailable background describe', async () => {
+  test('recorder keeps preview interactions independent from canonical aiDescribe', async () => {
     const tap = vi.fn(async () => {});
     const inputPrimitives = makeInputPrimitiveStub({
       pointer: {
@@ -1035,7 +1237,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
           actionType: 'Tap',
           semantic: {
             source: 'aiDescribe',
-            status: 'failed',
+            status: 'pending',
           },
         },
       ],

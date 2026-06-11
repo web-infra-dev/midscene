@@ -114,6 +114,13 @@ const includedInRect = (point: [number, number], rect: Rect) => {
   return x >= left && x <= left + width && y >= top && y <= top + height;
 };
 
+const padRect = (rect: Rect, padding: number): Rect => ({
+  left: rect.left - padding,
+  top: rect.top - padding,
+  width: rect.width + padding * 2,
+  height: rect.height + padding * 2,
+});
+
 function assertPositiveSize(
   size: Size | undefined,
   label: string,
@@ -146,6 +153,29 @@ const mapPointToScreenshotSpace = (
     (center[0] * screenshotSize.width) / opt.logicalSize.width,
     (center[1] * screenshotSize.height) / opt.logicalSize.height,
   ];
+};
+
+const mapDistanceToScreenshotSpace = (
+  distance: number,
+  screenshotSize: Size,
+  opt: DescribeElementAtPointOptions,
+) => {
+  const coordinateSpace = opt.coordinateSpace || 'screenshot';
+  if (coordinateSpace === 'screenshot') {
+    return distance;
+  }
+
+  assertPositiveSize(
+    opt.logicalSize,
+    'logicalSize is required when coordinateSpace is logical',
+  );
+  return (
+    distance *
+    Math.max(
+      screenshotSize.width / opt.logicalSize.width,
+      screenshotSize.height / opt.logicalSize.height,
+    )
+  );
 };
 
 const screenshotDataUrlPattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
@@ -1257,11 +1287,23 @@ export class Agent<
       // Passing deepLocate here would add another first-pass locate and search-area
       // crop around an already element-level description, which is not the intent of
       // verification.
+      const verifyLocateOption =
+        screenshotContext && typeof opt?.rectPadding === 'number'
+          ? {
+              ...opt,
+              rectPadding: mapDistanceToScreenshotSpace(
+                opt.rectPadding,
+                screenshotContext.shotSize,
+                opt,
+              ),
+            }
+          : opt;
+
       verifyResult = await this.verifyLocator(
         resultPrompt,
         screenshotContext ? { uiContext: screenshotContext } : undefined,
         targetCenter,
-        opt,
+        verifyLocateOption,
       );
       if (verifyResult.pass) {
         success = true;
@@ -1291,14 +1333,23 @@ export class Agent<
     );
     const distance = distanceOfTwoPoints(expectCenter, verifyCenter);
     const included = includedInRect(expectCenter, verifyRect);
+    const rectPadding = Math.max(0, verifyLocateOption?.rectPadding || 0);
+    const includedInPaddedRect =
+      rectPadding > 0
+        ? includedInRect(expectCenter, padRect(verifyRect, rectPadding))
+        : false;
     const pass =
       distance <= (verifyLocateOption?.centerDistanceThreshold || 20) ||
-      included;
+      included ||
+      includedInPaddedRect;
     const verifyResult = {
       pass,
       rect: verifyRect,
       center: verifyCenter,
       centerDistance: distance,
+      rectPadding: rectPadding || undefined,
+      includedInRect: included,
+      includedInPaddedRect: rectPadding > 0 ? includedInPaddedRect : undefined,
     };
     debug('aiDescribe verifyResult', verifyResult);
     return verifyResult;

@@ -219,7 +219,10 @@ export function DeviceInteractionLayer({
   const focusKeyboardSink = useCallback(() => {
     if (keyboardEnabled) {
       keyboardArmedRef.current = true;
-      keyboardSinkRef.current?.focus({ preventScroll: true });
+      const sink = keyboardSinkRef.current;
+      if (sink && document.activeElement !== sink) {
+        sink.focus({ preventScroll: true });
+      }
     }
   }, [keyboardEnabled]);
 
@@ -637,8 +640,11 @@ export function DeviceInteractionLayer({
             top: 0,
             width: 32,
             height: 24,
-            opacity: 0.01,
+            opacity: 0,
             pointerEvents: 'none',
+            appearance: 'none',
+            boxShadow: 'none',
+            overflow: 'hidden',
             resize: 'none',
             border: 0,
             padding: 0,

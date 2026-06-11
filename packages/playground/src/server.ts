@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,6 +12,7 @@ import type {
 import { ReportActionDump, runConnectivityTest } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
 import { getTmpDir, sleep } from '@midscene/core/utils';
+import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import {
   globalModelConfigManager,
@@ -36,6 +38,7 @@ import type {
   PlaygroundExecutionHooks,
   PlaygroundPreviewDescriptor,
   PlaygroundRecorderCapabilitiesResult,
+  PlaygroundRecorderDescribeTrace,
   PlaygroundRecorderEvent,
   PlaygroundSessionManager,
   PlaygroundSessionSetup,
@@ -55,7 +58,144 @@ import 'dotenv/config';
 
 const defaultPort = PLAYGROUND_SERVER_PORT;
 const RECORDER_CAPTURE_AFTER_INTERACT_DELAY_MS = 250;
-const RECORDER_AI_DESCRIBE_AFTER_INTERACT_TIMEOUT_MS = 10_000;
+const RECORDER_AI_DESCRIBE_AFTER_INTERACT_TIMEOUT_MS = 20_000;
+const RECORDER_AI_DESCRIBE_VERIFY_RECT_PADDING = 8;
+const RECORDER_AI_DESCRIBE_SCREENSHOT_DUMP_DIR =
+  'recorder-ai-describe-screenshots';
+
+function extractBase64Payload(value: string): {
+  base64: string;
+  mimeType?: string;
+} {
+  const dataUrlMatch = value.match(/^data:([^;,]+)?(?:;[^,]*)?,([\s\S]*)$/);
+  if (dataUrlMatch) {
+    return {
+      mimeType: dataUrlMatch[1],
+      base64: dataUrlMatch[2] || '',
+    };
+  }
+  return { base64: value };
+}
+
+function estimateBase64Bytes(value?: string): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const { base64 } = extractBase64Payload(value);
+  const padding = base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0;
+  return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
+}
+
+function buildRecorderRawPayloadSummary(
+  rawPayload?: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  if (!rawPayload) {
+    return undefined;
+  }
+
+  const allowedKeys = [
+    'actionType',
+    'x',
+    'y',
+    'endX',
+    'endY',
+    'duration',
+    'direction',
+    'scrollType',
+    'distance',
+    'keyName',
+    'mode',
+  ];
+  const summary: Record<string, unknown> = {};
+  for (const key of allowedKeys) {
+    if (rawPayload[key] !== undefined) {
+      summary[key] = rawPayload[key];
+    }
+  }
+
+  const value = rawPayload.value;
+  if (typeof value === 'string') {
+    summary.valueLength = value.length;
+  }
+
+  return Object.keys(summary).length > 0 ? summary : undefined;
+}
+
+function buildRecorderEventSummary(event: PlaygroundRecorderEvent) {
+  return {
+    hashId: event.hashId,
+    mergedHashIds: event.mergedHashIds,
+    type: event.type,
+    source: event.source,
+    actionType: event.actionType,
+    timestamp: event.timestamp,
+    url: event.url,
+    title: event.title,
+    valueLength:
+      typeof event.value === 'string' ? event.value.length : undefined,
+    rawPayloadSummary: buildRecorderRawPayloadSummary(event.rawPayload),
+    elementRect: event.elementRect,
+    pageInfo: event.pageInfo,
+  };
+}
+
+function persistRecorderAiDescribeScreenshot(
+  traceId: string,
+  eventScreenshot?: string,
+): NonNullable<PlaygroundRecorderDescribeTrace['screenshotRef']> | undefined {
+  if (!eventScreenshot) {
+    return undefined;
+  }
+
+  const { base64, mimeType } = extractBase64Payload(eventScreenshot);
+  const bytes = Buffer.from(base64, 'base64');
+  const sha256 = createHash('sha256').update(bytes).digest('hex');
+  const extension = mimeType?.includes('jpeg') ? 'jpg' : 'png';
+  const dumpDir = join(
+    getMidsceneRunSubDir('dump'),
+    RECORDER_AI_DESCRIBE_SCREENSHOT_DUMP_DIR,
+  );
+  mkdirSync(dumpDir, { recursive: true });
+  const filePath = join(
+    dumpDir,
+    `${traceId}-${sha256.slice(0, 12)}.${extension}`,
+  );
+  if (!existsSync(filePath)) {
+    writeFileSync(filePath, bytes);
+  }
+
+  return {
+    path: filePath,
+    sha256,
+    bytes: bytes.byteLength,
+    mimeType,
+  };
+}
+
+function createRecorderAiDescribeTraceBase(
+  event: PlaygroundRecorderEvent,
+  eventScreenshot?: string,
+): Omit<
+  PlaygroundRecorderDescribeTrace,
+  'status' | 'durationMs' | 'startedAt'
+> {
+  return {
+    traceId: `${event.hashId || 'recorder-event'}-${Date.now().toString(36)}-${Math.random()
+      .toString(36)
+      .slice(2, 8)}`,
+    eventHashId: event.hashId,
+    eventType: event.type,
+    actionType: event.actionType,
+    eventSummary: buildRecorderEventSummary(event),
+    point:
+      typeof event.elementRect?.x === 'number' &&
+      typeof event.elementRect?.y === 'number'
+        ? [event.elementRect.x, event.elementRect.y]
+        : undefined,
+    pageInfo: event.pageInfo,
+    screenshotBytes: estimateBase64Bytes(eventScreenshot),
+  };
+}
 
 function serializeAiConfigSignature(aiConfig: Record<string, unknown>): string {
   return JSON.stringify(
@@ -509,6 +649,7 @@ type PlaygroundDescribeElementAtPointOptions = {
   screenshotBase64?: string;
   coordinateSpace?: 'screenshot' | 'logical';
   logicalSize?: { width: number; height: number };
+  rectPadding?: number;
 };
 
 type PlaygroundScreenshotDescribeAgent = {
@@ -520,8 +661,17 @@ type PlaygroundScreenshotDescribeAgent = {
     deepLocate?: boolean;
     verifyResult?: {
       pass?: boolean;
+      rect?: {
+        left: number;
+        top: number;
+        width: number;
+        height: number;
+      };
       center?: [number, number];
       centerDistance?: number;
+      rectPadding?: number;
+      includedInRect?: boolean;
+      includedInPaddedRect?: boolean;
     };
   }>;
 };
@@ -592,9 +742,7 @@ class PlaygroundServer {
   private _recorderSessionId: string | null = null;
   private _recorderEvents: PlaygroundRecorderEvent[] = [];
   private _recorderEventQueue: Promise<void> = Promise.resolve();
-  private _recorderAiDescribeAppendQueue: Promise<void> = Promise.resolve();
   private _recorderPendingCaptures = 0;
-  private _recorderAiDescribeInputKeys = new Set<string>();
   private _studioPreviewRecorderLastTargetPoint:
     | PlaygroundRecorderTargetPoint
     | undefined;
@@ -909,8 +1057,6 @@ class PlaygroundServer {
     this._recorderSessionId = null;
     this._recorderEvents = [];
     this._recorderEventQueue = Promise.resolve();
-    this._recorderAiDescribeAppendQueue = Promise.resolve();
-    this._recorderAiDescribeInputKeys.clear();
     this._studioPreviewRecorderLastTargetPoint = undefined;
     this._studioPreviewRecorderLastScreenshot = undefined;
     this._studioPreviewRecorderLastPageState = undefined;
@@ -918,7 +1064,6 @@ class PlaygroundServer {
 
   async waitForRecorderIdle(): Promise<void> {
     await this._recorderEventQueue;
-    await this._recorderAiDescribeAppendQueue;
   }
 
   private canRecordStudioPreviewInteractions(): boolean {
@@ -1107,7 +1252,7 @@ class PlaygroundServer {
     );
     this._studioPreviewRecorderLastScreenshot = screenshotAfter;
     this._studioPreviewRecorderLastPageState = pageStateAfter;
-    this.queueStudioPreviewRecorderEventAppend(event, navigationEvent, agent);
+    this.queueStudioPreviewRecorderEventAppend(event, navigationEvent);
   }
 
   private async buildStudioPreviewRecorderEvent(
@@ -1279,67 +1424,92 @@ class PlaygroundServer {
     }
   }
 
-  private getRecorderAiDescribeInputKey(event: PlaygroundRecorderEvent) {
-    if (
-      event.type !== 'input' ||
-      event.actionType !== 'Input' ||
-      event.rawPayload?.mode !== 'typeOnly'
-    ) {
-      return undefined;
-    }
-    const rect = event.elementRect;
-    const x = typeof rect?.x === 'number' ? Math.round(rect.x) : undefined;
-    const y = typeof rect?.y === 'number' ? Math.round(rect.y) : undefined;
-    if (x === undefined || y === undefined) {
-      return undefined;
-    }
-    return [this._recorderSessionId || '', event.url || '', x, y].join(':');
-  }
-
-  private shouldAttemptRecorderAiDescribe(event: PlaygroundRecorderEvent) {
-    if (event.type === 'navigation' || event.type === 'setViewport') {
-      return false;
-    }
-    const rect = event.elementRect;
-    if (typeof rect?.x !== 'number' || typeof rect?.y !== 'number') {
-      return false;
-    }
-    const inputKey = this.getRecorderAiDescribeInputKey(event);
-    if (!inputKey) {
-      return true;
-    }
-    if (this._recorderAiDescribeInputKeys.has(inputKey)) {
-      return false;
-    }
-    this._recorderAiDescribeInputKeys.add(inputKey);
-    return true;
-  }
-
   private async enrichStudioPreviewRecorderEventWithAiDescribe(
     event: PlaygroundRecorderEvent,
     agent?: PageAgent,
-  ): Promise<PlaygroundRecorderEvent> {
-    if (!this.shouldAttemptRecorderAiDescribe(event)) {
+  ): Promise<{
+    event: PlaygroundRecorderEvent;
+    trace: PlaygroundRecorderDescribeTrace;
+  }> {
+    const startedAt = new Date();
+    const startedAtMs = Date.now();
+    const eventScreenshot = this.getRecorderAiDescribeScreenshot(event);
+    const traceBase = createRecorderAiDescribeTraceBase(event, eventScreenshot);
+    const finishTrace = (
+      status: PlaygroundRecorderDescribeTrace['status'],
+      extra: Partial<PlaygroundRecorderDescribeTrace> = {},
+    ): PlaygroundRecorderDescribeTrace => {
+      let screenshotRef:
+        | NonNullable<PlaygroundRecorderDescribeTrace['screenshotRef']>
+        | undefined;
+      let screenshotPersistError: string | undefined;
+
+      if (status === 'failed') {
+        try {
+          screenshotRef = persistRecorderAiDescribeScreenshot(
+            traceBase.traceId,
+            eventScreenshot,
+          );
+        } catch (error) {
+          screenshotPersistError =
+            error instanceof Error ? error.message : String(error);
+        }
+      }
+
       return {
-        ...event,
-        semantic: buildFailedAiDescribeRecorderSemantic(
-          'aiDescribe skipped because the event has no new stable point target.',
-        ),
+        ...traceBase,
+        ...extra,
+        screenshotRef,
+        screenshotPersistError,
+        status,
+        startedAt: startedAt.toISOString(),
+        durationMs: Date.now() - startedAtMs,
+      };
+    };
+    if (event.type === 'navigation' || event.type === 'setViewport') {
+      const error =
+        'aiDescribe skipped because the event type does not target a UI element.';
+      const trace = finishTrace('failed', { error });
+      debugInteract('recorder aiDescribe trace:', trace);
+      return {
+        event: {
+          ...event,
+          semantic: buildFailedAiDescribeRecorderSemantic(error),
+        },
+        trace,
       };
     }
     if (typeof agent?.describeElementAtPoint !== 'function') {
+      const error = 'Active agent does not support describeElementAtPoint.';
+      const trace = finishTrace('failed', { error });
+      debugInteract('recorder aiDescribe trace:', trace);
       return {
-        ...event,
-        semantic: buildFailedAiDescribeRecorderSemantic(
-          'Active agent does not support describeElementAtPoint.',
-        ),
+        event: {
+          ...event,
+          semantic: buildFailedAiDescribeRecorderSemantic(error),
+        },
+        trace,
       };
     }
 
     const x = event.elementRect?.x;
     const y = event.elementRect?.y;
-    const eventScreenshot = this.getRecorderAiDescribeScreenshot(event);
+    let modelCallDurationMs: number | undefined;
+    let elementDescription: string | undefined;
+    let deepLocate: boolean | undefined;
+    let verifyResult:
+      | Awaited<
+          ReturnType<
+            PlaygroundScreenshotDescribeAgent['describeElementAtPoint']
+          >
+        >['verifyResult']
+      | undefined;
     try {
+      if (typeof x !== 'number' || typeof y !== 'number') {
+        throw new Error(
+          'Skipped aiDescribe because the recorder event has no stable point target.',
+        );
+      }
       if (!eventScreenshot) {
         throw new Error(
           'Skipped aiDescribe because the recorder event has no screenshot.',
@@ -1350,26 +1520,28 @@ class PlaygroundServer {
           'Skipped aiDescribe because the recorder event has no pageInfo for coordinate mapping.',
         );
       }
+      const modelCallStartedAt = Date.now();
       const describeResult = await withTimeout(
         (
           agent as unknown as PlaygroundScreenshotDescribeAgent
-        ).describeElementAtPoint([x as number, y as number], {
+        ).describeElementAtPoint([x, y], {
           verifyPrompt: true,
           screenshotBase64: eventScreenshot,
           coordinateSpace: 'logical',
           logicalSize: event.pageInfo,
+          rectPadding: RECORDER_AI_DESCRIBE_VERIFY_RECT_PADDING,
         }),
         RECORDER_AI_DESCRIBE_AFTER_INTERACT_TIMEOUT_MS,
         'Timed out while analyzing recorder event with aiDescribe.',
       );
-      const elementDescription = describeResult.prompt?.trim();
+      modelCallDurationMs = Date.now() - modelCallStartedAt;
+      elementDescription = describeResult.prompt?.trim();
+      deepLocate = describeResult.deepLocate;
+      verifyResult = describeResult.verifyResult;
       if (!elementDescription) {
         throw new Error('aiDescribe returned an empty element description.');
       }
-      if (
-        describeResult.verifyResult &&
-        describeResult.verifyResult.pass === false
-      ) {
+      if (verifyResult && verifyResult.pass === false) {
         throw new Error('aiDescribe verification failed.');
       }
       const semanticAction = buildRecorderSemanticAction(
@@ -1377,31 +1549,53 @@ class PlaygroundServer {
         event.rawPayload || {},
         event.url,
       );
+      const trace = finishTrace('ready', {
+        modelCallDurationMs,
+        elementDescription,
+        verifyPassed: verifyResult?.pass,
+        centerDistance: verifyResult?.centerDistance,
+        verifyResult,
+      });
+      debugInteract('recorder aiDescribe trace:', trace);
       return {
-        ...event,
-        semantic: buildReadyRecorderSemantic(
-          'aiDescribe',
-          semanticAction,
-          elementDescription,
-          describeResult.verifyResult?.pass ? 'high' : 'medium',
-          {
-            aiDescribe: {
-              verifyPrompt: true,
-              verifyPassed: describeResult.verifyResult?.pass,
-              deepLocate: describeResult.deepLocate,
-              centerDistance: describeResult.verifyResult?.centerDistance,
-              expectedCenter:
-                x !== undefined && y !== undefined ? [x, y] : undefined,
-              actualCenter: describeResult.verifyResult?.center,
+        event: {
+          ...event,
+          semantic: buildReadyRecorderSemantic(
+            'aiDescribe',
+            semanticAction,
+            elementDescription,
+            describeResult.verifyResult?.pass ? 'high' : 'medium',
+            {
+              aiDescribe: {
+                verifyPrompt: true,
+                verifyPassed: verifyResult?.pass,
+                deepLocate,
+                centerDistance: verifyResult?.centerDistance,
+                expectedCenter: [x, y],
+                actualCenter: verifyResult?.center,
+              },
             },
-          },
-        ),
+          ),
+        },
+        trace,
       };
     } catch (error) {
-      debugInteract('background aiDescribe failed:', error);
+      debugInteract('canonical recorder aiDescribe failed:', error);
+      const trace = finishTrace('failed', {
+        error: error instanceof Error ? error.message : String(error),
+        modelCallDurationMs,
+        elementDescription,
+        verifyPassed: verifyResult?.pass,
+        centerDistance: verifyResult?.centerDistance,
+        verifyResult,
+      });
+      debugInteract('recorder aiDescribe trace:', trace);
       return {
-        ...event,
-        semantic: buildFailedAiDescribeRecorderSemantic(error),
+        event: {
+          ...event,
+          semantic: buildFailedAiDescribeRecorderSemantic(error),
+        },
+        trace,
       };
     }
   }
@@ -1423,7 +1617,6 @@ class PlaygroundServer {
   private queueStudioPreviewRecorderEventAppend(
     event: PlaygroundRecorderEvent,
     navigationEvent: PlaygroundRecorderEvent | null,
-    agent?: PageAgent,
   ): void {
     const sessionId = this._recorderSessionId;
     if (!sessionId) {
@@ -1434,27 +1627,6 @@ class PlaygroundServer {
     if (navigationEvent) {
       this._recorderEvents.push(navigationEvent);
     }
-    if (event.type === 'navigation') {
-      return;
-    }
-
-    const appendTask = this._recorderAiDescribeAppendQueue
-      .catch(() => undefined)
-      .then(async () => {
-        const eventToAppend =
-          await this.enrichStudioPreviewRecorderEventWithAiDescribe(
-            event,
-            agent,
-          );
-        if (!this._recorderSessionId || this._recorderSessionId !== sessionId) {
-          return;
-        }
-        this._recorderEvents.push(eventToAppend);
-      });
-
-    this._recorderAiDescribeAppendQueue = appendTask.catch((error) => {
-      debugInteract('async recorder event append failed:', error);
-    });
   }
 
   private queueStudioPreviewRecorderEvent(
@@ -2193,6 +2365,7 @@ class PlaygroundServer {
         screenshotIncluded,
         domIncluded,
         deviceOptions,
+        reportDisplay,
       } = req.body;
 
       if (!type) {
@@ -2289,6 +2462,7 @@ class PlaygroundServer {
           screenshotIncluded,
           domIncluded,
           deviceOptions,
+          reportDisplay,
         });
       } catch (error: unknown) {
         response.error = formatErrorMessage(error);
@@ -2492,6 +2666,45 @@ class PlaygroundServer {
         nextIndex: this._recorderEvents.length,
       });
     });
+
+    this._app.post(
+      '/recorder/describe-event',
+      async (req: Request, res: Response) => {
+        const event = req.body?.event as PlaygroundRecorderEvent | undefined;
+        if (!event || typeof event !== 'object') {
+          return res.status(400).json({
+            ok: false,
+            error: 'event is required',
+          });
+        }
+
+        try {
+          const agent = this.getActiveAgentOrThrow();
+          const { event: describedEvent, trace } =
+            await this.enrichStudioPreviewRecorderEventWithAiDescribe(
+              event,
+              agent,
+            );
+          res.json({ ok: true, event: describedEvent, trace });
+        } catch (error) {
+          const startedAt = new Date();
+          const traceBase = createRecorderAiDescribeTraceBase(event);
+          const trace: PlaygroundRecorderDescribeTrace = {
+            ...traceBase,
+            status: 'failed',
+            startedAt: startedAt.toISOString(),
+            durationMs: 0,
+            error: error instanceof Error ? error.message : String(error),
+          };
+          debugInteract('recorder aiDescribe trace:', trace);
+          res.status(500).json({
+            ok: false,
+            error: error instanceof Error ? error.message : String(error),
+            trace,
+          });
+        }
+      },
+    );
 
     // Screenshot API for real-time screenshot polling
     this._app.get('/screenshot', async (_req: Request, res: Response) => {
