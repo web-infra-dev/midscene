@@ -632,9 +632,19 @@ export async function callAIWithObjectResponse<T>(
     abortSignal: options?.abortSignal,
   });
   assert(response, 'empty response');
-  const jsonContent = adapter.jsonParser(response.content, {
-    source: options?.jsonParserSource ?? 'generic-object',
-  });
+  let jsonContent: unknown;
+  try {
+    jsonContent = adapter.jsonParser(response.content, {
+      source: options?.jsonParserSource ?? 'generic-object',
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new AIResponseParseError(
+      errorMessage,
+      response.content,
+      response.usage,
+    );
+  }
   if (typeof jsonContent !== 'object') {
     throw new AIResponseParseError(
       `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,

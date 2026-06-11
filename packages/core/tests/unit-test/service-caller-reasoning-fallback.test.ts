@@ -1,5 +1,9 @@
 import { getModelRuntime } from '@/ai-model/models';
-import { callAI, callAIWithObjectResponse } from '@/ai-model/service-caller';
+import {
+  AIResponseParseError,
+  callAI,
+  callAIWithObjectResponse,
+} from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -133,6 +137,53 @@ describe('service-caller reasoning fallback', () => {
     expect(response.contentString).toBe(
       '{"type":"Tap","param":{"locate":{"prompt":"POI RichInfo tab"}}}',
     );
+  });
+
+  it('preserves raw model response when object JSON parsing fails', async () => {
+    const rawResponse = `\`\`\`json
+{
+  "bbox": 37, 313, 55, 324,
+  "errors": []
+}
+\`\`\``;
+
+    mockCreate.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: rawResponse,
+          },
+        },
+      ],
+      usage: {
+        prompt_tokens: 10,
+        completion_tokens: 20,
+        total_tokens: 30,
+      },
+    });
+
+    const promise = callAIWithObjectResponse(
+      [{ role: 'user', content: 'locate element' }],
+      baseModelConfig,
+      { jsonParserSource: 'locate' },
+    );
+
+    await expect(promise).rejects.toBeInstanceOf(AIResponseParseError);
+
+    try {
+      await promise;
+    } catch (error) {
+      const typedError = error as AIResponseParseError;
+      expect(typedError.message).toContain(
+        'failed to parse LLM response into JSON',
+      );
+      expect(typedError.rawResponse).toBe(rawResponse);
+      expect(typedError.usage).toMatchObject({
+        prompt_tokens: 10,
+        completion_tokens: 20,
+        total_tokens: 30,
+      });
+    }
   });
 
   it('uses modelConfig reasoningEnabled by default in callAI', async () => {
