@@ -447,6 +447,9 @@ export class TaskBuilder {
           task.log = {
             dump,
             rawResponse: dump.taskInfo?.rawResponse,
+            rawChoiceMessage: dump.taskInfo?.rawChoiceMessage,
+            searchAreaRawChoiceMessage:
+              dump.taskInfo?.searchAreaRawChoiceMessage,
           };
           task.usage = withUsageIntent(dump.taskInfo?.usage, 'default');
           if (dump.taskInfo?.searchAreaUsage) {

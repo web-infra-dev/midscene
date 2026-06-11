@@ -35,6 +35,7 @@ export interface LocateResult {
   };
   rect?: Rect;
   rawResponse: string;
+  rawChoiceMessage?: unknown;
   usage?: AIUsageInfo;
   reasoning_content?: string;
 }

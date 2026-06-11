@@ -175,10 +175,20 @@ export type DeepThinkOption = 'unset' | true | false;
 export interface ServiceTaskInfo {
   durationMs: number;
   formatResponse?: string;
+  /**
+   * Adapter-extracted content used by Midscene for parsing. This is not the
+   * full provider response or choices[0].message.
+   */
   rawResponse?: string;
+  rawChoiceMessage?: unknown;
   usage?: AIUsageInfo;
   searchArea?: Rect;
+  /**
+   * Adapter-extracted content from the search-area model call. This is not the
+   * full provider response or choices[0].message.
+   */
   searchAreaRawResponse?: string;
+  searchAreaRawChoiceMessage?: unknown;
   searchAreaUsage?: AIUsageInfo;
   reasoning_content?: string;
 }
@@ -310,7 +320,12 @@ export interface PlanningAIResponse
   extends Omit<RawResponsePlanningAIResponse, 'action'> {
   actions?: PlanningAction[];
   usage?: AIUsageInfo;
+  /**
+   * Adapter-extracted content used by Midscene for parsing. This is not the
+   * full provider response or choices[0].message.
+   */
   rawResponse?: string;
+  rawChoiceMessage?: unknown;
   yamlFlow?: MidsceneYamlFlowItem[];
   yamlString?: string;
   error?: string;
