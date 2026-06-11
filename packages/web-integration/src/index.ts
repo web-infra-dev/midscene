@@ -4,12 +4,14 @@ export type { PlayWrightAiFixtureType } from './playwright';
 export { Agent as PageAgent, type AgentOpt } from '@midscene/core/agent';
 export {
   PuppeteerAgent,
+  PuppeteerPageAgent,
   PuppeteerBrowserAgent,
   type PuppeteerBrowserAgentCreateOpt,
   type PuppeteerBrowserAgentOpt,
 } from './puppeteer';
 export {
   PlaywrightAgent,
+  PlaywrightPageAgent,
   PlaywrightBrowserAgent,
   type PlaywrightBrowserAgentCreateOpt,
   type PlaywrightBrowserAgentOpt,

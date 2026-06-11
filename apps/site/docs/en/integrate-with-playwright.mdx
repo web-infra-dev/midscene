@@ -265,11 +265,11 @@ After the command executes successfully, it will output: `Midscene - report file
 
 ### About opening in a new tab
 
-Each Agent instance is bound to a single page. To make debugging easier, Midscene intercepts new tabs by default (for example, links with `target="_blank"`) and opens them in the current page.
+`PlaywrightAgent` is a page-level Agent: each instance is bound to a single page. To make debugging easier, Midscene intercepts new tabs by default (for example, links with `target="_blank"`) and opens them in the current page.
 
 If you want to restore opening in a new tab while keeping the Agent on the original page, set `forceSameTabNavigation` to `false` and create a new Agent instance for each new tab yourself.
 
-If subsequent actions should automatically continue in the newly opened tab, use `PlaywrightBrowserAgent` and enable `autoFollowNewPage`.
+If one Agent should manage page switching for the whole browser context, use `PlaywrightBrowserAgent`. Enable `autoFollowNewPage` when subsequent actions should automatically continue in the newly opened tab.
 
 ```typescript
 const mid = new PlaywrightBrowserAgent(context, page, {
@@ -277,7 +277,7 @@ const mid = new PlaywrightBrowserAgent(context, page, {
 });
 ```
 
-Use `PlaywrightBrowserAgent.create(context, options)` only when you do not already have a page. The factory uses `initialPage` when provided, otherwise it reuses the first existing context page or creates a new page.
+Use `new PlaywrightBrowserAgent(context, page, options)` when you explicitly choose the initial active page. Use `PlaywrightBrowserAgent.create(context, options)` when you want Midscene to choose or create the initial active page; the factory uses `initialPage` when provided, otherwise it reuses the first existing context page or creates a new page.
 
 ### Connect Midscene Agent to a Remote Playwright Browser
 

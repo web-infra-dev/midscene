@@ -1,4 +1,4 @@
-export { PuppeteerAgent } from './agent';
+export { PuppeteerPageAgent, PuppeteerAgent } from './page-agent';
 export {
   PuppeteerBrowserAgent,
   type PuppeteerBrowserAgentCreateOpt,

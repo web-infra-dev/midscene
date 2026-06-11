@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`utils > build yaml 1`] = `
-"target:
+"page:
   url: https://www.example.com
 tasks: []
 "

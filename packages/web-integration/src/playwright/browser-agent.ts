@@ -1,4 +1,8 @@
 import {
+  type BrowserAgentAdapter,
+  BrowserAgentPageController,
+} from '@/common/browser-agent';
+import {
   applyForceChromeSelectRendering,
   isRetryableBrowserNavigationError,
 } from '@/common/web-agent';
@@ -13,6 +17,18 @@ import { WebPage as PlaywrightWebPage } from './page';
 
 const debug = getDebug('playwright:browser-agent');
 
+const createPlaywrightBrowserAdapter = (
+  context: PlaywrightBrowserContext,
+): BrowserAgentAdapter<PlaywrightPage, PlaywrightPage> => ({
+  pages: () => context.pages(),
+  newPage: () => context.newPage(),
+  isPageClosed: (page) => page.isClosed(),
+  bringToFront: (page) => page.bringToFront(),
+  onNewPage: (handler) => context.on('page', handler),
+  offNewPage: (handler) => context.off('page', handler),
+  resolveNewPage: (page) => page,
+});
+
 export type PlaywrightBrowserAgentOpt = Omit<
   WebPageAgentOpt,
   'forceSameTabNavigation'
@@ -26,13 +42,10 @@ export type PlaywrightBrowserAgentCreateOpt = PlaywrightBrowserAgentOpt & {
 };
 
 export class PlaywrightBrowserAgent extends PageAgent<PlaywrightWebPage> {
-  private readonly context: PlaywrightBrowserContext;
-  private readonly autoFollowNewPage: boolean;
-  private readonly newPageTimeout: number;
-
-  private readonly pageHandler = (page: PlaywrightPage) => {
-    void this.followPage(page);
-  };
+  private readonly pageController: BrowserAgentPageController<
+    PlaywrightPage,
+    PlaywrightPage
+  >;
 
   protected isRetryableContextError(error: unknown): boolean {
     return isRetryableBrowserNavigationError(error);
@@ -66,13 +79,17 @@ export class PlaywrightBrowserAgent extends PageAgent<PlaywrightWebPage> {
     });
     super(webPage, agentOpts);
 
-    this.context = context;
-    this.autoFollowNewPage = autoFollowNewPage;
-    this.newPageTimeout = newPageTimeout;
-
-    if (this.autoFollowNewPage) {
-      this.context.on('page', this.pageHandler);
-    }
+    this.pageController = new BrowserAgentPageController({
+      agentName: 'PlaywrightBrowserAgent',
+      adapter: createPlaywrightBrowserAdapter(context),
+      getActivePage: () => this.interface.underlyingPage as PlaywrightPage,
+      setActivePageValue: (page) => {
+        this.interface.underlyingPage = page;
+      },
+      autoFollowNewPage,
+      newPageTimeout,
+      debug,
+    });
 
     applyForceChromeSelectRendering(
       initialPage,
@@ -92,102 +109,30 @@ export class PlaywrightBrowserAgent extends PageAgent<PlaywrightWebPage> {
   }
 
   get activePage() {
-    return this.interface.underlyingPage as PlaywrightPage;
+    return this.pageController.activePage;
   }
 
   pages() {
-    return this.context.pages();
+    return this.pageController.pages();
   }
 
   async newPage() {
-    const page = await this.context.newPage();
-    await this.setActivePage(page);
-    return page;
+    return this.pageController.newPage();
   }
 
   async setActivePage(page: PlaywrightPage) {
-    if (!page || page.isClosed()) {
-      throw new Error(
-        '[midscene] Cannot set PlaywrightBrowserAgent active page to a closed or invalid page.',
-      );
-    }
-
-    this.interface.underlyingPage = page;
-    try {
-      await page.bringToFront();
-    } catch (error) {
-      debug(`failed to bring page to front: ${error}`);
-    }
+    await this.pageController.setActivePage(page);
   }
 
   async waitForNewPage(
     action?: () => Promise<unknown> | unknown,
     opts?: { timeout?: number },
   ) {
-    const waiter = this.createNewPageWaiter(opts?.timeout);
-
-    try {
-      await action?.();
-      return await waiter.promise;
-    } catch (error) {
-      waiter.dispose();
-      throw error;
-    }
+    return this.pageController.waitForNewPage(action, opts);
   }
 
   async destroy() {
-    this.context.off('page', this.pageHandler);
+    this.pageController.destroy();
     await super.destroy();
-  }
-
-  private async followPage(page: PlaywrightPage) {
-    try {
-      await this.setActivePage(page);
-    } catch (error) {
-      debug(`failed to follow new page: ${error}`);
-    }
-  }
-
-  private createNewPageWaiter(timeout = this.newPageTimeout) {
-    let settled = false;
-
-    const dispose = () => {
-      this.context.off('page', handler);
-      clearTimeout(timer);
-    };
-
-    const handler = (page: PlaywrightPage) => {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      dispose();
-      resolvePage(page);
-    };
-
-    let resolvePage!: (page: PlaywrightPage) => void;
-    let rejectPage!: (error: unknown) => void;
-    const promise = new Promise<PlaywrightPage>((resolve, reject) => {
-      resolvePage = resolve;
-      rejectPage = reject;
-    });
-
-    const timer = setTimeout(() => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      dispose();
-      rejectPage(
-        new Error(
-          `[midscene] Timed out waiting for a new Playwright page after ${timeout}ms.`,
-        ),
-      );
-    }, timeout);
-
-    this.context.on('page', handler);
-
-    return { promise, dispose };
   }
 }

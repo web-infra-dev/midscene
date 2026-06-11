@@ -22,20 +22,22 @@ PuppeteerAgent, PlaywrightAgent, and Chrome Bridge share one action space; the M
 - `Reload` &mdash; Reload the page.
 - `GoBack` &mdash; Navigate back in history.
 
-## PuppeteerAgent {#puppeteer-agent}
+## PuppeteerPageAgent / PuppeteerAgent {#puppeteer-agent}
 
 Use Midscene against a Puppeteer-controlled browser when you need AI actions in your own Puppeteer workflows.
+
+`PuppeteerPageAgent` is bound to one Puppeteer `Page`. `PuppeteerAgent` remains an alias for backward compatibility.
 
 ### Import
 
 ```ts
-import { PuppeteerAgent } from '@midscene/web/puppeteer';
+import { PuppeteerPageAgent } from '@midscene/web/puppeteer';
 ```
 
 ### Constructor
 
 ```ts
-const agent = new PuppeteerAgent(page, {
+const agent = new PuppeteerPageAgent(page, {
   // browser-specific options...
 });
 ```
@@ -63,7 +65,7 @@ In addition to the base agent options, Puppeteer exposes:
 
 ### Browser agent
 
-Use `PuppeteerBrowserAgent` when one Midscene Agent should manage page switching inside a Puppeteer browser.
+Use `PuppeteerBrowserAgent` when one Midscene Agent should manage page switching inside a Puppeteer browser. It is bound to a browser instance, keeps one active page, and can optionally follow newly opened pages.
 
 ```ts
 const agent = new PuppeteerBrowserAgent(browser, page, {
@@ -71,11 +73,14 @@ const agent = new PuppeteerBrowserAgent(browser, page, {
 });
 ```
 
-- Constructor: `new PuppeteerBrowserAgent(browser, page, options?)` &mdash; Use this when you already have the initial page.
-- Factory: `PuppeteerBrowserAgent.create(browser, options?)` &mdash; Use this when you do not already have a page. It uses `initialPage` if provided, otherwise the first existing browser page, or creates a new page.
+- Constructor: `new PuppeteerBrowserAgent(browser, page, options?)` &mdash; Use this when you explicitly choose the initial active page.
+- Factory: `PuppeteerBrowserAgent.create(browser, options?)` &mdash; Use this when you want Midscene to choose or create the initial active page. It uses `initialPage` if provided, otherwise the first existing browser page, or creates a new page.
 - `initialPage: Page` &mdash; Initial Puppeteer page for the factory.
 - `autoFollowNewPage: boolean` &mdash; Automatically switch the active page when the browser opens a new page. Default `false`.
 - `newPageTimeout: number` &mdash; Timeout for `waitForNewPage`. Default `5000`.
+- `activePage: Page` &mdash; Current page controlled by the Browser Agent.
+- `pages()` &mdash; List pages from the bound browser.
+- `newPage()` &mdash; Create a new page and make it active.
 - `setActivePage(page: Page)` &mdash; Explicitly set which Puppeteer page the Browser Agent controls next.
 - `waitForNewPage(action?, options?)` &mdash; Wait for a newly opened page without implicitly switching the active page.
 
@@ -129,20 +134,22 @@ await browser.disconnect();
 
 - [Integrate with Puppeteer](./integrate-with-puppeteer) for installation, fixtures, and remote-CDP guidance.
 
-## PlaywrightAgent {#playwright-agent}
+## PlaywrightPageAgent / PlaywrightAgent {#playwright-agent}
 
 Use Midscene inside a Playwright browser for AI-driven testing or automation alongside your Playwright flows.
+
+`PlaywrightPageAgent` is bound to one Playwright `Page`. `PlaywrightAgent` remains an alias for backward compatibility.
 
 ### Import
 
 ```ts
-import { PlaywrightAgent } from '@midscene/web/playwright';
+import { PlaywrightPageAgent } from '@midscene/web/playwright';
 ```
 
 ### Constructor
 
 ```ts
-const agent = new PlaywrightAgent(page, {
+const agent = new PlaywrightPageAgent(page, {
   // browser-specific options...
 });
 ```
@@ -168,7 +175,7 @@ const agent = new PlaywrightAgent(page, {
 
 ### Browser agent
 
-Use `PlaywrightBrowserAgent` when one Midscene Agent should manage page switching inside a Playwright browser context.
+Use `PlaywrightBrowserAgent` when one Midscene Agent should manage page switching inside a Playwright browser context. It is bound to a browser context, keeps one active page, and can optionally follow newly opened pages.
 
 ```ts
 const agent = new PlaywrightBrowserAgent(context, page, {
@@ -176,11 +183,14 @@ const agent = new PlaywrightBrowserAgent(context, page, {
 });
 ```
 
-- Constructor: `new PlaywrightBrowserAgent(context, page, options?)` &mdash; Use this when you already have the initial page.
-- Factory: `PlaywrightBrowserAgent.create(context, options?)` &mdash; Use this when you do not already have a page. It uses `initialPage` if provided, otherwise the first existing context page, or creates a new page.
+- Constructor: `new PlaywrightBrowserAgent(context, page, options?)` &mdash; Use this when you explicitly choose the initial active page.
+- Factory: `PlaywrightBrowserAgent.create(context, options?)` &mdash; Use this when you want Midscene to choose or create the initial active page. It uses `initialPage` if provided, otherwise the first existing context page, or creates a new page.
 - `initialPage: Page` &mdash; Initial Playwright page for the factory.
 - `autoFollowNewPage: boolean` &mdash; Automatically switch the active page when the context opens a new page. Default `false`.
 - `newPageTimeout: number` &mdash; Timeout for `waitForNewPage`. Default `5000`.
+- `activePage: Page` &mdash; Current page controlled by the Browser Agent.
+- `pages()` &mdash; List pages from the bound browser context.
+- `newPage()` &mdash; Create a new page and make it active.
 - `setActivePage(page: Page)` &mdash; Explicitly set which Playwright page the Browser Agent controls next.
 - `waitForNewPage(action?, options?)` &mdash; Wait for a newly opened page without implicitly switching the active page.
 
