@@ -4,7 +4,9 @@ import sampleExploreModel from './fixtures/example-explore-model.json';
 const MODEL_ELEMENT_ID = 'midscene-bdd-explore-model';
 const DATA_PLACEHOLDER = '__EXPLORE_MODEL_PLACEHOLDER__';
 
-const devModel = sampleExploreModel as ExploreModel;
+// The JSON literal type is narrower than the model contract (string-literal
+// unions, sparse optionals), so widen through unknown.
+const devModel = sampleExploreModel as unknown as ExploreModel;
 
 function parseExploreModel(raw: string): ExploreModel {
   try {
