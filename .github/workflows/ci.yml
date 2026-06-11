@@ -59,6 +59,24 @@ jobs:
     - name: Build project
       run: pnpm run build
 
+    - name: Check CLI CJS bundle on Node 20
+      run: |
+        node - <<'EOF'
+        const { readFileSync } = require('node:fs');
+        const files = [
+          'packages/cli/dist/lib/index.js',
+          'packages/cli/dist/lib/framework/index.js',
+        ];
+        const staticRstestRequire = /require\((['"])@rstest\/core\1\)/;
+        for (const file of files) {
+          const content = readFileSync(file, 'utf8');
+          if (staticRstestRequire.test(content)) {
+            throw new Error(`${file} contains a static require("@rstest/core")`);
+          }
+        }
+        EOF
+        npx -y node@20.9.0 packages/cli/dist/lib/index.js --version
+
     - name: Type check tests
       run: pnpm run type-check:tests
 
