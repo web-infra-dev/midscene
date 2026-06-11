@@ -1121,14 +1121,35 @@ console.log(result);
 - 类型
 
 ```typescript
-function recordToReport(title?: string, options?: Object): Promise<void>;
+interface RecordToReportOptions {
+  content?: string;
+  screenshotBase64?: string;
+  screenshots?: {
+    base64: string;
+    description?: string;
+  }[];
+  customScreenshotData?: {
+    base64: string;
+    description?: string;
+  }[];
+  subType?: string;
+}
+
+function recordToReport(
+  title?: string,
+  options?: RecordToReportOptions,
+): Promise<void>;
 ```
 
 - 参数：
 
   - `title?: string` - 可选，截图的标题，如果未提供，则标题为 'untitled'。
-  - `options?: Object` - 可选，一个配置对象，包含：
+  - `options?: RecordToReportOptions` - 可选，一个配置对象，包含：
     - `content?: string` - 截图的描述。
+    - `screenshotBase64?: string` - 使用传入的截图数据，而不是自动截取当前页面。
+    - `screenshots?: Array<{ base64: string; description?: string }>` - 在同一个报告条目下记录一张或多张传入的截图。设置该选项后，Midscene 不会再自动截图。
+    - `customScreenshotData?: Array<{ base64: string; description?: string }>` - `screenshots` 的兼容别名。
+    - `subType?: string` - 这个日志条目的自定义展示标签。底层报告任务类型仍然是 `Log`。
 
 - 返回值：
 
@@ -1139,6 +1160,23 @@ function recordToReport(title?: string, options?: Object): Promise<void>;
 ```typescript
 await agent.recordToReport('登录页面', {
   content: '用户 A',
+});
+
+const before = await page.screenshot({ encoding: 'base64' });
+const after = await page.screenshot({ encoding: 'base64' });
+await agent.recordToReport('结算页对比', {
+  content: '对比提交前后的页面状态。',
+  subType: 'Checkpoint',
+  screenshots: [
+    {
+      base64: `data:image/png;base64,${before}`,
+      description: '提交前',
+    },
+    {
+      base64: `data:image/png;base64,${after}`,
+      description: '提交后',
+    },
+  ],
 });
 ```
 

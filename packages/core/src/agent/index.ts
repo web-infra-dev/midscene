@@ -22,4 +22,6 @@ export type {
   AiActOptions,
   DescribeElementAtPointOptions,
   DescribeElementCoordinateSpace,
+  RecordToReportOptions,
+  RecordToReportScreenshot,
 } from './agent';

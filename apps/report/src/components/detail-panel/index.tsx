@@ -244,6 +244,7 @@ const DetailPanel = (): JSX.Element => {
       timestamp?: number;
       screenshotTimestamp?: number;
       screenshot: string;
+      description?: string;
       timing?: string;
     }[] = [];
 
@@ -302,6 +303,7 @@ const DetailPanel = (): JSX.Element => {
             timestamp: item.ts,
             screenshotTimestamp: item.screenshot?.capturedAt,
             screenshot,
+            description: item.description,
             timing: item.timing,
           });
         }
@@ -313,7 +315,8 @@ const DetailPanel = (): JSX.Element => {
         <div className="screenshot-item-wrapper scrollable">
           {contextLocatorView && <div>{contextLocatorView}</div>}
           {screenshotItems.map((item) => {
-            const timeText = item.timing || 'unknown-timing';
+            const timeText =
+              item.description || item.timing || 'unknown-timing';
             const screenshotAt = capturedAtText(item.screenshotTimestamp);
             const title = `${timeText} / ${screenshotAt}`;
             return (

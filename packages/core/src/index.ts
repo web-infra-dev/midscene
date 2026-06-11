@@ -57,7 +57,14 @@ export type {
   DetailedLocateParam,
 } from './yaml';
 
-export { Agent, type AgentOpt, type AiActOptions, createAgent } from './agent';
+export {
+  Agent,
+  type AgentOpt,
+  type AiActOptions,
+  type RecordToReportOptions,
+  type RecordToReportScreenshot,
+  createAgent,
+} from './agent';
 
 // Dump utilities
 export {
