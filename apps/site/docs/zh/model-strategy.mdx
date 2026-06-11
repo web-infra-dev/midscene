@@ -125,7 +125,7 @@ Midscene 提供了基于页面理解的数据处理接口，如 AI 断言（`aiA
 
 ### 关于 `aiAct` 方法的 `deepThink` 参数
 
-`deepThink` 参数用于控制 Midscene 在 `aiAct` 规划时引导模型思考的力度。
+`deepThink` 参数用于控制 Midscene 在 `aiAct` 执行规划时的具体实现。
 
 - 默认情况下，`aiAct` 会让模型在同一次规划请求里同时完成下一步规划和目标元素定位。
 - 开启 `deepThink` 后，`aiAct` 会更注重任务拆解，并将任务 Planning 和 UI 元素定位拆解为不同的模型调用，从而在复杂任务中获得更稳定的效果。
