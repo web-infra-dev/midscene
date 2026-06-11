@@ -23,6 +23,28 @@
     "build": "rslib build",
     "dev": "rslib build --watch"
   },
+  "nx": {
+    "targets": {
+      "build": {
+        "dependsOn": [
+          {
+            "projects": "@midscene/computer",
+            "target": "build"
+          },
+          "^build"
+        ]
+      },
+      "dev": {
+        "dependsOn": [
+          {
+            "projects": "@midscene/computer",
+            "target": "build"
+          },
+          "^build"
+        ]
+      }
+    }
+  },
   "dependencies": {
     "@midscene/computer": "workspace:*"
   },

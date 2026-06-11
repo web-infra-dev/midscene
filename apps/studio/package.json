@@ -57,6 +57,8 @@
     "vitest": "3.0.5"
   },
   "optionalDependencies": {
-    "appdmg": "0.6.6"
+    "appdmg": "0.6.6",
+    "fs-xattr": "0.3.1",
+    "macos-alias": "0.2.12"
   }
 }
