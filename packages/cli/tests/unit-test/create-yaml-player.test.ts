@@ -21,10 +21,14 @@ vi.mock('http-server', () => ({
   createServer: vi.fn(),
 }));
 
-vi.mock('@midscene/core/yaml', () => ({
-  ScriptPlayer: vi.fn(),
-  parseYamlScript: vi.fn(),
-}));
+vi.mock('@midscene/core/yaml', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@midscene/core/yaml')>();
+  return {
+    ...actual,
+    ScriptPlayer: vi.fn(),
+    parseYamlScript: vi.fn(),
+  };
+});
 
 vi.mock('@midscene/core/agent', () => ({
   createAgent: vi.fn(),
