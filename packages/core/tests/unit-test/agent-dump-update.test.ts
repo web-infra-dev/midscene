@@ -198,52 +198,6 @@ describe('Agent dump update screenshot serialization', () => {
     await agent.destroy();
   });
 
-  it('accepts customScreenshotData as a recordToReport alias', async () => {
-    const screenshotBase64 = vi
-      .fn()
-      .mockRejectedValue(new Error('should not capture again'));
-    const agent = new Agent(
-      {
-        ...createMockInterface(),
-        screenshotBase64,
-      } as any,
-      {
-        modelConfig,
-        generateReport: false,
-      },
-    );
-
-    const reportGeneratorStub = {
-      onExecutionUpdate: vi.fn(),
-      flush: vi.fn(async () => {}),
-      finalize: vi.fn(async () => undefined),
-      getReportPath: vi.fn(() => undefined),
-    };
-
-    (agent as any).reportGenerator = reportGeneratorStub;
-
-    const screenshot = 'data:image/png;base64,from-issue-api';
-    await agent.recordToReport('issue api', {
-      customScreenshotData: [
-        { base64: screenshot, description: 'Issue API screenshot' },
-      ],
-    });
-
-    expect(screenshotBase64).not.toHaveBeenCalled();
-    const execution = reportGeneratorStub.onExecutionUpdate.mock
-      .calls[0][0] as ExecutionDump;
-    expect(execution.name).toBe('Log - issue api');
-    expect(execution.tasks[0].subType).toBe('Screenshot');
-    expect(execution.tasks[0].recorder?.[0].description).toBe(
-      'Issue API screenshot',
-    );
-    expect(execution.tasks[0].recorder?.[0].screenshot?.base64).toBe(
-      screenshot,
-    );
-
-    await agent.destroy();
-  });
-
   it('rejects an empty custom screenshot list', async () => {
     const screenshotBase64 = vi
       .fn()
@@ -310,7 +264,7 @@ describe('Agent dump update screenshot serialization', () => {
         screenshots: [{ base64: 'data:image/png;base64,custom' }],
       }),
     ).rejects.toThrow(
-      'recordToReport: provide only one of screenshots, customScreenshotData, or screenshotBase64',
+      'recordToReport: provide only one of screenshots or screenshotBase64',
     );
 
     expect(screenshotBase64).not.toHaveBeenCalled();
