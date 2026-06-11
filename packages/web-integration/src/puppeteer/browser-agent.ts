@@ -1,6 +1,8 @@
 import {
   type BrowserAgentAdapter,
   BrowserAgentPageController,
+  appendBrowserAgentPageActions,
+  createBrowserAgentPageActions,
 } from '@/common/browser-agent';
 import {
   applyForceChromeSelectRendering,
@@ -25,6 +27,8 @@ const createPuppeteerBrowserAdapter = (
   newPage: () => browser.newPage(),
   isPageClosed: (page) => page.isClosed(),
   bringToFront: (page) => page.bringToFront(),
+  pageTitle: (page) => page.title(),
+  pageUrl: (page) => page.url(),
   onNewPage: (handler) => browser.on('targetcreated', handler),
   offNewPage: (handler) => browser.off('targetcreated', handler),
   isNewPageEvent: (target) => target.type() === 'page',
@@ -75,13 +79,32 @@ export class PuppeteerBrowserAgent extends PageAgent<PuppeteerWebPage> {
       ...agentOpts
     } = opts ?? {};
     const { forceChromeSelectRendering } = agentOpts;
+    const pageControllerRef: {
+      current?: BrowserAgentPageController<PuppeteerPage, PuppeteerTarget>;
+    } = {};
+    const getPageController = () => {
+      if (!pageControllerRef.current) {
+        throw new Error(
+          '[midscene] PuppeteerBrowserAgent page controller is not initialized.',
+        );
+      }
+      return pageControllerRef.current;
+    };
+    const browserActions = createBrowserAgentPageActions({
+      agentName: 'PuppeteerBrowserAgent',
+      getPageController,
+    });
     const webPage = new PuppeteerWebPage(initialPage, {
       ...agentOpts,
       forceSameTabNavigation: false,
+      customActions: appendBrowserAgentPageActions(
+        agentOpts.customActions,
+        browserActions,
+      ),
     });
     super(webPage, agentOpts);
 
-    this.pageController = new BrowserAgentPageController({
+    const pageController = new BrowserAgentPageController({
       agentName: 'PuppeteerBrowserAgent',
       adapter: createPuppeteerBrowserAdapter(browser),
       getActivePage: () => this.interface.underlyingPage as PuppeteerPage,
@@ -92,6 +115,8 @@ export class PuppeteerBrowserAgent extends PageAgent<PuppeteerWebPage> {
       newPageTimeout,
       debug,
     });
+    pageControllerRef.current = pageController;
+    this.pageController = pageController;
 
     applyForceChromeSelectRendering(
       initialPage,
