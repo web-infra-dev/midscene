@@ -1125,13 +1125,15 @@ console.log(result);
 
 ### `agent.recordToReport()`
 
-Log the current screenshot with a description in the report file.
+Log the current screenshot with a description in the report file by default, or
+record screenshots provided by the caller.
 
 - Type
 
 ```typescript
 interface RecordToReportOptions {
   content?: string;
+  /** @deprecated Use screenshots instead. */
   screenshotBase64?: string;
   screenshots?: {
     base64: string;
@@ -1155,10 +1157,16 @@ function recordToReport(
   - `title?: string` - Optional, the title of the screenshot, if not provided, the title will be 'untitled'.
   - `options?: RecordToReportOptions` - Optional, a configuration object containing:
     - `content?: string` - The description of the screenshot.
-    - `screenshotBase64?: string` - Use the provided screenshot data instead of capturing the current page automatically.
     - `screenshots?: Array<{ base64: string; description?: string }>` - Record one or more provided screenshots under one report entry. When this option is set, Midscene will not capture another screenshot automatically.
     - `customScreenshotData?: Array<{ base64: string; description?: string }>` - Alias of `screenshots` for compatibility.
     - `subType?: string` - Custom display label for this log entry. The underlying report task type remains `Log`.
+
+- Compatibility:
+
+  `screenshotBase64?: string` is still accepted as a backward-compatible
+  single-screenshot override. Prefer `screenshots: [{ base64 }]` for new code.
+  Provide only one of `screenshots`, `customScreenshotData`, or
+  `screenshotBase64`.
 
 - Return Value:
 

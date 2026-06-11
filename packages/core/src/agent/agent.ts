@@ -149,7 +149,7 @@ export interface RecordToReportScreenshot {
 export interface RecordToReportOptions {
   content?: string;
   /**
-   * Backward-compatible single screenshot override.
+   * @deprecated Use `screenshots: [{ base64 }]` instead.
    */
   screenshotBase64?: string;
   /**
@@ -1480,18 +1480,31 @@ export class Agent<
 
   async recordToReport(title?: string, opt?: RecordToReportOptions) {
     const now = Date.now();
-    const customScreenshots = Array.isArray(opt?.screenshots)
-      ? opt.screenshots
-      : Array.isArray(opt?.customScreenshotData)
-        ? opt.customScreenshotData
+    const hasScreenshots = Array.isArray(opt?.screenshots);
+    const hasCustomScreenshotData = Array.isArray(opt?.customScreenshotData);
+    const hasScreenshotBase64 = typeof opt?.screenshotBase64 === 'string';
+    const screenshotSourceCount = [
+      hasScreenshots,
+      hasCustomScreenshotData,
+      hasScreenshotBase64,
+    ].filter(Boolean).length;
+    if (screenshotSourceCount > 1) {
+      throw new Error(
+        'recordToReport: provide only one of screenshots, customScreenshotData, or screenshotBase64',
+      );
+    }
+    const customScreenshots = hasScreenshots
+      ? opt!.screenshots
+      : hasCustomScreenshotData
+        ? opt!.customScreenshotData
         : undefined;
     if (customScreenshots && customScreenshots.length === 0) {
       throw new Error('recordToReport: screenshots cannot be empty');
     }
     const screenshotInputs: RecordToReportScreenshot[] =
       customScreenshots ??
-      (opt?.screenshotBase64
-        ? [{ base64: opt.screenshotBase64 }]
+      (hasScreenshotBase64
+        ? [{ base64: opt!.screenshotBase64! }]
         : [{ base64: await this.interface.screenshotBase64() }]);
 
     // 1. build recorder
