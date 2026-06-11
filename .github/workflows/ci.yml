@@ -62,16 +62,40 @@ jobs:
     - name: Check CLI CJS bundle on Node 20
       run: |
         node - <<'EOF'
-        const { readFileSync } = require('node:fs');
-        const files = [
-          'packages/cli/dist/lib/index.js',
-          'packages/cli/dist/lib/framework/index.js',
+        const { readdirSync, readFileSync, statSync } = require('node:fs');
+        const { join } = require('node:path');
+
+        const root = 'packages/cli/dist/lib';
+        const files = [];
+        const collectJsFiles = (dir) => {
+          for (const entry of readdirSync(dir)) {
+            const file = join(dir, entry);
+            if (statSync(file).isDirectory()) {
+              collectJsFiles(file);
+            } else if (file.endsWith('.js')) {
+              files.push(file);
+            }
+          }
+        };
+        collectJsFiles(root);
+
+        const staticRequirePatterns = [
+          {
+            name: '@rstest/core',
+            pattern: /require\((['"])@rstest\/core(?:\/[^'"]*)?\1\)/,
+          },
+          {
+            name: '@rsbuild/core',
+            pattern: /require\((['"])@rsbuild\/core(?:\/[^'"]*)?\1\)/,
+          },
         ];
-        const staticRstestRequire = /require\((['"])@rstest\/core\1\)/;
+
         for (const file of files) {
           const content = readFileSync(file, 'utf8');
-          if (staticRstestRequire.test(content)) {
-            throw new Error(`${file} contains a static require("@rstest/core")`);
+          for (const { name, pattern } of staticRequirePatterns) {
+            if (pattern.test(content)) {
+              throw new Error(`${file} contains a static require("${name}")`);
+            }
           }
         }
         EOF

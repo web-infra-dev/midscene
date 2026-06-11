@@ -120,7 +120,7 @@ const testOptions = ${JSON.stringify(testOptions, null, 2)};
 if (defineYamlCaseTest.length >= 2) {
   defineYamlCaseTest(test, testOptions);
 } else {
-  defineYamlCaseTest(testOptions);
+  await defineYamlCaseTest(testOptions);
 }
 `;
 };
@@ -146,7 +146,7 @@ const testOptions = ${JSON.stringify(testOptions, null, 2)};
 if (defineYamlBatchTest.length >= 2) {
   defineYamlBatchTest(test, testOptions);
 } else {
-  defineYamlBatchTest(testOptions);
+  await defineYamlBatchTest(testOptions);
 }
 `;
 };

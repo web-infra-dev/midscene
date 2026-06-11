@@ -58,7 +58,7 @@ describe('rstest yaml project generation', () => {
         'import { defineYamlCaseTest } from "@test/framework"',
       );
       expect(generated).toContain('defineYamlCaseTest(test, testOptions)');
-      expect(generated).toContain('defineYamlCaseTest(testOptions)');
+      expect(generated).toContain('await defineYamlCaseTest(testOptions)');
       expect(generated).toContain(JSON.stringify(yamlB));
       expect(generated).not.toContain('runYamlCaseInChildProcess');
       expect(generated).not.toContain('webRuntimeOptions');
@@ -250,7 +250,7 @@ describe('rstest yaml project generation', () => {
         'import { defineYamlBatchTest } from "@test/framework"',
       );
       expect(generated).toContain('defineYamlBatchTest(test, testOptions)');
-      expect(generated).toContain('defineYamlBatchTest(testOptions)');
+      expect(generated).toContain('await defineYamlBatchTest(testOptions)');
       expect(generated).toContain('"shareBrowserContext": true');
       expect(generated).toContain(JSON.stringify(yamlA));
       expect(generated).toContain(JSON.stringify(yamlB));

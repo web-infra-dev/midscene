@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module';
-import { dirname, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 
 // `@rstest/core` and `@rsbuild/core` are direct dependencies of `@midscene/cli`,
 // so they always sit on the resolution path of the CLI's own files. Anchor the
@@ -29,6 +29,5 @@ export const resolvePackageFromRstestCore = (packageName: string): string => {
 
 export function resolveRstestCoreImportPath(): string {
   const require = requireFromCliPackage();
-  const packageJsonPath = require.resolve('@rstest/core/package.json');
-  return join(dirname(packageJsonPath), 'dist', 'index.js');
+  return require.resolve('@rstest/core');
 }

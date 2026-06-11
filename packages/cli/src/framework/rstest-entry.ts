@@ -149,6 +149,10 @@ export function defineYamlCaseTest(
   test: RstestTest,
   options: DefineYamlCaseTestOptions,
 ): void;
+/**
+ * @deprecated Prefer passing Rstest's `test` API explicitly so test registration
+ * stays synchronous. This overload is kept for custom framework compatibility.
+ */
 export function defineYamlCaseTest(
   options: DefineYamlCaseTestOptions,
 ): Promise<void>;
@@ -182,6 +186,10 @@ export function defineYamlBatchTest(
   test: RstestTest,
   options: DefineYamlBatchTestOptions,
 ): void;
+/**
+ * @deprecated Prefer passing Rstest's `test` API explicitly so test registration
+ * stays synchronous. This overload is kept for custom framework compatibility.
+ */
 export function defineYamlBatchTest(
   options: DefineYamlBatchTestOptions,
 ): Promise<void>;
