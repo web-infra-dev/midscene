@@ -11,13 +11,14 @@ import {
 } from '@cucumber/gherkin';
 import { IdGenerator } from '@cucumber/messages';
 import type { GherkinDocument, Pickle } from '@cucumber/messages';
+import { getDebug } from '@midscene/shared/logger';
 import { glob } from 'glob';
+import { collectAnnotationFootguns } from './annotations';
 import { FlowRegistry } from './flows';
 import { ERROR_PREFIX, IDENT_RE_SOURCE } from './types';
 import type { FlowDef, ResolvedBddConfig, ScannedAssets } from './types';
 
 const PARAM_TAG_RE = new RegExp(`^@param:(${IDENT_RE_SOURCE})$`);
-const RETURNS_TAG_RE = new RegExp(`^@returns?:(${IDENT_RE_SOURCE})$`);
 
 /** Parse one feature source into its Gherkin document and compiled pickles. */
 export function parseFeature(
@@ -45,9 +46,8 @@ export function parseFeature(
 
 /**
  * Extract `@flow`-tagged pickles into FlowDefs. `@param:x` tags bind
- * expression captures positionally (tag order preserved); `@returns:x` (or
- * `@return:x`) tags name values copied back to the caller scope. Duplicate
- * flow names (exact string match) are an error.
+ * expression captures positionally (tag order preserved). Duplicate flow
+ * names (exact string match) are an error.
  */
 export function extractFlowDefs(
   parsed: Array<{ document: GherkinDocument; pickles: Pickle[]; uri: string }>,
@@ -63,15 +63,10 @@ export function extractFlowDefs(
       }
 
       const params: string[] = [];
-      const returns: string[] = [];
       for (const tag of tags) {
         const paramMatch = PARAM_TAG_RE.exec(tag.name);
         if (paramMatch) {
           params.push(paramMatch[1]);
-        }
-        const returnsMatch = RETURNS_TAG_RE.exec(tag.name);
-        if (returnsMatch) {
-          returns.push(returnsMatch[1]);
         }
       }
 
@@ -84,7 +79,7 @@ export function extractFlowDefs(
       }
       definedIn.set(name, uri);
 
-      defs.push({ name, params, returns, pickle, document, uri });
+      defs.push({ name, params, pickle, document, uri });
     }
   }
 
@@ -114,6 +109,15 @@ export async function scanAssets(
       return { document, pickles, uri: file };
     }),
   );
+
+  // Annotation footguns (detached marker comments, tag-level @agent) are
+  // silent by design at resolution time — surface them loudly once per scan.
+  const warnFootgun = getDebug('bdd:annotations', { console: true });
+  for (const { document } of parsed) {
+    for (const message of collectAnnotationFootguns(document)) {
+      warnFootgun(message);
+    }
+  }
 
   const defs = extractFlowDefs(parsed);
   return { flows: new FlowRegistry(defs), files };

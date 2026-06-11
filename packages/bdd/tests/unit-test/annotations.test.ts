@@ -8,6 +8,7 @@ import { IdGenerator } from '@cucumber/messages';
 import type { GherkinDocument, Pickle, PickleStep } from '@cucumber/messages';
 import { describe, expect, it } from 'vitest';
 import {
+  collectAnnotationFootguns,
   parseSkillTokens,
   resolveStepAnnotations,
   stepTypeOf,
@@ -364,5 +365,96 @@ Feature: f
       soft: false,
       skills: [],
     });
+  });
+});
+
+describe('collectAnnotationFootguns', () => {
+  function footguns(source: string, uri = 'probe.feature'): string[] {
+    const { document } = parse(source);
+    document.uri = uri;
+    return collectAnnotationFootguns(document);
+  }
+
+  it('warns on a marker comment detached from its step by a blank line', () => {
+    const warnings = footguns(`Feature: f
+  Scenario: s
+    # @agent
+
+    When I do a thing
+`);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('"# @agent"');
+    expect(warnings[0]).toContain('probe.feature:3');
+    expect(warnings[0]).toContain('not directly above a step');
+  });
+
+  it('warns on a marker comment block stranded above a Scenario header', () => {
+    const warnings = footguns(`Feature: f
+  # @no-ai $probe
+  Scenario: s
+    When I do a thing
+`);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('"# @no-ai $probe"');
+    expect(warnings[0]).toContain('probe.feature:2');
+  });
+
+  it('warns once per detached marker line, none for the attached block', () => {
+    const warnings = footguns(`Feature: f
+  Scenario: s
+    # @soft
+    # @agent
+
+    Given an earlier step
+    # @no-ai
+    # $probe
+    When I do a thing
+`);
+    expect(warnings).toHaveLength(2);
+    expect(warnings[0]).toContain('probe.feature:3');
+    expect(warnings[1]).toContain('probe.feature:4');
+  });
+
+  it('warns on @agent used as a feature, scenario, or examples tag', () => {
+    const warnings = footguns(`@agent
+Feature: f
+  @agent
+  Scenario Outline: s
+    When I use <x>
+
+    @agent
+    Examples:
+      | x |
+      | 1 |
+`);
+    expect(warnings).toHaveLength(3);
+    for (const warning of warnings) {
+      expect(warning).toContain('tag "@agent"');
+      expect(warning).toContain('is ignored');
+    }
+    expect(warnings[0]).toContain('probe.feature:1');
+  });
+
+  it('warns on @agent tags inside a Rule', () => {
+    const warnings = footguns(`Feature: f
+  @agent
+  Rule: r
+    Scenario: s
+      When I do a thing
+`);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('probe.feature:2');
+  });
+
+  it('stays silent for attached markers, prose comments, and consumed tags', () => {
+    const warnings = footguns(`@no-ai
+Feature: f
+  # this prose comment mentions @agent but is not marker-only
+  @soft @flow @param:x @must-fail
+  Scenario: s
+    # @agent
+    When I do a thing
+`);
+    expect(warnings).toEqual([]);
   });
 });

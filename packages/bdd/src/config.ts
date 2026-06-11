@@ -96,19 +96,6 @@ function validateBddConfig(config: unknown): asserts config is BddConfig {
       throw configError('generalAgent.factory must be a function');
     }
   }
-
-  const capture = cfg.capture as Record<string, unknown> | undefined;
-  if (capture !== undefined) {
-    if (typeof capture !== 'object' || capture === null) {
-      throw configError('capture must be an object');
-    }
-    if (
-      capture.failOnEmpty !== undefined &&
-      typeof capture.failOnEmpty !== 'boolean'
-    ) {
-      throw configError('capture.failOnEmpty must be a boolean');
-    }
-  }
 }
 
 export function defineBddConfig(config: BddConfig): BddConfig {
@@ -149,9 +136,6 @@ export async function loadBddConfig(opts?: {
     paths: {
       features: config.paths?.features ?? ['features/**/*.feature'],
       skills: config.paths?.skills ?? 'features/skills',
-    },
-    capture: {
-      failOnEmpty: config.capture?.failOnEmpty ?? true,
     },
     baseDir: path.dirname(configPath),
   };

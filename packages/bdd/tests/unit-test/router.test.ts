@@ -15,8 +15,8 @@ import type {
   UiAgent,
 } from '../../src/types';
 
-// Real './vars', './no-ai' and './skills' are used; only the flow EXECUTOR is
-// mocked (ctx.flows.matchStep is a hand-built fake on the context anyway).
+// Real './no-ai' and './skills' are used; only the flow EXECUTOR is mocked
+// (ctx.flows.matchStep is a hand-built fake on the context anyway).
 vi.mock('../../src/flows', () => ({
   executeFlow: vi.fn(async () => {}),
 }));
@@ -46,7 +46,6 @@ function makeUi(overrides: Partial<UiAgent> = {}) {
   return {
     aiAct: vi.fn(async () => undefined),
     aiAssert: vi.fn(async () => undefined),
-    aiString: vi.fn(async () => 'extracted'),
     ...overrides,
   };
 }
@@ -66,11 +65,10 @@ function makeCtx(overrides: Partial<RouterContext> = {}): RouterContext {
     stepText: 'do something',
     stepType: 'action',
     annotations: { agent: false, noAi: false, soft: false, skills: [] },
-    vars: new Map(),
     flowDepth: 0,
     flows: makeFlows(),
     skills: new Map(),
-    config: { capture: { failOnEmpty: true } } as ResolvedBddConfig,
+    config: {} as ResolvedBddConfig,
     getUiAgent: async () => {
       throw new Error('getUiAgent must not be called in this test');
     },
@@ -118,28 +116,18 @@ describe('precedence', () => {
     expect(mockedExecuteFlow).not.toHaveBeenCalled();
   });
 
-  it('flow beats remember (remember-shaped text that matches a flow runs the flow)', async () => {
+  it('flow beats the default UI route', async () => {
     const match = makeFlowMatch();
     const ctx = makeCtx({
-      stepText: 'I remember the total as "total"',
+      stepText: 'I am logged in as "admin"',
       flows: makeFlows(match),
+      getUiAgent: async () => {
+        throw new Error('UI agent must not be created for a flow call');
+      },
     });
     await runStep(ctx);
     expect(mockedExecuteFlow).toHaveBeenCalledTimes(1);
-    expect(mockedExecuteFlow.mock.calls[0][0]).toEqual(match);
-    expect(ctx.vars.has('total')).toBe(false);
-  });
-
-  it('remember beats the default UI route', async () => {
-    const ui = makeUi();
-    const ctx = makeCtx({
-      stepText: 'I remember the total as "total"',
-      getUiAgent: async () => ui,
-    });
-    await runStep(ctx);
-    expect(ui.aiString).toHaveBeenCalledWith('the total');
-    expect(ui.aiAct).not.toHaveBeenCalled();
-    expect(ui.aiAssert).not.toHaveBeenCalled();
+    expect(mockedExecuteFlow.mock.calls[0][0]).toBe(match);
   });
 });
 
@@ -367,33 +355,19 @@ describe('agent route', () => {
 
 describe('flow route', () => {
   it('calls executeFlow with the match, ctx, and the same runStep reference', async () => {
-    const match = makeFlowMatch();
+    const match = makeFlowMatch({ args: { role: 'admin' } });
+    const flows = makeFlows(match);
     const ctx = makeCtx({
       stepText: 'I am logged in as "admin"',
-      flows: makeFlows(match),
+      flows,
     });
     await runStep(ctx);
+    expect(flows.seenTexts).toEqual(['I am logged in as "admin"']);
     expect(mockedExecuteFlow).toHaveBeenCalledTimes(1);
     const [seenMatch, seenCtx, seenRunStep] = mockedExecuteFlow.mock.calls[0];
-    // The router rebuilds the match with per-argument substitution, so the
-    // payload is equal but not identical.
-    expect(seenMatch).toEqual(match);
+    expect(seenMatch).toBe(match);
     expect(seenCtx).toBe(ctx);
     expect(seenRunStep).toBe(runStep);
-  });
-
-  it('substitutes <var> references per argument after matching on raw text', async () => {
-    const match = makeFlowMatch({ args: { role: '<who>' } });
-    const ctx = makeCtx({
-      stepText: 'I am logged in as "<who>"',
-      vars: new Map([['who', 'ad"min']]),
-      flows: makeFlows(match),
-    });
-    await runStep(ctx);
-    const [seenMatch] = mockedExecuteFlow.mock.calls[0];
-    // Quote-bearing captured values can no longer break flow matching: the
-    // match used the RAW text, and only the arg value was substituted.
-    expect(seenMatch.args).toEqual({ role: 'ad"min' });
   });
 
   it('propagates an ambiguity error thrown by matchStep', async () => {
@@ -410,57 +384,22 @@ describe('flow route', () => {
   });
 });
 
-describe('capture route', () => {
-  it('fails loud on remember-intent with a non-identifier variable name', async () => {
-    const ctx = makeCtx({
-      stepText: 'I remember the id as "order-id"',
-      getUiAgent: async () => makeUi(),
-    });
-    await expect(runStep(ctx)).rejects.toThrow(
-      /variable names must be identifiers .* "order_id"/,
-    );
-  });
-
-  it('stores the extracted value and logs it', async () => {
-    const log = vi.fn();
-    const ui = makeUi({ aiString: vi.fn(async () => '$42.00') });
-    const ctx = makeCtx({
-      stepText: 'I remember the cart total as "total"',
-      getUiAgent: async () => ui,
-      log,
-    });
-    await runStep(ctx);
-    expect(ctx.vars.get('total')).toBe('$42.00');
-    expect(log).toHaveBeenCalledTimes(1);
-    expect(log.mock.calls[0][0]).toContain('total');
-  });
-
-  it('throws on an empty value when failOnEmpty is true', async () => {
-    const ui = makeUi({ aiString: vi.fn(async () => '   ') });
-    const ctx = makeCtx({
-      stepText: 'I remember the cart total as "total"',
-      getUiAgent: async () => ui,
-      config: { capture: { failOnEmpty: true } } as ResolvedBddConfig,
-    });
-    await expect(runStep(ctx)).rejects.toThrow(
-      '[midscene-bdd] Capture "total": extraction returned an empty value ("the cart total"). Is it visible on screen?',
-    );
-    expect(ctx.vars.has('total')).toBe(false);
-  });
-
-  it("stores '' on an empty value when failOnEmpty is false", async () => {
-    const ui = makeUi({ aiString: vi.fn(async () => '') });
-    const ctx = makeCtx({
-      stepText: 'I remember the cart total as "total"',
-      getUiAgent: async () => ui,
-      config: { capture: { failOnEmpty: false } } as ResolvedBddConfig,
-    });
-    await runStep(ctx);
-    expect(ctx.vars.get('total')).toBe('');
-  });
-});
-
 describe('default Midscene route', () => {
+  it('routes remember-style prose to the UI agent like any other step', async () => {
+    // The old custom capture statement is gone: nothing special-cases this
+    // shape anymore, so it falls through to the default route as prose.
+    const ui = makeUi();
+    const ctx = makeCtx({
+      stepText: 'I remember the cart total as "total"',
+      stepType: 'action',
+      getUiAgent: async () => ui,
+    });
+    await runStep(ctx);
+    expect(ui.aiAct).toHaveBeenCalledWith(
+      'I remember the cart total as "total"',
+    );
+  });
+
   it('outcome → aiAssert with the prompt', async () => {
     const ui = makeUi();
     const ctx = makeCtx({
@@ -553,30 +492,17 @@ describe('default Midscene route', () => {
       'I fill the form\n\n"""\nline one\nline two\n"""',
     );
   });
-});
 
-describe('variable substitution happens before routing', () => {
-  it('flow matchStep receives the RAW text; other routes get substituted text', async () => {
-    const flows = makeFlows();
+  it('passes <...> content through to the model verbatim', async () => {
+    // Scenario Outline placeholders are substituted by Gherkin at compile
+    // time and flow params by the flow executor; the router itself never
+    // rewrites step text.
     const ui = makeUi();
     const ctx = makeCtx({
-      stepText: 'I search for <price>',
-      vars: new Map([['price', '$42.00']]),
-      flows,
+      stepText: 'press <Enter> in the search box',
       getUiAgent: async () => ui,
     });
     await runStep(ctx);
-    // Flow matching is injection-safe: it sees the raw authored text.
-    expect(flows.seenTexts).toEqual(['I search for <price>']);
-    // The UI route still receives the mechanically substituted prompt.
-    expect(ui.aiAct).toHaveBeenCalledWith('I search for $42.00');
-  });
-
-  it('an unknown variable throws before any route is attempted', async () => {
-    const flows = makeFlows(makeFlowMatch());
-    const ctx = makeCtx({ stepText: 'I search for <missing>', flows });
-    await expect(runStep(ctx)).rejects.toThrow(/unknown variable <missing>/);
-    expect(flows.seenTexts).toEqual([]);
-    expect(mockedExecuteFlow).not.toHaveBeenCalled();
+    expect(ui.aiAct).toHaveBeenCalledWith('press <Enter> in the search box');
   });
 });

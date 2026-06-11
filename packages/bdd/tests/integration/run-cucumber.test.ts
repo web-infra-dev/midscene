@@ -14,8 +14,8 @@
  * `loadBddConfig` (jiti), scans fixture features via `scanAssets`, discovers
  * fixture skills, and for every pickle step builds a RouterContext EXACTLY
  * the way `src/register.ts` does (same annotation resolution, step typing,
- * data-table rendering, per-scenario vars, lazy agents) and runs it through
- * `src/router.ts#runStep`. This exercises config + assets + flows + vars +
+ * data-table rendering, lazy agents) and runs it through
+ * `src/router.ts#runStep`. This exercises config + assets + flows +
  * annotations + skills + no-ai + router + the real uiAgent factory path
  * end to end; cucumber's own runner glue is covered structurally by
  * profile.test.ts and world.test.ts.
@@ -50,7 +50,7 @@ const CONFIG_PATH = path.join(FIXTURES_DIR, 'midscene.config.ts');
 const UI_STUB_KEY = '__midscene_bdd_integration_ui_stub__';
 
 interface UiStubRecord {
-  calls: Array<[method: 'act' | 'assert' | 'string', prompt: string]>;
+  calls: Array<[method: 'act' | 'assert', prompt: string]>;
   factoryCalls: number;
 }
 
@@ -92,7 +92,6 @@ interface ScenarioResult {
   error?: Error;
   logs: string[];
   attachments: string[];
-  vars: Map<string, string>;
 }
 
 let config: ResolvedBddConfig;
@@ -100,14 +99,13 @@ let flows: FlowRegistryLike;
 let skills: Map<string, Skill>;
 
 /**
- * Run one pickle the way register.ts runs a scenario: fresh vars (Before
- * hook), per-step RouterContext (BeforeStep + catch-all Given), lazy agents.
+ * Run one pickle the way register.ts runs a scenario: per-step RouterContext
+ * (BeforeStep + catch-all Given), lazy agents.
  */
 async function runScenario(
   document: GherkinDocument,
   pickle: Pickle,
 ): Promise<ScenarioResult> {
-  const vars = new Map<string, string>();
   const logs: string[] = [];
   const attachments: string[] = [];
 
@@ -129,7 +127,6 @@ async function runScenario(
         document,
         pickle,
         pickleStep,
-        vars,
         flowDepth: 0,
         runtime: { flows, skills, config },
         agents: {
@@ -146,14 +143,13 @@ async function runScenario(
       });
       await runStep(ctx);
     }
-    return { status: 'passed', logs, attachments, vars };
+    return { status: 'passed', logs, attachments };
   } catch (error) {
     return {
       status: 'failed',
       error: error as Error,
       logs,
       attachments,
-      vars,
     };
   }
 }
@@ -345,12 +341,12 @@ describe('route 4: agent / $skill', () => {
   });
 });
 
-describe('route 5: flows + vars', () => {
-  it('runs a declarative flow call, copies @returns, captures and substitutes vars', async () => {
-    const parsed = loadFeature('features/flows-vars.feature');
+describe('route 5: flows', () => {
+  it('runs a declarative flow call with <param> substituted in the body', async () => {
+    const parsed = loadFeature('features/flows-calls.feature');
     const result = await runScenario(
       parsed.document,
-      pickleByName(parsed, 'declarative flow call, returns and capture'),
+      pickleByName(parsed, 'declarative flow call'),
     );
 
     expect(result.status).toBe('passed');
@@ -359,18 +355,13 @@ describe('route 5: flows + vars', () => {
       ['act', 'I open the login page'],
       ['act', 'I sign in with the "admin" account'],
       ['assert', 'the dashboard is visible'],
-      ['string', 'the greeting banner text'],
-      // Back at scenario level: capture, then substituted assert.
-      ['string', 'the first item price'],
-      ['assert', 'the order total equals 42.00 and greets hello-from-stub'],
+      // Back at scenario level.
+      ['assert', 'the dashboard greets the user'],
     ]);
-    // @returns:greeting copied into the caller scope; price captured there.
-    expect(result.vars.get('greeting')).toBe('hello-from-stub');
-    expect(result.vars.get('price')).toBe('42.00');
   });
 
   it('supports the literal `I run the ... flow with ...` sugar', async () => {
-    const parsed = loadFeature('features/flows-vars.feature');
+    const parsed = loadFeature('features/flows-calls.feature');
     const result = await runScenario(
       parsed.document,
       pickleByName(parsed, 'literal flow sugar'),
@@ -381,25 +372,11 @@ describe('route 5: flows + vars', () => {
       ['act', 'I open the login page'],
       ['act', 'I sign in with the "guest" account'],
       ['assert', 'the dashboard is visible'],
-      ['string', 'the greeting banner text'],
     ]);
-    expect(result.vars.get('greeting')).toBe('hello-from-stub');
-  });
-
-  it('fails an empty capture when capture.failOnEmpty is on (default)', async () => {
-    const parsed = loadFeature('features/flows-vars.feature');
-    const result = await runScenario(
-      parsed.document,
-      pickleByName(parsed, 'empty capture fails'),
-    );
-
-    expect(result.status).toBe('failed');
-    expect(result.error?.message).toContain('empty value');
-    expect(result.error?.message).toContain('missing');
   });
 
   it('feeds the flow expression from Scenario Outline examples', async () => {
-    const parsed = loadFeature('features/flows-vars.feature');
+    const parsed = loadFeature('features/flows-calls.feature');
     const outlinePickles = parsed.pickles.filter(
       (pickle) => pickle.name === 'outline feeds the flow expression',
     );

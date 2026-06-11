@@ -58,7 +58,6 @@ describe('loadBddConfig', () => {
       features: ['features/**/*.feature'],
       skills: 'features/skills',
     });
-    expect(resolved.capture).toEqual({ failOnEmpty: true });
     expect(resolved.baseDir).toBe(dir);
     expect(path.isAbsolute(resolved.baseDir)).toBe(true);
   });
@@ -71,7 +70,6 @@ describe('loadBddConfig', () => {
         uiAgent: { type: 'web', url: 'https://example.com', headed: true },
         generalAgent: { modelEnv: { MIDSCENE_MODEL_BASE_URL: 'codex://app-server' } },
         paths: { features: ['e2e/**/*.feature'], skills: 'e2e/skills' },
-        capture: { failOnEmpty: false },
       };\n`,
     );
 
@@ -89,7 +87,6 @@ describe('loadBddConfig', () => {
       features: ['e2e/**/*.feature'],
       skills: 'e2e/skills',
     });
-    expect(resolved.capture).toEqual({ failOnEmpty: false });
   });
 
   it('throws a helpful error when the config file is missing', async () => {

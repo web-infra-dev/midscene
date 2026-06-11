@@ -13,7 +13,7 @@ const flowsAvailable = await import('../../src/flows').then(
 );
 
 const FLOW_FEATURE = `Feature: flows
-  @flow @param:user @param:role @returns:token
+  @flow @param:user @param:role
   Scenario: I am logged in as {string} with {string}
     When I log in
 `;
@@ -49,32 +49,17 @@ describe('parseFeature', () => {
 });
 
 describe('extractFlowDefs', () => {
-  it('extracts @flow pickles with params and returns in tag order', () => {
+  it('extracts @flow pickles with params in tag order', () => {
     const defs = extractFlowDefs([parsedFixture(FLOW_FEATURE, 'a.feature')]);
     expect(defs).toHaveLength(1);
     expect(defs[0].name).toBe('I am logged in as {string} with {string}');
     expect(defs[0].params).toEqual(['user', 'role']);
-    expect(defs[0].returns).toEqual(['token']);
     expect(defs[0].uri).toBe('a.feature');
     expect(defs[0].pickle.name).toBe(defs[0].name);
     expect(defs[0].document.uri).toBe('a.feature');
   });
 
-  it('supports the singular @return: tag spelling', () => {
-    const defs = extractFlowDefs([
-      parsedFixture(
-        `Feature: flows
-  @flow @return:value
-  Scenario: I fetch the value
-    When I fetch
-`,
-        'a.feature',
-      ),
-    ]);
-    expect(defs[0].returns).toEqual(['value']);
-  });
-
-  it('ignores pickles without @flow and malformed param/returns tags', () => {
+  it('ignores pickles without @flow and malformed param tags', () => {
     const defs = extractFlowDefs([
       parsedFixture(
         `Feature: flows
@@ -82,7 +67,7 @@ describe('extractFlowDefs', () => {
   Scenario: not a flow
     When I do a thing
 
-  @flow @param:1bad @param: @returns:also-bad
+  @flow @param:1bad @param:
   Scenario: a flow
     When I do a thing
 `,
@@ -92,7 +77,6 @@ describe('extractFlowDefs', () => {
     expect(defs).toHaveLength(1);
     expect(defs[0].name).toBe('a flow');
     expect(defs[0].params).toEqual([]);
-    expect(defs[0].returns).toEqual([]);
   });
 
   it('throws on duplicate flow names across files, naming both files', () => {
@@ -142,7 +126,6 @@ describe('scanAssets', () => {
       uiAgent: { type: 'web', url: 'http://localhost' },
       generalAgent: {},
       paths: { features: ['features/**/*.feature'], skills: 'features/skills' },
-      capture: { failOnEmpty: true },
       baseDir,
     };
   }

@@ -1,11 +1,10 @@
 Feature: Real-cucumber smoke over the stub UI agent
 
-  Scenario: Happy path with flow, capture and substitution
+  Scenario: Happy path with a parameterized flow call
     Given I open the demo shop
     And I am stub-logged in as "alice"
     When I add the first item to the cart
-    And I remember the first item price as "price"
-    Then the order total equals <price>
+    Then the order total is shown
 
   Scenario: Doc string step
     When I paste the following note
