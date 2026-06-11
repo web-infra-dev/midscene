@@ -5,7 +5,7 @@
  * the skills directory): no test run, no model call, no browser. It reuses
  * the exact runtime primitives — scanAssets/parseFeature for parsing,
  * FlowRegistry.matchStep for flow-call detection, resolveStepAnnotations for
- * routing markers, matchRemember/matchMalformedRemember for captures — so
+ * routing markers, collectAnnotationFootguns for annotation hygiene — so
  * what the dashboard shows is what the runner would do.
  */
 import { readFile } from 'node:fs/promises';
@@ -17,6 +17,7 @@ import type {
   Step,
 } from '@cucumber/messages';
 import {
+  collectAnnotationFootguns,
   renderDataTable,
   resolveStepAnnotations,
   stepTypeOf,
@@ -30,7 +31,6 @@ import type {
   StepAnnotations,
   StepType,
 } from '../types';
-import { matchMalformedRemember, matchRemember } from '../vars';
 
 // ———————————————————————————— public types ————————————————————————————
 
@@ -38,8 +38,9 @@ export type HealthKind =
   | 'unused-flow'
   | 'ambiguous-flow-match'
   | 'unknown-flow-sugar'
-  | 'malformed-remember'
-  | 'unknown-var'
+  | 'undeclared-param'
+  | 'detached-annotation'
+  | 'tag-level-agent'
   | 'missing-skill'
   | 'flow-depth';
 
@@ -49,7 +50,7 @@ export interface HealthFinding {
   /** Feature file path, relative to the config baseDir. */
   uri?: string;
   line?: number;
-  /** The offending name (flow name, variable, skill token, step text). */
+  /** The offending name (flow name, param, skill token, step text). */
   subject?: string;
 }
 
@@ -74,11 +75,16 @@ export interface StepModel {
   docString?: string;
   line: number;
   flowCall?: { flowId: string; args: Record<string, string> };
-  capture?: { varName: string; description: string };
-  /** `<name>` references in the step text, deduped in order of appearance. */
-  varUses: string[];
-  /** Subset of varUses not in static scope at this step (also in health). */
-  varIssues?: string[];
+  /**
+   * Flow-body steps only: `<name>` placeholders bound to a declared
+   * `@param:` (substituted at call time), deduped in order of appearance.
+   */
+  paramUses?: string[];
+  /**
+   * Flow-body steps only: identifier-shaped `<name>` placeholders that name
+   * no declared `@param:` (also in health — running the flow throws).
+   */
+  paramIssues?: string[];
 }
 
 export interface ScenarioModel {
@@ -109,7 +115,6 @@ export interface FlowModel {
   id: string;
   name: string;
   params: string[];
-  returns: string[];
   uri: string;
   line: number;
   steps: StepModel[];
@@ -150,16 +155,18 @@ export interface ExploreModel {
 
 // ———————————————————————————— internals ————————————————————————————
 
-const VAR_USE_RE = new RegExp(`<(${IDENT_RE_SOURCE})>`, 'g');
+// Same placeholder shape substituteParams (flows.ts) replaces at runtime.
+const PLACEHOLDER_RE = new RegExp(`<(${IDENT_RE_SOURCE})>`, 'g');
 
 /** Display order for health findings (errors first, hygiene last). */
 const KIND_ORDER: HealthKind[] = [
   'ambiguous-flow-match',
   'unknown-flow-sugar',
   'flow-depth',
-  'unknown-var',
-  'malformed-remember',
+  'undeclared-param',
   'missing-skill',
+  'detached-annotation',
+  'tag-level-agent',
   'unused-flow',
 ];
 
@@ -209,8 +216,12 @@ interface AnalyzeContext {
 
 /**
  * Walk one pickle's steps, building StepModels and feeding edges/health.
- * Static var-scope tracking: scenarios start empty, flows start with their
- * params; captures add their var, flow calls add the callee's returns.
+ * `flow` is set when the pickle is a flow body: its declared `@param:`
+ * names give `<placeholder>` tokens meaning (substituted at call time);
+ * an undeclared identifier-shaped placeholder throws at runtime, so it is
+ * surfaced as an `undeclared-param` finding. Scenario steps have no
+ * placeholder semantics at all (Scenario Outline `<x>` tokens are expanded
+ * by gherkin before pickles exist).
  */
 function analyzeSteps(
   ctx: AnalyzeContext,
@@ -220,11 +231,10 @@ function analyzeSteps(
     pickle: Pickle;
     stepById: Map<string, Step>;
     relUri: string;
-    initialScope: string[];
+    flow?: { name: string; params: string[] };
   },
 ): StepModel[] {
-  const { ownerId, document, pickle, stepById, relUri } = input;
-  const scope = new Set(input.initialScope);
+  const { ownerId, document, pickle, stepById, relUri, flow } = input;
   const steps: StepModel[] = [];
 
   pickle.steps.forEach((pickleStep, stepIndex) => {
@@ -275,40 +285,30 @@ function analyzeSteps(
       });
     }
 
-    const capture = matchRemember(pickleStep.text);
-    const malformed = matchMalformedRemember(pickleStep.text);
-    if (malformed) {
-      ctx.health.push({
-        kind: 'malformed-remember',
-        message: `"${malformed.varName}" is not a valid identifier — use letters, digits and underscores (e.g. "${malformed.varName.replace(/[^A-Za-z0-9_]+/g, '_')}")`,
-        uri: relUri,
-        line,
-        subject: malformed.varName,
-      });
-    }
-
-    const varUses: string[] = [];
-    for (const m of pickleStep.text.matchAll(VAR_USE_RE)) {
-      if (!varUses.includes(m[1])) varUses.push(m[1]);
-    }
-    const varIssues = varUses.filter((name) => !scope.has(name));
-    for (const name of varIssues) {
-      ctx.health.push({
-        kind: 'unknown-var',
-        message: `<${name}> is used but never captured or returned in this scope`,
-        uri: relUri,
-        line,
-        subject: name,
-      });
-    }
-
-    // Scope updates take effect for FOLLOWING steps.
-    if (capture) scope.add(capture.varName);
-    if (flowCall) {
-      const callee = ctx.registry.getByName(
-        flowCall.flowId.slice('flow:'.length),
-      );
-      for (const ret of callee?.returns ?? []) scope.add(ret);
+    // Placeholders only mean something inside a flow body, where they are
+    // outline-style substitution slots for the declared @param: names.
+    let paramUses: string[] | undefined;
+    let paramIssues: string[] | undefined;
+    if (flow) {
+      const placeholders: string[] = [];
+      for (const m of pickleStep.text.matchAll(PLACEHOLDER_RE)) {
+        if (!placeholders.includes(m[1])) placeholders.push(m[1]);
+      }
+      const bound = placeholders.filter((name) => flow.params.includes(name));
+      const issues = placeholders.filter((name) => !flow.params.includes(name));
+      paramUses = bound.length > 0 ? bound : undefined;
+      paramIssues = issues.length > 0 ? issues : undefined;
+      for (const name of issues) {
+        const params =
+          flow.params.length > 0 ? flow.params.join(', ') : '(none)';
+        ctx.health.push({
+          kind: 'undeclared-param',
+          message: `Flow "${flow.name}": step references <${name}>, which is not a declared @param: (params: ${params}) — calling this flow fails at runtime`,
+          uri: relUri,
+          line,
+          subject: name,
+        });
+      }
     }
 
     steps.push({
@@ -323,9 +323,8 @@ function analyzeSteps(
       docString: pickleStep.argument?.docString?.content,
       line,
       flowCall,
-      capture,
-      varUses,
-      varIssues: varIssues.length > 0 ? varIssues : undefined,
+      paramUses,
+      paramIssues,
     });
   });
 
@@ -398,7 +397,6 @@ export async function buildExploreModel(
       id,
       name: def.name,
       params: def.params,
-      returns: def.returns,
       uri: relPath,
       line: astScenario.location.line,
       steps: analyzeSteps(ctx, {
@@ -407,7 +405,7 @@ export async function buildExploreModel(
         pickle: def.pickle,
         stepById,
         relUri: relPath,
-        initialScope: def.params,
+        flow: { name: def.name, params: def.params },
       }),
       callers: [],
     };
@@ -458,7 +456,6 @@ export async function buildExploreModel(
           pickle: group[0],
           stepById,
           relUri: relPath,
-          initialScope: [],
         }),
       });
     }
@@ -473,6 +470,26 @@ export async function buildExploreModel(
       tags: document.feature.tags.map((tag) => tag.name),
       scenarios,
     });
+  }
+
+  // Annotation footguns (detached marker comments, tag-level @agent) are
+  // silent no-ops at runtime — exactly the hygiene the Health panel exists
+  // for. Reuse the runtime collector and lift its `uri:line` into fields.
+  for (const { document, uri } of parsed) {
+    const relPath = path.relative(config.baseDir, uri);
+    for (const warning of collectAnnotationFootguns(document)) {
+      const loc = new RegExp(
+        ` at ${uri.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:(\\d+) `,
+      ).exec(warning);
+      ctx.health.push({
+        kind: warning.startsWith('tag "@agent"')
+          ? 'tag-level-agent'
+          : 'detached-annotation',
+        message: warning.split(`${uri}:`).join(`${relPath}:`),
+        uri: relPath,
+        line: loc ? Number(loc[1]) : undefined,
+      });
+    }
   }
 
   // Callers + unused flows from the collected edges.

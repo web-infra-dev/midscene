@@ -15,13 +15,14 @@
  * plus 33 feature files x ~5 scenarios (~163 scenarios) that call the flows —
  * including one fan-out smoke scenario calling 5 flows and two story-arc
  * features whose scenarios climb the pipeline/support chains level by level.
- * Captures + <var> uses, step annotations (# @agent / # @no-ai / @soft /
- * $skill — including routed steps inside two flow bodies so the graph's
- * routing markers light up), two Scenario Outlines, and seeded
- * imperfections so the HEALTH panel has content:
+ * Flow bodies use declared <param> placeholders, step annotations
+ * (# @agent / # @no-ai / @soft / $skill — including routed steps inside two
+ * flow bodies so the graph's routing markers light up), two Scenario
+ * Outlines, and seeded imperfections so the HEALTH panel has content:
  *   - 2 unused flows
- *   - 1 unknown-var use
- *   - 1 malformed remember statement
+ *   - 1 undeclared <placeholder> in a flow body
+ *   - 1 detached "# @agent" annotation comment (blank line before the step)
+ *   - 1 tag-level @agent tag (ignored by routing)
  *   - 1 $missing-skill reference
  *   - many flow-depth findings (every flow nested deeper than MAX_FLOW_DEPTH)
  *
@@ -65,28 +66,26 @@ writeFileSync(
 
 // Leaf flows (call no other flow). "I am signed in as {string}" is the
 // fan-in base of the whole suite: 9 composed flows and many scenarios
-// call it. The last two flows are intentionally unused (health seed).
+// call it. The last two flows are intentionally unused (health seed), and
+// the sandbox flow's <sandboxId> names no @param: (undeclared-param seed).
 const CORE_FLOWS = `Feature: Shared core flows
 
-  @flow @param:role @returns:greeting
+  @flow @param:role
   Scenario: I am signed in as {string}
     When I open the sign-in page
     And I enter the "<role>" credentials
-    And I remember the greeting banner text as "greeting"
     Then the "<role>" workspace is visible
 
-  @flow @param:product @returns:price
+  @flow @param:product
   Scenario: I have added {string} to the basket
     When I open the product listing
-    And I remember the price of the "<product>" tile as "price"
     And I add the "<product>" tile to the basket
     Then the basket badge increments
 
-  @flow @param:coupon @returns:discount
+  @flow @param:coupon
   Scenario: I have applied the coupon {string}
     When I open the basket panel
     And I enter the coupon code "<coupon>" and press apply
-    And I remember the discount line value as "discount"
     Then the discount line is visible
 
   @flow @param:section
@@ -95,11 +94,10 @@ const CORE_FLOWS = `Feature: Shared core flows
     And I click the "<section>" entry
     Then the "<section>" heading is visible
 
-  @flow @param:term @returns:resultCount
+  @flow @param:term
   Scenario: I have searched the catalog for {string}
     When I focus the search box
     And I type "<term>" and press enter
-    And I remember the result counter as "resultCount"
     Then the result list is visible
 
   @flow @param:locale
@@ -108,10 +106,9 @@ const CORE_FLOWS = `Feature: Shared core flows
     And I pick the "<locale>" locale
     Then the interface language changes
 
-  @flow @returns:invoiceNumber
+  @flow
   Scenario: I have archived the oldest invoice
     When I open the invoices table
-    And I remember the first invoice number as "invoiceNumber"
     And I click archive on the first invoice row
     Then the archived banner is visible
 
@@ -126,7 +123,7 @@ const CORE_FLOWS = `Feature: Shared core flows
   Scenario: I have reset the sandbox environment
     When I open the developer settings
     And I click the reset sandbox button
-    Then the sandbox status shows fresh
+    Then the sandbox status for <sandboxId> shows fresh
 `;
 
 // Commerce composition: depth-2/3 flows over the core leaves, including
@@ -134,44 +131,41 @@ const CORE_FLOWS = `Feature: Shared core flows
 // inherit "I have added {string} to the basket".
 const COMPOSED_FLOWS = `Feature: Shared composed flows
 
-  @flow @param:role @returns:receipt
+  @flow @param:role
   Scenario: I have completed checkout as {string}
     Given I am signed in as "<role>"
     And I have added "Sample Kit" to the basket
     When I open the payment page
-    And I remember the receipt number as "receipt"
     Then the order confirmation for the "<role>" account is visible
 
-  @flow @param:customer @returns:orderId
+  @flow @param:customer
   Scenario: I have created a draft order for {string}
     Given I am signed in as "agent"
     When I start a new order for the "<customer>" account
-    And I remember the draft order number as "orderId"
     Then the draft badge is visible
 
-  @flow @param:product @returns:price
+  @flow @param:product
   Scenario: I have prepared a reviewed cart for {string}
     Given I have added "<product>" to the basket
     When I open the basket review page
     Then the "<product>" line item has a review checkmark
 
-  @flow @param:product @returns:discount
+  @flow @param:product
   Scenario: I have a discounted basket with {string}
     Given I have added "<product>" to the basket
     And I have applied the coupon "BUNDLE20"
     Then the basket shows the bundle discount
 
-  @flow @param:role @returns:resultCount
+  @flow @param:role
   Scenario: I am signed in as {string} on the search page
     Given I am signed in as "<role>"
     And I have searched the catalog for "starter kit"
     Then the search page header shows the "<role>" avatar
 
-  @flow @param:locale @returns:greeting
+  @flow @param:locale
   Scenario: I have a localized session in {string}
     Given I am signed in as "guest"
     And I have switched the locale to "<locale>"
-    And I remember the localized greeting as "greeting"
     Then the greeting matches the "<locale>" locale
 `;
 
@@ -193,12 +187,11 @@ const ACCOUNT_FLOWS = `Feature: Shared account flows
     And I click mark-all-read
     Then the unread counter shows zero
 
-  @flow @returns:billingProfile
+  @flow
   Scenario: I have updated my billing address
     Given I am signed in as "admin"
     And I have opened the "billing" section
     When I edit the billing address form
-    And I remember the billing profile name as "billingProfile"
     Then the saved-address toast appears
 `;
 
@@ -209,57 +202,50 @@ const ACCOUNT_FLOWS = `Feature: Shared account flows
 // a diamond with "seeded project" over the shared "active workspace" base.
 const PLATFORM_FLOWS = `Feature: Shared platform flows
 
-  @flow @returns:workspaceName
+  @flow
   Scenario: I have an active workspace
     Given I am signed in as "owner"
     When I open the workspace switcher
-    And I remember the current workspace name as "workspaceName"
     Then the workspace status pill shows active
 
-  @flow @returns:inviteEmail
+  @flow
   Scenario: I have invited a teammate to the workspace
     Given I have an active workspace
     When I open the members page
-    And I remember the pending invite email as "inviteEmail"
     Then the pending invite row is visible
 
-  @flow @returns:projectId
+  @flow
   Scenario: I have a seeded project
     Given I have an active workspace
     When I open the projects board
     And I create a project from the starter template
-    And I remember the new project id as "projectId"
     Then the project card appears on the board
 
-  @flow @returns:sourceName
+  @flow
   Scenario: I have connected the demo data source
     Given I have a seeded project
     When I open the data sources tab
     And I connect the bundled demo warehouse
-    And I remember the data source name as "sourceName"
     Then the source health indicator is green
 
-  @flow @returns:pipelineName
+  @flow
   Scenario: I have a configured pipeline
     Given I have connected the demo data source
     When I open the pipeline canvas
     And I add the extract, transform and publish steps
-    And I remember the pipeline name as "pipelineName"
     Then the pipeline canvas shows three connected steps
 
-  @flow @returns:runId
+  @flow
   Scenario: I have a completed pipeline run
     Given I have a configured pipeline
     When I press run and wait for the badge to settle
-    And I remember the finished run id as "runId"
     Then the run badge shows success
 
-  @flow @returns:reportUrl
+  @flow
   Scenario: I have an exported run report
     Given I have a completed pipeline run
     When I open the run detail page
     And I click export report
-    And I remember the report download link as "reportUrl"
     Then the report toast links to the download
 `;
 
@@ -267,24 +253,22 @@ const PLATFORM_FLOWS = `Feature: Shared platform flows
 // counting the sign-in base) that ends on the same fan-in leaf.
 const SUPPORT_FLOWS = `Feature: Shared support flows
 
-  @flow @returns:ticketId
+  @flow
   Scenario: I have filed a support ticket
     Given I am signed in as "customer"
     When I open the help center form
-    And I remember the new ticket id as "ticketId"
     Then the ticket confirmation banner is visible
 
-  @flow @returns:ticketId
+  @flow
   Scenario: I have an escalated support ticket
     Given I have filed a support ticket
     When I press the escalate button
     Then the priority chip shows urgent
 
-  @flow @returns:resolutionNote
+  @flow
   Scenario: I have a resolved support ticket
     Given I have an escalated support ticket
     When I post the resolution note
-    And I remember the resolution note text as "resolutionNote"
     Then the ticket status shows resolved
 
   @flow
@@ -301,12 +285,11 @@ const SUPPORT_FLOWS = `Feature: Shared support flows
 // (a third independent depth-3 chain).
 const DEEP_FLOWS = `Feature: Shared reporting flows
 
-  @flow @param:role @returns:summary
+  @flow @param:role
   Scenario: I have generated a quarterly summary as {string}
     Given I have completed checkout as "<role>"
     When I open the reporting workspace
-    And I remember the summary reference as "summary"
-    Then the quarterly summary is listed
+    Then the quarterly summary for the "<role>" account is listed
 `;
 
 // Every feature body also lands in featureBodies so the summary can count
@@ -351,28 +334,27 @@ const pick = (arr, n) => arr[n % arr.length];
 
 // Scenario templates: each returns gherkin lines for scenario index n.
 // Together they exercise 1-5 flow calls, deep-chain entry points at every
-// level, captures + <var> uses, data tables, and @soft / # @agent /
-// # @no-ai annotations.
+// level, data tables, and @soft / # @agent / # @no-ai annotations.
 const TEMPLATES = [
   (n) => [
     `  Scenario: Basket total reflects the ${pick(PRODUCTS, n)} price`,
     `    Given I am signed in as "${pick(ROLES, n)}"`,
     `    And I have added "${pick(PRODUCTS, n)}" to the basket`,
     '    When I open the basket panel',
-    '    Then the basket total equals <price>',
+    `    Then the basket total matches the ${pick(PRODUCTS, n)} price`,
   ],
   (n) => [
     '  @soft',
     `  Scenario: Coupon ${pick(COUPONS, n)} discount banner`,
     `    Given I am signed in as "${pick(ROLES, n + 1)}"`,
     `    And I have applied the coupon "${pick(COUPONS, n)}"`,
-    '    Then the discount banner shows <discount>',
+    `    Then the discount banner mentions ${pick(COUPONS, n)}`,
   ],
   (n) => [
     `  Scenario: Search for ${pick(TERMS, n)} shows a counter`,
     `    Given I have searched the catalog for "${pick(TERMS, n)}"`,
     '    # @no-ai',
-    '    Then the result counter equals <resultCount>',
+    '    Then the result counter matches the visible list length',
   ],
   (n) => [
     `  Scenario: Visiting the ${pick(SECTIONS, n)} section is logged`,
@@ -385,7 +367,7 @@ const TEMPLATES = [
     `    Given I am signed in as "${pick(ROLES, n)}"`,
     `    And I have switched the locale to "en-GB"`,
     `    And I have completed checkout as "${pick(ROLES, n)}"`,
-    '    Then the receipt <receipt> is shown in the order history',
+    '    Then the newest receipt is shown in the order history',
   ],
   (n) => [
     `  Scenario: Plan comparison highlights ${pick(PLANS, n)}`,
@@ -401,40 +383,40 @@ const TEMPLATES = [
     `  Scenario: Draft order for customer-${(n % 9) + 1} gets a number`,
     `    Given I have created a draft order for "customer-${(n % 9) + 1}"`,
     '    When I open the drafts list',
-    '    Then the draft <orderId> is listed on top',
+    '    Then the new draft order is listed on top',
   ],
   (n) => [
     `  Scenario: Reviewed cart keeps the ${pick(PRODUCTS, n + 2)} price`,
     `    Given I have prepared a reviewed cart for "${pick(PRODUCTS, n + 2)}"`,
-    '    And I remember the basket subtotal as "subtotal"',
-    '    Then the subtotal <subtotal> is not less than <price>',
+    '    When I open the basket review page',
+    `    Then the subtotal is not less than the ${pick(PRODUCTS, n + 2)} price`,
   ],
   () => [
     '  Scenario: Archiving an invoice updates the archive list',
     '    Given I have archived the oldest invoice',
     '    When I open the archive tab',
-    '    Then the invoice <invoiceNumber> appears in the archive list',
+    '    Then the archived invoice appears in the archive list',
   ],
   (n) => [
     `  Scenario: Bundle discount applies to the ${pick(PRODUCTS, n)} basket`,
     `    Given I have a discounted basket with "${pick(PRODUCTS, n)}"`,
     '    When I open the basket panel',
-    '    Then the bundle savings line shows <discount>',
+    '    Then the bundle savings line is visible',
   ],
   (n) => [
     `  Scenario: Localized greeting for ${pick(ROLES, n)} sessions`,
     `    Given I have a localized session in "de-DE"`,
-    '    Then the welcome banner shows <greeting>',
+    '    Then the welcome banner is shown in German',
   ],
   (n) => [
     `  Scenario: Search avatar appears for ${pick(ROLES, n)}`,
     `    Given I am signed in as "${pick(ROLES, n)}" on the search page`,
-    '    Then the result counter equals <resultCount>',
+    '    Then the result counter is visible next to the avatar',
   ],
   () => [
     '  Scenario: Quarterly summary is generated (deep chain)',
     '    Given I have generated a quarterly summary as "manager"',
-    '    Then the summary <summary> is downloadable',
+    '    Then the summary is downloadable from the reporting workspace',
   ],
   () => [
     '  Scenario: Two-factor enrollment survives a re-login',
@@ -452,24 +434,24 @@ const TEMPLATES = [
     '  Scenario: Billing profile is echoed on the invoice footer',
     '    Given I have updated my billing address',
     '    When I open the latest invoice',
-    '    Then the footer shows <billingProfile>',
+    '    Then the footer shows the saved billing profile',
   ],
   () => [
     '  Scenario: Pipeline run badge links to the run log (deep chain)',
     '    Given I have a completed pipeline run',
     '    When I open the run log panel',
-    '    Then the log header mentions run <runId>',
+    '    Then the log header mentions the finished run',
   ],
   () => [
     '  Scenario: Exported report link resolves (deepest chain)',
     '    Given I have an exported run report',
-    '    Then the link <reportUrl> downloads the report',
+    '    Then the report link downloads a fresh report',
   ],
   () => [
     '  Scenario: Escalated ticket shows the urgent chip',
     '    Given I have an escalated support ticket',
     '    When I reload the ticket page',
-    '    Then ticket <ticketId> still shows the urgent chip',
+    '    Then the ticket still shows the urgent chip',
   ],
 ];
 
@@ -485,18 +467,23 @@ const OUTLINE = [
   '      | auditor |',
 ];
 
-// Seeded imperfections, placed at fixed (file, scenario) coordinates.
+// Seeded imperfections, placed at fixed (file, scenario) coordinates. The
+// detached annotation has a blank line between the marker comment and its
+// step (so it never attaches); the tag-level @agent is silently ignored by
+// routing (only "# @agent" comments route).
 const SEEDED = {
-  unknownVar: [
-    '  Scenario: Session banner shows a token (seeded unknown-var)',
-    '    Given I am signed in as "guest"',
-    '    Then the header shows the <sessionToken> badge',
+  detachedAnnotation: [
+    '  Scenario: Audit visit is reported (seeded detached annotation)',
+    '    Given I have opened the "billing" section',
+    '    # @agent',
+    '',
+    '    Then the server log notes the visit, per $check-logs',
   ],
-  malformedRemember: [
-    '  Scenario: Invoice number capture (seeded malformed remember)',
-    '    Given I have archived the oldest invoice',
-    '    When I remember the archive banner text as "invoice-number"',
-    '    Then the archive tab is still open',
+  tagLevelAgent: [
+    '  @agent',
+    '  Scenario: Session report is appended (seeded tag-level @agent)',
+    '    Given I am signed in as "auditor"',
+    '    Then the session report lists the sign-in',
   ],
   missingSkill: [
     '  Scenario: Audit trail is appended (seeded missing skill)',
@@ -516,9 +503,9 @@ for (let f = 0; f < 30; f++) {
     const n = f * 7 + s; // deterministic variety
     if (f === 3 && s === 0) blocks.push(OUTLINE.join('\n'));
     else if (f === 17 && s === 0) blocks.push(OUTLINE.join('\n'));
-    else if (f === 7 && s === 1) blocks.push(SEEDED.unknownVar.join('\n'));
-    else if (f === 12 && s === 2)
-      blocks.push(SEEDED.malformedRemember.join('\n'));
+    else if (f === 7 && s === 1)
+      blocks.push(SEEDED.detachedAnnotation.join('\n'));
+    else if (f === 12 && s === 2) blocks.push(SEEDED.tagLevelAgent.join('\n'));
     else if (f === 21 && s === 1) blocks.push(SEEDED.missingSkill.join('\n'));
     else blocks.push(TEMPLATES[n % TEMPLATES.length](n).join('\n'));
     scenarioTotal++;
@@ -550,7 +537,7 @@ const SMOKE_FEATURE = `Feature: Suite 31 — storefront smoke
     And I have added "Trail Backpack" to the basket
     And I have applied the coupon "SAVE10"
     And I have opened the "orders" section
-    Then the basket total equals <price> minus <discount>
+    Then the basket total reflects the coupon discount
 
   Scenario: Smoke pass leaves no notifications behind
     Given I have cleared the notification tray
@@ -567,32 +554,32 @@ const PIPELINE_FEATURE = `Feature: Suite 32 — pipeline lifecycle
 
   Scenario: Workspace appears in the switcher
     Given I have an active workspace
-    Then the switcher lists <workspaceName> first
+    Then the switcher lists the active workspace first
 
   Scenario: Invited teammate shows as pending
     Given I have invited a teammate to the workspace
-    Then the members table lists <inviteEmail> as pending
+    Then the members table lists the invite as pending
 
   Scenario: Seeded project lands on the board
     Given I have a seeded project
-    Then the board card links to project <projectId>
+    Then the board card links to the new project
 
   Scenario: Demo data source reports healthy
     Given I have connected the demo data source
-    Then the health panel shows <sourceName> as green
+    Then the health panel shows the demo warehouse as green
 
   Scenario: Configured pipeline validates cleanly
     Given I have a configured pipeline
     When I press validate
-    Then the validation toast names <pipelineName>
+    Then the validation toast names the pipeline
 
   Scenario: Completed run is listed in history
     Given I have a completed pipeline run
-    Then the history table lists run <runId> on top
+    Then the history table lists the finished run on top
 
   Scenario: Exported report is downloadable end to end
     Given I have an exported run report
-    Then the link <reportUrl> serves a fresh report
+    Then the report link serves a fresh report
 `;
 
 const SUPPORT_FEATURE = `Feature: Suite 33 — support desk
@@ -600,16 +587,16 @@ const SUPPORT_FEATURE = `Feature: Suite 33 — support desk
 
   Scenario: Fresh ticket is acknowledged
     Given I have filed a support ticket
-    Then the confirmation mentions ticket <ticketId>
+    Then the confirmation mentions the new ticket
 
   Scenario: Escalation pings the on-call channel
     Given I have an escalated support ticket
     # @agent
-    Then the on-call channel mentions <ticketId>, per $check-logs
+    Then the on-call channel mentions the ticket, per $check-logs
 
   Scenario: Resolution note is shown to the customer
     Given I have a resolved support ticket
-    Then the customer view shows <resolutionNote>
+    Then the customer view shows the resolution note
 
   Scenario: Archived ticket leaves the queue clean
     Given I have archived the resolved ticket
@@ -634,5 +621,5 @@ const noAiMarkers = countMatches(/^\s*# @no-ai$/gm);
 const skillRefs = countMatches(/\$[A-Za-z][A-Za-z0-9_-]*/g);
 
 console.log(
-  `Wrote scale fixture to ${base}: 39 feature files (33 suites + 6 shared-flow files), ${scenarioTotal} scenarios, 30 flows (2 unused; deepest chain nests 7 flows: report → run → pipeline → data source → project → workspace → sign-in), seeded health findings, routing markers: ${agentMarkers} × "# @agent", ${noAiMarkers} × "# @no-ai", ${skillRefs} × $skill references.`,
+  `Wrote scale fixture to ${base}: 39 feature files (33 suites + 6 shared-flow files), ${scenarioTotal} scenarios, 30 flows (2 unused; deepest chain nests 7 flows: report → run → pipeline → data source → project → workspace → sign-in), seeded health findings (undeclared <placeholder>, detached annotation, tag-level @agent, missing $skill), routing markers: ${agentMarkers} × "# @agent", ${noAiMarkers} × "# @no-ai", ${skillRefs} × $skill references.`,
 );

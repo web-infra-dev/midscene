@@ -187,7 +187,6 @@ export const DASHBOARD_TEMPLATE = String.raw`<!DOCTYPE html>
   .badge-agent   { background: #3d2d5e; color: #cdb0f7; border: 1px solid #54417e; }
   .badge-noai    { background: #2b3038; color: #9aa3b2; border: 1px solid #3a414d; }
   .badge-soft    { background: #26404d; color: #90d4f0; }
-  .badge-capture { background: #2c3a4d; color: #9ec7f0; }
   .route-legend {
     display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
     margin-top: 10px; max-width: 980px;
@@ -398,10 +397,10 @@ function argsSummary(args) {
   if (keys.length === 0) return 'no args';
   return keys.map(function (k) { return k + ' = "' + args[k] + '"'; }).join(', ');
 }
-// Graph node subtitle for a flow: params/returns plus a routing marker when
-// the flow body contains agent / no-ai steps.
+// Graph node subtitle for a flow: params plus a routing marker when the
+// flow body contains agent / no-ai steps.
 function flowSub(flow) {
-  var sub = plural(flow.params.length, 'param') + ' · ' + plural(flow.returns.length, 'return');
+  var sub = plural(flow.params.length, 'param');
   var agentCount = 0;
   var noAiCount = 0;
   flow.steps.forEach(function (s) {
@@ -475,7 +474,7 @@ function treeRow(item, kind) {
     if (item.isOutline) row.appendChild(el('span', 'mini', '×' + item.exampleCount));
     item.tags.forEach(function (t) { row.appendChild(el('span', 'mini tag', t)); });
   } else {
-    row.appendChild(el('span', 'mini', item.params.length + '→' + item.returns.length));
+    row.appendChild(el('span', 'mini', plural(item.params.length, 'param')));
     row.appendChild(el('span', 'mini', plural(item.callers.length, 'caller')));
   }
   row.title = item.name + '  (' + item.uri + ':' + item.line + ')';
@@ -583,21 +582,31 @@ function renderFlowCall(call, path) {
   return box;
 }
 
-// Render step text with <var> tokens as styled chips (red when unknown).
+// Render step text. Inside flow bodies, <param> placeholders render as
+// chips: blue when bound to a declared @param:, red when undeclared (the
+// call would throw at runtime). Scenario steps have no placeholder
+// semantics, so their text renders plain.
 function renderStepText(step) {
   var span = el('span', 'step-text');
+  var bound = step.paramUses || [];
+  var issues = step.paramIssues || [];
+  if (bound.length === 0 && issues.length === 0) {
+    span.textContent = step.text;
+    return span;
+  }
   var re = new RegExp('<([A-Za-z_][A-Za-z0-9_]*)>', 'g');
   var last = 0;
   var m = re.exec(step.text);
   while (m) {
+    var bad = issues.indexOf(m[1]) !== -1;
+    if (!bad && bound.indexOf(m[1]) === -1) { m = re.exec(step.text); continue; }
     if (m.index > last) {
       span.appendChild(document.createTextNode(step.text.slice(last, m.index)));
     }
-    var bad = step.varIssues && step.varIssues.indexOf(m[1]) !== -1;
     var chip = el('span', 'var-chip' + (bad ? ' bad' : ''), m[0]);
     chip.title = bad
-      ? 'unknown variable — never captured or returned in this scope'
-      : 'runtime variable';
+      ? 'undeclared placeholder — names no @param: of this flow; calling it fails at runtime'
+      : 'flow parameter — bound by @param: and substituted at call time';
     span.appendChild(chip);
     last = m.index + m[0].length;
     m = re.exec(step.text);
@@ -630,7 +639,7 @@ function makeRouteBadge(step) {
 }
 
 function renderStep(step, path) {
-  var wrap = el('div', 'step' + (step.varIssues ? ' step-issue' : ''));
+  var wrap = el('div', 'step' + (step.paramIssues ? ' step-issue' : ''));
   var row = el('div', 'step-row');
   row.appendChild(el('span', 'kw kw-' + step.stepType, step.keyword.trim()));
   row.appendChild(renderStepText(step));
@@ -643,21 +652,16 @@ function renderStep(step, path) {
     soft.title = 'Soft check — a failure is logged as a warning instead of failing the run';
     badges.appendChild(soft);
   }
-  if (step.capture) {
-    var cap = el('span', 'badge badge-capture', '⤴ ' + step.capture.varName);
-    cap.title = 'captures "' + step.capture.varName + '" — ' + step.capture.description;
-    badges.appendChild(cap);
-  }
   if (badges.childNodes.length > 0) row.appendChild(badges);
   wrap.appendChild(row);
 
   if (step.dataTable) wrap.appendChild(renderTable(step.dataTable));
   if (step.docString) wrap.appendChild(el('pre', 'docstring', step.docString));
-  if (step.varIssues) {
+  if (step.paramIssues) {
     wrap.appendChild(el('div', 'issue-note',
-      'Unknown variable' + (step.varIssues.length === 1 ? '' : 's') + ': ' +
-      step.varIssues.map(function (v) { return '<' + v + '>'; }).join(', ') +
-      ' — never captured or returned in this scope'));
+      'Undeclared placeholder' + (step.paramIssues.length === 1 ? '' : 's') + ': ' +
+      step.paramIssues.map(function (v) { return '<' + v + '>'; }).join(', ') +
+      ' — not a declared @param: of this flow; calling it fails at runtime'));
   }
   if (step.flowCall) wrap.appendChild(renderFlowCall(step.flowCall, path));
   return wrap;
@@ -697,7 +701,6 @@ function renderDetail() {
   }
   if (flow) {
     meta.appendChild(el('span', 'chip', 'params: ' + (flow.params.join(', ') || 'none')));
-    meta.appendChild(el('span', 'chip', 'returns: ' + (flow.returns.join(', ') || 'none')));
   }
   meta.appendChild(el('span', 'chip', plural(item.steps.length, 'step')));
   head.appendChild(meta);
@@ -1366,14 +1369,15 @@ var KIND_META = {
   'ambiguous-flow-match': { label: 'Ambiguous flow matches', cls: 'kind-error' },
   'unknown-flow-sugar': { label: 'Unknown flow references', cls: 'kind-error' },
   'flow-depth': { label: 'Flow call depth exceeded', cls: 'kind-error' },
-  'unknown-var': { label: 'Unknown variables', cls: 'kind-error' },
-  'malformed-remember': { label: 'Malformed remember statements', cls: 'kind-error' },
+  'undeclared-param': { label: 'Undeclared flow-body placeholders', cls: 'kind-error' },
   'missing-skill': { label: 'Missing skills', cls: 'kind-warn' },
+  'detached-annotation': { label: 'Detached annotation comments (ignored)', cls: 'kind-warn' },
+  'tag-level-agent': { label: 'Tag-level @agent (ignored)', cls: 'kind-warn' },
   'unused-flow': { label: 'Unused flows', cls: 'kind-warn' }
 };
 var KIND_ORDER = [
-  'ambiguous-flow-match', 'unknown-flow-sugar', 'flow-depth',
-  'unknown-var', 'malformed-remember', 'missing-skill', 'unused-flow'
+  'ambiguous-flow-match', 'unknown-flow-sugar', 'flow-depth', 'undeclared-param',
+  'missing-skill', 'detached-annotation', 'tag-level-agent', 'unused-flow'
 ];
 
 // Best effort: jump to the scenario/flow that contains the finding's line.

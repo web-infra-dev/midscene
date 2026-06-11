@@ -26,23 +26,21 @@ function makeFixture(files: Record<string, string>): ResolvedBddConfig {
     uiAgent: { type: 'web', url: 'http://localhost' },
     generalAgent: {},
     paths: { features: ['features/**/*.feature'], skills: 'features/skills' },
-    capture: { failOnEmpty: true },
     baseDir,
   };
 }
 
 const FLOWS_FEATURE = `Feature: Shared flows
 
-  @flow @param:role @returns:greeting
+  @flow @param:role
   Scenario: I am logged in as {string}
     When I open the login page
-    And I remember the greeting as "greeting"
     Then the "<role>" dashboard is visible
 
-  @flow @param:product @returns:price
+  @flow @param:product
   Scenario: I have added {string} to the cart
     Given I am logged in as "buyer"
-    And I remember the price of the "<product>" item as "price"
+    When I add the "<product>" item to the cart
 `;
 
 const CART_FEATURE = `@cart
@@ -50,13 +48,10 @@ Feature: Cart
   Inspect the cart contents.
 
   @smoke
-  Scenario: Total uses the returned price
+  Scenario: Total reflects the added item
     Given I have added "Mug" to the cart
     When I open the cart page
-    Then the total equals <price>
-
-  Scenario: Uses an unknown variable
-    Then the total equals <nothing>
+    Then the total equals the <price> placeholder text
 
   Scenario Outline: The "<role>" role can log in
     Given I am logged in as "<role>"
@@ -88,7 +83,7 @@ describe('buildExploreModel', () => {
     expect(cart.name).toBe('Cart');
     expect(cart.tags).toEqual(['@cart']);
     expect(cart.description).toBe('Inspect the cart contents.');
-    expect(cart.scenarios).toHaveLength(3);
+    expect(cart.scenarios).toHaveLength(2);
 
     // The flows feature contains only @flow scenarios — they are modeled in
     // model.flows, not as feature scenarios.
@@ -110,12 +105,12 @@ describe('buildExploreModel', () => {
     ]);
     expect(total.steps[0].line).toBe(7);
 
-    // 5 scenario steps (3 + 1 + 1) + 5 flow steps (3 + 2); 3 flow calls.
+    // 4 scenario steps (3 + 1) + 4 flow steps (2 + 2); 3 flow calls.
     expect(model.stats).toEqual({
       features: 2,
-      scenarios: 3,
+      scenarios: 2,
       flows: 2,
-      steps: 10,
+      steps: 8,
       edges: 3,
       agentSteps: 0,
       noAiSteps: 0,
@@ -174,7 +169,6 @@ describe('buildExploreModel', () => {
     ]);
     const [login, addToCart] = model.flows;
     expect(login.params).toEqual(['role']);
-    expect(login.returns).toEqual(['greeting']);
     expect(login.uri).toBe('features/flows/login.feature');
     expect(login.line).toBe(4);
 
@@ -204,53 +198,73 @@ describe('buildExploreModel', () => {
 
     expect(login.callers).toEqual([
       'flow:I have added {string} to the cart',
-      'scenario:features/cart.feature#14',
+      'scenario:features/cart.feature#11',
     ]);
     expect(addToCart.callers).toEqual(['scenario:features/cart.feature#6']);
   });
 
-  it('tracks var scope: captures and flow returns enter scope, unknown vars are flagged', async () => {
+  it('models <param> placeholders in flow bodies only, flagging undeclared ones', async () => {
     const model = await buildExploreModel(basicConfig());
-    const [total, unknown] = model.features[0].scenarios;
 
-    // <price> is in scope because the called flow @returns:price.
-    expect(total.steps[2].varUses).toEqual(['price']);
-    expect(total.steps[2].varIssues).toBeUndefined();
+    // Declared @param: placeholders in flow-body steps are bound.
+    const [login, addToCart] = model.flows;
+    expect(login.steps[1].paramUses).toEqual(['role']);
+    expect(login.steps[1].paramIssues).toBeUndefined();
+    expect(addToCart.steps[1].paramUses).toEqual(['product']);
 
-    // <nothing> was never captured or returned.
-    expect(unknown.steps[0].varUses).toEqual(['nothing']);
-    expect(unknown.steps[0].varIssues).toEqual(['nothing']);
-    expect(model.health.filter((h) => h.kind === 'unknown-var')).toEqual([
+    // Scenario steps have no placeholder semantics: <price> in plain step
+    // text is just text — no chips, no findings.
+    const [total] = model.features[0].scenarios;
+    expect(total.steps[2].text).toContain('<price>');
+    expect(total.steps[2].paramUses).toBeUndefined();
+    expect(total.steps[2].paramIssues).toBeUndefined();
+    expect(model.health.filter((h) => h.kind === 'undeclared-param')).toEqual(
+      [],
+    );
+  });
+
+  it('flags undeclared <placeholder> tokens inside flow bodies', async () => {
+    const config = makeFixture({
+      'features/flows/widget.feature': `Feature: Widget flows
+
+  @flow @param:dial
+  Scenario: I configure the {string} widget
+    When I tweak the <dial> setting
+    Then the <ghost> indicator settles
+`,
+    });
+    const model = await buildExploreModel(config);
+    const [widget] = model.flows;
+    expect(widget.steps[0].paramUses).toEqual(['dial']);
+    expect(widget.steps[1].paramIssues).toEqual(['ghost']);
+    expect(model.health.filter((h) => h.kind === 'undeclared-param')).toEqual([
       expect.objectContaining({
-        kind: 'unknown-var',
-        subject: 'nothing',
-        uri: 'features/cart.feature',
-        line: 12,
+        kind: 'undeclared-param',
+        subject: 'ghost',
+        uri: 'features/flows/widget.feature',
+        line: 6,
       }),
     ]);
-
-    // Flow params seed the flow's scope; capture steps are modeled.
-    const [login] = model.flows;
-    expect(login.steps[1].capture).toEqual({
-      varName: 'greeting',
-      description: 'the greeting',
-    });
-    expect(login.steps[2].varUses).toEqual(['role']);
-    expect(login.steps[2].varIssues).toBeUndefined();
+    const finding = model.health.find((h) => h.kind === 'undeclared-param');
+    expect(finding?.message).toContain('not a declared @param:');
+    expect(finding?.message).toContain('params: dial');
   });
 
   it('models a Scenario Outline as one entry with exampleCount', async () => {
     const model = await buildExploreModel(basicConfig());
-    const outline = model.features[0].scenarios[2];
+    const outline = model.features[0].scenarios[1];
 
     expect(outline.isOutline).toBe(true);
     expect(outline.exampleCount).toBe(2);
     expect(outline.name).toBe('The "<role>" role can log in');
-    // Steps come from the FIRST pickle expansion (Examples row 1) ...
+    // Steps come from the FIRST pickle expansion (Examples row 1): gherkin
+    // substitutes outline <placeholders> before pickles exist, so the model
+    // never sees them as placeholders.
     expect(outline.steps[0].text).toBe('I am logged in as "admin"');
+    expect(outline.steps[0].paramUses).toBeUndefined();
     // ... but keyword and line come from the AST step.
     expect(outline.steps[0].keyword).toBe('Given ');
-    expect(outline.steps[0].line).toBe(15);
+    expect(outline.steps[0].line).toBe(12);
     expect(outline.steps[0].flowCall?.args).toEqual({ role: 'admin' });
   });
 
@@ -280,15 +294,17 @@ describe('buildExploreModel', () => {
 
   @flow
   Scenario: nobody calls this flow
-    When I wave
+    When the <ghost> dial settles
 `,
-      'features/main.feature': `Feature: Main
+      'features/main.feature': `@agent
+Feature: Main
 
   Scenario: Triggers findings
     When I do "special" thing
     And I run the "nope" flow
-    And I remember the id as "order-id"
-    Then the page shows <ghostVar>
+    # @agent
+
+    Then the detached marker above is ignored
     # @agent
     And the audit log is appended, per $ghost-skill
 `,
@@ -299,7 +315,7 @@ describe('buildExploreModel', () => {
     expect(kinds('ambiguous-flow-match')).toHaveLength(1);
     expect(kinds('ambiguous-flow-match')[0]).toMatchObject({
       uri: 'features/main.feature',
-      line: 4,
+      line: 5,
       subject: 'I do "special" thing',
     });
 
@@ -308,16 +324,30 @@ describe('buildExploreModel', () => {
       'Unknown flow "nope"',
     );
 
-    expect(kinds('malformed-remember')).toEqual([
-      expect.objectContaining({ subject: 'order-id', line: 6 }),
+    expect(kinds('undeclared-param')).toEqual([
+      expect.objectContaining({
+        subject: 'ghost',
+        uri: 'features/flows/chain.feature',
+        line: 25,
+      }),
     ]);
 
-    expect(kinds('unknown-var')).toEqual([
-      expect.objectContaining({ subject: 'ghostVar', line: 7 }),
+    // The "# @agent" comment separated from its step by a blank line never
+    // attaches — surfaced with the file:line of the dangling comment.
+    expect(kinds('detached-annotation')).toEqual([
+      expect.objectContaining({ uri: 'features/main.feature', line: 7 }),
+    ]);
+    expect(kinds('detached-annotation')[0].message).toContain(
+      'features/main.feature:7',
+    );
+
+    // A feature/scenario-level @agent tag is silently ignored by routing.
+    expect(kinds('tag-level-agent')).toEqual([
+      expect.objectContaining({ uri: 'features/main.feature', line: 1 }),
     ]);
 
     expect(kinds('missing-skill')).toEqual([
-      expect.objectContaining({ subject: 'ghost-skill', line: 9 }),
+      expect.objectContaining({ subject: 'ghost-skill', line: 11 }),
     ]);
 
     // alpha -> beta -> gamma nests 3 deep (> MAX_FLOW_DEPTH of 2); only the
