@@ -155,6 +155,19 @@ npx midscene-bdd    # zero-config launcher; injects the same preset when no cucu
 
 A runnable end-to-end demo (static shop page, all three routing rules, flows, skills) lives in [`example/`](./example/README.md).
 
+## Dashboard explorer
+
+`midscene-bdd dashboard` renders a self-contained HTML explorer from the
+`ExploreModel` payload. The UI itself lives in the React app at
+`apps/bdd-dashboard`; its built `index.html` is mirrored into
+`packages/bdd/static/dashboard-template.html` and filled at runtime.
+
+For source checkouts, build that app before generating dashboards:
+
+```bash
+npx nx build bdd-dashboard
+```
+
 ## Gherkin tour
 
 New to Cucumber/BDD? [`example/features/gherkin-tour/`](./example/features/gherkin-tour/) walks through the full standard [Gherkin grammar](https://cucumber.io/docs/gherkin/reference/) as runnable, commented feature files — proof that every construct works unchanged through this framework:
