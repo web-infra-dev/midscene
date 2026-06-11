@@ -2,6 +2,8 @@ import {
   type BrowserAgentAdapter,
   BrowserPageManager,
   WebAgentCore,
+  appendBrowserAgentPageActions,
+  createBrowserAgentPageActions,
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
 import { applyForceChromeSelectRendering } from '@/common/browser-agent-utils';
@@ -23,6 +25,8 @@ const createPuppeteerBrowserAdapter = (
   newPage: () => browser.newPage(),
   isPageClosed: (page) => page.isClosed(),
   bringToFront: (page) => page.bringToFront(),
+  pageTitle: (page) => page.title(),
+  pageUrl: (page) => page.url(),
   onNewPage: (handler) => browser.on('targetcreated', handler),
   offNewPage: (handler) => browser.off('targetcreated', handler),
   isNewPageEvent: (target) => target.type() === 'page',
@@ -73,9 +77,28 @@ export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
       newPageTimeout,
     });
     const { forceChromeSelectRendering } = agentOpts;
+    const pageManagerRef: {
+      current?: BrowserPageManager<PuppeteerPage, PuppeteerTarget>;
+    } = {};
+    const getPageManager = () => {
+      if (!pageManagerRef.current) {
+        throw new Error(
+          '[midscene] PuppeteerBrowserAgent page manager is not initialized.',
+        );
+      }
+      return pageManagerRef.current;
+    };
+    const browserActions = createBrowserAgentPageActions({
+      agentName: 'PuppeteerBrowserAgent',
+      getPageManager,
+    });
     const webPage = new PuppeteerWebPage(initialPage, {
       ...agentOpts,
       forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
+      customActions: appendBrowserAgentPageActions(
+        agentOpts.customActions,
+        browserActions,
+      ),
     });
     const pageManager = new BrowserPageManager({
       agentName: 'PuppeteerBrowserAgent',
@@ -88,6 +111,7 @@ export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
       newPageTimeout: runtimeOptions.newPageTimeout,
       debug,
     });
+    pageManagerRef.current = pageManager;
     super(webPage, agentOpts);
     this.pageManager = pageManager;
 

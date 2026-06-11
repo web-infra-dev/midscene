@@ -1937,6 +1937,7 @@ const agent = new PuppeteerBrowserAgent(browser, page, {
 - `newPage()` — Create a new page and make it active.
 - `setActivePage(page: Page)` — Explicitly set which Puppeteer page the Browser Agent controls next.
 - `waitForNewPage(action?, options?)` — Wait for a newly opened page without implicitly switching the active page.
+- AI page selection actions — Browser Agent exposes `ListBrowserPages` and `SetActivePage` in its action space, so AI plans can inspect open tabs and switch the active page by index, title, or URL. These actions are not available on Page Agent.
 
 <a id="web-quick-start"></a>
 <a id="web-connect-to-a-remote-puppeteer-browser"></a>
@@ -2005,6 +2006,7 @@ const agent = new PlaywrightBrowserAgent(context, page, {
 - `newPage()` — Create a new page and make it active.
 - `setActivePage(page: Page)` — Explicitly set which Playwright page the Browser Agent controls next.
 - `waitForNewPage(action?, options?)` — Wait for a newly opened page without implicitly switching the active page.
+- AI page selection actions — Browser Agent exposes `ListBrowserPages` and `SetActivePage` in its action space, so AI plans can inspect open tabs and switch the active page by index, title, or URL. These actions are not available on Page Agent.
 
 <a id="web-playwright-quick-start"></a>
 <a id="web-extend-playwright-tests-with-midscene-fixtures"></a>
