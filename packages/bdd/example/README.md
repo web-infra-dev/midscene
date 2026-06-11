@@ -28,12 +28,12 @@ skill paths use the defaults (`features/**/*.feature`, `features/skills`).
 
 | File | Demonstrates |
 | --- | --- |
-| `features/flows/login.feature` | A flow: a step definition authored in Gherkin. The scenario name is a cucumber expression; `@param:role` binds the capture, `@returns:greeting` exports a captured variable. |
-| `features/flows/add-to-cart.feature` | A second flow with the built-in `I remember ... as "price"` capture returned to the caller. |
-| `features/cart.feature` | Calling both flows declaratively and asserting against the returned `<price>` variable. |
-| `features/checkout.feature` | A coupon journey; asserts a 10% discount off the flow-returned `<price>`. |
-| `features/smoke.feature` | A standard Scenario Outline feeding the flow expression — Examples substitution produces the quoted literal at compile time. |
-| `features/error-reporting.feature` | All three routing rules in one scenario (see below). |
+| `features/flows/login.feature` | A flow: a step definition authored in Gherkin. The scenario name is a cucumber expression; `@param:role` binds the capture to `<role>` inside the flow body. |
+| `features/flows/add-to-cart.feature` | A second flow, parameterized over the product name. |
+| `features/cart.feature` | Calling both flows declaratively, then asserting against what the page shows. |
+| `features/checkout.feature` | A coupon journey; asserts the 10% discount visually. |
+| `features/error-reporting.feature` | All three routing rules in one scenario, including a plain `# @agent` step and a `# @no-ai` step (see below). |
+| `features/gherkin-tour/*.feature` | The full standard Gherkin grammar (descriptions, Background, Rule, outlines, data tables, doc strings, tags, `# language:`), one commented file per theme — written for readers new to Cucumber/BDD. |
 
 ## The three routing rules
 
@@ -48,5 +48,5 @@ skill paths use the defaults (`features/**/*.feature`, `features/skills`).
 Flows are step definitions authored in Gherkin: a scenario tagged `@flow`
 whose NAME is a cucumber expression. Other scenarios call it as a plain step
 (`Given I am logged in as "guest"`). `@param:*` tags bind the expression
-captures to runtime variables (`<role>`), and `@returns:*` tags copy captured
-variables back into the caller's scope.
+captures to `<param>` placeholders inside the flow body — the same
+substitution semantics as a Scenario Outline, scoped to the flow.
