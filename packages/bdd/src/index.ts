@@ -10,6 +10,8 @@
  * The cucumber support entry lives at `@midscene/bdd/register`.
  */
 export { defineBddConfig, loadBddConfig } from './config';
+export { buildExploreModel, renderDashboard } from './explore';
+export type { ExploreModel } from './explore';
 export { Given, When, Then, defineStep } from './no-ai';
 export { defineProfile } from './profile';
 export type {
