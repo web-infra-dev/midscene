@@ -6,6 +6,7 @@ import path from 'node:path';
 import {
   type ActionScrollParam,
   type DeviceAction,
+  type ExecutorContext,
   type InterfaceType,
   type LocateResultElement,
   type Point,
@@ -39,6 +40,10 @@ import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison, repeat } from '@midscene/shared/utils';
 
 import { ADB } from 'appium-adb';
+import {
+  buildRunAdbShellPlanningFeedback,
+  runAdbShellStdoutOrThrow,
+} from './adb-shell';
 import {
   type DevicePhysicalInfo,
   ScrcpyDeviceAdapter,
@@ -2039,18 +2044,27 @@ const createPlatformActions = (
       string
     >({
       name: 'RunAdbShell',
-      description: 'Execute ADB shell command on Android device',
+      description:
+        'Execute an ADB shell command on the Android device and return the command stdout. Read the returned stdout to decide the next step; the stdout may indicate either success or failure.',
       interfaceAlias: 'runAdbShell',
       paramSchema: runAdbShellParamSchema,
       sample: {
         command: 'dumpsys window displays | grep -E "mCurrentFocus"',
       },
-      call: async (param) => {
+      call: async (param: RunAdbShellParam, context?: ExecutorContext) => {
         if (!param.command || param.command.trim() === '') {
           throw new Error('RunAdbShell requires a non-empty command parameter');
         }
         const adb = await device.getAdb();
-        return await adb.shell(param.command);
+        const stdout = await runAdbShellStdoutOrThrow(adb, param.command);
+        const planningFeedback = buildRunAdbShellPlanningFeedback({
+          command: param.command,
+          stdout,
+        });
+        if (planningFeedback && context?.task) {
+          context.task.planningFeedback = planningFeedback;
+        }
+        return stdout;
       },
     }),
     Launch: defineAction<typeof launchParamSchema, LaunchParam, void>({

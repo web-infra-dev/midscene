@@ -158,8 +158,14 @@ describe('AndroidAgent', () => {
   describe('runAdbShell', () => {
     it('should pass timeout options to adb.shell without changing action schema', async () => {
       const mockPage = new AndroidDevice('test-device');
-      const shell = vi.fn().mockResolvedValue('adb-result');
-      (mockPage as any).getAdb = vi.fn().mockResolvedValue({ shell });
+      const shell = vi.fn().mockResolvedValue({
+        stdout: 'adb-result',
+        stderr: '',
+      });
+      (mockPage as any).getAdb = vi.fn().mockResolvedValue({
+        shell,
+        EXEC_OUTPUT_FORMAT: { FULL: 'full' },
+      });
 
       const agent = new AndroidAgent(mockPage, {
         modelConfig: mockedModelConfig,
@@ -168,7 +174,123 @@ describe('AndroidAgent', () => {
       await expect(
         agent.runAdbShell('sleep 2', { timeout: 2_000 }),
       ).resolves.toBe('adb-result');
-      expect(shell).toHaveBeenCalledWith('sleep 2', { timeout: 2_000 });
+      expect(shell).toHaveBeenCalledWith('sleep 2', {
+        timeout: 2_000,
+        outputFormat: 'full',
+      });
+    });
+
+    it('should return raw adb shell output when timeout options bypass action space', async () => {
+      const mockPage = new AndroidDevice('test-device');
+      const rawOutput = `Result: Parcel(
+        0x00000000: fffffffd 00000008 006f004e 00690020 '........N.o. .i.'
+        0x00000010: 00650074 0073006d 00000000 000003a4 't.e.m.s.........'
+      )`;
+      const shell = vi.fn().mockResolvedValue({
+        stdout: rawOutput,
+        stderr: '',
+      });
+      (mockPage as any).getAdb = vi.fn().mockResolvedValue({
+        shell,
+        EXEC_OUTPUT_FORMAT: { FULL: 'full' },
+      });
+
+      const agent = new AndroidAgent(mockPage, {
+        modelConfig: mockedModelConfig,
+      });
+
+      await expect(
+        agent.runAdbShell('service call clipboard 2', { timeout: 2_000 }),
+      ).resolves.toBe(rawOutput);
+      expect(shell).toHaveBeenCalledWith('service call clipboard 2', {
+        timeout: 2_000,
+        outputFormat: 'full',
+      });
+    });
+
+    it('should throw when adb shell exits zero with stderr output', async () => {
+      const mockPage = new AndroidDevice('test-device');
+      const shell = vi.fn().mockResolvedValue({
+        stdout: '',
+        stderr: 'No shell command implementation.',
+      });
+      (mockPage as any).getAdb = vi.fn().mockResolvedValue({
+        shell,
+        EXEC_OUTPUT_FORMAT: { FULL: 'full' },
+      });
+
+      const agent = new AndroidAgent(mockPage, {
+        modelConfig: mockedModelConfig,
+      });
+
+      await expect(
+        agent.runAdbShell('cmd clipboard set-text "Tracking #: 5K672F4C"', {
+          timeout: 2_000,
+        }),
+      ).rejects.toThrow(
+        /RunAdbShell command returned stderr\.[\s\S]*No shell command implementation\./,
+      );
+    });
+
+    it('should truncate stdout and stderr in adb shell stderr errors', async () => {
+      const mockPage = new AndroidDevice('test-device');
+      const shell = vi.fn().mockResolvedValue({
+        stdout: 'o'.repeat(240),
+        stderr: 'e'.repeat(240),
+      });
+      (mockPage as any).getAdb = vi.fn().mockResolvedValue({
+        shell,
+        EXEC_OUTPUT_FORMAT: { FULL: 'full' },
+      });
+
+      const agent = new AndroidAgent(mockPage, {
+        modelConfig: mockedModelConfig,
+      });
+
+      await expect(
+        agent.runAdbShell('cmd test', { timeout: 2_000 }),
+      ).rejects.toThrow(`Stderr:
+${'e'.repeat(200)}
+...[stderr truncated, 40 more characters]
+Stdout:
+${'o'.repeat(200)}
+...[stdout truncated, 40 more characters]`);
+    });
+
+    it('should return raw adb shell output from RunAdbShell action wrapper', async () => {
+      const device = new AndroidDevice('test-device');
+      const validPngBase64 =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      const rawOutput = `Result: Parcel(
+        0x00000000: fffffffd 00000008 006f004e 00690020 '........N.o. .i.'
+        0x00000010: 00650074 0073006d 00000000 000003a4 't.e.m.s.........'
+      )`;
+      const runAdbShellCall = vi.fn().mockResolvedValue(rawOutput);
+      vi.spyOn(device, 'screenshotBase64').mockResolvedValue(validPngBase64);
+      vi.spyOn(device, 'size').mockResolvedValue({ width: 375, height: 812 });
+      vi.spyOn(device, 'getElementsInfo').mockResolvedValue([]);
+      vi.spyOn(device, 'url').mockResolvedValue('https://example.com');
+      vi.spyOn(device, 'actionSpace').mockReturnValue([
+        {
+          name: 'RunAdbShell',
+          paramSchema: undefined,
+          call: runAdbShellCall,
+        },
+      ] as any);
+
+      const agent = new AndroidAgent(device, {
+        modelConfig: mockedModelConfig,
+      });
+
+      await expect(agent.runAdbShell('service call clipboard 2')).resolves.toBe(
+        rawOutput,
+      );
+      expect(runAdbShellCall).toHaveBeenCalledWith(
+        {
+          command: 'service call clipboard 2',
+        },
+        expect.any(Object),
+      );
     });
   });
 

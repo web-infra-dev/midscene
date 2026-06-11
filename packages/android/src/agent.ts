@@ -2,6 +2,7 @@ import type { ActionParam, ActionReturn, DeviceAction } from '@midscene/core';
 import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
 import { mergeAndNormalizeAppNameMapping } from '@midscene/shared/utils';
+import { runAdbShellStdoutOrThrow } from './adb-shell';
 import { defaultAppNameMapping } from './appNameMapping';
 import {
   AndroidDevice,
@@ -118,7 +119,9 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
   async runAdbShell(command: string, opt?: RunAdbShellOpt): Promise<string> {
     if (opt?.timeout !== undefined) {
       const adb = await this.interface.getAdb();
-      return await adb.shell(command, { timeout: opt.timeout });
+      return await runAdbShellStdoutOrThrow(adb, command, {
+        timeout: opt.timeout,
+      });
     }
 
     const action =
