@@ -5,14 +5,23 @@
  *   node scripts/gen-scale-fixture.mjs <outDir>
  *
  * Writes a midscene.config.ts (factory stub — never runnable, only loadable),
- * 12 shared flows (3 of which call other flows, i.e. depth-2 chains),
- * 30 feature files x 4-6 scenarios (~150 scenarios) that call 1-3 flows
- * each, captures + <var> uses, step annotations, two Scenario Outlines, and
- * seeded imperfections so the HEALTH panel has content:
+ * 30 shared flows arranged as a realistic dependency web:
+ *   - a 7-flow SaaS pipeline chain (report → run → pipeline → data source →
+ *     project → workspace → signed-in), the deepest inheritance line
+ *   - a 5-flow support-desk chain (archive → resolve → escalate → file →
+ *     signed-in)
+ *   - commerce composition (checkout/cart/coupon diamonds over add-to-basket)
+ *   - heavy fan-in on "I am signed in as {string}" (9 flow callers + scenarios)
+ * plus 33 feature files x ~5 scenarios (~163 scenarios) that call the flows —
+ * including one fan-out smoke scenario calling 5 flows and two story-arc
+ * features whose scenarios climb the pipeline/support chains level by level.
+ * Captures + <var> uses, step annotations, two Scenario Outlines, and seeded
+ * imperfections so the HEALTH panel has content:
  *   - 2 unused flows
  *   - 1 unknown-var use
  *   - 1 malformed remember statement
  *   - 1 $missing-skill reference
+ *   - many flow-depth findings (every flow nested deeper than MAX_FLOW_DEPTH)
  *
  * Output is fully deterministic: no randomness, names are derived from
  * indices.
@@ -52,8 +61,9 @@ writeFileSync(
 
 // ———————————————————————————— shared flows ————————————————————————————
 
-// Flow call depth: leaf flows are depth 1; "composed" flows below call
-// other flows (depth 2 = MAX_FLOW_DEPTH, intentionally legal).
+// Leaf flows (call no other flow). "I am signed in as {string}" is the
+// fan-in base of the whole suite: 9 composed flows and many scenarios
+// call it. The last two flows are intentionally unused (health seed).
 const CORE_FLOWS = `Feature: Shared core flows
 
   @flow @param:role @returns:greeting
@@ -116,6 +126,9 @@ const CORE_FLOWS = `Feature: Shared core flows
     Then the sandbox status shows fresh
 `;
 
+// Commerce composition: depth-2/3 flows over the core leaves, including
+// the classic diamond — "reviewed cart" and "discounted basket" both
+// inherit "I have added {string} to the basket".
 const COMPOSED_FLOWS = `Feature: Shared composed flows
 
   @flow @param:role @returns:receipt
@@ -159,9 +172,128 @@ const COMPOSED_FLOWS = `Feature: Shared composed flows
     Then the greeting matches the "<locale>" locale
 `;
 
-// A deliberately over-deep chain (depth 3 > MAX_FLOW_DEPTH): calling a
-// composed flow from another flow. Seeds the 'flow-depth' health finding
-// and gives the graph a 3-column flow chain to draw.
+// Account hygiene flows: three more direct dependents of the sign-in base
+// (fan-in), one of which also inherits the "open section" leaf.
+const ACCOUNT_FLOWS = `Feature: Shared account flows
+
+  @flow
+  Scenario: I have enabled two-factor auth
+    Given I am signed in as "owner"
+    When I open the security settings
+    And I scan the enrollment QR code
+    Then the two-factor badge shows enabled
+
+  @flow
+  Scenario: I have cleared the notification tray
+    Given I am signed in as "manager"
+    When I open the notification tray
+    And I click mark-all-read
+    Then the unread counter shows zero
+
+  @flow @returns:billingProfile
+  Scenario: I have updated my billing address
+    Given I am signed in as "admin"
+    And I have opened the "billing" section
+    When I edit the billing address form
+    And I remember the billing profile name as "billingProfile"
+    Then the saved-address toast appears
+`;
+
+// The SaaS pipeline chain — the deepest inheritance line in the fixture:
+//   exported run report → completed run → configured pipeline →
+//   connected data source → seeded project → active workspace → signed in
+// (7 nested flows; every link is a real Given). "invited a teammate" forms
+// a diamond with "seeded project" over the shared "active workspace" base.
+const PLATFORM_FLOWS = `Feature: Shared platform flows
+
+  @flow @returns:workspaceName
+  Scenario: I have an active workspace
+    Given I am signed in as "owner"
+    When I open the workspace switcher
+    And I remember the current workspace name as "workspaceName"
+    Then the workspace status pill shows active
+
+  @flow @returns:inviteEmail
+  Scenario: I have invited a teammate to the workspace
+    Given I have an active workspace
+    When I open the members page
+    And I remember the pending invite email as "inviteEmail"
+    Then the pending invite row is visible
+
+  @flow @returns:projectId
+  Scenario: I have a seeded project
+    Given I have an active workspace
+    When I open the projects board
+    And I create a project from the starter template
+    And I remember the new project id as "projectId"
+    Then the project card appears on the board
+
+  @flow @returns:sourceName
+  Scenario: I have connected the demo data source
+    Given I have a seeded project
+    When I open the data sources tab
+    And I connect the bundled demo warehouse
+    And I remember the data source name as "sourceName"
+    Then the source health indicator is green
+
+  @flow @returns:pipelineName
+  Scenario: I have a configured pipeline
+    Given I have connected the demo data source
+    When I open the pipeline canvas
+    And I add the extract, transform and publish steps
+    And I remember the pipeline name as "pipelineName"
+    Then the pipeline canvas shows three connected steps
+
+  @flow @returns:runId
+  Scenario: I have a completed pipeline run
+    Given I have a configured pipeline
+    When I press run and wait for the badge to settle
+    And I remember the finished run id as "runId"
+    Then the run badge shows success
+
+  @flow @returns:reportUrl
+  Scenario: I have an exported run report
+    Given I have a completed pipeline run
+    When I open the run detail page
+    And I click export report
+    And I remember the report download link as "reportUrl"
+    Then the report toast links to the download
+`;
+
+// Support-desk chain: a second long inheritance line (5 nested flows
+// counting the sign-in base) that ends on the same fan-in leaf.
+const SUPPORT_FLOWS = `Feature: Shared support flows
+
+  @flow @returns:ticketId
+  Scenario: I have filed a support ticket
+    Given I am signed in as "customer"
+    When I open the help center form
+    And I remember the new ticket id as "ticketId"
+    Then the ticket confirmation banner is visible
+
+  @flow @returns:ticketId
+  Scenario: I have an escalated support ticket
+    Given I have filed a support ticket
+    When I press the escalate button
+    Then the priority chip shows urgent
+
+  @flow @returns:resolutionNote
+  Scenario: I have a resolved support ticket
+    Given I have an escalated support ticket
+    When I post the resolution note
+    And I remember the resolution note text as "resolutionNote"
+    Then the ticket status shows resolved
+
+  @flow
+  Scenario: I have archived the resolved ticket
+    Given I have a resolved support ticket
+    When I open the ticket actions menu
+    And I click archive ticket
+    Then the ticket disappears from the open queue
+`;
+
+// Quarterly summary keeps its place as a reporting flow over checkout
+// (a third independent depth-3 chain).
 const DEEP_FLOWS = `Feature: Shared reporting flows
 
   @flow @param:role @returns:summary
@@ -176,6 +308,18 @@ writeFileSync(join(base, 'features', 'flows', 'core.feature'), CORE_FLOWS);
 writeFileSync(
   join(base, 'features', 'flows', 'composed.feature'),
   COMPOSED_FLOWS,
+);
+writeFileSync(
+  join(base, 'features', 'flows', 'account.feature'),
+  ACCOUNT_FLOWS,
+);
+writeFileSync(
+  join(base, 'features', 'flows', 'platform.feature'),
+  PLATFORM_FLOWS,
+);
+writeFileSync(
+  join(base, 'features', 'flows', 'support.feature'),
+  SUPPORT_FLOWS,
 );
 writeFileSync(join(base, 'features', 'flows', 'reporting.feature'), DEEP_FLOWS);
 
@@ -199,8 +343,9 @@ const PLANS = ['basic', 'pro', 'enterprise'];
 const pick = (arr, n) => arr[n % arr.length];
 
 // Scenario templates: each returns gherkin lines for scenario index n.
-// Together they exercise 1-3 flow calls, captures + <var> uses, data
-// tables, and @soft / # @agent / # @no-ai annotations.
+// Together they exercise 1-5 flow calls, deep-chain entry points at every
+// level, captures + <var> uses, data tables, and @soft / # @agent /
+// # @no-ai annotations.
 const TEMPLATES = [
   (n) => [
     `  Scenario: Basket total reflects the ${pick(PRODUCTS, n)} price`,
@@ -284,6 +429,41 @@ const TEMPLATES = [
     '    Given I have generated a quarterly summary as "manager"',
     '    Then the summary <summary> is downloadable',
   ],
+  () => [
+    '  Scenario: Two-factor enrollment survives a re-login',
+    '    Given I have enabled two-factor auth',
+    '    When I sign out and back in',
+    '    Then the two-factor badge is still enabled',
+  ],
+  (n) => [
+    `  Scenario: Notification tray stays empty for ${pick(ROLES, n)}`,
+    '    Given I have cleared the notification tray',
+    '    When I refresh the dashboard',
+    '    Then the unread counter still shows zero',
+  ],
+  () => [
+    '  Scenario: Billing profile is echoed on the invoice footer',
+    '    Given I have updated my billing address',
+    '    When I open the latest invoice',
+    '    Then the footer shows <billingProfile>',
+  ],
+  () => [
+    '  Scenario: Pipeline run badge links to the run log (deep chain)',
+    '    Given I have a completed pipeline run',
+    '    When I open the run log panel',
+    '    Then the log header mentions run <runId>',
+  ],
+  () => [
+    '  Scenario: Exported report link resolves (deepest chain)',
+    '    Given I have an exported run report',
+    '    Then the link <reportUrl> downloads the report',
+  ],
+  () => [
+    '  Scenario: Escalated ticket shows the urgent chip',
+    '    Given I have an escalated support ticket',
+    '    When I reload the ticket page',
+    '    Then ticket <ticketId> still shows the urgent chip',
+  ],
 ];
 
 const OUTLINE = [
@@ -349,6 +529,97 @@ for (let f = 0; f < 30; f++) {
   );
 }
 
+// ——————————————————— handcrafted story-arc features ———————————————————
+
+// Fan-out: one scenario that directly orchestrates five flows.
+const SMOKE_FEATURE = `Feature: Suite 31 — storefront smoke
+  One wide scenario that fans out across five shared flows, plus a
+  narrower companion.
+
+  @smoke
+  Scenario: Full storefront smoke pass
+    Given I am signed in as "manager"
+    And I have switched the locale to "en-GB"
+    And I have added "Trail Backpack" to the basket
+    And I have applied the coupon "SAVE10"
+    And I have opened the "orders" section
+    Then the basket total equals <price> minus <discount>
+
+  Scenario: Smoke pass leaves no notifications behind
+    Given I have cleared the notification tray
+    And I have opened the "team" section
+    Then the unread counter still shows zero
+`;
+
+// Story arc: SaaS onboarding → setup → operation → reporting. Each
+// scenario enters the pipeline chain one level deeper, so the graph
+// shows the same chain lighting up column by column.
+const PIPELINE_FEATURE = `Feature: Suite 32 — pipeline lifecycle
+  A SaaS story arc that climbs the platform chain level by level:
+  workspace, teammate, project, data source, pipeline, run, report.
+
+  Scenario: Workspace appears in the switcher
+    Given I have an active workspace
+    Then the switcher lists <workspaceName> first
+
+  Scenario: Invited teammate shows as pending
+    Given I have invited a teammate to the workspace
+    Then the members table lists <inviteEmail> as pending
+
+  Scenario: Seeded project lands on the board
+    Given I have a seeded project
+    Then the board card links to project <projectId>
+
+  Scenario: Demo data source reports healthy
+    Given I have connected the demo data source
+    Then the health panel shows <sourceName> as green
+
+  Scenario: Configured pipeline validates cleanly
+    Given I have a configured pipeline
+    When I press validate
+    Then the validation toast names <pipelineName>
+
+  Scenario: Completed run is listed in history
+    Given I have a completed pipeline run
+    Then the history table lists run <runId> on top
+
+  Scenario: Exported report is downloadable end to end
+    Given I have an exported run report
+    Then the link <reportUrl> serves a fresh report
+`;
+
+const SUPPORT_FEATURE = `Feature: Suite 33 — support desk
+  The support-desk arc: file, escalate, resolve, archive.
+
+  Scenario: Fresh ticket is acknowledged
+    Given I have filed a support ticket
+    Then the confirmation mentions ticket <ticketId>
+
+  Scenario: Escalation pings the on-call channel
+    Given I have an escalated support ticket
+    # @agent
+    Then the on-call channel mentions <ticketId>, per $check-logs
+
+  Scenario: Resolution note is shown to the customer
+    Given I have a resolved support ticket
+    Then the customer view shows <resolutionNote>
+
+  Scenario: Archived ticket leaves the queue clean
+    Given I have archived the resolved ticket
+    When I open the open-tickets queue
+    Then the queue empty-state is visible
+`;
+
+const ARC_FEATURES = [
+  ['suite-31-smoke.feature', SMOKE_FEATURE, 2],
+  ['suite-32-pipeline.feature', PIPELINE_FEATURE, 7],
+  ['suite-33-support.feature', SUPPORT_FEATURE, 4],
+];
+for (const [name, body, count] of ARC_FEATURES) {
+  writeFileSync(join(base, 'features', name), body);
+  scenarioTotal += count;
+}
+
 console.log(
-  `Wrote scale fixture to ${base}: 33 feature files (30 suites + 3 shared-flow files), ${scenarioTotal} scenarios, 16 flows (2 unused, incl. a depth-3 chain), seeded health findings.`,
+  `Wrote scale fixture to ${base}: 39 feature files (33 suites + 6 shared-flow files), ${scenarioTotal} scenarios, 30 flows (2 unused; deepest chain nests 7 flows: report → run → pipeline → data source → project → workspace → sign-in), seeded health findings.`,
 );

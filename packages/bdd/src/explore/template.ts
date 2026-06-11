@@ -657,7 +657,7 @@ function renderDetail() {
   detail.appendChild(stepsCard);
 }
 
-/* ———————————————— flow graph (inline SVG, vertical layers) ———————————————— */
+/* ———————————————— flow graph (inline SVG, left→right columns) ———————————————— */
 
 var SVG_NS = 'http://www.w3.org/2000/svg';
 function svgEl(tag) { return document.createElementNS(SVG_NS, tag); }
@@ -699,11 +699,12 @@ function dedupeLinks(raw) {
   return out;
 }
 
-// The whole dependency picture, top to bottom: layer 0 = the dependents
-// (every scenario individually, or aggregated feature nodes when the
-// "Show every scenario" toggle is off), flows by call depth below. Nodes
-// get an explicit "order" so the layout never re-sorts (scenarios keep
-// feature/document order; flows keep the model's name order).
+// The whole dependency picture, left to right: layer 0 (leftmost column) =
+// the dependents (every scenario individually, or aggregated feature nodes
+// when the "Show every scenario" toggle is off), flows by call depth to
+// the right. Nodes carry an explicit "order" as the deterministic
+// tiebreak (scenarios keep feature/document order; flows keep the model's
+// name order).
 function buildFullGraph(nodes, rawLinks) {
   var layers = flowLayers();
   var hiddenCallers = 0;
@@ -758,7 +759,8 @@ function buildFullGraph(nodes, rawLinks) {
 }
 
 // Optional focus subgraph (toolbar button on a pinned flow): the flow's
-// direct callers above, the flow, then its transitive callees below.
+// direct callers in the left column, the flow, then its transitive
+// callees continuing right.
 function buildFocusGraph(nodes, rawLinks) {
   var fid = state.focusFlowId;
   var focus = flowById[fid];
@@ -786,7 +788,7 @@ function buildFocusGraph(nodes, rawLinks) {
   });
   var frontier = [fid];
   var layer = 2;
-  while (frontier.length > 0 && layer < 6) {
+  while (frontier.length > 0 && layer < 10) {
     var next = [];
     frontier.forEach(function (src) {
       (edgesFrom[src] || []).forEach(function (e) {
@@ -890,76 +892,112 @@ function openNode(node) {
   selectItem(node.id);
 }
 
-/* ———— vertical layered layout ———— */
+/* ———— horizontal left→right layered layout ———— */
 
-var GRAPH_TARGET_W = 1600; // wrap wide layers to roughly this canvas width
-var NODE_W = 240;
+var NODE_W = 280;
 var NODE_H = 46;
 var NODE_H_SMALL = 32;
-var H_GAP = 48;
-var V_GAP = 22;
-var BAND_LABEL_H = 30;
-var BAND_GAP = 56;
+var COL_GAP = 130;       // horizontal room between columns for the edges
+var ROW_GAP = 14;
+var BAND_LABEL_H = 34;
 var PAD = 28;
 
-// Grid-packs each layer into rows of up to perRow nodes inside a labeled
-// band, then draws bands, edges (source bottom-center → target top-center,
-// arrowheads pointing down) and nodes. Returns live handles for cone
+// Columns left→right by layer: column 0 = the entry points (scenarios or
+// features), each column to the right = flows one call deeper, so reading
+// across a chain answers "this runs first, then inherits this, then this".
+// Node order inside each column comes from a two-pass barycenter sweep
+// (sort by the mean y of placed neighbors) so chains stay roughly
+// horizontal and edge crossings stay low — but it is fully deterministic
+// (ties fall back to document/model order). Returns live handles for cone
 // re-styling.
-function layoutVertical(svg, nodes, links, layerLabels) {
+function layoutHorizontal(svg, nodes, links, layerLabels) {
   var byLayer = [];
   nodes.forEach(function (n) {
+    n.h = n.small ? NODE_H_SMALL : NODE_H;
     (byLayer[n.layer] = byLayer[n.layer] || []).push(n);
   });
-  var perRow = Math.max(1, Math.floor((GRAPH_TARGET_W - PAD * 2 + H_GAP) / (NODE_W + H_GAP)));
-  var widestRow = 1;
-  byLayer.forEach(function (list) {
-    if (list) widestRow = Math.max(widestRow, Math.min(list.length, perRow));
-  });
-  var width = PAD * 2 + widestRow * (NODE_W + H_GAP) - H_GAP;
-
-  var bands = [];
-  var y = PAD;
+  var cols = [];
   byLayer.forEach(function (list, li) {
-    if (!list || list.length === 0) return;
-    list.sort(function (a, b) { return a.order - b.order; });
-    var layerH = NODE_H_SMALL;
-    list.forEach(function (n) {
-      n.h = n.small ? NODE_H_SMALL : NODE_H;
-      if (n.h > layerH) layerH = n.h;
-    });
-    var contentTop = y + BAND_LABEL_H;
-    list.forEach(function (n, i) {
-      n.x = PAD + (i % perRow) * (NODE_W + H_GAP);
-      n.y = contentTop + Math.floor(i / perRow) * (layerH + V_GAP);
-    });
-    var rows = Math.ceil(list.length / perRow);
-    var bottom = contentTop + rows * (layerH + V_GAP) - V_GAP + 12;
-    bands.push({
-      top: y, bottom: bottom,
-      label: (layerLabels[li] || 'LAYER ' + li) + ' · ' + list.length
-    });
-    y = bottom + BAND_GAP;
+    if (list && list.length > 0) cols.push({ layer: li, list: list });
   });
-  var height = y - BAND_GAP + PAD;
+
+  var sourcesOf = Object.create(null); // node id -> ids it links to
+  var targetsOf = Object.create(null); // node id -> ids linking to it
+  links.forEach(function (l) {
+    (sourcesOf[l.from] = sourcesOf[l.from] || []).push(l.to);
+    (targetsOf[l.to] = targetsOf[l.to] || []).push(l.from);
+  });
+
+  var center = Object.create(null); // node id -> y-center of last placement
+  function placeColumn(col, ci) {
+    var x = PAD + ci * (NODE_W + COL_GAP);
+    var y = PAD + BAND_LABEL_H;
+    col.list.forEach(function (n) {
+      n.x = x;
+      n.y = y;
+      center[n.id] = y + n.h / 2;
+      y += n.h + ROW_GAP;
+    });
+    col.bottom = y - ROW_GAP;
+  }
+  function meanCenter(ids) {
+    var sum = 0;
+    var count = 0;
+    (ids || []).forEach(function (id) {
+      if (center[id] !== undefined) { sum += center[id]; count++; }
+    });
+    return count > 0 ? sum / count : null;
+  }
+  function sortByNeighbors(list, neighborsOf) {
+    list.forEach(function (n) {
+      var key = meanCenter(neighborsOf[n.id]);
+      // Nodes with no placed neighbors sink to the bottom, in model order.
+      n.sortKey = key === null ? 1e9 + n.order : key;
+    });
+    list.sort(function (a, b) {
+      return (a.sortKey - b.sortKey) || (a.order - b.order);
+    });
+  }
+
+  // Pass 1: entry column in document order, each flow column pulled toward
+  // its callers. Pass 2: pull the entry column toward the flows it calls,
+  // then settle the flow columns once more.
+  cols.forEach(function (col, ci) {
+    if (ci === 0) col.list.sort(function (a, b) { return a.order - b.order; });
+    else sortByNeighbors(col.list, targetsOf);
+    placeColumn(col, ci);
+  });
+  if (cols.length > 1) {
+    sortByNeighbors(cols[0].list, sourcesOf);
+    cols.forEach(function (col, ci) {
+      if (ci > 0) sortByNeighbors(col.list, targetsOf);
+      placeColumn(col, ci);
+    });
+  }
+
+  var width = PAD * 2 + cols.length * (NODE_W + COL_GAP) - COL_GAP;
+  var height = PAD;
+  cols.forEach(function (col) { if (col.bottom > height) height = col.bottom; });
+  height += PAD;
   svg.setAttribute('width', String(width));
   svg.setAttribute('height', String(height));
 
-  // Band backgrounds + labels (painted lowest).
-  bands.forEach(function (b) {
+  // Vertical column bands + header labels (painted lowest).
+  cols.forEach(function (col, ci) {
+    var x = PAD + ci * (NODE_W + COL_GAP);
     var rect = svgEl('rect');
     rect.setAttribute('class', 'gband');
-    rect.setAttribute('x', String(PAD / 2));
-    rect.setAttribute('y', String(b.top - 8));
-    rect.setAttribute('width', String(width - PAD));
-    rect.setAttribute('height', String(b.bottom - b.top + 8));
+    rect.setAttribute('x', String(x - 12));
+    rect.setAttribute('y', String(PAD - 10));
+    rect.setAttribute('width', String(NODE_W + 24));
+    rect.setAttribute('height', String(height - PAD * 2 + 20));
     rect.setAttribute('rx', '10');
     svg.appendChild(rect);
     var label = svgEl('text');
     label.setAttribute('class', 'gband-label');
-    label.setAttribute('x', String(PAD));
-    label.setAttribute('y', String(b.top + 11));
-    label.textContent = b.label;
+    label.setAttribute('x', String(x));
+    label.setAttribute('y', String(PAD + 8));
+    label.textContent = (layerLabels[col.layer] || 'DEPTH ' + col.layer) + ' · ' + col.list.length;
     svg.appendChild(label);
   });
 
@@ -991,18 +1029,18 @@ function layoutVertical(svg, nodes, links, layerLabels) {
     var t = nodeById[l.to];
     edgeRecs[i] = null;
     if (!s || !t) return;
-    var x1 = s.x + NODE_W / 2;
-    var y1 = s.y + s.h;
-    var x2 = t.x + NODE_W / 2;
-    var y2 = t.y;
+    var x1 = s.x + NODE_W;
+    var y1 = s.y + s.h / 2;
+    var x2 = t.x;
+    var y2 = t.y + t.h / 2;
     var d;
-    if (y2 > y1) {
-      var my = (y1 + y2) / 2;
-      d = 'M ' + x1 + ' ' + y1 + ' C ' + x1 + ' ' + my + ', ' + x2 + ' ' + my + ', ' + x2 + ' ' + y2;
+    if (x2 > x1) {
+      var mx = (x1 + x2) / 2;
+      d = 'M ' + x1 + ' ' + y1 + ' C ' + mx + ' ' + y1 + ', ' + mx + ' ' + y2 + ', ' + x2 + ' ' + y2;
     } else {
-      // Back/upward edge (cycle): swing out to the left of both nodes.
-      var xo = Math.min(s.x, t.x) - 60;
-      d = 'M ' + x1 + ' ' + y1 + ' C ' + xo + ' ' + (y1 + 36) + ', ' + xo + ' ' + (y2 - 36) + ', ' + x2 + ' ' + y2;
+      // Back/leftward edge (cycle): swing around above both nodes.
+      var yo = Math.min(s.y, t.y) - 56;
+      d = 'M ' + x1 + ' ' + y1 + ' C ' + (x1 + 56) + ' ' + yo + ', ' + (x2 - 56) + ' ' + yo + ', ' + x2 + ' ' + y2;
     }
     var path = svgEl('path');
     // Flow→flow composition edges read differently from caller→flow usage.
@@ -1052,14 +1090,14 @@ function layoutVertical(svg, nodes, links, layerLabels) {
     var label = svgEl('text');
     label.setAttribute('x', '11');
     label.setAttribute('y', n.small ? '20' : '19');
-    label.textContent = truncate(n.label, 32);
+    label.textContent = truncate(n.label, 40);
     g.appendChild(label);
     if (!n.small) {
       var sub = svgEl('text');
       sub.setAttribute('class', 'sub');
       sub.setAttribute('x', '11');
       sub.setAttribute('y', '36');
-      sub.textContent = truncate((n.unused ? 'UNUSED · ' : '') + (n.sub || ''), 40);
+      sub.textContent = truncate((n.unused ? 'UNUSED · ' : '') + (n.sub || ''), 48);
       g.appendChild(sub);
     }
     var title = svgEl('title');
@@ -1184,14 +1222,12 @@ function renderGraph() {
 
   if (state.focusFlowId && flowById[state.focusFlowId]) {
     buildFocusGraph(nodes, rawLinks);
-    layerLabels = ['CALLERS', 'FOCUSED FLOW', 'CALLEES', 'CALLEES · DEPTH 2', 'CALLEES · DEPTH 3', 'CALLEES · DEPTH 4'];
+    layerLabels = ['CALLERS', 'FOCUSED FLOW', 'CALLEES'];
+    for (var fd = 2; fd <= 8; fd++) layerLabels.push('CALLEES · DEPTH ' + fd);
   } else {
     var hidden = buildFullGraph(nodes, rawLinks);
-    layerLabels = [
-      state.graphScenarios ? 'SCENARIOS' : 'FEATURES',
-      'FLOWS', 'NESTED FLOWS · DEPTH 2', 'NESTED FLOWS · DEPTH 3',
-      'NESTED FLOWS · DEPTH 4', 'NESTED FLOWS · DEPTH 5'
-    ];
+    layerLabels = [state.graphScenarios ? 'SCENARIOS' : 'FEATURES', 'FLOWS'];
+    for (var nd = 2; nd <= 8; nd++) layerLabels.push('NESTED FLOWS · DEPTH ' + nd);
     if (hidden > 0) {
       hiddenNote = hidden + (state.graphScenarios ? ' scenarios' : ' features') + ' without flow calls hidden';
     }
@@ -1205,7 +1241,7 @@ function renderGraph() {
   }
 
   var links = dedupeLinks(rawLinks);
-  graphRefs = layoutVertical(svg, nodes, links, layerLabels);
+  graphRefs = layoutHorizontal(svg, nodes, links, layerLabels);
   graphRefs.hiddenNote = hiddenNote;
 
   // Optional readability aid for dense suites: fade the edge layer.
