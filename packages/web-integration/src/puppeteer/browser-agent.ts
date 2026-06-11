@@ -1,6 +1,8 @@
 import {
   type BrowserPageManager,
   WebAgentCore,
+  appendBrowserAgentPageActions,
+  createBrowserAgentPageActions,
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
 import { applyForceChromeSelectRendering } from '@/common/browser-agent-utils';
@@ -57,9 +59,28 @@ export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
       newPageTimeout,
     });
     const { forceChromeSelectRendering } = agentOpts;
+    const pageManagerRef: {
+      current?: BrowserPageManager<PuppeteerPage, PuppeteerTarget>;
+    } = {};
+    const getPageManager = () => {
+      if (!pageManagerRef.current) {
+        throw new Error(
+          '[midscene] PuppeteerBrowserAgent page manager is not initialized.',
+        );
+      }
+      return pageManagerRef.current;
+    };
+    const browserActions = createBrowserAgentPageActions({
+      agentName: 'PuppeteerBrowserAgent',
+      getPageManager,
+    });
     const webPage = new PuppeteerWebPage(initialPage, {
       ...agentOpts,
       forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
+      customActions: appendBrowserAgentPageActions(
+        agentOpts.customActions,
+        browserActions,
+      ),
     });
     const pageManager = createPuppeteerBrowserPageManager({
       browser,
@@ -67,6 +88,7 @@ export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
       runtimeOptions,
       debug,
     });
+    pageManagerRef.current = pageManager;
     super(webPage, agentOpts);
     this.pageManager = pageManager;
 
