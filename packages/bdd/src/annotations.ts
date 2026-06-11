@@ -32,6 +32,17 @@ const NO_AI_MARKER_RE = /@no-ai\b/;
 const SOFT_MARKER_RE = /@soft\b/;
 
 /**
+ * The single definition of "this comment line is a routing marker": strip
+ * the `#`, and require a marker-only body. Returns the body for marker
+ * lines, undefined for prose. Both the resolver and the footgun audit go
+ * through here so the two can never disagree on what routes.
+ */
+function markerBody(rawText: string): string | undefined {
+  const text = rawText.trim().replace(/^#/, '').trim();
+  return ANNOTATION_LINE_RE.test(text) ? text : undefined;
+}
+
+/**
  * Extract `$skill-name` tokens from text, deduped, in order of first
  * appearance.
  */
@@ -147,9 +158,9 @@ export function resolveStepAnnotations(input: {
   const skills: string[] = [];
 
   for (const rawText of blockTexts) {
-    const text = rawText.trim().replace(/^#/, '').trim();
     // Only marker-shaped lines route; prose comments are inert.
-    if (!ANNOTATION_LINE_RE.test(text)) {
+    const text = markerBody(rawText);
+    if (text === undefined) {
       continue;
     }
     if (AGENT_MARKER_RE.test(text)) {
@@ -207,8 +218,7 @@ export function collectAnnotationFootguns(document: GherkinDocument): string[] {
   }
 
   for (const [line, rawText] of commentTextByLine) {
-    const text = rawText.trim().replace(/^#/, '').trim();
-    if (!ANNOTATION_LINE_RE.test(text)) {
+    if (markerBody(rawText) === undefined) {
       continue;
     }
     // Attached means the contiguous comment run containing this line ends
@@ -225,29 +235,31 @@ export function collectAnnotationFootguns(document: GherkinDocument): string[] {
     );
   }
 
-  const tagScopes: Array<{ tags: readonly Tag[] }> = [];
-  const feature = document.feature;
-  if (feature) {
-    tagScopes.push(feature);
-    const scenarioScopes = feature.children.flatMap((child) => [
-      child.scenario,
-      ...(child.rule ? [child.rule] : []),
-      ...(child.rule?.children ?? []).map((ruleChild) => ruleChild.scenario),
-    ]);
-    for (const scope of scenarioScopes) {
-      if (!scope) continue;
-      tagScopes.push(scope);
-      if ('examples' in scope) {
-        tagScopes.push(...scope.examples);
-      }
-    }
-  }
-  for (const scope of tagScopes) {
-    for (const tag of scope.tags) {
+  // Same explicit feature/rule/scenario walk as indexDocument, plus the
+  // Examples tags scenarios carry.
+  const checkTags = (tags: readonly Tag[]) => {
+    for (const tag of tags) {
       if (tag.name === '@agent') {
         warnings.push(
           `tag "@agent" at ${uri}:${tag.location.line} is ignored: @agent routes only as a "# @agent" comment directly above a step (feature/scenario tags support @no-ai, @soft, @flow, @param:*)`,
         );
+      }
+    }
+  };
+  const feature = document.feature;
+  if (feature) {
+    checkTags(feature.tags);
+    for (const child of feature.children) {
+      if (child.rule) checkTags(child.rule.tags);
+      const scenarios = child.rule
+        ? child.rule.children.map((ruleChild) => ruleChild.scenario)
+        : [child.scenario];
+      for (const scenario of scenarios) {
+        if (!scenario) continue;
+        checkTags(scenario.tags);
+        for (const examples of scenario.examples) {
+          checkTags(examples.tags);
+        }
       }
     }
   }
@@ -269,7 +281,7 @@ export interface StepContextInput {
   pickle: Pickle;
   pickleStep: PickleStep;
   flowDepth: number;
-  runtime: Pick<RouterContext, 'flows' | 'skills' | 'config'>;
+  runtime: Pick<RouterContext, 'flows' | 'skills'>;
   agents: Pick<RouterContext, 'getUiAgent' | 'getGeneralAgent' | 'peekUiAgent'>;
   attach?: RouterContext['attach'];
   log?: RouterContext['log'];
@@ -296,7 +308,6 @@ export function buildStepContext(input: StepContextInput): RouterContext {
     flowDepth: input.flowDepth,
     flows: input.runtime.flows,
     skills: input.runtime.skills,
-    config: input.runtime.config,
     getUiAgent: input.agents.getUiAgent,
     getGeneralAgent: input.agents.getGeneralAgent,
     peekUiAgent: input.agents.peekUiAgent,

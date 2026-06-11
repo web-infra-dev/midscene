@@ -22,6 +22,10 @@ const RUN_FLOW_SUGAR_RE = /^I run the "([^"]+)" flow( with (.+))?$/i;
 const SUGAR_ARG_RE = new RegExp(`(${IDENT_RE_SOURCE})\\s+"([^"]*)"`, 'g');
 const PARAM_PLACEHOLDER_RE = new RegExp(`<(${IDENT_RE_SOURCE})>`, 'g');
 
+function formatParams(params: string[]): string {
+  return params.length > 0 ? params.join(', ') : '(none)';
+}
+
 /**
  * Replace `<param>` placeholders in a flow-body step with the call's
  * arguments — the same `<x>` visual (and the same substitute-then-run
@@ -34,12 +38,11 @@ export function substituteParams(
   flow: FlowDef,
   args: Record<string, string>,
 ): string {
-  return text.replace(PARAM_PLACEHOLDER_RE, (full, name: string) => {
+  return text.replace(PARAM_PLACEHOLDER_RE, (_match, name: string) => {
     const value = args[name];
     if (value === undefined) {
-      const params = flow.params.length > 0 ? flow.params.join(', ') : '(none)';
       throw new Error(
-        `${ERROR_PREFIX} Flow "${flow.name}" (${flow.uri}): step "${text}" references <${name}>, which is not a declared @param: (params: ${params})`,
+        `${ERROR_PREFIX} Flow "${flow.name}" (${flow.uri}): step "${text}" references <${name}>, which is not a declared @param: (params: ${formatParams(flow.params)})`,
       );
     }
     return value;
@@ -99,9 +102,8 @@ export class FlowRegistry implements FlowRegistryLike {
     const captured = entry.match(text);
     if (!captured) return undefined;
     if (captured.length !== def.params.length) {
-      const params = def.params.length > 0 ? def.params.join(', ') : '(none)';
       throw new Error(
-        `${ERROR_PREFIX} Flow "${def.name}" (${def.uri}): expression captures ${captured.length} values but @param: declares ${def.params.length} (params: ${params})`,
+        `${ERROR_PREFIX} Flow "${def.name}" (${def.uri}): expression captures ${captured.length} values but @param: declares ${def.params.length} (params: ${formatParams(def.params)})`,
       );
     }
     const args: Record<string, string> = {};
@@ -127,10 +129,8 @@ export class FlowRegistry implements FlowRegistryLike {
       for (const m of withClause.matchAll(SUGAR_ARG_RE)) {
         const [, argName, value] = m;
         if (!def.params.includes(argName)) {
-          const params =
-            def.params.length > 0 ? def.params.join(', ') : '(none)';
           throw new Error(
-            `${ERROR_PREFIX} Flow "${def.name}" (${def.uri}): unknown argument "${argName}" (params: ${params})`,
+            `${ERROR_PREFIX} Flow "${def.name}" (${def.uri}): unknown argument "${argName}" (params: ${formatParams(def.params)})`,
           );
         }
         args[argName] = value;
@@ -172,9 +172,19 @@ export async function executeFlow(
     });
     // Substitute AFTER context building: annotations/$skills are resolved
     // from the authored text, so an argument value can never inject routing.
+    // Step arguments get the same treatment as Scenario Outline arguments,
+    // where placeholders apply inside tables and doc strings too.
     await runStep({
       ...childCtx,
       stepText: substituteParams(childCtx.stepText, flow, args),
+      dataTable:
+        childCtx.dataTable === undefined
+          ? undefined
+          : substituteParams(childCtx.dataTable, flow, args),
+      docString:
+        childCtx.docString === undefined
+          ? undefined
+          : substituteParams(childCtx.docString, flow, args),
     });
   }
 }

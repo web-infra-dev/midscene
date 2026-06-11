@@ -1,11 +1,7 @@
 import type { GherkinDocument, Pickle, PickleStep } from '@cucumber/messages';
 import { describe, expect, it, vi } from 'vitest';
 import { FlowRegistry, executeFlow, substituteParams } from '../../src/flows';
-import type {
-  FlowDef,
-  ResolvedBddConfig,
-  RouterContext,
-} from '../../src/types';
+import type { FlowDef, RouterContext } from '../../src/types';
 
 vi.mock('../../src/annotations', () => {
   const stepTypeOf = () => 'action';
@@ -41,7 +37,7 @@ vi.mock('../../src/annotations', () => {
       };
     };
     flowDepth: number;
-    runtime: { flows: unknown; skills: unknown; config: unknown };
+    runtime: { flows: unknown; skills: unknown };
     agents: {
       getUiAgent: unknown;
       getGeneralAgent: unknown;
@@ -58,7 +54,6 @@ vi.mock('../../src/annotations', () => {
     flowDepth: input.flowDepth,
     flows: input.runtime.flows,
     skills: input.runtime.skills,
-    config: input.runtime.config,
     getUiAgent: input.agents.getUiAgent,
     getGeneralAgent: input.agents.getGeneralAgent,
     peekUiAgent: input.agents.peekUiAgent,
@@ -96,7 +91,6 @@ function makeParentCtx(overrides: Partial<RouterContext> = {}): RouterContext {
     flowDepth: 0,
     flows: new FlowRegistry(),
     skills: new Map(),
-    config: {} as ResolvedBddConfig,
     getUiAgent: async () => {
       throw new Error('no ui agent in test');
     },
@@ -354,5 +348,51 @@ describe('executeFlow', () => {
     expect(seen[0].docString).toBeUndefined();
     expect(seen[1].dataTable).toBeUndefined();
     expect(seen[1].docString).toBe('hello\nworld');
+  });
+
+  it('substitutes <param> inside data tables and doc strings, like an Outline', async () => {
+    const tableStep = {
+      text: 'with table',
+      argument: {
+        dataTable: {
+          rows: [{ cells: [{ value: 'product' }, { value: '<product>' }] }],
+        },
+      },
+    } as unknown as PickleStep;
+    const docStep = {
+      text: 'with doc',
+      argument: { docString: { content: 'buy one <product> now' } },
+    } as unknown as PickleStep;
+    const flow = makeFlow({
+      name: 'args',
+      params: ['product'],
+      pickle: { steps: [tableStep, docStep] } as unknown as Pickle,
+    });
+    const seen: Array<{ dataTable?: string; docString?: string }> = [];
+    await executeFlow(
+      { flow, args: { product: 'Camp Mug' } },
+      makeParentCtx(),
+      async (ctx) => {
+        seen.push({ dataTable: ctx.dataTable, docString: ctx.docString });
+      },
+    );
+    expect(seen[0].dataTable).toBe('| product | Camp Mug |');
+    expect(seen[1].docString).toBe('buy one Camp Mug now');
+  });
+
+  it('throws on an undeclared placeholder inside a data table', async () => {
+    const tableStep = {
+      text: 'with table',
+      argument: {
+        dataTable: { rows: [{ cells: [{ value: '<typo>' }] }] },
+      },
+    } as unknown as PickleStep;
+    const flow = makeFlow({
+      name: 'args',
+      pickle: { steps: [tableStep] } as unknown as Pickle,
+    });
+    await expect(
+      executeFlow({ flow, args: {} }, makeParentCtx(), async () => {}),
+    ).rejects.toThrow(/references <typo>/);
   });
 });
