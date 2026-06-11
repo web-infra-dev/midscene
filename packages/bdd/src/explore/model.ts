@@ -257,32 +257,37 @@ function analyzeSteps(
       }
     }
 
-    // Flow-call detection mirrors the runtime router exactly. matchStep
-    // throws on ambiguity and on sugar errors; classify by message shape
-    // (the registry raises plain Errors with stable prefixes).
+    // Flow-call detection mirrors the runtime router exactly: runStep only
+    // consults the flow registry AFTER @no-ai and @agent/$skill are ruled
+    // out, so annotated steps never produce flow calls, edges, or
+    // flow-match findings. matchStep throws on ambiguity and on sugar
+    // errors; classify by message shape (the registry raises plain Errors
+    // with stable prefixes).
     let flowCall: StepModel['flowCall'];
-    try {
-      const match = ctx.registry.matchStep(pickleStep.text);
-      if (match) {
-        flowCall = { flowId: `flow:${match.flow.name}`, args: match.args };
-        ctx.edges.push({
-          from: ownerId,
-          to: flowCall.flowId,
-          stepIndex,
-          args: match.args,
+    if (!annotations.noAi && !annotations.agent) {
+      try {
+        const match = ctx.registry.matchStep(pickleStep.text);
+        if (match) {
+          flowCall = { flowId: `flow:${match.flow.name}`, args: match.args };
+          ctx.edges.push({
+            from: ownerId,
+            to: flowCall.flowId,
+            stepIndex,
+            args: match.args,
+          });
+        }
+      } catch (error) {
+        const message = stripErrorPrefix(error);
+        ctx.health.push({
+          kind: message.startsWith('Ambiguous flow call')
+            ? 'ambiguous-flow-match'
+            : 'unknown-flow-sugar',
+          message,
+          uri: relUri,
+          line,
+          subject: pickleStep.text,
         });
       }
-    } catch (error) {
-      const message = stripErrorPrefix(error);
-      ctx.health.push({
-        kind: message.startsWith('Ambiguous flow call')
-          ? 'ambiguous-flow-match'
-          : 'unknown-flow-sugar',
-        message,
-        uri: relUri,
-        line,
-        subject: pickleStep.text,
-      });
     }
 
     // Placeholders only mean something inside a flow body, where they are

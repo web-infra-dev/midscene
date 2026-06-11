@@ -160,6 +160,72 @@ describe('buildExploreModel', () => {
     expect(model.stats.noAiSteps).toBe(2);
   });
 
+  it('never flow-matches annotated steps, mirroring router precedence', async () => {
+    const config = makeFixture({
+      'features/flows/login.feature': `Feature: Flows
+
+  @flow @param:role
+  Scenario: I am logged in as {string}
+    When I open the login page
+
+  @flow
+  Scenario: I do {string} thing
+    When I wave
+
+  @flow
+  Scenario: I do "special" thing
+    When I wave
+`,
+      'features/main.feature': `Feature: Main
+
+  Scenario: Annotated steps skip the flow registry
+    # @agent
+    Given I am logged in as "admin"
+    # @no-ai
+    And I am logged in as "guest"
+    # the next step would be an ambiguous flow match if it were unannotated
+    # @agent
+    When I do "special" thing
+    # ...and this one an unknown-flow-sugar error
+    # @no-ai
+    And I run the "nope" flow
+`,
+    });
+    const model = await buildExploreModel(config);
+    const main = model.features.find(
+      (feature) => feature.relPath === 'features/main.feature',
+    );
+    const steps = main?.scenarios[0].steps ?? [];
+
+    // The runtime router rules out flows for @agent/@no-ai steps, so the
+    // model must produce no flow calls and no edges for them...
+    expect(steps.map((s) => s.route)).toEqual([
+      'agent',
+      'no-ai',
+      'agent',
+      'no-ai',
+    ]);
+    for (const step of steps) {
+      expect(step.flowCall).toBeUndefined();
+    }
+    expect(model.edges).toEqual([]);
+
+    // ...no error-grade findings from matchStep throwing on text the
+    // runtime would never hand to the registry...
+    expect(
+      model.health.filter(
+        (h) =>
+          h.kind === 'ambiguous-flow-match' || h.kind === 'unknown-flow-sugar',
+      ),
+    ).toEqual([]);
+
+    // ...and every flow stays unused (nothing actually calls them).
+    expect(model.flows.every((flow) => flow.callers.length === 0)).toBe(true);
+    expect(model.health.filter((h) => h.kind === 'unused-flow')).toHaveLength(
+      3,
+    );
+  });
+
   it('extracts flow edges, including flow-to-flow, with args and callers', async () => {
     const model = await buildExploreModel(basicConfig());
 
