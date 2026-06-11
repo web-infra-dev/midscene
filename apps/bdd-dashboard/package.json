@@ -1,0 +1,36 @@
+{
+  "name": "bdd-dashboard",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "rsbuild dev",
+    "build": "rsbuild build",
+    "build:watch": "rsbuild build --watch --no-clean",
+    "preview": "rsbuild preview"
+  },
+  "dependencies": {
+    "@midscene/bdd": "workspace:*",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "^1.6.15",
+    "@rsbuild/plugin-react": "^1.4.1",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "typescript": "^5.8.3"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "dependsOn": []
+      },
+      "build:watch": {
+        "dependsOn": []
+      },
+      "dev": {
+        "dependsOn": []
+      }
+    }
+  }
+}

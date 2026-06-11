@@ -115,6 +115,34 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
+  apps/bdd-dashboard:
+    dependencies:
+      '@midscene/bdd':
+        specifier: workspace:*
+        version: link:../../packages/bdd
+      react:
+        specifier: 18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: 18.3.1
+        version: 18.3.1(react@18.3.1)
+    devDependencies:
+      '@rsbuild/core':
+        specifier: ^1.6.15
+        version: 1.6.15
+      '@rsbuild/plugin-react':
+        specifier: ^1.4.1
+        version: 1.4.6(@rsbuild/core@1.6.15)
+      '@types/react':
+        specifier: ^18.3.1
+        version: 18.3.23
+      '@types/react-dom':
+        specifier: ^18.3.1
+        version: 18.3.7(@types/react@18.3.23)
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+
   apps/chrome-extension:
     dependencies:
       '@ant-design/icons':

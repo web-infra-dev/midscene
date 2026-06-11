@@ -1,0 +1,88 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: #0f1218;
+  color: #e8ecf2;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: #0f1218;
+}
+
+.dashboard-shell {
+  margin: 0 auto;
+  max-width: 960px;
+  padding: 24px;
+}
+
+.dashboard-header h1 {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+.dashboard-header p {
+  margin: 0;
+  color: #9aa3b2;
+}
+
+.stats-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  margin-top: 24px;
+}
+
+.stats-grid article {
+  border: 1px solid #2f3642;
+  border-radius: 10px;
+  background: #161b24;
+  padding: 12px 14px;
+}
+
+.stats-grid h2 {
+  margin: 0;
+  color: #9aa3b2;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.stats-grid strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.feature-list {
+  border: 1px solid #2f3642;
+  border-radius: 10px;
+  background: #161b24;
+  margin-top: 20px;
+  padding: 14px;
+}
+
+.feature-list h2 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.feature-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.feature-list li + li {
+  margin-top: 6px;
+}

@@ -1,0 +1,17 @@
+{
+  "extends": "../../packages/shared/tsconfig.app.base.json",
+  "compilerOptions": {
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "declarationDir": "dist/types",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src", "rsbuild.config.ts"],
+  "references": [
+    {
+      "path": "../../packages/bdd"
+    }
+  ]
+}

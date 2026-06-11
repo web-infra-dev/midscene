@@ -1,0 +1,1186 @@
+{
+  "generatedAt": "2026-06-11T21:40:26.899Z",
+  "baseDir": "/home/zack/projects/midscene/packages/bdd/example",
+  "features": [
+    {
+      "id": "feature:features/cart.feature",
+      "uri": "/home/zack/projects/midscene/packages/bdd/example/features/cart.feature",
+      "relPath": "features/cart.feature",
+      "name": "Cart inspection",
+      "tags": [],
+      "scenarios": [
+        {
+          "id": "scenario:features/cart.feature#6",
+          "name": "Cart shows quantity controls and the correct total",
+          "tags": [],
+          "uri": "features/cart.feature",
+          "line": 6,
+          "isOutline": false,
+          "steps": [
+            {
+              "keyword": "Given ",
+              "text": "I am logged in as \"guest\"",
+              "stepType": "context",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 7,
+              "flowCall": {
+                "flowId": "flow:I am logged in as {string}",
+                "args": {
+                  "role": "guest"
+                }
+              }
+            },
+            {
+              "keyword": "And ",
+              "text": "I have added \"Camp Mug\" to the cart",
+              "stepType": "context",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 8,
+              "flowCall": {
+                "flowId": "flow:I have added {string} to the cart",
+                "args": {
+                  "product": "Camp Mug"
+                }
+              }
+            },
+            {
+              "keyword": "When ",
+              "text": "I open the cart page",
+              "stepType": "action",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 9
+            },
+            {
+              "keyword": "Then ",
+              "text": "the cart line item shows quantity controls to increase and decrease the quantity",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 10
+            },
+            {
+              "keyword": "And ",
+              "text": "the cart total equals the Camp Mug unit price of $24.50",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 11
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "feature:features/checkout.feature",
+      "uri": "/home/zack/projects/midscene/packages/bdd/example/features/checkout.feature",
+      "relPath": "features/checkout.feature",
+      "name": "Checkout with a coupon",
+      "tags": [],
+      "scenarios": [
+        {
+          "id": "scenario:features/checkout.feature#5",
+          "name": "Applying SAVE10 gives a 10% discount",
+          "tags": [],
+          "uri": "features/checkout.feature",
+          "line": 5,
+          "isOutline": false,
+          "steps": [
+            {
+              "keyword": "Given ",
+              "text": "I am logged in as \"admin\"",
+              "stepType": "context",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 6,
+              "flowCall": {
+                "flowId": "flow:I am logged in as {string}",
+                "args": {
+                  "role": "admin"
+                }
+              }
+            },
+            {
+              "keyword": "And ",
+              "text": "I have added \"Trail Backpack\" to the cart",
+              "stepType": "context",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 7,
+              "flowCall": {
+                "flowId": "flow:I have added {string} to the cart",
+                "args": {
+                  "product": "Trail Backpack"
+                }
+              }
+            },
+            {
+              "keyword": "When ",
+              "text": "I open the cart page",
+              "stepType": "action",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 8
+            },
+            {
+              "keyword": "And ",
+              "text": "I enter the coupon code \"SAVE10\" and click Apply",
+              "stepType": "action",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 9
+            },
+            {
+              "keyword": "Then ",
+              "text": "a \"Coupon applied\" message is visible",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 10
+            },
+            {
+              "keyword": "And ",
+              "text": "the cart total equals $116.10, a 10% discount off the $129.00 unit price",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 11
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "feature:features/error-reporting.feature",
+      "uri": "/home/zack/projects/midscene/packages/bdd/example/features/error-reporting.feature",
+      "relPath": "features/error-reporting.feature",
+      "name": "Failed login reporting",
+      "tags": [],
+      "scenarios": [
+        {
+          "id": "scenario:features/error-reporting.feature#13",
+          "name": "Failed login is reported everywhere",
+          "tags": [],
+          "uri": "features/error-reporting.feature",
+          "line": 13,
+          "isOutline": false,
+          "steps": [
+            {
+              "keyword": "Given ",
+              "text": "I open the login page of the demo shop",
+              "stepType": "context",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 14
+            },
+            {
+              "keyword": "When ",
+              "text": "I try to sign in as the \"admin\" user with a wrong password",
+              "stepType": "action",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 15
+            },
+            {
+              "keyword": "Then ",
+              "text": "an error toast shows on the screen",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 16
+            },
+            {
+              "keyword": "Then ",
+              "text": "the demo app source in demo-app/index.html counts failed sign-ins in a window.__loginAttempts counter",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": true,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "agent",
+              "line": 18
+            },
+            {
+              "keyword": "Then ",
+              "text": "the server log contains a failed-login warning, per $check-logs",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": true,
+                "noAi": false,
+                "soft": false,
+                "skills": ["check-logs"]
+              },
+              "route": "agent",
+              "line": 20
+            },
+            {
+              "keyword": "Then ",
+              "text": "the login attempt counter increments",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": true,
+                "soft": false,
+                "skills": []
+              },
+              "route": "no-ai",
+              "line": 22
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "feature:features/flows/add-to-cart.feature",
+      "uri": "/home/zack/projects/midscene/packages/bdd/example/features/flows/add-to-cart.feature",
+      "relPath": "features/flows/add-to-cart.feature",
+      "name": "Shared add-to-cart flow",
+      "tags": [],
+      "scenarios": []
+    },
+    {
+      "id": "feature:features/flows/login.feature",
+      "uri": "/home/zack/projects/midscene/packages/bdd/example/features/flows/login.feature",
+      "relPath": "features/flows/login.feature",
+      "name": "Shared login flow",
+      "tags": [],
+      "scenarios": []
+    },
+    {
+      "id": "feature:features/gherkin-tour/01-steps-and-comments.feature",
+      "uri": "/home/zack/projects/midscene/packages/bdd/example/features/gherkin-tour/01-steps-and-comments.feature",
+      "relPath": "features/gherkin-tour/01-steps-and-comments.feature",
+      "name": "Gherkin tour — steps and comments",
+      "description": "Everything indented under the `Feature:` line (until the first Scenario,\n  Background, or Rule) is the feature DESCRIPTION: free-form prose for human\n  readers. Cucumber parses but never executes it. Descriptions are also\n  allowed under Scenario, Rule, and Examples headers.\n\n  With @midscene/bdd, the steps themselves are plain natural language: by\n  default each one is sent to the Midscene vision agent, which drives the\n  page (Given/When) or judges an assertion against it (Then, fail-closed).",
+      "tags": ["@tour"],
+      "scenarios": [
+        {
+          "id": "scenario:features/gherkin-tour/01-steps-and-comments.feature#32",
+          "name": "Given/When/Then/And/But cover one shopping round-trip",
+          "tags": [],
+          "uri": "features/gherkin-tour/01-steps-and-comments.feature",
+          "line": 32,
+          "isOutline": false,
+          "steps": [
+            {
+              "keyword": "Given ",
+              "text": "I open the demo shop home page",
+              "stepType": "context",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 33
+            },
+            {
+              "keyword": "When ",
+              "text": "I add the \"Camp Mug\" product to the cart",
+              "stepType": "action",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 34
+            },
+            {
+              "keyword": "Then ",
+              "text": "the cart shows the \"Camp Mug\" product",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 35
+            },
+            {
+              "keyword": "And ",
+              "text": "the cart total equals the Camp Mug unit price of $24.50",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 36
+            },
+            {
+              "keyword": "But ",
+              "text": "no \"Coupon applied\" message is visible",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 37
+            }
+          ]
+        },
+        {
+          "id": "scenario:features/gherkin-tour/01-steps-and-comments.feature#42",
+          "name": "The * keyword writes steps as a bullet list",
+          "tags": [],
+          "uri": "features/gherkin-tour/01-steps-and-comments.feature",
+          "line": 42,
+          "isOutline": false,
+          "steps": [
+            {
+              "keyword": "* ",
+              "text": "I open the demo shop home page",
+              "stepType": "unknown",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 43
+            },
+            {
+              "keyword": "* ",
+              "text": "I add the \"Trail Backpack\" product to the cart",
+              "stepType": "unknown",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 44
+            },
+            {
+              "keyword": "* ",
+              "text": "I increase the \"Trail Backpack\" quantity by one using the + control in the cart",
+              "stepType": "unknown",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 45
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "feature:features/gherkin-tour/02-background-and-rules.feature",
+      "uri": "/home/zack/projects/midscene/packages/bdd/example/features/gherkin-tour/02-background-and-rules.feature",
+      "relPath": "features/gherkin-tour/02-background-and-rules.feature",
+      "name": "Gherkin tour — Background and Rules",
+      "description": "A `Background:` lists steps that run before EACH scenario in its scope; a\n  `Rule:` groups related scenarios under one business rule and may carry its\n  own (additional) Background. Tags on a Rule are inherited by every\n  scenario inside it, exactly like feature tags.",
+      "tags": ["@tour"],
+      "scenarios": [
+        {
+          "id": "scenario:features/gherkin-tour/02-background-and-rules.feature#30",
+          "name": "Applying SAVE10 confirms and discounts the total",
+          "tags": [],
+          "uri": "features/gherkin-tour/02-background-and-rules.feature",
+          "line": 30,
+          "isOutline": false,
+          "steps": [
+            {
+              "keyword": "Given ",
+              "text": "I open the demo shop home page",
+              "stepType": "context",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 12
+            },
+            {
+              "keyword": "Given ",
+              "text": "I have added \"Trail Backpack\" to the cart",
+              "stepType": "context",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 23,
+              "flowCall": {
+                "flowId": "flow:I have added {string} to the cart",
+                "args": {
+                  "product": "Trail Backpack"
+                }
+              }
+            },
+            {
+              "keyword": "When ",
+              "text": "I enter the coupon code \"SAVE10\" and click Apply",
+              "stepType": "action",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 31
+            },
+            {
+              "keyword": "Then ",
+              "text": "a \"Coupon applied\" message is visible",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 32
+            },
+            {
+              "keyword": "And ",
+              "text": "the cart total equals $116.10, a 10% discount off the $129.00 unit price",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 33
+            }
+          ]
+        },
+        {
+          "id": "scenario:features/gherkin-tour/02-background-and-rules.feature#35",
+          "name": "An unknown coupon is rejected with an error toast",
+          "tags": [],
+          "uri": "features/gherkin-tour/02-background-and-rules.feature",
+          "line": 35,
+          "isOutline": false,
+          "steps": [
+            {
+              "keyword": "Given ",
+              "text": "I open the demo shop home page",
+              "stepType": "context",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 12
+            },
+            {
+              "keyword": "Given ",
+              "text": "I have added \"Trail Backpack\" to the cart",
+              "stepType": "context",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 23,
+              "flowCall": {
+                "flowId": "flow:I have added {string} to the cart",
+                "args": {
+                  "product": "Trail Backpack"
+                }
+              }
+            },
+            {
+              "keyword": "When ",
+              "text": "I enter the coupon code \"SAVE99\" and click Apply",
+              "stepType": "action",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 36
+            },
+            {
+              "keyword": "Then ",
+              "text": "an error toast mentioning the unknown coupon code \"SAVE99\" is visible",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 37
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "feature:features/gherkin-tour/03-scenario-outlines.feature",
+      "uri": "/home/zack/projects/midscene/packages/bdd/example/features/gherkin-tour/03-scenario-outlines.feature",
+      "relPath": "features/gherkin-tour/03-scenario-outlines.feature",
+      "name": "Gherkin tour — Scenario Outlines",
+      "description": "An outline's steps may contain `<placeholders>`. Gherkin substitutes them\n  at COMPILE time from each `Examples:` row, producing one concrete scenario\n  per row. The same `<x>` substitution is reused for this framework's @flow\n  scenarios, bound from their `@param:` declarations (see features/flows/) —\n  and that is the ONLY variable mechanism here: there is deliberately no\n  runtime capture/remember syntax.",
+      "tags": ["@tour"],
+      "scenarios": [
+        {
+          "id": "scenario:features/gherkin-tour/03-scenario-outlines.feature#22",
+          "name": "The \"<role>\" role can log in",
+          "tags": [],
+          "uri": "features/gherkin-tour/03-scenario-outlines.feature",
+          "line": 22,
+          "isOutline": true,
+          "exampleCount": 2,
+          "steps": [
+            {
+              "keyword": "Given ",
+              "text": "I am logged in as \"admin\"",
+              "stepType": "context",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 23,
+              "flowCall": {
+                "flowId": "flow:I am logged in as {string}",
+                "args": {
+                  "role": "admin"
+                }
+              }
+            },
+            {
+              "keyword": "Then ",
+              "text": "the dashboard for the \"admin\" role is visible",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 24
+            }
+          ]
+        },
+        {
+          "id": "scenario:features/gherkin-tour/03-scenario-outlines.feature#42",
+          "name": "Restocking <quantity> x <product> leaves a note",
+          "tags": [],
+          "uri": "features/gherkin-tour/03-scenario-outlines.feature",
+          "line": 42,
+          "isOutline": true,
+          "exampleCount": 2,
+          "steps": [
+            {
+              "keyword": "Given ",
+              "text": "I open the demo shop home page",
+              "stepType": "context",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 43
+            },
+            {
+              "keyword": "When ",
+              "text": "I add the following products to the cart, with the listed quantity of each",
+              "stepType": "action",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "dataTable": "| product | quantity |\n| Camp Mug | 2 |",
+              "line": 44
+            },
+            {
+              "keyword": "Then ",
+              "text": "the cart total equals $49.00",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 47
+            },
+            {
+              "keyword": "When ",
+              "text": "I open the notes page of the demo shop",
+              "stepType": "action",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 48
+            },
+            {
+              "keyword": "And ",
+              "text": "I type the following text into the new-note box and save the note",
+              "stepType": "action",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "docString": "Restock reminder: we sold 2 x Camp Mug today.",
+              "line": 49
+            },
+            {
+              "keyword": "Then ",
+              "text": "the saved notes list contains a note mentioning \"Camp Mug\"",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 53
+            }
+          ]
+        },
+        {
+          "id": "scenario:features/gherkin-tour/03-scenario-outlines.feature#62",
+          "name": "Adding <product> twice doubles the line total",
+          "tags": [],
+          "uri": "features/gherkin-tour/03-scenario-outlines.feature",
+          "line": 62,
+          "isOutline": true,
+          "exampleCount": 1,
+          "steps": [
+            {
+              "keyword": "Given ",
+              "text": "I open the demo shop home page",
+              "stepType": "context",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 63
+            },
+            {
+              "keyword": "When ",
+              "text": "I add the \"Camp Mug\" product to the cart",
+              "stepType": "action",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 64
+            },
+            {
+              "keyword": "And ",
+              "text": "I increase the \"Camp Mug\" quantity by one using the + control in the cart",
+              "stepType": "action",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 65
+            },
+            {
+              "keyword": "Then ",
+              "text": "the cart total equals $49.00",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 66
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "feature:features/gherkin-tour/04-data-tables-and-doc-strings.feature",
+      "uri": "/home/zack/projects/midscene/packages/bdd/example/features/gherkin-tour/04-data-tables-and-doc-strings.feature",
+      "relPath": "features/gherkin-tour/04-data-tables-and-doc-strings.feature",
+      "name": "Gherkin tour — Data Tables and Doc Strings",
+      "tags": ["@tour"],
+      "scenarios": [
+        {
+          "id": "scenario:features/gherkin-tour/04-data-tables-and-doc-strings.feature#8",
+          "name": "A data table describes a whole shopping list in one step",
+          "tags": [],
+          "uri": "features/gherkin-tour/04-data-tables-and-doc-strings.feature",
+          "line": 8,
+          "isOutline": false,
+          "steps": [
+            {
+              "keyword": "Given ",
+              "text": "I open the demo shop home page",
+              "stepType": "context",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 9
+            },
+            {
+              "keyword": "When ",
+              "text": "I add the following products to the cart, with the listed quantity of each",
+              "stepType": "action",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "dataTable": "| product | quantity |\n| Camp Mug | 2 |\n| Trail Backpack | 1 |",
+              "line": 10
+            },
+            {
+              "keyword": "Then ",
+              "text": "the cart total equals $178.00",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 14
+            }
+          ]
+        },
+        {
+          "id": "scenario:features/gherkin-tour/04-data-tables-and-doc-strings.feature#21",
+          "name": "Doc strings carry multi-line text into a step",
+          "tags": [],
+          "uri": "features/gherkin-tour/04-data-tables-and-doc-strings.feature",
+          "line": 21,
+          "isOutline": false,
+          "steps": [
+            {
+              "keyword": "Given ",
+              "text": "I open the notes page of the demo shop",
+              "stepType": "context",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 22
+            },
+            {
+              "keyword": "When ",
+              "text": "I type the following text into the new-note box and save the note",
+              "stepType": "action",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "docString": "Restock plan:\n- Trail Backpack arrives Friday\n- Camp Mug is selling fast",
+              "line": 23
+            },
+            {
+              "keyword": "And ",
+              "text": "I type the following text into the new-note box and save the note",
+              "stepType": "action",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "docString": "Second note, written between backtick fences.",
+              "line": 29
+            },
+            {
+              "keyword": "Then ",
+              "text": "the saved notes list contains 2 notes, the first mentioning \"Restock plan\"",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 33
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "feature:features/gherkin-tour/05-localized-keywords.feature",
+      "uri": "/home/zack/projects/midscene/packages/bdd/example/features/gherkin-tour/05-localized-keywords.feature",
+      "relPath": "features/gherkin-tour/05-localized-keywords.feature",
+      "name": "Gherkin tour — localized keywords",
+      "tags": ["@tour"],
+      "scenarios": [
+        {
+          "id": "scenario:features/gherkin-tour/05-localized-keywords.feature#11",
+          "name": "German keywords drive the same English prompts",
+          "tags": [],
+          "uri": "features/gherkin-tour/05-localized-keywords.feature",
+          "line": 11,
+          "isOutline": false,
+          "steps": [
+            {
+              "keyword": "Angenommen ",
+              "text": "I open the demo shop home page",
+              "stepType": "context",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 12
+            },
+            {
+              "keyword": "Wenn ",
+              "text": "I add the \"Camp Mug\" product to the cart",
+              "stepType": "action",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 13
+            },
+            {
+              "keyword": "Dann ",
+              "text": "the cart shows the \"Camp Mug\" product",
+              "stepType": "outcome",
+              "annotations": {
+                "agent": false,
+                "noAi": false,
+                "soft": false,
+                "skills": []
+              },
+              "route": "ui",
+              "line": 14
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "id": "flow:I am logged in as {string}",
+      "name": "I am logged in as {string}",
+      "params": ["role"],
+      "uri": "features/flows/login.feature",
+      "line": 11,
+      "steps": [
+        {
+          "keyword": "When ",
+          "text": "I open the login page",
+          "stepType": "action",
+          "annotations": {
+            "agent": false,
+            "noAi": false,
+            "soft": false,
+            "skills": []
+          },
+          "route": "ui",
+          "line": 12
+        },
+        {
+          "keyword": "And ",
+          "text": "I sign in as the \"<role>\" user with the demo password shown on the login form",
+          "stepType": "action",
+          "annotations": {
+            "agent": false,
+            "noAi": false,
+            "soft": false,
+            "skills": []
+          },
+          "route": "ui",
+          "line": 13,
+          "paramUses": ["role"]
+        },
+        {
+          "keyword": "Then ",
+          "text": "the dashboard for the \"<role>\" role is visible",
+          "stepType": "outcome",
+          "annotations": {
+            "agent": false,
+            "noAi": false,
+            "soft": false,
+            "skills": []
+          },
+          "route": "ui",
+          "line": 14,
+          "paramUses": ["role"]
+        }
+      ],
+      "callers": [
+        "scenario:features/cart.feature#6",
+        "scenario:features/checkout.feature#5",
+        "scenario:features/gherkin-tour/03-scenario-outlines.feature#22"
+      ]
+    },
+    {
+      "id": "flow:I have added {string} to the cart",
+      "name": "I have added {string} to the cart",
+      "params": ["product"],
+      "uri": "features/flows/add-to-cart.feature",
+      "line": 7,
+      "steps": [
+        {
+          "keyword": "When ",
+          "text": "I go to the home page",
+          "stepType": "action",
+          "annotations": {
+            "agent": false,
+            "noAi": false,
+            "soft": false,
+            "skills": []
+          },
+          "route": "ui",
+          "line": 8
+        },
+        {
+          "keyword": "And ",
+          "text": "I add the \"<product>\" product to the cart",
+          "stepType": "action",
+          "annotations": {
+            "agent": false,
+            "noAi": false,
+            "soft": false,
+            "skills": []
+          },
+          "route": "ui",
+          "line": 9,
+          "paramUses": ["product"]
+        },
+        {
+          "keyword": "Then ",
+          "text": "the cart shows the \"<product>\" product",
+          "stepType": "outcome",
+          "annotations": {
+            "agent": false,
+            "noAi": false,
+            "soft": false,
+            "skills": []
+          },
+          "route": "ui",
+          "line": 10,
+          "paramUses": ["product"]
+        }
+      ],
+      "callers": [
+        "scenario:features/cart.feature#6",
+        "scenario:features/checkout.feature#5",
+        "scenario:features/gherkin-tour/02-background-and-rules.feature#30",
+        "scenario:features/gherkin-tour/02-background-and-rules.feature#35"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "scenario:features/cart.feature#6",
+      "to": "flow:I am logged in as {string}",
+      "stepIndex": 0,
+      "args": {
+        "role": "guest"
+      }
+    },
+    {
+      "from": "scenario:features/cart.feature#6",
+      "to": "flow:I have added {string} to the cart",
+      "stepIndex": 1,
+      "args": {
+        "product": "Camp Mug"
+      }
+    },
+    {
+      "from": "scenario:features/checkout.feature#5",
+      "to": "flow:I am logged in as {string}",
+      "stepIndex": 0,
+      "args": {
+        "role": "admin"
+      }
+    },
+    {
+      "from": "scenario:features/checkout.feature#5",
+      "to": "flow:I have added {string} to the cart",
+      "stepIndex": 1,
+      "args": {
+        "product": "Trail Backpack"
+      }
+    },
+    {
+      "from": "scenario:features/gherkin-tour/02-background-and-rules.feature#30",
+      "to": "flow:I have added {string} to the cart",
+      "stepIndex": 1,
+      "args": {
+        "product": "Trail Backpack"
+      }
+    },
+    {
+      "from": "scenario:features/gherkin-tour/02-background-and-rules.feature#35",
+      "to": "flow:I have added {string} to the cart",
+      "stepIndex": 1,
+      "args": {
+        "product": "Trail Backpack"
+      }
+    },
+    {
+      "from": "scenario:features/gherkin-tour/03-scenario-outlines.feature#22",
+      "to": "flow:I am logged in as {string}",
+      "stepIndex": 0,
+      "args": {
+        "role": "admin"
+      }
+    }
+  ],
+  "health": [],
+  "stats": {
+    "features": 10,
+    "scenarios": 13,
+    "flows": 2,
+    "steps": 62,
+    "edges": 7,
+    "agentSteps": 2,
+    "noAiSteps": 1
+  }
+}
