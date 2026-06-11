@@ -5,6 +5,7 @@ import type { ScrcpyScreenshotManager } from './scrcpy-manager';
 import { DEFAULT_SCRCPY_CONFIG } from './scrcpy-manager';
 
 const debugAdapter = getDebug('android:scrcpy-adapter');
+const warnAdapter = getDebug('android:scrcpy-adapter', { console: true });
 
 interface ScrcpyConfig {
   enabled?: boolean;
@@ -28,6 +29,10 @@ interface AdbServerDevice {
 }
 
 interface AdbServerClientWithDevices {
+  createConnection(request: string): Promise<{
+    readString(): string | PromiseLike<string>;
+    dispose(): void | PromiseLike<void>;
+  }>;
   getDevices(
     includeStates?: readonly ('device' | 'unauthorized' | 'offline')[],
   ): Promise<AdbServerDevice[]>;
@@ -53,6 +58,27 @@ function normalizeTransportId(
   if (typeof value === 'string' && /^\d+$/.test(value)) {
     return BigInt(value);
   }
+  return undefined;
+}
+
+function parseTransportIdFromDevicesList(
+  devicesList: string,
+  deviceId: string,
+): bigint | undefined {
+  for (const line of devicesList.split('\n')) {
+    const parts = line.trim().split(/\s+/).filter(Boolean);
+    if (parts[0] !== deviceId) {
+      continue;
+    }
+
+    for (const part of parts.slice(2)) {
+      const match = part.match(/^transport_id:(\d+)$/);
+      if (match?.[1]) {
+        return BigInt(match[1]);
+      }
+    }
+  }
+
   return undefined;
 }
 
@@ -172,6 +198,12 @@ export class ScrcpyDeviceAdapter {
   private async resolveAdbDeviceSelector(
     adbClient: AdbServerClientWithDevices,
   ): Promise<AdbDeviceSelector> {
+    const rawDevicesTransportId =
+      await this.resolveAdbTransportIdFromRawDeviceList(adbClient);
+    if (rawDevicesTransportId !== undefined) {
+      return { transportId: rawDevicesTransportId };
+    }
+
     try {
       const devices = await adbClient.getDevices([
         'device',
@@ -196,7 +228,43 @@ export class ScrcpyDeviceAdapter {
       );
     }
 
+    warnAdapter(
+      `ADB transport id not found for device ${this.deviceId}; falling back to serial selector. This may fail in multi-device environments.`,
+    );
     return { serial: this.deviceId };
+  }
+
+  private async resolveAdbTransportIdFromRawDeviceList(
+    adbClient: AdbServerClientWithDevices,
+  ): Promise<bigint | undefined> {
+    let connection:
+      | Awaited<ReturnType<AdbServerClientWithDevices['createConnection']>>
+      | undefined;
+    try {
+      connection = await adbClient.createConnection('host:devices-l');
+      const devicesList = await connection.readString();
+      const transportId = parseTransportIdFromDevicesList(
+        devicesList,
+        this.deviceId,
+      );
+      if (transportId !== undefined) {
+        debugAdapter(
+          `Using ADB transport id ${transportId} from raw device list for device ${this.deviceId}`,
+        );
+        return transportId;
+      }
+      debugAdapter(
+        `Raw ADB device list did not include transport id for device ${this.deviceId}`,
+      );
+    } catch (error) {
+      debugAdapter(
+        `Failed to read raw ADB device list for device ${this.deviceId}: ${error}`,
+      );
+    } finally {
+      await connection?.dispose();
+    }
+
+    return undefined;
   }
 
   /**

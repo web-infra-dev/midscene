@@ -3,13 +3,19 @@ import type { DevicePhysicalInfo } from '../../src/scrcpy-device-adapter';
 import { ScrcpyDeviceAdapter } from '../../src/scrcpy-device-adapter';
 import { DEFAULT_SCRCPY_CONFIG } from '../../src/scrcpy-manager';
 
-const { mockAdb, mockAdbServerClient, mockCreateTransport, mockGetDevices } =
-  vi.hoisted(() => ({
-    mockAdb: vi.fn().mockImplementation(() => ({})),
-    mockAdbServerClient: vi.fn(),
-    mockCreateTransport: vi.fn(),
-    mockGetDevices: vi.fn(),
-  }));
+const {
+  mockAdb,
+  mockAdbServerClient,
+  mockCreateConnection,
+  mockCreateTransport,
+  mockGetDevices,
+} = vi.hoisted(() => ({
+  mockAdb: vi.fn().mockImplementation(() => ({})),
+  mockAdbServerClient: vi.fn(),
+  mockCreateConnection: vi.fn(),
+  mockCreateTransport: vi.fn(),
+  mockGetDevices: vi.fn(),
+}));
 
 // Mock @yume-chan packages (ESM-only, used via dynamic import in ensureManager)
 vi.mock('@yume-chan/adb', () => ({
@@ -58,6 +64,17 @@ const defaultDeviceInfo: DevicePhysicalInfo = {
 describe('ScrcpyDeviceAdapter', () => {
   beforeEach(() => {
     currentMockManager = createMockManager();
+    mockCreateConnection.mockResolvedValue({
+      readString: vi
+        .fn()
+        .mockResolvedValue(
+          [
+            'device\tdevice product:test model:test device:test transport_id:1',
+            '',
+          ].join('\n'),
+        ),
+      dispose: vi.fn().mockResolvedValue(undefined),
+    });
     mockCreateTransport.mockResolvedValue({});
     mockGetDevices.mockResolvedValue([
       {
@@ -67,6 +84,7 @@ describe('ScrcpyDeviceAdapter', () => {
       },
     ]);
     mockAdbServerClient.mockImplementation(() => ({
+      createConnection: mockCreateConnection,
       createTransport: mockCreateTransport,
       getDevices: mockGetDevices,
     }));
@@ -274,18 +292,18 @@ describe('ScrcpyDeviceAdapter', () => {
     });
 
     it('should prefer transport id when resolving the scrcpy ADB transport', async () => {
-      mockGetDevices.mockResolvedValueOnce([
-        {
-          serial: 'device-1',
-          state: 'device',
-          transportId: 101n,
-        },
-        {
-          serial: 'device-2',
-          state: 'device',
-          transportId: 202n,
-        },
-      ]);
+      mockCreateConnection.mockResolvedValueOnce({
+        readString: vi
+          .fn()
+          .mockResolvedValue(
+            [
+              'device-1\tdevice product:test model:test device:test transport_id:101',
+              'device-2\tdevice product:test model:test device:test transport_id:202',
+              '',
+            ].join('\n'),
+          ),
+        dispose: vi.fn().mockResolvedValue(undefined),
+      });
       const adapter = new ScrcpyDeviceAdapter('device-2', { enabled: true });
 
       await adapter.ensureManager(defaultDeviceInfo);
@@ -293,7 +311,37 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(mockCreateTransport).toHaveBeenCalledWith({ transportId: 202n });
     });
 
+    it('should use raw device list transport id even when getDevices would fail', async () => {
+      mockCreateConnection.mockResolvedValueOnce({
+        readString: vi
+          .fn()
+          .mockResolvedValue(
+            [
+              'device-1\tdevice product:test model:test device:test',
+              'device-2\tdevice product:test model:test device:test transport_id:202',
+              '',
+            ].join('\n'),
+          ),
+        dispose: vi.fn().mockResolvedValue(undefined),
+      });
+      mockGetDevices.mockRejectedValueOnce(new Error('strict parse failed'));
+      const adapter = new ScrcpyDeviceAdapter('device-2', { enabled: true });
+
+      await adapter.ensureManager(defaultDeviceInfo);
+
+      expect(mockCreateTransport).toHaveBeenCalledWith({ transportId: 202n });
+      expect(mockGetDevices).not.toHaveBeenCalled();
+    });
+
     it('should fall back to serial selector when transport id lookup fails', async () => {
+      mockCreateConnection.mockResolvedValueOnce({
+        readString: vi
+          .fn()
+          .mockResolvedValue(
+            'device\tdevice product:test model:test device:test\n',
+          ),
+        dispose: vi.fn().mockResolvedValue(undefined),
+      });
       mockGetDevices.mockRejectedValueOnce(new Error('device list failed'));
       const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
 
