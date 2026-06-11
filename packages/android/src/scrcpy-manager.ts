@@ -1,6 +1,10 @@
 import { createReadStream } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import {
+  SCRCPY_PUSH_TIMEOUT_MS,
+  SCRCPY_START_TIMEOUT_MS,
+} from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
 import type { Adb } from '@yume-chan/adb';
 
@@ -31,6 +35,45 @@ const BUSY_LOOP_WINDOW_MS = 1_000; // Sliding window for measuring frame rate
 const BUSY_LOOP_MAX_READS = 500; // Max reads per window before considered busy-loop
 const BUSY_LOOP_COOLDOWN_MS = 50; // Throttle delay when busy-loop detected
 const BUSY_LOOP_WARN_INTERVAL_MS = 5_000; // Min interval between busy-loop warnings
+
+interface WithTimeoutOptions<T> {
+  onSettledAfterTimeout?: (value: T) => void | Promise<void>;
+}
+
+function withTimeout<T>(
+  promise: PromiseLike<T> | T,
+  timeoutMs: number,
+  message: string,
+  options: WithTimeoutOptions<T> = {},
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      reject(new Error(message));
+    }, timeoutMs);
+
+    Promise.resolve(promise).then(
+      (value) => {
+        clearTimeout(timer);
+        if (timedOut) {
+          void Promise.resolve(options.onSettledAfterTimeout?.(value));
+          return;
+        }
+
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        if (timedOut) {
+          return;
+        }
+
+        reject(error);
+      },
+    );
+  });
+}
 
 // Scrcpy default configuration (disabled by default, opt-in via scrcpyConfig.enabled)
 export const DEFAULT_SCRCPY_CONFIG = {
@@ -133,6 +176,17 @@ export class ScrcpyScreenshotManager {
     };
   }
 
+  private shouldRetryWithForwardTunnel(error: unknown): boolean {
+    const cause =
+      error instanceof Error ? (error as { cause?: unknown }).cause : undefined;
+    const message =
+      error instanceof Error
+        ? `${error.message}${cause instanceof Error ? ` ${cause.message}` : ''}`
+        : String(error);
+
+    return /more than one device\/emulator/i.test(message);
+  }
+
   /**
    * Validate environment prerequisites (ffmpeg, scrcpy-server, etc.)
    * Must be called once after construction, before any screenshot operations.
@@ -169,20 +223,7 @@ export class ScrcpyScreenshotManager {
       this.isConnecting = true;
       debugScrcpy('Starting scrcpy connection...');
 
-      const { AdbScrcpyClient, AdbScrcpyOptions3_3_3 } = await import(
-        '@yume-chan/adb-scrcpy'
-      );
-      const { ReadableStream } = await import('@yume-chan/stream-extra');
-      const { DefaultServerPath } = await import('@yume-chan/scrcpy');
-
-      // Use local scrcpy-server file
-      const serverBinPath = this.resolveServerBinPath();
-      await AdbScrcpyClient.pushServer(
-        this.adb,
-        ReadableStream.from(createReadStream(serverBinPath)),
-      );
-
-      const scrcpyOptions = new AdbScrcpyOptions3_3_3({
+      this.scrcpyClient = await this.startScrcpy(this.adb, {
         audio: false,
         control: false,
         maxSize: this.options.maxSize,
@@ -191,12 +232,6 @@ export class ScrcpyScreenshotManager {
         sendFrameMeta: true,
         videoCodecOptions: 'i-frame-interval=0,bitrate-mode=2',
       });
-
-      this.scrcpyClient = await AdbScrcpyClient.start(
-        this.adb,
-        DefaultServerPath,
-        scrcpyOptions,
-      );
 
       const videoStreamPromise = this.scrcpyClient.videoStream;
       if (!videoStreamPromise) {
@@ -220,6 +255,90 @@ export class ScrcpyScreenshotManager {
       throw error;
     } finally {
       this.isConnecting = false;
+    }
+  }
+
+  private async startScrcpyOnce(
+    adb: Adb,
+    options = {},
+    onProgress?: (phase: 'pushing-server' | 'starting-service') => void,
+    tunnelForward = false,
+  ) {
+    const { AdbScrcpyClient, AdbScrcpyOptions3_3_3 } = await import(
+      '@yume-chan/adb-scrcpy'
+    );
+    const { ReadableStream } = await import('@yume-chan/stream-extra');
+    const { DefaultServerPath } = await import('@yume-chan/scrcpy');
+    // Use local scrcpy-server file
+    const serverBinPath = this.resolveServerBinPath();
+
+    onProgress?.('pushing-server');
+    await withTimeout(
+      AdbScrcpyClient.pushServer(
+        adb,
+        ReadableStream.from(createReadStream(serverBinPath)),
+      ),
+      SCRCPY_PUSH_TIMEOUT_MS,
+      `Timed out pushing scrcpy server to device after ${Math.round(SCRCPY_PUSH_TIMEOUT_MS / 1000)}s`,
+    );
+
+    const scrcpyOptions = new AdbScrcpyOptions3_3_3({
+      audio: false,
+      control: true,
+      maxSize: 1024,
+      // use framed packets so the web decoder can distinguish
+      // configuration packets from frame data
+      sendFrameMeta: true,
+      // use videoBitRate as property name
+      videoBitRate: 2_000_000,
+      // override default values with user provided options
+      ...options,
+      tunnelForward,
+    });
+
+    onProgress?.('starting-service');
+    const startPromise = AdbScrcpyClient.start(
+      adb,
+      DefaultServerPath,
+      scrcpyOptions,
+    );
+
+    return await withTimeout(
+      startPromise,
+      SCRCPY_START_TIMEOUT_MS,
+      `Timed out starting scrcpy service after ${Math.round(SCRCPY_START_TIMEOUT_MS / 1000)}s`,
+      {
+        onSettledAfterTimeout: async (lateClient) => {
+          try {
+            await lateClient.close();
+          } catch (closeError) {
+            console.error(
+              'failed to close late scrcpy client after timeout:',
+              closeError,
+            );
+          }
+        },
+      },
+    );
+  }
+
+  // start scrcpy
+  private async startScrcpy(
+    adb: Adb,
+    options = {},
+    onProgress?: (phase: 'pushing-server' | 'starting-service') => void,
+  ) {
+    try {
+      return await this.startScrcpyOnce(adb, options, onProgress, false);
+    } catch (error) {
+      if (!this.shouldRetryWithForwardTunnel(error)) {
+        throw error;
+      }
+
+      warnScrcpy(
+        `Reverse tunnel failed for device ${this.adb.serial}; retrying scrcpy with forward tunnel: ${error}`,
+      );
+      return await this.startScrcpyOnce(adb, options, onProgress, true);
     }
   }
 

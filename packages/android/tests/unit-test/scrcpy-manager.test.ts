@@ -1,7 +1,55 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ScrcpyScreenshotManager } from '../../src/scrcpy-manager';
 
+const {
+  mockPushServer,
+  mockStart,
+  mockReadableFrom,
+  mockCreateReadStream,
+  mockOptionsCtor,
+} = vi.hoisted(() => ({
+  mockPushServer: vi.fn(),
+  mockStart: vi.fn(),
+  mockReadableFrom: vi.fn(),
+  mockCreateReadStream: vi.fn(),
+  mockOptionsCtor: vi.fn((options) => options),
+}));
+
+vi.mock('@yume-chan/adb-scrcpy', () => ({
+  AdbScrcpyClient: {
+    pushServer: mockPushServer,
+    start: mockStart,
+  },
+  AdbScrcpyOptions3_3_3: mockOptionsCtor,
+}));
+
+vi.mock('@yume-chan/stream-extra', () => ({
+  ReadableStream: {
+    from: mockReadableFrom,
+  },
+}));
+
+vi.mock('@yume-chan/scrcpy', () => ({
+  DefaultServerPath: '/mocked/scrcpy-server.jar',
+}));
+
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    createReadStream: mockCreateReadStream,
+  };
+});
+
 describe('ScrcpyScreenshotManager', () => {
+  beforeEach(() => {
+    mockCreateReadStream.mockReturnValue({ stream: true });
+    mockReadableFrom.mockReturnValue({ readable: true });
+    mockPushServer.mockResolvedValue(undefined);
+    mockStart.mockReset();
+    mockOptionsCtor.mockClear();
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -143,6 +191,49 @@ describe('ScrcpyScreenshotManager', () => {
       }, 100);
 
       await expect(manager.ensureConnected()).resolves.toBeUndefined();
+    });
+  });
+
+  describe('scrcpy tunnel fallback', () => {
+    it('retries with forward tunnel when reverse tunnel fails with multiple devices', async () => {
+      const client = { videoStream: Promise.resolve(null) };
+      mockStart
+        .mockRejectedValueOnce(new Error('more than one device/emulator'))
+        .mockResolvedValueOnce(client as any);
+
+      const manager = new ScrcpyScreenshotManager({
+        serial: 'device-1',
+      } as any);
+      const onProgress = vi.fn();
+
+      const result = await (manager as any).startScrcpy(
+        { serial: 'device-1' } as any,
+        { maxSize: 720 },
+        onProgress,
+      );
+
+      expect(result).toBe(client);
+      expect(mockStart).toHaveBeenCalledTimes(2);
+      expect(mockOptionsCtor).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          tunnelForward: false,
+          maxSize: 720,
+        }),
+      );
+      expect(mockOptionsCtor).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          tunnelForward: true,
+          maxSize: 720,
+        }),
+      );
+      expect(onProgress.mock.calls).toEqual([
+        ['pushing-server'],
+        ['starting-service'],
+        ['pushing-server'],
+        ['starting-service'],
+      ]);
     });
   });
 
