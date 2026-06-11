@@ -9,7 +9,6 @@ import type {
   GeneralAgent,
   GeneralAgentRequest,
   GeneralAgentResult,
-  ResolvedBddConfig,
   RouterContext,
   Skill,
   UiAgent,
@@ -68,7 +67,6 @@ function makeCtx(overrides: Partial<RouterContext> = {}): RouterContext {
     flowDepth: 0,
     flows: makeFlows(),
     skills: new Map(),
-    config: {} as ResolvedBddConfig,
     getUiAgent: async () => {
       throw new Error('getUiAgent must not be called in this test');
     },

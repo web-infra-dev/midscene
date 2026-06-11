@@ -132,7 +132,6 @@ export interface RouterContext {
   flowDepth: number;
   flows: FlowRegistryLike;
   skills: Map<string, Skill>;
-  config: ResolvedBddConfig;
   /** Lazy: launching the browser only when a UI-routed step runs. */
   getUiAgent(): Promise<UiAgent>;
   /** Lazy: connecting the general agent only on @agent/$skill steps. */

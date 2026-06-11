@@ -153,8 +153,8 @@ New to Cucumber/BDD? [`example/features/gherkin-tour/`](./example/features/gherk
 | File | Constructs |
 | --- | --- |
 | `01-steps-and-comments.feature` | Feature description blocks, `Given`/`When`/`Then`/`And`/`But`, the `*` bullet keyword, `#` comments (and this framework's marker-comment extension) |
-| `02-background-and-rules.feature` | Feature-level `Background:`, `Rule:` grouping with its own Background and tag, the `Example:`/`Scenario:` synonyms |
-| `03-scenario-outlines.feature` | `Scenario Outline:` / `Scenario Template:`, `<placeholder>` substitution, multiple named `Examples:`/`Scenarios:` tables, tagged Examples |
+| `02-background-and-rules.feature` | Feature-level `Background:`, `Rule:` grouping with its own Background and tag, the `Example:`/`Scenario:` synonyms (and how `Example:` differs from `Examples:`) |
+| `03-scenario-outlines.feature` | `Scenario Outline:` / `Scenario Template:`, `<placeholder>` substitution in step text, the outline name, data table cells, and doc strings; multiple named `Examples:`/`Scenarios:` tables, tagged Examples |
 | `04-data-tables-and-doc-strings.feature` | Data tables on a step; doc strings with `"""` fences, a content type, and the ``` backtick alternative |
 | `05-localized-keywords.feature` | The `# language:` header (German keywords driving the same English prompts) |
 

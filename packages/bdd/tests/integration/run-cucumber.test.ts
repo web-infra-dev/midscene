@@ -40,6 +40,7 @@ import type {
   Skill,
   UiAgent,
 } from '../../src/types';
+import type { UiStubRecord } from './fixtures/midscene.config';
 
 const FIXTURES_DIR = path.resolve(__dirname, 'fixtures');
 const CONFIG_PATH = path.join(FIXTURES_DIR, 'midscene.config.ts');
@@ -48,11 +49,6 @@ const CONFIG_PATH = path.join(FIXTURES_DIR, 'midscene.config.ts');
 
 /** Must match the key used by fixtures/midscene.config.ts. */
 const UI_STUB_KEY = '__midscene_bdd_integration_ui_stub__';
-
-interface UiStubRecord {
-  calls: Array<[method: 'act' | 'assert', prompt: string]>;
-  factoryCalls: number;
-}
 
 function uiRecord(): UiStubRecord {
   const g = globalThis as Record<string, unknown>;
@@ -128,7 +124,7 @@ async function runScenario(
         pickle,
         pickleStep,
         flowDepth: 0,
-        runtime: { flows, skills, config },
+        runtime: { flows, skills },
         agents: {
           getUiAgent,
           getGeneralAgent: async () => fakeGeneralAgent,
@@ -197,7 +193,7 @@ beforeEach(() => {
   record.factoryCalls = 0;
 });
 
-describe('route 1: default UI agent', () => {
+describe('default UI agent routing', () => {
   it('acts on Given/When and asserts on Then, in order', async () => {
     const parsed = loadFeature('features/ui-basic.feature');
     const result = await runScenario(
@@ -232,7 +228,7 @@ describe('route 1: default UI agent', () => {
   });
 });
 
-describe('route 2: @soft', () => {
+describe('@soft assertions', () => {
   it('downgrades a failing soft Then to a logged warning', async () => {
     const parsed = loadFeature('features/soft.feature');
     const result = await runScenario(
@@ -255,7 +251,7 @@ describe('route 2: @soft', () => {
   });
 });
 
-describe('route 3: @no-ai', () => {
+describe('@no-ai user callbacks', () => {
   it('runs a registered callback with the RouterContext as `this`', async () => {
     let receivedThis: RouterContext | undefined;
     let receivedArg: unknown;
@@ -295,7 +291,7 @@ describe('route 3: @no-ai', () => {
   });
 });
 
-describe('route 4: agent / $skill', () => {
+describe('@agent / $skill general agent', () => {
   it('routes a $skill Then to the general agent with the skill loaded', async () => {
     const parsed = loadFeature('features/agent-skill.feature');
     const result = await runScenario(
@@ -341,7 +337,7 @@ describe('route 4: agent / $skill', () => {
   });
 });
 
-describe('route 5: flows', () => {
+describe('flows', () => {
   it('runs a declarative flow call with <param> substituted in the body', async () => {
     const parsed = loadFeature('features/flows-calls.feature');
     const result = await runScenario(
