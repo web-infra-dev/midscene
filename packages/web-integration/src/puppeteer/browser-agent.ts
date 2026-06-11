@@ -1,4 +1,8 @@
 import {
+  type BrowserAgentAdapter,
+  BrowserAgentPageController,
+} from '@/common/browser-agent';
+import {
   applyForceChromeSelectRendering,
   isRetryableBrowserNavigationError,
 } from '@/common/web-agent';
@@ -14,6 +18,19 @@ import { PuppeteerWebPage } from './page';
 
 const debug = getDebug('puppeteer:browser-agent');
 
+const createPuppeteerBrowserAdapter = (
+  browser: PuppeteerBrowser,
+): BrowserAgentAdapter<PuppeteerPage, PuppeteerTarget> => ({
+  pages: () => browser.pages(),
+  newPage: () => browser.newPage(),
+  isPageClosed: (page) => page.isClosed(),
+  bringToFront: (page) => page.bringToFront(),
+  onNewPage: (handler) => browser.on('targetcreated', handler),
+  offNewPage: (handler) => browser.off('targetcreated', handler),
+  isNewPageEvent: (target) => target.type() === 'page',
+  resolveNewPage: (target) => target.page(),
+});
+
 export type PuppeteerBrowserAgentOpt = Omit<
   WebPageAgentOpt,
   'forceSameTabNavigation'
@@ -27,13 +44,10 @@ export type PuppeteerBrowserAgentCreateOpt = PuppeteerBrowserAgentOpt & {
 };
 
 export class PuppeteerBrowserAgent extends PageAgent<PuppeteerWebPage> {
-  private readonly browser: PuppeteerBrowser;
-  private readonly autoFollowNewPage: boolean;
-  private readonly newPageTimeout: number;
-
-  private readonly targetCreatedHandler = (target: PuppeteerTarget) => {
-    void this.followTarget(target);
-  };
+  private readonly pageController: BrowserAgentPageController<
+    PuppeteerPage,
+    PuppeteerTarget
+  >;
 
   protected isRetryableContextError(error: unknown): boolean {
     return isRetryableBrowserNavigationError(error);
@@ -67,13 +81,17 @@ export class PuppeteerBrowserAgent extends PageAgent<PuppeteerWebPage> {
     });
     super(webPage, agentOpts);
 
-    this.browser = browser;
-    this.autoFollowNewPage = autoFollowNewPage;
-    this.newPageTimeout = newPageTimeout;
-
-    if (this.autoFollowNewPage) {
-      this.browser.on('targetcreated', this.targetCreatedHandler);
-    }
+    this.pageController = new BrowserAgentPageController({
+      agentName: 'PuppeteerBrowserAgent',
+      adapter: createPuppeteerBrowserAdapter(browser),
+      getActivePage: () => this.interface.underlyingPage as PuppeteerPage,
+      setActivePageValue: (page) => {
+        this.interface.underlyingPage = page;
+      },
+      autoFollowNewPage,
+      newPageTimeout,
+      debug,
+    });
 
     applyForceChromeSelectRendering(
       initialPage,
@@ -94,118 +112,30 @@ export class PuppeteerBrowserAgent extends PageAgent<PuppeteerWebPage> {
   }
 
   get activePage() {
-    return this.interface.underlyingPage as PuppeteerPage;
+    return this.pageController.activePage;
   }
 
-  async pages() {
-    return this.browser.pages();
+  pages() {
+    return this.pageController.pages();
   }
 
   async newPage() {
-    const page = await this.browser.newPage();
-    await this.setActivePage(page);
-    return page;
+    return this.pageController.newPage();
   }
 
   async setActivePage(page: PuppeteerPage) {
-    if (!page || page.isClosed()) {
-      throw new Error(
-        '[midscene] Cannot set PuppeteerBrowserAgent active page to a closed or invalid page.',
-      );
-    }
-
-    this.interface.underlyingPage = page;
-    try {
-      await page.bringToFront();
-    } catch (error) {
-      debug(`failed to bring page to front: ${error}`);
-    }
+    await this.pageController.setActivePage(page);
   }
 
   async waitForNewPage(
     action?: () => Promise<unknown> | unknown,
     opts?: { timeout?: number },
   ) {
-    const waiter = this.createNewPageWaiter(opts?.timeout);
-
-    try {
-      await action?.();
-      return await waiter.promise;
-    } catch (error) {
-      waiter.dispose();
-      throw error;
-    }
+    return this.pageController.waitForNewPage(action, opts);
   }
 
   async destroy() {
-    this.browser.off('targetcreated', this.targetCreatedHandler);
+    this.pageController.destroy();
     await super.destroy();
-  }
-
-  private async followTarget(target: PuppeteerTarget) {
-    if (target.type() !== 'page') {
-      return;
-    }
-
-    try {
-      const page = await target.page();
-      if (page) {
-        await this.setActivePage(page);
-      }
-    } catch (error) {
-      debug(`failed to follow new page: ${error}`);
-    }
-  }
-
-  private createNewPageWaiter(timeout = this.newPageTimeout) {
-    let settled = false;
-
-    const dispose = () => {
-      this.browser.off('targetcreated', handler);
-      clearTimeout(timer);
-    };
-
-    const handler = async (target: PuppeteerTarget) => {
-      if (target.type() !== 'page' || settled) {
-        return;
-      }
-
-      settled = true;
-      dispose();
-
-      try {
-        const page = await target.page();
-        if (!page) {
-          throw new Error('new target did not resolve to a page');
-        }
-        resolvePage(page);
-      } catch (error) {
-        rejectPage(error);
-      }
-    };
-
-    let resolvePage!: (page: PuppeteerPage) => void;
-    let rejectPage!: (error: unknown) => void;
-    const promise = new Promise<PuppeteerPage>((resolve, reject) => {
-      resolvePage = resolve;
-      rejectPage = reject;
-    });
-
-    const timer = setTimeout(() => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      dispose();
-      rejectPage(
-        new Error(
-          `[midscene] Timed out waiting for a new Puppeteer page after ${timeout}ms.`,
-        ),
-      );
-    }, timeout);
-
-    this.browser.on('targetcreated', handler);
-
-    return { promise, dispose };
   }
 }

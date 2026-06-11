@@ -7,7 +7,11 @@ import type {
   MidsceneYamlScriptIOSEnv,
   MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
-import { type ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
+import {
+  type ScriptPlayer,
+  parseYamlScript,
+  resolveWebTarget,
+} from '@midscene/core/yaml';
 import {
   buildChromeArgs,
   defaultViewportHeight,
@@ -47,6 +51,8 @@ export interface BatchRunnerConfig {
   summary: string;
   shareBrowserContext: boolean;
   globalConfig?: {
+    page?: Partial<MidsceneYamlScriptWebEnv>;
+    browser?: Partial<MidsceneYamlScriptWebEnv>;
     web?: Partial<MidsceneYamlScriptWebEnv>;
     android?: Partial<MidsceneYamlScriptAndroidEnv>;
     ios?: Partial<MidsceneYamlScriptIOSEnv>;
@@ -113,14 +119,13 @@ class YamlBatchExecutor {
 
       // Now, check if any of the tasks require a web browser
       const needsBrowser = fileContextList.some(
-        (ctx) =>
-          Object.keys(
-            ctx.executionConfig.web || ctx.executionConfig.target || {},
-          ).length > 0,
+        (ctx) => typeof resolveWebTarget(ctx.executionConfig) !== 'undefined',
       );
 
       if (needsBrowser && this.config.shareBrowserContext) {
-        const globalWebConfig = this.config.globalConfig?.web;
+        const globalWebConfig = resolveWebTarget(
+          this.config.globalConfig ?? {},
+        )?.target;
 
         if (globalWebConfig?.cdpEndpoint) {
           // CDP mode: connect to an existing browser
@@ -173,7 +178,8 @@ class YamlBatchExecutor {
     } finally {
       if (browser && !this.config.keepWindow) {
         // For CDP mode, disconnect instead of closing the externally managed browser
-        const isCdp = !!this.config.globalConfig?.web?.cdpEndpoint;
+        const isCdp = !!resolveWebTarget(this.config.globalConfig ?? {})?.target
+          .cdpEndpoint;
         if (isCdp) {
           browser.disconnect();
         } else {
@@ -197,21 +203,6 @@ class YamlBatchExecutor {
 
     // Deep clone to avoid mutation
     const clonedFileConfig = JSON.parse(JSON.stringify(fileConfig));
-
-    // Normalize deprecated 'target' to 'web'
-    if (clonedFileConfig.target) {
-      clonedFileConfig.web = {
-        ...clonedFileConfig.target,
-        ...clonedFileConfig.web,
-      };
-      // biome-ignore lint/performance/noDelete: <explanation>
-      delete clonedFileConfig.target;
-    }
-    if (globalConfig?.target) {
-      globalConfig.web = { ...globalConfig.target, ...globalConfig.web };
-      // biome-ignore lint/performance/noDelete: <explanation>
-      delete globalConfig.target;
-    }
 
     // Start with the file's config, then merge the global config from the index file,
     // which has already been merged with command-line options.

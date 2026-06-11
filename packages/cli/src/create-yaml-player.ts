@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 import path, { basename, extname, join } from 'node:path';
-import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
+import {
+  ScriptPlayer,
+  parseYamlScript,
+  resolveWebTarget,
+} from '@midscene/core/yaml';
 import { createServer } from 'http-server';
 
 import assert from 'node:assert';
@@ -108,11 +112,14 @@ export async function createYamlPlayer(
     clonedYamlScript,
     async () => {
       const freeFn: FreeFn[] = [];
-      const webTarget = clonedYamlScript.web || clonedYamlScript.target;
+      const resolvedWebTarget = resolveWebTarget(clonedYamlScript);
+      const webTarget = resolvedWebTarget?.target as
+        | MidsceneYamlScriptWebEnv
+        | undefined;
 
       // Validate that only one target type is specified
       const targetCount = [
-        typeof webTarget !== 'undefined',
+        typeof resolvedWebTarget !== 'undefined',
         typeof clonedYamlScript.android !== 'undefined',
         typeof clonedYamlScript.ios !== 'undefined',
         typeof clonedYamlScript.harmony !== 'undefined',
@@ -122,7 +129,7 @@ export async function createYamlPlayer(
 
       if (targetCount > 1) {
         const specifiedTargets = [
-          typeof webTarget !== 'undefined' ? 'web' : null,
+          resolvedWebTarget?.source ?? null,
           typeof clonedYamlScript.android !== 'undefined' ? 'android' : null,
           typeof clonedYamlScript.ios !== 'undefined' ? 'ios' : null,
           typeof clonedYamlScript.harmony !== 'undefined' ? 'harmony' : null,
@@ -133,15 +140,15 @@ export async function createYamlPlayer(
         ].filter(Boolean);
 
         throw new Error(
-          `Only one target type can be specified, but found multiple: ${specifiedTargets.join(', ')}. Please specify only one of: web, android, ios, harmony, computer, or interface.`,
+          `Only one target type can be specified, but found multiple: ${specifiedTargets.join(', ')}. Please specify only one of: page, browser, web, android, ios, harmony, computer, or interface.`,
         );
       }
 
       // handle new web config
       if (typeof webTarget !== 'undefined') {
-        if (typeof clonedYamlScript.target !== 'undefined') {
+        if (resolvedWebTarget?.source === 'target') {
           console.warn(
-            'target is deprecated, please use web instead. See https://midscenejs.com/automate-with-scripts-in-yaml for more information. Sorry for the inconvenience.',
+            'target is deprecated, please use page or browser instead. See https://midscenejs.com/automate-with-scripts-in-yaml for more information. Sorry for the inconvenience.',
           );
         }
 
@@ -171,6 +178,12 @@ export async function createYamlPlayer(
         if (webTarget.cdpEndpoint && webTarget.bridgeMode) {
           throw new Error(
             'cdpEndpoint and bridgeMode are mutually exclusive. Please specify only one.',
+          );
+        }
+
+        if (webTarget.mode === 'browser' && webTarget.bridgeMode) {
+          throw new Error(
+            '[midscene] browser mode does not support bridgeMode. Use page: or web.mode: page for bridge mode.',
           );
         }
 

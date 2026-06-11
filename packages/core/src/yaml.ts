@@ -55,6 +55,8 @@ export interface MidsceneYamlScript {
   // @deprecated
   target?: MidsceneYamlScriptWebEnv;
 
+  page?: MidsceneYamlScriptWebEnv;
+  browser?: MidsceneYamlScriptWebEnv;
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
   ios?: MidsceneYamlScriptIOSEnv;
@@ -128,6 +130,8 @@ export interface MidsceneYamlScriptEnvGeneralInterface {
 export interface MidsceneYamlScriptWebEnv
   extends MidsceneYamlScriptConfig,
     MidsceneYamlScriptAgentOpt {
+  mode?: 'page' | 'browser';
+
   // for web only
   serve?: string;
   url: string;
@@ -319,6 +323,10 @@ export interface MidsceneYamlConfig {
   retry?: number;
   summary?: string;
   shareBrowserContext?: boolean;
+  /** @deprecated Use `web`, `page`, or `browser` instead. */
+  target?: MidsceneYamlScriptWebEnv;
+  page?: MidsceneYamlScriptWebEnv;
+  browser?: MidsceneYamlScriptWebEnv;
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
   ios?: MidsceneYamlScriptIOSEnv;

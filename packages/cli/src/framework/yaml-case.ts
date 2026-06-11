@@ -14,6 +14,8 @@ import merge from 'lodash.merge';
 import { createYamlPlayer } from '../create-yaml-player';
 
 export interface RunYamlCaseGlobalConfig {
+  page?: Partial<MidsceneYamlScriptWebEnv>;
+  browser?: Partial<MidsceneYamlScriptWebEnv>;
   web?: Partial<MidsceneYamlScriptWebEnv>;
   android?: Partial<MidsceneYamlScriptAndroidEnv>;
   ios?: Partial<MidsceneYamlScriptIOSEnv>;

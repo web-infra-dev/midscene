@@ -7,7 +7,7 @@ Midscene defines a YAML-based scripting format so you can quickly author automat
 For example, you can write a YAML script like this:
 
 ```yaml
-web:
+page:
   url: https://www.bing.com
 
 tasks:
@@ -68,7 +68,7 @@ npm i @midscene/cli --save-dev
 Create `bing-search.yaml` to drive a web browser:
 
 ```yaml
-web:
+page:
   url: https://www.bing.com
 
 tasks:
@@ -158,7 +158,7 @@ After execution, the output directory contains:
 
 ### Run in headed mode
 
-> `web` scenarios only
+> Web page scenarios only
 
 Headed mode opens the browser window. By default, scripts run headless.
 
@@ -176,10 +176,10 @@ midscene /path/to/yaml --keep-window
 
 CDP mode lets YAML scripts connect to an existing browser instance via Chrome DevTools Protocol, without launching a new browser. This is useful for reusing an existing browser session, connecting to remote browsers, or cloud browser services.
 
-Set `cdpEndpoint` in the `web` section:
+Set `cdpEndpoint` in the `page` section:
 
 ```diff
-web:
+page:
   url: https://www.bing.com
 + cdpEndpoint: ws://localhost:9222/devtools/browser
 ```
@@ -192,12 +192,12 @@ CDP mode and bridge mode are mutually exclusive. In CDP mode, Midscene will only
 
 ### Use bridge mode
 
-> `web` scenarios only
+> Web page scenarios only
 
 Bridge mode lets YAML scripts drive your existing desktop browser so you can reuse cookies, extensions, or state. Install the Chrome extension, then add:
 
 ```diff
-web:
+page:
   url: https://www.bing.com
 + bridgeMode: newTabWithUrl
 ```

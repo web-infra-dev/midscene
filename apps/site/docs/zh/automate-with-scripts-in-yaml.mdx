@@ -9,7 +9,7 @@ import SetupEnv from './common/setup-env.mdx';
 这里有一个示例，通过阅读它的内容，你应该已经理解了它的工作原理。
 
 ```yaml
-web:
+page:
   url: https://www.bing.com
 
 tasks:
@@ -41,10 +41,10 @@ tasks:
 
 脚本文件使用 YAML 格式来描述自动化任务。它定义了要操作的目标（如网页或安卓应用）以及一系列要执行的步骤。
 
-一个标准的 `.yaml` 脚本文件包含 `web`、`android`、`ios`、`harmony` 或 `computer` 部分配置环境,可选的 `agent` 部分配置 AI Agent 行为,以及一个 `tasks` 部分来定义自动化任务。
+一个标准的 `.yaml` 脚本文件包含 `page`、`browser`、`web`、`android`、`ios`、`harmony` 或 `computer` 部分配置环境，可选的 `agent` 部分配置 AI Agent 行为，以及一个 `tasks` 部分来定义自动化任务。
 
 ```yaml
-web:
+page:
   url: https://www.bing.com
 
 # tasks 部分定义了要执行的一系列步骤
@@ -55,6 +55,8 @@ tasks:
       - sleep: 3000
       - aiAssert: 结果显示天气信息
 ```
+
+使用 `page:` 表示 page-level Agent。使用 `browser:` 表示一个 Agent 管理 browser 和它的 active page。`web:` 仍作为兼容入口保留；`web.mode: browser` 会映射到 BrowserAgent，普通 `web:` 会映射到 PageAgent。不要在同一份脚本里同时使用 `page`、`browser`、`web` 或已废弃的 `target`。
 
 ### `agent` 部分
 
@@ -140,10 +142,36 @@ tasks:
 ```
 
 
-### `web` 部分
+### Web target 部分
+
+推荐的 page-level target：
+
+```yaml
+page:
+  url: https://example.com
+```
+
+推荐的 browser-level target：
+
+```yaml
+browser:
+  url: https://example.com
+  autoFollowNewPage: true
+```
+
+兼容写法：
 
 ```yaml
 web:
+  mode: browser
+  url: https://example.com
+  autoFollowNewPage: true
+```
+
+共享配置：
+
+```yaml
+page:
   # 访问的 URL，必填。如果提供了 `serve` 参数，则提供相对路径
   url: <url>
 
@@ -189,10 +217,11 @@ web:
   unstableLogContent: <boolean | path-to-unstable-log-file>
 
   # 是否限制页面在当前 tab 打开，可选，默认 true
+  # 仅 page mode 可用，不要与 `browser:` 或 `web.mode: browser` 同时使用
   forceSameTabNavigation: <boolean>
 
-  # 是否使用 BrowserAgent 并自动继续在新打开的页面中执行，可选，默认 false
-  # 不能与 forceSameTabNavigation: true 同时使用
+  # BrowserAgent 是否自动继续在新打开的页面中执行，可选，默认 false
+  # 仅 browser mode 可用。请使用 `browser:` 或 `web.mode: browser`
   autoFollowNewPage: <boolean>
 
   # CDP 连接端点，可选。设置后通过 CDP 连接到已有浏览器实例，而非启动新浏览器。

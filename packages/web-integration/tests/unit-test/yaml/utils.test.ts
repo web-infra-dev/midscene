@@ -1,4 +1,8 @@
-import { buildYaml, parseYamlScript } from '@midscene/core/yaml';
+import {
+  buildYaml,
+  parseYamlScript,
+  resolveWebTarget,
+} from '@midscene/core/yaml';
 import { describe, expect, test } from 'vitest';
 
 describe('utils', () => {
@@ -137,6 +141,99 @@ tasks:
 
       const result = parseYamlScript(yamlContent);
       expect(result).toMatchSnapshot();
+    });
+
+    test('supports explicit page target', () => {
+      const yamlContent = `
+page:
+  url: "https://example.com"
+tasks:
+- sleep: 1000
+`;
+
+      const result = parseYamlScript(yamlContent);
+      const resolvedTarget = resolveWebTarget(result);
+
+      expect(resolvedTarget?.source).toBe('page');
+      expect(resolvedTarget?.mode).toBe('page');
+      expect(resolvedTarget?.target.url).toBe('https://example.com');
+    });
+
+    test('supports explicit browser target', () => {
+      const yamlContent = `
+browser:
+  url: "https://example.com"
+  autoFollowNewPage: true
+tasks:
+- sleep: 1000
+`;
+
+      const result = parseYamlScript(yamlContent);
+      const resolvedTarget = resolveWebTarget(result);
+
+      expect(resolvedTarget?.source).toBe('browser');
+      expect(resolvedTarget?.mode).toBe('browser');
+      expect(resolvedTarget?.target.autoFollowNewPage).toBe(true);
+    });
+
+    test('supports web mode browser compatibility target', () => {
+      const yamlContent = `
+web:
+  mode: browser
+  url: "https://example.com"
+  autoFollowNewPage: true
+tasks:
+- sleep: 1000
+`;
+
+      const result = parseYamlScript(yamlContent);
+      const resolvedTarget = resolveWebTarget(result);
+
+      expect(resolvedTarget?.source).toBe('web');
+      expect(resolvedTarget?.mode).toBe('browser');
+    });
+
+    test('rejects multiple web targets', () => {
+      const yamlContent = `
+page:
+  url: "https://example.com"
+browser:
+  url: "https://example.com"
+tasks:
+- sleep: 1000
+`;
+
+      expect(() => parseYamlScript(yamlContent)).toThrow(
+        'Only one web target can be specified',
+      );
+    });
+
+    test('rejects implicit browser mode from web autoFollowNewPage', () => {
+      const yamlContent = `
+web:
+  url: "https://example.com"
+  autoFollowNewPage: true
+tasks:
+- sleep: 1000
+`;
+
+      expect(() => parseYamlScript(yamlContent)).toThrow(
+        'autoFollowNewPage requires browser mode',
+      );
+    });
+
+    test('rejects forceSameTabNavigation in browser mode', () => {
+      const yamlContent = `
+browser:
+  url: "https://example.com"
+  forceSameTabNavigation: false
+tasks:
+- sleep: 1000
+`;
+
+      expect(() => parseYamlScript(yamlContent)).toThrow(
+        'forceSameTabNavigation cannot be used in browser mode',
+      );
     });
   });
 });

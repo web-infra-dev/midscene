@@ -9,7 +9,7 @@ Midscene offers a way to perform automation using `.yaml` files, which helps you
 Here is an example. By reading its content, you should be able to understand how it works.
 
 ```yaml
-web:
+page:
   url: https://www.bing.com
 
 tasks:
@@ -41,10 +41,10 @@ To execute YAML workflows from the command line, install the Midscene CLI. See [
 
 Script files use YAML format to describe automation tasks. It defines the target to be manipulated (like a webpage or an Android app) and the series of steps to perform.
 
-A standard `.yaml` script file includes a `web`, `android`, `ios`, `harmony`, or `computer` section to configure the environment, an optional `agent` section to configure AI agent behavior, and a `tasks` section to define the automation tasks.
+A standard `.yaml` script file includes a `page`, `browser`, `web`, `android`, `ios`, `harmony`, or `computer` section to configure the environment, an optional `agent` section to configure AI agent behavior, and a `tasks` section to define the automation tasks.
 
 ```yaml
-web:
+page:
   url: https://www.bing.com
 
 # The tasks section defines the series of steps to be executed
@@ -56,6 +56,7 @@ tasks:
       - aiAssert: The results show weather information
 ```
 
+Use `page:` for a page-level Agent. Use `browser:` when one Agent should manage a browser and its active page. `web:` remains supported as a compatibility entry; `web.mode: browser` maps to BrowserAgent and plain `web:` maps to PageAgent. Do not combine `page`, `browser`, `web`, or the deprecated `target` in the same script.
 
 ### The `agent` part
 
@@ -141,10 +142,36 @@ tasks:
 ```
 
 
-### The `web` part
+### The web target part
+
+Recommended page-level target:
+
+```yaml
+page:
+  url: https://example.com
+```
+
+Recommended browser-level target:
+
+```yaml
+browser:
+  url: https://example.com
+  autoFollowNewPage: true
+```
+
+Compatibility form:
 
 ```yaml
 web:
+  mode: browser
+  url: https://example.com
+  autoFollowNewPage: true
+```
+
+Shared options:
+
+```yaml
+page:
   # The URL to visit, required. If `serve` is provided, provide the relative path.
   url: <url>
 
@@ -190,10 +217,11 @@ web:
   unstableLogContent: <boolean | path-to-unstable-log-file>
 
   # Whether to restrict page navigation to the current tab, optional, defaults to true.
+  # Page mode only. Do not use it with `browser:` or `web.mode: browser`.
   forceSameTabNavigation: <boolean>
 
-  # Whether to use BrowserAgent and automatically continue in newly opened pages, optional, defaults to false.
-  # Cannot be used together with forceSameTabNavigation: true.
+  # Whether BrowserAgent should automatically continue in newly opened pages, optional, defaults to false.
+  # Browser mode only. Use `browser:` or `web.mode: browser`.
   autoFollowNewPage: <boolean>
 
   # CDP endpoint, optional. Connects to an existing browser instance via CDP instead of launching a new one.

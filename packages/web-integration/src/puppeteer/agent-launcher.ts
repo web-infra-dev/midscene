@@ -369,10 +369,26 @@ export async function puppeteerAgentForTarget(
     typeof target.forceSameTabNavigation !== 'undefined'
       ? target.forceSameTabNavigation
       : true;
+  const mode = target.mode ?? 'page';
 
-  if (target.autoFollowNewPage && target.forceSameTabNavigation === true) {
+  if (mode !== 'page' && mode !== 'browser') {
     throw new Error(
-      '[midscene] autoFollowNewPage cannot be used with forceSameTabNavigation: true.',
+      `[midscene] web target mode must be either "page" or "browser", but got "${mode}".`,
+    );
+  }
+
+  if (mode === 'page' && target.autoFollowNewPage) {
+    throw new Error(
+      '[midscene] autoFollowNewPage requires browser mode. Use browser: or web.mode: browser.',
+    );
+  }
+
+  if (
+    mode === 'browser' &&
+    typeof target.forceSameTabNavigation !== 'undefined'
+  ) {
+    throw new Error(
+      '[midscene] forceSameTabNavigation cannot be used in browser mode. Use page: or web.mode: page when same-tab navigation is required.',
     );
   }
 
@@ -386,16 +402,17 @@ export async function puppeteerAgentForTarget(
   };
 
   // prepare Midscene agent
-  const agent = target.autoFollowNewPage
-    ? await PuppeteerBrowserAgent.create(page.browser(), {
-        ...commonAgentOpts,
-        initialPage: page,
-        autoFollowNewPage: true,
-      })
-    : new PuppeteerAgent(page, {
-        ...commonAgentOpts,
-        forceSameTabNavigation,
-      });
+  const agent =
+    mode === 'browser'
+      ? await PuppeteerBrowserAgent.create(page.browser(), {
+          ...commonAgentOpts,
+          initialPage: page,
+          autoFollowNewPage: target.autoFollowNewPage ?? false,
+        })
+      : new PuppeteerAgent(page, {
+          ...commonAgentOpts,
+          forceSameTabNavigation,
+        });
 
   freeFn.push({
     name: 'midscene_puppeteer_agent',

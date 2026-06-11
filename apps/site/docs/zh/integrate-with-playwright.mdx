@@ -264,11 +264,11 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 ### 关于在新标签页打开
 
-每个 Agent 实例都与对应的页面唯一绑定，为了方便开发者调试，Midscene 默认拦截了新 tab 的页面（如点击一个带有 `target="_blank"` 属性的链接），将其改为在当前页面打开。
+`PlaywrightAgent` 是 page-level Agent：每个实例都与对应的页面唯一绑定。为了方便开发者调试，Midscene 默认拦截了新 tab 的页面（如点击一个带有 `target="_blank"` 属性的链接），将其改为在当前页面打开。
 
 如果你想恢复在新标签页打开的行为，同时让当前 Agent 仍留在原页面，可以设置 `forceSameTabNavigation` 为 `false`，并自行为每个新标签页创建新的 Agent 实例。
 
-如果后续操作要自动继续在新打开的标签页中执行，请使用 `PlaywrightBrowserAgent` 并开启 `autoFollowNewPage`。
+如果一个 Agent 需要管理整个 browser context 内的页面切换，请使用 `PlaywrightBrowserAgent`。如果后续操作要自动继续在新打开的标签页中执行，请开启 `autoFollowNewPage`。
 
 ```typescript
 const mid = new PlaywrightBrowserAgent(context, page, {
@@ -276,7 +276,7 @@ const mid = new PlaywrightBrowserAgent(context, page, {
 });
 ```
 
-仅当你手上还没有现成的 page 时，才需要使用 `PlaywrightBrowserAgent.create(context, options)`。这个工厂会优先使用 `initialPage`，否则复用 context 里的第一个页面，或者创建一个新页面。
+当你要显式指定初始 active page 时，使用 `new PlaywrightBrowserAgent(context, page, options)`。当你希望 Midscene 自动选择或创建初始 active page 时，使用 `PlaywrightBrowserAgent.create(context, options)`；这个工厂会优先使用 `initialPage`，否则复用 context 里的第一个页面，或者创建一个新页面。
 
 ### 连接远程 Playwright 浏览器并接入 Midscene Agent
 

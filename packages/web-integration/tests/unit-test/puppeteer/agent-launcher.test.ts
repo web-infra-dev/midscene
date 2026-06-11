@@ -14,6 +14,8 @@ const mockNewPage = vi.fn();
 let pageMock: ReturnType<typeof createPageMock>;
 const browserMock = {
   newPage: mockNewPage,
+  on: vi.fn(),
+  off: vi.fn(),
   setCookie: vi.fn(),
   close: vi.fn(),
 };
@@ -24,6 +26,8 @@ const createPageMock = () => ({
   setViewport: vi.fn().mockResolvedValue(undefined),
   goto: vi.fn().mockResolvedValue(undefined),
   waitForNetworkIdle: vi.fn().mockResolvedValue(undefined),
+  browser: vi.fn(() => browserMock),
+  bringToFront: vi.fn().mockResolvedValue(undefined),
   on: vi.fn(),
   isClosed: vi.fn().mockReturnValue(false),
 });
@@ -148,5 +152,38 @@ describe('launchPuppeteerPage', () => {
     });
 
     expect((agent.page as any).waitForNetworkIdleTimeout).toBe(4321);
+  });
+
+  it('requires browser mode for autoFollowNewPage', async () => {
+    await expect(
+      puppeteerAgentForTarget({
+        url: 'https://example.com',
+        autoFollowNewPage: true,
+      }),
+    ).rejects.toThrow('autoFollowNewPage requires browser mode');
+  });
+
+  it('creates browser agent in browser mode', async () => {
+    const { agent } = await puppeteerAgentForTarget({
+      mode: 'browser',
+      url: 'https://example.com',
+      autoFollowNewPage: true,
+    });
+
+    expect(agent.constructor.name).toBe('PuppeteerBrowserAgent');
+    expect(browserMock.on).toHaveBeenCalledWith(
+      'targetcreated',
+      expect.any(Function),
+    );
+  });
+
+  it('rejects forceSameTabNavigation in browser mode', async () => {
+    await expect(
+      puppeteerAgentForTarget({
+        mode: 'browser',
+        url: 'https://example.com',
+        forceSameTabNavigation: false,
+      }),
+    ).rejects.toThrow('forceSameTabNavigation cannot be used in browser mode');
   });
 });
