@@ -8,3 +8,7 @@ Feature: Agent route with skills
 
   Scenario: unknown skill token
     Then everything is fine per $nope
+
+  Scenario: bracket marker routes without a skill
+    # [agent]
+    Then the disk usage is under quota

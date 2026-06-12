@@ -20,14 +20,14 @@ Feature: Real-cucumber smoke over the stub UI agent
 
   Scenario: Soft assertion failure stays green
     Given I open the demo shop
-    # @soft
+    # [soft]
     Then the promo banner is in SOFT_FAIL state
 
   Scenario: No-ai marker callback
-    # @no-ai
+    # [no-ai]
     Then the marker step writes "MARKER_42"
 
   @must-fail
   Scenario: Unmatched no-ai step fails with a snippet
-    # @no-ai
+    # [no-ai]
     Then nobody ever implemented this step

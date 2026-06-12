@@ -1,6 +1,6 @@
 const { defineStep } = require('@midscene/bdd');
 
-// A classic `# @no-ai` step: deterministic code, no AI involved. Must be a
+// A classic `# [no-ai]` step: deterministic code, no AI involved. Must be a
 // regular `function` (not an arrow) so `this` is the step context, which
 // exposes `getUiAgent`, `attach`, `log`, `dataTable`, and `docString`.
 defineStep('the login attempt counter increments', async function () {

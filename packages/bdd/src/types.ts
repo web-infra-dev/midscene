@@ -3,8 +3,8 @@
  *
  * Every module implements against these types; see each module's header for
  * its exact export surface. Routing model (design doc): Midscene UI agent by
- * default; `# @agent` / `$skill` bails a single statement out to a general
- * coding agent; `# @no-ai` requires a classic user-registered callback.
+ * default; `# [agent]` / `$skill` bails a single statement out to a general
+ * coding agent; `# [no-ai]` requires a classic user-registered callback.
  */
 import type { GherkinDocument, Pickle } from '@cucumber/messages';
 import type {
@@ -225,11 +225,11 @@ export interface ResolvedBddConfig {
  * step (Gherkin has no step-level tags) plus scenario/feature-level tags.
  */
 export interface StepAnnotations {
-  /** `# @agent` above the step, or any `$skill` token present. */
+  /** `# [agent]` above the step, or any `$skill` token present. */
   agent: boolean;
-  /** `# @no-ai` above the step, or `@no-ai` scenario/feature tag. */
+  /** `# [no-ai]` above the step, or `@no-ai` scenario/feature tag. */
   noAi: boolean;
-  /** `# @soft` above the step, or `@soft` scenario/feature tag. */
+  /** `# [soft]` above the step, or `@soft` scenario/feature tag. */
   soft: boolean;
   /** `$skill-name` tokens from the step text and annotation comments. */
   skills: string[];

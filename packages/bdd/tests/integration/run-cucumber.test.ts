@@ -323,6 +323,23 @@ describe('@agent / $skill general agent', () => {
     expect(result.error?.message).toContain('probe found errors');
   });
 
+  it('routes a "# [agent]" marker step to the general agent without skills', async () => {
+    const parsed = loadFeature('features/agent-skill.feature');
+    const result = await runScenario(
+      parsed.document,
+      pickleByName(parsed, 'bracket marker routes without a skill'),
+    );
+
+    expect(result.status).toBe('passed');
+    expect(generalCalls).toHaveLength(1);
+    expect(generalCalls[0].kind).toBe('assert');
+    expect(generalCalls[0].prompt).toContain('the disk usage is under quota');
+    expect(generalCalls[0].skills).toEqual([]);
+    // The marker bails the step out of the UI route entirely.
+    expect(uiRecord().calls).toEqual([]);
+    expect(uiRecord().factoryCalls).toBe(0);
+  });
+
   it('fails an unknown $skill token listing the available skills', async () => {
     const parsed = loadFeature('features/agent-skill.feature');
     const result = await runScenario(

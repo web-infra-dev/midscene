@@ -124,14 +124,14 @@ describe('buildExploreModel', () => {
 
   Scenario: Mixed routing
     Given I open the page
-    # @agent
+    # [agent]
     When the coding agent rotates the API key
     Then the server log notes the rotation, per $check-logs
-    # @no-ai
+    # [no-ai]
     Then the counter increments
-    # @soft
+    # [soft]
     Then the banner is visible
-    # @no-ai @agent
+    # [no-ai] [agent]
     Then conflicting markers prefer the callback
 `,
     });
@@ -141,15 +141,15 @@ describe('buildExploreModel', () => {
     // Default → Midscene UI agent.
     expect(steps[0].route).toBe('ui');
     expect(steps[0].annotations.soft).toBe(false);
-    // # @agent comment → general coding agent.
+    // # [agent] comment → general coding agent.
     expect(steps[1].route).toBe('agent');
     expect(steps[1].annotations.skills).toEqual([]);
     // Inline $skill token implies agent and carries the skill name.
     expect(steps[2].route).toBe('agent');
     expect(steps[2].annotations.skills).toEqual(['check-logs']);
-    // # @no-ai → user-registered classic callback.
+    // # [no-ai] → user-registered classic callback.
     expect(steps[3].route).toBe('no-ai');
-    // # @soft is captured but does not change the route.
+    // # [soft] is captured but does not change the route.
     expect(steps[4].route).toBe('ui');
     expect(steps[4].annotations.soft).toBe(true);
     // no-ai beats agent, exactly like the runtime router.
@@ -179,15 +179,15 @@ describe('buildExploreModel', () => {
       'features/main.feature': `Feature: Main
 
   Scenario: Annotated steps skip the flow registry
-    # @agent
+    # [agent]
     Given I am logged in as "admin"
-    # @no-ai
+    # [no-ai]
     And I am logged in as "guest"
     # the next step would be an ambiguous flow match if it were unannotated
-    # @agent
+    # [agent]
     When I do "special" thing
     # ...and this one an unknown-flow-sugar error
-    # @no-ai
+    # [no-ai]
     And I run the "nope" flow
 `,
     });
@@ -368,11 +368,13 @@ Feature: Main
   Scenario: Triggers findings
     When I do "special" thing
     And I run the "nope" flow
-    # @agent
+    # [agent]
 
     Then the detached marker above is ignored
-    # @agent
+    # [agent]
     And the audit log is appended, per $ghost-skill
+    # @agent
+    And the retired @-marker above is flagged as legacy
 `,
     });
     const model = await buildExploreModel(config);
@@ -398,7 +400,7 @@ Feature: Main
       }),
     ]);
 
-    // The "# @agent" comment separated from its step by a blank line never
+    // The "# [agent]" comment separated from its step by a blank line never
     // attaches — surfaced with the file:line of the dangling comment.
     expect(kinds('detached-annotation')).toEqual([
       expect.objectContaining({ uri: 'features/main.feature', line: 7 }),
@@ -411,6 +413,15 @@ Feature: Main
     expect(kinds('tag-level-agent')).toEqual([
       expect.objectContaining({ uri: 'features/main.feature', line: 1 }),
     ]);
+
+    // The retired "# @agent" syntax no longer routes — surfaced as its own
+    // health kind with the migration hint.
+    expect(kinds('legacy-annotation')).toEqual([
+      expect.objectContaining({ uri: 'features/main.feature', line: 12 }),
+    ]);
+    expect(kinds('legacy-annotation')[0].message).toContain(
+      'retired @-marker syntax',
+    );
 
     expect(kinds('missing-skill')).toEqual([
       expect.objectContaining({ subject: 'ghost-skill', line: 11 }),

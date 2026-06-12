@@ -26,14 +26,14 @@ export interface ModelIndices {
   haystack: Map<string, string>;
 }
 
-// Routing markers are searchable ("@agent", "@no-ai", "$skill") even when
+// Routing markers are searchable ("[agent]", "[no-ai]", "$skill") even when
 // they live in comment lines the step text does not contain.
 function buildHaystack(item: StoryItem): string {
   const tags = 'tags' in item ? item.tags : [];
   const parts: string[] = [item.name, ...tags];
   for (const step of item.steps) {
     parts.push(step.text);
-    if (step.route !== 'ui') parts.push(`@${step.route}`);
+    if (step.route !== 'ui') parts.push(`[${step.route}]`);
     for (const skill of step.annotations.skills) parts.push(`$${skill}`);
   }
   return parts.join('\n').toLowerCase();

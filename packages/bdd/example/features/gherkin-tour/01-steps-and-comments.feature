@@ -5,9 +5,11 @@
 # Lines starting with `#` are COMMENTS — the only comment form Gherkin has,
 # and they must be full lines (no end-of-line comments). Cucumber ignores
 # them. This framework adds ONE documented extension on top: a comment that
-# consists only of markers (`# @agent`, `# @no-ai`, `# @soft`, `# $skill`)
+# consists only of markers (`# [agent]`, `# [no-ai]`, `# [soft]`, `# $skill`)
 # placed DIRECTLY above a step changes how that one step is executed — see
 # features/error-reporting.feature for all three routing rules in action.
+# The square brackets are deliberate: `@`-prefixed names are cucumber TAG
+# syntax (like @tour below), and comment markers are not tags.
 #
 # The line below names the feature. Tags placed above it (like @tour) apply
 # to every scenario inside; run a subset with e.g. `npx cucumber-js --tags

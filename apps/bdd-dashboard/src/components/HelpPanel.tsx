@@ -82,8 +82,9 @@ const GLOSSARY: [string, string][] = [
   [
     'Step routing',
     'Where a step executes. Unmarked steps run on the Midscene UI agent; an ' +
-      '"agent" badge (# @agent or a $skill token) sends the step to a ' +
-      'general coding agent; "no-ai" runs a classic user-registered callback.',
+      '"agent" badge (a # [agent] comment or a $skill token) sends the step ' +
+      'to a general coding agent; "no-ai" runs a classic user-registered ' +
+      'callback.',
   ],
   [
     'soft',

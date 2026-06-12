@@ -32,7 +32,7 @@ skill paths use the defaults (`features/**/*.feature`, `features/skills`).
 | `features/flows/add-to-cart.feature` | A second flow, parameterized over the product name. |
 | `features/cart.feature` | Calling both flows declaratively, then asserting against what the page shows. |
 | `features/checkout.feature` | A coupon journey; asserts the 10% discount visually. |
-| `features/error-reporting.feature` | All three routing rules in one scenario, including a plain `# @agent` step and a `# @no-ai` step (see below). |
+| `features/error-reporting.feature` | All three routing rules in one scenario, including a plain `# [agent]` step and a `# [no-ai]` step (see below). |
 | `features/gherkin-tour/*.feature` | The full standard Gherkin grammar (descriptions, Background, Rule, outlines, data tables, doc strings, tags, `# language:`), one commented file per theme — written for readers new to Cucumber/BDD. |
 
 ## The three routing rules
@@ -40,8 +40,8 @@ skill paths use the defaults (`features/**/*.feature`, `features/skills`).
 | Rule | Marker | Who executes the step |
 | --- | --- | --- |
 | Default | none | Midscene UI agent (vision model drives/asserts the page) |
-| Agent | `# @agent` comment above the step, or a `$skill` token in it | General coding agent (can read files, run commands; Then steps need a pass/fail verdict). Skills live in `features/skills/*.md`. |
-| No AI | `# @no-ai` comment above the step | A classic callback registered with `Given`/`When`/`Then`/`defineStep` (see `features/step_definitions/`) |
+| Agent | `# [agent]` comment above the step, or a `$skill` token in it | General coding agent (can read files, run commands; Then steps need a pass/fail verdict). Skills live in `features/skills/*.md`. |
+| No AI | `# [no-ai]` comment above the step | A classic callback registered with `Given`/`When`/`Then`/`defineStep` (see `features/step_definitions/`) |
 
 ## Flows
 
