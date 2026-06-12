@@ -29,7 +29,7 @@
           "cwd": "apps/bdd-dashboard"
         },
         "cache": true,
-        "dependsOn": [],
+        "dependsOn": ["@midscene/shared:build"],
         "inputs": [
           "build",
           "{workspaceRoot}/package.json",
