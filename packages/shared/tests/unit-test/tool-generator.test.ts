@@ -1,3 +1,4 @@
+import { withCliVerboseContext } from '@/cli';
 import {
   generateCommonTools,
   generateToolsFromActionSpace,
@@ -719,6 +720,111 @@ describe('toolDefaults (deep locate / deep think)', () => {
       deepThink: false,
       deepLocate: true,
     });
+  });
+
+  it('emits verbose dump update events while act is running', async () => {
+    let dumpListener:
+      | ((dump: string, executionDump?: unknown) => void)
+      | undefined;
+    const unsubscribe = vi.fn();
+    const aiAction = vi.fn().mockImplementation(async () => {
+      dumpListener?.('{}', {
+        id: 'execution-1',
+        name: 'AI Action',
+        description: 'open settings',
+        tasks: [
+          {
+            taskId: 'task-1',
+            type: 'Planning',
+            subType: 'Locate',
+            status: 'running',
+            param: { prompt: 'open settings' },
+            timing: { cost: 12 },
+            recorder: [
+              {
+                timing: 'after-calling',
+                screenshot: {
+                  toSerializable: () => ({
+                    type: 'midscene_screenshot_ref',
+                    id: 'shot-1',
+                    storage: 'file',
+                    path: './screenshots/shot-1.png',
+                  }),
+                },
+              },
+            ],
+          },
+        ],
+      });
+      return 'done';
+    });
+    const addDumpUpdateListener = vi.fn((listener) => {
+      dumpListener = listener;
+      return unsubscribe;
+    });
+    const commonTools = generateCommonTools(async () => ({
+      aiAction,
+      addDumpUpdateListener,
+      reportFile: '/tmp/midscene-report.html',
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+    }));
+    const actTool = commonTools.find((tool) => tool.name === 'act');
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await withCliVerboseContext(
+      {
+        enabled: true,
+        scriptName: 'midscene-web',
+        commandName: 'act',
+      },
+      async () => {
+        await actTool?.handler({ prompt: 'open settings' });
+      },
+    );
+
+    const progressEvents = consoleSpy.mock.calls
+      .map(([message]) => String(message))
+      .filter((message) => message.includes('"type":"midscene_progress"'))
+      .map((message) => JSON.parse(message));
+    expect(progressEvents).toContainEqual(
+      expect.objectContaining({
+        event: 'agent_ready',
+        scriptName: 'midscene-web',
+        command: 'act',
+        tool: 'act',
+      }),
+    );
+    expect(progressEvents).toContainEqual(
+      expect.objectContaining({
+        event: 'dump_update',
+        command: 'act',
+        tool: 'act',
+        report: '/tmp/midscene-report.html',
+        execution: expect.objectContaining({
+          id: 'execution-1',
+          name: 'AI Action',
+          taskCount: 1,
+        }),
+        task: expect.objectContaining({
+          id: 'task-1',
+          type: 'Planning',
+          subType: 'Locate',
+          status: 'running',
+          param: 'open settings',
+        }),
+        screenshots: [
+          expect.objectContaining({
+            id: 'shot-1',
+            storage: 'file',
+            path: './screenshots/shot-1.png',
+          }),
+        ],
+      }),
+    );
+    expect(addDumpUpdateListener).toHaveBeenCalledOnce();
+    expect(unsubscribe).toHaveBeenCalledOnce();
+    consoleSpy.mockRestore();
   });
 
   it('lets an explicit act deepLocate arg override the server default', async () => {

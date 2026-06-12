@@ -1,6 +1,10 @@
 import { parseBase64 } from '@midscene/shared/img';
 import { z } from 'zod';
 import {
+  attachCliVerboseDumpListener,
+  emitCliVerboseEvent,
+} from '../cli/verbose';
+import {
   getZodDescription,
   getZodTypeName,
   isMidsceneLocatorField,
@@ -563,41 +567,56 @@ export function generateToolsFromActionSpace(
       handler: async (args: Record<string, unknown>) => {
         try {
           const agent = await getAgent(args);
-          let normalizedArgs = normalizeActionArgs(
-            sanitizeArgs(args),
-            action.paramSchema,
-          );
-          if (toolDefaults.locate) {
-            normalizedArgs = applyLocateDefaults(
-              normalizedArgs,
-              action.paramSchema,
-              toolDefaults.locate,
-            );
-          }
-          let actionResult: unknown;
-
+          emitCliVerboseEvent({
+            event: 'agent_ready',
+            tool: action.name,
+          });
+          const unsubscribeVerbose = attachCliVerboseDumpListener(agent, {
+            toolName: action.name,
+          });
           try {
-            actionResult = await executeAction(
+            let normalizedArgs = normalizeActionArgs(
+              sanitizeArgs(args),
+              action.paramSchema,
+            );
+            if (toolDefaults.locate) {
+              normalizedArgs = applyLocateDefaults(
+                normalizedArgs,
+                action.paramSchema,
+                toolDefaults.locate,
+              );
+            }
+            let actionResult: unknown;
+
+            try {
+              actionResult = await executeAction(
+                agent,
+                action.name,
+                normalizedArgs,
+              );
+            } catch (error: unknown) {
+              const errorMessage = getErrorMessage(error);
+              console.error(
+                `Error executing action "${action.name}":`,
+                errorMessage,
+              );
+              // Return screenshot + warning instead of hard error,
+              // so the AI agent can see current state and decide to retry or adjust strategy
+              return await captureFailureResult(
+                agent,
+                action.name,
+                errorMessage,
+              );
+            }
+
+            return await captureScreenshotResult(
               agent,
               action.name,
-              normalizedArgs,
+              actionResult,
             );
-          } catch (error: unknown) {
-            const errorMessage = getErrorMessage(error);
-            console.error(
-              `Error executing action "${action.name}":`,
-              errorMessage,
-            );
-            // Return screenshot + warning instead of hard error,
-            // so the AI agent can see current state and decide to retry or adjust strategy
-            return await captureFailureResult(agent, action.name, errorMessage);
+          } finally {
+            unsubscribeVerbose();
           }
-
-          return await captureScreenshotResult(
-            agent,
-            action.name,
-            actionResult,
-          );
         } catch (error: unknown) {
           // Connection/agent errors are still hard errors
           const errorMessage = getErrorMessage(error);
@@ -633,17 +652,28 @@ export function generateCommonTools(
       ): Promise<ToolResult> => {
         try {
           const agent = await getAgent(args);
-          const screenshot = await agent.page?.screenshotBase64();
-          if (!screenshot) {
-            return createErrorResult('Screenshot not available');
-          }
-          await agent.recordToReport?.('take_screenshot', {
-            screenshotBase64: screenshot,
+          emitCliVerboseEvent({
+            event: 'agent_ready',
+            tool: 'take_screenshot',
           });
-          const { mimeType, body } = parseBase64(screenshot);
-          return {
-            content: [{ type: 'image', data: body, mimeType }],
-          };
+          const unsubscribeVerbose = attachCliVerboseDumpListener(agent, {
+            toolName: 'take_screenshot',
+          });
+          try {
+            const screenshot = await agent.page?.screenshotBase64();
+            if (!screenshot) {
+              return createErrorResult('Screenshot not available');
+            }
+            await agent.recordToReport?.('take_screenshot', {
+              screenshotBase64: screenshot,
+            });
+            const { mimeType, body } = parseBase64(screenshot);
+            return {
+              content: [{ type: 'image', data: body, mimeType }],
+            };
+          } finally {
+            unsubscribeVerbose();
+          }
         } catch (error: unknown) {
           const errorMessage = getErrorMessage(error);
           console.error('Error taking screenshot:', errorMessage);
@@ -684,23 +714,34 @@ export function generateCommonTools(
         const prompt = args.prompt as string;
         try {
           const agent = await getAgent(args);
+          emitCliVerboseEvent({
+            event: 'agent_ready',
+            tool: 'act',
+          });
           if (!agent.aiAction) {
             return createErrorResult('act is not supported by this agent');
           }
-          // Start from the act defaults (deepThink off), overlay the server
-          // tool defaults, then let explicit per-call args win.
-          const actOptions: Record<string, unknown> = {
-            deepThink: false,
-            ...toolDefaults.act,
-          };
-          if (args.deepLocate !== undefined) {
-            actOptions.deepLocate = args.deepLocate;
+          const unsubscribeVerbose = attachCliVerboseDumpListener(agent, {
+            toolName: 'act',
+          });
+          try {
+            // Start from the act defaults (deepThink off), overlay the server
+            // tool defaults, then let explicit per-call args win.
+            const actOptions: Record<string, unknown> = {
+              deepThink: false,
+              ...toolDefaults.act,
+            };
+            if (args.deepLocate !== undefined) {
+              actOptions.deepLocate = args.deepLocate;
+            }
+            if (args.deepThink !== undefined) {
+              actOptions.deepThink = args.deepThink;
+            }
+            const result = await agent.aiAction(prompt, actOptions);
+            return await captureScreenshotResult(agent, 'act', result);
+          } finally {
+            unsubscribeVerbose();
           }
-          if (args.deepThink !== undefined) {
-            actOptions.deepThink = args.deepThink;
-          }
-          const result = await agent.aiAction(prompt, actOptions);
-          return await captureScreenshotResult(agent, 'act', result);
         } catch (error: unknown) {
           const errorMessage = getErrorMessage(error);
           console.error('Error executing act:', errorMessage);
@@ -735,19 +776,30 @@ export function generateCommonTools(
         const message = args.message as string | undefined;
         try {
           const agent = await getAgent(args);
+          emitCliVerboseEvent({
+            event: 'agent_ready',
+            tool: 'assert',
+          });
           if (!agent.aiAssert) {
             return createErrorResult('assert is not supported by this agent');
           }
-          const userPrompt = composeUserPrompt({
-            prompt,
-            image: args.image,
-            imageName: args.imageName,
-            convertHttpImage2Base64: args.convertHttpImage2Base64,
+          const unsubscribeVerbose = attachCliVerboseDumpListener(agent, {
+            toolName: 'assert',
           });
-          await agent.aiAssert(userPrompt, message);
-          return {
-            content: [{ type: 'text', text: 'Assertion passed.' }],
-          };
+          try {
+            const userPrompt = composeUserPrompt({
+              prompt,
+              image: args.image,
+              imageName: args.imageName,
+              convertHttpImage2Base64: args.convertHttpImage2Base64,
+            });
+            await agent.aiAssert(userPrompt, message);
+            return {
+              content: [{ type: 'text', text: 'Assertion passed.' }],
+            };
+          } finally {
+            unsubscribeVerbose();
+          }
         } catch (error: unknown) {
           const errorMessage = getErrorMessage(error);
           console.error('Error executing assert:', errorMessage);
