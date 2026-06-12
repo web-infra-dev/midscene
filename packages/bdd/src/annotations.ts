@@ -23,13 +23,19 @@ import type { RouterContext, StepAnnotations, StepType } from './types';
 // Skill tokens must start with a letter: a leading digit would make money
 // amounts in step text ("the total is $42.50") hijack routing to the agent.
 const SKILL_TOKEN_RE = /\$([A-Za-z][A-Za-z0-9_-]*)/g;
+const SKILL_TOKEN = /\$[A-Za-z][A-Za-z0-9_-]*/.source;
+const MARKER = /\[(?:agent|no-ai|soft)\]/.source;
+const LEGACY_MARKER = /@(?:agent|no-ai|soft)/.source;
+const markerOnlyLineRe = (marker: string) =>
+  new RegExp(
+    `^(?:${marker}|${SKILL_TOKEN})(?:\\s+(?:${marker}|${SKILL_TOKEN}))*$`,
+  );
 /**
  * An annotation comment line must consist ONLY of markers/tokens after `#`
  * (e.g. `# [agent] $check-logs`). Prose comments that merely mention a marker
  * ("# TODO: make this [no-ai] later") must not flip routing.
  */
-const ANNOTATION_LINE_RE =
-  /^(?:\[(?:agent|no-ai|soft)\]|\$[A-Za-z][A-Za-z0-9_-]*)(?:\s+(?:\[(?:agent|no-ai|soft)\]|\$[A-Za-z][A-Za-z0-9_-]*))*$/;
+const ANNOTATION_LINE_RE = markerOnlyLineRe(MARKER);
 const AGENT_MARKER_RE = /\[agent\]/;
 const NO_AI_MARKER_RE = /\[no-ai\]/;
 const SOFT_MARKER_RE = /\[soft\]/;
@@ -39,19 +45,14 @@ const SOFT_MARKER_RE = /\[soft\]/;
  * inert, so the footgun audit flags it. Prose that merely mentions a marker
  * mid-line ("# TODO: make this [no-ai] later") stays un-flagged.
  */
-const MARKER_AT_START_RE =
-  /^(?:\[(?:agent|no-ai|soft)\]|\$[A-Za-z][A-Za-z0-9_-]*)(?:\s|$)/;
+const MARKER_AT_START_RE = new RegExp(`^(?:${MARKER}|${SKILL_TOKEN})(?:\\s|$)`);
 /**
- * The pre-release `@`-prefixed marker syntax (`# @agent`, `# @no-ai`,
- * `# @soft`, optionally mixed with `$skill` tokens). It no longer routes —
- * it was replaced with brackets so comment markers cannot be confused with
- * cucumber's native tag syntax — but the footgun audit still recognizes the
- * shape and tells authors to migrate. Requires at least one `@` marker:
- * `$skill`-only lines are valid CURRENT syntax and never legacy.
+ * Marker-only lines in the pre-release `@`-prefixed syntax (`# @agent`,
+ * `# @no-ai`, `# @soft`, optionally mixed with `$skill` tokens). They no
+ * longer route; the footgun audit recognizes the shape and tells authors
+ * to migrate.
  */
-const LEGACY_MARKER_LINE_RE =
-  /^(?:@(?:agent|no-ai|soft)|\$[A-Za-z][A-Za-z0-9_-]*)(?:\s+(?:@(?:agent|no-ai|soft)|\$[A-Za-z][A-Za-z0-9_-]*))*$/;
-const LEGACY_MARKER_RE = /@(agent|no-ai|soft)\b/;
+const LEGACY_MARKER_LINE_RE = markerOnlyLineRe(LEGACY_MARKER);
 
 /**
  * The single definition of "this comment line is a routing marker": strip
@@ -253,13 +254,14 @@ export function collectAnnotationFootguns(document: GherkinDocument): string[] {
   for (const [line, rawText] of commentTextByLine) {
     if (markerBody(rawText) === undefined) {
       const body = rawText.trim().replace(/^#/, '').trim();
-      // The retired `@`-marker syntax: marker-only shape, but with the old
-      // `@` prefix. Checked before the prose rule — a legacy line also
-      // "starts with" nothing the new grammar knows, and the migration hint
-      // is the actionable message.
-      if (LEGACY_MARKER_LINE_RE.test(body) && LEGACY_MARKER_RE.test(body)) {
+      // Retired `@`-marker lines get the migration hint, checked before the
+      // prose rule so mixed lines like "# $skill @agent" are not misreported
+      // as marker-plus-prose. `$skill`-only lines match the legacy shape too,
+      // but they are valid current syntax, so markerBody() already accepted
+      // them and they never reach this branch.
+      if (LEGACY_MARKER_LINE_RE.test(body)) {
         warnings.push(
-          `annotation comment "${rawText.trim()}" at ${uri}:${line} uses the retired @-marker syntax and is ignored — write square-bracket markers instead (\`# @agent\` → \`# [agent]\`, \`# @no-ai\` → \`# [no-ai]\`, \`# @soft\` → \`# [soft]\`); brackets keep comment markers visually distinct from cucumber tags`,
+          `annotation comment "${rawText.trim()}" at ${uri}:${line} uses the retired @-marker syntax and is ignored — write bracket markers instead (e.g. "# @agent" → "# [agent]")`,
         );
         continue;
       }

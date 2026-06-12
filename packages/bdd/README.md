@@ -231,7 +231,7 @@ Everything cucumber gives you keeps working — this package adds exactly three 
 | | Mechanism | Prior art / rationale |
 | --- | --- | --- |
 | **100% standard** | `Background`, `Scenario Outline` + `Examples`, `Rule`, tags, data tables, doc strings, hooks, formatters, parallel workers, tag expressions, `cucumber.js` profiles | Plain cucumber-js — this package is one catch-all step definition plus a config preset |
-| **Extension 1** | `# [agent]` / `# [no-ai]` / `# [soft]` comment lines directly above a step | Gherkin has no step-level tags, so per-step routing lives in comment annotations (the established workaround in the Gherkin ecosystem); square brackets keep markers visually distinct from cucumber tags |
+| **Extension 1** | `# [agent]` / `# [no-ai]` / `# [soft]` comment lines directly above a step | Gherkin has no step-level tags, so per-step routing lives in comment annotations (the established workaround in the Gherkin ecosystem) |
 | **Extension 2** | `$skill-name` tokens in step text | Shell-style `$` references; a token both routes the statement to the general agent and loads the skill |
 | **Extension 3** | `@flow` / `@param:x` scenario tags | Karate's `call` model for reusable sub-scenarios, expressed through standard Gherkin tags; `<param>` substitution inside the flow body mirrors Scenario Outline placeholders |
 
