@@ -304,7 +304,8 @@ export type TModelFamily =
   | 'mano-cua'
   | 'gpt-5'
   | 'kimi'
-  | 'xiaomi-mimo';
+  | 'xiaomi-mimo'
+  | 'nvidia';
 
 export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'doubao-vision',
@@ -327,6 +328,7 @@ export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'gpt-5',
   'kimi',
   'xiaomi-mimo',
+  'nvidia',
 ];
 
 export interface IModelConfigForInsight {

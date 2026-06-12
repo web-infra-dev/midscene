@@ -40,6 +40,7 @@ describe('getUITarsModelVersion', () => {
     expect(getUITarsModelVersion('gpt-5')).toBeUndefined();
     expect(getUITarsModelVersion('kimi')).toBeUndefined();
     expect(getUITarsModelVersion('xiaomi-mimo')).toBeUndefined();
+    expect(getUITarsModelVersion('nvidia')).toBeUndefined();
   });
 });
 
@@ -54,6 +55,7 @@ describe('validateModelFamily', () => {
     expect(() => validateModelFamily('gpt-5')).not.toThrow();
     expect(() => validateModelFamily('kimi')).not.toThrow();
     expect(() => validateModelFamily('xiaomi-mimo')).not.toThrow();
+    expect(() => validateModelFamily('nvidia')).not.toThrow();
     expect(() => validateModelFamily('vlm-ui-tars')).not.toThrow();
     expect(() => validateModelFamily(undefined)).not.toThrow();
   });

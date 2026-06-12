@@ -17,6 +17,7 @@ import { kimiAdapters } from './kimi';
 import { maiUiAdapters } from './mai-ui/adapter';
 import { manoCuaAdapters } from './mano-cua/adapter';
 import { mimoAdapters } from './mimo';
+import { nvidiaAdapters } from './nvidia';
 import { qwenAdapters } from './qwen';
 import { uiTarsAdapters } from './ui-tars/adapter';
 
@@ -33,6 +34,7 @@ export const MODEL_ADAPTER_CONFIGS = {
   ...gptAdapters,
   ...kimiAdapters,
   ...mimoAdapters,
+  ...nvidiaAdapters,
 } satisfies Record<TModelFamily, ModelAdapterDefinition>;
 
 type ModelAdapterCacheKey = TModelFamily | 'default';
