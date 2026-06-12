@@ -194,6 +194,25 @@ describe('createLocateResultAdapter', () => {
     ).toThrow(/invalid bbox data/);
   });
 
+  it('rejects invalid parsed adapter results before coordinate range checks', () => {
+    const adapter = createLocateResultAdapter({
+      coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      parseRawLocateValue: () => ({
+        type: 'bbox',
+        coordinates: [652, '233; 713 251;'] as any,
+      }),
+    });
+
+    expect(() =>
+      adapter.adaptElementLocateResultToPixelBbox(
+        { bbox: [652, '233; 713 251;'] },
+        locateCtx(640, 360),
+      ),
+    ).toThrow(
+      /invalid parsed locate result: bbox coordinates must be 4 finite numbers, got \[652,"233; 713 251;"\]/,
+    );
+  });
+
   it('rejects non-array coordinate values before numeric parsing', () => {
     const adapter = createLocateResultAdapter({
       coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
