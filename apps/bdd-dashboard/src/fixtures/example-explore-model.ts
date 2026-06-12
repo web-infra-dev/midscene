@@ -11,7 +11,7 @@
 import type { ExploreModel } from '../model/types';
 
 export const exampleExploreModel: ExploreModel = {
-  generatedAt: '2026-06-11T21:40:26.899Z',
+  generatedAt: '2026-06-12T19:26:26.165Z',
   baseDir: '/home/zack/projects/midscene/packages/bdd/example',
   features: [
     {
@@ -43,9 +43,7 @@ export const exampleExploreModel: ExploreModel = {
               line: 7,
               flowCall: {
                 flowId: 'flow:I am logged in as {string}',
-                args: {
-                  role: 'guest',
-                },
+                args: { role: 'guest' },
               },
             },
             {
@@ -62,9 +60,7 @@ export const exampleExploreModel: ExploreModel = {
               line: 8,
               flowCall: {
                 flowId: 'flow:I have added {string} to the cart',
-                args: {
-                  product: 'Camp Mug',
-                },
+                args: { product: 'Camp Mug' },
               },
             },
             {
@@ -139,9 +135,7 @@ export const exampleExploreModel: ExploreModel = {
               line: 6,
               flowCall: {
                 flowId: 'flow:I am logged in as {string}',
-                args: {
-                  role: 'admin',
-                },
+                args: { role: 'admin' },
               },
             },
             {
@@ -158,9 +152,7 @@ export const exampleExploreModel: ExploreModel = {
               line: 7,
               flowCall: {
                 flowId: 'flow:I have added {string} to the cart',
-                args: {
-                  product: 'Trail Backpack',
-                },
+                args: { product: 'Trail Backpack' },
               },
             },
             {
@@ -338,15 +330,22 @@ export const exampleExploreModel: ExploreModel = {
       relPath: 'features/gherkin-tour/01-steps-and-comments.feature',
       name: 'Gherkin tour — steps and comments',
       description:
-        'Everything indented under the `Feature:` line (until the first Scenario,\n  Background, or Rule) is the feature DESCRIPTION: free-form prose for human\n  readers. Cucumber parses but never executes it. Descriptions are also\n  allowed under Scenario, Rule, and Examples headers.\n\n  With @midscene/bdd, the steps themselves are plain natural language: by\n  default each one is sent to the Midscene vision agent, which drives the\n  page (Given/When) or judges an assertion against it (Then, fail-closed).',
+        'Everything indented under the `Feature:` line (until the first Scenario,\n' +
+        '  Background, or Rule) is the feature DESCRIPTION: free-form prose for human\n' +
+        '  readers. Cucumber parses but never executes it. Descriptions are also\n' +
+        '  allowed under Scenario, Rule, and Examples headers.\n' +
+        '\n' +
+        '  With @midscene/bdd, the steps themselves are plain natural language: by\n' +
+        '  default each one is sent to the Midscene vision agent, which drives the\n' +
+        '  page (Given/When) or judges an assertion against it (Then, fail-closed).',
       tags: ['@tour'],
       scenarios: [
         {
-          id: 'scenario:features/gherkin-tour/01-steps-and-comments.feature#32',
+          id: 'scenario:features/gherkin-tour/01-steps-and-comments.feature#34',
           name: 'Given/When/Then/And/But cover one shopping round-trip',
           tags: [],
           uri: 'features/gherkin-tour/01-steps-and-comments.feature',
-          line: 32,
+          line: 34,
           isOutline: false,
           steps: [
             {
@@ -360,7 +359,7 @@ export const exampleExploreModel: ExploreModel = {
                 skills: [],
               },
               route: 'ui',
-              line: 33,
+              line: 35,
             },
             {
               keyword: 'When ',
@@ -373,7 +372,7 @@ export const exampleExploreModel: ExploreModel = {
                 skills: [],
               },
               route: 'ui',
-              line: 34,
+              line: 36,
             },
             {
               keyword: 'Then ',
@@ -386,7 +385,7 @@ export const exampleExploreModel: ExploreModel = {
                 skills: [],
               },
               route: 'ui',
-              line: 35,
+              line: 37,
             },
             {
               keyword: 'And ',
@@ -399,7 +398,7 @@ export const exampleExploreModel: ExploreModel = {
                 skills: [],
               },
               route: 'ui',
-              line: 36,
+              line: 38,
             },
             {
               keyword: 'But ',
@@ -412,16 +411,16 @@ export const exampleExploreModel: ExploreModel = {
                 skills: [],
               },
               route: 'ui',
-              line: 37,
+              line: 39,
             },
           ],
         },
         {
-          id: 'scenario:features/gherkin-tour/01-steps-and-comments.feature#42',
+          id: 'scenario:features/gherkin-tour/01-steps-and-comments.feature#44',
           name: 'The * keyword writes steps as a bullet list',
           tags: [],
           uri: 'features/gherkin-tour/01-steps-and-comments.feature',
-          line: 42,
+          line: 44,
           isOutline: false,
           steps: [
             {
@@ -435,7 +434,7 @@ export const exampleExploreModel: ExploreModel = {
                 skills: [],
               },
               route: 'ui',
-              line: 43,
+              line: 45,
             },
             {
               keyword: '* ',
@@ -448,7 +447,7 @@ export const exampleExploreModel: ExploreModel = {
                 skills: [],
               },
               route: 'ui',
-              line: 44,
+              line: 46,
             },
             {
               keyword: '* ',
@@ -461,7 +460,7 @@ export const exampleExploreModel: ExploreModel = {
                 skills: [],
               },
               route: 'ui',
-              line: 45,
+              line: 47,
             },
           ],
         },
@@ -473,7 +472,10 @@ export const exampleExploreModel: ExploreModel = {
       relPath: 'features/gherkin-tour/02-background-and-rules.feature',
       name: 'Gherkin tour — Background and Rules',
       description:
-        'A `Background:` lists steps that run before EACH scenario in its scope; a\n  `Rule:` groups related scenarios under one business rule and may carry its\n  own (additional) Background. Tags on a Rule are inherited by every\n  scenario inside it, exactly like feature tags.',
+        'A `Background:` lists steps that run before EACH scenario in its scope; a\n' +
+        '  `Rule:` groups related scenarios under one business rule and may carry its\n' +
+        '  own (additional) Background. Tags on a Rule are inherited by every\n' +
+        '  scenario inside it, exactly like feature tags.',
       tags: ['@tour'],
       scenarios: [
         {
@@ -511,9 +513,7 @@ export const exampleExploreModel: ExploreModel = {
               line: 23,
               flowCall: {
                 flowId: 'flow:I have added {string} to the cart',
-                args: {
-                  product: 'Trail Backpack',
-                },
+                args: { product: 'Trail Backpack' },
               },
             },
             {
@@ -592,9 +592,7 @@ export const exampleExploreModel: ExploreModel = {
               line: 23,
               flowCall: {
                 flowId: 'flow:I have added {string} to the cart',
-                args: {
-                  product: 'Trail Backpack',
-                },
+                args: { product: 'Trail Backpack' },
               },
             },
             {
@@ -633,7 +631,12 @@ export const exampleExploreModel: ExploreModel = {
       relPath: 'features/gherkin-tour/03-scenario-outlines.feature',
       name: 'Gherkin tour — Scenario Outlines',
       description:
-        "An outline's steps may contain `<placeholders>`. Gherkin substitutes them\n  at COMPILE time from each `Examples:` row, producing one concrete scenario\n  per row. The same `<x>` substitution is reused for this framework's @flow\n  scenarios, bound from their `@param:` declarations (see features/flows/) —\n  and that is the ONLY variable mechanism here: there is deliberately no\n  runtime capture/remember syntax.",
+        "An outline's steps may contain `<placeholders>`. Gherkin substitutes them\n" +
+        '  at COMPILE time from each `Examples:` row, producing one concrete scenario\n' +
+        "  per row. The same `<x>` substitution is reused for this framework's @flow\n" +
+        '  scenarios, bound from their `@param:` declarations (see features/flows/) —\n' +
+        '  and that is the ONLY variable mechanism here: there is deliberately no\n' +
+        '  runtime capture/remember syntax.',
       tags: ['@tour'],
       scenarios: [
         {
@@ -659,9 +662,7 @@ export const exampleExploreModel: ExploreModel = {
               line: 23,
               flowCall: {
                 flowId: 'flow:I am logged in as {string}',
-                args: {
-                  role: 'admin',
-                },
+                args: { role: 'admin' },
               },
             },
             {
@@ -875,7 +876,9 @@ export const exampleExploreModel: ExploreModel = {
               },
               route: 'ui',
               dataTable:
-                '| product | quantity |\n| Camp Mug | 2 |\n| Trail Backpack | 1 |',
+                '| product | quantity |\n' +
+                '| Camp Mug | 2 |\n' +
+                '| Trail Backpack | 1 |',
               line: 10,
             },
             {
@@ -926,7 +929,9 @@ export const exampleExploreModel: ExploreModel = {
               },
               route: 'ui',
               docString:
-                'Restock plan:\n- Trail Backpack arrives Friday\n- Camp Mug is selling fast',
+                'Restock plan:\n' +
+                '- Trail Backpack arrives Friday\n' +
+                '- Camp Mug is selling fast',
               line: 23,
             },
             {
@@ -1031,12 +1036,7 @@ export const exampleExploreModel: ExploreModel = {
           keyword: 'When ',
           text: 'I open the login page',
           stepType: 'action',
-          annotations: {
-            agent: false,
-            noAi: false,
-            soft: false,
-            skills: [],
-          },
+          annotations: { agent: false, noAi: false, soft: false, skills: [] },
           route: 'ui',
           line: 12,
         },
@@ -1044,12 +1044,7 @@ export const exampleExploreModel: ExploreModel = {
           keyword: 'And ',
           text: 'I sign in as the "<role>" user with the demo password shown on the login form',
           stepType: 'action',
-          annotations: {
-            agent: false,
-            noAi: false,
-            soft: false,
-            skills: [],
-          },
+          annotations: { agent: false, noAi: false, soft: false, skills: [] },
           route: 'ui',
           line: 13,
           paramUses: ['role'],
@@ -1058,12 +1053,7 @@ export const exampleExploreModel: ExploreModel = {
           keyword: 'Then ',
           text: 'the dashboard for the "<role>" role is visible',
           stepType: 'outcome',
-          annotations: {
-            agent: false,
-            noAi: false,
-            soft: false,
-            skills: [],
-          },
+          annotations: { agent: false, noAi: false, soft: false, skills: [] },
           route: 'ui',
           line: 14,
           paramUses: ['role'],
@@ -1086,12 +1076,7 @@ export const exampleExploreModel: ExploreModel = {
           keyword: 'When ',
           text: 'I go to the home page',
           stepType: 'action',
-          annotations: {
-            agent: false,
-            noAi: false,
-            soft: false,
-            skills: [],
-          },
+          annotations: { agent: false, noAi: false, soft: false, skills: [] },
           route: 'ui',
           line: 8,
         },
@@ -1099,12 +1084,7 @@ export const exampleExploreModel: ExploreModel = {
           keyword: 'And ',
           text: 'I add the "<product>" product to the cart',
           stepType: 'action',
-          annotations: {
-            agent: false,
-            noAi: false,
-            soft: false,
-            skills: [],
-          },
+          annotations: { agent: false, noAi: false, soft: false, skills: [] },
           route: 'ui',
           line: 9,
           paramUses: ['product'],
@@ -1113,12 +1093,7 @@ export const exampleExploreModel: ExploreModel = {
           keyword: 'Then ',
           text: 'the cart shows the "<product>" product',
           stepType: 'outcome',
-          annotations: {
-            agent: false,
-            noAi: false,
-            soft: false,
-            skills: [],
-          },
+          annotations: { agent: false, noAi: false, soft: false, skills: [] },
           route: 'ui',
           line: 10,
           paramUses: ['product'],
@@ -1137,57 +1112,43 @@ export const exampleExploreModel: ExploreModel = {
       from: 'scenario:features/cart.feature#6',
       to: 'flow:I am logged in as {string}',
       stepIndex: 0,
-      args: {
-        role: 'guest',
-      },
+      args: { role: 'guest' },
     },
     {
       from: 'scenario:features/cart.feature#6',
       to: 'flow:I have added {string} to the cart',
       stepIndex: 1,
-      args: {
-        product: 'Camp Mug',
-      },
+      args: { product: 'Camp Mug' },
     },
     {
       from: 'scenario:features/checkout.feature#5',
       to: 'flow:I am logged in as {string}',
       stepIndex: 0,
-      args: {
-        role: 'admin',
-      },
+      args: { role: 'admin' },
     },
     {
       from: 'scenario:features/checkout.feature#5',
       to: 'flow:I have added {string} to the cart',
       stepIndex: 1,
-      args: {
-        product: 'Trail Backpack',
-      },
+      args: { product: 'Trail Backpack' },
     },
     {
       from: 'scenario:features/gherkin-tour/02-background-and-rules.feature#30',
       to: 'flow:I have added {string} to the cart',
       stepIndex: 1,
-      args: {
-        product: 'Trail Backpack',
-      },
+      args: { product: 'Trail Backpack' },
     },
     {
       from: 'scenario:features/gherkin-tour/02-background-and-rules.feature#35',
       to: 'flow:I have added {string} to the cart',
       stepIndex: 1,
-      args: {
-        product: 'Trail Backpack',
-      },
+      args: { product: 'Trail Backpack' },
     },
     {
       from: 'scenario:features/gherkin-tour/03-scenario-outlines.feature#22',
       to: 'flow:I am logged in as {string}',
       stepIndex: 0,
-      args: {
-        role: 'admin',
-      },
+      args: { role: 'admin' },
     },
   ],
   health: [],
