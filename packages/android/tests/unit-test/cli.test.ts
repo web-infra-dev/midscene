@@ -128,6 +128,43 @@ describe('Android CLI integration', () => {
     });
   });
 
+  it('threads common agent behavior args through the generated CLI', async () => {
+    const mockAgent = createMockAgent();
+    vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
+
+    const tools = new AndroidMidsceneTools();
+
+    await runToolsCLI(tools, 'midscene-android', {
+      stripPrefix: 'android_',
+      argv: [
+        'act',
+        '--prompt',
+        'open settings',
+        '--device-id',
+        'behavior-device',
+        '--wait-after-action',
+        '650',
+        '--replanning-cycle-limit',
+        '12',
+        '--ai-act-context',
+        'accept permission dialogs',
+        '--screenshot-shrink-factor',
+        '2',
+      ],
+    });
+
+    expect(agentFromAdbDevice).toHaveBeenCalledWith('behavior-device', {
+      autoDismissKeyboard: false,
+      waitAfterAction: 650,
+      replanningCycleLimit: 12,
+      aiActContext: 'accept permission dialogs',
+      screenshotShrinkFactor: 2,
+    });
+    expect(mockAgent.aiAction).toHaveBeenCalledWith('open settings', {
+      deepThink: false,
+    });
+  });
+
   it('enables scrcpy when --use-scrcpy is provided', async () => {
     const tools = new AndroidMidsceneTools();
 
@@ -173,6 +210,15 @@ describe('Android CLI integration', () => {
 
     expect(output.join('\n')).toContain('--device-id');
     expect(output.join('\n')).toContain('--deviceId');
+    expect(output.join('\n')).toContain('--wait-after-action');
+    expect(output.join('\n')).toContain('--waitAfterAction');
+    expect(output.join('\n')).toContain('Default: 300ms');
+    expect(output.join('\n')).toContain('--replanning-cycle-limit');
+    expect(output.join('\n')).toContain('--ai-act-context');
+    expect(output.join('\n')).toContain('--screenshot-shrink-factor');
+    expect(output.join('\n')).toContain(
+      'high values may reduce recognition quality, especially on mobile',
+    );
     expect(output.join('\n')).not.toContain('--android.device-id');
     expect(output.join('\n')).not.toContain('--android.deviceId');
 
