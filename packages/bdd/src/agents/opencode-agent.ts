@@ -14,13 +14,17 @@ import type {
 } from '../types';
 import { ERROR_PREFIX } from '../types';
 import {
-  DEFAULT_TIMEOUT_MS,
   cliFailureError,
-  resolveModelEnv,
+  planCommon,
   runCli,
+  throwOnNonZeroExit,
   withScreenshotFile,
 } from './cli-agent';
-import { buildGeneralPrompt, toGeneralResult } from './general-prompt';
+import {
+  buildGeneralPrompt,
+  pruneSentSkills,
+  toGeneralResult,
+} from './general-prompt';
 
 const INSTALL_HINT =
   "`opencode` CLI not found. Install it with `npm i -g opencode-ai` (or see https://opencode.ai). To use Codex instead set `generalAgent.type: 'codex'`.";
@@ -49,53 +53,58 @@ function planOpencode(
   config: GeneralAgentConfig,
   baseDir: string,
 ): OpencodePlan {
-  const env: NodeJS.ProcessEnv = { ...process.env, ...config.env };
-  const resolved = resolveModelEnv(env);
-  const reuse = config.reuseMidsceneModelEnv !== false;
+  const common = planCommon(config, baseDir);
+  const { resolved } = common;
   const explicitModel = config.model;
-  const permissions = config.permissions ?? 'workspace';
 
   const generated: Record<string, unknown> = {
     share: 'disabled',
     autoupdate: false,
   };
-  if (permissions === 'read-only') {
-    generated.permission = { edit: 'deny', bash: 'deny' };
+  let skipPermissions = false;
+  switch (common.permissions) {
+    case 'read-only':
+      generated.permission = { edit: 'deny', bash: 'deny' };
+      break;
+    case 'workspace':
+      break; // opencode's defaults
+    case 'all':
+      skipPermissions = true;
+      break;
+    default: {
+      const exhaustive: never = common.permissions;
+      throw new Error(`${ERROR_PREFIX} unknown permissions: ${exhaustive}`);
+    }
   }
 
+  // Three exclusive model cases; each binds a non-nullable `model`.
   let model: string;
-  if (reuse && resolved.baseUrlKind === 'http') {
-    const bareName = explicitModel?.includes('/')
-      ? resolved.modelName
-      : (explicitModel ?? resolved.modelName);
-    if (!bareName && !explicitModel) {
+  if (explicitModel?.includes('/')) {
+    // Explicit provider/model: opencode's own provider config (its auth or
+    // generalAgent.env) — the Midscene provider is NOT injected.
+    model = explicitModel;
+  } else if (common.reuse && resolved.baseUrlKind === 'http') {
+    const bareName = explicitModel ?? resolved.modelName;
+    if (!bareName) {
       throw new Error(
         `${ERROR_PREFIX} generalAgent (opencode): the Midscene endpoint is set but no model name is — set MIDSCENE_MODEL_NAME or generalAgent.model.`,
       );
     }
-    if (bareName) {
-      generated.provider = {
-        midscene: {
-          npm: '@ai-sdk/openai-compatible',
-          options: {
-            baseURL: resolved.baseUrl,
-            // {env:VAR} defers the secret to the spawned env — the key never
-            // appears in the generated config text.
-            ...(resolved.apiKeyVar
-              ? { apiKey: `{env:${resolved.apiKeyVar}}` }
-              : {}),
-          },
-          models: { [bareName]: {} },
+    generated.provider = {
+      midscene: {
+        npm: '@ai-sdk/openai-compatible',
+        options: {
+          baseURL: resolved.baseUrl,
+          // {env:VAR} defers the secret to the spawned env — the key never
+          // appears in the generated config text.
+          ...(resolved.apiKeyVar
+            ? { apiKey: `{env:${resolved.apiKeyVar}}` }
+            : {}),
         },
-      };
-    }
-    model = explicitModel?.includes('/')
-      ? explicitModel
-      : `midscene/${bareName}`;
-  } else if (explicitModel?.includes('/')) {
-    // Bring-your-own opencode setup: the user names a provider/model that
-    // opencode already knows about (its own auth or generalAgent.env).
-    model = explicitModel;
+        models: { [bareName]: {} },
+      },
+    };
+    model = `midscene/${bareName}`;
   } else if (resolved.baseUrlKind === 'codex') {
     throw new Error(
       `${ERROR_PREFIX} generalAgent (opencode): MIDSCENE_MODEL_BASE_URL is '${resolved.baseUrl}', which only Codex understands. Either set generalAgent.type: 'codex', or point opencode at a model with generalAgent.model ('provider/model') + generalAgent.env.`,
@@ -105,16 +114,17 @@ function planOpencode(
       `${ERROR_PREFIX} generalAgent (opencode): no usable model endpoint. Either set the MIDSCENE_MODEL_* env vars (http(s) endpoint), or set generalAgent.model ('provider/model') + generalAgent.env for a CLI-native setup, or provide generalAgent.factory.`,
     );
   }
+  // Config-level default; the explicit -m on argv is what actually selects.
   generated.model = model;
 
   return {
     model,
     configContent: JSON.stringify(generated),
-    env,
-    cwd: config.cwd ?? baseDir,
-    timeoutMs: config.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-    skipPermissions: permissions === 'all',
-    sessionPerScenario: config.sessionPerScenario === true,
+    env: common.env,
+    cwd: common.cwd,
+    timeoutMs: common.timeoutMs,
+    skipPermissions,
+    sessionPerScenario: common.sessionPerScenario,
   };
 }
 
@@ -153,6 +163,8 @@ export function parseOpencodeJsonEvents(stdout: string): {
 export class OpencodeGeneralAgent implements GeneralAgent {
   private plan: OpencodePlan;
   private sessionId?: string;
+  /** Skill docs already in the session's context — not re-sent (see pruneSentSkills). */
+  private sentSkills = new Set<string>();
 
   constructor(config: GeneralAgentConfig, baseDir: string) {
     this.plan = planOpencode(config, baseDir);
@@ -163,6 +175,9 @@ export class OpencodeGeneralAgent implements GeneralAgent {
     // Test-only override so unit tests can substitute a fixture script for
     // the real CLI. Deliberately NOT part of the public config schema.
     const bin = process.env.MIDSCENE_BDD_OPENCODE_BIN || 'opencode';
+    const promptReq = this.sessionId
+      ? pruneSentSkills(req, this.sentSkills)
+      : req;
 
     const text = await withScreenshotFile(
       req.screenshotBase64,
@@ -176,7 +191,7 @@ export class OpencodeGeneralAgent implements GeneralAgent {
           if (this.sessionId) args.push('-s', this.sessionId);
         }
         if (screenshotPath) args.push('-f', screenshotPath);
-        args.push(buildGeneralPrompt(req));
+        args.push(buildGeneralPrompt(promptReq));
 
         const outcome = await runCli({
           bin,
@@ -188,20 +203,13 @@ export class OpencodeGeneralAgent implements GeneralAgent {
           installHint: INSTALL_HINT,
         });
 
-        if (outcome.exitCode !== 0) {
-          throw cliFailureError(
-            'opencode',
-            `exited with code ${outcome.exitCode}.`,
-            `${outcome.stdout}\n${outcome.stderr}`,
-            AUTH_HINT,
-          );
-        }
+        throwOnNonZeroExit('opencode', outcome, AUTH_HINT);
         // opencode has documented exit-0-on-error bugs: also sniff stderr
         // `Error:` lines and treat an empty reply as failure.
-        const errorLine = outcome.stderr
+        const hasErrorLine = outcome.stderr
           .split('\n')
-          .find((line) => line.trim().startsWith('Error:'));
-        if (errorLine) {
+          .some((line) => line.trim().startsWith('Error:'));
+        if (hasErrorLine) {
           throw cliFailureError(
             'opencode',
             'reported an error despite exit code 0.',
@@ -222,10 +230,12 @@ export class OpencodeGeneralAgent implements GeneralAgent {
         }
 
         if (replyText.length === 0) {
+          // Include stdout: in session mode the JSON event stream is the
+          // useful diagnostic even when no text part was produced.
           throw cliFailureError(
             'opencode',
             'produced no output (exit code 0) — treating as failure.',
-            outcome.stderr,
+            `${outcome.stdout}\n${outcome.stderr}`,
             AUTH_HINT,
           );
         }
@@ -233,10 +243,16 @@ export class OpencodeGeneralAgent implements GeneralAgent {
       },
     );
 
+    // Only mark skills as in-context once session continuity is real: if no
+    // session id was captured, the next run starts fresh and must re-send.
+    if (this.sessionId) {
+      for (const skill of req.skills) this.sentSkills.add(skill.name);
+    }
     return toGeneralResult(req, text);
   }
 
   async dispose(): Promise<void> {
     this.sessionId = undefined;
+    this.sentSkills.clear();
   }
 }

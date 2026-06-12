@@ -31,13 +31,21 @@ export function buildGeneralPrompt(req: GeneralAgentRequest): string {
 }
 
 /**
- * Find the last top-level `{...}` candidate in `text` that parses to an
- * object with a boolean `pass`. Brace-balanced scan: survives nested objects
- * and braces inside JSON strings, unlike a naive regex.
+ * Session-continuity prompt diet: a resumed session already holds the skill
+ * documents sent on earlier steps, so re-sending them is pure prompt bloat.
+ * Returns `req` with already-sent skills removed.
  */
-export function extractVerdict(
-  text: string,
-): { pass: boolean; reason: string } | undefined {
+export function pruneSentSkills(
+  req: GeneralAgentRequest,
+  sent: ReadonlySet<string>,
+): GeneralAgentRequest {
+  if (sent.size === 0 || req.skills.length === 0) return req;
+  const skills = req.skills.filter((skill) => !sent.has(skill.name));
+  return skills.length === req.skills.length ? req : { ...req, skills };
+}
+
+/** Top-level `{...}` spans via a brace-balanced, string-aware scan. */
+function collectBalancedObjects(text: string): string[] {
   const candidates: string[] = [];
   let depth = 0;
   let start = -1;
@@ -71,6 +79,26 @@ export function extractVerdict(
         }
       }
     }
+  }
+  return candidates;
+}
+
+/**
+ * Find the last top-level `{...}` candidate in `text` that parses to an
+ * object with a boolean `pass`. Brace-balanced scan: survives nested objects
+ * and braces inside JSON strings, unlike a naive regex; a `lastIndexOf`
+ * backstop covers unbalanced braces in earlier prose.
+ */
+export function extractVerdict(
+  text: string,
+): { pass: boolean; reason: string } | undefined {
+  const candidates = collectBalancedObjects(text);
+  // Backstop: an unbalanced '{' earlier in prose (e.g. quoted code like
+  // `foo() {`) keeps the scan's depth > 0 forever and would hide a trailing
+  // verdict; rescan from the last '{"pass"' occurrence.
+  const fallbackStart = text.lastIndexOf('{"pass"');
+  if (fallbackStart > 0) {
+    candidates.push(...collectBalancedObjects(text.slice(fallbackStart)));
   }
 
   for (let i = candidates.length - 1; i >= 0; i--) {

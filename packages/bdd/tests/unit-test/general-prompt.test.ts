@@ -7,6 +7,7 @@ import {
   VERDICT_INSTRUCTIONS,
   buildGeneralPrompt,
   extractVerdict,
+  pruneSentSkills,
 } from '../../src/agents/general-prompt';
 import { renderSkillsForPrompt } from '../../src/skills';
 import type { GeneralAgentRequest, Skill } from '../../src/types';
@@ -32,6 +33,16 @@ describe('extractVerdict', () => {
     expect(extractVerdict(text)).toEqual({
       pass: false,
       reason: 'missing field',
+    });
+  });
+
+  it('finds the verdict despite an unbalanced brace in earlier prose', () => {
+    // The stray `{` in quoted code would keep a single balanced scan at
+    // depth > 0 forever; the lastIndexOf('{"pass"') backstop recovers.
+    const text = `The handler is defined in \`registerRoutes() {\` near the top.\n{"pass": true, "reason": "route registered"}`;
+    expect(extractVerdict(text)).toEqual({
+      pass: true,
+      reason: 'route registered',
     });
   });
 
@@ -114,5 +125,30 @@ describe('VERDICT_INSTRUCTIONS', () => {
   it('mentions the fail-closed pass:false behavior', () => {
     expect(VERDICT_INSTRUCTIONS).toContain('fail-closed');
     expect(VERDICT_INSTRUCTIONS).toContain('"pass": false');
+  });
+});
+
+describe('pruneSentSkills', () => {
+  const skills: Skill[] = [
+    { name: 'check-logs', content: 'a', file: '/a.md' },
+    { name: 'query-db', content: 'b', file: '/b.md' },
+  ];
+
+  it('drops skills already sent in the session', () => {
+    const pruned = pruneSentSkills(
+      req({ skills }),
+      new Set(['check-logs']),
+    ).skills;
+    expect(pruned.map((s) => s.name)).toEqual(['query-db']);
+  });
+
+  it('returns the request unchanged when nothing was sent', () => {
+    const r = req({ skills });
+    expect(pruneSentSkills(r, new Set())).toBe(r);
+  });
+
+  it('returns the request unchanged when no skill overlaps', () => {
+    const r = req({ skills });
+    expect(pruneSentSkills(r, new Set(['other']))).toBe(r);
   });
 });

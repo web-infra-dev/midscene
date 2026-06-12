@@ -3,24 +3,29 @@
  * (`opencode-agent.ts`, `codex-agent.ts`).
  *
  * Exports: `resolveModelEnv` (Midscene env-var fallback resolution),
- * `runCli` (spawn + hard timeout + ENOENT taxonomy), `withScreenshotFile`
- * (secure temp file for the page screenshot), `tmpFilePath`, `outputTail`,
- * `cliFailureError`.
+ * `planCommon` (config-derived fields both planners share), `runCli`
+ * (spawn + hard timeout + ENOENT taxonomy), `throwOnNonZeroExit`,
+ * `withScreenshotFile` (secure temp file for the page screenshot),
+ * `tmpFilePath`, `outputTail`, `cliFailureError`.
  */
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import {
+  MIDSCENE_MODEL_API_KEY,
+  MIDSCENE_MODEL_BASE_URL,
+  MIDSCENE_MODEL_NAME,
+  OPENAI_API_KEY,
+  OPENAI_BASE_URL,
+} from '@midscene/shared/env';
+import type { GeneralAgentConfig } from '../types';
 import { ERROR_PREFIX } from '../types';
 
 // ———————————————————————— model env resolution ————————————————————————
 
-export type BaseUrlKind = 'http' | 'codex' | 'other' | 'none';
-
-export interface ResolvedModelEnv {
-  baseUrl?: string;
-  baseUrlKind: BaseUrlKind;
+interface ResolvedModelEnvCommon {
   /**
    * NAME of the env var that holds the API key (the adapters tell the CLI to
    * read the key from the environment instead of embedding the secret in
@@ -29,6 +34,14 @@ export interface ResolvedModelEnv {
   apiKeyVar?: string;
   modelName?: string;
 }
+
+/** Discriminated on `baseUrlKind`: a set kind guarantees `baseUrl`. */
+export type ResolvedModelEnv =
+  | ({ baseUrlKind: 'none'; baseUrl?: undefined } & ResolvedModelEnvCommon)
+  | ({
+      baseUrlKind: 'http' | 'codex' | 'other';
+      baseUrl: string;
+    } & ResolvedModelEnvCommon);
 
 /**
  * Resolve the model endpoint from the SAME env keys Midscene's default
@@ -40,22 +53,52 @@ export interface ResolvedModelEnv {
  * need base URL / key var / model name.
  */
 export function resolveModelEnv(env: NodeJS.ProcessEnv): ResolvedModelEnv {
-  const baseUrl = env.MIDSCENE_MODEL_BASE_URL || env.OPENAI_BASE_URL;
-  const apiKeyVar = env.MIDSCENE_MODEL_API_KEY
-    ? 'MIDSCENE_MODEL_API_KEY'
-    : env.OPENAI_API_KEY
-      ? 'OPENAI_API_KEY'
+  const baseUrl = env[MIDSCENE_MODEL_BASE_URL] || env[OPENAI_BASE_URL];
+  const apiKeyVar = env[MIDSCENE_MODEL_API_KEY]
+    ? MIDSCENE_MODEL_API_KEY
+    : env[OPENAI_API_KEY]
+      ? OPENAI_API_KEY
       : undefined;
-  const modelName = env.MIDSCENE_MODEL_NAME || undefined;
+  const modelName = env[MIDSCENE_MODEL_NAME] || undefined;
 
-  let baseUrlKind: BaseUrlKind = 'none';
-  if (baseUrl) {
-    if (/^https?:\/\//i.test(baseUrl)) baseUrlKind = 'http';
-    else if (baseUrl.startsWith('codex://')) baseUrlKind = 'codex';
-    else baseUrlKind = 'other';
+  if (!baseUrl) {
+    return { baseUrlKind: 'none', apiKeyVar, modelName };
   }
+  const baseUrlKind = /^https?:\/\//i.test(baseUrl)
+    ? 'http'
+    : baseUrl.startsWith('codex://')
+      ? 'codex'
+      : 'other';
+  return { baseUrl, baseUrlKind, apiKeyVar, modelName };
+}
 
-  return { baseUrl: baseUrl || undefined, baseUrlKind, apiKeyVar, modelName };
+// ———————————————————— shared per-adapter planning ————————————————————
+
+/** The config-derived fields both adapter planners need, computed once. */
+export interface CommonPlan {
+  env: NodeJS.ProcessEnv;
+  resolved: ResolvedModelEnv;
+  reuse: boolean;
+  permissions: 'read-only' | 'workspace' | 'all';
+  cwd: string;
+  timeoutMs: number;
+  sessionPerScenario: boolean;
+}
+
+export function planCommon(
+  config: GeneralAgentConfig,
+  baseDir: string,
+): CommonPlan {
+  const env: NodeJS.ProcessEnv = { ...process.env, ...config.env };
+  return {
+    env,
+    resolved: resolveModelEnv(env),
+    reuse: config.reuseMidsceneModelEnv !== false,
+    permissions: config.permissions ?? 'workspace',
+    cwd: config.cwd ?? baseDir,
+    timeoutMs: config.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    sessionPerScenario: config.sessionPerScenario === true,
+  };
 }
 
 // ———————————————————————————— spawning ————————————————————————————
@@ -139,11 +182,17 @@ export async function runCli(opts: CliRunOptions): Promise<CliRunOutcome> {
       );
     }, timeoutMs);
 
-    child.stdout.on('data', (chunk: Buffer) => {
-      stdout += chunk.toString();
+    // setEncoding routes chunks through a StringDecoder, so multi-byte
+    // UTF-8 sequences split across chunk boundaries decode correctly
+    // (per-chunk Buffer#toString would corrupt them — verdict JSON with
+    // non-ASCII reasons is exactly where that bites).
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (chunk: string) => {
+      stdout += chunk;
     });
-    child.stderr.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString();
+    child.stderr.on('data', (chunk: string) => {
+      stderr += chunk;
     });
 
     child.on('error', (error: NodeJS.ErrnoException) => {
@@ -168,11 +217,37 @@ export async function runCli(opts: CliRunOptions): Promise<CliRunOutcome> {
       resolve({ stdout, stderr, exitCode: code });
     });
 
+    // A child that exits before draining stdin (e.g. an old CLI rejecting a
+    // flag) emits EPIPE here; without a listener Node would crash the whole
+    // worker. The failure still surfaces through the exit code.
+    child.stdin.on('error', () => {});
     if (stdin !== undefined) {
       child.stdin.write(stdin);
     }
     child.stdin.end();
   });
+}
+
+/**
+ * Uniform nonzero-exit handling shared by the adapters (exit-0 failure
+ * sniffing stays adapter-specific — see the opencode bugs note above).
+ */
+export function throwOnNonZeroExit(
+  label: string,
+  outcome: CliRunOutcome,
+  authHint: string,
+): void {
+  if (outcome.exitCode === 0) return;
+  const reason =
+    outcome.exitCode === null
+      ? 'was killed by a signal.'
+      : `exited with code ${outcome.exitCode}.`;
+  throw cliFailureError(
+    label,
+    reason,
+    `${outcome.stdout}\n${outcome.stderr}`,
+    authHint,
+  );
 }
 
 // ———————————————————————— failure formatting ————————————————————————
@@ -199,14 +274,11 @@ export function cliFailureError(
 
 // ———————————————————————— screenshot temp file ————————————————————————
 
-let tmpFileSeq = 0;
-
 /** Random temp file path (not created) in Midscene's run tmp dir. */
 export function tmpFilePath(suffix: string): string {
-  tmpFileSeq += 1;
   return path.join(
     getMidsceneRunSubDir('tmp'),
-    `bdd-agent-${process.pid}-${tmpFileSeq}-${randomBytes(8).toString('hex')}${suffix}`,
+    `bdd-agent-${randomBytes(8).toString('hex')}${suffix}`,
   );
 }
 

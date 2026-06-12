@@ -14,14 +14,18 @@ import type {
 } from '../types';
 import { ERROR_PREFIX } from '../types';
 import {
-  DEFAULT_TIMEOUT_MS,
   cliFailureError,
-  resolveModelEnv,
+  planCommon,
   runCli,
+  throwOnNonZeroExit,
   tmpFilePath,
   withScreenshotFile,
 } from './cli-agent';
-import { buildGeneralPrompt, toGeneralResult } from './general-prompt';
+import {
+  buildGeneralPrompt,
+  pruneSentSkills,
+  toGeneralResult,
+} from './general-prompt';
 
 const INSTALL_HINT =
   '`codex` CLI not found. Install it with `npm i -g @openai/codex`, then authenticate with `codex login` (or set the MIDSCENE_MODEL_* env vars).';
@@ -53,13 +57,11 @@ interface CodexPlan {
 }
 
 function planCodex(config: GeneralAgentConfig, baseDir: string): CodexPlan {
-  const env: NodeJS.ProcessEnv = { ...process.env, ...config.env };
-  const resolved = resolveModelEnv(env);
-  const reuse = config.reuseMidsceneModelEnv !== false;
+  const common = planCommon(config, baseDir);
+  const { resolved } = common;
 
-  const permissions = config.permissions ?? 'workspace';
   let sandbox: SandboxPolicy;
-  switch (permissions) {
+  switch (common.permissions) {
     case 'read-only':
       sandbox = 'read-only';
       break;
@@ -70,14 +72,14 @@ function planCodex(config: GeneralAgentConfig, baseDir: string): CodexPlan {
       sandbox = 'danger-full-access';
       break;
     default: {
-      const exhaustive: never = permissions;
+      const exhaustive: never = common.permissions;
       throw new Error(`${ERROR_PREFIX} unknown permissions: ${exhaustive}`);
     }
   }
 
   let providerArgs: string[] = [];
   let model = config.model;
-  if (reuse && resolved.baseUrlKind === 'http' && resolved.baseUrl) {
+  if (common.reuse && resolved.baseUrlKind === 'http') {
     model = config.model ?? resolved.modelName;
     if (!model) {
       throw new Error(
@@ -111,10 +113,10 @@ function planCodex(config: GeneralAgentConfig, baseDir: string): CodexPlan {
     providerArgs,
     model,
     sandbox,
-    env,
-    cwd: config.cwd ?? baseDir,
-    timeoutMs: config.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-    sessionPerScenario: config.sessionPerScenario === true,
+    env: common.env,
+    cwd: common.cwd,
+    timeoutMs: common.timeoutMs,
+    sessionPerScenario: common.sessionPerScenario,
   };
 }
 
@@ -140,6 +142,8 @@ export function parseCodexThreadId(stdout: string): string | undefined {
 export class CodexGeneralAgent implements GeneralAgent {
   private plan: CodexPlan;
   private sessionId?: string;
+  /** Skill docs already in the session's context — not re-sent (see pruneSentSkills). */
+  private sentSkills = new Set<string>();
 
   constructor(config: GeneralAgentConfig, baseDir: string) {
     this.plan = planCodex(config, baseDir);
@@ -151,6 +155,9 @@ export class CodexGeneralAgent implements GeneralAgent {
     // the real CLI. Deliberately NOT part of the public config schema.
     const bin = process.env.MIDSCENE_BDD_CODEX_BIN || 'codex';
     const lastMessageFile = tmpFilePath('.txt');
+    const promptReq = this.sessionId
+      ? pruneSentSkills(req, this.sentSkills)
+      : req;
 
     const text = await withScreenshotFile(
       req.screenshotBase64,
@@ -195,19 +202,12 @@ export class CodexGeneralAgent implements GeneralAgent {
             env: plan.env,
             cwd: plan.cwd,
             timeoutMs: plan.timeoutMs,
-            stdin: buildGeneralPrompt(req),
+            stdin: buildGeneralPrompt(promptReq),
             label: 'codex',
             installHint: INSTALL_HINT,
           });
 
-          if (outcome.exitCode !== 0) {
-            throw cliFailureError(
-              'codex',
-              `exited with code ${outcome.exitCode}.`,
-              `${outcome.stdout}\n${outcome.stderr}`,
-              AUTH_HINT,
-            );
-          }
+          throwOnNonZeroExit('codex', outcome, AUTH_HINT);
 
           if (plan.sessionPerScenario && !this.sessionId) {
             this.sessionId = parseCodexThreadId(outcome.stdout);
@@ -216,7 +216,13 @@ export class CodexGeneralAgent implements GeneralAgent {
           let reply: string;
           try {
             reply = (await fs.readFile(lastMessageFile, 'utf8')).trim();
-          } catch {
+          } catch (error) {
+            // Expected only when codex never wrote the file; anything else
+            // (EACCES, …) is a real error and must not masquerade as an
+            // empty reply.
+            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+              throw error;
+            }
             reply = '';
           }
           if (reply.length === 0) {
@@ -234,10 +240,16 @@ export class CodexGeneralAgent implements GeneralAgent {
       },
     );
 
+    // Only mark skills as in-context once session continuity is real: if no
+    // session id was captured, the next run starts fresh and must re-send.
+    if (this.sessionId) {
+      for (const skill of req.skills) this.sentSkills.add(skill.name);
+    }
     return toGeneralResult(req, text);
   }
 
   async dispose(): Promise<void> {
     this.sessionId = undefined;
+    this.sentSkills.clear();
   }
 }
