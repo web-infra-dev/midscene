@@ -34,6 +34,11 @@
       "import": "./dist/es/device/index.mjs",
       "require": "./dist/lib/device/index.js"
     },
+    "./dump/task-service-dump": {
+      "types": "./dist/types/dump/task-service-dump.d.ts",
+      "import": "./dist/es/dump/task-service-dump.mjs",
+      "require": "./dist/lib/dump/task-service-dump.js"
+    },
     "./agent": {
       "types": "./dist/types/agent/index.d.ts",
       "import": "./dist/es/agent/index.mjs",
@@ -62,6 +67,7 @@
       "ai-model": ["./dist/types/ai-model.d.ts"],
       "tree": ["./dist/types/tree.d.ts"],
       "device": ["./dist/types/device.d.ts"],
+      "dump/task-service-dump": ["./dist/types/dump/task-service-dump.d.ts"],
       "agent": ["./dist/types/agent.d.ts"],
       "yaml": ["./dist/types/yaml.d.ts"],
       "mcp": ["./dist/types/skill/index.d.ts"]

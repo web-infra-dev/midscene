@@ -29,7 +29,7 @@ const collectScreenshotEntries = (
       entries.push({
         task,
         ts: task.timing.start,
-        base64: ctxScreenshot.base64 || '',
+        base64: ctxScreenshot.base64,
       });
     }
 
@@ -38,7 +38,7 @@ const collectScreenshotEntries = (
         entries.push({
           task,
           ts: recorder.ts,
-          base64: recorder.screenshot.base64 || '',
+          base64: recorder.screenshot.base64,
         });
       }
     }
@@ -47,9 +47,9 @@ const collectScreenshotEntries = (
   return entries;
 };
 
-// Note: matches the legacy behaviour where any recorder ts (even ones whose
-// screenshot was later filtered out) and any task.timing.start contribute to
-// the starting time. We keep this so the rendered offsets are unchanged.
+// Note: any recorder ts, even ones whose screenshot is later filtered out, and
+// any task.timing.start contribute to the starting time so rendered offsets are
+// unchanged.
 const computeStartingTime = (allTasks: ExecutionTask[]): number => {
   let starting = -1;
   const consider = (ts: number) => {

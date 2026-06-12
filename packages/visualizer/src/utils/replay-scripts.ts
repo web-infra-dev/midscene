@@ -1,6 +1,7 @@
 'use client';
 import { mousePointer } from '@/utils';
 import { paramStr, typeStr } from '@midscene/core/agent';
+import { getTaskSearchArea } from '@midscene/core/dump/task-service-dump';
 import {
   getCenterHighlightBox,
   normalizeHighlightElementForReport,
@@ -16,6 +17,7 @@ import type {
   ModelBrief,
   Rect,
   ReportActionDump,
+  ScreenshotItem,
   UIContext,
 } from '@midscene/core';
 
@@ -137,10 +139,13 @@ const resolveTaskShotSize = (
   task: Pick<ExecutionTask, 'uiContext'> | undefined,
   fallbackWidth: number,
   fallbackHeight: number,
-): { width: number; height: number } => ({
-  width: task?.uiContext?.shotSize?.width || fallbackWidth,
-  height: task?.uiContext?.shotSize?.height || fallbackHeight,
-});
+): { width: number; height: number } => {
+  const size = task?.uiContext?.shotSize;
+  return {
+    width: size?.width || fallbackWidth,
+    height: size?.height || fallbackHeight,
+  };
+};
 
 export const mergeTwoCameraState = (
   cameraState1: TargetCameraState,
@@ -226,9 +231,10 @@ const extractMetaFromNormalized = (
 
   normalizedDump.executions?.filter(Boolean).forEach((execution) => {
     execution.tasks.forEach((task) => {
-      if (task.uiContext?.shotSize?.width) {
-        const w = task.uiContext.shotSize.width;
-        const h = task.uiContext.shotSize.height;
+      const shotSize = task.uiContext?.shotSize;
+      if (shotSize) {
+        const w = shotSize.width;
+        const h = shotSize.height;
         if (!firstWidth) {
           firstWidth = w;
           firstHeight = h;
@@ -397,8 +403,8 @@ export const generateAnimationScripts = (
     };
   };
 
-  // Screenshot fields in ExecutionTask are typed loosely; this alias keeps casts in one place
-  type ScreenshotData = { base64: string } | undefined | null;
+  // Restored screenshot refs expose the same base64/capturedAt shape used by ScreenshotItem.
+  type ScreenshotData = Pick<ScreenshotItem, 'base64'> | undefined | null;
   const asScreenshot = (s: unknown): ScreenshotData => s as ScreenshotData;
 
   // Helper: create AnimationScript with lazy img getter that defers .base64 read
@@ -476,11 +482,14 @@ export const generateAnimationScripts = (
       const title = typeStr(task);
       const subTitle = paramStr(task);
       const context = task.uiContext;
-      if (context?.screenshot) {
+      const contextScreenshot = context?.screenshot;
+      if (context && contextScreenshot) {
         // show the original screenshot first
-        const width = context.shotSize?.width || imageWidth;
-        const height = context.shotSize?.height || imageHeight;
-        const contextScreenshot = asScreenshot(context.screenshot);
+        const { width, height } = resolveTaskShotSize(
+          task,
+          imageWidth,
+          imageHeight,
+        );
         scripts.push(
           createScript(
             {
@@ -492,7 +501,7 @@ export const generateAnimationScripts = (
               imageHeight: height,
               taskId: currentTaskId,
             },
-            contextScreenshot,
+            asScreenshot(contextScreenshot),
           ),
         );
 
@@ -515,16 +524,16 @@ export const generateAnimationScripts = (
                 context: context,
                 camera: newCameraState,
                 highlightElement,
-                searchArea: task.log?.taskInfo?.searchArea,
+                searchArea: getTaskSearchArea(task),
                 duration: locateDuration * 0.5,
                 insightCameraDuration: locateDuration,
                 title,
                 subTitle: highlightElement.description || subTitle,
-                imageWidth: context.shotSize?.width || imageWidth,
-                imageHeight: context.shotSize?.height || imageHeight,
+                imageWidth: width,
+                imageHeight: height,
                 taskId: currentTaskId,
               },
-              contextScreenshot,
+              asScreenshot(contextScreenshot),
             ),
           );
 
@@ -535,6 +544,11 @@ export const generateAnimationScripts = (
       const planningTask = task as ExecutionTaskPlanning;
       if (planningTask.recorder && planningTask.recorder.length > 0) {
         const screenshot = planningTask.recorder[0]?.screenshot;
+        const { width, height } = resolveTaskShotSize(
+          task,
+          imageWidth,
+          imageHeight,
+        );
         scripts.push(
           createScript(
             {
@@ -542,8 +556,8 @@ export const generateAnimationScripts = (
               duration: stillDuration,
               title: typeStr(task),
               subTitle: paramStr(task),
-              imageWidth: task.uiContext?.shotSize?.width || imageWidth,
-              imageHeight: task.uiContext?.shotSize?.height || imageHeight,
+              imageWidth: width,
+              imageHeight: height,
               taskId: currentTaskId,
             },
             asScreenshot(screenshot),

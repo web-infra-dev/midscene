@@ -1,4 +1,4 @@
-import { TaskBuilder } from '@/agent/task-builder';
+import { TaskBuilder, locatePlanForLocate } from '@/agent/task-builder';
 import { getMidsceneLocationSchema } from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
 import { AbstractInterface, defineActionSleep } from '@/device';
@@ -52,6 +52,19 @@ describe('TaskBuilder', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('normalizes the deprecated locate deepThink alias before task reporting', () => {
+    const plan = locatePlanForLocate({
+      prompt: 'cart icon',
+      deepThink: true,
+    } as any);
+
+    expect(plan.param).toEqual({
+      prompt: 'cart icon',
+      deepLocate: true,
+    });
+    expect(plan.param).not.toHaveProperty('deepThink');
   });
 
   it('dispatches plans using handler registry', async () => {

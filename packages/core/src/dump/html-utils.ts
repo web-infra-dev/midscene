@@ -4,6 +4,11 @@ import { antiEscapeScriptTag, escapeScriptTag } from '@midscene/shared/utils';
 export const escapeContent = escapeScriptTag;
 export const unescapeContent = antiEscapeScriptTag;
 
+function htmlScriptCloseTag(): string {
+  // biome-ignore lint/style/useTemplate: keep this token runtime-built for inline report bundles
+  return String.fromCharCode(60) + '/script>';
+}
+
 /** Chunk size for streaming file operations (64KB) */
 export const STREAMING_CHUNK_SIZE = 64 * 1024;
 
@@ -104,7 +109,7 @@ export function extractImageByIdSync(
   imageId: string,
 ): string | null {
   const targetTag = `<script type="midscene-image" data-id="${imageId}">`;
-  const closeTag = '</script>';
+  const closeTag = htmlScriptCloseTag();
 
   let result: string | null = null;
 
@@ -129,7 +134,7 @@ export function streamImageScriptsToFile(
 ): void {
   const { appendFileSync } = require('node:fs');
   const openTag = '<script type="midscene-image"';
-  const closeTag = '</script>';
+  const closeTag = htmlScriptCloseTag();
 
   streamScanTags(srcFilePath, openTag, closeTag, (content) => {
     // Write complete tag immediately to destination, don't accumulate
@@ -147,7 +152,7 @@ export function streamImageScriptsToFile(
  */
 export function extractLastDumpScriptSync(filePath: string): string {
   const openTagPrefix = '<script type="midscene_web_dump"';
-  const closeTag = '</script>';
+  const closeTag = htmlScriptCloseTag();
 
   let lastContent = '';
 
@@ -251,7 +256,7 @@ export function streamDumpScriptsSync(
   onMatch: (dumpScript: { openTag: string; content: string }) => boolean,
 ): void {
   const openTagPrefix = '<script type="midscene_web_dump"';
-  const closeTag = '</script>';
+  const closeTag = htmlScriptCloseTag();
 
   const fd = openSync(filePath, 'r');
   const fileSize = statSync(filePath).size;
@@ -347,7 +352,7 @@ export function parseDumpScript(html: string): string {
   // Use string search instead of regex to avoid ReDoS vulnerability
   // Find the LAST dump script tag (template may contain similar patterns in bundled JS)
   const scriptOpenTag = '<script type="midscene_web_dump"';
-  const scriptCloseTag = '</script>';
+  const closeTag = htmlScriptCloseTag();
 
   // Find the last occurrence of the opening tag
   const lastOpenIndex = html.lastIndexOf(scriptOpenTag);
@@ -362,7 +367,7 @@ export function parseDumpScript(html: string): string {
   }
 
   // Find the closing tag after the opening tag
-  const closeIndex = html.indexOf(scriptCloseTag, tagEndIndex);
+  const closeIndex = html.indexOf(closeTag, tagEndIndex);
   if (closeIndex === -1) {
     throw new Error('No dump script found in HTML');
   }
@@ -398,13 +403,14 @@ export function parseDumpScriptAttributes(
 
 export function generateImageScriptTag(id: string, data: string): string {
   // Do not use template string here, will cause bundle error with <script
+  const closeTag = htmlScriptCloseTag();
   return (
     // biome-ignore lint/style/useTemplate: <explanation>
     '<script type="midscene-image" data-id="' +
     id +
     '">' +
     escapeContent(data) +
-    '</script>'
+    closeTag
   );
 }
 
@@ -420,24 +426,16 @@ export function generateImageScriptTag(id: string, data: string): string {
  */
 // Do not use template string here, will cause bundle error with <script
 //
-// The closing </script> tag is built at runtime via scriptClose() so that no
-// bundler (rslib, webpack, rsbuild) can ever see or inline a literal
-// '</script>' into JS source.  A literal '</script>' inside a <script> block
-// causes the HTML parser to prematurely close the block — which breaks the
-// report viewer when this module is bundled into the report HTML template.
+// The closing script tag is built at runtime so bundlers cannot inline the
+// token that would prematurely close the report template's inline app bundle.
 //
-// Do NOT replace this with a string constant, hex escape (\x3c), or simple
-// concatenation — bundlers will optimise / inline them and re-introduce the
-// literal '</script>'.
+// Do NOT replace this with a string constant, hex escape (\x3c), or literal
+// string concatenation. Bundlers may optimise those forms back to the unsafe
+// token.
 let _baseUrlFixScript: string;
 export function getBaseUrlFixScript(): string {
   if (!_baseUrlFixScript) {
-    // Closing </script> MUST be split so that no bundler (rslib / webpack /
-    // terser) can ever produce a literal '</script>' in bundle output.
-    // A literal '</script>' inside a <script> block causes the HTML parser
-    // to prematurely close the block, which breaks the report viewer when
-    // this module is bundled into the report template.
-    const close = '</' + 'script>';
+    const close = htmlScriptCloseTag();
     _baseUrlFixScript =
       // biome-ignore lint/style/useTemplate: see above
       '\n<script>(function(){' +
@@ -457,6 +455,7 @@ export function generateDumpScriptTag(
   json: string,
   attributes?: Record<string, string | number | boolean>,
 ): string {
+  const closeTag = htmlScriptCloseTag();
   let attrString = '';
   if (attributes && Object.keys(attributes).length > 0) {
     // Do not use template string here, will cause bundle error with <script
@@ -476,6 +475,6 @@ export function generateDumpScriptTag(
     attrString +
     '>' +
     escapeContent(json) +
-    '</script>'
+    closeTag
   );
 }

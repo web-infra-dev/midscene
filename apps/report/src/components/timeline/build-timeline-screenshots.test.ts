@@ -16,11 +16,13 @@ const makeTask = (opts: TaskFixtureOptions): ExecutionTask =>
     uiContext: opts.uiContextScreenshot
       ? { screenshot: opts.uiContextScreenshot }
       : undefined,
-    recorder: opts.recorder?.map((r) => ({
-      type: 'screenshot',
-      ts: r.ts,
-      screenshot: r.base64 !== undefined ? { base64: r.base64 } : undefined,
-    })),
+    recorder: [
+      ...(opts.recorder?.map((r) => ({
+        type: 'screenshot',
+        ts: r.ts,
+        screenshot: r.base64 !== undefined ? { base64: r.base64 } : undefined,
+      })) ?? []),
+    ],
   }) as unknown as ExecutionTask;
 
 describe('buildTimelineScreenshots', () => {
@@ -190,8 +192,8 @@ describe('buildTimelineScreenshots', () => {
   });
 
   it('still uses dropped recorder ts to compute starting time', () => {
-    // legacy behaviour: a recorder with no screenshot still contributes its ts
-    // to startingTime so that surviving entries render at the right offset.
+    // A recorder with no screenshot still contributes its ts to startingTime so
+    // surviving entries render at the right offset.
     const taskA = makeTask({
       id: 'A',
       startTs: 5000,

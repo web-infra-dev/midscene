@@ -16,7 +16,7 @@ import type {
   IExecutionDump,
 } from '@midscene/core';
 import type { MarkdownAttachment } from '@midscene/core';
-import { executionToMarkdown } from '@midscene/core';
+import { executionToMarkdown, getTaskSearchArea } from '@midscene/core';
 import {
   Blackboard,
   Player,
@@ -161,13 +161,6 @@ const DetailPanel = (): JSX.Element => {
   // Check if page context is frozen
   const isPageContextFrozen = Boolean(activeTask?.uiContext?._isFrozen);
 
-  const markdownResult = useMemo(() => {
-    return getExecutionMarkdownView(activeExecution, (execution) =>
-      executionToMarkdown(execution as ExecutionDump | IExecutionDump, {
-        screenshotBaseDir: './screenshots',
-      }),
-    );
-  }, [activeExecution]);
   const activeTaskJsonViewData = useMemo(() => {
     return activeTask ? sanitizeJsonViewData(activeTask) : null;
   }, [activeTask]);
@@ -176,6 +169,10 @@ const DetailPanel = (): JSX.Element => {
       ? JSON.stringify(activeTaskJsonViewData, undefined, 2)
       : '';
   }, [activeTaskJsonViewData]);
+  const activeTaskSearchArea = useMemo(
+    () => getTaskSearchArea(activeTask),
+    [activeTask],
+  );
 
   const hasReplay =
     activeTask?.type === 'Planning' &&
@@ -194,6 +191,16 @@ const DetailPanel = (): JSX.Element => {
     availableViewTypes.indexOf(preferredViewType) >= 0
       ? preferredViewType
       : availableViewTypes[0];
+  const markdownResult = useMemo(() => {
+    if (viewType !== VIEW_TYPE_MARKDOWN) {
+      return null;
+    }
+    return getExecutionMarkdownView(activeExecution, (execution) =>
+      executionToMarkdown(execution as ExecutionDump | IExecutionDump, {
+        screenshotBaseDir: './screenshots',
+      }),
+    );
+  }, [activeExecution, viewType]);
 
   let content;
   if (activeExecution && viewType === VIEW_TYPE_REPLAY) {
@@ -206,13 +213,13 @@ const DetailPanel = (): JSX.Element => {
       />
     );
   } else if (viewType === VIEW_TYPE_MARKDOWN) {
-    if (markdownResult.status === 'ready') {
+    if (markdownResult?.status === 'ready') {
       content = (
         <div className="markdown-view scrollable">
           <pre className="markdown-source">{markdownResult.markdown}</pre>
         </div>
       );
-    } else if (markdownResult.status === 'error') {
+    } else if (markdownResult?.status === 'error') {
       content = (
         <div>Failed to render markdown: {markdownResult.errorMessage}</div>
       );
@@ -272,7 +279,7 @@ const DetailPanel = (): JSX.Element => {
       activeTask.uiContext?.screenshot?.capturedAt,
     );
 
-    contextLocatorView = activeTask.uiContext?.shotSize ? (
+    contextLocatorView = activeTask.uiContext ? (
       <ScreenshotDisplay
         title={`${isPageContextFrozen ? 'UI Context (Frozen)' : 'UI Context'} / ${contextScreenshotAt}`}
       >
@@ -280,18 +287,21 @@ const DetailPanel = (): JSX.Element => {
           key={`${_contextLoadId}`}
           uiContext={activeTask.uiContext}
           highlightElements={highlightElements}
-          highlightRect={insightDump?.taskInfo?.searchArea}
+          highlightRect={
+            activeTaskSearchArea || insightDump?.taskInfo?.searchArea
+          }
         />
       </ScreenshotDisplay>
     ) : null;
 
     if (activeTask.recorder?.length) {
       for (const item of activeTask.recorder) {
-        if (item.screenshot?.base64) {
+        const screenshot = item.screenshot?.base64;
+        if (screenshot) {
           screenshotItems.push({
             timestamp: item.ts,
-            screenshotTimestamp: item.screenshot.capturedAt,
-            screenshot: item.screenshot.base64,
+            screenshotTimestamp: item.screenshot?.capturedAt,
+            screenshot,
             timing: item.timing,
           });
         }
@@ -394,27 +404,21 @@ const DetailPanel = (): JSX.Element => {
         />
 
         <div className="view-switcher-actions">
-          {viewType === VIEW_TYPE_MARKDOWN && markdownResult && (
-            <a
-              className="download-zip-link"
-              onClick={() =>
-                downloadMarkdownZip(
-                  // @ts-ignore Keep the existing Markdown download behavior for now.
-                  // markdownResult is a discriminated union, and only the "ready"
-                  // branch has markdown content. The historical condition did not
-                  // check status, and we have not confirmed whether empty/error
-                  // states intentionally still render this action.
-                  markdownResult.markdown,
-                  // @ts-ignore See the note above: preserve the current behavior
-                  // until the Markdown view UX expectation is clarified.
-                  markdownResult.attachments,
-                  safeName || 'report',
-                )
-              }
-            >
-              <DownloadOutlined /> Download ZIP
-            </a>
-          )}
+          {viewType === VIEW_TYPE_MARKDOWN &&
+            markdownResult?.status === 'ready' && (
+              <a
+                className="download-zip-link"
+                onClick={() =>
+                  downloadMarkdownZip(
+                    markdownResult.markdown,
+                    markdownResult.attachments,
+                    safeName || 'report',
+                  )
+                }
+              >
+                <DownloadOutlined /> Download ZIP
+              </a>
+            )}
           {viewType === VIEW_TYPE_JSON && activeTaskJsonText && (
             <a
               className="copy-json-link"
