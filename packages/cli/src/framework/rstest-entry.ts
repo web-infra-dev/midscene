@@ -102,16 +102,7 @@ const createRuntimeFailureResult = (
   error: errorMessageOf(error),
 });
 
-let rstestCorePromise: Promise<{ test: RstestTest }> | undefined;
-
-const loadRstestTest = async (): Promise<RstestTest> => {
-  if (!rstestCorePromise) {
-    rstestCorePromise = import('@rstest/core');
-  }
-  return (await rstestCorePromise).test;
-};
-
-const registerYamlCaseTest = (
+export const defineYamlCaseTest = (
   test: RstestTest,
   options: DefineYamlCaseTestOptions,
 ) => {
@@ -145,32 +136,7 @@ const registerYamlCaseTest = (
   });
 };
 
-export function defineYamlCaseTest(
-  test: RstestTest,
-  options: DefineYamlCaseTestOptions,
-): void;
-/**
- * @deprecated Prefer passing Rstest's `test` API explicitly so test registration
- * stays synchronous. This overload is kept for custom framework compatibility.
- */
-export function defineYamlCaseTest(
-  options: DefineYamlCaseTestOptions,
-): Promise<void>;
-export function defineYamlCaseTest(
-  testOrOptions: RstestTest | DefineYamlCaseTestOptions,
-  maybeOptions?: DefineYamlCaseTestOptions,
-): void | Promise<void> {
-  if (maybeOptions) {
-    registerYamlCaseTest(testOrOptions as RstestTest, maybeOptions);
-    return;
-  }
-
-  return loadRstestTest().then((test) => {
-    registerYamlCaseTest(test, testOrOptions as DefineYamlCaseTestOptions);
-  });
-}
-
-const registerYamlBatchTest = (
+export const defineYamlBatchTest = (
   test: RstestTest,
   options: DefineYamlBatchTestOptions,
 ) => {
@@ -181,28 +147,3 @@ const registerYamlBatchTest = (
     });
   });
 };
-
-export function defineYamlBatchTest(
-  test: RstestTest,
-  options: DefineYamlBatchTestOptions,
-): void;
-/**
- * @deprecated Prefer passing Rstest's `test` API explicitly so test registration
- * stays synchronous. This overload is kept for custom framework compatibility.
- */
-export function defineYamlBatchTest(
-  options: DefineYamlBatchTestOptions,
-): Promise<void>;
-export function defineYamlBatchTest(
-  testOrOptions: RstestTest | DefineYamlBatchTestOptions,
-  maybeOptions?: DefineYamlBatchTestOptions,
-): void | Promise<void> {
-  if (maybeOptions) {
-    registerYamlBatchTest(testOrOptions as RstestTest, maybeOptions);
-    return;
-  }
-
-  return loadRstestTest().then((test) => {
-    registerYamlBatchTest(test, testOrOptions as DefineYamlBatchTestOptions);
-  });
-}

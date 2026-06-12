@@ -35,26 +35,6 @@ describe('defineYamlCaseTest', () => {
     vi.clearAllMocks();
   });
 
-  test('loads Rstest dynamically for single-argument callers', async () => {
-    const root = createTempDir();
-    const yaml = join(root, 'case.yaml');
-    const resultFile = join(root, 'results', 'case.json');
-    writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
-
-    try {
-      await defineYamlCaseTest({
-        testName: 'case',
-        yamlFile: yaml,
-        resultFile,
-      });
-
-      expect(mocks.rstestTest).toHaveBeenCalledTimes(1);
-      expect(mocks.rstestTest.mock.calls[0][0]).toBe('case');
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
-  });
-
   test('preserves failed attempts when Rstest retries a YAML case', async () => {
     const root = createTempDir();
     const yaml = join(root, 'case.yaml');

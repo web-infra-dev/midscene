@@ -30,8 +30,7 @@ describe('framework test command', () => {
       framework,
       `import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { test } from '@rstest/core';
-export function defineYamlCaseTest(options: any) {
+export function defineYamlCaseTest(test: any, options: any) {
   test(options.testName, async () => {
   mkdirSync(dirname(options.resultFile), { recursive: true });
   writeFileSync(${JSON.stringify(marker)}, JSON.stringify({
@@ -594,8 +593,7 @@ export function defineYamlCaseTest(options: any) {
     // error instead of a blank "not executed".
     writeFileSync(
       framework,
-      `import { test } from '@rstest/core';
-export function defineYamlCaseTest(options: any) {
+      `export function defineYamlCaseTest(test: any, options: any) {
   test(options.testName, async () => {
     throw new Error(${JSON.stringify(failureMessage)});
   });
@@ -714,8 +712,7 @@ export function defineYamlCaseTest(options: any) {
     writeFileSync(yamlB, 'web:\n  url: about:blank\ntasks: []\n');
     writeFileSync(
       framework,
-      `import { test } from '@rstest/core';
-export function defineYamlBatchTest(options: any) {
+      `export function defineYamlBatchTest(test: any, options: any) {
   test(options.testName, async () => {
     throw new Error(${JSON.stringify(failureMessage)});
   });

@@ -117,11 +117,7 @@ import { defineYamlCaseTest } from ${toImportLiteral(options.frameworkImport)};
 
 const testOptions = ${JSON.stringify(testOptions, null, 2)};
 
-if (defineYamlCaseTest.length >= 2) {
-  defineYamlCaseTest(test, testOptions);
-} else {
-  await defineYamlCaseTest(testOptions);
-}
+defineYamlCaseTest(test, testOptions);
 `;
 };
 
@@ -143,11 +139,7 @@ import { defineYamlBatchTest } from ${toImportLiteral(options.frameworkImport)};
 
 const testOptions = ${JSON.stringify(testOptions, null, 2)};
 
-if (defineYamlBatchTest.length >= 2) {
-  defineYamlBatchTest(test, testOptions);
-} else {
-  await defineYamlBatchTest(testOptions);
-}
+defineYamlBatchTest(test, testOptions);
 `;
 };
 
