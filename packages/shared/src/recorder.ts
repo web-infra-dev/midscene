@@ -46,16 +46,52 @@ export interface MidsceneRecorderEvent {
   pageInfo: MidsceneRecorderPageInfo;
   screenshotBefore?: string;
   screenshotAfter?: string;
+  semantic?: MidsceneRecorderSemantic;
   elementDescription?: string;
-  replayInstruction?: string;
-  actionSummary?: string;
-  semanticConfidence?: 'high' | 'medium' | 'low';
   descriptionLoading?: boolean;
-  descriptionSource?: 'ai' | 'fallback';
-  descriptionError?: string;
   screenshotWithBox?: string;
   timestamp: number;
   hashId: string;
+  mergedHashIds?: string[];
+}
+
+export type MidsceneRecorderSemanticSource =
+  | 'aiDescribe'
+  | 'recorderAI'
+  | 'heuristic';
+
+export type MidsceneRecorderSemanticStatus = 'pending' | 'ready' | 'failed';
+
+export type MidsceneRecorderSemanticConfidence = 'high' | 'medium' | 'low';
+
+export interface MidsceneRecorderSemanticAiDescribe {
+  verifyPrompt: boolean;
+  verifyPassed?: boolean;
+  deepLocate?: boolean;
+  centerDistance?: number;
+  expectedCenter?: [number, number];
+  actualCenter?: [number, number];
+  annotatedScreenshotPath?: string;
+}
+
+export interface MidsceneRecorderSemantic {
+  source: MidsceneRecorderSemanticSource;
+  status: MidsceneRecorderSemanticStatus;
+  elementDescription?: string;
+  replayInstruction?: string;
+  actionSummary?: string;
+  confidence?: MidsceneRecorderSemanticConfidence;
+  error?: string;
+  aiDescribe?: MidsceneRecorderSemanticAiDescribe;
+  fallbackFrom?: MidsceneRecorderSemantic;
+}
+
+export interface MidsceneRecorderSemanticAction {
+  type: MidsceneRecorderEventType;
+  actionType?: string;
+  value?: string;
+  url?: string;
+  scrollDestinationDescription?: string;
 }
 
 export interface MidsceneRecorderTarget {
@@ -93,26 +129,142 @@ function isMidsceneRecorderPendingDescription(value?: string) {
   return value?.trim() === 'AI is analyzing element...';
 }
 
+export function getMidsceneRecorderSemantic(
+  event: Pick<MidsceneRecorderEvent, 'semantic'>,
+) {
+  return event.semantic;
+}
+
+function getRecorderPointerActionVerb(actionType?: string) {
+  switch (actionType) {
+    case 'Tap':
+      return 'Tap';
+    case 'DoubleClick':
+      return 'Double click';
+    case 'LongPress':
+      return 'Long press';
+    case 'RightClick':
+      return 'Right click';
+    default:
+      return 'Click';
+  }
+}
+
+function getRecorderDragActionVerb(actionType?: string) {
+  switch (actionType) {
+    case 'Swipe':
+      return 'Swipe';
+    case 'DragAndDrop':
+      return 'Drag';
+    default:
+      return 'Drag';
+  }
+}
+
+export function buildMidsceneRecorderReplayInstruction(
+  event: MidsceneRecorderSemanticAction,
+  elementDescription: string,
+) {
+  switch (event.type) {
+    case 'navigation':
+      if (event.actionType === 'Stop') {
+        return 'Stop loading the current page.';
+      }
+      if (event.actionType === 'GoBack') {
+        return 'Go back in the browser.';
+      }
+      if (event.actionType === 'GoForward') {
+        return 'Go forward in the browser.';
+      }
+      if (event.actionType === 'Reload') {
+        return 'Reload the current page.';
+      }
+      if (event.actionType === 'NavigationChanged' && event.url) {
+        return `Wait for navigation to complete at \`${event.url}\`.`;
+      }
+      return event.url
+        ? `Navigate to \`${event.url}\`.`
+        : `Navigate using ${elementDescription}.`;
+    case 'scroll':
+      return event.scrollDestinationDescription
+        ? `Scroll the page/region with description "${elementDescription}" by value "${event.value || 'down'}" until "${event.scrollDestinationDescription}" is visible.`
+        : `Scroll the page/region with description "${elementDescription}" by value "${event.value || 'down'}".`;
+    case 'drag': {
+      const verb = getRecorderDragActionVerb(event.actionType);
+      return `${verb} through the area described as "${elementDescription}".`;
+    }
+    case 'input':
+      return `Input "${event.value || ''}" into the element described as "${elementDescription}".`;
+    case 'keydown':
+      return `Press "${event.value || 'the recorded key'}" on the element described as "${elementDescription}".`;
+    default: {
+      const verb = getRecorderPointerActionVerb(event.actionType);
+      if (verb === 'Long press') {
+        return `${verb} the element described as "${elementDescription}".`;
+      }
+      return `${verb} on the element described as "${elementDescription}".`;
+    }
+  }
+}
+
+export function buildMidsceneRecorderActionSummary(
+  event: MidsceneRecorderSemanticAction,
+  elementDescription: string,
+) {
+  switch (event.type) {
+    case 'navigation':
+      if (event.actionType === 'Stop') {
+        return 'Stop page loading';
+      }
+      if (event.actionType === 'GoBack') {
+        return 'Go back';
+      }
+      if (event.actionType === 'GoForward') {
+        return 'Go forward';
+      }
+      if (event.actionType === 'Reload') {
+        return 'Reload page';
+      }
+      if (event.actionType === 'NavigationChanged' && event.url) {
+        return `Wait for navigation to complete at ${event.url}`;
+      }
+      return event.url ? `Navigate to ${event.url}` : 'Navigate';
+    case 'scroll':
+      return event.scrollDestinationDescription
+        ? `Scroll ${elementDescription} toward ${event.scrollDestinationDescription}`
+        : `Scroll ${elementDescription}`;
+    case 'drag':
+      return `${getRecorderDragActionVerb(event.actionType)} ${elementDescription}`;
+    case 'input':
+      return `Input into ${elementDescription}`;
+    case 'keydown':
+      return `Press ${event.value || 'key'} on ${elementDescription}`;
+    default:
+      return `${getRecorderPointerActionVerb(event.actionType)} ${elementDescription}`;
+  }
+}
+
 export function getMidsceneRecorderEventDescription(
   event: MidsceneRecorderEvent,
 ) {
+  const semantic = getMidsceneRecorderSemantic(event);
   if (
-    event.actionSummary &&
-    !isMidsceneRecorderPendingDescription(event.actionSummary)
+    semantic?.actionSummary &&
+    !isMidsceneRecorderPendingDescription(semantic.actionSummary)
   ) {
-    return event.actionSummary;
+    return semantic.actionSummary;
   }
   if (
-    event.elementDescription &&
-    !isMidsceneRecorderPendingDescription(event.elementDescription)
+    semantic?.elementDescription &&
+    !isMidsceneRecorderPendingDescription(semantic.elementDescription)
   ) {
-    return event.elementDescription;
+    return semantic.elementDescription;
   }
   if (
-    event.replayInstruction &&
-    !isMidsceneRecorderPendingDescription(event.replayInstruction)
+    semantic?.replayInstruction &&
+    !isMidsceneRecorderPendingDescription(semantic.replayInstruction)
   ) {
-    return event.replayInstruction;
+    return semantic.replayInstruction;
   }
   if (event.type === 'navigation' && event.url) {
     return `Navigate to ${event.url}`;
@@ -212,8 +364,9 @@ function getRecorderEventScreenshot(event: MidsceneRecorderEvent) {
 }
 
 function hasCoordinateFallback(event: MidsceneRecorderEvent) {
+  const semantic = getMidsceneRecorderSemantic(event);
   return (
-    !event.elementDescription &&
+    !semantic?.elementDescription &&
     event.elementRect?.x !== undefined &&
     event.elementRect?.y !== undefined
   );
@@ -224,6 +377,7 @@ function shouldIncludeMarkdownScreenshot(
   eventIndex: number,
   lastEventIndex: number,
 ) {
+  const semantic = getMidsceneRecorderSemantic(event);
   return (
     eventIndex === 0 ||
     eventIndex === lastEventIndex ||
@@ -231,7 +385,7 @@ function shouldIncludeMarkdownScreenshot(
     event.type === 'scroll' ||
     event.type === 'input' ||
     Boolean(event.screenshotWithBox) ||
-    !event.elementDescription ||
+    !semantic?.elementDescription ||
     hasCoordinateFallback(event)
   );
 }
@@ -262,17 +416,18 @@ function getRecorderScreenshotCandidatePriority(
   if (event.screenshotWithBox) {
     priority += 70;
   }
+  const semantic = getMidsceneRecorderSemantic(event);
   if (
-    event.descriptionSource === 'fallback' ||
-    event.semanticConfidence === 'low' ||
-    event.descriptionError
+    semantic?.source === 'heuristic' ||
+    semantic?.confidence === 'low' ||
+    semantic?.error
   ) {
     priority += 60;
   }
   if (event.type === 'input' || event.type === 'scroll') {
     priority += 40;
   }
-  if (!event.elementDescription || hasCoordinateFallback(event)) {
+  if (!semantic?.elementDescription || hasCoordinateFallback(event)) {
     priority += 30;
   }
 

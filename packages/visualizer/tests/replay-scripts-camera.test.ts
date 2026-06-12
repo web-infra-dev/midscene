@@ -6,7 +6,10 @@ vi.mock('@midscene/core/agent', () => ({
   typeStr: (task: { type: string }) => task.type,
 }));
 
-import { generateAnimationScripts } from '../src/utils/replay-scripts';
+import {
+  allScriptsFromDump,
+  generateAnimationScripts,
+} from '../src/utils/replay-scripts';
 
 function createActionTask({
   height,
@@ -67,5 +70,48 @@ describe('generateAnimationScripts', () => {
     expect(imageScripts?.[0].camera?.width).toBe(720);
     expect(imageScripts?.[1].imageWidth).toBe(1080);
     expect(imageScripts?.[1].camera?.width).toBe(1080);
+  });
+});
+
+describe('allScriptsFromDump', () => {
+  it('orders grouped executions by logTime before generating replay scripts', () => {
+    const dump = {
+      sdkVersion: 'test',
+      groupName: 'group',
+      modelBriefs: [],
+      executions: [
+        {
+          logTime: 200,
+          name: 'later',
+          tasks: [
+            createActionTask({
+              taskId: 'later-task',
+              screenshot: 'later-frame',
+              width: 720,
+              height: 1280,
+            }),
+          ],
+        },
+        {
+          logTime: 100,
+          name: 'earlier',
+          tasks: [
+            createActionTask({
+              taskId: 'earlier-task',
+              screenshot: 'earlier-frame',
+              width: 720,
+              height: 1280,
+            }),
+          ],
+        },
+      ],
+    };
+
+    const scripts = allScriptsFromDump(dump as any)?.scripts || [];
+    const imageTaskIds = scripts
+      .filter((script) => script.type === 'img' && script.taskId)
+      .map((script) => script.taskId);
+
+    expect(imageTaskIds).toEqual(['earlier-task', 'later-task']);
   });
 });

@@ -205,6 +205,22 @@ const normalizeDump = (dump: DumpInput): IReportActionDump | null => {
       };
 };
 
+const sortExecutionsByLogTime = (
+  executions: Array<IExecutionDump | ExecutionDump>,
+): Array<IExecutionDump | ExecutionDump> =>
+  executions
+    .map((execution, index) => ({ execution, index }))
+    .sort((left, right) => {
+      const leftTime = Number.isFinite(left.execution.logTime)
+        ? left.execution.logTime
+        : Number.POSITIVE_INFINITY;
+      const rightTime = Number.isFinite(right.execution.logTime)
+        ? right.execution.logTime
+        : Number.POSITIVE_INFINITY;
+      return leftTime - rightTime || left.index - right.index;
+    })
+    .map(({ execution }) => execution);
+
 export interface DumpMetaInfo {
   width: number;
   height: number;
@@ -224,7 +240,9 @@ const extractMetaFromNormalized = (
   const sdkVersion = normalizedDump.sdkVersion;
   const modelBriefs: ModelBrief[] = [];
 
-  normalizedDump.executions?.filter(Boolean).forEach((execution) => {
+  sortExecutionsByLogTime(
+    normalizedDump.executions?.filter(Boolean) || [],
+  ).forEach((execution) => {
     execution.tasks.forEach((task) => {
       if (task.uiContext?.shotSize?.width) {
         const w = task.uiContext.shotSize.width;
@@ -294,7 +312,9 @@ export const allScriptsFromDump = (
   const { width: firstWidth, height: firstHeight } = metaInfo;
 
   const allScripts: AnimationScript[] = [];
-  const executions = normalizedDump.executions?.filter(Boolean) || [];
+  const executions = sortExecutionsByLogTime(
+    normalizedDump.executions?.filter(Boolean) || [],
+  );
   for (let execIndex = 0; execIndex < executions.length; execIndex++) {
     const execution = executions[execIndex];
     const scripts = generateAnimationScripts(

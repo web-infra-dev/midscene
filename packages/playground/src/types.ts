@@ -30,6 +30,11 @@ export interface DeviceOptions {
   alwaysRefreshScreenInfo?: boolean;
 }
 
+export interface ExecutionReportDisplay {
+  type?: string;
+  prompt?: string;
+}
+
 export interface ExecutionOptions {
   deepLocate?: boolean;
   deepThink?: boolean;
@@ -39,6 +44,7 @@ export interface ExecutionOptions {
   context?: any;
   requestId?: string;
   deviceOptions?: DeviceOptions;
+  reportDisplay?: ExecutionReportDisplay;
 }
 
 export type BeforeActionHook = (

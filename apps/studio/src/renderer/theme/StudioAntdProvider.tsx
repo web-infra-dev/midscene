@@ -1,4 +1,4 @@
-import { ConfigProvider, theme as antdTheme } from 'antd';
+import { App as AntdApp, ConfigProvider, theme as antdTheme } from 'antd';
 import type { PropsWithChildren } from 'react';
 import { useStudioTheme } from './ThemeProvider';
 
@@ -62,7 +62,7 @@ export function StudioAntdProvider({ children }: PropsWithChildren) {
         token: isDark ? DARK_TOKENS : LIGHT_TOKENS,
       }}
     >
-      {children}
+      <AntdApp component={false}>{children}</AntdApp>
     </ConfigProvider>
   );
 }

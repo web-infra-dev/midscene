@@ -148,6 +148,10 @@ export class InterfaceMjpegHub {
     this.stopProducerInternal(producer);
   }
 
+  getLastFrame(): MjpegStreamFrame | undefined {
+    return this.producer?.lastFrame;
+  }
+
   private async streamRequestInternal(
     req: Request,
     res: Response,

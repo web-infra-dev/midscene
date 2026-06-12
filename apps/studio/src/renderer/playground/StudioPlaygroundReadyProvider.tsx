@@ -3,6 +3,7 @@ import {
   usePlaygroundController,
 } from '@midscene/playground-app';
 import type { StudioPlatformId } from '@shared/electron-contract';
+import { Form } from 'antd';
 import type { PropsWithChildren } from 'react';
 import { useCallback, useEffect, useMemo } from 'react';
 import { resolveDiscoveredDeviceSelectionFormValues } from './selectors';
@@ -82,6 +83,7 @@ export default function StudioPlaygroundReadyProvider({
   return (
     <PlaygroundThemeProvider>
       <StudioPlaygroundContext.Provider value={contextValue}>
+        <Form form={controller.state.form} component={false} />
         {children}
       </StudioPlaygroundContext.Provider>
     </PlaygroundThemeProvider>

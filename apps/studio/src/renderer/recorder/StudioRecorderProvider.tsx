@@ -1,8 +1,17 @@
-import type { PlaygroundPageRecordedEvent } from '@midscene/playground';
+import type {
+  PlaygroundPageRecordedEvent,
+  PlaygroundRecorderDescribeResult,
+} from '@midscene/playground';
 import { getDebug } from '@midscene/shared/logger';
-import { getMidsceneRecorderEventDescription } from '@midscene/shared/recorder';
+import type { MidsceneRecorderSemanticAction } from '@midscene/shared/recorder';
+import {
+  buildMidsceneRecorderActionSummary,
+  buildMidsceneRecorderReplayInstruction,
+  getMidsceneRecorderEventDescription,
+  getMidsceneRecorderSemantic,
+} from '@midscene/shared/recorder';
 import type { StudioRecorderCodeType } from '@shared/electron-contract';
-import { message } from 'antd';
+import { App as AntdApp } from 'antd';
 import type { PropsWithChildren } from 'react';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { useStudioPlayground } from '../playground/useStudioPlayground';
@@ -41,8 +50,14 @@ import { StudioRecorderContext } from './useStudioRecorder';
 
 const debugRecorder = getDebug('studio:recorder', { console: true });
 const RECORDER_DESCRIPTION_CONCURRENCY = 2;
-const RECORDER_DESCRIPTION_IDLE_TIMEOUT_MS = 5000;
-const RECORDER_DESCRIPTION_TASK_TIMEOUT_MS = 15000;
+const RECORDER_AI_DESCRIBE_TASK_TIMEOUT_MS = 32_000;
+const RECORDER_AI_FALLBACK_TASK_TIMEOUT_MS = 25_000;
+const RECORDER_DESCRIPTION_STAGE_BUFFER_MS = 3_000;
+const RECORDER_DESCRIPTION_TASK_TIMEOUT_MS =
+  RECORDER_AI_DESCRIBE_TASK_TIMEOUT_MS +
+  RECORDER_AI_FALLBACK_TASK_TIMEOUT_MS +
+  RECORDER_DESCRIPTION_STAGE_BUFFER_MS;
+const RECORDER_DESCRIPTION_IDLE_SETTLE_BUFFER_MS = 1000;
 
 type StudioRecorderAction =
   | {
@@ -196,12 +211,74 @@ function isPendingRecorderDescription(value?: string) {
   return value?.trim() === 'AI is analyzing element...';
 }
 
+function buildRecorderSemanticAction(
+  event: StudioRecordedEvent,
+): MidsceneRecorderSemanticAction {
+  return {
+    type: event.type,
+    actionType: event.actionType,
+    value: event.value,
+    url: event.url,
+  };
+}
+
+function isReadyRecorderSemanticWithDescription(
+  semantic: ReturnType<typeof getMidsceneRecorderSemantic>,
+) {
+  return Boolean(
+    semantic?.status === 'ready' &&
+      semantic.elementDescription &&
+      !isPendingRecorderDescription(semantic.elementDescription),
+  );
+}
+
+function mergePreferredRecorderSemantic(
+  current: ReturnType<typeof getMidsceneRecorderSemantic>,
+  next: ReturnType<typeof getMidsceneRecorderSemantic>,
+) {
+  if (!next) {
+    return current;
+  }
+  if (
+    isReadyRecorderSemanticWithDescription(current) &&
+    !isReadyRecorderSemanticWithDescription(next)
+  ) {
+    return current;
+  }
+  return next;
+}
+
+function normalizeInputRecorderSemantic(
+  event: StudioRecordedEvent,
+): StudioRecordedEvent {
+  const semantic = getMidsceneRecorderSemantic(event);
+  if (
+    event.type !== 'input' ||
+    !semantic?.elementDescription ||
+    semantic.status !== 'ready'
+  ) {
+    return event;
+  }
+
+  const semanticAction = buildRecorderSemanticAction(event);
+  return {
+    ...event,
+    semantic: {
+      ...semantic,
+      replayInstruction: buildMidsceneRecorderReplayInstruction(
+        semanticAction,
+        semantic.elementDescription,
+      ),
+      actionSummary: buildMidsceneRecorderActionSummary(
+        semanticAction,
+        semantic.elementDescription,
+      ),
+    },
+  };
+}
+
 function getSemanticEventDescription(event: StudioRecordedEvent) {
-  const description =
-    event.elementDescription ||
-    event.replayInstruction ||
-    event.actionSummary ||
-    getMidsceneRecorderEventDescription(event);
+  const description = getMidsceneRecorderEventDescription(event);
   if (isCoordinateDescription(description)) {
     return '';
   }
@@ -210,7 +287,7 @@ function getSemanticEventDescription(event: StudioRecordedEvent) {
 
 function createLocalSessionSummary(events: StudioRecordedEvent[]) {
   const descriptions = events
-    .filter((event) => !event.descriptionLoading)
+    .filter((event) => getMidsceneRecorderSemantic(event)?.status === 'ready')
     .map((event) => {
       const description = getSemanticEventDescription(event);
       return description ? `${eventVerb(event)} ${description}` : '';
@@ -230,7 +307,7 @@ function createLocalSessionName(
   events: StudioRecordedEvent[],
 ) {
   const firstSemanticEvent = events.find((event) => {
-    if (event.descriptionLoading) {
+    if (getMidsceneRecorderSemantic(event)?.status !== 'ready') {
       return false;
     }
     return Boolean(getSemanticEventDescription(event));
@@ -264,6 +341,68 @@ function applyLocalSessionSummary(
   };
 }
 
+function getRecorderEventTimestamp(event: StudioRecordedEvent) {
+  if (typeof event.timestamp === 'number' && Number.isFinite(event.timestamp)) {
+    return event.timestamp;
+  }
+  const hashTimestamp = event.hashId?.match(/-(\d{10,})-/)?.[1];
+  if (!hashTimestamp) {
+    return undefined;
+  }
+  const timestamp = Number(hashTimestamp);
+  return Number.isFinite(timestamp) ? timestamp : undefined;
+}
+
+function sortRecorderEventsByTimestamp(events: StudioRecordedEvent[]) {
+  return events
+    .map((event, index) => ({ event, index }))
+    .sort((left, right) => {
+      const leftTimestamp = getRecorderEventTimestamp(left.event);
+      const rightTimestamp = getRecorderEventTimestamp(right.event);
+      if (leftTimestamp !== undefined && rightTimestamp !== undefined) {
+        return leftTimestamp - rightTimestamp || left.index - right.index;
+      }
+      if (leftTimestamp !== undefined) {
+        return -1;
+      }
+      if (rightTimestamp !== undefined) {
+        return 1;
+      }
+      return left.index - right.index;
+    })
+    .map(({ event }) => event);
+}
+
+function isRecorderEventBefore(
+  current: StudioRecordedEvent,
+  next: StudioRecordedEvent,
+) {
+  const currentTimestamp = getRecorderEventTimestamp(current);
+  const nextTimestamp = getRecorderEventTimestamp(next);
+  return (
+    currentTimestamp !== undefined &&
+    nextTimestamp !== undefined &&
+    currentTimestamp < nextTimestamp
+  );
+}
+
+function normalizeSessionEventOrder(
+  session: StudioRecordingSession,
+): StudioRecordingSession {
+  const normalizedEvents = mergeAdjacentRecorderInputEvents(
+    sortRecorderEventsByTimestamp(session.events),
+  );
+  if (
+    normalizedEvents.every((event, index) => event === session.events[index])
+  ) {
+    return session;
+  }
+  return {
+    ...session,
+    events: normalizedEvents,
+  };
+}
+
 function shouldDescribeRecorderEvent(event: StudioRecordedEvent) {
   if (event.source !== 'studio-preview') {
     return false;
@@ -271,7 +410,8 @@ function shouldDescribeRecorderEvent(event: StudioRecordedEvent) {
   if (event.type === 'navigation' || event.type === 'setViewport') {
     return false;
   }
-  if (event.descriptionLoading === false && event.descriptionSource === 'ai') {
+  const semantic = getMidsceneRecorderSemantic(event);
+  if (semantic?.status === 'ready') {
     return false;
   }
   return Boolean(event.screenshotBefore || event.screenshotAfter);
@@ -281,20 +421,25 @@ function createPendingRecorderEvent(
   event: StudioRecordedEvent,
 ): StudioRecordedEvent {
   if (!shouldDescribeRecorderEvent(event)) {
-    return {
-      ...event,
-      descriptionLoading: false,
-      descriptionSource: event.descriptionSource || 'fallback',
-    };
+    return event;
   }
+  const semantic = getMidsceneRecorderSemantic(event);
   return {
     ...event,
-    elementDescription: isPendingRecorderDescription(event.elementDescription)
-      ? undefined
-      : event.elementDescription,
-    descriptionLoading: true,
-    descriptionSource: undefined,
-    descriptionError: undefined,
+    semantic: semantic
+      ? {
+          ...semantic,
+          status: semantic.status === 'failed' ? 'failed' : 'pending',
+          elementDescription:
+            semantic.elementDescription &&
+            !isPendingRecorderDescription(semantic.elementDescription)
+              ? semantic.elementDescription
+              : undefined,
+        }
+      : {
+          source: 'recorderAI',
+          status: 'pending',
+        },
   };
 }
 
@@ -304,11 +449,12 @@ function createFallbackRecorderEvent(
 ): StudioRecordedEvent {
   const message = error instanceof Error ? error.message : String(error);
   const pageContext = event.title || event.url;
-  let elementDescription = event.elementDescription;
+  const semantic = getMidsceneRecorderSemantic(event);
+  let elementDescription = semantic?.elementDescription;
   if (!elementDescription || isPendingRecorderDescription(elementDescription)) {
     switch (event.type) {
       case 'scroll':
-        elementDescription = pageContext || 'current visible page';
+        elementDescription = createFallbackScrollDescription(event);
         break;
       case 'drag':
         elementDescription = pageContext
@@ -316,9 +462,7 @@ function createFallbackRecorderEvent(
           : 'gesture area in the current visible UI';
         break;
       case 'input':
-        elementDescription = pageContext
-          ? `input field in ${pageContext}`
-          : 'input field in the current visible UI';
+        elementDescription = 'unresolved input field in the current visible UI';
         break;
       default:
         elementDescription = pageContext
@@ -326,27 +470,40 @@ function createFallbackRecorderEvent(
           : 'target element in the current visible UI';
     }
   }
-  const replayInstruction =
-    event.replayInstruction ||
-    (event.type === 'scroll'
-      ? `Scroll the page/region with description "${elementDescription}" by value "${event.value || 'down'}".`
-      : event.type === 'input'
-        ? `Input "${event.value || ''}" into the element described as "${elementDescription}".`
-        : event.type === 'drag'
-          ? `Drag through the area described as "${elementDescription}".`
-          : `Click on the element described as "${elementDescription}".`);
-  const actionSummary =
-    event.actionSummary || `${eventVerb(event)} ${elementDescription}`;
+  const semanticAction = buildRecorderSemanticAction(event);
   return {
     ...event,
-    elementDescription,
-    replayInstruction,
-    actionSummary,
-    semanticConfidence: 'low',
-    descriptionLoading: false,
-    descriptionSource: 'fallback',
-    descriptionError: message,
+    semantic: {
+      source: 'heuristic',
+      status: 'ready',
+      elementDescription,
+      replayInstruction: buildMidsceneRecorderReplayInstruction(
+        semanticAction,
+        elementDescription,
+      ),
+      actionSummary: buildMidsceneRecorderActionSummary(
+        semanticAction,
+        elementDescription,
+      ),
+      confidence: 'low',
+      error: message,
+    },
   };
+}
+
+function createFallbackScrollDescription(event: StudioRecordedEvent) {
+  const pageContext = event.title || event.url || 'current visible page';
+  const scrollValue = event.value?.trim();
+  const point =
+    typeof event.elementRect?.x === 'number' &&
+    typeof event.elementRect?.y === 'number'
+      ? ` near point (${Math.round(event.elementRect.x)}, ${Math.round(
+          event.elementRect.y,
+        )})`
+      : '';
+  return scrollValue
+    ? `${pageContext}${point}, scroll ${scrollValue}`
+    : `${pageContext}${point}`;
 }
 
 function withTimeout<T>(
@@ -367,14 +524,30 @@ function withTimeout<T>(
   });
 }
 
+function calculateRecorderDescriptionQueueTimeoutMs(eventCount: number) {
+  const descriptionBatches = Math.max(
+    1,
+    Math.ceil(eventCount / RECORDER_DESCRIPTION_CONCURRENCY),
+  );
+  return (
+    descriptionBatches * RECORDER_DESCRIPTION_TASK_TIMEOUT_MS +
+    RECORDER_DESCRIPTION_IDLE_SETTLE_BUFFER_MS
+  );
+}
+
 type StudioRecorderRuntime = {
   sessionId: string;
   cursor: number;
   stopping: boolean;
+  drainAgain?: boolean;
+  drainPromise?: Promise<void>;
   getRecorderEvents: (since?: number) => Promise<{
     events: PlaygroundPageRecordedEvent[];
     nextIndex: number;
   }>;
+  describeRecorderEventAtPoint?: (
+    event: StudioRecordedEvent,
+  ) => Promise<PlaygroundRecorderDescribeResult>;
   stopRecorderSession?: () => Promise<unknown>;
 };
 
@@ -387,6 +560,60 @@ type PendingRecorderInput = {
   sessionId: string;
   event: StudioRecordedEvent;
 };
+
+const AUTHORITATIVE_RECORDER_DISCOVERY_PLATFORMS = new Set([
+  'android',
+  'harmony',
+  'computer',
+]);
+
+function isDiscoveredDeviceAvailable(
+  device: {
+    id: string;
+    status?: string;
+    sessionValues?: Record<string, unknown>;
+  },
+  target: StudioRecorderTarget,
+) {
+  const targetDeviceId = target.deviceId;
+  if (!targetDeviceId) {
+    return false;
+  }
+  const deviceStatus = device.status?.toLowerCase();
+  if (deviceStatus && deviceStatus !== 'device') {
+    return false;
+  }
+  return (
+    device.id === targetDeviceId ||
+    device.sessionValues?.deviceId === targetDeviceId ||
+    device.sessionValues?.displayId === targetDeviceId
+  );
+}
+
+function isRecorderTargetMissingFromDiscovery(
+  studioPlayground: ReturnType<typeof useStudioPlayground>,
+  target: StudioRecorderTarget | null,
+) {
+  if (
+    !target ||
+    !AUTHORITATIVE_RECORDER_DISCOVERY_PLATFORMS.has(target.platformId)
+  ) {
+    return false;
+  }
+  if (studioPlayground.phase !== 'ready') {
+    return false;
+  }
+  if (studioPlayground.discoveryErrors?.[target.platformId]) {
+    return false;
+  }
+  const discoveredDevices = studioPlayground.discoveredDevices;
+  if (!discoveredDevices) {
+    return false;
+  }
+  return !discoveredDevices[target.platformId].some((device) =>
+    isDiscoveredDeviceAvailable(device, target),
+  );
+}
 
 function isStudioPreviewInputEvent(event: StudioRecordedEvent) {
   return (
@@ -415,7 +642,7 @@ function recorderElementRectsMatch(
   next: StudioRecordedEvent,
 ) {
   if (!hasRecorderElementRect(current) || !hasRecorderElementRect(next)) {
-    return true;
+    return false;
   }
   const currentRect = current.elementRect || {};
   const nextRect = next.elementRect || {};
@@ -433,16 +660,63 @@ function canCoalesceRecorderInput(
 ) {
   return (
     pending.sessionId === sessionId &&
-    isStudioPreviewInputEvent(pending.event) &&
-    isStudioPreviewInputEvent(event) &&
-    isTypeOnlyRecorderInput(pending.event) &&
-    isTypeOnlyRecorderInput(event) &&
-    createStudioRecorderTargetSignature(pending.event.target) ===
-      createStudioRecorderTargetSignature(event.target) &&
-    pending.event.url === event.url &&
-    pending.event.title === event.title &&
-    recorderElementRectsMatch(pending.event, event)
+    canMergeAdjacentRecorderInputEvents(pending.event, event)
   );
+}
+
+function canMergeAdjacentRecorderInputEvents(
+  current: StudioRecordedEvent,
+  next: StudioRecordedEvent,
+) {
+  return (
+    isStudioPreviewInputEvent(current) &&
+    isStudioPreviewInputEvent(next) &&
+    isTypeOnlyRecorderInput(current) &&
+    isTypeOnlyRecorderInput(next) &&
+    createStudioRecorderTargetSignature(current.target) ===
+      createStudioRecorderTargetSignature(next.target) &&
+    current.url === next.url &&
+    current.title === next.title
+  );
+}
+
+function getRecorderEventHashLineage(event: StudioRecordedEvent) {
+  return Array.from(
+    new Set([event.hashId, ...(event.mergedHashIds || [])].filter(Boolean)),
+  );
+}
+
+function recorderEventHashMatches(
+  event: StudioRecordedEvent | undefined,
+  hashId?: string,
+) {
+  return Boolean(
+    hashId &&
+      event &&
+      (event.hashId === hashId || event.mergedHashIds?.includes(hashId)),
+  );
+}
+
+function findSessionEventByHashLineage(
+  session: StudioRecordingSession,
+  event: StudioRecordedEvent,
+) {
+  const hashIds = getRecorderEventHashLineage(event);
+  return session.events.find((item) =>
+    hashIds.some((hashId) => recorderEventHashMatches(item, hashId)),
+  );
+}
+
+function mergeRecorderEventHashLineage(
+  ...events: StudioRecordedEvent[]
+): string[] {
+  return Array.from(
+    new Set(events.flatMap((event) => getRecorderEventHashLineage(event))),
+  );
+}
+
+function normalizeRecorderEventMergedHashIds(hashIds: string[]) {
+  return hashIds.length > 1 ? hashIds : undefined;
 }
 
 function mergeRecorderInputEvents(
@@ -450,7 +724,7 @@ function mergeRecorderInputEvents(
   next: StudioRecordedEvent,
 ): StudioRecordedEvent {
   const value = `${current.value || ''}${next.value || ''}`;
-  return {
+  const merged = {
     ...current,
     value,
     rawPayload: {
@@ -462,20 +736,65 @@ function mergeRecorderInputEvents(
     screenshotAfter: next.screenshotAfter || current.screenshotAfter,
     screenshotWithBox: next.screenshotWithBox || current.screenshotWithBox,
     timestamp: next.timestamp,
+    mergedHashIds: normalizeRecorderEventMergedHashIds(
+      mergeRecorderEventHashLineage(current, next),
+    ),
   };
+  const semantic = mergePreferredRecorderSemantic(
+    getMidsceneRecorderSemantic(current),
+    getMidsceneRecorderSemantic(next),
+  );
+  if (!semantic?.elementDescription) {
+    return merged;
+  }
+  const semanticAction = buildRecorderSemanticAction(merged);
+  return {
+    ...merged,
+    semantic: {
+      ...semantic,
+      replayInstruction: buildMidsceneRecorderReplayInstruction(
+        semanticAction,
+        semantic.elementDescription,
+      ),
+      actionSummary: buildMidsceneRecorderActionSummary(
+        semanticAction,
+        semantic.elementDescription,
+      ),
+    },
+  };
+}
+
+function mergeAdjacentRecorderInputEvents(events: StudioRecordedEvent[]) {
+  const mergedEvents: StudioRecordedEvent[] = [];
+  for (const event of events) {
+    const previous = mergedEvents.at(-1);
+    if (previous && canMergeAdjacentRecorderInputEvents(previous, event)) {
+      mergedEvents[mergedEvents.length - 1] = mergeRecorderInputEvents(
+        previous,
+        event,
+      );
+      continue;
+    }
+    mergedEvents.push(event);
+  }
+  return mergedEvents;
 }
 
 function upsertEvent(
   session: StudioRecordingSession,
   event: StudioRecordedEvent,
 ): StudioRecordingSession {
-  if (session.events.some((item) => item.hashId === event.hashId)) {
-    return session;
+  if (
+    session.events.some((item) => recorderEventHashMatches(item, event.hashId))
+  ) {
+    return updateEvent(session, event);
   }
 
   return {
     ...session,
-    events: [...session.events, event],
+    events: mergeAdjacentRecorderInputEvents(
+      sortRecorderEventsByTimestamp([...session.events, event]),
+    ),
     updatedAt: Date.now(),
   };
 }
@@ -486,25 +805,43 @@ function updateEvent(
 ): StudioRecordingSession {
   let changed = false;
   const events = session.events.map((item) => {
-    if (item.hashId !== event.hashId) {
+    if (!recorderEventHashMatches(item, event.hashId)) {
       return item;
     }
     changed = true;
-    return {
+    const shouldPreserveRecorderValue =
+      item.type === 'input' || item.type === 'keydown';
+    const mergedHashIds = normalizeRecorderEventMergedHashIds(
+      mergeRecorderEventHashLineage(item, event),
+    );
+    const mergedEvent = {
       ...item,
       ...event,
+      hashId: item.hashId,
+      mergedHashIds,
+      timestamp: item.timestamp,
       platformId: item.platformId,
       target: item.target,
+      value: shouldPreserveRecorderValue ? item.value : event.value,
       actionType: event.actionType || item.actionType,
-      rawPayload: event.rawPayload || item.rawPayload,
+      rawPayload: shouldPreserveRecorderValue
+        ? item.rawPayload
+        : event.rawPayload || item.rawPayload,
+      semantic: mergePreferredRecorderSemantic(
+        getMidsceneRecorderSemantic(item),
+        getMidsceneRecorderSemantic(event),
+      ),
     };
+    return normalizeInputRecorderSemantic(mergedEvent);
   });
   if (!changed) {
     return session;
   }
   return {
     ...session,
-    events,
+    events: mergeAdjacentRecorderInputEvents(
+      sortRecorderEventsByTimestamp(events),
+    ),
     updatedAt: Date.now(),
   };
 }
@@ -514,6 +851,7 @@ function hasRecorderSession(session: StudioRecordingSession | null): boolean {
 }
 
 export function StudioRecorderProvider({ children }: PropsWithChildren) {
+  const { message } = AntdApp.useApp();
   const studioPlayground = useStudioPlayground();
   const [state, dispatch] = useReducer(reducer, initialState);
   const stateRef = useRef(state);
@@ -531,6 +869,9 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     studioPlayground,
     currentTarget,
   );
+  const playgroundSessionConnected =
+    studioPlayground.phase === 'ready' &&
+    studioPlayground.controller.state.sessionViewState.connected;
 
   const currentSession = useMemo(
     () =>
@@ -590,6 +931,102 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     [upsertSessionSnapshot],
   );
 
+  const describeRecorderEventWithAiDescribe = useCallback(
+    async (
+      sessionId: string,
+      event: StudioRecordedEvent,
+    ): Promise<StudioRecordedEvent | null> => {
+      if (event.type === 'scroll') {
+        return null;
+      }
+      const runtime = recorderRuntimeRef.current;
+      if (
+        !runtime ||
+        runtime.sessionId !== sessionId ||
+        typeof runtime.describeRecorderEventAtPoint !== 'function'
+      ) {
+        return null;
+      }
+      let result: PlaygroundRecorderDescribeResult;
+      try {
+        result = await withTimeout(
+          runtime.describeRecorderEventAtPoint(event),
+          RECORDER_AI_DESCRIBE_TASK_TIMEOUT_MS,
+          'Timed out while analyzing recorder event with aiDescribe.',
+        );
+      } catch (error) {
+        return {
+          ...event,
+          semantic: {
+            source: 'aiDescribe',
+            status: 'failed',
+            error: error instanceof Error ? error.message : String(error),
+          },
+        };
+      }
+      if (result.trace) {
+        debugRecorder('recorder aiDescribe trace:', result.trace);
+      }
+      if (!result.ok) {
+        const aiDescribe =
+          result.trace?.verifyResult || result.trace?.annotatedScreenshotRef
+            ? {
+                verifyPrompt: true,
+                verifyPassed: result.trace.verifyPassed,
+                centerDistance: result.trace.centerDistance,
+                expectedCenter: result.trace.point,
+                actualCenter: result.trace.verifyResult?.center,
+                annotatedScreenshotPath:
+                  result.trace.annotatedScreenshotRef?.path,
+              }
+            : undefined;
+        return {
+          ...event,
+          semantic: {
+            source: 'aiDescribe',
+            status: 'failed',
+            error: result.error || 'aiDescribe failed.',
+            ...(aiDescribe ? { aiDescribe } : {}),
+          },
+        };
+      }
+      return result.event ? (result.event as StudioRecordedEvent) : null;
+    },
+    [],
+  );
+
+  const mergeDescribedRecorderEvent = useCallback(
+    (
+      base: StudioRecordedEvent,
+      described: StudioRecordedEvent,
+      fallbackFrom?: ReturnType<typeof getMidsceneRecorderSemantic>,
+    ) => {
+      const semantic = getMidsceneRecorderSemantic(described);
+      return normalizeInputRecorderSemantic({
+        ...base,
+        ...described,
+        hashId: base.hashId,
+        mergedHashIds: base.mergedHashIds,
+        timestamp: base.timestamp,
+        value:
+          base.type === 'input' || base.type === 'keydown'
+            ? base.value
+            : described.value,
+        semantic: semantic
+          ? {
+              ...semantic,
+              ...(fallbackFrom ? { fallbackFrom } : {}),
+            }
+          : semantic,
+        platformId: base.platformId,
+        target: base.target,
+        actionType: described.actionType || base.actionType,
+        rawPayload: base.rawPayload,
+      });
+    },
+    [],
+  );
+
   const describeRecorderEventsNow = useCallback(
     async (
       session: StudioRecordingSession,
@@ -598,20 +1035,81 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       if (events.length === 0) {
         return [];
       }
-      const { describeStudioRecorderEventsWithAI } = await import('./codegen');
-      const describedEvents = await describeStudioRecorderEventsWithAI(events, {
-        target: session.target,
+      const aiDescribeEvents = await Promise.all(
+        events.map((event) =>
+          describeRecorderEventWithAiDescribe(session.id, event),
+        ),
+      );
+      const results: Array<StudioRecordedEvent | undefined> = [];
+      const fallbackEvents: StudioRecordedEvent[] = [];
+      const fallbackAiDescribeSemantics: Array<
+        ReturnType<typeof getMidsceneRecorderSemantic>
+      > = [];
+      const fallbackResultIndexes: number[] = [];
+
+      aiDescribeEvents.forEach((event, index) => {
+        const semantic = event ? getMidsceneRecorderSemantic(event) : undefined;
+        const existingSemantic = getMidsceneRecorderSemantic(events[index]);
+        if (semantic?.status === 'ready') {
+          results[index] = mergeDescribedRecorderEvent(events[index], event!);
+          return;
+        }
+        fallbackEvents.push(events[index]);
+        fallbackAiDescribeSemantics.push(
+          semantic?.source === 'aiDescribe'
+            ? semantic
+            : existingSemantic?.source === 'aiDescribe' &&
+                existingSemantic.status === 'failed'
+              ? existingSemantic
+              : undefined,
+        );
+        fallbackResultIndexes.push(index);
       });
-      return describedEvents.map((event, index) => ({
-        ...events[index],
-        ...event,
-        platformId: events[index].platformId,
-        target: events[index].target,
-        actionType: event.actionType || events[index].actionType,
-        rawPayload: events[index].rawPayload,
-      }));
+
+      if (fallbackEvents.length > 0) {
+        const { describeStudioRecorderEventsWithAI } = await import(
+          './codegen'
+        );
+        let describedEvents: StudioRecordedEvent[];
+        try {
+          describedEvents = (await withTimeout(
+            describeStudioRecorderEventsWithAI(fallbackEvents, {
+              target: session.target,
+            }),
+            RECORDER_AI_FALLBACK_TASK_TIMEOUT_MS,
+            'Timed out while analyzing recorder event with recorderAI.',
+          )) as StudioRecordedEvent[];
+        } catch (error) {
+          fallbackEvents.forEach((event, fallbackIndex) => {
+            const resultIndex = fallbackResultIndexes[fallbackIndex];
+            const fallbackEvent = createFallbackRecorderEvent(event, error);
+            const fallbackSemantic = getMidsceneRecorderSemantic(fallbackEvent);
+            results[resultIndex] =
+              fallbackSemantic && fallbackAiDescribeSemantics[fallbackIndex]
+                ? {
+                    ...fallbackEvent,
+                    semantic: {
+                      ...fallbackSemantic,
+                      fallbackFrom: fallbackAiDescribeSemantics[fallbackIndex],
+                    },
+                  }
+                : fallbackEvent;
+          });
+          return results.map((event, index) => event || events[index]);
+        }
+        describedEvents.forEach((event, fallbackIndex) => {
+          const resultIndex = fallbackResultIndexes[fallbackIndex];
+          results[resultIndex] = mergeDescribedRecorderEvent(
+            fallbackEvents[fallbackIndex],
+            event,
+            fallbackAiDescribeSemantics[fallbackIndex],
+          );
+        });
+      }
+
+      return results.map((event, index) => event || events[index]);
     },
-    [],
+    [describeRecorderEventWithAiDescribe, mergeDescribedRecorderEvent],
   );
 
   const processDescriptionQueue = useCallback(() => {
@@ -632,11 +1130,9 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
           if (!session) {
             return;
           }
-          const [describedEvent] = await withTimeout(
-            describeRecorderEventsNow(session, [task.event]),
-            RECORDER_DESCRIPTION_TASK_TIMEOUT_MS,
-            'Timed out while analyzing recorder event.',
-          );
+          const [describedEvent] = await describeRecorderEventsNow(session, [
+            task.event,
+          ]);
           if (describedEvent) {
             await updateRecordedEvent(task.sessionId, describedEvent);
           }
@@ -684,7 +1180,9 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       stateRef.current = upsertSessionInState(snapshot, updatedSession);
       dispatch({ type: 'upsert-session', session: updatedSession });
       await upsertStudioRecorderSession(updatedSession);
-      enqueueRecorderEventDescription(updatedSession.id, event);
+      const canonicalEvent =
+        findSessionEventByHashLineage(updatedSession, event) || event;
+      enqueueRecorderEventDescription(updatedSession.id, canonicalEvent);
       return updatedSession;
     },
     [enqueueRecorderEventDescription],
@@ -713,7 +1211,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
 
       let updatedSession = session;
       for (const event of session.events) {
-        if (event.descriptionLoading) {
+        if (getMidsceneRecorderSemantic(event)?.status === 'pending') {
           updatedSession = updateEvent(
             updatedSession,
             createFallbackRecorderEvent(event, new Error(reason)),
@@ -730,7 +1228,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
   );
 
   const waitForRecorderEventDescriptions = useCallback(
-    async (timeoutMs = RECORDER_DESCRIPTION_IDLE_TIMEOUT_MS) => {
+    async (timeoutMs?: number) => {
       await flushPendingRecorderInput();
       if (
         descriptionQueueRef.current.length === 0 &&
@@ -738,6 +1236,11 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       ) {
         return true;
       }
+      const pendingDescriptionCount =
+        descriptionQueueRef.current.length + descriptionInFlightRef.current;
+      const effectiveTimeoutMs =
+        timeoutMs ??
+        calculateRecorderDescriptionQueueTimeoutMs(pendingDescriptionCount);
       let timeout: number | null = null;
       let idleResolver: (() => void) | null = null;
       let settled = false;
@@ -750,7 +1253,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
           descriptionIdleResolversRef.current.add(idleResolver);
         }),
         new Promise<void>((resolve) => {
-          timeout = window.setTimeout(resolve, timeoutMs);
+          timeout = window.setTimeout(resolve, effectiveTimeoutMs);
         }),
       ]);
       if (timeout) {
@@ -761,7 +1264,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       }
       return settled;
     },
-    [flushPendingRecorderInput],
+    [flushPendingRecorderInput, message],
   );
 
   const drainRecorderRuntime = useCallback(async (sessionId: string) => {
@@ -770,15 +1273,44 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    const result = await runtime.getRecorderEvents(runtime.cursor);
-    runtime.cursor = result.nextIndex;
-    for (const event of result.events) {
-      await recordPageEventRef.current(event);
+    if (runtime.drainPromise) {
+      runtime.drainAgain = true;
+      await runtime.drainPromise;
+      return;
     }
+
+    const drainPromise = (async () => {
+      do {
+        runtime.drainAgain = false;
+        if (
+          recorderRuntimeRef.current !== runtime ||
+          runtime.sessionId !== sessionId
+        ) {
+          return;
+        }
+
+        const result = await runtime.getRecorderEvents(runtime.cursor);
+        runtime.cursor = result.nextIndex;
+        for (const event of result.events) {
+          await recordPageEventRef.current(event);
+        }
+      } while (runtime.drainAgain);
+    })();
+
+    runtime.drainPromise = drainPromise.finally(() => {
+      if (recorderRuntimeRef.current === runtime) {
+        runtime.drainPromise = undefined;
+        runtime.drainAgain = false;
+      }
+    });
+    await runtime.drainPromise;
   }, []);
 
   const stopRecorderRuntime = useCallback(
-    async (sessionId: string) => {
+    async (
+      sessionId: string,
+      { preserveRuntime = false }: { preserveRuntime?: boolean } = {},
+    ) => {
       const runtime = recorderRuntimeRef.current;
       if (!runtime || runtime.sessionId !== sessionId || runtime.stopping) {
         return;
@@ -796,13 +1328,20 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       } catch (error) {
         debugRecorder('failed to drain recorder events:', error);
       } finally {
-        if (recorderRuntimeRef.current === runtime) {
+        if (!preserveRuntime && recorderRuntimeRef.current === runtime) {
           recorderRuntimeRef.current = null;
         }
       }
     },
     [drainRecorderRuntime],
   );
+
+  const clearRecorderRuntime = useCallback((sessionId: string) => {
+    const runtime = recorderRuntimeRef.current;
+    if (runtime?.sessionId === sessionId) {
+      recorderRuntimeRef.current = null;
+    }
+  }, []);
 
   const generateSessionMetadata = useCallback(
     async (session: StudioRecordingSession) => {
@@ -846,10 +1385,8 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       const latestSession =
         stateRef.current.sessions.find((item) => item.id === session.id) ??
         session;
-      const candidates = latestSession.events.filter(
-        (event) =>
-          shouldDescribeRecorderEvent(event) &&
-          (event.descriptionLoading || event.descriptionSource !== 'ai'),
+      const candidates = latestSession.events.filter((event) =>
+        shouldDescribeRecorderEvent(event),
       );
       if (candidates.length === 0) {
         return latestSession;
@@ -890,7 +1427,9 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     }
 
     const pendingEvents = currentSession.events.filter(
-      (event) => shouldDescribeRecorderEvent(event) && event.descriptionLoading,
+      (event) =>
+        shouldDescribeRecorderEvent(event) &&
+        getMidsceneRecorderSemantic(event)?.status === 'pending',
     );
     if (pendingEvents.length === 0) {
       return;
@@ -908,8 +1447,8 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       try {
         await withTimeout(
           describeUndescribedSessionEvents(currentSession),
-          RECORDER_DESCRIPTION_TASK_TIMEOUT_MS,
-          'Timed out while analyzing recorder events.',
+          calculateRecorderDescriptionQueueTimeoutMs(pendingEvents.length),
+          'Timed out while draining recorder description queue.',
         );
       } catch (error) {
         let updatedSession = currentSession;
@@ -935,13 +1474,17 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    await stopRecorderRuntime(session.id);
-    const descriptionsSettled = await waitForRecorderEventDescriptions();
-    if (!descriptionsSettled) {
-      await markPendingDescriptionsAsFallback(
-        session.id,
-        'Timed out while analyzing recorder events.',
-      );
+    try {
+      await stopRecorderRuntime(session.id, { preserveRuntime: true });
+      const descriptionsSettled = await waitForRecorderEventDescriptions();
+      if (!descriptionsSettled) {
+        await markPendingDescriptionsAsFallback(
+          session.id,
+          'Timed out while draining recorder description queue.',
+        );
+      }
+    } finally {
+      clearRecorderRuntime(session.id);
     }
     const latestSnapshot = stateRef.current;
     const latestSession =
@@ -961,6 +1504,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
   }, [
     generateSessionMetadata,
     markPendingDescriptionsAsFallback,
+    clearRecorderRuntime,
     stopRecorderRuntime,
     waitForRecorderEventDescriptions,
   ]);
@@ -1114,14 +1658,14 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       if (!descriptionsSettled) {
         await markPendingDescriptionsAsFallback(
           session.id,
-          'Timed out while analyzing recorder events.',
+          'Timed out while draining recorder description queue.',
         );
       }
       const latestSessionForCodegen =
         stateRef.current.sessions.find((item) => item.id === session.id) ??
         session;
-      let sessionForCodegen = await describeUndescribedSessionEvents(
-        latestSessionForCodegen,
+      let sessionForCodegen = normalizeSessionEventOrder(
+        await describeUndescribedSessionEvents(latestSessionForCodegen),
       );
 
       options.onProgress?.({
@@ -1276,8 +1820,59 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
         target: session.target,
       });
       const pendingEvent = createPendingRecorderEvent(studioEvent);
+      const pendingInput = pendingRecorderInputRef.current;
+      if (
+        pendingInput &&
+        recorderEventHashMatches(pendingInput.event, pendingEvent.hashId)
+      ) {
+        const shouldPreserveRecorderValue =
+          pendingInput.event.type === 'input' ||
+          pendingInput.event.type === 'keydown';
+        const mergedHashIds = normalizeRecorderEventMergedHashIds(
+          mergeRecorderEventHashLineage(pendingInput.event, pendingEvent),
+        );
+        pendingRecorderInputRef.current = {
+          sessionId: pendingInput.sessionId,
+          event: normalizeInputRecorderSemantic({
+            ...pendingInput.event,
+            ...pendingEvent,
+            hashId: pendingInput.event.hashId,
+            mergedHashIds,
+            timestamp: pendingInput.event.timestamp,
+            platformId: pendingInput.event.platformId,
+            target: pendingInput.event.target,
+            value: shouldPreserveRecorderValue
+              ? pendingInput.event.value
+              : pendingEvent.value,
+            actionType:
+              pendingEvent.actionType || pendingInput.event.actionType,
+            rawPayload: shouldPreserveRecorderValue
+              ? pendingInput.event.rawPayload
+              : pendingEvent.rawPayload || pendingInput.event.rawPayload,
+          }),
+        };
+        return;
+      }
+      if (
+        session.events.some((item) =>
+          recorderEventHashMatches(item, pendingEvent.hashId),
+        )
+      ) {
+        await updateRecordedEvent(session.id, pendingEvent);
+        if (shouldDescribeRecorderEvent(pendingEvent)) {
+          enqueueRecorderEventDescription(session.id, pendingEvent);
+        }
+        return;
+      }
 
       if (isStudioPreviewInputEvent(pendingEvent)) {
+        const latestEvent = session.events.at(-1);
+        if (latestEvent && isRecorderEventBefore(pendingEvent, latestEvent)) {
+          await flushPendingRecorderInput();
+          await persistRecordedEvent(session.id, pendingEvent);
+          return;
+        }
+
         const pending = pendingRecorderInputRef.current;
         if (
           pending &&
@@ -1300,7 +1895,12 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       await flushPendingRecorderInput();
       await persistRecordedEvent(session.id, pendingEvent);
     },
-    [flushPendingRecorderInput, persistRecordedEvent],
+    [
+      enqueueRecorderEventDescription,
+      flushPendingRecorderInput,
+      persistRecordedEvent,
+      updateRecordedEvent,
+    ],
   );
   recordPageEventRef.current = recordPageEvent;
 
@@ -1344,6 +1944,10 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
         cursor: 0,
         stopping: false,
         getRecorderEvents: playgroundSDK.getRecorderEvents.bind(playgroundSDK),
+        describeRecorderEventAtPoint:
+          typeof playgroundSDK.describeRecorderEventAtPoint === 'function'
+            ? playgroundSDK.describeRecorderEventAtPoint.bind(playgroundSDK)
+            : undefined,
         stopRecorderSession:
           typeof playgroundSDK.stopRecorderSession === 'function'
             ? playgroundSDK.stopRecorderSession.bind(playgroundSDK)
@@ -1535,6 +2139,26 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       void stopRecording();
     }
   }, [canStartRecording, state.isRecording, stopRecording]);
+
+  useEffect(() => {
+    if (!state.isRecording) {
+      return;
+    }
+    const recordingTarget = currentSession?.target ?? currentTarget;
+    if (
+      !playgroundSessionConnected ||
+      isRecorderTargetMissingFromDiscovery(studioPlayground, recordingTarget)
+    ) {
+      void stopRecording();
+    }
+  }, [
+    currentSession?.target,
+    currentTarget,
+    playgroundSessionConnected,
+    state.isRecording,
+    stopRecording,
+    studioPlayground,
+  ]);
 
   const recordingTargetSignatureRef = useRef<string | null>(null);
   useEffect(() => {

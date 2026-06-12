@@ -1,6 +1,6 @@
 import { SettingOutlined } from '@ant-design/icons';
 import type { ConnectivityTestResult } from '@midscene/core';
-import { Alert, Button, Input, Modal, Tooltip, message } from 'antd';
+import { Alert, App as AntdApp, Button, Input, Modal, Tooltip } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { useEnvConfig } from '../../store/store';
 import type { PlaygroundSDKLike } from '../../types';
@@ -19,6 +19,7 @@ export function EnvConfig({
   mode?: 'icon' | 'text';
   playgroundSDK?: PlaygroundSDKLike | null;
 }) {
+  const { message } = AntdApp.useApp();
   const { config, configString, loadConfig, syncFromStorage } = useEnvConfig();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tempConfigString, setTempConfigString] = useState(configString);

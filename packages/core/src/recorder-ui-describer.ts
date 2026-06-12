@@ -3,7 +3,13 @@ import { compositeElementInfoImg } from '@midscene/shared/img';
 import type {
   MidsceneRecorderEvent,
   MidsceneRecorderPageInfo,
+  MidsceneRecorderSemanticAction,
   MidsceneRecorderTarget,
+} from '@midscene/shared/recorder';
+import {
+  buildMidsceneRecorderActionSummary,
+  buildMidsceneRecorderReplayInstruction,
+  getMidsceneRecorderSemantic,
 } from '@midscene/shared/recorder';
 import { RECORDER_UI_DESCRIBER_SYSTEM_PROMPT } from './ai-model/prompt/recorder-ui-describer';
 import { callAIWithObjectResponse } from './ai-model/service-caller';
@@ -129,69 +135,6 @@ function getDragActionVerb(event: MidsceneRecorderEvent) {
   }
 }
 
-function getActionReplayInstruction(
-  event: MidsceneRecorderEvent,
-  elementDescription: string,
-) {
-  if (event.type === 'click') {
-    const verb = getPointerActionVerb(event);
-    if (verb === 'Long press') {
-      return `${verb} the element described as "${elementDescription}".`;
-    }
-    return `${verb} on the element described as "${elementDescription}".`;
-  }
-
-  if (event.type === 'drag') {
-    const verb = getDragActionVerb(event);
-    return `${verb} through the area described as "${elementDescription}".`;
-  }
-
-  return undefined;
-}
-
-function getActionSummaryVerb(event: MidsceneRecorderEvent) {
-  if (event.type === 'click') {
-    return getPointerActionVerb(event);
-  }
-  if (event.type === 'drag') {
-    return getDragActionVerb(event);
-  }
-  if (event.type === 'keydown') {
-    return 'Press';
-  }
-  return undefined;
-}
-
-function getCanonicalReplayInstruction(
-  event: MidsceneRecorderEvent,
-  elementDescription: string,
-) {
-  switch (event.type) {
-    case 'click':
-    case 'drag':
-    case 'input':
-    case 'keydown':
-      return getFallbackReplayInstruction(event, elementDescription);
-    default:
-      return undefined;
-  }
-}
-
-function getCanonicalActionSummary(
-  event: MidsceneRecorderEvent,
-  elementDescription: string,
-) {
-  switch (event.type) {
-    case 'click':
-    case 'drag':
-    case 'input':
-    case 'keydown':
-      return getFallbackActionSummary(event, elementDescription);
-    default:
-      return undefined;
-  }
-}
-
 function pointToRect(
   x: number,
   y: number,
@@ -270,9 +213,7 @@ function getFallbackDescription(
         ? `gesture area in ${pageContext}`
         : `gesture area on the ${surface}`;
     case 'input':
-      return pageContext
-        ? `input field in ${pageContext}`
-        : `input field on the ${surface}`;
+      return `unresolved input field on the ${surface}`;
     case 'keydown':
       return pageContext
         ? `focused control in ${pageContext}`
@@ -284,52 +225,37 @@ function getFallbackDescription(
   }
 }
 
+function buildSemanticAction(
+  event: MidsceneRecorderEvent,
+  scrollDestinationDescription?: string,
+): MidsceneRecorderSemanticAction {
+  return {
+    type: event.type,
+    actionType: event.actionType,
+    value: event.value,
+    url: event.url,
+    scrollDestinationDescription,
+  };
+}
+
 function getFallbackReplayInstruction(
   event: MidsceneRecorderEvent,
   elementDescription: string,
 ) {
-  switch (event.type) {
-    case 'navigation':
-      return event.url
-        ? `Navigate to \`${event.url}\`.`
-        : `Navigate using ${elementDescription}.`;
-    case 'scroll':
-      return `Scroll the page/region with description "${elementDescription}" by value "${event.value || 'down'}".`;
-    case 'drag':
-      return (
-        getActionReplayInstruction(event, elementDescription) ||
-        `Drag through the area described as "${elementDescription}".`
-      );
-    case 'input':
-      return `Input "${event.value || ''}" into the element described as "${elementDescription}".`;
-    case 'keydown':
-      return `Press "${event.value || 'the recorded key'}" on the element described as "${elementDescription}".`;
-    default:
-      return (
-        getActionReplayInstruction(event, elementDescription) ||
-        `Click on the element described as "${elementDescription}".`
-      );
-  }
+  return buildMidsceneRecorderReplayInstruction(
+    buildSemanticAction(event),
+    elementDescription,
+  );
 }
 
 function getFallbackActionSummary(
   event: MidsceneRecorderEvent,
   elementDescription: string,
 ) {
-  switch (event.type) {
-    case 'navigation':
-      return event.url ? `Navigate to ${event.url}` : 'Navigate';
-    case 'scroll':
-      return `Scroll ${elementDescription}`;
-    case 'drag':
-      return `${getActionSummaryVerb(event) || 'Drag'} ${elementDescription}`;
-    case 'input':
-      return `Input into ${elementDescription}`;
-    case 'keydown':
-      return `Press ${event.value || 'key'} on ${elementDescription}`;
-    default:
-      return `${getActionSummaryVerb(event) || 'Click'} ${elementDescription}`;
-  }
+  return buildMidsceneRecorderActionSummary(
+    buildSemanticAction(event),
+    elementDescription,
+  );
 }
 
 function getActionGuidance(
@@ -342,9 +268,9 @@ function getActionGuidance(
     case 'click':
       return `${platformGuidance} Identify the ${getPointerActionVerb(event).toLowerCase()} target by exact visible text first, then label/placeholder, then role plus stable surrounding context, then icon purpose, then visual position. Never describe it by coordinates, marker location, or as a nearby element.`;
     case 'input':
-      return `${platformGuidance} Identify the exact input field at the marker before text entry. Use visible label, placeholder, field name, or stable surrounding section. Preserve the recorded input value only in replayInstruction; never describe the typed value as the field.`;
+      return `${platformGuidance} Identify the exact input field at the marker before text entry. Use stable visible label, field role, field name, surrounding section, or sequence intent. Treat hint text that can change by user, time, data, or context as secondary evidence. Preserve the recorded input value only in replayInstruction; never describe the typed value or page title alone as the field.`;
     case 'scroll':
-      return `${platformGuidance} Identify the scrollable page/region and concrete destination content revealed after scrolling. Use newly visible headings, section titles, list/table names, list items, or stable region labels; never say only "more content" or "current page".`;
+      return `${platformGuidance} Identify the scrollable page/region at the highlighted scroll point and concrete destination content revealed after scrolling. If multiple scrollable regions are visible, preserve the specific region where the scroll happened, such as left/right/top/bottom panel, navigation area, content pane, dialog body, table, list, or menu; do not generalize a panel/list scroll into the whole page. Use newly visible headings, section titles, list/table names, list items, or stable region labels; never say only "more content" or "current page".`;
     case 'drag':
       return `${platformGuidance} Identify the ${getDragActionVerb(event).toLowerCase()} start/end regions or the dragged UI control. Do not describe only the gesture path or coordinates.`;
     case 'keydown':
@@ -624,27 +550,29 @@ The target or region is highlighted in the screenshot below. Convert this event 
       if (aiReplayInstruction && isWeakReplayInstruction(aiReplayInstruction)) {
         throw new Error('AI returned a weak recorder replay instruction.');
       }
-      const replayInstruction =
-        event.type === 'scroll' && scrollDestinationDescription
-          ? `Scroll the page/region with description "${elementDescription}" by value "${event.value || 'down'}" until "${scrollDestinationDescription}" is visible.`
-          : getCanonicalReplayInstruction(event, elementDescription) ||
-            aiReplayInstruction ||
-            getFallbackReplayInstruction(event, elementDescription);
+      const semanticAction = buildSemanticAction(
+        event,
+        scrollDestinationDescription,
+      );
+      const replayInstruction = buildMidsceneRecorderReplayInstruction(
+        semanticAction,
+        elementDescription,
+      );
       if (isWeakReplayInstruction(replayInstruction)) {
         throw new Error('AI returned a weak recorder replay instruction.');
       }
-      const actionSummary =
-        event.type === 'scroll' && scrollDestinationDescription
-          ? `Scroll ${elementDescription} toward ${scrollDestinationDescription}`
-          : getCanonicalActionSummary(event, elementDescription) ||
-            content.actionSummary?.trim() ||
-            getFallbackActionSummary(event, elementDescription);
+      const actionSummary = buildMidsceneRecorderActionSummary(
+        semanticAction,
+        elementDescription,
+      );
 
       return {
+        source: 'recorderAI' as const,
+        status: 'ready' as const,
         elementDescription,
         replayInstruction,
         actionSummary,
-        semanticConfidence: content.confidence || 'medium',
+        confidence: content.confidence || 'medium',
       };
     } catch (error) {
       lastError = error;
@@ -682,23 +610,26 @@ function createFallbackEvent(
   screenshotWithBox?: string,
   target?: MidsceneRecorderTarget,
 ): MidsceneRecorderEvent {
+  const semantic = getMidsceneRecorderSemantic(event);
   const elementDescription =
-    event.elementDescription && !isWeakDescription(event.elementDescription)
-      ? event.elementDescription
+    semantic?.elementDescription &&
+    !isWeakDescription(semantic.elementDescription)
+      ? semantic.elementDescription
       : getFallbackDescription(event, target);
   return {
     ...event,
-    elementDescription,
-    replayInstruction:
-      event.replayInstruction ||
-      getFallbackReplayInstruction(event, elementDescription),
-    actionSummary:
-      event.actionSummary ||
-      getFallbackActionSummary(event, elementDescription),
-    semanticConfidence: 'low',
-    descriptionLoading: false,
-    descriptionSource: 'fallback',
-    descriptionError: error,
+    semantic: {
+      source: 'heuristic',
+      status: 'ready',
+      elementDescription,
+      replayInstruction: getFallbackReplayInstruction(
+        event,
+        elementDescription,
+      ),
+      actionSummary: getFallbackActionSummary(event, elementDescription),
+      confidence: 'low',
+      error,
+    },
     screenshotWithBox: screenshotWithBox || event.screenshotWithBox,
   };
 }
@@ -740,10 +671,7 @@ export async function describeRecorderUIEvent(
       usedFallback: false,
       event: {
         ...event,
-        ...semanticFields,
-        descriptionLoading: false,
-        descriptionSource: 'ai',
-        descriptionError: undefined,
+        semantic: semanticFields,
         screenshotWithBox: screenshotWithBox || event.screenshotWithBox,
       },
     };

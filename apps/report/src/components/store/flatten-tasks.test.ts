@@ -9,17 +9,23 @@ import { flattenGroupedDumpTasks } from './flatten-tasks';
 const makeTask = (id: string): ExecutionTask =>
   ({ taskId: id }) as unknown as ExecutionTask;
 
-const makeExecution = (taskIds: string[]): ExecutionDump =>
+const makeExecution = (taskIds: string[], logTime?: number): ExecutionDump =>
   ({
+    logTime,
     name: `exec-${taskIds.join('-')}`,
     tasks: taskIds.map(makeTask),
   }) as unknown as ExecutionDump;
 
-const makeDump = (executionTaskIds: string[][]): GroupedActionDump =>
+const makeDump = (
+  executionTaskIds: string[][],
+  logTimes?: number[],
+): GroupedActionDump =>
   ({
     groupName: 'group',
     groupDescription: 'desc',
-    executions: executionTaskIds.map(makeExecution),
+    executions: executionTaskIds.map((taskIds, index) =>
+      makeExecution(taskIds, logTimes?.[index]),
+    ),
   }) as unknown as GroupedActionDump;
 
 describe('flattenGroupedDumpTasks', () => {
@@ -44,6 +50,21 @@ describe('flattenGroupedDumpTasks', () => {
       'c1',
       'c2',
       'c3',
+    ]);
+  });
+
+  it('flattens tasks in execution logTime order', () => {
+    const dump = makeDump(
+      [['later'], ['earlier'], ['middle']],
+      [300, 100, 200],
+    );
+
+    const result = flattenGroupedDumpTasks(dump);
+
+    expect(result.map((t) => (t as any).taskId)).toEqual([
+      'earlier',
+      'middle',
+      'later',
     ]);
   });
 

@@ -15,8 +15,10 @@ Output JSON only:
 Rules:
 - Do NOT output coordinates as the main description.
 - Do NOT mention "near coordinates", "nearby element", "near point", "red marker", highlighted box, highlighted element, or screenshot.
-- Prefer stable target descriptions in this order: exact visible text > label/placeholder > role + stable section/context > icon purpose > visual position.
-- Keep quoted UI text in the original UI language, for example "使用文档" or "开始使用".
+- Prefer stable target descriptions in this order: exact stable control text > stable label > role + stable section/context > icon purpose > visual position.
+- Treat placeholder or hint text that can change by user, time, data, or context as dynamic. Do not use dynamic hint values as the primary target description; prefer role + stable region + intent.
+- For repeated collections, treat item identity text as dynamic unless the user is clearly verifying that exact item. This includes any list/grid/table/feed/menu or repeated record surface. Do not output descriptions like "<role> titled/named '<content>'"; prefer stable role + region + selection intent.
+- Keep quoted UI text in the original UI language when it is a stable control label.
 - Apply the platform guidance from the user event:
   - Web: button, input, link, menu item, tab, dialog, aria-label, placeholder, form section.
   - Mobile: tab, list item, text field, icon button, navigation bar, bottom bar, sheet, card, screen section.
@@ -31,13 +33,15 @@ Rules:
 - Input-specific rules:
   - The highlighted BEFORE screenshot marks the field that receives the text.
   - The screenshot after the action may show the typed value; use it only to confirm the field, never as the field description.
-  - elementDescription must identify the field itself, for example "年龄 input in the basic form" or "search input in the top navigation".
-  - Never use "AI is analyzing element", the typed value, or a generic "input field" as elementDescription.
+  - elementDescription must identify the field itself by stable field role, nearby label, region, section, or sequence intent.
+  - Never use "AI is analyzing element", the typed value, the page title alone, or a generic "input field" as elementDescription.
+  - For consecutive input events, distinguish fields by stable role, section, order, current focus, filled/empty state, and neighboring actions instead of reusing the same generic field description.
   - Input replayInstruction format: Input "<value>" into the element described as "<elementDescription>".
 - Scroll target quality bar:
-  - elementDescription describes the scrollable page, panel, list, table, or section.
+  - elementDescription describes the scrollable page, panel, list, table, or section at the highlighted scroll point.
+  - When multiple scrollable regions are visible, preserve the specific region where the scroll happened, such as left/right/top/bottom panel, navigation area, content pane, dialog body, table, list, or menu. Do not generalize a panel/list scroll into the whole page.
   - scrollDestinationDescription is required and describes what the scroll is trying to reveal or reach, using newly visible headings, section titles, list items, or stable content from the AFTER screenshot.
-  - Prefer descriptions like "集成到 Playwright - Midscene - Vision-Driven UI Automation page, scrolling toward the API reference section" or "Android API documentation page, scrolling to the installation steps section".
+  - Prefer descriptions like "Playwright integration documentation page, scrolling toward the API reference section" or "Android API documentation page, scrolling to the installation steps section".
   - Do NOT write generic phrases like "more content", "the page", "current screen", or "main scrollable area".
 - Scroll replayInstruction format: Scroll the page/region with description "<elementDescription>" by value "<recorded value>" until "<scrollDestinationDescription>" is visible.
 - Scroll actionSummary format: Scroll <elementDescription> toward <scrollDestinationDescription>.

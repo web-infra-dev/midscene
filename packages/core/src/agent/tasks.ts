@@ -29,6 +29,7 @@ import type {
   ServiceDump,
   ServiceExtractOption,
   ServiceExtractParam,
+  UIContext,
 } from '@/types';
 import { ServiceError } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
@@ -141,11 +142,14 @@ export class TaskExecutor {
 
   private createExecutionSession(
     title: string,
-    options?: { tasks?: ExecutionTaskApply[] },
+    options?: { tasks?: ExecutionTaskApply[]; uiContext?: UIContext },
   ) {
     return new ExecutionSession(
       title,
-      () => Promise.resolve(this.service.contextRetrieverFn()),
+      () =>
+        options?.uiContext
+          ? Promise.resolve(options.uiContext)
+          : Promise.resolve(this.service.contextRetrieverFn()),
       {
         onTaskStart: this.onTaskStartCallback,
         tasks: options?.tasks,
@@ -284,8 +288,9 @@ export class TaskExecutor {
     plans: PlanningAction[],
     planningModel: ModelRuntime,
     defaultModel: ModelRuntime,
+    options?: { uiContext?: UIContext },
   ): Promise<ExecutionResult> {
-    const session = this.createExecutionSession(title);
+    const session = this.createExecutionSession(title, options);
     const { tasks } = await this.convertPlanToExecutable(
       plans,
       planningModel,

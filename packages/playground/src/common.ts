@@ -207,7 +207,11 @@ export async function executeAction(
 
       // Flatten deviceOptions into the params
       // Destructure to exclude deviceOptions from the final object
-      const { deviceOptions: _, ...optionsWithoutDeviceOptions } = options;
+      const {
+        deviceOptions: _,
+        reportDisplay: __,
+        ...optionsWithoutDeviceOptions
+      } = options;
       const actionParams = {
         locate: detailedLocateParam,
         ...optionsWithoutDeviceOptions,
@@ -223,17 +227,26 @@ export async function executeAction(
     const prompt = value.prompt;
 
     if (actionType === 'aiAssert') {
+      const { reportDisplay: _reportDisplay, ...optionsWithoutReportDisplay } =
+        options;
       const { pass, thought } =
         (await activeAgent?.aiAssert?.(prompt || '', undefined, {
           keepRawResponse: true,
-          ...options,
+          ...optionsWithoutReportDisplay,
         })) || {};
       return { pass: pass || false, thought: thought || '' };
     }
 
     // Fallback for methods not found in actionSpace
     if (activeAgent && typeof activeAgent[actionType] === 'function') {
-      return await activeAgent[actionType](prompt, options);
+      const { reportDisplay, ...agentOptions } = options;
+      const optionsForAgent = reportDisplay
+        ? {
+            ...agentOptions,
+            _internalReportDisplay: reportDisplay,
+          }
+        : agentOptions;
+      return await activeAgent[actionType](prompt, optionsForAgent);
     }
 
     throw new Error(`Unknown action type: ${actionType}`);

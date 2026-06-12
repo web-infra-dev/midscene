@@ -1,5 +1,8 @@
 import type { IModelConfig } from '@midscene/shared/env';
-import type { MidsceneRecorderEvent } from '@midscene/shared/recorder';
+import {
+  DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
+  type MidsceneRecorderEvent,
+} from '@midscene/shared/recorder';
 import type { StudioRecorderCodeType } from '@shared/electron-contract';
 import {
   toStudioRecorderCodegenEvents,
@@ -57,6 +60,10 @@ export async function generateStudioRecorderCodeWithAI(
   const modelConfig = resolveStudioRecorderModelConfig(options.modelConfig);
   const input = toStudioRecorderCodegenInput(session, {
     language: options.language,
+    maxScreenshots:
+      type === 'markdown'
+        ? DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS
+        : undefined,
   });
   const runtime = requireStudioRuntime();
   const serializableModelConfig = toSerializableModelConfig(modelConfig);

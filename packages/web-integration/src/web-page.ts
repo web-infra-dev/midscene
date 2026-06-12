@@ -375,6 +375,7 @@ export abstract class AbstractWebPage extends AbstractInterface {
   stopLoading?(): Promise<void>;
   navigationState?(): Promise<{ isLoading: boolean }>;
   flushPendingVisualUpdate?(): Promise<void>;
+  schedulePendingVisualUpdate?(): void;
 
   get mouse(): MouseAction {
     return {
@@ -431,6 +432,16 @@ export abstract class AbstractWebPage extends AbstractInterface {
 export function createWebInputPrimitives(
   page: AbstractWebPage,
 ): BrowserInputPrimitives {
+  const scheduleVisualUpdate = () => {
+    if (page.schedulePendingVisualUpdate) {
+      page.schedulePendingVisualUpdate();
+      return;
+    }
+
+    const pendingRefresh = page.flushPendingVisualUpdate?.();
+    void pendingRefresh?.catch(() => undefined);
+  };
+
   return {
     pointer: {
       tap: async ({ x, y }) => {
@@ -457,7 +468,7 @@ export function createWebInputPrimitives(
         const element = opts?.target;
         if (element && opts?.replace !== false) {
           await page.clearInput(element as ElementInfo);
-        } else if (element) {
+        } else if (element && opts?.focusOnly) {
           const target = element as ElementInfo;
           await page.mouse.click(target.center[0], target.center[1], {
             button: 'left',
@@ -470,7 +481,7 @@ export function createWebInputPrimitives(
         }
 
         await page.keyboard.type(value);
-        await page.flushPendingVisualUpdate?.();
+        scheduleVisualUpdate();
       },
       keyboardPress: async (keyName, opts) => {
         const element = opts?.target as
@@ -484,7 +495,7 @@ export function createWebInputPrimitives(
 
         const keys = getKeyCommands(keyName);
         await page.keyboard.press(keys as any);
-        await page.flushPendingVisualUpdate?.();
+        scheduleVisualUpdate();
       },
       cursorMove: async (direction, times = 1) => {
         const arrowKey = direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
