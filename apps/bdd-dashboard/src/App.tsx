@@ -4,6 +4,7 @@ import { GraphView } from './components/GraphView';
 import { Header } from './components/Header';
 import { HealthView } from './components/HealthView';
 import { Sidebar } from './components/Sidebar';
+import { DASHBOARD_CLI_COMMAND } from './model/copy';
 import { buildIndices } from './model/indices';
 import { FLOWS_GROUP_KEY, buildTree } from './model/tree';
 import type { DashboardView } from './model/types';
@@ -168,7 +169,7 @@ export default function App() {
 
       <footer>
         Generated {model.generatedAt} — static snapshot of the feature files;
-        regenerate with: <code>midscene-bdd dashboard</code>
+        regenerate with: <code>{DASHBOARD_CLI_COMMAND}</code>
       </footer>
     </div>
   );

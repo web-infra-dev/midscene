@@ -51,8 +51,7 @@ const GraphNodeItem = memo(function GraphNodeItem({
     node.kind,
     node.focus ? 'focus' : '',
     node.unused ? 'unused' : '',
-    coneState === 'cone' ? 'cone' : '',
-    coneState === 'dim' ? 'dim' : '',
+    coneState === 'none' ? '' : coneState,
     isPinned ? 'pinned' : '',
     isHot ? 'hot' : '',
   ]
@@ -110,8 +109,7 @@ const GraphEdgeItem = memo(function GraphEdgeItem({
         className={[
           'gedge',
           link.isFlowEdge ? 'flowedge' : '',
-          coneState === 'cone' ? 'cone' : '',
-          coneState === 'dim' ? 'dim' : '',
+          coneState === 'none' ? '' : coneState,
           isHot ? 'hot' : '',
         ]
           .filter(Boolean)
@@ -144,6 +142,18 @@ function nodeIdFromEvent(event: React.SyntheticEvent): string | null {
       .closest('[data-node-id]')
       ?.getAttribute('data-node-id') ?? null
   );
+}
+
+/** Resolve the hovered edge index from a delegated event, if any. */
+function edgeIndexFromEvent(event: React.SyntheticEvent): number | null {
+  const hit = (event.target as Element).closest('[data-edge-index]');
+  return hit ? Number(hit.getAttribute('data-edge-index')) : null;
+}
+
+function coneStateOf(inCone: boolean | undefined): ConeState {
+  // undefined = no active cone at all.
+  if (inCone === undefined) return 'none';
+  return inCone ? 'cone' : 'dim';
 }
 
 interface GraphViewProps {
@@ -191,6 +201,16 @@ export const GraphView = memo(function GraphView({
         : null,
     [coneRoot, scene],
   );
+  const hotLink = hotEdge !== null ? scene.links[hotEdge] : undefined;
+
+  // A pin suppresses the hover/focus preview; React's no-change bail-out
+  // makes repeat calls with the same id free.
+  const previewCone = (nodeId: string | null) => {
+    setHoverId(pinnedId ? null : nodeId);
+  };
+  const togglePin = (nodeId: string) => {
+    setPinnedId((current) => (current === nodeId ? null : nodeId));
+  };
 
   // Bring the pinned cone into view: scroll so the chain's top-left corner
   // is visible, letting the user read the highlighted path rightward.
@@ -469,17 +489,17 @@ export const GraphView = memo(function GraphView({
           viewBox={`0 0 ${scene.width} ${scene.height}`}
           // Node/edge interaction is delegated here (data-node-id /
           // data-edge-index) so the memoized children need no callbacks.
+          // mouseover/focus only fire when crossing element boundaries, and
+          // React bails out of no-change setState (Object.is), so movement
+          // within one node never triggers a re-render.
           onClick={(event) => {
             if (dragRef.current.moved) {
               dragRef.current.moved = false;
               return;
             }
             const nodeId = nodeIdFromEvent(event);
-            if (nodeId) {
-              setPinnedId((current) => (current === nodeId ? null : nodeId));
-            } else if (pinnedId) {
-              setPinnedId(null);
-            }
+            if (nodeId) togglePin(nodeId);
+            else setPinnedId(null);
           }}
           onDoubleClick={(event) => {
             const nodeId = nodeIdFromEvent(event);
@@ -487,21 +507,8 @@ export const GraphView = memo(function GraphView({
             if (node) openNode(node);
           }}
           onMouseOver={(event) => {
-            // mouseover only fires when crossing element boundaries, and the
-            // identity-preserving updates below bail out when the hovered
-            // node/edge did not change (e.g. rect → text inside one node),
-            // so plain mouse movement never triggers a re-render.
-            const target = event.target as Element;
-            const nodeId =
-              target.closest('[data-node-id]')?.getAttribute('data-node-id') ??
-              null;
-            const nextHover = pinnedId ? null : nodeId;
-            setHoverId((value) => (value === nextHover ? value : nextHover));
-            const edgeHit = target.closest('[data-edge-index]');
-            const nextHot = edgeHit
-              ? Number(edgeHit.getAttribute('data-edge-index'))
-              : null;
-            setHotEdge((value) => (value === nextHot ? value : nextHot));
+            previewCone(nodeIdFromEvent(event));
+            setHotEdge(edgeIndexFromEvent(event));
           }}
           onMouseLeave={() => {
             setHoverId(null);
@@ -509,19 +516,25 @@ export const GraphView = memo(function GraphView({
           }}
           // Keyboard parity with hover: focusing a node previews its cone.
           onFocus={(event) => {
-            const nodeId = nodeIdFromEvent(event);
-            const nextHover = pinnedId ? null : nodeId;
-            setHoverId((value) => (value === nextHover ? value : nextHover));
+            previewCone(nodeIdFromEvent(event));
           }}
-          onBlur={() => {
-            setHoverId((value) => (value === null ? value : null));
+          onBlur={(event) => {
+            // Keep the preview while focus moves between nodes inside the
+            // svg (Tab); only clear when focus leaves the graph entirely.
+            if (
+              event.relatedTarget instanceof Element &&
+              event.currentTarget.contains(event.relatedTarget)
+            ) {
+              return;
+            }
+            setHoverId(null);
           }}
           onKeyDown={(event) => {
             if (event.key !== 'Enter' && event.key !== ' ') return;
             const nodeId = nodeIdFromEvent(event);
             if (!nodeId) return;
             event.preventDefault();
-            setPinnedId((current) => (current === nodeId ? null : nodeId));
+            togglePin(nodeId);
           }}
         >
           {scene.bands.map((band) => (
@@ -562,9 +575,7 @@ export const GraphView = memo(function GraphView({
               tooltip={`${scene.nodeById.get(link.from)?.label ?? link.from}  →  ${
                 scene.nodeById.get(link.to)?.label ?? link.to
               }\n${link.label}`}
-              coneState={
-                cone ? (cone.links.has(index) ? 'cone' : 'dim') : 'none'
-              }
+              coneState={coneStateOf(cone ? cone.links.has(index) : undefined)}
               isHot={hotEdge === index}
             />
           ))}
@@ -573,15 +584,11 @@ export const GraphView = memo(function GraphView({
             <GraphNodeItem
               key={node.id}
               node={node}
-              coneState={
-                cone ? (cone.nodes.has(node.id) ? 'cone' : 'dim') : 'none'
-              }
+              coneState={coneStateOf(
+                cone ? cone.nodes.has(node.id) : undefined,
+              )}
               isPinned={pinnedId === node.id}
-              isHot={
-                hotEdge !== null &&
-                (scene.links[hotEdge]?.from === node.id ||
-                  scene.links[hotEdge]?.to === node.id)
-              }
+              isHot={hotLink?.from === node.id || hotLink?.to === node.id}
             />
           ))}
         </svg>

@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react';
+import { DASHBOARD_CLI_COMMAND, errorMessage } from '../model/copy';
 
 /**
  * Root error boundary: a malformed injected ExploreModel payload makes
@@ -13,9 +14,7 @@ export class ErrorBoundary extends Component<
   state = { message: null };
 
   static getDerivedStateFromError(error: unknown): { message: string } {
-    return {
-      message: error instanceof Error ? error.message : String(error),
-    };
+    return { message: errorMessage(error) };
   }
 
   render(): ReactNode {
@@ -26,8 +25,8 @@ export class ErrorBoundary extends Component<
           <h1>Dashboard failed to load</h1>
           <p className="boot-error-message">{this.state.message}</p>
           <p className="boot-error-hint">
-            The embedded model data could not be read. Regenerate this page with{' '}
-            <code>midscene-bdd dashboard</code>.
+            If the embedded model data is stale or corrupted, regenerating this
+            page with <code>{DASHBOARD_CLI_COMMAND}</code> usually fixes it.
           </p>
         </div>
       </div>

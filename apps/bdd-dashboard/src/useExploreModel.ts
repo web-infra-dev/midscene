@@ -1,4 +1,5 @@
 import { exampleExploreModel as devModel } from './fixtures/example-explore-model';
+import { DASHBOARD_CLI_COMMAND, errorMessage } from './model/copy';
 import type { ExploreModel } from './model/types';
 
 const MODEL_ELEMENT_ID = 'midscene-bdd-explore-model';
@@ -10,7 +11,7 @@ function parseExploreModel(raw: string): ExploreModel {
   } catch (error) {
     // Mirrors ERROR_PREFIX in @midscene/bdd (no runtime dep by design).
     throw new Error(
-      `[midscene-bdd] Failed to parse injected ExploreModel JSON: ${error instanceof Error ? error.message : String(error)}`,
+      `[midscene-bdd] Failed to parse injected ExploreModel JSON: ${errorMessage(error)}`,
     );
   }
 }
@@ -34,7 +35,7 @@ function loadExploreModel(): ExploreModel {
       return devModel;
     }
     throw new Error(
-      '[midscene-bdd] ExploreModel payload was not injected. Generate the dashboard via "midscene-bdd dashboard".',
+      `[midscene-bdd] ExploreModel payload was not injected. Generate the dashboard via "${DASHBOARD_CLI_COMMAND}".`,
     );
   }
 
