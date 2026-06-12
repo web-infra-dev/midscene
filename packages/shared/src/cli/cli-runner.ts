@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import dotenv from 'dotenv';
 import { getDebug } from '../logger';
 import type { BaseMidsceneTools } from '../mcp/base-tools';
-import { stripBehaviorFlags } from '../mcp/tool-defaults';
+import { TOOL_BEHAVIOR_FLAGS, stripBehaviorFlags } from '../mcp/tool-defaults';
 import type {
   ToolDefinition,
   ToolResult,
@@ -17,6 +17,14 @@ import {
   parseCliArgs,
 } from './cli-args';
 import { CLIError } from './cli-error';
+import {
+  cliVerboseErrorMessage,
+  cliVerboseFlag,
+  compactCliVerboseArgs,
+  emitCliVerboseEvent,
+  stripVerboseFlag,
+  withCliVerboseContext,
+} from './verbose';
 
 const debug = getDebug('cli-runner');
 
@@ -58,6 +66,12 @@ function outputContentItem(item: ToolResultContent, isError: boolean): void {
       const filepath = join(tmpdir(), filename);
       writeFileSync(filepath, Buffer.from(item.data, 'base64'));
       console.log(`Screenshot saved: ${filepath}`);
+      emitCliVerboseEvent({
+        event: 'artifact',
+        kind: 'screenshot',
+        path: filepath,
+        mimeType: item.mimeType,
+      });
       break;
     }
 
@@ -105,6 +119,8 @@ function printCommandHelp(scriptName: string, cmd: CLICommand): void {
       console.log(`  ${label.padEnd(optionWidth)} ${desc}${aliasText}`);
     }
   }
+
+  printGlobalOptions();
 }
 
 function printVersion(scriptName: string, version: string): void {
@@ -126,7 +142,28 @@ function printHelp(
     console.log(`  ${name.padEnd(30)} ${def.description}`);
   }
   console.log(`  ${'version'.padEnd(30)} Show CLI version`);
+  printGlobalOptions();
   console.log(`\nRun "${scriptName} <command> --help" for more info.`);
+}
+
+function printGlobalOptions(): void {
+  const options = [
+    {
+      flag: `--${cliVerboseFlag}`,
+      description:
+        'Print structured progress events while the command is running.',
+    },
+    ...TOOL_BEHAVIOR_FLAGS.map((flag) => ({
+      flag: `--${flag.cli}`,
+      description: flag.description,
+    })),
+  ];
+  const optionWidth = Math.max(...options.map((option) => option.flag.length));
+
+  console.log('\nGlobal Options:');
+  for (const option of options) {
+    console.log(`  ${option.flag.padEnd(optionWidth)} ${option.description}`);
+  }
 }
 
 type AnyMidsceneTools = BaseMidsceneTools<any, any>;
@@ -139,12 +176,14 @@ export async function runToolsCLI(
   const inputArgs = options?.argv ?? process.argv.slice(2);
   debug('CLI invoked: %s %s', scriptName, inputArgs.join(' '));
 
+  const { rawArgs: argsWithoutVerbose, verbose } = stripVerboseFlag(inputArgs);
+
   // Global behavior flags (e.g. `--deep-locate` / `--deep-think`) apply
   // regardless of which command runs. `stripBehaviorFlags` is the single place
   // that knows how they look on the command line: it resolves their defaults
   // and returns the remaining args so the per-command parser never sees them.
   // See https://github.com/web-infra-dev/midscene/issues/2446.
-  const { rawArgs, toolDefaults } = stripBehaviorFlags(inputArgs);
+  const { rawArgs, toolDefaults } = stripBehaviorFlags(argsWithoutVerbose);
   if (Object.keys(toolDefaults).length > 0) {
     tools.setToolDefaults?.(toolDefaults);
   }
@@ -235,15 +274,51 @@ export async function runToolsCLI(
 
   debug('command: %s, args: %s', match.name, JSON.stringify(handlerArgs));
 
-  const result = await match.def.handler(handlerArgs);
-  debug(
-    'command %s completed, isError: %s',
-    match.name,
-    result.isError ?? false,
+  await withCliVerboseContext(
+    {
+      enabled: verbose,
+      scriptName,
+      commandName: match.name,
+      startedAt: Date.now(),
+    },
+    async () => {
+      const startedAt = Date.now();
+      emitCliVerboseEvent({
+        event: 'command_start',
+        args: compactCliVerboseArgs(handlerArgs),
+      });
+
+      try {
+        const result = await match.def.handler(handlerArgs);
+        debug(
+          'command %s completed, isError: %s',
+          match.name,
+          result.isError ?? false,
+        );
+        outputResult(result);
+        emitCliVerboseEvent({
+          event: 'command_done',
+          status: result.isError ? 'error' : 'ok',
+          durationMs: Date.now() - startedAt,
+        });
+        if (result.isError) {
+          throw new CLIError('Command failed', 1);
+        }
+      } catch (error) {
+        if (
+          !(error instanceof CLIError && error.message === 'Command failed')
+        ) {
+          emitCliVerboseEvent({
+            event: 'command_done',
+            status: 'error',
+            durationMs: Date.now() - startedAt,
+            error: cliVerboseErrorMessage(error),
+          });
+        }
+        throw error;
+      } finally {
+        await tools.destroy();
+      }
+    },
   );
-  outputResult(result);
-  await tools.destroy();
-  if (result.isError) {
-    throw new CLIError('Command failed', 1);
-  }
 }
