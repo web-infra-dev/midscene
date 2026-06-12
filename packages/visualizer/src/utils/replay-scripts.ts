@@ -1,7 +1,7 @@
 'use client';
 import { mousePointer } from '@/utils';
 import { paramStr, typeStr } from '@midscene/core/agent';
-import { getTaskSearchArea } from '@midscene/core/dump';
+import { getTaskSearchArea } from '@midscene/core/dump/task-service-dump';
 import {
   getCenterHighlightBox,
   normalizeHighlightElementForReport,
