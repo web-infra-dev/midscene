@@ -13,6 +13,11 @@ Commands:
   tap                            Tap on a specific element or coordinate on the screen
   version                        Show CLI version
 
+Global Options:
+  --verbose     Print structured progress events while the command is running.
+  --deep-locate Force deep locate for every locating operation (better precision for small/ambiguous targets, a bit slower).
+  --deep-think  Plan the act tool with deep thinking (richer context and sub-goal decomposition, a bit slower).
+
 Run "test-cli <command> --help" for more info."
 `;
 
@@ -24,5 +29,10 @@ Connect to a device for automation
 
 Options:
   --url                  The device URL to connect to
-  --timeout              Connection timeout in ms"
+  --timeout              Connection timeout in ms
+
+Global Options:
+  --verbose     Print structured progress events while the command is running.
+  --deep-locate Force deep locate for every locating operation (better precision for small/ambiguous targets, a bit slower).
+  --deep-think  Plan the act tool with deep thinking (richer context and sub-goal decomposition, a bit slower)."
 `;

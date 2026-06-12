@@ -121,9 +121,13 @@ export interface RecordToReportOptions {
 export interface BaseAgent {
   getActionSpace(): Promise<ActionSpaceItem[]>;
   destroy?(): Promise<void>;
+  reportFile?: string | null;
   page?: {
     screenshotBase64(): Promise<string>;
   };
+  addDumpUpdateListener?: (
+    listener: (dump: string, executionDump?: unknown) => void,
+  ) => () => void;
   recordToReport?: (
     title?: string,
     opt?: RecordToReportOptions,
