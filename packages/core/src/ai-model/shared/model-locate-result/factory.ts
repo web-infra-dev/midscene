@@ -7,6 +7,7 @@ import type {
   LocateResultAdapterDefinition,
   LocateResultContext,
   LocateResultCoordinates,
+  LocateResultValue,
   PixelBbox,
   ResolvedLocateResultCoordinates,
   SectionLocatePixelBboxGroup,
@@ -60,6 +61,41 @@ function normalizeReferenceResults(input: unknown): unknown[] {
     return [];
   }
   return Array.isArray(input) ? input : [input];
+}
+
+function assertValidParsedLocateResult(result: LocateResultValue): void {
+  if (!result || typeof result !== 'object') {
+    throw new Error(
+      `invalid parsed locate result: expected object, got ${JSON.stringify(
+        result,
+      )}`,
+    );
+  }
+
+  const expectedLength =
+    result.type === 'bbox' ? 4 : result.type === 'point' ? 2 : 0;
+  if (!expectedLength) {
+    throw new Error(
+      `invalid parsed locate result: unsupported type ${JSON.stringify(
+        (result as { type?: unknown }).type,
+      )}`,
+    );
+  }
+
+  const coordinates = result.coordinates;
+  if (
+    !Array.isArray(coordinates) ||
+    coordinates.length !== expectedLength ||
+    !coordinates.every(
+      (value) => typeof value === 'number' && Number.isFinite(value),
+    )
+  ) {
+    throw new Error(
+      `invalid parsed locate result: ${result.type} coordinates must be ${expectedLength} finite numbers, got ${JSON.stringify(
+        coordinates,
+      )}`,
+    );
+  }
 }
 
 function pickRawLocateValue(
@@ -124,7 +160,11 @@ function createStandardLocateResultAdapterImplementation(
   const mapRawLocateValueToPixelBbox = (
     rawResult: unknown,
     ctx: LocateResultContext,
-  ) => mapLocateResultToPixelBbox(parseRawLocateValue(rawResult), ctx);
+  ) => {
+    const parsedResult = parseRawLocateValue(rawResult);
+    assertValidParsedLocateResult(parsedResult);
+    return mapLocateResultToPixelBbox(parsedResult, ctx);
+  };
   // Keep error semantics out of the adapter: callers may preserve, ignore, or
   // fail fast on `error` / `errors`, while this layer only extracts coordinates.
   const adaptRawLocateInputToPixelBbox = (
