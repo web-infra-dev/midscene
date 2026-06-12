@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  type GraphLink,
   type GraphNode,
   NODE_W,
   buildGraphScene,
@@ -24,6 +25,126 @@ const SVG_BUTTON_PROPS = { role: 'button', tabIndex: 0 } as const;
 const FADE_EDGE_THRESHOLD = 150;
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 2;
+
+/** Cone status of one element relative to the active dependency cone. */
+type ConeState = 'cone' | 'dim' | 'none';
+
+/**
+ * One graph node. Memoized so cone hover/pin changes only re-render nodes
+ * whose primitive props actually flipped; all interaction is handled by
+ * delegated listeners on the parent <svg> via data-node-id, so this
+ * component receives no callbacks at all.
+ */
+const GraphNodeItem = memo(function GraphNodeItem({
+  node,
+  coneState,
+  isPinned,
+  isHot,
+}: {
+  node: GraphNode;
+  coneState: ConeState;
+  isPinned: boolean;
+  isHot: boolean;
+}) {
+  const classes = [
+    'gnode',
+    node.kind,
+    node.focus ? 'focus' : '',
+    node.unused ? 'unused' : '',
+    coneState === 'cone' ? 'cone' : '',
+    coneState === 'dim' ? 'dim' : '',
+    isPinned ? 'pinned' : '',
+    isHot ? 'hot' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return (
+    <g
+      data-node-id={node.id}
+      className={classes}
+      transform={`translate(${node.x} ${node.y})`}
+      {...SVG_BUTTON_PROPS}
+      aria-label={`${KIND_NAMES[node.kind]}: ${node.label}${
+        node.sub ? ` — ${node.sub}` : ''
+      }`}
+    >
+      <rect width={NODE_W} height={node.h} rx={node.small ? 7 : 9} />
+      <text x={11} y={node.small ? 21 : 20}>
+        {truncate(node.label, 40)}
+      </text>
+      {!node.small && (
+        <text className="sub" x={11} y={37}>
+          {truncate((node.unused ? 'UNUSED · ' : '') + (node.sub || ''), 48)}
+        </text>
+      )}
+      <title>
+        {node.label +
+          (node.sub ? `\n${node.sub}` : '') +
+          (node.unused ? '\n(unused)' : '')}
+      </title>
+    </g>
+  );
+});
+
+/**
+ * One graph edge (visible path + invisible fat hover twin + hot label).
+ * Memoized like GraphNodeItem; hover detection is delegated through
+ * data-edge-index on the hit path.
+ */
+const GraphEdgeItem = memo(function GraphEdgeItem({
+  link,
+  index,
+  tooltip,
+  coneState,
+  isHot,
+}: {
+  link: GraphLink;
+  index: number;
+  tooltip: string;
+  coneState: ConeState;
+  isHot: boolean;
+}) {
+  return (
+    <g>
+      <path
+        className={[
+          'gedge',
+          link.isFlowEdge ? 'flowedge' : '',
+          coneState === 'cone' ? 'cone' : '',
+          coneState === 'dim' ? 'dim' : '',
+          isHot ? 'hot' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        d={link.d}
+        markerEnd="url(#arrow)"
+      >
+        <title>{tooltip}</title>
+      </path>
+      {/* Invisible fat twin so the thin edge is easy to hover. */}
+      <path className="gedge-hit" data-edge-index={index} d={link.d} />
+      {isHot && (
+        <text
+          className="gedge-label"
+          x={link.labelX}
+          y={link.labelY}
+          textAnchor="middle"
+        >
+          {truncate(link.label, 48)}
+        </text>
+      )}
+    </g>
+  );
+});
+
+/** Resolve the node id from a delegated event inside the svg. */
+function nodeIdFromEvent(event: React.SyntheticEvent): string | null {
+  return (
+    (event.target as Element)
+      .closest('[data-node-id]')
+      ?.getAttribute('data-node-id') ?? null
+  );
+}
 
 interface GraphViewProps {
   model: ExploreModel;
@@ -346,12 +467,61 @@ export const GraphView = memo(function GraphView({
           width={scene.width * zoom}
           height={scene.height * zoom}
           viewBox={`0 0 ${scene.width} ${scene.height}`}
-          onClick={() => {
+          // Node/edge interaction is delegated here (data-node-id /
+          // data-edge-index) so the memoized children need no callbacks.
+          onClick={(event) => {
             if (dragRef.current.moved) {
               dragRef.current.moved = false;
               return;
             }
-            if (pinnedId) setPinnedId(null);
+            const nodeId = nodeIdFromEvent(event);
+            if (nodeId) {
+              setPinnedId((current) => (current === nodeId ? null : nodeId));
+            } else if (pinnedId) {
+              setPinnedId(null);
+            }
+          }}
+          onDoubleClick={(event) => {
+            const nodeId = nodeIdFromEvent(event);
+            const node = nodeId ? scene.nodeById.get(nodeId) : undefined;
+            if (node) openNode(node);
+          }}
+          onMouseOver={(event) => {
+            // mouseover only fires when crossing element boundaries, and the
+            // identity-preserving updates below bail out when the hovered
+            // node/edge did not change (e.g. rect → text inside one node),
+            // so plain mouse movement never triggers a re-render.
+            const target = event.target as Element;
+            const nodeId =
+              target.closest('[data-node-id]')?.getAttribute('data-node-id') ??
+              null;
+            const nextHover = pinnedId ? null : nodeId;
+            setHoverId((value) => (value === nextHover ? value : nextHover));
+            const edgeHit = target.closest('[data-edge-index]');
+            const nextHot = edgeHit
+              ? Number(edgeHit.getAttribute('data-edge-index'))
+              : null;
+            setHotEdge((value) => (value === nextHot ? value : nextHot));
+          }}
+          onMouseLeave={() => {
+            setHoverId(null);
+            setHotEdge(null);
+          }}
+          // Keyboard parity with hover: focusing a node previews its cone.
+          onFocus={(event) => {
+            const nodeId = nodeIdFromEvent(event);
+            const nextHover = pinnedId ? null : nodeId;
+            setHoverId((value) => (value === nextHover ? value : nextHover));
+          }}
+          onBlur={() => {
+            setHoverId((value) => (value === null ? value : null));
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            const nodeId = nodeIdFromEvent(event);
+            if (!nodeId) return;
+            event.preventDefault();
+            setPinnedId((current) => (current === nodeId ? null : nodeId));
           }}
         >
           {scene.bands.map((band) => (
@@ -384,131 +554,36 @@ export const GraphView = memo(function GraphView({
             </marker>
           </defs>
 
-          {scene.links.map((link, index) => {
-            const inCone = cone ? cone.links.has(index) : false;
-            const dim = cone ? !inCone : false;
-            const hot = hotEdge === index;
-            return (
-              <g key={`${link.from}→${link.to}`}>
-                <path
-                  className={[
-                    'gedge',
-                    link.isFlowEdge ? 'flowedge' : '',
-                    inCone ? 'cone' : '',
-                    dim ? 'dim' : '',
-                    hot ? 'hot' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                  d={link.d}
-                  markerEnd="url(#arrow)"
-                >
-                  <title>
-                    {`${scene.nodeById.get(link.from)?.label ?? link.from}  →  ${
-                      scene.nodeById.get(link.to)?.label ?? link.to
-                    }\n${link.label}`}
-                  </title>
-                </path>
-                {/* Invisible fat twin so the thin edge is easy to hover. */}
-                <path
-                  className="gedge-hit"
-                  d={link.d}
-                  onMouseEnter={() => setHotEdge(index)}
-                  onMouseLeave={() =>
-                    setHotEdge((value) => (value === index ? null : value))
-                  }
-                />
-                {hot && (
-                  <text
-                    className="gedge-label"
-                    x={link.labelX}
-                    y={link.labelY}
-                    textAnchor="middle"
-                  >
-                    {truncate(link.label, 48)}
-                  </text>
-                )}
-              </g>
-            );
-          })}
+          {scene.links.map((link, index) => (
+            <GraphEdgeItem
+              key={`${link.from}→${link.to}`}
+              link={link}
+              index={index}
+              tooltip={`${scene.nodeById.get(link.from)?.label ?? link.from}  →  ${
+                scene.nodeById.get(link.to)?.label ?? link.to
+              }\n${link.label}`}
+              coneState={
+                cone ? (cone.links.has(index) ? 'cone' : 'dim') : 'none'
+              }
+              isHot={hotEdge === index}
+            />
+          ))}
 
-          {scene.nodes.map((node) => {
-            const inCone = cone ? cone.nodes.has(node.id) : false;
-            const dim = cone ? !inCone : false;
-            const hot =
-              hotEdge !== null &&
-              (scene.links[hotEdge]?.from === node.id ||
-                scene.links[hotEdge]?.to === node.id);
-            const classes = [
-              'gnode',
-              node.kind,
-              node.focus ? 'focus' : '',
-              node.unused ? 'unused' : '',
-              inCone ? 'cone' : '',
-              dim ? 'dim' : '',
-              pinnedId === node.id ? 'pinned' : '',
-              hot ? 'hot' : '',
-            ]
-              .filter(Boolean)
-              .join(' ');
-            return (
-              <g
-                key={node.id}
-                className={classes}
-                transform={`translate(${node.x} ${node.y})`}
-                {...SVG_BUTTON_PROPS}
-                aria-label={`${KIND_NAMES[node.kind]}: ${node.label}${
-                  node.sub ? ` — ${node.sub}` : ''
-                }`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  if (dragRef.current.moved) {
-                    dragRef.current.moved = false;
-                    return;
-                  }
-                  setPinnedId((current) =>
-                    current === node.id ? null : node.id,
-                  );
-                }}
-                onDoubleClick={(event) => {
-                  event.stopPropagation();
-                  openNode(node);
-                }}
-                onMouseEnter={() => {
-                  if (!pinnedId) setHoverId(node.id);
-                }}
-                onMouseLeave={() => {
-                  setHoverId((value) => (value === node.id ? null : value));
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    setPinnedId((current) =>
-                      current === node.id ? null : node.id,
-                    );
-                  }
-                }}
-              >
-                <rect width={NODE_W} height={node.h} rx={node.small ? 7 : 9} />
-                <text x={11} y={node.small ? 21 : 20}>
-                  {truncate(node.label, 40)}
-                </text>
-                {!node.small && (
-                  <text className="sub" x={11} y={37}>
-                    {truncate(
-                      (node.unused ? 'UNUSED · ' : '') + (node.sub || ''),
-                      48,
-                    )}
-                  </text>
-                )}
-                <title>
-                  {node.label +
-                    (node.sub ? `\n${node.sub}` : '') +
-                    (node.unused ? '\n(unused)' : '')}
-                </title>
-              </g>
-            );
-          })}
+          {scene.nodes.map((node) => (
+            <GraphNodeItem
+              key={node.id}
+              node={node}
+              coneState={
+                cone ? (cone.nodes.has(node.id) ? 'cone' : 'dim') : 'none'
+              }
+              isPinned={pinnedId === node.id}
+              isHot={
+                hotEdge !== null &&
+                (scene.links[hotEdge]?.from === node.id ||
+                  scene.links[hotEdge]?.to === node.id)
+              }
+            />
+          ))}
         </svg>
       </div>
     </div>
