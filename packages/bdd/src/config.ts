@@ -21,13 +21,6 @@ function configError(message: string): Error {
 
 function validateUiTarget(target: Record<string, unknown>): void {
   const type = target.type as UiTarget['type'];
-  if (!UI_TARGET_TYPES.includes(type)) {
-    throw configError(
-      `uiAgent.type '${String(type)}' is unknown — valid types: ${UI_TARGET_TYPES.join(
-        ', ',
-      )} (or pass a factory function)`,
-    );
-  }
 
   if (
     target.scope !== undefined &&
@@ -57,9 +50,15 @@ function validateUiTarget(target: Record<string, unknown>): void {
     case 'computer':
       // Everything is optional: deviceId/launch/displayId default sensibly.
       break;
+    // One guard for unknown types: the `never` binding keeps the switch
+    // exhaustive at compile time, the throw handles unvalidated JS configs.
     default: {
       const unreachable: never = type;
-      throw configError(`unhandled uiAgent.type ${String(unreachable)}`);
+      throw configError(
+        `uiAgent.type '${String(unreachable)}' is unknown — valid types: ${UI_TARGET_TYPES.join(
+          ', ',
+        )} (or pass a factory function)`,
+      );
     }
   }
 }

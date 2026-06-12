@@ -11,6 +11,7 @@
  * defaults to true.
  */
 import path from 'node:path';
+import { getDebug } from '@midscene/shared/logger';
 import {
   type AndroidUiTarget,
   type ComputerUiTarget,
@@ -19,6 +20,7 @@ import {
   type IOSUiTarget,
   type InterfaceUiTarget,
   type ResolvedBddConfig,
+  UI_TARGET_TYPES,
   type UiAgent,
   type UiAgentOptions,
   type WebUiTarget,
@@ -87,7 +89,9 @@ export async function createUiAgent(
     default: {
       const unreachable: never = uiAgent;
       throw new Error(
-        `${ERROR_PREFIX} unhandled uiAgent.type ${JSON.stringify(unreachable)}`,
+        `${ERROR_PREFIX} unhandled uiAgent.type '${String(
+          (unreachable as { type?: unknown }).type,
+        )}' — valid types: ${UI_TARGET_TYPES.join(', ')}`,
       );
     }
   }
@@ -95,20 +99,32 @@ export async function createUiAgent(
 
 /**
  * Lazy platform import with a pointed error when the optional peer
- * dependency `@midscene/<targetType>` is not installed.
+ * dependency `@midscene/<targetType>` is not installed. Only genuine
+ * resolution failures OF THAT PACKAGE get the install hint — an installed
+ * package that fails to load (broken transitive dep, native build failure)
+ * rethrows untouched so the real error stays the headline.
  */
-async function importPlatformPackage<T>(
+export async function importPlatformPackage<T>(
   targetType: string,
   importer: () => Promise<T>,
 ): Promise<T> {
+  const packageName = `@midscene/${targetType}`;
   try {
     return await importer();
   } catch (error) {
-    const packageName = `@midscene/${targetType}`;
+    const code = (error as NodeJS.ErrnoException).code;
+    // The QUOTED name is what Node puts around the unresolvable specifier
+    // ("Cannot find package '@midscene/x' …"); a transitive dep's failure
+    // only mentions our package unquoted inside the "imported from" path.
+    const notFound =
+      (code === 'ERR_MODULE_NOT_FOUND' || code === 'MODULE_NOT_FOUND') &&
+      error instanceof Error &&
+      error.message.includes(`'${packageName}'`);
+    if (!notFound) {
+      throw error;
+    }
     throw new Error(
-      `${ERROR_PREFIX} uiAgent type '${targetType}' requires the optional peer dependency '${packageName}' — install it (e.g. \`pnpm add -D ${packageName}\`). Original error: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
+      `${ERROR_PREFIX} uiAgent type '${targetType}' requires the optional peer dependency '${packageName}' — install it (e.g. \`pnpm add -D ${packageName}\`).`,
       { cause: error },
     );
   }
@@ -250,6 +266,9 @@ async function createInterfaceUiAgent(
     path.isAbsolute(target.module)
       ? path.resolve(baseDir, target.module)
       : target.module;
+  getDebug('bdd:ui-agent')(
+    `interface module '${target.module}' resolved to '${specifier}'`,
+  );
 
   let importedModule: Record<string, unknown>;
   try {
@@ -274,6 +293,9 @@ async function createInterfaceUiAgent(
     );
   }
 
+  // Lazy not because core is optional (it's a hard dep) but to keep the
+  // unit-test mock surface small and module load cheap for non-interface
+  // targets.
   const { createAgent } = await import('@midscene/core/agent');
   const device = new (
     DeviceClass as new (

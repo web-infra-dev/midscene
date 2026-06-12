@@ -212,7 +212,7 @@ interface BddConfig {
 }
 ```
 
-`uiAgent` is a flat union discriminated on `type` — field names match the corresponding [yaml automation](https://midscenejs.com/automate-with-scripts-in-yaml) env blocks, so configs translate 1:1:
+`uiAgent` is a flat union discriminated on `type` — field names match the corresponding [yaml automation](https://midscenejs.com/automate-with-scripts-in-yaml) env vocabulary (each row below lists exactly what its target supports; the web target covers the launcher basics, not yaml's serve/bridge modes):
 
 | `type` | Fields | Notes |
 | --- | --- | --- |
@@ -226,7 +226,9 @@ interface BddConfig {
 Every target also accepts `scope?: 'scenario' | 'worker'`:
 
 - `'scenario'` (default) — a fresh agent per scenario: full isolation, one Midscene report per scenario. Cheap for browsers.
-- `'worker'` — one agent per cucumber worker, reused across scenarios and destroyed when the worker finishes. Use this for device targets where reconnecting per scenario is expensive. Note the report semantics differ: scenarios share one rolling Midscene report (the same path is attached to each scenario) instead of one report per scenario. Factory configs are always scenario-scoped.
+- `'worker'` — one agent per cucumber worker, reused across scenarios and destroyed when the worker finishes. Use this for device targets where reconnecting per scenario is expensive. Note the report semantics differ: scenarios share one rolling Midscene report (the same path is attached to each scenario) instead of one report per scenario. If creation fails, the slot clears and the next scenario retries. Factory configs are always scenario-scoped.
+
+`uiAgentOptions.cache: true` uses one shared cache id (`'default'`) for the whole suite — unlike the yaml runner, which derives a per-file cache id. Set `cache: { id: '...' }` if you want finer granularity.
 
 The android/ios/harmony/computer platform packages are **optional peer dependencies** — install the one your target needs, e.g.:
 

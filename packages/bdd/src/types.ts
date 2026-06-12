@@ -86,7 +86,10 @@ export interface WebUiTarget extends UiTargetCommon {
 /** Field vocabulary mirrors the yaml `android:` env (deviceId, launch, ...). */
 export interface AndroidUiTarget
   extends UiTargetCommon,
-    Omit<AndroidDeviceOpt, 'customActions'> {
+    // customActions is callback-typed (not config material); the resize
+    // scale is deprecated-and-ignored in core — a new API has no reason to
+    // accept either.
+    Omit<AndroidDeviceOpt, 'customActions' | 'screenshotResizeScale'> {
   type: 'android';
   /** ADB device id; defaults to the first connected device. */
   deviceId?: string;
@@ -106,12 +109,14 @@ export interface IOSUiTarget
 /** Field vocabulary mirrors the yaml `harmony:` env (deviceId, launch, ...). */
 export interface HarmonyUiTarget
   extends UiTargetCommon,
-    Omit<HarmonyDeviceOpt, 'customActions'> {
+    Omit<HarmonyDeviceOpt, 'customActions' | 'screenshotResizeScale'> {
   type: 'harmony';
   /** HDC device id; defaults to the first connected device. */
   deviceId?: string;
   /** App package to launch after connecting (optional). */
   launch?: string;
+  /** App-name → bundle-name mapping for launch, as in the yaml env. */
+  appNameMapping?: Record<string, string>;
 }
 
 /** Field vocabulary mirrors the yaml `computer:` env. */
@@ -144,6 +149,16 @@ export const UI_TARGET_TYPES = [
   'interface',
 ] as const satisfies readonly UiTarget['type'][];
 
+// Completeness tripwire: `satisfies` above rejects typos but not omissions —
+// this fails to compile until a new union member is added to the array.
+type MissingTargetTypes = Exclude<
+  UiTarget['type'],
+  (typeof UI_TARGET_TYPES)[number]
+>;
+const _allTargetTypesListed: MissingTargetTypes extends never ? true : never =
+  true;
+void _allTargetTypesListed;
+
 /**
  * Declarative UI target — one flat object per platform, discriminated on
  * `type`. android/ios/harmony/computer need their optional peer package
@@ -160,9 +175,10 @@ export type UiTarget =
 /**
  * Agent construction options shared by every target type — mirrors the yaml
  * `agent:` block (generateReport, reportFileName, groupName, cache, ...).
- * `generateReport` defaults to true.
+ * `generateReport` defaults to true. (`testId` is a deprecated yaml alias a
+ * new API has no reason to accept.)
  */
-export type UiAgentOptions = MidsceneYamlScriptAgentOpt;
+export type UiAgentOptions = Omit<MidsceneYamlScriptAgentOpt, 'testId'>;
 
 export type UiAgentFactory = () => Promise<{
   agent: UiAgent;

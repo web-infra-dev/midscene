@@ -339,8 +339,9 @@ describe("uiAgent scope: 'worker'", () => {
     mockedCreateUiAgent.mockResolvedValue({ agent, cleanup });
 
     await makeWorld().getUiAgent();
-    const { reportFile, errors } = await destroyWorkerUiAgent();
-    expect(reportFile).toBe('/tmp/midscene-report.html');
+    // Report attachment happens per scenario (destroyAgents); AfterAll only
+    // tears down, so errors is the entire contract here.
+    const { errors } = await destroyWorkerUiAgent();
     expect(errors).toEqual([]);
     expect(cleanup).toHaveBeenCalledTimes(1);
 

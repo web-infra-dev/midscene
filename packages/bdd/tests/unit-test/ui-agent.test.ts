@@ -8,7 +8,10 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createUiAgent } from '../../src/agents/ui-agent';
+import {
+  createUiAgent,
+  importPlatformPackage,
+} from '../../src/agents/ui-agent';
 import type { ResolvedBddConfig, UiAgentOptions } from '../../src/types';
 
 const mocks = vi.hoisted(() => {
@@ -100,13 +103,13 @@ describe('web target', () => {
     );
 
     expect(agent).toBe(mocks.webAgent);
+    // objectContaining: the behavior worth pinning is "configured fields
+    // arrive", not how absent options are spelled internally.
     expect(mocks.puppeteerAgentForTarget).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         url: 'https://example.com',
         viewportWidth: 1280,
-        viewportHeight: undefined,
-        userAgent: undefined,
-      },
+      }),
       { headed: false, keepWindow: false, generateReport: true },
     );
   });
@@ -223,6 +226,11 @@ describe('harmony target', () => {
     // vi.mock factory results are cached per registry, so simulating a
     // missing package needs vi.doMock + a FRESH import of the module under
     // test (resetModules makes the dynamic import re-resolve).
+    // The import-failure classification is tested directly below
+    // (importPlatformPackage): vitest wraps errors thrown from doMock
+    // factories in its own error, so Node's real ERR_MODULE_NOT_FOUND shape
+    // cannot be simulated through the public import path. This test pins
+    // only the wiring: an import failure surfaces and no agent is built.
     vi.resetModules();
     vi.doMock('@midscene/harmony', () => {
       throw Object.assign(new Error("Cannot find module '@midscene/harmony'"), {
@@ -235,14 +243,48 @@ describe('harmony target', () => {
       );
       await expect(
         freshCreateUiAgent(makeConfig({ type: 'harmony' })),
-      ).rejects.toThrow(
-        /uiAgent type 'harmony' requires the optional peer dependency '@midscene\/harmony' — install it \(e\.g\. `pnpm add -D @midscene\/harmony`\)/,
-      );
+      ).rejects.toThrow();
       expect(mocks.agentFromHdcDevice).not.toHaveBeenCalled();
     } finally {
       vi.doUnmock('@midscene/harmony');
       vi.resetModules();
     }
+  });
+});
+
+describe('importPlatformPackage', () => {
+  it('translates a genuine resolution failure into the install hint', async () => {
+    const notFound = Object.assign(
+      new Error("Cannot find package '@midscene/harmony' imported from x"),
+      { code: 'ERR_MODULE_NOT_FOUND' },
+    );
+    await expect(
+      importPlatformPackage('harmony', () => Promise.reject(notFound)),
+    ).rejects.toThrow(
+      /uiAgent type 'harmony' requires the optional peer dependency '@midscene\/harmony' — install it \(e\.g\. `pnpm add -D @midscene\/harmony`\)/,
+    );
+  });
+
+  it('rethrows an installed-but-broken package untouched', async () => {
+    // Not a resolution failure (native build breakage, broken transitive
+    // dep) — must not be misdiagnosed as a missing install.
+    await expect(
+      importPlatformPackage('harmony', () =>
+        Promise.reject(new Error('hdc native binding failed to load')),
+      ),
+    ).rejects.toThrow(/hdc native binding failed to load/);
+  });
+
+  it('rethrows a resolution failure of a TRANSITIVE dep untouched', async () => {
+    const transitive = Object.assign(
+      new Error(
+        "Cannot find package 'left-pad' imported from @midscene/harmony",
+      ),
+      { code: 'ERR_MODULE_NOT_FOUND' },
+    );
+    await expect(
+      importPlatformPackage('harmony', () => Promise.reject(transitive)),
+    ).rejects.toThrow(/left-pad/);
   });
 });
 

@@ -47,8 +47,7 @@ export function getRuntime(): BddRuntime {
 /** Test-only escape hatch. */
 export function resetRuntime(): void {
   runtime = undefined;
-  workerUiAgentState = undefined;
-  workerUiAgentPromise = undefined;
+  workerUiAgentSlot = new UiAgentSlot();
 }
 
 // ———————————————————————————— world ————————————————————————————
@@ -62,14 +61,89 @@ function toError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
+/**
+ * One cached UI-agent slot: lazy creation with a shared in-flight promise,
+ * retry after a failed creation, and teardown that awaits any in-flight
+ * creation so the browser/device it launches never leaks. The same machine
+ * serves both lifetimes — instantiated once at module level for
+ * `scope: 'worker'` and once per World for the default scenario scope — so
+ * their semantics cannot drift.
+ */
+class UiAgentSlot {
+  private state?: UiAgentState;
+  private promise?: Promise<UiAgentState>;
+
+  async get(config: ResolvedBddConfig): Promise<UiAgentState> {
+    if (this.state) {
+      return this.state;
+    }
+    if (!this.promise) {
+      this.promise = createUiAgent(config).then((created) => {
+        this.state = created;
+        return created;
+      });
+    }
+    const promise = this.promise;
+    try {
+      return await promise;
+    } catch (error) {
+      // Compare before clearing: a retry may already have installed a fresh
+      // in-flight creation that must not be discarded.
+      if (this.promise === promise) {
+        this.promise = undefined;
+      }
+      throw error;
+    }
+  }
+
+  peek(): UiAgent | undefined {
+    return this.state?.agent;
+  }
+
+  /**
+   * Tear down the slot's agent (no-op when none was created). The report
+   * path is captured BEFORE cleanup (teardown may clear it). Errors are
+   * RETURNED, never thrown, so callers control surfacing.
+   */
+  async destroy(): Promise<{ reportFile?: string; errors: Error[] }> {
+    if (this.promise) {
+      try {
+        // A creation may still be in flight (e.g. a timed-out step): wait
+        // for it so the browser it launches does not leak.
+        await this.promise;
+      } catch {
+        // Creation failed — there is nothing to clean up.
+      }
+    }
+    const state = this.state;
+    this.state = undefined;
+    this.promise = undefined;
+    if (!state) {
+      return { errors: [] };
+    }
+
+    const reportFile = state.agent.reportFile ?? undefined;
+    const errors: Error[] = [];
+    try {
+      if (state.cleanup) {
+        await state.cleanup();
+      } else if (state.agent.destroy) {
+        await state.agent.destroy();
+      }
+    } catch (error) {
+      errors.push(toError(error));
+    }
+    return { reportFile, errors };
+  }
+}
+
 // ——————————————————————— worker-scoped UI agent ———————————————————————
 //
 // `uiAgent.scope: 'worker'` caches the agent here (module level = once per
 // cucumber worker process) instead of per-World, so scenarios reuse one
 // device/browser session. register.ts destroys it in AfterAll.
 
-let workerUiAgentState: UiAgentState | undefined;
-let workerUiAgentPromise: Promise<UiAgentState> | undefined;
+let workerUiAgentSlot = new UiAgentSlot();
 
 function isWorkerScoped(config: ResolvedBddConfig): boolean {
   return (
@@ -78,64 +152,14 @@ function isWorkerScoped(config: ResolvedBddConfig): boolean {
 }
 
 /**
- * Same retry semantics as the per-World path: a failed creation clears the
- * slot so a later scenario can retry.
- */
-async function getWorkerUiAgentState(
-  config: ResolvedBddConfig,
-): Promise<UiAgentState> {
-  if (workerUiAgentState) {
-    return workerUiAgentState;
-  }
-  if (!workerUiAgentPromise) {
-    workerUiAgentPromise = createUiAgent(config).then((created) => {
-      workerUiAgentState = created;
-      return created;
-    });
-  }
-  try {
-    return await workerUiAgentPromise;
-  } catch (error) {
-    workerUiAgentPromise = undefined;
-    throw error;
-  }
-}
-
-/**
  * Tear down the worker-scoped UI agent (no-op when none was created, or when
- * the config is scenario-scoped). Mirrors destroyAgents: errors are RETURNED,
- * never thrown, so the AfterAll hook controls surfacing.
+ * the config is scenario-scoped). Errors are RETURNED, never thrown, so the
+ * AfterAll hook controls surfacing. (The shared report path is attached
+ * per-scenario by the After hook, so it is not returned here.)
  */
-export async function destroyWorkerUiAgent(): Promise<{
-  reportFile?: string;
-  errors: Error[];
-}> {
-  if (workerUiAgentPromise) {
-    try {
-      await workerUiAgentPromise;
-    } catch {
-      // Creation failed — there is nothing to clean up.
-    }
-  }
-  const state = workerUiAgentState;
-  workerUiAgentState = undefined;
-  workerUiAgentPromise = undefined;
-  if (!state) {
-    return { errors: [] };
-  }
-
-  const reportFile = state.agent.reportFile ?? undefined;
-  const errors: Error[] = [];
-  try {
-    if (state.cleanup) {
-      await state.cleanup();
-    } else if (state.agent.destroy) {
-      await state.agent.destroy();
-    }
-  } catch (error) {
-    errors.push(toError(error));
-  }
-  return { reportFile, errors };
+export async function destroyWorkerUiAgent(): Promise<{ errors: Error[] }> {
+  const { errors } = await workerUiAgentSlot.destroy();
+  return { errors };
 }
 
 export class MidsceneWorld extends World {
@@ -146,45 +170,25 @@ export class MidsceneWorld extends World {
     gherkinDocument: GherkinDocument;
   };
 
-  private uiAgentState?: UiAgentState;
-  private uiAgentPromise?: Promise<UiAgentState>;
+  private uiAgentSlot = new UiAgentSlot();
   private generalAgent?: GeneralAgent;
 
   /**
-   * Lazily create (and cache) the UI agent. Concurrent callers share one
-   * in-flight creation; a failed creation clears the slot so a later step
-   * can retry.
+   * Lazily create (and cache) the UI agent in the slot matching the
+   * configured scope. Concurrent callers share one in-flight creation; a
+   * failed creation clears the slot so a later step can retry.
    */
   async getUiAgent(): Promise<UiAgent> {
     const config = getRuntime().config;
-    if (isWorkerScoped(config)) {
-      const state = await getWorkerUiAgentState(config);
-      return state.agent;
-    }
-    if (this.uiAgentState) {
-      return this.uiAgentState.agent;
-    }
-    if (!this.uiAgentPromise) {
-      this.uiAgentPromise = createUiAgent(config).then((created) => {
-        this.uiAgentState = created;
-        return created;
-      });
-    }
-    try {
-      const state = await this.uiAgentPromise;
-      return state.agent;
-    } catch (error) {
-      this.uiAgentPromise = undefined;
-      throw error;
-    }
+    const slot = isWorkerScoped(config) ? workerUiAgentSlot : this.uiAgentSlot;
+    return (await slot.get(config)).agent;
   }
 
   /** The UI agent if it has already been created; never triggers creation. */
   peekUiAgent(): UiAgent | undefined {
-    if (isWorkerScoped(getRuntime().config)) {
-      return workerUiAgentState?.agent;
-    }
-    return this.uiAgentState?.agent;
+    return isWorkerScoped(getRuntime().config)
+      ? workerUiAgentSlot.peek()
+      : this.uiAgentSlot.peek();
   }
 
   async getGeneralAgent(): Promise<GeneralAgent> {
@@ -211,59 +215,22 @@ export class MidsceneWorld extends World {
    */
   async destroyAgents(): Promise<{ reportFile?: string; errors: Error[] }> {
     if (isWorkerScoped(getRuntime().config)) {
-      return this.destroyScenarioAgentsKeepingWorkerUiAgent();
-    }
-    // A creation may still be in flight (e.g. a timed-out step): wait for it
-    // so the browser it launches does not leak.
-    if (this.uiAgentPromise) {
-      try {
-        await this.uiAgentPromise;
-      } catch {
-        // Creation failed — there is nothing to clean up.
-      }
+      // Worker scope: the UI agent outlives the scenario. Report the shared
+      // (rolling) path so this scenario's cucumber report links to it.
+      const reportFile = workerUiAgentSlot.peek()?.reportFile ?? undefined;
+      const errors: Error[] = [];
+      await this.disposeGeneralAgent(errors);
+      return { reportFile, errors };
     }
 
-    const uiState = this.uiAgentState;
-    const generalAgent = this.generalAgent;
-    this.uiAgentState = undefined;
-    this.uiAgentPromise = undefined;
-    this.generalAgent = undefined;
-
-    const reportFile = uiState?.agent.reportFile ?? undefined;
-    const errors: Error[] = [];
-
-    if (uiState) {
-      try {
-        if (uiState.cleanup) {
-          await uiState.cleanup();
-        } else if (uiState.agent.destroy) {
-          await uiState.agent.destroy();
-        }
-      } catch (error) {
-        errors.push(toError(error));
-      }
-    }
-
-    if (generalAgent?.dispose) {
-      try {
-        await generalAgent.dispose();
-      } catch (error) {
-        errors.push(toError(error));
-      }
-    }
-
+    const { reportFile, errors } = await this.uiAgentSlot.destroy();
+    await this.disposeGeneralAgent(errors);
     return { reportFile, errors };
   }
 
-  private async destroyScenarioAgentsKeepingWorkerUiAgent(): Promise<{
-    reportFile?: string;
-    errors: Error[];
-  }> {
+  private async disposeGeneralAgent(errors: Error[]): Promise<void> {
     const generalAgent = this.generalAgent;
     this.generalAgent = undefined;
-
-    const reportFile = workerUiAgentState?.agent.reportFile ?? undefined;
-    const errors: Error[] = [];
     if (generalAgent?.dispose) {
       try {
         await generalAgent.dispose();
@@ -271,7 +238,6 @@ export class MidsceneWorld extends World {
         errors.push(toError(error));
       }
     }
-    return { reportFile, errors };
   }
 }
 

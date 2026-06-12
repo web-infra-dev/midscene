@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { defineBddConfig, loadBddConfig } from '../../src/config';
+import type { BddConfig, UiTarget } from '../../src/types';
 
 const tmpDirs: string[] = [];
 const originalEnvConfig = process.env.MIDSCENE_BDD_CONFIG;
@@ -148,12 +149,15 @@ describe('loadBddConfig', () => {
       module: './my-device.ts',
     });
 
-    for (const target of [
+    // Typed as UiTarget[] so the compiler keeps these fixtures valid as the
+    // union evolves.
+    const targets: UiTarget[] = [
       { type: 'ios', launch: 'com.example.app' },
       { type: 'harmony', deviceId: 'dev-1' },
       { type: 'computer', displayId: '1' },
-    ]) {
-      expect(() => defineBddConfig({ uiAgent: target } as never)).not.toThrow();
+    ];
+    for (const target of targets) {
+      expect(() => defineBddConfig({ uiAgent: target })).not.toThrow();
     }
   });
 
@@ -167,16 +171,17 @@ describe('loadBddConfig', () => {
   });
 
   it('validates uiAgent.scope', () => {
+    // Ill-typed on purpose: exercises runtime validation of JS configs.
     expect(() =>
       defineBddConfig({
         uiAgent: { type: 'android', scope: 'global' },
-      } as never),
+      } as unknown as BddConfig),
     ).toThrow(/uiAgent\.scope must be 'scenario' or 'worker', got 'global'/);
 
     expect(() =>
       defineBddConfig({
         uiAgent: { type: 'android', scope: 'worker' },
-      } as never),
+      }),
     ).not.toThrow();
   });
 
