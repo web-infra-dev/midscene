@@ -107,6 +107,33 @@ describe('ui-tars model adapter', () => {
     });
   });
 
+  it('parses valid UI-TARS json without repair context', () => {
+    const parser = uiTarsAdapter.jsonParser;
+
+    expect(parser('{" action ": " click ", "count": 1}')).toEqual({
+      action: 'click',
+      count: 1,
+    });
+  });
+
+  it('does not repair malformed json for generic parser sources', () => {
+    const parser = uiTarsAdapter.jsonParser;
+
+    expect(() => parser('{"a": truely}')).toThrow(
+      /failed to parse LLM response into JSON/,
+    );
+  });
+
+  it('wraps failed UI-TARS json repair errors with the raw response', () => {
+    const parser = uiTarsAdapter.jsonParser;
+
+    expect(() =>
+      parser('```json\n{"bbox": truely}\n```', {
+        source: 'locate',
+      }),
+    ).toThrow(/Response - \n ```json/);
+  });
+
   it('normalizes UI-TARS json while preserving configured string values', () => {
     const parser = uiTarsAdapter.jsonParser;
 
@@ -143,6 +170,17 @@ describe('ui-tars model adapter', () => {
     ).toEqual([123, 200, 788, 444]);
   });
 
+  it('normalizes UI-TARS bbox arrays with numeric strings', () => {
+    const locateResultAdapter = getUiTarsLocateResultAdapter();
+
+    expect(
+      locateResultAdapter.adaptElementLocateResultToPixelBbox(
+        ['100', '200', '300', '400'],
+        { preparedSize: { width: 1000, height: 2000 } },
+      ),
+    ).toEqual([100, 400, 300, 800]);
+  });
+
   it('normalizes UI-TARS point fallbacks from malformed bbox lists', () => {
     const locateResultAdapter = getUiTarsLocateResultAdapter();
 
@@ -173,5 +211,15 @@ describe('ui-tars model adapter', () => {
         preparedSize: { width: 1000, height: 2000 },
       }),
     ).toThrow(/invalid bbox data/);
+  });
+
+  it('throws on invalid UI-TARS bbox string data', () => {
+    const locateResultAdapter = getUiTarsLocateResultAdapter();
+
+    expect(() =>
+      locateResultAdapter.adaptElementLocateResultToPixelBbox('100 200 300', {
+        preparedSize: { width: 1000, height: 2000 },
+      }),
+    ).toThrow(/invalid bbox data string/);
   });
 });

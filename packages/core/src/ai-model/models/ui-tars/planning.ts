@@ -11,16 +11,13 @@ import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
 import { assert } from '@midscene/shared/utils';
 import { actionParser } from '@ui-tars/action-parser';
 import {
-  getSummary,
-  getUiTarsPlanningPrompt,
-} from '../../prompt/ui-tars-planning';
-import {
   AIResponseParseError,
   callAIWithStringResponse,
 } from '../../service-caller/index';
 import { finalizePixelBbox } from '../../shared/model-locate-result/bbox';
 import { mapLocateResultToPixelBboxByCoordinates } from '../../shared/model-locate-result/pixel-bbox-mapper';
 import type { PlanOptions } from '../../workflows/planning/types';
+import { getSummary, getUiTarsPlanningPrompt } from './prompt';
 
 type ActionType =
   | 'click'

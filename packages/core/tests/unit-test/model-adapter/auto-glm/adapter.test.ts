@@ -5,6 +5,7 @@ import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
 import type { LocateOptions } from '@/ai-model/workflows/inspect/types';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
 import type { UIContext } from '@/types';
+import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/ai-model/service-caller/index', async (importOriginal) => {
@@ -36,7 +37,7 @@ const context: UIContext = {
   shrunkShotToLogicalRatio: 1,
 };
 
-function createPlanOptions(): PlanOptions {
+function createPlanOptions(overrides: Partial<PlanOptions> = {}): PlanOptions {
   return {
     context,
     actionSpace: [],
@@ -52,6 +53,7 @@ function createPlanOptions(): PlanOptions {
     } as any,
     conversationHistory: new ConversationHistory(),
     includeLocateInPlanning: true,
+    ...overrides,
   };
 }
 
@@ -211,6 +213,112 @@ describe('auto-glm model adapter', () => {
     ]);
     expect(result.shouldContinuePlanning).toBe(true);
     expect(result.usage).toEqual({ total_tokens: 12 });
+  });
+
+  it('passes Auto-GLM action context, reference images, and abort signal to the model call', async () => {
+    expect(autoGlmAdapter.planning.kind).toBe('custom');
+    if (autoGlmAdapter.planning.kind !== 'custom') {
+      throw new Error('Auto-GLM should use custom planning adapter');
+    }
+    const abortController = new AbortController();
+    const referenceImageMessages: ChatCompletionMessageParam[] = [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: { url: 'data:image/png;base64,REF==' },
+          },
+        ],
+      },
+    ];
+    const conversationHistory = new ConversationHistory();
+    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+      content:
+        '<think>Need to click submit</think><answer>do(action="Tap", element=[500,500])</answer>',
+      usage: { total_tokens: 12 } as any,
+      rawChoiceMessage: { role: 'assistant', content: 'raw choice' } as any,
+    });
+
+    const result = await autoGlmAdapter.planning.planFn(
+      'click submit',
+      createPlanOptions({
+        actionContext: 'prefer the primary submit button',
+        referenceImageMessages,
+        conversationHistory,
+        abortSignal: abortController.signal,
+      }),
+    );
+
+    const [messages, runtime, callOptions] = vi.mocked(callAIWithStringResponse)
+      .mock.calls[0];
+    expect(runtime).toMatchObject({
+      config: expect.objectContaining({ modelFamily: 'auto-glm' }),
+    });
+    expect(callOptions).toEqual({ abortSignal: abortController.signal });
+    expect(messages[0]).toMatchObject({
+      role: 'system',
+      content: expect.stringContaining(
+        '<high_priority_knowledge>prefer the primary submit button</high_priority_knowledge>',
+      ),
+    });
+    expect(messages[1]).toMatchObject({
+      role: 'user',
+      content: [{ type: 'text', text: 'click submit' }],
+    });
+    expect(messages).toContain(referenceImageMessages[0]);
+    expect(result.rawChoiceMessage).toEqual({
+      role: 'assistant',
+      content: 'raw choice',
+    });
+    expect(conversationHistory.snapshot()).toHaveLength(2);
+    expect(conversationHistory.snapshot()[1]).toMatchObject({
+      role: 'assistant',
+      content: expect.stringContaining('do(action="Tap", element=[500,500])'),
+    });
+  });
+
+  it('uses actionSpace names for Auto-GLM Back and Home planning actions', async () => {
+    expect(autoGlmAdapter.planning.kind).toBe('custom');
+    if (autoGlmAdapter.planning.kind !== 'custom') {
+      throw new Error('Auto-GLM should use custom planning adapter');
+    }
+    vi.mocked(callAIWithStringResponse)
+      .mockResolvedValueOnce({
+        content: 'Need to go back. do(action="Back")',
+      })
+      .mockResolvedValueOnce({
+        content: 'Return home. do(action="Home")',
+      });
+
+    const actionSpace = [
+      { name: 'HarmonyBackButton' },
+      { name: 'HarmonyHomeButton' },
+    ] as any;
+
+    const backResult = await autoGlmAdapter.planning.planFn(
+      'go back',
+      createPlanOptions({ actionSpace }),
+    );
+    const homeResult = await autoGlmAdapter.planning.planFn(
+      'go home',
+      createPlanOptions({ actionSpace }),
+    );
+
+    expect(backResult.actions).toMatchObject([
+      {
+        type: 'HarmonyBackButton',
+        param: {},
+        thought: 'Need to go back.',
+      },
+    ]);
+    expect(homeResult.actions).toMatchObject([
+      {
+        type: 'HarmonyHomeButton',
+        param: {},
+        thought: 'Return home.',
+      },
+    ]);
   });
 
   it('stops Auto-GLM custom planning on finish action', async () => {
