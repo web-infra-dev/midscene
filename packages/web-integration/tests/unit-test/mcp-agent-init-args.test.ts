@@ -82,6 +82,11 @@ function createPersistenceRoot(): {
   return { root, persistence };
 }
 
+type WebInitArgTestFactory = () => {
+  tools: WebMidsceneTools | WebPuppeteerMidsceneTools | WebCdpMidsceneTools;
+  cleanup?: () => void;
+};
+
 describe('web MCP agent init args', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -91,7 +96,7 @@ describe('web MCP agent init args', () => {
     mockPage.url.mockReturnValue('https://example.com/');
   });
 
-  it.each([
+  it.each<[string, WebInitArgTestFactory]>([
     [
       'bridge',
       () => ({
