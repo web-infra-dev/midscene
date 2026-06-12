@@ -59,6 +59,48 @@ jobs:
     - name: Build project
       run: pnpm run build
 
+    - name: Check CLI CJS bundle on minimum supported Node
+      run: |
+        node - <<'EOF'
+        const { readdirSync, readFileSync, statSync } = require('node:fs');
+        const { join } = require('node:path');
+
+        const root = 'packages/cli/dist/lib';
+        const files = [];
+        const collectJsFiles = (dir) => {
+          for (const entry of readdirSync(dir)) {
+            const file = join(dir, entry);
+            if (statSync(file).isDirectory()) {
+              collectJsFiles(file);
+            } else if (file.endsWith('.js')) {
+              files.push(file);
+            }
+          }
+        };
+        collectJsFiles(root);
+
+        const staticRequirePatterns = [
+          {
+            name: '@rstest/core',
+            pattern: /require\((['"])@rstest\/core(?:\/[^'"]*)?\1\)/,
+          },
+          {
+            name: '@rsbuild/core',
+            pattern: /require\((['"])@rsbuild\/core(?:\/[^'"]*)?\1\)/,
+          },
+        ];
+
+        for (const file of files) {
+          const content = readFileSync(file, 'utf8');
+          for (const { name, pattern } of staticRequirePatterns) {
+            if (pattern.test(content)) {
+              throw new Error(`${file} contains a static require("${name}")`);
+            }
+          }
+        }
+        EOF
+        npx -y node@20.19.0 packages/cli/dist/lib/index.js --version
+
     - name: Type check tests
       run: pnpm run type-check:tests
 

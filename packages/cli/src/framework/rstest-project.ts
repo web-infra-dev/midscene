@@ -10,6 +10,7 @@ import {
 } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import type { BatchRunnerConfig } from '../batch-runner';
+import { resolveRstestCoreImportPath } from './rstest-dependencies';
 import type { RunYamlCaseOptions } from './yaml-case';
 
 export type RstestYamlCaseOptions = Omit<
@@ -40,6 +41,7 @@ export interface CreateRstestYamlProjectOptions {
   bail?: number;
   retry?: number;
   batchConfig?: BatchRunnerConfig;
+  rstestCoreImport?: string;
 }
 
 export interface GeneratedYamlTestCase {
@@ -92,6 +94,7 @@ export const resolveTestName = (
 };
 
 const createGeneratedTestContent = (options: {
+  rstestCoreImport: string;
   frameworkImport: string;
   yamlFile: string;
   resultFile: string;
@@ -109,13 +112,17 @@ const createGeneratedTestContent = (options: {
       : {}),
   };
 
-  return `import { defineYamlCaseTest } from ${toImportLiteral(options.frameworkImport)};
+  return `import { test } from ${toImportLiteral(options.rstestCoreImport)};
+import { defineYamlCaseTest } from ${toImportLiteral(options.frameworkImport)};
 
-defineYamlCaseTest(${JSON.stringify(testOptions, null, 2)});
+const testOptions = ${JSON.stringify(testOptions, null, 2)};
+
+defineYamlCaseTest(test, testOptions);
 `;
 };
 
 const createGeneratedBatchTestContent = (options: {
+  rstestCoreImport: string;
   frameworkImport: string;
   testName: string;
   config: BatchRunnerConfig;
@@ -127,9 +134,12 @@ const createGeneratedBatchTestContent = (options: {
     resultFiles: options.resultFiles,
   };
 
-  return `import { defineYamlBatchTest } from ${toImportLiteral(options.frameworkImport)};
+  return `import { test } from ${toImportLiteral(options.rstestCoreImport)};
+import { defineYamlBatchTest } from ${toImportLiteral(options.frameworkImport)};
 
-defineYamlBatchTest(${JSON.stringify(testOptions, null, 2)});
+const testOptions = ${JSON.stringify(testOptions, null, 2)};
+
+defineYamlBatchTest(test, testOptions);
 `;
 };
 
@@ -176,6 +186,8 @@ export function createRstestYamlProject(
   const resultDir = options.resultDir || join(outputDir, 'results');
   const frameworkImport =
     options.frameworkImport || resolveDefaultFrameworkImport();
+  const rstestCoreImport =
+    options.rstestCoreImport || resolveRstestCoreImportPath();
   const testTimeout = options.testTimeout ?? DEFAULT_YAML_TEST_TIMEOUT;
 
   rmSync(outputDir, { recursive: true, force: true });
@@ -189,6 +201,7 @@ export function createRstestYamlProject(
     const resultFile = join(resultDir, `${fileStem}.json`);
     const testModule = toVirtualModuleId(fileStem);
     virtualModules[testModule] = createGeneratedTestContent({
+      rstestCoreImport,
       frameworkImport,
       yamlFile,
       resultFile,
@@ -214,6 +227,7 @@ export function createRstestYamlProject(
       include: [batchTest.testModule],
       virtualModules: {
         [batchTest.testModule]: createGeneratedBatchTestContent({
+          rstestCoreImport,
           frameworkImport,
           testName: batchTest.testName,
           config: options.batchConfig,

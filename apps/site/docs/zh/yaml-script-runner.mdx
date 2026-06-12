@@ -54,6 +54,8 @@ MIDSCENE_MODEL_FAMILY="替换为你的模型系列"
 
 ### 安装命令行工具
 
+安装 CLI 前，请确认运行 `midscene` 的终端使用 Node.js `20.19+`、`22.12+` 或 `24+`。CLI 的部分执行路径会使用 Rstest/Rspack 工具链，这些依赖会拒绝 `20.17.0` 这类较旧的 Node 20 patch 版本。如果看到 Rspack 抛出的 `Unsupported Node.js version` 提示，请升级 Node.js 后重新安装全局 CLI 或项目依赖。
+
 全局安装 `@midscene/cli` （推荐新手使用）：
 
 ```bash
