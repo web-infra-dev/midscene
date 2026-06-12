@@ -26,8 +26,8 @@ Every statement is routed to exactly one executor:
 | Rule | Marker | Who executes the statement |
 | --- | --- | --- |
 | **Default** | none | Midscene UI agent — the vision model drives the page (`aiAct`) for Given/When and judges Then steps (`aiAssert`, fail-closed) |
-| **Agent** | `# @agent` comment directly above the line, or a `$skill-name` token in it | A general-purpose coding agent (Codex app-server via `codex login`, or any OpenAI-compatible endpoint) — for behavior you cannot see in the browser: server logs, files, databases. Then steps must return a JSON verdict; a missing verdict fails (fail-closed) |
-| **No AI** | `# @no-ai` comment above the line (or `@no-ai` scenario/feature tag) | Classic BDD: a callback registered with `Given`/`When`/`Then`/`defineStep` from `@midscene/bdd` must match. An unimplemented step fails with a ready-to-paste snippet |
+| **Agent** | `# [agent]` comment directly above the line, or a `$skill-name` token in it | A general-purpose coding agent (Codex app-server via `codex login`, or any OpenAI-compatible endpoint) — for behavior you cannot see in the browser: server logs, files, databases. Then steps must return a JSON verdict; a missing verdict fails (fail-closed) |
+| **No AI** | `# [no-ai]` comment above the line (or `@no-ai` scenario/feature tag) | Classic BDD: a callback registered with `Given`/`When`/`Then`/`defineStep` from `@midscene/bdd` must match. An unimplemented step fails with a ready-to-paste snippet |
 
 All three in one scenario:
 
@@ -38,11 +38,13 @@ Feature: Failed login reporting
     Given I open the login page of the demo shop
     When I try to sign in as the "admin" user with a wrong password
     Then an error toast shows on the screen
-    # @agent
+    # [agent]
     Then the server log contains a failed-login warning, per $check-logs
-    # @no-ai
+    # [no-ai]
     Then the login attempt counter increments
 ```
+
+The comment markers use square brackets (`# [agent]`, not `# @agent`) so they cannot be mistaken for cucumber's `@`-prefixed tag syntax — tags live on the line above a `Feature:`/`Scenario:` header, markers live in a comment directly above a single step.
 
 The first three lines run through Midscene against the page. The fourth bails out to the coding agent, loading the `check-logs` skill into its prompt. The last requires a registered callback:
 
@@ -111,7 +113,7 @@ midscene.config.ts
 cucumber.js
 features/
   *.feature
-  step_definitions/   # classic callbacks for @no-ai steps (optional)
+  step_definitions/   # classic callbacks for [no-ai] steps (optional)
   skills/             # markdown skills for $tokens (optional)
 ```
 
@@ -229,11 +231,11 @@ Everything cucumber gives you keeps working — this package adds exactly three 
 | | Mechanism | Prior art / rationale |
 | --- | --- | --- |
 | **100% standard** | `Background`, `Scenario Outline` + `Examples`, `Rule`, tags, data tables, doc strings, hooks, formatters, parallel workers, tag expressions, `cucumber.js` profiles | Plain cucumber-js — this package is one catch-all step definition plus a config preset |
-| **Extension 1** | `# @agent` / `# @no-ai` / `# @soft` comment lines directly above a step | Gherkin has no step-level tags, so per-step routing lives in comment annotations (the established workaround in the Gherkin ecosystem) |
+| **Extension 1** | `# [agent]` / `# [no-ai]` / `# [soft]` comment lines directly above a step | Gherkin has no step-level tags, so per-step routing lives in comment annotations (the established workaround in the Gherkin ecosystem); square brackets keep markers visually distinct from cucumber tags |
 | **Extension 2** | `$skill-name` tokens in step text | Shell-style `$` references; a token both routes the statement to the general agent and loads the skill |
 | **Extension 3** | `@flow` / `@param:x` scenario tags | Karate's `call` model for reusable sub-scenarios, expressed through standard Gherkin tags; `<param>` substitution inside the flow body mirrors Scenario Outline placeholders |
 
-Data tables and doc strings on AI-routed steps are appended to the prompt verbatim. `@no-ai` and `@soft` may also be applied as ordinary scenario/feature tags (inherited per normal Gherkin semantics); `@agent` is deliberately per-line only.
+Data tables and doc strings on AI-routed steps are appended to the prompt verbatim. `@no-ai` and `@soft` may also be applied as ordinary scenario/feature tags (inherited per normal Gherkin semantics); agent routing is deliberately per-line only, so there is no `@agent` tag.
 
 Callback registration is the cucumber shape — `Given`/`When`/`Then` take `(pattern, fn)` where `pattern` is a cucumber expression string or a RegExp, and captures arrive as function arguments. Per cucumber convention the keyword is documentation only: matching ignores it, and `defineStep` is the keyword-agnostic alias. Two deliberate divergences from standard cucumber:
 
@@ -246,9 +248,9 @@ cucumber-js drives the run; `@midscene/bdd/register` contributes a single catch-
 
 ```mermaid
 flowchart TD
-    S[Statement] --> A{"# @no-ai?"}
+    S[Statement] --> A{"# [no-ai]?"}
     A -- yes --> CB[registered callback<br/>or fail with snippet]
-    A -- no --> B{"# @agent or $skill?"}
+    A -- no --> B{"# [agent] or $skill?"}
     B -- yes --> GA[general coding agent<br/>Then needs JSON verdict, fail-closed]
     B -- no --> C{matches a @flow?}
     C -- yes --> FL[execute flow steps<br/>&lt;param&gt; substituted, depth ≤ 2]
@@ -257,9 +259,9 @@ flowchart TD
     E -- Given / When --> ACT[aiAct]
 ```
 
-- **Soft checks:** `# @soft` above a Then step (or a `@soft` tag) downgrades an assertion failure to a logged warning attached to the report — the step never fails. There is no native cucumber "soft" status, so the scenario stays green by design.
+- **Soft checks:** `# [soft]` above a Then step (or a `@soft` tag) downgrades an assertion failure to a logged warning attached to the report — the step never fails. There is no native cucumber "soft" status, so the scenario stays green by design.
 - **Outlines:** a Scenario Outline's pickle steps point at the outline's step node, so an annotation comment above an outline step applies to every Examples row.
-- **Laziness:** the browser launches only when the first UI-routed step runs, and the general agent connects only on the first `@agent`/`$skill` step. The general agent receives the current page screenshot only if a UI session already exists — it never launches a browser.
+- **Laziness:** the browser launches only when the first UI-routed step runs, and the general agent connects only on the first `[agent]`/`$skill` step. The general agent receives the current page screenshot only if a UI session already exists — it never launches a browser.
 
 ## Status
 

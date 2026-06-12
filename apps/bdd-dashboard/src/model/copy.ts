@@ -4,8 +4,8 @@
  * the wording from drifting between the three.
  */
 
-export const AGENT_MARKER_HINT = 'marked with # @agent or a $skill token';
-export const NOAI_MARKER_HINT = 'marked with # @no-ai';
+export const AGENT_MARKER_HINT = 'marked with # [agent] or a $skill token';
+export const NOAI_MARKER_HINT = 'marked with # [no-ai]';
 
 export const AGENT_ROUTE_LABEL = 'general coding agent (e.g. Codex)';
 export const NOAI_ROUTE_LABEL =

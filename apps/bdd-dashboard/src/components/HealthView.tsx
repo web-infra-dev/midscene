@@ -40,12 +40,17 @@ const KIND_META: Record<HealthKind, KindMeta> = {
   'detached-annotation': {
     label: 'Detached annotation comments (ignored)',
     severity: 'warn',
-    desc: 'An annotation comment (# @agent, # @no-ai, …) is not directly above a step, so it silently has no effect.',
+    desc: 'An annotation comment (# [agent], # [no-ai], …) is not directly above a step, so it silently has no effect.',
+  },
+  'legacy-annotation': {
+    label: 'Legacy @-style markers (ignored)',
+    severity: 'warn',
+    desc: 'A comment uses the retired # @agent / # @no-ai / # @soft syntax, which no longer routes — write # [agent], # [no-ai], # [soft] instead.',
   },
   'tag-level-agent': {
     label: 'Tag-level @agent (ignored)',
     severity: 'warn',
-    desc: '@agent only works as a comment directly above a step — as a tag on a scenario it is ignored.',
+    desc: 'Agent routing only works as a # [agent] comment directly above a step — @agent as a tag on a scenario is ignored.',
   },
   'unused-flow': {
     label: 'Unused flows',

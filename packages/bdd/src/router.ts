@@ -1,8 +1,8 @@
 /**
  * Step router for @midscene/bdd.
  *
- * Routing model (design doc): Midscene UI agent by default; `# @agent` /
- * `$skill` bails a single statement out to the general agent; `# @no-ai`
+ * Routing model (design doc): Midscene UI agent by default; `# [agent]` /
+ * `$skill` bails a single statement out to the general agent; `# [no-ai]`
  * requires a classic user-registered callback. Exact precedence:
  *
  *   1. @no-ai callback

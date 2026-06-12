@@ -1,5 +1,5 @@
 /**
- * Classic-BDD escape hatch for `# @no-ai` steps.
+ * Classic-BDD escape hatch for `# [no-ai]` steps.
  *
  * Users register plain cucumber-style callbacks via `Given` / `When` / `Then`
  * / `defineStep`. Per cucumber convention the keyword is documentation only:
@@ -27,7 +27,7 @@ interface RegisteredStep {
  * The package ships dual-format (dist/lib CJS + dist/es ESM), and one process
  * routinely loads BOTH copies: cucumber imports the register entry as CJS
  * while an ESM user project imports `@midscene/bdd` as ESM. Module-level
- * state would give each copy its own registry and `# @no-ai` lookups would
+ * state would give each copy its own registry and `# [no-ai]` lookups would
  * never see the user's callbacks — so the registry is a process-wide
  * singleton stored on `globalThis`.
  */

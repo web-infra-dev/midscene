@@ -1,5 +1,5 @@
 /**
- * General coding agent for `# @agent` / `$skill` steps.
+ * General coding agent for `# [agent]` / `$skill` steps.
  *
  * Exports: `VERDICT_INSTRUCTIONS`, `buildGeneralPrompt`, `extractVerdict`,
  * `CallAiGeneralAgent`. Built on core's `callAI`, so any OpenAI-compatible
