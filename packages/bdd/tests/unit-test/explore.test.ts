@@ -466,23 +466,29 @@ Feature: Main
 });
 
 describe('renderDashboard', () => {
+  function withTemplatePathEnv<T>(value: string, run: () => T): T {
+    const previous = process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH;
+    process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH = value;
+    try {
+      return run();
+    } finally {
+      if (previous === undefined) {
+        Reflect.deleteProperty(
+          process.env,
+          'MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH',
+        );
+      } else {
+        process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH = previous;
+      }
+    }
+  }
+
   function withDashboardTemplate<T>(template: string, run: () => T): T {
     const dir = mkdtempSync(join(tmpdir(), 'midscene-bdd-template-'));
     tmpDirs.push(dir);
     const templatePath = join(dir, 'dashboard-template.html');
     writeFileSync(templatePath, template, 'utf-8');
-
-    const previous = process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH;
-    process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH = templatePath;
-    try {
-      return run();
-    } finally {
-      if (previous === undefined) {
-        process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH = undefined;
-      } else {
-        process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH = previous;
-      }
-    }
+    return withTemplatePathEnv(templatePath, run);
   }
 
   it('renders one self-contained HTML document with safely embedded data', async () => {
@@ -509,23 +515,25 @@ describe('renderDashboard', () => {
     expect(JSON.parse(json)).toEqual(model);
   });
 
-  it('throws a clear error when the template is missing', async () => {
+  it('throws a specific error when the override path does not exist', async () => {
     const model = await buildExploreModel(basicConfig());
-    const previous = process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH;
-    process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH = join(
-      tmpdir(),
-      'missing-dashboard-template.html',
-    );
-    try {
+    const missing = join(tmpdir(), 'missing-dashboard-template.html');
+    withTemplatePathEnv(missing, () => {
       expect(() => renderDashboard(model)).toThrow(
-        'Build it first: npx nx build bdd-dashboard',
+        'MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH points to a missing file',
       );
-    } finally {
-      if (previous === undefined) {
-        process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH = undefined;
-      } else {
-        process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH = previous;
-      }
-    }
+    });
+  });
+
+  it('rejects a template whose JSON script tag lost the placeholder', async () => {
+    const model = await buildExploreModel(basicConfig());
+    // Placeholder present only as a quoted string in the JS bundle — the
+    // anchored `>...</script>` form is what injection requires.
+    expect(() =>
+      withDashboardTemplate(
+        '<html><body><script>var p = "__EXPLORE_MODEL_PLACEHOLDER__";</script></body></html>',
+        () => renderDashboard(model),
+      ),
+    ).toThrow('placeholder inside its JSON script tag');
   });
 });
