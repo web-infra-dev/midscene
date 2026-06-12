@@ -114,8 +114,8 @@ export async function scanAssets(
   // silent by design at resolution time — surface them loudly once per scan.
   const warnFootgun = getDebug('bdd:annotations', { console: true });
   for (const { document } of parsed) {
-    for (const message of collectAnnotationFootguns(document)) {
-      warnFootgun(message);
+    for (const footgun of collectAnnotationFootguns(document)) {
+      warnFootgun(footgun.message);
     }
   }
 

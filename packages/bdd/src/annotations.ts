@@ -20,16 +20,25 @@ import { PickleStepType } from '@cucumber/messages';
 import { ERROR_PREFIX } from './types';
 import type { RouterContext, StepAnnotations, StepType } from './types';
 
+// One source for every grammar fragment: the marker names, the skill-token
+// name shape, and the line grammars all derive from these.
+const MARKER_NAMES = ['agent', 'no-ai', 'soft'] as const;
+const MARKER_NAMES_ALT = MARKER_NAMES.join('|');
 // Skill tokens must start with a letter: a leading digit would make money
 // amounts in step text ("the total is $42.50") hijack routing to the agent.
-const SKILL_TOKEN_RE = /\$([A-Za-z][A-Za-z0-9_-]*)/g;
-const SKILL_TOKEN = /\$[A-Za-z][A-Za-z0-9_-]*/.source;
-const MARKER = /\[(?:agent|no-ai|soft)\]/.source;
-const LEGACY_MARKER = /@(?:agent|no-ai|soft)/.source;
+// (Deliberately NOT types.ts IDENT_RE_SOURCE — skills allow hyphens and
+// forbid a leading underscore.)
+const SKILL_NAME = '[A-Za-z][A-Za-z0-9_-]*';
+const SKILL_TOKEN_RE = new RegExp(`\\$(${SKILL_NAME})`, 'g');
+const SKILL_TOKEN = `\\$${SKILL_NAME}`;
+const MARKER = `\\[(?:${MARKER_NAMES_ALT})\\]`;
+const LEGACY_MARKER = `@(?:${MARKER_NAMES_ALT})`;
 const markerOnlyLineRe = (marker: string) =>
   new RegExp(
     `^(?:${marker}|${SKILL_TOKEN})(?:\\s+(?:${marker}|${SKILL_TOKEN}))*$`,
   );
+const markerAtStartRe = (marker: string) =>
+  new RegExp(`^(?:${marker}|${SKILL_TOKEN})(?:\\s|$)`);
 /**
  * An annotation comment line must consist ONLY of markers/tokens after `#`
  * (e.g. `# [agent] $check-logs`). Prose comments that merely mention a marker
@@ -45,14 +54,19 @@ const SOFT_MARKER_RE = /\[soft\]/;
  * inert, so the footgun audit flags it. Prose that merely mentions a marker
  * mid-line ("# TODO: make this [no-ai] later") stays un-flagged.
  */
-const MARKER_AT_START_RE = new RegExp(`^(?:${MARKER}|${SKILL_TOKEN})(?:\\s|$)`);
+const MARKER_AT_START_RE = markerAtStartRe(MARKER);
 /**
- * Marker-only lines in the pre-release `@`-prefixed syntax (`# @agent`,
- * `# @no-ai`, `# @soft`, optionally mixed with `$skill` tokens). They no
- * longer route; the footgun audit recognizes the shape and tells authors
- * to migrate.
+ * The pre-release `@`-prefixed syntax (`# @agent`, marker-only or
+ * marker-at-start). It no longer routes; the footgun audit recognizes both
+ * shapes and tells authors to migrate.
  */
 const LEGACY_MARKER_LINE_RE = markerOnlyLineRe(LEGACY_MARKER);
+const LEGACY_MARKER_AT_START_RE = new RegExp(`^${LEGACY_MARKER}(?:\\s|$)`);
+
+/** Strip `# ` framing from a comment line; shared by resolver and audit. */
+function commentBody(rawText: string): string {
+  return rawText.trim().replace(/^#/, '').trim();
+}
 
 /**
  * The single definition of "this comment line is a routing marker": strip
@@ -61,7 +75,7 @@ const LEGACY_MARKER_LINE_RE = markerOnlyLineRe(LEGACY_MARKER);
  * through here so the two can never disagree on what routes.
  */
 function markerBody(rawText: string): string | undefined {
-  const text = rawText.trim().replace(/^#/, '').trim();
+  const text = commentBody(rawText);
   return ANNOTATION_LINE_RE.test(text) ? text : undefined;
 }
 
@@ -237,12 +251,27 @@ export function resolveStepAnnotations(input: {
  * 3. A comment line that STARTS with a routing marker but mixes in prose
  *    (`# [agent] check the logs`) — only marker-only lines route, so the
  *    line is silently inert despite almost certainly being intended.
- * 4. A marker-only comment in the retired `@`-prefixed syntax (`# @agent`,
- *    `# @no-ai`, `# @soft`) — it never routes anymore; authors must switch
- *    to the bracket form.
+ * 4. The retired `@`-prefixed syntax (`# @agent`, marker-only or
+ *    marker-at-start) — it never routes anymore; authors must switch to
+ *    the bracket form.
  */
-export function collectAnnotationFootguns(document: GherkinDocument): string[] {
-  const warnings: string[] = [];
+export type AnnotationFootgunKind =
+  | 'detached'
+  | 'marker-prose'
+  | 'legacy'
+  | 'tag-level-agent';
+
+export interface AnnotationFootgun {
+  kind: AnnotationFootgunKind;
+  line: number;
+  /** Human-readable warning, already carrying `uri:line`. */
+  message: string;
+}
+
+export function collectAnnotationFootguns(
+  document: GherkinDocument,
+): AnnotationFootgun[] {
+  const footguns: AnnotationFootgun[] = [];
   const uri = document.uri ?? '(unknown feature)';
 
   const { stepById, commentTextByLine } = indexDocument(document);
@@ -253,24 +282,32 @@ export function collectAnnotationFootguns(document: GherkinDocument): string[] {
 
   for (const [line, rawText] of commentTextByLine) {
     if (markerBody(rawText) === undefined) {
-      const body = rawText.trim().replace(/^#/, '').trim();
-      // Retired `@`-marker lines get the migration hint, checked before the
-      // prose rule so mixed lines like "# $skill @agent" are not misreported
-      // as marker-plus-prose. `$skill`-only lines match the legacy shape too,
-      // but they are valid current syntax, so markerBody() already accepted
-      // them and they never reach this branch.
-      if (LEGACY_MARKER_LINE_RE.test(body)) {
-        warnings.push(
-          `annotation comment "${rawText.trim()}" at ${uri}:${line} uses the retired @-marker syntax and is ignored — write bracket markers instead (e.g. "# @agent" → "# [agent]")`,
-        );
+      const body = commentBody(rawText);
+      // Retired `@`-marker lines (marker-only OR marker-at-start prose like
+      // "# @agent check the logs") get the migration hint, checked before
+      // the prose rule so mixed lines like "# $skill @agent" are not
+      // misreported as marker-plus-prose. `$skill`-only lines match the
+      // legacy line shape too, but they are valid current syntax, so
+      // markerBody() already accepted them and they never reach this branch.
+      if (
+        LEGACY_MARKER_LINE_RE.test(body) ||
+        LEGACY_MARKER_AT_START_RE.test(body)
+      ) {
+        footguns.push({
+          kind: 'legacy',
+          line,
+          message: `annotation comment "${rawText.trim()}" at ${uri}:${line} uses the retired @-marker syntax and is ignored — write bracket markers instead (e.g. "# @agent" → "# [agent]")`,
+        });
         continue;
       }
       // Marker-at-start prose ("# [agent] check the logs") is inert despite
       // almost certainly being intended to route.
       if (MARKER_AT_START_RE.test(body)) {
-        warnings.push(
-          `annotation comment "${rawText.trim()}" at ${uri}:${line} starts with a routing marker but mixes in prose, so the whole line is ignored — keep marker lines marker-only (e.g. "# [agent]") and put prose in a separate comment`,
-        );
+        footguns.push({
+          kind: 'marker-prose',
+          line,
+          message: `annotation comment "${rawText.trim()}" at ${uri}:${line} starts with a routing marker but mixes in prose, so the whole line is ignored — keep marker lines marker-only (e.g. "# [agent]") and put prose in a separate comment`,
+        });
       }
       continue;
     }
@@ -283,9 +320,11 @@ export function collectAnnotationFootguns(document: GherkinDocument): string[] {
     if (stepLines.has(runEnd + 1)) {
       continue;
     }
-    warnings.push(
-      `annotation comment "${rawText.trim()}" at ${uri}:${line} is not directly above a step (blank line or non-step content in between), so it will not affect routing — move it to the line right above its step`,
-    );
+    footguns.push({
+      kind: 'detached',
+      line,
+      message: `annotation comment "${rawText.trim()}" at ${uri}:${line} is not directly above a step (blank line or non-step content in between), so it will not affect routing — move it to the line right above its step`,
+    });
   }
 
   // Same explicit feature/rule/scenario walk as indexDocument, plus the
@@ -293,9 +332,11 @@ export function collectAnnotationFootguns(document: GherkinDocument): string[] {
   const checkTags = (tags: readonly Tag[]) => {
     for (const tag of tags) {
       if (tag.name === '@agent') {
-        warnings.push(
-          `tag "@agent" at ${uri}:${tag.location.line} is ignored: agent routing is per-step only — put a "# [agent]" comment directly above the step (feature/scenario tags support @no-ai, @soft, @flow, @param:*)`,
-        );
+        footguns.push({
+          kind: 'tag-level-agent',
+          line: tag.location.line,
+          message: `tag "@agent" at ${uri}:${tag.location.line} is ignored: agent routing is per-step only — put a "# [agent]" comment directly above the step (feature/scenario tags support @no-ai, @soft, @flow, @param:*)`,
+        });
       }
     }
   };
@@ -317,7 +358,7 @@ export function collectAnnotationFootguns(document: GherkinDocument): string[] {
     }
   }
 
-  return warnings;
+  return footguns;
 }
 
 /** Render a pickle data table as `| cell | cell |` lines for prompts. */

@@ -424,11 +424,34 @@ Feature: f
 });
 
 describe('collectAnnotationFootguns', () => {
-  function footguns(source: string, uri = 'probe.feature'): string[] {
+  function structuredFootguns(source: string, uri = 'probe.feature') {
     const { document } = parse(source);
     document.uri = uri;
     return collectAnnotationFootguns(document);
   }
+
+  /** Message-only view; most cases assert on the human-readable warning. */
+  function footguns(source: string, uri = 'probe.feature'): string[] {
+    return structuredFootguns(source, uri).map((footgun) => footgun.message);
+  }
+
+  it('returns structured kinds and lines, not just prose', () => {
+    const found = structuredFootguns(`@agent
+Feature: f
+  Scenario: s
+    # [agent]
+
+    # @no-ai
+    # [soft] but with prose
+    When I do a thing
+`);
+    expect(found.map(({ kind, line }) => ({ kind, line }))).toEqual([
+      { kind: 'detached', line: 4 },
+      { kind: 'legacy', line: 6 },
+      { kind: 'marker-prose', line: 7 },
+      { kind: 'tag-level-agent', line: 1 },
+    ]);
+  });
 
   it('warns on a marker comment detached from its step by a blank line', () => {
     const warnings = footguns(`Feature: f
@@ -563,9 +586,10 @@ Feature: f
     expect(warnings[0]).toContain('retired @-marker syntax');
   });
 
-  it('does not flag legacy markers mixed with prose or mid-line mentions', () => {
-    // Only marker-ONLY legacy lines get the migration warning; prose that
-    // mentions the old syntax stays silent, mirroring the new-syntax rule.
+  it('flags legacy markers at line start, ignores mid-line mentions', () => {
+    // `# @agent check the logs` routed before the syntax change, so it gets
+    // the migration hint (same start-of-line rule as the bracket prose
+    // footgun). Prose that mentions the old syntax mid-line stays silent.
     const warnings = footguns(`Feature: f
   Scenario: s
     # @agent check the logs
@@ -573,7 +597,9 @@ Feature: f
     # we used to write @no-ai here
     Then it worked
 `);
-    expect(warnings).toEqual([]);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('"# @agent check the logs"');
+    expect(warnings[0]).toContain('retired @-marker syntax');
   });
 
   it('stays silent for attached markers, prose comments, and consumed tags', () => {

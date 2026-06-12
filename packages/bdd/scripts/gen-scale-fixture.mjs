@@ -628,6 +628,7 @@ const allContent = featureBodies.join('\n');
 const countMatches = (re) => (allContent.match(re) ?? []).length;
 const agentMarkers = countMatches(/^\s*# \[agent\]$/gm);
 const noAiMarkers = countMatches(/^\s*# \[no-ai\]$/gm);
+// Stats-only heuristic; mirrors SKILL_NAME in packages/bdd/src/annotations.ts.
 const skillRefs = countMatches(/\$[A-Za-z][A-Za-z0-9_-]*/g);
 
 console.log(

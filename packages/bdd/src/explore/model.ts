@@ -17,6 +17,7 @@ import type {
   Step,
 } from '@cucumber/messages';
 import {
+  type AnnotationFootgunKind,
   collectAnnotationFootguns,
   renderDataTable,
   resolveStepAnnotations,
@@ -480,24 +481,25 @@ export async function buildExploreModel(
   }
 
   // Annotation footguns (detached marker comments, legacy @-style markers,
-  // tag-level @agent) are silent no-ops at runtime — exactly the hygiene the
-  // Health panel exists for. Reuse the runtime collector and lift its
-  // `uri:line` into fields.
+  // tag-level @agent) are silent no-ops at runtime — exactly the hygiene
+  // the Health panel exists for. The collector returns structured findings,
+  // so kinds map directly instead of being sniffed out of message prose.
+  const FOOTGUN_KIND: Record<AnnotationFootgunKind, HealthKind> = {
+    detached: 'detached-annotation',
+    // Marker-plus-prose lines share the detached bucket: both are "the
+    // comment exists but does not route".
+    'marker-prose': 'detached-annotation',
+    legacy: 'legacy-annotation',
+    'tag-level-agent': 'tag-level-agent',
+  };
   for (const { document, uri } of parsed) {
     const relPath = path.relative(config.baseDir, uri);
-    for (const warning of collectAnnotationFootguns(document)) {
-      const loc = new RegExp(
-        ` at ${uri.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:(\\d+) `,
-      ).exec(warning);
+    for (const footgun of collectAnnotationFootguns(document)) {
       ctx.health.push({
-        kind: warning.startsWith('tag "@agent"')
-          ? 'tag-level-agent'
-          : warning.includes('retired @-marker syntax')
-            ? 'legacy-annotation'
-            : 'detached-annotation',
-        message: warning.split(`${uri}:`).join(`${relPath}:`),
+        kind: FOOTGUN_KIND[footgun.kind],
+        message: footgun.message.split(`${uri}:`).join(`${relPath}:`),
         uri: relPath,
-        line: loc ? Number(loc[1]) : undefined,
+        line: footgun.line,
       });
     }
   }
