@@ -1248,12 +1248,11 @@ overrideAIConfig({
 
 ## 深度定位（deepLocate）
 
-`deepLocate` 是一个可选参数，适用于所有需要元素定位的 API（`aiTap`、`aiHover`、`aiInput`、`aiKeyboardPress`、`aiScroll`、`aiDoubleClick`、`aiRightClick`、`aiLocate` 等）。
+`deepLocate` 是一个可选参数，适用于所有需要元素定位的 API（`aiAct`、`aiTap`、`aiHover`、`aiInput`、`aiKeyboardPress`、`aiScroll`、`aiDoubleClick`、`aiRightClick`、`aiLocate` 等）。
 
-开启后，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。这在目标元素面积较小、难以和周围元素区分时非常有用。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），大多数场景下带来的收益不明显，建议按需开启。
+开启后，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。这在目标元素面积较小、难以和周围元素区分时非常有用。对于新一代模型（如 Qwen3.x / Doubao 2.0 / Gemini 3.5），大多数场景下带来的收益不明显，建议按需开启。
 
 - **默认值**：`false`
-- **参数更名**：该参数原来叫 `deepThink`，自 v1.5.1 起更名为 `deepLocate`，旧的 `deepThink` 参数仍然兼容。
 
 ```typescript
 // 开启 deepLocate 精确定位较难识别的元素
@@ -1262,13 +1261,15 @@ await agent.aiTap('右上角购物车图标', { deepLocate: true });
 
 :::note
 
-`aiAct()` 中的 `deepThink` 参数与此处的 `deepLocate` 是完全不同的功能：
+历史上，`deepThink` 这个名字在不同 API 中承担过两种含义：
 
-- `deepLocate`：控制元素**定位**时的二次确认策略，用于提升定位精度。
-- `aiAct()` 中的 `deepThink`：控制**规划模式**，用于引导任务拆解和专注规划的思考过程。
+- 在 `aiAct()` 中，`deepThink` 从一开始就表示**规划模式**，用于引导任务拆解和专注规划的思考过程。详情请参考 [aiAct deepThink 说明](./model-strategy#关于-aiact-方法的-deepthink-参数)。
+- 在 `aiTap`、`aiHover` 等单步操作方法中，旧的 `deepThink` 表示**定位增强**，等同于现在的 `deepLocate`。
 
-[参阅 aiAct deepThink 说明](./model-strategy#关于-aiact-方法的-deepthink-参数)
+为了区分这两种语义，自 v1.5.1 起，`deepThink` 只用于表示规划模式，定位增强统一命名为 `deepLocate`。
 
+- 对于 `aiAct()`，可以同时使用 `deepThink` 和 `deepLocate`：`deepThink` 控制规划模式，`deepLocate` 控制本节描述的深度定位。
+- 对于 `aiTap`、`aiHover` 等单步操作方法，如果需要提升定位精确度，推荐使用语义更清晰的 `deepLocate` 参数；旧的 `deepThink` 参数仍然兼容，语义等同于 `deepLocate`。
 :::
 
 ## 使用图片作为提示词
