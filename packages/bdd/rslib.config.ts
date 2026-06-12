@@ -22,6 +22,15 @@ export default defineConfig({
       },
       format: 'esm',
       syntax: 'es2021',
+      // render.ts (template lookup) and config.ts (config discovery) use
+      // __dirname/__filename; without the shims the .mjs build throws
+      // ReferenceError at runtime.
+      shims: {
+        esm: {
+          __dirname: true,
+          __filename: true,
+        },
+      },
       dts: {
         distPath: 'dist/types',
       },

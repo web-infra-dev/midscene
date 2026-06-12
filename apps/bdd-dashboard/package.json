@@ -1,0 +1,51 @@
+{
+  "name": "bdd-dashboard",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "rsbuild dev",
+    "build": "tsc -p typecheck/tsconfig.json && rsbuild build",
+    "build:watch": "rsbuild build --watch --no-clean",
+    "preview": "rsbuild preview"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "^1.6.15",
+    "@rsbuild/plugin-react": "^1.4.1",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "typescript": "^5.8.3"
+  },
+  "nx": {
+    "includedScripts": ["dev", "build:watch", "preview"],
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "pnpm run build",
+          "cwd": "apps/bdd-dashboard"
+        },
+        "cache": true,
+        "dependsOn": ["@midscene/shared:build"],
+        "inputs": [
+          "build",
+          "{workspaceRoot}/package.json",
+          "{workspaceRoot}/packages/bdd/src/explore/model.ts"
+        ],
+        "outputs": [
+          "{projectRoot}/dist",
+          "{workspaceRoot}/packages/bdd/static/*.html"
+        ]
+      },
+      "build:watch": {
+        "dependsOn": []
+      },
+      "dev": {
+        "dependsOn": []
+      }
+    }
+  }
+}

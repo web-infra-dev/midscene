@@ -466,9 +466,37 @@ Feature: Main
 });
 
 describe('renderDashboard', () => {
+  function withTemplatePathEnv<T>(value: string, run: () => T): T {
+    const previous = process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH;
+    process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH = value;
+    try {
+      return run();
+    } finally {
+      if (previous === undefined) {
+        Reflect.deleteProperty(
+          process.env,
+          'MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH',
+        );
+      } else {
+        process.env.MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH = previous;
+      }
+    }
+  }
+
+  function withDashboardTemplate<T>(template: string, run: () => T): T {
+    const dir = mkdtempSync(join(tmpdir(), 'midscene-bdd-template-'));
+    tmpDirs.push(dir);
+    const templatePath = join(dir, 'dashboard-template.html');
+    writeFileSync(templatePath, template, 'utf-8');
+    return withTemplatePathEnv(templatePath, run);
+  }
+
   it('renders one self-contained HTML document with safely embedded data', async () => {
     const model = await buildExploreModel(basicConfig());
-    const html = renderDashboard(model);
+    const html = withDashboardTemplate(
+      '<!DOCTYPE html><html><head><title>midscene-bdd dashboard</title></head><body><script id="midscene-bdd-explore-model" type="application/json">__EXPLORE_MODEL_PLACEHOLDER__</script></body></html>',
+      () => renderDashboard(model),
+    );
 
     expect(html.startsWith('<!DOCTYPE html>')).toBe(true);
     expect(html).toContain('<title>midscene-bdd dashboard</title>');
@@ -476,7 +504,8 @@ describe('renderDashboard', () => {
 
     // Embedded model JSON with every '<' escaped (so no '</script>' or
     // comment-opener can terminate the data block).
-    const tag = '<script id="explore-data" type="application/json">';
+    const tag =
+      '<script id="midscene-bdd-explore-model" type="application/json">';
     expect(html).toContain(tag);
     const start = html.indexOf(tag) + tag.length;
     const end = html.indexOf('</script>', start);
@@ -484,5 +513,27 @@ describe('renderDashboard', () => {
     expect(json).toContain('\\u003c');
     expect(json).not.toContain('</');
     expect(JSON.parse(json)).toEqual(model);
+  });
+
+  it('throws a specific error when the override path does not exist', async () => {
+    const model = await buildExploreModel(basicConfig());
+    const missing = join(tmpdir(), 'missing-dashboard-template.html');
+    withTemplatePathEnv(missing, () => {
+      expect(() => renderDashboard(model)).toThrow(
+        'MIDSCENE_BDD_DASHBOARD_TEMPLATE_PATH points to a missing file',
+      );
+    });
+  });
+
+  it('rejects a template whose JSON script tag lost the placeholder', async () => {
+    const model = await buildExploreModel(basicConfig());
+    // Placeholder present only as a quoted string in the JS bundle — the
+    // anchored `>...</script>` form is what injection requires.
+    expect(() =>
+      withDashboardTemplate(
+        '<html><body><script>var p = "__EXPLORE_MODEL_PLACEHOLDER__";</script></body></html>',
+        () => renderDashboard(model),
+      ),
+    ).toThrow('placeholder inside its JSON script tag');
   });
 });

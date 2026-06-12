@@ -1,0 +1,9 @@
+{
+  "extends": "../../packages/shared/tsconfig.app.base.json",
+  "compilerOptions": {
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "declarationDir": "dist/types"
+  },
+  "include": ["src"]
+}

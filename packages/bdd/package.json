@@ -36,7 +36,7 @@
       "default": "./dist/es/profile.mjs"
     }
   },
-  "files": ["dist", "bin", "README.md"],
+  "files": ["dist", "bin", "static/dashboard-template.html", "README.md"],
   "scripts": {
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
@@ -44,6 +44,13 @@
     "test": "vitest --run",
     "test:watch": "vitest",
     "type-check": "tsc --noEmit"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "dependsOn": ["bdd-dashboard:build", "^build"]
+      }
+    }
   },
   "dependencies": {
     "@cucumber/cucumber": "13.0.0",
