@@ -75,6 +75,31 @@ describe('execution summary', () => {
     );
   });
 
+  test('prints successful file report and output details', () => {
+    const results: MidsceneYamlConfigResult[] = [
+      {
+        file: '/tmp/passed.yaml',
+        success: true,
+        executed: true,
+        duration: 12,
+        resultType: 'success',
+        report: '/tmp/midscene_run/report/passed.html',
+        output: '/tmp/midscene_run/output/passed.json',
+      },
+    ];
+
+    const success = printExecutionSummary(results, '/tmp/summary.json');
+
+    expect(success).toBe(true);
+    expect(consoleLog).toHaveBeenCalledWith('   /tmp/passed.yaml');
+    expect(consoleLog).toHaveBeenCalledWith(
+      '     Report: /tmp/midscene_run/report/passed.html',
+    );
+    expect(consoleLog).toHaveBeenCalledWith(
+      '     Output: /tmp/midscene_run/output/passed.json',
+    );
+  });
+
   test('writes a retry report with per-attempt statuses', () => {
     const root = mkdtempSync(join(tmpdir(), 'midscene-summary-'));
     const runDir = join(root, 'midscene-run');

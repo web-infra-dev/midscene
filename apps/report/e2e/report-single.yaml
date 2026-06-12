@@ -5,9 +5,9 @@ tasks:
   # --- Basic loading ---
   - name: report loads and displays tasks
     flow:
-      - sleep: 3000
-      - aiAssert: There is a sidebar on the left showing a task execution list with task names and time costs
-      - aiAssert: There is a 'Record' timeline section with screenshot thumbnails
+      - sleep: 5000
+      - aiAssert: The report page is loaded with a left-side task list table. The table shows multiple task rows, visible task names, and a time or duration column for the tasks.
+      - aiAssert: The main report panel shows a "Record" timeline section with visible screenshot thumbnails or frame previews.
 
   # --- Player area visible with controls ---
   - name: player area is visible with playback controls
