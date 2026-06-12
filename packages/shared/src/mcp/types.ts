@@ -100,6 +100,21 @@ export type UserPromptLike =
       convertHttpImage2Base64?: boolean;
     };
 
+export interface RecordToReportScreenshot {
+  base64: string;
+  description?: string;
+}
+
+export interface RecordToReportOptions {
+  content?: string;
+  /**
+   * @deprecated Use `screenshots: [{ base64 }]` instead.
+   */
+  screenshotBase64?: string;
+  screenshots?: RecordToReportScreenshot[];
+  subType?: string;
+}
+
 /**
  * Base agent interface
  * Represents a platform-specific agent (Android, iOS, Web)
@@ -113,7 +128,7 @@ export interface BaseAgent {
   };
   recordToReport?: (
     title?: string,
-    opt?: { content?: string; screenshotBase64?: string },
+    opt?: RecordToReportOptions,
   ) => Promise<void>;
   callActionInActionSpace?: (
     actionName: string,

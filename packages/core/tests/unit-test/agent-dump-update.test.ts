@@ -138,6 +138,141 @@ describe('Agent dump update screenshot serialization', () => {
     await agent.destroy();
   });
 
+  it('records multiple provided screenshots in one report entry', async () => {
+    const screenshotBase64 = vi
+      .fn()
+      .mockRejectedValue(new Error('should not capture again'));
+    const agent = new Agent(
+      {
+        ...createMockInterface(),
+        screenshotBase64,
+      } as any,
+      {
+        modelConfig,
+        generateReport: false,
+      },
+    );
+
+    const reportGeneratorStub = {
+      onExecutionUpdate: vi.fn(),
+      flush: vi.fn(async () => {}),
+      finalize: vi.fn(async () => undefined),
+      getReportPath: vi.fn(() => undefined),
+    };
+
+    (agent as any).reportGenerator = reportGeneratorStub;
+
+    const beforeScreenshot = 'data:image/png;base64,before';
+    const afterScreenshot = 'data:image/png;base64,after';
+    await agent.recordToReport('comparison', {
+      content: 'before and after state',
+      subType: 'Checkpoint',
+      screenshots: [
+        { base64: beforeScreenshot, description: 'Before click' },
+        { base64: afterScreenshot, description: 'After click' },
+      ],
+    });
+
+    expect(screenshotBase64).not.toHaveBeenCalled();
+    expect(reportGeneratorStub.onExecutionUpdate).toHaveBeenCalledTimes(1);
+
+    const execution = reportGeneratorStub.onExecutionUpdate.mock
+      .calls[0][0] as ExecutionDump;
+    expect(execution.name).toBe('Checkpoint - comparison');
+    expect(execution.description).toBe('before and after state');
+
+    const task = execution.tasks[0];
+    expect(task.type).toBe('Log');
+    expect(task.subType).toBe('Checkpoint');
+    expect(task.recorder).toHaveLength(2);
+    expect(task.recorder?.map((item) => item.description)).toEqual([
+      'Before click',
+      'After click',
+    ]);
+    expect(task.recorder?.map((item) => item.screenshot?.base64)).toEqual([
+      beforeScreenshot,
+      afterScreenshot,
+    ]);
+    expect(task.recorder?.[0].ts ?? 0).toBeLessThan(task.recorder?.[1].ts ?? 0);
+
+    await agent.destroy();
+  });
+
+  it('rejects an empty custom screenshot list', async () => {
+    const screenshotBase64 = vi
+      .fn()
+      .mockRejectedValue(new Error('should not capture again'));
+    const agent = new Agent(
+      {
+        ...createMockInterface(),
+        screenshotBase64,
+      } as any,
+      {
+        modelConfig,
+        generateReport: false,
+      },
+    );
+
+    const reportGeneratorStub = {
+      onExecutionUpdate: vi.fn(),
+      flush: vi.fn(async () => {}),
+      finalize: vi.fn(async () => undefined),
+      getReportPath: vi.fn(() => undefined),
+    };
+
+    (agent as any).reportGenerator = reportGeneratorStub;
+
+    await expect(
+      agent.recordToReport('empty screenshots', {
+        screenshots: [],
+      }),
+    ).rejects.toThrow('recordToReport: screenshots cannot be empty');
+
+    expect(screenshotBase64).not.toHaveBeenCalled();
+    expect(reportGeneratorStub.onExecutionUpdate).not.toHaveBeenCalled();
+
+    await agent.destroy();
+  });
+
+  it('rejects multiple custom screenshot sources', async () => {
+    const screenshotBase64 = vi
+      .fn()
+      .mockRejectedValue(new Error('should not capture again'));
+    const agent = new Agent(
+      {
+        ...createMockInterface(),
+        screenshotBase64,
+      } as any,
+      {
+        modelConfig,
+        generateReport: false,
+      },
+    );
+
+    const reportGeneratorStub = {
+      onExecutionUpdate: vi.fn(),
+      flush: vi.fn(async () => {}),
+      finalize: vi.fn(async () => undefined),
+      getReportPath: vi.fn(() => undefined),
+    };
+
+    (agent as any).reportGenerator = reportGeneratorStub;
+
+    await expect(
+      agent.recordToReport('conflicting screenshots', {
+        screenshotBase64: 'data:image/png;base64,legacy',
+        screenshots: [{ base64: 'data:image/png;base64,custom' }],
+      }),
+    ).rejects.toThrow(
+      'recordToReport: provide only one of screenshots or screenshotBase64',
+    );
+
+    expect(screenshotBase64).not.toHaveBeenCalled();
+    expect(reportGeneratorStub.onExecutionUpdate).not.toHaveBeenCalled();
+
+    await agent.destroy();
+  });
+
   it('records failed log entries for runner-level errors', async () => {
     const agent = new Agent(createMockInterface(), {
       modelConfig,

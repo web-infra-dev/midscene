@@ -382,6 +382,7 @@ export interface ExecutionRecorderItem {
   type: 'screenshot';
   ts: number;
   screenshot?: ScreenshotItem;
+  description?: string;
   timing?: string;
 }
 
