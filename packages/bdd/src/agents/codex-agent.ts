@@ -6,7 +6,6 @@
  * gracefully degrades to plain `codex exec` (the user's `codex login`).
  */
 import { promises as fs } from 'node:fs';
-import { getDebug } from '@midscene/shared/logger';
 import type {
   GeneralAgent,
   GeneralAgentConfig,
@@ -15,15 +14,14 @@ import type {
 } from '../types';
 import { ERROR_PREFIX } from '../types';
 import {
+  DEFAULT_TIMEOUT_MS,
   cliFailureError,
   resolveModelEnv,
   runCli,
   tmpFilePath,
   withScreenshotFile,
 } from './cli-agent';
-import { buildGeneralPrompt, extractVerdict } from './general-prompt';
-
-const DEFAULT_TIMEOUT_MS = 600_000;
+import { buildGeneralPrompt, toGeneralResult } from './general-prompt';
 
 const INSTALL_HINT =
   '`codex` CLI not found. Install it with `npm i -g @openai/codex`, then authenticate with `codex login` (or set the MIDSCENE_MODEL_* env vars).';
@@ -157,15 +155,15 @@ export class CodexGeneralAgent implements GeneralAgent {
     const text = await withScreenshotFile(
       req.screenshotBase64,
       async (screenshotPath) => {
-        const resuming = plan.sessionPerScenario && this.sessionId;
-        const args = resuming
+        const resumeId = plan.sessionPerScenario ? this.sessionId : undefined;
+        const args = resumeId
           ? // `codex exec resume` does not support --cd/--sandbox (verified
             // against codex 0.139): the session keeps its original cwd, and
             // the sandbox is re-applied through the config key.
             [
               'exec',
               'resume',
-              this.sessionId as string,
+              resumeId,
               '--json',
               '-o',
               lastMessageFile,
@@ -236,17 +234,7 @@ export class CodexGeneralAgent implements GeneralAgent {
       },
     );
 
-    if (req.kind === 'assert') {
-      const verdict = extractVerdict(text);
-      if (!verdict) {
-        const warn = getDebug('bdd:general-agent', { console: true });
-        warn(
-          'general agent reply contained no JSON verdict; the engine treats this fail-closed (assertion fails)',
-        );
-      }
-      return { text, verdict };
-    }
-    return { text };
+    return toGeneralResult(req, text);
   }
 
   async dispose(): Promise<void> {

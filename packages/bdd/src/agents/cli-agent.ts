@@ -4,8 +4,8 @@
  *
  * Exports: `resolveModelEnv` (Midscene env-var fallback resolution),
  * `runCli` (spawn + hard timeout + ENOENT taxonomy), `withScreenshotFile`
- * (secure temp file for the page screenshot), `outputTail`,
- * `findAuthFailureHint`, `cliFailureError`.
+ * (secure temp file for the page screenshot), `tmpFilePath`, `outputTail`,
+ * `cliFailureError`.
  */
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
@@ -60,6 +60,8 @@ export function resolveModelEnv(env: NodeJS.ProcessEnv): ResolvedModelEnv {
 
 // ———————————————————————————— spawning ————————————————————————————
 
+export const DEFAULT_TIMEOUT_MS = 600_000;
+
 export interface CliRunOptions {
   bin: string;
   args: string[];
@@ -84,9 +86,11 @@ export interface CliRunOutcome {
 
 const TAIL_LIMIT = 2000;
 
-export function outputTail(text: string, limit = TAIL_LIMIT): string {
+export function outputTail(text: string): string {
   const trimmed = text.trim();
-  return trimmed.length > limit ? `…${trimmed.slice(-limit)}` : trimmed;
+  return trimmed.length > TAIL_LIMIT
+    ? `…${trimmed.slice(-TAIL_LIMIT)}`
+    : trimmed;
 }
 
 /**
@@ -177,35 +181,34 @@ const AUTH_FAILURE_RE =
   /\b401\b|no auth credentials|token refresh failed|unauthorized|invalid api key/i;
 
 /**
- * When the CLI output looks like an authentication failure, return an
- * actionable hint; otherwise undefined. `authHint` names the CLI-specific
- * login command.
+ * Compose the adapter failure error: reason, output tail, and — when the
+ * output looks like an authentication failure — the CLI-specific auth hint.
  */
-export function findAuthFailureHint(
-  output: string,
-  authHint: string,
-): string | undefined {
-  return AUTH_FAILURE_RE.test(output) ? authHint : undefined;
-}
-
-/** Compose the adapter failure error: reason, output tail, optional auth hint. */
 export function cliFailureError(
   label: string,
   reason: string,
   output: string,
   authHint: string,
 ): Error {
-  const hint = findAuthFailureHint(output, authHint);
   const parts = [`${ERROR_PREFIX} ${label} ${reason}`];
   const tail = outputTail(output);
   if (tail.length > 0) parts.push(`Output tail:\n${tail}`);
-  if (hint) parts.push(hint);
+  if (AUTH_FAILURE_RE.test(output)) parts.push(authHint);
   return new Error(parts.join('\n'));
 }
 
 // ———————————————————————— screenshot temp file ————————————————————————
 
 let tmpFileSeq = 0;
+
+/** Random temp file path (not created) in Midscene's run tmp dir. */
+export function tmpFilePath(suffix: string): string {
+  tmpFileSeq += 1;
+  return path.join(
+    getMidsceneRunSubDir('tmp'),
+    `bdd-agent-${process.pid}-${tmpFileSeq}-${randomBytes(8).toString('hex')}${suffix}`,
+  );
+}
 
 /**
  * Owner-only (0o600) temp file with a random suffix and 'wx' (fail on
@@ -221,11 +224,7 @@ export async function withScreenshotFile<T>(
     return fn(undefined);
   }
   const base64 = screenshotBase64.replace(/^data:[^,]*,/, '');
-  tmpFileSeq += 1;
-  const filePath = path.join(
-    getMidsceneRunSubDir('tmp'),
-    `bdd-agent-${process.pid}-${tmpFileSeq}-${randomBytes(8).toString('hex')}.png`,
-  );
+  const filePath = tmpFilePath('.png');
   await fs.writeFile(filePath, Buffer.from(base64, 'base64'), {
     mode: 0o600,
     flag: 'wx',
@@ -235,13 +234,4 @@ export async function withScreenshotFile<T>(
   } finally {
     await fs.rm(filePath, { force: true });
   }
-}
-
-/** Random temp file path (not created) in Midscene's run tmp dir. */
-export function tmpFilePath(suffix: string): string {
-  tmpFileSeq += 1;
-  return path.join(
-    getMidsceneRunSubDir('tmp'),
-    `bdd-agent-${process.pid}-${tmpFileSeq}-${randomBytes(8).toString('hex')}${suffix}`,
-  );
 }

@@ -6,7 +6,6 @@
  * over the user's config files). The API key is referenced as
  * `{env:<VAR>}` so the secret never appears in config text.
  */
-import { getDebug } from '@midscene/shared/logger';
 import type {
   GeneralAgent,
   GeneralAgentConfig,
@@ -15,14 +14,13 @@ import type {
 } from '../types';
 import { ERROR_PREFIX } from '../types';
 import {
+  DEFAULT_TIMEOUT_MS,
   cliFailureError,
   resolveModelEnv,
   runCli,
   withScreenshotFile,
 } from './cli-agent';
-import { buildGeneralPrompt, extractVerdict } from './general-prompt';
-
-const DEFAULT_TIMEOUT_MS = 600_000;
+import { buildGeneralPrompt, toGeneralResult } from './general-prompt';
 
 const INSTALL_HINT =
   "`opencode` CLI not found. Install it with `npm i -g opencode-ai` (or see https://opencode.ai). To use Codex instead set `generalAgent.type: 'codex'`.";
@@ -235,17 +233,7 @@ export class OpencodeGeneralAgent implements GeneralAgent {
       },
     );
 
-    if (req.kind === 'assert') {
-      const verdict = extractVerdict(text);
-      if (!verdict) {
-        const warn = getDebug('bdd:general-agent', { console: true });
-        warn(
-          'general agent reply contained no JSON verdict; the engine treats this fail-closed (assertion fails)',
-        );
-      }
-      return { text, verdict };
-    }
-    return { text };
+    return toGeneralResult(req, text);
   }
 
   async dispose(): Promise<void> {

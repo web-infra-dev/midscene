@@ -1,12 +1,13 @@
 /**
  * Pure prompt/verdict helpers for the general coding agent.
  *
- * Exports: `VERDICT_INSTRUCTIONS`, `buildGeneralPrompt`, `extractVerdict`.
- * No model or CLI dependencies — fully unit-testable. Consumed by the CLI
- * adapters in `opencode-agent.ts` / `codex-agent.ts`.
+ * Exports: `VERDICT_INSTRUCTIONS`, `buildGeneralPrompt`, `extractVerdict`,
+ * `toGeneralResult`. No model or CLI dependencies — fully unit-testable.
+ * Consumed by the CLI adapters in `opencode-agent.ts` / `codex-agent.ts`.
  */
+import { getDebug } from '@midscene/shared/logger';
 import { renderSkillsForPrompt } from '../skills';
-import type { GeneralAgentRequest } from '../types';
+import type { GeneralAgentRequest, GeneralAgentResult } from '../types';
 
 export const VERDICT_INSTRUCTIONS = [
   'If your environment provides tools (e.g. a sandboxed shell or file access), use them to gather the evidence the task requires; otherwise reason only from the information given above.',
@@ -97,4 +98,22 @@ export function extractVerdict(
     }
   }
   return undefined;
+}
+
+/** Wrap the raw reply; for asserts, extract the verdict (missing → warn — the engine fails the assertion). */
+export function toGeneralResult(
+  req: GeneralAgentRequest,
+  text: string,
+): GeneralAgentResult {
+  if (req.kind !== 'assert') {
+    return { text };
+  }
+  const verdict = extractVerdict(text);
+  if (!verdict) {
+    const warn = getDebug('bdd:general-agent', { console: true });
+    warn(
+      'general agent reply contained no JSON verdict; the engine treats this fail-closed (assertion fails)',
+    );
+  }
+  return { text, verdict };
 }
