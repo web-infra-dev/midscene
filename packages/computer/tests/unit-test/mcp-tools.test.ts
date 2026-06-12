@@ -72,6 +72,35 @@ describe('ComputerMidsceneTools', () => {
     });
   });
 
+  it('passes common agent behavior args to local agent creation', async () => {
+    const tools = new ComputerMidsceneTools();
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+
+    expect(takeScreenshotTool).toBeDefined();
+
+    await takeScreenshotTool?.handler({
+      computer: {
+        'display-id': 'display-2',
+        waitAfterAction: 650,
+        replanningCycleLimit: 12,
+        aiActContext: 'accept permission dialogs',
+        screenshotShrinkFactor: 2,
+      },
+    });
+
+    expect(agentFromComputer).toHaveBeenCalledWith({
+      displayId: 'display-2',
+      waitAfterAction: 650,
+      replanningCycleLimit: 12,
+      aiActContext: 'accept permission dialogs',
+      screenshotShrinkFactor: 2,
+    });
+  });
+
   it('passes top-level display-id alias to act', async () => {
     const mockAgent = createMockAgent();
     vi.mocked(agentFromComputer).mockResolvedValue(mockAgent as any);
@@ -113,6 +142,9 @@ describe('ComputerMidsceneTools', () => {
       expect.objectContaining({
         'computer.displayId': expect.anything(),
         'computer.headless': expect.anything(),
+        'computer.waitAfterAction': expect.anything(),
+        'computer.replanningCycleLimit': expect.anything(),
+        'computer.screenshotShrinkFactor': expect.anything(),
       }),
     );
     expect(actTool?.schema).toEqual(
@@ -120,6 +152,7 @@ describe('ComputerMidsceneTools', () => {
         'computer.displayId': expect.anything(),
         'computer.headless': expect.anything(),
         'computer.host': expect.anything(),
+        'computer.waitAfterAction': expect.anything(),
         'computer.port': expect.anything(),
         'computer.username': expect.anything(),
         'computer.password': expect.anything(),
@@ -206,6 +239,7 @@ describe('ComputerMidsceneTools', () => {
         host: 'remote.example.com',
         port: 3389,
         username: 'admin',
+        waitAfterAction: 650,
       },
     });
 
@@ -214,6 +248,7 @@ describe('ComputerMidsceneTools', () => {
         host: 'remote.example.com',
         port: 3389,
         username: 'admin',
+        waitAfterAction: 650,
       }),
     );
     expect(agentFromComputer).not.toHaveBeenCalled();
@@ -239,5 +274,56 @@ describe('ComputerMidsceneTools', () => {
       }),
     );
     expect(agentForRDPComputer).not.toHaveBeenCalled();
+  });
+
+  it('reuses the Computer agent when called twice with identical init args', async () => {
+    const mockAgent = createMockAgent();
+    vi.mocked(agentFromComputer).mockResolvedValue(mockAgent as any);
+
+    const tools = new ComputerMidsceneTools();
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+
+    await takeScreenshotTool?.handler({
+      computer: { 'display-id': 'display-2', waitAfterAction: 650 },
+    });
+    await takeScreenshotTool?.handler({
+      computer: { 'display-id': 'display-2', waitAfterAction: 650 },
+    });
+
+    expect(agentFromComputer).toHaveBeenCalledTimes(1);
+    expect(mockAgent.destroy).not.toHaveBeenCalled();
+  });
+
+  it('rebuilds the Computer agent when init args change', async () => {
+    const firstAgent = createMockAgent();
+    const secondAgent = createMockAgent();
+    vi.mocked(agentFromComputer)
+      .mockResolvedValueOnce(firstAgent as any)
+      .mockResolvedValueOnce(secondAgent as any);
+
+    const tools = new ComputerMidsceneTools();
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+
+    await takeScreenshotTool?.handler({
+      computer: { 'display-id': 'display-2', waitAfterAction: 650 },
+    });
+    await takeScreenshotTool?.handler({
+      computer: { 'display-id': 'display-2', waitAfterAction: 900 },
+    });
+
+    expect(agentFromComputer).toHaveBeenCalledTimes(2);
+    expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
+    expect(agentFromComputer).toHaveBeenLastCalledWith({
+      displayId: 'display-2',
+      waitAfterAction: 900,
+    });
   });
 });

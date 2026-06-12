@@ -3,8 +3,15 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ScreenshotItem, z } from '@midscene/core';
-import { BaseMidsceneTools } from '@midscene/shared/mcp/base-tools';
+import { ScreenshotItem } from '@midscene/core';
+import {
+  extractAgentBehaviorInitArgs,
+  getAgentInitArgsSignature,
+} from '@midscene/shared/mcp/agent-behavior-init-args';
+import {
+  BaseMidsceneTools,
+  type InitArgSpec,
+} from '@midscene/shared/mcp/base-tools';
 import { resolveChromePath } from '@midscene/shared/mcp/chrome-path';
 import type { ToolDefinition } from '@midscene/shared/mcp/types';
 import type { Page as PuppeteerPage } from 'puppeteer';
@@ -15,6 +22,11 @@ import {
   defaultPuppeteerWindowViewportSize,
   defaultStaticPageViewportSize,
 } from './common/viewport';
+import {
+  type WebAgentInitArgs,
+  adaptWebAgentInitArgs,
+  webAgentInitArgShape,
+} from './mcp-agent-init-args';
 import { PuppeteerAgent } from './puppeteer';
 import { StaticPage } from './static';
 
@@ -219,9 +231,13 @@ const defaultBrowserManager = new PuppeteerBrowserManager();
  * Tools manager for Web Puppeteer-mode MCP.
  * Uses a persistent headless Chrome browser that survives across CLI calls.
  */
-export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
+export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
+  PuppeteerAgent,
+  WebAgentInitArgs
+> {
   private readonly viewport?: ViewportSize;
   private readonly browserManager: PuppeteerBrowserManager;
+  private lastInitArgsSignature?: string;
 
   constructor(
     viewport?: ViewportSize,
@@ -238,6 +254,15 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
     return 'midscene-web';
   }
 
+  protected readonly initArgSpec: InitArgSpec<WebAgentInitArgs> = {
+    namespace: 'web',
+    shape: webAgentInitArgShape,
+    cli: {
+      preferBareKeys: true,
+    },
+    adapt: adaptWebAgentInitArgs,
+  };
+
   protected createTemporaryDevice() {
     return new StaticPage({
       screenshot: ScreenshotItem.create('', Date.now()),
@@ -246,9 +271,17 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
     });
   }
 
-  protected async ensureAgent(navigateToUrl?: string): Promise<PuppeteerAgent> {
-    // Re-init if URL provided
-    if (this.agent && navigateToUrl) {
+  protected async ensureAgent(
+    initArgs?: WebAgentInitArgs,
+  ): Promise<PuppeteerAgent> {
+    const navigateToUrl = initArgs?.url;
+    const nextSignature = getAgentInitArgsSignature(initArgs);
+
+    if (
+      this.agent &&
+      nextSignature &&
+      nextSignature !== this.lastInitArgsSignature
+    ) {
       try {
         await this.agent?.destroy?.();
       } catch {}
@@ -292,8 +325,10 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
 
     const reportOptions = this.readCliReportAgentOptions();
     this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage, {
+      ...(extractAgentBehaviorInitArgs(initArgs) ?? {}),
       ...(reportOptions ?? {}),
     });
+    this.lastInitArgsSignature = nextSignature;
     return this.agent;
   }
 
@@ -308,29 +343,26 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
         name: 'web_connect',
         description:
           'Connect to a web page. Opens a new tab with the given URL, or reuses the current page.',
-        schema: {
-          url: z
-            .string()
-            .url()
-            .optional()
-            .describe('URL to open in new tab (omit to use current page)'),
-        },
+        schema: this.getAgentInitArgSchema(),
+        cli: this.getAgentInitArgCliMetadata(),
         handler: async (args) => {
-          const { url } = args as { url?: string };
+          const initArgs = this.extractAgentInitParam(args);
+          const url = initArgs?.url;
 
-          // Destroy existing agent
+          // Explicit connect always starts a fresh page session.
           if (this.agent) {
             try {
               await this.agent.destroy?.();
             } catch {}
             this.agent = undefined;
+            this.lastInitArgsSignature = undefined;
           }
 
           const reportSession = this.createNewCliReportSession(
             url ?? 'current-page',
           );
           this.commitCliReportSession(reportSession);
-          this.agent = await this.ensureAgent(url);
+          this.agent = await this.ensureAgent(initArgs);
 
           const screenshot = await this.agent.page?.screenshotBase64();
           const label = url ?? 'current page';
@@ -354,6 +386,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
               await this.agent.destroy?.();
             } catch {}
             this.agent = undefined;
+            this.lastInitArgsSignature = undefined;
           }
           this.browserManager.disconnect();
           return this.buildTextResult(
@@ -371,6 +404,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
               await this.agent.destroy?.();
             } catch {}
             this.agent = undefined;
+            this.lastInitArgsSignature = undefined;
           }
           await this.browserManager.closeBrowser();
           return this.buildTextResult('Browser closed');

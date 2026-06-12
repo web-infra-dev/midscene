@@ -1,6 +1,13 @@
-import { ScreenshotItem, z } from '@midscene/core';
+import { ScreenshotItem } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
-import { BaseMidsceneTools } from '@midscene/shared/mcp/base-tools';
+import {
+  extractAgentBehaviorInitArgs,
+  getAgentInitArgsSignature,
+} from '@midscene/shared/mcp/agent-behavior-init-args';
+import {
+  BaseMidsceneTools,
+  type InitArgSpec,
+} from '@midscene/shared/mcp/base-tools';
 import type { ToolDefinition } from '@midscene/shared/mcp/types';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import puppeteer from 'puppeteer-core';
@@ -12,6 +19,11 @@ import {
   saveTargetId,
 } from './cdp-target-store';
 import { defaultStaticPageViewportSize } from './common/viewport';
+import {
+  type WebAgentInitArgs,
+  adaptWebAgentInitArgs,
+  webAgentInitArgShape,
+} from './mcp-agent-init-args';
 import { PuppeteerAgent } from './puppeteer';
 import { StaticPage } from './static';
 
@@ -39,17 +51,30 @@ function getTargetId(page: Page): string | undefined {
  * Uses a persistent WebSocket proxy to avoid repeated Chrome permission popups
  * when Chrome's settings-based remote debugging is used.
  */
-export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
+export class WebCdpMidsceneTools extends BaseMidsceneTools<
+  PuppeteerAgent,
+  WebAgentInitArgs
+> {
   protected getCliReportSessionName() {
     return 'midscene-web';
   }
   private cdpEndpoint: string;
   private activeBrowser: Browser | null = null;
+  private lastInitArgsSignature?: string;
 
   constructor(cdpEndpoint: string) {
     super();
     this.cdpEndpoint = cdpEndpoint;
   }
+
+  protected readonly initArgSpec: InitArgSpec<WebAgentInitArgs> = {
+    namespace: 'web',
+    shape: webAgentInitArgShape,
+    cli: {
+      preferBareKeys: true,
+    },
+    adapt: adaptWebAgentInitArgs,
+  };
 
   protected createTemporaryDevice() {
     return new StaticPage({
@@ -59,9 +84,17 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
     });
   }
 
-  protected async ensureAgent(navigateToUrl?: string): Promise<PuppeteerAgent> {
-    // Re-init if URL provided
-    if (this.agent && navigateToUrl) {
+  protected async ensureAgent(
+    initArgs?: WebAgentInitArgs,
+  ): Promise<PuppeteerAgent> {
+    const navigateToUrl = initArgs?.url;
+    const nextSignature = getAgentInitArgsSignature(initArgs);
+
+    if (
+      this.agent &&
+      nextSignature &&
+      nextSignature !== this.lastInitArgsSignature
+    ) {
       try {
         await this.agent?.destroy?.();
       } catch (error) {
@@ -165,8 +198,10 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
 
     const reportOptions = this.readCliReportAgentOptions();
     this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage, {
+      ...(extractAgentBehaviorInitArgs(initArgs) ?? {}),
       ...(reportOptions ?? {}),
     });
+    this.lastInitArgsSignature = nextSignature;
     return this.agent;
   }
 
@@ -184,17 +219,13 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
         name: 'web_connect',
         description:
           'Connect to a web page via CDP. Opens a new tab with the given URL, or reuses the current page.',
-        schema: {
-          url: z
-            .string()
-            .url()
-            .optional()
-            .describe('URL to open in new tab (omit to use current page)'),
-        },
+        schema: this.getAgentInitArgSchema(),
+        cli: this.getAgentInitArgCliMetadata(),
         handler: async (args) => {
-          const { url } = args as { url?: string };
+          const initArgs = this.extractAgentInitParam(args);
+          const url = initArgs?.url;
 
-          // Destroy existing agent
+          // Explicit connect always starts a fresh page session.
           if (this.agent) {
             try {
               await this.agent.destroy?.();
@@ -202,13 +233,14 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
               console.debug('Failed to destroy agent during connect:', e);
             }
             this.agent = undefined;
+            this.lastInitArgsSignature = undefined;
           }
 
           const reportSession = this.createNewCliReportSession(
             url ?? 'current-page',
           );
           this.commitCliReportSession(reportSession);
-          this.agent = await this.ensureAgent(url);
+          this.agent = await this.ensureAgent(initArgs);
 
           const screenshot = await this.agent.page?.screenshotBase64();
           const label = url ?? 'current page';
@@ -234,6 +266,7 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
               console.debug('Failed to destroy agent during disconnect:', e);
             }
             this.agent = undefined;
+            this.lastInitArgsSignature = undefined;
           }
           if (this.activeBrowser) {
             this.activeBrowser.disconnect();

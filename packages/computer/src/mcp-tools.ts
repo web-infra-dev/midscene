@@ -1,6 +1,12 @@
 import { z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import {
+  type AgentBehaviorInitArgs,
+  agentBehaviorInitArgShape,
+  extractAgentBehaviorInitArgs,
+  getAgentInitArgsSignature,
+} from '@midscene/shared/mcp/agent-behavior-init-args';
+import {
   BaseMidsceneTools,
   type InitArgSpec,
 } from '@midscene/shared/mcp/base-tools';
@@ -87,17 +93,20 @@ const computerInitArgShape = {
     .number()
     .optional()
     .describe('Remote desktop height in pixels. Requires host.'),
+  ...agentBehaviorInitArgShape,
 };
 
 /** Init args for the local desktop agent (macOS/Windows/Linux). */
 export type ComputerLocalInitArgs = {
   mode: 'local';
-} & Pick<ComputerDeviceOpt, 'displayId' | 'headless'>;
+} & Pick<ComputerDeviceOpt, 'displayId' | 'headless'> &
+  AgentBehaviorInitArgs;
 
 /** Init args for the RDP remote-desktop agent. */
 export type ComputerRDPInitArgs = {
   mode: 'rdp';
-} & RDPConnectionConfig;
+} & RDPConnectionConfig &
+  AgentBehaviorInitArgs;
 
 /**
  * Discriminated union describing the two ways `computer_*` tools can spawn an
@@ -107,7 +116,9 @@ export type ComputerRDPInitArgs = {
 export type ComputerInitArgs = ComputerLocalInitArgs | ComputerRDPInitArgs;
 
 type ExtractedComputerInitArgs = Partial<
-  Pick<ComputerDeviceOpt, 'displayId' | 'headless'> & RDPConnectionConfig
+  Pick<ComputerDeviceOpt, 'displayId' | 'headless'> &
+    RDPConnectionConfig &
+    AgentBehaviorInitArgs
 >;
 
 function adaptComputerInitArgs(
@@ -130,13 +141,8 @@ function adaptComputerInitArgs(
     mode: 'local',
     displayId: extracted.displayId,
     headless: extracted.headless,
+    ...(extractAgentBehaviorInitArgs(extracted) ?? {}),
   };
-}
-
-function shouldRetargetAgent(opts: ComputerInitArgs | undefined): boolean {
-  if (!opts) return false;
-  if (opts.mode === 'rdp') return true;
-  return opts.displayId !== undefined || opts.headless !== undefined;
 }
 
 function describeConnectTarget(opts: ComputerInitArgs | undefined): string {
@@ -167,6 +173,8 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
   ComputerAgent,
   ComputerInitArgs
 > {
+  private lastInitArgsSignature?: string;
+
   protected getCliReportSessionName() {
     return 'midscene-computer';
   }
@@ -187,10 +195,13 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
   }
 
   protected async ensureAgent(opts?: ComputerInitArgs): Promise<ComputerAgent> {
-    if (this.agent && shouldRetargetAgent(opts)) {
-      // Only displayId/headless/host actually change the underlying device
-      // target; for any of those we tear down the current agent so the next
-      // call rebuilds against the new target.
+    const nextSignature = getAgentInitArgsSignature(opts);
+
+    if (
+      this.agent &&
+      nextSignature &&
+      nextSignature !== this.lastInitArgsSignature
+    ) {
       try {
         await this.agent.destroy?.();
       } catch (error) {
@@ -213,6 +224,7 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
         ...(reportOptions ?? {}),
       });
       this.agent = agent;
+      this.lastInitArgsSignature = nextSignature;
       return agent;
     }
 
@@ -222,12 +234,14 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
     const agentOpts = {
       ...(displayId ? { displayId } : {}),
       ...(headless !== undefined ? { headless } : {}),
+      ...(extractAgentBehaviorInitArgs(opts) ?? {}),
       ...(reportOptions ?? {}),
     };
     const agent = await agentFromComputer(
       Object.keys(agentOpts).length > 0 ? agentOpts : undefined,
     );
     this.agent = agent;
+    this.lastInitArgsSignature = nextSignature;
     return agent;
   }
 
@@ -259,6 +273,7 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
               debug('Failed to destroy agent during connect:', error);
             }
             this.agent = undefined;
+            this.lastInitArgsSignature = undefined;
           }
           const agent = await this.ensureAgent(initArgs);
           const screenshot = await agent.interface.screenshotBase64();

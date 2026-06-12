@@ -119,6 +119,35 @@ describe('AndroidMidsceneTools', () => {
     });
   });
 
+  it('passes common agent behavior args to agent creation', async () => {
+    const tools = new AndroidMidsceneTools();
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+
+    expect(takeScreenshotTool).toBeDefined();
+
+    await takeScreenshotTool?.handler({
+      android: {
+        deviceId: 'target-device',
+        waitAfterAction: 650,
+        replanningCycleLimit: 12,
+        aiActContext: 'accept permission dialogs',
+        screenshotShrinkFactor: 2,
+      },
+    });
+
+    expect(agentFromAdbDevice).toHaveBeenCalledWith('target-device', {
+      autoDismissKeyboard: false,
+      waitAfterAction: 650,
+      replanningCycleLimit: 12,
+      aiActContext: 'accept permission dialogs',
+      screenshotShrinkFactor: 2,
+    });
+  });
+
   it('exposes android init args on action and common tool schemas', async () => {
     const tools = new AndroidMidsceneTools();
     await tools.initTools();
@@ -151,6 +180,57 @@ describe('AndroidMidsceneTools', () => {
 
     expect(agentFromAdbDevice).toHaveBeenCalledWith('namespaced-winner', {
       autoDismissKeyboard: false,
+    });
+  });
+
+  it('reuses the Android agent when called twice with identical init args', async () => {
+    const mockAgent = createMockAgent();
+    vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
+
+    const tools = new AndroidMidsceneTools();
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+
+    await takeScreenshotTool?.handler({
+      android: { deviceId: 'device-A', waitAfterAction: 650 },
+    });
+    await takeScreenshotTool?.handler({
+      android: { deviceId: 'device-A', waitAfterAction: 650 },
+    });
+
+    expect(agentFromAdbDevice).toHaveBeenCalledTimes(1);
+    expect(mockAgent.destroy).not.toHaveBeenCalled();
+  });
+
+  it('rebuilds the Android agent when init args change', async () => {
+    const firstAgent = createMockAgent();
+    const secondAgent = createMockAgent();
+    vi.mocked(agentFromAdbDevice)
+      .mockResolvedValueOnce(firstAgent as any)
+      .mockResolvedValueOnce(secondAgent as any);
+
+    const tools = new AndroidMidsceneTools();
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+
+    await takeScreenshotTool?.handler({
+      android: { deviceId: 'device-A', waitAfterAction: 650 },
+    });
+    await takeScreenshotTool?.handler({
+      android: { deviceId: 'device-A', waitAfterAction: 900 },
+    });
+
+    expect(agentFromAdbDevice).toHaveBeenCalledTimes(2);
+    expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
+    expect(agentFromAdbDevice).toHaveBeenLastCalledWith('device-A', {
+      autoDismissKeyboard: false,
+      waitAfterAction: 900,
     });
   });
 });

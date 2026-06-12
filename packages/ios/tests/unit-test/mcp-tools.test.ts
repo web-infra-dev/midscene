@@ -52,6 +52,10 @@ describe('IOSMidsceneTools', () => {
         deviceId: 'ios-target',
         'wda-port': 8100,
         sessionId: 'external-session-id',
+        waitAfterAction: 650,
+        replanningCycleLimit: 12,
+        aiActContext: 'accept permission dialogs',
+        screenshotShrinkFactor: 2,
       },
     });
 
@@ -61,6 +65,10 @@ describe('IOSMidsceneTools', () => {
         deviceId: 'ios-target',
         wdaPort: 8100,
         sessionId: 'external-session-id',
+        waitAfterAction: 650,
+        replanningCycleLimit: 12,
+        aiActContext: 'accept permission dialogs',
+        screenshotShrinkFactor: 2,
       }),
     );
   });
@@ -112,6 +120,9 @@ describe('IOSMidsceneTools', () => {
         'ios.deviceId': expect.anything(),
         'ios.wdaPort': expect.anything(),
         'ios.sessionId': expect.anything(),
+        'ios.waitAfterAction': expect.anything(),
+        'ios.replanningCycleLimit': expect.anything(),
+        'ios.screenshotShrinkFactor': expect.anything(),
       }),
     );
     expect(actTool?.schema).toEqual(
@@ -119,6 +130,7 @@ describe('IOSMidsceneTools', () => {
         'ios.deviceId': expect.anything(),
         'ios.wdaPort': expect.anything(),
         'ios.sessionId': expect.anything(),
+        'ios.waitAfterAction': expect.anything(),
       }),
     );
   });

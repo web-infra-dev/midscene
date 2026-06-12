@@ -1,6 +1,12 @@
 import { z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import {
+  type AgentBehaviorInitArgs,
+  agentBehaviorInitArgShape,
+  extractAgentBehaviorInitArgs,
+  getAgentInitArgsSignature,
+} from '@midscene/shared/mcp/agent-behavior-init-args';
+import {
   BaseMidsceneTools,
   type InitArgSpec,
 } from '@midscene/shared/mcp/base-tools';
@@ -10,34 +16,67 @@ import { HarmonyDevice } from './device';
 
 const debug = getDebug('mcp:harmony-tools');
 
+type HarmonyInitArgs = AgentBehaviorInitArgs & {
+  deviceId?: string;
+};
+
+function adaptHarmonyInitArgs(
+  extracted: Record<string, unknown> | undefined,
+): HarmonyInitArgs | undefined {
+  if (!extracted) {
+    return undefined;
+  }
+
+  const initArgs: HarmonyInitArgs = {
+    ...(typeof extracted.deviceId === 'string'
+      ? { deviceId: extracted.deviceId }
+      : {}),
+    ...(extractAgentBehaviorInitArgs(extracted as AgentBehaviorInitArgs) ?? {}),
+  };
+
+  return Object.keys(initArgs).length > 0 ? initArgs : undefined;
+}
+
 export class HarmonyMidsceneTools extends BaseMidsceneTools<
   HarmonyAgent,
-  string
+  HarmonyInitArgs
 > {
+  private lastInitArgsSignature?: string;
+
   protected getCliReportSessionName() {
     return 'midscene-harmony';
   }
 
-  protected readonly initArgSpec: InitArgSpec<string> = {
+  protected readonly initArgSpec: InitArgSpec<HarmonyInitArgs> = {
     namespace: 'harmony',
     shape: {
       deviceId: z
         .string()
         .optional()
         .describe('HarmonyOS device ID (from hdc list targets)'),
+      ...agentBehaviorInitArgShape,
     },
     cli: {
       preferBareKeys: true,
     },
-    adapt: (extracted) => extracted?.deviceId as string | undefined,
+    adapt: adaptHarmonyInitArgs,
   };
 
   protected createTemporaryDevice() {
     return new HarmonyDevice('temp-for-action-space', {});
   }
 
-  protected async ensureAgent(deviceId?: string): Promise<HarmonyAgent> {
-    if (this.agent && deviceId) {
+  protected async ensureAgent(
+    initArgs?: HarmonyInitArgs,
+  ): Promise<HarmonyAgent> {
+    const deviceId = initArgs?.deviceId;
+    const nextSignature = getAgentInitArgsSignature(initArgs);
+
+    if (
+      this.agent &&
+      nextSignature &&
+      nextSignature !== this.lastInitArgsSignature
+    ) {
       try {
         await this.agent.destroy?.();
       } catch (error) {
@@ -54,9 +93,11 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<
     const reportOptions = this.readCliReportAgentOptions();
     const agent = await agentFromHdcDevice(deviceId, {
       autoDismissKeyboard: false,
+      ...(extractAgentBehaviorInitArgs(initArgs) ?? {}),
       ...(reportOptions ?? {}),
     });
     this.agent = agent;
+    this.lastInitArgsSignature = nextSignature;
     return agent;
   }
 
@@ -69,7 +110,8 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<
         schema: this.getAgentInitArgSchema(),
         cli: this.getAgentInitArgCliMetadata(),
         handler: async (args: Record<string, unknown>) => {
-          const deviceId = this.extractAgentInitParam(args);
+          const initArgs = this.extractAgentInitParam(args);
+          const deviceId = initArgs?.deviceId;
           const reportSession = this.createNewCliReportSession(
             deviceId ?? 'auto',
           );
@@ -81,8 +123,9 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<
               debug('Failed to destroy agent during connect:', error);
             }
             this.agent = undefined;
+            this.lastInitArgsSignature = undefined;
           }
-          const agent = await this.ensureAgent(deviceId);
+          const agent = await this.ensureAgent(initArgs);
           const screenshot = await agent.page.screenshotBase64();
 
           return {

@@ -1,17 +1,43 @@
-import { ScreenshotItem, z } from '@midscene/core';
-import { BaseMidsceneTools } from '@midscene/shared/mcp/base-tools';
+import { ScreenshotItem } from '@midscene/core';
+import {
+  extractAgentBehaviorInitArgs,
+  getAgentInitArgsSignature,
+} from '@midscene/shared/mcp/agent-behavior-init-args';
+import {
+  BaseMidsceneTools,
+  type InitArgSpec,
+} from '@midscene/shared/mcp/base-tools';
 import type { ToolDefinition } from '@midscene/shared/mcp/types';
 import { AgentOverChromeBridge } from './bridge-mode';
 import { defaultStaticPageViewportSize } from './common/viewport';
+import {
+  type WebAgentInitArgs,
+  adaptWebAgentInitArgs,
+  webAgentInitArgShape,
+} from './mcp-agent-init-args';
 import { StaticPage } from './static';
 
 /**
  * Tools manager for Web bridge-mode MCP
  */
-export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
+export class WebMidsceneTools extends BaseMidsceneTools<
+  AgentOverChromeBridge,
+  WebAgentInitArgs
+> {
+  private lastInitArgsSignature?: string;
+
   protected getCliReportSessionName() {
     return 'midscene-web';
   }
+
+  protected readonly initArgSpec: InitArgSpec<WebAgentInitArgs> = {
+    namespace: 'web',
+    shape: webAgentInitArgShape,
+    cli: {
+      preferBareKeys: true,
+    },
+    adapt: adaptWebAgentInitArgs,
+  };
 
   protected createTemporaryDevice() {
     // Use require to avoid type incompatibility with DeviceAction vs ActionSpaceItem
@@ -25,10 +51,15 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
   }
 
   protected async ensureAgent(
-    openNewTabWithUrl?: string,
+    initArgs?: WebAgentInitArgs,
   ): Promise<AgentOverChromeBridge> {
-    // Re-init if URL provided
-    if (this.agent && openNewTabWithUrl) {
+    const nextSignature = getAgentInitArgsSignature(initArgs);
+
+    if (
+      this.agent &&
+      nextSignature &&
+      nextSignature !== this.lastInitArgsSignature
+    ) {
       try {
         await this.agent?.destroy?.();
       } catch (error) {
@@ -40,17 +71,20 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
     if (this.agent) return this.agent;
 
     // Connect to current tab when no URL provided (handles CLI stateless calls)
-    this.agent = await this.initBridgeModeAgent(openNewTabWithUrl);
+    this.agent = await this.initBridgeModeAgent(initArgs);
+    this.lastInitArgsSignature = nextSignature;
 
     return this.agent;
   }
 
   private async initBridgeModeAgent(
-    url?: string,
+    initArgs?: WebAgentInitArgs,
   ): Promise<AgentOverChromeBridge> {
+    const url = initArgs?.url;
     const reportOptions = this.readCliReportAgentOptions();
     const agent = new AgentOverChromeBridge({
       closeConflictServer: true,
+      ...(extractAgentBehaviorInitArgs(initArgs) ?? {}),
       ...(reportOptions ?? {}),
     });
 
@@ -69,28 +103,25 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
         name: 'web_connect',
         description:
           'Connect to web page. If URL provided, opens new tab; otherwise connects to current tab.',
-        schema: {
-          url: z
-            .string()
-            .url()
-            .optional()
-            .describe('URL to open in new tab (omit to connect current tab)'),
-        },
+        schema: this.getAgentInitArgSchema(),
+        cli: this.getAgentInitArgCliMetadata(),
         handler: async (args) => {
-          const { url } = args as { url?: string };
+          const initArgs = this.extractAgentInitParam(args);
+          const url = initArgs?.url;
 
-          // Bypass ensureAgent's URL check — directly init bridge agent
+          // Explicit connect always starts a fresh bridge session.
           if (this.agent) {
             try {
               await this.agent.destroy?.();
             } catch {}
             this.agent = undefined;
+            this.lastInitArgsSignature = undefined;
           }
           const reportSession = this.createNewCliReportSession(
             url ?? 'current-tab',
           );
           this.commitCliReportSession(reportSession);
-          this.agent = await this.initBridgeModeAgent(url);
+          this.agent = await this.ensureAgent(initArgs);
 
           const screenshot = await this.agent.page?.screenshotBase64();
           const label = url ?? 'current tab';
@@ -108,7 +139,19 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
         description:
           'Disconnect from current web page and release browser resources',
         schema: {},
-        handler: this.createDisconnectHandler('web page'),
+        handler: async () => {
+          if (!this.agent) {
+            return this.buildTextResult('No active connection to disconnect');
+          }
+
+          try {
+            await this.agent.destroy?.();
+          } catch {}
+          this.agent = undefined;
+          this.lastInitArgsSignature = undefined;
+
+          return this.buildTextResult('Disconnected from web page');
+        },
       },
     ];
   }
