@@ -728,6 +728,17 @@ footer code {
   font-size: 12.5px;
 }
 
+.tree-empty p {
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+
+.tree-empty b {
+  color: var(--text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
 /* ———————————————————————— stories: detail ———————————————————————— */
 
 .detail {

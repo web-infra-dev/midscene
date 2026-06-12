@@ -510,9 +510,11 @@ export function buildGraphScene(
       layerLabels.push(`NESTED FLOWS · DEPTH ${depth}`);
     }
     if (hidden > 0) {
+      // Phrased as a fact ("never call a flow") rather than "hidden", so it
+      // does not read as contradicting the per-scenario granularity toggle.
       hiddenNote = `${hidden} ${
         options.everyScenario ? 'scenarios' : 'features'
-      } without flow calls hidden`;
+      } never call a flow, so they are not drawn`;
     }
   }
 

@@ -153,6 +153,7 @@ export default function App() {
             selectedId={selectedId}
             onSelect={selectItem}
             onToggleGroup={toggleGroup}
+            onClearSearch={clearSearch}
           />
           <DetailPane
             model={model}

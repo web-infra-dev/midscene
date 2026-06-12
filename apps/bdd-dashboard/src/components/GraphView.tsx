@@ -386,7 +386,7 @@ export const GraphView = memo(function GraphView({
                   setPinnedId(null);
                 }}
               />
-              Show every scenario
+              One box per scenario
             </label>
             <label
               className="toggle"

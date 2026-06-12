@@ -18,6 +18,7 @@ interface SidebarProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   onToggleGroup: (key: string) => void;
+  onClearSearch: () => void;
 }
 
 function entryHeight(entry: TreeEntry): number {
@@ -75,6 +76,7 @@ export function Sidebar({
   selectedId,
   onSelect,
   onToggleGroup,
+  onClearSearch,
 }: SidebarProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
@@ -233,7 +235,19 @@ export function Sidebar({
         >
           {entries.length === 0 ? (
             <div className="tree-empty">
-              {query ? `No matches for "${query}"` : 'No features found.'}
+              {query ? (
+                <>
+                  <p>
+                    No scenario or flow matches <b>"{query}"</b> by name, tag or
+                    step text.
+                  </p>
+                  <button type="button" className="btn" onClick={onClearSearch}>
+                    Clear search
+                  </button>
+                </>
+              ) : (
+                'No features found.'
+              )}
             </div>
           ) : (
             <div className="tree-canvas" style={{ height: totalHeight }}>
