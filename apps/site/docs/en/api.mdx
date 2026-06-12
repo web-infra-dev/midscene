@@ -1232,12 +1232,11 @@ console.log(logContent);
 
 ## Deep Locate (deepLocate)
 
-`deepLocate` is an optional parameter available on all APIs that require element location (`aiTap`, `aiHover`, `aiInput`, `aiKeyboardPress`, `aiScroll`, `aiDoubleClick`, `aiRightClick`, `aiLocate`, etc.).
+`deepLocate` is an optional parameter available on all APIs that require element location (`aiAct`, `aiTap`, `aiHover`, `aiInput`, `aiKeyboardPress`, `aiScroll`, `aiDoubleClick`, `aiRightClick`, `aiLocate`, etc.).
 
-When enabled, Midscene will call the AI model twice to precisely locate the element, which can improve accuracy. This is especially useful when the target element is small or hard to distinguish from its surroundings. For newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less noticeable in most cases, so enable it only when needed.
+When enabled, Midscene will call the AI model twice to precisely locate the element, which can improve accuracy. This is especially useful when the target element is small or hard to distinguish from its surroundings. For newer models (e.g. Qwen3.x / Doubao 2.0 / Gemini 3.5), the gain is less noticeable in most cases, so enable it only when needed.
 
 - **Default**: `false`
-- **Parameter renamed**: Previously named `deepThink`, renamed to `deepLocate` since v1.5.1. The old `deepThink` parameter remains compatible.
 
 ```typescript
 // Enable deepLocate to precisely locate hard-to-identify elements
@@ -1246,12 +1245,11 @@ await agent.aiTap('Shopping cart icon in the top right', { deepLocate: true });
 
 :::note
 
-`deepThink` in `aiAct()` and `deepLocate` here are completely different features:
+This parameter was originally named `deepThink` in single-step action methods such as `aiTap` and `aiHover` other than `aiAct`. Since v1.5.1, it has been renamed to `deepLocate`, but the old `deepThink` parameter remains compatible.
 
-- `deepLocate`: Controls the **precision of element location** by making Midscene run two locate passes to improve accuracy.
-- `deepThink` in `aiAct()`: Controls the **planning mode** by guiding task decomposition and planning-only reasoning.
+The `deepThink` parameter in `aiAct()` still keeps the `deepThink` semantics. It controls the **planning mode** and guides task decomposition and planning-focused reasoning. See [aiAct deepThink documentation](./model-strategy#about-the-deepthink-option-in-aiact) for details.
 
-[See aiAct deepThink documentation](./model-strategy#about-the-deepthink-option-in-aiact)
+In single-step action methods such as `aiTap` and `aiHover`, use the clearer `deepLocate` parameter instead of the old `deepThink` parameter when you need to improve location precision.
 
 :::
 
