@@ -1281,6 +1281,54 @@ svg.fade-edges .gedge.hot {
   color: var(--muted);
 }
 
+/* ———————————————————————— boot error boundary ———————————————————————— */
+
+.boot-error {
+  height: 100vh;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  padding: 24px;
+}
+
+.boot-error-card {
+  max-width: 560px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 26px 30px;
+  box-shadow: var(--shadow-2);
+}
+
+.boot-error-card h1 {
+  margin: 0 0 12px;
+  font-size: 17px;
+  color: var(--text-bright);
+}
+
+.boot-error-message {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  color: var(--bad);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  word-break: break-word;
+}
+
+.boot-error-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.boot-error-hint code {
+  font-family: var(--font-mono);
+  color: var(--accent-bright);
+}
+
 /* ———————————————————————— motion ———————————————————————— */
 
 @keyframes rise-in {
