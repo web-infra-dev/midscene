@@ -94,6 +94,15 @@ describe('auto-glm parser', () => {
       expect(result.think).toBe('Click the button');
       expect(result.content).toBe('foo(action="Tap", element=[50,100])');
     });
+
+    it('should return plain content when no Auto-GLM action marker exists', () => {
+      const response = 'No actionable content yet';
+      const result = parseAutoGLMResponse(response);
+      expect(result).toEqual({
+        think: '',
+        content: 'No actionable content yet',
+      });
+    });
   });
 
   describe('parseAction', () => {
@@ -253,6 +262,15 @@ describe('auto-glm parser', () => {
           content: 'do(invalid syntax)',
         });
       }).toThrow('Failed to extract action type from do() call');
+    });
+
+    it('should throw error for Wait action without duration', () => {
+      expect(() => {
+        parseAction({
+          think: 'Wait without duration',
+          content: 'do(action="Wait")',
+        });
+      }).toThrow('Failed to extract duration for Wait');
     });
   });
 
@@ -559,6 +577,27 @@ describe('auto-glm actions transformation', () => {
     expect(() => transformAutoGLMAction(noteAction, defaultSize)).toThrow(
       'not supported',
     );
+  });
+
+  it('should throw error for unknown transformed do action type', () => {
+    const unknownAction: any = {
+      _metadata: 'do',
+      action: 'UnknownAction',
+    };
+
+    expect(() => transformAutoGLMAction(unknownAction, defaultSize)).toThrow(
+      'Unknown do() action type: UnknownAction',
+    );
+  });
+
+  it('should throw error for unknown transformed action metadata', () => {
+    const unknownMetadataAction: any = {
+      _metadata: 'unknown',
+    };
+
+    expect(() =>
+      transformAutoGLMAction(unknownMetadataAction, defaultSize),
+    ).toThrow('Unknown action metadata: unknown');
   });
 });
 
