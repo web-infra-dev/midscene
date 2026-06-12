@@ -13,7 +13,19 @@
   "include": ["src", "tests"],
   "references": [
     {
+      "path": "../android"
+    },
+    {
+      "path": "../computer"
+    },
+    {
       "path": "../core"
+    },
+    {
+      "path": "../harmony"
+    },
+    {
+      "path": "../ios"
     },
     {
       "path": "../shared"

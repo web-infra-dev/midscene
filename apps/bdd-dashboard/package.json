@@ -29,11 +29,12 @@
           "cwd": "apps/bdd-dashboard"
         },
         "cache": true,
-        "dependsOn": ["@midscene/shared:build"],
+        "dependsOn": ["@midscene/shared:build", "@midscene/core:build"],
         "inputs": [
           "build",
           "{workspaceRoot}/package.json",
-          "{workspaceRoot}/packages/bdd/src/explore/model.ts"
+          "{workspaceRoot}/packages/bdd/src/explore/model.ts",
+          "{workspaceRoot}/packages/bdd/src/types.ts"
         ],
         "outputs": [
           "{projectRoot}/dist",
