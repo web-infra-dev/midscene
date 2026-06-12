@@ -68,7 +68,16 @@ describe('loadBddConfig', () => {
       dir,
       `export default {
         uiAgent: { type: 'web', url: 'https://example.com', headed: true },
-        generalAgent: { modelEnv: { MIDSCENE_MODEL_BASE_URL: 'codex://app-server' } },
+        generalAgent: {
+          type: 'codex',
+          model: 'gpt-5.3-codex',
+          env: { MIDSCENE_MODEL_API_KEY: 'sk-x' },
+          cwd: '/srv/app',
+          timeoutMs: 120000,
+          permissions: 'read-only',
+          reuseMidsceneModelEnv: false,
+          sessionPerScenario: true,
+        },
         paths: { features: ['e2e/**/*.feature'], skills: 'e2e/skills' },
       };\n`,
     );
@@ -81,12 +90,96 @@ describe('loadBddConfig', () => {
       headed: true,
     });
     expect(resolved.generalAgent).toEqual({
-      modelEnv: { MIDSCENE_MODEL_BASE_URL: 'codex://app-server' },
+      type: 'codex',
+      model: 'gpt-5.3-codex',
+      env: { MIDSCENE_MODEL_API_KEY: 'sk-x' },
+      cwd: '/srv/app',
+      timeoutMs: 120000,
+      permissions: 'read-only',
+      reuseMidsceneModelEnv: false,
+      sessionPerScenario: true,
     });
     expect(resolved.paths).toEqual({
       features: ['e2e/**/*.feature'],
       skills: 'e2e/skills',
     });
+  });
+
+  it('rejects the removed generalAgent.modelEnv with a migration hint', async () => {
+    const dir = makeTmpDir();
+    writeConfig(
+      dir,
+      `export default {
+        uiAgent: { type: 'web', url: 'https://example.com' },
+        generalAgent: { modelEnv: { MIDSCENE_MODEL_NAME: 'x' } },
+      };\n`,
+    );
+
+    await expect(loadBddConfig({ cwd: dir })).rejects.toThrow(
+      /generalAgent\.modelEnv was removed[\s\S]*generalAgent\.env/,
+    );
+  });
+
+  it('rejects an unknown generalAgent.type, naming the type', async () => {
+    const dir = makeTmpDir();
+    writeConfig(
+      dir,
+      `export default {
+        uiAgent: { type: 'web', url: 'https://example.com' },
+        generalAgent: { type: 'claude' },
+      };\n`,
+    );
+
+    await expect(loadBddConfig({ cwd: dir })).rejects.toThrow(
+      /generalAgent\.type 'claude' is unknown — use 'opencode' \(default\) or 'codex'/,
+    );
+  });
+
+  it('validates generalAgent field types', async () => {
+    const dir = makeTmpDir();
+    const cases: Array<[string, RegExp]> = [
+      [
+        `generalAgent: { model: '' }`,
+        /generalAgent\.model must be a non-empty string/,
+      ],
+      [
+        'generalAgent: { env: { KEY: 42 } }',
+        /generalAgent\.env must be a record of string values/,
+      ],
+      [
+        `generalAgent: { cwd: '' }`,
+        /generalAgent\.cwd must be a non-empty string/,
+      ],
+      [
+        'generalAgent: { timeoutMs: -1 }',
+        /generalAgent\.timeoutMs must be a positive number/,
+      ],
+      [
+        `generalAgent: { permissions: 'yolo' }`,
+        /generalAgent\.permissions 'yolo' is unknown/,
+      ],
+      [
+        `generalAgent: { reuseMidsceneModelEnv: 'yes' }`,
+        /generalAgent\.reuseMidsceneModelEnv must be a boolean/,
+      ],
+      [
+        'generalAgent: { sessionPerScenario: 1 }',
+        /generalAgent\.sessionPerScenario must be a boolean/,
+      ],
+      [
+        'generalAgent: { factory: 42 }',
+        /generalAgent\.factory must be a function/,
+      ],
+    ];
+    for (const [index, [fragment, expected]] of cases.entries()) {
+      // Unique file per case — jiti may cache previously loaded modules.
+      const configPath = writeConfig(
+        dir,
+        `export default { uiAgent: { type: 'web', url: 'https://example.com' }, ${fragment} };\n`,
+        `case-${index}.config.ts`,
+      );
+      await expect(loadBddConfig({ configPath })).rejects.toThrow(expected);
+    }
   });
 
   it('throws a helpful error when the config file is missing', async () => {

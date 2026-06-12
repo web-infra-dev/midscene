@@ -8,7 +8,8 @@
  */
 import { World } from '@cucumber/cucumber';
 import type { GherkinDocument, Pickle, PickleStep } from '@cucumber/messages';
-import { CallAiGeneralAgent } from './agents/general-agent';
+import { CodexGeneralAgent } from './agents/codex-agent';
+import { OpencodeGeneralAgent } from './agents/opencode-agent';
 import { createUiAgent } from './agents/ui-agent';
 import {
   ERROR_PREFIX,
@@ -101,10 +102,33 @@ export class MidsceneWorld extends World {
 
   async getGeneralAgent(): Promise<GeneralAgent> {
     if (!this.generalAgent) {
-      const generalConfig = getRuntime().config.generalAgent;
-      this.generalAgent = generalConfig.factory
-        ? await generalConfig.factory()
-        : new CallAiGeneralAgent(generalConfig);
+      const { config } = getRuntime();
+      const generalConfig = config.generalAgent;
+      if (generalConfig.factory) {
+        this.generalAgent = await generalConfig.factory();
+      } else {
+        const type = generalConfig.type ?? 'opencode';
+        switch (type) {
+          case 'opencode':
+            this.generalAgent = new OpencodeGeneralAgent(
+              generalConfig,
+              config.baseDir,
+            );
+            break;
+          case 'codex':
+            this.generalAgent = new CodexGeneralAgent(
+              generalConfig,
+              config.baseDir,
+            );
+            break;
+          default: {
+            const exhaustive: never = type;
+            throw new Error(
+              `${ERROR_PREFIX} unknown generalAgent.type: ${exhaustive}`,
+            );
+          }
+        }
+      }
     }
     return this.generalAgent;
   }

@@ -16,21 +16,32 @@ import {
   setRuntime,
 } from '../../src/world';
 
-const { generalDisposeSpy, generalCtorSpy } = vi.hoisted(() => ({
+const { generalDisposeSpy, generalCtorSpy, codexCtorSpy } = vi.hoisted(() => ({
   generalDisposeSpy: vi.fn(async () => {}),
   generalCtorSpy: vi.fn(),
+  codexCtorSpy: vi.fn(),
 }));
 
 vi.mock('../../src/agents/ui-agent', () => ({
   createUiAgent: vi.fn(),
 }));
 
-vi.mock('../../src/agents/general-agent', () => ({
-  CallAiGeneralAgent: class {
+vi.mock('../../src/agents/opencode-agent', () => ({
+  OpencodeGeneralAgent: class {
     run = vi.fn();
     dispose = generalDisposeSpy;
-    constructor(opts: unknown) {
-      generalCtorSpy(opts);
+    constructor(...args: unknown[]) {
+      generalCtorSpy(...args);
+    }
+  },
+}));
+
+vi.mock('../../src/agents/codex-agent', () => ({
+  CodexGeneralAgent: class {
+    run = vi.fn();
+    dispose = generalDisposeSpy;
+    constructor(...args: unknown[]) {
+      codexCtorSpy(...args);
     }
   },
 }));
@@ -50,7 +61,7 @@ function makeWorld(): MidsceneWorld {
 function makeConfig(): ResolvedBddConfig {
   return {
     uiAgent: { type: 'web', url: 'http://localhost' },
-    generalAgent: { modelEnv: { MIDSCENE_MODEL_NAME: 'test-model' } },
+    generalAgent: { model: 'test-model' },
     paths: { features: ['features/**/*.feature'], skills: 'features/skills' },
     baseDir: '/tmp/project',
   };
@@ -148,7 +159,7 @@ describe('MidsceneWorld.getUiAgent', () => {
 });
 
 describe('MidsceneWorld.getGeneralAgent', () => {
-  it('lazily constructs one agent from config.generalAgent and caches it', async () => {
+  it('lazily constructs one opencode agent (default type) and caches it', async () => {
     const world = makeWorld();
     const first = await world.getGeneralAgent();
     const second = await world.getGeneralAgent();
@@ -157,10 +168,30 @@ describe('MidsceneWorld.getGeneralAgent', () => {
     expect(generalCtorSpy).toHaveBeenCalledTimes(1);
     expect(generalCtorSpy).toHaveBeenCalledWith(
       getRuntime().config.generalAgent,
+      getRuntime().config.baseDir,
     );
+    expect(codexCtorSpy).not.toHaveBeenCalled();
   });
 
-  it('uses config.generalAgent.factory when provided, bypassing CallAiGeneralAgent', async () => {
+  it("constructs the codex agent for type: 'codex'", async () => {
+    setRuntime({
+      ...getRuntime(),
+      config: {
+        ...getRuntime().config,
+        generalAgent: { type: 'codex' },
+      },
+    });
+    const world = makeWorld();
+    await world.getGeneralAgent();
+    expect(codexCtorSpy).toHaveBeenCalledTimes(1);
+    expect(codexCtorSpy).toHaveBeenCalledWith(
+      { type: 'codex' },
+      getRuntime().config.baseDir,
+    );
+    expect(generalCtorSpy).not.toHaveBeenCalled();
+  });
+
+  it('uses config.generalAgent.factory when provided, bypassing the CLI adapters', async () => {
     const fake = { run: vi.fn() };
     const factory = vi.fn(async () => fake);
     setRuntime({

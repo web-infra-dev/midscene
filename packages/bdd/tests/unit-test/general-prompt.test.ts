@@ -1,13 +1,13 @@
 /**
- * Pure-logic tests for the general agent: no model calls, no top-level
- * @midscene/core import (CallAiGeneralAgent lazy-imports it at run time).
+ * Pure-logic tests for the general agent prompt/verdict helpers; no model or
+ * CLI dependencies.
  */
 import { describe, expect, it } from 'vitest';
 import {
   VERDICT_INSTRUCTIONS,
   buildGeneralPrompt,
   extractVerdict,
-} from '../../src/agents/general-agent';
+} from '../../src/agents/general-prompt';
 import { renderSkillsForPrompt } from '../../src/skills';
 import type { GeneralAgentRequest, Skill } from '../../src/types';
 

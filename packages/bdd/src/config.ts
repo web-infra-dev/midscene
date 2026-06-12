@@ -78,16 +78,75 @@ function validateBddConfig(config: unknown): asserts config is BddConfig {
       throw configError('generalAgent must be an object');
     }
     if (generalAgent.modelEnv !== undefined) {
-      const modelEnv = generalAgent.modelEnv;
+      throw configError(
+        "generalAgent.modelEnv was removed — the general agent is now a CLI coding agent (opencode/codex). Use generalAgent.env to pass env vars to the spawned CLI, generalAgent.model to override the model, or generalAgent.type: 'codex' to switch CLIs.",
+      );
+    }
+    if (
+      generalAgent.type !== undefined &&
+      generalAgent.type !== 'opencode' &&
+      generalAgent.type !== 'codex'
+    ) {
+      throw configError(
+        `generalAgent.type '${String(generalAgent.type)}' is unknown — use 'opencode' (default) or 'codex'`,
+      );
+    }
+    if (
+      generalAgent.model !== undefined &&
+      (typeof generalAgent.model !== 'string' ||
+        generalAgent.model.length === 0)
+    ) {
+      throw configError('generalAgent.model must be a non-empty string');
+    }
+    if (generalAgent.env !== undefined) {
+      const env = generalAgent.env;
       if (
-        typeof modelEnv !== 'object' ||
-        modelEnv === null ||
-        Object.values(modelEnv).some((v) => typeof v !== 'string')
+        typeof env !== 'object' ||
+        env === null ||
+        Object.values(env).some((v) => typeof v !== 'string')
+      ) {
+        throw configError('generalAgent.env must be a record of string values');
+      }
+    }
+    if (
+      generalAgent.cwd !== undefined &&
+      (typeof generalAgent.cwd !== 'string' || generalAgent.cwd.length === 0)
+    ) {
+      throw configError('generalAgent.cwd must be a non-empty string');
+    }
+    if (generalAgent.timeoutMs !== undefined) {
+      const timeoutMs = generalAgent.timeoutMs;
+      if (
+        typeof timeoutMs !== 'number' ||
+        !Number.isFinite(timeoutMs) ||
+        timeoutMs <= 0
       ) {
         throw configError(
-          'generalAgent.modelEnv must be a record of string values',
+          'generalAgent.timeoutMs must be a positive number of milliseconds',
         );
       }
+    }
+    if (
+      generalAgent.permissions !== undefined &&
+      generalAgent.permissions !== 'read-only' &&
+      generalAgent.permissions !== 'workspace' &&
+      generalAgent.permissions !== 'all'
+    ) {
+      throw configError(
+        `generalAgent.permissions '${String(generalAgent.permissions)}' is unknown — use 'read-only', 'workspace' (default), or 'all'`,
+      );
+    }
+    if (
+      generalAgent.reuseMidsceneModelEnv !== undefined &&
+      typeof generalAgent.reuseMidsceneModelEnv !== 'boolean'
+    ) {
+      throw configError('generalAgent.reuseMidsceneModelEnv must be a boolean');
+    }
+    if (
+      generalAgent.sessionPerScenario !== undefined &&
+      typeof generalAgent.sessionPerScenario !== 'boolean'
+    ) {
+      throw configError('generalAgent.sessionPerScenario must be a boolean');
     }
     if (
       generalAgent.factory !== undefined &&

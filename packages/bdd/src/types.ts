@@ -68,11 +68,33 @@ export type UiAgentFactory = () => Promise<{
 }>;
 
 export interface GeneralAgentConfig {
+  /** Which CLI coding agent runs @agent/$skill steps. Default: 'opencode'. */
+  type?: 'opencode' | 'codex';
   /**
-   * General agent model env overrides (MIDSCENE_MODEL_* keys). Defaults to
-   * process env; `MIDSCENE_MODEL_BASE_URL=codex://app-server` is supported.
+   * Model override. opencode: 'provider/model', or a bare name mapped onto
+   * the generated `midscene` provider. codex: passed as `-m`.
+   * Default: the resolved MIDSCENE_MODEL_NAME.
    */
-  modelEnv?: Record<string, string>;
+  model?: string;
+  /** Extra env for the spawned CLI, merged over process.env. */
+  env?: Record<string, string>;
+  /** Working directory for the spawned CLI. Default: the config file's dir. */
+  cwd?: string;
+  /** Hard kill timeout per invocation. Default: 600_000 (10 min). */
+  timeoutMs?: number;
+  /**
+   * What the agent may do in cwd: 'read-only' denies edits/shell writes,
+   * 'workspace' (default) allows workspace writes, 'all' disables
+   * sandboxing/permission prompts entirely (dangerous).
+   */
+  permissions?: 'read-only' | 'workspace' | 'all';
+  /**
+   * Reuse the Midscene model endpoint/key (MIDSCENE_MODEL_* env, legacy
+   * OPENAI_* fallback) for the CLI agent. Default: true.
+   */
+  reuseMidsceneModelEnv?: boolean;
+  /** Continue one CLI session across the steps of a scenario. Default: false. */
+  sessionPerScenario?: boolean;
   /** Escape hatch mirroring the uiAgent factory (e.g. for tests/custom agents). */
   factory?: () => Promise<GeneralAgent>;
 }
