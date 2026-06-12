@@ -96,3 +96,13 @@ export function getAgentInitArgsSignature(
 
   return JSON.stringify(stableJsonValue(initArgs));
 }
+
+export function shouldRebuildAgentForInitArgs(
+  currentSignature: string | undefined,
+  nextSignature: string | undefined,
+): boolean {
+  return (
+    currentSignature !== nextSignature &&
+    (currentSignature !== undefined || nextSignature !== undefined)
+  );
+}

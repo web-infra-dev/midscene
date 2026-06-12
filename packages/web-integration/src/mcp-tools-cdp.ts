@@ -3,6 +3,7 @@ import { getDebug } from '@midscene/shared/logger';
 import {
   extractAgentBehaviorInitArgs,
   getAgentInitArgsSignature,
+  shouldRebuildAgentForInitArgs,
 } from '@midscene/shared/mcp/agent-behavior-init-args';
 import {
   BaseMidsceneTools,
@@ -89,11 +90,15 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<
   ): Promise<PuppeteerAgent> {
     const navigateToUrl = initArgs?.url;
     const nextSignature = getAgentInitArgsSignature(initArgs);
+    const shouldNavigateToUrl = typeof navigateToUrl === 'string';
 
     if (
       this.agent &&
-      nextSignature &&
-      nextSignature !== this.lastInitArgsSignature
+      (shouldNavigateToUrl ||
+        shouldRebuildAgentForInitArgs(
+          this.lastInitArgsSignature,
+          nextSignature,
+        ))
     ) {
       try {
         await this.agent?.destroy?.();

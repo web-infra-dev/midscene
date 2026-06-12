@@ -233,4 +233,30 @@ describe('AndroidMidsceneTools', () => {
       waitAfterAction: 900,
     });
   });
+
+  it('rebuilds the Android agent when init args are omitted after being set', async () => {
+    const firstAgent = createMockAgent();
+    const secondAgent = createMockAgent();
+    vi.mocked(agentFromAdbDevice)
+      .mockResolvedValueOnce(firstAgent as any)
+      .mockResolvedValueOnce(secondAgent as any);
+
+    const tools = new AndroidMidsceneTools();
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+
+    await takeScreenshotTool?.handler({
+      android: { deviceId: 'device-A', waitAfterAction: 650 },
+    });
+    await takeScreenshotTool?.handler({});
+
+    expect(agentFromAdbDevice).toHaveBeenCalledTimes(2);
+    expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
+    expect(agentFromAdbDevice).toHaveBeenLastCalledWith(undefined, {
+      autoDismissKeyboard: false,
+    });
+  });
 });

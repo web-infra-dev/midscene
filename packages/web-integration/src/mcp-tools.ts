@@ -2,6 +2,7 @@ import { ScreenshotItem } from '@midscene/core';
 import {
   extractAgentBehaviorInitArgs,
   getAgentInitArgsSignature,
+  shouldRebuildAgentForInitArgs,
 } from '@midscene/shared/mcp/agent-behavior-init-args';
 import {
   BaseMidsceneTools,
@@ -54,11 +55,15 @@ export class WebMidsceneTools extends BaseMidsceneTools<
     initArgs?: WebAgentInitArgs,
   ): Promise<AgentOverChromeBridge> {
     const nextSignature = getAgentInitArgsSignature(initArgs);
+    const shouldOpenUrl = typeof initArgs?.url === 'string';
 
     if (
       this.agent &&
-      nextSignature &&
-      nextSignature !== this.lastInitArgsSignature
+      (shouldOpenUrl ||
+        shouldRebuildAgentForInitArgs(
+          this.lastInitArgsSignature,
+          nextSignature,
+        ))
     ) {
       try {
         await this.agent?.destroy?.();

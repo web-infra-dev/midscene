@@ -190,6 +190,29 @@ midscene-android --deep-locate tap --locate "登录按钮"
 
 单次调用的取值始终优先于启动参数:Action 工具支持 `locate.deepLocate`,`act` 工具支持顶层的 `deepLocate` 与 `deepThink` 布尔参数,因此任意单次调用都可以无视启动设置自行开启或关闭。
 
+## 按单次调用配置 Agent 行为
+
+MCP 工具和设备 CLI 也支持通用的 Agent 行为参数。如果目标 UI 需要更长的稳定等待时间、不同的 `act` 重规划上限、额外的动作上下文，或需要压缩截图，都可以使用这些参数。
+
+在设备 CLI 中，把这些 bare kebab-case 参数加到需要生效的命令上：
+
+```bash
+midscene-android tap --locate "登录按钮" --wait-after-action 800
+midscene-web act --prompt "完成结账" --replanning-cycle-limit 30
+midscene-ios assert --prompt "成功提示可见" --screenshot-shrink-factor 2
+```
+
+可用参数：
+
+- `--wait-after-action <ms>`：每次动作执行后的等待时间，默认值为 `300`。
+- `--replanning-cycle-limit <n>`：`aiAct` 的最大重规划次数。
+- `--ai-act-context <text>`：传给 `aiAct` 的额外背景信息。
+- `--screenshot-shrink-factor <n>`：发送给 AI 模型前的截图压缩倍率。
+
+在 MCP 调用中，使用平台 namespace 下的 camelCase 参数名：`android.waitAfterAction`、`harmony.waitAfterAction`、`ios.waitAfterAction`、`computer.waitAfterAction` 或 `web.waitAfterAction`。`replanningCycleLimit`、`aiActContext` 和 `screenshotShrinkFactor` 也使用同样的规则。
+
+这些参数属于当前工具调用的 Agent init args。后续调用如果改变这些参数，或在设置后省略它们，Midscene 会重建 Agent，让下一次调用使用新的有效配置。对于 Web 工具，只要传入 `web.url`，每次都会打开或导航到该 URL；省略它则继续使用当前页面。
+
 ## 实现自己的 MCP
 
 如果你想在自己的 MCP 服务中集成 Midscene 工具，可以使用 `mcpKitForAgent` 函数来获取工具定义，继而自己按需暴露 MCP 服务。

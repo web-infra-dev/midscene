@@ -7,6 +7,7 @@ import { ScreenshotItem } from '@midscene/core';
 import {
   extractAgentBehaviorInitArgs,
   getAgentInitArgsSignature,
+  shouldRebuildAgentForInitArgs,
 } from '@midscene/shared/mcp/agent-behavior-init-args';
 import {
   BaseMidsceneTools,
@@ -276,11 +277,15 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
   ): Promise<PuppeteerAgent> {
     const navigateToUrl = initArgs?.url;
     const nextSignature = getAgentInitArgsSignature(initArgs);
+    const shouldOpenUrl = typeof navigateToUrl === 'string';
 
     if (
       this.agent &&
-      nextSignature &&
-      nextSignature !== this.lastInitArgsSignature
+      (shouldOpenUrl ||
+        shouldRebuildAgentForInitArgs(
+          this.lastInitArgsSignature,
+          nextSignature,
+        ))
     ) {
       try {
         await this.agent?.destroy?.();

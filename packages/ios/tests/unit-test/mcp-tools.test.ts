@@ -174,6 +174,39 @@ describe('IOSMidsceneTools', () => {
     expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
   });
 
+  it('rebuilds the iOS agent when init args are omitted after being set', async () => {
+    const firstAgent = createMockAgent();
+    const secondAgent = createMockAgent();
+    vi.mocked(agentFromWebDriverAgent)
+      .mockResolvedValueOnce(firstAgent as any)
+      .mockResolvedValueOnce(secondAgent as any);
+
+    const tools = new IOSMidsceneTools();
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+
+    await takeScreenshotTool?.handler({
+      ios: { deviceId: 'udid-A', waitAfterAction: 650 },
+    });
+    await takeScreenshotTool?.handler({});
+
+    expect(agentFromWebDriverAgent).toHaveBeenCalledTimes(2);
+    expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
+    const lastAgentOptions = vi
+      .mocked(agentFromWebDriverAgent)
+      .mock.calls.at(-1)?.[0];
+    expect(lastAgentOptions).toEqual(
+      expect.objectContaining({
+        autoDismissKeyboard: false,
+      }),
+    );
+    expect(lastAgentOptions).not.toHaveProperty('deviceId');
+    expect(lastAgentOptions).not.toHaveProperty('waitAfterAction');
+  });
+
   it('rebuilds the iOS agent when only the external WDA session changes', async () => {
     const firstAgent = createMockAgent();
     const secondAgent = createMockAgent();

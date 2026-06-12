@@ -267,6 +267,116 @@ describe('web MCP agent init args', () => {
     }
   });
 
+  it('rebuilds the Puppeteer agent without behavior args when they are omitted after being set', async () => {
+    const { root, persistence } = createPersistenceRoot();
+    try {
+      const firstAgent = {
+        page: {
+          screenshotBase64: vi.fn(async () => validPngBase64),
+        },
+        destroy: vi.fn(),
+      };
+      const secondAgent = {
+        page: {
+          screenshotBase64: vi.fn(async () => validPngBase64),
+        },
+        destroy: vi.fn(),
+      };
+      vi.mocked(PuppeteerAgent)
+        .mockReturnValueOnce(firstAgent as any)
+        .mockReturnValueOnce(secondAgent as any);
+
+      const tools = new WebPuppeteerMidsceneTools(undefined, { persistence });
+      await tools.initTools();
+
+      const takeScreenshotTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'take_screenshot');
+
+      await takeScreenshotTool?.handler({
+        web: { waitAfterAction: 650 },
+      });
+      await takeScreenshotTool?.handler({});
+
+      expect(PuppeteerAgent).toHaveBeenCalledTimes(2);
+      expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
+      const lastAgentOptions = vi.mocked(PuppeteerAgent).mock.calls.at(-1)?.[1];
+      expect(lastAgentOptions).not.toHaveProperty('waitAfterAction');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it.each<[string, WebInitArgTestFactory, () => void]>([
+    [
+      'bridge',
+      () => ({
+        tools: new WebMidsceneTools(),
+      }),
+      () => {
+        expect(AgentOverChromeBridge).toHaveBeenCalledTimes(2);
+        const openUrlCallCount = vi
+          .mocked(AgentOverChromeBridge)
+          .mock.results.map((result) => result.value.connectNewTabWithUrl)
+          .reduce(
+            (count, connectNewTabWithUrl) =>
+              count + connectNewTabWithUrl.mock.calls.length,
+            0,
+          );
+        expect(openUrlCallCount).toBe(2);
+      },
+    ],
+    [
+      'puppeteer',
+      () => {
+        const { root, persistence } = createPersistenceRoot();
+        return {
+          tools: new WebPuppeteerMidsceneTools(undefined, { persistence }),
+          cleanup: () => rmSync(root, { recursive: true, force: true }),
+        };
+      },
+      () => {
+        expect(PuppeteerAgent).toHaveBeenCalledTimes(2);
+        expect(mockBrowser.newPage).toHaveBeenCalledTimes(2);
+        expect(mockPage.goto).toHaveBeenCalledTimes(2);
+      },
+    ],
+    [
+      'cdp',
+      () => ({
+        tools: new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1'),
+      }),
+      () => {
+        expect(PuppeteerAgent).toHaveBeenCalledTimes(2);
+        expect(mockPage.goto).toHaveBeenCalledTimes(2);
+      },
+    ],
+  ] as const)(
+    'reopens or renavigates when the same web.url is passed twice in %s mode',
+    async (_mode, create, assertReopened) => {
+      const { tools, cleanup } = create();
+
+      try {
+        await tools.initTools();
+
+        const takeScreenshotTool = tools
+          .getToolDefinitions()
+          .find((tool) => tool.name === 'take_screenshot');
+
+        await takeScreenshotTool?.handler({
+          web: { url: 'https://example.com' },
+        });
+        await takeScreenshotTool?.handler({
+          web: { url: 'https://example.com' },
+        });
+
+        assertReopened();
+      } finally {
+        cleanup?.();
+      }
+    },
+  );
+
   it('passes common behavior args to CDP agent creation', async () => {
     const tools = new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1');
     await tools.initTools();

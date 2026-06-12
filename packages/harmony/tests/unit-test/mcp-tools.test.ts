@@ -184,4 +184,30 @@ describe('HarmonyMidsceneTools', () => {
       waitAfterAction: 650,
     });
   });
+
+  it('rebuilds the Harmony agent when init args are omitted after being set', async () => {
+    const firstAgent = createMockAgent();
+    const secondAgent = createMockAgent();
+    vi.mocked(agentFromHdcDevice)
+      .mockResolvedValueOnce(firstAgent as any)
+      .mockResolvedValueOnce(secondAgent as any);
+
+    const tools = new HarmonyMidsceneTools();
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+
+    await takeScreenshotTool?.handler({
+      harmony: { deviceId: 'device-A', waitAfterAction: 650 },
+    });
+    await takeScreenshotTool?.handler({});
+
+    expect(agentFromHdcDevice).toHaveBeenCalledTimes(2);
+    expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
+    expect(agentFromHdcDevice).toHaveBeenLastCalledWith(undefined, {
+      autoDismissKeyboard: false,
+    });
+  });
 });

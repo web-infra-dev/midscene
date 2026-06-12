@@ -4,6 +4,7 @@ import {
   type AgentBehaviorInitArgs,
   agentBehaviorInitArgShape,
   getAgentInitArgsSignature,
+  shouldRebuildAgentForInitArgs,
 } from '@midscene/shared/mcp/agent-behavior-init-args';
 import {
   BaseMidsceneTools,
@@ -96,8 +97,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
 
     if (
       this.agent &&
-      nextSignature &&
-      nextSignature !== this.lastOptsSignature
+      shouldRebuildAgentForInitArgs(this.lastOptsSignature, nextSignature)
     ) {
       try {
         await this.agent.destroy?.();

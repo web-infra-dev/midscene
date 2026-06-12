@@ -5,6 +5,7 @@ import {
   agentBehaviorInitArgShape,
   extractAgentBehaviorInitArgs,
   getAgentInitArgsSignature,
+  shouldRebuildAgentForInitArgs,
 } from '@midscene/shared/mcp/agent-behavior-init-args';
 import {
   BaseMidsceneTools,
@@ -199,8 +200,7 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
 
     if (
       this.agent &&
-      nextSignature &&
-      nextSignature !== this.lastInitArgsSignature
+      shouldRebuildAgentForInitArgs(this.lastInitArgsSignature, nextSignature)
     ) {
       try {
         await this.agent.destroy?.();
