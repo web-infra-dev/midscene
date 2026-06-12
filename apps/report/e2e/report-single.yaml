@@ -5,47 +5,9 @@ tasks:
   # --- Basic loading ---
   - name: report loads and displays tasks
     flow:
-      - sleep: 3000
-      - javascript: |
-          (function () {
-            const rows = Array.from(
-              document.querySelectorAll('.tasks-table .task-row'),
-            );
-            if (rows.length < 2) {
-              throw new Error(
-                'Expected at least two sidebar task rows, found ' + rows.length,
-              );
-            }
-            const hasTimeColumn = rows.some((row) =>
-              row.querySelector('.column-time')?.textContent?.trim(),
-            );
-            if (!hasTimeColumn) {
-              throw new Error('Sidebar task rows do not show time costs');
-            }
-            return { taskRows: rows.length, hasTimeColumn };
-          })()
-        name: assertSidebarTaskList
-      - javascript: |
-          (function () {
-            const headerText = document
-              .querySelector('.main-right-header')
-              ?.textContent?.replace(/\s+/g, ' ')
-              .trim();
-            if (!headerText?.includes('Record')) {
-              throw new Error(
-                'Record timeline header not found: ' + (headerText || ''),
-              );
-            }
-            const timeline = document.querySelector('.timeline-wrapper');
-            const canvas = document.querySelector(
-              '.timeline-wrapper .timeline-canvas-wrapper canvas',
-            );
-            if (!timeline || !canvas) {
-              throw new Error('Record timeline canvas is not rendered');
-            }
-            return { headerText, timelineRendered: true };
-          })()
-        name: assertRecordTimeline
+      - sleep: 5000
+      - aiAssert: The report page is loaded with a left-side task list table. The table shows multiple task rows, visible task names, and a time or duration column for the tasks.
+      - aiAssert: The main report panel shows a "Record" timeline section with visible screenshot thumbnails or frame previews.
 
   # --- Player area visible with controls ---
   - name: player area is visible with playback controls
