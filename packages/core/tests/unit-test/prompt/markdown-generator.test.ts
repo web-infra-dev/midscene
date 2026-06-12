@@ -84,6 +84,12 @@ describe('markdown-generator', () => {
       'Do not target a placeholder character, typed character, caret, or inner text fragment inside the field.',
     );
     expect(text).toContain(
+      'For scroll events, preserve the recorded scroll region',
+    );
+    expect(text).toContain(
+      'keep that region in the Markdown step instead of generalizing it to the whole page',
+    );
+    expect(text).toContain(
       'Do not include screenshots, image syntax, image paths, or reference-image names',
     );
     expect(text).toContain(
@@ -113,6 +119,72 @@ describe('markdown-generator', () => {
     expect(text).toContain('"screenshotRef": "screenshot-1"');
     expect(text).not.toContain('./screenshots/event-001-navigation.png');
     expect(text.length).toBeLessThan(8000);
+  });
+
+  it('preserves specific semantic scroll regions in the Markdown prompt data', () => {
+    const prompt = createRecorderMarkdownReplayPrompt({
+      target: {
+        platformId: 'web',
+        label: 'Web',
+        values: { url: 'https://example.com/docs' },
+      },
+      events: [
+        mockEvents[0],
+        {
+          type: 'scroll',
+          actionType: 'Scroll',
+          timestamp: 2000,
+          value: 'down 545',
+          semantic: {
+            source: 'recorderAI',
+            status: 'ready',
+            elementDescription: 'left navigation panel',
+            replayInstruction:
+              'Scroll the page/region with description "left navigation panel" by value "down 545" until "component links in the navigation list" is visible.',
+            actionSummary:
+              'Scroll left navigation panel toward component links in the navigation list',
+            confidence: 'high',
+          },
+          pageInfo: { width: 1280, height: 720 },
+          hashId: 'scroll-left-nav',
+        },
+        {
+          type: 'click',
+          actionType: 'Tap',
+          timestamp: 3000,
+          semantic: {
+            source: 'recorderAI',
+            status: 'ready',
+            elementDescription: 'link in the left navigation panel',
+            replayInstruction:
+              'Tap on the element described as "link in the left navigation panel".',
+            actionSummary: 'Tap link in the left navigation panel',
+            confidence: 'high',
+          },
+          pageInfo: { width: 1280, height: 720 },
+          hashId: 'click-left-nav-link',
+        },
+      ],
+      testName: 'Replay workflow',
+      maxScreenshots: 0,
+    });
+
+    const userMessage = prompt[1];
+    const text = Array.isArray(userMessage.content)
+      ? userMessage.content
+          .filter((part) => part.type === 'text')
+          .map((part) => part.text)
+          .join('\n')
+      : '';
+
+    expect(text).toContain('"hashId": "scroll-left-nav"');
+    expect(text).toContain('"elementDescription": "left navigation panel"');
+    expect(text).toContain(
+      'Scroll the page/region with description \\"left navigation panel\\"',
+    );
+    expect(text).toContain(
+      '"nextActionDescription": "Tap link in the left navigation panel"',
+    );
   });
 
   it('includes sequence context for neighboring input events', () => {

@@ -260,6 +260,7 @@ Replay goal:
 - Prefer recorded UI text, element descriptions, URLs, input values, and scroll direction.
 - For input events, enter event.typedText/event.value exactly; do not infer or correct the text from screenshots.
 - Prefer event.semantic.replayInstruction and event.semantic.elementDescription when event.semantic.source is "aiDescribe" or "recorderAI" and event.semantic.status is "ready".
+- For scroll events, preserve the recorded scroll region from event.semantic.elementDescription/replayInstruction. If the scroll happened in a specific panel, list, table, dialog body, menu, navigation area, or content pane, keep that region in the Markdown step instead of generalizing it to the whole page.
 - If event.semantic.source is "heuristic" or event.semantic.status is "pending"/"failed", use the screenshot/context to write the best visual instruction.
 - Coordinates are only fallback hints. Do not make coordinates the primary instruction when text or screenshots are available.
 - For a click/tap that only focuses a field before an input event, describe the target as the field/control itself. Do not target a placeholder character, typed character, caret, or inner text fragment inside the field.

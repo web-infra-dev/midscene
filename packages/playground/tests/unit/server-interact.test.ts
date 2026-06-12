@@ -3,6 +3,9 @@ import type { InputPrimitives } from '@midscene/core/device';
 import { describe, expect, test, vi } from 'vitest';
 import { PlaygroundServer } from '../../src/server';
 
+const VALID_PNG_BASE64 =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAKklEQVR4nO3MIQEAAAzDsPo3/ePhDi4CwpWxUMMXaaFH4QgLPQpHWHg6fOdROhs7ULsmAAAAAElFTkSuQmCC';
+
 function createMockResponse() {
   return {
     statusCode: 200,
@@ -91,6 +94,31 @@ function makeInputPrimitiveStub(
     },
     ...overrides,
   };
+}
+
+function formatLocalRecorderScreenshotPathPrefix(
+  timestamp: number,
+  actionType: string,
+  eventId: string,
+) {
+  const date = new Date(timestamp);
+  const pad = (value: number, length = 2) =>
+    String(value).padStart(length, '0');
+  const datePart = [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+  ].join('-');
+  const timePart = [
+    pad(date.getHours()),
+    pad(date.getMinutes()),
+    pad(date.getSeconds()),
+    pad(date.getMilliseconds(), 3),
+  ].join('-');
+  return `recorder-ai-describe-screenshots/${datePart}/${timePart.slice(
+    0,
+    2,
+  )}/${timePart}_${actionType}_${eventId}`;
 }
 
 describe('PlaygroundServer manual interaction APIs', () => {
@@ -583,7 +611,6 @@ describe('PlaygroundServer manual interaction APIs', () => {
       screenshotBase64: 'base64-image',
       coordinateSpace: 'logical',
       logicalSize: { width: 390, height: 844 },
-      rectPadding: 8,
     });
   });
 
@@ -740,6 +767,164 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(failedTrace.eventSummary.rawPayloadSummary.value).toBeUndefined();
   });
 
+  test('recorder writes annotated screenshots when aiDescribe verification fails', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    const describeElementAtPoint = vi.fn(async () => ({
+      prompt: 'login button',
+      deepLocate: false,
+      verifyResult: {
+        pass: false,
+        rect: { left: 10, top: 10, width: 5, height: 5 },
+        center: [12.5, 12.5] as [number, number],
+        centerDistance: 14.14,
+      },
+    }));
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => VALID_PNG_BASE64,
+        size: async () => ({ width: 20, height: 20 }),
+      },
+      describeElementAtPoint,
+    } as any);
+
+    await server.launch(6118);
+
+    const describeResponse = await describeRecorderEvent(server, {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Tap',
+      rawPayload: { actionType: 'Tap', x: 2.5, y: 2.5 },
+      elementRect: {
+        x: 2.5,
+        y: 2.5,
+        left: 0,
+        top: 0,
+        width: 5,
+        height: 5,
+      },
+      pageInfo: { width: 20, height: 20 },
+      screenshotBefore: VALID_PNG_BASE64,
+      timestamp: 123,
+      hashId: 'verify-failed-event',
+    });
+
+    expect(describeResponse.statusCode).toBe(200);
+    expect(describeResponse.body).toMatchObject({
+      ok: true,
+      trace: {
+        status: 'failed',
+        error: 'aiDescribe verification failed.',
+        screenshotRef: {
+          path: expect.stringContaining(
+            `${formatLocalRecorderScreenshotPathPrefix(
+              123,
+              'Tap',
+              'verify-failed-event',
+            )}_raw_`,
+          ),
+          sha256: expect.any(String),
+          bytes: expect.any(Number),
+        },
+        annotatedScreenshotPersistError: expect.any(String),
+      },
+      event: {
+        semantic: {
+          source: 'aiDescribe',
+          status: 'failed',
+          error: 'aiDescribe verification failed.',
+          aiDescribe: {
+            verifyPrompt: true,
+            verifyPassed: false,
+            centerDistance: 14.14,
+            expectedCenter: [2.5, 2.5],
+            actualCenter: [12.5, 12.5],
+          },
+        },
+      },
+    });
+    const trace = (describeResponse.body as any).trace;
+    expect(trace.annotatedScreenshotPersistError).toEqual(expect.any(String));
+  });
+
+  test('recorder does not verify aiDescribe results for scroll events', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    const describeElementAtPoint = vi.fn(async () => ({
+      prompt: 'main documentation content area',
+      deepLocate: false,
+      verifyResult: {
+        pass: false,
+        rect: { left: 10, top: 10, width: 5, height: 5 },
+        center: [12.5, 12.5] as [number, number],
+        centerDistance: 14.14,
+      },
+    }));
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => VALID_PNG_BASE64,
+        size: async () => ({ width: 20, height: 20 }),
+      },
+      describeElementAtPoint,
+    } as any);
+
+    await server.launch(6119);
+
+    const describeResponse = await describeRecorderEvent(server, {
+      type: 'scroll',
+      source: 'studio-preview',
+      actionType: 'Scroll',
+      rawPayload: {
+        actionType: 'Scroll',
+        direction: 'down',
+        distance: 640,
+        x: 2.5,
+        y: 2.5,
+      },
+      value: 'down 640',
+      elementRect: {
+        x: 2.5,
+        y: 2.5,
+        left: 2.5,
+        top: 2.5,
+      },
+      pageInfo: { width: 20, height: 20 },
+      screenshotBefore: VALID_PNG_BASE64,
+      timestamp: 123,
+      hashId: 'scroll-no-verify',
+    });
+
+    expect(describeElementAtPoint).toHaveBeenCalledWith(
+      [2.5, 2.5],
+      expect.objectContaining({
+        verifyPrompt: false,
+      }),
+    );
+    expect(describeResponse.statusCode).toBe(200);
+    expect(describeResponse.body).toMatchObject({
+      ok: true,
+      trace: {
+        status: 'ready',
+        verifyPassed: undefined,
+        verifyResult: undefined,
+      },
+      event: {
+        semantic: {
+          source: 'aiDescribe',
+          status: 'ready',
+          aiDescribe: {
+            verifyPrompt: false,
+            verifyPassed: undefined,
+          },
+        },
+      },
+    });
+  });
+
   test('recorder inherits the last target point for input events without coordinates', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
     const server = new PlaygroundServer({
@@ -849,7 +1034,6 @@ describe('PlaygroundServer manual interaction APIs', () => {
       screenshotBase64: 'base64-image',
       coordinateSpace: 'logical',
       logicalSize: { width: 390, height: 844 },
-      rectPadding: 8,
     });
     expect(describeResponse.statusCode).toBe(200);
     expect(describeResponse.body).toMatchObject({
@@ -1082,7 +1266,6 @@ describe('PlaygroundServer manual interaction APIs', () => {
       screenshotBase64: 'base64-image',
       coordinateSpace: 'logical',
       logicalSize: { width: 390, height: 844 },
-      rectPadding: 8,
     });
 
     expect(describeResponse.body).toMatchObject({
@@ -1154,7 +1337,6 @@ describe('PlaygroundServer manual interaction APIs', () => {
       screenshotBase64: 'initial-screenshot',
       coordinateSpace: 'logical',
       logicalSize: { width: 390, height: 844 },
-      rectPadding: 8,
     });
 
     expect(describeResponse.body).toMatchObject({

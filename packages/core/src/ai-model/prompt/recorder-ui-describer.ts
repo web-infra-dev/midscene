@@ -38,7 +38,8 @@ Rules:
   - For consecutive input events, distinguish fields by stable role, section, order, current focus, filled/empty state, and neighboring actions instead of reusing the same generic field description.
   - Input replayInstruction format: Input "<value>" into the element described as "<elementDescription>".
 - Scroll target quality bar:
-  - elementDescription describes the scrollable page, panel, list, table, or section.
+  - elementDescription describes the scrollable page, panel, list, table, or section at the highlighted scroll point.
+  - When multiple scrollable regions are visible, preserve the specific region where the scroll happened, such as left/right/top/bottom panel, navigation area, content pane, dialog body, table, list, or menu. Do not generalize a panel/list scroll into the whole page.
   - scrollDestinationDescription is required and describes what the scroll is trying to reveal or reach, using newly visible headings, section titles, list items, or stable content from the AFTER screenshot.
   - Prefer descriptions like "Playwright integration documentation page, scrolling toward the API reference section" or "Android API documentation page, scrolling to the installation steps section".
   - Do NOT write generic phrases like "more content", "the page", "current screen", or "main scrollable area".

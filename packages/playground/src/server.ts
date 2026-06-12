@@ -19,7 +19,11 @@ import {
   overrideAIConfig,
 } from '@midscene/shared/env';
 import { generateElementByPoint } from '@midscene/shared/extractor';
-import { compositePointMarkerImg } from '@midscene/shared/img';
+import {
+  annotateRects,
+  compositePointMarkerImg,
+  imageInfoOfBase64,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type {
   MidsceneRecorderSemantic,
@@ -58,8 +62,7 @@ import 'dotenv/config';
 
 const defaultPort = PLAYGROUND_SERVER_PORT;
 const RECORDER_CAPTURE_AFTER_INTERACT_DELAY_MS = 250;
-const RECORDER_AI_DESCRIBE_AFTER_INTERACT_TIMEOUT_MS = 20_000;
-const RECORDER_AI_DESCRIBE_VERIFY_RECT_PADDING = 8;
+const RECORDER_AI_DESCRIBE_AFTER_INTERACT_TIMEOUT_MS = 30_000;
 const RECORDER_AI_DESCRIBE_SCREENSHOT_DUMP_DIR =
   'recorder-ai-describe-screenshots';
 
@@ -139,26 +142,106 @@ function buildRecorderEventSummary(event: PlaygroundRecorderEvent) {
   };
 }
 
-function persistRecorderAiDescribeScreenshot(
-  traceId: string,
-  eventScreenshot?: string,
-): NonNullable<PlaygroundRecorderDescribeTrace['screenshotRef']> | undefined {
-  if (!eventScreenshot) {
-    return undefined;
-  }
+function shouldVerifyRecorderAiDescribeEvent(event: PlaygroundRecorderEvent) {
+  return event.type !== 'scroll';
+}
 
-  const { base64, mimeType } = extractBase64Payload(eventScreenshot);
+type RecorderAiDescribeScreenshotRef = NonNullable<
+  PlaygroundRecorderDescribeTrace['screenshotRef']
+>;
+type RecorderAiDescribeScreenshotAnnotation = NonNullable<
+  PlaygroundRecorderDescribeTrace['screenshotAnnotation']
+>;
+
+function sanitizeRecorderPathSegment(
+  value: unknown,
+  fallback: string,
+  maxLength = 64,
+) {
+  const normalized =
+    typeof value === 'string' && value.trim() ? value.trim() : fallback;
+  const sanitized = normalized
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  return (sanitized || fallback).slice(0, maxLength);
+}
+
+function getRecorderEventTimestampForPath(event: PlaygroundRecorderEvent) {
+  if (typeof event.timestamp === 'number' && Number.isFinite(event.timestamp)) {
+    return event.timestamp;
+  }
+  const hashTimestamp = event.hashId?.match(/-(\d{10,})-/)?.[1];
+  if (hashTimestamp) {
+    const timestamp = Number(hashTimestamp);
+    if (Number.isFinite(timestamp)) {
+      return timestamp;
+    }
+  }
+  return Date.now();
+}
+
+function formatRecorderAiDescribeScreenshotPathParts(
+  event: PlaygroundRecorderEvent,
+) {
+  const date = new Date(getRecorderEventTimestampForPath(event));
+  const localDate = Number.isNaN(date.getTime()) ? new Date() : date;
+  const pad = (value: number, length = 2) =>
+    String(value).padStart(length, '0');
+  const datePart = [
+    localDate.getFullYear(),
+    pad(localDate.getMonth() + 1),
+    pad(localDate.getDate()),
+  ].join('-');
+  const timePart = [
+    pad(localDate.getHours()),
+    pad(localDate.getMinutes()),
+    pad(localDate.getSeconds()),
+    pad(localDate.getMilliseconds(), 3),
+  ].join('-');
+  const hourPart = timePart.slice(0, 2) || 'unknown-hour';
+  const hashId = event.hashId?.match(/(\d{10,}(?:-[a-zA-Z0-9]+)?)/)?.[1];
+  const eventId = sanitizeRecorderPathSegment(
+    hashId || event.hashId,
+    'recorder-event',
+    48,
+  );
+  const action = sanitizeRecorderPathSegment(
+    event.actionType || event.type,
+    'event',
+    32,
+  );
+  return {
+    datePart,
+    hourPart,
+    filePrefix: `${timePart}_${action}_${eventId}`,
+  };
+}
+
+function writeRecorderAiDescribeScreenshot(
+  event: PlaygroundRecorderEvent,
+  imageBase64: string,
+  suffix: string,
+): RecorderAiDescribeScreenshotRef {
+  const { base64, mimeType } = extractBase64Payload(imageBase64);
   const bytes = Buffer.from(base64, 'base64');
   const sha256 = createHash('sha256').update(bytes).digest('hex');
   const extension = mimeType?.includes('jpeg') ? 'jpg' : 'png';
+  const pathParts = formatRecorderAiDescribeScreenshotPathParts(event);
   const dumpDir = join(
     getMidsceneRunSubDir('dump'),
     RECORDER_AI_DESCRIBE_SCREENSHOT_DUMP_DIR,
+    pathParts.datePart,
+    pathParts.hourPart,
   );
   mkdirSync(dumpDir, { recursive: true });
   const filePath = join(
     dumpDir,
-    `${traceId}-${sha256.slice(0, 12)}.${extension}`,
+    `${pathParts.filePrefix}_${sanitizeRecorderPathSegment(
+      suffix,
+      'screenshot',
+      24,
+    )}_${sha256.slice(0, 12)}.${extension}`,
   );
   if (!existsSync(filePath)) {
     writeFileSync(filePath, bytes);
@@ -169,6 +252,175 @@ function persistRecorderAiDescribeScreenshot(
     sha256,
     bytes: bytes.byteLength,
     mimeType,
+  };
+}
+
+function calculateRecorderScreenshotAnnotation(
+  event: PlaygroundRecorderEvent,
+  imageSize: { width: number; height: number },
+  verifyResult?: PlaygroundRecorderDescribeTrace['verifyResult'],
+): RecorderAiDescribeScreenshotAnnotation | undefined {
+  const pageWidth = event.pageInfo?.width;
+  const pageHeight = event.pageInfo?.height;
+  const scaleX = pageWidth ? imageSize.width / pageWidth : undefined;
+  const scaleY = pageHeight ? imageSize.height / pageHeight : undefined;
+  const mapX = (value: number) => (scaleX ? value * scaleX : value);
+  const mapY = (value: number) => (scaleY ? value * scaleY : value);
+  const logicalPoint =
+    typeof event.elementRect?.x === 'number' &&
+    typeof event.elementRect?.y === 'number'
+      ? ([event.elementRect.x, event.elementRect.y] as [number, number])
+      : undefined;
+  const locateRect = verifyResult?.rect;
+  const sourceTargetRect =
+    typeof event.elementRect?.left === 'number' &&
+    typeof event.elementRect?.top === 'number' &&
+    typeof event.elementRect?.width === 'number' &&
+    typeof event.elementRect?.height === 'number' &&
+    event.elementRect.width > 0 &&
+    event.elementRect.height > 0
+      ? {
+          left: mapX(event.elementRect.left),
+          top: mapY(event.elementRect.top),
+          width: mapX(event.elementRect.width),
+          height: mapY(event.elementRect.height),
+        }
+      : undefined;
+  if (!logicalPoint && !sourceTargetRect && !locateRect) {
+    return undefined;
+  }
+
+  const screenshotPoint =
+    logicalPoint && scaleX && scaleY
+      ? ([logicalPoint[0] * scaleX, logicalPoint[1] * scaleY] as [
+          number,
+          number,
+        ])
+      : undefined;
+  const pointTargetRect =
+    screenshotPoint && !sourceTargetRect
+      ? {
+          left: Math.max(0, screenshotPoint[0] - 6),
+          top: Math.max(0, screenshotPoint[1] - 6),
+          width: 12,
+          height: 12,
+        }
+      : undefined;
+  const center =
+    verifyResult?.center ||
+    (locateRect
+      ? ([
+          locateRect.left + locateRect.width / 2,
+          locateRect.top + locateRect.height / 2,
+        ] as [number, number])
+      : undefined);
+  const centerDelta =
+    screenshotPoint && center
+      ? {
+          x: center[0] - screenshotPoint[0],
+          y: center[1] - screenshotPoint[1],
+          distance: Math.hypot(
+            center[0] - screenshotPoint[0],
+            center[1] - screenshotPoint[1],
+          ),
+        }
+      : undefined;
+  const distanceOutsideRect =
+    screenshotPoint && locateRect
+      ? (() => {
+          const right = locateRect.left + locateRect.width;
+          const bottom = locateRect.top + locateRect.height;
+          const x =
+            screenshotPoint[0] < locateRect.left
+              ? locateRect.left - screenshotPoint[0]
+              : screenshotPoint[0] > right
+                ? screenshotPoint[0] - right
+                : 0;
+          const y =
+            screenshotPoint[1] < locateRect.top
+              ? locateRect.top - screenshotPoint[1]
+              : screenshotPoint[1] > bottom
+                ? screenshotPoint[1] - bottom
+                : 0;
+          return {
+            x,
+            y,
+            distance: Math.hypot(x, y),
+          };
+        })()
+      : undefined;
+
+  return {
+    inputPoint: screenshotPoint
+      ? { logical: logicalPoint!, screenshot: screenshotPoint }
+      : undefined,
+    sourceTargetRect: sourceTargetRect || pointTargetRect,
+    locateRect,
+    centerDelta,
+    distanceOutsideRect,
+  };
+}
+
+async function persistRecorderAiDescribeScreenshot(
+  event: PlaygroundRecorderEvent,
+  eventScreenshot?: string,
+  verifyResult?: PlaygroundRecorderDescribeTrace['verifyResult'],
+): Promise<
+  | {
+      screenshotRef?: RecorderAiDescribeScreenshotRef;
+      annotatedScreenshotRef?: RecorderAiDescribeScreenshotRef;
+      screenshotAnnotation?: RecorderAiDescribeScreenshotAnnotation;
+      annotatedScreenshotPersistError?: string;
+    }
+  | undefined
+> {
+  if (!eventScreenshot) {
+    return undefined;
+  }
+
+  const screenshotRef = writeRecorderAiDescribeScreenshot(
+    event,
+    eventScreenshot,
+    'raw',
+  );
+  let annotatedScreenshotRef: RecorderAiDescribeScreenshotRef | undefined;
+  let screenshotAnnotation: RecorderAiDescribeScreenshotAnnotation | undefined;
+  let annotatedScreenshotPersistError: string | undefined;
+
+  try {
+    const imageSize = await imageInfoOfBase64(eventScreenshot);
+    screenshotAnnotation = calculateRecorderScreenshotAnnotation(
+      event,
+      imageSize,
+      verifyResult,
+    );
+
+    const annotatedRects = [
+      screenshotAnnotation?.sourceTargetRect,
+      screenshotAnnotation?.locateRect,
+    ].filter((rect): rect is NonNullable<typeof rect> => Boolean(rect));
+
+    if (annotatedRects.length > 0) {
+      const annotatedScreenshot = await annotateRects(
+        eventScreenshot,
+        annotatedRects,
+      );
+      annotatedScreenshotRef = writeRecorderAiDescribeScreenshot(
+        event,
+        annotatedScreenshot,
+        'annotated',
+      );
+    }
+  } catch (error) {
+    annotatedScreenshotPersistError =
+      error instanceof Error ? error.message : String(error);
+  }
+
+  return {
+    screenshotRef,
+    annotatedScreenshotRef,
+    screenshotAnnotation,
+    annotatedScreenshotPersistError,
   };
 }
 
@@ -554,11 +806,13 @@ function buildReadyRecorderSemantic(
 
 function buildFailedAiDescribeRecorderSemantic(
   error: unknown,
+  extra?: Pick<MidsceneRecorderSemantic, 'aiDescribe'>,
 ): MidsceneRecorderSemantic {
   return {
     source: 'aiDescribe',
     status: 'failed',
     error: error instanceof Error ? error.message : String(error),
+    ...extra,
   };
 }
 
@@ -1435,21 +1689,34 @@ class PlaygroundServer {
     const startedAtMs = Date.now();
     const eventScreenshot = this.getRecorderAiDescribeScreenshot(event);
     const traceBase = createRecorderAiDescribeTraceBase(event, eventScreenshot);
-    const finishTrace = (
+    const finishTrace = async (
       status: PlaygroundRecorderDescribeTrace['status'],
       extra: Partial<PlaygroundRecorderDescribeTrace> = {},
-    ): PlaygroundRecorderDescribeTrace => {
+    ): Promise<PlaygroundRecorderDescribeTrace> => {
       let screenshotRef:
         | NonNullable<PlaygroundRecorderDescribeTrace['screenshotRef']>
         | undefined;
+      let annotatedScreenshotRef:
+        | NonNullable<PlaygroundRecorderDescribeTrace['annotatedScreenshotRef']>
+        | undefined;
+      let screenshotAnnotation:
+        | NonNullable<PlaygroundRecorderDescribeTrace['screenshotAnnotation']>
+        | undefined;
       let screenshotPersistError: string | undefined;
+      let annotatedScreenshotPersistError: string | undefined;
 
       if (status === 'failed') {
         try {
-          screenshotRef = persistRecorderAiDescribeScreenshot(
-            traceBase.traceId,
+          const screenshotDump = await persistRecorderAiDescribeScreenshot(
+            event,
             eventScreenshot,
+            extra.verifyResult,
           );
+          screenshotRef = screenshotDump?.screenshotRef;
+          annotatedScreenshotRef = screenshotDump?.annotatedScreenshotRef;
+          screenshotAnnotation = screenshotDump?.screenshotAnnotation;
+          annotatedScreenshotPersistError =
+            screenshotDump?.annotatedScreenshotPersistError;
         } catch (error) {
           screenshotPersistError =
             error instanceof Error ? error.message : String(error);
@@ -1460,7 +1727,10 @@ class PlaygroundServer {
         ...traceBase,
         ...extra,
         screenshotRef,
+        annotatedScreenshotRef,
+        screenshotAnnotation,
         screenshotPersistError,
+        annotatedScreenshotPersistError,
         status,
         startedAt: startedAt.toISOString(),
         durationMs: Date.now() - startedAtMs,
@@ -1469,7 +1739,7 @@ class PlaygroundServer {
     if (event.type === 'navigation' || event.type === 'setViewport') {
       const error =
         'aiDescribe skipped because the event type does not target a UI element.';
-      const trace = finishTrace('failed', { error });
+      const trace = await finishTrace('failed', { error });
       debugInteract('recorder aiDescribe trace:', trace);
       return {
         event: {
@@ -1481,7 +1751,7 @@ class PlaygroundServer {
     }
     if (typeof agent?.describeElementAtPoint !== 'function') {
       const error = 'Active agent does not support describeElementAtPoint.';
-      const trace = finishTrace('failed', { error });
+      const trace = await finishTrace('failed', { error });
       debugInteract('recorder aiDescribe trace:', trace);
       return {
         event: {
@@ -1520,16 +1790,16 @@ class PlaygroundServer {
           'Skipped aiDescribe because the recorder event has no pageInfo for coordinate mapping.',
         );
       }
+      const verifyPrompt = shouldVerifyRecorderAiDescribeEvent(event);
       const modelCallStartedAt = Date.now();
       const describeResult = await withTimeout(
         (
           agent as unknown as PlaygroundScreenshotDescribeAgent
         ).describeElementAtPoint([x, y], {
-          verifyPrompt: true,
+          verifyPrompt,
           screenshotBase64: eventScreenshot,
           coordinateSpace: 'logical',
           logicalSize: event.pageInfo,
-          rectPadding: RECORDER_AI_DESCRIBE_VERIFY_RECT_PADDING,
         }),
         RECORDER_AI_DESCRIBE_AFTER_INTERACT_TIMEOUT_MS,
         'Timed out while analyzing recorder event with aiDescribe.',
@@ -1537,7 +1807,7 @@ class PlaygroundServer {
       modelCallDurationMs = Date.now() - modelCallStartedAt;
       elementDescription = describeResult.prompt?.trim();
       deepLocate = describeResult.deepLocate;
-      verifyResult = describeResult.verifyResult;
+      verifyResult = verifyPrompt ? describeResult.verifyResult : undefined;
       if (!elementDescription) {
         throw new Error('aiDescribe returned an empty element description.');
       }
@@ -1549,7 +1819,7 @@ class PlaygroundServer {
         event.rawPayload || {},
         event.url,
       );
-      const trace = finishTrace('ready', {
+      const trace = await finishTrace('ready', {
         modelCallDurationMs,
         elementDescription,
         verifyPassed: verifyResult?.pass,
@@ -1564,10 +1834,10 @@ class PlaygroundServer {
             'aiDescribe',
             semanticAction,
             elementDescription,
-            describeResult.verifyResult?.pass ? 'high' : 'medium',
+            verifyResult?.pass ? 'high' : 'medium',
             {
               aiDescribe: {
-                verifyPrompt: true,
+                verifyPrompt,
                 verifyPassed: verifyResult?.pass,
                 deepLocate,
                 centerDistance: verifyResult?.centerDistance,
@@ -1581,7 +1851,7 @@ class PlaygroundServer {
       };
     } catch (error) {
       debugInteract('canonical recorder aiDescribe failed:', error);
-      const trace = finishTrace('failed', {
+      const trace = await finishTrace('failed', {
         error: error instanceof Error ? error.message : String(error),
         modelCallDurationMs,
         elementDescription,
@@ -1590,10 +1860,30 @@ class PlaygroundServer {
         verifyResult,
       });
       debugInteract('recorder aiDescribe trace:', trace);
+      const aiDescribeDetails =
+        verifyResult || trace.annotatedScreenshotRef
+          ? {
+              aiDescribe: {
+                verifyPrompt: true,
+                verifyPassed: verifyResult?.pass,
+                deepLocate,
+                centerDistance: verifyResult?.centerDistance,
+                expectedCenter:
+                  typeof x === 'number' && typeof y === 'number'
+                    ? ([x, y] as [number, number])
+                    : undefined,
+                actualCenter: verifyResult?.center,
+                annotatedScreenshotPath: trace.annotatedScreenshotRef?.path,
+              },
+            }
+          : undefined;
       return {
         event: {
           ...event,
-          semantic: buildFailedAiDescribeRecorderSemantic(error),
+          semantic: buildFailedAiDescribeRecorderSemantic(
+            error,
+            aiDescribeDetails,
+          ),
         },
         trace,
       };

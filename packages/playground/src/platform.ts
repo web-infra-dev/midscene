@@ -164,7 +164,42 @@ export interface PlaygroundRecorderDescribeTrace {
     bytes: number;
     mimeType?: string;
   };
+  annotatedScreenshotRef?: {
+    path: string;
+    sha256: string;
+    bytes: number;
+    mimeType?: string;
+  };
+  screenshotAnnotation?: {
+    inputPoint?: {
+      logical: [number, number];
+      screenshot: [number, number];
+    };
+    sourceTargetRect?: {
+      left: number;
+      top: number;
+      width: number;
+      height: number;
+    };
+    locateRect?: {
+      left: number;
+      top: number;
+      width: number;
+      height: number;
+    };
+    centerDelta?: {
+      x: number;
+      y: number;
+      distance: number;
+    };
+    distanceOutsideRect?: {
+      x: number;
+      y: number;
+      distance: number;
+    };
+  };
   screenshotPersistError?: string;
+  annotatedScreenshotPersistError?: string;
   elementDescription?: string;
   verifyPassed?: boolean;
   centerDistance?: number;

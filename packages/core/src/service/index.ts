@@ -34,7 +34,10 @@ import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TMultimodalPrompt, TUserPrompt } from '../common';
-import { createServiceDump } from './utils';
+import {
+  createServiceDump,
+  recoverDescribeResponseFromParseError,
+} from './utils';
 
 export interface LocateOpts {
   context?: UIContext;
@@ -441,10 +444,22 @@ export default class Service {
       },
     ];
 
-    const res = await callAIWithObjectResponse<AIDescribeElementResponse>(
-      msgs,
-      modelRuntime,
-    );
+    let res: Awaited<
+      ReturnType<typeof callAIWithObjectResponse<AIDescribeElementResponse>>
+    >;
+    try {
+      res = await callAIWithObjectResponse<AIDescribeElementResponse>(
+        msgs,
+        modelRuntime,
+      );
+    } catch (error) {
+      const recoveredResponse = recoverDescribeResponseFromParseError(error);
+      if (!recoveredResponse) {
+        throw error;
+      }
+      debug('describe: recovered malformed description JSON response');
+      return recoveredResponse;
+    }
 
     const { content } = res;
     assert(!content.error, `describe failed: ${content.error}`);

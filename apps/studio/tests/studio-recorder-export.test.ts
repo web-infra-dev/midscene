@@ -95,6 +95,13 @@ describe('studio recorder export', () => {
               source: 'aiDescribe',
               status: 'failed',
               error: 'aiDescribe verification failed.',
+              aiDescribe: {
+                verifyPrompt: true,
+                verifyPassed: false,
+                centerDistance: 1.41,
+                annotatedScreenshotPath:
+                  '/tmp/recorder-ai-describe-screenshots/verify-failed-annotated.png',
+              },
             },
           },
           screenshotWithBox:
@@ -138,6 +145,12 @@ describe('studio recorder export', () => {
               source: 'aiDescribe',
               status: 'failed',
               error: 'aiDescribe verification failed.',
+              aiDescribe: {
+                verifyPassed: false,
+                centerDistance: 1.41,
+                annotatedScreenshotPath:
+                  '/tmp/recorder-ai-describe-screenshots/verify-failed-annotated.png',
+              },
             },
           },
         },

@@ -270,7 +270,7 @@ function getActionGuidance(
     case 'input':
       return `${platformGuidance} Identify the exact input field at the marker before text entry. Use stable visible label, field role, field name, surrounding section, or sequence intent. Treat hint text that can change by user, time, data, or context as secondary evidence. Preserve the recorded input value only in replayInstruction; never describe the typed value or page title alone as the field.`;
     case 'scroll':
-      return `${platformGuidance} Identify the scrollable page/region and concrete destination content revealed after scrolling. Use newly visible headings, section titles, list/table names, list items, or stable region labels; never say only "more content" or "current page".`;
+      return `${platformGuidance} Identify the scrollable page/region at the highlighted scroll point and concrete destination content revealed after scrolling. If multiple scrollable regions are visible, preserve the specific region where the scroll happened, such as left/right/top/bottom panel, navigation area, content pane, dialog body, table, list, or menu; do not generalize a panel/list scroll into the whole page. Use newly visible headings, section titles, list/table names, list items, or stable region labels; never say only "more content" or "current page".`;
     case 'drag':
       return `${platformGuidance} Identify the ${getDragActionVerb(event).toLowerCase()} start/end regions or the dragged UI control. Do not describe only the gesture path or coordinates.`;
     case 'keydown':

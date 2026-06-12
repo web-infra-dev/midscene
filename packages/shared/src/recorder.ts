@@ -71,6 +71,7 @@ export interface MidsceneRecorderSemanticAiDescribe {
   centerDistance?: number;
   expectedCenter?: [number, number];
   actualCenter?: [number, number];
+  annotatedScreenshotPath?: string;
 }
 
 export interface MidsceneRecorderSemantic {

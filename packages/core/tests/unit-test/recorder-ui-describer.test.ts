@@ -341,6 +341,54 @@ describe('recorder-ui-describer', () => {
     );
   });
 
+  it('asks AI to preserve the specific scroll region when multiple regions are visible', async () => {
+    vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+      content: {
+        elementDescription: 'left navigation panel',
+        scrollDestinationDescription: 'component links in the navigation list',
+        replayInstruction:
+          'Scroll the page/region with description "left navigation panel" by value "down 545" until "component links in the navigation list" is visible.',
+        actionSummary:
+          'Scroll left navigation panel toward component links in the navigation list',
+        confidence: 'high',
+      },
+    } as any);
+
+    const result = await describeRecorderUIEvent(
+      {
+        event: {
+          type: 'scroll',
+          source: 'studio-preview',
+          timestamp: 1000,
+          hashId: 'scroll-specific-region',
+          value: 'down 545',
+          pageInfo: { width: 1280, height: 720 },
+          elementRect: { x: 220, y: 520 },
+          title: 'Documentation page',
+          screenshotWithBox: screenshot,
+          screenshotAfter: screenshot,
+        },
+        target: {
+          platformId: 'web',
+          label: 'Web',
+          values: { url: 'https://example.com/docs' },
+        },
+      },
+      modelConfig,
+      { maxRetries: 1 },
+    );
+
+    const calls = vi.mocked(callAIWithObjectResponse).mock.calls;
+    const prompt = JSON.stringify(calls[calls.length - 1]?.[0]);
+    expect(result.usedFallback).toBe(false);
+    expect(prompt).toContain('highlighted scroll point');
+    expect(prompt).toContain('multiple scrollable regions');
+    expect(prompt).toContain('do not generalize a panel/list scroll');
+    expect(prompt).not.toMatch(
+      /\blogin\b|authorization|SMS|phone|one-tap|product|recommendations|hot search/i,
+    );
+  });
+
   it('rejects scroll descriptions without a replay destination', async () => {
     vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
       content: {

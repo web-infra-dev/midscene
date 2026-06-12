@@ -116,6 +116,7 @@ function createMarkdownReplayManifest(
       verifyPassed?: boolean;
       deepLocate?: boolean;
       centerDistance?: number;
+      annotatedScreenshotPath?: string;
     };
     fallbackFrom?: ManifestSemantic;
   };
@@ -136,6 +137,8 @@ function createMarkdownReplayManifest(
               verifyPassed: semantic.aiDescribe.verifyPassed,
               deepLocate: semantic.aiDescribe.deepLocate,
               centerDistance: semantic.aiDescribe.centerDistance,
+              annotatedScreenshotPath:
+                semantic.aiDescribe.annotatedScreenshotPath,
             },
           }
         : {}),
