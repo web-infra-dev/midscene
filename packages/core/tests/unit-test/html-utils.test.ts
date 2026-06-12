@@ -10,6 +10,19 @@ import {
 import { getTmpFile } from '../../src/utils';
 
 describe('html-utils', () => {
+  it('keeps report-bundled sources free of raw script close tokens', () => {
+    const unsafeCloseTag = [String.fromCharCode(60), '/script>'].join('');
+    const bundledSourceFiles = [
+      join(__dirname, '../../src/dump/html-utils.ts'),
+      join(__dirname, '../../src/utils.ts'),
+    ];
+
+    for (const sourceFile of bundledSourceFiles) {
+      const source = readFileSync(sourceFile, 'utf8');
+      expect(source).not.toContain(unsafeCloseTag);
+    }
+  });
+
   describe('extractImageByIdSync', () => {
     const fixturesDir = join(__dirname, '../fixtures/report-samples');
     const inlineSamplePath = join(fixturesDir, 'inline-sample.html');

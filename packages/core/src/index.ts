@@ -69,6 +69,8 @@ export {
   parseDumpScriptAttributes,
   generateImageScriptTag,
   generateDumpScriptTag,
+  getTaskSearchArea,
+  getTaskServiceDump,
 } from './dump';
 
 // Report generator

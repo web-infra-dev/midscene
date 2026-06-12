@@ -468,6 +468,12 @@ export type ExecutionTask<
       cost?: number;
     };
     usage?: AIUsageInfo;
+    /**
+     * Pixel rect of the deepLocate first-stage search area in screenshot
+     * coordinates. Used by reports to explain the crop/zoom area that the
+     * final locate ran against.
+     */
+    searchArea?: Rect;
     searchAreaUsage?: AIUsageInfo;
     reasoning_content?: string;
   };

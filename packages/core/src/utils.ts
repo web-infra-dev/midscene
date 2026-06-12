@@ -29,6 +29,11 @@ export { appendFileSync } from 'node:fs';
 
 export const groupedActionDumpFileExt = 'web-dump.json';
 
+function htmlScriptCloseTag(): string {
+  // biome-ignore lint/style/useTemplate: keep this token runtime-built for inline report bundles
+  return String.fromCharCode(60) + '/script>';
+}
+
 /**
  * Process cache configuration with environment variable support and backward compatibility.
  *
@@ -157,6 +162,7 @@ export function reportHTMLContent(
   // if reportPath is set, it means we are in write to file mode
   const writeToFile = reportPath && !ifInBrowser;
   let dumpContent = '';
+  const closeTag = htmlScriptCloseTag();
 
   const resolveAutoGroupId = (): string => {
     if (!reportPath || !appendReport) {
@@ -182,7 +188,8 @@ export function reportHTMLContent(
       encodeURIComponent(groupId) +
       '">\n' +
       escapeScriptTag(dumpData) +
-      '\n</script>';
+      '\n' +
+      closeTag;
   } else {
     const { dumpString, attributes } = dumpData;
     const attributesArr = Object.entries(attributes || {})
@@ -200,7 +207,8 @@ export function reportHTMLContent(
       attributesArr.join(' ') +
       '>\n' +
       escapeScriptTag(dumpString) +
-      '\n</script>';
+      '\n' +
+      closeTag;
   }
 
   if (writeToFile) {
