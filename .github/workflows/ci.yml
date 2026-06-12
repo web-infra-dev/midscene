@@ -59,7 +59,7 @@ jobs:
     - name: Build project
       run: pnpm run build
 
-    - name: Check CLI CJS bundle on Node 20
+    - name: Check CLI CJS bundle on minimum supported Node
       run: |
         node - <<'EOF'
         const { readdirSync, readFileSync, statSync } = require('node:fs');
@@ -99,7 +99,7 @@ jobs:
           }
         }
         EOF
-        npx -y node@20.9.0 packages/cli/dist/lib/index.js --version
+        npx -y node@20.19.0 packages/cli/dist/lib/index.js --version
 
     - name: Type check tests
       run: pnpm run type-check:tests
