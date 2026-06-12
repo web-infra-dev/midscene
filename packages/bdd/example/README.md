@@ -6,10 +6,14 @@ needed) driven by Gherkin features through Midscene.
 ## Prerequisites
 
 1. Build the repo once from the root: `pnpm install && pnpm run build`.
-2. A model for the agents — either `codex login` (the general agent then uses
-   `MIDSCENE_MODEL_BASE_URL=codex://app-server`) or set the `MIDSCENE_MODEL_*`
-   environment variables (at minimum `MIDSCENE_MODEL_BASE_URL`,
-   `MIDSCENE_MODEL_API_KEY`, `MIDSCENE_MODEL_NAME`).
+2. A model for the UI agent: set the `MIDSCENE_MODEL_*` environment variables
+   (at minimum `MIDSCENE_MODEL_BASE_URL`, `MIDSCENE_MODEL_API_KEY`,
+   `MIDSCENE_MODEL_NAME`).
+3. The general agent (`# [agent]`/`$skill` steps): install the
+   [opencode](https://opencode.ai) CLI with `npm i -g opencode-ai` — with
+   zero extra config it reuses the `MIDSCENE_MODEL_*` endpoint above. Or set
+   `generalAgent: { type: 'codex' }` in `midscene.config.ts` and use
+   `npm i -g @openai/codex` + `codex login`.
 
 ## Run
 

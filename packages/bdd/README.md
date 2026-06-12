@@ -26,7 +26,7 @@ Every statement is routed to exactly one executor:
 | Rule | Marker | Who executes the statement |
 | --- | --- | --- |
 | **Default** | none | Midscene UI agent — the vision model drives the page (`aiAct`) for Given/When and judges Then steps (`aiAssert`, fail-closed) |
-| **Agent** | `# [agent]` comment directly above the line, or a `$skill-name` token in it | A general-purpose coding agent (Codex app-server via `codex login`, or any OpenAI-compatible endpoint) — for behavior you cannot see in the browser: server logs, files, databases. Then steps must return a JSON verdict; a missing verdict fails (fail-closed) |
+| **Agent** | `# [agent]` comment directly above the line, or a `$skill-name` token in it | A real CLI coding agent ([opencode](https://opencode.ai) by default, [Codex](https://github.com/openai/codex) opt-in) spawned per step — for behavior you cannot see in the browser: server logs, files, databases. Then steps must return a JSON verdict; a missing verdict fails (fail-closed) |
 | **No AI** | `# [no-ai]` comment above the line (or `@no-ai` scenario/feature tag) | Classic BDD: a callback registered with `Given`/`When`/`Then`/`defineStep` from `@midscene/bdd` must match. An unimplemented step fails with a ready-to-paste snippet |
 
 All three in one scenario:
@@ -142,10 +142,11 @@ import { defineProfile } from '@midscene/bdd/profile';
 export default defineProfile().default;
 ```
 
-Model setup, either:
+Model setup:
 
-- `codex login` once, then point the general agent at it with `MIDSCENE_MODEL_BASE_URL=codex://app-server`, or
-- set the `MIDSCENE_MODEL_*` environment variables for any OpenAI-compatible endpoint (at minimum `MIDSCENE_MODEL_BASE_URL`, `MIDSCENE_MODEL_API_KEY`, `MIDSCENE_MODEL_NAME`).
+- The UI agent needs the `MIDSCENE_MODEL_*` environment variables for an OpenAI-compatible vision endpoint (at minimum `MIDSCENE_MODEL_BASE_URL`, `MIDSCENE_MODEL_API_KEY`, `MIDSCENE_MODEL_NAME`).
+- The general agent (`# [agent]`/`$skill` steps) is the [opencode](https://opencode.ai) CLI: `npm i -g opencode-ai`. With zero extra config it reuses your `MIDSCENE_MODEL_*` endpoint and key. Since that endpoint is tuned for vision, consider pointing the agent at a strong coding model instead via `generalAgent.model` (`'provider/model'`) plus `generalAgent.env`, or `opencode auth login`.
+- Prefer Codex? Set `generalAgent: { type: 'codex' }` and install it with `npm i -g @openai/codex`. Same endpoint reuse applies; without a usable endpoint it falls back to your `codex login` account.
 
 Run:
 
@@ -198,10 +199,31 @@ interface BddConfig {
   uiAgentOptions?: UiAgentOptions;
 
   generalAgent?: {
-    // MIDSCENE_MODEL_* overrides for the general agent, resolved in an
-    // isolated model config (never leaks into the UI agent). Defaults to
-    // process env; MIDSCENE_MODEL_BASE_URL=codex://app-server is supported.
-    modelEnv?: Record<string, string>;
+    // Which CLI coding agent runs `[agent]`/`$skill` steps.
+    type?: 'opencode' | 'codex';  // default: 'opencode'
+    // Model override. opencode: 'provider/model' or a bare name mapped onto
+    // the generated provider; codex: passed as -m. Default: the resolved
+    // MIDSCENE_MODEL_NAME (recommend a strong coding model over the
+    // vision default).
+    model?: string;
+    // Extra env for the spawned CLI, merged over process.env.
+    env?: Record<string, string>;
+    // Working directory the agent runs (and executes shell!) in.
+    cwd?: string;                 // default: the config file's directory
+    // Hard kill timeout per invocation.
+    timeoutMs?: number;           // default: 600_000 (10 min)
+    // SECURITY: the agent runs shell commands in cwd, driven by prose in
+    // your feature files. 'read-only' denies edits/shell writes,
+    // 'workspace' (default) allows workspace writes, 'all' disables
+    // sandboxing/permission prompts entirely — only use 'all' in an
+    // externally sandboxed environment.
+    permissions?: 'read-only' | 'workspace' | 'all';
+    // Reuse the Midscene endpoint/key (MIDSCENE_MODEL_*, legacy OPENAI_*
+    // fallback) for the CLI agent.
+    reuseMidsceneModelEnv?: boolean;  // default: true
+    // Continue one CLI session across the steps of a scenario, so later
+    // `[agent]` steps see what earlier ones found.
+    sessionPerScenario?: boolean;     // default: false
     // Escape hatch mirroring the uiAgent factory (e.g. for tests).
     factory?: () => Promise<GeneralAgent>;
   };

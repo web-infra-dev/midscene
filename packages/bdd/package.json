@@ -7,7 +7,7 @@
     "url": "https://github.com/web-infra-dev/midscene.git",
     "directory": "packages/bdd"
   },
-  "description": "AI-native BDD test runner: standard Gherkin driven by cucumber-js, executed by Midscene. Midscene by default, coding agent on @agent/$skill, classic callbacks on @no-ai.",
+  "description": "AI-native BDD test runner: standard Gherkin driven by cucumber-js, executed by Midscene. Midscene by default, coding agent on [agent]/$skill, classic callbacks on @no-ai.",
   "author": "midscene team",
   "license": "MIT",
   "main": "./dist/lib/index.js",

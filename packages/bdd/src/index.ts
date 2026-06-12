@@ -11,6 +11,8 @@
  *
  * The cucumber support entry lives at `@midscene/bdd/register`.
  */
+export { CodexGeneralAgent } from './agents/codex-agent';
+export { OpencodeGeneralAgent } from './agents/opencode-agent';
 export { defineBddConfig, loadBddConfig } from './config';
 export { buildExploreModel, renderDashboard } from './explore';
 export type { ExploreModel } from './explore';
@@ -30,6 +32,7 @@ export type {
   UiAgentFactory,
   UiAgent,
   GeneralAgent,
+  GeneralAgentConfig,
   GeneralAgentRequest,
   GeneralAgentResult,
   StepAnnotations,

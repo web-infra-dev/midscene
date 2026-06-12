@@ -261,7 +261,7 @@ function analyzeSteps(
     }
 
     // Flow-call detection mirrors the runtime router exactly: runStep only
-    // consults the flow registry AFTER @no-ai and @agent/$skill are ruled
+    // consults the flow registry AFTER @no-ai and [agent]/$skill are ruled
     // out, so annotated steps never produce flow calls, edges, or
     // flow-match findings. matchStep throws on ambiguity and on sugar
     // errors; classify by message shape (the registry raises plain Errors

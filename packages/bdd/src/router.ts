@@ -6,7 +6,7 @@
  * requires a classic user-registered callback. Exact precedence:
  *
  *   1. @no-ai callback
- *   2. @agent / $skill general agent
+ *   2. [agent] / $skill general agent
  *   3. flow call
  *   4. default Midscene UI agent (assert for outcome steps, act otherwise)
  */
@@ -97,7 +97,7 @@ export const runStep: RunStepFn = async (ctx) => {
     return;
   }
 
-  // 2. @agent / $skill: bail this one statement out to the general agent.
+  // 2. [agent] / $skill: bail this one statement out to the general agent.
   if (ctx.annotations.agent || ctx.annotations.skills.length > 0) {
     await runGeneralAgentStep(ctx);
     return;

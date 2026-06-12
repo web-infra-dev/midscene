@@ -7,4 +7,7 @@ export default defineBddConfig({
     type: 'web',
     url: pathToFileURL(join(__dirname, 'demo-app/index.html')).href,
   },
+  // General agent for `# [agent]` / `$skill` steps — zero config reuses the
+  // MIDSCENE_MODEL_* endpoint/key. Uncomment to customize:
+  // generalAgent: { type: 'opencode' },
 });
