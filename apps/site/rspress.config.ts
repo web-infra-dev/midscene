@@ -127,10 +127,6 @@ export default defineConfig(async () => {
             link: '/showcases',
           },
           {
-            text: 'Benchmark',
-            link: '/benchmark',
-          },
-          {
             text: 'Control any platform with Skills 🔥',
             link: '/skills',
           },
@@ -284,6 +280,10 @@ export default defineConfig(async () => {
             sectionHeaderText: 'More',
           },
           {
+            text: 'Android World Benchmark Report',
+            link: '/android-world-benchmark-report',
+          },
+          {
             text: 'Changelog',
             link: '/changelog',
           },
@@ -315,10 +315,6 @@ export default defineConfig(async () => {
           {
             text: '案例展示',
             link: '/zh/showcases',
-          },
-          {
-            text: 'Benchmark',
-            link: '/zh/benchmark',
           },
           {
             text: '使用 Skills 控制任意平台 🔥',
@@ -472,6 +468,10 @@ export default defineConfig(async () => {
           },
           {
             sectionHeaderText: '更多',
+          },
+          {
+            text: 'Android World Benchmark 测试报告',
+            link: '/zh/android-world-benchmark-report',
           },
           {
             text: '更新日志',

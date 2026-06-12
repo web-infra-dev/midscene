@@ -86,7 +86,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   featureSkillsMcpLink: '/skills',
   featureReportsPlaygroundLink: '/quick-experience',
   featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
-  featureBenchmarkLink: '/benchmark',
+  featureBenchmarkLink: '/android-world-benchmark-report',
 
   // View All APIs
   apiMoreLink: '查看所有 API',

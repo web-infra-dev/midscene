@@ -92,7 +92,7 @@ and more`,
   featureSkillsMcpLink: '/skills',
   featureReportsPlaygroundLink: '/quick-experience',
   featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
-  featureBenchmarkLink: '/benchmark',
+  featureBenchmarkLink: '/android-world-benchmark-report',
 
   // View All APIs
   apiMoreLink: 'View All APIs',
