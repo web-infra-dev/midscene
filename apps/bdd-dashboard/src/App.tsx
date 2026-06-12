@@ -7,10 +7,10 @@ import { Sidebar } from './components/Sidebar';
 import { buildIndices } from './model/indices';
 import { FLOWS_GROUP_KEY, buildTree } from './model/tree';
 import type { DashboardView } from './model/types';
-import { useExploreModel } from './useExploreModel';
+import { readExploreModel } from './useExploreModel';
 
 export default function App() {
-  const model = useExploreModel();
+  const [model] = useState(readExploreModel);
   const indices = useMemo(() => buildIndices(model), [model]);
 
   const [view, setView] = useState<DashboardView>('stories');
@@ -34,6 +34,9 @@ export default function App() {
   const selectItem = useCallback(
     (id: string) => {
       setSelectedId(id);
+      // An active filter could hide the target row entirely (no active state,
+      // no scroll-into-view), so cross-view jumps clear it.
+      setRawQuery('');
       // Make sure the owning group is expanded so the row is visible.
       const feature = indices.featureOfScenario.get(id);
       if (feature) {

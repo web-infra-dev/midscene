@@ -4,12 +4,11 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "rsbuild dev",
-    "build": "rsbuild build",
+    "build": "tsc -p typecheck/tsconfig.json && rsbuild build",
     "build:watch": "rsbuild build --watch --no-clean",
     "preview": "rsbuild preview"
   },
   "dependencies": {
-    "@midscene/bdd": "workspace:*",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
@@ -31,7 +30,11 @@
         },
         "cache": true,
         "dependsOn": [],
-        "inputs": ["build", "^build", "{workspaceRoot}/package.json"],
+        "inputs": [
+          "build",
+          "{workspaceRoot}/package.json",
+          "{workspaceRoot}/packages/bdd/src/explore/model.ts"
+        ],
         "outputs": [
           "{projectRoot}/dist",
           "{workspaceRoot}/packages/bdd/static/*.html"

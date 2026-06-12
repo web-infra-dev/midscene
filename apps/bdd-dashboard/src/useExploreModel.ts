@@ -12,13 +12,14 @@ function parseExploreModel(raw: string): ExploreModel {
   try {
     return JSON.parse(raw) as ExploreModel;
   } catch (error) {
+    // Mirrors ERROR_PREFIX in @midscene/bdd (no runtime dep by design).
     throw new Error(
       `[midscene-bdd] Failed to parse injected ExploreModel JSON: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 }
 
-export function useExploreModel(): ExploreModel {
+function loadExploreModel(): ExploreModel {
   const modelElement = document.getElementById(MODEL_ELEMENT_ID);
   const isDev = import.meta.env.DEV;
 
@@ -42,4 +43,15 @@ export function useExploreModel(): ExploreModel {
   }
 
   return parseExploreModel(raw);
+}
+
+// The payload is static for the page's lifetime; parse exactly once so the
+// model keeps one object identity and downstream memos never re-fire.
+let cachedModel: ExploreModel | null = null;
+
+export function readExploreModel(): ExploreModel {
+  if (!cachedModel) {
+    cachedModel = loadExploreModel();
+  }
+  return cachedModel;
 }

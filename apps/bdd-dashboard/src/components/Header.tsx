@@ -1,4 +1,10 @@
 import type { RefObject } from 'react';
+import {
+  AGENT_MARKER_HINT,
+  AGENT_ROUTE_LABEL,
+  NOAI_MARKER_HINT,
+  NOAI_ROUTE_LABEL,
+} from '../model/copy';
 import type { DashboardView, ExploreModel } from '../model/types';
 
 interface StatChip {
@@ -47,8 +53,7 @@ export function Header({
       value: model.stats.agentSteps,
       label: 'agent steps',
       className: 'chip-agent',
-      title:
-        'Steps routed to the general coding agent via # @agent or a $skill token',
+      title: `Steps routed to the ${AGENT_ROUTE_LABEL}, ${AGENT_MARKER_HINT}`,
     });
   }
   if (model.stats.noAiSteps > 0) {
@@ -56,7 +61,7 @@ export function Header({
       value: model.stats.noAiSteps,
       label: 'no-ai steps',
       className: 'chip-noai',
-      title: 'Steps routed to a user-registered classic callback via # @no-ai',
+      title: `Steps routed to a ${NOAI_ROUTE_LABEL}, ${NOAI_MARKER_HINT}`,
     });
   }
 

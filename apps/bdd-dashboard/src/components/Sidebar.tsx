@@ -5,7 +5,7 @@
  * sticky headers (which cannot work with absolutely-positioned rows).
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { plural } from '../model/indices';
+import { plural, pluralize } from '../model/indices';
 import type { TreeData, TreeEntry } from '../model/tree';
 
 const HEAD_H = 34;
@@ -204,10 +204,9 @@ export function Sidebar({
           ) : (
             <>
               <b>{tree.matchedScenarios}</b>{' '}
-              {tree.matchedScenarios === 1 ? 'scenario' : 'scenarios'}
+              {pluralize('scenario', tree.matchedScenarios)}
               {' · '}
-              <b>{tree.matchedFlows}</b>{' '}
-              {tree.matchedFlows === 1 ? 'flow' : 'flows'}
+              <b>{tree.matchedFlows}</b> {pluralize('flow', tree.matchedFlows)}
             </>
           )}
         </output>

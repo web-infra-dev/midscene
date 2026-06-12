@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type GraphNode,
   NODE_W,
@@ -31,7 +31,11 @@ interface GraphViewProps {
   onOpenInStories: (id: string) => void;
 }
 
-export function GraphView({ model, indices, onOpenInStories }: GraphViewProps) {
+export const GraphView = memo(function GraphView({
+  model,
+  indices,
+  onOpenInStories,
+}: GraphViewProps) {
   const [everyScenario, setEveryScenario] = useState(true);
   const [fadeEdges, setFadeEdges] = useState(true);
   const [focusFlowId, setFocusFlowId] = useState<string | null>(null);
@@ -69,15 +73,15 @@ export function GraphView({ model, indices, onOpenInStories }: GraphViewProps) {
 
   // Bring the pinned cone into view: scroll so the chain's top-left corner
   // is visible, letting the user read the highlighted path rightward.
+  // When pinnedId is set, `cone` IS the pinned cone (pin wins over hover).
   useEffect(() => {
-    if (!pinnedId) return;
+    if (!pinnedId || !cone) return;
     const scroller = scrollerRef.current;
     if (!scroller) return;
-    const pinnedCone = computeCone(pinnedId, scene.links);
     let minX = Number.POSITIVE_INFINITY;
     let minY = Number.POSITIVE_INFINITY;
     for (const node of scene.nodes) {
-      if (!pinnedCone.nodes.has(node.id)) continue;
+      if (!cone.nodes.has(node.id)) continue;
       if (node.x < minX) minX = node.x;
       if (node.y < minY) minY = node.y;
     }
@@ -87,13 +91,21 @@ export function GraphView({ model, indices, onOpenInStories }: GraphViewProps) {
       top: Math.max(0, minY * zoom - 72),
       behavior: 'smooth',
     });
-  }, [pinnedId, scene, zoom]);
+  }, [pinnedId, cone, scene, zoom]);
 
+  // Single zoom primitive: clamps, keeps the given client point (or the
+  // viewport center) stationary, and accepts an absolute value or an
+  // updater so the wheel handler can scale the current zoom.
   const zoomAt = useCallback(
-    (nextZoomRaw: number, clientX?: number, clientY?: number) => {
+    (
+      next: number | ((current: number) => number),
+      clientX?: number,
+      clientY?: number,
+    ) => {
       const scroller = scrollerRef.current;
-      const nextZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoomRaw));
       setZoom((current) => {
+        const raw = typeof next === 'function' ? next(current) : next;
+        const nextZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, raw));
         if (!scroller || nextZoom === current) return nextZoom;
         const rect = scroller.getBoundingClientRect();
         const offsetX = (clientX ?? rect.left + rect.width / 2) - rect.left;
@@ -117,28 +129,15 @@ export function GraphView({ model, indices, onOpenInStories }: GraphViewProps) {
     const onWheel = (event: WheelEvent) => {
       if (!event.ctrlKey && !event.metaKey) return;
       event.preventDefault();
-      setZoom((current) => {
-        const next = Math.min(
-          MAX_ZOOM,
-          Math.max(MIN_ZOOM, current * Math.exp(-event.deltaY * 0.0015)),
-        );
-        if (next !== current) {
-          const rect = scroller.getBoundingClientRect();
-          const offsetX = event.clientX - rect.left;
-          const offsetY = event.clientY - rect.top;
-          const contentX = (scroller.scrollLeft + offsetX) / current;
-          const contentY = (scroller.scrollTop + offsetY) / current;
-          requestAnimationFrame(() => {
-            scroller.scrollLeft = contentX * next - offsetX;
-            scroller.scrollTop = contentY * next - offsetY;
-          });
-        }
-        return next;
-      });
+      zoomAt(
+        (current) => current * Math.exp(-event.deltaY * 0.0015),
+        event.clientX,
+        event.clientY,
+      );
     };
     scroller.addEventListener('wheel', onWheel, { passive: false });
     return () => scroller.removeEventListener('wheel', onWheel);
-  }, []);
+  }, [zoomAt]);
 
   const fitWidth = useCallback(() => {
     const scroller = scrollerRef.current;
@@ -514,4 +513,4 @@ export function GraphView({ model, indices, onOpenInStories }: GraphViewProps) {
       </div>
     </div>
   );
-}
+});

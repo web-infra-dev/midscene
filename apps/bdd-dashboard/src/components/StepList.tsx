@@ -4,9 +4,18 @@
  * strings, and inline recursive flow-call expansion with cycle/depth guards.
  */
 import { type ReactNode, useState } from 'react';
-import { type ModelIndices, argsSummary } from '../model/indices';
+import {
+  AGENT_MARKER_HINT,
+  AGENT_ROUTE_LABEL,
+  NOAI_MARKER_HINT,
+  NOAI_ROUTE_LABEL,
+} from '../model/copy';
+import { type ModelIndices, argsSummary, pluralize } from '../model/indices';
 import type { StepModel } from '../model/types';
 
+// Mirrors IDENT_RE_SOURCE in packages/bdd/src/types.ts (placeholder names
+// are identifiers); only used to locate chip positions inside step text —
+// which placeholders are real comes from step.paramUses/paramIssues.
 const PLACEHOLDER_RE = /<([A-Za-z_][A-Za-z0-9_]*)>/g;
 const MAX_EXPANSION_DEPTH = 6;
 
@@ -60,7 +69,7 @@ function RouteBadges({ step }: { step: StepModel }) {
       <span
         key="no-ai"
         className="badge badge-noai"
-        title="Runs a user-registered classic callback (Given/When/Then/defineStep) — no AI involved"
+        title={`Runs a ${NOAI_ROUTE_LABEL} — ${NOAI_MARKER_HINT}`}
       >
         no-ai
       </span>,
@@ -71,11 +80,11 @@ function RouteBadges({ step }: { step: StepModel }) {
       <span
         key="agent"
         className="badge badge-agent"
-        title={`Runs on the general coding agent (e.g. Codex)${
+        title={`Runs on the ${AGENT_ROUTE_LABEL}${
           skills.length > 0
-            ? ` with skill${skills.length === 1 ? '' : 's'} ${skills.join(', ')}`
+            ? ` with ${pluralize('skill', skills.length)} ${skills.join(', ')}`
             : ''
-        } — marked with # @agent or a $skill token`}
+        } — ${AGENT_MARKER_HINT}`}
       >
         {skills.length > 0 ? `agent · ${skills.join(' ')}` : 'agent'}
       </span>,
@@ -201,7 +210,7 @@ export function StepRow({
       {step.docString && <pre className="docstring">{step.docString}</pre>}
       {step.paramIssues && (
         <div className="issue-note">
-          Undeclared placeholder{step.paramIssues.length === 1 ? '' : 's'}:{' '}
+          Undeclared {pluralize('placeholder', step.paramIssues.length)}:{' '}
           {step.paramIssues.map((name) => `<${name}>`).join(', ')} — not a
           declared @param: of this flow; calling it fails at runtime
         </div>
@@ -218,15 +227,12 @@ export function RoutingLegend() {
   return (
     <div className="route-legend">
       <span>Step routing:</span>
-      <span
-        className="badge badge-agent"
-        title="Marked with # @agent or a $skill token"
-      >
+      <span className="badge badge-agent" title={AGENT_MARKER_HINT}>
         agent
       </span>
-      <span>general coding agent (e.g. Codex)</span>
+      <span>{AGENT_ROUTE_LABEL}</span>
       <span className="legend-dot">·</span>
-      <span className="badge badge-noai" title="Marked with # @no-ai">
+      <span className="badge badge-noai" title={NOAI_MARKER_HINT}>
         no-ai
       </span>
       <span>classic user callback</span>

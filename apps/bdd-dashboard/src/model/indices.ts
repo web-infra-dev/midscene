@@ -91,12 +91,17 @@ export function matchesQuery(
 
 // ———————————————————————— shared text helpers ————————————————————————
 
+/** Just the suffixed word, for when the count renders separately. */
+export function pluralize(word: string, n: number): string {
+  return `${word}${n === 1 ? '' : 's'}`;
+}
+
 export function plural(n: number, word: string): string {
-  return `${n} ${word}${n === 1 ? '' : 's'}`;
+  return `${n} ${pluralize(word, n)}`;
 }
 
 export function argsSummary(args: Record<string, string>): string {
-  const keys = Object.keys(args ?? {});
+  const keys = Object.keys(args);
   if (keys.length === 0) return 'no args';
   return keys.map((key) => `${key} = "${args[key]}"`).join(', ');
 }
@@ -105,12 +110,7 @@ export function truncate(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
-export interface FlowRouteCounts {
-  agent: number;
-  noAi: number;
-}
-
-export function flowRouteCounts(flow: FlowModel): FlowRouteCounts {
+function flowRouteCounts(flow: FlowModel): { agent: number; noAi: number } {
   let agent = 0;
   let noAi = 0;
   for (const step of flow.steps) {

@@ -2,26 +2,19 @@ import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defineConfig } from '@rsbuild/core';
+import { type RsbuildPlugin, defineConfig } from '@rsbuild/core';
 import { pluginReact } from '@rsbuild/plugin-react';
-import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
+import { createTypeCheckPlugin } from '../../scripts/rsbuild-utils.ts';
 
-const DATA_PLACEHOLDER = '__EXPLORE_MODEL_PLACEHOLDER__';
+// The viewer JS bundle also carries the placeholder as a quoted string, so
+// the injectable form is specifically `>placeholder</script>` (the JSON
+// script tag's body) — assert that, matching render.ts in packages/bdd.
+const ANCHORED_PLACEHOLDER = '>__EXPLORE_MODEL_PLACEHOLDER__</script>';
 const appRoot = path.dirname(fileURLToPath(import.meta.url));
 
-const createTypeCheckPlugin = () =>
-  pluginTypeCheck({
-    tsCheckerOptions: {
-      typescript: {
-        // Keep checks scoped to this app instead of traversing references.
-        build: false,
-      },
-    },
-  });
-
-const copyDashboardTemplate = () => ({
+const copyDashboardTemplate = (): RsbuildPlugin => ({
   name: 'copy-bdd-dashboard-template',
-  setup(api: { onAfterBuild: (fn: () => void) => void }) {
+  setup(api) {
     api.onAfterBuild(() => {
       const sourcePath = path.join(appRoot, 'dist', 'index.html');
       if (!fs.existsSync(sourcePath)) {
@@ -32,8 +25,8 @@ const copyDashboardTemplate = () => ({
 
       const template = fs.readFileSync(sourcePath, 'utf-8');
       assert(
-        template.includes(DATA_PLACEHOLDER),
-        `[bdd-dashboard] Template is missing placeholder "${DATA_PLACEHOLDER}"`,
+        template.includes(ANCHORED_PLACEHOLDER),
+        `[bdd-dashboard] Template is missing "${ANCHORED_PLACEHOLDER}" (the JSON script tag's injectable placeholder)`,
       );
 
       const targetPath = path.join(

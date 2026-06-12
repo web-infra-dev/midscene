@@ -3,16 +3,7 @@
   "compilerOptions": {
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "declarationDir": "dist/types",
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "declarationDir": "dist/types"
   },
-  "include": ["src", "rsbuild.config.ts"],
-  "references": [
-    {
-      "path": "../../packages/bdd"
-    }
-  ]
+  "include": ["src"]
 }

@@ -117,9 +117,6 @@ importers:
 
   apps/bdd-dashboard:
     dependencies:
-      '@midscene/bdd':
-        specifier: workspace:*
-        version: link:../../packages/bdd
       react:
         specifier: 18.3.1
         version: 18.3.1

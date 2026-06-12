@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { type ModelIndices, plural } from '../model/indices';
 import type { ExploreModel } from '../model/types';
 import { RoutingLegend, StepRow } from './StepList';
@@ -32,7 +33,7 @@ function CallerChip({
   );
 }
 
-export function DetailPane({
+export const DetailPane = memo(function DetailPane({
   model,
   indices,
   selectedId,
@@ -132,4 +133,4 @@ export function DetailPane({
       )}
     </div>
   );
-}
+});

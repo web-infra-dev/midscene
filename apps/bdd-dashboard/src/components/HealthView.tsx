@@ -1,3 +1,5 @@
+import { memo } from 'react';
+import { pluralize } from '../model/indices';
 import type { ExploreModel, HealthFinding, HealthKind } from '../model/types';
 
 type Severity = 'error' | 'warn';
@@ -22,43 +24,65 @@ const KIND_META: Record<HealthKind, { label: string; severity: Severity }> = {
   'unused-flow': { label: 'Unused flows', severity: 'warn' },
 };
 
-const KIND_ORDER: HealthKind[] = [
-  'ambiguous-flow-match',
-  'unknown-flow-sugar',
-  'flow-depth',
-  'undeclared-param',
-  'missing-skill',
-  'detached-annotation',
-  'tag-level-agent',
-  'unused-flow',
-];
+// A template built by an older app can receive payloads with kinds it does
+// not know; render them under their raw kind instead of crashing.
+function kindMeta(kind: HealthKind): { label: string; severity: Severity } {
+  return KIND_META[kind] ?? { label: kind, severity: 'warn' };
+}
 
 interface HealthViewProps {
   model: ExploreModel;
   onSelect: (id: string) => void;
 }
 
-/** Best effort: jump to the scenario/flow that contains the finding's line. */
+/**
+ * Jump to the scenario/flow whose header sits closest above the finding's
+ * line. Findings without a line stay static text — guessing a story (e.g.
+ * the file's first scenario) would open the wrong one more often than not.
+ */
 function jumpTarget(
   model: ExploreModel,
   finding: HealthFinding,
 ): string | null {
-  let best: { id: string; line: number } | null = null;
-  const consider = (item: { id: string; uri: string; line: number }) => {
-    if (item.uri !== finding.uri) return;
-    if (finding.line !== undefined && item.line > finding.line) return;
-    if (!best || item.line > best.line) best = { id: item.id, line: item.line };
-  };
-  for (const flow of model.flows) consider(flow);
+  const findingLine = finding.line;
+  if (findingLine === undefined) return null;
+  type Candidate = { id: string; uri: string; line: number };
+  // `better` returns the winner so `best` is assigned at the top level and
+  // TypeScript's flow analysis tracks it (closure mutation would not).
+  const better = (current: Candidate | null, item: Candidate) =>
+    item.uri === finding.uri &&
+    item.line <= findingLine &&
+    (!current || item.line > current.line)
+      ? item
+      : current;
+  let best: Candidate | null = null;
+  for (const flow of model.flows) best = better(best, flow);
   for (const feature of model.features) {
-    for (const scenario of feature.scenarios) consider(scenario);
+    for (const scenario of feature.scenarios) best = better(best, scenario);
   }
-  if (best) return (best as { id: string }).id;
-  const feature = model.features.find((f) => f.relPath === finding.uri);
-  return feature?.scenarios[0]?.id ?? null;
+  return best ? best.id : null;
 }
 
-export function HealthView({ model, onSelect }: HealthViewProps) {
+/** Payload arrives pre-sorted by kind (model.ts KIND_ORDER); group runs. */
+function groupByKind(
+  health: HealthFinding[],
+): { kind: HealthKind; items: HealthFinding[] }[] {
+  const sections: { kind: HealthKind; items: HealthFinding[] }[] = [];
+  for (const finding of health) {
+    const last = sections[sections.length - 1];
+    if (last && last.kind === finding.kind) {
+      last.items.push(finding);
+    } else {
+      sections.push({ kind: finding.kind, items: [finding] });
+    }
+  }
+  return sections;
+}
+
+export const HealthView = memo(function HealthView({
+  model,
+  onSelect,
+}: HealthViewProps) {
   if (model.health.length === 0) {
     return (
       <div className="health-view">
@@ -73,7 +97,7 @@ export function HealthView({ model, onSelect }: HealthViewProps) {
   }
 
   const errors = model.health.filter(
-    (finding) => KIND_META[finding.kind].severity === 'error',
+    (finding) => kindMeta(finding.kind).severity === 'error',
   ).length;
   const warnings = model.health.length - errors;
 
@@ -82,20 +106,18 @@ export function HealthView({ model, onSelect }: HealthViewProps) {
       <div className="health-summary">
         <span className="chip chip-errors">
           <b>{errors}</b>
-          {errors === 1 ? 'error' : 'errors'}
+          {pluralize('error', errors)}
         </span>
         <span className="chip chip-warnings">
           <b>{warnings}</b>
-          {warnings === 1 ? 'warning' : 'warnings'}
+          {pluralize('warning', warnings)}
         </span>
         <span className="health-summary-hint">
           Click a finding's location to open it in Stories.
         </span>
       </div>
-      {KIND_ORDER.map((kind) => {
-        const items = model.health.filter((finding) => finding.kind === kind);
-        if (items.length === 0) return null;
-        const meta = KIND_META[kind];
+      {groupByKind(model.health).map(({ kind, items }) => {
+        const meta = kindMeta(kind);
         return (
           <section className="health-section" key={kind}>
             <h3>
@@ -139,4 +161,4 @@ export function HealthView({ model, onSelect }: HealthViewProps) {
       })}
     </div>
   );
-}
+});
