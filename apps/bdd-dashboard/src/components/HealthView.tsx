@@ -45,7 +45,7 @@ const KIND_META: Record<HealthKind, KindMeta> = {
   'legacy-annotation': {
     label: 'Legacy @-style markers (ignored)',
     severity: 'warn',
-    desc: 'A comment uses the retired # @agent / # @no-ai / # @soft syntax, which no longer routes — write # [agent], # [no-ai], # [soft] instead.',
+    desc: 'A comment uses the retired @-marker syntax (# @agent, …), which no longer routes — write the bracket form (# [agent], …) instead.',
   },
   'tag-level-agent': {
     label: 'Tag-level @agent (ignored)',
