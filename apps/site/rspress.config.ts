@@ -280,6 +280,10 @@ export default defineConfig(async () => {
             sectionHeaderText: 'More',
           },
           {
+            text: 'Android World Benchmark Report',
+            link: '/android-world-benchmark-report',
+          },
+          {
             text: 'Changelog',
             link: '/changelog',
           },
@@ -464,6 +468,10 @@ export default defineConfig(async () => {
           },
           {
             sectionHeaderText: '更多',
+          },
+          {
+            text: 'Android World Benchmark 测试报告',
+            link: '/zh/android-world-benchmark-report',
           },
           {
             text: '更新日志',
