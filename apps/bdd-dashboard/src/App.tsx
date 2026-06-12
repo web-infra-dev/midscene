@@ -3,6 +3,7 @@ import { DetailPane } from './components/DetailPane';
 import { GraphView } from './components/GraphView';
 import { Header } from './components/Header';
 import { HealthView } from './components/HealthView';
+import { HelpPanel, WelcomeBanner } from './components/HelpPanel';
 import { Sidebar } from './components/Sidebar';
 import { DASHBOARD_CLI_COMMAND } from './model/copy';
 import { buildIndices } from './model/indices';
@@ -23,6 +24,8 @@ export default function App() {
     );
     return firstFeature?.scenarios[0]?.id ?? null;
   });
+
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const query = rawQuery.trim().toLowerCase();
@@ -82,6 +85,15 @@ export default function App() {
         searchRef.current?.select();
         return;
       }
+      if (event.key === '?' && !typing) {
+        event.preventDefault();
+        setHelpOpen((open) => !open);
+        return;
+      }
+      if (event.key === 'Escape') {
+        setHelpOpen(false);
+        return;
+      }
       if (typing || event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.key === '1') setView('stories');
       else if (event.key === '2') setView('graph');
@@ -121,7 +133,11 @@ export default function App() {
         onQueryChange={setRawQuery}
         searchRef={searchRef}
         onSearchEscape={clearSearch}
+        onOpenHelp={() => setHelpOpen(true)}
       />
+
+      <WelcomeBanner onOpenHelp={() => setHelpOpen(true)} />
+      <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} />
 
       <main>
         {/* All views stay mounted so graph pins / zoom / scroll survive tab

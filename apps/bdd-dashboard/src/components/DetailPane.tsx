@@ -72,7 +72,14 @@ export const DetailPane = memo(function DetailPane({
     // the entry animation replays when the selection changes.
     <div className="detail" key={item.id}>
       <div className="detail-head">
-        <div className="kicker">
+        <div
+          className="kicker"
+          title={
+            flow
+              ? 'A reusable step sequence (@flow) that other scenarios call as a single step'
+              : undefined
+          }
+        >
           {kicker}
           {feature && <span className="kicker-feature"> — {feature.name}</span>}
         </div>

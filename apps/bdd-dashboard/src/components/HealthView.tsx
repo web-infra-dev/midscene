@@ -4,30 +4,60 @@ import type { ExploreModel, HealthFinding, HealthKind } from '../model/types';
 
 type Severity = 'error' | 'warn';
 
-const KIND_META: Record<HealthKind, { label: string; severity: Severity }> = {
+interface KindMeta {
+  label: string;
+  severity: Severity;
+  /** Plain-language "what this means / why it matters" for newcomers. */
+  desc: string;
+}
+
+const KIND_META: Record<HealthKind, KindMeta> = {
   'ambiguous-flow-match': {
     label: 'Ambiguous flow matches',
     severity: 'error',
+    desc: 'A step matches more than one flow, so the runner cannot tell which one to call. Rename one of the flows.',
   },
-  'unknown-flow-sugar': { label: 'Unknown flow references', severity: 'error' },
-  'flow-depth': { label: 'Flow call depth exceeded', severity: 'error' },
+  'unknown-flow-sugar': {
+    label: 'Unknown flow references',
+    severity: 'error',
+    desc: 'A step is written like a flow call, but no flow with that name exists — likely a typo or a missing @flow scenario.',
+  },
+  'flow-depth': {
+    label: 'Flow call depth exceeded',
+    severity: 'error',
+    desc: 'These flows nest other flows deeper than the runtime allows, so calling them fails.',
+  },
   'undeclared-param': {
     label: 'Undeclared flow-body placeholders',
     severity: 'error',
+    desc: 'A flow step uses a <placeholder> that no @param: of that flow declares; calling the flow fails at runtime.',
   },
-  'missing-skill': { label: 'Missing skills', severity: 'warn' },
+  'missing-skill': {
+    label: 'Missing skills',
+    severity: 'warn',
+    desc: 'A $skill token names a skill that does not exist in the skills directory, so the agent step cannot load it.',
+  },
   'detached-annotation': {
     label: 'Detached annotation comments (ignored)',
     severity: 'warn',
+    desc: 'An annotation comment (# @agent, # @no-ai, …) is not directly above a step, so it silently has no effect.',
   },
-  'tag-level-agent': { label: 'Tag-level @agent (ignored)', severity: 'warn' },
-  'unused-flow': { label: 'Unused flows', severity: 'warn' },
+  'tag-level-agent': {
+    label: 'Tag-level @agent (ignored)',
+    severity: 'warn',
+    desc: '@agent only works as a comment directly above a step — as a tag on a scenario it is ignored.',
+  },
+  'unused-flow': {
+    label: 'Unused flows',
+    severity: 'warn',
+    desc: 'No scenario or flow calls these flows. They may be dead weight — or a caller misspells their name.',
+  },
 };
 
 // A template built by an older app can receive payloads with kinds it does
 // not know; render them under their raw kind instead of crashing.
-function kindMeta(kind: HealthKind): { label: string; severity: Severity } {
-  return KIND_META[kind] ?? { label: kind, severity: 'warn' };
+function kindMeta(kind: HealthKind): KindMeta {
+  return KIND_META[kind] ?? { label: kind, severity: 'warn', desc: '' };
 }
 
 interface HealthViewProps {
@@ -125,6 +155,7 @@ export const HealthView = memo(function HealthView({
               <span>{meta.label}</span>
               <span className="count">{items.length}</span>
             </h3>
+            {meta.desc && <p className="kind-desc">{meta.desc}</p>}
             <div className="health-rows">
               {items.map((finding, index) => {
                 const target = finding.uri ? jumpTarget(model, finding) : null;

@@ -22,12 +22,25 @@ interface HeaderProps {
   onQueryChange: (query: string) => void;
   searchRef: RefObject<HTMLInputElement>;
   onSearchEscape: () => void;
+  onOpenHelp: () => void;
 }
 
-const TABS: { view: DashboardView; label: string }[] = [
-  { view: 'stories', label: 'Stories' },
-  { view: 'graph', label: 'Flow graph' },
-  { view: 'health', label: 'Health' },
+const TABS: { view: DashboardView; label: string; hint: string }[] = [
+  {
+    view: 'stories',
+    label: 'Stories',
+    hint: 'Browse every scenario and its steps',
+  },
+  {
+    view: 'graph',
+    label: 'Flow graph',
+    hint: 'See how scenarios reuse shared flows',
+  },
+  {
+    view: 'health',
+    label: 'Health',
+    hint: 'Problems found while parsing the suite',
+  },
 ];
 
 export function Header({
@@ -38,13 +51,35 @@ export function Header({
   onQueryChange,
   searchRef,
   onSearchEscape,
+  onOpenHelp,
 }: HeaderProps) {
   const chips: StatChip[] = [
-    { value: model.stats.features, label: 'features' },
-    { value: model.stats.scenarios, label: 'scenarios' },
-    { value: model.stats.flows, label: 'flows' },
-    { value: model.stats.steps, label: 'steps' },
-    { value: model.stats.edges, label: 'flow calls' },
+    {
+      value: model.stats.features,
+      label: 'features',
+      title: 'Gherkin Feature sections found in the suite',
+    },
+    {
+      value: model.stats.scenarios,
+      label: 'scenarios',
+      title: 'Test cases (scenarios and scenario outlines) across all features',
+    },
+    {
+      value: model.stats.flows,
+      label: 'flows',
+      title:
+        'Reusable step sequences (scenarios tagged @flow) that other scenarios call as a single step',
+    },
+    {
+      value: model.stats.steps,
+      label: 'steps',
+      title: 'Given/When/Then steps across the whole suite',
+    },
+    {
+      value: model.stats.edges,
+      label: 'flow calls',
+      title: 'Steps that call a flow (including flows calling other flows)',
+    },
   ];
   // Routing chips only when the suite actually routes off the default UI
   // agent, so plain suites keep a quiet header.
@@ -149,12 +184,13 @@ export function Header({
       </div>
 
       <nav aria-label="views">
-        {TABS.map((tab) => (
+        {TABS.map((tab, index) => (
           <button
             type="button"
             key={tab.view}
             className={view === tab.view ? 'active' : ''}
             onClick={() => onViewChange(tab.view)}
+            title={`${tab.hint} — press ${index + 1}`}
           >
             {tab.label}
             {tab.view === 'health' && (
@@ -165,6 +201,16 @@ export function Header({
           </button>
         ))}
       </nav>
+
+      <button
+        type="button"
+        className="help-btn"
+        onClick={onOpenHelp}
+        title="Glossary & keyboard shortcuts — press ?"
+        aria-label="Open help: glossary and keyboard shortcuts"
+      >
+        ?
+      </button>
     </header>
   );
 }

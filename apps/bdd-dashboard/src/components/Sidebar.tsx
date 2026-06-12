@@ -54,6 +54,11 @@ function GroupHead({
       }`}
       onClick={() => onToggleGroup(entry.key)}
       aria-expanded={entry.open}
+      title={
+        entry.flowsGroup
+          ? 'Flows are reusable step sequences (@flow) that scenarios call as a single step'
+          : undefined
+      }
     >
       <span className={`caret${entry.open ? ' open' : ''}`} aria-hidden="true">
         ▸

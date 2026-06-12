@@ -174,6 +174,7 @@ export const GraphView = memo(function GraphView({
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [hotEdge, setHotEdge] = useState<number | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [legendOpen, setLegendOpen] = useState(false);
 
   const scrollerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({
@@ -373,7 +374,10 @@ export const GraphView = memo(function GraphView({
           </span>
         ) : (
           <span className="toolbar-cluster">
-            <label className="toggle">
+            <label
+              className="toggle"
+              title="On: one box per scenario. Off: scenarios collapse into one box per feature."
+            >
               <input
                 type="checkbox"
                 checked={everyScenario}
@@ -384,7 +388,10 @@ export const GraphView = memo(function GraphView({
               />
               Show every scenario
             </label>
-            <label className="toggle">
+            <label
+              className="toggle"
+              title="Fade the connection lines when the graph gets dense, so hovered/pinned trails stand out."
+            >
               <input
                 type="checkbox"
                 checked={fadeEdges}
@@ -393,7 +400,7 @@ export const GraphView = memo(function GraphView({
                   setPinnedId(null);
                 }}
               />
-              Fit edges (dim when dense)
+              Dim edges when dense
             </label>
           </span>
         )}
@@ -435,12 +442,27 @@ export const GraphView = memo(function GraphView({
               Unpin
             </button>
           </span>
+        ) : hoverId ? (
+          // Progressive disclosure: once the user is hovering, teach the
+          // next two interactions instead of repeating the first one.
+          <span className="toolbar-hint hint-live">
+            <b>Click</b> pins this trail · <b>double-click</b> opens it in
+            Stories
+          </span>
         ) : (
           <span className="toolbar-hint">
-            Hover a node to preview its dependency cone; click to pin it.
-            Double-click opens in Stories.
+            Hover any box to trace what it calls and what calls it.
           </span>
         )}
+
+        <button
+          type="button"
+          className={`btn legend-btn${legendOpen ? ' active' : ''}`}
+          onClick={() => setLegendOpen((open) => !open)}
+          aria-expanded={legendOpen}
+        >
+          How to read this
+        </button>
 
         <span className="toolbar-cluster zoom-cluster">
           <button
@@ -472,6 +494,56 @@ export const GraphView = memo(function GraphView({
           </button>
         </span>
       </div>
+
+      {legendOpen && (
+        <div className="graph-legend" role="note" aria-label="Graph legend">
+          <div className="graph-legend-head">
+            <b>Reading the graph</b>
+            <button
+              type="button"
+              className="help-close"
+              onClick={() => setLegendOpen(false)}
+              aria-label="Close legend"
+            >
+              ×
+            </button>
+          </div>
+          <p>
+            Read left to right: each arrow points from a caller to the flow it
+            calls. Scenarios sit in the first column, the flows they use come
+            next, then flows those flows call, and so on.
+          </p>
+          <div className="legend-swatches">
+            <span>
+              <span className="swatch swatch-scenario" />
+              scenario
+            </span>
+            <span>
+              <span className="swatch swatch-flow" />
+              flow (reusable steps)
+            </span>
+            <span>
+              <span className="swatch swatch-unused" />
+              flow nothing calls
+            </span>
+          </div>
+          <ul className="legend-actions">
+            <li>
+              <b>Hover</b> a box to highlight its whole call trail.
+            </li>
+            <li>
+              <b>Click</b> (or <kbd>Enter</kbd>) pins the highlight; click empty
+              space to unpin.
+            </li>
+            <li>
+              <b>Double-click</b> opens the box in Stories.
+            </li>
+            <li>
+              <b>Drag</b> to pan · <kbd>Ctrl</kbd>+<b>scroll</b> to zoom.
+            </li>
+          </ul>
+        </div>
+      )}
 
       <div
         className="graph-scroll"

@@ -333,6 +333,193 @@ mark {
   color: var(--muted);
 }
 
+.help-btn {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-soft);
+  border-radius: 50%;
+  background: var(--bg-deep);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.help-btn:hover {
+  color: var(--text-bright);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ———————————————————————— welcome banner ———————————————————————— */
+
+.welcome-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 8px 18px;
+  border-bottom: 1px solid var(--border-soft);
+  background: linear-gradient(
+    90deg,
+    rgba(116, 171, 230, 0.1),
+    rgba(116, 171, 230, 0.03)
+  );
+  font-size: 12.5px;
+  color: var(--text);
+  animation: rise-in 0.18s ease;
+}
+
+.welcome-text b {
+  color: var(--text-bright);
+  font-weight: 650;
+}
+
+.welcome-actions {
+  display: inline-flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.welcome-dismiss {
+  color: var(--muted);
+}
+
+/* ———————————————————————— help panel ———————————————————————— */
+
+.help-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(5, 7, 11, 0.45);
+  cursor: default;
+}
+
+/* A native <dialog> (non-modal, always open while mounted) restyled into a
+   top-right popover; margin/color overrides clear the UA dialog defaults. */
+.help-panel {
+  position: fixed;
+  inset: auto;
+  top: 60px;
+  right: 18px;
+  margin: 0;
+  color: var(--text);
+  z-index: 41;
+  width: min(440px, calc(100vw - 36px));
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  background: var(--panel-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  padding: 16px 20px 20px;
+  box-shadow: var(--shadow-2), 0 0 0 1px rgba(0, 0, 0, 0.3);
+  animation: rise-in 0.16s ease;
+  font-size: 12.5px;
+}
+
+.help-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.help-head h3 {
+  margin: 0;
+  font-size: 14.5px;
+  color: var(--text-bright);
+}
+
+.help-close {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.help-close:hover {
+  background: var(--panel-3);
+  color: var(--text);
+}
+
+.help-intro {
+  color: var(--muted);
+  margin: 8px 0 0;
+}
+
+.help-intro b,
+.help-glossary dt,
+.help-keys b {
+  color: var(--text-bright);
+  font-weight: 650;
+}
+
+.help-panel h4 {
+  margin: 18px 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--faint);
+}
+
+.help-glossary {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.help-term dt {
+  display: inline;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.help-term dd {
+  display: inline;
+  margin: 0 0 0 6px;
+  color: var(--muted);
+}
+
+.help-keys {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.help-keys td {
+  padding: 2.5px 0;
+  vertical-align: baseline;
+  color: var(--muted);
+}
+
+.help-keys td:first-child {
+  width: 112px;
+  white-space: nowrap;
+  padding-right: 12px;
+}
+
+.help-keys kbd,
+.legend-actions kbd {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 0 6px;
+  line-height: 1.6;
+  background: var(--panel-3);
+  white-space: nowrap;
+}
+
 /* ———————————————————————— layout shell ———————————————————————— */
 
 main {
@@ -885,6 +1072,7 @@ pre.docstring {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  position: relative; /* anchors the legend popover */
 }
 
 .graph-toolbar {
@@ -917,6 +1105,101 @@ pre.docstring {
 
 .toolbar-hint {
   color: var(--faint);
+}
+
+.toolbar-hint.hint-live {
+  color: var(--muted);
+}
+
+.toolbar-hint.hint-live b {
+  color: var(--accent-bright);
+}
+
+.legend-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.graph-legend {
+  position: absolute;
+  top: 46px;
+  right: 16px;
+  z-index: 6;
+  width: min(360px, calc(100vw - 32px));
+  background: var(--panel-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 12px 16px 14px;
+  box-shadow: var(--shadow-2);
+  animation: rise-in 0.16s ease;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.graph-legend-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text-bright);
+  font-size: 13px;
+}
+
+.graph-legend p {
+  margin: 7px 0 10px;
+}
+
+.legend-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-bottom: 10px;
+  color: var(--text);
+}
+
+.legend-swatches span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.swatch {
+  width: 22px;
+  height: 13px;
+  flex: none;
+  border-radius: 4px;
+  border: 1.5px solid;
+}
+
+.swatch-scenario {
+  background: #1d2638;
+  border-color: #41557a;
+  border-style: dashed;
+}
+
+.swatch-flow {
+  background: #1b2e22;
+  border-color: #4a7a55;
+}
+
+.swatch-unused {
+  background: #2e2719;
+  border-color: var(--warn);
+  border-style: dashed;
+}
+
+.legend-actions {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.legend-actions b {
+  color: var(--text-bright);
+  font-weight: 650;
 }
 
 .zoom-cluster {
@@ -1218,6 +1501,13 @@ svg.fade-edges .gedge.hot {
 .kind-warn {
   background: #4d3f26;
   color: #f0d490;
+}
+
+.kind-desc {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  max-width: 860px;
 }
 
 .health-rows {
