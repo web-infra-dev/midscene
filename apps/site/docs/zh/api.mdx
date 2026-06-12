@@ -1261,11 +1261,15 @@ await agent.aiTap('右上角购物车图标', { deepLocate: true });
 
 :::note
 
-该参数最早曾在 `aiTap`、`aiHover` 等单步操作方法（也就是除了 `aiAct`）中命名为 `deepThink`；自 v1.5.1 起更名为 `deepLocate`，但旧的 `deepThink` 参数仍然兼容。
+历史上，`deepThink` 这个名字在不同 API 中承担过两种含义：
 
-而 `aiAct()` 中的 `deepThink` 参数依然保持了 `deepThink` 的语义，控制**规划模式**，用于引导任务拆解和专注规划的思考过程。详情请参考 [aiAct deepThink 说明](./model-strategy#关于-aiact-方法的-deepthink-参数)。
+- 在 `aiAct()` 中，`deepThink` 从一开始就表示**规划模式**，用于引导任务拆解和专注规划的思考过程。详情请参考 [aiAct deepThink 说明](./model-strategy#关于-aiact-方法的-deepthink-参数)。
+- 在 `aiTap`、`aiHover` 等单步操作方法中，旧的 `deepThink` 表示**定位增强**，等同于现在的 `deepLocate`。
 
-在 `aiTap`、`aiHover` 等单步操作方法中，如果需要提升定位精确度，推荐使用语义更清晰的 `deepLocate` 参数，而不是旧的 `deepThink` 参数。
+为了区分这两种语义，自 v1.5.1 起，`deepThink` 只用于表示规划模式，定位增强统一命名为 `deepLocate`。
+
+- 对于 `aiAct()`，可以同时使用 `deepThink` 和 `deepLocate`：`deepThink` 控制规划模式，`deepLocate` 控制本节描述的深度定位。
+- 对于 `aiTap`、`aiHover` 等单步操作方法，如果需要提升定位精确度，推荐使用语义更清晰的 `deepLocate` 参数；旧的 `deepThink` 参数仍然兼容，语义等同于 `deepLocate`。
 :::
 
 ## 使用图片作为提示词

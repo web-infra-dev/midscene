@@ -1245,11 +1245,15 @@ await agent.aiTap('Shopping cart icon in the top right', { deepLocate: true });
 
 :::note
 
-This parameter was originally named `deepThink` in single-step action methods such as `aiTap` and `aiHover` other than `aiAct`. Since v1.5.1, it has been renamed to `deepLocate`, but the old `deepThink` parameter remains compatible.
+Historically, the name `deepThink` has carried two different meanings across APIs:
 
-The `deepThink` parameter in `aiAct()` still keeps the `deepThink` semantics. It controls the **planning mode** and guides task decomposition and planning-focused reasoning. See [aiAct deepThink documentation](./model-strategy#about-the-deepthink-option-in-aiact) for details.
+- In `aiAct()`, `deepThink` has always meant **planning mode**, guiding task decomposition and planning-focused reasoning. See [aiAct deepThink documentation](./model-strategy#about-the-deepthink-option-in-aiact) for details.
+- In single-step action methods such as `aiTap` and `aiHover`, the old `deepThink` meant **enhanced element location**, equivalent to today's `deepLocate`.
 
-In single-step action methods such as `aiTap` and `aiHover`, use the clearer `deepLocate` parameter instead of the old `deepThink` parameter when you need to improve location precision.
+To separate these two meanings, `deepThink` has been reserved for planning mode since v1.5.1, while enhanced element location is consistently named `deepLocate`.
+
+- For `aiAct()`, you can use both `deepThink` and `deepLocate`: `deepThink` controls planning mode, while `deepLocate` controls the Deep Locate behavior described in this section.
+- For single-step action methods such as `aiTap` and `aiHover`, use the clearer `deepLocate` parameter when you need to improve location precision. The old `deepThink` parameter remains compatible and is equivalent to `deepLocate`.
 
 :::
 
