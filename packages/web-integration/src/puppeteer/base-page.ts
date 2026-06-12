@@ -458,6 +458,50 @@ export class Page<
     return (await page.context().newCDPSession(page)) as ScreencastCdpSession;
   }
 
+  async waitForDomQuiet(opts?: {
+    quietMs?: number;
+    timeoutMs?: number;
+    target?: ElementInfo;
+  }): Promise<void> {
+    const quietMs = opts?.quietMs ?? 100;
+    const timeoutMs = opts?.timeoutMs ?? 500;
+    const targetCenter = opts?.target?.center;
+    try {
+      await this.evaluate(
+        ([q, total, center]: [number, number, [number, number] | undefined]) =>
+          new Promise<void>((resolve) => {
+            let settleTimer: ReturnType<typeof setTimeout> | undefined;
+            const done = () => {
+              obs.disconnect();
+              clearTimeout(hardTimer);
+              if (settleTimer) clearTimeout(settleTimer);
+              resolve();
+            };
+            const target =
+              center && Number.isFinite(center[0]) && Number.isFinite(center[1])
+                ? document.elementFromPoint(center[0], center[1])
+                : null;
+            const observeRoot =
+              target?.closest('form') ?? target?.parentElement ?? document.body;
+            const obs = new MutationObserver(() => {
+              if (settleTimer) clearTimeout(settleTimer);
+              settleTimer = setTimeout(done, q);
+            });
+            obs.observe(observeRoot, {
+              childList: true,
+              subtree: true,
+              attributes: true,
+              characterData: true,
+            });
+            const hardTimer = setTimeout(done, total);
+          }),
+        [quietMs, timeoutMs, targetCenter],
+      );
+    } catch (error) {
+      debugPage('waitForDomQuiet failed: %s', error);
+    }
+  }
+
   async flushPendingVisualUpdate(): Promise<void> {
     const activeStream = this.activeMjpegStream;
     if (!activeStream) return;
