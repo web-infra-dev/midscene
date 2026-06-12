@@ -108,7 +108,7 @@ describe('resolveStepAnnotations', () => {
   it('reads markers from the comment block directly above the step', () => {
     const parsed = parse(`Feature: f
   Scenario: s
-    # @agent
+    # [agent]
     When I do a thing
 `);
     expect(resolve(parsed, 'I do a thing')).toEqual({
@@ -121,7 +121,7 @@ describe('resolveStepAnnotations', () => {
 
   it('does not leak a comment above the Scenario header into step 1', () => {
     const parsed = parse(`Feature: f
-  # @agent @soft $sneaky
+  # [agent] [soft] $sneaky
   Scenario: s
     When I do a thing
 `);
@@ -136,7 +136,7 @@ describe('resolveStepAnnotations', () => {
   it('parses multiple markers on a single comment line', () => {
     const parsed = parse(`Feature: f
   Scenario: s
-    # @agent @soft $skill-a
+    # [agent] [soft] $skill-a
     When I do a thing
 `);
     expect(resolve(parsed, 'I do a thing')).toEqual({
@@ -150,8 +150,8 @@ describe('resolveStepAnnotations', () => {
   it('collects a contiguous multi-line comment block (marker-only lines)', () => {
     const parsed = parse(`Feature: f
   Scenario: s
-    # @no-ai
-    # @soft
+    # [no-ai]
+    # [soft]
     # $first $second
     When I do a thing
     Then nothing leaked here
@@ -195,7 +195,7 @@ describe('resolveStepAnnotations', () => {
   it('drops the annotation when a blank line separates it from the step', () => {
     const parsed = parse(`Feature: f
   Scenario: s
-    # @no-ai
+    # [no-ai]
 
     When I do a thing
 `);
@@ -212,9 +212,9 @@ describe('resolveStepAnnotations', () => {
   it('stops the block at a non-comment line in between', () => {
     const parsed = parse(`Feature: f
   Scenario: s
-    # @no-ai
+    # [no-ai]
     Given an earlier step
-    # @soft
+    # [soft]
     When I do a thing
 `);
     expect(resolve(parsed, 'I do a thing')).toEqual({
@@ -228,7 +228,7 @@ describe('resolveStepAnnotations', () => {
   it('resolves annotations on Background steps', () => {
     const parsed = parse(`Feature: f
   Background:
-    # @agent
+    # [agent]
     Given a setup step
   Scenario: s
     When an action step
@@ -251,10 +251,10 @@ describe('resolveStepAnnotations', () => {
     const parsed = parse(`Feature: f
   Rule: r
     Background:
-      # @no-ai
+      # [no-ai]
       Given a rule setup
     Scenario: s
-      # @soft
+      # [soft]
       When a rule action
 `);
     expect(resolve(parsed, 'a rule setup')).toEqual({
@@ -274,7 +274,7 @@ describe('resolveStepAnnotations', () => {
   it('shares outline step annotations across all example expansions', () => {
     const parsed = parse(`Feature: f
   Scenario Outline: s
-    # @agent
+    # [agent]
     When I use <x>
 
     Examples:
@@ -395,7 +395,23 @@ Feature: f
   it('does not match marker prefixes of longer words', () => {
     const parsed = parse(`Feature: f
   Scenario: s
-    # @agents @softer @no-aim
+    # [agents] [softer] [no-aim]
+    When I do a thing
+`);
+    expect(resolve(parsed, 'I do a thing')).toEqual({
+      agent: false,
+      noAi: false,
+      soft: false,
+      skills: [],
+    });
+  });
+
+  it('does not route the retired @-marker syntax', () => {
+    // Clean break: `# @agent` was the pre-release syntax and is now plain
+    // prose for the resolver (the footgun audit warns about it separately).
+    const parsed = parse(`Feature: f
+  Scenario: s
+    # @agent @no-ai @soft
     When I do a thing
 `);
     expect(resolve(parsed, 'I do a thing')).toEqual({
@@ -408,44 +424,67 @@ Feature: f
 });
 
 describe('collectAnnotationFootguns', () => {
-  function footguns(source: string, uri = 'probe.feature'): string[] {
+  function structuredFootguns(source: string, uri = 'probe.feature') {
     const { document } = parse(source);
     document.uri = uri;
     return collectAnnotationFootguns(document);
   }
 
+  /** Message-only view; most cases assert on the human-readable warning. */
+  function footguns(source: string, uri = 'probe.feature'): string[] {
+    return structuredFootguns(source, uri).map((footgun) => footgun.message);
+  }
+
+  it('returns structured kinds and lines, not just prose', () => {
+    const found = structuredFootguns(`@agent
+Feature: f
+  Scenario: s
+    # [agent]
+
+    # @no-ai
+    # [soft] but with prose
+    When I do a thing
+`);
+    expect(found.map(({ kind, line }) => ({ kind, line }))).toEqual([
+      { kind: 'detached', line: 4 },
+      { kind: 'legacy', line: 6 },
+      { kind: 'marker-prose', line: 7 },
+      { kind: 'tag-level-agent', line: 1 },
+    ]);
+  });
+
   it('warns on a marker comment detached from its step by a blank line', () => {
     const warnings = footguns(`Feature: f
   Scenario: s
-    # @agent
+    # [agent]
 
     When I do a thing
 `);
     expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain('"# @agent"');
+    expect(warnings[0]).toContain('"# [agent]"');
     expect(warnings[0]).toContain('probe.feature:3');
     expect(warnings[0]).toContain('not directly above a step');
   });
 
   it('warns on a marker comment block stranded above a Scenario header', () => {
     const warnings = footguns(`Feature: f
-  # @no-ai $probe
+  # [no-ai] $probe
   Scenario: s
     When I do a thing
 `);
     expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain('"# @no-ai $probe"');
+    expect(warnings[0]).toContain('"# [no-ai] $probe"');
     expect(warnings[0]).toContain('probe.feature:2');
   });
 
   it('warns once per detached marker line, none for the attached block', () => {
     const warnings = footguns(`Feature: f
   Scenario: s
-    # @soft
-    # @agent
+    # [soft]
+    # [agent]
 
     Given an earlier step
-    # @no-ai
+    # [no-ai]
     # $probe
     When I do a thing
 `);
@@ -488,13 +527,13 @@ Feature: f
   it('warns on a comment that starts with a marker but mixes in prose', () => {
     const warnings = footguns(`Feature: f
   Scenario: s
-    # @agent check the logs
+    # [agent] check the logs
     When I do a thing
     # $check-logs after deploying
     Then it worked
 `);
     expect(warnings).toHaveLength(2);
-    expect(warnings[0]).toContain('"# @agent check the logs"');
+    expect(warnings[0]).toContain('"# [agent] check the logs"');
     expect(warnings[0]).toContain('probe.feature:3');
     expect(warnings[0]).toContain('starts with a routing marker');
     expect(warnings[1]).toContain('"# $check-logs after deploying"');
@@ -504,12 +543,63 @@ Feature: f
   it('does not flag prose that merely mentions a marker mid-line', () => {
     const warnings = footguns(`Feature: f
   Scenario: s
-    # TODO: make this @no-ai later
+    # TODO: make this [no-ai] later
     When I do a thing
-    # @agents is not a marker
+    # @agents is not a marker, and neither is [agents]
     Then it worked
 `);
     expect(warnings).toEqual([]);
+  });
+
+  it('warns on marker-only comments in the retired @-syntax', () => {
+    const warnings = footguns(`Feature: f
+  Scenario: s
+    # @agent
+    When I do a thing
+    # @no-ai @soft
+    Then it worked
+    # @agent $check-logs
+    Then the logs are clean
+`);
+    expect(warnings).toHaveLength(3);
+    expect(warnings[0]).toContain('"# @agent"');
+    expect(warnings[0]).toContain('probe.feature:3');
+    expect(warnings[0]).toContain('retired @-marker syntax');
+    expect(warnings[0]).toContain('# [agent]');
+    expect(warnings[1]).toContain('"# @no-ai @soft"');
+    expect(warnings[1]).toContain('probe.feature:5');
+    expect(warnings[2]).toContain('"# @agent $check-logs"');
+    expect(warnings[2]).toContain('probe.feature:7');
+  });
+
+  it('warns the legacy way even when the @-marker comment is detached', () => {
+    // The legacy warning wins over the detached-annotation warning: the
+    // line would not route even if it were attached, so the migration hint
+    // is the actionable message.
+    const warnings = footguns(`Feature: f
+  Scenario: s
+    # @agent
+
+    When I do a thing
+`);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('retired @-marker syntax');
+  });
+
+  it('flags legacy markers at line start, ignores mid-line mentions', () => {
+    // `# @agent check the logs` routed before the syntax change, so it gets
+    // the migration hint (same start-of-line rule as the bracket prose
+    // footgun). Prose that mentions the old syntax mid-line stays silent.
+    const warnings = footguns(`Feature: f
+  Scenario: s
+    # @agent check the logs
+    When I do a thing
+    # we used to write @no-ai here
+    Then it worked
+`);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('"# @agent check the logs"');
+    expect(warnings[0]).toContain('retired @-marker syntax');
   });
 
   it('stays silent for attached markers, prose comments, and consumed tags', () => {
@@ -518,7 +608,7 @@ Feature: f
   # this prose comment mentions @agent but is not marker-only
   @soft @flow @param:x @must-fail
   Scenario: s
-    # @agent
+    # [agent]
     When I do a thing
 `);
     expect(warnings).toEqual([]);

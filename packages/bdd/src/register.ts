@@ -14,6 +14,7 @@
 import { resolve } from 'node:path';
 import {
   After,
+  AfterAll,
   BeforeAll,
   BeforeStep,
   Given,
@@ -27,7 +28,13 @@ import { loadBddConfig } from './config';
 import { runStep } from './router';
 import { discoverSkills } from './skills';
 import { ERROR_PREFIX } from './types';
-import { MidsceneWorld, cleanupError, getRuntime, setRuntime } from './world';
+import {
+  MidsceneWorld,
+  cleanupError,
+  destroyWorkerUiAgent,
+  getRuntime,
+  setRuntime,
+} from './world';
 
 /** AI steps (model round-trips + browser actions) are slow; allow 3 minutes. */
 const DEFAULT_STEP_TIMEOUT_MS = 180_000;
@@ -129,14 +136,25 @@ Object.defineProperty(catchAllStep, 'length', {
 
 Given(/^(.*)$/s, catchAllStep);
 
-// Fresh browser per scenario = isolation. The Midscene report path is
-// attached so it shows up next to the scenario in cucumber reports — even
-// when teardown failed, which is exactly when the report matters most.
+// Fresh browser per scenario = isolation (under `uiAgent.scope: 'worker'`
+// the UI agent is kept and only the general agent is dropped). The Midscene
+// report path is attached so it shows up next to the scenario in cucumber
+// reports — even when teardown failed, which is exactly when the report
+// matters most.
 After(async function (this: MidsceneWorld) {
   const { reportFile, errors } = await this.destroyAgents();
   if (reportFile) {
     await this.attach(`Midscene report: ${reportFile}`, 'text/plain');
   }
+  if (errors.length > 0) {
+    throw cleanupError(errors);
+  }
+});
+
+// `scope: 'worker'` agents live across scenarios; tear them down when the
+// worker finishes. No-op under the default per-scenario scope.
+AfterAll(async () => {
+  const { errors } = await destroyWorkerUiAgent();
   if (errors.length > 0) {
     throw cleanupError(errors);
   }

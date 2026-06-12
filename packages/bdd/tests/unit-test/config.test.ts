@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { defineBddConfig, loadBddConfig } from '../../src/config';
+import type { BddConfig, UiTarget } from '../../src/types';
 
 const tmpDirs: string[] = [];
 const originalEnvConfig = process.env.MIDSCENE_BDD_CONFIG;
@@ -200,16 +201,114 @@ describe('loadBddConfig', () => {
     );
   });
 
-  it('throws on an unknown uiAgent.type, naming the type', async () => {
+  it('throws on an unknown uiAgent.type, naming the type and listing valid ones', async () => {
     const dir = makeTmpDir();
     writeConfig(
       dir,
-      `export default { uiAgent: { type: 'android', url: 'x' } };\n`,
+      `export default { uiAgent: { type: 'desktop', url: 'x' } };\n`,
     );
 
     await expect(loadBddConfig({ cwd: dir })).rejects.toThrow(
-      /\[midscene-bdd\] midscene\.config\.ts: uiAgent\.type 'android' is unknown/,
+      /uiAgent\.type 'desktop' is unknown — valid types: web, android, ios, harmony, computer, interface/,
     );
+  });
+
+  it('accepts an android target with deviceId and launch', async () => {
+    const dir = makeTmpDir();
+    writeConfig(
+      dir,
+      `export default { uiAgent: { type: 'android', deviceId: 'emulator-5554', launch: 'com.example.app' } };\n`,
+    );
+
+    const resolved = await loadBddConfig({ cwd: dir });
+
+    expect(resolved.uiAgent).toEqual({
+      type: 'android',
+      deviceId: 'emulator-5554',
+      launch: 'com.example.app',
+    });
+  });
+
+  it('accepts ios, harmony, computer and interface targets', async () => {
+    const dir = makeTmpDir();
+    writeConfig(
+      dir,
+      `export default { uiAgent: { type: 'interface', module: './my-device.ts', export: 'MyDevice', param: { token: 'x' } } };\n`,
+    );
+
+    const resolved = await loadBddConfig({ cwd: dir });
+    expect(resolved.uiAgent).toMatchObject({
+      type: 'interface',
+      module: './my-device.ts',
+    });
+
+    // Typed as UiTarget[] so the compiler keeps these fixtures valid as the
+    // union evolves.
+    const targets: UiTarget[] = [
+      { type: 'ios', launch: 'com.example.app' },
+      { type: 'harmony', deviceId: 'dev-1' },
+      { type: 'computer', displayId: '1' },
+    ];
+    for (const target of targets) {
+      expect(() => defineBddConfig({ uiAgent: target })).not.toThrow();
+    }
+  });
+
+  it('throws when an interface target has no module', async () => {
+    const dir = makeTmpDir();
+    writeConfig(dir, `export default { uiAgent: { type: 'interface' } };\n`);
+
+    await expect(loadBddConfig({ cwd: dir })).rejects.toThrow(
+      /uiAgent\.module must be a non-empty module specifier when type is 'interface'/,
+    );
+  });
+
+  it('validates uiAgent.scope', () => {
+    // Ill-typed on purpose: exercises runtime validation of JS configs.
+    expect(() =>
+      defineBddConfig({
+        uiAgent: { type: 'android', scope: 'global' },
+      } as unknown as BddConfig),
+    ).toThrow(/uiAgent\.scope must be 'scenario' or 'worker', got 'global'/);
+
+    expect(() =>
+      defineBddConfig({
+        uiAgent: { type: 'android', scope: 'worker' },
+      }),
+    ).not.toThrow();
+  });
+
+  it('passes uiAgentOptions through to the resolved config', async () => {
+    const dir = makeTmpDir();
+    writeConfig(
+      dir,
+      `export default {
+        uiAgent: { type: 'web', url: 'https://example.com' },
+        uiAgentOptions: { generateReport: false, groupName: 'Checkout' },
+      };\n`,
+    );
+
+    const resolved = await loadBddConfig({ cwd: dir });
+    expect(resolved.uiAgentOptions).toEqual({
+      generateReport: false,
+      groupName: 'Checkout',
+    });
+  });
+
+  it('rejects a non-object uiAgentOptions', () => {
+    expect(() =>
+      defineBddConfig({
+        uiAgent: { type: 'web', url: 'https://example.com' },
+        uiAgentOptions: 'verbose',
+      } as never),
+    ).toThrow(/uiAgentOptions must be an object .*got string/);
+
+    expect(() =>
+      defineBddConfig({
+        uiAgent: { type: 'web', url: 'https://example.com' },
+        uiAgentOptions: ['generateReport'],
+      } as never),
+    ).toThrow(/uiAgentOptions must be an object .*got an array/);
   });
 
   it('throws when uiAgent.url is empty', async () => {

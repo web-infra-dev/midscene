@@ -9,6 +9,7 @@ export type HealthKind =
   | 'unknown-flow-sugar'
   | 'undeclared-param'
   | 'detached-annotation'
+  | 'legacy-annotation'
   | 'tag-level-agent'
   | 'missing-skill'
   | 'flow-depth';

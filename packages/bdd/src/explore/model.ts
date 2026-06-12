@@ -17,6 +17,7 @@ import type {
   Step,
 } from '@cucumber/messages';
 import {
+  type AnnotationFootgunKind,
   collectAnnotationFootguns,
   renderDataTable,
   resolveStepAnnotations,
@@ -40,6 +41,7 @@ export type HealthKind =
   | 'unknown-flow-sugar'
   | 'undeclared-param'
   | 'detached-annotation'
+  | 'legacy-annotation'
   | 'tag-level-agent'
   | 'missing-skill'
   | 'flow-depth';
@@ -137,9 +139,9 @@ export interface ExploreStats {
   flows: number;
   steps: number;
   edges: number;
-  /** Steps routed to the general coding agent (`# @agent` / `$skill`). */
+  /** Steps routed to the general coding agent (`# [agent]` / `$skill`). */
   agentSteps: number;
-  /** Steps routed to a user-registered classic callback (`# @no-ai`). */
+  /** Steps routed to a user-registered classic callback (`# [no-ai]`). */
   noAiSteps: number;
 }
 
@@ -166,6 +168,7 @@ const KIND_ORDER: HealthKind[] = [
   'undeclared-param',
   'missing-skill',
   'detached-annotation',
+  'legacy-annotation',
   'tag-level-agent',
   'unused-flow',
 ];
@@ -258,7 +261,7 @@ function analyzeSteps(
     }
 
     // Flow-call detection mirrors the runtime router exactly: runStep only
-    // consults the flow registry AFTER @no-ai and @agent/$skill are ruled
+    // consults the flow registry AFTER @no-ai and [agent]/$skill are ruled
     // out, so annotated steps never produce flow calls, edges, or
     // flow-match findings. matchStep throws on ambiguity and on sugar
     // errors; classify by message shape (the registry raises plain Errors
@@ -477,22 +480,26 @@ export async function buildExploreModel(
     });
   }
 
-  // Annotation footguns (detached marker comments, tag-level @agent) are
-  // silent no-ops at runtime — exactly the hygiene the Health panel exists
-  // for. Reuse the runtime collector and lift its `uri:line` into fields.
+  // Annotation footguns (detached marker comments, legacy @-style markers,
+  // tag-level @agent) are silent no-ops at runtime — exactly the hygiene
+  // the Health panel exists for. The collector returns structured findings,
+  // so kinds map directly instead of being sniffed out of message prose.
+  const FOOTGUN_KIND: Record<AnnotationFootgunKind, HealthKind> = {
+    detached: 'detached-annotation',
+    // Marker-plus-prose lines share the detached bucket: both are "the
+    // comment exists but does not route".
+    'marker-prose': 'detached-annotation',
+    legacy: 'legacy-annotation',
+    'tag-level-agent': 'tag-level-agent',
+  };
   for (const { document, uri } of parsed) {
     const relPath = path.relative(config.baseDir, uri);
-    for (const warning of collectAnnotationFootguns(document)) {
-      const loc = new RegExp(
-        ` at ${uri.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:(\\d+) `,
-      ).exec(warning);
+    for (const footgun of collectAnnotationFootguns(document)) {
       ctx.health.push({
-        kind: warning.startsWith('tag "@agent"')
-          ? 'tag-level-agent'
-          : 'detached-annotation',
-        message: warning.split(`${uri}:`).join(`${relPath}:`),
+        kind: FOOTGUN_KIND[footgun.kind],
+        message: footgun.message.split(`${uri}:`).join(`${relPath}:`),
         uri: relPath,
-        line: loc ? Number(loc[1]) : undefined,
+        line: footgun.line,
       });
     }
   }

@@ -16,13 +16,14 @@
  * including one fan-out smoke scenario calling 5 flows and two story-arc
  * features whose scenarios climb the pipeline/support chains level by level.
  * Flow bodies use declared <param> placeholders, step annotations
- * (# @agent / # @no-ai / @soft / $skill — including routed steps inside two
- * flow bodies so the graph's routing markers light up), two Scenario
+ * (# [agent] / # [no-ai] / @soft / $skill — including routed steps inside
+ * two flow bodies so the graph's routing markers light up), two Scenario
  * Outlines, and seeded imperfections so the HEALTH panel has content:
  *   - 2 unused flows
  *   - 1 undeclared <placeholder> in a flow body
- *   - 1 detached "# @agent" annotation comment (blank line before the step)
+ *   - 1 detached "# [agent]" annotation comment (blank line before the step)
  *   - 1 tag-level @agent tag (ignored by routing)
+ *   - 1 legacy "# @agent" marker (retired @-syntax, ignored by routing)
  *   - 1 $missing-skill reference
  *   - many flow-depth findings (every flow nested deeper than MAX_FLOW_DEPTH)
  *
@@ -277,7 +278,7 @@ const SUPPORT_FLOWS = `Feature: Shared support flows
     When I open the ticket actions menu
     And I click archive ticket
     Then the ticket disappears from the open queue
-    # @no-ai
+    # [no-ai]
     Then the archived-ticket counter increments
 `;
 
@@ -334,7 +335,7 @@ const pick = (arr, n) => arr[n % arr.length];
 
 // Scenario templates: each returns gherkin lines for scenario index n.
 // Together they exercise 1-5 flow calls, deep-chain entry points at every
-// level, data tables, and @soft / # @agent / # @no-ai annotations.
+// level, data tables, and @soft / # [agent] / # [no-ai] annotations.
 const TEMPLATES = [
   (n) => [
     `  Scenario: Basket total reflects the ${pick(PRODUCTS, n)} price`,
@@ -353,13 +354,13 @@ const TEMPLATES = [
   (n) => [
     `  Scenario: Search for ${pick(TERMS, n)} shows a counter`,
     `    Given I have searched the catalog for "${pick(TERMS, n)}"`,
-    '    # @no-ai',
+    '    # [no-ai]',
     '    Then the result counter matches the visible list length',
   ],
   (n) => [
     `  Scenario: Visiting the ${pick(SECTIONS, n)} section is logged`,
     `    Given I have opened the "${pick(SECTIONS, n)}" section`,
-    '    # @agent',
+    '    # [agent]',
     '    Then the server log notes the visit, per $check-logs',
   ],
   (n) => [
@@ -470,12 +471,13 @@ const OUTLINE = [
 // Seeded imperfections, placed at fixed (file, scenario) coordinates. The
 // detached annotation has a blank line between the marker comment and its
 // step (so it never attaches); the tag-level @agent is silently ignored by
-// routing (only "# @agent" comments route).
+// routing (only "# [agent]" comments route); the legacy annotation uses the
+// retired "# @agent" syntax, which no longer routes either.
 const SEEDED = {
   detachedAnnotation: [
     '  Scenario: Audit visit is reported (seeded detached annotation)',
     '    Given I have opened the "billing" section',
-    '    # @agent',
+    '    # [agent]',
     '',
     '    Then the server log notes the visit, per $check-logs',
   ],
@@ -485,10 +487,16 @@ const SEEDED = {
     '    Given I am signed in as "auditor"',
     '    Then the session report lists the sign-in',
   ],
+  legacyAnnotation: [
+    '  Scenario: Sign-in audit is appended (seeded legacy @-marker)',
+    '    Given I am signed in as "manager"',
+    '    # @agent',
+    '    Then the audit log notes the sign-in, per $check-logs',
+  ],
   missingSkill: [
     '  Scenario: Audit trail is appended (seeded missing skill)',
     `    Given I have opened the "billing" section`,
-    '    # @agent',
+    '    # [agent]',
     '    Then the audit trail records the visit, per $audit-trail',
   ],
 };
@@ -507,6 +515,8 @@ for (let f = 0; f < 30; f++) {
       blocks.push(SEEDED.detachedAnnotation.join('\n'));
     else if (f === 12 && s === 2) blocks.push(SEEDED.tagLevelAgent.join('\n'));
     else if (f === 21 && s === 1) blocks.push(SEEDED.missingSkill.join('\n'));
+    else if (f === 26 && s === 2)
+      blocks.push(SEEDED.legacyAnnotation.join('\n'));
     else blocks.push(TEMPLATES[n % TEMPLATES.length](n).join('\n'));
     scenarioTotal++;
   }
@@ -591,7 +601,7 @@ const SUPPORT_FEATURE = `Feature: Suite 33 — support desk
 
   Scenario: Escalation pings the on-call channel
     Given I have an escalated support ticket
-    # @agent
+    # [agent]
     Then the on-call channel mentions the ticket, per $check-logs
 
   Scenario: Resolution note is shown to the customer
@@ -616,10 +626,11 @@ for (const [name, body, count] of ARC_FEATURES) {
 
 const allContent = featureBodies.join('\n');
 const countMatches = (re) => (allContent.match(re) ?? []).length;
-const agentMarkers = countMatches(/^\s*# @agent$/gm);
-const noAiMarkers = countMatches(/^\s*# @no-ai$/gm);
+const agentMarkers = countMatches(/^\s*# \[agent\]$/gm);
+const noAiMarkers = countMatches(/^\s*# \[no-ai\]$/gm);
+// Stats-only heuristic; mirrors SKILL_NAME in packages/bdd/src/annotations.ts.
 const skillRefs = countMatches(/\$[A-Za-z][A-Za-z0-9_-]*/g);
 
 console.log(
-  `Wrote scale fixture to ${base}: 39 feature files (33 suites + 6 shared-flow files), ${scenarioTotal} scenarios, 30 flows (2 unused; deepest chain nests 7 flows: report → run → pipeline → data source → project → workspace → sign-in), seeded health findings (undeclared <placeholder>, detached annotation, tag-level @agent, missing $skill), routing markers: ${agentMarkers} × "# @agent", ${noAiMarkers} × "# @no-ai", ${skillRefs} × $skill references.`,
+  `Wrote scale fixture to ${base}: 39 feature files (33 suites + 6 shared-flow files), ${scenarioTotal} scenarios, 30 flows (2 unused; deepest chain nests 7 flows: report → run → pipeline → data source → project → workspace → sign-in), seeded health findings (undeclared <placeholder>, detached annotation, tag-level @agent, legacy @-marker, missing $skill), routing markers: ${agentMarkers} × "# [agent]", ${noAiMarkers} × "# [no-ai]", ${skillRefs} × $skill references.`,
 );

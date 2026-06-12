@@ -26,8 +26,8 @@ Every statement is routed to exactly one executor:
 | Rule | Marker | Who executes the statement |
 | --- | --- | --- |
 | **Default** | none | Midscene UI agent — the vision model drives the page (`aiAct`) for Given/When and judges Then steps (`aiAssert`, fail-closed) |
-| **Agent** | `# @agent` comment directly above the line, or a `$skill-name` token in it | A real CLI coding agent ([opencode](https://opencode.ai) by default, [Codex](https://github.com/openai/codex) opt-in) spawned per step — for behavior you cannot see in the browser: server logs, files, databases. Then steps must return a JSON verdict; a missing verdict fails (fail-closed) |
-| **No AI** | `# @no-ai` comment above the line (or `@no-ai` scenario/feature tag) | Classic BDD: a callback registered with `Given`/`When`/`Then`/`defineStep` from `@midscene/bdd` must match. An unimplemented step fails with a ready-to-paste snippet |
+| **Agent** | `# [agent]` comment directly above the line, or a `$skill-name` token in it | A real CLI coding agent ([opencode](https://opencode.ai) by default, [Codex](https://github.com/openai/codex) opt-in) spawned per step — for behavior you cannot see in the browser: server logs, files, databases. Then steps must return a JSON verdict; a missing verdict fails (fail-closed) |
+| **No AI** | `# [no-ai]` comment above the line (or `@no-ai` scenario/feature tag) | Classic BDD: a callback registered with `Given`/`When`/`Then`/`defineStep` from `@midscene/bdd` must match. An unimplemented step fails with a ready-to-paste snippet |
 
 All three in one scenario:
 
@@ -38,11 +38,13 @@ Feature: Failed login reporting
     Given I open the login page of the demo shop
     When I try to sign in as the "admin" user with a wrong password
     Then an error toast shows on the screen
-    # @agent
+    # [agent]
     Then the server log contains a failed-login warning, per $check-logs
-    # @no-ai
+    # [no-ai]
     Then the login attempt counter increments
 ```
+
+The comment markers use square brackets (`# [agent]`, not `# @agent`) so they cannot be mistaken for cucumber's `@`-prefixed tag syntax — tags live on the line above a `Feature:`/`Scenario:` header, markers live in a comment directly above a single step.
 
 The first three lines run through Midscene against the page. The fourth bails out to the coding agent, loading the `check-logs` skill into its prompt. The last requires a registered callback:
 
@@ -111,7 +113,7 @@ midscene.config.ts
 cucumber.js
 features/
   *.feature
-  step_definitions/   # classic callbacks for @no-ai steps (optional)
+  step_definitions/   # classic callbacks for [no-ai] steps (optional)
   skills/             # markdown skills for $tokens (optional)
 ```
 
@@ -143,7 +145,7 @@ export default defineProfile().default;
 Model setup:
 
 - The UI agent needs the `MIDSCENE_MODEL_*` environment variables for an OpenAI-compatible vision endpoint (at minimum `MIDSCENE_MODEL_BASE_URL`, `MIDSCENE_MODEL_API_KEY`, `MIDSCENE_MODEL_NAME`).
-- The general agent (`# @agent`/`$skill` steps) is the [opencode](https://opencode.ai) CLI: `npm i -g opencode-ai`. With zero extra config it reuses your `MIDSCENE_MODEL_*` endpoint and key. Since that endpoint is tuned for vision, consider pointing the agent at a strong coding model instead via `generalAgent.model` (`'provider/model'`) plus `generalAgent.env`, or `opencode auth login`.
+- The general agent (`# [agent]`/`$skill` steps) is the [opencode](https://opencode.ai) CLI: `npm i -g opencode-ai`. With zero extra config it reuses your `MIDSCENE_MODEL_*` endpoint and key. Since that endpoint is tuned for vision, consider pointing the agent at a strong coding model instead via `generalAgent.model` (`'provider/model'`) plus `generalAgent.env`, or `opencode auth login`.
 - Prefer Codex? Set `generalAgent: { type: 'codex' }` and install it with `npm i -g @openai/codex`. Same endpoint reuse applies; without a usable endpoint it falls back to your `codex login` account.
 
 Run:
@@ -187,14 +189,17 @@ New to Cucumber/BDD? [`example/features/gherkin-tour/`](./example/features/gherk
 
 ```ts
 interface BddConfig {
-  // Web target (puppeteer launcher) — or a factory for any platform:
-  // () => Promise<{ agent: UiAgent; cleanup?: () => Promise<void> }>
-  // The factory escape hatch lets you plug in any Midscene agent
-  // (Android, iOS, your own) instead of the built-in web launcher.
-  uiAgent: WebUiTarget | UiAgentFactory;
+  // Declarative platform target (see the table below) — or a factory for
+  // anything else: () => Promise<{ agent: UiAgent; cleanup?: () => Promise<void> }>
+  uiAgent: UiTarget | UiAgentFactory;
+
+  // Agent construction options shared by every target type — mirrors the
+  // yaml `agent:` block: generateReport (default: true), reportFileName,
+  // groupName, groupDescription, cache, replanningCycleLimit, ...
+  uiAgentOptions?: UiAgentOptions;
 
   generalAgent?: {
-    // Which CLI coding agent runs @agent/$skill steps.
+    // Which CLI coding agent runs `[agent]`/`$skill` steps.
     type?: 'opencode' | 'codex';  // default: 'opencode'
     // Model override. opencode: 'provider/model' or a bare name mapped onto
     // the generated provider; codex: passed as -m. Default: the resolved
@@ -217,7 +222,7 @@ interface BddConfig {
     // fallback) for the CLI agent.
     reuseMidsceneModelEnv?: boolean;  // default: true
     // Continue one CLI session across the steps of a scenario, so later
-    // @agent steps see what earlier ones found.
+    // `[agent]` steps see what earlier ones found.
     sessionPerScenario?: boolean;     // default: false
     // Escape hatch mirroring the uiAgent factory (e.g. for tests).
     factory?: () => Promise<GeneralAgent>;
@@ -229,15 +234,30 @@ interface BddConfig {
     skills?: string;              // default: 'features/skills'
   };
 }
+```
 
-interface WebUiTarget {
-  type: 'web';
-  url: string;
-  headed?: boolean;
-  viewportWidth?: number;
-  viewportHeight?: number;
-  userAgent?: string;
-}
+`uiAgent` is a flat union discriminated on `type` — field names match the corresponding [yaml automation](https://midscenejs.com/automate-with-scripts-in-yaml) env vocabulary (each row below lists exactly what its target supports; the web target covers the launcher basics, not yaml's serve/bridge modes):
+
+| `type` | Fields | Notes |
+| --- | --- | --- |
+| `'web'` | `url` (required), `headed?`, `viewportWidth?`, `viewportHeight?`, `userAgent?` | Built-in puppeteer launcher |
+| `'android'` | `deviceId?`, `launch?`, plus `AndroidDeviceOpt` passthrough (`androidAdbPath?`, `remoteAdbHost?`, ...) | Needs `@midscene/android` |
+| `'ios'` | `deviceId?`, `launch?`, plus `IOSDeviceOpt` passthrough (`wdaPort?`, `wdaHost?`, ...) | Needs `@midscene/ios` |
+| `'harmony'` | `deviceId?`, `launch?`, plus `HarmonyDeviceOpt` passthrough (`hdcPath?`, ...) | Needs `@midscene/harmony` |
+| `'computer'` | `displayId?` | Needs `@midscene/computer` |
+| `'interface'` | `module` (required), `export?`, `param?` | Any custom `AbstractInterface` device class; relative `module` paths resolve against the config file's directory |
+
+Every target also accepts `scope?: 'scenario' | 'worker'`:
+
+- `'scenario'` (default) — a fresh agent per scenario: full isolation, one Midscene report per scenario. Cheap for browsers.
+- `'worker'` — one agent per cucumber worker, reused across scenarios and destroyed when the worker finishes. Use this for device targets where reconnecting per scenario is expensive. Note the report semantics differ: scenarios share one rolling Midscene report (the same path is attached to each scenario) instead of one report per scenario. If creation fails, the slot clears and the next scenario retries. Factory configs are always scenario-scoped.
+
+`uiAgentOptions.cache: true` uses one shared cache id (`'default'`) for the whole suite — unlike the yaml runner, which derives a per-file cache id. Set `cache: { id: '...' }` if you want finer granularity.
+
+The android/ios/harmony/computer platform packages are **optional peer dependencies** — install the one your target needs, e.g.:
+
+```bash
+pnpm add -D @midscene/android   # for uiAgent: { type: 'android', ... }
 ```
 
 The config file is loaded from `midscene.config.ts` in the working directory (TypeScript works at runtime, via jiti); override the location with the `MIDSCENE_BDD_CONFIG` environment variable.
@@ -251,11 +271,11 @@ Everything cucumber gives you keeps working — this package adds exactly three 
 | | Mechanism | Prior art / rationale |
 | --- | --- | --- |
 | **100% standard** | `Background`, `Scenario Outline` + `Examples`, `Rule`, tags, data tables, doc strings, hooks, formatters, parallel workers, tag expressions, `cucumber.js` profiles | Plain cucumber-js — this package is one catch-all step definition plus a config preset |
-| **Extension 1** | `# @agent` / `# @no-ai` / `# @soft` comment lines directly above a step | Gherkin has no step-level tags, so per-step routing lives in comment annotations (the established workaround in the Gherkin ecosystem) |
+| **Extension 1** | `# [agent]` / `# [no-ai]` / `# [soft]` comment lines directly above a step | Gherkin has no step-level tags, so per-step routing lives in comment annotations (the established workaround in the Gherkin ecosystem) |
 | **Extension 2** | `$skill-name` tokens in step text | Shell-style `$` references; a token both routes the statement to the general agent and loads the skill |
 | **Extension 3** | `@flow` / `@param:x` scenario tags | Karate's `call` model for reusable sub-scenarios, expressed through standard Gherkin tags; `<param>` substitution inside the flow body mirrors Scenario Outline placeholders |
 
-Data tables and doc strings on AI-routed steps are appended to the prompt verbatim. `@no-ai` and `@soft` may also be applied as ordinary scenario/feature tags (inherited per normal Gherkin semantics); `@agent` is deliberately per-line only.
+Data tables and doc strings on AI-routed steps are appended to the prompt verbatim. `@no-ai` and `@soft` may also be applied as ordinary scenario/feature tags (inherited per normal Gherkin semantics); agent routing is deliberately per-line only, so there is no `@agent` tag.
 
 Callback registration is the cucumber shape — `Given`/`When`/`Then` take `(pattern, fn)` where `pattern` is a cucumber expression string or a RegExp, and captures arrive as function arguments. Per cucumber convention the keyword is documentation only: matching ignores it, and `defineStep` is the keyword-agnostic alias. Two deliberate divergences from standard cucumber:
 
@@ -268,9 +288,9 @@ cucumber-js drives the run; `@midscene/bdd/register` contributes a single catch-
 
 ```mermaid
 flowchart TD
-    S[Statement] --> A{"# @no-ai?"}
+    S[Statement] --> A{"# [no-ai]?"}
     A -- yes --> CB[registered callback<br/>or fail with snippet]
-    A -- no --> B{"# @agent or $skill?"}
+    A -- no --> B{"# [agent] or $skill?"}
     B -- yes --> GA[general coding agent<br/>Then needs JSON verdict, fail-closed]
     B -- no --> C{matches a @flow?}
     C -- yes --> FL[execute flow steps<br/>&lt;param&gt; substituted, depth ≤ 2]
@@ -279,9 +299,9 @@ flowchart TD
     E -- Given / When --> ACT[aiAct]
 ```
 
-- **Soft checks:** `# @soft` above a Then step (or a `@soft` tag) downgrades an assertion failure to a logged warning attached to the report — the step never fails. There is no native cucumber "soft" status, so the scenario stays green by design.
+- **Soft checks:** `# [soft]` above a Then step (or a `@soft` tag) downgrades an assertion failure to a logged warning attached to the report — the step never fails. There is no native cucumber "soft" status, so the scenario stays green by design.
 - **Outlines:** a Scenario Outline's pickle steps point at the outline's step node, so an annotation comment above an outline step applies to every Examples row.
-- **Laziness:** the browser launches only when the first UI-routed step runs, and the general agent connects only on the first `@agent`/`$skill` step. The general agent receives the current page screenshot only if a UI session already exists — it never launches a browser.
+- **Laziness:** the browser launches only when the first UI-routed step runs, and the general agent connects only on the first `[agent]`/`$skill` step. The general agent receives the current page screenshot only if a UI session already exists — it never launches a browser.
 
 ## Status
 
