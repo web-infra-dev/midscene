@@ -1,4 +1,3 @@
-import type { GherkinDocument, Pickle } from '@cucumber/messages';
 /**
  * Shared contracts for @midscene/bdd.
  *
@@ -7,6 +6,7 @@ import type { GherkinDocument, Pickle } from '@cucumber/messages';
  * default; `# @agent` / `$skill` bails a single statement out to a general
  * coding agent; `# @no-ai` requires a classic user-registered callback.
  */
+import type { GherkinDocument, Pickle } from '@cucumber/messages';
 import type {
   AndroidDeviceOpt,
   HarmonyDeviceOpt,

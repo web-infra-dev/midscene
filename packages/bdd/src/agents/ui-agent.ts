@@ -19,7 +19,6 @@ import {
   type IOSUiTarget,
   type InterfaceUiTarget,
   type ResolvedBddConfig,
-  UI_TARGET_TYPES,
   type UiAgent,
   type UiAgentOptions,
   type WebUiTarget,
@@ -83,12 +82,12 @@ export async function createUiAgent(
       return createComputerUiAgent(uiAgent, options);
     case 'interface':
       return createInterfaceUiAgent(uiAgent, options, config.baseDir);
+    // Unknown types are rejected by config validation; this only guards
+    // unvalidated programmatic configs.
     default: {
       const unreachable: never = uiAgent;
       throw new Error(
-        `${ERROR_PREFIX} uiAgent.type '${String(
-          (unreachable as { type?: unknown }).type,
-        )}' is unknown — valid types: ${UI_TARGET_TYPES.join(', ')}`,
+        `${ERROR_PREFIX} unhandled uiAgent.type ${JSON.stringify(unreachable)}`,
       );
     }
   }
@@ -96,16 +95,16 @@ export async function createUiAgent(
 
 /**
  * Lazy platform import with a pointed error when the optional peer
- * dependency is not installed.
+ * dependency `@midscene/<targetType>` is not installed.
  */
 async function importPlatformPackage<T>(
-  packageName: string,
   targetType: string,
   importer: () => Promise<T>,
 ): Promise<T> {
   try {
     return await importer();
   } catch (error) {
+    const packageName = `@midscene/${targetType}`;
     throw new Error(
       `${ERROR_PREFIX} uiAgent type '${targetType}' requires the optional peer dependency '${packageName}' — install it (e.g. \`pnpm add -D ${packageName}\`). Original error: ${
         error instanceof Error ? error.message : String(error)
@@ -119,10 +118,8 @@ async function createWebUiAgent(
   target: WebUiTarget,
   options: UiAgentOptions,
 ): Promise<CreatedUiAgent> {
-  const { puppeteerAgentForTarget } = await importPlatformPackage(
-    '@midscene/web',
-    'web',
-    () => import('@midscene/web/puppeteer-agent-launcher'),
+  const { puppeteerAgentForTarget } = await import(
+    '@midscene/web/puppeteer-agent-launcher'
   );
 
   const { agent, freeFn } = await puppeteerAgentForTarget(
@@ -155,7 +152,6 @@ async function createAndroidUiAgent(
   options: UiAgentOptions,
 ): Promise<CreatedUiAgent> {
   const { agentFromAdbDevice } = await importPlatformPackage(
-    '@midscene/android',
     'android',
     () => import('@midscene/android'),
   );
@@ -182,7 +178,6 @@ async function createIOSUiAgent(
   options: UiAgentOptions,
 ): Promise<CreatedUiAgent> {
   const { agentFromWebDriverAgent } = await importPlatformPackage(
-    '@midscene/ios',
     'ios',
     () => import('@midscene/ios'),
   );
@@ -203,7 +198,6 @@ async function createHarmonyUiAgent(
   options: UiAgentOptions,
 ): Promise<CreatedUiAgent> {
   const { agentFromHdcDevice } = await importPlatformPackage(
-    '@midscene/harmony',
     'harmony',
     () => import('@midscene/harmony'),
   );
@@ -230,7 +224,6 @@ async function createComputerUiAgent(
   options: UiAgentOptions,
 ): Promise<CreatedUiAgent> {
   const { agentForComputer } = await importPlatformPackage(
-    '@midscene/computer',
     'computer',
     () => import('@midscene/computer'),
   );

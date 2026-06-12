@@ -20,14 +20,14 @@ function configError(message: string): Error {
 }
 
 function validateUiTarget(target: Record<string, unknown>): void {
-  if (!UI_TARGET_TYPES.includes(target.type as UiTarget['type'])) {
+  const type = target.type as UiTarget['type'];
+  if (!UI_TARGET_TYPES.includes(type)) {
     throw configError(
-      `uiAgent.type '${String(target.type)}' is unknown — valid types: ${UI_TARGET_TYPES.join(
+      `uiAgent.type '${String(type)}' is unknown — valid types: ${UI_TARGET_TYPES.join(
         ', ',
       )} (or pass a factory function)`,
     );
   }
-  const type = target.type as UiTarget['type'];
 
   if (
     target.scope !== undefined &&

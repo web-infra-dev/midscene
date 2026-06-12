@@ -58,6 +58,10 @@ interface UiAgentState {
   cleanup?: () => Promise<void>;
 }
 
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
 // ——————————————————————— worker-scoped UI agent ———————————————————————
 //
 // `uiAgent.scope: 'worker'` caches the agent here (module level = once per
@@ -73,8 +77,10 @@ function isWorkerScoped(config: ResolvedBddConfig): boolean {
   );
 }
 
-/** Same retry semantics as the per-World path: a failed creation clears the
- * slot so a later scenario can retry. */
+/**
+ * Same retry semantics as the per-World path: a failed creation clears the
+ * slot so a later scenario can retry.
+ */
 async function getWorkerUiAgentState(
   config: ResolvedBddConfig,
 ): Promise<UiAgentState> {
@@ -127,7 +133,7 @@ export async function destroyWorkerUiAgent(): Promise<{
       await state.agent.destroy();
     }
   } catch (error) {
-    errors.push(error instanceof Error ? error : new Error(String(error)));
+    errors.push(toError(error));
   }
   return { reportFile, errors };
 }
@@ -159,12 +165,10 @@ export class MidsceneWorld extends World {
       return this.uiAgentState.agent;
     }
     if (!this.uiAgentPromise) {
-      this.uiAgentPromise = createUiAgent(getRuntime().config).then(
-        (created) => {
-          this.uiAgentState = created;
-          return created;
-        },
-      );
+      this.uiAgentPromise = createUiAgent(config).then((created) => {
+        this.uiAgentState = created;
+        return created;
+      });
     }
     try {
       const state = await this.uiAgentPromise;
@@ -227,9 +231,6 @@ export class MidsceneWorld extends World {
 
     const reportFile = uiState?.agent.reportFile ?? undefined;
     const errors: Error[] = [];
-    const record = (error: unknown) => {
-      errors.push(error instanceof Error ? error : new Error(String(error)));
-    };
 
     if (uiState) {
       try {
@@ -239,7 +240,7 @@ export class MidsceneWorld extends World {
           await uiState.agent.destroy();
         }
       } catch (error) {
-        record(error);
+        errors.push(toError(error));
       }
     }
 
@@ -247,7 +248,7 @@ export class MidsceneWorld extends World {
       try {
         await generalAgent.dispose();
       } catch (error) {
-        record(error);
+        errors.push(toError(error));
       }
     }
 
@@ -267,7 +268,7 @@ export class MidsceneWorld extends World {
       try {
         await generalAgent.dispose();
       } catch (error) {
-        errors.push(error instanceof Error ? error : new Error(String(error)));
+        errors.push(toError(error));
       }
     }
     return { reportFile, errors };
