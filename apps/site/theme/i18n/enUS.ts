@@ -15,6 +15,7 @@ export const EN_US = {
   // Banner - CTA Buttons
   introduction: 'Documentation',
   whatsNew: 'Showcases',
+  benchmark: 'Benchmark',
 
   // Feature Sections - CLIENTS
   clientsTitle: 'Platforms',
@@ -85,10 +86,13 @@ and more`,
   featureFlexibleIntegration: 'Flexible Integration',
   featureFlexibleIntegrationDesc:
     'Write flows in YAML, integrate with your test runner, and customize agent execution strategies.',
+  featureBenchmarkDesc:
+    'Review the AndroidWorld benchmark score, run configuration, reports, and validation notes.',
   featureRichAPIsLink: '/api',
   featureSkillsMcpLink: '/skills',
   featureReportsPlaygroundLink: '/quick-experience',
   featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
+  featureBenchmarkLink: '/benchmark',
 
   // View All APIs
   apiMoreLink: 'View All APIs',

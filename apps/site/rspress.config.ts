@@ -127,6 +127,10 @@ export default defineConfig(async () => {
             link: '/showcases',
           },
           {
+            text: 'Benchmark',
+            link: '/benchmark',
+          },
+          {
             text: 'Control any platform with Skills 🔥',
             link: '/skills',
           },
@@ -311,6 +315,10 @@ export default defineConfig(async () => {
           {
             text: '案例展示',
             link: '/zh/showcases',
+          },
+          {
+            text: 'Benchmark',
+            link: '/zh/benchmark',
           },
           {
             text: '使用 Skills 控制任意平台 🔥',

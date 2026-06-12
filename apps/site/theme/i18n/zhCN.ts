@@ -17,6 +17,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Banner - CTA Buttons
   introduction: '使用文档',
   whatsNew: '案例展示',
+  benchmark: 'Benchmark',
 
   // Feature Sections - CLIENTS
   clientsTitle: '平台',
@@ -79,10 +80,13 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   featureFlexibleIntegration: '灵活集成',
   featureFlexibleIntegrationDesc:
     '用 YAML 编写流程，接入你的测试运行器，并自定义 Agent 执行策略。',
+  featureBenchmarkDesc:
+    '查看 AndroidWorld benchmark 分数、运行配置、报告文件和验收备注。',
   featureRichAPIsLink: '/api',
   featureSkillsMcpLink: '/skills',
   featureReportsPlaygroundLink: '/quick-experience',
   featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
+  featureBenchmarkLink: '/benchmark',
 
   // View All APIs
   apiMoreLink: '查看所有 API',
