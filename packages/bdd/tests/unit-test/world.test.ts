@@ -11,6 +11,7 @@ import {
   type BddRuntime,
   MidsceneWorld,
   cleanupError,
+  destroyWorkerUiAgent,
   getRuntime,
   resetRuntime,
   setRuntime,
@@ -283,6 +284,90 @@ describe('MidsceneWorld.destroyAgents', () => {
     const { reportFile } = await destroying;
     expect(reportFile).toBe('/tmp/midscene-report.html');
     expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("uiAgent scope: 'worker'", () => {
+  function setWorkerScopedRuntime(): void {
+    const runtime = makeRuntime();
+    runtime.config.uiAgent = {
+      type: 'web',
+      url: 'http://localhost',
+      scope: 'worker',
+    };
+    setRuntime(runtime);
+  }
+
+  it('creates one agent shared across Worlds (scenarios)', async () => {
+    setWorkerScopedRuntime();
+    const agent = makeFakeAgent();
+    const cleanup = vi.fn(async () => {});
+    mockedCreateUiAgent.mockResolvedValue({ agent, cleanup });
+
+    const worldA = makeWorld();
+    const worldB = makeWorld();
+    expect(await worldA.getUiAgent()).toBe(agent);
+    expect(await worldB.getUiAgent()).toBe(agent);
+    expect(mockedCreateUiAgent).toHaveBeenCalledTimes(1);
+    expect(worldB.peekUiAgent()).toBe(agent);
+  });
+
+  it('destroyAgents keeps the worker agent alive but still reports its reportFile', async () => {
+    setWorkerScopedRuntime();
+    const agent = makeFakeAgent();
+    const cleanup = vi.fn(async () => {});
+    mockedCreateUiAgent.mockResolvedValue({ agent, cleanup });
+
+    const world = makeWorld();
+    await world.getUiAgent();
+    await world.getGeneralAgent();
+
+    const { reportFile, errors } = await world.destroyAgents();
+    expect(reportFile).toBe('/tmp/midscene-report.html');
+    expect(errors).toEqual([]);
+    expect(cleanup).not.toHaveBeenCalled();
+    // The general agent IS per-scenario even under worker scope.
+    expect(generalDisposeSpy).toHaveBeenCalledTimes(1);
+    // Still reachable by the next scenario.
+    expect(makeWorld().peekUiAgent()).toBe(agent);
+  });
+
+  it('destroyWorkerUiAgent tears the shared agent down (AfterAll path)', async () => {
+    setWorkerScopedRuntime();
+    const agent = makeFakeAgent();
+    const cleanup = vi.fn(async () => {});
+    mockedCreateUiAgent.mockResolvedValue({ agent, cleanup });
+
+    await makeWorld().getUiAgent();
+    const { reportFile, errors } = await destroyWorkerUiAgent();
+    expect(reportFile).toBe('/tmp/midscene-report.html');
+    expect(errors).toEqual([]);
+    expect(cleanup).toHaveBeenCalledTimes(1);
+
+    // A later call is a no-op...
+    await expect(destroyWorkerUiAgent()).resolves.toEqual({ errors: [] });
+    // ...and a new scenario would create a fresh agent.
+    await makeWorld().getUiAgent();
+    expect(mockedCreateUiAgent).toHaveBeenCalledTimes(2);
+  });
+
+  it('a failed worker-scoped creation clears the slot so the next scenario retries', async () => {
+    setWorkerScopedRuntime();
+    const agent = makeFakeAgent();
+    mockedCreateUiAgent
+      .mockRejectedValueOnce(new Error('device offline'))
+      .mockResolvedValueOnce({ agent });
+
+    await expect(makeWorld().getUiAgent()).rejects.toThrow('device offline');
+    expect(await makeWorld().getUiAgent()).toBe(agent);
+  });
+
+  it('destroyWorkerUiAgent is a no-op under the default scenario scope', async () => {
+    const agent = makeFakeAgent();
+    mockedCreateUiAgent.mockResolvedValue({ agent });
+    await makeWorld().getUiAgent();
+
+    await expect(destroyWorkerUiAgent()).resolves.toEqual({ errors: [] });
   });
 });
 

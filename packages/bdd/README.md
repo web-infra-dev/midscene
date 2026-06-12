@@ -186,11 +186,14 @@ New to Cucumber/BDD? [`example/features/gherkin-tour/`](./example/features/gherk
 
 ```ts
 interface BddConfig {
-  // Web target (puppeteer launcher) — or a factory for any platform:
-  // () => Promise<{ agent: UiAgent; cleanup?: () => Promise<void> }>
-  // The factory escape hatch lets you plug in any Midscene agent
-  // (Android, iOS, your own) instead of the built-in web launcher.
-  uiAgent: WebUiTarget | UiAgentFactory;
+  // Declarative platform target (see the table below) — or a factory for
+  // anything else: () => Promise<{ agent: UiAgent; cleanup?: () => Promise<void> }>
+  uiAgent: UiTarget | UiAgentFactory;
+
+  // Agent construction options shared by every target type — mirrors the
+  // yaml `agent:` block: generateReport (default: true), reportFileName,
+  // groupName, groupDescription, cache, replanningCycleLimit, ...
+  uiAgentOptions?: UiAgentOptions;
 
   generalAgent?: {
     // MIDSCENE_MODEL_* overrides for the general agent, resolved in an
@@ -207,15 +210,28 @@ interface BddConfig {
     skills?: string;              // default: 'features/skills'
   };
 }
+```
 
-interface WebUiTarget {
-  type: 'web';
-  url: string;
-  headed?: boolean;
-  viewportWidth?: number;
-  viewportHeight?: number;
-  userAgent?: string;
-}
+`uiAgent` is a flat union discriminated on `type` — field names match the corresponding [yaml automation](https://midscenejs.com/automate-with-scripts-in-yaml) env blocks, so configs translate 1:1:
+
+| `type` | Fields | Notes |
+| --- | --- | --- |
+| `'web'` | `url` (required), `headed?`, `viewportWidth?`, `viewportHeight?`, `userAgent?` | Built-in puppeteer launcher |
+| `'android'` | `deviceId?`, `launch?`, plus `AndroidDeviceOpt` passthrough (`androidAdbPath?`, `remoteAdbHost?`, ...) | Needs `@midscene/android` |
+| `'ios'` | `deviceId?`, `launch?`, plus `IOSDeviceOpt` passthrough (`wdaPort?`, `wdaHost?`, ...) | Needs `@midscene/ios` |
+| `'harmony'` | `deviceId?`, `launch?`, plus `HarmonyDeviceOpt` passthrough (`hdcPath?`, ...) | Needs `@midscene/harmony` |
+| `'computer'` | `displayId?` | Needs `@midscene/computer` |
+| `'interface'` | `module` (required), `export?`, `param?` | Any custom `AbstractInterface` device class; relative `module` paths resolve against the config file's directory |
+
+Every target also accepts `scope?: 'scenario' | 'worker'`:
+
+- `'scenario'` (default) — a fresh agent per scenario: full isolation, one Midscene report per scenario. Cheap for browsers.
+- `'worker'` — one agent per cucumber worker, reused across scenarios and destroyed when the worker finishes. Use this for device targets where reconnecting per scenario is expensive. Note the report semantics differ: scenarios share one rolling Midscene report (the same path is attached to each scenario) instead of one report per scenario. Factory configs are always scenario-scoped.
+
+The android/ios/harmony/computer platform packages are **optional peer dependencies** — install the one your target needs, e.g.:
+
+```bash
+pnpm add -D @midscene/android   # for uiAgent: { type: 'android', ... }
 ```
 
 The config file is loaded from `midscene.config.ts` in the working directory (TypeScript works at runtime, via jiti); override the location with the `MIDSCENE_BDD_CONFIG` environment variable.

@@ -860,6 +860,18 @@ importers:
         specifier: 2.7.0
         version: 2.7.0
     devDependencies:
+      '@midscene/android':
+        specifier: workspace:*
+        version: link:../android
+      '@midscene/computer':
+        specifier: workspace:*
+        version: link:../computer
+      '@midscene/harmony':
+        specifier: workspace:*
+        version: link:../harmony
+      '@midscene/ios':
+        specifier: workspace:*
+        version: link:../ios
       '@rslib/core':
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.130))(typescript@5.8.3)

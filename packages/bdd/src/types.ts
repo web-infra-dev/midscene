@@ -1,3 +1,4 @@
+import type { GherkinDocument, Pickle } from '@cucumber/messages';
 /**
  * Shared contracts for @midscene/bdd.
  *
@@ -6,7 +7,12 @@
  * default; `# @agent` / `$skill` bails a single statement out to a general
  * coding agent; `# @no-ai` requires a classic user-registered callback.
  */
-import type { GherkinDocument, Pickle } from '@cucumber/messages';
+import type {
+  AndroidDeviceOpt,
+  HarmonyDeviceOpt,
+  IOSDeviceOpt,
+} from '@midscene/core/device';
+import type { MidsceneYamlScriptAgentOpt } from '@midscene/core/yaml';
 
 // ———————————————————————————— agents ————————————————————————————
 
@@ -53,7 +59,22 @@ export interface GeneralAgent {
 
 // ———————————————————————————— config ————————————————————————————
 
-export interface WebUiTarget {
+/**
+ * Fields shared by every declarative target. `scope` lives on the target
+ * (not at BddConfig level) because lifecycle is a property of what is being
+ * driven: browsers are cheap to relaunch per scenario, physical devices are
+ * not. Factory configs are always scenario-scoped.
+ */
+export interface UiTargetCommon {
+  /**
+   * Agent lifecycle. 'scenario' (default): fresh agent per scenario, full
+   * isolation. 'worker': one agent per cucumber worker, reused across
+   * scenarios and destroyed when the worker finishes (AfterAll).
+   */
+  scope?: 'scenario' | 'worker';
+}
+
+export interface WebUiTarget extends UiTargetCommon {
   type: 'web';
   url: string;
   headed?: boolean;
@@ -61,6 +82,87 @@ export interface WebUiTarget {
   viewportHeight?: number;
   userAgent?: string;
 }
+
+/** Field vocabulary mirrors the yaml `android:` env (deviceId, launch, ...). */
+export interface AndroidUiTarget
+  extends UiTargetCommon,
+    Omit<AndroidDeviceOpt, 'customActions'> {
+  type: 'android';
+  /** ADB device id; defaults to the first connected device. */
+  deviceId?: string;
+  /** URL or app package to launch after connecting (optional). */
+  launch?: string;
+}
+
+/** Field vocabulary mirrors the yaml `ios:` env (deviceId, wdaPort, launch, ...). */
+export interface IOSUiTarget
+  extends UiTargetCommon,
+    Omit<IOSDeviceOpt, 'customActions'> {
+  type: 'ios';
+  /** URL or app bundle id to launch after connecting (optional). */
+  launch?: string;
+}
+
+/** Field vocabulary mirrors the yaml `harmony:` env (deviceId, launch, ...). */
+export interface HarmonyUiTarget
+  extends UiTargetCommon,
+    Omit<HarmonyDeviceOpt, 'customActions'> {
+  type: 'harmony';
+  /** HDC device id; defaults to the first connected device. */
+  deviceId?: string;
+  /** App package to launch after connecting (optional). */
+  launch?: string;
+}
+
+/** Field vocabulary mirrors the yaml `computer:` env. */
+export interface ComputerUiTarget extends UiTargetCommon {
+  type: 'computer';
+  /** Display to drive; defaults to the primary display. */
+  displayId?: string;
+}
+
+/**
+ * Custom device: `const { [export] = default } = await import(module);
+ * new DeviceClass(param)` wrapped with core's `createAgent`. Field vocabulary
+ * mirrors the yaml `interface:` env. Relative module paths resolve against
+ * the config file's directory.
+ */
+export interface InterfaceUiTarget extends UiTargetCommon {
+  type: 'interface';
+  module: string;
+  export?: string;
+  param?: Record<string, unknown>;
+}
+
+/** Every valid `uiAgent.type`, in the order documented in the README. */
+export const UI_TARGET_TYPES = [
+  'web',
+  'android',
+  'ios',
+  'harmony',
+  'computer',
+  'interface',
+] as const satisfies readonly UiTarget['type'][];
+
+/**
+ * Declarative UI target — one flat object per platform, discriminated on
+ * `type`. android/ios/harmony/computer need their optional peer package
+ * (`@midscene/<type>`) installed.
+ */
+export type UiTarget =
+  | WebUiTarget
+  | AndroidUiTarget
+  | IOSUiTarget
+  | HarmonyUiTarget
+  | ComputerUiTarget
+  | InterfaceUiTarget;
+
+/**
+ * Agent construction options shared by every target type — mirrors the yaml
+ * `agent:` block (generateReport, reportFileName, groupName, cache, ...).
+ * `generateReport` defaults to true.
+ */
+export type UiAgentOptions = MidsceneYamlScriptAgentOpt;
 
 export type UiAgentFactory = () => Promise<{
   agent: UiAgent;
@@ -78,8 +180,10 @@ export interface GeneralAgentConfig {
 }
 
 export interface BddConfig {
-  /** Web target (puppeteer launcher) or a user factory for any platform. */
-  uiAgent: WebUiTarget | UiAgentFactory;
+  /** Declarative platform target or a user factory for anything else. */
+  uiAgent: UiTarget | UiAgentFactory;
+  /** Options threaded into the agent constructor for every target type. */
+  uiAgentOptions?: UiAgentOptions;
   generalAgent?: GeneralAgentConfig;
   paths?: {
     /** Feature globs, relative to the config dir. Default: ['features/**\/*.feature'] */
@@ -90,7 +194,8 @@ export interface BddConfig {
 }
 
 export interface ResolvedBddConfig {
-  uiAgent: WebUiTarget | UiAgentFactory;
+  uiAgent: UiTarget | UiAgentFactory;
+  uiAgentOptions?: UiAgentOptions;
   generalAgent: GeneralAgentConfig;
   paths: { features: string[]; skills: string };
   /** Absolute directory the config file was loaded from (cwd fallback). */

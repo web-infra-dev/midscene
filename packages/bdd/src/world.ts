@@ -47,6 +47,8 @@ export function getRuntime(): BddRuntime {
 /** Test-only escape hatch. */
 export function resetRuntime(): void {
   runtime = undefined;
+  workerUiAgentState = undefined;
+  workerUiAgentPromise = undefined;
 }
 
 // ———————————————————————————— world ————————————————————————————
@@ -54,6 +56,80 @@ export function resetRuntime(): void {
 interface UiAgentState {
   agent: UiAgent;
   cleanup?: () => Promise<void>;
+}
+
+// ——————————————————————— worker-scoped UI agent ———————————————————————
+//
+// `uiAgent.scope: 'worker'` caches the agent here (module level = once per
+// cucumber worker process) instead of per-World, so scenarios reuse one
+// device/browser session. register.ts destroys it in AfterAll.
+
+let workerUiAgentState: UiAgentState | undefined;
+let workerUiAgentPromise: Promise<UiAgentState> | undefined;
+
+function isWorkerScoped(config: ResolvedBddConfig): boolean {
+  return (
+    typeof config.uiAgent === 'object' && config.uiAgent.scope === 'worker'
+  );
+}
+
+/** Same retry semantics as the per-World path: a failed creation clears the
+ * slot so a later scenario can retry. */
+async function getWorkerUiAgentState(
+  config: ResolvedBddConfig,
+): Promise<UiAgentState> {
+  if (workerUiAgentState) {
+    return workerUiAgentState;
+  }
+  if (!workerUiAgentPromise) {
+    workerUiAgentPromise = createUiAgent(config).then((created) => {
+      workerUiAgentState = created;
+      return created;
+    });
+  }
+  try {
+    return await workerUiAgentPromise;
+  } catch (error) {
+    workerUiAgentPromise = undefined;
+    throw error;
+  }
+}
+
+/**
+ * Tear down the worker-scoped UI agent (no-op when none was created, or when
+ * the config is scenario-scoped). Mirrors destroyAgents: errors are RETURNED,
+ * never thrown, so the AfterAll hook controls surfacing.
+ */
+export async function destroyWorkerUiAgent(): Promise<{
+  reportFile?: string;
+  errors: Error[];
+}> {
+  if (workerUiAgentPromise) {
+    try {
+      await workerUiAgentPromise;
+    } catch {
+      // Creation failed — there is nothing to clean up.
+    }
+  }
+  const state = workerUiAgentState;
+  workerUiAgentState = undefined;
+  workerUiAgentPromise = undefined;
+  if (!state) {
+    return { errors: [] };
+  }
+
+  const reportFile = state.agent.reportFile ?? undefined;
+  const errors: Error[] = [];
+  try {
+    if (state.cleanup) {
+      await state.cleanup();
+    } else if (state.agent.destroy) {
+      await state.agent.destroy();
+    }
+  } catch (error) {
+    errors.push(error instanceof Error ? error : new Error(String(error)));
+  }
+  return { reportFile, errors };
 }
 
 export class MidsceneWorld extends World {
@@ -74,6 +150,11 @@ export class MidsceneWorld extends World {
    * can retry.
    */
   async getUiAgent(): Promise<UiAgent> {
+    const config = getRuntime().config;
+    if (isWorkerScoped(config)) {
+      const state = await getWorkerUiAgentState(config);
+      return state.agent;
+    }
     if (this.uiAgentState) {
       return this.uiAgentState.agent;
     }
@@ -96,6 +177,9 @@ export class MidsceneWorld extends World {
 
   /** The UI agent if it has already been created; never triggers creation. */
   peekUiAgent(): UiAgent | undefined {
+    if (isWorkerScoped(getRuntime().config)) {
+      return workerUiAgentState?.agent;
+    }
     return this.uiAgentState?.agent;
   }
 
@@ -115,8 +199,16 @@ export class MidsceneWorld extends World {
    * earlier one fails. Never throws: failures are RETURNED so the caller
    * can still use the report path before surfacing them (the After hook
    * attaches the report, then rethrows).
+   *
+   * Under `scope: 'worker'` the UI agent OUTLIVES the scenario: only the
+   * general agent is torn down here, and the (shared) report path is still
+   * returned so every scenario's cucumber report links to it. The worker
+   * agent dies in AfterAll via destroyWorkerUiAgent().
    */
   async destroyAgents(): Promise<{ reportFile?: string; errors: Error[] }> {
+    if (isWorkerScoped(getRuntime().config)) {
+      return this.destroyScenarioAgentsKeepingWorkerUiAgent();
+    }
     // A creation may still be in flight (e.g. a timed-out step): wait for it
     // so the browser it launches does not leak.
     if (this.uiAgentPromise) {
@@ -159,6 +251,25 @@ export class MidsceneWorld extends World {
       }
     }
 
+    return { reportFile, errors };
+  }
+
+  private async destroyScenarioAgentsKeepingWorkerUiAgent(): Promise<{
+    reportFile?: string;
+    errors: Error[];
+  }> {
+    const generalAgent = this.generalAgent;
+    this.generalAgent = undefined;
+
+    const reportFile = workerUiAgentState?.agent.reportFile ?? undefined;
+    const errors: Error[] = [];
+    if (generalAgent?.dispose) {
+      try {
+        await generalAgent.dispose();
+      } catch (error) {
+        errors.push(error instanceof Error ? error : new Error(String(error)));
+      }
+    }
     return { reportFile, errors };
   }
 }

@@ -10,13 +10,58 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { createJiti } from 'jiti';
-import type { BddConfig, ResolvedBddConfig } from './types';
-import { ERROR_PREFIX } from './types';
+import type { BddConfig, ResolvedBddConfig, UiTarget } from './types';
+import { ERROR_PREFIX, UI_TARGET_TYPES } from './types';
 
 const CONFIG_ERROR_PREFIX = `${ERROR_PREFIX} midscene.config.ts:`;
 
 function configError(message: string): Error {
   return new Error(`${CONFIG_ERROR_PREFIX} ${message}`);
+}
+
+function validateUiTarget(target: Record<string, unknown>): void {
+  if (!UI_TARGET_TYPES.includes(target.type as UiTarget['type'])) {
+    throw configError(
+      `uiAgent.type '${String(target.type)}' is unknown — valid types: ${UI_TARGET_TYPES.join(
+        ', ',
+      )} (or pass a factory function)`,
+    );
+  }
+  const type = target.type as UiTarget['type'];
+
+  if (
+    target.scope !== undefined &&
+    !['scenario', 'worker'].includes(target.scope as string)
+  ) {
+    throw configError(
+      `uiAgent.scope must be 'scenario' or 'worker', got '${String(target.scope)}'`,
+    );
+  }
+
+  switch (type) {
+    case 'web':
+      if (typeof target.url !== 'string' || target.url.length === 0) {
+        throw configError('uiAgent.url must be a non-empty string');
+      }
+      break;
+    case 'interface':
+      if (typeof target.module !== 'string' || target.module.length === 0) {
+        throw configError(
+          `uiAgent.module must be a non-empty module specifier when type is 'interface'`,
+        );
+      }
+      break;
+    case 'android':
+    case 'ios':
+    case 'harmony':
+    case 'computer':
+      // Everything is optional: deviceId/launch/displayId default sensibly.
+      break;
+    default: {
+      const unreachable: never = type;
+      throw configError(`unhandled uiAgent.type ${String(unreachable)}`);
+    }
+  }
 }
 
 function validateBddConfig(config: unknown): asserts config is BddConfig {
@@ -39,14 +84,21 @@ function validateBddConfig(config: unknown): asserts config is BddConfig {
         `uiAgent must be a function or { type: 'web', url: '...' }, got ${typeof uiAgent}`,
       );
     }
-    const target = uiAgent as Record<string, unknown>;
-    if (target.type !== 'web') {
+    validateUiTarget(uiAgent as Record<string, unknown>);
+  }
+
+  const uiAgentOptions = cfg.uiAgentOptions;
+  if (uiAgentOptions !== undefined) {
+    if (
+      typeof uiAgentOptions !== 'object' ||
+      uiAgentOptions === null ||
+      Array.isArray(uiAgentOptions)
+    ) {
       throw configError(
-        `uiAgent.type '${String(target.type)}' is unknown — only 'web' is supported (or pass a factory function)`,
+        `uiAgentOptions must be an object (generateReport, reportFileName, groupName, cache, ...), got ${
+          Array.isArray(uiAgentOptions) ? 'an array' : typeof uiAgentOptions
+        }`,
       );
-    }
-    if (typeof target.url !== 'string' || target.url.length === 0) {
-      throw configError('uiAgent.url must be a non-empty string');
     }
   }
 
@@ -132,6 +184,7 @@ export async function loadBddConfig(opts?: {
 
   return {
     uiAgent: config.uiAgent,
+    uiAgentOptions: config.uiAgentOptions,
     generalAgent: config.generalAgent ?? {},
     paths: {
       features: config.paths?.features ?? ['features/**/*.feature'],

@@ -63,7 +63,31 @@
     "glob": "11.0.0",
     "jiti": "2.7.0"
   },
+  "peerDependencies": {
+    "@midscene/android": "workspace:*",
+    "@midscene/computer": "workspace:*",
+    "@midscene/harmony": "workspace:*",
+    "@midscene/ios": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@midscene/android": {
+      "optional": true
+    },
+    "@midscene/computer": {
+      "optional": true
+    },
+    "@midscene/harmony": {
+      "optional": true
+    },
+    "@midscene/ios": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@midscene/android": "workspace:*",
+    "@midscene/computer": "workspace:*",
+    "@midscene/harmony": "workspace:*",
+    "@midscene/ios": "workspace:*",
     "@rslib/core": "^0.18.3",
     "@types/node": "^18.0.0",
     "typescript": "^5.8.3",
