@@ -22,20 +22,22 @@ PuppeteerAgent、PlaywrightAgent 和 Chrome Bridge 共用一套 Action Space，M
 - `Reload` —— 刷新当前页面。
 - `GoBack` —— 浏览器后退。
 
-## PuppeteerAgent {#puppeteer-agent}
+## PuppeteerPageAgent / PuppeteerAgent {#puppeteer-agent}
 
 当你需要在 Puppeteer 控制的浏览器里复用 Midscene 的 AI 操作能力时使用。
+
+`PuppeteerPageAgent` 绑定单个 Puppeteer `Page`。`PuppeteerAgent` 仍作为兼容别名保留。
 
 ### 导入
 
 ```ts
-import { PuppeteerAgent } from '@midscene/web/puppeteer';
+import { PuppeteerPageAgent } from '@midscene/web/puppeteer';
 ```
 
 ### 构造器
 
 ```ts
-const agent = new PuppeteerAgent(page, {
+const agent = new PuppeteerPageAgent(page, {
   // 浏览器特有配置...
 });
 ```
@@ -56,10 +58,31 @@ const agent = new PuppeteerAgent(page, {
 
 :::info
 
-- 每个页面一个 Agent：默认情况下（`forceSameTabNavigation: true`）Midscene 会拦截新标签并在当前页打开，便于调试；若想保留新标签行为可设为 `false`，并为每个标签创建新的 Agent。
+- 每个页面一个 Agent：默认情况下（`forceSameTabNavigation: true`）Midscene 会拦截新标签并在当前页打开，便于调试；若想保留浏览器原生的新标签行为可设为 `false`，并自行给每个页面创建新的 `PuppeteerAgent`。如果需要同一个 Agent 管理浏览器级别的页面切换，请使用 `PuppeteerBrowserAgent`。
 - 更多交互方法请参考 [API 参考（通用）](./api#interaction-methods)。
 
 :::
+
+### Browser Agent
+
+当一个 Midscene Agent 需要管理 Puppeteer 浏览器内的页面切换时，使用 `PuppeteerBrowserAgent`。它绑定 browser 实例，维护一个 active page，并且可以选择自动跟随新打开的页面。
+
+```ts
+const agent = new PuppeteerBrowserAgent(browser, page, {
+  autoFollowNewPage: true,
+});
+```
+
+- 构造函数：`new PuppeteerBrowserAgent(browser, page, options?)` —— 你要显式指定初始 active page 时使用。
+- 工厂方法：`PuppeteerBrowserAgent.create(browser, options?)` —— 你希望 Midscene 自动选择或创建初始 active page 时使用。它会优先使用 `initialPage`，否则复用浏览器里的第一个页面，或者创建一个新页面。
+- `initialPage: Page` —— 工厂方法使用的初始 Puppeteer 页面。
+- `autoFollowNewPage: boolean` —— 浏览器打开新页面时是否自动切换 active page，默认 `false`。
+- `newPageTimeout: number` —— `waitForNewPage` 的超时时间，默认 `5000`。
+- `activePage: Page` —— Browser Agent 当前控制的页面。
+- `pages()` —— 列出绑定 browser 中的页面。
+- `newPage()` —— 创建新页面并将其设为 active page。
+- `setActivePage(page: Page)` —— 显式指定 Browser Agent 接下来控制哪个 Puppeteer 页面。
+- `waitForNewPage(action?, options?)` —— 等待新打开的页面，但不会隐式切换 active page。
 
 ### 示例
 
@@ -111,20 +134,22 @@ await browser.disconnect();
 
 - [集成到 Puppeteer](./integrate-with-puppeteer) 获取安装、Fixture 与远程 CDP 配置。
 
-## PlaywrightAgent {#playwright-agent}
+## PlaywrightPageAgent / PlaywrightAgent {#playwright-agent}
 
 在 Playwright 浏览器中使用 Midscene 以支持带 AI 的测试或自动化流程。
+
+`PlaywrightPageAgent` 绑定单个 Playwright `Page`。`PlaywrightAgent` 仍作为兼容别名保留。
 
 ### 导入
 
 ```ts
-import { PlaywrightAgent } from '@midscene/web/playwright';
+import { PlaywrightPageAgent } from '@midscene/web/playwright';
 ```
 
 ### 构造器
 
 ```ts
-const agent = new PlaywrightAgent(page, {
+const agent = new PlaywrightPageAgent(page, {
   // 浏览器特有配置...
 });
 ```
@@ -143,10 +168,31 @@ const agent = new PlaywrightAgent(page, {
 
 :::info
 
-- 每个页面一个 Agent：默认 `forceSameTabNavigation` 为 `true`，Midscene 会拦截新标签确保稳定性；如需新标签请设为 `false` 并为每个标签创建新的 Agent。
+- 每个页面一个 Agent：默认 `forceSameTabNavigation` 为 `true`，Midscene 会拦截新标签确保稳定性；如需浏览器原生新标签行为请设为 `false`，并自行给每个页面创建新的 `PlaywrightAgent`。如果需要同一个 Agent 管理 browser context 级别的页面切换，请使用 `PlaywrightBrowserAgent`。
 - 更多交互方法请参考 [API 参考（通用）](./api#interaction-methods)。
 
 :::
+
+### Browser Agent
+
+当一个 Midscene Agent 需要管理 Playwright browser context 内的页面切换时，使用 `PlaywrightBrowserAgent`。它绑定 browser context，维护一个 active page，并且可以选择自动跟随新打开的页面。
+
+```ts
+const agent = new PlaywrightBrowserAgent(context, page, {
+  autoFollowNewPage: true,
+});
+```
+
+- 构造函数：`new PlaywrightBrowserAgent(context, page, options?)` —— 你要显式指定初始 active page 时使用。
+- 工厂方法：`PlaywrightBrowserAgent.create(context, options?)` —— 你希望 Midscene 自动选择或创建初始 active page 时使用。它会优先使用 `initialPage`，否则复用 context 里的第一个页面，或者创建一个新页面。
+- `initialPage: Page` —— 工厂方法使用的初始 Playwright 页面。
+- `autoFollowNewPage: boolean` —— context 打开新页面时是否自动切换 active page，默认 `false`。
+- `newPageTimeout: number` —— `waitForNewPage` 的超时时间，默认 `5000`。
+- `activePage: Page` —— Browser Agent 当前控制的页面。
+- `pages()` —— 列出绑定 browser context 中的页面。
+- `newPage()` —— 创建新页面并将其设为 active page。
+- `setActivePage(page: Page)` —— 显式指定 Browser Agent 接下来控制哪个 Playwright 页面。
+- `waitForNewPage(action?, options?)` —— 等待新打开的页面，但不会隐式切换 active page。
 
 ### 示例
 

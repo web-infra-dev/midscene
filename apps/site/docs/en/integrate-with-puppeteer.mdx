@@ -104,15 +104,19 @@ After the above command executes successfully, the console will output: `Midscen
 
 ### About opening in a new tab
 
-Each Agent instance is bound to a single page. For easier debugging, Midscene intercepts new tabs by default (for example, links with `target="_blank"`) and opens them in the current page.
+`PuppeteerAgent` is a page-level Agent: each instance is bound to a single page. For easier debugging, Midscene intercepts new tabs by default (for example, links with `target="_blank"`) and opens them in the current page.
 
-If you want to allow new tabs again, set `forceSameTabNavigation` to `false`—but you must create a new Agent instance for each new tab.
+If you want to allow new tabs again while keeping the Agent on the original page, set `forceSameTabNavigation` to `false` and create a new Agent instance for each new tab yourself.
+
+If one Agent should manage page switching for the whole browser, use `PuppeteerBrowserAgent`. Enable `autoFollowNewPage` when subsequent actions should automatically continue in the newly opened tab.
 
 ```typescript
-const mid = new PuppeteerAgent(page, {
-  forceSameTabNavigation: false,
+const mid = new PuppeteerBrowserAgent(browser, page, {
+  autoFollowNewPage: true,
 });
 ```
+
+Use `new PuppeteerBrowserAgent(browser, page, options)` when you explicitly choose the initial active page. Use `PuppeteerBrowserAgent.create(browser, options)` when you want Midscene to choose or create the initial active page; the factory uses `initialPage` when provided, otherwise it reuses the first existing browser page or creates a new page.
 
 ### Connect Midscene Agent to a Remote Puppeteer Browser
 

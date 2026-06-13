@@ -55,6 +55,8 @@ export interface MidsceneYamlScript {
   // @deprecated
   target?: MidsceneYamlScriptWebEnv;
 
+  page?: MidsceneYamlScriptWebEnv;
+  browser?: MidsceneYamlScriptWebEnv;
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
   ios?: MidsceneYamlScriptIOSEnv;
@@ -128,6 +130,8 @@ export interface MidsceneYamlScriptEnvGeneralInterface {
 export interface MidsceneYamlScriptWebEnv
   extends MidsceneYamlScriptConfig,
     MidsceneYamlScriptAgentOpt {
+  mode?: 'page' | 'browser';
+
   // for web only
   serve?: string;
   url: string;
@@ -162,7 +166,8 @@ export interface MidsceneYamlScriptWebEnv
    */
   extraHTTPHeaders?: Record<string, string>;
 
-  forceSameTabNavigation?: boolean; // if track the newly opened tab, true for default in yaml script
+  forceSameTabNavigation?: boolean; // if limit the new tab to the current page, true for default in yaml script
+  autoFollowNewPage?: boolean; // if use BrowserAgent to follow newly opened pages, false for default
 
   /**
    * Custom Chrome launch arguments (Puppeteer only, not supported in bridge mode).
@@ -318,6 +323,10 @@ export interface MidsceneYamlConfig {
   retry?: number;
   summary?: string;
   shareBrowserContext?: boolean;
+  /** @deprecated Use `web`, `page`, or `browser` instead. */
+  target?: MidsceneYamlScriptWebEnv;
+  page?: MidsceneYamlScriptWebEnv;
+  browser?: MidsceneYamlScriptWebEnv;
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
   ios?: MidsceneYamlScriptIOSEnv;

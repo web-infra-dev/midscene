@@ -1,5 +1,5 @@
 import path from 'node:path';
-import type { PuppeteerAgent } from '@/puppeteer';
+import type { PuppeteerAgent, PuppeteerBrowserAgent } from '@/puppeteer';
 import { afterEach } from 'vitest';
 
 /**
@@ -18,7 +18,7 @@ export function getFixturePath(filename: string): string {
  * Shared test context for Puppeteer integration tests
  */
 export interface TestContext {
-  agent: PuppeteerAgent | null;
+  agent: PuppeteerAgent | PuppeteerBrowserAgent | null;
   resetFn: (() => Promise<void>) | null;
 }
 
