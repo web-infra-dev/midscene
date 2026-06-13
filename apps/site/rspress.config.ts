@@ -146,6 +146,13 @@ export default defineConfig(async () => {
             link: '/model-config',
           },
           {
+            sectionHeaderText: 'UI Testing Framework',
+          },
+          {
+            text: 'Overview',
+            link: '/ui-testing-framework',
+          },
+          {
             sectionHeaderText: 'Web browser',
           },
           {
@@ -330,6 +337,13 @@ export default defineConfig(async () => {
           {
             text: '全部配置项',
             link: '/zh/model-config',
+          },
+          {
+            sectionHeaderText: 'UI Testing Framework',
+          },
+          {
+            text: '专题总览',
+            link: '/zh/ui-testing-framework',
           },
           {
             sectionHeaderText: 'Web 浏览器',
