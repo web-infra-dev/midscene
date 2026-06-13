@@ -538,11 +538,10 @@ describe('CodexGeneralAgent', () => {
     expect(recordedArgs()).not.toContain('-c');
   });
 
-  it('maps permissions onto sandbox policies', async () => {
+  it('maps read-only/workspace permissions onto sandbox policies', async () => {
     for (const [permissions, sandbox] of [
       ['read-only', 'read-only'],
       ['workspace', 'workspace-write'],
-      ['all', 'danger-full-access'],
     ] as const) {
       const agent = new CodexGeneralAgent(
         cfg({ FAKE_LAST_MESSAGE: 'ok' }, { permissions }),
@@ -551,7 +550,19 @@ describe('CodexGeneralAgent', () => {
       await agent.run(req());
       const args = recordedArgs();
       expect(args[args.indexOf('--sandbox') + 1]).toBe(sandbox);
+      expect(args).not.toContain('--dangerously-bypass-approvals-and-sandbox');
     }
+  });
+
+  it("permissions: 'all' bypasses both approvals and sandbox", async () => {
+    const agent = new CodexGeneralAgent(
+      cfg({ FAKE_LAST_MESSAGE: 'ok' }, { permissions: 'all' }),
+      recordDir,
+    );
+    await agent.run(req());
+    const args = recordedArgs();
+    expect(args).toContain('--dangerously-bypass-approvals-and-sandbox');
+    expect(args).not.toContain('--sandbox');
   });
 
   it('attaches the screenshot via -i and cleans the temp file up', async () => {
@@ -638,6 +649,32 @@ describe('CodexGeneralAgent', () => {
     expect(args).toContain('sandbox_mode="workspace-write"');
     expect(args).not.toContain('--sandbox');
     expect(args).not.toContain('--cd');
+  });
+
+  it("sessionPerScenario with permissions: 'all' keeps approval bypass on resume", async () => {
+    const events = JSON.stringify({
+      type: 'thread.started',
+      thread_id: 'thread-42',
+    });
+    const agent = new CodexGeneralAgent(
+      cfg(
+        { FAKE_LAST_MESSAGE: 'ok', FAKE_STDOUT: events },
+        { sessionPerScenario: true, permissions: 'all' },
+      ),
+      recordDir,
+    );
+
+    await agent.run(req());
+    expect(recordedArgs()).toContain(
+      '--dangerously-bypass-approvals-and-sandbox',
+    );
+
+    await agent.run(req());
+    const args = recordedArgs();
+    expect(args.slice(0, 3)).toEqual(['exec', 'resume', 'thread-42']);
+    expect(args).toContain('--dangerously-bypass-approvals-and-sandbox');
+    expect(args).not.toContain('sandbox_mode="danger-full-access"');
+    expect(args).not.toContain('--sandbox');
   });
 });
 

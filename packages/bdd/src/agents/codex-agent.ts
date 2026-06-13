@@ -50,6 +50,8 @@ interface CodexPlan {
   /** -m value; undefined lets codex pick its configured default. */
   model?: string;
   sandbox: SandboxPolicy;
+  /** `permissions: 'all'` must bypass approvals as well as sandboxing. */
+  bypassApprovalsAndSandbox: boolean;
   env: NodeJS.ProcessEnv;
   cwd: string;
   timeoutMs: number;
@@ -113,6 +115,7 @@ function planCodex(config: GeneralAgentConfig, baseDir: string): CodexPlan {
     providerArgs,
     model,
     sandbox,
+    bypassApprovalsAndSandbox: common.permissions === 'all',
     env: common.env,
     cwd: common.cwd,
     timeoutMs: common.timeoutMs,
@@ -175,8 +178,9 @@ export class CodexGeneralAgent implements GeneralAgent {
               '-o',
               lastMessageFile,
               '--skip-git-repo-check',
-              '-c',
-              `sandbox_mode=${tomlString(plan.sandbox)}`,
+              ...(plan.bypassApprovalsAndSandbox
+                ? ['--dangerously-bypass-approvals-and-sandbox']
+                : ['-c', `sandbox_mode=${tomlString(plan.sandbox)}`]),
               ...(plan.model ? ['-c', `model=${tomlString(plan.model)}`] : []),
             ]
           : [
@@ -187,8 +191,9 @@ export class CodexGeneralAgent implements GeneralAgent {
               '--cd',
               plan.cwd,
               '--skip-git-repo-check',
-              '--sandbox',
-              plan.sandbox,
+              ...(plan.bypassApprovalsAndSandbox
+                ? ['--dangerously-bypass-approvals-and-sandbox']
+                : ['--sandbox', plan.sandbox]),
               ...(plan.model ? ['-m', plan.model] : []),
             ];
         args.push(...plan.providerArgs);
