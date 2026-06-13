@@ -12,6 +12,7 @@ import {
   MIDSCENE_OPENAI_SOCKS_PROXY,
   MIDSCENE_USE_DOUBAO_VISION,
   MIDSCENE_USE_GEMINI,
+  MIDSCENE_USE_MOONSHOT,
   MIDSCENE_USE_QWEN3_VL,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_VLM_UI_TARS,
@@ -103,6 +104,7 @@ export const legacyConfigToModelFamily = (
   const isQwen3 = provider[MIDSCENE_USE_QWEN3_VL];
   const isUiTars = provider[MIDSCENE_USE_VLM_UI_TARS];
   const isGemini = provider[MIDSCENE_USE_GEMINI];
+  const isMoonshot = provider[MIDSCENE_USE_MOONSHOT];
 
   const enabledModes = [
     isDoubao && MIDSCENE_USE_DOUBAO_VISION,
@@ -110,6 +112,7 @@ export const legacyConfigToModelFamily = (
     isQwen3 && MIDSCENE_USE_QWEN3_VL,
     isUiTars && MIDSCENE_USE_VLM_UI_TARS,
     isGemini && MIDSCENE_USE_GEMINI,
+    isMoonshot && MIDSCENE_USE_MOONSHOT,
   ].filter(Boolean);
 
   if (enabledModes.length > 1) {
@@ -123,6 +126,7 @@ export const legacyConfigToModelFamily = (
   if (isQwen) return 'qwen2.5-vl';
   if (isDoubao) return 'doubao-vision';
   if (isGemini) return 'gemini';
+  if (isMoonshot) return 'moonshot';
 
   // UI-TARS with version detection
   if (isUiTars) {
