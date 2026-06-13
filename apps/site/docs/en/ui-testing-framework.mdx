@@ -1,0 +1,274 @@
+# AI-native UI Testing Framework for Natural-language Cases
+
+The hard part of UI testing is not writing the first browser script. It is keeping the suite readable, writable, and maintainable as the product changes. Traditional scripts quickly fill with selectors, waits, login helpers, data setup, and failure screenshots, until only a few test specialists can tell what they actually verify.
+
+:::info This is a brand-new v2 framework
+
+This page describes Midscene's newly designed v2 testing framework — a separate, new thing whose authoring model and positioning differ from the existing YAML player. This page covers the new framework only; migration and compatibility with the older version are out of scope here.
+
+:::
+
+Midscene is designed around three core ideas:
+
+- Cases must stay readable. Test authors write natural-language user paths in YAML, so QA, business teams, and engineers can review the case itself instead of first decoding a script implementation.
+- The engineering architecture must split responsibilities cleanly. YAML focuses on what the user should accomplish; `midscene.config.ts` manages target environments, UI Agent creation, execution policy, reporting, and runtime extensions; TypeScript code owns data setup, device integration, deterministic checks, and internal tools.
+- The architecture must be ready for Agentic Testing. Teams can start from the UI path, but conclusions do not have to stop at the UI. `ui`, `verify`, `agent`, skill references, and runtime extensions let tests connect API responses, database state, logs, analytics, and the tools a team already relies on.
+
+Midscene is not a choice between lightweight YAML and serious test engineering. It makes the first case lightweight while letting the same authoring model grow into a long-lived regression suite.
+
+## Start with Simple UI Tasks
+
+Midscene starts by helping teams write a simple UI task clearly, run it, and replay it. For most smoke tests and lightweight regression projects, the first useful milestone is not setting up a complex testing project. It is turning a core user path into a readable, repeatable, inspectable case.
+
+A YAML case keeps the path readable. The case only describes the user path — the target environment lives in `midscene.config.ts`, never in the case file:
+
+```yaml
+flow:
+  - ui: Search for "running shoes"
+  - ui: Open the first product
+  - ui: |
+      Read the product name and price.
+
+      Record them in the conclusion.
+  - verify: The product detail page shows a visible Add to cart button
+```
+
+YAML makes "what this user path should do" clear enough for review, business confirmation, and team collaboration. Midscene handles the AI UI actions, visual understanding, assertions, screenshots, and report generation around that case.
+
+That simple shape should cover most early projects:
+
+```text
+.
+  e2e/
+    dashboard.yaml
+    checkout.yaml
+    pricing.yaml
+```
+
+The case remains close to business language, while the runner gives it a repeatable execution and a report that can be inspected after success or failure.
+
+## Connect External Context with `verify` and `agent`
+
+`verify` and `agent` nodes are not new UI operation entries; they make judgments or explore freely from the current test context. There is a deliberate split here: Midscene itself focuses on UI capabilities (`ui` nodes are executed by Midscene's UI Agent), while nodes that need reasoning, orchestration, and external context — `verify` and `agent` — are handed to a **swappable, general-purpose agent framework**. The current built-in is Pi, the lightweight agent framework used by OpenClaw (see [earendil-works/pi](https://github.com/earendil-works/pi)). This layer is intentionally swappable: it may later be replaced with the Codex Agent SDK or other community options, so Midscene's testing capabilities evolve alongside the community agent ecosystem instead of being locked to one implementation.
+
+`verify` and `agent` use the same kind of Agent capability, but differ in **semantics** and in their **effect** on the test conclusion:
+
+- `verify` carries test judgment semantics: it must decide pass or fail, and a failed verification fails the current case. It is the test's **deterministic gate** — the part a regression suite actually uses to gate CI.
+- `agent` is a free-running agent with no fixed judgment semantics. It is about **room for creativity and imagination** — summarizing, attributing, investigating deeper, proposing follow-ups, and even deciding on its own what to look at or analyze next from a natural-language instruction. Precisely because of that freedom, face its other side honestly: its output is inherently non-deterministic, and the same case can surface different observations across two runs. So `agent` by default **does not participate in the case's pass/fail decision**; it produces human-facing diagnostics and suggestions, not regression assertions. When you need a stable, reproducible verdict, use `verify`; when you want the test to add a layer of exploration and insight beyond the UI, use `agent`.
+
+For example, you can let `agent` freely probe the current page for potential issues:
+
+```yaml
+flow:
+  - ui: Open the checkout page
+  - agent: |
+      Freely inspect the current checkout flow and find anything that looks off:
+      copy, prices, button states, potential usability problems.
+
+      List your findings with likely causes and follow-up suggestions.
+```
+
+Every flow step produces an output. This forms an explicit **context contract**: when Pi Agent executes a `verify` or `agent` node, all it can see is —
+
+- **Every previous step itself** — that is, what each step was asked to do (its intent).
+- **The output of each previous step**, such as conclusions recorded by `ui` nodes or `conclusion` values returned by runtime nodes.
+- **The current UI screenshot**, so it can understand the current page or screen state.
+
+Nothing else. It does not see the full execution process of previous nodes: a `ui` node may click, type, and retry several times to create an order, but later `verify` / `agent` nodes only see **what that node finally output**. It also cannot see historical screenshots — only the current one.
+
+This yields one rule that holds throughout: **the only channel that carries anything forward is the output.** If a later step needs something, the earlier step must write it explicitly into its own output:
+
+```yaml
+flow:
+  - ui: |
+      Create a test order.
+
+      Name this step's output createOrder, and record:
+      - orderId: the order id
+      - pageState: the current page state
+
+  - verify: |
+      Use $database to verify that the orderId from the output named createOrder exists.
+
+  - agent: |
+      Analyze this test's risk from the output named createOrder, database verification result,
+      and current screenshot.
+```
+
+Here, `ui` still takes only natural-language input. `createOrder` is the output name requested in that natural-language instruction, and `orderId` is a field in that output. Note that since every previous step's output is already in context, naming is **not** about "it won't pass forward unless named" — it is about referring to one specific output **unambiguously** among many. Later nodes can then reference "the `orderId` from the output named `createOrder`" in natural language.
+
+External systems stay in natural language as well. `$database`, `$logs`, and other `$name` references are resolved by the runtime engine as skills. Pi Agent uses skill results together with previous step outputs and the current screenshot for **that single** `verify` or `agent` run. But note: **a skill result belongs only to that run** and does not automatically enter the context of later nodes. If a later step needs it, the current node must write it into its own output.
+
+A fuller case can look like this:
+
+```yaml
+name: Create Order
+
+flow:
+  - prepareOrderFixture:
+      scenario: paid-order
+  - ui: |
+      Sign in with a test account and create a test order.
+
+      Record in the conclusion:
+      - order id
+      - current page state
+      - whether the order was created successfully
+  - verify: |
+      Use $database to verify that the order id from the previous conclusion
+      really exists and that the order status is paid.
+  - verify: |
+      Use $logs to check whether any related ERROR appeared during the test.
+  - verify: The order detail page shows payment success
+  - agent: Analyze the risk of this test from all verification results
+  - notifySlack
+```
+
+In this example, `ui` creates the order and records order information; `verify` uses `$database` and `$logs` for external checks and returns a pass or fail judgment; `agent` summarizes the verification results and current screenshot; `notifySlack` is a custom node added later through runtime.
+
+The two kinds of extension here are **layered**, not competing: `$name` + skill is the **lightweight integration layer** — references like `$database` and `$logs` only need a registered skill, and then you can reference them directly in natural language at very low cost; `defineRuntime` (such as `prepareOrderFixture` and `notifySlack`) is the **lower-level extension** for defining standalone YAML nodes that own a whole step's execution. Use a `$name` skill when you just need to feed external context into `verify` / `agent`; use `defineRuntime` when you need full control over how a step runs.
+
+## Extension and Integration
+
+As a project grows from lightweight cases into a long-lived regression suite, engineering complexity should move into configuration and extension layers instead of being copied into every YAML file. Midscene provides `midscene.config.ts` as the project-level config-as-code entry for test discovery, execution policy, output, UI Agent creation, and runtime extensions.
+
+```ts
+import { defineMidsceneConfig } from '@midscene/testing-framework';
+
+export default defineMidsceneConfig({
+  // A single `uiAgent` field defines the run target. An object is config-style
+  // (the framework builds the UI Agent from `type` + `options`); a function is
+  // programmatic (you build it yourself, see below).
+  uiAgent: {
+    type: 'web',
+    options: {
+      url: 'https://shop.example.com',
+    },
+  },
+
+  testDir: './e2e',
+  include: ['**/*.yaml'],
+  exclude: ['**/*.draft.yaml'],
+
+  testRunner: {
+    maxConcurrency: 1,
+    bail: 0,
+    testTimeout: 120_000,
+  },
+
+  output: {
+    summary: './midscene_run/output/summary.json',
+    reportDir: './midscene_run/report',
+  },
+
+  uiAgentOptions: {
+    aiActContext: 'The user is already signed in as a smoke-test account.',
+    generateReport: true,
+  },
+});
+```
+
+With this config in place, the project can stay direct:
+
+```text
+.
+  midscene.config.ts
+  e2e/
+    dashboard.yaml
+    checkout.yaml
+```
+
+`e2e/*.yaml` describes what the user should accomplish, while `midscene.config.ts` describes the target type and platform connection options, testRunner behavior, shared UI Agent options, and reporting. When `uiAgent` is an object, the framework creates the UI Agent from its `type` and `options`. If a project needs custom devices, remote services, or custom agent construction logic, set `uiAgent` to a factory function instead — the same single field, now holding the construction logic, so the runtime target is never defined twice. `options` (platform connection parameters like url / deviceId) and `uiAgentOptions` (Agent behavior like aiActContext / generateReport) stay distinct.
+
+```ts
+import { agentFromAdbDevice } from '@midscene/android';
+import { defineMidsceneConfig } from '@midscene/testing-framework';
+
+export default defineMidsceneConfig({
+  testDir: './e2e',
+
+  uiAgentOptions: {
+    aiActContext: 'The user is already signed in as a smoke-test account.',
+    generateReport: true,
+  },
+
+  // Programmatic form: the same `uiAgent` field, filled with a factory.
+  uiAgent: async ({ uiAgentOptions, env }) => ({
+    agent: await agentFromAdbDevice(env.ANDROID_DEVICE_ID, {
+      ...uiAgentOptions,
+      androidAdbPath: env.ANDROID_ADB_PATH,
+      autoDismissKeyboard: false,
+    }),
+  }),
+});
+```
+
+YAML can also gain new project-specific nodes. Compared with the lightweight `$name` skill integration, `defineRuntime` is the lower-level extension: it defines standalone YAML nodes that own a whole step's execution. For example, `prepareOrderFixture` and `notifySlack` can be registered as custom runtimes:
+
+```ts
+import {
+  defineMidsceneConfig,
+  defineRuntime,
+} from '@midscene/testing-framework';
+
+export default defineMidsceneConfig({
+  uiAgent: {
+    type: 'web',
+    options: {
+      url: 'http://127.0.0.1:3000',
+    },
+  },
+
+  testDir: './e2e',
+
+  runtime: {
+    prepareOrderFixture: defineRuntime(async (ctx) => {
+      const fixture = await createOrderFixture(ctx.input);
+      ctx.state.orderFixture = fixture;
+
+      return {
+        conclusion: `Prepared order fixture ${fixture.id}`,
+      };
+    }),
+
+    notifySlack: defineRuntime(async (ctx) => {
+      await sendSlackSummary(ctx.result);
+
+      return {
+        conclusion: 'Slack notification sent',
+      };
+    }),
+  },
+});
+```
+
+A runtime node receives a single context argument with `input`, `uiAgent`, `outputs`, `state`, `result`, and `env`. It has two channels, matching the context contract above — keep them distinct:
+
+- The `conclusion` in the return value is the **context-facing output**: like any other step's output, it enters the context of later `verify` / `agent` nodes.
+- `ctx.state` (such as `ctx.state.orderFixture`) is **engineering-facing TypeScript state** for passing structured data between runtime nodes, and **does not enter Pi Agent's context**. In other words, the agent cannot see `ctx.state`, only `conclusion`. To make a value available to a later `verify` / `agent`, put it in `conclusion`.
+
+This direction keeps the low-friction YAML-driven UI testing model intact. YAML remains the human-facing expression for the test, and TypeScript config remains the engineering entry for registering capabilities: ordinary paths stay in natural language, while places that need deterministic evidence can connect to the team's own tools.
+
+## Built on Rstest
+
+Midscene is built as a higher-level testing framework on top of Rstest. For an AI-driven UI testing framework, the real value is not how fast the runner is — each node's duration is dominated by model inference — but whether it can reliably carry the capabilities a test engineering setup needs: lifecycle, fixtures, concurrency, filtering, failure reporting, and CI integration. Rstest provides these at the base layer, and Midscene wraps them with natural-language cases, AI UI actions, visual assertions, screenshots, replay reports, and diagnostics.
+
+Most users can rely on that foundation through Midscene's YAML runner and `midscene.config.ts` without learning Rstest project details. The `midscene.config.ts` fields are intentionally aligned with Rstest concepts such as include/exclude, maxConcurrency, retry, timeout, setup, teardown, and reporters, while keeping Midscene-specific UI Agent creation in the same config.
+
+### What Rstest Provides
+
+Rstest gives the Midscene project a reliable test engineering base:
+
+- **Standard test lifecycle**: setup / teardown / hooks give login setup, test-data initialization, and cleanup explicit attachment points instead of pushing them into every case.
+- **Fixture model**: declare shared prerequisites (accounts, device connections, fixture data) as reusable, composable fixtures, injected per case as needed.
+- **Concurrency and isolation**: cases can run concurrently, with the runner handling scheduling and isolation so a regression suite's total CI time stays manageable.
+- **Filtering and failure reporting**: filter cases by file, name, or tag, paired with standard failure reports for easy triage and reruns.
+- **Unified runtime model**: YAML cases, runtime nodes, and config extensions share the same underlying runtime model, so teams can start lightweight and grow into a long-lived regression suite without switching frameworks.
+
+Rstest is itself written in Rust with good execution performance; but for Midscene users, the mature test engineering capabilities above matter more than the runner's raw speed — in AI testing, the time is mostly spent on model inference.
+
+### Next Steps
+
+- Run a YAML case from the command line: [YAML script runner](./yaml-script-runner)
+- Look up every YAML field: [Workflow in YAML format](./automate-with-scripts-in-yaml)
+- Start from platform guides: [Android](./android-getting-started), [iOS](./ios-getting-started), [Computer](./computer-getting-started)

@@ -1,0 +1,26 @@
+name: Add a product to the cart
+
+flow:
+  - prepareCartFixture:
+      scenario: anonymous-checkout
+
+  - ui: Open the "Trail Backpack" product
+
+  - ui: |
+      Click "Add to cart".
+      Name this step's output cartResult and record whether the
+      "Added to cart" confirmation became visible.
+
+  - verify: |
+      Use the output named cartResult and the current screenshot to confirm
+      the product was added to the cart (the "Added to cart" badge is visible).
+
+  - verify: |
+      Use $catalog to confirm the "Trail Backpack" is a known catalog product
+      and report its expected price.
+
+  - agent: |
+      Summarize the risk of this add-to-cart flow based on all previous
+      verification results and the current screenshot.
+
+  - notify

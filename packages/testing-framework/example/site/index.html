@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Midscene Demo Shop</title>
+    <style>
+      * { box-sizing: border-box; font-family: system-ui, sans-serif; }
+      body { margin: 0; color: #1f2933; }
+      header { padding: 16px 24px; background: #0b5fff; color: #fff; }
+      main { padding: 24px; max-width: 720px; margin: 0 auto; }
+      .search { display: flex; gap: 8px; margin-bottom: 24px; }
+      .search input { flex: 1; padding: 10px; border: 1px solid #cbd2d9; border-radius: 6px; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      .card { border: 1px solid #e4e7eb; border-radius: 10px; padding: 16px; cursor: pointer; }
+      .card h3 { margin: 0 0 8px; }
+      .price { color: #0b5fff; font-weight: 600; }
+      .detail { display: none; }
+      .detail.active { display: block; }
+      .add-to-cart { margin-top: 16px; padding: 12px 20px; background: #0b5fff; color: #fff; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
+      .badge { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 99px; background: #def7ec; color: #03543f; font-size: 12px; }
+      button { cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <header><strong>Midscene Demo Shop</strong></header>
+    <main>
+      <section id="catalog">
+        <div class="search">
+          <input id="q" placeholder="Search products" />
+          <button id="searchBtn">Search</button>
+        </div>
+        <div class="grid">
+          <div class="card" data-id="sku-1">
+            <h3>Running Shoes</h3>
+            <div class="price">$89.00</div>
+          </div>
+          <div class="card" data-id="sku-2">
+            <h3>Trail Backpack</h3>
+            <div class="price">$129.00</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="detail" class="detail">
+        <h2 id="detailName"></h2>
+        <div class="price" id="detailPrice"></div>
+        <p>Lightweight, breathable, built for everyday runs.</p>
+        <button class="add-to-cart" id="addToCart">Add to cart</button>
+        <span class="badge" id="cartStatus" hidden>Added to cart</span>
+      </section>
+    </main>
+
+    <script>
+      const products = {
+        'sku-1': { name: 'Running Shoes', price: '$89.00' },
+        'sku-2': { name: 'Trail Backpack', price: '$129.00' },
+      };
+      document.querySelectorAll('.card').forEach((card) => {
+        card.addEventListener('click', () => {
+          const p = products[card.dataset.id];
+          document.getElementById('detailName').textContent = p.name;
+          document.getElementById('detailPrice').textContent = p.price;
+          document.getElementById('catalog').style.display = 'none';
+          document.getElementById('detail').classList.add('active');
+        });
+      });
+      document.getElementById('addToCart').addEventListener('click', () => {
+        document.getElementById('cartStatus').hidden = false;
+      });
+      document.getElementById('searchBtn').addEventListener('click', () => {
+        // demo only: no-op filtering
+      });
+    </script>
+  </body>
+</html>

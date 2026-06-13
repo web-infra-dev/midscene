@@ -1,0 +1,69 @@
+{
+  "name": "@midscene/testing-framework",
+  "version": "1.8.9",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/testing-framework"
+  },
+  "description": "AI-native v2 UI testing framework for natural-language cases (Phase 0)",
+  "keywords": [
+    "AI testing",
+    "UI testing",
+    "natural language testing",
+    "midscene",
+    "agentic testing"
+  ],
+  "main": "./dist/lib/index.js",
+  "module": "./dist/es/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "bin": {
+    "midscene-tf": "./bin/midscene-tf"
+  },
+  "files": ["bin", "dist", "README.md"],
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "dev": "npm run build:watch",
+    "build": "rslib build",
+    "build:watch": "rslib build --watch --no-clean",
+    "test": "vitest --run",
+    "test:u": "vitest --run -u"
+  },
+  "dependencies": {
+    "@earendil-works/pi-ai": "^0.78.0",
+    "@earendil-works/pi-coding-agent": "^0.78.0",
+    "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "jiti": "2.7.0",
+    "js-yaml": "4.1.0"
+  },
+  "peerDependencies": {
+    "@midscene/web": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@midscene/web": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@midscene/web": "workspace:*",
+    "@rslib/core": "^0.18.3",
+    "@types/js-yaml": "4.0.9",
+    "@types/node": "^18.0.0",
+    "dotenv": "^16.4.5",
+    "typescript": "^5.8.3",
+    "vitest": "3.0.5"
+  },
+  "engines": {
+    "node": ">=18.19.0"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,134 @@
+/**
+ * UI Agent creation (RFC §2.1).
+ *
+ * `config.uiAgent` is a union: an object (config-style) or a factory function
+ * (programmatic). This module resolves both into a live Midscene UI Agent plus
+ * an optional cleanup hook.
+ */
+import type { AndroidConnectionOpt, WebConnectionOpt } from '@midscene/core';
+import type { Agent } from '@midscene/core/agent';
+import type { UIAgent, UIAgentConfig, UIAgentOptions } from '../config/types';
+
+export interface ResolvedUIAgent {
+  agent: Agent;
+  cleanup?: () => Promise<void>;
+}
+
+export async function createUIAgent(
+  uiAgent: UIAgent | undefined,
+  uiAgentOptions: UIAgentOptions | undefined,
+  env: NodeJS.ProcessEnv,
+): Promise<ResolvedUIAgent> {
+  if (!uiAgent) {
+    // `defineMidsceneConfig` only warns about a missing `uiAgent` (some flows
+    // use custom runtime nodes only). Once a case actually needs the UI Agent,
+    // fail with a clear, actionable message rather than a cryptic crash.
+    throw new Error(
+      '[midscene] This case needs a UI Agent, but `uiAgent` is not configured in midscene.config.ts. Add a `uiAgent` object or factory function.',
+    );
+  }
+  if (typeof uiAgent === 'function') {
+    // Programmatic factory: the project fully controls construction.
+    const result = await uiAgent({ uiAgentOptions, env });
+    if (!result?.agent) {
+      throw new Error(
+        '[midscene] The uiAgent factory must resolve to `{ agent }`.',
+      );
+    }
+    return { agent: result.agent, cleanup: result.cleanup };
+  }
+
+  return createFromConfig(uiAgent, uiAgentOptions);
+}
+
+async function createFromConfig(
+  config: UIAgentConfig,
+  uiAgentOptions: UIAgentOptions | undefined,
+): Promise<ResolvedUIAgent> {
+  switch (config.type) {
+    case 'web':
+      return createWebAgent(config.options, uiAgentOptions);
+    case 'android':
+      return createAndroidAgent(config.options, uiAgentOptions);
+    case 'ios':
+    case 'computer':
+      throw new Error(
+        `[midscene] uiAgent.type "${config.type}" is not yet supported by the config-style factory. Provide a \`uiAgent\` factory function instead.`,
+      );
+    default:
+      throw new Error(
+        `[midscene] Unknown uiAgent.type "${(config as UIAgentConfig).type}".`,
+      );
+  }
+}
+
+async function createWebAgent(
+  options: WebConnectionOpt,
+  uiAgentOptions: UIAgentOptions | undefined,
+): Promise<ResolvedUIAgent> {
+  if (!options?.url) {
+    throw new Error('[midscene] uiAgent.type "web" requires `options.url`.');
+  }
+
+  let mod: typeof import('@midscene/web/puppeteer-agent-launcher');
+  try {
+    mod = await import('@midscene/web/puppeteer-agent-launcher');
+  } catch (err) {
+    throw new Error(
+      `[midscene] Could not load @midscene/web for the web UI Agent. Install \`@midscene/web\` and \`puppeteer\`. Original error: ${(err as Error).message}`,
+    );
+  }
+
+  const { agent, freeFn } = await mod.puppeteerAgentForTarget(
+    options,
+    uiAgentOptions,
+  );
+
+  return {
+    agent,
+    cleanup: async () => {
+      for (const free of freeFn) {
+        try {
+          await free.fn();
+        } catch {
+          // best-effort cleanup
+        }
+      }
+    },
+  };
+}
+
+async function createAndroidAgent(
+  options: AndroidConnectionOpt | undefined,
+  uiAgentOptions: UIAgentOptions | undefined,
+): Promise<ResolvedUIAgent> {
+  const env = options ?? {};
+  // `@midscene/android` is an optional peer; load it loosely so the framework
+  // does not hard-depend on it.
+  const spec = '@midscene/android';
+  let mod: {
+    agentFromAdbDevice: (
+      deviceId?: string,
+      opts?: Record<string, unknown>,
+    ) => Promise<Agent>;
+  };
+  try {
+    mod = (await import(spec)) as typeof mod;
+  } catch (err) {
+    throw new Error(
+      `[midscene] Could not load @midscene/android for the android UI Agent. Original error: ${(err as Error).message}`,
+    );
+  }
+
+  const agent = await mod.agentFromAdbDevice(env.deviceId, {
+    ...uiAgentOptions,
+    ...env,
+  });
+
+  return {
+    agent,
+    cleanup: async () => {
+      await agent.destroy?.();
+    },
+  };
+}

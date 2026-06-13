@@ -1,0 +1,271 @@
+# 面向自然语言用例的 AI 原生 UI Testing Framework
+
+UI Test 真正的难点，不是写出第一条浏览器脚本，而是让团队长期愿意写、看得懂、维护得起。传统脚本很快会被选择器、等待逻辑、登录辅助函数、测试数据准备和失败截图塞满，最后只有少数测试工程师能理解它们到底在验证什么。
+
+:::info 这是全新的 v2 测试框架
+
+本文描述的是 Midscene 全新设计的 v2 测试框架——一套独立的新事物，它的表达方式和定位都与现有 YAML player 不同。本文只介绍这套新框架本身，不涉及与旧版本的迁移或兼容。
+
+:::
+
+Midscene 的设计围绕三个核心要点展开：
+
+- 用例必须可读。测试作者用 YAML 写自然语言用户路径，QA、业务同学和工程师都能直接 review case 本身，而不是先读懂一套脚本实现。
+- 工程架构必须优雅拆分职责。YAML 专注描述用户要完成什么；`midscene.config.ts` 管理目标环境、UI Agent 创建、运行策略、报告输出和 runtime 扩展；TypeScript 代码承接数据准备、设备接入、确定性校验和团队内部工具。
+- 架构必须面向 Agentic Testing。团队可以从 UI 路径切入测试，但结论不必止步于 UI。`ui`、`verify`、`agent`、skill 引用和 runtime 扩展让测试可以继续连接接口响应、数据库状态、日志、埋点和团队已有工具。
+
+Midscene 不是让团队在“轻量 YAML”和“严肃测试工程”之间二选一，而是让第一条 case 足够轻，同时让同一套表达方式继续长成长期回归套件。
+
+## 从简单 UI 任务开始
+
+Midscene 的第一步，是让团队用 YAML 把一个简单 UI 任务写清楚、跑起来、回放出来。对于大多数 Smoke Test 和轻量回归项目，第一个有价值的里程碑不是搭建复杂工程，而是把核心用户路径变成可读、可重复执行、可分析的 case。
+
+YAML case 可以让路径保持可读。case 只描述用户路径，运行目标环境放在 `midscene.config.ts` 里，绝不写进 case 文件：
+
+```yaml
+flow:
+  - ui: Search for "running shoes"
+  - ui: Open the first product
+  - ui: |
+      Read the product name and price.
+
+      Record them in the conclusion.
+  - verify: The product detail page shows a visible Add to cart button
+```
+
+YAML 可以把“一个用户路径应该是什么样”组织得足够清楚，便于 code review、业务确认和团队协作。围绕这个 case，Midscene 负责 AI UI 操作、视觉理解、断言、截图和报告生成。
+
+这种简单形态可以覆盖大多数早期项目：
+
+```text
+.
+  e2e/
+    dashboard.yaml
+    checkout.yaml
+    pricing.yaml
+```
+
+用例本身仍然接近业务语言，runner 则提供可重复执行的过程，以及成功或失败后都可以检查的报告。
+
+## 用 `verify` 和 `agent` 连接外部能力
+
+`verify` 和 `agent` 节点不是新的 UI 操作入口，而是基于当前测试上下文做判断或自由探索。这里有一个有意为之的分工：Midscene 自身专注 UI 能力（`ui` 节点由 Midscene 的 UI Agent 执行）；而 `verify` 和 `agent` 这类需要推理、编排、连接外部上下文的节点，交给一个**可替换的通用 Agent 框架**来执行。当前内置的是 Pi——OpenClaw 采用的轻量 Agent 框架（参见 [earendil-works/pi](https://github.com/earendil-works/pi)）。这一层刻意做成可替换的：未来也可能换成 Codex Agent SDK 等社区方案，让 Midscene 的测试能力跟随社区 Agent 生态一起演进，而不是绑死在某一个实现上。
+
+`verify` 和 `agent` 使用同一类 Agent 能力，区别在于**语义**，以及它们对测试结论的**影响**：
+
+- `verify` 带有测试判定语义：它必须给出通过或不通过的结论，不通过会让当前 case 失败。它是测试的**确定性闸门**，是回归套件真正用来 gate CI 的部分。
+- `agent` 是一个自由运行的 Agent，没有固定判定语义，强调的是**创造和想象的空间**——总结、归因、深入排查、提出后续建议，甚至按自然语言要求自行决定接下来该看什么、分析什么。也正因为这种自由，要正视它的另一面：它的输出天然带有不确定性，同一个 case 两次运行可能给出不同的观察。因此 `agent` 默认**不参与 case 的通过/失败判定**，它产出的是供人阅读的诊断与建议，而不是回归断言。需要稳定、可复现地卡住结论时，用 `verify`；想让测试在 UI 之外多一层探索和洞察时，用 `agent`。
+
+比如，可以让 `agent` 在当前页面上自由探查潜在问题：
+
+```yaml
+flow:
+  - ui: 打开结账页面
+  - agent: |
+      自由检查当前结账流程，找出任何看起来不合理的地方：
+      文案、价格、按钮状态、潜在的可用性问题。
+
+      列出你的发现，并给出可能的原因和后续建议。
+```
+
+每个 flow 步骤都有输出。这构成了一条明确的**上下文契约**：当 Pi Agent 执行某个 `verify` 或 `agent` 节点时，它能看到的全部就是——
+
+- **所有过往步骤本身**，也就是每一步要做什么（它的意图）。
+- **每个过往步骤的输出**，例如 `ui` 节点记录的结论、runtime 节点返回的 `conclusion`。
+- **当前 UI 截图**，用来理解此刻页面或屏幕上的状态。
+
+除此之外，没有别的。它不会看到前序节点的完整执行过程：一个 `ui` 节点为了创建订单可能经历了多次点击、输入和重试，后续 `verify` / `agent` 只能看到这个节点**最终输出了什么**。它也看不到历史截图——只有当前这一张。
+
+由此得到一条贯穿始终的规则：**唯一能往后传递的通道就是 output。** 后续步骤要用到某个东西，前面那一步就必须把它明确写进自己的输出里：
+
+```yaml
+flow:
+  - ui: |
+      创建一笔测试订单。
+
+      将这一步的输出命名为 createOrder，并记录：
+      - orderId: 订单号
+      - pageState: 当前页面状态
+
+  - verify: |
+      使用 $database 验证名为 createOrder 的输出中的 orderId 是否真实存在。
+
+  - agent: |
+      根据名为 createOrder 的输出、数据库验证结果和当前截图，分析本次测试风险。
+```
+
+这里的 `ui` 仍然只有自然语言输入。`createOrder` 是这段自然语言要求 Pi Agent 记录的输出名称，`orderId` 是该输出里的字段。需要说明的是：既然所有过往步骤的输出本就都在上下文里，命名**不是**“不命名就传不过去”，而是为了在多个输出之间**无歧义地指代**某一个——后续节点可以直接用自然语言引用“名为 `createOrder` 的输出中的 `orderId`”。
+
+对外部系统的引用也保持在自然语言里。`$database`、`$logs` 这样的 `$name` 会被运行时引擎解析为对应 skill；Pi Agent 会把 skill 结果、过往步骤的输出和当前截图一起，用于**当前这一次** `verify` 或 `agent`。但要注意：**skill 结果只属于这一次执行**，不会自动进入后续节点的上下文。如果后面还要用到，需由当前节点把它写进自己的输出。
+
+一个更完整的 case 可以长成这样：
+
+```yaml
+name: Create Order
+
+flow:
+  - prepareOrderFixture:
+      scenario: paid-order
+  - ui: |
+      使用测试账号登录系统，创建一笔测试订单。
+
+      在结论中记录：
+      - 订单号
+      - 当前页面状态
+      - 是否创建成功
+  - verify: |
+      使用 $database 验证前面结论中的订单号是否真实存在，且订单状态是 paid。
+  - verify: |
+      使用 $logs 检查测试期间是否出现相关 ERROR。
+  - verify: 订单详情页展示支付成功
+  - agent: 根据所有验证结果分析本次测试风险
+  - notifySlack
+```
+
+这个例子里，`ui` 负责创建订单并输出订单信息；`verify` 用 `$database` 和 `$logs` 做外部验证，并给出通过或不通过的判断；`agent` 汇总验证结果和当前截图；`notifySlack` 是后面通过 runtime 扩展出来的自定义节点。
+
+这里的两种扩展方式是**分层**的，并不冲突：`$name` + skill 是**轻量接入层**——像 `$database`、`$logs` 这样的 `$name` 引用，只要注册好对应 skill，就能在自然语言里直接引用，接入成本很低；`defineRuntime`（如 `prepareOrderFixture`、`notifySlack`）是**更底层的扩展方案**，用来定义独立的 YAML 节点、接管一整步的执行逻辑。需要快速把外部上下文喂给 `verify` / `agent`，就用 `$name` skill；需要完全掌控一个步骤怎么跑，就用 `defineRuntime`。
+
+## 扩展和集成能力
+
+当项目从轻量 case 长成长期回归套件时，工程复杂度应该进入配置和扩展层，而不是塞回每个 YAML 文件。Midscene 提供 `midscene.config.ts` 作为项目级 config-as-code 入口，用来管理用例发现、执行策略、输出位置、UI Agent 创建和 runtime 扩展。
+
+```ts
+import { defineMidsceneConfig } from '@midscene/testing-framework';
+
+export default defineMidsceneConfig({
+  // 单个 `uiAgent` 字段定义运行目标。传对象是配置式（框架据 `type` + `options`
+  // 创建 UI Agent）；传函数是编程式（自行构造，见下文）。
+  uiAgent: {
+    type: 'web',
+    options: {
+      url: 'https://shop.example.com',
+    },
+  },
+
+  testDir: './e2e',
+  include: ['**/*.yaml'],
+  exclude: ['**/*.draft.yaml'],
+
+  testRunner: {
+    maxConcurrency: 1,
+    bail: 0,
+    testTimeout: 120_000,
+  },
+
+  output: {
+    summary: './midscene_run/output/summary.json',
+    reportDir: './midscene_run/report',
+  },
+
+  uiAgentOptions: {
+    aiActContext: 'The user is already signed in as a smoke-test account.',
+    generateReport: true,
+  },
+});
+```
+
+有了这个配置之后，项目结构仍然可以保持直接：
+
+```text
+.
+  midscene.config.ts
+  e2e/
+    dashboard.yaml
+    checkout.yaml
+```
+
+`e2e/*.yaml` 描述用户要完成什么，`midscene.config.ts` 描述 target 类型和平台连接参数、testRunner 行为、共享 UI Agent 参数和报告。当 `uiAgent` 是对象时，框架会据其 `type` 和 `options` 创建 UI Agent；如果项目需要接入自定义设备、远程服务或自定义的 Agent 构造逻辑，把 `uiAgent` 设为工厂函数即可——还是同一个字段，只是换成构造逻辑，从根上避免出现两套运行目标定义。`options`（平台连接参数，如 url / deviceId）与 `uiAgentOptions`（Agent 行为，如 aiActContext / generateReport）是两类不同的东西，都保留。
+
+```ts
+import { agentFromAdbDevice } from '@midscene/android';
+import { defineMidsceneConfig } from '@midscene/testing-framework';
+
+export default defineMidsceneConfig({
+  testDir: './e2e',
+
+  uiAgentOptions: {
+    aiActContext: 'The user is already signed in as a smoke-test account.',
+    generateReport: true,
+  },
+
+  // 编程式：同一个 `uiAgent` 字段，填工厂函数。
+  uiAgent: async ({ uiAgentOptions, env }) => ({
+    agent: await agentFromAdbDevice(env.ANDROID_DEVICE_ID, {
+      ...uiAgentOptions,
+      androidAdbPath: env.ANDROID_ADB_PATH,
+      autoDismissKeyboard: false,
+    }),
+  }),
+});
+```
+
+YAML 也可以按项目需要扩展新的节点。相比 `$name` skill 的轻量接入，`defineRuntime` 是更底层的扩展方案：它定义独立的 YAML 节点、接管整步执行逻辑。比如 `prepareOrderFixture` 和 `notifySlack` 可以注册成自定义 runtime：
+
+```ts
+import {
+  defineMidsceneConfig,
+  defineRuntime,
+} from '@midscene/testing-framework';
+
+export default defineMidsceneConfig({
+  uiAgent: {
+    type: 'web',
+    options: {
+      url: 'http://127.0.0.1:3000',
+    },
+  },
+
+  testDir: './e2e',
+
+  runtime: {
+    prepareOrderFixture: defineRuntime(async (ctx) => {
+      const fixture = await createOrderFixture(ctx.input);
+      ctx.state.orderFixture = fixture;
+
+      return {
+        conclusion: `Prepared order fixture ${fixture.id}`,
+      };
+    }),
+
+    notifySlack: defineRuntime(async (ctx) => {
+      await sendSlackSummary(ctx.result);
+
+      return {
+        conclusion: 'Slack notification sent',
+      };
+    }),
+  },
+});
+```
+
+runtime 节点接收单个上下文参数，包含 `input`、`uiAgent`、`outputs`、`state`、`result`、`env`。它有两条信道，对应上面讲过的上下文契约，要分清：
+
+- 返回值里的 `conclusion` 是**面向上下文的输出**，会和其它步骤的输出一样进入后续 `verify` / `agent` 的上下文。
+- `ctx.state`（如 `ctx.state.orderFixture`）是**面向工程的 TypeScript 状态**，供 runtime 节点之间传递结构化数据，**不会进入 Pi Agent 的上下文**。换句话说，agent 看不到 `ctx.state`，只看得到 `conclusion`。要让某个值被后续的 `verify` / `agent` 用到，就得把它放进 `conclusion`。
+
+这条路线不会丢掉 YAML 驱动 UI Test 的低门槛。相反，它把 YAML 作为面向人的测试表达，把 TypeScript 配置作为面向工程的能力注册入口：普通路径继续用自然语言描述，真正需要确定性证据的地方再接入团队自己的工具。
+
+## 基于 Rstest 构建
+
+Midscene 是基于 Rstest 封装构建的上层测试框架。对一个 AI 驱动的 UI 测试框架来说，真正的价值不在 runner 本身有多快——每个节点的耗时主要由模型推理决定——而在于它能不能稳稳地接住一套测试工程该有的能力：生命周期、fixture、并发、用例过滤、失败上报和 CI 接入。Rstest 在底层提供了这些，Midscene 则把它们封装成自然语言用例、AI UI 操作、视觉断言、截图、回放报告和诊断信息。
+
+绝大多数用户可以通过 Midscene 的 YAML runner 和 `midscene.config.ts` 直接使用这套底座，无需了解 Rstest 的项目细节。`midscene.config.ts` 的字段会刻意和 Rstest 的概念对齐，例如 include/exclude、maxConcurrency、retry、timeout、setup、teardown 和 reporters，同时把 Midscene 特有的 UI Agent 创建入口留在同一个配置里。
+
+### Rstest 提供的工程能力
+
+Rstest 为 Midscene 项目提供可靠的测试工程底座：
+
+- **标准测试生命周期**：setup / teardown / hook 给登录态准备、测试数据初始化和清理提供明确的挂载点，而不必把这些塞进每个用例。
+- **Fixture 模型**：把共享的前置依赖（账号、设备连接、fixture 数据）声明成可复用、可组合的 fixture，并按用例需要注入。
+- **并发与隔离**：用例可以并发执行，由 runner 负责调度与隔离，让回归套件在 CI 上的整体耗时可控。
+- **用例过滤与失败上报**：按文件、名称或标签筛选用例，配合标准的失败报告，方便定位和重跑。
+- **统一运行模型**：YAML case、runtime 节点和配置扩展共享同一个底层运行模型，团队可以从轻量项目起步，再自然长成长期回归套件，而不必更换框架。
+
+Rstest 本身基于 Rust 编写、执行层性能良好；但对 Midscene 用户而言，更有价值的是上面这套成熟的测试工程能力，而不是 runner 的原始速度——毕竟在 AI 测试里，时间主要花在模型推理上。
+
+### 下一步
+
+- 从命令行运行 YAML case：[YAML 脚本运行器](./yaml-script-runner)
+- 查询完整 YAML 字段：[YAML 格式的工作流](./automate-with-scripts-in-yaml)
+- 从平台指南开始：[Android](./android-getting-started)、[iOS](./ios-getting-started)、[Computer](./computer-getting-started)

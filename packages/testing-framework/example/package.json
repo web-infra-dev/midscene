@@ -1,0 +1,19 @@
+{
+  "name": "midscene-testing-framework-example",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Copy-out demo for @midscene/testing-framework (v2 Phase 0)",
+  "type": "module",
+  "scripts": {
+    "test": "midscene-tf run",
+    "test:one": "midscene-tf run e2e/product-detail.yaml"
+  },
+  "dependencies": {
+    "@midscene/testing-framework": "latest",
+    "@midscene/web": "latest",
+    "puppeteer": ">=20.0.0"
+  },
+  "engines": {
+    "node": ">=18.19.0"
+  }
+}
