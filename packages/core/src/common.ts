@@ -542,5 +542,16 @@ export const getReadableTimeString = (
     .replace('mm', minutes)
     .replace('ss', seconds);
 
-  return `${timeString} (${format})`;
+  const timezoneOffsetMinutes = -now.getTimezoneOffset();
+  const timezoneSign = timezoneOffsetMinutes >= 0 ? '+' : '-';
+  const timezoneHours = String(
+    Math.floor(Math.abs(timezoneOffsetMinutes) / 60),
+  ).padStart(2, '0');
+  const timezoneMinutes = String(Math.abs(timezoneOffsetMinutes) % 60).padStart(
+    2,
+    '0',
+  );
+  const timezone = `UTC${timezoneSign}${timezoneHours}:${timezoneMinutes}`;
+
+  return `${timeString} (${format}, ${timezone})`;
 };
