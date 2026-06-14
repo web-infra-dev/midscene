@@ -222,7 +222,7 @@ npx puppeteer browsers install chrome --base-url="https://registry.npmmirror.com
 
 If the dropdown options do not appear in the report screenshot after you click the field, the page is usually using a native `select` element. In that case, the expanded dropdown is rendered by the operating system instead of inside the webpage.
 
-You can enable `forceChromeSelectRendering` to force Chrome to render the dropdown. For the detailed explanation and how to confirm the issue, see [Playwright FAQ — Cannot click the dropdown](./integrate-with-playwright#cannot-click-the-dropdown).
+Midscene enables `forceChromeSelectRendering` by default to force Chrome to render the dropdown; set it to `false` to opt out. For the detailed explanation and how to confirm the issue, see [Playwright FAQ — Cannot click the dropdown](./integrate-with-playwright#cannot-click-the-dropdown).
 
 ### The webpage continues to flash when running in headed mode
 

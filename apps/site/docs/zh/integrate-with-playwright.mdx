@@ -380,7 +380,7 @@ npx playwright install --with-deps chromium
 
 建议先检查报告中的截图：如果点击下拉框后，报告截图里确实没有出现下拉选项，基本就可以判断是这个问题。
 
-可以开启 `forceChromeSelectRendering` 选项，强制由 Chrome 来渲染 `select` 下拉框。这样下拉框就会出现在页面截图中，也能被 Playwright 正常识别。开启后，下拉框样式通常会和操作系统默认样式有明显区别。
+Midscene 默认开启 `forceChromeSelectRendering` 选项，强制由 Chrome 来渲染 `select` 下拉框，这样下拉框就会出现在页面截图中，也能被 Playwright 正常识别。开启后，下拉框样式通常会和操作系统默认样式有明显区别。如果需要恢复系统原生渲染，可将 `forceChromeSelectRendering` 设为 `false`。
 
 ### 浏览器界面持续闪动
 

@@ -1198,9 +1198,20 @@ export function forceClosePopup(
  *
  * Adds a style tag with CSS rules to make all select elements use base-select appearance.
  */
+// Track pages that already have the select-rendering style wired up so the
+// immediate injection and the `load` listener are only registered once per page,
+// even if multiple agents are created for the same page.
+const forceSelectRenderingPages = new WeakSet<object>();
+
 export function forceChromeSelectRendering(
   page: PuppeteerPage | PlaywrightPage,
 ): void {
+  // Only inject once per page to avoid stacking duplicate `load` listeners.
+  if (forceSelectRenderingPages.has(page)) {
+    return;
+  }
+  forceSelectRenderingPages.add(page);
+
   // Force Chrome to render select elements using base-select appearance
   // Reference: https://developer.chrome.com/blog/a-customizable-select
   const styleContent = `

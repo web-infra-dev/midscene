@@ -49,7 +49,7 @@ const agent = new PuppeteerAgent(page, {
 - `waitForNetworkIdleTimeout: number` —— 每次操作后等待网络空闲的时间，默认 `2000`（设为 `0` 关闭）。
 - `enableTouchEventsInActionSpace: boolean` —— 在动作空间里增加触摸手势（如滑动），用于需要触摸事件的页面，默认 `false`。
 - `keyboardTypeDelay: number` —— 透传给 Puppeteer `page.keyboard.type` 的每字符延迟（毫秒）。默认值为 `undefined`，表示 Midscene 不传该选项，使用 Puppeteer 自身默认值。通常无需配置；只有当受控输入框在快速输入下出现丢字等特殊情况时，再调大该值（例如 `80`）。
-- `forceChromeSelectRendering: boolean` —— 强制 `select` 元素使用 Chrome 的 base-select 样式，避免系统原生样式导致截图/元素提取不可见；需要 Puppeteer > `24.6.0`。
+- `forceChromeSelectRendering: boolean` —— 强制 `select` 元素使用 Chrome 的 base-select 样式，避免系统原生样式导致截图/元素提取不可见；需要 Puppeteer > `24.6.0`。默认值为 `true`；如需关闭（例如旧版 Chrome/Puppeteer）可设为 `false`。
 - `customActions: DeviceAction[]` —— 借助 `defineAction` 注册自定义动作，让规划器可以调用领域特定步骤。
 
 ### 使用说明
@@ -136,7 +136,7 @@ const agent = new PlaywrightAgent(page, {
 - `waitForNetworkIdleTimeout: number` —— 每次操作后等待网络空闲的时间，默认 `2000`（设为 `0` 关闭）。
 - `enableTouchEventsInActionSpace: boolean` —— 在动作空间里增加触摸手势（如滑动），用于需要触摸事件的页面，默认 `false`。
 - `keyboardTypeDelay: number` —— 透传给 Playwright `page.keyboard.type` 的每字符延迟（毫秒）。默认值为 `undefined`，表示 Midscene 不传该选项，使用 Playwright 自身默认值。通常无需配置；只有当受控输入框在快速输入下出现丢字等特殊情况时，再调大该值（例如 `80`）。
-- `forceChromeSelectRendering: boolean` —— 强制 `select` 元素使用 Chrome 的 base-select 样式，避免系统原生样式导致截图/元素提取不可见；需要 Playwright ≥ `1.52.0`。
+- `forceChromeSelectRendering: boolean` —— 强制 `select` 元素使用 Chrome 的 base-select 样式，避免系统原生样式导致截图/元素提取不可见；需要 Playwright ≥ `1.52.0`。默认值为 `true`；如需关闭（例如旧版 Chrome/Playwright）可设为 `false`。
 - `customActions: DeviceAction[]` —— 追加项目特有的动作，供规划器调用。
 
 ### 使用说明
