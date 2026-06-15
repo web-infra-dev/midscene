@@ -116,6 +116,21 @@ MIDSCENE_MODEL_NAME="kimi-k2.6" # 或 "kimi-k2.5"
 MIDSCENE_MODEL_FAMILY="kimi"
 ```
 
+### 小米 MiMo 模型 {#xiaomi-mimo}
+
+目前已支持小米的 `mimo-v2.5` 模型。
+
+从 [小米 MiMo API 开放平台](https://platform.xiaomimimo.com/) 获取 API Key 后，可以使用以下配置：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://api.xiaomimimo.com/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="mimo-v2.5"
+MIDSCENE_MODEL_FAMILY="xiaomi-mimo"
+```
+
+注意：Midscene 的视觉自动化依赖多模态图片理解能力。在小米 MiMo 中，目前只有 Omni 系列支持多模态输入；Pro 系列是文本模型，不能用于 Midscene 视觉任务。
+
 ### 智谱 GLM-V 系列 {#glm-v}
 
 智谱 GLM-V 是智谱 AI 推出的视觉理解模型。最新版本有 `GLM-4.6V`（开源）、`GLM-5V-Turbo`。
