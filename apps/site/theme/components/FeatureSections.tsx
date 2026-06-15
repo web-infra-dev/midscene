@@ -701,7 +701,7 @@ export function FeatureSections() {
             </div>
 
             {/* View All APIs row */}
-            <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex flex-col-reverse md:flex-row-reverse gap-6">
               {/* View All APIs Link Card */}
               <div className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-y-4 md:gap-y-6">
                 <div className="font-sans font-medium text-xl md:text-2xl leading-6 text-transparent">
@@ -783,6 +783,59 @@ export function FeatureSections() {
                   </TiltCard>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('apiMoreDesc')}
+                  </div>
+                </div>
+              </div>
+
+              {/* Benchmark Link Card */}
+              <div className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-y-4 md:gap-y-6">
+                <div className="font-sans font-medium text-xl md:text-2xl leading-6 text-transparent">
+                  {/* Empty placeholder to align with other cards */}.
+                </div>
+                <div className="flex flex-col gap-[17px]">
+                  <TiltCard
+                    href={tUrl(t('featureBenchmarkLink'))}
+                    className="rounded-2xl w-full h-[120px] md:h-[185px] flex flex-col justify-center items-center hover:bg-gray-200 dark:hover:bg-[#252525] transition-all duration-200 cursor-pointer group border-2 border-transparent hover:border-[#0555FF] overflow-hidden"
+                  >
+                    <div
+                      className="dark:hidden w-full h-full flex flex-col justify-center items-center bg-cover bg-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/grid-light.svg)',
+                      }}
+                    >
+                      <div className="font-sans font-semibold text-[#0555FF]">
+                        <span className="text-[40px] md:text-[56px] leading-none">
+                          93.1%
+                        </span>
+                      </div>
+                      <div className="mt-2 font-sans text-sm text-black/60 text-center">
+                        <div>AndroidWorld Benchmark</div>
+                        <div>{t('benchmark')} 93.1% · Pass@3 97.4%</div>
+                      </div>
+                    </div>
+                    <div
+                      className="hidden dark:flex w-full h-full flex-col justify-center items-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/grid-dark.svg)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    >
+                      <div className="font-sans font-semibold text-[#80A8FF]">
+                        <span className="text-[40px] md:text-[56px] leading-none">
+                          93.1%
+                        </span>
+                      </div>
+                      <div className="mt-2 font-sans text-sm text-white/60 text-center">
+                        <div>AndroidWorld Benchmark</div>
+                        <div>{t('benchmark')} 93.1% · Pass@3 97.4%</div>
+                      </div>
+                    </div>
+                  </TiltCard>
+                  <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
+                    {t('featureBenchmarkDesc')}
                   </div>
                 </div>
               </div>
