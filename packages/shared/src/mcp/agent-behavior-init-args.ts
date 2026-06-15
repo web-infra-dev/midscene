@@ -8,6 +8,11 @@ export interface AgentBehaviorInitArgs {
   screenshotShrinkFactor?: number;
 }
 
+type ExposedAgentBehaviorInitArgKey = Exclude<
+  keyof AgentBehaviorInitArgs,
+  'aiActionContext'
+>;
+
 export const agentBehaviorInitArgShape = {
   aiActContext: z
     .string()
@@ -15,10 +20,6 @@ export const agentBehaviorInitArgShape = {
     .describe(
       'Background knowledge passed to aiAct. Default: no extra context.',
     ),
-  aiActionContext: z
-    .string()
-    .optional()
-    .describe('Deprecated alias for aiActContext. Default: no extra context.'),
   replanningCycleLimit: z
     .number()
     .int()
@@ -41,7 +42,7 @@ export const agentBehaviorInitArgShape = {
     .describe(
       'Screenshot shrink factor before sending images to AI. Default: 1; high values may reduce recognition quality, especially on mobile.',
     ),
-} satisfies Record<keyof AgentBehaviorInitArgs, z.ZodTypeAny>;
+} satisfies Record<ExposedAgentBehaviorInitArgKey, z.ZodTypeAny>;
 
 export function extractAgentBehaviorInitArgs(
   extracted: Partial<AgentBehaviorInitArgs> | undefined,

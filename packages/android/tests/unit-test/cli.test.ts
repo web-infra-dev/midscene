@@ -215,6 +215,8 @@ describe('Android CLI integration', () => {
     expect(output.join('\n')).toContain('Default: 300ms');
     expect(output.join('\n')).toContain('--replanning-cycle-limit');
     expect(output.join('\n')).toContain('--ai-act-context');
+    expect(output.join('\n')).not.toContain('--ai-action-context');
+    expect(output.join('\n')).not.toContain('--aiActionContext');
     expect(output.join('\n')).toContain('--screenshot-shrink-factor');
     expect(output.join('\n')).toContain(
       'high values may reduce recognition quality, especially on mobile',

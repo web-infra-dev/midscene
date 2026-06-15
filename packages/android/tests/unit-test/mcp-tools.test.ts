@@ -161,6 +161,10 @@ describe('AndroidMidsceneTools', () => {
 
     expect(takeScreenshotTool?.schema).toHaveProperty('android.deviceId');
     expect(actTool?.schema).toHaveProperty('android.deviceId');
+    expect(takeScreenshotTool?.schema).toHaveProperty('android.aiActContext');
+    expect(takeScreenshotTool?.schema).not.toHaveProperty(
+      'android.aiActionContext',
+    );
   });
 
   it('prefers namespaced deviceId over top-level bare deviceId', async () => {

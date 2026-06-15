@@ -108,6 +108,28 @@ describe('generateToolsFromActionSpace', () => {
     });
   });
 
+  it('preserves locate field descriptions after making locate.prompt optional', () => {
+    const [tool] = generateToolsFromActionSpace(
+      [
+        {
+          name: 'Tap',
+          description: 'Tap the element',
+          paramSchema: z.object({
+            locate: locateSchema.describe('The element to be tapped'),
+          }),
+        },
+      ],
+      async () => ({
+        getActionSpace: vi.fn().mockResolvedValue([]),
+        page: {
+          screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+        },
+      }),
+    );
+
+    expect(tool.schema.locate.description).toBe('The element to be tapped');
+  });
+
   it('falls back to aiAction when direct action execution is unavailable', async () => {
     const aiAction = vi.fn().mockResolvedValue(undefined);
     const [tool] = generateToolsFromActionSpace(actionSpace, async () => ({
