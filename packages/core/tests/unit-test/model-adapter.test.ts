@@ -1,8 +1,22 @@
 import { getModelAdapter } from '@/ai-model/models';
 import { MODEL_ADAPTER_CONFIGS } from '@/ai-model/models/registry';
 import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
+import type { CustomPlanningDefinition } from '@/ai-model/workflows/planning/custom-planning';
 import { MODEL_FAMILY_VALUES } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
+
+function createTestPlannerDefinition(): CustomPlanningDefinition<null> {
+  return {
+    messages: {
+      systemPromptPlacement: 'system-message',
+      buildSystemPrompt: () => '',
+    },
+    parseResponse: () => null,
+    transformActions: () => [],
+    shouldContinuePlanning: () => false,
+    buildResponseLog: () => '',
+  };
+}
 
 describe('model adapter registry', () => {
   it('resolves the default adapter when modelFamily is not configured', () => {
@@ -108,14 +122,13 @@ describe('ResolvedModelAdapter', () => {
     ).toContain('normalized to 0-1000');
   });
 
-  it('keeps custom planning and locate definitions while applying policy defaults', () => {
-    const planFn = vi.fn();
+  it('keeps custom planner and locate definitions while applying policy defaults', () => {
     const locateFn = vi.fn();
     const adapter = new ResolvedModelAdapter(
       {
         planning: {
           kind: 'custom',
-          planFn,
+          planner: createTestPlannerDefinition(),
         },
         locate: {
           kind: 'custom',
@@ -141,7 +154,7 @@ describe('ResolvedModelAdapter', () => {
     ) {
       throw new Error('adapter should keep custom handlers');
     }
-    expect(adapter.planning.planFn).toBe(planFn);
+    expect(adapter.planning.planFn).toBeTruthy();
     expect(adapter.locate.locateFn).toBe(locateFn);
   });
 
@@ -182,12 +195,11 @@ describe('ResolvedModelAdapter', () => {
   });
 
   it('allows adapters to opt custom planning into action deepLocate', () => {
-    const planFn = vi.fn();
     const adapter = new ResolvedModelAdapter(
       {
         planning: {
           kind: 'custom',
-          planFn,
+          planner: createTestPlannerDefinition(),
           supportsActionDeepLocate: true,
         },
       },
@@ -195,6 +207,30 @@ describe('ResolvedModelAdapter', () => {
     );
 
     expect(adapter.planning.supportsActionDeepLocate).toBe(true);
+  });
+
+  it('keeps custom planning functions as a fallback escape hatch', () => {
+    const planFn = vi.fn();
+    const adapter = new ResolvedModelAdapter(
+      {
+        planning: {
+          kind: 'custom',
+          planFn,
+        },
+      },
+      'test-custom-planning-function',
+    );
+
+    expect(adapter.planning).toMatchObject({
+      kind: 'custom',
+      cacheEnabled: true,
+      defaultReplanningCycleLimit: 20,
+      supportsActionDeepLocate: false,
+    });
+    if (adapter.planning.kind !== 'custom') {
+      throw new Error('adapter should keep custom planning function');
+    }
+    expect(adapter.planning.planFn).toBe(planFn);
   });
 
   it('allows adapters to opt custom locate into search area', () => {

@@ -1,101 +1,40 @@
-import { type TUserPrompt, userPromptToString } from '@/common';
-import type { PlanningAIResponse } from '@/types';
-import { getDebug } from '@midscene/shared/logger';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import {
-  AIResponseParseError,
-  callAIWithStringResponse,
-} from '../../service-caller/index';
-import type { PlanOptions } from '../../workflows/planning/types';
+import type { CustomPlanningDefinition } from '../../workflows/planning/custom-planning';
 import { transformAutoGLMAction } from './actions';
-import { parseAction, parseAutoGLMResponse } from './parser';
+import { parseAutoGLMPlanningResponse } from './parser';
+import {
+  getAutoGLMChinesePlanPrompt,
+  getAutoGLMMultilingualPlanPrompt,
+} from './prompt';
 
-const debug = getDebug('auto-glm-planning');
+type AutoGLMParsedResponse = ReturnType<typeof parseAutoGLMPlanningResponse>;
 
-export async function autoGlmPlanning(
-  userInstruction: TUserPrompt,
-  options: PlanOptions,
-  getSystemPrompt: () => string,
-): Promise<PlanningAIResponse> {
-  const { conversationHistory, context, actionContext } = options;
-
-  const systemPrompt =
-    getSystemPrompt() +
-    (actionContext
-      ? `<high_priority_knowledge>${actionContext}</high_priority_knowledge>`
-      : '');
-
-  const imagePayloadBase64 = context.screenshot.base64;
-  const userInstructionText = userPromptToString(userInstruction);
-  const referenceImageMessages = options.referenceImageMessages ?? [];
-
-  const userInstructionMessage: ChatCompletionMessageParam = {
-    role: 'user',
-    content: [{ type: 'text', text: userInstructionText }],
-  };
-  conversationHistory.append({
-    role: 'user',
-    content: [{ type: 'image_url', image_url: { url: imagePayloadBase64 } }],
-  });
-
-  const msgs: ChatCompletionMessageParam[] = [
-    { role: 'system', content: systemPrompt },
-    userInstructionMessage,
-    ...referenceImageMessages,
-    ...conversationHistory.snapshot(1),
-  ];
-
-  const {
-    content: rawResponse,
-    usage,
-    rawChoiceMessage,
-  } = await callAIWithStringResponse(msgs, options.modelRuntime, {
-    abortSignal: options.abortSignal,
-  });
-
-  debug('autoGLMPlanning rawResponse:', rawResponse);
-
-  let parsedResponse: ReturnType<typeof parseAutoGLMResponse>;
-  let transformedActions: ReturnType<typeof transformAutoGLMAction>;
-
-  try {
-    parsedResponse = parseAutoGLMResponse(rawResponse);
-    debug('thinking in response:', parsedResponse.think);
-    debug('action in response:', parsedResponse.content);
-
-    const parsedAction = parseAction(parsedResponse);
-    debug('Parsed action object:', parsedAction);
-    transformedActions = transformAutoGLMAction(
-      parsedAction,
-      context.shotSize,
-      options.actionSpace,
-    );
-    debug('Transformed actions:', transformedActions);
-  } catch (parseError) {
-    // Throw AIResponseParseError with usage and rawResponse preserved
-    const errorMessage =
-      parseError instanceof Error ? parseError.message : String(parseError);
-    throw new AIResponseParseError(
-      `Parse error: ${errorMessage}`,
-      JSON.stringify(rawResponse, undefined, 2),
-      usage,
-      rawChoiceMessage,
-    );
-  }
-
-  conversationHistory.append({
-    role: 'assistant',
-    content: `<think>${parsedResponse.think}</think><answer>${parsedResponse.content}</answer>`,
-  });
-
-  const shouldContinuePlanning = !parsedResponse.content.startsWith('finish(');
-
+export function createAutoGlmPlanner(
+  isMultilingual: boolean,
+): CustomPlanningDefinition<AutoGLMParsedResponse> {
   return {
-    actions: transformedActions,
-    log: rawResponse,
-    usage,
-    shouldContinuePlanning,
-    rawResponse: JSON.stringify(rawResponse, undefined, 2),
-    rawChoiceMessage,
+    messages: {
+      systemPromptPlacement: 'system-message',
+      buildSystemPrompt: () => {
+        if (isMultilingual) {
+          return getAutoGLMMultilingualPlanPrompt();
+        }
+        return getAutoGLMChinesePlanPrompt();
+      },
+      historyImageLimit: 1,
+      buildAssistantContent: (parsedResponse) =>
+        `<think>${parsedResponse.response.think}</think><answer>${parsedResponse.response.content}</answer>`,
+    },
+    parseResponse: (rawResponse) => {
+      return parseAutoGLMPlanningResponse(rawResponse);
+    },
+    transformActions: (parsedResponse, { options }) => {
+      return transformAutoGLMAction(parsedResponse.action, {
+        actionSpace: options.actionSpace,
+        shotSize: options.context.shotSize,
+      });
+    },
+    shouldContinuePlanning: (parsedResponse) =>
+      parsedResponse.action._metadata !== 'finish',
+    buildResponseLog: (_parsedResponse, rawResponse) => rawResponse,
   };
 }
