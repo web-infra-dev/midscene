@@ -5,6 +5,7 @@ import type { Server as HttpServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+import { installAdbServerClientFeaturesFallback } from '@midscene/android';
 import {
   SCRCPY_ADB_CONNECT_TIMEOUT_MS,
   SCRCPY_PREVIEW_METADATA_TIMEOUT_MS,
@@ -240,6 +241,7 @@ export default class ScrcpyServer {
             port: 5037,
           }),
         );
+        installAdbServerClientFeaturesFallback(this.adbClient);
         await debugPage('success to initialize adb client');
       } else {
         debugPage('use existing adb client');

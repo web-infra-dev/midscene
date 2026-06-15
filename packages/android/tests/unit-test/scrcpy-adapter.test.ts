@@ -3,12 +3,36 @@ import type { DevicePhysicalInfo } from '../../src/scrcpy-device-adapter';
 import { ScrcpyDeviceAdapter } from '../../src/scrcpy-device-adapter';
 import { DEFAULT_SCRCPY_CONFIG } from '../../src/scrcpy-manager';
 
+const adbMocks = vi.hoisted(() => {
+  const createClient = () => {
+    const originalGetDeviceFeatures = vi
+      .fn()
+      .mockResolvedValue({ transportId: 1n, features: [] });
+    return {
+      originalGetDeviceFeatures,
+      getDeviceFeatures: originalGetDeviceFeatures,
+      getDevices: vi.fn().mockResolvedValue([]),
+      createConnection: vi.fn(),
+      createTransport: vi.fn().mockResolvedValue({}),
+    };
+  };
+
+  let latestClient: ReturnType<typeof createClient> | undefined;
+
+  return {
+    getLatestClient: () => latestClient,
+    mockAdb: vi.fn().mockImplementation(() => ({})),
+    mockAdbServerClient: vi.fn().mockImplementation(() => {
+      latestClient = createClient();
+      return latestClient;
+    }),
+  };
+});
+
 // Mock @yume-chan packages (ESM-only, used via dynamic import in ensureManager)
 vi.mock('@yume-chan/adb', () => ({
-  Adb: vi.fn().mockImplementation(() => ({})),
-  AdbServerClient: vi.fn().mockImplementation(() => ({
-    createTransport: vi.fn().mockResolvedValue({}),
-  })),
+  Adb: adbMocks.mockAdb,
+  AdbServerClient: adbMocks.mockAdbServerClient,
 }));
 
 vi.mock('@yume-chan/adb-server-node-tcp', () => ({
@@ -252,6 +276,21 @@ describe('ScrcpyDeviceAdapter', () => {
 
       expect(currentMockManager.validateEnvironment).toHaveBeenCalledTimes(1);
       expect((adapter as any).manager).toBe(currentMockManager);
+    });
+
+    it('should install the multi-device features fallback before creating transport', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
+
+      await adapter.ensureManager(defaultDeviceInfo);
+
+      const adbClient = adbMocks.getLatestClient();
+      expect(adbClient).toBeDefined();
+      expect(adbClient?.getDeviceFeatures).not.toBe(
+        adbClient?.originalGetDeviceFeatures,
+      );
+      expect(adbClient?.createTransport).toHaveBeenCalledWith({
+        serial: 'device',
+      });
     });
 
     it('should NOT cache manager when validateEnvironment fails', async () => {

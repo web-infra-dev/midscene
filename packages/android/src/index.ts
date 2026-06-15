@@ -9,3 +9,4 @@ export {
 } from './utils';
 export type { AndroidConnectedDevice } from './utils';
 export { ScrcpyDeviceAdapter } from './scrcpy-device-adapter';
+export { installAdbServerClientFeaturesFallback } from './adb-server-client-features-fallback';

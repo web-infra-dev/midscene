@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ScrcpyServer, {
   resolveRequestedDeviceId,
 } from '../../src/scrcpy-server';
@@ -9,12 +9,43 @@ const {
   mockReadableFrom,
   mockCreateReadStream,
   mockOptionsCtor,
-} = vi.hoisted(() => ({
-  mockPushServer: vi.fn(),
-  mockStart: vi.fn(),
-  mockReadableFrom: vi.fn(),
-  mockCreateReadStream: vi.fn(),
-  mockOptionsCtor: vi.fn((options) => options),
+  mockExec,
+  mockInstallFeaturesFallback,
+  mockAdbClient,
+  mockAdbServerClient,
+  mockAdbServerNodeTcpConnector,
+} = vi.hoisted(() => {
+  const mockAdbClient = {};
+
+  return {
+    mockPushServer: vi.fn(),
+    mockStart: vi.fn(),
+    mockReadableFrom: vi.fn(),
+    mockCreateReadStream: vi.fn(),
+    mockOptionsCtor: vi.fn((options) => options),
+    mockExec: vi.fn((_command, callback) => callback(null, '', '')),
+    mockInstallFeaturesFallback: vi.fn(),
+    mockAdbClient,
+    mockAdbServerClient: vi.fn().mockImplementation(() => mockAdbClient),
+    mockAdbServerNodeTcpConnector: vi.fn(),
+  };
+});
+
+vi.mock('node:child_process', () => ({
+  exec: mockExec,
+}));
+
+vi.mock('@midscene/android', () => ({
+  installAdbServerClientFeaturesFallback: mockInstallFeaturesFallback,
+}));
+
+vi.mock('@yume-chan/adb', () => ({
+  Adb: vi.fn().mockImplementation(() => ({})),
+  AdbServerClient: mockAdbServerClient,
+}));
+
+vi.mock('@yume-chan/adb-server-node-tcp', () => ({
+  AdbServerNodeTcpConnector: mockAdbServerNodeTcpConnector,
 }));
 
 vi.mock('@yume-chan/adb-scrcpy', () => ({
@@ -44,6 +75,10 @@ vi.mock('node:fs', async (importOriginal) => {
 });
 
 describe('ScrcpyServer', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('prefers the explicit device from the preview handshake', () => {
     expect(
       resolveRequestedDeviceId(
@@ -89,6 +124,25 @@ describe('ScrcpyServer', () => {
       'pushing-server',
       'starting-service',
     ]);
+  });
+
+  it('installs the multi-device features fallback when initializing the ADB client', async () => {
+    const server = new ScrcpyServer();
+
+    await expect((server as any).getAdbClient()).resolves.toBe(mockAdbClient);
+
+    expect(mockExec).toHaveBeenCalledWith(
+      'adb start-server',
+      expect.any(Function),
+    );
+    expect(mockAdbServerNodeTcpConnector).toHaveBeenCalledWith({
+      host: '127.0.0.1',
+      port: 5037,
+    });
+    expect(mockAdbServerClient).toHaveBeenCalledTimes(1);
+    expect(mockInstallFeaturesFallback).toHaveBeenCalledWith(mockAdbClient);
+
+    server.close();
   });
 
   it('can consume device list updates from an external discovery source', async () => {
