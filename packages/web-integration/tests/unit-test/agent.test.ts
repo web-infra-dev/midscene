@@ -162,6 +162,16 @@ describe('PageAgent reportFileName', () => {
     expect(agent.reportFileName).toBe(customReportName);
   });
 
+  it('should reject empty reportFileName when provided', () => {
+    expect(
+      () =>
+        new PageAgent(mockPage, {
+          reportFileName: '',
+          modelConfig: mockedModelConfig,
+        }),
+    ).toThrow('reportFileName must be a non-empty string');
+  });
+
   it('should generate reportFileName when not provided', () => {
     const agent = new PageAgent(mockPage, {
       modelConfig: mockedModelConfig,

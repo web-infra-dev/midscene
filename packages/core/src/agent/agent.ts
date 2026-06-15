@@ -344,7 +344,7 @@ export class Agent<
     });
     this.dump = this.resetDump();
     this.reportFileName =
-      opts?.reportFileName ||
+      opts?.reportFileName ??
       // Keep deprecated testId behavior for generated report names until it is
       // fully removed from the public API.
       getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
