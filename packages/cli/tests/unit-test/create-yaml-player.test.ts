@@ -985,7 +985,7 @@ describe('create-yaml-player', () => {
       }
 
       // Verify all agent options were passed
-      // Note: YAML testId takes precedence over fileName
+      // Explicit YAML reportFileName should be passed through unchanged.
       expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
         expect.any(Object),
         expect.objectContaining({
@@ -993,7 +993,7 @@ describe('create-yaml-player', () => {
           groupDescription: 'Custom description',
           generateReport: true,
           autoPrintReportMsg: false,
-          reportFileName: 'custom-report-mock-report',
+          reportFileName: 'custom-report',
           replanningCycleLimit: 25,
           aiActionContext: 'Test context',
         }),
@@ -1075,7 +1075,7 @@ describe('create-yaml-player', () => {
 
       expect(agentFromWebDriverAgent).toHaveBeenCalledWith(
         expect.objectContaining({
-          reportFileName: 'ios-test-report-mock-report',
+          reportFileName: 'ios-test-report',
           autoPrintReportMsg: true,
         }),
       );

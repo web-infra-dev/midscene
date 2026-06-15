@@ -150,11 +150,11 @@ export class ReportGenerator implements IReportGenerator {
     },
   ): IReportGenerator {
     assertReportGenerationOptions(opts);
+    validateReportFileName(reportFileName);
     if (opts.generateReport === false) return nullReportGenerator;
 
     // In browser environment, file system is not available
     if (ifInBrowser) return nullReportGenerator;
-    validateReportFileName(reportFileName);
 
     const reportRootDir = getMidsceneRunSubDir('report');
     const outputDir = join(reportRootDir, reportFileName);
