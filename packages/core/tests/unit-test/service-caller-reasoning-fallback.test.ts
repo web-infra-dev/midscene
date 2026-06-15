@@ -1,5 +1,9 @@
 import { getModelRuntime } from '@/ai-model/models';
-import { callAI, callAIWithObjectResponse } from '@/ai-model/service-caller';
+import {
+  AIResponseParseError,
+  callAI,
+  callAIWithObjectResponse,
+} from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -68,6 +72,37 @@ describe('service-caller reasoning fallback', () => {
     expect(response.reasoning_content).toContain('POI RichInfo tab');
   });
 
+  it('records the raw response model name in usage metadata', async () => {
+    mockCreate.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: 'ok',
+          },
+        },
+      ],
+      model: 'doubao-seed-2-0-lite-260215',
+      usage: {
+        prompt_tokens: 10,
+        completion_tokens: 20,
+        total_tokens: 30,
+      },
+    });
+
+    const response = await callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime({
+        ...baseModelConfig,
+        modelName: 'ep-20260402170055-hm5ng',
+      }),
+    );
+
+    expect(response.usage).toMatchObject({
+      model_name: 'ep-20260402170055-hm5ng',
+      response_model_name: 'doubao-seed-2-0-lite-260215',
+    });
+  });
+
   it('parses object responses from reasoning_content when content is blank', async () => {
     mockCreate.mockResolvedValue({
       choices: [
@@ -102,6 +137,53 @@ describe('service-caller reasoning fallback', () => {
     expect(response.contentString).toBe(
       '{"type":"Tap","param":{"locate":{"prompt":"POI RichInfo tab"}}}',
     );
+  });
+
+  it('preserves raw model response when object JSON parsing fails', async () => {
+    const rawResponse = `\`\`\`json
+{
+  "bbox": 37, 313, 55, 324,
+  "errors": []
+}
+\`\`\``;
+
+    mockCreate.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: rawResponse,
+          },
+        },
+      ],
+      usage: {
+        prompt_tokens: 10,
+        completion_tokens: 20,
+        total_tokens: 30,
+      },
+    });
+
+    const promise = callAIWithObjectResponse(
+      [{ role: 'user', content: 'locate element' }],
+      baseModelConfig,
+      { jsonParserSource: 'locate' },
+    );
+
+    await expect(promise).rejects.toBeInstanceOf(AIResponseParseError);
+
+    try {
+      await promise;
+    } catch (error) {
+      const typedError = error as AIResponseParseError;
+      expect(typedError.message).toContain(
+        'failed to parse LLM response into JSON',
+      );
+      expect(typedError.rawResponse).toBe(rawResponse);
+      expect(typedError.usage).toMatchObject({
+        prompt_tokens: 10,
+        completion_tokens: 20,
+        total_tokens: 30,
+      });
+    }
   });
 
   it('uses modelConfig reasoningEnabled by default in callAI', async () => {

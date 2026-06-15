@@ -78,4 +78,49 @@ describe('resolveStudioRecorderModelConfig', () => {
       modelFamily: 'qwen3-vl',
     });
   });
+
+  it('falls back when the saved Studio env text is incomplete', async () => {
+    memoryStore['studio:model-env-text'] =
+      'MIDSCENE_MODEL_API_KEY=sk-incomplete';
+    visualizerState.config = {
+      MIDSCENE_MODEL_BASE_URL: 'https://example.com/v1',
+      MIDSCENE_MODEL_API_KEY: 'sk-test',
+      MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+      MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
+    };
+
+    const { resolveStudioRecorderModelConfig } = await import(
+      '../src/renderer/recorder/model-config'
+    );
+
+    expect(resolveStudioRecorderModelConfig()).toMatchObject({
+      modelName: 'qwen3-vl-plus',
+      openaiApiKey: 'sk-test',
+      openaiBaseURL: 'https://example.com/v1',
+      modelFamily: 'qwen3-vl',
+    });
+  });
+
+  it('throws instead of falling back when the saved Studio env text is invalid', async () => {
+    memoryStore['studio:model-env-text'] = [
+      'MIDSCENE_MODEL_BASE_URL=https://example.com/v1',
+      'MIDSCENE_MODEL_API_KEY=sk-invalid',
+      'MIDSCENE_MODEL_NAME=qwen3-vl-plus',
+      'MIDSCENE_MODEL_FAMILY=1',
+    ].join('\n');
+    visualizerState.config = {
+      MIDSCENE_MODEL_BASE_URL: 'https://example.com/v1',
+      MIDSCENE_MODEL_API_KEY: 'sk-test',
+      MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+      MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
+    };
+
+    const { resolveStudioRecorderModelConfig } = await import(
+      '../src/renderer/recorder/model-config'
+    );
+
+    expect(() => resolveStudioRecorderModelConfig()).toThrow(
+      'Invalid MIDSCENE_MODEL_FAMILY value: 1',
+    );
+  });
 });

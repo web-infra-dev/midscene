@@ -22,6 +22,15 @@ export interface ResolvedModelConnection extends ModelConnectionParams {
   modelConfig: IModelConfig;
 }
 
+export type ModelConnectionErrorKind =
+  | 'missing-required-keys'
+  | 'invalid-config';
+
+export interface ModelConnectionError {
+  kind: ModelConnectionErrorKind;
+  error: string;
+}
+
 export function connectivityRequestToModelConfig(
   request: ConnectivityTestRequest,
 ): TModelConfig {
@@ -34,7 +43,7 @@ export function connectivityRequestToModelConfig(
 
 export function resolveModelConnection(
   provider: Record<string, string | number | undefined>,
-): ModelConnectionParams | { error: string } {
+): ModelConnectionParams | ModelConnectionError {
   const resolved = resolveModelConnectionWithConfig(provider);
   if ('error' in resolved) {
     return resolved;
@@ -49,7 +58,7 @@ export function resolveModelConnection(
 
 export function resolveModelConnectionWithConfig(
   provider: Record<string, string | number | undefined>,
-): ResolvedModelConnection | { error: string } {
+): ResolvedModelConnection | ModelConnectionError {
   const normalizedProvider = normalizeStudioModelProvider(provider);
   const apiKey = normalizedProvider[MIDSCENE_MODEL_API_KEY]?.trim() || '';
   const baseUrl = normalizedProvider[MIDSCENE_MODEL_BASE_URL]?.trim() || '';
@@ -61,14 +70,24 @@ export function resolveModelConnectionWithConfig(
   if (!model) missing.push(MIDSCENE_MODEL_NAME);
 
   if (missing.length > 0) {
-    return { error: `Missing required keys: ${missing.join(', ')}` };
+    return {
+      kind: 'missing-required-keys',
+      error: `Missing required keys: ${missing.join(', ')}`,
+    };
   }
 
-  const modelConfigManager = new ModelConfigManager(
-    normalizedProvider as TModelConfig,
-  );
-  const modelConfig: IModelConfig =
-    modelConfigManager.getModelConfig('default');
+  let modelConfig: IModelConfig;
+  try {
+    const modelConfigManager = new ModelConfigManager(
+      normalizedProvider as TModelConfig,
+    );
+    modelConfig = modelConfigManager.getModelConfig('default');
+  } catch (error) {
+    return {
+      kind: 'invalid-config',
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 
   return {
     apiKey,

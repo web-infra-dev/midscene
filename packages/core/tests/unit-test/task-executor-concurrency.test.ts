@@ -5,7 +5,7 @@ import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import type { ModelRuntime } from '@/ai-model/models/types';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
-import type { DeviceAction } from '@/types';
+import type { DeviceAction, ExecutorContext } from '@/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import type Service from '../../src';
@@ -200,6 +200,369 @@ describe('TaskExecutor concurrency isolation', () => {
       '',
       'Current time: 2023-10-15 15:37:00 (YYYY-MM-DD HH:mm:ss)',
     ]);
+  });
+
+  it('should pass RunAdbShell planning feedback into the next planning request', async () => {
+    const seenPendingFeedback: string[] = [];
+    const planningFeedback = `RunAdbShell returned stdout. The stdout may indicate success or failure.
+Command: settings get system screen_brightness
+Stdout:
+0`;
+
+    vi.spyOn(taskExecutor, 'convertPlanToExecutable')
+      .mockResolvedValueOnce({
+        tasks: [
+          {
+            type: 'Action Space',
+            subType: 'RunAdbShell',
+            param: { command: 'settings get system screen_brightness' },
+            executor: async (_param: unknown, context: ExecutorContext) => {
+              context.task.planningFeedback = planningFeedback;
+              return {
+                output: '0',
+              };
+            },
+          },
+        ],
+        yamlFlow: [],
+      } as any)
+      .mockResolvedValue({
+        tasks: [],
+        yamlFlow: [],
+      } as any);
+
+    vi.mocked(genericXmlPlan)
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [
+            {
+              type: 'RunAdbShell',
+              param: { command: 'settings get system screen_brightness' },
+              thought: 'read brightness state from adb shell',
+            },
+          ],
+          yamlFlow: [],
+          shouldContinuePlanning: true,
+          log: 'first plan',
+          rawResponse: '',
+        };
+      })
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: false,
+          log: '',
+          rawResponse: '',
+          finalizeSuccess: true,
+          finalizeMessage: 'done',
+        };
+      });
+
+    await taskExecutor.action(
+      'check brightness with adb shell',
+      planningModel(),
+      defaultModel(),
+      true,
+    );
+
+    expect(seenPendingFeedback[0]).toBe('');
+    expect(seenPendingFeedback[1]).toContain(planningFeedback);
+  });
+
+  it('should truncate oversized planning feedback before the next planning request', async () => {
+    const seenPendingFeedback: string[] = [];
+    const longFeedback = 'x'.repeat(600);
+
+    vi.spyOn(taskExecutor, 'convertPlanToExecutable')
+      .mockResolvedValueOnce({
+        tasks: [
+          {
+            type: 'Action Space',
+            subType: 'RunAdbShell',
+            param: { command: 'cat big-file' },
+            executor: async (_param: unknown, context: ExecutorContext) => {
+              context.task.planningFeedback = longFeedback;
+              return {
+                output: longFeedback,
+              };
+            },
+          },
+        ],
+        yamlFlow: [],
+      } as any)
+      .mockResolvedValue({
+        tasks: [],
+        yamlFlow: [],
+      } as any);
+
+    vi.mocked(genericXmlPlan)
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [
+            {
+              type: 'RunAdbShell',
+              param: { command: 'cat big-file' },
+              thought: 'read a large file',
+            },
+          ],
+          yamlFlow: [],
+          shouldContinuePlanning: true,
+          log: 'first plan',
+          rawResponse: '',
+        };
+      })
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: false,
+          log: '',
+          rawResponse: '',
+          finalizeSuccess: true,
+          finalizeMessage: 'done',
+        };
+      });
+
+    await taskExecutor.action(
+      'read big file with adb shell',
+      planningModel(),
+      defaultModel(),
+      true,
+    );
+
+    expect(seenPendingFeedback[1]).toContain('x'.repeat(500));
+    expect(seenPendingFeedback[1]).not.toContain('x'.repeat(600));
+    expect(seenPendingFeedback[1]).toContain(
+      '...[truncated, 100 more characters]',
+    );
+  });
+
+  it('should collect all planning feedback instead of the final task output', async () => {
+    const seenPendingFeedback: string[] = [];
+    vi.setSystemTime(new Date(2023, 9, 15, 8, 30, 0));
+    const firstPlanningFeedback = `RunAdbShell returned stdout. The stdout may indicate success or failure.
+Command: settings get system screen_brightness
+Stdout:
+0`;
+    const secondPlanningFeedback = `RunAdbShell returned stdout. The stdout may indicate success or failure.
+Command: settings get system screen_off_timeout
+Stdout:
+30000`;
+    const thirdPlanningFeedback = `RunAdbShell returned stdout. The stdout may indicate success or failure.
+Command: dumpsys window
+Stdout:
+mCurrentFocus=Window{abc}`;
+    const finalActionOutput = 'tap-output';
+
+    vi.spyOn(taskExecutor, 'convertPlanToExecutable')
+      .mockResolvedValueOnce({
+        tasks: [
+          {
+            type: 'Action Space',
+            subType: 'RunAdbShell',
+            param: { command: 'settings get system screen_brightness' },
+            executor: async (_param: unknown, context: ExecutorContext) => {
+              context.task.planningFeedback = firstPlanningFeedback;
+              return {
+                output: '0',
+              };
+            },
+          },
+          {
+            type: 'Action Space',
+            subType: 'RunAdbShell',
+            param: { command: 'settings get system screen_off_timeout' },
+            executor: async (_param: unknown, context: ExecutorContext) => {
+              context.task.planningFeedback = secondPlanningFeedback;
+              return {
+                output: '30000',
+              };
+            },
+          },
+          {
+            type: 'Action Space',
+            subType: 'RunAdbShell',
+            param: { command: 'dumpsys window' },
+            executor: async (_param: unknown, context: ExecutorContext) => {
+              context.task.planningFeedback = thirdPlanningFeedback;
+              return {
+                output: 'mCurrentFocus=Window{abc}',
+              };
+            },
+          },
+          {
+            type: 'Action Space',
+            subType: 'Tap',
+            param: { x: 10, y: 20 },
+            executor: async () => ({
+              output: finalActionOutput,
+            }),
+          },
+        ],
+        yamlFlow: [],
+      } as any)
+      .mockResolvedValue({
+        tasks: [],
+        yamlFlow: [],
+      } as any);
+
+    vi.mocked(genericXmlPlan)
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [
+            {
+              type: 'RunAdbShell',
+              param: { command: 'settings get system screen_brightness' },
+              thought: 'read brightness state from adb shell',
+            },
+            {
+              type: 'RunAdbShell',
+              param: { command: 'settings get system screen_off_timeout' },
+              thought: 'read screen timeout state from adb shell',
+            },
+            {
+              type: 'RunAdbShell',
+              param: { command: 'dumpsys window' },
+              thought: 'read current focus from adb shell',
+            },
+            {
+              type: 'Tap',
+              param: { x: 10, y: 20 },
+              thought: 'tap after adb shell',
+            },
+          ],
+          yamlFlow: [],
+          shouldContinuePlanning: true,
+          log: 'first plan',
+          rawResponse: '',
+        };
+      })
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: false,
+          log: '',
+          rawResponse: '',
+          finalizeSuccess: true,
+          finalizeMessage: 'done',
+        };
+      });
+
+    await taskExecutor.action(
+      'check brightness',
+      planningModel(),
+      defaultModel(),
+      true,
+    );
+
+    expect(
+      seenPendingFeedback[1],
+    ).toBe(`Time: 2023-10-15 08:30:00 (YYYY-MM-DD HH:mm:ss), ${firstPlanningFeedback}
+
+${secondPlanningFeedback}
+
+${thirdPlanningFeedback}`);
+    expect(seenPendingFeedback[1]).not.toContain(finalActionOutput);
+  });
+
+  it('should not pass empty planning feedback into the next planning request', async () => {
+    const seenPendingFeedback: string[] = [];
+    taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      replanningCycleLimit: 1,
+      actionSpace: [],
+    });
+    vi.spyOn(taskExecutor, 'convertPlanToExecutable')
+      .mockResolvedValueOnce({
+        tasks: [
+          {
+            type: 'Action Space',
+            subType: 'WriteState',
+            param: { key: 'clipboard' },
+            executor: async (_param: unknown, context: ExecutorContext) => {
+              context.task.planningFeedback = '';
+              return {
+                output: '',
+              };
+            },
+          },
+        ],
+        yamlFlow: [],
+      } as any)
+      .mockResolvedValue({
+        tasks: [],
+        yamlFlow: [],
+      } as any);
+
+    vi.mocked(genericXmlPlan)
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [
+            {
+              type: 'WriteState',
+              param: { key: 'clipboard' },
+              thought: 'write state',
+            },
+          ],
+          yamlFlow: [],
+          shouldContinuePlanning: true,
+          log: 'first plan',
+          rawResponse: '',
+        };
+      })
+      .mockImplementationOnce(async (_instruction, opts: any) => {
+        seenPendingFeedback.push(
+          opts.conversationHistory.pendingFeedbackMessage,
+        );
+        opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: false,
+          log: '',
+          rawResponse: '',
+          finalizeSuccess: true,
+          finalizeMessage: 'done',
+        };
+      });
+
+    await taskExecutor.action(
+      'copy clipboard',
+      planningModel(),
+      defaultModel(),
+      true,
+    );
+
+    expect(seenPendingFeedback[1]).not.toContain('WriteState');
   });
 
   it('should fall back to runtime time instead of device timestamp when device-local time is unavailable', async () => {

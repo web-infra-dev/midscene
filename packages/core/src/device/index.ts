@@ -3,6 +3,7 @@ import { getMidsceneLocationSchema } from '@/common';
 import type {
   ActionScrollParam,
   DeviceAction,
+  ExecutorContext,
   LocateResultElement,
 } from '@/types';
 import type { ElementNode } from '@midscene/shared/extractor';
@@ -230,7 +231,10 @@ export const defineAction = <
     description: string;
     interfaceAlias?: string;
     paramSchema?: TSchema;
-    call: (param: TRuntime) => Promise<TReturn> | TReturn;
+    call: (
+      param: TRuntime,
+      context?: ExecutorContext,
+    ) => Promise<TReturn> | TReturn;
   } & Partial<
     Omit<
       DeviceAction<TRuntime, TReturn>,
@@ -742,7 +746,7 @@ export const defineActionSwipe = (config: {
   return defineAction<typeof ActionSwipeParamSchema, ActionSwipeParam>({
     name: 'Swipe',
     description:
-      'Perform a touch gesture for interactions beyond regular scrolling (e.g., flip pages in a carousel, dismiss a notification, swipe-to-delete a list item). For regular content scrolling, use Scroll instead. Use "distance" + "direction" for relative movement, or "end" for precise endpoint.',
+      'Perform a touch gesture for interactions beyond regular scrolling (e.g., adjust a continuous control such as a slider, flip pages in a carousel, dismiss a notification, swipe-to-delete a list item). For regular content scrolling, use Scroll instead. Use "distance" + "direction" for relative movement, or "start" + "end" for precise endpoint movement.',
     paramSchema: ActionSwipeParamSchema,
     sample: {
       start: { prompt: 'center of the notification' },

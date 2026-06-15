@@ -70,8 +70,25 @@ function invalidLocateElementReason(
   return undefined;
 }
 
+type LocateParamWithDeprecatedAlias = DetailedLocateParam & {
+  deepThink?: boolean;
+};
+
+function normalizeLocateParam(
+  param: string | DetailedLocateParam,
+): DetailedLocateParam {
+  if (typeof param === 'string') {
+    return { prompt: param };
+  }
+
+  const { deepThink, ...rest } = param as LocateParamWithDeprecatedAlias;
+  const deepLocate = rest.deepLocate ?? deepThink;
+
+  return deepLocate === undefined ? rest : { ...rest, deepLocate };
+}
+
 export function locatePlanForLocate(param: string | DetailedLocateParam) {
-  const locate = typeof param === 'string' ? { prompt: param } : param;
+  const locate = normalizeLocateParam(param);
   const locatePlan: PlanningAction<PlanningLocateParam> = {
     type: 'Locate',
     param: locate,
@@ -379,13 +396,7 @@ export class TaskBuilder {
   ): ExecutionTaskPlanningLocateApply {
     const { cacheable, defaultModel, deepLocate, abortSignal } = context;
 
-    let locateParam = detailedLocateParam;
-
-    if (typeof locateParam === 'string') {
-      locateParam = {
-        prompt: locateParam,
-      };
-    }
+    let locateParam = normalizeLocateParam(detailedLocateParam);
 
     if (cacheable !== undefined) {
       locateParam = {
@@ -447,8 +458,12 @@ export class TaskBuilder {
           task.log = {
             dump,
             rawResponse: dump.taskInfo?.rawResponse,
+            rawChoiceMessage: dump.taskInfo?.rawChoiceMessage,
+            searchAreaRawChoiceMessage:
+              dump.taskInfo?.searchAreaRawChoiceMessage,
           };
           task.usage = withUsageIntent(dump.taskInfo?.usage, 'default');
+          task.searchArea = dump.taskInfo?.searchArea;
           if (dump.taskInfo?.searchAreaUsage) {
             task.searchAreaUsage = dump.taskInfo.searchAreaUsage;
           }

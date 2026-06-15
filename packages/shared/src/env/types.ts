@@ -35,6 +35,8 @@ export const MIDSCENE_MODEL_REASONING_ENABLED =
 export const MIDSCENE_MODEL_REASONING_BUDGET =
   'MIDSCENE_MODEL_REASONING_BUDGET';
 
+export type TModelReasoningEnabled = boolean | 'default';
+
 /**
  * @deprecated Use MIDSCENE_MODEL_API_KEY instead. This is kept for backward compatibility.
  */
@@ -297,7 +299,8 @@ export type TModelFamily =
   | 'glm-v'
   | 'auto-glm'
   | 'auto-glm-multilingual'
-  | 'gpt-5';
+  | 'gpt-5'
+  | 'kimi';
 
 export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'doubao-vision',
@@ -315,6 +318,7 @@ export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'auto-glm',
   'auto-glm-multilingual',
   'gpt-5',
+  'kimi',
 ];
 
 export interface IModelConfigForInsight {
@@ -380,7 +384,7 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_TEMPERATURE]?: string;
   // reasoning effort
   [MIDSCENE_MODEL_REASONING_EFFORT]?: string;
-  // enable reasoning (boolean as string)
+  // enable reasoning (boolean/default as string)
   [MIDSCENE_MODEL_REASONING_ENABLED]?: string;
   // reasoning budget (number as string)
   [MIDSCENE_MODEL_REASONING_BUDGET]?: string;
@@ -499,8 +503,9 @@ export interface IModelConfig {
   /**
    * Enable/disable reasoning for the model.
    * Passed through to model-family-specific parameters (e.g., enable_thinking for qwen, thinking.type for doubao/glm-v).
+   * "default" means following the model provider's default without sending reasoning controls.
    */
-  reasoningEnabled?: boolean;
+  reasoningEnabled?: TModelReasoningEnabled;
   /**
    * Reasoning token budget for the model.
    * Passed through to model-family-specific parameters (e.g., thinking_budget for qwen).

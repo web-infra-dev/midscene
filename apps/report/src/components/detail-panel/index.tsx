@@ -3,6 +3,7 @@ import './index.less';
 import { isElementField, useExecutionDump } from '@/components/store';
 import {
   CameraOutlined,
+  CopyOutlined,
   DownloadOutlined,
   FileMarkdownOutlined,
   FileTextOutlined,
@@ -15,16 +16,18 @@ import type {
   IExecutionDump,
 } from '@midscene/core';
 import type { MarkdownAttachment } from '@midscene/core';
-import { executionToMarkdown } from '@midscene/core';
+import { executionToMarkdown, getTaskSearchArea } from '@midscene/core';
 import {
   Blackboard,
   Player,
-  filterBase64Value,
   fullTimeStrWithMilliseconds,
 } from '@midscene/visualizer';
-import { Segmented } from 'antd';
+import { Segmented, message } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
+import { JsonView, allExpanded } from 'react-json-view-lite';
+import 'react-json-view-lite/dist/index.css';
 import OpenInPlayground from '../open-in-playground';
+import { sanitizeJsonViewData } from './json-view-data';
 import { getExecutionMarkdownView } from './markdown-view';
 
 const ScreenshotDisplay = (props: {
@@ -49,6 +52,26 @@ const VIEW_TYPE_REPLAY = 'replay';
 const VIEW_TYPE_MARKDOWN = 'markdown';
 const VIEW_TYPE_SCREENSHOT = 'screenshot';
 const VIEW_TYPE_JSON = 'json';
+
+const jsonViewStyles = {
+  container: 'report-json-view',
+  childFieldsContainer: 'report-json-child-fields',
+  basicChildStyle: 'report-json-child',
+  label: 'report-json-label',
+  clickableLabel: 'report-json-clickable-label',
+  nullValue: 'report-json-null',
+  undefinedValue: 'report-json-undefined',
+  numberValue: 'report-json-number',
+  stringValue: 'report-json-string',
+  booleanValue: 'report-json-boolean',
+  otherValue: 'report-json-other',
+  punctuation: 'report-json-punctuation',
+  expandIcon: 'report-json-expand-icon',
+  collapseIcon: 'report-json-collapse-icon',
+  collapsedContent: 'report-json-collapsed-content',
+  quotesForFieldNames: true,
+  stringifyStringValues: true,
+};
 
 async function downloadMarkdownZip(
   markdown: string,
@@ -138,13 +161,18 @@ const DetailPanel = (): JSX.Element => {
   // Check if page context is frozen
   const isPageContextFrozen = Boolean(activeTask?.uiContext?._isFrozen);
 
-  const markdownResult = useMemo(() => {
-    return getExecutionMarkdownView(activeExecution, (execution) =>
-      executionToMarkdown(execution as ExecutionDump | IExecutionDump, {
-        screenshotBaseDir: './screenshots',
-      }),
-    );
-  }, [activeExecution]);
+  const activeTaskJsonViewData = useMemo(() => {
+    return activeTask ? sanitizeJsonViewData(activeTask) : null;
+  }, [activeTask]);
+  const activeTaskJsonText = useMemo(() => {
+    return activeTaskJsonViewData
+      ? JSON.stringify(activeTaskJsonViewData, undefined, 2)
+      : '';
+  }, [activeTaskJsonViewData]);
+  const activeTaskSearchArea = useMemo(
+    () => getTaskSearchArea(activeTask),
+    [activeTask],
+  );
 
   const hasReplay =
     activeTask?.type === 'Planning' &&
@@ -163,6 +191,16 @@ const DetailPanel = (): JSX.Element => {
     availableViewTypes.indexOf(preferredViewType) >= 0
       ? preferredViewType
       : availableViewTypes[0];
+  const markdownResult = useMemo(() => {
+    if (viewType !== VIEW_TYPE_MARKDOWN) {
+      return null;
+    }
+    return getExecutionMarkdownView(activeExecution, (execution) =>
+      executionToMarkdown(execution as ExecutionDump | IExecutionDump, {
+        screenshotBaseDir: './screenshots',
+      }),
+    );
+  }, [activeExecution, viewType]);
 
   let content;
   if (activeExecution && viewType === VIEW_TYPE_REPLAY) {
@@ -175,13 +213,13 @@ const DetailPanel = (): JSX.Element => {
       />
     );
   } else if (viewType === VIEW_TYPE_MARKDOWN) {
-    if (markdownResult.status === 'ready') {
+    if (markdownResult?.status === 'ready') {
       content = (
         <div className="markdown-view scrollable">
           <pre className="markdown-source">{markdownResult.markdown}</pre>
         </div>
       );
-    } else if (markdownResult.status === 'error') {
+    } else if (markdownResult?.status === 'error') {
       content = (
         <div>Failed to render markdown: {markdownResult.errorMessage}</div>
       );
@@ -193,7 +231,12 @@ const DetailPanel = (): JSX.Element => {
   } else if (viewType === VIEW_TYPE_JSON) {
     content = (
       <div className="json-content scrollable">
-        {filterBase64Value(JSON.stringify(activeTask, undefined, 2))}
+        <JsonView
+          data={activeTaskJsonViewData as object}
+          style={jsonViewStyles}
+          shouldExpandNode={allExpanded}
+          clickToExpandNode
+        />
       </div>
     );
   } else if (viewType === VIEW_TYPE_SCREENSHOT) {
@@ -236,7 +279,7 @@ const DetailPanel = (): JSX.Element => {
       activeTask.uiContext?.screenshot?.capturedAt,
     );
 
-    contextLocatorView = activeTask.uiContext?.shotSize ? (
+    contextLocatorView = activeTask.uiContext ? (
       <ScreenshotDisplay
         title={`${isPageContextFrozen ? 'UI Context (Frozen)' : 'UI Context'} / ${contextScreenshotAt}`}
       >
@@ -244,18 +287,21 @@ const DetailPanel = (): JSX.Element => {
           key={`${_contextLoadId}`}
           uiContext={activeTask.uiContext}
           highlightElements={highlightElements}
-          highlightRect={insightDump?.taskInfo?.searchArea}
+          highlightRect={
+            activeTaskSearchArea || insightDump?.taskInfo?.searchArea
+          }
         />
       </ScreenshotDisplay>
     ) : null;
 
     if (activeTask.recorder?.length) {
       for (const item of activeTask.recorder) {
-        if (item.screenshot?.base64) {
+        const screenshot = item.screenshot?.base64;
+        if (screenshot) {
           screenshotItems.push({
             timestamp: item.ts,
-            screenshotTimestamp: item.screenshot.capturedAt,
-            screenshot: item.screenshot.base64,
+            screenshotTimestamp: item.screenshot?.capturedAt,
+            screenshot,
             timing: item.timing,
           });
         }
@@ -358,25 +404,36 @@ const DetailPanel = (): JSX.Element => {
         />
 
         <div className="view-switcher-actions">
-          {viewType === VIEW_TYPE_MARKDOWN && markdownResult && (
+          {viewType === VIEW_TYPE_MARKDOWN &&
+            markdownResult?.status === 'ready' && (
+              <a
+                className="download-zip-link"
+                onClick={() =>
+                  downloadMarkdownZip(
+                    markdownResult.markdown,
+                    markdownResult.attachments,
+                    safeName || 'report',
+                  )
+                }
+              >
+                <DownloadOutlined /> Download ZIP
+              </a>
+            )}
+          {viewType === VIEW_TYPE_JSON && activeTaskJsonText && (
             <a
-              className="download-zip-link"
-              onClick={() =>
-                downloadMarkdownZip(
-                  // @ts-ignore Keep the existing Markdown download behavior for now.
-                  // markdownResult is a discriminated union, and only the "ready"
-                  // branch has markdown content. The historical condition did not
-                  // check status, and we have not confirmed whether empty/error
-                  // states intentionally still render this action.
-                  markdownResult.markdown,
-                  // @ts-ignore See the note above: preserve the current behavior
-                  // until the Markdown view UX expectation is clarified.
-                  markdownResult.attachments,
-                  safeName || 'report',
-                )
-              }
+              className="copy-json-link"
+              onClick={() => {
+                navigator.clipboard
+                  .writeText(activeTaskJsonText)
+                  .then(() => {
+                    message.success('JSON copied to clipboard');
+                  })
+                  .catch(() => {
+                    message.error('Copy failed');
+                  });
+              }}
             >
-              <DownloadOutlined /> Download ZIP
+              <CopyOutlined /> Copy JSON
             </a>
           )}
           <OpenInPlayground

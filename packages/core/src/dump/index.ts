@@ -13,3 +13,4 @@ export {
   generateImageScriptTag,
   generateDumpScriptTag,
 } from './html-utils';
+export { getTaskSearchArea, getTaskServiceDump } from './task-service-dump';

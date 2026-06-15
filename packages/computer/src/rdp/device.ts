@@ -14,6 +14,10 @@ import {
 import { sleep } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
 import type { DisplayInfo } from '../device';
+import {
+  formatRdpServerAddress,
+  normalizeRdpConnectionConfig,
+} from './address';
 import { createDefaultRDPBackendClient } from './backend-client';
 import type {
   RDPBackendClient,
@@ -185,24 +189,26 @@ export class RDPDevice implements AbstractInterface {
   };
 
   constructor(options: RDPDeviceOpt) {
+    const normalizedOptions = normalizeRdpConnectionConfig(options);
     this.options = {
       port: 3389,
       securityProtocol: 'auto',
       ignoreCertificate: false,
-      ...options,
+      ...normalizedOptions,
     };
     this.backend = options.backend || createDefaultRDPBackendClient();
   }
 
   describe(): string {
     const port = this.options.port || 3389;
+    const server = formatRdpServerAddress(this.options.host, port);
     const username = this.options.username
       ? ` as ${this.options.username}`
       : '';
     const session = this.connectionInfo?.sessionId
       ? ` [session ${this.connectionInfo.sessionId}]`
       : '';
-    return `RDP Device ${this.options.host}:${port}${username}${session}`;
+    return `RDP Device ${server}${username}${session}`;
   }
 
   async connect(): Promise<void> {
@@ -257,10 +263,16 @@ export class RDPDevice implements AbstractInterface {
         call: async (): Promise<DisplayInfo[]> => {
           this.assertConnected();
           const size = await this.size();
+          const server =
+            this.connectionInfo?.server ||
+            formatRdpServerAddress(
+              this.options.host,
+              this.options.port || 3389,
+            );
           return [
             {
               id: this.connectionInfo?.sessionId || this.options.host,
-              name: `RDP ${this.connectionInfo?.server || this.options.host} (${size.width}x${size.height})`,
+              name: `RDP ${server} (${size.width}x${size.height})`,
               primary: true,
             },
           ];

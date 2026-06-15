@@ -305,6 +305,15 @@ export function printExecutionFinished(): void {
   console.log('Execution finished:');
 }
 
+const printResultArtifacts = (result: MidsceneYamlConfigResult): void => {
+  if (result.report) {
+    console.log(`     Report: ${result.report}`);
+  }
+  if (result.output) {
+    console.log(`     Output: ${result.output}`);
+  }
+};
+
 export function printExecutionSummary(
   results: MidsceneYamlConfigResult[],
   summaryPath: string,
@@ -332,6 +341,7 @@ export function printExecutionSummary(
     console.log('\n✅ Successful files:');
     successfulFiles.forEach((result) => {
       console.log(`   ${result.file}`);
+      printResultArtifacts(result);
     });
   }
 

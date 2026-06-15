@@ -72,13 +72,13 @@ export async function autoGlmLocate(
     msgs.push(...addOns);
   }
 
-  const { content: rawResponseContent, usage } = await callAIWithStringResponse(
-    msgs,
-    modelRuntime,
-    {
-      abortSignal: options.abortSignal,
-    },
-  );
+  const {
+    content: rawResponseContent,
+    usage,
+    rawChoiceMessage,
+  } = await callAIWithStringResponse(msgs, modelRuntime, {
+    abortSignal: options.abortSignal,
+  });
 
   debugInspect('auto-glm rawResponse:', rawResponseContent);
 
@@ -135,6 +135,7 @@ export async function autoGlmLocate(
       errors,
     },
     rawResponse: rawResponseContent,
+    rawChoiceMessage,
     usage,
     reasoning_content: parsed.think,
   };

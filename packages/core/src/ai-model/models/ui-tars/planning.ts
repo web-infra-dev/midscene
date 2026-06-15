@@ -124,6 +124,7 @@ export async function uiTarsPlanning(
       `Parse error: ${errorMessage}`,
       JSON.stringify(res.content, undefined, 2),
       res.usage,
+      res.rawChoiceMessage,
     );
   }
 
@@ -283,6 +284,7 @@ export async function uiTarsPlanning(
       errorMessage,
       JSON.stringify(res.content, undefined, 2),
       res.usage,
+      res.rawChoiceMessage,
     );
   }
 
@@ -299,6 +301,7 @@ export async function uiTarsPlanning(
     log,
     usage: res.usage,
     rawResponse: JSON.stringify(res.content, undefined, 2),
+    rawChoiceMessage: res.rawChoiceMessage,
     shouldContinuePlanning: shouldContinue,
   };
 }

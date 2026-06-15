@@ -1,4 +1,4 @@
-import { TaskBuilder } from '@/agent/task-builder';
+import { TaskBuilder, locatePlanForLocate } from '@/agent/task-builder';
 import { getMidsceneLocationSchema } from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
 import { AbstractInterface, defineActionSleep } from '@/device';
@@ -52,6 +52,19 @@ describe('TaskBuilder', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('normalizes the deprecated locate deepThink alias before task reporting', () => {
+    const plan = locatePlanForLocate({
+      prompt: 'cart icon',
+      deepThink: true,
+    } as any);
+
+    expect(plan.param).toEqual({
+      prompt: 'cart icon',
+      deepLocate: true,
+    });
+    expect(plan.param).not.toHaveProperty('deepThink');
   });
 
   it('dispatches plans using handler registry', async () => {
@@ -206,5 +219,57 @@ describe('TaskBuilder', () => {
     expect(fastBeforeHook).toHaveBeenCalledTimes(1);
     expect(fastActionCall).toHaveBeenCalledTimes(1);
     expect(fastAfterHook).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows actions to attach planning feedback to the running task', async () => {
+    const actionCall = vi.fn(async () => '0\n');
+    const readStateAction: DeviceAction<{ key: string }, string> = {
+      name: 'ReadState',
+      description: 'read state',
+      delayBeforeRunner: 0,
+      delayAfterRunner: 0,
+      call: async (param, context) => {
+        const output = await actionCall();
+        if (!context?.task) {
+          throw new Error('executor context task is required');
+        }
+        context.task.planningFeedback = `ReadState returned ${param.key}: ${output}`;
+        return output;
+      },
+    };
+    const mockInterface = new MockInterface([readStateAction]);
+    const insightService = {
+      contextRetrieverFn: vi.fn(),
+      locate: vi.fn(),
+    } as unknown as Service;
+    const taskBuilder = new TaskBuilder({
+      interfaceInstance: mockInterface,
+      service: insightService,
+      actionSpace: mockInterface.actionSpace(),
+    });
+
+    const { tasks } = await taskBuilder.build(
+      [
+        {
+          type: 'ReadState',
+          thought: 'read brightness state',
+          param: { key: 'brightness' },
+        },
+      ],
+      mockModelRuntime,
+      mockModelRuntime,
+    );
+    const taskContext = {
+      task: { timing: {} },
+      uiContext: { shrunkShotToLogicalRatio: 1 },
+    } as any;
+    const result = await tasks[0].executor(tasks[0].param, taskContext);
+
+    expect(result).toEqual({
+      output: '0\n',
+    });
+    expect(taskContext.task.planningFeedback).toBe(
+      'ReadState returned brightness: 0\n',
+    );
   });
 });

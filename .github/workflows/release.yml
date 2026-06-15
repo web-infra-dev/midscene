@@ -52,9 +52,10 @@ jobs:
     - name: Setup pnpm
       uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
       with:
-        # 9.5+ understands `--provenance`; pnpm forwards the actual publish
-        # to the bundled npm CLI so Trusted Publisher OIDC exchange (npm 11.x)
-        # works without an NPM_TOKEN.
+        # pnpm forwards publish auth to the bundled npm CLI so Trusted
+        # Publisher OIDC exchange (npm 11.x) works without an NPM_TOKEN.
+        # npm now generates provenance automatically for trusted publishing,
+        # so the release script should not pass an explicit --provenance flag.
         version: 9.15.9
 
     - name: Setup Node.js
@@ -94,8 +95,18 @@ jobs:
       # Auth to npm uses npm Trusted Publishers via the OIDC token from
       # `id-token: write`. No NPM_TOKEN is needed; the npm CLI bundled with
       # Node 24.x exchanges the GitHub OIDC token for a short-lived publish
-      # token at request time.
-      run: node ./scripts/release.js --version=${{ github.event.inputs.version }}
+      # token at request time. Pre-release workflow dispatches disable
+      # automatic provenance because npm's transparency-log write can reject
+      # otherwise valid publishes with duplicate-entry 409s, which blocks the
+      # Studio artifact packaging jobs.
+      env:
+        RELEASE_VERSION_INPUT: ${{ github.event.inputs.version }}
+      run: |
+        if [[ "$RELEASE_VERSION_INPUT" == pre* ]]; then
+          export NPM_CONFIG_PROVENANCE=false
+          echo "Disabled npm provenance for prerelease workflow dispatch."
+        fi
+        node ./scripts/release.js --version="$RELEASE_VERSION_INPUT"
 
     - name: Get version from core package
       id: get_version
@@ -192,6 +203,9 @@ jobs:
         - os: macos-15
           platform: darwin
           arch: arm64
+        - os: macos-15-intel
+          platform: darwin
+          arch: x64
     # Same miette-graphical workaround as the `release` job above.
     env:
       COLUMNS: '120'
@@ -275,23 +289,57 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile --ignore-scripts
 
+    - name: Install @midscene/computer native build deps (macOS)
+      if: ${{ matrix.platform == 'darwin' }}
+      run: brew install cmake pkg-config freerdp
+
+    - name: Build @midscene/computer native helpers
+      if: ${{ matrix.platform == 'darwin' }}
+      run: pnpm --filter @midscene/computer run build:native
+
     - name: Build appdmg native bindings
       if: ${{ matrix.platform == 'darwin' }}
       # appdmg pulls in darwin-only native deps (`macos-alias`,
       # `fs-xattr`) whose `node-gyp rebuild` install scripts were
-      # skipped by the workspace install (`--ignore-scripts`). Rebuild
-      # each directly from its pnpm store directory.
+      # skipped by the workspace install (`--ignore-scripts`). Ensure
+      # each helper exists in the consumer's resolver path, then rebuild
+      # directly from the package directory.
       run: |
         set -euo pipefail
-        for pkg in macos-alias fs-xattr; do
-          PKG_DIR=$(ls -d "node_modules/.pnpm/${pkg}@"*"/node_modules/${pkg}" 2>/dev/null | head -n 1)
-          if [ -z "$PKG_DIR" ]; then
-            echo "${pkg} package directory not found under node_modules/.pnpm" >&2
-            exit 1
+        shopt -s nullglob
+
+        ensure_native_pkg() {
+          local pkg="$1"
+          local version="$2"
+          local consumer="$3"
+          PKG_DIRS=(
+            node_modules/.pnpm/${pkg}@*/node_modules/${pkg}
+            node_modules/.pnpm/${consumer}@*/node_modules/${pkg}
+          )
+          if [ "${#PKG_DIRS[@]}" -eq 0 ]; then
+            CONSUMER_STORE_ROOTS=(node_modules/.pnpm/${consumer}@*)
+            if [ "${#CONSUMER_STORE_ROOTS[@]}" -eq 0 ]; then
+              echo "${consumer} store directory not found under node_modules/.pnpm" >&2
+              exit 1
+            fi
+            CONSUMER_STORE_ROOT="${CONSUMER_STORE_ROOTS[0]}"
+            echo "Installing ${pkg}@${version} under ${CONSUMER_STORE_ROOT}"
+            npm install --prefix "${CONSUMER_STORE_ROOT}" --no-save --no-package-lock --ignore-scripts "${pkg}@${version}"
+            PKG_DIRS=(
+              node_modules/.pnpm/${pkg}@*/node_modules/${pkg}
+              node_modules/.pnpm/${consumer}@*/node_modules/${pkg}
+            )
+            if [ "${#PKG_DIRS[@]}" -eq 0 ]; then
+              echo "${pkg} package directory not found under node_modules/.pnpm" >&2
+              exit 1
+            fi
           fi
-          echo "Rebuilding ${pkg} in ${PKG_DIR}"
-          (cd "$PKG_DIR" && npm rebuild)
-        done
+          echo "Rebuilding ${pkg} in ${PKG_DIRS[0]}"
+          (cd "${PKG_DIRS[0]}" && npm rebuild)
+        }
+
+        ensure_native_pkg macos-alias 0.2.12 ds-store
+        ensure_native_pkg fs-xattr 0.3.1 appdmg
 
     - name: Build Studio and Nx dependencies
       run: npx nx build studio

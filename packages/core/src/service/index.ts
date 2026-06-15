@@ -57,6 +57,7 @@ interface LocateSearchAreaResult {
   trace: {
     sourceRect?: Rect;
     rawResponse?: string;
+    rawChoiceMessage?: unknown;
     usage?: AIUsageInfo;
   };
 }
@@ -111,24 +112,32 @@ export default class Service {
     });
 
     const startTime = Date.now();
-    const { parseResult, rect, rawResponse, usage, reasoning_content } =
-      await AiLocateElement({
-        context,
-        targetElementDescription: queryPrompt,
-        searchConfig: searchArea.config,
-        modelRuntime,
-        abortSignal,
-      });
+    const {
+      parseResult,
+      rect,
+      rawResponse,
+      rawChoiceMessage,
+      usage,
+      reasoning_content,
+    } = await AiLocateElement({
+      context,
+      targetElementDescription: queryPrompt,
+      searchConfig: searchArea.config,
+      modelRuntime,
+      abortSignal,
+    });
 
     const timeCost = Date.now() - startTime;
     const taskInfo: ServiceTaskInfo = {
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
       rawResponse: JSON.stringify(rawResponse),
+      rawChoiceMessage,
       formatResponse: JSON.stringify(parseResult),
       usage,
       searchArea: searchArea.trace.sourceRect,
       searchAreaRawResponse: searchArea.trace.rawResponse,
+      searchAreaRawChoiceMessage: searchArea.trace.rawChoiceMessage,
       searchAreaUsage: searchArea.trace.usage,
       reasoning_content,
     };
@@ -235,6 +244,7 @@ export default class Service {
         trace: {
           sourceRect: searchAreaConfig.sourceRect,
           rawResponse: searchAreaResponse.rawResponse,
+          rawChoiceMessage: searchAreaResponse.rawChoiceMessage,
           usage: searchAreaResponse.usage,
         },
       };
@@ -269,6 +279,7 @@ export default class Service {
           rect: firstPassLocateResult.rect,
           rawResponse: firstPassLocateResult.rawResponse,
         }),
+        rawChoiceMessage: firstPassLocateResult.rawChoiceMessage,
         usage: firstPassLocateResult.usage,
       },
     };
@@ -294,6 +305,7 @@ export default class Service {
       ReturnType<typeof AiExtractElementInfo<T>>
     >['parseResult'];
     let rawResponse: string;
+    let rawChoiceMessage: unknown;
     let usage: Awaited<ReturnType<typeof AiExtractElementInfo<T>>>['usage'];
     let reasoning_content: string | undefined;
 
@@ -308,6 +320,7 @@ export default class Service {
       });
       parseResult = result.parseResult;
       rawResponse = result.rawResponse;
+      rawChoiceMessage = result.rawChoiceMessage;
       usage = result.usage;
       reasoning_content = result.reasoning_content;
     } catch (error) {
@@ -318,6 +331,7 @@ export default class Service {
           ...(this.taskInfo ? this.taskInfo : {}),
           durationMs: timeCost,
           rawResponse: error.rawResponse,
+          rawChoiceMessage: error.rawChoiceMessage,
           usage: error.usage,
         };
         const dump = createServiceDump({
@@ -337,6 +351,7 @@ export default class Service {
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
       rawResponse,
+      rawChoiceMessage,
       formatResponse: JSON.stringify(parseResult),
       usage,
       reasoning_content,

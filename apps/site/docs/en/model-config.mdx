@@ -1,10 +1,10 @@
-# Model configuration
+# All configuration options
 
 Midscene reads all model configuration from operating-system environment variables.
 
 Midscene integrates the OpenAI SDK by default for AI calls. The SDK defines the parameter shape, and most model providers (or deployment tools) offer compatible endpoints.
 
-This doc focuses on Midscene model configuration. For how we choose models, see [Model strategy](./model-strategy). For quick recipes for popular models, see [Common model configuration](./model-common-config).
+This doc focuses on Midscene model configuration. For how we choose models, see [Model strategy](./model-strategy). For quick recipes for popular models, see [Configure your model](./model-common-config).
 
 
 ## Required settings
@@ -45,9 +45,9 @@ If you configure a dedicated Insight or Planning model, model-related `MIDSCENE_
 | `MIDSCENE_MODEL_TEMPERATURE` | Sampling temperature for model responses |
 | `MIDSCENE_MODEL_RETRY_COUNT` | Number of retries when AI call fails, default 1 (i.e., retry once after failure) |
 | `MIDSCENE_MODEL_RETRY_INTERVAL` | Interval between retries in milliseconds, default 2000 |
-| `MIDSCENE_MODEL_REASONING_ENABLED` | Enable or disable model-native reasoning/thinking. Set to `"true"` or `"false"`. For supported model families, Midscene disables or reduces model-native thinking by default when this variable is unset. Gemini 3.x series does not support turning off model-native thinking; use `MIDSCENE_MODEL_REASONING_EFFORT` to control its thinking effort. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode). Explicit reasoning config requires a supported `MIDSCENE_MODEL_FAMILY` |
-| `MIDSCENE_MODEL_REASONING_EFFORT` | Reasoning effort level string. Passed through as `reasoning_effort` for doubao and Gemini OpenAI-compatible endpoints, and as `effort` for Codex app-server. Common values: `low`, `medium`, `high`; Gemini 3.x series defaults to `minimal` |
-| `MIDSCENE_MODEL_REASONING_BUDGET` | Thinking token budget (number). Passed through as `thinking_budget` for qwen. Explicit reasoning config requires a supported `MIDSCENE_MODEL_FAMILY` |
+| `MIDSCENE_MODEL_REASONING_ENABLED` | Controls whether model-native thinking is enabled. Midscene disables it by default. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode) |
+| `MIDSCENE_MODEL_REASONING_EFFORT` | Controls model-native thinking effort, supported by some models. Common values: `low`, `medium`, `high`. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode) |
+| `MIDSCENE_MODEL_REASONING_BUDGET` | Thinking token budget (number), supported by some models. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode) |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS proxy, e.g., `http://127.0.0.1:8080` or `https://proxy.example.com:8080`. Takes precedence over `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS proxy, e.g., `socks5://127.0.0.1:1080` |
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | JSON blob that overrides the OpenAI SDK initialization config. Use `defaultHeaders` for custom auth headers; `extra_headers` and `extraHeaders` are accepted as aliases |
@@ -140,7 +140,7 @@ const agent = new Agent(page, {
   // Configure via modelConfig
   modelConfig: {
     MIDSCENE_MODEL_TIMEOUT: '60000', // 60 seconds
-    MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+    MIDSCENE_MODEL_NAME: 'qwen3.7-plus',
     // ... other configurations
   }
 });

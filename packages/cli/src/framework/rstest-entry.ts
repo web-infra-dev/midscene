@@ -4,7 +4,7 @@ import type {
   MidsceneYamlConfigAttempt,
   MidsceneYamlConfigResult,
 } from '@midscene/core';
-import { test } from '@rstest/core';
+import type { test as rstestTest } from '@rstest/core';
 import type { BatchRunnerConfig } from '../batch-runner';
 import { runYamlBatchInRstest } from './yaml-batch';
 import {
@@ -12,6 +12,8 @@ import {
   createYamlCaseFailure,
   runYamlCaseResult,
 } from './yaml-case';
+
+export type RstestTest = typeof rstestTest;
 
 export interface DefineYamlCaseTestOptions {
   testName: string;
@@ -100,7 +102,10 @@ const createRuntimeFailureResult = (
   error: errorMessageOf(error),
 });
 
-export function defineYamlCaseTest(options: DefineYamlCaseTestOptions) {
+export const defineYamlCaseTest = (
+  test: RstestTest,
+  options: DefineYamlCaseTestOptions,
+) => {
   test(options.testName, async () => {
     const file = resolve(options.yamlFile);
     const startTime = Date.now();
@@ -129,13 +134,16 @@ export function defineYamlCaseTest(options: DefineYamlCaseTestOptions) {
       throw error;
     }
   });
-}
+};
 
-export function defineYamlBatchTest(options: DefineYamlBatchTestOptions) {
+export const defineYamlBatchTest = (
+  test: RstestTest,
+  options: DefineYamlBatchTestOptions,
+) => {
   test(options.testName, async () => {
     await runYamlBatchInRstest({
       config: options.config,
       resultFiles: options.resultFiles,
     });
   });
-}
+};

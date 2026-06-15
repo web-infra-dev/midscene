@@ -261,6 +261,18 @@ describe('qwen model adapter', () => {
     });
   });
 
+  it('follows provider default and ignores budget for qwen when reasoningEnabled=default', () => {
+    const result = qwen3VlAdapter.chatCompletion.buildChatCompletionParams({
+      userConfig: {
+        reasoningEnabled: 'default',
+        reasoningBudget: 16384,
+      },
+    });
+    expect(result.config).toEqual({
+      temperature: 0,
+    });
+  });
+
   it('ignores reasoningEffort for qwen because it is not a supported param', () => {
     const result = qwen3VlAdapter.chatCompletion.buildChatCompletionParams({
       userConfig: {

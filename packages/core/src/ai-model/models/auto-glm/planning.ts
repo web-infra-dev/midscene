@@ -45,13 +45,13 @@ export async function autoGlmPlanning(
     ...conversationHistory.snapshot(1),
   ];
 
-  const { content: rawResponse, usage } = await callAIWithStringResponse(
-    msgs,
-    options.modelRuntime,
-    {
-      abortSignal: options.abortSignal,
-    },
-  );
+  const {
+    content: rawResponse,
+    usage,
+    rawChoiceMessage,
+  } = await callAIWithStringResponse(msgs, options.modelRuntime, {
+    abortSignal: options.abortSignal,
+  });
 
   debug('autoGLMPlanning rawResponse:', rawResponse);
 
@@ -79,6 +79,7 @@ export async function autoGlmPlanning(
       `Parse error: ${errorMessage}`,
       JSON.stringify(rawResponse, undefined, 2),
       usage,
+      rawChoiceMessage,
     );
   }
 
@@ -95,5 +96,6 @@ export async function autoGlmPlanning(
     usage,
     shouldContinuePlanning,
     rawResponse: JSON.stringify(rawResponse, undefined, 2),
+    rawChoiceMessage,
   };
 }

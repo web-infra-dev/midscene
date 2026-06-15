@@ -64,6 +64,17 @@ describe('glm model adapter', () => {
     });
   });
 
+  it('follows provider default for glm-v when reasoningEnabled=default', () => {
+    const result = glmAdapter.chatCompletion.buildChatCompletionParams({
+      userConfig: {
+        reasoningEnabled: 'default',
+      },
+    });
+    expect(result.config).toEqual({
+      temperature: 0,
+    });
+  });
+
   it('ignores unsupported reasoning fields for glm-v', () => {
     const result = glmAdapter.chatCompletion.buildChatCompletionParams({
       userConfig: {

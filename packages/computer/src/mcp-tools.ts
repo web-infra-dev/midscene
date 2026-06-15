@@ -11,6 +11,11 @@ import {
   agentFromComputer,
 } from './agent';
 import { ComputerDevice, type ComputerDeviceOpt } from './device';
+import {
+  formatRdpHost,
+  formatRdpServerAddress,
+  normalizeRdpHost,
+} from './rdp/address';
 import type { RDPConnectionConfig, RDPSecurityProtocol } from './rdp/protocol';
 
 const debug = getDebug('mcp:computer-tools');
@@ -54,6 +59,12 @@ const computerInitArgShape = {
       'RDP password. Requires host. Prefer setting via environment or a secrets manager.',
     ),
   domain: z.string().optional().describe('RDP domain. Requires host.'),
+  localAddress: z
+    .string()
+    .optional()
+    .describe(
+      'Local source IP address for the RDP TCP connection. Requires host.',
+    ),
   adminSession: z
     .boolean()
     .optional()
@@ -108,10 +119,11 @@ function adaptComputerInitArgs(
   if (extracted.host) {
     // Drop local-only fields; they're meaningless in RDP mode.
     const { displayId: _d, headless: _h, ...rdpFields } = extracted;
+    const host = normalizeRdpHost(extracted.host);
     return {
       mode: 'rdp',
       ...rdpFields,
-      host: extracted.host,
+      host,
     };
   }
   return {
@@ -129,9 +141,11 @@ function shouldRetargetAgent(opts: ComputerInitArgs | undefined): boolean {
 
 function describeConnectTarget(opts: ComputerInitArgs | undefined): string {
   if (opts?.mode === 'rdp') {
-    const portSuffix = opts.port ? `:${opts.port}` : '';
+    const target = opts.port
+      ? formatRdpServerAddress(opts.host, opts.port)
+      : formatRdpHost(opts.host);
     const userSuffix = opts.username ? ` as ${opts.username}` : '';
-    return ` via RDP (${opts.host}${portSuffix}${userSuffix})`;
+    return ` via RDP (${target}${userSuffix})`;
   }
   if (opts?.mode === 'local' && opts.displayId) {
     return ` (Display: ${opts.displayId})`;
@@ -140,7 +154,7 @@ function describeConnectTarget(opts: ComputerInitArgs | undefined): string {
 }
 
 function getCliReportSessionTarget(opts: ComputerInitArgs | undefined): string {
-  if (opts?.mode === 'rdp') return `rdp:${opts.host}`;
+  if (opts?.mode === 'rdp') return `rdp:${formatRdpHost(opts.host)}`;
   if (opts?.mode === 'local' && opts.displayId) return opts.displayId;
   return 'primary';
 }
@@ -228,7 +242,7 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
           'Connect to a computer desktop.',
           'Default (local) mode controls the local machine; pass displayId to target a specific local display (see computer_list_displays).',
           'Pass host to switch to RDP mode and connect to a remote Windows desktop via the RDP helper binary.',
-          'RDP-related options (port/username/password/domain/securityProtocol/ignoreCertificate/adminSession/desktopWidth/desktopHeight) only take effect when host is set.',
+          'RDP-related options (port/username/password/domain/localAddress/securityProtocol/ignoreCertificate/adminSession/desktopWidth/desktopHeight) only take effect when host is set.',
         ].join(' '),
         schema: this.getAgentInitArgSchema(),
         cli: this.getAgentInitArgCliMetadata(),

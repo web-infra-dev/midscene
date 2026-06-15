@@ -1,63 +1,36 @@
-# Midscene.js - AI 驱动，带来愉悦的 UI 自动化体验
+# Midscene.js - 视觉驱动的 UI 测试与自动化
 
-## 功能特性
+Midscene 是一个用于视觉驱动 UI 测试与自动化的开源 SDK。你用自然语言描述每一步，Midscene 会驱动多模态模型为你规划并操作界面。它覆盖 Web、移动端、桌面端，甚至 `<canvas>` 场景。
 
-### 用自然语言编写 UI 自动化脚本
-- 描述你的目标和步骤，Midscene 会为你规划和操作用户界面。
-- 由视觉语言模型驱动，适用于 Web、移动端、桌面端，甚至 `<canvas>` 场景，并且消耗更少的 Token。
-- 使用 JavaScript SDK 或 YAML 格式编写自动化脚本。
+:::tip 准备动手？
+前往 [快速开始](./quick-start)，几分钟内跑通你的第一个自动化；或者通过 [Chrome 插件](./quick-experience) 零代码体验。
+:::
 
-### Web & Mobile App & 任意界面
-- **网页自动化**：可以[与 Puppeteer 集成](./integrate-with-puppeteer)，[与 Playwright 集成](./integrate-with-playwright)或使用[桥接模式](./bridge-mode)来控制桌面浏览器。
-- **Android 自动化**：使用 [JavaScript SDK](./android-getting-started) 配合 adb 来控制本地 Android 设备。
-- **iOS 自动化**：使用 [JavaScript SDK](./ios-getting-started) 配合 WebDriverAgent 来控制本地 iOS 设备与模拟器。
-- **任意界面自动化**：使用 [JavaScript SDK](./integrate-with-any-interface) 来控制你自己的界面。
+## 为什么选择 Midscene
 
-### 面向开发者
-- **三种类型的 API**:
-  - [**交互 API**](./api#interaction-methods): 与用户界面交互。
-  - [**数据提取 API**](./api#data-extraction): 从用户界面和 DOM 中提取数据。
-  - [**实用 API**](./api#more-apis): 实用函数，如 `aiAssert()` （断言）, `aiLocate()` （定位）, `aiWaitFor()` （等待）。
-- **MCP**: Midscene 提供 MCP 服务，将 Midscene Agent 的原子操作暴露为 MCP 工具，上层 Agent 可以用自然语言检查和操作界面。[文档](./mcp)
-- [**使用缓存，提高执行效率**](./caching): 使用缓存能力重放脚本，提高执行效率。
-- **调试体验**: Midscene.js 提供可视化回放报告、内置 Playground 和 Chrome 插件，帮助开发者更高效地定位与排障。
+大多数 UI 自动化都依赖页面结构，包括读取 DOM 或无障碍树的 AI 工具。页面结构既脆弱又不完整：选择器一重构就失效；缺少语义化标注的元素，如纯图标按钮、自定义渲染的控件和 `<canvas>`，对它们是“看不见”的；原生应用和跨域 iframe 也难以触达；页面结构还无法判断界面实际看起来是否正确。
 
-## 演示案例
+Midscene 走了一条不同的路：它**仅凭截图**、借助多模态模型工作，你只需像真人测试那样用自然语言描述每一步。这会改变 UI 测试的体验：
 
-在 Web 浏览器中自主注册 Github 表单，通过所有字段校验：
+- **不再因每次重构而失效。** 标记或样式变化时无需再追着改选择器，用例的维护成本大幅下降。
+- **触达每个元素、每种界面。** 只要人眼能看到，Midscene 就能定位。没有语义化标注的元素、`<canvas>`、原生应用，以及基于结构的工具够不到的跨域 iframe，都可以处理。
+- **校验用户真正看到的效果。** 验证视觉结果，包括颜色、高亮、布局和渲染状态，而不只是判断某个节点是否存在于 DOM 中。
+- **两种测试方式。** 把 Midscene 接入你现有的 [Playwright](./integrate-with-playwright) 或 Vitest 测试，或让 AI Agent 通过 [Skills](./skills) 与 [MCP](./mcp) 自主测试你的应用。
+- **可读的失败信息。** 每次运行都会生成可逐步回放的可视化报告。
 
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github2.mp4" height="300" controls />
+> Midscene 首先为 UI 测试而生，但同一套视觉驱动引擎也能胜任任意 UI 自动化任务。你可以按自己的工作流使用它。
 
-此外还有这些实战案例：
-* [iOS 自动化 - 美团下单咖啡](./showcases#ios)
-* [iOS 自动化 - Twitter 自动点赞 @midscene_ai 首条推文](./showcases#ios)
-* [Android 自动化 - 懂车帝查看小米 SU7 参数](./showcases#android)
-* [Android 自动化 - Booking 预订东京圣诞酒店](./showcases#android)
-* [MCP 集成 - Midscene MCP 操作界面发布 prepatch 版本](./showcases#mcp)
+## 能自动化什么
 
-## 零代码快速体验
+只要能截图，Midscene 就能工作。Web 浏览器、Android、iOS、HarmonyOS、桌面应用，以及[任意自定义界面](./integrate-with-any-interface)，全部通过同一套 API。每个平台在侧边栏都有各自的上手指南。
 
-- **[Chrome 插件](./quick-experience)**：通过 [Chrome 插件](./quick-experience) 立即开始浏览器内体验，无需编写任何代码。
-- **[Android Playground](./android-getting-started#试用-playground-零代码)**：使用 Android playground 来控制你的本地 Android 设备。
-- **[iOS Playground](./ios-getting-started#试用-playground)**：使用 iOS playground 来控制你的本地 iOS 设备。
-
-## 视觉语言模型驱动
-
-Midscene.js 在 UI 操作上采用纯视觉（pure-vision）路线：元素定位和交互只基于截图完成。支持视觉语言模型，例如 `Qwen3.x`、`Doubao-Seed-2.0`、`GLM-4.6V`、`gemini-3.5-flash` 和 `UI-TARS`。在数据提取和页面理解场景中，需要时仍可选择附带 DOM 信息。
-
-* UI 操作采用纯视觉定位，不再提供 DOM 提取兼容模式。
-* 适用于 Web、移动端、桌面应用，甚至 `<canvas>` 场景。
-* UI 操作无需 DOM，Token 更少、成本更低、运行更快。
-* 数据提取和页面理解可按需附带 DOM 信息。
-* 支持开源模型，方便自托管。
-
-更多信息请阅读 [模型策略](./model-strategy)。
+你可以用 JavaScript SDK 或 YAML 编写自动化，并在 [API 参考](./api) 中查阅 `aiAct`、`aiQuery`、`aiAssert` 等所有方法。
 
 ## 两种自动化风格
 
 ### 自动规划
 
-AI 自主规划执行流程，完成任务
+AI 自主规划并执行流程，完成任务。
 
 ```javascript
 await aiAct('逐一点击所有记录。如果某个记录包含文本"completed"，则跳过它');
@@ -77,36 +50,31 @@ for (const record of recordList) {
 }
 ```
 
-> 有关工作流风格的更多详细信息，请参阅 [使用 JavaScript 优化 AI 自动化代码](./use-javascript-to-optimize-ai-automation-code)
+> 关于工作流风格的更多内容，请参阅 [使用 JavaScript 优化 AI 自动化代码](./use-javascript-to-optimize-ai-automation-code)。
 
-## 资源
+## 多模态模型驱动
 
-* 主页和文档：[https://midscenejs.com](https://midscenejs.com/)
-* 示例项目：[https://github.com/web-infra-dev/midscene-example](https://github.com/web-infra-dev/midscene-example)
-* API 参考：[https://midscenejs.com/api.html](./api)
-* GitHub：[https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
+Midscene 支持众多具备极强 UI 定位能力的常用多模态模型。你可以选用最容易获取的模型，也可以选择可自托管的开源模型：`Qwen3.x`、`Doubao-Seed-2.0`、`GLM-4.6V`、`gemini-3.5-flash`、`UI-TARS`。
 
-## 社区
+查看 [模型策略](./model-strategy) 选择合适的模型。
 
-* [Web Infra 团队微信公众号](https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/web-infra-wechat.jpg)
-* [Discord](https://discord.gg/2JyBHxszE4)
-* [在 X 上关注我们](https://x.com/midscene_ai)
-* [飞书交流群](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=693v0991-a6bb-4b44-b2e1-365ca0d199ba)
+## 案例展示
+
+在 Web 浏览器中自主注册 GitHub 表单，并通过所有字段校验：
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github2.mp4" height="300" controls />
+
+更多 iOS、Android、桌面端与 MCP 的实战案例，见 [案例展示](./showcases)。
+
+## 资源与社区
+
+- 示例项目：[midscene-example](https://github.com/web-infra-dev/midscene-example)
+- GitHub：[web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
+- [微信公众号](https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/web-infra-wechat.jpg) · [Discord](https://discord.gg/2JyBHxszE4) · [X](https://x.com/midscene_ai) · [飞书交流群](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=693v0991-a6bb-4b44-b2e1-365ca0d199ba)
 
 ## 致谢
 
-我们要感谢以下项目：
-
-- [Rsbuild](https://github.com/web-infra-dev/rsbuild) 和 [Rslib](https://github.com/web-infra-dev/rslib) 提供构建工具。
-- [UI-TARS](https://github.com/bytedance/ui-tars) 提供开源智能体模型 UI-TARS。
-- [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL) 提供开源 VL 模型 Qwen2.5-VL。
-- [scrcpy](https://github.com/Genymobile/scrcpy) 和 [yume-chan](https://github.com/yume-chan) 让我们能够用浏览器控制 Android 设备。
-- [appium-adb](https://github.com/appium/appium-adb) 提供 adb 的 JavaScript 桥接。
-- [appium-webdriveragent](https://github.com/appium/WebDriverAgent) 用于 JavaScript 操作 XCTest。
-- [YADB](https://github.com/ysbing/YADB) 提供 yadb 工具，提升文本输入性能。
-- [libnut-core](https://github.com/nut-tree/libnut-core) 提供跨平台的原生键盘和鼠标控制。
-- [Puppeteer](https://github.com/puppeteer/puppeteer) 提供浏览器自动化和控制。
-- [Playwright](https://github.com/microsoft/playwright) 提供浏览器自动化、控制和测试。
+Midscene 构建于众多优秀的开源项目之上，包括 UI-TARS、Qwen、Playwright、Puppeteer、scrcpy、appium、WebDriverAgent、YADB 和 libnut-core。完整列表请见 [README](https://github.com/web-infra-dev/midscene)。
 
 ## License
 

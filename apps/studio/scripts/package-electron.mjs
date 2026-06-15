@@ -168,6 +168,28 @@ const macMachOMagicHeaders = new Set([
   'feedface',
   'feedfacf',
 ]);
+const macThinMachOMagic = new Map([
+  [0xfeedface, 'be'],
+  [0xfeedfacf, 'be'],
+  [0xcefaedfe, 'le'],
+  [0xcffaedfe, 'le'],
+]);
+const macFatMachOMagic = new Map([
+  [0xcafebabe, { endian: 'be', archEntrySize: 20 }],
+  [0xcafebabf, { endian: 'be', archEntrySize: 32 }],
+  [0xbebafeca, { endian: 'le', archEntrySize: 20 }],
+  [0xbfbafeca, { endian: 'le', archEntrySize: 32 }],
+]);
+const macCpuTypeNames = new Map([
+  [0x00000007, 'x86'],
+  [0x01000007, 'x86_64'],
+  [0x0000000c, 'arm'],
+  [0x0100000c, 'arm64'],
+]);
+const macTargetArchNames = new Map([
+  ['x64', 'x86_64'],
+  ['arm64', 'arm64'],
+]);
 
 export const shouldUseShellForCommand = (
   command,
@@ -1263,6 +1285,10 @@ export const buildInstallWorkspaceManifest = ({
     dependencies: packageJson.dependencies,
     workspacePackages: vendoredWorkspacePackages,
   });
+  const optionalDependencies = buildResolvedWorkspaceDependencyVersions({
+    dependencies: packageJson.optionalDependencies,
+    workspacePackages: vendoredWorkspacePackages,
+  });
   const overrides = Object.fromEntries(
     vendoredWorkspacePackages.map((workspacePackage) => [
       workspacePackage.name,
@@ -1277,6 +1303,9 @@ export const buildInstallWorkspaceManifest = ({
 
   return {
     ...buildPackagedAppManifest(packageJson, version, dependencies),
+    ...(Object.keys(optionalDependencies).length > 0
+      ? { optionalDependencies }
+      : {}),
     pnpm: {
       overrides,
       ...(supportedArchitectures ? { supportedArchitectures } : {}),
@@ -1840,6 +1869,132 @@ const isMacStandaloneCodeFile = async (filePath) => {
   return isMacMachOFile(filePath);
 };
 
+const readUInt32ByEndian = (buffer, offset, endian) =>
+  endian === 'le' ? buffer.readUInt32LE(offset) : buffer.readUInt32BE(offset);
+
+const readMacCpuTypeName = (buffer, offset, endian) => {
+  const cpuType = readUInt32ByEndian(buffer, offset, endian);
+  return macCpuTypeNames.get(cpuType) ?? `unknown(${cpuType})`;
+};
+
+export const readMacMachOArchitectures = async (filePath) => {
+  const fileHandle = await fs.open(filePath, 'r');
+  try {
+    const header = Buffer.alloc(8);
+    const { bytesRead } = await fileHandle.read(header, 0, header.length, 0);
+    if (bytesRead < header.length) {
+      return [];
+    }
+
+    const magic = header.readUInt32BE(0);
+    const thinEndian = macThinMachOMagic.get(magic);
+    if (thinEndian) {
+      return [readMacCpuTypeName(header, 4, thinEndian)];
+    }
+
+    const fatHeader = macFatMachOMagic.get(magic);
+    if (!fatHeader) {
+      return [];
+    }
+
+    const archCount = readUInt32ByEndian(header, 4, fatHeader.endian);
+    if (archCount < 1 || archCount > 512) {
+      throw new Error(
+        `Unexpected Mach-O architecture count ${archCount} in ${filePath}`,
+      );
+    }
+
+    const archBuffer = Buffer.alloc(archCount * fatHeader.archEntrySize);
+    const archBytes = await fileHandle.read(
+      archBuffer,
+      0,
+      archBuffer.length,
+      header.length,
+    );
+    if (archBytes.bytesRead < archBuffer.length) {
+      throw new Error(`Unable to read complete Mach-O fat header: ${filePath}`);
+    }
+
+    const archNames = [];
+    for (let index = 0; index < archCount; index += 1) {
+      archNames.push(
+        readMacCpuTypeName(
+          archBuffer,
+          index * fatHeader.archEntrySize,
+          fatHeader.endian,
+        ),
+      );
+    }
+    return [...new Set(archNames)];
+  } finally {
+    await fileHandle.close();
+  }
+};
+
+export const collectMacNativeArchitectureIssues = async ({ appPath, arch }) => {
+  const expectedArch = macTargetArchNames.get(arch);
+  if (!expectedArch) {
+    throw new Error(`Unsupported macOS package architecture "${arch}".`);
+  }
+
+  const issues = [];
+  const visitDirectory = async (dirPath) => {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isSymbolicLink()) {
+        continue;
+      }
+
+      const entryPath = path.join(dirPath, entry.name);
+      if (entry.isDirectory()) {
+        await visitDirectory(entryPath);
+        continue;
+      }
+
+      if (!entry.isFile()) {
+        continue;
+      }
+
+      const actualArchs = await readMacMachOArchitectures(entryPath);
+      if (actualArchs.length > 0 && !actualArchs.includes(expectedArch)) {
+        issues.push({
+          path: entryPath,
+          expectedArch,
+          actualArchs,
+        });
+      }
+    }
+  };
+
+  await visitDirectory(appPath);
+  return issues;
+};
+
+export const assertMacNativeCodeArchitectures = async ({ appPath, arch }) => {
+  const issues = await collectMacNativeArchitectureIssues({ appPath, arch });
+  if (issues.length === 0) {
+    return;
+  }
+
+  const relativeIssues = issues
+    .slice(0, 20)
+    .map(
+      (issue) =>
+        `- ${path.relative(appPath, issue.path)}: expected ${issue.expectedArch}, found ${issue.actualArchs.join(', ')}`,
+    );
+  const remainingCount = issues.length - relativeIssues.length;
+  if (remainingCount > 0) {
+    relativeIssues.push(`- ...and ${remainingCount} more file(s)`);
+  }
+
+  throw new Error(
+    [
+      `Packaged macOS app contains native code for the wrong architecture (${arch}).`,
+      ...relativeIssues,
+    ].join('\n'),
+  );
+};
+
 export const collectNestedMacCodeSignTargets = async (appPath) => {
   const nestedBundles = [];
   const standaloneFiles = [];
@@ -1916,11 +2071,101 @@ export const buildStudioDmgSpecification = ({
   format: 'ULFO',
 });
 
-const runAppDmg = async ({ source, target }) => {
+const resolvePackageEntry = (packageDir) => {
+  const packageJsonPath = path.join(packageDir, 'package.json');
+  if (!existsSync(packageJsonPath)) {
+    return undefined;
+  }
+  const packageManifest = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+  return path.join(packageDir, packageManifest.main ?? 'index.js');
+};
+
+export const resolveNodeModulesPackageEntry = ({
+  packageName,
+  workspaceRoot = workspaceRootDir,
+}) => {
+  const packageDir = path.join(
+    workspaceRoot,
+    'node_modules',
+    ...packageName.split('/'),
+  );
+  return resolvePackageEntry(packageDir);
+};
+
+export const resolvePnpmPackageEntry = ({
+  packageName,
+  version,
+  workspaceRoot = workspaceRootDir,
+}) => {
+  const pnpmStoreDir = path.join(workspaceRoot, 'node_modules', '.pnpm');
+  if (!existsSync(pnpmStoreDir)) {
+    return undefined;
+  }
+
+  const storePackageName = packageName.replace('/', '+');
+  const storeEntryPrefix = `${storePackageName}@${version}`;
+  const packagePathSegments = packageName.split('/');
+  for (const storeEntry of readdirSync(pnpmStoreDir).sort()) {
+    if (
+      storeEntry !== storeEntryPrefix &&
+      !storeEntry.startsWith(`${storeEntryPrefix}_`)
+    ) {
+      continue;
+    }
+    const packageDir = path.join(
+      pnpmStoreDir,
+      storeEntry,
+      'node_modules',
+      ...packagePathSegments,
+    );
+    const packageEntry = resolvePackageEntry(packageDir);
+    if (packageEntry) {
+      return packageEntry;
+    }
+  }
+
+  return undefined;
+};
+
+export const loadAppDmg = async ({
+  directImport = () => import('appdmg'),
+  workspaceRoot = workspaceRootDir,
+  extraWorkspaceRoots = [],
+} = {}) => {
+  try {
+    const appdmgModule = await directImport();
+    return appdmgModule.default ?? appdmgModule;
+  } catch (error) {
+    if (error?.code !== 'ERR_MODULE_NOT_FOUND') {
+      throw error;
+    }
+    const appdmgEntry = [workspaceRoot, ...extraWorkspaceRoots]
+      .flatMap((root) => [
+        resolveNodeModulesPackageEntry({
+          packageName: 'appdmg',
+          workspaceRoot: root,
+        }),
+        resolvePnpmPackageEntry({
+          packageName: 'appdmg',
+          version: '0.6.6',
+          workspaceRoot: root,
+        }),
+      ])
+      .find(Boolean);
+    if (!appdmgEntry) {
+      throw error;
+    }
+    const appdmgModule = await import(pathToFileURL(appdmgEntry).href);
+    return appdmgModule.default ?? appdmgModule;
+  }
+};
+
+const runAppDmg = async ({ source, target, extraWorkspaceRoots = [] }) => {
   // `appdmg` (via `macos-alias`) loads a darwin-only native binding at
   // require time, so keep the import dynamic and gated to the darwin
-  // packaging path.
-  const { default: appdmg } = await import('appdmg');
+  // packaging path. CI can have the package in pnpm's store without a
+  // direct workspace symlink, so `loadAppDmg` falls back to that store path.
+  const appdmg = await loadAppDmg({ extraWorkspaceRoots });
   return new Promise((resolve, reject) => {
     const ee = appdmg({ source, target });
     ee.on('progress', (info) => {
@@ -1938,6 +2183,7 @@ export const buildStudioDmgArtifact = async ({
   baseName,
   iconPath,
   security = resolveMacPackagedAppSecurity({ platform: 'darwin' }),
+  stageDir,
 }) => {
   const dmgArtifactPath = path.join(artifactDir, `${baseName}.dmg`);
   await removeIfExists(dmgArtifactPath);
@@ -1958,7 +2204,11 @@ export const buildStudioDmgArtifact = async ({
     )}\n`,
   );
   try {
-    await runAppDmg({ source: specPath, target: dmgArtifactPath });
+    await runAppDmg({
+      source: specPath,
+      target: dmgArtifactPath,
+      extraWorkspaceRoots: stageDir ? [stageDir] : [],
+    });
   } finally {
     await removeIfExists(specPath);
   }
@@ -2069,6 +2319,10 @@ export const packageStudioElectronApp = async ({
   if (platform === 'darwin') {
     const macAppBundlePath =
       await resolveMacPackagedAppBundlePath(packagedAppPath);
+    await assertMacNativeCodeArchitectures({
+      appPath: macAppBundlePath,
+      arch,
+    });
     await signPackagedMacApp({
       appPath: macAppBundlePath,
       security: macSecurity,
@@ -2085,6 +2339,7 @@ export const packageStudioElectronApp = async ({
       baseName,
       iconPath: resolvePackagerIconPath(platform),
       security: macSecurity,
+      stageDir,
     });
   }
 

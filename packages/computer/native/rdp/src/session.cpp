@@ -2,22 +2,38 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cerrno>
 #include <chrono>
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <limits>
 #include <memory>
 #include <random>
 #include <sstream>
 #include <stdexcept>
 #include <unordered_set>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <fcntl.h>
+#include <netdb.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
+
+#include <freerdp/error.h>
 #include <freerdp/freerdp.h>
 #include <freerdp/gdi/gdi.h>
 #include <freerdp/input.h>
 #include <freerdp/scancode.h>
 #include <freerdp/settings.h>
 #include <freerdp/settings_keys.h>
+#include <freerdp/transport_io.h>
 #include <winpr/synch.h>
 
 namespace midscene::rdp {
@@ -29,6 +45,21 @@ struct MidsceneRdpContext {
   FreeRdpSessionTransport* owner = nullptr;
 };
 
+struct LocalAddressTcpConnectContext {
+  std::string local_address;
+  rdpTransportIo default_io;
+};
+
+#ifdef _WIN32
+using SocketHandle = SOCKET;
+constexpr SocketHandle kInvalidSocketHandle = INVALID_SOCKET;
+using FdSetSocket = SOCKET;
+#else
+using SocketHandle = int;
+constexpr SocketHandle kInvalidSocketHandle = -1;
+using FdSetSocket = int;
+#endif
+
 // Maximum time Connect() waits for the first desktop frame before giving up.
 // Normal sessions paint within a few hundred milliseconds; a session that
 // never paints within this window is treated as blank/locked and fails fast
@@ -38,6 +69,359 @@ constexpr int kFirstFrameTimeoutMs = 20'000;
 // buffer without requiring a complex wallpaper or fully loaded app content.
 constexpr size_t kMinInformativeColorCount = 128;
 constexpr size_t kMinInformativeNonBlackPermille = 150;
+
+bool IsInvalidSocketHandle(SocketHandle socket_handle) {
+#ifdef _WIN32
+  return socket_handle == INVALID_SOCKET;
+#else
+  return socket_handle < 0;
+#endif
+}
+
+bool SocketHandleFitsFreeRdpInt(SocketHandle socket_handle) {
+#ifdef _WIN32
+  return socket_handle <=
+         static_cast<SocketHandle>(std::numeric_limits<int>::max());
+#else
+  static_cast<void>(socket_handle);
+  return true;
+#endif
+}
+
+int SocketHandleToFreeRdpInt(SocketHandle socket_handle) {
+  return static_cast<int>(socket_handle);
+}
+
+void CloseSocketHandle(SocketHandle socket_handle) {
+  if (!IsInvalidSocketHandle(socket_handle)) {
+#ifdef _WIN32
+    closesocket(socket_handle);
+#else
+    close(socket_handle);
+#endif
+  }
+}
+
+int LastSocketError() {
+#ifdef _WIN32
+  return WSAGetLastError();
+#else
+  return errno;
+#endif
+}
+
+std::string SocketErrorMessage(int error_code) {
+#ifdef _WIN32
+  char message[256] = {};
+  const DWORD length = FormatMessageA(
+      FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr,
+      static_cast<DWORD>(error_code), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+      message, sizeof(message), nullptr);
+  if (length > 0) {
+    return std::string(message, length);
+  }
+  return "socket error " + std::to_string(error_code);
+#else
+  return std::strerror(error_code);
+#endif
+}
+
+int BindSocketHandle(SocketHandle socket_handle,
+                     const sockaddr* address,
+                     socklen_t address_length) {
+#ifdef _WIN32
+  return bind(socket_handle, address, static_cast<int>(address_length));
+#else
+  return bind(socket_handle, address, address_length);
+#endif
+}
+
+int ConnectSocketHandle(SocketHandle socket_handle,
+                        const sockaddr* address,
+                        socklen_t address_length) {
+#ifdef _WIN32
+  return connect(socket_handle, address, static_cast<int>(address_length));
+#else
+  return connect(socket_handle, address, address_length);
+#endif
+}
+
+bool SetSocketNonBlocking(SocketHandle socket_handle,
+                          int& original_flags,
+                          std::string& last_error) {
+#ifdef _WIN32
+  static_cast<void>(original_flags);
+  u_long mode = 1;
+  if (ioctlsocket(socket_handle, FIONBIO, &mode) != 0) {
+    last_error = "failed to set socket non-blocking mode: " +
+                 SocketErrorMessage(LastSocketError());
+    return false;
+  }
+  return true;
+#else
+  original_flags = fcntl(socket_handle, F_GETFL, 0);
+  if (original_flags < 0) {
+    last_error = "failed to read socket flags: " + SocketErrorMessage(errno);
+    return false;
+  }
+
+  if (fcntl(socket_handle, F_SETFL, original_flags | O_NONBLOCK) < 0) {
+    last_error = "failed to set socket non-blocking mode: " +
+                 SocketErrorMessage(errno);
+    return false;
+  }
+  return true;
+#endif
+}
+
+void RestoreSocketBlockingMode(SocketHandle socket_handle, int original_flags) {
+#ifdef _WIN32
+  static_cast<void>(original_flags);
+  u_long mode = 0;
+  (void)ioctlsocket(socket_handle, FIONBIO, &mode);
+#else
+  (void)fcntl(socket_handle, F_SETFL, original_flags);
+#endif
+}
+
+bool IsConnectInProgressError(int error_code) {
+#ifdef _WIN32
+  return error_code == WSAEINPROGRESS || error_code == WSAEWOULDBLOCK;
+#else
+  return error_code == EINPROGRESS;
+#endif
+}
+
+int SelectWritableSocket(SocketHandle socket_handle,
+                         fd_set* write_fds,
+                         timeval* timeout) {
+#ifdef _WIN32
+  static_cast<void>(socket_handle);
+  return select(0, nullptr, write_fds, nullptr, timeout);
+#else
+  return select(socket_handle + 1, nullptr, write_fds, nullptr, timeout);
+#endif
+}
+
+int GetSocketConnectError(SocketHandle socket_handle, std::string& last_error) {
+  int socket_error = 0;
+#ifdef _WIN32
+  int socket_error_length = sizeof(socket_error);
+  if (getsockopt(socket_handle, SOL_SOCKET, SO_ERROR,
+                 reinterpret_cast<char*>(&socket_error),
+                 &socket_error_length) != 0) {
+    last_error = "getsockopt(SO_ERROR) failed: " +
+                 SocketErrorMessage(LastSocketError());
+    return -1;
+  }
+#else
+  socklen_t socket_error_length = sizeof(socket_error);
+  if (getsockopt(socket_handle, SOL_SOCKET, SO_ERROR, &socket_error,
+                 &socket_error_length) != 0) {
+    last_error = "getsockopt(SO_ERROR) failed: " + SocketErrorMessage(errno);
+    return -1;
+  }
+#endif
+  return socket_error;
+}
+
+bool BindSocketToLocalAddress(SocketHandle socket_handle,
+                              int address_family,
+                              const std::string& local_address,
+                              std::string& last_error) {
+  addrinfo hints = {};
+  hints.ai_family = address_family;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags = AI_NUMERICHOST;
+
+  addrinfo* local_result = nullptr;
+  const int status =
+      getaddrinfo(local_address.c_str(), "0", &hints, &local_result);
+  if (status != 0) {
+    last_error = "failed to resolve localAddress " + local_address + ": " +
+                 gai_strerror(status);
+    return false;
+  }
+
+  std::unique_ptr<addrinfo, decltype(&freeaddrinfo)> local_addresses(
+      local_result, freeaddrinfo);
+  for (addrinfo* local = local_addresses.get(); local; local = local->ai_next) {
+    if (BindSocketHandle(socket_handle, local->ai_addr, local->ai_addrlen) ==
+        0) {
+      return true;
+    }
+    last_error = "failed to bind localAddress " + local_address + ": " +
+                 SocketErrorMessage(LastSocketError());
+  }
+
+  return false;
+}
+
+bool ConnectSocketWithTimeout(SocketHandle socket_handle,
+                              const sockaddr* address,
+                              socklen_t address_length,
+                              DWORD timeout_ms,
+                              std::string& last_error) {
+  int original_flags = 0;
+  if (!SetSocketNonBlocking(socket_handle, original_flags, last_error)) {
+    return false;
+  }
+
+  if (ConnectSocketHandle(socket_handle, address, address_length) == 0) {
+    RestoreSocketBlockingMode(socket_handle, original_flags);
+    return true;
+  }
+
+  const int connect_error = LastSocketError();
+  if (!IsConnectInProgressError(connect_error)) {
+    last_error = "connect failed: " + SocketErrorMessage(connect_error);
+    RestoreSocketBlockingMode(socket_handle, original_flags);
+    return false;
+  }
+
+  fd_set write_fds;
+  FD_ZERO(&write_fds);
+  FD_SET(static_cast<FdSetSocket>(socket_handle), &write_fds);
+
+  timeval timeout = {};
+  timeval* timeout_ptr = nullptr;
+  if (timeout_ms > 0) {
+    timeout.tv_sec = static_cast<long>(timeout_ms / 1000);
+    timeout.tv_usec = static_cast<long>((timeout_ms % 1000) * 1000);
+    timeout_ptr = &timeout;
+  }
+
+  const int select_result =
+      SelectWritableSocket(socket_handle, &write_fds, timeout_ptr);
+  if (select_result <= 0) {
+    last_error =
+        select_result == 0 ? "connect timeout" : "select failed: " +
+                                                   SocketErrorMessage(LastSocketError());
+    RestoreSocketBlockingMode(socket_handle, original_flags);
+    return false;
+  }
+
+  const int socket_error = GetSocketConnectError(socket_handle, last_error);
+  if (socket_error < 0) {
+    RestoreSocketBlockingMode(socket_handle, original_flags);
+    return false;
+  }
+
+  if (socket_error != 0) {
+    last_error = "connect failed: " + SocketErrorMessage(socket_error);
+    RestoreSocketBlockingMode(socket_handle, original_flags);
+    return false;
+  }
+
+  RestoreSocketBlockingMode(socket_handle, original_flags);
+  return true;
+}
+
+SocketHandle ConnectWithLocalAddress(rdpContext* context,
+                                     const char* hostname,
+                                     int port,
+                                     DWORD timeout_ms,
+                                     const std::string& local_address,
+                                     std::string& last_error) {
+  if (!hostname || local_address.empty()) {
+    last_error = "hostname and localAddress are required";
+    return kInvalidSocketHandle;
+  }
+
+  addrinfo hints = {};
+  hints.ai_family = AF_UNSPEC;
+  hints.ai_socktype = SOCK_STREAM;
+
+  const std::string service = std::to_string(port);
+  addrinfo* remote_result = nullptr;
+  const int status =
+      getaddrinfo(hostname, service.c_str(), &hints, &remote_result);
+  if (status != 0) {
+    last_error = "failed to resolve RDP host " + std::string(hostname) +
+                 ": " + gai_strerror(status);
+    freerdp_set_last_error_if_not(context, FREERDP_ERROR_DNS_NAME_NOT_FOUND);
+    return kInvalidSocketHandle;
+  }
+
+  std::unique_ptr<addrinfo, decltype(&freeaddrinfo)> remote_addresses(
+      remote_result, freeaddrinfo);
+  for (addrinfo* remote = remote_addresses.get(); remote;
+       remote = remote->ai_next) {
+    const SocketHandle socket_handle =
+        socket(remote->ai_family, remote->ai_socktype, remote->ai_protocol);
+    if (IsInvalidSocketHandle(socket_handle)) {
+      last_error = "socket failed: " + SocketErrorMessage(LastSocketError());
+      continue;
+    }
+
+    if (!BindSocketToLocalAddress(socket_handle, remote->ai_family,
+                                  local_address, last_error)) {
+      CloseSocketHandle(socket_handle);
+      continue;
+    }
+
+    if (ConnectSocketWithTimeout(socket_handle, remote->ai_addr,
+                                 remote->ai_addrlen, timeout_ms, last_error)) {
+      return socket_handle;
+    }
+
+    CloseSocketHandle(socket_handle);
+  }
+
+  freerdp_set_last_error_if_not(context, FREERDP_ERROR_CONNECT_FAILED);
+  return kInvalidSocketHandle;
+}
+
+int LocalAddressTcpConnect(rdpContext* context,
+                           rdpSettings* settings,
+                           const char* hostname,
+                           int port,
+                           DWORD timeout_ms) {
+  auto* bind_context = static_cast<LocalAddressTcpConnectContext*>(
+      freerdp_get_io_callback_context(context));
+  if (!bind_context || bind_context->local_address.empty()) {
+    return -1;
+  }
+
+  std::string last_error;
+  const SocketHandle socket_handle = ConnectWithLocalAddress(
+      context, hostname, port, timeout_ms, bind_context->local_address,
+      last_error);
+  if (IsInvalidSocketHandle(socket_handle)) {
+    std::fprintf(stderr,
+                 "RDP localAddress connection failed (localAddress=%s, "
+                 "target=%s:%d): %s\n",
+                 bind_context->local_address.c_str(), hostname ? hostname : "",
+                 port, last_error.c_str());
+    std::fflush(stderr);
+    return -1;
+  }
+
+  if (!SocketHandleFitsFreeRdpInt(socket_handle)) {
+    std::fprintf(stderr,
+                 "RDP localAddress connection failed (localAddress=%s, "
+                 "target=%s:%d): socket handle exceeds FreeRDP transport "
+                 "callback int range\n",
+                 bind_context->local_address.c_str(), hostname ? hostname : "",
+                 port);
+    std::fflush(stderr);
+    CloseSocketHandle(socket_handle);
+    freerdp_set_last_error_if_not(context, FREERDP_ERROR_CONNECT_FAILED);
+    return -1;
+  }
+
+  const int sockfd = SocketHandleToFreeRdpInt(socket_handle);
+  if (!bind_context->default_io.TCPConnect) {
+    return sockfd;
+  }
+
+  const int attached_sockfd = bind_context->default_io.TCPConnect(
+      context, settings, "|midscene-bound-socket", sockfd, timeout_ms);
+  if (attached_sockfd < 0) {
+    CloseSocketHandle(socket_handle);
+  }
+  return attached_sockfd;
+}
 
 bool HasPendingFramebufferInvalidation(rdpContext* context) {
   if (!context || !context->gdi || !context->gdi->primary ||
@@ -184,6 +568,18 @@ std::string GenerateSessionId() {
   std::ostringstream session_id;
   session_id << std::hex << distribution(generator) << distribution(generator);
   return session_id.str();
+}
+
+std::string FormatServerAddress(std::string_view host, UINT32 port) {
+  std::ostringstream server;
+  if (host.find(':') != std::string_view::npos &&
+      !(host.size() >= 2 && host.front() == '[' && host.back() == ']')) {
+    server << '[' << host << ']';
+  } else {
+    server << host;
+  }
+  server << ':' << port;
+  return server.str();
 }
 
 DWORD VerifyCertificateEx(freerdp* instance,
@@ -498,6 +894,29 @@ ConnectionInfo FreeRdpSessionTransport::Connect(const ConnectionConfig& config) 
   auto* typed_context = reinterpret_cast<MidsceneRdpContext*>(instance->context);
   typed_context->owner = this;
 
+  std::optional<LocalAddressTcpConnectContext> local_bind_context;
+  rdpTransportIo local_bind_io = {};
+  if (!config.local_address.empty()) {
+    const rdpTransportIo* default_io = freerdp_get_io_callbacks(instance->context);
+    if (!default_io) {
+      freerdp_context_free(instance);
+      freerdp_free(instance);
+      throw std::runtime_error("Failed to read FreeRDP transport callbacks");
+    }
+    local_bind_context.emplace(
+        LocalAddressTcpConnectContext{config.local_address, *default_io});
+    local_bind_io = *default_io;
+    local_bind_io.TCPConnect = LocalAddressTcpConnect;
+    if (!freerdp_set_io_callback_context(instance->context,
+                                         &local_bind_context.value()) ||
+        !freerdp_set_io_callbacks(instance->context, &local_bind_io)) {
+      freerdp_context_free(instance);
+      freerdp_free(instance);
+      throw std::runtime_error(
+          "Failed to configure FreeRDP localAddress TCP binding");
+    }
+  }
+
   rdpSettings* settings = instance->context->settings;
   bool configured = true;
   configured =
@@ -588,9 +1007,7 @@ ConnectionInfo FreeRdpSessionTransport::Connect(const ConnectionConfig& config) 
     const char* host = freerdp_settings_get_server_name(settings);
     const UINT32 port =
         freerdp_settings_get_uint32(settings, FreeRDP_ServerPort);
-    std::ostringstream server;
-    server << (host ? host : "") << ":" << port;
-    info.server = server.str();
+    info.server = FormatServerAddress(host ? host : "", port);
     if (instance_->context && instance_->context->gdi) {
       info.size.width = instance_->context->gdi->width;
       info.size.height = instance_->context->gdi->height;

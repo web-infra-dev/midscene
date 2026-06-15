@@ -279,6 +279,7 @@ export const parseOpenaiSdkConfig = ({
       const val = provider[keys.reasoningEnabled]?.trim()?.toLowerCase();
       if (val === 'true' || val === '1') return true;
       if (val === 'false' || val === '0') return false;
+      if (val === 'default') return 'default';
       return undefined;
     })(),
     reasoningBudget: (() => {

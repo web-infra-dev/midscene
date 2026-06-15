@@ -36,6 +36,30 @@ MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"foo":"bar"}}'
 JSON.stringify({ defaultHeaders: { foo: 'bar' } })
 ```
 
+## 如何使用 Azure OpenAI Service？
+
+使用 Azure OpenAI Service 时，请先按 [模型配置](./model-common-config) 选择并填写对应模型的常规配置。Azure 只需要把模型服务地址和 API Key 换成 Azure 的写法：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://<your-resource>.services.ai.azure.com/openai/v1" # 或 https://<your-resource>.openai.azure.com/openai/v1
+MIDSCENE_MODEL_API_KEY="<your-azure-api-key>"
+```
+
+也就是说，`MIDSCENE_MODEL_NAME`、`MIDSCENE_MODEL_FAMILY` 等其他配置仍然按 [模型配置](./model-common-config) 中对应模型的说明填写；Azure 只是鉴权方式有所差异的模型供应商，而非一种特殊模型。
+
+这会走普通 OpenAI-compatible 路径，以 `Authorization: Bearer ...` 请求头发送 `POST /openai/v1/chat/completions`。`MIDSCENE_MODEL_BASE_URL` 不要追加 `/chat/completions`，`/openai/v1` 端点也不要追加 `api-version`。
+
+如果某个 Azure-compatible 网关只接受 `api-key` 请求头，可以额外添加下面的配置，通过 header 发送真实 API Key：
+
+```bash
+MIDSCENE_MODEL_API_KEY="placeholder"
+MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"api-key":"<your-azure-api-key>"}}'
+```
+
+这里的 `MIDSCENE_MODEL_API_KEY="placeholder"` 只是为了满足 OpenAI SDK 的初始化要求，真实 API Key 会通过 `defaultHeaders.api-key` 发送。
+
+Azure AD / keyless 鉴权（`DefaultAzureCredential`）的方式现在已经不再支持，请使用 API Key 的方式。
+
 ## 如何配置 midscene_run 目录？
 
 Midscene 会将运行产物（报告、日志、缓存等）保存在 `midscene_run` 目录下。默认情况下，该目录会创建在当前工作目录下。

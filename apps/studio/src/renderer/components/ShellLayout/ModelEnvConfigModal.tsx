@@ -225,27 +225,39 @@ export function ModelEnvConfigModal({
     () => resolveModelConnection(envValues),
     [envValues],
   );
+  const validationError =
+    'error' in resolvedConnection &&
+    resolvedConnection.kind === 'invalid-config'
+      ? resolvedConnection.error
+      : null;
   const canRunConnectivityTest = !('error' in resolvedConnection);
   const isExpandedForm = tab === 'form';
   const hasTestStatus =
     testStatus.kind === 'success' || testStatus.kind === 'error';
-  const modalHeightClass =
-    isExpandedForm && hasTestStatus
-      ? 'h-[603px]'
-      : isExpandedForm
-        ? 'h-[563px]'
-        : hasTestStatus
-          ? 'h-[444px]'
-          : 'h-[404px]';
-  const modalVerticalOffsetClass =
-    isExpandedForm && hasTestStatus
-      ? 'translate-y-[99.5px]'
-      : isExpandedForm
-        ? 'translate-y-[79.5px]'
-        : hasTestStatus
-          ? 'translate-y-[20px]'
-          : '';
-  const descriptionMarginClass = hasTestStatus ? 'mt-[12px]' : 'mt-[16px]';
+  const statusKind = validationError
+    ? 'error'
+    : hasTestStatus
+      ? testStatus.kind
+      : null;
+  const hasStatusRow = statusKind !== null;
+  const hasValidationStatus = validationError !== null;
+  const modalHeightClass = (() => {
+    if (isExpandedForm && hasValidationStatus) return 'h-[683px]';
+    if (isExpandedForm && hasStatusRow) return 'h-[603px]';
+    if (isExpandedForm) return 'h-[563px]';
+    if (hasValidationStatus) return 'h-[524px]';
+    if (hasStatusRow) return 'h-[444px]';
+    return 'h-[404px]';
+  })();
+  const modalVerticalOffsetClass = (() => {
+    if (isExpandedForm && hasValidationStatus) return 'translate-y-[139.5px]';
+    if (isExpandedForm && hasStatusRow) return 'translate-y-[99.5px]';
+    if (isExpandedForm) return 'translate-y-[79.5px]';
+    if (hasValidationStatus) return 'translate-y-[60px]';
+    if (hasStatusRow) return 'translate-y-[20px]';
+    return '';
+  })();
+  const descriptionMarginClass = hasStatusRow ? 'mt-[12px]' : 'mt-[16px]';
 
   if (!open) {
     return null;
@@ -338,7 +350,12 @@ export function ModelEnvConfigModal({
           </div>
         ) : null}
 
-        {hasTestStatus ? <ModelEnvConfigStatus kind={testStatus.kind} /> : null}
+        {statusKind ? (
+          <ModelEnvConfigStatus
+            kind={statusKind}
+            message={validationError ?? undefined}
+          />
+        ) : null}
 
         <EnvModalFooter
           canRunConnectivityTest={canRunConnectivityTest}

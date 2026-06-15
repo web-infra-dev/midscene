@@ -7,7 +7,7 @@ import {
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
-import { defineActionInput } from '@/device';
+import { defineActionInput, defineActionSwipe } from '@/device';
 import { getMidsceneLocationSchema } from '@/index';
 import type { TModelFamily } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
@@ -184,6 +184,69 @@ describe('action space', () => {
     expect(action).toContain('only the inserted characters for typeOnly mode');
     expect(action).toContain(
       'should be set explicitly for incremental edits after moving the cursor',
+    );
+  });
+
+  it('swipe action explains touch slider use', () => {
+    const action = descriptionForAction(
+      defineActionSwipe({
+        swipe: async () => {},
+        size: async () => ({ width: 1080, height: 2400 }),
+      }),
+      mockLocatorScheme,
+    );
+
+    expect(action).toContain('adjust a continuous control such as a slider');
+    expect(action).toContain(
+      'Use "distance" + "direction" for relative movement, or "start" + "end" for precise endpoint movement.',
+    );
+  });
+
+  it('planning prompt recommends cursor-level recovery for text inserts', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      includeLocateInPlanning: false,
+    });
+
+    expect(prompt).toContain(
+      'use CursorMove when the caret must be adjusted precisely',
+    );
+    expect(prompt).toContain(
+      'do not switch to replace as a fallback for cursor placement failures',
+    );
+  });
+
+  it('planning prompt recommends swipe for touch sliders', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      includeLocateInPlanning: false,
+    });
+
+    expect(prompt).not.toContain(
+      "If the user's task can be completed with the RunAdbShell action, prefer using the RunAdbShell action",
+    );
+    expect(prompt).toContain(
+      'such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint',
+    );
+  });
+
+  it('planning prompt recommends RunAdbShell only when action is available', async () => {
+    const runAdbShellAction = {
+      name: 'RunAdbShell',
+      description: 'Execute ADB shell command',
+      paramSchema: z.object({
+        command: z.string().describe('The ADB shell command to execute'),
+      }),
+      call: async () => '',
+    };
+
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: [...mockActionSpace, runAdbShellAction],
+      includeLocateInPlanning: false,
+    });
+
+    expect(prompt).toContain(
+      "If the user's task can be completed with the RunAdbShell action, prefer using the RunAdbShell action",
     );
   });
 });
@@ -370,6 +433,23 @@ describe('system prompts', () => {
     );
     expect(prompt).toContain(
       'treat the current selection step as fulfilled and continue evaluating the remaining user instruction',
+    );
+  });
+
+  it('planning should include durable change completion guidance', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      includeLocateInPlanning: false,
+      includeSubGoals: false,
+    });
+
+    expect(prompt).toContain('Change completion');
+    expect(prompt).toContain('If the requested outcome is a durable change');
+    expect(prompt).toContain(
+      "Continue through the app/page's normal completion control such as Save, Done, Confirm, OK, Submit, Apply, Send, or Publish before completing",
+    );
+    expect(prompt).toContain(
+      'If the user only asks for an intermediate UI state',
     );
   });
 

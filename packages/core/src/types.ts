@@ -42,6 +42,10 @@ export type AIUsageInfo = Record<string, any> & {
   model_name: string | undefined;
   model_description: string | undefined;
   /**
+   * Raw top-level `.model` value returned by the model service response.
+   */
+  response_model_name: string | undefined;
+  /**
    * Semantic intent of the model call, such as default, planning, or insight.
    */
   intent: string | undefined;
@@ -172,10 +176,20 @@ export type DeepThinkOption = 'unset' | true | false;
 export interface ServiceTaskInfo {
   durationMs: number;
   formatResponse?: string;
+  /**
+   * Adapter-extracted content used by Midscene for parsing. This is not the
+   * full provider response or choices[0].message.
+   */
   rawResponse?: string;
+  rawChoiceMessage?: unknown;
   usage?: AIUsageInfo;
   searchArea?: Rect;
+  /**
+   * Adapter-extracted content from the search-area model call. This is not the
+   * full provider response or choices[0].message.
+   */
   searchAreaRawResponse?: string;
+  searchAreaRawChoiceMessage?: unknown;
   searchAreaUsage?: AIUsageInfo;
   reasoning_content?: string;
 }
@@ -307,7 +321,12 @@ export interface PlanningAIResponse
   extends Omit<RawResponsePlanningAIResponse, 'action'> {
   actions?: PlanningAction[];
   usage?: AIUsageInfo;
+  /**
+   * Adapter-extracted content used by Midscene for parsing. This is not the
+   * full provider response or choices[0].message.
+   */
   rawResponse?: string;
+  rawChoiceMessage?: unknown;
   yamlFlow?: MidsceneYamlFlowItem[];
   yamlString?: string;
   error?: string;
@@ -424,6 +443,11 @@ export type ExecutionTask<
   > & {
     taskId: string;
     status: 'pending' | 'running' | 'finished' | 'failed' | 'cancelled';
+    /**
+     * Optional feedback produced by a task for the next planning round.
+     * This is execution metadata, not part of the action return value.
+     */
+    planningFeedback?: string;
     error?: Error;
     errorMessage?: string;
     errorStack?: string;
@@ -445,6 +469,12 @@ export type ExecutionTask<
       cost?: number;
     };
     usage?: AIUsageInfo;
+    /**
+     * Pixel rect of the deepLocate first-stage search area in screenshot
+     * coordinates. Used by reports to explain the crop/zoom area that the
+     * final locate ran against.
+     */
+    searchArea?: Rect;
     searchAreaUsage?: AIUsageInfo;
     reasoning_content?: string;
   };
@@ -679,7 +709,10 @@ export interface DeviceAction<TParam = any, TReturn = any> {
   description?: string;
   interfaceAlias?: string;
   paramSchema?: z.ZodType<TParam>;
-  call: (param: TParam, context: ExecutorContext) => Promise<TReturn> | TReturn;
+  call: (
+    param: TParam,
+    context?: ExecutorContext,
+  ) => Promise<TReturn> | TReturn;
   delayBeforeRunner?: number;
   delayAfterRunner?: number;
   /**

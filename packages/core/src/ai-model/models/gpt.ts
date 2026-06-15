@@ -13,11 +13,25 @@ const originalImageDetailForDefaultIntent = (
     ? 'original'
     : undefined;
 
-const buildGpt5ChatCompletionParams = (): ChatCompletionParamsResult => {
+const buildGpt5ChatCompletionParams = (
+  input: ChatCompletionCallContext,
+): ChatCompletionParamsResult => {
+  const { midsceneDefaults, userConfig } = input;
+  const { reasoningEnabled, reasoningEffort } = userConfig;
+  const commonOverrideConfig: Record<string, unknown> = {};
+
+  if (userConfig.temperature !== undefined) {
+    commonOverrideConfig.temperature = userConfig.temperature;
+  }
+
+  const effectiveReasoningEffort =
+    reasoningEnabled === true ? (reasoningEffort ?? 'medium') : 'none';
+
   return {
     config: {
-      // GPT-5 Chat Completions does not support temperature control.
-      temperature: undefined,
+      ...midsceneDefaults,
+      ...commonOverrideConfig,
+      reasoning_effort: effectiveReasoningEffort,
     },
   };
 };
@@ -25,12 +39,7 @@ const buildGpt5ChatCompletionParams = (): ChatCompletionParamsResult => {
 export const gptAdapters = {
   'gpt-5': {
     chatCompletion: {
-      unsupportedUserConfig: [
-        'temperature',
-        'reasoningEnabled',
-        'reasoningEffort',
-        'reasoningBudget',
-      ],
+      unsupportedUserConfig: ['reasoningBudget'],
       buildChatCompletionParams: buildGpt5ChatCompletionParams,
       resolveImageDetail: originalImageDetailForDefaultIntent,
     },

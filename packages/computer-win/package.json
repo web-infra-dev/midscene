@@ -1,6 +1,6 @@
 {
   "name": "@midscene/computer-win",
-  "version": "1.9.2",
+  "version": "1.9.5",
   "description": "Midscene.js Computer Desktop Automation for Windows",
   "license": "MIT",
   "repository": {
@@ -22,6 +22,28 @@
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build --watch"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "dependsOn": [
+          {
+            "projects": "@midscene/computer",
+            "target": "build"
+          },
+          "^build"
+        ]
+      },
+      "dev": {
+        "dependsOn": [
+          {
+            "projects": "@midscene/computer",
+            "target": "build"
+          },
+          "^build"
+        ]
+      }
+    }
   },
   "dependencies": {
     "@midscene/computer": "workspace:*"

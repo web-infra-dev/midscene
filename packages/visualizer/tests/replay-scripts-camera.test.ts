@@ -1,4 +1,9 @@
-import type { ExecutionTaskAction, IExecutionDump } from '@midscene/core';
+import type {
+  ExecutionTaskAction,
+  ExecutionTaskPlanningLocate,
+  IExecutionDump,
+  ServiceDump,
+} from '@midscene/core';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@midscene/core/agent', () => ({
@@ -40,6 +45,43 @@ function createActionTask({
   };
 }
 
+function createLocateTask(): ExecutionTaskPlanningLocate {
+  const serviceDump = {
+    type: 'locate',
+    taskInfo: {
+      durationMs: 100,
+      searchArea: { left: 10, top: 20, width: 300, height: 200 },
+    },
+  } as ServiceDump;
+
+  return {
+    type: 'Planning',
+    subType: 'Locate',
+    taskId: 'locate-1',
+    status: 'finished',
+    executor: () => undefined,
+    param: {
+      prompt: 'settings',
+      deepLocate: true,
+    },
+    output: {
+      element: {
+        description: 'settings',
+        center: [80, 100],
+        rect: { left: 70, top: 90, width: 20, height: 20 },
+      } as any,
+    },
+    log: {
+      dump: serviceDump,
+    } as any,
+    uiContext: {
+      shotSize: { width: 720, height: 1280 },
+      screenshot: { base64: 'frame-locate' },
+      shrunkShotToLogicalRatio: 1,
+    } as any,
+  };
+}
+
 describe('generateAnimationScripts', () => {
   it('uses each task shotSize when building full-page camera frames', () => {
     const execution = {
@@ -70,6 +112,23 @@ describe('generateAnimationScripts', () => {
     expect(imageScripts?.[0].camera?.width).toBe(720);
     expect(imageScripts?.[1].imageWidth).toBe(1080);
     expect(imageScripts?.[1].camera?.width).toBe(1080);
+  });
+
+  it('keeps deepLocate search area overlays from wrapped service dumps', () => {
+    const execution = {
+      name: 'search-area-regression',
+      tasks: [createLocateTask()],
+    } as IExecutionDump;
+
+    const scripts = generateAnimationScripts(execution, -1, 720, 1280);
+    const insightScript = scripts?.find((script) => script.type === 'insight');
+
+    expect(insightScript?.searchArea).toEqual({
+      left: 10,
+      top: 20,
+      width: 300,
+      height: 200,
+    });
   });
 });
 

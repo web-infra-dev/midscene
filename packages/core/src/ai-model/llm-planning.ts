@@ -233,6 +233,7 @@ export async function plan(
     content: rawResponse,
     usage,
     reasoning_content,
+    rawChoiceMessage,
   } = await callAI(msgs, modelRuntime, {
     abortSignal: opts.abortSignal,
     // Planning with locate results is localization-sensitive. Adapters decide
@@ -254,6 +255,7 @@ export async function plan(
       rawResponse = retry.content;
       usage = retry.usage;
       reasoning_content = retry.reasoning_content;
+      rawChoiceMessage = retry.rawChoiceMessage;
       planFromAI = parseXMLPlanningResponse(rawResponse, adapter.jsonParser);
     }
 
@@ -282,6 +284,7 @@ export async function plan(
       ...planFromAI,
       actions,
       rawResponse,
+      rawChoiceMessage,
       usage,
       reasoning_content,
       yamlFlow: buildYamlFlowFromPlans(actions, opts.actionSpace),
@@ -377,6 +380,7 @@ export async function plan(
       `XML parse error: ${errorMessage}`,
       rawResponse,
       usage,
+      rawChoiceMessage,
     );
   }
 }

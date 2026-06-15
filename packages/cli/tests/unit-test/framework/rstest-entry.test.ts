@@ -7,16 +7,16 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { defineYamlCaseTest } from '@/framework/rstest-entry';
+import { type RstestTest, defineYamlCaseTest } from '@/framework/rstest-entry';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  test: vi.fn(),
+  rstestTest: vi.fn(),
   runYamlCaseResult: vi.fn(),
 }));
 
 vi.mock('@rstest/core', () => ({
-  test: mocks.test,
+  test: mocks.rstestTest,
 }));
 
 vi.mock('@/framework/yaml-case', () => ({
@@ -27,6 +27,8 @@ vi.mock('@/framework/yaml-case', () => ({
 
 const createTempDir = () =>
   mkdtempSync(join(tmpdir(), 'midscene-rstest-entry-'));
+
+const injectedRstestTest = () => mocks.rstestTest as unknown as RstestTest;
 
 describe('defineYamlCaseTest', () => {
   beforeEach(() => {
@@ -59,13 +61,13 @@ describe('defineYamlCaseTest', () => {
       });
 
     try {
-      defineYamlCaseTest({
+      defineYamlCaseTest(injectedRstestTest(), {
         testName: 'case',
         yamlFile: yaml,
         resultFile,
       });
 
-      const [, runCase] = mocks.test.mock.calls[0];
+      const [, runCase] = mocks.rstestTest.mock.calls[0];
       await expect(runCase()).rejects.toThrow('first attempt failed');
       await expect(runCase()).resolves.toBeUndefined();
 
@@ -107,13 +109,13 @@ describe('defineYamlCaseTest', () => {
     });
 
     try {
-      defineYamlCaseTest({
+      defineYamlCaseTest(injectedRstestTest(), {
         testName: 'case',
         yamlFile: yaml,
         resultFile,
       });
 
-      const [, runCase] = mocks.test.mock.calls[0];
+      const [, runCase] = mocks.rstestTest.mock.calls[0];
       await expect(runCase()).rejects.toThrow(
         'task failed with continue-on-error',
       );

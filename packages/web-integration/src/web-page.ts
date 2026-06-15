@@ -376,6 +376,11 @@ export abstract class AbstractWebPage extends AbstractInterface {
   navigationState?(): Promise<{ isLoading: boolean }>;
   flushPendingVisualUpdate?(): Promise<void>;
   schedulePendingVisualUpdate?(): void;
+  waitForDomQuiet?(opts?: {
+    quietMs?: number;
+    timeoutMs?: number;
+    target?: ElementInfo;
+  }): Promise<void>;
 
   get mouse(): MouseAction {
     return {
@@ -468,6 +473,12 @@ export function createWebInputPrimitives(
         const element = opts?.target;
         if (element && opts?.replace !== false) {
           await page.clearInput(element as ElementInfo);
+          // Frameworks (React/Vue/etc.) often re-render in response to
+          // the `input` event fired by clearing. If that re-render lands
+          // between clearInput returning and the first typed character,
+          // the keypresses can be dropped. Wait for the DOM to settle
+          // before starting to type.
+          await page.waitForDomQuiet?.({ target: element as ElementInfo });
         } else if (element && opts?.focusOnly) {
           const target = element as ElementInfo;
           await page.mouse.click(target.center[0], target.center[1], {

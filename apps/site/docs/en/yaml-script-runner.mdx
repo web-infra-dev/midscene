@@ -51,6 +51,8 @@ Notes:
 
 ### Install the CLI
 
+Before installing the CLI, make sure the terminal that runs `midscene` uses Node.js `20.19+`, `22.12+`, or `24+`. Some CLI execution paths use the Rstest/Rspack toolchain, which rejects older Node 20 patch versions such as `20.17.0`. If you see an `Unsupported Node.js version` message from Rspack, upgrade Node.js and reinstall the global CLI or project dependencies.
+
 Install `@midscene/cli` globally (recommended for first-time users):
 
 ```bash

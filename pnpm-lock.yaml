@@ -427,6 +427,9 @@ importers:
       react-dom:
         specifier: 18.3.1
         version: 18.3.1(react@18.3.1)
+      react-json-view-lite:
+        specifier: 2.5.0
+        version: 2.5.0(react@18.3.1)
       react-resizable-panels:
         specifier: 2.0.22
         version: 2.0.22(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -568,6 +571,12 @@ importers:
       appdmg:
         specifier: 0.6.6
         version: 0.6.6
+      fs-xattr:
+        specifier: 0.3.1
+        version: 0.3.1
+      macos-alias:
+        specifier: 0.2.12
+        version: 0.2.12
     devDependencies:
       '@electron/notarize':
         specifier: 3.1.1
@@ -1382,7 +1391,7 @@ importers:
         version: link:../web-integration
       '@modelcontextprotocol/inspector':
         specifier: ^0.16.3
-        version: 0.16.3(@types/node@18.19.62)(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@6.0.5)
+        version: 0.16.3(@types/node@18.19.62)(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(typescript@5.8.3)
       '@modelcontextprotocol/sdk':
         specifier: 1.10.2
         version: 1.10.2
@@ -2292,16 +2301,19 @@ packages:
   '@computer-use/libnut-darwin@2.7.1':
     resolution: {integrity: sha512-7B/aPcIYS4a4S7D3IYIHSpZ4B4m8Z3CjlYq0efTr+/JYmEu+LlO67ZhPvisLKifhagxf7goqEfnphg1F4jq5jw==}
     engines: {node: '>=10.15.3'}
+    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut-linux@2.7.1':
     resolution: {integrity: sha512-QJD5URTFJ/2+JwBwRyajRF2BB+3eXpd4+t5btGeRVeiRQLKQ4lgorbMHySo6IrfAbSfnU1OVOrxAUygGxj0cFg==}
     engines: {node: '>=10.15.3'}
+    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut-win32@2.7.1':
     resolution: {integrity: sha512-nDvH5kP1zoO2cBtFYWV0om9xtTu523cc1LIk8r/wizqPrIAm0wCizTU+odF3Fi42zcKJWT6J+Pguy8fKrZyIuA==}
     engines: {node: '>=10.15.3'}
+    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut@4.2.0':
@@ -6196,10 +6208,6 @@ packages:
   cli-cursor@3.1.0:
     resolution: {integrity: sha512-I/zHAwsKf9FqGoXM4WWRACob9+SNukZTd94DWF57E4toouRulbCxcUh6RKUEOQlYTHJnzkPMySvPNaaSLNfLZw==}
     engines: {node: '>=8'}
-
-  cli-progress@3.12.0:
-    resolution: {integrity: sha512-tRkV3HJ1ASwm19THiiLIXLO7Im7wlTuKnvkYaTkyoAPefqjNg7W7DHKUlGRxy9vxDvbyCYQkQozvptuMkGCg8A==}
-    engines: {node: '>=4'}
 
   cli-spinners@2.6.1:
     resolution: {integrity: sha512-x/5fWmGMnbKQAaNwN+UZlV79qBLM9JFnJuJ03gIi5whrob0xV0ofNVHy9DhwGdsMJQc2OKv0oGmLzvaqvAVv+g==}
@@ -10331,6 +10339,12 @@ packages:
 
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
+
+  react-json-view-lite@2.5.0:
+    resolution: {integrity: sha512-tk7o7QG9oYyELWHL8xiMQ8x4WzjCzbWNyig3uexmkLb54r8jO0yH3WCWx8UZS0c49eSA4QUmG5caiRJ8fAn58g==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
 
   react-lazy-with-preload@2.2.1:
     resolution: {integrity: sha512-ONSb8gizLE5jFpdHAclZ6EAAKuFX2JydnFXPPPjoUImZlLjGtKzyBS8SJgJq7CpLgsGKh9QCZdugJyEEOVC16Q==}
@@ -14530,7 +14544,7 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@modelcontextprotocol/inspector@0.16.3(@types/node@18.19.62)(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@6.0.5)':
+  '@modelcontextprotocol/inspector@0.16.3(@types/node@18.19.62)(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(typescript@5.8.3)':
     dependencies:
       '@modelcontextprotocol/inspector-cli': 0.16.3
       '@modelcontextprotocol/inspector-client': 0.16.3(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)
@@ -16673,14 +16687,6 @@ snapshots:
     optionalDependencies:
       vite: 5.4.10(@types/node@25.5.2)(less@4.2.2)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
 
-  '@vitest/mocker@3.0.5(vite@5.4.10(@types/node@25.5.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1))':
-    dependencies:
-      '@vitest/spy': 3.0.5
-      estree-walker: 3.0.3
-      magic-string: 0.30.17
-    optionalDependencies:
-      vite: 5.4.10(@types/node@25.5.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
-
   '@vitest/pretty-format@3.0.5':
     dependencies:
       tinyrainbow: 2.0.0
@@ -17829,10 +17835,6 @@ snapshots:
   cli-cursor@3.1.0:
     dependencies:
       restore-cursor: 3.1.0
-
-  cli-progress@3.12.0:
-    dependencies:
-      string-width: 4.2.3
 
   cli-spinners@2.6.1: {}
 
@@ -22783,6 +22785,10 @@ snapshots:
 
   react-is@18.3.1: {}
 
+  react-json-view-lite@2.5.0(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+
   react-lazy-with-preload@2.2.1: {}
 
   react-reconciler@0.33.0(react@19.2.4):
@@ -24695,24 +24701,6 @@ snapshots:
       - supports-color
       - terser
 
-  vite-node@3.0.5(@types/node@25.5.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1):
-    dependencies:
-      cac: 6.7.14
-      debug: 4.4.0
-      es-module-lexer: 1.7.0
-      pathe: 2.0.3
-      vite: 5.4.10(@types/node@25.5.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
-    transitivePeerDependencies:
-      - '@types/node'
-      - less
-      - lightningcss
-      - sass
-      - sass-embedded
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-
   vite@5.4.10(@types/node@18.19.118)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1):
     dependencies:
       esbuild: 0.21.5
@@ -24761,19 +24749,6 @@ snapshots:
       '@types/node': 25.5.2
       fsevents: 2.3.3
       less: 4.2.2
-      lightningcss: 1.30.1
-      sass-embedded: 1.86.3
-      terser: 5.46.1
-
-  vite@5.4.10(@types/node@25.5.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1):
-    dependencies:
-      esbuild: 0.21.5
-      postcss: 8.5.6
-      rollup: 4.24.3
-    optionalDependencies:
-      '@types/node': 25.5.2
-      fsevents: 2.3.3
-      less: 4.3.0
       lightningcss: 1.30.1
       sass-embedded: 1.86.3
       terser: 5.46.1
@@ -24910,43 +24885,6 @@ snapshots:
       tinyrainbow: 2.0.0
       vite: 5.4.10(@types/node@25.5.2)(less@4.2.2)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
       vite-node: 3.0.5(@types/node@25.5.2)(less@4.2.2)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
-      why-is-node-running: 2.3.0
-    optionalDependencies:
-      '@types/debug': 4.1.12
-      '@types/node': 25.5.2
-      jsdom: 29.0.2
-    transitivePeerDependencies:
-      - less
-      - lightningcss
-      - msw
-      - sass
-      - sass-embedded
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-
-  vitest@3.0.5(@types/debug@4.1.12)(@types/node@25.5.2)(jsdom@29.0.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1):
-    dependencies:
-      '@vitest/expect': 3.0.5
-      '@vitest/mocker': 3.0.5(vite@5.4.10(@types/node@25.5.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1))
-      '@vitest/pretty-format': 3.1.1
-      '@vitest/runner': 3.0.5
-      '@vitest/snapshot': 3.0.5
-      '@vitest/spy': 3.0.5
-      '@vitest/utils': 3.0.5
-      chai: 5.2.0
-      debug: 4.4.0
-      expect-type: 1.2.1
-      magic-string: 0.30.17
-      pathe: 2.0.3
-      std-env: 3.9.0
-      tinybench: 2.9.0
-      tinyexec: 0.3.2
-      tinypool: 1.1.1
-      tinyrainbow: 2.0.0
-      vite: 5.4.10(@types/node@25.5.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
-      vite-node: 3.0.5(@types/node@25.5.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/debug': 4.1.12

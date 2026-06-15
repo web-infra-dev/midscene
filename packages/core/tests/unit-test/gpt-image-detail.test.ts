@@ -172,7 +172,7 @@ describe('GPT image detail handling', () => {
     expect(mockCreate.mock.calls[0][0]).toHaveProperty('temperature', 0.7);
   });
 
-  it('ignores standard model temperature for gpt-5', async () => {
+  it('preserves standard model temperature for gpt-5', async () => {
     await callAI(
       imageMessage,
       getModelRuntime({
@@ -181,9 +181,6 @@ describe('GPT image detail handling', () => {
       }),
     );
 
-    expect(mockCreate.mock.calls[0][0]).toHaveProperty(
-      'temperature',
-      undefined,
-    );
+    expect(mockCreate.mock.calls[0][0]).toHaveProperty('temperature', 0.7);
   });
 });

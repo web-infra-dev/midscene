@@ -34,6 +34,7 @@ describe('service-caller empty content handling', () => {
           cached_tokens: 7,
         },
       },
+      model: 'gpt-4o-2024-08-06',
       _request_id: 'req_test_123',
     });
 
@@ -67,6 +68,7 @@ describe('service-caller empty content handling', () => {
         },
         model_name: 'gpt-4o',
         model_description: 'test model',
+        response_model_name: 'gpt-4o-2024-08-06',
         slot: 'default',
         request_id: 'req_test_123',
       });
