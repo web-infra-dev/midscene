@@ -15,7 +15,7 @@ export const EN_US = {
   // Banner - CTA Buttons
   introduction: 'Documentation',
   whatsNew: 'Showcases',
-  benchmark: 'Benchmark',
+  benchmark: 'Pass@1',
 
   // Feature Sections - CLIENTS
   clientsTitle: 'Platforms',

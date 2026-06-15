@@ -701,7 +701,7 @@ export function FeatureSections() {
             </div>
 
             {/* View All APIs row */}
-            <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex flex-col-reverse md:flex-row-reverse gap-6">
               {/* View All APIs Link Card */}
               <div className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-y-4 md:gap-y-6">
                 <div className="font-sans font-medium text-xl md:text-2xl leading-6 text-transparent">
@@ -804,14 +804,14 @@ export function FeatureSections() {
                           'url(/images/backgrounds/grid-light.svg)',
                       }}
                     >
-                      <div className="flex items-baseline gap-2 font-sans font-semibold text-black">
-                        <span className="text-[40px] md:text-[56px] leading-none text-[#0555FF]">
-                          90+
+                      <div className="font-sans font-semibold text-[#0555FF]">
+                        <span className="text-[40px] md:text-[56px] leading-none">
+                          93.1%
                         </span>
-                        <span className="text-lg">{t('benchmark')}</span>
                       </div>
-                      <div className="mt-2 font-sans text-sm text-black/60">
-                        AndroidWorld
+                      <div className="mt-2 font-sans text-sm text-black/60 text-center">
+                        <div>AndroidWorld Benchmark</div>
+                        <div>{t('benchmark')} 93.1% · Pass@3 97.4%</div>
                       </div>
                     </div>
                     <div
@@ -823,14 +823,14 @@ export function FeatureSections() {
                         backgroundPosition: 'center',
                       }}
                     >
-                      <div className="flex items-baseline gap-2 font-sans font-semibold text-white">
-                        <span className="text-[40px] md:text-[56px] leading-none text-[#80A8FF]">
-                          90+
+                      <div className="font-sans font-semibold text-[#80A8FF]">
+                        <span className="text-[40px] md:text-[56px] leading-none">
+                          93.1%
                         </span>
-                        <span className="text-lg">{t('benchmark')}</span>
                       </div>
-                      <div className="mt-2 font-sans text-sm text-white/60">
-                        AndroidWorld
+                      <div className="mt-2 font-sans text-sm text-white/60 text-center">
+                        <div>AndroidWorld Benchmark</div>
+                        <div>{t('benchmark')} 93.1% · Pass@3 97.4%</div>
                       </div>
                     </div>
                   </TiltCard>
