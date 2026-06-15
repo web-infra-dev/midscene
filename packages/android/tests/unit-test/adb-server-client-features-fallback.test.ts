@@ -1,6 +1,6 @@
 import type { AdbServerClient } from '@yume-chan/adb';
 import { describe, expect, it, vi } from 'vitest';
-import { installAdbServerClientFeaturesFallback } from '../../src/adb-server-client-features-fallback';
+import { installAdbServerClientFeaturesFallback } from '../../src/internal/adb-server-client-features-fallback';
 
 const targetDevice: AdbServerClient.Device = {
   serial: 'target-device',
@@ -42,6 +42,44 @@ describe('installAdbServerClientFeaturesFallback', () => {
     expect(connection.dispose).toHaveBeenCalledTimes(1);
   });
 
+  it('uses an existing transportId selector without resolving the device list', async () => {
+    const connection = createConnection('abb_exec');
+    const client = {
+      getDeviceFeatures: vi
+        .fn()
+        .mockRejectedValue(new Error('more than one device/emulator')),
+      getDevices: vi.fn(),
+      createConnection: vi.fn().mockResolvedValue(connection),
+    } as unknown as AdbServerClient;
+
+    installAdbServerClientFeaturesFallback(client);
+
+    await expect(
+      client.getDeviceFeatures({ transportId: 42n }),
+    ).resolves.toEqual({
+      transportId: 42n,
+      features: ['abb_exec'],
+    });
+    expect(client.getDevices).not.toHaveBeenCalled();
+    expect(client.createConnection).toHaveBeenCalledWith(
+      'host-transport-id:42:features',
+    );
+  });
+
+  it('does not wrap the same client more than once', () => {
+    const client = {
+      getDeviceFeatures: vi.fn(),
+      getDevices: vi.fn(),
+      createConnection: vi.fn(),
+    } as unknown as AdbServerClient;
+
+    installAdbServerClientFeaturesFallback(client);
+    const installedGetDeviceFeatures = client.getDeviceFeatures;
+    installAdbServerClientFeaturesFallback(client);
+
+    expect(client.getDeviceFeatures).toBe(installedGetDeviceFeatures);
+  });
+
   it('preserves the original error when the selector cannot be resolved deterministically', async () => {
     const originalError = new Error('more than one device/emulator');
     const client = {
@@ -56,6 +94,34 @@ describe('installAdbServerClientFeaturesFallback', () => {
       originalError,
     );
     expect(client.getDevices).not.toHaveBeenCalled();
+    expect(client.createConnection).not.toHaveBeenCalled();
+  });
+
+  it('reports resolver failures while preserving the resolver error as the cause', async () => {
+    const resolveError = new Error('adb disconnected');
+    const client = {
+      getDeviceFeatures: vi
+        .fn()
+        .mockRejectedValue(new Error('more than one device/emulator')),
+      getDevices: vi.fn().mockRejectedValue(resolveError),
+      createConnection: vi.fn(),
+    } as unknown as AdbServerClient;
+
+    installAdbServerClientFeaturesFallback(client);
+
+    let thrown: unknown;
+    try {
+      await client.getDeviceFeatures({ serial: 'target-device' });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(Error);
+    expect((thrown as Error).message).toContain(
+      'Failed to resolve transport ID for ADB features fallback',
+    );
+    expect((thrown as Error).message).toContain('adb disconnected');
+    expect((thrown as Error).cause).toBe(resolveError);
     expect(client.createConnection).not.toHaveBeenCalled();
   });
 

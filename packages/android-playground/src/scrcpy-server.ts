@@ -5,7 +5,7 @@ import type { Server as HttpServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { installAdbServerClientFeaturesFallback } from '@midscene/android';
+import { installAdbServerClientFeaturesFallback } from '@midscene/android/internal/adb-server-client-features-fallback';
 import {
   SCRCPY_ADB_CONNECT_TIMEOUT_MS,
   SCRCPY_PREVIEW_METADATA_TIMEOUT_MS,

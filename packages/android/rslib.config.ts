@@ -38,6 +38,8 @@ export default defineConfig({
       index: './src/index.ts',
       cli: './src/cli.ts',
       'mcp-server': './src/mcp-server.ts',
+      'internal/adb-server-client-features-fallback':
+        './src/internal/adb-server-client-features-fallback.ts',
     },
     define: {
       __VERSION__: JSON.stringify(version),

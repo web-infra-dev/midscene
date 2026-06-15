@@ -11,9 +11,12 @@ type DeviceFeatures = {
 
 const patchedClients = new WeakSet<AdbServerClientType>();
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 function isMultiDeviceFeatureError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return message.includes('more than one device/emulator');
+  return getErrorMessage(error).includes('more than one device/emulator');
 }
 
 async function resolveTransportId(
@@ -58,6 +61,10 @@ async function getDeviceFeaturesByTransportId(
   }
 }
 
+/**
+ * @internal Work around ADB server feature requests that ignore serial selectors
+ * before yume-chan/adb includes a transport-id qualified features request.
+ */
 export function installAdbServerClientFeaturesFallback(
   client: AdbServerClientType,
 ): void {
@@ -77,8 +84,11 @@ export function installAdbServerClientFeaturesFallback(
       let transportId: bigint | undefined;
       try {
         transportId = await resolveTransportId(client, device);
-      } catch {
-        throw error;
+      } catch (resolveError) {
+        throw new Error(
+          `Failed to resolve transport ID for ADB features fallback after "${getErrorMessage(error)}": ${getErrorMessage(resolveError)}`,
+          { cause: resolveError },
+        );
       }
 
       if (transportId === undefined) {

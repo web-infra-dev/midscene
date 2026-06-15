@@ -32,6 +32,11 @@
       "import": "./dist/es/mcp-server.mjs",
       "require": "./dist/lib/mcp-server.js"
     },
+    "./internal/adb-server-client-features-fallback": {
+      "types": "./dist/types/internal/adb-server-client-features-fallback.d.ts",
+      "import": "./dist/es/internal/adb-server-client-features-fallback.mjs",
+      "require": "./dist/lib/internal/adb-server-client-features-fallback.js"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {

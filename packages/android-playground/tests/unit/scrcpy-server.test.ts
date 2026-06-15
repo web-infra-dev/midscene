@@ -35,9 +35,12 @@ vi.mock('node:child_process', () => ({
   exec: mockExec,
 }));
 
-vi.mock('@midscene/android', () => ({
-  installAdbServerClientFeaturesFallback: mockInstallFeaturesFallback,
-}));
+vi.mock(
+  '@midscene/android/internal/adb-server-client-features-fallback',
+  () => ({
+    installAdbServerClientFeaturesFallback: mockInstallFeaturesFallback,
+  }),
+);
 
 vi.mock('@yume-chan/adb', () => ({
   Adb: vi.fn().mockImplementation(() => ({})),
