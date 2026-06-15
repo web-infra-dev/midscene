@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <cstdint>
 #include <mutex>
@@ -76,7 +77,7 @@ class FreeRdpSessionTransport final : public SessionTransport {
   void HookEndPaint(rdpUpdate* update);
   // Records that at least one paint has reached the local framebuffer and
   // wakes Connect().
-  void MarkFramePainted(std::optional<RawFrame> first_frame = std::nullopt);
+  void MarkFramePainted();
   bool HasFramePainted() const;
   BOOL CallOriginalEndPaint(rdpContext* context);
   // Mark the session as no longer active and wake any first-frame waiter.
@@ -104,8 +105,6 @@ class FreeRdpSessionTransport final : public SessionTransport {
   std::atomic<bool> session_active_{false};
   std::condition_variable frame_cv_;
   std::mutex frame_mutex_;
-  std::optional<RawFrame> first_frame_;
-  bool first_frame_consumed_ = false;
   pEndPaint original_end_paint_ = nullptr;
   uint16_t mouse_x_ = 0;
   uint16_t mouse_y_ = 0;
@@ -116,6 +115,8 @@ class FreeRdpSessionTransport final : public SessionTransport {
   void ClearSessionErrorLocked();
   void SetSessionError(std::string message, std::string code);
   std::string LastFreeRdpErrorLocked() const;
+  uint64_t WaitForSettledFramebuffer(
+      std::chrono::steady_clock::time_point deadline);
   void StopInstance(bool preserve_session_error);
   void EventLoop();
 };

@@ -65,6 +65,8 @@ using FdSetSocket = int;
 // never paints within this window is treated as blank/locked and fails fast
 // instead of feeding an all-black screenshot to the caller.
 constexpr int kFirstFrameTimeoutMs = 20'000;
+constexpr int kCaptureFrameSettleMs = 120;
+constexpr int kCaptureFrameMaxWaitMs = 1'000;
 // The first frame should prove that real desktop pixels reached the primary
 // buffer without requiring a complex wallpaper or fully loaded app content.
 constexpr size_t kMinInformativeColorCount = 128;
@@ -433,11 +435,11 @@ bool HasPendingFramebufferInvalidation(rdpContext* context) {
   return hwnd->ninvalid > 0 && hwnd->invalid && !hwnd->invalid->null;
 }
 
-std::optional<RawFrame> CaptureInformativeFramebuffer(rdpContext* context) {
+bool IsInformativeFramebuffer(rdpContext* context) {
   if (!context || !context->gdi || !context->gdi->primary_buffer ||
       context->gdi->width <= 0 || context->gdi->height <= 0 ||
       context->gdi->stride == 0) {
-    return std::nullopt;
+    return false;
   }
 
   rdpGdi* gdi = context->gdi;
@@ -445,7 +447,7 @@ std::optional<RawFrame> CaptureInformativeFramebuffer(rdpContext* context) {
   const auto height = static_cast<size_t>(gdi->height);
   const auto stride = static_cast<size_t>(gdi->stride);
   if (stride < width * 4) {
-    return std::nullopt;
+    return false;
   }
 
   const BYTE* buffer = gdi->primary_buffer;
@@ -486,16 +488,10 @@ std::optional<RawFrame> CaptureInformativeFramebuffer(rdpContext* context) {
 
   if (colors.size() < kMinInformativeColorCount ||
       non_black_pixels < min_non_black_pixels) {
-    return std::nullopt;
+    return false;
   }
 
-  RawFrame frame;
-  frame.size.width = gdi->width;
-  frame.size.height = gdi->height;
-  frame.stride = stride;
-  const size_t buffer_size = stride * height;
-  frame.bgra.assign(buffer, buffer + buffer_size);
-  return frame;
+  return true;
 }
 
 // EndPaint hook chained onto FreeRDP's update pipeline. FreeRDP invokes this
@@ -512,9 +508,8 @@ BOOL MidsceneEndPaint(rdpContext* context) {
     if (ok && framebuffer_invalidated) {
       if (already_painted) {
         typed_context->owner->MarkFramePainted();
-      } else if (auto first_frame = CaptureInformativeFramebuffer(context);
-                 first_frame.has_value()) {
-        typed_context->owner->MarkFramePainted(std::move(first_frame));
+      } else if (IsInformativeFramebuffer(context)) {
+        typed_context->owner->MarkFramePainted();
       }
     }
   }
@@ -976,11 +971,6 @@ ConnectionInfo FreeRdpSessionTransport::Connect(const ConnectionConfig& config) 
     mouse_x_ = 0;
     mouse_y_ = 0;
     frames_painted_.store(0, std::memory_order_relaxed);
-    {
-      std::lock_guard<std::mutex> frame_lock(frame_mutex_);
-      first_frame_.reset();
-      first_frame_consumed_ = false;
-    }
     original_end_paint_ = nullptr;
     ClearSessionErrorLocked();
   }
@@ -1063,36 +1053,51 @@ void FreeRdpSessionTransport::Disconnect() {
 }
 
 RawFrame FreeRdpSessionTransport::CaptureFrame() {
-  std::lock_guard<std::mutex> lock(mutex_);
-  if (!connected_ || !instance_ || !instance_->context || !instance_->context->gdi) {
-    throw std::runtime_error("No remote framebuffer is available");
-  }
+  const auto deadline = std::chrono::steady_clock::now() +
+                        std::chrono::milliseconds(kCaptureFrameMaxWaitMs);
 
-  if (frames_painted_.load(std::memory_order_relaxed) == 0) {
-    throw std::runtime_error(
-        "Remote framebuffer has not received its first paint yet");
-  }
+  while (true) {
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      if (!connected_ || !instance_ || !instance_->context ||
+          !instance_->context->gdi) {
+        throw std::runtime_error("No remote framebuffer is available");
+      }
 
-  {
-    std::lock_guard<std::mutex> frame_lock(frame_mutex_);
-    if (!first_frame_consumed_ && first_frame_.has_value()) {
-      first_frame_consumed_ = true;
-      return *first_frame_;
+      if (frames_painted_.load(std::memory_order_relaxed) == 0) {
+        throw std::runtime_error(
+            "Remote framebuffer has not received its first paint yet");
+      }
     }
-  }
 
-  rdpGdi* gdi = instance_->context->gdi;
-  if (!gdi->primary_buffer || gdi->width <= 0 || gdi->height <= 0 || gdi->stride == 0) {
-    throw std::runtime_error("Remote framebuffer is empty");
-  }
+    const uint64_t settled_frame_count = WaitForSettledFramebuffer(deadline);
 
-  RawFrame frame;
-  frame.size.width = gdi->width;
-  frame.size.height = gdi->height;
-  frame.stride = static_cast<size_t>(gdi->stride);
-  const size_t buffer_size = frame.stride * static_cast<size_t>(gdi->height);
-  frame.bgra.assign(gdi->primary_buffer, gdi->primary_buffer + buffer_size);
-  return frame;
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!connected_ || !instance_ || !instance_->context ||
+        !instance_->context->gdi) {
+      throw std::runtime_error("No remote framebuffer is available");
+    }
+
+    if (frames_painted_.load(std::memory_order_relaxed) !=
+            settled_frame_count &&
+        std::chrono::steady_clock::now() < deadline) {
+      continue;
+    }
+
+    rdpGdi* gdi = instance_->context->gdi;
+    if (!gdi->primary_buffer || gdi->width <= 0 || gdi->height <= 0 ||
+        gdi->stride == 0) {
+      throw std::runtime_error("Remote framebuffer is empty");
+    }
+
+    RawFrame frame;
+    frame.size.width = gdi->width;
+    frame.size.height = gdi->height;
+    frame.stride = static_cast<size_t>(gdi->stride);
+    const size_t buffer_size = frame.stride * static_cast<size_t>(gdi->height);
+    frame.bgra.assign(gdi->primary_buffer, gdi->primary_buffer + buffer_size);
+    return frame;
+  }
 }
 
 Size FreeRdpSessionTransport::GetSize() {
@@ -1337,11 +1342,6 @@ void FreeRdpSessionTransport::ResetStateLocked() {
   connected_ = false;
   gdi_initialized_ = false;
   frames_painted_.store(0, std::memory_order_relaxed);
-  {
-    std::lock_guard<std::mutex> frame_lock(frame_mutex_);
-    first_frame_.reset();
-    first_frame_consumed_ = false;
-  }
   original_end_paint_ = nullptr;
   mouse_x_ = 0;
   mouse_y_ = 0;
@@ -1367,16 +1367,9 @@ BOOL FreeRdpSessionTransport::CallOriginalEndPaint(rdpContext* context) {
   return TRUE;
 }
 
-void FreeRdpSessionTransport::MarkFramePainted(
-    std::optional<RawFrame> first_frame) {
+void FreeRdpSessionTransport::MarkFramePainted() {
   {
     std::lock_guard<std::mutex> lock(frame_mutex_);
-    if (first_frame.has_value() &&
-        frames_painted_.load(std::memory_order_relaxed) == 0 &&
-        !first_frame_.has_value()) {
-      first_frame_ = std::move(*first_frame);
-      first_frame_consumed_ = false;
-    }
     frames_painted_.fetch_add(1, std::memory_order_relaxed);
   }
   frame_cv_.notify_all();
@@ -1392,6 +1385,31 @@ void FreeRdpSessionTransport::SignalSessionInactive() {
     session_active_.store(false, std::memory_order_relaxed);
   }
   frame_cv_.notify_all();
+}
+
+uint64_t FreeRdpSessionTransport::WaitForSettledFramebuffer(
+    std::chrono::steady_clock::time_point deadline) {
+  std::unique_lock<std::mutex> frame_lock(frame_mutex_);
+  uint64_t observed = frames_painted_.load(std::memory_order_relaxed);
+
+  while (session_active_.load(std::memory_order_relaxed) &&
+         std::chrono::steady_clock::now() < deadline) {
+    const auto quiet_until =
+        std::min(deadline, std::chrono::steady_clock::now() +
+                               std::chrono::milliseconds(kCaptureFrameSettleMs));
+    const bool changed = frame_cv_.wait_until(frame_lock, quiet_until, [&] {
+      return frames_painted_.load(std::memory_order_relaxed) != observed ||
+             !session_active_.load(std::memory_order_relaxed);
+    });
+
+    if (!changed) {
+      return frames_painted_.load(std::memory_order_relaxed);
+    }
+
+    observed = frames_painted_.load(std::memory_order_relaxed);
+  }
+
+  return frames_painted_.load(std::memory_order_relaxed);
 }
 
 void FreeRdpSessionTransport::ClearSessionErrorLocked() {

@@ -67,26 +67,24 @@ std::vector<uint8_t> BuildImageData(const RawFrame& frame) {
   }
 
   std::vector<uint8_t> image_data;
-  image_data.reserve(height * (1 + width * 4));
+  image_data.reserve(height * (1 + width * 3));
 
   for (size_t y = 0; y < height; y++) {
     image_data.push_back(0);
     const size_t row_offset = y * frame.stride;
     for (size_t x = 0; x < width; x++) {
       const size_t pixel_offset = row_offset + x * 4;
-      if (pixel_offset + 3 >= frame.bgra.size()) {
+      if (pixel_offset + 2 >= frame.bgra.size()) {
         throw std::runtime_error("Remote framebuffer buffer is truncated");
       }
 
       const uint8_t blue = frame.bgra[pixel_offset];
       const uint8_t green = frame.bgra[pixel_offset + 1];
       const uint8_t red = frame.bgra[pixel_offset + 2];
-      const uint8_t alpha = frame.bgra[pixel_offset + 3];
 
       image_data.push_back(red);
       image_data.push_back(green);
       image_data.push_back(blue);
-      image_data.push_back(alpha);
     }
   }
 
@@ -138,7 +136,10 @@ std::vector<uint8_t> EncodeFrameAsPng(const RawFrame& frame) {
   AppendUint32BigEndian(ihdr, static_cast<uint32_t>(frame.size.width));
   AppendUint32BigEndian(ihdr, static_cast<uint32_t>(frame.size.height));
   ihdr.push_back(8);
-  ihdr.push_back(6);
+  // The RDP primary buffer is BGRA32, but the alpha byte is padding/unused for
+  // desktop pixels in this path. Encoding it as PNG alpha makes valid regions
+  // render transparent or black in dark previews, so emit opaque truecolor.
+  ihdr.push_back(2);
   ihdr.push_back(0);
   ihdr.push_back(0);
   ihdr.push_back(0);

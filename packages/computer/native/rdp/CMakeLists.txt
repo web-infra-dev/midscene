@@ -58,6 +58,32 @@ target_link_libraries(
   Threads::Threads
 )
 
+add_executable(
+  rdp-helper-png-test
+  tests/png_test.cpp
+  src/png.cpp
+)
+
+target_include_directories(
+  rdp-helper-png-test
+  PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${FREERDP_INCLUDE_DIRS}
+)
+
+target_link_libraries(
+  rdp-helper-png-test
+  PRIVATE
+  ${FREERDP_LIBRARIES}
+  Threads::Threads
+)
+
+add_custom_command(
+  TARGET rdp-helper-png-test
+  POST_BUILD
+  COMMAND $<TARGET_FILE:rdp-helper-png-test>
+)
+
 if(APPLE)
   target_compile_definitions(rdp-helper PRIVATE _DARWIN_C_SOURCE)
 endif()
