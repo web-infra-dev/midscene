@@ -192,9 +192,9 @@ A per-call value always wins over the startup flag: action tools accept `locate.
 
 ## Configure Agent behavior per call
 
-MCP tools and the device CLIs also accept common Agent behavior parameters. Use them when a target UI needs a longer settle time, a different `act` replanning limit, extra action context, or smaller screenshots.
+MCP tools and the device CLIs also accept common Agent behavior parameters. Use them when a target UI needs a longer settle time, a different `act` replanning limit, extra action context, or smaller screenshots. These parameters are the per-call form of the same Agent options documented in [API reference (Common)](./api#parameters).
 
-In the device CLIs, pass the bare kebab-case flags on each command that should use them:
+In the device CLIs, convert the API camelCase option name to a bare kebab-case flag and pass it on each command that should use it. The generated CLI also accepts the original camelCase alias shown in `--help`, but docs and examples use kebab-case:
 
 ```bash
 midscene-android tap --locate "the login button" --wait-after-action 800
@@ -202,14 +202,15 @@ midscene-web act --prompt "finish checkout" --replanning-cycle-limit 30
 midscene-ios assert --prompt "the success message is visible" --screenshot-shrink-factor 2
 ```
 
-Available flags:
+Common flags:
 
-- `--wait-after-action <ms>`: wait time after each action execution. The default is `300`.
-- `--replanning-cycle-limit <n>`: maximum number of `aiAct` replanning cycles.
-- `--ai-act-context <text>`: extra background knowledge for `aiAct`.
-- `--screenshot-shrink-factor <n>`: shrink screenshots before sending them to the AI model.
+- `--wait-after-action <ms>` maps to `waitAfterAction`: wait time after each action execution. The default is `300`.
+- `--replanning-cycle-limit <n>` maps to `replanningCycleLimit`: maximum number of `aiAct` replanning cycles.
+- `--ai-act-context <text>` maps to `aiActContext`: extra background knowledge for `aiAct`.
+- `--ai-action-context <text>` maps to `aiActionContext`: deprecated alias for `aiActContext`.
+- `--screenshot-shrink-factor <n>` maps to `screenshotShrinkFactor`: shrink screenshots before sending them to the AI model.
 
-In MCP calls, use the same camelCase names under the platform namespace: `android.waitAfterAction`, `harmony.waitAfterAction`, `ios.waitAfterAction`, `computer.waitAfterAction`, or `web.waitAfterAction`. The same pattern applies to `replanningCycleLimit`, `aiActContext`, and `screenshotShrinkFactor`.
+In MCP calls, keep the API camelCase name and put it under the platform namespace: `android.waitAfterAction`, `harmony.waitAfterAction`, `ios.waitAfterAction`, `computer.waitAfterAction`, or `web.waitAfterAction`. The same pattern applies to `replanningCycleLimit`, `aiActContext`, `aiActionContext`, and `screenshotShrinkFactor`.
 
 These parameters are part of the Agent init args for that tool call. If a later call changes them, or omits them after setting them, Midscene rebuilds the Agent so the next call uses the new effective configuration. For Web tools, `web.url` opens or navigates to the URL each time it is supplied; omit it to keep using the current page.
 
