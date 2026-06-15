@@ -178,7 +178,7 @@ describe('Page startMjpegStream', () => {
       onFrame: vi.fn(),
     };
 
-    let resolveFirstFlush: (() => void) | null = null;
+    let resolveFirstFlush = () => {};
     const flushSpy = vi
       .spyOn(page, 'flushPendingVisualUpdate')
       .mockImplementationOnce(

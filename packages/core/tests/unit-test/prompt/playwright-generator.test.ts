@@ -41,7 +41,11 @@ describe('playwright-generator', () => {
     {
       type: 'click',
       timestamp: 2000,
-      elementDescription: 'Login button',
+      semantic: {
+        source: 'heuristic',
+        status: 'ready',
+        elementDescription: 'Login button',
+      },
       screenshotWithBox: 'data:image/png;base64,screenshot2',
       pageInfo: { width: 1280, height: 800 },
       hashId: 'click-1',
@@ -49,7 +53,11 @@ describe('playwright-generator', () => {
     {
       type: 'input',
       timestamp: 3000,
-      elementDescription: 'Username field',
+      semantic: {
+        source: 'heuristic',
+        status: 'ready',
+        elementDescription: 'Username field',
+      },
       value: 'testuser',
       screenshotAfter: 'data:image/png;base64,screenshot3',
       pageInfo: { width: 1280, height: 800 },
@@ -144,7 +152,11 @@ describe('playwright-generator', () => {
         {
           type: 'input',
           timestamp: 1000,
-          elementDescription: '',
+          semantic: {
+            source: 'heuristic',
+            status: 'ready',
+            elementDescription: '',
+          },
           value: 'test',
           pageInfo: { width: 1280, height: 800 },
           hashId: 'empty-input',
@@ -152,7 +164,11 @@ describe('playwright-generator', () => {
         {
           type: 'input',
           timestamp: 2000,
-          elementDescription: 'Field',
+          semantic: {
+            source: 'heuristic',
+            status: 'ready',
+            elementDescription: 'Field',
+          },
           value: '',
           pageInfo: { width: 1280, height: 800 },
           hashId: 'empty-value',
@@ -160,7 +176,11 @@ describe('playwright-generator', () => {
         {
           type: 'input',
           timestamp: 3000,
-          elementDescription: 'Valid field',
+          semantic: {
+            source: 'heuristic',
+            status: 'ready',
+            elementDescription: 'Valid field',
+          },
           value: 'valid value',
           pageInfo: { width: 1280, height: 800 },
           hashId: 'valid-input',
@@ -186,7 +206,7 @@ describe('playwright-generator', () => {
           timestamp: 1000,
           url: 'https://example.com',
           title: 'Example Page',
-          elementDescription: undefined,
+          semantic: undefined,
           description: 'Navigate to https://example.com',
           value: undefined,
           pageInfo: { width: 1280, height: 800 },

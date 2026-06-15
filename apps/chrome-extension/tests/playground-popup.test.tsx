@@ -28,6 +28,18 @@ vi.mock('@midscene/visualizer', () => ({
 }));
 
 vi.mock('antd', () => ({
+  App: Object.assign(
+    ({ children }: { children: React.ReactNode }) => children,
+    {
+      useApp: () => ({
+        message: {
+          error: vi.fn(),
+          info: vi.fn(),
+          success: vi.fn(),
+        },
+      }),
+    },
+  ),
   ConfigProvider: ({ children }: { children: React.ReactNode }) => children,
   Dropdown: ({ children }: { children: React.ReactNode }) => children,
 }));

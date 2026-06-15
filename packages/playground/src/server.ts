@@ -1,7 +1,7 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import type { Server } from 'node:http';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type {
   DeviceAction,
@@ -161,30 +161,14 @@ function sanitizeRecorderPathSegment(
   const normalized =
     typeof value === 'string' && value.trim() ? value.trim() : fallback;
   const sanitized = normalized
-    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
   return (sanitized || fallback).slice(0, maxLength);
 }
 
-function getRecorderEventTimestampForPath(event: PlaygroundRecorderEvent) {
-  if (typeof event.timestamp === 'number' && Number.isFinite(event.timestamp)) {
-    return event.timestamp;
-  }
-  const hashTimestamp = event.hashId?.match(/-(\d{10,})-/)?.[1];
-  if (hashTimestamp) {
-    const timestamp = Number(hashTimestamp);
-    if (Number.isFinite(timestamp)) {
-      return timestamp;
-    }
-  }
-  return Date.now();
-}
-
-function formatRecorderAiDescribeScreenshotPathParts(
-  event: PlaygroundRecorderEvent,
-) {
-  const date = new Date(getRecorderEventTimestampForPath(event));
+function formatRecorderAiDescribeScreenshotPathParts() {
+  const date = new Date();
   const localDate = Number.isNaN(date.getTime()) ? new Date() : date;
   const pad = (value: number, length = 2) =>
     String(value).padStart(length, '0');
@@ -200,26 +184,26 @@ function formatRecorderAiDescribeScreenshotPathParts(
     pad(localDate.getMilliseconds(), 3),
   ].join('-');
   const hourPart = timePart.slice(0, 2) || 'unknown-hour';
-  const hashId = event.hashId?.match(/(\d{10,}(?:-[a-zA-Z0-9]+)?)/)?.[1];
-  const eventId = sanitizeRecorderPathSegment(
-    hashId || event.hashId,
-    'recorder-event',
-    48,
-  );
-  const action = sanitizeRecorderPathSegment(
-    event.actionType || event.type,
-    'event',
-    32,
-  );
   return {
     datePart,
     hourPart,
-    filePrefix: `${timePart}_${action}_${eventId}`,
+    filePrefix: `${timePart}_${randomUUID()}`,
   };
 }
 
+function assertPathInsideDirectory(rootDir: string, targetPath: string) {
+  const resolvedRoot = resolve(rootDir);
+  const resolvedTarget = resolve(targetPath);
+  if (
+    resolvedTarget !== resolvedRoot &&
+    !resolvedTarget.startsWith(`${resolvedRoot}${sep}`)
+  ) {
+    throw new Error(`Refusing to write recorder dump outside ${resolvedRoot}`);
+  }
+  return resolvedTarget;
+}
+
 function writeRecorderAiDescribeScreenshot(
-  event: PlaygroundRecorderEvent,
   imageBase64: string,
   suffix: string,
 ): RecorderAiDescribeScreenshotRef {
@@ -227,22 +211,19 @@ function writeRecorderAiDescribeScreenshot(
   const bytes = Buffer.from(base64, 'base64');
   const sha256 = createHash('sha256').update(bytes).digest('hex');
   const extension = mimeType?.includes('jpeg') ? 'jpg' : 'png';
-  const pathParts = formatRecorderAiDescribeScreenshotPathParts(event);
-  const dumpDir = join(
+  const pathParts = formatRecorderAiDescribeScreenshotPathParts();
+  const dumpRoot = resolve(
     getMidsceneRunSubDir('dump'),
     RECORDER_AI_DESCRIBE_SCREENSHOT_DUMP_DIR,
-    pathParts.datePart,
-    pathParts.hourPart,
+  );
+  const dumpDir = assertPathInsideDirectory(
+    dumpRoot,
+    join(dumpRoot, pathParts.datePart, pathParts.hourPart),
   );
   mkdirSync(dumpDir, { recursive: true });
-  const filePath = join(
-    dumpDir,
-    `${pathParts.filePrefix}_${sanitizeRecorderPathSegment(
-      suffix,
-      'screenshot',
-      24,
-    )}_${sha256.slice(0, 12)}.${extension}`,
-  );
+  const safeSuffix = suffix === 'annotated' ? 'annotated' : 'raw';
+  const fileName = `${pathParts.filePrefix}_${safeSuffix}.${extension}`;
+  const filePath = assertPathInsideDirectory(dumpRoot, join(dumpDir, fileName));
   if (!existsSync(filePath)) {
     writeFileSync(filePath, bytes);
   }
@@ -379,7 +360,6 @@ async function persistRecorderAiDescribeScreenshot(
   }
 
   const screenshotRef = writeRecorderAiDescribeScreenshot(
-    event,
     eventScreenshot,
     'raw',
   );
@@ -406,7 +386,6 @@ async function persistRecorderAiDescribeScreenshot(
         annotatedRects,
       );
       annotatedScreenshotRef = writeRecorderAiDescribeScreenshot(
-        event,
         annotatedScreenshot,
         'annotated',
       );

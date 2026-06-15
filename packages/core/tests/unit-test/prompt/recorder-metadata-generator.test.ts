@@ -24,6 +24,8 @@ describe('recorder-metadata-generator', () => {
         title: 'Example Recording',
         description: 'The user completed an example workflow.',
       },
+      contentString:
+        '{"title":"Example Recording","description":"The user completed an example workflow."}',
       usage: undefined,
     });
   });

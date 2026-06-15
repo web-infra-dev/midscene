@@ -409,21 +409,21 @@ describe('common utilities', () => {
       });
     });
 
-    it('should fallback to agent method when action not found', async () => {
+    it('should call allowlisted agent methods when action not found', async () => {
       const mockCustomAction = vi.fn().mockResolvedValue('custom result');
       const activeAgent = createMockPlaygroundAgent({
-        customAction: mockCustomAction,
+        aiString: mockCustomAction,
       });
 
       const value: FormValue = {
-        type: 'customAction',
+        type: 'aiString',
         prompt: 'test prompt',
       };
       const options: ExecutionOptions = {};
 
       const result = await executeAction(
         activeAgent,
-        'customAction',
+        'aiString',
         [],
         value,
         options,
@@ -431,6 +431,27 @@ describe('common utilities', () => {
 
       expect(result).toBe('custom result');
       expect(mockCustomAction).toHaveBeenCalledWith('test prompt', options);
+    });
+
+    it('should reject non-allowlisted agent methods when action not found', async () => {
+      const mockCustomAction = vi.fn().mockResolvedValue('custom result');
+      const activeAgent = createMockPlaygroundAgent({
+        customAction: mockCustomAction,
+      });
+
+      await expect(
+        executeAction(
+          activeAgent,
+          'customAction',
+          [],
+          {
+            type: 'customAction',
+            prompt: 'test prompt',
+          },
+          {},
+        ),
+      ).rejects.toThrow('Unknown action type: customAction');
+      expect(mockCustomAction).not.toHaveBeenCalled();
     });
 
     it('should throw error for unknown action type', async () => {

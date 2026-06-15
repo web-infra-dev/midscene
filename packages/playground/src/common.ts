@@ -21,6 +21,46 @@ export const validationAPIs = ['aiAssert', 'aiWaitFor'];
 
 export const noReplayAPIs = [...dataExtractionAPIs, ...validationAPIs];
 
+const agentPromptAPIs = [
+  'aiAct',
+  'runMarkdown',
+  'aiQuery',
+  'aiBoolean',
+  'aiNumber',
+  'aiString',
+  'aiAsk',
+  'aiWaitFor',
+] as const;
+
+type AgentPromptAPI = (typeof agentPromptAPIs)[number];
+
+const agentPromptAPISet = new Set<string>(agentPromptAPIs);
+
+function getAgentPromptAPI(
+  activeAgent: PlaygroundAgent,
+  actionType: string,
+):
+  | ((
+      prompt: string | undefined,
+      options: ExecutionOptions,
+    ) => Promise<unknown>)
+  | undefined {
+  if (!agentPromptAPISet.has(actionType)) {
+    return undefined;
+  }
+
+  const methodName = actionType as AgentPromptAPI;
+  const method = activeAgent[methodName] as unknown;
+  if (typeof method !== 'function') {
+    return undefined;
+  }
+
+  return async (prompt, options) =>
+    (
+      method as (prompt: string, options: ExecutionOptions) => Promise<unknown>
+    ).call(activeAgent, prompt || '', options);
+}
+
 export const formatErrorMessage = (e: any): string => {
   const errorMessage = e?.message || '';
 
@@ -237,8 +277,8 @@ export async function executeAction(
       return { pass: pass || false, thought: thought || '' };
     }
 
-    // Fallback for methods not found in actionSpace
-    if (activeAgent && typeof activeAgent[actionType] === 'function') {
+    const agentPromptAPI = getAgentPromptAPI(activeAgent, actionType);
+    if (agentPromptAPI) {
       const { reportDisplay, ...agentOptions } = options;
       const optionsForAgent = reportDisplay
         ? {
@@ -246,7 +286,7 @@ export async function executeAction(
             _internalReportDisplay: reportDisplay,
           }
         : agentOptions;
-      return await activeAgent[actionType](prompt, optionsForAgent);
+      return await agentPromptAPI(prompt, optionsForAgent);
     }
 
     throw new Error(`Unknown action type: ${actionType}`);

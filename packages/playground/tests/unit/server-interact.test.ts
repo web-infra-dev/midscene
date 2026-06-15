@@ -96,31 +96,6 @@ function makeInputPrimitiveStub(
   };
 }
 
-function formatLocalRecorderScreenshotPathPrefix(
-  timestamp: number,
-  actionType: string,
-  eventId: string,
-) {
-  const date = new Date(timestamp);
-  const pad = (value: number, length = 2) =>
-    String(value).padStart(length, '0');
-  const datePart = [
-    date.getFullYear(),
-    pad(date.getMonth() + 1),
-    pad(date.getDate()),
-  ].join('-');
-  const timePart = [
-    pad(date.getHours()),
-    pad(date.getMinutes()),
-    pad(date.getSeconds()),
-    pad(date.getMilliseconds(), 3),
-  ].join('-');
-  return `recorder-ai-describe-screenshots/${datePart}/${timePart.slice(
-    0,
-    2,
-  )}/${timePart}_${actionType}_${eventId}`;
-}
-
 describe('PlaygroundServer manual interaction APIs', () => {
   test('POST /execute resets stale preview dumps before replay execution', async () => {
     const dump = {
@@ -822,12 +797,8 @@ describe('PlaygroundServer manual interaction APIs', () => {
         status: 'failed',
         error: 'aiDescribe verification failed.',
         screenshotRef: {
-          path: expect.stringContaining(
-            `${formatLocalRecorderScreenshotPathPrefix(
-              123,
-              'Tap',
-              'verify-failed-event',
-            )}_raw_`,
+          path: expect.stringMatching(
+            /recorder-ai-describe-screenshots\/\d{4}-\d{2}-\d{2}\/\d{2}\/.+_raw\.png$/,
           ),
           sha256: expect.any(String),
           bytes: expect.any(Number),
@@ -851,6 +822,48 @@ describe('PlaygroundServer manual interaction APIs', () => {
     });
     const trace = (describeResponse.body as any).trace;
     expect(trace.annotatedScreenshotPersistError).toEqual(expect.any(String));
+  });
+
+  test('recorder sanitizes screenshot dump paths from event metadata', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => VALID_PNG_BASE64,
+        size: async () => ({ width: 20, height: 20 }),
+      },
+    } as any);
+
+    await server.launch(6130);
+
+    const describeResponse = await describeRecorderEvent(server, {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: '../Tap/../../escape',
+      rawPayload: { actionType: '../Tap/../../escape', x: 2.5, y: 2.5 },
+      elementRect: {
+        x: 2.5,
+        y: 2.5,
+        left: 0,
+        top: 0,
+        width: 5,
+        height: 5,
+      },
+      pageInfo: { width: 20, height: 20 },
+      screenshotBefore: VALID_PNG_BASE64,
+      timestamp: 123,
+      hashId: '../../outside',
+    });
+
+    const screenshotPath = (describeResponse.body as any).trace.screenshotRef
+      .path;
+    expect(screenshotPath).toContain('recorder-ai-describe-screenshots');
+    expect(screenshotPath).not.toContain('..');
+    expect(screenshotPath).not.toContain('/outside/');
+    expect(screenshotPath).not.toContain('Tap-escape');
+    expect(screenshotPath).toMatch(/_raw\.png$/);
   });
 
   test('recorder reports verification failure when aiDescribe times out after failed progress', async () => {
