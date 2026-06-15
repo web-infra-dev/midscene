@@ -30,4 +30,15 @@ describe('Agent reportFileName', () => {
         }),
     ).toThrow('reportFileName must be a non-empty string');
   });
+
+  it('rejects empty reportFileName even when report generation is disabled', () => {
+    expect(
+      () =>
+        new Agent(createMockInterface(), {
+          reportFileName: '',
+          generateReport: false,
+          modelConfig,
+        }),
+    ).toThrow('reportFileName must be a non-empty string');
+  });
 });

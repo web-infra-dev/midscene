@@ -934,6 +934,14 @@ describe('ReportGenerator — append-only model', () => {
       expect(gen).toBe(nullReportGenerator);
     });
 
+    it('should reject empty reportFileName when generateReport is false', () => {
+      expect(() =>
+        ReportGenerator.create('', {
+          generateReport: false,
+        }),
+      ).toThrow('reportFileName must be a non-empty string');
+    });
+
     it('should throw when persistExecutionDump is true and generateReport is false', () => {
       expect(() =>
         ReportGenerator.create('test-invalid', {
