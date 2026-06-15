@@ -1,8 +1,5 @@
 import type { DeviceAction } from '@/device';
-import type {
-  PlanningAction,
-  PlanningLocateParamWithLocatedPixelBbox,
-} from '@/types';
+import type { PixelBbox, PlanningAction, Size } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { finalizePixelBbox } from '../../shared/model-locate-result/bbox';
 import { mapLocateResultToPixelBboxByCoordinates } from '../../shared/model-locate-result/pixel-bbox-mapper';
@@ -12,23 +9,31 @@ const debug = getDebug('auto-glm-actions');
 /**
  * Auto-GLM coordinate system range: [0, AUTO_GLM_COORDINATE_MAX]
  */
-const AUTO_GLM_COORDINATE_MAX = 1000;
+export const AUTO_GLM_COORDINATE_MAX = 1000;
 
-function autoGLMCoordinateToLocateParam(
-  coordinate: [number, number],
-  size: { width: number; height: number },
-): PlanningLocateParamWithLocatedPixelBbox {
+type CoordinateDistanceAxis = 'x' | 'y';
+
+function coordinateDistanceToPixels(
+  delta: number,
+  axis: CoordinateDistanceAxis,
+  size: Size,
+): number {
+  const length = axis === 'x' ? size.width : size.height;
+  return Math.round((Math.abs(delta) * length) / AUTO_GLM_COORDINATE_MAX);
+}
+
+function autoGLMPointToLocatedPixelBbox(
+  point: [number, number],
+  size: Size,
+): PixelBbox {
   const ctx = { preparedSize: size };
   const pixelBbox = mapLocateResultToPixelBboxByCoordinates(
-    { type: 'point', coordinates: coordinate },
+    { type: 'point', coordinates: point },
     ctx,
     { shape: 'point', order: 'xy', normalizedBy: AUTO_GLM_COORDINATE_MAX },
   );
 
-  return {
-    prompt: '',
-    locatedPixelBbox: finalizePixelBbox(pixelBbox, coordinate, ctx),
-  };
+  return finalizePixelBbox(pixelBbox, point, ctx);
 }
 
 export interface BaseAction {
@@ -117,7 +122,7 @@ export interface FinishAction extends BaseAction {
   message: string;
 }
 
-export type ParsedAction =
+export type AutoGLMParsedAction =
   | TapAction
   | DoubleTapAction
   | TypeAction
@@ -151,9 +156,14 @@ function findActionName(
 }
 
 export function transformAutoGLMAction(
-  action: ParsedAction,
-  size: { width: number; height: number },
-  actionSpace?: DeviceAction[],
+  action: AutoGLMParsedAction,
+  {
+    actionSpace,
+    shotSize,
+  }: {
+    actionSpace?: DeviceAction[];
+    shotSize: Size;
+  },
 ): PlanningAction[] {
   try {
     switch (action._metadata) {
@@ -188,16 +198,18 @@ export function transformAutoGLMAction(
           case 'Tap': {
             const tapAction = doAction as TapAction;
             debug('Transform Tap action:', tapAction);
-            const locate = autoGLMCoordinateToLocateParam(
-              tapAction.element,
-              size,
-            );
 
             return [
               {
                 type: 'Tap',
                 param: {
-                  locate,
+                  locate: {
+                    locatedPixelBbox: autoGLMPointToLocatedPixelBbox(
+                      tapAction.element,
+                      shotSize,
+                    ),
+                    prompt: '',
+                  },
                 },
               },
             ];
@@ -205,16 +217,18 @@ export function transformAutoGLMAction(
           case 'Double Tap': {
             const doubleTapAction = doAction as DoubleTapAction;
             debug('Transform Double Tap action:', doubleTapAction);
-            const locate = autoGLMCoordinateToLocateParam(
-              doubleTapAction.element,
-              size,
-            );
 
             return [
               {
                 type: 'DoubleClick',
                 param: {
-                  locate,
+                  locate: {
+                    locatedPixelBbox: autoGLMPointToLocatedPixelBbox(
+                      doubleTapAction.element,
+                      shotSize,
+                    ),
+                    prompt: '',
+                  },
                 },
               },
             ];
@@ -236,11 +250,6 @@ export function transformAutoGLMAction(
             const swipeAction = doAction as SwipeAction;
             debug('Transform Swipe action:', swipeAction);
 
-            const locate = autoGLMCoordinateToLocateParam(
-              swipeAction.start,
-              size,
-            );
-
             // Calculate horizontal and vertical delta in [0,AUTO_GLM_COORDINATE_MAX] coordinate system
             const deltaX = swipeAction.end[0] - swipeAction.start[0];
             const deltaY = swipeAction.end[1] - swipeAction.start[1];
@@ -254,15 +263,11 @@ export function transformAutoGLMAction(
 
             if (absDeltaY > absDeltaX) {
               // Vertical scroll
-              distance = Math.round(
-                (absDeltaY * size.height) / AUTO_GLM_COORDINATE_MAX,
-              );
+              distance = coordinateDistanceToPixels(deltaY, 'y', shotSize);
               direction = deltaY > 0 ? 'up' : 'down';
             } else {
               // Horizontal scroll
-              distance = Math.round(
-                (absDeltaX * size.width) / AUTO_GLM_COORDINATE_MAX,
-              );
+              distance = coordinateDistanceToPixels(deltaX, 'x', shotSize);
               direction = deltaX > 0 ? 'left' : 'right';
             }
 
@@ -274,7 +279,13 @@ export function transformAutoGLMAction(
               {
                 type: 'Scroll',
                 param: {
-                  locate,
+                  locate: {
+                    locatedPixelBbox: autoGLMPointToLocatedPixelBbox(
+                      swipeAction.start,
+                      shotSize,
+                    ),
+                    prompt: '',
+                  },
                   // The scrolling direction here all refers to which direction of the page's content will appear on the screen.
                   distance,
                   direction,
@@ -286,16 +297,18 @@ export function transformAutoGLMAction(
           case 'Long Press': {
             const longPressAction = doAction as LongPressAction;
             debug('Transform Long Press action:', longPressAction);
-            const locate = autoGLMCoordinateToLocateParam(
-              longPressAction.element,
-              size,
-            );
 
             return [
               {
                 type: 'LongPress',
                 param: {
-                  locate,
+                  locate: {
+                    locatedPixelBbox: autoGLMPointToLocatedPixelBbox(
+                      longPressAction.element,
+                      shotSize,
+                    ),
+                    prompt: '',
+                  },
                 },
                 thought: longPressAction.think || '',
               },

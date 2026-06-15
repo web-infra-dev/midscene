@@ -20,13 +20,17 @@ import type {
   LocateResult,
 } from '../../workflows/inspect/types';
 import { parseAutoGLMLocateResponse } from './parser';
+import {
+  getAutoGLMChineseLocatePrompt,
+  getAutoGLMMultilingualLocatePrompt,
+} from './prompt';
 
 const debugInspect = getDebug('ai:inspect');
 
 export async function autoGlmLocate(
   elementDescription: TUserPrompt,
   options: LocateOptions,
-  getSystemPrompt: () => string,
+  isMultilingual: boolean,
 ): Promise<LocateResult> {
   const { context, modelRuntime } = options;
   const screenshotBase64 = context.screenshot.base64;
@@ -45,7 +49,12 @@ export async function autoGlmLocate(
   const imageHeight = locateImage.height;
 
   const msgs: InspectAIArgs = [
-    { role: 'system', content: getSystemPrompt() },
+    {
+      role: 'system',
+      content: isMultilingual
+        ? getAutoGLMMultilingualLocatePrompt()
+        : getAutoGLMChineseLocatePrompt(),
+    },
     {
       role: 'user',
       content: [

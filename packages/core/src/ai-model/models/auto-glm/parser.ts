@@ -1,5 +1,5 @@
 import { getDebug } from '@midscene/shared/logger';
-import type { ParsedAction } from './actions';
+import type { AutoGLMParsedAction } from './actions';
 
 const debug = getDebug('auto-glm-parser');
 
@@ -17,10 +17,10 @@ export const extractValueAfter = (src: string, key: string): string => {
   return rest;
 };
 
-export function parseAction(response: {
+export function parseAutoGLMPlanningAction(response: {
   think: string;
   content: string;
-}): ParsedAction {
+}): AutoGLMParsedAction {
   debug('Parsing action:', response);
   let trimmedResponse = '';
   try {
@@ -36,7 +36,7 @@ export function parseAction(response: {
         action: 'Type',
         text,
         think: response.think,
-      } as ParsedAction;
+      } as AutoGLMParsedAction;
     }
 
     if (trimmedResponse.startsWith('finish(message=')) {
@@ -46,7 +46,7 @@ export function parseAction(response: {
         _metadata: 'finish',
         message,
         think: response.think,
-      } as ParsedAction;
+      } as AutoGLMParsedAction;
     }
 
     if (trimmedResponse.startsWith('do(')) {
@@ -69,7 +69,7 @@ export function parseAction(response: {
             ...baseAction,
             action: 'Tap',
             element: [Number(elementMatch[1]), Number(elementMatch[2])],
-          } as ParsedAction;
+          } as AutoGLMParsedAction;
         }
         case 'Double Tap': {
           const elementMatch = trimmedResponse.match(/element=\[(\d+),(\d+)\]/);
@@ -81,7 +81,7 @@ export function parseAction(response: {
             ...baseAction,
             action: 'Double Tap',
             element: [Number(elementMatch[1]), Number(elementMatch[2])],
-          } as ParsedAction;
+          } as AutoGLMParsedAction;
         }
         case 'Swipe': {
           const startMatch = trimmedResponse.match(/start=\[(\d+),(\d+)\]/);
@@ -95,7 +95,7 @@ export function parseAction(response: {
             action: 'Swipe',
             start: [Number(startMatch[1]), Number(startMatch[2])],
             end: [Number(endMatch[1]), Number(endMatch[2])],
-          } as ParsedAction;
+          } as AutoGLMParsedAction;
         }
         case 'Long Press': {
           const elementMatch = trimmedResponse.match(/element=\[(\d+),(\d+)\]/);
@@ -107,17 +107,21 @@ export function parseAction(response: {
             ...baseAction,
             action: 'Long Press',
             element: [Number(elementMatch[1]), Number(elementMatch[2])],
-          } as ParsedAction;
+          } as AutoGLMParsedAction;
         }
         case 'Launch': {
           const app = extractValueAfter(trimmedResponse, 'app="');
-          return { ...baseAction, action: 'Launch', app } as ParsedAction;
+          return {
+            ...baseAction,
+            action: 'Launch',
+            app,
+          } as AutoGLMParsedAction;
         }
         case 'Back': {
-          return { ...baseAction, action: 'Back' } as ParsedAction;
+          return { ...baseAction, action: 'Back' } as AutoGLMParsedAction;
         }
         case 'Home': {
-          return { ...baseAction, action: 'Home' } as ParsedAction;
+          return { ...baseAction, action: 'Home' } as AutoGLMParsedAction;
         }
         case 'Wait': {
           const durationMatch = trimmedResponse.match(
@@ -134,10 +138,10 @@ export function parseAction(response: {
             ...baseAction,
             action: 'Wait',
             durationMs,
-          } as ParsedAction;
+          } as AutoGLMParsedAction;
         }
         case 'Interact': {
-          return { ...baseAction, action: 'Interact' } as ParsedAction;
+          return { ...baseAction, action: 'Interact' } as AutoGLMParsedAction;
         }
         case 'Call_API': {
           const instruction = extractValueAfter(
@@ -148,7 +152,7 @@ export function parseAction(response: {
             ...baseAction,
             action: 'Call_API',
             instruction,
-          } as ParsedAction;
+          } as AutoGLMParsedAction;
         }
         case 'Take_over': {
           const message = extractValueAfter(trimmedResponse, 'message="');
@@ -156,7 +160,7 @@ export function parseAction(response: {
             ...baseAction,
             action: 'Take_over',
             message,
-          } as ParsedAction;
+          } as AutoGLMParsedAction;
         }
         case 'Note': {
           const message = extractValueAfter(trimmedResponse, 'message="');
@@ -164,7 +168,7 @@ export function parseAction(response: {
             ...baseAction,
             action: 'Note',
             message,
-          } as ParsedAction;
+          } as AutoGLMParsedAction;
         }
         default:
           throw new Error(
@@ -185,28 +189,43 @@ export function parseAutoGLMResponse(content: string): {
   think: string;
   content: string;
 } {
+  let parsedResponse: { think: string; content: string };
+
   if (content.includes('finish(message=')) {
     const parts = content.split('finish(message=');
     const think = parts[0].trim();
     const actionContent = `finish(message=${parts[1]}`;
-    return { think, content: actionContent };
-  }
-  if (content.includes('do(action=')) {
+    parsedResponse = { think, content: actionContent };
+  } else if (content.includes('do(action=')) {
     const parts = content.split('do(action=');
     const think = parts[0].trim();
     const actionContent = `do(action=${parts[1]}`;
-    return { think, content: actionContent };
-  }
-  if (content.includes('<answer>')) {
+    parsedResponse = { think, content: actionContent };
+  } else if (content.includes('<answer>')) {
     const parts = content.split('<answer>');
     const think = parts[0]
       .replace(/<think>/g, '')
       .replace(/<\/think>/g, '')
       .trim();
     const actionContent = parts[1].replace(/<\/answer>/g, '').trim();
-    return { think, content: actionContent };
+    parsedResponse = { think, content: actionContent };
+  } else {
+    parsedResponse = { think: '', content };
   }
-  return { think: '', content };
+
+  debug('autoGLM rawResponse:', content);
+  debug('thinking in response:', parsedResponse.think);
+  debug('action in response:', parsedResponse.content);
+  return parsedResponse;
+}
+
+export function parseAutoGLMPlanningResponse(content: string): {
+  response: ReturnType<typeof parseAutoGLMResponse>;
+  action: AutoGLMParsedAction;
+} {
+  const response = parseAutoGLMResponse(content);
+  const action = parseAutoGLMPlanningAction(response);
+  return { response, action };
 }
 
 export function parseAutoGLMLocateResponse(rawResponse: string): {

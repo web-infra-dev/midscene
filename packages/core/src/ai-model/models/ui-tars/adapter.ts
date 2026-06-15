@@ -14,7 +14,7 @@ import type {
   JsonParserSource,
   ModelAdapterDefinition,
 } from '../types';
-import { uiTarsPlanning } from './planning';
+import { createUiTarsPlanner } from './planning';
 
 const defaultVlmUiTarsReplanningCycleLimit = 40;
 
@@ -193,8 +193,7 @@ function createUiTarsAdapter(
       kind: 'custom',
       cacheEnabled: false,
       defaultReplanningCycleLimit: defaultVlmUiTarsReplanningCycleLimit,
-      planFn: (userInstruction, options) =>
-        uiTarsPlanning(userInstruction, options, uiTarsModelVersion),
+      planner: createUiTarsPlanner(uiTarsModelVersion),
     },
     locate: {
       resultAdapter: {

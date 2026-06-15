@@ -15,6 +15,10 @@ import type {
 } from '../shared/model-locate-result/types';
 import type { ImagePreprocessPolicy } from '../workflows/image-preprocess';
 import type { LocateFn } from '../workflows/inspect/types';
+import type {
+  CustomPlanning,
+  CustomPlanningDefinition,
+} from '../workflows/planning/custom-planning';
 import type { PlanFn } from '../workflows/planning/types';
 
 export type {
@@ -120,10 +124,19 @@ export type PlanningDefinition =
   | (Partial<PlanningPolicy> & {
       kind?: 'standard';
     })
-  | (Partial<PlanningPolicy> & {
-      kind: 'custom';
-      planFn: PlanFn;
-    });
+  | (Partial<PlanningPolicy> &
+      (
+        | {
+            kind: 'custom';
+            planner: CustomPlanningDefinition<any>;
+            planFn?: never;
+          }
+        | {
+            kind: 'custom';
+            planFn: PlanFn;
+            planner?: never;
+          }
+      ));
 
 interface LocatePolicy {
   supportsSearchArea: boolean;
