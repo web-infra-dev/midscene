@@ -18,6 +18,7 @@ import {
 import { useStudioPlayground } from '../../playground/useStudioPlayground';
 import { isStudioRecorderEntryEnabled } from '../../recorder/feature-flag';
 import type { StudioRecorderPanelMode } from '../../recorder/types';
+import { useOptionalStudioRecorder } from '../../recorder/useStudioRecorder';
 import ConnectingPreview from '../ConnectingPreview';
 import ConnectionFailedPreview from '../ConnectionFailedPreview';
 import DisconnectedPreview from '../DisconnectedPreview';
@@ -302,6 +303,7 @@ export default function MainContent({
   titlebarInsetLeft = 0,
 }: MainContentProps) {
   const studioPlayground = useStudioPlayground();
+  const recorder = useOptionalStudioRecorder();
   const [previewStatus, setPreviewStatus] =
     useState<StudioPreviewConnectionState>(null);
   // Connected device's intrinsic screen size, reported by PreviewRenderer
@@ -447,6 +449,11 @@ export default function MainContent({
         },
       ]
     : [];
+  const stopRecordingBeforeSessionDestroy = async () => {
+    if (recorder?.state.isRecording) {
+      await recorder.stopRecording();
+    }
+  };
 
   useEffect(() => {
     if (!isConnected) {
@@ -667,6 +674,7 @@ export default function MainContent({
             state.form.setFieldsValue(selectionValues);
             onSelectDeviceView?.();
             if (state.sessionViewState.connected) {
+              await stopRecordingBeforeSessionDestroy();
               await actions.destroySession();
             }
             await actions.createSession({
@@ -709,6 +717,7 @@ export default function MainContent({
             state.form.setFieldsValue(selectionValues);
             onSelectDeviceView?.();
             if (state.sessionViewState.connected) {
+              await stopRecordingBeforeSessionDestroy();
               await actions.destroySession();
             }
             await actions.createSession({
@@ -735,6 +744,7 @@ export default function MainContent({
             }
             state.form.setFieldsValue(selectionValues);
             if (state.sessionViewState.connected) {
+              await stopRecordingBeforeSessionDestroy();
               await actions.destroySession();
             }
             const sessionValues = {
@@ -749,6 +759,7 @@ export default function MainContent({
             }
             const { actions, state } = studioPlayground.controller;
             if (state.sessionViewState.connected) {
+              await stopRecordingBeforeSessionDestroy();
               await actions.destroySession();
             }
           }}
@@ -876,7 +887,10 @@ export default function MainContent({
                   return;
                 }
 
-                void studioPlayground.controller.actions.destroySession();
+                void (async () => {
+                  await stopRecordingBeforeSessionDestroy();
+                  await studioPlayground.controller.actions.destroySession();
+                })();
                 // After tearing down the session, jump back to the
                 // Overview page so the user lands on a meaningful screen
                 // instead of an empty device pane.

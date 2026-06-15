@@ -221,40 +221,7 @@ describe('Agent describeElementAtPoint', () => {
     await agent.destroy();
   });
 
-  it('accepts points near the located rect edge when rectPadding is configured', async () => {
-    const agent = new Agent(createMockInterface(), {
-      generateReport: false,
-      modelConfig,
-    });
-    vi.spyOn(agent, 'aiLocate').mockResolvedValue({
-      rect: { left: 0, top: 0, width: 10, height: 10 },
-      center: [5, 5] as [number, number],
-    });
-
-    const result = await agent.verifyLocator(
-      'input text area',
-      undefined,
-      [15, 5],
-      {
-        centerDistanceThreshold: 1,
-        rectPadding: 5,
-      },
-    );
-
-    expect(result).toEqual({
-      pass: true,
-      rect: { left: 0, top: 0, width: 10, height: 10 },
-      center: [5, 5],
-      centerDistance: 10,
-      rectPadding: 5,
-      includedInRect: false,
-      includedInPaddedRect: true,
-    });
-
-    await agent.destroy();
-  });
-
-  it('keeps locator verification strict when rectPadding is not configured', async () => {
+  it('keeps locator verification strict when the expected point is outside the located rect', async () => {
     const agent = new Agent(createMockInterface(), {
       generateReport: false,
       modelConfig,
@@ -278,9 +245,7 @@ describe('Agent describeElementAtPoint', () => {
       rect: { left: 0, top: 0, width: 10, height: 10 },
       center: [5, 5],
       centerDistance: 10,
-      rectPadding: undefined,
       includedInRect: false,
-      includedInPaddedRect: undefined,
     });
 
     await agent.destroy();
@@ -305,7 +270,6 @@ describe('Agent describeElementAtPoint', () => {
       screenshotBase64: fixtureScreenshot,
       coordinateSpace: 'logical',
       logicalSize: { width: 100, height: 50 },
-      rectPadding: 8,
     });
 
     expect(describe).toHaveBeenCalledWith(
@@ -328,10 +292,8 @@ describe('Agent describeElementAtPoint', () => {
       expect.objectContaining({
         coordinateSpace: 'logical',
         logicalSize: { width: 100, height: 50 },
-        rectPadding: expect.any(Number),
       }),
     );
-    expect(verifyLocator.mock.calls[0][3]?.rectPadding).toBeCloseTo(262.56);
 
     await agent.destroy();
   });

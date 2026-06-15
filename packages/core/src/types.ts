@@ -102,7 +102,6 @@ export interface AIDescribeElementResponse {
 
 export interface LocatorValidatorOption {
   centerDistanceThreshold?: number;
-  rectPadding?: number;
 }
 
 export interface LocateValidatorResult {
@@ -110,9 +109,7 @@ export interface LocateValidatorResult {
   rect: Rect;
   center: [number, number];
   centerDistance?: number;
-  rectPadding?: number;
   includedInRect?: boolean;
-  includedInPaddedRect?: boolean;
 }
 
 export interface AgentDescribeElementAtPointResult {

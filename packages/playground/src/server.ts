@@ -898,12 +898,31 @@ interface PlaygroundRecorderTargetPoint {
   y: number;
 }
 
+type PlaygroundDescribeElementVerifyResult = {
+  pass?: boolean;
+  rect?: {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  };
+  center?: [number, number];
+  centerDistance?: number;
+  includedInRect?: boolean;
+};
+
+type PlaygroundDescribeElementProgress = {
+  prompt?: string;
+  deepLocate?: boolean;
+  verifyResult?: PlaygroundDescribeElementVerifyResult;
+};
+
 type PlaygroundDescribeElementAtPointOptions = {
   verifyPrompt?: boolean;
   screenshotBase64?: string;
   coordinateSpace?: 'screenshot' | 'logical';
   logicalSize?: { width: number; height: number };
-  rectPadding?: number;
+  onProgress?: (progress: PlaygroundDescribeElementProgress) => void;
 };
 
 type PlaygroundScreenshotDescribeAgent = {
@@ -913,20 +932,7 @@ type PlaygroundScreenshotDescribeAgent = {
   ) => Promise<{
     prompt?: string;
     deepLocate?: boolean;
-    verifyResult?: {
-      pass?: boolean;
-      rect?: {
-        left: number;
-        top: number;
-        width: number;
-        height: number;
-      };
-      center?: [number, number];
-      centerDistance?: number;
-      rectPadding?: number;
-      includedInRect?: boolean;
-      includedInPaddedRect?: boolean;
-    };
+    verifyResult?: PlaygroundDescribeElementVerifyResult;
   }>;
 };
 
@@ -1765,6 +1771,7 @@ class PlaygroundServer {
     const x = event.elementRect?.x;
     const y = event.elementRect?.y;
     let modelCallDurationMs: number | undefined;
+    let modelCallStartedAt: number | undefined;
     let elementDescription: string | undefined;
     let deepLocate: boolean | undefined;
     let verifyResult:
@@ -1791,7 +1798,7 @@ class PlaygroundServer {
         );
       }
       const verifyPrompt = shouldVerifyRecorderAiDescribeEvent(event);
-      const modelCallStartedAt = Date.now();
+      modelCallStartedAt = Date.now();
       const describeResult = await withTimeout(
         (
           agent as unknown as PlaygroundScreenshotDescribeAgent
@@ -1800,6 +1807,11 @@ class PlaygroundServer {
           screenshotBase64: eventScreenshot,
           coordinateSpace: 'logical',
           logicalSize: event.pageInfo,
+          onProgress: (progress) => {
+            elementDescription = progress.prompt?.trim() || elementDescription;
+            deepLocate = progress.deepLocate;
+            verifyResult = verifyPrompt ? progress.verifyResult : undefined;
+          },
         }),
         RECORDER_AI_DESCRIBE_AFTER_INTERACT_TIMEOUT_MS,
         'Timed out while analyzing recorder event with aiDescribe.',
@@ -1850,9 +1862,19 @@ class PlaygroundServer {
         trace,
       };
     } catch (error) {
-      debugInteract('canonical recorder aiDescribe failed:', error);
+      const reportedError =
+        verifyResult?.pass === false
+          ? new Error('aiDescribe verification failed.')
+          : error;
+      if (modelCallDurationMs === undefined && modelCallStartedAt) {
+        modelCallDurationMs = Date.now() - modelCallStartedAt;
+      }
+      debugInteract('canonical recorder aiDescribe failed:', reportedError);
       const trace = await finishTrace('failed', {
-        error: error instanceof Error ? error.message : String(error),
+        error:
+          reportedError instanceof Error
+            ? reportedError.message
+            : String(reportedError),
         modelCallDurationMs,
         elementDescription,
         verifyPassed: verifyResult?.pass,
@@ -1881,7 +1903,7 @@ class PlaygroundServer {
         event: {
           ...event,
           semantic: buildFailedAiDescribeRecorderSemantic(
-            error,
+            reportedError,
             aiDescribeDetails,
           ),
         },

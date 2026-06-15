@@ -213,9 +213,7 @@ export interface PlaygroundRecorderDescribeTrace {
     };
     center?: [number, number];
     centerDistance?: number;
-    rectPadding?: number;
     includedInRect?: boolean;
-    includedInPaddedRect?: boolean;
   };
 }
 
