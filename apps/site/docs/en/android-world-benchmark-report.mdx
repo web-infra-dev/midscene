@@ -106,8 +106,32 @@ This is Midscene's test report for the AndroidWorld benchmark. In this run, Mids
 | Midscene version | `1.9.5` |
 | DeepThink | on |
 | `MIDSCENE_REPLANNING_CYCLE_LIMIT` | 120 |
-| AndroidWorld setup | Stability-related changes were applied to the AndroidWorld project to reduce flaky benchmark runs. |
-| Validation notes | A small number of validation checks were aligned with task intent where the agent completed the requested work semantically, but the original validation criteria were strict about formatting. |
+| AndroidWorld setup | Stability fixes were applied to the AndroidWorld project to reduce flaky benchmark runs. See examples below. |
+| Validation notes | A small number of AndroidWorld validators were aligned with the task intent. The affected cases are listed below. |
+
+## Stability Improvements
+
+The following changes did not change the task intent. They made benchmark execution more stable by reducing browser rendering races, stale accessibility reads, and setup timing issues.
+
+| Change | Affected cases |
+| --- | --- |
+| Force canvas pixels to flush after drawing, then use thicker rounded strokes so target colors remain stable in the final canvas pixels. | `BrowserDraw` |
+| Retry reading the `Success!` text from the accessibility tree after browser tasks finish. | `BrowserMaze`<br />`BrowserMultiply`<br />`BrowserDraw` |
+| Before SMS tasks start, prepare the required incoming messages and contacts; now verify those messages are visible in the inbox and those contacts are visible in Contacts before the agent runs. | `SimpleSmsReplyMostRecent`<br />`SimpleSmsSendReceivedAddress` |
+| Wait for Pro Expense to create its database tables before validators write test data. | `ExpenseAddMultiple`<br />`ExpenseAddMultipleFromGallery`<br />`ExpenseAddMultipleFromMarkor`<br />`ExpenseAddSingle`<br />`ExpenseDeleteDuplicates`<br />`ExpenseDeleteDuplicates2`<br />`ExpenseDeleteMultiple`<br />`ExpenseDeleteMultiple2`<br />`ExpenseDeleteSingle` |
+| Preload OsmAnd offline map files into the app data directory and wait for OsmAnd to extract its built-in basemap before map tasks run. | `OsmAndFavorite`<br />`OsmAndMarker`<br />`OsmAndTrack` |
+
+## Validation Condition Updates
+
+The following AndroidWorld validation checks were changed on the `main` branch used for this benchmark:
+
+| Change | Affected cases |
+| --- | --- |
+| Calendar "after start time" now validates against an event one minute after the boundary, avoiding ambiguity across models about whether `after` includes the boundary time. | `SimpleCalendarFirstEventAfterStartTime` |
+| Expense notes imported from Markor accept the extra `Reimbursable.` suffix that Markor can include; note comparison ignores that suffix and terminal period differences. | `ExpenseAddMultipleFromMarkor` |
+| Markor merged notes accept either single-newline or blank-line separation, and also accept Markor's default `.md` extension when it is auto-added. | `MarkorMergeNotes` |
+| Recipe quantity fields allow omitted units while still rejecting wrong amounts or incompatible units. | `RecipeAddSingleRecipe`<br />`RecipeAddMultipleRecipes`<br />`RecipeAddMultipleRecipesFromMarkor`<br />`RecipeAddMultipleRecipesFromMarkor2`<br />`RecipeAddMultipleRecipesFromImage`<br />`NotesRecipeIngredientCount` |
+| Minimum brightness is validated against Android's actual minimum setting value, `0`, instead of `1`. | `SystemBrightnessMin`<br />`SystemBrightnessMinVerify` |
 
 ## Report Files
 

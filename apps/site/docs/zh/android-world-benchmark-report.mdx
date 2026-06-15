@@ -110,8 +110,32 @@ import { BenchmarkReportPreview } from '@theme';
 | Midscene version | `1.9.5` |
 | DeepThink | on |
 | `MIDSCENE_REPLANNING_CYCLE_LIMIT` | 120 |
-| AndroidWorld 工程 | 为了降低 benchmark 过程中的偶发波动，我们对 AndroidWorld 工程做过稳定性相关修改。 |
-| 验收规则 | 我们也按任务意图修正了少量验收规则：有些任务在语义上已经完成，但验收标准对格式较为严苛。 |
+| AndroidWorld 工程 | 为了降低 benchmark 过程中的偶发波动，我们对 AndroidWorld 工程做了若干稳定性修复。具体例子见下方。 |
+| 验收规则 | 少量 AndroidWorld validator 按任务意图做了校准，涉及的 case 见下方列表。 |
+
+## 稳定性提升
+
+以下改动不改变任务意图，主要用于降低浏览器渲染、accessibility tree 刷新、任务 setup 时序等带来的偶发失败。
+
+| 修改内容 | 涉及的 case |
+| --- | --- |
+| BrowserDraw 绘制后强制刷新 canvas 像素，并加粗、圆角化画笔，让目标颜色更稳定地落到最终 canvas 像素里。 | `BrowserDraw` |
+| Browser task 完成后，读取 accessibility tree 中的 `Success!` 文本时增加重试，避免 stale accessibility tree 误判。 | `BrowserMaze`<br />`BrowserMultiply`<br />`BrowserDraw` |
+| SMS 任务开始前会先准备好需要的短信和联系人；现在会确认这些短信能在收件箱查到、联系人能在通讯录查到，再开始让 agent 执行。 | `SimpleSmsReplyMostRecent`<br />`SimpleSmsSendReceivedAddress` |
+| Expense 类任务启动 Pro Expense 后等待数据库表创建完成，再由 validator 写入测试数据，避免初始数据库未初始化导致失败。 | `ExpenseAddMultiple`<br />`ExpenseAddMultipleFromGallery`<br />`ExpenseAddMultipleFromMarkor`<br />`ExpenseAddSingle`<br />`ExpenseDeleteDuplicates`<br />`ExpenseDeleteDuplicates2`<br />`ExpenseDeleteMultiple`<br />`ExpenseDeleteMultiple2`<br />`ExpenseDeleteSingle` |
+| OsmAnd 任务提前把离线地图文件放入应用数据目录，并等待 OsmAnd 解压内置底图，确保地图数据 ready 后再执行。 | `OsmAndFavorite`<br />`OsmAndMarker`<br />`OsmAndTrack` |
+
+## 验证条件调整
+
+本次 benchmark 使用的 AndroidWorld `main` 分支中，以下验证条件做过调整：
+
+| 修改内容 | 涉及的 case |
+| --- | --- |
+| Calendar 的 "after start time" 验收目标改为边界点之后 1 分钟的事件，避免事件正好落在边界点时，不同模型对 `after` 是否包含边界点的理解差异影响判定。 | `SimpleCalendarFirstEventAfterStartTime` |
+| Expense 从 Markor 导入时，接受 Markor note 中额外带上的 `Reimbursable.` 后缀；对比 note 文本时会忽略这个后缀及末尾句号差异。 | `ExpenseAddMultipleFromMarkor` |
+| Markor 合并 notes 时，允许单换行或空行分隔，并兼容 Markor 自动补上的 `.md` 扩展名。 | `MarkorMergeNotes` |
+| Recipe 的数量、时长和 ingredient count 允许省略单位，但错误数量或错误单位仍会失败。 | `RecipeAddSingleRecipe`<br />`RecipeAddMultipleRecipes`<br />`RecipeAddMultipleRecipesFromMarkor`<br />`RecipeAddMultipleRecipesFromMarkor2`<br />`RecipeAddMultipleRecipesFromImage`<br />`NotesRecipeIngredientCount` |
+| 最小亮度按 Android 实际 setting 值 `0` 验证，而不是旧的 `1`。 | `SystemBrightnessMin`<br />`SystemBrightnessMinVerify` |
 
 ## 报告文件
 
