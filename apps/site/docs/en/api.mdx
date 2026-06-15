@@ -1136,6 +1136,9 @@ interface RecordToReportOptions {
   /** @deprecated Use screenshots instead. */
   screenshotBase64?: string;
   screenshots?: {
+    /**
+     * PNG/JPEG data URI, or raw PNG base64 body.
+     */
     base64: string;
     description?: string;
   }[];
@@ -1153,7 +1156,7 @@ function recordToReport(
   - `title?: string` - Optional, the title of the screenshot, if not provided, the title will be 'untitled'.
   - `options?: RecordToReportOptions` - Optional, a configuration object containing:
     - `content?: string` - The description of the screenshot.
-    - `screenshots?: Array<{ base64: string; description?: string }>` - Record one or more provided screenshots under one report entry. When this option is set, Midscene will not capture another screenshot automatically.
+    - `screenshots?: Array<{ base64: string; description?: string }>` - Record one or more provided screenshots under one report entry. When this option is set, Midscene will not capture another screenshot automatically. `base64` should be a PNG/JPEG data URI such as `data:image/png;base64,...`; a raw base64 body is also accepted and treated as PNG.
     - `subType?: string` - Custom display label for this log entry. The underlying report task type remains `Log`.
 
 - Compatibility:

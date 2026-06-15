@@ -200,6 +200,9 @@ type AiActInternalOptions = AiActOptions & {
 };
 
 export interface RecordToReportScreenshot {
+  /**
+   * PNG/JPEG data URI, or raw PNG base64 body.
+   */
   base64: string;
   description?: string;
 }
@@ -220,19 +223,65 @@ export interface RecordToReportOptions {
   subType?: string;
 }
 
-function assertRecordToReportScreenshot(
-  screenshot: RecordToReportScreenshot,
+const supportedScreenshotDataUriPattern =
+  /^data:image\/(png|jpe?g);base64,([\s\S]*)$/i;
+const rawBase64BodyPattern = /^[A-Za-z0-9+/=\s]+$/;
+
+function createRecordToReportImageDataUri(
+  format: 'png' | 'jpeg',
+  body: string,
+): string {
+  return `data:image/${format};base64,${body.replace(/\s/g, '')}`;
+}
+
+function normalizeRecordToReportScreenshotBase64(
+  base64: string,
   index: number,
-) {
-  if (!screenshot || typeof screenshot.base64 !== 'string') {
+): string {
+  const trimmedBase64 = base64.trim();
+  if (!trimmedBase64) {
     throw new Error(
-      `recordToReport: screenshot #${index + 1} must include a base64 string`,
+      `recordToReport: screenshot #${index + 1} base64 cannot be empty`,
     );
   }
 
-  if (!screenshot.base64.trim()) {
+  const dataUriMatch = trimmedBase64.match(supportedScreenshotDataUriPattern);
+  if (dataUriMatch) {
+    const imageFormat: 'png' | 'jpeg' =
+      dataUriMatch[1].toLowerCase() === 'jpg'
+        ? 'jpeg'
+        : (dataUriMatch[1].toLowerCase() as 'png' | 'jpeg');
+    const body = dataUriMatch[2];
+    if (!body.replace(/\s/g, '')) {
+      throw new Error(
+        `recordToReport: screenshot #${index + 1} base64 cannot be empty`,
+      );
+    }
+    return createRecordToReportImageDataUri(imageFormat, body);
+  }
+
+  if (trimmedBase64.startsWith('data:')) {
     throw new Error(
-      `recordToReport: screenshot #${index + 1} base64 cannot be empty`,
+      `recordToReport: screenshot #${index + 1} base64 must be a PNG/JPEG data URI or raw PNG base64 string`,
+    );
+  }
+
+  if (!rawBase64BodyPattern.test(trimmedBase64)) {
+    throw new Error(
+      `recordToReport: screenshot #${index + 1} base64 must be a PNG/JPEG data URI or raw PNG base64 string`,
+    );
+  }
+
+  return createRecordToReportImageDataUri('png', trimmedBase64);
+}
+
+function normalizeRecordToReportScreenshot(
+  screenshot: RecordToReportScreenshot,
+  index: number,
+): RecordToReportScreenshot {
+  if (!screenshot || typeof screenshot.base64 !== 'string') {
+    throw new Error(
+      `recordToReport: screenshot #${index + 1} must include a base64 string`,
     );
   }
 
@@ -244,6 +293,11 @@ function assertRecordToReportScreenshot(
       `recordToReport: screenshot #${index + 1} description must be a string`,
     );
   }
+
+  return {
+    base64: normalizeRecordToReportScreenshotBase64(screenshot.base64, index),
+    description: screenshot.description,
+  };
 }
 
 export class Agent<
@@ -1561,33 +1615,50 @@ export class Agent<
 
   async recordToReport(title?: string, opt?: RecordToReportOptions) {
     const now = Date.now();
-    const hasScreenshots = Array.isArray(opt?.screenshots);
-    const hasScreenshotBase64 = typeof opt?.screenshotBase64 === 'string';
+    const screenshots = opt?.screenshots;
+    const screenshotBase64 = opt?.screenshotBase64;
+    const hasScreenshots = screenshots !== undefined;
+    const hasScreenshotBase64 = screenshotBase64 !== undefined;
+    if (hasScreenshots && !Array.isArray(screenshots)) {
+      throw new Error('recordToReport: screenshots must be an array');
+    }
+    if (hasScreenshotBase64 && typeof screenshotBase64 !== 'string') {
+      throw new Error('recordToReport: screenshotBase64 must be a string');
+    }
     if (hasScreenshots && hasScreenshotBase64) {
       throw new Error(
         'recordToReport: provide only one of screenshots or screenshotBase64',
       );
     }
-    const customScreenshots = hasScreenshots ? opt!.screenshots : undefined;
+    if (opt?.subType !== undefined && typeof opt.subType !== 'string') {
+      throw new Error('recordToReport: subType must be a string');
+    }
+    const customScreenshots = hasScreenshots ? screenshots : undefined;
     if (customScreenshots && customScreenshots.length === 0) {
       throw new Error('recordToReport: screenshots cannot be empty');
     }
     const screenshotInputs: RecordToReportScreenshot[] =
       customScreenshots ??
       (hasScreenshotBase64
-        ? [{ base64: opt!.screenshotBase64! }]
+        ? [{ base64: screenshotBase64 }]
         : [{ base64: await this.interface.screenshotBase64() }]);
 
     // 1. build recorder
     const recorder: ExecutionRecorderItem[] = screenshotInputs.map(
       (screenshotInput, index) => {
-        assertRecordToReportScreenshot(screenshotInput, index);
+        const normalizedScreenshotInput = normalizeRecordToReportScreenshot(
+          screenshotInput,
+          index,
+        );
         const ts = now + index;
         return {
           type: 'screenshot',
           ts,
-          screenshot: ScreenshotItem.create(screenshotInput.base64, ts),
-          description: screenshotInput.description,
+          screenshot: ScreenshotItem.create(
+            normalizedScreenshotInput.base64,
+            ts,
+          ),
+          description: normalizedScreenshotInput.description,
         };
       },
     );
