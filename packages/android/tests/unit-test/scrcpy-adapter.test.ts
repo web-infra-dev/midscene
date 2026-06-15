@@ -278,7 +278,7 @@ describe('ScrcpyDeviceAdapter', () => {
       expect((adapter as any).manager).toBe(currentMockManager);
     });
 
-    it('should install the multi-device features fallback before creating transport', async () => {
+    it('should install transport-id features handling before creating transport', async () => {
       const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
 
       await adapter.ensureManager(defaultDeviceInfo);

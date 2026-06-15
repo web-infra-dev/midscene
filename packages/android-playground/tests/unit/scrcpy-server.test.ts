@@ -10,7 +10,7 @@ const {
   mockCreateReadStream,
   mockOptionsCtor,
   mockExec,
-  mockInstallFeaturesFallback,
+  mockInstallTransportIdFeatures,
   mockAdbClient,
   mockAdbServerClient,
   mockAdbServerNodeTcpConnector,
@@ -24,7 +24,7 @@ const {
     mockCreateReadStream: vi.fn(),
     mockOptionsCtor: vi.fn((options) => options),
     mockExec: vi.fn((_command, callback) => callback(null, '', '')),
-    mockInstallFeaturesFallback: vi.fn(),
+    mockInstallTransportIdFeatures: vi.fn(),
     mockAdbClient,
     mockAdbServerClient: vi.fn().mockImplementation(() => mockAdbClient),
     mockAdbServerNodeTcpConnector: vi.fn(),
@@ -36,9 +36,9 @@ vi.mock('node:child_process', () => ({
 }));
 
 vi.mock(
-  '@midscene/android/internal/adb-server-client-features-fallback',
+  '@midscene/android/internal/adb-server-client-transport-id-features',
   () => ({
-    installAdbServerClientFeaturesFallback: mockInstallFeaturesFallback,
+    installAdbServerClientTransportIdFeatures: mockInstallTransportIdFeatures,
   }),
 );
 
@@ -129,7 +129,7 @@ describe('ScrcpyServer', () => {
     ]);
   });
 
-  it('installs the multi-device features fallback when initializing the ADB client', async () => {
+  it('installs transport-id features handling when initializing the ADB client', async () => {
     const server = new ScrcpyServer();
 
     await expect((server as any).getAdbClient()).resolves.toBe(mockAdbClient);
@@ -143,7 +143,7 @@ describe('ScrcpyServer', () => {
       port: 5037,
     });
     expect(mockAdbServerClient).toHaveBeenCalledTimes(1);
-    expect(mockInstallFeaturesFallback).toHaveBeenCalledWith(mockAdbClient);
+    expect(mockInstallTransportIdFeatures).toHaveBeenCalledWith(mockAdbClient);
 
     server.close();
   });

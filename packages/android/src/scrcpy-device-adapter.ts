@@ -1,7 +1,7 @@
 import type { Size } from '@midscene/core';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import { installAdbServerClientFeaturesFallback } from './internal/adb-server-client-features-fallback';
+import { installAdbServerClientTransportIdFeatures } from './internal/adb-server-client-transport-id-features';
 import type { ScrcpyScreenshotManager } from './scrcpy-manager';
 import { DEFAULT_SCRCPY_CONFIG } from './scrcpy-manager';
 
@@ -112,7 +112,7 @@ export class ScrcpyDeviceAdapter {
       const adbClient = new AdbServerClient(
         new AdbServerNodeTcpConnector({ host: '127.0.0.1', port: 5037 }),
       );
-      installAdbServerClientFeaturesFallback(adbClient);
+      installAdbServerClientTransportIdFeatures(adbClient);
       const adb = new Adb(
         await adbClient.createTransport({ serial: this.deviceId }),
       );

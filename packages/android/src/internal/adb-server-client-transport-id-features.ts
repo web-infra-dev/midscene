@@ -11,15 +11,7 @@ type DeviceFeatures = {
 
 const patchedClients = new WeakSet<AdbServerClientType>();
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function isMultiDeviceFeatureError(error: unknown): boolean {
-  return getErrorMessage(error).includes('more than one device/emulator');
-}
-
-async function resolveTransportId(
+async function resolveDeterministicTransportId(
   client: AdbServerClientType,
   device: AdbServerClient.DeviceSelector,
 ): Promise<bigint | undefined> {
@@ -30,14 +22,6 @@ async function resolveTransportId(
   if (device && 'serial' in device) {
     const devices = await client.getDevices();
     return devices.find((info) => info.serial === device.serial)?.transportId;
-  }
-
-  if (!device) {
-    const devices = await client.getDevices();
-    if (devices.length !== 1) {
-      return undefined;
-    }
-    return devices[0]?.transportId;
   }
 
   return undefined;
@@ -62,10 +46,10 @@ async function getDeviceFeaturesByTransportId(
 }
 
 /**
- * @internal Work around ADB server feature requests that ignore serial selectors
- * before yume-chan/adb includes a transport-id qualified features request.
+ * @internal Prefer transport-id qualified feature requests for deterministic
+ * selectors before yume-chan/adb includes this behavior.
  */
-export function installAdbServerClientFeaturesFallback(
+export function installAdbServerClientTransportIdFeatures(
   client: AdbServerClientType,
 ): void {
   if (patchedClients.has(client)) {
@@ -74,29 +58,18 @@ export function installAdbServerClientFeaturesFallback(
 
   const getDeviceFeatures = client.getDeviceFeatures.bind(client);
   client.getDeviceFeatures = async (device) => {
+    let transportId: bigint | undefined;
     try {
-      return await getDeviceFeatures(device);
-    } catch (error) {
-      if (!isMultiDeviceFeatureError(error)) {
-        throw error;
-      }
+      transportId = await resolveDeterministicTransportId(client, device);
+    } catch {
+      return getDeviceFeatures(device);
+    }
 
-      let transportId: bigint | undefined;
-      try {
-        transportId = await resolveTransportId(client, device);
-      } catch (resolveError) {
-        throw new Error(
-          `Failed to resolve transport ID for ADB features fallback after "${getErrorMessage(error)}": ${getErrorMessage(resolveError)}`,
-          { cause: resolveError },
-        );
-      }
-
-      if (transportId === undefined) {
-        throw error;
-      }
-
+    if (transportId !== undefined) {
       return getDeviceFeaturesByTransportId(client, transportId);
     }
+
+    return getDeviceFeatures(device);
   };
 
   patchedClients.add(client);
