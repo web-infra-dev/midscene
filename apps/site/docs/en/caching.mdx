@@ -22,7 +22,10 @@ The core caching mechanisms include:
 - **Task instruction caching**: For planning operations (such as `ai`, `aiAct`), Midscene uses the prompt instruction as the cache key to store the execution plan returned by AI
 - **Element location caching (web only)**: For location operations (such as `aiLocate`, `aiTap`), the system uses the location prompt as the cache key to store element XPath information, and verifies whether the XPath is still valid on the next execution
 - **Invalidation mechanism**: When cache becomes invalid, the system automatically falls back to AI model for re-analysis
+- **Plan cache fallback**: If a cached `aiAct` plan fails at runtime, for example because an optional popup no longer appears, Midscene falls back to normal AI planning for the current run and clears the stale cache record's flow
 - **Never cache query results**: The query results like `aiBoolean`, `aiQuery`, `aiAssert` will never be cached.
+
+When this fallback path is used, Midscene does not write the fallback-generated flow back to the original prompt's plan cache, even if the current run succeeds. The cached steps may have already changed the page state before failing, so the fallback plan may only describe the remaining work and may not be valid from the initial page state. On the next run with the same prompt, the empty flow is treated as an unavailable cache entry and Midscene regenerates a complete plan cache from the initial state.
 
 Cache contents will be saved in the `./midscene_run/cache` directory with the `.cache.yaml` as the extension name.
 
