@@ -955,7 +955,7 @@ export class Agent<
         } catch (error) {
           cachedYamlFailed = true;
           warn(
-            `cached aiAct plan failed, will replan and refresh or disable cache: ${
+            `cached aiAct plan failed, will replan and disable the stale cache: ${
               error instanceof Error ? error.message : String(error)
             }`,
           );
@@ -982,21 +982,18 @@ export class Agent<
 
       // update cache
       if (this.taskCache && cacheable !== false) {
-        const shouldUpdatePlanCache =
-          !!actionOutput?.yamlFlow?.length || cachedYamlFailed;
-        const yamlFlow = shouldUpdatePlanCache
-          ? (actionOutput?.yamlFlow ?? [])
-          : undefined;
+        const yamlFlow = cachedYamlFailed ? [] : actionOutput?.yamlFlow;
 
-        if (!yamlFlow) {
+        if (!cachedYamlFailed && !yamlFlow?.length) {
           return actionOutput?.output;
         }
 
+        const yamlFlowToCache = yamlFlow ?? [];
         const yamlContent: MidsceneYamlScript = {
           tasks: [
             {
               name: reportPrompt,
-              flow: yamlFlow,
+              flow: yamlFlowToCache,
             },
           ],
         };

@@ -83,5 +83,6 @@ describe('aiAct plan cache fallback', () => {
     );
     expect(planCaches).toHaveLength(1);
     expect(planCaches[0].yamlWorkflow).not.toBe(staleWorkflow);
+    expect(planCaches[0].yamlWorkflow).toContain('flow: []');
   });
 });

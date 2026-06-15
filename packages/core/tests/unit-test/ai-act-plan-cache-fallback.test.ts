@@ -28,7 +28,10 @@ function getTaskCacheInternal(taskCache: TaskCache) {
   };
 }
 
-function createAgentWithPlanCache(yamlWorkflow = stalePlanYaml) {
+function createAgentWithPlanCache(
+  yamlWorkflow = stalePlanYaml,
+  prompt = 'dismiss optional popup',
+) {
   const agent = new Agent(
     {
       interfaceType: 'puppeteer',
@@ -46,7 +49,7 @@ function createAgentWithPlanCache(yamlWorkflow = stalePlanYaml) {
   const internal = getTaskCacheInternal(taskCache);
   internal.cache.caches.push({
     type: 'plan',
-    prompt: 'dismiss optional popup',
+    prompt,
     yamlWorkflow,
   });
   internal.cacheOriginalLength = 1;
@@ -59,36 +62,46 @@ describe('aiAct plan cache fallback', () => {
     vi.restoreAllMocks();
   });
 
-  it('replans and refreshes plan cache when cached YAML fails', async () => {
-    const { agent, internal } = createAgentWithPlanCache();
+  it('disables the stale plan cache instead of caching fallback flow when cached YAML fails', async () => {
+    const prompt = 'complete checkout with optional popup';
+    const partialPlanYaml = `tasks:
+  - name: complete checkout with optional popup
+    flow:
+      - aiTap: open checkout summary
+      - aiTap: optional popup close button
+      - aiTap: final confirmation button
+`;
+    const { agent, internal } = createAgentWithPlanCache(
+      partialPlanYaml,
+      prompt,
+    );
     const taskExecutor = {
       loadYamlFlowAsPlanning: vi.fn().mockResolvedValue(undefined),
       action: vi.fn().mockResolvedValue({
         output: {
-          output: 'replanned',
-          yamlFlow: [{ aiTap: 'stable submit button' }],
+          output: 'completed after fallback',
+          yamlFlow: [{ aiTap: 'final confirmation button' }],
         },
       }),
     };
     agent.taskExecutor = taskExecutor as any;
 
     vi.spyOn(agent, 'runYaml').mockRejectedValue(
-      new Error('optional popup close button not found'),
+      new Error('optional popup close button not found after opening summary'),
     );
 
-    await expect(agent.aiAct('dismiss optional popup')).resolves.toBe(
-      'replanned',
-    );
+    await expect(agent.aiAct(prompt)).resolves.toBe('completed after fallback');
 
     expect(taskExecutor.loadYamlFlowAsPlanning).toHaveBeenCalledWith(
-      'dismiss optional popup',
-      stalePlanYaml,
+      prompt,
+      partialPlanYaml,
       undefined,
     );
     expect(taskExecutor.action).toHaveBeenCalledOnce();
     expect(internal.cache.caches).toHaveLength(1);
-    expect(internal.cache.caches[0].yamlWorkflow).toContain(
-      'stable submit button',
+    expect(internal.cache.caches[0].yamlWorkflow).toContain('flow: []');
+    expect(internal.cache.caches[0].yamlWorkflow).not.toContain(
+      'final confirmation button',
     );
   });
 
