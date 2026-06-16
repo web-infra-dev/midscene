@@ -86,7 +86,7 @@ describe('TaskExecutor custom planning adapters', () => {
     vi.restoreAllMocks();
   });
 
-  it('disables aiAct deepLocate for custom planning adapters by default', async () => {
+  it('passes aiAct deepLocate through custom planning adapters', async () => {
     const actionSpace: DeviceAction[] = [
       {
         name: 'Tap',
@@ -147,10 +147,6 @@ describe('TaskExecutor custom planning adapters', () => {
     };
     vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({ content: '' });
     const convertSpy = vi.mocked(taskExecutor.convertPlanToExecutable);
-    const warnSpy = vi
-      .spyOn(console, 'warn')
-      .mockImplementation(() => undefined);
-
     await taskExecutor.action(
       'prompt',
       customPlanningModel,
@@ -170,13 +166,9 @@ describe('TaskExecutor custom planning adapters', () => {
       customPlanningModel,
       expect.anything(),
       expect.objectContaining({
-        deepLocate: false,
+        deepLocate: true,
       }),
     );
     expect(convertSpy.mock.calls[0][0][0].param.locate.deepLocate).toBe(true);
-    expect(warnSpy).toHaveBeenCalledWith(
-      '[Midscene]',
-      'The "deepLocate" option is not supported for aiAct with the current planning adapter (modelFamily: unknown). It will be ignored.',
-    );
   });
 });

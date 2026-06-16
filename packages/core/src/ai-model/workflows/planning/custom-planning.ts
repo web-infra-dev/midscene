@@ -72,6 +72,19 @@ export function buildCustomPlanningMessages<TParsed>(
     ? config.buildUserInstruction(userInstructionText)
     : userInstructionText;
 
+  if (conversationHistory.pendingFeedbackMessage) {
+    conversationHistory.append({
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: `${conversationHistory.pendingFeedbackMessage}. The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.`,
+        },
+      ],
+    });
+    conversationHistory.resetPendingFeedbackMessageIfExists();
+  }
+
   conversationHistory.append({
     role: 'user',
     content: [
