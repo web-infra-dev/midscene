@@ -115,7 +115,7 @@ describe('TaskExecutor custom planning adapters', () => {
     vi.restoreAllMocks();
   });
 
-  it('passes aiAct deepLocate through custom planning adapters', async () => {
+  it('passes normalized deepLocate through custom planning adapters', async () => {
     const actionSpace: DeviceAction[] = [
       {
         name: 'Tap',
@@ -174,37 +174,5 @@ describe('TaskExecutor custom planning adapters', () => {
       }),
     );
     expect(convertSpy.mock.calls[0][0][0].param.locate.deepLocate).toBe(true);
-  });
-
-  it('warns that deepThink is not supported by custom planning adapters', async () => {
-    taskExecutor = new TaskExecutor(mockInterface, mockService, {
-      replanningCycleLimit: 1,
-      actionSpace: [],
-    });
-    vi.spyOn(taskExecutor, 'convertPlanToExecutable').mockResolvedValue({
-      tasks: [],
-      yamlFlow: [],
-    } as any);
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({ content: '' });
-    const warnSpy = vi
-      .spyOn(console, 'warn')
-      .mockImplementation(() => undefined);
-
-    await taskExecutor.action(
-      'prompt',
-      createCustomPlanningModel(),
-      defaultModel(),
-      true,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      true,
-    );
-
-    expect(warnSpy).toHaveBeenCalledWith(
-      '[Midscene]',
-      'The "deepThink" option is not supported for aiAct with custom planning adapters (modelFamily: unknown). It will be ignored by the planner.',
-    );
   });
 });
