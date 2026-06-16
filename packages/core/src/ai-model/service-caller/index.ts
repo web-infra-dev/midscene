@@ -64,6 +64,49 @@ function stringifyForDebug(value: unknown): string {
   }
 }
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
+function normalizeRetryCount(retryCount: unknown): number {
+  if (typeof retryCount !== 'number' || !Number.isFinite(retryCount)) {
+    return 1;
+  }
+
+  return Math.max(0, Math.floor(retryCount));
+}
+
+function appendAIRequestFailureSummary<T extends Error>(
+  error: T,
+  attemptErrors: Array<{ attempt: number; error: unknown }>,
+  maxAttempts: number,
+): T {
+  const failedAttempts = attemptErrors.length;
+  const retries = Math.max(0, failedAttempts - 1);
+  const retryLabel = retries === 1 ? 'retry' : 'retries';
+  const originalMessage = error.message;
+  const previousAttemptErrors = attemptErrors.slice(0, -1);
+
+  error.message = `AI model request failed after ${retries} ${retryLabel} (${failedAttempts}/${maxAttempts} attempts). Last error: ${originalMessage}`;
+
+  if (previousAttemptErrors.length === 0) {
+    return error;
+  }
+
+  const details = previousAttemptErrors
+    .map(
+      ({ attempt, error }) => `Attempt ${attempt}: ${getErrorMessage(error)}`,
+    )
+    .join('\n');
+
+  error.message = `${error.message}\nPrevious AI call attempt errors:\n${details}`;
+  return error;
+}
+
 export async function createChatClient({
   modelConfig,
 }: {
@@ -479,11 +522,12 @@ export async function callAI(
       );
     } else {
       // Non-streaming with retry logic
-      const retryCount = modelConfig.retryCount ?? 1;
+      const retryCount = normalizeRetryCount(modelConfig.retryCount);
       const retryInterval = modelConfig.retryInterval ?? 2000;
       const maxAttempts = retryCount + 1; // retryCount=1 means 2 total attempts (1 initial + 1 retry)
 
       let lastError: Error | undefined;
+      const attemptErrors: Array<{ attempt: number; error: unknown }> = [];
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         const { signal: attemptSignal, cleanup: cleanupAttemptSignal } =
@@ -542,7 +586,8 @@ export async function callAI(
 
           break; // Success, exit retry loop
         } catch (error) {
-          lastError = error as Error;
+          lastError = toError(error);
+          attemptErrors.push({ attempt, error });
           const wasHardTimeout = isHardTimeoutError(lastError);
           if (wasHardTimeout) {
             warnCall(
@@ -565,7 +610,15 @@ export async function callAI(
       }
 
       if (!content) {
-        throw lastError;
+        assert(
+          lastError,
+          'AI model request failed without recording an attempt error',
+        );
+        throw appendAIRequestFailureSummary(
+          lastError,
+          attemptErrors,
+          maxAttempts,
+        );
       }
     }
 
