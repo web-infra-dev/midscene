@@ -5,16 +5,110 @@ tasks:
   - name: toggle to dark mode
     flow:
       - sleep: 2000
-      - ai: Click the "Toggle theme" button in the top right header area
-      - sleep: 2000
-      - aiAssert: The report UI (header, sidebar, and surrounding chrome) has a dark background color
+      - javascript: |
+          (function () {
+            const button = document.querySelector(
+              'button[aria-label="Toggle theme"]',
+            );
+            if (!(button instanceof HTMLElement)) {
+              throw new Error('Theme toggle button not found');
+            }
+            const currentTheme =
+              document
+                .querySelector('.page-container')
+                ?.getAttribute('data-theme') ||
+              document.documentElement.getAttribute('data-theme');
+            if (currentTheme !== 'dark') {
+              button.click();
+            }
+            return { previousTheme: currentTheme };
+          })()
+        name: toggleDarkMode
+      - sleep: 1000
+      - javascript: |
+          (function () {
+            const container = document.querySelector('.page-container');
+            const side = document.querySelector('.page-side');
+            if (!container || !side) {
+              throw new Error('Report theme elements not found');
+            }
+            const theme = container.getAttribute('data-theme');
+            const background = getComputedStyle(side).backgroundColor;
+            const channels = background.match(/\d+/g)?.map(Number) || [];
+            const average =
+              channels.slice(0, 3).reduce((sum, value) => sum + value, 0) / 3;
+            if (theme !== 'dark' || average > 80) {
+              throw new Error(
+                'Expected dark theme, got theme=' +
+                  theme +
+                  ', background=' +
+                  background,
+              );
+            }
+            return { theme, background };
+          })()
+        name: assertDarkMode
 
   - name: toggle back to light mode
     flow:
-      - ai: Click the "Toggle theme" button in the top right header area
-      - sleep: 2000
-      - aiAssert: The report UI (header, sidebar, and surrounding chrome) has a light/white background color
+      - javascript: |
+          (function () {
+            const button = document.querySelector(
+              'button[aria-label="Toggle theme"]',
+            );
+            if (!(button instanceof HTMLElement)) {
+              throw new Error('Theme toggle button not found');
+            }
+            const currentTheme =
+              document
+                .querySelector('.page-container')
+                ?.getAttribute('data-theme') ||
+              document.documentElement.getAttribute('data-theme');
+            if (currentTheme !== 'light') {
+              button.click();
+            }
+            return { previousTheme: currentTheme };
+          })()
+        name: toggleLightMode
+      - sleep: 1000
+      - javascript: |
+          (function () {
+            const container = document.querySelector('.page-container');
+            const side = document.querySelector('.page-side');
+            if (!container || !side) {
+              throw new Error('Report theme elements not found');
+            }
+            const theme = container.getAttribute('data-theme');
+            const background = getComputedStyle(side).backgroundColor;
+            const channels = background.match(/\d+/g)?.map(Number) || [];
+            const average =
+              channels.slice(0, 3).reduce((sum, value) => sum + value, 0) / 3;
+            if (theme !== 'light' || average < 200) {
+              throw new Error(
+                'Expected light theme, got theme=' +
+                  theme +
+                  ', background=' +
+                  background,
+              );
+            }
+            return { theme, background };
+          })()
+        name: assertLightMode
 
   - name: version info displayed
     flow:
-      - aiAssert: The top header area shows version information with a version number like "v" followed by digits
+      - javascript: |
+          (function () {
+            const versionText = document
+              .querySelector('.page-nav-version')
+              ?.textContent?.trim();
+            if (!versionText || !/v\d/.test(versionText)) {
+              throw new Error(
+                'Expected header version text with a v-prefixed number, got "' +
+                  (versionText || '') +
+                  '"',
+              );
+            }
+            return { versionText };
+          })()
+        name: assertVersionInfo
