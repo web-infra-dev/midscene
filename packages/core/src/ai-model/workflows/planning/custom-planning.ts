@@ -104,7 +104,7 @@ export function buildCustomPlanningMessages<TParsed>(
   ];
 }
 
-async function runCustomPlanning<TParsed>(
+export async function runCustomPlanning<TParsed>(
   userInstruction: TUserPrompt,
   options: PlanOptions,
   config: CustomPlanningDefinition<TParsed>,

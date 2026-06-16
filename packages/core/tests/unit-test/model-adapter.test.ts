@@ -158,6 +158,56 @@ describe('ResolvedModelAdapter', () => {
     expect(adapter.locate.locateFn).toBe(locateFn);
   });
 
+  it('resolves custom locator definitions with the custom planner', () => {
+    const adapter = new ResolvedModelAdapter(
+      {
+        planning: {
+          kind: 'custom',
+          planner: createTestPlannerDefinition(),
+        },
+        locate: {
+          kind: 'custom',
+          locator: {
+            buildSystemPrompt: () => 'locate system prompt',
+            getLocatedPixelBbox: () => [1, 2, 3, 4],
+          },
+        },
+      },
+      'test-custom-locator',
+    );
+
+    expect(adapter.locate).toMatchObject({
+      kind: 'custom',
+      supportsSearchArea: false,
+    });
+    if (adapter.locate.kind !== 'custom') {
+      throw new Error('adapter should resolve custom locator');
+    }
+    expect(adapter.locate.locateFn).toBeTruthy();
+  });
+
+  it('requires custom locator definitions to pair with a planner', () => {
+    expect(
+      () =>
+        new ResolvedModelAdapter(
+          {
+            planning: {
+              kind: 'custom',
+              planFn: vi.fn(),
+            },
+            locate: {
+              kind: 'custom',
+              locator: {
+                buildSystemPrompt: () => 'locate system prompt',
+                getLocatedPixelBbox: () => [1, 2, 3, 4],
+              },
+            },
+          },
+          'test-custom-locator-without-planner',
+        ),
+    ).toThrow(/Custom locator requires a custom planning planner definition/);
+  });
+
   it('applies standard planning overrides from adapter definitions', () => {
     const adapter = new ResolvedModelAdapter(
       {

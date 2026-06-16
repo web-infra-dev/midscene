@@ -1,6 +1,6 @@
 import type { TModelFamily } from '@midscene/shared/env';
 import type { ModelAdapterDefinition } from '../types';
-import { autoGlmLocate } from './locate';
+import { createAutoGlmLocator } from './locate';
 import { createAutoGlmPlanner } from './planning';
 
 const defaultAutoGlmReplanningCycleLimit = 100;
@@ -42,8 +42,7 @@ function createAutoGlmAdapter(isMultilingual: boolean): ModelAdapterDefinition {
     },
     locate: {
       kind: 'custom',
-      locateFn: (elementDescription, options) =>
-        autoGlmLocate(elementDescription, options, isMultilingual),
+      locator: createAutoGlmLocator(isMultilingual),
     },
   };
 }
