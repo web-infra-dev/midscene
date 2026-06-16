@@ -14,11 +14,9 @@ import type {
   LocateResultAdapterDefinition,
 } from '../shared/model-locate-result/types';
 import type { ImagePreprocessPolicy } from '../workflows/image-preprocess';
+import type { PlanningActionLocatorDefinition } from '../workflows/inspect/planning-action-locate';
 import type { LocateFn } from '../workflows/inspect/types';
-import type {
-  CustomPlanning,
-  CustomPlanningDefinition,
-} from '../workflows/planning/custom-planning';
+import type { CustomPlanningDefinition } from '../workflows/planning/custom-planning';
 import type { PlanFn } from '../workflows/planning/types';
 
 export type {
@@ -161,8 +159,16 @@ type StandardLocateDefinition = Partial<LocatePolicy> & {
 
 type CustomLocateDefinition = Partial<LocatePolicy> & {
   kind: 'custom';
-  locateFn: LocateFn;
-};
+} & (
+    | {
+        locateFn: LocateFn;
+        locator?: never;
+      }
+    | {
+        locator: PlanningActionLocatorDefinition;
+        locateFn?: never;
+      }
+  );
 
 export type LocateDefinition =
   | StandardLocateDefinition

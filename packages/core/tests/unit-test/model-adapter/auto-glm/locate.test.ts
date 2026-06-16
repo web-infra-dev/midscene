@@ -11,8 +11,13 @@ const serviceCallerMock = vi.hoisted(() => {
   };
 });
 
-vi.mock('@/ai-model/service-caller/index', () => {
-  return serviceCallerMock;
+vi.mock('@/ai-model/service-caller/index', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/ai-model/service-caller/index')>();
+  return {
+    ...actual,
+    ...serviceCallerMock,
+  };
 });
 
 const autoGlmAdapter = new ResolvedModelAdapter(
@@ -47,7 +52,7 @@ function createLocateOptions(): LocateOptions {
   };
 }
 
-describe('autoGlmLocate', () => {
+describe('Auto-GLM custom locate', () => {
   beforeEach(() => {
     vi.mocked(callAIWithStringResponse).mockReset();
   });
@@ -71,7 +76,15 @@ describe('autoGlmLocate', () => {
     expect(callAIWithStringResponse).toHaveBeenCalledWith(
       expect.arrayContaining([
         expect.objectContaining({ role: 'system' }),
-        expect.objectContaining({ role: 'user' }),
+        expect.objectContaining({
+          role: 'user',
+          content: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'text',
+              text: 'Tap: submit button',
+            }),
+          ]),
+        }),
       ]),
       expect.any(Object),
       expect.any(Object),
@@ -88,6 +101,64 @@ describe('autoGlmLocate', () => {
     });
     expect(result.reasoning_content).toContain('Found submit');
     expect(result.usage).toEqual({ total_tokens: 8 });
+  });
+
+  it('uses search area image size for planning and maps the rect back to the original screenshot', async () => {
+    expect(autoGlmAdapter.locate.kind).toBe('custom');
+    if (autoGlmAdapter.locate.kind !== 'custom') {
+      throw new Error('Auto-GLM should use custom locate adapter');
+    }
+    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+      content:
+        '<think>Found item in crop</think><answer>do(action="Tap", element=[500,500])</answer>',
+    });
+
+    const result = await autoGlmAdapter.locate.locateFn('item', {
+      ...createLocateOptions(),
+      searchConfig: {
+        sourceRect: {
+          left: 200,
+          top: 100,
+          width: 300,
+          height: 200,
+        },
+        image: {
+          imageBase64: 'data:image/png;base64,CROP==',
+          width: 300,
+          height: 200,
+        },
+        mapping: {
+          offset: {
+            x: 200,
+            y: 100,
+          },
+          scale: 1,
+        },
+      },
+    });
+
+    const messages = vi.mocked(callAIWithStringResponse).mock.calls[0]?.[0];
+    expect(messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: 'user',
+          content: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'image_url',
+              image_url: expect.objectContaining({
+                url: 'data:image/png;base64,CROP==',
+              }),
+            }),
+          ]),
+        }),
+      ]),
+    );
+    expect(result.rect).toEqual({
+      left: 347,
+      top: 198,
+      width: 6,
+      height: 4,
+    });
   });
 
   it('returns parse errors from Auto-GLM custom locate responses', async () => {
@@ -107,7 +178,7 @@ describe('autoGlmLocate', () => {
     expect(result.rect).toBeUndefined();
     expect(result.parseResult.element).toBeUndefined();
     expect(result.parseResult.errors).toEqual([
-      'Unexpected action type in auto-glm locate response: do(action="Swipe", start=[100,200], end=[300,400])',
+      'No locatedPixelBbox found in planner response',
     ]);
   });
 

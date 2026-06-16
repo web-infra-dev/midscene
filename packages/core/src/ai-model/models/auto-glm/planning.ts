@@ -14,12 +14,10 @@ export function createAutoGlmPlanner(
   return {
     messages: {
       systemPromptPlacement: 'system-message',
-      buildSystemPrompt: () => {
-        if (isMultilingual) {
-          return getAutoGLMMultilingualPlanPrompt();
-        }
-        return getAutoGLMChinesePlanPrompt();
-      },
+      buildSystemPrompt: () =>
+        isMultilingual
+          ? getAutoGLMMultilingualPlanPrompt()
+          : getAutoGLMChinesePlanPrompt(),
       historyImageLimit: 1,
       buildAssistantContent: (parsedResponse) =>
         `<think>${parsedResponse.response.think}</think><answer>${parsedResponse.response.content}</answer>`,

@@ -1,6 +1,7 @@
 import { normalJsonParser } from '../service-caller/json';
 import { createLocateResultAdapter } from '../shared/model-locate-result/factory';
 import type { LocateResultAdapterDefinition } from '../shared/model-locate-result/types';
+import { resolvePlanningActionLocator } from '../workflows/inspect/planning-action-locate';
 import { resolveCustomPlanning } from '../workflows/planning/custom-planning';
 import { defaultExtractContentAndReasoning } from './chat-content';
 import type {
@@ -121,12 +122,38 @@ function resolvePlanning(
 
 function resolveLocate(
   locate: ModelAdapterDefinition['locate'],
+  planning: ModelAdapterDefinition['planning'],
 ): LocateAdapter {
   if (locate?.kind === 'custom') {
+    let locateFn = locate.locateFn;
+
+    if (!locateFn) {
+      const locator = locate.locator;
+
+      if (!locator) {
+        throw new Error(
+          'Custom locate definition requires either locateFn or locator',
+        );
+      }
+
+      const planner =
+        planning?.kind === 'custom' && 'planner' in planning
+          ? planning.planner
+          : undefined;
+
+      if (!planner) {
+        throw new Error(
+          'Custom locator requires a custom planning planner definition',
+        );
+      }
+
+      locateFn = resolvePlanningActionLocator(locator, planner);
+    }
+
     return {
       kind: 'custom',
       supportsSearchArea: locate.supportsSearchArea ?? false,
-      locateFn: locate.locateFn,
+      locateFn,
     };
   }
 
@@ -151,6 +178,6 @@ export class ResolvedModelAdapter implements ModelAdapter {
     this.chatCompletion = resolveChatCompletion(config.chatCompletion);
     this.imagePreprocess = resolveImagePreprocess(config.imagePreprocess);
     this.planning = resolvePlanning(config.planning);
-    this.locate = resolveLocate(config.locate);
+    this.locate = resolveLocate(config.locate, config.planning);
   }
 }

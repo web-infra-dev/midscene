@@ -227,38 +227,3 @@ export function parseAutoGLMPlanningResponse(content: string): {
   const action = parseAutoGLMPlanningAction(response);
   return { response, action };
 }
-
-export function parseAutoGLMLocateResponse(rawResponse: string): {
-  think: string;
-  coordinates: { x: number; y: number } | null;
-  error?: string;
-} {
-  const { think, content: actionContent } = parseAutoGLMResponse(rawResponse);
-  if (!actionContent.startsWith('do(action="Tap"')) {
-    return {
-      think,
-      coordinates: null,
-      error: `Unexpected action type in auto-glm locate response: ${actionContent}`,
-    };
-  }
-  try {
-    const elementMatch = actionContent.match(/element=\[(\d+),(\d+)\]/);
-    if (!elementMatch) {
-      return {
-        think,
-        coordinates: null,
-        error: `Failed to extract element coordinates from auto-glm response: ${actionContent}`,
-      };
-    }
-    const x = Number(elementMatch[1]);
-    const y = Number(elementMatch[2]);
-    return { think, coordinates: { x, y } };
-  } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    return {
-      think,
-      coordinates: null,
-      error: `Failed to parse coordinates "${actionContent}" with errorMessage: ${errorMessage}`,
-    };
-  }
-}
