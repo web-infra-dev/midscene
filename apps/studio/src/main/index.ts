@@ -524,7 +524,7 @@ const registerIpcHandlers = () => {
         }
         return {
           type: 'markdown',
-          path: markdownPath,
+          content: await readFile(markdownPath, 'utf-8'),
           displayName: `${path.basename(filePath)}/${path.basename(markdownPath)}`,
         };
       }
@@ -537,7 +537,7 @@ const registerIpcHandlers = () => {
       if (type === 'markdown') {
         return {
           type,
-          path: filePath,
+          content: await readFile(filePath, 'utf-8'),
           displayName: path.basename(filePath),
         };
       }

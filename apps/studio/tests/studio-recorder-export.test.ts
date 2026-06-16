@@ -64,7 +64,7 @@ describe('studio recorder export', () => {
     expect(writeFile).not.toHaveBeenCalled();
   });
 
-  it('exports Markdown replay zip with relative screenshots', async () => {
+  it('exports Markdown replay zip with screenshot files', async () => {
     const session: StudioRecordingSession = {
       id: 'session-1',
       name: 'Replay login',
@@ -86,7 +86,24 @@ describe('studio recorder export', () => {
             values: { url: 'https://example.com' },
           },
           pageInfo: { width: 1280, height: 720 },
-          elementDescription: 'Login button',
+          semantic: {
+            source: 'recorderAI',
+            status: 'ready',
+            elementDescription: 'Login button',
+            confidence: 'high',
+            fallbackFrom: {
+              source: 'aiDescribe',
+              status: 'failed',
+              error: 'aiDescribe verification failed.',
+              aiDescribe: {
+                verifyPrompt: true,
+                verifyPassed: false,
+                centerDistance: 1.41,
+                annotatedScreenshotPath:
+                  '/tmp/recorder-ai-describe-screenshots/verify-failed-annotated.png',
+              },
+            },
+          },
           screenshotWithBox:
             'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ',
           timestamp: 1,
@@ -108,15 +125,41 @@ describe('studio recorder export', () => {
 
     expect(markdown).toContain('# Replay login');
     expect(markdown).toContain('not AI-generated');
-    expect(markdown).toContain('./screenshots/event-001-click.png');
+    expect(markdown).not.toContain('![');
+    expect(markdown).not.toContain('./screenshots/');
     expect(manifest).toMatchObject({
       aiGenerated: false,
       markdownSource: 'local-fallback',
+      descriptionSourceCounts: {
+        recorderAI: 1,
+      },
+      events: [
+        {
+          hashId: 'click-1',
+          type: 'click',
+          semantic: {
+            source: 'recorderAI',
+            status: 'ready',
+            confidence: 'high',
+            fallbackFrom: {
+              source: 'aiDescribe',
+              status: 'failed',
+              error: 'aiDescribe verification failed.',
+              aiDescribe: {
+                verifyPassed: false,
+                centerDistance: 1.41,
+                annotatedScreenshotPath:
+                  '/tmp/recorder-ai-describe-screenshots/verify-failed-annotated.png',
+              },
+            },
+          },
+        },
+      ],
     });
     expect(zip.file('screenshots/event-001-click.png')).toBeTruthy();
   });
 
-  it('includes Markdown replay files and screenshots in export-all zip', async () => {
+  it('includes Markdown replay files with screenshots in export-all zip', async () => {
     const session: StudioRecordingSession = {
       id: 'session-1',
       name: 'Replay login',
@@ -143,11 +186,15 @@ describe('studio recorder export', () => {
           timestamp: 1,
           hashId: 'nav-1',
           url: 'https://example.com',
+          semantic: {
+            source: 'heuristic',
+            status: 'ready',
+            confidence: 'high',
+          },
         },
       ],
       generatedCode: {
-        markdown:
-          '# Replay login\n\n## Steps\n1. Open page\n   ![step context](./screenshots/event-001-navigation.png)\n',
+        markdown: '# Replay login\n\n## Steps\n1. Open page\n',
       },
       createdAt: 1,
       updatedAt: 2,
@@ -165,17 +212,27 @@ describe('studio recorder export', () => {
         ?.async('string')) || '{}',
     );
 
-    expect(markdown).toContain(
-      './replay-login-session-1/screenshots/event-001-navigation.png',
-    );
+    expect(markdown).toBe('# Replay login\n\n## Steps\n1. Open page\n');
     expect(manifest).toMatchObject({
       aiGenerated: true,
       markdownSource: 'ai',
+      descriptionSourceCounts: {
+        heuristic: 1,
+      },
+      events: [
+        {
+          hashId: 'nav-1',
+          type: 'navigation',
+          semantic: {
+            source: 'heuristic',
+            status: 'ready',
+            confidence: 'high',
+          },
+        },
+      ],
     });
     expect(
-      zip.file(
-        'markdown/replay-login-session-1/screenshots/event-001-navigation.png',
-      ),
+      zip.file('markdown/screenshots/event-001-navigation.png'),
     ).toBeTruthy();
   });
 
@@ -202,7 +259,11 @@ describe('studio recorder export', () => {
               values: { url: 'https://example.com' },
             },
             pageInfo: { width: 1280, height: 720 },
-            elementDescription: 'Path C:\\temp | confirm\nnext step',
+            semantic: {
+              source: 'aiDescribe',
+              status: 'ready',
+              elementDescription: 'Path C:\\temp | confirm\nnext step',
+            },
             timestamp: 1,
             hashId: 'click-1',
           },

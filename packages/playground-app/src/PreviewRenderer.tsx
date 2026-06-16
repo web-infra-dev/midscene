@@ -8,7 +8,7 @@ import {
   type ScreenshotViewerMode,
 } from '@midscene/visualizer';
 import { WebCodecsVideoDecoder } from '@yume-chan/scrcpy-decoder-webcodecs';
-import { Alert, Popover, message } from 'antd';
+import { Alert, App as AntdApp, Popover } from 'antd';
 import React, {
   type CSSProperties,
   type ReactNode,
@@ -72,6 +72,7 @@ export function PreviewRenderer({
   serverOnline,
   isUserOperating,
 }: PreviewRendererProps) {
+  const { message } = AntdApp.useApp();
   const previewConnection = resolvePreviewConnectionInfo(
     runtimeInfo,
     serverUrl,
@@ -88,6 +89,9 @@ export function PreviewRenderer({
     useState<ScrcpyPreviewStatus>('connecting');
   const manualControlQueueRef = useRef<Promise<unknown>>(Promise.resolve());
   const pendingTextInputRef = useRef('');
+  const pendingTextInputPointRef = useRef<{ x: number; y: number } | null>(
+    null,
+  );
   const textInputTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textInputFlushPromiseRef = useRef<Promise<void> | null>(null);
   // Shared with the active preview component (ScrcpyPanel / ScreenshotViewer)
@@ -125,7 +129,7 @@ export function PreviewRenderer({
       manualControlQueueRef.current = nextTask.catch(() => undefined);
       return nextTask;
     },
-    [],
+    [message],
   );
 
   // Pull device size and actionSpace from /interface-info so the interaction
@@ -237,11 +241,13 @@ export function PreviewRenderer({
     clearTextInputTimer();
 
     const text = pendingTextInputRef.current;
+    const point = pendingTextInputPointRef.current;
     if (!text) {
       return textInputFlushPromiseRef.current ?? Promise.resolve();
     }
 
     pendingTextInputRef.current = '';
+    pendingTextInputPointRef.current = null;
     const previousFlush = textInputFlushPromiseRef.current ?? Promise.resolve();
     const flushPromise = previousFlush
       .catch(() => undefined)
@@ -251,6 +257,7 @@ export function PreviewRenderer({
             actionType: 'Input',
             value: text,
             mode: 'typeOnly',
+            ...(point ? { x: point.x, y: point.y } : {}),
           }),
         );
         if (!res.ok) {
@@ -326,9 +333,12 @@ export function PreviewRenderer({
   );
 
   const handleTextInput = useCallback(
-    (text: string) => {
+    (text: string, point?: { x: number; y: number }) => {
       if (!text) return;
       pendingTextInputRef.current += text;
+      if (point) {
+        pendingTextInputPointRef.current = point;
+      }
       clearTextInputTimer();
       textInputTimerRef.current = setTimeout(() => {
         void flushPendingTextInput();
@@ -343,6 +353,7 @@ export function PreviewRenderer({
     }
     clearTextInputTimer();
     pendingTextInputRef.current = '';
+    pendingTextInputPointRef.current = null;
   }, [
     clearTextInputTimer,
     manualKeyboardEnabled,
@@ -362,6 +373,7 @@ export function PreviewRenderer({
         return;
       }
       clearTextInputTimer();
+      pendingTextInputPointRef.current = null;
     };
   }, [
     clearTextInputTimer,

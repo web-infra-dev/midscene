@@ -1,9 +1,20 @@
+import type {
+  ExecutionTask,
+  IExecutionDump,
+  IReportActionDump,
+} from '@midscene/core';
 import {
   IndexedDBManager,
   createCleanupFunction,
   withErrorHandling,
 } from '@midscene/shared/baseDB';
 import type { InfoListItem, StorageProvider } from '../../../types';
+
+function isReportActionDump(
+  dump: IExecutionDump | IReportActionDump | null | undefined,
+): dump is IReportActionDump {
+  return Array.isArray((dump as IReportActionDump | undefined)?.executions);
+}
 
 // Database configuration
 const DB_NAME = 'midscene_playground';
@@ -203,12 +214,46 @@ export class IndexedDBStorageProvider implements StorageProvider {
    * Compress result data for storage while preserving playback functionality
    */
   private compressResultForStorage(result: InfoListItem): InfoListItem {
-    if (!result.result?.dump?.tasks) {
+    const playgroundResult = result.result;
+    const dump = playgroundResult?.dump;
+    if (!playgroundResult || !dump) {
       return result;
     }
 
-    // ExecutionDump now has tasks directly (not wrapped in executions array)
-    const compressedTasks = result.result.dump.tasks.map((task) => ({
+    if (isReportActionDump(dump)) {
+      return {
+        ...result,
+        result: {
+          ...playgroundResult,
+          dump: {
+            ...dump,
+            executions: dump.executions.map((execution) => ({
+              ...execution,
+              tasks: this.compressExecutionTasks(execution.tasks),
+            })),
+          },
+        },
+      };
+    }
+
+    if (!dump.tasks) {
+      return result;
+    }
+
+    return {
+      ...result,
+      result: {
+        ...playgroundResult,
+        dump: {
+          ...dump,
+          tasks: this.compressExecutionTasks(dump.tasks),
+        },
+      },
+    };
+  }
+
+  private compressExecutionTasks(tasks: ExecutionTask[]): ExecutionTask[] {
+    return tasks.map((task) => ({
       ...task,
       // Compress screenshots if they're too large (>1MB)
       uiContext: task.uiContext
@@ -223,17 +268,6 @@ export class IndexedDBStorageProvider implements StorageProvider {
         screenshot: record.screenshot,
       })),
     }));
-
-    return {
-      ...result,
-      result: {
-        ...result.result,
-        dump: {
-          ...result.result.dump,
-          tasks: compressedTasks,
-        },
-      },
-    };
   }
 
   /**

@@ -35,6 +35,10 @@ vi.mock('@midscene/playground-app', () => ({
   usePlaygroundController: usePlaygroundControllerMock,
 }));
 
+vi.mock('antd', () => ({
+  Form: () => null,
+}));
+
 (
   globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;

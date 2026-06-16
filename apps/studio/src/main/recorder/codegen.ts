@@ -5,6 +5,7 @@ import {
   generateRecorderSessionMetadata,
   generateRecorderYamlTest,
 } from '@midscene/core/ai-model';
+import { getDebug } from '@midscene/shared/logger';
 import type {
   DescribeRecorderUIEventsRequest,
   DescribeRecorderUIEventsResult,
@@ -13,6 +14,10 @@ import type {
   GenerateRecorderMetadataRequest,
   GenerateRecorderMetadataResult,
 } from '@shared/electron-contract';
+
+const debugRecorderCodegen = getDebug('studio:recorder-codegen', {
+  console: true,
+});
 
 function validateRecorderCodeRequest(request: GenerateRecorderCodeRequest) {
   if (!request?.input) {
@@ -52,6 +57,11 @@ function resolveViewportSize(request: GenerateRecorderCodeRequest) {
   return { width, height };
 }
 
+function isModelInputLengthError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /Range of input length|InvalidParameter|input length/i.test(message);
+}
+
 export async function generateRecorderCodeInMain(
   request: GenerateRecorderCodeRequest,
 ): Promise<GenerateRecorderCodeResult> {
@@ -66,10 +76,57 @@ export async function generateRecorderCodeInMain(
   }
 
   if (request.type === 'markdown') {
-    const code = await convertRecordLogIntoMarkdown(
-      request.input,
-      request.modelConfig,
-    );
+    let code: string;
+    try {
+      debugRecorderCodegen('generate markdown recorder code %o', {
+        eventCount: request.input.events.length,
+        maxScreenshots: request.input.maxScreenshots,
+        modelName: request.modelConfig.modelName,
+      });
+      code = await convertRecordLogIntoMarkdown(
+        request.input,
+        request.modelConfig,
+      );
+    } catch (error) {
+      debugRecorderCodegen('markdown recorder code generation failed %o', {
+        eventCount: request.input.events.length,
+        maxScreenshots: request.input.maxScreenshots,
+        modelName: request.modelConfig.modelName,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      if (
+        request.input.maxScreenshots === 0 ||
+        !isModelInputLengthError(error)
+      ) {
+        throw error;
+      }
+      debugRecorderCodegen(
+        'retry markdown recorder code generation without screenshots',
+      );
+      try {
+        code = await convertRecordLogIntoMarkdown(
+          {
+            ...request.input,
+            maxScreenshots: 0,
+          },
+          request.modelConfig,
+        );
+      } catch (retryError) {
+        debugRecorderCodegen(
+          'markdown recorder code generation retry failed %o',
+          {
+            eventCount: request.input.events.length,
+            maxScreenshots: 0,
+            modelName: request.modelConfig.modelName,
+            error:
+              retryError instanceof Error
+                ? retryError.message
+                : String(retryError),
+          },
+        );
+        throw retryError;
+      }
+    }
     return { type: 'markdown', code };
   }
 

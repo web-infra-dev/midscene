@@ -9,6 +9,7 @@ import type {
   PlanningLocateParam,
   PlanningLocateParamWithLocatedPixelBbox,
   Rect,
+  Size,
   UIContext,
 } from '@/types';
 import { uploadTestInfoToServer } from '@/utils';
@@ -18,13 +19,19 @@ import {
   globalConfigManager,
 } from '@midscene/shared/env';
 import { generateElementByRect } from '@midscene/shared/extractor';
-import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
+import {
+  imageInfoOfBase64,
+  normalizeBase64Image,
+  resizeImgBase64,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { assert, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import type { TaskCache } from './task-cache';
 import { debug as cacheDebug } from './task-cache';
+
+const agentDebug = getDebug('agent');
 
 export async function commonContextParser(
   interfaceInstance: AbstractInterface,
@@ -156,6 +163,38 @@ export async function commonContextParser(
     deprecatedDpr: dpr,
     screenshot: ScreenshotItem.create(screenshotBase64, screenshotCapturedAt),
     shrunkShotToLogicalRatio,
+  };
+}
+
+export async function createScreenshotBoundUIContext(
+  screenshotBase64: string,
+  opt: {
+    screenshotSize?: Size;
+  },
+): Promise<UIContext> {
+  const normalizedScreenshotBase64 = normalizeBase64Image(screenshotBase64);
+  const actualScreenshotSize = await imageInfoOfBase64(
+    normalizedScreenshotBase64,
+  );
+  if (
+    opt.screenshotSize &&
+    (opt.screenshotSize.width !== actualScreenshotSize.width ||
+      opt.screenshotSize.height !== actualScreenshotSize.height)
+  ) {
+    agentDebug(
+      'describeElementAtPoint screenshotSize mismatch, use actual size',
+      {
+        provided: opt.screenshotSize,
+        actual: actualScreenshotSize,
+      },
+    );
+  }
+
+  return {
+    screenshot: ScreenshotItem.create(normalizedScreenshotBase64, Date.now()),
+    shotSize: actualScreenshotSize,
+    shrunkShotToLogicalRatio: 1,
+    _isFrozen: true,
   };
 }
 

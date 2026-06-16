@@ -1,5 +1,5 @@
 import type { DeviceAction } from '@midscene/core';
-import { ExecutionDump } from '@midscene/core';
+import { ReportActionDump } from '@midscene/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { LocalExecutionAdapter } from '../../src/adapters/local-execution';
 import { RemoteExecutionAdapter } from '../../src/adapters/remote-execution';
@@ -111,7 +111,7 @@ describe('Playground Integration Tests', () => {
             },
           },
         },
-        dump: expect.any(ExecutionDump),
+        dump: expect.any(ReportActionDump),
         reportHTML: null,
         error: null,
       });
@@ -139,7 +139,7 @@ describe('Playground Integration Tests', () => {
             screenshotIncluded: true,
           },
         },
-        dump: expect.any(ExecutionDump),
+        dump: expect.any(ReportActionDump),
         reportHTML: null,
         error: null,
       });
@@ -232,7 +232,7 @@ describe('Playground Integration Tests', () => {
 
       expect(result).toEqual({
         success: true,
-        dump: expect.any(ExecutionDump),
+        dump: expect.any(ReportActionDump),
         reportHTML: null,
       });
     });

@@ -113,6 +113,7 @@ export interface LocateValidatorResult {
   rect: Rect;
   center: [number, number];
   centerDistance?: number;
+  includedInRect?: boolean;
 }
 
 export interface AgentDescribeElementAtPointResult {

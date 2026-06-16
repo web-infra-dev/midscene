@@ -19,7 +19,7 @@ export interface DeviceSize {
 export interface DeviceInteractionLayerProps {
   enabled: boolean;
   deviceSize?: DeviceSize | null;
-  onTap?: (point: { x: number; y: number }) => void;
+  onTap?: (point: { x: number; y: number }) => void | Promise<void>;
   onSwipe?: (
     start: { x: number; y: number },
     end: { x: number; y: number },
@@ -56,6 +56,7 @@ interface ActivePointer {
   startY: number;
   startTime: number;
   contentRect: { left: number; top: number; width: number; height: number };
+  keyboardFocusRequestId: number;
 }
 
 interface PendingWheelScroll {
@@ -210,6 +211,7 @@ export function DeviceInteractionLayer({
   const activePointer = useRef<ActivePointer | null>(null);
   const composingRef = useRef(false);
   const keyboardArmedRef = useRef(false);
+  const keyboardFocusRequestIdRef = useRef(0);
   const lastKeyboardPointRef = useRef<{ x: number; y: number } | null>(null);
   const pendingWheelRef = useRef<PendingWheelScroll | null>(null);
   const wheelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -217,9 +219,31 @@ export function DeviceInteractionLayer({
   const focusKeyboardSink = useCallback(() => {
     if (keyboardEnabled) {
       keyboardArmedRef.current = true;
-      keyboardSinkRef.current?.focus({ preventScroll: true });
+      const sink = keyboardSinkRef.current;
+      if (sink && document.activeElement !== sink) {
+        sink.focus({ preventScroll: true });
+      }
     }
   }, [keyboardEnabled]);
+
+  const refocusKeyboardSinkAfterTap = useCallback(
+    (focusRequestId: number, interaction: void | Promise<void>) => {
+      if (!keyboardEnabled) return;
+      void Promise.resolve(interaction)
+        .catch(() => undefined)
+        .then(() => {
+          window.setTimeout(() => {
+            if (
+              keyboardArmedRef.current &&
+              keyboardFocusRequestIdRef.current === focusRequestId
+            ) {
+              focusKeyboardSink();
+            }
+          }, 0);
+        });
+    },
+    [focusKeyboardSink, keyboardEnabled],
+  );
 
   const positionKeyboardSink = useCallback(
     (clientX: number, clientY: number) => {
@@ -272,6 +296,8 @@ export function DeviceInteractionLayer({
         return;
       }
       positionKeyboardSink(event.clientX, event.clientY);
+      const keyboardFocusRequestId = keyboardFocusRequestIdRef.current + 1;
+      keyboardFocusRequestIdRef.current = keyboardFocusRequestId;
       focusKeyboardSink();
       try {
         overlayRef.current.setPointerCapture(event.pointerId);
@@ -283,6 +309,7 @@ export function DeviceInteractionLayer({
         startY: event.clientY,
         startTime: performance.now(),
         contentRect,
+        keyboardFocusRequestId,
       };
       event.preventDefault();
     },
@@ -320,12 +347,22 @@ export function DeviceInteractionLayer({
       lastKeyboardPointRef.current = endPoint;
 
       if (distance <= tapMaxDistance && duration <= tapMaxDurationMs) {
-        onTap?.(startPoint);
+        refocusKeyboardSinkAfterTap(
+          active.keyboardFocusRequestId,
+          onTap?.(startPoint),
+        );
       } else {
         onSwipe?.(startPoint, endPoint, Math.round(duration));
       }
     },
-    [onTap, onSwipe, projectToDevice, tapMaxDistance, tapMaxDurationMs],
+    [
+      onTap,
+      onSwipe,
+      projectToDevice,
+      refocusKeyboardSinkAfterTap,
+      tapMaxDistance,
+      tapMaxDurationMs,
+    ],
   );
 
   const handlePointerUp = useCallback(
@@ -603,8 +640,11 @@ export function DeviceInteractionLayer({
             top: 0,
             width: 32,
             height: 24,
-            opacity: 0.01,
+            opacity: 0,
             pointerEvents: 'none',
+            appearance: 'none',
+            boxShadow: 'none',
+            overflow: 'hidden',
             resize: 'none',
             border: 0,
             padding: 0,

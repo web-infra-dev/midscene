@@ -34,7 +34,10 @@ import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TMultimodalPrompt, TUserPrompt } from '../common';
-import { createServiceDump } from './utils';
+import {
+  createServiceDump,
+  recoverDescribeResponseFromParseError,
+} from './utils';
 
 export interface LocateOpts {
   context?: UIContext;
@@ -394,10 +397,11 @@ export default class Service {
     modelRuntime: ModelRuntime,
     opt?: {
       deepLocate?: boolean;
+      context?: UIContext;
     },
   ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
     assert(target, 'target is required for service.describe');
-    const context = await this.contextRetrieverFn();
+    const context = opt?.context || (await this.contextRetrieverFn());
     const { shotSize } = context;
     const screenshotBase64 = context.screenshot.base64;
     assert(screenshotBase64, 'screenshot is required for service.describe');
@@ -455,10 +459,22 @@ export default class Service {
       },
     ];
 
-    const res = await callAIWithObjectResponse<AIDescribeElementResponse>(
-      msgs,
-      modelRuntime,
-    );
+    let res: Awaited<
+      ReturnType<typeof callAIWithObjectResponse<AIDescribeElementResponse>>
+    >;
+    try {
+      res = await callAIWithObjectResponse<AIDescribeElementResponse>(
+        msgs,
+        modelRuntime,
+      );
+    } catch (error) {
+      const recoveredResponse = recoverDescribeResponseFromParseError(error);
+      if (!recoveredResponse) {
+        throw error;
+      }
+      debug('describe: recovered malformed description JSON response');
+      return recoveredResponse;
+    }
 
     const { content } = res;
     assert(!content.error, `describe failed: ${content.error}`);

@@ -1,5 +1,5 @@
 import type { DeviceAction } from '@midscene/core';
-import { ExecutionDump, runConnectivityTest } from '@midscene/core';
+import { ReportActionDump, runConnectivityTest } from '@midscene/core';
 import {
   globalModelConfigManager,
   overrideAIConfig,
@@ -257,7 +257,7 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         result: 'test result',
-        dump: expect.any(ExecutionDump),
+        dump: expect.any(ReportActionDump),
         reportHTML: null,
         error: null,
       });
@@ -304,6 +304,32 @@ describe('LocalExecutionAdapter', () => {
 
       expect(mockAgent.onTaskStartTip).toBeDefined();
     });
+
+    it('should preserve every execution from the grouped dump', async () => {
+      vi.mocked(mockAgent.dumpDataString!).mockReturnValue(
+        JSON.stringify({
+          executions: [
+            { logTime: 1, name: 'prepare login state', tasks: [] },
+            { logTime: 2, name: 'replay markdown login', tasks: [] },
+          ],
+          groupName: 'Replay',
+          modelBriefs: [],
+          sdkVersion: '1.0.0',
+        }),
+      );
+
+      const result = (await adapter.executeAction(
+        'aiAct',
+        { type: 'aiAct', prompt: 'Replay markdown' },
+        {},
+      )) as { dump: ReportActionDump };
+
+      expect(result.dump).toBeInstanceOf(ReportActionDump);
+      expect(result.dump.executions).toHaveLength(2);
+      expect(result.dump.executions.map((execution) => execution.name)).toEqual(
+        ['prepare login state', 'replay markdown login'],
+      );
+    });
   });
 
   describe('cancelTask', () => {
@@ -314,7 +340,7 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         success: true,
-        dump: expect.any(ExecutionDump),
+        dump: expect.any(ReportActionDump),
         reportHTML: null,
       });
       expect(mockAgent.destroy).toHaveBeenCalled();
@@ -345,7 +371,7 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         error: 'Failed to cancel: Destroy failed',
-        dump: expect.any(ExecutionDump),
+        dump: expect.any(ReportActionDump),
         reportHTML: null,
       });
       expect(consoleSpy).toHaveBeenCalledWith(

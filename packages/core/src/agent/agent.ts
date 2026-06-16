@@ -32,6 +32,7 @@ import {
   type ServiceAction,
   type ServiceExtractOption,
   type ServiceExtractParam,
+  type Size,
   type TestStatus,
   type UIContext,
 } from '../types';
@@ -81,7 +82,29 @@ import {
   taskTitleStr,
   typeStr,
 } from './ui-utils';
-import { commonContextParser, getReportFileName, parsePrompt } from './utils';
+import {
+  commonContextParser,
+  createScreenshotBoundUIContext,
+  getReportFileName,
+  parsePrompt,
+} from './utils';
+
+export type DescribeElementCoordinateSpace = 'screenshot' | 'logical';
+
+export type DescribeElementAtPointOptions = {
+  verifyPrompt?: boolean;
+  retryLimit?: number;
+  deepLocate?: boolean;
+  screenshotBase64?: string;
+  screenshotSize?: Size;
+  coordinateSpace?: DescribeElementCoordinateSpace;
+  logicalSize?: Size;
+  onProgress?: (progress: {
+    prompt?: string;
+    deepLocate?: boolean;
+    verifyResult?: LocateValidatorResult;
+  }) => void;
+} & LocatorValidatorOption;
 
 const debug = getDebug('agent');
 const warn = getDebug('agent', { console: true });
@@ -96,6 +119,40 @@ const includedInRect = (point: [number, number], rect: Rect) => {
   const [x, y] = point;
   const { left, top, width, height } = rect;
   return x >= left && x <= left + width && y >= top && y <= top + height;
+};
+
+function assertPositiveSize(
+  size: Size | undefined,
+  label: string,
+): asserts size is Size {
+  assert(
+    size &&
+      Number.isFinite(size.width) &&
+      Number.isFinite(size.height) &&
+      size.width > 0 &&
+      size.height > 0,
+    `${label} must include positive width and height`,
+  );
+}
+
+const mapPointToScreenshotSpace = (
+  center: [number, number],
+  screenshotSize: Size,
+  opt: DescribeElementAtPointOptions,
+): [number, number] => {
+  const coordinateSpace = opt.coordinateSpace || 'screenshot';
+  if (coordinateSpace === 'screenshot') {
+    return center;
+  }
+
+  assertPositiveSize(
+    opt.logicalSize,
+    'logicalSize is required when coordinateSpace is logical',
+  );
+  return [
+    (center[0] * screenshotSize.width) / opt.logicalSize.width,
+    (center[1] * screenshotSize.height) / opt.logicalSize.height,
+  ];
 };
 
 const defaultServiceExtractOption: ServiceExtractOption = {
@@ -1110,13 +1167,15 @@ export class Agent<
 
   async describeElementAtPoint(
     center: [number, number],
-    opt?: {
-      verifyPrompt?: boolean;
-      retryLimit?: number;
-      deepLocate?: boolean;
-    } & LocatorValidatorOption,
+    opt?: DescribeElementAtPointOptions,
   ): Promise<AgentDescribeElementAtPointResult> {
     const { verifyPrompt = true, retryLimit = 3 } = opt || {};
+    const screenshotContext = opt?.screenshotBase64
+      ? await createScreenshotBoundUIContext(opt.screenshotBase64, opt)
+      : undefined;
+    const targetCenter = screenshotContext
+      ? mapPointToScreenshotSpace(center, screenshotContext.shotSize, opt || {})
+      : center;
 
     let success = false;
     let retryCount = 0;
@@ -1130,7 +1189,7 @@ export class Agent<
       }
       debug(
         'aiDescribe',
-        center,
+        targetCenter,
         'verifyPrompt',
         verifyPrompt,
         'retryCount',
@@ -1140,15 +1199,24 @@ export class Agent<
       );
       // use same intent as aiLocate
       const modelRuntime = this.resolveModelRuntime('insight');
+      const describeOpt = screenshotContext
+        ? { deepLocate, context: screenshotContext }
+        : { deepLocate };
 
-      const text = await this.service.describe(center, modelRuntime, {
-        deepLocate,
-      });
+      const text = await this.service.describe(
+        targetCenter,
+        modelRuntime,
+        describeOpt,
+      );
       debug('aiDescribe text', text);
-      assert(text.description, `failed to describe element at [${center}]`);
+      assert(
+        text.description,
+        `failed to describe element at [${targetCenter}]`,
+      );
       resultPrompt = text.description;
 
       if (!verifyPrompt) {
+        opt?.onProgress?.({ prompt: resultPrompt, deepLocate });
         success = true;
         break;
       }
@@ -1161,10 +1229,11 @@ export class Agent<
       // verification.
       verifyResult = await this.verifyLocator(
         resultPrompt,
-        undefined,
-        center,
+        screenshotContext ? { uiContext: screenshotContext } : undefined,
+        targetCenter,
         opt,
       );
+      opt?.onProgress?.({ prompt: resultPrompt, deepLocate, verifyResult });
       if (verifyResult.pass) {
         success = true;
       } else {
@@ -1201,6 +1270,7 @@ export class Agent<
       rect: verifyRect,
       center: verifyCenter,
       centerDistance: distance,
+      includedInRect: included,
     };
     debug('aiDescribe verifyResult', verifyResult);
     return verifyResult;
@@ -1231,6 +1301,7 @@ export class Agent<
       plans,
       planningModel,
       defaultModel,
+      opt?.uiContext ? { uiContext: opt.uiContext } : undefined,
     );
 
     const { element } = output;
