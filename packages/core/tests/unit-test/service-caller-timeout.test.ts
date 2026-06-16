@@ -193,6 +193,83 @@ describe('service-caller request timeout', () => {
     expect(mockCreate).toHaveBeenCalledTimes(2);
   });
 
+  it('includes previous attempt errors when all retry attempts fail', async () => {
+    const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
+
+    mockCreate
+      .mockRejectedValueOnce(new Error('first failure'))
+      .mockRejectedValueOnce(new Error('second failure'));
+
+    const promise = callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime(baseConfig({ retryCount: 1, retryInterval: 0 })),
+    );
+
+    await expect(promise).rejects.toThrow(/second failure/);
+    await expect(promise).rejects.toThrow(
+      /AI model request failed after 1 retry \(2\/2 attempts\)/,
+    );
+    await expect(promise).rejects.toThrow(/Previous AI call attempt errors/);
+    await expect(promise).rejects.toThrow(/Attempt 1: first failure/);
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+  });
+
+  it('normalizes negative retryCount to zero retries', async () => {
+    const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
+
+    mockCreate.mockRejectedValueOnce(new Error('single failure'));
+
+    const promise = callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime(baseConfig({ retryCount: -1, retryInterval: 0 })),
+    );
+
+    await expect(promise).rejects.toThrow(
+      /AI model request failed after 0 retries \(1\/1 attempts\)/,
+    );
+    await expect(promise).rejects.toThrow(/single failure/);
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    { retryCount: Number.NaN, expectedRetries: 1, expectedAttempts: 2 },
+    {
+      retryCount: Number.POSITIVE_INFINITY,
+      expectedRetries: 1,
+      expectedAttempts: 2,
+    },
+    { retryCount: 2.9, expectedRetries: 2, expectedAttempts: 3 },
+  ])(
+    'normalizes retryCount $retryCount to $expectedRetries retries',
+    async ({ retryCount, expectedRetries, expectedAttempts }) => {
+      const { callAI } = await import('@/ai-model/service-caller');
+      const { getModelRuntime } = await import('@/ai-model/models');
+
+      for (let i = 1; i <= expectedAttempts; i++) {
+        mockCreate.mockRejectedValueOnce(new Error(`failure ${i}`));
+      }
+
+      const promise = callAI(
+        [{ role: 'user', content: 'hello' }],
+        getModelRuntime(baseConfig({ retryCount, retryInterval: 0 })),
+      );
+
+      await expect(promise).rejects.toThrow(
+        new RegExp(
+          `AI model request failed after ${expectedRetries} ${
+            expectedRetries === 1 ? 'retry' : 'retries'
+          } \\(${expectedAttempts}\\/${expectedAttempts} attempts\\)`,
+        ),
+      );
+      await expect(promise).rejects.toThrow(
+        new RegExp(`failure ${expectedAttempts}`),
+      );
+      expect(mockCreate).toHaveBeenCalledTimes(expectedAttempts);
+    },
+  );
+
   it('disables the hard timeout when modelConfig.timeout is 0', async () => {
     const { callAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
