@@ -19,110 +19,29 @@ tasks:
 
   - name: inspect detail side sections
     flow:
-      - javascript: |
-          (function () {
-            const firstRow = document.querySelector('.tasks-table .task-row');
-            if (!(firstRow instanceof HTMLElement)) {
-              throw new Error('First sidebar task row not found');
-            }
-            firstRow.click();
-            return { clickedTaskId: firstRow.getAttribute('data-task-id') };
-          })()
-        name: clickFirstTaskRowForDetailSide
+      - aiTap:
+          locate:
+            prompt: the first task row in the left sidebar whose type label is exactly "Planning"; click the row itself, not any control inside the right detail panel
+            deepLocate: true
       - sleep: 1000
-      - javascript: |
-          (function () {
-            const labels = Array.from(
-              document.querySelectorAll('.detail-side .summary-text'),
-            ).map((element) => element.textContent?.trim());
-            const hasParam = labels.includes('Param');
-            const hasOutput = labels.includes('Output') || labels.includes('Element');
-            const hasMeta = labels.includes('Meta');
-            if (!hasParam || !hasMeta) {
-              throw new Error(
-                'Expected Param and Meta sections in detail side; found ' +
-                  labels.join(', '),
-              );
-            }
-            return { hasParam, hasOutput, hasMeta, labels };
-          })()
-        name: assertDetailSideSectionsBeforeCollapse
+      - aiAssert: The right detail side panel shows collapsible section headers named Param, Output, and Meta, and the Param section is expanded with task input data
       # Collapse both Param and the Output/Element section so the Meta section
       # (always rendered last) rises to the top of the panel with its heading
       # and first metadata rows fully on screen. This avoids depending on
       # scroll position: Meta is long, so any partial scroll leaves either the
       # heading or the type/status/start rows out of the viewport.
-      # Locate-type tasks render the middle section as "Element"; every other
-      # task renders it as "Output". Accept either label.
-      - javascript: |
-          (function () {
-            const sections = Array.from(
-              document.querySelectorAll('.detail-side details'),
-            );
-            const findSection = (names) =>
-              sections.find((section) => {
-                const label = section
-                  .querySelector('.summary-text')
-                  ?.textContent?.trim();
-                return names.includes(label || '');
-              });
-            const clickOpenSection = (section) => {
-              if (!section) return false;
-              if (section.open) {
-                const summary = section.querySelector('summary');
-                if (!(summary instanceof HTMLElement)) {
-                  throw new Error('Section summary not found');
-                }
-                summary.click();
-                return true;
-              }
-              return false;
-            };
-            const outputSection = findSection(['Output', 'Element']);
-            const paramSection = findSection(['Param']);
-            return {
-              collapsedOutput: clickOpenSection(outputSection),
-              collapsedParam: clickOpenSection(paramSection),
-            };
-          })()
-        name: collapseDetailSideSections
+      - aiTap:
+          locate:
+            prompt: the "Output" collapsible section header in the right detail side panel, between the Param header above and the Meta header below; click the header row or its disclosure arrow, not the output content
+            deepLocate: true
       - sleep: 500
-      - javascript: |
-          (function () {
-            const sections = Array.from(
-              document.querySelectorAll('.detail-side details'),
-            );
-            const byLabel = (name) =>
-              sections.find((section) => {
-                const label = section
-                  .querySelector('.summary-text')
-                  ?.textContent?.trim();
-                return label === name;
-              });
-            const paramSection = byLabel('Param');
-            const metaSection = byLabel('Meta');
-            const outputSection =
-              byLabel('Output') || byLabel('Element') || undefined;
-            if (!metaSection || !metaSection.open) {
-              throw new Error('Meta section is not visible after collapsing sections');
-            }
-            if (paramSection?.open) {
-              throw new Error('Param section should be collapsed');
-            }
-            if (outputSection?.open) {
-              throw new Error('Output/Element section should be collapsed');
-            }
-            const metaText = metaSection.textContent || '';
-            if (
-              !metaText.includes('type') &&
-              !metaText.includes('status') &&
-              !metaText.includes('start')
-            ) {
-              throw new Error('Meta section does not show expected metadata rows');
-            }
-            return { metaVisible: true };
-          })()
-        name: assertMetaSectionVisible
+      - aiAssert: The Output section is collapsed; the Output header is still visible but the output content under it is hidden
+      - aiTap:
+          locate:
+            prompt: the "Param" collapsible section header in the right detail side panel; click the header row or its disclosure arrow to collapse Param
+            deepLocate: true
+      - sleep: 1000
+      - aiAssert: The Meta section is visible in the right detail side panel and shows metadata entries such as type, status, start, end, or total time; Param and Output are collapsed above it
 
   - name: open in playground button
     flow:

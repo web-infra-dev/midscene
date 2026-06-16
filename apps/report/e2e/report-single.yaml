@@ -32,92 +32,19 @@ tasks:
   # --- Dark mode ---
   - name: toggle dark mode
     flow:
-      - javascript: |
-          (function () {
-            const button = document.querySelector(
-              'button[aria-label="Toggle theme"]',
-            );
-            if (!(button instanceof HTMLElement)) {
-              throw new Error('Theme toggle button not found');
-            }
-            const currentTheme =
-              document
-                .querySelector('.page-container')
-                ?.getAttribute('data-theme') ||
-              document.documentElement.getAttribute('data-theme');
-            if (currentTheme !== 'dark') {
-              button.click();
-            }
-            return { previousTheme: currentTheme };
-          })()
-        name: toggleDarkMode
-      - sleep: 1000
-      - javascript: |
-          (function () {
-            const container = document.querySelector('.page-container');
-            const side = document.querySelector('.page-side');
-            if (!container || !side) {
-              throw new Error('Report theme elements not found');
-            }
-            const theme = container.getAttribute('data-theme');
-            const background = getComputedStyle(side).backgroundColor;
-            const channels = background.match(/\d+/g)?.map(Number) || [];
-            const average =
-              channels.slice(0, 3).reduce((sum, value) => sum + value, 0) / 3;
-            if (theme !== 'dark' || average > 80) {
-              throw new Error(
-                'Expected dark theme, got theme=' +
-                  theme +
-                  ', background=' +
-                  background,
-              );
-            }
-            return { theme, background };
-          })()
-        name: assertDarkMode
+      - aiTap:
+          locate:
+            prompt: the icon-only "Toggle theme" button in the top right header area, immediately to the right of the version text and vertical divider
+            deepLocate: true
+      - sleep: 2000
+      - aiAssert: The report UI is in dark theme; the top header, left sidebar, and page chrome are dark charcoal or black rather than white
 
   - name: toggle back to light mode
     flow:
-      - javascript: |
-          (function () {
-            const button = document.querySelector(
-              'button[aria-label="Toggle theme"]',
-            );
-            if (!(button instanceof HTMLElement)) {
-              throw new Error('Theme toggle button not found');
-            }
-            const currentTheme =
-              document
-                .querySelector('.page-container')
-                ?.getAttribute('data-theme') ||
-              document.documentElement.getAttribute('data-theme');
-            if (currentTheme !== 'light') {
-              button.click();
-            }
-            return { previousTheme: currentTheme };
-          })()
-        name: toggleLightMode
-      - sleep: 1000
-      - javascript: |
-          (function () {
-            const container = document.querySelector('.page-container');
-            const side = document.querySelector('.page-side');
-            if (!container || !side) {
-              throw new Error('Report theme elements not found');
-            }
-            const theme = container.getAttribute('data-theme');
-            const background = getComputedStyle(side).backgroundColor;
-            const channels = background.match(/\d+/g)?.map(Number) || [];
-            const average =
-              channels.slice(0, 3).reduce((sum, value) => sum + value, 0) / 3;
-            if (theme !== 'light' || average < 200) {
-              throw new Error(
-                'Expected light theme, got theme=' +
-                  theme +
-                  ', background=' +
-                  background,
-              );
-            }
-            return { theme, background };
-          })()
-        name: assertLightMode
+      - aiAssert: The report UI is currently in dark theme before clicking the theme toggle again
+      - aiTap:
+          locate:
+            prompt: the icon-only "Toggle theme" button in the top right header area, immediately to the right of the version text and vertical divider
+            deepLocate: true
+      - sleep: 2000
+      - aiAssert: The report UI is in light theme; the top header, left sidebar, and page chrome are light or white rather than dark charcoal or black
