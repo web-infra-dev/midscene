@@ -970,9 +970,24 @@ export class Agent<
       const planningModel = this.resolveModelRuntime('planning');
       const defaultModel = this.resolveModelRuntime('default');
       // Controls the aiAct planning mode, such as sub-goal prompts and locate result strategy.
-      const deepThink = opt?.deepThink === true;
+      let deepThink = opt?.deepThink === true;
+      if (deepThink && planningModel.adapter.planning.kind === 'custom') {
+        warn(
+          `The "deepThink" option is not supported for aiAct with custom planning adapters (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored.`,
+        );
+        deepThink = false;
+      }
 
-      const deepLocate = opt?.deepLocate;
+      let deepLocate = opt?.deepLocate;
+      if (
+        deepLocate &&
+        !planningModel.adapter.planning.supportsActionDeepLocate
+      ) {
+        warn(
+          `The "deepLocate" option is not supported for aiAct with the current planning adapter (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored.`,
+        );
+        deepLocate = false;
+      }
 
       const noIndividualLocateModel = planningModel.config.slot === 'default';
 

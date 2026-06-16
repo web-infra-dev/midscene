@@ -402,16 +402,6 @@ export class TaskExecutor {
       | undefined
     >
   > {
-    if (
-      deepLocate &&
-      !planningModel.adapter.planning.supportsActionDeepLocate
-    ) {
-      warnLog(
-        `The "deepLocate" option is not supported for aiAct with the current planning adapter (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored.`,
-      );
-      deepLocate = false;
-    }
-
     const conversationHistory = new ConversationHistory();
 
     const session = this.createExecutionSession(
@@ -437,11 +427,6 @@ export class TaskExecutor {
     if (abortSignal?.aborted) {
       return session.appendErrorPlan(
         `Task aborted: ${abortSignal.reason || 'abort signal received'}`,
-      );
-    }
-    if (deepThink && planningModel.adapter.planning.kind === 'custom') {
-      warnLog(
-        `The "deepThink" option is not supported for aiAct with custom planning adapters (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored by the planner.`,
       );
     }
     const referenceImageMessages = await multimodalPromptToChatMessages(
