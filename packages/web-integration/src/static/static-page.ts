@@ -12,7 +12,43 @@ const ThrowNotImplemented = (methodName: string) => {
   );
 };
 
-type StaticPageUIContext = Omit<UIContext, 'deprecatedDpr'>;
+type StaticPageUIContext = Omit<
+  UIContext,
+  'deprecatedDpr' | 'screenshot'
+> & {
+  screenshot: unknown;
+};
+
+function screenshotBase64FromContext(screenshot: unknown): string {
+  if (typeof screenshot === 'string') {
+    return screenshot;
+  }
+
+  if (!screenshot || typeof screenshot !== 'object') {
+    throw new Error('StaticPage screenshot must be a base64 string');
+  }
+
+  const record = screenshot as Record<string, unknown>;
+  if (typeof record.base64 === 'string') {
+    return record.base64;
+  }
+
+  // Server-mode report playback sends UIContext through JSON. ScreenshotItem
+  // instances lose their getter there, but keep the in-memory payload here.
+  if (typeof record._base64 === 'string') {
+    return record._base64;
+  }
+
+  if (record.type === 'midscene_screenshot_ref') {
+    throw new Error(
+      'StaticPage screenshot is a serialized reference without base64 data',
+    );
+  }
+
+  throw new Error(
+    'StaticPage screenshot must include base64 data before execution',
+  );
+}
 
 export default class StaticPage implements AbstractInterface {
   interfaceType = 'static';
@@ -78,11 +114,7 @@ export default class StaticPage implements AbstractInterface {
   }
 
   async screenshotBase64() {
-    const screenshot = this.uiContext.screenshot;
-    if (typeof screenshot === 'object' && 'base64' in screenshot) {
-      return (screenshot as { base64: string }).base64;
-    }
-    return screenshot as unknown as string;
+    return screenshotBase64FromContext(this.uiContext.screenshot);
   }
 
   async url() {
