@@ -5,15 +5,16 @@ tasks:
   - name: toggle to dark mode
     flow:
       - sleep: 2000
-      - ai: Click the "Toggle theme" button in the top right header area
+      - aiTap: theme toggle button in the top right header
       - sleep: 2000
-      - aiAssert: The report UI (header, sidebar, and surrounding chrome) has a dark background color
+      - aiAssert: The report UI is in dark theme; the top header, left sidebar, and page chrome are dark charcoal or black rather than white
 
   - name: toggle back to light mode
     flow:
-      - ai: Click the "Toggle theme" button in the top right header area
+      - aiAssert: The report UI is currently in dark theme before clicking the theme toggle again
+      - aiTap: theme toggle button in the top right header
       - sleep: 2000
-      - aiAssert: The report UI (header, sidebar, and surrounding chrome) has a light/white background color
+      - aiAssert: The report UI is in light theme; the top header, left sidebar, and page chrome are light or white rather than dark charcoal or black
 
   - name: version info displayed
     flow:

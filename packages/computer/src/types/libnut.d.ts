@@ -9,6 +9,13 @@ declare module '@computer-use/libnut/dist/import_libnut.js' {
     y: number;
   }
 
+  interface Rect {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }
+
   type MouseButton = 'left' | 'right' | 'middle';
   type ToggleState = 'up' | 'down';
 
@@ -21,6 +28,9 @@ declare module '@computer-use/libnut/dist/import_libnut.js' {
     scrollMouse(x: number, y: number): void;
     keyTap(key: string, modifiers?: string[]): void;
     typeString(text: string): void;
+    getActiveWindow?(): number;
+    getWindowRect?(handle: number): Rect;
+    focusWindow?(handle: number): void;
   }
 
   export const libnut: LibNut;
@@ -37,6 +47,13 @@ declare module '@computer-use/libnut/dist/import_libnut' {
     y: number;
   }
 
+  interface Rect {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }
+
   type MouseButton = 'left' | 'right' | 'middle';
   type ToggleState = 'up' | 'down';
 
@@ -49,6 +66,9 @@ declare module '@computer-use/libnut/dist/import_libnut' {
     scrollMouse(x: number, y: number): void;
     keyTap(key: string, modifiers?: string[]): void;
     typeString(text: string): void;
+    getActiveWindow?(): number;
+    getWindowRect?(handle: number): Rect;
+    focusWindow?(handle: number): void;
   }
 
   export const libnut: LibNut;
