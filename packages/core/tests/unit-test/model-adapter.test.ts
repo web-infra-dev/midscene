@@ -24,6 +24,7 @@ describe('model adapter registry', () => {
 
     expect(adapter.planning.cacheEnabled).toBe(true);
     expect(adapter.planning.defaultReplanningCycleLimit).toBe(20);
+    expect(adapter.planning.supportsActionDeepLocate).toBe(true);
     expect(adapter.chatCompletion.unsupportedUserConfig).toEqual([
       'reasoningEnabled',
       'reasoningEffort',
@@ -105,6 +106,7 @@ describe('ResolvedModelAdapter', () => {
       kind: 'standard',
       cacheEnabled: true,
       defaultReplanningCycleLimit: 20,
+      supportsActionDeepLocate: true,
     });
     expect(adapter.locate.kind).toBe('standard');
     if (adapter.locate.kind !== 'standard') {
@@ -140,6 +142,7 @@ describe('ResolvedModelAdapter', () => {
       kind: 'custom',
       cacheEnabled: true,
       defaultReplanningCycleLimit: 20,
+      supportsActionDeepLocate: false,
     });
     expect(adapter.locate).toMatchObject({
       kind: 'custom',
@@ -211,6 +214,7 @@ describe('ResolvedModelAdapter', () => {
         planning: {
           cacheEnabled: false,
           defaultReplanningCycleLimit: 7,
+          supportsActionDeepLocate: false,
         },
         locate: {
           supportsSearchArea: false,
@@ -223,6 +227,7 @@ describe('ResolvedModelAdapter', () => {
       kind: 'standard',
       cacheEnabled: false,
       defaultReplanningCycleLimit: 7,
+      supportsActionDeepLocate: false,
     });
     expect(adapter.locate.supportsSearchArea).toBe(false);
   });
@@ -237,6 +242,21 @@ describe('ResolvedModelAdapter', () => {
           'test-unknown-parser',
         ),
     ).toThrow(/Unknown json parser preset: missing-parser/);
+  });
+
+  it('allows adapters to opt custom planning into action deepLocate', () => {
+    const adapter = new ResolvedModelAdapter(
+      {
+        planning: {
+          kind: 'custom',
+          planner: createTestPlannerDefinition(),
+          supportsActionDeepLocate: true,
+        },
+      },
+      'test-custom-planning',
+    );
+
+    expect(adapter.planning.supportsActionDeepLocate).toBe(true);
   });
 
   it('keeps custom planning functions as a fallback escape hatch', () => {
@@ -255,6 +275,7 @@ describe('ResolvedModelAdapter', () => {
       kind: 'custom',
       cacheEnabled: true,
       defaultReplanningCycleLimit: 20,
+      supportsActionDeepLocate: false,
     });
     if (adapter.planning.kind !== 'custom') {
       throw new Error('adapter should keep custom planning function');

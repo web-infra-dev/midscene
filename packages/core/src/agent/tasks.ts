@@ -402,6 +402,16 @@ export class TaskExecutor {
       | undefined
     >
   > {
+    if (
+      deepLocate &&
+      !planningModel.adapter.planning.supportsActionDeepLocate
+    ) {
+      warnLog(
+        `The "deepLocate" option is not supported for aiAct with the current planning adapter (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored.`,
+      );
+      deepLocate = false;
+    }
+
     const conversationHistory = new ConversationHistory();
 
     const session = this.createExecutionSession(
