@@ -46,6 +46,7 @@ describe('ui-tars model adapter', () => {
     expect(uiTarsAdapter.planning.kind).toBe('custom');
     expect(uiTarsAdapter.planning.cacheEnabled).toBe(false);
     expect(uiTarsAdapter.planning.defaultReplanningCycleLimit).toBe(40);
+    expect(uiTarsAdapter.planning.supportsActionDeepLocate).toBe(false);
   });
 
   it('preserves midscene defaults and applies explicit UI-TARS temperature override', () => {
