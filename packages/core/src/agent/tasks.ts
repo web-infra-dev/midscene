@@ -429,6 +429,11 @@ export class TaskExecutor {
         `Task aborted: ${abortSignal.reason || 'abort signal received'}`,
       );
     }
+    if (deepThink && planningModel.adapter.planning.kind === 'custom') {
+      warnLog(
+        `The "deepThink" option is not supported for aiAct with custom planning adapters (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored by the planner.`,
+      );
+    }
     const referenceImageMessages = await multimodalPromptToChatMessages(
       userPromptToMultimodalPrompt(userPrompt),
     );
