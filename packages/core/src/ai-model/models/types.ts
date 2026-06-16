@@ -106,6 +106,15 @@ export type ImagePreprocessDefinition = Partial<ImagePreprocessPolicy>;
 interface PlanningPolicy {
   cacheEnabled: boolean;
   defaultReplanningCycleLimit: number;
+  /**
+   * Whether aiAct can use planning action coordinates as the first-stage
+   * search area for deepLocate.
+   *
+   * Custom planning models may return only action coordinates without a target
+   * element description. Those results can be used as direct plan hits, but
+   * cannot drive deepLocate's second-stage locate call because that call also
+   * needs a query prompt describing the target element.
+   */
   supportsActionDeepLocate: boolean;
 }
 
@@ -137,6 +146,15 @@ export type PlanningDefinition =
       ));
 
 interface LocatePolicy {
+  /**
+   * Whether the locate adapter supports finding a coarse search area before the
+   * final element locate step.
+   *
+   * Some custom model families provide their own planning flow but do not
+   * support standalone locate/section-locate. They cannot behave like standard
+   * deepLocate, where a reference element is first located to build the search
+   * area for the final locate call.
+   */
   supportsSearchArea: boolean;
 }
 
