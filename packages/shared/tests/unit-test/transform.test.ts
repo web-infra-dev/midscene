@@ -1,6 +1,11 @@
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { preProcessImageUrl, scaleImage } from '../../src/img/transform';
+import {
+  inferBase64ImageFormat,
+  normalizeBase64Image,
+  preProcessImageUrl,
+  scaleImage,
+} from '../../src/img/transform';
 
 describe('preapareImageUrl', () => {
   it('url is not a string will throw an error', async () => {
@@ -68,6 +73,33 @@ describe('preapareImageUrl', () => {
       `data:image/svg+xml;base64,${mockData.toString('base64')}`,
     );
     fetchSpy.mockRestore();
+  });
+});
+
+describe('normalizeBase64Image', () => {
+  it('keeps existing image data urls and trims surrounding whitespace', () => {
+    expect(normalizeBase64Image(' data:image/png;base64,aaa\r\nbbb ')).toBe(
+      'data:image/png;base64,aaa\r\nbbb',
+    );
+  });
+
+  it('wraps bare png base64 as an image data url', () => {
+    expect(normalizeBase64Image(' iVBORw0KGgoaaa\r\nbbb ')).toBe(
+      'data:image/png;base64,iVBORw0KGgoaaabbb',
+    );
+  });
+
+  it('wraps bare non-png base64 as jpeg for compatibility', () => {
+    expect(normalizeBase64Image(' /9j/4AAQ SkZJRg== ')).toBe(
+      'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
+    );
+  });
+});
+
+describe('inferBase64ImageFormat', () => {
+  it('detects png payloads and otherwise falls back to jpeg', () => {
+    expect(inferBase64ImageFormat('iVBORw0KGgoaaa')).toBe('png');
+    expect(inferBase64ImageFormat('/9j/4AAQSkZJRg==')).toBe('jpeg');
   });
 });
 

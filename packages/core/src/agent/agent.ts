@@ -63,10 +63,6 @@ import {
   globalConfigManager,
   globalModelConfigManager,
 } from '@midscene/shared/env';
-import {
-  createImgBase64ByFormat,
-  imageInfoOfBase64,
-} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
@@ -86,7 +82,12 @@ import {
   taskTitleStr,
   typeStr,
 } from './ui-utils';
-import { commonContextParser, getReportFileName, parsePrompt } from './utils';
+import {
+  commonContextParser,
+  createScreenshotBoundUIContext,
+  getReportFileName,
+  parsePrompt,
+} from './utils';
 
 export type DescribeElementCoordinateSpace = 'screenshot' | 'logical';
 
@@ -151,57 +152,6 @@ const mapPointToScreenshotSpace = (
     (center[0] * screenshotSize.width) / opt.logicalSize.width,
     (center[1] * screenshotSize.height) / opt.logicalSize.height,
   ];
-};
-
-const screenshotDataUrlPattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
-
-const inferBase64ImageFormat = (base64Body: string) => {
-  if (base64Body.startsWith('iVBORw0KGgo')) {
-    return 'png';
-  }
-  return 'jpeg';
-};
-
-const normalizeScreenshotBase64ForContext = (screenshotBase64: string) => {
-  const trimmedScreenshotBase64 = screenshotBase64.trim();
-  if (screenshotDataUrlPattern.test(trimmedScreenshotBase64)) {
-    return trimmedScreenshotBase64;
-  }
-
-  const base64Body = trimmedScreenshotBase64.replace(/\s/g, '');
-  assert(base64Body, 'screenshotBase64 must include image data');
-  return createImgBase64ByFormat(
-    inferBase64ImageFormat(base64Body),
-    base64Body,
-  );
-};
-
-const createScreenshotBoundUIContext = async (
-  screenshotBase64: string,
-  opt: DescribeElementAtPointOptions,
-): Promise<UIContext> => {
-  const normalizedScreenshotBase64 =
-    normalizeScreenshotBase64ForContext(screenshotBase64);
-  const actualScreenshotSize = await imageInfoOfBase64(
-    normalizedScreenshotBase64,
-  );
-  if (
-    opt.screenshotSize &&
-    (opt.screenshotSize.width !== actualScreenshotSize.width ||
-      opt.screenshotSize.height !== actualScreenshotSize.height)
-  ) {
-    debug('describeElementAtPoint screenshotSize mismatch, use actual size', {
-      provided: opt.screenshotSize,
-      actual: actualScreenshotSize,
-    });
-  }
-
-  return {
-    screenshot: ScreenshotItem.create(normalizedScreenshotBase64, Date.now()),
-    shotSize: actualScreenshotSize,
-    shrunkShotToLogicalRatio: 1,
-    _isFrozen: true,
-  };
 };
 
 const defaultServiceExtractOption: ServiceExtractOption = {

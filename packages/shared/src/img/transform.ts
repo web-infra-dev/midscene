@@ -156,6 +156,15 @@ export async function resizeAndConvertImgBuffer(
 
 export const normalizeBase64Body = (body: string) => body.replace(/\s/g, '');
 
+const base64ImageDataUrlPattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
+
+export const inferBase64ImageFormat = (base64Body: string) => {
+  if (base64Body.startsWith('iVBORw0KGgo')) {
+    return 'png';
+  }
+  return 'jpeg';
+};
+
 function detectImageMimeTypeFromBuffer(buffer: Buffer): string | undefined {
   if (
     buffer.length >= 8 &&
@@ -196,6 +205,20 @@ function detectImageMimeTypeFromBuffer(buffer: Buffer): string | undefined {
 
 export const createImgBase64ByFormat = (format: string, body: string) => {
   return `data:image/${format};base64,${normalizeBase64Body(body)}`;
+};
+
+export const normalizeBase64Image = (base64: string) => {
+  const trimmedBase64 = base64.trim();
+  if (base64ImageDataUrlPattern.test(trimmedBase64)) {
+    return trimmedBase64;
+  }
+
+  const base64Body = normalizeBase64Body(trimmedBase64);
+  assert(base64Body, 'base64 image must include image data');
+  return createImgBase64ByFormat(
+    inferBase64ImageFormat(base64Body),
+    base64Body,
+  );
 };
 
 export async function resizeImgBase64(
