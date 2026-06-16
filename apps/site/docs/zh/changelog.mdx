@@ -1,30 +1,61 @@
 # 更新日志
 
-## v1.9 - 模型适配器重构与 CLI 增强
+## v1.9 - 新增模型支持、YAML 自动化与 AndroidWorld Benchmark
 
-v1.9 版本重构了模型适配器，方便后续新模型快速接入，并补充了更广泛的 YAML 自动化能力以及 CLI、报告、模型和桌面自动化相关修复。
+v1.9 版本扩展了模型支持，改进了 YAML 自动化，并提升了报告查看、Android 自动化、Web 输入和桌面自动化的稳定性。
 
-### YAML 与设备自动化
+### AndroidWorld Benchmark
+
+Midscene 新增 AndroidWorld benchmark 报告。使用 v1.9.5 测试时，Midscene 达到 **Pass@1 93.10%**、**Pass@2 95.69%**、**Pass@3 97.41%**。详见：[AndroidWorld Benchmark 报告](./android-world-benchmark-report)
+
+### 新增模型支持
+
+- 新增 Kimi 和 Xiaomi MiMo 模型支持。详见：[常用模型配置](./model-common-config)
+
+### 模型与规划更新
+
+- `MIDSCENE_MODEL_REASONING_ENABLED` 支持 `default`，适配模型默认思考行为。
+- `aiAct` 在缓存失效时会回退到模型规划，并清空对应缓存。
+- `deepLocate` 的搜索区域会显示在报告上。
+
+### Chrome 扩展
+
+- Chrome 扩展 Bridge mode 支持文件上传。
+
+### YAML、CLI 与 MCP
 
 - CLI 的 YAML 脚本新增 HarmonyOS target，HarmonyOS 自动化可以通过与 Web、Android、iOS、Computer 一致的脚本运行器流程执行。详见：[YAML 脚本自动化](./automate-with-scripts-in-yaml)、[HarmonyOS API](./harmony-api-reference)
 - YAML Web config 支持自定义 HTTP headers。
 - YAML 执行会暴露真实错误，不再只落到静默的 "not executed" 结果。
-
-### 模型、CLI 与报告更新
-
-- `aiAct` 支持图片 prompt，动作指令可以带参考图。
+- YAML 批量执行支持重试失败用例。
+- YAML 成功执行后会打印报告路径。
+- 显式指定的 YAML report 文件名会被正确保留。
 - CLI / MCP / Skill 流程可以通过共享参数暴露 `deepLocate` / `deepThink` 控制项。
 - Assert CLI / MCP 工具会转发自定义失败信息，让断言失败更清晰。
-- 重构了模型适配器内部实现，便于维护不同模型系列的请求和响应处理逻辑。
-- CLI 现在从 CLI 包自身解析 `@rstest/core`，而不是从 `process.argv[1]` 解析，让外部启动路径下的 framework 执行更稳定。
+- CLI 会从 CLI 包自身解析 `@rstest/core`，并延迟加载 Rstest core，让外部启动路径下的 framework 执行更稳定。
+
+### 报告
+
 - Report 导出会让图片路径与导出的截图保持一致。
+- Report 新增 JSON tree view，方便查看结构化任务和模型数据。
+
+### Android 自动化
+
+- 改进 Android action controls 和规划提示，提升原生移动端自动化流程的稳定性。
 
 ### 问题修复
 
 - 修复 Web integration 中 `longPress` 时长被限制在 600ms 的问题。
+- 修复 Web 输入框在输入过程中重新渲染时可能丢字符的问题。
 - 修复部分环境下 HarmonyOS MCP 因 `photon` / `sharp` WASM 初始化失败而无法启动的问题。
-- 修复 Computer RDP 首帧空白截图、phased-scroll helper 缺失可执行权限的自修复问题，并补充 elevated Windows 应用输入丢失的警告。
-- 站点文档补充说明了 PC 桌面端 `aiHover`、`remoteAdbHost` / adb server、通过 `runAdbShell` 执行坐标点击，并刷新了推荐模型列表。
+- 修复 Computer RDP 首帧空白截图问题。
+- 自动修复 Computer phased-scroll helper 缺失可执行权限的问题。
+- 补充 elevated Windows 应用输入丢失警告。
+- 补充 Computer 自动化的 IPv6 RDP host 支持。
+
+### 文档更新
+
+- 补充 Azure OpenAI-compatible endpoint 配置说明。
 
 ## v1.8 - Midscene Studio 桌面端与多平台增强
 
