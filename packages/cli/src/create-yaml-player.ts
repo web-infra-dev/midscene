@@ -261,6 +261,7 @@ export async function createYamlPlayer(
           'waitForNetworkIdle',
           'cookie',
           'extraHTTPHeaders',
+          'downloadPath',
           'chromeArgs',
         ];
         const ignoredKeys = bridgeUnsupportedKeys.filter(

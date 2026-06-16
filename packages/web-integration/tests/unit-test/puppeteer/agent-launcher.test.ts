@@ -1,3 +1,4 @@
+import path from 'node:path';
 import {
   defaultViewportHeight,
   defaultViewportWidth,
@@ -18,7 +19,13 @@ const browserMock = {
   close: vi.fn(),
 };
 
+const cdpSessionMock = {
+  send: vi.fn().mockResolvedValue(undefined),
+  detach: vi.fn().mockResolvedValue(undefined),
+};
+
 const createPageMock = () => ({
+  createCDPSession: vi.fn().mockResolvedValue(cdpSessionMock),
   setUserAgent: vi.fn().mockResolvedValue(undefined),
   setExtraHTTPHeaders: vi.fn().mockResolvedValue(undefined),
   setViewport: vi.fn().mockResolvedValue(undefined),
@@ -135,6 +142,30 @@ describe('launchPuppeteerPage', () => {
     await launchPuppeteerPage({ url: 'https://example.com' });
 
     expect(pageMock.setExtraHTTPHeaders).not.toHaveBeenCalled();
+  });
+
+  it('configures Chrome download behavior when downloadPath is provided', async () => {
+    await launchPuppeteerPage({
+      url: 'https://example.com',
+      downloadPath: './downloads',
+    });
+
+    expect(pageMock.createCDPSession).toHaveBeenCalled();
+    expect(cdpSessionMock.send).toHaveBeenCalledWith(
+      'Browser.setDownloadBehavior',
+      {
+        behavior: 'allow',
+        downloadPath: path.resolve('./downloads'),
+      },
+    );
+    expect(cdpSessionMock.detach).toHaveBeenCalled();
+  });
+
+  it('does not configure Chrome download behavior when downloadPath is omitted', async () => {
+    await launchPuppeteerPage({ url: 'https://example.com' });
+
+    expect(pageMock.createCDPSession).not.toHaveBeenCalled();
+    expect(cdpSessionMock.send).not.toHaveBeenCalled();
   });
 
   it('passes yaml waitForNetworkIdle settings to the agent for later actions', async () => {

@@ -275,6 +275,42 @@ describe('create-yaml-player', () => {
 
       expect(result).toBe(mockPlayer);
     });
+
+    test('should pass web downloadPath to puppeteer agent launcher', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          url: 'http://example.com',
+          downloadPath: './downloads',
+        },
+        tasks: [],
+      };
+      const mockAgent = { destroy: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+      await setupFnCallback?.();
+
+      expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: 'http://example.com',
+          downloadPath: './downloads',
+        }),
+        expect.any(Object),
+        undefined,
+        undefined,
+      );
+    });
   });
 
   describe('Cache configuration - Legacy compatibility mode', () => {
@@ -819,6 +855,44 @@ describe('create-yaml-player', () => {
           aiActionContext: 'This is a test context for bridge mode',
         }),
       );
+    });
+
+    test('should warn that downloadPath is ignored in bridge mode', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          url: 'http://example.com',
+          bridgeMode: 'newTabWithUrl',
+          downloadPath: './downloads',
+        },
+        tasks: [],
+      };
+
+      const mockAgent = {
+        destroy: vi.fn(),
+        connectNewTabWithUrl: vi.fn().mockResolvedValue(undefined),
+      };
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(AgentOverChromeBridge).mockImplementation(
+        () => mockAgent as any,
+      );
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+      await setupFnCallback?.();
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('downloadPath'),
+      );
+      warnSpy.mockRestore();
     });
 
     test('should handle undefined aiActionContext gracefully for Android', async () => {

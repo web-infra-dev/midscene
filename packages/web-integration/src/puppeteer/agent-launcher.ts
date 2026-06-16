@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 
@@ -105,6 +106,22 @@ interface FreeFn {
 }
 
 const launcherDebug = getDebug('puppeteer:launcher');
+
+async function configureDownloadPath(
+  page: Page,
+  downloadPath: string | undefined,
+): Promise<void> {
+  if (!downloadPath) {
+    return;
+  }
+
+  const cdpSession = await page.createCDPSession();
+  await cdpSession.send('Browser.setDownloadBehavior', {
+    behavior: 'allow',
+    downloadPath: path.resolve(downloadPath),
+  });
+  await cdpSession.detach();
+}
 
 export interface BuildChromeArgsOptions {
   userAgent?: string;
@@ -275,6 +292,8 @@ export async function launchPuppeteerPage(
     }
     page = await browserInstance.newPage();
   }
+
+  await configureDownloadPath(page, target.downloadPath);
 
   if (target.cookie) {
     const cookieFileContent = readFileSync(target.cookie, 'utf-8');
