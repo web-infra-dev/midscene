@@ -1,30 +1,61 @@
 # Changelog
 
-## v1.9 - Model Adapter Refactor and CLI Enhancements
+## v1.9 - New Model Support, YAML Automation, and AndroidWorld Benchmark
 
-v1.9 refactors the model adapter layer, making future model integrations faster to add, and includes broader YAML automation plus CLI, report, model, and desktop automation fixes.
+v1.9 expands model support, improves YAML automation, and makes reports, Android automation, Web input, and desktop automation more reliable.
 
-### YAML and Device Automation
+### AndroidWorld Benchmark
+
+Midscene now includes an AndroidWorld benchmark report. With v1.9.5, Midscene achieved **Pass@1 93.10%**, **Pass@2 95.69%**, and **Pass@3 97.41%** in this benchmark. See: [AndroidWorld Benchmark Report](./android-world-benchmark-report)
+
+### New Model Support
+
+- Added Kimi and Xiaomi MiMo model support. See: [Common Model Configuration](./model-common-config)
+
+### Model and Planning Updates
+
+- `MIDSCENE_MODEL_REASONING_ENABLED` now supports `default`, so Midscene can follow each model family's default thinking behavior.
+- `aiAct` falls back to model planning when a cached plan becomes invalid, and clears the corresponding cache entry.
+- The `deepLocate` search area is now displayed in reports.
+
+### Chrome Extension
+
+- Chrome extension Bridge mode now supports file upload.
+
+### YAML, CLI, and MCP
 
 - YAML scripts now support the HarmonyOS target in the CLI, so HarmonyOS automation can be driven through the same script runner workflow as Web, Android, iOS, and Computer. See: [Automate with Scripts in YAML](./automate-with-scripts-in-yaml), [HarmonyOS API](./harmony-api-reference)
 - YAML Web config supports custom HTTP headers for browser automation.
 - YAML runs now surface real execution errors instead of ending as a silent "not executed" case.
-
-### Model, CLI, and Report Updates
-
-- `aiAct` now supports image prompts, so action instructions can include reference images.
+- YAML batch runs can retry failed cases.
+- Successful YAML runs now print the report path.
+- Explicit YAML report file names are now honored.
 - CLI / MCP / Skill flows can expose `deepLocate` / `deepThink` controls through shared flags.
 - Assert CLI / MCP tooling forwards custom failure messages to make assertion failures clearer.
-- Model adapter internals were refactored to make family-specific request and response handling easier to maintain across providers.
-- The CLI now resolves `@rstest/core` from the CLI package itself instead of `process.argv[1]`, making framework runs more stable from external launch paths.
+- The CLI resolves `@rstest/core` from the CLI package itself and lazy-loads Rstest core, making framework runs more stable from external launch paths.
+
+### Reports
+
 - Report exports keep image paths aligned with exported screenshots.
+- Reports include a JSON tree view for inspecting structured task and model data.
+
+### Android Automation
+
+- Android action controls and planning guidance were improved for native mobile automation flows.
 
 ### Bug Fixes
 
 - Fixed `longPress` duration in Web integration being capped at 600ms.
+- Fixed dropped characters when Web input fields re-render during typing.
 - Fixed HarmonyOS MCP startup failures caused by `photon` / `sharp` WASM initialization in some environments.
-- Fixed Computer blank first-frame screenshots in RDP sessions, self-healed missing execute permission on the phased-scroll helper, and warned about elevated Windows app input drops.
-- Site docs clarified `aiHover` support on PC desktop, `remoteAdbHost` / adb server usage, coordinate taps through `runAdbShell`, and the recommended model list.
+- Fixed blank first-frame screenshots in Computer RDP sessions.
+- Self-healed missing execute permission on the Computer phased-scroll helper.
+- Added a warning for elevated Windows app input drops.
+- Added IPv6 RDP host support for Computer automation.
+
+### Documentation Updates
+
+- Documented Azure OpenAI-compatible endpoint setup.
 
 ## v1.8 - Midscene Studio Desktop App & Multi-Platform Enhancements
 
