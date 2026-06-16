@@ -5,20 +5,14 @@ tasks:
   - name: toggle to dark mode
     flow:
       - sleep: 2000
-      - aiTap:
-          locate:
-            prompt: the icon-only "Toggle theme" button in the top right header area, immediately to the right of the version text and vertical divider
-            deepLocate: true
+      - aiTap: theme toggle button in the top right header
       - sleep: 2000
       - aiAssert: The report UI is in dark theme; the top header, left sidebar, and page chrome are dark charcoal or black rather than white
 
   - name: toggle back to light mode
     flow:
       - aiAssert: The report UI is currently in dark theme before clicking the theme toggle again
-      - aiTap:
-          locate:
-            prompt: the icon-only "Toggle theme" button in the top right header area, immediately to the right of the version text and vertical divider
-            deepLocate: true
+      - aiTap: theme toggle button in the top right header
       - sleep: 2000
       - aiAssert: The report UI is in light theme; the top header, left sidebar, and page chrome are light or white rather than dark charcoal or black
 

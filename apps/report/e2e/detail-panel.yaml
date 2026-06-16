@@ -19,10 +19,7 @@ tasks:
 
   - name: inspect detail side sections
     flow:
-      - aiTap:
-          locate:
-            prompt: the first task row in the left sidebar whose type label is exactly "Planning"; click the row itself, not any control inside the right detail panel
-            deepLocate: true
+      - ai: Click on the first Planning task row in the left sidebar
       - sleep: 1000
       - aiAssert: The right detail side panel shows collapsible section headers named Param, Output, and Meta, and the Param section is expanded with task input data
       # Collapse both Param and the Output/Element section so the Meta section
@@ -30,16 +27,10 @@ tasks:
       # and first metadata rows fully on screen. This avoids depending on
       # scroll position: Meta is long, so any partial scroll leaves either the
       # heading or the type/status/start rows out of the viewport.
-      - aiTap:
-          locate:
-            prompt: the "Output" collapsible section header in the right detail side panel, between the Param header above and the Meta header below; click the header row or its disclosure arrow, not the output content
-            deepLocate: true
+      - aiTap: Output section header in the right detail side panel
       - sleep: 500
       - aiAssert: The Output section is collapsed; the Output header is still visible but the output content under it is hidden
-      - aiTap:
-          locate:
-            prompt: the "Param" collapsible section header in the right detail side panel; click the header row or its disclosure arrow to collapse Param
-            deepLocate: true
+      - aiTap: Param section header in the right detail side panel
       - sleep: 1000
       - aiAssert: The Meta section is visible in the right detail side panel and shows metadata entries such as type, status, start, end, or total time; Param and Output are collapsed above it
 
