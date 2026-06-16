@@ -21,7 +21,7 @@ tasks:
     flow:
       - ai: Click on the first Planning task row in the left sidebar
       - sleep: 1000
-      - aiAssert: The right detail side panel shows collapsible section headers named Param, Output, and Meta, and the Param section is expanded with task input data
+      - aiAssert: The right detail side panel shows collapsible section headers named Param and Output, and the Param section is expanded with task input data
       # Collapse both Param and the Output/Element section so the Meta section
       # (always rendered last) rises to the top of the panel with its heading
       # and first metadata rows fully on screen. This avoids depending on
