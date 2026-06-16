@@ -106,7 +106,6 @@ function resolvePlanning(
       cacheEnabled: planning.cacheEnabled ?? true,
       defaultReplanningCycleLimit:
         planning.defaultReplanningCycleLimit ?? defaultReplanningCycleLimit,
-      supportsActionDeepLocate: planning.supportsActionDeepLocate ?? false,
       planFn,
     };
   }
@@ -116,7 +115,6 @@ function resolvePlanning(
     cacheEnabled: planning?.cacheEnabled ?? true,
     defaultReplanningCycleLimit:
       planning?.defaultReplanningCycleLimit ?? defaultReplanningCycleLimit,
-    supportsActionDeepLocate: planning?.supportsActionDeepLocate ?? true,
   };
 }
 

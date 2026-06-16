@@ -106,7 +106,6 @@ export type ImagePreprocessDefinition = Partial<ImagePreprocessPolicy>;
 interface PlanningPolicy {
   cacheEnabled: boolean;
   defaultReplanningCycleLimit: number;
-  supportsActionDeepLocate: boolean;
 }
 
 export type PlanningAdapter =
