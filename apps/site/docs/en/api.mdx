@@ -39,6 +39,8 @@ All agents share these base options:
   - For mobile devices, setting `screenshotShrinkFactor` to 2 can reduce token consumption while maintaining clarity, but it is not recommended to set it higher than 3, as this may cause the image to be too blurry and affect the AI model's understanding.
   - For web pages, if the content is complex or contains a lot of details, it is not recommended to set `screenshotShrinkFactor` to avoid overly blurry screenshots. Additionally, if you want higher clarity for web page screenshots, you can configure Puppeteer or Playwright's `deviceScaleFactor` to 2, which will allow Puppeteer or Playwright to render the page as if it were a high-definition screen.
 
+The MCP tools and device CLIs expose these same Agent behavior options per call. In CLIs, convert the camelCase API option to a bare kebab-case flag, such as `waitAfterAction` -> `--wait-after-action`. In MCP calls, keep the camelCase option under the platform namespace, such as `android.waitAfterAction` or `web.waitAfterAction`. See [Configure Agent behavior per call](./mcp#configure-agent-behavior-per-call) for examples.
+
 ### Custom model configuration
 
 Use `modelConfig: Record<string, string | number>` to configure models directly in code instead of environment variables.
