@@ -19,13 +19,7 @@ const browserMock = {
   close: vi.fn(),
 };
 
-const cdpSessionMock = {
-  send: vi.fn().mockResolvedValue(undefined),
-  detach: vi.fn().mockResolvedValue(undefined),
-};
-
 const createPageMock = () => ({
-  createCDPSession: vi.fn().mockResolvedValue(cdpSessionMock),
   setUserAgent: vi.fn().mockResolvedValue(undefined),
   setExtraHTTPHeaders: vi.fn().mockResolvedValue(undefined),
   setViewport: vi.fn().mockResolvedValue(undefined),
@@ -150,22 +144,70 @@ describe('launchPuppeteerPage', () => {
       downloadPath: './downloads',
     });
 
-    expect(pageMock.createCDPSession).toHaveBeenCalled();
-    expect(cdpSessionMock.send).toHaveBeenCalledWith(
-      'Browser.setDownloadBehavior',
-      {
-        behavior: 'allow',
-        downloadPath: path.resolve('./downloads'),
-      },
+    expect(mockLaunch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        downloadBehavior: {
+          policy: 'allow',
+          downloadPath: path.resolve('./downloads'),
+        },
+      }),
     );
-    expect(cdpSessionMock.detach).not.toHaveBeenCalled();
   });
 
   it('does not configure Chrome download behavior when downloadPath is omitted', async () => {
     await launchPuppeteerPage({ url: 'https://example.com' });
 
-    expect(pageMock.createCDPSession).not.toHaveBeenCalled();
-    expect(cdpSessionMock.send).not.toHaveBeenCalled();
+    expect(mockLaunch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        downloadBehavior: undefined,
+      }),
+    );
+  });
+
+  it('builds Chrome download behavior from a relative downloadPath', async () => {
+    const { buildDownloadBehavior } = await import(
+      '@/puppeteer/agent-launcher'
+    );
+
+    expect(buildDownloadBehavior('./downloads')).toEqual({
+      policy: 'allow',
+      downloadPath: path.resolve('./downloads'),
+    });
+  });
+
+  it('does not build Chrome download behavior when downloadPath is omitted', async () => {
+    const { buildDownloadBehavior } = await import(
+      '@/puppeteer/agent-launcher'
+    );
+
+    expect(buildDownloadBehavior(undefined)).toBeUndefined();
+  });
+
+  it('does not configure Chrome download behavior on an externally provided browser', async () => {
+    await launchPuppeteerPage(
+      {
+        url: 'https://example.com',
+        downloadPath: './downloads',
+      },
+      undefined,
+      browserMock as any,
+    );
+
+    expect(mockLaunch).not.toHaveBeenCalled();
+  });
+
+  it('does not configure Chrome download behavior on an externally provided page', async () => {
+    await launchPuppeteerPage(
+      {
+        url: 'https://example.com',
+        downloadPath: './downloads',
+      },
+      undefined,
+      browserMock as any,
+      pageMock as any,
+    );
+
+    expect(mockLaunch).not.toHaveBeenCalled();
   });
 
   it('passes yaml waitForNetworkIdle settings to the agent for later actions', async () => {

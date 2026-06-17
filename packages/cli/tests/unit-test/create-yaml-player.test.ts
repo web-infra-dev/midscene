@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { createYamlPlayer, launchServer } from '@/create-yaml-player';
 import type { MidsceneYamlScript, MidsceneYamlScriptEnv } from '@midscene/core';
 import { processCacheConfig } from '@midscene/core/utils';
@@ -47,9 +48,25 @@ vi.mock('@midscene/web/bridge-mode', () => ({
   AgentOverChromeBridge: vi.fn(),
 }));
 
-vi.mock('@midscene/web/puppeteer-agent-launcher', () => ({
-  puppeteerAgentForTarget: vi.fn(),
-}));
+vi.mock('@midscene/web/puppeteer-agent-launcher', async (importOriginal) => {
+  const original =
+    await importOriginal<
+      typeof import('@midscene/web/puppeteer-agent-launcher')
+    >();
+  return {
+    ...original,
+    buildDownloadBehavior: (downloadPath: string | undefined) =>
+      downloadPath
+        ? {
+            policy: 'allow',
+            downloadPath: downloadPath.startsWith('/')
+              ? downloadPath
+              : `${process.cwd()}/${downloadPath.replace(/^\.\//, '')}`,
+          }
+        : undefined,
+    puppeteerAgentForTarget: vi.fn(),
+  };
+});
 
 vi.mock('@midscene/web/puppeteer', () => ({
   PuppeteerAgent: vi.fn(),
@@ -1374,6 +1391,7 @@ describe('create-yaml-player', () => {
       expect(puppeteer.connect).toHaveBeenCalledWith({
         browserWSEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
         defaultViewport: null,
+        downloadBehavior: undefined,
       });
 
       // Should reuse puppeteerAgentForTarget (page setup: viewport, userAgent, etc.)
@@ -1383,6 +1401,53 @@ describe('create-yaml-player', () => {
         mockBrowser, // CDP browser passed as browser param
         undefined, // no shared page
       );
+    });
+
+    test('should configure download behavior via Puppeteer connect options in CDP mode', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          url: 'http://example.com',
+          cdpEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
+          downloadPath: './downloads',
+        },
+        tasks: [],
+      };
+
+      const mockBrowser = {
+        disconnect: vi.fn(),
+      };
+      const mockAgent = { destroy: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+
+      const puppeteer = (await import('puppeteer')).default;
+      vi.mocked(puppeteer.connect).mockResolvedValue(mockBrowser as any);
+
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+      await setupFnCallback?.();
+
+      expect(puppeteer.connect).toHaveBeenCalledWith({
+        browserWSEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
+        defaultViewport: null,
+        downloadBehavior: {
+          policy: 'allow',
+          downloadPath: path.resolve('./downloads'),
+        },
+      });
     });
 
     test('should pass agent options in CDP mode via puppeteerAgentForTarget', async () => {

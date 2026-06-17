@@ -17,7 +17,10 @@ import type { AbstractInterface } from '@midscene/core/device';
 import { processCacheConfig } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
-import { puppeteerAgentForTarget } from '@midscene/web/puppeteer-agent-launcher';
+import {
+  buildDownloadBehavior,
+  puppeteerAgentForTarget,
+} from '@midscene/web/puppeteer-agent-launcher';
 import type { Browser, Page } from 'puppeteer';
 import puppeteer from 'puppeteer';
 
@@ -187,6 +190,7 @@ export async function createYamlPlayer(
             (await puppeteer.connect({
               browserWSEndpoint: webTarget.cdpEndpoint,
               defaultViewport: null,
+              downloadBehavior: buildDownloadBehavior(webTarget.downloadPath),
             }));
 
           // Warn about options that don't apply to an already-running browser

@@ -11,7 +11,11 @@ import {
 import { PuppeteerAgent } from '@/puppeteer/index';
 import type { AgentOpt, Cache, MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT } from '@midscene/shared/constants';
-import puppeteer, { type Browser, type Page } from 'puppeteer';
+import puppeteer, {
+  type Browser,
+  type DownloadBehavior,
+  type Page,
+} from 'puppeteer';
 
 export { defaultViewportWidth, defaultViewportHeight } from '@/common/viewport';
 
@@ -107,19 +111,17 @@ interface FreeFn {
 
 const launcherDebug = getDebug('puppeteer:launcher');
 
-async function configureDownloadPath(
-  page: Page,
+export function buildDownloadBehavior(
   downloadPath: string | undefined,
-): Promise<void> {
+): DownloadBehavior | undefined {
   if (!downloadPath) {
-    return;
+    return undefined;
   }
 
-  const cdpSession = await page.createCDPSession();
-  await cdpSession.send('Browser.setDownloadBehavior', {
-    behavior: 'allow',
+  return {
+    policy: 'allow',
     downloadPath: path.resolve(downloadPath),
-  });
+  };
 }
 
 export interface BuildChromeArgsOptions {
@@ -239,6 +241,7 @@ export async function launchPuppeteerPage(
       : undefined,
     chromeArgs: target.chromeArgs,
   });
+  const downloadBehavior = buildDownloadBehavior(target.downloadPath);
 
   launcherDebug(
     'launching browser with viewport, headed',
@@ -270,6 +273,7 @@ export async function launchPuppeteerPage(
       browserInstance = await puppeteer.launch({
         headless: !preference?.headed,
         defaultViewport: defaultViewportConfig,
+        downloadBehavior,
         args,
         acceptInsecureCerts: target.acceptInsecureCerts,
         ignoreDefaultArgs: preference?.ignoreDefaultArgs,
@@ -291,8 +295,6 @@ export async function launchPuppeteerPage(
     }
     page = await browserInstance.newPage();
   }
-
-  await configureDownloadPath(page, target.downloadPath);
 
   if (target.cookie) {
     const cookieFileContent = readFileSync(target.cookie, 'utf-8');

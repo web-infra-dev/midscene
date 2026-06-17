@@ -10,6 +10,7 @@ import type {
 import { type ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import {
   buildChromeArgs,
+  buildDownloadBehavior,
   defaultViewportHeight,
   defaultViewportWidth,
 } from '@midscene/web/puppeteer-agent-launcher';
@@ -127,6 +128,9 @@ class YamlBatchExecutor {
           browser = await puppeteer.connect({
             browserWSEndpoint: globalWebConfig.cdpEndpoint,
             defaultViewport: null,
+            downloadBehavior: buildDownloadBehavior(
+              globalWebConfig.downloadPath,
+            ),
           });
         } else {
           // Extract viewport dimensions from global config or use defaults
@@ -145,6 +149,9 @@ class YamlBatchExecutor {
           browser = await puppeteer.launch({
             headless: !headed,
             defaultViewport: headed ? null : { width, height },
+            downloadBehavior: buildDownloadBehavior(
+              globalWebConfig?.downloadPath,
+            ),
             args,
             acceptInsecureCerts: globalWebConfig?.acceptInsecureCerts,
           });
