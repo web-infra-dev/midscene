@@ -1717,6 +1717,17 @@ export class Agent<
           `File not found: ${file}. Resolved to: ${absolutePath}. Current working directory: ${process.cwd()}`,
         );
       }
+      // WSL: convert paths so Windows Chrome can read the file
+      const wslDistro = process.env.WSL_DISTRO_NAME;
+      if (wslDistro) {
+        // /mnt/c/... → C:\...
+        const wslMount = absolutePath.match(/^\/mnt\/([a-z])\//);
+        if (wslMount) {
+          return `${wslMount[1].toUpperCase()}:\\${absolutePath.slice(7).replace(/\//g, '\\')}`;
+        }
+        // /home/... or other WSL paths → \\wsl$\<distro>\...
+        return `\\\\wsl$\\${wslDistro}${absolutePath.replace(/\//g, '\\')}`;
+      }
       return absolutePath;
     });
   }
