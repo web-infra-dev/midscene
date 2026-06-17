@@ -1,0 +1,37 @@
+{
+  "extends": "../shared/tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "target": "es2021",
+    "rootDir": ".",
+    "declarationDir": "dist/types",
+    "types": ["node"]
+  },
+  "exclude": ["node_modules", "example"],
+  "include": ["src", "tests"],
+  "references": [
+    {
+      "path": "../android"
+    },
+    {
+      "path": "../computer"
+    },
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../harmony"
+    },
+    {
+      "path": "../ios"
+    },
+    {
+      "path": "../shared"
+    },
+    {
+      "path": "../web-integration"
+    }
+  ]
+}

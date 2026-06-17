@@ -1,0 +1,6 @@
+2026-06-10T08:54:01Z INFO http: GET /demo-app/index.html 200
+2026-06-10T08:54:03Z INFO auth: session opened for role "guest"
+2026-06-10T08:54:40Z INFO cart: item added product="Camp Mug" qty=1
+2026-06-10T08:55:12Z WARN auth: failed login attempt for role "admin" (invalid password)
+2026-06-10T08:55:30Z INFO auth: session opened for role "admin"
+2026-06-10T08:56:02Z INFO cart: coupon applied code="SAVE10"
