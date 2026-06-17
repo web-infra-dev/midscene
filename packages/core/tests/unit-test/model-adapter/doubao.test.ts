@@ -1,10 +1,7 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import {
   doubaoAdapters,
-  normalizeDoubaoJsonObject,
   parseDoubaoRawLocateValue,
-  preprocessDoubaoLocateJson,
-  shouldRepairDoubaoLocateJson,
 } from '@/ai-model/models/doubao';
 import { describe, expect, it } from 'vitest';
 
@@ -159,7 +156,7 @@ describe('doubao model adapter', () => {
     });
   });
 
-  it('repairs bbox coordinate strings for locate-like json parser sources', () => {
+  it('parses locate-like JSON through the shared parser', () => {
     const parser = doubaoVisionAdapter.jsonParser;
     const context = { source: 'locate' as const };
     expect(parser('{"bbox": [123 456]}', context)).toEqual({
@@ -191,54 +188,13 @@ describe('doubao model adapter', () => {
     });
   });
 
-  it('normalizes Doubao repaired json objects recursively', () => {
-    expect(
-      normalizeDoubaoJsonObject(
-        {
-          ' value ': '  keep spaces  ',
-          ' nested ': {
-            ' prompt ': '  submit  ',
-          },
-          ' list ': [{ ' item ': '  first  ' }],
-          nil: null,
-        },
-        { preserveStringValueKeys: ['value'] },
-      ),
-    ).toEqual({
-      value: '  keep spaces  ',
-      nested: {
-        prompt: 'submit',
-      },
-      list: [{ item: 'first' }],
-      nil: null,
-    });
-    expect(normalizeDoubaoJsonObject('  text  ')).toBe('text');
-    expect(normalizeDoubaoJsonObject(undefined)).toBeUndefined();
-  });
-
-  it('detects Doubao json parser sources that need locate repair', () => {
-    expect(shouldRepairDoubaoLocateJson('locate')).toBe(true);
-    expect(shouldRepairDoubaoLocateJson('section-locator')).toBe(true);
-    expect(shouldRepairDoubaoLocateJson('planning-action-param')).toBe(true);
-    expect(shouldRepairDoubaoLocateJson('generic-object')).toBe(false);
-  });
-
-  it('preprocesses Doubao locate json only when bbox text is present', () => {
-    expect(preprocessDoubaoLocateJson('{"bbox": [940 445 969 490]}')).toBe(
-      '{"bbox": [940,445,969,490]}',
-    );
-    expect(preprocessDoubaoLocateJson('{"point": [940 445]}')).toBe(
-      '{"point": [940 445]}',
-    );
-  });
-
   it('does not repair malformed json for generic parser sources', () => {
     const parser = doubaoVisionAdapter.jsonParser;
 
     expect(() => parser('```', { source: 'generic-object' })).toThrow();
   });
 
-  it('normalizes repaired doubao json while preserving configured string values', () => {
+  it('normalizes parsed doubao json while preserving configured string values', () => {
     const parser = doubaoVisionAdapter.jsonParser;
 
     expect(

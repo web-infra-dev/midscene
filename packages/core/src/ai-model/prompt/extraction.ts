@@ -1,6 +1,6 @@
 import type { AIDataExtractionResponse, ServiceExtractParam } from '@/types';
 import { getPreferredLanguage } from '@midscene/shared/env';
-import { safeParseJson } from '../service-caller/json';
+import { parseModelResponseJson } from '../service-caller/json';
 import { extractXMLTag } from './util';
 
 export function buildTypeQueryDemandValue(
@@ -38,7 +38,10 @@ export function parseXMLExtractionResponse<T>(
 
   let data: T;
   try {
-    data = safeParseJson(dataJsonStr) as T;
+    data = parseModelResponseJson(dataJsonStr, {
+      source: 'generic-object',
+      requireObject: false,
+    }) as T;
   } catch (e) {
     throw new Error(`Failed to parse data-json: ${e}`);
   }
@@ -47,7 +50,10 @@ export function parseXMLExtractionResponse<T>(
   let errors: string[] | undefined;
   if (errorsStr) {
     try {
-      const parsedErrors = safeParseJson(errorsStr);
+      const parsedErrors = parseModelResponseJson(errorsStr, {
+        source: 'generic-object',
+        requireObject: false,
+      });
       if (Array.isArray(parsedErrors)) {
         errors = parsedErrors;
       }
