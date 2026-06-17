@@ -744,7 +744,110 @@ describe('toolDefaults (deep locate / deep think)', () => {
     });
   });
 
-  it('emits verbose dump update events while act is running', async () => {
+  it('emits readable verbose dump updates while act is running', async () => {
+    let dumpListener:
+      | ((dump: string, executionDump?: unknown) => void)
+      | undefined;
+    const unsubscribe = vi.fn();
+    const aiAction = vi.fn().mockImplementation(async () => {
+      dumpListener?.('{}', {
+        id: 'execution-1',
+        name: 'AI Action',
+        description: 'open settings',
+        tasks: [
+          {
+            taskId: 'plan-1',
+            type: 'Planning',
+            subType: 'Plan',
+            status: 'finished',
+            param: { userInstruction: 'open settings' },
+            output: {
+              updateSubGoals: [
+                {
+                  index: 1,
+                  status: 'finished',
+                  description: 'Open settings',
+                },
+                {
+                  index: 2,
+                  status: 'running',
+                  description: 'Locate submit button',
+                },
+              ],
+            },
+            timing: { cost: 20 },
+          },
+          {
+            taskId: 'task-2',
+            type: 'Planning',
+            subType: 'Locate',
+            status: 'running',
+            param: { prompt: 'Submit' },
+            timing: { cost: 12 },
+            recorder: [
+              {
+                timing: 'after-calling',
+                screenshot: {
+                  toSerializable: () => ({
+                    type: 'midscene_screenshot_ref',
+                    id: 'shot-1',
+                    storage: 'file',
+                    path: './screenshots/shot-1.png',
+                  }),
+                },
+              },
+            ],
+          },
+        ],
+      });
+      return 'done';
+    });
+    const addDumpUpdateListener = vi.fn((listener) => {
+      dumpListener = listener;
+      return unsubscribe;
+    });
+    const commonTools = generateCommonTools(async () => ({
+      aiAction,
+      addDumpUpdateListener,
+      reportFile: '/tmp/midscene-report.html',
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+    }));
+    const actTool = commonTools.find((tool) => tool.name === 'act');
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await withCliVerboseContext(
+      {
+        enabled: true,
+        scriptName: 'midscene-web',
+        commandName: 'act',
+      },
+      async () => {
+        await actTool?.handler({ prompt: 'open settings' });
+      },
+    );
+
+    const messages = consoleSpy.mock.calls.flatMap(([message]) =>
+      String(message).split('\n'),
+    );
+    expect(messages).toContain('[Midscene] act ready');
+    expect(messages).toContain('[Midscene] Progress: AI Action (2 steps)');
+    expect(messages).toContain(
+      '[Midscene] Step 1/2: Planning/Plan finished: sub-goals: 1. [finished] Open settings; 2. [running] Locate submit button',
+    );
+    expect(messages).toContain(
+      '[Midscene] Step 2/2: Planning/Locate running: Submit',
+    );
+    expect(messages).toContain(
+      '[Midscene] Screenshot: after-calling ./screenshots/shot-1.png',
+    );
+    expect(messages).toContain('[Midscene] Report: /tmp/midscene-report.html');
+    expect(addDumpUpdateListener).toHaveBeenCalledOnce();
+    expect(unsubscribe).toHaveBeenCalledOnce();
+    consoleSpy.mockRestore();
+  });
+
+  it('emits jsonl verbose dump update events while act is running', async () => {
     let dumpListener:
       | ((dump: string, executionDump?: unknown) => void)
       | undefined;
@@ -797,6 +900,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
     await withCliVerboseContext(
       {
         enabled: true,
+        format: 'jsonl',
         scriptName: 'midscene-web',
         commandName: 'act',
       },
@@ -834,6 +938,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
           subType: 'Locate',
           status: 'running',
           param: 'open settings',
+          message: 'Planning/Locate running: open settings',
         }),
         screenshots: [
           expect.objectContaining({

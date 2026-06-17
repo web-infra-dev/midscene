@@ -641,7 +641,7 @@ describe('runToolsCLI', () => {
     consoleSpy.mockRestore();
   });
 
-  it('strips global --verbose and emits structured progress events', async () => {
+  it('strips global --verbose and emits readable progress lines', async () => {
     const handler = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'Connected' }],
       isError: false,
@@ -654,28 +654,16 @@ describe('runToolsCLI', () => {
     });
 
     expect(handler).toHaveBeenCalledWith({ url: 'https://example.com' });
-    const progressEvents = consoleSpy.mock.calls
-      .map(([message]) => String(message))
-      .filter((message) => message.includes('"type":"midscene_progress"'))
-      .map((message) => JSON.parse(message));
-    expect(progressEvents.map((event) => event.event)).toEqual([
-      'command_start',
-      'command_done',
+    const messages = consoleSpy.mock.calls.map(([message]) => String(message));
+    expect(messages).toEqual([
+      '[Midscene] connect started (url=https://example.com)',
+      'Connected',
+      expect.stringMatching(/^\[Midscene\] connect finished in \d+ms$/),
     ]);
-    expect(progressEvents[0]).toMatchObject({
-      scriptName: 'test-cli',
-      command: 'connect',
-      args: { url: 'https://example.com' },
-    });
-    expect(progressEvents[1]).toMatchObject({
-      scriptName: 'test-cli',
-      command: 'connect',
-      status: 'ok',
-    });
     consoleSpy.mockRestore();
   });
 
-  it('preserves structured command args in verbose progress events', async () => {
+  it('preserves structured command args in jsonl verbose progress events', async () => {
     const handler = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'Tapped' }],
       isError: false,
@@ -685,7 +673,7 @@ describe('runToolsCLI', () => {
 
     await runToolsCLI(tools, 'test-cli', {
       argv: [
-        '--verbose',
+        '--verbose=jsonl',
         'tap',
         '--locate',
         '{"prompt":"Submit","deepLocate":true}',
@@ -698,6 +686,9 @@ describe('runToolsCLI', () => {
       .map((message) => JSON.parse(message));
     expect(progressEvents[0]).toMatchObject({
       event: 'command_start',
+      type: 'midscene_progress',
+      scriptName: 'test-cli',
+      command: 'tap',
       args: {
         locate: {
           prompt: 'Submit',

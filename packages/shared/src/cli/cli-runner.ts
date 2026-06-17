@@ -154,7 +154,7 @@ function printGlobalOptions(): void {
     {
       flag: `--${cliVerboseFlag}`,
       description:
-        'Print structured progress events while the command is running.',
+        'Print progress while the command is running. Use --verbose=jsonl for structured events.',
     },
     ...TOOL_BEHAVIOR_FLAGS.map((flag) => ({
       flag: `--${flag.cli}`,
@@ -179,7 +179,11 @@ export async function runToolsCLI(
   const inputArgs = options?.argv ?? process.argv.slice(2);
   debug('CLI invoked: %s %s', scriptName, inputArgs.join(' '));
 
-  const { rawArgs: argsWithoutVerbose, verbose } = stripVerboseFlag(inputArgs);
+  const {
+    rawArgs: argsWithoutVerbose,
+    verbose,
+    format: verboseFormat,
+  } = stripVerboseFlag(inputArgs);
 
   // Global behavior flags (e.g. `--deep-locate` / `--deep-think`) apply
   // regardless of which command runs. `stripBehaviorFlags` is the single place
@@ -280,6 +284,7 @@ export async function runToolsCLI(
   await withCliVerboseContext(
     {
       enabled: verbose,
+      format: verboseFormat,
       scriptName,
       commandName: match.name,
       startedAt: Date.now(),

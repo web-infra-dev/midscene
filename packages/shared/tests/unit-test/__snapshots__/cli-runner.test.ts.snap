@@ -14,7 +14,7 @@ Commands:
   version                        Show CLI version
 
 Global Options:
-  --verbose     Print structured progress events while the command is running.
+  --verbose     Print progress while the command is running. Use --verbose=jsonl for structured events.
   --deep-locate Force deep locate for every locating operation (better precision for small/ambiguous targets, a bit slower).
   --deep-think  Plan the act tool with deep thinking (richer context and sub-goal decomposition, a bit slower).
 
@@ -32,7 +32,7 @@ Options:
   --timeout              Connection timeout in ms
 
 Global Options:
-  --verbose     Print structured progress events while the command is running.
+  --verbose     Print progress while the command is running. Use --verbose=jsonl for structured events.
   --deep-locate Force deep locate for every locating operation (better precision for small/ambiguous targets, a bit slower).
   --deep-think  Plan the act tool with deep thinking (richer context and sub-goal decomposition, a bit slower)."
 `;
