@@ -4,6 +4,7 @@ import type {
   ChatCompletionParamsResult,
   ModelAdapterDefinition,
 } from '../model-adapter/types';
+import { isLocateIntent } from './utils/intent';
 
 const buildKimiChatCompletionParams = (
   input: ChatCompletionCallContext,
@@ -15,6 +16,12 @@ const buildKimiChatCompletionParams = (
 
   // kimi disallow custom temperature
   commonOverrideConfig.temperature = undefined;
+
+  // Kimi Chat Completions response_format:
+  // https://platform.kimi.com/docs/api/chat
+  if (isLocateIntent(input.intent)) {
+    commonOverrideConfig.response_format = { type: 'json_object' };
+  }
 
   const modelSpecificConfig: Record<string, unknown> = {
     thinking: {
