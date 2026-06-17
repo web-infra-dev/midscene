@@ -157,6 +157,9 @@ export async function resizeAndConvertImgBuffer(
 export const normalizeBase64Body = (body: string) => body.replace(/\s/g, '');
 
 const base64ImageDataUrlPattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
+const supportedScreenshotDataUriPattern =
+  /^data:image\/(png|jpe?g);base64,([\s\S]*)$/i;
+const rawBase64BodyPattern = /^[A-Za-z0-9+/=\s]+$/;
 
 export const inferBase64ImageFormat = (base64Body: string) => {
   if (base64Body.startsWith('iVBORw0KGgo')) {
@@ -205,6 +208,48 @@ function detectImageMimeTypeFromBuffer(buffer: Buffer): string | undefined {
 
 export const createImgBase64ByFormat = (format: string, body: string) => {
   return `data:image/${format};base64,${normalizeBase64Body(body)}`;
+};
+
+export interface NormalizeScreenshotBase64Options {
+  label?: string;
+}
+
+export const normalizeScreenshotBase64 = (
+  base64: string,
+  options?: NormalizeScreenshotBase64Options,
+) => {
+  const label = options?.label ?? 'screenshot base64';
+  const trimmedBase64 = base64.trim();
+  if (!trimmedBase64) {
+    throw new Error(`${label} cannot be empty`);
+  }
+
+  const dataUriMatch = trimmedBase64.match(supportedScreenshotDataUriPattern);
+  if (dataUriMatch) {
+    const imageFormat =
+      dataUriMatch[1].toLowerCase() === 'jpg'
+        ? 'jpeg'
+        : dataUriMatch[1].toLowerCase();
+    const body = dataUriMatch[2];
+    if (!normalizeBase64Body(body)) {
+      throw new Error(`${label} cannot be empty`);
+    }
+    return createImgBase64ByFormat(imageFormat, body);
+  }
+
+  if (trimmedBase64.startsWith('data:')) {
+    throw new Error(
+      `${label} must be a PNG/JPEG data URI or raw PNG base64 string`,
+    );
+  }
+
+  if (!rawBase64BodyPattern.test(trimmedBase64)) {
+    throw new Error(
+      `${label} must be a PNG/JPEG data URI or raw PNG base64 string`,
+    );
+  }
+
+  return createImgBase64ByFormat('png', trimmedBase64);
 };
 
 export const normalizeBase64Image = (base64: string) => {
