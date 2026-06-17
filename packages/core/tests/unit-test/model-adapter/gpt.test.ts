@@ -133,4 +133,13 @@ describe('gpt model adapter', () => {
       reasoning_effort: 'none',
     });
   });
+
+  it('uses json_object response format for gpt-5 locate intent', () => {
+    const result = gpt5Adapter.chatCompletion.buildChatCompletionParams({
+      intent: 'default',
+      userConfig: {},
+    });
+
+    expect(result.config.response_format).toEqual({ type: 'json_object' });
+  });
 });

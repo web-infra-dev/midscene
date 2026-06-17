@@ -11,6 +11,7 @@ import {
   isBboxLocateResultValue,
   unwrapCoordinateListLikeInput,
 } from '../shared/model-locate-result';
+import { isLocateIntent } from './utils/intent';
 
 const defaultBboxSize = 20;
 const qwen25BboxCoordinatesMeta = {
@@ -85,6 +86,12 @@ const buildQwenChatCompletionParams = (
 
   if (userConfig.temperature !== undefined) {
     commonOverrideConfig.temperature = userConfig.temperature;
+  }
+
+  // Alibaba Cloud Model Studio JSON mode:
+  // https://help.aliyun.com/zh/model-studio/json-mode
+  if (isLocateIntent(input.intent)) {
+    commonOverrideConfig.response_format = { type: 'json_object' };
   }
 
   const modelSpecificConfig: Record<string, unknown> = {};
