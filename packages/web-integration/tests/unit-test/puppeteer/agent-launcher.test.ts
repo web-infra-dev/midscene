@@ -158,7 +158,7 @@ describe('launchPuppeteerPage', () => {
         downloadPath: path.resolve('./downloads'),
       },
     );
-    expect(cdpSessionMock.detach).toHaveBeenCalled();
+    expect(cdpSessionMock.detach).not.toHaveBeenCalled();
   });
 
   it('does not configure Chrome download behavior when downloadPath is omitted', async () => {

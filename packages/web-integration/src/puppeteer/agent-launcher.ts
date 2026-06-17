@@ -120,7 +120,6 @@ async function configureDownloadPath(
     behavior: 'allow',
     downloadPath: path.resolve(downloadPath),
   });
-  await cdpSession.detach();
 }
 
 export interface BuildChromeArgsOptions {
