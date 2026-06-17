@@ -1,6 +1,5 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { basename, join } from 'node:path';
+import { basename } from 'node:path';
+import { writeCliScreenshotFile } from './screenshot-file';
 
 export const cliVerboseFlag = 'verbose';
 
@@ -454,23 +453,6 @@ function toSerializableScreenshot(
   return isCliVerboseScreenshotRefLike(value) ? value : null;
 }
 
-function safeScreenshotId(value: unknown): string {
-  const id = typeof value === 'string' && value.length > 0 ? value : 'shot';
-  return id.replace(/[^a-zA-Z0-9._-]/g, '_') || 'shot';
-}
-
-function extensionFromScreenshot(
-  value: unknown,
-  serialized: CliVerboseScreenshotRefLike,
-): 'png' | 'jpeg' {
-  if (isRecord(value) && typeof value.extension === 'string') {
-    return value.extension === 'jpeg' || value.extension === 'jpg'
-      ? 'jpeg'
-      : 'png';
-  }
-  return serialized.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
-}
-
 function getStringProperty(value: unknown, key: string): string | undefined {
   if (!isRecord(value)) {
     return undefined;
@@ -511,19 +493,13 @@ function exportInlineScreenshotForVerbose(
   }
 
   try {
-    const screenshotDir = join(tmpdir(), 'midscene-cli-screenshots');
-    if (!existsSync(screenshotDir)) {
-      mkdirSync(screenshotDir, { recursive: true });
-    }
-
-    const filePath = join(
-      screenshotDir,
-      `${safeScreenshotId(serialized.id)}.${extensionFromScreenshot(value, serialized)}`,
-    );
-    if (!existsSync(filePath)) {
-      writeFileSync(filePath, Buffer.from(rawBase64, 'base64'));
-    }
-    return filePath;
+    return writeCliScreenshotFile(rawBase64, {
+      id: serialized.id,
+      mimeType: serialized.mimeType,
+      extension: getStringProperty(value, 'extension'),
+      directoryName: 'midscene-cli-screenshots',
+      overwrite: false,
+    });
   } catch {
     return undefined;
   }

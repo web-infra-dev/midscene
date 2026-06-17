@@ -1,5 +1,4 @@
-import { existsSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import dotenv from 'dotenv';
 import type { BaseMidsceneTools } from '../agent-tools/base-tools';
@@ -20,6 +19,7 @@ import {
   parseCliArgs,
 } from './cli-args';
 import { CLIError } from './cli-error';
+import { writeCliScreenshotFile } from './screenshot-file';
 import {
   cliVerboseErrorMessage,
   cliVerboseFlag,
@@ -65,9 +65,10 @@ function outputContentItem(item: ToolResultContent, isError: boolean): void {
       break;
 
     case 'image': {
-      const filename = `screenshot-${Date.now()}.png`;
-      const filepath = join(tmpdir(), filename);
-      writeFileSync(filepath, Buffer.from(item.data, 'base64'));
+      const filepath = writeCliScreenshotFile(item.data, {
+        mimeType: item.mimeType,
+        filenamePrefix: 'screenshot',
+      });
       console.log(`Screenshot saved: ${filepath}`);
       emitCliVerboseEvent({
         event: 'artifact',

@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from 'node:fs';
 import {
   CLIError,
   parseCliArgs,
@@ -408,6 +409,27 @@ describe('runToolsCLI', () => {
 
     expect(tools.setToolDefaults).not.toHaveBeenCalled();
     expect(handler).toHaveBeenCalledTimes(1);
+    consoleSpy.mockRestore();
+  });
+
+  it('writes image tool results with an extension matching the mime type', async () => {
+    const handler = vi.fn().mockResolvedValue({
+      content: [{ type: 'image', data: 'aGVsbG8=', mimeType: 'image/jpeg' }],
+      isError: false,
+    });
+    const tools = createMockTools([{ name: 'take_screenshot', handler }]);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'test-cli', { argv: ['take_screenshot'] });
+
+    const message = consoleSpy.mock.calls
+      .map(([line]) => String(line))
+      .find((line) => line.startsWith('Screenshot saved: '));
+    expect(message).toMatch(/^Screenshot saved: .+screenshot-\d+\.jpeg$/);
+    const screenshotPath = message?.replace('Screenshot saved: ', '');
+    expect(screenshotPath).toBeDefined();
+    expect(existsSync(screenshotPath!)).toBe(true);
+    expect(readFileSync(screenshotPath!, 'utf8')).toBe('hello');
     consoleSpy.mockRestore();
   });
 
