@@ -115,7 +115,6 @@ export interface RecordToReportOptions {
    */
   screenshotBase64?: string;
   screenshots?: RecordToReportScreenshot[];
-  subType?: string;
 }
 
 /**

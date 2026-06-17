@@ -25,6 +25,8 @@ import {
   type LocatorValidatorOption,
   type OnTaskStartTip,
   type PlanningAction,
+  type RecordToReportOptions,
+  type RecordToReportScreenshot,
   type Rect,
   ReportActionDump,
   type ReportMeta,
@@ -67,6 +69,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
 import { validateAgentCacheInput } from './cache-config';
+import { normalizeRecordToReportScreenshot } from './record-to-report';
 import { markdownToAiActPrompt } from './run-markdown';
 import { TaskCache } from './task-cache';
 import {
@@ -86,6 +89,7 @@ import {
   commonContextParser,
   createScreenshotBoundUIContext,
   getReportFileName,
+  normalizeScrollType,
   parsePrompt,
 } from './utils';
 
@@ -160,30 +164,6 @@ const defaultServiceExtractOption: ServiceExtractOption = {
   screenshotIncluded: true,
 };
 
-const legacyScrollTypeMap = {
-  once: 'singleAction',
-  untilBottom: 'scrollToBottom',
-  untilTop: 'scrollToTop',
-  untilRight: 'scrollToRight',
-  untilLeft: 'scrollToLeft',
-} as const;
-
-type LegacyScrollType = keyof typeof legacyScrollTypeMap;
-
-const normalizeScrollType = (
-  scrollType: ScrollParam['scrollType'] | LegacyScrollType | undefined,
-): ScrollParam['scrollType'] | undefined => {
-  if (!scrollType) {
-    return scrollType;
-  }
-
-  if (scrollType in legacyScrollTypeMap) {
-    return legacyScrollTypeMap[scrollType as LegacyScrollType];
-  }
-
-  return scrollType as ScrollParam['scrollType'];
-};
-
 export type AiActOptions = {
   cacheable?: boolean;
   fileChooserAccept?: string | string[];
@@ -198,107 +178,6 @@ type AiActInternalOptions = AiActOptions & {
     prompt?: string;
   };
 };
-
-export interface RecordToReportScreenshot {
-  /**
-   * PNG/JPEG data URI, or raw PNG base64 body.
-   */
-  base64: string;
-  description?: string;
-}
-
-export interface RecordToReportOptions {
-  content?: string;
-  /**
-   * @deprecated Use `screenshots: [{ base64 }]` instead.
-   */
-  screenshotBase64?: string;
-  /**
-   * Custom screenshots to display under a single report entry.
-   */
-  screenshots?: RecordToReportScreenshot[];
-  /**
-   * Custom display label for this log task. The underlying task type stays Log.
-   */
-  subType?: string;
-}
-
-const supportedScreenshotDataUriPattern =
-  /^data:image\/(png|jpe?g);base64,([\s\S]*)$/i;
-const rawBase64BodyPattern = /^[A-Za-z0-9+/=\s]+$/;
-
-function createRecordToReportImageDataUri(
-  format: 'png' | 'jpeg',
-  body: string,
-): string {
-  return `data:image/${format};base64,${body.replace(/\s/g, '')}`;
-}
-
-function normalizeRecordToReportScreenshotBase64(
-  base64: string,
-  index: number,
-): string {
-  const trimmedBase64 = base64.trim();
-  if (!trimmedBase64) {
-    throw new Error(
-      `recordToReport: screenshot #${index + 1} base64 cannot be empty`,
-    );
-  }
-
-  const dataUriMatch = trimmedBase64.match(supportedScreenshotDataUriPattern);
-  if (dataUriMatch) {
-    const imageFormat: 'png' | 'jpeg' =
-      dataUriMatch[1].toLowerCase() === 'jpg'
-        ? 'jpeg'
-        : (dataUriMatch[1].toLowerCase() as 'png' | 'jpeg');
-    const body = dataUriMatch[2];
-    if (!body.replace(/\s/g, '')) {
-      throw new Error(
-        `recordToReport: screenshot #${index + 1} base64 cannot be empty`,
-      );
-    }
-    return createRecordToReportImageDataUri(imageFormat, body);
-  }
-
-  if (trimmedBase64.startsWith('data:')) {
-    throw new Error(
-      `recordToReport: screenshot #${index + 1} base64 must be a PNG/JPEG data URI or raw PNG base64 string`,
-    );
-  }
-
-  if (!rawBase64BodyPattern.test(trimmedBase64)) {
-    throw new Error(
-      `recordToReport: screenshot #${index + 1} base64 must be a PNG/JPEG data URI or raw PNG base64 string`,
-    );
-  }
-
-  return createRecordToReportImageDataUri('png', trimmedBase64);
-}
-
-function normalizeRecordToReportScreenshot(
-  screenshot: RecordToReportScreenshot,
-  index: number,
-): RecordToReportScreenshot {
-  if (!screenshot || typeof screenshot.base64 !== 'string') {
-    throw new Error(
-      `recordToReport: screenshot #${index + 1} must include a base64 string`,
-    );
-  }
-
-  if (
-    screenshot.description !== undefined &&
-    typeof screenshot.description !== 'string'
-  ) {
-    throw new Error(
-      `recordToReport: screenshot #${index + 1} description must be a string`,
-    );
-  }
-
-  return {
-    base64: normalizeRecordToReportScreenshotBase64(screenshot.base64, index),
-    description: screenshot.description,
-  };
-}
 
 export class Agent<
   InterfaceType extends AbstractInterface = AbstractInterface,
@@ -976,10 +855,7 @@ export class Agent<
 
     if (opt) {
       const normalizedScrollType = normalizeScrollType(
-        (opt as ScrollParam).scrollType as
-          | ScrollParam['scrollType']
-          | LegacyScrollType
-          | undefined,
+        (opt as ScrollParam).scrollType,
       );
 
       if (normalizedScrollType !== (opt as ScrollParam).scrollType) {
@@ -1630,8 +1506,8 @@ export class Agent<
         'recordToReport: provide only one of screenshots or screenshotBase64',
       );
     }
-    if (opt?.subType !== undefined && typeof opt.subType !== 'string') {
-      throw new Error('recordToReport: subType must be a string');
+    if (opt && 'subType' in opt) {
+      throw new Error('recordToReport: subType is not supported');
     }
     const customScreenshots = hasScreenshots ? screenshots : undefined;
     if (customScreenshots && customScreenshots.length === 0) {
@@ -1662,15 +1538,11 @@ export class Agent<
         };
       },
     );
-    const customSubType = opt?.subType?.trim();
-    const taskSubType = customSubType || 'Screenshot';
-    const executionTypeLabel = customSubType || 'Log';
-
     // 2. build ExecutionTaskLog
     const task: ExecutionTaskLog = {
       taskId: uuid(),
       type: 'Log',
-      subType: taskSubType,
+      subType: 'Screenshot',
       status: 'finished',
       recorder,
       timing: {
@@ -1687,7 +1559,7 @@ export class Agent<
     const executionDump = new ExecutionDump({
       id: uuid(),
       logTime: now,
-      name: `${executionTypeLabel} - ${title || 'untitled'}`,
+      name: `Log - ${title || 'untitled'}`,
       description: opt?.content || '',
       tasks: [task],
     });

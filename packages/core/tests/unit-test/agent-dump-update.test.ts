@@ -166,7 +166,6 @@ describe('Agent dump update screenshot serialization', () => {
     const afterScreenshot = 'data:image/jpg;base64,after';
     await agent.recordToReport('comparison', {
       content: 'before and after state',
-      subType: 'Checkpoint',
       screenshots: [
         { base64: beforeScreenshot, description: 'Before click' },
         { base64: afterScreenshot, description: 'After click' },
@@ -178,12 +177,12 @@ describe('Agent dump update screenshot serialization', () => {
 
     const execution = reportGeneratorStub.onExecutionUpdate.mock
       .calls[0][0] as ExecutionDump;
-    expect(execution.name).toBe('Checkpoint - comparison');
+    expect(execution.name).toBe('Log - comparison');
     expect(execution.description).toBe('before and after state');
 
     const task = execution.tasks[0];
     expect(task.type).toBe('Log');
-    expect(task.subType).toBe('Checkpoint');
+    expect(task.subType).toBe('Screenshot');
     expect(task.recorder).toHaveLength(2);
     expect(task.recorder?.map((item) => item.description)).toEqual([
       'Before click',
@@ -229,7 +228,7 @@ describe('Agent dump update screenshot serialization', () => {
       agent.recordToReport('invalid subType', {
         subType: 123,
       } as any),
-    ).rejects.toThrow('recordToReport: subType must be a string');
+    ).rejects.toThrow('recordToReport: subType is not supported');
 
     expect(screenshotBase64).not.toHaveBeenCalled();
 

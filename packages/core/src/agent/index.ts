@@ -18,10 +18,9 @@ export { cacheFileExt } from './task-cache';
 export { TaskExecutor } from './tasks';
 
 export type { AgentOpt } from '../types';
+export type { RecordToReportOptions, RecordToReportScreenshot } from '../types';
 export type {
   AiActOptions,
   DescribeElementAtPointOptions,
   DescribeElementCoordinateSpace,
-  RecordToReportOptions,
-  RecordToReportScreenshot,
 } from './agent';

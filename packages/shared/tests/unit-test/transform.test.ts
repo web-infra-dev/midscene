@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   inferBase64ImageFormat,
   normalizeBase64Image,
+  normalizeScreenshotBase64,
   preProcessImageUrl,
   scaleImage,
 } from '../../src/img/transform';
@@ -92,6 +93,43 @@ describe('normalizeBase64Image', () => {
   it('wraps bare non-png base64 as jpeg for compatibility', () => {
     expect(normalizeBase64Image(' /9j/4AAQ SkZJRg== ')).toBe(
       'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
+    );
+  });
+});
+
+describe('normalizeScreenshotBase64', () => {
+  it('accepts PNG and JPEG data urls', () => {
+    expect(
+      normalizeScreenshotBase64(' data:image/png;base64,aaa\r\nbbb '),
+    ).toBe('data:image/png;base64,aaabbb');
+    expect(normalizeScreenshotBase64('data:image/jpeg;base64,/9j/4AAQ')).toBe(
+      'data:image/jpeg;base64,/9j/4AAQ',
+    );
+  });
+
+  it('normalizes jpg data urls to jpeg', () => {
+    expect(normalizeScreenshotBase64('data:image/jpg;base64,/9j/4AAQ')).toBe(
+      'data:image/jpeg;base64,/9j/4AAQ',
+    );
+  });
+
+  it('wraps raw base64 as PNG', () => {
+    expect(normalizeScreenshotBase64(' iVBORw0KGgo aaa\r\nbbb ')).toBe(
+      'data:image/png;base64,iVBORw0KGgoaaabbb',
+    );
+  });
+
+  it('uses the provided label in validation errors', () => {
+    expect(() =>
+      normalizeScreenshotBase64(' ', { label: 'custom screenshot' }),
+    ).toThrow('custom screenshot cannot be empty');
+
+    expect(() =>
+      normalizeScreenshotBase64('data:image/svg+xml;base64,aaa', {
+        label: 'custom screenshot',
+      }),
+    ).toThrow(
+      'custom screenshot must be a PNG/JPEG data URI or raw PNG base64 string',
     );
   });
 });

@@ -1132,7 +1132,6 @@ interface RecordToReportOptions {
     base64: string;
     description?: string;
   }[];
-  subType?: string;
 }
 
 function recordToReport(
@@ -1147,7 +1146,6 @@ function recordToReport(
   - `options?: RecordToReportOptions` - 可选，一个配置对象，包含：
     - `content?: string` - 截图的描述。
     - `screenshots?: Array<{ base64: string; description?: string }>` - 在同一个报告条目下记录一张或多张传入的截图。设置该选项后，Midscene 不会再自动截图。`base64` 推荐使用 PNG/JPEG data URI，例如 `data:image/png;base64,...`；也可以传裸 base64 body，此时会按 PNG 处理。
-    - `subType?: string` - 这个日志条目的自定义展示标签。底层报告任务类型仍然是 `Log`。
 
 - 兼容性：
 
@@ -1169,7 +1167,6 @@ const before = await page.screenshot({ encoding: 'base64' });
 const after = await page.screenshot({ encoding: 'base64' });
 await agent.recordToReport('结算页对比', {
   content: '对比提交前后的页面状态。',
-  subType: 'Checkpoint',
   screenshots: [
     {
       base64: `data:image/png;base64,${before}`,
