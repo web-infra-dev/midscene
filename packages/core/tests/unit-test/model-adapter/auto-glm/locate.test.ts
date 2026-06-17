@@ -1,3 +1,4 @@
+import { AiLocateElement } from '@/ai-model/inspect';
 import { autoGlmAdapters } from '@/ai-model/models/auto-glm/adapter';
 import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
@@ -6,18 +7,37 @@ import type { UIContext } from '@/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const serviceCallerMock = vi.hoisted(() => {
+  class AIResponseParseError extends Error {
+    rawResponse?: string;
+    usage?: unknown;
+    rawChoiceMessage?: unknown;
+
+    constructor(
+      message: string,
+      rawResponse?: string,
+      usage?: unknown,
+      rawChoiceMessage?: unknown,
+    ) {
+      super(message);
+      this.name = 'AIResponseParseError';
+      this.rawResponse = rawResponse;
+      this.usage = usage;
+      this.rawChoiceMessage = rawChoiceMessage;
+    }
+  }
+
   return {
+    AIResponseParseError,
     callAIWithStringResponse: vi.fn(),
   };
 });
 
-vi.mock('@/ai-model/service-caller/index', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/ai-model/service-caller/index')>();
-  return {
-    ...actual,
-    ...serviceCallerMock,
-  };
+vi.mock('@/ai-model/service-caller/index', () => {
+  return serviceCallerMock;
+});
+
+vi.mock('../../../../src/ai-model/service-caller/index', () => {
+  return serviceCallerMock;
 });
 
 const autoGlmAdapter = new ResolvedModelAdapter(
@@ -68,10 +88,10 @@ describe('Auto-GLM custom locate', () => {
       usage: { total_tokens: 8 } as any,
     });
 
-    const result = await autoGlmAdapter.locate.locateFn(
-      'submit button',
-      createLocateOptions(),
-    );
+    const result = await AiLocateElement({
+      ...createLocateOptions(),
+      targetElementDescription: 'submit button',
+    });
 
     expect(callAIWithStringResponse).toHaveBeenCalledWith(
       expect.arrayContaining([
@@ -113,8 +133,9 @@ describe('Auto-GLM custom locate', () => {
         '<think>Found item in crop</think><answer>do(action="Tap", element=[500,500])</answer>',
     });
 
-    const result = await autoGlmAdapter.locate.locateFn('item', {
+    const result = await AiLocateElement({
       ...createLocateOptions(),
+      targetElementDescription: 'item',
       searchConfig: {
         sourceRect: {
           left: 200,
@@ -170,10 +191,10 @@ describe('Auto-GLM custom locate', () => {
       content: 'do(action="Swipe", start=[100,200], end=[300,400])',
     });
 
-    const result = await autoGlmAdapter.locate.locateFn(
-      'submit button',
-      createLocateOptions(),
-    );
+    const result = await AiLocateElement({
+      ...createLocateOptions(),
+      targetElementDescription: 'submit button',
+    });
 
     expect(result.rect).toBeUndefined();
     expect(result.parseResult.element).toBeUndefined();
@@ -192,8 +213,9 @@ describe('Auto-GLM custom locate', () => {
         '<think>Found matching icon</think><answer>do(action="Tap", element=[500,500])</answer>',
     });
 
-    await autoGlmAdapter.locate.locateFn(
-      {
+    await AiLocateElement({
+      ...createLocateOptions(),
+      targetElementDescription: {
         prompt: 'matching icon',
         images: [
           {
@@ -202,8 +224,7 @@ describe('Auto-GLM custom locate', () => {
           },
         ],
       },
-      createLocateOptions(),
-    );
+    });
 
     const messages = vi.mocked(callAIWithStringResponse).mock.calls[0]?.[0];
     expect(messages).toEqual(
