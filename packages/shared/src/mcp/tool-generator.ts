@@ -129,6 +129,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function makePromptOptional(
   shape: Record<string, z.ZodTypeAny>,
   wrapInOptional: boolean,
+  description?: string | null,
 ): z.ZodTypeAny {
   const newShape = { ...shape };
   newShape.prompt = shape.prompt.optional();
@@ -136,6 +137,9 @@ function makePromptOptional(
   let newSchema: z.ZodTypeAny = z.object(newShape).passthrough();
   if (wrapInOptional) {
     newSchema = newSchema.optional();
+  }
+  if (description) {
+    newSchema = newSchema.describe(description);
   }
   return newSchema;
 }
@@ -151,7 +155,10 @@ function transformSchemaField(
   const shape = getZodObjectShape(innerValue);
 
   if (shape && isMidsceneLocatorField(innerValue)) {
-    return [key, makePromptOptional(shape, isOptional)];
+    return [
+      key,
+      makePromptOptional(shape, isOptional, getZodDescription(value)),
+    ];
   }
   return [key, value];
 }

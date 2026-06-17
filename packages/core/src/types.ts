@@ -386,7 +386,28 @@ export interface ExecutionRecorderItem {
   type: 'screenshot';
   ts: number;
   screenshot?: ScreenshotItem;
+  description?: string;
   timing?: string;
+}
+
+export interface RecordToReportScreenshot {
+  /**
+   * PNG/JPEG data URI, or raw PNG base64 body.
+   */
+  base64: string;
+  description?: string;
+}
+
+export interface RecordToReportOptions {
+  content?: string;
+  /**
+   * @deprecated Use `screenshots: [{ base64 }]` instead.
+   */
+  screenshotBase64?: string;
+  /**
+   * Custom screenshots to display under a single report entry.
+   */
+  screenshots?: RecordToReportScreenshot[];
 }
 
 export type ExecutionTaskType = 'Planning' | 'Insight' | 'Action Space' | 'Log';

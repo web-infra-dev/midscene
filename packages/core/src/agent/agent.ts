@@ -22,6 +22,8 @@ import {
   type LocateResultElement,
   type OnTaskStartTip,
   type PlanningAction,
+  type RecordToReportOptions,
+  type RecordToReportScreenshot,
   ReportActionDump,
   type ReportMeta,
   type ScrollParam,
@@ -62,6 +64,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
 import { validateAgentCacheInput } from './cache-config';
+import { normalizeRecordToReportScreenshot } from './record-to-report';
 import { markdownToAiActPrompt } from './run-markdown';
 import { TaskCache } from './task-cache';
 import {
@@ -77,7 +80,12 @@ import {
   taskTitleStr,
   typeStr,
 } from './ui-utils';
-import { commonContextParser, getReportFileName, parsePrompt } from './utils';
+import {
+  commonContextParser,
+  getReportFileName,
+  normalizeScrollType,
+  parsePrompt,
+} from './utils';
 
 const debug = getDebug('agent');
 const warn = getDebug('agent', { console: true });
@@ -85,30 +93,6 @@ const warn = getDebug('agent', { console: true });
 const defaultServiceExtractOption: ServiceExtractOption = {
   domIncluded: false,
   screenshotIncluded: true,
-};
-
-const legacyScrollTypeMap = {
-  once: 'singleAction',
-  untilBottom: 'scrollToBottom',
-  untilTop: 'scrollToTop',
-  untilRight: 'scrollToRight',
-  untilLeft: 'scrollToLeft',
-} as const;
-
-type LegacyScrollType = keyof typeof legacyScrollTypeMap;
-
-const normalizeScrollType = (
-  scrollType: ScrollParam['scrollType'] | LegacyScrollType | undefined,
-): ScrollParam['scrollType'] | undefined => {
-  if (!scrollType) {
-    return scrollType;
-  }
-
-  if (scrollType in legacyScrollTypeMap) {
-    return legacyScrollTypeMap[scrollType as LegacyScrollType];
-  }
-
-  return scrollType as ScrollParam['scrollType'];
 };
 
 export type AiActOptions = {
@@ -802,10 +786,7 @@ export class Agent<
 
     if (opt) {
       const normalizedScrollType = normalizeScrollType(
-        (opt as ScrollParam).scrollType as
-          | ScrollParam['scrollType']
-          | LegacyScrollType
-          | undefined,
+        (opt as ScrollParam).scrollType,
       );
 
       if (normalizedScrollType !== (opt as ScrollParam).scrollType) {
@@ -1328,27 +1309,56 @@ export class Agent<
     }
   }
 
-  async recordToReport(
-    title?: string,
-    opt?: {
-      content?: string;
-      screenshotBase64?: string;
-    },
-  ) {
-    // 1. screenshot
-    const base64 =
-      opt?.screenshotBase64 ?? (await this.interface.screenshotBase64());
+  async recordToReport(title?: string, opt?: RecordToReportOptions) {
     const now = Date.now();
-    const screenshot = ScreenshotItem.create(base64, now);
-    // 2. build recorder
-    const recorder: ExecutionRecorderItem[] = [
-      {
-        type: 'screenshot',
-        ts: now,
-        screenshot,
+    const screenshots = opt?.screenshots;
+    const screenshotBase64 = opt?.screenshotBase64;
+    const hasScreenshots = screenshots !== undefined;
+    const hasScreenshotBase64 = screenshotBase64 !== undefined;
+    if (hasScreenshots && !Array.isArray(screenshots)) {
+      throw new Error('recordToReport: screenshots must be an array');
+    }
+    if (hasScreenshotBase64 && typeof screenshotBase64 !== 'string') {
+      throw new Error('recordToReport: screenshotBase64 must be a string');
+    }
+    if (hasScreenshots && hasScreenshotBase64) {
+      throw new Error(
+        'recordToReport: provide only one of screenshots or screenshotBase64',
+      );
+    }
+    if (opt && 'subType' in opt) {
+      throw new Error('recordToReport: subType is not supported');
+    }
+    const customScreenshots = hasScreenshots ? screenshots : undefined;
+    if (customScreenshots && customScreenshots.length === 0) {
+      throw new Error('recordToReport: screenshots cannot be empty');
+    }
+    const screenshotInputs: RecordToReportScreenshot[] =
+      customScreenshots ??
+      (hasScreenshotBase64
+        ? [{ base64: screenshotBase64 }]
+        : [{ base64: await this.interface.screenshotBase64() }]);
+
+    // 1. build recorder
+    const recorder: ExecutionRecorderItem[] = screenshotInputs.map(
+      (screenshotInput, index) => {
+        const normalizedScreenshotInput = normalizeRecordToReportScreenshot(
+          screenshotInput,
+          index,
+        );
+        const ts = now + index;
+        return {
+          type: 'screenshot',
+          ts,
+          screenshot: ScreenshotItem.create(
+            normalizedScreenshotInput.base64,
+            ts,
+          ),
+          description: normalizedScreenshotInput.description,
+        };
       },
-    ];
-    // 3. build ExecutionTaskLog
+    );
+    // 2. build ExecutionTaskLog
     const task: ExecutionTaskLog = {
       taskId: uuid(),
       type: 'Log',
@@ -1365,7 +1375,7 @@ export class Agent<
       },
       executor: async () => {},
     };
-    // 4. build ExecutionDump
+    // 3. build ExecutionDump
     const executionDump = new ExecutionDump({
       id: uuid(),
       logTime: now,
@@ -1373,7 +1383,7 @@ export class Agent<
       description: opt?.content || '',
       tasks: [task],
     });
-    // 5. append to execution dump
+    // 4. append to execution dump
     this.appendExecutionDump(executionDump);
 
     this.writeOutActionDumps(executionDump);

@@ -1,6 +1,12 @@
 import { z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import {
+  type AgentBehaviorInitArgs,
+  agentBehaviorInitArgShape,
+  getAgentInitArgsSignature,
+  shouldRebuildAgentForInitArgs,
+} from '@midscene/shared/mcp/agent-behavior-init-args';
+import {
   BaseMidsceneTools,
   type InitArgSpec,
 } from '@midscene/shared/mcp/base-tools';
@@ -32,12 +38,14 @@ const iosInitArgShape = {
     .number()
     .optional()
     .describe('WebDriverAgent MJPEG streaming port'),
+  ...agentBehaviorInitArgShape,
 };
 
-type IOSInitArgs = Pick<
-  IOSDeviceOpt,
-  'deviceId' | 'wdaHost' | 'wdaPort' | 'sessionId' | 'useWDA' | 'wdaMjpegPort'
->;
+type IOSInitArgs = AgentBehaviorInitArgs &
+  Pick<
+    IOSDeviceOpt,
+    'deviceId' | 'wdaHost' | 'wdaPort' | 'sessionId' | 'useWDA' | 'wdaMjpegPort'
+  >;
 
 function getTargetIdentity(initArgs?: IOSInitArgs): string {
   if (initArgs?.deviceId) {
@@ -85,10 +93,12 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
   }
 
   protected async ensureAgent(opts?: IOSInitArgs): Promise<IOSAgent> {
-    const hasOpts = !!opts && Object.keys(opts).length > 0;
-    const nextSignature = hasOpts ? JSON.stringify(opts) : undefined;
+    const nextSignature = getAgentInitArgsSignature(opts);
 
-    if (this.agent && hasOpts && nextSignature !== this.lastOptsSignature) {
+    if (
+      this.agent &&
+      shouldRebuildAgentForInitArgs(this.lastOptsSignature, nextSignature)
+    ) {
       try {
         await this.agent.destroy?.();
       } catch (error) {
@@ -134,6 +144,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
               debug('Failed to destroy agent during connect:', error);
             }
             this.agent = undefined;
+            this.lastOptsSignature = undefined;
           }
           const agent = await this.ensureAgent(initArgs);
           const screenshot = await agent.page.screenshotBase64();

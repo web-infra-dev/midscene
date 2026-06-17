@@ -39,6 +39,8 @@ All agents share these base options:
   - For mobile devices, setting `screenshotShrinkFactor` to 2 can reduce token consumption while maintaining clarity, but it is not recommended to set it higher than 3, as this may cause the image to be too blurry and affect the AI model's understanding.
   - For web pages, if the content is complex or contains a lot of details, it is not recommended to set `screenshotShrinkFactor` to avoid overly blurry screenshots. Additionally, if you want higher clarity for web page screenshots, you can configure Puppeteer or Playwright's `deviceScaleFactor` to 2, which will allow Puppeteer or Playwright to render the page as if it were a high-definition screen.
 
+The MCP tools and device CLIs expose these same Agent behavior options per call. In CLIs, convert the camelCase API option to a bare kebab-case flag, such as `waitAfterAction` -> `--wait-after-action`. In MCP calls, keep the camelCase option under the platform namespace, such as `android.waitAfterAction` or `web.waitAfterAction`. See [Configure Agent behavior per call](./mcp#configure-agent-behavior-per-call) for examples.
+
 ### Custom model configuration
 
 Use `modelConfig: Record<string, string | number>` to configure models directly in code instead of environment variables.
@@ -1125,19 +1127,43 @@ console.log(result);
 
 ### `agent.recordToReport()`
 
-Log the current screenshot with a description in the report file.
+Log the current screenshot with a description in the report file by default, or
+record screenshots provided by the caller.
 
 - Type
 
 ```typescript
-function recordToReport(title?: string, options?: Object): Promise<void>;
+interface RecordToReportOptions {
+  content?: string;
+  /** @deprecated Use screenshots instead. */
+  screenshotBase64?: string;
+  screenshots?: {
+    /**
+     * PNG/JPEG data URI, or raw PNG base64 body.
+     */
+    base64: string;
+    description?: string;
+  }[];
+}
+
+function recordToReport(
+  title?: string,
+  options?: RecordToReportOptions,
+): Promise<void>;
 ```
 
 - Parameters:
 
   - `title?: string` - Optional, the title of the screenshot, if not provided, the title will be 'untitled'.
-  - `options?: Object` - Optional, a configuration object containing:
+  - `options?: RecordToReportOptions` - Optional, a configuration object containing:
     - `content?: string` - The description of the screenshot.
+    - `screenshots?: Array<{ base64: string; description?: string }>` - Record one or more provided screenshots under one report entry. When this option is set, Midscene will not capture another screenshot automatically. `base64` should be a PNG/JPEG data URI such as `data:image/png;base64,...`; a raw base64 body is also accepted and treated as PNG.
+
+- Compatibility:
+
+  `screenshotBase64?: string` is still accepted as a backward-compatible
+  single-screenshot override. Prefer `screenshots: [{ base64 }]` for new code.
+  Provide only one of `screenshots` or `screenshotBase64`.
 
 - Return Value:
 
@@ -1148,6 +1174,22 @@ function recordToReport(title?: string, options?: Object): Promise<void>;
 ```typescript
 await agent.recordToReport('Login page', {
   content: 'User A',
+});
+
+const before = await page.screenshot({ encoding: 'base64' });
+const after = await page.screenshot({ encoding: 'base64' });
+await agent.recordToReport('Checkout comparison', {
+  content: 'Compare the state before and after submit.',
+  screenshots: [
+    {
+      base64: `data:image/png;base64,${before}`,
+      description: 'Before submit',
+    },
+    {
+      base64: `data:image/png;base64,${after}`,
+      description: 'After submit',
+    },
+  ],
 });
 ```
 

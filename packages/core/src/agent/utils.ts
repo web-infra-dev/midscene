@@ -9,6 +9,7 @@ import type {
   PlanningLocateParam,
   PlanningLocateParamWithLocatedPixelBbox,
   Rect,
+  ScrollParam,
   Size,
   UIContext,
 } from '@/types';
@@ -53,6 +54,28 @@ const normalizeScreenshotBase64 = (screenshotBase64: string) => {
     inferBase64ImageFormat(base64Body),
     base64Body,
   );
+};
+
+const legacyScrollTypeMap = {
+  once: 'singleAction',
+  untilBottom: 'scrollToBottom',
+  untilTop: 'scrollToTop',
+  untilRight: 'scrollToRight',
+  untilLeft: 'scrollToLeft',
+} as const;
+
+export const normalizeScrollType = (
+  scrollType: string | undefined,
+): ScrollParam['scrollType'] | undefined => {
+  if (!scrollType) {
+    return undefined;
+  }
+
+  if (scrollType in legacyScrollTypeMap) {
+    return legacyScrollTypeMap[scrollType as keyof typeof legacyScrollTypeMap];
+  }
+
+  return scrollType as ScrollParam['scrollType'];
 };
 
 export async function commonContextParser(
