@@ -603,6 +603,7 @@ task - planning
 export interface ExecutionTaskPlanningParam {
   userInstruction: TUserPrompt;
   userInstructionDisplay?: string;
+  replanningCycleLimit?: number;
   aiActContext?: string;
   imagesIncludeCount?: number;
   deepThink?: DeepThinkOption;

@@ -728,6 +728,11 @@ export function generateCommonTools(
           if (!agent.aiAction) {
             return createErrorResult('act is not supported by this agent');
           }
+          emitCliVerboseEvent({
+            event: 'ai_act_start',
+            tool: 'act',
+            prompt,
+          });
           const unsubscribeVerbose = attachCliVerboseDumpListener(agent, {
             toolName: 'act',
           });

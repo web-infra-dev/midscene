@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { withCliVerboseContext } from '@/cli';
 import {
   generateCommonTools,
@@ -745,63 +746,183 @@ describe('toolDefaults (deep locate / deep think)', () => {
     });
   });
 
-  it('emits readable verbose dump updates while act is running', async () => {
+  it('emits human-readable aiAct verbose timeline while act is running', async () => {
     let dumpListener:
       | ((dump: string, executionDump?: unknown) => void)
       | undefined;
     const unsubscribe = vi.fn();
-    const aiAction = vi.fn().mockImplementation(async () => {
-      dumpListener?.('{}', {
-        id: 'execution-1',
-        name: 'AI Action',
-        description: 'open settings',
-        tasks: [
+    const reportFile = join(
+      process.cwd(),
+      'midscene_run/report/midscene-report.html',
+    );
+    const plan1 = {
+      taskId: 'plan-1',
+      type: 'Planning',
+      subType: 'Plan',
+      status: 'finished',
+      param: {
+        userInstruction: 'open settings',
+        replanningCycleLimit: 10,
+      },
+      uiContext: {
+        screenshot: {
+          toSerializable: () => ({
+            type: 'midscene_screenshot_ref',
+            id: 'shot-1',
+            storage: 'file',
+            path: './screenshots/shot-1.png',
+          }),
+        },
+      },
+      output: {
+        log: 'Need to open settings first.',
+        actions: [
           {
-            taskId: 'plan-1',
-            type: 'Planning',
-            subType: 'Plan',
-            status: 'finished',
-            param: { userInstruction: 'open settings' },
-            output: {
-              updateSubGoals: [
-                {
-                  index: 1,
-                  status: 'finished',
-                  description: 'Open settings',
-                },
-                {
-                  index: 2,
-                  status: 'running',
-                  description: 'Locate submit button',
-                },
-              ],
-            },
-            timing: { cost: 20 },
-          },
-          {
-            taskId: 'task-2',
-            type: 'Planning',
-            subType: 'Locate',
-            status: 'running',
-            param: { prompt: 'Submit' },
-            timing: { cost: 12 },
-            recorder: [
-              {
-                timing: 'after-calling',
-                screenshot: {
-                  toSerializable: () => ({
-                    type: 'midscene_screenshot_ref',
-                    id: 'shot-1',
-                    storage: 'file',
-                    path: './screenshots/shot-1.png',
-                  }),
-                },
-              },
-            ],
+            type: 'Tap',
+            param: { locate: { prompt: 'Submit button' } },
           },
         ],
+        shouldContinuePlanning: true,
+      },
+      timing: { cost: 20 },
+    };
+    const locate1 = {
+      taskId: 'locate-1',
+      type: 'Planning',
+      subType: 'Locate',
+      status: 'finished',
+      param: { prompt: 'Submit button' },
+      output: {
+        element: {
+          description: 'Submit button',
+          center: [100, 200],
+          rect: { left: 80, top: 180, width: 40, height: 40 },
+        },
+      },
+      timing: { cost: 12 },
+    };
+    const tapRunning = {
+      taskId: 'tap-1',
+      type: 'Action Space',
+      subType: 'Tap',
+      status: 'running',
+      param: {
+        locate: {
+          description: 'Submit button',
+          center: [100, 200],
+          rect: { left: 80, top: 180, width: 40, height: 40 },
+        },
+      },
+    };
+    const tapStringPending = {
+      taskId: 'tap-string',
+      type: 'Action Space',
+      subType: 'Tap',
+      status: 'pending',
+      param: { locate: 'Submit button' },
+    };
+    const tapPending = {
+      taskId: 'tap-1',
+      type: 'Action Space',
+      subType: 'Tap',
+      status: 'pending',
+      param: {
+        locate: {
+          prompt: 'Submit button',
+          bbox: [8, 18, 12, 22],
+          locatedPixelBbox: [80, 180, 120, 220],
+        },
+      },
+    };
+    const tapFinished = {
+      ...tapRunning,
+      status: 'finished',
+      timing: { cost: 208 },
+    };
+    const plan2 = {
+      taskId: 'plan-2',
+      type: 'Planning',
+      subType: 'Plan',
+      status: 'finished',
+      param: {
+        userInstruction: 'open settings',
+        replanningCycleLimit: 10,
+      },
+      uiContext: {
+        screenshot: {
+          toSerializable: () => ({
+            type: 'midscene_screenshot_ref',
+            id: 'shot-2',
+            storage: 'file',
+            path: './screenshots/shot-2.png',
+          }),
+        },
+      },
+      output: {
+        log: 'The page is still transitioning, so wait briefly.',
+        actions: [
+          {
+            type: 'Sleep',
+            param: { timeMs: 2000 },
+          },
+        ],
+        shouldContinuePlanning: true,
+      },
+    };
+    const sleepRunning = {
+      taskId: 'sleep-1',
+      type: 'Action Space',
+      subType: 'Sleep',
+      status: 'running',
+      param: { timeMs: 2000 },
+    };
+    const sleepFinished = {
+      ...sleepRunning,
+      status: 'finished',
+      timing: { cost: 2004 },
+    };
+    const plan3 = {
+      taskId: 'plan-3',
+      type: 'Planning',
+      subType: 'Plan',
+      status: 'finished',
+      param: {
+        userInstruction: 'open settings',
+        replanningCycleLimit: 10,
+      },
+      uiContext: {
+        screenshot: {
+          toSerializable: () => ({
+            type: 'midscene_screenshot_ref',
+            id: 'shot-3',
+            storage: 'file',
+            path: './screenshots/shot-3.png',
+          }),
+        },
+      },
+      output: {
+        log: 'The selected page is open, so the requested task is complete.',
+        output: 'Settings opened.',
+        shouldContinuePlanning: false,
+      },
+    };
+    const emitDump = (tasks: unknown[]) => {
+      dumpListener?.('{}', {
+        id: 'execution-1',
+        name: 'Act - open settings',
+        description: 'open settings',
+        tasks,
       });
-      return 'done';
+    };
+    const aiAction = vi.fn().mockImplementation(async () => {
+      emitDump([plan1, tapStringPending]);
+      emitDump([plan1, tapPending]);
+      emitDump([plan1, locate1, tapRunning]);
+      emitDump([plan1, locate1, tapFinished]);
+      emitDump([plan1, locate1, tapFinished, plan2, sleepRunning]);
+      emitDump([plan1, locate1, tapFinished, plan2, sleepFinished]);
+      emitDump([plan1, locate1, tapFinished, plan2, sleepFinished, plan3]);
+      return 'Settings opened.';
     });
     const addDumpUpdateListener = vi.fn((listener) => {
       dumpListener = listener;
@@ -810,7 +931,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
     const commonTools = generateCommonTools(async () => ({
       aiAction,
       addDumpUpdateListener,
-      reportFile: '/tmp/midscene-report.html',
+      reportFile,
       getActionSpace: vi.fn().mockResolvedValue([]),
       page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
     }));
@@ -831,18 +952,52 @@ describe('toolDefaults (deep locate / deep think)', () => {
     const messages = consoleSpy.mock.calls.flatMap(([message]) =>
       String(message).split('\n'),
     );
-    expect(messages).toContain('[Midscene] act ready');
-    expect(messages).toContain('[Midscene] Progress: AI Action (2 steps)');
+    expect(messages).toContain('[Midscene][aiAct] Start: open settings');
     expect(messages).toContain(
-      '[Midscene] Step 1/2: Planning/Plan finished: sub-goals: 1. [finished] Open settings; 2. [running] Locate submit button',
+      '[Midscene][aiAct][Plan 1/10] Thinking with the latest screenshot: midscene_run/report/screenshots/shot-1.png',
     );
     expect(messages).toContain(
-      '[Midscene] Step 2/2: Planning/Locate running: Submit',
+      '[Midscene][aiAct][Plan 1/10] Planned: Need to open settings first.',
     );
     expect(messages).toContain(
-      '[Midscene] Screenshot: after-calling ./screenshots/shot-1.png',
+      '[Midscene][aiAct][Plan 1/10] Action: Tap "Submit button" at (100, 200), bbox=(80,180,120,220)',
     );
-    expect(messages).toContain('[Midscene] Report: /tmp/midscene-report.html');
+    expect(messages).not.toContain(
+      '[Midscene][aiAct][Plan 1/10] Action: Tap: {"locate":"Submit button"}',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Action] Running: Tap at (100, 200)',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Action] Done: Tap cost=208ms',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Plan 2/10] Thinking with the latest screenshot: midscene_run/report/screenshots/shot-2.png',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Plan 2/10] Planned: The page is still transitioning, so wait briefly.',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Plan 2/10] Action: Sleep 2000ms',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Action] Running: Sleep 2000ms',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Action] Done: Sleep cost=2004ms',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Plan 3/10] Thinking with the latest screenshot: midscene_run/report/screenshots/shot-3.png',
+    );
+    expect(messages).toContain(
+      '[Midscene][aiAct][Plan 3/10] Planned: The selected page is open, so the requested task is complete.',
+    );
+    expect(messages).toContain('[Midscene][aiAct] Complete: Settings opened.');
+    expect(
+      messages.filter((message) =>
+        message.includes('[Midscene][aiAct][Plan 1/10] Action: Tap'),
+      ),
+    ).toHaveLength(1);
     expect(addDumpUpdateListener).toHaveBeenCalledOnce();
     expect(unsubscribe).toHaveBeenCalledOnce();
     consoleSpy.mockRestore();
@@ -856,14 +1011,27 @@ describe('toolDefaults (deep locate / deep think)', () => {
     const aiAction = vi.fn().mockImplementation(async () => {
       dumpListener?.('{}', {
         id: 'execution-1',
-        name: 'AI Action',
+        name: 'Act - open settings',
         tasks: [
           {
-            taskId: 'task-1',
+            taskId: 'plan-1',
             type: 'Planning',
-            subType: 'Locate',
+            subType: 'Plan',
             status: 'running',
-            param: { prompt: 'Submit' },
+            param: { userInstruction: 'open settings' },
+            uiContext: {
+              screenshot: {
+                extension: 'png',
+                rawBase64: 'Zm9v',
+                toSerializable: () => ({
+                  type: 'midscene_screenshot_ref',
+                  id: 'inline-shot-1',
+                  capturedAt: 1000,
+                  mimeType: 'image/png',
+                  storage: 'inline',
+                }),
+              },
+            },
             recorder: [
               {
                 timing: 'after-calling',
@@ -914,13 +1082,15 @@ describe('toolDefaults (deep locate / deep think)', () => {
       String(message).split('\n'),
     );
     const screenshotMessage = messages.find((message) =>
-      message.includes('[Midscene] Screenshot: after-calling '),
+      message.includes(
+        '[Midscene][aiAct][Plan 1] Thinking with the latest screenshot: ',
+      ),
     );
     expect(screenshotMessage).toMatch(
-      /^\[Midscene\] Screenshot: after-calling .+midscene-cli-screenshots\/inline-shot-1\.png$/,
+      /^\[Midscene\]\[aiAct\]\[Plan 1\] Thinking with the latest screenshot: .+screenshots\/inline-shot-1\.png$/,
     );
     const screenshotPath = screenshotMessage?.replace(
-      '[Midscene] Screenshot: after-calling ',
+      '[Midscene][aiAct][Plan 1] Thinking with the latest screenshot: ',
       '',
     );
     expect(screenshotPath).toBeDefined();

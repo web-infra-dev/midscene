@@ -467,6 +467,7 @@ export class TaskExecutor {
             ...(reportOptions?.prompt
               ? { userInstructionDisplay: reportOptions.prompt }
               : {}),
+            replanningCycleLimit,
             aiActContext,
             imagesIncludeCount,
             deepThink,

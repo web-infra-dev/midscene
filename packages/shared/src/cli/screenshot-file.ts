@@ -6,6 +6,7 @@ export interface WriteCliScreenshotFileOptions {
   id?: unknown;
   mimeType?: unknown;
   extension?: unknown;
+  directoryPath?: string;
   directoryName?: string;
   filenamePrefix?: string;
   overwrite?: boolean;
@@ -37,9 +38,11 @@ export function writeCliScreenshotFile(
     options.mimeType,
     options.extension,
   );
-  const directory = options.directoryName
-    ? join(tmpdir(), options.directoryName)
-    : tmpdir();
+  const directory = options.directoryPath
+    ? options.directoryPath
+    : options.directoryName
+      ? join(tmpdir(), options.directoryName)
+      : tmpdir();
   if (!existsSync(directory)) {
     mkdirSync(directory, { recursive: true });
   }
