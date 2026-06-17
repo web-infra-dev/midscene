@@ -1,4 +1,4 @@
-import { normalJsonParser } from '../service-caller/json';
+import { parseModelResponseJson } from '../service-caller/json';
 import { resolveChatCompletion } from './chat-completion';
 import { resolveLocate } from './locate';
 import { resolveCustomPlanningDefinition, resolvePlanning } from './planning';
@@ -16,7 +16,7 @@ function resolveJsonParser(
   jsonParser: ModelAdapterDefinition['jsonParser'],
 ): JsonParser {
   if (!jsonParser || jsonParser === 'lenient-json') {
-    return normalJsonParser;
+    return parseModelResponseJson;
   }
 
   if (typeof jsonParser === 'function') {

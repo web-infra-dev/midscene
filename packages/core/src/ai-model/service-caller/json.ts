@@ -1,5 +1,22 @@
 import { jsonrepair } from 'jsonrepair';
 
+/**
+ * Extract the JSON portion from a model response.
+ *
+ * This mainly handles fenced JSON like ```json { ... } ``` by removing the
+ * fence. If that does not produce a JSON object, it falls back to a greedy regex
+ * that extracts from the first "{" to the last "}". If that still fails, the
+ * original response is returned.
+ *
+ * Expected model responses are JSON objects, possibly wrapped in markdown
+ * fences. Natural language mixed with JSON, or arrays like
+ * [{"type":"Tap"}, {"type":"Hover"}], are outside the supported contract and
+ * are not reliably recoverable.
+ *
+ * This legacy extractor is also used by extraction responses that can be any
+ * JSON value. In those cases, arrays/strings/numbers have no object braces and
+ * pass through unchanged.
+ */
 export function extractJSONFromCodeBlock(response: string) {
   try {
     // First, try to match a JSON object directly in the response
@@ -35,17 +52,18 @@ export type JsonParserSource =
 export interface JsonParserContext {
   source: JsonParserSource;
   preserveStringValueKeys?: string[];
+  requireObject?: boolean;
 }
 
 export type JsonParser = (raw: string, context?: JsonParserContext) => unknown;
 
 /**
- * Normalize a parsed JSON object by trimming whitespace from:
+ * Trim whitespace in parsed JSON by normalizing:
  * 1. All object keys (e.g., " prompt " -> "prompt")
  * 2. All string values (e.g., " Tap " -> "Tap")
  * This handles LLM output that may include leading/trailing spaces.
  */
-function normalizeJsonObject(
+function trimParsedJsonStrings(
   obj: any,
   context: Pick<JsonParserContext, 'preserveStringValueKeys'> = {},
 ): any {
@@ -56,7 +74,7 @@ function normalizeJsonObject(
 
   // Handle arrays - recursively normalize each element
   if (Array.isArray(obj)) {
-    return obj.map((item) => normalizeJsonObject(item, context));
+    return obj.map((item) => trimParsedJsonStrings(item, context));
   }
 
   // Handle objects
@@ -74,7 +92,7 @@ function normalizeJsonObject(
           ? preserveStringValue
             ? value
             : value.trim()
-          : normalizeJsonObject(value, context);
+          : trimParsedJsonStrings(value, context);
 
       normalized[trimmedKey] = normalizedValue;
     }
@@ -91,52 +109,71 @@ function normalizeJsonObject(
   return obj;
 }
 
-const parseNormalJson = (
-  input: string,
-  rawResponse: string,
-  context?: JsonParserContext,
-) => {
-  if (input?.match(/\((\d+),(\d+)\)/)) {
-    return input
-      .match(/\((\d+),(\d+)\)/)
-      ?.slice(1)
-      .map(Number);
-  }
-
-  let parsed: any;
-  let lastError: unknown;
-  try {
-    parsed = JSON.parse(input);
-    return normalizeJsonObject(parsed, context);
-  } catch (error) {
-    lastError = error;
-  }
-  try {
-    parsed = JSON.parse(jsonrepair(input));
-    return normalizeJsonObject(parsed, context);
-  } catch (error) {
-    lastError = error;
-  }
-
-  return { parsed: undefined, lastError, rawResponse };
-};
-
-export function safeParseJson(raw: string, context?: JsonParserContext) {
-  const cleanJsonString = extractJSONFromCodeBlock(raw);
-  const result = parseNormalJson(cleanJsonString, raw, context);
-  if (
-    result &&
-    typeof result === 'object' &&
-    'parsed' in result &&
-    result.parsed === undefined
-  ) {
-    throw Error(
-      `failed to parse LLM response into JSON. Error - ${String(
-        result.lastError ?? 'unknown error',
-      )}. Response - \n ${raw}`,
-    );
-  }
-  return result;
+function repairKnownJsonIssues(
+  jsonBlock: string,
+  _rawResponse: string,
+): string {
+  // TODO: Add project-specific repairs that jsonrepair cannot handle.
+  return jsonBlock;
 }
 
-export const normalJsonParser: JsonParser = safeParseJson;
+function assertJsonObject(
+  parsed: unknown,
+): asserts parsed is Record<string, unknown> {
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(
+      `expected parsed LLM response to be a JSON object, got ${JSON.stringify(
+        parsed,
+      )}`,
+    );
+  }
+}
+
+function parseJsonWithRepair(jsonStr: string) {
+  try {
+    return JSON.parse(jsonStr);
+  } catch {
+    return JSON.parse(jsonrepair(jsonStr));
+  }
+}
+
+export function parseModelResponseJson(
+  raw: string,
+  context?: JsonParserContext,
+) {
+  const cleanJsonString = extractJSONFromCodeBlock(raw);
+  const requireObject = context?.requireObject ?? true;
+
+  let parsedObj: unknown;
+
+  try {
+    parsedObj = parseJsonWithRepair(cleanJsonString);
+    if (requireObject) {
+      assertJsonObject(parsedObj);
+    }
+  } catch (e1) {
+    const code = repairKnownJsonIssues(cleanJsonString, raw);
+    if (code === cleanJsonString) {
+      throw new Error(
+        `failed to parse LLM response into JSON. Error - ${String(
+          e1,
+        )}. Response - \n ${raw}`,
+      );
+    }
+
+    try {
+      parsedObj = parseJsonWithRepair(code);
+      if (requireObject) {
+        assertJsonObject(parsedObj);
+      }
+    } catch (e2) {
+      throw new Error(
+        `failed to parse LLM response into JSON. First error - ${String(
+          e1,
+        )}. Second error - ${String(e2)}. Response - \n ${raw}`,
+      );
+    }
+  }
+
+  return trimParsedJsonStrings(parsedObj, context);
+}
