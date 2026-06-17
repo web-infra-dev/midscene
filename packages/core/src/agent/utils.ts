@@ -20,8 +20,8 @@ import {
 } from '@midscene/shared/env';
 import { generateElementByRect } from '@midscene/shared/extractor';
 import {
+  createImgBase64ByFormat,
   imageInfoOfBase64,
-  normalizeBase64Image,
   resizeImgBase64,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -32,6 +32,28 @@ import type { TaskCache } from './task-cache';
 import { debug as cacheDebug } from './task-cache';
 
 const agentDebug = getDebug('agent');
+const screenshotDataUrlPattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
+
+const inferBase64ImageFormat = (base64Body: string) => {
+  if (base64Body.startsWith('iVBORw0KGgo')) {
+    return 'png';
+  }
+  return 'jpeg';
+};
+
+const normalizeScreenshotBase64 = (screenshotBase64: string) => {
+  const trimmedBase64 = screenshotBase64.trim();
+  if (screenshotDataUrlPattern.test(trimmedBase64)) {
+    return trimmedBase64;
+  }
+
+  const base64Body = trimmedBase64.replace(/\s/g, '');
+  assert(base64Body, 'screenshotBase64 must include image data');
+  return createImgBase64ByFormat(
+    inferBase64ImageFormat(base64Body),
+    base64Body,
+  );
+};
 
 export async function commonContextParser(
   interfaceInstance: AbstractInterface,
@@ -172,7 +194,8 @@ export async function createScreenshotBoundUIContext(
     screenshotSize?: Size;
   },
 ): Promise<UIContext> {
-  const normalizedScreenshotBase64 = normalizeBase64Image(screenshotBase64);
+  const normalizedScreenshotBase64 =
+    normalizeScreenshotBase64(screenshotBase64);
   const actualScreenshotSize = await imageInfoOfBase64(
     normalizedScreenshotBase64,
   );

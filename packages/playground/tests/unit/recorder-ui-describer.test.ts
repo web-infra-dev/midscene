@@ -1,13 +1,20 @@
+import { fileURLToPath } from 'node:url';
+import { localImg2Base64 } from '@midscene/shared/img';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { callAIWithObjectResponse } from '../../src/recorder-ai-service';
 import {
   describeRecorderUIEvent,
   describeRecorderUIEvents,
   getRecorderUIEventTargetRect,
-} from '../../src/ai-model';
-import { callAIWithObjectResponse } from '../../src/ai-model/service-caller';
+} from '../../src/recorder-ui-describer';
 
-vi.mock('../../src/ai-model/service-caller', () => ({
+vi.mock('../../src/recorder-ai-service', () => ({
   callAIWithObjectResponse: vi.fn(),
+}));
+
+vi.mock('@midscene/shared/img', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@midscene/shared/img')>()),
+  compositeElementInfoImg: vi.fn(() => 'data:image/png;base64,boxed'),
 }));
 
 const modelConfig = {
@@ -19,10 +26,61 @@ const modelConfig = {
 
 const screenshot =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lBtrWQAAAABJRU5ErkJggg==';
+const fixtureScreenshot = localImg2Base64(
+  fileURLToPath(
+    new URL('../../../core/tests/fixtures/baidu.png', import.meta.url),
+  ),
+);
 
 describe('recorder-ui-describer', () => {
   beforeEach(() => {
     vi.mocked(callAIWithObjectResponse).mockReset();
+  });
+
+  it('accepts env-style model config from external callers', async () => {
+    vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+      content: {
+        elementDescription: 'close icon button in the top-right corner',
+        replayInstruction:
+          'Tap on the element described as "close icon button in the top-right corner".',
+        actionSummary: 'Tap close icon button',
+        confidence: 'high',
+      },
+    } as any);
+
+    const result = await describeRecorderUIEvent(
+      {
+        event: {
+          type: 'click',
+          actionType: 'Tap',
+          source: 'studio-preview',
+          timestamp: 1000,
+          hashId: 'env-style-config',
+          pageInfo: { width: 1280, height: 720 },
+          elementRect: { x: 537, y: 450 },
+          screenshotWithBox: screenshot,
+        },
+      },
+      {
+        MIDSCENE_MODEL_NAME: 'mock-model',
+        MIDSCENE_MODEL_BASE_URL: 'https://example.test/v1',
+        MIDSCENE_MODEL_API_KEY: 'mock-key',
+        MIDSCENE_MODEL_FAMILY: 'qwen3.5',
+      },
+      { maxRetries: 1 },
+    );
+
+    expect(result.usedFallback).toBe(false);
+    expect(result.event.semantic?.elementDescription).toBe(
+      'close icon button in the top-right corner',
+    );
+    const [, passedModelConfig] = vi.mocked(callAIWithObjectResponse).mock
+      .calls[0];
+    expect(passedModelConfig).toMatchObject({
+      modelName: 'mock-model',
+      openaiBaseURL: 'https://example.test/v1',
+      openaiApiKey: 'mock-key',
+    });
   });
 
   it('converts point-only recorder events into bounded target rectangles', () => {
@@ -73,6 +131,47 @@ describe('recorder-ui-describer', () => {
         'Click on the element described as "control on the current desktop screen".',
       confidence: 'low',
     });
+  });
+
+  it('creates and uses screenshotWithBox from screenshotBefore and elementRect', async () => {
+    vi.mocked(callAIWithObjectResponse).mockResolvedValueOnce({
+      content: {
+        elementDescription: 'highlighted target control',
+        replayInstruction:
+          'Click on the element described as "highlighted target control".',
+        actionSummary: 'Click highlighted target control',
+        confidence: 'high',
+      },
+    } as any);
+
+    const result = await describeRecorderUIEvent(
+      {
+        event: {
+          type: 'click',
+          source: 'studio-preview',
+          timestamp: 1000,
+          hashId: 'click-with-generated-box',
+          pageInfo: { width: 3282, height: 1442 },
+          elementRect: { left: 100, top: 100, width: 80, height: 40 },
+          screenshotBefore: fixtureScreenshot,
+        },
+      },
+      modelConfig,
+      { maxRetries: 1 },
+    );
+
+    expect(result.error).toBeUndefined();
+    expect(result.usedFallback).toBe(false);
+
+    const call = vi.mocked(callAIWithObjectResponse).mock.calls[0];
+    const userContent = call[0][1].content as any[];
+    const highlightedScreenshot = userContent.find(
+      (item) => item.type === 'image_url',
+    )?.image_url.url;
+
+    expect(result.event.screenshotWithBox).toBeTruthy();
+    expect(result.event.screenshotWithBox).not.toBe(fixtureScreenshot);
+    expect(highlightedScreenshot).toBe(result.event.screenshotWithBox);
   });
 
   it('keeps batch result order when falling back', async () => {

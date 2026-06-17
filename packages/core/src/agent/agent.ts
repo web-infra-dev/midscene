@@ -10,7 +10,6 @@ import {
   type ActionParam,
   type ActionReturn,
   type AgentAssertOpt,
-  type AgentDescribeElementAtPointResult,
   type AgentOpt,
   type AgentWaitForOpt,
   type DeepThinkOption,
@@ -21,18 +20,14 @@ import {
   type ExecutionTaskLog,
   type LocateOption,
   type LocateResultElement,
-  type LocateValidatorResult,
-  type LocatorValidatorOption,
   type OnTaskStartTip,
   type PlanningAction,
-  type Rect,
   ReportActionDump,
   type ReportMeta,
   type ScrollParam,
   type ServiceAction,
   type ServiceExtractOption,
   type ServiceExtractParam,
-  type Size,
   type TestStatus,
   type UIContext,
 } from '../types';
@@ -82,78 +77,10 @@ import {
   taskTitleStr,
   typeStr,
 } from './ui-utils';
-import {
-  commonContextParser,
-  createScreenshotBoundUIContext,
-  getReportFileName,
-  parsePrompt,
-} from './utils';
-
-export type DescribeElementCoordinateSpace = 'screenshot' | 'logical';
-
-export type DescribeElementAtPointOptions = {
-  verifyPrompt?: boolean;
-  retryLimit?: number;
-  deepLocate?: boolean;
-  screenshotBase64?: string;
-  screenshotSize?: Size;
-  coordinateSpace?: DescribeElementCoordinateSpace;
-  logicalSize?: Size;
-  onProgress?: (progress: {
-    prompt?: string;
-    deepLocate?: boolean;
-    verifyResult?: LocateValidatorResult;
-  }) => void;
-} & LocatorValidatorOption;
+import { commonContextParser, getReportFileName, parsePrompt } from './utils';
 
 const debug = getDebug('agent');
 const warn = getDebug('agent', { console: true });
-
-const distanceOfTwoPoints = (p1: [number, number], p2: [number, number]) => {
-  const [x1, y1] = p1;
-  const [x2, y2] = p2;
-  return Math.round(Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2));
-};
-
-const includedInRect = (point: [number, number], rect: Rect) => {
-  const [x, y] = point;
-  const { left, top, width, height } = rect;
-  return x >= left && x <= left + width && y >= top && y <= top + height;
-};
-
-function assertPositiveSize(
-  size: Size | undefined,
-  label: string,
-): asserts size is Size {
-  assert(
-    size &&
-      Number.isFinite(size.width) &&
-      Number.isFinite(size.height) &&
-      size.width > 0 &&
-      size.height > 0,
-    `${label} must include positive width and height`,
-  );
-}
-
-const mapPointToScreenshotSpace = (
-  center: [number, number],
-  screenshotSize: Size,
-  opt: DescribeElementAtPointOptions,
-): [number, number] => {
-  const coordinateSpace = opt.coordinateSpace || 'screenshot';
-  if (coordinateSpace === 'screenshot') {
-    return center;
-  }
-
-  assertPositiveSize(
-    opt.logicalSize,
-    'logicalSize is required when coordinateSpace is logical',
-  );
-  return [
-    (center[0] * screenshotSize.width) / opt.logicalSize.width,
-    (center[1] * screenshotSize.height) / opt.logicalSize.height,
-  ];
-};
 
 const defaultServiceExtractOption: ServiceExtractOption = {
   domIncluded: false,
@@ -1163,117 +1090,6 @@ export class Agent<
     opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<string> {
     return this.aiString(prompt, opt);
-  }
-
-  async describeElementAtPoint(
-    center: [number, number],
-    opt?: DescribeElementAtPointOptions,
-  ): Promise<AgentDescribeElementAtPointResult> {
-    const { verifyPrompt = true, retryLimit = 3 } = opt || {};
-    const screenshotContext = opt?.screenshotBase64
-      ? await createScreenshotBoundUIContext(opt.screenshotBase64, opt)
-      : undefined;
-    const targetCenter = screenshotContext
-      ? mapPointToScreenshotSpace(center, screenshotContext.shotSize, opt || {})
-      : center;
-
-    let success = false;
-    let retryCount = 0;
-    let resultPrompt = '';
-    let deepLocate = opt?.deepLocate || false;
-    let verifyResult: LocateValidatorResult | undefined;
-
-    while (!success && retryCount < retryLimit) {
-      if (retryCount >= 2) {
-        deepLocate = true;
-      }
-      debug(
-        'aiDescribe',
-        targetCenter,
-        'verifyPrompt',
-        verifyPrompt,
-        'retryCount',
-        retryCount,
-        'deepLocate',
-        deepLocate,
-      );
-      // use same intent as aiLocate
-      const modelRuntime = this.resolveModelRuntime('insight');
-      const describeOpt = screenshotContext
-        ? { deepLocate, context: screenshotContext }
-        : { deepLocate };
-
-      const text = await this.service.describe(
-        targetCenter,
-        modelRuntime,
-        describeOpt,
-      );
-      debug('aiDescribe text', text);
-      assert(
-        text.description,
-        `failed to describe element at [${targetCenter}]`,
-      );
-      resultPrompt = text.description;
-
-      if (!verifyPrompt) {
-        opt?.onProgress?.({ prompt: resultPrompt, deepLocate });
-        success = true;
-        break;
-      }
-
-      // Don't pass deepLocate to verification locate — the description was generated
-      // from a cropped view (deepLocate describe), but verification should use regular
-      // locate on the full screenshot to confirm the description works universally.
-      // Passing deepLocate here would add another first-pass locate and search-area
-      // crop around an already element-level description, which is not the intent of
-      // verification.
-      verifyResult = await this.verifyLocator(
-        resultPrompt,
-        screenshotContext ? { uiContext: screenshotContext } : undefined,
-        targetCenter,
-        opt,
-      );
-      opt?.onProgress?.({ prompt: resultPrompt, deepLocate, verifyResult });
-      if (verifyResult.pass) {
-        success = true;
-      } else {
-        retryCount++;
-      }
-    }
-
-    return {
-      prompt: resultPrompt,
-      deepLocate,
-      verifyResult,
-    };
-  }
-
-  async verifyLocator(
-    prompt: string,
-    locateOpt: LocateOption | undefined,
-    expectCenter: [number, number],
-    verifyLocateOption?: LocatorValidatorOption,
-  ): Promise<LocateValidatorResult> {
-    debug('verifyLocator', prompt, locateOpt, expectCenter, verifyLocateOption);
-
-    const { center: verifyCenter, rect: verifyRect } = await this.aiLocate(
-      prompt,
-      locateOpt,
-    );
-    const distance = distanceOfTwoPoints(expectCenter, verifyCenter);
-    const included = includedInRect(expectCenter, verifyRect);
-    const pass =
-      distance <= (verifyLocateOption?.centerDistanceThreshold || 20) ||
-      included;
-    const verifyResult = {
-      pass,
-      rect: verifyRect,
-      center: verifyCenter,
-      centerDistance: distance,
-      includedInRect: included,
-    };
-    debug('aiDescribe verifyResult', verifyResult);
-    return verifyResult;
   }
 
   /**

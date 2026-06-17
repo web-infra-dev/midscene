@@ -382,7 +382,7 @@ describe('StudioRecorderProvider preview recording', () => {
     }
   });
 
-  it('falls back from aiDescribe failed events to recorderAI descriptions', async () => {
+  it('falls back from truly failed aiDescribe events to recorderAI descriptions', async () => {
     const event = {
       type: 'click',
       source: 'studio-preview',
@@ -390,7 +390,7 @@ describe('StudioRecorderProvider preview recording', () => {
       semantic: {
         source: 'aiDescribe',
         status: 'failed',
-        error: 'aiDescribe verification failed.',
+        error: 'Active agent does not support describeElementAtPoint.',
       },
       elementRect: { x: 10, y: 20 },
       pageInfo: { width: 1200, height: 800 },
@@ -420,7 +420,69 @@ describe('StudioRecorderProvider preview recording', () => {
         fallbackFrom: {
           source: 'aiDescribe',
           status: 'failed',
-          error: 'aiDescribe verification failed.',
+          error: 'Active agent does not support describeElementAtPoint.',
+        },
+      },
+    });
+
+    await mounted.cleanup();
+  });
+
+  it('keeps aiDescribe when only verification fails and does not fallback to recorderAI', async () => {
+    const event = {
+      type: 'click',
+      source: 'studio-preview',
+      actionType: 'Click',
+      elementRect: { x: 10, y: 20 },
+      pageInfo: { width: 1200, height: 800 },
+      screenshotAfter: 'data:image/png;base64,shot',
+      timestamp: 123,
+      hashId: 'click-ai-describe-verify-failed',
+    };
+    const describeRecorderEventAtPoint = vi.fn(async () => ({
+      ok: false,
+      error: 'aiDescribe verification failed.',
+      trace: {
+        elementDescription: 'Submit button in the form footer',
+        verifyPassed: false,
+        centerDistance: 24,
+        point: [10, 20],
+        verifyResult: {
+          pass: false,
+          center: [30, 20],
+          centerDistance: 24,
+        },
+        annotatedScreenshotRef: {
+          path: '/tmp/verify-failed-annotated.png',
+        },
+      },
+    }));
+    const { context } = createConnectedStudioContext({
+      events: [event],
+      describeRecorderEventAtPoint,
+    });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(describeStudioRecorderEventsWithAI).not.toHaveBeenCalled();
+    expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
+      hashId: 'click-ai-describe-verify-failed',
+      semantic: {
+        source: 'aiDescribe',
+        status: 'ready',
+        elementDescription: 'Submit button in the form footer',
+        aiDescribe: {
+          verifyPrompt: true,
+          verifyPassed: false,
+          centerDistance: 24,
+          expectedCenter: [10, 20],
+          actualCenter: [30, 20],
+          annotatedScreenshotPath: '/tmp/verify-failed-annotated.png',
         },
       },
     });
@@ -1140,7 +1202,7 @@ describe('StudioRecorderProvider preview recording', () => {
         semantic: {
           source: 'aiDescribe',
           status: 'failed',
-          error: 'aiDescribe verification failed.',
+          error: 'Active agent does not support describeElementAtPoint.',
         },
       },
     }));
@@ -1238,7 +1300,7 @@ describe('StudioRecorderProvider preview recording', () => {
         fallbackFrom: {
           source: 'aiDescribe',
           status: 'failed',
-          error: 'aiDescribe verification failed.',
+          error: 'Active agent does not support describeElementAtPoint.',
         },
       },
     });

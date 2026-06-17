@@ -1,7 +1,18 @@
-import { ReportActionDump } from '@midscene/core';
+import {
+  ReportActionDump,
+  describeElementAtPoint as coreDescribeElementAtPoint,
+} from '@midscene/core';
 import type { InputPrimitives } from '@midscene/core/device';
-import { describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { PlaygroundServer } from '../../src/server';
+
+vi.mock('@midscene/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@midscene/core')>();
+  return {
+    ...actual,
+    describeElementAtPoint: vi.fn(),
+  };
+});
 
 const VALID_PNG_BASE64 =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAKklEQVR4nO3MIQEAAAzDsPo3/ePhDi4CwpWxUMMXaaFH4QgLPQpHWHg6fOdROhs7ULsmAAAAAElFTkSuQmCC';
@@ -96,7 +107,29 @@ function makeInputPrimitiveStub(
   };
 }
 
+function mockDescribeElementAtPoint(
+  implementation: (
+    center: [number, number],
+    opt?: { onProgress?: (progress: Record<string, unknown>) => void },
+  ) => unknown,
+) {
+  const describeElementAtPoint = vi.fn(implementation);
+  vi.mocked(coreDescribeElementAtPoint).mockImplementation(((
+    _runtime: unknown,
+    center: [number, number],
+    opt?: { onProgress?: (progress: Record<string, unknown>) => void },
+  ) => describeElementAtPoint(center, opt)) as any);
+  return describeElementAtPoint;
+}
+
 describe('PlaygroundServer manual interaction APIs', () => {
+  beforeEach(() => {
+    vi.mocked(coreDescribeElementAtPoint).mockReset();
+    vi.mocked(coreDescribeElementAtPoint).mockRejectedValue(
+      new Error('Active agent does not support describeElementAtPoint.'),
+    );
+  });
+
   test('POST /execute resets stale preview dumps before replay execution', async () => {
     const dump = {
       sdkVersion: 'test',
@@ -458,7 +491,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
   test('recorder records successful Studio preview interactions', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
-    const describeElementAtPoint = vi.fn(async () => ({
+    const describeElementAtPoint = mockDescribeElementAtPoint(async () => ({
       prompt: 'login button',
       deepLocate: false,
       verifyResult: {
@@ -476,7 +509,6 @@ describe('PlaygroundServer manual interaction APIs', () => {
         screenshotBase64: async () => 'base64-image',
         size: async () => ({ width: 390, height: 844 }),
       },
-      describeElementAtPoint,
     } as any);
 
     await server.launch(6118);
@@ -746,9 +778,9 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(failedTrace.eventSummary.rawPayloadSummary.value).toBeUndefined();
   });
 
-  test('recorder writes annotated screenshots when aiDescribe verification fails', async () => {
+  test('recorder keeps aiDescribe ready and writes annotated screenshots when verification fails', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
-    const describeElementAtPoint = vi.fn(async () => ({
+    const describeElementAtPoint = mockDescribeElementAtPoint(async () => ({
       prompt: 'login button',
       deepLocate: false,
       verifyResult: {
@@ -766,7 +798,6 @@ describe('PlaygroundServer manual interaction APIs', () => {
         screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 20, height: 20 }),
       },
-      describeElementAtPoint,
     } as any);
 
     await server.launch(6118);
@@ -794,8 +825,10 @@ describe('PlaygroundServer manual interaction APIs', () => {
     expect(describeResponse.body).toMatchObject({
       ok: true,
       trace: {
-        status: 'failed',
-        error: 'aiDescribe verification failed.',
+        status: 'ready',
+        elementDescription: 'login button',
+        verifyPassed: false,
+        centerDistance: 14.14,
         screenshotRef: {
           path: expect.stringMatching(
             /recorder-ai-describe-screenshots\/\d{4}-\d{2}-\d{2}\/\d{2}\/.+_raw\.png$/,
@@ -808,8 +841,8 @@ describe('PlaygroundServer manual interaction APIs', () => {
       event: {
         semantic: {
           source: 'aiDescribe',
-          status: 'failed',
-          error: 'aiDescribe verification failed.',
+          status: 'ready',
+          elementDescription: 'login button',
           aiDescribe: {
             verifyPrompt: true,
             verifyPassed: false,
@@ -868,7 +901,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
   test('recorder reports verification failure when aiDescribe times out after failed progress', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
-    const describeElementAtPoint = vi.fn(
+    const describeElementAtPoint = mockDescribeElementAtPoint(
       (
         _center: [number, number],
         opt?: { onProgress?: (progress: Record<string, unknown>) => void },
@@ -895,7 +928,6 @@ describe('PlaygroundServer manual interaction APIs', () => {
         screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 20, height: 20 }),
       },
-      describeElementAtPoint,
     } as any);
 
     await server.launch(6129);
@@ -958,7 +990,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
   test('recorder does not verify aiDescribe results for scroll events', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
-    const describeElementAtPoint = vi.fn(async () => ({
+    const describeElementAtPoint = mockDescribeElementAtPoint(async () => ({
       prompt: 'main documentation content area',
       deepLocate: false,
       verifyResult: {
@@ -976,7 +1008,6 @@ describe('PlaygroundServer manual interaction APIs', () => {
         screenshotBase64: async () => VALID_PNG_BASE64,
         size: async () => ({ width: 20, height: 20 }),
       },
-      describeElementAtPoint,
     } as any);
 
     await server.launch(6119);
@@ -1087,7 +1118,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
   test('recorder describes typeOnly input when the merged event has a stable point', async () => {
     const inputPrimitives = makeInputPrimitiveStub();
-    const describeElementAtPoint = vi.fn(async () => ({
+    const describeElementAtPoint = mockDescribeElementAtPoint(async () => ({
       prompt: 'phone number input',
       deepLocate: false,
       verifyResult: { pass: true },
@@ -1100,7 +1131,6 @@ describe('PlaygroundServer manual interaction APIs', () => {
         screenshotBase64: async () => 'base64-image',
         size: async () => ({ width: 390, height: 844 }),
       },
-      describeElementAtPoint,
     } as any);
 
     await server.launch(6126);
@@ -1317,7 +1347,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         dragAndDrop: vi.fn(async () => {}),
       },
     });
-    const describeElementAtPoint = vi.fn(
+    const describeElementAtPoint = mockDescribeElementAtPoint(
       () =>
         new Promise((resolve) => {
           callOrder.push('describe-start');
@@ -1340,7 +1370,6 @@ describe('PlaygroundServer manual interaction APIs', () => {
         screenshotBase64: async () => 'base64-image',
         size: async () => ({ width: 390, height: 844 }),
       },
-      describeElementAtPoint,
     } as any);
 
     await server.launch(6124);
@@ -1405,7 +1434,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       .mockResolvedValueOnce('initial-screenshot')
       .mockResolvedValueOnce('event-screenshot')
       .mockResolvedValueOnce('stale-live-screenshot');
-    const describeElementAtPoint = vi.fn(async () => ({
+    const describeElementAtPoint = mockDescribeElementAtPoint(async () => ({
       prompt: 'login dialog target',
       deepLocate: false,
       verifyResult: { pass: true },
@@ -1418,7 +1447,6 @@ describe('PlaygroundServer manual interaction APIs', () => {
         screenshotBase64,
         size: async () => ({ width: 390, height: 844 }),
       },
-      describeElementAtPoint,
     } as any);
 
     await server.launch(6127);

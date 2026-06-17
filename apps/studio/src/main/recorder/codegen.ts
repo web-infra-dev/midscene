@@ -1,10 +1,10 @@
 import {
   convertRecordLogIntoMarkdown,
-  describeRecorderUIEvents,
   generatePlaywrightTest,
   generateRecorderSessionMetadata,
   generateRecorderYamlTest,
 } from '@midscene/core/ai-model';
+import { describeRecorderUIEvents } from '@midscene/playground/recorder-ui-describer';
 import { getDebug } from '@midscene/shared/logger';
 import type {
   DescribeRecorderUIEventsRequest,

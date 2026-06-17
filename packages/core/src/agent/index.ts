@@ -1,9 +1,6 @@
 export { Agent, createAgent } from './agent';
 export { commonContextParser } from './utils';
-export {
-  getReportFileName,
-  printReportMsg,
-} from './utils';
+export { getReportFileName, printReportMsg } from './utils';
 export {
   extractInsightParam,
   locateParamStr,
@@ -18,8 +15,4 @@ export { cacheFileExt } from './task-cache';
 export { TaskExecutor } from './tasks';
 
 export type { AgentOpt } from '../types';
-export type {
-  AiActOptions,
-  DescribeElementAtPointOptions,
-  DescribeElementCoordinateSpace,
-} from './agent';
+export type { AiActOptions } from './agent';

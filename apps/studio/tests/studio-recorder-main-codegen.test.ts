@@ -16,6 +16,10 @@ vi.mock('@midscene/core/ai-model', () => ({
   ),
 }));
 
+vi.mock('@midscene/playground/recorder-ui-describer', () => ({
+  describeRecorderUIEvents: vi.fn(async () => []),
+}));
+
 import {
   convertRecordLogIntoMarkdown,
   generatePlaywrightTest,
