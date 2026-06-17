@@ -1,4 +1,6 @@
-import { basename } from 'node:path';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { basename, join } from 'node:path';
 
 export const cliVerboseFlag = 'verbose';
 
@@ -35,6 +37,7 @@ type DumpUpdateAgent = {
 interface CliVerboseScreenshotRefLike {
   type: 'midscene_screenshot_ref';
   id?: unknown;
+  mimeType?: unknown;
   storage?: unknown;
   path?: string;
 }
@@ -451,6 +454,81 @@ function toSerializableScreenshot(
   return isCliVerboseScreenshotRefLike(value) ? value : null;
 }
 
+function safeScreenshotId(value: unknown): string {
+  const id = typeof value === 'string' && value.length > 0 ? value : 'shot';
+  return id.replace(/[^a-zA-Z0-9._-]/g, '_') || 'shot';
+}
+
+function extensionFromScreenshot(
+  value: unknown,
+  serialized: CliVerboseScreenshotRefLike,
+): 'png' | 'jpeg' {
+  if (isRecord(value) && typeof value.extension === 'string') {
+    return value.extension === 'jpeg' || value.extension === 'jpg'
+      ? 'jpeg'
+      : 'png';
+  }
+  return serialized.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
+}
+
+function getStringProperty(value: unknown, key: string): string | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  try {
+    const property = value[key];
+    return typeof property === 'string' && property.length > 0
+      ? property
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function screenshotRawBase64(value: unknown): string | undefined {
+  const rawBase64 = getStringProperty(value, 'rawBase64');
+  if (rawBase64) {
+    return rawBase64;
+  }
+
+  const base64 = getStringProperty(value, 'base64');
+  const match = base64?.match(/^data:image\/(?:png|jpeg|jpg);base64,(.+)$/);
+  return match?.[1];
+}
+
+function exportInlineScreenshotForVerbose(
+  value: unknown,
+  serialized: CliVerboseScreenshotRefLike,
+): string | undefined {
+  if (typeof serialized.path === 'string') {
+    return serialized.path;
+  }
+
+  const rawBase64 = screenshotRawBase64(value);
+  if (!rawBase64) {
+    return undefined;
+  }
+
+  try {
+    const screenshotDir = join(tmpdir(), 'midscene-cli-screenshots');
+    if (!existsSync(screenshotDir)) {
+      mkdirSync(screenshotDir, { recursive: true });
+    }
+
+    const filePath = join(
+      screenshotDir,
+      `${safeScreenshotId(serialized.id)}.${extensionFromScreenshot(value, serialized)}`,
+    );
+    if (!existsSync(filePath)) {
+      writeFileSync(filePath, Buffer.from(rawBase64, 'base64'));
+    }
+    return filePath;
+  } catch {
+    return undefined;
+  }
+}
+
 function collectScreenshotRefs(value: unknown): Array<Record<string, unknown>> {
   const screenshots: Array<Record<string, unknown>> = [];
   const visit = (candidate: unknown, timing?: unknown): void => {
@@ -467,9 +545,13 @@ function collectScreenshotRefs(value: unknown): Array<Record<string, unknown>> {
         id: serialized.id,
         storage: serialized.storage,
       };
-      if (typeof serialized.path === 'string') {
-        screenshot.path = serialized.path;
-        screenshot.file = basename(serialized.path);
+      const exportedPath = exportInlineScreenshotForVerbose(
+        candidate,
+        serialized,
+      );
+      if (exportedPath) {
+        screenshot.path = exportedPath;
+        screenshot.file = basename(exportedPath);
       }
       if (typeof timing === 'string') {
         screenshot.timing = timing;

@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from 'node:fs';
 import { withCliVerboseContext } from '@/cli';
 import {
   generateCommonTools,
@@ -842,6 +843,89 @@ describe('toolDefaults (deep locate / deep think)', () => {
       '[Midscene] Screenshot: after-calling ./screenshots/shot-1.png',
     );
     expect(messages).toContain('[Midscene] Report: /tmp/midscene-report.html');
+    expect(addDumpUpdateListener).toHaveBeenCalledOnce();
+    expect(unsubscribe).toHaveBeenCalledOnce();
+    consoleSpy.mockRestore();
+  });
+
+  it('exports inline verbose dump screenshots to readable file paths', async () => {
+    let dumpListener:
+      | ((dump: string, executionDump?: unknown) => void)
+      | undefined;
+    const unsubscribe = vi.fn();
+    const aiAction = vi.fn().mockImplementation(async () => {
+      dumpListener?.('{}', {
+        id: 'execution-1',
+        name: 'AI Action',
+        tasks: [
+          {
+            taskId: 'task-1',
+            type: 'Planning',
+            subType: 'Locate',
+            status: 'running',
+            param: { prompt: 'Submit' },
+            recorder: [
+              {
+                timing: 'after-calling',
+                screenshot: {
+                  extension: 'png',
+                  rawBase64: 'Zm9v',
+                  toSerializable: () => ({
+                    type: 'midscene_screenshot_ref',
+                    id: 'inline-shot-1',
+                    capturedAt: 1000,
+                    mimeType: 'image/png',
+                    storage: 'inline',
+                  }),
+                },
+              },
+            ],
+          },
+        ],
+      });
+      return 'done';
+    });
+    const addDumpUpdateListener = vi.fn((listener) => {
+      dumpListener = listener;
+      return unsubscribe;
+    });
+    const commonTools = generateCommonTools(async () => ({
+      aiAction,
+      addDumpUpdateListener,
+      reportFile: '/tmp/midscene-report.html',
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+    }));
+    const actTool = commonTools.find((tool) => tool.name === 'act');
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await withCliVerboseContext(
+      {
+        enabled: true,
+        scriptName: 'midscene-web',
+        commandName: 'act',
+      },
+      async () => {
+        await actTool?.handler({ prompt: 'open settings' });
+      },
+    );
+
+    const messages = consoleSpy.mock.calls.flatMap(([message]) =>
+      String(message).split('\n'),
+    );
+    const screenshotMessage = messages.find((message) =>
+      message.includes('[Midscene] Screenshot: after-calling '),
+    );
+    expect(screenshotMessage).toMatch(
+      /^\[Midscene\] Screenshot: after-calling .+midscene-cli-screenshots\/inline-shot-1\.png$/,
+    );
+    const screenshotPath = screenshotMessage?.replace(
+      '[Midscene] Screenshot: after-calling ',
+      '',
+    );
+    expect(screenshotPath).toBeDefined();
+    expect(existsSync(screenshotPath!)).toBe(true);
+    expect(readFileSync(screenshotPath!, 'utf8')).toBe('foo');
     expect(addDumpUpdateListener).toHaveBeenCalledOnce();
     expect(unsubscribe).toHaveBeenCalledOnce();
     consoleSpy.mockRestore();
