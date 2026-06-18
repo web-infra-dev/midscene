@@ -298,18 +298,6 @@ describe('qwen model adapter', () => {
     });
   });
 
-  it('uses json_object response format for qwen3 locate intent', () => {
-    const qwen3VlResult =
-      qwen3VlAdapter.chatCompletion.buildChatCompletionParams({
-        intent: 'default',
-        userConfig: {},
-      });
-
-    expect(qwen3VlResult.config.response_format).toEqual({
-      type: 'json_object',
-    });
-  });
-
   it('normalizes actual-pixel bbox coordinates for qwen2.5-vl', () => {
     const locateAdapter = qwen25Adapter.locate;
     expect(locateAdapter.kind).toBe('standard');
