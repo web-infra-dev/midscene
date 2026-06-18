@@ -27,11 +27,6 @@
       "import": "./dist/es/index.mjs",
       "require": "./dist/lib/index.js"
     },
-    "./mcp-server": {
-      "types": "./dist/types/mcp-server.d.ts",
-      "import": "./dist/es/mcp-server.mjs",
-      "require": "./dist/lib/mcp-server.js"
-    },
     "./bin": {
       "types": "./dist/types/bin.d.ts",
       "import": "./dist/es/bin.mjs",

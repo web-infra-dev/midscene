@@ -25,7 +25,6 @@ const allScopes = [
   'llm',
   'playwright',
   'puppeteer',
-  'mcp',
   'blog',
   'bridge',
   'recorder',

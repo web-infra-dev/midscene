@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { createReportCliCommands } from '@midscene/core';
+import type { BaseMidsceneTools } from '@midscene/shared/agent-tools/base-tools';
 import { runToolsCLI } from '@midscene/shared/cli';
-import type { BaseMidsceneTools } from '@midscene/shared/mcp/base-tools';
 import dotenv from 'dotenv';
 import { version } from '../package.json';
 import { matchYamlFiles, parseProcessArgs } from './cli-utils';

@@ -1,13 +1,13 @@
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { BaseMidsceneTools } from '@/mcp/base-tools';
+import { BaseMidsceneTools } from '@/agent-tools/base-tools';
 import type {
   ActionSpaceItem,
   BaseAgent,
   BaseDevice,
   ToolDefinition,
-} from '@/mcp/types';
+} from '@/agent-tools/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 

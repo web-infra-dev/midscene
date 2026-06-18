@@ -1,5 +1,5 @@
 import type { DeviceAction } from '@midscene/core';
-import { ReportActionDump, runConnectivityTest } from '@midscene/core';
+import { ExecutionDump, runConnectivityTest } from '@midscene/core';
 import {
   globalModelConfigManager,
   overrideAIConfig,
@@ -257,7 +257,7 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         result: 'test result',
-        dump: expect.any(ReportActionDump),
+        dump: expect.any(ExecutionDump),
         reportHTML: null,
         error: null,
       });
@@ -271,12 +271,12 @@ describe('LocalExecutionAdapter', () => {
     });
 
     it('should use empty actionSpace when agent has no getActionSpace', async () => {
-      const agentWithoutActionSpace = {
+      const agentWithoutActionSpace: PlaygroundAgent = {
         dumpDataString: () => '{}',
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
         resetDump: () => {},
-      } as unknown as PlaygroundAgent;
+      };
       const localAdapter = new LocalExecutionAdapter(agentWithoutActionSpace);
 
       const value: FormValue = { type: 'click', prompt: 'click button' };
@@ -304,32 +304,6 @@ describe('LocalExecutionAdapter', () => {
 
       expect(mockAgent.onTaskStartTip).toBeDefined();
     });
-
-    it('should preserve every execution from the grouped dump', async () => {
-      vi.mocked(mockAgent.dumpDataString!).mockReturnValue(
-        JSON.stringify({
-          executions: [
-            { logTime: 1, name: 'prepare login state', tasks: [] },
-            { logTime: 2, name: 'replay markdown login', tasks: [] },
-          ],
-          groupName: 'Replay',
-          modelBriefs: [],
-          sdkVersion: '1.0.0',
-        }),
-      );
-
-      const result = (await adapter.executeAction(
-        'aiAct',
-        { type: 'aiAct', prompt: 'Replay markdown' },
-        {},
-      )) as { dump: ReportActionDump };
-
-      expect(result.dump).toBeInstanceOf(ReportActionDump);
-      expect(result.dump.executions).toHaveLength(2);
-      expect(result.dump.executions.map((execution) => execution.name)).toEqual(
-        ['prepare login state', 'replay markdown login'],
-      );
-    });
   });
 
   describe('cancelTask', () => {
@@ -340,16 +314,14 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         success: true,
-        dump: expect.any(ReportActionDump),
+        dump: expect.any(ExecutionDump),
         reportHTML: null,
       });
       expect(mockAgent.destroy).toHaveBeenCalled();
     });
 
     it('should return error when no agent', async () => {
-      const adapterNoAgent = new LocalExecutionAdapter(
-        {} as unknown as PlaygroundAgent,
-      );
+      const adapterNoAgent = new LocalExecutionAdapter({});
       (adapterNoAgent as any).agent = null;
 
       const result = await adapterNoAgent.cancelTask('request-123');
@@ -371,7 +343,7 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         error: 'Failed to cancel: Destroy failed',
-        dump: expect.any(ReportActionDump),
+        dump: expect.any(ExecutionDump),
         reportHTML: null,
       });
       expect(consoleSpy).toHaveBeenCalledWith(

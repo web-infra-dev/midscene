@@ -77,9 +77,9 @@ and more`,
   featureRichAPIs: 'Rich APIs',
   featureRichAPIsDesc:
     'Auto-planning for whole flows, plus atomic APIs like aiTap and aiAssert for precise tests.',
-  featureSkillsMcp: 'Skills & MCP',
-  featureSkillsMcpDesc:
-    'Drop-in Skills let AI coding agents test your UI; an MCP Server exposes Midscene to other agents.',
+  featureSkills: 'Skills',
+  featureSkillsDesc:
+    'Drop-in Skills let AI coding agents test your UI through Midscene CLIs.',
   featureReportsPlayground: 'Reports & Playground',
   featureReportsPlaygroundDesc:
     'Replay every step in a visual report, and try ideas fast in the playground.',
@@ -89,7 +89,7 @@ and more`,
   featureBenchmarkDesc:
     'Review the AndroidWorld benchmark score, run configuration, reports, and validation notes.',
   featureRichAPIsLink: '/api',
-  featureSkillsMcpLink: '/skills',
+  featureSkillsLink: '/skills',
   featureReportsPlaygroundLink: '/quick-experience',
   featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
   featureBenchmarkLink: '/android-world-benchmark-report',

@@ -1,6 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from '@rslib/core';
+import {
+  buildReportTemplateInjection,
+  isReportTemplateInjectableFile,
+  reportTemplateMagicString,
+  reportTemplateReplacedMark,
+  reportTemplateReplacementRegExp,
+} from '../../scripts/report-template-utils.mjs';
 import { createTypeCheckPlugin } from '../../scripts/rsbuild-utils.ts';
 import { version } from './package.json';
 
@@ -9,6 +16,11 @@ const injectReportTemplate = () => ({
   name: 'inject-report-template',
   setup: (api: { onAfterBuild: (fn: () => void) => void }) => {
     api.onAfterBuild(() => {
+      if (process.env.MIDSCENE_SKIP_REPORT_TEMPLATE_INJECTION) {
+        console.warn('[@midscene/core] Report template injection skipped.');
+        return;
+      }
+
       const reportTplPath = path.resolve(
         __dirname,
         '../../apps/report/dist/index.html',
@@ -22,39 +34,31 @@ const injectReportTemplate = () => ({
         return;
       }
 
-      const magicString = 'REPLACE_ME_WITH_REPORT_HTML';
-      const replacedMark = '/*REPORT_HTML_REPLACED*/';
-      const regExpForReplace = /\/\*REPORT_HTML_REPLACED\*\/.*/;
-
-      const tplFileContent = fs
-        .readFileSync(reportTplPath, 'utf-8')
-        .replaceAll(magicString, '');
-      const finalContent = `${replacedMark}${JSON.stringify(tplFileContent)}`;
+      const { finalContent } = buildReportTemplateInjection(
+        fs.readFileSync(reportTplPath, 'utf-8'),
+      );
 
       const distDir = path.resolve(__dirname, 'dist');
       const files = fs.readdirSync(distDir, { recursive: true });
       let injectedCount = 0;
 
       for (const file of files) {
-        if (
-          typeof file === 'string' &&
-          (file.endsWith('.js') || file.endsWith('.mjs'))
-        ) {
+        if (isReportTemplateInjectableFile(file)) {
           const filePath = path.join(distDir, file);
           const content = fs.readFileSync(filePath, 'utf-8');
 
-          if (content.includes(replacedMark)) {
+          if (content.includes(reportTemplateReplacedMark)) {
             // Already injected, update it
             const updated = content.replace(
-              regExpForReplace,
+              reportTemplateReplacementRegExp,
               () => finalContent,
             );
             fs.writeFileSync(filePath, updated);
             injectedCount++;
-          } else if (content.includes(magicString)) {
+          } else if (content.includes(reportTemplateMagicString)) {
             // First injection
             const updated = content.replace(
-              `'${magicString}'`,
+              `'${reportTemplateMagicString}'`,
               () => finalContent,
             );
             fs.writeFileSync(filePath, updated);

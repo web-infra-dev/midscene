@@ -1,4 +1,4 @@
-import { getErrorMessage } from '@/mcp/error-formatter';
+import { getErrorMessage } from '@/agent-tools/error-formatter';
 import { describe, expect, it } from 'vitest';
 
 describe('getErrorMessage', () => {

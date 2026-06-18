@@ -70,7 +70,7 @@
       "dump/task-service-dump": ["./dist/types/dump/task-service-dump.d.ts"],
       "agent": ["./dist/types/agent.d.ts"],
       "yaml": ["./dist/types/yaml.d.ts"],
-      "mcp": ["./dist/types/skill/index.d.ts"]
+      "skill": ["./dist/types/skill/index.d.ts"]
     }
   },
   "scripts": {

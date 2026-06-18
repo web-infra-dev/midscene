@@ -8,6 +8,13 @@ import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import { pluginWorkspaceDev } from 'rsbuild-plugin-workspace-dev';
 import {
+  buildReportTemplateInjection,
+  isReportTemplateInjectableFile,
+  reportTemplateMagicString,
+  reportTemplateReplacedMark,
+  reportTemplateReplacementRegExp,
+} from '../../scripts/report-template-utils.mjs';
+import {
   commonIgnoreWarnings,
   createTypeCheckPlugin,
 } from '../../scripts/rsbuild-utils.ts';
@@ -35,20 +42,14 @@ const copyReportTemplate = () => ({
     onAfterBuild: (arg0: ({ compiler }: { compiler: any }) => void) => void;
   }) {
     api.onAfterBuild(({ compiler }) => {
-      const magicString = 'REPLACE_ME_WITH_REPORT_HTML';
-      const replacedMark = '/*REPORT_HTML_REPLACED*/';
-      const regExpForReplace = /\/\*REPORT_HTML_REPLACED\*\/.*/;
-
       // read the template file
       const srcPath = path.join(__dirname, 'dist', 'index.html');
-      const tplFileContent = fs
-        .readFileSync(srcPath, 'utf-8')
-        .replaceAll(magicString, '');
+      const { sanitizedTplFileContent, finalContent } =
+        buildReportTemplateInjection(fs.readFileSync(srcPath, 'utf-8'));
       assert(
-        !tplFileContent.includes(magicString),
+        !sanitizedTplFileContent.includes(reportTemplateMagicString),
         'magic string should not be in the template file',
       );
-      const finalContent = `${replacedMark}${JSON.stringify(tplFileContent)}`;
 
       // find the core package
       const corePkgDir = path.join(__dirname, '..', '..', 'packages', 'core');
@@ -65,35 +66,33 @@ const copyReportTemplate = () => ({
       const jsFiles = fs.readdirSync(corePkgDistDir, { recursive: true });
       let replacedCount = 0;
       for (const file of jsFiles) {
-        if (
-          typeof file === 'string' &&
-          (file.endsWith('.js') || file.endsWith('.mjs'))
-        ) {
+        if (isReportTemplateInjectableFile(file)) {
           const filePath = path.join(corePkgDistDir, file.toString());
           const fileContent = fs.readFileSync(filePath, 'utf-8');
-          if (fileContent.includes(replacedMark)) {
+          if (fileContent.includes(reportTemplateReplacedMark)) {
             assert(
-              regExpForReplace.test(fileContent),
+              reportTemplateReplacementRegExp.test(fileContent),
               'a replaced mark is found but cannot match',
             );
 
             const replacedContent = fileContent.replace(
-              regExpForReplace,
+              reportTemplateReplacementRegExp,
               () => finalContent,
             );
             fs.writeFileSync(filePath, replacedContent);
             replacedCount++;
             console.log(`Template updated in file ${filePath}`);
-          } else if (fileContent.includes(magicString)) {
+          } else if (fileContent.includes(reportTemplateMagicString)) {
             const magicStringCount = (
-              fileContent.match(new RegExp(magicString, 'g')) || []
+              fileContent.match(new RegExp(reportTemplateMagicString, 'g')) ||
+              []
             ).length;
             assert(
               magicStringCount === 1,
               'magic string shows more than once in the file, cannot process',
             );
             const replacedContent = fileContent.replace(
-              `'${magicString}'`,
+              `'${reportTemplateMagicString}'`,
               () => finalContent, // there are some $- code in the tpl, so we have to use a function as the second argument
             );
             fs.writeFileSync(filePath, replacedContent);
