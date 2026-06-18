@@ -73,6 +73,9 @@ describe('BasePage clearInput CDP selectAll', () => {
     beforeAll(async () => {
       browser = await chromium.launch({
         headless: true,
+        // CI installs Puppeteer's Chrome cache, but not Playwright's browser
+        // bundle because dependencies are installed with --ignore-scripts.
+        executablePath: puppeteer.executablePath(),
       });
     }, TEST_TIMEOUT_MS);
 
