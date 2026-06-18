@@ -78,6 +78,11 @@ type ScreencastCdpSession = {
   ): void;
 };
 
+type InputCdpSession = {
+  send(method: string, params?: Record<string, unknown>): Promise<unknown>;
+  detach(): Promise<void>;
+};
+
 function isClosedPageError(error: unknown) {
   if (!(error instanceof Error)) {
     return false;
@@ -798,36 +803,54 @@ export class Page<
     };
   }
 
+  private async createInputCdpSession(): Promise<InputCdpSession> {
+    if (this.interfaceType === 'puppeteer') {
+      const page = this.underlyingPage as PuppeteerPage;
+      return (await (typeof page.createCDPSession === 'function'
+        ? page.createCDPSession()
+        : page.target().createCDPSession())) as unknown as InputCdpSession;
+    }
+
+    const page = this.underlyingPage as PlaywrightPage;
+    return (await page
+      .context()
+      .newCDPSession(page)) as unknown as InputCdpSession;
+  }
+
+  private async selectAllByCdp(): Promise<void> {
+    const client = await this.createInputCdpSession();
+    try {
+      await client.send('Input.dispatchKeyEvent', {
+        type: 'rawKeyDown',
+
+        commands: ['selectAll'],
+      });
+      await client.send('Input.dispatchKeyEvent', {
+        type: 'keyUp',
+      });
+    } finally {
+      await client.detach().catch(() => undefined);
+    }
+  }
+
   async clearInput(element?: ElementInfo): Promise<void> {
     const backspace = async () => {
       await sleep(100);
       await this.keyboard.press([{ key: 'Backspace' }]);
     };
 
-    const isMac = process.platform === 'darwin';
     debugPage('clearInput begin');
-    if (isMac) {
-      if (this.interfaceType === 'puppeteer') {
-        // https://github.com/segment-boneyard/nightmare/issues/810#issuecomment-452669866
-        element &&
-          (await this.mouse.click(element.center[0], element.center[1], {
-            count: 3,
-          }));
-        await backspace();
-      }
 
-      element && (await this.mouse.click(element.center[0], element.center[1]));
-      await this.underlyingPage.keyboard.down('Meta');
-      await this.underlyingPage.keyboard.press('a');
-      await this.underlyingPage.keyboard.up('Meta');
+    element && (await this.mouse.click(element.center[0], element.center[1]));
+    try {
+      await this.selectAllByCdp();
       await backspace();
-    } else {
-      element && (await this.mouse.click(element.center[0], element.center[1]));
-      await this.underlyingPage.keyboard.down('Control');
-      await this.underlyingPage.keyboard.press('a');
-      await this.underlyingPage.keyboard.up('Control');
-      await backspace();
+      debugPage('clearInput end');
+      return;
+    } catch (error) {
+      debugPage('clearInput cdp selectAll failed, fallback to shortcut', error);
     }
+
     debugPage('clearInput end');
   }
 
