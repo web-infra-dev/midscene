@@ -32,7 +32,7 @@ export function resolvePlanning(
     if (typeof planning.planFn === 'function') {
       return {
         kind: 'custom',
-        cacheEnabled: planning.cacheEnabled ?? true,
+        cacheEnabled: planning.cacheEnabled ?? false,
         defaultReplanningCycleLimit:
           planning.defaultReplanningCycleLimit ?? defaultReplanningCycleLimit,
         supportsActionDeepLocate: planning.supportsActionDeepLocate ?? false,
@@ -46,7 +46,7 @@ export function resolvePlanning(
 
     return {
       kind: 'custom',
-      cacheEnabled: planning.cacheEnabled ?? true,
+      cacheEnabled: planning.cacheEnabled ?? false,
       defaultReplanningCycleLimit:
         planning.defaultReplanningCycleLimit ?? defaultReplanningCycleLimit,
       supportsActionDeepLocate: planning.supportsActionDeepLocate ?? false,

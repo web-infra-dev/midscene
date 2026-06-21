@@ -140,7 +140,7 @@ describe('ResolvedModelAdapter', () => {
 
     expect(adapter.planning).toMatchObject({
       kind: 'custom',
-      cacheEnabled: true,
+      cacheEnabled: false,
       defaultReplanningCycleLimit: 20,
       supportsActionDeepLocate: false,
     });
@@ -280,7 +280,7 @@ describe('ResolvedModelAdapter', () => {
 
     expect(adapter.planning).toMatchObject({
       kind: 'custom',
-      cacheEnabled: true,
+      cacheEnabled: false,
       defaultReplanningCycleLimit: 20,
       supportsActionDeepLocate: false,
     });
