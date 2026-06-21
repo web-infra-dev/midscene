@@ -12,18 +12,35 @@ import {
   type WaitAction,
   transformAutoGLMAction,
 } from '@/ai-model/models/auto-glm/actions';
+import { autoGlmAdapters } from '@/ai-model/models/auto-glm/adapter';
+import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
+import { createCoordinateDistanceToPixels } from '@/ai-model/shared/model-locate-result';
 import type { DeviceAction } from '@/device';
 import { describe, expect, it } from 'vitest';
 
 const defaultSize = { width: 1080, height: 1920 };
+const autoGlmPlanning = new ResolvedModelAdapter(
+  autoGlmAdapters['auto-glm'],
+  'auto-glm',
+).planning;
 
 function transformAutoGLMActionForTest(
   action: AutoGLMParsedAction,
   actionSpace?: DeviceAction[],
 ) {
+  if (autoGlmPlanning.kind !== 'custom') {
+    throw new Error('Auto-GLM should use custom planning adapter');
+  }
+  const autoGlmCoordinateSystem = autoGlmPlanning.coordinateSystem;
+  if (!autoGlmCoordinateSystem) {
+    throw new Error('Auto-GLM coordinate system should be configured');
+  }
   return transformAutoGLMAction(action, {
     actionSpace,
-    shotSize: defaultSize,
+    coordinateDistanceToPixels: createCoordinateDistanceToPixels(
+      defaultSize,
+      autoGlmCoordinateSystem,
+    ),
   });
 }
 
@@ -39,16 +56,13 @@ describe('transformAutoGLMAction', () => {
     const result = transformAutoGLMActionForTest(tapAction);
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe('Tap');
-    expect(result[0].param.locate.locatedPixelBbox).toHaveLength(4);
-    expect(result[0].param.locate.locatedPixelBbox[0]).toBeGreaterThanOrEqual(
-      0,
-    );
-    expect(result[0].param.locate.locatedPixelBbox[2]).toBeLessThanOrEqual(
-      defaultSize.width - 1,
-    );
+    expect(result[0].param.locate).toEqual({
+      point: [100, 200],
+      prompt: '',
+    });
   });
 
-  it('should keep Tap locatedPixelBbox inside inclusive image bounds', () => {
+  it('should keep Tap point for planning normalization', () => {
     const tapAction: TapAction = {
       _metadata: 'do',
       action: 'Tap',
@@ -57,9 +71,10 @@ describe('transformAutoGLMAction', () => {
 
     const result = transformAutoGLMActionForTest(tapAction);
 
-    expect(result[0].param.locate.locatedPixelBbox).toEqual([
-      1068, 1900, 1079, 1919,
-    ]);
+    expect(result[0].param.locate).toEqual({
+      point: [1000, 1000],
+      prompt: '',
+    });
   });
 
   it('should transform Double Tap action to DoubleClick PlanningAction', () => {
@@ -106,6 +121,10 @@ describe('transformAutoGLMAction', () => {
     const result = transformAutoGLMActionForTest(swipeAction);
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe('Scroll');
+    expect((result[0].param as any).locate).toEqual({
+      point: [800, 500],
+      prompt: '',
+    });
     expect((result[0].param as any).direction).toBe('right');
     expect((result[0].param as any).distance).toBeGreaterThan(600);
   });
@@ -121,6 +140,10 @@ describe('transformAutoGLMAction', () => {
     const result = transformAutoGLMActionForTest(longPressAction);
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe('LongPress');
+    expect(result[0].param.locate).toEqual({
+      point: [150, 250],
+      prompt: '',
+    });
   });
 
   it('should transform Launch action to Launch PlanningAction', () => {

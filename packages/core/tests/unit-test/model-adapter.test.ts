@@ -1,7 +1,7 @@
 import { getModelAdapter } from '@/ai-model/models';
 import { MODEL_ADAPTER_CONFIGS } from '@/ai-model/models/registry';
 import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
-import type { CustomPlanningDefinition } from '@/ai-model/workflows/planning/custom-planning';
+import type { CustomPlanningDefinition } from '@/ai-model/workflows/planning/custom-planning-types';
 import { MODEL_FAMILY_VALUES } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -11,6 +11,7 @@ function createTestPlannerDefinition(): CustomPlanningDefinition<null> {
       systemPromptPlacement: 'system-message',
       buildSystemPrompt: () => '',
     },
+    coordinates: { shape: 'point', order: 'xy', normalizedBy: 1000 },
     parseResponse: () => null,
     transformActions: () => [],
     shouldContinuePlanning: () => false,
@@ -41,6 +42,9 @@ describe('model adapter registry', () => {
       expect(adapter.imagePreprocess).toBeTruthy();
       if (adapter.planning.kind === 'custom') {
         expect(adapter.planning.planFn).toBeTruthy();
+        if (adapter.planning.coordinateSystem) {
+          expect(adapter.planning.coordinateSystem).toBeTruthy();
+        }
       }
       if (adapter.locate.kind === 'standard') {
         expect(adapter.locate.resultAdapter.promptSpec).toBeTruthy();
@@ -113,10 +117,6 @@ describe('ResolvedModelAdapter', () => {
       throw new Error('default adapter should use standard locate');
     }
     expect(adapter.locate.supportsSearchArea).toBe(true);
-    expect(adapter.locate.resultAdapter.kind).toBe('standard');
-    if (adapter.locate.resultAdapter.kind !== 'standard') {
-      throw new Error('default result adapter should be standard');
-    }
     expect(
       adapter.locate.resultAdapter.promptSpec.resultValueDescription,
     ).toContain('normalized to 0-1000');
@@ -155,10 +155,11 @@ describe('ResolvedModelAdapter', () => {
       throw new Error('adapter should keep custom handlers');
     }
     expect(adapter.planning.planFn).toBeTruthy();
+    expect(adapter.planning.coordinateSystem).toBeTruthy();
     expect(adapter.locate.locateFn).toBe(locateFn);
   });
 
-  it('resolves custom locator definitions with the custom planner', () => {
+  it('resolves custom planning tap locator definitions with the custom planner', () => {
     const adapter = new ResolvedModelAdapter(
       {
         planning: {
@@ -167,7 +168,7 @@ describe('ResolvedModelAdapter', () => {
         },
         locate: {
           kind: 'custom',
-          locator: {
+          planningTapLocator: {
             buildSystemPrompt: () => 'locate system prompt',
             getLocatedPixelBbox: () => [1, 2, 3, 4],
           },
@@ -180,13 +181,17 @@ describe('ResolvedModelAdapter', () => {
       kind: 'custom',
       supportsSearchArea: false,
     });
-    if (adapter.locate.kind !== 'custom') {
-      throw new Error('adapter should resolve custom locator');
+    if (
+      adapter.planning.kind !== 'custom' ||
+      adapter.locate.kind !== 'custom'
+    ) {
+      throw new Error('adapter should resolve custom planning tap locator');
     }
     expect(adapter.locate.locateFn).toBeTruthy();
+    expect(adapter.planning.coordinateSystem).toBeTruthy();
   });
 
-  it('requires custom locator definitions to pair with a planner', () => {
+  it('requires custom planning tap locator definitions to pair with a planner', () => {
     expect(
       () =>
         new ResolvedModelAdapter(
@@ -197,7 +202,7 @@ describe('ResolvedModelAdapter', () => {
             },
             locate: {
               kind: 'custom',
-              locator: {
+              planningTapLocator: {
                 buildSystemPrompt: () => 'locate system prompt',
                 getLocatedPixelBbox: () => [1, 2, 3, 4],
               },
@@ -205,7 +210,9 @@ describe('ResolvedModelAdapter', () => {
           },
           'test-custom-locator-without-planner',
         ),
-    ).toThrow(/Custom locator requires a custom planning planner definition/);
+    ).toThrow(
+      /Custom planning tap locator requires a custom planning planner definition/,
+    );
   });
 
   it('applies standard planning overrides from adapter definitions', () => {

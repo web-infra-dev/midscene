@@ -1,31 +1,18 @@
-import type { PixelBbox, PlanningAction, Size } from '@/types';
+import type { PlanningAction } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
 import { assert } from '@midscene/shared/utils';
-import { finalizePixelBbox } from '../../shared/model-locate-result/bbox';
-import { mapLocateResultToPixelBboxByCoordinates } from '../../shared/model-locate-result/pixel-bbox-mapper';
+import type {
+  DragAndDropPlanningAction,
+  LocatePlanningAction,
+} from '../../shared/planning-action';
 import type { UiTarsParsedPlanningResponse } from './parser';
 
 const debug = getDebug('ui-tars-planning');
 const warnLog = getDebug('ui-tars-planning', { console: true });
 
-function uiTarsPointToLocatedPixelBbox(
-  point: [number, number],
-  size: Size,
-): PixelBbox {
-  const ctx = { preparedSize: size };
-  const pixelBbox = mapLocateResultToPixelBboxByCoordinates(
-    { type: 'point', coordinates: point },
-    ctx,
-    { shape: 'point', order: 'xy', normalizedBy: 1 },
-  );
-
-  return finalizePixelBbox(pixelBbox, point, ctx);
-}
-
 export function transformUiTarsActions(
   parsedPlanningResponse: UiTarsParsedPlanningResponse,
-  { shotSize }: { shotSize: Size },
 ): PlanningAction[] {
   const transformActions: PlanningAction[] = [];
   const unhandledActions: Array<{ type: string; thought: string }> = [];
@@ -37,7 +24,7 @@ export function transformUiTarsActions(
       const point = getPoint(action.action_inputs.start_box);
 
       const locate = {
-        locatedPixelBbox: uiTarsPointToLocatedPixelBbox(point, shotSize),
+        point,
         prompt: action.thought || '',
       };
 
@@ -46,13 +33,13 @@ export function transformUiTarsActions(
         param: {
           locate,
         },
-      });
+      } satisfies LocatePlanningAction<'Tap'>);
     } else if (actionType === 'left_double') {
       assert(action.action_inputs.start_box, 'start_box is required');
       const point = getPoint(action.action_inputs.start_box);
 
       const locate = {
-        locatedPixelBbox: uiTarsPointToLocatedPixelBbox(point, shotSize),
+        point,
         prompt: action.thought || '',
       };
 
@@ -62,13 +49,13 @@ export function transformUiTarsActions(
           locate,
         },
         thought: action.thought || '',
-      });
+      } satisfies LocatePlanningAction<'DoubleClick'>);
     } else if (actionType === 'right_single') {
       assert(action.action_inputs.start_box, 'start_box is required');
       const point = getPoint(action.action_inputs.start_box);
 
       const locate = {
-        locatedPixelBbox: uiTarsPointToLocatedPixelBbox(point, shotSize),
+        point,
         prompt: action.thought || '',
       };
 
@@ -78,7 +65,7 @@ export function transformUiTarsActions(
           locate,
         },
         thought: action.thought || '',
-      });
+      } satisfies LocatePlanningAction<'RightClick'>);
     } else if (actionType === 'drag') {
       assert(action.action_inputs.start_box, 'start_box is required');
       assert(action.action_inputs.end_box, 'end_box is required');
@@ -88,19 +75,16 @@ export function transformUiTarsActions(
         type: 'DragAndDrop',
         param: {
           from: {
-            locatedPixelBbox: uiTarsPointToLocatedPixelBbox(
-              startPoint,
-              shotSize,
-            ),
+            point: startPoint,
             prompt: action.thought || '',
           },
           to: {
-            locatedPixelBbox: uiTarsPointToLocatedPixelBbox(endPoint, shotSize),
+            point: endPoint,
             prompt: action.thought || '',
           },
         },
         thought: action.thought || '',
-      });
+      } satisfies DragAndDropPlanningAction);
     } else if (actionType === 'type') {
       transformActions.push({
         type: 'Input',

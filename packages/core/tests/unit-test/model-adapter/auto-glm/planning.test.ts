@@ -1,12 +1,14 @@
+import { resolveCustomPlanningDefinition } from '@/ai-model/adapter-resolver/custom-planning';
 import { ConversationHistory } from '@/ai-model/conversation-history';
 import { autoGlmAdapters } from '@/ai-model/models/auto-glm/adapter';
 import { createAutoGlmPlanner } from '@/ai-model/models/auto-glm/planning';
 import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
-import { resolveCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
+import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
 import type { UIContext } from '@/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockActionSpace } from '../../../common';
 
 const serviceCallerMock = vi.hoisted(() => {
   class AIResponseParseError extends Error {
@@ -61,7 +63,7 @@ const context: UIContext = {
 function createPlanOptions(overrides: Partial<PlanOptions> = {}): PlanOptions {
   return {
     context,
-    actionSpace: [],
+    actionSpace: mockActionSpace,
     modelRuntime: {
       config: {
         modelName: 'auto-glm-test-model',
@@ -83,9 +85,10 @@ function runAutoGlmPlanning(
   options: PlanOptions,
   isMultilingual = false,
 ) {
-  return resolveCustomPlanning(createAutoGlmPlanner(isMultilingual)).plan(
+  return runCustomPlanning(
     userInstruction,
     options,
+    resolveCustomPlanningDefinition(createAutoGlmPlanner(isMultilingual)),
   );
 }
 

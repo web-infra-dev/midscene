@@ -3,11 +3,6 @@ import type { UiTarsParsedPlanningResponse } from '@/ai-model/models/ui-tars/par
 import type { PlanningAction } from '@/types';
 import { describe, expect, it } from 'vitest';
 
-const shotSize = {
-  width: 1000,
-  height: 800,
-};
-
 type UiTarsActionParam = {
   locate?: Record<string, unknown>;
   from?: Record<string, unknown>;
@@ -51,13 +46,12 @@ function firstAction(actions: PlanningAction[]) {
 }
 
 describe('transformUiTarsActions', () => {
-  it('transforms click coordinates into locatedPixelBbox', () => {
+  it('transforms click coordinates into planning point', () => {
     const action = firstAction(
       transformUiTarsActions(
         parsedResponse([
           uiTarsAction('click', { start_box: '[0.5,0.5]' }, 'Click submit'),
         ]),
-        { shotSize },
       ),
     );
 
@@ -66,14 +60,14 @@ describe('transformUiTarsActions', () => {
       param: {
         locate: {
           prompt: 'Click submit',
-          locatedPixelBbox: [490, 392, 509, 407],
+          point: [0.5, 0.5],
         },
       },
     });
-    expect(action.param.locate).not.toHaveProperty('bbox');
+    expect(action.param.locate).not.toHaveProperty('locatedPixelBbox');
   });
 
-  it('transforms drag coordinates into locatedPixelBbox', () => {
+  it('transforms drag coordinates into planning points', () => {
     const action = firstAction(
       transformUiTarsActions(
         parsedResponse([
@@ -83,7 +77,6 @@ describe('transformUiTarsActions', () => {
             'Drag item',
           ),
         ]),
-        { shotSize },
       ),
     );
 
@@ -92,16 +85,16 @@ describe('transformUiTarsActions', () => {
       param: {
         from: {
           prompt: 'Drag item',
-          locatedPixelBbox: [90, 152, 110, 168],
+          point: [0.1, 0.2],
         },
         to: {
           prompt: 'Drag item',
-          locatedPixelBbox: [290, 312, 310, 328],
+          point: [0.3, 0.4],
         },
       },
     });
-    expect(action.param.from).not.toHaveProperty('bbox');
-    expect(action.param.to).not.toHaveProperty('bbox');
+    expect(action.param.from).not.toHaveProperty('locatedPixelBbox');
+    expect(action.param.to).not.toHaveProperty('locatedPixelBbox');
   });
 
   it('transforms right and double click actions', () => {
@@ -114,7 +107,6 @@ describe('transformUiTarsActions', () => {
         ),
         uiTarsAction('left_double', { start_box: '[0.25,0.3]' }, 'Open item'),
       ]),
-      { shotSize },
     );
 
     expect(actions).toMatchObject([
@@ -123,7 +115,7 @@ describe('transformUiTarsActions', () => {
         param: {
           locate: {
             prompt: 'Open context menu',
-            locatedPixelBbox: [190, 192, 210, 208],
+            point: [0.2, 0.25],
           },
         },
         thought: 'Open context menu',
@@ -133,7 +125,7 @@ describe('transformUiTarsActions', () => {
         param: {
           locate: {
             prompt: 'Open item',
-            locatedPixelBbox: [240, 232, 260, 248],
+            point: [0.25, 0.3],
           },
         },
         thought: 'Open item',
@@ -149,7 +141,6 @@ describe('transformUiTarsActions', () => {
         uiTarsAction('hotkey', { key: 'ctrl+a' }, 'Select all'),
         uiTarsAction('wait', {}, 'Wait for loading'),
       ]),
-      { shotSize },
     );
 
     expect(actions).toMatchObject([
@@ -186,7 +177,6 @@ describe('transformUiTarsActions', () => {
             '',
           ),
         ]),
-        { shotSize },
       ),
     );
 
@@ -197,13 +187,12 @@ describe('transformUiTarsActions', () => {
     });
   });
 
-  it('keeps click locatedPixelBbox inside inclusive image bounds', () => {
+  it('keeps click point unchanged for planning normalization', () => {
     const action = firstAction(
       transformUiTarsActions(
         parsedResponse([
           uiTarsAction('click', { start_box: '[1,1]' }, 'Click lower right'),
         ]),
-        { shotSize },
       ),
     );
 
@@ -212,7 +201,7 @@ describe('transformUiTarsActions', () => {
       param: {
         locate: {
           prompt: 'Click lower right',
-          locatedPixelBbox: [989, 791, 999, 799],
+          point: [1, 1],
         },
       },
     });
@@ -224,7 +213,6 @@ describe('transformUiTarsActions', () => {
         parsedResponse([
           uiTarsAction('screenshot', {}, 'Use unsupported action'),
         ]),
-        { shotSize },
       ),
     ).toThrow(/Unhandled action types: screenshot/);
   });
@@ -233,7 +221,6 @@ describe('transformUiTarsActions', () => {
     expect(() =>
       transformUiTarsActions(
         parsedResponse([uiTarsAction('hotkey', {}, 'Missing key')]),
-        { shotSize },
       ),
     ).toThrow(/No actions found in UI-TARS response/);
   });
@@ -248,7 +235,6 @@ describe('transformUiTarsActions', () => {
             'Click invalid point',
           ),
         ]),
-        { shotSize },
       ),
     ).toThrow(/invalid point data for ui-tars planning/);
   });

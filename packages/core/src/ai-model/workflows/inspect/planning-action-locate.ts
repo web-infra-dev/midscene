@@ -1,11 +1,13 @@
-import type { PixelBbox, PlanningAIResponse, PlanningAction } from '@/types';
+import type { DeviceAction } from '@/device';
+import type { PixelBbox, PlanningAction } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type { TUserPrompt } from '../../../common';
+import { z } from 'zod';
+import { type TUserPrompt, getMidsceneLocationSchema } from '../../../common';
 import { ConversationHistory } from '../../conversation-history';
 import { AIResponseParseError } from '../../service-caller/index';
-import type { CustomPlanningDefinition } from '../planning/custom-planning';
 import { runCustomPlanning } from '../planning/custom-planning';
+import type { ResolvedCustomPlanningDefinition } from '../planning/custom-planning-types';
 import type { PlanOptions } from '../planning/types';
 import type {
   LocateFn,
@@ -16,12 +18,23 @@ import type {
 
 const debugInspect = getDebug('ai:inspect');
 
-export interface PlanningActionLocatorDefinition {
+const planningActionLocatorActionSpace: DeviceAction[] = [
+  {
+    name: 'Tap',
+    description: 'Tap the element',
+    paramSchema: z.object({
+      locate: getMidsceneLocationSchema(),
+    }),
+    call: async () => undefined,
+  },
+];
+
+export interface PlanningTapLocatorDefinition {
   buildSystemPrompt(): string;
   getLocatedPixelBbox(actions: PlanningAction[]): PixelBbox | undefined;
 }
 
-async function buildPlanningActionLocatorPlanOptions(
+async function buildPlanningTapLocatorPlanOptions(
   locateRequest: LocateRequestContext,
 ): Promise<PlanOptions> {
   const { options, locateImage } = locateRequest;
@@ -40,33 +53,26 @@ async function buildPlanningActionLocatorPlanOptions(
         height: locateImage.height,
       },
     },
-    actionSpace: [],
+    actionSpace: planningActionLocatorActionSpace,
     conversationHistory: new ConversationHistory(),
     includeLocateInPlanning: true,
     referenceImageMessages: locateRequest.referenceImageMessages,
   };
 }
 
-async function runPlanningActionLocatorPlan<TParsed>(
-  elementDescription: TUserPrompt,
-  planOptions: PlanOptions,
-  definition: PlanningActionLocatorDefinition,
-  planner: CustomPlanningDefinition<TParsed>,
-): Promise<PlanningAIResponse> {
-  return runCustomPlanning(elementDescription, planOptions, {
+export function resolvePlanningTapLocator<TParsed>(
+  definition: PlanningTapLocatorDefinition,
+  planner: ResolvedCustomPlanningDefinition<TParsed>,
+): LocateFn {
+  const locatorPlanner: ResolvedCustomPlanningDefinition<TParsed> = {
     ...planner,
     messages: {
       ...planner.messages,
       buildSystemPrompt: definition.buildSystemPrompt,
       buildUserInstruction: (instruction) => `Tap: ${instruction}`,
     },
-  });
-}
+  };
 
-export function resolvePlanningActionLocator<TParsed>(
-  definition: PlanningActionLocatorDefinition,
-  planner: CustomPlanningDefinition<TParsed>,
-): LocateFn {
   return async (
     elementDescription: TUserPrompt,
     options: LocateOptions,
@@ -82,12 +88,11 @@ export function resolvePlanningActionLocator<TParsed>(
 
     try {
       const locatePlanOptions =
-        await buildPlanningActionLocatorPlanOptions(locateRequest);
-      const planningResponse = await runPlanningActionLocatorPlan(
+        await buildPlanningTapLocatorPlanOptions(locateRequest);
+      const planningResponse = await runCustomPlanning(
         elementDescription,
         locatePlanOptions,
-        definition,
-        planner,
+        locatorPlanner,
       );
 
       rawResponse = planningResponse.rawResponse ?? '';
@@ -95,7 +100,7 @@ export function resolvePlanningActionLocator<TParsed>(
       usage = planningResponse.usage;
       reasoningContent = planningResponse.log;
 
-      debugInspect('planning-action-locator rawResponse:', rawResponse);
+      debugInspect('planning-tap-locator rawResponse:', rawResponse);
 
       const locatedPixelBbox = definition.getLocatedPixelBbox(
         planningResponse.actions ?? [],
@@ -121,9 +126,9 @@ export function resolvePlanningActionLocator<TParsed>(
         usage = error.usage;
       }
       errors = [
-        errorMessage || 'Failed to parse planning-action locator response',
+        errorMessage || 'Failed to parse planning tap locator response',
       ];
-      debugInspect('planning-action-locator parse error:', errors[0]);
+      debugInspect('planning-tap-locator parse error:', errors[0]);
     }
 
     return {

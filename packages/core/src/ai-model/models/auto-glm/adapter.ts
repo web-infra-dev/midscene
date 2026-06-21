@@ -1,9 +1,7 @@
 import type { TModelFamily } from '@midscene/shared/env';
 import type { ModelAdapterDefinition } from '../types';
-import { createAutoGlmLocator } from './locate';
+import { createAutoGlmPlanningTapLocator } from './locate';
 import { createAutoGlmPlanner } from './planning';
-
-const defaultAutoGlmReplanningCycleLimit = 100;
 
 function createAutoGlmAdapter(isMultilingual: boolean): ModelAdapterDefinition {
   return {
@@ -37,12 +35,12 @@ function createAutoGlmAdapter(isMultilingual: boolean): ModelAdapterDefinition {
     planning: {
       kind: 'custom',
       cacheEnabled: false,
-      defaultReplanningCycleLimit: defaultAutoGlmReplanningCycleLimit,
+      defaultReplanningCycleLimit: 100,
       planner: createAutoGlmPlanner(isMultilingual),
     },
     locate: {
       kind: 'custom',
-      locator: createAutoGlmLocator(isMultilingual),
+      planningTapLocator: createAutoGlmPlanningTapLocator(isMultilingual),
     },
   };
 }

@@ -93,7 +93,6 @@ describe('parseUiTarsPlanningResponse failures', () => {
     expect(() =>
       transformUiTarsActions(
         parsedResponse([], 'Thought: I know the next step.'),
-        { shotSize: createPlanOptions().context.shotSize },
       ),
     ).toThrow(
       /Action parser returned no actions\nResponse contains "Thought:" but missing "Action:" line/,
@@ -102,9 +101,7 @@ describe('parseUiTarsPlanningResponse failures', () => {
 
   it('reports malformed responses when the parser returns no actions', () => {
     expect(() =>
-      transformUiTarsActions(parsedResponse([], 'plain malformed response'), {
-        shotSize: createPlanOptions().context.shotSize,
-      }),
+      transformUiTarsActions(parsedResponse([], 'plain malformed response')),
     ).toThrow(
       /Action parser returned no actions\nResponse may be malformed or empty/,
     );

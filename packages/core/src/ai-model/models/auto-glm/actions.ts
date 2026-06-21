@@ -1,40 +1,18 @@
 import type { DeviceAction } from '@/device';
-import type { PixelBbox, PlanningAction, Size } from '@/types';
+import type { PlanningAction } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
-import { finalizePixelBbox } from '../../shared/model-locate-result/bbox';
-import { mapLocateResultToPixelBboxByCoordinates } from '../../shared/model-locate-result/pixel-bbox-mapper';
+import type { CoordinateDistanceAxis } from '../../shared/model-locate-result';
+import type {
+  LocatePlanningAction,
+  ScrollPlanningAction,
+} from '../../shared/planning-action';
 
 const debug = getDebug('auto-glm-actions');
 
-/**
- * Auto-GLM coordinate system range: [0, AUTO_GLM_COORDINATE_MAX]
- */
-export const AUTO_GLM_COORDINATE_MAX = 1000;
-
-type CoordinateDistanceAxis = 'x' | 'y';
-
-function coordinateDistanceToPixels(
+type CoordinateDistanceToPixels = (
   delta: number,
   axis: CoordinateDistanceAxis,
-  size: Size,
-): number {
-  const length = axis === 'x' ? size.width : size.height;
-  return Math.round((Math.abs(delta) * length) / AUTO_GLM_COORDINATE_MAX);
-}
-
-function autoGLMPointToLocatedPixelBbox(
-  point: [number, number],
-  size: Size,
-): PixelBbox {
-  const ctx = { preparedSize: size };
-  const pixelBbox = mapLocateResultToPixelBboxByCoordinates(
-    { type: 'point', coordinates: point },
-    ctx,
-    { shape: 'point', order: 'xy', normalizedBy: AUTO_GLM_COORDINATE_MAX },
-  );
-
-  return finalizePixelBbox(pixelBbox, point, ctx);
-}
+) => number;
 
 export interface BaseAction {
   _metadata: string;
@@ -159,10 +137,10 @@ export function transformAutoGLMAction(
   action: AutoGLMParsedAction,
   {
     actionSpace,
-    shotSize,
+    coordinateDistanceToPixels,
   }: {
     actionSpace?: DeviceAction[];
-    shotSize: Size;
+    coordinateDistanceToPixels: CoordinateDistanceToPixels;
   },
 ): PlanningAction[] {
   try {
@@ -204,14 +182,11 @@ export function transformAutoGLMAction(
                 type: 'Tap',
                 param: {
                   locate: {
-                    locatedPixelBbox: autoGLMPointToLocatedPixelBbox(
-                      tapAction.element,
-                      shotSize,
-                    ),
+                    point: tapAction.element,
                     prompt: '',
                   },
                 },
-              },
+              } satisfies LocatePlanningAction<'Tap'>,
             ];
           }
           case 'Double Tap': {
@@ -223,14 +198,11 @@ export function transformAutoGLMAction(
                 type: 'DoubleClick',
                 param: {
                   locate: {
-                    locatedPixelBbox: autoGLMPointToLocatedPixelBbox(
-                      doubleTapAction.element,
-                      shotSize,
-                    ),
+                    point: doubleTapAction.element,
                     prompt: '',
                   },
                 },
-              },
+              } satisfies LocatePlanningAction<'DoubleClick'>,
             ];
           }
           case 'Type': {
@@ -250,7 +222,7 @@ export function transformAutoGLMAction(
             const swipeAction = doAction as SwipeAction;
             debug('Transform Swipe action:', swipeAction);
 
-            // Calculate horizontal and vertical delta in [0,AUTO_GLM_COORDINATE_MAX] coordinate system
+            // Calculate horizontal and vertical delta in the model coordinate system.
             const deltaX = swipeAction.end[0] - swipeAction.start[0];
             const deltaY = swipeAction.end[1] - swipeAction.start[1];
 
@@ -263,11 +235,11 @@ export function transformAutoGLMAction(
 
             if (absDeltaY > absDeltaX) {
               // Vertical scroll
-              distance = coordinateDistanceToPixels(deltaY, 'y', shotSize);
+              distance = coordinateDistanceToPixels(deltaY, 'y');
               direction = deltaY > 0 ? 'up' : 'down';
             } else {
               // Horizontal scroll
-              distance = coordinateDistanceToPixels(deltaX, 'x', shotSize);
+              distance = coordinateDistanceToPixels(deltaX, 'x');
               direction = deltaX > 0 ? 'left' : 'right';
             }
 
@@ -280,10 +252,7 @@ export function transformAutoGLMAction(
                 type: 'Scroll',
                 param: {
                   locate: {
-                    locatedPixelBbox: autoGLMPointToLocatedPixelBbox(
-                      swipeAction.start,
-                      shotSize,
-                    ),
+                    point: swipeAction.start,
                     prompt: '',
                   },
                   // The scrolling direction here all refers to which direction of the page's content will appear on the screen.
@@ -291,7 +260,7 @@ export function transformAutoGLMAction(
                   direction,
                 },
                 thought: swipeAction.think || '',
-              },
+              } satisfies ScrollPlanningAction,
             ];
           }
           case 'Long Press': {
@@ -303,15 +272,12 @@ export function transformAutoGLMAction(
                 type: 'LongPress',
                 param: {
                   locate: {
-                    locatedPixelBbox: autoGLMPointToLocatedPixelBbox(
-                      longPressAction.element,
-                      shotSize,
-                    ),
+                    point: longPressAction.element,
                     prompt: '',
                   },
                 },
                 thought: longPressAction.think || '',
-              },
+              } satisfies LocatePlanningAction<'LongPress'>,
             ];
           }
           case 'Back': {

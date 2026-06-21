@@ -12,11 +12,12 @@ import type {
 import type {
   LocateResultAdapter,
   LocateResultAdapterDefinition,
+  ResolvedLocateResultCoordinates,
 } from '../shared/model-locate-result/types';
 import type { ImagePreprocessPolicy } from '../workflows/image-preprocess';
-import type { PlanningActionLocatorDefinition } from '../workflows/inspect/planning-action-locate';
+import type { PlanningTapLocatorDefinition } from '../workflows/inspect/planning-action-locate';
 import type { LocateFn } from '../workflows/inspect/types';
-import type { CustomPlanningDefinition } from '../workflows/planning/custom-planning';
+import type { CustomPlanningDefinition } from '../workflows/planning/custom-planning-types';
 import type { PlanFn } from '../workflows/planning/types';
 
 export type {
@@ -125,6 +126,7 @@ export type PlanningAdapter =
   | (PlanningPolicy & {
       kind: 'custom';
       planFn: PlanFn;
+      coordinateSystem?: ResolvedLocateResultCoordinates;
     });
 
 export type PlanningDefinition =
@@ -180,10 +182,10 @@ type CustomLocateDefinition = Partial<LocatePolicy> & {
 } & (
     | {
         locateFn: LocateFn;
-        locator?: never;
+        planningTapLocator?: never;
       }
     | {
-        locator: PlanningActionLocatorDefinition;
+        planningTapLocator: PlanningTapLocatorDefinition;
         locateFn?: never;
       }
   );

@@ -1,5 +1,5 @@
 import type { PixelBbox, PlanningAction } from '@/types';
-import type { PlanningActionLocatorDefinition } from '../../workflows/inspect/planning-action-locate';
+import type { PlanningTapLocatorDefinition } from '../../workflows/inspect/planning-action-locate';
 import {
   getAutoGLMChineseLocatePrompt,
   getAutoGLMMultilingualLocatePrompt,
@@ -25,9 +25,9 @@ function getTapLocatedPixelBbox(
   return undefined;
 }
 
-export function createAutoGlmLocator(
+export function createAutoGlmPlanningTapLocator(
   isMultilingual: boolean,
-): PlanningActionLocatorDefinition {
+): PlanningTapLocatorDefinition {
   return {
     buildSystemPrompt: () =>
       isMultilingual
