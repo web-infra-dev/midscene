@@ -1,14 +1,14 @@
 import type { TModelFamily } from '@midscene/shared/env';
+import type {
+  ChatCompletionCallContext,
+  ChatCompletionParamsResult,
+  ModelAdapterDefinition,
+} from '../model-adapter/types';
 import {
   type LocateResultValue,
   type PixelBbox,
   unwrapCoordinateListLikeInput,
 } from '../shared/model-locate-result';
-import type {
-  ChatCompletionCallContext,
-  ChatCompletionParamsResult,
-  ModelAdapterDefinition,
-} from './types';
 
 const defaultBboxSize = 20;
 

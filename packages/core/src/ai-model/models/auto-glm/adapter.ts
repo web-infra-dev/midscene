@@ -1,5 +1,5 @@
 import type { TModelFamily } from '@midscene/shared/env';
-import type { ModelAdapterDefinition } from '../types';
+import type { ModelAdapterDefinition } from '../../model-adapter/types';
 import { createAutoGlmPlanningTapLocator } from './locate';
 import { createAutoGlmPlanner } from './planning';
 

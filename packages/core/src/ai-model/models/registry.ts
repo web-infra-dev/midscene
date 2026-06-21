@@ -1,5 +1,11 @@
 import type { IModelConfig, TModelFamily } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
+import { ResolvedModelAdapter } from '../model-adapter/resolve';
+import type {
+  ModelAdapter,
+  ModelAdapterDefinition,
+  ModelRuntime,
+} from '../model-adapter/types';
 import { autoGlmAdapters } from './auto-glm/adapter';
 import { defaultOpenAICompatibleAdapterConfig } from './default';
 import { doubaoAdapters } from './doubao';
@@ -9,12 +15,6 @@ import { gptAdapters } from './gpt';
 import { kimiAdapters } from './kimi';
 import { mimoAdapters } from './mimo';
 import { qwenAdapters } from './qwen';
-import { ResolvedModelAdapter } from './resolved';
-import type {
-  ModelAdapter,
-  ModelAdapterDefinition,
-  ModelRuntime,
-} from './types';
 import { uiTarsAdapters } from './ui-tars/adapter';
 
 export const MODEL_ADAPTER_CONFIGS = {

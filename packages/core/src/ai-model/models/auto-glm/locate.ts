@@ -1,5 +1,5 @@
 import type { PixelBbox, PlanningAction } from '@/types';
-import type { PlanningTapLocatorDefinition } from '../../workflows/inspect/planning-action-locate';
+import type { PlanningTapLocatorDefinition } from '../../model-adapter/types';
 import {
   getAutoGLMChineseLocatePrompt,
   getAutoGLMMultilingualLocatePrompt,

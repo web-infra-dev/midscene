@@ -1,5 +1,5 @@
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { qwenAdapters } from '@/ai-model/models/qwen';
-import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import { describe, expect, it } from 'vitest';
 
 const qwen25Adapter = new ResolvedModelAdapter(

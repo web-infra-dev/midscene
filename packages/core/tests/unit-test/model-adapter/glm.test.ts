@@ -1,5 +1,5 @@
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { glmAdapters } from '@/ai-model/models/glm';
-import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import { describe, expect, it } from 'vitest';
 
 const glmAdapter = new ResolvedModelAdapter(glmAdapters['glm-v'], 'glm-v');

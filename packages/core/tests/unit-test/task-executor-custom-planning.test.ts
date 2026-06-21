@@ -36,9 +36,9 @@ vi.mock('../../src/ai-model/service-caller/index', () => {
 
 import { TaskExecutor } from '@/agent/tasks';
 import { getMidsceneLocationSchema } from '@/ai-model';
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
+import type { ModelRuntime } from '@/ai-model/model-adapter/types';
 import { getModelRuntime } from '@/ai-model/models';
-import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
-import type { ModelRuntime } from '@/ai-model/models/types';
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';

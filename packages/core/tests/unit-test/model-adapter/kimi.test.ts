@@ -1,5 +1,5 @@
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { kimiAdapters } from '@/ai-model/models/kimi';
-import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import { describe, expect, it } from 'vitest';
 
 const kimiAdapter = new ResolvedModelAdapter(kimiAdapters.kimi, 'kimi');

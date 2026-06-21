@@ -1,7 +1,7 @@
+import type { CustomPlanningDefinition } from '@/ai-model/model-adapter/custom-planning-types';
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelAdapter } from '@/ai-model/models';
 import { MODEL_ADAPTER_CONFIGS } from '@/ai-model/models/registry';
-import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
-import type { CustomPlanningDefinition } from '@/ai-model/workflows/planning/custom-planning-types';
 import { MODEL_FAMILY_VALUES } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
 

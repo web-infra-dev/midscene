@@ -3,7 +3,7 @@ import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
   ModelAdapterDefinition,
-} from './types';
+} from '../model-adapter/types';
 
 const buildGlmChatCompletionParams = (
   input: ChatCompletionCallContext,

@@ -1,13 +1,13 @@
 import type { DeviceAction } from '@/device';
-import type { PixelBbox, PlanningAction } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { z } from 'zod';
 import { type TUserPrompt, getMidsceneLocationSchema } from '../../../common';
 import { ConversationHistory } from '../../conversation-history';
+import type { ResolvedCustomPlanningDefinition } from '../../model-adapter/custom-planning-types';
+import type { PlanningTapLocatorDefinition } from '../../model-adapter/types';
 import { AIResponseParseError } from '../../service-caller/index';
 import { runCustomPlanning } from '../planning/custom-planning';
-import type { ResolvedCustomPlanningDefinition } from '../planning/custom-planning-types';
 import type { PlanOptions } from '../planning/types';
 import type {
   LocateFn,
@@ -28,11 +28,6 @@ const planningActionLocatorActionSpace: DeviceAction[] = [
     call: async () => undefined,
   },
 ];
-
-export interface PlanningTapLocatorDefinition {
-  buildSystemPrompt(): string;
-  getLocatedPixelBbox(actions: PlanningAction[]): PixelBbox | undefined;
-}
 
 async function buildPlanningTapLocatorPlanOptions(
   locateRequest: LocateRequestContext,

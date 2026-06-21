@@ -1,3 +1,4 @@
+import type { PixelBbox, PlanningAction } from '@/types';
 import type {
   IModelConfig,
   TIntent,
@@ -15,10 +16,9 @@ import type {
   ResolvedLocateResultCoordinates,
 } from '../shared/model-locate-result/types';
 import type { ImagePreprocessPolicy } from '../workflows/image-preprocess';
-import type { PlanningTapLocatorDefinition } from '../workflows/inspect/planning-action-locate';
 import type { LocateFn } from '../workflows/inspect/types';
-import type { CustomPlanningDefinition } from '../workflows/planning/custom-planning-types';
 import type { PlanFn } from '../workflows/planning/types';
+import type { CustomPlanningDefinition } from './custom-planning-types';
 
 export type {
   ImagePreprocessPolicy,
@@ -176,6 +176,11 @@ type StandardLocateDefinition = Partial<LocatePolicy> & {
   kind?: 'standard';
   resultAdapter?: LocateResultAdapterDefinition;
 };
+
+export interface PlanningTapLocatorDefinition {
+  buildSystemPrompt(): string;
+  getLocatedPixelBbox(actions: PlanningAction[]): PixelBbox | undefined;
+}
 
 type CustomLocateDefinition = Partial<LocatePolicy> & {
   kind: 'custom';

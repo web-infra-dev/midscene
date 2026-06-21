@@ -1,5 +1,5 @@
 import type { UITarsModelVersion } from '@midscene/shared/env';
-import type { CustomPlanningDefinition } from '../../workflows/planning/custom-planning-types';
+import type { CustomPlanningDefinition } from '../../model-adapter/custom-planning-types';
 import { transformUiTarsActions } from './actions';
 import {
   type UiTarsParsedPlanningResponse,

@@ -1,6 +1,13 @@
 import type { TModelFamily } from '@midscene/shared/env';
 import { assert } from '@midscene/shared/utils';
 import { jsonrepair } from 'jsonrepair';
+import type {
+  ChatCompletionCallContext,
+  ChatCompletionParamsResult,
+  JsonParserContext,
+  JsonParserSource,
+  ModelAdapterDefinition,
+} from '../model-adapter/types';
 import {
   extractJSONFromCodeBlock,
   safeParseJson,
@@ -9,13 +16,6 @@ import {
   type LocateResultValue,
   unwrapCoordinateListLikeInput,
 } from '../shared/model-locate-result';
-import type {
-  ChatCompletionCallContext,
-  ChatCompletionParamsResult,
-  JsonParserContext,
-  JsonParserSource,
-  ModelAdapterDefinition,
-} from './types';
 
 export function normalizeDoubaoJsonObject(
   obj: any,

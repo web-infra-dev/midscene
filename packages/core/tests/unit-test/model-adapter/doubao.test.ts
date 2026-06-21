@@ -1,3 +1,4 @@
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import {
   doubaoAdapters,
   normalizeDoubaoJsonObject,
@@ -5,7 +6,6 @@ import {
   preprocessDoubaoLocateJson,
   shouldRepairDoubaoLocateJson,
 } from '@/ai-model/models/doubao';
-import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import { describe, expect, it } from 'vitest';
 
 const doubaoVisionAdapter = new ResolvedModelAdapter(
