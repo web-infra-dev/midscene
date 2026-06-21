@@ -1,50 +1,19 @@
 import { type TUserPrompt, userPromptToString } from '@/common';
 import type { PlanningAIResponse, PlanningAction } from '@/types';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
+import { ScreenshotItem } from '../../../screenshot-item';
 import {
   AIResponseParseError,
   callAIWithStringResponse,
 } from '../../service-caller/index';
+import { prepareModelImage } from '../image-preprocess';
+import type {
+  CustomPlanningInput,
+  CustomPlanningMessageConfig,
+  ResolvedCustomPlanningDefinition,
+} from './custom-planning-types';
+import { normalizePlanningActionLocateFields } from './locate-normalization';
 import type { PlanOptions } from './types';
-
-export interface CustomPlanningInput {
-  // Original prompt from aiAct. Multimodal images are extracted before planning
-  // and passed through PlanOptions.referenceImageMessages.
-  userInstruction: TUserPrompt;
-  // Text-only instruction used for prompt construction.
-  userInstructionText: string;
-  options: PlanOptions;
-}
-
-export interface CustomPlanningDefinition<TParsed = unknown> {
-  messages: CustomPlanningMessageConfig<TParsed>;
-  parseResponse(rawResponse: string, input: CustomPlanningInput): TParsed;
-  transformActions(
-    parsed: TParsed,
-    input: CustomPlanningInput,
-  ): PlanningAction[];
-  shouldContinuePlanning(parsed: TParsed, actions: PlanningAction[]): boolean;
-  buildResponseLog(parsed: TParsed, rawResponse: string): string;
-}
-
-export interface CustomPlanning {
-  plan(
-    userInstruction: TUserPrompt,
-    options: PlanOptions,
-  ): Promise<PlanningAIResponse>;
-}
-
-export interface CustomPlanningMessageConfig<TParsed = unknown> {
-  systemPromptPlacement: 'system-message' | 'user-message';
-  buildSystemPrompt(): string;
-  historyImageLimit?: number;
-  buildUserInstruction?: (userInstruction: string) => string;
-  buildAssistantContent?: (
-    parsed: TParsed,
-    rawResponse: string,
-    input: CustomPlanningInput,
-  ) => string | undefined;
-}
 
 function appendHighPriorityKnowledge(
   systemPrompt: string,
@@ -120,20 +89,40 @@ export function buildCustomPlanningMessages<TParsed>(
 export async function runCustomPlanning<TParsed>(
   userInstruction: TUserPrompt,
   options: PlanOptions,
-  config: CustomPlanningDefinition<TParsed>,
+  config: ResolvedCustomPlanningDefinition<TParsed>,
 ): Promise<PlanningAIResponse> {
+  const { context } = options;
+  const preparedImage = await prepareModelImage({
+    imageBase64: context.screenshot.base64,
+    width: context.shotSize.width,
+    height: context.shotSize.height,
+    policy: options.modelRuntime.adapter.imagePreprocess,
+  });
+  const preparedOptions: PlanOptions = {
+    ...options,
+    context: {
+      ...context,
+      screenshot: ScreenshotItem.create(
+        preparedImage.imageBase64,
+        context.screenshot.capturedAt,
+      ),
+      shotSize: preparedImage.preparedSize,
+    },
+  };
   const input: CustomPlanningInput = {
     userInstruction,
     userInstructionText: userPromptToString(userInstruction),
-    options,
+    options: preparedOptions,
+    coordinateSystem: config.coordinateSystem,
   };
 
   const messages = buildCustomPlanningMessages(input, config.messages);
   const { content, usage, rawChoiceMessage } = await callAIWithStringResponse(
     messages,
-    options.modelRuntime,
+    preparedOptions.modelRuntime,
     {
-      abortSignal: options.abortSignal,
+      abortSignal: preparedOptions.abortSignal,
+      requiresOriginalImageDetail: preparedOptions.includeLocateInPlanning,
     },
   );
 
@@ -144,6 +133,15 @@ export async function runCustomPlanning<TParsed>(
   try {
     parsed = config.parseResponse(content, input);
     actions = config.transformActions(parsed, input);
+    normalizePlanningActionLocateFields(actions, {
+      actionSpace: preparedOptions.actionSpace,
+      includeLocateInPlanning: preparedOptions.includeLocateInPlanning,
+      locateResultAdapter: config.coordinateNormalizer,
+      locateResultContext: {
+        preparedSize: preparedImage.preparedSize,
+        contentSize: preparedImage.contentSize,
+      },
+    });
     shouldContinuePlanning = config.shouldContinuePlanning(parsed, actions);
   } catch (parseError) {
     const errorMessage = `Parse error: ${
@@ -176,14 +174,5 @@ export async function runCustomPlanning<TParsed>(
     shouldContinuePlanning,
     rawResponse: JSON.stringify(content, undefined, 2),
     rawChoiceMessage,
-  };
-}
-
-export function resolveCustomPlanning<TParsed>(
-  config: CustomPlanningDefinition<TParsed>,
-): CustomPlanning {
-  return {
-    plan: (userInstruction: TUserPrompt, options: PlanOptions) =>
-      runCustomPlanning(userInstruction, options, config),
   };
 }

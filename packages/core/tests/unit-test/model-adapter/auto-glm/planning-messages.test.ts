@@ -1,9 +1,10 @@
+import { resolveCustomPlanningDefinition } from '@/ai-model/adapter-resolver/custom-planning';
 import { ConversationHistory } from '@/ai-model/conversation-history';
 import { autoGlmAdapters } from '@/ai-model/models/auto-glm/adapter';
 import { createAutoGlmPlanner } from '@/ai-model/models/auto-glm/planning';
 import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
-import { resolveCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
+import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
 import type { UIContext } from '@/types';
 import type { ChatCompletionUserMessageParam } from 'openai/resources/index';
@@ -80,9 +81,10 @@ function createPlanOptions(overrides: Partial<PlanOptions> = {}): PlanOptions {
 }
 
 function runAutoGlmPlanning(userInstruction: string, options: PlanOptions) {
-  return resolveCustomPlanning(createAutoGlmPlanner(false)).plan(
+  return runCustomPlanning(
     userInstruction,
     options,
+    resolveCustomPlanningDefinition(createAutoGlmPlanner(false)),
   );
 }
 
@@ -127,7 +129,10 @@ describe('createAutoGlmPlanner messages', () => {
     expect(runtime).toMatchObject({
       config: expect.objectContaining({ modelFamily: 'auto-glm' }),
     });
-    expect(callOptions).toEqual({ abortSignal: abortController.signal });
+    expect(callOptions).toEqual({
+      abortSignal: abortController.signal,
+      requiresOriginalImageDetail: true,
+    });
     expect(messages[0]).toMatchObject({
       role: 'system',
       content: expect.stringContaining(

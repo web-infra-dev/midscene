@@ -1,8 +1,10 @@
+import { resolveCustomPlanningDefinition } from '../adapter-resolver/custom-planning';
 import { normalJsonParser } from '../service-caller/json';
 import { createLocateResultAdapter } from '../shared/model-locate-result/factory';
 import type { LocateResultAdapterDefinition } from '../shared/model-locate-result/types';
-import { resolvePlanningActionLocator } from '../workflows/inspect/planning-action-locate';
-import { resolveCustomPlanning } from '../workflows/planning/custom-planning';
+import { resolvePlanningTapLocator } from '../workflows/inspect/planning-action-locate';
+import { runCustomPlanning } from '../workflows/planning/custom-planning';
+import type { ResolvedCustomPlanningDefinition } from '../workflows/planning/custom-planning-types';
 import { defaultExtractContentAndReasoning } from './chat-content';
 import type {
   ChatCompletionAdapter,
@@ -94,12 +96,23 @@ function resolveImagePreprocess(
 
 function resolvePlanning(
   planning: ModelAdapterDefinition['planning'],
+  resolvedCustomPlanner?: ResolvedCustomPlanningDefinition,
 ): PlanningAdapter {
   if (planning?.kind === 'custom') {
-    const planFn =
-      typeof planning.planFn === 'function'
-        ? planning.planFn
-        : resolveCustomPlanning(planning.planner).plan;
+    if (typeof planning.planFn === 'function') {
+      return {
+        kind: 'custom',
+        cacheEnabled: planning.cacheEnabled ?? true,
+        defaultReplanningCycleLimit:
+          planning.defaultReplanningCycleLimit ?? defaultReplanningCycleLimit,
+        supportsActionDeepLocate: planning.supportsActionDeepLocate ?? false,
+        planFn: planning.planFn,
+      };
+    }
+
+    if (!resolvedCustomPlanner) {
+      throw new Error('Custom planning planner definition is not resolved');
+    }
 
     return {
       kind: 'custom',
@@ -107,7 +120,9 @@ function resolvePlanning(
       defaultReplanningCycleLimit:
         planning.defaultReplanningCycleLimit ?? defaultReplanningCycleLimit,
       supportsActionDeepLocate: planning.supportsActionDeepLocate ?? false,
-      planFn,
+      coordinateSystem: resolvedCustomPlanner.coordinateSystem,
+      planFn: (userInstruction, options) =>
+        runCustomPlanning(userInstruction, options, resolvedCustomPlanner),
     };
   }
 
@@ -122,32 +137,29 @@ function resolvePlanning(
 
 function resolveLocate(
   locate: ModelAdapterDefinition['locate'],
-  planning: ModelAdapterDefinition['planning'],
+  resolvedCustomPlanner: ResolvedCustomPlanningDefinition | undefined,
 ): LocateAdapter {
   if (locate?.kind === 'custom') {
     let locateFn = locate.locateFn;
 
     if (!locateFn) {
-      const locator = locate.locator;
+      const planningTapLocator = locate.planningTapLocator;
 
-      if (!locator) {
+      if (!planningTapLocator) {
         throw new Error(
-          'Custom locate definition requires either locateFn or locator',
+          'Custom locate definition requires either locateFn or planningTapLocator',
         );
       }
 
-      const planner =
-        planning?.kind === 'custom' && 'planner' in planning
-          ? planning.planner
-          : undefined;
-
-      if (!planner) {
+      if (!resolvedCustomPlanner) {
         throw new Error(
-          'Custom locator requires a custom planning planner definition',
+          'Custom planning tap locator requires a custom planning planner definition',
         );
       }
-
-      locateFn = resolvePlanningActionLocator(locator, planner);
+      locateFn = resolvePlanningTapLocator(
+        planningTapLocator,
+        resolvedCustomPlanner,
+      );
     }
 
     return {
@@ -177,7 +189,12 @@ export class ResolvedModelAdapter implements ModelAdapter {
     this.jsonParser = resolveJsonParser(config.jsonParser);
     this.chatCompletion = resolveChatCompletion(config.chatCompletion);
     this.imagePreprocess = resolveImagePreprocess(config.imagePreprocess);
-    this.planning = resolvePlanning(config.planning);
-    this.locate = resolveLocate(config.locate, config.planning);
+    const customPlanner =
+      config.planning?.kind === 'custom' ? config.planning.planner : undefined;
+    const resolvedCustomPlanner = customPlanner
+      ? resolveCustomPlanningDefinition(customPlanner)
+      : undefined;
+    this.planning = resolvePlanning(config.planning, resolvedCustomPlanner);
+    this.locate = resolveLocate(config.locate, resolvedCustomPlanner);
   }
 }

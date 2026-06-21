@@ -1,5 +1,6 @@
 import { AiLocateElement } from '@/ai-model/inspect';
 import { autoGlmAdapters } from '@/ai-model/models/auto-glm/adapter';
+import { createAutoGlmPlanningTapLocator } from '@/ai-model/models/auto-glm/locate';
 import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
 import type { LocateOptions } from '@/ai-model/workflows/inspect/types';
@@ -55,6 +56,38 @@ const context: UIContext = {
   },
   shrunkShotToLogicalRatio: 1,
 };
+
+describe('Auto-GLM planning tap locator definition', () => {
+  it('selects locate prompt by language mode', () => {
+    expect(
+      createAutoGlmPlanningTapLocator(false).buildSystemPrompt(),
+    ).toContain('你的目标是定位并点击用户指定的UI元素');
+    expect(createAutoGlmPlanningTapLocator(true).buildSystemPrompt()).toContain(
+      'Your goal is to locate and tap the UI element specified by the user',
+    );
+  });
+
+  it('extracts the located pixel bbox from the first Tap action only', () => {
+    const locator = createAutoGlmPlanningTapLocator(false);
+
+    expect(
+      locator.getLocatedPixelBbox([
+        { type: 'Scroll', param: {} },
+        {
+          type: 'Tap',
+          param: {
+            locate: {
+              locatedPixelBbox: [10, 20, 30, 40],
+            },
+          },
+        },
+      ] as any),
+    ).toEqual([10, 20, 30, 40]);
+    expect(
+      locator.getLocatedPixelBbox([{ type: 'Scroll', param: {} }] as any),
+    ).toBeUndefined();
+  });
+});
 
 function createLocateOptions(): LocateOptions {
   return {

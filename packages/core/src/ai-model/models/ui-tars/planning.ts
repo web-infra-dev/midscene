@@ -1,5 +1,5 @@
 import type { UITarsModelVersion } from '@midscene/shared/env';
-import type { CustomPlanningDefinition } from '../../workflows/planning/custom-planning';
+import type { CustomPlanningDefinition } from '../../workflows/planning/custom-planning-types';
 import { transformUiTarsActions } from './actions';
 import {
   type UiTarsParsedPlanningResponse,
@@ -19,6 +19,7 @@ export function createUiTarsPlanner(
       buildAssistantContent: (_parsedResponse, rawResponse) =>
         getSummary(rawResponse),
     },
+    coordinates: { shape: 'point', order: 'xy', normalizedBy: 1 },
     parseResponse: (rawResponse, { options }) => {
       return parseUiTarsPlanningResponse(
         rawResponse,
@@ -26,10 +27,8 @@ export function createUiTarsPlanner(
         uiTarsModelVersion,
       );
     },
-    transformActions: (parsedPlanningResponse, { options }) => {
-      return transformUiTarsActions(parsedPlanningResponse, {
-        shotSize: options.context.shotSize,
-      });
+    transformActions: (parsedPlanningResponse) => {
+      return transformUiTarsActions(parsedPlanningResponse);
     },
     shouldContinuePlanning: (_parsedResponse, actions) =>
       actions.every((action) => action.type !== 'Finished'),

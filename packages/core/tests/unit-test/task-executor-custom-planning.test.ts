@@ -74,6 +74,7 @@ function createCustomPlanningModel(plannedActions: any[] = []): ModelRuntime {
               systemPromptPlacement: 'system-message',
               buildSystemPrompt: () => '',
             },
+            coordinates: { shape: 'point', order: 'xy', normalizedBy: 1000 },
             parseResponse: () => null,
             transformActions: () => plannedActions,
             shouldContinuePlanning: () => false,

@@ -1,15 +1,17 @@
+import { resolveCustomPlanningDefinition } from '@/ai-model/adapter-resolver/custom-planning';
 import { ConversationHistory } from '@/ai-model/conversation-history';
 import { getModelRuntime } from '@/ai-model/models';
 import { ResolvedModelAdapter } from '@/ai-model/models/resolved';
 import { uiTarsAdapters } from '@/ai-model/models/ui-tars/adapter';
 import { createUiTarsPlanner } from '@/ai-model/models/ui-tars/planning';
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
-import { resolveCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
+import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
 import type { UIContext } from '@/types';
 import { UITarsModelVersion } from '@midscene/shared/env';
 import type { ChatCompletionUserMessageParam } from 'openai/resources/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockActionSpace } from '../../../common';
 
 vi.mock('@/ai-model/service-caller/index', async (importOriginal) => {
   const actual =
@@ -47,7 +49,7 @@ const uiTarsAdapter = new ResolvedModelAdapter(
 function createPlanOptions(overrides: Partial<PlanOptions> = {}): PlanOptions {
   return {
     context,
-    actionSpace: [],
+    actionSpace: mockActionSpace,
     modelRuntime,
     conversationHistory: new ConversationHistory(),
     includeLocateInPlanning: true,
@@ -60,9 +62,10 @@ function runUiTarsPlanning(
   options: PlanOptions,
   uiTarsModelVersion: UITarsModelVersion,
 ) {
-  return resolveCustomPlanning(createUiTarsPlanner(uiTarsModelVersion)).plan(
+  return runCustomPlanning(
     userInstruction,
     options,
+    resolveCustomPlanningDefinition(createUiTarsPlanner(uiTarsModelVersion)),
   );
 }
 
@@ -162,7 +165,10 @@ Action: click(start_box='(500,500)')`,
     const [messages, runtime, callOptions] = vi.mocked(callAIWithStringResponse)
       .mock.calls[0];
     expect(runtime).toBe(modelRuntime);
-    expect(callOptions).toEqual({ abortSignal: abortController.signal });
+    expect(callOptions).toEqual({
+      abortSignal: abortController.signal,
+      requiresOriginalImageDetail: true,
+    });
     expect(messages[0]).toMatchObject({
       role: 'user',
       content: expect.stringContaining(
